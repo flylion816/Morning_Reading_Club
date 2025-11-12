@@ -2,216 +2,223 @@
 
 .page-profile {
   min-height: 100vh;
-  background: var(--color-bg-secondary);
-  padding-bottom: 40rpx;
+  background: #f5f5f5;
+  padding: 24rpx;
+  padding-bottom: 120rpx;
 }
 
-/* 头部区域 */
-.profile-header {
-  position: relative;
-  padding: 80rpx 32rpx 48rpx;
+/* 用户信息卡片 */
+.user-card {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  overflow: hidden;
+  color: white;
+  padding: 32rpx;
+  border-radius: 16rpx;
+  text-align: center;
+  margin-bottom: 24rpx;
 }
 
-.header-bg {
-  position: absolute;
-  top: -100rpx;
-  right: -100rpx;
-  width: 400rpx;
-  height: 400rpx;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+.user-avatar-wrapper {
+  width: 100rpx;
+  height: 100rpx;
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-}
-
-/* 用户信息 */
-.user-info-wrapper {
+  margin: 0 auto 16rpx;
   display: flex;
   align-items: center;
-  gap: 32rpx;
-  position: relative;
-  z-index: 1;
+  justify-content: center;
 }
 
-.user-avatar {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 50%;
-  border: 6rpx solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
-}
-
-.user-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
+.user-avatar-emoji {
+  font-size: 48rpx;
 }
 
 .user-nickname {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+  font-weight: bold;
+  font-size: 26rpx;
+  margin-bottom: 8rpx;
 }
 
-.user-join-date {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.85);
+.user-signature {
+  font-size: 24rpx;
+  opacity: 0.8;
 }
 
 /* 未登录状态 */
 .login-prompt {
+  cursor: pointer;
+}
+
+.login-text {
+  font-size: 26rpx;
+  font-weight: bold;
+}
+
+/* 收到的小凡看见请求区域 */
+.request-section {
+  background: white;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.request-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.request-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.request-title {
+  flex: 1;
+  font-weight: bold;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.request-badge {
+  background: #ff4444;
+  color: white;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  font-weight: bold;
+  min-width: 32rpx;
+  text-align: center;
+}
+
+.request-list {
   display: flex;
   flex-direction: column;
+  gap: 12rpx;
+}
+
+.request-item {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 32rpx;
-  position: relative;
-  z-index: 1;
+  padding: 16rpx;
+  background: #f9f9f9;
+  border-radius: 12rpx;
 }
 
-.login-avatar {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 50%;
-  border: 6rpx solid rgba(255, 255, 255, 0.3);
-  opacity: 0.6;
+.request-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
 }
 
-.login-btn {
-  padding: 20rpx 60rpx;
-  background: white;
-  color: #4a90e2;
-  border-radius: 60rpx;
-  font-size: 28rpx;
-  font-weight: 600;
+.request-user-emoji {
+  font-size: 40rpx;
+}
+
+.request-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.request-user-name {
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 500;
+}
+
+.request-time {
+  font-size: 22rpx;
+  color: #999999;
+}
+
+.request-btn {
+  padding: 8rpx 24rpx;
+  background: #4a90e2;
+  color: white;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+  border-radius: 32rpx;
+  font-size: 24rpx;
 }
 
-.login-btn::after {
+.request-btn::after {
   border: none;
+}
+
+.request-empty {
+  text-align: center;
+  padding: 40rpx 0;
+  font-size: 26rpx;
+  color: #999999;
 }
 
 /* 统计卡片 */
 .stats-card {
-  display: flex;
   background: white;
-  margin: -40rpx 32rpx 32rpx;
-  padding: 40rpx 0;
-  border-radius: 24rpx;
-  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
-  position: relative;
-  z-index: 2;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
 }
 
-.stat-item {
-  flex: 1;
+.card-title {
+  font-weight: bold;
+  font-size: 28rpx;
+  color: #333333;
+  margin-bottom: 16rpx;
+}
+
+.stats-item {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.stat-value {
-  font-size: 48rpx;
-  font-weight: 700;
-  color: #4a90e2;
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
-.stat-divider {
-  width: 2rpx;
-  height: 60rpx;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    #e5e7eb 20%,
-    #e5e7eb 80%,
-    transparent
-  );
-  align-self: center;
-}
-
-/* 功能菜单 */
-.menu-section {
-  margin: 0 32rpx 32rpx;
-  background: white;
-  border-radius: 24rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 32rpx;
-  border-bottom: 1px solid #f3f4f6;
-  transition: background 0.2s;
-}
-
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-item:active {
-  background: #f9fafb;
-}
-
-.menu-left {
-  display: flex;
   align-items: center;
-  gap: 24rpx;
 }
 
-.menu-icon {
-  font-size: 40rpx;
+.stats-label {
+  font-size: 26rpx;
+  color: #666666;
 }
 
-.menu-title {
-  font-size: 30rpx;
-  color: #2c3e50;
+.stats-value {
+  font-size: 26rpx;
+  color: #333333;
   font-weight: 500;
 }
 
-.menu-arrow {
-  font-size: 48rpx;
-  color: #cbd5e0;
-  font-weight: 300;
-}
-
-/* 退出登录 */
-.logout-section {
-  margin: 0 32rpx;
-}
-
-.logout-btn {
-  width: 100%;
-  padding: 32rpx;
+/* 小凡看见卡片 */
+.insights-card {
   background: white;
-  color: #ff6b6b;
-  border-radius: 24rpx;
-  font-size: 30rpx;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
 }
 
-.logout-btn::after {
-  border: none;
+.insights-link {
+  background: #f0f5ff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  border-left: 8rpx solid #4a90e2;
+  transition: all 0.3s;
 }
 
-.logout-btn:active {
-  opacity: 0.8;
+.insights-link:active {
+  background: linear-gradient(135deg, #e8f4fd 0%, #f0f5ff 100%);
 }
 
-/* 加载遮罩 */
+.insights-link-title {
+  font-weight: bold;
+  color: #4a90e2;
+  font-size: 24rpx;
+  margin-bottom: 8rpx;
+}
+
+.insights-link-desc {
+  font-size: 22rpx;
+  color: #666666;
+  line-height: 1.6;
+}
+
+/* 加载状态 */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -222,7 +229,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 1000;
 }
 
 .loading-spinner {

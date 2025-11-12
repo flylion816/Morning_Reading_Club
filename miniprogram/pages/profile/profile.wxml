@@ -1,84 +1,71 @@
 <!--个人中心页面-->
 <view class="page-profile">
-  <!-- 用户信息区域 -->
-  <view class="profile-header">
-    <!-- 背景装饰 -->
-    <view class="header-bg"></view>
+  <!-- 用户信息卡片 -->
+  <view class="user-card" wx:if="{{isLogin}}">
+    <view class="user-avatar-wrapper">
+      <text class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+    </view>
+    <view class="user-nickname">{{userInfo.nickname || '晨读营用户'}}</view>
+    <view class="user-signature">{{userInfo.signature || '天天开心，觉知当下！'}}</view>
+  </view>
 
-    <!-- 头像和基本信息 -->
-    <view class="user-info-wrapper" wx:if="{{isLogin}}">
-      <image
-        class="user-avatar"
-        src="{{userInfo.avatar_url || '/assets/images/default-avatar.png'}}"
-        mode="aspectFill"
-        bindtap="handleAvatarClick"
-      />
-      <view class="user-details">
-        <text class="user-nickname">{{userInfo.nickname || '晨读营用户'}}</text>
-        <text class="user-join-date" wx:if="{{userInfo.created_at}}">
-          {{formatJoinDate(userInfo.created_at)}}
-        </text>
+  <!-- 未登录状态 -->
+  <view class="user-card login-prompt" wx:else bindtap="handleLogin">
+    <view class="user-avatar-wrapper">
+      <text class="user-avatar-emoji">👤</text>
+    </view>
+    <view class="login-text">点击登录</view>
+  </view>
+
+  <!-- 收到的小凡看见请求区域 -->
+  <view class="request-section" wx:if="{{isLogin}}">
+    <view class="request-header">
+      <text class="request-icon">📬</text>
+      <text class="request-title">收到的小凡看见请求</text>
+      <view class="request-badge" wx:if="{{insightRequests.length > 0}}">
+        {{insightRequests.length}}
       </view>
     </view>
-
-    <!-- 未登录状态 -->
-    <view class="login-prompt" wx:else>
-      <image
-        class="login-avatar"
-        src="/assets/images/default-avatar.png"
-        mode="aspectFill"
-      />
-      <button class="login-btn" bindtap="handleLogin">
-        点击登录
-      </button>
-    </view>
-  </view>
-
-  <!-- 统计数据卡片 -->
-  <view class="stats-card" wx:if="{{isLogin}}">
-    <view class="stat-item">
-      <text class="stat-value">{{stats.total_checkins}}</text>
-      <text class="stat-label">总打卡</text>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-value">{{stats.current_streak}}</text>
-      <text class="stat-label">连续天数</text>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-value">{{stats.total_courses}}</text>
-      <text class="stat-label">学习课程</text>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-value">{{stats.completion_rate}}%</text>
-      <text class="stat-label">完成率</text>
-    </view>
-  </view>
-
-  <!-- 功能菜单 -->
-  <view class="menu-section">
-    <view
-      wx:for="{{menuList}}"
-      wx:key="title"
-      class="menu-item"
-      bindtap="handleMenuClick"
-      data-path="{{item.path}}"
-    >
-      <view class="menu-left">
-        <text class="menu-icon">{{item.icon}}</text>
-        <text class="menu-title">{{item.title}}</text>
+    <view class="request-list">
+      <view
+        wx:for="{{insightRequests}}"
+        wx:key="id"
+        class="request-item"
+        bindtap="handleRequestClick"
+        data-request="{{item}}">
+        <view class="request-item-left">
+          <text class="request-user-emoji">{{item.userAvatar || '😊'}}</text>
+          <view class="request-info">
+            <text class="request-user-name">{{item.userName}}</text>
+            <text class="request-time">{{item.time}}</text>
+          </view>
+        </view>
+        <button class="request-btn" catchtap="handleApproveRequest" data-request="{{item}}">
+          授权
+        </button>
       </view>
-      <text class="menu-arrow">›</text>
+      <view class="request-empty" wx:if="{{insightRequests.length === 0}}">
+        暂无请求
+      </view>
     </view>
   </view>
 
-  <!-- 退出登录按钮 -->
-  <view class="logout-section" wx:if="{{isLogin}}">
-    <button class="logout-btn" bindtap="handleLogout">
-      退出登录
-    </button>
+  <!-- 总体进度统计 -->
+  <view class="stats-card" wx:if="{{isLogin}}" bindtap="navigateToCourses">
+    <view class="card-title">📊 总体进度统计</view>
+    <view class="stats-item">
+      <text class="stats-label">当前进度</text>
+      <text class="stats-value">{{stats.current_day}}/{{stats.total_days}}</text>
+    </view>
+  </view>
+
+  <!-- 小凡看见 - 按章节 -->
+  <view class="insights-card" wx:if="{{isLogin}}">
+    <view class="card-title">✨ 小凡看见 - 按章节</view>
+    <view class="insights-link" bindtap="navigateToInsights">
+      <view class="insights-link-title">查看所有反馈</view>
+      <view class="insights-link-desc">点击查看小凡对你每天的个性化反馈...</view>
+    </view>
   </view>
 
   <!-- 加载状态 -->

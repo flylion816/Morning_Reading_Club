@@ -11,38 +11,15 @@ Page({
 
     // 统计信息
     stats: {
-      total_checkins: 0,
-      current_streak: 0,
-      total_courses: 0,
-      completion_rate: 0
+      current_day: 1,
+      total_days: 23
     },
 
-    // 加载状态
-    loading: true,
+    // 收到的小凡看见请求列表
+    insightRequests: [],
 
-    // 菜单列表
-    menuList: [
-      {
-        icon: '📚',
-        title: '我的课程',
-        path: '/pages/my-courses/my-courses'
-      },
-      {
-        icon: '✨',
-        title: '小凡看见',
-        path: '/pages/insights/insights'
-      },
-      {
-        icon: '✅',
-        title: '打卡记录',
-        path: '/pages/checkin-history/checkin-history'
-      },
-      {
-        icon: '⚙️',
-        title: '设置',
-        path: '/pages/settings/settings'
-      }
-    ]
+    // 加载状态
+    loading: true
   },
 
   onLoad(options) {
@@ -141,89 +118,101 @@ Page({
   },
 
   /**
-   * 点击菜单项
+   * 处理小凡看见请求点击
    */
-  handleMenuClick(e) {
-    const { path } = e.currentTarget.dataset;
+  handleRequestClick(e) {
+    const { request } = e.currentTarget.dataset;
+    console.log('查看请求详情:', request);
 
-    if (!path) {
-      return;
-    }
-
-    // 检查登录状态
-    if (!this.data.isLogin) {
-      wx.showModal({
-        title: '提示',
-        content: '请先登录',
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            this.handleLogin();
-          }
-        }
-      });
-      return;
-    }
-
-    // 跳转到对应页面
-    wx.navigateTo({
-      url: path
-    });
-  },
-
-  /**
-   * 退出登录
-   */
-  handleLogout() {
     wx.showModal({
-      title: '提示',
-      content: '确定要退出登录吗?',
+      title: '授权请求',
+      content: `${request.userName} 请求查看你的小凡看见`,
+      confirmText: '授权',
+      cancelText: '拒绝',
       success: (res) => {
         if (res.confirm) {
-          this.doLogout();
+          this.approveRequest(request);
+        } else {
+          this.rejectRequest(request);
         }
       }
     });
   },
 
   /**
-   * 执行退出登录
+   * 授权请求
    */
-  async doLogout() {
+  handleApproveRequest(e) {
+    const { request } = e.currentTarget.dataset;
+    this.approveRequest(request);
+  },
+
+  /**
+   * 批准请求
+   */
+  async approveRequest(request) {
     try {
-      // 调用后端退出登录接口
-      await authService.logout();
-    } catch (error) {
-      console.error('退出登录失败:', error);
-    } finally {
-      // 清除本地存储
-      wx.removeStorageSync('token');
-      wx.removeStorageSync('refreshToken');
-      wx.removeStorageSync('userInfo');
+      // TODO: 调用API批准请求
+      console.log('批准请求:', request);
 
-      // 更新全局状态
-      const app = getApp();
-      app.globalData.isLogin = false;
-      app.globalData.userInfo = null;
-      app.globalData.token = null;
-
-      // 更新页面状态
-      this.setData({
-        isLogin: false,
-        userInfo: null,
-        stats: {
-          total_checkins: 0,
-          current_streak: 0,
-          total_courses: 0,
-          completion_rate: 0
-        }
-      });
+      // 从列表中移除该请求
+      const newRequests = this.data.insightRequests.filter(r => r.id !== request.id);
+      this.setData({ insightRequests: newRequests });
 
       wx.showToast({
-        title: '已退出登录',
+        title: '已授权',
         icon: 'success'
       });
+    } catch (error) {
+      console.error('授权失败:', error);
+      wx.showToast({
+        title: '授权失败',
+        icon: 'none'
+      });
     }
+  },
+
+  /**
+   * 拒绝请求
+   */
+  async rejectRequest(request) {
+    try {
+      // TODO: 调用API拒绝请求
+      console.log('拒绝请求:', request);
+
+      // 从列表中移除该请求
+      const newRequests = this.data.insightRequests.filter(r => r.id !== request.id);
+      this.setData({ insightRequests: newRequests });
+
+      wx.showToast({
+        title: '已拒绝',
+        icon: 'success'
+      });
+    } catch (error) {
+      console.error('拒绝失败:', error);
+      wx.showToast({
+        title: '操作失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  /**
+   * 跳转到课程列表
+   */
+  navigateToCourses() {
+    wx.switchTab({
+      url: '/pages/index/index'
+    });
+  },
+
+  /**
+   * 跳转到小凡看见列表
+   */
+  navigateToInsights() {
+    wx.navigateTo({
+      url: '/pages/insights/insights'
+    });
   },
 
   /**
