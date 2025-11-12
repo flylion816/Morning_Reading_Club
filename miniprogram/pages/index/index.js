@@ -29,7 +29,36 @@ Page({
   },
 
   onLoad(options) {
-    console.log('首页加载', options);
+    console.log('===== 首页onLoad开始 =====');
+    console.log('options:', options);
+
+    // 先设置一些测试数据
+    this.setData({
+      courses: [
+        {
+          id: 1,
+          title: '测试课程1',
+          startTime: '2025-11-10 08:00:00',
+          endTime: '2025-11-15 08:00:00',
+          checkinCount: 5,
+          isCheckedIn: false
+        }
+      ],
+      displayedCourses: [
+        {
+          id: 1,
+          title: '测试课程1',
+          startTime: '2025-11-10 08:00:00',
+          endTime: '2025-11-15 08:00:00',
+          checkinCount: 5,
+          isCheckedIn: false
+        }
+      ],
+      loading: false
+    });
+
+    console.log('测试数据已设置');
+
     this.checkLoginStatus();
     this.loadCourses();
   },
