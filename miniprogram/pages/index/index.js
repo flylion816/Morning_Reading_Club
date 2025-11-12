@@ -91,20 +91,25 @@ Page({
    * 加载课程列表
    */
   async loadCourses() {
-    if (this.data.loading) return;
+    console.log('loadCourses开始执行');
 
     this.setData({ loading: true });
 
     try {
+      console.log('调用courseService.getCourses');
       const res = await courseService.getCourses({
         page: this.data.page,
         limit: this.data.pageSize
       });
 
-      const courses = res.items || res;
+      console.log('获取到课程数据:', res);
+
+      const courses = res.items || res || [];
       const hasMore = courses.length >= this.data.pageSize;
 
       const allCourses = this.data.page === 1 ? courses : [...this.data.courses, ...courses];
+
+      console.log('准备设置数据，课程数量:', allCourses.length);
 
       this.setData({
         courses: allCourses,
@@ -112,11 +117,19 @@ Page({
         hasMore
       });
 
+      console.log('数据设置完成，开始筛选');
+
       // 更新显示的课程列表
       this.filterCourses();
+
+      console.log('筛选完成');
     } catch (error) {
       console.error('获取课程列表失败:', error);
-      this.setData({ loading: false });
+      this.setData({
+        loading: false,
+        courses: [],
+        displayedCourses: []
+      });
 
       wx.showToast({
         title: '加载失败,请重试',

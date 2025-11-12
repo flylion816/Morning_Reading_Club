@@ -52,7 +52,8 @@ Page({
 
     this.setData({
       isLogin,
-      userInfo
+      userInfo,
+      loading: false  // 设置loading为false
     });
   },
 
