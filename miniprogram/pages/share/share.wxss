@@ -1,0 +1,53 @@
+.page-share {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 40rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.share-card {
+  background: white;
+  border-radius: 24rpx;
+  padding: 48rpx 32rpx;
+  margin-bottom: 48rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  max-width: 600rpx;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4a90e2;
+  margin-bottom: 24rpx;
+  text-align: center;
+}
+
+.card-content {
+  font-size: 28rpx;
+  line-height: 2;
+  color: #333;
+  margin-bottom: 32rpx;
+}
+
+.card-author {
+  font-size: 24rpx;
+  color: #999;
+  text-align: right;
+}
+
+.share-btn {
+  width: 90%;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 48rpx;
+  padding: 28rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.share-btn::after {
+  border: none;
+}

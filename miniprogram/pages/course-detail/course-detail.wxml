@@ -1,0 +1,31 @@
+<view class="page-course-detail">
+  <!-- 课程信息卡片 -->
+  <view class="course-header">
+    <view class="course-title">{{course.title}}</view>
+    <view class="course-period">第{{course.period}}期</view>
+    <view class="course-date">{{course.startDate}} ~ {{course.endDate}}</view>
+  </view>
+
+  <!-- 23天打卡日历 -->
+  <view class="calendar-section">
+    <view class="calendar-title">打卡日历 ({{checkedDays}}/23天)</view>
+    <view class="calendar-grid">
+      <view
+        wx:for="{{calendar}}"
+        wx:key="day"
+        class="calendar-day {{item.status}}"
+        bindtap="handleDayClick"
+        data-day="{{item}}">
+        <text class="day-number">{{item.day}}</text>
+        <text class="day-status">{{item.statusText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 报名按钮 -->
+  <view class="action-section" wx:if="{{!course.isEnrolled}}">
+    <button class="enroll-btn" bindtap="handleEnroll">
+      立即报名
+    </button>
+  </view>
+</view>

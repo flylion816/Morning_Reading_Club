@@ -1,0 +1,21 @@
+<view class="page-checkin">
+  <view class="checkin-header">
+    <view class="day-title">第{{dayNumber}}天 {{dayTitle}}</view>
+    <view class="checkin-prompt">分享你的学习心得</view>
+  </view>
+
+  <view class="form-section">
+    <textarea
+      class="checkin-textarea"
+      placeholder="请输入至少50字的学习心得..."
+      value="{{content}}"
+      bindinput="handleInput"
+      maxlength="500"
+    />
+    <view class="char-count">{{content.length}}/500</view>
+  </view>
+
+  <button class="submit-btn" bindtap="handleSubmit" disabled="{{content.length < 50}}">
+    完成打卡
+  </button>
+</view>

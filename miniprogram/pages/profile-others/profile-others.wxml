@@ -1,0 +1,21 @@
+<view class="page-profile-others">
+  <view class="user-card">
+    <view class="user-avatar-wrapper">
+      <text class="user-avatar-emoji">{{userInfo.avatar || '😊'}}</text>
+    </view>
+    <view class="user-nickname">{{userInfo.nickname}}</view>
+    <view class="user-signature">{{userInfo.signature}}</view>
+  </view>
+
+  <view class="stats-card">
+    <view class="stats-item">
+      <text class="stats-value">{{stats.totalCheckins}}</text>
+      <text class="stats-label">总打卡</text>
+    </view>
+    <view class="stats-divider"></view>
+    <view class="stats-item">
+      <text class="stats-value">{{stats.streak}}</text>
+      <text class="stats-label">连续天数</text>
+    </view>
+  </view>
+</view>

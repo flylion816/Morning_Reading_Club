@@ -1,0 +1,9 @@
+<view class="page-share">
+  <view class="share-card">
+    <view class="card-title">✨ 小凡看见</view>
+    <view class="card-content">{{shareContent}}</view>
+    <view class="card-author">小凡 @凡人学堂</view>
+  </view>
+
+  <button class="share-btn" open-type="share">分享给好友</button>
+</view>

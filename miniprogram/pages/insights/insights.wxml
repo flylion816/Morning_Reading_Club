@@ -1,0 +1,26 @@
+<view class="page-insights">
+  <view class="insights-header">
+    <view class="header-emoji">🦁</view>
+    <view class="header-title">小凡看见</view>
+    <view class="header-desc">按章节查看个性化反馈</view>
+  </view>
+
+  <view class="insights-list">
+    <view
+      wx:for="{{insights}}"
+      wx:key="id"
+      class="insight-item"
+      bindtap="handleInsightClick"
+      data-id="{{item.id}}">
+      <view class="insight-day">第{{item.dayNumber}}天</view>
+      <view class="insight-title">{{item.title}}</view>
+      <view class="insight-preview">{{item.preview}}</view>
+      <view class="insight-date">{{item.date}}</view>
+    </view>
+
+    <view class="empty-state" wx:if="{{insights.length === 0}}">
+      <text class="empty-icon">✨</text>
+      <text class="empty-text">暂无反馈</text>
+    </view>
+  </view>
+</view>
