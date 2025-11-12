@@ -29,9 +29,13 @@ Page({
   },
 
   onLoad(options) {
-    console.log('首页加载', options);
+    console.log('===== 首页onLoad =====');
+    console.log('options:', options);
+    console.log('准备调用checkLoginStatus');
     this.checkLoginStatus();
+    console.log('准备调用loadCourses');
     this.loadCourses();
+    console.log('===== 首页onLoad结束 =====');
   },
 
   onShow() {

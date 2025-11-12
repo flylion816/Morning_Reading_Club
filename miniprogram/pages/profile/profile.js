@@ -29,8 +29,13 @@ Page({
 
   onShow() {
     // 每次显示时刷新数据
+    const app = getApp();
+    const isLogin = app.globalData.isLogin;
+
     this.checkLoginStatus();
-    if (this.data.isLogin) {
+
+    // 直接使用app.globalData.isLogin判断，避免setData异步问题
+    if (isLogin) {
       this.loadUserData();
     }
   },
