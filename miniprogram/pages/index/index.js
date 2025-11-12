@@ -29,13 +29,9 @@ Page({
   },
 
   onLoad(options) {
-    console.log('===== 首页onLoad =====');
-    console.log('options:', options);
-    console.log('准备调用checkLoginStatus');
+    console.log('首页加载', options);
     this.checkLoginStatus();
-    console.log('准备调用loadCourses');
     this.loadCourses();
-    console.log('===== 首页onLoad结束 =====');
   },
 
   onShow() {
@@ -95,25 +91,18 @@ Page({
    * 加载课程列表
    */
   async loadCourses() {
-    console.log('loadCourses开始执行');
-
     this.setData({ loading: true });
 
     try {
-      console.log('调用courseService.getCourses');
       const res = await courseService.getCourses({
         page: this.data.page,
         limit: this.data.pageSize
       });
 
-      console.log('获取到课程数据:', res);
-
       const courses = res.items || res || [];
       const hasMore = courses.length >= this.data.pageSize;
 
       const allCourses = this.data.page === 1 ? courses : [...this.data.courses, ...courses];
-
-      console.log('准备设置数据，课程数量:', allCourses.length);
 
       this.setData({
         courses: allCourses,
@@ -121,12 +110,8 @@ Page({
         hasMore
       });
 
-      console.log('数据设置完成，开始筛选');
-
       // 更新显示的课程列表
       this.filterCourses();
-
-      console.log('筛选完成');
     } catch (error) {
       console.error('获取课程列表失败:', error);
       this.setData({
