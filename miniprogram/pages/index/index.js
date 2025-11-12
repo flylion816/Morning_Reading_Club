@@ -221,15 +221,25 @@ Page({
    * 点击课程卡片
    */
   handleCourseClick(e) {
-    const { course } = e.detail;
+    console.log('===== handleCourseClick 被调用 =====');
+    console.log('事件对象 e:', e);
+    console.log('e.detail:', e.detail);
+    console.log('e.currentTarget:', e.currentTarget);
+
+    const { course } = e.detail || {};
+
+    console.log('解析出的 course:', course);
 
     if (!course || !course.id) {
-      console.error('课程信息不存在');
+      console.error('课程信息不存在，course:', course);
       return;
     }
 
+    console.log('课程信息正常，id:', course.id);
+
     // 检查登录状态
     if (!this.data.isLogin) {
+      console.log('用户未登录，显示登录提示');
       wx.showModal({
         title: '提示',
         content: '请先登录后查看课程详情',

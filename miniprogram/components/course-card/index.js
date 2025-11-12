@@ -32,17 +32,24 @@ Component({
     /**
      * 点击卡片
      */
-    onCardTap() {
+    onCardTap(e) {
+      console.log('===== course-card onCardTap 被调用 =====');
+      console.log('this.properties.course:', this.properties.course);
+      console.log('this.data:', this.data);
+
       // 使用properties.course确保获取到正确的数据
       const course = this.properties.course;
       const { isPending } = this.data;
 
-      console.log('课程卡片被点击:', course);
+      console.log('准备触发事件，course:', course);
+      console.log('准备触发事件，isPending:', isPending);
 
       this.triggerEvent('tap', {
         course,
         isPending
       });
+
+      console.log('事件已触发');
     },
 
     /**
