@@ -33,7 +33,12 @@ Component({
      * 点击卡片
      */
     onCardTap() {
-      const { course, isPending } = this.data;
+      // 使用properties.course确保获取到正确的数据
+      const course = this.properties.course;
+      const { isPending } = this.data;
+
+      console.log('课程卡片被点击:', course);
+
       this.triggerEvent('tap', {
         course,
         isPending
@@ -45,7 +50,10 @@ Component({
      */
     onActionTap(e) {
       e.stopPropagation();
-      const { course, isPending } = this.data;
+      // 使用properties.course确保获取到正确的数据
+      const course = this.properties.course;
+      const { isPending } = this.data;
+
       this.triggerEvent('action', {
         course,
         isPending,
