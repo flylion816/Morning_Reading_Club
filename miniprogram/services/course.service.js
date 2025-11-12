@@ -4,6 +4,8 @@
  */
 
 const request = require('../utils/request');
+const envConfig = require('../config/env');
+const mockCourses = require('../mock/courses');
 
 class CourseService {
   /**
@@ -12,6 +14,14 @@ class CourseService {
    * @returns {Promise}
    */
   getCourses(params = {}) {
+    // Mock模式
+    if (envConfig.useMock) {
+      return Promise.resolve({
+        items: mockCourses.list,
+        total: mockCourses.list.length
+      });
+    }
+
     return request.get('/courses', params);
   }
 
@@ -21,6 +31,11 @@ class CourseService {
    * @returns {Promise}
    */
   getCourseDetail(courseId) {
+    // Mock模式
+    if (envConfig.useMock) {
+      return Promise.resolve(mockCourses.detail);
+    }
+
     return request.get(`/courses/${courseId}`);
   }
 

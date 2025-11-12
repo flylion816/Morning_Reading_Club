@@ -4,6 +4,8 @@
  */
 
 const request = require('../utils/request');
+const envConfig = require('../config/env');
+const mockInsights = require('../mock/insights');
 
 class InsightService {
   /**
@@ -16,11 +18,31 @@ class InsightService {
   }
 
   /**
+   * 获取小凡看见列表（用于insights页面）
+   * @param {Object} params 查询参数
+   * @returns {Promise}
+   */
+  getInsightsList(params = {}) {
+    // Mock模式
+    if (envConfig.useMock) {
+      return Promise.resolve(mockInsights.list);
+    }
+
+    return request.get('/insights', params);
+  }
+
+  /**
    * 获取小凡看见详情
    * @param {number} insightId 反馈ID
    * @returns {Promise}
    */
   getInsightDetail(insightId) {
+    // Mock模式
+    if (envConfig.useMock) {
+      const insight = mockInsights.list.find(item => item.id == insightId);
+      return Promise.resolve(insight || mockInsights.list[0]);
+    }
+
     return request.get(`/insights/${insightId}`);
   }
 

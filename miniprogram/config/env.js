@@ -13,7 +13,8 @@ const envConfig = {
     apiBaseUrl: 'https://dev-api.morning-reading.com/api/v1',
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
-    enableLog: true
+    enableLog: true,
+    useMock: true  // 使用Mock数据
   },
 
   // 测试环境
@@ -21,7 +22,8 @@ const envConfig = {
     apiBaseUrl: 'https://test-api.morning-reading.com/api/v1',
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
-    enableLog: true
+    enableLog: true,
+    useMock: false
   },
 
   // 生产环境
@@ -29,7 +31,8 @@ const envConfig = {
     apiBaseUrl: 'https://api.morning-reading.com/api/v1',
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: false,
-    enableLog: false
+    enableLog: false,
+    useMock: false
   }
 };
 
