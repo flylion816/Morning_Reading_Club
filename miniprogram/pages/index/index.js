@@ -29,36 +29,7 @@ Page({
   },
 
   onLoad(options) {
-    console.log('===== 首页onLoad开始 =====');
-    console.log('options:', options);
-
-    // 先设置一些测试数据
-    this.setData({
-      courses: [
-        {
-          id: 1,
-          title: '测试课程1',
-          startTime: '2025-11-10 08:00:00',
-          endTime: '2025-11-15 08:00:00',
-          checkinCount: 5,
-          isCheckedIn: false
-        }
-      ],
-      displayedCourses: [
-        {
-          id: 1,
-          title: '测试课程1',
-          startTime: '2025-11-10 08:00:00',
-          endTime: '2025-11-15 08:00:00',
-          checkinCount: 5,
-          isCheckedIn: false
-        }
-      ],
-      loading: false
-    });
-
-    console.log('测试数据已设置');
-
+    console.log('首页加载', options);
     this.checkLoginStatus();
     this.loadCourses();
   },
@@ -125,15 +96,12 @@ Page({
     this.setData({ loading: true });
 
     try {
-      console.log('开始加载课程列表...');
       const res = await courseService.getCourses({
         page: this.data.page,
         limit: this.data.pageSize
       });
 
-      console.log('课程服务返回数据:', res);
       const courses = res.items || res;
-      console.log('解析后的课程列表:', courses);
       const hasMore = courses.length >= this.data.pageSize;
 
       const allCourses = this.data.page === 1 ? courses : [...this.data.courses, ...courses];
@@ -143,8 +111,6 @@ Page({
         loading: false,
         hasMore
       });
-
-      console.log('设置courses数据完成，courses数量:', allCourses.length);
 
       // 更新显示的课程列表
       this.filterCourses();
@@ -189,24 +155,18 @@ Page({
    */
   filterCourses() {
     const { courses, filterType } = this.data;
-    console.log('开始筛选课程, filterType:', filterType, '总课程数:', courses.length);
     let displayedCourses = courses;
 
     if (filterType === 'pending') {
-      const now = Date.now();
-      console.log('当前时间:', new Date(now));
       // 只显示待打卡的课程
       displayedCourses = courses.filter(course => {
+        const now = Date.now();
         const startTime = new Date(course.startTime).getTime();
         const endTime = new Date(course.endTime).getTime();
-        const isInRange = now >= startTime && now <= endTime;
-        const notCheckedIn = !course.isCheckedIn;
-        console.log(`课程: ${course.title}, 开始:${course.startTime}, 结束:${course.endTime}, 在范围内:${isInRange}, 未打卡:${notCheckedIn}`);
-        return isInRange && notCheckedIn;
+        return now >= startTime && now <= endTime && !course.isCheckedIn;
       });
     }
 
-    console.log('筛选后的课程数量:', displayedCourses.length);
     this.setData({ displayedCourses });
   },
 

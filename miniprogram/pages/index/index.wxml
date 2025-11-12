@@ -1,10 +1,5 @@
 <!--首页 - 课程列表-->
 <view class="page-index">
-  <!-- 测试文本 -->
-  <view style="padding: 40rpx; background: red; color: white; font-size: 40rpx;">
-    <text>如果你能看到这段红色文字，说明页面能正常渲染</text>
-  </view>
-
   <!-- 顶部Banner -->
   <view class="home-banner">
     <view class="banner-text">☀️ {{bannerText}}\n🌄 {{subBannerText}}</view>
@@ -28,22 +23,6 @@
 
   <!-- 课程列表 -->
   <view class="courses-container">
-    <!-- 调试信息 -->
-    <view style="padding: 20rpx; background: #fff3cd; margin-bottom: 20rpx;">
-      <text>总课程数: {{courses.length}}\n</text>
-      <text>显示课程数: {{displayedCourses.length}}\n</text>
-      <text>筛选类型: {{filterType}}\n</text>
-      <text>加载状态: {{loading ? '加载中' : '已完成'}}</text>
-    </view>
-
-    <!-- 直接显示课程，不用组件 -->
-    <view wx:for="{{displayedCourses}}" wx:key="id" style="padding: 20rpx; background: lightblue; margin-bottom: 20rpx;">
-      <text>课程ID: {{item.id}}\n</text>
-      <text>课程标题: {{item.title}}\n</text>
-      <text>开始时间: {{item.startTime}}\n</text>
-      <text>结束时间: {{item.endTime}}</text>
-    </view>
-
     <course-card
       wx:for="{{displayedCourses}}"
       wx:key="id"
