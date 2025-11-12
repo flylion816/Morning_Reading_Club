@@ -57,26 +57,59 @@ class AuthService {
   }
 
   /**
-   * 微信授权登录
+   * 微信授权登录（Mock模式，用于开发测试）
+   * @param {Object} userInfo 用户信息（从getUserProfile获取）
    * @returns {Promise}
    */
-  async wechatLogin() {
+  async wechatLoginMock(userInfo) {
+    try {
+      console.log('Mock登录开始，用户信息:', userInfo);
+
+      // 模拟登录成功的返回数据
+      const mockLoginData = {
+        access_token: 'mock_token_' + Date.now(),
+        refresh_token: 'mock_refresh_token_' + Date.now(),
+        user: {
+          id: 1,
+          nickname: userInfo.nickName || '晨读营用户',
+          avatar: '🦁',
+          signature: '天天开心，觉知当下！'
+        }
+      };
+
+      // 保存token和用户信息
+      wx.setStorageSync('token', mockLoginData.access_token);
+      wx.setStorageSync('refreshToken', mockLoginData.refresh_token);
+      wx.setStorageSync('userInfo', mockLoginData.user);
+
+      console.log('Mock登录成功');
+
+      return mockLoginData;
+    } catch (error) {
+      console.error('Mock登录失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 微信授权登录（生产模式）
+   * @param {Object} userInfo 用户信息（从getUserProfile获取）
+   * @returns {Promise}
+   */
+  async wechatLogin(userInfo) {
     try {
       // 1. 获取微信授权码
       const loginRes = await this.getWechatCode();
       const code = loginRes.code;
 
-      // 2. 获取用户信息
-      const userInfo = await this.getWechatUserInfo();
-
-      // 3. 调用后端登录接口
+      // 2. 调用后端登录接口
       const loginData = await this.login(code, {
         nickname: userInfo.nickName,
         avatar_url: userInfo.avatarUrl,
         gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown'
       });
 
-      // 4. 保存token和用户信息
+      // 3. 保存token和用户信息
       wx.setStorageSync('token', loginData.access_token);
       wx.setStorageSync('refreshToken', loginData.refresh_token);
       wx.setStorageSync('userInfo', loginData.user);
