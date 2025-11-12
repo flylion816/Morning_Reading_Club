@@ -56,10 +56,12 @@ Component({
      * 点击操作按钮
      */
     onActionTap(e) {
-      e.stopPropagation();
+      // catchtap已经阻止冒泡，不需要再调用stopPropagation
       // 使用properties.course确保获取到正确的数据
       const course = this.properties.course;
       const { isPending } = this.data;
+
+      console.log('操作按钮被点击，course:', course);
 
       this.triggerEvent('action', {
         course,
