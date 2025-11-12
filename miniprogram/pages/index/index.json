@@ -1,6 +1,8 @@
 {
-  "navigationBarTitleText": "晨读营",
+  "navigationBarTitleText": "首页",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "light",
-  "usingComponents": {}
+  "usingComponents": {
+    "course-card": "/components/course-card/index"
+  }
 }

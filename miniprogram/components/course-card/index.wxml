@@ -1,0 +1,13 @@
+<view class="course-card {{isPending ? 'pending' : ''}}" bindtap="onCardTap">
+  <view class="course-card__title">{{course.title}}</view>
+  <view class="course-card__meta">{{course.startTime}} 至 {{course.endTime}}</view>
+  <view class="course-card__info">
+    <text class="checkin-count">{{course.checkinCount || 0}}人已打卡</text>
+    <button
+      class="action-btn {{isPending ? 'primary' : 'secondary'}}"
+      bindtap="onActionTap"
+      size="mini">
+      {{isPending ? '打卡' : '去补卡'}}
+    </button>
+  </view>
+</view>

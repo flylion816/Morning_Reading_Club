@@ -11,8 +11,12 @@ Page({
 
     // 课程列表
     courses: [],
+    displayedCourses: [],
     loading: true,
     refreshing: false,
+
+    // 筛选类型：'pending'待打卡 | 'all'全部
+    filterType: 'pending',
 
     // 分页
     page: 1,
@@ -20,8 +24,8 @@ Page({
     hasMore: true,
 
     // Banner文案
-    bannerText: '🌟 不比别人,只比昨天',
-    subBannerText: '🌄 在晨光中,遇见更好的自己'
+    bannerText: '天天开心！',
+    subBannerText: '在晨光中,遇见更好的自己'
   },
 
   onLoad(options) {
@@ -100,11 +104,16 @@ Page({
       const courses = res.items || res;
       const hasMore = courses.length >= this.data.pageSize;
 
+      const allCourses = this.data.page === 1 ? courses : [...this.data.courses, ...courses];
+
       this.setData({
-        courses: this.data.page === 1 ? courses : [...this.data.courses, ...courses],
+        courses: allCourses,
         loading: false,
         hasMore
       });
+
+      // 更新显示的课程列表
+      this.filterCourses();
     } catch (error) {
       console.error('获取课程列表失败:', error);
       this.setData({ loading: false });
@@ -142,13 +151,78 @@ Page({
   },
 
   /**
+   * 根据筛选类型过滤课程
+   */
+  filterCourses() {
+    const { courses, filterType } = this.data;
+    let displayedCourses = courses;
+
+    if (filterType === 'pending') {
+      // 只显示待打卡的课程
+      displayedCourses = courses.filter(course => {
+        const now = Date.now();
+        const startTime = new Date(course.startTime).getTime();
+        const endTime = new Date(course.endTime).getTime();
+        return now >= startTime && now <= endTime && !course.isCheckedIn;
+      });
+    }
+
+    this.setData({ displayedCourses });
+  },
+
+  /**
+   * 切换筛选类型
+   */
+  switchFilter(e) {
+    const { type } = e.currentTarget.dataset;
+    this.setData({ filterType: type });
+    this.filterCourses();
+  },
+
+  /**
+   * 处理课程操作（打卡或补卡）
+   */
+  handleCourseAction(e) {
+    const { course, action } = e.detail;
+
+    // 检查登录状态
+    if (!this.data.isLogin) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录',
+        confirmText: '去登录',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
+      });
+      return;
+    }
+
+    if (action === 'checkin') {
+      // 跳转到打卡页面
+      wx.navigateTo({
+        url: `/pages/checkin/checkin?courseId=${course.id}`
+      });
+    } else if (action === 'makeup') {
+      // 跳转到课程详情页（补卡）
+      wx.navigateTo({
+        url: `/pages/course-detail/course-detail?id=${course.id}`
+      });
+    }
+  },
+
+  /**
    * 点击课程卡片
    */
   handleCourseClick(e) {
-    const { courseId } = e.currentTarget.dataset;
+    const { course } = e.detail;
 
-    if (!courseId) {
-      console.error('课程ID不存在');
+    if (!course || !course.id) {
+      console.error('课程信息不存在');
       return;
     }
 
@@ -171,7 +245,7 @@ Page({
 
     // 跳转到课程详情
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${courseId}`
+      url: `/pages/course-detail/course-detail?id=${course.id}`
     });
   },
 

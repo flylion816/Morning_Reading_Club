@@ -1,0 +1,61 @@
+.course-card {
+  background: #f9f9f9;
+  border-left: 8rpx solid #cccccc;
+  border-radius: 8rpx;
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+  transition: all 0.3s;
+}
+
+.course-card.pending {
+  border-left-color: #4a90e2;
+  background: #f0f5ff;
+}
+
+.course-card__title {
+  font-weight: bold;
+  color: #333333;
+  font-size: 28rpx;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+}
+
+.course-card__meta {
+  font-size: 24rpx;
+  color: #999999;
+  margin-bottom: 16rpx;
+}
+
+.course-card__info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 24rpx;
+}
+
+.checkin-count {
+  color: #666666;
+}
+
+.action-btn {
+  padding: 8rpx 24rpx;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  border: none;
+  transition: all 0.3s;
+}
+
+.action-btn.primary {
+  background: #4a90e2;
+  color: #ffffff;
+}
+
+.action-btn.secondary {
+  background: transparent;
+  color: #4a90e2;
+  border: 2rpx solid #4a90e2;
+}
+
+.action-btn.secondary::after {
+  border: none;
+}
