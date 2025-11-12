@@ -23,6 +23,14 @@
 
   <!-- 课程列表 -->
   <view class="courses-container">
+    <!-- 调试信息 -->
+    <view style="padding: 20rpx; background: #fff3cd; margin-bottom: 20rpx;">
+      <text>总课程数: {{courses.length}}\n</text>
+      <text>显示课程数: {{displayedCourses.length}}\n</text>
+      <text>筛选类型: {{filterType}}\n</text>
+      <text>加载状态: {{loading ? '加载中' : '已完成'}}</text>
+    </view>
+
     <course-card
       wx:for="{{displayedCourses}}"
       wx:key="id"
