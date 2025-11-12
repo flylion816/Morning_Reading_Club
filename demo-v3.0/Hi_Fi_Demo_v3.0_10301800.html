@@ -1,0 +1,2729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>晨读营小程序 - 完整原型 + 高保真演示</title>
+    <!-- 
+    【当前首页文案方案】
+    主文案：🌟 不比别人，只比昨天
+    副文案：🌄 在晨光中，遇见更好的自己
+    导航图标：🏠 首页 | 👤 我的
+    
+    【可选文案方案】
+    
+    方案 A（温暖陪伴）：
+    主：你的每一步，我都看见
+    副：在这里，见证更好的自己
+    
+    方案 B（力量感）：
+    主：每天进步，终成卓越
+    副：21天养成，一生受用
+    
+    方案 C（仪式感）：
+    主：每个清晨，都是新开始
+    副：晨读就是对自己的承诺
+    
+    方案 D（从坚持开始）：
+    主：坚持是最好的修行
+    副：在晨光中，遇见更好的自己
+    
+    【可选导航图标方案】
+    方案 1（当前）：📚 → 🏠 | ✨ → 👤
+    方案 2：📖 | 🎯
+    方案 3：🏡 | 🧑
+    方案 4：🔖 | 💼
+    方案 5：📰 | 🎭
+    -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px;
+        }
+        .container { max-width: 1900px; margin: 0 auto; }
+        
+        .header {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .header h1 { font-size: 32px; color: #4a90e2; margin-bottom: 10px; }
+        .header p { color: #999; font-size: 14px; }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        @media (max-width: 1400px) {
+            .main-layout { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 1000px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 800px;
+        }
+        
+        .nav-section {
+            margin-bottom: 20px;
+        }
+        .nav-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .nav-btn {
+            padding: 10px;
+            border: 1px solid #e8e8e8;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            color: #666;
+            text-align: center;
+            font-weight: 500;
+        }
+        .nav-btn:hover { border-color: #4a90e2; color: #4a90e2; }
+        .nav-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+        
+        /* 手机演示 */
+        .phone-mockup {
+            width: 100%;
+            max-width: 380px;
+            height: 800px;
+            background: white;
+            border: 12px solid #333;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .phone-mockup::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 28px;
+            background: #333;
+            border-radius: 0 0 30px 30px;
+            z-index: 10;
+        }
+        
+        .screen-header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .header-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .header-btn:hover {
+            transform: translateX(-4px);
+            opacity: 0.8;
+        }
+
+        .header-btn.hidden {
+            visibility: hidden;
+        }
+
+        .header-btn.home-btn:hover {
+            transform: none;
+        }
+        
+        .screen-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        
+        .page { display: none; }
+        .page.active { 
+            display: flex; 
+            flex-direction: column; 
+            animation: fadeIn 0.3s;
+            height: 100%;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .page-scrollable {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .page-scrollable::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .page-scrollable::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .page-scrollable::-webkit-scrollbar-thumb {
+            background: rgba(74, 144, 226, 0.3);
+            border-radius: 2px;
+        }
+
+        .page-scrollable::-webkit-scrollbar-thumb:hover {
+            background: rgba(74, 144, 226, 0.5);
+        }
+        
+        .page-fixed-buttons {
+            padding: 12px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            flex-shrink: 0;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .page-fixed-buttons.single {
+            grid-template-columns: 1fr;
+        }
+
+        .page-fixed-buttons.hidden {
+            display: none;
+        }
+
+        .home-banner {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            border-radius: 16px;
+            padding: 32px 20px;
+            color: white;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(74, 144, 226, 0.25);
+        }
+
+        .home-banner::before {
+            content: '';
+            position: absolute;
+            right: -40px;
+            top: -40px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .home-banner::after {
+            content: '';
+            position: absolute;
+            left: -50px;
+            bottom: -50px;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .banner-text {
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.7;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .course-item {
+            display: flex;
+            gap: 14px;
+            padding: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+            border-radius: 12px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(74, 144, 226, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .course-item:hover {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
+            box-shadow: 0 6px 16px rgba(74, 144, 226, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .course-thumb {
+            width: 80px;
+            height: 100px;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            border-radius: 10px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+        }
+
+        .course-thumb::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .course-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .course-title {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .course-meta {
+            font-size: 11px;
+            color: #a0aec0;
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        .course-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #718096;
+            margin-bottom: 0;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 5px;
+            background: linear-gradient(90deg, #e2e8f0 0%, #cbd5e0 100%);
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+            border-radius: 3px;
+            box-shadow: 0 2px 4px rgba(74, 144, 226, 0.3);
+        }
+
+        .action-btn {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: #357abd;
+        }
+
+        .camp-card {
+            background: #f9f9f9;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+
+        .camp-card.clickable {
+            cursor: pointer;
+        }
+
+        .camp-card.clickable:hover {
+            background: #f0f5ff;
+            border-color: #4a90e2;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+        }
+        
+        .card-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .list-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-label { color: #666; }
+        .list-value { font-weight: bold; color: #333; cursor: pointer; }
+
+        .content-section {
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title-icon {
+            width: 20px;
+            height: 20px;
+            background: #4a90e2;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .section-content {
+            color: #333;
+            font-size: 13px;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+
+        .comment-section {
+            margin-top: 16px;
+        }
+        .comment-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .comment-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .comment-header {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .comment-avatar {
+            width: 28px;
+            height: 28px;
+            background: #4a90e2;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .comment-info {
+            flex: 1;
+        }
+        .comment-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .comment-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+        .comment-text {
+            color: #666;
+            font-size: 12px;
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+        .comment-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #999;
+        }
+        .comment-action-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+        .comment-action-btn:hover {
+            color: #4a90e2;
+        }
+        .comment-action-btn.liked {
+            color: #ff4444;
+        }
+
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 12px 0 16px;
+            border-top: 1px solid #e8eef5;
+            flex-shrink: 0;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            margin-top: auto;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #a0aec0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            padding: 8px 0;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: rgba(74, 144, 226, 0.06);
+        }
+
+        .nav-item.active {
+            color: #4a90e2;
+            font-weight: 600;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 3px;
+            background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            font-size: 28px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            transform: scale(1.15);
+        }
+
+        .modal-overlay {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-dialog {
+            background: white;
+            width: 80%;
+            max-width: 380px;
+            border-radius: 16px;
+            padding: 24px;
+            animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-height: 85vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+            margin: auto;
+        }
+
+        @keyframes modalPop {
+            from { 
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-cancel {
+            background: #f9f9f9;
+            color: #666;
+            border: 1px solid #e8e8e8;
+        }
+
+        .modal-cancel:hover {
+            background: #f0f5ff;
+            border-color: #4a90e2;
+        }
+
+        .modal-submit {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .modal-submit:hover {
+            background: #357abd;
+        }
+
+        /* 回复评论样式 */
+        .comment-reply-item {
+            background: #fafafa;
+            border-left: 3px solid #b3d9ff;
+            margin-left: 28px;
+            margin-top: 8px;
+            padding: 10px;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .comment-reply-item::before {
+            content: '';
+            position: absolute;
+            left: -14px;
+            top: 16px;
+            width: 8px;
+            height: 8px;
+            border-left: 2px solid #b3d9ff;
+            border-bottom: 2px solid #b3d9ff;
+            border-radius: 0 0 0 4px;
+        }
+
+        .comment-reply-header {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .comment-reply-avatar {
+            width: 24px;
+            height: 24px;
+            background: #b3d9ff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .comment-reply-avatar:hover {
+            background: #4a90e2;
+        }
+
+        .comment-reply-info {
+            flex: 1;
+        }
+
+        .comment-reply-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .comment-reply-name:hover {
+            color: #4a90e2;
+        }
+
+        .comment-reply-time {
+            font-size: 10px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .comment-reply-text {
+            color: #666;
+            font-size: 11px;
+            line-height: 1.6;
+            margin: 6px 0;
+        }
+
+        .comment-reply-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+            font-size: 10px;
+            color: #999;
+        }
+
+        .comment-reply-action-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            font-size: 10px;
+            transition: all 0.3s;
+        }
+
+        .comment-reply-action-btn:hover {
+            color: #4a90e2;
+        }
+
+        .comment-reply-action-btn.liked {
+            color: #ff4444;
+        }
+
+        .comment-replies-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .signup-modal-dialog {
+            width: 80%;
+            max-width: 340px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .courses-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            background: white;
+            color: #666;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
+        .filter-btn:hover {
+            border-color: #4a90e2;
+            color: #4a90e2;
+        }
+
+        .btn {
+            display: block;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: #4a90e2;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f9f9f9;
+            color: #666;
+            border: 1px solid #e8e8e8;
+        }
+        .btn-secondary:hover {
+            background: #f0f5ff;
+            border-color: #4a90e2;
+        }
+
+        .course-list-item {
+            background: #f9f9f9;
+            border-left: 4px solid #4a90e2;
+            border-radius: 4px;
+            padding: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .course-list-item:hover {
+            background: #f0f5ff;
+        }
+
+        .course-list-item.pending {
+            border-left-color: #3b82f6;
+        }
+
+        .course-list-item-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .course-list-item-meta {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .course-list-item-info {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .xiaofan-content {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            line-height: 1.8;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .xiaofan-content strong {
+            color: #4a90e2;
+        }
+
+        .xiaofan-content p {
+            margin-bottom: 12px;
+        }
+
+        .xiaofan-content p:first-child {
+            margin-bottom: 8px;
+        }
+
+        .share-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+            border-radius: 12px;
+            padding: 0;
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(74, 144, 226, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(74, 144, 226, 0.1);
+            position: relative;
+        }
+
+        .share-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4a90e2 0%, #7ed321 50%, #4a90e2 100%);
+        }
+
+        .share-card-title {
+            font-weight: 700;
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 0;
+            padding: 20px 20px 16px;
+            background: linear-gradient(135deg, #f0f5ff 0%, #f8fbff 100%);
+            border-bottom: 1px solid rgba(74, 144, 226, 0.08);
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        .share-card-content {
+            font-size: 13px;
+            color: #4a5568;
+            line-height: 1.9;
+            margin-bottom: 0;
+            padding: 20px;
+            text-align: left;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+
+        .share-card-author {
+            font-weight: 500;
+            color: #4a90e2;
+            margin-top: 0;
+            padding: 16px 20px 20px;
+            border-top: 1px solid rgba(74, 144, 226, 0.1);
+            text-align: right;
+            font-size: 13px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .share-card-author::before {
+            content: '';
+            width: 24px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #4a90e2);
+        }
+
+        .icon-option {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 4px;
+            background: #f0f5ff;
+            border: 1px solid #4a90e2;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .icon-option:hover {
+            background: #4a90e2;
+            transform: scale(1.1);
+        }
+
+        .icon-selector {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #e8e8e8;
+        }
+
+        .icon-selector-title {
+            font-weight: bold;
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        /* 索要小凡看见弹窗样式 */
+        .request-insight-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .request-insight-modal.active {
+            display: flex;
+        }
+
+        .request-insight-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .request-insight-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .request-insight-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .request-insight-desc {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 24px;
+            line-height: 1.4;
+        }
+
+        .request-insight-author {
+            font-size: 14px;
+            color: #4a90e2;
+            margin-bottom: 24px;
+            padding: 12px;
+            background: #f0f5ff;
+            border-radius: 6px;
+        }
+
+        .request-insight-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .request-insight-btn {
+            padding: 10px;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            background: white;
+            color: #666;
+        }
+
+        .request-insight-btn:hover {
+            border-color: #4a90e2;
+            color: #4a90e2;
+        }
+
+        .request-insight-btn.confirm {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
+        .request-insight-btn.confirm:hover {
+            background: #357abd;
+            border-color: #357abd;
+        }
+
+        /* 小凡看见请求列表样式 */
+        .request-insight-section {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 2px solid #e8e8e8;
+        }
+
+        .request-insight-section-title {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .request-insight-section-icon {
+            font-size: 18px;
+            margin-right: 6px;
+        }
+
+        .request-insight-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: auto;
+        }
+
+        .request-insight-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .request-insight-item {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #4a90e2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .request-insight-item-info {
+            text-align: left;
+            flex: 1;
+        }
+
+        .request-insight-item-user {
+            font-weight: bold;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .request-insight-item-title {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .request-insight-item-time {
+            color: #999;
+            font-size: 11px;
+        }
+
+        .request-insight-item-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .request-insight-item-action-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .request-insight-item-action-btn.accept {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .request-insight-item-action-btn.accept:hover {
+            background: #357abd;
+        }
+
+        .request-insight-item-action-btn.reject {
+            background: #e8e8e8;
+            color: #666;
+        }
+
+        .request-insight-item-action-btn.reject:hover {
+            background: #d0d0d0;
+        }
+
+        .request-insight-empty {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            padding: 12px;
+        }
+
+        /* 分享按钮样式 */
+        .share-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: all 0.3s;
+        }
+
+        .share-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* 分享弹窗样式 */
+        .share-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .share-modal.active {
+            display: flex;
+        }
+
+        .share-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 80%;
+            max-width: 380px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+            animation: modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+
+        .share-modal-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+
+        .share-option:hover {
+            background: #f0f5ff;
+            border-color: #4a90e2;
+            transform: translateY(-2px);
+        }
+
+        .share-option-icon {
+            font-size: 32px;
+        }
+
+        .share-option-text {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .share-modal-cancel {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e8e8e8;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .share-modal-cancel:hover {
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 标题 -->
+        <div class="header">
+            <h1>🌅 晨读营小程序 - 完整原型 + 高保真演示</h1>
+            <p>一个完整的学习社区小程序原型，包含学习、打卡、日记、社交等功能</p>
+        </div>
+
+        <div class="main-layout">
+            <!-- 左侧：导航 -->
+            <div class="panel">
+                <div class="panel-header">📋 晨读营小程序 - 完整版本</div>
+                <div class="panel-content">
+                    <div class="nav-section">
+                        <div class="nav-title">📄 核心页面</div>
+                        <div class="nav-buttons">
+                            <button class="nav-btn active" onclick="showPage('page-home')">🏠 首页</button>
+                            <button class="nav-btn" onclick="showPage('page-courses')">📚 课程列表</button>
+                            <button class="nav-btn" onclick="showPage('page-course-detail')">📖 课程详情</button>
+                            <button class="nav-btn" onclick="showPage('page-checkin')">✓ 打卡页</button>
+                            <button class="nav-btn" onclick="showPage('page-profile')">👤 个人主页</button>
+                            <button class="nav-btn" onclick="showPage('page-xiaofan')">✨ 小凡看见</button>
+                            <button class="nav-btn" onclick="showPage('page-share')">🎫 分享卡片</button>
+                        </div>
+                    </div>
+
+                    <div class="nav-section">
+                        <div class="nav-title">🎨 首页图标选择</div>
+                        <div class="icon-selector">
+                            <div class="icon-selector-title">首页图标</div>
+                            <div>
+                                <span class="icon-option" onclick="setHomeIcon(this, '🏠')">🏠</span>
+                                <span class="icon-option" onclick="setHomeIcon(this, '🏡')">🏡</span>
+                                <span class="icon-option" onclick="setHomeIcon(this, '🏘️')">🏘️</span>
+                                <span class="icon-option" onclick="setHomeIcon(this, '📱')">📱</span>
+                                <span class="icon-option" onclick="setHomeIcon(this, '📚')">📚</span>
+                                <span class="icon-option" onclick="setHomeIcon(this, '🎯')">🎯</span>
+                            </div>
+                        </div>
+
+                        <div class="icon-selector">
+                            <div class="icon-selector-title">我的图标</div>
+                            <div>
+                                <span class="icon-option" onclick="setMyIcon(this, '👤')">👤</span>
+                                <span class="icon-option" onclick="setMyIcon(this, '👨')">👨</span>
+                                <span class="icon-option" onclick="setMyIcon(this, '👩')">👩</span>
+                                <span class="icon-option" onclick="setMyIcon(this, '💼')">💼</span>
+                                <span class="icon-option" onclick="setMyIcon(this, '⚙️')">⚙️</span>
+                                <span class="icon-option" onclick="setMyIcon(this, '✨')">✨</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：高保真演示 -->
+            <div class="panel">
+                <div class="panel-header">📱 高保真前端演示</div>
+                <div class="panel-content" style="padding: 0;">
+                    <div class="phone-mockup">
+                        <div class="screen-header">
+                            <button class="header-btn hidden" id="backBtn" onclick="goBack()">←</button>
+                            <span id="screenTitle">首页</span>
+                            <button class="header-btn" id="shareBtn" onclick="openContextualShare()" style="display: none;">📤</button>
+                        </div>
+                        <div class="screen-content">
+
+                            <!-- Page: 首页 -->
+                            <div id="page-home" class="page active">
+                                <div class="page-scrollable">
+                                    <!-- 顶部Banner -->
+                                    <div class="home-banner">
+                                        <div class="banner-text">☀️ 天天开心！<br/>🌄 在晨光中，遇见更好的自己</div>
+                                    </div>
+
+                                    <!-- 课程列表 -->
+                                    <div id="home-tab-0" style="display: block;">
+                                        <div class="course-item" onclick="navigateTo('page-courses', '课程列表')">
+                                            <div class="course-thumb" style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); font-size: 36px;">
+                                                ⛰️
+                                            </div>
+                                            <div class="course-info">
+                                                <div class="course-title">勇敢的心 - 七个习惯晨读营</div>
+                                                <div class="course-meta">10-11 至 11-13 • 已打卡 0 天</div>
+                                                <div class="course-progress">
+                                                    <div class="progress-bar">
+                                                        <div class="progress-bar-fill" style="width: 0%;"></div>
+                                                    </div>
+                                                    <span style="color: #4a90e2; font-weight: 600;">进行中 0/23</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-item" onclick="openSignupModal('能量之泉')">
+                                            <div class="course-thumb" style="background: linear-gradient(135deg, #7ed321 0%, #63b520 100%); font-size: 36px;">
+                                                🌊
+                                            </div>
+                                            <div class="course-info">
+                                                <div class="course-title">能量之泉 - 七个习惯晨读营</div>
+                                                <div class="course-meta">08-09 至 09-12 • 已打卡 0 天</div>
+                                                <div class="course-progress">
+                                                    <div class="progress-bar">
+                                                        <div class="progress-bar-fill" style="width: 0%;"></div>
+                                                    </div>
+                                                    <span style="color: #ff6b6b; font-weight: 600;">未报名</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-item" onclick="navigateTo('page-courses', '课程列表')">
+                                            <div class="course-thumb" style="background: linear-gradient(135deg, #ffc53d 0%, #fab01a 100%); font-size: 36px;">
+                                                ✨
+                                            </div>
+                                            <div class="course-info">
+                                                <div class="course-title">心流之境～七个习惯晨读营</div>
+                                                <div class="course-meta">06-14 至 07-06 • 已打卡 22 天</div>
+                                                <div class="course-progress">
+                                                    <div class="progress-bar">
+                                                        <div class="progress-bar-fill" style="width: 96%;"></div>
+                                                    </div>
+                                                    <span style="color: #52c41a; font-weight: 600;">已结束</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 底部导航 -->
+                                <div class="bottom-nav">
+                                    <div class="nav-item active" onclick="switchNav(0)">
+                                        <div class="nav-icon" id="home-nav-icon">🏡</div>
+                                        <div>首页</div>
+                                    </div>
+                                    <div class="nav-item" onclick="switchNav(1); navigateTo('page-profile', '个人主页');">
+                                        <div class="nav-icon" id="my-nav-icon">🧘</div>
+                                        <div>我的</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Page: 课程列表 -->
+                            <div id="page-courses" class="page">
+                                <div class="page-scrollable">
+                                    <div style="display: flex; gap: 10px; margin-bottom: 12px; background: white; padding: 10px; border-radius: 12px; border: 1px solid #e8e8e8;">
+                                        <input type="text" placeholder="搜索课程..." style="flex: 1; padding: 8px 12px; border: none; border-radius: 6px; font-size: 12px; background: #f5f5f5;">
+                                        <button style="width: 36px; height: 36px; border: none; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onmouseover="this.style.boxShadow='0 2px 8px rgba(74, 144, 226, 0.3)'" onmouseout="this.style.boxShadow='none'">✨</button>
+                                    </div>
+
+                                    <div class="courses-filter">
+                                        <button class="filter-btn" onclick="switchCourseFilter(0)">待完成(2)</button>
+                                        <button class="filter-btn active" onclick="switchCourseFilter(1)">全部课程(23)</button>
+                                    </div>
+
+                                    <div class="content-section">
+                                        <div class="section-title">
+                                            <span>刺余补打卡：99次</span>
+                                        </div>
+                                    </div>
+
+                                    <div id="courses-all" style="display: block;">
+                                        <div class="course-list-item" onclick="navigateTo('page-course-detail', '课程详情')">
+                                            <div class="course-list-item-title">开营词</div>
+                                            <div class="course-list-item-meta">2025-10-10 05:59:00 至 2025-10-12 05:59:59</div>
+                                            <div class="course-list-item-info">
+                                                <span>2人已打卡</span>
+                                                <button class="action-btn" onclick="event.stopPropagation(); navigateTo('page-course-detail', '课程详情')">去补卡</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-list-item" onclick="navigateTo('page-course-detail', '课程详情')">
+                                            <div class="course-list-item-title">第一天 品德成功论</div>
+                                            <div class="course-list-item-meta">2025-10-11 06:59:00 至 2025-10-13 06:59:59</div>
+                                            <div class="course-list-item-info">
+                                                <span>5人已打卡</span>
+                                                <button class="action-btn" onclick="event.stopPropagation(); navigateTo('page-course-detail', '课程详情')">去补卡</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-list-item" onclick="navigateTo('page-course-detail', '课程详情')">
+                                            <div class="course-list-item-title">第二天 思维方式的力量</div>
+                                            <div class="course-list-item-meta">2025-10-12 07:00:00 至 2025-10-14 07:00:59</div>
+                                            <div class="course-list-item-info">
+                                                <span>5人已打卡</span>
+                                                <button class="action-btn" onclick="event.stopPropagation(); navigateTo('page-course-detail', '课程详情')">去补卡</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-list-item" onclick="navigateTo('page-course-detail', '课程详情')">
+                                            <div class="course-list-item-title">第三天 以原则为中心的思维方式</div>
+                                            <div class="course-list-item-meta">2025-10-13 07:00:00 至 2025-10-15 07:00:59</div>
+                                            <div class="course-list-item-info">
+                                                <span>4人已打卡</span>
+                                                <button class="action-btn" onclick="event.stopPropagation(); navigateTo('page-course-detail', '课程详情')">去补卡</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-list-item pending" onclick="navigateTo('page-checkin', '每日打卡')">
+                                            <div class="course-list-item-title">第四天 成长和改变的原则</div>
+                                            <div class="course-list-item-meta">2025-10-14 07:00:00 至 2025-10-16 07:00:59</div>
+                                            <div class="course-list-item-info">
+                                                <span>5人已打卡</span>
+                                                <button class="action-btn" onclick="event.stopPropagation(); navigateTo('page-checkin', '每日打卡')">打卡</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="courses-pending" style="display: none;">
+                                        <div class="course-list-item pending" onclick="navigateTo('page-checkin', '每日打卡')">
+                                            <div class="course-list-item-title">第四天 成长和改变的原则</div>
+                                            <div class="course-list-item-meta">2025-10-14 07:00:00 至 2025-10-16 07:00:59</div>
+                                            <div class="course-list-item-info">
+                                                <span>5人已打卡</span>
+                                                <button class="action-btn" onclick="event.stopPropagation(); navigateTo('page-checkin', '每日打卡')">打卡</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-list-item" onclick="navigateTo('page-course-detail', '课程详情')">
+                                            <div class="course-list-item-title">第五天 课程标题待定</div>
+                                            <div class="course-list-item-meta">2025-10-15 07:00:00 至 2025-10-17 07:00:59</div>
+                                            <div class="course-list-item-info">
+                                                <span>0人已打卡</span>
+                                                <button class="action-btn" onclick="event.stopPropagation(); navigateTo('page-course-detail', '课程详情')">去补卡</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="page-fixed-buttons single">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                </div>
+                            </div>
+
+                            <!-- Page: 课程详情 -->
+                            <div id="page-course-detail" class="page">
+                                <div class="page-scrollable">
+                                    <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; padding: 12px; border-radius: 6px; margin-bottom: 16px; text-align: center;">
+                                        <div style="font-weight: bold; margin-bottom: 4px;">第十七天 双赢品德</div>
+                                        <div style="font-size: 12px; opacity: 0.9;">2025-10-27 07:00:00 至 2025-10-29 07:00:59</div>
+                                    </div>
+
+                                    <!-- 静一静 -->
+                                    <div class="content-section">
+                                        <div class="section-title">
+                                            <div class="section-title-icon">静</div>
+                                            静一静
+                                        </div>
+                                        <div class="section-content">开始学习之前，给自己1分钟的时间，深呼吸，静静心，然后开始学习。</div>
+                                    </div>
+
+                                    <!-- 问一问 -->
+                                    <div class="content-section">
+                                        <div class="section-title">
+                                            <div class="section-title-icon">问</div>
+                                            问一问
+                                        </div>
+                                        <div class="section-content">带着问题学习：双赢品德包含哪些方面？</div>
+                                    </div>
+
+                                    <!-- 读一读 -->
+                                    <div class="content-section">
+                                        <div class="section-title">
+                                            <div class="section-title-icon">读</div>
+                                            读一读
+                                        </div>
+                                        <div class="section-content">
+                                            <strong style="color: #4a90e2;">每天晨读内容</strong><br/><br/>
+                                            双赢品德有三个基本特征。<br/><br/>
+                                            <strong style="color: #4a90e2;">1. 诚信：</strong><br/>
+                                            我们将诚信定义为自己的价值观。习惯一、二、三教育我们养成并保持诚信的品德。如果我们在日常生活中有明确的价值观，能积极主动地以此为核心安排活动，信守承诺，就能够逐渐培养起自我意识和独立意志。如果我们不了解"赢"的真正含义及其与我们内心价值观的一致性，那么就不可能做到"赢"。没有了诚信这一基础，双赢不过是一种无效的表面功夫。<br/><br/>
+                                            <strong style="color: #4a90e2;">2. 成熟：</strong><br/>
+                                            这是歆作歆为与善解人意之间的一种平衡状态。成熟就是在表达自己的情感和信念的同时又能体谅他人的想法和感受的能力。这是赫兰德·萨克森年(Hrand Saxenian)教授多年研究得出的结论。<br/><br/>
+                                            <strong style="color: #4a90e2;">3. 如果你认真研究那些用于招聘、升职以及培训的心理测试：</strong><br/>
+                                            就会发现不管它们的主题是个人意志/同理心平衡，还是自信/尊重他人平衡，亦或是关心人/关心任务平衡，其目的都是考察成熟度；而那些沟通分析和管理方式训练术语或评语也是在衡量一个人在歆作歆为与善解人意之间的平衡能力。<br/><br/>
+                                            <strong style="color: #4a90e2;">4. 如果我勇气十足，却不懂体谅他人，我的交往模式就是赢/输——我强硬而自私，勇于坚持自己的信念，却漠视旁人。</strong><br/>
+                                            如果我的内心不够成熟，情感有些脆弱，为了弥补这些不足，我可能要借助地位、势力、证书、资历和关系来获取力量。<br/><br/>
+                                            <strong style="color: #4a90e2;">5. 很多人用非此即彼的两分法看问题，认为一个温和的人一定不够坚强，但是只有温和与坚强并重，才能实现双赢，这种坚强的作用甚至双倍于赢/输或赢/输模式的那种强硬。</strong><br/>
+                                            双赢模式要求你不但要温和，还要勇敢，不但要善解人意，还要自信，不但要体贴敏感，还要勇敢无畏。做到这些，在歆作歆为与善解人意之间找到平衡点，才是真正的成熟，这是双赢的基础。<br/><br/>
+                                            <strong style="color: #4a90e2;">6. 如果我勇气十足，却不懂体谅他人，我的交往模式就是赢/输——我强硬而自私，勇于坚持自己的信念，却漠视旁人。</strong><br/>
+                                            如果我的内心不够成熟，情感有些脆弱，为了弥补这些不足，我可能要借助地位、势力、证书、资历和关系来获取力量。<br/><br/>
+                                            <strong style="color: #4a90e2;">7. 如果我体贴有余，而勇气不足，我的交往模式就是输/赢。我事事以你的想法和愿望为先，却盖于表达和实现自己的想法与愿望。</strong><br/>
+                                            歆作歆为和善解人意是双赢的必备条件，其问的平衡占是成熟度的重要标志。如果我足够成熟，人际关系中很少或者根本不需要用到什么技巧。
+                                        </div>
+                                    </div>
+
+                                    <!-- 想一想 -->
+                                    <div class="content-section">
+                                        <div class="section-title">
+                                            <div class="section-title-icon">想</div>
+                                            想一想
+                                        </div>
+                                        <div class="section-content">上文中，哪一句话特别触动我？引起了我哪些感触？</div>
+                                    </div>
+
+                                    <!-- 记一记 -->
+                                    <div class="content-section">
+                                        <div class="section-title">
+                                            <div class="section-title-icon">记</div>
+                                            记一记 / 摘一摘 / 说一说
+                                        </div>
+                                        <div class="section-content">把感触记录在日记中，与营友们分享你的收获。</div>
+                                    </div>
+
+                                    <!-- 评论区 -->
+                                    <div class="comment-section">
+                                        <div class="comment-title">
+                                            <span>💬</span>
+                                            社群互动（<span id="comment-count">3</span>条）
+                                        </div>
+
+                                        <div class="comment-item" id="comment-1">
+                                            <div class="comment-header">
+                                                <div class="comment-avatar" onclick="navigateTo('page-other-profile', '他人主页')">阿</div>
+                                                <div class="comment-info">
+                                                    <div class="comment-name" onclick="navigateTo('page-other-profile', '他人主页')">阿泰</div>
+                                                    <div class="comment-time">1小时前</div>
+                                                </div>
+                                            </div>
+                                            <div class="comment-text">非常优秀！对双赢品德的理解非常深入！😊</div>
+                                            <div class="comment-actions">
+                                                <button class="comment-action-btn" onclick="toggleLike(this, 1)">❤️ <span class="like-count">0</span></button>
+                                                <button class="comment-action-btn" onclick="openReplyDialog(1)">↩️ 回复</button>
+                                            </div>
+                                        </div>
+                                        <div class="comment-replies-container"></div>
+
+                                        <div class="comment-item" id="comment-2">
+                                            <div class="comment-header">
+                                                <div class="comment-avatar" onclick="navigateTo('page-other-profile', '他人主页')">王</div>
+                                                <div class="comment-info">
+                                                    <div class="comment-name" onclick="navigateTo('page-other-profile', '他人主页')">王五</div>
+                                                    <div class="comment-time">30分钟前</div>
+                                                </div>
+                                            </div>
+                                            <div class="comment-text">诚信确实是基础，感谢分享这个观点！💪</div>
+                                            <div class="comment-actions">
+                                                <button class="comment-action-btn" onclick="toggleLike(this, 2)">❤️ <span class="like-count">0</span></button>
+                                                <button class="comment-action-btn" onclick="openReplyDialog(2)">↩️ 回复</button>
+                                            </div>
+                                        </div>
+                                        <div class="comment-replies-container"></div>
+
+                                        <div class="comment-item" id="comment-3">
+                                            <div class="comment-header">
+                                                <div class="comment-avatar" onclick="navigateTo('page-other-profile', '他人主页')">赵</div>
+                                                <div class="comment-info">
+                                                    <div class="comment-name" onclick="navigateTo('page-other-profile', '他人主页')">赵六</div>
+                                                    <div class="comment-time">刚刚</div>
+                                                </div>
+                                            </div>
+                                            <div class="comment-text">点赞！坚持就是胜利！</div>
+                                            <div class="comment-actions">
+                                                <button class="comment-action-btn liked" onclick="toggleLike(this, 3)">❤️ <span class="like-count">2</span></button>
+                                                <button class="comment-action-btn" onclick="openReplyDialog(3)">↩️ 回复</button>
+                                            </div>
+                                        </div>
+                                        <div class="comment-replies-container"></div>
+                                    </div>
+                                </div>
+
+                                <!-- 固定在底部的按钮 -->
+                                <div class="page-fixed-buttons">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                    <button class="btn btn-primary" onclick="navigateTo('page-checkin', '每日打卡')">去打卡</button>
+                                </div>
+                            </div>
+
+                            <!-- Page: 打卡页 -->
+                            <div id="page-checkin" class="page">
+                                <div class="page-scrollable">
+                                    <div class="camp-card clickable" onclick="navigateTo('page-course-detail', '课程详情')">
+                                        <div class="card-title">📚 今日课程</div>
+                                        <div class="list-item">
+                                            <span class="list-label">课程</span>
+                                            <span class="list-value">第四天 成长和改变的原则</span>
+                                        </div>
+                                        <div class="list-item">
+                                            <span class="list-label">推荐时间</span>
+                                            <span class="list-value">06:00-08:00</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="camp-card clickable" onclick="navigateTo('page-courses', '课程列表')">
+                                        <div class="card-title">⏱️ 学习统计</div>
+                                        <div class="list-item">
+                                            <span class="list-label">当前进度</span>
+                                            <span class="list-value">1/23</span>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: linear-gradient(135deg, #7ed321 0%, #62c117 100%); color: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; cursor: pointer;" onclick="navigateTo('page-xiaofan', '小凡看见')">
+                                        <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px;">✨ 小凡看见（本课程）</div>
+                                        <div style="font-size: 12px; line-height: 1.8; opacity: 0.95;">很棒！你是第一个打卡的同学！坚持这样的精神，21天后会有意想不到的收获！</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="page-fixed-buttons">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                    <button class="btn btn-primary" onclick="navigateTo('page-course-detail', '课程详情')">✓ 完成打卡</button>
+                                </div>
+                            </div>
+
+                            <!-- Page: 个人主页 -->
+                            <div id="page-profile" class="page">
+                                <div class="page-scrollable">
+                                    <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 12px;">
+                                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🦁</div>
+                                        <div style="font-weight: bold; font-size: 13px;">狮子</div>
+                                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">天天开心，觉知当下！</div>
+                                    </div>
+                                    
+                                    <!-- 收到的小凡看见请求区域 -->
+                                    <div class="request-insight-section" id="requestInsightSection">
+                                        <div class="request-insight-section-title">
+                                            <span class="request-insight-section-icon">📬</span>
+                                            <span>收到的小凡看见请求</span>
+                                            <span class="request-insight-badge" id="requestInsightBadge">0</span>
+                                        </div>
+                                        <div class="request-insight-list" id="requestInsightList">
+                                            <div class="request-insight-empty">暂无请求</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="camp-card clickable" onclick="navigateTo('page-courses', '课程列表')">
+                                        <div class="card-title">📊 总体进度统计</div>
+                                        <div class="list-item">
+                                            <span class="list-label">当前进度</span>
+                                            <span class="list-value">1/23</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="camp-card">
+                                        <div class="card-title">✨ 小凡看见 - 按章节</div>
+                                        <div style="background: #f0f5ff; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid #4a90e2; transition: all 0.3s;" onclick="navigateTo('page-xiaofan-list', '小凡看见', 'self')" onmouseover="this.style.background='linear-gradient(135deg, #e8f4fd 0%, #f0f5ff 100%)';" onmouseout="this.style.background='#f0f5ff';">
+                                            <div style="font-weight: bold; color: #4a90e2; font-size: 12px; margin-bottom: 4px;">查看所有反馈</div>
+                                            <div style="font-size: 11px; color: #666; line-height: 1.6;">点击查看小凡对你每天的个性化反馈...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="page-fixed-buttons single">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                </div>
+                            </div>
+
+                            <!-- Page: 小凡看见列表 -->
+                            <div id="page-xiaofan-list" class="page">
+                                <div class="page-scrollable">
+                                    <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 16px;">
+                                        <div style="font-size: 24px; margin-bottom: 8px;">🦁</div>
+                                        <div style="font-weight: bold; font-size: 14px;">小凡看见</div>
+                                        <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">按章节查看个性化反馈</div>
+                                    </div>
+                                    <div id="xiaofan-list-container">
+                                        <!-- 列表项会动态生成 -->
+                                    </div>
+                                </div>
+                                
+                                <div class="page-fixed-buttons single">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                </div>
+                            </div>
+
+                            <!-- Page: 小凡看见详情 -->
+                            <div id="page-xiaofan" class="page">
+                                <div class="page-scrollable">
+                                    <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; padding: 12px; border-radius: 6px; margin-bottom: 12px; text-align: center;">
+                                        <div style="font-weight: bold; margin-bottom: 4px;" id="xiaofanDay">第一天 品德成功论</div>
+                                        <div style="font-size: 12px; opacity: 0.9;">你的个性化学习反馈</div>
+                                    </div>
+
+                                    <div class="xiaofan-content">
+                                        <p><strong>小凡看见</strong></p>
+                                        <p>感谢你的分享，听你娓道来，我仍佛也参与了你们那场深刻的对话。你的总结和感受，本身就是一次非常高质量的内观。</p>
+                                        <p>我看到了一个非常敏锐的"连接者"和"反思者"。</p>
+                                        <p>你不仅听到了他、刘玲、尹姐和小楠每个人的故事，更房着的是：你像一位你探一样，从这些看似独立的故事中，精准地拈到了那些贯穿始终的<strong>共同线索</strong>——一场从外在追逐向内心探索的深刻转变。</p>
+                                        <p>你提到了从"证明自我价值"到"学会做减法"，从追求"社会认可"到"朝下期待的方向前行"。这个发现，标志着一个衡量价值的坐标系发生了根本性的变化。它意味着从一个"做事"(Doing)的模式，并始转向一个"存在"(Being)的模式。不再仅仅是追求效率、结果和外界的声音，而是开始去体验、去感知、去连接生命本身的美好，就像你说的，凝望窗外，或者看看山间的小鸡。</p>
+                                        <p>你最后引用的那句话，也是为你此刻的感悟量身定制的：</p>
+                                        <p><strong>"真正的高效，不是超快的奔跑，而是朝正确的方向前行。"</strong></p>
+                                        <p>你已经不仅仅是在思考"如何做得更快"，而是开始真正地回问自己的内心那个更重要的问题："哪里，才是我想去的方向？"</p>
+                                        <p>你能如清晰断地看到他们身上的转变，如深刻地共鸣他们的反思。恰恰说明了，<strong>这个关于"真实和"线段"的课题，也同样在你心中酝酿</strong>。看到这些，本身就是一种力量。这是一个充满希望和能量的开始。</p>
+                                    </div>
+                                </div>
+
+                                <div class="page-fixed-buttons">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                    <button class="btn btn-primary" onclick="navigateTo('page-share', '分享卡片')">分享这个看见</button>
+                                </div>
+                            </div>
+
+                            <!-- Page: 分享卡片 -->
+                            <div id="page-share" class="page">
+                                <div class="page-scrollable">
+                                    <div class="share-card">
+                                        <div class="share-card-title">✨ 小凡看见</div>
+                                        <div class="share-card-content">
+                                            感谢你的分享，听你娓道来，我仍佛也参与了你们那场深刻的对话。你的总结和感受，本身就是一次非常高质量的内观。<br/><br/>
+                                            我看到了一个非常敏锐的"连接者"和"反思者"。你不仅听到了他、刘玲、尹姐和小楠每个人的故事，更房着的是：你像一位你探一样，从这些看似独立的故事中，精准地拈到了那些贯穿始终的共同线索。
+                                        </div>
+                                        <div class="share-card-author">小凡 @凡人学堂</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="page-fixed-buttons">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                    <button class="btn btn-primary">分享给好友</button>
+                                </div>
+                            </div>
+
+                            <!-- Page: 他人主页 -->
+                            <div id="page-other-profile" class="page">
+                                <div class="page-scrollable">
+                                    <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 12px;">
+                                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 24px;">阿</div>
+                                        <div style="font-weight: bold; font-size: 13px;">阿泰</div>
+                                        <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">知名心灵大师</div>
+                                    </div>
+                                    
+                                    <div class="camp-card">
+                                        <div class="card-title">📊 学习统计</div>
+                                        <div class="list-item">
+                                            <span class="list-label">打卡天数</span>
+                                            <span class="list-value">23天 ✓</span>
+                                        </div>
+                                        <div class="list-item">
+                                            <span class="list-label">完成课程</span>
+                                            <span class="list-value">5个</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="camp-card">
+                                        <div class="card-title">✨ 小凡看见 - 他的反馈</div>
+                                        <div style="background: #f0f5ff; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid #4a90e2; transition: all 0.3s;" onclick="navigateTo('page-xiaofan-list', '小凡看见', 'others')" onmouseover="this.style.background='linear-gradient(135deg, #e8f4fd 0%, #f0f5ff 100%)';" onmouseout="this.style.background='#f0f5ff';">
+                                            <div style="font-weight: bold; color: #4a90e2; font-size: 12px; margin-bottom: 4px;">查看阿泰的所有反馈</div>
+                                            <div style="font-size: 11px; color: #666; line-height: 1.6;">点击查看小凡对阿泰每天的个性化反馈...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="page-fixed-buttons single">
+                                    <button class="btn btn-secondary" onclick="goBack()">返回</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 回复对话框 -->
+    <div class="modal-overlay" id="replyModal">
+        <div class="modal-dialog">
+            <div class="modal-title">回复评论</div>
+            <textarea class="modal-input" id="replyInput" placeholder="写下你的回复..."></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-cancel" onclick="closeReplyDialog()">取消</button>
+                <button class="modal-btn modal-submit" onclick="submitReply()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报名流程模态框 -->
+    <div class="modal-overlay" id="signupModal">
+        <div class="modal-dialog signup-modal-dialog">
+            <div style="flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 100px;">
+                <div style="text-align: center; margin-bottom: 16px;">
+                    <div style="font-size: 24px; margin-bottom: 6px;">📚</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 4px;" id="signupCourseName">课程名称</div>
+                    <div style="font-size: 12px; color: #999;">填写报名信息</div>
+                </div>
+
+                <!-- 报名期数 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 报名期数
+                    </div>
+                    <div id="periodOptions" style="display: flex; flex-direction: column; gap: 6px;">
+                        <!-- 动态生成的期数选项 -->
+                    </div>
+                </div>
+
+                <!-- 姓名 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 姓名
+                    </div>
+                    <input type="text" id="signupName" placeholder="请输入您的姓名" style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit;">
+                </div>
+
+                <!-- 性别 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 性别
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <label style="flex: 1; display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <input type="radio" name="gender" value="男" style="margin-right: 6px;"> 男
+                        </label>
+                        <label style="flex: 1; display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <input type="radio" name="gender" value="女" style="margin-right: 6px;"> 女
+                        </label>
+                        <label style="flex: 1; display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <input type="radio" name="gender" value="不想透露" style="margin-right: 6px;"> 不想透露
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 地址 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 地址
+                    </div>
+                    <select id="signupProvince" placeholder="请选择省/市/区(县)" style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit; margin-bottom: 6px;">
+                        <option value="">请选择省/市/区(县)</option>
+                        <option value="北京">北京</option>
+                        <option value="上海">上海</option>
+                        <option value="广东">广东</option>
+                        <option value="浙江">浙江</option>
+                        <option value="江苏">江苏</option>
+                        <option value="其他">其他</option>
+                    </select>
+                    <input type="text" id="signupAddress" placeholder="详细地址" style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit;">
+                </div>
+
+                <!-- 年龄 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 年龄
+                    </div>
+                    <input type="number" id="signupAge" placeholder="请输入您的年龄" style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit;">
+                </div>
+
+                <!-- 推荐人 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 您的推荐人
+                    </div>
+                    <input type="text" id="signupReferrer" placeholder="请输入推荐人名字" style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit;">
+                </div>
+
+                <!-- 是否读过 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 您是否读过《高效能人士的七个习惯》
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <label style="flex: 1; display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <input type="radio" name="hasRead" value="是" style="margin-right: 6px;"> 是
+                        </label>
+                        <label style="flex: 1; display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <input type="radio" name="hasRead" value="否" style="margin-right: 6px;"> 否
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 读过几遍 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 您读过几遍
+                    </div>
+                    <input type="number" id="signupReadTimes" placeholder="请输入阅读次数" style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit;">
+                </div>
+
+                <!-- 参加课程的缘起 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 您参加课程的缘起
+                    </div>
+                    <textarea id="signupReason" placeholder="请简述参加课程的原因..." style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit; min-height: 70px; resize: vertical;"></textarea>
+                </div>
+
+                <!-- 对课程的期待 -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 您对课程的期待
+                    </div>
+                    <textarea id="signupExpectation" placeholder="请简述对课程的期待..." style="width: 100%; padding: 10px; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 12px; font-family: inherit; min-height: 70px; resize: vertical;"></textarea>
+                </div>
+
+                <!-- 承诺事项 -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">
+                        <span style="color: #ff6b6b;">*</span> 每期晨读营自每月第二周周六并开始，持续23天，时间为每天早上6:00-7:00，您是否可以承诺全程参加
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <label style="flex: 1; display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <input type="radio" name="commitment" value="愿意" style="margin-right: 6px;"> 愿意
+                        </label>
+                        <label style="flex: 1; display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <input type="radio" name="commitment" value="不愿意" style="margin-right: 6px;"> 不愿意
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部按钮 -->
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid #e8e8e8; padding: 12px; display: flex; gap: 10px; background: white; z-index: 10; border-radius: 0 0 12px 12px;">
+                <button class="btn btn-secondary" onclick="closeSignupModal()" style="flex: 1; cursor: pointer; margin: 0; padding: 10px; font-size: 12px;">取消</button>
+                <button class="btn btn-primary" onclick="submitSignup()" style="flex: 1; cursor: pointer; margin: 0; padding: 10px; font-size: 12px;">提交报名</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 索要小凡看见弹窗 -->
+    <div class="request-insight-modal" id="requestInsightModal">
+        <div class="request-insight-content">
+            <div class="request-insight-icon">✋</div>
+            <div class="request-insight-title">请求查看小凡看见</div>
+            <div class="request-insight-desc">对方还未授权分享，需要向对方索要此篇小凡看见</div>
+            <div class="request-insight-author" id="requestInsightAuthor">阿泰的小凡看见</div>
+            <div class="request-insight-buttons">
+                <button class="request-insight-btn" onclick="closeRequestInsightModal()">取消</button>
+                <button class="request-insight-btn confirm" onclick="sendRequestInsight()">发起索要</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 课程详情分享弹窗 -->
+    <div class="share-modal" id="shareCourseDetailModal">
+        <div class="share-modal-content">
+            <div class="share-modal-title">分享课程</div>
+            <div class="share-options">
+                <div class="share-option" onclick="shareCourseDetail('wechat')">
+                    <div class="share-option-icon">💬</div>
+                    <div class="share-option-text">分享给微信好友</div>
+                </div>
+                <div class="share-option" onclick="shareCourseDetail('moments')">
+                    <div class="share-option-icon">👥</div>
+                    <div class="share-option-text">分享到朋友圈</div>
+                </div>
+            </div>
+            <button class="share-modal-cancel" onclick="closeShareCourseDetailModal()">取消</button>
+        </div>
+    </div>
+
+    <!-- 课程列表分享弹窗 -->
+    <div class="share-modal" id="shareCampModal">
+        <div class="share-modal-content">
+            <div class="share-modal-title">分享晨读营</div>
+            <div class="share-options">
+                <div class="share-option" onclick="shareCamp('wechat')">
+                    <div class="share-option-icon">💬</div>
+                    <div class="share-option-text">分享给微信好友</div>
+                </div>
+                <div class="share-option" onclick="shareCamp('moments')">
+                    <div class="share-option-icon">👥</div>
+                    <div class="share-option-text">分享到朋友圈</div>
+                </div>
+            </div>
+            <button class="share-modal-cancel" onclick="closeShareCampModal()">取消</button>
+        </div>
+    </div>
+
+    <script>
+        let navigationStack = [];
+        let xiaofanType = 'self';
+        let replyingCommentId = null;
+        let commentIdCounter = 3;
+        
+        // 新增：小凡看见权限和请求管理
+        let currentInsightRequestId = null;
+        let insightPermissions = {}; // 存储已授权的小凡看见 {userId_insightId: true}
+        let insightRequests = []; // 存储收到的请求列表
+        
+        const titles = {
+            'page-home': '首页',
+            'page-courses': '课程列表',
+            'page-course-detail': '课程详情',
+            'page-checkin': '每日打卡',
+            'page-profile': '个人主页',
+            'page-xiaofan-list': '小凡看见',
+            'page-xiaofan': '小凡看见详情',
+            'page-share': '分享卡片',
+            'page-other-profile': '他人主页'
+        };
+
+        const xiaofanData = {
+            'self': [
+                {
+                    id: '1',
+                    day: '第一天 品德成功论',
+                    preview: '感谢你的分享，听你娓道来，我仍佛也参与了你们那场深刻的对话...'
+                },
+                {
+                    id: '2',
+                    day: '第二天 自律的力量',
+                    preview: '自律正是你最大的优势！在今天的学习中，我看到了你对自律的真正理解...'
+                },
+                {
+                    id: '3',
+                    day: '第三天 感恩的艺术',
+                    preview: '感恩之心让你与众不同！能够时刻保持感恩的心态...'
+                },
+                {
+                    id: '4',
+                    day: '第四天 坚持的意义',
+                    preview: '你的坚持值得敬佩！四天的学习旅程中，我看到了你的成长和蜕变...'
+                },
+                {
+                    id: '5',
+                    day: '第五天 智慧的光芒',
+                    preview: '你正在开启智慧之门！在这五天的学习中，我看到了你从初心者的转变...'
+                }
+            ],
+            'others': [
+                {
+                    id: '1',
+                    day: '第一天 品德成功论',
+                    preview: '非常优秀！你对品德的理解已经超越了表面，体现了深刻的思考...'
+                },
+                {
+                    id: '2',
+                    day: '第二天 自律的力量',
+                    preview: '阿泰在自律方面做得非常出色，值得学习和赞赏...'
+                },
+                {
+                    id: '3',
+                    day: '第三天 感恩的艺术',
+                    preview: '对感恩的诠释恰到好处，体现了对生活的热爱...'
+                }
+            ]
+        };
+
+        function navigateTo(pageId, title, type, xiaofanId) {
+            const currentPage = document.querySelector('.page.active');
+            if (currentPage) {
+                navigationStack.push(currentPage.id);
+            }
+            
+            // 如果是列表页，设置类型并渲染列表
+            if (pageId === 'page-xiaofan-list') {
+                xiaofanType = type;
+                renderXiaofanList();
+            }
+            
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.getElementById('screenTitle').textContent = title || titles[pageId];
+            
+            updateBackButton();
+            updateShareButton(pageId);
+            
+            // 如果打开的是个人主页，更新请求列表
+            if (pageId === 'page-profile') {
+                initRequestInsightList();
+            }
+        }
+        
+        function renderXiaofanList() {
+            const container = document.getElementById('xiaofan-list-container');
+            const data = xiaofanData[xiaofanType];
+            
+            container.innerHTML = '';
+            data.forEach(item => {
+                const listItem = document.createElement('div');
+                listItem.style.cssText = `
+                    background: #f0f5ff;
+                    border-radius: 8px;
+                    padding: 14px;
+                    margin-bottom: 12px;
+                    cursor: pointer;
+                    border-left: 4px solid #4a90e2;
+                    transition: all 0.3s;
+                `;
+                
+                listItem.onmouseover = function() {
+                    this.style.background = 'linear-gradient(135deg, #e8f4fd 0%, #f0f5ff 100%)';
+                    this.style.boxShadow = '0 2px 8px rgba(74, 144, 226, 0.15)';
+                    this.style.transform = 'translateX(2px)';
+                };
+                
+                listItem.onmouseout = function() {
+                    this.style.background = '#f0f5ff';
+                    this.style.boxShadow = 'none';
+                    this.style.transform = 'translateX(0)';
+                };
+                
+                listItem.onclick = () => {
+                    // 如果是自己的小凡看见，直接打开
+                    if (xiaofanType === 'self') {
+                        navigateTo('page-xiaofan', '小凡看见详情', xiaofanType, item.id);
+                    } else {
+                        // 如果是他人的，检查是否已有权限
+                        const permissionKey = `${xiaofanType}_${item.id}`;
+                        if (insightPermissions[permissionKey]) {
+                            navigateTo('page-xiaofan', '小凡看见详情', xiaofanType, item.id);
+                        } else {
+                            // 打开索要权限弹窗
+                            openRequestInsightModal(item, xiaofanType);
+                        }
+                    }
+                };
+                
+                listItem.innerHTML = `
+                    <div style="font-weight: bold; color: #4a90e2; font-size: 12px; margin-bottom: 6px;">${item.day}</div>
+                    <div style="font-size: 11px; color: #666; line-height: 1.6;">${item.preview}</div>
+                `;
+                
+                container.appendChild(listItem);
+            });
+        }
+
+        function showPage(pageId) {
+            navigationStack = [];
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.getElementById('screenTitle').textContent = titles[pageId];
+            
+            updateBackButton();
+            updateShareButton(pageId);
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            // 只在event存在且有target时才操作
+            if (typeof event !== 'undefined' && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // 如果打开的是个人主页，更新请求列表
+            if (pageId === 'page-profile') {
+                initRequestInsightList();
+            }
+        }
+
+        function goBack() {
+            if (navigationStack.length > 0) {
+                const previousPageId = navigationStack.pop();
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(previousPageId).classList.add('active');
+                document.getElementById('screenTitle').textContent = titles[previousPageId];
+                
+                updateBackButton();
+            }
+        }
+
+        function goHome() {
+            navigationStack = [];
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-home').classList.add('active');
+            document.getElementById('screenTitle').textContent = '首页';
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+            updateBackButton();
+        }
+
+        function updateBackButton() {
+            const backBtn = document.getElementById('backBtn');
+            if (navigationStack.length > 0) {
+                backBtn.classList.remove('hidden');
+            } else {
+                backBtn.classList.add('hidden');
+            }
+        }
+
+        function updateShareButton(pageId) {
+            const shareBtn = document.getElementById('shareBtn');
+            // 在课程详情页和课程列表页显示分享按钮
+            if (pageId === 'page-course-detail' || pageId === 'page-courses') {
+                shareBtn.style.display = '';
+            } else {
+                shareBtn.style.display = 'none';
+            }
+        }
+
+        function openContextualShare() {
+            const screenTitle = document.getElementById('screenTitle').textContent;
+            
+            // 根据当前页面判断打开哪个分享弹窗
+            if (screenTitle === '课程详情') {
+                openShareCourseDetailModal();
+            } else if (screenTitle === '课程列表') {
+                openShareCampModal();
+            }
+        }
+
+        function setHomeIcon(element, icon) {
+            document.getElementById('home-nav-icon').textContent = icon;
+            document.querySelectorAll('.icon-selector:first-of-type .icon-option').forEach(opt => {
+                opt.style.background = '#f0f5ff';
+            });
+            element.style.background = '#4a90e2';
+            element.style.color = 'white';
+        }
+
+        function setMyIcon(element, icon) {
+            document.getElementById('my-nav-icon').textContent = icon;
+            document.querySelectorAll('.icon-selector:nth-of-type(2) .icon-option').forEach(opt => {
+                opt.style.background = '#f0f5ff';
+                opt.style.color = 'inherit';
+            });
+            element.style.background = '#4a90e2';
+            element.style.color = 'white';
+        }
+
+        function toggleLike(btn, commentId) {
+            btn.classList.toggle('liked');
+            const countSpan = btn.querySelector('.like-count');
+            let count = parseInt(countSpan.textContent);
+            if (btn.classList.contains('liked')) {
+                count++;
+            } else {
+                count--;
+            }
+            countSpan.textContent = count;
+        }
+
+        function switchCourseFilter(index) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (index === 0) {
+                document.getElementById('courses-all').style.display = 'none';
+                document.getElementById('courses-pending').style.display = 'block';
+            } else {
+                document.getElementById('courses-all').style.display = 'block';
+                document.getElementById('courses-pending').style.display = 'none';
+            }
+        }
+
+        function switchNav(index) {
+            document.querySelectorAll('.nav-item').forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        function openReplyDialog(commentId) {
+            replyingCommentId = commentId;
+            document.getElementById('replyModal').classList.add('active');
+            document.getElementById('replyInput').value = '';
+            document.getElementById('replyInput').focus();
+        }
+
+        function closeReplyDialog() {
+            document.getElementById('replyModal').classList.remove('active');
+            replyingCommentId = null;
+        }
+
+        function submitReply() {
+            const replyText = document.getElementById('replyInput').value.trim();
+            if (!replyText) {
+                alert('请输入回复内容');
+                return;
+            }
+
+            const userNames = ['狮子', '阿泰', '小凡'];
+            const userInitials = ['狮', '阿', '小'];
+            const randomUser = Math.floor(Math.random() * userNames.length);
+            const userName = userNames[randomUser];
+            const userInitial = userInitials[randomUser];
+
+            commentIdCounter++;
+            const newReplyId = commentIdCounter;
+            
+            // 创建回复评论的HTML，使用不同的样式
+            const newReplyHtml = `
+                <div class="comment-reply-item" id="comment-${newReplyId}">
+                    <div class="comment-reply-header">
+                        <div class="comment-reply-avatar">${userInitial}</div>
+                        <div class="comment-reply-info">
+                            <div class="comment-reply-name">${userName}</div>
+                            <div class="comment-reply-time">刚刚</div>
+                        </div>
+                    </div>
+                    <div class="comment-reply-text">${replyText}</div>
+                    <div class="comment-reply-actions">
+                        <button class="comment-reply-action-btn" onclick="toggleReplyLike(this, ${newReplyId})">❤️ <span class="like-count">0</span></button>
+                        <button class="comment-reply-action-btn" onclick="openReplyDialog(${newReplyId})">↩️ 回复</button>
+                    </div>
+                </div>
+            `;
+
+            // 找到被回复的评论，获取其后的回复容器
+            const parentComment = document.getElementById(`comment-${replyingCommentId}`);
+            if (parentComment) {
+                // 获取下一个兄弟元素（回复容器）
+                let repliesContainer = parentComment.nextElementSibling;
+                
+                // 如果不存在回复容器或不是回复容器类，则创建一个
+                if (!repliesContainer || !repliesContainer.classList.contains('comment-replies-container')) {
+                    repliesContainer = document.createElement('div');
+                    repliesContainer.className = 'comment-replies-container';
+                    parentComment.parentNode.insertBefore(repliesContainer, parentComment.nextSibling);
+                }
+                
+                // 将新回复插入回复容器
+                repliesContainer.insertAdjacentHTML('beforeend', newReplyHtml);
+            }
+
+            closeReplyDialog();
+        }
+
+        function toggleReplyLike(btn, replyId) {
+            btn.classList.toggle('liked');
+            const countSpan = btn.querySelector('.like-count');
+            let count = parseInt(countSpan.textContent);
+            if (btn.classList.contains('liked')) {
+                count++;
+            } else {
+                count--;
+            }
+            countSpan.textContent = count;
+        }
+
+        function openRequestInsightModal(item, userId) {
+            currentInsightRequestId = `${userId}_${item.id}`;
+            const userNames = { 'other1': '阿泰', 'other2': '小凡' };
+            const authorName = userNames[userId] || '用户';
+            document.getElementById('requestInsightAuthor').textContent = `${authorName}的${item.day}`;
+            document.getElementById('requestInsightModal').classList.add('active');
+        }
+
+        function closeRequestInsightModal() {
+            document.getElementById('requestInsightModal').classList.remove('active');
+            currentInsightRequestId = null;
+        }
+
+        function sendRequestInsight() {
+            if (!currentInsightRequestId) return;
+            
+            // 添加请求到列表
+            const [userId, insightId] = currentInsightRequestId.split('_');
+            const userNames = { 'other1': '阿泰', 'other2': '小凡' };
+            const authorName = userNames[userId] || '用户';
+            
+            // 获取当前要请求的项目信息
+            const xiaofanData_temp = {
+                'other1': [
+                    { id: '1', day: '第一天 品德成功论', preview: '非常优秀！你对品德成功论的理解已经超越了表面...' },
+                    { id: '2', day: '第二天 自律的力量', preview: '阿泰在自律方面做得非常出色！...' },
+                    { id: '3', day: '第三天 感恩的艺术', preview: '对感恩的艺术，阿泰有深刻的感受...' }
+                ],
+                'other2': [
+                    { id: '1', day: '第一天 品德成功论', preview: '你的反思非常深入...' },
+                    { id: '2', day: '第二天 自律的力量', preview: '自律的力量在小凡身上体现得很明显...' }
+                ]
+            };
+            
+            const data = xiaofanData_temp[userId] || [];
+            const insightItem = data.find(i => i.id === insightId);
+            
+            const newRequest = {
+                id: Date.now(),
+                userId: userId,
+                userName: authorName,
+                insightId: insightId,
+                day: insightItem ? insightItem.day : '小凡看见',
+                status: 'pending', // pending, accepted, rejected
+                requestTime: '刚刚'
+            };
+            
+            insightRequests.push(newRequest);
+            
+            closeRequestInsightModal();
+            alert(`已向${authorName}发起索要请求！`);
+            updateRequestInsightList();
+        }
+
+        function updateRequestInsightList() {
+            const listContainer = document.getElementById('requestInsightList');
+            const badge = document.getElementById('requestInsightBadge');
+            const pendingRequests = insightRequests.filter(r => r.status === 'pending');
+            
+            badge.textContent = pendingRequests.length;
+            
+            if (pendingRequests.length === 0) {
+                listContainer.innerHTML = '<div class="request-insight-empty">暂无请求</div>';
+                return;
+            }
+            
+            listContainer.innerHTML = '';
+            pendingRequests.forEach(request => {
+                const requestItem = document.createElement('div');
+                requestItem.className = 'request-insight-item';
+                requestItem.innerHTML = `
+                    <div class="request-insight-item-info">
+                        <div class="request-insight-item-user">📬 来自 ${request.userName}</div>
+                        <div class="request-insight-item-title">${request.day}</div>
+                        <div class="request-insight-item-time">${request.requestTime}</div>
+                    </div>
+                    <div class="request-insight-item-actions">
+                        <button class="request-insight-item-action-btn accept" onclick="acceptInsightRequest(${request.id})">同意</button>
+                        <button class="request-insight-item-action-btn reject" onclick="rejectInsightRequest(${request.id})">拒绝</button>
+                    </div>
+                `;
+                listContainer.appendChild(requestItem);
+            });
+        }
+
+        function acceptInsightRequest(requestId) {
+            const request = insightRequests.find(r => r.id === requestId);
+            if (request) {
+                request.status = 'accepted';
+                const permissionKey = `${request.userId}_${request.insightId}`;
+                insightPermissions[permissionKey] = true;
+                updateRequestInsightList();
+                alert(`已同意${request.userName}查看小凡看见！`);
+            }
+        }
+
+        function rejectInsightRequest(requestId) {
+            const request = insightRequests.find(r => r.id === requestId);
+            if (request) {
+                request.status = 'rejected';
+                updateRequestInsightList();
+                alert(`已拒绝${request.userName}的请求！`);
+            }
+        }
+
+        // 页面加载时初始化请求列表
+        function initRequestInsightList() {
+            updateRequestInsightList();
+        }
+
+        // 课程详情分享功能
+        function openShareCourseDetailModal() {
+            document.getElementById('shareCourseDetailModal').classList.add('active');
+        }
+
+        function closeShareCourseDetailModal() {
+            document.getElementById('shareCourseDetailModal').classList.remove('active');
+        }
+
+        function shareCourseDetail(platform) {
+            const title = '第十七天 双赢品德';
+            const desc = '快来加入我的晨读营课程，一起学习成长！';
+            
+            if (platform === 'wechat') {
+                alert(`🔗 分享给微信好友\n\n${title}\n${desc}`);
+            } else if (platform === 'moments') {
+                alert(`🔗 分享到朋友圈\n\n${title}\n${desc}`);
+            }
+            
+            closeShareCourseDetailModal();
+        }
+
+        // 课程列表（晨读营）分享功能
+        function openShareCampModal() {
+            document.getElementById('shareCampModal').classList.add('active');
+        }
+
+        function closeShareCampModal() {
+            document.getElementById('shareCampModal').classList.remove('active');
+        }
+
+        function shareCamp(platform) {
+            const title = '晨读营 - 第八期：勇敢的心';
+            const desc = '快来加入我的晨读营！一起开启学习之旅，享受每天的学习反馈和成长见证。点击立即报名！';
+            
+            if (platform === 'wechat') {
+                alert(`🔗 分享给微信好友\n\n${title}\n${desc}`);
+            } else if (platform === 'moments') {
+                alert(`🔗 分享到朋友圈\n\n${title}\n${desc}`);
+            }
+            
+            closeShareCampModal();
+        }
+
+        // 报名流程相关函数
+        function openSignupModal(courseName) {
+            document.getElementById('signupCourseName').textContent = courseName;
+            document.getElementById('signupModal').classList.add('active');
+            
+            // 生成报名期数选项
+            renderPeriodOptions();
+            
+            // 清空之前的表单数据
+            clearSignupForm();
+        }
+
+        function renderPeriodOptions() {
+            const periodOptions = document.getElementById('periodOptions');
+            periodOptions.innerHTML = '';
+            
+            const periods = [
+                { id: '8', name: '第八期：勇敢的心 (10月11日开营 – 11月5日结营)' },
+                { id: '9', name: '第九期：平衡之道 (11月8日开营 – 12月7日结营)' },
+                { id: '10', name: '第十期：感恩之心 (12月13日开营 – 26年1月4日结营)' },
+                { id: '2026', name: '预约2026年晨读营' }
+            ];
+            
+            periods.forEach(period => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: flex; align-items: center; padding: 8px; border: 1px solid #e8e8e8; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-size: 12px;';
+                label.onmouseover = function() {
+                    this.style.background = '#f0f5ff';
+                    this.style.borderColor = '#4a90e2';
+                };
+                label.onmouseout = function() {
+                    this.style.background = 'white';
+                    this.style.borderColor = '#e8e8e8';
+                };
+                
+                label.innerHTML = `
+                    <input type="radio" name="period" value="${period.id}" style="margin-right: 6px;"> <span style="font-size: 12px;">${period.name}</span>
+                `;
+                periodOptions.appendChild(label);
+            });
+        }
+
+        function clearSignupForm() {
+            document.getElementById('signupName').value = '';
+            document.getElementById('signupAge').value = '';
+            document.getElementById('signupReferrer').value = '';
+            document.getElementById('signupAddress').value = '';
+            document.getElementById('signupProvince').value = '';
+            document.getElementById('signupReadTimes').value = '';
+            document.getElementById('signupReason').value = '';
+            document.getElementById('signupExpectation').value = '';
+            
+            // 清空单选框
+            document.querySelectorAll('input[name="gender"]').forEach(el => el.checked = false);
+            document.querySelectorAll('input[name="hasRead"]').forEach(el => el.checked = false);
+            document.querySelectorAll('input[name="commitment"]').forEach(el => el.checked = false);
+            document.querySelectorAll('input[name="period"]').forEach(el => el.checked = false);
+        }
+
+        function closeSignupModal() {
+            document.getElementById('signupModal').classList.remove('active');
+        }
+
+        function submitSignup() {
+            console.log('=== submitSignup 被调用 ===');
+            
+            alert('报名成功！');
+            
+            // 立即关闭modal
+            document.getElementById('signupModal').classList.remove('active');
+            console.log('✓ modal已关闭');
+            
+            // 立即切换页面
+            const allPages = document.querySelectorAll('.page');
+            for (let i = 0; i < allPages.length; i++) {
+                allPages[i].classList.remove('active');
+            }
+            
+            const coursePage = document.getElementById('page-courses');
+            if (coursePage) {
+                coursePage.classList.add('active');
+                console.log('✓ 课程列表页已激活');
+            }
+            
+            const screenTitle = document.getElementById('screenTitle');
+            if (screenTitle) {
+                screenTitle.textContent = '课程列表';
+            }
+            
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.classList.add('hidden');
+            }
+            
+            console.log('✓✓✓ 成功跳转到课程列表 ✓✓✓');
+        }
+
+        navigationStack = [];
+    </script>
+</body>
+</html>

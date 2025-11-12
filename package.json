@@ -1,0 +1,33 @@
+{
+  "name": "morning-reading-miniapp",
+  "version": "1.0.0",
+  "description": "晨读营小程序 - 在晨光中，遇见更好的自己",
+  "main": "app.js",
+  "scripts": {
+    "dev": "echo '请使用微信开发者工具打开本项目'",
+    "build": "echo '请使用微信开发者工具进行编译'",
+    "lint": "eslint miniprogram/**/*.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "wechat",
+    "miniprogram",
+    "morning-reading",
+    "habit",
+    "education"
+  ],
+  "author": "晨读营团队",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

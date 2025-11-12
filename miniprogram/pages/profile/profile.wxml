@@ -1,0 +1,88 @@
+<!--个人中心页面-->
+<view class="page-profile">
+  <!-- 用户信息区域 -->
+  <view class="profile-header">
+    <!-- 背景装饰 -->
+    <view class="header-bg"></view>
+
+    <!-- 头像和基本信息 -->
+    <view class="user-info-wrapper" wx:if="{{isLogin}}">
+      <image
+        class="user-avatar"
+        src="{{userInfo.avatar_url || '/assets/images/default-avatar.png'}}"
+        mode="aspectFill"
+        bindtap="handleAvatarClick"
+      />
+      <view class="user-details">
+        <text class="user-nickname">{{userInfo.nickname || '晨读营用户'}}</text>
+        <text class="user-join-date" wx:if="{{userInfo.created_at}}">
+          {{formatJoinDate(userInfo.created_at)}}
+        </text>
+      </view>
+    </view>
+
+    <!-- 未登录状态 -->
+    <view class="login-prompt" wx:else>
+      <image
+        class="login-avatar"
+        src="/assets/images/default-avatar.png"
+        mode="aspectFill"
+      />
+      <button class="login-btn" bindtap="handleLogin">
+        点击登录
+      </button>
+    </view>
+  </view>
+
+  <!-- 统计数据卡片 -->
+  <view class="stats-card" wx:if="{{isLogin}}">
+    <view class="stat-item">
+      <text class="stat-value">{{stats.total_checkins}}</text>
+      <text class="stat-label">总打卡</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-value">{{stats.current_streak}}</text>
+      <text class="stat-label">连续天数</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-value">{{stats.total_courses}}</text>
+      <text class="stat-label">学习课程</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-value">{{stats.completion_rate}}%</text>
+      <text class="stat-label">完成率</text>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section">
+    <view
+      wx:for="{{menuList}}"
+      wx:key="title"
+      class="menu-item"
+      bindtap="handleMenuClick"
+      data-path="{{item.path}}"
+    >
+      <view class="menu-left">
+        <text class="menu-icon">{{item.icon}}</text>
+        <text class="menu-title">{{item.title}}</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 退出登录按钮 -->
+  <view class="logout-section" wx:if="{{isLogin}}">
+    <button class="logout-btn" bindtap="handleLogout">
+      退出登录
+    </button>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-overlay">
+    <view class="loading-spinner"></view>
+  </view>
+</view>

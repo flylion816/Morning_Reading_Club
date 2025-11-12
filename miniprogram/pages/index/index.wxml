@@ -1,0 +1,75 @@
+<!--首页 - 课程列表-->
+<view class="page-index">
+  <!-- Banner区域 -->
+  <view class="home-banner">
+    <view class="banner-text">{{bannerText}}</view>
+    <view class="banner-sub-text">{{subBannerText}}</view>
+  </view>
+
+  <!-- 课程列表 -->
+  <view class="courses-container">
+    <view
+      wx:for="{{courses}}"
+      wx:key="id"
+      class="course-item animate-slide-in-up"
+      bindtap="handleCourseClick"
+      data-course-id="{{item.id}}"
+    >
+      <!-- 课程图标 -->
+      <view class="course-thumb">
+        <text class="course-emoji">{{item.emoji || '📚'}}</text>
+      </view>
+
+      <!-- 课程信息 -->
+      <view class="course-info">
+        <view class="course-title">{{item.title}}</view>
+        <view class="course-meta">
+          {{item.duration_days}}天 · 第{{item.current_period}}期
+        </view>
+
+        <!-- 进度条 -->
+        <view class="course-progress" wx:if="{{item.user_course}}">
+          <view class="progress-bar">
+            <view
+              class="progress-bar-fill"
+              style="width: {{item.user_course.completion_rate}}%"
+            ></view>
+          </view>
+          <text class="progress-text">{{item.user_course.completion_rate}}%</text>
+        </view>
+
+        <!-- 未报名状态 -->
+        <view class="course-action" wx:else>
+          <text class="action-text">立即报名</text>
+        </view>
+      </view>
+
+      <!-- 状态标签 -->
+      <view class="course-status {{item.status}}">
+        {{item.status_text}}
+      </view>
+    </view>
+
+    <!-- 加载中 -->
+    <view wx:if="{{loading && courses.length === 0}}" class="loading-container">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 加载更多 -->
+    <view wx:if="{{loading && courses.length > 0}}" class="loading-more">
+      <text>加载更多...</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view wx:if="{{!hasMore && courses.length > 0}}" class="no-more">
+      <text>没有更多课程了</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{!loading && courses.length === 0}}" class="empty-state">
+      <text class="empty-state-icon">📚</text>
+      <text class="empty-state-text">暂无课程</text>
+    </view>
+  </view>
+</view>

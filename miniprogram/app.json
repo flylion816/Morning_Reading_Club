@@ -1,0 +1,51 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/profile/profile",
+    "pages/course-detail/course-detail",
+    "pages/checkin/checkin",
+    "pages/insights/insights",
+    "pages/insight-detail/insight-detail",
+    "pages/profile-others/profile-others",
+    "pages/share/share",
+    "pages/login/login"
+  ],
+  "window": {
+    "navigationBarTitleText": "晨读营",
+    "navigationBarBackgroundColor": "#4a90e2",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f5f5",
+    "backgroundTextStyle": "light",
+    "enablePullDownRefresh": true
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#4a90e2",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "assets/icons/user.png",
+        "selectedIconPath": "assets/icons/user-active.png"
+      }
+    ]
+  },
+  "usingComponents": {},
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于小程序位置接口的效果展示"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "lazyCodeLoading": "requiredComponents"
+}
