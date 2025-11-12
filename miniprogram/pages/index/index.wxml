@@ -27,8 +27,8 @@
       wx:for="{{displayedCourses}}"
       wx:key="id"
       course="{{item}}"
-      bindtap="handleCourseClick"
-      bindaction="handleCourseAction"
+      bind:tap="handleCourseClick"
+      bind:action="handleCourseAction"
     />
 
     <!-- 加载中 -->
