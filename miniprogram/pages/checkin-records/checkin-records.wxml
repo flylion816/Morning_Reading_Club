@@ -1,0 +1,92 @@
+<!--打卡记录页面-->
+<view class="page-checkin-records">
+  <!-- 用户信息卡片 -->
+  <view class="user-card">
+    <view class="user-header">
+      <view class="user-avatar" style="background: {{userInfo.avatarColor}}">
+        <text class="avatar-text">{{userInfo.avatarText}}</text>
+      </view>
+      <view class="user-name">{{userInfo.userName}}</view>
+    </view>
+
+    <!-- 统计信息 -->
+    <view class="stats-grid">
+      <view class="stat-item">
+        <view class="stat-value">{{stats.diaryCount}}</view>
+        <view class="stat-label">日记</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{stats.featuredCount}}</view>
+        <view class="stat-label">精选</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{stats.likeCount}}</view>
+        <view class="stat-label">获赞</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{stats.totalDays}}</view>
+        <view class="stat-label">累计天数</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{stats.consecutiveDays}}</view>
+        <view class="stat-label">连续天数</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 日历视图 -->
+  <view class="calendar-section">
+    <view class="calendar-header">
+      <view class="month-selector">
+        <view class="month-btn" bindtap="handlePrevMonth">‹</view>
+        <view class="month-text">{{currentMonth}}</view>
+        <view class="month-btn" bindtap="handleNextMonth">›</view>
+      </view>
+    </view>
+
+    <view class="calendar-weekdays">
+      <view class="weekday" wx:for="{{weekdays}}" wx:key="*this">{{item}}</view>
+    </view>
+
+    <view class="calendar-grid">
+      <view
+        wx:for="{{calendarDays}}"
+        wx:key="date"
+        class="calendar-day {{item.isCurrentMonth ? '' : 'other-month'}} {{item.hasCheckin ? 'checked' : ''}}">
+        <view class="day-number">{{item.day}}</view>
+        <view wx:if="{{item.hasCheckin}}" class="day-dot"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 打卡记录列表 -->
+  <view class="records-section">
+    <view class="section-title">打卡记录</view>
+
+    <view wx:if="{{checkinRecords.length > 0}}" class="records-list">
+      <view
+        wx:for="{{checkinRecords}}"
+        wx:key="id"
+        class="record-item">
+        <view class="record-date">{{item.date}}</view>
+        <view class="record-card">
+          <view class="record-course">{{item.courseTitle}}</view>
+          <view class="record-content">{{item.content}}</view>
+          <view class="record-footer">
+            <text class="record-time">{{item.time}}</text>
+            <view class="record-stats">
+              <text class="stat-icon">❤️</text>
+              <text class="stat-count">{{item.likeCount}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{checkinRecords.length === 0}}" class="empty-state">
+      <text class="empty-state-icon">📝</text>
+      <text class="empty-state-text">暂无打卡记录</text>
+    </view>
+  </view>
+</view>

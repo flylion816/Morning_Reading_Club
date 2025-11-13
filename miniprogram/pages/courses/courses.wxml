@@ -1,0 +1,134 @@
+<!--课节列表页-->
+<view class="page-courses">
+  <!-- 头部区域 -->
+  <view class="page-header">
+    <view class="header-content">
+      <view class="period-name">{{periodName}}</view>
+      <view class="period-date">{{periodDate}}</view>
+    </view>
+  </view>
+
+  <!-- 功能按钮区 -->
+  <view class="action-buttons">
+    <view class="action-btn" bindtap="handleRanking">
+      <view class="btn-icon">🏆</view>
+      <text class="btn-text">排行榜</text>
+    </view>
+    <view class="action-btn" bindtap="handleCheckinRecords">
+      <view class="btn-icon">📅</view>
+      <text class="btn-text">打卡记录</text>
+    </view>
+    <view class="action-btn" bindtap="handleMembers">
+      <view class="btn-icon">👥</view>
+      <text class="btn-text">成员</text>
+    </view>
+  </view>
+
+  <!-- Tab切换 -->
+  <view class="tabs-container">
+    <view class="tabs">
+      <view
+        class="tab-item {{currentTab === 'tasks' ? 'active' : ''}}"
+        bindtap="handleTabChange"
+        data-tab="tasks">
+        <text>任务</text>
+        <view class="tab-underline" wx:if="{{currentTab === 'tasks'}}"></view>
+      </view>
+      <view
+        class="tab-item {{currentTab === 'dynamics' ? 'active' : ''}}"
+        bindtap="handleTabChange"
+        data-tab="dynamics">
+        <text>动态</text>
+        <view class="tab-underline" wx:if="{{currentTab === 'dynamics'}}"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 滚动内容区 -->
+  <scroll-view
+    scroll-y
+    class="content-scroll"
+    scroll-top="{{scrollTop}}"
+    scroll-with-animation>
+
+    <!-- 任务区域 -->
+    <view id="tasks-section" class="section-wrapper">
+      <!-- 剩余补打卡次数 -->
+      <view class="makeup-info">
+        <text class="makeup-text">剩余补打卡：</text>
+        <text class="makeup-count">{{makeupCount}}次</text>
+      </view>
+
+      <!-- 课节列表 -->
+      <view class="sections-container">
+        <view
+          wx:for="{{sections}}"
+          wx:key="id"
+          class="section-card"
+          bindtap="handleSectionClick"
+          data-section="{{item}}">
+          <!-- 课节标题 -->
+          <view class="section-title">{{item.title}}</view>
+
+          <!-- 时间范围 -->
+          <view class="section-time">{{item.startTime}} 至 {{item.endTime}}</view>
+
+          <!-- 底部：打卡人数 + 按钮 -->
+          <view class="section-footer">
+            <text class="checkin-info">{{item.checkinCount}}人已打卡</text>
+            <view class="btn-action" catchtap="handleCheckinClick" data-section="{{item}}">
+              去打卡
+            </view>
+          </view>
+        </view>
+
+        <!-- 加载中 -->
+        <view wx:if="{{loading && sections.length === 0}}" class="loading-container">
+          <view class="loading-spinner"></view>
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <!-- 空状态 -->
+        <view wx:if="{{!loading && sections.length === 0}}" class="empty-state">
+          <text class="empty-state-icon">📚</text>
+          <text class="empty-state-text">暂无课节</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 动态区域（打卡记录） -->
+    <view id="dynamics-section" class="section-wrapper">
+      <view class="all-checkins-section" wx:if="{{allCheckins.length > 0}}">
+        <view class="checkins-header">
+          <text class="checkins-title">所有打卡记录</text>
+          <text class="checkins-count">（{{allCheckins.length}} 条）</text>
+        </view>
+
+        <view class="checkins-list">
+          <view class="checkin-item" wx:for="{{allCheckins}}" wx:key="id">
+            <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
+              <text class="avatar-text">{{item.avatarText || item.userName}}</text>
+            </view>
+            <view class="checkin-main">
+              <view class="checkin-top">
+                <text class="checkin-user">{{item.userName}}</text>
+                <text class="checkin-time">{{item.createTime}}</text>
+              </view>
+              <view class="checkin-section-info">
+                <text class="section-tag">第{{item.sectionDay}}天</text>
+                <text class="section-title-text">{{item.sectionTitle}}</text>
+              </view>
+              <view class="checkin-content">{{item.content}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view wx:if="{{allCheckins.length === 0}}" class="empty-state">
+        <text class="empty-state-icon">📝</text>
+        <text class="empty-state-text">暂无打卡记录</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

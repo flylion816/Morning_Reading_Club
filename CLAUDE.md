@@ -976,5 +976,671 @@ handleClick(e) {
 
 ---
 
-**最后更新**: 2025-11-12
+### 9. 网络请求域名校验问题
+
+**问题现象**：Console报错 `request:fail url not in domain list`
+
+**根本原因**：开发环境开启了域名校验，但未配置合法域名
+```json
+// ❌ 问题：开发环境也校验域名
+{
+  "setting": {
+    "urlCheck": true
+  }
+}
+```
+
+**解决方案**：开发环境关闭域名校验
+```json
+// ✅ 正确：开发环境不校验
+{
+  "setting": {
+    "urlCheck": false
+  }
+}
+```
+
+**经验教训**：
+- ⚠️ `urlCheck: true` 会校验请求域名是否在白名单中
+- ⚠️ 开发环境通常使用本地Mock数据或测试API，不在白名单中
+- ✅ 开发环境设置 `urlCheck: false` 方便调试
+- ✅ 生产环境在微信公众平台配置合法域名白名单
+- ✅ 使用Mock模式时必须关闭域名校验
+
+---
+
+### 10. UI实现与设计稿差异问题
+
+**问题现象**：实现的页面与设计稿（HTML demo）差异较大，缺少关键元素
+
+**根本原因**：没有逐一对比设计稿，凭记忆实现导致遗漏
+```wxml
+<!-- ❌ 简化过度的实现 -->
+<view class="course-card">
+  <text>{{title}}</text>
+  <button>打卡</button>
+</view>
+```
+
+**解决方案**：逐一对比设计稿，完整实现所有元素
+```wxml
+<!-- ✅ 完整实现：缩略图 + 标题 + 元数据 + 进度条 + 按钮 -->
+<view class="course-card">
+  <view class="thumb">{{icon}}</view>
+  <view class="info">
+    <text class="title">{{title}}</text>
+    <text class="meta">{{dateRange}} • 已打卡 {{checkedDays}} 天</text>
+    <view class="progress-bar">
+      <view class="fill" style="width: {{progress}}%"></view>
+    </view>
+    <view class="actions">
+      <text>{{statusText}}</text>
+      <button>打卡</button>
+    </view>
+  </view>
+</view>
+```
+
+**经验教训**：
+- ⚠️ 不要凭记忆实现UI，必须对照设计稿
+- ⚠️ 简化实现会遗漏重要的视觉元素和功能
+- ✅ 逐个页面、逐个组件对比设计稿
+- ✅ 检查清单：布局、颜色、字体、间距、阴影、渐变、动画
+- ✅ 使用设计稿中的数据结构，不要自己简化
+- ✅ 定期与设计稿对比，发现问题及时修正
+
+---
+
+### 11. Flex布局按钮居右对齐问题
+
+**问题现象**：使用 `justify-content: space-between` 但按钮没有靠右
+
+**根本原因**：按钮被压缩或没有正确设置margin
+```wxss
+/* ❌ 问题：按钮可能被flex压缩 */
+.container {
+  display: flex;
+  justify-content: space-between;
+}
+.button {
+  /* 没有防止压缩 */
+}
+```
+
+**解决方案**：添加 `flex-shrink: 0` 和 `margin-left: auto`
+```wxss
+/* ✅ 正确：确保按钮居右且不被压缩 */
+.container {
+  display: flex;
+  justify-content: space-between;
+}
+.button {
+  flex-shrink: 0;        /* 防止被压缩 */
+  margin-left: auto;     /* 确保靠右 */
+}
+```
+
+**经验教训**：
+- ⚠️ `justify-content: space-between` 在内容较少时可能不生效
+- ⚠️ Flex子元素默认可能被压缩（flex-shrink: 1）
+- ✅ 需要固定尺寸的元素设置 `flex-shrink: 0`
+- ✅ 需要靠右的元素设置 `margin-left: auto`
+- ✅ 两者结合确保按钮始终在右侧且保持尺寸
+
+---
+
+### 12. 渐变和阴影优化技巧
+
+**问题现象**：页面看起来扁平、缺少层次感
+
+**根本原因**：只用纯色背景，没有使用渐变和阴影
+```wxss
+/* ❌ 扁平效果 */
+.card {
+  background: #ffffff;
+}
+```
+
+**解决方案**：使用渐变背景和细腻的阴影
+```wxss
+/* ✅ 有层次感的设计 */
+.card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  border-radius: 16rpx;
+}
+
+.card.active {
+  background: linear-gradient(135deg, #f0f5ff 0%, #e8f4ff 100%);
+  box-shadow: 0 4rpx 16rpx rgba(74, 144, 226, 0.15);
+}
+
+/* 进度条渐变 */
+.progress-bar {
+  background: linear-gradient(90deg, #e2e8f0 0%, #cbd5e0 100%);
+  box-shadow: inset 0 2rpx 4rpx rgba(0, 0, 0, 0.05);
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+  box-shadow: 0 2rpx 6rpx rgba(74, 144, 226, 0.3);
+}
+```
+
+**经验教训**：
+- ⚠️ 纯色背景显得扁平，缺少质感
+- ✅ 使用 135deg 渐变模拟光源照射效果
+- ✅ 阴影使用半透明黑色，透明度控制在 0.05-0.15
+- ✅ 不同状态使用不同的渐变色和阴影强度
+- ✅ 进度条使用内阴影（inset）增加深度感
+- ✅ 激活状态的阴影带有品牌色，增强视觉反馈
+
+---
+
+### 13. 课程详情页内容模块设计
+
+**问题现象**：课程详情页只显示标题和日历，缺少学习内容
+
+**根本原因**：没有参考设计稿完整实现五大学习模块
+
+**解决方案**：实现完整的学习流程（静、问、读、想、记）
+```wxml
+<!-- 每个模块包含：图标 + 标题 + 内容 -->
+<view class="content-section">
+  <view class="section-title">
+    <view class="section-icon calm">静</view>
+    <text>静一静</text>
+  </view>
+  <view class="section-content">{{course.meditation}}</view>
+</view>
+
+<!-- 读一读模块支持富文本 -->
+<view class="content-section">
+  <view class="section-title">
+    <view class="section-icon read">读</view>
+    <text>读一读</text>
+  </view>
+  <view class="section-content">
+    <rich-text nodes="{{course.content}}"></rich-text>
+  </view>
+</view>
+```
+
+**样式设计**：
+```wxss
+/* 每个模块用不同的渐变图标 */
+.section-icon.calm {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.section-icon.question {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+.section-icon.read {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+.section-icon.think {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+.section-icon.write {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+```
+
+**经验教训**：
+- ⚠️ 内容详情页不能只显示元数据，要有完整内容
+- ✅ 使用不同颜色的渐变图标区分不同模块
+- ✅ 富文本内容使用 `<rich-text>` 组件
+- ✅ 模块化设计，每个学习环节独立展示
+- ✅ 底部使用固定按钮栏，方便快速操作
+- ✅ Mock数据要包含完整的内容字段
+
+---
+
+---
+
+### 14. WXML模板表达式限制问题
+
+**问题现象**：用户头像显示为空圆圈,没有文字
+
+**根本原因**：WXML中使用了复杂的JavaScript表达式,微信不支持
+```xml
+<!-- ❌ 错误：WXML不支持这些复杂表达式 -->
+<text>{{userName.slice(-1)}}</text>
+<text>{{userName.substring(userName.length - 1)}}</text>
+<text>{{userName.charAt(userName.length - 1)}}</text>
+```
+
+**解决方案**：在JS中预处理数据
+```javascript
+// ✅ 正确：在JS中生成avatarText字段
+const comments = mockData.map(comment => ({
+  ...comment,
+  avatarText: comment.userName.charAt(comment.userName.length - 1)
+}));
+
+this.setData({ comments });
+```
+
+```xml
+<!-- WXML中直接使用 -->
+<text>{{avatarText}}</text>
+```
+
+**经验教训**：
+- ⚠️ WXML模板表达式功能有限,只支持简单的运算和访问
+- ⚠️ 不支持 `slice()`, `substring()`, `charAt()` 等字符串方法
+- ⚠️ 不支持复杂的三元表达式和逻辑运算
+- ✅ 所有数据处理都在JS中完成,WXML只负责展示
+- ✅ 使用WXS处理简单的格式化需求
+- ✅ 预处理数据,添加computed字段
+
+---
+
+### 15. 打卡记录重复显示问题
+
+**问题现象**：提交打卡后,评论区出现两条相同的记录
+
+**根本原因**：数据从多个来源加载,未去重
+```javascript
+// ❌ 错误：直接合并导致重复
+const localCheckins = wx.getStorageSync('checkins') || [];
+const pageCheckins = this.data.comments || [];
+const allComments = [...localCheckins, ...pageCheckins];  // 重复！
+```
+
+**解决方案**：使用Map去重
+```javascript
+// ✅ 正确：使用Map按id去重
+loadCheckins() {
+  const localCheckins = wx.getStorageSync('checkins') || [];
+  const pageCheckins = this.data.comments || [];
+
+  // 使用Map去重
+  const commentsMap = new Map();
+
+  // 先添加本地存储的记录
+  localCheckins.forEach(checkin => {
+    commentsMap.set(checkin.id, checkin);
+  });
+
+  // 再添加页面的记录(不会覆盖已存在的)
+  pageCheckins.forEach(comment => {
+    if (!commentsMap.has(comment.id)) {
+      commentsMap.set(comment.id, comment);
+    }
+  });
+
+  const allComments = Array.from(commentsMap.values());
+  this.setData({ comments: allComments });
+}
+```
+
+**经验教训**：
+- ⚠️ 从多个数据源合并数据时必须去重
+- ⚠️ 简单的数组合并会导致重复
+- ✅ 使用Map以id为key进行去重
+- ✅ 或使用 `Array.reduce()` 配合对象去重
+- ✅ 数据库查询时使用 `DISTINCT` 或 `GROUP BY`
+
+---
+
+### 16. 跨页面数据不同步问题
+
+**问题现象**：在打卡页面提交记录后,返回课程列表看不到新打卡
+
+**根本原因**：不同页面使用不同的存储key读取数据
+```javascript
+// ❌ 问题：存储key不一致
+// 打卡页保存到课程专属key
+const key = `checkins_${courseId}`;  // checkins_801
+wx.setStorageSync(key, checkins);
+
+// 课程列表从全局key读取
+const allCheckins = wx.getStorageSync('all_checkins');  // 读不到！
+```
+
+**解决方案**：双重存储策略
+```javascript
+// ✅ 正确：同时保存到两个位置
+async handleSubmit() {
+  const newCheckin = {
+    id: Date.now(),
+    courseId: this.data.courseId,
+    courseTitle: this.data.courseTitle,
+    content: this.data.diaryContent,
+    timestamp: Date.now()
+  };
+
+  // 1. 保存到课程专属存储(用于课程详情页)
+  const courseKey = `checkins_${this.data.courseId}`;
+  let courseCheckins = wx.getStorageSync(courseKey) || [];
+  courseCheckins.unshift(newCheckin);
+  wx.setStorageSync(courseKey, courseCheckins);
+
+  // 2. 同时保存到全局存储(用于课程列表)
+  const globalKey = 'all_checkins';
+  let allCheckins = wx.getStorageSync(globalKey) || [];
+  allCheckins.unshift(newCheckin);
+  wx.setStorageSync(globalKey, allCheckins);
+}
+```
+
+**经验教训**：
+- ⚠️ 跨页面显示的数据要使用统一的存储key
+- ⚠️ 单一存储位置可能导致某些页面读不到数据
+- ✅ 使用双重存储:全局+专属
+- ✅ 全局存储用于列表和统计
+- ✅ 专属存储用于详情和筛选
+- ✅ 更新和删除时同步操作两个位置
+
+---
+
+### 17. 内容换行符不保留问题
+
+**问题现象**：用户输入的多行文本显示时变成单行
+
+**根本原因**：CSS默认不保留换行符
+```wxss
+/* ❌ 默认样式：换行符被忽略 */
+.content {
+  /* 默认 white-space: normal */
+}
+```
+
+**解决方案**：设置CSS保留换行
+```wxss
+/* ✅ 正确：保留换行和空格 */
+.content {
+  white-space: pre-wrap;   /* 保留空白符,正常换行 */
+  word-break: break-word;  /* 长单词换行 */
+  line-height: 1.8;        /* 增加行高 */
+}
+```
+
+**white-space属性对比**：
+```wxss
+white-space: normal;      /* 默认:合并空白,不保留换行 */
+white-space: nowrap;      /* 不换行,超出隐藏 */
+white-space: pre;         /* 保留所有空白,不自动换行 */
+white-space: pre-wrap;    /* 保留空白,自动换行(推荐) */
+white-space: pre-line;    /* 保留换行,合并空格 */
+```
+
+**经验教训**：
+- ⚠️ 用户输入的文本默认会丢失格式
+- ✅ 评论、打卡内容等用户输入必须设置 `white-space: pre-wrap`
+- ✅ 配合 `word-break: break-word` 处理长单词
+- ✅ 富文本内容使用 `<rich-text>` 组件
+
+---
+
+### 18. scroll-into-view属性失效问题
+
+**问题现象**：点击Tab切换,第一次能滚动定位,再次点击同一个Tab不生效
+
+**根本原因**：`scroll-into-view` 只在值发生变化时触发
+```javascript
+// ❌ 问题：再次设置相同值不会触发滚动
+handleTabChange(e) {
+  const { tab } = e.currentTarget.dataset;
+  const scrollIntoView = tab === 'tasks' ? 'tasks-section' : 'dynamics-section';
+  this.setData({ scrollIntoView });  // 值相同,不触发
+}
+```
+
+**解决方案1：重置法**
+```javascript
+// ✅ 方案1：先清空再设置
+handleTabChange(e) {
+  const { tab } = e.currentTarget.dataset;
+
+  this.setData({
+    currentTab: tab,
+    scrollIntoView: ''
+  }, () => {
+    const scrollIntoView = tab === 'tasks' ? 'tasks-section' : 'dynamics-section';
+    this.setData({ scrollIntoView });
+  });
+}
+```
+
+**解决方案2：scroll-top法(推荐)**
+```xml
+<!-- WXML -->
+<scroll-view
+  scroll-y
+  scroll-top="{{scrollTop}}"
+  scroll-with-animation>
+  <view id="section-1">...</view>
+  <view id="section-2">...</view>
+</scroll-view>
+```
+
+```javascript
+// ✅ 方案2：使用scroll-top + SelectorQuery
+handleTabChange(e) {
+  const { tab } = e.currentTarget.dataset;
+  this.setData({ currentTab: tab });
+
+  if (tab === 'tasks') {
+    this.setData({ scrollTop: 0 });
+  } else {
+    const query = wx.createSelectorQuery();
+    query.select('#dynamics-section').boundingClientRect();
+    query.select('.content-scroll').scrollOffset();
+    query.exec((res) => {
+      if (res[0] && res[1]) {
+        const targetTop = res[0].top + res[1].scrollTop;
+        this.setData({ scrollTop: targetTop });
+      }
+    });
+  }
+}
+```
+
+**经验教训**：
+- ⚠️ `scroll-into-view` 只在id变化时触发滚动
+- ⚠️ 同一个tab多次点击不会重新滚动
+- ✅ 推荐使用 `scroll-top` + `SelectorQuery` 方案
+- ✅ `scroll-top` 可以精确控制滚动位置
+- ✅ 每次点击都计算新的位置,更可靠
+
+---
+
+### 19. scroll-view高度计算错误问题
+
+**问题现象**：scroll-view无法正常滚动,或高度异常
+
+**根本原因**：flex布局中高度设置不当
+```wxss
+/* ❌ 错误：height和flex冲突 */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.scroll-view {
+  flex: 1;
+  height: 100vh;  /* 错误！高度过大 */
+}
+```
+
+**解决方案**：设置初始高度为0
+```wxss
+/* ✅ 正确：height: 0 让flex自动计算 */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.scroll-view {
+  flex: 1;
+  height: 0;  /* 关键：让flex计算剩余空间 */
+}
+
+.section-wrapper {
+  min-height: 100%;  /* 使用100%而不是100vh */
+}
+```
+
+**经验教训**：
+- ⚠️ flex容器的子元素需要明确初始尺寸
+- ⚠️ 不能同时使用 `flex: 1` 和固定高度
+- ✅ 纵向flex: 设置 `height: 0`
+- ✅ 横向flex: 设置 `width: 0`
+- ✅ 子元素高度用 `100%` 而不是 `100vh`
+
+---
+
+### 20. 事件冒泡导致误触发问题
+
+**问题现象**：点击卡片内的按钮,同时触发了卡片和按钮两个事件
+
+**根本原因**：事件冒泡机制
+```xml
+<!-- ❌ 问题：点击按钮会冒泡触发卡片点击 -->
+<view class="card" bindtap="handleCardClick">
+  <text>课程标题</text>
+  <view class="button" bindtap="handleButtonClick">去打卡</view>
+</view>
+```
+
+**解决方案**：使用catchtap阻止冒泡
+```xml
+<!-- ✅ 正确：catchtap阻止冒泡 -->
+<view class="card" bindtap="handleCardClick">
+  <text>课程标题</text>
+  <view class="button" catchtap="handleButtonClick">去打卡</view>
+</view>
+```
+
+**事件绑定对比**：
+```xml
+<!-- 冒泡事件 -->
+<view bindtap="handler">事件会冒泡</view>
+
+<!-- 非冒泡事件 -->
+<view catchtap="handler">阻止冒泡</view>
+
+<!-- 捕获阶段 -->
+<view capture-bind:tap="handler">捕获阶段触发,继续传递</view>
+<view capture-catch:tap="handler">捕获阶段触发,阻止传递</view>
+```
+
+**经验教训**：
+- ⚠️ `bindtap` 会冒泡到父元素
+- ⚠️ 卡片内按钮通常需要阻止冒泡
+- ✅ 使用 `catchtap` 代替 `bindtap` 阻止冒泡
+- ✅ 不需要手动调用 `e.stopPropagation()`
+- ✅ 手动调用会报错: `e.stopPropagagation is not a function`
+
+---
+
+### 21. 数组排序问题
+
+**问题现象**：打卡记录按时间排序,但顺序不正确
+
+**根本原因**：排序时使用了字符串比较
+```javascript
+// ❌ 错误：字符串比较结果不准确
+records.sort((a, b) => b.createTime - a.createTime);
+// 如果createTime是字符串,会得到NaN
+```
+
+**解决方案**：使用数字时间戳排序
+```javascript
+// ✅ 方案1：使用timestamp字段
+records.sort((a, b) => {
+  const timeA = a.timestamp || a.id;
+  const timeB = b.timestamp || b.id;
+  return timeB - timeA;  // 降序
+});
+
+// ✅ 方案2：转换日期字符串
+records.sort((a, b) => {
+  return new Date(b.createTime) - new Date(a.createTime);
+});
+
+// ✅ 方案3：使用Date.parse()
+records.sort((a, b) => {
+  return Date.parse(b.createTime) - Date.parse(a.createTime);
+});
+```
+
+**经验教训**：
+- ⚠️ 字符串相减会返回NaN
+- ⚠️ 日期字符串比较可能得到错误结果
+- ✅ 优先存储和使用时间戳(数字)
+- ✅ 时间戳作为id的一部分确保唯一性
+- ✅ 显示时再格式化为友好的日期字符串
+
+---
+
+### 22. 微信开发者工具缓存问题
+
+**问题现象**：新创建的页面文件报错 "could not find the corresponding file"
+
+**根本原因**：开发工具缓存未更新
+
+**解决方案**：
+```bash
+# 方法1：清除缓存
+1. 点击 "工具" → "清除缓存"
+2. 选择 "清除文件缓存" 和 "清除编译缓存"
+3. 点击 "编译"
+
+# 方法2：重启工具
+1. 完全关闭微信开发者工具
+2. 重新打开项目
+3. 编译运行
+
+# 方法3：删除临时文件
+find . -name "*.wxss.map" -delete
+```
+
+**经验教训**：
+- ⚠️ 新建页面后开发工具可能不识别
+- ⚠️ 修改app.json后可能需要重新编译
+- ✅ 出现找不到文件错误,首先清除缓存
+- ✅ 定期清理缓存避免奇怪问题
+- ✅ 重大修改后重启开发工具
+
+---
+
+## 🎯 问题排查流程图
+
+### 页面空白问题
+```
+检查Console → WXSS编译错误? → 修复CSS语法
+                ↓ 无
+         JS运行错误? → 修复JS错误
+                ↓ 无
+         数据是否加载? → 检查API/Mock
+                ↓ 加载成功
+         检查条件渲染逻辑
+```
+
+### Tab切换不定位
+```
+尝试点击Tab → 是否有滚动动画? → 无 → 使用scroll-top方案
+                      ↓ 有,但位置不对
+                检查目标元素id是否正确
+                      ↓ 正确
+                检查scroll-view高度设置
+```
+
+### 数据不同步
+```
+提交数据 → 存储到哪里? → 检查存储key
+              ↓
+         其他页面读取 → 读取哪个key? → 统一使用全局key
+              ↓
+         检查是否有去重逻辑
+```
+
+---
+
+**最后更新**: 2025-11-13
 **维护者**: Claude Code

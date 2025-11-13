@@ -4,6 +4,7 @@
  */
 
 const request = require('../utils/request');
+const envConfig = require('../config/env');
 
 class UserService {
   /**
@@ -11,6 +12,15 @@ class UserService {
    * @returns {Promise}
    */
   getUserProfile() {
+    // Mock模式
+    if (envConfig.useMock) {
+      return Promise.resolve(wx.getStorageSync('userInfo') || {
+        id: 1,
+        nickname: '微信用户',
+        avatar: '🦁',
+        signature: '天天开心，觉知当下！'
+      });
+    }
     return request.get('/user/profile');
   }
 
@@ -28,6 +38,16 @@ class UserService {
    * @returns {Promise}
    */
   getUserStats() {
+    // Mock模式
+    if (envConfig.useMock) {
+      return Promise.resolve({
+        totalDays: 23,
+        checkedDays: 4,
+        progress: 17,
+        continuousDays: 4,
+        totalInsights: 2
+      });
+    }
     return request.get('/user/stats');
   }
 
@@ -46,6 +66,10 @@ class UserService {
    * @returns {Promise}
    */
   getUserCheckins(params = {}) {
+    // Mock模式
+    if (envConfig.useMock) {
+      return Promise.resolve([]);
+    }
     return request.get('/user/checkins', params);
   }
 
@@ -55,6 +79,11 @@ class UserService {
    * @returns {Promise}
    */
   getUserCourses(params = {}) {
+    // Mock模式
+    if (envConfig.useMock) {
+      const mockCourses = require('../mock/courses');
+      return Promise.resolve(mockCourses.list);
+    }
     return request.get('/user/courses', params);
   }
 
@@ -64,6 +93,11 @@ class UserService {
    * @returns {Promise}
    */
   getUserInsights(params = {}) {
+    // Mock模式
+    if (envConfig.useMock) {
+      const mockInsights = require('../mock/insights');
+      return Promise.resolve(mockInsights.list);
+    }
     return request.get('/user/insights', params);
   }
 

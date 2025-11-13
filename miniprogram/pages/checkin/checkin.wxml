@@ -1,21 +1,136 @@
 <view class="page-checkin">
-  <view class="checkin-header">
-    <view class="day-title">第{{dayNumber}}天 {{dayTitle}}</view>
-    <view class="checkin-prompt">分享你的学习心得</view>
+  <!-- 课程标题 -->
+  <view class="course-title">{{courseTitle}}</view>
+  <view class="course-date">{{courseDate}}</view>
+
+  <!-- 五大学习模块 -->
+  <view class="content-preview" wx:if="{{!expanded}}">
+    <view class="section-preview">
+      <view class="section-icon">静</view>
+      <text class="section-name">静一静</text>
+    </view>
+    <view class="section-content-short">{{meditation}}</view>
   </view>
 
-  <view class="form-section">
+  <!-- 展开按钮 -->
+  <view class="expand-btn" bindtap="toggleExpand">
+    <text>{{expanded ? '收起' : '展开所有'}}</text>
+    <text class="arrow">{{expanded ? '▲' : '▼'}}</text>
+  </view>
+
+  <!-- 展开后的完整内容 -->
+  <view class="full-content" wx:if="{{expanded}}">
+    <!-- 静一静 -->
+    <view class="content-section" wx:if="{{meditation}}">
+      <view class="section-title">
+        <view class="section-icon">静</view>
+        <text>静一静</text>
+      </view>
+      <view class="section-content">{{meditation}}</view>
+    </view>
+
+    <!-- 问一问 -->
+    <view class="content-section" wx:if="{{question}}">
+      <view class="section-title">
+        <view class="section-icon">问</view>
+        <text>问一问</text>
+      </view>
+      <view class="section-content">{{question}}</view>
+    </view>
+
+    <!-- 读一读 -->
+    <view class="content-section" wx:if="{{content}}">
+      <view class="section-title">
+        <view class="section-icon">读</view>
+        <text>读一读</text>
+      </view>
+      <view class="section-content">
+        <rich-text nodes="{{content}}"></rich-text>
+      </view>
+    </view>
+
+    <!-- 想一想 -->
+    <view class="content-section" wx:if="{{reflection}}">
+      <view class="section-title">
+        <view class="section-icon">想</view>
+        <text>想一想</text>
+      </view>
+      <view class="section-content">{{reflection}}</view>
+    </view>
+
+    <!-- 记一记 -->
+    <view class="content-section" wx:if="{{action}}">
+      <view class="section-title">
+        <view class="section-icon">记</view>
+        <text>记一记 / 摘一摘 / 说一说</text>
+      </view>
+      <view class="section-content">{{action}}</view>
+    </view>
+  </view>
+
+  <!-- 日记输入区域 -->
+  <view class="diary-input-section">
     <textarea
-      class="checkin-textarea"
-      placeholder="请输入至少50字的学习心得..."
-      value="{{content}}"
+      class="diary-textarea"
+      placeholder="请输入日记内容..."
+      value="{{diaryContent}}"
       bindinput="handleInput"
-      maxlength="500"
+      maxlength="10000"
+      auto-height
     />
-    <view class="char-count">{{content.length}}/500</view>
+    <view class="char-count">{{diaryContent.length}}/10000</view>
+
+    <!-- 工具栏 -->
+    <view class="toolbar">
+      <view class="tool-item" bindtap="handleVoice">
+        <view class="tool-icon">🎤</view>
+        <text class="tool-name">语音</text>
+      </view>
+      <view class="tool-item" bindtap="handleVideo">
+        <view class="tool-icon">📹</view>
+        <text class="tool-name">视频</text>
+      </view>
+      <view class="tool-item" bindtap="handleImage">
+        <view class="tool-icon">🖼️</view>
+        <text class="tool-name">图片</text>
+      </view>
+      <view class="tool-item" bindtap="handleFile">
+        <view class="tool-icon">📎</view>
+        <text class="tool-name">微信文件</text>
+      </view>
+    </view>
+
+    <!-- 可见范围 -->
+    <view class="visibility-section">
+      <text class="visibility-label">打卡可见范围</text>
+      <view class="visibility-options">
+        <view
+          class="visibility-option {{visibility === 'all' ? 'active' : ''}}"
+          bindtap="handleVisibilityChange"
+          data-value="all">
+          所有人
+        </view>
+        <view
+          class="visibility-option {{visibility === 'admin' ? 'active' : ''}}"
+          bindtap="handleVisibilityChange"
+          data-value="admin">
+          仅管理员
+        </view>
+      </view>
+    </view>
+
+    <!-- 提示信息 -->
+    <view class="tips">
+      <view class="tip-item">1. 视频文件过大时压缩时间较长，请耐心等待</view>
+      <view class="tip-item">2. 若出现黑屏，请清理手机内存</view>
+      <view class="tip-item">3. 建议您调整手机拍摄清晰度选择720p及以下的规格进行拍摄</view>
+      <view class="tip-item">4. 最多添加10条语音，每条≤600s；图片+视频最多添加9条</view>
+    </view>
   </view>
 
-  <button class="submit-btn" bindtap="handleSubmit" disabled="{{content.length < 50}}">
-    完成打卡
-  </button>
+  <!-- 底部按钮 -->
+  <view class="bottom-buttons">
+    <button class="btn-cancel" bindtap="handleCancel">取消</button>
+    <button class="btn-submit" bindtap="handleSubmit">每日打卡</button>
+  </view>
 </view>

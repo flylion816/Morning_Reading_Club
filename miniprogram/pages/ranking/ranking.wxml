@@ -1,0 +1,69 @@
+<!--排行榜页面-->
+<view class="page-ranking">
+  <!-- 当前用户信息卡片 -->
+  <view class="user-card">
+    <view class="user-info">
+      <view class="user-avatar" style="background: {{currentUser.avatarColor}}">
+        <text class="avatar-text">{{currentUser.avatarText}}</text>
+      </view>
+      <view class="user-details">
+        <view class="user-rank">我的排名：第{{currentUser.rank}}名</view>
+        <view class="user-stats">已打卡 {{currentUser.checkinCount}} 天</view>
+      </view>
+    </view>
+    <view class="participant-count">{{participantCount}} 人参与</view>
+  </view>
+
+  <!-- Tab切换 -->
+  <view class="tabs-container">
+    <scroll-view scroll-x class="tabs-scroll">
+      <view class="tabs">
+        <view
+          wx:for="{{tabs}}"
+          wx:key="value"
+          class="tab-item {{currentTab === item.value ? 'active' : ''}}"
+          bindtap="handleTabChange"
+          data-tab="{{item.value}}">
+          <text>{{item.label}}</text>
+          <view class="tab-underline" wx:if="{{currentTab === item.value}}"></view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 排行榜列表 -->
+  <view class="ranking-list">
+    <view
+      wx:for="{{rankingList}}"
+      wx:key="userId"
+      class="ranking-item">
+      <!-- 排名 -->
+      <view class="rank-number {{item.rank <= 3 ? 'top-three rank-' + item.rank : ''}}">
+        <text wx:if="{{item.rank <= 3}}" class="rank-icon">{{item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : '🥉'}}</text>
+        <text wx:else>{{item.rank}}</text>
+      </view>
+
+      <!-- 用户信息 -->
+      <view class="user-avatar" style="background: {{item.avatarColor}}">
+        <text class="avatar-text">{{item.avatarText}}</text>
+      </view>
+      <view class="user-name">{{item.userName}}</view>
+
+      <!-- 打卡天数 -->
+      <view class="checkin-days">{{item.checkinCount}}天</view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{rankingList.length === 0}}" class="empty-state">
+      <text class="empty-state-icon">🏆</text>
+      <text class="empty-state-text">暂无排行数据</text>
+    </view>
+  </view>
+
+  <!-- 底部分享按钮 -->
+  <view class="fixed-bottom">
+    <button class="btn-share" bindtap="handleShare">
+      立即分享
+    </button>
+  </view>
+</view>

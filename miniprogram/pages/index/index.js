@@ -9,19 +9,10 @@ Page({
     userInfo: null,
     isLogin: false,
 
-    // 课程列表
-    courses: [],
-    displayedCourses: [],
+    // 期次列表
+    periods: [],
     loading: true,
     refreshing: false,
-
-    // 筛选类型：'pending'待打卡 | 'all'全部
-    filterType: 'pending',
-
-    // 分页
-    page: 1,
-    pageSize: 10,
-    hasMore: true,
 
     // Banner文案
     bannerText: '天天开心！',
@@ -31,7 +22,7 @@ Page({
   onLoad(options) {
     console.log('首页加载', options);
     this.checkLoginStatus();
-    this.loadCourses();
+    this.loadPeriods();
   },
 
   onShow() {
@@ -41,14 +32,7 @@ Page({
 
   onPullDownRefresh() {
     console.log('下拉刷新');
-    this.refreshCourses();
-  },
-
-  onReachBottom() {
-    console.log('触底加载更多');
-    if (this.data.hasMore && !this.data.loading) {
-      this.loadMore();
-    }
+    this.refreshPeriods();
   },
 
   /**
@@ -88,36 +72,24 @@ Page({
   },
 
   /**
-   * 加载课程列表
+   * 加载期次列表
    */
-  async loadCourses() {
+  async loadPeriods() {
     this.setData({ loading: true });
 
     try {
-      const res = await courseService.getCourses({
-        page: this.data.page,
-        limit: this.data.pageSize
-      });
-
-      const courses = res.items || res || [];
-      const hasMore = courses.length >= this.data.pageSize;
-
-      const allCourses = this.data.page === 1 ? courses : [...this.data.courses, ...courses];
+      const res = await courseService.getPeriods();
+      const periods = res.items || res || [];
 
       this.setData({
-        courses: allCourses,
-        loading: false,
-        hasMore
+        periods,
+        loading: false
       });
-
-      // 更新显示的课程列表
-      this.filterCourses();
     } catch (error) {
-      console.error('获取课程列表失败:', error);
+      console.error('获取期次列表失败:', error);
       this.setData({
         loading: false,
-        courses: [],
-        displayedCourses: []
+        periods: []
       });
 
       wx.showToast({
@@ -128,136 +100,35 @@ Page({
   },
 
   /**
-   * 刷新课程列表
+   * 刷新期次列表
    */
-  async refreshCourses() {
-    this.setData({
-      page: 1,
-      refreshing: true
-    });
-
-    await this.loadCourses();
-
+  async refreshPeriods() {
+    this.setData({ refreshing: true });
+    await this.loadPeriods();
     this.setData({ refreshing: false });
     wx.stopPullDownRefresh();
   },
 
   /**
-   * 加载更多课程
+   * 点击期次卡片
    */
-  loadMore() {
-    this.setData({
-      page: this.data.page + 1
-    });
-    this.loadCourses();
-  },
+  handlePeriodClick(e) {
+    console.log('===== handlePeriodClick 被调用 =====');
+    console.log('事件详情:', e.detail);
 
-  /**
-   * 根据筛选类型过滤课程
-   */
-  filterCourses() {
-    const { courses, filterType } = this.data;
-    let displayedCourses = courses;
+    // course-card 组件传递的是 course 字段
+    const period = e.detail.course || {};
 
-    if (filterType === 'pending') {
-      // 只显示待打卡的课程
-      displayedCourses = courses.filter(course => {
-        const now = Date.now();
-        const startTime = new Date(course.startTime).getTime();
-        const endTime = new Date(course.endTime).getTime();
-        return now >= startTime && now <= endTime && !course.isCheckedIn;
-      });
-    }
-
-    this.setData({ displayedCourses });
-  },
-
-  /**
-   * 切换筛选类型
-   */
-  switchFilter(e) {
-    const { type } = e.currentTarget.dataset;
-    this.setData({ filterType: type });
-    this.filterCourses();
-  },
-
-  /**
-   * 处理课程操作（打卡或补卡）
-   */
-  handleCourseAction(e) {
-    const { course, action } = e.detail;
-
-    // 检查登录状态
-    if (!this.data.isLogin) {
-      wx.showModal({
-        title: '提示',
-        content: '请先登录',
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({
-              url: '/pages/login/login'
-            });
-          }
-        }
-      });
+    if (!period || !period.id) {
+      console.error('期次信息不存在，period:', period);
       return;
     }
 
-    if (action === 'checkin') {
-      // 跳转到打卡页面
-      wx.navigateTo({
-        url: `/pages/checkin/checkin?courseId=${course.id}`
-      });
-    } else if (action === 'makeup') {
-      // 跳转到课程详情页（补卡）
-      wx.navigateTo({
-        url: `/pages/course-detail/course-detail?id=${course.id}`
-      });
-    }
-  },
+    console.log('期次信息正常，id:', period.id, 'name:', period.name);
 
-  /**
-   * 点击课程卡片
-   */
-  handleCourseClick(e) {
-    console.log('===== handleCourseClick 被调用 =====');
-    console.log('事件对象 e:', e);
-    console.log('e.detail:', e.detail);
-    console.log('e.currentTarget:', e.currentTarget);
-
-    const { course } = e.detail || {};
-
-    console.log('解析出的 course:', course);
-
-    if (!course || !course.id) {
-      console.error('课程信息不存在，course:', course);
-      return;
-    }
-
-    console.log('课程信息正常，id:', course.id);
-
-    // 检查登录状态
-    if (!this.data.isLogin) {
-      console.log('用户未登录，显示登录提示');
-      wx.showModal({
-        title: '提示',
-        content: '请先登录后查看课程详情',
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({
-              url: '/pages/login/login'
-            });
-          }
-        }
-      });
-      return;
-    }
-
-    // 跳转到课程详情
+    // 跳转到课程列表页（显示该期的课节）
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${course.id}`
+      url: `/pages/courses/courses?periodId=${period.id}&name=${period.name || ''}`
     });
   },
 

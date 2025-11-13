@@ -9,34 +9,83 @@ const mockCourses = require('../mock/courses');
 
 class CourseService {
   /**
-   * 获取课程列表
+   * 获取期次列表（首页显示）
+   * @param {Object} params 查询参数
+   * @returns {Promise}
+   */
+  getPeriods(params = {}) {
+    // Mock模式
+    if (envConfig.useMock) {
+      return Promise.resolve({
+        items: mockCourses.periods,
+        total: mockCourses.periods.length
+      });
+    }
+
+    return request.get('/periods', params);
+  }
+
+  /**
+   * 获取某期的课节列表（课程列表页显示）
+   * @param {number} periodId 期次ID
+   * @param {Object} params 查询参数
+   * @returns {Promise}
+   */
+  getPeriodSections(periodId, params = {}) {
+    // Mock模式
+    if (envConfig.useMock) {
+      const sections = mockCourses.sections[periodId] || [];
+      return Promise.resolve({
+        items: sections,
+        total: sections.length
+      });
+    }
+
+    return request.get(`/periods/${periodId}/sections`, params);
+  }
+
+  /**
+   * 获取课节详情（课程详情页显示）
+   * @param {number} sectionId 课节ID
+   * @returns {Promise}
+   */
+  getSectionDetail(sectionId) {
+    console.log('===== getSectionDetail 被调用 =====');
+    console.log('sectionId:', sectionId);
+    console.log('envConfig.useMock:', envConfig.useMock);
+    console.log('envConfig:', envConfig);
+
+    // Mock模式
+    if (envConfig.useMock) {
+      console.log('使用 Mock 数据，返回:', mockCourses.detail);
+      console.log('mockCourses.detail.comments:', mockCourses.detail.comments);
+      console.log('comments 字段是否存在:', 'comments' in mockCourses.detail);
+      console.log('comments 数组长度:', mockCourses.detail.comments ? mockCourses.detail.comments.length : '不存在');
+      return Promise.resolve(mockCourses.detail);
+    }
+
+    console.log('发起真实请求:', `/sections/${sectionId}`);
+    return request.get(`/sections/${sectionId}`);
+  }
+
+  /**
+   * 获取课程列表（兼容旧接口）
+   * @deprecated 使用 getPeriods() 代替
    * @param {Object} params 查询参数
    * @returns {Promise}
    */
   getCourses(params = {}) {
-    // Mock模式
-    if (envConfig.useMock) {
-      return Promise.resolve({
-        items: mockCourses.list,
-        total: mockCourses.list.length
-      });
-    }
-
-    return request.get('/courses', params);
+    return this.getPeriods(params);
   }
 
   /**
-   * 获取课程详情
+   * 获取课程详情（兼容旧接口）
+   * @deprecated 使用 getSectionDetail() 代替
    * @param {number} courseId 课程ID
    * @returns {Promise}
    */
   getCourseDetail(courseId) {
-    // Mock模式
-    if (envConfig.useMock) {
-      return Promise.resolve(mockCourses.detail);
-    }
-
-    return request.get(`/courses/${courseId}`);
+    return this.getSectionDetail(courseId);
   }
 
   /**
@@ -65,15 +114,6 @@ class CourseService {
    */
   getTodaySection(periodId) {
     return request.get(`/periods/${periodId}/today`);
-  }
-
-  /**
-   * 获取课节内容
-   * @param {number} sectionId 课节ID
-   * @returns {Promise}
-   */
-  getSectionDetail(sectionId) {
-    return request.get(`/sections/${sectionId}`);
   }
 
   /**

@@ -21,9 +21,19 @@ Page({
     }
   },
 
+  handleBack() {
+    wx.navigateBack();
+  },
+
   handleShare() {
-    wx.navigateTo({
-      url: `/pages/share/share?insightId=${this.data.insightId}`
+    // 简单实现：显示提示，后续可以跳转到分享页面
+    wx.showToast({
+      title: '分享功能开发中',
+      icon: 'none'
     });
+    // TODO: 后续实现分享页面
+    // wx.navigateTo({
+    //   url: `/pages/share/share?insightId=${this.data.insightId}`
+    // });
   }
 });

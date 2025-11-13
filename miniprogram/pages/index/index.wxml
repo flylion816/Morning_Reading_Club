@@ -1,46 +1,30 @@
-<!--首页 - 课程列表-->
+<!--首页 - 期次列表-->
 <view class="page-index">
   <!-- 顶部Banner -->
   <view class="home-banner">
     <view class="banner-text">☀️ {{bannerText}}\n🌄 {{subBannerText}}</view>
   </view>
 
-  <!-- 筛选按钮 -->
-  <view class="filter-tabs">
-    <view
-      class="filter-btn {{filterType === 'pending' ? 'active' : ''}}"
-      bindtap="switchFilter"
-      data-type="pending">
-      待打卡
-    </view>
-    <view
-      class="filter-btn {{filterType === 'all' ? 'active' : ''}}"
-      bindtap="switchFilter"
-      data-type="all">
-      全部
-    </view>
-  </view>
-
-  <!-- 课程列表 -->
-  <view class="courses-container">
+  <!-- 期次列表 -->
+  <view class="periods-container">
     <course-card
-      wx:for="{{displayedCourses}}"
+      wx:for="{{periods}}"
       wx:key="id"
       course="{{item}}"
-      bind:tap="handleCourseClick"
-      bind:action="handleCourseAction"
+      mode="period"
+      bindtap="handlePeriodClick"
     />
 
     <!-- 加载中 -->
-    <view wx:if="{{loading && displayedCourses.length === 0}}" class="loading-container">
+    <view wx:if="{{loading && periods.length === 0}}" class="loading-container">
       <view class="loading-spinner"></view>
       <text class="loading-text">加载中...</text>
     </view>
 
     <!-- 空状态 -->
-    <view wx:if="{{!loading && displayedCourses.length === 0}}" class="empty-state">
+    <view wx:if="{{!loading && periods.length === 0}}" class="empty-state">
       <text class="empty-state-icon">📚</text>
-      <text class="empty-state-text">暂无{{filterType === 'pending' ? '待打卡' : ''}}课程</text>
+      <text class="empty-state-text">暂无期次</text>
     </view>
   </view>
 </view>

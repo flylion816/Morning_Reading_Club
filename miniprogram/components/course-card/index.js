@@ -10,6 +10,11 @@ Component({
           });
         }
       }
+    },
+    // 模式：period (期次) 或 section (课节)
+    mode: {
+      type: String,
+      value: 'section'  // 默认为课节模式
     }
   },
 

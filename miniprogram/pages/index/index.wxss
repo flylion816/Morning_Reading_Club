@@ -37,33 +37,8 @@
   white-space: pre-line;
 }
 
-/* 筛选按钮 */
-.filter-tabs {
-  display: flex;
-  gap: 20rpx;
-  padding: 32rpx 32rpx 24rpx;
-  background: #ffffff;
-}
-
-.filter-btn {
-  flex: 1;
-  padding: 16rpx 0;
-  text-align: center;
-  font-size: 28rpx;
-  color: #666666;
-  background: #f5f5f5;
-  border-radius: 8rpx;
-  transition: all 0.3s;
-}
-
-.filter-btn.active {
-  background: #4a90e2;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-/* 课程容器 */
-.courses-container {
+/* 期次列表容器 */
+.periods-container {
   padding: 32rpx;
   background: #ffffff;
   min-height: 60vh;

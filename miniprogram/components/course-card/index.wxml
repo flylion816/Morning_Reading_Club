@@ -1,13 +1,35 @@
 <view class="course-card {{isPending ? 'pending' : ''}}" catchtap="onCardTap">
-  <view class="course-card__title">{{course.title}}</view>
-  <view class="course-card__meta">{{course.startTime}} 至 {{course.endTime}}</view>
-  <view class="course-card__info">
-    <text class="checkin-count">{{course.checkinCount || 0}}人已打卡</text>
-    <button
-      class="action-btn {{isPending ? 'primary' : 'secondary'}}"
-      catchtap="onActionTap"
-      size="mini">
-      {{isPending ? '打卡' : '去补卡'}}
-    </button>
+  <!-- 左侧缩略图 -->
+  <view class="course-thumb" style="background: {{course.color || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)'}}">
+    <text class="thumb-icon">{{course.icon || '📚'}}</text>
+  </view>
+
+  <!-- 右侧内容区 -->
+  <view class="course-info">
+    <view class="course-title">{{course.title}}</view>
+    <view class="course-meta">{{course.dateRange}} • 已打卡 {{course.checkedDays || 0}} 天</view>
+
+    <!-- 进度条 -->
+    <view class="course-progress">
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{course.progress || 0}}%"></view>
+      </view>
+
+      <!-- 期次模式：只显示状态文本 -->
+      <view wx:if="{{mode === 'period'}}" class="course-actions period-mode">
+        <text class="status-text status-right">{{course.statusText}}</text>
+      </view>
+
+      <!-- 课节模式：显示状态文本+按钮 -->
+      <view wx:else class="course-actions">
+        <text class="status-text">{{course.statusText}}</text>
+        <button
+          class="action-btn {{isPending ? 'primary' : 'secondary'}}"
+          catchtap="onActionTap"
+          size="mini">
+          {{isPending ? '打卡' : '补卡'}}
+        </button>
+      </view>
+    </view>
   </view>
 </view>

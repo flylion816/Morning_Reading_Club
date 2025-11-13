@@ -2,8 +2,12 @@
   "pages": [
     "pages/index/index",
     "pages/profile/profile",
+    "pages/courses/courses",
     "pages/course-detail/course-detail",
     "pages/checkin/checkin",
+    "pages/ranking/ranking",
+    "pages/checkin-records/checkin-records",
+    "pages/members/members",
     "pages/insights/insights",
     "pages/insight-detail/insight-detail",
     "pages/profile-others/profile-others",

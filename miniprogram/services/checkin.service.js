@@ -4,6 +4,7 @@
  */
 
 const request = require('../utils/request');
+const envConfig = require('../config/env');
 
 class CheckinService {
   /**
@@ -12,6 +13,17 @@ class CheckinService {
    * @returns {Promise}
    */
   submitCheckin(data) {
+    // Mock模式
+    if (envConfig.useMock) {
+      console.log('Mock提交打卡:', data);
+      return Promise.resolve({
+        id: Date.now(),
+        ...data,
+        createTime: new Date().toISOString(),
+        success: true
+      });
+    }
+
     return request.post('/checkins', data);
   }
 

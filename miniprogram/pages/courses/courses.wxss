@@ -1,0 +1,354 @@
+/* 课节列表页样式 */
+
+.page-courses {
+  min-height: 100vh;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部区域 */
+.page-header {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  padding: 40rpx 32rpx;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.period-name {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+
+.period-date {
+  font-size: 24rpx;
+  opacity: 0.9;
+}
+
+/* 功能按钮区 */
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  background: white;
+  padding: 32rpx 24rpx;
+  margin-bottom: 0;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.btn-icon {
+  font-size: 48rpx;
+}
+
+.btn-text {
+  font-size: 26rpx;
+  color: #333;
+}
+
+/* Tab切换区域 */
+.tabs-container {
+  background: white;
+  border-bottom: 2rpx solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tabs {
+  display: flex;
+  padding: 0 32rpx;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24rpx 0;
+  position: relative;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.tab-item.active {
+  color: #4a90e2;
+  font-weight: bold;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  width: 60rpx;
+  height: 6rpx;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  border-radius: 3rpx;
+}
+
+/* 滚动内容区 */
+.content-scroll {
+  flex: 1;
+  height: 0; /* 使用flex布局时，设置height为0让其自动计算 */
+}
+
+.section-wrapper {
+  min-height: 100%;
+  padding-bottom: 40rpx;
+  background: #f5f5f5;
+}
+
+/* 补打卡信息 */
+.makeup-info {
+  background: white;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.makeup-text {
+  color: #666;
+}
+
+.makeup-count {
+  color: #4a90e2;
+  font-weight: bold;
+  font-size: 32rpx;
+}
+
+/* 课节列表容器 */
+.sections-container {
+  padding: 0 24rpx;
+}
+
+/* 课节卡片 */
+.section-card {
+  background: white;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  border-left: 8rpx solid #4a90e2;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.section-time {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 24rpx;
+  line-height: 1.5;
+}
+
+/* 底部信息 */
+.section-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.checkin-info {
+  font-size: 26rpx;
+  color: #666;
+  flex: 1;
+}
+
+.btn-action {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  border-radius: 32rpx;
+  padding: 12rpx 32rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid rgba(74, 144, 226, 0.2);
+  border-top-color: #4a90e2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  color: #9ca3af;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+
+.empty-state-icon {
+  font-size: 160rpx;
+  margin-bottom: 32rpx;
+  opacity: 0.5;
+}
+
+.empty-state-text {
+  font-size: 28rpx;
+  color: #9ca3af;
+}
+
+
+/* 所有打卡记录区域 */
+.all-checkins-section {
+  padding: 0 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.checkins-header {
+  display: flex;
+  align-items: center;
+  padding: 32rpx 0 24rpx;
+}
+
+.checkins-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.checkins-count {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+.checkins-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.checkin-item {
+  display: flex;
+  gap: 16rpx;
+  background: white;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.checkin-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.checkin-avatar .avatar-text {
+  font-size: 28rpx;
+  color: white;
+  font-weight: bold;
+}
+
+.checkin-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkin-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.checkin-user {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.checkin-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.checkin-section-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.section-tag {
+  font-size: 22rpx;
+  color: #4a90e2;
+  background: #e8f4fd;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.section-title-text {
+  font-size: 24rpx;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkin-content {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 288rpx;
+  overflow: hidden;
+  position: relative;
+}
+
+.checkin-content::after {
+  content: '...';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding-left: 40rpx;
+  background: linear-gradient(to right, transparent, white 50%);
+}

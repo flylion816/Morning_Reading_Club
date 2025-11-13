@@ -6,6 +6,117 @@
     <view class="course-date">{{course.startDate}} ~ {{course.endDate}}</view>
   </view>
 
+  <!-- 五大学习模块 -->
+  <!-- 静一静 -->
+  <view class="content-section" wx:if="{{course.meditation}}">
+    <view class="section-title">
+      <view class="section-icon calm">静</view>
+      <text>静一静</text>
+    </view>
+    <view class="section-content">{{course.meditation}}</view>
+  </view>
+
+  <!-- 问一问 -->
+  <view class="content-section" wx:if="{{course.question}}">
+    <view class="section-title">
+      <view class="section-icon question">问</view>
+      <text>问一问</text>
+    </view>
+    <view class="section-content">{{course.question}}</view>
+  </view>
+
+  <!-- 读一读 -->
+  <view class="content-section" wx:if="{{course.content}}">
+    <view class="section-title">
+      <view class="section-icon read">读</view>
+      <text>读一读</text>
+    </view>
+    <view class="section-content">
+      <rich-text nodes="{{course.content}}"></rich-text>
+    </view>
+  </view>
+
+  <!-- 想一想 -->
+  <view class="content-section" wx:if="{{course.reflection}}">
+    <view class="section-title">
+      <view class="section-icon think">想</view>
+      <text>想一想</text>
+    </view>
+    <view class="section-content">{{course.reflection}}</view>
+  </view>
+
+  <!-- 记一记 -->
+  <view class="content-section" wx:if="{{course.action}}">
+    <view class="section-title">
+      <view class="section-icon write">记</view>
+      <text>记一记 / 摘一摘 / 说一说</text>
+    </view>
+    <view class="section-content">{{course.action}}</view>
+  </view>
+
+  <!-- 每日打卡 -->
+  <view class="comments-section" wx:if="{{course.comments}}">
+    <view class="comments-header">
+      <view class="comments-icon">✅</view>
+      <text class="comments-title">每日打卡</text>
+      <text class="comments-count" wx:if="{{course.comments.length}}">（{{course.comments.length}} 条）</text>
+    </view>
+
+    <view class="comments-list">
+      <view class="comment-item" wx:for="{{course.comments}}" wx:key="id" wx:if="{{item}}" >
+        <view class="comment-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
+          <text class="avatar-text">{{item.avatarText}}</text>
+        </view>
+        <view class="comment-content">
+          <view class="comment-header">
+            <text class="comment-user">{{item.userName}}</text>
+            <text class="comment-time">{{item.createTime}}</text>
+          </view>
+          <view class="comment-text">{{item.content}}</view>
+          <view class="comment-footer">
+            <view class="comment-like" bindtap="handleLikeComment" data-id="{{item.id}}">
+              <text class="like-icon {{item.isLiked ? 'liked' : ''}}">❤️</text>
+              <text class="like-count">{{item.likeCount}}</text>
+            </view>
+            <view class="comment-reply" bindtap="handleReplyComment" data-id="{{item.id}}">
+              <text class="reply-icon">💬</text>
+              <text>回复</text>
+            </view>
+          </view>
+
+          <!-- 回复列表 -->
+          <view class="replies-list" wx:if="{{item.replies && item.replies.length > 0}}">
+            <view class="reply-item" wx:for="{{item.replies}}" wx:key="id" wx:for-item="reply">
+              <view class="reply-left-line"></view>
+              <view class="reply-main">
+                <view class="reply-avatar" style="background: {{reply.avatarColor || '#7eb5f0'}}">
+                  <text class="avatar-text">{{reply.avatarText}}</text>
+                </view>
+                <view class="reply-content">
+                  <view class="reply-header">
+                    <text class="reply-user">{{reply.userName}}</text>
+                    <text class="reply-time">{{reply.createTime}}</text>
+                  </view>
+                  <view class="reply-text">{{reply.content}}</view>
+                  <view class="reply-footer">
+                    <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}">
+                      <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">❤️</text>
+                      <text class="like-count">{{reply.likeCount || 0}}</text>
+                    </view>
+                    <view class="reply-reply" bindtap="handleReplyToReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" data-user-name="{{reply.userName}}">
+                      <text class="reply-icon">💬</text>
+                      <text>回复</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 23天打卡日历 -->
   <view class="calendar-section">
     <view class="calendar-title">打卡日历 ({{checkedDays}}/23天)</view>
@@ -22,9 +133,13 @@
     </view>
   </view>
 
-  <!-- 报名按钮 -->
-  <view class="action-section" wx:if="{{!course.isEnrolled}}">
-    <button class="enroll-btn" bindtap="handleEnroll">
+  <!-- 底部按钮 -->
+  <view class="fixed-buttons">
+    <button class="btn-back" bindtap="handleBack">返回</button>
+    <button class="btn-checkin" bindtap="handleCheckin" wx:if="{{course.isEnrolled}}">
+      去打卡
+    </button>
+    <button class="btn-enroll" bindtap="handleEnroll" wx:else>
       立即报名
     </button>
   </view>

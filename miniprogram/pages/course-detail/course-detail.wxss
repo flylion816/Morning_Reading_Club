@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: #f5f5f5;
   padding: 24rpx;
-  padding-bottom: 120rpx;
+  padding-bottom: 160rpx;
 }
 
 .course-header {
@@ -87,21 +87,310 @@
   margin-top: 4rpx;
 }
 
-.action-section {
+/* 内容模块样式 */
+.content-section {
+  background: white;
+  border-radius: 16rpx;
   padding: 32rpx;
+  margin-bottom: 24rpx;
 }
 
-.enroll-btn {
-  width: 100%;
-  background: #4a90e2;
+.section-title {
+  display: flex;
+  align-items: center;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24rpx;
+}
+
+.section-icon {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: white;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.section-icon.calm,
+.section-icon.question,
+.section-icon.read,
+.section-icon.think,
+.section-icon.write {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+}
+
+.section-content {
+  font-size: 28rpx;
+  color: #555;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+.section-content rich-text {
+  font-size: 28rpx;
+  line-height: 1.8;
+}
+
+/* 底部固定按钮 */
+.fixed-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 24rpx;
+  display: flex;
+  gap: 24rpx;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.btn-back {
+  flex: 1;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 48rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+}
+
+.btn-back::after {
+  border: none;
+}
+
+.btn-checkin,
+.btn-enroll {
+  flex: 2;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
   border: none;
   border-radius: 48rpx;
-  padding: 28rpx;
-  font-size: 32rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
   font-weight: bold;
 }
 
-.enroll-btn::after {
+.btn-checkin::after,
+.btn-enroll::after {
   border: none;
+}
+
+/* 社群互动评论 */
+.comments-section {
+  background: white;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+}
+
+.comments-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.comments-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.comments-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.comments-count {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.comment-item {
+  display: flex;
+  gap: 16rpx;
+}
+
+.comment-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  /* background 通过 inline style 设置 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-text {
+  font-size: 28rpx;
+  color: white;
+  font-weight: bold;
+}
+
+.comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.comment-user {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.comment-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.comment-text {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.8;
+  margin-bottom: 12rpx;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.comment-footer {
+  display: flex;
+  gap: 32rpx;
+}
+
+.comment-like,
+.comment-reply {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #999;
+  padding: 8rpx 0;
+}
+
+.like-icon,
+.reply-icon {
+  font-size: 24rpx;
+}
+
+.like-icon.liked {
+  color: #ff6b6b;
+}
+
+.like-count {
+  font-size: 22rpx;
+}
+
+/* 回复列表 */
+.replies-list {
+  margin-top: 16rpx;
+  margin-left: 24rpx;
+}
+
+.reply-item {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16rpx;
+  position: relative;
+}
+
+.reply-left-line {
+  width: 4rpx;
+  background: linear-gradient(180deg, #d0e7ff 0%, #e8f4fd 100%);
+  border-radius: 2rpx;
+  flex-shrink: 0;
+  margin-right: 16rpx;
+}
+
+.reply-main {
+  flex: 1;
+  display: flex;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.reply-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.reply-avatar .avatar-text {
+  font-size: 24rpx;
+  color: white;
+  font-weight: bold;
+}
+
+.reply-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.reply-user {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.reply-text {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.8;
+  margin-bottom: 12rpx;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.reply-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.reply-footer {
+  display: flex;
+  gap: 32rpx;
+}
+
+.reply-like,
+.reply-reply {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #999;
+  padding: 8rpx 0;
 }

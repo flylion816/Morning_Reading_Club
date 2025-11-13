@@ -2,50 +2,98 @@
   min-height: 100vh;
   background: #f5f5f5;
   padding: 24rpx;
-  padding-bottom: 120rpx;
+  padding-bottom: 140rpx;
 }
 
+/* 顶部标题卡片 */
 .detail-header {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
-  padding: 24rpx;
-  border-radius: 12rpx;
+  padding: 32rpx 24rpx;
+  border-radius: 16rpx;
   margin-bottom: 24rpx;
   text-align: center;
 }
 
 .day-title {
   font-weight: bold;
-  font-size: 28rpx;
-  margin-bottom: 8rpx;
+  font-size: 32rpx;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
 }
 
 .day-subtitle {
-  font-size: 24rpx;
+  font-size: 26rpx;
   opacity: 0.9;
 }
 
+/* 内容区 */
 .content-section {
   background: white;
   border-radius: 16rpx;
-  padding: 32rpx;
+  padding: 40rpx 32rpx;
   margin-bottom: 24rpx;
-  font-size: 28rpx;
-  line-height: 2;
-  color: #333;
 }
 
-.share-btn {
-  width: 100%;
-  background: #4a90e2;
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4a90e2;
+  margin-bottom: 32rpx;
+}
+
+.content-text {
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: #333;
+  text-align: justify;
+}
+
+/* rich-text 内部样式 */
+.content-text rich-text {
+  font-size: 30rpx;
+  line-height: 1.8;
+}
+
+/* 底部按钮 */
+.action-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 24rpx;
+  display: flex;
+  gap: 24rpx;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.btn-back {
+  flex: 1;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 48rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+}
+
+.btn-back::after {
+  border: none;
+}
+
+.btn-share {
+  flex: 2;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
   border: none;
   border-radius: 48rpx;
-  padding: 28rpx;
-  font-size: 32rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
   font-weight: bold;
 }
 
-.share-btn::after {
+.btn-share::after {
   border: none;
 }

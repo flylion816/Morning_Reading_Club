@@ -1,0 +1,33 @@
+<!--成员列表页面-->
+<view class="page-members">
+  <!-- 成员统计 -->
+  <view class="members-header">
+    <view class="total-count">
+      <text class="count-label">共</text>
+      <text class="count-number">{{totalMembers}}</text>
+      <text class="count-label">人</text>
+    </view>
+  </view>
+
+  <!-- 成员列表 -->
+  <view class="members-list">
+    <view
+      wx:for="{{members}}"
+      wx:key="userId"
+      class="member-item">
+      <view class="member-avatar" style="background: {{item.avatarColor}}">
+        <text class="avatar-text">{{item.avatarText}}</text>
+      </view>
+      <view class="member-info">
+        <view class="member-name">{{item.userName}}</view>
+        <view class="member-join-date">加入时间：{{item.joinDate}}</view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{members.length === 0}}" class="empty-state">
+      <text class="empty-state-icon">👥</text>
+      <text class="empty-state-text">暂无成员</text>
+    </view>
+  </view>
+</view>

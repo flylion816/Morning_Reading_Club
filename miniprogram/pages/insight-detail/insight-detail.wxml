@@ -1,14 +1,24 @@
 <view class="page-insight-detail">
+  <!-- 顶部课程标题卡片 -->
   <view class="detail-header">
     <view class="day-title">第{{insight.dayNumber}}天 {{insight.title}}</view>
     <view class="day-subtitle">你的个性化学习反馈</view>
   </view>
 
+  <!-- 内容区 -->
   <view class="content-section">
-    <rich-text nodes="{{insight.content}}" />
+    <!-- 小凡看见标题 -->
+    <view class="section-title">小凡看见</view>
+
+    <!-- 正文内容 -->
+    <view class="content-text">
+      <rich-text nodes="{{insight.content}}" />
+    </view>
   </view>
 
-  <button class="share-btn" bindtap="handleShare">
-    分享这个看见
-  </button>
+  <!-- 底部按钮 -->
+  <view class="action-buttons">
+    <button class="btn-back" bindtap="handleBack">返回</button>
+    <button class="btn-share" bindtap="handleShare">分享这个看见</button>
+  </view>
 </view>

@@ -11,7 +11,9 @@
       "Bash(git branch:*)",
       "Bash(git fetch:*)",
       "Bash(npm install)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cat:*)",
+      "Bash(mkdir -p:*)"
     ],
     "deny": [],
     "ask": []
