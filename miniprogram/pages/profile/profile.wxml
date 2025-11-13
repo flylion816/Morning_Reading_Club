@@ -33,11 +33,6 @@
         <text class="agreement-link">《隐私政策》</text>
       </view>
     </view>
-
-    <!-- 返回首页 -->
-    <view class="back-home" bindtap="handleBackHome">
-      <text>← 返回首页</text>
-    </view>
   </view>
 
   <!-- 已登录状态 - 显示主页内容 -->
