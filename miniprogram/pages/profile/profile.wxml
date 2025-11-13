@@ -5,13 +5,14 @@
     <!-- Logo和标题 -->
     <view class="login-header">
       <view class="logo">📚</view>
-      <text class="app-title">晨读营</text>
-      <text class="app-slogan">在晨光中,遇见更好的自己</text>
+      <text class="app-title">高效能人士的七个习惯</text>
+      <text class="app-title-second">晨读营</text>
+      <text class="app-slogan">一个早起、读书、谈心的地方</text>
     </view>
 
     <!-- 登录卡片 -->
     <view class="login-card">
-      <view class="card-title">欢迎来到晨读营</view>
+      <view class="card-title">欢迎一起享受生命的喜悦</view>
       <view class="card-desc">通过微信一键登录</view>
 
       <!-- 登录按钮 -->
@@ -124,7 +125,9 @@
             wx:key="id"
             class="request-item">
             <view class="request-item-left">
-              <text class="request-user-emoji">{{item.fromUserAvatar || '😊'}}</text>
+              <view class="request-user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
+                <text class="request-avatar-text">{{item.fromUserAvatar || '😊'}}</text>
+              </view>
               <view class="request-info">
                 <text class="request-user-name">{{item.fromUserName}}</text>
                 <text class="request-time">{{item.time}}</text>

@@ -205,7 +205,8 @@ Page({
         id: Date.now(),
         fromUserId: 1,  // 阿泰的用户ID
         fromUserName: '阿泰',
-        fromUserAvatar: '阿',
+        fromUserAvatar: '泰',  // 使用名字的最后一个字
+        avatarColor: '#4a90e2',  // 蓝色圆形背景
         toUserId: currentUser.id,
         toUserName: currentUser.nickname,
         time: '2小时前',
