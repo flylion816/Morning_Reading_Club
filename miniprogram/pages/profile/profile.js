@@ -13,6 +13,9 @@ Page({
     // 当前期次
     currentPeriod: null,
 
+    // 今日课节
+    todaySection: null,
+
     // 统计信息
     stats: {
       current_day: 1,
@@ -95,18 +98,29 @@ Page({
       const periodsList = periods.items || periods || [];
       const currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
 
-      // 计算当前期次的进度并设置封面样式
-      if (currentPeriod) {
-        const totalDays = currentPeriod.totalDays || 23;
-        const completedDays = currentPeriod.completedDays || 0;
-        currentPeriod.progress = Math.round((completedDays / totalDays) * 100);
+      // 获取今日课节（使用当前期次的第一个课节作为示例）
+      let todaySection = null;
+      if (currentPeriod && currentPeriod.id) {
+        try {
+          const sectionsRes = await courseService.getPeriodSections(currentPeriod.id);
+          const sections = sectionsRes.items || sectionsRes || [];
+          // 获取第一个未完成的课节作为今日课节
+          todaySection = sections.find(s => !s.isCompleted) || sections[0];
 
-        // 设置封面颜色和表情（如果没有的话使用默认值）
-        if (!currentPeriod.coverColor) {
-          currentPeriod.coverColor = '#4a90e2';
-        }
-        if (!currentPeriod.coverEmoji) {
-          currentPeriod.coverEmoji = '🏔️';
+          if (todaySection) {
+            // 设置封面样式
+            if (!todaySection.coverColor) {
+              todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+            }
+            if (!todaySection.coverEmoji) {
+              todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+            }
+            // 添加期次信息
+            todaySection.periodId = currentPeriod.id;
+            todaySection.periodTitle = currentPeriod.title;
+          }
+        } catch (error) {
+          console.error('获取今日课节失败:', error);
         }
       }
 
@@ -117,6 +131,7 @@ Page({
         userInfo,
         stats,
         currentPeriod,
+        todaySection,
         recentInsights,
         loading: false
       });
@@ -350,18 +365,18 @@ Page({
   },
 
   /**
-   * 点击当前期次卡片
+   * 点击今日课节卡片
    */
-  handleCurrentPeriodClick() {
-    const { currentPeriod } = this.data;
-    if (!currentPeriod || !currentPeriod.id) {
-      console.error('当前期次信息不存在');
+  handleTodaySectionClick() {
+    const { todaySection } = this.data;
+    if (!todaySection || !todaySection.id) {
+      console.error('今日课节信息不存在');
       return;
     }
 
-    // 跳转到课程列表页
+    // 跳转到课程详情页
     wx.navigateTo({
-      url: `/pages/courses/courses?periodId=${currentPeriod.id}`
+      url: `/pages/course-detail/course-detail?id=${todaySection.id}`
     });
   },
 
