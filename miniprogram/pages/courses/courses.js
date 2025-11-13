@@ -123,21 +123,35 @@ Page({
     // 使用 SelectorQuery 查询目标元素位置并滚动
     if (tab === 'tasks') {
       // 切换到任务，滚动到顶部
-      this.setData({ scrollTop: 0 });
+      const oldScrollTop = this.data.scrollTop;
+
+      // 先设置一个不同的值,再设置为0,确保触发滚动
+      this.setData({ scrollTop: oldScrollTop + 1 });
+
+      setTimeout(() => {
+        this.setData({ scrollTop: 0 });
+      }, 50);
     } else if (tab === 'dynamics') {
-      // 切换到动态，查询动态区域的位置
-      const query = wx.createSelectorQuery();
-      query.select('#dynamics-section').boundingClientRect();
-      query.select('.content-scroll').scrollOffset();
-      query.exec((res) => {
-        if (res[0] && res[1]) {
-          // 计算需要滚动的距离
-          const targetTop = res[0].top + res[1].scrollTop;
-          this.setData({
-            scrollTop: targetTop
-          });
-        }
-      });
+      // 延迟执行,确保DOM渲染完成
+      setTimeout(() => {
+        const query = wx.createSelectorQuery().in(this);
+        query.select('#dynamics-section').boundingClientRect();
+        query.select('.content-scroll').scrollOffset();
+        query.exec((res) => {
+          if (res[0] && res[1]) {
+            // 计算需要滚动的距离
+            const targetTop = res[0].top + res[1].scrollTop;
+
+            // 先设置一个略微不同的值,确保触发变化
+            this.setData({ scrollTop: targetTop - 1 });
+
+            // 延迟后设置真实目标位置
+            setTimeout(() => {
+              this.setData({ scrollTop: targetTop });
+            }, 100);
+          }
+        });
+      }, 100);
     }
   },
 

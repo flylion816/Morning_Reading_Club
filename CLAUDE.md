@@ -1714,5 +1714,71 @@ find . -name "*.wxss.map" -delete
 
 ---
 
+### 23. scroll-view 无法滚动问题
+
+**问题现象**：scroll-view 设置了 scroll-top 属性,但页面无法滚动,手动滑动也不生效
+
+**根本原因**：父容器使用了 flex 布局但高度设置错误
+```wxss
+/* ❌ 错误：min-height 不足以让 flex 计算子元素高度 */
+.page {
+  min-height: 100vh;  /* 只是最小高度 */
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-view {
+  flex: 1;
+  height: 0;  /* 期望通过 flex 自动计算 */
+}
+```
+
+**问题分析**：
+- `min-height: 100vh` 只保证最小高度,不是固定高度
+- flex 布局的子元素 `height: 0` 配合 `flex: 1` 需要父容器有**明确的高度**
+- 没有明确高度,flex 无法计算剩余空间
+- scroll-view 高度为 0,无法启用滚动
+
+**解决方案**：使用固定高度
+```wxss
+/* ✅ 正确：设置固定高度 */
+.page {
+  height: 100vh;  /* 固定高度 */
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-view {
+  flex: 1;
+  height: 0;  /* 现在可以正确计算剩余空间 */
+}
+```
+
+**验证方法**：
+```javascript
+// 添加滚动事件监听
+<scroll-view bindscroll="handleScroll">
+
+handleScroll(e) {
+  console.log('滚动位置:', e.detail.scrollTop);
+}
+
+// 如果手动滚动没有输出,说明 scroll-view 未启用滚动
+```
+
+**经验教训**：
+- ⚠️ `min-height` 和 `height` 在 flex 布局中效果完全不同
+- ⚠️ flex 子元素的 `height: 0` 需要父容器有明确高度
+- ⚠️ scroll-view 不滚动要先检查容器高度是否正确
+- ✅ 全屏页面使用 `height: 100vh` 而不是 `min-height`
+- ✅ 可以通过滚动事件监听来验证 scroll-view 是否正常工作
+- ✅ 使用开发者工具的调试器查看元素的实际高度
+
+**相关问题**：
+- 参考问题19: scroll-view 高度计算错误问题
+- 参考问题18: scroll-into-view 属性失效问题
+
+---
+
 **最后更新**: 2025-11-13
 **维护者**: Claude Code
