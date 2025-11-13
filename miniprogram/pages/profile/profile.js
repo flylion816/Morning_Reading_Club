@@ -195,9 +195,24 @@ Page({
     let allRequests = wx.getStorageSync('insight_requests') || [];
 
     // 筛选出发给当前用户的待处理申请
-    const myRequests = allRequests.filter(req =>
+    let myRequests = allRequests.filter(req =>
       req.toUserId === currentUser.id && req.status === 'pending'
     );
+
+    // 如果没有待处理申请，添加一个Mock申请（仅用于演示）
+    if (myRequests.length === 0) {
+      const mockRequest = {
+        id: Date.now(),
+        fromUserId: 1,  // 阿泰的用户ID
+        fromUserName: '阿泰',
+        fromUserAvatar: '阿',
+        toUserId: currentUser.id,
+        toUserName: currentUser.nickname,
+        time: '2小时前',
+        status: 'pending'
+      };
+      myRequests = [mockRequest];
+    }
 
     console.log('收到的小凡看见请求:', myRequests);
 
