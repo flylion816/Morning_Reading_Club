@@ -43,9 +43,12 @@
   <view class="user-content" wx:else>
     <!-- 顶部横幅 -->
     <view class="home-banner">
-      <image class="user-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill" />
+      <view class="user-avatar-container">
+        <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+        <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+      </view>
       <view class="banner-bubble">
-        <text class="bubble-text">每天进步一点点\n鹅要坚持来打卡</text>
+        <text class="bubble-text">在每一次看见中不住相\n在每一次倾听中生慈悲</text>
       </view>
     </view>
 
