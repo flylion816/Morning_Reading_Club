@@ -64,7 +64,7 @@
 
     <view class="comments-list">
       <view class="comment-item" wx:for="{{course.comments}}" wx:key="id" wx:if="{{item}}" >
-        <view class="comment-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
+        <view class="comment-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">
           <text class="avatar-text">{{item.avatarText}}</text>
         </view>
         <view class="comment-content">
