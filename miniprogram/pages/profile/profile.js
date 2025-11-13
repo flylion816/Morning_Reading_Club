@@ -19,6 +19,9 @@ Page({
       total_days: 23
     },
 
+    // 最近的小凡看见（最多3条）
+    recentInsights: [],
+
     // 收到的小凡看见请求列表
     insightRequests: [],
 
@@ -107,10 +110,14 @@ Page({
         }
       }
 
+      // 加载最近的小凡看见记录（最多3条）
+      const recentInsights = this.loadRecentInsights();
+
       this.setData({
         userInfo,
         stats,
         currentPeriod,
+        recentInsights,
         loading: false
       });
     } catch (error) {
@@ -122,6 +129,35 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  /**
+   * 加载最近的小凡看见记录
+   */
+  loadRecentInsights() {
+    // Mock 数据 - 最多返回3条
+    const mockInsights = [
+      {
+        id: 1,
+        day: '第一天 品德成功论',
+        title: '品德成功论',
+        preview: '感谢你的分享，听你娓道来，我仿佛也参与了你们那场深刻的对话...'
+      },
+      {
+        id: 2,
+        day: '第二天 自律的力量',
+        title: '自律的力量',
+        preview: '自律正是你最大的优势！在今天的学习中，我看到了你对自律的真正理解...'
+      },
+      {
+        id: 3,
+        day: '第三天 感恩的艺术',
+        title: '感恩的艺术',
+        preview: '感恩之心让你与众不同！能够时刻保持感恩的心态...'
+      }
+    ];
+
+    return mockInsights.slice(0, 3);
   },
 
   /**
@@ -355,6 +391,20 @@ Page({
   navigateToCourses() {
     wx.switchTab({
       url: '/pages/index/index'
+    });
+  },
+
+  /**
+   * 点击小凡看见条目
+   */
+  handleInsightClick(e) {
+    const { insight } = e.currentTarget.dataset;
+    console.log('点击小凡看见:', insight);
+
+    // TODO: 跳转到小凡看见详情页
+    wx.showToast({
+      title: '功能开发中',
+      icon: 'none'
     });
   },
 

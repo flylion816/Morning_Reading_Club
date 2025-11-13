@@ -188,17 +188,11 @@
 }
 
 /* 今日任务区域 */
-.task-content {
-  background: #f0f5ff;
-  border-radius: 12rpx;
-  padding: 16rpx;
-  border-left: 8rpx solid #4a90e2;
-}
-
 .period-card {
   display: flex;
   gap: 16rpx;
   align-items: stretch;
+  padding: 8rpx 0;
 }
 
 .period-cover {
@@ -319,47 +313,99 @@
 
 /* 统计区域 */
 .stats-content {
+  padding: 8rpx 0;
+}
+
+.stats-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16rpx 0;
+  padding: 12rpx 0;
 }
 
 .stats-label {
-  font-size: 26rpx;
-  color: #666;
+  font-size: 28rpx;
+  color: #333;
 }
 
-.stats-value-large {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #4a90e2;
+.stats-arrow {
+  font-size: 28rpx;
+  color: #999;
 }
 
 /* 小凡看见区域 */
-.insights-content {
-  background: #f0f5ff;
-  border-radius: 12rpx;
-  padding: 24rpx;
-  border-left: 8rpx solid #4a90e2;
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
 }
 
-.insights-action {
+.insight-item {
+  background: #f5f8ff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  border-left: 6rpx solid #4a90e2;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.insight-day {
+  font-size: 24rpx;
+  color: #4a90e2;
+  font-weight: bold;
+}
+
+.insight-content-preview {
   display: flex;
   flex-direction: column;
   gap: 8rpx;
 }
 
-.action-title {
+.insight-title {
   font-size: 26rpx;
   font-weight: bold;
   color: #4a90e2;
+  line-height: 1.4;
 }
 
-.action-desc {
-  font-size: 22rpx;
+.insight-text {
+  font-size: 24rpx;
   color: #666;
   line-height: 1.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.insight-empty {
+  text-align: center;
+  padding: 40rpx 0;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.insights-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 0;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.more-text {
+  font-size: 26rpx;
+  color: #4a90e2;
+  font-weight: 500;
+}
+
+.more-arrow {
+  font-size: 24rpx;
+  color: #4a90e2;
 }
 
 /* 请求列表 */
