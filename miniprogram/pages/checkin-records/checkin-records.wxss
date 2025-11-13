@@ -212,8 +212,6 @@
   margin-bottom: 16rpx;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 200rpx;
-  overflow: hidden;
 }
 
 .record-footer {
