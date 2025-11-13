@@ -283,7 +283,6 @@
 
 /* 统一的区块样式 */
 .task-section,
-.stats-section,
 .insights-section,
 .requests-section {
   background: white;
@@ -309,28 +308,6 @@
   font-size: 28rpx;
   font-weight: bold;
   color: #333;
-}
-
-/* 统计区域 */
-.stats-content {
-  padding: 8rpx 0;
-}
-
-.stats-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12rpx 0;
-}
-
-.stats-label {
-  font-size: 28rpx;
-  color: #333;
-}
-
-.stats-arrow {
-  font-size: 28rpx;
-  color: #999;
 }
 
 /* 小凡看见区域 */
@@ -476,7 +453,7 @@
 .create-checkin-btn {
   position: fixed;
   right: 32rpx;
-  bottom: 120rpx;
+  bottom: 160rpx;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   border-radius: 48rpx;
   padding: 20rpx 36rpx;

@@ -386,25 +386,20 @@ Page({
   },
 
   /**
-   * 跳转到课程列表
-   */
-  navigateToCourses() {
-    wx.switchTab({
-      url: '/pages/index/index'
-    });
-  },
-
-  /**
    * 点击小凡看见条目
    */
   handleInsightClick(e) {
     const { insight } = e.currentTarget.dataset;
     console.log('点击小凡看见:', insight);
 
-    // TODO: 跳转到小凡看见详情页
-    wx.showToast({
-      title: '功能开发中',
-      icon: 'none'
+    if (!insight || !insight.id) {
+      console.error('小凡看见信息不存在');
+      return;
+    }
+
+    // 跳转到小凡看见详情页
+    wx.navigateTo({
+      url: `/pages/insight-detail/insight-detail?id=${insight.id}`
     });
   },
 

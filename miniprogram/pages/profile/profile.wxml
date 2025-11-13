@@ -80,20 +80,6 @@
         </view>
       </view>
 
-      <!-- 总体进度统计 -->
-      <view class="stats-section">
-        <view class="section-header">
-          <view class="section-icon">📊</view>
-          <text class="section-header-title">总体进度统计</text>
-        </view>
-        <view class="stats-content" bindtap="navigateToCourses">
-          <view class="stats-row">
-            <text class="stats-label">当前进度</text>
-            <text class="stats-arrow">→</text>
-          </view>
-        </view>
-      </view>
-
       <!-- 小凡看见 - 按章节 -->
       <view class="insights-section">
         <view class="section-header">
