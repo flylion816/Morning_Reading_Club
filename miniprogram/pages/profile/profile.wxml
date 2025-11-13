@@ -1,70 +1,104 @@
 <!--个人中心页面-->
 <view class="page-profile">
-  <!-- 用户信息卡片 -->
-  <view class="user-card" wx:if="{{isLogin}}">
-    <view class="user-avatar-wrapper">
-      <text class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+  <!-- 未登录状态 - 显示完整登录界面 -->
+  <view class="login-container" wx:if="{{!isLogin}}">
+    <!-- Logo和标题 -->
+    <view class="login-header">
+      <view class="logo">📚</view>
+      <text class="app-title">晨读营</text>
+      <text class="app-slogan">在晨光中,遇见更好的自己</text>
     </view>
-    <view class="user-nickname">{{userInfo.nickname || '晨读营用户'}}</view>
-    <view class="user-signature">{{userInfo.signature || '天天开心，觉知当下！'}}</view>
-  </view>
 
-  <!-- 未登录状态 -->
-  <view class="user-card login-prompt" wx:else bindtap="handleLogin">
-    <view class="user-avatar-wrapper">
-      <text class="user-avatar-emoji">👤</text>
-    </view>
-    <view class="login-text">点击登录</view>
-  </view>
+    <!-- 登录卡片 -->
+    <view class="login-card">
+      <view class="card-title">欢迎来到晨读营</view>
+      <view class="card-desc">通过微信一键登录</view>
 
-  <!-- 收到的小凡看见请求区域 -->
-  <view class="request-section" wx:if="{{isLogin}}">
-    <view class="request-header">
-      <text class="request-icon">📬</text>
-      <text class="request-title">收到的小凡看见请求</text>
-      <view class="request-badge" wx:if="{{insightRequests.length > 0}}">
-        {{insightRequests.length}}
+      <!-- 登录按钮 -->
+      <button
+        class="wechat-login-btn {{loading ? 'loading' : ''}}"
+        bindtap="handleWechatLogin"
+        disabled="{{loading}}"
+      >
+        <text wx:if="{{!loading}}">微信一键登录</text>
+        <text wx:else>登录中...</text>
+      </button>
+
+      <!-- 用户协议 -->
+      <view class="agreement">
+        <text class="agreement-text">登录即表示同意</text>
+        <text class="agreement-link">《用户协议》</text>
+        <text class="agreement-text">和</text>
+        <text class="agreement-link">《隐私政策》</text>
       </view>
     </view>
-    <view class="request-list">
-      <view
-        wx:for="{{insightRequests}}"
-        wx:key="id"
-        class="request-item"
-        bindtap="handleRequestClick"
-        data-request="{{item}}">
-        <view class="request-item-left">
-          <text class="request-user-emoji">{{item.userAvatar || '😊'}}</text>
-          <view class="request-info">
-            <text class="request-user-name">{{item.userName}}</text>
-            <text class="request-time">{{item.time}}</text>
-          </view>
+
+    <!-- 返回首页 -->
+    <view class="back-home" bindtap="handleBackHome">
+      <text>← 返回首页</text>
+    </view>
+  </view>
+
+  <!-- 已登录状态 - 显示用户信息 -->
+  <view class="user-content" wx:else>
+    <!-- 用户信息卡片 -->
+    <view class="user-card">
+      <view class="user-avatar-wrapper">
+        <text class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+      </view>
+      <view class="user-nickname">{{userInfo.nickname || '晨读营用户'}}</view>
+      <view class="user-signature">{{userInfo.signature || '天天开心，觉知当下！'}}</view>
+    </view>
+
+    <!-- 收到的小凡看见请求区域 -->
+    <view class="request-section">
+      <view class="request-header">
+        <text class="request-icon">📬</text>
+        <text class="request-title">收到的小凡看见请求</text>
+        <view class="request-badge" wx:if="{{insightRequests.length > 0}}">
+          {{insightRequests.length}}
         </view>
-        <button class="request-btn" catchtap="handleApproveRequest" data-request="{{item}}">
-          授权
-        </button>
       </view>
-      <view class="request-empty" wx:if="{{insightRequests.length === 0}}">
-        暂无请求
+      <view class="request-list">
+        <view
+          wx:for="{{insightRequests}}"
+          wx:key="id"
+          class="request-item"
+          bindtap="handleRequestClick"
+          data-request="{{item}}">
+          <view class="request-item-left">
+            <text class="request-user-emoji">{{item.userAvatar || '😊'}}</text>
+            <view class="request-info">
+              <text class="request-user-name">{{item.userName}}</text>
+              <text class="request-time">{{item.time}}</text>
+            </view>
+          </view>
+          <button class="request-btn" catchtap="handleApproveRequest" data-request="{{item}}">
+            授权
+          </button>
+        </view>
+        <view class="request-empty" wx:if="{{insightRequests.length === 0}}">
+          暂无请求
+        </view>
       </view>
     </view>
-  </view>
 
-  <!-- 总体进度统计 -->
-  <view class="stats-card" wx:if="{{isLogin}}" bindtap="navigateToCourses">
-    <view class="card-title">📊 总体进度统计</view>
-    <view class="stats-item">
-      <text class="stats-label">当前进度</text>
-      <text class="stats-value">{{stats.current_day}}/{{stats.total_days}}</text>
+    <!-- 总体进度统计 -->
+    <view class="stats-card" bindtap="navigateToCourses">
+      <view class="card-title">📊 总体进度统计</view>
+      <view class="stats-item">
+        <text class="stats-label">当前进度</text>
+        <text class="stats-value">{{stats.current_day}}/{{stats.total_days}}</text>
+      </view>
     </view>
-  </view>
 
-  <!-- 小凡看见 - 按章节 -->
-  <view class="insights-card" wx:if="{{isLogin}}">
-    <view class="card-title">✨ 小凡看见 - 按章节</view>
-    <view class="insights-link" bindtap="navigateToInsights">
-      <view class="insights-link-title">查看所有反馈</view>
-      <view class="insights-link-desc">点击查看小凡对你每天的个性化反馈...</view>
+    <!-- 小凡看见 - 按章节 -->
+    <view class="insights-card">
+      <view class="card-title">✨ 小凡看见 - 按章节</view>
+      <view class="insights-link" bindtap="navigateToInsights">
+        <view class="insights-link-title">查看所有反馈</view>
+        <view class="insights-link-desc">点击查看小凡对你每天的个性化反馈...</view>
+      </view>
     </view>
   </view>
 
