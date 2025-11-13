@@ -20,6 +20,78 @@
 - 如果发现明显的错误或不合理的设计，务必纠正我
 - 主动提示可能的风险和更好的替代方案
 
+## 🤖 Claude Code 标准工作流程
+
+### 重要修改后必须执行的流程
+
+**1. 问题解决后的记录流程**
+
+每次解决完值得记录的问题后:
+- ✅ 判断是否值得记录(非平凡的bug、需要调试的问题、小程序特有陷阱)
+- ✅ 按照模板总结问题、原因、解决方案、经验教训
+- ✅ 更新到本文档的 Bug修复经验库部分
+- ✅ 更新"最后更新"日期
+
+**2. 代码提交到 GitHub 的流程**
+
+以下情况必须推送代码:
+- ✅ 完成一个完整的功能模块
+- ✅ 修复了重要的 bug
+- ✅ 重构了关键代码
+- ✅ 更新了重要文档(如 CLAUDE.md)
+- ✅ 新增了页面或组件
+- ✅ 阶段性工作完成(如每天工作结束)
+
+**标准 Git 提交命令**:
+```bash
+cd "/Users/pica_1/我的坚果云/flylion/AI项目开发/七个习惯晨读营"
+
+# 查看修改状态
+git status
+
+# 添加所有修改
+git add -A
+
+# 提交(使用规范的 commit message)
+git commit -m "feat: 功能描述
+
+详细说明:
+- 修改点1
+- 修改点2
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 推送到 GitHub
+git push https://$(gh auth token)@github.com/flylion816/Morning_Reading_Club.git main
+```
+
+**Commit Message 规范**:
+- `feat:` 新功能
+- `fix:` bug修复
+- `docs:` 文档更新
+- `refactor:` 重构
+- `style:` 样式调整
+- `perf:` 性能优化
+- `chore:` 构建/配置
+
+**3. 完整的工作流程总结**
+
+```
+开发/修复 → 测试验证 → 记录问题(如需要) → Git提交 → 推送GitHub
+   ↓            ↓           ↓                ↓            ↓
+ 实现功能    确保正常    更新CLAUDE.md     本地提交    远程同步
+```
+
+**自我检查清单**:
+- [ ] 功能是否完整实现?
+- [ ] 是否测试通过?
+- [ ] 是否有值得记录的问题?
+- [ ] 是否更新了相关文档?
+- [ ] 是否提交到本地仓库?
+- [ ] 是否推送到远程仓库?
+
 ## 🎨 微信小程序开发规范
 
 ### ⚠️ 核心原则
