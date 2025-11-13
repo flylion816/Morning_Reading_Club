@@ -104,8 +104,9 @@ Page({
         try {
           const sectionsRes = await courseService.getPeriodSections(currentPeriod.id);
           const sections = sectionsRes.items || sectionsRes || [];
-          // 获取第一个未完成的课节作为今日课节
-          todaySection = sections.find(s => !s.isCompleted) || sections[0];
+          // 过滤掉开营词（day为0的课节），获取第一个未打卡的课节作为今日课节
+          const normalSections = sections.filter(s => s.day > 0);
+          todaySection = normalSections.find(s => !s.isCheckedIn) || normalSections[0];
 
           if (todaySection) {
             // 设置封面样式
