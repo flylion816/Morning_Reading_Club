@@ -1,6 +1,7 @@
 // 个人中心页面
 const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
+const courseService = require('../../services/course.service');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 
 Page({
@@ -8,6 +9,9 @@ Page({
     // 用户信息
     userInfo: null,
     isLogin: false,
+
+    // 当前期次
+    currentPeriod: null,
 
     // 统计信息
     stats: {
@@ -74,18 +78,31 @@ Page({
     this.setData({ loading: true });
 
     try {
-      // 并行加载用户信息和统计信息
-      const [userInfo, stats] = await Promise.all([
+      // 并行加载用户信息、统计信息和当前期次
+      const [userInfo, stats, periods] = await Promise.all([
         userService.getUserProfile(),
-        userService.getUserStats()
+        userService.getUserStats(),
+        courseService.getPeriods()
       ]);
 
       const app = getApp();
       app.globalData.userInfo = userInfo;
 
+      // 找到第一个进行中的期次作为当前期次
+      const periodsList = periods.items || periods || [];
+      const currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
+
+      // 计算当前期次的进度
+      if (currentPeriod) {
+        const totalDays = currentPeriod.totalDays || 23;
+        const completedDays = currentPeriod.completedDays || 0;
+        currentPeriod.progress = Math.round((completedDays / totalDays) * 100);
+      }
+
       this.setData({
         userInfo,
         stats,
+        currentPeriod,
         loading: false
       });
     } catch (error) {
@@ -286,6 +303,42 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  /**
+   * 点击当前期次卡片
+   */
+  handleCurrentPeriodClick() {
+    const { currentPeriod } = this.data;
+    if (!currentPeriod || !currentPeriod.id) {
+      console.error('当前期次信息不存在');
+      return;
+    }
+
+    // 跳转到课程列表页
+    wx.navigateTo({
+      url: `/pages/courses/courses?periodId=${currentPeriod.id}`
+    });
+  },
+
+  /**
+   * 创建打卡
+   */
+  handleCreateCheckin() {
+    const { currentPeriod } = this.data;
+
+    if (!currentPeriod || !currentPeriod.id) {
+      wx.showToast({
+        title: '暂无进行中的课程',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 跳转到打卡页面
+    wx.navigateTo({
+      url: `/pages/checkin/checkin?periodId=${currentPeriod.id}`
+    });
   },
 
   /**

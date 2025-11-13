@@ -39,66 +39,99 @@
     </view>
   </view>
 
-  <!-- 已登录状态 - 显示用户信息 -->
+  <!-- 已登录状态 - 显示主页内容 -->
   <view class="user-content" wx:else>
-    <!-- 用户信息卡片 -->
-    <view class="user-card">
-      <view class="user-avatar-wrapper">
-        <text class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+    <!-- 顶部横幅 -->
+    <view class="home-banner">
+      <view class="banner-mascot">🦆</view>
+      <view class="banner-bubble">
+        <text class="bubble-text">每天进步一点点\n鹅要坚持来打卡</text>
       </view>
-      <view class="user-nickname">{{userInfo.nickname || '晨读营用户'}}</view>
-      <view class="user-signature">{{userInfo.signature || '天天开心，觉知当下！'}}</view>
     </view>
 
-    <!-- 收到的小凡看见请求区域 -->
-    <view class="request-section">
-      <view class="request-header">
-        <text class="request-icon">📬</text>
-        <text class="request-title">收到的小凡看见请求</text>
-        <view class="request-badge" wx:if="{{insightRequests.length > 0}}">
-          {{insightRequests.length}}
-        </view>
-      </view>
-      <view class="request-list">
-        <view
-          wx:for="{{insightRequests}}"
-          wx:key="id"
-          class="request-item"
-          bindtap="handleRequestClick"
-          data-request="{{item}}">
-          <view class="request-item-left">
-            <text class="request-user-emoji">{{item.userAvatar || '😊'}}</text>
-            <view class="request-info">
-              <text class="request-user-name">{{item.userName}}</text>
-              <text class="request-time">{{item.time}}</text>
+    <!-- 内容区域 -->
+    <view class="content-area">
+      <!-- 今日任务 -->
+      <view class="section-title">今日任务</view>
+      <view class="today-task" wx:if="{{currentPeriod}}" bindtap="handleCurrentPeriodClick">
+        <image class="task-cover" src="{{currentPeriod.cover || '/assets/images/default-cover.jpg'}}" mode="aspectFill" />
+        <view class="task-info">
+          <view class="task-title">{{currentPeriod.title}}</view>
+          <view class="task-date">{{currentPeriod.startDate}} 至 {{currentPeriod.endDate}}</view>
+          <view class="task-progress">
+            <view class="progress-icon">📅</view>
+            <view class="progress-bar">
+              <view class="progress-fill" style="width: {{currentPeriod.progress || 0}}%"></view>
             </view>
+            <text class="progress-text">进行中 {{currentPeriod.completedDays || 0}}/{{currentPeriod.totalDays || 23}}</text>
           </view>
-          <button class="request-btn" catchtap="handleApproveRequest" data-request="{{item}}">
-            授权
-          </button>
         </view>
-        <view class="request-empty" wx:if="{{insightRequests.length === 0}}">
-          暂无请求
+      </view>
+      <view class="today-task-empty" wx:else>
+        <text>暂无进行中的课程</text>
+      </view>
+
+      <!-- 总体进度统计 -->
+      <view class="stats-section">
+        <view class="section-header">
+          <view class="section-icon">📊</view>
+          <text class="section-header-title">总体进度统计</text>
+        </view>
+        <view class="stats-content" bindtap="navigateToCourses">
+          <view class="stats-label">当前进度</view>
+          <view class="stats-value-large">/</view>
+        </view>
+      </view>
+
+      <!-- 小凡看见 - 按章节 -->
+      <view class="insights-section">
+        <view class="section-header">
+          <view class="section-icon">✨</view>
+          <text class="section-header-title">小凡看见 - 按章节</text>
+        </view>
+        <view class="insights-content" bindtap="navigateToInsights">
+          <view class="insights-action">
+            <text class="action-title">查看所有反馈</text>
+            <text class="action-desc">点击查看小凡对你每天的个性化反馈...</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 收到的小凡看见请求 -->
+      <view class="requests-section">
+        <view class="section-header">
+          <view class="section-icon">📬</view>
+          <text class="section-header-title">收到的小凡看见请求</text>
+        </view>
+        <view class="requests-content">
+          <view
+            wx:for="{{insightRequests}}"
+            wx:key="id"
+            class="request-item"
+            bindtap="handleRequestClick"
+            data-request="{{item}}">
+            <view class="request-item-left">
+              <text class="request-user-emoji">{{item.userAvatar || '😊'}}</text>
+              <view class="request-info">
+                <text class="request-user-name">{{item.userName}}</text>
+                <text class="request-time">{{item.time}}</text>
+              </view>
+            </view>
+            <button class="request-btn" catchtap="handleApproveRequest" data-request="{{item}}">
+              授权
+            </button>
+          </view>
+          <view class="requests-empty" wx:if="{{insightRequests.length === 0}}">
+            暂无请求
+          </view>
         </view>
       </view>
     </view>
 
-    <!-- 总体进度统计 -->
-    <view class="stats-card" bindtap="navigateToCourses">
-      <view class="card-title">📊 总体进度统计</view>
-      <view class="stats-item">
-        <text class="stats-label">当前进度</text>
-        <text class="stats-value">{{stats.current_day}}/{{stats.total_days}}</text>
-      </view>
-    </view>
-
-    <!-- 小凡看见 - 按章节 -->
-    <view class="insights-card">
-      <view class="card-title">✨ 小凡看见 - 按章节</view>
-      <view class="insights-link" bindtap="navigateToInsights">
-        <view class="insights-link-title">查看所有反馈</view>
-        <view class="insights-link-desc">点击查看小凡对你每天的个性化反馈...</view>
-      </view>
+    <!-- 创建打卡浮动按钮 -->
+    <view class="fab-button" bindtap="handleCreateCheckin">
+      <text class="fab-icon">+</text>
+      <text class="fab-text">创建打卡</text>
     </view>
   </view>
 
