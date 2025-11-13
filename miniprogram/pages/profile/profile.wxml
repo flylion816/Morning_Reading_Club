@@ -43,7 +43,7 @@
   <view class="user-content" wx:else>
     <!-- 顶部横幅 -->
     <view class="home-banner">
-      <view class="banner-mascot">🦆</view>
+      <image class="user-avatar" src="{{userInfo.avatarUrl || '/assets/images/default-avatar.png'}}" mode="aspectFill" />
       <view class="banner-bubble">
         <text class="bubble-text">每天进步一点点\n鹅要坚持来打卡</text>
       </view>

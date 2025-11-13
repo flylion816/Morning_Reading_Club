@@ -145,10 +145,14 @@
   gap: 24rpx;
 }
 
-.banner-mascot {
-  font-size: 96rpx;
+.user-avatar {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 16rpx;
+  flex-shrink: 0;
   position: relative;
   z-index: 2;
+  border: 4rpx solid rgba(255, 255, 255, 0.3);
 }
 
 .banner-bubble {
