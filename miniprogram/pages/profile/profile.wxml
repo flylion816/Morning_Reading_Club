@@ -154,10 +154,10 @@
       </view>
     </view>
 
-    <!-- 创建打卡浮动按钮 -->
-    <view class="fab-button" bindtap="handleCreateCheckin">
-      <text class="fab-icon">+</text>
-      <text class="fab-text">创建打卡</text>
+    <!-- 创建打卡按钮 -->
+    <view class="create-checkin-btn" bindtap="handleCreateCheckin">
+      <text class="btn-icon">+</text>
+      <text class="btn-text">创建打卡</text>
     </view>
   </view>
 

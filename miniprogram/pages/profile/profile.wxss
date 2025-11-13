@@ -197,7 +197,7 @@
 
 .period-cover {
   width: 120rpx;
-  height: 120rpx;
+  height: 150rpx;
   border-radius: 12rpx;
   flex-shrink: 0;
   display: flex;
@@ -472,39 +472,36 @@
   color: #999999;
 }
 
-/* 创建打卡浮动按钮 */
-.fab-button {
+/* 创建打卡按钮 */
+.create-checkin-btn {
   position: fixed;
   right: 32rpx;
   bottom: 120rpx;
-  width: 140rpx;
-  height: 140rpx;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  border-radius: 70rpx;
+  border-radius: 48rpx;
+  padding: 20rpx 36rpx;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 8rpx;
   box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.4);
   z-index: 100;
   transition: all 0.3s;
 }
 
-.fab-button:active {
-  transform: scale(0.95);
+.create-checkin-btn:active {
+  transform: scale(0.98);
   box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.4);
 }
 
-.fab-icon {
-  font-size: 48rpx;
+.btn-icon {
+  font-size: 32rpx;
   color: white;
   font-weight: 300;
   line-height: 1;
-  margin-bottom: 4rpx;
 }
 
-.fab-text {
-  font-size: 20rpx;
+.btn-text {
+  font-size: 28rpx;
   color: white;
   font-weight: 500;
 }
