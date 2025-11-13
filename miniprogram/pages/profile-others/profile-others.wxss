@@ -42,30 +42,111 @@
 .stats-card {
   background: white;
   border-radius: 16rpx;
-  padding: 32rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.stats-header {
   display: flex;
-  justify-content: space-around;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 20rpx;
 }
 
-.stats-item {
-  text-align: center;
+.stats-icon {
+  font-size: 32rpx;
 }
 
-.stats-value {
-  display: block;
-  font-size: 40rpx;
+.stats-title {
+  font-size: 28rpx;
   font-weight: bold;
-  color: #4a90e2;
-  margin-bottom: 8rpx;
+  color: #333;
+}
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
 }
 
 .stats-label {
-  display: block;
-  font-size: 24rpx;
-  color: #999;
+  font-size: 26rpx;
+  color: #666;
 }
 
-.stats-divider {
-  width: 2rpx;
-  background: #eee;
+.stats-value {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* 小凡看见卡片 */
+.insights-card {
+  background: white;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 20rpx;
+}
+
+.insights-icon {
+  font-size: 32rpx;
+}
+
+.insights-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.insights-content {
+  background: #f5f8ff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  border-left: 6rpx solid #4a90e2;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.insights-link {
+  font-size: 26rpx;
+  color: #4a90e2;
+  font-weight: bold;
+}
+
+.insights-desc {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 返回按钮 */
+.back-btn {
+  background: white;
+  border-radius: 48rpx;
+  padding: 20rpx 40rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.back-btn text {
+  font-size: 28rpx;
+  color: #4a90e2;
+  font-weight: 500;
 }

@@ -128,6 +128,9 @@ Page({
       // 加载最近的小凡看见记录（最多3条）
       const recentInsights = this.loadRecentInsights();
 
+      // 加载收到的小凡看见请求
+      this.loadInsightRequests();
+
       this.setData({
         userInfo,
         stats,
@@ -174,6 +177,33 @@ Page({
     ];
 
     return mockInsights.slice(0, 3);
+  },
+
+  /**
+   * 加载收到的小凡看见请求
+   */
+  loadInsightRequests() {
+    const app = getApp();
+    const currentUser = app.globalData.userInfo;
+
+    if (!currentUser || !currentUser.id) {
+      this.setData({ insightRequests: [] });
+      return;
+    }
+
+    // 从本地存储读取所有申请
+    let allRequests = wx.getStorageSync('insight_requests') || [];
+
+    // 筛选出发给当前用户的待处理申请
+    const myRequests = allRequests.filter(req =>
+      req.toUserId === currentUser.id && req.status === 'pending'
+    );
+
+    console.log('收到的小凡看见请求:', myRequests);
+
+    this.setData({
+      insightRequests: myRequests
+    });
   },
 
   /**
@@ -286,29 +316,7 @@ Page({
   },
 
   /**
-   * 处理小凡看见请求点击
-   */
-  handleRequestClick(e) {
-    const { request } = e.currentTarget.dataset;
-    console.log('查看请求详情:', request);
-
-    wx.showModal({
-      title: '授权请求',
-      content: `${request.userName} 请求查看你的小凡看见`,
-      confirmText: '授权',
-      cancelText: '拒绝',
-      success: (res) => {
-        if (res.confirm) {
-          this.approveRequest(request);
-        } else {
-          this.rejectRequest(request);
-        }
-      }
-    });
-  },
-
-  /**
-   * 授权请求
+   * 授权请求 - 同意查看小凡看见
    */
   handleApproveRequest(e) {
     const { request } = e.currentTarget.dataset;
@@ -316,14 +324,30 @@ Page({
   },
 
   /**
+   * 拒绝请求
+   */
+  handleRejectRequest(e) {
+    const { request } = e.currentTarget.dataset;
+    this.rejectRequest(request);
+  },
+
+  /**
    * 批准请求
    */
   async approveRequest(request) {
     try {
-      // TODO: 调用API批准请求
       console.log('批准请求:', request);
 
-      // 从列表中移除该请求
+      // 从本地存储更新请求状态
+      let allRequests = wx.getStorageSync('insight_requests') || [];
+      const requestIndex = allRequests.findIndex(r => r.id === request.id);
+
+      if (requestIndex !== -1) {
+        allRequests[requestIndex].status = 'approved';
+        wx.setStorageSync('insight_requests', allRequests);
+      }
+
+      // 从待处理列表中移除该请求
       const newRequests = this.data.insightRequests.filter(r => r.id !== request.id);
       this.setData({ insightRequests: newRequests });
 
@@ -345,10 +369,18 @@ Page({
    */
   async rejectRequest(request) {
     try {
-      // TODO: 调用API拒绝请求
       console.log('拒绝请求:', request);
 
-      // 从列表中移除该请求
+      // 从本地存储更新请求状态
+      let allRequests = wx.getStorageSync('insight_requests') || [];
+      const requestIndex = allRequests.findIndex(r => r.id === request.id);
+
+      if (requestIndex !== -1) {
+        allRequests[requestIndex].status = 'rejected';
+        wx.setStorageSync('insight_requests', allRequests);
+      }
+
+      // 从待处理列表中移除该请求
       const newRequests = this.data.insightRequests.filter(r => r.id !== request.id);
       this.setData({ insightRequests: newRequests });
 

@@ -1,21 +1,45 @@
 <view class="page-profile-others">
+  <!-- 用户信息卡片 -->
   <view class="user-card">
     <view class="user-avatar-wrapper">
       <text class="user-avatar-emoji">{{userInfo.avatar || '😊'}}</text>
     </view>
-    <view class="user-nickname">{{userInfo.nickname}}</view>
-    <view class="user-signature">{{userInfo.signature}}</view>
+    <view class="user-nickname">{{userInfo.nickname || '用户'}}</view>
+    <view class="user-signature">{{userInfo.signature || '知名心灵大师'}}</view>
   </view>
 
+  <!-- 学习统计 -->
   <view class="stats-card">
-    <view class="stats-item">
-      <text class="stats-value">{{stats.totalCheckins}}</text>
-      <text class="stats-label">总打卡</text>
+    <view class="stats-header">
+      <text class="stats-icon">📊</text>
+      <text class="stats-title">学习统计</text>
     </view>
-    <view class="stats-divider"></view>
-    <view class="stats-item">
-      <text class="stats-value">{{stats.streak}}</text>
-      <text class="stats-label">连续天数</text>
+    <view class="stats-content">
+      <view class="stats-row">
+        <text class="stats-label">打卡天数</text>
+        <text class="stats-value">{{stats.checkinDays || 0}}天 ✓</text>
+      </view>
+      <view class="stats-row">
+        <text class="stats-label">完成课程</text>
+        <text class="stats-value">{{stats.completedCourses || 0}}个</text>
+      </view>
     </view>
+  </view>
+
+  <!-- 小凡看见 -->
+  <view class="insights-card">
+    <view class="insights-header">
+      <text class="insights-icon">✨</text>
+      <text class="insights-title">小凡看见 - 他的反馈</text>
+    </view>
+    <view class="insights-content" bindtap="handleRequestInsights">
+      <text class="insights-link">查看阿泰的所有反馈</text>
+      <text class="insights-desc">点击查看小凡对{{userInfo.nickname || '阿泰'}}每天的个性化反馈...</text>
+    </view>
+  </view>
+
+  <!-- 返回按钮 -->
+  <view class="back-btn" bindtap="handleBack">
+    <text>返回</text>
   </view>
 </view>

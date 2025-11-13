@@ -221,5 +221,22 @@ Page({
    */
   handleBack() {
     wx.navigateBack();
+  },
+
+  /**
+   * 点击打卡人头像 - 跳转到他人主页
+   */
+  handleAvatarClick(e) {
+    const { userId } = e.currentTarget.dataset;
+
+    if (!userId) {
+      console.error('用户ID不存在');
+      return;
+    }
+
+    // 跳转到他人主页
+    wx.navigateTo({
+      url: `/pages/profile-others/profile-others?userId=${userId}`
+    });
   }
 });

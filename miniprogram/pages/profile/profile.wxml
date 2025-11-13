@@ -48,7 +48,7 @@
         <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
       </view>
       <view class="banner-bubble">
-        <text class="bubble-text">第一天 品德成功论</text>
+        <text class="bubble-text">在每一次看见中不住相\n在每一次倾听中生慈悲</text>
       </view>
     </view>
 
@@ -122,19 +122,22 @@
           <view
             wx:for="{{insightRequests}}"
             wx:key="id"
-            class="request-item"
-            bindtap="handleRequestClick"
-            data-request="{{item}}">
+            class="request-item">
             <view class="request-item-left">
-              <text class="request-user-emoji">{{item.userAvatar || '😊'}}</text>
+              <text class="request-user-emoji">{{item.fromUserAvatar || '😊'}}</text>
               <view class="request-info">
-                <text class="request-user-name">{{item.userName}}</text>
+                <text class="request-user-name">{{item.fromUserName}}</text>
                 <text class="request-time">{{item.time}}</text>
               </view>
             </view>
-            <button class="request-btn" catchtap="handleApproveRequest" data-request="{{item}}">
-              授权
-            </button>
+            <view class="request-actions">
+              <view class="request-btn approve-btn" catchtap="handleApproveRequest" data-request="{{item}}">
+                <text>✓</text>
+              </view>
+              <view class="request-btn reject-btn" catchtap="handleRejectRequest" data-request="{{item}}">
+                <text>✗</text>
+              </view>
+            </view>
           </view>
           <view class="requests-empty" wx:if="{{insightRequests.length === 0}}">
             暂无请求

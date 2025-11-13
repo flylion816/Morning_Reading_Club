@@ -53,12 +53,6 @@
 
     <!-- 任务区域 -->
     <view id="tasks-section" class="section-wrapper">
-      <!-- 剩余补打卡次数 -->
-      <view class="makeup-info">
-        <text class="makeup-text">剩余补打卡：</text>
-        <text class="makeup-count">{{makeupCount}}次</text>
-      </view>
-
       <!-- 课节列表 -->
       <view class="sections-container">
         <view
@@ -106,7 +100,7 @@
 
         <view class="checkins-list">
           <view class="checkin-item" wx:for="{{allCheckins}}" wx:key="id">
-            <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
+            <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">
               <text class="avatar-text">{{item.avatarText || item.userName}}</text>
             </view>
             <view class="checkin-main">

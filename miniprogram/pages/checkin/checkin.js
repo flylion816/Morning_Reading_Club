@@ -172,12 +172,16 @@ Page({
       console.log('存储Key:', storageKey);
       console.log('courseId:', this.data.courseId);
 
+      // 获取当前用户信息
+      const app = getApp();
+      const currentUser = app.globalData.userInfo || {};
+
       // 创建新的打卡记录
       const newCheckin = {
         id: result.id || Date.now(),
-        userId: 1000, // 当前用户ID（mock）
-        userName: '我',
-        avatarText: '我',
+        userId: currentUser.id || 1, // 当前用户ID
+        userName: currentUser.nickname || '我',
+        avatarText: currentUser.avatar || '我',
         avatarColor: '#4a90e2',
         content: this.data.diaryContent,
         likeCount: 0,
