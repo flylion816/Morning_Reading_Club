@@ -48,7 +48,7 @@
         <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
       </view>
       <view class="banner-bubble">
-        <text class="bubble-text">在每一次看见中不住相\n在每一次倾听中生慈悲</text>
+        <text class="bubble-text">第一天 品德成功论</text>
       </view>
     </view>
 
