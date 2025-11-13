@@ -92,11 +92,19 @@ Page({
       const periodsList = periods.items || periods || [];
       const currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
 
-      // 计算当前期次的进度
+      // 计算当前期次的进度并设置封面样式
       if (currentPeriod) {
         const totalDays = currentPeriod.totalDays || 23;
         const completedDays = currentPeriod.completedDays || 0;
         currentPeriod.progress = Math.round((completedDays / totalDays) * 100);
+
+        // 设置封面颜色和表情（如果没有的话使用默认值）
+        if (!currentPeriod.coverColor) {
+          currentPeriod.coverColor = '#4a90e2';
+        }
+        if (!currentPeriod.coverEmoji) {
+          currentPeriod.coverEmoji = '🏔️';
+        }
       }
 
       this.setData({

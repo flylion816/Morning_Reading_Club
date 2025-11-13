@@ -187,35 +187,39 @@
   padding: 24rpx;
 }
 
-/* 区块标题 */
-.section-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 24rpx;
+/* 今日任务区域 */
+.task-content {
+  background: #f0f5ff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  border-left: 8rpx solid #4a90e2;
 }
 
-/* 今日任务 */
-.today-task {
-  background: white;
-  border-radius: 16rpx;
-  overflow: hidden;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+.period-card {
   display: flex;
   gap: 16rpx;
-  padding: 16rpx;
+  align-items: stretch;
 }
 
-.task-cover {
-  width: 160rpx;
+.period-cover {
+  width: 120rpx;
   height: 120rpx;
   border-radius: 12rpx;
   flex-shrink: 0;
-  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
-.task-info {
+.cover-emoji {
+  font-size: 56rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.period-info {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -223,65 +227,68 @@
   min-width: 0;
 }
 
-.task-title {
+.period-title {
   font-size: 28rpx;
   font-weight: bold;
   color: #333;
   margin-bottom: 8rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
 }
 
-.task-date {
-  font-size: 22rpx;
-  color: #999;
+.period-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
   margin-bottom: 12rpx;
 }
 
-.task-progress {
+.meta-date {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.meta-days {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.period-progress {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 12rpx;
 }
 
-.progress-icon {
-  font-size: 24rpx;
-}
-
-.progress-bar {
+.progress-bar-wrapper {
   flex: 1;
   height: 8rpx;
-  background: #f0f0f0;
+  background: rgba(74, 144, 226, 0.2);
   border-radius: 4rpx;
   overflow: hidden;
-  min-width: 60rpx;
 }
 
-.progress-fill {
+.progress-bar-fill {
   height: 100%;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   border-radius: 4rpx;
   transition: width 0.3s;
 }
 
-.progress-text {
-  font-size: 20rpx;
-  color: #666;
+.progress-status {
+  font-size: 22rpx;
+  color: #4a90e2;
+  font-weight: 500;
   white-space: nowrap;
 }
 
-.today-task-empty {
-  background: white;
-  border-radius: 16rpx;
-  padding: 80rpx 32rpx;
+.task-empty {
   text-align: center;
+  padding: 60rpx 32rpx;
   color: #999;
-  font-size: 28rpx;
-  margin-bottom: 24rpx;
+  font-size: 26rpx;
 }
 
 /* 统一的区块样式 */
+.task-section,
 .stats-section,
 .insights-section,
 .requests-section {

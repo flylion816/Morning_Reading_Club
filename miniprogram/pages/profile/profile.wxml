@@ -52,23 +52,34 @@
     <!-- 内容区域 -->
     <view class="content-area">
       <!-- 今日任务 -->
-      <view class="section-title">今日任务</view>
-      <view class="today-task" wx:if="{{currentPeriod}}" bindtap="handleCurrentPeriodClick">
-        <image class="task-cover" src="{{currentPeriod.cover || '/assets/images/default-cover.jpg'}}" mode="aspectFill" />
-        <view class="task-info">
-          <view class="task-title">{{currentPeriod.title}}</view>
-          <view class="task-date">{{currentPeriod.startDate}} 至 {{currentPeriod.endDate}}</view>
-          <view class="task-progress">
-            <view class="progress-icon">📅</view>
-            <view class="progress-bar">
-              <view class="progress-fill" style="width: {{currentPeriod.progress || 0}}%"></view>
+      <view class="task-section">
+        <view class="section-header">
+          <view class="section-icon">📋</view>
+          <text class="section-header-title">今日任务</text>
+        </view>
+        <view class="task-content" wx:if="{{currentPeriod}}">
+          <view class="period-card" bindtap="handleCurrentPeriodClick">
+            <view class="period-cover" style="background: {{currentPeriod.coverColor || '#4a90e2'}}">
+              <text class="cover-emoji">{{currentPeriod.coverEmoji || '🏔️'}}</text>
             </view>
-            <text class="progress-text">进行中 {{currentPeriod.completedDays || 0}}/{{currentPeriod.totalDays || 23}}</text>
+            <view class="period-info">
+              <view class="period-title">{{currentPeriod.title}}</view>
+              <view class="period-meta">
+                <text class="meta-date">{{currentPeriod.startDate}} 至 {{currentPeriod.endDate}}</text>
+                <text class="meta-days">已打卡 {{currentPeriod.completedDays || 0}} 天</text>
+              </view>
+              <view class="period-progress">
+                <view class="progress-bar-wrapper">
+                  <view class="progress-bar-fill" style="width: {{currentPeriod.progress || 0}}%"></view>
+                </view>
+                <text class="progress-status">进行中 {{currentPeriod.completedDays || 0}}/{{currentPeriod.totalDays || 23}}</text>
+              </view>
+            </view>
           </view>
         </view>
-      </view>
-      <view class="today-task-empty" wx:else>
-        <text>暂无进行中的课程</text>
+        <view class="task-empty" wx:else>
+          <text>暂无进行中的课程</text>
+        </view>
       </view>
 
       <!-- 总体进度统计 -->
