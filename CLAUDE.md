@@ -1780,6 +1780,185 @@ handleScroll(e) {
 
 ---
 
+### 24. API 响应数据结构不一致问题
+
+**问题现象**：从不同的 API 端点获取数据时，返回结构不统一，有时是 `{list: []}` 有时是 `{items: []}` 有时是直接返回数组
+
+**根本原因**：后端不同的 controller 返回数据格式不统一，没有统一的响应格式约定
+```javascript
+// ❌ 问题：不同API返回格式不同
+// endpoint 1 返回
+{ list: [...] }
+
+// endpoint 2 返回
+{ items: [...] }
+
+// endpoint 3 返回
+[...]
+```
+
+**解决方案**：在前端添加容错逻辑处理多种格式
+```javascript
+// ✅ 正确：兼容处理多种格式
+const res = await courseService.getPeriods();
+const periods = res.list || res.items || res || [];
+```
+
+**更优方案**：在后端统一响应格式（推荐）
+```javascript
+// backend 标准化响应
+{
+  code: 200,
+  message: '成功',
+  data: {
+    list: [...],
+    total: 100
+  }
+}
+```
+
+**经验教训**：
+- ⚠️ API 返回格式不统一会导致前端代码复杂化
+- ⚠️ 每个新接口都可能需要额外的容错逻辑
+- ✅ 在项目初期制定统一的 API 响应格式规范
+- ✅ 所有 controller 使用统一的响应包装函数
+- ✅ 文档明确说明数据结构，避免歧义
+- ✅ 前端可用 `res.list ?? res.items ?? res` 做容错处理
+
+**相关建议**：
+- 后端建议使用 response wrapper 统一格式
+- 前端建议在 service 层做数据规范化
+- API 文档要清晰说明返回结构
+
+---
+
+### 25. 列表项中使用随机函数导致数据不稳定问题
+
+**问题现象**：列表中相同用户的头像颜色在每次刷新或重新渲染时都会改变，造成用户体验差
+
+**根本原因**：在数据转换时对每条记录都调用了随机函数
+```javascript
+// ❌ 错误：每次渲染都重新生成随机颜色
+const allCheckins = checkins.map(checkin => ({
+  ...checkin,
+  // 每次都产生不同的随机数
+  avatarColor: ['#4a90e2', '#7ed321', '#f5a623'][Math.random() * 3 | 0]
+}));
+```
+
+**直接结果**：
+- 同一用户在列表中显示不同颜色
+- 页面切换后颜色重新随机化
+- 用户难以识别同一人的多条记录
+
+**解决方案**：使用确定性函数（如哈希）生成颜色
+```javascript
+// ✅ 正确：基于userId生成稳定颜色
+function getAvatarColorByUserId(userId) {
+  const colors = ['#4a90e2', '#7ed321', '#f5a623', '#bd10e0', '#50e3c2'];
+  // 使用哈希算法保证同一userId总是返回同一颜色
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+// 使用
+const allCheckins = checkins.map(checkin => ({
+  ...checkin,
+  avatarColor: getAvatarColorByUserId(checkin.userId)
+}));
+```
+
+**经验教训**：
+- ⚠️ **永远不要在列表项中使用随机函数**
+- ⚠️ 随机函数会在每次渲染时产生不同结果
+- ⚠️ 影响视觉识别和用户体验
+- ✅ 使用确定性算法（哈希、ID映射）生成稳定值
+- ✅ 相同的输入应该产生相同的输出
+- ✅ 对需要保持一致性的数据使用哈希函数
+
+**通用场景**：
+- 用户头像颜色
+- 用户分组颜色标签
+- 状态指示符颜色
+- 分类标签颜色
+
+**实现建议**：
+- 创建专用函数处理映射逻辑
+- 在 utils 或 formatters 中集中管理
+- 编写单元测试确保稳定性
+
+---
+
+### 26. 用户内容被不必要地裁剪问题
+
+**问题现象**：列表中的用户提交内容显示不完整，被裁剪成3行并显示省略号
+
+**根本原因**：WXSS 中使用 `max-height` + `overflow: hidden` + `::after` 伪元素强制裁剪内容
+```wxss
+/* ❌ 错误：不必要的裁剪 */
+.checkin-content {
+  max-height: 288rpx;        /* 强制高度限制 */
+  overflow: hidden;           /* 超出隐藏 */
+  position: relative;
+}
+
+.checkin-content::after {
+  content: '...';            /* 伪元素显示省略号 */
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(to right, transparent, white 50%);
+}
+```
+
+**问题的表现**：
+- 完整的打卡内容被强制截断
+- 用户需要点击进详情页才能看完
+- 用户体验较差
+
+**解决方案**：移除高度限制，允许内容完整显示
+```wxss
+/* ✅ 正确：完整显示内容 */
+.checkin-content {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.8;
+  white-space: pre-wrap;      /* 保留换行 */
+  word-break: break-word;     /* 长词换行 */
+  /* 移除max-height、overflow和伪元素 */
+}
+```
+
+**何时使用裁剪**：
+```wxss
+/* ✅ 真正需要裁剪的场景 */
+.preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;      /* 限制为2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+```
+
+**经验教训**：
+- ⚠️ 不要盲目裁剪用户提交的内容
+- ⚠️ `max-height` + `overflow` 方式裁剪会导致尾部被切割
+- ⚠️ `::after` 伪元素添加省略号容易产生混淆
+- ✅ 内容完整性 > 界面紧凑性
+- ✅ 如需预览效果，使用 `-webkit-line-clamp`
+- ✅ 详情页面应该完整显示所有内容
+
+**最佳实践**：
+- 列表界面：完整显示内容（除非特别长）
+- 预览卡片：使用 `-webkit-line-clamp: 3` 限制行数
+- 详情页面：始终完整显示用户提交的所有内容
+
+---
+
 ## 🎯 本地化服务开发里程碑
 
 ### 完成的主要功能
@@ -1929,5 +2108,5 @@ updateTabBarVisibility(isLogin) {
 
 ---
 
-**最后更新**: 2025-11-14
+**最后更新**: 2025-11-14 (添加经验 24-26)
 **维护者**: Claude Code
