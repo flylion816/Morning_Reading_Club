@@ -1780,5 +1780,154 @@ handleScroll(e) {
 
 ---
 
-**最后更新**: 2025-11-13
+## 🎯 本地化服务开发里程碑
+
+### 完成的主要功能
+
+2025-11-14 完成了"晨读营"主功能模块的本地化开发。以下是关键的完成项和经验总结：
+
+#### ✅ 已完成的核心功能
+
+1. **期次列表与课程管理**
+   - 4个期次正常显示（智慧之光、勇敢的心、能量之泉、心流之境）
+   - 每个期次显示日期范围、打卡人数、进度信息
+   - 支持点击期次进入课程列表页
+
+2. **课程列表页面（courses.js）**
+   - 显示每个期次的5天课节（day 0-4）
+   - 每个课节显示标题、时间范围、打卡人数
+   - "任务"和"动态"两个tab切换
+   - tab 切换时自动滚动到对应位置
+
+3. **打卡记录显示**
+   - 动态tab显示该期次的所有打卡记录
+   - 每条记录显示：用户头像/名称、第X天标签、时间、课节标题、完整打卡内容
+   - 同一用户始终使用相同颜色的头像（基于userId哈希算法）
+   - 支持点击用户头像进入他人主页
+
+4. **数据库和API集成**
+   - Period 模型添加 checkinCount 字段统计打卡人数
+   - Section 模型添加 checkinCount 字段实现课节级别统计
+   - 创建初始化脚本生成 mock 数据
+   - API 端点 `/checkins/period/:periodId` 返回打卡记录列表
+
+5. **用户认证和权限**
+   - 未登录用户隐藏底部tabBar，无法进入晨读营页面
+   - 课程列表页添加登录检查，未登录显示提示后返回首页
+   - 登录成功后自动显示tabBar
+
+#### 🔧 关键技术实现
+
+**1. 头像颜色稳定性（formatters.js）**
+```javascript
+function getAvatarColorByUserId(userId) {
+  // 使用哈希算法生成稳定颜色，确保同一用户始终显示同一颜色
+}
+```
+
+**2. TabBar 动态显示/隐藏（profile.js）**
+```javascript
+updateTabBarVisibility(isLogin) {
+  // 根据登录状态控制tab bar显示
+}
+```
+
+**3. 数据转换与格式化（courses.js）**
+```javascript
+// API返回的数据结构转换为前端期望的格式
+// 包括userId展开、时间格式化、字段映射等
+```
+
+**4. 时间显示处理**
+- ISO 8601 日期字符串 → 本地化格式（YYYY-MM-DD）
+- 支持日期范围显示："2025-11-10 至 2025-11-14"
+- 使用 `toLocaleString('zh-CN')` 格式化时间戳
+
+#### ⚠️ 重要的技术陷阱和解决方案
+
+**1. ObjectId 类型问题**
+- 不要对 MongoDB ObjectId 进行 parseInt 转换
+- periodId 作为字符串保存和传递
+
+**2. 日期格式兼容性**
+- 避免使用 iOS 不兼容的日期格式（如 "2025-11-10 05:59:00"）
+- 统一使用斜杠格式 "2025/11/10 05:59:00"
+
+**3. Flex 布局中的高度计算**
+- scroll-view 需要父容器有明确的 `height`（不是 `min-height`）
+- scroll-view 子元素设置 `height: 0` 让 flex 计算剩余空间
+
+**4. setData 异步问题**
+- setData 是异步的，不能立即读取更新的值
+- 需要用 globalData 或回调处理依赖项
+
+**5. 数据源一致性**
+- 多个页面显示同一数据时需要统一存储位置
+- 使用全局 key 而不是分散的页面级 storage
+
+#### 📊 修改文件统计
+
+**前端文件**:
+- `miniprogram/pages/courses/courses.js` - 课程列表逻辑
+- `miniprogram/pages/courses/courses.wxml` - 课程列表结构
+- `miniprogram/pages/courses/courses.wxss` - 课程列表样式
+- `miniprogram/pages/profile/profile.js` - 登录和tabBar控制
+- `miniprogram/utils/formatters.js` - 添加头像颜色生成函数
+- `miniprogram/services/course.service.js` - API服务层
+
+**后端文件**:
+- `backend/src/models/Period.js` - 添加 checkinCount 字段
+- `backend/src/models/Section.js` - 添加 checkinCount 字段
+- `backend/scripts/init-checkin-count.js` - 初始化期次打卡数
+- `backend/scripts/init-section-checkin-count.js` - 初始化课节打卡数
+- `backend/scripts/init-mock-checkins-v2.js` - 创建多用户打卡记录
+
+#### 🚀 后续开发方向
+
+后续的本地化开发包括以下分支功能：
+
+1. **打卡功能**
+   - 打卡页面 (checkin)
+   - 打卡编辑和提交
+   - 打卡图片和视频上传
+
+2. **用户互动**
+   - 排行榜功能
+   - 成员列表
+   - 用户主页（个人和他人）
+
+3. **内容管理**
+   - 课程详情页
+   - 小凡看见（insights）
+   - 打卡记录详情
+
+4. **社交功能**
+   - 看见请求和授权
+   - 点赞和评论
+   - 分享功能
+
+#### 💡 开发建议
+
+1. **优先使用 API 而不是 localStorage**
+   - 减少本地状态管理的复杂度
+   - 更容易与后端同步
+
+2. **规范的数据转换流程**
+   - Service 层负责 API 调用
+   - Page 层负责数据转换和 UI 更新
+   - 不要在 Service 中做 UI 相关的转换
+
+3. **充分利用微信原生能力**
+   - wx.hideTabBar() / wx.showTabBar()
+   - wx.navigateTo() / wx.switchTab()
+   - wx.showToast() 提示反馈
+
+4. **考虑性能优化**
+   - 大列表使用虚拟滚动或分页加载
+   - 避免频繁 setData
+   - 合理使用缓存策略
+
+---
+
+**最后更新**: 2025-11-14
 **维护者**: Claude Code
