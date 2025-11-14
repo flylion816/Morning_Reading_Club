@@ -70,6 +70,22 @@ Page({
       userInfo,
       loading: false  // 设置loading为false
     });
+
+    // 根据登录状态显示/隐藏tabBar
+    this.updateTabBarVisibility(isLogin);
+  },
+
+  /**
+   * 更新tabBar显示状态
+   */
+  updateTabBarVisibility(isLogin) {
+    if (isLogin) {
+      // 已登录：显示tabBar
+      wx.showTabBar();
+    } else {
+      // 未登录：隐藏tabBar
+      wx.hideTabBar();
+    }
   },
 
   /**
@@ -335,13 +351,16 @@ Page({
         loading: false
       });
 
+      // 5. 显示tabBar
+      this.updateTabBarVisibility(true);
+
       wx.showToast({
         title: '登录成功',
         icon: 'success',
         duration: 2000
       });
 
-      // 5. 加载用户数据
+      // 6. 加载用户数据
       this.loadUserData();
     } catch (error) {
       console.error('登录失败:', error);
