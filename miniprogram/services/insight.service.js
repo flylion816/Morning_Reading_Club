@@ -18,17 +18,22 @@ class InsightService {
   }
 
   /**
+   * 获取用户的小凡看见列表
+   * @param {Object} params 查询参数 {page, limit, periodId, type}
+   * @returns {Promise}
+   */
+  getUserInsights(params = {}) {
+    return request.get('/insights/user', params);
+  }
+
+  /**
    * 获取小凡看见列表（用于insights页面）
    * @param {Object} params 查询参数
    * @returns {Promise}
    */
   getInsightsList(params = {}) {
-    // Mock模式
-    if (envConfig.useMock) {
-      return Promise.resolve(mockInsights.list);
-    }
-
-    return request.get('/insights', params);
+    // 获取当前用户的insights
+    return request.get('/insights/user', params);
   }
 
   /**

@@ -46,12 +46,12 @@ class CheckinService {
   }
 
   /**
-   * 获取打卡列表
+   * 获取打卡列表（用户的打卡记录）
    * @param {Object} params 查询参数
    * @returns {Promise}
    */
   getCheckins(params = {}) {
-    return request.get('/checkins', params);
+    return request.get('/checkins/user', params);
   }
 
   /**

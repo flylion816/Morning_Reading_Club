@@ -1,4 +1,5 @@
 const courseService = require('../../services/course.service');
+const checkinService = require('../../services/checkin.service');
 const constants = require('../../config/constants');
 
 Page({
@@ -7,7 +8,8 @@ Page({
     course: {},
     calendar: [],
     checkedDays: 0,
-    loading: true
+    loading: true,
+    hasUserCheckedIn: false
   },
 
   onLoad(options) {
@@ -30,22 +32,103 @@ Page({
       console.log('开始加载课程详情，ID:', this.data.courseId);
       const course = await courseService.getCourseDetail(this.data.courseId);
       console.log('课程详情加载成功:', course);
+
+      // 确保 course.comments 是数组（后端可能不返回这个字段）
+      if (!course.comments) {
+        course.comments = [];
+      }
+
       console.log('course.comments:', course.comments);
       console.log('comments 是否存在:', !!course.comments);
       console.log('comments 长度:', course.comments ? course.comments.length : 0);
 
-      // 从本地存储加载打卡记录
-      const storageKey = `checkins_${this.data.courseId}`;
-      const localCheckins = wx.getStorageSync(storageKey) || [];
-      console.log('本地打卡记录:', localCheckins);
+      // 从数据库加载打卡记录
+      let dbCheckins = [];
+      try {
+        // 使用 /checkins/user 端点获取当前用户的打卡记录
+        // checkinService.getCheckins 应该调用这个端点
+        const checkinRes = await checkinService.getCheckins({ limit: 100 });
+        console.log('打卡API响应:', checkinRes);
+
+        if (checkinRes) {
+          // request.js 会自动提取 data.data，所以这里应该是 { list: [...], pagination: {...} }
+          let allCheckins = [];
+          if (checkinRes.list) {
+            allCheckins = checkinRes.list;
+          } else if (Array.isArray(checkinRes)) {
+            allCheckins = checkinRes;
+          }
+
+          // 过滤出当前课节的打卡记录
+          // 注意：API返回的sectionId和userId可能被populate了，需要取_id或比对字符串
+          dbCheckins = allCheckins.filter(checkin => {
+            const sectionId = checkin.sectionId?._id || checkin.sectionId;
+            return sectionId === this.data.courseId;
+          });
+
+          console.log('从数据库加载的打卡记录:', dbCheckins);
+        }
+      } catch (error) {
+        console.warn('从打卡API加载失败，尝试使用本地存储:', error);
+      }
+
+      // 如果数据库没有数据，则从本地存储加载
+      if (dbCheckins.length === 0) {
+        const storageKey = `checkins_${this.data.courseId}`;
+        dbCheckins = wx.getStorageSync(storageKey) || [];
+        console.log('本地打卡记录:', dbCheckins);
+      }
 
       // 合并打卡记录和初始评论，使用 Map 去重
       const commentsMap = new Map();
 
-      // 先添加本地打卡记录
-      localCheckins.forEach(checkin => {
-        commentsMap.set(checkin.id, checkin);
+      // 先添加数据库打卡记录，转换为评论格式
+      const app = getApp();
+      let hasUserCheckedIn = false;
+      const currentUserId = app.globalData.userInfo?.id;
+
+      dbCheckins.forEach(checkin => {
+        // 检查当前用户是否已经打过卡
+        const checkinUserId = checkin.userId?._id || checkin.userId?.id || checkin.userId;
+        if (checkinUserId === currentUserId) {
+          hasUserCheckedIn = true;
+        }
+
+        // 获取用户信息（可能是被populate的对象，也可能只是ID字符串）
+        let userName = '匿名用户';
+        let avatarText = '👤';
+        let avatarUrl = '';
+
+        if (checkin.userId && typeof checkin.userId === 'object') {
+          // userId被populate了，包含用户完整信息
+          userName = checkin.userId.nickname || '匿名用户';
+          avatarUrl = checkin.userId.avatarUrl || '';
+          // 优先使用真实头像，没有则用昵称首字
+          avatarText = avatarUrl ? '' : (userName ? userName.charAt(0) : '👤');
+        } else {
+          // userId只是字符串ID，使用默认信息
+          userName = checkin.userName || '匿名用户';
+          avatarText = checkin.avatarText || '👤';
+        }
+
+        // 将打卡记录转换为评论格式
+        const comment = {
+          id: checkin._id || checkin.id,
+          userName: userName,
+          avatarText: avatarText,
+          avatarUrl: avatarUrl,
+          avatarColor: checkin.avatarColor || '#4a90e2',
+          content: checkin.note || checkin.content || '',
+          createTime: checkin.createdAt ? this.formatTime(checkin.createdAt) : '刚刚',
+          likeCount: checkin.likeCount || 0,
+          isLiked: false,
+          replies: checkin.replies || []
+        };
+        commentsMap.set(comment.id, comment);
       });
+
+      // 保存当前用户是否已打卡的状态
+      this.setData({ hasUserCheckedIn });
 
       // 再添加初始评论（如果ID已存在则不覆盖）
       if (course.comments && course.comments.length > 0) {
@@ -304,6 +387,29 @@ Page({
         }
       }
     });
+  },
+
+  /**
+   * 格式化时间
+   */
+  formatTime(dateStr) {
+    if (!dateStr) return '刚刚';
+
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = Math.floor((now - date) / 1000); // 秒数
+
+      if (diff < 60) return '刚刚';
+      if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+      if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+      if (diff < 604800) return Math.floor(diff / 86400) + '天前';
+
+      // 其他情况显示日期
+      return `${date.getMonth() + 1}月${date.getDate()}日`;
+    } catch (error) {
+      return '刚刚';
+    }
   },
 
   /**

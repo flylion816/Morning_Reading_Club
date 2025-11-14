@@ -62,9 +62,8 @@
           </view>
           <view class="period-info">
             <view class="period-title">{{todaySection.title}}</view>
-            <view class="period-meta">
-              <text class="meta-date">{{todaySection.periodTitle}}</text>
-              <text class="meta-days">{{todaySection.startTime}} 至 {{todaySection.endTime}}</text>
+            <view class="period-meta" wx:if="{{todaySection.subtitle}}">
+              <text class="meta-subtitle">{{todaySection.subtitleDisplay}}</text>
             </view>
             <view class="period-progress">
               <view class="progress-bar-wrapper">
@@ -79,11 +78,11 @@
         </view>
       </view>
 
-      <!-- 小凡看见 - 按章节 -->
+      <!-- 小凡看见 -->
       <view class="insights-section">
         <view class="section-header">
           <view class="section-icon">✨</view>
-          <text class="section-header-title">小凡看见 - 按章节</text>
+          <text class="section-header-title">小凡看见</text>
         </view>
         <view class="insights-list">
           <view
@@ -91,10 +90,9 @@
             wx:key="id"
             class="insight-item"
             bindtap="handleInsightClick"
-            data-insight="{{item}}">
+            data-id="{{item.id}}">
             <view class="insight-day">{{item.day}}</view>
             <view class="insight-content-preview">
-              <view class="insight-title">{{item.title}}</view>
               <view class="insight-text">{{item.preview}}</view>
             </view>
           </view>
@@ -108,11 +106,11 @@
         </view>
       </view>
 
-      <!-- 收到的小凡看见请求 -->
+      <!-- 请求看见 -->
       <view class="requests-section">
         <view class="section-header">
           <view class="section-icon">📬</view>
-          <text class="section-header-title">收到的小凡看见请求</text>
+          <text class="section-header-title">请求看见</text>
         </view>
         <view class="requests-content">
           <view

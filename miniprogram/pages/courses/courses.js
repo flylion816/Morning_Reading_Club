@@ -17,7 +17,8 @@ Page({
   onLoad(options) {
     console.log('课节列表页加载', options);
     if (options.periodId) {
-      this.setData({ periodId: parseInt(options.periodId) });
+      // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
+      this.setData({ periodId: options.periodId });
       this.loadSections();
     } else {
       wx.showToast({
@@ -42,17 +43,24 @@ Page({
 
     try {
       const res = await courseService.getPeriodSections(this.data.periodId);
-      const sections = res.items || res || [];
+      const sections = res.list || res.items || res || [];
 
       // 获取期次信息用于显示头部
       const periods = await courseService.getPeriods();
-      const currentPeriod = periods.items.find(p => p.id === this.data.periodId);
+      const periodsList = periods.list || periods.items || periods || [];
+      const currentPeriod = periodsList.find(p => p.id === this.data.periodId || p._id === this.data.periodId);
+
+      // 格式化日期（只显示到日期部分，去掉时间）
+      const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        return dateStr.split('T')[0]; // 取 T 之前的部分
+      };
 
       this.setData({
         sections,
         loading: false,
         periodName: currentPeriod ? currentPeriod.title : '晨读营',
-        periodDate: currentPeriod ? `${currentPeriod.startDate} 至 ${currentPeriod.endDate}` : ''
+        periodDate: currentPeriod ? `${formatDate(currentPeriod.startDate)} 至 ${formatDate(currentPeriod.endDate)}` : ''
       });
 
       // 加载所有打卡记录
@@ -74,40 +82,47 @@ Page({
   /**
    * 加载所有课节的打卡记录
    */
-  loadAllCheckins() {
-    // 从全局存储读取所有打卡记录
-    const allCheckinsKey = 'all_checkins';
-    let allCheckins = wx.getStorageSync(allCheckinsKey) || [];
+  async loadAllCheckins() {
+    try {
+      // 从API获取期次的打卡记录
+      const res = await courseService.getPeriodCheckins(this.data.periodId);
+      const checkins = res.list || res.items || res || [];
 
-    console.log('从全局存储读取打卡记录:', allCheckins);
-    console.log('打卡记录数量:', allCheckins.length);
+      console.log('从API获取打卡记录:', checkins);
+      console.log('打卡记录数量:', checkins.length);
 
-    // 为打卡记录添加课节信息
-    const sections = this.data.sections;
-    allCheckins = allCheckins.map(checkin => {
-      // 查找对应的课节信息
-      const section = sections.find(s => s.id === checkin.courseId);
+      // 转换数据格式以匹配前端期望
+      const allCheckins = checkins.map(checkin => ({
+        id: checkin._id,
+        userId: checkin.userId?._id,
+        userName: checkin.userId?.nickname || '用户',
+        avatar: checkin.userId?.avatar,
+        avatarUrl: checkin.userId?.avatarUrl,
+        avatarText: (checkin.userId?.nickname || '用户').slice(-1),
+        avatarColor: ['#4a90e2', '#7ed321', '#f5a623', '#bd10e0', '#50e3c2'][Math.random() * 5 | 0],
+        sectionId: checkin.sectionId?._id,
+        sectionTitle: checkin.sectionId?.title || '未知课程',
+        sectionDay: checkin.sectionId?.day || 0,
+        content: checkin.note || '',
+        readingTime: checkin.readingTime,
+        completionRate: checkin.completionRate,
+        mood: checkin.mood,
+        // 格式化创建时间
+        createTime: checkin.createdAt ? new Date(checkin.createdAt).toLocaleString('zh-CN') : '',
+        timestamp: new Date(checkin.createdAt).getTime()
+      }));
 
-      return {
-        ...checkin,
-        sectionId: checkin.courseId,
-        sectionTitle: section ? section.title : checkin.courseTitle || '未知课程',
-        sectionDay: section ? section.day : 0
-      };
-    });
+      console.log('处理后的打卡记录:', allCheckins);
 
-    // 按时间戳倒序排序（最新的在前面）
-    allCheckins.sort((a, b) => {
-      const timeA = a.timestamp || a.id;
-      const timeB = b.timestamp || b.id;
-      return timeB - timeA;
-    });
-
-    console.log('处理后的打卡记录:', allCheckins);
-
-    this.setData({
-      allCheckins
-    });
+      this.setData({
+        allCheckins
+      });
+    } catch (error) {
+      console.error('获取打卡记录失败:', error);
+      this.setData({
+        allCheckins: []
+      });
+    }
   },
 
   /**
@@ -187,15 +202,20 @@ Page({
    */
   handleSectionClick(e) {
     const { section } = e.currentTarget.dataset;
+    const sectionId = section && (section.id || section._id);
 
-    if (!section || !section.id) {
+    if (!sectionId) {
       console.error('课节信息不存在');
+      wx.showToast({
+        title: '课节信息不存在',
+        icon: 'none'
+      });
       return;
     }
 
     // 跳转到课程详情页（学习内容）
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${section.id}`
+      url: `/pages/course-detail/course-detail?id=${sectionId}`
     });
   },
 
@@ -204,15 +224,20 @@ Page({
    */
   handleCheckinClick(e) {
     const { section } = e.currentTarget.dataset;
+    const sectionId = section && (section.id || section._id);
 
-    if (!section || !section.id) {
+    if (!sectionId) {
       console.error('课节信息不存在');
+      wx.showToast({
+        title: '课节信息不存在',
+        icon: 'none'
+      });
       return;
     }
 
     // 直接跳转到打卡页面
     wx.navigateTo({
-      url: `/pages/checkin/checkin?courseId=${section.id}`
+      url: `/pages/checkin/checkin?courseId=${sectionId}`
     });
   },
 

@@ -17,9 +17,12 @@
 
 .day-title {
   font-weight: bold;
-  font-size: 32rpx;
+  font-size: 28rpx;
   margin-bottom: 12rpx;
-  line-height: 1.4;
+  line-height: 1.6;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .day-subtitle {

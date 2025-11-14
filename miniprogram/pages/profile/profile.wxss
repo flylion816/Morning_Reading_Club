@@ -263,6 +263,14 @@
   margin-bottom: 12rpx;
 }
 
+.meta-subtitle {
+  font-size: 22rpx;
+  color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .meta-date {
   font-size: 22rpx;
   color: #999;

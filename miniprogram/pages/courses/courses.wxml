@@ -65,7 +65,7 @@
           <view class="section-title">{{item.title}}</view>
 
           <!-- 时间范围 -->
-          <view class="section-time">{{item.startTime}} 至 {{item.endTime}}</view>
+          <view class="section-time" wx:if="{{item.startTime && item.endTime}}">{{item.startTime.split('T')[0]}} 至 {{item.endTime.split('T')[0]}}</view>
 
           <!-- 底部：打卡人数 + 按钮 -->
           <view class="section-footer">

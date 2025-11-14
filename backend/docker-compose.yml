@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    container_name: morning-reading-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: morning_reading
+    volumes:
+      - mongodb-data:/data/db
+    restart: unless-stopped
+    networks:
+      - morning-reading-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: morning-reading-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: morning_reading
+      MYSQL_USER: morning_user
+      MYSQL_PASSWORD: morning123
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+    networks:
+      - morning-reading-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: morning-reading-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - morning-reading-network
+
+volumes:
+  mongodb-data:
+  mysql-data:
+  redis-data:
+
+networks:
+  morning-reading-network:
+    driver: bridge

@@ -13,7 +13,7 @@ class AuthService {
    * @returns {Promise}
    */
   login(code, userInfo = {}) {
-    return request.post('/auth/login', {
+    return request.post('/auth/wechat/login', {
       code,
       ...userInfo
     });
@@ -99,8 +99,18 @@ class AuthService {
   async wechatLogin(userInfo) {
     try {
       // 1. 获取微信授权码
-      const loginRes = await this.getWechatCode();
-      const code = loginRes.code;
+      // 在本地开发环境使用测试code，使用已有用户数据
+      const envConfig = require('../config/env');
+      let code;
+      if (envConfig.apiBaseUrl.includes('localhost')) {
+        // 本地开发：使用测试code登录为"阿泰"
+        code = 'test_user_atai';
+        console.log('本地开发模式：使用测试用户 阿泰');
+      } else {
+        // 生产环境：获取真实微信code
+        const loginRes = await this.getWechatCode();
+        code = loginRes.code;
+      }
 
       // 2. 调用后端登录接口
       const loginData = await this.login(code, {
@@ -110,8 +120,12 @@ class AuthService {
       });
 
       // 3. 保存token和用户信息
-      wx.setStorageSync('token', loginData.access_token);
-      wx.setStorageSync('refreshToken', loginData.refresh_token);
+      // 后端使用驼峰命名：accessToken, refreshToken
+      const accessToken = loginData.accessToken || loginData.access_token;
+      const refreshToken = loginData.refreshToken || loginData.refresh_token;
+
+      wx.setStorageSync('token', accessToken);
+      wx.setStorageSync('refreshToken', refreshToken);
       wx.setStorageSync('userInfo', loginData.user);
 
       return loginData;

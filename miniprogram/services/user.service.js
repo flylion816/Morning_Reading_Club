@@ -21,7 +21,7 @@ class UserService {
         signature: '天天开心，觉知当下！'
       });
     }
-    return request.get('/user/profile');
+    return request.get('/users/me');
   }
 
   /**
@@ -30,14 +30,14 @@ class UserService {
    * @returns {Promise}
    */
   updateUserProfile(data) {
-    return request.put('/user/profile', data);
+    return request.put('/users/profile', data);
   }
 
   /**
    * 获取用户统计信息
    * @returns {Promise}
    */
-  getUserStats() {
+  getUserStats(userId) {
     // Mock模式
     if (envConfig.useMock) {
       return Promise.resolve({
@@ -48,7 +48,12 @@ class UserService {
         totalInsights: 2
       });
     }
-    return request.get('/user/stats');
+    // 如果没有传userId，使用当前登录用户的信息
+    if (!userId) {
+      const userInfo = wx.getStorageSync('userInfo');
+      userId = userInfo && userInfo.id ? userInfo.id : 'me';
+    }
+    return request.get(`/users/${userId}/stats`);
   }
 
   /**

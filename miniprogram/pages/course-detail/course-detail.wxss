@@ -183,6 +183,21 @@
   border: none;
 }
 
+/* 已打卡状态 */
+.btn-checkin.disabled {
+  background: #f0f0f0 !important;
+  color: #666;
+  opacity: 1;
+  border: 2rpx solid #e0e0e0;
+}
+
+.btn-checkin:disabled {
+  background: #f0f0f0 !important;
+  color: #666;
+  opacity: 1;
+  border: 2rpx solid #e0e0e0;
+}
+
 /* 社群互动评论 */
 .comments-section {
   background: white;
@@ -242,6 +257,12 @@
   font-size: 28rpx;
   color: white;
   font-weight: bold;
+}
+
+.avatar-image {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
 }
 
 .comment-content {

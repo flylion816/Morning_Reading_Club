@@ -10,11 +10,11 @@ const currentEnv = 'dev';
 const envConfig = {
   // 开发环境
   dev: {
-    apiBaseUrl: 'https://dev-api.morning-reading.com/api/v1',
+    apiBaseUrl: 'http://localhost:3000/api/v1',
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
     enableLog: true,
-    useMock: true  // 使用Mock数据
+    useMock: false  // 使用本地后端服务
   },
 
   // 测试环境

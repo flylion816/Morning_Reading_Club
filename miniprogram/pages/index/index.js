@@ -79,7 +79,7 @@ Page({
 
     try {
       const res = await courseService.getPeriods();
-      const periods = res.items || res || [];
+      const periods = res.list || res.items || res || [];
 
       this.setData({
         periods,

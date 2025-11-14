@@ -95,15 +95,16 @@ Page({
       app.globalData.userInfo = userInfo;
 
       // 找到第一个进行中的期次作为当前期次
-      const periodsList = periods.items || periods || [];
+      const periodsList = periods.list || periods.items || periods || [];
       const currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
 
       // 获取今日课节（使用当前期次的第一个课节作为示例）
       let todaySection = null;
-      if (currentPeriod && currentPeriod.id) {
+      const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
+      if (periodId) {
         try {
-          const sectionsRes = await courseService.getPeriodSections(currentPeriod.id);
-          const sections = sectionsRes.items || sectionsRes || [];
+          const sectionsRes = await courseService.getPeriodSections(periodId);
+          const sections = sectionsRes.list || sectionsRes.items || sectionsRes || [];
           // 过滤掉开营词（day为0的课节），获取第一个未打卡的课节作为今日课节
           const normalSections = sections.filter(s => s.day > 0);
           todaySection = normalSections.find(s => !s.isCheckedIn) || normalSections[0];
@@ -117,8 +118,12 @@ Page({
               todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
             }
             // 添加期次信息
-            todaySection.periodId = currentPeriod.id;
+            todaySection.periodId = periodId;
             todaySection.periodTitle = currentPeriod.title;
+            // 处理subtitle：移除末尾的"至"
+            if (todaySection.subtitle) {
+              todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
+            }
           }
         } catch (error) {
           console.error('获取今日课节失败:', error);
@@ -126,10 +131,18 @@ Page({
       }
 
       // 加载最近的小凡看见记录（最多3条）
-      const recentInsights = this.loadRecentInsights();
+      let recentInsights = [];
+      try {
+        recentInsights = await this.loadRecentInsights();
+      } catch (error) {
+        console.error('加载小凡看见失败:', error);
+      }
 
       // 加载收到的小凡看见请求
       this.loadInsightRequests();
+
+      console.log('setData前的recentInsights:', recentInsights);
+      console.log('setData前的recentInsights长度:', recentInsights.length);
 
       this.setData({
         userInfo,
@@ -139,6 +152,8 @@ Page({
         recentInsights,
         loading: false
       });
+
+      console.log('setData后this.data.recentInsights:', this.data.recentInsights);
     } catch (error) {
       console.error('加载用户数据失败:', error);
       this.setData({ loading: false });
@@ -153,30 +168,73 @@ Page({
   /**
    * 加载最近的小凡看见记录
    */
-  loadRecentInsights() {
-    // Mock 数据 - 最多返回3条
-    const mockInsights = [
-      {
-        id: 1,
-        day: '第一天 品德成功论',
-        title: '品德成功论',
-        preview: '感谢你的分享，听你娓道来，我仿佛也参与了你们那场深刻的对话...'
-      },
-      {
-        id: 2,
-        day: '第二天 自律的力量',
-        title: '自律的力量',
-        preview: '自律正是你最大的优势！在今天的学习中，我看到了你对自律的真正理解...'
-      },
-      {
-        id: 3,
-        day: '第三天 感恩的艺术',
-        title: '感恩的艺术',
-        preview: '感恩之心让你与众不同！能够时刻保持感恩的心态...'
-      }
-    ];
+  async loadRecentInsights() {
+    try {
+      const insightService = require('../../services/insight.service');
+      const res = await insightService.getUserInsights({ limit: 10 });
 
-    return mockInsights.slice(0, 3);
+      console.log('API 响应:', res);
+
+      // request.js 会自动提取 data.data，所以这里 res 应该是 { list: [...], pagination: {...} }
+      let insights = [];
+      if (res && res.list) {
+        // 标准格式
+        insights = res.list;
+      } else if (Array.isArray(res)) {
+        // 直接是数组
+        insights = res;
+      }
+
+      console.log('处理后的insights数据:', insights);
+
+      if (!insights || insights.length === 0) {
+        console.warn('没有获取到insights数据');
+        return [];
+      }
+
+      // 按创建时间倒序排列（最新的在前）
+      insights.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+
+      // 格式化数据
+      const formatted = insights.map(item => {
+        console.log('处理单条insight:', item);
+
+        // 提取preview：从content中提取前两行的纯文本
+        let preview = '';
+        if (item.content) {
+          // 提取纯文本（去除所有HTML标签）
+          const plainText = item.content.replace(/<[^>]*>/g, '').trim();
+          // 分行并取前两行
+          const lines = plainText.split('\n').filter(line => line.trim());
+          preview = lines.slice(0, 2).join('\n');
+          // 如果超过150个字符，截断
+          if (preview.length > 150) {
+            preview = preview.substring(0, 150) + '...';
+          }
+        }
+
+        return {
+          id: item._id || item.id,
+          day: `第${item.day}天`,
+          title: item.sectionId?.title || '学习反馈',
+          preview: preview || '暂无预览'
+        };
+      });
+
+      console.log('格式化后的insights:', formatted);
+
+      // 只返回前2条（已按createdAt倒序排列）
+      const recent = formatted.slice(0, 2);
+      console.log('返回的最近insights:', recent);
+      return recent;
+    } catch (error) {
+      console.error('加载小凡看见失败:', error);
+      return [];
+    }
   },
 
   /**
@@ -418,14 +476,20 @@ Page({
    */
   handleTodaySectionClick() {
     const { todaySection } = this.data;
-    if (!todaySection || !todaySection.id) {
+    const sectionId = todaySection && (todaySection.id || todaySection._id);
+
+    if (!sectionId) {
       console.error('今日课节信息不存在');
+      wx.showToast({
+        title: '课节信息不存在',
+        icon: 'none'
+      });
       return;
     }
 
     // 跳转到课程详情页
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${todaySection.id}`
+      url: `/pages/course-detail/course-detail?id=${sectionId}`
     });
   },
 
@@ -433,19 +497,20 @@ Page({
    * 创建打卡
    */
   handleCreateCheckin() {
-    const { currentPeriod } = this.data;
+    const { todaySection } = this.data;
+    const sectionId = todaySection && (todaySection.id || todaySection._id);
 
-    if (!currentPeriod || !currentPeriod.id) {
+    if (!sectionId) {
       wx.showToast({
-        title: '暂无进行中的课程',
+        title: '暂无可打卡的课节',
         icon: 'none'
       });
       return;
     }
 
-    // 跳转到打卡页面
+    // 跳转到打卡页面，传递课节ID
     wx.navigateTo({
-      url: `/pages/checkin/checkin?periodId=${currentPeriod.id}`
+      url: `/pages/checkin/checkin?courseId=${sectionId}`
     });
   },
 
@@ -453,17 +518,17 @@ Page({
    * 点击小凡看见条目
    */
   handleInsightClick(e) {
-    const { insight } = e.currentTarget.dataset;
-    console.log('点击小凡看见:', insight);
+    const { id } = e.currentTarget.dataset;
+    console.log('点击小凡看见:', id);
 
-    if (!insight || !insight.id) {
+    if (!id) {
       console.error('小凡看见信息不存在');
       return;
     }
 
     // 跳转到小凡看见详情页
     wx.navigateTo({
-      url: `/pages/insight-detail/insight-detail?id=${insight.id}`
+      url: `/pages/insight-detail/insight-detail?id=${id}`
     });
   },
 

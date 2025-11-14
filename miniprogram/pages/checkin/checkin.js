@@ -35,13 +35,27 @@ Page({
 
     const courseId = options.courseId || options.id;
 
+    if (!courseId) {
+      wx.showToast({
+        title: '缺少课节参数',
+        icon: 'none'
+      });
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1500);
+      return;
+    }
+
     this.setData({
       courseId: courseId,
       sectionId: courseId  // 统一使用 courseId
     });
 
-    // 加载课程详情
-    await this.loadCourseDetail();
+    // 并行加载课程详情和期次信息
+    await Promise.all([
+      this.loadCourseDetail(),
+      this.loadPeriods()
+    ]);
   },
 
   async loadCourseDetail() {
@@ -49,17 +63,58 @@ Page({
       const course = await courseService.getCourseDetail(this.data.courseId);
       console.log('打卡页面-加载课程详情:', course);
 
+      // 格式化日期
+      let courseDate = '';
+      if (course.startDate && course.endDate) {
+        courseDate = `${course.startDate} 至 ${course.endDate}`;
+      }
+
       this.setData({
         courseTitle: course.title || '',
-        courseDate: `${course.startDate} 至 ${course.endDate}`,
+        courseDate: courseDate,
         meditation: course.meditation || '',
         question: course.question || '',
         content: course.content || '',
         reflection: course.reflection || '',
-        action: course.action || ''
+        action: course.action || '',
+        // 保存期次ID和课节的day数（用于打卡时使用）
+        sectionDay: course.day || 1,
+        sectionPeriodId: course.periodId || null
       });
     } catch (error) {
       console.error('加载课程详情失败:', error);
+    }
+  },
+
+  /**
+   * 加载期次信息
+   */
+  async loadPeriods() {
+    try {
+      const res = await courseService.getPeriods();
+      console.log('获取期次列表:', res);
+
+      let periods = [];
+      if (res && res.list) {
+        periods = res.list;
+      } else if (res && res.items) {
+        periods = res.items;
+      } else if (Array.isArray(res)) {
+        periods = res;
+      }
+
+      // 保存到全局数据
+      const app = getApp();
+      app.globalData.periods = periods;
+
+      // 找到第一个进行中的期次作为当前期次
+      const currentPeriod = periods.find(p => p.status === 'ongoing') || periods[0];
+      if (currentPeriod) {
+        app.globalData.currentPeriod = currentPeriod;
+        console.log('设置当前期次:', currentPeriod);
+      }
+    } catch (error) {
+      console.error('加载期次失败:', error);
     }
   },
 
@@ -154,15 +209,70 @@ Page({
     try {
       wx.showLoading({ title: '提交中...' });
 
-      const result = await checkinService.submitCheckin({
-        courseId: this.data.courseId,
-        sectionId: this.data.sectionId,
-        content: this.data.diaryContent,
-        visibility: this.data.visibility,
+      // 获取当前期次和课节信息
+      const app = getApp();
+      const currentUser = app.globalData.userInfo || {};
+
+      // 尝试多个方式获取periodId
+      let periodId = null;
+
+      // 方式1：从课节数据获取（可能是对象或字符串）
+      if (this.data.sectionPeriodId) {
+        if (typeof this.data.sectionPeriodId === 'string') {
+          periodId = this.data.sectionPeriodId;
+        } else if (typeof this.data.sectionPeriodId === 'object' && this.data.sectionPeriodId._id) {
+          // 如果是对象，提取_id字段
+          periodId = this.data.sectionPeriodId._id || this.data.sectionPeriodId.id;
+        }
+      }
+
+      // 方式2：从全局currentPeriod获取
+      if (!periodId && app.globalData.currentPeriod) {
+        periodId = app.globalData.currentPeriod._id || app.globalData.currentPeriod.id;
+      }
+
+      // 方式3：从全局periods列表获取
+      if (!periodId && app.globalData.periods && app.globalData.periods.length > 0) {
+        const period = app.globalData.periods.find(p => p.status === 'ongoing') || app.globalData.periods[0];
+        if (period) {
+          periodId = period._id || period.id;
+        }
+      }
+
+      // 记录调试信息
+      console.log('获取的periodId:', periodId);
+      console.log('sectionPeriodId:', this.data.sectionPeriodId);
+      console.log('currentPeriod:', app.globalData.currentPeriod);
+      console.log('periods:', app.globalData.periods);
+
+      // 严格验证periodId
+      if (!periodId || typeof periodId !== 'string' || periodId.length === 0) {
+        wx.hideLoading();
+        wx.showToast({
+          title: '缺少期次信息，无法打卡',
+          icon: 'none'
+        });
+        return;
+      }
+
+      // 构造后端需要的打卡数据
+      const submitData = {
+        sectionId: this.data.sectionId || this.data.courseId,  // sectionId 和 courseId 在这里应该是一样的
+        periodId: periodId,  // 从课节或全局数据获取
+        day: this.data.sectionDay || 1,  // 课节的day值（表示第几节课）
+        readingTime: Math.floor(Math.random() * 30) + 10,  // 模拟阅读时间 10-40 分钟
+        completionRate: 88,  // 模拟完成度
+        note: this.data.diaryContent,
         images: this.data.images,
-        videos: this.data.videos,
-        voices: this.data.voices
-      });
+        isPublic: this.data.visibility === 'all',
+        mood: 'happy'
+      };
+
+      console.log('计算的day值:', submitData.day);
+
+      console.log('提交打卡数据:', submitData);
+
+      const result = await checkinService.submitCheckin(submitData);
 
       // 保存打卡记录到本地存储
       const storageKey = `checkins_${this.data.courseId}`;
@@ -171,10 +281,6 @@ Page({
       console.log('保存打卡前的记录:', checkins);
       console.log('存储Key:', storageKey);
       console.log('courseId:', this.data.courseId);
-
-      // 获取当前用户信息
-      const app = getApp();
-      const currentUser = app.globalData.userInfo || {};
 
       // 创建新的打卡记录
       const newCheckin = {

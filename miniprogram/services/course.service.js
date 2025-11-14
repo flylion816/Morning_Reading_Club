@@ -41,7 +41,7 @@ class CourseService {
       });
     }
 
-    return request.get(`/periods/${periodId}/sections`, params);
+    return request.get(`/sections/period/${periodId}`, params);
   }
 
   /**
@@ -132,6 +132,16 @@ class CourseService {
    */
   getCoursePeriods(courseId) {
     return request.get(`/courses/${courseId}/periods`);
+  }
+
+  /**
+   * 获取期次的打卡记录（动态/广场）
+   * @param {string} periodId 期次ID
+   * @param {Object} params 查询参数
+   * @returns {Promise}
+   */
+  getPeriodCheckins(periodId, params = {}) {
+    return request.get(`/checkins/period/${periodId}`, params);
   }
 }
 
