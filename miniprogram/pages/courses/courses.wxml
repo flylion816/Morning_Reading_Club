@@ -104,14 +104,17 @@
               <text class="avatar-text">{{item.avatarText || item.userName}}</text>
             </view>
             <view class="checkin-main">
+              <!-- 用户名 + 第几天标签 + 时间 -->
               <view class="checkin-top">
-                <text class="checkin-user">{{item.userName}}</text>
+                <view class="checkin-user-section">
+                  <text class="checkin-user">{{item.userName}}</text>
+                  <text class="section-tag">第{{item.sectionDay}}天</text>
+                </view>
                 <text class="checkin-time">{{item.createTime}}</text>
               </view>
-              <view class="checkin-section-info">
-                <text class="section-tag">第{{item.sectionDay}}天</text>
-                <text class="section-title-text">{{item.sectionTitle}}</text>
-              </view>
+              <!-- 课节标题 -->
+              <view class="checkin-section-title">{{item.sectionTitle}}</view>
+              <!-- 打卡内容 -->
               <view class="checkin-content">{{item.content}}</view>
             </view>
           </view>

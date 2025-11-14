@@ -298,6 +298,12 @@
   margin-bottom: 12rpx;
 }
 
+.checkin-user-section {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
 .checkin-user {
   font-size: 28rpx;
   font-weight: 500;
@@ -307,13 +313,7 @@
 .checkin-time {
   font-size: 22rpx;
   color: #999;
-}
-
-.checkin-section-info {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-bottom: 12rpx;
+  flex-shrink: 0;
 }
 
 .section-tag {
@@ -322,14 +322,14 @@
   background: #e8f4fd;
   padding: 4rpx 12rpx;
   border-radius: 8rpx;
+  flex-shrink: 0;
 }
 
-.section-title-text {
+.checkin-section-title {
   font-size: 24rpx;
   color: #666;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-bottom: 12rpx;
+  line-height: 1.5;
 }
 
 .checkin-content {
@@ -338,16 +338,4 @@
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 288rpx;
-  overflow: hidden;
-  position: relative;
-}
-
-.checkin-content::after {
-  content: '...';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  padding-left: 40rpx;
-  background: linear-gradient(to right, transparent, white 50%);
 }
