@@ -1,5 +1,6 @@
 // 课节列表页 - 显示某一期的每天课程
 const courseService = require('../../services/course.service');
+const { getAvatarColorByUserId } = require('../../utils/formatters');
 
 Page({
   data: {
@@ -16,6 +17,23 @@ Page({
 
   onLoad(options) {
     console.log('课节列表页加载', options);
+
+    // 检查登录状态
+    const app = getApp();
+    if (!app.globalData.isLogin) {
+      wx.showToast({
+        title: '请先完成首页登录',
+        icon: 'none'
+      });
+
+      // 延迟返回首页
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1500);
+
+      return;
+    }
+
     if (options.periodId) {
       // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
       this.setData({ periodId: options.periodId });
@@ -92,25 +110,29 @@ Page({
       console.log('打卡记录数量:', checkins.length);
 
       // 转换数据格式以匹配前端期望
-      const allCheckins = checkins.map(checkin => ({
-        id: checkin._id,
-        userId: checkin.userId?._id,
-        userName: checkin.userId?.nickname || '用户',
-        avatar: checkin.userId?.avatar,
-        avatarUrl: checkin.userId?.avatarUrl,
-        avatarText: (checkin.userId?.nickname || '用户').slice(-1),
-        avatarColor: ['#4a90e2', '#7ed321', '#f5a623', '#bd10e0', '#50e3c2'][Math.random() * 5 | 0],
-        sectionId: checkin.sectionId?._id,
-        sectionTitle: checkin.sectionId?.title || '未知课程',
-        sectionDay: checkin.sectionId?.day || 0,
-        content: checkin.note || '',
-        readingTime: checkin.readingTime,
-        completionRate: checkin.completionRate,
-        mood: checkin.mood,
-        // 格式化创建时间
-        createTime: checkin.createdAt ? new Date(checkin.createdAt).toLocaleString('zh-CN') : '',
-        timestamp: new Date(checkin.createdAt).getTime()
-      }));
+      const allCheckins = checkins.map(checkin => {
+        const userId = checkin.userId?._id;
+        return {
+          id: checkin._id,
+          userId: userId,
+          userName: checkin.userId?.nickname || '用户',
+          avatar: checkin.userId?.avatar,
+          avatarUrl: checkin.userId?.avatarUrl,
+          avatarText: (checkin.userId?.nickname || '用户').slice(-1),
+          // 使用userId生成稳定的头像颜色
+          avatarColor: getAvatarColorByUserId(userId),
+          sectionId: checkin.sectionId?._id,
+          sectionTitle: checkin.sectionId?.title || '未知课程',
+          sectionDay: checkin.sectionId?.day || 0,
+          content: checkin.note || '',
+          readingTime: checkin.readingTime,
+          completionRate: checkin.completionRate,
+          mood: checkin.mood,
+          // 格式化创建时间
+          createTime: checkin.createdAt ? new Date(checkin.createdAt).toLocaleString('zh-CN') : '',
+          timestamp: new Date(checkin.createdAt).getTime()
+        };
+      });
 
       console.log('处理后的打卡记录:', allCheckins);
 

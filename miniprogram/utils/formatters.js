@@ -239,6 +239,41 @@ function parseQuery(query) {
   return params;
 }
 
+/**
+ * 根据userId生成稳定的头像颜色
+ * 同一个userId总是返回相同的颜色
+ * @param {string} userId 用户ID
+ * @returns {string} 16进制颜色值
+ */
+function getAvatarColorByUserId(userId) {
+  const colors = [
+    '#4a90e2',  // 蓝色
+    '#7ed321',  // 绿色
+    '#f5a623',  // 橙色
+    '#bd10e0',  // 紫色
+    '#50e3c2',  // 青色
+    '#d0021b',  // 红色
+    '#f8e71c',  // 黄色
+    '#417505'   // 深绿色
+  ];
+
+  if (!userId) {
+    return colors[0];
+  }
+
+  // 简单的哈希函数：将userId字符串转换为数字
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    const char = userId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+
+  // 使用绝对值确保结果为正数
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+}
+
 module.exports = {
   formatDate,
   formatTimeAgo,
@@ -250,5 +285,6 @@ module.exports = {
   formatMoney,
   padZero,
   formatDateRange,
-  parseQuery
+  parseQuery,
+  getAvatarColorByUserId
 };
