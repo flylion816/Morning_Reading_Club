@@ -77,7 +77,9 @@ Page({
 
     try {
       const res = await enrollmentService.getPeriods();
-      const periodList = res || [];
+      // request.js 返回的是 data.data 对象 {list: [...], pagination: {...}}
+      // 所以需要获取 list 属性
+      const periodList = res.list || [];
 
       if (periodList.length === 0) {
         wx.showToast({
