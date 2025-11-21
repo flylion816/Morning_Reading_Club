@@ -3030,5 +3030,52 @@ const dateStr = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 
 
 ---
 
-**最后更新**: 2025-11-21 (完成 Week 3 - 管理后台高级功能实现)
+### 31. 后端启动时中间件导入路径错误问题
+
+**问题现象**：后端启动崩溃，报错 `Cannot find module '../middleware/auth.middleware'`，导致微信小程序无法登录
+
+**根本原因**：`upload.routes.js` 中的导入路径和变量名错误
+```javascript
+// ❌ 错误：引用不存在的模块路径和变量
+const { adminAuth } = require('../middleware/auth.middleware')
+// 实际文件: ../middleware/adminAuth.js
+// 实际导出的变量: adminAuthMiddleware
+```
+
+实际的中间件文件结构：
+- 文件名：`adminAuth.js`（不是 `auth.middleware`）
+- 导出的函数：`adminAuthMiddleware`（不是 `adminAuth`）
+
+**解决方案**：修正导入和变量引用
+```javascript
+// ✅ 正确：使用实际的文件路径和变量名
+const { adminAuthMiddleware } = require('../middleware/adminAuth')
+
+// 所有路由中也要修正
+router.post('/', adminAuthMiddleware, upload.single('file'), uploadController.uploadFile)
+router.post('/multiple', adminAuthMiddleware, upload.array('files', 10), uploadController.uploadMultiple)
+router.delete('/:filename', adminAuthMiddleware, uploadController.deleteFile)
+```
+
+**经验教训**：
+- ⚠️ 导入时必须先检查实际的文件路径和文件名
+- ⚠️ 导入时必须检查模块实际导出的变量名，而不是猜测
+- ⚠️ 这类错误会导致整个后端启动失败，影响整个应用
+- ✅ 在创建路由文件前，先查看中间件文件的实际导出
+- ✅ 使用 IDE 的自动导入功能可以避免这类错误
+- ✅ 如果手动导入，要保证文件路径和变量名都正确
+
+**修复后的结果**：
+- ✅ 后端成功启动：`Server is running on http://localhost:3000`
+- ✅ MongoDB 连接成功
+- ✅ MySQL 连接成功
+- ✅ 健康检查端点响应正常：`{status:"ok",timestamp:...}`
+- ✅ 微信小程序可以正常登录
+
+**相关文件修改**：
+- backend/src/routes/upload.routes.js: 第 6 行（导入）+ 第 50、53、56 行（变量引用）
+
+---
+
+**最后更新**: 2025-11-21 (Week 3 完成 + 后端启动修复)
 **维护者**: Claude Code
