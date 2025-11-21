@@ -29,7 +29,9 @@ apiClient.interceptors.request.use(
 // 响应拦截器 - 处理错误和令牌过期
 apiClient.interceptors.response.use(
   (response) => {
-    return response.data
+    // 后端返回格式：{code, message, data: {...}}
+    // 直接返回 data 部分
+    return response.data.data || response.data
   },
   (error) => {
     if (error.response?.status === 401) {

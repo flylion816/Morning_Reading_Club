@@ -3393,3 +3393,94 @@ payment = await Payment.createOrder(...);
 
 **最后更新**: 2025-11-21 (支付页面错误消息和导航逻辑修复 + 经验总结 #31)
 **维护者**: Claude Code
+
+---
+
+### 32. Vue 3 + Vite 管理后台页面加载问题（App.vue、API 响应解包、Icon 导入）
+
+**问题现象**：管理后台访问 http://localhost:5173 显示黑色页面，点击登录后也无法跳转到仪表板
+
+**根本原因**：三个层级的问题导致了页面无法正常渲染
+
+**1️⃣ 问题 1：App.vue 仍包含 Vite 默认欢迎内容**
+
+App.vue 包含了 HelloWorld 组件和默认导航，导致页面显示 Vite 欢迎页而不是路由内容。
+
+**解决方案**：清理 App.vue，只保留 RouterView
+```vue
+<!-- ✅ 正确：只保留路由出口 -->
+<script setup lang="ts">
+import { RouterView } from 'vue-router'
+</script>
+
+<template>
+  <RouterView />
+</template>
+```
+
+**2️⃣ 问题 2：API 响应拦截器返回整个对象而不是解包后的数据**
+
+后端响应格式：`{code: 200, message: "success", data: {token, admin}}`
+
+但响应拦截器直接返回 `response.data`，导致前端获得的是整个 wrapper 对象而不是内层的 data。
+
+**解决方案**：修改响应拦截器解包数据
+```javascript
+// ✅ 正确：解包返回 data 部分
+apiClient.interceptors.response.use(
+  (response) => {
+    // 后端返回格式：{code, message, data: {...}}
+    // 直接返回 data 部分
+    return response.data.data || response.data
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('adminToken')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error.response?.data || error)
+  }
+)
+```
+
+**3️⃣ 问题 3：Element Plus Icons-Vue 包中某些图标导入失败**
+
+Console 错误：`The requested module '@element-plus/icons-vue' does not provide an export named 'Dashboard'`
+
+某些图标在包中不可用或有兼容性问题。
+
+**解决方案**：用 emoji 替换有问题的 Icon 导入
+```vue
+<!-- ❌ 错误 -->
+<el-menu-item index="/">
+  <el-icon><Dashboard /></el-icon>
+  <span>仪表板</span>
+</el-menu-item>
+
+<!-- ✅ 正确：使用 emoji -->
+<el-menu-item index="/">
+  <span>📊 仪表板</span>
+</el-menu-item>
+```
+
+**经验教训**：
+
+- ⚠️ Vue 项目的 App.vue 必须只包含 RouterView 和必要的布局，不能包含默认模板内容
+- ⚠️ 对于有 wrapper 结构的 API 响应（如 {code, message, data}），必须在拦截器中正确解包
+- ⚠️ Element Plus icons-vue 包可能在某些版本中有特定的图标不可用或导入问题
+- ⚠️ 三个问题层级：页面渲染 → API 数据 → 组件导入，任何一个失败都会导致页面崩溃
+- ✅ 及时检查浏览器 Console，错误堆栈能清晰指出问题源
+- ✅ 当遇到 module 导出问题时，优先替换为其他方案（emoji、自定义 svg）而不是被动等待修复
+- ✅ API 拦截器的响应处理逻辑必须与后端的响应格式保持一致
+- ✅ 硬刷新浏览器（Ctrl+Shift+R）是解决前端缓存问题的第一步
+
+**相关代码修改**：
+- admin/src/App.vue: 移除 HelloWorld，只保留 RouterView
+- admin/src/services/api.ts: 第 34 行响应拦截器修复
+- admin/src/components/AdminLayout.vue: 用 emoji 替换 Element Plus Icon 导入（第 14-40、50、84-85 行）
+- backend/scripts/init-admin.js: 创建初始化管理员账号脚本
+
+---
+
+**最后更新**: 2025-11-21 (管理后台登录系统完整修复 + 经验总结 #32)
+**维护者**: Claude Code

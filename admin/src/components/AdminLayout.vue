@@ -12,38 +12,31 @@
         @select="handleMenuSelect"
       >
         <el-menu-item index="/">
-          <el-icon><Dashboard /></el-icon>
-          <span>仪表板</span>
+          <span>📊 仪表板</span>
         </el-menu-item>
 
         <el-menu-item index="/analytics">
-          <el-icon><DataAnalysis /></el-icon>
-          <span>数据分析</span>
+          <span>📈 数据分析</span>
         </el-menu-item>
 
         <el-menu-item index="/enrollments">
-          <el-icon><DocumentCopy /></el-icon>
-          <span>报名管理</span>
+          <span>📝 报名管理</span>
         </el-menu-item>
 
         <el-menu-item index="/payments">
-          <el-icon><ShoppingCart /></el-icon>
-          <span>支付记录</span>
+          <span>💳 支付记录</span>
         </el-menu-item>
 
         <el-menu-item index="/periods">
-          <el-icon><Calendar /></el-icon>
-          <span>期次管理</span>
+          <span>📅 期次管理</span>
         </el-menu-item>
 
         <el-menu-item index="/users">
-          <el-icon><User /></el-icon>
-          <span>用户管理</span>
+          <span>👥 用户管理</span>
         </el-menu-item>
 
         <el-menu-item index="/content">
-          <el-icon><Edit /></el-icon>
-          <span>内容管理</span>
+          <span>✍️ 内容管理</span>
         </el-menu-item>
       </el-menu>
 
@@ -54,8 +47,7 @@
           @click="handleLogout"
           style="width: 100%; justify-content: center"
         >
-          <el-icon><Switch /></el-icon>
-          <span>退出登录</span>
+          <span>🚪 退出登录</span>
         </el-button>
       </div>
     </el-aside>
@@ -89,16 +81,6 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Dashboard,
-  DocumentCopy,
-  ShoppingCart,
-  Calendar,
-  User,
-  Switch,
-  Edit,
-  DataAnalysis
-} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
