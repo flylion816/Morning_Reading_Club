@@ -313,8 +313,19 @@ Page({
       }, 1500);
     } catch (error) {
       console.error('报名失败:', error);
+
+      // 从错误对象中提取错误消息
+      let errorMessage = '报名失败，请重试';
+
+      // 优先级顺序：error.data.message > error.message > 默认值
+      if (error && error.data && error.data.message) {
+        errorMessage = error.data.message;
+      } else if (error && error.message) {
+        errorMessage = error.message;
+      }
+
       wx.showToast({
-        title: error.message || '报名失败，请重试',
+        title: errorMessage,
         icon: 'none'
       });
     } finally {
