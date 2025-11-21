@@ -2369,5 +2369,52 @@ getMonthlyCalendar(year, month) {
 
 ---
 
-**最后更新**: 2025-11-21 (添加经验 27-29, 完成 Mock 到真实数据的迁移，修复打卡记录页面)
+### 30. 打卡记录日期不一致问题（checkinDate vs createdAt）
+
+**问题现象**：日历上显示打卡的是 17 和 21 日，但下面的打卡记录显示 11.14 和 11.13 日，两个日期完全不匹配
+
+**根本原因**：打卡模型有两个不同的日期字段，前端用错了：
+- `checkinDate`：用户实际打卡的日期（用于日历统计）
+- `createdAt`：记录在数据库中创建的时间戳（由 MongoDB 自动生成）
+
+前端代码用的是 `item.createdAt`（创建时间），而不是 `item.checkinDate`（打卡日期）
+
+```javascript
+// ❌ 错误：用 createdAt 显示打卡日期
+const createDate = new Date(item.createdAt);  // 这是记录创建时间，不是打卡日期！
+const dateStr = `${createDate.getFullYear()}-${String(createDate.getMonth() + 1)...`;
+```
+
+这导致如果记录在 11.14 创建，但打卡的是 11.17，就会显示 11.14。
+
+**解决方案**：使用 `checkinDate` 而不是 `createdAt`
+
+```javascript
+// ✅ 正确：用 checkinDate 显示打卡日期
+const checkinDate = new Date(item.checkinDate);  // 实际打卡日期
+const dateStr = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 1)...`;
+```
+
+**经验教训**：
+- ⚠️ 区分两个常见的日期字段：业务日期 vs 系统时间戳
+- ⚠️ MongoDB 自动生成的 `createdAt` 是系统时间戳，不一定是业务日期
+- ⚠️ 打卡、评论等业务字段都应该有自己的日期字段（如 `checkinDate`）
+- ✅ 显示用户相关的日期时，优先使用业务日期字段而不是系统时间戳
+- ✅ 在模型设计时明确区分：业务日期（用户打卡的日期）vs 系统时间（记录的创建时间）
+- ✅ 在 API 文档中清楚说明每个日期字段的含义和用途
+
+**数据模型设计建议**：
+
+对于需要跟踪业务日期的模型（如打卡、签到等），应该：
+1. 设置 `businessDate` 或 `checkinDate` 字段（用户操作的日期）
+2. 保留 MongoDB 自动生成的 `createdAt` 和 `updatedAt`（系统时间戳）
+3. 在日历、统计等地方使用 `businessDate`
+4. 在日志、审计等地方使用 `createdAt`
+
+**相关代码修改**：
+- miniprogram/pages/checkin-records/checkin-records.js: 第 142-145 行，改用 `item.checkinDate`
+
+---
+
+**最后更新**: 2025-11-21 (添加经验 27-30, 完成 Mock 到真实数据的迁移，修复打卡记录页面所有问题)
 **维护者**: Claude Code
