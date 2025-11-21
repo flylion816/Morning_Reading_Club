@@ -43,7 +43,7 @@ Page({
       });
 
       // 转换数据
-      const members = res.data.list.map(item => ({
+      const members = res.list.map(item => ({
         userId: item.userId,
         nickname: item.nickname,
         avatar: item.avatar,
@@ -55,7 +55,7 @@ Page({
 
       this.setData({
         members: reset ? members : [...this.data.members, ...members],
-        totalMembers: res.data.total,
+        totalMembers: res.total,
         loading: false
       });
     } catch (error) {

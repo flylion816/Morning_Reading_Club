@@ -54,22 +54,22 @@ Page({
       });
 
       // 转换数据：添加 avatarColor 和头像文字
-      const list = res.data.list.map(item => ({
+      const list = res.list.map(item => ({
         ...item,
         avatarColor: getAvatarColorByUserId(item.userId),
         avatarText: item.nickname.charAt(item.nickname.length - 1)
       }));
 
-      const currentUser = res.data.currentUser ? {
-        ...res.data.currentUser,
-        avatarColor: getAvatarColorByUserId(res.data.currentUser.userId),
-        avatarText: res.data.currentUser.nickname.charAt(res.data.currentUser.nickname.length - 1)
+      const currentUser = res.currentUser ? {
+        ...res.currentUser,
+        avatarColor: getAvatarColorByUserId(res.currentUser.userId),
+        avatarText: res.currentUser.nickname.charAt(res.currentUser.nickname.length - 1)
       } : null;
 
       this.setData({
         rankingList: list,
         currentUser,
-        participantCount: res.data.total,
+        participantCount: res.total,
         loading: false
       });
     } catch (error) {

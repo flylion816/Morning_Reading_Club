@@ -59,14 +59,14 @@ Page({
       });
 
       // 格式化时间
-      const records = res.data.list.map(item => ({
+      const records = res.list.map(item => ({
         ...item,
         createTime: new Date(item.createdAt).toLocaleString('zh-CN')
       }));
 
       this.setData({
-        stats: res.data.stats,
-        calendar: res.data.calendar,
+        stats: res.stats,
+        calendar: res.calendar,
         checkinRecords: records,
         loading: false
       });
