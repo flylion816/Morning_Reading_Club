@@ -3,7 +3,7 @@ const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
 const uploadController = require('../controllers/upload.controller')
-const { adminAuth } = require('../middleware/auth.middleware')
+const { adminAuthMiddleware } = require('../middleware/adminAuth')
 
 const router = express.Router()
 
@@ -47,12 +47,12 @@ const upload = multer({
 })
 
 // 上传单个文件
-router.post('/', adminAuth, upload.single('file'), uploadController.uploadFile)
+router.post('/', adminAuthMiddleware, upload.single('file'), uploadController.uploadFile)
 
 // 上传多个文件
-router.post('/multiple', adminAuth, upload.array('files', 10), uploadController.uploadMultiple)
+router.post('/multiple', adminAuthMiddleware, upload.array('files', 10), uploadController.uploadMultiple)
 
 // 删除文件
-router.delete('/:filename', adminAuth, uploadController.deleteFile)
+router.delete('/:filename', adminAuthMiddleware, uploadController.deleteFile)
 
 module.exports = router
