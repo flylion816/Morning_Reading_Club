@@ -2416,6 +2416,87 @@ const dateStr = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 
 
 ---
 
+### 31. 支付页面错误消息显示和导航失败问题
+
+**问题现象**：
+1. 支付失败时，toast 显示"支付失败，请重试"，但没有显示实际的后端错误信息（如"该报名已完成支付"）
+2. 支付成功后点击"进入课程"按钮，页面没有跳转到课程列表，用户被卡在支付结果弹窗
+
+**根本原因**：
+1. **错误消息提取不正确**：payment.js 的错误处理只检查 `error.message`，但实际的错误消息在 `error.data.message` 中
+   ```javascript
+   // ❌ 错误：错误信息在 error.data.message，而不是 error.message
+   this.showPaymentFailed('支付失败', error.message || '请重试');
+   ```
+
+2. **导航逻辑问题**：handleSuccess() 方法有多个问题：
+   - 使用 `wx.switchTab()` 后在成功回调中调用 `wx.navigateTo()`，两个导航方式可能冲突
+   - 没有处理导航失败的情况
+   - 延迟时间 500ms 可能不足以完成弹窗关闭动画
+
+**解决方案**：
+
+1. **修复错误消息提取**：应用与 enrollment.js 相同的模式
+```javascript
+// ✅ 正确：按优先级提取错误消息
+let errorMessage = '支付失败，请重试';
+if (error && error.data && error.data.message) {
+  errorMessage = error.data.message;  // 优先使用后端错误消息
+} else if (error && error.message) {
+  errorMessage = error.message;
+}
+this.showPaymentFailed('支付失败', errorMessage);
+```
+
+2. **修复导航逻辑**：使用 `navigateBack()` 代替 `switchTab()`，并增加错误处理
+```javascript
+// ✅ 正确：使用 navigateBack 返回支付前的页面，然后导航到课程
+setTimeout(() => {
+  wx.navigateBack({
+    delta: 1,
+    success: () => {
+      wx.navigateTo({
+        url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
+        fail: (err) => {
+          console.error('导航失败:', err);
+          wx.showToast({ title: '导航失败，请手动进入课程', icon: 'none' });
+        }
+      });
+    },
+    fail: (err) => {
+      // 如果返回失败，直接导航到课程
+      wx.navigateTo({
+        url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
+        fail: (navErr) => {
+          console.error('导航失败:', navErr);
+          wx.showToast({ title: '导航失败，请手动进入课程', icon: 'none' });
+        }
+      });
+    }
+  });
+}, 800);  // 800ms 确保弹窗动画完成
+```
+
+**经验教训**：
+- ⚠️ **API 错误消息提取**：request.js 会解包响应，错误信息在 `error.data.message` 而不是 `error.message`
+- ⚠️ **跨页面导航**：不同的导航方法（switchTab vs navigateTo）有不同的使用场景和限制
+- ⚠️ **导航链式调用**：避免在一个导航的回调中立即调用另一个导航，容易产生冲突
+- ⚠️ **时序问题**：UI 动画完成时间需要合理预估，过短会导致导航中断，过长影响体验
+- ✅ **统一错误处理**：同一项目的 controller 错误处理应保持一致，前端提取方式也应统一
+- ✅ **错误优先级**：当有多个错误信息来源时，应明确定义优先级顺序
+- ✅ **兜底处理**：多层级导航失败时应有降级方案和用户友好的提示
+- ✅ **延迟时间选择**：根据动画时长选择适当的延迟（通常 200-800ms 之间）
+
+**相关代码修改**：
+- miniprogram/pages/payment/payment.js:
+  - 第 105-121 行：修复 handlePayment catch 块的错误消息提取
+  - 第 284-324 行：修复 handleSuccess 导航逻辑，使用 navigateBack + navigateTo，增加错误处理
+
+**参考对比**：
+- enrollment.js 的相同错误处理模式（第 314-330 行）
+
+---
+
 ## 🎯 报名系统开发 (Week 1: 2025-11-21 完成)
 
 ### ✅ 已完成的功能
@@ -3310,5 +3391,5 @@ payment = await Payment.createOrder(...);
 
 ---
 
-**最后更新**: 2025-11-21 (支付 API 修复 + 幂等性实现)
+**最后更新**: 2025-11-21 (支付页面错误消息和导航逻辑修复 + 经验总结 #31)
 **维护者**: Claude Code
