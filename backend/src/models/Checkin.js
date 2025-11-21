@@ -58,6 +58,15 @@ const CheckinSchema = new mongoose.Schema({
   isPublic: {
     type: Boolean,
     default: true
+  },
+  likeCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true,

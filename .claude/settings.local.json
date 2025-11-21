@@ -18,7 +18,8 @@
       "Bash(json_pp:*)",
       "Bash(docker exec:*)",
       "Bash(docker ps:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

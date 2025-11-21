@@ -84,15 +84,16 @@ async function createCheckin(req, res, next) {
   }
 }
 
-// 获取用户的打卡列表
+// 获取用户的打卡列表（包含统计和日历数据）
 async function getUserCheckins(req, res, next) {
   try {
-    const { page = 1, limit = 20, periodId } = req.query;
+    const { page = 1, limit = 20, periodId, year, month } = req.query;
     const userId = req.params.userId || req.user.userId;
 
     const query = { userId };
     if (periodId) query.periodId = periodId;
 
+    // 获取打卡列表
     const total = await Checkin.countDocuments(query);
     const checkins = await Checkin.find(query)
       .populate('userId', 'nickname avatar avatarUrl')
@@ -103,8 +104,76 @@ async function getUserCheckins(req, res, next) {
       .limit(parseInt(limit))
       .select('-__v');
 
+    // 计算统计数据
+    const stats = {
+      diaryCount: 0,        // 日记总数（有内容的打卡）
+      featuredCount: 0,     // 精选次数
+      likeCount: 0,         // 获赞总数
+      totalDays: 0,         // 总打卡天数
+      consecutiveDays: 0    // 连续打卡天数（待计算）
+    };
+
+    // 统计所有打卡记录
+    const allCheckins = await Checkin.find(query).select('note likeCount isFeatured checkinDate');
+
+    stats.diaryCount = allCheckins.filter(c => c.note && c.note.trim().length > 0).length;
+    stats.featuredCount = allCheckins.filter(c => c.isFeatured).length;
+    stats.likeCount = allCheckins.reduce((sum, c) => sum + (c.likeCount || 0), 0);
+    stats.totalDays = allCheckins.length;
+
+    // 计算连续打卡天数
+    if (allCheckins.length > 0) {
+      const sortedCheckins = allCheckins.sort((a, b) => b.checkinDate - a.checkinDate);
+      let consecutive = 0;
+      let expectedDate = new Date();
+      expectedDate.setHours(0, 0, 0, 0);
+
+      for (const checkin of sortedCheckins) {
+        const checkinDateNormalized = new Date(checkin.checkinDate);
+        checkinDateNormalized.setHours(0, 0, 0, 0);
+
+        if (expectedDate.getTime() === checkinDateNormalized.getTime()) {
+          consecutive++;
+          expectedDate.setDate(expectedDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      stats.consecutiveDays = consecutive;
+    }
+
+    // 如果提供了year和month，计算日历数据
+    let calendar = null;
+    if (year && month) {
+      const targetYear = parseInt(year);
+      const targetMonth = parseInt(month);
+
+      // 获取指定月份的所有打卡日期
+      const monthStart = new Date(targetYear, targetMonth - 1, 1);
+      const monthEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+
+      const monthCheckins = await Checkin.find({
+        ...query,
+        checkinDate: {
+          $gte: monthStart,
+          $lte: monthEnd
+        }
+      }).select('checkinDate');
+
+      // 提取打卡的日期（仅日期部分）
+      const checkinDays = monthCheckins.map(c => new Date(c.checkinDate).getDate());
+
+      calendar = {
+        year: targetYear,
+        month: targetMonth,
+        checkinDays: [...new Set(checkinDays)].sort((a, b) => a - b)
+      };
+    }
+
     res.json(success({
       list: checkins,
+      stats,
+      calendar,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

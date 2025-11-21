@@ -15,6 +15,8 @@ const sectionRoutes = require('./routes/section.routes');
 const checkinRoutes = require('./routes/checkin.routes');
 const insightRoutes = require('./routes/insight.routes');
 const commentRoutes = require('./routes/comment.routes');
+const enrollmentRoutes = require('./routes/enrollment.routes');
+const rankingRoutes = require('./routes/ranking.routes');
 
 const app = express();
 
@@ -39,6 +41,8 @@ app.use('/api/v1/sections', sectionRoutes);
 app.use('/api/v1/checkins', checkinRoutes);
 app.use('/api/v1/insights', insightRoutes);
 app.use('/api/v1/comments', commentRoutes);
+app.use('/api/v1/enrollments', enrollmentRoutes);
+app.use('/api/v1/ranking', rankingRoutes);
 
 // 404处理
 app.use(notFoundHandler);

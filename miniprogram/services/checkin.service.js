@@ -47,11 +47,69 @@ class CheckinService {
 
   /**
    * 获取打卡列表（用户的打卡记录）
+   * 支持获取统计数据和日历数据
    * @param {Object} params 查询参数
+   * @param {string} params.page - 页码
+   * @param {string} params.limit - 每页数量
+   * @param {string} params.year - 年份（用于日历）
+   * @param {string} params.month - 月份（用于日历）
    * @returns {Promise}
    */
   getCheckins(params = {}) {
-    return request.get('/checkins/user', params);
+    return request({
+      url: '/checkins/user/',
+      method: 'GET',
+      data: params
+    });
+  }
+
+  /**
+   * 获取用户打卡记录（带统计和日历）
+   * @param {Object} options - 选项
+   * @param {string} options.page - 页码
+   * @param {string} options.limit - 每页数量
+   * @param {string} options.year - 年份
+   * @param {string} options.month - 月份
+   * @returns {Promise} 返回 { list, stats, calendar, pagination }
+   */
+  getUserCheckinsWithStats(options = {}) {
+    const {
+      page = 1,
+      limit = 20,
+      year,
+      month
+    } = options;
+
+    const data = {
+      page,
+      limit
+    };
+
+    // 如果提供了年月，添加日历查询
+    if (year && month) {
+      data.year = year;
+      data.month = month;
+    }
+
+    return this.getCheckins(data);
+  }
+
+  /**
+   * 获取用户月度打卡日历
+   * @param {number} year - 年份
+   * @param {number} month - 月份
+   * @returns {Promise} 返回日历数据
+   */
+  getMonthlyCalendar(year, month) {
+    return this.getUserCheckinsWithStats({
+      page: 1,
+      limit: 1,
+      year,
+      month
+    }).then(res => {
+      // 返回日历部分
+      return res.data.calendar;
+    });
   }
 
   /**
