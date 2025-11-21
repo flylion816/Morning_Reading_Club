@@ -2131,5 +2131,82 @@ updateTabBarVisibility(isLogin) {
 
 ---
 
-**最后更新**: 2025-11-14 (添加经验 24-26)
+### 27. API 响应数据结构不匹配问题（前后端解包逻辑）
+
+**问题现象**：三个页面（排行榜、成员列表、打卡记录）从 API 获取数据后崩溃，报错 `Cannot read property 'list' of undefined` 或类似的结构问题
+
+**根本原因**：前后端对 API 响应数据的解包逻辑不一致
+
+- **后端响应格式**：`{code: 200, message: "success", data: {list, currentUser, total, ...}, timestamp}`
+- **request.js 解包**：第 93 行执行 `data.data || data`，移除外层 wrapper，返回内层对象
+- **前端错误访问**：页面中访问 `res.data.list`，但 `res` 已经是解包后的内层对象
+
+```javascript
+// ❌ 错误：res 已经是解包后的数据
+const list = res.data.list.map(item => ({...}));
+
+// ✅ 正确：直接访问解包后的数据
+const list = res.list.map(item => ({...}));
+```
+
+**解决方案**：修改三个页面的数据访问方式
+1. ranking.js：`res.data.list` → `res.list`，`res.data.currentUser` → `res.currentUser`，`res.data.total` → `res.total`
+2. members.js：`res.data.list` → `res.list`，`res.data.total` → `res.total`
+3. checkin-records.js：`res.data.list` → `res.list`，`res.data.stats` → `res.stats`，`res.data.calendar` → `res.calendar`
+
+**经验教训**：
+- ⚠️ 不要假设 request.js 的行为，要查看源代码了解如何解包响应
+- ⚠️ 前后端的数据转换层（如 request.js）会影响数据结构，需要充分沟通
+- ✅ 在 Service 层文档中明确说明 API 返回的数据结构（已解包还是原始）
+- ✅ 添加注释说明哪些字段被解包、哪些没有被解包
+- ✅ 在请求失败时提供调试日志，打印 `res` 的实际结构
+
+**相关代码修改**：
+- miniprogram/pages/ranking/ranking.js: 第 57、63、72 行
+- miniprogram/pages/members/members.js: 第 46、58 行
+- miniprogram/pages/checkin-records/checkin-records.js: 第 62、68-70 行
+
+---
+
+### 28. 响应工具函数导出错误问题
+
+**问题现象**：enrollment.controller.js 启动时崩溃，报错 `successResponse is not a function` 和 `errorResponse is not a function`
+
+**根本原因**：enrollment.controller.js 尝试导入不存在的响应函数
+
+```javascript
+// ❌ 错误：这些函数不在 response.js 中导出
+const { successResponse, errorResponse } = require('../utils/response');
+```
+
+检查 response.js 发现只导出了：`success`, `successWithPagination`, `error`, `errors`
+
+**解决方案**：
+1. 修改导入：`const { success, errors } = require('../utils/response');`
+2. 修改所有响应调用方式：
+   - `successResponse(res, data, message)` → `res.json(success(data, message))`
+   - `errorResponse(res, message, code)` → `res.status(code).json(errors.badRequest(message))`
+
+```javascript
+// ❌ 错误的方式
+return successResponse(res, enrollment, '报名成功');
+return errorResponse(res, '期次不存在', 404);
+
+// ✅ 正确的方式
+res.json(success(enrollment, '报名成功'));
+return res.status(404).json(errors.notFound('期次不存在'));
+```
+
+**经验教训**：
+- ⚠️ 导入前必须确保要导入的函数在模块中导出
+- ⚠️ 一个文件使用的响应格式，其他文件应该保持一致
+- ✅ 在新创建 controller 时，参考现有 controller 的响应方式
+- ✅ 考虑创建一个通用的响应工具函数，统一处理所有 controller
+
+**相关代码修改**：
+- backend/src/controllers/enrollment.controller.js: 第 4 行和全文所有响应调用
+
+---
+
+**最后更新**: 2025-11-21 (添加经验 27-28, 完成 Mock 到真实数据的迁移)
 **维护者**: Claude Code
