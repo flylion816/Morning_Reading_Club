@@ -2487,5 +2487,154 @@ const dateStr = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 
 
 ---
 
-**最后更新**: 2025-11-21 (完成报名系统前端页面和后端API实现 - commit cd7f246)
+## 🎯 报名和支付系统开发 (Week 1: 2025-11-21 完成)
+
+### 📱 小程序端 (Frontend)
+
+**Day 1-2: 报名页面** (✅ 完成)
+- 创建 enrollment.json: 页面配置
+- 创建 enrollment.wxml: 11字段报名表单
+- 创建 enrollment.js: 完整表单验证和提交逻辑
+- 创建 enrollment.wxss: 响应式样式设计
+
+**Day 3-4: 支付页面** (✅ 完成)
+- 创建 payment.json: 页面配置
+- 创建 payment.wxml: 支付方式选择、订单显示、支付结果弹窗
+- 创建 payment.js: WeChat支付 + 模拟支付流程
+- 创建 payment.wxss: 专业的支付UI设计
+- 创建 payment.service.js: 支付API服务层
+
+**Day 5: 首页优化** (✅ 完成)
+- 添加报名状态检查逻辑
+- 并行检查所有期次的报名状态
+- 显示"已报名"或"立即报名"状态
+- 智能导航: 已报名→课程页, 未报名→报名页
+
+### 🔧 后端 (Backend)
+
+**Day 2-3: 报名API** (✅ 完成)
+- Enrollment 模型扩展: 添加11个表单字段
+- submitEnrollmentForm(): 完整报名表单处理
+- 报名审批流程: pending → approved/rejected
+- 期次报名人数统计
+
+**Day 4-5: 支付API** (✅ 完成)
+- Payment 模型: 订单管理、支付追踪
+- payment.controller.js:
+  - initiatePayment(): 创建订单
+  - confirmPayment(): 确认支付
+  - getPaymentStatus(): 查询状态
+  - cancelPayment(): 取消支付
+  - 微信回调处理: wechatCallback()
+  - 模拟支付: mockConfirmPayment()
+- payment.routes.js: 6个支付端点
+
+### 📊 完整报名-支付流程
+
+```
+1. 用户未登录
+   ↓
+   进入首页 → 看到期次列表 → 点击期次
+   ↓
+   提示登录 → 跳转登录页
+
+2. 用户已登录但未报名
+   ↓
+   首页显示"立即报名"按钮
+   ↓
+   填写报名表单 (11 fields)
+   ↓
+   后端验证 + 创建Enrollment记录
+   ↓
+   自动跳转支付页面
+
+3. 支付页面
+   ↓
+   显示订单信息 + 金额
+   ↓
+   选择支付方式:
+   - 微信支付 (真实支付)
+   - 模拟支付 (开发测试)
+   ↓
+   初始化支付: POST /api/v1/payments
+   ↓
+   确认支付: POST /api/v1/payments/:paymentId/confirm
+   ↓
+   更新Enrollment.paymentStatus = 'paid'
+   ↓
+   显示成功弹窗 + 进入课程
+
+4. 用户已报名
+   ↓
+   首页显示"✓ 已报名"
+   ↓
+   点击进入课程列表
+```
+
+### 🔌 API端点总结
+
+**报名相关**:
+- POST /api/v1/enrollments - 提交完整报名表单
+- GET /api/v1/enrollments/check/:periodId - 检查报名状态
+
+**支付相关**:
+- POST /api/v1/payments - 初始化支付(创建订单)
+- POST /api/v1/payments/:paymentId/confirm - 确认支付
+- GET /api/v1/payments/:paymentId - 查询支付状态
+- POST /api/v1/payments/:paymentId/cancel - 取消支付
+- GET /api/v1/payments/user/:userId? - 获取支付历史
+- POST /api/v1/payments/:paymentId/mock-confirm - 模拟支付(测试)
+
+### 📈 核心特性
+
+1. **表单验证**
+   - 客户端完整验证
+   - 后端再次验证
+   - 条件验证(读过书籍选项)
+   - 字段长度/范围限制
+
+2. **支付处理**
+   - WeChat requestPayment API
+   - 模拟支付用于开发测试
+   - 订单状态追踪
+   - 微信回调集成(预留)
+
+3. **用户体验**
+   - 报名状态实时检查
+   - 登录状态保护
+   - 加载和错误处理
+   - 支付反馈(成功/失败)
+
+4. **数据一致性**
+   - 原子性操作(报名+期次计数)
+   - 支付确认后同步更新报名
+   - 本地存储 + 服务器数据同步
+
+### 💾 数据持久化
+
+**本地存储**:
+- lastEnrollment: 最后的报名信息
+- enrollments: 报名列表
+
+**服务器存储**:
+- MongoDB: Enrollment, Payment集合
+- 索引优化: userId+periodId复合索引
+
+### 🚀 Week 1 总结
+
+- ✅ 完整的报名表单系统(前后端)
+- ✅ 支付页面 + API (支持WeChat和模拟)
+- ✅ 首页智能状态检查
+- ✅ 错误处理和用户反馈
+- ✅ 代码提交 (3个commits)
+
+**总代码量**: ~2500行 (前端+后端)
+**提交记录**:
+- f49af14: payment page UI + integration
+- 93ed3c9: payment API endpoints
+- 8b06df0: home page optimization
+
+---
+
+**最后更新**: 2025-11-21 (完成 Week 1 - 报名+支付系统全流程实现)
 **维护者**: Claude Code

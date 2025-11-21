@@ -18,6 +18,7 @@ const commentRoutes = require('./routes/comment.routes');
 const enrollmentRoutes = require('./routes/enrollment.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const rankingRoutes = require('./routes/ranking.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.get('/health', (req, res) => {
 
 // API路由
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1', adminRoutes); // Admin routes (auth endpoints are here)
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/periods', periodRoutes);
 app.use('/api/v1/sections', sectionRoutes);
