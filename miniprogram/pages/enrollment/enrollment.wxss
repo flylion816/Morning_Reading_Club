@@ -70,9 +70,9 @@
 .enrollment-form {
   background: white;
   padding: 30rpx;
-  margin: 20rpx;
-  border-radius: 12rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  margin: 0 20rpx 20rpx 20rpx;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* 表单组 */
@@ -104,7 +104,7 @@
 .form-control {
   display: block;
   width: 100%;
-  padding: 16rpx 16rpx;
+  padding: 0 16rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
   font-size: 28rpx;
@@ -112,7 +112,8 @@
   background: white;
   box-sizing: border-box;
   transition: all 0.3s ease;
-  line-height: 1.5;
+  line-height: 60rpx;
+  height: 60rpx;
 }
 
 .form-control:focus {
@@ -124,11 +125,11 @@
   color: #999;
 }
 
-/* input 元素特殊处理 - 增大高度 */
+/* input 元素特殊处理 - 垂直居中 */
 input.form-control {
   height: 60rpx !important;
-  padding: 16rpx 16rpx !important;
-  line-height: 28rpx;
+  padding: 0 16rpx !important;
+  line-height: 60rpx !important;
 }
 
 /* 统一 placeholder 样式，防止焦点时上移 */
