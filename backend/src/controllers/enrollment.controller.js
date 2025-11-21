@@ -377,6 +377,184 @@ exports.completeEnrollment = async (req, res) => {
 };
 
 /**
+ * 获取待审批的报名列表（管理员）
+ * GET /api/v1/enrollments?status=pending&page=1&limit=20
+ */
+exports.getEnrollments = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      status = 'pending',
+      periodId,
+      approvalStatus,
+      paymentStatus,
+      sortBy = 'enrolledAt',
+      sortOrder = -1
+    } = req.query;
+
+    // 构建查询条件
+    let query = {};
+    if (status) query.status = status;
+    if (approvalStatus) query.approvalStatus = approvalStatus;
+    if (paymentStatus) query.paymentStatus = paymentStatus;
+    if (periodId) query.periodId = periodId;
+
+    // 分页和排序
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sort = { [sortBy]: parseInt(sortOrder) };
+
+    // 获取总数
+    const total = await Enrollment.countDocuments(query);
+
+    // 获取数据
+    const enrollments = await Enrollment.find(query)
+      .populate('userId', 'nickname avatar')
+      .populate('periodId', 'name')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    res.json(success({
+      list: enrollments,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit))
+    }));
+  } catch (error) {
+    console.error('获取报名列表失败:', error);
+    res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
+  }
+};
+
+/**
+ * 批准报名（管理员）
+ * POST /api/v1/enrollments/:id/approve
+ */
+exports.approveEnrollment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user._id;
+    const { notes } = req.body;
+
+    const enrollment = await Enrollment.findById(id);
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+
+    if (enrollment.approvalStatus !== 'pending') {
+      return res.status(400).json(errors.badRequest('该报名已审批过'));
+    }
+
+    enrollment.approvalStatus = 'approved';
+    enrollment.approvedBy = adminId;
+    enrollment.approvedAt = new Date();
+    enrollment.approvalNotes = notes;
+    await enrollment.save();
+
+    await enrollment.populate('userId', 'nickname avatar');
+    await enrollment.populate('periodId', 'name');
+
+    res.json(success(enrollment, '报名已批准'));
+  } catch (error) {
+    console.error('批准报名失败:', error);
+    res.status(500).json(errors.serverError('批准报名失败: ' + error.message));
+  }
+};
+
+/**
+ * 拒绝报名（管理员）
+ * POST /api/v1/enrollments/:id/reject
+ */
+exports.rejectEnrollment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user._id;
+    const { notes } = req.body;
+
+    const enrollment = await Enrollment.findById(id);
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+
+    if (enrollment.approvalStatus !== 'pending') {
+      return res.status(400).json(errors.badRequest('该报名已审批过'));
+    }
+
+    enrollment.approvalStatus = 'rejected';
+    enrollment.approvedBy = adminId;
+    enrollment.approvedAt = new Date();
+    enrollment.approvalNotes = notes;
+    await enrollment.save();
+
+    await enrollment.populate('userId', 'nickname avatar');
+    await enrollment.populate('periodId', 'name');
+
+    res.json(success(enrollment, '报名已拒绝'));
+  } catch (error) {
+    console.error('拒绝报名失败:', error);
+    res.status(500).json(errors.serverError('拒绝报名失败: ' + error.message));
+  }
+};
+
+/**
+ * 更新报名记录（管理员）
+ * PUT /api/v1/enrollments/:id
+ */
+exports.updateEnrollment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // 不允许修改的字段
+    const protectedFields = ['userId', 'periodId', 'enrolledAt', 'approvalStatus'];
+    protectedFields.forEach(field => {
+      delete updateData[field];
+    });
+
+    const enrollment = await Enrollment.findByIdAndUpdate(id, updateData, { new: true })
+      .populate('userId', 'nickname avatar')
+      .populate('periodId', 'name');
+
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+
+    res.json(success(enrollment, '更新成功'));
+  } catch (error) {
+    console.error('更新失败:', error);
+    res.status(500).json(errors.serverError('更新失败: ' + error.message));
+  }
+};
+
+/**
+ * 删除报名记录（管理员）
+ * DELETE /api/v1/enrollments/:id
+ */
+exports.deleteEnrollment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const enrollment = await Enrollment.findByIdAndDelete(id);
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+
+    // 更新期次的报名人数
+    await Period.findByIdAndUpdate(enrollment.periodId, {
+      $inc: { enrollmentCount: -1 }
+    });
+
+    res.json(success(null, '删除成功'));
+  } catch (error) {
+    console.error('删除失败:', error);
+    res.status(500).json(errors.serverError('删除失败: ' + error.message));
+  }
+};
+
+/**
  * 调试：删除用户的所有报名记录（除了指定的期次）
  * DELETE /api/v1/enrollments/debug/cleanup/:userId/:keepPeriodId
  */

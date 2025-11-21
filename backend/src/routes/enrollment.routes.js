@@ -8,12 +8,36 @@ const {
   checkEnrollment,
   withdrawEnrollment,
   completeEnrollment,
+  getEnrollments,
+  approveEnrollment,
+  rejectEnrollment,
+  updateEnrollment,
+  deleteEnrollment,
   debugCleanupEnrollments
 } = require('../controllers/enrollment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
+// ===== 管理员路由（必须放在最前面，以避免被参数路由覆盖） =====
+
+// 获取报名列表（管理员）
+router.get('/', adminMiddleware, getEnrollments);
+
+// 批准报名（管理员）
+router.post('/:id/approve', adminMiddleware, approveEnrollment);
+
+// 拒绝报名（管理员）
+router.post('/:id/reject', adminMiddleware, rejectEnrollment);
+
+// 更新报名记录（管理员）
+router.put('/:id', adminMiddleware, updateEnrollment);
+
+// 删除报名记录（管理员）
+router.delete('/:id', adminMiddleware, deleteEnrollment);
+
+// ===== 用户路由 =====
+
 // 提交报名表单（包含完整信息）
-router.post('/', authMiddleware, submitEnrollmentForm);
+router.post('/submit', authMiddleware, submitEnrollmentForm);
 
 // 简化报名（仅periodId）
 router.post('/simple', authMiddleware, enrollPeriod);
