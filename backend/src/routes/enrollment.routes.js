@@ -8,8 +8,7 @@ const {
   withdrawEnrollment,
   completeEnrollment
 } = require('../controllers/enrollment.controller');
-const authMiddleware = require('../middleware/auth');
-const adminMiddleware = require('../middleware/auth').adminMiddleware;
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 // 报名参加期次
 router.post('/', authMiddleware, enrollPeriod);
