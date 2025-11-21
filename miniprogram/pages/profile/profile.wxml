@@ -6,7 +6,7 @@
     <view class="login-header">
       <view class="logo">📚</view>
       <text class="app-title">《高效能人士的七个习惯》</text>
-      <text class="app-title-second">晨读营</text>
+      <text class="app-title-second">凡人晨读营</text>
       <text class="app-slogan">一个早起、读书、谈心的地方</text>
     </view>
 

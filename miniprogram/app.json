@@ -38,7 +38,7 @@
       },
       {
         "pagePath": "pages/index/index",
-        "text": "凡人晨读营",
+        "text": "晨读营",
         "iconPath": "assets/icons/user.png",
         "selectedIconPath": "assets/icons/user-active.png"
       }

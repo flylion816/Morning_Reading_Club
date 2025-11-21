@@ -3,13 +3,13 @@
   <!-- Logo和标题 -->
   <view class="login-header">
     <view class="logo">📚</view>
-    <text class="app-title">晨读营</text>
+    <text class="app-title">凡人晨读营</text>
     <text class="app-slogan">在晨光中,遇见更好的自己</text>
   </view>
 
   <!-- 登录卡片 -->
   <view class="login-card">
-    <view class="card-title">欢迎来到晨读营</view>
+    <view class="card-title">欢迎来到凡人晨读营</view>
     <view class="card-desc">通过微信一键登录</view>
 
     <!-- 登录按钮 -->
