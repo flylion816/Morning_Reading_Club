@@ -3121,5 +3121,79 @@ const periodList = res.list || [];
 
 ---
 
-**最后更新**: 2025-11-21 (Week 3 完成 + 后端启动修复 + 报名页面修复)
+### 33. 首页课程卡片点击无法导航问题
+
+**问题现象**：点击首页的课程卡片（如"晨读营之光"），Console 反复输出 `course-card onCardTap 被调用` 日志，但页面没有跳转
+
+**根本原因**：事件处理的冲突和阻塞
+- course-card 组件使用 `catchtap="onCardTap"` **阻止了事件冒泡**
+- course-card 触发自定义事件 `triggerEvent('tap', ...)`
+- 首页使用 `catchtap="handlePeriodClick"` 监听普通的 `tap` 事件
+- 由于 course-card 的 `catchtap` 阻止了冒泡，父组件的事件处理器永远收不到事件
+
+```wxml
+<!-- ❌ 问题：catchtap 阻止了事件冒泡 -->
+<!-- course-card/index.wxml -->
+<view class="course-card {{isPending ? 'pending' : ''}}" catchtap="onCardTap">
+
+<!-- 首页期望接收到点击事件 -->
+<view class="period-wrapper" catchtap="handlePeriodClick">
+  <course-card ... />  <!-- 点击事件被 course-card 拦截 -->
+</view>
+```
+
+**解决方案**：使用自定义事件处理
+
+```wxml
+<!-- ✅ course-card/index.wxml: 改用 bindtap 允许冒泡 -->
+<view class="course-card {{isPending ? 'pending' : ''}}" bindtap="onCardTap">
+
+<!-- ✅ index.wxml: 监听 course-card 的自定义事件 -->
+<course-card
+  course="{{item}}"
+  mode="period"
+  bind:tap="handlePeriodClick"  <!-- 监听自定义 tap 事件 -->
+/>
+```
+
+```javascript
+// ✅ index.js: 调整事件处理器获取自定义事件数据
+handlePeriodClick(e) {
+  const course = e.detail.course;  // 从自定义事件获取数据
+  const periodId = course.id;
+  // ... 导航逻辑
+}
+```
+
+**经验教训**：
+- ⚠️ `catchtap` 会阻止事件冒泡，导致父组件的事件处理器无法接收事件
+- ⚠️ 自定义组件和父组件的事件绑定方式容易产生冲突
+- ⚠️ 自定义组件触发的是自定义事件，而非原生事件
+- ✅ 子组件需要事件传递时，用 `bindtap` 而不是 `catchtap`
+- ✅ 父组件监听自定义组件的事件，用 `bind:eventname` 而不是原生 `bindtap`
+- ✅ 自定义事件的数据通过 `e.detail` 获取，而不是 `e.currentTarget.dataset`
+
+**完整的事件流**：
+```
+用户点击 → course-card 的 bindtap
+  → onCardTap 处理并 triggerEvent('tap')
+    → 首页监听 bind:tap
+      → handlePeriodClick 接收 e.detail.course
+        → 根据报名状态导航
+```
+
+**修复前后对比**：
+```
+修复前: 点击卡片 → catchtap 阻止冒泡 → 父组件无法接收 → 无操作
+修复后: 点击卡片 → bindtap 允许传递 → 自定义事件 → 导航成功
+```
+
+**相关文件修改**：
+- miniprogram/components/course-card/index.wxml: 第 1 行
+- miniprogram/pages/index/index.wxml: 第 20 行
+- miniprogram/pages/index/index.js: 第 153-189 行
+
+---
+
+**最后更新**: 2025-11-21 (Week 3 完成 + 后端启动修复 + 报名页面修复 + 首页导航修复)
 **维护者**: Claude Code
