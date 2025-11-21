@@ -151,9 +151,14 @@ Page({
    * 点击期次卡片 - 根据报名状态智能导航
    */
   handlePeriodClick(e) {
-    // course-card 触发的自定义事件，数据在 detail 中
-    const course = e.detail.course;
-    const periodId = course.id;
+    const { periodId, periodName } = e.currentTarget.dataset;
+
+    console.log('handlePeriodClick 被调用，periodId:', periodId, 'periodName:', periodName);
+
+    if (!periodId) {
+      console.error('periodId 不存在');
+      return;
+    }
 
     // 检查是否已登录
     if (!this.data.isLogin) {
@@ -178,7 +183,7 @@ Page({
     if (isEnrolled) {
       // 已报名，进入课程列表
       wx.navigateTo({
-        url: `/pages/courses/courses?periodId=${periodId}&name=${course.name || ''}`
+        url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
       });
     } else {
       // 未报名，进入报名页面

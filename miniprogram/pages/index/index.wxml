@@ -11,13 +11,14 @@
       wx:for="{{periods}}"
       wx:key="id"
       class="period-wrapper"
+      catchtap="handlePeriodClick"
       data-period-id="{{item.id}}"
+      data-period-name="{{item.name}}"
     >
       <course-card
         course="{{item}}"
         mode="period"
         enrolled="{{periodEnrollmentStatus[item.id]}}"
-        bind:tap="handlePeriodClick"
       />
 
       <!-- 报名/已报名状态标签 -->
