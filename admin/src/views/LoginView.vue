@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <h1>晨读营管理后台</h1>
+        <h1>凡人晨读营管理后台</h1>
         <p>Morning Reading Club Admin</p>
       </div>
 

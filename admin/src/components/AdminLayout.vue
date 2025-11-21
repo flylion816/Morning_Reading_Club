@@ -2,7 +2,7 @@
   <el-container class="admin-layout">
     <el-aside class="admin-sidebar">
       <div class="sidebar-header">
-        <h2>晨读营</h2>
+        <h2>凡人晨读营</h2>
         <span>管理后台</span>
       </div>
 
