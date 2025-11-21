@@ -100,54 +100,65 @@
   font-weight: bold;
 }
 
-/* 表单控制 */
+/* 表单控制 - 基础样式 */
 .form-control {
+  display: block;
   width: 100%;
-  padding: 18rpx 16rpx;
-  border: 1rpx solid #e8e8e8;
+  padding: 16rpx 16rpx;
+  border: 2rpx solid #ddd;
   border-radius: 8rpx;
   font-size: 28rpx;
   color: #333;
   background: white;
   box-sizing: border-box;
   transition: all 0.3s ease;
-  min-height: 56rpx;
   line-height: 1.5;
 }
 
 .form-control:focus {
   border-color: #4a90e2;
-  box-shadow: 0 0 0 2rpx rgba(74, 144, 226, 0.1);
+  box-shadow: 0 0 0 2rpx rgba(74, 144, 226, 0.15);
 }
 
 .form-control::placeholder {
   color: #999;
 }
 
+/* input 元素特殊处理 - 增大高度 */
+input.form-control {
+  height: 60rpx !important;
+  padding: 16rpx 16rpx !important;
+  line-height: 28rpx;
+}
+
 /* Picker 控制 */
+picker {
+  display: block;
+  width: 100%;
+}
+
 .picker-control {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: auto;
+  height: 60rpx;
+  padding: 16rpx 16rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 8rpx;
+  background: white;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
 }
 
-/* 隐藏 picker 组件默认的白色分割线 */
-picker {
-  position: relative;
-}
-
-picker::before {
-  display: none;
-}
-
-picker::after {
-  display: none;
+.picker-control:active {
+  border-color: #4a90e2;
+  background: #f9fbff;
 }
 
 .picker-icon {
-  color: #999;
+  color: #4a90e2;
   font-size: 32rpx;
+  font-weight: bold;
 }
 
 /* 地址组 */
@@ -171,32 +182,40 @@ picker::after {
 .radio-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 12rpx;
-  border: 1rpx solid #e8e8e8;
+  padding: 16rpx 16rpx;
+  min-height: 56rpx;
+  border: 2rpx solid #ddd;
   border-radius: 8rpx;
   background: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .radio-item:active {
-  background: #f5f5f5;
+  background: #f9fbff;
   border-color: #4a90e2;
 }
 
+.radio-item radio {
+  margin-right: 8rpx;
+}
+
 .radio-item text {
-  margin-left: 10rpx;
   font-size: 28rpx;
   color: #333;
+  line-height: 1.5;
 }
 
 /* 文本域 */
-.form-control.textarea {
-  resize: vertical;
-  font-family: inherit;
-  line-height: 1.5;
-  min-height: 140rpx;
-  max-height: 300rpx;
+textarea.form-control {
+  font-family: inherit !important;
+  font-size: 28rpx !important;
+  line-height: 1.6 !important;
+  min-height: 180rpx !important;
+  max-height: 350rpx !important;
+  padding: 16rpx 16rpx !important;
+  resize: vertical !important;
 }
 
 /* 文字计数 */
