@@ -3077,5 +3077,49 @@ router.delete('/:filename', adminAuthMiddleware, uploadController.deleteFile)
 
 ---
 
-**最后更新**: 2025-11-21 (Week 3 完成 + 后端启动修复)
+### 32. 报名页面API响应数据结构不匹配问题
+
+**问题现象**：报名页面加载期次列表时崩溃，报错 `periodList.findIndex is not a function`
+
+**根本原因**：前端对 API 响应数据的理解不正确
+- 后端 `/api/v1/periods` 返回：`{code: 200, data: {list: [...], pagination: {...}}}`
+- request.js 第 93 行解包：`resolve(data.data || data)`，返回内层的 `{list: [...], pagination: {...}}`
+- 前端错误地将整个对象当作数组处理
+
+```javascript
+// ❌ 错误：res 是对象 {list: [...], pagination: {...}}，不是数组
+const periodList = res || [];  // res 不是数组！
+selectedIndex = periodList.findIndex(...)  // 报错：数组方法不存在
+```
+
+**解决方案**：正确访问 list 属性
+```javascript
+// ✅ 正确：先获取 list 数组
+const periodList = res.list || [];
+selectedIndex = periodList.findIndex(p => p._id === periodId);
+```
+
+**经验教训**：
+- ⚠️ 必须理解 request.js 的解包逻辑，它会移除最外层的 wrapper
+- ⚠️ 不同的 API 端点返回结构可能不同（有些返回直接的数组，有些返回包含 list 的对象）
+- ✅ 在调用新的 API 前，要先检查后端实际返回的数据结构
+- ✅ 在 service 层文档中清楚说明返回的具体数据结构
+- ✅ 可以在 console.log 中打印 API 响应，理解实际数据结构
+- ✅ 建议后端统一 API 响应格式，始终使用分页对象 `{list: [...], pagination: {...}}`
+
+**修复前后对比**：
+```javascript
+// 修复前：报错 "periodList.findIndex is not a function"
+const periodList = res || [];
+
+// 修复后：正常工作
+const periodList = res.list || [];
+```
+
+**相关文件修改**：
+- miniprogram/pages/enrollment/enrollment.js: 第 82 行
+
+---
+
+**最后更新**: 2025-11-21 (Week 3 完成 + 后端启动修复 + 报名页面修复)
 **维护者**: Claude Code
