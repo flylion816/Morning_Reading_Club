@@ -139,9 +139,10 @@ Page({
 
       // 转换打卡记录格式
       const checkinRecords = res.list.map(item => {
-        const createDate = new Date(item.createdAt);
-        const dateStr = `${createDate.getFullYear()}-${String(createDate.getMonth() + 1).padStart(2, '0')}-${String(createDate.getDate()).padStart(2, '0')}`;
-        const timeStr = `${String(createDate.getHours()).padStart(2, '0')}:${String(createDate.getMinutes()).padStart(2, '0')}`;
+        // 使用 checkinDate（打卡日期）而不是 createdAt（创建时间）
+        const checkinDate = new Date(item.checkinDate);
+        const dateStr = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 1).padStart(2, '0')}-${String(checkinDate.getDate()).padStart(2, '0')}`;
+        const timeStr = `${String(checkinDate.getHours()).padStart(2, '0')}:${String(checkinDate.getMinutes()).padStart(2, '0')}`;
 
         return {
           id: item._id,
