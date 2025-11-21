@@ -40,6 +40,7 @@
 .enrollment-container {
   padding: 0;
   padding-bottom: 100rpx;
+  background: white;
 }
 
 /* 页面头部 */
@@ -70,7 +71,7 @@
 .enrollment-form {
   background: white;
   padding: 30rpx;
-  margin: 0 20rpx 20rpx 20rpx;
+  margin: 0;
   border-radius: 0;
   box-shadow: none;
 }
