@@ -1,7 +1,7 @@
 const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
 const User = require('../models/User');
-const { successResponse, errorResponse } = require('../utils/response');
+const { success, errors } = require('../utils/response');
 
 /**
  * 报名参加期次
@@ -15,7 +15,7 @@ exports.enrollPeriod = async (req, res) => {
     // 验证期次是否存在
     const period = await Period.findById(periodId);
     if (!period) {
-      return errorResponse(res, '期次不存在', 404);
+      return res.status(404).json(errors.notFound('期次不存在'));
     }
 
     // 检查是否已报名
@@ -26,7 +26,7 @@ exports.enrollPeriod = async (req, res) => {
     });
 
     if (existingEnrollment) {
-      return errorResponse(res, '您已报名该期次', 400);
+      return res.status(400).json(errors.badRequest('您已报名该期次'));
     }
 
     // 创建报名记录
@@ -46,10 +46,10 @@ exports.enrollPeriod = async (req, res) => {
       $inc: { currentEnrollment: 1 }
     });
 
-    return successResponse(res, enrollment, '报名成功');
+    res.json(success(enrollment, '报名成功'));
   } catch (error) {
     console.error('报名失败:', error);
-    return errorResponse(res, '报名失败', 500, error.message);
+    res.status(500).json(errors.serverError(error.message));
   }
 };
 
@@ -71,7 +71,7 @@ exports.getPeriodMembers = async (req, res) => {
     // 验证期次是否存在
     const period = await Period.findById(periodId);
     if (!period) {
-      return errorResponse(res, '期次不存在', 404);
+      return res.status(404).json(errors.notFound('期次不存在'));
     }
 
     // 获取成员列表
@@ -94,16 +94,16 @@ exports.getPeriodMembers = async (req, res) => {
       paymentStatus: enrollment.paymentStatus
     }));
 
-    return successResponse(res, {
+    res.json(success({
       list: members,
       total: result.total,
       page: result.page,
       limit: result.limit,
       totalPages: result.totalPages
-    });
+    }));
   } catch (error) {
     console.error('获取成员列表失败:', error);
-    return errorResponse(res, '获取成员列表失败', 500, error.message);
+    res.status(500).json(errors.serverError('获取成员列表失败: ' + error.message));
   }
 };
 
@@ -144,16 +144,16 @@ exports.getUserEnrollments = async (req, res) => {
       completedAt: enrollment.completedAt
     }));
 
-    return successResponse(res, {
+    res.json(success({
       list: enrollments,
       total: result.total,
       page: result.page,
       limit: result.limit,
       totalPages: result.totalPages
-    });
+    }));
   } catch (error) {
     console.error('获取报名列表失败:', error);
-    return errorResponse(res, '获取报名列表失败', 500, error.message);
+    res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
   }
 };
 
@@ -168,14 +168,14 @@ exports.checkEnrollment = async (req, res) => {
 
     const isEnrolled = await Enrollment.isEnrolled(userId, periodId);
 
-    return successResponse(res, {
+    res.json(success({
       isEnrolled,
       userId,
       periodId
-    });
+    }));
   } catch (error) {
     console.error('检查报名状态失败:', error);
-    return errorResponse(res, '检查报名状态失败', 500, error.message);
+    res.status(500).json(errors.serverError('检查报名状态失败: ' + error.message));
   }
 };
 
@@ -194,11 +194,11 @@ exports.withdrawEnrollment = async (req, res) => {
     });
 
     if (!enrollment) {
-      return errorResponse(res, '报名记录不存在', 404);
+      return res.status(404).json(errors.notFound('报名记录不存在'));
     }
 
     if (enrollment.status !== 'active') {
-      return errorResponse(res, '该报名已结束，无法退出', 400);
+      return res.status(400).json(errors.badRequest('该报名已结束，无法退出'));
     }
 
     await enrollment.withdraw();
@@ -208,10 +208,10 @@ exports.withdrawEnrollment = async (req, res) => {
       $inc: { currentEnrollment: -1 }
     });
 
-    return successResponse(res, enrollment, '退出成功');
+    res.json(success(enrollment, '退出成功'));
   } catch (error) {
     console.error('退出失败:', error);
-    return errorResponse(res, '退出失败', 500, error.message);
+    res.status(500).json(errors.serverError('退出失败: ' + error.message));
   }
 };
 
@@ -226,18 +226,18 @@ exports.completeEnrollment = async (req, res) => {
     const enrollment = await Enrollment.findById(enrollmentId);
 
     if (!enrollment) {
-      return errorResponse(res, '报名记录不存在', 404);
+      return res.status(404).json(errors.notFound('报名记录不存在'));
     }
 
     if (enrollment.status !== 'active') {
-      return errorResponse(res, '该报名不是进行中状态', 400);
+      return res.status(400).json(errors.badRequest('该报名不是进行中状态'));
     }
 
     await enrollment.complete();
 
-    return successResponse(res, enrollment, '标记为已完成');
+    res.json(success(enrollment, '标记为已完成'));
   } catch (error) {
     console.error('完成失败:', error);
-    return errorResponse(res, '完成失败', 500, error.message);
+    res.status(500).json(errors.serverError('完成失败: ' + error.message));
   }
 };
