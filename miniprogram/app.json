@@ -17,7 +17,7 @@
     "pages/payment/payment"
   ],
   "window": {
-    "navigationBarTitleText": "晨读营",
+    "navigationBarTitleText": "凡人晨读营",
     "navigationBarBackgroundColor": "#4a90e2",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f5f5f5",
@@ -38,7 +38,7 @@
       },
       {
         "pagePath": "pages/index/index",
-        "text": "晨读营",
+        "text": "凡人晨读营",
         "iconPath": "assets/icons/user.png",
         "selectedIconPath": "assets/icons/user-active.png"
       }
