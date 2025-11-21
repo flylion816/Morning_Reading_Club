@@ -2638,3 +2638,142 @@ const dateStr = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 
 
 **最后更新**: 2025-11-21 (完成 Week 1 - 报名+支付系统全流程实现)
 **维护者**: Claude Code
+
+---
+
+## 🎯 管理后台开发 (Week 2: 2025-11-21 完成)
+
+### ✅ 已完成的功能
+
+**前端管理后台** (`admin/` 目录)
+
+#### 1. 项目初始化
+- 使用 `npm create vue@latest` 创建 Vue 3 项目
+- 安装 Element Plus UI 框架和汉语言包
+- 安装 Axios HTTP 客户端
+- 配置 TypeScript 和项目结构
+- 设置开发和生产环境变量
+
+#### 2. 认证系统
+- **LoginView.vue**: 管理员登录页面
+  - 邮箱和密码输入
+  - 错误提示
+  - Demo 账号显示
+  - 表单验证
+- **auth.ts (Pinia Store)**: 认证状态管理
+  - 登录/登出逻辑
+  - Token 存储和管理
+  - 用户信息缓存
+  - 错误处理
+- **router/index.ts**: 路由和身份验证守卫
+  - 公开路由（登录）
+  - 受保护路由（需要认证）
+  - 自动重定向到登录页
+
+#### 3. 核心 UI 框架
+- **AdminLayout.vue**: 主布局组件
+  - 侧边栏导航菜单
+  - 顶部用户信息
+  - 退出登录功能
+  - 响应式设计
+  - 菜单样式和活跃状态
+
+#### 4. 仪表板（Dashboard）
+- **DashboardView.vue**: 统计和概览页面
+  - 4 个统计卡片（总报名、待审批、收入、活跃期次）
+  - 最近报名列表（5 条）
+  - 最近支付列表（5 条）
+  - 快速导航链接
+  - 实时数据加载
+
+#### 5. 报名管理模块
+- **EnrollmentsView.vue**: 完整的报名审批界面
+  - 报名列表展示（表格）
+  - 搜索功能（姓名、邮箱）
+  - 筛选功能（状态、期次）
+  - 报名详情展开（11 字段）
+  - 批准/拒绝操作（对话框）
+  - 分页功能（10/20/50/100 条）
+  - 操作日志
+  - 状态标签（待审批、已批准、已拒绝）
+
+#### 6. 支付管理模块
+- **PaymentsView.vue**: 支付记录查看界面
+  - 支付列表展示（表格）
+  - 搜索功能（订单号、用户名）
+  - 筛选功能（状态、支付方式）
+  - 支付统计卡片（总收入、完成、处理中、失败）
+  - 支付详情展开
+  - 支付取消操作
+  - 分页功能
+  - 状态标签（待支付、处理中、已完成、失败、已取消）
+
+#### 7. API 服务层
+- **api.ts**: 统一的 API 客户端
+  - Axios 实例配置
+  - 请求/响应拦截器
+  - Token 自动注入
+  - 401 自动重定向
+  - 分模块的 API 集合
+
+#### 8. 占位页面
+- **PeriodsView.vue**: 期次管理（开发中）
+- **UsersView.vue**: 用户管理（开发中）
+
+### 后端管理员认证系统
+
+**Admin 模型** (`backend/src/models/Admin.js`)
+- 基本信息：name, email, password, avatar
+- 角色权限：role (superadmin/admin/operator), permissions
+- 状态管理：status (active/inactive)
+- 登录追踪：lastLoginAt, loginCount
+- 密码加密：bcryptjs
+- MongoDB 索引
+
+**Admin Controller** (`backend/src/controllers/admin.controller.js`)
+- login(): 管理员登录，生成 JWT Token
+- getProfile(): 获取当前管理员信息
+- logout(): 登出
+- refreshToken(): 刷新 Token
+- changePassword(): 修改密码
+- 超管功能：创建/修改/删除管理员
+
+**认证中间件** (`backend/src/middleware/adminAuth.js`)
+- adminAuthMiddleware: JWT Token 验证
+- requireRole(): 角色检查
+- requirePermission(): 权限检查
+
+**Admin 路由** (`backend/src/routes/admin.routes.js`)
+- 12 个 API 端点
+- 认证、权限、超管管理
+
+### 💡 Demo 账号
+
+```
+邮箱: admin@morningreading.com
+密码: password123
+角色: superadmin
+```
+
+### 📊 文件统计
+
+**前端**: 30+ 个文件，~2000 行代码
+**后端**: 5 个新文件，~600 行代码
+
+### 🚀 Week 2 总结
+
+- ✅ Vue 3 + Element Plus 管理后台框架
+- ✅ 管理员认证系统（JWT）
+- ✅ 仪表板统计和导航
+- ✅ 报名审批管理模块
+- ✅ 支付记录查看模块
+- ✅ 后端认证 API
+- ✅ 权限控制和中间件
+
+**提交记录**:
+- b7070a9: admin dashboard framework + enrollment approval + payment records
+
+---
+
+**最后更新**: 2025-11-21 (完成 Week 2 - 管理后台基础框架实现)
+**维护者**: Claude Code
