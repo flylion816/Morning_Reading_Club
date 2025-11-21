@@ -2208,5 +2208,166 @@ return res.status(404).json(errors.notFound('期次不存在'));
 
 ---
 
-**最后更新**: 2025-11-21 (添加经验 27-28, 完成 Mock 到真实数据的迁移)
+### 29. 打卡记录页面数据绑定和日历显示问题
+
+**问题现象**：打卡记录页面显示不完整，月份只显示数字"11"而非"2025年11月"，没有日历展示，用户信息缺失
+
+**根本原因**：多个数据结构和字段绑定问题：
+1. 月份显示用的 `{{currentMonth}}` 只是数字，没有格式化
+2. WXML 使用 `calendarDays` 但 JS 中没有生成这个数组
+3. 缺少用户信息（头像、名称等）的初始化
+4. 日期格式化字段缺失（date、time 等）
+5. Service 层 getMonthlyCalendar 方法使用了已被 request.js 解包的错误路径
+
+**解决方案**：
+
+```javascript
+// ✅ JS 中完整实现数据处理
+
+// 1. 添加 monthText 字段用于显示完整年月
+data: {
+  monthText: '',  // "2025年11月"
+  calendarDays: [],  // 生成的日期数组
+  currentYear: 0,
+  currentMonth: 0,
+  ...
+}
+
+// 2. 在 onLoad 时获取用户信息
+onLoad() {
+  const app = getApp();
+  if (app.globalData.userInfo) {
+    const user = app.globalData.userInfo;
+    this.setData({
+      userInfo: {
+        userName: user.nickname || user.name || '用户',
+        avatarColor: getAvatarColorByUserId(user._id),
+        avatarText: (user.nickname || user.name || 'U').charAt(0)
+      }
+    });
+  }
+  ...
+}
+
+// 3. 生成完整的日历数据（包含前后月份的天数）
+generateCalendarDays(calendar) {
+  const year = calendar.year;
+  const month = calendar.month;
+  const checkinDays = calendar.checkinDays || [];
+
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+  const firstDayOfWeek = firstDay.getDay();
+
+  const days = [];
+
+  // 上月末日期
+  const prevMonthLastDay = new Date(year, month - 1, 0).getDate();
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    days.push({
+      day: prevMonthLastDay - i,
+      isCurrentMonth: false,
+      hasCheckin: false
+    });
+  }
+
+  // 当月日期
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    days.push({
+      day,
+      isCurrentMonth: true,
+      hasCheckin: checkinDays.includes(day)
+    });
+  }
+
+  // 下月日期
+  const totalCells = Math.ceil(days.length / 7) * 7;
+  for (let day = 1; days.length < totalCells; day++) {
+    days.push({
+      day,
+      isCurrentMonth: false,
+      hasCheckin: false
+    });
+  }
+
+  return days;
+}
+
+// 4. 正确处理 API 响应
+async loadCheckinsWithStats() {
+  const res = await checkinService.getUserCheckinsWithStats({...});
+
+  // 生成日历数据
+  const calendarDays = this.generateCalendarDays(res.calendar);
+
+  // 转换打卡记录格式（添加日期和时间字段）
+  const checkinRecords = res.list.map(item => {
+    const createDate = new Date(item.createdAt);
+    const dateStr = `${createDate.getFullYear()}-...`;
+    const timeStr = `${...padStart(2, '0')}:${...padStart(2, '0')}`;
+
+    return {
+      id: item._id,
+      date: dateStr,
+      time: timeStr,
+      courseTitle: item.sectionId?.title || '课程',
+      content: item.note || '',
+      likeCount: item.likeCount || 0
+    };
+  });
+
+  this.setData({
+    stats: res.stats || {},
+    calendarDays,  // 设置日历数据
+    checkinRecords,
+    loading: false
+  });
+}
+```
+
+**WXML 修复**：
+```xml
+<!-- 显示完整年月 -->
+<view class="month-text">{{monthText}}</view>
+
+<!-- 使用 calendarDays 而不是 calendar.checkinDays -->
+<view wx:for="{{calendarDays}}" wx:key="day"
+      class="calendar-day {{item.isCurrentMonth ? '' : 'other-month'}} {{item.hasCheckin ? 'checked' : ''}}">
+  <view class="day-number">{{item.day}}</view>
+  <view wx:if="{{item.hasCheckin}}" class="day-dot"></view>
+</view>
+```
+
+**Service 层修复**：
+```javascript
+// ❌ 错误：request.js 已解包，不能再访问 .data
+getMonthlyCalendar(year, month) {
+  return this.getUserCheckinsWithStats({...})
+    .then(res => res.data.calendar);  // 错误！
+}
+
+// ✅ 正确：直接访问解包后的字段
+getMonthlyCalendar(year, month) {
+  return this.getUserCheckinsWithStats({...})
+    .then(res => res.calendar);  // 正确
+}
+```
+
+**经验教训**：
+- ⚠️ 日期显示需要完整的格式化（年月日），不要省略部分信息
+- ⚠️ 日历生成需要处理月份边界（前月和后月的日期）
+- ⚠️ 同一页面的多个数据源（用户、统计、日历、记录）要全部初始化
+- ⚠️ Service 方法的返回结构必须与实际 API 响应一致（考虑 request.js 解包）
+- ✅ 在 data 中为所有绑定的字段设置初始值，避免 undefined 错误
+- ✅ 分离数据生成逻辑（如 generateCalendarDays），提高代码复用性和可测试性
+- ✅ 用户信息应该从 app.globalData 获取，而不是在 API 响应中重复传输
+
+**相关代码修改**：
+- miniprogram/pages/checkin-records/checkin-records.js: 重写整个数据处理逻辑
+- miniprogram/pages/checkin-records/checkin-records.wxml: 更新字段绑定和日历结构
+- miniprogram/services/checkin.service.js: 修复 getMonthlyCalendar 响应解包问题
+
+---
+
+**最后更新**: 2025-11-21 (添加经验 27-29, 完成 Mock 到真实数据的迁移，修复打卡记录页面)
 **维护者**: Claude Code
