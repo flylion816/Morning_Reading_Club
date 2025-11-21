@@ -19,8 +19,8 @@
         <text class="avatar-text">{{item.avatarText}}</text>
       </view>
       <view class="member-info">
-        <view class="member-name">{{item.userName}}</view>
-        <view class="member-join-date">加入时间：{{item.joinDate}}</view>
+        <view class="member-name">{{item.nickname}}</view>
+        <view class="member-join-date">加入时间：{{item.enrolledAt}}</view>
       </view>
     </view>
 
