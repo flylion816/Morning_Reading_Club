@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
+const path = require('path');
 require('dotenv').config();
 
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
@@ -19,6 +20,7 @@ const enrollmentRoutes = require('./routes/enrollment.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const rankingRoutes = require('./routes/ranking.routes');
 const adminRoutes = require('./routes/admin.routes');
+const uploadRoutes = require('./routes/upload.routes');
 
 const app = express();
 
@@ -29,6 +31,9 @@ app.use(compression()); // 响应压缩
 app.use(morgan('dev')); // 请求日志
 app.use(express.json()); // JSON解析
 app.use(express.urlencoded({ extended: true })); // URL编码解析
+
+// 静态文件服务
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // 健康检查
 app.get('/health', (req, res) => {
@@ -47,6 +52,7 @@ app.use('/api/v1/comments', commentRoutes);
 app.use('/api/v1/enrollments', enrollmentRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/ranking', rankingRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 
 // 404处理
 app.use(notFoundHandler);

@@ -49,6 +49,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { uploadApi } from '../services/api'
 
 interface Props {
   modelValue?: string
@@ -58,6 +60,7 @@ interface Props {
 interface Emits {
   (e: 'update:modelValue', value: string): void
   (e: 'imageUpload', file: File): void
+  (e: 'imageUploaded', url: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -70,6 +73,7 @@ const emit = defineEmits<Emits>()
 const content = ref(props.modelValue)
 const editorRef = ref<HTMLTextAreaElement>()
 const imageInput = ref<HTMLInputElement>()
+const uploading = ref(false)
 
 watch(
   () => props.modelValue,
@@ -149,11 +153,48 @@ function triggerImageUpload() {
   imageInput.value?.click()
 }
 
-function handleImageUpload(event: Event) {
+async function handleImageUpload(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file) {
-    emit('imageUpload', file)
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+
+  // 验证文件大小 (10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 10MB')
+    return
+  }
+
+  uploading.value = true
+  try {
+    const response = await uploadApi.uploadFile(file)
+    const imageUrl = response.data.url
+
+    // 在编辑器中插入图片链接
+    const textarea = editorRef.value
+    if (textarea) {
+      const start = textarea.selectionStart
+      const imageMarkdown = `![${file.name}](${imageUrl})`
+      const newContent =
+        content.value.substring(0, start) + imageMarkdown + content.value.substring(start)
+      content.value = newContent
+      updateContent()
+    }
+
+    emit('imageUploaded', imageUrl)
+    ElMessage.success('图片上传成功')
+  } catch (err) {
+    console.error('Image upload failed:', err)
+    ElMessage.error('图片上传失败，请重试')
+  } finally {
+    uploading.value = false
+    // 重置输入框
+    input.value = ''
   }
 }
 </script>

@@ -111,4 +111,32 @@ export const statsApi = {
     apiClient.get('/stats/payments', { params })
 }
 
+// 文件上传 API
+export const uploadApi = {
+  uploadFile: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+
+  uploadMultiple: (files: File[]) => {
+    const formData = new FormData()
+    files.forEach((file) => {
+      formData.append('files', file)
+    })
+    return apiClient.post('/upload/multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+
+  deleteFile: (filename: string) =>
+    apiClient.delete(`/upload/${filename}`)
+}
+
 export default apiClient

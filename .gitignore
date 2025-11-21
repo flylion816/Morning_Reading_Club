@@ -42,3 +42,7 @@ coverage/
 
 # 上传记录
 uploadRecord.txt
+
+# 上传的文件目录
+backend/uploads/
+uploads/

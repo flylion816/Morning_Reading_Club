@@ -160,7 +160,7 @@
 import { ref, onMounted } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import RichTextEditor from '../components/RichTextEditor.vue'
-import { periodApi } from '../services/api'
+import { periodApi, uploadApi } from '../services/api'
 import { ElMessage } from 'element-plus'
 import { CloudUpload } from '@element-plus/icons-vue'
 
@@ -169,6 +169,7 @@ const activeTab = ref('intro')
 const periods = ref<any[]>([])
 const currentPeriod = ref<any>(null)
 const saving = ref(false)
+const uploading = ref(false)
 
 const contentData = ref({
   intro: '',
@@ -268,19 +269,33 @@ function removeFaq(index: number) {
 }
 
 function handleImageUpload(file: File) {
-  // 在实际应用中，这里应该上传到服务器
-  ElMessage.info(`图片 "${file.name}" 已添加（需要实现上传功能）`)
+  // 图片上传已在 RichTextEditor 中处理，此函数保留用于其他可能的处理
+  console.log('Image uploaded:', file.name)
 }
 
-function handleMediaUpload(event: any) {
+async function handleMediaUpload(event: any) {
   const file = event.raw || event.target.files?.[0]
-  if (file) {
+  if (!file) return
+
+  uploading.value = true
+  try {
+    const response = await uploadApi.uploadFile(file)
+    const uploadedFile = response.data
+
     contentData.value.media.push({
       name: file.name,
       type: file.type,
-      size: file.size
+      size: file.size,
+      url: uploadedFile.url,
+      uploadedAt: uploadedFile.uploadedAt
     })
-    ElMessage.success('文件已添加')
+
+    ElMessage.success('文件上传成功')
+  } catch (err) {
+    console.error('Media upload failed:', err)
+    ElMessage.error('文件上传失败，请重试')
+  } finally {
+    uploading.value = false
   }
 }
 
