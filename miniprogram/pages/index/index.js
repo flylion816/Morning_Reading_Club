@@ -1,5 +1,6 @@
 // 首页 - 课程列表
 const courseService = require('../../services/course.service');
+const enrollmentService = require('../../services/enrollment.service');
 const userService = require('../../services/user.service');
 const { formatDate } = require('../../utils/formatters');
 
@@ -11,6 +12,7 @@ Page({
 
     // 期次列表
     periods: [],
+    periodEnrollmentStatus: {}, // 记录每个期次的报名状态
     loading: true,
     refreshing: false,
 
@@ -85,6 +87,11 @@ Page({
         periods,
         loading: false
       });
+
+      // 如果已登录，检查每个期次的报名状态
+      if (this.data.isLogin) {
+        this.checkEnrollmentStatus(periods);
+      }
     } catch (error) {
       console.error('获取期次列表失败:', error);
       this.setData({
@@ -96,6 +103,37 @@ Page({
         title: '加载失败,请重试',
         icon: 'none'
       });
+    }
+  },
+
+  /**
+   * 检查期次报名状态
+   */
+  async checkEnrollmentStatus(periods) {
+    if (!periods || periods.length === 0) return;
+
+    const statusMap = {};
+
+    try {
+      // 并行检查所有期次的报名状态
+      const promises = periods.map(period =>
+        enrollmentService.checkEnrollment(period.id)
+          .then(res => {
+            statusMap[period.id] = res.isEnrolled || false;
+          })
+          .catch(error => {
+            console.error(`检查期次 ${period.id} 的报名状态失败:`, error);
+            statusMap[period.id] = false;
+          })
+      );
+
+      await Promise.all(promises);
+
+      this.setData({
+        periodEnrollmentStatus: statusMap
+      });
+    } catch (error) {
+      console.error('检查报名状态失败:', error);
     }
   },
 
@@ -126,9 +164,64 @@ Page({
 
     console.log('期次信息正常，id:', period.id, 'name:', period.name);
 
-    // 跳转到课程列表页（显示该期的课节）
+    // 检查是否已登录
+    if (!this.data.isLogin) {
+      wx.showModal({
+        title: '请先登录',
+        content: '需要登录才能进行报名操作',
+        confirmText: '去登录',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
+      });
+      return;
+    }
+
+    // 检查是否已报名
+    const isEnrolled = this.data.periodEnrollmentStatus[period.id];
+
+    if (isEnrolled) {
+      // 已报名，进入课程列表
+      wx.navigateTo({
+        url: `/pages/courses/courses?periodId=${period.id}&name=${period.name || ''}`
+      });
+    } else {
+      // 未报名，进入报名页面
+      wx.navigateTo({
+        url: `/pages/enrollment/enrollment?periodId=${period.id}`
+      });
+    }
+  },
+
+  /**
+   * 处理报名按钮点击
+   */
+  handleEnrollClick(e) {
+    const { periodId, periodName } = e.currentTarget.dataset;
+
+    if (!this.data.isLogin) {
+      wx.showModal({
+        title: '请先登录',
+        content: '需要登录才能进行报名操作',
+        confirmText: '去登录',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
+      });
+      return;
+    }
+
+    // 进入报名页面
     wx.navigateTo({
-      url: `/pages/courses/courses?periodId=${period.id}&name=${period.name || ''}`
+      url: `/pages/enrollment/enrollment?periodId=${periodId}`
     });
   },
 
