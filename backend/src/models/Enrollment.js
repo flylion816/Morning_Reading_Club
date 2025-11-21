@@ -176,6 +176,13 @@ const EnrollmentSchema = new mongoose.Schema({
 // 复合唯一索引：一个用户在一个期次只能报名一次
 EnrollmentSchema.index({ userId: 1, periodId: 1 }, { unique: true });
 
+// 性能优化索引
+EnrollmentSchema.index({ approvalStatus: 1, createdAt: -1 }); // 审批状态查询
+EnrollmentSchema.index({ paymentStatus: 1, createdAt: -1 });  // 支付状态查询
+EnrollmentSchema.index({ periodId: 1, approvalStatus: 1 });   // 期次的报名审批查询
+EnrollmentSchema.index({ createdAt: -1 });                      // 按创建时间排序
+EnrollmentSchema.index({ enrolledAt: -1 });                     // 按报名时间排序
+
 // 虚拟字段：是否已支付
 EnrollmentSchema.virtual('isPaid').get(function() {
   return this.paymentStatus === 'paid' || this.paymentStatus === 'free';

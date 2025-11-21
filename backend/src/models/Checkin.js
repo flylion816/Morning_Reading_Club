@@ -87,4 +87,11 @@ CheckinSchema.index({ userId: 1, checkinDate: -1 });
 CheckinSchema.index({ periodId: 1, checkinDate: -1 });
 CheckinSchema.index({ sectionId: 1 });
 
+// 性能优化索引
+CheckinSchema.index({ isPublic: 1, createdAt: -1 });          // 公开打卡查询
+CheckinSchema.index({ isFeatured: 1, likeCount: -1 });        // 精选和热门排序
+CheckinSchema.index({ periodId: 1, userId: 1 });              // 用户在期次内的打卡
+CheckinSchema.index({ createdAt: -1 });                        // 按创建时间排序
+CheckinSchema.index({ mood: 1 });                              // 心情筛选
+
 module.exports = mongoose.model('Checkin', CheckinSchema);

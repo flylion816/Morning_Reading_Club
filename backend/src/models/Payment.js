@@ -92,6 +92,14 @@ const PaymentSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// 性能优化索引
+PaymentSchema.index({ status: 1, createdAt: -1 });           // 支付状态查询
+PaymentSchema.index({ userId: 1, createdAt: -1 });           // 用户支付历史
+PaymentSchema.index({ periodId: 1, status: 1 });             // 期次的支付状态
+PaymentSchema.index({ createdAt: -1 });                       // 按创建时间排序
+PaymentSchema.index({ paidAt: -1 });                          // 按支付时间排序
+PaymentSchema.index({ reconciled: 1, createdAt: -1 });        // 核销状态查询
+
 // 虚拟字段：是否已支付
 PaymentSchema.virtual('isPaid').get(function() {
   return this.status === 'completed';
