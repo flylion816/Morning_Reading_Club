@@ -109,6 +109,7 @@ async function getUserList(req, res, next) {
     if (keyword) {
       query.$or = [
         { nickname: { $regex: keyword, $options: 'i' } },
+        { email: { $regex: keyword, $options: 'i' } },
         { openid: { $regex: keyword, $options: 'i' } }
       ];
     }
@@ -134,9 +135,57 @@ async function getUserList(req, res, next) {
   }
 }
 
+// 更新用户信息（管理员）
+async function updateUser(req, res, next) {
+  try {
+    const { userId } = req.params;
+    const { isActive, status, role } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json(errors.notFound('用户不存在'));
+    }
+
+    // 只允许管理员修改这些字段
+    if (isActive !== undefined) {
+      user.status = isActive ? 'active' : 'inactive';
+    }
+    if (status !== undefined) {
+      user.status = status;
+    }
+    if (role !== undefined) {
+      user.role = role;
+    }
+
+    await user.save();
+
+    res.json(success(user, '用户信息已更新'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 删除用户（管理员）
+async function deleteUser(req, res, next) {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) {
+      return res.status(404).json(errors.notFound('用户不存在'));
+    }
+
+    res.json(success({ id: userId }, '用户已删除'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getCurrentUser,
   updateProfile,
   getUserStats,
-  getUserList
+  getUserList,
+  updateUser,
+  deleteUser
 };

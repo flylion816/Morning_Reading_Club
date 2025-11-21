@@ -5,12 +5,10 @@
       <el-card style="margin-bottom: 20px">
         <div class="action-bar">
           <el-button type="primary" @click="handleCreatePeriod">
-            <el-icon><Plus /></el-icon>
-            新建期次
+            <span style="margin-right: 4px">➕</span>新建期次
           </el-button>
           <el-button @click="handleRefresh" style="margin-left: 12px">
-            <el-icon><Refresh /></el-icon>
-            刷新
+            <span style="margin-right: 4px">🔄</span>刷新
           </el-button>
         </div>
       </el-card>
@@ -240,7 +238,6 @@ import { ref, reactive, onMounted } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { periodApi } from '../services/api'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
-import { Plus, Refresh } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const submitting = ref(false)

@@ -16,7 +16,7 @@
             @input="handleSearch"
           >
             <template #prefix>
-              <el-icon><Search /></el-icon>
+              <span style="margin-right: 4px">🔍</span>
             </template>
           </el-input>
 
@@ -269,7 +269,6 @@ import { ref, onMounted } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { paymentApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const payments = ref<any[]>([])

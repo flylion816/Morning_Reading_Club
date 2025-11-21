@@ -7,9 +7,17 @@ const {
   cancelPayment,
   getUserPayments,
   wechatCallback,
-  mockConfirmPayment
+  mockConfirmPayment,
+  getPayments
 } = require('../controllers/payment.controller');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+
+// ===== 管理员路由（必须放在最前面） =====
+
+// 获取支付列表（管理员）
+router.get('/', authMiddleware, adminMiddleware, getPayments);
+
+// ===== 用户路由 =====
 
 // 初始化支付（创建订单）
 router.post('/', authMiddleware, initiatePayment);

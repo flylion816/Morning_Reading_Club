@@ -342,3 +342,45 @@ exports.mockConfirmPayment = async (req, res) => {
     res.status(500).json(errors.serverError('模拟支付失败: ' + error.message));
   }
 };
+
+/**
+ * 获取支付列表（管理员）
+ * GET /api/v1/payments
+ */
+exports.getPayments = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, method, search } = req.query;
+
+    const query = {};
+    if (status) query.status = status;
+    if (method) query.paymentMethod = method;
+    if (search) {
+      query.$or = [
+        { orderNo: { $regex: search, $options: 'i' } },
+        { userName: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const total = await Payment.countDocuments(query);
+    const payments = await Payment.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .populate('enrollmentId', 'name')
+      .populate('periodId', 'name')
+      .select('-__v');
+
+    res.json(success({
+      list: payments,
+      total,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    }));
+  } catch (error) {
+    console.error('获取支付列表失败:', error);
+    res.status(500).json(errors.serverError('获取支付列表失败: ' + error.message));
+  }
+};

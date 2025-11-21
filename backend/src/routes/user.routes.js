@@ -5,7 +5,9 @@ const {
   getCurrentUser,
   updateProfile,
   getUserStats,
-  getUserList
+  getUserList,
+  updateUser,
+  deleteUser
 } = require('../controllers/user.controller');
 
 /**
@@ -35,5 +37,19 @@ router.get('/:userId/stats', authMiddleware, getUserStats);
  * @access  Admin
  */
 router.get('/', authMiddleware, adminMiddleware, getUserList);
+
+/**
+ * @route   PUT /api/v1/users/:userId
+ * @desc    更新用户信息（管理员）
+ * @access  Admin
+ */
+router.put('/:userId', authMiddleware, adminMiddleware, updateUser);
+
+/**
+ * @route   DELETE /api/v1/users/:userId
+ * @desc    删除用户（管理员）
+ * @access  Admin
+ */
+router.delete('/:userId', authMiddleware, adminMiddleware, deleteUser);
 
 module.exports = router;
