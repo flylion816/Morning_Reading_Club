@@ -16,6 +16,11 @@
           <span>仪表板</span>
         </el-menu-item>
 
+        <el-menu-item index="/analytics">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>数据分析</span>
+        </el-menu-item>
+
         <el-menu-item index="/enrollments">
           <el-icon><DocumentCopy /></el-icon>
           <span>报名管理</span>
@@ -91,7 +96,8 @@ import {
   Calendar,
   User,
   Switch,
-  Edit
+  Edit,
+  DataAnalysis
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -103,6 +109,7 @@ const activeMenu = computed(() => route.path)
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
     '/': '仪表板',
+    '/analytics': '数据分析',
     '/enrollments': '报名管理',
     '/payments': '支付记录',
     '/periods': '期次管理',
