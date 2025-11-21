@@ -104,7 +104,18 @@ Page({
       }
     } catch (error) {
       console.error('支付失败:', error);
-      this.showPaymentFailed('支付失败', error.message || '请重试');
+
+      // 从错误对象中提取错误消息
+      let errorMessage = '支付失败，请重试';
+
+      // 优先级顺序：error.data.message > error.message > 默认值
+      if (error && error.data && error.data.message) {
+        errorMessage = error.data.message;
+      } else if (error && error.message) {
+        errorMessage = error.message;
+      }
+
+      this.showPaymentFailed('支付失败', errorMessage);
     } finally {
       this.setData({ paying: false });
     }
@@ -276,18 +287,40 @@ Page({
     // 关闭弹窗
     this.closeModal();
 
-    // 延迟后跳转到课程页面
+    // 延迟后跳转到课程页面（等待弹窗动画完成）
     setTimeout(() => {
-      wx.switchTab({
-        url: '/pages/home/home',
+      // 先返回到首页
+      wx.navigateBack({
+        delta: 1,
         success: () => {
-          // 跳转到课程列表
+          // 返回成功后，跳转到课程列表
           wx.navigateTo({
-            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`
+            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
+            fail: (err) => {
+              console.error('导航到课程列表失败:', err);
+              wx.showToast({
+                title: '导航失败，请手动进入课程',
+                icon: 'none'
+              });
+            }
+          });
+        },
+        fail: (err) => {
+          console.error('返回首页失败:', err);
+          // 如果返回失败，尝试直接跳转到课程列表
+          wx.navigateTo({
+            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
+            fail: (navErr) => {
+              console.error('导航到课程列表失败:', navErr);
+              wx.showToast({
+                title: '导航失败，请手动进入课程',
+                icon: 'none'
+              });
+            }
           });
         }
       });
-    }, 500);
+    }, 800);
   },
 
   /**
