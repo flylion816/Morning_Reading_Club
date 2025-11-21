@@ -9,7 +9,8 @@ const { success, errors } = require('../utils/response');
  */
 exports.submitEnrollmentForm = async (req, res) => {
   try {
-    const userId = req.user._id;
+    // 从认证token中获取userId（token payload中的字段名是userId）
+    const userId = req.user.userId;
     const {
       periodId,
       name,
@@ -90,7 +91,8 @@ exports.submitEnrollmentForm = async (req, res) => {
 exports.enrollPeriod = async (req, res) => {
   try {
     const { periodId } = req.body;
-    const userId = req.user._id;
+    // 从认证token中获取userId（token payload中的字段名是userId）
+    const userId = req.user.userId;
 
     // 验证期次是否存在
     const period = await Period.findById(periodId);
@@ -193,7 +195,7 @@ exports.getPeriodMembers = async (req, res) => {
  */
 exports.getUserEnrollments = async (req, res) => {
   try {
-    const userId = req.params.userId || req.user._id;
+    const userId = req.params.userId || req.user.userId;
     const {
       page = 1,
       limit = 20,
@@ -244,7 +246,7 @@ exports.getUserEnrollments = async (req, res) => {
 exports.checkEnrollment = async (req, res) => {
   try {
     const { periodId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.userId;
 
     const isEnrolled = await Enrollment.isEnrolled(userId, periodId);
 
@@ -266,7 +268,7 @@ exports.checkEnrollment = async (req, res) => {
 exports.withdrawEnrollment = async (req, res) => {
   try {
     const { enrollmentId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.userId;
 
     const enrollment = await Enrollment.findOne({
       _id: enrollmentId,
