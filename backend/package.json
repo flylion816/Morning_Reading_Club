@@ -9,7 +9,9 @@
     "init:mongodb": "node scripts/init-mongodb.js",
     "init:mysql": "node scripts/init-mysql.js",
     "init:all": "npm run init:mongodb && npm run init:mysql",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha tests/api.test.js --timeout 10000",
+    "test:load": "node tests/load-test.js",
+    "test:all": "npm test && npm run test:load"
   },
   "keywords": [
     "morning-reading",
