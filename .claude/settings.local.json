@@ -19,7 +19,11 @@
       "Bash(docker exec:*)",
       "Bash(docker ps:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(node scripts/init-enrollments.js:*)",
+      "Bash(node scripts/update-checkins.js:*)",
+      "Bash(node:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

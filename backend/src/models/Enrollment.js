@@ -65,6 +65,103 @@ const EnrollmentSchema = new mongoose.Schema({
     type: Date
   },
 
+  // ===== 报名表单字段 =====
+  // 姓名
+  name: {
+    type: String,
+    trim: true
+  },
+
+  // 性别
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'prefer_not_to_say']
+  },
+
+  // 省份/城市
+  province: {
+    type: String,
+    trim: true
+  },
+
+  // 详细地址
+  detailedAddress: {
+    type: String,
+    trim: true
+  },
+
+  // 年龄
+  age: {
+    type: Number,
+    min: 1,
+    max: 120
+  },
+
+  // 推荐人
+  referrer: {
+    type: String,
+    trim: true
+  },
+
+  // 是否读过《高效能人士的七个习惯》
+  hasReadBook: {
+    type: String,
+    enum: ['yes', 'no']
+  },
+
+  // 读过几遍
+  readTimes: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
+  // 参加课程的缘起
+  enrollReason: {
+    type: String,
+    maxlength: 1000,
+    trim: true
+  },
+
+  // 对课程的期待
+  expectation: {
+    type: String,
+    maxlength: 1000,
+    trim: true
+  },
+
+  // 是否承诺全程参加
+  commitment: {
+    type: String,
+    enum: ['yes', 'no']
+  },
+
+  // 报名审批状态
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+    comment: 'pending: 待审批, approved: 已批准, rejected: 已拒绝'
+  },
+
+  // 审批备注
+  approvalNotes: {
+    type: String,
+    maxlength: 500,
+    trim: true
+  },
+
+  // 审批人
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin'
+  },
+
+  // 审批时间
+  approvedAt: {
+    type: Date
+  },
+
   // 备注
   notes: {
     type: String,

@@ -96,5 +96,22 @@ module.exports = {
       url: `/enrollments/${enrollmentId}`,
       method: 'DELETE'
     });
+  },
+
+  /**
+   * 获取可报名的期次列表
+   * @returns {Promise}
+   */
+  getPeriods() {
+    return request.get('/periods');
+  },
+
+  /**
+   * 提交报名表单
+   * @param {Object} data - 报名数据
+   * @returns {Promise}
+   */
+  submitEnrollment(data) {
+    return request.post('/enrollments', data);
   }
 };

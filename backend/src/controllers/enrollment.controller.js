@@ -4,8 +4,88 @@ const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 
 /**
- * 报名参加期次
- * POST /api/v1/enrollments/
+ * 提交报名表单（完整的报名信息）
+ * POST /api/v1/enrollments
+ */
+exports.submitEnrollmentForm = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const {
+      periodId,
+      name,
+      gender,
+      province,
+      detailedAddress,
+      age,
+      referrer,
+      hasReadBook,
+      readTimes,
+      enrollReason,
+      expectation,
+      commitment
+    } = req.body;
+
+    // 验证必填字段
+    if (!periodId || !name || !gender || !province || !detailedAddress || !age || !referrer || !hasReadBook || !enrollReason || !expectation || !commitment) {
+      return res.status(400).json(errors.badRequest('缺少必填字段'));
+    }
+
+    // 验证期次是否存在
+    const period = await Period.findById(periodId);
+    if (!period) {
+      return res.status(404).json(errors.notFound('期次不存在'));
+    }
+
+    // 检查是否已报名
+    const existingEnrollment = await Enrollment.findOne({
+      userId,
+      periodId,
+      status: { $in: ['active', 'completed'] }
+    });
+
+    if (existingEnrollment) {
+      return res.status(400).json(errors.badRequest('您已报名该期次'));
+    }
+
+    // 创建报名记录（包含所有表单字段）
+    const enrollment = await Enrollment.create({
+      userId,
+      periodId,
+      name,
+      gender,
+      province,
+      detailedAddress,
+      age: parseInt(age),
+      referrer,
+      hasReadBook,
+      readTimes: hasReadBook === 'yes' ? parseInt(readTimes) : 0,
+      enrollReason,
+      expectation,
+      commitment,
+      paymentStatus: 'pending',  // 报名后需要支付
+      status: 'active',
+      approvalStatus: 'pending'  // 待审批
+    });
+
+    // 填充用户和期次信息
+    await enrollment.populate('userId', 'nickname avatar avatarUrl');
+    await enrollment.populate('periodId', 'title description startDate endDate');
+
+    // 更新期次的报名人数
+    await Period.findByIdAndUpdate(periodId, {
+      $inc: { checkinCount: 1 }
+    });
+
+    res.json(success(enrollment, '报名成功，请等待审批'));
+  } catch (error) {
+    console.error('报名失败:', error);
+    res.status(500).json(errors.serverError('报名失败: ' + error.message));
+  }
+};
+
+/**
+ * 报名参加期次（简化版，仅periodId）
+ * POST /api/v1/enrollments/simple
  */
 exports.enrollPeriod = async (req, res) => {
   try {
@@ -41,9 +121,9 @@ exports.enrollPeriod = async (req, res) => {
     await enrollment.populate('userId', 'nickname avatar avatarUrl');
     await enrollment.populate('periodId', 'title description startDate endDate');
 
-    // 更新期次的报名人数（可选，如果Period有这个字段）
+    // 更新期次的报名人数
     await Period.findByIdAndUpdate(periodId, {
-      $inc: { currentEnrollment: 1 }
+      $inc: { checkinCount: 1 }
     });
 
     res.json(success(enrollment, '报名成功'));

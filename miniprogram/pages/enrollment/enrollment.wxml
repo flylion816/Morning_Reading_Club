@@ -1,0 +1,212 @@
+<!-- 报名页面 -->
+<view class="page-enrollment">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+
+  <!-- 页面内容 -->
+  <view wx:if="{{!loading}}" class="enrollment-container">
+    <!-- 页面头部 -->
+    <view class="enrollment-header">
+      <view class="header-icon">📚</view>
+      <view class="header-title">{{periodName}}</view>
+      <view class="header-subtitle">填写报名信息</view>
+    </view>
+
+    <!-- 表单容器 -->
+    <form class="enrollment-form" bindsubmit="handleSubmit">
+      <!-- 报名期数 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>报名期数</text>
+        </view>
+        <picker bindchange="handlePeriodChange" value="{{selectedPeriodIndex}}" range="{{periodList}}" range-key="name">
+          <view class="form-control picker-control">
+            <text>{{selectedPeriodName || '请选择报名期数'}}</text>
+            <text class="picker-icon">›</text>
+          </view>
+        </picker>
+      </view>
+
+      <!-- 姓名 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>姓名</text>
+        </view>
+        <input
+          type="text"
+          class="form-control"
+          name="name"
+          placeholder="请输入您的姓名"
+          value="{{form.name}}"
+          bindinput="handleInput"
+          data-field="name"
+          required
+        />
+      </view>
+
+      <!-- 性别 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>性别</text>
+        </view>
+        <view class="radio-group">
+          <label class="radio-item" wx:for="{{genderOptions}}" wx:key="value">
+            <radio value="{{item.value}}" checked="{{form.gender === item.value}}" color="#4a90e2"/>
+            <text>{{item.label}}</text>
+          </label>
+        </view>
+      </view>
+
+      <!-- 地址 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>地址</text>
+        </view>
+        <view class="address-group">
+          <picker bindchange="handleProvinceChange" value="{{selectedProvinceIndex}}" range="{{provinceList}}">
+            <view class="form-control picker-control">
+              <text>{{form.province || '请选择省/市/区(县)'}}</text>
+              <text class="picker-icon">›</text>
+            </view>
+          </picker>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="详细地址"
+            value="{{form.detailedAddress}}"
+            bindinput="handleInput"
+            data-field="detailedAddress"
+            required
+          />
+        </view>
+      </view>
+
+      <!-- 年龄 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>年龄</text>
+        </view>
+        <input
+          type="number"
+          class="form-control"
+          placeholder="请输入您的年龄"
+          value="{{form.age}}"
+          bindinput="handleInput"
+          data-field="age"
+          required
+        />
+      </view>
+
+      <!-- 推荐人 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>您的推荐人</text>
+        </view>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="请输入推荐人名字"
+          value="{{form.referrer}}"
+          bindinput="handleInput"
+          data-field="referrer"
+          required
+        />
+      </view>
+
+      <!-- 是否读过 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>您是否读过《高效能人士的七个习惯》</text>
+        </view>
+        <view class="radio-group">
+          <label class="radio-item" wx:for="{{readOptions}}" wx:key="value">
+            <radio value="{{item.value}}" checked="{{form.hasReadBook === item.value}}" color="#4a90e2"/>
+            <text>{{item.label}}</text>
+          </label>
+        </view>
+      </view>
+
+      <!-- 读过几遍（仅在选择"是"时显示） -->
+      <view wx:if="{{form.hasReadBook === 'yes'}}" class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>您读过几遍</text>
+        </view>
+        <input
+          type="number"
+          class="form-control"
+          placeholder="请输入阅读次数"
+          value="{{form.readTimes}}"
+          bindinput="handleInput"
+          data-field="readTimes"
+        />
+      </view>
+
+      <!-- 参加课程的缘起 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>您参加课程的缘起</text>
+        </view>
+        <textarea
+          class="form-control textarea"
+          placeholder="请简述参加课程的原因..."
+          value="{{form.enrollReason}}"
+          bindinput="handleInput"
+          data-field="enrollReason"
+          maxlength="500"
+          required
+        />
+        <view class="text-count">{{form.enrollReason.length}}/500</view>
+      </view>
+
+      <!-- 对课程的期待 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>您对课程的期待</text>
+        </view>
+        <textarea
+          class="form-control textarea"
+          placeholder="请简述对课程的期待..."
+          value="{{form.expectation}}"
+          bindinput="handleInput"
+          data-field="expectation"
+          maxlength="500"
+          required
+        />
+        <view class="text-count">{{form.expectation.length}}/500</view>
+      </view>
+
+      <!-- 承诺事项 -->
+      <view class="form-group">
+        <view class="form-label">
+          <text class="required">*</text>
+          <text>每期晨读营自每月第二周周六并开始，持续23天，时间为每天早上6:00-7:00，您是否可以承诺全程参加</text>
+        </view>
+        <view class="radio-group">
+          <label class="radio-item" wx:for="{{commitmentOptions}}" wx:key="value">
+            <radio value="{{item.value}}" checked="{{form.commitment === item.value}}" color="#4a90e2"/>
+            <text>{{item.label}}</text>
+          </label>
+        </view>
+      </view>
+
+      <!-- 提交按钮 -->
+      <view class="form-actions">
+        <button class="btn btn-secondary" bindtap="handleCancel">取消</button>
+        <button class="btn btn-primary" formType="submit" loading="{{submitting}}">{{submitting ? '提交中...' : '提交报名'}}</button>
+      </view>
+    </form>
+  </view>
+</view>

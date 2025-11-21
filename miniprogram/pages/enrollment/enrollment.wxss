@@ -1,0 +1,253 @@
+/* 报名页面样式 */
+
+.page-enrollment {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* 加载中 */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #f5f5f5;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #f3f3f3;
+  border-top: 4rpx solid #4a90e2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+/* 页面容器 */
+.enrollment-container {
+  padding: 0;
+  padding-bottom: 100rpx;
+}
+
+/* 页面头部 */
+.enrollment-header {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  padding: 40rpx 30rpx;
+  text-align: center;
+}
+
+.header-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.header-subtitle {
+  font-size: 24rpx;
+  opacity: 0.9;
+}
+
+/* 表单 */
+.enrollment-form {
+  background: white;
+  padding: 30rpx;
+  margin: 20rpx;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+/* 表单组 */
+.form-group {
+  margin-bottom: 30rpx;
+}
+
+.form-group:last-of-type {
+  margin-bottom: 20rpx;
+}
+
+/* 表单标签 */
+.form-label {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12rpx;
+  display: flex;
+  align-items: center;
+}
+
+.required {
+  color: #ff6b6b;
+  margin-right: 6rpx;
+  font-weight: bold;
+}
+
+/* 表单控制 */
+.form-control {
+  width: 100%;
+  padding: 16rpx 12rpx;
+  border: 1rpx solid #e8e8e8;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+  background: white;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2rpx rgba(74, 144, 226, 0.1);
+}
+
+.form-control::placeholder {
+  color: #999;
+}
+
+/* Picker 控制 */
+.picker-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.picker-icon {
+  color: #999;
+  font-size: 32rpx;
+}
+
+/* 地址组 */
+.address-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+/* 单选按钮组 */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 12rpx;
+  border: 1rpx solid #e8e8e8;
+  border-radius: 8rpx;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.radio-item:active {
+  background: #f5f5f5;
+  border-color: #4a90e2;
+}
+
+.radio-item text {
+  margin-left: 10rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+/* 文本域 */
+.form-control.textarea {
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  min-height: 140rpx;
+  max-height: 300rpx;
+}
+
+/* 文字计数 */
+.text-count {
+  font-size: 22rpx;
+  color: #999;
+  text-align: right;
+  margin-top: 8rpx;
+}
+
+/* 提交按钮 */
+.form-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 40rpx;
+  padding: 20rpx 0;
+  border-top: 1rpx solid #e8e8e8;
+}
+
+.btn {
+  flex: 1;
+  padding: 16rpx 20rpx;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+}
+
+.btn-primary:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+  border: 1rpx solid #e8e8e8;
+}
+
+.btn-secondary:active {
+  background: #efefef;
+  border-color: #d8d8d8;
+}
+
+/* 错误提示（如果需要） */
+.error-message {
+  font-size: 22rpx;
+  color: #ff6b6b;
+  margin-top: 6rpx;
+}
+
+/* 响应式调整 */
+@media (max-width: 360px) {
+  .enrollment-form {
+    padding: 20rpx;
+    margin: 10rpx;
+  }
+
+  .form-group {
+    margin-bottom: 24rpx;
+  }
+
+  .header-title {
+    font-size: 32rpx;
+  }
+}
