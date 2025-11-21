@@ -258,7 +258,12 @@ EnrollmentSchema.statics.getUserEnrollments = async function(userId, options = {
 
 // 静态方法：检查用户是否已报名
 EnrollmentSchema.statics.isEnrolled = async function(userId, periodId) {
-  const enrollment = await this.findOne({ userId, periodId, status: 'active' });
+  // 查找 active 或 completed 状态的报名记录
+  const enrollment = await this.findOne({
+    userId,
+    periodId,
+    status: { $in: ['active', 'completed'] }
+  });
   return !!enrollment;
 };
 

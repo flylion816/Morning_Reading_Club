@@ -7,7 +7,8 @@ const {
   getUserEnrollments,
   checkEnrollment,
   withdrawEnrollment,
-  completeEnrollment
+  completeEnrollment,
+  debugCleanupEnrollments
 } = require('../controllers/enrollment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
@@ -16,6 +17,34 @@ router.post('/', authMiddleware, submitEnrollmentForm);
 
 // 简化报名（仅periodId）
 router.post('/simple', authMiddleware, enrollPeriod);
+
+// 调试：清理报名记录（仅开发环境，必须放在其他路由之前）
+router.delete('/debug/cleanup/:userId/:keepPeriodId', debugCleanupEnrollments);
+
+// 调试：查看用户的所有报名记录
+router.get('/debug/enrollments/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const Enrollment = require('../models/Enrollment');
+    const enrollments = await Enrollment.find({ userId }).populate('periodId', 'name');
+    res.json({
+      code: 200,
+      data: {
+        total: enrollments.length,
+        enrollments: enrollments.map(e => ({
+          _id: e._id,
+          periodId: e.periodId._id,
+          periodName: e.periodId.name,
+          status: e.status,
+          paymentStatus: e.paymentStatus,
+          createdAt: e.createdAt
+        }))
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ code: 500, message: err.message });
+  }
+});
 
 // 获取期次的成员列表
 router.get('/period/:periodId', authMiddleware, getPeriodMembers);

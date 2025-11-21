@@ -9,20 +9,20 @@
   <view class="periods-container">
     <view
       wx:for="{{periods}}"
-      wx:key="id"
+      wx:key="_id"
       class="period-wrapper"
       catchtap="handlePeriodClick"
-      data-period-id="{{item.id}}"
+      data-period-id="{{item._id}}"
       data-period-name="{{item.name}}"
     >
       <course-card
         course="{{item}}"
         mode="period"
-        enrolled="{{periodEnrollmentStatus[item.id]}}"
+        enrolled="{{periodEnrollmentStatus[item._id]}}"
       />
 
       <!-- 报名/已报名状态标签 -->
-      <view class="enrollment-label" wx:if="{{periodEnrollmentStatus[item.id]}}">
+      <view class="enrollment-label" wx:if="{{periodEnrollmentStatus[item._id]}}">
         <text class="label-text enrolled-text">✓ 已报名</text>
       </view>
     </view>

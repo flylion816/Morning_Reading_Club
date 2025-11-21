@@ -207,6 +207,9 @@ Page({
     const { form } = this.data;
     const errors = {};
 
+    console.log('========== 开始表单验证 ==========');
+    console.log('form 数据:', form);
+
     // 验证必填字段
     if (!form.periodId) errors.periodId = '请选择报名期数';
     if (!form.name || form.name.trim() === '') errors.name = '请输入姓名';
@@ -233,6 +236,10 @@ Page({
     if (!form.enrollReason || form.enrollReason.trim() === '') errors.enrollReason = '请简述参加课程的原因';
     if (!form.expectation || form.expectation.trim() === '') errors.expectation = '请简述对课程的期待';
     if (!form.commitment) errors.commitment = '请选择是否承诺全程参加';
+
+    console.log('验证错误:', errors);
+    console.log('验证结果:', Object.keys(errors).length === 0 ? '✓ 通过' : '✗ 失败');
+    console.log('========== 验证结束 ==========');
 
     this.setData({ errors });
     return Object.keys(errors).length === 0;
@@ -264,6 +271,18 @@ Page({
       };
 
       console.log('提交报名数据:', submitData);
+      console.log('检查必填字段：');
+      console.log('- periodId:', submitData.periodId, '✓');
+      console.log('- name:', submitData.name, '✓');
+      console.log('- gender:', submitData.gender, '✓');
+      console.log('- province:', submitData.province, '✓');
+      console.log('- detailedAddress:', submitData.detailedAddress, '✓');
+      console.log('- age:', submitData.age, '✓');
+      console.log('- referrer:', submitData.referrer, '✓');
+      console.log('- hasReadBook:', submitData.hasReadBook, '✓');
+      console.log('- enrollReason:', submitData.enrollReason, '✓');
+      console.log('- expectation:', submitData.expectation, '✓');
+      console.log('- commitment:', submitData.commitment, '✓');
 
       // 调用API提交报名
       const res = await enrollmentService.submitEnrollment(submitData);

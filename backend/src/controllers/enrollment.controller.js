@@ -9,6 +9,10 @@ const { success, errors } = require('../utils/response');
  */
 exports.submitEnrollmentForm = async (req, res) => {
   try {
+    console.log('========== 报名表单提交 ==========');
+    console.log('请求体:', req.body);
+    console.log('用户信息:', req.user);
+
     // 从认证token中获取userId（token payload中的字段名是userId）
     const userId = req.user.userId;
     const {
@@ -26,9 +30,36 @@ exports.submitEnrollmentForm = async (req, res) => {
       commitment
     } = req.body;
 
+    // 详细检查每个字段
+    console.log('字段检查:');
+    console.log('- periodId:', periodId, periodId ? '✓' : '✗ 缺失');
+    console.log('- name:', name, name ? '✓' : '✗ 缺失');
+    console.log('- gender:', gender, gender ? '✓' : '✗ 缺失');
+    console.log('- province:', province, province ? '✓' : '✗ 缺失');
+    console.log('- detailedAddress:', detailedAddress, detailedAddress ? '✓' : '✗ 缺失');
+    console.log('- age:', age, age ? '✓' : '✗ 缺失');
+    console.log('- referrer:', referrer, referrer ? '✓' : '✗ 缺失');
+    console.log('- hasReadBook:', hasReadBook, hasReadBook ? '✓' : '✗ 缺失');
+    console.log('- enrollReason:', enrollReason, enrollReason ? '✓' : '✗ 缺失');
+    console.log('- expectation:', expectation, expectation ? '✓' : '✗ 缺失');
+    console.log('- commitment:', commitment, commitment ? '✓' : '✗ 缺失');
+
     // 验证必填字段
     if (!periodId || !name || !gender || !province || !detailedAddress || !age || !referrer || !hasReadBook || !enrollReason || !expectation || !commitment) {
-      return res.status(400).json(errors.badRequest('缺少必填字段'));
+      const missingFields = [];
+      if (!periodId) missingFields.push('periodId');
+      if (!name) missingFields.push('name');
+      if (!gender) missingFields.push('gender');
+      if (!province) missingFields.push('province');
+      if (!detailedAddress) missingFields.push('detailedAddress');
+      if (!age) missingFields.push('age');
+      if (!referrer) missingFields.push('referrer');
+      if (!hasReadBook) missingFields.push('hasReadBook');
+      if (!enrollReason) missingFields.push('enrollReason');
+      if (!expectation) missingFields.push('expectation');
+      if (!commitment) missingFields.push('commitment');
+      console.log('缺失的字段:', missingFields);
+      return res.status(400).json(errors.badRequest('缺少必填字段: ' + missingFields.join(', ')));
     }
 
     // 验证期次是否存在
@@ -248,7 +279,28 @@ exports.checkEnrollment = async (req, res) => {
     const { periodId } = req.params;
     const userId = req.user.userId;
 
-    const isEnrolled = await Enrollment.isEnrolled(userId, periodId);
+    console.log(`\n========== checkEnrollment ==========`);
+    console.log(`userId: ${userId}`);
+    console.log(`periodId: ${periodId}`);
+    console.log(`userId类型: ${typeof userId}, periodId类型: ${typeof periodId}`);
+
+    // 直接查询数据库
+    const enrollment = await Enrollment.findOne({
+      userId,
+      periodId,
+      status: { $in: ['active', 'completed'] }
+    });
+
+    console.log(`直接查询结果: ${enrollment ? 'found' : 'not found'}`);
+    if (enrollment) {
+      console.log(`  status: ${enrollment.status}`);
+      console.log(`  _id: ${enrollment._id}`);
+    }
+
+    const isEnrolled = !!enrollment;
+
+    console.log(`返回isEnrolled: ${isEnrolled}`);
+    console.log(`========== checkEnrollment 结束 ==========\n`);
 
     res.json(success({
       isEnrolled,
@@ -321,5 +373,40 @@ exports.completeEnrollment = async (req, res) => {
   } catch (error) {
     console.error('完成失败:', error);
     res.status(500).json(errors.serverError('完成失败: ' + error.message));
+  }
+};
+
+/**
+ * 调试：删除用户的所有报名记录（除了指定的期次）
+ * DELETE /api/v1/enrollments/debug/cleanup/:userId/:keepPeriodId
+ */
+exports.debugCleanupEnrollments = async (req, res) => {
+  try {
+    const { userId, keepPeriodId } = req.params;
+
+    console.log(`\n========== 清理报名记录 ==========`);
+    console.log(`userId: ${userId}`);
+    console.log(`keepPeriodId: ${keepPeriodId}`);
+
+    // 查询所有报名记录
+    const allEnrollments = await Enrollment.find({ userId });
+    console.log(`总共找到 ${allEnrollments.length} 条报名记录`);
+
+    // 删除除了 keepPeriodId 之外的所有报名
+    const deleteResult = await Enrollment.deleteMany({
+      userId,
+      periodId: { $ne: keepPeriodId }
+    });
+
+    console.log(`删除了 ${deleteResult.deletedCount} 条报名记录`);
+    console.log(`========== 清理完成 ==========\n`);
+
+    res.json(success({
+      deleted: deleteResult.deletedCount,
+      message: `已删除 ${deleteResult.deletedCount} 条报名记录，仅保留期次 ${keepPeriodId} 的报名`
+    }));
+  } catch (error) {
+    console.error('清理失败:', error);
+    res.status(500).json(errors.serverError('清理失败: ' + error.message));
   }
 };

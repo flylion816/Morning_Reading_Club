@@ -117,18 +117,20 @@ Page({
     try {
       // 并行检查所有期次的报名状态
       const promises = periods.map(period =>
-        enrollmentService.checkEnrollment(period.id)
+        enrollmentService.checkEnrollment(period._id)
           .then(res => {
-            statusMap[period.id] = res.isEnrolled || false;
+            statusMap[period._id] = res.isEnrolled || false;
+            console.log(`期次 ${period.name} (${period._id}): ${res.isEnrolled ? '已报名' : '未报名'}`);
           })
           .catch(error => {
-            console.error(`检查期次 ${period.id} 的报名状态失败:`, error);
-            statusMap[period.id] = false;
+            console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
+            statusMap[period._id] = false;
           })
       );
 
       await Promise.all(promises);
 
+      console.log('报名状态检查完成:', statusMap);
       this.setData({
         periodEnrollmentStatus: statusMap
       });

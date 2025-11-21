@@ -3195,5 +3195,120 @@ handlePeriodClick(e) {
 
 ---
 
-**最后更新**: 2025-11-21 (Week 3 完成 + 后端启动修复 + 报名页面修复 + 首页导航修复)
+### 31. 支付 API JWT Token 字段不匹配问题
+
+**问题现象**：支付页面提交支付请求时返回 404 错误 `POST http://localhost:3000/api/v1/payments 404`，然后显示"支付失败"
+
+**根本原因**：payment.controller.js 中所有方法都在使用 `req.user._id` 而不是 `req.user.userId`
+
+JWT token 的 payload 结构是：
+```javascript
+{
+  userId: '6915e741c4fbb40316417089',  // ← 正确的字段名
+  openid: 'mock_user_001',
+  role: 'user'
+}
+```
+
+但 payment controller 在第 11、85、132、170、206、293 行都是：
+```javascript
+const userId = req.user._id;  // ❌ 错误！应该是 req.user.userId
+```
+
+**解决方案**：修改所有 6 处地方，将 `req.user._id` 改为 `req.user.userId`
+```javascript
+// ❌ 错误
+const userId = req.user._id;
+
+// ✅ 正确
+const userId = req.user.userId;
+```
+
+需要修改的方法：
+- initiatePayment (第 11 行)
+- confirmPayment (第 85 行)
+- getPaymentStatus (第 132 行)
+- cancelPayment (第 170 行)
+- getUserPayments (第 206 行)
+- mockConfirmPayment (第 293 行)
+
+**经验教训**：
+- ⚠️ JWT token payload 的字段名应该在生成时和验证时保持一致
+- ⚠️ 不同的 controller 可能有相同的错误，需要批量检查
+- ⚠️ 之前修复了 enrollment.controller.js 的同样问题，payment.controller.js 也有
+- ✅ 在创建新的 controller 时，复用已验证正确的 JWT 字段名
+- ✅ 建议在 jwt.js 中添加常量定义，避免硬编码不一致
+
+**相关代码修改**：
+- backend/src/controllers/payment.controller.js: 第 11、85、132、170、206、293 行
+
+---
+
+### 32. 支付幂等性问题（Idempotency）
+
+**问题现象**：用户点击支付按钮时，第一次返回 404，第二次返回 400 "该报名已完成支付"
+
+根本原因分析：
+1. 第一次点击：payment.controller.js 中的 `initiatePayment` 检查已有的 pending 支付时逻辑不完善
+2. 数据库中已存在 enrollmentId + pending status 的支付记录
+3. `initiatePayment` 只检查 'completed' 状态，不检查 'pending' 或 'processing' 状态
+4. 试图创建新的支付订单，但唯一索引冲突，导致 API 层返回了 400 或 404
+
+**根本原因**：payment.controller.js 的 initiatePayment 方法没有实现幂等性
+
+```javascript
+// ❌ 错误：不检查 pending 支付，可能创建多个订单
+const existingPayment = await Payment.findOne({
+  enrollmentId,
+  status: 'completed'  // 只检查已完成
+});
+```
+
+**解决方案**：修改 initiatePayment 实现幂等性
+```javascript
+// ✅ 正确：如果已有待支付或处理中的订单，直接返回该订单
+let payment = await Payment.findOne({
+  enrollmentId,
+  status: { $in: ['pending', 'processing'] }
+});
+
+// 如果已有待支付或处理中的订单，直接返回该订单
+if (payment) {
+  return res.json(success({
+    paymentId: payment._id,
+    orderNo: payment.orderNo,
+    amount: payment.amount,
+    status: payment.status,
+    message: '订单已存在，请继续支付'
+  }));
+}
+
+// 检查是否已完成支付
+const completedPayment = await Payment.findOne({
+  enrollmentId,
+  status: 'completed'
+});
+
+if (completedPayment) {
+  return res.status(400).json(errors.badRequest('该报名已完成支付'));
+}
+
+// 创建新的支付订单
+payment = await Payment.createOrder(...);
+```
+
+**经验教训**：
+- ⚠️ **幂等性**（Idempotency）很重要：同一个请求执行多次应该产生相同结果
+- ⚠️ 支付相关的 API 必须实现幂等性，防止创建重复订单
+- ⚠️ 不能盲目假设数据库状态，要考虑所有可能的状态
+- ✅ 待支付（pending）和处理中（processing）都应该被视为已有订单
+- ✅ API 应该检查所有相关状态，而不仅仅是成功状态
+- ✅ 错误消息应该清晰表达：订单存在（重试）vs 订单完成（不能重复支付）
+
+**相关代码修改**：
+- backend/src/controllers/payment.controller.js: 第 28-62 行（initiatePayment 方法的完整重写）
+
+---
+
+**最后更新**: 2025-11-21 (支付 API 修复 + 幂等性实现)
 **维护者**: Claude Code

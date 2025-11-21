@@ -8,7 +8,7 @@ const { success, errors } = require('../utils/response');
  */
 exports.initiatePayment = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const {
       enrollmentId,
       paymentMethod = 'wechat',
@@ -25,18 +25,35 @@ exports.initiatePayment = async (req, res) => {
       return res.status(404).json(errors.notFound('报名记录不存在'));
     }
 
-    // 检查是否已支付
-    const existingPayment = await Payment.findOne({
+    // 检查是否已有待支付的订单
+    let payment = await Payment.findOne({
+      enrollmentId,
+      status: { $in: ['pending', 'processing'] }
+    });
+
+    // 如果已有待支付或处理中的订单，直接返回该订单
+    if (payment) {
+      return res.json(success({
+        paymentId: payment._id,
+        orderNo: payment.orderNo,
+        amount: payment.amount,
+        status: payment.status,
+        message: '订单已存在，请继续支付'
+      }));
+    }
+
+    // 检查是否已完成支付
+    const completedPayment = await Payment.findOne({
       enrollmentId,
       status: 'completed'
     });
 
-    if (existingPayment) {
+    if (completedPayment) {
       return res.status(400).json(errors.badRequest('该报名已完成支付'));
     }
 
-    // 创建支付订单
-    const payment = await Payment.createOrder(
+    // 创建新的支付订单
+    payment = await Payment.createOrder(
       enrollmentId,
       userId,
       enrollment.periodId,
@@ -82,7 +99,7 @@ exports.initiatePayment = async (req, res) => {
  */
 exports.confirmPayment = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const { paymentId } = req.params;
     const { transactionId } = req.body;
 
@@ -129,7 +146,7 @@ exports.confirmPayment = async (req, res) => {
  */
 exports.getPaymentStatus = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const { paymentId } = req.params;
 
     // 查找支付记录
@@ -167,7 +184,7 @@ exports.getPaymentStatus = async (req, res) => {
  */
 exports.cancelPayment = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const { paymentId } = req.params;
 
     // 查找支付记录
@@ -203,7 +220,7 @@ exports.cancelPayment = async (req, res) => {
  */
 exports.getUserPayments = async (req, res) => {
   try {
-    const userId = req.params.userId || req.user._id;
+    const userId = req.params.userId || req.user.userId;
     const {
       page = 1,
       limit = 20,
@@ -290,7 +307,7 @@ exports.wechatCallback = async (req, res) => {
  */
 exports.mockConfirmPayment = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const { paymentId } = req.params;
 
     // 查找支付记录
