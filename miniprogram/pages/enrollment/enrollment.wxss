@@ -131,6 +131,12 @@ input.form-control {
   line-height: 28rpx;
 }
 
+/* 统一 placeholder 样式，防止焦点时上移 */
+input.form-control::placeholder {
+  color: #999;
+  opacity: 1;
+}
+
 /* Picker 控制 */
 picker {
   display: block;
@@ -217,6 +223,12 @@ textarea.form-control {
   max-height: 350rpx !important;
   padding: 16rpx 16rpx !important;
   resize: vertical !important;
+}
+
+/* textarea placeholder 样式统一 */
+textarea.form-control::placeholder {
+  color: #999;
+  opacity: 1;
 }
 
 /* 文字计数 */
