@@ -5,33 +5,41 @@
       <div class="stats-grid">
         <el-card class="stat-card">
           <div class="stat-item">
-            <div class="stat-value">{{ stats.totalEnrollments || 0 }}</div>
-            <div class="stat-label">总报名数</div>
-            <el-icon class="stat-icon"><User /></el-icon>
+            <div>
+              <div class="stat-value">{{ stats.totalEnrollments || 0 }}</div>
+              <div class="stat-label">总报名数</div>
+            </div>
+            <span class="stat-icon">👥</span>
           </div>
         </el-card>
 
         <el-card class="stat-card">
           <div class="stat-item">
-            <div class="stat-value">{{ stats.pendingApprovals || 0 }}</div>
-            <div class="stat-label">待审批</div>
-            <el-icon class="stat-icon warning"><Clock /></el-icon>
+            <div>
+              <div class="stat-value">{{ stats.pendingEnrollments || 0 }}</div>
+              <div class="stat-label">待审批</div>
+            </div>
+            <span class="stat-icon warning">⏳</span>
           </div>
         </el-card>
 
         <el-card class="stat-card">
           <div class="stat-item">
-            <div class="stat-value">{{ stats.totalPayments || 0 }}</div>
-            <div class="stat-label">支付总额</div>
-            <el-icon class="stat-icon success"><Money /></el-icon>
+            <div>
+              <div class="stat-value">¥{{ formatCurrency(stats.totalPaymentAmount || 0) }}</div>
+              <div class="stat-label">支付总额</div>
+            </div>
+            <span class="stat-icon success">💰</span>
           </div>
         </el-card>
 
         <el-card class="stat-card">
           <div class="stat-item">
-            <div class="stat-value">{{ stats.activePeriods || 0 }}</div>
-            <div class="stat-label">活跃期次</div>
-            <el-icon class="stat-icon info"><Calendar /></el-icon>
+            <div>
+              <div class="stat-value">{{ stats.activePeriods || 0 }}</div>
+              <div class="stat-label">活跃期次</div>
+            </div>
+            <span class="stat-icon info">📅</span>
           </div>
         </el-card>
       </div>
@@ -136,7 +144,6 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminLayout from '../components/AdminLayout.vue'
 import { statsApi, enrollmentApi, paymentApi } from '../services/api'
-import { User, Clock, Money, Calendar } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -241,6 +248,10 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN')
 }
+
+function formatCurrency(amount: number): string {
+  return (amount / 100).toFixed(2)
+}
 </script>
 
 <style scoped>
@@ -287,22 +298,11 @@ function formatDate(dateString: string): string {
 
 .stat-icon {
   font-size: 48px;
-  opacity: 0.1;
+  opacity: 0.3;
   position: absolute;
   right: 20px;
   top: 20px;
-}
-
-.stat-icon.warning {
-  color: #e6a23c;
-}
-
-.stat-icon.success {
-  color: #67c23a;
-}
-
-.stat-icon.info {
-  color: #409eff;
+  line-height: 1;
 }
 
 .card-header {
