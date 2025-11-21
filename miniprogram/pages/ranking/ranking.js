@@ -1,4 +1,7 @@
 // 排行榜页面
+const rankingService = require('../../services/ranking.service');
+const { getAvatarColorByUserId } = require('../../utils/formatters');
+
 Page({
   data: {
     periodId: null,
@@ -14,81 +17,77 @@ Page({
     currentTab: 'all',
 
     // 当前用户信息
-    currentUser: {
-      userId: 1000,
-      userName: '我',
-      avatarText: '我',
-      avatarColor: '#4a90e2',
-      rank: 5,
-      checkinCount: 12
-    },
+    currentUser: null,
 
     // 参与人数
-    participantCount: 156,
+    participantCount: 0,
 
     // 排行榜列表
-    rankingList: []
+    rankingList: [],
+
+    // 加载状态
+    loading: true
   },
 
   onLoad(options) {
     console.log('排行榜页面加载', options);
     if (options.periodId) {
-      this.setData({ periodId: parseInt(options.periodId) });
+      this.periodId = options.periodId;
+      this.loadRanking('all');
     }
-
-    this.loadRankingData();
   },
 
   /**
-   * 加载排行榜数据
+   * 加载排行榜数据（使用真实API）
    */
-  loadRankingData() {
-    const { currentTab } = this.data;
-
-    // Mock 数据 - 后续替换为真实接口
-    const mockRankingList = this.generateMockRanking();
-
+  async loadRanking(timeRange) {
     this.setData({
-      rankingList: mockRankingList
+      loading: true,
+      currentTab: timeRange
     });
-  },
 
-  /**
-   * 生成 Mock 排行榜数据
-   */
-  generateMockRanking() {
-    const colors = ['#4a90e2', '#e74c3c', '#f39c12', '#2ecc71', '#9b59b6', '#1abc9c'];
-    const names = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十', '郑十一', '陈十二'];
-
-    const ranking = [];
-    for (let i = 0; i < 20; i++) {
-      const name = names[i % names.length] + (i >= names.length ? i : '');
-      const checkinCount = Math.max(1, 30 - i * 2 - Math.floor(Math.random() * 3));
-
-      ranking.push({
-        rank: i + 1,
-        userId: 2000 + i,
-        userName: name,
-        avatarText: name.charAt(name.length - 1),
-        avatarColor: colors[i % colors.length],
-        checkinCount
+    try {
+      const res = await rankingService.getPeriodRanking(this.periodId, {
+        timeRange,
+        page: 1,
+        limit: 20
       });
-    }
 
-    return ranking;
+      // 转换数据：添加 avatarColor 和头像文字
+      const list = res.data.list.map(item => ({
+        ...item,
+        avatarColor: getAvatarColorByUserId(item.userId),
+        avatarText: item.nickname.charAt(item.nickname.length - 1)
+      }));
+
+      const currentUser = res.data.currentUser ? {
+        ...res.data.currentUser,
+        avatarColor: getAvatarColorByUserId(res.data.currentUser.userId),
+        avatarText: res.data.currentUser.nickname.charAt(res.data.currentUser.nickname.length - 1)
+      } : null;
+
+      this.setData({
+        rankingList: list,
+        currentUser,
+        participantCount: res.data.total,
+        loading: false
+      });
+    } catch (error) {
+      console.error('加载排行榜失败:', error);
+      wx.showToast({
+        title: '加载排行榜失败',
+        icon: 'none'
+      });
+      this.setData({ loading: false });
+    }
   },
 
   /**
    * Tab切换
    */
   handleTabChange(e) {
-    const { tab } = e.currentTarget.dataset;
-
-    this.setData({
-      currentTab: tab
-    }, () => {
-      this.loadRankingData();
-    });
+    const tab = e.currentTarget.dataset.tab;
+    this.loadRanking(tab);
   },
 
   /**
