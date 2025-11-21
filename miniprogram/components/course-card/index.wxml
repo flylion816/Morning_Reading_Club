@@ -1,4 +1,4 @@
-<view class="course-card {{isPending ? 'pending' : ''}}" catchtap="onCardTap">
+<view class="course-card {{isPending ? 'pending' : ''}}" bindtap="onCardTap">
   <!-- 左侧缩略图 -->
   <view class="course-thumb" style="background: {{course.color || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)'}}">
     <text class="thumb-icon">{{course.icon || '📚'}}</text>
