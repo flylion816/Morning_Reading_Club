@@ -3,7 +3,7 @@
  * 处理报名后的支付流程
  */
 
-const enrollmentService = require('../../services/enrollment.service');
+const paymentService = require('../../services/payment.service');
 
 Page({
   data: {
@@ -171,67 +171,73 @@ Page({
    * 模拟支付流程（开发测试用）
    */
   async handleMockPayment() {
-    return new Promise((resolve) => {
-      // 模拟 2 秒支付处理时间
-      setTimeout(() => {
-        console.log('模拟支付完成');
-        this.handlePaymentSuccess();
-        resolve();
-      }, 2000);
-    });
+    try {
+      const { enrollmentData } = this.data;
+
+      // 1. 调用后端初始化支付
+      console.log('初始化模拟支付...');
+      const initRes = await paymentService.initiatePayment({
+        enrollmentId: enrollmentData.enrollmentId,
+        paymentMethod: 'mock',
+        amount: this.data.finalAmount
+      });
+
+      if (initRes && initRes._id) {
+        console.log('支付初始化成功，paymentId:', initRes._id);
+
+        // 模拟 2 秒支付处理时间
+        return new Promise((resolve) => {
+          setTimeout(async () => {
+            console.log('模拟支付完成');
+            // 调用后端确认支付
+            try {
+              const confirmRes = await paymentService.confirmPayment(initRes._id);
+              console.log('支付确认成功:', confirmRes);
+              this.handlePaymentSuccess();
+              resolve();
+            } catch (confirmErr) {
+              console.error('确认支付失败:', confirmErr);
+              throw confirmErr;
+            }
+          }, 2000);
+        });
+      }
+    } catch (error) {
+      console.error('模拟支付异常:', error);
+      throw error;
+    }
   },
 
   /**
    * 支付成功处理
    */
-  async handlePaymentSuccess() {
-    try {
-      const { enrollmentData, finalAmount } = this.data;
+  handlePaymentSuccess() {
+    const { enrollmentData, finalAmount } = this.data;
 
-      // 1. 调用后端确认支付
-      console.log('确认支付...');
-      // 这里应该调用后端 API 确认支付
-      // const res = await enrollmentService.confirmPayment({
-      //   enrollmentId: enrollmentData.enrollmentId,
-      //   amount: finalAmount
-      // });
+    // 显示成功结果
+    this.setData({
+      showPaymentResult: true,
+      'paymentResult.success': true,
+      'paymentResult.title': '支付成功',
+      'paymentResult.message': '报名已完成，现在可以进入课程学习了'
+    });
 
-      // 2. 模拟后端确认支付
-      const mockConfirmation = {
-        success: true,
-        message: '支付确认成功'
-      };
+    // 保存支付成功状态到本地存储
+    const enrollmentInfo = {
+      enrollmentId: enrollmentData.enrollmentId,
+      periodId: enrollmentData.periodId,
+      periodTitle: enrollmentData.periodTitle,
+      paymentStatus: 'paid',
+      paidAt: new Date().toISOString(),
+      finalAmount: finalAmount
+    };
 
-      if (mockConfirmation.success) {
-        // 3. 显示成功结果
-        this.setData({
-          showPaymentResult: true,
-          'paymentResult.success': true,
-          'paymentResult.title': '支付成功',
-          'paymentResult.message': '报名已完成，现在可以进入课程学习了'
-        });
+    wx.setStorageSync('lastEnrollment', enrollmentInfo);
 
-        // 4. 保存支付成功状态到本地存储
-        const enrollmentInfo = {
-          enrollmentId: enrollmentData.enrollmentId,
-          periodId: enrollmentData.periodId,
-          periodTitle: enrollmentData.periodTitle,
-          paymentStatus: 'paid',
-          paidAt: new Date().toISOString(),
-          finalAmount: finalAmount
-        };
-
-        wx.setStorageSync('lastEnrollment', enrollmentInfo);
-
-        // 保存到报名列表
-        const enrollments = wx.getStorageSync('enrollments') || [];
-        enrollments.unshift(enrollmentInfo);
-        wx.setStorageSync('enrollments', enrollments);
-      }
-    } catch (error) {
-      console.error('支付确认失败:', error);
-      this.showPaymentFailed('支付确认失败', '请稍后重试');
-    }
+    // 保存到报名列表
+    const enrollments = wx.getStorageSync('enrollments') || [];
+    enrollments.unshift(enrollmentInfo);
+    wx.setStorageSync('enrollments', enrollments);
   },
 
   /**
