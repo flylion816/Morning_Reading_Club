@@ -131,8 +131,6 @@ const handleLogin = async () => {
     const success = await authStore.login(form.email, form.password)
     if (success) {
       ElMessage.success('登录成功')
-      // 等待 Vue 更新 store 后再跳转，确保 isAuthenticated 已更新
-      await new Promise(resolve => setTimeout(resolve, 100))
       router.push('/')
     }
   })

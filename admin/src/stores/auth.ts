@@ -3,10 +3,18 @@ import { ref, computed } from 'vue'
 import { authApi } from '../services/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  const adminToken = ref<string | null>(localStorage.getItem('adminToken'))
+  const adminToken = ref<string | null>(null)
   const adminInfo = ref<any>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+
+  // 初始化时从 localStorage 恢复 token
+  function initToken() {
+    const token = localStorage.getItem('adminToken')
+    if (token) {
+      adminToken.value = token
+    }
+  }
 
   const isAuthenticated = computed(() => !!adminToken.value)
 
@@ -67,6 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     isAuthenticated,
+    initToken,
     login,
     logout,
     getProfile,
