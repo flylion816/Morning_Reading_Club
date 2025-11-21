@@ -256,9 +256,22 @@ Page({
     this.setData({ submitting: true });
 
     try {
+      // 获取当前用户ID
+      const app = getApp();
+      const userId = app.globalData.userInfo?._id;
+
+      if (!userId) {
+        wx.showToast({
+          title: '用户信息不存在，请重新登录',
+          icon: 'none'
+        });
+        return;
+      }
+
       // 准备提交数据
       const submitData = {
         ...this.data.form,
+        userId,  // 添加用户ID
         age: parseInt(this.data.form.age),
         readTimes: this.data.form.hasReadBook === 'yes' ? parseInt(this.data.form.readTimes) : 0
       };
