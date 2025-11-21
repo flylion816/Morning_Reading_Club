@@ -1,12 +1,12 @@
 const express = require('express')
 const router = express.Router()
 const auditController = require('../controllers/audit.controller')
-const { authenticateToken, requireRole } = require('../middleware/auth')
+const { authMiddleware, adminMiddleware } = require('../middleware/auth')
 
 /**
  * 所有审计日志路由都需要认证
  */
-router.use(authenticateToken)
+router.use(authMiddleware)
 
 /**
  * 获取审计日志列表
@@ -45,7 +45,7 @@ router.get('/export', auditController.exportLogs.bind(auditController))
  */
 router.post(
   '/cleanup',
-  requireRole(['superadmin']),
+  adminMiddleware,
   auditController.cleanupExpiredLogs.bind(auditController)
 )
 
