@@ -2416,5 +2416,76 @@ const dateStr = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 
 
 ---
 
-**最后更新**: 2025-11-21 (添加经验 27-30, 完成 Mock 到真实数据的迁移，修复打卡记录页面所有问题)
+## 🎯 报名系统开发 (Week 1: 2025-11-21 完成)
+
+### ✅ 已完成的功能
+
+**前端报名页面** (`miniprogram/pages/enrollment/`)
+
+- **enrollment.wxml**: 完整的报名表单结构
+  - 期次选择 (picker组件)
+  - 11个表单字段：姓名、性别、地址、年龄、推荐人、是否读过、读过次数、参加缘起、期待、承诺事项
+  - 条件显示：读过次数仅在"是"时显示
+  - 文本区域字数统计（500字限制）
+  - 取消和提交按钮
+
+- **enrollment.js**: 完整的业务逻辑
+  - 期次列表加载和选择
+  - 省份选择列表和地址输入
+  - 完整的表单验证函数（必填字段、格式检查）
+  - 错误状态管理
+  - 表单提交处理和API调用
+  - 确认提示和页面返回
+
+- **enrollment.wxss**: 美观的样式
+  - 渐变色头部（与品牌色一致）
+  - Form group 间距和标签样式
+  - Radio/Picker 组件的特殊样式
+  - 加载动画和提交按钮状态
+  - 响应式布局支持
+
+**后端API实现**
+
+- **Enrollment Model** 扩展:
+  - 添加11个表单字段（name, gender, province, detailedAddress, age, referrer等）
+  - 添加 approvalStatus (待审批/已批准/已拒绝)
+  - 审批信息字段（approvedBy, approvedAt, approvalNotes）
+
+- **enrollment.controller.js**:
+  - submitEnrollmentForm: 处理完整表单提交
+  - 完整的字段验证逻辑
+  - 重复报名检查
+  - 期次人数更新
+
+- **enrollment.routes.js**:
+  - POST /api/v1/enrollments - 完整表单提交
+  - POST /api/v1/enrollments/simple - 简化报名
+  - 其他现有路由保持不变
+
+- **enrollment.service.js** (小程序):
+  - getPeriods(): 获取可报名期次列表
+  - submitEnrollment(data): 提交报名表单
+
+### 关键实现细节
+
+1. **表单验证**: 前端完整的客户端验证，所有必填字段都有检查
+2. **条件显示**: 读过次数仅在选择"是"时显示和验证
+3. **字数限制**: 参加缘起和期待各限制500字
+4. **年龄验证**: 1-120范围的数字验证
+5. **审批流**: 后端支持报名后的待审批状态和管理员审批流程
+
+### 后续开发计划
+
+- **Week 2-3**: Admin Dashboard
+  - 报名审批管理
+  - 期次管理和内容编辑
+  - 用户管理
+
+- **Week 3-4**: Payment & Integration
+  - 支付功能集成
+  - 整个报名流程测试
+
+---
+
+**最后更新**: 2025-11-21 (完成报名系统前端页面和后端API实现 - commit cd7f246)
 **维护者**: Claude Code
