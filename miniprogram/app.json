@@ -12,7 +12,9 @@
     "pages/insight-detail/insight-detail",
     "pages/profile-others/profile-others",
     "pages/share/share",
-    "pages/login/login"
+    "pages/login/login",
+    "pages/enrollment/enrollment",
+    "pages/payment/payment"
   ],
   "window": {
     "navigationBarTitleText": "晨读营",

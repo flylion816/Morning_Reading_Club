@@ -246,17 +246,27 @@ Page({
       console.log('报名成功，响应:', res);
 
       wx.showToast({
-        title: '报名成功',
+        title: '报名成功，前往支付',
         icon: 'success',
-        duration: 2000
+        duration: 1500
       });
 
-      // 延迟2秒后返回
+      // 获取期次信息
+      const selectedPeriod = this.data.periodList[this.data.selectedPeriodIndex];
+
+      // 延迟1.5秒后导航到支付页面
       setTimeout(() => {
-        wx.navigateBack({
-          delta: 1
+        wx.navigateTo({
+          url: `/pages/payment/payment?enrollmentId=${res._id}&periodId=${selectedPeriod._id}&periodTitle=${selectedPeriod.name}&startDate=${selectedPeriod.startDate}&endDate=${selectedPeriod.endDate}&amount=99`,
+          fail: (err) => {
+            console.error('导航到支付页面失败:', err);
+            wx.showToast({
+              title: '导航失败，请重试',
+              icon: 'none'
+            });
+          }
         });
-      }, 2000);
+      }, 1500);
     } catch (error) {
       console.error('报名失败:', error);
       wx.showToast({

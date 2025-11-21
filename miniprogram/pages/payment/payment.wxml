@@ -1,0 +1,120 @@
+<!-- 支付页面 -->
+<view class="page-payment">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+
+  <!-- 支付页面内容 -->
+  <view wx:else class="payment-container">
+    <!-- 页面头部 -->
+    <view class="payment-header">
+      <view class="header-icon">💳</view>
+      <text class="header-title">确认支付</text>
+      <text class="header-subtitle">完成报名、开启学习</text>
+    </view>
+
+    <!-- 订单信息卡片 -->
+    <view class="order-card">
+      <!-- 课程信息 -->
+      <view class="section">
+        <text class="section-title">报名课程</text>
+        <view class="course-info">
+          <text class="course-title">{{enrollmentData.periodTitle}}</text>
+          <text class="course-subtitle">{{enrollmentData.startDate}} 至 {{enrollmentData.endDate}}</text>
+        </view>
+      </view>
+
+      <!-- 分隔线 -->
+      <view class="divider"></view>
+
+      <!-- 金额信息 -->
+      <view class="section">
+        <view class="price-row">
+          <text class="price-label">课程费用</text>
+          <text class="price-value">¥{{paymentAmount}}</text>
+        </view>
+        <view class="price-row">
+          <text class="price-label">优惠金额</text>
+          <text class="price-discount">-¥{{discountAmount}}</text>
+        </view>
+        <view class="divider-light"></view>
+        <view class="price-row total">
+          <text class="price-label">应付金额</text>
+          <text class="price-total">¥{{finalAmount}}</text>
+        </view>
+      </view>
+
+      <!-- 支付说明 -->
+      <view class="payment-tips">
+        <text class="tip-icon">ℹ️</text>
+        <text class="tip-text">支付成功后，您可以立即进入课程开始学习</text>
+      </view>
+    </view>
+
+    <!-- 支付方式选择 -->
+    <view class="payment-methods">
+      <text class="methods-title">选择支付方式</text>
+
+      <!-- 微信支付 -->
+      <view class="method-item {{paymentMethod === 'wechat' ? 'active' : ''}}"
+            catchtap="selectPaymentMethod"
+            data-method="wechat">
+        <view class="method-left">
+          <view class="method-icon wechat">💚</view>
+          <view class="method-info">
+            <text class="method-name">微信支付</text>
+            <text class="method-desc">微信钱包、银行卡、零钱</text>
+          </view>
+        </view>
+        <view class="method-check {{paymentMethod === 'wechat' ? 'checked' : ''}}"></view>
+      </view>
+
+      <!-- 模拟支付（开发测试） -->
+      <view class="method-item {{paymentMethod === 'mock' ? 'active' : ''}}"
+            catchtap="selectPaymentMethod"
+            data-method="mock">
+        <view class="method-left">
+          <view class="method-icon mock">🧪</view>
+          <view class="method-info">
+            <text class="method-name">模拟支付（测试用）</text>
+            <text class="method-desc">仅用于开发测试，点击即支付</text>
+          </view>
+        </view>
+        <view class="method-check {{paymentMethod === 'mock' ? 'checked' : ''}}"></view>
+      </view>
+    </view>
+
+    <!-- 支付按钮 -->
+    <view class="payment-actions">
+      <button class="btn btn-secondary" catchtap="handleCancel">返回</button>
+      <button class="btn btn-primary"
+              catchtap="handlePayment"
+              disabled="{{!paymentMethod || paying}}"
+              loading="{{paying}}">
+        {{paying ? '支付中...' : '确认支付 ¥' + finalAmount}}
+      </button>
+    </view>
+
+    <!-- 支付结果弹窗 -->
+    <view wx:if="{{showPaymentResult}}" class="modal-mask" catchtap="closeModal">
+      <view class="modal-content" catchtap="preventClose">
+        <view class="result-icon {{paymentResult.success ? 'success' : 'failed'}}">
+          {{paymentResult.success ? '✓' : '✕'}}
+        </view>
+        <text class="result-title">{{paymentResult.title}}</text>
+        <text class="result-message">{{paymentResult.message}}</text>
+
+        <view class="modal-actions">
+          <button wx:if="{{!paymentResult.success}}" class="btn btn-secondary" catchtap="closeModal">
+            返回重试
+          </button>
+          <button wx:if="{{paymentResult.success}}" class="btn btn-primary" catchtap="handleSuccess">
+            进入课程
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
