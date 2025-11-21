@@ -56,11 +56,7 @@ class CheckinService {
    * @returns {Promise}
    */
   getCheckins(params = {}) {
-    return request.request({
-      url: '/checkins/user/',
-      method: 'GET',
-      data: params
-    });
+    return request.get('/checkins/user/', params);
   }
 
   /**
@@ -107,8 +103,8 @@ class CheckinService {
       year,
       month
     }).then(res => {
-      // 返回日历部分
-      return res.data.calendar;
+      // 返回日历部分（request.js已解包，直接访问res.calendar）
+      return res.calendar;
     });
   }
 

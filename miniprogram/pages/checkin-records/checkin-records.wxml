@@ -39,7 +39,7 @@
     <view class="calendar-header">
       <view class="month-selector">
         <view class="month-btn" bindtap="handlePrevMonth">‹</view>
-        <view class="month-text">{{currentMonth}}</view>
+        <view class="month-text">{{monthText}}</view>
         <view class="month-btn" bindtap="handleNextMonth">›</view>
       </view>
     </view>
@@ -51,7 +51,7 @@
     <view class="calendar-grid">
       <view
         wx:for="{{calendarDays}}"
-        wx:key="date"
+        wx:key="day"
         class="calendar-day {{item.isCurrentMonth ? '' : 'other-month'}} {{item.hasCheckin ? 'checked' : ''}}">
         <view class="day-number">{{item.day}}</view>
         <view wx:if="{{item.hasCheckin}}" class="day-dot"></view>
