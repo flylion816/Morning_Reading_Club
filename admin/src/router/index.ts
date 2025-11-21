@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -65,11 +66,17 @@ const router = createRouter({
 
 // Global route guard for authentication
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('adminToken')
+  const authStore = useAuthStore()
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-  } else if (to.path === '/login' && isAuthenticated) {
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    // 重定向到登录页，但不能是已经在登录页的情况
+    if (to.path !== '/login') {
+      next('/login')
+    } else {
+      next()
+    }
+  } else if (to.path === '/login' && authStore.isAuthenticated) {
+    // 已登录时访问登录页，重定向到首页
     next('/')
   } else {
     next()

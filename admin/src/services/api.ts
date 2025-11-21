@@ -30,8 +30,11 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     // 后端返回格式：{code, message, data: {...}}
-    // 直接返回 data 部分
-    return response.data.data || response.data
+    // 确保返回 data 部分，避免返回整个响应对象
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      return response.data.data
+    }
+    return response.data
   },
   (error) => {
     if (error.response?.status === 401) {
