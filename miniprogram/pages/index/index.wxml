@@ -11,32 +11,18 @@
       wx:for="{{periods}}"
       wx:key="id"
       class="period-wrapper"
+      catchtap="handlePeriodClick"
+      data-period-id="{{item.id}}"
     >
       <course-card
         course="{{item}}"
         mode="period"
-        bindtap="handlePeriodClick"
+        enrolled="{{periodEnrollmentStatus[item.id]}}"
       />
 
-      <!-- 报名状态和按钮 -->
-      <view class="period-actions">
-        <!-- 已报名状态 -->
-        <view wx:if="{{periodEnrollmentStatus[item.id]}}" class="enrollment-status enrolled">
-          <text class="status-badge">✓ 已报名</text>
-          <text class="status-tip">点击进入课程</text>
-        </view>
-
-        <!-- 未报名状态 -->
-        <view wx:else class="enrollment-status not-enrolled">
-          <button
-            class="enroll-btn"
-            catchtap="handleEnrollClick"
-            data-period-id="{{item.id}}"
-            data-period-name="{{item.name}}"
-          >
-            立即报名
-          </button>
-        </view>
+      <!-- 报名/已报名状态标签 -->
+      <view class="enrollment-label" wx:if="{{periodEnrollmentStatus[item.id]}}">
+        <text class="label-text enrolled-text">✓ 已报名</text>
       </view>
     </view>
 

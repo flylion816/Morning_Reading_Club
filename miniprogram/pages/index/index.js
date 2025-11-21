@@ -148,27 +148,16 @@ Page({
   },
 
   /**
-   * 点击期次卡片
+   * 点击期次卡片 - 根据报名状态智能导航
    */
   handlePeriodClick(e) {
-    console.log('===== handlePeriodClick 被调用 =====');
-    console.log('事件详情:', e.detail);
-
-    // course-card 组件传递的是 course 字段
-    const period = e.detail.course || {};
-
-    if (!period || !period.id) {
-      console.error('期次信息不存在，period:', period);
-      return;
-    }
-
-    console.log('期次信息正常，id:', period.id, 'name:', period.name);
+    const periodId = e.currentTarget.dataset.periodId;
 
     // 检查是否已登录
     if (!this.data.isLogin) {
       wx.showModal({
         title: '请先登录',
-        content: '需要登录才能进行报名操作',
+        content: '需要登录才能进行操作',
         confirmText: '去登录',
         success: (res) => {
           if (res.confirm) {
@@ -181,48 +170,24 @@ Page({
       return;
     }
 
+    // 获取点击的期次信息
+    const period = this.data.periods.find(p => p.id === periodId);
+    if (!period) return;
+
     // 检查是否已报名
-    const isEnrolled = this.data.periodEnrollmentStatus[period.id];
+    const isEnrolled = this.data.periodEnrollmentStatus[periodId];
 
     if (isEnrolled) {
       // 已报名，进入课程列表
       wx.navigateTo({
-        url: `/pages/courses/courses?periodId=${period.id}&name=${period.name || ''}`
+        url: `/pages/courses/courses?periodId=${periodId}&name=${period.name || ''}`
       });
     } else {
       // 未报名，进入报名页面
       wx.navigateTo({
-        url: `/pages/enrollment/enrollment?periodId=${period.id}`
+        url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
     }
-  },
-
-  /**
-   * 处理报名按钮点击
-   */
-  handleEnrollClick(e) {
-    const { periodId, periodName } = e.currentTarget.dataset;
-
-    if (!this.data.isLogin) {
-      wx.showModal({
-        title: '请先登录',
-        content: '需要登录才能进行报名操作',
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({
-              url: '/pages/login/login'
-            });
-          }
-        }
-      });
-      return;
-    }
-
-    // 进入报名页面
-    wx.navigateTo({
-      url: `/pages/enrollment/enrollment?periodId=${periodId}`
-    });
   },
 
   /**
