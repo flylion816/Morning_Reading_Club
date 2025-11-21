@@ -37,6 +37,44 @@
             搜索
           </el-button>
         </div>
+
+        <!-- 批量操作工具栏 -->
+        <div v-if="selectedEnrollments.length > 0" class="batch-operation-bar">
+          <span class="selected-count">已选中 {{ selectedEnrollments.length }} 条记录</span>
+          <div class="batch-actions">
+            <el-button
+              type="success"
+              size="small"
+              @click="batchApprove"
+              :disabled="!hasSelectedPending"
+            >
+              ✅ 批量批准
+            </el-button>
+            <el-button
+              type="warning"
+              size="small"
+              @click="batchReject"
+              :disabled="!hasSelectedPending"
+            >
+              ❌ 批量拒绝
+            </el-button>
+            <el-button
+              type="danger"
+              size="small"
+              @click="batchDelete"
+            >
+              🗑️ 批量删除
+            </el-button>
+            <el-button
+              type="info"
+              text
+              size="small"
+              @click="clearSelection"
+            >
+              清除选择
+            </el-button>
+          </div>
+        </div>
       </el-card>
 
       <!-- 报名列表 -->
@@ -56,7 +94,10 @@
           stripe
           style="width: 100%"
           v-loading="loading"
+          @selection-change="handleSelectionChange"
+          ref="tableRef"
         >
+          <el-table-column type="selection" width="50" />
           <el-table-column prop="name" label="姓名" width="100" />
           <el-table-column prop="province" label="省份" width="100" />
           <el-table-column prop="age" label="年龄" width="80" />
@@ -264,6 +305,8 @@ const currentEnrollment = ref<any>(null)
 const currentForm = ref({
   notes: ''
 })
+const selectedEnrollments = ref<any[]>([])
+const tableRef = ref()
 
 const dialogs = ref({
   approveVisible: false,
@@ -273,6 +316,10 @@ const dialogs = ref({
 
 const pendingCount = computed(() => {
   return enrollments.value.filter(e => e.approvalStatus === 'pending').length
+})
+
+const hasSelectedPending = computed(() => {
+  return selectedEnrollments.value.some(e => e.approvalStatus === 'pending')
 })
 
 onMounted(() => {
@@ -386,6 +433,130 @@ async function handleDelete(enrollment: any) {
   }
 }
 
+// 批量操作函数
+function handleSelectionChange(selection: any[]) {
+  selectedEnrollments.value = selection
+}
+
+function clearSelection() {
+  selectedEnrollments.value = []
+  tableRef.value?.clearSelection()
+}
+
+async function batchApprove() {
+  if (selectedEnrollments.value.length === 0) {
+    ElMessage.warning('请先选择要批准的报名')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要批准选中的 ${selectedEnrollments.value.length} 条报名吗？`,
+      '批量批准',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    loading.value = true
+    const ids = selectedEnrollments.value.map((e: any) => e._id)
+
+    // 并行发送所有请求
+    const promises = ids.map((id: string) =>
+      enrollmentApi.updateEnrollment(id, { approvalStatus: 'approved' })
+    )
+    await Promise.all(promises)
+
+    ElMessage.success(`成功批准 ${ids.length} 条报名`)
+    clearSelection()
+    loadEnrollments()
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error('批量批准失败')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+async function batchReject() {
+  if (selectedEnrollments.value.length === 0) {
+    ElMessage.warning('请先选择要拒绝的报名')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要拒绝选中的 ${selectedEnrollments.value.length} 条报名吗？`,
+      '批量拒绝',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    loading.value = true
+    const ids = selectedEnrollments.value.map((e: any) => e._id)
+
+    // 并行发送所有请求
+    const promises = ids.map((id: string) =>
+      enrollmentApi.updateEnrollment(id, { approvalStatus: 'rejected' })
+    )
+    await Promise.all(promises)
+
+    ElMessage.success(`成功拒绝 ${ids.length} 条报名`)
+    clearSelection()
+    loadEnrollments()
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error('批量拒绝失败')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+async function batchDelete() {
+  if (selectedEnrollments.value.length === 0) {
+    ElMessage.warning('请先选择要删除的报名')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedEnrollments.value.length} 条报名吗？此操作不可撤销`,
+      '批量删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }
+    )
+
+    loading.value = true
+    const ids = selectedEnrollments.value.map((e: any) => e._id)
+
+    // 并行发送所有请求
+    const promises = ids.map((id: string) =>
+      enrollmentApi.updateEnrollment(id, { deleted: true })
+    )
+    await Promise.all(promises)
+
+    ElMessage.success(`成功删除 ${ids.length} 条报名`)
+    clearSelection()
+    loadEnrollments()
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error('批量删除失败')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
 function resetForm() {
   currentEnrollment.value = null
   currentForm.value = { notes: '' }
@@ -461,5 +632,62 @@ function formatGender(gender: string): string {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+}
+
+.batch-operation-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  animation: slideDown 0.3s ease-out;
+}
+
+.selected-count {
+  font-weight: 600;
+  color: #303133;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.batch-actions :deep(.el-button) {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .batch-operation-bar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .batch-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 </style>
