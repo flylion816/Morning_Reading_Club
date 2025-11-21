@@ -198,7 +198,8 @@ picker {
 }
 
 .radio-item radio {
-  margin-right: 8rpx;
+  margin-right: 12rpx;
+  transform: scale(0.8);
 }
 
 .radio-item text {
