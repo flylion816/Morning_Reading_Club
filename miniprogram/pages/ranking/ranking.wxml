@@ -1,7 +1,7 @@
 <!--排行榜页面-->
 <view class="page-ranking">
   <!-- 当前用户信息卡片 -->
-  <view class="user-card">
+  <view class="user-card" wx:if="{{currentUser}}">
     <view class="user-info">
       <view class="user-avatar" style="background: {{currentUser.avatarColor}}">
         <text class="avatar-text">{{currentUser.avatarText}}</text>
@@ -10,6 +10,14 @@
         <view class="user-rank">我的排名：第{{currentUser.rank}}名</view>
         <view class="user-stats">已打卡 {{currentUser.checkinCount}} 天</view>
       </view>
+    </view>
+    <view class="participant-count">{{participantCount}} 人参与</view>
+  </view>
+
+  <!-- 当前用户未参与此时间范围 -->
+  <view class="user-card" wx:else>
+    <view class="user-info">
+      <text class="empty-message">该时间范围内暂无打卡记录</text>
     </view>
     <view class="participant-count">{{participantCount}} 人参与</view>
   </view>
@@ -47,7 +55,7 @@
       <view class="user-avatar" style="background: {{item.avatarColor}}">
         <text class="avatar-text">{{item.avatarText}}</text>
       </view>
-      <view class="user-name">{{item.userName}}</view>
+      <view class="user-name">{{item.nickname}}</view>
 
       <!-- 打卡天数 -->
       <view class="checkin-days">{{item.checkinCount}}天</view>
