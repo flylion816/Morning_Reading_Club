@@ -178,6 +178,29 @@ Page({
   },
 
   /**
+   * 处理单选框变化
+   */
+  handleRadioChange(e) {
+    const field = e.currentTarget.dataset.field;
+    const value = e.detail.value;
+
+    // 更新表单数据
+    const newForm = { ...this.data.form };
+    newForm[field] = value;
+
+    // 清除该字段的验证错误
+    const newErrors = { ...this.data.errors };
+    delete newErrors[field];
+
+    console.log(`单选框 ${field} 值已更新为: ${value}`);
+
+    this.setData({
+      form: newForm,
+      errors: newErrors
+    });
+  },
+
+  /**
    * 表单验证
    */
   validateForm() {

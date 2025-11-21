@@ -55,12 +55,14 @@
           <text class="required">*</text>
           <text>性别</text>
         </view>
-        <view class="radio-group">
-          <label class="radio-item" wx:for="{{genderOptions}}" wx:key="value">
-            <radio value="{{item.value}}" checked="{{form.gender === item.value}}" color="#4a90e2"/>
-            <text>{{item.label}}</text>
-          </label>
-        </view>
+        <radio-group bindchange="handleRadioChange" data-field="gender">
+          <view class="radio-group">
+            <label class="radio-item" wx:for="{{genderOptions}}" wx:key="value">
+              <radio value="{{item.value}}" checked="{{form.gender === item.value}}" color="#4a90e2"/>
+              <text>{{item.label}}</text>
+            </label>
+          </view>
+        </radio-group>
       </view>
 
       <!-- 地址 -->
@@ -128,12 +130,14 @@
           <text class="required">*</text>
           <text>您是否读过《高效能人士的七个习惯》</text>
         </view>
-        <view class="radio-group">
-          <label class="radio-item" wx:for="{{readOptions}}" wx:key="value">
-            <radio value="{{item.value}}" checked="{{form.hasReadBook === item.value}}" color="#4a90e2"/>
-            <text>{{item.label}}</text>
-          </label>
-        </view>
+        <radio-group bindchange="handleRadioChange" data-field="hasReadBook">
+          <view class="radio-group">
+            <label class="radio-item" wx:for="{{readOptions}}" wx:key="value">
+              <radio value="{{item.value}}" checked="{{form.hasReadBook === item.value}}" color="#4a90e2"/>
+              <text>{{item.label}}</text>
+            </label>
+          </view>
+        </radio-group>
       </view>
 
       <!-- 读过几遍（仅在选择"是"时显示） -->
@@ -194,12 +198,14 @@
           <text class="required">*</text>
           <text>每期晨读营自每月第二周周六并开始，持续23天，时间为每天早上6:00-7:00，您是否可以承诺全程参加</text>
         </view>
-        <view class="radio-group">
-          <label class="radio-item" wx:for="{{commitmentOptions}}" wx:key="value">
-            <radio value="{{item.value}}" checked="{{form.commitment === item.value}}" color="#4a90e2"/>
-            <text>{{item.label}}</text>
-          </label>
-        </view>
+        <radio-group bindchange="handleRadioChange" data-field="commitment">
+          <view class="radio-group">
+            <label class="radio-item" wx:for="{{commitmentOptions}}" wx:key="value">
+              <radio value="{{item.value}}" checked="{{form.commitment === item.value}}" color="#4a90e2"/>
+              <text>{{item.label}}</text>
+            </label>
+          </view>
+        </radio-group>
       </view>
 
       <!-- 提交按钮 -->
