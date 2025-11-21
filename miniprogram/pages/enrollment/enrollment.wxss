@@ -103,7 +103,7 @@
 /* 表单控制 */
 .form-control {
   width: 100%;
-  padding: 16rpx 12rpx;
+  padding: 18rpx 16rpx;
   border: 1rpx solid #e8e8e8;
   border-radius: 8rpx;
   font-size: 28rpx;
@@ -111,6 +111,8 @@
   background: white;
   box-sizing: border-box;
   transition: all 0.3s ease;
+  min-height: 56rpx;
+  line-height: 1.5;
 }
 
 .form-control:focus {
@@ -127,6 +129,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: auto;
+}
+
+/* 隐藏 picker 组件默认的白色分割线 */
+picker {
+  position: relative;
+}
+
+picker::before {
+  display: none;
+}
+
+picker::after {
+  display: none;
 }
 
 .picker-icon {
@@ -139,6 +155,10 @@
   display: flex;
   flex-direction: column;
   gap: 12rpx;
+}
+
+.address-group .form-control {
+  width: 100%;
 }
 
 /* 单选按钮组 */
