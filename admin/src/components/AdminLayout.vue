@@ -35,6 +35,11 @@
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
+
+        <el-menu-item index="/content">
+          <el-icon><Edit /></el-icon>
+          <span>内容管理</span>
+        </el-menu-item>
       </el-menu>
 
       <div class="sidebar-footer">
@@ -85,7 +90,8 @@ import {
   ShoppingCart,
   Calendar,
   User,
-  Switch
+  Switch,
+  Edit
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -100,7 +106,8 @@ const pageTitle = computed(() => {
     '/enrollments': '报名管理',
     '/payments': '支付记录',
     '/periods': '期次管理',
-    '/users': '用户管理'
+    '/users': '用户管理',
+    '/content': '内容管理'
   }
   return titles[route.path] || '管理后台'
 })
