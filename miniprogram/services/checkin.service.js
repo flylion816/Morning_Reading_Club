@@ -56,7 +56,7 @@ class CheckinService {
    * @returns {Promise}
    */
   getCheckins(params = {}) {
-    return request({
+    return request.request({
       url: '/checkins/user/',
       method: 'GET',
       data: params

@@ -12,8 +12,8 @@ module.exports = {
    * @returns {Promise}
    */
   enrollPeriod(periodId) {
-    return request({
-      url: `${apiConfig.apiBaseUrl}/enrollments/`,
+    return request.request({
+      url: `/enrollments/`,
       method: 'POST',
       data: {
         periodId
@@ -37,8 +37,8 @@ module.exports = {
       sortBy = 'enrolledAt'
     } = options;
 
-    return request({
-      url: `${apiConfig.apiBaseUrl}/enrollments/period/${periodId}`,
+    return request.request({
+      url: `/enrollments/period/${periodId}`,
       method: 'GET',
       data: {
         page,
@@ -63,8 +63,8 @@ module.exports = {
       status
     } = options;
 
-    return request({
-      url: `${apiConfig.apiBaseUrl}/enrollments/user/`,
+    return request.request({
+      url: `/enrollments/user/`,
       method: 'GET',
       data: {
         page,
@@ -80,8 +80,8 @@ module.exports = {
    * @returns {Promise}
    */
   checkEnrollment(periodId) {
-    return request({
-      url: `${apiConfig.apiBaseUrl}/enrollments/check/${periodId}`,
+    return request.request({
+      url: `/enrollments/check/${periodId}`,
       method: 'GET'
     });
   },
@@ -92,8 +92,8 @@ module.exports = {
    * @returns {Promise}
    */
   withdrawEnrollment(enrollmentId) {
-    return request({
-      url: `${apiConfig.apiBaseUrl}/enrollments/${enrollmentId}`,
+    return request.request({
+      url: `/enrollments/${enrollmentId}`,
       method: 'DELETE'
     });
   }

@@ -22,8 +22,8 @@ module.exports = {
       limit = 20
     } = options;
 
-    return request({
-      url: `${apiConfig.apiBaseUrl}/ranking/period/${periodId}`,
+    return request.request({
+      url: `/ranking/period/${periodId}`,
       method: 'GET',
       data: {
         timeRange,
