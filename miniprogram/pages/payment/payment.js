@@ -174,7 +174,7 @@ Page({
     try {
       const { enrollmentData } = this.data;
 
-      // 1. 调用后端初始化支付
+      // 1. 调用后端初始化支付（模拟支付会直接完成）
       console.log('初始化模拟支付...');
       const initRes = await paymentService.initiatePayment({
         enrollmentId: enrollmentData.enrollmentId,
@@ -182,25 +182,40 @@ Page({
         amount: this.data.finalAmount
       });
 
-      if (initRes && initRes._id) {
-        console.log('支付初始化成功，paymentId:', initRes._id);
+      console.log('支付初始化响应:', initRes);
 
-        // 模拟 2 秒支付处理时间
-        return new Promise((resolve) => {
-          setTimeout(async () => {
-            console.log('模拟支付完成');
-            // 调用后端确认支付
-            try {
-              const confirmRes = await paymentService.confirmPayment(initRes._id);
-              console.log('支付确认成功:', confirmRes);
-              this.handlePaymentSuccess();
-              resolve();
-            } catch (confirmErr) {
-              console.error('确认支付失败:', confirmErr);
-              throw confirmErr;
-            }
-          }, 2000);
-        });
+      if (initRes && initRes.paymentId) {
+        console.log('支付初始化成功，paymentId:', initRes.paymentId);
+        console.log('支付状态:', initRes.status);
+
+        // 对于模拟支付，后端在 initiatePayment 中已经完成支付
+        // 所以直接显示成功
+        if (initRes.status === 'completed') {
+          console.log('模拟支付已完成');
+          this.handlePaymentSuccess();
+          return Promise.resolve();
+        } else if (initRes.status === 'pending') {
+          // 如果是 pending 状态，则需要确认支付
+          // 模拟 2 秒支付处理时间
+          return new Promise((resolve) => {
+            setTimeout(async () => {
+              console.log('模拟支付完成，开始确认支付...');
+              try {
+                const confirmRes = await paymentService.confirmPayment(initRes.paymentId);
+                console.log('支付确认成功:', confirmRes);
+                this.handlePaymentSuccess();
+                resolve();
+              } catch (confirmErr) {
+                console.error('确认支付失败:', confirmErr);
+                throw confirmErr;
+              }
+            }, 2000);
+          });
+        } else {
+          throw new Error('支付状态异常：' + initRes.status);
+        }
+      } else {
+        throw new Error('支付初始化失败：无效的响应');
       }
     } catch (error) {
       console.error('模拟支付异常:', error);
