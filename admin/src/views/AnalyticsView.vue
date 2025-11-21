@@ -1,404 +1,569 @@
 <template>
   <AdminLayout>
     <div class="analytics-container">
-      <!-- 日期筛选 -->
-      <el-card style="margin-bottom: 20px">
-        <div class="filter-bar">
+      <!-- 页面标题 -->
+      <div class="page-header">
+        <h1>📊 数据分析</h1>
+        <div class="header-actions">
           <el-date-picker
             v-model="dateRange"
             type="daterange"
             range-separator="至"
             start-placeholder="开始日期"
             end-placeholder="结束日期"
-            style="width: 300px"
-            @change="loadAnalytics"
+            @change="onDateRangeChange"
           />
-          <el-button type="primary" @click="loadAnalytics" style="margin-left: 12px">
-            查询
-          </el-button>
+          <el-button type="primary" @click="refreshData">🔄 刷新数据</el-button>
         </div>
-      </el-card>
+      </div>
 
-      <!-- 关键指标卡片 -->
-      <div class="stats-grid">
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">{{ analytics.totalEnrollments }}</div>
-            <div class="stat-label">总报名数</div>
+      <!-- 核心指标 -->
+      <div class="metrics-grid">
+        <el-card class="metric-card">
+          <div class="metric-content">
+            <div class="metric-info">
+              <div class="metric-value">{{ analytics.totalUsers || 0 }}</div>
+              <div class="metric-label">总用户数</div>
+              <div class="metric-trend">
+                <span :class="['trend', (analytics.userTrend || 0) > 0 ? 'up' : 'down']">
+                  {{ (analytics.userTrend || 0) > 0 ? '↑' : '↓' }} {{ Math.abs(analytics.userTrend || 0) }}%
+                </span>
+              </div>
+            </div>
+            <div class="metric-icon">👥</div>
           </div>
         </el-card>
 
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">{{ analytics.totalRevenue }}</div>
-            <div class="stat-label">总收入（元）</div>
+        <el-card class="metric-card">
+          <div class="metric-content">
+            <div class="metric-info">
+              <div class="metric-value">{{ analytics.completedEnrollments || 0 }}</div>
+              <div class="metric-label">已完成报名</div>
+              <div class="metric-trend">
+                <span :class="['trend', (analytics.enrollmentTrend || 0) > 0 ? 'up' : 'down']">
+                  {{ (analytics.enrollmentTrend || 0) > 0 ? '↑' : '↓' }} {{ Math.abs(analytics.enrollmentTrend || 0) }}%
+                </span>
+              </div>
+            </div>
+            <div class="metric-icon">✅</div>
           </div>
         </el-card>
 
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">{{ analytics.avgCompletionRate }}</div>
-            <div class="stat-label">平均完成率（%）</div>
+        <el-card class="metric-card">
+          <div class="metric-content">
+            <div class="metric-info">
+              <div class="metric-value">¥{{ formatNumber(analytics.totalRevenue || 0) }}</div>
+              <div class="metric-label">总收入</div>
+              <div class="metric-trend">
+                <span :class="['trend', (analytics.revenueTrend || 0) > 0 ? 'up' : 'down']">
+                  {{ (analytics.revenueTrend || 0) > 0 ? '↑' : '↓' }} {{ Math.abs(analytics.revenueTrend || 0) }}%
+                </span>
+              </div>
+            </div>
+            <div class="metric-icon">💰</div>
           </div>
         </el-card>
 
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-number">{{ analytics.activeUsers }}</div>
-            <div class="stat-label">活跃用户</div>
+        <el-card class="metric-card">
+          <div class="metric-content">
+            <div class="metric-info">
+              <div class="metric-value">{{ ((analytics.conversionRate || 0).toFixed(1)) }}%</div>
+              <div class="metric-label">转化率</div>
+              <div class="metric-trend">
+                <span class="trend" :class="(analytics.conversionRate || 0) > 50 ? 'up' : 'down'">
+                  {{ (analytics.conversionRate || 0) > 50 ? '良好' : '需改善' }}
+                </span>
+              </div>
+            </div>
+            <div class="metric-icon">📈</div>
           </div>
         </el-card>
       </div>
 
-      <!-- 期次统计表格 -->
+      <!-- 图表区域 -->
+      <div class="charts-grid">
+        <!-- 报名趋势图 -->
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>📅 报名趋势</span>
+            </div>
+          </template>
+          <div ref="enrollmentChartRef" style="height: 300px"></div>
+        </el-card>
+
+        <!-- 支付方式分布 -->
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>💳 支付方式分布</span>
+            </div>
+          </template>
+          <div ref="paymentMethodChartRef" style="height: 300px"></div>
+        </el-card>
+
+        <!-- 期次热度排行 -->
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>🔥 期次热度排行</span>
+            </div>
+          </template>
+          <div ref="periodPopularityChartRef" style="height: 300px"></div>
+        </el-card>
+
+        <!-- 报名状态分布 -->
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>📊 报名状态分布</span>
+            </div>
+          </template>
+          <div ref="enrollmentStatusChartRef" style="height: 300px"></div>
+        </el-card>
+      </div>
+
+      <!-- 数据表格 -->
       <el-card style="margin-top: 24px">
         <template #header>
-          <span class="card-title">期次统计</span>
+          <div class="card-header">
+            <span>📋 每日数据统计</span>
+            <el-button type="primary" text @click="exportData">
+              📥 导出数据
+            </el-button>
+          </div>
         </template>
 
-        <el-table :data="periodStats" stripe style="width: 100%">
-          <el-table-column prop="name" label="期次名称" width="150" />
-          <el-table-column label="报名人数" width="100">
+        <el-table
+          :data="dailyStats"
+          stripe
+          style="width: 100%"
+          max-height="600"
+        >
+          <el-table-column prop="date" label="日期" width="120" />
+          <el-table-column prop="enrollmentCount" label="新增报名" width="100" />
+          <el-table-column prop="paymentCount" label="支付笔数" width="100" />
+          <el-table-column prop="paymentAmount" label="支付金额" width="120">
             <template #default="{ row }">
-              {{ row.enrollmentCount }}
+              ¥{{ formatNumber(row.paymentAmount || 0) }}
             </template>
           </el-table-column>
-          <el-table-column label="完成人数" width="100">
-            <template #default="{ row }">
-              {{ row.completionCount }}
-            </template>
-          </el-table-column>
-          <el-table-column label="完成率" width="100">
-            <template #default="{ row }">
-              <el-progress
-                :percentage="row.completionRate"
-                :color="getProgressColor(row.completionRate)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column label="总收入" width="120">
-            <template #default="{ row }">
-              ¥{{ (row.totalRevenue / 100).toFixed(2) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="日均打卡" width="100">
-            <template #default="{ row }">
-              {{ row.avgDailyCheckins.toFixed(1) }}
-            </template>
-          </el-table-column>
+          <el-table-column prop="activeUsers" label="活跃用户" width="100" />
+          <el-table-column prop="newUsers" label="新增用户" width="100" />
         </el-table>
-      </el-card>
-
-      <!-- 用户行为统计 -->
-      <el-card style="margin-top: 24px">
-        <template #header>
-          <span class="card-title">用户行为统计</span>
-        </template>
-
-        <div class="behavior-stats">
-          <div class="behavior-item">
-            <h4>打卡分布</h4>
-            <div class="stat-row">
-              <span>日均打卡数</span>
-              <strong>{{ analytics.avgDailyCheckins }}</strong>
-            </div>
-            <div class="stat-row">
-              <span>总打卡数</span>
-              <strong>{{ analytics.totalCheckins }}</strong>
-            </div>
-          </div>
-
-          <div class="behavior-item">
-            <h4>用户活跃度</h4>
-            <div class="stat-row">
-              <span>本周新增</span>
-              <strong>{{ analytics.newUsersThisWeek }}</strong>
-            </div>
-            <div class="stat-row">
-              <span>本周活跃</span>
-              <strong>{{ analytics.activeUsersThisWeek }}</strong>
-            </div>
-          </div>
-
-          <div class="behavior-item">
-            <h4>支付统计</h4>
-            <div class="stat-row">
-              <span>成功支付</span>
-              <strong>{{ analytics.successfulPayments }}</strong>
-            </div>
-            <div class="stat-row">
-              <span>失败支付</span>
-              <strong>{{ analytics.failedPayments }}</strong>
-            </div>
-          </div>
-        </div>
-      </el-card>
-
-      <!-- 趋势统计 -->
-      <el-card style="margin-top: 24px">
-        <template #header>
-          <span class="card-title">最近7天趋势</span>
-        </template>
-
-        <div class="trend-chart">
-          <div class="trend-day" v-for="(day, index) in trendData" :key="index">
-            <div class="trend-bar-container">
-              <div
-                class="trend-bar"
-                :style="{ height: day.enrollments * 2 + 'px' }"
-                :title="`报名: ${day.enrollments}`"
-              ></div>
-              <div
-                class="trend-bar secondary"
-                :style="{ height: day.checkins * 2 + 'px' }"
-                :title="`打卡: ${day.checkins}`"
-              ></div>
-            </div>
-            <div class="trend-label">{{ day.date }}</div>
-          </div>
-        </div>
-
-        <div class="trend-legend">
-          <span><span class="legend-color primary"></span> 报名</span>
-          <span><span class="legend-color secondary"></span> 打卡</span>
-        </div>
       </el-card>
     </div>
   </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import AdminLayout from '../components/AdminLayout.vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
+import AdminLayout from '@/components/AdminLayout.vue'
 
+// 数据
 const dateRange = ref<[Date, Date] | null>(null)
-
 const analytics = ref({
-  totalEnrollments: 128,
-  totalRevenue: 12672,
-  avgCompletionRate: 87,
-  activeUsers: 94,
-  avgDailyCheckins: 23,
-  totalCheckins: 1024,
-  newUsersThisWeek: 12,
-  activeUsersThisWeek: 78,
-  successfulPayments: 125,
-  failedPayments: 3
+  totalUsers: 0,
+  completedEnrollments: 0,
+  totalRevenue: 0,
+  conversionRate: 0,
+  userTrend: 0,
+  enrollmentTrend: 0,
+  revenueTrend: 0
 })
+const dailyStats = ref([])
 
-const periodStats = ref([
-  {
-    name: '第一期 - 智慧之光',
-    enrollmentCount: 32,
-    completionCount: 28,
-    completionRate: 87.5,
-    totalRevenue: 316800,
-    avgDailyCheckins: 26.5
-  },
-  {
-    name: '第二期 - 勇敢的心',
-    enrollmentCount: 28,
-    completionCount: 24,
-    completionRate: 85.7,
-    totalRevenue: 277200,
-    avgDailyCheckins: 24.2
-  },
-  {
-    name: '第三期 - 能量之泉',
-    enrollmentCount: 35,
-    completionCount: 29,
-    completionRate: 82.8,
-    totalRevenue: 346500,
-    avgDailyCheckins: 25.1
-  },
-  {
-    name: '第四期 - 心流之境',
-    enrollmentCount: 33,
-    completionCount: 28,
-    completionRate: 84.8,
-    totalRevenue: 326700,
-    avgDailyCheckins: 23.8
+// 图表引用
+const enrollmentChartRef = ref()
+const paymentMethodChartRef = ref()
+const periodPopularityChartRef = ref()
+const enrollmentStatusChartRef = ref()
+
+// 图表实例
+let enrollmentChart: echarts.ECharts | null = null
+let paymentMethodChart: echarts.ECharts | null = null
+let periodPopularityChart: echarts.ECharts | null = null
+let enrollmentStatusChart: echarts.ECharts | null = null
+
+// 格式化数字
+const formatNumber = (value: number) => {
+  if (value >= 10000) {
+    return ((value / 10000).toFixed(1)) + '万'
   }
-])
+  return value.toString()
+}
 
-const trendData = ref([
-  { date: '11-15', enrollments: 8, checkins: 18 },
-  { date: '11-16', enrollments: 6, checkins: 22 },
-  { date: '11-17', enrollments: 12, checkins: 26 },
-  { date: '11-18', enrollments: 10, checkins: 24 },
-  { date: '11-19', enrollments: 14, checkins: 28 },
-  { date: '11-20', enrollments: 11, checkins: 25 },
-  { date: '11-21', enrollments: 19, checkins: 23 }
-])
+// 日期范围变化
+const onDateRangeChange = () => {
+  loadAnalytics()
+}
 
-onMounted(() => {
-  const today = new Date()
-  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-  dateRange.value = [sevenDaysAgo, today]
-})
-
-function loadAnalytics() {
+// 刷新数据
+const refreshData = async () => {
+  await loadAnalytics()
   ElMessage.success('数据已刷新')
-  // 实际应用中这里应该调用 API 获取真实数据
 }
 
-function getProgressColor(percentage: number): string {
-  if (percentage >= 85) return '#67c23a'
-  if (percentage >= 70) return '#e6a23c'
-  return '#f56c6c'
+// 导出数据
+const exportData = () => {
+  const headers = ['日期', '新增报名', '支付笔数', '支付金额', '活跃用户', '新增用户']
+  const rows = dailyStats.value.map((stat: any) => [
+    stat.date,
+    stat.enrollmentCount,
+    stat.paymentCount,
+    stat.paymentAmount,
+    stat.activeUsers,
+    stat.newUsers
+  ])
+
+  const csv = [headers, ...rows]
+    .map(row => row.join(','))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+
+  link.setAttribute('href', url)
+  link.setAttribute('download', 'analytics_' + new Date().getTime() + '.csv')
+  link.style.visibility = 'hidden'
+
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  ElMessage.success('数据已导出')
 }
+
+// 初始化报名趋势图
+const initEnrollmentChart = (data: any) => {
+  if (!enrollmentChartRef.value) return
+
+  if (!enrollmentChart) {
+    enrollmentChart = echarts.init(enrollmentChartRef.value)
+  }
+
+  const dates = data.map((item: any) => item.date || '')
+  const counts = data.map((item: any) => item.enrollmentCount || 0)
+
+  const option = {
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        data: counts,
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#4a90e2' },
+        areaStyle: { color: 'rgba(74, 144, 226, 0.2)' }
+      }
+    ]
+  }
+
+  enrollmentChart.setOption(option)
+}
+
+// 初始化支付方式图
+const initPaymentMethodChart = (data: any) => {
+  if (!paymentMethodChartRef.value) return
+
+  if (!paymentMethodChart) {
+    paymentMethodChart = echarts.init(paymentMethodChartRef.value)
+  }
+
+  const option = {
+    tooltip: { trigger: 'item' },
+    legend: { orient: 'vertical', left: 'left' },
+    series: [
+      {
+        name: '支付方式',
+        type: 'pie',
+        radius: '50%',
+        data: [
+          { value: data.wechat || 0, name: '微信支付' },
+          { value: data.alipay || 0, name: '支付宝' },
+          { value: data.mock || 0, name: '测试支付' }
+        ],
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
+  }
+
+  paymentMethodChart.setOption(option)
+}
+
+// 初始化期次热度图
+const initPeriodPopularityChart = (data: any) => {
+  if (!periodPopularityChartRef.value) return
+
+  if (!periodPopularityChart) {
+    periodPopularityChart = echarts.init(periodPopularityChartRef.value)
+  }
+
+  const periods = data.map((item: any) => item.periodName || '')
+  const enrollments = data.map((item: any) => item.enrollmentCount || 0)
+
+  const option = {
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: periods },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        data: enrollments,
+        type: 'bar',
+        itemStyle: { color: '#7ed321' }
+      }
+    ]
+  }
+
+  periodPopularityChart.setOption(option)
+}
+
+// 初始化报名状态图
+const initEnrollmentStatusChart = (data: any) => {
+  if (!enrollmentStatusChartRef.value) return
+
+  if (!enrollmentStatusChart) {
+    enrollmentStatusChart = echarts.init(enrollmentStatusChartRef.value)
+  }
+
+  const option = {
+    tooltip: { trigger: 'item' },
+    legend: { orient: 'vertical', left: 'left' },
+    series: [
+      {
+        name: '报名状态',
+        type: 'pie',
+        radius: '50%',
+        data: [
+          { value: data.pending || 0, name: '待审批' },
+          { value: data.approved || 0, name: '已批准' },
+          { value: data.rejected || 0, name: '已拒绝' }
+        ],
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
+  }
+
+  enrollmentStatusChart.setOption(option)
+}
+
+// 加载分析数据
+const loadAnalytics = async () => {
+  try {
+    // Mock 数据 - 实际项目中应调用真实API
+    const mockDailyStats = []
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      mockDailyStats.push({
+        date: date.toISOString().split('T')[0],
+        enrollmentCount: Math.floor(Math.random() * 20),
+        paymentCount: Math.floor(Math.random() * 15),
+        paymentAmount: Math.floor(Math.random() * 50000),
+        activeUsers: Math.floor(Math.random() * 100),
+        newUsers: Math.floor(Math.random() * 30)
+      })
+    }
+
+    analytics.value = {
+      totalUsers: 245,
+      completedEnrollments: 156,
+      totalRevenue: 450000,
+      conversionRate: 63.7,
+      userTrend: 12.5,
+      enrollmentTrend: 8.3,
+      revenueTrend: 15.2
+    }
+
+    dailyStats.value = mockDailyStats
+
+    // 初始化图表
+    await nextTick()
+    initEnrollmentChart(mockDailyStats)
+    initPaymentMethodChart({ wechat: 120, alipay: 30, mock: 6 })
+    initPeriodPopularityChart([
+      { periodName: '智慧之光', enrollmentCount: 45 },
+      { periodName: '勇敢的心', enrollmentCount: 38 },
+      { periodName: '能量之泉', enrollmentCount: 42 },
+      { periodName: '心流之境', enrollmentCount: 31 }
+    ])
+    initEnrollmentStatusChart({ pending: 25, approved: 125, rejected: 6 })
+  } catch (error) {
+    console.error('Failed to load analytics:', error)
+    ElMessage.error('加载分析数据失败')
+  }
+}
+
+// 页面加载
+onMounted(async () => {
+  await loadAnalytics()
+
+  // 窗口大小变化时重新绘制图表
+  window.addEventListener('resize', () => {
+    enrollmentChart?.resize()
+    paymentMethodChart?.resize()
+    periodPopularityChart?.resize()
+    enrollmentStatusChart?.resize()
+  })
+})
 </script>
 
 <style scoped>
 .analytics-container {
   padding: 24px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-}
-
-.stat-content {
-  text-align: center;
-  padding: 20px;
-}
-
-.stat-number {
-  font-size: 32px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #999;
-}
-
-.behavior-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 24px;
-  padding: 20px 0;
-}
-
-.behavior-item h4 {
-  margin: 0 0 16px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.stat-row {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 24px;
 }
 
-.stat-row:last-child {
-  border-bottom: none;
-}
-
-.stat-row span {
-  color: #666;
-  font-size: 14px;
-}
-
-.stat-row strong {
-  font-size: 18px;
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
   color: #333;
 }
 
-.trend-chart {
+.header-actions {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 250px;
-  padding: 20px;
-  background: #f9f9f9;
-  border-radius: 4px;
   gap: 12px;
+  align-items: center;
 }
 
-.trend-day {
+/* 指标卡片网格 */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-card {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  background: white;
+}
+
+.metric-card :deep(.el-card__body) {
+  padding: 20px;
+}
+
+.metric-content {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
+}
+
+.metric-info {
   flex: 1;
 }
 
-.trend-bar-container {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 180px;
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
   margin-bottom: 8px;
 }
 
-.trend-bar {
-  flex: 1;
-  background: linear-gradient(180deg, #4a90e2 0%, #357abd 100%);
-  border-radius: 4px 4px 0 0;
-  min-height: 4px;
-}
-
-.trend-bar.secondary {
-  background: linear-gradient(180deg, #67c23a 0%, #55a320 100%);
-}
-
-.trend-label {
-  font-size: 12px;
-  color: #999;
-  white-space: nowrap;
-}
-
-.trend-legend {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  margin-top: 20px;
+.metric-label {
   font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
 }
 
-.legend-color {
+.metric-trend {
+  font-size: 12px;
+}
+
+.metric-trend .trend {
+  padding: 2px 8px;
+  border-radius: 4px;
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  margin-right: 6px;
 }
 
-.legend-color.primary {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+.metric-trend .trend.up {
+  background-color: #f0f9ff;
+  color: #22c55e;
 }
 
-.legend-color.secondary {
-  background: linear-gradient(135deg, #67c23a 0%, #55a320 100%);
+.metric-trend .trend.down {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+
+.metric-icon {
+  font-size: 48px;
+  opacity: 0.1;
+  margin-left: 16px;
+}
+
+/* 图表网格 */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: white;
+}
+
+.chart-card :deep(.el-card__body) {
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
