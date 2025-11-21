@@ -38,6 +38,10 @@
         <el-menu-item index="/content">
           <span>✍️ 内容管理</span>
         </el-menu-item>
+
+        <el-menu-item index="/audit-logs">
+          <span>🔍 审计日志</span>
+        </el-menu-item>
       </el-menu>
 
       <div class="sidebar-footer">

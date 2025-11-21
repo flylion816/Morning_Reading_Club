@@ -22,6 +22,7 @@ const rankingRoutes = require('./routes/ranking.routes');
 const adminRoutes = require('./routes/admin.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const statsRoutes = require('./routes/stats.routes');
+const auditRoutes = require('./routes/audit.routes');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/v1/enrollments', enrollmentRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/ranking', rankingRoutes);
 app.use('/api/v1/stats', statsRoutes); // 统计数据API
+app.use('/api/v1/audit-logs', auditRoutes); // 审计日志API
 app.use('/api/v1/upload', uploadRoutes);
 
 // 404处理
