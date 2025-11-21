@@ -74,7 +74,7 @@ async function getPeriodRanking(req, res, next) {
     const pipeline = [
       {
         $match: {
-          periodId: mongoose.Types.ObjectId(periodId)
+          periodId: new mongoose.Types.ObjectId(periodId)
         }
       }
     ];
