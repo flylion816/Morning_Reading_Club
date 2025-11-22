@@ -118,36 +118,15 @@
   flex-shrink: 0;
 }
 
-.section-icon.calm {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.section-icon.question {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.section-icon.read {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.section-icon.think {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
-
-.section-icon.write {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
-
-.section-icon.extract {
-  background: linear-gradient(135deg, #fd6585 0%, #feca57 100%);
-}
-
-.section-icon.share {
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-}
-
+.section-icon.calm,
+.section-icon.question,
+.section-icon.read,
+.section-icon.think,
+.section-icon.write,
+.section-icon.extract,
+.section-icon.share,
 .section-icon.learn {
-  background: linear-gradient(135deg, #ff9b71 0%, #ffb74d 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
 }
 
 .section-content {
