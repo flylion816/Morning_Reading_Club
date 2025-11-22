@@ -58,6 +58,7 @@
               prefix-icon="Lock"
               show-password
               size="large"
+              @keyup.enter="handleLogin"
             />
           </el-form-item>
 
