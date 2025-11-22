@@ -233,8 +233,8 @@ async function loadSections() {
     // 获取期次信息
     currentPeriod.value = await periodApi.getPeriodDetail(selectedPeriodId.value)
 
-    // 加载该期次的所有课节
-    const response = await periodApi.getSections(selectedPeriodId.value)
+    // 加载该期次的所有课节（管理员权限，包括草稿）
+    const response = await periodApi.getAllSections(selectedPeriodId.value)
     sections.value = response.list || response || []
   } catch (err) {
     console.error('Failed to load sections:', err)

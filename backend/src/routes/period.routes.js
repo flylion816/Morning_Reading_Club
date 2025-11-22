@@ -10,6 +10,7 @@ const {
 } = require('../controllers/period.controller');
 const {
   getSectionsByPeriod,
+  getAllSectionsByPeriod,
   createSection,
   getSectionDetail,
   updateSection,
@@ -55,10 +56,17 @@ router.delete('/:periodId', authMiddleware, adminMiddleware, deletePeriod);
 
 /**
  * @route   GET /api/v1/periods/:periodId/sections
- * @desc    获取某期次的所有课节
+ * @desc    获取某期次的所有课节（用户 - 仅已发布）
  * @access  Private
  */
 router.get('/:periodId/sections', authMiddleware, getSectionsByPeriod);
+
+/**
+ * @route   GET /api/v1/periods/:periodId/sections/admin/all
+ * @desc    获取某期次的所有课节（管理员 - 包括草稿）
+ * @access  Admin
+ */
+router.get('/:periodId/sections/admin/all', authMiddleware, adminMiddleware, getAllSectionsByPeriod);
 
 /**
  * @route   POST /api/v1/periods/:periodId/sections

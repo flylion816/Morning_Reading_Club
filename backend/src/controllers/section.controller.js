@@ -2,7 +2,7 @@ const Section = require('../models/Section');
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 
-// 获取期次的课程列表
+// 获取期次的课程列表（用户端 - 仅已发布）
 async function getSectionsByPeriod(req, res, next) {
   try {
     const { periodId } = req.params;
@@ -22,6 +22,40 @@ async function getSectionsByPeriod(req, res, next) {
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .select('-content -__v'); // 列表不返回详细内容
+
+    res.json(success({
+      list: sections,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取期次的所有课程列表（管理员 - 包括草稿）
+async function getAllSectionsByPeriod(req, res, next) {
+  try {
+    const { periodId } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+
+    // 验证期次存在
+    const period = await Period.findById(periodId);
+    if (!period) {
+      return res.status(404).json(errors.notFound('期次不存在'));
+    }
+
+    const query = { periodId };
+
+    const total = await Section.countDocuments(query);
+    const sections = await Section.find(query)
+      .sort({ day: 1, sortOrder: 1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
 
     res.json(success({
       list: sections,
@@ -160,6 +194,7 @@ async function deleteSection(req, res, next) {
 
 module.exports = {
   getSectionsByPeriod,
+  getAllSectionsByPeriod,
   getSectionDetail,
   createSection,
   updateSection,

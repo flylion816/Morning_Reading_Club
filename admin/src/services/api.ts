@@ -107,6 +107,8 @@ export const periodApi = {
   // 课节相关 API
   getSections: (periodId: string, params?: any) =>
     apiClient.get(`/periods/${periodId}/sections`, { params }),
+  getAllSections: (periodId: string, params?: any) =>
+    apiClient.get(`/periods/${periodId}/sections/admin/all`, { params }),
   createSection: (periodId: string, data: any) =>
     apiClient.post(`/periods/${periodId}/sections`, data),
   updateSection: (sectionId: string, data: any) =>
