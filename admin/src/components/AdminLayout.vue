@@ -23,16 +23,16 @@
           <span>📝 报名管理</span>
         </el-menu-item>
 
+        <el-menu-item index="/users">
+          <span>👥 用户管理</span>
+        </el-menu-item>
+
         <el-menu-item index="/payments">
           <span>💳 支付记录</span>
         </el-menu-item>
 
         <el-menu-item index="/periods">
           <span>📅 期次管理</span>
-        </el-menu-item>
-
-        <el-menu-item index="/users">
-          <span>👥 用户管理</span>
         </el-menu-item>
 
         <el-menu-item index="/content">

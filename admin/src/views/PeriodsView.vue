@@ -22,8 +22,8 @@
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
           v-loading="loading"
         >
-          <el-table-column prop="name" label="期次名称" width="140" />
-          <el-table-column prop="title" label="标题" min-width="180" />
+          <el-table-column prop="name" label="期次名称" width="100" />
+          <el-table-column prop="title" label="标题" min-width="240" />
           <el-table-column label="时间范围" width="240">
             <template #default="{ row }">
               {{ formatDateRange(row.startDate, row.endDate) }}
