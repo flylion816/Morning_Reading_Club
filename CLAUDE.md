@@ -4124,6 +4124,55 @@ router.delete('/:id', authMiddleware, adminMiddleware, deleteEnrollment);
 
 ---
 
-**最后更新**: 2025-11-22 22:30
+---
+
+## 🛠️ 操作步骤库 - 课程内容导入
+
+### 通用PDF导入脚本使用 (2025-11-22)
+
+**脚本位置**: `backend/scripts/init-course-content.js`
+
+**功能特性**:
+- ✅ 通用脚本：支持任意期次、任意日期
+- ✅ 灵活配置：内置参数 或 外部JSON文件
+- ✅ INSERT模式：仅插入新记录，不删除旧数据
+- ✅ 智能验证：自动验证点数和空行数
+- ✅ 详细报告：完整的导入结果输出
+
+**基础用法**:
+```bash
+# 方式1: 使用默认配置（平衡之道Day 0）
+cd backend
+export MONGODB_URL='mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin'
+node scripts/init-course-content.js
+
+# 方式2: 指定期次和日期
+node scripts/init-course-content.js "期次名称" 日期
+
+# 方式3: 使用外部JSON文件
+node scripts/init-course-content.js "期次名称" 日期 day1-content.json
+```
+
+**验证结果示例**:
+```
+✅ 课程创建成功!
+📌 课程ID: 69218c3f453c00868caca62b
+📚 期次: 平衡之道
+📅 日期: 第 0 天
+📌 内容点数: 22 个点
+📌 空行数: 23 个 <p></p>
+```
+
+**关键要点**:
+- 所有22个点之间都有 `<p></p>` 空行
+- 支持命令行参数灵活指定期次和日期
+- INSERT模式不会删除旧记录，可重复执行
+- 完整使用指南见 `backend/scripts/INIT_GUIDE.md`
+
+**提交记录**: `17bf2cd` (refactor: 将PDF导入脚本改成通用版本 + INSERT模式)
+
+---
+
+**最后更新**: 2025-11-22 (完成通用PDF导入脚本重构)
 **维护者**: Claude Code
-**项目状态**: 第二阶段完成 ✅
+**项目状态**: 课程内容导入工具化完成 ✅
