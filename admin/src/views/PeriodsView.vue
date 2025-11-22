@@ -458,25 +458,4 @@ function getStatusType(status: string): string {
   justify-content: flex-end;
   margin-top: 20px;
 }
-
-/* 统一表格行高 */
-:deep(.el-table__row) {
-  height: 56px;
-}
-
-:deep(.el-table__body .el-table__cell) {
-  padding: 12px 0;
-  display: flex;
-  align-items: center;
-}
-
-/* 确保 el-tag、el-switch 等组件垂直居中 */
-:deep(.el-tag) {
-  margin: 0;
-}
-
-:deep(.el-switch) {
-  display: flex;
-  align-items: center;
-}
 </style>
