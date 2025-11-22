@@ -2850,7 +2850,74 @@ setTimeout(() => {
 
 ---
 
-**最后更新**: 2025-11-21 (完成 Week 1 - 报名+支付系统全流程实现)
+---
+
+## 🎯 第一天课程内容导入 (2025-11-22 完成)
+
+### ✅ 完成任务
+
+**问题**: 用户指出"读一读"模块的内容不完整，PDF 中有 22 个点，但数据库中只有 3 个点
+
+**解决方案**:
+1. 完整读取 PDF 文件 (`/Users/pica_1/Downloads/day1详情.pdf`)
+2. 提取所有 22 个完整的段落点
+3. 使用 HTML rich text 格式化，包括：
+   - `<p>` 标签分隔段落
+   - `<strong>` 标签强调编号和标题
+   - `margin-left: 2em` 风格实现缩进（用于例子部分）
+   - 红色颜色标记主标题
+4. 修复 bash 命令的环境变量转义问题（使用单引号保护特殊字符）
+5. 成功导入数据库
+
+### 📊 导入验证结果
+
+```
+✅ 课程创建成功!
+   ID: 69218793fffeff108602e4fa
+   标题: 品德成功论
+   期次: 平衡之道
+   已发布: true
+
+   内容字段状态:
+     ✓ meditation: 32 字
+     ✓ question: 16 字
+     ✓ content: 2984 字  ← 从 425 字增加到 2984 字！
+     ✓ reflection: 23 字
+     ✓ action: 35 字
+     ✓ learn: 50 字
+     ✓ extract: 25 字
+     ✓ say: 54 字
+```
+
+**关键数据点**:
+- ✅ **content 字段从 425 字增加到 2984 字**，表示完整的 22 个点已导入
+- ✅ 所有 8 个学习模块都有内容
+- ✅ 课程已发布
+
+### 🔧 技术要点
+
+**修复 bash 转义问题**:
+```bash
+# ❌ 错误方式（失败）
+MONGODB_URL="mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin" node ...
+
+# ✅ 正确方式（成功）
+export MONGODB_URL='mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin'
+node ...
+```
+
+**HTML rich text 格式化**:
+- 使用 `<rich-text nodes="{{course.content}}">` 在小程序中渲染
+- `margin-left: 2em` 实现例子缩进
+- `color: #d32f2f` 实现红色标题
+
+### 📝 修改文件
+
+- `backend/scripts/init-balance-day1-content.js` - 更新 content 字段
+
+---
+
+**最后更新**: 2025-11-22 (完成课程内容导入 - 22 个点完整导入)
 **维护者**: Claude Code
 
 ---
