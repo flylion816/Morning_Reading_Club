@@ -136,9 +136,28 @@
   text-align: justify;
 }
 
+/* 富文本内容样式 */
 .section-content rich-text {
   font-size: 28rpx;
   line-height: 1.8;
+  color: #555;
+}
+
+/* 富文本段落样式 */
+.section-content /deep/ p {
+  margin: 12rpx 0;
+  line-height: 1.8;
+}
+
+/* 富文本粗体样式 */
+.section-content /deep/ strong {
+  font-weight: bold;
+  color: #333;
+}
+
+/* 富文本缩进样式 */
+.section-content /deep/ p[style*="margin-left"] {
+  margin-left: 2em;
 }
 
 /* 底部固定按钮 */
