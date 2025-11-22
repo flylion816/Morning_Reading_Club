@@ -30,9 +30,4 @@
       <text class="agreement-link">《隐私政策》</text>
     </view>
   </view>
-
-  <!-- 返回按钮 -->
-  <view class="back-home" bindtap="handleBackHome">
-    <text>← 返回首页</text>
-  </view>
 </view>
