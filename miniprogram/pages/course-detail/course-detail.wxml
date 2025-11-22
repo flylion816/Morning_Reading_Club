@@ -47,9 +47,36 @@
   <view class="content-section" wx:if="{{course.action}}">
     <view class="section-title">
       <view class="section-icon write">记</view>
-      <text>记一记 / 摘一摘 / 说一说</text>
+      <text>记一记</text>
     </view>
     <view class="section-content">{{course.action}}</view>
+  </view>
+
+  <!-- 摘一摘 -->
+  <view class="content-section" wx:if="{{course.extract}}">
+    <view class="section-title">
+      <view class="section-icon extract">摘</view>
+      <text>摘一摘</text>
+    </view>
+    <view class="section-content">{{course.extract}}</view>
+  </view>
+
+  <!-- 说一说 -->
+  <view class="content-section" wx:if="{{course.say}}">
+    <view class="section-title">
+      <view class="section-icon share">说</view>
+      <text>说一说</text>
+    </view>
+    <view class="section-content">{{course.say}}</view>
+  </view>
+
+  <!-- 学一学 -->
+  <view class="content-section" wx:if="{{course.learn}}">
+    <view class="section-title">
+      <view class="section-icon learn">学</view>
+      <text>学一学</text>
+    </view>
+    <view class="section-content">{{course.learn}}</view>
   </view>
 
   <!-- 每日打卡 -->
