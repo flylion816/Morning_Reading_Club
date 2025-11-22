@@ -18,7 +18,8 @@ function generateRefreshToken(payload) {
 // 验证Access Token
 function verifyAccessToken(token) {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || 'dev-secret-key-12345678';
+    return jwt.verify(token, secret);
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw new Error('Token已过期');
@@ -30,7 +31,8 @@ function verifyAccessToken(token) {
 // 验证Refresh Token
 function verifyRefreshToken(token) {
   try {
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const secret = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key-87654321';
+    return jwt.verify(token, secret);
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw new Error('Refresh Token已过期');

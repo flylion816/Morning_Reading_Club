@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 const Admin = require('../models/Admin')
 const { success, errors } = require('../utils/response')
+require('dotenv').config()
 
 // 生成 JWT Token
 function generateToken(admin) {
@@ -10,8 +11,8 @@ function generateToken(admin) {
       email: admin.email,
       role: admin.role
     },
-    process.env.JWT_SECRET || 'your-secret-key',
-    { expiresIn: '7d' }
+    process.env.JWT_SECRET || 'dev-secret-key-12345678',
+    { expiresIn: process.env.JWT_EXPIRES_IN || '2h' }
   )
 }
 

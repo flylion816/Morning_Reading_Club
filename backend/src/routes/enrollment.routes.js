@@ -20,19 +20,19 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 // ===== 管理员路由（必须放在最前面，以避免被参数路由覆盖） =====
 
 // 获取报名列表（管理员）
-router.get('/', adminMiddleware, getEnrollments);
+router.get('/', authMiddleware, adminMiddleware, getEnrollments);
 
 // 批准报名（管理员）
-router.post('/:id/approve', adminMiddleware, approveEnrollment);
+router.post('/:id/approve', authMiddleware, adminMiddleware, approveEnrollment);
 
 // 拒绝报名（管理员）
-router.post('/:id/reject', adminMiddleware, rejectEnrollment);
+router.post('/:id/reject', authMiddleware, adminMiddleware, rejectEnrollment);
 
 // 更新报名记录（管理员）
-router.put('/:id', adminMiddleware, updateEnrollment);
+router.put('/:id', authMiddleware, adminMiddleware, updateEnrollment);
 
 // 删除报名记录（管理员）
-router.delete('/:id', adminMiddleware, deleteEnrollment);
+router.delete('/:id', authMiddleware, adminMiddleware, deleteEnrollment);
 
 // ===== 用户路由 =====
 

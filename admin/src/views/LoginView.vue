@@ -128,10 +128,53 @@ const handleLogin = async () => {
   await formRef.value.validate(async (valid) => {
     if (!valid) return
 
-    const success = await authStore.login(form.email, form.password)
+    // 添加调试面板
+    const debugPanel = document.createElement('div');
+    debugPanel.id = 'debug-panel';
+    debugPanel.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      width: 500px;
+      max-height: 400px;
+      background: #1e1e1e;
+      color: #00ff00;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 10px;
+      border: 1px solid #00ff00;
+      overflow-y: auto;
+      z-index: 9999;
+      border-radius: 4px;
+    `;
+    document.body.appendChild(debugPanel);
+
+    const addLog = (msg: string) => {
+      const line = document.createElement('div');
+      line.textContent = new Date().toLocaleTimeString() + ' > ' + msg;
+      debugPanel.appendChild(line);
+      debugPanel.scrollTop = debugPanel.scrollHeight;
+      console.log(msg);
+    };
+
+    addLog('[Login] 开始登录: ' + form.email);
+    const success = await authStore.login(form.email, form.password);
+    addLog('[Login] 登录结果: ' + (success ? '成功' : '失败'));
+    addLog('[Auth Store] adminToken: ' + (authStore.adminToken ? '✓ 有值' : '✗ 无值'));
+    addLog('[Auth Store] isAuthenticated: ' + authStore.isAuthenticated);
+    addLog('[Auth Store] localStorage.adminToken: ' + (localStorage.getItem('adminToken') ? '✓ 有值' : '✗ 无值'));
+
     if (success) {
-      ElMessage.success('登录成功')
-      router.push('/')
+      addLog('[Login] 显示成功消息');
+      ElMessage.success('登录成功');
+      addLog('[Router] 准备导航到 /');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      addLog('[Router] 执行 router.push("/")');
+      router.push('/');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      addLog('[Router] 导航已执行');
+    } else {
+      addLog('[Login] 登录失败，错误: ' + authStore.error);
     }
   })
 }

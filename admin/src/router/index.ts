@@ -68,19 +68,32 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
+  console.log('========== 路由守卫检查开始 ==========')
+  console.log('[Router Guard] 导航到:', to.path)
+  console.log('[Router Guard] 需要认证:', to.meta.requiresAuth)
+  console.log('[Router Guard] authStore.adminToken:', authStore.adminToken ? '有值' : 'null')
+  console.log('[Router Guard] authStore.isAuthenticated:', authStore.isAuthenticated)
+  console.log('[Router Guard] localStorage.adminToken:', localStorage.getItem('adminToken') ? '有值' : 'null')
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     // 重定向到登录页，但不能是已经在登录页的情况
+    console.log('[Router Guard] ⚠️ 需要认证但未认证，重定向到登录页')
     if (to.path !== '/login') {
+      console.log('[Router Guard] 执行: next("/login")')
       next('/login')
     } else {
       next()
     }
   } else if (to.path === '/login' && authStore.isAuthenticated) {
     // 已登录时访问登录页，重定向到首页
+    console.log('[Router Guard] ✓ 已认证，重定向到首页')
+    console.log('[Router Guard] 执行: next("/")')
     next('/')
   } else {
+    console.log('[Router Guard] ✓ 通过路由守卫检查，允许导航')
     next()
   }
+  console.log('========== 路由守卫检查结束 ==========')
 })
 
 export default router

@@ -6,9 +6,12 @@ const {
   getPaymentStats,
   getCheckinStats
 } = require('../controllers/stats.controller');
-const { adminMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
-// 所有统计API都需要管理员权限
+// 首先执行认证中间件（解析和验证token）
+router.use(authMiddleware);
+
+// 然后执行管理员权限检查中间件
 router.use(adminMiddleware);
 
 // 获取仪表板统计数据
