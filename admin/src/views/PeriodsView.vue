@@ -22,9 +22,9 @@
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
           v-loading="loading"
         >
-          <el-table-column prop="name" label="期次名称" width="180" />
-          <el-table-column prop="title" label="标题" min-width="200" />
-          <el-table-column label="时间范围" width="180">
+          <el-table-column prop="name" label="期次名称" width="140" />
+          <el-table-column prop="title" label="标题" min-width="180" />
+          <el-table-column label="时间范围" width="240">
             <template #default="{ row }">
               {{ formatDateRange(row.startDate, row.endDate) }}
             </template>
@@ -64,22 +64,24 @@
           </el-table-column>
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <el-button
-                type="primary"
-                text
-                size="small"
-                @click="handleEditPeriod(row)"
-              >
-                编辑
-              </el-button>
-              <el-button
-                type="danger"
-                text
-                size="small"
-                @click="handleDeletePeriod(row)"
-              >
-                删除
-              </el-button>
+              <div class="action-buttons">
+                <el-button
+                  type="primary"
+                  text
+                  size="small"
+                  @click="handleEditPeriod(row)"
+                >
+                  编辑
+                </el-button>
+                <el-button
+                  type="danger"
+                  text
+                  size="small"
+                  @click="handleDeletePeriod(row)"
+                >
+                  删除
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -457,5 +459,17 @@ function getStatusType(status: string): string {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+/* 统一表格行高 */
+:deep(.el-table__row) {
+  height: 60px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 </style>

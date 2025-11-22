@@ -167,25 +167,27 @@
               {{ formatDate(row.createdAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" fixed="right">
+          <el-table-column label="操作" width="150" fixed="right">
             <template #default="{ row }">
-              <el-button
-                v-if="row.status !== 'cancelled'"
-                type="danger"
-                text
-                size="small"
-                @click="cancelPayment(row)"
-              >
-                取消
-              </el-button>
-              <el-button
-                type="primary"
-                text
-                size="small"
-                @click="viewDetails(row)"
-              >
-                详情
-              </el-button>
+              <div class="action-buttons">
+                <el-button
+                  v-if="row.status !== 'cancelled'"
+                  type="danger"
+                  text
+                  size="small"
+                  @click="cancelPayment(row)"
+                >
+                  取消
+                </el-button>
+                <el-button
+                  type="primary"
+                  text
+                  size="small"
+                  @click="viewDetails(row)"
+                >
+                  详情
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -460,5 +462,12 @@ function formatDate(dateString: string): string {
 .expand-content {
   padding: 20px;
   background: #f5f7fa;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 </style>

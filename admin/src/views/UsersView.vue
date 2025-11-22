@@ -69,22 +69,24 @@
 
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <el-button
-                :type="row.isActive ? 'danger' : 'success'"
-                text
-                size="small"
-                @click="handleToggleUserStatus(row)"
-              >
-                {{ row.isActive ? '禁用' : '启用' }}
-              </el-button>
-              <el-button
-                type="primary"
-                text
-                size="small"
-                @click="viewUserDetails(row)"
-              >
-                详情
-              </el-button>
+              <div class="action-buttons">
+                <el-button
+                  :type="row.isActive ? 'danger' : 'success'"
+                  text
+                  size="small"
+                  @click="handleToggleUserStatus(row)"
+                >
+                  {{ row.isActive ? '禁用' : '启用' }}
+                </el-button>
+                <el-button
+                  type="primary"
+                  text
+                  size="small"
+                  @click="viewUserDetails(row)"
+                >
+                  详情
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -265,5 +267,12 @@ function formatDate(dateString: string): string {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 </style>
