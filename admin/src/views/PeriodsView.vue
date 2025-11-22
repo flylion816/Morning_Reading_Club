@@ -458,4 +458,39 @@ function getStatusType(status: string): string {
   justify-content: flex-end;
   margin-top: 20px;
 }
+
+/* 统一表格行高 */
+:deep(.el-table__row) {
+  height: 56px;
+}
+
+:deep(.el-table__cell) {
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 确保 el-tag、el-switch 等组件垂直居中 */
+:deep(.el-tag) {
+  margin: 0;
+}
+
+:deep(.el-switch) {
+  display: flex;
+  align-items: center;
+}
+
+/* 防止文字换行 */
+:deep(.el-table__cell) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 时间范围列允许换行显示（因为内容较长） */
+:deep(.el-table__body tr td:nth-child(3)) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
 </style>
