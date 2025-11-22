@@ -8,6 +8,13 @@ const {
   updatePeriod,
   deletePeriod
 } = require('../controllers/period.controller');
+const {
+  getSectionsByPeriod,
+  createSection,
+  getSectionDetail,
+  updateSection,
+  deleteSection
+} = require('../controllers/section.controller');
 
 /**
  * @route   GET /api/v1/periods
@@ -43,5 +50,21 @@ router.put('/:periodId', authMiddleware, adminMiddleware, updatePeriod);
  * @access  Admin
  */
 router.delete('/:periodId', authMiddleware, adminMiddleware, deletePeriod);
+
+// ===== 课节相关路由 =====
+
+/**
+ * @route   GET /api/v1/periods/:periodId/sections
+ * @desc    获取某期次的所有课节
+ * @access  Private
+ */
+router.get('/:periodId/sections', authMiddleware, getSectionsByPeriod);
+
+/**
+ * @route   POST /api/v1/periods/:periodId/sections
+ * @desc    在某期次下创建课节（管理员）
+ * @access  Admin
+ */
+router.post('/:periodId/sections', authMiddleware, adminMiddleware, createSection);
 
 module.exports = router;

@@ -100,7 +100,8 @@ const pageTitle = computed(() => {
     '/payments': '支付记录',
     '/periods': '期次管理',
     '/users': '用户管理',
-    '/content': '内容管理'
+    '/content': '内容管理',
+    '/audit-logs': '审计日志'
   }
   return titles[route.path] || '管理后台'
 })

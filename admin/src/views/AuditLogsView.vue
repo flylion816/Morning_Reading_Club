@@ -1,5 +1,6 @@
 <template>
-  <div class="audit-logs-container">
+  <AdminLayout>
+    <div class="audit-logs-container">
     <!-- 头部统计卡片 -->
     <div class="stats-grid">
       <el-card class="stat-card">
@@ -265,12 +266,14 @@
         </div>
       </div>
     </el-dialog>
-  </div>
+    </div>
+  </AdminLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import AdminLayout from '../components/AdminLayout.vue'
 import * as auditApi from '../api/audit'
 import type { AuditLog, AuditStatistics } from '../api/audit'
 
@@ -357,8 +360,8 @@ const loadLogs = async () => {
     }
 
     const result = await auditApi.getAuditLogs(params)
-    auditLogs.value = result.data
-    pagination.value.total = result.total
+    auditLogs.value = result.list || result.data || []
+    pagination.value.total = result.total || 0
   } catch (error) {
     ElMessage.error('加载审计日志失败')
     console.error(error)

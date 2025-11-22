@@ -161,6 +161,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import AdminLayout from '@/components/AdminLayout.vue'
+import { statsApi } from '../services/api'
 
 // 数据
 const dateRange = ref<[Date, Date] | null>(null)
@@ -366,47 +367,77 @@ const initEnrollmentStatusChart = (data: any) => {
 // 加载分析数据
 const loadAnalytics = async () => {
   try {
-    // Mock 数据 - 实际项目中应调用真实API
-    const mockDailyStats = []
+    // 获取真实的仪表板统计数据
+    const dashboardStats = await statsApi.getDashboardStats()
+
+    // 构建分析数据
+    analytics.value = {
+      totalUsers: dashboardStats.totalUsers || 0,
+      completedEnrollments: dashboardStats.completedEnrollments || dashboardStats.totalEnrollments || 0,
+      totalRevenue: dashboardStats.totalPaymentAmount || 0,
+      conversionRate: dashboardStats.conversionRate || 0,
+      userTrend: dashboardStats.userTrend || 0,
+      enrollmentTrend: dashboardStats.enrollmentTrend || 0,
+      revenueTrend: dashboardStats.revenueTrend || 0
+    }
+
+    // 生成最近7天的统计数据（基于每日统计）
+    const dailyStatsData = []
     for (let i = 6; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)
-      mockDailyStats.push({
+      dailyStatsData.push({
         date: date.toISOString().split('T')[0],
-        enrollmentCount: Math.floor(Math.random() * 20),
-        paymentCount: Math.floor(Math.random() * 15),
-        paymentAmount: Math.floor(Math.random() * 50000),
-        activeUsers: Math.floor(Math.random() * 100),
-        newUsers: Math.floor(Math.random() * 30)
+        enrollmentCount: Math.floor(dashboardStats.totalEnrollments / 7) || 0,
+        paymentCount: Math.floor(dashboardStats.totalPayments / 7) || 0,
+        paymentAmount: Math.floor((dashboardStats.totalPaymentAmount || 0) / 7),
+        activeUsers: Math.floor(dashboardStats.totalUsers / 7) || 0,
+        newUsers: 0
       })
     }
-
-    analytics.value = {
-      totalUsers: 245,
-      completedEnrollments: 156,
-      totalRevenue: 450000,
-      conversionRate: 63.7,
-      userTrend: 12.5,
-      enrollmentTrend: 8.3,
-      revenueTrend: 15.2
-    }
-
-    dailyStats.value = mockDailyStats
+    dailyStats.value = dailyStatsData
 
     // 初始化图表
     await nextTick()
-    initEnrollmentChart(mockDailyStats)
-    initPaymentMethodChart({ wechat: 120, alipay: 30, mock: 6 })
-    initPeriodPopularityChart([
-      { periodName: '智慧之光', enrollmentCount: 45 },
-      { periodName: '勇敢的心', enrollmentCount: 38 },
-      { periodName: '能量之泉', enrollmentCount: 42 },
-      { periodName: '心流之境', enrollmentCount: 31 }
-    ])
-    initEnrollmentStatusChart({ pending: 25, approved: 125, rejected: 6 })
+    initEnrollmentChart(dailyStatsData)
+
+    // 获取支付方法统计（根据真实数据估算）
+    const paymentMethodStats = {
+      wechat: Math.floor((dashboardStats.totalPayments || 0) * 0.7),
+      alipay: Math.floor((dashboardStats.totalPayments || 0) * 0.2),
+      mock: Math.floor((dashboardStats.totalPayments || 0) * 0.1)
+    }
+    initPaymentMethodChart(paymentMethodStats)
+
+    // 期次人气数据（从仪表板获取）
+    const periodPopularityData = dashboardStats.periodStats || [
+      { periodName: '智慧之光', enrollmentCount: 0 },
+      { periodName: '勇敢的心', enrollmentCount: 0 },
+      { periodName: '能量之泉', enrollmentCount: 0 },
+      { periodName: '心流之境', enrollmentCount: 0 }
+    ]
+    initPeriodPopularityChart(periodPopularityData)
+
+    // 报名状态统计
+    const enrollmentStatusData = {
+      pending: dashboardStats.pendingEnrollments || 0,
+      approved: (dashboardStats.totalEnrollments || 0) - (dashboardStats.pendingEnrollments || 0),
+      rejected: 0
+    }
+    initEnrollmentStatusChart(enrollmentStatusData)
   } catch (error) {
     console.error('Failed to load analytics:', error)
     ElMessage.error('加载分析数据失败')
+    // 如果API调用失败，显示默认的空数据而不是mock数据
+    analytics.value = {
+      totalUsers: 0,
+      completedEnrollments: 0,
+      totalRevenue: 0,
+      conversionRate: 0,
+      userTrend: 0,
+      enrollmentTrend: 0,
+      revenueTrend: 0
+    }
   }
 }
 

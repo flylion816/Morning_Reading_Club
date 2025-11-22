@@ -97,4 +97,14 @@ UserSchema.virtual('avatarText').get(function() {
   return this.avatar || this.nickname.charAt(0);
 });
 
+// 虚拟字段 - 是否激活
+UserSchema.virtual('isActive').get(function() {
+  return this.status === 'active';
+});
+
+// 在转换为JSON时包含虚拟字段
+UserSchema.set('toJSON', {
+  virtuals: true
+});
+
 module.exports = mongoose.model('User', UserSchema);

@@ -209,6 +209,7 @@ function handleRefresh() {
 
 async function handleToggleUserStatus(row: any) {
   const action = row.isActive ? '禁用' : '启用'
+  const newStatus = row.isActive ? 'banned' : 'active'
   ElMessageBox.confirm(
     `确定要${action}该用户吗？`,
     '提示',
@@ -220,7 +221,7 @@ async function handleToggleUserStatus(row: any) {
   )
     .then(async () => {
       try {
-        await userApi.updateUser(row._id, { isActive: !row.isActive })
+        await userApi.updateUser(row._id, { status: newStatus })
         ElMessage.success(`用户已${action}`)
         await loadUsers()
       } catch (err: any) {

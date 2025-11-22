@@ -3,7 +3,7 @@
     <div class="dashboard-container">
       <!-- 统计卡片 -->
       <div class="stats-grid">
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click="navigateTo('/users')" style="cursor: pointer">
           <div class="stat-item">
             <div>
               <div class="stat-value">{{ stats.totalEnrollments || 0 }}</div>
@@ -13,7 +13,7 @@
           </div>
         </el-card>
 
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click="navigateTo('/enrollments')" style="cursor: pointer">
           <div class="stat-item">
             <div>
               <div class="stat-value">{{ stats.pendingEnrollments || 0 }}</div>
@@ -23,7 +23,7 @@
           </div>
         </el-card>
 
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click="navigateTo('/payments')" style="cursor: pointer">
           <div class="stat-item">
             <div>
               <div class="stat-value">¥{{ formatCurrency(stats.totalPaymentAmount || 0) }}</div>
@@ -33,7 +33,7 @@
           </div>
         </el-card>
 
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click="navigateTo('/periods')" style="cursor: pointer">
           <div class="stat-item">
             <div>
               <div class="stat-value">{{ stats.activePeriods || 0 }}</div>
