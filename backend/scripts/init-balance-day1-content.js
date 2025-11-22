@@ -12,7 +12,17 @@ const day1Content = {
   icon: '⚖️',
   meditation: '开始学习之前，给自己1分钟的时间，深呼吸，静静心，然后开始学习。',
   question: '带着问题学习\n什么是品德成功论?',
-  content: '每天晨读内容\n\n品德成功论 由内而外全面造就自己\n\n1. 品德成功论提醒人们，高效能的生活是有基本原则的。只有当人们学会并遵循这些原则，把它们融入到自己的品格中去，才能享受真正的成功与恒久的幸福。\n\n2. 没有正确的生活，就没有真正卓越的人生。\n——戴维·斯塔·乔丹(David Starr Jordan)\n|美国生物学家及教育家\n\n3. 在25年的工作经历中，我与商界、大学和婚姻家庭各个领域的人共事。和其中一些外表看来很成功的人深入接触后，我却发现他们常在与内心的渴望斗争，他们确实需要协调和高效，以及健康向上的人际关系。',
+  content: `<p><strong>每天晨读内容</strong></p>
+<p></p>
+<p><strong>品德成功论 由内而外全面造就自己</strong></p>
+<p></p>
+<p>1. 品德成功论提醒人们，高效能的生活是有基本原则的。只有当人们学会并遵循这些原则，把它们融入到自己的品格中去，才能享受真正的成功与恒久的幸福。</p>
+<p></p>
+<p>2. 没有正确的生活，就没有真正卓越的人生。</p>
+<p style="margin-left: 2em;">——戴维·斯塔·乔丹(David Starr Jordan)</p>
+<p style="margin-left: 2em;">美国生物学家及教育家</p>
+<p></p>
+<p>3. 在25年的工作经历中，我与商界、大学和婚姻家庭各个领域的人共事。和其中一些外表看来很成功的人深入接触后，我却发现他们常在与内心的渴望斗争，他们确实需要协调和高效，以及健康向上的人际关系。</p>`,
   reflection: '上文中，哪一句话特别触动我？引起了我哪些感触?',
   action: '把自己的感触记录在下面的打卡日记上（觉察日记），在早上的晨读营里分享。',
   learn: '阅读《高效能人士的七个习惯》原本第一章 由内而外全面造就自己《品德与个人魅力执重》《光有技巧还不够》',
@@ -40,16 +50,19 @@ async function initBalanceDay1() {
     }
     console.log(`✅ 找到期次: ${period.name}\n`);
 
-    // 检查是否已存在day 0的课程
-    const existingSection = await Section.findOne({
+    // 检查是否已存在day 0的课程（删除所有旧记录）
+    const existingSections = await Section.find({
       periodId: period._id,
       day: 0
     });
 
-    if (existingSection) {
-      console.log(`ℹ️ day 0课程已存在，正在删除旧记录...`);
-      await Section.deleteOne({ _id: existingSection._id });
-      console.log(`✅ 旧记录已删除\n`);
+    if (existingSections.length > 0) {
+      console.log(`ℹ️ 找到 ${existingSections.length} 个 day 0 课程，正在删除...`);
+      for (const section of existingSections) {
+        await Section.deleteOne({ _id: section._id });
+        console.log(`  ✓ 已删除: ${section.title}`);
+      }
+      console.log();
     }
 
     // 创建新的课程
