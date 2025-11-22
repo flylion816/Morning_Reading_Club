@@ -101,16 +101,19 @@ async function getUserStats(req, res, next) {
 // 获取用户列表（管理员）
 async function getUserList(req, res, next) {
   try {
-    const { page = 1, limit = 20, role, status, keyword } = req.query;
+    const { page = 1, limit = 20, role, status, search, keyword } = req.query;
+
+    // 支持 search 和 keyword 两个参数名（search 用于前端搜索框，keyword 用于兼容）
+    const searchTerm = search || keyword;
 
     const query = {};
     if (role) query.role = role;
     if (status) query.status = status;
-    if (keyword) {
+    if (searchTerm) {
       query.$or = [
-        { nickname: { $regex: keyword, $options: 'i' } },
-        { email: { $regex: keyword, $options: 'i' } },
-        { openid: { $regex: keyword, $options: 'i' } }
+        { nickname: { $regex: searchTerm, $options: 'i' } },
+        { email: { $regex: searchTerm, $options: 'i' } },
+        { openid: { $regex: searchTerm, $options: 'i' } }
       ];
     }
 
