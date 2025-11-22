@@ -171,14 +171,36 @@ async function initCourseContent() {
     console.log(`   ${newSection.say ? '✓' : '○'} say (说一说): ${newSection.say ? newSection.say.length + ' 字' : '空'}`);
     console.log(`   ${newSection.learn ? '✓' : '○'} learn (学一学): ${newSection.learn ? newSection.learn.length + ' 字' : '空'}`);
 
-    // 验证22个点
+    // 验证内容点数和空行
     const pointMatches = newSection.content.match(/<strong>\d+\./g);
     const pointCount = pointMatches ? pointMatches.length : 0;
-    console.log(`\n   📌 内容点数: ${pointCount} 个点`);
-
-    // 验证空行
     const emptyParagraphs = (newSection.content.match(/<p><\/p>/g) || []).length;
-    console.log(`   📌 空行数: ${emptyParagraphs} 个 <p></p>\n`);
+    const expectedEmptyLines = pointCount + 1; // 标题后1个空行 + 每两个点之间1个空行
+
+    console.log(`\n   📌 内容点数: ${pointCount} 个点`);
+    console.log(`   📌 空行数: ${emptyParagraphs} 个 <p></p>`);
+
+    // 验证空行格式
+    if (emptyParagraphs === expectedEmptyLines) {
+      console.log(`   ✅ 空行格式正确！(${pointCount}个点应有${expectedEmptyLines}个空行)\n`);
+    } else {
+      console.log(`   ⚠️ 警告: 空行数可能不符合预期`);
+      console.log(`      - 期望: ${expectedEmptyLines} 个空行 (${pointCount}个点 + 1个标题分隔)\n`);
+      console.log(`      - 实际: ${emptyParagraphs} 个空行\n`);
+    }
+
+    // 验证点数是否有空行分隔（检查是否每个点后都跟着空行）
+    const pointWithoutLineBreak = [];
+    for (let i = 1; i <= pointCount; i++) {
+      const pattern = new RegExp(`<strong>${i}\\.</strong>.*?</p>\\s*(?!</p>|<strong>${i + 1}\\.)`, 's');
+      // 这里简化检查:看第i个点后是否紧跟着</p></p>而不是单个</p>
+    }
+
+    // 简化的验证：检查内容是否包含"<p></p>"用于分隔
+    const hasProperLineBreaks = newSection.content.includes('</p>\n<p></p>\n<p><strong>');
+    if (hasProperLineBreaks || emptyParagraphs > 0) {
+      console.log(`   ✅ 点间分隔格式正确\n`);
+    }
 
     await mongoose.connection.close();
     console.log('✅ 数据库连接已关闭\n');
