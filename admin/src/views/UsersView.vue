@@ -13,7 +13,7 @@
             placeholder="搜索用户名或邮箱..."
             clearable
             style="width: 220px"
-            @input="handleSearch"
+            @keyup.enter="handleSearch"
           >
             <template #prefix>
               <span style="margin-right: 4px">🔍</span>
@@ -23,9 +23,9 @@
           <el-button
             type="primary"
             style="margin-left: auto"
-            @click="handleRefresh"
+            @click="handleSearch"
           >
-            刷新
+            搜索
           </el-button>
         </div>
       </el-card>
@@ -202,11 +202,6 @@ async function loadUsers() {
 function handleSearch() {
   pagination.value.page = 1
   loadUsers()
-}
-
-function handleRefresh() {
-  loadUsers()
-  ElMessage.success('已刷新')
 }
 
 async function handleToggleUserStatus(row: any) {
