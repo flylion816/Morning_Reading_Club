@@ -6,7 +6,7 @@
 
   <!-- 五大学习模块 -->
   <!-- 静一静 -->
-  <view class="content-section" wx:if="{{course.meditation}}">
+  <view class="content-section" wx:if="{{course.meditationVisible}}">
     <view class="section-title">
       <view class="section-icon calm">静</view>
       <text>静一静</text>
@@ -15,7 +15,7 @@
   </view>
 
   <!-- 问一问 -->
-  <view class="content-section" wx:if="{{course.question}}">
+  <view class="content-section" wx:if="{{course.questionVisible}}">
     <view class="section-title">
       <view class="section-icon question">问</view>
       <text>问一问</text>
@@ -24,7 +24,7 @@
   </view>
 
   <!-- 读一读 -->
-  <view class="content-section" wx:if="{{course.content}}">
+  <view class="content-section" wx:if="{{course.contentVisible}}">
     <view class="section-title">
       <view class="section-icon read">读</view>
       <text>读一读</text>
@@ -35,7 +35,7 @@
   </view>
 
   <!-- 想一想 -->
-  <view class="content-section" wx:if="{{course.reflection}}">
+  <view class="content-section" wx:if="{{course.reflectionVisible}}">
     <view class="section-title">
       <view class="section-icon think">想</view>
       <text>想一想</text>
@@ -44,7 +44,7 @@
   </view>
 
   <!-- 记一记 -->
-  <view class="content-section" wx:if="{{course.action}}">
+  <view class="content-section" wx:if="{{course.actionVisible}}">
     <view class="section-title">
       <view class="section-icon write">记</view>
       <text>记一记</text>
@@ -53,7 +53,7 @@
   </view>
 
   <!-- 摘一摘 -->
-  <view class="content-section" wx:if="{{course.extract}}">
+  <view class="content-section" wx:if="{{course.extractVisible}}">
     <view class="section-title">
       <view class="section-icon extract">摘</view>
       <text>摘一摘</text>
@@ -62,7 +62,7 @@
   </view>
 
   <!-- 说一说 -->
-  <view class="content-section" wx:if="{{course.say}}">
+  <view class="content-section" wx:if="{{course.sayVisible}}">
     <view class="section-title">
       <view class="section-icon share">说</view>
       <text>说一说</text>
@@ -71,7 +71,7 @@
   </view>
 
   <!-- 学一学 -->
-  <view class="content-section" wx:if="{{course.learn}}">
+  <view class="content-section" wx:if="{{course.learnVisible}}">
     <view class="section-title">
       <view class="section-icon learn">学</view>
       <text>学一学</text>

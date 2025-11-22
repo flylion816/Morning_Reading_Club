@@ -25,6 +25,32 @@ Page({
     }
   },
 
+  /**
+   * 检查内容是否为空（包括去除空格）
+   */
+  isContentEmpty(content) {
+    if (!content) return true;
+    if (typeof content === 'string') {
+      return content.trim() === '';
+    }
+    return false;
+  },
+
+  /**
+   * 处理课程数据，添加模块可见性标志
+   */
+  processCourseModules(course) {
+    const modules = ['meditation', 'question', 'content', 'reflection', 'action', 'learn', 'extract', 'say'];
+
+    modules.forEach(module => {
+      // 判断模块内容是否为空，添加 visible 标志
+      const isEmpty = this.isContentEmpty(course[module]);
+      course[`${module}Visible`] = !isEmpty;
+    });
+
+    return course;
+  },
+
   async loadCourseDetail() {
     this.setData({ loading: true });
 
@@ -37,6 +63,9 @@ Page({
       if (!course.comments) {
         course.comments = [];
       }
+
+      // 处理课程模块的可见性
+      this.processCourseModules(course);
 
       console.log('course.comments:', course.comments);
       console.log('comments 是否存在:', !!course.comments);
