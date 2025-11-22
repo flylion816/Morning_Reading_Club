@@ -3778,6 +3778,152 @@ Week 2 commits:
 
 ---
 
-**最后更新**: 2025-11-22 18:30
+### 32. ⚠️ 后台管理系统认证链路断裂问题（系统性问题）
+
+**问题现象**：
+用户在管理员后台登录成功，看到 token 返回和本地存储成功，但立即被重定向回登录页面。尝试访问仪表板或其他管理页面都返回 401 Unauthorized。
+
+**根本原因**：这不是单一 bug，而是**系统级认证链路的 4 个独立问题叠加**：
+
+#### **问题 1: JWT 秘密验证失败**
+```javascript
+// ❌ 生成 token 时有 fallback 秘密
+const secret = process.env.JWT_SECRET || 'dev-secret-key-12345678';
+const token = jwt.sign(payload, secret);
+
+// ❌ 但验证时没有 fallback，导致秘密不匹配
+function verifyAccessToken(token) {
+  return jwt.verify(token, process.env.JWT_SECRET);  // undefined!
+}
+```
+**结果**: 即使 token 是有效的，验证也会失败 → 所有 API 返回 401
+
+#### **问题 2: 角色值字段名不一致**
+```javascript
+// ❌ 生成 token 时用的是 'superadmin'（无下划线）
+req.user.role = 'superadmin';
+
+// ❌ 但验证时检查的是 'super_admin'（有下划线）
+if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+  return res.status(403).json(errors.forbidden('需要管理员权限'));
+}
+```
+**结果**: token 验证通过但权限检查失败 → 返回 403 或 401
+
+#### **问题 3: 认证中间件链中断（stats 路由）**
+```javascript
+// ❌ stats 路由只应用了 adminMiddleware，缺少 authMiddleware
+router.use(adminMiddleware);  // 需要 req.user，但谁来设置？
+
+// adminMiddleware 依赖 authMiddleware 的 req.user 设置
+function adminMiddleware(req, res, next) {
+  if (!req.user) {  // undefined，因为 authMiddleware 没执行！
+    return res.status(401).json(errors.unauthorized('未登录'));
+  }
+  // ...
+}
+```
+**结果**: authMiddleware 未执行 → req.user 为 undefined → 返回 401
+
+#### **问题 4: 认证中间件链中断（enrollment 路由）**
+同样的问题出现在 enrollment 路由的管理员端点：
+```javascript
+// ❌ 错误的顺序
+router.get('/', adminMiddleware, getEnrollments);
+
+// ✅ 正确的顺序
+router.get('/', authMiddleware, adminMiddleware, getEnrollments);
+```
+
+**解决方案**：
+
+1. **修复 JWT 秘密验证（jwt.js）**
+```javascript
+function verifyAccessToken(token) {
+  const secret = process.env.JWT_SECRET || 'dev-secret-key-12345678';
+  return jwt.verify(token, secret);
+}
+
+function verifyRefreshToken(token) {
+  const secret = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key-87654321';
+  return jwt.verify(token, secret);
+}
+```
+
+2. **修复角色值检查（auth.js）**
+```javascript
+function adminMiddleware(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json(errors.unauthorized('未登录'));
+  }
+
+  // ✅ 改用 'superadmin'（与生成时一致）
+  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    return res.status(403).json(errors.forbidden('需要管理员权限'));
+  }
+
+  next();
+}
+```
+
+3. **添加 authMiddleware 到 stats 路由（stats.routes.js）**
+```javascript
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+
+// ✅ authMiddleware 必须先执行
+router.use(authMiddleware);
+router.use(adminMiddleware);
+```
+
+4. **添加 authMiddleware 到 enrollment 管理端点（enrollment.routes.js）**
+```javascript
+// ✅ 所有管理员端点都必须有两个中间件
+router.get('/', authMiddleware, adminMiddleware, getEnrollments);
+router.post('/:id/approve', authMiddleware, adminMiddleware, approveEnrollment);
+router.post('/:id/reject', authMiddleware, adminMiddleware, rejectEnrollment);
+router.put('/:id', authMiddleware, adminMiddleware, updateEnrollment);
+router.delete('/:id', authMiddleware, adminMiddleware, deleteEnrollment);
+```
+
+**为什么这个问题花了这么久才解决？**
+
+这是一个**系统性调试失败的案例**，涉及以下认知误区：
+
+1. **症状 vs 原因混淆**: 看到"登录后跳回"，假设问题在前端路由，而不是后端 401 响应
+2. **直觉式修改**: 没有进行系统诊断，直接修改代码 → 改了无关的地方
+3. **缺少日志追踪**: 没有在关键中间件添加日志，无法看到执行流程
+4. **部分测试**: 只测试了登录 API，没有测试后续 API 调用
+5. **信息流割裂**: 前端和后端的错误信息没有关联分析
+
+**正确的诊断流程应该是**：
+```
+1. ✅ curl 登录 API → 确认返回 200 和有效 token
+2. ✅ 用返回的 token 调用 dashboard API → 观察具体错误码
+3. ✅ 在后端添加日志 → 追踪 authMiddleware 和 adminMiddleware 是否执行
+4. ✅ 从日志反推问题 → JWT 秘密? 角色值? 中间件链?
+5. ✅ 每次修改后用 curl 验证 → 确保修改生效
+```
+
+**经验教训**：
+- ⚠️ 认证/授权问题需要系统诊断，不能凭直觉修改
+- ⚠️ 中间件的执行顺序至关重要，特别是依赖关系
+- ⚠️ JWT 生成和验证必须使用相同的秘密和算法
+- ⚠️ 错误信息（401 vs 403）能透露问题原因，要仔细分析
+- ✅ 添加详细的日志追踪中间件执行
+- ✅ 使用 curl 而不是依赖前端来测试 API
+- ✅ 修改后必须立即验证，不要批量修改后一起测试
+- ✅ 对每个路由严格检查中间件顺序和依赖关系
+
+**相关代码修改**:
+- backend/src/utils/jwt.js: `verifyAccessToken()` 和 `verifyRefreshToken()`
+- backend/src/middleware/auth.js: `adminMiddleware()` 角色检查
+- backend/src/routes/stats.routes.js: 添加 `authMiddleware`
+- backend/src/routes/enrollment.routes.js: 所有管理端点添加 `authMiddleware`
+
+**提交记录**: `ca1b2f0` (fix: 修复管理员后台认证和授权问题)
+
+---
+
+**最后更新**: 2025-11-22 22:30
 **维护者**: Claude Code
 **项目状态**: 第二阶段完成 ✅
