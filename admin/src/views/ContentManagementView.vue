@@ -154,6 +154,42 @@
                 show-word-limit
               />
             </el-form-item>
+
+            <!-- 学一学 -->
+            <el-form-item label="学一学">
+              <el-input
+                v-model="editingSection.learn"
+                type="textarea"
+                placeholder="学习要点"
+                :rows="3"
+                maxlength="500"
+                show-word-limit
+              />
+            </el-form-item>
+
+            <!-- 摘一摘 -->
+            <el-form-item label="摘一摘">
+              <el-input
+                v-model="editingSection.extract"
+                type="textarea"
+                placeholder="重点摘要"
+                :rows="3"
+                maxlength="500"
+                show-word-limit
+              />
+            </el-form-item>
+
+            <!-- 说一说 -->
+            <el-form-item label="说一说">
+              <el-input
+                v-model="editingSection.say"
+                type="textarea"
+                placeholder="讨论主题"
+                :rows="3"
+                maxlength="500"
+                show-word-limit
+              />
+            </el-form-item>
           </div>
 
           <!-- 扩展信息 -->
@@ -207,6 +243,9 @@ const editingSection = ref<any>({
   content: '',
   reflection: '',
   action: '',
+  learn: '',
+  extract: '',
+  say: '',
   duration: 0,
   isPublished: false
 })
@@ -351,6 +390,9 @@ function resetForm() {
     content: '',
     reflection: '',
     action: '',
+    learn: '',
+    extract: '',
+    say: '',
     duration: 0,
     isPublished: false
   }

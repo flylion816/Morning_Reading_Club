@@ -50,6 +50,21 @@ const SectionSchema = new mongoose.Schema({
     maxlength: 500,
     default: null
   },
+  learn: {
+    type: String,
+    maxlength: 500,
+    default: null
+  },
+  extract: {
+    type: String,
+    maxlength: 500,
+    default: null
+  },
+  say: {
+    type: String,
+    maxlength: 500,
+    default: null
+  },
   audioUrl: {
     type: String,
     maxlength: 500,
