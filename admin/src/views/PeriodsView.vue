@@ -464,7 +464,7 @@ function getStatusType(status: string): string {
   height: 56px;
 }
 
-:deep(.el-table__cell) {
+:deep(.el-table__body .el-table__cell) {
   padding: 12px 0;
   display: flex;
   align-items: center;
@@ -478,19 +478,5 @@ function getStatusType(status: string): string {
 :deep(.el-switch) {
   display: flex;
   align-items: center;
-}
-
-/* 防止文字换行 */
-:deep(.el-table__cell) {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 时间范围列允许换行显示（因为内容较长） */
-:deep(.el-table__body tr td:nth-child(3)) {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: unset;
 }
 </style>
