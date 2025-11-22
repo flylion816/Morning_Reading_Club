@@ -351,6 +351,7 @@ const loadLogs = async () => {
       pageSize: pagination.value.pageSize
     }
 
+    if (filters.value.adminName) params.adminName = filters.value.adminName
     if (filters.value.actionType) params.actionType = filters.value.actionType
     if (filters.value.resourceType) params.resourceType = filters.value.resourceType
     if (filters.value.status) params.status = filters.value.status
@@ -360,7 +361,8 @@ const loadLogs = async () => {
     }
 
     const result = await auditApi.getAuditLogs(params)
-    auditLogs.value = result.list || result.data || []
+    // result 是 AuditLogsResponse，包含 data、total、page、pageSize、pages
+    auditLogs.value = result.data || []
     pagination.value.total = result.total || 0
   } catch (error) {
     ElMessage.error('加载审计日志失败')

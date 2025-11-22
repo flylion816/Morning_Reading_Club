@@ -46,6 +46,7 @@ export interface AuditStatistics {
 export const getAuditLogs = (params: {
   page?: number
   pageSize?: number
+  adminName?: string
   adminId?: string
   actionType?: string
   resourceType?: string
@@ -53,7 +54,7 @@ export const getAuditLogs = (params: {
   endDate?: string
   status?: string
 }): Promise<AuditLogsResponse> => {
-  return axios.get(BASE_URL, { params }).then(res => res.data.data)
+  return axios.get(BASE_URL, { params }).then(res => res.data.data || res.data)
 }
 
 /**
