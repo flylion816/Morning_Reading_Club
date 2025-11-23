@@ -149,6 +149,13 @@
   line-height: 1.8;
 }
 
+/* 富文本空段落样式 - 确保空行可见 */
+.section-content /deep/ p:empty {
+  min-height: 1em;
+  display: block;
+  margin: 16rpx 0;
+}
+
 /* 富文本粗体样式 */
 .section-content /deep/ strong {
   font-weight: bold;

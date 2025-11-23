@@ -53,6 +53,14 @@
   font-size: 28rpx;
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  margin-bottom: 8rpx;
+}
+
+.app-slogan-extra {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  line-height: 1.5;
 }
 
 /* 登录卡片 */
