@@ -15,7 +15,7 @@
     <!-- 登录卡片 -->
     <view class="login-card">
       <view class="card-title">明理实修，同见同行</view>
-      <view class="card-desc">通过微信一键登录</view>
+      <view class="card-desc">在这里，我们一起：观心，谈心，用心，修心，明心</view>
 
       <!-- 登录按钮 -->
       <button
