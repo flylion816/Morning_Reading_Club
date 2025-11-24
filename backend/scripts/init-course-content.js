@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Section = require('../src/models/Section');
 const Period = require('../src/models/Period');
 
-const mongoUrl = process.env.MONGODB_URL || 'mongodb://localhost:27017/morning-reading-club';
+const mongoUrl = process.env.MONGODB_URI || process.env.MONGODB_URL || 'mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin';
 
 /**
  * 通用课程内容导入脚本
