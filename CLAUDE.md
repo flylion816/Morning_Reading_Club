@@ -4173,6 +4173,99 @@ node scripts/init-course-content.js "期次名称" 日期 day1-content.json
 
 ---
 
-**最后更新**: 2025-11-22 (完成通用PDF导入脚本重构)
+### 31. 数据库 Day 4 重复记录清理
+
+**问题现象**：Day 4 课程在数据库中存在 5 条重复记录，只需保留 1 条完整记录
+
+**数据库状态分析**：
+
+发现的 5 条 Day 4 记录：
+1. `69258907adf0b167ee671704` - 第1版本 (2830字, 21段, 通过import_day4.js导入)
+2. `692587fa7ab653766cbfd039` - 第2版本 (2876字, 22段, 完整版 - **保留**)
+3. `692587e4989f0fb449c434d8` - 第2版本副本 (2876字, 22段, 重复)
+4. `692575299c1886dd2212415d` - 最早版本 (2876字, 22段, 重复, 创建于17:21)
+5. `6915e741c4fbb4031641709c` - 残缺版本 (148字, 无段落, 旧记录)
+
+**根本原因**：
+- 多次不同的导入脚本运行（init-course-content.js、import_day4.js）
+- 未进行去重检查，导致大量重复记录
+- 标题不一致（"品德成功论" vs "第四天 成长和改变的原则"）
+
+**解决方案执行**：
+```bash
+# 运行清理脚本
+cd /Users/pica_1/我的坚果云/flylion/AI项目开发/七个习惯晨读营/backend
+
+# 方式：连接MongoDB，查询所有Day 4记录，保留最完整的，删除其余4条
+node -e "
+const mongoose = require('mongoose');
+const Section = require('./src/models/Section');
+
+async function cleanup() {
+  await mongoose.connect('mongodb://...');
+  const records = await Section.find({day: 4});
+
+  // 找到最完整的（字数最多）
+  let best = records[0];
+  for (const r of records) {
+    if ((r.content?.length || 0) > (best.content?.length || 0)) {
+      best = r;
+    }
+  }
+
+  // 删除其他记录
+  for (const r of records) {
+    if (r._id !== best._id) {
+      await Section.deleteOne({_id: r._id});
+    }
+  }
+
+  await mongoose.disconnect();
+}
+```
+
+**清理结果**：
+- ✅ 已删除: 4 条重复记录
+- ✅ 保留: 1 条完整记录 (ID: `692587fa7ab653766cbfd039`)
+- ✅ 验证: 数据库中现只有 1 条 Day 4 记录
+
+**保留的完整记录详情**：
+```
+标题: 品德成功论
+副标题: (空)
+图标: ⚖️
+发布状态: ✅ 已发布
+
+内容字段:
+  静一静: 32 字
+  问一问: 16 字
+  读一读: 2876 字 (22 个段落) ⭐
+  想一想: 23 字
+  记一记: 35 字
+  摘一摘: 25 字
+  说一说: 54 字
+  学一学: 50 字
+
+创建时间: 2025-11-25 18:42:02
+```
+
+**经验教训**：
+- ⚠️ 导入脚本必须先检查是否已存在记录
+- ⚠️ 多个导入来源需要通过 periodId + day 唯一性约束防止重复
+- ⚠️ 定期检查数据库中的重复数据
+- ✅ 在 Section Model 中加入复合唯一索引：`index({periodId: 1, day: 1})`
+- ✅ 导入前执行 upsert 而不是 insert：`findOneAndUpdate({periodId, day}, {...}, {upsert: true})`
+- ✅ 建立数据验证和去重机制
+
+**后续防护措施**：
+1. Section Model 已有 `{periodId: 1, day: 1}` 复合索引
+2. 所有后续导入脚本使用 upsert 模式
+3. 添加数据完整性检查工具
+
+**提交记录**: 待提交 (清理完成后提交)
+
+---
+
+**最后更新**: 2025-11-25 (完成 Day 4 重复记录清理)
 **维护者**: Claude Code
-**项目状态**: 课程内容导入工具化完成 ✅
+**项目状态**: 课程内容导入 + 数据库清理完成 ✅
