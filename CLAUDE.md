@@ -4266,6 +4266,122 @@ async function cleanup() {
 
 ---
 
-**最后更新**: 2025-11-25 (完成 Day 4 重复记录清理)
+---
+
+## 32. Day 5-21 课程内容导入完成（2025-11-26）
+
+**完成任务**: 批量导入 Day 5-21 课程内容到 MongoDB 数据库
+
+### 工作过程
+
+**第1阶段：DOCX 内容提取（Python 脚本）**
+
+用户提供了 17 个 DOCX 文件（day5-day21 详情），包含所有课程文字内容。通过 Python 脚本从 DOCX ZIP 结构中提取文本，经过 4 个版本的迭代：
+
+- **V1** (`batch_import_days_unified.py`): 0/17 成功
+  - 问题：简单 regex 模式未考虑 DOCX `<w:t>` 文本碎片化
+
+- **V2** (`batch_import_days_v2.py`): 2/17 成功
+  - 改进：使用 `|` 连接文本碎片，但仍未解决多格式问题
+
+- **V3** (`batch_import_days_v3.py`): 7/17 成功
+  - 改进：直接从第一文本元素提取标题，支持部分多格式
+
+- **Final** (`batch_import_days_final.py`): **17/17 成功** ✅
+  - 发现问题根因：Day 5-21 使用 **4 种不同的"读一读"格式**：
+    - Days 5-10: `读一读|每天晨读内容|...` (pipe separator)
+    - Days 11-16: `读一读（每天晨读内容）|...` (parentheses)
+    - Day 17: `读一读| |每天晨读内容：|...` (mixed format)
+    - Days 18-21: `读一读：每天晨读内容|...` (colon separator)
+  - 解决方案：实现多模式 regex 匹配，按顺序尝试各种格式
+
+**第2阶段：数据库导入（Node.js 脚本）**
+
+使用 `import_all_days.js` 批量导入所有 JSON 文件到 MongoDB：
+
+- 使用 upsert 模式：`{periodId, day}` 作为 unique key
+- 防止重复导入（可安全重复运行）
+- 所有 21 天导入成功：**21/21** ✅
+
+**第3阶段：数据验证**
+
+创建验证脚本 `verify_all_days.js`，确认所有数据完整性：
+
+```
+成功导入: 21/21 天
+总字数: 47,782 字
+总段落: 508 段
+平均每天: 2,275 字, 24.2 段
+```
+
+### 关键技术亮点
+
+**1. DOCX 格式处理**
+```python
+def extract_text_from_docx(docx_path):
+    """从DOCX文件提取纯文本列表"""
+    with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+        xml_content = zip_ref.read('word/document.xml')
+    root = ET.fromstring(xml_content)
+    texts = []
+    for t in root.findall('.//w:t', namespaces):
+        if t.text:
+            texts.append(t.text)
+    return texts
+```
+
+**2. 多格式 Regex 匹配**
+```python
+# 格式1、2：读一读 + pipe 分隔符
+match = re.search(r'读一读[^|]*\|+([^|]+\|.+?)(?:\|想一想|$)', full_text, re.DOTALL)
+
+# 格式3：读一读 + 冒号
+if not reading_raw:
+    match = re.search(r'读一读：(.+?)(?:想一想|$)', full_text, re.DOTALL)
+```
+
+**3. MongoDB Upsert 模式**
+```javascript
+const updated = await Section.findOneAndUpdate(
+  { periodId: period._id, day: day },
+  { periodId: period._id, day: day, ...courseData },
+  { upsert: true, new: true, runValidators: false }
+);
+```
+
+### 数据统计
+
+| 指标 | 数值 |
+|------|------|
+| 导入天数 | 21/21 ✅ |
+| 总字数 | 47,782 字 |
+| 总段落数 | 508 段 |
+| 平均每天字数 | 2,275 字 |
+| 最长课程 | Day 11 - 3,578 字 |
+| 最短课程 | Day 5 - 1,326 字 |
+
+### 经验教训
+
+⚠️ **多格式兼容性问题**
+- DOCX 文件虽然来自同一源，但格式不统一
+- 需要灵活的多模式 regex 匹配
+- 单一格式假设会导致大量失败
+
+✅ **解决方案**
+- 按顺序尝试多种格式模式
+- 实现段落清理（移除元数据标记）
+- 使用 upsert 防止重复（支持重新运行）
+- 完整的错误报告（成功/失败详细统计）
+
+### 后续工作
+
+1. ✅ Day 1-21 课程内容已完整导入
+2. ⏳ 前端页面已准备接收课程数据
+3. ⏳ API 端点已实现课程查询功能
+4. ⏳ 准备与前端联调测试
+
+---
+
+**最后更新**: 2025-11-26 (完成 Day 5-21 课程内容导入)
 **维护者**: Claude Code
-**项目状态**: 课程内容导入 + 数据库清理完成 ✅
+**项目状态**: 完整的 21 天课程已导入数据库 ✅
