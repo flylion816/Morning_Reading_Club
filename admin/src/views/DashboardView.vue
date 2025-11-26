@@ -26,7 +26,7 @@
         <el-card class="stat-card" @click="navigateTo('/payments')" style="cursor: pointer">
           <div class="stat-item">
             <div>
-              <div class="stat-value">¥{{ formatCurrency(stats.totalPaymentAmount || 0) }}</div>
+              <div class="stat-value">¥{{ ((stats.totalPaymentAmount || 0) / 100).toFixed(2) }}</div>
               <div class="stat-label">支付总额</div>
             </div>
             <span class="stat-icon success">💰</span>

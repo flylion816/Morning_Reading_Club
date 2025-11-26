@@ -188,12 +188,14 @@ let paymentMethodChart: echarts.ECharts | null = null
 let periodPopularityChart: echarts.ECharts | null = null
 let enrollmentStatusChart: echarts.ECharts | null = null
 
-// 格式化数字
+// 格式化数字（金额单位：分 -> 元）
 const formatNumber = (value: number) => {
-  if (value >= 10000) {
-    return ((value / 10000).toFixed(1)) + '万'
+  // 金额以分为单位，需要除以100转换为元
+  const yuan = value / 100
+  if (yuan >= 10000) {
+    return ((yuan / 10000).toFixed(1)) + '万'
   }
-  return value.toString()
+  return yuan.toFixed(2)
 }
 
 // 日期范围变化
