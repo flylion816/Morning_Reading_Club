@@ -102,9 +102,19 @@ PeriodSchema.index({ status: 1 });
 PeriodSchema.index({ isPublished: 1, sortOrder: 1 });
 
 // 虚拟字段 - 日期范围格式化
+// 直接从 Date 对象提取本地日期，避免 toISOString() 导致的 UTC 转换
 PeriodSchema.virtual('dateRange').get(function() {
-  const start = this.startDate.toISOString().slice(5, 10).replace('-', '/');
-  const end = this.endDate.toISOString().slice(5, 10).replace('-', '/');
+  // 使用本地时区提取日期
+  const formatLocalDate = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${month}/${day}`;
+  };
+
+  const start = formatLocalDate(this.startDate);
+  const end = formatLocalDate(this.endDate);
   return `${start} 至 ${end}`;
 });
 
