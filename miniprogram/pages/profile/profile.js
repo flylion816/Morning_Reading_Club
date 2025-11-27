@@ -114,18 +114,29 @@ Page({
       const periodsList = periods.list || periods.items || periods || [];
       const currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
 
-      // 获取今日课节（使用当前期次的第一个课节作为示例）
+      // 获取今日课节（根据当前日期动态计算）
       let todaySection = null;
-      const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
-      if (periodId) {
-        try {
-          const sectionsRes = await courseService.getPeriodSections(periodId);
-          const sections = sectionsRes.list || sectionsRes.items || sectionsRes || [];
-          // 过滤掉开营词（day为0的课节），获取第一个未打卡的课节作为今日课节
-          const normalSections = sections.filter(s => s.day > 0);
-          todaySection = normalSections.find(s => !s.isCheckedIn) || normalSections[0];
+      try {
+        const taskRes = await courseService.getTodayTask();
+        console.log('今日任务API响应:', taskRes);
 
-          if (todaySection) {
+        if (taskRes && taskRes.sectionId) {
+          // 获取该课节的完整信息用于显示
+          const sectionRes = await courseService.getSectionDetail(taskRes.sectionId);
+          console.log('课节详情API响应:', sectionRes);
+
+          if (sectionRes) {
+            // 合并任务信息和课节信息
+            todaySection = {
+              ...sectionRes,
+              _id: sectionRes._id || taskRes.sectionId,
+              id: sectionRes.id || taskRes.sectionId,
+              day: taskRes.day,
+              periodId: taskRes.periodId,
+              periodTitle: taskRes.periodTitle,
+              checkinCount: taskRes.checkinCount || 0
+            };
+
             // 设置封面样式
             if (!todaySection.coverColor) {
               todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
@@ -133,16 +144,42 @@ Page({
             if (!todaySection.coverEmoji) {
               todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
             }
-            // 添加期次信息
-            todaySection.periodId = periodId;
-            todaySection.periodTitle = currentPeriod.title;
+
             // 处理subtitle：移除末尾的"至"
             if (todaySection.subtitle) {
               todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
             }
+
+            console.log('处理后的今日课节:', todaySection);
           }
-        } catch (error) {
-          console.error('获取今日课节失败:', error);
+        }
+      } catch (error) {
+        console.error('获取今日任务失败:', error);
+        // 降级方案：如果动态获取失败，使用备选方案
+        const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
+        if (periodId) {
+          try {
+            const sectionsRes = await courseService.getPeriodSections(periodId);
+            const sections = sectionsRes.list || sectionsRes.items || sectionsRes || [];
+            const normalSections = sections.filter(s => s.day > 0);
+            todaySection = normalSections.find(s => !s.isCheckedIn) || normalSections[0];
+
+            if (todaySection) {
+              if (!todaySection.coverColor) {
+                todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+              }
+              if (!todaySection.coverEmoji) {
+                todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+              }
+              todaySection.periodId = periodId;
+              todaySection.periodTitle = currentPeriod.title;
+              if (todaySection.subtitle) {
+                todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
+              }
+            }
+          } catch (fallbackError) {
+            console.error('备选方案也失败了:', fallbackError);
+          }
         }
       }
 
