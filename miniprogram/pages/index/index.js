@@ -55,6 +55,8 @@ Page({
 
     const todayDateRange = `${startDate} - ${endDate}`;
 
+    console.log('初始化今日任务日期范围:', todayDateRange);
+
     this.setData({
       todayDateRange
     });
