@@ -25,10 +25,12 @@ Page({
   },
 
   onLoad(options) {
+    console.log('===== 首页onLoad开始 =====');
     console.log('首页加载', options);
     this.checkLoginStatus();
     this.loadPeriods();
     this.initTodayDateRange();
+    console.log('===== 首页onLoad结束 =====');
   },
 
   onShow() {
