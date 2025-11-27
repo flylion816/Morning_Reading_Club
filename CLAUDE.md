@@ -4530,6 +4530,86 @@ curl -X GET http://localhost:3000/api/v1/sections/today/task \
 
 ---
 
-**最后更新**: 2025-11-27 (实现动态今日任务功能 + 修复期次日期时区显示问题)
+---
+
+## 🎯 管理后台增强（2025-11-27）
+
+### 功能优化
+
+**1. 管理员头像增强** - `admin/src/components/AdminLayout.vue:66-73`
+- 为 `<el-avatar>` 组件添加 `:fallback="true"` 属性
+- 添加默认管理员头像 `👨‍💼` 作为 slot 内容
+- 当管理员未设置头像时，自动显示默认头像
+- 实现效果：头像圆形，背景为灰色，显示 👨‍💼 emoji
+
+**2. 批量操作功能确认** - `admin/src/views/EnrollmentsView.vue`
+- **已完整实现**三个批量操作功能：
+  - **批量批准** (batchApprove) - 第 446-482 行
+    - 并行发送多个批准请求
+    - 使用 `Promise.all()` 优化性能
+    - 显示确认对话框防止误操作
+    - 成功后自动刷新列表
+
+  - **批量拒绝** (batchReject) - 第 484-520 行
+    - 功能同批准，支持选择拒绝的记录
+    - 使用 `ElMessageBox.confirm()` 确认机制
+
+  - **批量删除** (batchDelete) - 第 522-558 行
+    - 并行删除多条记录
+    - 警告级别的确认弹窗提醒不可撤销
+    - 后端标记 `deleted: true` 而非物理删除
+
+- **UI 交互**：
+  - 批量操作工具栏 (第 42-77 行) 条件显示
+  - 选中记录数实时显示
+  - 批准和拒绝按钮仅在选中待审批项时启用
+  - 清除选择按钮用于快速清空选中状态
+
+### 技术细节
+
+**并行处理优化**：
+```javascript
+// 使用 Promise.all() 并行发送请求，提高效率
+const promises = ids.map((id: string) =>
+  enrollmentApi.updateEnrollment(id, { approvalStatus: 'approved' })
+)
+await Promise.all(promises)
+```
+
+**UI 工具栏自适应**：
+```vue
+<!-- 仅当有选中项时显示 -->
+<div v-if="selectedEnrollments.length > 0" class="batch-operation-bar">
+  <!-- 显示已选项数 -->
+  <span class="selected-count">已选中 {{ selectedEnrollments.length }} 条记录</span>
+  <!-- 批量操作按钮 -->
+</div>
+```
+
+**选中状态管理**：
+- `handleSelectionChange()` - 跟踪 el-table 的选中项
+- `hasSelectedPending` 计算属性 - 判断是否有待审批项
+- `clearSelection()` - 清除选中状态和本地数据
+
+### 文件修改记录
+
+- **提交**: fd110ae - feat: 添加管理员默认头像和确认批量操作功能完整实现
+- **修改文件**：
+  - `admin/src/components/AdminLayout.vue`：添加默认管理员头像
+  - `admin/src/views/EnrollmentsView.vue`：已有完整批量操作实现
+
+### 验证清单
+
+- ✅ 管理员头像显示（无头像时显示 👨‍💼）
+- ✅ 批量批准功能实现完整
+- ✅ 批量拒绝功能实现完整
+- ✅ 批量删除功能实现完整
+- ✅ 所有操作都有确认机制
+- ✅ 并行处理优化已应用
+- ✅ UI 工具栏条件显示正确
+
+---
+
+**最后更新**: 2025-11-27 (实现动态今日任务功能 + 修复期次日期时区显示问题 + 管理后台增强)
 **维护者**: Claude Code
-**项目状态**: 完整的 21 天课程已导入 + 日期显示已修复 + 动态今日任务已实现 ✅
+**项目状态**: 完整的 21 天课程已导入 + 日期显示已修复 + 动态今日任务已实现 + 管理后台增强完成 ✅
