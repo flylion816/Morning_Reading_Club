@@ -326,12 +326,12 @@
 
 /* 今日日期范围显示 */
 .today-date-range {
-  font-size: 24rpx;
-  color: #4a90e2;
-  padding: 12rpx 0;
-  margin-bottom: 16rpx;
-  text-align: center;
-  font-weight: 500;
+  font-size: 22rpx;
+  color: #999;
+  padding: 0;
+  margin: 0 0 16rpx 0;
+  text-align: left;
+  font-weight: 400;
 }
 
 /* 统一的区块样式 */
