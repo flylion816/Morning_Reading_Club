@@ -204,10 +204,11 @@ async function getTodayTask(req, res, next) {
     const userId = req.user._id;
     const Enrollment = require('../models/Enrollment');
 
-    // 获取用户所有已批准的报名
+    // 获取用户所有报名（包括待批准的）
+    // 使用 $in 匹配多个状态，允许 pending 和 approved
     const enrollments = await Enrollment.find({
       userId,
-      approvalStatus: 'approved'
+      approvalStatus: { $in: ['approved', 'pending'] }
     }).populate('periodId');
 
     if (!enrollments || enrollments.length === 0) {
