@@ -58,6 +58,10 @@
           <view class="section-icon">📋</view>
           <text class="section-header-title">今日任务</text>
         </view>
+        <!-- 今日日期范围显示 -->
+        <view class="today-date-range">
+          2025-11-27 00:00:00 - 2025-11-27 23:59:59
+        </view>
         <view class="period-card" wx:if="{{todaySection}}" bindtap="handleTodaySectionClick">
           <view class="period-cover" style="background: {{todaySection.coverColor || '#4a90e2'}}">
             <text class="cover-emoji">{{todaySection.coverEmoji || '🏔️'}}</text>
