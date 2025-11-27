@@ -3,14 +3,15 @@
   <!-- Logo和标题 -->
   <view class="login-header">
     <view class="logo">📚</view>
-    <text class="app-title">凡人晨读营</text>
-    <text class="app-slogan">在晨光中,遇见更好的自己</text>
+    <text class="app-title">《高效能人士的七个习惯》</text>
+    <text class="app-title-second">凡人晨读营</text>
+    <text class="app-slogan">一个早起、读书、谈心的地方</text>
   </view>
 
   <!-- 登录卡片 -->
   <view class="login-card">
-    <view class="card-title">欢迎来到凡人晨读营</view>
-    <view class="card-desc">通过微信一键登录</view>
+    <view class="card-title">明理实修，同见同行</view>
+    <view class="card-desc">在这里，我们一起 观心，谈心，用心，修心，明心</view>
 
     <!-- 登录按钮 -->
     <button
