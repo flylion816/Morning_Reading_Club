@@ -122,9 +122,15 @@ Page({
         console.log('✅ 今日任务API响应:', taskRes);
         console.log('taskRes类型:', typeof taskRes);
         console.log('taskRes.sectionId:', taskRes?.sectionId);
-        console.log('taskRes.data:', taskRes?.data);
+        console.log('taskRes.code:', taskRes?.code);
+        console.log('taskRes.message:', taskRes?.message);
 
-        if (taskRes && taskRes.sectionId) {
+        // 检查是否有有效的任务数据
+        // API返回格式：{code: 200, message: "...", data: {...}} 或 {code: 200, message: "暂无任务", data: null}
+        // request.js会解包返回：{...data.data} 或 {code, message, data: null}
+        const hasValidTask = taskRes && taskRes.sectionId && taskRes.sectionId !== undefined;
+
+        if (hasValidTask) {
           console.log('🔄 开始获取课节详情，sectionId:', taskRes.sectionId);
           // 获取该课节的完整信息用于显示
           const sectionRes = await courseService.getSectionDetail(taskRes.sectionId);
@@ -158,7 +164,35 @@ Page({
             console.log('✅ 处理后的今日课节:', todaySection);
           }
         } else {
-          console.warn('⚠️ taskRes不包含sectionId:', taskRes);
+          console.warn('⚠️ API返回暂无任务，使用备选方案:', taskRes);
+          // 使用备选方案：获取当前期次的第一个未打卡或第一个课节
+          const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
+          console.log('📋 使用备选方案，periodId:', periodId);
+          if (periodId) {
+            try {
+              const sectionsRes = await courseService.getPeriodSections(periodId);
+              const sections = sectionsRes.list || sectionsRes.items || sectionsRes || [];
+              const normalSections = sections.filter(s => s.day > 0);
+              todaySection = normalSections.find(s => !s.isCheckedIn) || normalSections[0];
+
+              if (todaySection) {
+                if (!todaySection.coverColor) {
+                  todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+                }
+                if (!todaySection.coverEmoji) {
+                  todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+                }
+                todaySection.periodId = periodId;
+                todaySection.periodTitle = currentPeriod.title;
+                if (todaySection.subtitle) {
+                  todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
+                }
+                console.log('✅ 备选方案成功:', todaySection);
+              }
+            } catch (fallbackError) {
+              console.error('❌ 备选方案也失败了:', fallbackError);
+            }
+          }
         }
       } catch (error) {
         console.error('❌ 获取今日任务失败:', error);
@@ -166,7 +200,7 @@ Page({
         console.error('错误详情:', error);
         // 降级方案：如果动态获取失败，使用备选方案
         const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
-        console.log('📋 使用备选方案，periodId:', periodId);
+        console.log('📋 发生错误，使用备选方案，periodId:', periodId);
         if (periodId) {
           try {
             const sectionsRes = await courseService.getPeriodSections(periodId);
