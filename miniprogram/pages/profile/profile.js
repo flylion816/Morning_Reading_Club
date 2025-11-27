@@ -116,14 +116,19 @@ Page({
 
       // 获取今日课节（根据当前日期动态计算）
       let todaySection = null;
+      console.log('===== 开始获取今日任务 =====');
       try {
         const taskRes = await courseService.getTodayTask();
-        console.log('今日任务API响应:', taskRes);
+        console.log('✅ 今日任务API响应:', taskRes);
+        console.log('taskRes类型:', typeof taskRes);
+        console.log('taskRes.sectionId:', taskRes?.sectionId);
+        console.log('taskRes.data:', taskRes?.data);
 
         if (taskRes && taskRes.sectionId) {
+          console.log('🔄 开始获取课节详情，sectionId:', taskRes.sectionId);
           // 获取该课节的完整信息用于显示
           const sectionRes = await courseService.getSectionDetail(taskRes.sectionId);
-          console.log('课节详情API响应:', sectionRes);
+          console.log('✅ 课节详情API响应:', sectionRes);
 
           if (sectionRes) {
             // 合并任务信息和课节信息
@@ -150,13 +155,18 @@ Page({
               todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
             }
 
-            console.log('处理后的今日课节:', todaySection);
+            console.log('✅ 处理后的今日课节:', todaySection);
           }
+        } else {
+          console.warn('⚠️ taskRes不包含sectionId:', taskRes);
         }
       } catch (error) {
-        console.error('获取今日任务失败:', error);
+        console.error('❌ 获取今日任务失败:', error);
+        console.error('错误消息:', error.message);
+        console.error('错误详情:', error);
         // 降级方案：如果动态获取失败，使用备选方案
         const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
+        console.log('📋 使用备选方案，periodId:', periodId);
         if (periodId) {
           try {
             const sectionsRes = await courseService.getPeriodSections(periodId);
@@ -176,12 +186,14 @@ Page({
               if (todaySection.subtitle) {
                 todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
               }
+              console.log('✅ 备选方案成功:', todaySection);
             }
           } catch (fallbackError) {
-            console.error('备选方案也失败了:', fallbackError);
+            console.error('❌ 备选方案也失败了:', fallbackError);
           }
         }
       }
+      console.log('===== 今日任务获取完成，最终结果: =====', todaySection);
 
       // 加载最近的小凡看见记录（最多3条）
       let recentInsights = [];
