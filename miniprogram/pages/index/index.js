@@ -14,7 +14,11 @@ Page({
     periods: [],
     periodEnrollmentStatus: {}, // 记录每个期次的报名状态
     loading: true,
-    refreshing: false
+    refreshing: false,
+
+    // Banner文本
+    bannerText: '☀️ 天天开心！',
+    bannerSubtext: '在晨光中,遇见更好的自己'
   },
 
   onLoad(options) {

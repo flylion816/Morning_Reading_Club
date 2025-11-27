@@ -6,6 +6,37 @@
   padding-bottom: 120rpx;
 }
 
+/* 顶部横幅 */
+.home-banner {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  padding: 60rpx 32rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 180rpx;
+}
+
+.banner-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.banner-text {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  line-height: 1.2;
+}
+
+.banner-subtext {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
 /* 期次列表容器 */
 .periods-container {
   padding: 32rpx;

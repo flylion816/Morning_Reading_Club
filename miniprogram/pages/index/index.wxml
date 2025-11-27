@@ -1,5 +1,13 @@
 <!--首页 - 期次列表-->
 <view class="page-index">
+  <!-- 顶部横幅 -->
+  <view class="home-banner">
+    <view class="banner-text-container">
+      <text class="banner-text">☀️ 天天开心！</text>
+      <text class="banner-subtext">在晨光中,遇见更好的自己</text>
+    </view>
+  </view>
+
   <!-- 期次列表 -->
   <view class="periods-container">
     <view
