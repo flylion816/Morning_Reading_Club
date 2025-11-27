@@ -508,8 +508,8 @@ exports.updateEnrollment = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    // 不允许修改的字段
-    const protectedFields = ['userId', 'periodId', 'enrolledAt', 'approvalStatus'];
+    // 不允许修改的字段（不包括 approvalStatus，因为批量审批需要通过这个API来修改状态）
+    const protectedFields = ['userId', 'periodId', 'enrolledAt'];
     protectedFields.forEach(field => {
       delete updateData[field];
     });
