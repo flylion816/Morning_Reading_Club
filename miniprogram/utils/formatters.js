@@ -12,13 +12,44 @@
 function formatDate(date, format = 'YYYY-MM-DD') {
   if (!date) return '';
 
-  const d = new Date(date);
+  let d = new Date(date);
 
   if (isNaN(d.getTime())) {
     console.error('无效的日期:', date);
     return '';
   }
 
+  // 如果是ISO字符串，使用UTC解析而不是本地时区
+  // 这样才能与后端返回的日期保持一致（后端使用UTC）
+  if (typeof date === 'string' && date.includes('T')) {
+    // 例如："2025-11-20T00:00:00Z" 或 "2025-11-20T00:00:00.000Z"
+    const utcString = date;
+    const match = utcString.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      // 直接从字符串提取日期部分，避免时区转换
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10);
+      const day = parseInt(match[3], 10);
+
+      const formatMap = {
+        'YYYY': year,
+        'MM': String(month).padStart(2, '0'),
+        'DD': String(day).padStart(2, '0'),
+        'HH': String(d.getUTCHours()).padStart(2, '0'),
+        'mm': String(d.getUTCMinutes()).padStart(2, '0'),
+        'ss': String(d.getUTCSeconds()).padStart(2, '0')
+      };
+
+      let result = format;
+      Object.keys(formatMap).forEach(key => {
+        result = result.replace(key, formatMap[key]);
+      });
+
+      return result;
+    }
+  }
+
+  // 对于非ISO字符串或时间戳，使用本地时区
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
