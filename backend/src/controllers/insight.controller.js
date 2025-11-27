@@ -163,9 +163,149 @@ async function deleteInsight(req, res, next) {
   }
 }
 
+// ==================== 小凡看见(Insight) 相关接口 ====================
+
+// 创建小凡看见（手动导入）
+async function createInsightManual(req, res, next) {
+  try {
+    const { periodId, type, mediaType, content, imageUrl } = req.body;
+    const userId = req.user.userId;
+
+    // 验证必填字段
+    if (!periodId || !type || !mediaType || !content) {
+      return res.status(400).json(errors.badRequest('缺少必填字段'));
+    }
+
+    // 验证 mediaType
+    if (!['text', 'image'].includes(mediaType)) {
+      return res.status(400).json(errors.badRequest('无效的媒体类型'));
+    }
+
+    // 验证 type
+    if (!['daily', 'weekly', 'monthly', 'insight'].includes(type)) {
+      return res.status(400).json(errors.badRequest('无效的内容类型'));
+    }
+
+    // 创建小凡看见
+    const insight = await Insight.create({
+      userId,
+      periodId,
+      type,
+      mediaType,
+      content,
+      imageUrl: mediaType === 'image' ? imageUrl : null,
+      source: 'manual',
+      status: 'completed',
+      isPublished: true
+    });
+
+    res.status(201).json(success(insight, '小凡看见创建成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取小凡看见列表（按期次）
+async function getInsightsForPeriod(req, res, next) {
+  try {
+    const { periodId } = req.params;
+    const { type = 'insight', page = 1, limit = 20 } = req.query;
+
+    const query = {
+      periodId,
+      isPublished: true,
+      status: 'completed'
+    };
+
+    if (type) query.type = type;
+
+    const total = await Insight.countDocuments(query);
+    const insights = await Insight.find(query)
+      .populate('userId', 'nickname avatar')
+      .populate('sectionId', 'title day')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    res.json(success({
+      list: insights,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 更新小凡看见（编辑文案）
+async function updateInsight(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const { content, imageUrl, isPublished } = req.body;
+    const userId = req.user.userId;
+
+    const insight = await Insight.findById(insightId);
+
+    if (!insight) {
+      return res.status(404).json(errors.notFound('小凡看见不存在'));
+    }
+
+    // 权限检查（仅Admin或创建者可编辑）
+    const user = req.user;
+    if (insight.userId.toString() !== userId && user.role !== 'admin') {
+      return res.status(403).json(errors.forbidden('无权编辑'));
+    }
+
+    // 更新字段
+    if (content !== undefined) insight.content = content;
+    if (imageUrl !== undefined) insight.imageUrl = imageUrl;
+    if (isPublished !== undefined) insight.isPublished = isPublished;
+
+    await insight.save();
+
+    res.json(success(insight, '小凡看见更新成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 删除小凡看见
+async function deleteInsightManual(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const userId = req.user.userId;
+
+    const insight = await Insight.findById(insightId);
+
+    if (!insight) {
+      return res.status(404).json(errors.notFound('小凡看见不存在'));
+    }
+
+    // 权限检查
+    const user = req.user;
+    if (insight.userId.toString() !== userId && user.role !== 'admin') {
+      return res.status(403).json(errors.forbidden('无权删除'));
+    }
+
+    await Insight.findByIdAndDelete(insightId);
+
+    res.json(success(null, '小凡看见删除成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
   getInsightDetail,
-  deleteInsight
+  deleteInsight,
+  createInsightManual,
+  getInsightsForPeriod,
+  updateInsight,
+  deleteInsightManual
 };

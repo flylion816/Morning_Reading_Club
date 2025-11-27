@@ -5,7 +5,11 @@ const {
   generateInsight,
   getUserInsights,
   getInsightDetail,
-  deleteInsight
+  deleteInsight,
+  createInsightManual,
+  getInsightsForPeriod,
+  updateInsight,
+  deleteInsightManual
 } = require('../controllers/insight.controller');
 
 /**
@@ -35,5 +39,35 @@ router.get('/:insightId', authMiddleware, getInsightDetail);
  * @access  Private
  */
 router.delete('/:insightId', authMiddleware, deleteInsight);
+
+// ==================== 小凡看见(Insight) 相关路由 ====================
+
+/**
+ * @route   POST /api/v1/insights/manual/create
+ * @desc    创建小凡看见（手动导入）
+ * @access  Private
+ */
+router.post('/manual/create', authMiddleware, createInsightManual);
+
+/**
+ * @route   GET /api/v1/insights/period/:periodId
+ * @desc    获取某期次的小凡看见列表
+ * @access  Public
+ */
+router.get('/period/:periodId', getInsightsForPeriod);
+
+/**
+ * @route   PUT /api/v1/insights/:insightId
+ * @desc    更新小凡看见（编辑文案）
+ * @access  Private
+ */
+router.put('/:insightId', authMiddleware, updateInsight);
+
+/**
+ * @route   DELETE /api/v1/insights/manual/:insightId
+ * @desc    删除小凡看见
+ * @access  Private
+ */
+router.delete('/manual/:insightId', authMiddleware, deleteInsightManual);
 
 module.exports = router;
