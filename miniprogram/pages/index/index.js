@@ -17,8 +17,8 @@ Page({
     refreshing: false,
 
     // Banner文案
-    bannerText: '🔥 测试改动显示 🔥',
-    subBannerText: '检查代码是否生效',
+    bannerText: '天天开心！',
+    subBannerText: '在晨光中,遇见更好的自己',
 
     // 当天日期范围
     todayDateRange: ''

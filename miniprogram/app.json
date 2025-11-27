@@ -53,5 +53,6 @@
   "requiredPrivateInfos": [
     "getLocation"
   ],
-  "lazyCodeLoading": "requiredComponents"
+  "lazyCodeLoading": "requiredComponents",
+  "_dev_cache_bust": "2025-11-27-force-reload"
 }
