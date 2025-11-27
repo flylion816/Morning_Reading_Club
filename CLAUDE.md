@@ -4610,6 +4610,50 @@ await Promise.all(promises)
 
 ---
 
-**最后更新**: 2025-11-27 (实现动态今日任务功能 + 修复期次日期时区显示问题 + 管理后台增强)
+### 34. 管理员 API 无法返回待审批报名的问题（2025-11-27 修复）
+
+**问题现象**：数据库有 15 条待审批的报名记录，但管理后台（localhost:5173/enrollments）显示"暂无数据"
+
+**根本原因**：前后端对两个报名状态字段的理解不同
+- 数据库中有两个独立的状态字段：
+  - `status`: 报名的生命周期状态（active/completed/withdrawn）
+  - `approvalStatus`: 管理员审批状态（pending/approved/rejected）
+- 管理员 API 的 `getEnrollments` 方法默认筛选了**错误的字段**：
+  ```javascript
+  // ❌ 错误：筛选 status='pending'（生命周期状态）
+  const { status = 'pending', ... } = req.query;
+  // 脚本生成的报名记录: status='active', approvalStatus='pending'
+  // 结果: API 查询不到任何记录（status != 'pending'）
+  ```
+
+**解决方案**：修改 API 的默认筛选条件
+```javascript
+// ✅ 正确：筛选 approvalStatus='pending'（审批状态）
+const { approvalStatus = 'pending', ... } = req.query;
+// 使 status 成为可选的额外筛选条件
+if (status) query.status = status;
+if (approvalStatus) query.approvalStatus = approvalStatus;
+```
+
+**经验教训**：
+- ⚠️ 模型设计时必须清楚区分不同概念的状态字段
+- ⚠️ 同一个资源可能有多个独立的状态维度（业务状态 vs 审批状态）
+- ⚠️ API 默认值必须与实际的数据生成逻辑一致
+- ✅ 明确定义每个状态字段的含义和使用场景
+- ✅ 在 API 文档中说明默认筛选条件是什么
+- ✅ 新增 `verify-pending-enrollments.js` 脚本用于验证待审批报名的存在
+
+**修复结果**：
+- 数据库验证：✅ 15 条 approvalStatus='pending' 的报名
+- API 现在正确返回这些待审批报名
+- 管理后台可以正常显示和批量审批
+
+**相关代码修改**：
+- backend/src/controllers/enrollment.controller.js: 第 388-401 行
+- backend/scripts/verify-pending-enrollments.js: 新建文件用于验证
+
+---
+
+**最后更新**: 2025-11-27 (修复管理员 API 无法返回待审批报名 + 完整报名审批流程测试)
 **维护者**: Claude Code
-**项目状态**: 完整的 21 天课程已导入 + 日期显示已修复 + 动态今日任务已实现 + 管理后台增强完成 ✅
+**项目状态**: 15 个待审批报名已验证 + 管理后台 API 已修复 + 准备批量审批功能测试 ✅
