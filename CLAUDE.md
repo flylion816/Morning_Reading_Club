@@ -4442,6 +4442,94 @@ function formatDate(date, format = 'YYYY-MM-DD') {
 
 ---
 
-**最后更新**: 2025-11-27 (修复期次日期时区显示问题)
+## ✨ 动态今日任务功能实现（2025-11-27）
+
+### 实现需求
+实现"今日任务"功能，根据当前日期动态显示用户应该学习的课节内容。替代原有的硬编码"第一天 品德成功论"。
+
+### 后端实现
+
+**1. getTodayTask() 函数** - `backend/src/controllers/section.controller.js:202-277`
+```javascript
+// 核心逻辑：
+// 1. 获取用户所有已批准的报名 (Enrollment)
+// 2. 遍历每个报名的期次
+// 3. 计算从期次开始日期到今天经过的天数：
+//    daysDiff = Math.floor((today - periodStartDate) / (1000 * 60 * 60 * 24))
+// 4. 检查今天是否在期次范围内 (0 <= daysDiff < totalDays)
+// 5. 查询该天的课节（day === daysDiff，isPublished === true）
+// 6. 返回课节元数据（不含完整内容，减少传输）
+```
+
+**返回数据结构**:
+```json
+{
+  "code": 200,
+  "message": "获取今日任务成功",
+  "data": {
+    "periodId": "...",
+    "periodName": "平衡之道",
+    "periodTitle": "选择的力量",
+    "sectionId": "...",
+    "day": 2,
+    "title": "选择的智慧",
+    "icon": "🎯",
+    "meditation": "...",      // 静一静内容
+    "question": "...",        // 问一问内容
+    "reflection": "...",      // 反思内容
+    "action": "...",          // 行动内容
+    "learn": "...",          // 学一学内容
+    "checkinCount": 42       // 打卡人数
+  }
+}
+```
+
+**2. 路由注册** - `backend/src/routes/section.routes.js:49-53`
+```
+GET /api/v1/sections/today/task
+需要认证中间件 (authMiddleware)
+```
+
+### 前端实现
+
+**service 层** - `miniprogram/services/course.service.js:147-155`
+```javascript
+getTodayTask() {
+  // 直接调用后端接口，由后端根据用户的报名信息和当前日期计算
+  return request.get('/sections/today/task');
+}
+```
+
+### 关键设计决策
+
+1. **后端计算而非前端**：避免客户端时间不准导致的错误
+2. **基于用户报名**：只显示用户已批准报名的期次的任务
+3. **多期次支持**：遍历所有报名，返回第一个今天有任务的期次
+4. **日期计算**：使用 `Math.floor((today - startDate) / 86400000)` 计算整数天数
+5. **字段优化**：不返回完整 content 字段，减少数据传输
+
+### 测试方法
+
+```bash
+# 需要有效的认证 token
+curl -X GET http://localhost:3000/api/v1/sections/today/task \
+  -H "Authorization: Bearer <token>"
+
+# 响应示例
+# - 200: 返回今日任务
+# - 200: 返回 null 表示无任务
+# - 401: 未提供认证令牌
+```
+
+### 提交信息
+- **commit**: 1e88d04 - feat: 实现动态今日任务功能 - 后端接口和前端集成
+- **修改文件**：
+  - `backend/src/controllers/section.controller.js`：添加 getTodayTask()
+  - `backend/src/routes/section.routes.js`：注册路由
+  - `miniprogram/services/course.service.js`：添加服务方法
+
+---
+
+**最后更新**: 2025-11-27 (实现动态今日任务功能 + 修复期次日期时区显示问题)
 **维护者**: Claude Code
-**项目状态**: 完整的 21 天课程已导入 + 日期显示已修复 ✅
+**项目状态**: 完整的 21 天课程已导入 + 日期显示已修复 + 动态今日任务已实现 ✅
