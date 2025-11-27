@@ -378,16 +378,16 @@ exports.completeEnrollment = async (req, res) => {
 
 /**
  * 获取待审批的报名列表（管理员）
- * GET /api/v1/enrollments?status=pending&page=1&limit=20
+ * GET /api/v1/enrollments?approvalStatus=pending&page=1&limit=20
  */
 exports.getEnrollments = async (req, res) => {
   try {
     const {
       page = 1,
       limit = 20,
-      status = 'pending',
+      status,
       periodId,
-      approvalStatus,
+      approvalStatus = 'pending',
       paymentStatus,
       sortBy = 'enrolledAt',
       sortOrder = -1
