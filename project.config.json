@@ -3,16 +3,16 @@
   "packOptions": {
     "ignore": [
       {
-        "type": "file",
-        "value": ".eslintrc.js"
+        "value": ".eslintrc.js",
+        "type": "file"
       },
       {
-        "type": "file",
-        "value": ".gitignore"
+        "value": ".gitignore",
+        "type": "file"
       },
       {
-        "type": "folder",
-        "value": "node_modules"
+        "value": "node_modules",
+        "type": "folder"
       }
     ],
     "include": []
@@ -52,20 +52,17 @@
     "disableUseStrict": false,
     "minifyWXML": true,
     "showES6CompileOption": false,
-    "useCompilerPlugins": false
+    "useCompilerPlugins": false,
+    "compileWorklet": false,
+    "localPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "3.0.0",
-  "appid": "wx199d6d332344ed0a",
+  "libVersion": "3.11.1",
+  "appid": "wx2b9a3c1d5e4195f8",
   "projectname": "morning-reading-miniapp",
-  "debugOptions": {
-    "hidedInDevtools": []
-  },
-  "scripts": {},
-  "staticServerOptions": {
-    "baseURL": "",
-    "servePath": ""
-  },
   "isGameTourist": false,
   "condition": {
     "search": {

@@ -2,7 +2,7 @@
 <view class="page-index">
   <!-- 顶部Banner -->
   <view class="home-banner">
-    <view class="banner-text">☀️ {{bannerText}}\n🌄 {{subBannerText}}</view>
+    <view class="banner-text">☀️ 【代码已更新】 {{bannerText}}\n🌄 {{subBannerText}}</view>
   </view>
 
   <!-- 今日任务区域 -->
