@@ -75,4 +75,6 @@ router.get('/:periodId/sections/admin/all', authMiddleware, adminMiddleware, get
  */
 router.post('/:periodId/sections', authMiddleware, adminMiddleware, createSection);
 
+// ===== 用户相关路由 =====
+
 module.exports = router;

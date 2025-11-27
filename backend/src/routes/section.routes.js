@@ -6,7 +6,8 @@ const {
   getSectionDetail,
   createSection,
   updateSection,
-  deleteSection
+  deleteSection,
+  getTodayTask
 } = require('../controllers/section.controller');
 
 /**
@@ -43,5 +44,12 @@ router.put('/:sectionId', authMiddleware, adminMiddleware, updateSection);
  * @access  Admin
  */
 router.delete('/:sectionId', authMiddleware, adminMiddleware, deleteSection);
+
+/**
+ * @route   GET /api/v1/sections/today/task
+ * @desc    获取今日任务（根据当前日期动态计算）
+ * @access  Private
+ */
+router.get('/today/task', authMiddleware, getTodayTask);
 
 module.exports = router;

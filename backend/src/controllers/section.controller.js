@@ -198,11 +198,90 @@ async function deleteSection(req, res, next) {
   }
 }
 
+// 获取今日任务（根据用户报名的期次动态计算）
+async function getTodayTask(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const Enrollment = require('../models/Enrollment');
+
+    // 获取用户所有已批准的报名
+    const enrollments = await Enrollment.find({
+      userId,
+      approvalStatus: 'approved'
+    }).populate('periodId');
+
+    if (!enrollments || enrollments.length === 0) {
+      return res.json(success(null, '暂无任务'));
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 设置为今天00:00:00
+
+    let todayTask = null;
+
+    // 遍历每个报名的期次，找到今天应该学习的课节
+    for (const enrollment of enrollments) {
+      const period = enrollment.periodId;
+
+      if (!period) continue;
+
+      // 计算从期次开始日期到今天经过了多少天
+      const periodStartDate = new Date(period.startDate);
+      periodStartDate.setHours(0, 0, 0, 0);
+
+      const daysDiff = Math.floor((today - periodStartDate) / (1000 * 60 * 60 * 24));
+
+      // 如果今天在期次范围内，计算应该学习的day
+      if (daysDiff >= 0 && daysDiff < period.totalDays) {
+        // 通常day从0开始，所以第一天是day 0
+        const currentDay = daysDiff;
+
+        // 查询这一天的课节
+        const section = await Section.findOne({
+          periodId: period._id,
+          day: currentDay,
+          isPublished: true
+        }).select('-content -__v'); // 不返回完整内容，减少数据传输
+
+        if (section) {
+          todayTask = {
+            periodId: period._id,
+            periodName: period.name,
+            periodTitle: period.title,
+            sectionId: section._id,
+            day: section.day,
+            title: section.title,
+            icon: section.icon,
+            meditation: section.meditation,
+            question: section.question,
+            reflection: section.reflection,
+            action: section.action,
+            learn: section.learn,
+            checkinCount: section.checkinCount || 0
+          };
+
+          // 找到今天的任务就可以返回
+          break;
+        }
+      }
+    }
+
+    if (todayTask) {
+      res.json(success(todayTask, '获取今日任务成功'));
+    } else {
+      res.json(success(null, '暂无今日任务'));
+    }
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getSectionsByPeriod,
   getAllSectionsByPeriod,
   getSectionDetail,
   createSection,
   updateSection,
-  deleteSection
+  deleteSection,
+  getTodayTask
 };

@@ -143,6 +143,16 @@ class CourseService {
   getPeriodCheckins(periodId, params = {}) {
     return request.get(`/checkins/period/${periodId}`, params);
   }
+
+  /**
+   * 获取今日任务（根据当前日期动态计算）
+   * 调用后端接口，返回用户当前应该学习的课节
+   * @returns {Promise} 返回今日任务数据 {periodId, sectionId, day, title, icon, meditation, question, reflection, action, learn, checkinCount}
+   */
+  getTodayTask() {
+    // 直接调用后端接口，由后端根据用户的报名信息和当前日期计算
+    return request.get('/sections/today/task');
+  }
 }
 
 module.exports = new CourseService();
