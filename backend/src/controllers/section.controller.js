@@ -201,8 +201,11 @@ async function deleteSection(req, res, next) {
 // 获取今日任务（根据用户报名的期次动态计算）
 async function getTodayTask(req, res, next) {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;  // JWT payload contains "userId", not "_id"
     const Enrollment = require('../models/Enrollment');
+
+    console.log('\n===== getTodayTask 调试日志 =====');
+    console.log('userId:', userId);
 
     // 获取用户所有报名（包括待批准的）
     // 使用 $in 匹配多个状态，允许 pending 和 approved
@@ -211,12 +214,15 @@ async function getTodayTask(req, res, next) {
       approvalStatus: { $in: ['approved', 'pending'] }
     }).populate('periodId');
 
+    console.log('找到报名数:', enrollments.length);
     if (!enrollments || enrollments.length === 0) {
+      console.log('❌ 没有找到报名');
       return res.json(success(null, '暂无任务'));
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0); // 设置为今天00:00:00
+    console.log('today:', today);
 
     let todayTask = null;
 
@@ -224,18 +230,30 @@ async function getTodayTask(req, res, next) {
     for (const enrollment of enrollments) {
       const period = enrollment.periodId;
 
-      if (!period) continue;
+      console.log('\n检查报名:', enrollment._id);
+      console.log('  period:', period);
+
+      if (!period) {
+        console.log('  ❌ 期次不存在');
+        continue;
+      }
+
+      console.log('  period.startDate:', period.startDate);
+      console.log('  period.totalDays:', period.totalDays);
 
       // 计算从期次开始日期到今天经过了多少天
       const periodStartDate = new Date(period.startDate);
       periodStartDate.setHours(0, 0, 0, 0);
 
       const daysDiff = Math.floor((today - periodStartDate) / (1000 * 60 * 60 * 24));
+      console.log('  daysDiff:', daysDiff);
 
       // 如果今天在期次范围内，计算应该学习的day
       if (daysDiff >= 0 && daysDiff < period.totalDays) {
+        console.log('  ✅ 在期次范围内');
         // 通常day从0开始，所以第一天是day 0
         const currentDay = daysDiff;
+        console.log('  currentDay:', currentDay);
 
         // 查询这一天的课节
         const section = await Section.findOne({
@@ -244,7 +262,10 @@ async function getTodayTask(req, res, next) {
           isPublished: true
         }).select('-content -__v'); // 不返回完整内容，减少数据传输
 
+        console.log('  找到的section:', section ? section._id : '无');
+
         if (section) {
+          console.log('  ✅ 找到今日任务');
           todayTask = {
             periodId: period._id,
             periodName: period.name,
@@ -264,8 +285,13 @@ async function getTodayTask(req, res, next) {
           // 找到今天的任务就可以返回
           break;
         }
+      } else {
+        console.log('  ❌ 不在期次范围内 (daysDiff:', daysDiff, ', totalDays:', period.totalDays, ')');
       }
     }
+
+    console.log('最终todayTask:', todayTask ? '有' : '无');
+    console.log('===== getTodayTask 调试日志结束 =====\n');
 
     if (todayTask) {
       res.json(success(todayTask, '获取今日任务成功'));

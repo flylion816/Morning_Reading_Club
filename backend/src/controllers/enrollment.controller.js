@@ -436,7 +436,7 @@ exports.getEnrollments = async (req, res) => {
 exports.approveEnrollment = async (req, res) => {
   try {
     const { id } = req.params;
-    const adminId = req.user._id;
+    const adminId = req.user.userId;
     const { notes } = req.body;
 
     const enrollment = await Enrollment.findById(id);
@@ -471,7 +471,7 @@ exports.approveEnrollment = async (req, res) => {
 exports.rejectEnrollment = async (req, res) => {
   try {
     const { id } = req.params;
-    const adminId = req.user._id;
+    const adminId = req.user.userId;
     const { notes } = req.body;
 
     const enrollment = await Enrollment.findById(id);
