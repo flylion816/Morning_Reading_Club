@@ -5,6 +5,14 @@
     <view class="banner-text">☀️ {{bannerText}}\n🌄 {{subBannerText}}</view>
   </view>
 
+  <!-- 今日任务区域 -->
+  <view class="today-task-section">
+    <view class="today-task-header">
+      <text class="today-task-title">📅 今日任务</text>
+    </view>
+    <view class="today-date-range">{{todayDateRange}}</view>
+  </view>
+
   <!-- 期次列表 -->
   <view class="periods-container">
     <view
