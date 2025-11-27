@@ -18,10 +18,7 @@ Page({
 
     // Banner文案
     bannerText: '天天开心！',
-    subBannerText: '在晨光中,遇见更好的自己',
-
-    // 当天日期范围
-    todayDateRange: ''
+    subBannerText: '在晨光中,遇见更好的自己'
   },
 
   onLoad(options) {
@@ -29,7 +26,6 @@ Page({
     console.log('首页加载', options);
     this.checkLoginStatus();
     this.loadPeriods();
-    this.initTodayDateRange();
     console.log('===== 首页onLoad结束 =====');
   },
 
@@ -41,27 +37,6 @@ Page({
   onPullDownRefresh() {
     console.log('下拉刷新');
     this.refreshPeriods();
-  },
-
-  /**
-   * 初始化当天日期范围
-   */
-  initTodayDateRange() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-
-    const startDate = `${year}-${month}-${day} 00:00:00`;
-    const endDate = `${year}-${month}-${day} 23:59:59`;
-
-    const todayDateRange = `${startDate} - ${endDate}`;
-
-    console.log('初始化今日任务日期范围:', todayDateRange);
-
-    this.setData({
-      todayDateRange
-    });
   },
 
   /**

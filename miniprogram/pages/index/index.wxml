@@ -5,16 +5,6 @@
     <view class="banner-text">☀️ 【代码已更新】 {{bannerText}}\n🌄 {{subBannerText}}</view>
   </view>
 
-  <!-- 今日任务区域 -->
-  <view class="today-task-section">
-    <view class="today-task-header">
-      <text class="today-task-title">📅 今日任务</text>
-    </view>
-    <view class="today-date-range">
-      2025-11-27 00:00:00 - 2025-11-27 23:59:59
-    </view>
-  </view>
-
   <!-- 期次列表 -->
   <view class="periods-container">
     <view
