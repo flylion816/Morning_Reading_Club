@@ -6,37 +6,6 @@
   padding-bottom: 120rpx;
 }
 
-/* Banner区域 */
-.home-banner {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  padding: 60rpx 40rpx 50rpx;
-  color: white;
-  position: relative;
-  overflow: hidden;
-}
-
-.home-banner::before {
-  content: '';
-  position: absolute;
-  right: -80rpx;
-  top: -80rpx;
-  width: 360rpx;
-  height: 360rpx;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-}
-
-.banner-text {
-  font-weight: 700;
-  font-size: 36rpx;
-  line-height: 1.7;
-  position: relative;
-  z-index: 1;
-  letter-spacing: 1rpx;
-  text-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);
-  white-space: pre-line;
-}
-
 /* 期次列表容器 */
 .periods-container {
   padding: 32rpx;

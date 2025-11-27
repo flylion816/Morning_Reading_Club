@@ -1,10 +1,5 @@
 <!--首页 - 期次列表-->
 <view class="page-index">
-  <!-- 顶部Banner -->
-  <view class="home-banner">
-    <view class="banner-text">☀️ 【代码已更新】 {{bannerText}}\n🌄 {{subBannerText}}</view>
-  </view>
-
   <!-- 期次列表 -->
   <view class="periods-container">
     <view
