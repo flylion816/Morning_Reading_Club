@@ -67,7 +67,10 @@
               :src="authStore.adminInfo?.avatar"
               shape="circle"
               :size="36"
-            />
+              :fallback="true"
+            >
+              <span style="font-size: 20px">👨‍💼</span>
+            </el-avatar>
             <span class="user-name">{{ authStore.adminInfo?.name }}</span>
           </div>
         </div>
