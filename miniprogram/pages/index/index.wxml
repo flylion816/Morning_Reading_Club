@@ -10,7 +10,8 @@
     <view class="today-task-header">
       <text class="today-task-title">📅 今日任务</text>
     </view>
-    <view class="today-date-range">{{todayDateRange}}</view>
+    <view class="today-date-range" wx:if="{{todayDateRange}}">{{todayDateRange}}</view>
+    <view class="today-date-range" wx:else>加载中...</view>
   </view>
 
   <!-- 期次列表 -->
