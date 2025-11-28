@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   generateInsight,
   getUserInsights,
@@ -16,9 +17,9 @@ const {
 /**
  * @route   GET /api/v1/insights
  * @desc    获取小凡看见列表（管理后台）
- * @access  Private
+ * @access  Private (Admin)
  */
-router.get('/', authMiddleware, getInsights);
+router.get('/', adminAuthMiddleware, getInsights);
 
 /**
  * @route   POST /api/v1/insights/generate
@@ -67,15 +68,15 @@ router.get('/period/:periodId', getInsightsForPeriod);
 /**
  * @route   PUT /api/v1/insights/:insightId
  * @desc    更新小凡看见（编辑文案）
- * @access  Private
+ * @access  Private (Admin)
  */
-router.put('/:insightId', authMiddleware, updateInsight);
+router.put('/:insightId', adminAuthMiddleware, updateInsight);
 
 /**
  * @route   DELETE /api/v1/insights/manual/:insightId
  * @desc    删除小凡看见
- * @access  Private
+ * @access  Private (Admin)
  */
-router.delete('/manual/:insightId', authMiddleware, deleteInsightManual);
+router.delete('/manual/:insightId', adminAuthMiddleware, deleteInsightManual);
 
 module.exports = router;

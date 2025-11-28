@@ -279,8 +279,13 @@ async function updateInsight(req, res, next) {
   try {
     const { insightId } = req.params;
     const { content, imageUrl, isPublished } = req.body;
-    const userId = req.user.userId;
-    const userRole = req.user.role;
+
+    // 支持两种认证方式：
+    // 1. 来自 authMiddleware 的小程序用户 (req.user.userId)
+    // 2. 来自 adminAuthMiddleware 的管理员用户 (req.admin.id)
+    const userId = req.user?.userId || req.admin?.id;
+    const userRole = req.user?.role;
+    const adminRole = req.admin?.role;
 
     const insight = await Insight.findById(insightId);
 
@@ -290,9 +295,10 @@ async function updateInsight(req, res, next) {
 
     // 权限检查：允许以下情况编辑
     // 1. 内容创建者可以编辑自己创建的内容
-    // 2. 管理员可以编辑任何小凡看见（无论来源）
+    // 2. 管理员（任何角色）可以编辑任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
-    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isAdmin = (userRole === 'admin' || userRole === 'super_admin') ||
+                    (adminRole === 'superadmin' || adminRole === 'admin');
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权编辑'));
@@ -315,8 +321,13 @@ async function updateInsight(req, res, next) {
 async function deleteInsightManual(req, res, next) {
   try {
     const { insightId } = req.params;
-    const userId = req.user.userId;
-    const userRole = req.user.role;
+
+    // 支持两种认证方式：
+    // 1. 来自 authMiddleware 的小程序用户 (req.user.userId)
+    // 2. 来自 adminAuthMiddleware 的管理员用户 (req.admin.id)
+    const userId = req.user?.userId || req.admin?.id;
+    const userRole = req.user?.role;
+    const adminRole = req.admin?.role;
 
     const insight = await Insight.findById(insightId);
 
@@ -326,9 +337,10 @@ async function deleteInsightManual(req, res, next) {
 
     // 权限检查：允许以下情况删除
     // 1. 内容创建者可以删除自己创建的内容
-    // 2. 管理员可以删除任何小凡看见（无论来源）
+    // 2. 管理员（任何角色）可以删除任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
-    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isAdmin = (userRole === 'admin' || userRole === 'super_admin') ||
+                    (adminRole === 'superadmin' || adminRole === 'admin');
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权删除'));
