@@ -7,10 +7,18 @@ const {
   getInsightDetail,
   deleteInsight,
   createInsightManual,
+  getInsights,
   getInsightsForPeriod,
   updateInsight,
   deleteInsightManual
 } = require('../controllers/insight.controller');
+
+/**
+ * @route   GET /api/v1/insights
+ * @desc    获取小凡看见列表（管理后台）
+ * @access  Private
+ */
+router.get('/', authMiddleware, getInsights);
 
 /**
  * @route   POST /api/v1/insights/generate

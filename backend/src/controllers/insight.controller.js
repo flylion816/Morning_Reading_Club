@@ -165,6 +165,39 @@ async function deleteInsight(req, res, next) {
 
 // ==================== 小凡看见(Insight) 相关接口 ====================
 
+// 获取小凡看见列表（管理后台）
+async function getInsights(req, res, next) {
+  try {
+    const { periodId, type, page = 1, limit = 20 } = req.query;
+
+    const query = {};
+    if (periodId) query.periodId = periodId;
+    if (type) query.type = type;
+
+    const total = await Insight.countDocuments(query);
+    const insights = await Insight.find(query)
+      .populate('userId', 'nickname avatar')
+      .populate('periodId', 'name title')
+      .populate('sectionId', 'title day')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .select('-__v');
+
+    res.json(success({
+      list: insights,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 创建小凡看见（手动导入）
 async function createInsightManual(req, res, next) {
   try {
@@ -305,6 +338,7 @@ module.exports = {
   getInsightDetail,
   deleteInsight,
   createInsightManual,
+  getInsights,
   getInsightsForPeriod,
   updateInsight,
   deleteInsightManual
