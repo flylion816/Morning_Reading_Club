@@ -45,7 +45,6 @@
                 :src="row.avatar"
                 :size="40"
                 shape="circle"
-                icon="el-icon-user-solid"
               />
             </template>
           </el-table-column>
@@ -200,7 +199,7 @@ async function loadUsers() {
 
     const response = await userApi.getUsers(params)
     users.value = response.list || []
-    pagination.value.total = response.total || 0
+    pagination.value.total = response.pagination?.total || 0
   } catch (err) {
     ElMessage.error('加载用户列表失败')
   } finally {

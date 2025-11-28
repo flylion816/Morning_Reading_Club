@@ -166,7 +166,7 @@
         </el-table>
 
         <!-- 分页 -->
-        <div style="margin-top: 20px; text-align: right">
+        <div class="pagination">
           <el-pagination
             v-model:current-page="pagination.page"
             v-model:page-size="pagination.limit"
@@ -665,6 +665,12 @@ function formatGender(gender: string): string {
 .batch-actions :deep(.el-button) {
   padding: 8px 16px;
   font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 
 @keyframes slideDown {
