@@ -280,6 +280,7 @@ async function updateInsight(req, res, next) {
     const { insightId } = req.params;
     const { content, imageUrl, isPublished } = req.body;
     const userId = req.user.userId;
+    const userRole = req.user.role;
 
     const insight = await Insight.findById(insightId);
 
@@ -287,9 +288,13 @@ async function updateInsight(req, res, next) {
       return res.status(404).json(errors.notFound('小凡看见不存在'));
     }
 
-    // 权限检查（仅Admin或创建者可编辑）
-    const user = req.user;
-    if (insight.userId.toString() !== userId && user.role !== 'admin') {
+    // 权限检查：允许以下情况编辑
+    // 1. 内容创建者可以编辑自己创建的内容
+    // 2. 管理员可以编辑任何小凡看见（无论来源）
+    const isCreator = insight.userId.toString() === userId;
+    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+
+    if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权编辑'));
     }
 
@@ -311,6 +316,7 @@ async function deleteInsightManual(req, res, next) {
   try {
     const { insightId } = req.params;
     const userId = req.user.userId;
+    const userRole = req.user.role;
 
     const insight = await Insight.findById(insightId);
 
@@ -318,9 +324,13 @@ async function deleteInsightManual(req, res, next) {
       return res.status(404).json(errors.notFound('小凡看见不存在'));
     }
 
-    // 权限检查
-    const user = req.user;
-    if (insight.userId.toString() !== userId && user.role !== 'admin') {
+    // 权限检查：允许以下情况删除
+    // 1. 内容创建者可以删除自己创建的内容
+    // 2. 管理员可以删除任何小凡看见（无论来源）
+    const isCreator = insight.userId.toString() === userId;
+    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+
+    if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 
