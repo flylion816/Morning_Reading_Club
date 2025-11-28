@@ -45,6 +45,7 @@
                 :src="row.avatar"
                 :size="40"
                 shape="circle"
+                icon="el-icon-user-solid"
               />
             </template>
           </el-table-column>
@@ -67,7 +68,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="260" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button
@@ -85,6 +86,14 @@
                   @click="viewUserDetails(row)"
                 >
                   详情
+                </el-button>
+                <el-button
+                  type="danger"
+                  text
+                  size="small"
+                  @click="handleDeleteUser(row)"
+                >
+                  删除
                 </el-button>
               </div>
             </template>
@@ -233,6 +242,28 @@ async function handleToggleUserStatus(row: any) {
 function viewUserDetails(row: any) {
   selectedUser.value = row
   detailsDialog.value.visible = true
+}
+
+async function handleDeleteUser(row: any) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除用户 ${row.nickname} 吗？此操作不可撤销`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    await userApi.deleteUser(row._id)
+    ElMessage.success('用户已删除')
+    await loadUsers()
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      ElMessage.error(err.message || '删除失败')
+    }
+  }
 }
 
 function formatDate(dateString: string): string {

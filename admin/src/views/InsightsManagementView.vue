@@ -82,10 +82,10 @@
             </template>
           </el-table-column>
 
-          <!-- 作者 -->
-          <el-table-column label="作者" width="120">
+          <!-- 被看见人 -->
+          <el-table-column label="被看见人" width="120">
             <template #default="{ row }">
-              {{ row.userId?.nickname || '未知用户' }}
+              {{ row.targetUserId?.nickname || '未指定' }}
             </template>
           </el-table-column>
 
@@ -145,6 +145,13 @@
                   :value="period._id"
                 />
               </el-select>
+            </el-form-item>
+
+            <el-form-item label="被看见人">
+              <el-input
+                v-model="editingInsight.targetUserId"
+                placeholder="请输入被看见人的用户ID或用户名"
+              />
             </el-form-item>
 
             <el-form-item label="内容类型">
@@ -266,6 +273,7 @@ const imagePreview = ref('')
 
 const editingInsight = ref<any>({
   periodId: '',
+  targetUserId: '',
   type: 'insight',
   mediaType: 'text',
   content: '',
@@ -321,6 +329,7 @@ function handleAddInsight() {
   isNewInsight.value = true
   editingInsight.value = {
     periodId: selectedPeriodId.value || '',
+    targetUserId: '',
     type: 'insight',
     mediaType: 'text',
     content: '',
@@ -435,6 +444,7 @@ function previewImage() {
 function resetForm() {
   editingInsight.value = {
     periodId: '',
+    targetUserId: '',
     type: 'insight',
     mediaType: 'text',
     content: '',
