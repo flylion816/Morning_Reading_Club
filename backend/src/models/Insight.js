@@ -8,6 +8,13 @@ const InsightSchema = new mongoose.Schema({
     required: true
   },
 
+  // 被看见人（被看见的用户ID）- 如果为空表示自己可见
+  targetUserId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+
   // 打卡相关（可选）
   checkinId: {
     type: mongoose.Schema.Types.ObjectId,

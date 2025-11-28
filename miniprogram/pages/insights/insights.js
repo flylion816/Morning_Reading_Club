@@ -14,6 +14,16 @@ Page({
     try {
       this.setData({ loading: true });
 
+      // 获取当前登录用户信息
+      const app = getApp();
+      const currentUserId = app.globalData.userInfo?._id;
+
+      if (!currentUserId) {
+        console.warn('用户未登录，无法加载小凡看见');
+        this.setData({ loading: false });
+        return;
+      }
+
       // 获取所有insights
       const res = await insightService.getInsightsList({ limit: 100 });
       console.log('获取insights列表:', res);
@@ -28,8 +38,20 @@ Page({
 
       console.log('原始insights数据:', insightsList);
 
+      // 过滤：只显示 targetUserId 是当前用户的 insights
+      const filtered = insightsList.filter(item => {
+        // 如果 targetUserId 存在，只有当 targetUserId 等于当前用户ID时才显示
+        if (item.targetUserId) {
+          const targetId = item.targetUserId._id || item.targetUserId;
+          return targetId === currentUserId;
+        }
+        // 如果没有设置 targetUserId，不显示
+        return false;
+      });
+
+      console.log('过滤后的insights:', filtered);
+
       // 获取所有期次信息用于映射期次名称
-      const app = getApp();
       const periods = app.globalData.periods || [];
       const periodMap = {};
       periods.forEach(period => {
@@ -37,7 +59,7 @@ Page({
       });
 
       // 格式化数据以匹配WXML期望的字段
-      const formatted = insightsList.map(item => {
+      const formatted = filtered.map(item => {
         let preview = item.summary || '';
         if (!preview && item.content) {
           // 提取纯文本（去除所有HTML标签）

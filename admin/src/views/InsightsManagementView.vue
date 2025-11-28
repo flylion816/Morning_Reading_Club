@@ -148,10 +148,22 @@
             </el-form-item>
 
             <el-form-item label="被看见人">
-              <el-input
+              <el-select
                 v-model="editingInsight.targetUserId"
-                placeholder="请输入被看见人的用户ID或用户名"
-              />
+                placeholder="选择被看见人（可选）"
+                clearable
+                filterable
+                :remote="true"
+                :remote-method="searchUsers"
+                :loading="loadingUsers"
+              >
+                <el-option
+                  v-for="user in userOptions"
+                  :key="user._id"
+                  :label="`${user.nickname} (${user.email})`"
+                  :value="user._id"
+                />
+              </el-select>
             </el-form-item>
 
             <el-form-item label="内容类型">
@@ -253,7 +265,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
-import { insightApi, periodApi } from '../services/api'
+import { insightApi, periodApi, userApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 // 数据
@@ -270,6 +282,10 @@ const editDialogVisible = ref(false)
 const isNewInsight = ref(false)
 const tagInput = ref('')
 const imagePreview = ref('')
+
+// 用户选择相关
+const userOptions = ref<any[]>([])
+const loadingUsers = ref(false)
 
 const editingInsight = ref<any>({
   periodId: '',
@@ -437,6 +453,28 @@ async function handleDeleteInsight(insight: any) {
 function previewImage() {
   if (editingInsight.value.imageUrl) {
     imagePreview.value = editingInsight.value.imageUrl
+  }
+}
+
+// 搜索用户
+async function searchUsers(keyword: string) {
+  if (!keyword) {
+    userOptions.value = []
+    return
+  }
+
+  loadingUsers.value = true
+  try {
+    const response = await userApi.getUsers({
+      search: keyword,
+      limit: 20
+    })
+    userOptions.value = response.list || []
+  } catch (err) {
+    console.error('搜索用户失败:', err)
+    userOptions.value = []
+  } finally {
+    loadingUsers.value = false
   }
 }
 

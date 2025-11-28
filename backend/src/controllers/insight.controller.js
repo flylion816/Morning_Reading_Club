@@ -177,6 +177,7 @@ async function getInsights(req, res, next) {
     const total = await Insight.countDocuments(query);
     const insights = await Insight.find(query)
       .populate('userId', 'nickname avatar')
+      .populate('targetUserId', 'nickname avatar')
       .populate('periodId', 'name title')
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
@@ -201,7 +202,7 @@ async function getInsights(req, res, next) {
 // 创建小凡看见（手动导入）
 async function createInsightManual(req, res, next) {
   try {
-    const { periodId, type, mediaType, content, imageUrl } = req.body;
+    const { periodId, type, mediaType, content, imageUrl, targetUserId } = req.body;
     const userId = req.user.userId;
 
     // 验证必填字段
@@ -222,6 +223,7 @@ async function createInsightManual(req, res, next) {
     // 创建小凡看见
     const insight = await Insight.create({
       userId,
+      targetUserId: targetUserId || null,
       periodId,
       type,
       mediaType,
@@ -278,7 +280,7 @@ async function getInsightsForPeriod(req, res, next) {
 async function updateInsight(req, res, next) {
   try {
     const { insightId } = req.params;
-    const { content, imageUrl, isPublished } = req.body;
+    const { content, imageUrl, isPublished, targetUserId } = req.body;
 
     // 支持两种认证方式：
     // 1. 来自 authMiddleware 的小程序用户 (req.user.userId)
@@ -308,8 +310,12 @@ async function updateInsight(req, res, next) {
     if (content !== undefined) insight.content = content;
     if (imageUrl !== undefined) insight.imageUrl = imageUrl;
     if (isPublished !== undefined) insight.isPublished = isPublished;
+    if (targetUserId !== undefined) insight.targetUserId = targetUserId || null;
 
     await insight.save();
+
+    // 保存后重新 populate 返回完整数据
+    await insight.populate('targetUserId', 'nickname avatar');
 
     res.json(success(insight, '小凡看见更新成功'));
   } catch (error) {
