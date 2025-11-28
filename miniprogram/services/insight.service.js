@@ -37,6 +37,16 @@ class InsightService {
   }
 
   /**
+   * 获取指定期次的小凡看见列表
+   * @param {string} periodId 期次ID
+   * @param {Object} params 查询参数 {page, limit, type}
+   * @returns {Promise}
+   */
+  getInsightsForPeriod(periodId, params = {}) {
+    return request.get(`/insights/period/${periodId}`, params);
+  }
+
+  /**
    * 获取小凡看见详情
    * @param {number} insightId 反馈ID
    * @returns {Promise}

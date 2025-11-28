@@ -363,6 +363,16 @@
   color: #333;
 }
 
+.section-period-name {
+  font-size: 22rpx;
+  color: #999;
+  font-weight: 400;
+  padding: 4rpx 12rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  white-space: nowrap;
+}
+
 /* 小凡看见区域 */
 .insights-list {
   display: flex;

@@ -89,6 +89,7 @@
         <view class="section-header">
           <view class="section-icon">✨</view>
           <text class="section-header-title">小凡看见</text>
+          <text class="section-period-name" wx:if="{{currentPeriod}}">{{currentPeriod.name || currentPeriod.title}}</text>
         </view>
         <view class="insights-list">
           <view

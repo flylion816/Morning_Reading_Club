@@ -266,11 +266,23 @@ Page({
 
   /**
    * 加载最近的小凡看见记录
+   * 只加载当前期次的小凡看见记录
    */
   async loadRecentInsights() {
     try {
       const insightService = require('../../services/insight.service');
-      const res = await insightService.getUserInsights({ limit: 10 });
+      const { currentPeriod } = this.data;
+
+      if (!currentPeriod) {
+        console.warn('当前期次未加载，无法过滤小凡看见');
+        return [];
+      }
+
+      const periodId = currentPeriod._id || currentPeriod.id;
+      console.log('按期次ID加载小凡看见，periodId:', periodId);
+
+      // 调用API获取指定期次的小凡看见记录
+      const res = await insightService.getInsightsForPeriod(periodId, { limit: 10 });
 
       console.log('API 响应:', res);
 
@@ -287,7 +299,7 @@ Page({
       console.log('处理后的insights数据:', insights);
 
       if (!insights || insights.length === 0) {
-        console.warn('没有获取到insights数据');
+        console.warn('当前期次没有小凡看见记录');
         return [];
       }
 
@@ -320,7 +332,8 @@ Page({
           id: item._id || item.id,
           day: `第${item.day}天`,
           title: item.sectionId?.title || '学习反馈',
-          preview: preview || '暂无预览'
+          preview: preview || '暂无预览',
+          periodId: item.periodId  // 保留期次ID用于详情页跳转
         };
       });
 
