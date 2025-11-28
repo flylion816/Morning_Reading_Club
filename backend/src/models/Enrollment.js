@@ -166,6 +166,13 @@ const EnrollmentSchema = new mongoose.Schema({
   notes: {
     type: String,
     maxlength: 500
+  },
+
+  // ✅ 软删除标记
+  deleted: {
+    type: Boolean,
+    default: false,
+    index: true
   }
 }, {
   timestamps: true,
@@ -205,7 +212,7 @@ EnrollmentSchema.statics.getPeriodMembers = async function(periodId, options = {
 
   const skip = (page - 1) * limit;
 
-  const query = { periodId };
+  const query = { periodId, deleted: { $ne: true } };  // ✅ 排除已删除的记录
   if (status) {
     query.status = status;
   }
@@ -239,7 +246,7 @@ EnrollmentSchema.statics.getUserEnrollments = async function(userId, options = {
 
   const skip = (page - 1) * limit;
 
-  const query = { userId };
+  const query = { userId, deleted: { $ne: true } };  // ✅ 排除已删除的记录
   if (status) {
     query.status = status;
   }
@@ -265,11 +272,12 @@ EnrollmentSchema.statics.getUserEnrollments = async function(userId, options = {
 
 // 静态方法：检查用户是否已报名
 EnrollmentSchema.statics.isEnrolled = async function(userId, periodId) {
-  // 查找 active 或 completed 状态的报名记录
+  // 查找 active 或 completed 状态的报名记录，并排除已删除的
   const enrollment = await this.findOne({
     userId,
     periodId,
-    status: { $in: ['active', 'completed'] }
+    status: { $in: ['active', 'completed'] },
+    deleted: { $ne: true }  // ✅ 排除已删除的记录
   });
   return !!enrollment;
 };

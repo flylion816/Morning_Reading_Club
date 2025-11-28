@@ -394,7 +394,9 @@ exports.getEnrollments = async (req, res) => {
     } = req.query;
 
     // 构建查询条件
-    let query = {};
+    let query = {
+      deleted: { $ne: true }  // ✅ 排除已删除的记录
+    };
     if (status) query.status = status;
     if (approvalStatus) query.approvalStatus = approvalStatus;
     if (paymentStatus) query.paymentStatus = paymentStatus;
