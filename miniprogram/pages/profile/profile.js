@@ -110,9 +110,35 @@ Page({
       const app = getApp();
       app.globalData.userInfo = userInfo;
 
-      // 找到第一个进行中的期次作为当前期次
+      // 根据当前日期判断所在期次（期次时间范围内）
       const periodsList = periods.list || periods.items || periods || [];
-      const currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);  // 清除时间部分，只保留日期
+
+      let currentPeriod = null;
+
+      // 遍历所有期次，找到包含今天日期的期次
+      for (const period of periodsList) {
+        if (period.startDate && period.endDate) {
+          const startDate = new Date(period.startDate);
+          const endDate = new Date(period.endDate);
+          // 确保只比较日期部分
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
+
+          if (today >= startDate && today <= endDate) {
+            currentPeriod = period;
+            console.log('📅 根据日期范围找到当前期次:', currentPeriod.name || currentPeriod.title);
+            break;
+          }
+        }
+      }
+
+      // 如果没有找到包含今天的期次，则使用进行中或第一个
+      if (!currentPeriod) {
+        currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
+        console.log('⚠️ 未找到包含今天日期的期次，使用备选期次:', currentPeriod?.name || currentPeriod?.title);
+      }
 
       // 获取今日课节（根据当前日期动态计算）
       let todaySection = null;
