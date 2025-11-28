@@ -311,6 +311,7 @@ Page({
       });
 
       // 格式化数据
+      const { getInsightTypeConfig } = require('../../utils/formatters');
       const formatted = insights.map(item => {
         console.log('处理单条insight:', item);
 
@@ -328,12 +329,17 @@ Page({
           }
         }
 
+        // 获取类型配置
+        const typeConfig = getInsightTypeConfig(item.type);
+
         return {
           id: item._id || item.id,
           day: `第${item.day}天`,
           title: item.sectionId?.title || '学习反馈',
           preview: preview || '暂无预览',
-          periodId: item.periodId  // 保留期次ID用于详情页跳转
+          periodId: item.periodId,  // 保留期次ID用于详情页跳转
+          type: item.type,           // 小凡看见类型
+          typeConfig: typeConfig     // 类型配置（用于显示）
         };
       });
 

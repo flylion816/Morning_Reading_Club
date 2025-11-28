@@ -305,6 +305,47 @@ function getAvatarColorByUserId(userId) {
   return colors[index];
 }
 
+/**
+ * 获取小凡看见类型的显示配置
+ * @param {string} type 小凡看见类型: 'daily'|'weekly'|'monthly'|'insight'
+ * @returns {Object} 包含icon、label、color、bgColor等配置信息
+ */
+function getInsightTypeConfig(type) {
+  const typeConfigs = {
+    'daily': {
+      icon: '📝',
+      label: '每日反馈',
+      color: '#4a90e2',      // 蓝色
+      bgColor: '#f0f5ff',    // 浅蓝色背景
+      borderColor: '#4a90e2' // 蓝色边框
+    },
+    'weekly': {
+      icon: '📊',
+      label: '周报',
+      color: '#7ed321',      // 绿色
+      bgColor: '#f0ff00',    // 浅绿色背景
+      borderColor: '#7ed321' // 绿色边框
+    },
+    'monthly': {
+      icon: '📈',
+      label: '月报',
+      color: '#f5a623',      // 橙色
+      bgColor: '#fff5f0',    // 浅橙色背景
+      borderColor: '#f5a623' // 橙色边框
+    },
+    'insight': {
+      icon: '✨',
+      label: '小凡看见',
+      color: '#bd10e0',      // 紫色
+      bgColor: '#f5f0ff',    // 浅紫色背景
+      borderColor: '#bd10e0' // 紫色边框
+    }
+  };
+
+  // 返回对应类型的配置，如果不存在则返回默认配置
+  return typeConfigs[type] || typeConfigs['daily'];
+}
+
 module.exports = {
   formatDate,
   formatTimeAgo,
@@ -317,5 +358,6 @@ module.exports = {
   padZero,
   formatDateRange,
   parseQuery,
-  getAvatarColorByUserId
+  getAvatarColorByUserId,
+  getInsightTypeConfig
 };

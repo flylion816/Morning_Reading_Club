@@ -391,10 +391,38 @@
   gap: 12rpx;
 }
 
+.insight-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.insight-type-badge {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 6rpx;
+  flex-shrink: 0;
+}
+
+.insight-type-icon {
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.insight-type-label {
+  font-size: 20rpx;
+  color: white;
+  font-weight: 500;
+}
+
 .insight-day {
   font-size: 24rpx;
   color: #4a90e2;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .insight-content-preview {
