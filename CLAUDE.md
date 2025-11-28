@@ -4654,6 +4654,55 @@ if (approvalStatus) query.approvalStatus = approvalStatus;
 
 ---
 
-**最后更新**: 2025-11-27 (修复管理员 API 无法返回待审批报名 + 完整报名审批流程测试)
+### 35. 报名管理页面删除功能不生效问题（2025-11-28 修复）
+
+**问题现象**：用户点击报名管理中的删除按钮，虽然提示"删除成功"，但列表中的记录依然存在，再次进入该页面记录仍然显示
+
+**根本原因**：前后端的软删除逻辑不一致
+- 前端 `EnrollmentsView.vue` 的 `handleDelete()` 调用了 `updateEnrollment(id, { deleted: true })`
+- 后端 `updateEnrollment()` 正确保存了 `deleted: true` 字段
+- **但后端的 `getEnrollments()` 查询没有过滤已删除的记录**，导致 `deleted: true` 的记录仍然被返回
+
+```javascript
+// ❌ 错误：查询没有排除 deleted: true 的记录
+const enrollments = await Enrollment.find(query)
+  // 结果：deleted 记录也被返回
+```
+
+**解决方案**：在所有查询记录的地方添加删除过滤条件
+
+1. 在 Enrollment 模型中添加 `deleted` 字段定义
+2. 在 `getEnrollments()` 控制器中添加 `{ deleted: { $ne: true } }` 过滤
+3. 在 `getPeriodMembers()` 静态方法中添加过滤
+4. 在 `getUserEnrollments()` 静态方法中添加过滤
+5. 在 `isEnrolled()` 静态方法中添加过滤
+
+```javascript
+// ✅ 正确：所有查询都排除 deleted 记录
+let query = { deleted: { $ne: true } };
+if (status) query.status = status;
+if (approvalStatus) query.approvalStatus = approvalStatus;
+```
+
+**经验教训**：
+- ⚠️ 实现软删除时，**所有读取数据的地方都要过滤**，不只是一个地方
+- ⚠️ 前端删除后立即调用 `loadEnrollments()`，如果后端查询有漏洞会立即被发现
+- ⚠️ 软删除需要在模型、所有查询方法中都有防护
+- ✅ 建议在 Mongoose 中使用中间件统一处理（如 `pre('find')` hook）
+- ✅ 或者创建一个通用的查询辅助函数，自动添加删除过滤
+- ✅ 在测试时验证删除后页面是否立即反映变化
+
+**修复结果**：
+- 软删除过滤条件已添加到所有查询地方
+- 前端删除报名记录后，刷新列表会立即隐藏该记录
+- 后端所有读取 Enrollment 的地方都遵循统一的删除规则
+
+**修改文件**：
+- `backend/src/models/Enrollment.js`: 添加 `deleted` 字段和过滤条件到所有静态方法
+- `backend/src/controllers/enrollment.controller.js`: 添加 `getEnrollments` 过滤条件
+
+---
+
+**最后更新**: 2025-11-28 (修复报名管理页面删除功能不生效问题)
 **维护者**: Claude Code
 **项目状态**: 15 个待审批报名已验证 + 管理后台 API 已修复 + 准备批量审批功能测试 ✅
