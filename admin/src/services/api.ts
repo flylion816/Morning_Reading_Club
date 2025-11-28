@@ -139,6 +139,26 @@ export const statsApi = {
     apiClient.get('/stats/payments', { params })
 }
 
+// 小凡看见 API
+export const insightApi = {
+  getInsights: (params?: any) =>
+    apiClient.get('/insights', { params }),
+  getInsightsByPeriod: (periodId: string, params?: any) =>
+    apiClient.get(`/insights/period/${periodId}`, { params }),
+  getInsightDetail: (id: string) =>
+    apiClient.get(`/insights/${id}`),
+  createInsight: (data: any) =>
+    apiClient.post('/insights/manual/create', data),
+  updateInsight: (id: string, data: any) =>
+    apiClient.put(`/insights/${id}`, data),
+  deleteInsight: (id: string) =>
+    apiClient.delete(`/insights/manual/${id}`),
+  publishInsight: (id: string) =>
+    apiClient.put(`/insights/${id}`, { isPublished: true }),
+  unpublishInsight: (id: string) =>
+    apiClient.put(`/insights/${id}`, { isPublished: false })
+}
+
 // 文件上传 API
 export const uploadApi = {
   uploadFile: (file: File) => {

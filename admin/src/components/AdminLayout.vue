@@ -39,6 +39,10 @@
           <span>✍️ 内容管理</span>
         </el-menu-item>
 
+        <el-menu-item index="/insights">
+          <span>👀 小凡看见</span>
+        </el-menu-item>
+
         <el-menu-item index="/audit-logs">
           <span>🔍 审计日志</span>
         </el-menu-item>
@@ -104,6 +108,7 @@ const pageTitle = computed(() => {
     '/periods': '期次管理',
     '/users': '用户管理',
     '/content': '内容管理',
+    '/insights': '小凡看见',
     '/audit-logs': '审计日志'
   }
   return titles[route.path] || '管理后台'
