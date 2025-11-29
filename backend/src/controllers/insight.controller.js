@@ -252,23 +252,46 @@ async function createInsightManual(req, res, next) {
   }
 }
 
-// 获取小凡看见列表（按期次）
+// 获取小凡看见列表（按期次）- 返回当前用户能看到的该期次的所有insights
+// 包括：1) 当前用户创建的 2) 分配给当前用户的
 async function getInsightsForPeriod(req, res, next) {
   try {
     const { periodId } = req.params;
     const { type = 'insight', page = 1, limit = 20 } = req.query;
+    const userId = req.user?.userId;  // 获取当前登录用户
 
-    const query = {
+    // 构建查询条件：返回两类insights
+    // 1. 当前用户创建的insights（userId === 当前用户）
+    // 2. 分配给当前用户的insights（targetUserId === 当前用户）
+    const baseQuery = {
       periodId,
-      isPublished: true,
       status: 'completed'
     };
 
-    if (type) query.type = type;
+    if (type) baseQuery.type = type;
+
+    let orConditions = [];
+
+    if (userId) {
+      // 已登录：返回用户创建的或分配给用户的insights
+      orConditions = [
+        { userId, ...baseQuery },           // 当前用户创建的
+        { targetUserId: userId, ...baseQuery }  // 分配给当前用户的
+      ];
+    } else {
+      // 未登录：只返回已发布的insights（即创建者选择公开的）
+      baseQuery.isPublished = true;
+      orConditions = [
+        { ...baseQuery }
+      ];
+    }
+
+    const query = orConditions.length > 1 ? { $or: orConditions } : orConditions[0];
 
     const total = await Insight.countDocuments(query);
     const insights = await Insight.find(query)
-      .populate('userId', 'nickname avatar')
+      .populate('userId', 'nickname avatar _id')
+      .populate('targetUserId', 'nickname avatar _id')
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)

@@ -45,8 +45,14 @@
         <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
         <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
       </view>
-      <view class="banner-bubble">
-        <text class="bubble-text">在每一次看见中不住相\n在每一次倾听中生慈悲</text>
+      <view class="banner-content">
+        <view class="user-info-display">
+          <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
+          <text class="current-period" wx:if="{{currentPeriod}}">本期: {{currentPeriod.name || currentPeriod.title}}</text>
+        </view>
+        <view class="banner-bubble">
+          <text class="bubble-text">在每一次看见中不住相\n在每一次倾听中生慈悲</text>
+        </view>
       </view>
     </view>
 
