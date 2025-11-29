@@ -281,7 +281,17 @@ async function getInsightsForPeriod(req, res, next) {
 async function updateInsight(req, res, next) {
   try {
     const { insightId } = req.params;
-    const { content, imageUrl, isPublished, targetUserId } = req.body;
+    const {
+      periodId,
+      targetUserId,
+      type,
+      mediaType,
+      content,
+      imageUrl,
+      summary,
+      tags,
+      isPublished
+    } = req.body;
 
     // 支持两种认证方式：
     // 1. 来自 authMiddleware 的小程序用户 (req.user.userId)
@@ -307,11 +317,16 @@ async function updateInsight(req, res, next) {
       return res.status(403).json(errors.forbidden('无权编辑'));
     }
 
-    // 更新字段
+    // 更新所有字段
+    if (periodId !== undefined) insight.periodId = periodId;
+    if (targetUserId !== undefined) insight.targetUserId = targetUserId || null;
+    if (type !== undefined) insight.type = type;
+    if (mediaType !== undefined) insight.mediaType = mediaType;
     if (content !== undefined) insight.content = content;
     if (imageUrl !== undefined) insight.imageUrl = imageUrl;
+    if (summary !== undefined) insight.summary = summary;
+    if (tags !== undefined) insight.tags = Array.isArray(tags) ? tags : [];
     if (isPublished !== undefined) insight.isPublished = isPublished;
-    if (targetUserId !== undefined) insight.targetUserId = targetUserId || null;
 
     await insight.save();
 
