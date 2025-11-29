@@ -3983,6 +3983,73 @@ const filtered = insightsList.filter(item => {
 
 ---
 
-**最后更新**: 2025-11-29 (修复小凡看见页面空数据问题 + 用户登录验证流程优化)
+### 33. 小凡看见编辑保存问题 - updateInsight API 缺失字段更新
+
+**问题现象**：
+在后台管理页面编辑"小凡看见"内容后，保存API返回"成功"消息，但：
+- 后台列表页面没有显示更新后的内容
+- 小程序中对应期次也看不到更新的"小凡看见"
+- 仅部分字段（content、imageUrl、isPublished）能正确更新
+
+**根本原因**：
+`updateInsight` 控制器函数（backend/src/controllers/insight.controller.js:284）在解构请求体时只提取了 4 个字段，而前端实际发送了 9 个字段。
+
+核心问题：
+1. **periodId 未更新**：最致命的问题，小程序查询小凡看见时按 periodId 过滤，如果 periodId 没有更新，新数据就无法被查询到
+2. **其他字段未更新**：type、mediaType、summary、tags 字段虽然被前端发送了但都没有被保存
+
+```javascript
+// ❌ 错误：只提取了4个字段
+const { content, imageUrl, isPublished, targetUserId } = req.body;
+
+// 但前端实际发送了9个字段：
+// periodId, targetUserId, type, mediaType, content, imageUrl, summary, tags, isPublished
+```
+
+**解决方案**：
+修改 updateInsight 函数以完整处理所有字段：
+
+```javascript
+// ✅ 正确：完整地提取和更新所有字段
+const {
+  periodId,
+  targetUserId,
+  type,
+  mediaType,
+  content,
+  imageUrl,
+  summary,
+  tags,
+  isPublished
+} = req.body;
+
+// 更新所有字段
+if (periodId !== undefined) insight.periodId = periodId;
+if (targetUserId !== undefined) insight.targetUserId = targetUserId || null;
+if (type !== undefined) insight.type = type;
+if (mediaType !== undefined) insight.mediaType = mediaType;
+if (content !== undefined) insight.content = content;
+if (imageUrl !== undefined) insight.imageUrl = imageUrl;
+if (summary !== undefined) insight.summary = summary;
+if (tags !== undefined) insight.tags = Array.isArray(tags) ? tags : [];
+if (isPublished !== undefined) insight.isPublished = isPublished;
+```
+
+**经验教训**：
+- ⚠️ 前后端通信时，后端不能假设只需要部分字段，必须支持所有可更新的字段
+- ⚠️ 部分字段的更新失败可能导致关键字段（如 periodId）无法更新，影响整个数据查询链路
+- ⚠️ 当列表查询和详情页面都显示不正确时，首先检查关键关联字段（如 periodId）是否被更新
+- ✅ 将前端发送的所有字段都在后端进行相应的更新处理
+- ✅ 在数据模型中明确哪些字段是可编辑的，后端对应实现完整的更新逻辑
+- ✅ 添加完整的字段验证和默认值处理（如 tags 需要确保是数组）
+
+**修改文件**：
+- `backend/src/controllers/insight.controller.js` (lines 281-340): 扩展 updateInsight 函数以处理所有字段
+
+**相关提交**：9f89398
+
+---
+
+**最后更新**: 2025-11-29 (修复小凡看见编辑保存问题 - 添加缺失的字段更新)
 **维护者**: Claude Code
-**项目状态**: 小凡看见功能完整 + 登录认证流程健壮 + 准备继续开发其他功能 ✅
+**项目状态**: 小凡看见编辑保存功能修复完成 + 所有字段正确同步 ✅
