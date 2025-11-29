@@ -15,7 +15,7 @@ async function getCurrentUser(req, res, next) {
     }
 
     res.json(success({
-      id: user._id,
+      _id: user._id,
       openid: user.openid,
       nickname: user.nickname,
       avatar: user.avatar,
@@ -58,7 +58,7 @@ async function updateProfile(req, res, next) {
     await user.save();
 
     res.json(success({
-      id: user._id,
+      _id: user._id,
       nickname: user.nickname,
       avatar: user.avatar,
       avatarUrl: user.avatarUrl,
@@ -178,7 +178,7 @@ async function deleteUser(req, res, next) {
       return res.status(404).json(errors.notFound('用户不存在'));
     }
 
-    res.json(success({ id: userId }, '用户已删除'));
+    res.json(success({ _id: userId }, '用户已删除'));
   } catch (error) {
     next(error);
   }

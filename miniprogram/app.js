@@ -42,40 +42,16 @@ App({
     console.log('=== checkLoginStatus ===');
     console.log('Token存在?:', !!token);
     console.log('UserInfo存在?:', !!userInfo);
-    console.log('UserInfo原始内容:', userInfo);
+    console.log('UserInfo._id:', userInfo?._id);
 
     if (token && userInfo) {
-      // 修复：确保用户信息有 _id 字段（兼容旧数据）
-      // 后端返回的数据应该有 _id，但为了安全起见还是检查一下
-      if (!userInfo._id) {
-        console.warn('用户信息缺少 _id，尝试从其他字段恢复...');
-        // 尝试从 id（兼容旧数据）
-        if (userInfo.id) {
-          userInfo._id = userInfo.id;
-          console.warn('已从 id 字段恢复 _id:', userInfo._id);
-        }
-        // 尝试从 openid（微信 openid）
-        else if (userInfo.openid) {
-          userInfo._id = userInfo.openid;
-          console.warn('已从 openid 字段恢复 _id:', userInfo._id);
-        }
-        // 如果都没有，生成一个临时 _id
-        else {
-          userInfo._id = 'temp_' + Date.now();
-          console.error('无法从现有字段恢复 _id，已生成临时 _id:', userInfo._id);
-        }
-
-        // 将修改后的 userInfo 保存回 storage，确保一致性
-        wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, userInfo);
-      }
-
-      console.log('最终 userInfo._id:', userInfo._id);
-
       this.globalData.isLogin = true;
       this.globalData.userInfo = userInfo;
       this.globalData.token = token;
+      console.log('✅ 登录状态恢复成功，用户ID:', userInfo._id);
     } else {
       this.globalData.isLogin = false;
+      console.log('❌ 登录状态未找到');
     }
   },
 

@@ -53,7 +53,7 @@ async function wechatLogin(req, res, next) {
     res.json(success({
       ...tokens,
       user: {
-        id: user._id,
+        _id: user._id,
         openid: user.openid,
         nickname: user.nickname,
         avatar: user.avatar,
