@@ -363,7 +363,17 @@ function handleAddInsight() {
 // 编辑
 function handleEditInsight(insight: any) {
   isNewInsight.value = false
-  editingInsight.value = { ...insight }
+  // ✅ 修复：提取 ID 字符串而不是整个对象
+  editingInsight.value = {
+    ...insight,
+    // 确保 targetUserId 和 periodId 都是字符串 ID
+    targetUserId: typeof insight.targetUserId === 'object'
+      ? insight.targetUserId?._id
+      : insight.targetUserId,
+    periodId: typeof insight.periodId === 'object'
+      ? insight.periodId?._id
+      : insight.periodId
+  }
   tagInput.value = ''
   imagePreview.value = insight.imageUrl || ''
   editDialogVisible.value = true
