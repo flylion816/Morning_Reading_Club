@@ -3902,6 +3902,87 @@ if (approvalStatus) query.approvalStatus = approvalStatus;
 
 ---
 
-**最后更新**: 2025-11-28 (修复报名管理页面删除功能不生效问题)
+---
+
+### 31. 用户登录后查看小凡看见页面显示为空问题
+
+**问题现象**：用户在微信小程序中成功登录，但点击「查看更多小凡看见」后，页面显示"暂无小凡看见记录"。后端日志显示 "用户未登录"，尽管前端已有有效的认证令牌。
+
+**根本原因**：这是一个多层连锁问题：
+1. **Mock 登录数据结构不匹配**：auth.service.js 的 `wechatLoginMock()` 创建的用户对象只有 `id` 字段，但缺少 `_id` 字段
+2. **前端过滤逻辑失效**：insights.js 检查 `app.globalData.userInfo._id` 时得到 undefined，导致过滤条件失败
+3. **缓存数据问题**：重启应用后加载的旧缓存用户数据仍然缺少 `_id` 字段，即使后续修复了也不起作用
+4. **存储 key 不一致**：insights.js 硬编码使用 'auth_token' 而不是 constants.STORAGE_KEYS.TOKEN
+
+**解决方案**：采用四层修复策略
+
+1. **修复 Mock 数据结构** (auth.service.js 第 73 行)
+```javascript
+const mockLoginData = {
+  access_token: 'mock_token_' + Date.now(),
+  refresh_token: 'mock_refresh_token_' + Date.now(),
+  user: {
+    _id: 'mock_user_' + Date.now(),  // ✅ 添加 _id 字段
+    id: 1,
+    nickname: userInfo.nickName || '晨读营用户',
+    avatar: '🦁',
+    signature: '天天开心，觉知当下！'
+  }
+};
+```
+
+2. **添加向后兼容性** (app.js 第 43-46 行)
+```javascript
+if (token && userInfo) {
+  // 修复：确保用户信息有 _id 字段（兼容旧数据）
+  if (!userInfo._id && userInfo.id) {
+    userInfo._id = userInfo.id;  // ✅ 处理旧缓存数据
+  }
+  // ... 其余逻辑
+}
+```
+
+3. **修复存储 key 不一致** (insights.js 第 21 行)
+```javascript
+const constants = require('../../config/constants');
+const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);  // ✅ 使用常量而非硬编码
+```
+
+4. **改进数据过滤逻辑** (insights.js 第 71-80 行)
+```javascript
+const filtered = insightsList.filter(item => {
+  if (item.targetUserId) {
+    // ✅ 支持 targetUserId 是字符串或对象的情况
+    const targetId = typeof item.targetUserId === 'object' ?
+      item.targetUserId._id : item.targetUserId;
+    const currentId = String(currentUserId);
+    const compareId = String(targetId);
+    return compareId === currentId;
+  }
+  return false;
+});
+```
+
+**经验教训**：
+- ⚠️ 登录流程中创建的对象结构必须与后端查询时的字段名一致
+- ⚠️ localStorage 中缓存的数据可能与当前代码期望不符，需要兼容性处理
+- ⚠️ 硬编码字符串容易导致不同模块间的 key 不一致，优先使用集中管理的常量
+- ⚠️ 使用 typeof 检查处理 API 响应中可能的多种数据格式（字符串 vs 对象）
+- ✅ 登录相关的对象设计应该与数据库模型保持一致
+- ✅ 缓存升级时需要考虑旧数据的兼容性处理（字段缺失时降级）
+- ✅ 使用集中管理的常量（如 constants.STORAGE_KEYS）确保全局 key 一致
+- ✅ 在 API 调用前添加详细的日志记录，便于问题定位
+
+**修改文件**：
+- `miniprogram/services/auth.service.js`: 添加 `_id` 字段到 mock 用户对象
+- `miniprogram/app.js`: 添加向后兼容性处理，自动填充缺失的 `_id`
+- `miniprogram/pages/insights/insights.js`: 修复 storage key，改进过滤逻辑和日志
+- `miniprogram/pages/profile/profile.wxml`: 更新 UI 文本提示（"本期暂无..." 而非仅"暂无..."）
+
+**相关提交**：d1c6343
+
+---
+
+**最后更新**: 2025-11-29 (修复小凡看见页面空数据问题 + 用户登录验证流程优化)
 **维护者**: Claude Code
-**项目状态**: 15 个待审批报名已验证 + 管理后台 API 已修复 + 准备批量审批功能测试 ✅
+**项目状态**: 小凡看见功能完整 + 登录认证流程健壮 + 准备继续开发其他功能 ✅
