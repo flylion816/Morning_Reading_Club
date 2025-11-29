@@ -4050,6 +4050,65 @@ if (isPublished !== undefined) insight.isPublished = isPublished;
 
 ---
 
-**最后更新**: 2025-11-29 (修复小凡看见编辑保存问题 - 添加缺失的字段更新)
+### 32. 小程序无法看到分配的小凡看见（targetUserId insights不显示）
+
+**问题现象**：
+- 在后台编辑小凡看见，设置 `targetUserId`（被看见人）为某个用户后，该用户在小程序中看不到这条小凡看见
+- 后台列表正常显示该小凡看见，但小程序用户一直显示"暂无反馈"
+
+**根本原因**：
+API 端点 `/insights/user` 的查询逻辑只返回**当前用户创建的** insights（`userId === 当前用户`），完全忽略了**分配给用户的** insights（`targetUserId === 当前用户`）。
+
+当管理员或其他人为用户分配小凡看见时，这条 insight 的 `userId` 是创建者的 ID，而不是目标用户的 ID。所以目标用户调用 `/insights/user` API 时，过滤条件 `{userId: 目标用户ID}` 自然找不到这条记录。
+
+**解决方案**：
+修改后端 `getUserInsights` 函数（insight.controller.js:88），使用 MongoDB 的 `$or` 操作符返回两类 insights：
+
+```javascript
+// ✅ 正确：返回两类insights
+const orConditions = [
+  { userId, ...baseQuery },           // 当前用户创建的
+  { targetUserId: userId, ...baseQuery }  // 分配给当前用户的
+];
+
+const query = { $or: orConditions };
+
+const insights = await Insight.find(query)
+  .populate('sectionId', 'title day icon')
+  .populate('periodId', 'name title')
+  .populate('userId', 'nickname avatar _id')
+  .populate('targetUserId', 'nickname avatar _id')
+  .sort({ createdAt: -1 })
+  .skip((page - 1) * limit)
+  .limit(parseInt(limit))
+  .select('-__v');
+```
+
+同时，前端小程序端可以移除冗余的过滤逻辑，因为 API 已经在后端完成了所有的过滤工作：
+
+```javascript
+// ✅ 正确：直接使用API返回数据，无需额外过滤
+// API已返回当前用户相关的所有insights：
+// 1) 当前用户创建的 2) 分配给当前用户的
+const filtered = insightsList;
+```
+
+**经验教训**：
+- ⚠️ 在设计 API 时，要考虑**所有可能的数据访问模式**，不仅是当前用户创建的数据
+- ⚠️ 对于有"分配"或"共享"功能的数据，API 查询必须同时考虑**创建者**和**目标用户**两个维度
+- ⚠️ 用户期望看到的 insights 应该包括两类：自己创建的和分配给自己的
+- ✅ 使用 MongoDB `$or` 操作符轻松组合多个查询条件
+- ✅ 在数据库层面而不是应用层面完成过滤，提高效率和可读性
+- ✅ 前后端分工明确：后端负责完整的数据过滤，前端只需展示返回的数据
+
+**修改文件**：
+- `backend/src/controllers/insight.controller.js` (lines 87-130): 修改 getUserInsights 函数以支持 $or 查询
+- `miniprogram/pages/insights/insights.js` (lines 64-67): 移除冗余的过滤逻辑
+
+**相关提交**：aec2139
+
+---
+
+**最后更新**: 2025-11-29 (修复小程序无法显示分配insights的问题 - 完成小凡看见visibility fix)
 **维护者**: Claude Code
 **项目状态**: 小凡看见编辑保存功能修复完成 + 所有字段正确同步 ✅
