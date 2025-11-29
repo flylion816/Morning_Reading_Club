@@ -61,29 +61,10 @@ Page({
       console.log('原始insights数据:', insightsList);
       console.log('原始insights数据长度:', insightsList.length);
 
-      // 过滤：只显示 targetUserId 是当前用户的 insights
-      const filtered = insightsList.filter(item => {
-        console.log('检查item:', item);
-        console.log('  - item._id:', item._id);
-        console.log('  - item.targetUserId:', item.targetUserId);
-        console.log('  - 类型:', typeof item.targetUserId);
-
-        // 如果 targetUserId 存在，只有当 targetUserId 等于当前用户ID时才显示
-        if (item.targetUserId) {
-          // targetUserId 可能是字符串或对象
-          const targetId = typeof item.targetUserId === 'object' ? item.targetUserId._id : item.targetUserId;
-          const currentId = String(currentUserId);
-          const compareId = String(targetId);
-
-          console.log('  - targetId:', compareId);
-          console.log('  - currentUserId:', currentId);
-          console.log('  - 相等?:', compareId === currentId);
-          return compareId === currentId;
-        }
-        // 如果没有设置 targetUserId，不显示
-        console.log('  - 没有targetUserId，过滤掉');
-        return false;
-      });
+      // API已经返回了当前用户相关的所有insights
+      // 包括：1) 当前用户创建的 2) 分配给当前用户的
+      // 无需额外过滤，直接使用
+      const filtered = insightsList;
 
       console.log('过滤后的insights:', filtered);
       console.log('过滤后的长度:', filtered.length);

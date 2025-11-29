@@ -84,20 +84,31 @@ async function generateInsight(req, res, next) {
   }
 }
 
-// 获取用户的反馈列表
+// 获取用户的反馈列表（包括创建的和分配给他们的）
 async function getUserInsights(req, res, next) {
   try {
     const { page = 1, limit = 20, periodId, type } = req.query;
     const userId = req.params.userId || req.user.userId;
 
-    const query = { userId, status: 'completed' };
-    if (periodId) query.periodId = periodId;
-    if (type) query.type = type;
+    // 构建查询条件：返回两类insights
+    // 1. 当前用户创建的insights（userId === 当前用户）
+    // 2. 分配给当前用户的insights（targetUserId === 当前用户）
+    const baseQuery = { status: 'completed' };
+    if (periodId) baseQuery.periodId = periodId;
+    if (type) baseQuery.type = type;
+
+    const orConditions = [
+      { userId, ...baseQuery },  // 当前用户创建的
+      { targetUserId: userId, ...baseQuery }  // 分配给当前用户的
+    ];
+
+    const query = { $or: orConditions };
 
     const total = await Insight.countDocuments(query);
     const insights = await Insight.find(query)
       .populate('sectionId', 'title day icon')
       .populate('periodId', 'name title')
+      .populate('userId', 'nickname avatar _id')
       .populate('targetUserId', 'nickname avatar _id')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
