@@ -53,7 +53,7 @@
           type="danger"
           text
           @click="handleLogout"
-          style="width: 100%; justify-content: center"
+          style="width: 100%; justify-content: flex-start"
         >
           <span>🚪 退出登录</span>
         </el-button>
