@@ -98,6 +98,7 @@ async function getUserInsights(req, res, next) {
     const insights = await Insight.find(query)
       .populate('sectionId', 'title day icon')
       .populate('periodId', 'name title')
+      .populate('targetUserId', 'nickname avatar _id')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
