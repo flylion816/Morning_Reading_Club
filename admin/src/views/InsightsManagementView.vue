@@ -301,6 +301,7 @@ const editingInsight = ref<any>({
 
 onMounted(() => {
   loadPeriods()
+  loadInsights()  // 默认加载所有期次的数据
 })
 
 // 加载期次

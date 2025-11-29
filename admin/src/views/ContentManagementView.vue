@@ -259,6 +259,12 @@ async function loadPeriods() {
   try {
     const response = await periodApi.getPeriods({ limit: 100 })
     periods.value = response.list || []
+
+    // 默认选择最新的期次
+    if (periods.value.length > 0) {
+      selectedPeriodId.value = periods.value[0]._id
+      await loadSections()
+    }
   } catch (err) {
     ElMessage.error('加载期次列表失败')
   }
