@@ -422,6 +422,61 @@ checkLoginStatus() {
 
 ---
 
+### 31. Vue 表单 el-select 绑定 populate 对象导致空值问题
+
+**问题现象**：小凡看见编辑表单中，"被看见人"(targetUserId) 和"期次"(periodId) 字段显示为空，虽然列表中这些字段有数据
+
+**根本原因**：数据源结构不匹配
+- 列表通过 API 获取数据时，`targetUserId` 和 `periodId` 被 populate 为完整对象：`{_id: "...", name: "...", ...}`
+- 编辑表单使用 el-select 的 v-model，期望值是字符串 ID，不是对象
+- 直接赋值整个对象给 el-select 会导致值无法匹配，显示为空
+
+```javascript
+// ❌ 错误：直接复制 populate 后的对象
+editingInsight.value = { ...insight }
+// insight.targetUserId = {_id: "xxx", nickname: "阿泰", ...}
+// insight.periodId = {_id: "yyy", name: "心流之境", ...}
+```
+
+**解决方案**：在编辑时提取 ID 字符串
+
+```javascript
+// ✅ 正确：提取 ID 字符串而不是整个对象
+function handleEditInsight(insight: any) {
+  editingInsight.value = {
+    ...insight,
+    // 提取 ID：如果是对象，取 _id；如果已是字符串，直接用
+    targetUserId: typeof insight.targetUserId === 'object'
+      ? insight.targetUserId?._id
+      : insight.targetUserId,
+    periodId: typeof insight.periodId === 'object'
+      ? insight.periodId?._id
+      : insight.periodId
+  }
+}
+```
+
+**经验教训**：
+- ⚠️ **Populate 返回的是对象，不是 ID**：Mongoose populate 会替换引用字段为完整文档对象
+- ⚠️ **el-select 的 v-model 需要 ID 字符串**：Vue 组件不能自动识别嵌套的 _id 字段
+- ⚠️ **列表显示和编辑表单的数据需要结构相同**：或在转换时统一格式
+- ✅ **在编辑前转换数据结构**：提取 ID、展开嵌套字段、确保类型一致
+- ✅ **为编辑操作创建专用的数据转换函数**：避免在组件逻辑中混入数据转换
+- ✅ **在 API 响应层面统一格式**：考虑在后端提供两个 API：列表(返回 populate)和编辑(返回 ID)
+
+**相关技术点**：
+- Mongoose populate 的行为
+- Vue el-select 的值绑定机制
+- 前端数据结构转换最佳实践
+- API 设计中的列表 vs 编辑响应差异
+
+**修复代码**：
+- 文件：admin/src/views/InsightsManagementView.vue
+- 行号：364-380
+- 提交：9d282d8
+
+---
+
 **最后更新**：2025-11-29
 **维护者**：Claude Code
 **项目仓库**：[Morning_Reading_Club](https://github.com/flylion816/Morning_Reading_Club)
