@@ -64,6 +64,9 @@ App({
           userInfo._id = 'temp_' + Date.now();
           console.error('无法从现有字段恢复 _id，已生成临时 _id:', userInfo._id);
         }
+
+        // 将修改后的 userInfo 保存回 storage，确保一致性
+        wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, userInfo);
       }
 
       console.log('最终 userInfo._id:', userInfo._id);
