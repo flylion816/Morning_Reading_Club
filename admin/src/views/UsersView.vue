@@ -41,11 +41,17 @@
         >
           <el-table-column label="头像" width="60">
             <template #default="{ row }">
-              <el-avatar
-                :src="row.avatar"
-                :size="40"
-                shape="circle"
-              />
+              <div class="avatar-wrapper">
+                <el-avatar
+                  v-if="row.avatar"
+                  :src="row.avatar"
+                  :size="40"
+                  shape="circle"
+                />
+                <div v-else class="avatar-placeholder" :style="{ background: getAvatarColor(row._id) }">
+                  {{ row.nickname?.charAt(0)?.toUpperCase() || 'U' }}
+                </div>
+              </div>
             </template>
           </el-table-column>
 
@@ -125,11 +131,17 @@
           border
         >
           <el-descriptions-item label="头像">
-            <el-avatar
-              :src="selectedUser.avatar"
-              :size="60"
-              shape="circle"
-            />
+            <div class="avatar-wrapper">
+              <el-avatar
+                v-if="selectedUser.avatar"
+                :src="selectedUser.avatar"
+                :size="60"
+                shape="circle"
+              />
+              <div v-else class="avatar-placeholder" :style="{ background: getAvatarColor(selectedUser._id), width: '60px', height: '60px', fontSize: '24px' }">
+                {{ selectedUser.nickname?.charAt(0)?.toUpperCase() || 'U' }}
+              </div>
+            </div>
           </el-descriptions-item>
           <el-descriptions-item label="用户名">
             {{ selectedUser.nickname }}
@@ -270,6 +282,21 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN')
 }
+
+/**
+ * 根据用户ID生成稳定的头像颜色
+ * 使用哈希算法确保相同ID总是返回相同颜色
+ */
+function getAvatarColor(userId: string): string {
+  const colors = ['#4a90e2', '#7ed321', '#f5a623', '#bd10e0', '#50e3c2', '#b8e986', '#ff6b6b', '#4ecdc4']
+  if (!userId) return colors[0]
+
+  let hash = 0
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash) + userId.charCodeAt(i)
+  }
+  return colors[Math.abs(hash) % colors.length]
+}
 </script>
 
 <style scoped>
@@ -299,5 +326,24 @@ function formatDate(dateString: string): string {
   gap: 8px;
   flex-wrap: nowrap;
   align-items: center;
+}
+
+.avatar-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  flex-shrink: 0;
 }
 </style>

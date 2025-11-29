@@ -469,7 +469,8 @@ async function searchUsers(keyword: string) {
       search: keyword,
       limit: 20
     })
-    userOptions.value = response.list || []
+    // 过滤掉 nickname 为空或 undefined 的用户
+    userOptions.value = (response.list || []).filter((user: any) => user.nickname && user.email)
   } catch (err) {
     console.error('搜索用户失败:', err)
     userOptions.value = []

@@ -11,9 +11,9 @@ Page({
 
     // 检查是否已登录
     if (authService.isLogin()) {
-      // 已登录,跳转到首页
+      // 已登录,跳转到首页（profile tab）
       wx.switchTab({
-        url: '/pages/index/index'
+        url: '/pages/profile/profile'
       });
     }
   },
@@ -72,10 +72,10 @@ Page({
         duration: 2000
       });
 
-      // 4. 延迟跳转
+      // 4. 延迟跳转到首页（profile tab）
       setTimeout(() => {
         wx.switchTab({
-          url: '/pages/index/index'
+          url: '/pages/profile/profile'
         });
       }, 1500);
     } catch (error) {
