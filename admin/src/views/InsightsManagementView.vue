@@ -85,7 +85,7 @@
           <!-- 被看见人 -->
           <el-table-column label="被看见人" width="120">
             <template #default="{ row }">
-              {{ row.targetUserId?.nickname || '未指定' }}
+              {{ typeof row.targetUserId === 'object' ? (row.targetUserId?.nickname || '未指定') : '未指定' }}
             </template>
           </el-table-column>
 
@@ -469,8 +469,8 @@ async function searchUsers(keyword: string) {
       search: keyword,
       limit: 20
     })
-    // 过滤掉 nickname 为空或 undefined 的用户
-    userOptions.value = (response.list || []).filter((user: any) => user.nickname && user.email)
+    // 过滤掉 nickname 为空的用户（email可能为空）
+    userOptions.value = (response.list || []).filter((user: any) => user.nickname)
   } catch (err) {
     console.error('搜索用户失败:', err)
     userOptions.value = []
