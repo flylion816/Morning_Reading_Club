@@ -34,6 +34,7 @@ async function initMockAuditLogs() {
         admin = await Admin.create({
           name,
           email: `${name}@example.com`,
+          password: 'admin123456', // 默认密码
           role: name === '超级管理员' ? 'superadmin' : 'admin'
         })
         console.log(`✅ 创建管理员: ${name}`)
