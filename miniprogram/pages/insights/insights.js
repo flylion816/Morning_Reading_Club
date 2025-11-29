@@ -17,6 +17,13 @@ Page({
       // 获取当前登录用户信息
       const app = getApp();
       const currentUserId = app.globalData.userInfo?._id;
+      const constants = require('../../config/constants');
+      const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+
+      console.log('=== 加载小凡看见 ===');
+      console.log('当前用户ID:', currentUserId);
+      console.log('Token存在?:', !!token);
+      console.log('app.globalData.userInfo:', app.globalData.userInfo);
 
       if (!currentUserId) {
         console.warn('用户未登录，无法加载小凡看见');
@@ -24,9 +31,24 @@ Page({
         return;
       }
 
+      if (!token) {
+        console.warn('Token不存在，需要重新登录');
+        wx.showToast({
+          title: '登录已过期，请重新登录',
+          icon: 'none'
+        });
+        this.setData({ loading: false });
+        setTimeout(() => {
+          wx.navigateTo({
+            url: '/pages/login/login'
+          });
+        }, 1500);
+        return;
+      }
+
       // 获取所有insights
       const res = await insightService.getInsightsList({ limit: 100 });
-      console.log('获取insights列表:', res);
+      console.log('获取insights列表响应:', res);
 
       // 处理响应数据
       let insightsList = [];
@@ -37,19 +59,34 @@ Page({
       }
 
       console.log('原始insights数据:', insightsList);
+      console.log('原始insights数据长度:', insightsList.length);
 
       // 过滤：只显示 targetUserId 是当前用户的 insights
       const filtered = insightsList.filter(item => {
+        console.log('检查item:', item);
+        console.log('  - item._id:', item._id);
+        console.log('  - item.targetUserId:', item.targetUserId);
+        console.log('  - 类型:', typeof item.targetUserId);
+
         // 如果 targetUserId 存在，只有当 targetUserId 等于当前用户ID时才显示
         if (item.targetUserId) {
-          const targetId = item.targetUserId._id || item.targetUserId;
-          return targetId === currentUserId;
+          // targetUserId 可能是字符串或对象
+          const targetId = typeof item.targetUserId === 'object' ? item.targetUserId._id : item.targetUserId;
+          const currentId = String(currentUserId);
+          const compareId = String(targetId);
+
+          console.log('  - targetId:', compareId);
+          console.log('  - currentUserId:', currentId);
+          console.log('  - 相等?:', compareId === currentId);
+          return compareId === currentId;
         }
         // 如果没有设置 targetUserId，不显示
+        console.log('  - 没有targetUserId，过滤掉');
         return false;
       });
 
       console.log('过滤后的insights:', filtered);
+      console.log('过滤后的长度:', filtered.length);
 
       // 获取所有期次信息用于映射期次名称
       const periods = app.globalData.periods || [];

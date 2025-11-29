@@ -40,6 +40,11 @@ App({
     const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
 
     if (token && userInfo) {
+      // 修复：确保用户信息有 _id 字段（兼容旧数据）
+      if (!userInfo._id && userInfo.id) {
+        userInfo._id = userInfo.id;
+      }
+
       this.globalData.isLogin = true;
       this.globalData.userInfo = userInfo;
       this.globalData.token = token;

@@ -110,11 +110,11 @@
             </view>
           </view>
           <view class="insight-empty" wx:if="{{recentInsights.length === 0}}">
-            暂无小凡看见记录
+            本期暂无小凡看见记录
           </view>
         </view>
         <view class="insights-more" bindtap="navigateToInsights">
-          <text class="more-text">查看更多</text>
+          <text class="more-text">查看更多历史</text>
           <text class="more-arrow">→</text>
         </view>
       </view>

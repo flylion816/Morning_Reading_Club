@@ -70,6 +70,7 @@ class AuthService {
         access_token: 'mock_token_' + Date.now(),
         refresh_token: 'mock_refresh_token_' + Date.now(),
         user: {
+          _id: 'mock_user_' + Date.now(),  // 添加 _id 字段，用于 API 认证
           id: 1,
           nickname: userInfo.nickName || '晨读营用户',
           avatar: '🦁',
