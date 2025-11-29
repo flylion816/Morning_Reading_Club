@@ -160,7 +160,7 @@
                 <el-option
                   v-for="user in userOptions"
                   :key="user._id"
-                  :label="`${user.nickname} (${user.email})`"
+                  :label="`${user.nickname}${user.email ? ' (' + user.email + ')' : ''}`"
                   :value="user._id"
                 />
               </el-select>
