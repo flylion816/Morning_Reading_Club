@@ -376,6 +376,16 @@ function handleEditInsight(insight: any) {
   }
   tagInput.value = ''
   imagePreview.value = insight.imageUrl || ''
+
+  // ✅ 修复：如果有 targetUserId（已 populate 的对象），添加到 userOptions 中以便显示
+  if (insight.targetUserId && typeof insight.targetUserId === 'object') {
+    // 检查 userOptions 中是否已存在该用户，避免重复
+    const userExists = userOptions.value.some(u => u._id === insight.targetUserId._id)
+    if (!userExists) {
+      userOptions.value.unshift(insight.targetUserId)
+    }
+  }
+
   editDialogVisible.value = true
 }
 
