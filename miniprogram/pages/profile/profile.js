@@ -111,7 +111,14 @@ Page({
       app.globalData.userInfo = userInfo;
 
       // 根据期次状态选择当前期次
+      console.log('====== getPeriods 原始响应 ======');
+      console.log('periods类型:', typeof periods);
+      console.log('periods:', periods);
+      console.log('periods.list:', periods?.list);
+
       const periodsList = periods.list || periods.items || periods || [];
+      console.log('处理后的periodsList长度:', periodsList.length);
+      console.log('periodsList:', periodsList);
 
       let currentPeriod = null;
 
