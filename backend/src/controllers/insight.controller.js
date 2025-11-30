@@ -257,7 +257,7 @@ async function createInsightManual(req, res, next) {
 async function getInsightsForPeriod(req, res, next) {
   try {
     const { periodId } = req.params;
-    const { type = 'insight', page = 1, limit = 20 } = req.query;
+    const { type, page = 1, limit = 20 } = req.query;  // 移除type的默认值，让前端灵活控制
     const userId = req.user?.userId;  // 获取当前登录用户
 
     // 构建查询条件：返回两类insights
@@ -268,6 +268,7 @@ async function getInsightsForPeriod(req, res, next) {
       status: 'completed'
     };
 
+    // 只在明确传递type参数时才过滤
     if (type) baseQuery.type = type;
 
     let orConditions = [];
