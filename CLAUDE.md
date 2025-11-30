@@ -52,6 +52,19 @@
    - 按问题类型分类：frontend、backend、architecture
    - **推荐作为首选查询方式**
 
+6. **快速命令系统**（🆕 新增）→ [`.claude/commands/`](./.claude/commands/)
+   - 开发命令：启动服务
+   - 测试命令：快速测试 API 和功能
+   - 搜索命令：查询 Memory 系统
+   - 部署命令：检查部署和备份
+   - **使用指南**：[`.claude/commands/README.md`](./.claude/commands/README.md)
+
+7. **Git Hooks 自动化**（🆕 新增）→ [`.claude/hooks/`](./.claude/hooks/)
+   - Pre-commit：代码质量检查
+   - Commit-msg：提交信息验证
+   - Post-commit：自动反馈
+   - **使用指南**：[`.claude/hooks/README.md`](./.claude/hooks/README.md)
+
 ---
 
 ## 📋 项目信息快速参考
@@ -90,6 +103,55 @@
 4. **文档更新**：重要问题必须记录到 Bug修复经验库
 
 **详见** → [`MINIPROGRAM_GUIDE.md`](./MINIPROGRAM_GUIDE.md) 与 [`GIT_WORKFLOW.md`](./GIT_WORKFLOW.md)
+
+---
+
+## 🚀 快速命令参考
+
+日常开发中最常用的命令：
+
+### 开发启动
+```bash
+# 启动后端服务
+.claude/commands/development/start-backend.sh
+
+# 启动小程序（在微信开发工具中）
+.claude/commands/development/start-miniprogram.sh
+```
+
+### API 测试
+```bash
+# 快速测试所有主要 API
+.claude/commands/testing/test-api.sh
+
+# 测试认证流程
+.claude/commands/testing/test-auth.sh
+
+# 测试打卡功能
+.claude/commands/testing/test-insights.sh
+```
+
+### 快速查询
+```bash
+# 搜索历史问题
+.claude/commands/search/search-bug.sh "页面空白"
+.claude/commands/search/search-bug.sh "用户ID"
+
+# 按类别浏览
+.claude/commands/search/search-bug.sh frontend  # 前端问题
+.claude/commands/search/search-bug.sh backend   # 后端问题
+```
+
+### 部署准备
+```bash
+# 检查部署状态
+.claude/commands/deployment/check-deploy.sh
+
+# 备份数据库
+.claude/commands/deployment/backup-db.sh
+```
+
+**详见** → [`.claude/commands/README.md`](./.claude/commands/README.md)
 
 ---
 
