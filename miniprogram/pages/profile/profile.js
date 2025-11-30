@@ -121,21 +121,41 @@ Page({
       console.log('periodsList:', periodsList);
 
       let currentPeriod = null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      // 优先选择 ongoing 状态的期次
-      currentPeriod = periodsList.find(p => p.status === 'ongoing');
+      // 基于当前日期选择期次
+      // 优先级：1) 包含今天的期次  2) ongoing状态  3) 最近的期次
+      for (const period of periodsList) {
+        const startDate = new Date(period.startDate || period.startTime || 0);
+        const endDate = new Date(period.endDate || period.endTime || 0);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+
+        if (today >= startDate && today <= endDate) {
+          currentPeriod = period;
+          console.log('📅 根据日期范围找到当前期次:', currentPeriod.name || currentPeriod.title, '(status:', currentPeriod.status + ')');
+          break;
+        }
+      }
 
       if (!currentPeriod) {
-        // 其次选择 not_started 状态但最新的期次（按 createdAt 倒序）
-        const sortedPeriods = periodsList.sort((a, b) => {
+        // 如果没有包含今天的期次，选择 ongoing 状态的
+        currentPeriod = periodsList.find(p => p.status === 'ongoing');
+        if (currentPeriod) {
+          console.log('⚠️ 未找到包含今天的期次，使用ongoing期次:', currentPeriod.name || currentPeriod.title);
+        }
+      }
+
+      if (!currentPeriod) {
+        // 最后选择最新创建的期次
+        const sortedPeriods = [...periodsList].sort((a, b) => {
           const timeA = new Date(a.createdAt || 0).getTime();
           const timeB = new Date(b.createdAt || 0).getTime();
           return timeB - timeA;  // 倒序
         });
-        currentPeriod = sortedPeriods.find(p => p.status === 'not_started') || sortedPeriods[0];
-        console.log('⚠️ 未找到ongoing期次，使用最新的期次:', currentPeriod?.name || currentPeriod?.title);
-      } else {
-        console.log('📅 找到当前期次:', currentPeriod.name || currentPeriod.title);
+        currentPeriod = sortedPeriods[0];
+        console.log('⚠️ 未找到合适期次，使用最新的期次:', currentPeriod?.name || currentPeriod?.title);
       }
 
       // 获取今日课节（根据当前日期动态计算）
