@@ -61,9 +61,9 @@ router.post('/manual/create', authMiddleware, createInsightManual);
 /**
  * @route   GET /api/v1/insights/period/:periodId
  * @desc    获取某期次的小凡看见列表
- * @access  Public
+ * @access  Public (with optional auth for personalized results)
  */
-router.get('/period/:periodId', getInsightsForPeriod);
+router.get('/period/:periodId', authMiddleware, getInsightsForPeriod);
 
 /**
  * @route   PUT /api/v1/insights/:insightId
