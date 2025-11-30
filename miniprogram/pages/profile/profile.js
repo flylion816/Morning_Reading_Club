@@ -323,8 +323,16 @@ Page({
       }
 
       const periodId = currentPeriod._id || currentPeriod.id;
+      console.log('=== 加载小凡看见 ===');
+      console.log('当前期次对象:', currentPeriod);
+      console.log('当前期次名称:', currentPeriod.name || currentPeriod.title);
       console.log('按期次ID加载小凡看见，periodId:', periodId);
       console.log('当前用户ID:', this.data.userInfo?._id || this.data.userInfo?.id);
+
+      if (!periodId) {
+        console.error('❌ 错误：periodId为空！无法加载小凡看见');
+        return [];
+      }
 
       // 调用API获取指定期次的小凡看见记录
       const res = await insightService.getInsightsForPeriod(periodId, { limit: 10 });
