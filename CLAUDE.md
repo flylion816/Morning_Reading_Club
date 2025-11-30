@@ -65,6 +65,14 @@
    - Post-commit：自动反馈
    - **使用指南**：[`.claude/hooks/README.md`](./.claude/hooks/README.md)
 
+8. **Subagents 专家代理**（🆕 新增）→ [`.claude/agents/`](./.claude/agents/)
+   - 前端专家：小程序开发
+   - 后端专家：API和业务逻辑
+   - 数据库专家：MongoDB优化
+   - 部署专家：版本和运维
+   - **使用指南**：[`.claude/agents/README.md`](./.claude/agents/README.md)
+   - **性能提升**：并行处理，减少50%开发时间
+
 ---
 
 ## 📋 项目信息快速参考
