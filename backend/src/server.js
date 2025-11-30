@@ -13,12 +13,13 @@ async function startServer() {
     // 测试MySQL连接
     await testMySQLConnection();
 
-    // 启动HTTP服务器
-    app.listen(PORT, () => {
-      console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    // 启动HTTP服务器，绑定到所有网卡（包括局域网 IP）
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);
       console.log(`📚 API Base URL: http://localhost:${PORT}/api/v1`);
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
       console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🌐 Accessible from local network on any IP:${PORT}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
