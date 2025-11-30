@@ -4,6 +4,29 @@
 
 ---
 
+## 🚀 快速命令系统 (Commands)
+
+**如果需要快速启动服务、测试API、搜索问题或部署检查，使用Commands系统！**
+
+### 最常用的命令
+```bash
+# 启动后端并快速测试
+.claude/commands/development/start-backend.sh
+.claude/commands/testing/test-api.sh
+
+# 快速搜索问题（而不是手动查文档）
+.claude/commands/search/search-bug.sh "页面空白"
+.claude/commands/search/search-bug.sh "用户ID"
+
+# 部署前检查和备份
+.claude/commands/deployment/check-deploy.sh
+.claude/commands/deployment/backup-db.sh
+```
+
+**详细使用指南**：[standards/commands-usage.md](./standards/commands-usage.md)
+
+---
+
 ## 📍 按现象快速查找
 
 ### 页面相关问题
