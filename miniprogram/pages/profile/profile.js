@@ -306,11 +306,14 @@ Page({
 
       const periodId = currentPeriod._id || currentPeriod.id;
       console.log('按期次ID加载小凡看见，periodId:', periodId);
+      console.log('当前用户ID:', this.data.userInfo?._id || this.data.userInfo?.id);
 
       // 调用API获取指定期次的小凡看见记录
       const res = await insightService.getInsightsForPeriod(periodId, { limit: 10 });
 
-      console.log('API 响应:', res);
+      console.log('API 响应原始数据:', res);
+      console.log('API 响应列表:', res?.list);
+      console.log('API 响应列表长度:', res?.list?.length);
 
       // request.js 会自动提取 data.data，所以这里 res 应该是 { list: [...], pagination: {...} }
       let insights = [];
@@ -388,7 +391,7 @@ Page({
     const app = getApp();
     const currentUser = app.globalData.userInfo;
 
-    if (!currentUser || !currentUser.id) {
+    if (!currentUser || !currentUser._id) {
       this.setData({ insightRequests: [] });
       return;
     }
@@ -398,7 +401,7 @@ Page({
 
     // 筛选出发给当前用户的待处理申请
     let myRequests = allRequests.filter(req =>
-      req.toUserId === currentUser.id && req.status === 'pending'
+      req.toUserId === currentUser._id && req.status === 'pending'
     );
 
     // 如果没有待处理申请，添加一个Mock申请（仅用于演示）
@@ -409,7 +412,7 @@ Page({
         fromUserName: '阿泰',
         fromUserAvatar: '泰',  // 使用名字的最后一个字
         avatarColor: '#4a90e2',  // 蓝色圆形背景
-        toUserId: currentUser.id,
+        toUserId: currentUser._id,
         toUserName: currentUser.nickname,
         time: '2小时前',
         status: 'pending'
