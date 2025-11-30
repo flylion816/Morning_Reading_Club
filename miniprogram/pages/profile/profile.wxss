@@ -219,19 +219,8 @@
 
 /* 用户信息显示（昵称和本期） */
 .user-info-display {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
   z-index: 2;
   position: relative;
-}
-
-.user-name-line {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  flex-wrap: wrap;
-  min-width: 0;
 }
 
 .user-name {
@@ -244,12 +233,9 @@
 
 .current-period {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
   text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .banner-bubble {
