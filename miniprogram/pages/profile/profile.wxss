@@ -154,7 +154,7 @@
 
 /* 顶部横幅 */
 .home-banner {
-  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   padding: 40rpx 32rpx;
   position: relative;
   display: flex;
@@ -189,7 +189,7 @@
   right: 0;
   width: 48rpx;
   height: 48rpx;
-  background: #7c5ac2;
+  background: #4a90e2;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -221,9 +221,17 @@
 .user-info-display {
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 8rpx;
   z-index: 2;
   position: relative;
+}
+
+.user-name-line {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .user-name {
@@ -355,21 +363,21 @@
 .progress-bar-wrapper {
   flex: 1;
   height: 8rpx;
-  background: rgba(124, 90, 194, 0.2);
+  background: rgba(74, 144, 226, 0.2);
   border-radius: 4rpx;
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   border-radius: 4rpx;
   transition: width 0.3s;
 }
 
 .progress-status {
   font-size: 22rpx;
-  color: #7c5ac2;
+  color: #4a90e2;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -439,10 +447,10 @@
 }
 
 .insight-item {
-  background: #faf8ff;
+  background: #f5f8ff;
   border-radius: 12rpx;
   padding: 20rpx;
-  border-left: 6rpx solid #7c5ac2;
+  border-left: 6rpx solid #4a90e2;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
@@ -477,7 +485,7 @@
 
 .insight-day {
   font-size: 24rpx;
-  color: #7c5ac2;
+  color: #4a90e2;
   font-weight: bold;
   white-space: nowrap;
 }
@@ -491,7 +499,7 @@
 .insight-title {
   font-size: 26rpx;
   font-weight: bold;
-  color: #7c5ac2;
+  color: #4a90e2;
   line-height: 1.4;
 }
 
@@ -524,13 +532,13 @@
 
 .more-text {
   font-size: 26rpx;
-  color: #7c5ac2;
+  color: #4a90e2;
   font-weight: 500;
 }
 
 .more-arrow {
   font-size: 24rpx;
-  color: #7c5ac2;
+  color: #4a90e2;
 }
 
 /* 请求列表 */
@@ -608,13 +616,13 @@
 }
 
 .approve-btn {
-  background: #7c5ac2;
+  background: #4a90e2;
   color: white;
 }
 
 .approve-btn:active {
   transform: scale(0.95);
-  background: #5d42a1;
+  background: #357abd;
 }
 
 .reject-btn {
@@ -639,20 +647,20 @@
   position: fixed;
   right: 32rpx;
   bottom: 80rpx;
-  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   border-radius: 48rpx;
   padding: 20rpx 36rpx;
   display: flex;
   align-items: center;
   gap: 8rpx;
-  box-shadow: 0 8rpx 24rpx rgba(124, 90, 194, 0.4);
+  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.4);
   z-index: 100;
   transition: all 0.3s;
 }
 
 .create-checkin-btn:active {
   transform: scale(0.98);
-  box-shadow: 0 4rpx 12rpx rgba(124, 90, 194, 0.4);
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.4);
 }
 
 .btn-icon {
@@ -685,8 +693,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid rgba(124, 90, 194, 0.2);
-  border-top-color: #7c5ac2;
+  border: 4rpx solid rgba(74, 144, 226, 0.2);
+  border-top-color: #4a90e2;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -815,9 +823,9 @@
 }
 
 .avatar-option.selected {
-  border-color: #7c5ac2;
-  background: #faf8ff;
-  box-shadow: 0 0 12rpx rgba(124, 90, 194, 0.3);
+  border-color: #4a90e2;
+  background: #f5f8ff;
+  box-shadow: 0 0 12rpx rgba(74, 144, 226, 0.3);
 }
 
 .avatar-option-text {
@@ -837,7 +845,7 @@
 }
 
 .modal-input:focus {
-  border-color: #7c5ac2;
+  border-color: #4a90e2;
 }
 
 .input-placeholder {
@@ -879,7 +887,7 @@
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
 }
 

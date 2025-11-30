@@ -48,8 +48,10 @@
       </view>
       <view class="banner-content">
         <view class="user-info-display">
-          <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
-          <text class="current-period" wx:if="{{currentPeriod}}">本期: {{currentPeriod.name || currentPeriod.title}}</text>
+          <view class="user-name-line">
+            <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
+            <text class="current-period" wx:if="{{currentPeriod}}">本期: {{currentPeriod.name || currentPeriod.title}}</text>
+          </view>
         </view>
         <view class="banner-bubble">
           <text class="bubble-text">在每一次看见中不住相\n在每一次倾听中生慈悲</text>
