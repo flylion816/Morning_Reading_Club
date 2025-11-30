@@ -336,9 +336,9 @@ function getInsightTypeConfig(type) {
     'insight': {
       icon: '✨',
       label: '小凡看见',
-      color: '#bd10e0',      // 紫色
-      bgColor: '#f5f0ff',    // 浅紫色背景
-      borderColor: '#bd10e0' // 紫色边框
+      color: '#4a90e2',      // 蓝色
+      bgColor: '#f0f5ff',    // 浅蓝色背景
+      borderColor: '#4a90e2' // 蓝色边框
     }
   };
 
