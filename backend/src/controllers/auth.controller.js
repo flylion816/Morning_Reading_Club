@@ -11,38 +11,54 @@ async function wechatLogin(req, res, next) {
       return res.status(400).json(errors.badRequest('缺少code参数'));
     }
 
-    // Mock: 根据code获取固定的openid，以便测试时使用已有用户
-    // 特殊code映射到已存在的用户
-    let mockOpenid;
-    if (code === 'test_user_atai') {
-      // 阿泰的openid（在init-mongodb.js中创建）
-      mockOpenid = 'mock_user_001';
-    } else if (code === 'test_user_wangwu') {
-      // 王五的openid
-      mockOpenid = 'mock_user_003';
-    } else if (code === 'test_user_admin') {
-      // 管理员的openid
-      mockOpenid = 'mock_admin_001';
+    let user;
+    let isNewUser = false;
+
+    // 开发环境：统一使用"阿泰"用户进行测试，避免每次都创建新用户
+    if (process.env.NODE_ENV === 'development') {
+      user = await User.findOne({ nickname: '阿泰' });
+
+      if (!user) {
+        console.error('❌ 开发环境错误：测试用户"阿泰"不存在，请先初始化数据库');
+        return res.status(500).json(errors.internal('测试用户未初始化'));
+      }
+
+      console.log('✅ 开发环境：使用测试用户"阿泰"登录');
     } else {
-      // 其他code生成新的openid
-      mockOpenid = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // 生产环境：根据code获取openid
+      let mockOpenid;
+      if (code === 'test_user_atai') {
+        mockOpenid = 'mock_user_001';
+      } else if (code === 'test_user_wangwu') {
+        mockOpenid = 'mock_user_003';
+      } else if (code === 'test_user_admin') {
+        mockOpenid = 'mock_admin_001';
+      } else {
+        mockOpenid = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      // 查找或创建用户
+      user = await User.findOne({ openid: mockOpenid });
+      isNewUser = !user;
+
+      if (!user) {
+        // 创建新用户
+        user = await User.create({
+          openid: mockOpenid,
+          nickname: '微信用户',
+          avatar: '🦁',
+          role: 'user',
+          status: 'active'
+        });
+      } else {
+        // 更新最后登录时间
+        user.lastLoginAt = new Date();
+        await user.save();
+      }
     }
 
-    // 查找或创建用户
-    let user = await User.findOne({ openid: mockOpenid });
-    const isNewUser = !user;
-
-    if (!user) {
-      // 创建新用户
-      user = await User.create({
-        openid: mockOpenid,
-        nickname: '微信用户',
-        avatar: '🦁',
-        role: 'user',
-        status: 'active'
-      });
-    } else {
-      // 更新最后登录时间
+    // 更新最后登录时间
+    if (!isNewUser) {
       user.lastLoginAt = new Date();
       await user.save();
     }

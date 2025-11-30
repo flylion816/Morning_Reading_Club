@@ -23,7 +23,22 @@
       "Bash(node scripts/init-enrollments.js:*)",
       "Bash(node scripts/update-checkins.js:*)",
       "Bash(node:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Bash(git push:*)",
+      "Bash(python3:*)",
+      "Bash(timeout 5 curl:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(__NEW_LINE__ TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTE1ZTc0MWM0ZmJiNDAzMTY0MTcwODkiLCJvcGVuaWQiOiJvMm91YVlrR3kycHVvS3lqd3htanJJSEJ6VV9MNWQ4WVJYVE5PeU02X1A4YSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzY0NTA3MzIzLCJleHAiOjE3NjQ1MTQ1MjN9.QXfR_sG8nIDCRhW5j0U3QpsMXvwv2Jl5pcQiOI97GU4\" API=\"http://localhost:3000/api/v1\" PERIOD_ID=\"6916c27f2a43d9be12944348\")",
+      "Bash(echo \"========== 用有效Token测试insights API ==========\" echo \"调用: GET $API/insights/period/$PERIOD_ID\" echo \"\")",
+      "Bash(__NEW_LINE__ TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTE1ZTc0MWM0ZmJiNDAzMTY0MTcwODkiLCJvcGVuaWQiOiJvMm91YVlrR3kycHVvS3lqd3htanJJSEJ6VV9MNWQ4WVJYVE5PeU02X1A4YSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzY0NTA3MzIzLCJleHAiOjE3NjQ1MTQ1MjN9.QXfR_sG8nIDCRhW5j0U3QpsMXvwv2Jl5pcQiOI97GU4\")",
+      "Bash(PERIOD_ID=\"6916c27f2a43d9be12944348\")",
+      "Bash(__NEW_LINE__ echo \"========== 用有效Token测试insights API ==========\")",
+      "Bash(echo \"========== 测试 /periods API ==========\" curl -s -H \"Authorization: Bearer $TOKEN\" \"http://localhost:3000/api/v1/periods\")",
+      "Bash(__NEW_LINE__ echo \"========== 测试 /periods API ==========\")",
+      "Bash(__NEW_LINE__ echo \"========== 测试 IPv4 ==========\ncurl -s http://127.0.0.1:5173/ | head -5\n\necho \"\"\necho \"========== 测试 localhost ========== curl -s http://localhost:5173/)"
     ],
     "deny": [],
     "ask": []

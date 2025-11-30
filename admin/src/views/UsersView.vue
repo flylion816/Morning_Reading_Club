@@ -55,6 +55,12 @@
             </template>
           </el-table-column>
 
+          <el-table-column prop="_id" label="用户ID" width="200">
+            <template #default="{ row }">
+              <span style="font-family: monospace; font-size: 12px">{{ row._id }}</span>
+            </template>
+          </el-table-column>
+
           <el-table-column prop="nickname" label="用户名" width="120" />
           <el-table-column prop="email" label="邮箱" min-width="180" />
           <el-table-column prop="phone" label="电话" width="140" />
@@ -142,6 +148,9 @@
                 {{ selectedUser.nickname?.charAt(0)?.toUpperCase() || 'U' }}
               </div>
             </div>
+          </el-descriptions-item>
+          <el-descriptions-item label="用户ID">
+            <span style="font-family: monospace; font-size: 12px">{{ selectedUser._id }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="用户名">
             {{ selectedUser.nickname }}
