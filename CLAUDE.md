@@ -477,6 +477,31 @@ function handleEditInsight(insight: any) {
 
 ---
 
-**最后更新**：2025-11-29
+### 31. 路由认证中间件缺失导致$or查询失效问题 (2025-11-30)
+
+**问题现象**：虽然已修复 `getInsightsForPeriod` 函数使用 $or 查询返回用户创建和被分配的 insights，但小程序首页的小凡看见部分依然显示"本期暂无记录"，用户无法看到被分配的 insights
+
+**根本原因**：`/insights/period/:periodId` 路由在 `insight.routes.js` 中**没有应用 `authMiddleware`**，导致 `req.user` 永远是 `undefined`，查询回退到未登录逻辑
+
+**解决方案**：为路由添加 `authMiddleware`
+
+```javascript
+// ❌ 错误
+router.get('/period/:periodId', getInsightsForPeriod);
+
+// ✅ 正确
+router.get('/period/:periodId', authMiddleware, getInsightsForPeriod);
+```
+
+**关键教训**：
+- ⚠️ **路由和控制器函数是分离的**：仅在函数中检查 `req.user` 不够，必须在路由层应用认证中间件
+- ✅ 认证中间件应该在所有需要用户身份信息的路由上应用
+
+**修改文件**：`backend/src/routes/insight.routes.js` 第66行
+**提交记录**：commit 83e2671
+
+---
+
+**最后更新**：2025-11-30
 **维护者**：Claude Code
 **项目仓库**：[Morning_Reading_Club](https://github.com/flylion816/Morning_Reading_Club)
