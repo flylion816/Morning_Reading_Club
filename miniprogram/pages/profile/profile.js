@@ -110,34 +110,25 @@ Page({
       const app = getApp();
       app.globalData.userInfo = userInfo;
 
-      // 根据当前日期判断所在期次（期次时间范围内）
+      // 根据期次状态选择当前期次
       const periodsList = periods.list || periods.items || periods || [];
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);  // 清除时间部分，只保留日期
 
       let currentPeriod = null;
 
-      // 遍历所有期次，找到包含今天日期的期次
-      for (const period of periodsList) {
-        if (period.startDate && period.endDate) {
-          const startDate = new Date(period.startDate);
-          const endDate = new Date(period.endDate);
-          // 确保只比较日期部分
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(23, 59, 59, 999);
+      // 优先选择 ongoing 状态的期次
+      currentPeriod = periodsList.find(p => p.status === 'ongoing');
 
-          if (today >= startDate && today <= endDate) {
-            currentPeriod = period;
-            console.log('📅 根据日期范围找到当前期次:', currentPeriod.name || currentPeriod.title);
-            break;
-          }
-        }
-      }
-
-      // 如果没有找到包含今天的期次，则使用进行中或第一个
       if (!currentPeriod) {
-        currentPeriod = periodsList.find(p => p.status === 'ongoing') || periodsList[0];
-        console.log('⚠️ 未找到包含今天日期的期次，使用备选期次:', currentPeriod?.name || currentPeriod?.title);
+        // 其次选择 not_started 状态但最新的期次（按 createdAt 倒序）
+        const sortedPeriods = periodsList.sort((a, b) => {
+          const timeA = new Date(a.createdAt || 0).getTime();
+          const timeB = new Date(b.createdAt || 0).getTime();
+          return timeB - timeA;  // 倒序
+        });
+        currentPeriod = sortedPeriods.find(p => p.status === 'not_started') || sortedPeriods[0];
+        console.log('⚠️ 未找到ongoing期次，使用最新的期次:', currentPeriod?.name || currentPeriod?.title);
+      } else {
+        console.log('📅 找到当前期次:', currentPeriod.name || currentPeriod.title);
       }
 
       // 获取今日课节（根据当前日期动态计算）
