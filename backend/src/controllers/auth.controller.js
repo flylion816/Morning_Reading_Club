@@ -20,7 +20,7 @@ async function wechatLogin(req, res, next) {
 
       if (!user) {
         console.error('❌ 开发环境错误：测试用户"阿泰"不存在，请先初始化数据库');
-        return res.status(500).json(errors.internal('测试用户未初始化'));
+        return res.status(500).json(errors.serverError('测试用户未初始化'));
       }
 
       console.log('✅ 开发环境：使用测试用户"阿泰"登录');
