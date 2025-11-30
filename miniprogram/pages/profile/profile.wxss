@@ -821,15 +821,18 @@
 /* 昵称输入 */
 .modal-input {
   width: 100%;
-  padding: 20rpx 24rpx;
+  padding: 16rpx 24rpx;
   border: 1rpx solid #e0e0e0;
   border-radius: 12rpx;
-  font-size: 32rpx;
+  font-size: 28rpx;
   color: #333;
   box-sizing: border-box;
   transition: border-color 0.3s;
   min-height: 60rpx;
-  line-height: 1.5;
+  line-height: 1.8;
+  display: flex;
+  align-items: center;
+  height: 60rpx;
 }
 
 .modal-input:focus {
