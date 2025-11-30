@@ -843,7 +843,7 @@ Page({
       const token = app.globalData.token;
 
       // 调用更新用户信息API
-      const response = await userService.updateProfile({
+      const response = await userService.updateUserProfile({
         avatar: editForm.avatar,
         nickname: editForm.nickname
       });
