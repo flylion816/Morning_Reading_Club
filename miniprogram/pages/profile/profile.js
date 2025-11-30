@@ -274,9 +274,10 @@ Page({
       console.log('===== 今日任务获取完成，最终结果: =====', todaySection);
 
       // 加载最近的小凡看见记录（最多3条）
+      // 重要：传递 currentPeriod 作为参数，避免从 this.data 读取（可能还未更新）
       let recentInsights = [];
       try {
-        recentInsights = await this.loadRecentInsights();
+        recentInsights = await this.loadRecentInsights(currentPeriod);
       } catch (error) {
         console.error('加载小凡看见失败:', error);
       }
@@ -312,13 +313,17 @@ Page({
    * 加载最近的小凡看见记录
    * 只加载当前期次的小凡看见记录
    */
-  async loadRecentInsights() {
+  async loadRecentInsights(currentPeriod) {
     try {
       const insightService = require('../../services/insight.service');
-      const { currentPeriod } = this.data;
+
+      // 如果参数中没有传入 currentPeriod，尝试从 this.data 读取（后续可能被调用时）
+      if (!currentPeriod) {
+        currentPeriod = this.data.currentPeriod;
+      }
 
       if (!currentPeriod) {
-        console.warn('当前期次未加载，无法过滤小凡看见');
+        console.warn('❌ 当前期次未加载，无法过滤小凡看见');
         return [];
       }
 
