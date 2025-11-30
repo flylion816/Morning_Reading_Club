@@ -29,7 +29,16 @@ Page({
     insightRequests: [],
 
     // 加载状态
-    loading: true
+    loading: true,
+
+    // 编辑个人信息相关
+    showEditProfile: false,
+    isSavingProfile: false,
+    avatarOptions: ['🦁', '🐯', '🐻', '🐼', '🐨', '🦊', '🦝', '🐶', '🐱', '🦌', '🦅', '⭐'],
+    editForm: {
+      avatar: '🦁',
+      nickname: ''
+    }
   },
 
   onLoad(options) {
@@ -759,5 +768,122 @@ Page({
       query: '',
       imageUrl: '/assets/images/share-default.png'
     };
+  },
+
+  /**
+   * 打开编辑个人信息模态框
+   */
+  openEditProfile() {
+    const { userInfo } = this.data;
+    if (!userInfo) return;
+
+    this.setData({
+      showEditProfile: true,
+      editForm: {
+        avatar: userInfo.avatar || '🦁',
+        nickname: userInfo.nickname || userInfo.name || ''
+      }
+    });
+  },
+
+  /**
+   * 关闭编辑个人信息模态框
+   */
+  closeEditProfile() {
+    this.setData({
+      showEditProfile: false
+    });
+  },
+
+  /**
+   * 防止事件冒泡
+   */
+  stopPropagation() {
+    return false;
+  },
+
+  /**
+   * 选择头像
+   */
+  selectAvatar(e) {
+    const { avatar } = e.currentTarget.dataset;
+    this.setData({
+      'editForm.avatar': avatar
+    });
+  },
+
+  /**
+   * 昵称输入事件
+   */
+  onNicknameInput(e) {
+    const { value } = e.detail;
+    this.setData({
+      'editForm.nickname': value
+    });
+  },
+
+  /**
+   * 保存用户个人信息
+   */
+  async saveUserProfile() {
+    const { editForm, userInfo } = this.data;
+
+    if (!editForm.nickname.trim()) {
+      wx.showToast({
+        title: '请输入昵称',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({ isSavingProfile: true });
+
+    try {
+      const app = getApp();
+      const token = app.globalData.token;
+
+      // 调用更新用户信息API
+      const response = await userService.updateProfile({
+        avatar: editForm.avatar,
+        nickname: editForm.nickname
+      });
+
+      if (response.code === 0 || response.success) {
+        // 更新本地用户信息
+        const updatedUserInfo = {
+          ...userInfo,
+          avatar: editForm.avatar,
+          nickname: editForm.nickname
+        };
+
+        this.setData({ userInfo: updatedUserInfo });
+
+        // 更新全局应用数据
+        app.globalData.userInfo = updatedUserInfo;
+
+        // 保存到本地存储
+        wx.setStorageSync('user_info', updatedUserInfo);
+
+        wx.showToast({
+          title: '保存成功',
+          icon: 'success'
+        });
+
+        this.setData({ showEditProfile: false });
+      } else {
+        wx.showToast({
+          title: response.message || '保存失败，请重试',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      console.error('保存用户信息失败:', error);
+      wx.showToast({
+        title: '保存失败，请重试',
+        icon: 'none'
+      });
+    } finally {
+      this.setData({ isSavingProfile: false });
+    }
   }
 });

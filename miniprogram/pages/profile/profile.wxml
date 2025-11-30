@@ -41,9 +41,10 @@
   <view class="user-content" wx:else>
     <!-- 顶部横幅 -->
     <view class="home-banner">
-      <view class="user-avatar-container">
+      <view class="user-avatar-container" bindtap="openEditProfile">
         <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
         <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+        <view class="avatar-edit-badge">✏️</view>
       </view>
       <view class="banner-content">
         <view class="user-info-display">
@@ -165,6 +166,49 @@
     <view class="create-checkin-btn" bindtap="handleCreateCheckin">
       <text class="btn-icon">+</text>
       <text class="btn-text">创建打卡</text>
+    </view>
+  </view>
+
+  <!-- 编辑个人信息模态框 -->
+  <view class="edit-profile-modal" wx:if="{{showEditProfile}}" catchtap="closeEditProfile">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">编辑个人信息</text>
+        <text class="modal-close" bindtap="closeEditProfile">×</text>
+      </view>
+
+      <!-- 头像选择 -->
+      <view class="modal-section">
+        <text class="section-label">选择头像</text>
+        <view class="avatar-options">
+          <view wx:for="{{avatarOptions}}" wx:key="index" class="avatar-option {{editForm.avatar === item ? 'selected' : ''}}" bindtap="selectAvatar" data-avatar="{{item}}">
+            <text class="avatar-option-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 昵称输入 -->
+      <view class="modal-section">
+        <text class="section-label">昵称</text>
+        <input
+          class="modal-input"
+          type="text"
+          placeholder="请输入你的昵称"
+          placeholder-class="input-placeholder"
+          value="{{editForm.nickname}}"
+          bindinput="onNicknameInput"
+          maxlength="20"
+        />
+        <text class="input-count">{{editForm.nickname.length}}/20</text>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="modal-actions">
+        <view class="btn btn-cancel" bindtap="closeEditProfile">取消</view>
+        <view class="btn btn-submit {{isSavingProfile ? 'loading' : ''}}" bindtap="saveUserProfile">
+          {{isSavingProfile ? '保存中...' : '保存'}}
+        </view>
+      </view>
     </view>
   </view>
 

@@ -154,7 +154,7 @@
 
 /* 顶部横幅 */
 .home-banner {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
   padding: 40rpx 32rpx;
   position: relative;
   display: flex;
@@ -175,6 +175,28 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.user-avatar-container:active {
+  transform: scale(0.98);
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 48rpx;
+  height: 48rpx;
+  background: #7c5ac2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  border: 3rpx solid white;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar-img {
@@ -217,6 +239,9 @@
   color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
   text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .banner-bubble {
@@ -330,21 +355,21 @@
 .progress-bar-wrapper {
   flex: 1;
   height: 8rpx;
-  background: rgba(74, 144, 226, 0.2);
+  background: rgba(124, 90, 194, 0.2);
   border-radius: 4rpx;
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
   border-radius: 4rpx;
   transition: width 0.3s;
 }
 
 .progress-status {
   font-size: 22rpx;
-  color: #4a90e2;
+  color: #7c5ac2;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -414,10 +439,10 @@
 }
 
 .insight-item {
-  background: #f5f8ff;
+  background: #faf8ff;
   border-radius: 12rpx;
   padding: 20rpx;
-  border-left: 6rpx solid #4a90e2;
+  border-left: 6rpx solid #7c5ac2;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
@@ -452,7 +477,7 @@
 
 .insight-day {
   font-size: 24rpx;
-  color: #4a90e2;
+  color: #7c5ac2;
   font-weight: bold;
   white-space: nowrap;
 }
@@ -466,7 +491,7 @@
 .insight-title {
   font-size: 26rpx;
   font-weight: bold;
-  color: #4a90e2;
+  color: #7c5ac2;
   line-height: 1.4;
 }
 
@@ -499,13 +524,13 @@
 
 .more-text {
   font-size: 26rpx;
-  color: #4a90e2;
+  color: #7c5ac2;
   font-weight: 500;
 }
 
 .more-arrow {
   font-size: 24rpx;
-  color: #4a90e2;
+  color: #7c5ac2;
 }
 
 /* 请求列表 */
@@ -583,13 +608,13 @@
 }
 
 .approve-btn {
-  background: #4a90e2;
+  background: #7c5ac2;
   color: white;
 }
 
 .approve-btn:active {
   transform: scale(0.95);
-  background: #357abd;
+  background: #5d42a1;
 }
 
 .reject-btn {
@@ -614,20 +639,20 @@
   position: fixed;
   right: 32rpx;
   bottom: 80rpx;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
   border-radius: 48rpx;
   padding: 20rpx 36rpx;
   display: flex;
   align-items: center;
   gap: 8rpx;
-  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.4);
+  box-shadow: 0 8rpx 24rpx rgba(124, 90, 194, 0.4);
   z-index: 100;
   transition: all 0.3s;
 }
 
 .create-checkin-btn:active {
   transform: scale(0.98);
-  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.4);
+  box-shadow: 0 4rpx 12rpx rgba(124, 90, 194, 0.4);
 }
 
 .btn-icon {
@@ -660,8 +685,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid rgba(74, 144, 226, 0.2);
-  border-top-color: #4a90e2;
+  border: 4rpx solid rgba(124, 90, 194, 0.2);
+  border-top-color: #7c5ac2;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -701,5 +726,177 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+/* 编辑个人信息模态框 */
+.edit-profile-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 999;
+  animation: slideUp 0.3s ease;
+}
+
+.modal-content {
+  width: 100%;
+  background: white;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 40rpx 32rpx 60rpx 32rpx;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.modal-close:active {
+  color: #666;
+}
+
+.modal-section {
+  margin-bottom: 32rpx;
+}
+
+.section-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+/* 头像选择 */
+.avatar-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+}
+
+.avatar-option {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 3rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.avatar-option:active {
+  transform: scale(0.95);
+}
+
+.avatar-option.selected {
+  border-color: #7c5ac2;
+  background: #faf8ff;
+  box-shadow: 0 0 12rpx rgba(124, 90, 194, 0.3);
+}
+
+.avatar-option-text {
+  font-size: 48rpx;
+}
+
+/* 昵称输入 */
+.modal-input {
+  width: 100%;
+  padding: 16rpx 20rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+  transition: border-color 0.3s;
+}
+
+.modal-input:focus {
+  border-color: #7c5ac2;
+}
+
+.input-placeholder {
+  color: #ccc;
+}
+
+.input-count {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+/* 操作按钮 */
+.modal-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 40rpx;
+}
+
+.btn {
+  flex: 1;
+  padding: 20rpx 24rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-cancel:active {
+  background: #e0e0e0;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #7c5ac2 0%, #5d42a1 100%);
+  color: white;
+}
+
+.btn-submit:active:not(.loading) {
+  transform: scale(0.98);
+}
+
+.btn-submit.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
   }
 }
