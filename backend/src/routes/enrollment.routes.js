@@ -36,6 +36,9 @@ router.delete('/:id', authMiddleware, adminMiddleware, deleteEnrollment);
 
 // ===== 用户路由 =====
 
+// 默认报名路由 - POST /api/v1/enrollments（小程序调用）
+router.post('/', authMiddleware, submitEnrollmentForm);
+
 // 提交报名表单（包含完整信息）
 router.post('/submit', authMiddleware, submitEnrollmentForm);
 
