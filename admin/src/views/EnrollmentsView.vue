@@ -70,12 +70,17 @@
           ref="tableRef"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column label="用户ID" width="200">
+          <el-table-column label="ID" width="120">
             <template #default="{ row }">
-              <el-text copyable>{{ row.userId }}</el-text>
+              <el-text copyable>{{ formatUserId(row.userId) }}</el-text>
             </template>
           </el-table-column>
-          <el-table-column prop="name" label="姓名" width="100" />
+          <el-table-column label="昵称" width="100">
+            <template #default="{ row }">
+              {{ typeof row.userId === 'object' ? row.userId.nickname : '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="报名名称" width="100" />
           <el-table-column prop="province" label="省份" width="100" />
           <el-table-column prop="age" label="年龄" width="80" />
           <el-table-column label="期次" width="120">
@@ -138,10 +143,13 @@
         @close="resetForm"
       >
         <el-form v-if="currentEnrollment" label-width="100px">
-          <el-form-item label="用户ID">
-            <el-text copyable>{{ currentEnrollment.userId }}</el-text>
+          <el-form-item label="ID">
+            <el-text copyable>{{ formatUserId(currentEnrollment.userId) }}</el-text>
           </el-form-item>
-          <el-form-item label="姓名">
+          <el-form-item label="昵称">
+            <el-text>{{ typeof currentEnrollment.userId === 'object' ? currentEnrollment.userId.nickname : '-' }}</el-text>
+          </el-form-item>
+          <el-form-item label="报名名称">
             <el-text>{{ currentEnrollment.name }}</el-text>
           </el-form-item>
           <el-form-item label="性别">
@@ -344,6 +352,16 @@ function formatGender(gender: string): string {
     prefer_not_to_say: '保密'
   }
   return genderMap[gender] || gender
+}
+
+function formatUserId(userId: any): string {
+  if (typeof userId === 'object' && userId?._id) {
+    return userId._id.substring(0, 8)
+  }
+  if (typeof userId === 'string') {
+    return userId.substring(0, 8)
+  }
+  return '-'
 }
 </script>
 
