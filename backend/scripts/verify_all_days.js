@@ -21,14 +21,14 @@ async function verifyCourses() {
 
     console.log(`期次: ${period.name} (ID: ${period._id})`);
     console.log('========================================');
-    console.log('Day 1-21 课程统计');
+    console.log('Day 0-22 课程统计');
     console.log('========================================\n');
 
     let totalCharacters = 0;
     let totalParagraphs = 0;
     let successCount = 0;
 
-    for (let day = 1; day <= 21; day++) {
+    for (let day = 0; day <= 22; day++) {
       const section = await Section.findOne({
         periodId: period._id,
         day: day
@@ -57,10 +57,10 @@ async function verifyCourses() {
     console.log(`成功导入: ${successCount}/21 天`);
     console.log(`总字数: ${totalCharacters.toLocaleString('en')} 字`);
     console.log(`总段落: ${totalParagraphs} 段`);
-    console.log(`平均每天: ${(totalCharacters / 21).toFixed(0)} 字, ${(totalParagraphs / 21).toFixed(1)} 段\n`);
+    console.log(`平均每天: ${(totalCharacters / 23).toFixed(0)} 字, ${(totalParagraphs / 23).toFixed(1)} 段\n`);
 
-    if (successCount === 21) {
-      console.log('🎉 所有21天课程已成功导入数据库！');
+    if (successCount === 23) {
+      console.log('🎉 所有23天课程已成功导入数据库！');
     }
 
     await mongoose.disconnect();

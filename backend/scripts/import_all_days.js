@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * 批量导入 Day 1-21 课程内容到 MongoDB
+ * 批量导入 Day 0-22 课程内容到 MongoDB
  * 使用 upsert 模式，按 periodId + day 索引确保不重复
  */
 
@@ -18,7 +18,7 @@ const SCRIPTS_DIR = '/Users/pica_1/我的坚果云/flylion/AI项目开发/七个
 async function importAllDays() {
   try {
     console.log('========================================');
-    console.log('   批量导入 Day 1-21 课程内容');
+    console.log('   批量导入 Day 0-22 课程内容');
     console.log('========================================\n');
 
     console.log('正在连接数据库...');
@@ -44,8 +44,8 @@ async function importAllDays() {
     let successCount = 0;
     let failCount = 0;
 
-    // 导入 Day 1-21
-    for (let day = 1; day <= 21; day++) {
+    // 导入 Day 0-22
+    for (let day = 0; day <= 22; day++) {
       const filename = `day${day}-content.json`;
       const filepath = path.join(SCRIPTS_DIR, filename);
 
@@ -97,12 +97,12 @@ async function importAllDays() {
     console.log(`❌ 失败: ${failCount}/21`);
     console.log('========================================\n');
 
-    if (successCount === 21) {
+    if (successCount === 23) {
       console.log('🎉 所有课程导入成功！');
     }
 
     await mongoose.disconnect();
-    process.exit(successCount === 21 ? 0 : 1);
+    process.exit(successCount === 23 ? 0 : 1);
   } catch (error) {
     console.error('❌ 导入失败:', error.message);
     await mongoose.disconnect();
