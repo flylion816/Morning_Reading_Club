@@ -181,5 +181,75 @@ const superAdmin = new Admin({
 
 ---
 
-**来源：管理后台登录问题 (2025-12-01)**
+## 问题33：路由缺少根路径处理导致小程序API请求404 (2025-12-01)
+
+**问题现象**：小程序调用 `POST /api/v1/enrollments` 时返回 404 错误，导致报名失败
+
+**根本原因**：后端路由定义只有 `/submit` 和 `/simple` 子路由，缺少根路径的 POST 处理
+
+**前端调用代码**：`miniprogram/services/enrollment.service.js`
+```javascript
+// 第115行
+submitEnrollment(data) {
+  return request.post('/enrollments', data);  // POST /api/v1/enrollments
+}
+
+// 第15行
+enrollPeriod(periodId) {
+  return request.request({
+    url: `/enrollments/`,  // 也会走到根路由
+    method: 'POST',
+    data: { periodId }
+  });
+}
+```
+
+**后端路由定义**：`backend/src/routes/enrollment.routes.js`
+```javascript
+// ❌ 缺少这个路由，导致 POST / 返回404
+router.post('/', authMiddleware, submitEnrollmentForm);
+
+// ✅ 只有这些子路由
+router.post('/submit', authMiddleware, submitEnrollmentForm);
+router.post('/simple', authMiddleware, enrollPeriod);
+```
+
+**解决方案**：在路由文件中添加根路径的 POST 处理
+
+```javascript
+// 在用户路由部分最前面添加
+router.post('/', authMiddleware, submitEnrollmentForm);  // 处理 POST /
+```
+
+**修复内容**：
+- 在 `enrollment.routes.js` 第40行添加了 `router.post('/')`
+- 使用 `submitEnrollmentForm` 控制器处理小程序的报名请求
+- 现在 `POST /api/v1/enrollments` 可以正常工作
+
+**相关提交**：d358a75
+
+**经验教训**：
+- ⚠️ **前后端接口定义必须一致**：小程序调用什么端点，后端就必须定义什么端点
+- ⚠️ **根路由容易被遗漏**：特别是有多个子路由时，容易忘记处理根路径
+- ⚠️ **末尾斜杠会被规范化**：`/enrollments/` 和 `/enrollments` 通常被当作同一个路由
+- ✅ 后端路由应该优先考虑小程序等移动客户端的调用习惯
+- ✅ 根路由应该放在子路由之前定义，避免被覆盖
+- ✅ 为根路径提供一个默认的处理方式
+
+**最佳实践**：
+
+```javascript
+// ✅ 推荐的路由组织方式
+router.post('/', authMiddleware, defaultHandler);        // 根路由
+router.post('/submit', authMiddleware, submitHandler);   // 子路由
+router.post('/simple', authMiddleware, simpleHandler);   // 子路由
+
+// 确保 GET 和 DELETE 等其他方法也有根路由处理
+router.get('/', authMiddleware, listHandler);
+router.delete('/:id', authMiddleware, deleteHandler);
+```
+
+---
+
+**来源：小程序注册页面404错误 (2025-12-01)**
 **最后更新：2025-12-01**
