@@ -278,7 +278,7 @@ exports.initSuperAdmin = async (req, res) => {
     const superAdmin = new Admin({
       name: 'SuperAdmin',
       email: 'admin@morningreading.com',
-      password: 'password123',
+      password: 'admin123456',
       role: 'superadmin',
       status: 'active'
     })
