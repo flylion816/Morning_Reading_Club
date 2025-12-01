@@ -12,17 +12,6 @@
             @keyup.enter="handleSearch"
           />
           <el-select
-            v-model="filters.approvalStatus"
-            placeholder="审批状态"
-            clearable
-            style="width: 140px; margin-left: 10px"
-            @change="handleSearch"
-          >
-            <el-option label="待审批" value="pending" />
-            <el-option label="已批准" value="approved" />
-            <el-option label="已拒绝" value="rejected" />
-          </el-select>
-          <el-select
             v-model="filters.paymentStatus"
             placeholder="支付状态"
             clearable
@@ -42,22 +31,6 @@
         <div v-if="selectedEnrollments.length > 0" class="batch-operation-bar">
           <span class="selected-count">已选中 {{ selectedEnrollments.length }} 条记录</span>
           <div class="batch-actions">
-            <el-button
-              type="success"
-              size="small"
-              @click="batchApprove"
-              :disabled="!hasSelectedPending"
-            >
-              ✅ 批量批准
-            </el-button>
-            <el-button
-              type="warning"
-              size="small"
-              @click="batchReject"
-              :disabled="!hasSelectedPending"
-            >
-              ❌ 批量拒绝
-            </el-button>
             <el-button
               type="danger"
               size="small"
@@ -84,7 +57,6 @@
             <span style="font-weight: 600">报名管理</span>
             <div>
               <el-tag>总数: {{ pagination.total }}</el-tag>
-              <el-tag type="warning" style="margin-left: 10px">待审批: {{ pendingCount }}</el-tag>
             </div>
           </div>
         </template>
@@ -106,13 +78,6 @@
               {{ row.periodId?.name || '未知' }}
             </template>
           </el-table-column>
-          <el-table-column label="审批状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getApprovalType(row.approvalStatus)">
-                {{ formatApprovalStatus(row.approvalStatus) }}
-              </el-tag>
-            </template>
-          </el-table-column>
           <el-table-column label="支付状态" width="100">
             <template #default="{ row }">
               <el-tag :type="getPaymentType(row.paymentStatus)">
@@ -125,26 +90,8 @@
               {{ formatDate(row.enrolledAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="280" fixed="right">
+          <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <el-button
-                v-if="row.approvalStatus === 'pending'"
-                type="success"
-                text
-                size="small"
-                @click="showApproveDialog(row)"
-              >
-                批准
-              </el-button>
-              <el-button
-                v-if="row.approvalStatus === 'pending'"
-                type="danger"
-                text
-                size="small"
-                @click="showRejectDialog(row)"
-              >
-                拒绝
-              </el-button>
               <el-button
                 type="primary"
                 text
@@ -177,68 +124,6 @@
           />
         </div>
       </el-card>
-
-      <!-- 批准对话框 -->
-      <el-dialog
-        v-model="dialogs.approveVisible"
-        title="批准报名"
-        width="500px"
-        @close="resetForm"
-      >
-        <el-form v-if="currentEnrollment">
-          <el-form-item label="报名人">
-            <el-text>{{ currentEnrollment?.name }}</el-text>
-          </el-form-item>
-          <el-form-item label="期次">
-            <el-text>{{ currentEnrollment?.periodId?.name }}</el-text>
-          </el-form-item>
-          <el-form-item label="备注">
-            <el-input
-              v-model="currentForm.notes"
-              type="textarea"
-              rows="3"
-              placeholder="输入审批备注（可选）"
-            />
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <el-button @click="dialogs.approveVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleApprove" :loading="approveLoading">
-            确认批准
-          </el-button>
-        </template>
-      </el-dialog>
-
-      <!-- 拒绝对话框 -->
-      <el-dialog
-        v-model="dialogs.rejectVisible"
-        title="拒绝报名"
-        width="500px"
-        @close="resetForm"
-      >
-        <el-form v-if="currentEnrollment">
-          <el-form-item label="报名人">
-            <el-text>{{ currentEnrollment?.name }}</el-text>
-          </el-form-item>
-          <el-form-item label="期次">
-            <el-text>{{ currentEnrollment?.periodId?.name }}</el-text>
-          </el-form-item>
-          <el-form-item label="拒绝原因">
-            <el-input
-              v-model="currentForm.notes"
-              type="textarea"
-              rows="3"
-              placeholder="输入拒绝原因"
-            />
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <el-button @click="dialogs.rejectVisible = false">取消</el-button>
-          <el-button type="danger" @click="handleReject" :loading="rejectLoading">
-            确认拒绝
-          </el-button>
-        </template>
-      </el-dialog>
 
       <!-- 详情对话框 -->
       <el-dialog
@@ -285,12 +170,9 @@ import { enrollmentApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
-const approveLoading = ref(false)
-const rejectLoading = ref(false)
 
 const filters = ref({
   search: '',
-  approvalStatus: '',
   paymentStatus: ''
 })
 
@@ -309,17 +191,7 @@ const selectedEnrollments = ref<any[]>([])
 const tableRef = ref()
 
 const dialogs = ref({
-  approveVisible: false,
-  rejectVisible: false,
   detailVisible: false
-})
-
-const pendingCount = computed(() => {
-  return enrollments.value.filter(e => e.approvalStatus === 'pending').length
-})
-
-const hasSelectedPending = computed(() => {
-  return selectedEnrollments.value.some(e => e.approvalStatus === 'pending')
 })
 
 onMounted(() => {
@@ -332,7 +204,6 @@ async function loadEnrollments() {
     const params = {
       page: pagination.value.page,
       limit: pagination.value.limit,
-      approvalStatus: filters.value.approvalStatus,
       paymentStatus: filters.value.paymentStatus
     }
 
@@ -352,63 +223,9 @@ function handleSearch() {
   loadEnrollments()
 }
 
-function showApproveDialog(enrollment: any) {
-  currentEnrollment.value = enrollment
-  currentForm.value.notes = ''
-  dialogs.value.approveVisible = true
-}
-
-function showRejectDialog(enrollment: any) {
-  currentEnrollment.value = enrollment
-  currentForm.value.notes = ''
-  dialogs.value.rejectVisible = true
-}
-
 function showDetailDialog(enrollment: any) {
   currentEnrollment.value = enrollment
   dialogs.value.detailVisible = true
-}
-
-async function handleApprove() {
-  if (!currentEnrollment.value) return
-
-  approveLoading.value = true
-  try {
-    await enrollmentApi.approveEnrollment(currentEnrollment.value._id, {
-      notes: currentForm.value.notes
-    })
-    ElMessage.success('批准成功')
-    dialogs.value.approveVisible = false
-    loadEnrollments()
-  } catch (err) {
-    ElMessage.error('批准失败')
-    console.error(err)
-  } finally {
-    approveLoading.value = false
-  }
-}
-
-async function handleReject() {
-  if (!currentEnrollment.value) return
-  if (!currentForm.value.notes) {
-    ElMessage.error('请输入拒绝原因')
-    return
-  }
-
-  rejectLoading.value = true
-  try {
-    await enrollmentApi.rejectEnrollment(currentEnrollment.value._id, {
-      notes: currentForm.value.notes
-    })
-    ElMessage.success('拒绝成功')
-    dialogs.value.rejectVisible = false
-    loadEnrollments()
-  } catch (err) {
-    ElMessage.error('拒绝失败')
-    console.error(err)
-  } finally {
-    rejectLoading.value = false
-  }
 }
 
 async function handleDelete(enrollment: any) {
@@ -441,82 +258,6 @@ function handleSelectionChange(selection: any[]) {
 function clearSelection() {
   selectedEnrollments.value = []
   tableRef.value?.clearSelection()
-}
-
-async function batchApprove() {
-  if (selectedEnrollments.value.length === 0) {
-    ElMessage.warning('请先选择要批准的报名')
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确定要批准选中的 ${selectedEnrollments.value.length} 条报名吗？`,
-      '批量批准',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    loading.value = true
-    const ids = selectedEnrollments.value.map((e: any) => e._id)
-
-    // 并行发送所有请求
-    const promises = ids.map((id: string) =>
-      enrollmentApi.updateEnrollment(id, { approvalStatus: 'approved' })
-    )
-    await Promise.all(promises)
-
-    ElMessage.success(`成功批准 ${ids.length} 条报名`)
-    clearSelection()
-    loadEnrollments()
-  } catch (err) {
-    if (err !== 'cancel') {
-      ElMessage.error('批量批准失败')
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
-async function batchReject() {
-  if (selectedEnrollments.value.length === 0) {
-    ElMessage.warning('请先选择要拒绝的报名')
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确定要拒绝选中的 ${selectedEnrollments.value.length} 条报名吗？`,
-      '批量拒绝',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    loading.value = true
-    const ids = selectedEnrollments.value.map((e: any) => e._id)
-
-    // 并行发送所有请求
-    const promises = ids.map((id: string) =>
-      enrollmentApi.updateEnrollment(id, { approvalStatus: 'rejected' })
-    )
-    await Promise.all(promises)
-
-    ElMessage.success(`成功拒绝 ${ids.length} 条报名`)
-    clearSelection()
-    loadEnrollments()
-  } catch (err) {
-    if (err !== 'cancel') {
-      ElMessage.error('批量拒绝失败')
-    }
-  } finally {
-    loading.value = false
-  }
 }
 
 async function batchDelete() {
@@ -560,24 +301,6 @@ async function batchDelete() {
 function resetForm() {
   currentEnrollment.value = null
   currentForm.value = { notes: '' }
-}
-
-function formatApprovalStatus(status: string): string {
-  const statusMap: Record<string, string> = {
-    pending: '待审批',
-    approved: '已批准',
-    rejected: '已拒绝'
-  }
-  return statusMap[status] || status
-}
-
-function getApprovalType(status: string): string {
-  const typeMap: Record<string, string> = {
-    pending: 'warning',
-    approved: 'success',
-    rejected: 'danger'
-  }
-  return typeMap[status] || 'info'
 }
 
 function formatPaymentStatus(status: string): string {

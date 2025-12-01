@@ -95,8 +95,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       expectation,
       commitment,
       paymentStatus: 'pending',  // 报名后需要支付
-      status: 'active',
-      approvalStatus: 'pending'  // 待审批
+      status: 'active'  // 直接生效
     });
 
     // 填充用户和期次信息
@@ -108,7 +107,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       $inc: { checkinCount: 1 }
     });
 
-    res.json(success(enrollment, '报名成功，请等待审批'));
+    res.json(success(enrollment, '报名成功'));
   } catch (error) {
     console.error('报名失败:', error);
     res.status(500).json(errors.serverError('报名失败: ' + error.message));
@@ -428,76 +427,6 @@ exports.getEnrollments = async (req, res) => {
   } catch (error) {
     console.error('获取报名列表失败:', error);
     res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
-  }
-};
-
-/**
- * 批准报名（管理员）
- * POST /api/v1/enrollments/:id/approve
- */
-exports.approveEnrollment = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const adminId = req.user.userId;
-    const { notes } = req.body;
-
-    const enrollment = await Enrollment.findById(id);
-    if (!enrollment) {
-      return res.status(404).json(errors.notFound('报名记录不存在'));
-    }
-
-    if (enrollment.approvalStatus !== 'pending') {
-      return res.status(400).json(errors.badRequest('该报名已审批过'));
-    }
-
-    enrollment.approvalStatus = 'approved';
-    enrollment.approvedBy = adminId;
-    enrollment.approvedAt = new Date();
-    enrollment.approvalNotes = notes;
-    await enrollment.save();
-
-    await enrollment.populate('userId', 'nickname avatar');
-    await enrollment.populate('periodId', 'name');
-
-    res.json(success(enrollment, '报名已批准'));
-  } catch (error) {
-    console.error('批准报名失败:', error);
-    res.status(500).json(errors.serverError('批准报名失败: ' + error.message));
-  }
-};
-
-/**
- * 拒绝报名（管理员）
- * POST /api/v1/enrollments/:id/reject
- */
-exports.rejectEnrollment = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const adminId = req.user.userId;
-    const { notes } = req.body;
-
-    const enrollment = await Enrollment.findById(id);
-    if (!enrollment) {
-      return res.status(404).json(errors.notFound('报名记录不存在'));
-    }
-
-    if (enrollment.approvalStatus !== 'pending') {
-      return res.status(400).json(errors.badRequest('该报名已审批过'));
-    }
-
-    enrollment.approvalStatus = 'rejected';
-    enrollment.approvedBy = adminId;
-    enrollment.approvedAt = new Date();
-    enrollment.approvalNotes = notes;
-    await enrollment.save();
-
-    await enrollment.populate('userId', 'nickname avatar');
-    await enrollment.populate('periodId', 'name');
-
-    res.json(success(enrollment, '报名已拒绝'));
-  } catch (error) {
-    console.error('拒绝报名失败:', error);
-    res.status(500).json(errors.serverError('拒绝报名失败: ' + error.message));
   }
 };
 

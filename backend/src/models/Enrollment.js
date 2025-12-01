@@ -136,32 +136,6 @@ const EnrollmentSchema = new mongoose.Schema({
     enum: ['yes', 'no']
   },
 
-  // 报名审批状态
-  approvalStatus: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending',
-    comment: 'pending: 待审批, approved: 已批准, rejected: 已拒绝'
-  },
-
-  // 审批备注
-  approvalNotes: {
-    type: String,
-    maxlength: 500,
-    trim: true
-  },
-
-  // 审批人
-  approvedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin'
-  },
-
-  // 审批时间
-  approvedAt: {
-    type: Date
-  },
-
   // 备注
   notes: {
     type: String,
@@ -184,9 +158,8 @@ const EnrollmentSchema = new mongoose.Schema({
 EnrollmentSchema.index({ userId: 1, periodId: 1 }, { unique: true });
 
 // 性能优化索引
-EnrollmentSchema.index({ approvalStatus: 1, createdAt: -1 }); // 审批状态查询
 EnrollmentSchema.index({ paymentStatus: 1, createdAt: -1 });  // 支付状态查询
-EnrollmentSchema.index({ periodId: 1, approvalStatus: 1 });   // 期次的报名审批查询
+EnrollmentSchema.index({ status: 1, createdAt: -1 });         // 报名状态查询
 EnrollmentSchema.index({ createdAt: -1 });                      // 按创建时间排序
 EnrollmentSchema.index({ enrolledAt: -1 });                     // 按报名时间排序
 

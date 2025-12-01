@@ -9,8 +9,6 @@ const {
   withdrawEnrollment,
   completeEnrollment,
   getEnrollments,
-  approveEnrollment,
-  rejectEnrollment,
   updateEnrollment,
   deleteEnrollment,
   debugCleanupEnrollments
@@ -21,12 +19,6 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 // 获取报名列表（管理员）
 router.get('/', authMiddleware, adminMiddleware, getEnrollments);
-
-// 批准报名（管理员）
-router.post('/:id/approve', authMiddleware, adminMiddleware, approveEnrollment);
-
-// 拒绝报名（管理员）
-router.post('/:id/reject', authMiddleware, adminMiddleware, rejectEnrollment);
 
 // 更新报名记录（管理员）
 router.put('/:id', authMiddleware, adminMiddleware, updateEnrollment);
