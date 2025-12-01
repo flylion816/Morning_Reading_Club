@@ -86,7 +86,7 @@
 
         <div class="login-tips">
           <p><span class="tip-label">演示账号：</span><code>admin@morningreading.com</code></p>
-          <p><span class="tip-label">演示密码：</span><code>password123</code></p>
+          <p><span class="tip-label">演示密码：</span><code>admin123456</code></p>
         </div>
       </div>
 
