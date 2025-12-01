@@ -107,5 +107,79 @@ if (req.user) {
 
 ---
 
-**来源：BUG_FIXES.md 问题31**
-**最后更新：2025-11-30**
+## 问题32：管理后台初始化密码不一致 (2025-12-01)
+
+**问题现象**：管理后台登录页面提示使用邮箱 `admin@morningreading.com` 和密码 `admin123456`，但登录时返回"邮箱或密码错误"
+
+**根本原因**：初始化超级管理员时使用的密码与文档/页面提示不一致
+- 页面提示：`admin123456`
+- 初始化代码：`password123`
+- 两个密码不匹配导致登录失败
+
+**发生位置**：`backend/src/controllers/admin.controller.js` 第281行
+
+**解决方案**：更新初始化代码中的密码
+
+```javascript
+// ❌ 错误
+const superAdmin = new Admin({
+  name: 'SuperAdmin',
+  email: 'admin@morningreading.com',
+  password: 'password123',  // 与文档不一致
+  role: 'superadmin',
+  status: 'active'
+});
+
+// ✅ 正确
+const superAdmin = new Admin({
+  name: 'SuperAdmin',
+  email: 'admin@morningreading.com',
+  password: 'admin123456',  // 与文档/UI提示一致
+  role: 'superadmin',
+  status: 'active'
+});
+```
+
+**验证步骤**：
+
+```bash
+# 1. 重新初始化管理员（如果已有旧的）
+#    删除数据库中的 admins 集合，或者调用：
+#    POST /api/v1/admin/auth/admin/init
+
+# 2. 使用正确的凭证登录
+curl -X POST http://localhost:3000/api/v1/admin/auth/admin/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@morningreading.com","password":"admin123456"}'
+
+# 3. 应该返回 200 状态码和有效的 token
+```
+
+**相关提交**：be36026
+
+**经验教训**：
+- ⚠️ **初始化数据必须与文档一致**：密码、凭证等敏感信息必须统一
+- ⚠️ 如果更改初始密码，需要同时更新所有文档（CLAUDE.md、快速参考等）
+- ✅ 建议将初始凭证提取为环境变量或常量，而不是硬编码
+- ✅ 测试初始化流程：验证创建的用户可以正确登录
+- ✅ 定期检查文档和代码中的凭证是否一致
+
+**防止再次发生**：
+
+```javascript
+// 更好的做法：从环境变量读取
+const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123456';
+
+const superAdmin = new Admin({
+  name: 'SuperAdmin',
+  email: process.env.ADMIN_EMAIL || 'admin@morningreading.com',
+  password: defaultPassword,
+  role: 'superadmin',
+  status: 'active'
+});
+```
+
+---
+
+**来源：管理后台登录问题 (2025-12-01)**
+**最后更新：2025-12-01**
