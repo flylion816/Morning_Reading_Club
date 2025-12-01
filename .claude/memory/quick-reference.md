@@ -58,6 +58,11 @@
   - 查看详情：[issues/frontend/data-binding.md](./issues/frontend/data-binding.md)
   - 典型问题：问题11-17
 
+- **页面返回后数据未刷新、状态不更新**
+  - 常见原因：onShow() 生命周期未刷新可变状态
+  - 查看详情：[issues/frontend/enrollment-state-refresh.md](./issues/frontend/enrollment-state-refresh.md)
+  - 典型问题：问题34 - 报名状态未刷新
+
 ### 日期和时间问题
 
 - **日期格式不一致、时间偏差、时区问题**
@@ -96,6 +101,7 @@
 | **用户认证** | 登录流程、token处理、权限检查 | [backend/auth-middleware.md](./backend/auth-middleware.md) |
 | **打卡记录** | 数据显示、查询过滤、性能优化 | [architecture/insights-feature.md](./architecture/insights-feature.md) |
 | **小凡看见** | 功能架构、数据流、问题排查 | [architecture/insights-feature.md](./architecture/insights-feature.md) |
+| **期次报名** | 报名检查、状态刷新、生命周期管理 | [issues/frontend/enrollment-state-refresh.md](./issues/frontend/enrollment-state-refresh.md) |
 | **API规范** | 响应格式、错误处理、字段映射 | [architecture/api-response-format.md](./architecture/api-response-format.md) |
 | **数据库** | MongoDB操作、索引、查询优化 | [backend/database.md](./backend/database.md) |
 
