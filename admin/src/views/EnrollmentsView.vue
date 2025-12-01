@@ -70,6 +70,11 @@
           ref="tableRef"
         >
           <el-table-column type="selection" width="50" />
+          <el-table-column label="用户ID" width="200">
+            <template #default="{ row }">
+              <el-text copyable>{{ row.userId }}</el-text>
+            </template>
+          </el-table-column>
           <el-table-column prop="name" label="姓名" width="100" />
           <el-table-column prop="province" label="省份" width="100" />
           <el-table-column prop="age" label="年龄" width="80" />
@@ -133,6 +138,9 @@
         @close="resetForm"
       >
         <el-form v-if="currentEnrollment" label-width="100px">
+          <el-form-item label="用户ID">
+            <el-text copyable>{{ currentEnrollment.userId }}</el-text>
+          </el-form-item>
           <el-form-item label="姓名">
             <el-text>{{ currentEnrollment.name }}</el-text>
           </el-form-item>
