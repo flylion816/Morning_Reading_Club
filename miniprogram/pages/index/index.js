@@ -32,6 +32,10 @@ Page({
   onShow() {
     // 每次显示时检查登录状态
     this.checkLoginStatus();
+    // 重新检查报名状态（用户可能在报名页面新增了报名）
+    if (this.data.isLogin && this.data.periods.length > 0) {
+      this.checkEnrollmentStatus(this.data.periods);
+    }
   },
 
   onPullDownRefresh() {
@@ -92,6 +96,7 @@ Page({
 
       // 如果已登录，检查每个期次的报名状态
       if (this.data.isLogin) {
+        console.log('首页加载期次后，检查报名状态');
         this.checkEnrollmentStatus(periods);
       }
     } catch (error) {
