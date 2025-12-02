@@ -106,10 +106,16 @@
   border-radius: 48rpx;
   padding: 24rpx;
   font-size: 28rpx;
+  transition: all 0.3s;
 }
 
 .btn-back::after {
   border: none;
+}
+
+.btn-back:active {
+  background: #e0e0e0;
+  transform: scale(0.98);
 }
 
 .btn-share {

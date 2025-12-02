@@ -59,7 +59,9 @@ Page({
   },
 
   handleBack() {
-    wx.navigateBack();
+    wx.navigateBack({
+      delta: 1
+    });
   },
 
   /**
