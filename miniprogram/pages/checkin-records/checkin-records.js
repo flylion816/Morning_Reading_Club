@@ -7,6 +7,9 @@ Page({
     // 用户信息
     userInfo: null,
 
+    // 期次ID（从URL参数传入）
+    periodId: null,
+
     // 统计数据
     stats: {
       diaryCount: 0,
@@ -30,7 +33,13 @@ Page({
     loading: true
   },
 
-  onLoad() {
+  onLoad(options) {
+    // 获取URL参数中的periodId
+    const periodId = options?.periodId;
+    if (periodId) {
+      this.setData({ periodId });
+    }
+
     // 获取当前登录用户信息
     const app = getApp();
     if (app.globalData.userInfo) {
@@ -127,12 +136,19 @@ Page({
     this.setData({ loading: true });
 
     try {
-      const res = await checkinService.getUserCheckinsWithStats({
+      const params = {
         page: 1,
         limit: 50,
         year: this.data.currentYear,
         month: this.data.currentMonth
-      });
+      };
+
+      // 如果有periodId，只获取该期次的打卡记录
+      if (this.data.periodId) {
+        params.periodId = this.data.periodId;
+      }
+
+      const res = await checkinService.getUserCheckinsWithStats(params);
 
       // 生成日历数据
       const calendarDays = this.generateCalendarDays(res.calendar);
