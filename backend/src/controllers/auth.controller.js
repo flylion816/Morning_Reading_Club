@@ -14,16 +14,18 @@ async function wechatLogin(req, res, next) {
     let user;
     let isNewUser = false;
 
-    // 开发环境：统一使用"阿泰"用户进行测试，避免每次都创建新用户
+    // 开发环境：统一使用固定ID的测试用户进行测试，避免每次都创建新用户
     if (process.env.NODE_ENV === 'development') {
-      user = await User.findOne({ nickname: '阿泰' });
+      // 使用固定的测试用户ID（用户昵称可能会变，但ID不变）
+      const testUserId = '692c66a77957d0029b23c196';
+      user = await User.findById(testUserId);
 
       if (!user) {
-        console.error('❌ 开发环境错误：测试用户"阿泰"不存在，请先初始化数据库');
+        console.error('❌ 开发环境错误：测试用户不存在，请先初始化数据库');
         return res.status(500).json(errors.serverError('测试用户未初始化'));
       }
 
-      console.log('✅ 开发环境：使用测试用户"阿泰"登录');
+      console.log('✅ 开发环境：使用测试用户', user.nickname, '登录');
     } else {
       // 生产环境：根据code获取openid
       let mockOpenid;
