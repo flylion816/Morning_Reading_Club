@@ -128,7 +128,7 @@
             wx:key="id"
             class="insight-item"
             style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
-            bindtap="handleInsightClick"
+            catchtap="handleInsightClick"
             data-id="{{item.id}}">
             <view class="insight-content-preview">
               <view class="insight-text">{{item.preview}}</view>
@@ -138,7 +138,7 @@
             本期暂无小凡看见记录
           </view>
         </view>
-        <view class="insights-more" bindtap="navigateToInsights">
+        <view class="insights-more" catchtap="navigateToInsights">
           <text class="more-text">查看更多历史</text>
           <text class="more-arrow">→</text>
         </view>
