@@ -48,10 +48,12 @@
       </view>
       <view class="banner-content">
         <view class="user-info-display">
-          <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}<text class="current-period" wx:if="{{currentPeriod}}">({{currentPeriod.name || currentPeriod.title}})</text></text>
+          <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
+          <text class="user-period" wx:if="{{currentPeriod}}">{{currentPeriod.name || currentPeriod.title}}</text>
+          <text class="user-streak">坚持晨读第 {{userStats.currentStreak || 0}} 天</text>
         </view>
         <view class="banner-bubble">
-          <text class="bubble-text">在每一次看见中不住相\n在每一次倾听中生慈悲</text>
+          <text class="bubble-text">"在每一次看见中不住相"\n"在每一次倾听中生慈悲"</text>
         </view>
       </view>
     </view>
@@ -61,27 +63,45 @@
       <!-- 今日任务 -->
       <view class="task-section">
         <view class="section-header">
-          <view class="section-icon">📋</view>
-          <text class="section-header-title">今日任务</text>
+          <view class="section-header-left">
+            <view class="section-icon">📋</view>
+            <text class="section-header-title">今日任务</text>
+          </view>
+          <view class="refresh-timer" wx:if="{{refreshTime}}">
+            <text class="timer-icon">⏱</text>
+            <text class="timer-text">刷新 {{refreshTime}} 小时</text>
+          </view>
         </view>
         <view class="period-card" wx:if="{{todaySection}}" bindtap="handleTodaySectionClick">
           <view class="period-cover" style="background: {{todaySection.coverColor || '#4a90e2'}}">
-            <text class="cover-emoji">{{todaySection.coverEmoji || '🏔️'}}</text>
+            <view class="cover-content">
+              <text class="cover-emoji">{{todaySection.coverEmoji || '📖'}}</text>
+              <text class="cover-day">Day {{todaySection.day || ''}}</text>
+            </view>
           </view>
-          <view class="period-info">
-            <view class="period-title">{{todaySection.title}}</view>
-            <!-- 今日日期范围显示 -->
-            <view class="today-date-range">
-              2025-11-27 00:00:00 - 2025-11-27 23:59:59
+          <view class="period-info-new">
+            <view class="period-title-new">{{todaySection.title}}</view>
+            <view class="period-meta-new">
+              <text class="meta-date">📅 {{todaySection.displayDate || '2025-11-27 全天'}}</text>
             </view>
-            <view class="period-meta" wx:if="{{todaySection.subtitle}}">
-              <text class="meta-subtitle">{{todaySection.subtitleDisplay}}</text>
-            </view>
-            <view class="period-progress">
-              <view class="progress-bar-wrapper">
-                <view class="progress-bar-fill" style="width: {{todaySection.progress || 0}}%"></view>
+            <view class="period-progress-new">
+              <text class="progress-label">今日打卡进度</text>
+              <view class="progress-wrapper">
+                <view class="progress-bar-wrapper">
+                  <view class="progress-bar-fill" style="width: {{todaySection.progress || 0}}%"></view>
+                </view>
+                <text class="progress-percent">{{todaySection.progress || 0}}%</text>
               </view>
-              <text class="progress-status">{{todaySection.checkinCount || 0}}人已打卡</text>
+            </view>
+            <view class="checkin-footer">
+              <text class="checkin-count">
+                <text class="count-icon">👥</text>
+                {{todaySection.checkinCount || 0}}人
+              </text>
+              <button class="checkin-btn" bindtap="handleCreateCheckin">
+                <text>去打卡</text>
+                <text class="btn-arrow">→</text>
+              </button>
             </view>
           </view>
         </view>
