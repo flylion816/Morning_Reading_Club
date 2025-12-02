@@ -54,9 +54,9 @@ router.delete('/:insightId', authMiddleware, deleteInsight);
 /**
  * @route   POST /api/v1/insights/manual/create
  * @desc    创建小凡看见（手动导入）
- * @access  Private
+ * @access  Private (Admin)
  */
-router.post('/manual/create', authMiddleware, createInsightManual);
+router.post('/manual/create', adminAuthMiddleware, createInsightManual);
 
 /**
  * @route   GET /api/v1/insights/period/:periodId

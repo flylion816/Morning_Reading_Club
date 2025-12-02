@@ -215,7 +215,11 @@ async function getInsights(req, res, next) {
 async function createInsightManual(req, res, next) {
   try {
     const { periodId, type, mediaType, content, imageUrl, targetUserId } = req.body;
-    const userId = req.user.userId;
+
+    // ✅ 修复：支持两种认证方式
+    // 1. 来自 authMiddleware 的小程序用户 (req.user.userId)
+    // 2. 来自 adminAuthMiddleware 的管理员用户 (req.admin.id)
+    const userId = req.user?.userId || req.admin?.id;
 
     // 验证必填字段
     if (!periodId || !type || !mediaType || !content) {
