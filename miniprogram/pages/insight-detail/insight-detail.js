@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const { textToHtml } = require('../../utils/text-formatter');
 
 Page({
   data: {
@@ -18,6 +19,11 @@ Page({
       // 添加 dayNumber 字段用于显示
       if (insight && !insight.dayNumber) {
         insight.dayNumber = insight.day || 1;
+      }
+
+      // 将纯文本内容转换为HTML格式以支持rich-text渲染
+      if (insight && insight.content) {
+        insight.content = textToHtml(insight.content);
       }
 
       this.setData({ insight });

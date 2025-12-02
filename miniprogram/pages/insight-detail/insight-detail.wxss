@@ -67,6 +67,21 @@
 .content-text rich-text {
   font-size: 30rpx;
   line-height: 1.8;
+  color: #333;
+}
+
+/* 富文本内的段落样式 */
+.content-text p {
+  margin: 16rpx 0;
+  line-height: 1.8;
+  color: #333;
+}
+
+/* 富文本内的换行符样式 */
+.content-text br {
+  display: block;
+  height: 0;
+  margin: 8rpx 0;
 }
 
 /* 底部按钮 */
