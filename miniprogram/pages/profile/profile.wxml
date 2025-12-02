@@ -104,9 +104,6 @@
             style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
             bindtap="handleInsightClick"
             data-id="{{item.id}}">
-            <view class="insight-header">
-              <view class="insight-day">{{item.day}}</view>
-            </view>
             <view class="insight-content-preview">
               <view class="insight-text">{{item.preview}}</view>
             </view>
