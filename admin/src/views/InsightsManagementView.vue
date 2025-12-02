@@ -391,6 +391,24 @@ function handleEditInsight(insight: any) {
 
 // 保存
 async function saveInsight() {
+  // 验证必填字段
+  if (!editingInsight.value.periodId) {
+    ElMessage.warning('请选择期次')
+    return
+  }
+  if (!editingInsight.value.type) {
+    ElMessage.warning('请选择内容类型')
+    return
+  }
+  if (!editingInsight.value.mediaType) {
+    ElMessage.warning('请选择媒体类型')
+    return
+  }
+  if (!editingInsight.value.content) {
+    ElMessage.warning('请输入内容')
+    return
+  }
+
   // 处理标签
   if (tagInput.value) {
     const newTags = tagInput.value
@@ -398,11 +416,6 @@ async function saveInsight() {
       .map((t) => t.trim())
       .filter((t) => t)
     editingInsight.value.tags = [...new Set([...editingInsight.value.tags, ...newTags])]
-  }
-
-  if (!editingInsight.value.content) {
-    ElMessage.warning('请输入内容')
-    return
   }
 
   saving.value = true
@@ -416,8 +429,8 @@ async function saveInsight() {
     }
     editDialogVisible.value = false
     await loadInsights()
-  } catch (err) {
-    ElMessage.error('保存失败')
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存失败')
   } finally {
     saving.value = false
   }
