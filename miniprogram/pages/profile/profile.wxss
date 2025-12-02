@@ -630,40 +630,6 @@
   color: #999999;
 }
 
-/* 创建打卡按钮 */
-.create-checkin-btn {
-  position: fixed;
-  right: 32rpx;
-  bottom: 80rpx;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  border-radius: 48rpx;
-  padding: 20rpx 36rpx;
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.4);
-  z-index: 100;
-  transition: all 0.3s;
-}
-
-.create-checkin-btn:active {
-  transform: scale(0.98);
-  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.4);
-}
-
-.btn-icon {
-  font-size: 32rpx;
-  color: white;
-  font-weight: 300;
-  line-height: 1;
-}
-
-.btn-text {
-  font-size: 28rpx;
-  color: white;
-  font-weight: 500;
-}
-
 /* 加载状态 */
 .loading-overlay {
   position: fixed;

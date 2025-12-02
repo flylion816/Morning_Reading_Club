@@ -684,27 +684,6 @@ Page({
   },
 
   /**
-   * 创建打卡
-   */
-  handleCreateCheckin() {
-    const { todaySection } = this.data;
-    const sectionId = todaySection && (todaySection.id || todaySection._id);
-
-    if (!sectionId) {
-      wx.showToast({
-        title: '暂无可打卡的课节',
-        icon: 'none'
-      });
-      return;
-    }
-
-    // 跳转到打卡页面，传递课节ID
-    wx.navigateTo({
-      url: `/pages/checkin/checkin?courseId=${sectionId}`
-    });
-  },
-
-  /**
    * 点击小凡看见条目
    */
   handleInsightClick(e) {
