@@ -67,6 +67,11 @@ Page({
    */
   onShareAppMessage() {
     const { insight } = this.data;
+    wx.showToast({
+      title: '分享成功',
+      icon: 'success',
+      duration: 1500
+    });
     return {
       title: `${insight.title || '晨读营'} - 小凡看见`,
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
@@ -79,6 +84,11 @@ Page({
    */
   onShareTimeline() {
     const { insight } = this.data;
+    wx.showToast({
+      title: '分享成功',
+      icon: 'success',
+      duration: 1500
+    });
     return {
       title: `${insight.title || '晨读营'} - 小凡看见`,
       query: `id=${this.data.insightId}`,
