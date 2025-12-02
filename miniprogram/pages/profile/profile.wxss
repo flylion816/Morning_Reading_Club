@@ -295,9 +295,6 @@
   z-index: 1;
   margin-top: 8rpx;
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 }
 
 .banner-bubble::before {
@@ -319,7 +316,7 @@
   font-weight: 500;
   line-height: 1.6;
   white-space: pre-line;
-  text-align: right;
+  text-align: left;
 }
 
 /* 内容区域 */
