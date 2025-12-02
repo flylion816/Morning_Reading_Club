@@ -138,7 +138,7 @@
             本期暂无小凡看见记录
           </view>
         </view>
-        <view class="insights-more" catchtap="navigateToInsights">
+        <view class="insights-more" catchtap="navigateToInsights" data-test="insights-more">
           <text class="more-text">查看更多历史</text>
           <text class="more-arrow">→</text>
         </view>

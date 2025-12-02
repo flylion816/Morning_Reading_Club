@@ -688,28 +688,39 @@ Page({
    */
   handleInsightClick(e) {
     console.log('=== handleInsightClick 被调用 ===');
-    console.log('e.currentTarget.dataset:', e.currentTarget.dataset);
-    console.log('e:', e);
+    console.log('currentTarget:', e.currentTarget);
+    console.log('dataset:', e.currentTarget.dataset);
+    console.log('详细event信息:', JSON.stringify(e, null, 2));
 
     const { id } = e.currentTarget.dataset;
-    console.log('提取的id:', id);
+    console.log('📌 提取的id:', id);
+    console.log('📌 event类型:', e.type);
+    console.log('📌 currentTarget class:', e.currentTarget.className);
 
     if (!id) {
-      console.error('小凡看见信息不存在');
+      console.error('❌ 小凡看见信息不存在');
+      wx.showToast({
+        title: '信息加载失败',
+        icon: 'none'
+      });
       return;
     }
 
     const url = `/pages/insight-detail/insight-detail?id=${id}`;
-    console.log('准备跳转到:', url);
+    console.log('🚀 准备跳转到:', url);
 
     // 跳转到小凡看见详情页
     wx.navigateTo({
       url: url,
       success: () => {
-        console.log('✅ 跳转成功');
+        console.log('✅ 小凡看见详情页跳转成功');
       },
       fail: (err) => {
-        console.error('❌ 跳转失败:', err);
+        console.error('❌ 小凡看见详情页跳转失败:', err);
+        wx.showToast({
+          title: '跳转失败: ' + err.errMsg,
+          icon: 'none'
+        });
       }
     });
   },
@@ -719,16 +730,22 @@ Page({
    */
   navigateToInsights() {
     console.log('=== navigateToInsights 被调用 ===');
+    console.log('🎯 这个函数成功被触发了！');
+
     const url = '/pages/insights/insights';
-    console.log('准备跳转到:', url);
+    console.log('🚀 准备跳转到:', url);
 
     wx.navigateTo({
       url: url,
       success: () => {
-        console.log('✅ 跳转成功');
+        console.log('✅ 小凡看见列表页跳转成功');
       },
       fail: (err) => {
-        console.error('❌ 跳转失败:', err);
+        console.error('❌ 小凡看见列表页跳转失败:', err);
+        wx.showToast({
+          title: '跳转失败: ' + err.errMsg,
+          icon: 'none'
+        });
       }
     });
   },
