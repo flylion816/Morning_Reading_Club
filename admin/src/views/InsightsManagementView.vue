@@ -518,8 +518,15 @@ function resetForm() {
 }
 
 // 工具函数
+function stripHtmlTags(text: string): string {
+  // 移除HTML标签，保留纯文本内容
+  return text.replace(/<[^>]+>/g, '').trim()
+}
+
 function truncateText(text: string, length: number) {
-  return text.length > length ? text.substring(0, length) + '...' : text
+  // 先移除HTML标签，再截断
+  const plainText = stripHtmlTags(text)
+  return plainText.length > length ? plainText.substring(0, length) + '...' : plainText
 }
 
 function formatDate(date: string) {
