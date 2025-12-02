@@ -418,6 +418,20 @@ async function saveInsight() {
     editingInsight.value.tags = [...new Set([...editingInsight.value.tags, ...newTags])]
   }
 
+  // ✅ 修复：确保 targetUserId 是字符串 ID，不是对象
+  // 这是为了处理 el-select 可能返回的对象情况
+  if (editingInsight.value.targetUserId && typeof editingInsight.value.targetUserId === 'object') {
+    editingInsight.value.targetUserId = editingInsight.value.targetUserId._id
+  }
+
+  console.log('[InsightForm] 保存前的数据:', {
+    periodId: editingInsight.value.periodId,
+    targetUserId: editingInsight.value.targetUserId,
+    type: editingInsight.value.type,
+    mediaType: editingInsight.value.mediaType,
+    content: editingInsight.value.content ? '有内容' : '无内容'
+  })
+
   saving.value = true
   try {
     if (isNewInsight.value) {
@@ -430,6 +444,7 @@ async function saveInsight() {
     editDialogVisible.value = false
     await loadInsights()
   } catch (err: any) {
+    console.error('[InsightForm] 保存失败，错误信息:', err)
     ElMessage.error(err.message || '保存失败')
   } finally {
     saving.value = false

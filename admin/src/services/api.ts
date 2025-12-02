@@ -47,11 +47,20 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     console.log('[API Response] 错误，URL:', error.config?.url, '状态码:', error.response?.status)
+    console.log('[API Response] 错误详情:', error.response?.data)
     if (error.response?.status === 401) {
       console.log('[API Response] ❌ 401 Unauthorized，清除token并重定向到登录页')
       // 清除过期的令牌并重定向到登录页
       localStorage.removeItem('adminToken')
       window.location.href = '/login'
+    }
+    // 返回更详细的错误信息
+    const errorData = error.response?.data
+    if (errorData && typeof errorData === 'object' && 'message' in errorData) {
+      // 创建一个包含 message 属性的错误对象
+      const err = new Error(errorData.message)
+      ;(err as any).data = errorData
+      return Promise.reject(err)
     }
     return Promise.reject(error.response?.data || error)
   }
