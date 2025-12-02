@@ -23,6 +23,17 @@
   word-wrap: break-word;
   word-break: break-word;
   white-space: normal;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.day-period {
+  font-size: 24rpx;
+  opacity: 0.9;
+  font-weight: normal;
+  margin-left: 16rpx;
+  flex-shrink: 0;
 }
 
 .day-subtitle {

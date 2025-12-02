@@ -47,7 +47,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12rpx;
-  margin-bottom: 8rpx;
+  margin-bottom: 12rpx;
 }
 
 .insight-day {
@@ -70,7 +70,7 @@
   font-weight: bold;
   font-size: 28rpx;
   color: #333;
-  margin-bottom: 12rpx;
+  flex: 1;
 }
 
 .insight-preview {

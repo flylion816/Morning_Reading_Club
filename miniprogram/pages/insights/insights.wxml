@@ -13,10 +13,9 @@
       bindtap="handleInsightClick"
       data-id="{{item.id}}">
       <view class="insight-header">
-        <view class="insight-day">第{{item.dayNumber}}天</view>
+        <view class="insight-title">{{item.title}}</view>
         <view class="insight-period" wx:if="{{item.periodName}}">{{item.periodName}}</view>
       </view>
-      <view class="insight-title">{{item.title}}</view>
       <view class="insight-preview">{{item.preview}}</view>
       <view class="insight-date">{{item.date}}</view>
     </view>
