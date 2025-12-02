@@ -726,6 +726,34 @@ Page({
   },
 
   /**
+   * 跳转到小凡看见列表 - 测试用
+   */
+  testNavigateToInsights() {
+    console.log('🚨🚨🚨 testNavigateToInsights 被调用了 !!!');
+    wx.showToast({
+      title: '测试函数被触发!',
+      icon: 'success'
+    });
+
+    const url = '/pages/insights/insights';
+    console.log('🚀 准备跳转到:', url);
+
+    wx.navigateTo({
+      url: url,
+      success: () => {
+        console.log('✅ 小凡看见列表页跳转成功');
+      },
+      fail: (err) => {
+        console.error('❌ 小凡看见列表页跳转失败:', err);
+        wx.showToast({
+          title: '跳转失败: ' + err.errMsg,
+          icon: 'none'
+        });
+      }
+    });
+  },
+
+  /**
    * 跳转到小凡看见列表
    */
   navigateToInsights() {
