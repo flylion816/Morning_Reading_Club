@@ -1,5 +1,30 @@
 const insightService = require('../../services/insight.service');
-const { textToHtml } = require('../../utils/text-formatter');
+
+/**
+ * 将纯文本转换为HTML格式
+ */
+function textToHtml(text) {
+  if (!text) return '';
+
+  // 1. 转义HTML特殊字符
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  // 2. 将换行符转换为<br>标签
+  const withLineBreaks = escaped.replace(/\n/g, '<br/>');
+
+  // 3. 检测段落（通过两个或更多连续换行）并用<p>标签包装
+  const withParagraphs = withLineBreaks
+    .split(/<br\/><br\/>/g)
+    .map(paragraph => `<p>${paragraph.replace(/<br\/>/g, '<br/>')}</p>`)
+    .join('');
+
+  return withParagraphs;
+}
 
 Page({
   data: {
