@@ -33,9 +33,11 @@ Page({
   async onLoad(options) {
     console.log('打卡页面加载，参数:', options);
 
-    const courseId = options.courseId || options.id;
+    // 兼容多种参数形式：courseId、id、sectionId
+    const sectionId = options.sectionId || options.courseId || options.id;
+    const periodId = options.periodId;
 
-    if (!courseId) {
+    if (!sectionId) {
       wx.showToast({
         title: '缺少课节参数',
         icon: 'none'
@@ -47,8 +49,9 @@ Page({
     }
 
     this.setData({
-      courseId: courseId,
-      sectionId: courseId  // 统一使用 courseId
+      courseId: sectionId,
+      sectionId: sectionId,
+      periodId: periodId
     });
 
     // 并行加载课程详情和期次信息
@@ -213,25 +216,24 @@ Page({
       const app = getApp();
       const currentUser = app.globalData.userInfo || {};
 
-      // 尝试多个方式获取periodId
-      let periodId = null;
+      // 获取periodId - 优先使用从路由参数传递的值
+      let periodId = this.data.periodId;
 
-      // 方式1：从课节数据获取（可能是对象或字符串）
-      if (this.data.sectionPeriodId) {
+      // 如果路由参数中没有，尝试从课节数据获取
+      if (!periodId && this.data.sectionPeriodId) {
         if (typeof this.data.sectionPeriodId === 'string') {
           periodId = this.data.sectionPeriodId;
         } else if (typeof this.data.sectionPeriodId === 'object' && this.data.sectionPeriodId._id) {
-          // 如果是对象，提取_id字段
           periodId = this.data.sectionPeriodId._id || this.data.sectionPeriodId.id;
         }
       }
 
-      // 方式2：从全局currentPeriod获取
+      // 如果还是没有，从全局currentPeriod获取
       if (!periodId && app.globalData.currentPeriod) {
         periodId = app.globalData.currentPeriod._id || app.globalData.currentPeriod.id;
       }
 
-      // 方式3：从全局periods列表获取
+      // 如果仍然没有，从全局periods列表获取
       if (!periodId && app.globalData.periods && app.globalData.periods.length > 0) {
         const period = app.globalData.periods.find(p => p.status === 'ongoing') || app.globalData.periods[0];
         if (period) {
@@ -241,9 +243,8 @@ Page({
 
       // 记录调试信息
       console.log('获取的periodId:', periodId);
+      console.log('this.data.periodId:', this.data.periodId);
       console.log('sectionPeriodId:', this.data.sectionPeriodId);
-      console.log('currentPeriod:', app.globalData.currentPeriod);
-      console.log('periods:', app.globalData.periods);
 
       // 严格验证periodId
       if (!periodId || typeof periodId !== 'string' || periodId.length === 0) {
