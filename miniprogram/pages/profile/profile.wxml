@@ -90,40 +90,6 @@
         </view>
       </view>
 
-      <!-- 小凡看见 -->
-      <view class="insights-section">
-        <view class="section-header">
-          <view class="section-icon">✨</view>
-          <text class="section-header-title">小凡看见</text>
-        </view>
-        <view class="insights-list">
-          <view
-            wx:for="{{recentInsights}}"
-            wx:key="id"
-            class="insight-item"
-            style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
-            bindtap="handleInsightClick"
-            data-id="{{item.id}}">
-            <view class="insight-header">
-              <view class="insight-type-badge" style="background-color: {{item.typeConfig.color}}">
-                <text class="insight-type-icon">{{item.typeConfig.icon}}</text>
-                <text class="insight-type-label">{{item.typeConfig.label}}</text>
-              </view>
-              <view class="insight-day">{{item.day}}</view>
-            </view>
-            <view class="insight-content-preview">
-              <view class="insight-text">{{item.preview}}</view>
-            </view>
-          </view>
-          <view class="insight-empty" wx:if="{{recentInsights.length === 0}}">
-            本期暂无小凡看见记录
-          </view>
-        </view>
-        <view class="insights-more" bindtap="navigateToInsights">
-          <text class="more-text">查看更多历史</text>
-          <text class="more-arrow">→</text>
-        </view>
-      </view>
 
       <!-- 请求看见 -->
       <view class="requests-section">

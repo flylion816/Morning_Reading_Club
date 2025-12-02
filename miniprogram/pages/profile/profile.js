@@ -22,9 +22,6 @@ Page({
       total_days: 23
     },
 
-    // 最近的小凡看见（最多3条）
-    recentInsights: [],
-
     // 收到的小凡看见请求列表
     insightRequests: [],
 
@@ -282,31 +279,16 @@ Page({
       }
       console.log('===== 今日任务获取完成，最终结果: =====', todaySection);
 
-      // 加载最近的小凡看见记录（最多3条）
-      // 重要：传递 currentPeriod 作为参数，避免从 this.data 读取（可能还未更新）
-      let recentInsights = [];
-      try {
-        recentInsights = await this.loadRecentInsights(currentPeriod);
-      } catch (error) {
-        console.error('加载小凡看见失败:', error);
-      }
-
       // 加载收到的小凡看见请求
       this.loadInsightRequests();
-
-      console.log('setData前的recentInsights:', recentInsights);
-      console.log('setData前的recentInsights长度:', recentInsights.length);
 
       this.setData({
         userInfo,
         stats,
         currentPeriod,
         todaySection,
-        recentInsights,
         loading: false
       });
-
-      console.log('setData后this.data.recentInsights:', this.data.recentInsights);
     } catch (error) {
       console.error('加载用户数据失败:', error);
       this.setData({ loading: false });
@@ -315,112 +297,6 @@ Page({
         title: '加载失败,请重试',
         icon: 'none'
       });
-    }
-  },
-
-  /**
-   * 加载最近的小凡看见记录
-   * 只加载当前期次的小凡看见记录
-   */
-  async loadRecentInsights(currentPeriod) {
-    try {
-      const insightService = require('../../services/insight.service');
-
-      // 如果参数中没有传入 currentPeriod，尝试从 this.data 读取（后续可能被调用时）
-      if (!currentPeriod) {
-        currentPeriod = this.data.currentPeriod;
-      }
-
-      if (!currentPeriod) {
-        console.warn('❌ 当前期次未加载，无法过滤小凡看见');
-        return [];
-      }
-
-      const periodId = currentPeriod._id || currentPeriod.id;
-      console.log('=== 加载小凡看见 ===');
-      console.log('当前期次对象:', currentPeriod);
-      console.log('当前期次名称:', currentPeriod.name || currentPeriod.title);
-      console.log('按期次ID加载小凡看见，periodId:', periodId);
-      console.log('当前用户ID:', this.data.userInfo?._id || this.data.userInfo?.id);
-
-      if (!periodId) {
-        console.error('❌ 错误：periodId为空！无法加载小凡看见');
-        return [];
-      }
-
-      // 调用API获取指定期次的小凡看见记录
-      const res = await insightService.getInsightsForPeriod(periodId, { limit: 10 });
-
-      console.log('API 响应原始数据:', res);
-      console.log('API 响应列表:', res?.list);
-      console.log('API 响应列表长度:', res?.list?.length);
-
-      // request.js 会自动提取 data.data，所以这里 res 应该是 { list: [...], pagination: {...} }
-      let insights = [];
-      if (res && res.list) {
-        // 标准格式
-        insights = res.list;
-      } else if (Array.isArray(res)) {
-        // 直接是数组
-        insights = res;
-      }
-
-      console.log('处理后的insights数据:', insights);
-
-      if (!insights || insights.length === 0) {
-        console.warn('当前期次没有小凡看见记录');
-        return [];
-      }
-
-      // 按创建时间倒序排列（最新的在前）
-      insights.sort((a, b) => {
-        const timeA = new Date(a.createdAt || 0).getTime();
-        const timeB = new Date(b.createdAt || 0).getTime();
-        return timeB - timeA;
-      });
-
-      // 格式化数据
-      const { getInsightTypeConfig } = require('../../utils/formatters');
-      const formatted = insights.map(item => {
-        console.log('处理单条insight:', item);
-
-        // 提取preview：从content中提取前两行的纯文本
-        let preview = '';
-        if (item.content) {
-          // 提取纯文本（去除所有HTML标签）
-          const plainText = item.content.replace(/<[^>]*>/g, '').trim();
-          // 分行并取前两行
-          const lines = plainText.split('\n').filter(line => line.trim());
-          preview = lines.slice(0, 2).join('\n');
-          // 如果超过150个字符，截断
-          if (preview.length > 150) {
-            preview = preview.substring(0, 150) + '...';
-          }
-        }
-
-        // 获取类型配置
-        const typeConfig = getInsightTypeConfig(item.type);
-
-        return {
-          id: item._id || item.id,
-          day: `第${item.day}天`,
-          title: item.sectionId?.title || '学习反馈',
-          preview: preview || '暂无预览',
-          periodId: item.periodId,  // 保留期次ID用于详情页跳转
-          type: item.type,           // 小凡看见类型
-          typeConfig: typeConfig     // 类型配置（用于显示）
-        };
-      });
-
-      console.log('格式化后的insights:', formatted);
-
-      // 只返回前2条（已按createdAt倒序排列）
-      const recent = formatted.slice(0, 2);
-      console.log('返回的最近insights:', recent);
-      return recent;
-    } catch (error) {
-      console.error('加载小凡看见失败:', error);
-      return [];
     }
   },
 
@@ -701,33 +577,6 @@ Page({
     // 跳转到打卡页面，传递课节ID
     wx.navigateTo({
       url: `/pages/checkin/checkin?courseId=${sectionId}`
-    });
-  },
-
-  /**
-   * 点击小凡看见条目
-   */
-  handleInsightClick(e) {
-    const { id } = e.currentTarget.dataset;
-    console.log('点击小凡看见:', id);
-
-    if (!id) {
-      console.error('小凡看见信息不存在');
-      return;
-    }
-
-    // 跳转到小凡看见详情页
-    wx.navigateTo({
-      url: `/pages/insight-detail/insight-detail?id=${id}`
-    });
-  },
-
-  /**
-   * 跳转到小凡看见列表
-   */
-  navigateToInsights() {
-    wx.navigateTo({
-      url: '/pages/insights/insights'
     });
   },
 
