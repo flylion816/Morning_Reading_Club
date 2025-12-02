@@ -39,22 +39,6 @@
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
           v-loading="loading"
         >
-          <el-table-column label="头像" width="60">
-            <template #default="{ row }">
-              <div class="avatar-wrapper">
-                <el-avatar
-                  v-if="row.avatar"
-                  :src="row.avatar"
-                  :size="40"
-                  shape="circle"
-                />
-                <div v-else class="avatar-placeholder" :style="{ background: getAvatarColor(row._id) }">
-                  {{ row.nickname?.charAt(0)?.toUpperCase() || 'U' }}
-                </div>
-              </div>
-            </template>
-          </el-table-column>
-
           <el-table-column prop="_id" label="用户ID" width="200">
             <template #default="{ row }">
               <span style="font-family: monospace; font-size: 12px">{{ row._id }}</span>
@@ -136,19 +120,6 @@
           :column="1"
           border
         >
-          <el-descriptions-item label="头像">
-            <div class="avatar-wrapper">
-              <el-avatar
-                v-if="selectedUser.avatar"
-                :src="selectedUser.avatar"
-                :size="60"
-                shape="circle"
-              />
-              <div v-else class="avatar-placeholder" :style="{ background: getAvatarColor(selectedUser._id), width: '60px', height: '60px', fontSize: '24px' }">
-                {{ selectedUser.nickname?.charAt(0)?.toUpperCase() || 'U' }}
-              </div>
-            </div>
-          </el-descriptions-item>
           <el-descriptions-item label="用户ID">
             <span style="font-family: monospace; font-size: 12px">{{ selectedUser._id }}</span>
           </el-descriptions-item>

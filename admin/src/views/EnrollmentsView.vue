@@ -70,9 +70,9 @@
           ref="tableRef"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column label="ID" width="120">
+          <el-table-column label="ID" width="200">
             <template #default="{ row }">
-              <el-text copyable>{{ formatUserId(row.userId) }}</el-text>
+              <el-text copyable>{{ typeof row.userId === 'object' ? row.userId._id : row.userId }}</el-text>
             </template>
           </el-table-column>
           <el-table-column label="昵称" width="100">
@@ -144,7 +144,7 @@
       >
         <el-form v-if="currentEnrollment" label-width="100px">
           <el-form-item label="ID">
-            <el-text copyable>{{ formatUserId(currentEnrollment.userId) }}</el-text>
+            <el-text copyable>{{ typeof currentEnrollment.userId === 'object' ? currentEnrollment.userId._id : currentEnrollment.userId }}</el-text>
           </el-form-item>
           <el-form-item label="昵称">
             <el-text>{{ typeof currentEnrollment.userId === 'object' ? currentEnrollment.userId.nickname : '-' }}</el-text>
@@ -352,16 +352,6 @@ function formatGender(gender: string): string {
     prefer_not_to_say: '保密'
   }
   return genderMap[gender] || gender
-}
-
-function formatUserId(userId: any): string {
-  if (typeof userId === 'object' && userId?._id) {
-    return userId._id.substring(0, 8)
-  }
-  if (typeof userId === 'string') {
-    return userId.substring(0, 8)
-  }
-  return '-'
 }
 </script>
 
