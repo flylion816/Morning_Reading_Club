@@ -123,25 +123,25 @@
           <text class="section-header-title">小凡看见</text>
         </view>
         <view class="insights-list">
-          <view
+          <navigator
             wx:for="{{recentInsights}}"
             wx:key="id"
+            url="/pages/insight-detail/insight-detail?id={{item.id}}"
             class="insight-item"
             style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
-            catchtap="handleInsightClick"
             data-id="{{item.id}}">
             <view class="insight-content-preview">
               <view class="insight-text">{{item.preview}}</view>
             </view>
-          </view>
+          </navigator>
           <view class="insight-empty" wx:if="{{recentInsights.length === 0}}">
             本期暂无小凡看见记录
           </view>
         </view>
-        <view class="insights-more" catchtap="testNavigateToInsights" data-test="insights-more">
+        <navigator url="/pages/insights/insights" class="insights-more" data-test="insights-more">
           <text class="more-text">查看更多历史</text>
           <text class="more-arrow">→</text>
-        </view>
+        </navigator>
       </view>
 
       <!-- 请求看见 -->
