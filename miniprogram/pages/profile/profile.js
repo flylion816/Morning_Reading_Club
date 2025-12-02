@@ -687,17 +687,30 @@ Page({
    * 点击小凡看见条目
    */
   handleInsightClick(e) {
+    console.log('=== handleInsightClick 被调用 ===');
+    console.log('e.currentTarget.dataset:', e.currentTarget.dataset);
+    console.log('e:', e);
+
     const { id } = e.currentTarget.dataset;
-    console.log('点击小凡看见:', id);
+    console.log('提取的id:', id);
 
     if (!id) {
       console.error('小凡看见信息不存在');
       return;
     }
 
+    const url = `/pages/insight-detail/insight-detail?id=${id}`;
+    console.log('准备跳转到:', url);
+
     // 跳转到小凡看见详情页
     wx.navigateTo({
-      url: `/pages/insight-detail/insight-detail?id=${id}`
+      url: url,
+      success: () => {
+        console.log('✅ 跳转成功');
+      },
+      fail: (err) => {
+        console.error('❌ 跳转失败:', err);
+      }
     });
   },
 
@@ -705,8 +718,40 @@ Page({
    * 跳转到小凡看见列表
    */
   navigateToInsights() {
+    console.log('=== navigateToInsights 被调用 ===');
+    const url = '/pages/insights/insights';
+    console.log('准备跳转到:', url);
+
     wx.navigateTo({
-      url: '/pages/insights/insights'
+      url: url,
+      success: () => {
+        console.log('✅ 跳转成功');
+      },
+      fail: (err) => {
+        console.error('❌ 跳转失败:', err);
+      }
+    });
+  },
+
+  /**
+   * 去打卡 - 跳转到打卡页面
+   */
+  handleCreateCheckin() {
+    const { currentPeriod, todaySection } = this.data;
+
+    if (!currentPeriod || !todaySection) {
+      wx.showToast({
+        title: '无法获取课程信息',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const periodId = currentPeriod._id || currentPeriod.id;
+    const sectionId = todaySection._id || todaySection.id;
+
+    wx.navigateTo({
+      url: `/pages/checkin/checkin?periodId=${periodId}&sectionId=${sectionId}`
     });
   },
 
