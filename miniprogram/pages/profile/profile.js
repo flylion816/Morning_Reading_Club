@@ -848,7 +848,7 @@ Page({
         nickname: editForm.nickname
       });
 
-      if (response.code === 0 || response.success) {
+      if (response.code === 200 || response.code === 0 || response.success) {
         // 更新本地用户信息
         const updatedUserInfo = {
           ...userInfo,
