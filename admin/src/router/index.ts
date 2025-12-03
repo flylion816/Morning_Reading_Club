@@ -46,6 +46,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/checkins',
+    name: 'checkins',
+    component: () => import('../views/CheckinsManagementView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/insights',
     name: 'insights',
     component: () => import('../views/InsightsManagementView.vue'),

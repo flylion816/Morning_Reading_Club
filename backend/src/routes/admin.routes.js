@@ -1,5 +1,6 @@
 const express = require('express')
 const adminController = require('../controllers/admin.controller')
+const checkinController = require('../controllers/checkin.controller')
 const { adminAuthMiddleware, requireRole } = require('../middleware/adminAuth')
 
 const router = express.Router()
@@ -19,5 +20,10 @@ router.get('/admins', adminAuthMiddleware, requireRole('superadmin'), adminContr
 router.post('/admins', adminAuthMiddleware, requireRole('superadmin'), adminController.createAdmin)
 router.put('/admins/:id', adminAuthMiddleware, requireRole('superadmin'), adminController.updateAdmin)
 router.delete('/admins/:id', adminAuthMiddleware, requireRole('superadmin'), adminController.deleteAdmin)
+
+// 打卡管理路由（管理员）
+router.get('/admin/checkins', adminAuthMiddleware, checkinController.getAdminCheckins)
+router.get('/admin/checkins/stats', adminAuthMiddleware, checkinController.getCheckinStats)
+router.delete('/admin/checkins/:checkinId', adminAuthMiddleware, checkinController.deleteAdminCheckin)
 
 module.exports = router

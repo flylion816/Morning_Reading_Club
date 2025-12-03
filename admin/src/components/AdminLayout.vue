@@ -39,6 +39,10 @@
           <span>✍️ 内容管理</span>
         </el-menu-item>
 
+        <el-menu-item index="/checkins">
+          <span>📍 每日打卡</span>
+        </el-menu-item>
+
         <el-menu-item index="/insights">
           <span>👀 小凡看见</span>
         </el-menu-item>

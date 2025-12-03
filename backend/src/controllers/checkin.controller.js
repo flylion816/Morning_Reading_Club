@@ -312,10 +312,232 @@ async function deleteCheckin(req, res, next) {
   }
 }
 
+// 【Admin】获取所有打卡记录（后台管理）
+async function getAdminCheckins(req, res, next) {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      userId,
+      periodId,
+      dateFrom,
+      dateTo,
+      search
+    } = req.query;
+
+    const query = {};
+
+    // 按用户筛选
+    if (userId) {
+      query.userId = userId;
+    }
+
+    // 按期次筛选
+    if (periodId) {
+      query.periodId = periodId;
+    }
+
+    // 按日期范围筛选
+    if (dateFrom || dateTo) {
+      query.checkinDate = {};
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        query.checkinDate.$gte = fromDate;
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        query.checkinDate.$lte = toDate;
+      }
+    }
+
+    // 按用户名或用户ID搜索
+    if (search) {
+      const searchUsers = await User.find({
+        $or: [
+          { nickname: { $regex: search, $options: 'i' } },
+          { openid: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+
+      const userIds = searchUsers.map(u => u._id);
+      if (userIds.length > 0) {
+        query.userId = { $in: userIds };
+      } else {
+        // 搜索无结果
+        return res.json(success({
+          list: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          },
+          stats: {
+            totalCount: 0,
+            todayCount: 0,
+            totalPoints: 0
+          }
+        }));
+      }
+    }
+
+    // 获取总数
+    const total = await Checkin.countDocuments(query);
+
+    // 获取打卡列表
+    const checkins = await Checkin.find(query)
+      .populate('userId', 'nickname avatar avatarUrl openid')
+      .populate('sectionId', 'title day')
+      .populate('periodId', 'name title')
+      .sort({ checkinDate: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .select('-__v');
+
+    // 计算统计信息
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayCount = await Checkin.countDocuments({
+      checkinDate: {
+        $gte: today,
+        $lt: tomorrow
+      }
+    });
+
+    const allCheckins = await Checkin.find(query).select('points');
+    const totalPoints = allCheckins.reduce((sum, c) => sum + (c.points || 0), 0);
+
+    res.json(success({
+      list: checkins,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      },
+      stats: {
+        totalCount: total,
+        todayCount,
+        totalPoints
+      }
+    }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 【Admin】删除打卡记录（管理员可删除任何记录）
+async function deleteAdminCheckin(req, res, next) {
+  try {
+    const { checkinId } = req.params;
+
+    const checkin = await Checkin.findById(checkinId);
+
+    if (!checkin) {
+      return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    // 更新用户统计
+    const user = await User.findById(checkin.userId);
+    if (user) {
+      user.totalCheckinDays = Math.max(0, user.totalCheckinDays - 1);
+      user.totalPoints = Math.max(0, user.totalPoints - (checkin.points || 0));
+      await user.save();
+    }
+
+    // 更新课节统计
+    const section = await Section.findById(checkin.sectionId);
+    if (section) {
+      section.checkinCount = Math.max(0, (section.checkinCount || 1) - 1);
+      await section.save();
+    }
+
+    // 删除打卡记录
+    await Checkin.findByIdAndDelete(checkinId);
+
+    res.json(success(null, '打卡记录已删除'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 【Admin】获取打卡统计数据
+async function getCheckinStats(req, res, next) {
+  try {
+    const { periodId, dateFrom, dateTo } = req.query;
+
+    const query = {};
+
+    if (periodId) {
+      query.periodId = periodId;
+    }
+
+    // 按日期范围筛选
+    if (dateFrom || dateTo) {
+      query.checkinDate = {};
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        query.checkinDate.$gte = fromDate;
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        query.checkinDate.$lte = toDate;
+      }
+    }
+
+    // 总统计
+    const totalCount = await Checkin.countDocuments(query);
+    const uniqueUsers = await Checkin.distinct('userId', query);
+    const allCheckins = await Checkin.find(query).select('points likeCount isFeatured');
+
+    // 今日统计
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayCount = await Checkin.countDocuments({
+      ...query,
+      checkinDate: {
+        $gte: today,
+        $lt: tomorrow
+      }
+    });
+
+    // 总积分和其他统计
+    const totalPoints = allCheckins.reduce((sum, c) => sum + (c.points || 0), 0);
+    const totalLikes = allCheckins.reduce((sum, c) => sum + (c.likeCount || 0), 0);
+    const featuredCount = allCheckins.filter(c => c.isFeatured).length;
+
+    res.json(success({
+      totalCount,
+      todayCount,
+      uniqueUserCount: uniqueUsers.length,
+      totalPoints,
+      totalLikes,
+      featuredCount,
+      averagePointsPerUser: uniqueUsers.length > 0 ? (totalPoints / uniqueUsers.length).toFixed(2) : 0
+    }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createCheckin,
   getUserCheckins,
   getPeriodCheckins,
   getCheckinDetail,
-  deleteCheckin
+  deleteCheckin,
+  // Admin functions
+  getAdminCheckins,
+  deleteAdminCheckin,
+  getCheckinStats
 };
