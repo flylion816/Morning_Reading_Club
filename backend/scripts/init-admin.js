@@ -1,11 +1,15 @@
+#!/usr/bin/env node
+
+require('dotenv').config()
 const mongoose = require('mongoose')
 const Admin = require('../src/models/Admin')
-require('dotenv').config()
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db'
 
 async function initAdmin() {
   try {
     // 连接数据库
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/morning-reading-club')
+    await mongoose.connect(MONGODB_URI)
     console.log('✅ MongoDB 连接成功')
 
     // 检查管理员是否已存在
