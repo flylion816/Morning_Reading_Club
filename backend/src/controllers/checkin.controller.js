@@ -18,7 +18,8 @@ async function createCheckin(req, res, next) {
       isPublic
     } = req.body;
 
-    const userId = req.user.userId;
+    // JWT payload from admin controller uses 'id', from auth uses 'userId'
+    const userId = req.user.id || req.user.userId;
 
     // 验证课程存在
     const section = await Section.findById(sectionId);
@@ -67,6 +68,19 @@ async function createCheckin(req, res, next) {
     user.maxStreak = Math.max(user.maxStreak, user.currentStreak);
     user.totalPoints += 10;
     await user.save();
+
+    // 更新课节的打卡人数统计
+    console.log('更新前 section.checkinCount:', section.checkinCount);
+    section.checkinCount = (section.checkinCount || 0) + 1;
+    console.log('更新后 section.checkinCount:', section.checkinCount);
+    console.log('section对象:', section.toObject());
+
+    try {
+      const updatedSection = await section.save();
+      console.log('✅ section.save() 成功，updatedSection.checkinCount:', updatedSection.checkinCount);
+    } catch (saveError) {
+      console.error('❌ section.save() 失败:', saveError);
+    }
 
     res.status(201).json(success({
       checkin,

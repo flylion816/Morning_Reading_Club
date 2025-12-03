@@ -201,8 +201,10 @@ async function deleteSection(req, res, next) {
 // 获取今日任务（根据用户报名的期次动态计算）
 async function getTodayTask(req, res, next) {
   try {
-    const userId = req.user.userId;  // JWT payload contains "userId", not "_id"
     const Enrollment = require('../models/Enrollment');
+
+    // JWT payload from admin controller uses 'id', from auth uses 'userId'
+    const userId = req.user.id || req.user.userId;
 
     console.log('\n===== getTodayTask 调试日志 =====');
     console.log('userId:', userId);
@@ -266,6 +268,25 @@ async function getTodayTask(req, res, next) {
 
         if (section) {
           console.log('  ✅ 找到今日任务');
+
+          // 检查用户是否已经为今天的这个课节打过卡
+          const todayStart = new Date(today);
+          const todayEnd = new Date(today);
+          todayEnd.setHours(23, 59, 59, 999);
+
+          const Checkin = require('../models/Checkin');
+          const existingCheckin = await Checkin.findOne({
+            userId,
+            sectionId: section._id,
+            checkinDate: {
+              $gte: todayStart,
+              $lte: todayEnd
+            }
+          });
+
+          const isCheckedIn = !!existingCheckin;
+          console.log('  isCheckedIn:', isCheckedIn);
+
           todayTask = {
             periodId: period._id,
             periodName: period.name,
@@ -279,7 +300,8 @@ async function getTodayTask(req, res, next) {
             reflection: section.reflection,
             action: section.action,
             learn: section.learn,
-            checkinCount: section.checkinCount || 0
+            checkinCount: section.checkinCount || 0,
+            isCheckedIn: isCheckedIn
           };
 
           // 找到今天的任务就可以返回

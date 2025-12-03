@@ -104,9 +104,10 @@
                 <view class="avatar-item placeholder">?</view>
                 <view class="avatar-item count">{{todaySection.checkinCount || 0}}人</view>
               </view>
-              <view class="checkin-btn" catchtap="handleCreateCheckin">
-                <text>去打卡</text>
-                <text class="btn-arrow">→</text>
+              <view class="checkin-btn {{todaySection.isCheckedIn ? 'checked' : ''}}" catchtap="handleCreateCheckin">
+                <text wx:if="{{todaySection.isCheckedIn}}">✓ 已打卡</text>
+                <text wx:else>去打卡</text>
+                <text class="btn-arrow" wx:if="{{!todaySection.isCheckedIn}}">→</text>
               </view>
             </view>
           </view>

@@ -11,6 +11,13 @@ const {
 } = require('../controllers/section.controller');
 
 /**
+ * @route   GET /api/v1/sections/today/task
+ * @desc    获取今日任务（根据当前日期动态计算）
+ * @access  Private
+ */
+router.get('/today/task', authMiddleware, getTodayTask);
+
+/**
  * @route   GET /api/v1/sections/period/:periodId
  * @desc    获取期次的课程列表
  * @access  Private
@@ -44,12 +51,5 @@ router.put('/:sectionId', authMiddleware, adminMiddleware, updateSection);
  * @access  Admin
  */
 router.delete('/:sectionId', authMiddleware, adminMiddleware, deleteSection);
-
-/**
- * @route   GET /api/v1/sections/today/task
- * @desc    获取今日任务（根据当前日期动态计算）
- * @access  Private
- */
-router.get('/today/task', authMiddleware, getTodayTask);
 
 module.exports = router;

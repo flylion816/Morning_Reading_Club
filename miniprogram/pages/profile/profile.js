@@ -198,8 +198,12 @@ Page({
               day: taskRes.day,
               periodId: taskRes.periodId,
               periodTitle: taskRes.periodTitle,
-              checkinCount: taskRes.checkinCount || 0
+              checkinCount: taskRes.checkinCount || 0,
+              isCheckedIn: taskRes.isCheckedIn || sectionRes.isCheckedIn || false
             };
+
+            // 计算进度：0% 未打卡，100% 已打卡
+            todaySection.progress = todaySection.isCheckedIn ? 100 : 0;
 
             // 设置封面样式
             if (!todaySection.coverColor) {
@@ -244,6 +248,14 @@ Page({
                 }
                 todaySection.periodId = periodId;
                 todaySection.periodTitle = currentPeriod.title;
+
+                // 确保包含isCheckedIn状态
+                if (todaySection.isCheckedIn === undefined) {
+                  todaySection.isCheckedIn = false;
+                }
+                // 计算进度：0% 未打卡，100% 已打卡
+                todaySection.progress = todaySection.isCheckedIn ? 100 : 0;
+
                 if (todaySection.subtitle) {
                   todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
                 }
@@ -283,6 +295,14 @@ Page({
               }
               todaySection.periodId = periodId;
               todaySection.periodTitle = currentPeriod.title;
+
+              // 确保包含isCheckedIn状态
+              if (todaySection.isCheckedIn === undefined) {
+                todaySection.isCheckedIn = false;
+              }
+              // 计算进度：0% 未打卡，100% 已打卡
+              todaySection.progress = todaySection.isCheckedIn ? 100 : 0;
+
               if (todaySection.subtitle) {
                 todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
               }
@@ -318,7 +338,7 @@ Page({
 
       this.setData({
         userInfo,
-        stats,
+        userStats: stats,
         currentPeriod,
         todaySection,
         recentInsights,
@@ -757,16 +777,10 @@ Page({
   },
 
   /**
-   * 去打卡 - 跳转到打卡页面
+   * 去打卡 - 跳转到打卡页面（或显示已打卡提示）
    */
   handleCreateCheckin() {
     console.log('⚠️⚠️⚠️ handleCreateCheckin 被触发! ⚠️⚠️⚠️');
-
-    // 调试用：显示Toast
-    wx.showToast({
-      title: '触发了去打卡',
-      icon: 'none'
-    });
 
     const { currentPeriod, todaySection } = this.data;
 
@@ -774,6 +788,15 @@ Page({
       wx.showToast({
         title: '无法获取课程信息',
         icon: 'none'
+      });
+      return;
+    }
+
+    // 检查是否已经打卡
+    if (todaySection.isCheckedIn) {
+      wx.showToast({
+        title: '今天已打卡，继续加油！',
+        icon: 'success'
       });
       return;
     }

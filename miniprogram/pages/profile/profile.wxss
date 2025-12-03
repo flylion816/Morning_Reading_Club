@@ -1184,6 +1184,14 @@
   margin: 0;
   position: static;
   line-height: 1;
+  transition: all 0.3s ease;
+}
+
+.checkin-btn.checked {
+  background: #d1d5db;
+  color: #6b7280;
+  box-shadow: 0 2rpx 8rpx rgba(107, 114, 128, 0.15);
+  cursor: not-allowed;
 }
 
 .btn-arrow {
