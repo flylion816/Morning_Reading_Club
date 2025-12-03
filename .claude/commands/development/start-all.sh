@@ -90,6 +90,7 @@ echo -e "${YELLOW}🐘 第2步: 启动 MongoDB...${NC}"
 if pgrep -f "mongod" > /dev/null; then
     echo -e "${GREEN}✓ MongoDB 已在运行${NC}"
     MONGO_PID=$(pgrep -f "mongod" | head -1)
+    MONGO_HEALTHY=1
 else
     # 检查 MongoDB 是否安装
     if ! command -v mongod &> /dev/null; then
@@ -100,14 +101,47 @@ else
         echo "   • 手动: mongod --config /usr/local/etc/mongod.conf"
         echo ""
         echo -e "${YELLOW}⚠️  继续启动其他服务，但后端可能会连接失败${NC}"
+        MONGO_HEALTHY=0
     else
+        # 清理 MongoDB 锁文件（防止上次未正确关闭导致启动失败）
+        MONGO_DATA_DIR="${MONGO_DATA_DIR:-/opt/homebrew/var/mongodb}"
+        if [ -f "$MONGO_DATA_DIR/mongod.lock" ]; then
+            echo -e "${YELLOW}🧹 清理 MongoDB 锁文件...${NC}"
+            rm -f "$MONGO_DATA_DIR/mongod.lock"
+        fi
+
         echo -e "${YELLOW}⏳ 启动 MongoDB...${NC}"
-        mongod --fork --logpath /tmp/mongod.log 2>/dev/null || true
+        # 使用后台启动而不是 --fork（macOS 不支持 --fork）
+        mongod --dbpath "$MONGO_DATA_DIR" > /tmp/mongod.log 2>&1 &
+        MONGO_PID=$!
         sleep 2
-        if pgrep -f "mongod" > /dev/null; then
-            echo -e "${GREEN}✓ MongoDB 启动成功${NC}"
-        else
-            echo -e "${YELLOW}⚠️  MongoDB 启动失败，继续启动其他服务${NC}"
+
+        # 检查 MongoDB 是否成功启动并可连接
+        MONGO_HEALTHY=0
+        for i in {1..30}; do
+            if ! ps -p $MONGO_PID > /dev/null 2>&1; then
+                echo -e "${RED}❌ MongoDB 进程已崩溃 (尝试 $i/30)${NC}"
+                sleep 1
+                continue
+            fi
+
+            # 尝试连接 MongoDB
+            if nc -z localhost 27017 > /dev/null 2>&1; then
+                MONGO_HEALTHY=1
+                echo -e "${GREEN}✓ MongoDB 启动成功 (PID: $MONGO_PID, 第 $i 次尝试)${NC}"
+                break
+            fi
+
+            if [ $((i % 5)) -eq 0 ]; then
+                echo -e "${YELLOW}⏳ 等待 MongoDB 就绪... ($i/30)${NC}"
+            fi
+            sleep 1
+        done
+
+        if [ $MONGO_HEALTHY -eq 0 ]; then
+            echo -e "${YELLOW}⚠️  MongoDB 启动失败或无法连接，继续启动其他服务${NC}"
+            echo -e "${YELLOW}📋 错误日志 (最后10行):${NC}"
+            tail -n 10 /tmp/mongod.log | sed 's/^/    /'
         fi
     fi
 fi
@@ -311,5 +345,5 @@ echo "   3. 后端 API 地址已配置为 http://localhost:3000/api/v1"
 echo "   4. 修改代码后，HMR 会自动热更新"
 echo ""
 
-# 保持进程运行
-wait
+echo -e "${YELLOW}✅ 脚本执行完毕，所有服务已启动（后台运行）${NC}"
+echo ""
