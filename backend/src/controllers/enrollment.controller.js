@@ -386,7 +386,7 @@ exports.getEnrollments = async (req, res) => {
       limit = 20,
       status,
       periodId,
-      approvalStatus = 'pending',
+      approvalStatus,
       paymentStatus,
       sortBy = 'enrolledAt',
       sortOrder = -1
