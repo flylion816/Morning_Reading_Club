@@ -5,11 +5,12 @@
 # 使用：./check-data.sh [选项]
 # 选项：
 #   (无参数) - 显示所有集合的数据统计
-#   courses - 显示课程信息
-#   periods - 显示期次信息
-#   users   - 显示用户信息
-#   admins  - 显示管理员信息
-#   all     - 显示完整统计
+#   courses    - 显示课程信息
+#   periods    - 显示期次信息
+#   users      - 显示用户信息
+#   admins     - 显示管理员信息
+#   enrollments - 显示报名信息
+#   all        - 显示完整统计
 
 set -e
 
@@ -114,6 +115,24 @@ case "$QUERY_TYPE" in
     "
     ;;
 
+  enrollments)
+    # 显示所有报名
+    mongosh "$MONGO_URI" --eval "
+    console.log('========== 报名信息 ==========\n');
+
+    const enrollments = db.enrollments.find().toArray();
+    console.log('总共 ' + enrollments.length + ' 条报名记录\n');
+
+    enrollments.forEach((e, i) => {
+      const user = db.users.findOne({_id: e.userId});
+      const period = db.periods.findOne({_id: e.periodId});
+      const userName = user ? (user.nickname || user.email || '未知') : '未知';
+      const periodName = period ? period.name : '未知';
+      console.log((i+1) + '. ' + userName + ' - ' + periodName + ' (报名时间: ' + (e.createdAt || '未记录') + ')');
+    });
+    "
+    ;;
+
   all)
     # 完整统计
     mongosh "$MONGO_URI" --eval "
@@ -159,6 +178,7 @@ case "$QUERY_TYPE" in
     echo "  ./check-data.sh periods      # 显示所有期次"
     echo "  ./check-data.sh users        # 显示所有用户"
     echo "  ./check-data.sh admins       # 显示所有管理员"
+    echo "  ./check-data.sh enrollments  # 显示所有报名信息"
     echo "  ./check-data.sh all          # 显示完整统计"
     echo ""
     exit 1
