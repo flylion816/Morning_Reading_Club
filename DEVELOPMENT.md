@@ -132,7 +132,25 @@ curl -H "Authorization: Bearer <token>" \
 - 循环直到用户确认无误
 
 #### **第 7 步：用户确认无误后提交 GitHub**
-只有在用户说"没问题，搞定了"或"✅ 成功"时，才执行：
+
+**提交规则（🆕 2025-12-03 更新）**：
+
+按以下流程执行：
+
+1. **用户确认问题解决** ✅
+   - 用户在截图或反馈中确认"解决了"、"成功了"或类似表述
+   - 例如：用户发送截图显示正确结果
+
+2. **Claude 统一提交所有改动**
+   - 我（Claude）统一将所有代码改动提交到 GitHub
+   - 不需要用户执行 git 命令
+   - 提交时自动生成规范的 commit message（包含完整改动说明）
+
+3. **查看提交结果**
+   - 用户可以在 GitHub 上查看提交记录
+   - 包含完整的改动历史和提交日志
+
+**执行步骤**（由 Claude 完成）：
 
 ```bash
 cd "/Users/pica_1/我的坚果云/flylion/AI项目开发/七个习惯晨读营"
@@ -143,22 +161,30 @@ git status
 # 添加所有修改
 git add -A
 
-# 提交(使用规范的 commit message)
-git commit -m "feat: 功能描述
+# 提交(使用规范的 commit message，包含完整说明)
+git commit -m "feat/fix: 功能或修复的标题
 
-详细说明:
-- 修改点1
-- 修改点2
+## 改动内容
+- 核心问题：具体问题描述
+- 解决方案：如何修复的
+- 验证方法：测试了哪些场景
 
-测试验证: 所有 API 端点已通过测试 ✅
+## 修改文件清单
+- 文件1: 改动说明
+- 文件2: 改动说明
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
+🤖 Generated with Claude Code
 Co-Authored-By: Claude <noreply@anthropic.com>"
 
 # 推送到 GitHub
-git push https://$(gh auth token)@github.com/flylion816/Morning_Reading_Club.git main
+git push
 ```
+
+**关键要点**：
+- ✅ 只有在用户确认问题解决后才提交
+- ✅ 一个功能/修复 = 一次提交 = 一个清晰的历史记录
+- ✅ Commit message 必须详细说明改动内容
+- ✅ 所有改动在一个提交中完成，不分散提交
 
 #### **第 8 步：更新文档**
 如果是重要的 bug 或新的经验教训：
