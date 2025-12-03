@@ -15,9 +15,29 @@ echo -e "${BLUE}═════════════════════�
 echo ""
 
 echo -e "${YELLOW}🧹 清理所有进程...${NC}"
+
+# 第一轮：标准杀死
 pkill -9 -f "npm.*run dev" 2>/dev/null || true
 pkill -9 -f "node" 2>/dev/null || true
-sleep 2
+sleep 1
+
+# 第二轮：检查是否有顽固进程
+REMAINING=$(ps aux | grep -E "(node|npm)" | grep -v grep | wc -l)
+if [ "$REMAINING" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  检测到 $REMAINING 个顽固进程，强制清理...${NC}"
+    ps aux | grep -E "(node|npm)" | grep -v grep | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
+    sleep 1
+fi
+
+# 第三轮：清理占用的端口
+for PORT in 3000 5173 27017; do
+    if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  清理端口 $PORT...${NC}"
+        lsof -ti :$PORT | xargs -r kill -9 2>/dev/null || true
+    fi
+done
+
+sleep 1
 
 echo -e "${GREEN}✓ 所有进程已清理${NC}"
 echo ""

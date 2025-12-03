@@ -48,10 +48,37 @@ echo ""
 # 第1步：清理所有旧进程
 # ============================================
 echo -e "${YELLOW}🧹 第1步: 清理所有旧进程...${NC}"
+
+# 第一轮：标准杀死
 pkill -9 -f "npm.*run dev" 2>/dev/null || true
 pkill -9 -f "node" 2>/dev/null || true
 sleep 1
-echo -e "${GREEN}✓ 旧进程已清理${NC}"
+
+# 第二轮：检查是否有顽固进程，如果有则用更激进的方式
+REMAINING_PROCS=$(ps aux | grep -E "(node|npm)" | grep -v grep | wc -l)
+if [ "$REMAINING_PROCS" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  检测到 $REMAINING_PROCS 个顽固进程，进行强制清理...${NC}"
+    ps aux | grep -E "(node|npm)" | grep -v grep | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
+    sleep 1
+fi
+
+# 第三轮：清理占用的端口
+echo -e "${YELLOW}🔌 检查占用的端口...${NC}"
+for PORT in 3000 5173 27017; do
+    if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  端口 $PORT 被占用，强制释放...${NC}"
+        lsof -ti :$PORT | xargs -r kill -9 2>/dev/null || true
+        sleep 1
+    fi
+done
+
+# 最终验证
+REMAINING=$(ps aux | grep -E "(node|npm)" | grep -v grep | wc -l)
+if [ "$REMAINING" -eq 0 ]; then
+    echo -e "${GREEN}✓ 所有进程已清理 (0个遗留进程)${NC}"
+else
+    echo -e "${YELLOW}⚠️  仍有 $REMAINING 个进程未清理（可能是系统进程，继续执行）${NC}"
+fi
 echo ""
 
 # ============================================
@@ -98,20 +125,42 @@ if [ ! -d "node_modules" ]; then
     echo ""
 fi
 
-echo -e "${YELLOW}⏳ 启动后端服务 (PID 将显示在下方)...${NC}"
+echo -e "${YELLOW}⏳ 启动后端服务...${NC}"
 npm run dev > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo -e "${GREEN}✓ 后端进程ID: $BACKEND_PID${NC}"
 
-# 等待后端启动
-sleep 4
+# 等待后端启动并检查健康状态
+BACKEND_HEALTHY=0
+for i in {1..30}; do
+    if ! ps -p $BACKEND_PID > /dev/null 2>&1; then
+        echo -e "${RED}❌ 后端进程已崩溃 (尝试 $i/30)${NC}"
+        sleep 1
+        continue
+    fi
 
-# 检查后端是否启动成功
-if ps -p $BACKEND_PID > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ 后端服务启动成功${NC}"
+    # 尝试连接到后端 API
+    if curl -s http://localhost:3000/api/v1/health > /dev/null 2>&1 || \
+       curl -s http://localhost:3000/api/v1/stats/dashboard > /dev/null 2>&1 || \
+       nc -z localhost 3000 > /dev/null 2>&1; then
+        BACKEND_HEALTHY=1
+        echo -e "${GREEN}✓ 后端服务健康检查通过 (第 $i 次尝试)${NC}"
+        break
+    fi
+
+    if [ $((i % 5)) -eq 0 ]; then
+        echo -e "${YELLOW}⏳ 等待后端就绪... ($i/30)${NC}"
+    fi
+    sleep 1
+done
+
+if [ $BACKEND_HEALTHY -eq 1 ]; then
+    echo -e "${GREEN}✓ 后端服务启动成功 (PID: $BACKEND_PID)${NC}"
 else
-    echo -e "${RED}❌ 后端服务启动失败${NC}"
-    echo -e "${YELLOW}📋 查看日志: tail -f /tmp/backend.log${NC}"
+    echo -e "${RED}❌ 后端服务启动失败或无法访问${NC}"
+    echo -e "${YELLOW}📋 错误日志 (最后10行):${NC}"
+    tail -n 10 /tmp/backend.log | sed 's/^/    /'
+    echo -e "${YELLOW}📋 查看完整日志: tail -f /tmp/backend.log${NC}"
 fi
 echo ""
 
@@ -127,34 +176,88 @@ if [ ! -d "node_modules" ]; then
     echo ""
 fi
 
-echo -e "${YELLOW}⏳ 启动 Admin 服务 (PID 将显示在下方)...${NC}"
+echo -e "${YELLOW}⏳ 启动 Admin 服务...${NC}"
 npm run dev > /tmp/admin.log 2>&1 &
 ADMIN_PID=$!
 echo -e "${GREEN}✓ Admin 进程ID: $ADMIN_PID${NC}"
 
-# 等待 Admin 启动
-sleep 3
+# 等待 Admin 启动并检查健康状态
+ADMIN_HEALTHY=0
+for i in {1..30}; do
+    if ! ps -p $ADMIN_PID > /dev/null 2>&1; then
+        echo -e "${RED}❌ Admin 进程已崩溃 (尝试 $i/30)${NC}"
+        sleep 1
+        continue
+    fi
 
-# 检查 Admin 是否启动成功
-if ps -p $ADMIN_PID > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Admin Vue 启动成功${NC}"
+    # 尝试连接到 Admin 服务
+    if curl -s http://localhost:5173 > /dev/null 2>&1 || \
+       nc -z localhost 5173 > /dev/null 2>&1; then
+        ADMIN_HEALTHY=1
+        echo -e "${GREEN}✓ Admin 服务健康检查通过 (第 $i 次尝试)${NC}"
+        break
+    fi
+
+    if [ $((i % 5)) -eq 0 ]; then
+        echo -e "${YELLOW}⏳ 等待 Admin 编译就绪... ($i/30)${NC}"
+    fi
+    sleep 1
+done
+
+if [ $ADMIN_HEALTHY -eq 1 ]; then
+    echo -e "${GREEN}✓ Admin Vue 启动成功 (PID: $ADMIN_PID)${NC}"
 else
-    echo -e "${RED}❌ Admin Vue 启动失败${NC}"
-    echo -e "${YELLOW}📋 查看日志: tail -f /tmp/admin.log${NC}"
+    echo -e "${RED}❌ Admin Vue 启动失败或无法访问${NC}"
+    echo -e "${YELLOW}📋 错误日志 (最后10行):${NC}"
+    tail -n 10 /tmp/admin.log | sed 's/^/    /'
+    echo -e "${YELLOW}📋 查看完整日志: tail -f /tmp/admin.log${NC}"
 fi
 echo ""
 
 # ============================================
-# 启动完成 - 显示服务信息
+# 启动完成 - 显示服务信息与状态汇总
 # ============================================
 cd "$PROJECT_ROOT" || exit 1
 
 echo ""
-echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}✅ 所有服务启动完成!${NC}"
-echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
-echo ""
 
+# 计算启动状态
+OVERALL_STATUS="✅"
+if [ $BACKEND_HEALTHY -ne 1 ] || [ $ADMIN_HEALTHY -ne 1 ]; then
+    OVERALL_STATUS="⚠️"
+fi
+
+if [ $BACKEND_HEALTHY -eq 1 ] && [ $ADMIN_HEALTHY -eq 1 ]; then
+    echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}✅ 所有服务启动完成!${NC}"
+    echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
+else
+    echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}⚠️  启动完成，但部分服务可能未就绪${NC}"
+    echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"
+fi
+
+echo ""
+echo -e "${PURPLE}📊 服务状态汇总：${NC}"
+echo -n "   后端服务: "
+if [ $BACKEND_HEALTHY -eq 1 ]; then
+    echo -e "${GREEN}✓ 正常${NC}"
+else
+    echo -e "${RED}✗ 异常${NC}"
+fi
+echo -n "   Admin Vue: "
+if [ $ADMIN_HEALTHY -eq 1 ]; then
+    echo -e "${GREEN}✓ 正常${NC}"
+else
+    echo -e "${RED}✗ 异常${NC}"
+fi
+echo -n "   MongoDB:   "
+if pgrep -f "mongod" > /dev/null; then
+    echo -e "${GREEN}✓ 正常${NC}"
+else
+    echo -e "${YELLOW}⚠ 未运行${NC}"
+fi
+echo ""
 echo -e "${PURPLE}📊 运行中的服务：${NC}"
 echo ""
 echo -e "${CYAN}1️⃣  后端服务 (Node.js)${NC}"
