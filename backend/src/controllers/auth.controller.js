@@ -17,7 +17,8 @@ async function wechatLogin(req, res, next) {
     // 开发环境：统一使用固定ID的测试用户进行测试，避免每次都创建新用户
     if (process.env.NODE_ENV === 'development') {
       // 使用固定的测试用户ID（用户昵称可能会变，但ID不变）
-      const testUserId = '692c66a77957d0029b23c196';
+      // 使用"狮子"用户进行开发测试
+      const testUserId = '692fe16a962d558224f4133f';
       user = await User.findById(testUserId);
 
       if (!user) {
