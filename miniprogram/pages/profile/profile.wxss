@@ -1169,6 +1169,54 @@
   z-index: 0;
 }
 
+/* 打卡用户头像 - 真实用户头像 */
+.avatar-item.user-avatar {
+  position: relative;
+  overflow: hidden;
+  background: #e5e7eb;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+}
+
+/* 头像图片 */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 头像emoji */
+.avatar-emoji {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+/* 用户昵称tooltip - 鼠标悬停显示 */
+.avatar-tooltip {
+  position: absolute;
+  bottom: -35rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 6rpx 12rpx;
+  border-radius: 6rpx;
+  font-size: 20rpx;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, bottom 0.2s;
+  z-index: 1000;
+}
+
+.avatar-item.user-avatar:hover .avatar-tooltip {
+  opacity: 1;
+  bottom: -40rpx;
+}
+
 .checkin-btn {
   padding: 6rpx 24rpx;
   height: 50rpx;

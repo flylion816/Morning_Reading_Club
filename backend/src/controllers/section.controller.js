@@ -287,6 +287,22 @@ async function getTodayTask(req, res, next) {
           const isCheckedIn = !!existingCheckin;
           console.log('  isCheckedIn:', isCheckedIn);
 
+          // 获取打卡用户的头像列表（最多10个）
+          const sectionCheckins = await Checkin.find({
+            sectionId: section._id,
+            checkinDate: {
+              $gte: new Date(period.startDate),
+              $lte: new Date(period.endDate)
+            }
+          }).populate('userId', 'avatar avatarUrl nickname').limit(10);
+
+          const checkinUsers = sectionCheckins.map(c => ({
+            _id: c.userId._id,
+            avatar: c.userId.avatar,
+            avatarUrl: c.userId.avatarUrl,
+            nickname: c.userId.nickname
+          }));
+
           todayTask = {
             periodId: period._id,
             periodName: period.name,
@@ -301,6 +317,7 @@ async function getTodayTask(req, res, next) {
             action: section.action,
             learn: section.learn,
             checkinCount: section.checkinCount || 0,
+            checkinUsers: checkinUsers,
             isCheckedIn: isCheckedIn
           };
 

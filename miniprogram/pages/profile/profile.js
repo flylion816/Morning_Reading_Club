@@ -199,6 +199,7 @@ Page({
               periodId: taskRes.periodId,
               periodTitle: taskRes.periodTitle,
               checkinCount: taskRes.checkinCount || 0,
+              checkinUsers: taskRes.checkinUsers || [],
               isCheckedIn: taskRes.isCheckedIn || sectionRes.isCheckedIn || false
             };
 

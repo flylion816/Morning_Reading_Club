@@ -54,7 +54,7 @@
               <view class="user-period-tag" wx:if="{{currentPeriod}}">{{currentPeriod.name || currentPeriod.title}}</view>
             </view>
           </view>
-          <text class="user-streak">坚持晨读第 <text class="streak-number">{{userStats.currentStreak || 0}}</text> 天</text>
+          <text class="user-streak">坚持晨读打卡第 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
         </view>
         <view class="banner-bubble">
           <text class="bubble-text">"在每一次看见中不住相"\n"在每一次倾听中生慈悲"</text>
@@ -101,7 +101,16 @@
             </view>
             <view class="checkin-footer">
               <view class="avatar-group">
-                <view class="avatar-item placeholder">?</view>
+                <!-- 实际打卡用户头像列表 -->
+                <view wx:for="{{todaySection.checkinUsers}}" wx:key="index" class="avatar-item user-avatar" style="z-index: {{999 - index}}">
+                  <!-- 头像图片 -->
+                  <image wx:if="{{item.avatarUrl}}" class="avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
+                  <!-- 头像emoji（当没有图片时） -->
+                  <text wx:else class="avatar-emoji">{{item.avatar || '😊'}}</text>
+                  <!-- 用户昵称tooltip -->
+                  <view class="avatar-tooltip">{{item.nickname}}</view>
+                </view>
+                <!-- 打卡人数统计 -->
                 <view class="avatar-item count">{{todaySection.checkinCount || 0}}人</view>
               </view>
               <view class="checkin-btn {{todaySection.isCheckedIn ? 'checked' : ''}}" catchtap="handleCreateCheckin">

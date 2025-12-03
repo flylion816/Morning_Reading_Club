@@ -64,20 +64,46 @@ async function createCheckin(req, res, next) {
     // 更新用户统计
     const user = await User.findById(userId);
     user.totalCheckinDays += 1;
-    user.currentStreak += 1;
-    user.maxStreak = Math.max(user.maxStreak, user.currentStreak);
     user.totalPoints += 10;
+
+    // 计算连续打卡天数：检查前一天是否打卡
+    const yesterday = new Date(checkinDateNormalized);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStart = new Date(yesterday);
+    const yesterdayEnd = new Date(yesterday);
+    yesterdayEnd.setHours(23, 59, 59, 999);
+
+    const yesterdayCheckin = await Checkin.findOne({
+      userId,
+      checkinDate: {
+        $gte: yesterdayStart,
+        $lte: yesterdayEnd
+      }
+    });
+
+    // 如果昨天有打卡，连续天数 +1；否则重置为 1
+    if (yesterdayCheckin) {
+      user.currentStreak += 1;
+    } else {
+      user.currentStreak = 1;
+    }
+
+    user.maxStreak = Math.max(user.maxStreak, user.currentStreak);
     await user.save();
 
     // 更新课节的打卡人数统计
-    console.log('更新前 section.checkinCount:', section.checkinCount);
+    console.log('=== 更新Section.checkinCount ===');
+    console.log('更新前 checkinCount:', section.checkinCount);
     section.checkinCount = (section.checkinCount || 0) + 1;
-    console.log('更新后 section.checkinCount:', section.checkinCount);
-    console.log('section对象:', section.toObject());
+    console.log('更新后 checkinCount:', section.checkinCount);
 
     try {
-      const updatedSection = await section.save();
-      console.log('✅ section.save() 成功，updatedSection.checkinCount:', updatedSection.checkinCount);
+      await section.save();
+      console.log('✅ section.save() 成功');
+
+      // 验证保存结果
+      const verifySection = await Section.findById(section._id);
+      console.log('✅ 验证成功，数据库中的checkinCount:', verifySection.checkinCount);
     } catch (saveError) {
       console.error('❌ section.save() 失败:', saveError);
     }
