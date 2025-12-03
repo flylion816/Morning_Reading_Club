@@ -209,11 +209,11 @@ async function getTodayTask(req, res, next) {
     console.log('\n===== getTodayTask 调试日志 =====');
     console.log('userId:', userId);
 
-    // 获取用户所有报名（包括待批准的）
-    // 使用 $in 匹配多个状态，允许 pending 和 approved
+    // 获取用户所有报名（活跃和已完成的）
+    // 使用 status 字段，这是 Enrollment 表中实际存在的字段
     const enrollments = await Enrollment.find({
       userId,
-      approvalStatus: { $in: ['approved', 'pending'] }
+      status: { $in: ['active', 'completed'] }
     }).populate('periodId');
 
     console.log('找到报名数:', enrollments.length);
