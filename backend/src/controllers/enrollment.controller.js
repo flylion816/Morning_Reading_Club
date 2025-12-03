@@ -104,7 +104,7 @@ exports.submitEnrollmentForm = async (req, res) => {
 
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(periodId, {
-      $inc: { checkinCount: 1 }
+      $inc: { enrollmentCount: 1 }
     });
 
     res.json(success(enrollment, '报名成功'));
@@ -155,7 +155,7 @@ exports.enrollPeriod = async (req, res) => {
 
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(periodId, {
-      $inc: { checkinCount: 1 }
+      $inc: { enrollmentCount: 1 }
     });
 
     res.json(success(enrollment, '报名成功'));
@@ -338,7 +338,7 @@ exports.withdrawEnrollment = async (req, res) => {
 
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(enrollment.periodId, {
-      $inc: { currentEnrollment: -1 }
+      $inc: { enrollmentCount: -1 }
     });
 
     res.json(success(enrollment, '退出成功'));

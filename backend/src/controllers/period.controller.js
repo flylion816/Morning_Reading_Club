@@ -34,7 +34,7 @@ async function getPeriodList(req, res, next) {
         checkedDays: 0,  // 这个值需要从用户的打卡记录中计算
         progress: 0,  // 这个值也需要计算
         isCheckedIn: false,
-        checkinCount: period.checkinCount || 0  // 已打卡的人数
+        currentEnrollment: period.enrollmentCount || 0  // 报名人数（映射enrollmentCount为currentEnrollment）
       };
     });
 
@@ -164,7 +164,7 @@ async function deletePeriod(req, res, next) {
     }
 
     // 检查是否有报名
-    if (period.currentEnrollment > 0) {
+    if (period.enrollmentCount > 0) {
       return res.status(400).json(errors.badRequest('该期次已有用户报名，无法删除'));
     }
 

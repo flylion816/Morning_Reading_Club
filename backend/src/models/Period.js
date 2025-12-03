@@ -68,6 +68,12 @@ const PeriodSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  enrollmentCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+    description: '该期次的报名人数'
+  },
   status: {
     type: String,
     enum: ['not_started', 'ongoing', 'completed'],

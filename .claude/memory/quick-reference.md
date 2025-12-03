@@ -36,6 +36,11 @@
   - 查看详情：[issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md)
   - 典型问题：问题1, 问题2, 问题3
 
+- **点击事件处理异常、嵌套点击失效**
+  - 常见原因：Button标签事件冒泡、bindtap/catchtap使用不当
+  - 查看详情：[issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4
+  - 解决方案：使用view+catchtap替代button+bindtap
+
 - **组件显示异常、样式混乱**
   - 常见原因：WeUI组件配置、props传递错误、生命周期问题
   - 查看详情：[issues/frontend/components.md](./issues/frontend/components.md)
@@ -91,6 +96,8 @@
 | `数据查询为空` | $or查询失效、条件错误 | [architecture/insights-feature.md](./architecture/insights-feature.md) |
 | `样式不生效` | WXSS权重、路径错误 | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) |
 | `日期格式错误` | ISO转换、时区差异 | [issues/common/datetime.md](./issues/common/datetime.md) |
+| `点击按钮触发父事件` | Button标签事件冒泡 | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
+| `嵌套点击失效` | bindtap无法阻止冒泡 | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
 
 ---
 

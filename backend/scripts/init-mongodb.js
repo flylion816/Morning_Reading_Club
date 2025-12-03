@@ -29,10 +29,10 @@ const mockUsers = [
   },
   {
     openid: 'mock_user_001',
-    nickname: '阿泰',
+    nickname: '狮子',
     avatar: '🦁',
     avatarUrl: null,
-    signature: '坚持阅读，改变人生',
+    signature: '在每一次看见中不住相，/n在每一次倾听中生慈悲',
     gender: 'male',
     totalCheckinDays: 88,
     currentStreak: 22,

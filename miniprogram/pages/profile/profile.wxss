@@ -552,6 +552,12 @@
   padding: 24rpx 32rpx 32rpx 32rpx;
   margin-bottom: 24rpx;
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.03);
+  position: relative;
+  z-index: 1;
+}
+
+.insights-section {
+  z-index: 10;
 }
 
 .section-header {

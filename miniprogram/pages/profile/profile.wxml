@@ -76,7 +76,7 @@
             <text class="timer-text">刷新 {{refreshTime}} 小时</text>
           </view>
         </view>
-        <view class="period-card" wx:if="{{todaySection}}" bindtap="handleTodaySectionClick">
+        <view class="period-card" wx:if="{{todaySection}}" catchtap="handleTodaySectionClick">
           <view class="period-cover">
             <view class="book-icon-svg"></view>
             <text class="period-day">Day {{todaySection.day || '06'}}</text>
@@ -89,9 +89,9 @@
             <view class="period-meta-date">
               <view class="calendar-icon">
                 <view class="calendar-top"></view>
-                <text class="calendar-text">{{todaySection.day || 27}}</text>
+                <text class="calendar-text">{{todaySection.day}}</text>
               </view>
-              <text class="meta-date-text">{{todaySection.displayDate || '2025.11.27 全天'}}</text>
+              <text class="meta-date-text">{{todaySection.displayDate}}</text>
             </view>
             <view class="period-progress-new">
               <view class="progress-bar-wrapper">
@@ -104,10 +104,10 @@
                 <view class="avatar-item placeholder">?</view>
                 <view class="avatar-item count">{{todaySection.checkinCount || 0}}人</view>
               </view>
-              <button class="checkin-btn" bindtap="handleCreateCheckin">
+              <view class="checkin-btn" catchtap="handleCreateCheckin">
                 <text>去打卡</text>
                 <text class="btn-arrow">→</text>
-              </button>
+              </view>
             </view>
           </view>
         </view>
@@ -123,25 +123,25 @@
           <text class="section-header-title">小凡看见</text>
         </view>
         <view class="insights-list">
-          <navigator
+          <view
             wx:for="{{recentInsights}}"
             wx:key="id"
-            url="/pages/insight-detail/insight-detail?id={{item.id}}"
             class="insight-item"
             style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
-            data-id="{{item.id}}">
+            data-id="{{item.id}}"
+            catchtap="handleInsightClick">
             <view class="insight-content-preview">
               <view class="insight-text">{{item.preview}}</view>
             </view>
-          </navigator>
+          </view>
           <view class="insight-empty" wx:if="{{recentInsights.length === 0}}">
             本期暂无小凡看见记录
           </view>
         </view>
-        <navigator url="/pages/insights/insights" class="insights-more" data-test="insights-more">
+        <view class="insights-more" catchtap="navigateToInsights">
           <text class="more-text">查看更多历史</text>
           <text class="more-arrow">→</text>
-        </navigator>
+        </view>
       </view>
 
       <!-- 请求看见 -->

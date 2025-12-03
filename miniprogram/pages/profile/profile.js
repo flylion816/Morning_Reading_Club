@@ -214,6 +214,13 @@ Page({
               todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
             }
 
+            // 动态计算当天日期
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const date = String(today.getDate()).padStart(2, '0');
+            todaySection.displayDate = `${year}.${month}.${date} 全天`;
+
             console.log('✅ 处理后的今日课节:', todaySection);
           }
         } else {
@@ -240,6 +247,12 @@ Page({
                 if (todaySection.subtitle) {
                   todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
                 }
+                // 动态计算当天日期
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const date = String(today.getDate()).padStart(2, '0');
+                todaySection.displayDate = `${year}.${month}.${date} 全天`;
                 console.log('✅ 备选方案成功:', todaySection);
               }
             } catch (fallbackError) {
@@ -273,6 +286,12 @@ Page({
               if (todaySection.subtitle) {
                 todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
               }
+              // 动态计算当天日期
+              const today = new Date();
+              const year = today.getFullYear();
+              const month = String(today.getMonth() + 1).padStart(2, '0');
+              const date = String(today.getDate()).padStart(2, '0');
+              todaySection.displayDate = `${year}.${month}.${date} 全天`;
               console.log('✅ 备选方案成功:', todaySection);
             }
           } catch (fallbackError) {
@@ -665,6 +684,8 @@ Page({
    * 点击今日课节卡片
    */
   handleTodaySectionClick() {
+    console.log('🚨🚨🚨 handleTodaySectionClick 被触发 🚨🚨🚨');
+
     const { todaySection } = this.data;
     const sectionId = todaySection && (todaySection.id || todaySection._id);
 
@@ -687,69 +708,30 @@ Page({
    * 点击小凡看见条目
    */
   handleInsightClick(e) {
-    console.log('=== handleInsightClick 被调用 ===');
-    console.log('currentTarget:', e.currentTarget);
-    console.log('dataset:', e.currentTarget.dataset);
-    console.log('详细event信息:', JSON.stringify(e, null, 2));
+    console.log('🚨🚨🚨 handleInsightClick 被触发 🚨🚨🚨');
+    console.log('Event:', e);
 
     const { id } = e.currentTarget.dataset;
-    console.log('📌 提取的id:', id);
-    console.log('📌 event类型:', e.type);
-    console.log('📌 currentTarget class:', e.currentTarget.className);
+    console.log('Insight ID:', id);
 
     if (!id) {
-      console.error('❌ 小凡看见信息不存在');
-      wx.showToast({
-        title: '信息加载失败',
-        icon: 'none'
-      });
+      console.error('❌ ID不存在');
       return;
     }
 
-    const url = `/pages/insight-detail/insight-detail?id=${id}`;
-    console.log('🚀 准备跳转到:', url);
-
-    // 跳转到小凡看见详情页
-    wx.navigateTo({
-      url: url,
-      success: () => {
-        console.log('✅ 小凡看见详情页跳转成功');
-      },
-      fail: (err) => {
-        console.error('❌ 小凡看见详情页跳转失败:', err);
-        wx.showToast({
-          title: '跳转失败: ' + err.errMsg,
-          icon: 'none'
-        });
-      }
-    });
-  },
-
-  /**
-   * 跳转到小凡看见列表 - 测试用
-   */
-  testNavigateToInsights() {
-    console.log('🚨🚨🚨 testNavigateToInsights 被调用了 !!!');
+    // 暂时添加Toast以确认函数被调用
     wx.showToast({
-      title: '测试函数被触发!',
-      icon: 'success'
+      title: '正在跳转详情...',
+      icon: 'none'
     });
 
-    const url = '/pages/insights/insights';
-    console.log('🚀 准备跳转到:', url);
+    const url = `/pages/insight-detail/insight-detail?id=${id}`;
+    console.log('🚀 准备跳转:', url);
 
     wx.navigateTo({
       url: url,
-      success: () => {
-        console.log('✅ 小凡看见列表页跳转成功');
-      },
-      fail: (err) => {
-        console.error('❌ 小凡看见列表页跳转失败:', err);
-        wx.showToast({
-          title: '跳转失败: ' + err.errMsg,
-          icon: 'none'
-        });
-      }
+      success: () => console.log('✅ 跳转成功'),
+      fail: (err) => console.error('❌ 跳转失败:', err)
     });
   },
 
@@ -757,24 +739,20 @@ Page({
    * 跳转到小凡看见列表
    */
   navigateToInsights() {
-    console.log('=== navigateToInsights 被调用 ===');
-    console.log('🎯 这个函数成功被触发了！');
+    console.log('🚨🚨🚨 navigateToInsights 被触发 🚨🚨🚨');
+
+    wx.showToast({
+      title: '正在跳转列表...',
+      icon: 'none'
+    });
 
     const url = '/pages/insights/insights';
-    console.log('🚀 准备跳转到:', url);
+    console.log('🚀 准备跳转:', url);
 
     wx.navigateTo({
       url: url,
-      success: () => {
-        console.log('✅ 小凡看见列表页跳转成功');
-      },
-      fail: (err) => {
-        console.error('❌ 小凡看见列表页跳转失败:', err);
-        wx.showToast({
-          title: '跳转失败: ' + err.errMsg,
-          icon: 'none'
-        });
-      }
+      success: () => console.log('✅ 跳转成功'),
+      fail: (err) => console.error('❌ 跳转失败:', err)
     });
   },
 
@@ -782,6 +760,14 @@ Page({
    * 去打卡 - 跳转到打卡页面
    */
   handleCreateCheckin() {
+    console.log('⚠️⚠️⚠️ handleCreateCheckin 被触发! ⚠️⚠️⚠️');
+
+    // 调试用：显示Toast
+    wx.showToast({
+      title: '触发了去打卡',
+      icon: 'none'
+    });
+
     const { currentPeriod, todaySection } = this.data;
 
     if (!currentPeriod || !todaySection) {
