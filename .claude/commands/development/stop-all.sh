@@ -15,24 +15,58 @@ echo -e "${BLUE}═════════════════════�
 echo ""
 
 echo -e "${YELLOW}⏳ 停止 npm 开发服务...${NC}"
-pkill -f "npm.*run dev" 2>/dev/null || echo "没有运行中的 npm 服务"
+pkill -9 -f "npm.*run dev" 2>/dev/null
+NPM_COUNT=$(ps aux | grep -E "npm.*run dev" | grep -v grep | wc -l)
+if [ "$NPM_COUNT" -eq 0 ]; then
+    echo -e "${GREEN}✓ npm 服务已停止${NC}"
+else
+    echo -e "${YELLOW}⚠️  npm 进程仍在运行，进行强制清理...${NC}"
+fi
 
 echo -e "${YELLOW}⏳ 停止 Node.js 进程...${NC}"
-pkill -f "node" 2>/dev/null || echo "没有运行中的 Node.js 进程"
+pkill -9 -f "node" 2>/dev/null
+NODE_COUNT=$(ps aux | grep -E "\bnode\b" | grep -v grep | wc -l)
+if [ "$NODE_COUNT" -eq 0 ]; then
+    echo -e "${GREEN}✓ Node.js 进程已停止${NC}"
+else
+    echo -e "${YELLOW}⚠️  Node.js 进程仍在运行，进行强制清理...${NC}"
+    ps aux | grep -E "\bnode\b" | grep -v grep | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
+fi
 
 echo -e "${YELLOW}⏳ 停止 MongoDB...${NC}"
-pkill -f "mongod" 2>/dev/null || echo "MongoDB 未运行"
+pkill -9 -f "mongod" 2>/dev/null
+if pgrep -f "mongod" > /dev/null; then
+    echo -e "${YELLOW}⚠️  MongoDB 仍在运行${NC}"
+else
+    echo -e "${GREEN}✓ MongoDB 已停止${NC}"
+fi
+
+echo -e "${YELLOW}🔌 清理占用的端口...${NC}"
+for PORT in 3000 5173 27017; do
+    if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo -e "${YELLOW}  • 清理端口 $PORT...${NC}"
+        lsof -ti :$PORT | xargs -r kill -9 2>/dev/null || true
+    fi
+done
 
 sleep 1
 
+# 最终验证
+REMAINING=$(ps aux | grep -E "(node|npm)" | grep -v grep | wc -l)
 echo ""
 echo -e "${BLUE}════════════════════════════════════════════${NC}"
-echo -e "${GREEN}✅ 所有服务已停止${NC}"
+if [ "$REMAINING" -eq 0 ]; then
+    echo -e "${GREEN}✅ 所有服务已停止 (0个遗留进程)${NC}"
+else
+    echo -e "${YELLOW}⚠️  仍有 $REMAINING 个进程未停止${NC}"
+fi
 echo -e "${BLUE}════════════════════════════════════════════${NC}"
 echo ""
 
-echo "运行中的 Node 相关进程:"
-ps aux | grep -E "node|npm" | grep -v grep || echo "无运行中的进程"
+if [ "$REMAINING" -gt 0 ]; then
+    echo -e "${YELLOW}运行中的进程:${NC}"
+    ps aux | grep -E "node|npm" | grep -v grep
+fi
 
 echo ""
 echo -e "${YELLOW}💡 提示:${NC}"
