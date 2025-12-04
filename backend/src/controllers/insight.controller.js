@@ -1,7 +1,9 @@
 const Insight = require('../models/Insight');
 const Checkin = require('../models/Checkin');
 const InsightRequest = require('../models/InsightRequest');
+const User = require('../models/User');
 const { success, errors } = require('../utils/response');
+const { createNotification, createNotifications } = require('./notification.controller');
 
 // 生成AI反馈（Mock版）
 async function generateInsight(req, res, next) {
@@ -453,6 +455,29 @@ async function createInsightRequest(req, res, next) {
       status: 'pending'
     });
 
+    // 获取申请者和被申请者信息
+    const fromUser = await User.findById(fromUserId).select('nickname avatar');
+    const toUser = await User.findById(toUserId).select('nickname avatar');
+
+    // 发送通知给被申请者
+    if (toUser) {
+      await createNotification(
+        toUserId,
+        'request_created',
+        '收到新的小凡看见查看申请',
+        `${fromUser?.nickname || '用户'} 申请查看你的小凡看见`,
+        {
+          requestId: request._id,
+          senderId: fromUserId,
+          data: {
+            senderName: fromUser?.nickname,
+            senderAvatar: fromUser?.avatar,
+            fromUserName: fromUser?.nickname
+          }
+        }
+      );
+    }
+
     res.json(success(request, '申请已发送'));
   } catch (error) {
     next(error);
@@ -539,6 +564,28 @@ async function approveInsightRequest(req, res, next) {
     request.approvedAt = new Date();
     await request.save();
 
+    // 获取被申请者和期次信息
+    const toUser = await User.findById(request.toUserId).select('nickname avatar');
+    const Period = require('../models/Period');
+    const period = await Period.findById(periodId).select('name');
+
+    // 发送通知给申请者
+    await createNotification(
+      request.fromUserId,
+      'request_approved',
+      '小凡看见查看申请已批准',
+      `${toUser?.nickname || '用户'} 同意了你的查看申请，允许查看 ${period?.name || '本期'} 的小凡看见`,
+      {
+        requestId: request._id,
+        senderId: request.toUserId,
+        data: {
+          senderName: toUser?.nickname,
+          senderAvatar: toUser?.avatar,
+          periodName: period?.name
+        }
+      }
+    );
+
     res.json(success(request, '已同意查看请求'));
   } catch (error) {
     next(error);
@@ -572,6 +619,25 @@ async function rejectInsightRequest(req, res, next) {
     request.status = 'rejected';
     request.rejectedAt = new Date();
     await request.save();
+
+    // 获取被申请者信息
+    const toUser = await User.findById(request.toUserId).select('nickname avatar');
+
+    // 发送通知给申请者
+    await createNotification(
+      request.fromUserId,
+      'request_rejected',
+      '小凡看见查看申请已被拒绝',
+      `${toUser?.nickname || '用户'} 拒绝了你的查看申请`,
+      {
+        requestId: request._id,
+        senderId: request.toUserId,
+        data: {
+          senderName: toUser?.nickname,
+          senderAvatar: toUser?.avatar
+        }
+      }
+    );
 
     res.json(success(request, '已拒绝查看请求'));
   } catch (error) {
@@ -741,6 +807,26 @@ async function adminApproveRequest(req, res, next) {
 
     await request.save();
 
+    // 获取申请者、被申请者和期次信息
+    const Period = require('../models/Period');
+    const fromUser = await User.findById(request.fromUserId).select('nickname avatar');
+    const toUser = await User.findById(request.toUserId).select('nickname avatar');
+    const period = await Period.findById(periodId).select('name');
+
+    // 发送通知给申请者
+    await createNotification(
+      request.fromUserId,
+      'admin_approved',
+      '小凡看见查看申请已由管理员批准',
+      `管理员已批准你的查看申请，允许查看 ${period?.name || '本期'} 的小凡看见`,
+      {
+        requestId: request._id,
+        data: {
+          periodName: period?.name
+        }
+      }
+    );
+
     res.json(success(request, '管理员已同意查看请求'));
   } catch (error) {
     next(error);
@@ -783,6 +869,20 @@ async function adminRejectRequest(req, res, next) {
     });
 
     await request.save();
+
+    // 发送通知给申请者
+    await createNotification(
+      request.fromUserId,
+      'admin_rejected',
+      '小凡看见查看申请已由管理员拒绝',
+      `管理员已拒绝你的查看申请`,
+      {
+        requestId: request._id,
+        data: {
+          reason: adminNote
+        }
+      }
+    );
 
     res.json(success(request, '管理员已拒绝查看请求'));
   } catch (error) {
@@ -829,6 +929,25 @@ async function revokeInsightRequest(req, res, next) {
     });
 
     await request.save();
+
+    // 获取被申请者信息
+    const toUser = await User.findById(request.toUserId).select('nickname avatar');
+
+    // 发送通知给申请者
+    await createNotification(
+      request.fromUserId,
+      'permission_revoked',
+      '小凡看见查看权限已被撤销',
+      `${toUser?.nickname || '用户'} 撤销了你的小凡看见查看权限`,
+      {
+        requestId: request._id,
+        senderId: request.toUserId,
+        data: {
+          senderName: toUser?.nickname,
+          senderAvatar: toUser?.avatar
+        }
+      }
+    );
 
     res.json(success(request, '已撤销查看权限'));
   } catch (error) {

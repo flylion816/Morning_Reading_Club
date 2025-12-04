@@ -164,7 +164,20 @@ main() {
   test_api "GET /admin/insights/requests/stats - 获取申请统计" "GET" "/admin/insights/requests/stats" "" "200"
 
   echo ""
-  echo "### 3️⃣  系统接口 (System API)"
+  echo "### 3️⃣  通知接口 (Notifications API)"
+  echo ""
+
+  # 新增: 2025-12-04 - GET /notifications (获取用户通知)
+  test_api "GET /notifications - 获取用户通知列表" "GET" "/notifications" "" "200"
+
+  # 新增: 2025-12-04 - GET /notifications/unread (获取未读数)
+  test_api "GET /notifications/unread - 获取未读通知数" "GET" "/notifications/unread" "" "200"
+
+  # 新增: 2025-12-04 - PUT /notifications/read-all (标记全部已读)
+  test_api "PUT /notifications/read-all - 标记所有通知为已读" "PUT" "/notifications/read-all" "" "200"
+
+  echo ""
+  echo "### 4️⃣  系统接口 (System API)"
   echo ""
   
   test_api "GET /health - 健康检查" "GET" "/health" "" "200"
