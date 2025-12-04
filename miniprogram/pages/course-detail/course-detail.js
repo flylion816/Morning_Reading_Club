@@ -143,6 +143,7 @@ Page({
         // 将打卡记录转换为评论格式
         const comment = {
           id: checkin._id || checkin.id,
+          userId: checkinUserId, // 添加userId字段以支持头像点击
           userName: userName,
           avatarText: avatarText,
           avatarUrl: avatarUrl,
