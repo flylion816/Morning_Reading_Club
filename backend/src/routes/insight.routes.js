@@ -17,10 +17,12 @@ const {
   getSentRequests,
   approveInsightRequest,
   rejectInsightRequest,
+  revokeInsightRequest,
   getInsightRequestsAdmin,
   getInsightRequestsStats,
   adminApproveRequest,
-  adminRejectRequest
+  adminRejectRequest,
+  deleteInsightRequest
 } = require('../controllers/insight.controller');
 
 /**
@@ -71,6 +73,13 @@ router.put('/requests/:requestId/approve', authMiddleware, approveInsightRequest
  * @access  Private
  */
 router.put('/requests/:requestId/reject', authMiddleware, rejectInsightRequest);
+
+/**
+ * @route   PUT /api/v1/insights/requests/:requestId/revoke
+ * @desc    撤销已批准的权限（用户操作）
+ * @access  Private
+ */
+router.put('/requests/:requestId/revoke', authMiddleware, revokeInsightRequest);
 
 /**
  * @route   GET /api/v1/insights/user/:userId?
@@ -152,5 +161,12 @@ router.put('/admin/requests/:requestId/approve', adminAuthMiddleware, adminAppro
  * @access  Private (Admin)
  */
 router.put('/admin/requests/:requestId/reject', adminAuthMiddleware, adminRejectRequest);
+
+/**
+ * @route   DELETE /api/v1/admin/insights/requests/:requestId
+ * @desc    管理员删除查看申请
+ * @access  Private (Admin)
+ */
+router.delete('/admin/requests/:requestId', adminAuthMiddleware, deleteInsightRequest);
 
 module.exports = router;

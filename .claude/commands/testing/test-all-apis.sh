@@ -142,6 +142,27 @@ main() {
   # 新增: 2025-12-04 - GET /insights/requests/sent
   test_api "GET /insights/requests/sent - 获取发起的申请" "GET" "/insights/requests/sent" "" "200"
 
+  # 新增: 2025-12-04 - PUT /insights/requests/:requestId/revoke (用户撤销权限)
+  test_api "PUT /insights/requests/:id/revoke - 用户撤销权限" "PUT" "/insights/requests/test_request_id/revoke" "" "404"
+
+  # 新增: 2025-12-04 - PUT /admin/insights/requests/:requestId/approve (管理员同意)
+  test_api "PUT /admin/insights/requests/:id/approve - 管理员同意申请" "PUT" "/admin/insights/requests/test_request_id/approve" \
+    '{"periodId":"test_period_id"}' "404"
+
+  # 新增: 2025-12-04 - PUT /admin/insights/requests/:requestId/reject (管理员拒绝)
+  test_api "PUT /admin/insights/requests/:id/reject - 管理员拒绝申请" "PUT" "/admin/insights/requests/test_request_id/reject" \
+    '{"adminNote":"test"}' "404"
+
+  # 新增: 2025-12-04 - DELETE /admin/insights/requests/:requestId (管理员删除)
+  test_api "DELETE /admin/insights/requests/:id - 管理员删除申请" "DELETE" "/admin/insights/requests/test_request_id" \
+    '{"adminNote":"test"}' "404"
+
+  # 新增: 2025-12-04 - GET /admin/insights/requests (获取所有申请)
+  test_api "GET /admin/insights/requests - 获取所有申请" "GET" "/admin/insights/requests" "" "200"
+
+  # 新增: 2025-12-04 - GET /admin/insights/requests/stats (获取统计)
+  test_api "GET /admin/insights/requests/stats - 获取申请统计" "GET" "/admin/insights/requests/stats" "" "200"
+
   echo ""
   echo "### 3️⃣  系统接口 (System API)"
   echo ""

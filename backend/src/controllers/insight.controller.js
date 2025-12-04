@@ -790,6 +790,90 @@ async function adminRejectRequest(req, res, next) {
   }
 }
 
+// 用户撤销已批准的权限
+async function revokeInsightRequest(req, res, next) {
+  try {
+    const requestId = req.params.requestId;
+    const userId = req.user.userId;
+
+    // 查找申请
+    const request = await InsightRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json(errors.notFound('申请不存在'));
+    }
+
+    // 验证当前用户是被申请者（只有被申请者可以撤销权限）
+    if (request.toUserId.toString() !== userId) {
+      return res.status(403).json(errors.forbidden('无权撤销权限'));
+    }
+
+    // 验证申请状态为approved
+    if (request.status !== 'approved') {
+      return res.status(400).json(errors.badRequest('只能撤销已批准的申请'));
+    }
+
+    // 更新申请
+    request.status = 'revoked';
+    request.revokedAt = new Date();
+
+    // 记录操作到审计日志
+    if (!request.auditLog) {
+      request.auditLog = [];
+    }
+    request.auditLog.push({
+      action: 'revoke',
+      actor: userId,
+      actorType: 'user',
+      timestamp: new Date()
+    });
+
+    await request.save();
+
+    res.json(success(request, '已撤销查看权限'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 管理员删除申请
+async function deleteInsightRequest(req, res, next) {
+  try {
+    const requestId = req.params.requestId;
+    const adminId = req.admin?.id || req.user?.userId;
+    const { adminNote } = req.body;
+
+    // 查找申请
+    const request = await InsightRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json(errors.notFound('申请不存在'));
+    }
+
+    // 记录删除操作到审计日志（在删除前）
+    if (!request.auditLog) {
+      request.auditLog = [];
+    }
+    request.auditLog.push({
+      action: 'admin_delete',
+      actor: adminId,
+      actorType: 'admin',
+      timestamp: new Date(),
+      note: adminNote || ''
+    });
+
+    // 保存审计日志后删除
+    await request.save();
+
+    // 然后删除记录
+    await InsightRequest.findByIdAndDelete(requestId);
+
+    res.json(success(null, '申请已删除'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 辅助函数：格式化时间差
 function formatDuration(ms) {
   if (!ms || ms < 0) return '0分钟';
@@ -818,8 +902,10 @@ module.exports = {
   getSentRequests,
   approveInsightRequest,
   rejectInsightRequest,
+  revokeInsightRequest,
   getInsightRequestsAdmin,
   getInsightRequestsStats,
   adminApproveRequest,
-  adminRejectRequest
+  adminRejectRequest,
+  deleteInsightRequest
 };

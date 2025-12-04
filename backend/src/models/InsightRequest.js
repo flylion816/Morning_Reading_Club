@@ -16,10 +16,10 @@ const insightRequestSchema = new mongoose.Schema(
       required: true
     },
 
-    // 申请状态：pending(待处理), approved(已同意), rejected(已拒绝)
+    // 申请状态：pending(待处理), approved(已同意), rejected(已拒绝), revoked(已撤销)
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected'],
+      enum: ['pending', 'approved', 'rejected', 'revoked'],
       default: 'pending'
     },
 
@@ -47,12 +47,18 @@ const insightRequestSchema = new mongoose.Schema(
       default: null
     },
 
+    // 权限撤销时间戳
+    revokedAt: {
+      type: Date,
+      default: null
+    },
+
     // 审计日志：记录所有操作
     auditLog: [
       {
         action: {
           type: String,
-          enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke'],
+          enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke', 'admin_delete'],
           required: true
         },
         actor: {

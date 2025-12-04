@@ -63,6 +63,7 @@
               <el-option label="待审批" value="pending" />
               <el-option label="已同意" value="approved" />
               <el-option label="已拒绝" value="rejected" />
+              <el-option label="已撤销" value="revoked" />
               <el-option label="全部" value="all" />
             </el-select>
           </el-form-item>
@@ -178,6 +179,14 @@
                 </el-button>
                 <el-button type="info" size="small" @click="openDetailDialog(row)">
                   详情
+                </el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                  text
+                  @click="handleDeleteRequest(row)"
+                >
+                  删除
                 </el-button>
               </div>
             </template>
@@ -475,6 +484,30 @@ const openDetailDialog = (row) => {
   dialogDetail.value.visible = true
 }
 
+// 删除申请
+const handleDeleteRequest = (row) => {
+  ElMessageBox.confirm('确认删除此申请吗？此操作不可恢复', '删除确认', {
+    confirmButtonText: '确定删除',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(async () => {
+      try {
+        await api.delete(`/admin/insights/requests/${row._id}`, {
+          data: {
+            adminNote: '管理员删除'
+          }
+        })
+        ElMessage.success('申请已删除')
+        loadRequests()
+        loadStats()
+      } catch (error) {
+        ElMessage.error(error.response?.data?.message || '删除失败')
+      }
+    })
+    .catch(() => {})
+}
+
 // 批量同意
 const batchApprove = () => {
   ElMessageBox.confirm('确认批量同意选中的申请吗?', '提示', {
@@ -602,7 +635,8 @@ const getStatusLabel = (status) => {
   const labels = {
     pending: '待审批',
     approved: '已同意',
-    rejected: '已拒绝'
+    rejected: '已拒绝',
+    revoked: '已撤销'
   }
   return labels[status] || '未知'
 }
@@ -615,7 +649,8 @@ const getActionLabel = (action) => {
     reject: '用户拒绝',
     admin_approve: '管理员同意',
     admin_reject: '管理员拒绝',
-    revoke: '撤销权限'
+    revoke: '撤销权限',
+    admin_delete: '管理员删除'
   }
   return labels[action] || '未知操作'
 }
