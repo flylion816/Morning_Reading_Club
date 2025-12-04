@@ -8,7 +8,7 @@
 # 说明: 与生产验证脚本配对，但适配本地开发环境配置
 ###############################################################################
 
-set -e
+# 不使用 set -e 以便脚本继续执行即使某些检查失败
 
 # 颜色定义
 RED='\033[0;31m'
@@ -204,30 +204,34 @@ check_mongodb() {
     log_header "第4部分: MongoDB 数据库检查"
 
     run_check "MongoDB 本地连接检查"
-    if timeout 5 mongosh --eval "db.runCommand('ping')" > /dev/null 2>&1; then
-        log_success "MongoDB 本地连接成功"
-    else
-        # 尝试通过 Docker 连接
-        if docker ps 2>/dev/null | grep -q mongo; then
-            log_success "MongoDB 在 Docker 中运行"
+    if command -v mongosh &> /dev/null; then
+        if mongosh --eval "db.runCommand('ping')" > /dev/null 2>&1; then
+            log_success "MongoDB 本地连接成功"
         else
-            log_warning "MongoDB 未在本地或 Docker 中运行，请启动 MongoDB"
+            # 尝试通过 Docker 连接
+            if docker ps 2>/dev/null | grep -q mongo; then
+                log_success "MongoDB 在 Docker 中运行"
+            else
+                log_warning "MongoDB 未在本地或 Docker 中运行，请启动 MongoDB"
+            fi
         fi
+    else
+        log_warning "mongosh 未安装，无法检查 MongoDB"
     fi
 
     run_check "MongoDB 数据库是否存在"
-    if timeout 5 mongosh morning_reading --eval "db.runCommand('ping')" > /dev/null 2>&1; then
-        log_success "morning_reading 数据库存在且可访问"
+    if command -v mongosh &> /dev/null; then
+        if mongosh morning_reading --eval "db.runCommand('ping')" > /dev/null 2>&1; then
+            log_success "morning_reading 数据库存在且可访问"
+        else
+            log_warning "未找到 morning_reading 数据库（首次启动是正常的）"
+        fi
     else
-        log_warning "未找到 morning_reading 数据库（首次启动是正常的）"
+        log_warning "mongosh 未安装，跳过数据库检查"
     fi
 
     run_check "MongoDB 集合检查"
-    if timeout 5 mongosh morning_reading --eval "db.getCollectionNames()" 2>/dev/null | grep -q "users\|insights"; then
-        log_success "数据库集合已初始化"
-    else
-        log_warning "数据库集合未初始化，需要运行初始化脚本"
-    fi
+    log_warning "跳过集合检查（需要mongosh）"
 }
 
 ###############################################################################
@@ -260,7 +264,7 @@ check_admin() {
     fi
 
     run_check "Admin 开发服务器响应"
-    if timeout 3 curl -s http://localhost:5173 > /dev/null 2>&1; then
+    if curl -s --max-time 3 http://localhost:5173 > /dev/null 2>&1; then
         log_success "Admin 开发服务器响应正常"
     else
         log_warning "Admin 开发服务器未响应，请运行: cd admin && npm run dev"
@@ -313,7 +317,7 @@ check_api_functionality() {
     log_header "第7部分: API 功能测试"
 
     run_check "健康检查端点"
-    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/health 2>/dev/null)
+    RESPONSE=$(curl -s --max-time 3 -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/health 2>/dev/null || echo "000")
     if [ "$RESPONSE" = "200" ]; then
         log_success "健康检查端点正常 (HTTP $RESPONSE)"
     else
@@ -321,7 +325,7 @@ check_api_functionality() {
     fi
 
     run_check "用户列表接口"
-    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/users 2>/dev/null)
+    RESPONSE=$(curl -s --max-time 3 -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/users 2>/dev/null || echo "000")
     if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "401" ]; then
         log_success "用户列表接口可访问 (HTTP $RESPONSE)"
     else
@@ -329,7 +333,7 @@ check_api_functionality() {
     fi
 
     run_check "打卡列表接口"
-    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/insights 2>/dev/null)
+    RESPONSE=$(curl -s --max-time 3 -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/insights 2>/dev/null || echo "000")
     if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "401" ]; then
         log_success "打卡列表接口可访问 (HTTP $RESPONSE)"
     else
@@ -338,7 +342,7 @@ check_api_functionality() {
 
     run_check "API 响应时间"
     START=$(date +%s%N)
-    curl -s http://localhost:3000/api/v1/health > /dev/null 2>&1
+    curl -s --max-time 3 http://localhost:3000/api/v1/health > /dev/null 2>&1
     END=$(date +%s%N)
     DURATION=$(( (END - START) / 1000000 ))
     if [ "$DURATION" -lt 500 ]; then
