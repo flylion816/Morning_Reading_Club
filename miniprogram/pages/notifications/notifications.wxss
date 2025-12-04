@@ -1,0 +1,311 @@
+/**
+ * 通知页面样式
+ */
+
+.notifications-container {
+  background: #f5f7fa;
+  min-height: 100vh;
+  padding-bottom: 20rpx;
+}
+
+/* 页面标题 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  background: white;
+  border-bottom: 1rpx solid #eee;
+}
+
+.title-section {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.badge {
+  background: #fa5151;
+  color: white;
+  font-size: 20rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 20rpx;
+  min-width: 30rpx;
+  text-align: center;
+}
+
+.header-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.action-link {
+  color: #667eea;
+  font-size: 28rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 150rpx 30rpx;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 30rpx;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.empty-desc {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 100rpx 30rpx;
+}
+
+.loading-text {
+  color: #999;
+  font-size: 28rpx;
+}
+
+/* 选项卡 */
+.tabs {
+  display: flex;
+  background: white;
+  border-bottom: 1rpx solid #eee;
+  padding: 0 30rpx;
+}
+
+.tab-item {
+  flex: 1;
+  padding: 24rpx 0;
+  text-align: center;
+  font-size: 28rpx;
+  color: #999;
+  border-bottom: 4rpx solid transparent;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.tab-item.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.tab-badge {
+  background: #fa5151;
+  color: white;
+  font-size: 20rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 16rpx;
+  min-width: 28rpx;
+  text-align: center;
+}
+
+/* 通知列表 */
+.notifications-list {
+  padding: 20rpx 0;
+}
+
+.notification-item {
+  display: flex;
+  position: relative;
+  background: white;
+  margin: 20rpx 20rpx;
+  padding: 24rpx;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.notification-item:active {
+  background: #f5f7fa;
+}
+
+.notification-item.unread {
+  background: #fafbff;
+  border-left: 4rpx solid #667eea;
+}
+
+.notification-item.read {
+  opacity: 0.7;
+}
+
+/* 未读指示符 */
+.unread-indicator {
+  position: absolute;
+  left: 20rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12rpx;
+  height: 12rpx;
+  background: #667eea;
+  border-radius: 50%;
+}
+
+/* 通知内容 */
+.notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-left: 16rpx;
+}
+
+/* 通知标题 */
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.notification-title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.type-icon {
+  font-size: 32rpx;
+}
+
+.type-label {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 8rpx;
+}
+
+.action-btn {
+  padding: 8rpx;
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+.action-btn:active {
+  opacity: 0.7;
+}
+
+.delete-btn {
+  color: #fa5151;
+}
+
+/* 通知消息 */
+.notification-message {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* 发送者信息 */
+.sender-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.sender-avatar {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: #eee;
+}
+
+.sender-name {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 通知底部 */
+.notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+}
+
+.time {
+  color: #ccc;
+}
+
+.status {
+  background: #667eea;
+  color: white;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 20rpx;
+}
+
+/* 分页 */
+.pagination {
+  padding: 30rpx 20rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.load-more-btn {
+  width: 100%;
+  max-width: 300rpx;
+  height: 80rpx;
+  background: #667eea;
+  color: white;
+  font-size: 28rpx;
+  border-radius: 12rpx;
+  border: none;
+}
+
+.load-more-btn:active {
+  opacity: 0.8;
+}
+
+/* 没有更多 */
+.no-more {
+  padding: 40rpx 30rpx;
+  text-align: center;
+  color: #ccc;
+  font-size: 26rpx;
+}
+
+/* 响应式设计 */
+@media (min-width: 768px) {
+  .notification-item {
+    margin: 20rpx auto;
+    max-width: 600rpx;
+  }
+
+  .page-header {
+    padding: 30rpx;
+  }
+}

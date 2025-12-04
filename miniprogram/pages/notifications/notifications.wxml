@@ -1,0 +1,120 @@
+<!--通知页面-->
+<view class="notifications-container">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <view class="title-section">
+      <text class="title">通知</text>
+      <view class="badge" wx:if="{{unreadCount > 0}}">{{unreadCount}}</view>
+    </view>
+    <view class="header-actions" wx:if="{{notifications.length > 0 && unreadCount > 0}}">
+      <text class="action-link" bindtap="handleMarkAllAsRead">全部已读</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && notifications.length === 0}}">
+    <view class="empty-icon">📬</view>
+    <text class="empty-text">暂无通知</text>
+    <text class="empty-desc">你的通知会在这里显示</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading && notifications.length === 0}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 筛选选项卡 -->
+  <view class="tabs" wx:if="{{notifications.length > 0}}">
+    <view
+      class="tab-item {{activeTab === 'all' ? 'active' : ''}}"
+      bindtap="handleTabChange"
+      data-tab="all"
+    >
+      全部
+    </view>
+    <view
+      class="tab-item {{activeTab === 'false' ? 'active' : ''}}"
+      bindtap="handleTabChange"
+      data-tab="false"
+    >
+      未读 <text class="tab-badge" wx:if="{{unreadCount > 0}}">{{unreadCount}}</text>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'true' ? 'active' : ''}}"
+      bindtap="handleTabChange"
+      data-tab="true"
+    >
+      已读
+    </view>
+  </view>
+
+  <!-- 通知列表 -->
+  <view class="notifications-list">
+    <view
+      class="notification-item {{item.isRead ? 'read' : 'unread'}}"
+      wx:for="{{displayedNotifications}}"
+      wx:key="{{item._id}}"
+      bindtap="handleNotificationTap"
+      data-id="{{item._id}}"
+      data-request-id="{{item.requestId}}"
+    >
+      <!-- 未读指示符 -->
+      <view class="unread-indicator" wx:if="{{!item.isRead}}"></view>
+
+      <!-- 通知内容 -->
+      <view class="notification-content">
+        <!-- 标题和操作 -->
+        <view class="notification-header">
+          <view class="notification-title">
+            <text class="type-icon">{{getTypeIcon(item.type)}}</text>
+            <text class="type-label">{{getTypeLabel(item.type)}}</text>
+          </view>
+          <view class="notification-actions">
+            <text
+              class="action-btn delete-btn"
+              bindtap="handleDelete"
+              data-id="{{item._id}}"
+              catchtap
+            >
+              ✕
+            </text>
+          </view>
+        </view>
+
+        <!-- 通知消息 -->
+        <view class="notification-message">{{item.content}}</view>
+
+        <!-- 发送者信息（如果有）-->
+        <view class="sender-info" wx:if="{{item.data.senderName}}">
+          <image
+            class="sender-avatar"
+            src="{{item.data.senderAvatar || '/assets/images/default-avatar.png'}}"
+          ></image>
+          <text class="sender-name">{{item.data.senderName}}</text>
+        </view>
+
+        <!-- 时间和状态 -->
+        <view class="notification-footer">
+          <text class="time">{{formatTime(item.createdAt)}}</text>
+          <text class="status" wx:if="{{!item.isRead}}">未读</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分页加载 -->
+  <view class="pagination" wx:if="{{hasMore && notifications.length > 0}}">
+    <button class="load-more-btn" bindtap="handleLoadMore" loading="{{loading}}">
+      加载更多
+    </button>
+  </view>
+
+  <!-- 没有更多内容 -->
+  <view class="no-more" wx:if="{{!hasMore && notifications.length > 0}}">
+    <text>没有更多通知了</text>
+  </view>
+</view>
+
+<style>
+@import './notifications.wxss';
+</style>
