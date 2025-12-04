@@ -459,6 +459,126 @@ async function createInsightRequest(req, res, next) {
   }
 }
 
+// 获取收到的查看申请列表
+async function getReceivedRequests(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const { status } = req.query;
+
+    // 构建查询条件
+    const query = { toUserId: userId };
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // 查询申请，并populate申请者信息
+    const requests = await InsightRequest.find(query)
+      .populate('fromUserId', 'nickname avatarUrl avatar')
+      .sort({ createdAt: -1 });
+
+    res.json(success(requests, '获取成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取发起的查看申请列表
+async function getSentRequests(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const { status } = req.query;
+
+    // 构建查询条件
+    const query = { fromUserId: userId };
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // 查询申请，并populate被申请者信息
+    const requests = await InsightRequest.find(query)
+      .populate('toUserId', 'nickname avatarUrl avatar')
+      .sort({ createdAt: -1 });
+
+    res.json(success(requests, '获取成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 同意查看申请
+async function approveInsightRequest(req, res, next) {
+  try {
+    const requestId = req.params.requestId;
+    const userId = req.user.userId;
+    const { periodId } = req.body;
+
+    if (!periodId) {
+      return res.status(400).json(errors.badRequest('期次ID不能为空'));
+    }
+
+    // 查找申请
+    const request = await InsightRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json(errors.notFound('申请不存在'));
+    }
+
+    // 验证当前用户是被申请者
+    if (request.toUserId.toString() !== userId) {
+      return res.status(403).json(errors.forbidden('无权审批'));
+    }
+
+    // 验证申请状态为pending
+    if (request.status !== 'pending') {
+      return res.status(400).json(errors.badRequest('申请状态已改变，无法操作'));
+    }
+
+    // 更新申请
+    request.status = 'approved';
+    request.periodId = periodId;
+    request.approvedAt = new Date();
+    await request.save();
+
+    res.json(success(request, '已同意查看请求'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 拒绝查看申请
+async function rejectInsightRequest(req, res, next) {
+  try {
+    const requestId = req.params.requestId;
+    const userId = req.user.userId;
+
+    // 查找申请
+    const request = await InsightRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json(errors.notFound('申请不存在'));
+    }
+
+    // 验证当前用户是被申请者
+    if (request.toUserId.toString() !== userId) {
+      return res.status(403).json(errors.forbidden('无权拒绝'));
+    }
+
+    // 验证申请状态为pending
+    if (request.status !== 'pending') {
+      return res.status(400).json(errors.badRequest('申请状态已改变，无法操作'));
+    }
+
+    // 更新申请
+    request.status = 'rejected';
+    request.rejectedAt = new Date();
+    await request.save();
+
+    res.json(success(request, '已拒绝查看请求'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -469,5 +589,9 @@ module.exports = {
   getInsightsForPeriod,
   updateInsight,
   deleteInsightManual,
-  createInsightRequest
+  createInsightRequest,
+  getReceivedRequests,
+  getSentRequests,
+  approveInsightRequest,
+  rejectInsightRequest
 };

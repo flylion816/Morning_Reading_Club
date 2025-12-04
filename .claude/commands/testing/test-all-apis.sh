@@ -135,7 +135,13 @@ main() {
   # 新增: 2025-12-04 - POST /insights/requests
   test_api "POST /insights/requests - 创建查看申请" "POST" "/insights/requests" \
     '{"toUserId":"test_user_id"}' "400"
-  
+
+  # 新增: 2025-12-04 - GET /insights/requests/received
+  test_api "GET /insights/requests/received - 获取收到的申请" "GET" "/insights/requests/received" "" "200"
+
+  # 新增: 2025-12-04 - GET /insights/requests/sent
+  test_api "GET /insights/requests/sent - 获取发起的申请" "GET" "/insights/requests/sent" "" "200"
+
   echo ""
   echo "### 3️⃣  系统接口 (System API)"
   echo ""

@@ -12,7 +12,11 @@ const {
   getInsightsForPeriod,
   updateInsight,
   deleteInsightManual,
-  createInsightRequest
+  createInsightRequest,
+  getReceivedRequests,
+  getSentRequests,
+  approveInsightRequest,
+  rejectInsightRequest
 } = require('../controllers/insight.controller');
 
 /**
@@ -35,6 +39,34 @@ router.post('/generate', authMiddleware, generateInsight);
  * @access  Private
  */
 router.post('/requests', authMiddleware, createInsightRequest);
+
+/**
+ * @route   GET /api/v1/insights/requests/received
+ * @desc    获取收到的查看申请列表
+ * @access  Private
+ */
+router.get('/requests/received', authMiddleware, getReceivedRequests);
+
+/**
+ * @route   GET /api/v1/insights/requests/sent
+ * @desc    获取发起的查看申请列表
+ * @access  Private
+ */
+router.get('/requests/sent', authMiddleware, getSentRequests);
+
+/**
+ * @route   PUT /api/v1/insights/requests/:requestId/approve
+ * @desc    同意查看申请
+ * @access  Private
+ */
+router.put('/requests/:requestId/approve', authMiddleware, approveInsightRequest);
+
+/**
+ * @route   PUT /api/v1/insights/requests/:requestId/reject
+ * @desc    拒绝查看申请
+ * @access  Private
+ */
+router.put('/requests/:requestId/reject', authMiddleware, rejectInsightRequest);
 
 /**
  * @route   GET /api/v1/insights/user/:userId?

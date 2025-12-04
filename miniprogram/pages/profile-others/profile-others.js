@@ -71,6 +71,15 @@ Page({
       return;
     }
 
+    // 检查是否在点击自己的头像
+    if (currentUser._id === userId) {
+      wx.showToast({
+        title: '无需向自己发起查看请求',
+        icon: 'none'
+      });
+      return;
+    }
+
     wx.showModal({
       title: '查看小凡看见',
       content: `需要向 ${userInfo.nickname} 发起查看申请，对方同意后才能查看`,
