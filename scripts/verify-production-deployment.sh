@@ -7,7 +7,7 @@
 # 版本: 1.0.0
 ###############################################################################
 
-set -e
+# 不使用 set -e 以便脚本继续执行即使某些检查失败
 
 # 颜色定义
 RED='\033[0;31m'
@@ -134,11 +134,10 @@ check_mongodb() {
     run_check "MongoDB 连接可用性"
     if mongosh --version > /dev/null 2>&1; then
         # 如果有MongoDB认证，需要使用正确的连接字符串
-        if timeout 10 mongosh mongodb://localhost:27017/morning_reading --eval "db.runCommand('ping')" > /dev/null 2>&1; then
+        if mongosh mongodb://localhost:27017/morning_reading --eval "db.runCommand('ping')" > /dev/null 2>&1; then
             log_success "MongoDB 连接正常"
         else
             log_error "无法连接到 MongoDB"
-            return 1
         fi
     else
         log_warning "mongosh 客户端未安装，跳过详细检查"
@@ -169,11 +168,10 @@ check_backend_api() {
     log_header "第3部分: Backend API 检查"
 
     run_check "Backend 服务港口 (3000) 开放性"
-    if timeout 5 bash -c "echo >/dev/tcp/localhost/3000" 2>/dev/null; then
+    if curl -s --max-time 3 http://localhost:3000 > /dev/null 2>&1 || lsof -i :3000 > /dev/null 2>&1; then
         log_success "Backend 港口 3000 已开放"
     else
         log_error "无法连接到 Backend 港口 3000"
-        return 1
     fi
 
     run_check "Backend 健康检查端点"
@@ -300,7 +298,7 @@ check_network() {
     fi
 
     run_check "互联网连接"
-    if timeout 5 ping -c 1 8.8.8.8 > /dev/null 2>&1; then
+    if curl -s --max-time 3 https://8.8.8.8 > /dev/null 2>&1 || curl -s --max-time 3 https://1.1.1.1 > /dev/null 2>&1; then
         log_success "互联网连接正常"
     else
         log_warning "无法连接到外部互联网（可能是DNS或防火墙问题）"
