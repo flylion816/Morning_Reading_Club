@@ -104,7 +104,18 @@
               <el-button type="danger" @click="batchReject" :disabled="selectedRequests.length === 0">
                 批量拒绝 ({{ selectedRequests.length }})
               </el-button>
-              <el-button @click="exportData">导出数据</el-button>
+              <el-dropdown @command="handleExport">
+                <el-button>
+                  导出数据 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="excel">📊 导出为 Excel</el-dropdown-item>
+                    <el-dropdown-item command="csv">📋 导出为 CSV</el-dropdown-item>
+                    <el-dropdown-item command="json">📄 导出为 JSON</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </div>
           </div>
         </template>
@@ -284,8 +295,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import api from '../services/api'
+import { exportToCSV, exportToExcel, exportToJSON, generateFilename } from '../utils/exportUtils'
 
 // 统计数据
 const stats = ref({
@@ -500,8 +513,8 @@ const batchReject = () => {
     .catch(() => {})
 }
 
-// 导出数据
-const exportData = () => {
+// 生成导出数据
+const generateExportData = () => {
   const headers = ['申请者', '被申请者', '申请原因', '申请时间', '申请状态', '处理时间']
   const rows = requests.value.map(req => [
     req.fromUserId?.nickname || '-',
@@ -511,15 +524,39 @@ const exportData = () => {
     getStatusLabel(req.status),
     req.approvedAt ? formatTime(req.approvedAt) : req.rejectedAt ? formatTime(req.rejectedAt) : '-'
   ])
+  return { headers, rows }
+}
 
-  const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = `insight-requests-${new Date().getTime()}.csv`
-  link.click()
+// 导出数据 - 支持多种格式
+const handleExport = async (command: string) => {
+  const { headers, rows } = generateExportData()
+  const filename = generateFilename('insight-requests-export')
 
-  ElMessage.success('数据已导出')
+  try {
+    if (command === 'excel') {
+      await exportToExcel(filename, headers, rows, {
+        sheetName: '查看申请列表',
+        frozenHeader: true,
+        columnWidths: [15, 15, 20, 20, 12, 20],
+        headerBackgroundColor: 'FF4472C4',
+        headerTextColor: 'FFFFFFFF'
+      })
+      ElMessage.success('Excel 导出成功')
+    } else if (command === 'csv') {
+      exportToCSV(filename, headers, rows)
+      ElMessage.success('CSV 导出成功')
+    } else if (command === 'json') {
+      exportToJSON(filename, headers, rows)
+      ElMessage.success('JSON 导出成功')
+    }
+  } catch (error) {
+    if (command === 'excel') {
+      ElMessage.warning('Excel 导出失败，自动使用 CSV 格式')
+      exportToCSV(filename, headers, rows)
+    } else {
+      ElMessage.error('导出失败: ' + error.message)
+    }
+  }
 }
 
 // 处理搜索
