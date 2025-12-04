@@ -47,6 +47,10 @@
           <span>👀 小凡看见</span>
         </el-menu-item>
 
+        <el-menu-item index="/insight-requests">
+          <span>📋 查看申请</span>
+        </el-menu-item>
+
         <el-menu-item index="/audit-logs">
           <span>🔍 审计日志</span>
         </el-menu-item>
