@@ -45,7 +45,34 @@ const insightRequestSchema = new mongoose.Schema(
     rejectedAt: {
       type: Date,
       default: null
-    }
+    },
+
+    // 审计日志：记录所有操作
+    auditLog: [
+      {
+        action: {
+          type: String,
+          enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke'],
+          required: true
+        },
+        actor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true
+        },
+        actorType: {
+          type: String,
+          enum: ['user', 'admin'],
+          default: 'user'
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now
+        },
+        note: String,
+        reason: String
+      }
+    ]
   },
   {
     timestamps: true,

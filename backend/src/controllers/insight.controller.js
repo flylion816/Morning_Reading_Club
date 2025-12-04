@@ -579,6 +579,230 @@ async function rejectInsightRequest(req, res, next) {
   }
 }
 
+// ==================== 管理员相关接口 ====================
+
+// 获取所有查看申请列表（管理员视图）
+async function getInsightRequestsAdmin(req, res, next) {
+  try {
+    const { status, page = 1, limit = 20, fromUser, toUser } = req.query;
+
+    // 构建查询条件
+    const query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // 根据用户搜索
+    if (fromUser || toUser) {
+      const User = require('../models/User');
+      const users = await User.find({
+        $or: [
+          { nickname: new RegExp(fromUser || toUser, 'i') },
+          { email: new RegExp(fromUser || toUser, 'i') }
+        ]
+      });
+
+      if (fromUser) {
+        query.fromUserId = { $in: users.map(u => u._id) };
+      }
+      if (toUser) {
+        query.toUserId = { $in: users.map(u => u._id) };
+      }
+    }
+
+    // 计算分页
+    const skip = (page - 1) * limit;
+
+    // 查询总数
+    const total = await InsightRequest.countDocuments(query);
+
+    // 查询申请，并populate用户信息
+    const requests = await InsightRequest.find(query)
+      .populate('fromUserId', 'nickname avatarUrl avatar email')
+      .populate('toUserId', 'nickname avatarUrl avatar email')
+      .populate('periodId', 'name startDate endDate')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.json(success({
+      requests,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    }, '获取成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取申请统计信息
+async function getInsightRequestsStats(req, res, next) {
+  try {
+    const stats = await InsightRequest.aggregate([
+      {
+        $facet: {
+          total: [
+            { $count: 'count' }
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 }
+              }
+            }
+          ],
+          responseTime: [
+            {
+              $match: { status: { $in: ['approved', 'rejected'] } }
+            },
+            {
+              $group: {
+                _id: null,
+                avgTime: {
+                  $avg: {
+                    $subtract: [
+                      { $ifNull: ['$approvedAt', '$rejectedAt'] },
+                      '$createdAt'
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    const totalCount = stats[0].total[0]?.count || 0;
+    const byStatus = {};
+    stats[0].byStatus.forEach(item => {
+      byStatus[item._id] = item.count;
+    });
+
+    const avgResponseTime = stats[0].responseTime[0]?.avgTime || 0;
+
+    res.json(success({
+      totalRequests: totalCount,
+      pendingRequests: byStatus.pending || 0,
+      approvedRequests: byStatus.approved || 0,
+      rejectedRequests: byStatus.rejected || 0,
+      avgResponseTimeMs: Math.round(avgResponseTime),
+      avgResponseTime: formatDuration(avgResponseTime)
+    }, '获取成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 管理员同意申请
+async function adminApproveRequest(req, res, next) {
+  try {
+    const requestId = req.params.requestId;
+    const adminId = req.user.userId;
+    const { periodId, adminNote } = req.body;
+
+    if (!periodId) {
+      return res.status(400).json(errors.badRequest('期次ID不能为空'));
+    }
+
+    // 查找申请
+    const request = await InsightRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json(errors.notFound('申请不存在'));
+    }
+
+    // 验证申请状态为pending
+    if (request.status !== 'pending') {
+      return res.status(400).json(errors.badRequest('申请状态已改变，无法操作'));
+    }
+
+    // 更新申请
+    request.status = 'approved';
+    request.periodId = periodId;
+    request.approvedAt = new Date();
+
+    // 记录管理员操作
+    if (!request.auditLog) {
+      request.auditLog = [];
+    }
+    request.auditLog.push({
+      action: 'admin_approve',
+      actor: adminId,
+      actorType: 'admin',
+      timestamp: new Date(),
+      note: adminNote || ''
+    });
+
+    await request.save();
+
+    res.json(success(request, '管理员已同意查看请求'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 管理员拒绝申请
+async function adminRejectRequest(req, res, next) {
+  try {
+    const requestId = req.params.requestId;
+    const adminId = req.user.userId;
+    const { adminNote } = req.body;
+
+    // 查找申请
+    const request = await InsightRequest.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json(errors.notFound('申请不存在'));
+    }
+
+    // 验证申请状态为pending
+    if (request.status !== 'pending') {
+      return res.status(400).json(errors.badRequest('申请状态已改变，无法操作'));
+    }
+
+    // 更新申请
+    request.status = 'rejected';
+    request.rejectedAt = new Date();
+
+    // 记录管理员操作
+    if (!request.auditLog) {
+      request.auditLog = [];
+    }
+    request.auditLog.push({
+      action: 'admin_reject',
+      actor: adminId,
+      actorType: 'admin',
+      timestamp: new Date(),
+      reason: adminNote || ''
+    });
+
+    await request.save();
+
+    res.json(success(request, '管理员已拒绝查看请求'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 辅助函数：格式化时间差
+function formatDuration(ms) {
+  if (!ms || ms < 0) return '0分钟';
+
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) {
+    return `${hours}小时${minutes}分钟`;
+  }
+  return `${minutes}分钟`;
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -593,5 +817,9 @@ module.exports = {
   getReceivedRequests,
   getSentRequests,
   approveInsightRequest,
-  rejectInsightRequest
+  rejectInsightRequest,
+  getInsightRequestsAdmin,
+  getInsightRequestsStats,
+  adminApproveRequest,
+  adminRejectRequest
 };

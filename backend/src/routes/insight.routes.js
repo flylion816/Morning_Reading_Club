@@ -16,7 +16,11 @@ const {
   getReceivedRequests,
   getSentRequests,
   approveInsightRequest,
-  rejectInsightRequest
+  rejectInsightRequest,
+  getInsightRequestsAdmin,
+  getInsightRequestsStats,
+  adminApproveRequest,
+  adminRejectRequest
 } = require('../controllers/insight.controller');
 
 /**
@@ -118,5 +122,35 @@ router.put('/:insightId', adminAuthMiddleware, updateInsight);
  * @access  Private (Admin)
  */
 router.delete('/manual/:insightId', adminAuthMiddleware, deleteInsightManual);
+
+// ==================== 管理员查看申请管理接口 ====================
+
+/**
+ * @route   GET /api/v1/admin/insights/requests
+ * @desc    获取所有查看申请列表（管理员视图）
+ * @access  Private (Admin)
+ */
+router.get('/admin/requests', adminAuthMiddleware, getInsightRequestsAdmin);
+
+/**
+ * @route   GET /api/v1/admin/insights/requests/stats
+ * @desc    获取申请统计信息
+ * @access  Private (Admin)
+ */
+router.get('/admin/requests/stats', adminAuthMiddleware, getInsightRequestsStats);
+
+/**
+ * @route   PUT /api/v1/admin/insights/requests/:requestId/approve
+ * @desc    管理员同意查看申请
+ * @access  Private (Admin)
+ */
+router.put('/admin/requests/:requestId/approve', adminAuthMiddleware, adminApproveRequest);
+
+/**
+ * @route   PUT /api/v1/admin/insights/requests/:requestId/reject
+ * @desc    管理员拒绝查看申请
+ * @access  Private (Admin)
+ */
+router.put('/admin/requests/:requestId/reject', adminAuthMiddleware, adminRejectRequest);
 
 module.exports = router;
