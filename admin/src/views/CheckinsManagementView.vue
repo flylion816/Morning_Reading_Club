@@ -115,7 +115,7 @@
           <el-table-column label="用户" width="150">
             <template #default="{ row }">
               <div class="user-cell">
-                <div v-if="typeof row.userId === 'object'" class="user-info">
+                <div v-if="row.userId && typeof row.userId === 'object'" class="user-info">
                   <div class="user-name">{{ row.userId.nickname }}</div>
                   <div class="user-id">{{ row.userId.openid }}</div>
                 </div>
@@ -127,14 +127,14 @@
           <!-- 期次 -->
           <el-table-column label="期次" width="150">
             <template #default="{ row }">
-              {{ typeof row.periodId === 'object' ? (row.periodId.name || '-') : '-' }}
+              {{ (row.periodId && typeof row.periodId === 'object') ? (row.periodId.name || '-') : '-' }}
             </template>
           </el-table-column>
 
           <!-- 课程 -->
           <el-table-column label="课程" width="150">
             <template #default="{ row }">
-              <div v-if="typeof row.sectionId === 'object'">
+              <div v-if="row.sectionId && typeof row.sectionId === 'object'">
                 Day {{ row.sectionId.day }} - {{ row.sectionId.title }}
               </div>
               <div v-else>-</div>
@@ -213,18 +213,18 @@
         <div v-if="selectedCheckin" class="checkin-detail">
           <el-descriptions :column="1" border>
             <el-descriptions-item label="用户">
-              <div v-if="typeof selectedCheckin.userId === 'object'">
+              <div v-if="selectedCheckin.userId && typeof selectedCheckin.userId === 'object'">
                 <div>{{ selectedCheckin.userId.nickname }}</div>
                 <div style="font-size: 12px; color: #999">{{ selectedCheckin.userId.openid }}</div>
               </div>
             </el-descriptions-item>
 
             <el-descriptions-item label="期次">
-              {{ typeof selectedCheckin.periodId === 'object' ? selectedCheckin.periodId.name : '-' }}
+              {{ (selectedCheckin.periodId && typeof selectedCheckin.periodId === 'object') ? selectedCheckin.periodId.name : '-' }}
             </el-descriptions-item>
 
             <el-descriptions-item label="课程">
-              <div v-if="typeof selectedCheckin.sectionId === 'object'">
+              <div v-if="selectedCheckin.sectionId && typeof selectedCheckin.sectionId === 'object'">
                 Day {{ selectedCheckin.sectionId.day }} - {{ selectedCheckin.sectionId.title }}
               </div>
             </el-descriptions-item>
@@ -411,15 +411,13 @@ const loadCheckins = async () => {
       params.dateTo = new Date(filters.value.dateTo).toISOString().split('T')[0]
     }
 
-    const res = await api.get('/api/v1/admin/checkins', { params })
-    if (res.code === 200) {
-      checkins.value = res.data.list
-      total.value = res.data.pagination.total
-      stats.value = {
-        totalCount: res.data.stats.totalCount,
-        todayCount: res.data.stats.todayCount,
-        uniqueUserCount: total.value // Use pagination total as user count is calculated differently
-      }
+    const res = await api.get('/admin/checkins', { params })
+    checkins.value = res.list
+    total.value = res.pagination.total
+    stats.value = {
+      totalCount: res.stats.totalCount,
+      todayCount: res.stats.todayCount,
+      uniqueUserCount: total.value // Use pagination total as user count is calculated differently
     }
   } catch (error) {
     ElMessage.error('加载打卡列表失败')
@@ -442,10 +440,8 @@ const loadStats = async () => {
       params.dateTo = new Date(filters.value.dateTo).toISOString().split('T')[0]
     }
 
-    const res = await api.get('/api/v1/admin/checkins/stats', { params })
-    if (res.code === 200) {
-      stats.value = res.data
-    }
+    const res = await api.get('/admin/checkins/stats', { params })
+    stats.value = res
   } catch (error) {
     console.error('加载统计数据失败:', error)
   }
@@ -454,9 +450,7 @@ const loadStats = async () => {
 const loadPeriods = async () => {
   try {
     const res = await api.get('/periods')
-    if (res.code === 200) {
-      periods.value = res.data.list
-    }
+    periods.value = res.list
   } catch (error) {
     console.error('加载期次失败:', error)
   }
@@ -469,7 +463,7 @@ const handleViewDetail = (checkin: Checkin) => {
 
 const handleDeleteCheckin = (checkin: Checkin) => {
   ElMessageBox.confirm(
-    `确定要删除 ${typeof checkin.userId === 'object' ? checkin.userId.nickname : '该用户'} 的打卡记录吗？`,
+    `确定要删除 ${checkin.userId && typeof checkin.userId === 'object' ? checkin.userId.nickname : '该用户'} 的打卡记录吗？`,
     '删除确认',
     {
       confirmButtonText: '确定',
@@ -479,12 +473,10 @@ const handleDeleteCheckin = (checkin: Checkin) => {
   )
     .then(async () => {
       try {
-        const res = await api.delete(`/api/v1/admin/checkins/${checkin._id}`)
-        if (res.code === 200) {
-          ElMessage.success('打卡记录已删除')
-          loadCheckins()
-          loadStats()
-        }
+        await api.delete(`/admin/checkins/${checkin._id}`)
+        ElMessage.success('打卡记录已删除')
+        loadCheckins()
+        loadStats()
       } catch (error) {
         ElMessage.error('删除失败')
         console.error(error)

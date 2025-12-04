@@ -1,0 +1,194 @@
+# 晨读营小程序 - Docker Compose 配置
+# Docker Compose v2.0+ 配置（不需要 version 字段）
+
+name: morning-reading-club
+#
+# 用途：使用 Docker Compose 快速启动完整的开发/生产环境
+#
+# 使用方法：
+#   docker-compose up -d                    # 启动所有服务（后台运行）
+#   docker-compose down                     # 停止所有服务
+#   docker-compose logs -f backend          # 实时查看日志
+#   docker-compose ps                       # 查看服务状态
+#   docker-compose restart backend          # 重启后端服务
+
+services:
+  # ============================================================================
+  # MongoDB - 数据库
+  # ============================================================================
+  mongodb:
+    image: mongo:7.0-alpine
+    container_name: morning-reading-mongodb
+    restart: unless-stopped
+
+    # 环境变量
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin123}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-morning_reading}
+
+    # 端口映射
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+
+    # 数据卷（数据持久化）
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+
+    # 健康检查
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+    # 网络
+    networks:
+      - morning-reading-network
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================================================
+  # 后端 API 服务
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: morning-reading-backend
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+    # 环境变量
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${BACKEND_PORT:-3000}
+      MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/${MONGO_DATABASE:-morning_reading}?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-refresh-secret-key-change-in-production}
+      WECHAT_APPID: ${WECHAT_APPID:-wx199d6d332344ed0a}
+      WECHAT_SECRET: ${WECHAT_SECRET:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+
+    # 端口映射
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+
+    # 数据卷
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./backend/logs:/app/logs
+      - ./backend/uploads:/app/uploads
+
+    # 工作目录
+    working_dir: /app
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+    # 网络
+    networks:
+      - morning-reading-network
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+  # ============================================================================
+  # Admin Vue 管理后台（可选）
+  # ============================================================================
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+
+    container_name: morning-reading-admin
+    restart: unless-stopped
+
+    # 端口映射
+    ports:
+      - "${ADMIN_PORT:-5173}:5173"
+
+    # 环境变量
+    environment:
+      VITE_API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+
+    # 网络
+    networks:
+      - morning-reading-network
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================================================
+  # Nginx 反向代理和负载均衡（可选）
+  # ============================================================================
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: morning-reading-nginx
+  #   restart: unless-stopped
+  #
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #
+  #   depends_on:
+  #     - backend
+  #     - admin
+  #
+  #   networks:
+  #     - morning-reading-network
+
+# ============================================================================
+# 数据卷定义
+# ============================================================================
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+# ============================================================================
+# 网络定义
+# ============================================================================
+networks:
+  morning-reading-network:
+    driver: bridge

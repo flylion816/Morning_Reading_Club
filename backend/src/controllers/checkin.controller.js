@@ -27,31 +27,18 @@ async function createCheckin(req, res, next) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
 
-    // 规范化checkinDate为当天的00:00:00（用于防止同一天重复打卡）
+    // 规范化checkinDate为当天的00:00:00（仅用于连续打卡计算）
     const now = new Date();
     const checkinDateNormalized = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // 检查是否已打卡（同一天、同一期次）
-    const existingCheckin = await Checkin.findOne({
-      userId,
-      periodId,
-      checkinDate: {
-        $gte: checkinDateNormalized,
-        $lt: new Date(checkinDateNormalized.getTime() + 24 * 60 * 60 * 1000)
-      }
-    });
-
-    if (existingCheckin) {
-      return res.status(400).json(errors.badRequest('今日已打卡'));
-    }
-
     // 创建打卡记录
+    // 注意：不再限制每日一次打卡，checkinDate使用当前精确时间
     const checkin = await Checkin.create({
       userId,
       periodId,
       sectionId,
       day,
-      checkinDate: checkinDateNormalized,  // 使用规范化的日期
+      checkinDate: now,  // 使用当前精确时间，避免唯一索引冲突
       readingTime: readingTime || 0,
       completionRate: completionRate || 100,
       note,
@@ -495,7 +482,27 @@ async function getCheckinStats(req, res, next) {
     // 总统计
     const totalCount = await Checkin.countDocuments(query);
     const uniqueUsers = await Checkin.distinct('userId', query);
-    const allCheckins = await Checkin.find(query).select('points likeCount isFeatured');
+
+    // 使用聚合计算总积分和总点赞数，避免加载所有文档
+    const statsAggregation = await Checkin.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalPoints: { $sum: '$points' },
+          totalLikes: { $sum: '$likeCount' },
+          featuredCount: {
+            $sum: { $cond: [{ $eq: ['$isFeatured', true] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const stats = statsAggregation.length > 0 ? statsAggregation[0] : {
+      totalPoints: 0,
+      totalLikes: 0,
+      featuredCount: 0
+    };
 
     // 今日统计
     const today = new Date();
@@ -511,19 +518,14 @@ async function getCheckinStats(req, res, next) {
       }
     });
 
-    // 总积分和其他统计
-    const totalPoints = allCheckins.reduce((sum, c) => sum + (c.points || 0), 0);
-    const totalLikes = allCheckins.reduce((sum, c) => sum + (c.likeCount || 0), 0);
-    const featuredCount = allCheckins.filter(c => c.isFeatured).length;
-
     res.json(success({
       totalCount,
       todayCount,
       uniqueUserCount: uniqueUsers.length,
-      totalPoints,
-      totalLikes,
-      featuredCount,
-      averagePointsPerUser: uniqueUsers.length > 0 ? (totalPoints / uniqueUsers.length).toFixed(2) : 0
+      totalPoints: stats.totalPoints,
+      totalLikes: stats.totalLikes,
+      featuredCount: stats.featuredCount,
+      averagePointsPerUser: uniqueUsers.length > 0 ? (stats.totalPoints / uniqueUsers.length).toFixed(2) : 0
     }));
   } catch (error) {
     next(error);

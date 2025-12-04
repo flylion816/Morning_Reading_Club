@@ -23,6 +23,7 @@ const adminRoutes = require('./routes/admin.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const statsRoutes = require('./routes/stats.routes');
 const auditRoutes = require('./routes/audit.routes');
+const healthRoutes = require('./routes/health.routes');
 
 const app = express();
 
@@ -37,10 +38,9 @@ app.use(express.urlencoded({ extended: true })); // URL编码解析
 // 静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// 健康检查
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
-});
+// 健康检查路由 - 不需要认证的公开端点
+app.use('/', healthRoutes);
+app.use('/api/v1', healthRoutes);
 
 // API路由
 app.use('/api/v1/auth', authRoutes);
