@@ -1,5 +1,6 @@
 const Insight = require('../models/Insight');
 const Checkin = require('../models/Checkin');
+const InsightRequest = require('../models/InsightRequest');
 const { success, errors } = require('../utils/response');
 
 // 生成AI反馈（Mock版）
@@ -415,6 +416,49 @@ async function deleteInsightManual(req, res, next) {
   }
 }
 
+// 创建小凡看见查看申请
+async function createInsightRequest(req, res, next) {
+  try {
+    const { toUserId } = req.body;
+    const fromUserId = req.user.userId;
+
+    if (!toUserId) {
+      return res.status(400).json(errors.badRequest('被申请用户ID不能为空'));
+    }
+
+    if (fromUserId === toUserId) {
+      return res.status(400).json(errors.badRequest('不能申请查看自己的小凡看见'));
+    }
+
+    // 检查是否已申请
+    const existingRequest = await InsightRequest.findOne({
+      fromUserId,
+      toUserId
+    });
+
+    if (existingRequest) {
+      if (existingRequest.status === 'approved') {
+        return res.json(success(existingRequest, '已获得查看权限'));
+      } else if (existingRequest.status === 'pending') {
+        return res.json(success(existingRequest, '申请已存在，请等待对方回复'));
+      } else if (existingRequest.status === 'rejected') {
+        return res.json(success(existingRequest, '申请已被拒绝'));
+      }
+    }
+
+    // 创建新的申请
+    const request = await InsightRequest.create({
+      fromUserId,
+      toUserId,
+      status: 'pending'
+    });
+
+    res.json(success(request, '申请已发送'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -424,5 +468,6 @@ module.exports = {
   getInsights,
   getInsightsForPeriod,
   updateInsight,
-  deleteInsightManual
+  deleteInsightManual,
+  createInsightRequest
 };

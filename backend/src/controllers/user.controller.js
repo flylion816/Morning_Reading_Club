@@ -70,6 +70,45 @@ async function updateProfile(req, res, next) {
   }
 }
 
+// 获取用户详情（他人主页）
+async function getUserById(req, res, next) {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json(errors.badRequest('用户ID不能为空'));
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json(errors.notFound('用户不存在'));
+    }
+
+    if (user.status !== 'active') {
+      return res.status(403).json(errors.forbidden('用户已被禁用'));
+    }
+
+    res.json(success({
+      _id: user._id,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+      avatar: user.avatar,
+      signature: user.signature,
+      gender: user.gender,
+      totalCheckinDays: user.totalCheckinDays,
+      currentStreak: user.currentStreak,
+      maxStreak: user.maxStreak,
+      totalCompletedPeriods: user.totalCompletedPeriods,
+      totalPoints: user.totalPoints,
+      level: user.level,
+      createdAt: user.createdAt
+    }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 获取用户统计信息
 async function getUserStats(req, res, next) {
   try {
@@ -187,6 +226,7 @@ async function deleteUser(req, res, next) {
 module.exports = {
   getCurrentUser,
   updateProfile,
+  getUserById,
   getUserStats,
   getUserList,
   updateUser,

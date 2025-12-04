@@ -114,6 +114,15 @@ class UserService {
   completeUserInfo(data) {
     return request.post('/user/complete-info', data);
   }
+
+  /**
+   * 创建小凡看见查看申请
+   * @param {string} toUserId 目标用户ID
+   * @returns {Promise}
+   */
+  createInsightRequest(toUserId) {
+    return request.post('/insights/requests', { toUserId });
+  }
 }
 
 module.exports = new UserService();

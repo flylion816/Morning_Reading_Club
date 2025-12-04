@@ -4,6 +4,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const {
   getCurrentUser,
   updateProfile,
+  getUserById,
   getUserStats,
   getUserList,
   updateUser,
@@ -23,6 +24,13 @@ router.get('/me', authMiddleware, getCurrentUser);
  * @access  Private
  */
 router.put('/profile', authMiddleware, updateProfile);
+
+/**
+ * @route   GET /api/v1/users/:userId
+ * @desc    获取用户详情（他人主页）
+ * @access  Private
+ */
+router.get('/:userId', authMiddleware, getUserById);
 
 /**
  * @route   GET /api/v1/users/:userId/stats

@@ -24,43 +24,26 @@ Page({
     }
 
     try {
-      // 从本地存储获取用户信息（Mock数据）
-      const userId = parseInt(this.data.userId);
+      console.log('加载用户资料，ID:', this.data.userId);
 
-      // Mock用户数据
-      const mockUsers = {
-        1: {
-          id: 1,
-          nickname: '阿泰',
-          avatar: '阿',
-          signature: '知名心灵大师',
-          checkinDays: 23,
-          completedCourses: 5
-        },
-        2: {
-          id: 2,
-          nickname: '小明',
-          avatar: '明',
-          signature: '努力学习中',
-          checkinDays: 15,
-          completedCourses: 3
-        }
-      };
+      // 调用API获取用户信息
+      const userInfo = await userService.getUserById(this.data.userId);
 
-      const userInfo = mockUsers[userId] || {
-        id: userId,
-        nickname: '用户' + userId,
-        avatar: '👤',
-        signature: '这个人很懒，什么都没写',
-        checkinDays: 0,
-        completedCourses: 0
-      };
+      console.log('用户信息:', userInfo);
 
       this.setData({
-        userInfo,
+        userInfo: {
+          _id: userInfo._id,
+          nickname: userInfo.nickname,
+          avatarUrl: userInfo.avatarUrl,
+          avatar: userInfo.avatar,
+          signature: userInfo.signature,
+          totalCheckinDays: userInfo.totalCheckinDays || 0,
+          totalCompletedPeriods: userInfo.totalCompletedPeriods || 0
+        },
         stats: {
-          checkinDays: userInfo.checkinDays,
-          completedCourses: userInfo.completedCourses
+          totalCheckinDays: userInfo.totalCheckinDays || 0,
+          totalCompletedPeriods: userInfo.totalCompletedPeriods || 0
         }
       });
     } catch (error) {
@@ -104,34 +87,28 @@ Page({
   /**
    * 发送查看小凡看见的申请
    */
-  sendInsightRequest() {
+  async sendInsightRequest() {
     const { userId, userInfo } = this.data;
-    const app = getApp();
-    const currentUser = app.globalData.userInfo;
 
-    // 创建申请记录
-    const request = {
-      id: Date.now(),
-      fromUserId: currentUser.id,
-      fromUserName: currentUser.nickname,
-      fromUserAvatar: currentUser.avatar || '😊',
-      toUserId: userId,
-      toUserName: userInfo.nickname,
-      time: this.formatTime(new Date()),
-      status: 'pending' // pending, approved, rejected
-    };
+    try {
+      console.log('发送小凡看见查看申请，目标用户ID:', userId);
 
-    // 保存到本地存储
-    let requests = wx.getStorageSync('insight_requests') || [];
-    requests.push(request);
-    wx.setStorageSync('insight_requests', requests);
+      // 调用API创建申请
+      const response = await userService.createInsightRequest(userId);
 
-    wx.showToast({
-      title: '申请已发送',
-      icon: 'success'
-    });
+      console.log('申请响应:', response);
 
-    console.log('发送小凡看见查看申请:', request);
+      wx.showToast({
+        title: '申请已发送',
+        icon: 'success'
+      });
+    } catch (error) {
+      console.error('发送申请失败:', error);
+      wx.showToast({
+        title: '申请失败',
+        icon: 'none'
+      });
+    }
   },
 
   /**

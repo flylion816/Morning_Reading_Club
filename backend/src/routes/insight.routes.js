@@ -11,7 +11,8 @@ const {
   getInsights,
   getInsightsForPeriod,
   updateInsight,
-  deleteInsightManual
+  deleteInsightManual,
+  createInsightRequest
 } = require('../controllers/insight.controller');
 
 /**
@@ -27,6 +28,13 @@ router.get('/', adminAuthMiddleware, getInsights);
  * @access  Private
  */
 router.post('/generate', authMiddleware, generateInsight);
+
+/**
+ * @route   POST /api/v1/insights/requests
+ * @desc    创建小凡看见查看申请
+ * @access  Private
+ */
+router.post('/requests', authMiddleware, createInsightRequest);
 
 /**
  * @route   GET /api/v1/insights/user/:userId?
