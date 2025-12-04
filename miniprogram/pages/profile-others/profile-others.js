@@ -63,7 +63,7 @@ Page({
     const app = getApp();
     const currentUser = app.globalData.userInfo;
 
-    if (!currentUser || !currentUser.id) {
+    if (!currentUser || !currentUser._id) {
       wx.showToast({
         title: '请先登录',
         icon: 'none'

@@ -17,11 +17,11 @@
     <view class="stats-content">
       <view class="stats-row">
         <text class="stats-label">打卡天数</text>
-        <text class="stats-value">{{stats.checkinDays || 0}}天 ✓</text>
+        <text class="stats-value">{{stats.totalCheckinDays || 0}}天 ✓</text>
       </view>
       <view class="stats-row">
-        <text class="stats-label">完成课程</text>
-        <text class="stats-value">{{stats.completedCourses || 0}}个</text>
+        <text class="stats-label">参与期次</text>
+        <text class="stats-value">{{stats.totalCompletedPeriods || 0}}个</text>
       </view>
     </view>
   </view>
@@ -33,8 +33,8 @@
       <text class="insights-title">小凡看见 - 他的反馈</text>
     </view>
     <view class="insights-content" bindtap="handleRequestInsights">
-      <text class="insights-link">查看阿泰的所有反馈</text>
-      <text class="insights-desc">点击查看小凡对{{userInfo.nickname || '阿泰'}}每天的个性化反馈...</text>
+      <text class="insights-link">查看{{userInfo.nickname || '用户'}}的所有反馈</text>
+      <text class="insights-desc">点击查看小凡对{{userInfo.nickname || '用户'}}每天的个性化反馈...</text>
     </view>
   </view>
 
