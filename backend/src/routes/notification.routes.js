@@ -7,7 +7,11 @@ const {
   markNotificationAsRead,
   markAllAsRead,
   deleteNotification,
-  deleteAllNotifications
+  deleteAllNotifications,
+  archiveNotification,
+  getArchivedNotifications,
+  archiveAllNotifications,
+  unarchiveNotification
 } = require('../controllers/notification.controller');
 
 /**
@@ -25,6 +29,13 @@ router.get('/', authMiddleware, getUserNotifications);
 router.get('/unread', authMiddleware, getUnreadCount);
 
 /**
+ * @route   GET /api/v1/notifications/archived
+ * @desc    获取已归档的通知列表
+ * @access  Private
+ */
+router.get('/archived', authMiddleware, getArchivedNotifications);
+
+/**
  * @route   PUT /api/v1/notifications/:notificationId/read
  * @desc    标记单个通知为已读
  * @access  Private
@@ -37,6 +48,27 @@ router.put('/:notificationId/read', authMiddleware, markNotificationAsRead);
  * @access  Private
  */
 router.put('/read-all', authMiddleware, markAllAsRead);
+
+/**
+ * @route   PUT /api/v1/notifications/:notificationId/archive
+ * @desc    归档单个通知
+ * @access  Private
+ */
+router.put('/:notificationId/archive', authMiddleware, archiveNotification);
+
+/**
+ * @route   PUT /api/v1/notifications/:notificationId/unarchive
+ * @desc    取消归档通知
+ * @access  Private
+ */
+router.put('/:notificationId/unarchive', authMiddleware, unarchiveNotification);
+
+/**
+ * @route   PUT /api/v1/notifications/archive-all
+ * @desc    归档所有通知
+ * @access  Private
+ */
+router.put('/archive-all', authMiddleware, archiveAllNotifications);
 
 /**
  * @route   DELETE /api/v1/notifications/:notificationId

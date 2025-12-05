@@ -61,6 +61,18 @@ const notificationSchema = new mongoose.Schema(
       default: null
     },
 
+    // 是否已归档
+    isArchived: {
+      type: Boolean,
+      default: false
+    },
+
+    // 归档时间
+    archivedAt: {
+      type: Date,
+      default: null
+    },
+
     // 数据载荷（用于前端展示额外信息）
     data: {
       senderName: String,          // 发送者昵称
@@ -78,13 +90,16 @@ const notificationSchema = new mongoose.Schema(
 );
 
 // 索引：加快查询
-// 查询某用户的通知
-notificationSchema.index({ userId: 1, createdAt: -1 });
+// 查询某用户的通知（包括归档状态）
+notificationSchema.index({ userId: 1, isArchived: 1, createdAt: -1 });
 
 // 查询某用户的未读通知
 notificationSchema.index({ userId: 1, isRead: 1 });
 
 // 按创建时间排序
 notificationSchema.index({ createdAt: -1 });
+
+// 按归档时间排序
+notificationSchema.index({ archivedAt: -1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

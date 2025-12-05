@@ -22,7 +22,8 @@ const {
   getInsightRequestsStats,
   adminApproveRequest,
   adminRejectRequest,
-  deleteInsightRequest
+  deleteInsightRequest,
+  batchApproveRequests
 } = require('../controllers/insight.controller');
 
 /**
@@ -168,5 +169,12 @@ router.put('/admin/requests/:requestId/reject', adminAuthMiddleware, adminReject
  * @access  Private (Admin)
  */
 router.delete('/admin/requests/:requestId', adminAuthMiddleware, deleteInsightRequest);
+
+/**
+ * @route   POST /api/v1/admin/insights/requests/batch-approve
+ * @desc    管理员批量同意查看申请
+ * @access  Private (Admin)
+ */
+router.post('/admin/requests/batch-approve', adminAuthMiddleware, batchApproveRequests);
 
 module.exports = router;

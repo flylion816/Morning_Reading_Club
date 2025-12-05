@@ -368,6 +368,14 @@ const dialogDetail = ref({
   request: null
 })
 
+const dialogBatchApprove = ref({
+  visible: false,
+  loading: false,
+  form: {
+    periodId: ''
+  }
+})
+
 // 加载统计数据
 const loadStats = async () => {
   try {
@@ -508,15 +516,61 @@ const handleDeleteRequest = (row) => {
     .catch(() => {})
 }
 
+// 打开批量授权对话框
+const openBatchApproveDialog = () => {
+  if (selectedRequests.value.length === 0) {
+    ElMessage.warning('请先选择要授权的申请')
+    return
+  }
+
+  dialogBatchApprove.value.visible = true
+  dialogBatchApprove.value.form.periodId = ''
+}
+
 // 批量同意
 const batchApprove = () => {
-  ElMessageBox.confirm('确认批量同意选中的申请吗?', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
+  if (selectedRequests.value.length === 0) {
+    ElMessage.warning('请先选择要授权的申请')
+    return
+  }
+
+  if (!dialogBatchApprove.value.form.periodId) {
+    ElMessage.error('请选择要授权的期次')
+    return
+  }
+
+  ElMessageBox.confirm(
+    `确认为 ${selectedRequests.value.length} 个申请授权吗？`,
+    '批量授权',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
     .then(async () => {
-      ElMessage.warning('批量同意需要先选择期次，请逐个处理')
+      dialogBatchApprove.value.loading = true
+      try {
+        // 准备批量授权数据
+        const approvals = selectedRequests.value.map(req => ({
+          requestId: req._id,
+          periodId: dialogBatchApprove.value.form.periodId
+        }))
+
+        await api.post('/admin/insights/requests/batch-approve', {
+          approvals
+        })
+
+        ElMessage.success(`已批准 ${selectedRequests.value.length} 个申请`)
+        dialogBatchApprove.value.visible = false
+        selectedRequests.value = []
+        loadRequests()
+        loadStats()
+      } catch (error) {
+        ElMessage.error(error.response?.data?.message || '批量授权失败')
+      } finally {
+        dialogBatchApprove.value.loading = false
+      }
     })
     .catch(() => {})
 }

@@ -1038,6 +1038,118 @@ function formatDuration(ms) {
   return `${minutes}分钟`;
 }
 
+/**
+ * 管理员批量同意查看申请
+ * @route   POST /admin/insights/requests/batch-approve
+ * @desc    一次性同意多个查看申请，可以为不同用户分别指定期次
+ * @access  Private (Admin)
+ */
+async function batchApproveRequests(req, res, next) {
+  try {
+    const adminId = req.user.userId;
+    const { approvals } = req.body; // approvals: [{ requestId, periodId }, ...]
+
+    // 验证参数
+    if (!Array.isArray(approvals) || approvals.length === 0) {
+      return res.status(400).json(errors.badRequest('approvals 必须是非空数组'));
+    }
+
+    if (approvals.length > 100) {
+      return res.status(400).json(errors.badRequest('单次批量操作最多100个申请'));
+    }
+
+    // 获取所有申请
+    const requestIds = approvals.map(a => a.requestId);
+    const requests = await InsightRequest.find({
+      _id: { $in: requestIds },
+      status: 'pending'
+    });
+
+    if (requests.length === 0) {
+      return res.status(400).json(errors.badRequest('没有找到待审批的申请'));
+    }
+
+    // 创建映射：requestId -> periodId
+    const periodMap = new Map(approvals.map(a => [a.requestId, a.periodId]));
+
+    // 验证所有 periodId 都存在
+    const periodIds = [...new Set(approvals.map(a => a.periodId))];
+    const Period = require('../models/Period');
+    const periods = await Period.find({ _id: { $in: periodIds } });
+
+    if (periods.length !== periodIds.length) {
+      return res.status(400).json(errors.badRequest('某些期次不存在'));
+    }
+
+    // 批量更新申请
+    const updatedRequests = [];
+    const notifications = [];
+
+    for (const request of requests) {
+      const periodId = periodMap.get(request._id.toString());
+      if (!periodId) continue;
+
+      // 更新申请
+      request.status = 'approved';
+      request.periodId = periodId;
+      request.approvedAt = new Date();
+
+      // 记录审计日志
+      if (!request.auditLog) {
+        request.auditLog = [];
+      }
+      request.auditLog.push({
+        action: 'batch_approved',
+        actor: adminId,
+        actorType: 'admin',
+        timestamp: new Date()
+      });
+
+      await request.save();
+      updatedRequests.push(request);
+
+      // 准备通知数据
+      notifications.push({
+        fromUserId: request.fromUserId,
+        type: 'batch_approved',
+        title: '小凡看见查看申请已由管理员批准',
+        content: `管理员已批准你的查看申请`,
+        requestId: request._id
+      });
+    }
+
+    // 批量发送通知
+    if (notifications.length > 0) {
+      const Period = require('../models/Period');
+      const period = await Period.findById(requests[0].periodId).select('name');
+
+      for (const notif of notifications) {
+        await notifyUser(req,
+          notif.fromUserId,
+          notif.type,
+          notif.title,
+          `${notif.content}，允许查看 ${period?.name || '本期'} 的小凡看见`,
+          {
+            requestId: notif.requestId,
+            data: {
+              periodName: period?.name
+            }
+          }
+        );
+      }
+    }
+
+    res.json(success({
+      processed: updatedRequests.length,
+      total: requests.length,
+      requests: updatedRequests
+    }, `已批准 ${updatedRequests.length} 个申请`));
+
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -1058,5 +1170,6 @@ module.exports = {
   getInsightRequestsStats,
   adminApproveRequest,
   adminRejectRequest,
-  deleteInsightRequest
+  deleteInsightRequest,
+  batchApproveRequests
 };

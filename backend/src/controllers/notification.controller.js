@@ -239,6 +239,136 @@ async function createNotifications(userIds, type, title, content, options = {}) 
   }
 }
 
+/**
+ * 归档单个通知
+ */
+async function archiveNotification(req, res, next) {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.userId;
+
+    // 查找通知
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+      return res.status(404).json(errors.notFound('通知不存在'));
+    }
+
+    // 验证用户是否是通知接收者
+    if (notification.userId.toString() !== userId) {
+      return res.status(403).json(errors.forbidden('无权操作'));
+    }
+
+    // 标记为归档
+    notification.isArchived = true;
+    notification.archivedAt = new Date();
+    await notification.save();
+
+    res.json(success(notification, '已归档'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 获取已归档的通知列表
+ */
+async function getArchivedNotifications(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 20 } = req.query;
+
+    // 计算分页
+    const skip = (page - 1) * limit;
+
+    // 查询总数
+    const total = await Notification.countDocuments({
+      userId,
+      isArchived: true
+    });
+
+    // 查询通知
+    const notifications = await Notification.find({
+      userId,
+      isArchived: true
+    })
+      .populate('senderId', 'nickname avatar')
+      .populate('requestId', 'status fromUserId toUserId')
+      .sort({ archivedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.json(success({
+      notifications,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    }, '获取成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 归档所有通知
+ */
+async function archiveAllNotifications(req, res, next) {
+  try {
+    const userId = req.user.userId;
+
+    // 更新所有未归档的通知
+    const result = await Notification.updateMany(
+      { userId, isArchived: false },
+      {
+        $set: {
+          isArchived: true,
+          archivedAt: new Date()
+        }
+      }
+    );
+
+    res.json(success({
+      archivedCount: result.modifiedCount
+    }, `已归档 ${result.modifiedCount} 条通知`));
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 取消归档通知
+ */
+async function unarchiveNotification(req, res, next) {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.userId;
+
+    // 查找通知
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+      return res.status(404).json(errors.notFound('通知不存在'));
+    }
+
+    // 验证用户是否是通知接收者
+    if (notification.userId.toString() !== userId) {
+      return res.status(403).json(errors.forbidden('无权操作'));
+    }
+
+    // 取消归档
+    notification.isArchived = false;
+    notification.archivedAt = null;
+    await notification.save();
+
+    res.json(success(notification, '已取消归档'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getUserNotifications,
   getUnreadCount,
@@ -247,5 +377,9 @@ module.exports = {
   deleteNotification,
   deleteAllNotifications,
   createNotification,
-  createNotifications
+  createNotifications,
+  archiveNotification,
+  getArchivedNotifications,
+  archiveAllNotifications,
+  unarchiveNotification
 };
