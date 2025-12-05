@@ -487,9 +487,32 @@ async function createInsightRequest(req, res, next) {
       status: 'pending'
     };
 
-    // 如果提供了periodId，则保存（用于记录申请时的期次背景）
-    if (periodId) {
-      createData.periodId = periodId;
+    // 如果提供了periodId，则使用它
+    let finalPeriodId = periodId;
+
+    // 如果没有提供periodId，自动查询目标用户的报名记录
+    if (!periodId) {
+      // 先查询活跃的报名，如果没有再查询最近的报名
+      let enrollment = await Enrollment.findOne({
+        userId: toUserId,
+        status: 'active'
+      }).sort({ createdAt: -1 });
+
+      // 如果没有活跃报名，查询最近的任何报名
+      if (!enrollment) {
+        enrollment = await Enrollment.findOne({
+          userId: toUserId
+        }).sort({ createdAt: -1 });
+      }
+
+      if (enrollment && enrollment.periodId) {
+        finalPeriodId = enrollment.periodId;
+      }
+    }
+
+    // 保存periodId
+    if (finalPeriodId) {
+      createData.periodId = finalPeriodId;
     }
 
     const request = await InsightRequest.create(createData);
