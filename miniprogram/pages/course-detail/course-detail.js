@@ -89,10 +89,11 @@ Page({
           }
 
           // 过滤出当前课节的打卡记录
-          // 注意：API返回的sectionId和userId可能被populate了，需要取_id或比对字符串
+          // 注意：API返回的sectionId可能被populate了，需要取_id并转换为字符串比对
           dbCheckins = allCheckins.filter(checkin => {
             const sectionId = checkin.sectionId?._id || checkin.sectionId;
-            return sectionId === this.data.courseId;
+            // 将sectionId转换为字符串，确保与courseId（字符串）能正确比对
+            return String(sectionId) === this.data.courseId;
           });
 
           console.log('从数据库加载的打卡记录:', dbCheckins);
