@@ -3,14 +3,15 @@ const userService = require('../../services/user.service');
 Page({
   data: {
     userId: null,
+    periodId: null,
     userInfo: {},
     stats: {}
   },
 
   onLoad(options) {
-    console.log('他人主页加载', options);
     const userId = options.userId || options.id;
-    this.setData({ userId });
+    const periodId = options.periodId || null;
+    this.setData({ userId, periodId });
     this.loadUserProfile();
   },
 
@@ -97,15 +98,11 @@ Page({
    * 发送查看小凡看见的申请
    */
   async sendInsightRequest() {
-    const { userId, userInfo } = this.data;
+    const { userId, userInfo, periodId } = this.data;
 
     try {
-      console.log('发送小凡看见查看申请，目标用户ID:', userId);
-
-      // 调用API创建申请
-      const response = await userService.createInsightRequest(userId);
-
-      console.log('申请响应:', response);
+      // 调用API创建申请，同时传递periodId
+      const response = await userService.createInsightRequest(userId, periodId);
 
       wx.showToast({
         title: '申请已发送',

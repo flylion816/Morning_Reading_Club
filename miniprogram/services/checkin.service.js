@@ -66,6 +66,7 @@ class CheckinService {
    * @param {string} options.limit - 每页数量
    * @param {string} options.year - 年份
    * @param {string} options.month - 月份
+   * @param {string} options.periodId - 期次ID（可选，用于只获取特定期次的打卡记录）
    * @returns {Promise} 返回 { list, stats, calendar, pagination }
    */
   getUserCheckinsWithStats(options = {}) {
@@ -73,7 +74,8 @@ class CheckinService {
       page = 1,
       limit = 20,
       year,
-      month
+      month,
+      periodId
     } = options;
 
     const data = {
@@ -85,6 +87,11 @@ class CheckinService {
     if (year && month) {
       data.year = year;
       data.month = month;
+    }
+
+    // 如果提供了期次ID，只获取该期次的打卡记录
+    if (periodId) {
+      data.periodId = periodId;
     }
 
     return this.getCheckins(data);

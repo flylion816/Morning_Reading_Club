@@ -447,15 +447,19 @@ Page({
    */
   handleAvatarClick(e) {
     const { userId } = e.currentTarget.dataset;
+    const { course } = this.data;
 
     if (!userId) {
       console.error('用户ID不存在');
       return;
     }
 
-    // 跳转到他人主页
-    wx.navigateTo({
-      url: `/pages/profile-others/profile-others?userId=${userId}`
-    });
+    // 跳转到他人主页，同时传递当前课程所属的期次ID
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (course && course.periodId) {
+      url += `&periodId=${course.periodId}`;
+    }
+
+    wx.navigateTo({ url });
   }
 });

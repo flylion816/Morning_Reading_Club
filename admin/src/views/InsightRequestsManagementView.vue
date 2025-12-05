@@ -379,9 +379,10 @@ const dialogBatchApprove = ref({
 // 加载统计数据
 const loadStats = async () => {
   try {
-    const response = await api.get('/admin/insights/requests/stats')
-    if (response.data && response.data.data) {
-      stats.value = response.data.data
+    const response = await api.get('/insights/admin/requests/stats')
+    // API 拦截器已经解包了 response.data.data，所以直接使用 response
+    if (response && typeof response === 'object') {
+      stats.value = response
     }
   } catch (error) {
     ElMessage.error('加载统计数据失败')
@@ -399,10 +400,11 @@ const loadRequests = async () => {
       toUser: filters.value.toUser
     }
 
-    const response = await api.get('/admin/insights/requests', { params })
-    if (response.data && response.data.data) {
-      requests.value = response.data.data.requests
-      pagination.value.total = response.data.data.pagination.total
+    const response = await api.get('/insights/admin/requests', { params })
+    // API 拦截器已经解包了 response.data.data，所以直接使用 response
+    if (response && response.requests) {
+      requests.value = response.requests
+      pagination.value.total = response.pagination.total
     }
   } catch (error) {
     ElMessage.error('加载申请列表失败')
@@ -413,8 +415,9 @@ const loadRequests = async () => {
 const loadPeriods = async () => {
   try {
     const response = await api.get('/periods')
-    if (response.data && response.data.data) {
-      periods.value = response.data.data
+    // API 拦截器已经解包了，所以 response 直接是数组
+    if (Array.isArray(response)) {
+      periods.value = response
     }
   } catch (error) {
     ElMessage.error('加载期次列表失败')
@@ -423,10 +426,13 @@ const loadPeriods = async () => {
 
 // 打开同意对话框
 const openApproveDialog = (row) => {
+  // 如果申请记录中已经有periodId，则自动使用；否则需要管理员手动选择
+  const defaultPeriodId = row.periodId ? row.periodId : ''
+
   dialogApprove.value.form = {
     fromUserName: row.fromUserId?.nickname || '未知',
     toUserName: row.toUserId?.nickname || '未知',
-    periodId: '',
+    periodId: defaultPeriodId,
     adminNote: ''
   }
   dialogApprove.value.requestId = row._id
@@ -442,7 +448,7 @@ const submitApprove = async () => {
 
   dialogApprove.value.loading = true
   try {
-    await api.put(`/admin/insights/requests/${dialogApprove.value.requestId}/approve`, {
+    await api.put(`/insights/admin/requests/${dialogApprove.value.requestId}/approve`, {
       periodId: dialogApprove.value.form.periodId,
       adminNote: dialogApprove.value.form.adminNote
     })
@@ -472,7 +478,7 @@ const openRejectDialog = (row) => {
 const submitReject = async () => {
   dialogReject.value.loading = true
   try {
-    await api.put(`/admin/insights/requests/${dialogReject.value.requestId}/reject`, {
+    await api.put(`/insights/admin/requests/${dialogReject.value.requestId}/reject`, {
       adminNote: dialogReject.value.form.adminNote
     })
     ElMessage.success('申请已拒绝')
@@ -501,7 +507,7 @@ const handleDeleteRequest = (row) => {
   })
     .then(async () => {
       try {
-        await api.delete(`/admin/insights/requests/${row._id}`, {
+        await api.delete(`/insights/admin/requests/${row._id}`, {
           data: {
             adminNote: '管理员删除'
           }
@@ -557,7 +563,7 @@ const batchApprove = () => {
           periodId: dialogBatchApprove.value.form.periodId
         }))
 
-        await api.post('/admin/insights/requests/batch-approve', {
+        await api.post('/insights/admin/requests/batch-approve', {
           approvals
         })
 
@@ -585,7 +591,7 @@ const batchReject = () => {
     .then(async () => {
       try {
         for (const request of selectedRequests.value) {
-          await api.put(`/admin/insights/requests/${request._id}/reject`, {
+          await api.put(`/insights/admin/requests/${request._id}/reject`, {
             adminNote: '批量拒绝'
           })
         }

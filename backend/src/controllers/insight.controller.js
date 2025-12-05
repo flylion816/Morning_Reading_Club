@@ -453,7 +453,7 @@ async function deleteInsightManual(req, res, next) {
 // 创建小凡看见查看申请
 async function createInsightRequest(req, res, next) {
   try {
-    const { toUserId } = req.body;
+    const { toUserId, periodId } = req.body;
     const fromUserId = req.user.userId;
 
     if (!toUserId) {
@@ -480,12 +480,19 @@ async function createInsightRequest(req, res, next) {
       }
     }
 
-    // 创建新的申请
-    const request = await InsightRequest.create({
+    // 创建新的申请，包含可选的periodId
+    const createData = {
       fromUserId,
       toUserId,
       status: 'pending'
-    });
+    };
+
+    // 如果提供了periodId，则保存（用于记录申请时的期次背景）
+    if (periodId) {
+      createData.periodId = periodId;
+    }
+
+    const request = await InsightRequest.create(createData);
 
     // 获取申请者和被申请者信息
     const fromUser = await User.findById(fromUserId).select('nickname avatar');

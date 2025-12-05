@@ -118,10 +118,15 @@ class UserService {
   /**
    * 创建小凡看见查看申请
    * @param {string} toUserId 目标用户ID
+   * @param {string} periodId 期次ID（可选，用于记录申请时的期次背景）
    * @returns {Promise}
    */
-  createInsightRequest(toUserId) {
-    return request.post('/insights/requests', { toUserId });
+  createInsightRequest(toUserId, periodId = null) {
+    const data = { toUserId };
+    if (periodId) {
+      data.periodId = periodId;
+    }
+    return request.post('/insights/requests', data);
   }
 }
 
