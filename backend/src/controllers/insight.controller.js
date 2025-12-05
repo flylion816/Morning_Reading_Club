@@ -5,6 +5,38 @@ const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const { createNotification, createNotifications } = require('./notification.controller');
 
+/**
+ * 辅助函数：创建通知并自动添加 WebSocket 管理器
+ * @param {Object} req - Express 请求对象
+ * @param {string} userId - 用户ID
+ * @param {string} type - 通知类型
+ * @param {string} title - 标题
+ * @param {string} content - 内容
+ * @param {Object} options - 选项
+ */
+async function notifyUser(req, userId, type, title, content, options = {}) {
+  return createNotification(userId, type, title, content, {
+    ...options,
+    wsManager: req.wsManager
+  });
+}
+
+/**
+ * 辅助函数：为多个用户创建通知并自动添加 WebSocket 管理器
+ * @param {Object} req - Express 请求对象
+ * @param {string[]} userIds - 用户ID列表
+ * @param {string} type - 通知类型
+ * @param {string} title - 标题
+ * @param {string} content - 内容
+ * @param {Object} options - 选项
+ */
+async function notifyUsers(req, userIds, type, title, content, options = {}) {
+  return createNotifications(userIds, type, title, content, {
+    ...options,
+    wsManager: req.wsManager
+  });
+}
+
 // 生成AI反馈（Mock版）
 async function generateInsight(req, res, next) {
   try {
@@ -461,7 +493,7 @@ async function createInsightRequest(req, res, next) {
 
     // 发送通知给被申请者
     if (toUser) {
-      await createNotification(
+      await notifyUser(req, 
         toUserId,
         'request_created',
         '收到新的小凡看见查看申请',
@@ -570,7 +602,7 @@ async function approveInsightRequest(req, res, next) {
     const period = await Period.findById(periodId).select('name');
 
     // 发送通知给申请者
-    await createNotification(
+    await notifyUser(req, 
       request.fromUserId,
       'request_approved',
       '小凡看见查看申请已批准',
@@ -624,7 +656,7 @@ async function rejectInsightRequest(req, res, next) {
     const toUser = await User.findById(request.toUserId).select('nickname avatar');
 
     // 发送通知给申请者
-    await createNotification(
+    await notifyUser(req, 
       request.fromUserId,
       'request_rejected',
       '小凡看见查看申请已被拒绝',
@@ -814,7 +846,7 @@ async function adminApproveRequest(req, res, next) {
     const period = await Period.findById(periodId).select('name');
 
     // 发送通知给申请者
-    await createNotification(
+    await notifyUser(req, 
       request.fromUserId,
       'admin_approved',
       '小凡看见查看申请已由管理员批准',
@@ -871,7 +903,7 @@ async function adminRejectRequest(req, res, next) {
     await request.save();
 
     // 发送通知给申请者
-    await createNotification(
+    await notifyUser(req, 
       request.fromUserId,
       'admin_rejected',
       '小凡看见查看申请已由管理员拒绝',
@@ -934,7 +966,7 @@ async function revokeInsightRequest(req, res, next) {
     const toUser = await User.findById(request.toUserId).select('nickname avatar');
 
     // 发送通知给申请者
-    await createNotification(
+    await notifyUser(req, 
       request.fromUserId,
       'permission_revoked',
       '小凡看见查看权限已被撤销',

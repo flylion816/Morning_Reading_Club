@@ -1,8 +1,13 @@
 /**
  * 通知页面
+ *
+ * 支持两种通知更新模式：
+ * 1. WebSocket 实时推送（有新通知立即显示）
+ * 2. 定时轮询（WebSocket 不可用时的降级方案）
  */
 
 import notificationService from '../../services/notification.service';
+import websocketService from '../../services/websocket.service';
 
 Page({
   data: {
@@ -14,17 +19,75 @@ Page({
     limit: 20,                  // 每页数量
     hasMore: true,              // 是否有更多
     loading: false,             // 是否加载中
-    error: null                 // 错误信息
+    error: null,                // 错误信息
+    useWebSocket: false,        // 是否使用 WebSocket
+    wsUnsubscribe: null         // WebSocket 取消订阅函数
   },
 
   onLoad() {
     this.loadNotifications();
     this.loadUnreadCount();
+    this.initWebSocket();
   },
 
   onShow() {
     // 每次页面显示时刷新通知
     this.loadNotifications();
+  },
+
+  onUnload() {
+    // 页面卸载时取消 WebSocket 订阅
+    if (this.data.wsUnsubscribe) {
+      this.data.wsUnsubscribe();
+    }
+  },
+
+  /**
+   * 初始化 WebSocket
+   */
+  async initWebSocket() {
+    try {
+      const userInfo = wx.getStorageSync('user_info');
+      if (!userInfo || !userInfo._id) {
+        console.warn('[NotificationsPage] 用户信息不存在，WebSocket 不可用');
+        return;
+      }
+
+      // 连接 WebSocket
+      await websocketService.connect(userInfo._id);
+
+      // 订阅新通知事件
+      const unsubscribe = websocketService.on('notification:new', (notification) => {
+        console.log('[NotificationsPage] 收到新通知', notification);
+        // 在页面顶部添加新通知
+        const updatedNotifications = [
+          {
+            _id: notification.notificationId || Math.random().toString(36).substr(2, 9),
+            type: notification.type,
+            title: notification.title,
+            content: notification.content,
+            isRead: false,
+            createdAt: notification.timestamp || new Date().toISOString(),
+            data: notification.data || {}
+          },
+          ...this.data.notifications
+        ];
+
+        this.setData({
+          notifications: updatedNotifications,
+          useWebSocket: true
+        });
+        this.updateDisplayedNotifications();
+        this.loadUnreadCount();
+      });
+
+      this.setData({ wsUnsubscribe: unsubscribe, useWebSocket: true });
+      console.log('[NotificationsPage] WebSocket 连接成功，启用实时推送');
+
+    } catch (error) {
+      console.warn('[NotificationsPage] WebSocket 初始化失败，使用轮询模式:', error);
+      // 降级到轮询
+    }
   },
 
   /**

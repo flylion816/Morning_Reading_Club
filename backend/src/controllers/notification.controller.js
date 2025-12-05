@@ -184,6 +184,18 @@ async function createNotification(userId, type, title, content, options = {}) {
     });
 
     await notification.save();
+
+    // 通过 WebSocket 推送通知（如果 wsManager 可用）
+    if (options.wsManager) {
+      options.wsManager.pushNotificationToUser(userId, {
+        type,
+        title,
+        content,
+        notificationId: notification._id,
+        data: options.data || {}
+      });
+    }
+
     return notification;
   } catch (error) {
     console.error('创建通知失败:', error);
@@ -207,6 +219,19 @@ async function createNotifications(userIds, type, title, content, options = {}) 
         data: options.data || {}
       }))
     );
+
+    // 通过 WebSocket 推送所有通知（如果 wsManager 可用）
+    if (options.wsManager) {
+      userIds.forEach(userId => {
+        options.wsManager.pushNotificationToUser(userId, {
+          type,
+          title,
+          content,
+          data: options.data || {}
+        });
+      });
+    }
+
     return notifications;
   } catch (error) {
     console.error('批量创建通知失败:', error);

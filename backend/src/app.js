@@ -39,6 +39,13 @@ app.use(express.urlencoded({ extended: true })); // URL编码解析
 // 静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// WebSocket 管理器中间件 - 将 wsManager 附加到请求对象
+app.use((req, res, next) => {
+  req.wsManager = app.locals.wsManager;
+  req.io = app.locals.io;
+  next();
+});
+
 // 健康检查路由 - 不需要认证的公开端点
 app.use('/', healthRoutes);
 app.use('/api/v1', healthRoutes);
