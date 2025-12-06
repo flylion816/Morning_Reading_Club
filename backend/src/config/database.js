@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const mysql = require('mysql2/promise');
+const logger = require('../utils/logger');
 require('dotenv').config();
 
 // MongoDB连接

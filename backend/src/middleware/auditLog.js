@@ -1,4 +1,5 @@
-const auditService = require('../services/audit.service')
+const auditService = require('../services/audit.service');
+const logger = require('../utils/logger');
 
 /**
  * 审计日志中间件 - 自动记录所有API操作

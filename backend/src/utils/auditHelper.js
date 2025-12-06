@@ -1,4 +1,5 @@
-const auditService = require('../services/audit.service')
+const auditService = require('../services/audit.service');
+const logger = require('./logger');
 
 /**
  * 审计日志辅助工具 - 在各个 controller 中使用

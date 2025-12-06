@@ -1,4 +1,5 @@
 const { error } = require('../utils/response');
+const logger = require('../utils/logger');
 
 // 全局错误处理中间件
 function errorHandler(err, req, res, next) {

@@ -1,4 +1,5 @@
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 
 /**
  * 管理员身份验证中间件
