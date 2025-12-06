@@ -2,9 +2,9 @@
 
 ## 概述
 
-晨读营小程序数据库设计，包含完整的表结构和初始化数据。
+晨读营小程序数据库设计，使用 **MongoDB** 作为主数据库，包含完整的集合结构和初始化数据。
 
-## 数据库表
+## 数据库集合（Collections）
 
 ### 核心表
 
@@ -46,23 +46,64 @@
 
 ## 使用方法
 
-### 1. 创建数据库
+### 1. 连接 MongoDB
 
-```sql
-CREATE DATABASE morning_reading CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE morning_reading;
-```
-
-### 2. 执行表结构脚本
+使用 MongoDB Atlas（推荐）或本地 MongoDB 实例：
 
 ```bash
-mysql -u root -p morning_reading < schema.sql
+# 本地 MongoDB
+mongosh mongodb://localhost:27017
+
+# 或使用 MongoDB Atlas 连接串
+mongosh "mongodb+srv://username:password@cluster.mongodb.net/morning_reading"
+```
+
+### 2. 创建数据库和集合
+
+```javascript
+// 创建数据库
+use morning_reading;
+
+// 创建集合并设置验证规则
+db.createCollection("users", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["openid", "nickname"],
+      properties: {
+        _id: { bsonType: "objectId" },
+        openid: { bsonType: "string" },
+        nickname: { bsonType: "string" },
+        avatar: { bsonType: "string" },
+        signature: { bsonType: "string" },
+        createdAt: { bsonType: "date" }
+      }
+    }
+  }
+});
 ```
 
 ### 3. 导入初始数据
 
 ```bash
-mysql -u root -p morning_reading < init-data.sql
+# 使用脚本导入（如果有 MongoDB 初始化脚本）
+mongosh mongodb://localhost:27017 < init-mongodb.js
+```
+
+### 4. 创建索引优化查询
+
+```javascript
+// 用户索引
+db.users.createIndex({ openid: 1 });
+db.users.createIndex({ createdAt: -1 });
+
+// 打卡记录索引
+db.checkins.createIndex({ userId: 1, createdAt: -1 });
+db.checkins.createIndex({ periodId: 1 });
+
+// 小凡看见索引
+db.insights.createIndex({ createdBy: 1, createdAt: -1 });
+db.insights.createIndex({ targetUserId: 1 });
 ```
 
 ## 初始数据说明
