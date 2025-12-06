@@ -1,4 +1,8 @@
--- 晨读营初始化数据（基于HTML demo）
+-- ⚠️ 已弃用：项目已迁移到 MongoDB
+-- 保留此文件仅作历史参考
+-- 当前数据库使用 MongoDB，请参考 database/README.md 中的 MongoDB 初始化说明
+--
+-- 晨读营初始化数据（基于HTML demo，MySQL 版本，已过时）
 
 -- 插入测试用户
 INSERT INTO users (wx_openid, nickname, avatar, signature) VALUES

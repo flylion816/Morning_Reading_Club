@@ -1,4 +1,8 @@
--- 晨读营数据库表结构设计
+-- ⚠️ 已弃用：项目已迁移到 MongoDB
+-- 保留此文件仅作历史参考
+-- 当前数据库使用 MongoDB，请参考 database/README.md 中的 MongoDB 初始化说明
+--
+-- 晨读营数据库表结构设计（MySQL 版本，已过时）
 
 -- 用户表
 CREATE TABLE users (
