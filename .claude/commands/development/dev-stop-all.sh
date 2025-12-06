@@ -70,6 +70,6 @@ fi
 
 echo ""
 echo -e "${YELLOW}💡 提示:${NC}"
-echo "  • 重启服务: ./.claude/commands/development/start-all.sh"
-echo "  • 快速重启: ./.claude/commands/development/restart-all.sh"
+echo "  • 重启服务: ./.claude/commands/development/dev-start-all.sh"
+echo "  • 快速重启: ./.claude/commands/development/dev-restart-all.sh"
 echo ""
