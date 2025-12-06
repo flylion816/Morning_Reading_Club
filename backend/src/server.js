@@ -42,10 +42,10 @@ async function startServer() {
       });
 
       // 保留控制台输出用于本地开发
-      console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
-      console.log(`📚 API Base URL: http://localhost:${PORT}/api/v1`);
-      console.log(`🏥 Health check: http://localhost:${PORT}/api/v1/health`);
-      console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+      logger.info(`\n🚀 Server is running on http://localhost:${PORT}`);
+      logger.info(`📚 API Base URL: http://localhost:${PORT}/api/v1`);
+      logger.info(`🏥 Health check: http://localhost:${PORT}/api/v1/health`);
+      logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}\n`);
     });
 
     // 初始化 WebSocket (Socket.IO)
@@ -81,7 +81,7 @@ async function startServer() {
       message: error.message,
       code: error.code,
     });
-    console.error('❌ Failed to start server:', error);
+    logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
@@ -89,13 +89,13 @@ async function startServer() {
 // 优雅关闭
 process.on('SIGINT', async () => {
   logger.info('应用接收到 SIGINT 信号，正在优雅关闭...');
-  console.log('\n\n👋 Shutting down gracefully...');
+  logger.info('\n\n👋 Shutting down gracefully...');
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   logger.info('应用接收到 SIGTERM 信号，正在优雅关闭...');
-  console.log('\n\n👋 Shutting down gracefully...');
+  logger.info('\n\n👋 Shutting down gracefully...');
   process.exit(0);
 });
 

@@ -1,6 +1,13 @@
 # 微信小程序相关
 .DS_Store
+Thumbs.db
+
+# 日志文件
 *.log
+backend/logs/
+admin/logs/
+miniprogram/logs/
+logs/
 
 # 开发工具配置
 project.private.config.json
@@ -46,3 +53,14 @@ uploadRecord.txt
 # 上传的文件目录
 backend/uploads/
 uploads/
+
+# 运行时文件
+*.pid
+*.tmp
+*.pem
+*.key
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3

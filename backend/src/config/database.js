@@ -9,9 +9,9 @@ async function connectMongoDB() {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ MongoDB connected successfully');
+    logger.info('✅ MongoDB connected successfully');
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message);
+    logger.error('❌ MongoDB connection error:', error.message);
     process.exit(1);
   }
 }
@@ -32,10 +32,10 @@ const mysqlPool = mysql.createPool({
 async function testMySQLConnection() {
   try {
     const connection = await mysqlPool.getConnection();
-    console.log('✅ MySQL connected successfully');
+    logger.info('✅ MySQL connected successfully');
     connection.release();
   } catch (error) {
-    console.error('❌ MySQL connection error:', error.message);
+    logger.error('❌ MySQL connection error:', error.message);
   }
 }
 

@@ -51,62 +51,62 @@ function validateEnvValue(key, value, expectedType) {
  */
 function validateConfig() {
   // Keep console output for config validation as it's startup-critical
-  console.log('\n' + chalk.cyan.bold('═══════════════════════════════════════════'));
-  console.log(chalk.cyan.bold('   环境配置验证'));
-  console.log(chalk.cyan.bold('═══════════════════════════════════════════\n'));
+  logger.info('\n' + chalk.cyan.bold('═══════════════════════════════════════════'));
+  logger.info(chalk.cyan.bold('   环境配置验证'));
+  logger.info(chalk.cyan.bold('═══════════════════════════════════════════\n'));
 
   let hasErrors = false;
   let checkedCount = 0;
   let successCount = 0;
 
   // 检查必需的环境变量
-  console.log(chalk.yellow.bold('📋 必需的环境变量:'));
+  logger.info(chalk.yellow.bold('📋 必需的环境变量:'));
   Object.entries(REQUIRED_ENV).forEach(([key, expectedType]) => {
     const value = process.env[key];
     checkedCount++;
 
     if (!value) {
-      console.log(`  ${chalk.red('✗')} ${chalk.red(key)}: 未设置`);
+      logger.info(`  ${chalk.red('✗')} ${chalk.red(key)}: 未设置`);
       logger.error(`Environment validation failed: ${key} is not set`);
       hasErrors = true;
     } else if (!validateEnvValue(key, value, expectedType)) {
-      console.log(`  ${chalk.red('✗')} ${chalk.red(key)}: 格式无效 (期望: ${expectedType})`);
+      logger.info(`  ${chalk.red('✗')} ${chalk.red(key)}: 格式无效 (期望: ${expectedType})`);
       logger.error(`Environment validation failed: ${key} has invalid format`, { expectedType });
       hasErrors = true;
     } else {
       // 隐藏敏感信息
       const displayValue = key.includes('SECRET') ? '●●●●●●●●' : value;
-      console.log(`  ${chalk.green('✓')} ${chalk.green(key)}: ${displayValue}`);
+      logger.info(`  ${chalk.green('✓')} ${chalk.green(key)}: ${displayValue}`);
       successCount++;
     }
   });
 
   // 检查可选的环境变量
-  console.log(chalk.yellow.bold('\n📋 可选的环境变量:'));
+  logger.info(chalk.yellow.bold('\n📋 可选的环境变量:'));
   Object.entries(OPTIONAL_ENV).forEach(([key, defaultValue]) => {
     const value = process.env[key] || defaultValue;
     checkedCount++;
 
     if (process.env[key]) {
-      console.log(`  ${chalk.blue('✓')} ${chalk.blue(key)}: ${value}`);
+      logger.info(`  ${chalk.blue('✓')} ${chalk.blue(key)}: ${value}`);
       successCount++;
     } else {
-      console.log(`  ${chalk.cyan('⚠')} ${chalk.cyan(key)}: 使用默认值 (${defaultValue})`);
+      logger.info(`  ${chalk.cyan('⚠')} ${chalk.cyan(key)}: 使用默认值 (${defaultValue})`);
       logger.info(`Using default value for ${key}`, { defaultValue });
       successCount++;
     }
   });
 
-  console.log('\n' + chalk.cyan.bold('═══════════════════════════════════════════\n'));
+  logger.info('\n' + chalk.cyan.bold('═══════════════════════════════════════════\n'));
 
   if (hasErrors) {
-    console.log(chalk.red.bold('❌ 配置验证失败!'));
-    console.log(chalk.red('请检查以上错误的环境变量。\n'));
+    logger.info(chalk.red.bold('❌ 配置验证失败!'));
+    logger.info(chalk.red('请检查以上错误的环境变量。\n'));
     logger.error('Configuration validation failed', { checkedCount, successCount });
     process.exit(1);
   }
 
-  console.log(chalk.green.bold(`✅ 配置验证成功! (${successCount}/${checkedCount})\n`));
+  logger.info(chalk.green.bold(`✅ 配置验证成功! (${successCount}/${checkedCount})\n`));
   logger.info('Configuration validation passed', { checkedCount, successCount });
   return true;
 }

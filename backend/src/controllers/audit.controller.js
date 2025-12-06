@@ -26,7 +26,7 @@ class AuditController {
       const result = await auditService.getLogs(query, parseInt(page), parseInt(pageSize))
       res.json(success(result, '获取审计日志成功'))
     } catch (error) {
-      console.error('获取审计日志失败:', error)
+      logger.error('获取审计日志失败:', error)
       res.status(500).json(errors.internalError('获取审计日志失败'))
     }
   }
@@ -43,7 +43,7 @@ class AuditController {
       const result = await auditService.getAdminLogs(adminId, parseInt(page), parseInt(pageSize))
       res.json(success(result, '获取管理员操作记录成功'))
     } catch (error) {
-      console.error('获取管理员操作记录失败:', error)
+      logger.error('获取管理员操作记录失败:', error)
       res.status(500).json(errors.internalError('获取管理员操作记录失败'))
     }
   }
@@ -65,7 +65,7 @@ class AuditController {
       )
       res.json(success(result, '获取资源操作记录成功'))
     } catch (error) {
-      console.error('获取资源操作记录失败:', error)
+      logger.error('获取资源操作记录失败:', error)
       res.status(500).json(errors.internalError('获取资源操作记录失败'))
     }
   }
@@ -79,7 +79,7 @@ class AuditController {
       const stats = await auditService.getStatistics()
       res.json(success(stats, '获取操作统计成功'))
     } catch (error) {
-      console.error('获取操作统计失败:', error)
+      logger.error('获取操作统计失败:', error)
       res.status(500).json(errors.internalError('获取操作统计失败'))
     }
   }
@@ -109,7 +109,7 @@ class AuditController {
       res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${Date.now()}.csv"`)
       res.send('\ufeff' + csv) // BOM标记以确保Excel正确显示中文
     } catch (error) {
-      console.error('导出审计日志失败:', error)
+      logger.error('导出审计日志失败:', error)
       res.status(500).json(errors.internalError('导出审计日志失败'))
     }
   }
@@ -140,7 +140,7 @@ class AuditController {
 
       res.json(success({ deletedCount: result.deletedCount }, '清理过期日志成功'))
     } catch (error) {
-      console.error('清理过期日志失败:', error)
+      logger.error('清理过期日志失败:', error)
       res.status(500).json(errors.internalError('清理过期日志失败'))
     }
   }

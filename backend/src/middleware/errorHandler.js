@@ -2,7 +2,7 @@ const { error } = require('../utils/response');
 
 // 全局错误处理中间件
 function errorHandler(err, req, res, next) {
-  console.error('Error:', {
+  logger.error('Error:', {
     message: err.message,
     stack: err.stack,
     url: req.url,

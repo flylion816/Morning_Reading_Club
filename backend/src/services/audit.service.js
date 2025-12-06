@@ -51,7 +51,7 @@ class AuditService {
       await log.save()
       return log
     } catch (error) {
-      console.error('创建审计日志失败:', error)
+      logger.error('创建审计日志失败:', error)
       throw error
     }
   }
@@ -73,7 +73,7 @@ class AuditService {
       }))
       return await AuditLog.insertMany(auditLogs)
     } catch (error) {
-      console.error('批量创建审计日志失败:', error)
+      logger.error('批量创建审计日志失败:', error)
       throw error
     }
   }
@@ -140,7 +140,7 @@ class AuditService {
         pages: Math.ceil(total / pageSize)
       }
     } catch (error) {
-      console.error('获取审计日志列表失败:', error)
+      logger.error('获取审计日志列表失败:', error)
       throw error
     }
   }
@@ -218,7 +218,7 @@ class AuditService {
         topAdmins: adminStats
       }
     } catch (error) {
-      console.error('获取操作统计失败:', error)
+      logger.error('获取操作统计失败:', error)
       throw error
     }
   }
@@ -271,7 +271,7 @@ class AuditService {
 
       return result
     } catch (error) {
-      console.error('清理过期日志失败:', error)
+      logger.error('清理过期日志失败:', error)
       throw error
     }
   }
@@ -318,7 +318,7 @@ class AuditService {
 
       return csv
     } catch (error) {
-      console.error('导出审计日志失败:', error)
+      logger.error('导出审计日志失败:', error)
       throw error
     }
   }

@@ -74,7 +74,7 @@ exports.getDashboardStats = async (req, res) => {
       }))
     }))
   } catch (error) {
-    console.error('获取仪表板统计失败:', error)
+    logger.error('获取仪表板统计失败:', error)
     res.status(500).json(errors.internalServerError('获取仪表板统计失败'))
   }
 }
@@ -165,7 +165,7 @@ exports.getEnrollmentStats = async (req, res) => {
       channelStats
     }))
   } catch (error) {
-    console.error('获取报名统计失败:', error)
+    logger.error('获取报名统计失败:', error)
     res.status(500).json(errors.internalServerError('获取报名统计失败'))
   }
 }
@@ -243,7 +243,7 @@ exports.getPaymentStats = async (req, res) => {
       totalPaymentCount: totalStats[0]?.totalCount || 0
     }))
   } catch (error) {
-    console.error('获取支付统计失败:', error)
+    logger.error('获取支付统计失败:', error)
     res.status(500).json(errors.internalServerError('获取支付统计失败'))
   }
 }
@@ -317,7 +317,7 @@ exports.getCheckinStats = async (req, res) => {
       checkinTrend
     }))
   } catch (error) {
-    console.error('获取打卡统计失败:', error)
+    logger.error('获取打卡统计失败:', error)
     res.status(500).json(errors.internalServerError('获取打卡统计失败'))
   }
 }

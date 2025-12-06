@@ -26,7 +26,7 @@ class AuditHelper {
 
       await auditService.createLog(log)
     } catch (error) {
-      console.error('记录批量批准日志失败:', error)
+      logger.error('记录批量批准日志失败:', error)
     }
   }
 
@@ -53,7 +53,7 @@ class AuditHelper {
 
       await auditService.createLog(log)
     } catch (error) {
-      console.error('记录批量拒绝日志失败:', error)
+      logger.error('记录批量拒绝日志失败:', error)
     }
   }
 
@@ -79,7 +79,7 @@ class AuditHelper {
 
       await auditService.createLog(log)
     } catch (error) {
-      console.error('记录批量删除日志失败:', error)
+      logger.error('记录批量删除日志失败:', error)
     }
   }
 
@@ -106,7 +106,7 @@ class AuditHelper {
 
       await auditService.createLog(log)
     } catch (error) {
-      console.error('记录操作日志失败:', error)
+      logger.error('记录操作日志失败:', error)
     }
   }
 
@@ -128,7 +128,7 @@ class AuditHelper {
 
       await auditService.createLog(log)
     } catch (error) {
-      console.error('记录登录日志失败:', error)
+      logger.error('记录登录日志失败:', error)
     }
   }
 
@@ -150,7 +150,7 @@ class AuditHelper {
 
       await auditService.createLog(log)
     } catch (error) {
-      console.error('记录登出日志失败:', error)
+      logger.error('记录登出日志失败:', error)
     }
   }
 
@@ -174,7 +174,7 @@ class AuditHelper {
 
       await auditService.createLog(log)
     } catch (error) {
-      console.error('记录错误日志失败:', error)
+      logger.error('记录错误日志失败:', error)
     }
   }
 

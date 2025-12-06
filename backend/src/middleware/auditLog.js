@@ -79,7 +79,7 @@ const auditLogMiddleware = (req, res, next) => {
 
       await auditService.createLog(auditLog)
     } catch (error) {
-      console.error('创建审计日志失败:', error)
+      logger.error('创建审计日志失败:', error)
       // 不影响正常的API响应
     }
   })

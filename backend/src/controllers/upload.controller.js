@@ -32,7 +32,7 @@ module.exports = {
         uploadedAt: new Date()
       }, '文件上传成功'))
     } catch (err) {
-      console.error('File upload error:', err)
+      logger.error('File upload error:', err)
       res.status(500).json(errors.internalServerError('文件上传失败'))
     }
   },
@@ -60,7 +60,7 @@ module.exports = {
         count: uploadedFiles.length
       }, '文件上传成功'))
     } catch (err) {
-      console.error('Multiple files upload error:', err)
+      logger.error('Multiple files upload error:', err)
       res.status(500).json(errors.internalServerError('文件上传失败'))
     }
   },
@@ -93,7 +93,7 @@ module.exports = {
 
       res.json(success(null, '文件删除成功'))
     } catch (err) {
-      console.error('File deletion error:', err)
+      logger.error('File deletion error:', err)
       res.status(500).json(errors.internalServerError('文件删除失败'))
     }
   }

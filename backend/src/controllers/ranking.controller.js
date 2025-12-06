@@ -171,7 +171,7 @@ async function getPeriodRanking(req, res, next) {
       timeRange
     }));
   } catch (error) {
-    console.error('获取排行榜失败:', error);
+    logger.error('获取排行榜失败:', error);
     next(error);
   }
 }
