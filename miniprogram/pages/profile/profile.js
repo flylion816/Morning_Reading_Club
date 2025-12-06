@@ -955,8 +955,9 @@ Page({
         // 更新全局应用数据
         app.globalData.userInfo = updatedUserInfo;
 
-        // 保存到本地存储
-        wx.setStorageSync('user_info', updatedUserInfo);
+        // 保存到本地存储（使用 constants 中定义的 key 保持一致）
+        const constants = require('../../config/constants');
+        wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, updatedUserInfo);
 
         wx.showToast({
           title: '保存成功',
