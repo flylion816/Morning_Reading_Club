@@ -71,15 +71,20 @@ Page({
    */
   async loadUserInfo() {
     try {
+      console.log('📥 开始加载用户信息...');
       const userInfo = await userService.getUserProfile();
+      console.log('✅ 获取用户信息成功:', userInfo);
+
       const app = getApp();
       app.globalData.userInfo = userInfo;
 
       this.setData({
         userInfo
       });
+
+      console.log('📝 页面 userInfo 已更新为:', this.data.userInfo);
     } catch (error) {
-      console.error('获取用户信息失败:', error);
+      console.error('❌ 获取用户信息失败:', error);
     }
   },
 
