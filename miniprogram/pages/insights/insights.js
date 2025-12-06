@@ -3,11 +3,75 @@ const insightService = require('../../services/insight.service');
 Page({
   data: {
     insights: [],
-    loading: true
+    loading: true,
+    userId: null,        // 目标用户ID（如果查看他人，此值为他人的ID）
+    userName: '小凡看见',  // 显示的标题
+    isOtherUser: false,  // 是否在查看他人的小凡看见
+    headerEmoji: '🦁',   // 头部emoji
+    headerTitle: '小凡看见', // 头部标题
+    headerDesc: '按章节查看个性化反馈' // 头部描述
   },
 
-  onLoad() {
+  onLoad(options) {
+    // 检查是否是查看他人的小凡看见
+    const targetUserId = options.userId;
+    const targetUserName = options.userName ? decodeURIComponent(options.userName) : '小凡看见';
+
+    const app = getApp();
+    const currentUser = app.globalData.userInfo;
+
+    // 初始化数据（在获取用户信息前）
+    let headerEmoji, headerTitle, headerDesc;
+
+    if (targetUserId) {
+      // 查看他人的小凡看见 - 先用默认值，稍后从用户缓存中获取
+      headerEmoji = '👤';
+      headerTitle = targetUserName;
+      headerDesc = '的个性化学习反馈';
+    } else {
+      // 查看自己的小凡看见
+      headerEmoji = currentUser?.avatar || currentUser?.avatarText || '🦁';
+      headerTitle = '我的小凡看见';
+      headerDesc = '按章节查看个性化反馈';
+    }
+
+    this.setData({
+      userId: targetUserId || null,
+      userName: targetUserName,
+      isOtherUser: !!targetUserId,
+      headerEmoji,
+      headerTitle,
+      headerDesc
+    });
+
+    console.log('📋 insights.onLoad - 参数:', { targetUserId, targetUserName, isOtherUser: !!targetUserId, headerEmoji, headerTitle });
+
+    // 如果是查看他人的小凡看见，从缓存或存储中获取目标用户的头像
+    if (targetUserId) {
+      this.loadTargetUserInfo();
+    }
+
     this.loadInsights();
+  },
+
+  async loadTargetUserInfo() {
+    try {
+      const app = getApp();
+      const targetUser = app.globalData.targetUserForInsights;
+
+      if (targetUser) {
+        // 从目标用户信息中获取头像
+        const headerEmoji = targetUser.avatar || targetUser.avatarText || '👤';
+        this.setData({ headerEmoji });
+        console.log('✅ 已获取目标用户头像:', headerEmoji);
+        // 清理临时变量，避免内存泄漏
+        app.globalData.targetUserForInsights = null;
+      } else {
+        console.warn('⚠️ 无法从全局变量中获取用户信息，使用默认值');
+      }
+    } catch (error) {
+      console.warn('获取目标用户头像出错:', error);
+    }
   },
 
   async loadInsights() {
@@ -23,7 +87,8 @@ Page({
       console.log('=== 加载小凡看见 ===');
       console.log('当前用户ID:', currentUserId);
       console.log('Token存在?:', !!token);
-      console.log('app.globalData.userInfo:', app.globalData.userInfo);
+      console.log('是否查看他人:', this.data.isOtherUser);
+      console.log('目标用户ID:', this.data.userId);
 
       if (!currentUserId) {
         console.warn('用户未登录，无法加载小凡看见');
@@ -46,8 +111,18 @@ Page({
         return;
       }
 
-      // 获取所有insights
-      const res = await insightService.getInsightsList({ limit: 100 });
+      // 根据是否查看他人来调用不同的API
+      let res;
+      if (this.data.isOtherUser) {
+        // 查看他人的小凡看见（需要已获得权限）
+        console.log('📖 加载他人的小凡看见...');
+        res = await insightService.getUserInsightsList(this.data.userId, { limit: 100 });
+      } else {
+        // 查看自己的小凡看见
+        console.log('📖 加载自己的小凡看见...');
+        res = await insightService.getInsightsList({ limit: 100 });
+      }
+
       console.log('获取insights列表响应:', res);
 
       // 处理响应数据

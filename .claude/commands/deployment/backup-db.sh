@@ -55,7 +55,13 @@ echo ""
 # 检查数据库连接
 echo -e "${YELLOW}🔗 检查数据库连接...${NC}"
 
-if mongosh --host "$DB_HOST:$DB_PORT" --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+# 构建 mongosh 认证参数
+MONGOSH_AUTH=""
+if [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ]; then
+    MONGOSH_AUTH="-u $DB_USER -p $DB_PASSWORD --authenticationDatabase admin"
+fi
+
+if mongosh --host "$DB_HOST:$DB_PORT" $MONGOSH_AUTH --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
     echo -e "${GREEN}✓ 数据库连接成功${NC}"
 else
     echo -e "${YELLOW}⚠ 警告: 数据库可能未启动或无法连接${NC}"
@@ -67,33 +73,51 @@ echo ""
 # 执行备份
 echo -e "${YELLOW}⏳ 正在备份数据库...${NC}"
 
-# 使用 mongodump
+# 创建临时目录
 TEMP_DUMP_DIR="/tmp/db_dump_$TIMESTAMP"
 mkdir -p "$TEMP_DUMP_DIR"
 
-if mongodump --host "$DB_HOST:$DB_PORT" --db "$DB_NAME" --out "$TEMP_DUMP_DIR" > /dev/null 2>&1; then
+# 设置清理函数，确保失败时也清理临时文件
+cleanup_temp() {
+    if [ -d "$TEMP_DUMP_DIR" ]; then
+        rm -rf "$TEMP_DUMP_DIR"
+    fi
+}
+trap cleanup_temp EXIT
+
+# 构建 mongodump 认证参数
+MONGODUMP_AUTH=""
+if [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ]; then
+    MONGODUMP_AUTH="-u $DB_USER -p $DB_PASSWORD --authenticationDatabase admin"
+fi
+
+# 执行备份
+if mongodump --host "$DB_HOST:$DB_PORT" $MONGODUMP_AUTH --db "$DB_NAME" --out "$TEMP_DUMP_DIR" > /tmp/mongodump_$TIMESTAMP.log 2>&1; then
     echo -e "${GREEN}✓ 数据库导出成功${NC}"
 
     # 压缩备份
     echo -e "${YELLOW}🗜️  压缩备份文件...${NC}"
-    tar -czf "$BACKUP_FILE" -C "$TEMP_DUMP_DIR" .
+    if tar -czf "$BACKUP_FILE" -C "$TEMP_DUMP_DIR" . > /tmp/tar_$TIMESTAMP.log 2>&1; then
+        echo -e "${GREEN}✓ 压缩成功${NC}"
+    else
+        echo -e "${RED}❌ 压缩失败${NC}"
+        echo "日志: $(cat /tmp/tar_$TIMESTAMP.log)"
+        exit 1
+    fi
 
-    if [ -f "$BACKUP_FILE" ]; then
+    # 验证备份文件
+    if [ -f "$BACKUP_FILE" ] && [ -s "$BACKUP_FILE" ]; then
         FILE_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
         echo -e "${GREEN}✓ 备份文件创建成功${NC}"
         echo "  大小: $FILE_SIZE"
         echo "  路径: $(pwd)/$BACKUP_FILE"
     else
-        echo -e "${RED}❌ 备份文件创建失败${NC}"
+        echo -e "${RED}❌ 备份文件无效或为空${NC}"
         exit 1
     fi
-
-    # 清理临时文件
-    rm -rf "$TEMP_DUMP_DIR"
 else
     echo -e "${RED}❌ 数据库导出失败${NC}"
-    echo "请检查 MongoDB 是否运行"
-    echo "运行: mongosh --host $DB_HOST:$DB_PORT --eval \"db.adminCommand('ping')\""
+    echo "日志: $(cat /tmp/mongodump_$TIMESTAMP.log)"
     exit 1
 fi
 

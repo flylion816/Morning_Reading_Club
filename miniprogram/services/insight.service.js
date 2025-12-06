@@ -27,13 +27,24 @@ class InsightService {
   }
 
   /**
-   * 获取小凡看见列表（用于insights页面）
+   * 获取小凡看见列表（用于insights页面，查看自己的）
    * @param {Object} params 查询参数
    * @returns {Promise}
    */
   getInsightsList(params = {}) {
     // 获取当前用户的insights
     return request.get('/insights/user', params);
+  }
+
+  /**
+   * 获取他人的小凡看见列表（需要已获得权限）
+   * @param {string} userId 目标用户ID
+   * @param {Object} params 查询参数
+   * @returns {Promise}
+   */
+  getUserInsightsList(userId, params = {}) {
+    // 获取特定用户的insights（需要权限检查）
+    return request.get(`/insights/user/${userId}`, params);
   }
 
   /**

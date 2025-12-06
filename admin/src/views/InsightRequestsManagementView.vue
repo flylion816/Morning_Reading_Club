@@ -215,11 +215,14 @@
             <span>{{ dialogApprove.form.toUserName }}</span>
           </el-form-item>
           <el-form-item label="允许查看期次">
-            <el-select v-model="dialogApprove.form.periodId" placeholder="选择期次">
+            <el-select
+              v-model="dialogApprove.form.periodId"
+              placeholder="选择期次"
+            >
               <el-option
                 v-for="period in periods"
                 :key="period._id"
-                :label="period.name"
+                :label="period.name || period.title"
                 :value="period._id"
               />
             </el-select>
@@ -415,8 +418,10 @@ const loadRequests = async () => {
 const loadPeriods = async () => {
   try {
     const response = await api.get('/periods')
-    // API 拦截器已经解包了，所以 response 直接是数组
-    if (Array.isArray(response)) {
+    // API 返回 {list: [...], pagination: {...}} 结构
+    if (response && response.list && Array.isArray(response.list)) {
+      periods.value = response.list
+    } else if (Array.isArray(response)) {
       periods.value = response
     }
   } catch (error) {
@@ -424,15 +429,45 @@ const loadPeriods = async () => {
   }
 }
 
+// 当选择期次名称时，自动更新对应的 periodId
+const updatePeriodId = () => {
+  const selectedName = dialogApprove.value.form.periodName
+  const matchedPeriod = periods.value.find(p => (p.name || p.title) === selectedName)
+  if (matchedPeriod) {
+    dialogApprove.value.form.periodId = matchedPeriod._id
+    console.log('✅ 期次已更新:', { name: selectedName, id: matchedPeriod._id })
+  }
+}
+
 // 打开同意对话框
 const openApproveDialog = (row) => {
   // 如果申请记录中已经有periodId，则自动使用；否则需要管理员手动选择
-  const defaultPeriodId = row.periodId ? row.periodId : ''
+  // 处理periodId可能是对象或字符串的情况
+  const defaultPeriodId = row.periodId?._id || row.periodId || ''
+
+  // 查找对应的期次，用于显示名称（如果已自动填充）
+  let periodName = '选择期次'
+  if (defaultPeriodId) {
+    const matchedPeriod = periods.value.find(p => p._id === defaultPeriodId)
+    if (matchedPeriod) {
+      periodName = matchedPeriod.name || matchedPeriod.title
+    }
+  }
+
+  console.log('🔍 openApproveDialog:', {
+    fromUser: row.fromUserId?.nickname,
+    toUser: row.toUserId?.nickname,
+    periodId: row.periodId,
+    defaultPeriodId: defaultPeriodId,
+    periodName: periodName,
+    allPeriods: periods.value
+  })
 
   dialogApprove.value.form = {
     fromUserName: row.fromUserId?.nickname || '未知',
     toUserName: row.toUserId?.nickname || '未知',
     periodId: defaultPeriodId,
+    periodName: periodName, // 添加期次名称用于显示
     adminNote: ''
   }
   dialogApprove.value.requestId = row._id

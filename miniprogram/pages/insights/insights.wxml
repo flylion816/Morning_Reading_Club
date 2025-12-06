@@ -1,8 +1,8 @@
 <view class="page-insights">
   <view class="insights-header">
-    <view class="header-emoji">🦁</view>
-    <view class="header-title">小凡看见</view>
-    <view class="header-desc">按章节查看个性化反馈</view>
+    <view class="header-emoji">{{headerEmoji}}</view>
+    <view class="header-title">{{headerTitle}}</view>
+    <view class="header-desc">{{headerDesc}}</view>
   </view>
 
   <view class="insights-list">

@@ -128,6 +128,25 @@ class UserService {
     }
     return request.post('/insights/requests', data);
   }
+
+  /**
+   * 检查与某个用户的小凡看见查看申请状态
+   * @param {string} toUserId 目标用户ID
+   * @returns {Promise}
+   */
+  checkInsightRequestStatus(toUserId) {
+    return request.get(`/insights/requests/status/${toUserId}`);
+  }
+
+  /**
+   * 获取他人的小凡看见列表（需要已获批权限）
+   * @param {string} userId 目标用户ID
+   * @param {Object} params 查询参数
+   * @returns {Promise}
+   */
+  getUserInsightsList(userId, params = {}) {
+    return request.get(`/insights/users/${userId}`, params);
+  }
 }
 
 module.exports = new UserService();

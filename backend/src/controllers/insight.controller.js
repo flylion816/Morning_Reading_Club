@@ -2,6 +2,7 @@ const Insight = require('../models/Insight');
 const Checkin = require('../models/Checkin');
 const InsightRequest = require('../models/InsightRequest');
 const User = require('../models/User');
+const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
 const { createNotification, createNotifications } = require('./notification.controller');
 
@@ -123,21 +124,47 @@ async function generateInsight(req, res, next) {
 async function getUserInsights(req, res, next) {
   try {
     const { page = 1, limit = 20, periodId, type } = req.query;
-    const userId = req.params.userId || req.user.userId;
+    const currentUserId = req.user.userId;
+    const targetUserId = req.params.userId || currentUserId;
 
-    // 构建查询条件：返回两类insights
-    // 1. 当前用户创建的insights（userId === 当前用户）
-    // 2. 分配给当前用户的insights（targetUserId === 当前用户）
+    // 如果查看的是他人的小凡看见，需要检查权限
+    if (targetUserId !== currentUserId) {
+      console.log('🔐 检查权限 - 当前用户:', currentUserId, '目标用户:', targetUserId);
+
+      // 检查当前用户是否有approved的申请来查看目标用户的insights
+      const hasPermission = await InsightRequest.findOne({
+        fromUserId: currentUserId,
+        toUserId: targetUserId,
+        status: 'approved'
+      });
+
+      if (!hasPermission) {
+        console.warn('⛔ 无权查看该用户的小凡看见');
+        return res.status(403).json(errors.forbidden('无权查看该用户的小凡看见，需要获得用户同意'));
+      }
+
+      console.log('✅ 权限检查通过，允许查看');
+    }
+
+    // 构建查询条件：
+    // 1. 如果查看自己：返回自己创建的 + 分配给自己的insights
+    // 2. 如果查看他人：只返回他人创建的insights（已approved权限）
     const baseQuery = { status: 'completed' };
     if (periodId) baseQuery.periodId = periodId;
     if (type) baseQuery.type = type;
 
-    const orConditions = [
-      { userId, ...baseQuery },  // 当前用户创建的
-      { targetUserId: userId, ...baseQuery }  // 分配给当前用户的
-    ];
-
-    const query = { $or: orConditions };
+    let query;
+    if (targetUserId === currentUserId) {
+      // 查看自己的insights
+      const orConditions = [
+        { userId: targetUserId, ...baseQuery },  // 自己创建的
+        { targetUserId: targetUserId, ...baseQuery }  // 分配给自己的
+      ];
+      query = { $or: orConditions };
+    } else {
+      // 查看他人的insights（只返回他人创建的）
+      query = { userId: targetUserId, ...baseQuery };
+    }
 
     const total = await Insight.countDocuments(query);
     const insights = await Insight.find(query)
@@ -592,6 +619,38 @@ async function getSentRequests(req, res, next) {
   }
 }
 
+// 检查与某个用户的小凡看见查看申请状态
+async function getRequestStatus(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const targetUserId = req.params.userId;
+
+    // 查询与该用户的最新申请
+    const request = await InsightRequest.findOne({
+      fromUserId: userId,
+      toUserId: targetUserId
+    }).sort({ createdAt: -1 });
+
+    if (!request) {
+      // 没有申请记录
+      return res.json(success({ approved: false, pending: false }, '无申请记录'));
+    }
+
+    // 返回申请状态
+    const response = {
+      approved: request.status === 'approved',
+      pending: request.status === 'pending',
+      requestId: request._id,
+      status: request.status,
+      createdAt: request.createdAt
+    };
+
+    res.json(success(response, '申请状态'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 同意查看申请
 async function approveInsightRequest(req, res, next) {
   try {
@@ -831,7 +890,7 @@ async function getInsightRequestsStats(req, res, next) {
 async function adminApproveRequest(req, res, next) {
   try {
     const requestId = req.params.requestId;
-    const adminId = req.user.userId;
+    const adminId = req.admin.id;
     const { periodId, adminNote } = req.body;
 
     if (!periodId) {
@@ -899,7 +958,7 @@ async function adminApproveRequest(req, res, next) {
 async function adminRejectRequest(req, res, next) {
   try {
     const requestId = req.params.requestId;
-    const adminId = req.user.userId;
+    const adminId = req.admin.id;
     const { adminNote } = req.body;
 
     // 查找申请
@@ -1193,6 +1252,7 @@ module.exports = {
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,
+  getRequestStatus,
   approveInsightRequest,
   rejectInsightRequest,
   revokeInsightRequest,

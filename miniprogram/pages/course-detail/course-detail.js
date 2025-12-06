@@ -74,9 +74,9 @@ Page({
       // 从数据库加载打卡记录
       let dbCheckins = [];
       try {
-        // 使用 /checkins/user 端点获取当前用户的打卡记录
-        // checkinService.getCheckins 应该调用这个端点
-        const checkinRes = await checkinService.getCheckins({ limit: 100 });
+        // 使用 /checkins/period/:periodId 端点获取期次的所有打卡记录（包括其他用户的）
+        // 这样才能在课程详情页显示所有人的打卡记录，与课程列表页保持一致
+        const checkinRes = await courseService.getPeriodCheckins(course.periodId?._id || course.periodId);
         console.log('打卡API响应:', checkinRes);
 
         if (checkinRes) {
@@ -90,13 +90,26 @@ Page({
 
           // 过滤出当前课节的打卡记录
           // 注意：API返回的sectionId可能被populate了，需要取_id并转换为字符串比对
-          dbCheckins = allCheckins.filter(checkin => {
+          console.log('🔍 开始过滤打卡记录，目标courseId:', this.data.courseId);
+          console.log('📊 需要过滤的打卡记录数:', allCheckins.length);
+
+          // 显示前几条的用户信息
+          if (allCheckins.length > 0) {
+            console.log('📌 打卡记录来源用户ID:', allCheckins[0].userId?._id || allCheckins[0].userId || 'unknown');
+            console.log('📌 当前登录用户ID:', getApp().globalData.userInfo?.id || getApp().globalData.userInfo?._id || 'unknown');
+          }
+
+          dbCheckins = allCheckins.filter((checkin, index) => {
             const sectionId = checkin.sectionId?._id || checkin.sectionId;
-            // 将sectionId转换为字符串，确保与courseId（字符串）能正确比对
-            return String(sectionId) === this.data.courseId;
+            const sectionIdStr = String(sectionId);
+            const matches = sectionIdStr === this.data.courseId;
+
+            console.log(`  [${index}] sectionId=${sectionId} (type: ${typeof checkin.sectionId}), 转换后=${sectionIdStr}, 匹配=${matches}`);
+
+            return matches;
           });
 
-          console.log('从数据库加载的打卡记录:', dbCheckins);
+          console.log('✅ 从数据库加载的打卡记录:', dbCheckins);
         }
       } catch (error) {
         console.warn('从打卡API加载失败，尝试使用本地存储:', error);
@@ -450,17 +463,28 @@ Page({
     const { userId } = e.currentTarget.dataset;
     const { course } = this.data;
 
+    console.log('🎯 handleAvatarClick - 开始构造导航URL');
+    console.log('   userId:', userId);
+    console.log('   course:', course);
+    console.log('   course.periodId:', course?.periodId);
+
     if (!userId) {
-      console.error('用户ID不存在');
+      console.error('❌ 用户ID不存在');
       return;
     }
 
     // 跳转到他人主页，同时传递当前课程所属的期次ID
     let url = `/pages/profile-others/profile-others?userId=${userId}`;
     if (course && course.periodId) {
-      url += `&periodId=${course.periodId}`;
+      // 处理periodId可能是对象的情况（API返回的是populate的对象）
+      const periodId = course.periodId._id || course.periodId;
+      url += `&periodId=${periodId}`;
+      console.log('✅ 成功添加periodId:', periodId);
+    } else {
+      console.warn('⚠️ course.periodId未找到或为空');
     }
 
+    console.log('🔗 最终导航URL:', url);
     wx.navigateTo({ url });
   }
 });

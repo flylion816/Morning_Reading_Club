@@ -275,15 +275,27 @@ Page({
    */
   handleAvatarClick(e) {
     const { userId } = e.currentTarget.dataset;
+    const { periodId } = this.data;
+
+    console.log('🎯 courses.handleAvatarClick - 构造导航URL');
+    console.log('   userId:', userId);
+    console.log('   periodId:', periodId);
 
     if (!userId) {
-      console.error('用户ID不存在');
+      console.error('❌ 用户ID不存在');
       return;
     }
 
-    // 跳转到他人主页
-    wx.navigateTo({
-      url: `/pages/profile-others/profile-others?userId=${userId}`
-    });
+    // 跳转到他人主页，同时传递当前期次的ID
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (periodId) {
+      url += `&periodId=${periodId}`;
+      console.log('✅ 成功添加periodId:', periodId);
+    } else {
+      console.warn('⚠️ periodId未找到');
+    }
+
+    console.log('🔗 最终导航URL:', url);
+    wx.navigateTo({ url });
   }
 });

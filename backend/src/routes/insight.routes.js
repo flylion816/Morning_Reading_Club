@@ -15,6 +15,7 @@ const {
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,
+  getRequestStatus,
   approveInsightRequest,
   rejectInsightRequest,
   revokeInsightRequest,
@@ -46,6 +47,13 @@ router.post('/generate', authMiddleware, generateInsight);
  * @access  Private
  */
 router.post('/requests', authMiddleware, createInsightRequest);
+
+/**
+ * @route   GET /api/v1/insights/requests/status/:userId
+ * @desc    检查与某个用户的小凡看见查看申请状态
+ * @access  Private
+ */
+router.get('/requests/status/:userId', authMiddleware, getRequestStatus);
 
 /**
  * @route   GET /api/v1/insights/requests/received
