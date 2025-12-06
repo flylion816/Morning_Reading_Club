@@ -48,6 +48,14 @@
           <el-table-column prop="nickname" label="用户名" width="120" />
           <el-table-column prop="email" label="邮箱" min-width="180" />
           <el-table-column prop="phone" label="电话" width="140" />
+          <el-table-column prop="signature" label="个人签名" min-width="150">
+            <template #default="{ row }">
+              <el-tooltip :content="row.signature" placement="top" v-if="row.signature">
+                <div class="cell-ellipsis">{{ row.signature }}</div>
+              </el-tooltip>
+              <span v-else style="color: #ccc">-</span>
+            </template>
+          </el-table-column>
 
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
@@ -63,7 +71,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="260" fixed="right">
+          <el-table-column label="操作" width="320" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button
@@ -76,6 +84,14 @@
                 </el-button>
                 <el-button
                   type="primary"
+                  text
+                  size="small"
+                  @click="openEditDialog(row)"
+                >
+                  编辑
+                </el-button>
+                <el-button
+                  type="info"
                   text
                   size="small"
                   @click="viewUserDetails(row)"
@@ -143,7 +159,68 @@
           <el-descriptions-item label="最后登录">
             {{ selectedUser.lastLoginAt ? formatDate(selectedUser.lastLoginAt) : '-' }}
           </el-descriptions-item>
+          <el-descriptions-item label="个人签名">
+            <span v-if="selectedUser.signature" style="white-space: pre-wrap">{{ selectedUser.signature }}</span>
+            <span v-else style="color: #ccc">-</span>
+          </el-descriptions-item>
         </el-descriptions>
+      </el-dialog>
+
+      <!-- 编辑用户对话框 -->
+      <el-dialog
+        v-model="editDialog.visible"
+        title="编辑用户"
+        width="600px"
+        @close="resetEditForm"
+      >
+        <el-form
+          v-if="editDialog.form"
+          :model="editDialog.form"
+          label-width="100px"
+          style="padding-right: 20px"
+        >
+          <el-form-item label="用户名">
+            <el-input
+              v-model="editDialog.form.nickname"
+              placeholder="请输入用户名"
+            />
+          </el-form-item>
+
+          <el-form-item label="邮箱">
+            <el-input
+              v-model="editDialog.form.email"
+              placeholder="请输入邮箱"
+              disabled
+            />
+          </el-form-item>
+
+          <el-form-item label="电话">
+            <el-input
+              v-model="editDialog.form.phone"
+              placeholder="请输入电话号码"
+            />
+          </el-form-item>
+
+          <el-form-item label="个人签名">
+            <el-input
+              v-model="editDialog.form.signature"
+              type="textarea"
+              rows="3"
+              placeholder="请输入个人签名，最多200字"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <div style="flex: auto">
+            <el-button @click="editDialog.visible = false">取消</el-button>
+            <el-button type="primary" @click="handleSaveEdit" :loading="editDialog.saving">
+              保存
+            </el-button>
+          </div>
+        </template>
       </el-dialog>
     </div>
   </AdminLayout>
@@ -171,6 +248,12 @@ const pagination = ref({
 
 const detailsDialog = ref({
   visible: false
+})
+
+const editDialog = ref({
+  visible: false,
+  saving: false,
+  form: null as any
 })
 
 onMounted(() => {
@@ -233,6 +316,41 @@ async function handleToggleUserStatus(row: any) {
 function viewUserDetails(row: any) {
   selectedUser.value = row
   detailsDialog.value.visible = true
+}
+
+function openEditDialog(row: any) {
+  editDialog.value.form = {
+    _id: row._id,
+    nickname: row.nickname,
+    email: row.email,
+    phone: row.phone || '',
+    signature: row.signature || ''
+  }
+  editDialog.value.visible = true
+}
+
+async function handleSaveEdit() {
+  if (!editDialog.value.form) return
+
+  editDialog.value.saving = true
+  try {
+    await userApi.updateUser(editDialog.value.form._id, {
+      nickname: editDialog.value.form.nickname,
+      phone: editDialog.value.form.phone,
+      signature: editDialog.value.form.signature
+    })
+    ElMessage.success('用户信息已更新')
+    editDialog.value.visible = false
+    await loadUsers()
+  } catch (err: any) {
+    ElMessage.error(err.message || '更新失败')
+  } finally {
+    editDialog.value.saving = false
+  }
+}
+
+function resetEditForm() {
+  editDialog.value.form = null
 }
 
 async function handleDeleteUser(row: any) {
@@ -325,5 +443,14 @@ function getAvatarColor(userId: string): string {
   font-weight: bold;
   font-size: 18px;
   flex-shrink: 0;
+}
+
+.cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
 }
 </style>

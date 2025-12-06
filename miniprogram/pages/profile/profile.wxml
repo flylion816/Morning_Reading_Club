@@ -224,6 +224,22 @@
         <text class="input-count">{{editForm.nickname.length}}/20</text>
       </view>
 
+      <!-- 个人签名输入 -->
+      <view class="modal-section">
+        <text class="section-label">个人签名</text>
+        <textarea
+          class="modal-textarea"
+          placeholder="选填，分享你的座右铭或想法"
+          placeholder-class="input-placeholder"
+          value="{{editForm.signature}}"
+          bindinput="onSignatureInput"
+          maxlength="200"
+          show-confirm-bar="false"
+          fixed="false"
+        ></textarea>
+        <text class="input-count">{{editForm.signature.length}}/200</text>
+      </view>
+
       <!-- 操作按钮 -->
       <view class="modal-actions">
         <view class="btn btn-cancel" bindtap="closeEditProfile">取消</view>

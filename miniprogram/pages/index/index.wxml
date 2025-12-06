@@ -8,6 +8,16 @@
     </view>
   </view>
 
+  <!-- 用户信息卡片（显示签名）-->
+  <view class="user-card" wx:if="{{isLogin && userInfo}}">
+    <view class="user-card-header">
+      <text class="user-card-nickname">{{userInfo.nickname || userInfo.name || '用户'}}</text>
+    </view>
+    <view class="user-signature" wx:if="{{userInfo.signature}}">
+      <text class="signature-text">{{userInfo.signature}}</text>
+    </view>
+  </view>
+
   <!-- 期次列表 -->
   <view class="periods-container">
     <view

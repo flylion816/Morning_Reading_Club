@@ -39,6 +39,40 @@
   text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
+/* 用户信息卡片 */
+.user-card {
+  margin: 16rpx 32rpx;
+  padding: 24rpx;
+  background: white;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+.user-card-header {
+  margin-bottom: 12rpx;
+}
+
+.user-card-nickname {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.user-signature {
+  padding: 12rpx;
+  background: #f9fafb;
+  border-left: 4rpx solid #4a90e2;
+  border-radius: 8rpx;
+}
+
+.signature-text {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* 期次列表容器 */
 .periods-container {
   padding: 32rpx;

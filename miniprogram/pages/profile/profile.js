@@ -37,7 +37,8 @@ Page({
     avatarOptions: ['🦁', '🐯', '🐻', '🐼', '🐨', '🦊', '🦝', '🐶', '🐱', '🦌', '🦅', '⭐'],
     editForm: {
       avatar: '🦁',
-      nickname: ''
+      nickname: '',
+      signature: ''
     }
   },
 
@@ -860,7 +861,8 @@ Page({
       showEditProfile: true,
       editForm: {
         avatar: userInfo.avatar || '🦁',
-        nickname: userInfo.nickname || userInfo.name || ''
+        nickname: userInfo.nickname || userInfo.name || '',
+        signature: userInfo.signature || ''
       }
     });
   },
@@ -902,6 +904,16 @@ Page({
   },
 
   /**
+   * 签名输入事件
+   */
+  onSignatureInput(e) {
+    const { value } = e.detail;
+    this.setData({
+      'editForm.signature': value
+    });
+  },
+
+  /**
    * 保存用户个人信息
    */
   async saveUserProfile() {
@@ -924,7 +936,8 @@ Page({
       // 调用更新用户信息API
       const response = await userService.updateUserProfile({
         avatar: editForm.avatar,
-        nickname: editForm.nickname
+        nickname: editForm.nickname,
+        signature: editForm.signature || null
       });
 
       if (response.code === 200 || response.code === 0 || response.success) {
