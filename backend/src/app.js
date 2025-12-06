@@ -6,6 +6,7 @@ const compression = require('compression');
 const path = require('path');
 require('dotenv').config();
 
+const { getCorsOptions } = require('./config/cors');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 // 导入路由
@@ -30,7 +31,7 @@ const app = express();
 
 // 中间件
 app.use(helmet()); // 安全头
-app.use(cors()); // 跨域
+app.use(cors(getCorsOptions())); // 跨域（安全配置，只允许指定的源）
 app.use(compression()); // 响应压缩
 app.use(morgan('dev')); // 请求日志
 app.use(express.json()); // JSON解析

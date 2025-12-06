@@ -1,6 +1,4 @@
 // Mock课程数据（重构为两层结构：期次 + 课节）
-console.log('===== mock/courses.js 被加载 =====');
-
 const mockData = {
   // 期次列表（首页显示）
   periods: [
@@ -192,8 +190,5 @@ const mockData = {
     ]
   }
 };
-
-console.log('mockData.detail.comments:', mockData.detail.comments);
-console.log('mockData.detail.comments 长度:', mockData.detail.comments ? mockData.detail.comments.length : '不存在');
 
 module.exports = mockData;

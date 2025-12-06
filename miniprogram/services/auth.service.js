@@ -101,18 +101,9 @@ class AuthService {
   async wechatLogin(userInfo) {
     try {
       // 1. 获取微信授权码
-      // 在本地开发环境使用测试code，使用已有用户数据
-      const envConfig = require('../config/env');
-      let code;
-      if (envConfig.apiBaseUrl.includes('localhost')) {
-        // 本地开发：使用测试code登录为"阿泰"
-        code = 'test_user_atai';
-        logger.debug('本地开发模式：使用测试用户 阿泰');
-      } else {
-        // 生产环境：获取真实微信code
-        const loginRes = await this.getWechatCode();
-        code = loginRes.code;
-      }
+      // 生产环境：获取真实微信code
+      const loginRes = await this.getWechatCode();
+      const code = loginRes.code;
 
       // 2. 调用后端登录接口
       const loginData = await this.login(code, {
