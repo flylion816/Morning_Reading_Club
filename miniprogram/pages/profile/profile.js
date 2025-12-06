@@ -931,7 +931,6 @@ Page({
 
     try {
       const app = getApp();
-      const token = app.globalData.token;
 
       // 调用更新用户信息API
       const response = await userService.updateUserProfile({
@@ -940,7 +939,9 @@ Page({
         signature: editForm.signature || null
       });
 
-      if (response.code === 200 || response.code === 0 || response.success) {
+      // 如果没有异常，说明request.js已经验证了响应成功
+      // 此时response是解包后的用户数据对象
+      if (response && response._id) {
         // 更新本地用户信息
         const updatedUserInfo = {
           ...userInfo,
@@ -966,7 +967,7 @@ Page({
         this.setData({ showEditProfile: false });
       } else {
         wx.showToast({
-          title: response.message || '保存失败，请重试',
+          title: '保存失败，请重试',
           icon: 'none'
         });
       }
