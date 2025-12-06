@@ -8,6 +8,7 @@ const {
   getInsightDetail,
   deleteInsight,
   createInsightManual,
+  createInsightFromExternal,
   getInsights,
   getInsightsForPeriod,
   updateInsight,
@@ -184,5 +185,19 @@ router.delete('/admin/requests/:requestId', adminAuthMiddleware, deleteInsightRe
  * @access  Private (Admin)
  */
 router.post('/admin/requests/batch-approve', adminAuthMiddleware, batchApproveRequests);
+
+// ==================== 外部接口 ====================
+
+/**
+ * @route   POST /api/v1/insights/external/create
+ * @desc    外部系统创建小凡看见（无需认证）
+ * @param   userNickname {string} - 用户昵称
+ * @param   periodName {string} - 期次名称
+ * @param   day {number} - 第几天（可选）
+ * @param   content {string} - 文字内容
+ * @param   imageUrl {string} - 图片地址（可选）
+ * @access  Public
+ */
+router.post('/external/create', createInsightFromExternal);
 
 module.exports = router;

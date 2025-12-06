@@ -1240,12 +1240,83 @@ async function batchApproveRequests(req, res, next) {
   }
 }
 
+/**
+ * 外部接口：创建小凡看见
+ * 用于外部系统提交用户的"小凡看见"内容
+ * @route   POST /api/v1/insights/external/create
+ * @param   userNickname {string} - 用户昵称
+ * @param   periodName {string} - 期次名称
+ * @param   day {number} - 第几天的课程（可选）
+ * @param   content {string} - 小凡看见的文字内容
+ * @param   imageUrl {string} - 小凡看见的图片地址（可选）
+ * @access  Public (外部系统调用)
+ */
+async function createInsightFromExternal(req, res, next) {
+  try {
+    const { userNickname, periodName, day, content, imageUrl } = req.body;
+
+    // 验证必填字段
+    if (!userNickname || !periodName || !content) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：userNickname、periodName、content'));
+    }
+
+    // 根据昵称查询用户
+    const user = await User.findOne({ nickname: userNickname });
+    if (!user) {
+      return res.status(404).json(errors.notFound(`用户不存在：${userNickname}`));
+    }
+
+    // 根据期次名称查询期次
+    const Period = require('../models/Period');
+    const period = await Period.findOne({ name: periodName });
+    if (!period) {
+      return res.status(404).json(errors.notFound(`期次不存在：${periodName}`));
+    }
+
+    // 检查用户是否已报名该期次
+    const enrollment = await Enrollment.findOne({
+      userId: user._id,
+      periodId: period._id
+    });
+    if (!enrollment) {
+      return res.status(403).json(errors.forbidden(`用户 ${userNickname} 未报名期次 ${periodName}`));
+    }
+
+    // 创建小凡看见
+    const insight = await Insight.create({
+      userId: user._id,
+      periodId: period._id,
+      day: day || null,
+      type: 'insight',
+      mediaType: imageUrl ? 'image' : 'text',
+      content,
+      imageUrl: imageUrl || null,
+      source: 'manual',
+      status: 'completed',
+      isPublished: true
+    });
+
+    // 填充关联数据
+    const populatedInsight = await insight.populate([
+      { path: 'userId', select: 'nickname avatar' },
+      { path: 'periodId', select: 'name' }
+    ]);
+
+    res.status(201).json(success(populatedInsight, '小凡看见创建成功'));
+
+  } catch (error) {
+    logger.error('创建外部小凡看见失败:', error);
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
   getInsightDetail,
   deleteInsight,
   createInsightManual,
+  createInsightFromExternal,
   getInsights,
   getInsightsForPeriod,
   updateInsight,
