@@ -32,9 +32,13 @@ Page({
   onShow() {
     // 每次显示时检查登录状态
     this.checkLoginStatus();
-    // 重新检查报名状态（用户可能在报名页面新增了报名）
-    if (this.data.isLogin && this.data.periods.length > 0) {
-      this.checkEnrollmentStatus(this.data.periods);
+    // 每次显示时重新加载用户信息（可能在其他页面被修改）
+    if (this.data.isLogin) {
+      this.loadUserInfo();
+      // 重新检查报名状态（用户可能在报名页面新增了报名）
+      if (this.data.periods.length > 0) {
+        this.checkEnrollmentStatus(this.data.periods);
+      }
     }
   },
 
