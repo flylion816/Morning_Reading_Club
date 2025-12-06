@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { generateTokens } = require('../utils/jwt');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 // Mock微信登录
 async function wechatLogin(req, res, next) {
@@ -22,11 +23,14 @@ async function wechatLogin(req, res, next) {
       user = await User.findById(testUserId);
 
       if (!user) {
-        console.error('❌ 开发环境错误：测试用户不存在，请先初始化数据库');
+        logger.error('Development environment error: test user not found', null, { testUserId });
         return res.status(500).json(errors.serverError('测试用户未初始化'));
       }
 
-      console.log('✅ 开发环境：使用测试用户', user.nickname, '登录');
+      logger.info('Development environment: using test user', {
+        userId: user._id,
+        nickname: user.nickname
+      });
     } else {
       // 生产环境：根据code获取openid
       let mockOpenid;

@@ -1,4 +1,5 @@
 const userService = require('../../services/user.service');
+const logger = require('../../utils/logger');
 
 Page({
   data: {
@@ -11,7 +12,7 @@ Page({
   onLoad(options) {
     const userId = options.userId || options.id;
     const periodId = options.periodId || null;
-    console.log('🔍 profile-others.onLoad - 接收到的参数:', { userId, periodId, allOptions: options });
+    logger.debug('🔍 profile-others.onLoad - 接收到的参数:', { userId, periodId, allOptions: options });
     this.setData({ userId, periodId });
     this.loadUserProfile();
   },
@@ -21,17 +22,17 @@ Page({
    */
   async loadUserProfile() {
     if (!this.data.userId) {
-      console.error('用户ID不存在');
+      logger.error('用户ID不存在');
       return;
     }
 
     try {
-      console.log('加载用户资料，ID:', this.data.userId);
+      logger.debug('加载用户资料，ID:', this.data.userId);
 
       // 调用API获取用户信息
       const userInfo = await userService.getUserById(this.data.userId);
 
-      console.log('用户信息:', userInfo);
+      logger.debug('用户信息:', userInfo);
 
       this.setData({
         userInfo: {
@@ -49,7 +50,7 @@ Page({
         }
       });
     } catch (error) {
-      console.error('加载用户资料失败:', error);
+      logger.error('加载用户资料失败:', error);
       wx.showToast({
         title: '加载失败',
         icon: 'none'
@@ -85,11 +86,11 @@ Page({
     // 检查与该用户的申请状态
     try {
       const status = await userService.checkInsightRequestStatus(userId);
-      console.log('📋 小凡看见申请状态:', status);
+      logger.debug('📋 小凡看见申请状态:', status);
 
       if (status && status.approved) {
         // 已批准，直接查看他人的小凡看见
-        console.log('✅ 已获得查看权限，跳转到他人小凡看见列表');
+        logger.debug('✅ 已获得查看权限，跳转到他人小凡看见列表');
 
         // 保存目标用户信息到全局变量，供 insights 页面使用
         const app = getApp();
@@ -119,7 +120,7 @@ Page({
         });
       }
     } catch (error) {
-      console.error('❌ 检查申请状态失败:', error);
+      logger.error('❌ 检查申请状态失败:', error);
       // 如果检查失败，显示发起申请对话框（fallback）
       wx.showModal({
         title: '查看小凡看见',
@@ -141,20 +142,20 @@ Page({
   async sendInsightRequest() {
     const { userId, userInfo, periodId } = this.data;
 
-    console.log('📤 sendInsightRequest - 准备发送申请:', { userId, periodId, userInfo: userInfo.nickname });
+    logger.debug('📤 sendInsightRequest - 准备发送申请:', { userId, periodId, userInfo: userInfo.nickname });
 
     try {
       // 调用API创建申请，同时传递periodId
-      console.log('📨 调用 userService.createInsightRequest，传递参数:', { userId, periodId });
+      logger.debug('📨 调用 userService.createInsightRequest，传递参数:', { userId, periodId });
       const response = await userService.createInsightRequest(userId, periodId);
-      console.log('✅ 申请发送成功，后端响应:', response);
+      logger.info('✅ 申请发送成功，后端响应:', response);
 
       wx.showToast({
         title: '申请已发送',
         icon: 'success'
       });
     } catch (error) {
-      console.error('❌ 发送申请失败:', error);
+      logger.error('❌ 发送申请失败:', error);
       wx.showToast({
         title: '申请失败',
         icon: 'none'

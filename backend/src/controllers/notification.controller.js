@@ -1,6 +1,7 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 获取用户的通知列表
@@ -198,7 +199,7 @@ async function createNotification(userId, type, title, content, options = {}) {
 
     return notification;
   } catch (error) {
-    console.error('创建通知失败:', error);
+    logger.error('Failed to create notification', error, { userId, type });
     return null;
   }
 }
@@ -234,7 +235,7 @@ async function createNotifications(userIds, type, title, content, options = {}) 
 
     return notifications;
   } catch (error) {
-    console.error('批量创建通知失败:', error);
+    logger.error('Failed to batch create notifications', error, { userCount: userIds.length, type });
     return [];
   }
 }

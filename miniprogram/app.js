@@ -1,11 +1,12 @@
 // 晨读营小程序 - 应用入口
 const envConfig = require('./config/env');
 const constants = require('./config/constants');
+const logger = require('./utils/logger');
 
 App({
   onLaunch(options) {
-    console.log('晨读营小程序启动', options);
-    console.log('当前环境:', envConfig.currentEnv);
+    logger.info('晨读营小程序启动', options);
+    logger.debug('当前环境:', envConfig.currentEnv);
 
     // 检查登录状态
     this.checkLoginStatus();
@@ -18,15 +19,15 @@ App({
   },
 
   onShow(options) {
-    console.log('晨读营小程序显示', options);
+    logger.info('晨读营小程序显示', options);
   },
 
   onHide() {
-    console.log('晨读营小程序隐藏');
+    logger.debug('晨读营小程序隐藏');
   },
 
   onError(error) {
-    console.error('应用错误:', error);
+    logger.error('应用错误:', error);
 
     // 错误上报(生产环境)
     if (envConfig.currentEnv === 'prod') {
@@ -39,19 +40,19 @@ App({
     const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
     const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
 
-    console.log('=== checkLoginStatus ===');
-    console.log('Token存在?:', !!token);
-    console.log('UserInfo存在?:', !!userInfo);
-    console.log('UserInfo._id:', userInfo?._id);
+    logger.debug('=== checkLoginStatus ===');
+    logger.debug('Token存在?:', !!token);
+    logger.debug('UserInfo存在?:', !!userInfo);
+    logger.debug('UserInfo._id:', userInfo?._id);
 
     if (token && userInfo) {
       this.globalData.isLogin = true;
       this.globalData.userInfo = userInfo;
       this.globalData.token = token;
-      console.log('✅ 登录状态恢复成功，用户ID:', userInfo._id);
+      logger.info('✅ 登录状态恢复成功，用户ID:', userInfo._id);
     } else {
       this.globalData.isLogin = false;
-      console.log('❌ 登录状态未找到');
+      logger.debug('❌ 登录状态未找到');
     }
   },
 
@@ -66,7 +67,7 @@ App({
         this.globalData.platform = res.platform;
 
         if (envConfig.enableDebug) {
-          console.log('系统信息:', res);
+          logger.debug('系统信息:', res);
         }
       }
     });
@@ -79,7 +80,7 @@ App({
 
       updateManager.onCheckForUpdate((res) => {
         if (res.hasUpdate) {
-          console.log('发现新版本');
+          logger.info('发现新版本');
         }
       });
 
@@ -96,7 +97,7 @@ App({
       });
 
       updateManager.onUpdateFailed(() => {
-        console.error('新版本下载失败');
+        logger.error('新版本下载失败');
       });
     }
   },

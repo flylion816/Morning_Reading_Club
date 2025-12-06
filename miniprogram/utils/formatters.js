@@ -3,6 +3,8 @@
  * 提供日期、时间、数字等格式化功能
  */
 
+const logger = require('./logger');
+
 /**
  * 格式化日期
  * @param {Date|string|number} date 日期对象、日期字符串或时间戳
@@ -15,7 +17,7 @@ function formatDate(date, format = 'YYYY-MM-DD') {
   let d = new Date(date);
 
   if (isNaN(d.getTime())) {
-    console.error('无效的日期:', date);
+    logger.error('无效的日期:', date);
     return '';
   }
 

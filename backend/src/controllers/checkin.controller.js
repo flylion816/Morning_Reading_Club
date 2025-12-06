@@ -2,6 +2,7 @@ const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const Section = require('../models/Section');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 // 创建打卡记录
 async function createCheckin(req, res, next) {
@@ -79,20 +80,28 @@ async function createCheckin(req, res, next) {
     await user.save();
 
     // 更新课节的打卡人数统计
-    console.log('=== 更新Section.checkinCount ===');
-    console.log('更新前 checkinCount:', section.checkinCount);
+    logger.debug('Updating Section.checkinCount', {
+      sectionId: section._id,
+      beforeCount: section.checkinCount
+    });
     section.checkinCount = (section.checkinCount || 0) + 1;
-    console.log('更新后 checkinCount:', section.checkinCount);
+    logger.debug('Section.checkinCount after update', {
+      sectionId: section._id,
+      afterCount: section.checkinCount
+    });
 
     try {
       await section.save();
-      console.log('✅ section.save() 成功');
+      logger.debug('Section save successful', { sectionId: section._id });
 
       // 验证保存结果
       const verifySection = await Section.findById(section._id);
-      console.log('✅ 验证成功，数据库中的checkinCount:', verifySection.checkinCount);
+      logger.debug('Section save verified', {
+        sectionId: section._id,
+        checkinCount: verifySection.checkinCount
+      });
     } catch (saveError) {
-      console.error('❌ section.save() 失败:', saveError);
+      logger.error('Section save failed', saveError, { sectionId: section._id });
     }
 
     res.status(201).json(success({

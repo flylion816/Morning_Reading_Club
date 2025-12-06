@@ -3,6 +3,8 @@
  * 封装微信小程序的本地存储API,支持过期时间
  */
 
+const logger = require('./logger');
+
 class Storage {
   /**
    * 设置存储
@@ -20,7 +22,7 @@ class Storage {
       wx.setStorageSync(key, JSON.stringify(data));
       return true;
     } catch (error) {
-      console.error('存储失败:', error);
+      logger.error('存储失败:', error);
       return false;
     }
   }
@@ -71,7 +73,7 @@ class Storage {
 
       return data.value;
     } catch (error) {
-      console.error('读取存储失败:', error);
+      logger.error('读取存储失败:', error);
       return null;
     }
   }
@@ -116,7 +118,7 @@ class Storage {
       wx.removeStorageSync(key);
       return true;
     } catch (error) {
-      console.error('删除存储失败:', error);
+      logger.error('删除存储失败:', error);
       return false;
     }
   }
@@ -142,7 +144,7 @@ class Storage {
       wx.clearStorageSync();
       return true;
     } catch (error) {
-      console.error('清空存储失败:', error);
+      logger.error('清空存储失败:', error);
       return false;
     }
   }
@@ -168,7 +170,7 @@ class Storage {
       const info = wx.getStorageInfoSync();
       return info.keys || [];
     } catch (error) {
-      console.error('获取键名失败:', error);
+      logger.error('获取键名失败:', error);
       return [];
     }
   }
@@ -181,7 +183,7 @@ class Storage {
     try {
       return wx.getStorageInfoSync();
     } catch (error) {
-      console.error('获取存储信息失败:', error);
+      logger.error('获取存储信息失败:', error);
       return {
         keys: [],
         currentSize: 0,

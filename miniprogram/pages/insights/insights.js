@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const logger = require('../../utils/logger');
 
 Page({
   data: {
@@ -44,7 +45,7 @@ Page({
       headerDesc
     });
 
-    console.log('📋 insights.onLoad - 参数:', { targetUserId, targetUserName, isOtherUser: !!targetUserId, headerEmoji, headerTitle });
+    logger.debug('📋 insights.onLoad - 参数:', { targetUserId, targetUserName, isOtherUser: !!targetUserId, headerEmoji, headerTitle });
 
     // 如果是查看他人的小凡看见，从缓存或存储中获取目标用户的头像
     if (targetUserId) {
@@ -63,14 +64,14 @@ Page({
         // 从目标用户信息中获取头像
         const headerEmoji = targetUser.avatar || targetUser.avatarText || '👤';
         this.setData({ headerEmoji });
-        console.log('✅ 已获取目标用户头像:', headerEmoji);
+        logger.debug('✅ 已获取目标用户头像:', headerEmoji);
         // 清理临时变量，避免内存泄漏
         app.globalData.targetUserForInsights = null;
       } else {
-        console.warn('⚠️ 无法从全局变量中获取用户信息，使用默认值');
+        logger.warn('⚠️ 无法从全局变量中获取用户信息，使用默认值');
       }
     } catch (error) {
-      console.warn('获取目标用户头像出错:', error);
+      logger.warn('获取目标用户头像出错:', error);
     }
   },
 
@@ -84,20 +85,20 @@ Page({
       const constants = require('../../config/constants');
       const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
 
-      console.log('=== 加载小凡看见 ===');
-      console.log('当前用户ID:', currentUserId);
-      console.log('Token存在?:', !!token);
-      console.log('是否查看他人:', this.data.isOtherUser);
-      console.log('目标用户ID:', this.data.userId);
+      logger.debug('=== 加载小凡看见 ===');
+      logger.debug('当前用户ID:', currentUserId);
+      logger.debug('Token存在?:', !!token);
+      logger.debug('是否查看他人:', this.data.isOtherUser);
+      logger.debug('目标用户ID:', this.data.userId);
 
       if (!currentUserId) {
-        console.warn('用户未登录，无法加载小凡看见');
+        logger.warn('用户未登录，无法加载小凡看见');
         this.setData({ loading: false });
         return;
       }
 
       if (!token) {
-        console.warn('Token不存在，需要重新登录');
+        logger.warn('Token不存在，需要重新登录');
         wx.showToast({
           title: '登录已过期，请重新登录',
           icon: 'none'
@@ -115,15 +116,15 @@ Page({
       let res;
       if (this.data.isOtherUser) {
         // 查看他人的小凡看见（需要已获得权限）
-        console.log('📖 加载他人的小凡看见...');
+        logger.debug('📖 加载他人的小凡看见...');
         res = await insightService.getUserInsightsList(this.data.userId, { limit: 100 });
       } else {
         // 查看自己的小凡看见
-        console.log('📖 加载自己的小凡看见...');
+        logger.debug('📖 加载自己的小凡看见...');
         res = await insightService.getInsightsList({ limit: 100 });
       }
 
-      console.log('获取insights列表响应:', res);
+      logger.debug('获取insights列表响应:', res);
 
       // 处理响应数据
       let insightsList = [];
@@ -133,16 +134,16 @@ Page({
         insightsList = res;
       }
 
-      console.log('原始insights数据:', insightsList);
-      console.log('原始insights数据长度:', insightsList.length);
+      logger.debug('原始insights数据:', insightsList);
+      logger.debug('原始insights数据长度:', insightsList.length);
 
       // API已经返回了当前用户相关的所有insights
       // 包括：1) 当前用户创建的 2) 分配给当前用户的
       // 无需额外过滤，直接使用
       const filtered = insightsList;
 
-      console.log('过滤后的insights:', filtered);
-      console.log('过滤后的长度:', filtered.length);
+      logger.debug('过滤后的insights:', filtered);
+      logger.debug('过滤后的长度:', filtered.length);
 
       // 获取所有期次信息用于映射期次名称
       const periods = app.globalData.periods || [];
@@ -177,14 +178,14 @@ Page({
         };
       });
 
-      console.log('格式化后的insights:', formatted);
+      logger.debug('格式化后的insights:', formatted);
 
       this.setData({
         insights: formatted,
         loading: false
       });
     } catch (error) {
-      console.error('加载失败:', error);
+      logger.error('加载失败:', error);
       this.setData({ loading: false });
       wx.showToast({
         title: '加载失败',

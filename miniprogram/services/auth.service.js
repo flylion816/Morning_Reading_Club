@@ -4,6 +4,7 @@
  */
 
 const request = require('../utils/request');
+const logger = require('../utils/logger');
 
 class AuthService {
   /**
@@ -63,7 +64,7 @@ class AuthService {
    */
   async wechatLoginMock(userInfo) {
     try {
-      console.log('Mock登录开始，用户信息:', userInfo);
+      logger.debug('Mock登录开始，用户信息:', userInfo);
 
       // 模拟登录成功的返回数据
       const mockLoginData = {
@@ -83,11 +84,11 @@ class AuthService {
       wx.setStorageSync('refreshToken', mockLoginData.refresh_token);
       wx.setStorageSync('userInfo', mockLoginData.user);
 
-      console.log('Mock登录成功');
+      logger.debug('Mock登录成功');
 
       return mockLoginData;
     } catch (error) {
-      console.error('Mock登录失败:', error);
+      logger.error('Mock登录失败:', error);
       throw error;
     }
   }
@@ -106,7 +107,7 @@ class AuthService {
       if (envConfig.apiBaseUrl.includes('localhost')) {
         // 本地开发：使用测试code登录为"阿泰"
         code = 'test_user_atai';
-        console.log('本地开发模式：使用测试用户 阿泰');
+        logger.debug('本地开发模式：使用测试用户 阿泰');
       } else {
         // 生产环境：获取真实微信code
         const loginRes = await this.getWechatCode();
@@ -131,7 +132,7 @@ class AuthService {
 
       return loginData;
     } catch (error) {
-      console.error('微信登录失败:', error);
+      logger.error('微信登录失败:', error);
       throw error;
     }
   }

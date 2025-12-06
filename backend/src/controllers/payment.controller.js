@@ -1,6 +1,7 @@
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 初始化支付（创建订单）
@@ -88,7 +89,7 @@ exports.initiatePayment = async (req, res) => {
       message: '订单创建成功，请继续支付'
     }));
   } catch (error) {
-    console.error('初始化支付失败:', error);
+    logger.error('Payment initiation failed', error);
     res.status(500).json(errors.serverError('初始化支付失败: ' + error.message));
   }
 };
@@ -135,7 +136,7 @@ exports.confirmPayment = async (req, res) => {
       enrollment
     }, '支付确认成功'));
   } catch (error) {
-    console.error('确认支付失败:', error);
+    logger.error('Payment confirmation failed', error);
     res.status(500).json(errors.serverError('确认支付失败: ' + error.message));
   }
 };
@@ -173,7 +174,7 @@ exports.getPaymentStatus = async (req, res) => {
       periodName: payment.periodId?.name
     }));
   } catch (error) {
-    console.error('查询支付状态失败:', error);
+    logger.error('Payment status query failed', error);
     res.status(500).json(errors.serverError('查询支付状态失败: ' + error.message));
   }
 };
@@ -209,7 +210,7 @@ exports.cancelPayment = async (req, res) => {
       status: payment.status
     }, '支付已取消'));
   } catch (error) {
-    console.error('取消支付失败:', error);
+    logger.error('Payment cancellation failed', error);
     res.status(500).json(errors.serverError('取消支付失败: ' + error.message));
   }
 };
@@ -256,7 +257,7 @@ exports.getUserPayments = async (req, res) => {
       totalPages: result.totalPages
     }));
   } catch (error) {
-    console.error('获取支付记录失败:', error);
+    logger.error('Get payment record failed', error);
     res.status(500).json(errors.serverError('获取支付记录失败: ' + error.message));
   }
 };
@@ -296,7 +297,7 @@ exports.wechatCallback = async (req, res) => {
       res.json(success({}, '支付失败'));
     }
   } catch (error) {
-    console.error('处理微信回调失败:', error);
+    logger.error('WeChat callback handling failed', error);
     res.status(500).json(errors.serverError('处理回调失败: ' + error.message));
   }
 };
@@ -338,7 +339,7 @@ exports.mockConfirmPayment = async (req, res) => {
       enrollment
     }, '模拟支付成功'));
   } catch (error) {
-    console.error('模拟支付失败:', error);
+    logger.error('Mock payment failed', error);
     res.status(500).json(errors.serverError('模拟支付失败: ' + error.message));
   }
 };
@@ -380,7 +381,7 @@ exports.getPayments = async (req, res) => {
       }
     }));
   } catch (error) {
-    console.error('获取支付列表失败:', error);
+    logger.error('Get payment list failed', error);
     res.status(500).json(errors.serverError('获取支付列表失败: ' + error.message));
   }
 };

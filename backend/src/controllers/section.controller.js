@@ -1,6 +1,7 @@
 const Section = require('../models/Section');
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 // 获取期次的课程列表（用户端 - 仅已发布）
 async function getSectionsByPeriod(req, res, next) {
@@ -206,8 +207,7 @@ async function getTodayTask(req, res, next) {
     // JWT payload from admin controller uses 'id', from auth uses 'userId'
     const userId = req.user.id || req.user.userId;
 
-    console.log('\n===== getTodayTask 调试日志 =====');
-    console.log('userId:', userId);
+    logger.debug('getTodayTask called', { userId });
 
     // 获取用户所有报名（活跃和已完成的）
     // 使用 status 字段，这是 Enrollment 表中实际存在的字段
@@ -216,15 +216,14 @@ async function getTodayTask(req, res, next) {
       status: { $in: ['active', 'completed'] }
     }).populate('periodId');
 
-    console.log('找到报名数:', enrollments.length);
+    logger.debug('Enrollments found', { count: enrollments.length, userId });
     if (!enrollments || enrollments.length === 0) {
-      console.log('❌ 没有找到报名');
+      logger.debug('No enrollments found for user', { userId });
       return res.json(success(null, '暂无任务'));
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0); // 设置为今天00:00:00
-    console.log('today:', today);
 
     let todayTask = null;
 
@@ -232,30 +231,32 @@ async function getTodayTask(req, res, next) {
     for (const enrollment of enrollments) {
       const period = enrollment.periodId;
 
-      console.log('\n检查报名:', enrollment._id);
-      console.log('  period:', period);
+      logger.debug('Checking enrollment', {
+        enrollmentId: enrollment._id,
+        periodId: period?._id
+      });
 
       if (!period) {
-        console.log('  ❌ 期次不存在');
+        logger.debug('Period not found for enrollment', { enrollmentId: enrollment._id });
         continue;
       }
-
-      console.log('  period.startDate:', period.startDate);
-      console.log('  period.totalDays:', period.totalDays);
 
       // 计算从期次开始日期到今天经过了多少天
       const periodStartDate = new Date(period.startDate);
       periodStartDate.setHours(0, 0, 0, 0);
 
       const daysDiff = Math.floor((today - periodStartDate) / (1000 * 60 * 60 * 24));
-      console.log('  daysDiff:', daysDiff);
 
       // 如果今天在期次范围内，计算应该学习的day
       if (daysDiff >= 0 && daysDiff < period.totalDays) {
-        console.log('  ✅ 在期次范围内');
         // 通常day从0开始，所以第一天是day 0
         const currentDay = daysDiff;
-        console.log('  currentDay:', currentDay);
+        logger.debug('Period is active today', {
+          periodId: period._id,
+          daysDiff,
+          currentDay,
+          totalDays: period.totalDays
+        });
 
         // 查询这一天的课节
         const section = await Section.findOne({
@@ -264,10 +265,8 @@ async function getTodayTask(req, res, next) {
           isPublished: true
         }).select('-content -__v'); // 不返回完整内容，减少数据传输
 
-        console.log('  找到的section:', section ? section._id : '无');
-
         if (section) {
-          console.log('  ✅ 找到今日任务');
+          logger.debug('Today task section found', { sectionId: section._id });
 
           // 检查用户是否已经为今天的这个课节打过卡
           const todayStart = new Date(today);
@@ -285,7 +284,7 @@ async function getTodayTask(req, res, next) {
           });
 
           const isCheckedIn = !!existingCheckin;
-          console.log('  isCheckedIn:', isCheckedIn);
+          logger.debug('Checkin status', { sectionId: section._id, isCheckedIn });
 
           // 获取打卡用户的头像列表（最多10个）
           const sectionCheckins = await Checkin.find({
@@ -325,12 +324,15 @@ async function getTodayTask(req, res, next) {
           break;
         }
       } else {
-        console.log('  ❌ 不在期次范围内 (daysDiff:', daysDiff, ', totalDays:', period.totalDays, ')');
+        logger.debug('Period not active today', {
+          periodId: period._id,
+          daysDiff,
+          totalDays: period.totalDays
+        });
       }
     }
 
-    console.log('最终todayTask:', todayTask ? '有' : '无');
-    console.log('===== getTodayTask 调试日志结束 =====\n');
+    logger.debug('getTodayTask result', { hasTodayTask: !!todayTask, userId });
 
     if (todayTask) {
       res.json(success(todayTask, '获取今日任务成功'));

@@ -4,6 +4,7 @@
  */
 
 const chalk = require('chalk');
+const logger = require('./logger');
 
 // 必需的环境变量
 const REQUIRED_ENV = {
@@ -49,6 +50,7 @@ function validateEnvValue(key, value, expectedType) {
  * 验证所有环境变量
  */
 function validateConfig() {
+  // Keep console output for config validation as it's startup-critical
   console.log('\n' + chalk.cyan.bold('═══════════════════════════════════════════'));
   console.log(chalk.cyan.bold('   环境配置验证'));
   console.log(chalk.cyan.bold('═══════════════════════════════════════════\n'));
@@ -65,9 +67,11 @@ function validateConfig() {
 
     if (!value) {
       console.log(`  ${chalk.red('✗')} ${chalk.red(key)}: 未设置`);
+      logger.error(`Environment validation failed: ${key} is not set`);
       hasErrors = true;
     } else if (!validateEnvValue(key, value, expectedType)) {
       console.log(`  ${chalk.red('✗')} ${chalk.red(key)}: 格式无效 (期望: ${expectedType})`);
+      logger.error(`Environment validation failed: ${key} has invalid format`, { expectedType });
       hasErrors = true;
     } else {
       // 隐藏敏感信息
@@ -88,6 +92,7 @@ function validateConfig() {
       successCount++;
     } else {
       console.log(`  ${chalk.cyan('⚠')} ${chalk.cyan(key)}: 使用默认值 (${defaultValue})`);
+      logger.info(`Using default value for ${key}`, { defaultValue });
       successCount++;
     }
   });
@@ -97,10 +102,12 @@ function validateConfig() {
   if (hasErrors) {
     console.log(chalk.red.bold('❌ 配置验证失败!'));
     console.log(chalk.red('请检查以上错误的环境变量。\n'));
+    logger.error('Configuration validation failed', { checkedCount, successCount });
     process.exit(1);
   }
 
   console.log(chalk.green.bold(`✅ 配置验证成功! (${successCount}/${checkedCount})\n`));
+  logger.info('Configuration validation passed', { checkedCount, successCount });
   return true;
 }
 

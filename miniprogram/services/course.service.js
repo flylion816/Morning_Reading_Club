@@ -6,6 +6,7 @@
 const request = require('../utils/request');
 const envConfig = require('../config/env');
 const mockCourses = require('../mock/courses');
+const logger = require('../utils/logger');
 
 class CourseService {
   /**
@@ -50,21 +51,21 @@ class CourseService {
    * @returns {Promise}
    */
   getSectionDetail(sectionId) {
-    console.log('===== getSectionDetail 被调用 =====');
-    console.log('sectionId:', sectionId);
-    console.log('envConfig.useMock:', envConfig.useMock);
-    console.log('envConfig:', envConfig);
+    logger.debug('===== getSectionDetail 被调用 =====');
+    logger.debug('sectionId:', sectionId);
+    logger.debug('envConfig.useMock:', envConfig.useMock);
+    logger.debug('envConfig:', envConfig);
 
     // Mock模式
     if (envConfig.useMock) {
-      console.log('使用 Mock 数据，返回:', mockCourses.detail);
-      console.log('mockCourses.detail.comments:', mockCourses.detail.comments);
-      console.log('comments 字段是否存在:', 'comments' in mockCourses.detail);
-      console.log('comments 数组长度:', mockCourses.detail.comments ? mockCourses.detail.comments.length : '不存在');
+      logger.debug('使用 Mock 数据，返回:', mockCourses.detail);
+      logger.debug('mockCourses.detail.comments:', mockCourses.detail.comments);
+      logger.debug('comments 字段是否存在:', 'comments' in mockCourses.detail);
+      logger.debug('comments 数组长度:', mockCourses.detail.comments ? mockCourses.detail.comments.length : '不存在');
       return Promise.resolve(mockCourses.detail);
     }
 
-    console.log('发起真实请求:', `/sections/${sectionId}`);
+    logger.debug('发起真实请求:', `/sections/${sectionId}`);
     return request.get(`/sections/${sectionId}`);
   }
 

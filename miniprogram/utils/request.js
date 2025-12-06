@@ -5,6 +5,7 @@
 
 const envConfig = require('../config/env');
 const constants = require('../config/constants');
+const logger = require('./logger');
 
 class Request {
   constructor() {
@@ -72,7 +73,7 @@ class Request {
             wx.hideLoading();
           }
 
-          console.error('请求失败:', err);
+          logger.error('请求失败:', err);
           this.handleError(err);
           reject(err);
         }
@@ -264,7 +265,7 @@ class Request {
           }
         },
         fail: (err) => {
-          console.error('上传失败:', err);
+          logger.error('上传失败:', err);
           this.showError('上传失败');
           reject(err);
         }

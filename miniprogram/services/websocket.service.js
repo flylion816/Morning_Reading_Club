@@ -4,6 +4,7 @@
  */
 
 import api from './api';
+const logger = require('../utils/logger');
 
 class WebSocketService {
   constructor() {
@@ -27,7 +28,7 @@ class WebSocketService {
     return new Promise((resolve, reject) => {
       try {
         if (this.isConnected) {
-          console.log('[WebSocket] 已连接，无需重新连接');
+          logger.debug('[WebSocket] 已连接，无需重新连接');
           return resolve();
         }
 
@@ -40,7 +41,7 @@ class WebSocketService {
           .replace('https://', 'wss://')
           .replace('/api/v1', '');
 
-        console.log('[WebSocket] 正在连接到:', socketUrl);
+        logger.debug('[WebSocket] 正在连接到:', socketUrl);
 
         // 创建 WebSocket 连接
         this.socket = wx.connectSocket({
@@ -52,7 +53,7 @@ class WebSocketService {
 
         // 连接成功
         this.socket.onOpen((res) => {
-          console.log('[WebSocket] 连接成功');
+          logger.log('[WebSocket] 连接成功');
           this.isConnected = true;
           this.reconnectAttempts = 0;
 
@@ -74,13 +75,13 @@ class WebSocketService {
             const data = JSON.parse(res.data);
             this.handleMessage(data);
           } catch (error) {
-            console.error('[WebSocket] 消息解析错误:', error, res.data);
+            logger.error('[WebSocket] 消息解析错误:', error, res.data);
           }
         });
 
         // 连接错误
         this.socket.onError((error) => {
-          console.error('[WebSocket] 连接错误:', error);
+          logger.error('[WebSocket] 连接错误:', error);
           this.isConnected = false;
           this.handleReconnect();
           reject(error);
@@ -88,7 +89,7 @@ class WebSocketService {
 
         // 连接关闭
         this.socket.onClose((res) => {
-          console.log('[WebSocket] 连接已关闭');
+          logger.log('[WebSocket] 连接已关闭');
           this.isConnected = false;
           this.stopHeartbeat();
           this.handleReconnect();
@@ -102,7 +103,7 @@ class WebSocketService {
         }, options.timeout || 10000);
 
       } catch (error) {
-        console.error('[WebSocket] 初始化失败:', error);
+        logger.error('[WebSocket] 初始化失败:', error);
         reject(error);
       }
     });
@@ -115,7 +116,7 @@ class WebSocketService {
   handleMessage(data) {
     const { type, ...payload } = data;
 
-    console.log(`[WebSocket] 收到消息: ${type}`, payload);
+    logger.debug(`[WebSocket] 收到消息: ${type}`, payload);
 
     // 触发对应的事件监听器
     if (this.eventListeners.has(type)) {
@@ -124,7 +125,7 @@ class WebSocketService {
         try {
           callback(payload);
         } catch (error) {
-          console.error(`[WebSocket] 处理 ${type} 事件时出错:`, error);
+          logger.error(`[WebSocket] 处理 ${type} 事件时出错:`, error);
         }
       });
     }
@@ -138,13 +139,13 @@ class WebSocketService {
         this.handleBroadcastNotification(payload);
         break;
       case 'user:joined':
-        console.log('[WebSocket] 用户加入成功');
+        logger.log('[WebSocket] 用户加入成功');
         break;
       case 'pong':
         // 心跳响应
         break;
       default:
-        console.warn('[WebSocket] 未知的消息类型:', type);
+        logger.warn('[WebSocket] 未知的消息类型:', type);
     }
   }
 
@@ -168,7 +169,7 @@ class WebSocketService {
    * @private
    */
   handleBroadcastNotification(notification) {
-    console.log('[WebSocket] 收到广播通知:', notification);
+    logger.debug('[WebSocket] 收到广播通知:', notification);
     // 类似于新通知的处理
     this.handleNewNotification(notification);
   }
@@ -185,7 +186,7 @@ class WebSocketService {
     };
 
     if (!this.isConnected) {
-      console.warn('[WebSocket] 未连接，消息将入队:', type);
+      logger.warn('[WebSocket] 未连接，消息将入队:', type);
       this.messageQueue.push(message);
       return;
     }
@@ -194,9 +195,9 @@ class WebSocketService {
       this.socket.send({
         data: JSON.stringify(message)
       });
-      console.log('[WebSocket] 发送消息:', type);
+      logger.debug('[WebSocket] 发送消息:', type);
     } catch (error) {
-      console.error('[WebSocket] 发送失败:', error);
+      logger.error('[WebSocket] 发送失败:', error);
       this.messageQueue.push(message);
     }
   }
@@ -281,19 +282,19 @@ class WebSocketService {
    */
   handleReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('[WebSocket] 达到最大重连次数，停止重连');
+      logger.error('[WebSocket] 达到最大重连次数，停止重连');
       return;
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * this.reconnectAttempts;
 
-    console.log(`[WebSocket] 在 ${delay}ms 后进行第 ${this.reconnectAttempts} 次重连...`);
+    logger.warn(`[WebSocket] 在 ${delay}ms 后进行第 ${this.reconnectAttempts} 次重连...`);
 
     setTimeout(() => {
       if (this.userId) {
         this.connect(this.userId).catch(error => {
-          console.error('[WebSocket] 重连失败:', error);
+          logger.error('[WebSocket] 重连失败:', error);
         });
       }
     }, delay);
@@ -303,14 +304,14 @@ class WebSocketService {
    * 关闭连接
    */
   disconnect() {
-    console.log('[WebSocket] 正在断开连接...');
+    logger.log('[WebSocket] 正在断开连接...');
     this.stopHeartbeat();
 
     if (this.socket) {
       try {
         this.socket.closeSocket();
       } catch (error) {
-        console.error('[WebSocket] 关闭失败:', error);
+        logger.error('[WebSocket] 关闭失败:', error);
       }
     }
 

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import logger from '../utils/logger'
 
 // 配置 API 基础 URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
@@ -16,13 +17,13 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('adminToken')
-    console.log('[API Request] URL:', config.url)
-    console.log('[API Request] localStorage.adminToken:', token ? '有值' : '无值')
+    logger.debug('[API Request] URL:', { url: config.url })
+    logger.debug('[API Request] localStorage.adminToken:', { value: token ? '有值' : '无值' })
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      console.log('[API Request] Authorization header已设置:', `Bearer ${token.substring(0, 20)}...`)
+      logger.debug('[API Request] Authorization header已设置:', { token: `Bearer ${token.substring(0, 20)}...` })
     } else {
-      console.log('[API Request] ⚠️ 没有token，不会附加Authorization header')
+      logger.warn('[API Request] ⚠️ 没有token，不会附加Authorization header')
     }
     return config
   },
@@ -34,22 +35,22 @@ apiClient.interceptors.request.use(
 // 响应拦截器 - 处理错误和令牌过期
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('[API Response] 成功，URL:', response.config.url, '状态码:', response.status)
-    console.log('[API Response] response.data:', response.data)
+    logger.debug('[API Response] 成功', { url: response.config.url, status: response.status })
+    logger.debug('[API Response] response.data:', response.data)
     // 后端返回格式：{code, message, data: {...}}
     // 确保返回 data 部分，避免返回整个响应对象
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      console.log('[API Response] 返回 response.data.data')
+      logger.debug('[API Response] 返回 response.data.data')
       return response.data.data
     }
-    console.log('[API Response] 返回 response.data')
+    logger.debug('[API Response] 返回 response.data')
     return response.data
   },
   (error) => {
-    console.log('[API Response] 错误，URL:', error.config?.url, '状态码:', error.response?.status)
-    console.log('[API Response] 错误详情:', error.response?.data)
+    logger.warn('[API Response] 错误', { url: error.config?.url, status: error.response?.status })
+    logger.debug('[API Response] 错误详情:', error.response?.data)
     if (error.response?.status === 401) {
-      console.log('[API Response] ❌ 401 Unauthorized，清除token并重定向到登录页')
+      logger.warn('[API Response] ❌ 401 Unauthorized，清除token并重定向到登录页')
       // 清除过期的令牌并重定向到登录页
       localStorage.removeItem('adminToken')
       window.location.href = '/login'

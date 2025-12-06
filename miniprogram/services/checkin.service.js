@@ -5,6 +5,7 @@
 
 const request = require('../utils/request');
 const envConfig = require('../config/env');
+const logger = require('../utils/logger');
 
 class CheckinService {
   /**
@@ -15,7 +16,7 @@ class CheckinService {
   submitCheckin(data) {
     // Mock模式
     if (envConfig.useMock) {
-      console.log('Mock提交打卡:', data);
+      logger.debug('Mock提交打卡:', data);
       return Promise.resolve({
         id: Date.now(),
         ...data,

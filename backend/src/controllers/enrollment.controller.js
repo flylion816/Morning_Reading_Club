@@ -2,6 +2,7 @@ const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 提交报名表单（完整的报名信息）
@@ -9,9 +10,10 @@ const { success, errors } = require('../utils/response');
  */
 exports.submitEnrollmentForm = async (req, res) => {
   try {
-    console.log('========== 报名表单提交 ==========');
-    console.log('请求体:', req.body);
-    console.log('用户信息:', req.user);
+    logger.info('Enrollment form submission started', {
+      userId: req.user.userId,
+      hasBody: !!req.body
+    });
 
     // 从认证token中获取userId（token payload中的字段名是userId）
     const userId = req.user.userId;
@@ -30,20 +32,6 @@ exports.submitEnrollmentForm = async (req, res) => {
       commitment
     } = req.body;
 
-    // 详细检查每个字段
-    console.log('字段检查:');
-    console.log('- periodId:', periodId, periodId ? '✓' : '✗ 缺失');
-    console.log('- name:', name, name ? '✓' : '✗ 缺失');
-    console.log('- gender:', gender, gender ? '✓' : '✗ 缺失');
-    console.log('- province:', province, province ? '✓' : '✗ 缺失');
-    console.log('- detailedAddress:', detailedAddress, detailedAddress ? '✓' : '✗ 缺失');
-    console.log('- age:', age, age ? '✓' : '✗ 缺失');
-    console.log('- referrer:', referrer, referrer ? '✓' : '✗ 缺失');
-    console.log('- hasReadBook:', hasReadBook, hasReadBook ? '✓' : '✗ 缺失');
-    console.log('- enrollReason:', enrollReason, enrollReason ? '✓' : '✗ 缺失');
-    console.log('- expectation:', expectation, expectation ? '✓' : '✗ 缺失');
-    console.log('- commitment:', commitment, commitment ? '✓' : '✗ 缺失');
-
     // 验证必填字段
     if (!periodId || !name || !gender || !province || !detailedAddress || !age || !referrer || !hasReadBook || !enrollReason || !expectation || !commitment) {
       const missingFields = [];
@@ -58,7 +46,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       if (!enrollReason) missingFields.push('enrollReason');
       if (!expectation) missingFields.push('expectation');
       if (!commitment) missingFields.push('commitment');
-      console.log('缺失的字段:', missingFields);
+      logger.warn('Missing required enrollment fields', { missingFields, userId });
       return res.status(400).json(errors.badRequest('缺少必填字段: ' + missingFields.join(', ')));
     }
 
@@ -109,7 +97,7 @@ exports.submitEnrollmentForm = async (req, res) => {
 
     res.json(success(enrollment, '报名成功'));
   } catch (error) {
-    console.error('报名失败:', error);
+    logger.error('Enrollment form submission failed', error, { userId: req.user.userId });
     res.status(500).json(errors.serverError('报名失败: ' + error.message));
   }
 };
@@ -160,7 +148,7 @@ exports.enrollPeriod = async (req, res) => {
 
     res.json(success(enrollment, '报名成功'));
   } catch (error) {
-    console.error('报名失败:', error);
+    logger.error('Simple enrollment failed', error, { userId: req.user?.userId });
     res.status(500).json(errors.serverError(error.message));
   }
 };
@@ -214,7 +202,7 @@ exports.getPeriodMembers = async (req, res) => {
       totalPages: result.totalPages
     }));
   } catch (error) {
-    console.error('获取成员列表失败:', error);
+    logger.error('Get members list failed', error, { periodId: req.params.periodId });
     res.status(500).json(errors.serverError('获取成员列表失败: ' + error.message));
   }
 };
@@ -264,7 +252,7 @@ exports.getUserEnrollments = async (req, res) => {
       totalPages: result.totalPages
     }));
   } catch (error) {
-    console.error('获取报名列表失败:', error);
+    logger.error('Get enrollment list failed', error);
     res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
   }
 };
@@ -278,10 +266,12 @@ exports.checkEnrollment = async (req, res) => {
     const { periodId } = req.params;
     const userId = req.user.userId;
 
-    console.log(`\n========== checkEnrollment ==========`);
-    console.log(`userId: ${userId}`);
-    console.log(`periodId: ${periodId}`);
-    console.log(`userId类型: ${typeof userId}, periodId类型: ${typeof periodId}`);
+    logger.debug('checkEnrollment called', {
+      userId,
+      periodId,
+      userIdType: typeof userId,
+      periodIdType: typeof periodId
+    });
 
     // 直接查询数据库
     const enrollment = await Enrollment.findOne({
@@ -290,16 +280,13 @@ exports.checkEnrollment = async (req, res) => {
       status: { $in: ['active', 'completed'] }
     });
 
-    console.log(`直接查询结果: ${enrollment ? 'found' : 'not found'}`);
-    if (enrollment) {
-      console.log(`  status: ${enrollment.status}`);
-      console.log(`  _id: ${enrollment._id}`);
-    }
-
     const isEnrolled = !!enrollment;
 
-    console.log(`返回isEnrolled: ${isEnrolled}`);
-    console.log(`========== checkEnrollment 结束 ==========\n`);
+    logger.debug('checkEnrollment result', {
+      isEnrolled,
+      enrollmentStatus: enrollment?.status,
+      enrollmentId: enrollment?._id
+    });
 
     res.json(success({
       isEnrolled,
@@ -307,7 +294,7 @@ exports.checkEnrollment = async (req, res) => {
       periodId
     }));
   } catch (error) {
-    console.error('检查报名状态失败:', error);
+    logger.error('Check enrollment status failed', error);
     res.status(500).json(errors.serverError('检查报名状态失败: ' + error.message));
   }
 };
@@ -343,7 +330,7 @@ exports.withdrawEnrollment = async (req, res) => {
 
     res.json(success(enrollment, '退出成功'));
   } catch (error) {
-    console.error('退出失败:', error);
+    logger.error('Withdrawal failed', error);
     res.status(500).json(errors.serverError('退出失败: ' + error.message));
   }
 };
@@ -370,7 +357,7 @@ exports.completeEnrollment = async (req, res) => {
 
     res.json(success(enrollment, '标记为已完成'));
   } catch (error) {
-    console.error('完成失败:', error);
+    logger.error('Completion failed', error);
     res.status(500).json(errors.serverError('完成失败: ' + error.message));
   }
 };
@@ -425,7 +412,7 @@ exports.getEnrollments = async (req, res) => {
       totalPages: Math.ceil(total / parseInt(limit))
     }));
   } catch (error) {
-    console.error('获取报名列表失败:', error);
+    logger.error('Get enrollment list failed', error);
     res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
   }
 };
@@ -455,7 +442,7 @@ exports.updateEnrollment = async (req, res) => {
 
     res.json(success(enrollment, '更新成功'));
   } catch (error) {
-    console.error('更新失败:', error);
+    logger.error('Update failed', error);
     res.status(500).json(errors.serverError('更新失败: ' + error.message));
   }
 };
@@ -480,7 +467,7 @@ exports.deleteEnrollment = async (req, res) => {
 
     res.json(success(null, '删除成功'));
   } catch (error) {
-    console.error('删除失败:', error);
+    logger.error('Deletion failed', error);
     res.status(500).json(errors.serverError('删除失败: ' + error.message));
   }
 };
@@ -493,13 +480,14 @@ exports.debugCleanupEnrollments = async (req, res) => {
   try {
     const { userId, keepPeriodId } = req.params;
 
-    console.log(`\n========== 清理报名记录 ==========`);
-    console.log(`userId: ${userId}`);
-    console.log(`keepPeriodId: ${keepPeriodId}`);
+    logger.info('Debug cleanup enrollments started', { userId, keepPeriodId });
 
     // 查询所有报名记录
     const allEnrollments = await Enrollment.find({ userId });
-    console.log(`总共找到 ${allEnrollments.length} 条报名记录`);
+    logger.info('Found enrollments to cleanup', {
+      userId,
+      totalCount: allEnrollments.length
+    });
 
     // 删除除了 keepPeriodId 之外的所有报名
     const deleteResult = await Enrollment.deleteMany({
@@ -507,15 +495,18 @@ exports.debugCleanupEnrollments = async (req, res) => {
       periodId: { $ne: keepPeriodId }
     });
 
-    console.log(`删除了 ${deleteResult.deletedCount} 条报名记录`);
-    console.log(`========== 清理完成 ==========\n`);
+    logger.info('Cleanup completed', {
+      userId,
+      deletedCount: deleteResult.deletedCount,
+      keptPeriodId: keepPeriodId
+    });
 
     res.json(success({
       deleted: deleteResult.deletedCount,
       message: `已删除 ${deleteResult.deletedCount} 条报名记录，仅保留期次 ${keepPeriodId} 的报名`
     }));
   } catch (error) {
-    console.error('清理失败:', error);
+    logger.error('Cleanup failed', error);
     res.status(500).json(errors.serverError('清理失败: ' + error.message));
   }
 };

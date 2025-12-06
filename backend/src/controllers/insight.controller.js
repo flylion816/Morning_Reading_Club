@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
 const { createNotification, createNotifications } = require('./notification.controller');
+const logger = require('../utils/logger');
 
 /**
  * 辅助函数：创建通知并自动添加 WebSocket 管理器
@@ -129,7 +130,7 @@ async function getUserInsights(req, res, next) {
 
     // 如果查看的是他人的小凡看见，需要检查权限
     if (targetUserId !== currentUserId) {
-      console.log('🔐 检查权限 - 当前用户:', currentUserId, '目标用户:', targetUserId);
+      logger.debug('🔐 检查权限 - 当前用户:', { currentUserId, targetUserId });
 
       // 检查当前用户是否有approved的申请来查看目标用户的insights
       const hasPermission = await InsightRequest.findOne({
@@ -139,11 +140,11 @@ async function getUserInsights(req, res, next) {
       });
 
       if (!hasPermission) {
-        console.warn('⛔ 无权查看该用户的小凡看见');
+        logger.warn('⛔ 无权查看该用户的小凡看见', { currentUserId, targetUserId });
         return res.status(403).json(errors.forbidden('无权查看该用户的小凡看见，需要获得用户同意'));
       }
 
-      console.log('✅ 权限检查通过，允许查看');
+      logger.debug('✅ 权限检查通过，允许查看', { currentUserId, targetUserId });
     }
 
     // 构建查询条件：
