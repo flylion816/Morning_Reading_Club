@@ -441,7 +441,7 @@ show_quick_commands() {
 
     echo -e "${CYAN}📌 启动开发服务${NC}"
     echo "  # 启动所有服务（推荐）"
-    echo "  bash .claude/commands/development/start-all.sh"
+    echo "  bash .claude/commands/development/dev-start-all.sh"
     echo ""
     echo "  # 仅启动 Backend"
     echo "  cd backend && npm run dev"

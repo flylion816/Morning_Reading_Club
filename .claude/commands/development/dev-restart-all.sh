@@ -1,6 +1,6 @@
 #!/bin/bash
 # 快速重启所有服务
-# 直接调用 start-all.sh（内部包含完整的清理逻辑）
+# 直接调用 dev-start-all.sh（内部包含完整的清理逻辑）
 
 # 颜色定义
 BLUE='\033[0;34m'
@@ -13,6 +13,6 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${YELLOW}(会自动清理旧进程，然后启动所有服务)${NC}"
 echo ""
 
-# 获取脚本位置并执行 start-all.sh
+# 获取脚本位置并执行 dev-start-all.sh
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-"$SCRIPT_DIR/start-all.sh"
+"$SCRIPT_DIR/dev-start-all.sh"
