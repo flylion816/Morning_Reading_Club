@@ -964,13 +964,6 @@ Page({
 
         // 关闭对话框
         this.setData({ showEditProfile: false });
-
-        // 刷新首页数据（如果首页已加载）
-        const pages = getCurrentPages();
-        const indexPage = pages.find(page => page.route === 'pages/index/index');
-        if (indexPage) {
-          indexPage.setData({ userInfo: updatedUserInfo });
-        }
       } else {
         wx.showToast({
           title: response.message || '保存失败，请重试',
