@@ -64,7 +64,7 @@ Page({
       const app = getApp();
       app.globalData.isLogin = true;
       app.globalData.userInfo = loginData.user;
-      app.globalData.token = loginData.access_token;
+      app.globalData.token = loginData.accessToken;
 
       wx.showToast({
         title: '登录成功',

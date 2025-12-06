@@ -68,8 +68,8 @@ class AuthService {
 
       // 模拟登录成功的返回数据
       const mockLoginData = {
-        access_token: 'mock_token_' + Date.now(),
-        refresh_token: 'mock_refresh_token_' + Date.now(),
+        accessToken: 'mock_token_' + Date.now(),
+        refreshToken: 'mock_refresh_token_' + Date.now(),
         user: {
           _id: 'mock_user_' + Date.now(),  // 添加 _id 字段，用于 API 认证
           id: 1,
@@ -80,8 +80,8 @@ class AuthService {
       };
 
       // 保存token和用户信息
-      wx.setStorageSync('token', mockLoginData.access_token);
-      wx.setStorageSync('refreshToken', mockLoginData.refresh_token);
+      wx.setStorageSync('token', mockLoginData.accessToken);
+      wx.setStorageSync('refreshToken', mockLoginData.refreshToken);
       wx.setStorageSync('userInfo', mockLoginData.user);
 
       logger.debug('Mock登录成功');
