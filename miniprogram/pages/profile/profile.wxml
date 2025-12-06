@@ -57,7 +57,7 @@
           <text class="user-streak">坚持晨读打卡第 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
         </view>
         <view class="banner-bubble">
-          <text class="bubble-text">"在每一次看见中不住相"\n"在每一次倾听中生慈悲"</text>
+          <text class="bubble-text">{{userInfo.signature || '暂无签名'}}</text>
         </view>
       </view>
     </view>
