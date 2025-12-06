@@ -3,7 +3,7 @@
 ###############################################################################
 # 晨读营本地开发环境验证脚本
 # 用途: 快速验证本地开发环境中所有服务是否正常运行
-# 使用: bash scripts/verify-local-development.sh
+# 使用: bash .claude/commands/development/verify-dev.sh
 # 版本: 1.0.0
 # 说明: 与生产验证脚本配对，但适配本地开发环境配置
 ###############################################################################
@@ -460,10 +460,10 @@ show_quick_commands() {
 
     echo -e "${CYAN}📌 测试和验证${NC}"
     echo "  # 本地验证脚本（即将运行）"
-    echo "  bash scripts/verify-local-development.sh"
+    echo "  bash .claude/commands/development/verify-dev.sh"
     echo ""
     echo "  # 生产验证脚本"
-    echo "  bash scripts/verify-production-deployment.sh"
+    echo "  bash .claude/commands/deployment/verify-prod.sh"
     echo ""
 
     echo -e "${CYAN}📌 Git 操作${NC}"
