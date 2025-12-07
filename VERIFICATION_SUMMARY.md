@@ -240,6 +240,72 @@ curl -X GET "http://localhost:3000/api/v1/enrollments/external/users-by-period?p
 
 ---
 
+## ✅ 验收进度
+
+### API 测试结果
+
+#### ✅ API #1: 创建小凡看见 - 已验证
+```bash
+# 请求
+curl -X POST http://localhost:3000/api/v1/insights/external/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "692fe16a962d558224f4133f",
+    "periodName": "平衡之道",
+    "content": "这是来自外部系统的测试内容",
+    "day": 5
+  }'
+
+# 响应 (200 OK)
+{
+  "code": 200,
+  "message": "小凡看见创建成功",
+  "data": {
+    "userId": { "_id": "692fe16a962d558224f4133f", "nickname": "狮子", "avatar": "🦁" },
+    "periodId": { "_id": "692fe16a962d558224f41347", "name": "平衡之道" },
+    "day": 5,
+    "type": "insight",
+    "mediaType": "text",
+    "content": "这是来自外部系统的测试内容",
+    "imageUrl": null,
+    "source": "manual",
+    "status": "completed",
+    "isPublished": true,
+    "_id": "6934dd97e345a7b83afdb667",
+    "createdAt": "2025-12-07T01:51:19.001Z"
+  }
+}
+```
+
+#### ✅ API #2: 获取期次用户列表 - 已验证
+```bash
+# 请求 (注意：中文需要URL编码)
+curl -s "http://localhost:3000/api/v1/enrollments/external/users-by-period?periodName=%E5%B9%B3%E8%A1%A1%E4%B9%8B%E9%81%93"
+
+# 响应 (200 OK)
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": {
+    "periodName": "平衡之道",
+    "userCount": 1,
+    "users": [
+      {
+        "userId": "692fe16a962d558224f4133f",
+        "nickname": "狮子"
+      }
+    ]
+  }
+}
+```
+
+### Bug 修复
+
+✅ **修复提交**: `983400e` - 修复外部API中userNickname未定义的bug
+- 原因：error message中使用了未定义的变量 `userNickname`
+- 修复：改为使用 `user.nickname`
+- 影响：确保当用户未报名期次时能正确返回错误信息
+
 ## 📝 待操作项目
 
 根据您的初始指令："等我验收通过后，删除中间文件"
