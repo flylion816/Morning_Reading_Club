@@ -9,6 +9,7 @@ Page({
     // 用户信息
     userInfo: null,
     isLogin: false,
+    hasValidSignature: false,
 
     // 当前期次
     currentPeriod: null,
@@ -79,6 +80,9 @@ Page({
       isLogin,
       userInfo,
       loading: false  // 设置loading为false
+    }, () => {
+      // 更新签名有效性状态
+      this.updateSignatureValidation();
     });
 
     // 根据登录状态显示/隐藏tabBar
@@ -345,6 +349,9 @@ Page({
         todaySection,
         recentInsights,
         loading: false
+      }, () => {
+        // 更新签名有效性状态
+        this.updateSignatureValidation();
       });
 
       console.log('setData后this.data.recentInsights:', this.data.recentInsights);
@@ -911,6 +918,24 @@ Page({
     this.setData({
       'editForm.signature': value
     });
+  },
+
+  /**
+   * 检查签名是否有效（不为空、不只有空白字符和换行）
+   */
+  isValidSignature(signature) {
+    if (!signature) return false;
+    // 移除所有空白字符和换行，如果还有内容则认为有效
+    return signature.trim().length > 0;
+  },
+
+  /**
+   * 更新签名有效性状态
+   */
+  updateSignatureValidation() {
+    const { userInfo } = this.data;
+    const hasValidSignature = userInfo && this.isValidSignature(userInfo.signature);
+    this.setData({ hasValidSignature });
   },
 
   /**

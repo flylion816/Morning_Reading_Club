@@ -57,7 +57,8 @@
           <text class="user-streak">坚持晨读打卡第 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
         </view>
         <view class="banner-bubble">
-          <text class="bubble-text">{{userInfo.signature || '暂无签名'}}</text>
+          <text class="bubble-text" wx:if="{{hasValidSignature}}">{{userInfo.signature}}</text>
+          <text class="bubble-text" wx:else>暂无签名</text>
         </view>
       </view>
     </view>

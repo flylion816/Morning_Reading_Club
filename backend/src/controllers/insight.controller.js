@@ -1318,14 +1318,24 @@ async function createInsightFromExternal(req, res, next) {
       isPublished: true
     });
 
-    // 填充关联数据
-    const populatedInsight = await insight.populate([
-      { path: 'userId', select: 'nickname avatar' },
-      { path: 'targetUserId', select: 'nickname avatar' },
-      { path: 'periodId', select: 'name' }
-    ]);
+    // 返回简洁的响应（仅返回ID，不返回完整对象）
+    const result = {
+      _id: insight._id,
+      targetUserId: insight.targetUserId,
+      periodId: insight.periodId,
+      day: insight.day,
+      type: insight.type,
+      mediaType: insight.mediaType,
+      content: insight.content,
+      imageUrl: insight.imageUrl,
+      source: insight.source,
+      status: insight.status,
+      isPublished: insight.isPublished,
+      createdAt: insight.createdAt,
+      updatedAt: insight.updatedAt
+    };
 
-    res.status(201).json(success(populatedInsight, '小凡看见创建成功'));
+    res.status(201).json(success(result, '小凡看见创建成功'));
 
   } catch (error) {
     logger.error('创建外部小凡看见失败:', error);

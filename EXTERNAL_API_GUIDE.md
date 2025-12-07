@@ -48,33 +48,21 @@
   "code": 200,
   "message": "小凡看见创建成功",
   "data": {
-    "_id": "6934dd8ae345a7b83afdb660",
-    "userId": {
-      "_id": "692fe16a962d558224f4133f",
-      "nickname": "狮子",
-      "avatar": "🦁"
-    },
-    "targetUserId": {
-      "_id": "692fe16a962d558224f4133f",
-      "nickname": "狮子",
-      "avatar": "🦁"
-    },
-    "periodId": {
-      "_id": "692fe16a962d558224f41347",
-      "name": "平衡之道"
-    },
+    "_id": "6934e59a21146457e60d54ca",
+    "targetUserId": "692fe16a962d558224f4133f",
+    "periodId": "692fe16a962d558224f41347",
     "day": 7,
     "type": "insight",
     "mediaType": "text",
     "content": "感谢你的坚持和付出",
     "imageUrl": null,
-    "status": "completed",
     "source": "manual",
+    "status": "completed",
     "isPublished": true,
-    "createdAt": "2025-12-07T01:51:19.001Z",
-    "updatedAt": "2025-12-07T01:51:19.001Z"
+    "createdAt": "2025-12-07T02:25:30.100Z",
+    "updatedAt": "2025-12-07T02:25:30.100Z"
   },
-  "timestamp": 1765072279003
+  "timestamp": 1765074330102
 }
 ```
 
