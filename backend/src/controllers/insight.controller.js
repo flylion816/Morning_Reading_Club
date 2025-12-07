@@ -1253,26 +1253,20 @@ async function batchApproveRequests(req, res, next) {
  */
 async function createInsightFromExternal(req, res, next) {
   try {
-    const { userId, periodName, day, content, imageUrl, targetUserId } = req.body;
+    const { periodName, day, content, imageUrl, targetUserId } = req.body;
 
     // 验证必填字段
-    if (!userId) {
-      return res.status(400).json(errors.badRequest('缺少必填字段：userId'));
-    }
-
     if (!periodName) {
       return res.status(400).json(errors.badRequest('缺少必填字段：periodName'));
+    }
+
+    if (!targetUserId) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：targetUserId'));
     }
 
     // 验证content和imageUrl至少有一个
     if (!content && !imageUrl) {
       return res.status(400).json(errors.badRequest('content 和 imageUrl 必选其一（至少填写一个）'));
-    }
-
-    // 查询用户
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json(errors.notFound(`用户不存在：ID ${userId}`));
     }
 
     // 根据期次名称查询期次
@@ -1282,28 +1276,37 @@ async function createInsightFromExternal(req, res, next) {
       return res.status(404).json(errors.notFound(`期次不存在：${periodName}`));
     }
 
-    // 检查用户是否已报名该期次
+    // 查询并验证被看见人是否存在
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json(errors.notFound(`被看见人不存在：ID ${targetUserId}`));
+    }
+
+    // 检查被看见人是否已报名该期次
     const enrollment = await Enrollment.findOne({
-      userId: user._id,
+      userId: targetUser._id,
       periodId: period._id
     });
     if (!enrollment) {
-      return res.status(403).json(errors.forbidden(`用户 ${user.nickname} 未报名期次 ${periodName}`));
+      return res.status(403).json(errors.forbidden(`用户 ${targetUser.nickname} 未报名期次 ${periodName}`));
     }
 
-    // 如果指定了被看见人，验证被看见人是否存在
-    let targetUser = null;
-    if (targetUserId) {
-      targetUser = await User.findById(targetUserId);
-      if (!targetUser) {
-        return res.status(404).json(errors.notFound(`被看见人不存在：ID ${targetUserId}`));
-      }
+    // 获取系统用户作为创建者（如果存在），否则使用被看见人作为创建者
+    // 这里可以配置一个系统用户ID
+    const systemUserId = process.env.SYSTEM_USER_ID || targetUserId;
+    const user = await User.findById(systemUserId);
+
+    if (!user && systemUserId !== targetUserId) {
+      return res.status(404).json(errors.notFound(`系统用户不存在：ID ${systemUserId}`));
     }
+
+    // 如果没有系统用户，则使用被看见人作为创建者
+    const creatorId = user ? user._id : targetUser._id;
 
     // 创建小凡看见
     const insight = await Insight.create({
-      userId: user._id,
-      targetUserId: targetUser ? targetUser._id : null,
+      userId: creatorId,
+      targetUserId: targetUser._id,
       periodId: period._id,
       day: day || null,
       type: 'insight',
