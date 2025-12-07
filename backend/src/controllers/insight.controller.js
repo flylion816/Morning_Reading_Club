@@ -1244,8 +1244,7 @@ async function batchApproveRequests(req, res, next) {
  * 外部接口：创建小凡看见
  * 用于外部系统提交用户的"小凡看见"内容
  * @route   POST /api/v1/insights/external/create
- * @param   userId {string} - 用户ID（与userNickname二选一，优先使用userId）
- * @param   userNickname {string} - 用户昵称（userId为空时使用）
+ * @param   userId {string} - 用户ID（必填）
  * @param   periodName {string} - 期次名称（必填）
  * @param   day {number} - 第几天的课程（可选）
  * @param   content {string} - 小凡看见的文字内容（与imageUrl二选一）
@@ -1254,9 +1253,13 @@ async function batchApproveRequests(req, res, next) {
  */
 async function createInsightFromExternal(req, res, next) {
   try {
-    const { userId, userNickname, periodName, day, content, imageUrl } = req.body;
+    const { userId, periodName, day, content, imageUrl } = req.body;
 
-    // 验证必填字段：periodName、content和imageUrl二选一
+    // 验证必填字段
+    if (!userId) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：userId'));
+    }
+
     if (!periodName) {
       return res.status(400).json(errors.badRequest('缺少必填字段：periodName'));
     }
@@ -1266,23 +1269,10 @@ async function createInsightFromExternal(req, res, next) {
       return res.status(400).json(errors.badRequest('content 和 imageUrl 必选其一（至少填写一个）'));
     }
 
-    // 验证userId和userNickname至少有一个
-    if (!userId && !userNickname) {
-      return res.status(400).json(errors.badRequest('userId 和 userNickname 必选其一（至少填写一个）'));
-    }
-
-    // 根据userId或userNickname查询用户
-    let user;
-    if (userId) {
-      user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json(errors.notFound(`用户不存在：ID ${userId}`));
-      }
-    } else {
-      user = await User.findOne({ nickname: userNickname });
-      if (!user) {
-        return res.status(404).json(errors.notFound(`用户不存在：${userNickname}`));
-      }
+    // 查询用户
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json(errors.notFound(`用户不存在：ID ${userId}`));
     }
 
     // 根据期次名称查询期次
