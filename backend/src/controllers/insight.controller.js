@@ -1253,7 +1253,7 @@ async function batchApproveRequests(req, res, next) {
  */
 async function createInsightFromExternal(req, res, next) {
   try {
-    const { userId, periodName, day, content, imageUrl } = req.body;
+    const { userId, periodName, day, content, imageUrl, targetUserId } = req.body;
 
     // 验证必填字段
     if (!userId) {
@@ -1291,9 +1291,19 @@ async function createInsightFromExternal(req, res, next) {
       return res.status(403).json(errors.forbidden(`用户 ${user.nickname} 未报名期次 ${periodName}`));
     }
 
+    // 如果指定了被看见人，验证被看见人是否存在
+    let targetUser = null;
+    if (targetUserId) {
+      targetUser = await User.findById(targetUserId);
+      if (!targetUser) {
+        return res.status(404).json(errors.notFound(`被看见人不存在：ID ${targetUserId}`));
+      }
+    }
+
     // 创建小凡看见
     const insight = await Insight.create({
       userId: user._id,
+      targetUserId: targetUser ? targetUser._id : null,
       periodId: period._id,
       day: day || null,
       type: 'insight',
@@ -1308,6 +1318,7 @@ async function createInsightFromExternal(req, res, next) {
     // 填充关联数据
     const populatedInsight = await insight.populate([
       { path: 'userId', select: 'nickname avatar' },
+      { path: 'targetUserId', select: 'nickname avatar' },
       { path: 'periodId', select: 'name' }
     ]);
 
