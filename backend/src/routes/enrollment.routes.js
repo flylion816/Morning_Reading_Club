@@ -11,7 +11,8 @@ const {
   getEnrollments,
   updateEnrollment,
   deleteEnrollment,
-  debugCleanupEnrollments
+  debugCleanupEnrollments,
+  getUsersByPeriodName
 } = require('../controllers/enrollment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
@@ -79,5 +80,15 @@ router.delete('/:enrollmentId', authMiddleware, withdrawEnrollment);
 
 // 完成期次（管理员）
 router.put('/:enrollmentId/complete', authMiddleware, adminMiddleware, completeEnrollment);
+
+// ==================== 外部接口 ====================
+
+/**
+ * @route   GET /api/v1/enrollments/external/users-by-period
+ * @desc    根据期次名称获取参加该期次的所有用户
+ * @param   periodName {string} - 期次名称（必填）
+ * @access  Public
+ */
+router.get('/external/users-by-period', getUsersByPeriodName);
 
 module.exports = router;

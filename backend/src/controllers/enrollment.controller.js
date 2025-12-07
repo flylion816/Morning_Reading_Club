@@ -510,3 +510,54 @@ exports.debugCleanupEnrollments = async (req, res) => {
     res.status(500).json(errors.serverError('清理失败: ' + error.message));
   }
 };
+
+/**
+ * 外部接口：根据期次名称获取参加该期次的所有用户
+ * @route   GET /api/v1/enrollments/external/users-by-period
+ * @param   periodName {string} - 期次名称（必填）
+ * @access  Public (外部系统调用)
+ */
+exports.getUsersByPeriodName = async (req, res, next) => {
+  try {
+    const { periodName } = req.query;
+
+    // 验证必填字段
+    if (!periodName) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：periodName'));
+    }
+
+    // 根据期次名称查询期次
+    const Period = require('../models/Period');
+    const period = await Period.findOne({ name: periodName });
+    if (!period) {
+      return res.status(404).json(errors.notFound(`期次不存在：${periodName}`));
+    }
+
+    // 查询所有报名了该期次的用户（active 或 completed 状态）
+    const Enrollment = require('../models/Enrollment');
+    const enrollments = await Enrollment.find({
+      periodId: period._id,
+      status: { $in: ['active', 'completed'] },
+      deleted: { $ne: true }
+    })
+      .populate('userId', 'nickname')
+      .sort({ enrolledAt: -1 })
+      .lean();
+
+    // 构建返回数据：只包含 userId 和 nickname
+    const users = enrollments.map(enrollment => ({
+      userId: enrollment.userId._id,
+      nickname: enrollment.userId.nickname
+    }));
+
+    res.json(success({
+      periodName: period.name,
+      userCount: users.length,
+      users: users
+    }, '获取成功'));
+
+  } catch (error) {
+    logger.error('获取期次用户失败:', error);
+    next(error);
+  }
+};
