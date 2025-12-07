@@ -1288,7 +1288,7 @@ async function createInsightFromExternal(req, res, next) {
       periodId: period._id
     });
     if (!enrollment) {
-      return res.status(403).json(errors.forbidden(`用户 ${userNickname} 未报名期次 ${periodName}`));
+      return res.status(403).json(errors.forbidden(`用户 ${user.nickname} 未报名期次 ${periodName}`));
     }
 
     // 创建小凡看见
