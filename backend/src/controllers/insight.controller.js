@@ -1244,26 +1244,45 @@ async function batchApproveRequests(req, res, next) {
  * 外部接口：创建小凡看见
  * 用于外部系统提交用户的"小凡看见"内容
  * @route   POST /api/v1/insights/external/create
- * @param   userNickname {string} - 用户昵称
- * @param   periodName {string} - 期次名称
+ * @param   userId {string} - 用户ID（与userNickname二选一，优先使用userId）
+ * @param   userNickname {string} - 用户昵称（userId为空时使用）
+ * @param   periodName {string} - 期次名称（必填）
  * @param   day {number} - 第几天的课程（可选）
- * @param   content {string} - 小凡看见的文字内容
- * @param   imageUrl {string} - 小凡看见的图片地址（可选）
+ * @param   content {string} - 小凡看见的文字内容（与imageUrl二选一）
+ * @param   imageUrl {string} - 小凡看见的图片地址（与content二选一）
  * @access  Public (外部系统调用)
  */
 async function createInsightFromExternal(req, res, next) {
   try {
-    const { userNickname, periodName, day, content, imageUrl } = req.body;
+    const { userId, userNickname, periodName, day, content, imageUrl } = req.body;
 
-    // 验证必填字段
-    if (!userNickname || !periodName || !content) {
-      return res.status(400).json(errors.badRequest('缺少必填字段：userNickname、periodName、content'));
+    // 验证必填字段：periodName、content和imageUrl二选一
+    if (!periodName) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：periodName'));
     }
 
-    // 根据昵称查询用户
-    const user = await User.findOne({ nickname: userNickname });
-    if (!user) {
-      return res.status(404).json(errors.notFound(`用户不存在：${userNickname}`));
+    // 验证content和imageUrl至少有一个
+    if (!content && !imageUrl) {
+      return res.status(400).json(errors.badRequest('content 和 imageUrl 必选其一（至少填写一个）'));
+    }
+
+    // 验证userId和userNickname至少有一个
+    if (!userId && !userNickname) {
+      return res.status(400).json(errors.badRequest('userId 和 userNickname 必选其一（至少填写一个）'));
+    }
+
+    // 根据userId或userNickname查询用户
+    let user;
+    if (userId) {
+      user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json(errors.notFound(`用户不存在：ID ${userId}`));
+      }
+    } else {
+      user = await User.findOne({ nickname: userNickname });
+      if (!user) {
+        return res.status(404).json(errors.notFound(`用户不存在：${userNickname}`));
+      }
     }
 
     // 根据期次名称查询期次
