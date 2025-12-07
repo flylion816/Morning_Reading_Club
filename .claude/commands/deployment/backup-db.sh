@@ -2,6 +2,9 @@
 # 数据库备份脚本
 # 用于备份 MongoDB 数据库
 
+# 修复 cron 环境的 PATH 问题
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
