@@ -24,11 +24,10 @@
 ### 后端 API
 - **架构**: RESTful API
 - **认证**: JWT Token
-- **基础URL**: `https://api.morning-reading.com/api/v1`
+- **基础URL**: `https://wx.shubai01.com/api/v1`
 
 ### 数据库
-- **MySQL 8.0+**: 主数据库
-- **Redis**: 缓存层
+- **MongoDB**: 主数据库
 
 ## 项目结构
 
