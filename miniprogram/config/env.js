@@ -19,7 +19,7 @@ const envConfig = {
 
   // 测试环境
   test: {
-    apiBaseUrl: 'https://test-api.morning-reading.com/api/v1',
+    apiBaseUrl: 'https://wx.shubai01.com/api/v1',
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
     enableLog: true,
@@ -28,7 +28,7 @@ const envConfig = {
 
   // 生产环境
   prod: {
-    apiBaseUrl: 'https://55387.xyz/api/v1',
+    apiBaseUrl: 'https://wx.shubai01.com/api/v1',
     wxAppId: 'wx2b9a3c1d5e4195f8',
     enableDebug: false,
     enableLog: false,

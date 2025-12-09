@@ -19,7 +19,7 @@ const getProductionOrigins = () => {
   if (process.env.ADMIN_URL) {
     origins.push(process.env.ADMIN_URL);
   } else {
-    origins.push('https://admin.morningreading.com');
+    origins.push('https://wx.shubai01.com');
   }
 
   // 小程序地址（如果配置）
@@ -31,7 +31,7 @@ const getProductionOrigins = () => {
   if (process.env.API_BASE_URL) {
     origins.push(process.env.API_BASE_URL);
   } else {
-    origins.push('https://api.morningreading.com');
+    origins.push('https://wx.shubai01.com');
   }
 
   return origins;
