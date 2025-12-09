@@ -28,7 +28,7 @@ const envConfig = {
 
   // 生产环境
   prod: {
-    apiBaseUrl: 'https://wx.55387.ai/api/v1',
+    apiBaseUrl: 'https://55387.xyz/api/v1',
     wxAppId: 'wx2b9a3c1d5e4195f8',
     enableDebug: false,
     enableLog: false,
