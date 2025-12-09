@@ -28,8 +28,8 @@ const envConfig = {
 
   // 生产环境
   prod: {
-    apiBaseUrl: 'https://api.morning-reading.com/api/v1',
-    wxAppId: 'wx199d6d332344ed0a',
+    apiBaseUrl: 'https://wx.55387.ai/api/v1',
+    wxAppId: 'wx2b9a3c1d5e4195f8',
     enableDebug: false,
     enableLog: false,
     useMock: false
