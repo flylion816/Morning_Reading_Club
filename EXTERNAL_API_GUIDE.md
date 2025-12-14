@@ -23,7 +23,7 @@
 
 **HTTP方法**: `POST`
 
-**URL**: `http://localhost:3000/api/v1/insights/external/create`
+**URL**: `https://wx.shubai01.com/api/v1/insights/external/create`
 
 **Content-Type**: `application/json`
 
@@ -134,7 +134,7 @@
 
 ```bash
 # 只包含文字内容
-curl -X POST http://localhost:3000/api/v1/insights/external/create \
+curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "Content-Type: application/json" \
   -d '{
     "periodName": "平衡之道",
@@ -144,7 +144,7 @@ curl -X POST http://localhost:3000/api/v1/insights/external/create \
   }'
 
 # 包含文字和图片
-curl -X POST http://localhost:3000/api/v1/insights/external/create \
+curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "Content-Type: application/json" \
   -d '{
     "periodName": "心流之境",
@@ -163,7 +163,7 @@ import json
 
 def create_insight(period_name, target_user_id, content, day=None, image_url=None):
     """创建小凡看见"""
-    url = "http://localhost:3000/api/v1/insights/external/create"
+    url = "https://wx.shubai01.com/api/v1/insights/external/create"
 
     payload = {
         "periodName": period_name,
@@ -214,7 +214,7 @@ const axios = require('axios');
 async function createInsight(params) {
   try {
     const response = await axios.post(
-      'http://localhost:3000/api/v1/insights/external/create',
+      'https://wx.shubai01.com/api/v1/insights/external/create',
       {
         periodName: params.periodName,
         targetUserId: params.targetUserId,
@@ -264,7 +264,7 @@ createInsight({
 
 **HTTP方法**: `GET`
 
-**URL**: `http://localhost:3000/api/v1/enrollments/external/users-by-period`
+**URL**: `https://wx.shubai01.com/api/v1/enrollments/external/users-by-period`
 
 **查询参数**: periodName（在URL中使用）
 
@@ -338,10 +338,10 @@ createInsight({
 
 ```bash
 # 方式1: 直接在URL中使用URL编码
-curl -X GET "http://localhost:3000/api/v1/enrollments/external/users-by-period?periodName=%E5%B9%B3%E8%A1%A1%E4%B9%8B%E9%81%93"
+curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period?periodName=%E5%B9%B3%E8%A1%A1%E4%B9%8B%E9%81%93"
 
 # 方式2: 使用 curl 自动编码（推荐）
-curl -X GET --get "http://localhost:3000/api/v1/enrollments/external/users-by-period" \
+curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period" \
   --data-urlencode "periodName=平衡之道"
 ```
 
@@ -353,7 +353,7 @@ from urllib.parse import quote
 
 def get_period_users(period_name):
     """获取期次用户列表"""
-    url = "http://localhost:3000/api/v1/enrollments/external/users-by-period"
+    url = "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period"
 
     params = {
         "periodName": period_name
@@ -394,7 +394,7 @@ const qs = require('qs');
 async function getPeriodUsers(periodName) {
   try {
     const response = await axios.get(
-      'http://localhost:3000/api/v1/enrollments/external/users-by-period',
+      'https://wx.shubai01.com/api/v1/enrollments/external/users-by-period',
       {
         params: {
           periodName: periodName
