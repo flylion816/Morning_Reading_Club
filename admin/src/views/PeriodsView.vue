@@ -240,11 +240,12 @@ import { ref, reactive, onMounted } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { periodApi } from '../services/api'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
+import type { ListResponse, Period } from '../types/api'
 
 const loading = ref(false)
 const submitting = ref(false)
 const publishingId = ref<string | null>(null)
-const periods = ref<any[]>([])
+const periods = ref<Period[]>([])
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
 const currentEditId = ref<string | null>(null)
@@ -290,7 +291,7 @@ async function loadPeriods() {
     const response = await periodApi.getPeriods({
       page: pagination.value.page,
       limit: pagination.value.pageSize
-    })
+    }) as unknown as ListResponse<Period>
     periods.value = response.list || []
     pagination.value.total = response.pagination?.total || 0
   } catch (err) {
@@ -307,7 +308,7 @@ function handleCreatePeriod() {
   dialogVisible.value = true
 }
 
-function handleEditPeriod(row: any) {
+function handleEditPeriod(row: Period) {
   isEditMode.value = true
   currentEditId.value = row._id
   Object.assign(formData, {
@@ -317,8 +318,8 @@ function handleEditPeriod(row: any) {
     description: row.description,
     icon: row.icon,
     coverColor: row.coverColor,
-    startDate: new Date(row.startDate),
-    endDate: new Date(row.endDate),
+    startDate: row.startDate ? new Date(row.startDate) : null,
+    endDate: row.endDate ? new Date(row.endDate) : null,
     totalDays: row.totalDays,
     price: row.price,
     originalPrice: row.originalPrice,
@@ -360,7 +361,7 @@ async function handleSubmit() {
   })
 }
 
-function handleDeletePeriod(row: any) {
+function handleDeletePeriod(row: Period) {
   ElMessageBox.confirm(
     '删除后无法恢复，确定要删除该期次吗？',
     '警告',
@@ -384,7 +385,7 @@ function handleDeletePeriod(row: any) {
     })
 }
 
-async function handlePublishChange(row: any) {
+async function handlePublishChange(row: Period) {
   publishingId.value = row._id
   try {
     await periodApi.updatePeriod(row._id, { isPublished: row.isPublished })

@@ -223,11 +223,12 @@ import { ref, onMounted } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { periodApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ListResponse, Period, Section } from '../types/api'
 
 const selectedPeriodId = ref<string | null>(null)
-const periods = ref<any[]>([])
-const currentPeriod = ref<any>(null)
-const sections = ref<any[]>([])
+const periods = ref<Period[]>([])
+const currentPeriod = ref<Period | null>(null)
+const sections = ref<Section[]>([])
 const saving = ref(false)
 
 // 编辑弹窗
@@ -257,7 +258,7 @@ onMounted(() => {
 // 加载期次列表
 async function loadPeriods() {
   try {
-    const response = await periodApi.getPeriods({ limit: 100 })
+    const response = await periodApi.getPeriods({ limit: 100 }) as unknown as ListResponse<Period>
     periods.value = response.list || []
 
     // 默认选择最新的期次
@@ -265,7 +266,7 @@ async function loadPeriods() {
       selectedPeriodId.value = periods.value[0]._id
       await loadSections()
     }
-  } catch (err) {
+  } catch (err: any) {
     ElMessage.error('加载期次列表失败')
   }
 }
@@ -276,12 +277,12 @@ async function loadSections() {
 
   try {
     // 获取期次信息
-    currentPeriod.value = await periodApi.getPeriodDetail(selectedPeriodId.value)
+    currentPeriod.value = await periodApi.getPeriodDetail(selectedPeriodId.value) as unknown as Period
 
     // 加载该期次的所有课节（管理员权限，包括草稿）
-    const response = await periodApi.getAllSections(selectedPeriodId.value)
+    const response = await periodApi.getAllSections(selectedPeriodId.value) as unknown as ListResponse<Section>
     sections.value = response.list || response || []
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to load sections:', err)
     ElMessage.error('加载课节列表失败')
     sections.value = []

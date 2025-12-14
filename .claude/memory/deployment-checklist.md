@@ -171,17 +171,94 @@
   - [ ] 返回通用的错误信息给客户端
   - [ ] 在服务器日志中记录详细错误
 
-### 2.5 HTTPS 和 SSL 证书
-- [ ] **SSL 证书**
-  - [ ] 获取正式的 SSL 证书（Let's Encrypt 免费）
-  - [ ] 配置 Nginx 启用 HTTPS
-  - [ ] 重定向 HTTP → HTTPS
-  - [ ] 配置 HSTS 头部
+### 2.5 HTTPS 和 SSL 证书 ⭐ **关键部分**
+- [ ] **SSL 证书申请**
+  - [ ] ❌ **不要使用自签名证书！**（会导致浏览器安全警告）
+  - [ ] ✅ **使用 Let's Encrypt 免费证书**（被全球浏览器信任）
+  - [ ] 安装 certbot：`apt-get install certbot python3-certbot-nginx`
+  - [ ] 申请证书：`certbot certonly --standalone -d your-domain.com`
+  - [ ] 证书位置：`/etc/letsencrypt/live/your-domain.com/fullchain.pem`
 
-- [ ] **证书更新**
-  - [ ] 设置自动续期（certbot 自动化）
+- [ ] **Nginx 配置**
+  - [ ] 更新 ssl_certificate 路径指向 Let's Encrypt 证书
+  - [ ] 启用 HTTPS（listen 443 ssl http2）
+  - [ ] 重定向 HTTP → HTTPS（listen 80 然后 return 301）
+  - [ ] 配置 HSTS 头部：`add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;`
 
-### 2.6 日志和监控
+- [ ] **证书自动续期**
+  - [ ] ✅ Certbot 已自动配置续期任务（/etc/cron.d/certbot）
+  - [ ] 验证：`sudo certbot certificates`
+  - [ ] 测试续期：`sudo certbot renew --dry-run`
+
+- [ ] **验证 SSL 配置**
+  ```bash
+  # 检查证书有效期和颁发者
+  openssl x509 -in /etc/letsencrypt/live/your-domain.com/fullchain.pem -text -noout | grep -E "Issuer|Valid"
+
+  # 应该显示：
+  # Issuer: C=US; O=Let's Encrypt  ✅ （受信任的 CA）
+  # Not Before: ...  Not After: ...
+  ```
+
+### 2.6 Nginx 静态资源配置 ⭐ **常见坑**
+
+> **重要！** 这个配置错误会导致页面白屏 + JavaScript 加载失败
+> **症状**: 浏览器收到 MIME type 为 text/html 的 JavaScript 文件
+
+- [ ] **Location 块优先级**（这是关键！）
+  - [ ] ❌ 不要在 SPA 路由 location 中使用正则 `~`：`location ~ ^/admin/`
+  - [ ] ✅ 应该使用非正则前缀 `^~`：`location ^~ /admin/`
+  - [ ] 原因：Nginx 优先级 `^~` > `~` （非正则 > 正则）
+
+- [ ] **静态资源 location 必须在前面**
+  ```nginx
+  # ✅ 正确的顺序
+
+  # 1. API 代理（最高优先）
+  location /api/ { proxy_pass http://backend; }
+
+  # 2. 静态资源（必须在 SPA 路由之前！）
+  location ^~ /admin/assets/ {
+      alias /var/www/.../admin/dist/assets/;
+      expires 30d;
+      add_header Cache-Control "public, immutable";
+  }
+
+  # 3. SPA 路由（放在最后）
+  location ^~ /admin/ {
+      root /var/www/.../admin/dist;
+      try_files $uri /index.html =404;
+  }
+  ```
+
+- [ ] **MIME 类型验证**
+  ```bash
+  # 验证静态资源返回正确的 MIME 类型
+  curl -I https://your-domain.com/admin/assets/app.js
+  # 应该返回：content-type: application/javascript ✅
+
+  curl -I https://your-domain.com/admin/assets/style.css
+  # 应该返回：content-type: text/css ✅
+  ```
+
+- [ ] **缓存配置**
+  - [ ] HTML 文件：`add_header Cache-Control "no-cache, no-store, must-revalidate"`
+  - [ ] JS/CSS 文件：`add_header Cache-Control "public, immutable"; expires 30d`
+  - [ ] 原因：防止过期 HTML 被缓存，同时充分利用 JS/CSS 缓存
+
+- [ ] **测试完整流程**
+  ```bash
+  # 重启 Nginx
+  sudo systemctl restart nginx
+
+  # 测试首页
+  curl -s https://your-domain.com/admin/ | head -20
+
+  # 测试 API
+  curl -I https://your-domain.com/api/v1/health
+  ```
+
+### 2.7 日志和监控
 - [ ] **日志系统**
   - [ ] 配置 winston 或 bunyan 日志库
   - [ ] 日志分离：info、warn、error

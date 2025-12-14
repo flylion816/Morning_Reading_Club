@@ -184,6 +184,7 @@ import { ref, onMounted, computed } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { enrollmentApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ListResponse, Enrollment } from '../types/api'
 
 const loading = ref(false)
 
@@ -198,12 +199,12 @@ const pagination = ref({
   total: 0
 })
 
-const enrollments = ref<any[]>([])
-const currentEnrollment = ref<any>(null)
+const enrollments = ref<Enrollment[]>([])
+const currentEnrollment = ref<Enrollment | null>(null)
 const currentForm = ref({
   notes: ''
 })
-const selectedEnrollments = ref<any[]>([])
+const selectedEnrollments = ref<Enrollment[]>([])
 const tableRef = ref()
 
 const dialogs = ref({
@@ -223,10 +224,10 @@ async function loadEnrollments() {
       paymentStatus: filters.value.paymentStatus
     }
 
-    const response = await enrollmentApi.getEnrollments(params)
+    const response = await enrollmentApi.getEnrollments(params) as unknown as ListResponse<Enrollment>
     enrollments.value = response.list || []
-    pagination.value.total = response.total || 0
-  } catch (err) {
+    pagination.value.total = response.total || response.pagination?.total || 0
+  } catch (err: any) {
     ElMessage.error('加载报名列表失败')
     console.error(err)
   } finally {
@@ -239,12 +240,12 @@ function handleSearch() {
   loadEnrollments()
 }
 
-function showDetailDialog(enrollment: any) {
+function showDetailDialog(enrollment: Enrollment) {
   currentEnrollment.value = enrollment
   dialogs.value.detailVisible = true
 }
 
-async function handleDelete(enrollment: any) {
+async function handleDelete(enrollment: Enrollment) {
   try {
     await ElMessageBox.confirm(
       `确定要删除 ${enrollment.name} 的报名记录吗？`,

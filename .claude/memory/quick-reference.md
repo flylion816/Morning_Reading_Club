@@ -82,6 +82,27 @@
   - 查看详情：[issues/frontend/api-integration.md](./issues/frontend/api-integration.md)
   - 典型问题：问题27, 问题28, 问题29, 问题30
 
+### 🚀 部署和基础设施问题 ⭐ **线上部署必读**
+
+- **页面白屏 + JavaScript 加载失败（MIME 类型错误）**
+  - 错误信息：`Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html"`
+  - 常见原因：Nginx location 块优先级错误，静态资源被 SPA 路由拦截
+  - 解决方案：使用非正则前缀 `^~` 而不是 `~`，把静态资源 location 放在前面
+  - 查看详情：[bug-fixes/ssl-nginx-deployment.md](./bug-fixes/ssl-nginx-deployment.md) - 问题2
+  - 部署检查清单：[deployment-checklist.md](./deployment-checklist.md) - 2.6 Nginx 静态资源配置
+
+- **浏览器显示"连接不安全"警告**
+  - 症状：绿色锁形变红，浏览器提示"此网站不安全"
+  - 常见原因：使用自签名证书（Self-signed certificate）
+  - 解决方案：申请 Let's Encrypt 免费证书（被全球浏览器信任）
+  - 查看详情：[bug-fixes/ssl-nginx-deployment.md](./bug-fixes/ssl-nginx-deployment.md) - 问题1
+  - 部署检查清单：[deployment-checklist.md](./deployment-checklist.md) - 2.5 HTTPS 和 SSL 证书
+
+- **修复后浏览器仍显示错误**
+  - 常见原因：浏览器缓存了旧的错误响应
+  - 解决方案：清除浏览器缓存 + 硬刷新 (Cmd+Shift+R / Ctrl+Shift+R)
+  - 查看详情：[bug-fixes/ssl-nginx-deployment.md](./bug-fixes/ssl-nginx-deployment.md) - 问题3
+
 ---
 
 ## 🔴 按错误关键词快速查找
