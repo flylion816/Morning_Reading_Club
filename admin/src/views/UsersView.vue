@@ -231,9 +231,10 @@ import { ref, onMounted } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { userApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ListResponse, User } from '../types/api'
 
 const loading = ref(false)
-const users = ref<any[]>([])
+const users = ref<User[]>([])
 const selectedUser = ref<any>(null)
 
 const filters = ref({
@@ -263,7 +264,7 @@ onMounted(() => {
 async function loadUsers() {
   loading.value = true
   try {
-    const params: any = {
+    const params: Record<string, any> = {
       page: pagination.value.page,
       limit: pagination.value.pageSize
     }
@@ -272,7 +273,7 @@ async function loadUsers() {
       params.search = filters.value.search
     }
 
-    const response = await userApi.getUsers(params)
+    const response = await userApi.getUsers(params) as unknown as ListResponse<User>
     users.value = response.list || []
     pagination.value.total = response.pagination?.total || 0
   } catch (err) {
@@ -287,7 +288,7 @@ function handleSearch() {
   loadUsers()
 }
 
-async function handleToggleUserStatus(row: any) {
+async function handleToggleUserStatus(row: User) {
   const action = row.isActive ? '禁用' : '启用'
   const newStatus = row.isActive ? 'banned' : 'active'
   ElMessageBox.confirm(
@@ -313,12 +314,12 @@ async function handleToggleUserStatus(row: any) {
     })
 }
 
-function viewUserDetails(row: any) {
+function viewUserDetails(row: User) {
   selectedUser.value = row
   detailsDialog.value.visible = true
 }
 
-function openEditDialog(row: any) {
+function openEditDialog(row: User) {
   editDialog.value.form = {
     _id: row._id,
     nickname: row.nickname,
@@ -353,7 +354,7 @@ function resetEditForm() {
   editDialog.value.form = null
 }
 
-async function handleDeleteUser(row: any) {
+async function handleDeleteUser(row: User) {
   try {
     await ElMessageBox.confirm(
       `确定要删除用户 ${row.nickname} 吗？此操作不可撤销`,
@@ -385,15 +386,15 @@ function formatDate(dateString: string): string {
  * 根据用户ID生成稳定的头像颜色
  * 使用哈希算法确保相同ID总是返回相同颜色
  */
-function getAvatarColor(userId: string): string {
-  const colors = ['#4a90e2', '#7ed321', '#f5a623', '#bd10e0', '#50e3c2', '#b8e986', '#ff6b6b', '#4ecdc4']
-  if (!userId) return colors[0]
+function getAvatarColor(userId?: string): string {
+  const colors: string[] = ['#4a90e2', '#7ed321', '#f5a623', '#bd10e0', '#50e3c2', '#b8e986', '#ff6b6b', '#4ecdc4']
+  if (!userId) return colors[0] as string
 
   let hash = 0
   for (let i = 0; i < userId.length; i++) {
     hash = ((hash << 5) - hash) + userId.charCodeAt(i)
   }
-  return colors[Math.abs(hash) % colors.length]
+  return colors[Math.abs(hash) % colors.length] as string
 }
 </script>
 

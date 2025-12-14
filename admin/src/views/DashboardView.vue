@@ -145,6 +145,7 @@ import { useRouter } from 'vue-router'
 import AdminLayout from '../components/AdminLayout.vue'
 import { statsApi, enrollmentApi, paymentApi } from '../services/api'
 import { ElMessage } from 'element-plus'
+import type { ListResponse, Enrollment, Payment } from '../types/api'
 
 const router = useRouter()
 
@@ -155,8 +156,8 @@ const stats = ref({
   activePeriods: 0
 })
 
-const recentEnrollments = ref<any[]>([])
-const recentPayments = ref<any[]>([])
+const recentEnrollments = ref<Enrollment[]>([])
+const recentPayments = ref<Payment[]>([])
 
 onMounted(async () => {
   await Promise.all([
@@ -180,9 +181,9 @@ async function loadRecentEnrollments() {
     const response = await enrollmentApi.getEnrollments({
       limit: 5,
       sort: '-createdAt'
-    })
+    }) as unknown as ListResponse<Enrollment>
     recentEnrollments.value = response.list || []
-  } catch (err) {
+  } catch (err: any) {
     ElMessage.error('加载报名数据失败')
   }
 }
@@ -192,9 +193,9 @@ async function loadRecentPayments() {
     const response = await paymentApi.getPayments({
       limit: 5,
       sort: '-createdAt'
-    })
+    }) as unknown as ListResponse<Payment>
     recentPayments.value = response.list || []
-  } catch (err) {
+  } catch (err: any) {
     ElMessage.error('加载支付数据失败')
   }
 }

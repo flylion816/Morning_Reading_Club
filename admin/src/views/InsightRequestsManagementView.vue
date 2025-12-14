@@ -264,10 +264,10 @@
       <el-dialog v-model="dialogDetail.visible" title="申请详情" width="50%">
         <el-form :model="dialogDetail.request" label-width="100px">
           <el-form-item label="申请者">
-            <span>{{ dialogDetail.request?.fromUserId?.nickname }}</span>
+            <span>{{ typeof dialogDetail.request?.fromUserId === 'object' ? dialogDetail.request?.fromUserId?.nickname : '未知' }}</span>
           </el-form-item>
           <el-form-item label="被申请者">
-            <span>{{ dialogDetail.request?.toUserId?.nickname }}</span>
+            <span>{{ typeof dialogDetail.request?.toUserId === 'object' ? dialogDetail.request?.toUserId?.nickname : '未知' }}</span>
           </el-form-item>
           <el-form-item label="申请原因">
             <span>{{ dialogDetail.request?.reason || '无' }}</span>
@@ -277,7 +277,7 @@
           </el-form-item>
           <el-form-item label="申请状态">
             <el-tag :type="getStatusTagType(dialogDetail.request?.status)">
-              {{ getStatusLabel(dialogDetail.request?.status) }}
+              {{ getStatusLabel(dialogDetail.request?.status || '') }}
             </el-tag>
           </el-form-item>
 
@@ -311,6 +311,7 @@ import { ArrowDown } from '@element-plus/icons-vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import api from '../services/api'
 import { exportToCSV, exportToExcel, exportToJSON, generateFilename } from '../utils/exportUtils'
+import type { InsightRequest, Period } from '../types/api'
 
 // 统计数据
 const stats = ref({
@@ -329,8 +330,8 @@ const filters = ref({
 })
 
 // 申请列表
-const requests = ref([])
-const selectedRequests = ref([])
+const requests = ref<InsightRequest[]>([])
+const selectedRequests = ref<InsightRequest[]>([])
 
 // 分页
 const pagination = ref({
@@ -340,7 +341,7 @@ const pagination = ref({
 })
 
 // 期次列表
-const periods = ref([])
+const periods = ref<Period[]>([])
 
 // 对话框状态
 const dialogApprove = ref({
@@ -366,7 +367,10 @@ const dialogReject = ref({
   requestId: ''
 })
 
-const dialogDetail = ref({
+const dialogDetail = ref<{
+  visible: boolean
+  request: InsightRequest | null
+}>({
   visible: false,
   request: null
 })
@@ -385,7 +389,7 @@ const loadStats = async () => {
     const response = await api.get('/insights/admin/requests/stats')
     // API 拦截器已经解包了 response.data.data，所以直接使用 response
     if (response && typeof response === 'object') {
-      stats.value = response
+      stats.value = response as unknown as typeof stats.value
     }
   } catch (error) {
     ElMessage.error('加载统计数据失败')
@@ -403,7 +407,10 @@ const loadRequests = async () => {
       toUser: filters.value.toUser
     }
 
-    const response = await api.get('/insights/admin/requests', { params })
+    const response = await api.get('/insights/admin/requests', { params }) as unknown as {
+      requests: InsightRequest[]
+      pagination: { total: number }
+    }
     // API 拦截器已经解包了 response.data.data，所以直接使用 response
     if (response && response.requests) {
       requests.value = response.requests
@@ -417,21 +424,21 @@ const loadRequests = async () => {
 // 加载期次列表
 const loadPeriods = async () => {
   try {
-    const response = await api.get('/periods')
+    const response = await api.get('/periods') as unknown as { list: Period[] } | Period[]
     // API 返回 {list: [...], pagination: {...}} 结构
-    if (response && response.list && Array.isArray(response.list)) {
+    if (response && typeof response === 'object' && 'list' in response && Array.isArray(response.list)) {
       periods.value = response.list
     } else if (Array.isArray(response)) {
       periods.value = response
     }
-  } catch (error) {
+  } catch (error: any) {
     ElMessage.error('加载期次列表失败')
   }
 }
 
 // 当选择期次名称时，自动更新对应的 periodId
 const updatePeriodId = () => {
-  const selectedName = dialogApprove.value.form.periodName
+  const selectedName = (dialogApprove.value.form as any).periodName
   const matchedPeriod = periods.value.find(p => (p.name || p.title) === selectedName)
   if (matchedPeriod) {
     dialogApprove.value.form.periodId = matchedPeriod._id
@@ -440,23 +447,23 @@ const updatePeriodId = () => {
 }
 
 // 打开同意对话框
-const openApproveDialog = (row) => {
+const openApproveDialog = (row: InsightRequest) => {
   // 如果申请记录中已经有periodId，则自动使用；否则需要管理员手动选择
   // 处理periodId可能是对象或字符串的情况
-  const defaultPeriodId = row.periodId?._id || row.periodId || ''
+  const defaultPeriodId = typeof row.periodId === 'object' ? row.periodId?._id : row.periodId || ''
 
   // 查找对应的期次，用于显示名称（如果已自动填充）
   let periodName = '选择期次'
   if (defaultPeriodId) {
     const matchedPeriod = periods.value.find(p => p._id === defaultPeriodId)
     if (matchedPeriod) {
-      periodName = matchedPeriod.name || matchedPeriod.title
+      periodName = matchedPeriod.name || matchedPeriod.title || '选择期次'
     }
   }
 
   console.log('🔍 openApproveDialog:', {
-    fromUser: row.fromUserId?.nickname,
-    toUser: row.toUserId?.nickname,
+    fromUser: typeof row.fromUserId === 'object' ? row.fromUserId?.nickname : undefined,
+    toUser: typeof row.toUserId === 'object' ? row.toUserId?.nickname : undefined,
     periodId: row.periodId,
     defaultPeriodId: defaultPeriodId,
     periodName: periodName,
@@ -464,10 +471,9 @@ const openApproveDialog = (row) => {
   })
 
   dialogApprove.value.form = {
-    fromUserName: row.fromUserId?.nickname || '未知',
-    toUserName: row.toUserId?.nickname || '未知',
+    fromUserName: (typeof row.fromUserId === 'object' ? row.fromUserId?.nickname : undefined) || '未知',
+    toUserName: (typeof row.toUserId === 'object' ? row.toUserId?.nickname : undefined) || '未知',
     periodId: defaultPeriodId,
-    periodName: periodName, // 添加期次名称用于显示
     adminNote: ''
   }
   dialogApprove.value.requestId = row._id
@@ -491,7 +497,7 @@ const submitApprove = async () => {
     dialogApprove.value.visible = false
     loadRequests()
     loadStats()
-  } catch (error) {
+  } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '操作失败')
   } finally {
     dialogApprove.value.loading = false
@@ -499,10 +505,10 @@ const submitApprove = async () => {
 }
 
 // 打开拒绝对话框
-const openRejectDialog = (row) => {
+const openRejectDialog = (row: InsightRequest) => {
   dialogReject.value.form = {
-    fromUserName: row.fromUserId?.nickname || '未知',
-    toUserName: row.toUserId?.nickname || '未知',
+    fromUserName: (typeof row.fromUserId === 'object' ? row.fromUserId?.nickname : undefined) || '未知',
+    toUserName: (typeof row.toUserId === 'object' ? row.toUserId?.nickname : undefined) || '未知',
     adminNote: ''
   }
   dialogReject.value.requestId = row._id
@@ -520,7 +526,7 @@ const submitReject = async () => {
     dialogReject.value.visible = false
     loadRequests()
     loadStats()
-  } catch (error) {
+  } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '操作失败')
   } finally {
     dialogReject.value.loading = false
@@ -528,13 +534,13 @@ const submitReject = async () => {
 }
 
 // 打开详情对话框
-const openDetailDialog = (row) => {
+const openDetailDialog = (row: InsightRequest) => {
   dialogDetail.value.request = row
   dialogDetail.value.visible = true
 }
 
 // 删除申请
-const handleDeleteRequest = (row) => {
+const handleDeleteRequest = (row: InsightRequest) => {
   ElMessageBox.confirm('确认删除此申请吗？此操作不可恢复', '删除确认', {
     confirmButtonText: '确定删除',
     cancelButtonText: '取消',
@@ -550,7 +556,7 @@ const handleDeleteRequest = (row) => {
         ElMessage.success('申请已删除')
         loadRequests()
         loadStats()
-      } catch (error) {
+      } catch (error: any) {
         ElMessage.error(error.response?.data?.message || '删除失败')
       }
     })
@@ -607,7 +613,7 @@ const batchApprove = () => {
         selectedRequests.value = []
         loadRequests()
         loadStats()
-      } catch (error) {
+      } catch (error: any) {
         ElMessage.error(error.response?.data?.message || '批量授权失败')
       } finally {
         dialogBatchApprove.value.loading = false
@@ -645,11 +651,11 @@ const batchReject = () => {
 const generateExportData = () => {
   const headers = ['申请者', '被申请者', '申请原因', '申请时间', '申请状态', '处理时间']
   const rows = requests.value.map(req => [
-    req.fromUserId?.nickname || '-',
-    req.toUserId?.nickname || '-',
+    (typeof req.fromUserId === 'object' ? req.fromUserId?.nickname : undefined) || '-',
+    (typeof req.toUserId === 'object' ? req.toUserId?.nickname : undefined) || '-',
     req.reason || '-',
     formatTime(req.createdAt),
-    getStatusLabel(req.status),
+    getStatusLabel(req.status || ''),
     req.approvedAt ? formatTime(req.approvedAt) : req.rejectedAt ? formatTime(req.rejectedAt) : '-'
   ])
   return { headers, rows }
@@ -677,7 +683,7 @@ const handleExport = async (command: string) => {
       exportToJSON(filename, headers, rows)
       ElMessage.success('JSON 导出成功')
     }
-  } catch (error) {
+  } catch (error: any) {
     if (command === 'excel') {
       ElMessage.warning('Excel 导出失败，自动使用 CSV 格式')
       exportToCSV(filename, headers, rows)
@@ -705,40 +711,40 @@ const resetFilters = () => {
 }
 
 // 处理表格选择变化
-const handleSelectionChange = (selection) => {
+const handleSelectionChange = (selection: InsightRequest[]) => {
   selectedRequests.value = selection
 }
 
 // 格式化时间
-const formatTime = (date) => {
+const formatTime = (date: any) => {
   if (!date) return '-'
   return new Date(date).toLocaleString('zh-CN')
 }
 
 // 获取状态标签类型
-const getStatusTagType = (status) => {
-  const types = {
+const getStatusTagType = (status: any) => {
+  const types: Record<string, string> = {
     pending: 'warning',
     approved: 'success',
     rejected: 'danger'
   }
-  return types[status] || 'info'
+  return types[status as string] || 'info'
 }
 
 // 获取状态标签文本
-const getStatusLabel = (status) => {
-  const labels = {
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
     pending: '待审批',
     approved: '已同意',
     rejected: '已拒绝',
     revoked: '已撤销'
   }
-  return labels[status] || '未知'
+  return labels[status as string] || '未知'
 }
 
 // 获取操作标签文本
-const getActionLabel = (action) => {
-  const labels = {
+const getActionLabel = (action: string) => {
+  const labels: Record<string, string> = {
     create: '创建申请',
     approve: '用户同意',
     reject: '用户拒绝',
@@ -747,7 +753,7 @@ const getActionLabel = (action) => {
     revoke: '撤销权限',
     admin_delete: '管理员删除'
   }
-  return labels[action] || '未知操作'
+  return labels[action as string] || '未知操作'
 }
 
 // 初始化

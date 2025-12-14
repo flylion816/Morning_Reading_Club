@@ -271,9 +271,10 @@ import { ref, onMounted } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { paymentApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ListResponse, Payment } from '../types/api'
 
 const loading = ref(false)
-const payments = ref<any[]>([])
+const payments = ref<Payment[]>([])
 const selectedPayment = ref<any>(null)
 
 const filters = ref({
@@ -307,7 +308,7 @@ onMounted(async () => {
 async function loadPayments() {
   loading.value = true
   try {
-    const params: any = {
+    const params: Record<string, any> = {
       page: pagination.value.page,
       limit: pagination.value.pageSize
     }
@@ -322,7 +323,7 @@ async function loadPayments() {
       params.method = filters.value.method
     }
 
-    const response = await paymentApi.getPayments(params)
+    const response = await paymentApi.getPayments(params) as unknown as ListResponse<Payment>
     payments.value = response.list || []
     pagination.value.total = response.total || 0
   } catch (err) {
@@ -337,7 +338,7 @@ async function loadStatistics() {
     // 在这里可以调用统计API，现在仅计算当前数据
     const completed = payments.value.filter(p => p.status === 'completed').length
     const processing = payments.value.filter(p => p.status === 'processing').length
-    const failed = payments.value.filter(p => ['failed', 'cancelled'].includes(p.status)).length
+    const failed = payments.value.filter(p => p.status && ['failed', 'cancelled'].includes(p.status)).length
     const total = payments.value.reduce((sum, p) => sum + (p.amount || 0), 0)
 
     statistics.value = {
@@ -361,7 +362,7 @@ function handleRefresh() {
   ElMessage.success('已刷新')
 }
 
-async function cancelPayment(row: any) {
+async function cancelPayment(row: Payment) {
   ElMessageBox.confirm(
     '确定要取消该支付订单吗？',
     '警告',
@@ -385,7 +386,7 @@ async function cancelPayment(row: any) {
     })
 }
 
-function viewDetails(row: any) {
+function viewDetails(row: Payment) {
   selectedPayment.value = row
   detailsDialog.value.visible = true
 }

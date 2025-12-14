@@ -267,11 +267,12 @@ import { ref, onMounted, computed } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import { insightApi, periodApi, userApi } from '../services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ListResponse, Period, Insight, User } from '../types/api'
 
 // 数据
 const selectedPeriodId = ref<string>('')
-const periods = ref<any[]>([])
-const insights = ref<any[]>([])
+const periods = ref<Period[]>([])
+const insights = ref<Insight[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -284,14 +285,14 @@ const tagInput = ref('')
 const imagePreview = ref('')
 
 // 用户选择相关
-const userOptions = ref<any[]>([])
+const userOptions = ref<User[]>([])
 const loadingUsers = ref(false)
 
-const editingInsight = ref<any>({
+const editingInsight = ref<Partial<Insight>>({
   periodId: '',
   targetUserId: '',
-  type: 'insight',
-  mediaType: 'text',
+  type: 'insight' as any,
+  mediaType: 'text' as any,
   content: '',
   imageUrl: '',
   summary: '',
@@ -307,7 +308,7 @@ onMounted(() => {
 // 加载期次
 async function loadPeriods() {
   try {
-    const response = await periodApi.getPeriods({ limit: 100 })
+    const response = await periodApi.getPeriods({ limit: 100 }) as unknown as ListResponse<Period>
     periods.value = response.list || []
   } catch (err) {
     console.error('加载期次失败:', err)
@@ -326,7 +327,7 @@ async function loadInsights() {
       ;(params as any).periodId = selectedPeriodId.value
     }
 
-    const response = await insightApi.getInsights(params)
+    const response = await insightApi.getInsights(params) as unknown as ListResponse<Insight>
     // 检查响应结构，可能是 {list, pagination} 或直接是数组
     if (Array.isArray(response)) {
       insights.value = response
@@ -517,9 +518,9 @@ async function searchUsers(keyword: string) {
     const response = await userApi.getUsers({
       search: keyword,
       limit: 20
-    })
+    }) as unknown as ListResponse<User>
     // 过滤掉 nickname 为空的用户（email可能为空）
-    userOptions.value = (response.list || []).filter((user: any) => user.nickname)
+    userOptions.value = (response.list || []).filter((user) => user.nickname)
   } catch (err) {
     console.error('搜索用户失败:', err)
     userOptions.value = []
