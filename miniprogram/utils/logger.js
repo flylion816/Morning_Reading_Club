@@ -7,11 +7,17 @@
  * logger.log('普通日志', data);
  * logger.warn('警告日志', data);
  * logger.error('错误日志', data);
+ *
+ * 环境判断：根据 config/env.js 中的 currentEnv
+ * - 'dev' 或 'test': 启用日志
+ * - 'prod': 禁用日志（仅输出错误）
  */
 
-// 是否启用日志（生产环境设置为 false）
-const isDev = __wxConfig?.envVersion !== 'release'; // release 是正式版
-const ENABLE_LOG = isDev || process.env.DEBUG_LOG === 'true';
+const envConfig = require('../config/env');
+
+// 根据 env.js 中的 currentEnv 判断是否为开发环境
+const isDev = envConfig.currentEnv !== 'prod';
+const ENABLE_LOG = isDev;
 
 const logger = {
   /**
