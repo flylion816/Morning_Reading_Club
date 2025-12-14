@@ -14,8 +14,19 @@
 
 set -e
 
-# 配置
-MONGO_URI="mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin"
+# 配置 - 从环境变量或 .env 文件读取
+if [ -z "$MONGODB_URI" ]; then
+  # 尝试从 .env 文件读取
+  if [ -f "/var/www/Morning_Reading_Club/backend/.env.production" ]; then
+    MONGO_URI=$(grep "^MONGODB_URI=" /var/www/Morning_Reading_Club/backend/.env.production | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  elif [ -f "/var/www/Morning_Reading_Club/backend/.env" ]; then
+    MONGO_URI=$(grep "^MONGODB_URI=" /var/www/Morning_Reading_Club/backend/.env | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  else
+    MONGO_URI="mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin"
+  fi
+else
+  MONGO_URI="$MONGODB_URI"
+fi
 DB_NAME="morning_reading"
 
 # 颜色定义
