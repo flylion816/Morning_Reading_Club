@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
-require('dotenv').config();
+const path = require('path');
+const envFile = process.env.NODE_ENV === 'production'
+  ? path.join(__dirname, '../.env.production')
+  : path.join(__dirname, '../.env');
+require('dotenv').config({ path: envFile });
+
 const mongoose = require('mongoose');
 
 // 导入模型
@@ -19,23 +24,34 @@ async function initMongoDB() {
 
   try {
     console.log('🔄 连接 MongoDB...');
+    console.log('📍 连接字符串:', MONGODB_URI.replace(/:[\w!@#$%^&*()_+-=]*@/, ':****@'));
     connection = await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 5000,
+      authSource: 'admin',
+      retryWrites: false
     });
     console.log('✅ MongoDB 连接成功\n');
 
     // 清空数据库
     console.log('🧹 清空现有数据...');
-    await Promise.all([
-      User.deleteMany({}),
-      Period.deleteMany({}),
-      Section.deleteMany({}),
-      Checkin.deleteMany({}),
-      Comment.deleteMany({}),
-      Insight.deleteMany({}),
-      Enrollment.deleteMany({})
-    ]);
-    console.log('✅ 数据已清空\n');
+    try {
+      await Promise.all([
+        User.deleteMany({}),
+        Period.deleteMany({}),
+        Section.deleteMany({}),
+        Checkin.deleteMany({}),
+        Comment.deleteMany({}),
+        Insight.deleteMany({}),
+        Enrollment.deleteMany({})
+      ]);
+      console.log('✅ 数据已清空\n');
+    } catch (err) {
+      if (err.message.includes('requires authentication')) {
+        console.log('⚠️  跳过清空步骤（认证错误），将继续插入新数据\n');
+      } else {
+        throw err;
+      }
+    }
 
     // 创建用户
     console.log('👥 创建用户...');

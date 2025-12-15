@@ -34,6 +34,10 @@ echo ""
 # 2. 后端服务状态
 echo -e "${BLUE}2️⃣ 后端服务状态${NC}"
 
+# 检查环境变量
+CURRENT_ENV="${NODE_ENV:-production}"
+echo -e "   当前环境: ${CURRENT_ENV}"
+
 if command -v lsof &> /dev/null; then
     PORT_STATUS=$(lsof -i :3000 2>/dev/null | grep -c LISTEN || echo "0")
     if [ "$PORT_STATUS" -gt 0 ]; then
@@ -43,7 +47,8 @@ if command -v lsof &> /dev/null; then
     fi
 else
     echo "   检查 http://localhost:3000/api/v1/health"
-    if curl -s http://localhost:3000/api/v1/health > /dev/null 2>&1; then
+    # 在线上环境明确设置 NODE_ENV=production 来执行检查，避免开发环境逻辑
+    if NODE_ENV=production curl -s http://localhost:3000/api/v1/health > /dev/null 2>&1; then
         echo -e "   ${GREEN}✓ 后端服务可访问${NC}"
     else
         echo -e "   ${YELLOW}⚠ 后端服务无法访问${NC}"

@@ -8,6 +8,7 @@
  * 3. init-23-days.js - 导入23天课程内容
  */
 
+require('dotenv').config();
 const { spawn } = require('child_process');
 const path = require('path');
 
@@ -18,9 +19,9 @@ const scripts = [
     description: '创建基本的数据库结构和测试数据'
   },
   {
-    name: '管理员初始化',
-    script: 'init-admin.js',
-    description: '创建管理员账户'
+    name: '超级管理员初始化',
+    script: 'init-superadmin.js',
+    description: '创建超级管理员账户'
   },
   {
     name: '课程内容导入',
@@ -36,7 +37,8 @@ function runScript(scriptName) {
     const scriptPath = path.join(__dirname, scriptName);
     const child = spawn('node', [scriptPath], {
       stdio: 'inherit',
-      cwd: __dirname
+      cwd: __dirname,
+      env: process.env
     });
 
     child.on('close', (code) => {

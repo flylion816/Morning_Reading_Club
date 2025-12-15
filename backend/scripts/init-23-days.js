@@ -7,9 +7,13 @@
 
 const mongoose = require('mongoose');
 const fs = require('fs');
-const path = require('path');
+const pathModule = require('path');
 
-require('dotenv').config();
+const envFile = process.env.NODE_ENV === 'production'
+  ? pathModule.join(__dirname, '../.env.production')
+  : pathModule.join(__dirname, '../.env');
+require('dotenv').config({ path: envFile });
+
 const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db';
 const Section = require('../src/models/Section');
 const Period = require('../src/models/Period');
@@ -25,7 +29,9 @@ async function importAllDays() {
     console.log('正在连接数据库...');
     await mongoose.connect(mongoUrl, {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      authSource: 'admin',
+      retryWrites: false
     });
     console.log('✅ 数据库连接成功\n');
 
@@ -48,7 +54,7 @@ async function importAllDays() {
     // 导入 Day 0-22
     for (let day = 0; day <= 22; day++) {
       const filename = `day${day}-content.json`;
-      const filepath = path.join(SCRIPTS_DIR, filename);
+      const filepath = pathModule.join(SCRIPTS_DIR, filename);
 
       // 检查文件是否存在
       if (!fs.existsSync(filepath)) {
