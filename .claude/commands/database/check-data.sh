@@ -14,14 +14,28 @@
 
 set -e
 
+# 检查当前环境 - 线上环境优先使用 .env
+CURRENT_ENV="${NODE_ENV:-production}"
+echo -e "${BLUE}[环境识别] 当前运行环境: ${CURRENT_ENV}${NC}"
+echo ""
+
 # 配置 - 从环境变量或 .env 文件读取
 if [ -z "$MONGODB_URI" ]; then
-  # 尝试从 .env 文件读取
-  if [ -f "/var/www/Morning_Reading_Club/backend/.env.production" ]; then
+  # 线上环境优先读取 .env，本地开发环境读取 .env.local
+  if [ "$CURRENT_ENV" = "production" ] && [ -f "/var/www/Morning_Reading_Club/backend/.env" ]; then
+    echo -e "${YELLOW}[配置] 使用生产环境配置 (.env)${NC}"
+    MONGO_URI=$(grep "^MONGODB_URI=" /var/www/Morning_Reading_Club/backend/.env | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  elif [ -f "/var/www/Morning_Reading_Club/backend/.env.production" ]; then
+    echo -e "${YELLOW}[配置] 使用生产环境配置 (.env.production)${NC}"
     MONGO_URI=$(grep "^MONGODB_URI=" /var/www/Morning_Reading_Club/backend/.env.production | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  elif [ -f "/var/www/Morning_Reading_Club/backend/.env.local" ]; then
+    echo -e "${YELLOW}[配置] 使用本地开发配置 (.env.local)${NC}"
+    MONGO_URI=$(grep "^MONGODB_URI=" /var/www/Morning_Reading_Club/backend/.env.local | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   elif [ -f "/var/www/Morning_Reading_Club/backend/.env" ]; then
+    echo -e "${YELLOW}[配置] 使用环境配置 (.env)${NC}"
     MONGO_URI=$(grep "^MONGODB_URI=" /var/www/Morning_Reading_Club/backend/.env | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   else
+    echo -e "${YELLOW}[配置] 使用默认本地连接${NC}"
     MONGO_URI="mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin"
   fi
 else
