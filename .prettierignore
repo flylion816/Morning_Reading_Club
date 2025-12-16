@@ -1,0 +1,15 @@
+node_modules
+dist
+build
+coverage
+*.min.js
+*.log
+.DS_Store
+backend/node_modules
+admin/node_modules
+admin/dist
+miniprogram/miniprogram_npm
+*.wxss.map
+.claude/agents/*.yaml
+.claude/agents/*.yml
+openspec/
