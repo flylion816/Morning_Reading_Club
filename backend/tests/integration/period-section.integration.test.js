@@ -199,9 +199,10 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     beforeEach(async () => {
       const period = await Period.create({
         name: '详情测试期次',
+        title: '详情测试期次标题',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       periodId = period._id;
@@ -318,9 +319,10 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       beforeEach(async () => {
         const period = await Period.create({
           name: '待更新期次',
+          title: '待更新期次标题',
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'active'
+          status: 'ongoing'
         });
 
         periodId = period._id;
@@ -357,9 +359,10 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       beforeEach(async () => {
         const period = await Period.create({
           name: '课节期次',
+          title: '课节期次标题',
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'active'
+          status: 'ongoing'
         });
 
         periodId = period._id;
@@ -403,9 +406,10 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       beforeEach(async () => {
         const period = await Period.create({
           name: '课节更新期次',
+          title: '课节更新期次标题',
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'active'
+          status: 'ongoing'
         });
 
         const section = await Section.create({
@@ -450,9 +454,10 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       beforeEach(async () => {
         const period = await Period.create({
           name: '删除课节期次',
+          title: '删除课节期次标题',
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'active'
+          status: 'ongoing'
         });
 
         const section = await Section.create({
@@ -544,7 +549,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
         .put(`/api/v1/admin/periods/${periodId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          status: 'active'
+          status: 'ongoing'
         });
 
       expect(updatePeriodRes.status).to.equal(200);
