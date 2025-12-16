@@ -50,7 +50,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     await Period.deleteMany({});
   });
 
-  describe('POST /api/v1/checkin - 创建打卡', () => {
+  describe('POST /api/v1/checkins - 创建打卡', () => {
     let accessToken;
     let userId;
     let periodId;
@@ -78,7 +78,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够创建新的打卡记录', async () => {
       const res = await request(app)
-        .post('/api/v1/checkin')
+        .post('/api/v1/checkins')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId,
@@ -95,7 +95,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('打卡记录应该保存到数据库', async () => {
       await request(app)
-        .post('/api/v1/checkin')
+        .post('/api/v1/checkins')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId,
@@ -110,7 +110,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('缺少必需字段应该返回 400 错误', async () => {
       const res = await request(app)
-        .post('/api/v1/checkin')
+        .post('/api/v1/checkins')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId
@@ -122,7 +122,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('没有认证信息应该返回 401 错误', async () => {
       const res = await request(app)
-        .post('/api/v1/checkin')
+        .post('/api/v1/checkins')
         .send({
           periodId,
           day: 1,
@@ -134,7 +134,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够在打卡中添加附加信息（音频、图片等）', async () => {
       const res = await request(app)
-        .post('/api/v1/checkin')
+        .post('/api/v1/checkins')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId,
@@ -151,7 +151,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     });
   });
 
-  describe('GET /api/v1/checkin - 查询打卡', () => {
+  describe('GET /api/v1/checkins - 查询打卡', () => {
     let accessToken;
     let userId;
     let periodId;
@@ -188,7 +188,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够查询当前期次的所有打卡', async () => {
       const res = await request(app)
-        .get(`/api/v1/checkin?periodId=${periodId}`)
+        .get(`/api/v1/checkins?periodId=${periodId}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -198,7 +198,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该支持分页查询', async () => {
       const res = await request(app)
-        .get(`/api/v1/checkin?periodId=${periodId}&page=1&limit=2`)
+        .get(`/api/v1/checkins?periodId=${periodId}&page=1&limit=2`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -209,7 +209,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够查询特定日期的打卡', async () => {
       const res = await request(app)
-        .get(`/api/v1/checkin?periodId=${periodId}&day=3`)
+        .get(`/api/v1/checkins?periodId=${periodId}&day=3`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -221,7 +221,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
       const fakeId = new mongoose.Types.ObjectId();
 
       const res = await request(app)
-        .get(`/api/v1/checkin?periodId=${fakeId}`)
+        .get(`/api/v1/checkins?periodId=${fakeId}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -229,7 +229,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     });
   });
 
-  describe('PUT /api/v1/checkin/:id - 更新打卡', () => {
+  describe('PUT /api/v1/checkins/:id - 更新打卡', () => {
     let accessToken;
     let userId;
     let checkinId;
@@ -263,7 +263,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够更新打卡内容', async () => {
       const res = await request(app)
-        .put(`/api/v1/checkin/${checkinId}`)
+        .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           content: '更新后的内容'
@@ -275,7 +275,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('更新应该反映在数据库中', async () => {
       await request(app)
-        .put(`/api/v1/checkin/${checkinId}`)
+        .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           content: '数据库更新测试'
@@ -295,7 +295,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
       // 尝试更新别人的打卡
       const res = await request(app)
-        .put(`/api/v1/checkin/${checkinId}`)
+        .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${otherUserToken}`)
         .send({
           content: '不应该能更新'
@@ -305,7 +305,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     });
   });
 
-  describe('DELETE /api/v1/checkin/:id - 删除打卡', () => {
+  describe('DELETE /api/v1/checkins/:id - 删除打卡', () => {
     let accessToken;
     let userId;
     let checkinId;
@@ -337,7 +337,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够删除自己的打卡', async () => {
       const res = await request(app)
-        .delete(`/api/v1/checkin/${checkinId}`)
+        .delete(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -345,7 +345,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('删除后打卡应该从数据库中移除', async () => {
       await request(app)
-        .delete(`/api/v1/checkin/${checkinId}`)
+        .delete(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       const deleted = await Checkin.findById(checkinId);
@@ -360,7 +360,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
       const otherUserToken = loginRes2.body.data.accessToken;
 
       const res = await request(app)
-        .delete(`/api/v1/checkin/${checkinId}`)
+        .delete(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${otherUserToken}`);
 
       expect(res.status).to.equal(403);
@@ -442,7 +442,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
       // 3. 创建打卡
       const createRes = await request(app)
-        .post('/api/v1/checkin')
+        .post('/api/v1/checkins')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId: period._id,
@@ -455,14 +455,14 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
       // 4. 查询打卡
       const queryRes = await request(app)
-        .get(`/api/v1/checkin?periodId=${period._id}`)
+        .get(`/api/v1/checkins?periodId=${period._id}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(queryRes.body.data).to.have.lengthOf(1);
 
       // 5. 更新打卡
       const updateRes = await request(app)
-        .put(`/api/v1/checkin/${checkinId}`)
+        .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           content: '更新后的晨读内容'
@@ -479,14 +479,14 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
       // 7. 删除打卡
       const deleteRes = await request(app)
-        .delete(`/api/v1/checkin/${checkinId}`)
+        .delete(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(deleteRes.status).to.equal(200);
 
       // 8. 验证删除
       const finalQueryRes = await request(app)
-        .get(`/api/v1/checkin?periodId=${period._id}`)
+        .get(`/api/v1/checkins?periodId=${period._id}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(finalQueryRes.body.data).to.have.lengthOf(0);
