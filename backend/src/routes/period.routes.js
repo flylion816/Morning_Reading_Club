@@ -20,16 +20,16 @@ const {
 /**
  * @route   GET /api/v1/periods
  * @desc    获取期次列表
- * @access  Private
+ * @access  Public
  */
-router.get('/', authMiddleware, getPeriodList);
+router.get('/', getPeriodList);
 
 /**
  * @route   GET /api/v1/periods/:periodId
  * @desc    获取期次详情
- * @access  Private
+ * @access  Public
  */
-router.get('/:periodId', authMiddleware, getPeriodDetail);
+router.get('/:periodId', getPeriodDetail);
 
 /**
  * @route   POST /api/v1/periods

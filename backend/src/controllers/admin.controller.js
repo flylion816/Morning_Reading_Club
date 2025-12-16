@@ -52,14 +52,14 @@ exports.login = async (req, res) => {
     await admin.save();
 
     // 生成 Token
-    const token = generateToken(admin);
+    const accessToken = generateToken(admin);
 
     // 返回成功响应
     const adminData = admin.toJSON();
     return res.json(
       success(
         {
-          token,
+          accessToken,
           admin: adminData
         },
         '登录成功'
@@ -112,9 +112,9 @@ exports.refreshToken = async (req, res) => {
       return res.status(403).json(errors.forbidden('账户已被禁用'));
     }
 
-    const token = generateToken(admin);
+    const accessToken = generateToken(admin);
 
-    return res.json(success({ token }, 'Token 已刷新'));
+    return res.json(success({ accessToken }, 'Token 已刷新'));
   } catch (error) {
     logger.error('Refresh token error', error);
     return res.status(500).json(errors.internal('Token 刷新失败'));

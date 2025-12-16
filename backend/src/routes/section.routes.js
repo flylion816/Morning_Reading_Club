@@ -13,23 +13,23 @@ const {
 /**
  * @route   GET /api/v1/sections/today/task
  * @desc    获取今日任务（根据当前日期动态计算）
- * @access  Private
+ * @access  Public
  */
-router.get('/today/task', authMiddleware, getTodayTask);
+router.get('/today/task', getTodayTask);
 
 /**
  * @route   GET /api/v1/sections/period/:periodId
  * @desc    获取期次的课程列表
- * @access  Private
+ * @access  Public
  */
-router.get('/period/:periodId', authMiddleware, getSectionsByPeriod);
+router.get('/period/:periodId', getSectionsByPeriod);
 
 /**
  * @route   GET /api/v1/sections/:sectionId
  * @desc    获取课程详情
- * @access  Private
+ * @access  Public
  */
-router.get('/:sectionId', authMiddleware, getSectionDetail);
+router.get('/:sectionId', getSectionDetail);
 
 /**
  * @route   POST /api/v1/sections

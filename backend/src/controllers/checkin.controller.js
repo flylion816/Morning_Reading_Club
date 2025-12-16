@@ -97,14 +97,7 @@ async function createCheckin(req, res, next) {
 
     res.status(201).json(
       success(
-        {
-          checkin,
-          userStats: {
-            totalCheckinDays: user.totalCheckinDays,
-            currentStreak: user.currentStreak,
-            totalPoints: user.totalPoints
-          }
-        },
+        checkin,
         '打卡成功'
       )
     );

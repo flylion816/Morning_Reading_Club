@@ -211,6 +211,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
         periodId,
         title: '详情测试课节',
         day: 1,
+        content: '测试内容',
         order: 1,
         duration: 20,
         description: '这是一个测试课节',
@@ -277,6 +278,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
           .set('Authorization', `Bearer ${adminToken}`)
           .send({
             name: '新期次',
+            title: '新期次标题',
             startDate: '2025-10-01',
             endDate: '2025-12-31',
             description: '新期次描述'
@@ -285,7 +287,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
         expect(res.status).to.equal(201);
         expect(res.body.data).to.have.property('_id');
         expect(res.body.data).to.have.property('name', '新期次');
-        expect(res.body.data).to.have.property('status', 'upcoming');
+        expect(res.body.data).to.have.property('status', 'not_started');
       });
 
       it('缺少必需字段应该返回 400', async () => {
@@ -376,9 +378,8 @@ describe('Period & Section Integration - 期次和课节管理', () => {
             periodId,
             title: '新课节',
             day: 1,
-            order: 1,
-            duration: 20,
-            description: '新课节描述'
+            content: '新课节内容', // 必需字段
+            duration: 20
           });
 
         expect(res.status).to.equal(201);
@@ -393,7 +394,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
           .send({
             periodId,
             title: '不完整课节'
-            // 缺少 day, order, duration
+            // 缺少 day 和 content (必需字段)
           });
 
         expect(res.status).to.equal(400);
@@ -416,7 +417,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
           periodId: period._id,
           title: '待更新课节',
           day: 1,
-          order: 1,
+          content: '待更新课节内容', // 必需字段
           duration: 20
         });
 
@@ -464,7 +465,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
           periodId: period._id,
           title: '待删除课节',
           day: 1,
-          order: 1,
+          content: '待删除课节内容', // 必需字段
           duration: 20
         });
 
@@ -494,6 +495,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('管理员应该能够完成期次和课节的完整管理流程', async () => {
       // 1. 创建管理员
       const admin = await Admin.create({
+        name: '管理员', // 必需字段
         email: 'admin@workflow.com',
         password: 'admin123456'
       });
@@ -531,7 +533,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
             periodId,
             title: `第 ${i} 课`,
             day: i,
-            order: i,
+            content: `第 ${i} 课内容`, // 必需字段
             duration: 20 + i * 5
           });
 

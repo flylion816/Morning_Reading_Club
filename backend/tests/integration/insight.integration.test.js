@@ -86,14 +86,14 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({
           targetUserId,
           periodId,
-          type: 'positive',
-          content: '你的打卡很认真！',
-          tags: ['认真', '坚持']
+          type: 'daily', // 使用有效的 type: 'daily', 'weekly', 'monthly', 'insight'
+          mediaType: 'text', // 必需字段: 'text' 或 'image'
+          content: '你的打卡很认真！'
         });
 
       expect(res.status).to.equal(201);
       expect(res.body.data).to.have.property('_id');
-      expect(res.body.data).to.have.property('creatorId', creatorId.toString());
+      expect(res.body.data).to.have.property('userId'); // creatorId 现在叫 userId
       expect(res.body.data).to.have.property('targetUserId', targetUserId.toString());
       expect(res.body.data).to.have.property('content', '你的打卡很认真！');
     });
@@ -105,7 +105,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({
           targetUserId,
           periodId,
-          type: 'positive',
+          type: 'daily',
+          mediaType: 'text',
           content: '测试内容'
         });
 
@@ -120,8 +121,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .set('Authorization', `Bearer ${creatorToken}`)
         .send({
           periodId,
-          type: 'positive'
-          // 缺少 targetUserId 和 content
+          type: 'daily'
+          // 缺少 mediaType 和 content
         });
 
       expect(res.status).to.equal(400);
@@ -134,7 +135,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({
           targetUserId: creatorId,
           periodId,
-          type: 'positive',
+          type: 'daily',
+          mediaType: 'text',
           content: '不能给自己'
         });
 
@@ -142,7 +144,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
     });
 
     it('应该支持不同类型的小凡看见', async () => {
-      const types = ['positive', 'inspiring', 'funny', 'thoughtful'];
+      const types = ['daily', 'weekly', 'monthly', 'insight'];
 
       for (const type of types) {
         const res = await request(app)
@@ -152,6 +154,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
             targetUserId,
             periodId,
             type,
+            mediaType: 'text',
             content: `${type} 类型的小凡看见`
           });
 
@@ -179,9 +182,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建期次
       const period = await Period.create({
         name: '查询测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       periodId = period._id;
@@ -201,7 +205,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
           .send({
             targetUserId: userId,
             periodId,
-            type: 'positive',
+            type: 'daily',
+            mediaType: 'text',
             content: `小凡看见 ${i + 1}`
           });
 
@@ -240,13 +245,13 @@ describe('Insight Integration - 小凡看见业务流程', () => {
 
     it('应该能够按类型筛选', async () => {
       const res = await request(app)
-        .get(`/api/v1/insights/period/${periodId}?type=positive`)
+        .get(`/api/v1/insights/period/${periodId}?type=daily`)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
       expect(res.body.data).to.be.an('array');
       res.body.data.forEach(insight => {
-        expect(insight.type).to.equal('positive');
+        expect(insight.type).to.equal('daily');
       });
     });
   });
@@ -276,9 +281,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建期次
       const period = await Period.create({
         name: '更新测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       periodId = period._id;
@@ -290,7 +296,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({
           targetUserId,
           periodId,
-          type: 'positive',
+          type: 'daily', mediaType: 'text',
           content: '原始内容'
         });
 
@@ -347,9 +353,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
 
       const period = await Period.create({
         name: '删除测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       const res = await request(app)
@@ -358,7 +365,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({
           targetUserId,
           periodId: period._id,
-          type: 'positive',
+          type: 'daily', mediaType: 'text',
           content: '待删除'
         });
 
@@ -407,9 +414,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建期次
       const period = await Period.create({
         name: '赞踩测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       // 创建小凡看见
@@ -419,7 +427,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({
           targetUserId: userId,
           periodId: period._id,
-          type: 'positive',
+          type: 'daily', mediaType: 'text',
           content: '可以赞的小凡看见'
         });
 
@@ -473,9 +481,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 2. 创建期次
       const period = await Period.create({
         name: '完整流程期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       // 3. 创建小凡看见
@@ -485,7 +494,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({
           targetUserId: targetId,
           periodId: period._id,
-          type: 'positive',
+          type: 'daily', mediaType: 'text',
           content: '你的坚持很棒！',
           tags: ['坚持', '优秀']
         });

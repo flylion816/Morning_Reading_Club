@@ -1,6 +1,8 @@
 const express = require('express');
 const adminController = require('../controllers/admin.controller');
 const checkinController = require('../controllers/checkin.controller');
+const periodController = require('../controllers/period.controller');
+const sectionController = require('../controllers/section.controller');
 const { adminAuthMiddleware, requireRole } = require('../middleware/adminAuth');
 
 const router = express.Router();
@@ -39,5 +41,15 @@ router.delete(
   adminAuthMiddleware,
   checkinController.deleteAdminCheckin
 );
+
+// 期次管理路由（管理员）
+router.post('/admin/periods', adminAuthMiddleware, periodController.createPeriod);
+router.put('/admin/periods/:periodId', adminAuthMiddleware, periodController.updatePeriod);
+router.delete('/admin/periods/:periodId', adminAuthMiddleware, periodController.deletePeriod);
+
+// 课节管理路由（管理员）
+router.post('/admin/sections', adminAuthMiddleware, sectionController.createSection);
+router.put('/admin/sections/:sectionId', adminAuthMiddleware, sectionController.updateSection);
+router.delete('/admin/sections/:sectionId', adminAuthMiddleware, sectionController.deleteSection);
 
 module.exports = router;

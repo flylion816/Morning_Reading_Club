@@ -320,6 +320,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
       const period = await Period.create({
         name: '测试',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       });
@@ -366,6 +367,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Period = require('../../src/models/Period');
       const period = await Period.create({
         name: '测试',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       });
@@ -438,6 +440,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
       const period = await Period.create({
         name: '大数据测试',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 100 * 24 * 60 * 60 * 1000)
       });
@@ -468,6 +471,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
       const period = await Period.create({
         name: '边界测试',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
       });

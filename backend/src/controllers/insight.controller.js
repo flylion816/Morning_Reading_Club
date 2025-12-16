@@ -366,17 +366,7 @@ async function getInsightsForPeriod(req, res, next) {
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
-    res.json(
-      success({
-        list: insights,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      })
-    );
+    res.json(success(insights));
   } catch (error) {
     next(error);
   }

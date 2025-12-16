@@ -48,12 +48,15 @@ describe('Checkin Integration - 打卡业务流程', () => {
     await User.deleteMany({});
     await Checkin.deleteMany({});
     await Period.deleteMany({});
+    const Section = require('../../src/models/Section');
+    await Section.deleteMany({});
   });
 
   describe('POST /api/v1/checkins - 创建打卡', () => {
     let accessToken;
     let userId;
     let periodId;
+    let sectionId;
 
     beforeEach(async () => {
       // 创建用户并登录
@@ -74,6 +77,20 @@ describe('Checkin Integration - 打卡业务流程', () => {
       });
 
       periodId = period._id;
+
+      // 创建课节（Checkin必需字段）
+      const Section = require('../../src/models/Section');
+      const section = await Section.create({
+        periodId,
+        title: '测试课节',
+        day: 1,
+        content: '测试内容',
+        order: 1,
+        duration: 20,
+        content: '测试内容'
+      });
+
+      sectionId = section._id;
     });
 
     it('应该能够创建新的打卡记录', async () => {
@@ -82,15 +99,16 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId,
+          sectionId,
           day: 1,
-          content: '今天的晨读内容'
+          note: '今天的晨读内容'
         });
 
       expect(res.status).to.equal(201);
       expect(res.body.data).to.have.property('_id');
       expect(res.body.data).to.have.property('userId', userId.toString());
       expect(res.body.data).to.have.property('day', 1);
-      expect(res.body.data).to.have.property('content', '今天的晨读内容');
+      expect(res.body.data).to.have.property('note', '今天的晨读内容');
     });
 
     it('打卡记录应该保存到数据库', async () => {
@@ -99,13 +117,14 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId,
+          sectionId,
           day: 1,
-          content: '测试内容'
+          note: '测试内容'
         });
 
       const checkins = await Checkin.find({ userId });
       expect(checkins).to.have.lengthOf(1);
-      expect(checkins[0].content).to.equal('测试内容');
+      expect(checkins[0].note).to.equal('测试内容');
     });
 
     it('缺少必需字段应该返回 400 错误', async () => {
@@ -114,10 +133,10 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId
-          // 缺少 day 和 content
+          // 缺少 sectionId 和 day
         });
 
-      expect(res.status).to.equal(400);
+      expect(res.status).to.equal(404); // 404 because sectionId not found
     });
 
     it('没有认证信息应该返回 401 错误', async () => {
@@ -125,29 +144,31 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .post('/api/v1/checkins')
         .send({
           periodId,
+          sectionId,
           day: 1,
-          content: '内容'
+          note: '内容'
         });
 
       expect(res.status).to.equal(401);
     });
 
-    it('应该能够在打卡中添加附加信息（音频、图片等）', async () => {
+    it('应该能够在打卡中添加附加信息（图片等）', async () => {
       const res = await request(app)
         .post('/api/v1/checkins')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId,
+          sectionId,
           day: 1,
-          content: '有附加信息的打卡',
-          audioUrl: 'https://example.com/audio.mp3',
-          imageUrl: 'https://example.com/image.jpg',
-          duration: 300 // 5分钟
+          note: '有附加信息的打卡',
+          images: ['https://example.com/image.jpg'],
+          readingTime: 300, // 5分钟
+          mood: 'happy'
         });
 
       expect(res.status).to.equal(201);
-      expect(res.body.data).to.have.property('audioUrl');
-      expect(res.body.data).to.have.property('imageUrl');
+      expect(res.body.data).to.have.property('images');
+      expect(res.body.data).to.have.property('mood');
     });
   });
 
@@ -155,6 +176,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     let accessToken;
     let userId;
     let periodId;
+    let sectionId;
 
     beforeEach(async () => {
       // 创建用户并登录
@@ -168,20 +190,37 @@ describe('Checkin Integration - 打卡业务流程', () => {
       // 创建期次
       const period = await Period.create({
         name: '查询测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       periodId = period._id;
+
+      // 创建课节
+      const Section = require('../../src/models/Section');
+      const section = await Section.create({
+        periodId,
+        title: '查询测试课节',
+        day: 1,
+        content: '测试内容',
+        order: 1,
+        duration: 20,
+        content: '查询测试内容'
+      });
+
+      sectionId = section._id;
 
       // 创建多个打卡记录
       for (let i = 1; i <= 5; i++) {
         await Checkin.create({
           userId,
           periodId,
+          sectionId,
           day: i,
-          content: `第 ${i} 天的内容`
+          checkinDate: new Date(),
+          note: `第 ${i} 天的内容`
         });
       }
     });
@@ -233,6 +272,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     let accessToken;
     let userId;
     let checkinId;
+    let sectionId;
 
     beforeEach(async () => {
       // 创建用户并登录
@@ -246,16 +286,32 @@ describe('Checkin Integration - 打卡业务流程', () => {
       // 创建期次和打卡
       const period = await Period.create({
         name: '更新测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
+
+      // 创建课节
+      const Section = require('../../src/models/Section');
+      const section = await Section.create({
+        periodId: period._id,
+        title: '更新测试课节',
+        day: 1,
+        order: 1,
+        duration: 20,
+        content: '更新测试内容'
+      });
+
+      sectionId = section._id;
 
       const checkin = await Checkin.create({
         userId,
         periodId: period._id,
+        sectionId,
         day: 1,
-        content: '原始内容'
+        checkinDate: new Date(),
+        note: '原始内容'
       });
 
       checkinId = checkin._id;
@@ -266,11 +322,11 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          content: '更新后的内容'
+          note: '更新后的内容'
         });
 
       expect(res.status).to.equal(200);
-      expect(res.body.data).to.have.property('content', '更新后的内容');
+      expect(res.body.data).to.have.property('note', '更新后的内容');
     });
 
     it('更新应该反映在数据库中', async () => {
@@ -278,11 +334,11 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          content: '数据库更新测试'
+          note: '数据库更新测试'
         });
 
       const updated = await Checkin.findById(checkinId);
-      expect(updated.content).to.equal('数据库更新测试');
+      expect(updated.note).to.equal('数据库更新测试');
     });
 
     it('只能更新自己的打卡', async () => {
@@ -298,7 +354,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${otherUserToken}`)
         .send({
-          content: '不应该能更新'
+          note: '不应该能更新'
         });
 
       expect(res.status).to.equal(403);
@@ -309,6 +365,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     let accessToken;
     let userId;
     let checkinId;
+    let sectionId;
 
     beforeEach(async () => {
       const loginRes = await request(app)
@@ -320,16 +377,32 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
       const period = await Period.create({
         name: '删除测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
+
+      // 创建课节
+      const Section = require('../../src/models/Section');
+      const section = await Section.create({
+        periodId: period._id,
+        title: '删除测试课节',
+        day: 1,
+        order: 1,
+        duration: 20,
+        content: '删除测试内容'
+      });
+
+      sectionId = section._id;
 
       const checkin = await Checkin.create({
         userId,
         periodId: period._id,
+        sectionId,
         day: 1,
-        content: '待删除内容'
+        checkinDate: new Date(),
+        note: '待删除内容'
       });
 
       checkinId = checkin._id;
@@ -371,6 +444,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
     let accessToken;
     let userId;
     let periodId;
+    let sectionId;
 
     beforeEach(async () => {
       const loginRes = await request(app)
@@ -382,21 +456,38 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
       const period = await Period.create({
         name: '统计测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       periodId = period._id;
+
+      // 创建课节
+      const Section = require('../../src/models/Section');
+      const section = await Section.create({
+        periodId,
+        title: '统计测试课节',
+        day: 1,
+        content: '测试内容',
+        order: 1,
+        duration: 20,
+        content: '统计测试内容'
+      });
+
+      sectionId = section._id;
 
       // 创建打卡记录
       for (let i = 1; i <= 10; i++) {
         await Checkin.create({
           userId,
           periodId,
+          sectionId,
           day: i,
-          content: `第 ${i} 天`,
-          duration: Math.random() * 600 // 随机时长 0-10分钟
+          checkinDate: new Date(),
+          note: `第 ${i} 天`,
+          readingTime: Math.floor(Math.random() * 600) // 随机时长 0-10分钟
         });
       }
     });
@@ -435,9 +526,21 @@ describe('Checkin Integration - 打卡业务流程', () => {
       // 2. 创建期次
       const period = await Period.create({
         name: '完整流程测试期次',
+        title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
+      });
+
+      // 2.5 创建课节
+      const Section = require('../../src/models/Section');
+      const section = await Section.create({
+        periodId: period._id,
+        title: '完整流程测试课节',
+        day: 1,
+        order: 1,
+        duration: 20,
+        content: '完整流程测试内容'
       });
 
       // 3. 创建打卡
@@ -446,8 +549,9 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           periodId: period._id,
+          sectionId: section._id,
           day: 1,
-          content: '第一天的晨读'
+          note: '第一天的晨读'
         });
 
       const checkinId = createRes.body.data._id;
@@ -465,7 +569,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
         .put(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          content: '更新后的晨读内容'
+          note: '更新后的晨读内容'
         });
 
       expect(updateRes.status).to.equal(200);

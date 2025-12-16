@@ -36,6 +36,13 @@ const {
 router.get('/', adminAuthMiddleware, getInsights);
 
 /**
+ * @route   POST /api/v1/insights
+ * @desc    创建小凡看见（通用接口）
+ * @access  Private
+ */
+router.post('/', authMiddleware, createInsightManual);
+
+/**
  * @route   POST /api/v1/insights/generate
  * @desc    生成AI反馈
  * @access  Private
