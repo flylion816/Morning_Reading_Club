@@ -34,11 +34,11 @@ function validateEnvValue(key, value, expectedType) {
 
   switch (expectedType) {
     case 'number':
-      return !isNaN(parseInt(value, 10));
+      return !Number.isNaN(parseInt(value, 10));
     case 'mongodb-uri':
       return /^mongodb(\+srv)?:\/\/.+/.test(value);
     case 'development|production|staging':
-      return ['development', 'production', 'staging'].includes(value);
+      return ['development', 'production', 'staging', 'test'].includes(value);
     case 'string':
       return typeof value === 'string' && value.length > 0;
     default:

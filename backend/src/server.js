@@ -104,5 +104,10 @@ process.on('exit', code => {
   logger.info('应用已关闭', { exitCode: code });
 });
 
-// 启动
-startServer();
+// 启动服务器（仅在非测试环境）
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+// 导出 app 供测试和其他模块使用
+module.exports = app;

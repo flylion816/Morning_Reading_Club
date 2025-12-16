@@ -150,7 +150,7 @@ describe('Auth Integration - 认证流程', () => {
 
       // 使用新 token 访问受保护资源
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${newAccessToken}`);
 
       expect(res.status).to.equal(200);
@@ -205,9 +205,9 @@ describe('Auth Integration - 认证流程', () => {
       userId = res.body.data.user._id;
     });
 
-    it('带有有效 token 应该能够访问 /api/v1/user/current', async () => {
+    it('带有有效 token 应该能够访问 /api/v1/users/me', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -216,14 +216,14 @@ describe('Auth Integration - 认证流程', () => {
 
     it('没有 token 应该返回 401 错误', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current');
+        .get('/api/v1/users/me');
 
       expect(res.status).to.equal(401);
     });
 
     it('格式错误的 Authorization header 应该返回 401 错误', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `InvalidFormat ${accessToken}`);
 
       expect(res.status).to.equal(401);
@@ -231,7 +231,7 @@ describe('Auth Integration - 认证流程', () => {
 
     it('无效的 token 应该返回 401 错误', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', 'Bearer invalid.token.here');
 
       expect(res.status).to.equal(401);
@@ -246,7 +246,7 @@ describe('Auth Integration - 认证流程', () => {
       );
 
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${expiredToken}`);
 
       expect(res.status).to.equal(401);
@@ -266,7 +266,7 @@ describe('Auth Integration - 认证流程', () => {
 
       // 2. 使用 access token 访问受保护资源
       const getRes = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(getRes.status).to.equal(200);
@@ -282,7 +282,7 @@ describe('Auth Integration - 认证流程', () => {
 
       // 4. 使用新的 access token 访问资源
       const getRes2 = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${newAccessToken}`);
 
       expect(getRes2.status).to.equal(200);
@@ -299,7 +299,7 @@ describe('Auth Integration - 认证流程', () => {
 
       // 2. 更新个人信息
       const updateRes = await request(app)
-        .put('/api/v1/user/profile')
+        .put('/api/v1/users/profile')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           nickname: '新用户名',
@@ -311,7 +311,7 @@ describe('Auth Integration - 认证流程', () => {
 
       // 3. 验证更新后的数据
       const getRes = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(getRes.body.data).to.have.property('nickname', '新用户名');

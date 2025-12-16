@@ -57,7 +57,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
     it('应该为未授权的请求返回 401', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current'); // 没有 token
+        .get('/api/v1/users/me'); // 没有 token
 
       expect(res.status).to.equal(401);
     });
@@ -172,7 +172,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
     it('应该处理缺失的请求头', async () => {
       // 大多数请求不需要特定的请求头，但受保护的资源需要 Authorization
       const res = await request(app)
-        .get('/api/v1/user/current'); // 缺少 Authorization
+        .get('/api/v1/users/me'); // 缺少 Authorization
 
       expect(res.status).to.equal(401);
     });
@@ -190,7 +190,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
   describe('Authorization 错误', () => {
     it('缺少 token 应该返回 401', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current');
+        .get('/api/v1/users/me');
 
       expect(res.status).to.equal(401);
       expect(res.body.message).to.include.string('token');
@@ -198,7 +198,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
     it('无效的 token 应该返回 401', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', 'Bearer invalid-token');
 
       expect(res.status).to.equal(401);
@@ -213,7 +213,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       );
 
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', `Bearer ${expiredToken}`);
 
       expect(res.status).to.equal(401);
@@ -221,7 +221,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
     it('格式错误的 Authorization header 应该返回 401', async () => {
       const res = await request(app)
-        .get('/api/v1/user/current')
+        .get('/api/v1/users/me')
         .set('Authorization', 'InvalidFormat token');
 
       expect(res.status).to.equal(401);
