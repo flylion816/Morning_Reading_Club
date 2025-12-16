@@ -136,6 +136,52 @@
 4. 实现 `POST /api/v1/insights` 端点 (创建小凡看见)
 5. 再次运行集成测试验证 API 实现
 
+### 📊 代码覆盖率报告 (2025-12-16)
+
+#### 总体覆盖率统计
+
+| 指标              | 覆盖率 | 阈值 | 状态      |
+| ----------------- | ------ | ---- | --------- |
+| Statements (语句) | 40.49% | 90%  | ⚠️ 未达标 |
+| Branches (分支)   | 23.1%  | 85%  | ⚠️ 未达标 |
+| Functions (函数)  | 31.7%  | 90%  | ⚠️ 未达标 |
+| Lines (行)        | 41.42% | 90%  | ⚠️ 未达标 |
+
+#### 按模块覆盖率详情
+
+**✅ 高覆盖率模块 (100%)**
+
+- `src/app.js` - 100% (Express 应用配置)
+- `src/middleware/auth.js` - 100% (认证中间件)
+- `src/middleware/errorHandler.js` - 100% (错误处理中间件)
+- `src/models/*` - 大多数模型 100% (User, Checkin, Comment, Insight, Section, AuditLog 等)
+- `src/routes/*` - 大多数路由定义 100% (auth, checkin, insight, period, section, admin, payment 等)
+
+**⚠️ 中等覆盖率模块 (50-90%)**
+
+- `src/controllers/auth.controller.js` - 92%
+- `src/controllers/user.controller.js` - 88.23%
+- `src/controllers/checkin.controller.js` - 72.3%
+- `src/utils/config-validator.js` - 96.36%
+- `src/utils/auditHelper.js` - 85.71%
+- `src/utils/jwt.js` - 100%
+
+**❌ 低覆盖率模块 (< 50%)**
+
+- `src/controllers/insight.controller.js` - 11.73%
+- `src/controllers/period.controller.js` - 20%
+- `src/controllers/admin.controller.js` - 27%
+- `src/controllers/notification.controller.js` - 19.81%
+- `src/utils/websocket.js` - 3.57%
+
+#### 🎯 覆盖率提升建议
+
+覆盖率目标: 下一阶段达到全局覆盖率 > 70%
+
+1. 补充关键业务模块的单元测试
+2. 完成缺失的 API 端点实现
+3. 增加复杂业务逻辑的测试用例
+
 ---
 
 ## 📖 目录
