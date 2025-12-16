@@ -292,6 +292,11 @@ async function createInsightManual(req, res, next) {
       return res.status(400).json(errors.badRequest('无效的内容类型'));
     }
 
+    // 验证：不能给自己创建小凡看见
+    if (targetUserId && targetUserId.toString() === userId.toString()) {
+      return res.status(400).json(errors.badRequest('不能给自己创建小凡看见'));
+    }
+
     // 创建小凡看见
     const insight = await Insight.create({
       userId,

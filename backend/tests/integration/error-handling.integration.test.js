@@ -413,6 +413,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
       const periodData = {
         name: '并发测试',
+        title: '并发测试标题',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       };

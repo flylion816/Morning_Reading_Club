@@ -113,6 +113,13 @@ router.get('/user/:userId?', authMiddleware, getUserInsights);
 router.get('/:insightId', authMiddleware, getInsightDetail);
 
 /**
+ * @route   PUT /api/v1/insights/:insightId
+ * @desc    更新反馈（用户编辑自己的）
+ * @access  Private
+ */
+router.put('/:insightId', authMiddleware, updateInsight);
+
+/**
  * @route   DELETE /api/v1/insights/:insightId
  * @desc    删除反馈
  * @access  Private
