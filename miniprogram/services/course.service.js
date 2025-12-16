@@ -61,7 +61,10 @@ class CourseService {
       logger.debug('使用 Mock 数据，返回:', mockCourses.detail);
       logger.debug('mockCourses.detail.comments:', mockCourses.detail.comments);
       logger.debug('comments 字段是否存在:', 'comments' in mockCourses.detail);
-      logger.debug('comments 数组长度:', mockCourses.detail.comments ? mockCourses.detail.comments.length : '不存在');
+      logger.debug(
+        'comments 数组长度:',
+        mockCourses.detail.comments ? mockCourses.detail.comments.length : '不存在'
+      );
       return Promise.resolve(mockCourses.detail);
     }
 

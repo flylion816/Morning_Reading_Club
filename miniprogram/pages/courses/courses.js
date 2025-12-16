@@ -9,10 +9,10 @@ Page({
     periodDate: '',
     sections: [],
     loading: true,
-    makeupCount: 99,  // 剩余补打卡次数
-    allCheckins: [],   // 所有打卡记录
-    currentTab: 'tasks',  // 当前选中的tab
-    scrollTop: 0  // 滚动位置
+    makeupCount: 99, // 剩余补打卡次数
+    allCheckins: [], // 所有打卡记录
+    currentTab: 'tasks', // 当前选中的tab
+    scrollTop: 0 // 滚动位置
   },
 
   onLoad(options) {
@@ -66,10 +66,12 @@ Page({
       // 获取期次信息用于显示头部
       const periods = await courseService.getPeriods();
       const periodsList = periods.list || periods.items || periods || [];
-      const currentPeriod = periodsList.find(p => p.id === this.data.periodId || p._id === this.data.periodId);
+      const currentPeriod = periodsList.find(
+        p => p.id === this.data.periodId || p._id === this.data.periodId
+      );
 
       // 格式化日期（只显示到日期部分，去掉时间）
-      const formatDate = (dateStr) => {
+      const formatDate = dateStr => {
         if (!dateStr) return '';
         return dateStr.split('T')[0]; // 取 T 之前的部分
       };
@@ -78,7 +80,9 @@ Page({
         sections,
         loading: false,
         periodName: currentPeriod ? currentPeriod.title : '晨读营',
-        periodDate: currentPeriod ? `${formatDate(currentPeriod.startDate)} 至 ${formatDate(currentPeriod.endDate)}` : ''
+        periodDate: currentPeriod
+          ? `${formatDate(currentPeriod.startDate)} 至 ${formatDate(currentPeriod.endDate)}`
+          : ''
       });
 
       // 加载所有打卡记录
@@ -174,7 +178,7 @@ Page({
         const query = wx.createSelectorQuery().in(this);
         query.select('#dynamics-section').boundingClientRect();
         query.select('.content-scroll').scrollOffset();
-        query.exec((res) => {
+        query.exec(res => {
           if (res[0] && res[1]) {
             // 计算需要滚动的距离
             const targetTop = res[0].top + res[1].scrollTop;

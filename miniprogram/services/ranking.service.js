@@ -16,11 +16,7 @@ module.exports = {
    * @returns {Promise}
    */
   getPeriodRanking(periodId, options = {}) {
-    const {
-      timeRange = 'all',
-      page = 1,
-      limit = 20
-    } = options;
+    const { timeRange = 'all', page = 1, limit = 20 } = options;
 
     return request.request({
       url: `/ranking/period/${periodId}`,

@@ -22,9 +22,9 @@ Page({
     // 日历数据
     currentYear: 0,
     currentMonth: 0,
-    monthText: '',  // 用于显示"2025年11月"
+    monthText: '', // 用于显示"2025年11月"
     weekdays: ['日', '一', '二', '三', '四', '五', '六'],
-    calendarDays: [],  // 日历的日期数组
+    calendarDays: [], // 日历的日期数组
 
     // 打卡记录
     checkinRecords: [],

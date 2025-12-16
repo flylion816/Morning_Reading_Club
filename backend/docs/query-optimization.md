@@ -10,13 +10,14 @@
 
 ```javascript
 // ❌ 不好：返回所有字段
-const users = await User.find({ active: true })
+const users = await User.find({ active: true });
 
 // ✅ 好：只选择需要的字段
-const users = await User.find({ active: true }).select('_id name email avatar')
+const users = await User.find({ active: true }).select('_id name email avatar');
 ```
 
 **好处**：
+
 - 减少网络传输数据量
 - 加速 JSON 序列化
 - 降低内存占用
@@ -27,10 +28,10 @@ const users = await User.find({ active: true }).select('_id name email avatar')
 
 ```javascript
 // ❌ 不好：返回 Mongoose 文档（有更多开销）
-const enrollments = await Enrollment.find({ status: 'active' })
+const enrollments = await Enrollment.find({ status: 'active' });
 
 // ✅ 好：返回普通对象（更快）
-const enrollments = await Enrollment.find({ status: 'active' }).lean()
+const enrollments = await Enrollment.find({ status: 'active' }).lean();
 ```
 
 **性能改善**：约 5-10 倍更快
@@ -42,7 +43,7 @@ const enrollments = await Enrollment.find({ status: 'active' }).lean()
 ```javascript
 // ✅ 正确的分页实现
 async function getPaginatedEnrollments(page = 1, pageSize = 20) {
-  const skip = (page - 1) * pageSize
+  const skip = (page - 1) * pageSize;
 
   const [data, total] = await Promise.all([
     Enrollment.find()
@@ -52,7 +53,7 @@ async function getPaginatedEnrollments(page = 1, pageSize = 20) {
       .sort({ createdAt: -1 })
       .lean(),
     Enrollment.countDocuments()
-  ])
+  ]);
 
   return {
     data,
@@ -60,7 +61,7 @@ async function getPaginatedEnrollments(page = 1, pageSize = 20) {
     page,
     pageSize,
     pages: Math.ceil(total / pageSize)
-  }
+  };
 }
 ```
 
@@ -70,16 +71,16 @@ async function getPaginatedEnrollments(page = 1, pageSize = 20) {
 
 ```javascript
 // ❌ 不好：三次往返数据库
-const enrollments = await Enrollment.find()
-const payments = await Payment.find()
-const checkins = await Checkin.find()
+const enrollments = await Enrollment.find();
+const payments = await Payment.find();
+const checkins = await Checkin.find();
 
 // ✅ 好：一次往返获取所有数据
 const [enrollments, payments, checkins] = await Promise.all([
   Enrollment.find().lean(),
   Payment.find().lean(),
   Checkin.find().lean()
-])
+]);
 ```
 
 ### 5. 索引使用
@@ -88,11 +89,12 @@ const [enrollments, payments, checkins] = await Promise.all([
 
 ```javascript
 // 查看查询执行计划
-const explainResult = await Enrollment.find({ status: 'pending' }).explain('executionStats')
-console.log(explainResult.executionStats.executionStages.stage) // COLLSCAN vs IXSCAN
+const explainResult = await Enrollment.find({ status: 'pending' }).explain('executionStats');
+console.log(explainResult.executionStats.executionStages.stage); // COLLSCAN vs IXSCAN
 ```
 
 **执行计划含义**：
+
 - `COLLSCAN`：全表扫描（❌ 不好）
 - `IXSCAN`：使用索引（✅ 好）
 - `FETCH`：获取文档内容
@@ -104,32 +106,28 @@ console.log(explainResult.executionStats.executionStages.stage) // COLLSCAN vs I
 ```javascript
 // ❌ 不好
 await Enrollment.find({
-  $or: [
-    { status: 'pending' },
-    { status: 'approved' },
-    { status: 'rejected' }
-  ]
-})
+  $or: [{ status: 'pending' }, { status: 'approved' }, { status: 'rejected' }]
+});
 
 // ✅ 好
 await Enrollment.find({
   status: { $in: ['pending', 'approved', 'rejected'] }
-})
+});
 ```
 
 #### 范围查询
 
 ```javascript
 // ✅ 正确的日期范围查询
-const startDate = new Date('2025-11-01')
-const endDate = new Date('2025-11-30')
+const startDate = new Date('2025-11-01');
+const endDate = new Date('2025-11-30');
 
 await Enrollment.find({
   createdAt: {
     $gte: startDate,
     $lt: endDate
   }
-}).lean()
+}).lean();
 ```
 
 ### 7. 避免大型 lookup
@@ -138,12 +136,10 @@ await Enrollment.find({
 
 ```javascript
 // ❌ 不好：populate 返回所有字段
-await Enrollment.find().populate('userId')
+await Enrollment.find().populate('userId');
 
 // ✅ 好：只 populate 需要的字段
-await Enrollment.find()
-  .populate('userId', 'name email avatar')
-  .lean()
+await Enrollment.find().populate('userId', 'name email avatar').lean();
 ```
 
 ### 8. 排序优化
@@ -156,7 +152,7 @@ await Enrollment.find({ status: 'active' })
   .select('_id name createdAt')
   .sort({ createdAt: -1 })
   .limit(20)
-  .lean()
+  .lean();
 ```
 
 ## 📊 常见查询模式
@@ -165,31 +161,31 @@ await Enrollment.find({ status: 'active' })
 
 ```javascript
 async function getEnrollments(filters = {}, page = 1, pageSize = 20) {
-  const query = {}
+  const query = {};
 
   if (filters.status) {
-    query.status = filters.status
+    query.status = filters.status;
   }
 
   if (filters.paymentStatus) {
-    query.paymentStatus = filters.paymentStatus
+    query.paymentStatus = filters.paymentStatus;
   }
 
   if (filters.periodId) {
-    query.periodId = filters.periodId
+    query.periodId = filters.periodId;
   }
 
   if (filters.startDate || filters.endDate) {
-    query.createdAt = {}
+    query.createdAt = {};
     if (filters.startDate) {
-      query.createdAt.$gte = new Date(filters.startDate)
+      query.createdAt.$gte = new Date(filters.startDate);
     }
     if (filters.endDate) {
-      query.createdAt.$lt = new Date(filters.endDate)
+      query.createdAt.$lt = new Date(filters.endDate);
     }
   }
 
-  const skip = (page - 1) * pageSize
+  const skip = (page - 1) * pageSize;
 
   const [data, total] = await Promise.all([
     Enrollment.find(query)
@@ -199,9 +195,9 @@ async function getEnrollments(filters = {}, page = 1, pageSize = 20) {
       .sort({ createdAt: -1 })
       .lean(),
     Enrollment.countDocuments(query)
-  ])
+  ]);
 
-  return { data, total, page, pageSize, pages: Math.ceil(total / pageSize) }
+  return { data, total, page, pageSize, pages: Math.ceil(total / pageSize) };
 }
 ```
 
@@ -228,7 +224,7 @@ async function getPaymentStats(startDate, endDate) {
     {
       $sort: { _id: 1 }
     }
-  ])
+  ]);
 }
 ```
 
@@ -275,7 +271,7 @@ async function getUserRanking(periodId, limit = 10) {
         userAvatar: '$userInfo.avatar'
       }
     }
-  ])
+  ]);
 }
 ```
 
@@ -284,6 +280,7 @@ async function getUserRanking(periodId, limit = 10) {
 ### 现有索引
 
 #### Enrollment 集合
+
 ```javascript
 { userId: 1, periodId: 1 }              // 唯一索引：防止重复报名
 { approvalStatus: 1, createdAt: -1 }    // 审批查询
@@ -294,6 +291,7 @@ async function getUserRanking(periodId, limit = 10) {
 ```
 
 #### Payment 集合
+
 ```javascript
 { status: 1, createdAt: -1 }            // 支付状态查询
 { userId: 1, createdAt: -1 }            // 用户支付历史
@@ -304,6 +302,7 @@ async function getUserRanking(periodId, limit = 10) {
 ```
 
 #### Checkin 集合
+
 ```javascript
 { userId: 1, periodId: 1, checkinDate: 1 } // 唯一索引：防止重复打卡
 { userId: 1, checkinDate: -1 }             // 用户打卡历史
@@ -321,7 +320,7 @@ async function getUserRanking(periodId, limit = 10) {
 ```javascript
 // 在 migration 或初始化脚本中添加
 // 示例：为常见查询添加新索引
-EnrollmentSchema.index({ periodId: 1, paymentStatus: 1, createdAt: -1 })
+EnrollmentSchema.index({ periodId: 1, paymentStatus: 1, createdAt: -1 });
 ```
 
 ## ⚠️ 常见陷阱
@@ -330,40 +329,32 @@ EnrollmentSchema.index({ periodId: 1, paymentStatus: 1, createdAt: -1 })
 
 ```javascript
 // ❌ 不好：造成 N+1 查询
-const enrollments = await Enrollment.find()
+const enrollments = await Enrollment.find();
 for (const enrollment of enrollments) {
-  const user = await User.findById(enrollment.userId) // 每次循环都查询一次
+  const user = await User.findById(enrollment.userId); // 每次循环都查询一次
 }
 
 // ✅ 好：使用 populate
-const enrollments = await Enrollment.find()
-  .populate('userId')
-  .lean()
+const enrollments = await Enrollment.find().populate('userId').lean();
 ```
 
 ### 2. 过度 populate
 
 ```javascript
 // ❌ 不好：过度关联
-await Enrollment.find()
-  .populate('userId')
-  .populate('periodId')
-  .populate('periodId.sections')  // 深度 populate
+await Enrollment.find().populate('userId').populate('periodId').populate('periodId.sections'); // 深度 populate
 
 // ✅ 好：只 populate 必要的字段
-await Enrollment.find()
-  .populate('userId', 'name email')
-  .populate('periodId', 'title')
-  .lean()
+await Enrollment.find().populate('userId', 'name email').populate('periodId', 'title').lean();
 ```
 
 ### 3. 忽视索引
 
 ```javascript
 // 检查是否使用了索引
-const result = await Enrollment.find({ status: 'pending' }).explain('executionStats')
+const result = await Enrollment.find({ status: 'pending' }).explain('executionStats');
 if (result.executionStats.executionStages.stage === 'COLLSCAN') {
-  console.warn('⚠️ 警告：全表扫描！需要添加索引')
+  console.warn('⚠️ 警告：全表扫描！需要添加索引');
 }
 ```
 
@@ -372,19 +363,16 @@ if (result.executionStats.executionStages.stage === 'COLLSCAN') {
 ```javascript
 // 测试查询性能
 async function benchmarkQuery(queryFn, name) {
-  const start = performance.now()
-  const result = await queryFn()
-  const duration = performance.now() - start
+  const start = performance.now();
+  const result = await queryFn();
+  const duration = performance.now() - start;
 
-  console.log(`${name}: ${duration.toFixed(2)}ms`)
-  return { result, duration }
+  console.log(`${name}: ${duration.toFixed(2)}ms`);
+  return { result, duration };
 }
 
 // 使用示例
-await benchmarkQuery(
-  () => Enrollment.find({ status: 'pending' }),
-  'Enrollment 查询'
-)
+await benchmarkQuery(() => Enrollment.find({ status: 'pending' }), 'Enrollment 查询');
 ```
 
 ## 🔗 相关链接

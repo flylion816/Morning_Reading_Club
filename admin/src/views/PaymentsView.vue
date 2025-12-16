@@ -46,11 +46,7 @@
             <el-option label="模拟支付" value="mock" />
           </el-select>
 
-          <el-button
-            type="primary"
-            style="margin-left: auto"
-            @click="handleRefresh"
-          >
+          <el-button type="primary" style="margin-left: auto" @click="handleRefresh">
             刷新
           </el-button>
         </div>
@@ -61,21 +57,13 @@
         <el-statistic title="总收入" :value="statistics.totalAmount">
           <template #prefix>¥</template>
         </el-statistic>
-        <el-statistic
-          title="已完成"
-          :value="statistics.completedCount"
-          style="margin-left: 32px"
-        />
+        <el-statistic title="已完成" :value="statistics.completedCount" style="margin-left: 32px" />
         <el-statistic
           title="处理中"
           :value="statistics.processingCount"
           style="margin-left: 32px"
         />
-        <el-statistic
-          title="失败/取消"
-          :value="statistics.failedCount"
-          style="margin-left: 32px"
-        />
+        <el-statistic title="失败/取消" :value="statistics.failedCount" style="margin-left: 32px" />
       </div>
 
       <!-- 支付列表 -->
@@ -101,10 +89,7 @@
                     {{ formatPaymentMethod(row.paymentMethod) }}
                   </el-descriptions-item>
                   <el-descriptions-item label="状态">
-                    <el-tag
-                      :type="getPaymentStatusType(row.status)"
-                      disable-transitions
-                    >
+                    <el-tag :type="getPaymentStatusType(row.status)" disable-transitions>
                       {{ formatPaymentStatus(row.status) }}
                     </el-tag>
                   </el-descriptions-item>
@@ -114,16 +99,10 @@
                   <el-descriptions-item label="报名ID">
                     {{ row.enrollmentId }}
                   </el-descriptions-item>
-                  <el-descriptions-item
-                    label="交易ID"
-                    v-if="row.transactionId"
-                  >
+                  <el-descriptions-item label="交易ID" v-if="row.transactionId">
                     {{ row.transactionId }}
                   </el-descriptions-item>
-                  <el-descriptions-item
-                    label="完成时间"
-                    v-if="row.successTime"
-                  >
+                  <el-descriptions-item label="完成时间" v-if="row.successTime">
                     {{ formatDate(row.successTime) }}
                   </el-descriptions-item>
                   <el-descriptions-item label="创建时间">
@@ -154,10 +133,7 @@
           </el-table-column>
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
-              <el-tag
-                :type="getPaymentStatusType(row.status)"
-                disable-transitions
-              >
+              <el-tag :type="getPaymentStatusType(row.status)" disable-transitions>
                 {{ formatPaymentStatus(row.status) }}
               </el-tag>
             </template>
@@ -179,12 +155,7 @@
                 >
                   取消
                 </el-button>
-                <el-button
-                  type="primary"
-                  text
-                  size="small"
-                  @click="viewDetails(row)"
-                >
+                <el-button type="primary" text size="small" @click="viewDetails(row)">
                   详情
                 </el-button>
               </div>
@@ -207,16 +178,8 @@
       </el-card>
 
       <!-- 详情对话框 -->
-      <el-dialog
-        v-model="detailsDialog.visible"
-        title="支付详情"
-        width="600px"
-      >
-        <el-descriptions
-          v-if="selectedPayment"
-          :column="1"
-          border
-        >
+      <el-dialog v-model="detailsDialog.visible" title="支付详情" width="600px">
+        <el-descriptions v-if="selectedPayment" :column="1" border>
           <el-descriptions-item label="订单号">
             {{ selectedPayment.orderNo }}
           </el-descriptions-item>
@@ -232,10 +195,7 @@
             {{ formatPaymentMethod(selectedPayment.paymentMethod) }}
           </el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag
-              :type="getPaymentStatusType(selectedPayment.status)"
-              disable-transitions
-            >
+            <el-tag :type="getPaymentStatusType(selectedPayment.status)" disable-transitions>
               {{ formatPaymentStatus(selectedPayment.status) }}
             </el-tag>
           </el-descriptions-item>
@@ -245,19 +205,13 @@
           <el-descriptions-item label="报名ID">
             {{ selectedPayment.enrollmentId }}
           </el-descriptions-item>
-          <el-descriptions-item
-            label="交易ID"
-            v-if="selectedPayment.transactionId"
-          >
+          <el-descriptions-item label="交易ID" v-if="selectedPayment.transactionId">
             {{ selectedPayment.transactionId }}
           </el-descriptions-item>
           <el-descriptions-item label="创建时间">
             {{ formatDate(selectedPayment.createdAt) }}
           </el-descriptions-item>
-          <el-descriptions-item
-            label="完成时间"
-            v-if="selectedPayment.successTime"
-          >
+          <el-descriptions-item label="完成时间" v-if="selectedPayment.successTime">
             {{ formatDate(selectedPayment.successTime) }}
           </el-descriptions-item>
         </el-descriptions>
@@ -267,128 +221,126 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import AdminLayout from '../components/AdminLayout.vue'
-import { paymentApi } from '../services/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { ListResponse, Payment } from '../types/api'
+import { ref, onMounted } from 'vue';
+import AdminLayout from '../components/AdminLayout.vue';
+import { paymentApi } from '../services/api';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { ListResponse, Payment } from '../types/api';
 
-const loading = ref(false)
-const payments = ref<Payment[]>([])
-const selectedPayment = ref<any>(null)
+const loading = ref(false);
+const payments = ref<Payment[]>([]);
+const selectedPayment = ref<any>(null);
 
 const filters = ref({
   search: '',
   status: '',
   method: ''
-})
+});
 
 const pagination = ref({
   page: 1,
   pageSize: 10,
   total: 0
-})
+});
 
 const statistics = ref({
   totalAmount: 0,
   completedCount: 0,
   processingCount: 0,
   failedCount: 0
-})
+});
 
 const detailsDialog = ref({
   visible: false
-})
+});
 
 onMounted(async () => {
-  await loadPayments()
-  await loadStatistics()
-})
+  await loadPayments();
+  await loadStatistics();
+});
 
 async function loadPayments() {
-  loading.value = true
+  loading.value = true;
   try {
     const params: Record<string, any> = {
       page: pagination.value.page,
       limit: pagination.value.pageSize
-    }
+    };
 
     if (filters.value.search) {
-      params.search = filters.value.search
+      params.search = filters.value.search;
     }
     if (filters.value.status) {
-      params.status = filters.value.status
+      params.status = filters.value.status;
     }
     if (filters.value.method) {
-      params.method = filters.value.method
+      params.method = filters.value.method;
     }
 
-    const response = await paymentApi.getPayments(params) as unknown as ListResponse<Payment>
-    payments.value = response.list || []
-    pagination.value.total = response.total || 0
+    const response = (await paymentApi.getPayments(params)) as unknown as ListResponse<Payment>;
+    payments.value = response.list || [];
+    pagination.value.total = response.total || 0;
   } catch (err) {
-    ElMessage.error('加载支付数据失败')
+    ElMessage.error('加载支付数据失败');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadStatistics() {
   try {
     // 在这里可以调用统计API，现在仅计算当前数据
-    const completed = payments.value.filter(p => p.status === 'completed').length
-    const processing = payments.value.filter(p => p.status === 'processing').length
-    const failed = payments.value.filter(p => p.status && ['failed', 'cancelled'].includes(p.status)).length
-    const total = payments.value.reduce((sum, p) => sum + (p.amount || 0), 0)
+    const completed = payments.value.filter(p => p.status === 'completed').length;
+    const processing = payments.value.filter(p => p.status === 'processing').length;
+    const failed = payments.value.filter(
+      p => p.status && ['failed', 'cancelled'].includes(p.status)
+    ).length;
+    const total = payments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
 
     statistics.value = {
       totalAmount: (total / 100).toFixed(2) as any,
       completedCount: completed,
       processingCount: processing,
       failedCount: failed
-    }
+    };
   } catch (err) {
-    console.error('加载统计数据失败:', err)
+    console.error('加载统计数据失败:', err);
   }
 }
 
 function handleSearch() {
-  pagination.value.page = 1
-  loadPayments()
+  pagination.value.page = 1;
+  loadPayments();
 }
 
 function handleRefresh() {
-  loadPayments()
-  ElMessage.success('已刷新')
+  loadPayments();
+  ElMessage.success('已刷新');
 }
 
 async function cancelPayment(row: Payment) {
-  ElMessageBox.confirm(
-    '确定要取消该支付订单吗？',
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  )
+  ElMessageBox.confirm('确定要取消该支付订单吗？', '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
     .then(async () => {
       try {
-        await paymentApi.cancelPayment(row._id)
-        ElMessage.success('取消成功')
-        await loadPayments()
+        await paymentApi.cancelPayment(row._id);
+        ElMessage.success('取消成功');
+        await loadPayments();
       } catch (err: any) {
-        ElMessage.error(err.message || '取消失败')
+        ElMessage.error(err.message || '取消失败');
       }
     })
     .catch(() => {
       // 用户取消了操作
-    })
+    });
 }
 
 function viewDetails(row: Payment) {
-  selectedPayment.value = row
-  detailsDialog.value.visible = true
+  selectedPayment.value = row;
+  detailsDialog.value.visible = true;
 }
 
 function formatPaymentStatus(status: string): string {
@@ -398,8 +350,8 @@ function formatPaymentStatus(status: string): string {
     completed: '已完成',
     failed: '失败',
     cancelled: '已取消'
-  }
-  return statusMap[status] || status
+  };
+  return statusMap[status] || status;
 }
 
 function getPaymentStatusType(status: string): string {
@@ -409,8 +361,8 @@ function getPaymentStatusType(status: string): string {
     completed: 'success',
     failed: 'danger',
     cancelled: 'danger'
-  }
-  return typeMap[status] || 'info'
+  };
+  return typeMap[status] || 'info';
 }
 
 function formatPaymentMethod(method: string): string {
@@ -418,14 +370,14 @@ function formatPaymentMethod(method: string): string {
     wechat: '微信支付',
     alipay: '支付宝',
     mock: '模拟支付'
-  }
-  return methodMap[method] || method
+  };
+  return methodMap[method] || method;
 }
 
 function formatDate(dateString: string): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN')
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
 }
 </script>
 

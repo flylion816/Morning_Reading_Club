@@ -1,7 +1,7 @@
 # 📁 晨读营项目完整目录结构指南
 
 > 📅 更新时间：2025-12-06
-> 
+>
 > 本文档详细说明了项目的所有文件夹和文件的用途，是快速了解项目结构的完整参考。
 
 ## 根目录（.）
@@ -24,25 +24,25 @@
 
 ### 根目录文件清单
 
-| 文件名 | 大小 | 类型 | 说明 |
-|-------|------|------|------|
-| **CLAUDE.md** | 29K | 📖文档 | 项目总体指南（4阶段系统、快速入门、常见问题） |
-| **DEVELOPMENT.md** | 10K | 📖文档 | 开发流程和规范（7步工作流、代码规范、提交规范） |
-| **MINIPROGRAM_GUIDE.md** | 7.9K | 📖文档 | 小程序开发指南（WeUI组件、架构、代码规范） |
-| **GIT_WORKFLOW.md** | 4.1K | 📖文档 | Git工作流程（基本操作、GitHub认证、提交规范） |
-| **BUG_FIXES.md** | 129K | 📖文档 | Bug修复经验库（30+问题方案、调试技巧） |
-| **DEPLOYMENT.md** | 13K | 📖文档 | 部署指南（生产配置、部署清单、故障排查） |
-| **SECURITY.md** | 15K | 📖文档 | 安全指南（密钥管理、敏感信息、API安全） |
-| **TESTING.md** | 3.7K | 📖文档 | 测试指南（单元测试、集成测试、E2E测试） |
-| **README.md** | 6.9K | 📖文档 | 项目说明（概述、快速开始、技术栈、贡献） |
-| **package.json** | 840B | ⚙️配置 | 根项目依赖定义（脚本命令、测试框架） |
-| **docker-compose.yml** | 5.2K | 🐳配置 | Docker编排（MongoDB、MySQL、Redis容器配置） |
-| **cypress.config.js** | 315B | ⚙️配置 | Cypress E2E测试框架配置 |
-| **.eslintrc.js** | 587B | ⚙️配置 | ESLint代码规范检查配置 |
-| **.gitignore** | 709B | ⚙️配置 | Git忽略规则（node_modules、.env、日志等） |
-| **project.config.json** | 2.0K | ⚙️配置 | 微信小程序配置（AppID、编译设置、部署配置） |
-| **project.private.config.json** | 634B | ⚙️配置 | 小程序私密配置（本地AppID，不上传Git） |
-| **.DS_Store** | 6.0K | 🚫系统 | macOS系统文件（已在gitignore中，可忽略） |
+| 文件名                          | 大小 | 类型   | 说明                                            |
+| ------------------------------- | ---- | ------ | ----------------------------------------------- |
+| **CLAUDE.md**                   | 29K  | 📖文档 | 项目总体指南（4阶段系统、快速入门、常见问题）   |
+| **DEVELOPMENT.md**              | 10K  | 📖文档 | 开发流程和规范（7步工作流、代码规范、提交规范） |
+| **MINIPROGRAM_GUIDE.md**        | 7.9K | 📖文档 | 小程序开发指南（WeUI组件、架构、代码规范）      |
+| **GIT_WORKFLOW.md**             | 4.1K | 📖文档 | Git工作流程（基本操作、GitHub认证、提交规范）   |
+| **BUG_FIXES.md**                | 129K | 📖文档 | Bug修复经验库（30+问题方案、调试技巧）          |
+| **DEPLOYMENT.md**               | 13K  | 📖文档 | 部署指南（生产配置、部署清单、故障排查）        |
+| **SECURITY.md**                 | 15K  | 📖文档 | 安全指南（密钥管理、敏感信息、API安全）         |
+| **TESTING.md**                  | 3.7K | 📖文档 | 测试指南（单元测试、集成测试、E2E测试）         |
+| **README.md**                   | 6.9K | 📖文档 | 项目说明（概述、快速开始、技术栈、贡献）        |
+| **package.json**                | 840B | ⚙️配置 | 根项目依赖定义（脚本命令、测试框架）            |
+| **docker-compose.yml**          | 5.2K | 🐳配置 | Docker编排（MongoDB、MySQL、Redis容器配置）     |
+| **cypress.config.js**           | 315B | ⚙️配置 | Cypress E2E测试框架配置                         |
+| **.eslintrc.js**                | 587B | ⚙️配置 | ESLint代码规范检查配置                          |
+| **.gitignore**                  | 709B | ⚙️配置 | Git忽略规则（node_modules、.env、日志等）       |
+| **project.config.json**         | 2.0K | ⚙️配置 | 微信小程序配置（AppID、编译设置、部署配置）     |
+| **project.private.config.json** | 634B | ⚙️配置 | 小程序私密配置（本地AppID，不上传Git）          |
+| **.DS_Store**                   | 6.0K | 🚫系统 | macOS系统文件（已在gitignore中，可忽略）        |
 
 ---
 
@@ -258,18 +258,18 @@ cypress/
 
 ### 我想要...
 
-| 需求 | 路径 | 命令 |
-|------|------|------|
-| 启动开发环境 | `.claude/commands/development/` | `./dev-start-all.sh` |
-| 查看快速问题 | `.claude/memory/quick-reference.md` | - |
-| 看项目总体指南 | `CLAUDE.md` | - |
-| 修改小程序代码 | `miniprogram/` | 微信开发者工具 |
-| 修改后端代码 | `backend/src/` | 任意编辑器 |
-| 修改管理后台 | `admin/src/` | `npm run dev` |
-| 查看API文档 | `docs/v3.0/04-API接口设计*.md` | - |
-| 测试API接口 | `.claude/commands/testing/` | `./test-api.sh` |
-| 部署到生产 | `.claude/commands/deployment/` | `./check-deploy.sh` |
-| 搜索历史问题 | `.claude/commands/search/` | `./search-bug.sh` |
+| 需求           | 路径                                | 命令                 |
+| -------------- | ----------------------------------- | -------------------- |
+| 启动开发环境   | `.claude/commands/development/`     | `./dev-start-all.sh` |
+| 查看快速问题   | `.claude/memory/quick-reference.md` | -                    |
+| 看项目总体指南 | `CLAUDE.md`                         | -                    |
+| 修改小程序代码 | `miniprogram/`                      | 微信开发者工具       |
+| 修改后端代码   | `backend/src/`                      | 任意编辑器           |
+| 修改管理后台   | `admin/src/`                        | `npm run dev`        |
+| 查看API文档    | `docs/v3.0/04-API接口设计*.md`      | -                    |
+| 测试API接口    | `.claude/commands/testing/`         | `./test-api.sh`      |
+| 部署到生产     | `.claude/commands/deployment/`      | `./check-deploy.sh`  |
+| 搜索历史问题   | `.claude/commands/search/`          | `./search-bug.sh`    |
 
 ---
 

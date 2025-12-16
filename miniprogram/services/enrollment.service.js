@@ -31,11 +31,7 @@ module.exports = {
    * @returns {Promise}
    */
   getPeriodMembers(periodId, options = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      sortBy = 'enrolledAt'
-    } = options;
+    const { page = 1, limit = 20, sortBy = 'enrolledAt' } = options;
 
     return request.request({
       url: `/enrollments/period/${periodId}`,
@@ -57,11 +53,7 @@ module.exports = {
    * @returns {Promise}
    */
   getUserEnrollments(options = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      status
-    } = options;
+    const { page = 1, limit = 20, status } = options;
 
     return request.request({
       url: `/enrollments/user/`,

@@ -9,6 +9,7 @@
 在执行 `git commit` 时，**提交前自动运行**。
 
 **检查项**：
+
 - ✅ 禁止提交敏感文件（`.env`、密钥、凭证等）
 - ✅ 禁止提交 `debugger` 语句
 - ⚠️ 警告：检测 `console.log` (可提交，但会警告)
@@ -18,6 +19,7 @@
 **执行位置**：`.git/hooks/pre-commit`
 
 **行为**：
+
 - 如有**严重错误**（如敏感文件、debugger）→ **阻止提交**，返回错误码 1
 - 如有**警告信息** → 仅显示警告，**允许提交**
 
@@ -28,6 +30,7 @@
 **验证规则**：
 
 提交信息必须遵循格式：
+
 ```
 <type>: <subject>
 
@@ -35,6 +38,7 @@
 ```
 
 **允许的类型**：
+
 - `feat` - 新功能
 - `fix` - Bug修复
 - `docs` - 文档更新
@@ -47,6 +51,7 @@
 - `build` - 构建相关
 
 **示例**：
+
 ```
 feat: 添加用户认证功能
 
@@ -56,6 +61,7 @@ feat: 添加用户认证功能
 **执行位置**：`.git/hooks/commit-msg`
 
 **行为**：
+
 - 格式错误 → **阻止提交**，显示详细的格式说明
 - 格式正确 → **允许提交**
 
@@ -64,6 +70,7 @@ feat: 添加用户认证功能
 在 `git commit` **成功执行后**，自动运行。
 
 **功能**：
+
 - 📊 显示提交统计（改动文件数、增删行数）
 - 🔍 检查是否更新了 Memory 系统文件
 - 📝 检查是否更新了项目文档
@@ -72,6 +79,7 @@ feat: 添加用户认证功能
 **执行位置**：`.git/hooks/post-commit`
 
 **行为**：
+
 - 永远不会阻止提交
 - 仅用于提示和反馈
 
@@ -103,6 +111,7 @@ ls -la .git/hooks/post-commit
 ```
 
 输出应该显示这些文件可执行（带 `x` 权限）：
+
 ```
 -rwxr-xr-x  pre-commit
 -rwxr-xr-x  commit-msg
@@ -128,26 +137,31 @@ git commit --no-verify-on
 ### 常见场景
 
 **添加新功能**：
+
 ```bash
 git commit -m "feat: 添加用户个人资料编辑功能"
 ```
 
 **修复 Bug**：
+
 ```bash
 git commit -m "fix: 修复登录页面布局错位问题"
 ```
 
 **更新文档**：
+
 ```bash
 git commit -m "docs: 更新README中的安装说明"
 ```
 
 **代码重构**：
+
 ```bash
 git commit -m "refactor: 优化用户认证模块的代码结构"
 ```
 
 **性能优化**：
+
 ```bash
 git commit -m "perf: 减少首页加载时间30%"
 ```
@@ -163,6 +177,7 @@ git commit -m "perf: 减少首页加载时间30%"
 **症状**：提交时 hook 没有运行
 
 **解决方案**：
+
 ```bash
 # 检查 hooks 文件是否可执行
 chmod +x .git/hooks/pre-commit
@@ -178,6 +193,7 @@ chmod +x .git/hooks/post-commit
 **症状**：提交被拒绝，但没有真正的问题
 
 **解决方案**：
+
 ```bash
 # 检查 pre-commit 的具体错误输出
 # 通常是敏感文件或 debugger 语句
@@ -191,6 +207,7 @@ git commit --no-verify
 **症状**：提示 "Commit message 格式不正确"
 
 **解决方案**：
+
 ```bash
 # 确保首行格式为 type: message
 # 例如：

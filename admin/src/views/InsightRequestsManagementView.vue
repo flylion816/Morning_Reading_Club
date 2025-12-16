@@ -99,10 +99,18 @@
           <div class="card-header">
             <span class="card-title">查看申请列表</span>
             <div class="header-actions">
-              <el-button type="success" @click="batchApprove" :disabled="selectedRequests.length === 0">
+              <el-button
+                type="success"
+                @click="batchApprove"
+                :disabled="selectedRequests.length === 0"
+              >
                 批量同意 ({{ selectedRequests.length }})
               </el-button>
-              <el-button type="danger" @click="batchReject" :disabled="selectedRequests.length === 0">
+              <el-button
+                type="danger"
+                @click="batchReject"
+                :disabled="selectedRequests.length === 0"
+              >
                 批量拒绝 ({{ selectedRequests.length }})
               </el-button>
               <el-dropdown @command="handleExport">
@@ -133,10 +141,7 @@
           <el-table-column prop="toUserId.nickname" label="被申请者" width="120" />
           <el-table-column label="申请状态" width="100">
             <template #default="{ row }">
-              <el-tag
-                :type="getStatusTagType(row.status)"
-                :hit="true"
-              >
+              <el-tag :type="getStatusTagType(row.status)" :hit="true">
                 {{ getStatusLabel(row.status) }}
               </el-tag>
             </template>
@@ -154,7 +159,11 @@
           >
             <template #default="{ row }">
               {{
-                row.approvedAt ? formatTime(row.approvedAt) : row.rejectedAt ? formatTime(row.rejectedAt) : '-'
+                row.approvedAt
+                  ? formatTime(row.approvedAt)
+                  : row.rejectedAt
+                    ? formatTime(row.rejectedAt)
+                    : '-'
               }}
             </template>
           </el-table-column>
@@ -180,12 +189,7 @@
                 <el-button type="info" size="small" @click="openDetailDialog(row)">
                   详情
                 </el-button>
-                <el-button
-                  type="danger"
-                  size="small"
-                  text
-                  @click="handleDeleteRequest(row)"
-                >
+                <el-button type="danger" size="small" text @click="handleDeleteRequest(row)">
                   删除
                 </el-button>
               </div>
@@ -215,10 +219,7 @@
             <span>{{ dialogApprove.form.toUserName }}</span>
           </el-form-item>
           <el-form-item label="允许查看期次">
-            <el-select
-              v-model="dialogApprove.form.periodId"
-              placeholder="选择期次"
-            >
+            <el-select v-model="dialogApprove.form.periodId" placeholder="选择期次">
               <el-option
                 v-for="period in periods"
                 :key="period._id"
@@ -249,7 +250,12 @@
             <span>{{ dialogReject.form.toUserName }}</span>
           </el-form-item>
           <el-form-item label="拒绝原因">
-            <el-input v-model="dialogReject.form.adminNote" type="textarea" rows="3" placeholder="请输入拒绝原因" />
+            <el-input
+              v-model="dialogReject.form.adminNote"
+              type="textarea"
+              rows="3"
+              placeholder="请输入拒绝原因"
+            />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -264,10 +270,18 @@
       <el-dialog v-model="dialogDetail.visible" title="申请详情" width="50%">
         <el-form :model="dialogDetail.request" label-width="100px">
           <el-form-item label="申请者">
-            <span>{{ typeof dialogDetail.request?.fromUserId === 'object' ? dialogDetail.request?.fromUserId?.nickname : '未知' }}</span>
+            <span>{{
+              typeof dialogDetail.request?.fromUserId === 'object'
+                ? dialogDetail.request?.fromUserId?.nickname
+                : '未知'
+            }}</span>
           </el-form-item>
           <el-form-item label="被申请者">
-            <span>{{ typeof dialogDetail.request?.toUserId === 'object' ? dialogDetail.request?.toUserId?.nickname : '未知' }}</span>
+            <span>{{
+              typeof dialogDetail.request?.toUserId === 'object'
+                ? dialogDetail.request?.toUserId?.nickname
+                : '未知'
+            }}</span>
           </el-form-item>
           <el-form-item label="申请原因">
             <span>{{ dialogDetail.request?.reason || '无' }}</span>
@@ -305,13 +319,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
-import AdminLayout from '../components/AdminLayout.vue'
-import api from '../services/api'
-import { exportToCSV, exportToExcel, exportToJSON, generateFilename } from '../utils/exportUtils'
-import type { InsightRequest, Period } from '../types/api'
+import { ref, onMounted, computed } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { ArrowDown } from '@element-plus/icons-vue';
+import AdminLayout from '../components/AdminLayout.vue';
+import api from '../services/api';
+import { exportToCSV, exportToExcel, exportToJSON, generateFilename } from '../utils/exportUtils';
+import type { InsightRequest, Period } from '../types/api';
 
 // 统计数据
 const stats = ref({
@@ -320,28 +334,28 @@ const stats = ref({
   approvedRequests: 0,
   rejectedRequests: 0,
   avgResponseTime: '0分钟'
-})
+});
 
 // 筛选条件
 const filters = ref({
   status: 'pending',
   fromUser: '',
   toUser: ''
-})
+});
 
 // 申请列表
-const requests = ref<InsightRequest[]>([])
-const selectedRequests = ref<InsightRequest[]>([])
+const requests = ref<InsightRequest[]>([]);
+const selectedRequests = ref<InsightRequest[]>([]);
 
 // 分页
 const pagination = ref({
   page: 1,
   limit: 20,
   total: 0
-})
+});
 
 // 期次列表
-const periods = ref<Period[]>([])
+const periods = ref<Period[]>([]);
 
 // 对话框状态
 const dialogApprove = ref({
@@ -354,7 +368,7 @@ const dialogApprove = ref({
     adminNote: ''
   },
   requestId: ''
-})
+});
 
 const dialogReject = ref({
   visible: false,
@@ -365,15 +379,15 @@ const dialogReject = ref({
     adminNote: ''
   },
   requestId: ''
-})
+});
 
 const dialogDetail = ref<{
-  visible: boolean
-  request: InsightRequest | null
+  visible: boolean;
+  request: InsightRequest | null;
 }>({
   visible: false,
   request: null
-})
+});
 
 const dialogBatchApprove = ref({
   visible: false,
@@ -381,20 +395,20 @@ const dialogBatchApprove = ref({
   form: {
     periodId: ''
   }
-})
+});
 
 // 加载统计数据
 const loadStats = async () => {
   try {
-    const response = await api.get('/insights/admin/requests/stats')
+    const response = await api.get('/insights/admin/requests/stats');
     // API 拦截器已经解包了 response.data.data，所以直接使用 response
     if (response && typeof response === 'object') {
-      stats.value = response as unknown as typeof stats.value
+      stats.value = response as unknown as typeof stats.value;
     }
   } catch (error) {
-    ElMessage.error('加载统计数据失败')
+    ElMessage.error('加载统计数据失败');
   }
-}
+};
 
 // 加载申请列表
 const loadRequests = async () => {
@@ -405,59 +419,64 @@ const loadRequests = async () => {
       limit: pagination.value.limit,
       fromUser: filters.value.fromUser,
       toUser: filters.value.toUser
-    }
+    };
 
-    const response = await api.get('/insights/admin/requests', { params }) as unknown as {
-      requests: InsightRequest[]
-      pagination: { total: number }
-    }
+    const response = (await api.get('/insights/admin/requests', { params })) as unknown as {
+      requests: InsightRequest[];
+      pagination: { total: number };
+    };
     // API 拦截器已经解包了 response.data.data，所以直接使用 response
     if (response && response.requests) {
-      requests.value = response.requests
-      pagination.value.total = response.pagination.total
+      requests.value = response.requests;
+      pagination.value.total = response.pagination.total;
     }
   } catch (error) {
-    ElMessage.error('加载申请列表失败')
+    ElMessage.error('加载申请列表失败');
   }
-}
+};
 
 // 加载期次列表
 const loadPeriods = async () => {
   try {
-    const response = await api.get('/periods') as unknown as { list: Period[] } | Period[]
+    const response = (await api.get('/periods')) as unknown as { list: Period[] } | Period[];
     // API 返回 {list: [...], pagination: {...}} 结构
-    if (response && typeof response === 'object' && 'list' in response && Array.isArray(response.list)) {
-      periods.value = response.list
+    if (
+      response &&
+      typeof response === 'object' &&
+      'list' in response &&
+      Array.isArray(response.list)
+    ) {
+      periods.value = response.list;
     } else if (Array.isArray(response)) {
-      periods.value = response
+      periods.value = response;
     }
   } catch (error: any) {
-    ElMessage.error('加载期次列表失败')
+    ElMessage.error('加载期次列表失败');
   }
-}
+};
 
 // 当选择期次名称时，自动更新对应的 periodId
 const updatePeriodId = () => {
-  const selectedName = (dialogApprove.value.form as any).periodName
-  const matchedPeriod = periods.value.find(p => (p.name || p.title) === selectedName)
+  const selectedName = (dialogApprove.value.form as any).periodName;
+  const matchedPeriod = periods.value.find(p => (p.name || p.title) === selectedName);
   if (matchedPeriod) {
-    dialogApprove.value.form.periodId = matchedPeriod._id
-    console.log('✅ 期次已更新:', { name: selectedName, id: matchedPeriod._id })
+    dialogApprove.value.form.periodId = matchedPeriod._id;
+    console.log('✅ 期次已更新:', { name: selectedName, id: matchedPeriod._id });
   }
-}
+};
 
 // 打开同意对话框
 const openApproveDialog = (row: InsightRequest) => {
   // 如果申请记录中已经有periodId，则自动使用；否则需要管理员手动选择
   // 处理periodId可能是对象或字符串的情况
-  const defaultPeriodId = typeof row.periodId === 'object' ? row.periodId?._id : row.periodId || ''
+  const defaultPeriodId = typeof row.periodId === 'object' ? row.periodId?._id : row.periodId || '';
 
   // 查找对应的期次，用于显示名称（如果已自动填充）
-  let periodName = '选择期次'
+  let periodName = '选择期次';
   if (defaultPeriodId) {
-    const matchedPeriod = periods.value.find(p => p._id === defaultPeriodId)
+    const matchedPeriod = periods.value.find(p => p._id === defaultPeriodId);
     if (matchedPeriod) {
-      periodName = matchedPeriod.name || matchedPeriod.title || '选择期次'
+      periodName = matchedPeriod.name || matchedPeriod.title || '选择期次';
     }
   }
 
@@ -468,76 +487,78 @@ const openApproveDialog = (row: InsightRequest) => {
     defaultPeriodId: defaultPeriodId,
     periodName: periodName,
     allPeriods: periods.value
-  })
+  });
 
   dialogApprove.value.form = {
-    fromUserName: (typeof row.fromUserId === 'object' ? row.fromUserId?.nickname : undefined) || '未知',
+    fromUserName:
+      (typeof row.fromUserId === 'object' ? row.fromUserId?.nickname : undefined) || '未知',
     toUserName: (typeof row.toUserId === 'object' ? row.toUserId?.nickname : undefined) || '未知',
     periodId: defaultPeriodId,
     adminNote: ''
-  }
-  dialogApprove.value.requestId = row._id
-  dialogApprove.value.visible = true
-}
+  };
+  dialogApprove.value.requestId = row._id;
+  dialogApprove.value.visible = true;
+};
 
 // 提交同意
 const submitApprove = async () => {
   if (!dialogApprove.value.form.periodId) {
-    ElMessage.error('请选择允许查看的期次')
-    return
+    ElMessage.error('请选择允许查看的期次');
+    return;
   }
 
-  dialogApprove.value.loading = true
+  dialogApprove.value.loading = true;
   try {
     await api.put(`/insights/admin/requests/${dialogApprove.value.requestId}/approve`, {
       periodId: dialogApprove.value.form.periodId,
       adminNote: dialogApprove.value.form.adminNote
-    })
-    ElMessage.success('申请已同意')
-    dialogApprove.value.visible = false
-    loadRequests()
-    loadStats()
+    });
+    ElMessage.success('申请已同意');
+    dialogApprove.value.visible = false;
+    loadRequests();
+    loadStats();
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    ElMessage.error(error.response?.data?.message || '操作失败');
   } finally {
-    dialogApprove.value.loading = false
+    dialogApprove.value.loading = false;
   }
-}
+};
 
 // 打开拒绝对话框
 const openRejectDialog = (row: InsightRequest) => {
   dialogReject.value.form = {
-    fromUserName: (typeof row.fromUserId === 'object' ? row.fromUserId?.nickname : undefined) || '未知',
+    fromUserName:
+      (typeof row.fromUserId === 'object' ? row.fromUserId?.nickname : undefined) || '未知',
     toUserName: (typeof row.toUserId === 'object' ? row.toUserId?.nickname : undefined) || '未知',
     adminNote: ''
-  }
-  dialogReject.value.requestId = row._id
-  dialogReject.value.visible = true
-}
+  };
+  dialogReject.value.requestId = row._id;
+  dialogReject.value.visible = true;
+};
 
 // 提交拒绝
 const submitReject = async () => {
-  dialogReject.value.loading = true
+  dialogReject.value.loading = true;
   try {
     await api.put(`/insights/admin/requests/${dialogReject.value.requestId}/reject`, {
       adminNote: dialogReject.value.form.adminNote
-    })
-    ElMessage.success('申请已拒绝')
-    dialogReject.value.visible = false
-    loadRequests()
-    loadStats()
+    });
+    ElMessage.success('申请已拒绝');
+    dialogReject.value.visible = false;
+    loadRequests();
+    loadStats();
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    ElMessage.error(error.response?.data?.message || '操作失败');
   } finally {
-    dialogReject.value.loading = false
+    dialogReject.value.loading = false;
   }
-}
+};
 
 // 打开详情对话框
 const openDetailDialog = (row: InsightRequest) => {
-  dialogDetail.value.request = row
-  dialogDetail.value.visible = true
-}
+  dialogDetail.value.request = row;
+  dialogDetail.value.visible = true;
+};
 
 // 删除申请
 const handleDeleteRequest = (row: InsightRequest) => {
@@ -552,75 +573,71 @@ const handleDeleteRequest = (row: InsightRequest) => {
           data: {
             adminNote: '管理员删除'
           }
-        })
-        ElMessage.success('申请已删除')
-        loadRequests()
-        loadStats()
+        });
+        ElMessage.success('申请已删除');
+        loadRequests();
+        loadStats();
       } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '删除失败')
+        ElMessage.error(error.response?.data?.message || '删除失败');
       }
     })
-    .catch(() => {})
-}
+    .catch(() => {});
+};
 
 // 打开批量授权对话框
 const openBatchApproveDialog = () => {
   if (selectedRequests.value.length === 0) {
-    ElMessage.warning('请先选择要授权的申请')
-    return
+    ElMessage.warning('请先选择要授权的申请');
+    return;
   }
 
-  dialogBatchApprove.value.visible = true
-  dialogBatchApprove.value.form.periodId = ''
-}
+  dialogBatchApprove.value.visible = true;
+  dialogBatchApprove.value.form.periodId = '';
+};
 
 // 批量同意
 const batchApprove = () => {
   if (selectedRequests.value.length === 0) {
-    ElMessage.warning('请先选择要授权的申请')
-    return
+    ElMessage.warning('请先选择要授权的申请');
+    return;
   }
 
   if (!dialogBatchApprove.value.form.periodId) {
-    ElMessage.error('请选择要授权的期次')
-    return
+    ElMessage.error('请选择要授权的期次');
+    return;
   }
 
-  ElMessageBox.confirm(
-    `确认为 ${selectedRequests.value.length} 个申请授权吗？`,
-    '批量授权',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  )
+  ElMessageBox.confirm(`确认为 ${selectedRequests.value.length} 个申请授权吗？`, '批量授权', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
     .then(async () => {
-      dialogBatchApprove.value.loading = true
+      dialogBatchApprove.value.loading = true;
       try {
         // 准备批量授权数据
         const approvals = selectedRequests.value.map(req => ({
           requestId: req._id,
           periodId: dialogBatchApprove.value.form.periodId
-        }))
+        }));
 
         await api.post('/insights/admin/requests/batch-approve', {
           approvals
-        })
+        });
 
-        ElMessage.success(`已批准 ${selectedRequests.value.length} 个申请`)
-        dialogBatchApprove.value.visible = false
-        selectedRequests.value = []
-        loadRequests()
-        loadStats()
+        ElMessage.success(`已批准 ${selectedRequests.value.length} 个申请`);
+        dialogBatchApprove.value.visible = false;
+        selectedRequests.value = [];
+        loadRequests();
+        loadStats();
       } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '批量授权失败')
+        ElMessage.error(error.response?.data?.message || '批量授权失败');
       } finally {
-        dialogBatchApprove.value.loading = false
+        dialogBatchApprove.value.loading = false;
       }
     })
-    .catch(() => {})
-}
+    .catch(() => {});
+};
 
 // 批量拒绝
 const batchReject = () => {
@@ -634,22 +651,22 @@ const batchReject = () => {
         for (const request of selectedRequests.value) {
           await api.put(`/insights/admin/requests/${request._id}/reject`, {
             adminNote: '批量拒绝'
-          })
+          });
         }
-        ElMessage.success('批量拒绝成功')
-        loadRequests()
-        loadStats()
-        selectedRequests.value = []
+        ElMessage.success('批量拒绝成功');
+        loadRequests();
+        loadStats();
+        selectedRequests.value = [];
       } catch (error) {
-        ElMessage.error('批量拒绝失败')
+        ElMessage.error('批量拒绝失败');
       }
     })
-    .catch(() => {})
-}
+    .catch(() => {});
+};
 
 // 生成导出数据
 const generateExportData = () => {
-  const headers = ['申请者', '被申请者', '申请原因', '申请时间', '申请状态', '处理时间']
+  const headers = ['申请者', '被申请者', '申请原因', '申请时间', '申请状态', '处理时间'];
   const rows = requests.value.map(req => [
     (typeof req.fromUserId === 'object' ? req.fromUserId?.nickname : undefined) || '-',
     (typeof req.toUserId === 'object' ? req.toUserId?.nickname : undefined) || '-',
@@ -657,14 +674,14 @@ const generateExportData = () => {
     formatTime(req.createdAt),
     getStatusLabel(req.status || ''),
     req.approvedAt ? formatTime(req.approvedAt) : req.rejectedAt ? formatTime(req.rejectedAt) : '-'
-  ])
-  return { headers, rows }
-}
+  ]);
+  return { headers, rows };
+};
 
 // 导出数据 - 支持多种格式
 const handleExport = async (command: string) => {
-  const { headers, rows } = generateExportData()
-  const filename = generateFilename('insight-requests-export')
+  const { headers, rows } = generateExportData();
+  const filename = generateFilename('insight-requests-export');
 
   try {
     if (command === 'excel') {
@@ -674,30 +691,30 @@ const handleExport = async (command: string) => {
         columnWidths: [15, 15, 20, 20, 12, 20],
         headerBackgroundColor: 'FF4472C4',
         headerTextColor: 'FFFFFFFF'
-      })
-      ElMessage.success('Excel 导出成功')
+      });
+      ElMessage.success('Excel 导出成功');
     } else if (command === 'csv') {
-      exportToCSV(filename, headers, rows)
-      ElMessage.success('CSV 导出成功')
+      exportToCSV(filename, headers, rows);
+      ElMessage.success('CSV 导出成功');
     } else if (command === 'json') {
-      exportToJSON(filename, headers, rows)
-      ElMessage.success('JSON 导出成功')
+      exportToJSON(filename, headers, rows);
+      ElMessage.success('JSON 导出成功');
     }
   } catch (error: any) {
     if (command === 'excel') {
-      ElMessage.warning('Excel 导出失败，自动使用 CSV 格式')
-      exportToCSV(filename, headers, rows)
+      ElMessage.warning('Excel 导出失败，自动使用 CSV 格式');
+      exportToCSV(filename, headers, rows);
     } else {
-      ElMessage.error('导出失败: ' + error.message)
+      ElMessage.error('导出失败: ' + error.message);
     }
   }
-}
+};
 
 // 处理搜索
 const handleSearch = () => {
-  pagination.value.page = 1
-  loadRequests()
-}
+  pagination.value.page = 1;
+  loadRequests();
+};
 
 // 重置筛选
 const resetFilters = () => {
@@ -705,21 +722,21 @@ const resetFilters = () => {
     status: 'pending',
     fromUser: '',
     toUser: ''
-  }
-  pagination.value.page = 1
-  loadRequests()
-}
+  };
+  pagination.value.page = 1;
+  loadRequests();
+};
 
 // 处理表格选择变化
 const handleSelectionChange = (selection: InsightRequest[]) => {
-  selectedRequests.value = selection
-}
+  selectedRequests.value = selection;
+};
 
 // 格式化时间
 const formatTime = (date: any) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleString('zh-CN')
-}
+  if (!date) return '-';
+  return new Date(date).toLocaleString('zh-CN');
+};
 
 // 获取状态标签类型
 const getStatusTagType = (status: any) => {
@@ -727,9 +744,9 @@ const getStatusTagType = (status: any) => {
     pending: 'warning',
     approved: 'success',
     rejected: 'danger'
-  }
-  return types[status as string] || 'info'
-}
+  };
+  return types[status as string] || 'info';
+};
 
 // 获取状态标签文本
 const getStatusLabel = (status: string) => {
@@ -738,9 +755,9 @@ const getStatusLabel = (status: string) => {
     approved: '已同意',
     rejected: '已拒绝',
     revoked: '已撤销'
-  }
-  return labels[status as string] || '未知'
-}
+  };
+  return labels[status as string] || '未知';
+};
 
 // 获取操作标签文本
 const getActionLabel = (action: string) => {
@@ -752,16 +769,16 @@ const getActionLabel = (action: string) => {
     admin_reject: '管理员拒绝',
     revoke: '撤销权限',
     admin_delete: '管理员删除'
-  }
-  return labels[action as string] || '未知操作'
-}
+  };
+  return labels[action as string] || '未知操作';
+};
 
 // 初始化
 onMounted(() => {
-  loadStats()
-  loadRequests()
-  loadPeriods()
-})
+  loadStats();
+  loadRequests();
+  loadPeriods();
+});
 </script>
 
 <style scoped>

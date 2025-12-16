@@ -14,7 +14,7 @@ const envConfig = {
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
     enableLog: true,
-    useMock: false  // 使用本地后端服务
+    useMock: false // 使用本地后端服务
   },
 
   // 测试环境

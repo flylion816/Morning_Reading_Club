@@ -14,12 +14,14 @@ class UserService {
   getUserProfile() {
     // Mock模式
     if (envConfig.useMock) {
-      return Promise.resolve(wx.getStorageSync('userInfo') || {
-        id: 1,
-        nickname: '微信用户',
-        avatar: '🦁',
-        signature: '天天开心，觉知当下！'
-      });
+      return Promise.resolve(
+        wx.getStorageSync('userInfo') || {
+          id: 1,
+          nickname: '微信用户',
+          avatar: '🦁',
+          signature: '天天开心，觉知当下！'
+        }
+      );
     }
     return request.get('/users/me');
   }

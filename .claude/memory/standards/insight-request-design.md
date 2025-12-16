@@ -48,6 +48,7 @@
 ```
 
 **说明**：
+
 - `unique` 索引防止重复申请
 - `periodId` 仅在 `status='approved'` 时有意义
 - 支持多期查看：如果需要多期，可扩展为 `periodIds: [ObjectId]`
@@ -89,6 +90,7 @@
 ```
 
 **说明**：
+
 - 当 InsightRequest.status 改为 'approved' 时，创建对应的 InsightPermission 记录
 - 支持权限过期、撤销等高级功能
 
@@ -99,6 +101,7 @@
 ### 1️⃣ 发起查看申请
 
 **请求**：
+
 ```
 POST /api/v1/insights/requests
 Authorization: Bearer {token}
@@ -110,6 +113,7 @@ Authorization: Bearer {token}
 ```
 
 **响应成功（201）**：
+
 ```json
 {
   "code": 200,
@@ -125,6 +129,7 @@ Authorization: Bearer {token}
 ```
 
 **错误情况**：
+
 - 400: 自己不能向自己发起申请 → "无需向自己发起查看请求"
 - 409: 已有pending申请 → "申请已存在，请等待对方回复"
 - 200: 已有approved申请 → "已获得查看权限"
@@ -134,12 +139,14 @@ Authorization: Bearer {token}
 ### 2️⃣ 获取收到的申请列表
 
 **请求**：
+
 ```
 GET /api/v1/insights/requests/received?status=pending
 Authorization: Bearer {token}
 ```
 
 **响应**：
+
 ```json
 {
   "code": 200,
@@ -166,6 +173,7 @@ Authorization: Bearer {token}
 ### 3️⃣ 同意查看申请
 
 **请求**：
+
 ```
 PUT /api/v1/insights/requests/{requestId}/approve
 Authorization: Bearer {token}
@@ -176,6 +184,7 @@ Authorization: Bearer {token}
 ```
 
 **逻辑**：
+
 1. 验证当前用户是申请的 `toUserId`
 2. 验证申请状态为 'pending'
 3. 更新申请状态为 'approved'
@@ -183,6 +192,7 @@ Authorization: Bearer {token}
 5. 记录同意时间
 
 **响应（200）**：
+
 ```json
 {
   "code": 200,
@@ -201,18 +211,21 @@ Authorization: Bearer {token}
 ### 4️⃣ 拒绝查看申请
 
 **请求**：
+
 ```
 PUT /api/v1/insights/requests/{requestId}/reject
 Authorization: Bearer {token}
 ```
 
 **逻辑**：
+
 1. 验证当前用户是申请的 `toUserId`
 2. 验证申请状态为 'pending'
 3. 更新申请状态为 'rejected'
 4. 记录拒绝时间
 
 **响应（200）**：
+
 ```json
 {
   "code": 200,
@@ -230,12 +243,14 @@ Authorization: Bearer {token}
 ### 5️⃣ 获取发起的申请列表
 
 **请求**：
+
 ```
 GET /api/v1/insights/requests/sent?status=all
 Authorization: Bearer {token}
 ```
 
 **响应**：
+
 ```json
 {
   "code": 200,
@@ -261,12 +276,14 @@ Authorization: Bearer {token}
 ### 6️⃣ 获取他人的小凡看见（需要权限检查）
 
 **请求**：
+
 ```
 GET /api/v1/insights/user/{userId}/period/{periodId}
 Authorization: Bearer {token}
 ```
 
 **权限检查逻辑**：
+
 1. 如果 userId === 当前用户 → 允许查看自己的
 2. 如果存在 approved InsightRequest 且 periodId 匹配 → 允许查看
 3. 否则 → 403 Forbidden
@@ -278,6 +295,7 @@ Authorization: Bearer {token}
 ### 场景：阿泰向狮子发起查看申请
 
 #### 1️⃣ 阿泰发起申请
+
 ```
 POST /insights/requests
 { toUserId: "狮子ID", reason: "想看看你的学习反馈" }
@@ -291,6 +309,7 @@ POST /insights/requests
 ```
 
 #### 2️⃣ 狮子在首页看到申请
+
 ```
 GET /insights/requests/received?status=pending
 
@@ -299,6 +318,7 @@ GET /insights/requests/received?status=pending
 ```
 
 #### 3️⃣ 狮子同意查看
+
 ```
 PUT /insights/requests/{requestId}/approve
 { periodId: "2025年12月期次ID" }
@@ -320,6 +340,7 @@ InsightPermission: {
 ```
 
 #### 4️⃣ 阿泰可以查看狮子本期的小凡看见
+
 ```
 GET /insights/user/狮子ID/period/2025年12月期次ID
 
@@ -327,6 +348,7 @@ GET /insights/user/狮子ID/period/2025年12月期次ID
 ```
 
 #### 5️⃣ 如果拒绝
+
 ```
 PUT /insights/requests/{requestId}/reject
 
@@ -344,6 +366,7 @@ PUT /insights/requests/{requestId}/reject
 ## 📊 前端数据流
 
 ### 页面1：他人主页（profile-others）
+
 ```
 点击"小凡看见" → 检查是否已有权限 →
   ├─ 已批准 → 显示"查看小凡看见"
@@ -352,6 +375,7 @@ PUT /insights/requests/{requestId}/reject
 ```
 
 ### 页面2：首页（index）- 新增"请求看见"板块
+
 ```
 显示收到的申请列表：
 [
@@ -367,12 +391,12 @@ PUT /insights/requests/{requestId}/reject
 
 ## ✅ 数据一致性保证
 
-| 场景 | 处理方式 |
-|------|--------|
-| 同一对用户多个pending申请 | 利用unique索引防止 |
-| 申请被删除后用户仍在权限列表 | 权限系统独立管理 |
-| 期次删除后权限仍存在 | 可考虑cascade delete |
-| 用户被禁用 | 禁用其所有待审批申请 |
+| 场景                         | 处理方式             |
+| ---------------------------- | -------------------- |
+| 同一对用户多个pending申请    | 利用unique索引防止   |
+| 申请被删除后用户仍在权限列表 | 权限系统独立管理     |
+| 期次删除后权限仍存在         | 可考虑cascade delete |
+| 用户被禁用                   | 禁用其所有待审批申请 |
 
 ---
 
@@ -393,4 +417,3 @@ PUT /insights/requests/{requestId}/reject
 4. **申请提醒**：实时通知被申请者
 5. **黑名单**：可拒绝特定用户的后续申请
 6. **审计日志**：记录所有权限变更
-

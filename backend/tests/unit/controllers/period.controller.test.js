@@ -1,0 +1,267 @@
+/**
+ * Period Controller 单元测试
+ */
+
+const { expect } = require('chai');
+const sinon = require('sinon');
+const proxyquire = require('proxyquire').noCallThru();
+const mongoose = require('mongoose');
+
+describe('Period Controller', () => {
+  let periodController;
+  let sandbox;
+  let req;
+  let res;
+  let next;
+  let PeriodStub;
+  let UserStub;
+
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
+
+    req = {
+      body: {},
+      params: {},
+      query: {},
+      user: {}
+    };
+
+    res = {
+      status: sandbox.stub().returnsThis(),
+      json: sandbox.stub().returnsThis()
+    };
+
+    next = sandbox.stub();
+
+    PeriodStub = {
+      findById: sandbox.stub(),
+      find: sandbox.stub(),
+      countDocuments: sandbox.stub(),
+      findByIdAndUpdate: sandbox.stub(),
+      create: sandbox.stub()
+    };
+
+    UserStub = {
+      find: sandbox.stub()
+    };
+
+    const responseUtils = {
+      success: (data, message) => ({ code: 200, message, data }),
+      errors: {
+        badRequest: (msg) => ({ code: 400, message: msg }),
+        notFound: (msg) => ({ code: 404, message: msg }),
+        forbidden: (msg) => ({ code: 403, message: msg })
+      }
+    };
+
+    periodController = proxyquire(
+      '../../../src/controllers/period.controller',
+      {
+        '../models/Period': PeriodStub,
+        '../models/User': UserStub,
+        '../utils/response': responseUtils
+      }
+    );
+  });
+
+  afterEach(() => {
+    sandbox.restore();
+  });
+
+  describe('getPeriods', () => {
+    it('应该返回所有期次列表', async () => {
+      req.query = { page: 1, limit: 10 };
+
+      const mockPeriods = [
+        { _id: new mongoose.Types.ObjectId(), name: '期次1', status: 'active' },
+        { _id: new mongoose.Types.ObjectId(), name: '期次2', status: 'inactive' }
+      ];
+
+      PeriodStub.countDocuments.resolves(2);
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves(mockPeriods)
+      });
+
+      await periodController.getPeriods(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('list');
+      expect(responseData.data).to.have.property('pagination');
+    });
+
+    it('应该按status过滤', async () => {
+      req.query = { page: 1, limit: 10, status: 'active' };
+
+      PeriodStub.countDocuments.resolves(1);
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves([])
+      });
+
+      await periodController.getPeriods(req, res, next);
+
+      const query = PeriodStub.find.getCall(0).args[0];
+      expect(query).to.have.property('status');
+      expect(query.status).to.equal('active');
+    });
+
+    it('应该返回正确的分页信息', async () => {
+      req.query = { page: 2, limit: 10 };
+
+      PeriodStub.countDocuments.resolves(25);
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves([])
+      });
+
+      await periodController.getPeriods(req, res, next);
+
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.pagination.page).to.equal(2);
+      expect(responseData.data.pagination.total).to.equal(25);
+      expect(responseData.data.pagination.pages).to.equal(3);
+    });
+  });
+
+  describe('getPeriodById', () => {
+    it('应该返回期次详情', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+
+      const mockPeriod = {
+        _id: periodId,
+        name: '2025年第一期',
+        status: 'active',
+        enrolledCount: 50,
+        capacity: 100
+      };
+
+      PeriodStub.findById.resolves(mockPeriod);
+
+      await periodController.getPeriodById(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.name).to.equal('2025年第一期');
+    });
+
+    it('应该返回404当期次不存在', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+
+      PeriodStub.findById.resolves(null);
+
+      await periodController.getPeriodById(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('getActivePeriods', () => {
+    it('应该返回活跃期次', async () => {
+      const mockPeriods = [
+        { _id: new mongoose.Types.ObjectId(), name: '活跃期次1', status: 'active' }
+      ];
+
+      PeriodStub.find.returns({
+        select: sandbox.stub().resolves(mockPeriods)
+      });
+
+      await periodController.getActivePeriods(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const query = PeriodStub.find.getCall(0).args[0];
+      expect(query.status).to.equal('active');
+    });
+  });
+
+  describe('createPeriod (Admin)', () => {
+    it('应该创建新期次', async () => {
+      req.body = {
+        name: '新期次',
+        title: '新期次标题',
+        description: '新期次描述',
+        capacity: 100,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 86400000)
+      };
+
+      const mockPeriod = {
+        _id: new mongoose.Types.ObjectId(),
+        ...req.body,
+        status: 'draft',
+        enrolledCount: 0
+      };
+
+      PeriodStub.create.resolves(mockPeriod);
+
+      await periodController.createPeriod(req, res, next);
+
+      expect(PeriodStub.create.called).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+  });
+
+  describe('updatePeriod (Admin)', () => {
+    it('应该更新期次信息', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+      req.body = { name: '更新的名称', status: 'active' };
+
+      const mockPeriod = {
+        _id: periodId,
+        name: '更新的名称',
+        status: 'active'
+      };
+
+      PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
+
+      await periodController.updatePeriod(req, res, next);
+
+      expect(PeriodStub.findByIdAndUpdate.called).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+
+    it('应该返回404当期次不存在', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+      req.body = { name: '新名称' };
+
+      PeriodStub.findByIdAndUpdate.resolves(null);
+
+      await periodController.updatePeriod(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('getPeriodStats', () => {
+    it('应该返回期次统计信息', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+
+      const mockPeriod = {
+        _id: periodId,
+        enrolledCount: 50,
+        capacity: 100
+      };
+
+      PeriodStub.findById.resolves(mockPeriod);
+
+      await periodController.getPeriodStats(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('enrolledCount');
+      expect(responseData.data).to.have.property('capacity');
+    });
+  });
+});

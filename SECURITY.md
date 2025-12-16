@@ -9,6 +9,7 @@
 ## 📋 执行摘要
 
 本安全审计覆盖了晨读营项目的以下方面：
+
 - 认证和授权机制
 - 输入验证和数据处理
 - API 安全
@@ -28,14 +29,15 @@
 
 **安全评估**:
 
-| 项目 | 状态 | 备注 |
-|------|------|------|
-| 使用 HTTPS | ✅ | 微信强制 HTTPS |
-| Token 存储 | ⚠️ | localStorage (应考虑 sessionStorage) |
-| Token 过期处理 | ✅ | 有刷新机制 |
-| 密码加密 | N/A | 微信授权，无密码 |
+| 项目           | 状态 | 备注                                 |
+| -------------- | ---- | ------------------------------------ |
+| 使用 HTTPS     | ✅   | 微信强制 HTTPS                       |
+| Token 存储     | ⚠️   | localStorage (应考虑 sessionStorage) |
+| Token 过期处理 | ✅   | 有刷新机制                           |
+| 密码加密       | N/A  | 微信授权，无密码                     |
 
 **建议**:
+
 ```javascript
 // utils/storage.js - 改进 Token 存储
 export const tokenStorage = {
@@ -65,6 +67,7 @@ export const tokenStorage = {
 **实现方式**: Email + Password → JWT Token
 
 **代码审计**:
+
 ```javascript
 // ✅ 好的做法
 1. 密码使用 bcryptjs 加密
@@ -79,6 +82,7 @@ export const tokenStorage = {
 ```
 
 **改进方案**:
+
 ```javascript
 // backend/src/controllers/admin.controller.js
 module.exports = {
@@ -90,14 +94,14 @@ module.exports = {
     const accessToken = jwt.sign(
       { id: admin._id, email: admin.email },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }  // 1 小时
+      { expiresIn: '1h' } // 1 小时
     );
 
     // 发放 refresh token (长生命周期)
     const refreshToken = jwt.sign(
       { id: admin._id, type: 'refresh' },
       process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }  // 7 天
+      { expiresIn: '7d' } // 7 天
     );
 
     // 保存 refresh token 到数据库 (便于撤销)
@@ -107,11 +111,13 @@ module.exports = {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     });
 
-    res.json(success({
-      accessToken,
-      refreshToken,
-      expiresIn: 3600
-    }));
+    res.json(
+      success({
+        accessToken,
+        refreshToken,
+        expiresIn: 3600
+      })
+    );
   },
 
   refreshToken: async (req, res) => {
@@ -127,11 +133,9 @@ module.exports = {
       }
 
       // 发放新的 access token
-      const newAccessToken = jwt.sign(
-        { id: decoded.id },
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' }
-      );
+      const newAccessToken = jwt.sign({ id: decoded.id }, process.env.JWT_SECRET, {
+        expiresIn: '1h'
+      });
 
       res.json(success({ accessToken: newAccessToken }));
     } catch (err) {
@@ -148,6 +152,7 @@ module.exports = {
 ### 1.3 授权检查
 
 **评估**:
+
 ```javascript
 // ✅ 已实现的保护
 1. 路由级别认证中间件
@@ -161,6 +166,7 @@ module.exports = {
 ```
 
 **改进示例**:
+
 ```javascript
 // backend/src/middleware/authorization.js
 module.exports = {
@@ -190,7 +196,8 @@ module.exports = {
 };
 
 // 使用
-app.get('/api/v1/enrollments/:id',
+app.get(
+  '/api/v1/enrollments/:id',
   adminAuth,
   requireRole('admin', 'superadmin'),
   checkResourceOwnership('enrollmentId'),
@@ -207,12 +214,14 @@ app.get('/api/v1/enrollments/:id',
 ### 2.1 表单验证
 
 **当前实现**:
+
 ```typescript
 // ✅ 前端验证已实现 (Element Plus Form Rules)
 // ⚠️ 后端验证需要改进
 ```
 
 **后端改进方案**:
+
 ```javascript
 // backend/src/validators/enrollment.validator.js
 const Joi = require('joi');
@@ -257,6 +266,7 @@ module.exports = { validateEnrollment };
 **当前状态**: ✅ 使用 ORM (Mongoose)，天然防护
 
 **验证**:
+
 ```javascript
 // ✅ 安全：使用 ORM
 Enrollment.find({ userId: req.query.userId });
@@ -272,6 +282,7 @@ db.collection('enrollments').find(`{ userId: '${req.query.userId}' }`);
 ### 2.3 XSS 防护
 
 **前端**:
+
 ```typescript
 // ✅ Vue 3 自动转义 HTML
 // 不需要手动 escapeHtml()
@@ -282,6 +293,7 @@ db.collection('enrollments').find(`{ userId: '${req.query.userId}' }`);
 ```
 
 **后端**:
+
 ```javascript
 // 存储用户生成的内容前进行清理
 const xss = require('xss');
@@ -289,10 +301,17 @@ const xss = require('xss');
 function sanitizeUserContent(content) {
   return xss(content, {
     whiteList: {
-      'b': [], 'i': [], 'em': [], 'strong': [],
-      'p': [], 'br': [], 'h1': [], 'h2': [], 'h3': [],
-      'a': ['href', 'title'],
-      'img': ['src', 'alt', 'width', 'height']
+      b: [],
+      i: [],
+      em: [],
+      strong: [],
+      p: [],
+      br: [],
+      h1: [],
+      h2: [],
+      h3: [],
+      a: ['href', 'title'],
+      img: ['src', 'alt', 'width', 'height']
     },
     onTag: (tag, html, options) => {
       // 额外的检查
@@ -318,6 +337,7 @@ function sanitizeUserContent(content) {
 **当前状态**: ⚠️ 需要实现
 
 **改进方案**:
+
 ```javascript
 // backend/src/middleware/csrf.js
 const csrf = require('csurf');
@@ -341,6 +361,7 @@ app.get('/api/v1/csrf-token', csrfProtection, (req, res) => {
 ```
 
 **前端使用**:
+
 ```typescript
 // admin/src/services/api.ts
 const apiClient = axios.create({
@@ -367,6 +388,7 @@ initCSRFProtection();
 **当前实现**: ✅ 在 multer 中间件中实现
 
 **审计结果**:
+
 ```javascript
 // ✅ 好的做法：白名单验证
 const allowedTypes = /jpeg|jpg|png|gif|webp|pdf|doc|docx|xls|xlsx|mp4|webm/;
@@ -377,8 +399,11 @@ const mime = require('mime-types');
 function validateMimeType(file) {
   const mimeType = mime.lookup(file.originalname);
   const allowedMimes = [
-    'image/jpeg', 'image/png', 'image/webp',
-    'application/pdf', 'application/msword'
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+    'application/msword'
   ];
   return allowedMimes.includes(mimeType);
 }
@@ -393,6 +418,7 @@ function validateMimeType(file) {
 **当前实现**: ✅ 50MB 限制
 
 **改进建议**:
+
 ```javascript
 // backend/src/routes/upload.routes.js
 
@@ -400,13 +426,13 @@ function validateMimeType(file) {
 const upload = multer({
   storage,
   limits: {
-    fileSize: function(req, file) {
+    fileSize: function (req, file) {
       if (file.mimetype.startsWith('image/')) {
-        return 10 * 1024 * 1024;  // 图片 10MB
+        return 10 * 1024 * 1024; // 图片 10MB
       } else if (file.mimetype === 'application/pdf') {
-        return 20 * 1024 * 1024;  // PDF 20MB
+        return 20 * 1024 * 1024; // PDF 20MB
       } else {
-        return 50 * 1024 * 1024;  // 其他 50MB
+        return 50 * 1024 * 1024; // 其他 50MB
       }
     }
   }
@@ -437,6 +463,7 @@ if (filePath.includes('..') || !filePath.startsWith(uploadDir)) {
 **当前状态**: ⚠️ 需要改进
 
 **改进方案**:
+
 ```javascript
 // 不在 uploads 目录启用脚本执行
 // nginx 配置
@@ -466,6 +493,7 @@ location /uploads/ {
 **当前状态**: ❌ 未实现
 
 **改进方案**:
+
 ```javascript
 // backend/src/middleware/rateLimit.js
 const rateLimit = require('express-rate-limit');
@@ -499,12 +527,14 @@ app.post('/api/v1/auth/admin/login', loginLimiter, loginHandler);
 ### 4.2 CORS 安全
 
 **当前实现**:
+
 ```javascript
 // ✅ CORS 中间件已配置
 app.use(cors());
 ```
 
 **改进方案** (更严格):
+
 ```javascript
 const cors = require('cors');
 
@@ -513,12 +543,12 @@ const corsOptions = {
   origin: [
     'https://morningreading.com',
     'https://admin.morningreading.com',
-    'https://localhost:3000'  // 开发环境
+    'https://localhost:3000' // 开发环境
   ],
-  credentials: true,  // 允许发送 credentials
+  credentials: true, // 允许发送 credentials
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 86400  // 预检请求缓存 24 小时
+  maxAge: 86400 // 预检请求缓存 24 小时
 };
 
 app.use(cors(corsOptions));
@@ -533,6 +563,7 @@ app.use(cors(corsOptions));
 **当前状态**: ✅ 使用 JWT Token
 
 **改进建议**:
+
 ```javascript
 // .env 文件应包含
 JWT_SECRET=<随机生成的密钥>
@@ -556,6 +587,7 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 ### 5.1 连接安全
 
 **改进**:
+
 ```javascript
 // ✅ 使用 MONGODB_ATLAS 的 TLS 连接
 const mongoUri = process.env.MONGODB_URI;
@@ -567,7 +599,7 @@ if (!mongoUri.includes('ssl=true')) {
 
 mongoose.connect(mongoUri, {
   ssl: true,
-  replicaSet: 'rs0',  // 如果使用副本集
+  replicaSet: 'rs0', // 如果使用副本集
   retryWrites: true
 });
 ```
@@ -579,6 +611,7 @@ mongoose.connect(mongoUri, {
 ### 5.2 数据加密
 
 **敏感数据加密**:
+
 ```javascript
 // 密码字段：自动加密（已实现）
 const crypto = require('crypto');
@@ -608,12 +641,14 @@ function decryptSensitiveData(encrypted) {
 ### 6.1 环境变量
 
 **检查清单**:
+
 - [ ] `.env` 文件在 `.gitignore` 中
 - [ ] 生产环境使用强密码
 - [ ] 不同环境使用不同的 secrets
 - [ ] secrets 定期轮换
 
 **验证**:
+
 ```bash
 # 检查敏感文件是否被 git 追踪
 git ls-files | grep -E '\.env|secret|password'
@@ -628,6 +663,7 @@ git ls-files | grep -E '\.env|secret|password'
 ### 6.2 依赖安全
 
 **定期检查**:
+
 ```bash
 # 检查漏洞
 npm audit
@@ -670,16 +706,16 @@ npm ci --audit-level=moderate
 
 ## 🚨 已发现的问题
 
-| 问题 | 优先级 | 状态 | 修复人 |
-|------|--------|------|--------|
-| 缺少 CSRF 防护 | 高 | 待修复 | |
-| 缺少 Rate Limiting | 高 | 待修复 | |
-| 缺少 Token 刷新机制 | 高 | 待修复 | |
-| 文件执行风险 | 高 | 待修复 | |
-| CORS 配置过宽 | 中 | 待修复 | |
-| 缺少审计日志 | 中 | 待修复 | |
-| 缺少 XSS 清理 | 中 | 待修复 | |
-| 依赖包可能过时 | 中 | 待检查 | |
+| 问题                | 优先级 | 状态   | 修复人 |
+| ------------------- | ------ | ------ | ------ |
+| 缺少 CSRF 防护      | 高     | 待修复 |        |
+| 缺少 Rate Limiting  | 高     | 待修复 |        |
+| 缺少 Token 刷新机制 | 高     | 待修复 |        |
+| 文件执行风险        | 高     | 待修复 |        |
+| CORS 配置过宽       | 中     | 待修复 |        |
+| 缺少审计日志        | 中     | 待修复 |        |
+| 缺少 XSS 清理       | 中     | 待修复 |        |
+| 依赖包可能过时      | 中     | 待检查 |        |
 
 ---
 

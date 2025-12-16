@@ -20,6 +20,7 @@
 ```
 
 **Git Remote 已配置**:
+
 ```
 server  ssh://ubuntu@123.207.223.93/var/www/Morning_Reading_Club (fetch)
 server  ssh://ubuntu@123.207.223.93/var/www/Morning_Reading_Club (push)
@@ -30,6 +31,7 @@ server  ssh://ubuntu@123.207.223.93/var/www/Morning_Reading_Club (push)
 ## 🔄 完整工作流步骤
 
 ### 第1步: 设置SSH认证
+
 ```bash
 # 使用sshpass进行密码认证
 export SERVER_PASSWORD="[password]"
@@ -37,6 +39,7 @@ export GIT_SSH_COMMAND="sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecki
 ```
 
 ### 第2步: 从服务器拉取最新代码
+
 ```bash
 # 清理本地server分支跟踪
 git fetch server main --prune
@@ -49,6 +52,7 @@ git log origin/main..server/main --oneline
 ```
 
 ### 第3步: 从GitHub拉取最新代码
+
 ```bash
 # 更新GitHub的远程跟踪分支
 git fetch origin main
@@ -58,6 +62,7 @@ git log origin/main..HEAD --oneline
 ```
 
 ### 第4步: 创建并检出merge分支
+
 ```bash
 # 基于当前main创建临时merge分支
 git checkout -b merge/server-updates main
@@ -67,6 +72,7 @@ git diff origin/main...server/main --name-status > /tmp/server_changes.txt
 ```
 
 ### 第5步: 合并服务器提交
+
 ```bash
 # 将server/main的提交合并到merge分支
 git merge server/main -m "merge: 从服务器同步最新代码
@@ -79,6 +85,7 @@ $(cat /tmp/server_changes.txt | sed 's/^/- /')"
 ```
 
 ### 第6步: 解决冲突（如有）
+
 ```bash
 # 检查是否有冲突
 git status
@@ -90,6 +97,7 @@ git commit -m "resolve: 合并服务器更新时的冲突"
 ```
 
 ### 第7步: 确保与GitHub同步
+
 ```bash
 # 检查是否需要rebase保持历史线性
 # （可选，仅当要求历史整洁时）
@@ -97,6 +105,7 @@ git rebase origin/main merge/server-updates
 ```
 
 ### 第8步: 合并回main分支
+
 ```bash
 # 切回main分支
 git checkout main
@@ -108,6 +117,7 @@ git merge merge/server-updates --ff-only
 ```
 
 ### 第9步: 推送到GitHub
+
 ```bash
 # 推送main分支
 git push origin main
@@ -117,6 +127,7 @@ git branch -d merge/server-updates
 ```
 
 ### 第10步: 验证和清理
+
 ```bash
 # 验证推送成功
 git status  # 应显示: Your branch is up to date with 'origin/main'
@@ -233,24 +244,28 @@ git log --oneline -3
 ## 📊 常见场景处理
 
 ### 场景1: 服务器有新提交，本地也有新提交
+
 ```
 处理: 自动合并，生成merge commit
 结果: 推送到GitHub保持两边的历史
 ```
 
 ### 场景2: 存在文件冲突
+
 ```
 处理: 暂停，提示用户手动解决
 方法: 使用git mergetool或手动编辑
 ```
 
 ### 场景3: 服务器有 `.env.production` 或敏感文件
+
 ```
 处理: 不会被合并到本地（已在.gitignore中）
 结果: 只同步代码逻辑，跳过敏感配置
 ```
 
 ### 场景4: GitHub远程HEAD和服务器不同步
+
 ```
 处理: 优先GitHub（远程主干），然后合并服务器
 结果: 保持GitHub为真实主干
@@ -261,12 +276,14 @@ git log --oneline -3
 ## ✅ 检查清单
 
 执行前确认:
+
 - [ ] 本地工作树干净（git status显示clean）
 - [ ] GitHub远程可用
 - [ ] 服务器可网络访问
 - [ ] sshpass已安装 (`brew list sshpass`)
 
 执行后验证:
+
 - [ ] git log显示最新提交来自服务器
 - [ ] git push已完成，无pending commits
 - [ ] 新增文件在GitHub上可见
@@ -307,13 +324,13 @@ Claude: [自动执行上述脚本]
 
 ## 🚀 快速参考
 
-| 需求 | 命令 |
-|------|------|
-| 检查服务器新提交 | `git log origin/main..server/main` |
+| 需求                 | 命令                                               |
+| -------------------- | -------------------------------------------------- |
+| 检查服务器新提交     | `git log origin/main..server/main`                 |
 | 查看服务器修改的文件 | `git diff origin/main...server/main --name-status` |
-| 强制使用服务器版本 | `git checkout server/main -- <file>` |
-| 撤销同步 | `git reset --hard origin/main` |
-| 查看合并冲突 | `git diff` |
+| 强制使用服务器版本   | `git checkout server/main -- <file>`               |
+| 撤销同步             | `git reset --hard origin/main`                     |
+| 查看合并冲突         | `git diff`                                         |
 
 ---
 

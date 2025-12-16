@@ -3,6 +3,7 @@
 ## 📋 概述
 
 权限管理增强功能为"小凡看见"查看申请系统添加了两个关键功能：
+
 1. **权限撤销** - 已授予访问权限的用户可以撤销之前的同意
 2. **管理删除** - 系统管理员可以删除任何查看申请记录
 
@@ -13,6 +14,7 @@
 **目的**: 允许被申请者（toUserId）随时撤销已经批准的查看权限
 
 **API 端点**:
+
 ```
 PUT /api/v1/insights/requests/:requestId/revoke
 ```
@@ -20,6 +22,7 @@ PUT /api/v1/insights/requests/:requestId/revoke
 **请求参数**: 无（通过 URL 路径参数传递 requestId）
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -55,11 +58,13 @@ PUT /api/v1/insights/requests/:requestId/revoke
 ```
 
 **权限检查**:
+
 - ✅ 只有被申请者（toUserId）可以撤销权限
 - ✅ 只能撤销已批准（status: 'approved'）的申请
 - ✅ 撤销后状态变为 'revoked'，无法恢复为 'approved'
 
 **使用场景**:
+
 - 用户感觉隐私受到威胁，想撤销之前给予的访问权限
 - 用户与某人关系变化，需要撤销权限
 - 定期清理不需要的权限授予
@@ -69,11 +74,13 @@ PUT /api/v1/insights/requests/:requestId/revoke
 **目的**: 允许系统管理员删除任何查看申请记录
 
 **API 端点**:
+
 ```
 DELETE /api/v1/admin/insights/requests/:requestId
 ```
 
 **请求参数**:
+
 ```json
 {
   "adminNote": "删除原因（可选）"
@@ -81,6 +88,7 @@ DELETE /api/v1/admin/insights/requests/:requestId
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -90,11 +98,13 @@ DELETE /api/v1/admin/insights/requests/:requestId
 ```
 
 **权限检查**:
+
 - ✅ 只有管理员（adminAuthMiddleware）可以删除
 - ✅ 可以删除任何状态的申请（pending、approved、rejected、revoked）
 - ✅ 删除操作会被记录到审计日志（在删除前保存）
 
 **使用场景**:
+
 - 清理系统中的垃圾或重复申请
 - 违规用户的申请记录删除
 - 数据维护和清理
@@ -104,6 +114,7 @@ DELETE /api/v1/admin/insights/requests/:requestId
 ### InsightRequest 模型更新
 
 **新增字段**:
+
 ```javascript
 // 权限撤销时间戳
 revokedAt: {
@@ -113,15 +124,17 @@ revokedAt: {
 ```
 
 **状态枚举更新**:
+
 ```javascript
 // 从 ['pending', 'approved', 'rejected']
 // 更新为 ['pending', 'approved', 'rejected', 'revoked']
 ```
 
 **审计日志操作更新**:
+
 ```javascript
 // 新增操作类型
-enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke', 'admin_delete']
+enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke', 'admin_delete'];
 ```
 
 ## 🚀 前端集成
@@ -131,17 +144,13 @@ enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke',
 在管理后台的申请列表中，每行都有一个"删除"按钮：
 
 ```vue
-<el-button
-  type="danger"
-  size="small"
-  text
-  @click="handleDeleteRequest(row)"
->
+<el-button type="danger" size="small" text @click="handleDeleteRequest(row)">
   删除
 </el-button>
 ```
 
 **删除流程**:
+
 1. 用户点击"删除"按钮
 2. 弹出确认对话框："确认删除此申请吗？此操作不可恢复"
 3. 用户确认后调用 API：`DELETE /admin/insights/requests/:id`
@@ -150,6 +159,7 @@ enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke',
 ### 状态过滤
 
 筛选下拉菜单中新增"已撤销"选项：
+
 ```
 - 待审批 (pending)
 - 已同意 (approved)
@@ -161,6 +171,7 @@ enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke',
 ### 状态标签
 
 详情对话框中的审计日志显示新的操作标签：
+
 - `admin_delete` → "管理员删除"
 - `revoke` → "撤销权限"
 
@@ -292,6 +303,7 @@ curl -X GET http://localhost:3000/api/v1/admin/insights/requests \
 ## 📈 统计数据更新
 
 `GET /admin/insights/requests/stats` 统计接口现在包含：
+
 - 新增"已撤销"(revoked) 状态的计数
 - 平均响应时间仍基于 pending → (approved | rejected) 的转变
 

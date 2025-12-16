@@ -58,7 +58,15 @@ const insightRequestSchema = new mongoose.Schema(
       {
         action: {
           type: String,
-          enum: ['create', 'approve', 'reject', 'admin_approve', 'admin_reject', 'revoke', 'admin_delete'],
+          enum: [
+            'create',
+            'approve',
+            'reject',
+            'admin_approve',
+            'admin_reject',
+            'revoke',
+            'admin_delete'
+          ],
           required: true
         },
         actor: {

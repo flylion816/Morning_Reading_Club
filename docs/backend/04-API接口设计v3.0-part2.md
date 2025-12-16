@@ -11,6 +11,7 @@
 **请求格式**: `multipart/form-data`
 
 **请求参数**:
+
 ```
 file: 图片文件（必填）
 relatedType: 关联类型（checkin/comment/reply）
@@ -18,6 +19,7 @@ relatedId: 关联ID
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -38,12 +40,14 @@ relatedId: 关联ID
 ```
 
 **限制规则**:
+
 - 支持格式: jpg, jpeg, png, gif, webp
 - 单文件最大: 10MB
 - 图片尺寸: 最大4096x4096
 - 自动生成缩略图（宽度800px）
 
 **错误码**:
+
 - `40001`: 文件格式不支持
 - `40012`: 文件大小超限
 - `40013`: 图片尺寸超限
@@ -58,6 +62,7 @@ relatedId: 关联ID
 **请求格式**: `multipart/form-data`
 
 **请求参数**:
+
 ```
 file: 视频文件（必填）
 relatedType: 关联类型
@@ -65,6 +70,7 @@ relatedId: 关联ID
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -86,12 +92,14 @@ relatedId: 关联ID
 ```
 
 **限制规则**:
+
 - 支持格式: mp4, mov
 - 单文件最大: 100MB
 - 视频时长: 最长10分钟
 - 自动生成封面图
 
 **错误码**:
+
 - `40001`: 文件格式不支持
 - `40012`: 文件大小超限
 - `40014`: 视频时长超限
@@ -105,6 +113,7 @@ relatedId: 关联ID
 **请求格式**: `multipart/form-data`
 
 **请求参数**:
+
 ```
 file: 音频文件（必填）
 relatedType: 关联类型
@@ -112,6 +121,7 @@ relatedId: 关联ID
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -130,11 +140,13 @@ relatedId: 关联ID
 ```
 
 **限制规则**:
+
 - 支持格式: mp3, m4a, wav
 - 单文件最大: 20MB
 - 音频时长: 最长5分钟
 
 **错误码**:
+
 - `40001`: 文件格式不支持
 - `40012`: 文件大小超限
 - `40015`: 音频时长超限
@@ -146,6 +158,7 @@ relatedId: 关联ID
 **鉴权**: 需要（只能删除自己的文件）
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -160,6 +173,7 @@ relatedId: 关联ID
 ```
 
 **业务规则**:
+
 - 软删除（status = deleted）
 - 实际文件延迟7天后删除
 - 关联的打卡/评论/回复保留
@@ -175,6 +189,7 @@ relatedId: 关联ID
 **鉴权**: 可选
 
 **查询参数**:
+
 ```
 periodId: 期次ID（必填）
 type: 排行类型（total总打卡/streak连续打卡，默认total）
@@ -183,6 +198,7 @@ pageSize: 每页数量（默认50）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -239,6 +255,7 @@ pageSize: 每页数量（默认50）
 ```
 
 **说明**:
+
 - type=total: 按总打卡天数排序
 - type=streak: 按连续打卡天数排序
 - myRank: 当前用户的排名信息（需登录）
@@ -250,12 +267,14 @@ pageSize: 每页数量（默认50）
 **鉴权**: 可选
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认50）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -306,6 +325,7 @@ pageSize: 每页数量（默认50）
 **鉴权**: 需要
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -314,6 +334,7 @@ isRead: 是否已读（可选: true/false）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -384,6 +405,7 @@ isRead: 是否已读（可选: true/false）
 ```
 
 **通知类型**:
+
 - `like`: 点赞通知
 - `comment`: 评论通知
 - `reply`: 回复通知
@@ -397,6 +419,7 @@ isRead: 是否已读（可选: true/false）
 **鉴权**: 需要
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -417,6 +440,7 @@ isRead: 是否已读（可选: true/false）
 **鉴权**: 需要
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -436,6 +460,7 @@ isRead: 是否已读（可选: true/false）
 **鉴权**: 需要
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -465,6 +490,7 @@ isRead: 是否已读（可选: true/false）
 **鉴权**: 需要（管理员）
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -476,6 +502,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -515,6 +542,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要（管理员）
 
 **请求参数**:
+
 ```json
 {
   "status": "banned",
@@ -523,6 +551,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -544,6 +573,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要（管理员）
 
 **请求参数**:
+
 ```json
 {
   "name": "勇敢的心",
@@ -556,8 +586,8 @@ order: 排序方向（默认desc）
   "startDate": "2025-10-11",
   "endDate": "2025-11-13",
   "totalDays": 23,
-  "price": 99.00,
-  "originalPrice": 199.00,
+  "price": 99.0,
+  "originalPrice": 199.0,
   "maxEnrollment": 500,
   "isPublished": true,
   "sortOrder": 100
@@ -565,6 +595,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -587,6 +618,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要（管理员）
 
 **请求参数**:
+
 ```json
 {
   "periodId": 8,
@@ -608,6 +640,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -631,6 +664,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要（管理员）
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -640,6 +674,7 @@ periodId: 期次ID筛选
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -679,6 +714,7 @@ periodId: 期次ID筛选
 **鉴权**: 需要（管理员）
 
 **请求参数**:
+
 ```json
 {
   "status": "hidden",
@@ -687,6 +723,7 @@ periodId: 期次ID筛选
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -708,6 +745,7 @@ periodId: 期次ID筛选
 **鉴权**: 需要（管理员）
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -758,6 +796,7 @@ periodId: 期次ID筛选
 ### 14.1 错误码规范
 
 错误码格式: `XYZAA`
+
 - X: 错误类别（4=客户端错误, 5=服务器错误）
 - YZ: 错误子类
 - AA: 具体错误序号
@@ -766,114 +805,114 @@ periodId: 期次ID筛选
 
 #### 通用错误 (400xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 40001 | 参数验证失败 | 400 |
-| 40002 | 请求格式错误 | 400 |
-| 40003 | 缺少必填参数 | 400 |
-| 40004 | 参数类型错误 | 400 |
-| 40005 | 参数值超出范围 | 400 |
-| 40006 | 参数格式不正确 | 400 |
-| 40007 | 日期格式错误 | 400 |
-| 40008 | 枚举值不合法 | 400 |
-| 40009 | JSON解析失败 | 400 |
-| 40010 | 请求体过大 | 413 |
-| 40011 | URL长度超限 | 414 |
-| 40012 | 文件大小超限 | 413 |
-| 40013 | 图片尺寸超限 | 400 |
-| 40014 | 视频时长超限 | 400 |
-| 40015 | 音频时长超限 | 400 |
+| 错误码 | 说明           | HTTP状态码 |
+| ------ | -------------- | ---------- |
+| 40001  | 参数验证失败   | 400        |
+| 40002  | 请求格式错误   | 400        |
+| 40003  | 缺少必填参数   | 400        |
+| 40004  | 参数类型错误   | 400        |
+| 40005  | 参数值超出范围 | 400        |
+| 40006  | 参数格式不正确 | 400        |
+| 40007  | 日期格式错误   | 400        |
+| 40008  | 枚举值不合法   | 400        |
+| 40009  | JSON解析失败   | 400        |
+| 40010  | 请求体过大     | 413        |
+| 40011  | URL长度超限    | 414        |
+| 40012  | 文件大小超限   | 413        |
+| 40013  | 图片尺寸超限   | 400        |
+| 40014  | 视频时长超限   | 400        |
+| 40015  | 音频时长超限   | 400        |
 
 #### 认证错误 (401xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 40101 | Token已过期 | 401 |
-| 40102 | Token无效 | 401 |
-| 40103 | Token缺失 | 401 |
-| 40104 | Token格式错误 | 401 |
-| 40105 | 签名验证失败 | 401 |
-| 40106 | 刷新Token无效 | 401 |
+| 错误码 | 说明          | HTTP状态码 |
+| ------ | ------------- | ---------- |
+| 40101  | Token已过期   | 401        |
+| 40102  | Token无效     | 401        |
+| 40103  | Token缺失     | 401        |
+| 40104  | Token格式错误 | 401        |
+| 40105  | 签名验证失败  | 401        |
+| 40106  | 刷新Token无效 | 401        |
 
 #### 权限错误 (403xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 40301 | 无权限访问 | 403 |
-| 40302 | 未报名该期次 | 403 |
-| 40303 | 期次未发布 | 403 |
-| 40304 | 课节未发布 | 403 |
-| 40305 | 无权限编辑 | 403 |
-| 40306 | 无权限删除 | 403 |
-| 40307 | 无权限查看 | 403 |
-| 40308 | 管理员权限不足 | 403 |
+| 错误码 | 说明           | HTTP状态码 |
+| ------ | -------------- | ---------- |
+| 40301  | 无权限访问     | 403        |
+| 40302  | 未报名该期次   | 403        |
+| 40303  | 期次未发布     | 403        |
+| 40304  | 课节未发布     | 403        |
+| 40305  | 无权限编辑     | 403        |
+| 40306  | 无权限删除     | 403        |
+| 40307  | 无权限查看     | 403        |
+| 40308  | 管理员权限不足 | 403        |
 
 #### 资源不存在 (404xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 40401 | 资源不存在 | 404 |
-| 40402 | 用户不存在 | 404 |
-| 40403 | 期次不存在 | 404 |
-| 40404 | 课节不存在 | 404 |
-| 40405 | 打卡不存在 | 404 |
-| 40406 | 评论不存在 | 404 |
-| 40407 | 回复不存在 | 404 |
-| 40408 | 小凡看见不存在 | 404 |
-| 40409 | 文件不存在 | 404 |
-| 40410 | 路由不存在 | 404 |
+| 错误码 | 说明           | HTTP状态码 |
+| ------ | -------------- | ---------- |
+| 40401  | 资源不存在     | 404        |
+| 40402  | 用户不存在     | 404        |
+| 40403  | 期次不存在     | 404        |
+| 40404  | 课节不存在     | 404        |
+| 40405  | 打卡不存在     | 404        |
+| 40406  | 评论不存在     | 404        |
+| 40407  | 回复不存在     | 404        |
+| 40408  | 小凡看见不存在 | 404        |
+| 40409  | 文件不存在     | 404        |
+| 40410  | 路由不存在     | 404        |
 
 #### 业务逻辑错误 (409xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 40901 | 资源已存在 | 409 |
-| 40902 | 期次已结束 | 409 |
-| 40903 | 报名人数已满 | 409 |
-| 40904 | 不允许取消报名 | 409 |
-| 40905 | 不在打卡时间范围 | 409 |
-| 40906 | 已打卡过该课节 | 409 |
-| 40907 | 超过编辑时限 | 409 |
-| 40908 | 超过删除时限 | 409 |
-| 40909 | 已生成小凡看见 | 409 |
-| 40910 | 无需申请查看 | 409 |
-| 40911 | 已申请过 | 409 |
-| 40912 | 状态不允许操作 | 409 |
-| 40913 | 重复操作 | 409 |
-| 40914 | 昵称已被使用 | 409 |
+| 错误码 | 说明             | HTTP状态码 |
+| ------ | ---------------- | ---------- |
+| 40901  | 资源已存在       | 409        |
+| 40902  | 期次已结束       | 409        |
+| 40903  | 报名人数已满     | 409        |
+| 40904  | 不允许取消报名   | 409        |
+| 40905  | 不在打卡时间范围 | 409        |
+| 40906  | 已打卡过该课节   | 409        |
+| 40907  | 超过编辑时限     | 409        |
+| 40908  | 超过删除时限     | 409        |
+| 40909  | 已生成小凡看见   | 409        |
+| 40910  | 无需申请查看     | 409        |
+| 40911  | 已申请过         | 409        |
+| 40912  | 状态不允许操作   | 409        |
+| 40913  | 重复操作         | 409        |
+| 40914  | 昵称已被使用     | 409        |
 
 #### 频率限制 (429xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 42901 | 请求过于频繁 | 429 |
-| 42902 | IP被限流 | 429 |
-| 42903 | 用户被限流 | 429 |
+| 错误码 | 说明         | HTTP状态码 |
+| ------ | ------------ | ---------- |
+| 42901  | 请求过于频繁 | 429        |
+| 42902  | IP被限流     | 429        |
+| 42903  | 用户被限流   | 429        |
 
 ### 14.3 服务器错误 (5xxxx)
 
 #### 微信相关错误 (500xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 50001 | 用户已被封禁 | 403 |
-| 50002 | AI服务调用失败 | 500 |
-| 50003 | 云存储服务失败 | 500 |
-| 50004 | 支付服务失败 | 500 |
-| 50005 | 短信服务失败 | 500 |
+| 错误码 | 说明           | HTTP状态码 |
+| ------ | -------------- | ---------- |
+| 50001  | 用户已被封禁   | 403        |
+| 50002  | AI服务调用失败 | 500        |
+| 50003  | 云存储服务失败 | 500        |
+| 50004  | 支付服务失败   | 500        |
+| 50005  | 短信服务失败   | 500        |
 
 #### 系统错误 (500xx)
 
-| 错误码 | 说明 | HTTP状态码 |
-|--------|------|-----------|
-| 50101 | 服务器内部错误 | 500 |
-| 50102 | 数据库错误 | 500 |
-| 50103 | Redis错误 | 500 |
-| 50104 | 文件系统错误 | 500 |
-| 50105 | 网络请求失败 | 500 |
-| 50106 | 第三方服务错误 | 500 |
-| 50107 | 配置错误 | 500 |
-| 50108 | 系统维护中 | 503 |
+| 错误码 | 说明           | HTTP状态码 |
+| ------ | -------------- | ---------- |
+| 50101  | 服务器内部错误 | 500        |
+| 50102  | 数据库错误     | 500        |
+| 50103  | Redis错误      | 500        |
+| 50104  | 文件系统错误   | 500        |
+| 50105  | 网络请求失败   | 500        |
+| 50106  | 第三方服务错误 | 500        |
+| 50107  | 配置错误       | 500        |
+| 50108  | 系统维护中     | 503        |
 
 ### 14.4 错误响应示例
 
@@ -933,11 +972,13 @@ const loginRes = await fetch('https://api.example.com/api/v1/auth/wechat/login',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ code: 'wx_code_123' })
 });
-const { data: { accessToken } } = await loginRes.json();
+const {
+  data: { accessToken }
+} = await loginRes.json();
 
 // 2. 获取今日任务
 const todayRes = await fetch('https://api.example.com/api/v1/sections/today', {
-  headers: { 'Authorization': `Bearer ${accessToken}` }
+  headers: { Authorization: `Bearer ${accessToken}` }
 });
 const { data: todaySections } = await todayRes.json();
 
@@ -948,17 +989,19 @@ formData.append('relatedType', 'checkin');
 
 const uploadRes = await fetch('https://api.example.com/api/v1/upload/image', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${accessToken}` },
+  headers: { Authorization: `Bearer ${accessToken}` },
   body: formData
 });
-const { data: { fileUrl } } = await uploadRes.json();
+const {
+  data: { fileUrl }
+} = await uploadRes.json();
 
 // 4. 创建打卡
 const checkinRes = await fetch('https://api.example.com/api/v1/checkins', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${accessToken}`
+    Authorization: `Bearer ${accessToken}`
   },
   body: JSON.stringify({
     sectionId: 802,
@@ -974,7 +1017,7 @@ const insightRes = await fetch('https://api.example.com/api/v1/insights', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${accessToken}`
+    Authorization: `Bearer ${accessToken}`
   },
   body: JSON.stringify({
     checkinId: checkin.id,
@@ -993,7 +1036,7 @@ async function apiRequest(url, options = {}) {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAccessToken()}`,
+        Authorization: `Bearer ${getAccessToken()}`,
         ...options.headers
       }
     });
@@ -1006,20 +1049,20 @@ async function apiRequest(url, options = {}) {
         case 40101: // Token过期
           await refreshToken();
           return apiRequest(url, options); // 重试
-        
+
         case 40301: // 无权限
           showToast('无权限访问');
           navigateToLogin();
           break;
-        
+
         case 40906: // 已打卡
           showToast('您已打卡过该课节');
           break;
-        
+
         case 42901: // 请求过于频繁
           showToast('操作过于频繁，请稍后再试');
           break;
-        
+
         default:
           showToast(result.message || '请求失败');
       }
@@ -1131,27 +1174,32 @@ GET /api/v1/checkins?fields=id,content,likeCount,createdAt
 ## 附录：接口清单
 
 ### A.1 认证接口 (2个)
+
 - POST /auth/wechat/login - 微信登录
 - POST /auth/refresh - 刷新Token
 
 ### A.2 用户接口 (4个)
+
 - GET /users/me - 获取当前用户信息
 - PATCH /users/me - 更新用户信息
 - GET /users/me/stats - 获取用户统计
 - GET /users/:userId/checkins - 获取用户打卡列表
 
 ### A.3 期次接口 (4个)
+
 - GET /periods - 获取期次列表
 - GET /periods/:id - 获取期次详情
 - POST /periods/:id/enroll - 报名期次
 - DELETE /periods/:id/enroll - 取消报名
 
 ### A.4 课节接口 (3个)
+
 - GET /periods/:periodId/sections - 获取课节列表
 - GET /sections/:id - 获取课节详情
 - GET /sections/today - 获取今日任务
 
 ### A.5 打卡接口 (6个)
+
 - POST /checkins - 创建打卡
 - GET /checkins - 获取打卡列表
 - GET /checkins/:id - 获取打卡详情
@@ -1160,18 +1208,21 @@ GET /api/v1/checkins?fields=id,content,likeCount,createdAt
 - POST /checkins/:id/like - 点赞/取消点赞
 
 ### A.6 评论接口 (4个)
+
 - POST /checkins/:checkinId/comments - 创建评论
 - GET /checkins/:checkinId/comments - 获取评论列表
 - DELETE /comments/:id - 删除评论
 - POST /comments/:id/like - 点赞/取消点赞
 
 ### A.7 回复接口 (4个)
+
 - POST /comments/:commentId/replies - 创建回复
 - GET /comments/:commentId/replies - 获取回复列表
 - DELETE /replies/:id - 删除回复
 - POST /replies/:id/like - 点赞/取消点赞
 
 ### A.8 小凡看见接口 (7个)
+
 - POST /insights - 生成小凡看见
 - GET /insights/:id - 获取详情
 - GET /users/me/insights - 获取列表
@@ -1181,22 +1232,26 @@ GET /api/v1/checkins?fields=id,content,likeCount,createdAt
 - GET /insight-requests/received - 获取收到的申请
 
 ### A.9 文件接口 (4个)
+
 - POST /upload/image - 上传图片
 - POST /upload/video - 上传视频
 - POST /upload/audio - 上传音频
 - DELETE /files/:id - 删除文件
 
 ### A.10 排行榜接口 (2个)
+
 - GET /rankings/checkins - 打卡排行榜
 - GET /rankings/points - 积分排行榜
 
 ### A.11 通知接口 (4个)
+
 - GET /notifications - 获取通知列表
 - PATCH /notifications/:id/read - 标记已读
 - PATCH /notifications/read-all - 全部标记已读
 - GET /notifications/unread-count - 未读数量
 
 ### A.12 管理员接口 (7个)
+
 - GET /admin/users - 用户列表
 - PATCH /admin/users/:id/status - 更新用户状态
 - POST /admin/periods - 创建期次
@@ -1214,4 +1269,3 @@ GET /api/v1/checkins?fields=id,content,likeCount,createdAt
 **文档版本**: v3.0  
 **最后更新**: 2025-01-13  
 **文档状态**: 已完成
-

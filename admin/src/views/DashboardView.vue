@@ -26,7 +26,9 @@
         <el-card class="stat-card" @click="navigateTo('/payments')" style="cursor: pointer">
           <div class="stat-item">
             <div>
-              <div class="stat-value">¥{{ ((stats.totalPaymentAmount || 0) / 100).toFixed(2) }}</div>
+              <div class="stat-value">
+                ¥{{ ((stats.totalPaymentAmount || 0) / 100).toFixed(2) }}
+              </div>
               <div class="stat-label">支付总额</div>
             </div>
             <span class="stat-icon success">💰</span>
@@ -66,10 +68,7 @@
           <el-table-column prop="period" label="期次" width="150" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag
-                :type="getStatusType(row.approvalStatus)"
-                disable-transitions
-              >
+              <el-tag :type="getStatusType(row.approvalStatus)" disable-transitions>
                 {{ formatStatus(row.approvalStatus) }}
               </el-tag>
             </template>
@@ -81,12 +80,7 @@
           </el-table-column>
           <el-table-column label="操作" width="100" fixed="right">
             <template #default="{ row }">
-              <el-button
-                type="primary"
-                text
-                size="small"
-                @click="navigateTo('/enrollments')"
-              >
+              <el-button type="primary" text size="small" @click="navigateTo('/enrollments')">
                 查看
               </el-button>
             </template>
@@ -99,9 +93,7 @@
         <template #header>
           <div class="card-header">
             <span class="title">最近支付</span>
-            <el-button type="primary" text @click="navigateTo('/payments')">
-              查看全部
-            </el-button>
+            <el-button type="primary" text @click="navigateTo('/payments')"> 查看全部 </el-button>
           </div>
         </template>
 
@@ -114,16 +106,11 @@
           <el-table-column prop="orderNo" label="订单号" min-width="200" />
           <el-table-column prop="userName" label="用户" width="120" />
           <el-table-column label="金额" width="100">
-            <template #default="{ row }">
-              ¥{{ (row.amount / 100).toFixed(2) }}
-            </template>
+            <template #default="{ row }"> ¥{{ (row.amount / 100).toFixed(2) }} </template>
           </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag
-                :type="getPaymentStatusType(row.status)"
-                disable-transitions
-              >
+              <el-tag :type="getPaymentStatusType(row.status)" disable-transitions>
                 {{ formatPaymentStatus(row.status) }}
               </el-tag>
             </template>
@@ -140,68 +127,64 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import AdminLayout from '../components/AdminLayout.vue'
-import { statsApi, enrollmentApi, paymentApi } from '../services/api'
-import { ElMessage } from 'element-plus'
-import type { ListResponse, Enrollment, Payment } from '../types/api'
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import AdminLayout from '../components/AdminLayout.vue';
+import { statsApi, enrollmentApi, paymentApi } from '../services/api';
+import { ElMessage } from 'element-plus';
+import type { ListResponse, Enrollment, Payment } from '../types/api';
 
-const router = useRouter()
+const router = useRouter();
 
 const stats = ref({
   totalEnrollments: 0,
   pendingApprovals: 0,
   totalPayments: 0,
   activePeriods: 0
-})
+});
 
-const recentEnrollments = ref<Enrollment[]>([])
-const recentPayments = ref<Payment[]>([])
+const recentEnrollments = ref<Enrollment[]>([]);
+const recentPayments = ref<Payment[]>([]);
 
 onMounted(async () => {
-  await Promise.all([
-    loadStats(),
-    loadRecentEnrollments(),
-    loadRecentPayments()
-  ])
-})
+  await Promise.all([loadStats(), loadRecentEnrollments(), loadRecentPayments()]);
+});
 
 async function loadStats() {
   try {
-    const response = await statsApi.getDashboardStats()
-    stats.value = response
+    const response = await statsApi.getDashboardStats();
+    stats.value = response;
   } catch (err) {
-    ElMessage.error('加载统计数据失败')
+    ElMessage.error('加载统计数据失败');
   }
 }
 
 async function loadRecentEnrollments() {
   try {
-    const response = await enrollmentApi.getEnrollments({
+    const response = (await enrollmentApi.getEnrollments({
       limit: 5,
       sort: '-createdAt'
-    }) as unknown as ListResponse<Enrollment>
-    recentEnrollments.value = response.list || []
+    })) as unknown as ListResponse<Enrollment>;
+    recentEnrollments.value = response.list || [];
   } catch (err: any) {
-    ElMessage.error('加载报名数据失败')
+    ElMessage.error('加载报名数据失败');
   }
 }
 
 async function loadRecentPayments() {
   try {
-    const response = await paymentApi.getPayments({
+    const response = (await paymentApi.getPayments({
       limit: 5,
       sort: '-createdAt'
-    }) as unknown as ListResponse<Payment>
-    recentPayments.value = response.list || []
+    })) as unknown as ListResponse<Payment>;
+    recentPayments.value = response.list || [];
   } catch (err: any) {
-    ElMessage.error('加载支付数据失败')
+    ElMessage.error('加载支付数据失败');
   }
 }
 
 function navigateTo(path: string) {
-  router.push(path)
+  router.push(path);
 }
 
 function formatStatus(status: string): string {
@@ -209,8 +192,8 @@ function formatStatus(status: string): string {
     pending: '待审批',
     approved: '已批准',
     rejected: '已拒绝'
-  }
-  return statusMap[status] || status
+  };
+  return statusMap[status] || status;
 }
 
 function getStatusType(status: string): string {
@@ -218,8 +201,8 @@ function getStatusType(status: string): string {
     pending: 'warning',
     approved: 'success',
     rejected: 'danger'
-  }
-  return typeMap[status] || 'info'
+  };
+  return typeMap[status] || 'info';
 }
 
 function formatPaymentStatus(status: string): string {
@@ -229,8 +212,8 @@ function formatPaymentStatus(status: string): string {
     completed: '已完成',
     failed: '失败',
     cancelled: '已取消'
-  }
-  return statusMap[status] || status
+  };
+  return statusMap[status] || status;
 }
 
 function getPaymentStatusType(status: string): string {
@@ -240,18 +223,18 @@ function getPaymentStatusType(status: string): string {
     completed: 'success',
     failed: 'danger',
     cancelled: 'danger'
-  }
-  return typeMap[status] || 'info'
+  };
+  return typeMap[status] || 'info';
 }
 
 function formatDate(dateString: string): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN')
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
 }
 
 function formatCurrency(amount: number): string {
-  return (amount / 100).toFixed(2)
+  return (amount / 100).toFixed(2);
 }
 </script>
 

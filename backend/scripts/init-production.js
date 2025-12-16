@@ -37,9 +37,9 @@ const skipVerification = args.includes('--skip-verification');
 
 // 初始化颜色
 const log = (msg, color = 'cyan') => console.log(chalk[color](msg));
-const error = (msg) => console.error(chalk.red(msg));
-const success = (msg) => console.log(chalk.green(msg));
-const warn = (msg) => console.log(chalk.yellow(msg));
+const error = msg => console.error(chalk.red(msg));
+const success = msg => console.log(chalk.green(msg));
+const warn = msg => console.log(chalk.yellow(msg));
 
 /**
  * 验证环境配置
@@ -63,7 +63,7 @@ async function connectMongoDB() {
   log('\n🔗 连接MongoDB...');
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000
     });
     success('✓ MongoDB连接成功');
     return true;
@@ -110,7 +110,7 @@ async function createSuperAdmin() {
   try {
     // 检查是否已存在管理员
     const existingAdmin = await AdminUser.findOne({
-      email: 'admin@morningreading.com',
+      email: 'admin@morningreading.com'
     });
 
     if (existingAdmin) {
@@ -124,7 +124,7 @@ async function createSuperAdmin() {
       email: 'admin@morningreading.com',
       password: 'admin123456', // 密码会在模型中被哈希
       role: 'superadmin',
-      status: 'active',
+      status: 'active'
     });
 
     await superAdmin.save();
@@ -177,7 +177,7 @@ async function healthCheck() {
     const testUser = new User({
       openid: `test_${Date.now()}`,
       nickname: 'Test User',
-      gender: 'secret',
+      gender: 'secret'
     });
 
     const saved = await testUser.save();
@@ -196,7 +196,7 @@ async function healthCheck() {
  * 显示初始化摘要
  */
 function showSummary(results) {
-  const passed = Object.values(results).filter((v) => v).length;
+  const passed = Object.values(results).filter(v => v).length;
   const total = Object.keys(results).length;
 
   log('\n' + chalk.cyan.bold('═════════════════════════════════════════'), 'cyan');
@@ -211,7 +211,7 @@ function showSummary(results) {
       indexes: '数据库索引',
       admin: '超级管理员',
       migrations: '数据迁移',
-      health: '系统健康检查',
+      health: '系统健康检查'
     }[key];
 
     console.log(`  ${status} ${taskName}`);
@@ -312,5 +312,5 @@ module.exports = {
   createIndexes,
   createSuperAdmin,
   checkMigrations,
-  healthCheck,
+  healthCheck
 };

@@ -1,5 +1,5 @@
-const mongoose = require('mongoose')
-const bcrypt = require('bcryptjs')
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const adminSchema = new mongoose.Schema(
   {
@@ -51,38 +51,38 @@ const adminSchema = new mongoose.Schema(
   {
     timestamps: true
   }
-)
+);
 
 // 密码保存前加密
 adminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    return next()
+    return next();
   }
 
   try {
-    const salt = await bcrypt.genSalt(10)
-    this.password = await bcrypt.hash(this.password, salt)
-    next()
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 // 比较密码方法
 adminSchema.methods.comparePassword = async function (password) {
-  return bcrypt.compare(password, this.password)
-}
+  return bcrypt.compare(password, this.password);
+};
 
 // 获取公开信息（不包含敏感数据）
 adminSchema.methods.toJSON = function () {
-  const obj = this.toObject()
-  delete obj.password
-  return obj
-}
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
 
 // 创建索引
-adminSchema.index({ email: 1 })
-adminSchema.index({ status: 1 })
-adminSchema.index({ createdAt: -1 })
+adminSchema.index({ email: 1 });
+adminSchema.index({ status: 1 });
+adminSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Admin', adminSchema)
+module.exports = mongoose.model('Admin', adminSchema);

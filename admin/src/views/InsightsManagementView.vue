@@ -36,7 +36,10 @@
               :current-page="currentPage"
               :page-size="pageSize"
               :total="total"
-              @current-change="currentPage = $event; loadInsights()"
+              @current-change="
+                currentPage = $event;
+                loadInsights();
+              "
               style="margin-left: auto"
             />
           </div>
@@ -85,7 +88,11 @@
           <!-- 被看见人 -->
           <el-table-column label="被看见人" width="120">
             <template #default="{ row }">
-              {{ typeof row.targetUserId === 'object' ? (row.targetUserId?.nickname || '未指定') : '未指定' }}
+              {{
+                typeof row.targetUserId === 'object'
+                  ? row.targetUserId?.nickname || '未指定'
+                  : '未指定'
+              }}
             </template>
           </el-table-column>
 
@@ -109,7 +116,9 @@
           <el-table-column label="操作" width="220" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button type="primary" size="small" @click="handleEditInsight(row)">编辑</el-button>
+                <el-button type="primary" size="small" @click="handleEditInsight(row)"
+                  >编辑</el-button
+                >
                 <el-button
                   :type="row.isPublished ? 'warning' : 'success'"
                   size="small"
@@ -117,7 +126,9 @@
                 >
                   {{ row.isPublished ? '下架' : '发布' }}
                 </el-button>
-                <el-button type="danger" size="small" @click="handleDeleteInsight(row)">删除</el-button>
+                <el-button type="danger" size="small" @click="handleDeleteInsight(row)"
+                  >删除</el-button
+                >
               </div>
             </template>
           </el-table-column>
@@ -131,7 +142,11 @@
         width="900px"
         @close="resetForm"
       >
-        <el-form :model="editingInsight" label-width="120px" style="max-height: 600px; overflow-y: auto">
+        <el-form
+          :model="editingInsight"
+          label-width="120px"
+          style="max-height: 600px; overflow-y: auto"
+        >
           <!-- 基本信息 -->
           <div class="form-section">
             <div class="section-title">基本信息</div>
@@ -263,30 +278,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import AdminLayout from '../components/AdminLayout.vue'
-import { insightApi, periodApi, userApi } from '../services/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { ListResponse, Period, Insight, User } from '../types/api'
+import { ref, onMounted, computed } from 'vue';
+import AdminLayout from '../components/AdminLayout.vue';
+import { insightApi, periodApi, userApi } from '../services/api';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { ListResponse, Period, Insight, User } from '../types/api';
 
 // 数据
-const selectedPeriodId = ref<string>('')
-const periods = ref<Period[]>([])
-const insights = ref<Insight[]>([])
-const total = ref(0)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const saving = ref(false)
+const selectedPeriodId = ref<string>('');
+const periods = ref<Period[]>([]);
+const insights = ref<Insight[]>([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const saving = ref(false);
 
 // 编辑弹窗
-const editDialogVisible = ref(false)
-const isNewInsight = ref(false)
-const tagInput = ref('')
-const imagePreview = ref('')
+const editDialogVisible = ref(false);
+const isNewInsight = ref(false);
+const tagInput = ref('');
+const imagePreview = ref('');
 
 // 用户选择相关
-const userOptions = ref<User[]>([])
-const loadingUsers = ref(false)
+const userOptions = ref<User[]>([]);
+const loadingUsers = ref(false);
 
 const editingInsight = ref<Partial<Insight>>({
   periodId: '',
@@ -298,21 +313,23 @@ const editingInsight = ref<Partial<Insight>>({
   summary: '',
   tags: [],
   isPublished: false
-})
+});
 
 onMounted(() => {
-  loadPeriods()
-  loadInsights()  // 默认加载所有期次的数据
-})
+  loadPeriods();
+  loadInsights(); // 默认加载所有期次的数据
+});
 
 // 加载期次
 async function loadPeriods() {
   try {
-    const response = await periodApi.getPeriods({ limit: 100 }) as unknown as ListResponse<Period>
-    periods.value = response.list || []
+    const response = (await periodApi.getPeriods({
+      limit: 100
+    })) as unknown as ListResponse<Period>;
+    periods.value = response.list || [];
   } catch (err) {
-    console.error('加载期次失败:', err)
-    ElMessage.error('加载期次失败')
+    console.error('加载期次失败:', err);
+    ElMessage.error('加载期次失败');
   }
 }
 
@@ -322,29 +339,29 @@ async function loadInsights() {
     const params = {
       page: currentPage.value,
       limit: pageSize.value
-    }
+    };
     if (selectedPeriodId.value) {
-      ;(params as any).periodId = selectedPeriodId.value
+      (params as any).periodId = selectedPeriodId.value;
     }
 
-    const response = await insightApi.getInsights(params) as unknown as ListResponse<Insight>
+    const response = (await insightApi.getInsights(params)) as unknown as ListResponse<Insight>;
     // 检查响应结构，可能是 {list, pagination} 或直接是数组
     if (Array.isArray(response)) {
-      insights.value = response
-      total.value = response.length
+      insights.value = response;
+      total.value = response.length;
     } else {
-      insights.value = response.list || []
-      total.value = response.pagination?.total || response.total || 0
+      insights.value = response.list || [];
+      total.value = response.pagination?.total || response.total || 0;
     }
   } catch (err) {
-    console.error('加载小凡看见列表失败:', err)
-    ElMessage.error('加载小凡看见列表失败')
+    console.error('加载小凡看见列表失败:', err);
+    ElMessage.error('加载小凡看见列表失败');
   }
 }
 
 // 新增
 function handleAddInsight() {
-  isNewInsight.value = true
+  isNewInsight.value = true;
   editingInsight.value = {
     periodId: selectedPeriodId.value || '',
     targetUserId: '',
@@ -355,74 +372,71 @@ function handleAddInsight() {
     summary: '',
     tags: [],
     isPublished: false
-  }
-  tagInput.value = ''
-  imagePreview.value = ''
-  editDialogVisible.value = true
+  };
+  tagInput.value = '';
+  imagePreview.value = '';
+  editDialogVisible.value = true;
 }
 
 // 编辑
 function handleEditInsight(insight: any) {
-  isNewInsight.value = false
+  isNewInsight.value = false;
   // ✅ 修复：提取 ID 字符串而不是整个对象
   editingInsight.value = {
     ...insight,
     // 确保 targetUserId 和 periodId 都是字符串 ID
-    targetUserId: typeof insight.targetUserId === 'object'
-      ? insight.targetUserId?._id
-      : insight.targetUserId,
-    periodId: typeof insight.periodId === 'object'
-      ? insight.periodId?._id
-      : insight.periodId
-  }
-  tagInput.value = ''
-  imagePreview.value = insight.imageUrl || ''
+    targetUserId:
+      typeof insight.targetUserId === 'object' ? insight.targetUserId?._id : insight.targetUserId,
+    periodId: typeof insight.periodId === 'object' ? insight.periodId?._id : insight.periodId
+  };
+  tagInput.value = '';
+  imagePreview.value = insight.imageUrl || '';
 
   // ✅ 修复：如果有 targetUserId（已 populate 的对象），添加到 userOptions 中以便显示
   if (insight.targetUserId && typeof insight.targetUserId === 'object') {
     // 检查 userOptions 中是否已存在该用户，避免重复
-    const userExists = userOptions.value.some(u => u._id === insight.targetUserId._id)
+    const userExists = userOptions.value.some(u => u._id === insight.targetUserId._id);
     if (!userExists) {
-      userOptions.value.unshift(insight.targetUserId)
+      userOptions.value.unshift(insight.targetUserId);
     }
   }
 
-  editDialogVisible.value = true
+  editDialogVisible.value = true;
 }
 
 // 保存
 async function saveInsight() {
   // 验证必填字段
   if (!editingInsight.value.periodId) {
-    ElMessage.warning('请选择期次')
-    return
+    ElMessage.warning('请选择期次');
+    return;
   }
   if (!editingInsight.value.type) {
-    ElMessage.warning('请选择内容类型')
-    return
+    ElMessage.warning('请选择内容类型');
+    return;
   }
   if (!editingInsight.value.mediaType) {
-    ElMessage.warning('请选择媒体类型')
-    return
+    ElMessage.warning('请选择媒体类型');
+    return;
   }
   if (!editingInsight.value.content) {
-    ElMessage.warning('请输入内容')
-    return
+    ElMessage.warning('请输入内容');
+    return;
   }
 
   // 处理标签
   if (tagInput.value) {
     const newTags = tagInput.value
       .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t)
-    editingInsight.value.tags = [...new Set([...editingInsight.value.tags, ...newTags])]
+      .map(t => t.trim())
+      .filter(t => t);
+    editingInsight.value.tags = [...new Set([...editingInsight.value.tags, ...newTags])];
   }
 
   // ✅ 修复：确保 targetUserId 是字符串 ID，不是对象
   // 这是为了处理 el-select 可能返回的对象情况
   if (editingInsight.value.targetUserId && typeof editingInsight.value.targetUserId === 'object') {
-    editingInsight.value.targetUserId = editingInsight.value.targetUserId._id
+    editingInsight.value.targetUserId = editingInsight.value.targetUserId._id;
   }
 
   console.log('[InsightForm] 保存前的数据:', {
@@ -431,50 +445,50 @@ async function saveInsight() {
     type: editingInsight.value.type,
     mediaType: editingInsight.value.mediaType,
     content: editingInsight.value.content ? '有内容' : '无内容'
-  })
+  });
 
-  saving.value = true
+  saving.value = true;
   try {
     if (isNewInsight.value) {
-      await insightApi.createInsight(editingInsight.value)
-      ElMessage.success('创建成功')
+      await insightApi.createInsight(editingInsight.value);
+      ElMessage.success('创建成功');
     } else {
-      await insightApi.updateInsight(editingInsight.value._id, editingInsight.value)
-      ElMessage.success('保存成功')
+      await insightApi.updateInsight(editingInsight.value._id, editingInsight.value);
+      ElMessage.success('保存成功');
     }
-    editDialogVisible.value = false
-    await loadInsights()
+    editDialogVisible.value = false;
+    await loadInsights();
   } catch (err: any) {
-    console.error('[InsightForm] 保存失败，错误信息:', err)
-    ElMessage.error(err.message || '保存失败')
+    console.error('[InsightForm] 保存失败，错误信息:', err);
+    ElMessage.error(err.message || '保存失败');
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 // 发布/下架
 async function togglePublish(insight: any) {
-  const newStatus = !insight.isPublished
-  const action = newStatus ? '发布' : '下架'
+  const newStatus = !insight.isPublished;
+  const action = newStatus ? '发布' : '下架';
 
   try {
     await ElMessageBox.confirm(`确定要${action}吗？`, '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
-    })
+    });
 
     if (newStatus) {
-      await insightApi.publishInsight(insight._id)
+      await insightApi.publishInsight(insight._id);
     } else {
-      await insightApi.unpublishInsight(insight._id)
+      await insightApi.unpublishInsight(insight._id);
     }
-    ElMessage.success(`${action}成功`)
-    await loadInsights()
+    ElMessage.success(`${action}成功`);
+    await loadInsights();
   } catch (err: any) {
     if (err.message !== 'cancel') {
-      console.error(`${action}失败:`, err)
-      ElMessage.error(`${action}失败`)
+      console.error(`${action}失败:`, err);
+      ElMessage.error(`${action}失败`);
     }
   }
 }
@@ -486,15 +500,15 @@ async function handleDeleteInsight(insight: any) {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
-    })
+    });
 
-    await insightApi.deleteInsight(insight._id)
-    ElMessage.success('删除成功')
-    await loadInsights()
+    await insightApi.deleteInsight(insight._id);
+    ElMessage.success('删除成功');
+    await loadInsights();
   } catch (err: any) {
     if (err.message !== 'cancel') {
-      console.error('删除失败:', err)
-      ElMessage.error('删除失败')
+      console.error('删除失败:', err);
+      ElMessage.error('删除失败');
     }
   }
 }
@@ -502,30 +516,30 @@ async function handleDeleteInsight(insight: any) {
 // 图片预览
 function previewImage() {
   if (editingInsight.value.imageUrl) {
-    imagePreview.value = editingInsight.value.imageUrl
+    imagePreview.value = editingInsight.value.imageUrl;
   }
 }
 
 // 搜索用户
 async function searchUsers(keyword: string) {
   if (!keyword) {
-    userOptions.value = []
-    return
+    userOptions.value = [];
+    return;
   }
 
-  loadingUsers.value = true
+  loadingUsers.value = true;
   try {
-    const response = await userApi.getUsers({
+    const response = (await userApi.getUsers({
       search: keyword,
       limit: 20
-    }) as unknown as ListResponse<User>
+    })) as unknown as ListResponse<User>;
     // 过滤掉 nickname 为空的用户（email可能为空）
-    userOptions.value = (response.list || []).filter((user) => user.nickname)
+    userOptions.value = (response.list || []).filter(user => user.nickname);
   } catch (err) {
-    console.error('搜索用户失败:', err)
-    userOptions.value = []
+    console.error('搜索用户失败:', err);
+    userOptions.value = [];
   } finally {
-    loadingUsers.value = false
+    loadingUsers.value = false;
   }
 }
 
@@ -541,21 +555,21 @@ function resetForm() {
     summary: '',
     tags: [],
     isPublished: false
-  }
-  tagInput.value = ''
-  imagePreview.value = ''
+  };
+  tagInput.value = '';
+  imagePreview.value = '';
 }
 
 // 工具函数
 function stripHtmlTags(text: string): string {
   // 移除HTML标签，保留纯文本内容
-  return text.replace(/<[^>]+>/g, '').trim()
+  return text.replace(/<[^>]+>/g, '').trim();
 }
 
 function truncateText(text: string, length: number) {
   // 先移除HTML标签，再截断
-  const plainText = stripHtmlTags(text)
-  return plainText.length > length ? plainText.substring(0, length) + '...' : plainText
+  const plainText = stripHtmlTags(text);
+  return plainText.length > length ? plainText.substring(0, length) + '...' : plainText;
 }
 
 function formatDate(date: string) {
@@ -565,7 +579,7 @@ function formatDate(date: string) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  });
 }
 
 function getTypeLabel(type: string) {
@@ -574,8 +588,8 @@ function getTypeLabel(type: string) {
     weekly: '周报',
     monthly: '月报',
     insight: '看见'
-  }
-  return labels[type] || type
+  };
+  return labels[type] || type;
 }
 
 function getTypeColor(type: string) {
@@ -584,8 +598,8 @@ function getTypeColor(type: string) {
     weekly: 'warning',
     monthly: 'danger',
     insight: 'success'
-  }
-  return colors[type] || 'info'
+  };
+  return colors[type] || 'info';
 }
 </script>
 

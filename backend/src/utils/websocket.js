@@ -19,11 +19,11 @@ class WebSocketManager {
   initializeEvents() {
     if (!this.io) return;
 
-    this.io.on('connection', (socket) => {
+    this.io.on('connection', socket => {
       logger.info('客户端连接', { socketId: socket.id });
 
       // 用户加入（登录后首次连接）
-      socket.on('user:join', (data) => {
+      socket.on('user:join', data => {
         const { userId } = data;
         if (!userId) {
           logger.warn('user:join 没有提供 userId', { socketId: socket.id });
@@ -78,7 +78,7 @@ class WebSocketManager {
       });
 
       // 错误处理
-      socket.on('error', (error) => {
+      socket.on('error', error => {
         logger.error('Socket 错误', error, { socketId: socket.id });
       });
     });
@@ -192,7 +192,8 @@ class WebSocketManager {
     return {
       onlineUsers: this.userSockets.size,
       totalConnections: totalSockets,
-      avgConnectionsPerUser: this.userSockets.size > 0 ? (totalSockets / this.userSockets.size).toFixed(2) : 0
+      avgConnectionsPerUser:
+        this.userSockets.size > 0 ? (totalSockets / this.userSockets.size).toFixed(2) : 0
     };
   }
 }

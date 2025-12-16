@@ -73,19 +73,24 @@ async function wechatLogin(req, res, next) {
     // 生成Token
     const tokens = generateTokens(user);
 
-    res.json(success({
-      ...tokens,
-      user: {
-        _id: user._id,
-        openid: user.openid,
-        nickname: user.nickname,
-        avatar: user.avatar,
-        avatarUrl: user.avatarUrl,
-        role: user.role,
-        status: user.status,
-        isNewUser
-      }
-    }, '登录成功'));
+    res.json(
+      success(
+        {
+          ...tokens,
+          user: {
+            _id: user._id,
+            openid: user.openid,
+            nickname: user.nickname,
+            avatar: user.avatar,
+            avatarUrl: user.avatarUrl,
+            role: user.role,
+            status: user.status,
+            isNewUser
+          }
+        },
+        '登录成功'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -118,10 +123,15 @@ async function refreshToken(req, res, next) {
     // 生成新Token
     const tokens = generateTokens(user);
 
-    res.json(success({
-      accessToken: tokens.accessToken,
-      expiresIn: tokens.expiresIn
-    }, 'Token刷新成功'));
+    res.json(
+      success(
+        {
+          accessToken: tokens.accessToken,
+          expiresIn: tokens.expiresIn
+        },
+        'Token刷新成功'
+      )
+    );
   } catch (error) {
     next(error);
   }

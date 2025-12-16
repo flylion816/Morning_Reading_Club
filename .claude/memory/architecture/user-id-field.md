@@ -19,11 +19,13 @@
 ### 根本原因
 
 后端API返回的用户对象字段不一致：
+
 - 某些接口返回 `id: user._id`
 - 某些接口返回 `_id: user._id`
 - 前端代码期望 `userInfo._id`
 
 导致前端需要复杂的三级fallback逻辑来适配：
+
 ```javascript
 // ❌ 不好的做法：复杂的兼容性代码
 const userId = userInfo._id || userInfo.id || userInfo.openid;
@@ -97,6 +99,7 @@ checkLoginStatus() {
 ### 其他文件
 
 **无需修改的文件**：
+
 - `miniprogram/pages/insights/insights.js` - 自动兼容，因为后端现在返回正确的 `_id`
 - `miniprogram/services/*.js` - 所有service层代码自动受益，无需修改
 
@@ -104,13 +107,13 @@ checkLoginStatus() {
 
 ## 修改清单
 
-| 文件 | 行号 | 修改内容 |
-|------|------|--------|
-| auth.controller.js | 56 | `id: user._id` → `_id: user._id` |
-| user.controller.js | 18 | `id: user._id` → `_id: user._id` |
-| user.controller.js | 61 | `id: user._id` → `_id: user._id` |
-| user.controller.js | 181 | `id: userId` → `_id: userId` |
-| app.js | 37-77 | 移除47行fallback，替换为简洁代码 |
+| 文件               | 行号  | 修改内容                         |
+| ------------------ | ----- | -------------------------------- |
+| auth.controller.js | 56    | `id: user._id` → `_id: user._id` |
+| user.controller.js | 18    | `id: user._id` → `_id: user._id` |
+| user.controller.js | 61    | `id: user._id` → `_id: user._id` |
+| user.controller.js | 181   | `id: userId` → `_id: userId`     |
+| app.js             | 37-77 | 移除47行fallback，替换为简洁代码 |
 
 **相关提交**：bcb0a81
 
@@ -225,6 +228,7 @@ git push https://$(gh auth token)@github.com/flylion816/Morning_Reading_Club.git
 如果需要快速手动恢复：
 
 **backend/src/controllers/auth.controller.js（第56行）**：
+
 ```javascript
 // 从 _id: user._id 改回 id: user._id
 user: {
@@ -234,6 +238,7 @@ user: {
 ```
 
 **backend/src/controllers/user.controller.js**：
+
 ```javascript
 // 第18行：从 _id 改回 id
 // 第61行：从 _id 改回 id
@@ -241,6 +246,7 @@ user: {
 ```
 
 **miniprogram/app.js（第37-77行）**：
+
 ```javascript
 // 恢复47行的复杂fallback逻辑
 // （参考前面的版本）
@@ -251,6 +257,7 @@ user: {
 ## 相关问题
 
 此决策解决了以下问题：
+
 - insights页面显示 `当前用户ID: undefined`
 - 用户无法看到被分配的insights
 - 前后端字段命名不一致
@@ -260,14 +267,17 @@ user: {
 ## 关键教训
 
 ✅ **标准化优于兼容性**
+
 - 保持代码规范，比用兼容性hack更重要
 - 前后端字段必须从源头保持一致
 
 ✅ **从源头解决问题**
+
 - 不要隐藏不一致，要消除不一致
 - 兼容性代码只会积累更多技术债
 
 ❌ **避免三级fallback**
+
 - `A || B || C` 的模式容易隐藏bug
 - 代码变得难以维护和测试
 

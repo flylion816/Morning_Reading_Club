@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 const path = require('path');
-const envFile = process.env.NODE_ENV === 'production'
-  ? path.join(__dirname, '../.env.production')
-  : path.join(__dirname, '../.env');
+const envFile =
+  process.env.NODE_ENV === 'production'
+    ? path.join(__dirname, '../.env.production')
+    : path.join(__dirname, '../.env');
 require('dotenv').config({ path: envFile });
 
 const mongoose = require('mongoose');
@@ -294,10 +295,7 @@ async function initMongoDB() {
 
     // 更新课程的打卡计数
     for (let i = 0; i < checkins.length; i++) {
-      await Section.updateOne(
-        { _id: sections[i]._id },
-        { $inc: { checkinCount: 1 } }
-      );
+      await Section.updateOne({ _id: sections[i]._id }, { $inc: { checkinCount: 1 } });
     }
     console.log('✅ 更新课程打卡计数\n');
 
@@ -362,7 +360,6 @@ async function initMongoDB() {
     console.log(`   - 小凡看见: ${mockInsights.length}\n`);
 
     process.exit(0);
-
   } catch (error) {
     console.error('❌ MongoDB 初始化失败:', error.message);
     console.error(error);

@@ -48,153 +48,153 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { uploadApi } from '../services/api'
+import { ref, watch } from 'vue';
+import { ElMessage } from 'element-plus';
+import { uploadApi } from '../services/api';
 
 interface Props {
-  modelValue?: string
-  maxLength?: number
+  modelValue?: string;
+  maxLength?: number;
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: string): void
-  (e: 'imageUpload', file: File): void
-  (e: 'imageUploaded', url: string): void
+  (e: 'update:modelValue', value: string): void;
+  (e: 'imageUpload', file: File): void;
+  (e: 'imageUploaded', url: string): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   maxLength: undefined
-})
+});
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
-const content = ref(props.modelValue)
-const editorRef = ref<HTMLTextAreaElement>()
-const imageInput = ref<HTMLInputElement>()
-const uploading = ref(false)
+const content = ref(props.modelValue);
+const editorRef = ref<HTMLTextAreaElement>();
+const imageInput = ref<HTMLInputElement>();
+const uploading = ref(false);
 
 watch(
   () => props.modelValue,
-  (newVal) => {
-    content.value = newVal
+  newVal => {
+    content.value = newVal;
   }
-)
+);
 
 function updateContent() {
   if (props.maxLength && content.value.length > props.maxLength) {
-    content.value = content.value.substring(0, props.maxLength)
+    content.value = content.value.substring(0, props.maxLength);
   }
-  emit('update:modelValue', content.value)
+  emit('update:modelValue', content.value);
 }
 
 function insertFormat(format: string) {
-  const textarea = editorRef.value
-  if (!textarea) return
+  const textarea = editorRef.value;
+  if (!textarea) return;
 
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const selectedText = content.value.substring(start, end) || '文本'
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = content.value.substring(start, end) || '文本';
 
-  let formatted = ''
+  let formatted = '';
 
   switch (format) {
     case 'bold':
-      formatted = `**${selectedText}**`
-      break
+      formatted = `**${selectedText}**`;
+      break;
     case 'italic':
-      formatted = `*${selectedText}*`
-      break
+      formatted = `*${selectedText}*`;
+      break;
     case 'underline':
-      formatted = `<u>${selectedText}</u>`
-      break
+      formatted = `<u>${selectedText}</u>`;
+      break;
     case 'h1':
-      formatted = `# ${selectedText}`
-      break
+      formatted = `# ${selectedText}`;
+      break;
     case 'h2':
-      formatted = `## ${selectedText}`
-      break
+      formatted = `## ${selectedText}`;
+      break;
     case 'h3':
-      formatted = `### ${selectedText}`
-      break
+      formatted = `### ${selectedText}`;
+      break;
     case 'ul':
-      formatted = `- ${selectedText}`
-      break
+      formatted = `- ${selectedText}`;
+      break;
     case 'ol':
-      formatted = `1. ${selectedText}`
-      break
+      formatted = `1. ${selectedText}`;
+      break;
     case 'blockquote':
-      formatted = `> ${selectedText}`
-      break
+      formatted = `> ${selectedText}`;
+      break;
     case 'link':
-      formatted = `[${selectedText}](url)`
-      break
+      formatted = `[${selectedText}](url)`;
+      break;
     case 'clear':
-      formatted = selectedText
-      break
+      formatted = selectedText;
+      break;
     default:
-      return
+      return;
   }
 
-  const newContent = content.value.substring(0, start) + formatted + content.value.substring(end)
-  content.value = newContent
-  updateContent()
+  const newContent = content.value.substring(0, start) + formatted + content.value.substring(end);
+  content.value = newContent;
+  updateContent();
 
   // 更新光标位置
   setTimeout(() => {
-    textarea.selectionStart = start + formatted.length
-    textarea.selectionEnd = start + formatted.length
-    textarea.focus()
-  }, 0)
+    textarea.selectionStart = start + formatted.length;
+    textarea.selectionEnd = start + formatted.length;
+    textarea.focus();
+  }, 0);
 }
 
 function triggerImageUpload() {
-  imageInput.value?.click()
+  imageInput.value?.click();
 }
 
 async function handleImageUpload(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
 
   // 验证文件类型
   if (!file.type.startsWith('image/')) {
-    ElMessage.error('请选择图片文件')
-    return
+    ElMessage.error('请选择图片文件');
+    return;
   }
 
   // 验证文件大小 (10MB)
   if (file.size > 10 * 1024 * 1024) {
-    ElMessage.error('图片大小不能超过 10MB')
-    return
+    ElMessage.error('图片大小不能超过 10MB');
+    return;
   }
 
-  uploading.value = true
+  uploading.value = true;
   try {
-    const response = await uploadApi.uploadFile(file)
-    const imageUrl = response.data.url
+    const response = await uploadApi.uploadFile(file);
+    const imageUrl = response.data.url;
 
     // 在编辑器中插入图片链接
-    const textarea = editorRef.value
+    const textarea = editorRef.value;
     if (textarea) {
-      const start = textarea.selectionStart
-      const imageMarkdown = `![${file.name}](${imageUrl})`
+      const start = textarea.selectionStart;
+      const imageMarkdown = `![${file.name}](${imageUrl})`;
       const newContent =
-        content.value.substring(0, start) + imageMarkdown + content.value.substring(start)
-      content.value = newContent
-      updateContent()
+        content.value.substring(0, start) + imageMarkdown + content.value.substring(start);
+      content.value = newContent;
+      updateContent();
     }
 
-    emit('imageUploaded', imageUrl)
-    ElMessage.success('图片上传成功')
+    emit('imageUploaded', imageUrl);
+    ElMessage.success('图片上传成功');
   } catch (err) {
-    console.error('Image upload failed:', err)
-    ElMessage.error('图片上传失败，请重试')
+    console.error('Image upload failed:', err);
+    ElMessage.error('图片上传失败，请重试');
   } finally {
-    uploading.value = false
+    uploading.value = false;
     // 重置输入框
-    input.value = ''
+    input.value = '';
   }
 }
 </script>

@@ -47,12 +47,16 @@ async function showAdmins() {
 
       console.log('\n【权限管理】');
       console.log(`  • 角色 (role):         ${adminObj.role}`);
-      console.log(`  • 权限列表 (permissions): ${adminObj.permissions && adminObj.permissions.length > 0 ? adminObj.permissions.join(', ') : '(无)'}`);
+      console.log(
+        `  • 权限列表 (permissions): ${adminObj.permissions && adminObj.permissions.length > 0 ? adminObj.permissions.join(', ') : '(无)'}`
+      );
 
       console.log('\n【账户状态】');
       console.log(`  • 状态 (status):        ${adminObj.status}`);
       console.log(`  • 登录次数 (loginCount): ${adminObj.loginCount}`);
-      console.log(`  • 最后登录 (lastLoginAt): ${adminObj.lastLoginAt ? new Date(adminObj.lastLoginAt).toLocaleString() : '(从未登录)'}`);
+      console.log(
+        `  • 最后登录 (lastLoginAt): ${adminObj.lastLoginAt ? new Date(adminObj.lastLoginAt).toLocaleString() : '(从未登录)'}`
+      );
 
       console.log('\n【时间戳】');
       console.log(`  • 创建时间 (createdAt): ${new Date(adminObj.createdAt).toLocaleString()}`);
@@ -76,13 +80,14 @@ async function showAdmins() {
     console.log('─'.repeat(80));
     Object.keys(schema.paths).forEach(path => {
       const schemaType = schema.paths[path];
-      console.log(`  • ${path}: ${schemaType.instance} ${schemaType.isRequired ? '[必需]' : '[可选]'}`);
+      console.log(
+        `  • ${path}: ${schemaType.instance} ${schemaType.isRequired ? '[必需]' : '[可选]'}`
+      );
     });
 
     console.log('\n' + '═'.repeat(80) + '\n');
 
     process.exit(0);
-
   } catch (error) {
     console.error('❌ 查询失败:', error.message);
     console.error(error);

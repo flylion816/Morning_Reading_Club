@@ -47,15 +47,17 @@ async function getCommentsByCheckin(req, res, next) {
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(success({
-      list: comments,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: comments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }

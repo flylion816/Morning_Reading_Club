@@ -128,6 +128,7 @@ db.insights.createIndex({ targetUserId: 1 });
 ## 扩展功能
 
 后续可以添加：
+
 - 积分系统表
 - 徽章成就表
 - 消息通知表

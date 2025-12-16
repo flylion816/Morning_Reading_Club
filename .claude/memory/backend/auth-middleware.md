@@ -21,7 +21,7 @@ router.get('/insights/:id', getInsights);
 router.get('/insights/:id', authMiddleware, getInsights);
 
 // ✅ 对于多个需要认证的路由
-router.use(authMiddleware);  // 所有后续路由都需要认证
+router.use(authMiddleware); // 所有后续路由都需要认证
 
 // ✅ 或者为特定路由组应用
 const authRoutes = express.Router();
@@ -41,12 +41,14 @@ router.use('/api/v1/user', authRoutes);
 - [ ] 验证：使用 `console.log(req.user)` 查看用户信息
 
 **相关代码位置**：
+
 - 中间件：`backend/src/middleware/auth.js`
 - 路由文件：`backend/src/routes/*.routes.js`
 
 **相关提交**：83e2671
 
 **经验教训**：
+
 - ⚠️ **路由和控制器是分离的**：仅在函数中检查 `req.user` 不够，必须在路由层应用认证
 - ⚠️ 认证中间件必须在业务逻辑前应用
 - ✅ 所有需要登录的API都要明确应用认证中间件
@@ -93,10 +95,10 @@ function getInsights(req, res) {
 
 ```javascript
 // ❌ 错误1：忘记应用中间件
-router.get('/insights', getInsights);  // req.user 为 undefined
+router.get('/insights', getInsights); // req.user 为 undefined
 
 // ❌ 错误2：中间件顺序错误
-router.get('/insights', getInsights, authMiddleware);  // 太晚了
+router.get('/insights', getInsights, authMiddleware); // 太晚了
 
 // ❌ 错误3：条件判断不完整
 if (req.user) {
@@ -112,6 +114,7 @@ if (req.user) {
 **问题现象**：管理后台登录页面提示使用邮箱 `admin@morningreading.com` 和密码 `admin123456`，但登录时返回"邮箱或密码错误"
 
 **根本原因**：初始化超级管理员时使用的密码与文档/页面提示不一致
+
 - 页面提示：`admin123456`
 - 初始化代码：`password123`
 - 两个密码不匹配导致登录失败
@@ -125,7 +128,7 @@ if (req.user) {
 const superAdmin = new Admin({
   name: 'SuperAdmin',
   email: 'admin@morningreading.com',
-  password: 'password123',  // 与文档不一致
+  password: 'password123', // 与文档不一致
   role: 'superadmin',
   status: 'active'
 });
@@ -134,7 +137,7 @@ const superAdmin = new Admin({
 const superAdmin = new Admin({
   name: 'SuperAdmin',
   email: 'admin@morningreading.com',
-  password: 'admin123456',  // 与文档/UI提示一致
+  password: 'admin123456', // 与文档/UI提示一致
   role: 'superadmin',
   status: 'active'
 });
@@ -158,6 +161,7 @@ curl -X POST http://localhost:3000/api/v1/admin/auth/admin/login \
 **相关提交**：be36026
 
 **经验教训**：
+
 - ⚠️ **初始化数据必须与文档一致**：密码、凭证等敏感信息必须统一
 - ⚠️ 如果更改初始密码，需要同时更新所有文档（CLAUDE.md、快速参考等）
 - ✅ 建议将初始凭证提取为环境变量或常量，而不是硬编码
@@ -188,6 +192,7 @@ const superAdmin = new Admin({
 **根本原因**：后端路由定义只有 `/submit` 和 `/simple` 子路由，缺少根路径的 POST 处理
 
 **前端调用代码**：`miniprogram/services/enrollment.service.js`
+
 ```javascript
 // 第115行
 submitEnrollment(data) {
@@ -205,6 +210,7 @@ enrollPeriod(periodId) {
 ```
 
 **后端路由定义**：`backend/src/routes/enrollment.routes.js`
+
 ```javascript
 // ❌ 缺少这个路由，导致 POST / 返回404
 router.post('/', authMiddleware, submitEnrollmentForm);
@@ -218,10 +224,11 @@ router.post('/simple', authMiddleware, enrollPeriod);
 
 ```javascript
 // 在用户路由部分最前面添加
-router.post('/', authMiddleware, submitEnrollmentForm);  // 处理 POST /
+router.post('/', authMiddleware, submitEnrollmentForm); // 处理 POST /
 ```
 
 **修复内容**：
+
 - 在 `enrollment.routes.js` 第40行添加了 `router.post('/')`
 - 使用 `submitEnrollmentForm` 控制器处理小程序的报名请求
 - 现在 `POST /api/v1/enrollments` 可以正常工作
@@ -229,6 +236,7 @@ router.post('/', authMiddleware, submitEnrollmentForm);  // 处理 POST /
 **相关提交**：d358a75
 
 **经验教训**：
+
 - ⚠️ **前后端接口定义必须一致**：小程序调用什么端点，后端就必须定义什么端点
 - ⚠️ **根路由容易被遗漏**：特别是有多个子路由时，容易忘记处理根路径
 - ⚠️ **末尾斜杠会被规范化**：`/enrollments/` 和 `/enrollments` 通常被当作同一个路由
@@ -240,9 +248,9 @@ router.post('/', authMiddleware, submitEnrollmentForm);  // 处理 POST /
 
 ```javascript
 // ✅ 推荐的路由组织方式
-router.post('/', authMiddleware, defaultHandler);        // 根路由
-router.post('/submit', authMiddleware, submitHandler);   // 子路由
-router.post('/simple', authMiddleware, simpleHandler);   // 子路由
+router.post('/', authMiddleware, defaultHandler); // 根路由
+router.post('/submit', authMiddleware, submitHandler); // 子路由
+router.post('/simple', authMiddleware, simpleHandler); // 子路由
 
 // 确保 GET 和 DELETE 等其他方法也有根路由处理
 router.get('/', authMiddleware, listHandler);

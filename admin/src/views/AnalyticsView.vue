@@ -26,7 +26,8 @@
               <div class="metric-label">总用户数</div>
               <div class="metric-trend">
                 <span :class="['trend', (analytics.userTrend || 0) > 0 ? 'up' : 'down']">
-                  {{ (analytics.userTrend || 0) > 0 ? '↑' : '↓' }} {{ Math.abs(analytics.userTrend || 0) }}%
+                  {{ (analytics.userTrend || 0) > 0 ? '↑' : '↓' }}
+                  {{ Math.abs(analytics.userTrend || 0) }}%
                 </span>
               </div>
             </div>
@@ -41,7 +42,8 @@
               <div class="metric-label">已完成报名</div>
               <div class="metric-trend">
                 <span :class="['trend', (analytics.enrollmentTrend || 0) > 0 ? 'up' : 'down']">
-                  {{ (analytics.enrollmentTrend || 0) > 0 ? '↑' : '↓' }} {{ Math.abs(analytics.enrollmentTrend || 0) }}%
+                  {{ (analytics.enrollmentTrend || 0) > 0 ? '↑' : '↓' }}
+                  {{ Math.abs(analytics.enrollmentTrend || 0) }}%
                 </span>
               </div>
             </div>
@@ -56,7 +58,8 @@
               <div class="metric-label">总收入</div>
               <div class="metric-trend">
                 <span :class="['trend', (analytics.revenueTrend || 0) > 0 ? 'up' : 'down']">
-                  {{ (analytics.revenueTrend || 0) > 0 ? '↑' : '↓' }} {{ Math.abs(analytics.revenueTrend || 0) }}%
+                  {{ (analytics.revenueTrend || 0) > 0 ? '↑' : '↓' }}
+                  {{ Math.abs(analytics.revenueTrend || 0) }}%
                 </span>
               </div>
             </div>
@@ -67,7 +70,7 @@
         <el-card class="metric-card">
           <div class="metric-content">
             <div class="metric-info">
-              <div class="metric-value">{{ ((analytics.conversionRate || 0).toFixed(1)) }}%</div>
+              <div class="metric-value">{{ (analytics.conversionRate || 0).toFixed(1) }}%</div>
               <div class="metric-label">转化率</div>
               <div class="metric-trend">
                 <span class="trend" :class="(analytics.conversionRate || 0) > 50 ? 'up' : 'down'">
@@ -128,25 +131,16 @@
         <template #header>
           <div class="card-header">
             <span>📋 每日数据统计</span>
-            <el-button type="primary" text @click="exportData">
-              📥 导出数据
-            </el-button>
+            <el-button type="primary" text @click="exportData"> 📥 导出数据 </el-button>
           </div>
         </template>
 
-        <el-table
-          :data="dailyStats"
-          stripe
-          style="width: 100%"
-          max-height="600"
-        >
+        <el-table :data="dailyStats" stripe style="width: 100%" max-height="600">
           <el-table-column prop="date" label="日期" width="120" />
           <el-table-column prop="enrollmentCount" label="新增报名" width="100" />
           <el-table-column prop="paymentCount" label="支付笔数" width="100" />
           <el-table-column prop="paymentAmount" label="支付金额" width="120">
-            <template #default="{ row }">
-              ¥{{ formatNumber(row.paymentAmount || 0) }}
-            </template>
+            <template #default="{ row }"> ¥{{ formatNumber(row.paymentAmount || 0) }} </template>
           </el-table-column>
           <el-table-column prop="activeUsers" label="活跃用户" width="100" />
           <el-table-column prop="newUsers" label="新增用户" width="100" />
@@ -157,14 +151,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
-import AdminLayout from '@/components/AdminLayout.vue'
-import { statsApi } from '../services/api'
+import { ref, onMounted, nextTick } from 'vue';
+import { ElMessage } from 'element-plus';
+import * as echarts from 'echarts';
+import AdminLayout from '@/components/AdminLayout.vue';
+import { statsApi } from '../services/api';
 
 // 数据
-const dateRange = ref<[Date, Date] | null>(null)
+const dateRange = ref<[Date, Date] | null>(null);
 const analytics = ref({
   totalUsers: 0,
   completedEnrollments: 0,
@@ -173,45 +167,45 @@ const analytics = ref({
   userTrend: 0,
   enrollmentTrend: 0,
   revenueTrend: 0
-})
-const dailyStats = ref([])
+});
+const dailyStats = ref([]);
 
 // 图表引用
-const enrollmentChartRef = ref()
-const paymentMethodChartRef = ref()
-const periodPopularityChartRef = ref()
-const enrollmentStatusChartRef = ref()
+const enrollmentChartRef = ref();
+const paymentMethodChartRef = ref();
+const periodPopularityChartRef = ref();
+const enrollmentStatusChartRef = ref();
 
 // 图表实例
-let enrollmentChart: echarts.ECharts | null = null
-let paymentMethodChart: echarts.ECharts | null = null
-let periodPopularityChart: echarts.ECharts | null = null
-let enrollmentStatusChart: echarts.ECharts | null = null
+let enrollmentChart: echarts.ECharts | null = null;
+let paymentMethodChart: echarts.ECharts | null = null;
+let periodPopularityChart: echarts.ECharts | null = null;
+let enrollmentStatusChart: echarts.ECharts | null = null;
 
 // 格式化数字（金额单位：分 -> 元）
 const formatNumber = (value: number) => {
   // 金额以分为单位，需要除以100转换为元
-  const yuan = value / 100
+  const yuan = value / 100;
   if (yuan >= 10000) {
-    return ((yuan / 10000).toFixed(1)) + '万'
+    return (yuan / 10000).toFixed(1) + '万';
   }
-  return yuan.toFixed(2)
-}
+  return yuan.toFixed(2);
+};
 
 // 日期范围变化
 const onDateRangeChange = () => {
-  loadAnalytics()
-}
+  loadAnalytics();
+};
 
 // 刷新数据
 const refreshData = async () => {
-  await loadAnalytics()
-  ElMessage.success('数据已刷新')
-}
+  await loadAnalytics();
+  ElMessage.success('数据已刷新');
+};
 
 // 导出数据
 const exportData = () => {
-  const headers = ['日期', '新增报名', '支付笔数', '支付金额', '活跃用户', '新增用户']
+  const headers = ['日期', '新增报名', '支付笔数', '支付金额', '活跃用户', '新增用户'];
   const rows = dailyStats.value.map((stat: any) => [
     stat.date,
     stat.enrollmentCount,
@@ -219,37 +213,35 @@ const exportData = () => {
     stat.paymentAmount,
     stat.activeUsers,
     stat.newUsers
-  ])
+  ]);
 
-  const csv = [headers, ...rows]
-    .map(row => row.join(','))
-    .join('\n')
+  const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
 
-  link.setAttribute('href', url)
-  link.setAttribute('download', 'analytics_' + new Date().getTime() + '.csv')
-  link.style.visibility = 'hidden'
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'analytics_' + new Date().getTime() + '.csv');
+  link.style.visibility = 'hidden';
 
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 
-  ElMessage.success('数据已导出')
-}
+  ElMessage.success('数据已导出');
+};
 
 // 初始化报名趋势图
 const initEnrollmentChart = (data: any) => {
-  if (!enrollmentChartRef.value) return
+  if (!enrollmentChartRef.value) return;
 
   if (!enrollmentChart) {
-    enrollmentChart = echarts.init(enrollmentChartRef.value)
+    enrollmentChart = echarts.init(enrollmentChartRef.value);
   }
 
-  const dates = data.map((item: any) => item.date || '')
-  const counts = data.map((item: any) => item.enrollmentCount || 0)
+  const dates = data.map((item: any) => item.date || '');
+  const counts = data.map((item: any) => item.enrollmentCount || 0);
 
   const option = {
     tooltip: { trigger: 'axis' },
@@ -264,17 +256,17 @@ const initEnrollmentChart = (data: any) => {
         areaStyle: { color: 'rgba(74, 144, 226, 0.2)' }
       }
     ]
-  }
+  };
 
-  enrollmentChart.setOption(option)
-}
+  enrollmentChart.setOption(option);
+};
 
 // 初始化支付方式图
 const initPaymentMethodChart = (data: any) => {
-  if (!paymentMethodChartRef.value) return
+  if (!paymentMethodChartRef.value) return;
 
   if (!paymentMethodChart) {
-    paymentMethodChart = echarts.init(paymentMethodChartRef.value)
+    paymentMethodChart = echarts.init(paymentMethodChartRef.value);
   }
 
   const option = {
@@ -299,21 +291,21 @@ const initPaymentMethodChart = (data: any) => {
         }
       }
     ]
-  }
+  };
 
-  paymentMethodChart.setOption(option)
-}
+  paymentMethodChart.setOption(option);
+};
 
 // 初始化期次热度图
 const initPeriodPopularityChart = (data: any) => {
-  if (!periodPopularityChartRef.value) return
+  if (!periodPopularityChartRef.value) return;
 
   if (!periodPopularityChart) {
-    periodPopularityChart = echarts.init(periodPopularityChartRef.value)
+    periodPopularityChart = echarts.init(periodPopularityChartRef.value);
   }
 
-  const periods = data.map((item: any) => item.periodName || '')
-  const enrollments = data.map((item: any) => item.enrollmentCount || 0)
+  const periods = data.map((item: any) => item.periodName || '');
+  const enrollments = data.map((item: any) => item.enrollmentCount || 0);
 
   const option = {
     tooltip: { trigger: 'axis' },
@@ -326,17 +318,17 @@ const initPeriodPopularityChart = (data: any) => {
         itemStyle: { color: '#7ed321' }
       }
     ]
-  }
+  };
 
-  periodPopularityChart.setOption(option)
-}
+  periodPopularityChart.setOption(option);
+};
 
 // 初始化报名状态图
 const initEnrollmentStatusChart = (data: any) => {
-  if (!enrollmentStatusChartRef.value) return
+  if (!enrollmentStatusChartRef.value) return;
 
   if (!enrollmentStatusChart) {
-    enrollmentStatusChart = echarts.init(enrollmentStatusChartRef.value)
+    enrollmentStatusChart = echarts.init(enrollmentStatusChartRef.value);
   }
 
   const option = {
@@ -361,33 +353,34 @@ const initEnrollmentStatusChart = (data: any) => {
         }
       }
     ]
-  }
+  };
 
-  enrollmentStatusChart.setOption(option)
-}
+  enrollmentStatusChart.setOption(option);
+};
 
 // 加载分析数据
 const loadAnalytics = async () => {
   try {
     // 获取真实的仪表板统计数据
-    const dashboardStats = await statsApi.getDashboardStats()
+    const dashboardStats = await statsApi.getDashboardStats();
 
     // 构建分析数据
     analytics.value = {
       totalUsers: dashboardStats.totalUsers || 0,
-      completedEnrollments: dashboardStats.completedEnrollments || dashboardStats.totalEnrollments || 0,
+      completedEnrollments:
+        dashboardStats.completedEnrollments || dashboardStats.totalEnrollments || 0,
       totalRevenue: dashboardStats.totalPaymentAmount || 0,
       conversionRate: dashboardStats.conversionRate || 0,
       userTrend: dashboardStats.userTrend || 0,
       enrollmentTrend: dashboardStats.enrollmentTrend || 0,
       revenueTrend: dashboardStats.revenueTrend || 0
-    }
+    };
 
     // 生成最近7天的统计数据（基于每日统计）
-    const dailyStatsData = []
+    const dailyStatsData = [];
     for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
+      const date = new Date();
+      date.setDate(date.getDate() - i);
       dailyStatsData.push({
         date: date.toISOString().split('T')[0],
         enrollmentCount: Math.floor(dashboardStats.totalEnrollments / 7) || 0,
@@ -395,21 +388,21 @@ const loadAnalytics = async () => {
         paymentAmount: Math.floor((dashboardStats.totalPaymentAmount || 0) / 7),
         activeUsers: Math.floor(dashboardStats.totalUsers / 7) || 0,
         newUsers: 0
-      })
+      });
     }
-    dailyStats.value = dailyStatsData
+    dailyStats.value = dailyStatsData;
 
     // 初始化图表
-    await nextTick()
-    initEnrollmentChart(dailyStatsData)
+    await nextTick();
+    initEnrollmentChart(dailyStatsData);
 
     // 获取支付方法统计（根据真实数据估算）
     const paymentMethodStats = {
       wechat: Math.floor((dashboardStats.totalPayments || 0) * 0.7),
       alipay: Math.floor((dashboardStats.totalPayments || 0) * 0.2),
       mock: Math.floor((dashboardStats.totalPayments || 0) * 0.1)
-    }
-    initPaymentMethodChart(paymentMethodStats)
+    };
+    initPaymentMethodChart(paymentMethodStats);
 
     // 期次人气数据（从仪表板获取）
     const periodPopularityData = dashboardStats.periodStats || [
@@ -417,19 +410,19 @@ const loadAnalytics = async () => {
       { periodName: '勇敢的心', enrollmentCount: 0 },
       { periodName: '能量之泉', enrollmentCount: 0 },
       { periodName: '心流之境', enrollmentCount: 0 }
-    ]
-    initPeriodPopularityChart(periodPopularityData)
+    ];
+    initPeriodPopularityChart(periodPopularityData);
 
     // 报名状态统计
     const enrollmentStatusData = {
       pending: dashboardStats.pendingEnrollments || 0,
       approved: (dashboardStats.totalEnrollments || 0) - (dashboardStats.pendingEnrollments || 0),
       rejected: 0
-    }
-    initEnrollmentStatusChart(enrollmentStatusData)
+    };
+    initEnrollmentStatusChart(enrollmentStatusData);
   } catch (error) {
-    console.error('Failed to load analytics:', error)
-    ElMessage.error('加载分析数据失败')
+    console.error('Failed to load analytics:', error);
+    ElMessage.error('加载分析数据失败');
     // 如果API调用失败，显示默认的空数据而不是mock数据
     analytics.value = {
       totalUsers: 0,
@@ -439,22 +432,22 @@ const loadAnalytics = async () => {
       userTrend: 0,
       enrollmentTrend: 0,
       revenueTrend: 0
-    }
+    };
   }
-}
+};
 
 // 页面加载
 onMounted(async () => {
-  await loadAnalytics()
+  await loadAnalytics();
 
   // 窗口大小变化时重新绘制图表
   window.addEventListener('resize', () => {
-    enrollmentChart?.resize()
-    paymentMethodChart?.resize()
-    periodPopularityChart?.resize()
-    enrollmentStatusChart?.resize()
-  })
-})
+    enrollmentChart?.resize();
+    paymentMethodChart?.resize();
+    periodPopularityChart?.resize();
+    enrollmentStatusChart?.resize();
+  });
+});
 </script>
 
 <style scoped>

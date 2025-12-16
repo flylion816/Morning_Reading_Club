@@ -50,7 +50,7 @@ const formats = {
         timestamp,
         level,
         message,
-        ...meta,
+        ...meta
       };
       return JSON.stringify(log);
     })
@@ -61,9 +61,7 @@ const formats = {
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss Z' }),
     winston.format.errors({ stack: true }),
     winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
-      const lines = [
-        `[${timestamp}] ${level.toUpperCase()}: ${message}`,
-      ];
+      const lines = [`[${timestamp}] ${level.toUpperCase()}: ${message}`];
       if (stack) {
         lines.push(`Stack: ${stack}`);
       }
@@ -72,7 +70,7 @@ const formats = {
       }
       return lines.join('\n');
     })
-  ),
+  )
 };
 
 /**
@@ -81,14 +79,12 @@ const formats = {
 const transports = [];
 
 // 1. 控制台输出
-const consoleFormat = process.env.NODE_ENV === 'production'
-  ? formats.simple
-  : formats.simple;
+const consoleFormat = process.env.NODE_ENV === 'production' ? formats.simple : formats.simple;
 
 transports.push(
   new winston.transports.Console({
     format: consoleFormat,
-    level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+    level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug')
   })
 );
 
@@ -99,7 +95,7 @@ transports.push(
     format: formats.detailed,
     maxsize: 10485760, // 10MB
     maxFiles: 14, // 保留14天
-    level: process.env.LOG_LEVEL || 'info',
+    level: process.env.LOG_LEVEL || 'info'
   })
 );
 
@@ -110,7 +106,7 @@ transports.push(
     format: formats.errorFormat,
     maxsize: 10485760, // 10MB
     maxFiles: 30, // 保留30天的错误日志
-    level: 'error',
+    level: 'error'
   })
 );
 
@@ -121,7 +117,7 @@ transports.push(
     format: formats.detailed,
     maxsize: 5242880, // 5MB
     maxFiles: 7, // 保留7天
-    level: 'warn',
+    level: 'warn'
   })
 );
 
@@ -135,7 +131,7 @@ if (process.env.NODE_ENV !== 'production') {
       format: formats.detailed,
       maxsize: 5242880, // 5MB
       maxFiles: 3, // 保留3天
-      level: 'debug',
+      level: 'debug'
     })
   );
 }
@@ -155,8 +151,8 @@ const logger = winston.createLogger({
       filename: path.join(logsDir, 'exceptions.log'),
       format: formats.errorFormat,
       maxsize: 5242880, // 5MB
-      maxFiles: 30,
-    }),
+      maxFiles: 30
+    })
   ],
   // 处理未处理的 Promise 拒绝
   rejectionHandlers: [
@@ -164,9 +160,9 @@ const logger = winston.createLogger({
       filename: path.join(logsDir, 'rejections.log'),
       format: formats.errorFormat,
       maxsize: 5242880, // 5MB
-      maxFiles: 30,
-    }),
-  ],
+      maxFiles: 30
+    })
+  ]
 });
 
 /**
@@ -232,7 +228,7 @@ const loggerWrapper = {
       url,
       statusCode,
       duration: `${duration}ms`,
-      userId,
+      userId
     };
     const message = `HTTP ${method} ${url} ${statusCode}`;
     const level = statusCode >= 400 ? 'warn' : 'info';
@@ -248,7 +244,7 @@ const loggerWrapper = {
       collection,
       duration: `${duration}ms`,
       success,
-      ...meta,
+      ...meta
     };
     const message = `[DB] ${operation} on ${collection}`;
     const level = success ? 'debug' : 'warn';
@@ -262,7 +258,7 @@ const loggerWrapper = {
     const context = {
       event,
       userId,
-      ...meta,
+      ...meta
     };
     logger.info(`[AUTH] ${event}`, context);
   },
@@ -273,7 +269,7 @@ const loggerWrapper = {
   event: (eventType, description, meta = {}) => {
     const context = {
       eventType,
-      ...meta,
+      ...meta
     };
     logger.info(`[EVENT] ${eventType}: ${description}`, context);
   },
@@ -281,7 +277,7 @@ const loggerWrapper = {
   /**
    * 获取 Winston 实例（高级使用）
    */
-  getWinstonLogger: () => logger,
+  getWinstonLogger: () => logger
 };
 
 /**
@@ -300,7 +296,7 @@ function _buildContext(meta) {
     const memUsage = process.memoryUsage();
     context.memory = {
       heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
-      heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`
     };
   }
 

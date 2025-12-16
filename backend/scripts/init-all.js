@@ -41,7 +41,7 @@ function runScript(scriptName) {
       env: process.env
     });
 
-    child.on('close', (code) => {
+    child.on('close', code => {
       if (code === 0) {
         resolve();
       } else {
@@ -49,7 +49,7 @@ function runScript(scriptName) {
       }
     });
 
-    child.on('error', (error) => {
+    child.on('error', error => {
       reject(error);
     });
   });
@@ -103,7 +103,7 @@ async function initAll() {
 }
 
 // 运行初始化
-initAll().catch((error) => {
+initAll().catch(error => {
   console.error('❌ 初始化过程出错:', error.message);
   process.exit(1);
 });

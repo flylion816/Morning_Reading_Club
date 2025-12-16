@@ -66,7 +66,12 @@ router.get('/:periodId/sections', authMiddleware, getSectionsByPeriod);
  * @desc    获取某期次的所有课节（管理员 - 包括草稿）
  * @access  Admin
  */
-router.get('/:periodId/sections/admin/all', authMiddleware, adminMiddleware, getAllSectionsByPeriod);
+router.get(
+  '/:periodId/sections/admin/all',
+  authMiddleware,
+  adminMiddleware,
+  getAllSectionsByPeriod
+);
 
 /**
  * @route   POST /api/v1/periods/:periodId/sections

@@ -8,7 +8,7 @@ async function connectMongoDB() {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useUnifiedTopology: true
     });
     logger.info('✅ MongoDB connected successfully');
   } catch (error) {

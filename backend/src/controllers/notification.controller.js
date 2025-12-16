@@ -31,15 +31,20 @@ async function getUserNotifications(req, res, next) {
       .skip(skip)
       .limit(parseInt(limit));
 
-    res.json(success({
-      notifications,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit)
-      }
-    }, '获取成功'));
+    res.json(
+      success(
+        {
+          notifications,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit)
+          }
+        },
+        '获取成功'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -57,9 +62,14 @@ async function getUnreadCount(req, res, next) {
       isRead: false
     });
 
-    res.json(success({
-      unreadCount
-    }, '获取成功'));
+    res.json(
+      success(
+        {
+          unreadCount
+        },
+        '获取成功'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -114,9 +124,14 @@ async function markAllAsRead(req, res, next) {
       }
     );
 
-    res.json(success({
-      modifiedCount: result.modifiedCount
-    }, `已标记 ${result.modifiedCount} 条通知为已读`));
+    res.json(
+      success(
+        {
+          modifiedCount: result.modifiedCount
+        },
+        `已标记 ${result.modifiedCount} 条通知为已读`
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -160,9 +175,14 @@ async function deleteAllNotifications(req, res, next) {
 
     const result = await Notification.deleteMany({ userId });
 
-    res.json(success({
-      deletedCount: result.deletedCount
-    }, `已删除 ${result.deletedCount} 条通知`));
+    res.json(
+      success(
+        {
+          deletedCount: result.deletedCount
+        },
+        `已删除 ${result.deletedCount} 条通知`
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -235,7 +255,10 @@ async function createNotifications(userIds, type, title, content, options = {}) 
 
     return notifications;
   } catch (error) {
-    logger.error('Failed to batch create notifications', error, { userCount: userIds.length, type });
+    logger.error('Failed to batch create notifications', error, {
+      userCount: userIds.length,
+      type
+    });
     return [];
   }
 }
@@ -299,15 +322,20 @@ async function getArchivedNotifications(req, res, next) {
       .skip(skip)
       .limit(parseInt(limit));
 
-    res.json(success({
-      notifications,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit)
-      }
-    }, '获取成功'));
+    res.json(
+      success(
+        {
+          notifications,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit)
+          }
+        },
+        '获取成功'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -331,9 +359,14 @@ async function archiveAllNotifications(req, res, next) {
       }
     );
 
-    res.json(success({
-      archivedCount: result.modifiedCount
-    }, `已归档 ${result.modifiedCount} 条通知`));
+    res.json(
+      success(
+        {
+          archivedCount: result.modifiedCount
+        },
+        `已归档 ${result.modifiedCount} 条通知`
+      )
+    );
   } catch (error) {
     next(error);
   }

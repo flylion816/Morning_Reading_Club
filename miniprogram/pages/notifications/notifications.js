@@ -11,17 +11,17 @@ import websocketService from '../../services/websocket.service';
 
 Page({
   data: {
-    notifications: [],          // 所有通知
+    notifications: [], // 所有通知
     displayedNotifications: [], // 根据筛选显示的通知
-    unreadCount: 0,             // 未读数量
-    activeTab: 'all',           // 当前选中的选项卡
-    page: 1,                    // 当前页码
-    limit: 20,                  // 每页数量
-    hasMore: true,              // 是否有更多
-    loading: false,             // 是否加载中
-    error: null,                // 错误信息
-    useWebSocket: false,        // 是否使用 WebSocket
-    wsUnsubscribe: null         // WebSocket 取消订阅函数
+    unreadCount: 0, // 未读数量
+    activeTab: 'all', // 当前选中的选项卡
+    page: 1, // 当前页码
+    limit: 20, // 每页数量
+    hasMore: true, // 是否有更多
+    loading: false, // 是否加载中
+    error: null, // 错误信息
+    useWebSocket: false, // 是否使用 WebSocket
+    wsUnsubscribe: null // WebSocket 取消订阅函数
   },
 
   onLoad() {
@@ -57,7 +57,7 @@ Page({
       await websocketService.connect(userInfo._id);
 
       // 订阅新通知事件
-      const unsubscribe = websocketService.on('notification:new', (notification) => {
+      const unsubscribe = websocketService.on('notification:new', notification => {
         console.log('[NotificationsPage] 收到新通知', notification);
         // 在页面顶部添加新通知
         const updatedNotifications = [
@@ -83,7 +83,6 @@ Page({
 
       this.setData({ wsUnsubscribe: unsubscribe, useWebSocket: true });
       console.log('[NotificationsPage] WebSocket 连接成功，启用实时推送');
-
     } catch (error) {
       console.warn('[NotificationsPage] WebSocket 初始化失败，使用轮询模式:', error);
       // 降级到轮询
@@ -110,9 +109,7 @@ Page({
         const { notifications, pagination } = response.data;
 
         this.setData({
-          notifications: append
-            ? [...this.data.notifications, ...notifications]
-            : notifications,
+          notifications: append ? [...this.data.notifications, ...notifications] : notifications,
           page: pagination.page,
           hasMore: pagination.page < pagination.totalPages,
           loading: false
@@ -220,7 +217,7 @@ Page({
       content: '确定要删除这条通知吗？',
       confirmText: '删除',
       cancelText: '取消',
-      success: async (res) => {
+      success: async res => {
         if (res.confirm) {
           try {
             const response = await notificationService.deleteNotification(notificationId);
@@ -259,7 +256,7 @@ Page({
       content: '将所有通知标记为已读？',
       confirmText: '标记',
       cancelText: '取消',
-      success: async (res) => {
+      success: async res => {
         if (res.confirm) {
           try {
             const response = await notificationService.markAllAsRead();

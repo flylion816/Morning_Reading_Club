@@ -3,6 +3,7 @@
 > **功能需求**：在小程序和管理后台中添加个人签名功能
 >
 > **当前状态**：
+>
 > - ✅ 后端数据模型已支持（User.js有signature字段）
 > - ✅ 后端API已支持（updateProfile支持signature）
 > - ❌ 小程序UI需要添加
@@ -18,6 +19,7 @@
 ### ✅ 第1-2步：已完成（无需操作）
 
 #### 已有的数据模型（User.js 第31-35行）
+
 ```javascript
 signature: {
   type: String,
@@ -27,6 +29,7 @@ signature: {
 ```
 
 #### 已有的API支持（user.controller.js）
+
 - `getCurrentUser()` - 已返回signature字段
 - `updateProfile()` - 已支持保存signature字段
 
@@ -40,6 +43,7 @@ signature: {
 **位置**：第38-41行
 
 **修改前**：
+
 ```javascript
 editForm: {
   avatar: '🦁',
@@ -48,6 +52,7 @@ editForm: {
 ```
 
 **修改后**：
+
 ```javascript
 editForm: {
   avatar: '🦁',
@@ -64,6 +69,7 @@ editForm: {
 **位置**：第855-866行
 
 **修改前**：
+
 ```javascript
 openEditProfile() {
   const { userInfo } = this.data;
@@ -80,6 +86,7 @@ openEditProfile() {
 ```
 
 **修改后**：
+
 ```javascript
 openEditProfile() {
   const { userInfo } = this.data;
@@ -104,6 +111,7 @@ openEditProfile() {
 **位置**：onNicknameInput函数后面（约第902行后）
 
 **添加新函数**：
+
 ```javascript
 /**
  * 签名输入事件
@@ -124,6 +132,7 @@ onSignatureInput(e) {
 **位置**：第907-928行
 
 **修改前**：
+
 ```javascript
 async saveUserProfile() {
   const { editForm, userInfo } = this.data;
@@ -150,6 +159,7 @@ async saveUserProfile() {
 ```
 
 **修改后**：
+
 ```javascript
 async saveUserProfile() {
   const { editForm, userInfo } = this.data;
@@ -185,6 +195,7 @@ async saveUserProfile() {
 找到编辑对话框的昵称输入部分（约在文件的后半部分），在昵称input后面添加签名编辑框：
 
 **查找这个部分**（使用Ctrl+F搜索 "昵称"）：
+
 ```html
 <input
   type="text"
@@ -196,6 +207,7 @@ async saveUserProfile() {
 ```
 
 **在其后添加签名编辑框**：
+
 ```html
 <!-- 个人签名 -->
 <view class="form-group">
@@ -208,9 +220,7 @@ async saveUserProfile() {
     maxlength="200"
     show-confirm-bar="false"
   ></textarea>
-  <view class="signature-counter">
-    {{editForm.signature.length}}/200
-  </view>
+  <view class="signature-counter"> {{editForm.signature.length}}/200 </view>
 </view>
 ```
 
@@ -233,7 +243,8 @@ async saveUserProfile() {
   font-size: 14px;
   line-height: 1.5;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .signature-counter {
@@ -269,11 +280,10 @@ async saveUserProfile() {
 **查找这部分**（用Ctrl+F搜索 "user-card" 或 "nickname"）
 
 **在昵称后添加**：
+
 ```html
 <!-- 用户签名 -->
-<view class="user-signature" wx:if="{{userInfo.signature}}">
-  {{userInfo.signature}}
-</view>
+<view class="user-signature" wx:if="{{userInfo.signature}}"> {{userInfo.signature}} </view>
 ```
 
 ---
@@ -433,9 +443,7 @@ onSignatureInput(e) {
     maxlength="200"
     show-confirm-bar="false"
   ></textarea>
-  <view class="signature-counter">
-    {{editForm.signature.length}}/200
-  </view>
+  <view class="signature-counter"> {{editForm.signature.length}}/200 </view>
 </view>
 ```
 
@@ -443,9 +451,7 @@ onSignatureInput(e) {
 
 ```html
 <!-- 用户签名 -->
-<view class="user-signature" wx:if="{{userInfo.signature}}">
-  {{userInfo.signature}}
-</view>
+<view class="user-signature" wx:if="{{userInfo.signature}}"> {{userInfo.signature}} </view>
 ```
 
 ---
@@ -469,6 +475,7 @@ A: 可以，updateProfile API没有权限限制，只要有有效token
 ## 完成后的效果
 
 用户将能够：
+
 1. ✅ 在小程序中编辑和保存个人签名
 2. ✅ 在首页看到自己的签名
 3. ✅ 管理员在后台查看和编辑所有用户的签名

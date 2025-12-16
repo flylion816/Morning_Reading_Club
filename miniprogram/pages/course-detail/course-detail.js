@@ -40,7 +40,16 @@ Page({
    * 处理课程数据，添加模块可见性标志
    */
   processCourseModules(course) {
-    const modules = ['meditation', 'question', 'content', 'reflection', 'action', 'learn', 'extract', 'say'];
+    const modules = [
+      'meditation',
+      'question',
+      'content',
+      'reflection',
+      'action',
+      'learn',
+      'extract',
+      'say'
+    ];
 
     modules.forEach(module => {
       // 判断模块内容是否为空，添加 visible 标志
@@ -76,7 +85,9 @@ Page({
       try {
         // 使用 /checkins/period/:periodId 端点获取期次的所有打卡记录（包括其他用户的）
         // 这样才能在课程详情页显示所有人的打卡记录，与课程列表页保持一致
-        const checkinRes = await courseService.getPeriodCheckins(course.periodId?._id || course.periodId);
+        const checkinRes = await courseService.getPeriodCheckins(
+          course.periodId?._id || course.periodId
+        );
         console.log('打卡API响应:', checkinRes);
 
         if (checkinRes) {
@@ -95,8 +106,14 @@ Page({
 
           // 显示前几条的用户信息
           if (allCheckins.length > 0) {
-            console.log('📌 打卡记录来源用户ID:', allCheckins[0].userId?._id || allCheckins[0].userId || 'unknown');
-            console.log('📌 当前登录用户ID:', getApp().globalData.userInfo?.id || getApp().globalData.userInfo?._id || 'unknown');
+            console.log(
+              '📌 打卡记录来源用户ID:',
+              allCheckins[0].userId?._id || allCheckins[0].userId || 'unknown'
+            );
+            console.log(
+              '📌 当前登录用户ID:',
+              getApp().globalData.userInfo?.id || getApp().globalData.userInfo?._id || 'unknown'
+            );
           }
 
           dbCheckins = allCheckins.filter((checkin, index) => {
@@ -104,7 +121,9 @@ Page({
             const sectionIdStr = String(sectionId);
             const matches = sectionIdStr === this.data.courseId;
 
-            console.log(`  [${index}] sectionId=${sectionId} (type: ${typeof checkin.sectionId}), 转换后=${sectionIdStr}, 匹配=${matches}`);
+            console.log(
+              `  [${index}] sectionId=${sectionId} (type: ${typeof checkin.sectionId}), 转换后=${sectionIdStr}, 匹配=${matches}`
+            );
 
             return matches;
           });
@@ -147,7 +166,7 @@ Page({
           userName = checkin.userId.nickname || '匿名用户';
           avatarUrl = checkin.userId.avatarUrl || '';
           // 优先使用真实头像，没有则用昵称首字
-          avatarText = avatarUrl ? '' : (userName ? userName.charAt(0) : '👤');
+          avatarText = avatarUrl ? '' : userName ? userName.charAt(0) : '👤';
         } else {
           // userId只是字符串ID，使用默认信息
           userName = checkin.userName || '匿名用户';
@@ -191,14 +210,18 @@ Page({
         allComments.forEach(comment => {
           // 如果没有avatarText，则生成
           if (!comment.avatarText) {
-            comment.avatarText = comment.userName ? comment.userName.charAt(comment.userName.length - 1) : '';
+            comment.avatarText = comment.userName
+              ? comment.userName.charAt(comment.userName.length - 1)
+              : '';
           }
 
           // 添加回复的头像文字
           if (comment.replies && comment.replies.length > 0) {
             comment.replies.forEach(reply => {
               if (!reply.avatarText) {
-                reply.avatarText = reply.userName ? reply.userName.charAt(reply.userName.length - 1) : '';
+                reply.avatarText = reply.userName
+                  ? reply.userName.charAt(reply.userName.length - 1)
+                  : '';
               }
             });
           }
@@ -250,7 +273,7 @@ Page({
     wx.showModal({
       title: '确认报名',
       content: '确定要报名该课程吗？',
-      success: (res) => {
+      success: res => {
         if (res.confirm) {
           // TODO: 调用报名API
           wx.showToast({
@@ -315,7 +338,7 @@ Page({
       title: `回复 ${comment.userName}`,
       editable: true,
       placeholderText: '请输入回复内容...',
-      success: (res) => {
+      success: res => {
         if (res.confirm && res.content && res.content.trim()) {
           // 创建新的回复
           const newReply = {
@@ -397,7 +420,7 @@ Page({
       title: `回复 ${userName}`,
       editable: true,
       placeholderText: '请输入回复内容...',
-      success: (res) => {
+      success: res => {
         if (res.confirm && res.content && res.content.trim()) {
           // 创建新的回复
           const newReply = {

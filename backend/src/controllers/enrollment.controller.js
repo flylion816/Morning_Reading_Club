@@ -33,7 +33,19 @@ exports.submitEnrollmentForm = async (req, res) => {
     } = req.body;
 
     // 验证必填字段
-    if (!periodId || !name || !gender || !province || !detailedAddress || !age || !referrer || !hasReadBook || !enrollReason || !expectation || !commitment) {
+    if (
+      !periodId ||
+      !name ||
+      !gender ||
+      !province ||
+      !detailedAddress ||
+      !age ||
+      !referrer ||
+      !hasReadBook ||
+      !enrollReason ||
+      !expectation ||
+      !commitment
+    ) {
       const missingFields = [];
       if (!periodId) missingFields.push('periodId');
       if (!name) missingFields.push('name');
@@ -82,8 +94,8 @@ exports.submitEnrollmentForm = async (req, res) => {
       enrollReason,
       expectation,
       commitment,
-      paymentStatus: 'pending',  // 报名后需要支付
-      status: 'active'  // 直接生效
+      paymentStatus: 'pending', // 报名后需要支付
+      status: 'active' // 直接生效
     });
 
     // 填充用户和期次信息
@@ -133,7 +145,7 @@ exports.enrollPeriod = async (req, res) => {
     const enrollment = await Enrollment.create({
       userId,
       periodId,
-      paymentStatus: 'free',  // 默认免费
+      paymentStatus: 'free', // 默认免费
       status: 'active'
     });
 
@@ -194,13 +206,15 @@ exports.getPeriodMembers = async (req, res) => {
       paymentStatus: enrollment.paymentStatus
     }));
 
-    res.json(success({
-      list: members,
-      total: result.total,
-      page: result.page,
-      limit: result.limit,
-      totalPages: result.totalPages
-    }));
+    res.json(
+      success({
+        list: members,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      })
+    );
   } catch (error) {
     logger.error('Get members list failed', error, { periodId: req.params.periodId });
     res.status(500).json(errors.serverError('获取成员列表失败: ' + error.message));
@@ -214,11 +228,7 @@ exports.getPeriodMembers = async (req, res) => {
 exports.getUserEnrollments = async (req, res) => {
   try {
     const userId = req.params.userId || req.user.userId;
-    const {
-      page = 1,
-      limit = 20,
-      status
-    } = req.query;
+    const { page = 1, limit = 20, status } = req.query;
 
     // 获取报名列表
     const result = await Enrollment.getUserEnrollments(userId, {
@@ -244,13 +254,15 @@ exports.getUserEnrollments = async (req, res) => {
       completedAt: enrollment.completedAt
     }));
 
-    res.json(success({
-      list: enrollments,
-      total: result.total,
-      page: result.page,
-      limit: result.limit,
-      totalPages: result.totalPages
-    }));
+    res.json(
+      success({
+        list: enrollments,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      })
+    );
   } catch (error) {
     logger.error('Get enrollment list failed', error);
     res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
@@ -288,11 +300,13 @@ exports.checkEnrollment = async (req, res) => {
       enrollmentId: enrollment?._id
     });
 
-    res.json(success({
-      isEnrolled,
-      userId,
-      periodId
-    }));
+    res.json(
+      success({
+        isEnrolled,
+        userId,
+        periodId
+      })
+    );
   } catch (error) {
     logger.error('Check enrollment status failed', error);
     res.status(500).json(errors.serverError('检查报名状态失败: ' + error.message));
@@ -381,7 +395,7 @@ exports.getEnrollments = async (req, res) => {
 
     // 构建查询条件
     let query = {
-      deleted: { $ne: true }  // ✅ 排除已删除的记录
+      deleted: { $ne: true } // ✅ 排除已删除的记录
     };
     if (status) query.status = status;
     if (approvalStatus) query.approvalStatus = approvalStatus;
@@ -404,13 +418,15 @@ exports.getEnrollments = async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
-    res.json(success({
-      list: enrollments,
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit))
-    }));
+    res.json(
+      success({
+        list: enrollments,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      })
+    );
   } catch (error) {
     logger.error('Get enrollment list failed', error);
     res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
@@ -501,10 +517,12 @@ exports.debugCleanupEnrollments = async (req, res) => {
       keptPeriodId: keepPeriodId
     });
 
-    res.json(success({
-      deleted: deleteResult.deletedCount,
-      message: `已删除 ${deleteResult.deletedCount} 条报名记录，仅保留期次 ${keepPeriodId} 的报名`
-    }));
+    res.json(
+      success({
+        deleted: deleteResult.deletedCount,
+        message: `已删除 ${deleteResult.deletedCount} 条报名记录，仅保留期次 ${keepPeriodId} 的报名`
+      })
+    );
   } catch (error) {
     logger.error('Cleanup failed', error);
     res.status(500).json(errors.serverError('清理失败: ' + error.message));
@@ -550,12 +568,16 @@ exports.getUsersByPeriodName = async (req, res, next) => {
       nickname: enrollment.userId.nickname
     }));
 
-    res.json(success({
-      periodName: period.name,
-      userCount: users.length,
-      users: users
-    }, '获取成功'));
-
+    res.json(
+      success(
+        {
+          periodName: period.name,
+          userCount: users.length,
+          users: users
+        },
+        '获取成功'
+      )
+    );
   } catch (error) {
     logger.error('获取期次用户失败:', error);
     next(error);

@@ -29,7 +29,7 @@ services:
 
     # 端口映射
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - '${MONGO_PORT:-27017}:27017'
 
     # 数据卷（数据持久化）
     volumes:
@@ -86,7 +86,7 @@ services:
 
     # 端口映射
     ports:
-      - "${BACKEND_PORT:-3000}:3000"
+      - '${BACKEND_PORT:-3000}:3000'
 
     # 数据卷
     volumes:
@@ -99,7 +99,7 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/v1/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -134,7 +134,7 @@ services:
 
     # 端口映射
     ports:
-      - "${ADMIN_PORT:-5173}:5173"
+      - '${ADMIN_PORT:-5173}:5173'
 
     # 环境变量
     environment:

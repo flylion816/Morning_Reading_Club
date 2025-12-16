@@ -6,11 +6,7 @@
         <span>管理后台</span>
       </div>
 
-      <el-menu
-        :default-active="activeMenu"
-        class="sidebar-menu"
-        @select="handleMenuSelect"
-      >
+      <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
         <el-menu-item index="/">
           <span>📊 仪表板</span>
         </el-menu-item>
@@ -96,16 +92,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
+const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => route.path);
 
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
@@ -118,13 +114,13 @@ const pageTitle = computed(() => {
     '/content': '内容管理',
     '/insights': '小凡看见',
     '/audit-logs': '审计日志'
-  }
-  return titles[route.path] || '管理后台'
-})
+  };
+  return titles[route.path] || '管理后台';
+});
 
 const handleMenuSelect = (index: string) => {
-  router.push(index)
-}
+  router.push(index);
+};
 
 const handleLogout = () => {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -133,14 +129,14 @@ const handleLogout = () => {
     type: 'warning'
   })
     .then(() => {
-      authStore.logout()
-      ElMessage.success('已退出登录')
-      router.push('/login')
+      authStore.logout();
+      ElMessage.success('已退出登录');
+      router.push('/login');
     })
     .catch(() => {
       // 取消退出
-    })
-}
+    });
+};
 </script>
 
 <style scoped>

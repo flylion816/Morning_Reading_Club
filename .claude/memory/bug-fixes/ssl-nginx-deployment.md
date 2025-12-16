@@ -19,6 +19,7 @@
 ## 🔴 问题 1：SSL 证书不被浏览器信任
 
 ### 症状
+
 ```
 浏览器提示：
 "您与此网站之间建立的连接不安全"
@@ -36,6 +37,7 @@ Subject: C = CN, ST = Beijing, L = Beijing, O = Morning Reading, CN = wx.shubai0
 ```
 
 **为什么不安全**：
+
 - 浏览器的信任链中没有"Morning Reading"这个 CA
 - 自签名证书只能通过自己验证自己，无法第三方验证
 - 浏览器无法确认这不是中间人攻击
@@ -61,6 +63,7 @@ sudo systemctl start nginx
 ```
 
 **证书位置**：
+
 - 证书文件：`/etc/letsencrypt/live/wx.shubai01.com/fullchain.pem`
 - 私钥文件：`/etc/letsencrypt/live/wx.shubai01.com/privkey.pem`
 
@@ -109,6 +112,7 @@ Strict MIME type checking is enforced for module scripts per HTML spec.
 ```
 
 **表现**：
+
 - ✅ 首页 HTML 返回 200 OK
 - ❌ 首页请求的 JavaScript 文件返回的是 HTML（而不是 JS）
 - ❌ CSS 文件也返回 HTML
@@ -118,6 +122,7 @@ Strict MIME type checking is enforced for module scripts per HTML spec.
 **Nginx location 块匹配顺序问题**
 
 原始配置：
+
 ```nginx
 location /api/ { ... }
 
@@ -162,6 +167,7 @@ Nginx 匹配 location：
 ```
 
 **这很重要**：
+
 - `location ~ ^/admin/` 是正则表达式（优先级 3）
 - `location /assets/` 是普通前缀（优先级 4）
 - 所以正则表达式先匹配，低优先级的 `/assets/` 永远不会被执行！
@@ -216,6 +222,7 @@ server {
 ```
 
 **关键改动**：
+
 1. `location ~ ^/admin/` 改为 `location ^~ /admin/`（从正则改为非正则）
 2. 把静态资源 `location ^~ /admin/assets/` 放在前面（优先匹配）
 3. 按照 SPA 的需求合理组织 location 块
@@ -242,6 +249,7 @@ curl -I https://wx.shubai01.com/admin/assets/index-Bmd-qS6Y.js
 ### 根本原因
 
 浏览器缓存了之前的错误响应：
+
 - 2-3 小时前的请求返回了 301 重定向 + text/html
 - 浏览器把这个错误响应保存到缓存中
 - 即使服务器已经修复，浏览器仍然用缓存的旧版本
@@ -249,12 +257,14 @@ curl -I https://wx.shubai01.com/admin/assets/index-Bmd-qS6Y.js
 ### 解决方案
 
 **服务器端**：
+
 ```bash
 # 重启 Nginx 确保新配置立即生效
 sudo systemctl stop nginx && sleep 2 && sudo systemctl start nginx
 ```
 
 **用户端（客户必须做的）**：
+
 ```
 清除浏览器缓存：
   Mac:     Cmd+Shift+Delete
@@ -266,6 +276,7 @@ sudo systemctl stop nginx && sleep 2 && sudo systemctl start nginx
 ```
 
 **或者在开发者工具中**：
+
 ```
 1. 打开浏览器开发者工具 (F12)
 2. 右键点击刷新按钮（地址栏旁的圆形按钮）
@@ -278,20 +289,20 @@ sudo systemctl stop nginx && sleep 2 && sudo systemctl start nginx
 
 ### 1. Nginx 配置最佳实践
 
-| 配置 | 说明 |
-|------|------|
-| ✅ 静态资源 location 放在前面 | 避免被 SPA 路由覆盖 |
+| 配置                           | 说明                 |
+| ------------------------------ | -------------------- |
+| ✅ 静态资源 location 放在前面  | 避免被 SPA 路由覆盖  |
 | ✅ 使用 `^~` 非正则前缀（SPA） | 优先级高于正则表达式 |
-| ✅ HTML 文件用 `no-cache` | 防止过期 HTML 被缓存 |
-| ✅ 静态资源用 `max-age` | 充分利用浏览器缓存 |
+| ✅ HTML 文件用 `no-cache`      | 防止过期 HTML 被缓存 |
+| ✅ 静态资源用 `max-age`        | 充分利用浏览器缓存   |
 
 ### 2. SSL 证书选择
 
-| 方案 | 成本 | 信任 | 自动续期 | 推荐 |
-|------|------|------|--------|------|
-| Let's Encrypt | 免费 | ✅ 全球浏览器 | ✅ 自动 | ✅ 首选 |
-| 自签名证书 | 免费 | ❌ 仅自己 | ❌ 手动 | ❌ 仅开发 |
-| 商业证书 | 付费 | ✅ 全球 | ❌ 手动 | ⚠️ 不划算 |
+| 方案          | 成本 | 信任          | 自动续期 | 推荐      |
+| ------------- | ---- | ------------- | -------- | --------- |
+| Let's Encrypt | 免费 | ✅ 全球浏览器 | ✅ 自动  | ✅ 首选   |
+| 自签名证书    | 免费 | ❌ 仅自己     | ❌ 手动  | ❌ 仅开发 |
+| 商业证书      | 付费 | ✅ 全球       | ❌ 手动  | ⚠️ 不划算 |
 
 ### 3. 部署前检查清单
 
@@ -343,12 +354,12 @@ curl -I https://your-domain.com/api/v1/health
 
 ## 📁 相关文件
 
-| 文件 | 用途 |
-|------|------|
-| `/etc/nginx/sites-available/morning-reading` | Nginx 配置文件 |
-| `/etc/letsencrypt/live/wx.shubai01.com/` | Let's Encrypt 证书目录 |
-| `/etc/cron.d/certbot` | 证书自动续期任务 |
-| `admin/dist/` | 前端打包输出目录 |
+| 文件                                         | 用途                   |
+| -------------------------------------------- | ---------------------- |
+| `/etc/nginx/sites-available/morning-reading` | Nginx 配置文件         |
+| `/etc/letsencrypt/live/wx.shubai01.com/`     | Let's Encrypt 证书目录 |
+| `/etc/cron.d/certbot`                        | 证书自动续期任务       |
+| `admin/dist/`                                | 前端打包输出目录       |
 
 ---
 
@@ -376,11 +387,11 @@ sudo tail -f /var/log/nginx/morning-reading-error.log
 
 ## 📝 关键总结
 
-| 问题 | 原因 | 解决方案 |
-|------|------|--------|
-| SSL 证书不安全 | 自签名证书 | 申请 Let's Encrypt 免费证书 |
-| 页面白屏 | Nginx location 优先级混乱 | 使用 `^~` 非正则，静态资源放前面 |
-| 浏览器仍显示错误 | 浏览器缓存 | 清除缓存 + 硬刷新 |
+| 问题             | 原因                      | 解决方案                         |
+| ---------------- | ------------------------- | -------------------------------- |
+| SSL 证书不安全   | 自签名证书                | 申请 Let's Encrypt 免费证书      |
+| 页面白屏         | Nginx location 优先级混乱 | 使用 `^~` 非正则，静态资源放前面 |
+| 浏览器仍显示错误 | 浏览器缓存                | 清除缓存 + 硬刷新                |
 
 ---
 

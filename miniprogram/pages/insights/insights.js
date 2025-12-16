@@ -5,10 +5,10 @@ Page({
   data: {
     insights: [],
     loading: true,
-    userId: null,        // 目标用户ID（如果查看他人，此值为他人的ID）
-    userName: '小凡看见',  // 显示的标题
-    isOtherUser: false,  // 是否在查看他人的小凡看见
-    headerEmoji: '🦁',   // 头部emoji
+    userId: null, // 目标用户ID（如果查看他人，此值为他人的ID）
+    userName: '小凡看见', // 显示的标题
+    isOtherUser: false, // 是否在查看他人的小凡看见
+    headerEmoji: '🦁', // 头部emoji
     headerTitle: '小凡看见', // 头部标题
     headerDesc: '按章节查看个性化反馈' // 头部描述
   },
@@ -45,7 +45,13 @@ Page({
       headerDesc
     });
 
-    logger.debug('📋 insights.onLoad - 参数:', { targetUserId, targetUserName, isOtherUser: !!targetUserId, headerEmoji, headerTitle });
+    logger.debug('📋 insights.onLoad - 参数:', {
+      targetUserId,
+      targetUserName,
+      isOtherUser: !!targetUserId,
+      headerEmoji,
+      headerTitle
+    });
 
     // 如果是查看他人的小凡看见，从缓存或存储中获取目标用户的头像
     if (targetUserId) {
@@ -166,12 +172,16 @@ Page({
         }
 
         // 从 API 响应中获取期次名称，或从本地 periodMap 中查找
-        const periodName = item.periodId?.name || item.periodId?.title || periodMap[item.periodId?._id || item.periodId] || '';
+        const periodName =
+          item.periodId?.name ||
+          item.periodId?.title ||
+          periodMap[item.periodId?._id || item.periodId] ||
+          '';
 
         return {
           id: item._id || item.id,
           dayNumber: item.day || 1,
-          periodName: periodName,  // 添加期次名称
+          periodName: periodName, // 添加期次名称
           title: item.sectionId?.title || item.title || '学习反馈',
           preview: preview || '暂无预览',
           date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : ''

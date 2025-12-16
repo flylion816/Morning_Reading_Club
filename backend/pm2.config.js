@@ -39,15 +39,15 @@ module.exports = {
       // =====================================================================
       env: {
         NODE_ENV: 'development',
-        PORT: 3000,
+        PORT: 3000
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3000
       },
       env_staging: {
         NODE_ENV: 'staging',
-        PORT: 3000,
+        PORT: 3000
       },
 
       // =====================================================================
@@ -80,7 +80,7 @@ module.exports = {
       // =====================================================================
       node_args: [
         '--max-old-space-size=2048', // 堆内存 2GB
-        '--enable-source-maps', // 启用源地图支持
+        '--enable-source-maps' // 启用源地图支持
       ],
 
       // =====================================================================
@@ -115,8 +115,8 @@ module.exports = {
       // 基础设施配置
       // =====================================================================
       uid: null, // 用户ID（如果需要以特定用户运行）
-      gid: null, // 组ID
-    },
+      gid: null // 组ID
+    }
   ],
 
   // =====================================================================
@@ -129,9 +129,8 @@ module.exports = {
       ref: 'origin/main',
       repo: 'https://github.com/flylion816/Morning_Reading_Club.git',
       path: '/var/www/morning-reading-backend',
-      'post-deploy':
-        'npm install && npm run build && pm2 start pm2.config.js --env production',
-      'pre-deploy-local': 'echo "Deploying to production"',
+      'post-deploy': 'npm install && npm run build && pm2 start pm2.config.js --env production',
+      'pre-deploy-local': 'echo "Deploying to production"'
     },
     staging: {
       user: 'node',
@@ -139,14 +138,13 @@ module.exports = {
       ref: 'origin/develop',
       repo: 'https://github.com/flylion816/Morning_Reading_Club.git',
       path: '/var/www/morning-reading-backend-staging',
-      'post-deploy':
-        'npm install && npm run build && pm2 start pm2.config.js --env staging',
-    },
+      'post-deploy': 'npm install && npm run build && pm2 start pm2.config.js --env staging'
+    }
   },
 
   // =====================================================================
   // 监控配置（需要 PM2 Plus）
   // =====================================================================
   pmx: true, // 启用 PMX 监控
-  instance_var: 'INSTANCE_ID', // 实例变量名称
+  instance_var: 'INSTANCE_ID' // 实例变量名称
 };

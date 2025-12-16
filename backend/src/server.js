@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 logger.info('应用启动配置', {
   environment: process.env.NODE_ENV || 'development',
   port: PORT,
-  nodeVersion: process.version,
+  nodeVersion: process.version
 });
 
 // 启动服务器
@@ -38,7 +38,7 @@ async function startServer() {
         url: `http://localhost:${PORT}`,
         apiBaseUrl: `http://localhost:${PORT}/api/v1`,
         healthCheck: `http://localhost:${PORT}/api/v1/health`,
-        environment: process.env.NODE_ENV || 'development',
+        environment: process.env.NODE_ENV || 'development'
       });
 
       // 保留控制台输出用于本地开发
@@ -50,7 +50,7 @@ async function startServer() {
 
     // 初始化 WebSocket (Socket.IO)
     const io = new Server(server, {
-      cors: getSocketIoCorsOptions(),
+      cors: getSocketIoCorsOptions()
     });
 
     const wsManager = new WebSocketManager(io);
@@ -68,7 +68,7 @@ async function startServer() {
     });
 
     // 处理未捕获的异常
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', error => {
       logger.error('未捕获的异常', error, { type: 'uncaughtException' });
     });
 
@@ -79,7 +79,7 @@ async function startServer() {
   } catch (error) {
     logger.error('服务器启动失败', error, {
       message: error.message,
-      code: error.code,
+      code: error.code
     });
     logger.error('❌ Failed to start server:', error);
     process.exit(1);
@@ -100,7 +100,7 @@ process.on('SIGTERM', async () => {
 });
 
 // 应用退出时记录
-process.on('exit', (code) => {
+process.on('exit', code => {
   logger.info('应用已关闭', { exitCode: code });
 });
 

@@ -76,14 +76,17 @@ Page({
     const isLogin = app.globalData.isLogin;
     const userInfo = app.globalData.userInfo;
 
-    this.setData({
-      isLogin,
-      userInfo,
-      loading: false  // 设置loading为false
-    }, () => {
-      // 更新签名有效性状态
-      this.updateSignatureValidation();
-    });
+    this.setData(
+      {
+        isLogin,
+        userInfo,
+        loading: false // 设置loading为false
+      },
+      () => {
+        // 更新签名有效性状态
+        this.updateSignatureValidation();
+      }
+    );
 
     // 根据登录状态显示/隐藏tabBar
     this.updateTabBarVisibility(isLogin);
@@ -148,7 +151,12 @@ Page({
 
         if (today >= startDate && today <= endDate) {
           currentPeriod = period;
-          console.log('📅 根据日期范围找到当前期次:', currentPeriod.name || currentPeriod.title, '(status:', currentPeriod.status + ')');
+          console.log(
+            '📅 根据日期范围找到当前期次:',
+            currentPeriod.name || currentPeriod.title,
+            '(status:',
+            currentPeriod.status + ')'
+          );
           break;
         }
       }
@@ -157,7 +165,10 @@ Page({
         // 如果没有包含今天的期次，选择 ongoing 状态的
         currentPeriod = periodsList.find(p => p.status === 'ongoing');
         if (currentPeriod) {
-          console.log('⚠️ 未找到包含今天的期次，使用ongoing期次:', currentPeriod.name || currentPeriod.title);
+          console.log(
+            '⚠️ 未找到包含今天的期次，使用ongoing期次:',
+            currentPeriod.name || currentPeriod.title
+          );
         }
       }
 
@@ -166,10 +177,13 @@ Page({
         const sortedPeriods = [...periodsList].sort((a, b) => {
           const timeA = new Date(a.createdAt || 0).getTime();
           const timeB = new Date(b.createdAt || 0).getTime();
-          return timeB - timeA;  // 倒序
+          return timeB - timeA; // 倒序
         });
         currentPeriod = sortedPeriods[0];
-        console.log('⚠️ 未找到合适期次，使用最新的期次:', currentPeriod?.name || currentPeriod?.title);
+        console.log(
+          '⚠️ 未找到合适期次，使用最新的期次:',
+          currentPeriod?.name || currentPeriod?.title
+        );
       }
 
       // 获取今日课节（根据当前日期动态计算）
@@ -342,17 +356,20 @@ Page({
       console.log('setData前的recentInsights:', recentInsights);
       console.log('setData前的recentInsights长度:', recentInsights.length);
 
-      this.setData({
-        userInfo,
-        userStats: stats,
-        currentPeriod,
-        todaySection,
-        recentInsights,
-        loading: false
-      }, () => {
-        // 更新签名有效性状态
-        this.updateSignatureValidation();
-      });
+      this.setData(
+        {
+          userInfo,
+          userStats: stats,
+          currentPeriod,
+          todaySection,
+          recentInsights,
+          loading: false
+        },
+        () => {
+          // 更新签名有效性状态
+          this.updateSignatureValidation();
+        }
+      );
 
       console.log('setData后this.data.recentInsights:', this.data.recentInsights);
     } catch (error) {
@@ -454,9 +471,9 @@ Page({
           day: `第${item.day}天`,
           title: item.sectionId?.title || '学习反馈',
           preview: preview || '暂无预览',
-          periodId: item.periodId,  // 保留期次ID用于详情页跳转
-          type: item.type,           // 小凡看见类型
-          typeConfig: typeConfig     // 类型配置（用于显示）
+          periodId: item.periodId, // 保留期次ID用于详情页跳转
+          type: item.type, // 小凡看见类型
+          typeConfig: typeConfig // 类型配置（用于显示）
         };
       });
 
@@ -488,18 +505,18 @@ Page({
     let allRequests = wx.getStorageSync('insight_requests') || [];
 
     // 筛选出发给当前用户的待处理申请
-    let myRequests = allRequests.filter(req =>
-      req.toUserId === currentUser._id && req.status === 'pending'
+    let myRequests = allRequests.filter(
+      req => req.toUserId === currentUser._id && req.status === 'pending'
     );
 
     // 如果没有待处理申请，添加一个Mock申请（仅用于演示）
     if (myRequests.length === 0) {
       const mockRequest = {
         id: Date.now(),
-        fromUserId: 1,  // 阿泰的用户ID
+        fromUserId: 1, // 阿泰的用户ID
         fromUserName: '阿泰',
-        fromUserAvatar: '泰',  // 使用名字的最后一个字
-        avatarColor: '#4a90e2',  // 蓝色圆形背景
+        fromUserAvatar: '泰', // 使用名字的最后一个字
+        avatarColor: '#4a90e2', // 蓝色圆形背景
         toUserId: currentUser._id,
         toUserName: currentUser.nickname,
         time: '2小时前',
@@ -530,11 +547,11 @@ Page({
       const userInfo = await new Promise((resolve, reject) => {
         wx.getUserProfile({
           desc: '用于完善会员资料',
-          success: (res) => {
+          success: res => {
             console.log('获取用户信息成功:', res.userInfo);
             resolve(res.userInfo);
           },
-          fail: (err) => {
+          fail: err => {
             console.error('获取用户信息失败:', err);
             reject(err);
           }
@@ -760,7 +777,7 @@ Page({
     wx.navigateTo({
       url: url,
       success: () => console.log('✅ 跳转成功'),
-      fail: (err) => console.error('❌ 跳转失败:', err)
+      fail: err => console.error('❌ 跳转失败:', err)
     });
   },
 
@@ -781,7 +798,7 @@ Page({
     wx.navigateTo({
       url: url,
       success: () => console.log('✅ 跳转成功'),
-      fail: (err) => console.error('❌ 跳转失败:', err)
+      fail: err => console.error('❌ 跳转失败:', err)
     });
   },
 

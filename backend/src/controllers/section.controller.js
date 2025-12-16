@@ -24,15 +24,17 @@ async function getSectionsByPeriod(req, res, next) {
       .limit(parseInt(limit))
       .select('-content -__v'); // 列表不返回详细内容
 
-    res.json(success({
-      list: sections,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: sections,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -58,15 +60,17 @@ async function getAllSectionsByPeriod(req, res, next) {
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
-    res.json(success({
-      list: sections,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: sections,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -77,8 +81,7 @@ async function getSectionDetail(req, res, next) {
   try {
     const { sectionId } = req.params;
 
-    const section = await Section.findById(sectionId)
-      .populate('periodId', 'name title');
+    const section = await Section.findById(sectionId).populate('periodId', 'name title');
 
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));
@@ -293,7 +296,9 @@ async function getTodayTask(req, res, next) {
               $gte: new Date(period.startDate),
               $lte: new Date(period.endDate)
             }
-          }).populate('userId', 'avatar avatarUrl nickname').limit(10);
+          })
+            .populate('userId', 'avatar avatarUrl nickname')
+            .limit(10);
 
           const checkinUsers = sectionCheckins.map(c => ({
             _id: c.userId._id,

@@ -14,24 +14,26 @@ async function getCurrentUser(req, res, next) {
       return res.status(403).json(errors.forbidden('用户已被禁用'));
     }
 
-    res.json(success({
-      _id: user._id,
-      openid: user.openid,
-      nickname: user.nickname,
-      avatar: user.avatar,
-      avatarUrl: user.avatarUrl,
-      signature: user.signature,
-      gender: user.gender,
-      totalCheckinDays: user.totalCheckinDays,
-      currentStreak: user.currentStreak,
-      maxStreak: user.maxStreak,
-      totalCompletedPeriods: user.totalCompletedPeriods,
-      totalPoints: user.totalPoints,
-      level: user.level,
-      role: user.role,
-      status: user.status,
-      createdAt: user.createdAt
-    }));
+    res.json(
+      success({
+        _id: user._id,
+        openid: user.openid,
+        nickname: user.nickname,
+        avatar: user.avatar,
+        avatarUrl: user.avatarUrl,
+        signature: user.signature,
+        gender: user.gender,
+        totalCheckinDays: user.totalCheckinDays,
+        currentStreak: user.currentStreak,
+        maxStreak: user.maxStreak,
+        totalCompletedPeriods: user.totalCompletedPeriods,
+        totalPoints: user.totalPoints,
+        level: user.level,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -57,14 +59,19 @@ async function updateProfile(req, res, next) {
 
     await user.save();
 
-    res.json(success({
-      _id: user._id,
-      nickname: user.nickname,
-      avatar: user.avatar,
-      avatarUrl: user.avatarUrl,
-      signature: user.signature,
-      gender: user.gender
-    }, '资料更新成功'));
+    res.json(
+      success(
+        {
+          _id: user._id,
+          nickname: user.nickname,
+          avatar: user.avatar,
+          avatarUrl: user.avatarUrl,
+          signature: user.signature,
+          gender: user.gender
+        },
+        '资料更新成功'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -89,21 +96,23 @@ async function getUserById(req, res, next) {
       return res.status(403).json(errors.forbidden('用户已被禁用'));
     }
 
-    res.json(success({
-      _id: user._id,
-      nickname: user.nickname,
-      avatarUrl: user.avatarUrl,
-      avatar: user.avatar,
-      signature: user.signature,
-      gender: user.gender,
-      totalCheckinDays: user.totalCheckinDays,
-      currentStreak: user.currentStreak,
-      maxStreak: user.maxStreak,
-      totalCompletedPeriods: user.totalCompletedPeriods,
-      totalPoints: user.totalPoints,
-      level: user.level,
-      createdAt: user.createdAt
-    }));
+    res.json(
+      success({
+        _id: user._id,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        avatar: user.avatar,
+        signature: user.signature,
+        gender: user.gender,
+        totalCheckinDays: user.totalCheckinDays,
+        currentStreak: user.currentStreak,
+        maxStreak: user.maxStreak,
+        totalCompletedPeriods: user.totalCompletedPeriods,
+        totalPoints: user.totalPoints,
+        level: user.level,
+        createdAt: user.createdAt
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -124,14 +133,16 @@ async function getUserStats(req, res, next) {
       return res.status(404).json(errors.notFound('用户不存在'));
     }
 
-    res.json(success({
-      totalCheckinDays: user.totalCheckinDays,
-      currentStreak: user.currentStreak,
-      maxStreak: user.maxStreak,
-      totalCompletedPeriods: user.totalCompletedPeriods,
-      totalPoints: user.totalPoints,
-      level: user.level
-    }));
+    res.json(
+      success({
+        totalCheckinDays: user.totalCheckinDays,
+        currentStreak: user.currentStreak,
+        maxStreak: user.maxStreak,
+        totalCompletedPeriods: user.totalCompletedPeriods,
+        totalPoints: user.totalPoints,
+        level: user.level
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -163,15 +174,17 @@ async function getUserList(req, res, next) {
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(success({
-      list: users,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: users,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }

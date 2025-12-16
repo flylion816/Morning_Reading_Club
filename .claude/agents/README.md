@@ -5,13 +5,16 @@
 ## 📋 4个专家代理
 
 ### 1. 前端专家 (frontend-expert.yaml)
+
 **职责**: 微信小程序前端开发
+
 - WXML/WXSS编写
 - WeUI组件定制
 - 事件处理和数据绑定
 - 性能优化
 
 **常见任务**:
+
 ```bash
 # 由前端专家处理
 .claude/agents/frontend-expert.yaml
@@ -21,13 +24,16 @@
 ```
 
 ### 2. 后端专家 (backend-expert.yaml)
+
 **职责**: Node.js + Express API开发
+
 - RESTful API设计
 - 路由和控制器
 - 认证和授权
 - 错误处理
 
 **常见任务**:
+
 ```bash
 # 由后端专家处理
 .claude/agents/backend-expert.yaml
@@ -38,13 +44,16 @@
 ```
 
 ### 3. 数据库专家 (database-expert.yaml)
+
 **职责**: MongoDB数据库设计和优化
+
 - Schema设计
 - 索引优化
 - 数据迁移
 - 性能调优
 
 **常见任务**:
+
 ```bash
 # 由数据库专家处理
 .claude/agents/database-expert.yaml
@@ -54,13 +63,16 @@
 ```
 
 ### 4. 部署专家 (deployment-expert.yaml)
+
 **职责**: 应用部署和维护
+
 - 环境配置
 - 版本管理
 - 故障排查
 - 备份恢复
 
 **常见任务**:
+
 ```bash
 # 由部署专家处理
 .claude/agents/deployment-expert.yaml
@@ -75,11 +87,13 @@
 ## 🚀 如何使用Subagents
 
 ### 单个功能开发（前面的方式）
+
 ```
 用户请求 → Claude Code (主对话) → 代码完成
 ```
 
 ### 大型功能开发（使用Subagents）
+
 ```
 用户请求 (例如：添加"打卡统计"功能)
    ↓
@@ -104,6 +118,7 @@ Claude Code Plan Mode 分析
 ### 添加"打卡统计"功能
 
 **单线程方式** (传统)：
+
 ```
 1. 后端API设计   (1.5小时)
    ↓
@@ -117,6 +132,7 @@ Claude Code Plan Mode 分析
 ```
 
 **并行方式** (Subagents)：
+
 ```
 后端API设计(1.5h) ║ 前端页面(2h) ║ 数据库优化(0.5h)
 ─────────────────────────────────────────────────
@@ -133,12 +149,14 @@ Claude Code Plan Mode 分析
 ## 🎯 何时使用Subagents
 
 ### ✅ 应该使用
+
 - [ ] 功能涉及前端、后端、数据库多个部分
 - [ ] 功能估算时间 > 3小时
 - [ ] 有独立的子任务可以并行处理
 - [ ] 团队人手充足（可以并行工作）
 
 ### ❌ 不需要使用
+
 - [ ] 简单的Bug修复
 - [ ] 单个模块修改
 - [ ] 功能 < 2小时
@@ -163,6 +181,7 @@ Claude Code Plan Mode 分析
 ### 前端 ↔ 后端
 
 **场景**: 前端需要新API
+
 ```
 前端专家: "需要/api/v1/insights/stats API"
      ↓
@@ -179,6 +198,7 @@ Claude Code Plan Mode 分析
 ### 后端 ↔ 数据库
 
 **场景**: 后端查询太慢
+
 ```
 后端专家: "getInsights查询返回1000条，太慢"
      ↓
@@ -192,6 +212,7 @@ Claude Code Plan Mode 分析
 ### 任何 ↔ 部署
 
 **场景**: 发布新版本
+
 ```
 所有代理: 代码就绪
      ↓
@@ -209,6 +230,7 @@ Claude Code Plan Mode 分析
 ## 💡 最佳实践
 
 ### 1. 明确的分工
+
 ```
 前端代理: 处理所有.wxml/.wxss/.js文件
 后端代理: 处理所有路由、控制器、中间件
@@ -217,6 +239,7 @@ Claude Code Plan Mode 分析
 ```
 
 ### 2. 及时沟通
+
 ```
 通过Memory系统: .claude/memory/architecture/
 通过Commands: .claude/commands/testing/
@@ -224,6 +247,7 @@ Claude Code Plan Mode 分析
 ```
 
 ### 3. 统一标准
+
 ```
 API响应格式: .claude/memory/architecture/api-response-format.md
 数据模型: .claude/memory/architecture/insights-feature.md
@@ -231,6 +255,7 @@ API响应格式: .claude/memory/architecture/api-response-format.md
 ```
 
 ### 4. 测试验证
+
 ```
 前端: 视觉验证，交互测试
 后端: API测试 (.claude/commands/testing/test-api.sh)
@@ -243,6 +268,7 @@ API响应格式: .claude/memory/architecture/api-response-format.md
 ## 🚀 快速开始
 
 ### 第一步：理解代理能力
+
 ```bash
 cat .claude/agents/frontend-expert.yaml    # 了解前端代理
 cat .claude/agents/backend-expert.yaml     # 了解后端代理
@@ -251,12 +277,14 @@ cat .claude/agents/deployment-expert.yaml  # 了解部署代理
 ```
 
 ### 第二步：查看代理职责
+
 ```bash
 grep "expertise:" .claude/agents/*.yaml    # 查看技能
 grep "common_tasks:" .claude/agents/*.yaml # 查看常见任务
 ```
 
 ### 第三步：分配任务给代理
+
 ```
 用户: "添加打卡统计功能，包括前端页面和后端API"
      ↓

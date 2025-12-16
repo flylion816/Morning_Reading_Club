@@ -50,11 +50,15 @@
           <el-table-column label="操作" width="280" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button type="primary" size="small" @click="handleEditSection(row)">编辑</el-button>
+                <el-button type="primary" size="small" @click="handleEditSection(row)"
+                  >编辑</el-button
+                >
                 <el-button type="warning" size="small" @click="togglePublish(row)">
                   {{ row.isPublished ? '下架' : '发布' }}
                 </el-button>
-                <el-button type="danger" size="small" @click="handleDeleteSection(row)">删除</el-button>
+                <el-button type="danger" size="small" @click="handleDeleteSection(row)"
+                  >删除</el-button
+                >
               </div>
             </template>
           </el-table-column>
@@ -70,7 +74,11 @@
         width="900px"
         @close="resetForm"
       >
-        <el-form :model="editingSection" label-width="120px" style="max-height: 600px; overflow-y: auto">
+        <el-form
+          :model="editingSection"
+          label-width="120px"
+          style="max-height: 600px; overflow-y: auto"
+        >
           <!-- 基本信息 -->
           <div class="form-section">
             <div class="section-title">基本信息</div>
@@ -219,21 +227,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import AdminLayout from '../components/AdminLayout.vue'
-import { periodApi } from '../services/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { ListResponse, Period, Section } from '../types/api'
+import { ref, onMounted } from 'vue';
+import AdminLayout from '../components/AdminLayout.vue';
+import { periodApi } from '../services/api';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { ListResponse, Period, Section } from '../types/api';
 
-const selectedPeriodId = ref<string | null>(null)
-const periods = ref<Period[]>([])
-const currentPeriod = ref<Period | null>(null)
-const sections = ref<Section[]>([])
-const saving = ref(false)
+const selectedPeriodId = ref<string | null>(null);
+const periods = ref<Period[]>([]);
+const currentPeriod = ref<Period | null>(null);
+const sections = ref<Section[]>([]);
+const saving = ref(false);
 
 // 编辑弹窗
-const editDialogVisible = ref(false)
-const isNewSection = ref(false)
+const editDialogVisible = ref(false);
+const isNewSection = ref(false);
 const editingSection = ref<any>({
   day: 0,
   title: '',
@@ -249,49 +257,55 @@ const editingSection = ref<any>({
   say: '',
   duration: 0,
   isPublished: false
-})
+});
 
 onMounted(() => {
-  loadPeriods()
-})
+  loadPeriods();
+});
 
 // 加载期次列表
 async function loadPeriods() {
   try {
-    const response = await periodApi.getPeriods({ limit: 100 }) as unknown as ListResponse<Period>
-    periods.value = response.list || []
+    const response = (await periodApi.getPeriods({
+      limit: 100
+    })) as unknown as ListResponse<Period>;
+    periods.value = response.list || [];
 
     // 默认选择最新的期次
     if (periods.value.length > 0) {
-      selectedPeriodId.value = periods.value[0]._id
-      await loadSections()
+      selectedPeriodId.value = periods.value[0]._id;
+      await loadSections();
     }
   } catch (err: any) {
-    ElMessage.error('加载期次列表失败')
+    ElMessage.error('加载期次列表失败');
   }
 }
 
 // 加载课节列表
 async function loadSections() {
-  if (!selectedPeriodId.value) return
+  if (!selectedPeriodId.value) return;
 
   try {
     // 获取期次信息
-    currentPeriod.value = await periodApi.getPeriodDetail(selectedPeriodId.value) as unknown as Period
+    currentPeriod.value = (await periodApi.getPeriodDetail(
+      selectedPeriodId.value
+    )) as unknown as Period;
 
     // 加载该期次的所有课节（管理员权限，包括草稿）
-    const response = await periodApi.getAllSections(selectedPeriodId.value) as unknown as ListResponse<Section>
-    sections.value = response.list || response || []
+    const response = (await periodApi.getAllSections(
+      selectedPeriodId.value
+    )) as unknown as ListResponse<Section>;
+    sections.value = response.list || response || [];
   } catch (err: any) {
-    console.error('Failed to load sections:', err)
-    ElMessage.error('加载课节列表失败')
-    sections.value = []
+    console.error('Failed to load sections:', err);
+    ElMessage.error('加载课节列表失败');
+    sections.value = [];
   }
 }
 
 // 新增课节
 function handleAddSection() {
-  isNewSection.value = true
+  isNewSection.value = true;
   editingSection.value = {
     periodId: selectedPeriodId.value,
     day: sections.value.length,
@@ -305,63 +319,63 @@ function handleAddSection() {
     action: '',
     duration: 0,
     isPublished: false
-  }
-  editDialogVisible.value = true
+  };
+  editDialogVisible.value = true;
 }
 
 // 编辑课节
 function handleEditSection(section: any) {
-  isNewSection.value = false
-  editingSection.value = { ...section }
-  editDialogVisible.value = true
+  isNewSection.value = false;
+  editingSection.value = { ...section };
+  editDialogVisible.value = true;
 }
 
 // 保存课节
 async function saveSection() {
   if (!editingSection.value.title) {
-    ElMessage.warning('请输入课程标题')
-    return
+    ElMessage.warning('请输入课程标题');
+    return;
   }
 
-  saving.value = true
+  saving.value = true;
   try {
     if (isNewSection.value) {
       // 新增
-      await periodApi.createSection(selectedPeriodId.value, editingSection.value)
-      ElMessage.success('课节创建成功')
+      await periodApi.createSection(selectedPeriodId.value, editingSection.value);
+      ElMessage.success('课节创建成功');
     } else {
       // 编辑
-      await periodApi.updateSection(editingSection.value._id, editingSection.value)
-      ElMessage.success('课节保存成功')
+      await periodApi.updateSection(editingSection.value._id, editingSection.value);
+      ElMessage.success('课节保存成功');
     }
-    editDialogVisible.value = false
-    await loadSections()
+    editDialogVisible.value = false;
+    await loadSections();
   } catch (err) {
-    console.error('Failed to save section:', err)
-    ElMessage.error('保存失败')
+    console.error('Failed to save section:', err);
+    ElMessage.error('保存失败');
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 // 发布/下架课节
 async function togglePublish(section: any) {
-  const newStatus = !section.isPublished
-  const action = newStatus ? '发布' : '下架'
+  const newStatus = !section.isPublished;
+  const action = newStatus ? '发布' : '下架';
 
   try {
-    await ElMessageBox.confirm(
-      `确定要${action}这个课节吗？`,
-      '提示',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
-    )
+    await ElMessageBox.confirm(`确定要${action}这个课节吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
 
-    await periodApi.updateSection(section._id, { isPublished: newStatus })
-    ElMessage.success(`${action}成功`)
-    await loadSections()
+    await periodApi.updateSection(section._id, { isPublished: newStatus });
+    ElMessage.success(`${action}成功`);
+    await loadSections();
   } catch (err: any) {
     if (err.message !== 'cancel') {
-      ElMessage.error(`${action}失败`)
+      ElMessage.error(`${action}失败`);
     }
   }
 }
@@ -369,18 +383,18 @@ async function togglePublish(section: any) {
 // 删除课节
 async function handleDeleteSection(section: any) {
   try {
-    await ElMessageBox.confirm(
-      '确定要删除这个课节吗？此操作不可撤销。',
-      '提示',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
-    )
+    await ElMessageBox.confirm('确定要删除这个课节吗？此操作不可撤销。', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
 
-    await periodApi.deleteSection(section._id)
-    ElMessage.success('删除成功')
-    await loadSections()
+    await periodApi.deleteSection(section._id);
+    ElMessage.success('删除成功');
+    await loadSections();
   } catch (err: any) {
     if (err.message !== 'cancel') {
-      ElMessage.error('删除失败')
+      ElMessage.error('删除失败');
     }
   }
 }
@@ -402,7 +416,7 @@ function resetForm() {
     say: '',
     duration: 0,
     isPublished: false
-  }
+  };
 }
 </script>
 

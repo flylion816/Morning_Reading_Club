@@ -66,7 +66,7 @@ function makeRequest(options) {
     const startTime = Date.now();
     const client = options.url.startsWith('https') ? https : http;
 
-    const req = client.request(options, (res) => {
+    const req = client.request(options, res => {
       let data = '';
 
       res.on('data', chunk => {

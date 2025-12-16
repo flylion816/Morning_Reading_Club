@@ -5,7 +5,7 @@ services:
     image: mongo:6
     container_name: morning-reading-mongodb
     ports:
-      - "27017:27017"
+      - '27017:27017'
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin123
@@ -20,7 +20,7 @@ services:
     image: mysql:8.0
     container_name: morning-reading-mysql
     ports:
-      - "3306:3306"
+      - '3306:3306'
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: morning_reading
@@ -37,7 +37,7 @@ services:
     image: redis:7-alpine
     container_name: morning-reading-redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-data:/data
     restart: unless-stopped

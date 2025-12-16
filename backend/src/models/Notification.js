@@ -13,12 +13,12 @@ const notificationSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: [
-        'request_created',      // 新的查看申请
-        'request_approved',     // 申请被同意
-        'request_rejected',     // 申请被拒绝
-        'permission_revoked',   // 权限被撤销
-        'admin_approved',       // 管理员同意
-        'admin_rejected'        // 管理员拒绝
+        'request_created', // 新的查看申请
+        'request_approved', // 申请被同意
+        'request_rejected', // 申请被拒绝
+        'permission_revoked', // 权限被撤销
+        'admin_approved', // 管理员同意
+        'admin_rejected' // 管理员拒绝
       ],
       required: true
     },
@@ -75,12 +75,12 @@ const notificationSchema = new mongoose.Schema(
 
     // 数据载荷（用于前端展示额外信息）
     data: {
-      senderName: String,          // 发送者昵称
-      senderAvatar: String,        // 发送者头像
-      fromUserName: String,        // 申请者昵称（对于request_created）
-      toUserName: String,          // 被申请者昵称（对于request_created）
-      periodName: String,          // 期次名称（对于request_approved）
-      reason: String               // 原因（对于request_rejected）
+      senderName: String, // 发送者昵称
+      senderAvatar: String, // 发送者头像
+      fromUserName: String, // 申请者昵称（对于request_created）
+      toUserName: String, // 被申请者昵称（对于request_created）
+      periodName: String, // 期次名称（对于request_approved）
+      reason: String // 原因（对于request_rejected）
     }
   },
   {

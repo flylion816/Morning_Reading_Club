@@ -41,6 +41,7 @@ bash .claude/deployment/deploy.sh 123.207.223.93 init
 ```
 
 **这会自动完成：**
+
 - ✅ 更新系统软件
 - ✅ 安装Node.js 18
 - ✅ 安装PM2（进程管理）
@@ -78,6 +79,7 @@ nano .env  # 或 vi .env
 ```
 
 **生成安全的JWT密钥：**
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
@@ -130,6 +132,7 @@ bash .claude/deployment/deploy.sh 123.207.223.93 status
 ```
 
 **应该看到：**
+
 ```
 === PM2服务状态 ===
 │ id │ name                   │ mode    │ ↺ │ status
@@ -145,6 +148,7 @@ Active: active (running)
 ```
 
 **验证访问：**
+
 ```bash
 # 验证后端API
 curl -k https://你的域名/api/v1/health
@@ -212,6 +216,7 @@ ssh ubuntu@123.207.223.93 "curl http://localhost:3000/api/v1/health"
 ```
 
 **常见原因：**
+
 - MongoDB连接字符串错误 → 检查 `.env` 文件
 - 环境变量未设置 → 重启PM2
 - 依赖版本问题 → 重新 `npm install`
@@ -276,6 +281,7 @@ EOF
 连接到云厂商控制台：
 
 **阿里云：**
+
 ```
 控制台 → 云监控 → 告警规则 → 新建规则
 - CPU > 80% 告警
@@ -284,6 +290,7 @@ EOF
 ```
 
 **腾讯云：**
+
 ```
 控制台 → 云监控 → 告警管理 → 新建策略
 - CPU > 80% 告警
@@ -360,11 +367,13 @@ EOF
 遇到问题？按以下顺序尝试：
 
 1. **查看日志**
+
    ```bash
    bash deploy.sh <IP> logs
    ```
 
 2. **检查状态**
+
    ```bash
    bash deploy.sh <IP> status
    ```

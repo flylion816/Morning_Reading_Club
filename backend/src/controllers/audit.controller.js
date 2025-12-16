@@ -1,5 +1,5 @@
-const auditService = require('../services/audit.service')
-const { success, errors } = require('../utils/response')
+const auditService = require('../services/audit.service');
+const { success, errors } = require('../utils/response');
 
 /**
  * 审计日志控制器
@@ -11,23 +11,32 @@ class AuditController {
    */
   async getLogs(req, res) {
     try {
-      const { page = 1, pageSize = 20, adminId, actionType, resourceType, startDate, endDate, status } = req.query
+      const {
+        page = 1,
+        pageSize = 20,
+        adminId,
+        actionType,
+        resourceType,
+        startDate,
+        endDate,
+        status
+      } = req.query;
 
-      const query = {}
-      if (adminId) query.adminId = adminId
-      if (actionType) query.actionType = actionType
-      if (resourceType) query.resourceType = resourceType
-      if (status) query.status = status
+      const query = {};
+      if (adminId) query.adminId = adminId;
+      if (actionType) query.actionType = actionType;
+      if (resourceType) query.resourceType = resourceType;
+      if (status) query.status = status;
       if (startDate || endDate) {
-        query.startDate = startDate
-        query.endDate = endDate
+        query.startDate = startDate;
+        query.endDate = endDate;
       }
 
-      const result = await auditService.getLogs(query, parseInt(page), parseInt(pageSize))
-      res.json(success(result, '获取审计日志成功'))
+      const result = await auditService.getLogs(query, parseInt(page), parseInt(pageSize));
+      res.json(success(result, '获取审计日志成功'));
     } catch (error) {
-      logger.error('获取审计日志失败:', error)
-      res.status(500).json(errors.internalError('获取审计日志失败'))
+      logger.error('获取审计日志失败:', error);
+      res.status(500).json(errors.internalError('获取审计日志失败'));
     }
   }
 
@@ -37,14 +46,14 @@ class AuditController {
    */
   async getAdminLogs(req, res) {
     try {
-      const { adminId } = req.params
-      const { page = 1, pageSize = 20 } = req.query
+      const { adminId } = req.params;
+      const { page = 1, pageSize = 20 } = req.query;
 
-      const result = await auditService.getAdminLogs(adminId, parseInt(page), parseInt(pageSize))
-      res.json(success(result, '获取管理员操作记录成功'))
+      const result = await auditService.getAdminLogs(adminId, parseInt(page), parseInt(pageSize));
+      res.json(success(result, '获取管理员操作记录成功'));
     } catch (error) {
-      logger.error('获取管理员操作记录失败:', error)
-      res.status(500).json(errors.internalError('获取管理员操作记录失败'))
+      logger.error('获取管理员操作记录失败:', error);
+      res.status(500).json(errors.internalError('获取管理员操作记录失败'));
     }
   }
 
@@ -54,19 +63,19 @@ class AuditController {
    */
   async getResourceLogs(req, res) {
     try {
-      const { resourceType, resourceId } = req.params
-      const { page = 1, pageSize = 20 } = req.query
+      const { resourceType, resourceId } = req.params;
+      const { page = 1, pageSize = 20 } = req.query;
 
       const result = await auditService.getResourceLogs(
         resourceType,
         resourceId,
         parseInt(page),
         parseInt(pageSize)
-      )
-      res.json(success(result, '获取资源操作记录成功'))
+      );
+      res.json(success(result, '获取资源操作记录成功'));
     } catch (error) {
-      logger.error('获取资源操作记录失败:', error)
-      res.status(500).json(errors.internalError('获取资源操作记录失败'))
+      logger.error('获取资源操作记录失败:', error);
+      res.status(500).json(errors.internalError('获取资源操作记录失败'));
     }
   }
 
@@ -76,11 +85,11 @@ class AuditController {
    */
   async getStatistics(req, res) {
     try {
-      const stats = await auditService.getStatistics()
-      res.json(success(stats, '获取操作统计成功'))
+      const stats = await auditService.getStatistics();
+      res.json(success(stats, '获取操作统计成功'));
     } catch (error) {
-      logger.error('获取操作统计失败:', error)
-      res.status(500).json(errors.internalError('获取操作统计失败'))
+      logger.error('获取操作统计失败:', error);
+      res.status(500).json(errors.internalError('获取操作统计失败'));
     }
   }
 
@@ -90,27 +99,27 @@ class AuditController {
    */
   async exportLogs(req, res) {
     try {
-      const { adminId, actionType, resourceType, startDate, endDate, status } = req.query
+      const { adminId, actionType, resourceType, startDate, endDate, status } = req.query;
 
-      const query = {}
-      if (adminId) query.adminId = adminId
-      if (actionType) query.actionType = actionType
-      if (resourceType) query.resourceType = resourceType
-      if (status) query.status = status
+      const query = {};
+      if (adminId) query.adminId = adminId;
+      if (actionType) query.actionType = actionType;
+      if (resourceType) query.resourceType = resourceType;
+      if (status) query.status = status;
       if (startDate || endDate) {
-        query.timestamp = {}
-        if (startDate) query.timestamp.$gte = new Date(startDate)
-        if (endDate) query.timestamp.$lte = new Date(endDate)
+        query.timestamp = {};
+        if (startDate) query.timestamp.$gte = new Date(startDate);
+        if (endDate) query.timestamp.$lte = new Date(endDate);
       }
 
-      const csv = await auditService.exportLogsToCSV(query)
+      const csv = await auditService.exportLogsToCSV(query);
 
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${Date.now()}.csv"`)
-      res.send('\ufeff' + csv) // BOM标记以确保Excel正确显示中文
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${Date.now()}.csv"`);
+      res.send('\ufeff' + csv); // BOM标记以确保Excel正确显示中文
     } catch (error) {
-      logger.error('导出审计日志失败:', error)
-      res.status(500).json(errors.internalError('导出审计日志失败'))
+      logger.error('导出审计日志失败:', error);
+      res.status(500).json(errors.internalError('导出审计日志失败'));
     }
   }
 
@@ -122,10 +131,10 @@ class AuditController {
     try {
       // 检查是否是超级管理员
       if (req.user.role !== 'superadmin') {
-        return res.status(403).json(errors.forbidden('只有超级管理员可以清理日志'))
+        return res.status(403).json(errors.forbidden('只有超级管理员可以清理日志'));
       }
 
-      const result = await auditService.cleanupExpiredLogs()
+      const result = await auditService.cleanupExpiredLogs();
 
       // 记录清理操作
       await auditService.createLog({
@@ -136,14 +145,14 @@ class AuditController {
         description: `清理过期审计日志，删除${result.deletedCount}条`,
         ipAddress: req.ip,
         userAgent: req.get('user-agent')
-      })
+      });
 
-      res.json(success({ deletedCount: result.deletedCount }, '清理过期日志成功'))
+      res.json(success({ deletedCount: result.deletedCount }, '清理过期日志成功'));
     } catch (error) {
-      logger.error('清理过期日志失败:', error)
-      res.status(500).json(errors.internalError('清理过期日志失败'))
+      logger.error('清理过期日志失败:', error);
+      res.status(500).json(errors.internalError('清理过期日志失败'));
     }
   }
 }
 
-module.exports = new AuditController()
+module.exports = new AuditController();

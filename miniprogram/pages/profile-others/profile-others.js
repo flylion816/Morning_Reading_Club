@@ -12,7 +12,11 @@ Page({
   onLoad(options) {
     const userId = options.userId || options.id;
     const periodId = options.periodId || null;
-    logger.debug('🔍 profile-others.onLoad - 接收到的参数:', { userId, periodId, allOptions: options });
+    logger.debug('🔍 profile-others.onLoad - 接收到的参数:', {
+      userId,
+      periodId,
+      allOptions: options
+    });
     this.setData({ userId, periodId });
     this.loadUserProfile();
   },
@@ -112,7 +116,7 @@ Page({
           content: `需要向 ${userInfo.nickname} 发起查看申请，对方同意后才能查看`,
           confirmText: '发起申请',
           cancelText: '取消',
-          success: (res) => {
+          success: res => {
             if (res.confirm) {
               this.sendInsightRequest();
             }
@@ -127,7 +131,7 @@ Page({
         content: `需要向 ${userInfo.nickname} 发起查看申请，对方同意后才能查看`,
         confirmText: '发起申请',
         cancelText: '取消',
-        success: (res) => {
+        success: res => {
           if (res.confirm) {
             this.sendInsightRequest();
           }
@@ -142,7 +146,11 @@ Page({
   async sendInsightRequest() {
     const { userId, userInfo, periodId } = this.data;
 
-    logger.debug('📤 sendInsightRequest - 准备发送申请:', { userId, periodId, userInfo: userInfo.nickname });
+    logger.debug('📤 sendInsightRequest - 准备发送申请:', {
+      userId,
+      periodId,
+      userInfo: userInfo.nickname
+    });
 
     try {
       // 调用API创建申请，同时传递periodId

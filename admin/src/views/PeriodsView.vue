@@ -30,9 +30,7 @@
             </template>
           </el-table-column>
           <el-table-column label="时长" width="80">
-            <template #default="{ row }">
-              {{ row.totalDays }} 天
-            </template>
+            <template #default="{ row }"> {{ row.totalDays }} 天 </template>
           </el-table-column>
           <el-table-column label="价格" width="100">
             <template #default="{ row }">
@@ -65,20 +63,10 @@
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button
-                  type="primary"
-                  text
-                  size="small"
-                  @click="handleEditPeriod(row)"
-                >
+                <el-button type="primary" text size="small" @click="handleEditPeriod(row)">
                   编辑
                 </el-button>
-                <el-button
-                  type="danger"
-                  text
-                  size="small"
-                  @click="handleDeletePeriod(row)"
-                >
+                <el-button type="danger" text size="small" @click="handleDeletePeriod(row)">
                   删除
                 </el-button>
               </div>
@@ -107,34 +95,17 @@
         width="700px"
         @close="resetForm"
       >
-        <el-form
-          ref="formRef"
-          :model="formData"
-          :rules="formRules"
-          label-width="120px"
-        >
+        <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px">
           <el-form-item label="期次名称" prop="name">
-            <el-input
-              v-model="formData.name"
-              placeholder="例：第一期"
-              clearable
-            />
+            <el-input v-model="formData.name" placeholder="例：第一期" clearable />
           </el-form-item>
 
           <el-form-item label="副标题" prop="subtitle">
-            <el-input
-              v-model="formData.subtitle"
-              placeholder="可选的副标题"
-              clearable
-            />
+            <el-input v-model="formData.subtitle" placeholder="可选的副标题" clearable />
           </el-form-item>
 
           <el-form-item label="标题" prop="title">
-            <el-input
-              v-model="formData.title"
-              placeholder="期次的完整标题"
-              clearable
-            />
+            <el-input v-model="formData.title" placeholder="期次的完整标题" clearable />
           </el-form-item>
 
           <el-form-item label="描述" prop="description">
@@ -165,28 +136,15 @@
           </el-form-item>
 
           <el-form-item label="课程天数" prop="totalDays">
-            <el-input-number
-              v-model="formData.totalDays"
-              :min="1"
-              :max="365"
-              style="width: 100%"
-            />
+            <el-input-number v-model="formData.totalDays" :min="1" :max="365" style="width: 100%" />
           </el-form-item>
 
           <el-form-item label="价格（分）" prop="price">
-            <el-input-number
-              v-model="formData.price"
-              :min="0"
-              style="width: 100%"
-            />
+            <el-input-number v-model="formData.price" :min="0" style="width: 100%" />
           </el-form-item>
 
           <el-form-item label="原价（分）" prop="originalPrice">
-            <el-input-number
-              v-model="formData.originalPrice"
-              :min="0"
-              style="width: 100%"
-            />
+            <el-input-number v-model="formData.originalPrice" :min="0" style="width: 100%" />
           </el-form-item>
 
           <el-form-item label="最大报名数" prop="maxEnrollment">
@@ -199,11 +157,7 @@
           </el-form-item>
 
           <el-form-item label="排序" prop="sortOrder">
-            <el-input-number
-              v-model="formData.sortOrder"
-              :min="0"
-              style="width: 100%"
-            />
+            <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
           </el-form-item>
 
           <el-form-item label="图标" prop="icon">
@@ -236,26 +190,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import AdminLayout from '../components/AdminLayout.vue'
-import { periodApi } from '../services/api'
-import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
-import type { ListResponse, Period } from '../types/api'
+import { ref, reactive, onMounted } from 'vue';
+import AdminLayout from '../components/AdminLayout.vue';
+import { periodApi } from '../services/api';
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
+import type { ListResponse, Period } from '../types/api';
 
-const loading = ref(false)
-const submitting = ref(false)
-const publishingId = ref<string | null>(null)
-const periods = ref<Period[]>([])
-const dialogVisible = ref(false)
-const isEditMode = ref(false)
-const currentEditId = ref<string | null>(null)
-const formRef = ref<FormInstance>()
+const loading = ref(false);
+const submitting = ref(false);
+const publishingId = ref<string | null>(null);
+const periods = ref<Period[]>([]);
+const dialogVisible = ref(false);
+const isEditMode = ref(false);
+const currentEditId = ref<string | null>(null);
+const formRef = ref<FormInstance>();
 
 const pagination = ref({
   page: 1,
   pageSize: 20,
   total: 0
-})
+});
 
 const formData = reactive({
   name: '',
@@ -271,7 +225,7 @@ const formData = reactive({
   originalPrice: 0,
   maxEnrollment: null,
   sortOrder: 0
-})
+});
 
 const formRules = {
   name: [{ required: true, message: '期次名称不能为空', trigger: 'blur' }],
@@ -279,38 +233,38 @@ const formRules = {
   startDate: [{ required: true, message: '起始日期不能为空', trigger: 'change' }],
   endDate: [{ required: true, message: '结束日期不能为空', trigger: 'change' }],
   totalDays: [{ required: true, message: '课程天数不能为空', trigger: 'blur' }]
-}
+};
 
 onMounted(() => {
-  loadPeriods()
-})
+  loadPeriods();
+});
 
 async function loadPeriods() {
-  loading.value = true
+  loading.value = true;
   try {
-    const response = await periodApi.getPeriods({
+    const response = (await periodApi.getPeriods({
       page: pagination.value.page,
       limit: pagination.value.pageSize
-    }) as unknown as ListResponse<Period>
-    periods.value = response.list || []
-    pagination.value.total = response.pagination?.total || 0
+    })) as unknown as ListResponse<Period>;
+    periods.value = response.list || [];
+    pagination.value.total = response.pagination?.total || 0;
   } catch (err) {
-    ElMessage.error('加载期次列表失败')
+    ElMessage.error('加载期次列表失败');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function handleCreatePeriod() {
-  isEditMode.value = false
-  currentEditId.value = null
-  resetForm()
-  dialogVisible.value = true
+  isEditMode.value = false;
+  currentEditId.value = null;
+  resetForm();
+  dialogVisible.value = true;
 }
 
 function handleEditPeriod(row: Period) {
-  isEditMode.value = true
-  currentEditId.value = row._id
+  isEditMode.value = true;
+  currentEditId.value = row._id;
   Object.assign(formData, {
     name: row.name,
     subtitle: row.subtitle,
@@ -325,106 +279,102 @@ function handleEditPeriod(row: Period) {
     originalPrice: row.originalPrice,
     maxEnrollment: row.maxEnrollment,
     sortOrder: row.sortOrder
-  })
-  dialogVisible.value = true
+  });
+  dialogVisible.value = true;
 }
 
 async function handleSubmit() {
-  if (!formRef.value) return
+  if (!formRef.value) return;
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
+  await formRef.value.validate(async valid => {
+    if (!valid) return;
 
-    submitting.value = true
+    submitting.value = true;
     try {
       const payload = {
         ...formData,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
-      }
+      };
 
       if (isEditMode.value && currentEditId.value) {
-        await periodApi.updatePeriod(currentEditId.value, payload)
-        ElMessage.success('期次更新成功')
+        await periodApi.updatePeriod(currentEditId.value, payload);
+        ElMessage.success('期次更新成功');
       } else {
-        await periodApi.createPeriod(payload)
-        ElMessage.success('期次创建成功')
+        await periodApi.createPeriod(payload);
+        ElMessage.success('期次创建成功');
       }
 
-      dialogVisible.value = false
-      await loadPeriods()
+      dialogVisible.value = false;
+      await loadPeriods();
     } catch (err: any) {
-      ElMessage.error(err.message || '操作失败')
+      ElMessage.error(err.message || '操作失败');
     } finally {
-      submitting.value = false
+      submitting.value = false;
     }
-  })
+  });
 }
 
 function handleDeletePeriod(row: Period) {
-  ElMessageBox.confirm(
-    '删除后无法恢复，确定要删除该期次吗？',
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  )
+  ElMessageBox.confirm('删除后无法恢复，确定要删除该期次吗？', '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
     .then(async () => {
       try {
-        await periodApi.deletePeriod(row._id)
-        ElMessage.success('期次删除成功')
-        await loadPeriods()
+        await periodApi.deletePeriod(row._id);
+        ElMessage.success('期次删除成功');
+        await loadPeriods();
       } catch (err: any) {
-        ElMessage.error(err.message || '删除失败')
+        ElMessage.error(err.message || '删除失败');
       }
     })
     .catch(() => {
       // 用户取消
-    })
+    });
 }
 
 async function handlePublishChange(row: Period) {
-  publishingId.value = row._id
+  publishingId.value = row._id;
   try {
-    await periodApi.updatePeriod(row._id, { isPublished: row.isPublished })
-    ElMessage.success(row.isPublished ? '期次已发布' : '期次已下线')
+    await periodApi.updatePeriod(row._id, { isPublished: row.isPublished });
+    ElMessage.success(row.isPublished ? '期次已发布' : '期次已下线');
   } catch (err: any) {
-    ElMessage.error(err.message || '操作失败')
-    row.isPublished = !row.isPublished
+    ElMessage.error(err.message || '操作失败');
+    row.isPublished = !row.isPublished;
   } finally {
-    publishingId.value = null
+    publishingId.value = null;
   }
 }
 
 function handleRefresh() {
-  loadPeriods()
-  ElMessage.success('已刷新')
+  loadPeriods();
+  ElMessage.success('已刷新');
 }
 
 function resetForm() {
-  formData.name = ''
-  formData.subtitle = ''
-  formData.title = ''
-  formData.description = ''
-  formData.icon = '📚'
-  formData.coverColor = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)'
-  formData.startDate = null
-  formData.endDate = null
-  formData.totalDays = 23
-  formData.price = 9900
-  formData.originalPrice = 0
-  formData.maxEnrollment = null
-  formData.sortOrder = 0
-  formRef.value?.clearValidate()
+  formData.name = '';
+  formData.subtitle = '';
+  formData.title = '';
+  formData.description = '';
+  formData.icon = '📚';
+  formData.coverColor = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+  formData.startDate = null;
+  formData.endDate = null;
+  formData.totalDays = 23;
+  formData.price = 9900;
+  formData.originalPrice = 0;
+  formData.maxEnrollment = null;
+  formData.sortOrder = 0;
+  formRef.value?.clearValidate();
 }
 
 function formatDateRange(startDate: string, endDate: string): string {
-  if (!startDate || !endDate) return '-'
-  const start = new Date(startDate).toLocaleDateString('zh-CN')
-  const end = new Date(endDate).toLocaleDateString('zh-CN')
-  return `${start} 至 ${end}`
+  if (!startDate || !endDate) return '-';
+  const start = new Date(startDate).toLocaleDateString('zh-CN');
+  const end = new Date(endDate).toLocaleDateString('zh-CN');
+  return `${start} 至 ${end}`;
 }
 
 function formatStatus(status: string): string {
@@ -432,8 +382,8 @@ function formatStatus(status: string): string {
     not_started: '未开始',
     ongoing: '进行中',
     completed: '已完成'
-  }
-  return statusMap[status] || status
+  };
+  return statusMap[status] || status;
 }
 
 function getStatusType(status: string): string {
@@ -441,8 +391,8 @@ function getStatusType(status: string): string {
     not_started: 'info',
     ongoing: 'success',
     completed: 'danger'
-  }
-  return typeMap[status] || 'info'
+  };
+  return typeMap[status] || 'info';
 }
 </script>
 

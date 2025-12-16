@@ -18,10 +18,10 @@ module.exports = {
     getCurrentPages: 'readonly'
   },
   rules: {
-    'indent': ['error', 2],
+    indent: ['error', 2],
     'linebreak-style': ['error', 'unix'],
-    'quotes': ['error', 'single'],
-    'semi': ['error', 'always'],
+    quotes: ['error', 'single'],
+    semi: ['error', 'always'],
     'no-console': 'off',
     'no-unused-vars': 'warn',
     'no-undef': 'error'

@@ -84,6 +84,7 @@ miniprogram/
 #### 配置管理规范
 
 **1. 环境配置 (config/env.js)**
+
 ```javascript
 // 统一管理不同环境的配置
 const currentEnv = 'dev';
@@ -103,6 +104,7 @@ module.exports = { ...envConfig[currentEnv], currentEnv };
 ```
 
 **2. 常量管理 (config/constants.js)**
+
 ```javascript
 // 集中管理所有魔法数字和字符串
 module.exports = {
@@ -116,6 +118,7 @@ module.exports = {
 ```
 
 **3. API配置 (config/api.config.js)**
+
 ```javascript
 // 统一管理API端点
 module.exports = {
@@ -136,17 +139,17 @@ module.exports = {
 
 ```javascript
 // utils/request.js
-const request = (options) => {
+const request = options => {
   const token = wx.getStorageSync('auth_token');
   return new Promise((resolve, reject) => {
     wx.request({
       ...options,
       header: {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
+        Authorization: token ? `Bearer ${token}` : '',
         ...options.header
       },
-      success: (res) => {
+      success: res => {
         if (res.statusCode === 200) {
           resolve(res.data);
         } else if (res.statusCode === 401) {
@@ -264,9 +267,9 @@ Component({
 ```css
 /* app.wxss - 定义全局CSS变量 */
 page {
-  --primary-color: #1AAD19;
+  --primary-color: #1aad19;
   --text-color: #333333;
-  --bg-color: #F5F5F5;
+  --bg-color: #f5f5f5;
 }
 
 /* 页面中使用 */

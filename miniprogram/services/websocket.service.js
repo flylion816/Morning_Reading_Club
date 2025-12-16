@@ -47,12 +47,13 @@ class WebSocketService {
         this.socket = wx.connectSocket({
           url: socketUrl,
           header: {
-            'Authorization': `Bearer ${wx.getStorageSync('token')}`
+            Authorization: `Bearer ${wx.getStorageSync('token')}`
           }
         });
 
         // 连接成功
-        this.socket.onOpen((res) => {
+        // eslint-disable-next-line no-unused-vars
+        this.socket.onOpen(res => {
           logger.log('[WebSocket] 连接成功');
           this.isConnected = true;
           this.reconnectAttempts = 0;
@@ -70,7 +71,7 @@ class WebSocketService {
         });
 
         // 接收消息
-        this.socket.onMessage((res) => {
+        this.socket.onMessage(res => {
           try {
             const data = JSON.parse(res.data);
             this.handleMessage(data);
@@ -80,7 +81,7 @@ class WebSocketService {
         });
 
         // 连接错误
-        this.socket.onError((error) => {
+        this.socket.onError(error => {
           logger.error('[WebSocket] 连接错误:', error);
           this.isConnected = false;
           this.handleReconnect();
@@ -88,7 +89,8 @@ class WebSocketService {
         });
 
         // 连接关闭
-        this.socket.onClose((res) => {
+        // eslint-disable-next-line no-unused-vars
+        this.socket.onClose(res => {
           logger.log('[WebSocket] 连接已关闭');
           this.isConnected = false;
           this.stopHeartbeat();
@@ -101,7 +103,6 @@ class WebSocketService {
             reject(new Error('WebSocket 连接超时'));
           }
         }, options.timeout || 10000);
-
       } catch (error) {
         logger.error('[WebSocket] 初始化失败:', error);
         reject(error);
@@ -132,20 +133,20 @@ class WebSocketService {
 
     // 处理特定的消息类型
     switch (type) {
-      case 'notification:new':
-        this.handleNewNotification(payload);
-        break;
-      case 'notification:broadcast':
-        this.handleBroadcastNotification(payload);
-        break;
-      case 'user:joined':
-        logger.log('[WebSocket] 用户加入成功');
-        break;
-      case 'pong':
-        // 心跳响应
-        break;
-      default:
-        logger.warn('[WebSocket] 未知的消息类型:', type);
+    case 'notification:new':
+      this.handleNewNotification(payload);
+      break;
+    case 'notification:broadcast':
+      this.handleBroadcastNotification(payload);
+      break;
+    case 'user:joined':
+      logger.log('[WebSocket] 用户加入成功');
+      break;
+    case 'pong':
+      // 心跳响应
+      break;
+    default:
+      logger.warn('[WebSocket] 未知的消息类型:', type);
     }
   }
 

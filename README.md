@@ -17,16 +17,19 @@
 ## 技术栈
 
 ### 前端
+
 - **框架**: 微信小程序原生框架
 - **样式**: WXSS (CSS变量系统)
 - **状态管理**: 全局状态 + 本地存储
 
 ### 后端 API
+
 - **架构**: RESTful API
 - **认证**: JWT Token
 - **基础URL**: `https://wx.shubai01.com/api/v1`
 
 ### 数据库
+
 - **MongoDB**: 主数据库
 
 ## 项目结构
@@ -75,6 +78,7 @@ miniprogram/
 ### 快速开始
 
 1. **克隆项目**
+
 ```bash
 cd 晨读营项目目录
 ```
@@ -82,6 +86,7 @@ cd 晨读营项目目录
 2. **配置 AppID**
 
 打开 `project.config.json`,修改 appid:
+
 ```json
 {
   "appid": "你的AppID"
@@ -91,9 +96,10 @@ cd 晨读营项目目录
 3. **配置 API 地址**
 
 打开 `miniprogram/app.js`,修改 apiBaseUrl:
+
 ```javascript
 globalData: {
-  apiBaseUrl: 'https://your-api-domain.com/api/v1'
+  apiBaseUrl: 'https://your-api-domain.com/api/v1';
 }
 ```
 
@@ -196,6 +202,7 @@ globalData: {
 ### 间距规范
 
 基于 8rpx 网格系统:
+
 - xs: 8rpx
 - sm: 16rpx
 - md: 24rpx
@@ -232,21 +239,25 @@ globalData: {
 ## 相关文档
 
 ### 📚 核心指南
+
 - [主项目指南和快速参考](./CLAUDE.md) - 项目总体情况、工作流程、常见问题
 - [开发流程指南](./DEVELOPMENT.md) - 标准工作流程、自测方法、文档更新
 - [部署上线指南](./DEPLOYMENT.md) - 生产部署步骤、环保生成、配置管理
 - [Bug修复经验库](./BUG_FIXES.md) - 30+ 个常见问题及解决方案
 
 ### 📖 专题文档
+
 - [小程序开发指南](./MINIPROGRAM_GUIDE.md) - WeUI 规范、架构设计、最佳实践
 - [Git工作流程](./GIT_WORKFLOW.md) - Git 操作、GitHub 认证、提交规范
 - [安全文档](./SECURITY.md) - 安全最佳实践、数据保护、审计日志
 
 ### 📝 发布文档
+
 - [v1.0.0 生产发布总结](./RELEASE_v1.0.0.md) - 发布内容、关键指标、已知问题
 - [生产发布检查清单](./TESTING.md) - 上线前检查、测试验证、部署流程
 
 ### 🏗️ 历史文档
+
 - [完整PRD文档](./prd-v2.1/)
 - [架构设计文档](./架构设计-v2.0/)
 - [HTML原型Demo](./demo-v3.0/)

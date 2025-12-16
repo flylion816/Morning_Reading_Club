@@ -12,7 +12,7 @@ const REQUIRED_ENV = {
   PORT: 'number',
   MONGODB_URI: 'mongodb-uri',
   JWT_SECRET: 'string',
-  JWT_REFRESH_SECRET: 'string',
+  JWT_REFRESH_SECRET: 'string'
 };
 
 // 可选的环境变量（带默认值）
@@ -21,7 +21,7 @@ const OPTIONAL_ENV = {
   JWT_EXPIRES_IN: '2h',
   JWT_REFRESH_EXPIRES_IN: '30d',
   LOG_LEVEL: 'info',
-  WECHAT_APPID: 'wx199d6d332344ed0a',
+  WECHAT_APPID: 'wx199d6d332344ed0a'
 };
 
 /**
@@ -121,7 +121,7 @@ function getValidatedConfig() {
     app: {
       nodeEnv: process.env.NODE_ENV || 'development',
       port: parseInt(process.env.PORT, 10) || 3000,
-      apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000',
+      apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000'
     },
     db: {
       mongodbUri: process.env.MONGODB_URI,
@@ -130,26 +130,26 @@ function getValidatedConfig() {
         port: parseInt(process.env.MYSQL_PORT, 10) || 3306,
         user: process.env.MYSQL_USER || 'morning_user',
         password: process.env.MYSQL_PASSWORD || 'morning123',
-        database: process.env.MYSQL_DATABASE || 'morning_reading',
+        database: process.env.MYSQL_DATABASE || 'morning_reading'
       },
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT, 10) || 6379,
-      },
+        port: parseInt(process.env.REDIS_PORT, 10) || 6379
+      }
     },
     jwt: {
       secret: process.env.JWT_SECRET,
       refreshSecret: process.env.JWT_REFRESH_SECRET,
       expiresIn: process.env.JWT_EXPIRES_IN || '2h',
-      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
     },
     wechat: {
       appId: process.env.WECHAT_APPID || 'wx199d6d332344ed0a',
-      secret: process.env.WECHAT_SECRET,
+      secret: process.env.WECHAT_SECRET
     },
     log: {
-      level: process.env.LOG_LEVEL || 'info',
-    },
+      level: process.env.LOG_LEVEL || 'info'
+    }
   };
 }
 
@@ -157,5 +157,5 @@ module.exports = {
   validateConfig,
   getValidatedConfig,
   REQUIRED_ENV,
-  OPTIONAL_ENV,
+  OPTIONAL_ENV
 };

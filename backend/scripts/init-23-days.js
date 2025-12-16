@@ -9,9 +9,10 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const pathModule = require('path');
 
-const envFile = process.env.NODE_ENV === 'production'
-  ? pathModule.join(__dirname, '../.env.production')
-  : pathModule.join(__dirname, '../.env');
+const envFile =
+  process.env.NODE_ENV === 'production'
+    ? pathModule.join(__dirname, '../.env.production')
+    : pathModule.join(__dirname, '../.env');
 require('dotenv').config({ path: envFile });
 
 const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db';
@@ -88,10 +89,14 @@ async function importAllDays() {
 
         // 统计内容长度
         const contentLen = updated.content ? updated.content.length : 0;
-        const paragraphs = updated.content ? (updated.content.match(/<strong>\\d+\\.<\/strong>/g) || []).length : 0;
+        const paragraphs = updated.content
+          ? (updated.content.match(/<strong>\\d+\\.<\/strong>/g) || []).length
+          : 0;
 
         const titleStr = courseData.title.substring(0, 20).padEnd(20);
-        console.log(`✅ Day ${day.toString().padStart(2)}: ${titleStr} ${String(contentLen).padStart(5)}字 ${String(paragraphs).padStart(2)}段`);
+        console.log(
+          `✅ Day ${day.toString().padStart(2)}: ${titleStr} ${String(contentLen).padStart(5)}字 ${String(paragraphs).padStart(2)}段`
+        );
         successCount++;
       } catch (error) {
         console.log(`❌ Day ${day.toString().padStart(2)}: 导入失败 - ${error.message}`);

@@ -67,9 +67,9 @@ module.exports = {
 
   // 反馈可见性
   INSIGHT_VISIBILITY: {
-    PRIVATE: 'private',      // 仅自己可见
-    FRIENDS: 'friends',      // 好友可见
-    PUBLIC: 'public'         // 公开
+    PRIVATE: 'private', // 仅自己可见
+    FRIENDS: 'friends', // 好友可见
+    PUBLIC: 'public' // 公开
   },
 
   // 反馈可见性文本
@@ -121,9 +121,9 @@ module.exports = {
 
   // 缓存过期时间
   CACHE_EXPIRE: {
-    SHORT: 5 * 60 * 1000,      // 5分钟
-    MEDIUM: 30 * 60 * 1000,    // 30分钟
-    LONG: 24 * 60 * 60 * 1000  // 24小时
+    SHORT: 5 * 60 * 1000, // 5分钟
+    MEDIUM: 30 * 60 * 1000, // 30分钟
+    LONG: 24 * 60 * 60 * 1000 // 24小时
   },
 
   // ==================== 网络相关 ====================

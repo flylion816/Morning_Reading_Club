@@ -59,7 +59,7 @@ App({
   // 获取系统信息
   getSystemInfo() {
     wx.getSystemInfo({
-      success: (res) => {
+      success: res => {
         this.globalData.systemInfo = res;
         this.globalData.statusBarHeight = res.statusBarHeight;
         this.globalData.screenHeight = res.screenHeight;
@@ -78,7 +78,7 @@ App({
     if (wx.canIUse('getUpdateManager')) {
       const updateManager = wx.getUpdateManager();
 
-      updateManager.onCheckForUpdate((res) => {
+      updateManager.onCheckForUpdate(res => {
         if (res.hasUpdate) {
           logger.info('发现新版本');
         }
@@ -88,7 +88,7 @@ App({
         wx.showModal({
           title: '更新提示',
           content: '新版本已准备好，是否重启应用？',
-          success: (res) => {
+          success: res => {
             if (res.confirm) {
               updateManager.applyUpdate();
             }

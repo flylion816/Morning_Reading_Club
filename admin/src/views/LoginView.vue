@@ -98,19 +98,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import { ElMessage, type FormInstance } from 'element-plus'
+import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+import { ElMessage, type FormInstance } from 'element-plus';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const formRef = ref<FormInstance>()
+const router = useRouter();
+const authStore = useAuthStore();
+const formRef = ref<FormInstance>();
 
 const form = reactive({
   email: 'admin@morningreading.com',
   password: ''
-})
+});
 
 const rules = {
   email: [
@@ -121,24 +121,24 @@ const rules = {
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
   ]
-}
+};
 
 const handleLogin = async () => {
-  if (!formRef.value) return
+  if (!formRef.value) return;
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
+  await formRef.value.validate(async valid => {
+    if (!valid) return;
 
-    const success = await authStore.login(form.email, form.password)
+    const success = await authStore.login(form.email, form.password);
 
     if (success) {
-      ElMessage.success('登录成功')
-      router.push('/')
+      ElMessage.success('登录成功');
+      router.push('/');
     } else {
       // 错误提示已由 el-alert 显示
     }
-  })
-}
+  });
+};
 </script>
 
 <style scoped>

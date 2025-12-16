@@ -78,9 +78,11 @@ describe('管理后台 E2E 测试', () => {
 
     it('应该能进行批量批准操作', () => {
       // 选择第一条待审批的报名
-      cy.get('.el-table tbody tr').first().within(() => {
-        cy.get('input[type="checkbox"]').click();
-      });
+      cy.get('.el-table tbody tr')
+        .first()
+        .within(() => {
+          cy.get('input[type="checkbox"]').click();
+        });
 
       // 验证选择计数更新
       cy.get('.selected-count').should('contain', '已选中');
@@ -100,9 +102,11 @@ describe('管理后台 E2E 测试', () => {
 
     it('应该能进行批量拒绝操作', () => {
       // 选择报名
-      cy.get('.el-table tbody tr').first().within(() => {
-        cy.get('input[type="checkbox"]').click();
-      });
+      cy.get('.el-table tbody tr')
+        .first()
+        .within(() => {
+          cy.get('input[type="checkbox"]').click();
+        });
 
       // 点击批量拒绝
       cy.get('.batch-operation-bar').contains('批量拒绝').click();
@@ -151,9 +155,11 @@ describe('管理后台 E2E 测试', () => {
       cy.get('.stat-card').should('have.length.greaterThan', 0);
 
       // 验证数值显示
-      cy.get('.stat-card').first().within(() => {
-        cy.get('.stat-value').should('contain.text', /\d+/);
-      });
+      cy.get('.stat-card')
+        .first()
+        .within(() => {
+          cy.get('.stat-value').should('contain.text', /\d+/);
+        });
     });
 
     it('应该能显示图表', () => {
@@ -216,9 +222,11 @@ describe('管理后台 E2E 测试', () => {
 
     it('应该能查看日志详情', () => {
       // 点击第一条日志的查看详情
-      cy.get('.el-table tbody tr').first().within(() => {
-        cy.contains('查看详情').click();
-      });
+      cy.get('.el-table tbody tr')
+        .first()
+        .within(() => {
+          cy.contains('查看详情').click();
+        });
 
       // 验证详情弹窗显示
       cy.get('.el-dialog').should('be.visible');

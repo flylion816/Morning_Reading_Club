@@ -55,10 +55,7 @@ Page({
     });
 
     // 并行加载课程详情和期次信息
-    await Promise.all([
-      this.loadCourseDetail(),
-      this.loadPeriods()
-    ]);
+    await Promise.all([this.loadCourseDetail(), this.loadPeriods()]);
   },
 
   async loadCourseDetail() {
@@ -157,7 +154,7 @@ Page({
       sourceType: ['album', 'camera'],
       maxDuration: 60,
       camera: 'back',
-      success: (res) => {
+      success: res => {
         console.log('选择视频:', res);
         const videos = this.data.videos;
         if (videos.length >= 9) {
@@ -179,7 +176,7 @@ Page({
       count: 9 - this.data.images.length,
       sizeType: ['original', 'compressed'],
       sourceType: ['album', 'camera'],
-      success: (res) => {
+      success: res => {
         const images = this.data.images.concat(res.tempFilePaths);
         this.setData({ images });
       }
@@ -235,7 +232,8 @@ Page({
 
       // 如果仍然没有，从全局periods列表获取
       if (!periodId && app.globalData.periods && app.globalData.periods.length > 0) {
-        const period = app.globalData.periods.find(p => p.status === 'ongoing') || app.globalData.periods[0];
+        const period =
+          app.globalData.periods.find(p => p.status === 'ongoing') || app.globalData.periods[0];
         if (period) {
           periodId = period._id || period.id;
         }
@@ -258,11 +256,11 @@ Page({
 
       // 构造后端需要的打卡数据
       const submitData = {
-        sectionId: this.data.sectionId || this.data.courseId,  // sectionId 和 courseId 在这里应该是一样的
-        periodId: periodId,  // 从课节或全局数据获取
-        day: this.data.sectionDay || 1,  // 课节的day值（表示第几节课）
-        readingTime: Math.floor(Math.random() * 30) + 10,  // 模拟阅读时间 10-40 分钟
-        completionRate: 88,  // 模拟完成度
+        sectionId: this.data.sectionId || this.data.courseId, // sectionId 和 courseId 在这里应该是一样的
+        periodId: periodId, // 从课节或全局数据获取
+        day: this.data.sectionDay || 1, // 课节的day值（表示第几节课）
+        readingTime: Math.floor(Math.random() * 30) + 10, // 模拟阅读时间 10-40 分钟
+        completionRate: 88, // 模拟完成度
         note: this.data.diaryContent,
         images: this.data.images,
         isPublic: this.data.visibility === 'all',

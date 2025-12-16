@@ -60,7 +60,7 @@ class Request {
         data,
         header: requestHeader,
         timeout: this.timeout,
-        success: (res) => {
+        success: res => {
           if (showLoading) {
             wx.hideLoading();
           }
@@ -68,7 +68,7 @@ class Request {
           // 处理响应
           this.handleResponse(res, resolve, reject);
         },
-        fail: (err) => {
+        fail: err => {
           if (showLoading) {
             wx.hideLoading();
           }
@@ -253,9 +253,9 @@ class Request {
         name: 'file',
         formData,
         header: {
-          'Authorization': token ? `Bearer ${token}` : ''
+          Authorization: token ? `Bearer ${token}` : ''
         },
-        success: (res) => {
+        success: res => {
           const data = JSON.parse(res.data);
           if (res.statusCode === 200 && data.code === 0) {
             resolve(data.data);
@@ -264,7 +264,7 @@ class Request {
             reject(data);
           }
         },
-        fail: (err) => {
+        fail: err => {
           logger.error('上传失败:', err);
           this.showError('上传失败');
           reject(err);

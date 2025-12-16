@@ -137,10 +137,13 @@ Page({
     try {
       // 并行检查所有期次的报名状态
       const promises = periods.map(period =>
-        enrollmentService.checkEnrollment(period._id)
+        enrollmentService
+          .checkEnrollment(period._id)
           .then(res => {
             statusMap[period._id] = res.isEnrolled || false;
-            console.log(`期次 ${period.name} (${period._id}): ${res.isEnrolled ? '已报名' : '未报名'}`);
+            console.log(
+              `期次 ${period.name} (${period._id}): ${res.isEnrolled ? '已报名' : '未报名'}`
+            );
           })
           .catch(error => {
             console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
@@ -188,7 +191,7 @@ Page({
         title: '请先登录',
         content: '需要登录才能进行操作',
         confirmText: '去登录',
-        success: (res) => {
+        success: res => {
           if (res.confirm) {
             wx.navigateTo({
               url: '/pages/login/login'
@@ -240,9 +243,9 @@ Page({
    */
   getCourseStatusText(status) {
     const statusMap = {
-      'not_started': '未开始',
-      'ongoing': '进行中',
-      'completed': '已完成'
+      not_started: '未开始',
+      ongoing: '进行中',
+      completed: '已完成'
     };
     return statusMap[status] || '未知';
   },

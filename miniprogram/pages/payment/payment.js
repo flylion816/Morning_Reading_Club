@@ -23,7 +23,7 @@ Page({
     // 支付金额
     paymentAmount: 99, // 默认课程费用 99 元
     discountAmount: 0, // 优惠金额
-    finalAmount: 99,   // 最终支付金额
+    finalAmount: 99, // 最终支付金额
 
     // 支付结果
     showPaymentResult: false,
@@ -36,14 +36,7 @@ Page({
 
   onLoad(options) {
     // 从路由参数获取报名信息
-    const {
-      enrollmentId,
-      periodId,
-      periodTitle,
-      startDate,
-      endDate,
-      amount
-    } = options;
+    const { enrollmentId, periodId, periodTitle, startDate, endDate, amount } = options;
 
     if (!enrollmentId || !periodId) {
       wx.showToast({
@@ -153,12 +146,12 @@ Page({
           package: paymentParams.package,
           signType: paymentParams.signType,
           paySign: paymentParams.paySign,
-          success: (res) => {
+          success: res => {
             console.log('微信支付成功:', res);
             this.handlePaymentSuccess();
             resolve(res);
           },
-          fail: (err) => {
+          fail: err => {
             console.error('微信支付失败:', err);
             // 用户取消支付时 errMsg 为 "requestPayment:fail cancel"
             if (err.errMsg && err.errMsg.includes('cancel')) {
@@ -208,7 +201,7 @@ Page({
         } else if (initRes.status === 'pending') {
           // 如果是 pending 状态，则需要确认支付
           // 模拟 2 秒支付处理时间
-          return new Promise((resolve) => {
+          return new Promise(resolve => {
             setTimeout(async () => {
               console.log('模拟支付完成，开始确认支付...');
               try {
@@ -296,7 +289,7 @@ Page({
           // 返回成功后，跳转到课程列表
           wx.navigateTo({
             url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
-            fail: (err) => {
+            fail: err => {
               console.error('导航到课程列表失败:', err);
               wx.showToast({
                 title: '导航失败，请手动进入课程',
@@ -305,12 +298,12 @@ Page({
             }
           });
         },
-        fail: (err) => {
+        fail: err => {
           console.error('返回首页失败:', err);
           // 如果返回失败，尝试直接跳转到课程列表
           wx.navigateTo({
             url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
-            fail: (navErr) => {
+            fail: navErr => {
               console.error('导航到课程列表失败:', navErr);
               wx.showToast({
                 title: '导航失败，请手动进入课程',
@@ -344,7 +337,7 @@ Page({
     wx.showModal({
       title: '取消支付',
       content: '确定要取消支付吗？',
-      success: (res) => {
+      success: res => {
         if (res.confirm) {
           // 返回到报名页面或首页
           wx.navigateBack({ delta: 1 });

@@ -26,6 +26,7 @@
 ### 1.2 请求规范
 
 **HTTP方法**:
+
 - `GET`: 获取资源
 - `POST`: 创建资源
 - `PUT`: 完整更新资源
@@ -33,6 +34,7 @@
 - `DELETE`: 删除资源
 
 **请求头**:
+
 ```http
 Content-Type: application/json
 Authorization: Bearer {access_token}
@@ -40,11 +42,13 @@ X-Request-ID: {unique_request_id}
 ```
 
 **URL规范**:
+
 - 使用小写字母和连字符
 - 资源名使用复数形式
 - 嵌套资源不超过2层
 
 示例:
+
 ```
 ✅ GET /api/v1/periods
 ✅ GET /api/v1/periods/8/sections
@@ -56,6 +60,7 @@ X-Request-ID: {unique_request_id}
 ### 1.3 响应规范
 
 **成功响应格式**:
+
 ```json
 {
   "code": 200,
@@ -68,6 +73,7 @@ X-Request-ID: {unique_request_id}
 ```
 
 **列表响应格式**:
+
 ```json
 {
   "code": 200,
@@ -88,6 +94,7 @@ X-Request-ID: {unique_request_id}
 ```
 
 **错误响应格式**:
+
 ```json
 {
   "code": 400,
@@ -108,6 +115,7 @@ X-Request-ID: {unique_request_id}
 ### 1.4 分页参数
 
 **查询参数**:
+
 ```
 page: 页码（从1开始，默认1）
 pageSize: 每页数量（默认20，最大100）
@@ -116,6 +124,7 @@ order: 排序方向（asc/desc，默认desc）
 ```
 
 **示例**:
+
 ```
 GET /api/v1/checkins?page=2&pageSize=20&sortBy=createdAt&order=desc
 ```
@@ -123,6 +132,7 @@ GET /api/v1/checkins?page=2&pageSize=20&sortBy=createdAt&order=desc
 ### 1.5 过滤和搜索
 
 **查询参数**:
+
 ```
 filter[field]: 过滤条件
 search: 搜索关键词
@@ -132,6 +142,7 @@ endDate: 结束日期
 ```
 
 **示例**:
+
 ```
 GET /api/v1/periods?filter[status]=ongoing&search=勇敢
 GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
@@ -146,6 +157,7 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 **接口**: `POST /auth/wechat/login`
 
 **请求参数**:
+
 ```json
 {
   "code": "061YaF100dSm2Z1hxS200oSzkC0YaF1Q"
@@ -153,6 +165,7 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -177,6 +190,7 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 ```
 
 **流程说明**:
+
 1. 小程序调用 `wx.login()` 获取code
 2. 发送code到后端
 3. 后端调用微信API获取openid和session_key
@@ -184,6 +198,7 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 5. 生成JWT token返回
 
 **错误码**:
+
 - `40001`: 微信code无效
 - `40002`: 微信API调用失败
 - `50001`: 用户已被封禁
@@ -193,6 +208,7 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 **接口**: `POST /auth/refresh`
 
 **请求参数**:
+
 ```json
 {
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -200,6 +216,7 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -213,12 +230,14 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 ```
 
 **错误码**:
+
 - `40101`: Token已过期
 - `40102`: Token无效
 
 ### 2.3 JWT Token格式
 
 **Payload结构**:
+
 ```json
 {
   "userId": 1,
@@ -230,20 +249,21 @@ GET /api/v1/checkins?startDate=2025-01-01&endDate=2025-01-31
 ```
 
 **验证中间件**:
+
 ```javascript
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
 
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!token) {
     return res.status(401).json({
       code: 401,
       message: '未提供认证令牌'
     });
   }
-  
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
@@ -281,11 +301,13 @@ module.exports = { authMiddleware, adminMiddleware };
 **鉴权**: 需要
 
 **请求头**:
+
 ```http
 Authorization: Bearer {access_token}
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -314,6 +336,7 @@ Authorization: Bearer {access_token}
 ```
 
 **错误码**:
+
 - `40101`: Token已过期
 - `40401`: 用户不存在
 
@@ -324,6 +347,7 @@ Authorization: Bearer {access_token}
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "nickname": "阿泰",
@@ -334,6 +358,7 @@ Authorization: Bearer {access_token}
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -351,12 +376,14 @@ Authorization: Bearer {access_token}
 ```
 
 **验证规则**:
+
 - nickname: 2-50字符
 - avatar: 1-10字符
 - signature: 0-200字符
 - gender: male/female/unknown
 
 **错误码**:
+
 - `40001`: 参数验证失败
 - `40901`: 昵称已被使用
 
@@ -367,6 +394,7 @@ Authorization: Bearer {access_token}
 **鉴权**: 需要
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -414,6 +442,7 @@ Authorization: Bearer {access_token}
 **鉴权**: 需要
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -422,6 +451,7 @@ status: 状态（可选: normal/deleted/hidden）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -475,6 +505,7 @@ status: 状态（可选: normal/deleted/hidden）
 **鉴权**: 可选（登录后返回更多信息）
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -483,6 +514,7 @@ isPublished: 是否已发布（可选: true/false）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -502,8 +534,8 @@ isPublished: 是否已发布（可选: true/false）
         "endDate": "2025-11-13",
         "dateRange": "10-11 至 11-13",
         "totalDays": 23,
-        "price": 99.00,
-        "originalPrice": 199.00,
+        "price": 99.0,
+        "originalPrice": 199.0,
         "maxEnrollment": 500,
         "currentEnrollment": 235,
         "status": "ongoing",
@@ -529,6 +561,7 @@ isPublished: 是否已发布（可选: true/false）
 ```
 
 **说明**:
+
 - 未登录: 只返回基本信息，不包含 isEnrolled, checkedDays, progress
 - 已登录: 返回完整信息
 
@@ -539,6 +572,7 @@ isPublished: 是否已发布（可选: true/false）
 **鉴权**: 可选
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -556,8 +590,8 @@ isPublished: 是否已发布（可选: true/false）
     "endDate": "2025-11-13",
     "dateRange": "10-11 至 11-13",
     "totalDays": 23,
-    "price": 99.00,
-    "originalPrice": 199.00,
+    "price": 99.0,
+    "originalPrice": 199.0,
     "maxEnrollment": 500,
     "currentEnrollment": 235,
     "status": "ongoing",
@@ -578,6 +612,7 @@ isPublished: 是否已发布（可选: true/false）
 ```
 
 **错误码**:
+
 - `40401`: 期次不存在
 - `40301`: 期次未发布
 
@@ -588,14 +623,16 @@ isPublished: 是否已发布（可选: true/false）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "paymentType": "wechat_pay",
-  "paymentAmount": 99.00
+  "paymentAmount": 99.0
 }
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -607,7 +644,7 @@ isPublished: 是否已发布（可选: true/false）
     "userId": 1,
     "status": "active",
     "paymentStatus": "unpaid",
-    "paymentAmount": 99.00,
+    "paymentAmount": 99.0,
     "orderNo": "ORDER20251010123456",
     "paymentInfo": {
       "prepayId": "wx20251010123456789",
@@ -622,11 +659,13 @@ isPublished: 是否已发布（可选: true/false）
 ```
 
 **业务规则**:
+
 - 同一用户同一期次只能报名一次
 - 期次必须是未开始或进行中状态
 - 达到最大报名人数时不允许报名
 
 **错误码**:
+
 - `40901`: 已经报名过该期次
 - `40902`: 期次已结束，不能报名
 - `40903`: 报名人数已满
@@ -638,6 +677,7 @@ isPublished: 是否已发布（可选: true/false）
 **鉴权**: 需要
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -648,17 +688,19 @@ isPublished: 是否已发布（可选: true/false）
     "status": "cancelled",
     "cancelledAt": "2025-01-13T10:30:00.000Z",
     "refundStatus": "processing",
-    "refundAmount": 99.00
+    "refundAmount": 99.0
   },
   "timestamp": 1705132800000
 }
 ```
 
 **业务规则**:
+
 - 期次开始前可随时取消
 - 期次开始后，根据打卡进度决定退款比例
 
 **错误码**:
+
 - `40401`: 未找到报名记录
 - `40904`: 该期次不允许取消
 
@@ -673,12 +715,14 @@ isPublished: 是否已发布（可选: true/false）
 **鉴权**: 可选
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认100，课节较少不分页）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -734,6 +778,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 ```
 
 **计算字段说明**:
+
 - `isCheckedIn`: 当前用户是否已打卡（需登录）
 - `canCheckin`: 是否在打卡时间范围内
 - `checkinCount`: 当前课节打卡人数
@@ -745,6 +790,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 **鉴权**: 需要（查看课节内容需要报名）
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -785,10 +831,12 @@ pageSize: 每页数量（默认100，课节较少不分页）
 ```
 
 **业务规则**:
+
 - 必须报名该期次才能查看课节内容
 - 未在打卡时间范围内也可查看（复习）
 
 **错误码**:
+
 - `40401`: 课节不存在
 - `40301`: 未报名该期次
 - `40302`: 课节未发布
@@ -800,6 +848,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 **鉴权**: 需要
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -826,6 +875,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 ```
 
 **说明**:
+
 - 返回当前时间在打卡范围内的所有课节
 - 支持多个期次同时进行
 - 如果没有今日任务，返回空数组
@@ -841,6 +891,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "sectionId": 802,
@@ -853,6 +904,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -882,12 +934,14 @@ pageSize: 每页数量（默认100，课节较少不分页）
 ```
 
 **业务规则**:
+
 - 每个用户每个课节只能打卡一次
 - 必须在打卡时间范围内
 - 必须报名该期次
 - content不能为空
 
 **验证规则**:
+
 - content: 必填，最少10字符
 - images: 最多9张
 - videos: 最多3个
@@ -895,6 +949,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 - visibility: all/admin_only
 
 **错误码**:
+
 - `40001`: 参数验证失败
 - `40301`: 未报名该期次
 - `40905`: 不在打卡时间范围内
@@ -907,6 +962,7 @@ pageSize: 每页数量（默认100，课节较少不分页）
 **鉴权**: 可选
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -919,6 +975,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -963,6 +1020,7 @@ order: 排序方向（默认desc）
 ```
 
 **说明**:
+
 - 未登录: 只能看到visibility=all的打卡
 - 普通用户: 可以看到自己的所有打卡 + 别人visibility=all的打卡
 - 管理员: 可以看到所有打卡
@@ -974,6 +1032,7 @@ order: 排序方向（默认desc）
 **鉴权**: 可选
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1027,6 +1086,7 @@ order: 排序方向（默认desc）
 ```
 
 **错误码**:
+
 - `40401`: 打卡不存在
 - `40301`: 无权限查看
 
@@ -1037,6 +1097,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要（只能更新自己的打卡）
 
 **请求参数**:
+
 ```json
 {
   "content": "更新后的内容...",
@@ -1045,6 +1106,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1060,11 +1122,13 @@ order: 排序方向（默认desc）
 ```
 
 **业务规则**:
+
 - 只能更新自己的打卡
 - 不能更新images/videos/voices（需删除重新创建）
 - 打卡后24小时内可以编辑
 
 **错误码**:
+
 - `40301`: 无权限编辑
 - `40907`: 超过编辑时限
 
@@ -1075,6 +1139,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要（只能删除自己的打卡）
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1089,11 +1154,13 @@ order: 排序方向（默认desc）
 ```
 
 **业务规则**:
+
 - 软删除（status = deleted）
 - 删除后关联的评论、点赞等保留
 - 打卡后24小时内可以删除
 
 **错误码**:
+
 - `40301`: 无权限删除
 - `40908`: 超过删除时限
 
@@ -1104,6 +1171,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "action": "like"
@@ -1111,6 +1179,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1125,6 +1194,7 @@ order: 排序方向（默认desc）
 ```
 
 **说明**:
+
 - action: "like" 点赞, "unlike" 取消点赞
 - 重复点赞自动切换状态
 
@@ -1139,6 +1209,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "content": "写得很好！"
@@ -1146,6 +1217,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1170,9 +1242,11 @@ order: 排序方向（默认desc）
 ```
 
 **验证规则**:
+
 - content: 必填，1-500字符
 
 **错误码**:
+
 - `40001`: 参数验证失败
 - `40401`: 打卡不存在
 
@@ -1183,6 +1257,7 @@ order: 排序方向（默认desc）
 **鉴权**: 可选
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -1191,6 +1266,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1249,6 +1325,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要（只能删除自己的评论）
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1269,6 +1346,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "action": "like"
@@ -1276,6 +1354,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1300,6 +1379,7 @@ order: 排序方向（默认desc）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "content": "谢谢你的鼓励！",
@@ -1308,6 +1388,7 @@ order: 排序方向（默认desc）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1332,6 +1413,7 @@ order: 排序方向（默认desc）
 ```
 
 **验证规则**:
+
 - content: 必填，1-500字符
 - toUserId: 可选（回复评论时不填，回复回复时必填）
 
@@ -1342,12 +1424,14 @@ order: 排序方向（默认desc）
 **鉴权**: 可选
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1390,6 +1474,7 @@ pageSize: 每页数量（默认20）
 **鉴权**: 需要（只能删除自己的回复）
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1410,6 +1495,7 @@ pageSize: 每页数量（默认20）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "action": "like"
@@ -1417,6 +1503,7 @@ pageSize: 每页数量（默认20）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1441,6 +1528,7 @@ pageSize: 每页数量（默认20）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "checkinId": 1,
@@ -1449,6 +1537,7 @@ pageSize: 每页数量（默认20）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1474,11 +1563,13 @@ pageSize: 每页数量（默认20）
 ```
 
 **业务规则**:
+
 - 每个打卡只能生成一次小凡看见
 - 必须是自己的打卡
 - 使用AI生成个性化反馈
 
 **错误码**:
+
 - `40401`: 打卡不存在
 - `40301`: 无权限操作
 - `40909`: 已生成过小凡看见
@@ -1491,6 +1582,7 @@ pageSize: 每页数量（默认20）
 **鉴权**: 需要
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1519,11 +1611,13 @@ pageSize: 每页数量（默认20）
 ```
 
 **权限说明**:
+
 - visibility=private: 只有本人可见
 - visibility=friends: 需要申请并获得同意
 - visibility=public: 所有人可见
 
 **错误码**:
+
 - `40401`: 小凡看见不存在
 - `40301`: 无权限查看（需要申请）
 
@@ -1534,6 +1628,7 @@ pageSize: 每页数量（默认20）
 **鉴权**: 需要
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -1541,6 +1636,7 @@ periodId: 期次ID（可选）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1585,6 +1681,7 @@ periodId: 期次ID（可选）
 **鉴权**: 需要（只能更新自己的）
 
 **请求参数**:
+
 ```json
 {
   "visibility": "friends"
@@ -1592,6 +1689,7 @@ periodId: 期次ID（可选）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1612,6 +1710,7 @@ periodId: 期次ID（可选）
 **鉴权**: 需要
 
 **请求参数**:
+
 ```json
 {
   "message": "想看看你的感悟"
@@ -1619,6 +1718,7 @@ periodId: 期次ID（可选）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1637,11 +1737,13 @@ periodId: 期次ID（可选）
 ```
 
 **业务规则**:
+
 - 只能申请visibility=friends的小凡看见
 - 同一个小凡看见每个用户只能申请一次
 - 本人的小凡看见不需要申请
 
 **错误码**:
+
 - `40910`: 无需申请（visibility=public或本人的）
 - `40911`: 已申请过
 
@@ -1652,6 +1754,7 @@ periodId: 期次ID（可选）
 **鉴权**: 需要（只能处理自己收到的申请）
 
 **请求参数**:
+
 ```json
 {
   "status": "approved",
@@ -1660,6 +1763,7 @@ periodId: 期次ID（可选）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1675,6 +1779,7 @@ periodId: 期次ID（可选）
 ```
 
 **说明**:
+
 - status: approved(同意) / rejected(拒绝)
 
 ### 9.7 获取收到的申请列表
@@ -1684,6 +1789,7 @@ periodId: 期次ID（可选）
 **鉴权**: 需要
 
 **查询参数**:
+
 ```
 page: 页码（默认1）
 pageSize: 每页数量（默认20）
@@ -1691,6 +1797,7 @@ status: 状态筛选（可选: pending/approved/rejected）
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 200,
@@ -1731,4 +1838,3 @@ status: 状态筛选（可选: pending/approved/rejected）
 **文档版本**: v3.0  
 **最后更新**: 2025-01-13  
 **文档状态**: Part 1 完成（共2部分）
-

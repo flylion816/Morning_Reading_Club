@@ -31,10 +31,12 @@ function errorHandler(err, req, res, next) {
     message = statusCode === 500 ? '服务器内部错误' : message;
   }
 
-  res.status(statusCode).json(error(statusCode, message, {
-    type: err.name,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
-  }));
+  res.status(statusCode).json(
+    error(statusCode, message, {
+      type: err.name,
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+    })
+  );
 }
 
 // 404处理中间件

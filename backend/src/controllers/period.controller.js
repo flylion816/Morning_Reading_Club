@@ -24,29 +24,31 @@ async function getPeriodList(req, res, next) {
       // 添加前端需要的字段
       return {
         ...periodObj,
-        id: period._id || period.id,  // 前端期望使用 id 字段
+        id: period._id || period.id, // 前端期望使用 id 字段
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         icon: period.icon || '📚',
         startTime: period.startDate ? period.startDate.toISOString() : null,
         endTime: period.endDate ? period.endDate.toISOString() : null,
         dateRange: period.dateRange || '',
         statusText: getStatusText(period),
-        checkedDays: 0,  // 这个值需要从用户的打卡记录中计算
-        progress: 0,  // 这个值也需要计算
+        checkedDays: 0, // 这个值需要从用户的打卡记录中计算
+        progress: 0, // 这个值也需要计算
         isCheckedIn: false,
-        currentEnrollment: period.enrollmentCount || 0  // 报名人数（映射enrollmentCount为currentEnrollment）
+        currentEnrollment: period.enrollmentCount || 0 // 报名人数（映射enrollmentCount为currentEnrollment）
       };
     });
 
-    res.json(success({
-      list: transformedPeriods,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: transformedPeriods,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -78,9 +80,9 @@ function getStatusText(period) {
   const dynamicStatus = getDynamicStatus(period);
 
   const statusMap = {
-    'not_started': '未开始',
-    'ongoing': '进行中',
-    'completed': '已完成'
+    not_started: '未开始',
+    ongoing: '进行中',
+    completed: '已完成'
   };
   return statusMap[dynamicStatus] || '未知状态';
 }

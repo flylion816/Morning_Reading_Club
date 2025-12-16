@@ -18,6 +18,7 @@
 ## 转换方法
 
 ### 方法1：使用在线工具转换
+
 1. 访问 [CloudConvert](https://cloudconvert.com/svg-to-png) 或 [SVG转PNG工具](https://svgtopng.com/)
 2. 上传SVG文件
 3. 设置输出尺寸为 **81x81 像素**
@@ -38,7 +39,9 @@ done
 ```
 
 ### 方法3：使用设计工具
+
 使用 Figma、Sketch、Adobe Illustrator 等设计工具：
+
 1. 打开SVG文件
 2. 导出为PNG格式
 3. 设置导出尺寸为 81x81px，3x（243x243px）
@@ -88,6 +91,7 @@ done
 ## 自定义图标
 
 如需使用自定义图标，请确保：
+
 1. 图标风格统一（线性或面性）
 2. 视觉重量一致
 3. 符合微信小程序设计规范

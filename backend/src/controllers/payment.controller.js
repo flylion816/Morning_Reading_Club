@@ -10,11 +10,7 @@ const logger = require('../utils/logger');
 exports.initiatePayment = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const {
-      enrollmentId,
-      paymentMethod = 'wechat',
-      amount = 99
-    } = req.body;
+    const { enrollmentId, paymentMethod = 'wechat', amount = 99 } = req.body;
 
     // 验证报名记录是否存在
     const enrollment = await Enrollment.findOne({
@@ -34,13 +30,15 @@ exports.initiatePayment = async (req, res) => {
 
     // 如果已有待支付或处理中的订单，直接返回该订单
     if (payment) {
-      return res.json(success({
-        paymentId: payment._id,
-        orderNo: payment.orderNo,
-        amount: payment.amount,
-        status: payment.status,
-        message: '订单已存在，请继续支付'
-      }));
+      return res.json(
+        success({
+          paymentId: payment._id,
+          orderNo: payment.orderNo,
+          amount: payment.amount,
+          status: payment.status,
+          message: '订单已存在，请继续支付'
+        })
+      );
     }
 
     // 检查是否已完成支付
@@ -72,22 +70,29 @@ exports.initiatePayment = async (req, res) => {
         paidAt: new Date()
       });
 
-      return res.json(success({
-        paymentId: payment._id,
-        orderNo: payment.orderNo,
-        status: 'completed',
-        message: '模拟支付成功'
-      }, '支付成功'));
+      return res.json(
+        success(
+          {
+            paymentId: payment._id,
+            orderNo: payment.orderNo,
+            status: 'completed',
+            message: '模拟支付成功'
+          },
+          '支付成功'
+        )
+      );
     }
 
     // 对于真实微信支付，返回订单信息
-    res.json(success({
-      paymentId: payment._id,
-      orderNo: payment.orderNo,
-      amount: payment.amount,
-      status: 'pending',
-      message: '订单创建成功，请继续支付'
-    }));
+    res.json(
+      success({
+        paymentId: payment._id,
+        orderNo: payment.orderNo,
+        amount: payment.amount,
+        status: 'pending',
+        message: '订单创建成功，请继续支付'
+      })
+    );
   } catch (error) {
     logger.error('Payment initiation failed', error);
     res.status(500).json(errors.serverError('初始化支付失败: ' + error.message));
@@ -122,19 +127,28 @@ exports.confirmPayment = async (req, res) => {
     await payment.confirmPayment(transactionId);
 
     // 更新报名记录的支付状态
-    const enrollment = await Enrollment.findByIdAndUpdate(payment.enrollmentId, {
-      paymentStatus: 'paid',
-      paidAt: new Date()
-    }, { new: true });
+    const enrollment = await Enrollment.findByIdAndUpdate(
+      payment.enrollmentId,
+      {
+        paymentStatus: 'paid',
+        paidAt: new Date()
+      },
+      { new: true }
+    );
 
     // 填充关联数据
     await payment.populate('enrollmentId', 'name');
     await payment.populate('periodId', 'name title');
 
-    res.json(success({
-      payment,
-      enrollment
-    }, '支付确认成功'));
+    res.json(
+      success(
+        {
+          payment,
+          enrollment
+        },
+        '支付确认成功'
+      )
+    );
   } catch (error) {
     logger.error('Payment confirmation failed', error);
     res.status(500).json(errors.serverError('确认支付失败: ' + error.message));
@@ -162,17 +176,19 @@ exports.getPaymentStatus = async (req, res) => {
       return res.status(404).json(errors.notFound('支付记录不存在'));
     }
 
-    res.json(success({
-      paymentId: payment._id,
-      orderNo: payment.orderNo,
-      amount: payment.amount,
-      status: payment.status,
-      paymentMethod: payment.paymentMethod,
-      paidAt: payment.paidAt,
-      createdAt: payment.createdAt,
-      enrollmentName: payment.enrollmentId?.name,
-      periodName: payment.periodId?.name
-    }));
+    res.json(
+      success({
+        paymentId: payment._id,
+        orderNo: payment.orderNo,
+        amount: payment.amount,
+        status: payment.status,
+        paymentMethod: payment.paymentMethod,
+        paidAt: payment.paidAt,
+        createdAt: payment.createdAt,
+        enrollmentName: payment.enrollmentId?.name,
+        periodName: payment.periodId?.name
+      })
+    );
   } catch (error) {
     logger.error('Payment status query failed', error);
     res.status(500).json(errors.serverError('查询支付状态失败: ' + error.message));
@@ -205,10 +221,15 @@ exports.cancelPayment = async (req, res) => {
     // 取消支付
     await payment.markCancelled();
 
-    res.json(success({
-      paymentId: payment._id,
-      status: payment.status
-    }, '支付已取消'));
+    res.json(
+      success(
+        {
+          paymentId: payment._id,
+          status: payment.status
+        },
+        '支付已取消'
+      )
+    );
   } catch (error) {
     logger.error('Payment cancellation failed', error);
     res.status(500).json(errors.serverError('取消支付失败: ' + error.message));
@@ -222,11 +243,7 @@ exports.cancelPayment = async (req, res) => {
 exports.getUserPayments = async (req, res) => {
   try {
     const userId = req.params.userId || req.user.userId;
-    const {
-      page = 1,
-      limit = 20,
-      status
-    } = req.query;
+    const { page = 1, limit = 20, status } = req.query;
 
     // 获取支付记录
     const result = await Payment.getUserPayments(userId, {
@@ -249,13 +266,15 @@ exports.getUserPayments = async (req, res) => {
       isPaid: payment.status === 'completed'
     }));
 
-    res.json(success({
-      list: payments,
-      total: result.total,
-      page: result.page,
-      limit: result.limit,
-      totalPages: result.totalPages
-    }));
+    res.json(
+      success({
+        list: payments,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      })
+    );
   } catch (error) {
     logger.error('Get payment record failed', error);
     res.status(500).json(errors.serverError('获取支付记录失败: ' + error.message));
@@ -329,15 +348,24 @@ exports.mockConfirmPayment = async (req, res) => {
     await payment.confirmPayment();
 
     // 更新报名记录的支付状态
-    const enrollment = await Enrollment.findByIdAndUpdate(payment.enrollmentId, {
-      paymentStatus: 'paid',
-      paidAt: new Date()
-    }, { new: true });
+    const enrollment = await Enrollment.findByIdAndUpdate(
+      payment.enrollmentId,
+      {
+        paymentStatus: 'paid',
+        paidAt: new Date()
+      },
+      { new: true }
+    );
 
-    res.json(success({
-      payment,
-      enrollment
-    }, '模拟支付成功'));
+    res.json(
+      success(
+        {
+          payment,
+          enrollment
+        },
+        '模拟支付成功'
+      )
+    );
   } catch (error) {
     logger.error('Mock payment failed', error);
     res.status(500).json(errors.serverError('模拟支付失败: ' + error.message));
@@ -371,15 +399,17 @@ exports.getPayments = async (req, res) => {
       .populate('periodId', 'name')
       .select('-__v');
 
-    res.json(success({
-      list: payments,
-      total,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: payments,
+        total,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     logger.error('Get payment list failed', error);
     res.status(500).json(errors.serverError('获取支付列表失败: ' + error.message));

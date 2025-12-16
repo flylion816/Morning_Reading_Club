@@ -9,33 +9,39 @@
 **问题现象**：Profile页面一直显示loading，未登录状态判断错误
 
 **根本原因**：`setData`是异步的，不能立即读取更新后的值
+
 ```javascript
 // ❌ 错误：setData后立即读取this.data
 this.setData({ isLogin: true });
-if (this.data.isLogin) {  // 可能还是旧值！
+if (this.data.isLogin) {
+  // 可能还是旧值！
   this.loadUserData();
 }
 ```
 
 **解决方案**：使用其他数据源或回调
+
 ```javascript
 // ✅ 正确：使用globalData或回调
 const app = getApp();
 const isLogin = app.globalData.isLogin;
 this.setData({ isLogin });
-if (isLogin) {  // 使用之前获取的值
+if (isLogin) {
+  // 使用之前获取的值
   this.loadUserData();
 }
 
 // 或者使用回调
 this.setData({ isLogin: true }, () => {
-  if (this.data.isLogin) {  // 这里可以读取
+  if (this.data.isLogin) {
+    // 这里可以读取
     this.loadUserData();
   }
 });
 ```
 
 **经验教训**：
+
 - ⚠️ `setData`是异步操作，不会立即更新`this.data`
 - ⚠️ 不要在`setData`后立即读取相同的数据
 - ✅ 使用`app.globalData`存储需要跨页面同步的状态
@@ -50,15 +56,17 @@ this.setData({ isLogin: true }, () => {
 **问题现象**：数据已从API获取，但页面没有显示出来
 
 **根本原因**：
+
 1. 绑定的数据路径错误
 2. 数据结构与模板不匹配
 3. 数据为null/undefined
 
 **解决方案**：
+
 ```javascript
 // ❌ 错误：数据路径可能不对
 this.setData({
-  courses: response.data  // 但模板使用 courses.list
+  courses: response.data // 但模板使用 courses.list
 });
 
 // ✅ 正确：确保数据结构匹配
@@ -74,11 +82,13 @@ this.setData({
 ```
 
 **调试步骤**：
+
 1. 在`setData`前后添加`console.log`检查数据
 2. 在WXML模板中添加`<view>{{JSON.stringify(data)}}</view>`查看实际数据结构
 3. 对比API返回的结构和模板期望的结构
 
 **经验教训**：
+
 - ⚠️ 数据绑定路径必须完全匹配
 - ⚠️ 嵌套对象需要使用点号语法：`setData({'obj.property': value})`
 - ✅ 添加console.log在关键位置进行调试
@@ -93,6 +103,7 @@ this.setData({
 **问题现象**：修改数据后，页面没有立即更新
 
 **根本原因**：
+
 1. 直接修改`this.data`而不用`setData`
 2. 修改嵌套对象时创建了新引用
 3. 数组操作后没有触发更新
@@ -101,7 +112,7 @@ this.setData({
 
 ```javascript
 // ❌ 错误：直接修改data
-this.data.user.name = 'New Name';  // 页面不会更新！
+this.data.user.name = 'New Name'; // 页面不会更新！
 
 // ✅ 正确：使用setData
 this.setData({
@@ -109,7 +120,7 @@ this.setData({
 });
 
 // ❌ 错误：修改数组
-this.data.items.push(newItem);  // 页面不会更新！
+this.data.items.push(newItem); // 页面不会更新！
 
 // ✅ 正确：使用setData更新数组
 this.setData({
@@ -122,6 +133,7 @@ this.setData({ items: this.data.items });
 ```
 
 **经验教训**：
+
 - ⚠️ 小程序数据更新必须通过`setData`
 - ⚠️ 直接修改`this.data`小程序无法检测到变化
 - ✅ 对于嵌套对象，使用点号路径：`'obj.prop': value`
@@ -172,6 +184,7 @@ this.setData({
 ```
 
 **经验教训**：
+
 - ⚠️ 嵌套路径必须使用点号分隔：`'obj.prop.subProp': value`
 - ⚠️ 数组元素使用方括号：`'arr[0].prop': value`
 - ⚠️ 不能混合使用点号和括号
@@ -187,6 +200,7 @@ this.setData({
 **问题现象**：更新包含多个对象/数组的复杂结构时，部分更新失败
 
 **根本原因**：
+
 1. 一次性修改太多层级
 2. 使用了不规范的路径写法
 3. 没有保持引用关系
@@ -228,12 +242,14 @@ this.setData({
 ```
 
 **调试步骤**：
+
 1. 添加`console.log`在`setData`前后查看数据
 2. 在小程序开发工具的Storage中检查存储的数据
 3. 逐个字段更新来找出问题所在
 4. 检查路径写法是否规范
 
 **经验教训**：
+
 - ⚠️ 复杂结构更新容易出错，最好一个字段一个字段更新
 - ⚠️ `setData`一次更新的字段数量不要超过20个
 - ✅ 关键数据更新添加日志便于调试
@@ -246,13 +262,13 @@ this.setData({
 
 ## 数据绑定常见错误速查表
 
-| 现象 | 原因 | 解决方案 |
-|------|------|--------|
-| 数据不显示 | 路径错误 | 检查模板中的绑定路径 |
-| 更新无效 | 直接修改data | 使用setData |
-| 嵌套更新失败 | 路径格式错误 | 使用`'obj.prop.subProp'`格式 |
-| 数组更新无效 | 直接push/pop | 创建新数组后setData |
-| 页面闪烁 | setData过于频繁 | 合并更新，减少setData次数 |
+| 现象         | 原因            | 解决方案                     |
+| ------------ | --------------- | ---------------------------- |
+| 数据不显示   | 路径错误        | 检查模板中的绑定路径         |
+| 更新无效     | 直接修改data    | 使用setData                  |
+| 嵌套更新失败 | 路径格式错误    | 使用`'obj.prop.subProp'`格式 |
+| 数组更新无效 | 直接push/pop    | 创建新数组后setData          |
+| 页面闪烁     | setData过于频繁 | 合并更新，减少setData次数    |
 
 ---
 

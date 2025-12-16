@@ -55,11 +55,7 @@ module.exports = {
    * @returns {Promise}
    */
   getUserPayments(options = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      status
-    } = options;
+    const { page = 1, limit = 20, status } = options;
 
     return request.get('/payments/user/', {
       page,

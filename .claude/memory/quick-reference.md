@@ -9,6 +9,7 @@
 **如果需要快速启动服务、测试API、搜索问题或部署检查，使用Commands系统！**
 
 ### 最常用的命令
+
 ```bash
 # 启动后端并快速测试
 .claude/commands/development/start-backend.sh
@@ -107,31 +108,31 @@
 
 ## 🔴 按错误关键词快速查找
 
-| 错误信息/关键词 | 常见原因 | 查看位置 |
-|---------------|--------|--------|
-| `undefined` | 数据未初始化、属性不存在 | [issues/frontend/data-binding.md](./issues/frontend/data-binding.md) |
-| `Cannot read property` | 对象为null、属性为undefined | [issues/frontend/data-binding.md](./issues/frontend/data-binding.md) |
-| `404 / 路由不存在` | API路由未定义 | [backend/api-design.md](./backend/api-design.md) |
-| `userId / _id / user.id` | 用户ID字段不统一 | [architecture/user-id-field.md](./architecture/user-id-field.md) |
-| `权限不足 / 认证失败` | 认证中间件缺失、token无效 | [backend/auth-middleware.md](./backend/auth-middleware.md) |
-| `数据查询为空` | $or查询失效、条件错误 | [architecture/insights-feature.md](./architecture/insights-feature.md) |
-| `样式不生效` | WXSS权重、路径错误 | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) |
-| `日期格式错误` | ISO转换、时区差异 | [issues/common/datetime.md](./issues/common/datetime.md) |
-| `点击按钮触发父事件` | Button标签事件冒泡 | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
-| `嵌套点击失效` | bindtap无法阻止冒泡 | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
+| 错误信息/关键词          | 常见原因                    | 查看位置                                                               |
+| ------------------------ | --------------------------- | ---------------------------------------------------------------------- |
+| `undefined`              | 数据未初始化、属性不存在    | [issues/frontend/data-binding.md](./issues/frontend/data-binding.md)   |
+| `Cannot read property`   | 对象为null、属性为undefined | [issues/frontend/data-binding.md](./issues/frontend/data-binding.md)   |
+| `404 / 路由不存在`       | API路由未定义               | [backend/api-design.md](./backend/api-design.md)                       |
+| `userId / _id / user.id` | 用户ID字段不统一            | [architecture/user-id-field.md](./architecture/user-id-field.md)       |
+| `权限不足 / 认证失败`    | 认证中间件缺失、token无效   | [backend/auth-middleware.md](./backend/auth-middleware.md)             |
+| `数据查询为空`           | $or查询失效、条件错误       | [architecture/insights-feature.md](./architecture/insights-feature.md) |
+| `样式不生效`             | WXSS权重、路径错误          | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md)         |
+| `日期格式错误`           | ISO转换、时区差异           | [issues/common/datetime.md](./issues/common/datetime.md)               |
+| `点击按钮触发父事件`     | Button标签事件冒泡          | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
+| `嵌套点击失效`           | bindtap无法阻止冒泡         | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
 
 ---
 
 ## 🎯 按功能快速查找
 
-| 功能模块 | 相关问题 | 查看位置 |
-|--------|--------|--------|
-| **用户认证** | 登录流程、token处理、权限检查 | [backend/auth-middleware.md](./backend/auth-middleware.md) |
-| **打卡记录** | 数据显示、查询过滤、性能优化 | [architecture/insights-feature.md](./architecture/insights-feature.md) |
-| **小凡看见** | 功能架构、数据流、问题排查 | [architecture/insights-feature.md](./architecture/insights-feature.md) |
+| 功能模块     | 相关问题                         | 查看位置                                                                                     |
+| ------------ | -------------------------------- | -------------------------------------------------------------------------------------------- |
+| **用户认证** | 登录流程、token处理、权限检查    | [backend/auth-middleware.md](./backend/auth-middleware.md)                                   |
+| **打卡记录** | 数据显示、查询过滤、性能优化     | [architecture/insights-feature.md](./architecture/insights-feature.md)                       |
+| **小凡看见** | 功能架构、数据流、问题排查       | [architecture/insights-feature.md](./architecture/insights-feature.md)                       |
 | **期次报名** | 报名检查、状态刷新、生命周期管理 | [issues/frontend/enrollment-state-refresh.md](./issues/frontend/enrollment-state-refresh.md) |
-| **API规范** | 响应格式、错误处理、字段映射 | [architecture/api-response-format.md](./architecture/api-response-format.md) |
-| **数据库** | MongoDB操作、索引、查询优化 | [backend/database.md](./backend/database.md) |
+| **API规范**  | 响应格式、错误处理、字段映射     | [architecture/api-response-format.md](./architecture/api-response-format.md)                 |
+| **数据库**   | MongoDB操作、索引、查询优化      | [backend/database.md](./backend/database.md)                                                 |
 
 ---
 
@@ -190,15 +191,15 @@ grep -r "setData" .claude/memory/
 
 ## 📁 文件导航
 
-| 文件位置 | 用途 | 访问频率 |
-|--------|------|--------|
+| 文件位置               | 用途         | 访问频率    |
+| ---------------------- | ------------ | ----------- |
 | **quick-reference.md** | 快速查询索引 | ⭐⭐⭐ 高频 |
-| **issues/frontend/** | 前端问题库 | ⭐⭐ 中频 |
-| **issues/backend/** | 后端问题库 | ⭐⭐ 中频 |
-| **issues/common/** | 通用问题库 | ⭐ 低频 |
-| **architecture/** | 架构决策 | ⭐⭐ 参考 |
-| **standards/** | 编码规范 | ⭐ 初次 |
-| **index.json** | 机器可读索引 | ⭐ 工具用 |
+| **issues/frontend/**   | 前端问题库   | ⭐⭐ 中频   |
+| **issues/backend/**    | 后端问题库   | ⭐⭐ 中频   |
+| **issues/common/**     | 通用问题库   | ⭐ 低频     |
+| **architecture/**      | 架构决策     | ⭐⭐ 参考   |
+| **standards/**         | 编码规范     | ⭐ 初次     |
+| **index.json**         | 机器可读索引 | ⭐ 工具用   |
 
 ---
 

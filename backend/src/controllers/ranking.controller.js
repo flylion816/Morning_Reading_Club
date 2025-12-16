@@ -13,7 +13,7 @@ async function getPeriodRanking(req, res, next) {
   try {
     const { periodId } = req.params;
     const {
-      timeRange = 'all',  // all, thisWeek, lastWeek, today, yesterday
+      timeRange = 'all', // all, thisWeek, lastWeek, today, yesterday
       page = 1,
       limit = 20
     } = req.query;
@@ -40,7 +40,11 @@ async function getPeriodRanking(req, res, next) {
       case 'yesterday': {
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
-        const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        const startOfYesterday = new Date(
+          yesterday.getFullYear(),
+          yesterday.getMonth(),
+          yesterday.getDate()
+        );
         const endOfYesterday = new Date(startOfYesterday.getTime() + 24 * 60 * 60 * 1000);
         dateQuery = { $gte: startOfYesterday, $lt: endOfYesterday };
         break;
@@ -109,10 +113,7 @@ async function getPeriodRanking(req, res, next) {
     const total = countResult.length;
 
     // 分页
-    pipeline.push(
-      { $skip: (parseInt(page) - 1) * parseInt(limit) },
-      { $limit: parseInt(limit) }
-    );
+    pipeline.push({ $skip: (parseInt(page) - 1) * parseInt(limit) }, { $limit: parseInt(limit) });
 
     // 填充用户信息
     pipeline.push({
@@ -143,9 +144,7 @@ async function getPeriodRanking(req, res, next) {
     }));
 
     // 获取当前用户的排名和打卡次数
-    const currentUserIndex = countResult.findIndex(
-      item => item._id.toString() === userId
-    );
+    const currentUserIndex = countResult.findIndex(item => item._id.toString() === userId);
 
     let currentUser = null;
     if (currentUserIndex !== -1) {
@@ -161,15 +160,17 @@ async function getPeriodRanking(req, res, next) {
       };
     }
 
-    res.json(success({
-      list,
-      currentUser,
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit)),
-      timeRange
-    }));
+    res.json(
+      success({
+        list,
+        currentUser,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        timeRange
+      })
+    );
   } catch (error) {
     logger.error('获取排行榜失败:', error);
     next(error);

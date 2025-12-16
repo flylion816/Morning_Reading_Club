@@ -41,7 +41,7 @@ class Storage {
         key,
         data: JSON.stringify(data),
         success: () => resolve(true),
-        fail: (err) => reject(err)
+        fail: err => reject(err)
       });
     });
   }
@@ -85,7 +85,7 @@ class Storage {
     return new Promise((resolve, reject) => {
       wx.getStorage({
         key,
-        success: (res) => {
+        success: res => {
           try {
             const data = JSON.parse(res.data);
 
@@ -131,7 +131,7 @@ class Storage {
       wx.removeStorage({
         key,
         success: () => resolve(true),
-        fail: (err) => reject(err)
+        fail: err => reject(err)
       });
     });
   }
@@ -156,7 +156,7 @@ class Storage {
     return new Promise((resolve, reject) => {
       wx.clearStorage({
         success: () => resolve(true),
-        fail: (err) => reject(err)
+        fail: err => reject(err)
       });
     });
   }

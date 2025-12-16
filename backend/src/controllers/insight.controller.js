@@ -46,8 +46,7 @@ async function generateInsight(req, res, next) {
     const userId = req.user.userId;
 
     // 验证打卡存在
-    const checkin = await Checkin.findById(checkinId)
-      .populate('sectionId', 'title day');
+    const checkin = await Checkin.findById(checkinId).populate('sectionId', 'title day');
 
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
@@ -158,8 +157,8 @@ async function getUserInsights(req, res, next) {
     if (targetUserId === currentUserId) {
       // 查看自己的insights
       const orConditions = [
-        { userId: targetUserId, ...baseQuery },  // 自己创建的
-        { targetUserId: targetUserId, ...baseQuery }  // 分配给自己的
+        { userId: targetUserId, ...baseQuery }, // 自己创建的
+        { targetUserId: targetUserId, ...baseQuery } // 分配给自己的
       ];
       query = { $or: orConditions };
     } else {
@@ -178,15 +177,17 @@ async function getUserInsights(req, res, next) {
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(success({
-      list: insights,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: insights,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -260,15 +261,17 @@ async function getInsights(req, res, next) {
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(success({
-      list: insights,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: insights,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -324,8 +327,8 @@ async function createInsightManual(req, res, next) {
 async function getInsightsForPeriod(req, res, next) {
   try {
     const { periodId } = req.params;
-    const { type, page = 1, limit = 20 } = req.query;  // 移除type的默认值，让前端灵活控制
-    const userId = req.user?.userId;  // 获取当前登录用户
+    const { type, page = 1, limit = 20 } = req.query; // 移除type的默认值，让前端灵活控制
+    const userId = req.user?.userId; // 获取当前登录用户
 
     // 构建查询条件：返回两类insights
     // 1. 当前用户创建的insights（userId === 当前用户）
@@ -343,15 +346,13 @@ async function getInsightsForPeriod(req, res, next) {
     if (userId) {
       // 已登录：返回用户创建的或分配给用户的insights
       orConditions = [
-        { userId, ...baseQuery },           // 当前用户创建的
-        { targetUserId: userId, ...baseQuery }  // 分配给当前用户的
+        { userId, ...baseQuery }, // 当前用户创建的
+        { targetUserId: userId, ...baseQuery } // 分配给当前用户的
       ];
     } else {
       // 未登录：只返回已发布的insights（即创建者选择公开的）
       baseQuery.isPublished = true;
-      orConditions = [
-        { ...baseQuery }
-      ];
+      orConditions = [{ ...baseQuery }];
     }
 
     const query = orConditions.length > 1 ? { $or: orConditions } : orConditions[0];
@@ -365,15 +366,17 @@ async function getInsightsForPeriod(req, res, next) {
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
-    res.json(success({
-      list: insights,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: insights,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -412,8 +415,11 @@ async function updateInsight(req, res, next) {
     // 1. 内容创建者可以编辑自己创建的内容
     // 2. 管理员（任何角色）可以编辑任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
-    const isAdmin = (userRole === 'admin' || userRole === 'super_admin') ||
-                    (adminRole === 'superadmin' || adminRole === 'admin');
+    const isAdmin =
+      userRole === 'admin' ||
+      userRole === 'super_admin' ||
+      adminRole === 'superadmin' ||
+      adminRole === 'admin';
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权编辑'));
@@ -463,8 +469,11 @@ async function deleteInsightManual(req, res, next) {
     // 1. 内容创建者可以删除自己创建的内容
     // 2. 管理员（任何角色）可以删除任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
-    const isAdmin = (userRole === 'admin' || userRole === 'super_admin') ||
-                    (adminRole === 'superadmin' || adminRole === 'admin');
+    const isAdmin =
+      userRole === 'admin' ||
+      userRole === 'super_admin' ||
+      adminRole === 'superadmin' ||
+      adminRole === 'admin';
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权删除'));
@@ -551,7 +560,8 @@ async function createInsightRequest(req, res, next) {
 
     // 发送通知给被申请者
     if (toUser) {
-      await notifyUser(req, 
+      await notifyUser(
+        req,
         toUserId,
         'request_created',
         '收到新的小凡看见查看申请',
@@ -692,7 +702,8 @@ async function approveInsightRequest(req, res, next) {
     const period = await Period.findById(periodId).select('name');
 
     // 发送通知给申请者
-    await notifyUser(req, 
+    await notifyUser(
+      req,
       request.fromUserId,
       'request_approved',
       '小凡看见查看申请已批准',
@@ -746,7 +757,8 @@ async function rejectInsightRequest(req, res, next) {
     const toUser = await User.findById(request.toUserId).select('nickname avatar');
 
     // 发送通知给申请者
-    await notifyUser(req, 
+    await notifyUser(
+      req,
       request.fromUserId,
       'request_rejected',
       '小凡看见查看申请已被拒绝',
@@ -813,15 +825,20 @@ async function getInsightRequestsAdmin(req, res, next) {
       .skip(skip)
       .limit(parseInt(limit));
 
-    res.json(success({
-      requests,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit)
-      }
-    }, '获取成功'));
+    res.json(
+      success(
+        {
+          requests,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit)
+          }
+        },
+        '获取成功'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -833,9 +850,7 @@ async function getInsightRequestsStats(req, res, next) {
     const stats = await InsightRequest.aggregate([
       {
         $facet: {
-          total: [
-            { $count: 'count' }
-          ],
+          total: [{ $count: 'count' }],
           byStatus: [
             {
               $group: {
@@ -853,10 +868,7 @@ async function getInsightRequestsStats(req, res, next) {
                 _id: null,
                 avgTime: {
                   $avg: {
-                    $subtract: [
-                      { $ifNull: ['$approvedAt', '$rejectedAt'] },
-                      '$createdAt'
-                    ]
+                    $subtract: [{ $ifNull: ['$approvedAt', '$rejectedAt'] }, '$createdAt']
                   }
                 }
               }
@@ -874,14 +886,19 @@ async function getInsightRequestsStats(req, res, next) {
 
     const avgResponseTime = stats[0].responseTime[0]?.avgTime || 0;
 
-    res.json(success({
-      totalRequests: totalCount,
-      pendingRequests: byStatus.pending || 0,
-      approvedRequests: byStatus.approved || 0,
-      rejectedRequests: byStatus.rejected || 0,
-      avgResponseTimeMs: Math.round(avgResponseTime),
-      avgResponseTime: formatDuration(avgResponseTime)
-    }, '获取成功'));
+    res.json(
+      success(
+        {
+          totalRequests: totalCount,
+          pendingRequests: byStatus.pending || 0,
+          approvedRequests: byStatus.approved || 0,
+          rejectedRequests: byStatus.rejected || 0,
+          avgResponseTimeMs: Math.round(avgResponseTime),
+          avgResponseTime: formatDuration(avgResponseTime)
+        },
+        '获取成功'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -936,7 +953,8 @@ async function adminApproveRequest(req, res, next) {
     const period = await Period.findById(periodId).select('name');
 
     // 发送通知给申请者
-    await notifyUser(req, 
+    await notifyUser(
+      req,
       request.fromUserId,
       'admin_approved',
       '小凡看见查看申请已由管理员批准',
@@ -993,7 +1011,8 @@ async function adminRejectRequest(req, res, next) {
     await request.save();
 
     // 发送通知给申请者
-    await notifyUser(req, 
+    await notifyUser(
+      req,
       request.fromUserId,
       'admin_rejected',
       '小凡看见查看申请已由管理员拒绝',
@@ -1056,7 +1075,8 @@ async function revokeInsightRequest(req, res, next) {
     const toUser = await User.findById(request.toUserId).select('nickname avatar');
 
     // 发送通知给申请者
-    await notifyUser(req, 
+    await notifyUser(
+      req,
       request.fromUserId,
       'permission_revoked',
       '小凡看见查看权限已被撤销',
@@ -1214,7 +1234,8 @@ async function batchApproveRequests(req, res, next) {
       const period = await Period.findById(requests[0].periodId).select('name');
 
       for (const notif of notifications) {
-        await notifyUser(req,
+        await notifyUser(
+          req,
           notif.fromUserId,
           notif.type,
           notif.title,
@@ -1229,12 +1250,16 @@ async function batchApproveRequests(req, res, next) {
       }
     }
 
-    res.json(success({
-      processed: updatedRequests.length,
-      total: requests.length,
-      requests: updatedRequests
-    }, `已批准 ${updatedRequests.length} 个申请`));
-
+    res.json(
+      success(
+        {
+          processed: updatedRequests.length,
+          total: requests.length,
+          requests: updatedRequests
+        },
+        `已批准 ${updatedRequests.length} 个申请`
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -1266,7 +1291,9 @@ async function createInsightFromExternal(req, res, next) {
 
     // 验证content和imageUrl至少有一个
     if (!content && !imageUrl) {
-      return res.status(400).json(errors.badRequest('content 和 imageUrl 必选其一（至少填写一个）'));
+      return res
+        .status(400)
+        .json(errors.badRequest('content 和 imageUrl 必选其一（至少填写一个）'));
     }
 
     // 根据期次名称查询期次
@@ -1288,7 +1315,9 @@ async function createInsightFromExternal(req, res, next) {
       periodId: period._id
     });
     if (!enrollment) {
-      return res.status(403).json(errors.forbidden(`用户 ${targetUser.nickname} 未报名期次 ${periodName}`));
+      return res
+        .status(403)
+        .json(errors.forbidden(`用户 ${targetUser.nickname} 未报名期次 ${periodName}`));
     }
 
     // 获取系统用户作为创建者（如果存在），否则使用被看见人作为创建者
@@ -1336,7 +1365,6 @@ async function createInsightFromExternal(req, res, next) {
     };
 
     res.status(201).json(success(result, '小凡看见创建成功'));
-
   } catch (error) {
     logger.error('创建外部小凡看见失败:', error);
     next(error);

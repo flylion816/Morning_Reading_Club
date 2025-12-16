@@ -67,7 +67,8 @@ function isIdCard(idCard) {
   }
 
   // 18位身份证号码正则
-  const regex = /^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/;
+  const regex =
+    /^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/;
   return regex.test(idCard);
 }
 
@@ -271,7 +272,8 @@ function validatePassword(password, options = {}) {
   }
 
   // 检查是否包含特殊字符
-  if (requireSpecialChar && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  // eslint-disable-next-line no-useless-escape
+  if (requireSpecialChar && !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     result.valid = false;
     result.message = '密码必须包含特殊字符';
     return result;
@@ -282,7 +284,8 @@ function validatePassword(password, options = {}) {
   if (/[A-Z]/.test(password)) strengthScore++;
   if (/[a-z]/.test(password)) strengthScore++;
   if (/\d/.test(password)) strengthScore++;
-  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strengthScore++;
+  // eslint-disable-next-line no-useless-escape
+  if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) strengthScore++;
 
   if (strengthScore >= 4) {
     result.strength = 'strong';

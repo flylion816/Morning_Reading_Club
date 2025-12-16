@@ -104,7 +104,10 @@
               :current-page="currentPage"
               :page-size="pageSize"
               :total="total"
-              @current-change="currentPage = $event; loadCheckins()"
+              @current-change="
+                currentPage = $event;
+                loadCheckins();
+              "
               style="margin-left: auto"
             />
           </div>
@@ -127,7 +130,9 @@
           <!-- 期次 -->
           <el-table-column label="期次" width="150">
             <template #default="{ row }">
-              {{ (row.periodId && typeof row.periodId === 'object') ? (row.periodId.name || '-') : '-' }}
+              {{
+                row.periodId && typeof row.periodId === 'object' ? row.periodId.name || '-' : '-'
+              }}
             </template>
           </el-table-column>
 
@@ -196,8 +201,12 @@
           <el-table-column label="操作" width="150" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
-                <el-button type="danger" size="small" @click="handleDeleteCheckin(row)">删除</el-button>
+                <el-button type="primary" size="small" @click="handleViewDetail(row)"
+                  >详情</el-button
+                >
+                <el-button type="danger" size="small" @click="handleDeleteCheckin(row)"
+                  >删除</el-button
+                >
               </div>
             </template>
           </el-table-column>
@@ -205,11 +214,7 @@
       </el-card>
 
       <!-- 详情弹窗 -->
-      <el-dialog
-        v-model="detailDialogVisible"
-        title="打卡详情"
-        width="700px"
-      >
+      <el-dialog v-model="detailDialogVisible" title="打卡详情" width="700px">
         <div v-if="selectedCheckin" class="checkin-detail">
           <el-descriptions :column="1" border>
             <el-descriptions-item label="用户">
@@ -220,11 +225,17 @@
             </el-descriptions-item>
 
             <el-descriptions-item label="期次">
-              {{ (selectedCheckin.periodId && typeof selectedCheckin.periodId === 'object') ? selectedCheckin.periodId.name : '-' }}
+              {{
+                selectedCheckin.periodId && typeof selectedCheckin.periodId === 'object'
+                  ? selectedCheckin.periodId.name
+                  : '-'
+              }}
             </el-descriptions-item>
 
             <el-descriptions-item label="课程">
-              <div v-if="selectedCheckin.sectionId && typeof selectedCheckin.sectionId === 'object'">
+              <div
+                v-if="selectedCheckin.sectionId && typeof selectedCheckin.sectionId === 'object'"
+              >
                 Day {{ selectedCheckin.sectionId.day }} - {{ selectedCheckin.sectionId.title }}
               </div>
             </el-descriptions-item>
@@ -280,60 +291,60 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import AdminLayout from '../components/AdminLayout.vue'
-import api from '../services/api'
+import { ref, computed, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import AdminLayout from '../components/AdminLayout.vue';
+import api from '../services/api';
 
 interface Checkin {
-  _id: string
-  userId: any
-  periodId: any
-  sectionId: any
-  checkinDate: string
-  readingTime: number
-  completionRate: number
-  note: string
-  images: string[]
-  mood: string
-  points: number
-  isPublic: boolean
-  isFeatured: boolean
-  likeCount: number
-  createdAt: string
-  updatedAt: string
+  _id: string;
+  userId: any;
+  periodId: any;
+  sectionId: any;
+  checkinDate: string;
+  readingTime: number;
+  completionRate: number;
+  note: string;
+  images: string[];
+  mood: string;
+  points: number;
+  isPublic: boolean;
+  isFeatured: boolean;
+  likeCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Period {
-  _id: string
-  name: string
-  title: string
+  _id: string;
+  name: string;
+  title: string;
 }
 
 // State
-const checkins = ref<Checkin[]>([])
-const periods = ref<Period[]>([])
+const checkins = ref<Checkin[]>([]);
+const periods = ref<Period[]>([]);
 const stats = ref({
   totalCount: 0,
   todayCount: 0,
   uniqueUserCount: 0,
   totalPoints: 0
-})
+});
 
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(20)
-const total = ref(0)
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 
-const detailDialogVisible = ref(false)
-const selectedCheckin = ref<Checkin | null>(null)
+const detailDialogVisible = ref(false);
+const selectedCheckin = ref<Checkin | null>(null);
 
 const filters = ref({
   search: '',
   periodId: '',
   dateFrom: null as any,
   dateTo: null as any
-})
+});
 
 // Methods
 const formatDate = (date: string) => {
@@ -343,8 +354,8 @@ const formatDate = (date: string) => {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit'
-  })
-}
+  });
+};
 
 const getMoodColor = (mood: string) => {
   const colors: Record<string, string> = {
@@ -353,9 +364,9 @@ const getMoodColor = (mood: string) => {
     thoughtful: 'warning',
     inspired: 'success',
     other: 'info'
-  }
-  return colors[mood] || 'info'
-}
+  };
+  return colors[mood] || 'info';
+};
 
 const getMoodLabel = (mood: string) => {
   const labels: Record<string, string> = {
@@ -364,20 +375,20 @@ const getMoodLabel = (mood: string) => {
     thoughtful: '🤔 沉思',
     inspired: '✨ 灵感',
     other: '🤷 其他'
-  }
-  return labels[mood] || mood
-}
+  };
+  return labels[mood] || mood;
+};
 
 const getProgressColor = (percentage: number) => {
-  if (percentage >= 90) return '#85ce61'
-  if (percentage >= 70) return '#e6a23c'
-  return '#f56c6c'
-}
+  if (percentage >= 90) return '#85ce61';
+  if (percentage >= 70) return '#e6a23c';
+  return '#f56c6c';
+};
 
 const handleSearch = () => {
-  currentPage.value = 1
-  loadCheckins()
-}
+  currentPage.value = 1;
+  loadCheckins();
+};
 
 const resetFilters = () => {
   filters.value = {
@@ -385,81 +396,81 @@ const resetFilters = () => {
     periodId: '',
     dateFrom: null,
     dateTo: null
-  }
-  currentPage.value = 1
-  loadCheckins()
-}
+  };
+  currentPage.value = 1;
+  loadCheckins();
+};
 
 const loadCheckins = async () => {
-  loading.value = true
+  loading.value = true;
   try {
     const params: Record<string, any> = {
       page: currentPage.value,
       limit: pageSize.value
-    }
+    };
 
     if (filters.value.search) {
-      params.search = filters.value.search
+      params.search = filters.value.search;
     }
     if (filters.value.periodId) {
-      params.periodId = filters.value.periodId
+      params.periodId = filters.value.periodId;
     }
     if (filters.value.dateFrom) {
-      params.dateFrom = new Date(filters.value.dateFrom).toISOString().split('T')[0]
+      params.dateFrom = new Date(filters.value.dateFrom).toISOString().split('T')[0];
     }
     if (filters.value.dateTo) {
-      params.dateTo = new Date(filters.value.dateTo).toISOString().split('T')[0]
+      params.dateTo = new Date(filters.value.dateTo).toISOString().split('T')[0];
     }
 
-    const res = await api.get('/admin/checkins', { params })
-    checkins.value = res.list
-    total.value = res.pagination.total
+    const res = await api.get('/admin/checkins', { params });
+    checkins.value = res.list;
+    total.value = res.pagination.total;
     stats.value = {
       totalCount: res.stats.totalCount,
       todayCount: res.stats.todayCount,
       uniqueUserCount: total.value // Use pagination total as user count is calculated differently
-    }
+    };
   } catch (error) {
-    ElMessage.error('加载打卡列表失败')
-    console.error(error)
+    ElMessage.error('加载打卡列表失败');
+    console.error(error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const loadStats = async () => {
   try {
-    const params: Record<string, any> = {}
+    const params: Record<string, any> = {};
     if (filters.value.periodId) {
-      params.periodId = filters.value.periodId
+      params.periodId = filters.value.periodId;
     }
     if (filters.value.dateFrom) {
-      params.dateFrom = new Date(filters.value.dateFrom).toISOString().split('T')[0]
+      params.dateFrom = new Date(filters.value.dateFrom).toISOString().split('T')[0];
     }
     if (filters.value.dateTo) {
-      params.dateTo = new Date(filters.value.dateTo).toISOString().split('T')[0]
+      params.dateTo = new Date(filters.value.dateTo).toISOString().split('T')[0];
     }
 
-    const res = await api.get('/admin/checkins/stats', { params })
-    stats.value = res
+    const res = await api.get('/admin/checkins/stats', { params });
+    stats.value = res;
   } catch (error) {
-    console.error('加载统计数据失败:', error)
+    console.error('加载统计数据失败:', error);
   }
-}
+};
 
 const loadPeriods = async () => {
   try {
-    const res = await api.get('/periods')
-    periods.value = res.list
+    const res = await api.get('/periods');
+    periods.value = res.list;
   } catch (error) {
-    console.error('加载期次失败:', error)
+    console.error('加载期次失败:', error);
   }
-}
+};
 
 const handleViewDetail = (checkin: Checkin) => {
-  selectedCheckin.value = checkin
-  detailDialogVisible.value = true
-}
+  selectedCheckin.value = checkin;
+  detailDialogVisible.value = true;
+};
 
 const handleDeleteCheckin = (checkin: Checkin) => {
   ElMessageBox.confirm(
@@ -473,26 +484,26 @@ const handleDeleteCheckin = (checkin: Checkin) => {
   )
     .then(async () => {
       try {
-        await api.delete(`/admin/checkins/${checkin._id}`)
-        ElMessage.success('打卡记录已删除')
-        loadCheckins()
-        loadStats()
+        await api.delete(`/admin/checkins/${checkin._id}`);
+        ElMessage.success('打卡记录已删除');
+        loadCheckins();
+        loadStats();
       } catch (error) {
-        ElMessage.error('删除失败')
-        console.error(error)
+        ElMessage.error('删除失败');
+        console.error(error);
       }
     })
     .catch(() => {
       // 取消删除
-    })
-}
+    });
+};
 
 // Lifecycle
 onMounted(() => {
-  loadPeriods()
-  loadCheckins()
-  loadStats()
-})
+  loadPeriods();
+  loadCheckins();
+  loadStats();
+});
 </script>
 
 <style scoped lang="scss">

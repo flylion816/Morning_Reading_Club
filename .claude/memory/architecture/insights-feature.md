@@ -58,18 +58,20 @@
 // 后端查询逻辑
 const insights = await Insight.find({
   $or: [
-    { userId: req.user._id, periodId },      // 用户创建的
+    { userId: req.user._id, periodId }, // 用户创建的
     { targetUserId: req.user._id, periodId } // 分配给用户的
   ]
 });
 ```
 
 **关键要点**：
+
 - ⚠️ 必须应用 `authMiddleware` 确保 `req.user` 存在
 - ⚠️ 使用 `$or` 查询时，两个条件都要包含 `periodId` 进行过滤
 - ✅ 返回的数据已包含用户创建的和被分配的两种记录
 
 **相关问题**：
+
 - 问题31：认证中间件缺失导致查询失效
 - 问题30：API响应格式不标准
 
@@ -116,27 +118,31 @@ async getInsights() {
 ### 问题：查询返回空数据
 
 **原因**：
+
 1. 认证中间件缺失 → `req.user` 为 undefined
 2. `$or` 查询条件写法错误
 3. periodId不存在或格式错误
 
 **解决**：
+
 ```javascript
 // ✅ 检查清单
-- 路由已应用authMiddleware
-- 查询使用了$or且包含两个条件
-- periodId格式为有效的ObjectId
-- 数据库中实际存在对应的Insight记录
+-路由已应用authMiddleware -
+  查询使用了$or且包含两个条件 -
+  periodId格式为有效的ObjectId -
+  数据库中实际存在对应的Insight记录;
 ```
 
 ### 问题：小程序显示"暂无记录"
 
 **原因**：
+
 1. API调用失败（没有token）
 2. 响应格式不对（需要unwrap）
 3. 模板绑定错误
 
 **解决**：
+
 ```javascript
 // 调试步骤
 1. 检查Storage中是否有token
@@ -212,12 +218,14 @@ db.insights.createIndex({ periodId: 1, targetUserId: 1 });
 ## 最佳实践
 
 ✅ **应该这样做**
+
 - 始终在需要用户身份的API应用authMiddleware
 - 使用$or查询时明确条件
 - 在响应层统一unwrap数据格式
 - 添加日志便于调试
 
 ❌ **避免这样做**
+
 - 忘记应用认证中间件
 - $or查询条件写法混乱
 - 响应格式不一致
@@ -245,10 +253,11 @@ db.insights.createIndex({ periodId: 1, targetUserId: 1 });
 // ❌ 错误
 const { type = 'insight', page = 1, limit = 20 } = req.query;
 // ...
-if (type) baseQuery.type = type;  // 强制过滤为 type='insight'
+if (type) baseQuery.type = type; // 强制过滤为 type='insight'
 ```
 
 **问题**：
+
 - 后端 API 默认只查询 `type: 'insight'` 的数据
 - 但数据库中的被看见数据 `type: 'daily'`
 - 所以查询结果为空
@@ -259,9 +268,9 @@ if (type) baseQuery.type = type;  // 强制过滤为 type='insight'
 
 ```javascript
 // ✅ 正确
-const { type, page = 1, limit = 20 } = req.query;  // 无默认值
+const { type, page = 1, limit = 20 } = req.query; // 无默认值
 // ...
-if (type) baseQuery.type = type;  // 只在明确传递时过滤
+if (type) baseQuery.type = type; // 只在明确传递时过滤
 ```
 
 **修复文件**：`backend/src/controllers/insight.controller.js` 第260行

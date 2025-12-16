@@ -31,21 +31,8 @@
         <div v-if="selectedEnrollments.length > 0" class="batch-operation-bar">
           <span class="selected-count">已选中 {{ selectedEnrollments.length }} 条记录</span>
           <div class="batch-actions">
-            <el-button
-              type="danger"
-              size="small"
-              @click="batchDelete"
-            >
-              🗑️ 批量删除
-            </el-button>
-            <el-button
-              type="info"
-              text
-              size="small"
-              @click="clearSelection"
-            >
-              清除选择
-            </el-button>
+            <el-button type="danger" size="small" @click="batchDelete"> 🗑️ 批量删除 </el-button>
+            <el-button type="info" text size="small" @click="clearSelection"> 清除选择 </el-button>
           </div>
         </div>
       </el-card>
@@ -72,7 +59,9 @@
           <el-table-column type="selection" width="50" />
           <el-table-column label="ID" width="200">
             <template #default="{ row }">
-              <el-text copyable>{{ typeof row.userId === 'object' ? row.userId._id : row.userId }}</el-text>
+              <el-text copyable>{{
+                typeof row.userId === 'object' ? row.userId._id : row.userId
+              }}</el-text>
             </template>
           </el-table-column>
           <el-table-column label="昵称" width="100">
@@ -102,20 +91,10 @@
           </el-table-column>
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <el-button
-                type="primary"
-                text
-                size="small"
-                @click="showDetailDialog(row)"
-              >
+              <el-button type="primary" text size="small" @click="showDetailDialog(row)">
                 详情
               </el-button>
-              <el-button
-                type="danger"
-                text
-                size="small"
-                @click="handleDelete(row)"
-              >
+              <el-button type="danger" text size="small" @click="handleDelete(row)">
                 删除
               </el-button>
             </template>
@@ -136,18 +115,19 @@
       </el-card>
 
       <!-- 详情对话框 -->
-      <el-dialog
-        v-model="dialogs.detailVisible"
-        title="报名详情"
-        width="600px"
-        @close="resetForm"
-      >
+      <el-dialog v-model="dialogs.detailVisible" title="报名详情" width="600px" @close="resetForm">
         <el-form v-if="currentEnrollment" label-width="100px">
           <el-form-item label="ID">
-            <el-text copyable>{{ typeof currentEnrollment.userId === 'object' ? currentEnrollment.userId._id : currentEnrollment.userId }}</el-text>
+            <el-text copyable>{{
+              typeof currentEnrollment.userId === 'object'
+                ? currentEnrollment.userId._id
+                : currentEnrollment.userId
+            }}</el-text>
           </el-form-item>
           <el-form-item label="昵称">
-            <el-text>{{ typeof currentEnrollment.userId === 'object' ? currentEnrollment.userId.nickname : '-' }}</el-text>
+            <el-text>{{
+              typeof currentEnrollment.userId === 'object' ? currentEnrollment.userId.nickname : '-'
+            }}</el-text>
           </el-form-item>
           <el-form-item label="报名名称">
             <el-text>{{ currentEnrollment.name }}</el-text>
@@ -180,107 +160,105 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import AdminLayout from '../components/AdminLayout.vue'
-import { enrollmentApi } from '../services/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { ListResponse, Enrollment } from '../types/api'
+import { ref, onMounted, computed } from 'vue';
+import AdminLayout from '../components/AdminLayout.vue';
+import { enrollmentApi } from '../services/api';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { ListResponse, Enrollment } from '../types/api';
 
-const loading = ref(false)
+const loading = ref(false);
 
 const filters = ref({
   search: '',
   paymentStatus: ''
-})
+});
 
 const pagination = ref({
   page: 1,
   limit: 20,
   total: 0
-})
+});
 
-const enrollments = ref<Enrollment[]>([])
-const currentEnrollment = ref<Enrollment | null>(null)
+const enrollments = ref<Enrollment[]>([]);
+const currentEnrollment = ref<Enrollment | null>(null);
 const currentForm = ref({
   notes: ''
-})
-const selectedEnrollments = ref<Enrollment[]>([])
-const tableRef = ref()
+});
+const selectedEnrollments = ref<Enrollment[]>([]);
+const tableRef = ref();
 
 const dialogs = ref({
   detailVisible: false
-})
+});
 
 onMounted(() => {
-  loadEnrollments()
-})
+  loadEnrollments();
+});
 
 async function loadEnrollments() {
-  loading.value = true
+  loading.value = true;
   try {
     const params = {
       page: pagination.value.page,
       limit: pagination.value.limit,
       paymentStatus: filters.value.paymentStatus
-    }
+    };
 
-    const response = await enrollmentApi.getEnrollments(params) as unknown as ListResponse<Enrollment>
-    enrollments.value = response.list || []
-    pagination.value.total = response.total || response.pagination?.total || 0
+    const response = (await enrollmentApi.getEnrollments(
+      params
+    )) as unknown as ListResponse<Enrollment>;
+    enrollments.value = response.list || [];
+    pagination.value.total = response.total || response.pagination?.total || 0;
   } catch (err: any) {
-    ElMessage.error('加载报名列表失败')
-    console.error(err)
+    ElMessage.error('加载报名列表失败');
+    console.error(err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function handleSearch() {
-  pagination.value.page = 1
-  loadEnrollments()
+  pagination.value.page = 1;
+  loadEnrollments();
 }
 
 function showDetailDialog(enrollment: Enrollment) {
-  currentEnrollment.value = enrollment
-  dialogs.value.detailVisible = true
+  currentEnrollment.value = enrollment;
+  dialogs.value.detailVisible = true;
 }
 
 async function handleDelete(enrollment: Enrollment) {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除 ${enrollment.name} 的报名记录吗？`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await ElMessageBox.confirm(`确定要删除 ${enrollment.name} 的报名记录吗？`, '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
 
-    await enrollmentApi.updateEnrollment(enrollment._id, { deleted: true })
-    ElMessage.success('删除成功')
-    loadEnrollments()
+    await enrollmentApi.updateEnrollment(enrollment._id, { deleted: true });
+    ElMessage.success('删除成功');
+    loadEnrollments();
   } catch (err) {
     if (err !== 'cancel') {
-      ElMessage.error('删除失败')
+      ElMessage.error('删除失败');
     }
   }
 }
 
 // 批量操作函数
 function handleSelectionChange(selection: any[]) {
-  selectedEnrollments.value = selection
+  selectedEnrollments.value = selection;
 }
 
 function clearSelection() {
-  selectedEnrollments.value = []
-  tableRef.value?.clearSelection()
+  selectedEnrollments.value = [];
+  tableRef.value?.clearSelection();
 }
 
 async function batchDelete() {
   if (selectedEnrollments.value.length === 0) {
-    ElMessage.warning('请先选择要删除的报名')
-    return
+    ElMessage.warning('请先选择要删除的报名');
+    return;
   }
 
   try {
@@ -292,32 +270,30 @@ async function batchDelete() {
         cancelButtonText: '取消',
         type: 'error'
       }
-    )
+    );
 
-    loading.value = true
-    const ids = selectedEnrollments.value.map((e: any) => e._id)
+    loading.value = true;
+    const ids = selectedEnrollments.value.map((e: any) => e._id);
 
     // 并行发送所有请求
-    const promises = ids.map((id: string) =>
-      enrollmentApi.updateEnrollment(id, { deleted: true })
-    )
-    await Promise.all(promises)
+    const promises = ids.map((id: string) => enrollmentApi.updateEnrollment(id, { deleted: true }));
+    await Promise.all(promises);
 
-    ElMessage.success(`成功删除 ${ids.length} 条报名`)
-    clearSelection()
-    loadEnrollments()
+    ElMessage.success(`成功删除 ${ids.length} 条报名`);
+    clearSelection();
+    loadEnrollments();
   } catch (err) {
     if (err !== 'cancel') {
-      ElMessage.error('批量删除失败')
+      ElMessage.error('批量删除失败');
     }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function resetForm() {
-  currentEnrollment.value = null
-  currentForm.value = { notes: '' }
+  currentEnrollment.value = null;
+  currentForm.value = { notes: '' };
 }
 
 function formatPaymentStatus(status: string): string {
@@ -326,8 +302,8 @@ function formatPaymentStatus(status: string): string {
     paid: '已支付',
     refunded: '已退款',
     free: '免费'
-  }
-  return statusMap[status] || status
+  };
+  return statusMap[status] || status;
 }
 
 function getPaymentType(status: string): string {
@@ -336,14 +312,14 @@ function getPaymentType(status: string): string {
     paid: 'success',
     refunded: 'info',
     free: 'success'
-  }
-  return typeMap[status] || 'info'
+  };
+  return typeMap[status] || 'info';
 }
 
 function formatDate(dateString: string): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN').slice(0, 5)
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN').slice(0, 5);
 }
 
 function formatGender(gender: string): string {
@@ -351,8 +327,8 @@ function formatGender(gender: string): string {
     male: '男',
     female: '女',
     prefer_not_to_say: '保密'
-  }
-  return genderMap[gender] || gender
+  };
+  return genderMap[gender] || gender;
 }
 </script>
 

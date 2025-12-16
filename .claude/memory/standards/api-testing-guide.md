@@ -28,7 +28,7 @@ bash .claude/commands/testing/test-all-apis.sh
 
 ```
 ### 1️⃣  用户接口 (Users API)
-### 2️⃣  小凡看见接口 (Insights API)  
+### 2️⃣  小凡看见接口 (Insights API)
 ### 3️⃣  系统接口 (System API)
 ```
 
@@ -43,6 +43,7 @@ test_api '接口名称' 'METHOD' '/endpoint' '[JSON_DATA]' 'HTTP_CODE'
 ```
 
 **参数说明：**
+
 - `接口名称`: 测试的描述名称（用于日志输出）
 - `METHOD`: HTTP方法（GET、POST、PUT、DELETE）
 - `/endpoint`: API端点（相对路径）
@@ -64,12 +65,12 @@ test_api "尝试重复申请" "POST" "/insights/requests" '{"toUserId":"same_id"
 
 ## 📋 当前接口列表
 
-| 日期 | 接口 | 方法 | 端点 | 说明 |
-|------|------|------|------|------|
-| 2025-12-04 | 获取用户信息 | GET | /users/:userId | 获取他人用户资料 |
-| 2025-12-04 | 创建查看申请 | POST | /insights/requests | 申请查看小凡看见 |
-| 基础 | 获取当前用户 | GET | /users/me | 获取当前登录用户信息 |
-| 基础 | 健康检查 | GET | /health | 检查服务状态 |
+| 日期       | 接口         | 方法 | 端点               | 说明                 |
+| ---------- | ------------ | ---- | ------------------ | -------------------- |
+| 2025-12-04 | 获取用户信息 | GET  | /users/:userId     | 获取他人用户资料     |
+| 2025-12-04 | 创建查看申请 | POST | /insights/requests | 申请查看小凡看见     |
+| 基础       | 获取当前用户 | GET  | /users/me          | 获取当前登录用户信息 |
+| 基础       | 健康检查     | GET  | /health            | 检查服务状态         |
 
 ## ✨ 最佳实践
 
@@ -160,7 +161,8 @@ curl -H "Authorization: Bearer $TOKEN" \
 A: 脚本会自动尝试登录获取新Token。如果登录失败，请检查测试账户凭证。
 
 **Q: 某个测试一直失败怎么办？**
-A: 
+A:
+
 1. 检查API是否已正确部署
 2. 查看后端服务日志
 3. 手动测试该接口确认问题

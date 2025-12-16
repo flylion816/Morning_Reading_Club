@@ -21,12 +21,39 @@ Page({
       { label: '不想透露', value: 'prefer_not_to_say' }
     ],
     provinceList: [
-      '北京', '上海', '广东', '浙江', '江苏', '福建',
-      '山东', '四川', '湖北', '湖南', '安徽', '江西',
-      '黑龙江', '吉林', '辽宁', '河北', '河南', '山西',
-      '陕西', '甘肃', '青海', '云南', '贵州', '重庆',
-      '天津', '内蒙古', '宁夏', '新疆', '西藏', '台湾',
-      '香港', '澳门', '其他'
+      '北京',
+      '上海',
+      '广东',
+      '浙江',
+      '江苏',
+      '福建',
+      '山东',
+      '四川',
+      '湖北',
+      '湖南',
+      '安徽',
+      '江西',
+      '黑龙江',
+      '吉林',
+      '辽宁',
+      '河北',
+      '河南',
+      '山西',
+      '陕西',
+      '甘肃',
+      '青海',
+      '云南',
+      '贵州',
+      '重庆',
+      '天津',
+      '内蒙古',
+      '宁夏',
+      '新疆',
+      '西藏',
+      '台湾',
+      '香港',
+      '澳门',
+      '其他'
     ],
     selectedProvinceIndex: 0,
     readOptions: [
@@ -215,7 +242,8 @@ Page({
     if (!form.name || form.name.trim() === '') errors.name = '请输入姓名';
     if (!form.gender) errors.gender = '请选择性别';
     if (!form.province) errors.province = '请选择省/市/区(县)';
-    if (!form.detailedAddress || form.detailedAddress.trim() === '') errors.detailedAddress = '请输入详细地址';
+    if (!form.detailedAddress || form.detailedAddress.trim() === '')
+      errors.detailedAddress = '请输入详细地址';
     if (!form.age) {
       errors.age = '请输入年龄';
     } else if (isNaN(parseInt(form.age)) || parseInt(form.age) < 1 || parseInt(form.age) > 120) {
@@ -233,8 +261,10 @@ Page({
       }
     }
 
-    if (!form.enrollReason || form.enrollReason.trim() === '') errors.enrollReason = '请简述参加课程的原因';
-    if (!form.expectation || form.expectation.trim() === '') errors.expectation = '请简述对课程的期待';
+    if (!form.enrollReason || form.enrollReason.trim() === '')
+      errors.enrollReason = '请简述参加课程的原因';
+    if (!form.expectation || form.expectation.trim() === '')
+      errors.expectation = '请简述对课程的期待';
     if (!form.commitment) errors.commitment = '请选择是否承诺全程参加';
 
     console.log('验证错误:', errors);
@@ -302,7 +332,7 @@ Page({
       setTimeout(() => {
         wx.navigateTo({
           url: `/pages/payment/payment?enrollmentId=${res._id}&periodId=${selectedPeriod._id}&periodTitle=${selectedPeriod.name}&startDate=${selectedPeriod.startDate}&endDate=${selectedPeriod.endDate}&amount=99`,
-          fail: (err) => {
+          fail: err => {
             console.error('导航到支付页面失败:', err);
             wx.showToast({
               title: '导航失败，请重试',
@@ -340,7 +370,7 @@ Page({
     wx.showModal({
       title: '取消报名',
       content: '确定要取消报名吗？',
-      success: (res) => {
+      success: res => {
         if (res.confirm) {
           wx.navigateBack({
             delta: 1

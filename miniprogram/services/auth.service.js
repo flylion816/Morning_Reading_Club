@@ -47,10 +47,10 @@ class AuthService {
     return new Promise((resolve, reject) => {
       wx.getUserProfile({
         desc: '用于完善会员资料',
-        success: (res) => {
+        success: res => {
           resolve(res.userInfo);
         },
-        fail: (err) => {
+        fail: err => {
           reject(err);
         }
       });
@@ -71,7 +71,7 @@ class AuthService {
         accessToken: 'mock_token_' + Date.now(),
         refreshToken: 'mock_refresh_token_' + Date.now(),
         user: {
-          _id: 'mock_user_' + Date.now(),  // 添加 _id 字段，用于 API 认证
+          _id: 'mock_user_' + Date.now(), // 添加 _id 字段，用于 API 认证
           id: 1,
           nickname: userInfo.nickName || '晨读营用户',
           avatar: '🦁',
@@ -135,14 +135,14 @@ class AuthService {
   getWechatCode() {
     return new Promise((resolve, reject) => {
       wx.login({
-        success: (res) => {
+        success: res => {
           if (res.code) {
             resolve(res);
           } else {
             reject(new Error('获取授权码失败'));
           }
         },
-        fail: (err) => {
+        fail: err => {
           reject(err);
         }
       });

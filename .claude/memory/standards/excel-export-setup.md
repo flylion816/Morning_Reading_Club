@@ -3,6 +3,7 @@
 ## 📋 概述
 
 Excel 导出功能已在管理后台实现，支持三种格式：
+
 - **Excel (.xlsx)** - 包含样式、冻结表头、自动列宽
 - **CSV (.csv)** - 轻量级逗号分隔格式
 - **JSON (.json)** - 结构化数据格式
@@ -41,54 +42,50 @@ admin/src/
 ### 在组件中使用
 
 ```typescript
-import {
-  exportToCSV,
-  exportToExcel,
-  exportToJSON,
-  generateFilename
-} from '../utils/exportUtils'
+import { exportToCSV, exportToExcel, exportToJSON, generateFilename } from '../utils/exportUtils';
 
 // 准备数据
-const headers = ['列1', '列2', '列3']
+const headers = ['列1', '列2', '列3'];
 const rows = [
   ['值1', '值2', '值3'],
   ['值4', '值5', '值6']
-]
+];
 
 // 生成文件名（包含日期和时间戳）
-const filename = generateFilename('my-export')
+const filename = generateFilename('my-export');
 
 // 导出为 Excel
 await exportToExcel(filename, headers, rows, {
   sheetName: '我的工作表',
-  frozenHeader: true,           // 冻结表头行
-  columnWidths: [15, 20, 25],   // 列宽
-  headerBackgroundColor: 'FF4472C4',    // 表头背景色
-  headerTextColor: 'FFFFFFFF'          // 表头文本色
-})
+  frozenHeader: true, // 冻结表头行
+  columnWidths: [15, 20, 25], // 列宽
+  headerBackgroundColor: 'FF4472C4', // 表头背景色
+  headerTextColor: 'FFFFFFFF' // 表头文本色
+});
 
 // 导出为 CSV
-exportToCSV(filename, headers, rows)
+exportToCSV(filename, headers, rows);
 
 // 导出为 JSON
-exportToJSON(filename, headers, rows)
+exportToJSON(filename, headers, rows);
 ```
 
 ## 🎨 Excel 导出选项
 
 ```typescript
 interface ExcelExportOptions {
-  sheetName?: string              // 工作表名称，默认 'Sheet1'
-  frozenHeader?: boolean          // 冻结表头（第1行），默认 true
-  columnWidths?: number[]         // 列宽数组，默认自动计算
-  headerBackgroundColor?: string  // 表头背景色（RGB），默认 'FF4472C4' (蓝色)
-  headerTextColor?: string        // 表头文本色（RGB），默认 'FFFFFFFF' (白色)
+  sheetName?: string; // 工作表名称，默认 'Sheet1'
+  frozenHeader?: boolean; // 冻结表头（第1行），默认 true
+  columnWidths?: number[]; // 列宽数组，默认自动计算
+  headerBackgroundColor?: string; // 表头背景色（RGB），默认 'FF4472C4' (蓝色)
+  headerTextColor?: string; // 表头文本色（RGB），默认 'FFFFFFFF' (白色)
 }
 ```
 
 ### 颜色格式说明
 
 RGB 颜色格式：`FF` + 十六进制RGB值
+
 - `FF4472C4` - 蓝色
 - `FF70AD47` - 绿色
 - `FFC5504A` - 红色
@@ -99,11 +96,13 @@ RGB 颜色格式：`FF` + 十六进制RGB值
 ### 在 InsightRequestsManagementView.vue 中
 
 **导出按钮** - 下拉菜单选择格式：
+
 - 📊 导出为 Excel
 - 📋 导出为 CSV
 - 📄 导出为 JSON
 
 **导出内容** - 查看申请列表，包括：
+
 - 申请者
 - 被申请者
 - 申请原因
@@ -118,6 +117,7 @@ RGB 颜色格式：`FF` + 十六进制RGB值
 ### Q: xlsx 库没有安装会怎样？
 
 A: Excel 导出会失败，但系统会自动降级到 CSV 格式，用户会看到提示：
+
 ```
 "Excel 导出失败，自动使用 CSV 格式"
 ```
@@ -128,9 +128,9 @@ A: 在调用 `exportToExcel` 时传入自定义颜色：
 
 ```typescript
 await exportToExcel(filename, headers, rows, {
-  headerBackgroundColor: 'FF70AD47',  // 绿色
+  headerBackgroundColor: 'FF70AD47', // 绿色
   headerTextColor: 'FFFFFFFF'
-})
+});
 ```
 
 ### Q: 如何设置自定义列宽？
@@ -140,7 +140,7 @@ A: 传入 `columnWidths` 数组，每个数字代表一列的宽度：
 ```typescript
 await exportToExcel(filename, headers, rows, {
   columnWidths: [10, 20, 30, 25, 15, 20]
-})
+});
 ```
 
 ### Q: 如何修改工作表名称？
@@ -150,7 +150,7 @@ A: 传入 `sheetName` 参数：
 ```typescript
 await exportToExcel(filename, headers, rows, {
   sheetName: '我的工作表名称'
-})
+});
 ```
 
 ## 🚀 高级用法
@@ -168,18 +168,18 @@ await exportToExcel(filename, headers, rows, {
 通过 `generateExportData` 工具函数将复杂数据转换为导出格式：
 
 ```typescript
-import { generateExportData } from '../utils/exportUtils'
+import { generateExportData } from '../utils/exportUtils';
 
 const data = [
   { name: '张三', age: 28, email: 'zhangsan@example.com' },
   { name: '李四', age: 32, email: 'lisi@example.com' }
-]
+];
 
 const exportData = generateExportData(data, [
   { key: 'name', label: '姓名' },
   { key: 'age', label: '年龄' },
-  { key: 'email', label: '邮箱', formatter: (v) => v.toLowerCase() }
-])
+  { key: 'email', label: '邮箱', formatter: v => v.toLowerCase() }
+]);
 ```
 
 ## 📈 性能考虑

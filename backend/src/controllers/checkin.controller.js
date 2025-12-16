@@ -7,17 +7,8 @@ const logger = require('../utils/logger');
 // 创建打卡记录
 async function createCheckin(req, res, next) {
   try {
-    const {
-      periodId,
-      sectionId,
-      day,
-      readingTime,
-      completionRate,
-      note,
-      images,
-      mood,
-      isPublic
-    } = req.body;
+    const { periodId, sectionId, day, readingTime, completionRate, note, images, mood, isPublic } =
+      req.body;
 
     // JWT payload from admin controller uses 'id', from auth uses 'userId'
     const userId = req.user.id || req.user.userId;
@@ -39,7 +30,7 @@ async function createCheckin(req, res, next) {
       periodId,
       sectionId,
       day,
-      checkinDate: now,  // 使用当前精确时间，避免唯一索引冲突
+      checkinDate: now, // 使用当前精确时间，避免唯一索引冲突
       readingTime: readingTime || 0,
       completionRate: completionRate || 100,
       note,
@@ -104,14 +95,19 @@ async function createCheckin(req, res, next) {
       logger.error('Section save failed', saveError, { sectionId: section._id });
     }
 
-    res.status(201).json(success({
-      checkin,
-      userStats: {
-        totalCheckinDays: user.totalCheckinDays,
-        currentStreak: user.currentStreak,
-        totalPoints: user.totalPoints
-      }
-    }, '打卡成功'));
+    res.status(201).json(
+      success(
+        {
+          checkin,
+          userStats: {
+            totalCheckinDays: user.totalCheckinDays,
+            currentStreak: user.currentStreak,
+            totalPoints: user.totalPoints
+          }
+        },
+        '打卡成功'
+      )
+    );
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json(errors.badRequest('今日已打卡'));
@@ -142,11 +138,11 @@ async function getUserCheckins(req, res, next) {
 
     // 计算统计数据
     const stats = {
-      diaryCount: 0,        // 日记总数（有内容的打卡）
-      featuredCount: 0,     // 精选次数
-      likeCount: 0,         // 获赞总数
-      totalDays: 0,         // 总打卡天数
-      consecutiveDays: 0    // 连续打卡天数（待计算）
+      diaryCount: 0, // 日记总数（有内容的打卡）
+      featuredCount: 0, // 精选次数
+      likeCount: 0, // 获赞总数
+      totalDays: 0, // 总打卡天数
+      consecutiveDays: 0 // 连续打卡天数（待计算）
     };
 
     // 统计所有打卡记录
@@ -206,17 +202,19 @@ async function getUserCheckins(req, res, next) {
       };
     }
 
-    res.json(success({
-      list: checkins,
-      stats,
-      calendar,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: checkins,
+        stats,
+        calendar,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -243,15 +241,17 @@ async function getPeriodCheckins(req, res, next) {
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(success({
-      list: checkins,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    }));
+    res.json(
+      success({
+        list: checkins,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -311,15 +311,7 @@ async function deleteCheckin(req, res, next) {
 // 【Admin】获取所有打卡记录（后台管理）
 async function getAdminCheckins(req, res, next) {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      userId,
-      periodId,
-      dateFrom,
-      dateTo,
-      search
-    } = req.query;
+    const { page = 1, limit = 20, userId, periodId, dateFrom, dateTo, search } = req.query;
 
     const query = {};
 
@@ -362,20 +354,22 @@ async function getAdminCheckins(req, res, next) {
         query.userId = { $in: userIds };
       } else {
         // 搜索无结果
-        return res.json(success({
-          list: [],
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total: 0,
-            pages: 0
-          },
-          stats: {
-            totalCount: 0,
-            todayCount: 0,
-            totalPoints: 0
-          }
-        }));
+        return res.json(
+          success({
+            list: [],
+            pagination: {
+              page: parseInt(page),
+              limit: parseInt(limit),
+              total: 0,
+              pages: 0
+            },
+            stats: {
+              totalCount: 0,
+              todayCount: 0,
+              totalPoints: 0
+            }
+          })
+        );
       }
     }
 
@@ -408,20 +402,22 @@ async function getAdminCheckins(req, res, next) {
     const allCheckins = await Checkin.find(query).select('points');
     const totalPoints = allCheckins.reduce((sum, c) => sum + (c.points || 0), 0);
 
-    res.json(success({
-      list: checkins,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      },
-      stats: {
-        totalCount: total,
-        todayCount,
-        totalPoints
-      }
-    }));
+    res.json(
+      success({
+        list: checkins,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        },
+        stats: {
+          totalCount: total,
+          todayCount,
+          totalPoints
+        }
+      })
+    );
   } catch (error) {
     next(error);
   }
@@ -507,11 +503,14 @@ async function getCheckinStats(req, res, next) {
       }
     ]);
 
-    const stats = statsAggregation.length > 0 ? statsAggregation[0] : {
-      totalPoints: 0,
-      totalLikes: 0,
-      featuredCount: 0
-    };
+    const stats =
+      statsAggregation.length > 0
+        ? statsAggregation[0]
+        : {
+            totalPoints: 0,
+            totalLikes: 0,
+            featuredCount: 0
+          };
 
     // 今日统计
     const today = new Date();
@@ -527,15 +526,18 @@ async function getCheckinStats(req, res, next) {
       }
     });
 
-    res.json(success({
-      totalCount,
-      todayCount,
-      uniqueUserCount: uniqueUsers.length,
-      totalPoints: stats.totalPoints,
-      totalLikes: stats.totalLikes,
-      featuredCount: stats.featuredCount,
-      averagePointsPerUser: uniqueUsers.length > 0 ? (stats.totalPoints / uniqueUsers.length).toFixed(2) : 0
-    }));
+    res.json(
+      success({
+        totalCount,
+        todayCount,
+        uniqueUserCount: uniqueUsers.length,
+        totalPoints: stats.totalPoints,
+        totalLikes: stats.totalLikes,
+        featuredCount: stats.featuredCount,
+        averagePointsPerUser:
+          uniqueUsers.length > 0 ? (stats.totalPoints / uniqueUsers.length).toFixed(2) : 0
+      })
+    );
   } catch (error) {
     next(error);
   }

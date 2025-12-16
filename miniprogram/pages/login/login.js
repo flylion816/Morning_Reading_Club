@@ -33,11 +33,11 @@ Page({
       const userInfo = await new Promise((resolve, reject) => {
         wx.getUserProfile({
           desc: '用于完善会员资料',
-          success: (res) => {
+          success: res => {
             console.log('获取用户信息成功:', res.userInfo);
             resolve(res.userInfo);
           },
-          fail: (err) => {
+          fail: err => {
             console.error('获取用户信息失败:', err);
             reject(err);
           }

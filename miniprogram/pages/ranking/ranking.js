@@ -60,11 +60,13 @@ Page({
         avatarText: item.nickname.charAt(item.nickname.length - 1)
       }));
 
-      const currentUser = res.currentUser ? {
-        ...res.currentUser,
-        avatarColor: getAvatarColorByUserId(res.currentUser.userId),
-        avatarText: res.currentUser.nickname.charAt(res.currentUser.nickname.length - 1)
-      } : null;
+      const currentUser = res.currentUser
+        ? {
+            ...res.currentUser,
+            avatarColor: getAvatarColorByUserId(res.currentUser.userId),
+            avatarText: res.currentUser.nickname.charAt(res.currentUser.nickname.length - 1)
+          }
+        : null;
 
       this.setData({
         rankingList: list,

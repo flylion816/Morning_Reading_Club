@@ -5,10 +5,10 @@
 
 // 开发环境的允许源
 const developmentOrigins = [
-  'http://localhost:3000',      // 后端本身
-  'http://localhost:5173',      // Admin Vue (Vite默认端口)
-  'http://localhost:4173',      // Admin Vue (Vite preview端口)
-  'http://localhost:8080',      // 备用前端端口
+  'http://localhost:3000', // 后端本身
+  'http://localhost:5173', // Admin Vue (Vite默认端口)
+  'http://localhost:4173', // Admin Vue (Vite preview端口)
+  'http://localhost:8080' // 备用前端端口
 ];
 
 // 生产环境的允许源
@@ -65,7 +65,7 @@ const getCorsOptions = () => {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['X-Total-Count', 'X-Total-Pages', 'X-Current-Page'],
-    maxAge: 3600, // 预检请求的缓存时间（秒）
+    maxAge: 3600 // 预检请求的缓存时间（秒）
   };
 };
 
@@ -80,7 +80,7 @@ const getSocketIoCorsOptions = () => {
     origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST'],
-    transports: ['websocket', 'polling'],
+    transports: ['websocket', 'polling']
   };
 };
 
@@ -88,5 +88,5 @@ module.exports = {
   getCorsOptions,
   getSocketIoCorsOptions,
   getAllowedOrigins,
-  developmentOrigins,
+  developmentOrigins
 };

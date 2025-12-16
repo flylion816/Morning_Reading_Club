@@ -23,18 +23,24 @@ class AuditHelper {
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: 'success'
-      }
+      };
 
-      await auditService.createLog(log)
+      await auditService.createLog(log);
     } catch (error) {
-      logger.error('记录批量批准日志失败:', error)
+      logger.error('记录批量批准日志失败:', error);
     }
   }
 
   /**
    * 记录批量拒绝操作
    */
-  static async logBatchReject(req, ids, reason = '', resourceType = 'enrollment', description = '批量拒绝') {
+  static async logBatchReject(
+    req,
+    ids,
+    reason = '',
+    resourceType = 'enrollment',
+    description = '批量拒绝'
+  ) {
     try {
       const log = {
         adminId: req.user.id,
@@ -50,11 +56,11 @@ class AuditHelper {
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: 'success'
-      }
+      };
 
-      await auditService.createLog(log)
+      await auditService.createLog(log);
     } catch (error) {
-      logger.error('记录批量拒绝日志失败:', error)
+      logger.error('记录批量拒绝日志失败:', error);
     }
   }
 
@@ -76,18 +82,26 @@ class AuditHelper {
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: 'success'
-      }
+      };
 
-      await auditService.createLog(log)
+      await auditService.createLog(log);
     } catch (error) {
-      logger.error('记录批量删除日志失败:', error)
+      logger.error('记录批量删除日志失败:', error);
     }
   }
 
   /**
    * 记录单个操作
    */
-  static async logAction(req, actionType, resourceType, resourceId, resourceName, description, changes = null) {
+  static async logAction(
+    req,
+    actionType,
+    resourceType,
+    resourceId,
+    resourceName,
+    description,
+    changes = null
+  ) {
     try {
       const log = {
         adminId: req.user.id,
@@ -103,11 +117,11 @@ class AuditHelper {
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: 'success'
-      }
+      };
 
-      await auditService.createLog(log)
+      await auditService.createLog(log);
     } catch (error) {
-      logger.error('记录操作日志失败:', error)
+      logger.error('记录操作日志失败:', error);
     }
   }
 
@@ -125,11 +139,11 @@ class AuditHelper {
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: 'success'
-      }
+      };
 
-      await auditService.createLog(log)
+      await auditService.createLog(log);
     } catch (error) {
-      logger.error('记录登录日志失败:', error)
+      logger.error('记录登录日志失败:', error);
     }
   }
 
@@ -147,11 +161,11 @@ class AuditHelper {
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: 'success'
-      }
+      };
 
-      await auditService.createLog(log)
+      await auditService.createLog(log);
     } catch (error) {
-      logger.error('记录登出日志失败:', error)
+      logger.error('记录登出日志失败:', error);
     }
   }
 
@@ -171,11 +185,11 @@ class AuditHelper {
         userAgent: req.get('user-agent'),
         status: 'failure',
         errorMessage
-      }
+      };
 
-      await auditService.createLog(log)
+      await auditService.createLog(log);
     } catch (error) {
-      logger.error('记录错误日志失败:', error)
+      logger.error('记录错误日志失败:', error);
     }
   }
 
@@ -188,37 +202,37 @@ class AuditHelper {
       req.socket?.remoteAddress ||
       req.ip ||
       'unknown'
-    )
+    );
   }
 
   /**
    * 比较两个对象的差异，用于变更记录
    */
   static compareChanges(oldData, newData, fieldsToTrack = null) {
-    const changes = {}
+    const changes = {};
 
     // 确定要追踪的字段
-    const fieldsToCheck = fieldsToTrack || Object.keys({ ...oldData, ...newData })
+    const fieldsToCheck = fieldsToTrack || Object.keys({ ...oldData, ...newData });
 
     fieldsToCheck.forEach(field => {
       // 忽略系统字段
       if (['_id', 'createdAt', 'updatedAt', '__v', 'password'].includes(field)) {
-        return
+        return;
       }
 
-      const oldValue = oldData?.[field]
-      const newValue = newData?.[field]
+      const oldValue = oldData?.[field];
+      const newValue = newData?.[field];
 
       if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
         changes[field] = {
           before: oldValue,
           after: newValue
-        }
+        };
       }
-    })
+    });
 
-    return Object.keys(changes).length > 0 ? changes : null
+    return Object.keys(changes).length > 0 ? changes : null;
   }
 }
 
-module.exports = AuditHelper
+module.exports = AuditHelper;

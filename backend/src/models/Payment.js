@@ -4,114 +4,124 @@ const mongoose = require('mongoose');
  * 支付/订单模型
  * 记录用户的支付交易信息
  */
-const PaymentSchema = new mongoose.Schema({
-  // 关联的报名ID
-  enrollmentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Enrollment',
-    required: true,
-    index: true
-  },
+const PaymentSchema = new mongoose.Schema(
+  {
+    // 关联的报名ID
+    enrollmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Enrollment',
+      required: true,
+      index: true
+    },
 
-  // 用户ID
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
-  },
+    // 用户ID
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
+    },
 
-  // 期次ID
-  periodId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Period',
-    required: true,
-    index: true
-  },
+    // 期次ID
+    periodId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Period',
+      required: true,
+      index: true
+    },
 
-  // 支付金额（单位：元）
-  amount: {
-    type: Number,
-    required: true,
-    min: 0
-  },
+    // 支付金额（单位：元）
+    amount: {
+      type: Number,
+      required: true,
+      min: 0
+    },
 
-  // 支付方式
-  paymentMethod: {
-    type: String,
-    enum: ['wechat', 'alipay', 'mock'],
-    default: 'wechat',
-    comment: 'wechat: 微信支付, alipay: 支付宝, mock: 模拟支付（测试）'
-  },
+    // 支付方式
+    paymentMethod: {
+      type: String,
+      enum: ['wechat', 'alipay', 'mock'],
+      default: 'wechat',
+      comment: 'wechat: 微信支付, alipay: 支付宝, mock: 模拟支付（测试）'
+    },
 
-  // 支付状态
-  status: {
-    type: String,
-    enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
-    default: 'pending',
-    comment: 'pending: 待支付, processing: 处理中, completed: 已完成, failed: 失败, cancelled: 已取消'
-  },
+    // 支付状态
+    status: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
+      default: 'pending',
+      comment:
+        'pending: 待支付, processing: 处理中, completed: 已完成, failed: 失败, cancelled: 已取消'
+    },
 
-  // 微信相关字段
-  wechat: {
-    // 微信预支付ID
-    prepayId: String,
-    // 微信交易号
-    transactionId: String,
+    // 微信相关字段
+    wechat: {
+      // 微信预支付ID
+      prepayId: String,
+      // 微信交易号
+      transactionId: String,
+      // 支付成功时间
+      successTime: Date
+    },
+
     // 支付成功时间
-    successTime: Date
+    paidAt: Date,
+
+    // 支付失败原因
+    failureReason: String,
+
+    // 支付备注
+    notes: String,
+
+    // 订单号（用于对账）
+    orderNo: {
+      type: String,
+      unique: true,
+      index: true
+    },
+
+    // 是否已核销（对账）
+    reconciled: {
+      type: Boolean,
+      default: false
+    },
+
+    // 核销时间
+    reconciledAt: Date
   },
-
-  // 支付成功时间
-  paidAt: Date,
-
-  // 支付失败原因
-  failureReason: String,
-
-  // 支付备注
-  notes: String,
-
-  // 订单号（用于对账）
-  orderNo: {
-    type: String,
-    unique: true,
-    index: true
-  },
-
-  // 是否已核销（对账）
-  reconciled: {
-    type: Boolean,
-    default: false
-  },
-
-  // 核销时间
-  reconciledAt: Date
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+);
 
 // 性能优化索引
-PaymentSchema.index({ status: 1, createdAt: -1 });           // 支付状态查询
-PaymentSchema.index({ userId: 1, createdAt: -1 });           // 用户支付历史
-PaymentSchema.index({ periodId: 1, status: 1 });             // 期次的支付状态
-PaymentSchema.index({ createdAt: -1 });                       // 按创建时间排序
-PaymentSchema.index({ paidAt: -1 });                          // 按支付时间排序
-PaymentSchema.index({ reconciled: 1, createdAt: -1 });        // 核销状态查询
+PaymentSchema.index({ status: 1, createdAt: -1 }); // 支付状态查询
+PaymentSchema.index({ userId: 1, createdAt: -1 }); // 用户支付历史
+PaymentSchema.index({ periodId: 1, status: 1 }); // 期次的支付状态
+PaymentSchema.index({ createdAt: -1 }); // 按创建时间排序
+PaymentSchema.index({ paidAt: -1 }); // 按支付时间排序
+PaymentSchema.index({ reconciled: 1, createdAt: -1 }); // 核销状态查询
 
 // 虚拟字段：是否已支付
-PaymentSchema.virtual('isPaid').get(function() {
+PaymentSchema.virtual('isPaid').get(function () {
   return this.status === 'completed';
 });
 
 // 虚拟字段：是否在处理中
-PaymentSchema.virtual('isProcessing').get(function() {
+PaymentSchema.virtual('isProcessing').get(function () {
   return this.status === 'processing';
 });
 
 // 静态方法：创建订单
-PaymentSchema.statics.createOrder = async function(enrollmentId, userId, periodId, amount, paymentMethod = 'wechat') {
+PaymentSchema.statics.createOrder = async function (
+  enrollmentId,
+  userId,
+  periodId,
+  amount,
+  paymentMethod = 'wechat'
+) {
   const orderNo = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const payment = await this.create({
@@ -128,12 +138,8 @@ PaymentSchema.statics.createOrder = async function(enrollmentId, userId, periodI
 };
 
 // 静态方法：获取用户的支付记录
-PaymentSchema.statics.getUserPayments = async function(userId, options = {}) {
-  const {
-    page = 1,
-    limit = 20,
-    status
-  } = options;
+PaymentSchema.statics.getUserPayments = async function (userId, options = {}) {
+  const { page = 1, limit = 20, status } = options;
 
   const skip = (page - 1) * limit;
 
@@ -163,7 +169,7 @@ PaymentSchema.statics.getUserPayments = async function(userId, options = {}) {
 };
 
 // 实例方法：确认支付
-PaymentSchema.methods.confirmPayment = function(transactionId = null) {
+PaymentSchema.methods.confirmPayment = function (transactionId = null) {
   this.status = 'completed';
   this.paidAt = new Date();
 
@@ -177,21 +183,21 @@ PaymentSchema.methods.confirmPayment = function(transactionId = null) {
 };
 
 // 实例方法：标记为失败
-PaymentSchema.methods.markFailed = function(reason = '支付失败') {
+PaymentSchema.methods.markFailed = function (reason = '支付失败') {
   this.status = 'failed';
   this.failureReason = reason;
   return this.save();
 };
 
 // 实例方法：标记为已取消
-PaymentSchema.methods.markCancelled = function(reason = '用户取消') {
+PaymentSchema.methods.markCancelled = function (reason = '用户取消') {
   this.status = 'cancelled';
   this.failureReason = reason;
   return this.save();
 };
 
 // 实例方法：开始处理
-PaymentSchema.methods.startProcessing = function() {
+PaymentSchema.methods.startProcessing = function () {
   this.status = 'processing';
   return this.save();
 };

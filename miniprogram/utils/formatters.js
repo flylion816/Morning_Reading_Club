@@ -34,12 +34,12 @@ function formatDate(date, format = 'YYYY-MM-DD') {
       const day = parseInt(match[3], 10);
 
       const formatMap = {
-        'YYYY': year,
-        'MM': String(month).padStart(2, '0'),
-        'DD': String(day).padStart(2, '0'),
-        'HH': String(d.getUTCHours()).padStart(2, '0'),
-        'mm': String(d.getUTCMinutes()).padStart(2, '0'),
-        'ss': String(d.getUTCSeconds()).padStart(2, '0')
+        YYYY: year,
+        MM: String(month).padStart(2, '0'),
+        DD: String(day).padStart(2, '0'),
+        HH: String(d.getUTCHours()).padStart(2, '0'),
+        mm: String(d.getUTCMinutes()).padStart(2, '0'),
+        ss: String(d.getUTCSeconds()).padStart(2, '0')
       };
 
       let result = format;
@@ -60,12 +60,12 @@ function formatDate(date, format = 'YYYY-MM-DD') {
   const second = String(d.getSeconds()).padStart(2, '0');
 
   const formatMap = {
-    'YYYY': year,
-    'MM': month,
-    'DD': day,
-    'HH': hour,
-    'mm': minute,
-    'ss': second
+    YYYY: year,
+    MM: month,
+    DD: day,
+    HH: hour,
+    mm: minute,
+    ss: second
   };
 
   let result = format;
@@ -280,14 +280,14 @@ function parseQuery(query) {
  */
 function getAvatarColorByUserId(userId) {
   const colors = [
-    '#4a90e2',  // 蓝色
-    '#7ed321',  // 绿色
-    '#f5a623',  // 橙色
-    '#bd10e0',  // 紫色
-    '#50e3c2',  // 青色
-    '#d0021b',  // 红色
-    '#f8e71c',  // 黄色
-    '#417505'   // 深绿色
+    '#4a90e2', // 蓝色
+    '#7ed321', // 绿色
+    '#f5a623', // 橙色
+    '#bd10e0', // 紫色
+    '#50e3c2', // 青色
+    '#d0021b', // 红色
+    '#f8e71c', // 黄色
+    '#417505' // 深绿色
   ];
 
   if (!userId) {
@@ -298,7 +298,7 @@ function getAvatarColorByUserId(userId) {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     const char = userId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
 
@@ -314,32 +314,32 @@ function getAvatarColorByUserId(userId) {
  */
 function getInsightTypeConfig(type) {
   const typeConfigs = {
-    'daily': {
+    daily: {
       icon: '📝',
       label: '每日反馈',
-      color: '#4a90e2',      // 蓝色
-      bgColor: '#f0f5ff',    // 浅蓝色背景
+      color: '#4a90e2', // 蓝色
+      bgColor: '#f0f5ff', // 浅蓝色背景
       borderColor: '#4a90e2' // 蓝色边框
     },
-    'weekly': {
+    weekly: {
       icon: '📊',
       label: '周报',
-      color: '#7ed321',      // 绿色
-      bgColor: '#f0ff00',    // 浅绿色背景
+      color: '#7ed321', // 绿色
+      bgColor: '#f0ff00', // 浅绿色背景
       borderColor: '#7ed321' // 绿色边框
     },
-    'monthly': {
+    monthly: {
       icon: '📈',
       label: '月报',
-      color: '#f5a623',      // 橙色
-      bgColor: '#fff5f0',    // 浅橙色背景
+      color: '#f5a623', // 橙色
+      bgColor: '#fff5f0', // 浅橙色背景
       borderColor: '#f5a623' // 橙色边框
     },
-    'insight': {
+    insight: {
       icon: '✨',
       label: '小凡看见',
-      color: '#4a90e2',      // 蓝色
-      bgColor: '#f0f5ff',    // 浅蓝色背景
+      color: '#4a90e2', // 蓝色
+      bgColor: '#f0f5ff', // 浅蓝色背景
       borderColor: '#4a90e2' // 蓝色边框
     }
   };

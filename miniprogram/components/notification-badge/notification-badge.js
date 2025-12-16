@@ -75,7 +75,7 @@ Component({
         this.setData({ useWebSocket: true });
 
         // 订阅新通知事件
-        const unsubscribe = websocketService.on('notification:new', (notification) => {
+        const unsubscribe = websocketService.on('notification:new', notification => {
           console.log('[NotificationBadge] 收到新通知', notification);
           // 刷新未读数量
           this.loadUnreadCount();

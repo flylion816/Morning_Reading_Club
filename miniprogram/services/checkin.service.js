@@ -71,13 +71,7 @@ class CheckinService {
    * @returns {Promise} 返回 { list, stats, calendar, pagination }
    */
   getUserCheckinsWithStats(options = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      year,
-      month,
-      periodId
-    } = options;
+    const { page = 1, limit = 20, year, month, periodId } = options;
 
     const data = {
       page,

@@ -3,7 +3,7 @@ Component({
     course: {
       type: Object,
       value: {},
-      observer: function(newVal) {
+      observer: function (newVal) {
         if (newVal) {
           this.setData({
             isPending: this._checkIsPending(newVal)
@@ -14,7 +14,7 @@ Component({
     // 模式：period (期次) 或 section (课节)
     mode: {
       type: String,
-      value: 'section'  // 默认为课节模式
+      value: 'section' // 默认为课节模式
     }
   },
 
