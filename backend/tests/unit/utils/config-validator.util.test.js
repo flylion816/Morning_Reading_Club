@@ -31,27 +31,31 @@ describe('Config Validator Utils', () => {
       debug: sandbox.stub()
     };
 
-    // Mock chalk
+    // Mock chalk with proper chaining support
+    const textStub = sandbox.stub().returnsArg(0);
+
+    // Create stub functions that support both direct calls and chaining
+    const createColorChain = () => ({
+      bold: textStub
+    });
+
     chalkStub = {
-      cyan: {
-        bold: sandbox.stub().returnsArg(0)
-      },
-      yellow: {
-        bold: sandbox.stub().returnsArg(0)
-      },
-      green: {
-        bold: sandbox.stub().returnsArg(0),
-        '': sandbox.stub().returnsArg(0)
-      },
-      blue: {
-        '': sandbox.stub().returnsArg(0)
-      },
-      red: sandbox.stub().returnsArg(0)
+      cyan: textStub,
+      yellow: textStub,
+      green: textStub,
+      blue: textStub,
+      red: textStub
     };
-    chalkStub.green = sandbox.stub().returnsArg(0);
-    chalkStub.red = sandbox.stub().returnsArg(0);
-    chalkStub.cyan = sandbox.stub().returnsArg(0);
-    chalkStub.blue = sandbox.stub().returnsArg(0);
+
+    // Support chaining like chalk.cyan.bold(text), chalk.red.bold(text), etc.
+    chalkStub.cyan.bold = textStub;
+    chalkStub.yellow.bold = textStub;
+    chalkStub.green.bold = textStub;
+    chalkStub.blue.bold = textStub;
+    chalkStub.red.bold = textStub;
+
+    // Mock process.exit to prevent actual process exit during tests
+    sandbox.stub(process, 'exit');
 
     // Load config-validator with mocked dependencies
     const module = proxyquire('../../../src/utils/config-validator', {

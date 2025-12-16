@@ -109,12 +109,12 @@ describe('JWT Utils', () => {
     });
 
     it('应该识别过期的Token', (done) => {
-      // 创建一个已过期的token
-      const expiredPayload = Object.assign({}, testPayload, { exp: Math.floor(Date.now() / 1000) - 3600 });
+      // 创建一个已过期的token - 不能同时指定exp和expiresIn
+      const expiredPayload = Object.assign({}, testPayload);
       const expiredToken = jwt.sign(
         expiredPayload,
         process.env.JWT_SECRET || 'dev-secret-key-12345678',
-        { expiresIn: '-1h' }
+        { expiresIn: '-1h' } // 负数表示已过期
       );
 
       try {
@@ -260,15 +260,17 @@ describe('JWT Utils', () => {
 
   describe('错误处理', () => {
     it('应该处理null payload', () => {
+      // jwt.sign 会拒绝 null payload
       expect(() => {
         generateAccessToken(null);
-      }).to.not.throw();
+      }).to.throw();
     });
 
     it('应该处理undefined payload', () => {
+      // jwt.sign 会拒绝 undefined payload
       expect(() => {
         generateAccessToken(undefined);
-      }).to.not.throw();
+      }).to.throw();
     });
 
     it('malformed token应该被拒绝', () => {

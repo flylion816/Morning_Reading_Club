@@ -35,7 +35,7 @@ describe('WebSocket Manager Utils', () => {
 
   describe('初始化', () => {
     it('应该创建 WebSocketManager 实例', () => {
-      expect(manager).to.be.an('instanceof', WebSocketManager);
+      expect(manager).to.be.instanceof(WebSocketManager);
     });
 
     it('应该初始化 userSockets 映射', () => {
