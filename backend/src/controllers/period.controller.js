@@ -38,17 +38,7 @@ async function getPeriodList(req, res, next) {
       };
     });
 
-    res.json(
-      success({
-        list: transformedPeriods,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      })
-    );
+    res.json(success(transformedPeriods));
   } catch (error) {
     next(error);
   }

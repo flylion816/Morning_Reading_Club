@@ -261,17 +261,7 @@ async function getInsights(req, res, next) {
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(
-      success({
-        list: insights,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      })
-    );
+    res.json(success(insights));
   } catch (error) {
     next(error);
   }
