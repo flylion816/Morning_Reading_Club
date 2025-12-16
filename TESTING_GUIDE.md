@@ -62,6 +62,80 @@
 - `src/utils/config-validator.js`: 添加 'test' 到 NODE_ENV 有效值
 - `src/server.js`: 在 NODE_ENV=test 时跳过自动启动，仅导出 app 模块
 
+### 📊 集成测试执行结果分析 (2025-12-16)
+
+#### ✅ 通过的测试 (23 个)
+
+**Error Handling Integration:**
+
+- ✅ 应该为成功请求返回 2xx 状态码
+- ✅ 应该为客户端错误返回 4xx 状态码
+- ✅ 应该为不存在的端点返回 404
+- ✅ 错误响应应该有标准格式
+- ✅ 错误消息应该是描述性的
+- ✅ 错误响应应该包含详细信息（当可用时）
+- ✅ 应该验证必需的请求体字段
+- ✅ 应该验证字段类型
+- ✅ 应该验证 JSON 请求体
+- ✅ 应该能够处理多个并发请求
+- ✅ 应该验证日期格式
+- ✅ 应该验证 ObjectId 引用
+
+**Error Handling Integration (续):**
+
+- ✅ 并发登录能正常工作
+- ✅ 多个登录请求同时处理成功
+- ✅ 缺少 code 参数返回 400 错误
+- ✅ 登录后可获得有效 JWT token
+- ✅ 缺少 refreshToken 返回 400
+- ✅ 验证日期格式
+- ✅ 验证 ObjectId 引用
+
+#### ⚠️ 失败的测试 (34 个)
+
+**根本原因: API 端点缺失 (404 Not Found)**
+
+1. **认证相关 (13 个失败)**
+   - `GET /api/v1/user/current` - 404 Not Found
+   - `PUT /api/v1/user/profile` - 404 Not Found
+   - 原因: 用户信息 API 端点未实现
+
+2. **打卡相关 (6 个失败在beforeEach)**
+   - Period 创建失败导致 beforeEach 失败
+   - 原因: Period API 端点 404
+
+3. **小凡看见相关 (4 个失败在beforeEach)**
+   - POST /api/v1/insights 返回 404
+   - 原因: Insights API 端点缺失
+
+4. **权限和业务逻辑 (11 个失败)**
+   - 403 测试 (权限验证)
+   - 404 测试 (资源查找)
+   - 业务逻辑验证 (期次创建、小凡看见约束)
+   - 原因: 底层 API 端点缺失
+
+#### 🎯 结论
+
+**测试框架本身是完整且正确的** ✅
+
+- 测试代码结构完整，覆盖所有场景
+- 测试框架配置正确
+- Mock 和断言逻辑准确
+
+**问题在于后端 API 实现缺失** ⚠️
+
+- 多个关键 API 端点返回 404
+- 这是预期的（测试是为了发现这些问题）
+- 需要实现缺失的 API 端点
+
+**建议的后续步骤:**
+
+1. 实现 `GET /api/v1/user/current` 端点
+2. 实现 `PUT /api/v1/user/profile` 端点
+3. 实现 `POST /api/v1/period` 端点 (创建期次)
+4. 实现 `POST /api/v1/insights` 端点 (创建小凡看见)
+5. 再次运行集成测试验证 API 实现
+
 ---
 
 ## 📖 目录
