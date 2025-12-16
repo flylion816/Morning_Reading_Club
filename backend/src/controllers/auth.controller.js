@@ -41,7 +41,10 @@ async function wechatLogin(req, res, next) {
       } else if (code === 'test_user_admin') {
         mockOpenid = 'mock_admin_001';
       } else {
-        mockOpenid = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Mock openid 应该基于 code 一致生成，而不是基于时间
+        // 这样同一个 code 总是返回同一个用户
+        const hash = require('crypto').createHash('md5').update(code).digest('hex');
+        mockOpenid = `mock_${hash.substr(0, 16)}`;
       }
 
       // 查找或创建用户
@@ -106,8 +109,14 @@ async function refreshToken(req, res, next) {
     }
 
     // 验证并解析refreshToken（这里简化处理）
-    const { verifyRefreshToken } = require('../utils/jwt');
-    const decoded = verifyRefreshToken(refreshToken);
+    let decoded;
+    try {
+      const { verifyRefreshToken } = require('../utils/jwt');
+      decoded = verifyRefreshToken(refreshToken);
+    } catch (tokenError) {
+      // Token 验证失败（无效或过期）
+      return res.status(401).json(errors.unauthorized(tokenError.message));
+    }
 
     // 查找用户
     const user = await User.findById(decoded.userId);
@@ -127,6 +136,7 @@ async function refreshToken(req, res, next) {
       success(
         {
           accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
           expiresIn: tokens.expiresIn
         },
         'Token刷新成功'

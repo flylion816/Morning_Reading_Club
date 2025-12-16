@@ -21,7 +21,7 @@ const UserSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
-      maxlength: 10,
+      maxlength: 500,
       default: '🦁'
     },
     avatarUrl: {

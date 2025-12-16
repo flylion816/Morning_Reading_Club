@@ -5,7 +5,7 @@
 // 成功响应
 function success(data, message = 'success') {
   return {
-    code: 200,
+    code: 0,
     message,
     data,
     timestamp: Date.now()
@@ -15,7 +15,7 @@ function success(data, message = 'success') {
 // 分页响应
 function successWithPagination(items, pagination, message = 'success') {
   return {
-    code: 200,
+    code: 0,
     message,
     data: {
       items,
