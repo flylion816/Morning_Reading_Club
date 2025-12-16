@@ -82,8 +82,10 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Period = require('../../src/models/Period');
       const period = await Period.create({
         name: '测试',
+        title: '测试标题',
         startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'ongoing'
       });
 
       const checkinRes = await request(app)
@@ -235,16 +237,20 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       // 创建第一个期次
       await Period.create({
         name: '唯一期次',
+        title: '唯一期次标题',
         startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'ongoing'
       });
 
       // 尝试创建同名期次（如果有唯一性约束）
       try {
         await Period.create({
           name: '唯一期次', // 相同的名字
+          title: '唯一期次标题',
           startDate: new Date(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ongoing'
         });
       } catch (err) {
         // 应该抛出错误或返回 400/409
@@ -267,8 +273,10 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Period = require('../../src/models/Period');
       const period = await Period.create({
         name: '测试',
+        title: '测试标题',
         startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'ongoing'
       });
 
       // 尝试给自己创建小凡看见
@@ -296,8 +304,10 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       try {
         await Period.create({
           name: '日期测试',
+          title: '日期测试标题',
           startDate: invalidDate,
-          endDate: new Date()
+          endDate: new Date(),
+          status: 'ongoing'
         });
       } catch (err) {
         expect(err).to.exist;

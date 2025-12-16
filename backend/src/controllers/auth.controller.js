@@ -1,5 +1,6 @@
+const crypto = require('crypto');
 const User = require('../models/User');
-const { generateTokens } = require('../utils/jwt');
+const { generateTokens, verifyRefreshToken } = require('../utils/jwt');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 
@@ -43,7 +44,7 @@ async function wechatLogin(req, res, next) {
       } else {
         // Mock openid 应该基于 code 一致生成，而不是基于时间
         // 这样同一个 code 总是返回同一个用户
-        const hash = require('crypto').createHash('md5').update(code).digest('hex');
+        const hash = crypto.createHash('md5').update(String(code)).digest('hex');
         mockOpenid = `mock_${hash.substr(0, 16)}`;
       }
 
@@ -102,17 +103,16 @@ async function wechatLogin(req, res, next) {
 // 刷新Token
 async function refreshToken(req, res, next) {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken: token } = req.body;
 
-    if (!refreshToken) {
+    if (!token) {
       return res.status(400).json(errors.badRequest('缺少refreshToken'));
     }
 
     // 验证并解析refreshToken（这里简化处理）
     let decoded;
     try {
-      const { verifyRefreshToken } = require('../utils/jwt');
-      decoded = verifyRefreshToken(refreshToken);
+      decoded = verifyRefreshToken(token);
     } catch (tokenError) {
       // Token 验证失败（无效或过期）
       return res.status(401).json(errors.unauthorized(tokenError.message));

@@ -51,21 +51,24 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       const periods = [
         {
           name: '第一季',
+          title: '第一季标题',
           startDate: new Date('2025-01-01'),
           endDate: new Date('2025-03-31'),
           status: 'completed'
         },
         {
           name: '第二季',
+          title: '第二季标题',
           startDate: new Date('2025-04-01'),
           endDate: new Date('2025-06-30'),
-          status: 'active'
+          status: 'ongoing'
         },
         {
           name: '第三季',
+          title: '第三季标题',
           startDate: new Date('2025-07-01'),
           endDate: new Date('2025-09-30'),
-          status: 'upcoming'
+          status: 'not_started'
         }
       ];
 
@@ -116,9 +119,10 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       // 创建期次
       const period = await Period.create({
         name: '测试期次',
+        title: '测试期次标题',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       periodId = period._id;

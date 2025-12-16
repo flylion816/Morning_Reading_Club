@@ -70,9 +70,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建期次
       const period = await Period.create({
         name: '测试期次',
+        title: '测试期次标题',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'active'
+        status: 'ongoing'
       });
 
       periodId = period._id;
