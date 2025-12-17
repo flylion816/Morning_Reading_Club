@@ -217,7 +217,7 @@ async function getUserCheckins(req, res, next) {
 async function getPeriodCheckins(req, res, next) {
   try {
     const { periodId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, day } = req.query;
 
     const query = {
       periodId,
@@ -225,26 +225,21 @@ async function getPeriodCheckins(req, res, next) {
       note: { $ne: null, $ne: '' }
     };
 
+    // 按日期筛选
+    if (day) {
+      query.day = parseInt(day);
+    }
+
     const total = await Checkin.countDocuments(query);
     const checkins = await Checkin.find(query)
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
+      .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(
-      success({
-        list: checkins,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      })
-    );
+    res.json(success(checkins));
   } catch (error) {
     next(error);
   }
@@ -265,6 +260,40 @@ async function getCheckinDetail(req, res, next) {
     }
 
     res.json(success(checkin));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 更新打卡记录
+async function updateCheckin(req, res, next) {
+  try {
+    const { checkinId } = req.params;
+    const userId = req.user.userId;
+    const { note, images, readingTime, mood, isPublic, completionRate } = req.body;
+
+    const checkin = await Checkin.findById(checkinId);
+
+    if (!checkin) {
+      return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    // 只能更新自己的打卡
+    if (checkin.userId.toString() !== userId) {
+      return res.status(403).json(errors.forbidden('无权更新'));
+    }
+
+    // 更新允许的字段
+    if (note !== undefined) checkin.note = note;
+    if (images !== undefined) checkin.images = images;
+    if (readingTime !== undefined) checkin.readingTime = readingTime;
+    if (mood !== undefined) checkin.mood = mood;
+    if (isPublic !== undefined) checkin.isPublic = isPublic;
+    if (completionRate !== undefined) checkin.completionRate = completionRate;
+
+    await checkin.save();
+
+    res.json(success(checkin, '打卡更新成功'));
   } catch (error) {
     next(error);
   }
@@ -541,6 +570,7 @@ module.exports = {
   getUserCheckins,
   getPeriodCheckins,
   getCheckinDetail,
+  updateCheckin,
   deleteCheckin,
   // Admin functions
   getAdminCheckins,

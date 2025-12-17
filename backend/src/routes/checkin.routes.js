@@ -6,6 +6,7 @@ const {
   getUserCheckins,
   getPeriodCheckins,
   getCheckinDetail,
+  updateCheckin,
   deleteCheckin
 } = require('../controllers/checkin.controller');
 
@@ -36,6 +37,13 @@ router.get('/period/:periodId', authMiddleware, getPeriodCheckins);
  * @access  Private
  */
 router.get('/:checkinId', authMiddleware, getCheckinDetail);
+
+/**
+ * @route   PUT /api/v1/checkins/:checkinId
+ * @desc    更新打卡记录
+ * @access  Private
+ */
+router.put('/:checkinId', authMiddleware, updateCheckin);
 
 /**
  * @route   DELETE /api/v1/checkins/:checkinId
