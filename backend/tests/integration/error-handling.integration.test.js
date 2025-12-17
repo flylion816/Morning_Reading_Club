@@ -13,7 +13,8 @@ let mongoServer;
 let User;
 
 describe('Error Handling Integration - 错误处理和数据验证', () => {
-  beforeAll(async () => {
+  before(async function() {
+    this.timeout(60000);
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
 
@@ -24,12 +25,13 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
     User = require('../../src/models/User');
     app = require('../../src/server');
-  }, 60000);
+  });
 
-  afterAll(async () => {
+  after(async function() {
+    this.timeout(30000);
     await mongoose.disconnect();
     await mongoServer.stop();
-  }, 30000);
+  });
 
   beforeEach(async () => {
     await User.deleteMany({});
@@ -77,6 +79,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
       // 用户B创建打卡
       const Period = require('../../src/models/Period');
+      const Section = require('../../src/models/Section');
       const period = await Period.create({
         name: '测试',
         title: '测试标题',
@@ -85,20 +88,31 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         status: 'ongoing'
       });
 
+      const section = await Section.create({
+        periodId: period._id,
+        title: '测试课节',
+        day: 1,
+        content: '测试'
+      });
+
       const checkinRes = await request(app)
-        .post('/api/v1/checkin')
+        .post('/api/v1/checkins')
         .set('Authorization', `Bearer ${userBToken}`)
         .send({
           periodId: period._id,
+          sectionId: section._id,
           day: 1,
-          content: '内容'
+          checkinDate: new Date()
         });
 
+      // 检查创建是否成功
+      expect(checkinRes.status).to.equal(201);
+      expect(checkinRes.body.data).to.exist;
       const checkinId = checkinRes.body.data._id;
 
       // 用户A试图删除用户B的打卡
       const deleteRes = await request(app)
-        .delete(`/api/v1/checkin/${checkinId}`)
+        .delete(`/api/v1/checkins/${checkinId}`)
         .set('Authorization', `Bearer ${userAToken}`);
 
       expect(deleteRes.status).to.equal(403);
@@ -192,7 +206,8 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         .get('/api/v1/users/me');
 
       expect(res.status).to.equal(401);
-      expect(res.body.message).to.include.string('token');
+      // 后端返回中文消息
+      expect(res.body.message).to.include.oneOf(['token', '令牌', '认证']);
     });
 
     it('无效的 token 应该返回 401', async () => {
@@ -443,14 +458,24 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         endDate: new Date(Date.now() + 100 * 24 * 60 * 60 * 1000)
       });
 
+      // 创建课节
+      const Section = require('../../src/models/Section');
+      const section = await Section.create({
+        periodId: period._id,
+        title: '大数据测试课节',
+        day: 1,
+        content: '测试'
+      });
+
       // 创建大量打卡
       const checkins = [];
       for (let i = 1; i <= 100; i++) {
         checkins.push({
           userId: user._id,
           periodId: period._id,
+          sectionId: section._id,
           day: i,
-          content: `第 ${i} 天`
+          checkinDate: new Date(Date.now() - (100 - i) * 60 * 1000) // 每个间隔1分钟
         });
       }
 

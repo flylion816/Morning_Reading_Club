@@ -15,7 +15,8 @@ let Insight;
 let Period;
 
 describe('Insight Integration - 小凡看见业务流程', () => {
-  beforeAll(async () => {
+  before(async function() {
+    this.timeout(60000);
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
 
@@ -29,12 +30,13 @@ describe('Insight Integration - 小凡看见业务流程', () => {
     Period = require('../../src/models/Period');
 
     app = require('../../src/server');
-  }, 60000);
+  });
 
-  afterAll(async () => {
+  after(async function() {
+    this.timeout(30000);
     await mongoose.disconnect();
     await mongoServer.stop();
-  }, 30000);
+  });
 
   beforeEach(async () => {
     await User.deleteMany({});

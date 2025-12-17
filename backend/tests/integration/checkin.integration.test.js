@@ -15,7 +15,8 @@ let Checkin;
 let Period;
 
 describe('Checkin Integration - 打卡业务流程', () => {
-  beforeAll(async () => {
+  before(async function() {
+    this.timeout(60000);
     // 启动内存 MongoDB
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
@@ -33,12 +34,13 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     // 创建 Express 应用
     app = require('../../src/server');
-  }, 60000);
+  });
 
-  afterAll(async () => {
+  after(async function() {
+    this.timeout(30000);
     await mongoose.disconnect();
     await mongoServer.stop();
-  }, 30000);
+  });
 
   beforeEach(async () => {
     // 清空数据库
@@ -475,14 +477,14 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
       sectionId = section._id;
 
-      // 创建打卡记录
+      // 创建打卡记录（每个打卡使用不同的时间戳，避免E11000重复键错误）
       for (let i = 1; i <= 10; i++) {
         await Checkin.create({
           userId,
           periodId,
           sectionId,
           day: i,
-          checkinDate: new Date(),
+          checkinDate: new Date(Date.now() - (10 - i) * 60 * 1000), // 每个打卡间隔1分钟
           note: `第 ${i} 天`,
           readingTime: Math.floor(Math.random() * 600) // 随机时长 0-10分钟
         });

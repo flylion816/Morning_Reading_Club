@@ -15,7 +15,8 @@ let Section;
 let Admin;
 
 describe('Period & Section Integration - 期次和课节管理', () => {
-  beforeAll(async () => {
+  before(async function() {
+    this.timeout(60000);
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
 
@@ -29,12 +30,13 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     Admin = require('../../src/models/Admin');
 
     app = require('../../src/server');
-  }, 60000);
+  });
 
-  afterAll(async () => {
+  after(async function() {
+    this.timeout(30000);
     await mongoose.disconnect();
     await mongoServer.stop();
-  }, 30000);
+  });
 
   beforeEach(async () => {
     await Period.deleteMany({});
