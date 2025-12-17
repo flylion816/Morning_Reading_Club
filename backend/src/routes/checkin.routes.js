@@ -7,7 +7,8 @@ const {
   getPeriodCheckins,
   getCheckinDetail,
   updateCheckin,
-  deleteCheckin
+  deleteCheckin,
+  getCheckins
 } = require('../controllers/checkin.controller');
 
 /**
@@ -16,6 +17,13 @@ const {
  * @access  Private
  */
 router.post('/', authMiddleware, createCheckin);
+
+/**
+ * @route   GET /api/v1/checkins
+ * @desc    获取打卡列表（支持按periodId过滤）
+ * @access  Private
+ */
+router.get('/', authMiddleware, getCheckins);
 
 /**
  * @route   GET /api/v1/checkins/user/:userId?

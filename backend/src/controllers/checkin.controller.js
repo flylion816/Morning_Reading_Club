@@ -1,6 +1,7 @@
 const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const Section = require('../models/Section');
+const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 
@@ -105,6 +106,37 @@ async function createCheckin(req, res, next) {
     if (error.code === 11000) {
       return res.status(400).json(errors.badRequest('今日已打卡'));
     }
+    next(error);
+  }
+}
+
+// 获取打卡列表（支持按periodId过滤）
+async function getCheckins(req, res, next) {
+  try {
+    const { periodId, page = 1, limit = 20 } = req.query;
+
+    const query = {};
+    if (periodId) query.periodId = periodId;
+
+    const total = await Checkin.countDocuments(query);
+    const checkins = await Checkin.find(query)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('sectionId', 'title day')
+      .sort({ createdAt: -1 })
+      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
+      .limit(parseInt(limit, 10))
+      .select('-__v');
+
+    // 返回带分页信息的响应
+    const response = success(checkins);
+    response.pagination = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit, 10))
+    };
+    res.json(response);
+  } catch (error) {
     next(error);
   }
 }
@@ -219,6 +251,12 @@ async function getPeriodCheckins(req, res, next) {
     const { periodId } = req.params;
     const { page = 1, limit = 20, day } = req.query;
 
+    // 验证期次存在
+    const period = await Period.findById(periodId);
+    if (!period) {
+      return res.json(success([])); // 返回空数组而不是404
+    }
+
     const query = {
       periodId,
       isPublic: true,
@@ -227,7 +265,7 @@ async function getPeriodCheckins(req, res, next) {
 
     // 按日期筛选
     if (day) {
-      query.day = parseInt(day);
+      query.day = parseInt(day, 10);
     }
 
     const total = await Checkin.countDocuments(query);
@@ -235,11 +273,20 @@ async function getPeriodCheckins(req, res, next) {
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
-      .skip((parseInt(page) - 1) * parseInt(limit))
-      .limit(parseInt(limit))
+      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
-    res.json(success(checkins));
+    // 返回带分页信息的响应
+    const response = success(checkins);
+    response.pagination = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit, 10)),
+      hasNext: parseInt(page, 10) * parseInt(limit, 10) < total
+    };
+    res.json(response);
   } catch (error) {
     next(error);
   }
@@ -567,6 +614,7 @@ async function getCheckinStats(req, res, next) {
 
 module.exports = {
   createCheckin,
+  getCheckins,
   getUserCheckins,
   getPeriodCheckins,
   getCheckinDetail,

@@ -19,18 +19,18 @@ async function getSectionsByPeriod(req, res, next) {
 
     // 支持日期范围查询
     if (startDay !== undefined && endDay !== undefined) {
-      query.day = { $gte: parseInt(startDay), $lte: parseInt(endDay) };
+      query.day = { $gte: parseInt(startDay, 10), $lte: parseInt(endDay, 10) };
     } else if (startDay !== undefined) {
-      query.day = { $gte: parseInt(startDay) };
+      query.day = { $gte: parseInt(startDay, 10) };
     } else if (endDay !== undefined) {
-      query.day = { $lte: parseInt(endDay) };
+      query.day = { $lte: parseInt(endDay, 10) };
     }
 
     const total = await Section.countDocuments(query);
     const sections = await Section.find(query)
       .sort({ day: 1, order: 1, sortOrder: 1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
+      .limit(parseInt(limit, 10))
       .select('-content -__v'); // 列表不返回详细内容
 
     res.json(success(sections));
@@ -56,17 +56,17 @@ async function getAllSectionsByPeriod(req, res, next) {
     const total = await Section.countDocuments(query);
     const sections = await Section.find(query)
       .sort({ day: 1, sortOrder: 1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
+      .limit(parseInt(limit, 10));
 
     res.json(
       success({
         list: sections,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           total,
-          pages: Math.ceil(total / limit)
+          pages: Math.ceil(total / parseInt(limit, 10))
         }
       })
     );

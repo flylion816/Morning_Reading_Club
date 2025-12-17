@@ -18,11 +18,11 @@ async function getPeriodList(req, res, next) {
     if (isPublished !== undefined) query.isPublished = isPublished === 'true';
 
     const total = await Period.countDocuments(query);
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const periods = await Period.find(query)
       .sort({ startDate: 1, createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
     // 转换数据格式以匹配前端期望
@@ -51,10 +51,10 @@ async function getPeriodList(req, res, next) {
     // 返回带分页信息的响应
     const response = success(transformedPeriods);
     response.pagination = {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
       total,
-      totalPages: Math.ceil(total / parseInt(limit))
+      totalPages: Math.ceil(total / parseInt(limit, 10))
     };
     res.json(response);
   } catch (error) {

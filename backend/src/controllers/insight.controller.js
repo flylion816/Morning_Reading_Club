@@ -173,18 +173,18 @@ async function getUserInsights(req, res, next) {
       .populate('userId', 'nickname avatar _id')
       .populate('targetUserId', 'nickname avatar _id')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
     res.json(
       success({
         list: insights,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           total,
-          pages: Math.ceil(total / limit)
+          pages: Math.ceil(total / parseInt(limit, 10))
         }
       })
     );
@@ -251,7 +251,7 @@ async function getInsights(req, res, next) {
     if (type) query.type = type;
 
     const total = await Insight.countDocuments(query);
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const insights = await Insight.find(query)
       .populate('userId', 'nickname avatar')
       .populate('targetUserId', 'nickname avatar')
@@ -259,16 +259,16 @@ async function getInsights(req, res, next) {
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
     // 返回带分页信息的响应
     const response = success(insights);
     response.pagination = {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
       total,
-      totalPages: Math.ceil(total / parseInt(limit))
+      totalPages: Math.ceil(total / parseInt(limit, 10))
     };
     res.json(response);
   } catch (error) {
@@ -367,10 +367,18 @@ async function getInsightsForPeriod(req, res, next) {
       .populate('targetUserId', 'nickname avatar _id')
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
+      .limit(parseInt(limit, 10));
 
-    res.json(success(insights));
+    // 返回带分页信息的响应
+    const response = success(insights);
+    response.pagination = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit, 10))
+    };
+    res.json(response);
   } catch (error) {
     next(error);
   }
@@ -817,7 +825,7 @@ async function getInsightRequestsAdmin(req, res, next) {
       .populate('periodId', 'name startDate endDate')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     res.json(
       success(
@@ -825,9 +833,9 @@ async function getInsightRequestsAdmin(req, res, next) {
           requests,
           pagination: {
             total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(total / limit)
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
+            totalPages: Math.ceil(total / parseInt(limit, 10))
           }
         },
         '获取成功'
@@ -1365,10 +1373,11 @@ async function createInsightFromExternal(req, res, next) {
   }
 }
 
-// 点赞小凡看见
+// 点赞小凡看见（支持like和unlike action）
 async function likeInsight(req, res, next) {
   try {
     const { insightId } = req.params;
+    const { action = 'like' } = req.body;
     const userId = req.user.userId;
 
     // 验证小凡看见存在
@@ -1377,18 +1386,35 @@ async function likeInsight(req, res, next) {
       return res.status(404).json(errors.notFound('小凡看见不存在'));
     }
 
-    // 检查是否已点赞
-    const alreadyLiked = insight.likes.some(like => like.userId.toString() === userId);
-    if (alreadyLiked) {
-      return res.status(400).json(errors.badRequest('已经点过赞了'));
+    if (action === 'like') {
+      // 检查是否已点赞
+      const alreadyLiked = insight.likes.some(like => like.userId.toString() === userId);
+      if (alreadyLiked) {
+        return res.status(400).json(errors.badRequest('已经点过赞了'));
+      }
+
+      // 添加点赞
+      insight.likes.push({ userId, createdAt: new Date() });
+      insight.likeCount = insight.likes.length;
+      await insight.save();
+
+      res.json(success(insight, '点赞成功'));
+    } else if (action === 'unlike') {
+      // 检查是否已点赞
+      const likeIndex = insight.likes.findIndex(like => like.userId.toString() === userId);
+      if (likeIndex === -1) {
+        return res.status(400).json(errors.badRequest('未点过赞'));
+      }
+
+      // 移除点赞
+      insight.likes.splice(likeIndex, 1);
+      insight.likeCount = insight.likes.length;
+      await insight.save();
+
+      res.json(success(insight, '取消点赞成功'));
+    } else {
+      return res.status(400).json(errors.badRequest('action必须是like或unlike'));
     }
-
-    // 添加点赞
-    insight.likes.push({ userId, createdAt: new Date() });
-    insight.likeCount = insight.likes.length;
-    await insight.save();
-
-    res.json(success(insight, '点赞成功'));
   } catch (error) {
     next(error);
   }
