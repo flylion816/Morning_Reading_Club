@@ -13,9 +13,7 @@ let mongoServer;
 let User;
 
 describe('Error Handling Integration - 错误处理和数据验证', () => {
-  before(async function () {
-    this.timeout(60000);
-
+  beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
 
@@ -26,13 +24,12 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
     User = require('../../src/models/User');
     app = require('../../src/server');
-  });
+  }, 60000);
 
-  after(async function () {
-    this.timeout(30000);
+  afterAll(async () => {
     await mongoose.disconnect();
     await mongoServer.stop();
-  });
+  }, 30000);
 
   beforeEach(async () => {
     await User.deleteMany({});

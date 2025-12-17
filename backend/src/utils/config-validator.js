@@ -50,6 +50,17 @@ function validateEnvValue(key, value, expectedType) {
  * 验证所有环境变量
  */
 function validateConfig() {
+  // 在测试模式下跳过验证，使用默认值
+  if (process.env.NODE_ENV === 'test') {
+    logger.debug('跳过环境变量验证 (测试模式)');
+    // 为测试模式设置必要的默认值
+    process.env.PORT = process.env.PORT || '3000';
+    process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost/test';
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-12345678';
+    process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key-87654321';
+    return true;
+  }
+
   // Keep console output for config validation as it's startup-critical
   logger.info('\n' + chalk.cyan.bold('═══════════════════════════════════════════'));
   logger.info(chalk.cyan.bold('   环境配置验证'));

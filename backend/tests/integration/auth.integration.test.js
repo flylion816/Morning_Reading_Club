@@ -13,9 +13,7 @@ let mongoServer;
 let User;
 
 describe('Auth Integration - 认证流程', () => {
-  before(async function () {
-    this.timeout(60000);
-
+  beforeAll(async () => {
     // 启动内存 MongoDB
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
@@ -31,15 +29,14 @@ describe('Auth Integration - 认证流程', () => {
 
     // 创建 Express 应用
     app = require('../../src/server');
-  });
+  }, 60000);
 
-  after(async function () {
-    this.timeout(30000);
+  afterAll(async () => {
     // 断开数据库连接
     await mongoose.disconnect();
     // 关闭内存 MongoDB
     await mongoServer.stop();
-  });
+  }, 30000);
 
   beforeEach(async () => {
     // 清空数据库

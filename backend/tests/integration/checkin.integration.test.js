@@ -15,9 +15,7 @@ let Checkin;
 let Period;
 
 describe('Checkin Integration - 打卡业务流程', () => {
-  before(async function () {
-    this.timeout(60000);
-
+  beforeAll(async () => {
     // 启动内存 MongoDB
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
@@ -35,13 +33,12 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     // 创建 Express 应用
     app = require('../../src/server');
-  });
+  }, 60000);
 
-  after(async function () {
-    this.timeout(30000);
+  afterAll(async () => {
     await mongoose.disconnect();
     await mongoServer.stop();
-  });
+  }, 30000);
 
   beforeEach(async () => {
     // 清空数据库
@@ -219,7 +216,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
           periodId,
           sectionId,
           day: i,
-          checkinDate: new Date(),
+          checkinDate: new Date(Date.now() - (5-i) * 60 * 1000),
           note: `第 ${i} 天的内容`
         });
       }
@@ -227,7 +224,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够查询当前期次的所有打卡', async () => {
       const res = await request(app)
-        .get(`/api/v1/checkins?periodId=${periodId}`)
+        .get(`/api/v1/checkins/period/${periodId}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -237,7 +234,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该支持分页查询', async () => {
       const res = await request(app)
-        .get(`/api/v1/checkins?periodId=${periodId}&page=1&limit=2`)
+        .get(`/api/v1/checkins/period/${periodId}?page=1&limit=2`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
@@ -248,7 +245,7 @@ describe('Checkin Integration - 打卡业务流程', () => {
 
     it('应该能够查询特定日期的打卡', async () => {
       const res = await request(app)
-        .get(`/api/v1/checkins?periodId=${periodId}&day=3`)
+        .get(`/api/v1/checkins/period/${periodId}?day=3`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).to.equal(200);
