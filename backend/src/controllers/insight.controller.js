@@ -251,17 +251,26 @@ async function getInsights(req, res, next) {
     if (type) query.type = type;
 
     const total = await Insight.countDocuments(query);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
     const insights = await Insight.find(query)
       .populate('userId', 'nickname avatar')
       .populate('targetUserId', 'nickname avatar')
       .populate('periodId', 'name title')
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
+      .skip(skip)
       .limit(parseInt(limit))
       .select('-__v');
 
-    res.json(success(insights));
+    // 返回带分页信息的响应
+    const response = success(insights);
+    response.pagination = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit))
+    };
+    res.json(response);
   } catch (error) {
     next(error);
   }
@@ -1356,6 +1365,64 @@ async function createInsightFromExternal(req, res, next) {
   }
 }
 
+// 点赞小凡看见
+async function likeInsight(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const userId = req.user.userId;
+
+    // 验证小凡看见存在
+    const insight = await Insight.findById(insightId);
+    if (!insight) {
+      return res.status(404).json(errors.notFound('小凡看见不存在'));
+    }
+
+    // 检查是否已点赞
+    const alreadyLiked = insight.likes.some(like => like.userId.toString() === userId);
+    if (alreadyLiked) {
+      return res.status(400).json(errors.badRequest('已经点过赞了'));
+    }
+
+    // 添加点赞
+    insight.likes.push({ userId, createdAt: new Date() });
+    insight.likeCount = insight.likes.length;
+    await insight.save();
+
+    res.json(success(insight, '点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 取消点赞小凡看见
+async function unlikeInsight(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const userId = req.user.userId;
+
+    // 验证小凡看见存在
+    const insight = await Insight.findById(insightId);
+    if (!insight) {
+      return res.status(404).json(errors.notFound('小凡看见不存在'));
+    }
+
+    // 检查是否已点赞
+    const likeIndex = insight.likes.findIndex(like => like.userId.toString() === userId);
+    if (likeIndex === -1) {
+      return res.status(400).json(errors.badRequest('未点过赞'));
+    }
+
+    // 移除点赞
+    insight.likes.splice(likeIndex, 1);
+    insight.likeCount = insight.likes.length;
+    await insight.save();
+
+    res.json(success(insight, '取消点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -1367,6 +1434,8 @@ module.exports = {
   getInsightsForPeriod,
   updateInsight,
   deleteInsightManual,
+  likeInsight,
+  unlikeInsight,
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,

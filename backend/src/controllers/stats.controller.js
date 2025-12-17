@@ -371,3 +371,45 @@ exports.getCheckinStats = async (req, res) => {
     res.status(500).json(errors.internalServerError('获取打卡统计失败'));
   }
 };
+
+// 获取用户打卡统计信息
+exports.getCheckinStats = async (req, res) => {
+  try {
+    const { periodId } = req.query;
+    const userId = req.user.userId;
+
+    // 构建查询条件
+    const query = { userId };
+    if (periodId) query.periodId = periodId;
+
+    // 获取总打卡数
+    const totalCheckins = await Checkin.countDocuments(query);
+
+    // 获取打卡记录
+    const checkins = await Checkin.find(query).select('readingTime checkinDate');
+
+    // 计算统计信息
+    const totalDuration = checkins.reduce((sum, c) => sum + (c.readingTime || 0), 0);
+    const averageDuration = totalCheckins > 0 ? Math.round(totalDuration / totalCheckins) : 0;
+
+    // 计算连续打卡天数
+    const uniqueDays = new Set();
+    checkins.forEach(c => {
+      const dateKey = new Date(c.checkinDate).toDateString();
+      uniqueDays.add(dateKey);
+    });
+    const consistentDays = uniqueDays.size;
+
+    res.json(
+      success({
+        totalCheckins,
+        totalDuration,
+        averageDuration,
+        consistentDays
+      })
+    );
+  } catch (error) {
+    console.error('获取打卡统计失败:', error);
+    res.status(500).json(errors.internalServerError('获取打卡统计失败'));
+  }
+};

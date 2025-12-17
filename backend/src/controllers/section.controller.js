@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 async function getSectionsByPeriod(req, res, next) {
   try {
     const { periodId } = req.params;
-    const { page = 1, limit = 50 } = req.query;
+    const { page = 1, limit = 50, startDay, endDay } = req.query;
 
     // 验证期次存在
     const period = await Period.findById(periodId);
@@ -17,24 +17,23 @@ async function getSectionsByPeriod(req, res, next) {
 
     const query = { periodId, isPublished: true };
 
+    // 支持日期范围查询
+    if (startDay !== undefined && endDay !== undefined) {
+      query.day = { $gte: parseInt(startDay), $lte: parseInt(endDay) };
+    } else if (startDay !== undefined) {
+      query.day = { $gte: parseInt(startDay) };
+    } else if (endDay !== undefined) {
+      query.day = { $lte: parseInt(endDay) };
+    }
+
     const total = await Section.countDocuments(query);
     const sections = await Section.find(query)
-      .sort({ day: 1, sortOrder: 1 })
+      .sort({ day: 1, order: 1, sortOrder: 1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .select('-content -__v'); // 列表不返回详细内容
 
-    res.json(
-      success({
-        list: sections,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      })
-    );
+    res.json(success(sections));
   } catch (error) {
     next(error);
   }
@@ -87,10 +86,7 @@ async function getSectionDetail(req, res, next) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
 
-    if (!section.isPublished) {
-      return res.status(403).json(errors.forbidden('课程未发布'));
-    }
-
+    // 返回课程详情（无论是否发布，因为可能是管理员查询）
     res.json(success(section));
   } catch (error) {
     next(error);
@@ -143,8 +139,8 @@ async function createSection(req, res, next) {
       audioUrl,
       videoCover,
       duration,
-      sortOrder,
-      isPublished: false
+      sortOrder
+      // isPublished defaults to true from schema
     });
 
     res.status(201).json(success(section, '课程创建成功'));

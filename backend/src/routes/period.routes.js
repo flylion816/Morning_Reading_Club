@@ -57,9 +57,9 @@ router.delete('/:periodId', authMiddleware, adminMiddleware, deletePeriod);
 /**
  * @route   GET /api/v1/periods/:periodId/sections
  * @desc    获取某期次的所有课节（用户 - 仅已发布）
- * @access  Private
+ * @access  Public
  */
-router.get('/:periodId/sections', authMiddleware, getSectionsByPeriod);
+router.get('/:periodId/sections', getSectionsByPeriod);
 
 /**
  * @route   GET /api/v1/periods/:periodId/sections/admin/all

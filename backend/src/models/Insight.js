@@ -96,6 +96,27 @@ const InsightSchema = new mongoose.Schema(
     isPublished: {
       type: Boolean,
       default: true
+    },
+
+    // 点赞相关
+    likes: {
+      type: [{
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }],
+      default: []
+    },
+
+    likeCount: {
+      type: Number,
+      default: 0,
+      min: 0
     }
   },
   {

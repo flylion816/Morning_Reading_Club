@@ -14,8 +14,9 @@ const PeriodSchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      required: true,
-      maxlength: 100
+      required: false,
+      maxlength: 100,
+      default: null
     },
     description: {
       type: String,

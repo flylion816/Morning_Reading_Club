@@ -13,6 +13,8 @@ const {
   getInsightsForPeriod,
   updateInsight,
   deleteInsightManual,
+  likeInsight,
+  unlikeInsight,
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,
@@ -125,6 +127,20 @@ router.put('/:insightId', authMiddleware, updateInsight);
  * @access  Private
  */
 router.delete('/:insightId', authMiddleware, deleteInsight);
+
+/**
+ * @route   POST /api/v1/insights/:insightId/like
+ * @desc    点赞小凡看见
+ * @access  Private
+ */
+router.post('/:insightId/like', authMiddleware, likeInsight);
+
+/**
+ * @route   POST /api/v1/insights/:insightId/unlike
+ * @desc    取消点赞小凡看见
+ * @access  Private
+ */
+router.post('/:insightId/unlike', authMiddleware, unlikeInsight);
 
 // ==================== 小凡看见(Insight) 相关路由 ====================
 

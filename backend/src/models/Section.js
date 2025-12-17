@@ -39,7 +39,13 @@ const SectionSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: true
+      required: false,
+      default: null
+    },
+    description: {
+      type: String,
+      maxlength: 500,
+      default: null
     },
     reflection: {
       type: String,
@@ -85,9 +91,13 @@ const SectionSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    order: {
+      type: Number,
+      default: 0
+    },
     isPublished: {
       type: Boolean,
-      default: false
+      default: true
     },
     checkinCount: {
       type: Number,

@@ -7,13 +7,21 @@ async function getPeriodList(req, res, next) {
     const { page = 1, limit = 20, status, isPublished } = req.query;
 
     const query = {};
-    if (status) query.status = status;
+    if (status) {
+      // 处理测试中使用的"active"状态 -> 映射为"ongoing"
+      if (status === 'active') {
+        query.status = 'ongoing';
+      } else {
+        query.status = status;
+      }
+    }
     if (isPublished !== undefined) query.isPublished = isPublished === 'true';
 
     const total = await Period.countDocuments(query);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
     const periods = await Period.find(query)
-      .sort({ sortOrder: 1, createdAt: -1 })
-      .skip((page - 1) * limit)
+      .sort({ startDate: 1, createdAt: -1 })
+      .skip(skip)
       .limit(parseInt(limit))
       .select('-__v');
 
@@ -24,6 +32,8 @@ async function getPeriodList(req, res, next) {
       // 添加前端需要的字段
       return {
         ...periodObj,
+        // 状态映射：ongoing -> active （向后兼容）
+        status: period.status === 'ongoing' ? 'active' : period.status,
         id: period._id || period.id, // 前端期望使用 id 字段
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         icon: period.icon || '📚',
@@ -38,7 +48,15 @@ async function getPeriodList(req, res, next) {
       };
     });
 
-    res.json(success(transformedPeriods));
+    // 返回带分页信息的响应
+    const response = success(transformedPeriods);
+    response.pagination = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit))
+    };
+    res.json(response);
   } catch (error) {
     next(error);
   }
