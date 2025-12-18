@@ -80,26 +80,6 @@
     />
     <view class="char-count">{{diaryContent.length}}/10000</view>
 
-    <!-- 工具栏 -->
-    <view class="toolbar">
-      <view class="tool-item" bindtap="handleVoice">
-        <view class="tool-icon">🎤</view>
-        <text class="tool-name">语音</text>
-      </view>
-      <view class="tool-item" bindtap="handleVideo">
-        <view class="tool-icon">📹</view>
-        <text class="tool-name">视频</text>
-      </view>
-      <view class="tool-item" bindtap="handleImage">
-        <view class="tool-icon">🖼️</view>
-        <text class="tool-name">图片</text>
-      </view>
-      <view class="tool-item" bindtap="handleFile">
-        <view class="tool-icon">📎</view>
-        <text class="tool-name">微信文件</text>
-      </view>
-    </view>
-
     <!-- 可见范围 -->
     <view class="visibility-section">
       <text class="visibility-label">打卡可见范围</text>

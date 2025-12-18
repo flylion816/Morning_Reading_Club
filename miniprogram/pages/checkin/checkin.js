@@ -22,12 +22,7 @@ Page({
     diaryContent: '',
 
     // 可见范围
-    visibility: 'all', // 'all' 或 'admin'
-
-    // 附件
-    images: [],
-    videos: [],
-    voices: []
+    visibility: 'all' // 'all' 或 'admin'
   },
 
   async onLoad(options) {
@@ -140,57 +135,6 @@ Page({
     });
   },
 
-  // 添加语音
-  handleVoice() {
-    wx.showToast({
-      title: '语音功能待开发',
-      icon: 'none'
-    });
-  },
-
-  // 添加视频
-  handleVideo() {
-    wx.chooseVideo({
-      sourceType: ['album', 'camera'],
-      maxDuration: 60,
-      camera: 'back',
-      success: res => {
-        console.log('选择视频:', res);
-        const videos = this.data.videos;
-        if (videos.length >= 9) {
-          wx.showToast({
-            title: '最多添加9个视频',
-            icon: 'none'
-          });
-          return;
-        }
-        videos.push(res.tempFilePath);
-        this.setData({ videos });
-      }
-    });
-  },
-
-  // 添加图片
-  handleImage() {
-    wx.chooseImage({
-      count: 9 - this.data.images.length,
-      sizeType: ['original', 'compressed'],
-      sourceType: ['album', 'camera'],
-      success: res => {
-        const images = this.data.images.concat(res.tempFilePaths);
-        this.setData({ images });
-      }
-    });
-  },
-
-  // 添加微信文件
-  handleFile() {
-    wx.showToast({
-      title: '文件功能待开发',
-      icon: 'none'
-    });
-  },
-
   // 取消
   handleCancel() {
     wx.navigateBack();
@@ -262,7 +206,6 @@ Page({
         readingTime: Math.floor(Math.random() * 30) + 10, // 模拟阅读时间 10-40 分钟
         completionRate: 88, // 模拟完成度
         note: this.data.diaryContent,
-        images: this.data.images,
         isPublic: this.data.visibility === 'all',
         mood: 'happy'
       };
