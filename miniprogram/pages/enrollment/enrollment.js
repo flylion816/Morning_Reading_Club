@@ -106,14 +106,21 @@ Page({
       const res = await enrollmentService.getPeriods();
       // request.js 返回的是 data.data 对象 {list: [...], pagination: {...}}
       // 所以需要获取 list 属性
-      const periodList = res.list || [];
+      let periodList = res.list || [];
+
+      // 过滤掉已完成的期次，只显示可报名的期次（未完成和进行中的）
+      periodList = periodList.filter(p => p.status !== 'completed');
 
       if (periodList.length === 0) {
+        // 没有可报名的期次，返回首页
         wx.showToast({
           title: '暂无可报名期次',
           icon: 'none'
         });
         this.setData({ loading: false });
+        setTimeout(() => {
+          wx.navigateBack();
+        }, 1500);
         return;
       }
 
