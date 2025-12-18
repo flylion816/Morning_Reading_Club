@@ -360,8 +360,8 @@ Page({
         {
           userInfo,
           userStats: stats,
-          currentPeriod,
-          todaySection,
+          currentPeriod: currentPeriod || null, // 确保不是undefined
+          todaySection: todaySection || null, // 确保不是undefined
           recentInsights,
           loading: false
         },
