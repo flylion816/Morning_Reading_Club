@@ -17,7 +17,6 @@
       catchtap="handlePeriodClick"
       data-period-id="{{item._id}}"
       data-period-name="{{item.name}}"
-      data-period-status="{{item.status}}"
     >
       <course-card
         course="{{item}}"

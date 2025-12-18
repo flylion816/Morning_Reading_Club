@@ -348,6 +348,50 @@ function getInsightTypeConfig(type) {
   return typeConfigs[type] || typeConfigs['daily'];
 }
 
+/**
+ * 计算期次状态(基于开始和结束日期)
+ * 而不是依赖数据库的status字段
+ *
+ * @param {string|Date} startDate 开始日期 (ISO字符串或Date对象)
+ * @param {string|Date} endDate 结束日期 (ISO字符串或Date对象)
+ * @returns {string} 期次状态: 'not_started'|'ongoing'|'completed'
+ */
+function calculatePeriodStatus(startDate, endDate) {
+  try {
+    // 获取今天的日期(只比较日期部分,忽略时间)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 处理开始日期
+    let start = new Date(startDate);
+    if (isNaN(start.getTime())) {
+      logger.warn(`无效的开始日期: ${startDate}`);
+      return 'ongoing'; // 默认返回进行中
+    }
+    start.setHours(0, 0, 0, 0);
+
+    // 处理结束日期
+    let end = new Date(endDate);
+    if (isNaN(end.getTime())) {
+      logger.warn(`无效的结束日期: ${endDate}`);
+      return 'ongoing'; // 默认返回进行中
+    }
+    end.setHours(0, 0, 0, 0);
+
+    // 判断状态
+    if (today < start) {
+      return 'not_started'; // 未开始
+    } else if (today > end) {
+      return 'completed'; // 已完成
+    } else {
+      return 'ongoing'; // 进行中
+    }
+  } catch (error) {
+    logger.error('计算期次状态失败:', error);
+    return 'ongoing'; // 默认返回进行中
+  }
+}
+
 module.exports = {
   formatDate,
   formatTimeAgo,
@@ -361,5 +405,6 @@ module.exports = {
   formatDateRange,
   parseQuery,
   getAvatarColorByUserId,
-  getInsightTypeConfig
+  getInsightTypeConfig,
+  calculatePeriodStatus
 };

@@ -1,5 +1,6 @@
 // 报名页面
 const enrollmentService = require('../../services/enrollment.service');
+const { calculatePeriodStatus } = require('../../utils/formatters');
 
 Page({
   data: {
@@ -108,8 +109,11 @@ Page({
       // 所以需要获取 list 属性
       let periodList = res.list || [];
 
-      // 过滤掉已完成的期次，只显示可报名的期次（未完成和进行中的）
-      periodList = periodList.filter(p => p.status !== 'completed');
+      // 过滤掉已完成的期次，只显示可报名的期次（基于日期计算）
+      periodList = periodList.filter(p => {
+        const status = calculatePeriodStatus(p.startDate, p.endDate);
+        return status !== 'completed';
+      });
 
       if (periodList.length === 0) {
         // 没有可报名的期次，返回首页

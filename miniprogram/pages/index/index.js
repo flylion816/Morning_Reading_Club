@@ -2,7 +2,7 @@
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
 const userService = require('../../services/user.service');
-const { formatDate } = require('../../utils/formatters');
+const { formatDate, calculatePeriodStatus } = require('../../utils/formatters');
 
 Page({
   data: {
@@ -102,6 +102,12 @@ Page({
       const res = await courseService.getPeriods();
       let periods = res.list || res.items || res || [];
 
+      // 为每个期次计算状态（基于日期而不是数据库status字段）
+      periods = periods.map(period => ({
+        ...period,
+        calculatedStatus: calculatePeriodStatus(period.startDate, period.endDate)
+      }));
+
       // 按结束时间倒序排列
       periods.sort((a, b) => {
         const dateA = new Date(a.endDate || 0);
@@ -186,12 +192,11 @@ Page({
     console.log('====== handlePeriodClick 被调用 ======');
     console.log('e.currentTarget.dataset:', e.currentTarget.dataset);
 
-    const { periodId, periodName, periodStatus } = e.currentTarget.dataset;
+    const { periodId, periodName } = e.currentTarget.dataset;
 
     console.log('提取的数据：');
     console.log('  periodId:', periodId, typeof periodId);
     console.log('  periodName:', periodName, typeof periodName);
-    console.log('  periodStatus:', periodStatus, typeof periodStatus);
 
     if (!periodId) {
       console.error('periodId 不存在');
@@ -215,15 +220,25 @@ Page({
       return;
     }
 
+    // 获取该期次的信息
+    const period = this.data.periods.find(p => p._id === periodId);
+    if (!period) {
+      console.error('找不到期次信息');
+      return;
+    }
+
     // 检查是否已报名
     const isEnrolled = this.data.periodEnrollmentStatus[periodId];
     console.log('isEnrolled:', isEnrolled);
 
-    // 如果已完成且未报名，显示提示
-    console.log('检查条件：periodStatus === "completed"?', periodStatus === 'completed');
+    // 获取计算后的期次状态（基于日期）
+    const calculatedStatus = period.calculatedStatus;
+    console.log('calculatedStatus:', calculatedStatus);
+    console.log('检查条件：calculatedStatus === "completed"?', calculatedStatus === 'completed');
     console.log('检查条件：!isEnrolled?', !isEnrolled);
 
-    if (periodStatus === 'completed' && !isEnrolled) {
+    // 如果已完成且未报名，显示提示
+    if (calculatedStatus === 'completed' && !isEnrolled) {
       console.log('✅ 触发：已完成且未报名，显示提示');
       wx.showToast({
         title: '该期晨读营已结束！',
