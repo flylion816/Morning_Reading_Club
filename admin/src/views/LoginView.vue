@@ -36,8 +36,8 @@
           ref="formRef"
           :model="form"
           :rules="rules"
-          @submit.prevent="handleLogin"
           class="login-form"
+          @submit.prevent="handleLogin"
         >
           <el-form-item prop="email">
             <el-input
@@ -67,8 +67,8 @@
               type="primary"
               class="login-btn"
               :loading="authStore.loading"
-              @click="handleLogin"
               size="large"
+              @click="handleLogin"
             >
               {{ authStore.loading ? '登录中...' : '登录' }}
             </el-button>
@@ -133,7 +133,9 @@ const handleLogin = async () => {
 
     if (success) {
       ElMessage.success('登录成功');
-      router.push('/');
+      // 使用router.push跳转到dashboard，由于vite.config设置了base: '/admin/'
+      // 路由器会自动添加前缀，所以使用'/'会跳转到'/admin/'
+      await router.push({ name: 'dashboard' });
     } else {
       // 错误提示已由 el-alert 显示
     }

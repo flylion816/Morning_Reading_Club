@@ -101,17 +101,17 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     // 重定向到登录页，但不能是已经在登录页的情况
     logger.warn('[Router Guard] ⚠️ 需要认证但未认证，重定向到登录页');
-    if (to.path !== '/login') {
-      logger.debug('[Router Guard] 执行: next("/login")');
-      next('/login');
+    if (to.name !== 'login') {
+      logger.debug('[Router Guard] 执行: next({ name: "login" })');
+      next({ name: 'login' });
     } else {
       next();
     }
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
+  } else if (to.name === 'login' && authStore.isAuthenticated) {
     // 已登录时访问登录页，重定向到首页
     logger.info('[Router Guard] ✓ 已认证，重定向到首页');
-    logger.debug('[Router Guard] 执行: next("/")');
-    next('/');
+    logger.debug('[Router Guard] 执行: next({ name: "dashboard" })');
+    next({ name: 'dashboard' });
   } else {
     logger.debug('[Router Guard] ✓ 通过路由守卫检查，允许导航');
     next();
