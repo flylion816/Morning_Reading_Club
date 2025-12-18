@@ -36,12 +36,12 @@ if [ -z "$MONGODB_URI" ]; then
     MONGO_URI=$(grep "^MONGODB_URI=" /var/www/Morning_Reading_Club/backend/.env | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   else
     echo -e "${YELLOW}[配置] 使用默认本地连接${NC}"
-    MONGO_URI="mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin"
+    MONGO_URI="mongodb://admin:admin123@localhost:27017/morning_reading_db?authSource=admin"
   fi
 else
   MONGO_URI="$MONGODB_URI"
 fi
-DB_NAME="morning_reading"
+DB_NAME="morning_reading_db"
 
 # 颜色定义
 BLUE='\033[0;34m'

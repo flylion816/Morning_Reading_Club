@@ -23,7 +23,7 @@ const envConfig = {
   dev: {
     // 后端配置
     backend: {
-      mongodbUri: 'mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin',
+      mongodbUri: 'mongodb://admin:admin123@localhost:27017/morning_reading_db?authSource=admin',
       nodeEnv: 'development',
       port: 3000,
     },
@@ -43,7 +43,7 @@ const envConfig = {
   prod: {
     // 后端配置
     backend: {
-      mongodbUri: 'mongodb://admin:admin123@db.example.com:27017/morning_reading_prod?authSource=admin',
+      mongodbUri: 'mongodb://admin:p62CWhV0Kd1Unq@127.0.0.1:27017/morning_reading?authSource=admin',
       nodeEnv: 'production',
       port: 3000,
     },
