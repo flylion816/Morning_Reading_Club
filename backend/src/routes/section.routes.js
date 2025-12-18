@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const {
@@ -13,9 +14,9 @@ const {
 /**
  * @route   GET /api/v1/sections/today/task
  * @desc    获取今日任务（根据当前日期动态计算）
- * @access  Public
+ * @access  Protected
  */
-router.get('/today/task', getTodayTask);
+router.get('/today/task', authMiddleware, getTodayTask);
 
 /**
  * @route   GET /api/v1/sections/period/:periodId
