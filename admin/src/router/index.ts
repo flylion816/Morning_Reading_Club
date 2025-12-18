@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, createHashHistory } from 'vue-router';
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import logger from '../utils/logger';
@@ -80,7 +80,7 @@ const routes: RouteRecordRaw[] = [
 
 const router = createRouter({
   // 使用 hash mode 避免子路径(base: '/admin/')导致的路由问题
-  history: createHashHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes
 });
 
