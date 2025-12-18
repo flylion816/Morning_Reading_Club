@@ -7,54 +7,49 @@
 
       <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
         <!-- 数据看板区块 -->
-        <div class="menu-group-title">数据看板</div>
-        <el-menu-item index="/">
-          <span>📊 仪表板</span>
-        </el-menu-item>
-
-        <el-menu-item index="/analytics">
-          <span>📈 数据分析</span>
-        </el-menu-item>
+        <el-menu-item-group title="数据看板">
+          <el-menu-item index="/">
+            <span>📊 仪表板</span>
+          </el-menu-item>
+          <el-menu-item index="/analytics">
+            <span>📈 数据分析</span>
+          </el-menu-item>
+        </el-menu-item-group>
 
         <!-- 业务管理区块 -->
-        <div class="menu-group-title">业务管理</div>
-        <el-menu-item index="/enrollments">
-          <span>📝 报名管理</span>
-        </el-menu-item>
-
-        <el-menu-item index="/users">
-          <span>👥 用户管理</span>
-        </el-menu-item>
-
-        <el-menu-item index="/payments">
-          <span>💳 支付记录</span>
-        </el-menu-item>
-
-        <el-menu-item index="/periods">
-          <span>📅 期次管理</span>
-        </el-menu-item>
-
-        <el-menu-item index="/content">
-          <span>✍️ 内容管理</span>
-        </el-menu-item>
+        <el-menu-item-group title="业务管理">
+          <el-menu-item index="/enrollments">
+            <span>📝 报名管理</span>
+          </el-menu-item>
+          <el-menu-item index="/users">
+            <span>👥 用户管理</span>
+          </el-menu-item>
+          <el-menu-item index="/payments">
+            <span>💳 支付记录</span>
+          </el-menu-item>
+          <el-menu-item index="/periods">
+            <span>📅 期次管理</span>
+          </el-menu-item>
+          <el-menu-item index="/content">
+            <span>✍️ 内容管理</span>
+          </el-menu-item>
+        </el-menu-item-group>
 
         <!-- 内容管理区块 -->
-        <div class="menu-group-title">内容管理</div>
-        <el-menu-item index="/checkins">
-          <span>📍 每日打卡</span>
-        </el-menu-item>
-
-        <el-menu-item index="/insights">
-          <span>👀 小凡看见</span>
-        </el-menu-item>
-
-        <el-menu-item index="/insight-requests">
-          <span>📋 查看申请</span>
-        </el-menu-item>
-
-        <el-menu-item index="/audit-logs">
-          <span>🔍 审计日志</span>
-        </el-menu-item>
+        <el-menu-item-group title="内容管理">
+          <el-menu-item index="/checkins">
+            <span>📍 每日打卡</span>
+          </el-menu-item>
+          <el-menu-item index="/insights">
+            <span>👀 小凡看见</span>
+          </el-menu-item>
+          <el-menu-item index="/insight-requests">
+            <span>📋 查看申请</span>
+          </el-menu-item>
+          <el-menu-item index="/audit-logs">
+            <span>🔍 审计日志</span>
+          </el-menu-item>
+        </el-menu-item-group>
       </el-menu>
 
       <div class="sidebar-footer">
@@ -194,20 +189,15 @@ const handleLogout = () => {
   border-right: 4px solid #667eea;
 }
 
-.menu-group-title {
-  padding: 12px 16px 8px;
+/* Customize Element Plus menu item group title styling */
+.sidebar-menu :deep(.el-menu-item-group__title) {
+  color: rgba(255, 255, 255, 0.5) !important;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.menu-group-title:first-of-type {
-  margin-top: 0;
-  border-top: none;
+  padding: 12px 16px 8px !important;
+  background-color: transparent !important;
 }
 
 .sidebar-footer {
