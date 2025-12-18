@@ -2,22 +2,32 @@
 
 ## 概述
 
-项目使用根目录下的 `.env.config.js` 文件作为统一环境配置源，同时控制：
+项目使用根目录下的 `.env.config.js` 文件作为环境配置的真实信息源，同时控制：
 
 1. **后端**：Node.js 服务器连接的数据库和运行环境
 2. **小程序**：微信小程序调用的 API 端点
 3. **管理后台**：Vue 管理后台连接的服务
 
-无需分别修改 `backend/.env`、`miniprogram/config/env.js` 和 `admin/services/config.js`。
-
 ## 快速开始
 
 ### 修改环境配置
+
+由于微信小程序运行在沙箱环境，无法直接加载 Node.js 模块，因此需要同时修改两个配置文件：
+
+#### ① 后端配置（`.env.config.js`）
 
 打开根目录的 `.env.config.js` 文件，修改第 **17** 行：
 
 ```javascript
 const currentEnv = 'dev'; // 改为 'dev' 或 'prod'
+```
+
+#### ② 小程序配置（`miniprogram/config/env.js`）
+
+打开 `miniprogram/config/env.js` 文件，修改第 **15** 行为**相同的值**：
+
+```javascript
+const currentEnv = 'dev'; // 改为 'dev' 或 'prod'，必须与 .env.config.js 一致
 ```
 
 ### 可用的环境值
@@ -29,20 +39,20 @@ const currentEnv = 'dev'; // 改为 'dev' 或 'prod'
 
 ### 重启服务
 
-修改 `.env.config.js` 后，需要重启所有服务才能生效：
+修改配置后，需要重启所有服务才能生效：
 
 ```bash
 # 停止现有服务
 pkill -f "npm run dev"
 pkill -f "npm start"
 
-# 重启后端
+# 重启后端（自动从 .env.config.js 加载）
 cd backend && npm run dev
 
 # 重启小程序（在微信开发工具中）
 # 按 Ctrl+Shift+Q 重启
 
-# 重启管理后台
+# 重启管理后台（如需要）
 cd admin && npm run dev
 ```
 
@@ -143,41 +153,53 @@ prod: {
 
 ### 修改配置时的流程
 
-1. **修改统一配置**
+1. **修改后端配置** (`.env.config.js`)
 
    ```bash
-   # 编辑根目录的 .env.config.js
+   # 编辑根目录的 .env.config.js，修改第17行
    vim .env.config.js
-   # 修改 currentEnv 的值
    ```
 
-2. **后端自动加载新配置**
+2. **修改小程序配置** (同步)
+
+   由于小程序运行在 WeChat 沙箱中，无法直接加载 Node.js 模块，需要同步修改：
+
+   ```bash
+   # 编辑小程序配置，修改第15行为相同的值
+   vim miniprogram/config/env.js
+   ```
+
+3. **后端自动加载新配置**
 
    后端的 `backend/src/server.js` 会在启动时从 `.env.config.js` 加载配置：
 
    ```javascript
-   const envConfig = require('../../../.env.config');
-   process.env.NODE_ENV = envConfig.config.backend.nodeEnv;
-   process.env.MONGODB_URI = envConfig.config.backend.mongodbUri;
+   // backend/src/server.js
+   const envConfig = require(path.resolve(__dirname, '../../.env.config.js'));
+   process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
+   process.env.MONGODB_URI = process.env.MONGODB_URI || envConfig.config.backend.mongodbUri;
    ```
 
-3. **小程序自动加载新配置**
+4. **小程序手动加载新配置**
 
-   小程序的 `miniprogram/config/env.js` 会在加载时从 `.env.config.js` 读取配置：
+   小程序的 `miniprogram/config/env.js` 使用本地定义的 `currentEnv` 值：
 
    ```javascript
-   const rootConfig = require('../../.env.config');
-   const minimumProgramConfig = rootConfig.config.miniprogram;
+   // miniprogram/config/env.js
+   const currentEnv = 'dev'; // 需要手动同步与 .env.config.js 一致
+   const envConfig = { dev: {...}, prod: {...}, ... };
+   module.exports = { ...envConfig[currentEnv] };
    ```
 
-4. **重启服务生效**
+5. **重启服务生效**
 
    ```bash
    # 停止并重启后端
    pkill -f "npm run dev"
    cd backend && npm run dev
 
-   # 重启小程序开发工具或编辑器
+   # 重启小程序开发工具
+   # 按 Ctrl+Shift+Q 重启
    ```
 
 ## 添加新的环境
@@ -288,10 +310,14 @@ prod: {
 
 `.env.config.js` 的优势：
 
-- ✅ 单一配置源
+- ✅ 单一配置源（.env.config.js）
+- ✅ 后端自动加载配置
+- ✅ 小程序配置结构一致（需手动同步 currentEnv 值）
 - ✅ 支持复杂的配置结构
-- ✅ 后端和小程序都能使用
 - ✅ 易于版本控制（不包含敏感信息）
+- ✅ 易于扩展新环境
+
+**注意**：由于小程序运行在 WeChat 沙箱中，无法直接加载 Node.js 模块，因此小程序的 `currentEnv` 需要与后端手动保持同步。这是技术限制，而非设计缺陷。
 
 ### 加载顺序
 
