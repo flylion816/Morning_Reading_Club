@@ -16,21 +16,28 @@ async function wechatLogin(req, res, next) {
     let user;
     let isNewUser = false;
 
-    // 开发环境：统一使用固定ID的测试用户进行测试，避免每次都创建新用户
+    // 开发环境：使用固定的测试用户进行测试
     if (process.env.NODE_ENV === 'development') {
-      // 使用固定的测试用户ID（用户昵称可能会变，但ID不变）
-      // 使用"狮子"用户进行开发测试
-      const testUserId = '692fe16a962d558224f4133f';
-      user = await User.findById(testUserId);
+      // 开发环境中使用固定的测试openid，确保每次登录使用同一用户
+      const testOpenid = 'dev_test_user_001';
+      user = await User.findOne({ openid: testOpenid });
 
       if (!user) {
-        logger.error('Development environment error: test user not found', null, { testUserId });
-        return res.status(500).json(errors.serverError('测试用户未初始化'));
+        // 如果测试用户不存在，创建一个
+        logger.info('Creating test user for development environment');
+        user = await User.create({
+          openid: testOpenid,
+          nickname: '开发测试用户',
+          avatar: '🦁',
+          role: 'user',
+          status: 'active'
+        });
       }
 
       logger.info('Development environment: using test user', {
         userId: user._id,
-        nickname: user.nickname
+        nickname: user.nickname,
+        openid: testOpenid
       });
     } else {
       // 生产环境：根据code获取openid
