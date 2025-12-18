@@ -100,7 +100,14 @@ Page({
 
     try {
       const res = await courseService.getPeriods();
-      const periods = res.list || res.items || res || [];
+      let periods = res.list || res.items || res || [];
+
+      // 按结束时间倒序排列
+      periods.sort((a, b) => {
+        const dateA = new Date(a.endDate || 0);
+        const dateB = new Date(b.endDate || 0);
+        return dateB - dateA; // 倒序（最新的在前）
+      });
 
       this.setData({
         periods,
