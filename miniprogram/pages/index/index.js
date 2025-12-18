@@ -183,9 +183,16 @@ Page({
    * 点击期次卡片 - 根据报名状态智能导航
    */
   handlePeriodClick(e) {
-    const { periodId, periodName } = e.currentTarget.dataset;
+    const { periodId, periodName, periodStatus } = e.currentTarget.dataset;
 
-    console.log('handlePeriodClick 被调用，periodId:', periodId, 'periodName:', periodName);
+    console.log(
+      'handlePeriodClick 被调用，periodId:',
+      periodId,
+      'periodName:',
+      periodName,
+      'periodStatus:',
+      periodStatus
+    );
 
     if (!periodId) {
       console.error('periodId 不存在');
@@ -211,6 +218,16 @@ Page({
 
     // 检查是否已报名
     const isEnrolled = this.data.periodEnrollmentStatus[periodId];
+
+    // 如果已完成且未报名，显示提示
+    if (periodStatus === 'completed' && !isEnrolled) {
+      wx.showToast({
+        title: '该期晨读营已结束！',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
 
     if (isEnrolled) {
       // 已报名，进入课程列表
