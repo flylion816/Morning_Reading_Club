@@ -3,10 +3,11 @@
     <el-aside class="admin-sidebar">
       <div class="sidebar-header">
         <h2>凡人晨读营</h2>
-        <span>管理后台</span>
       </div>
 
       <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
+        <!-- 数据看板区块 -->
+        <div class="menu-group-title">数据看板</div>
         <el-menu-item index="/">
           <span>📊 仪表板</span>
         </el-menu-item>
@@ -15,6 +16,8 @@
           <span>📈 数据分析</span>
         </el-menu-item>
 
+        <!-- 业务管理区块 -->
+        <div class="menu-group-title">业务管理</div>
         <el-menu-item index="/enrollments">
           <span>📝 报名管理</span>
         </el-menu-item>
@@ -35,6 +38,8 @@
           <span>✍️ 内容管理</span>
         </el-menu-item>
 
+        <!-- 内容管理区块 -->
+        <div class="menu-group-title">内容管理</div>
         <el-menu-item index="/checkins">
           <span>📍 每日打卡</span>
         </el-menu-item>
@@ -56,8 +61,8 @@
         <el-button
           type="danger"
           text
-          @click="handleLogout"
           style="width: 100%; justify-content: flex-start"
+          @click="handleLogout"
         >
           <span>🚪 退出登录</span>
         </el-button>
@@ -165,13 +170,6 @@ const handleLogout = () => {
   font-weight: 600;
 }
 
-.sidebar-header span {
-  display: block;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-top: 4px;
-}
-
 .sidebar-menu {
   flex: 1;
   background: transparent;
@@ -196,9 +194,30 @@ const handleLogout = () => {
   border-right: 4px solid #667eea;
 }
 
+.menu-group-title {
+  padding: 12px 16px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.menu-group-title:first-of-type {
+  margin-top: 0;
+  border-top: none;
+}
+
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-footer :deep(.el-button) {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .admin-main {
