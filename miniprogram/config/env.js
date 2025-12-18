@@ -1,43 +1,27 @@
 /**
- * 环境配置文件
- * 根据不同环境切换配置
+ * 环境配置文件 - 小程序版
+ *
+ * 📌 重要提示：此文件现在从根目录的 .env.config.js 加载配置
+ * 只需在根目录修改 .env.config.js 中的 currentEnv 即可同时控制：
+ * 1. 小程序调用的 API 环境
+ * 2. 后端连接的数据库环境
+ * 3. 管理后台的服务环境
  */
 
-// 当前环境 ('dev' | 'test' | 'prod')
-const currentEnv = 'dev';
+// 加载根目录的统一环境配置
+const rootConfig = require('../../.env.config');
 
-// 环境配置
-const envConfig = {
-  // 开发环境
-  dev: {
-    apiBaseUrl: 'http://localhost:3000/api/v1',
-    wxAppId: 'wx199d6d332344ed0a',
-    enableDebug: true,
-    enableLog: true,
-    useMock: false // 使用本地后端服务
-  },
+const currentEnv = rootConfig.currentEnv;
 
-  // 测试环境
-  test: {
-    apiBaseUrl: 'https://wx.shubai01.com/api/v1',
-    wxAppId: 'wx199d6d332344ed0a',
-    enableDebug: true,
-    enableLog: true,
-    useMock: false
-  },
-
-  // 生产环境
-  prod: {
-    apiBaseUrl: 'https://wx.shubai01.com/api/v1',
-    wxAppId: 'wx2b9a3c1d5e4195f8',
-    enableDebug: false,
-    enableLog: false,
-    useMock: false
-  }
-};
+// 从统一配置中提取小程序配置
+const minimumProgramConfig = rootConfig.config.miniprogram;
 
 // 导出当前环境配置
 module.exports = {
-  ...envConfig[currentEnv],
+  apiBaseUrl: minimumProgramConfig.apiBaseUrl,
+  wxAppId: minimumProgramConfig.wxAppId,
+  enableDebug: minimumProgramConfig.enableDebug,
+  enableLog: minimumProgramConfig.enableLog,
+  useMock: false, // 使用后端服务，不使用 mock 数据
   currentEnv
 };

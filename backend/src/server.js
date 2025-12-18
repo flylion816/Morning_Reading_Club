@@ -1,10 +1,26 @@
+const { Server } = require('socket.io');
+const path = require('path');
 const app = require('./app');
 const { connectMongoDB, testMySQLConnection } = require('./config/database');
 const { getSocketIoCorsOptions } = require('./config/cors');
 const { validateConfig } = require('./utils/config-validator');
 const logger = require('./utils/logger');
-const { Server } = require('socket.io');
 const WebSocketManager = require('./utils/websocket');
+
+// 尝试加载根目录的统一环境配置
+try {
+  const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
+  // eslint-disable-next-line global-require, import/no-dynamic-require
+  const envConfig = require(envConfigPath);
+
+  // 根据统一配置设置 NODE_ENV 和 MONGODB_URI
+  process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
+  process.env.MONGODB_URI = process.env.MONGODB_URI || envConfig.config.backend.mongodbUri;
+} catch (error) {
+  logger.warn('未找到统一环境配置文件 .env.config.js，将使用 .env 文件');
+}
+
+// 然后加载 .env 文件（会被上面的 process.env 设置覆盖）
 require('dotenv').config();
 
 // 验证环境配置
@@ -82,6 +98,7 @@ async function startServer() {
       code: error.code
     });
     logger.error('❌ Failed to start server:', error);
+    // eslint-disable-next-line no-process-exit
     process.exit(1);
   }
 }
@@ -90,12 +107,14 @@ async function startServer() {
 process.on('SIGINT', async () => {
   logger.info('应用接收到 SIGINT 信号，正在优雅关闭...');
   logger.info('\n\n👋 Shutting down gracefully...');
+  // eslint-disable-next-line no-process-exit
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   logger.info('应用接收到 SIGTERM 信号，正在优雅关闭...');
   logger.info('\n\n👋 Shutting down gracefully...');
+  // eslint-disable-next-line no-process-exit
   process.exit(0);
 });
 
