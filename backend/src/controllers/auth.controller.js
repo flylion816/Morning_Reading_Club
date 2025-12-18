@@ -154,7 +154,19 @@ async function refreshToken(req, res, next) {
   }
 }
 
+// 登出
+async function logout(req, res, next) {
+  try {
+    // 由于使用的是无状态的 JWT，logout 主要是客户端清除本地存储
+    // 服务器端只需要返回成功响应
+    res.json(success(null, '登出成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   wechatLogin,
-  refreshToken
+  refreshToken,
+  logout
 };

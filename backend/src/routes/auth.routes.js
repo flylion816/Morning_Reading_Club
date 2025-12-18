@@ -1,6 +1,8 @@
 const express = require('express');
+
 const router = express.Router();
-const { wechatLogin, refreshToken } = require('../controllers/auth.controller');
+const { wechatLogin, refreshToken, logout } = require('../controllers/auth.controller');
+const authMiddleware = require('../middleware/auth');
 
 /**
  * @route   POST /api/v1/auth/wechat/login
@@ -15,5 +17,12 @@ router.post('/wechat/login', wechatLogin);
  * @access  Public
  */
 router.post('/refresh', refreshToken);
+
+/**
+ * @route   POST /api/v1/auth/logout
+ * @desc    登出
+ * @access  Private
+ */
+router.post('/logout', authMiddleware, logout);
 
 module.exports = router;
