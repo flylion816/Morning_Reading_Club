@@ -183,16 +183,15 @@ Page({
    * 点击期次卡片 - 根据报名状态智能导航
    */
   handlePeriodClick(e) {
+    console.log('====== handlePeriodClick 被调用 ======');
+    console.log('e.currentTarget.dataset:', e.currentTarget.dataset);
+
     const { periodId, periodName, periodStatus } = e.currentTarget.dataset;
 
-    console.log(
-      'handlePeriodClick 被调用，periodId:',
-      periodId,
-      'periodName:',
-      periodName,
-      'periodStatus:',
-      periodStatus
-    );
+    console.log('提取的数据：');
+    console.log('  periodId:', periodId, typeof periodId);
+    console.log('  periodName:', periodName, typeof periodName);
+    console.log('  periodStatus:', periodStatus, typeof periodStatus);
 
     if (!periodId) {
       console.error('periodId 不存在');
@@ -218,9 +217,14 @@ Page({
 
     // 检查是否已报名
     const isEnrolled = this.data.periodEnrollmentStatus[periodId];
+    console.log('isEnrolled:', isEnrolled);
 
     // 如果已完成且未报名，显示提示
+    console.log('检查条件：periodStatus === "completed"?', periodStatus === 'completed');
+    console.log('检查条件：!isEnrolled?', !isEnrolled);
+
     if (periodStatus === 'completed' && !isEnrolled) {
+      console.log('✅ 触发：已完成且未报名，显示提示');
       wx.showToast({
         title: '该期晨读营已结束！',
         icon: 'none',
@@ -231,11 +235,13 @@ Page({
 
     if (isEnrolled) {
       // 已报名，进入课程列表
+      console.log('已报名，进入课程列表');
       wx.navigateTo({
         url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
       });
     } else {
       // 未报名，进入报名页面
+      console.log('未报名，进入报名页面');
       wx.navigateTo({
         url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
