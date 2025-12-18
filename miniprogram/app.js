@@ -5,17 +5,22 @@ const logger = require('./utils/logger');
 
 App({
   onLaunch(options) {
-    logger.info('晨读营小程序启动', options);
-    logger.debug('当前环境:', envConfig.currentEnv);
+    try {
+      logger.info('晨读营小程序启动', options);
+      logger.debug('当前环境:', envConfig.currentEnv);
 
-    // 检查登录状态
-    this.checkLoginStatus();
+      // 检查登录状态
+      this.checkLoginStatus();
 
-    // 获取系统信息
-    this.getSystemInfo();
+      // 获取系统信息
+      this.getSystemInfo();
 
-    // 检查更新
-    this.checkUpdate();
+      // 检查更新
+      this.checkUpdate();
+    } catch (error) {
+      console.error('❌ 应用启动失败:', error);
+      logger.error('启动错误详情:', error.message, error.stack);
+    }
   },
 
   onShow(options) {
@@ -37,22 +42,27 @@ App({
 
   // 检查登录状态
   checkLoginStatus() {
-    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
-    const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
+    try {
+      const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+      const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
 
-    logger.debug('=== checkLoginStatus ===');
-    logger.debug('Token存在?:', !!token);
-    logger.debug('UserInfo存在?:', !!userInfo);
-    logger.debug('UserInfo._id:', userInfo?._id);
+      logger.debug('=== checkLoginStatus ===');
+      logger.debug('Token存在?:', !!token);
+      logger.debug('UserInfo存在?:', !!userInfo);
+      logger.debug('UserInfo._id:', userInfo?._id);
 
-    if (token && userInfo) {
-      this.globalData.isLogin = true;
-      this.globalData.userInfo = userInfo;
-      this.globalData.token = token;
-      logger.info('✅ 登录状态恢复成功，用户ID:', userInfo._id);
-    } else {
+      if (token && userInfo) {
+        this.globalData.isLogin = true;
+        this.globalData.userInfo = userInfo;
+        this.globalData.token = token;
+        logger.info('✅ 登录状态恢复成功，用户ID:', userInfo._id);
+      } else {
+        this.globalData.isLogin = false;
+        logger.debug('❌ 登录状态未找到');
+      }
+    } catch (error) {
+      logger.error('登录状态检查失败:', error);
       this.globalData.isLogin = false;
-      logger.debug('❌ 登录状态未找到');
     }
   },
 
