@@ -14,16 +14,20 @@
       wx:for="{{periods}}"
       wx:key="_id"
       class="period-wrapper"
-      catchtap="handlePeriodClick"
-      data-period-id="{{item._id}}"
-      data-period-name="{{item.name}}"
-      data-period-status="{{item.status}}"
     >
-      <course-card
-        course="{{item}}"
-        mode="period"
-        enrolled="{{periodEnrollmentStatus[item._id]}}"
-      />
+      <view
+        catchtap="handlePeriodClick"
+        data-period-id="{{item._id}}"
+        data-period-name="{{item.name}}"
+        data-period-status="{{item.status}}"
+        style="width: 100%;"
+      >
+        <course-card
+          course="{{item}}"
+          mode="period"
+          enrolled="{{periodEnrollmentStatus[item._id]}}"
+        />
+      </view>
 
       <!-- 报名/已报名状态标签 -->
       <view class="enrollment-label" wx:if="{{periodEnrollmentStatus[item._id]}}">
