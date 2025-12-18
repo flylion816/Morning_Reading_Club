@@ -19,7 +19,7 @@ async function wechatLogin(req, res, next) {
     // 开发环境：使用固定的测试用户进行测试
     if (process.env.NODE_ENV === 'development') {
       // 开发环境中使用固定的测试openid，确保每次登录使用同一用户
-      const testOpenid = 'dev_test_user_001';
+      const testOpenid = 'mock_user_001'; // 狮子用户
       user = await User.findOne({ openid: testOpenid });
 
       if (!user) {
@@ -27,7 +27,7 @@ async function wechatLogin(req, res, next) {
         logger.info('Creating test user for development environment');
         user = await User.create({
           openid: testOpenid,
-          nickname: '开发测试用户',
+          nickname: '狮子',
           avatar: '🦁',
           role: 'user',
           status: 'active'
