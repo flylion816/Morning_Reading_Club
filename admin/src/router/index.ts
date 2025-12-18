@@ -88,36 +88,19 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
-  logger.debug('========== 路由守卫检查开始 ==========');
-  logger.debug('[Router Guard] 导航到:', { path: to.path });
-  logger.debug('[Router Guard] 需要认证:', to.meta.requiresAuth);
-  logger.debug('[Router Guard] authStore.adminToken:', {
-    value: authStore.adminToken ? '有值' : 'null'
-  });
-  logger.debug('[Router Guard] authStore.isAuthenticated:', authStore.isAuthenticated);
-  logger.debug('[Router Guard] localStorage.adminToken:', {
-    value: localStorage.getItem('adminToken') ? '有值' : 'null'
-  });
-
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    // 重定向到登录页，但不能是已经在登录页的情况
-    logger.warn('[Router Guard] ⚠️ 需要认证但未认证，重定向到登录页');
+    // 需要认证但未认证，重定向到登录
     if (to.name !== 'login') {
-      logger.debug('[Router Guard] 执行: next({ name: "login" })');
       next({ name: 'login' });
     } else {
       next();
     }
   } else if (to.name === 'login' && authStore.isAuthenticated) {
     // 已登录时访问登录页，重定向到首页
-    logger.info('[Router Guard] ✓ 已认证，重定向到首页');
-    logger.debug('[Router Guard] 执行: next({ name: "dashboard" })');
     next({ name: 'dashboard' });
   } else {
-    logger.debug('[Router Guard] ✓ 通过路由守卫检查，允许导航');
     next();
   }
-  logger.debug('========== 路由守卫检查结束 ==========');
 });
 
 export default router;
