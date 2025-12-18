@@ -98,14 +98,6 @@
         </view>
       </view>
     </view>
-
-    <!-- 提示信息 -->
-    <view class="tips">
-      <view class="tip-item">1. 视频文件过大时压缩时间较长，请耐心等待</view>
-      <view class="tip-item">2. 若出现黑屏，请清理手机内存</view>
-      <view class="tip-item">3. 建议您调整手机拍摄清晰度选择720p及以下的规格进行拍摄</view>
-      <view class="tip-item">4. 最多添加10条语音，每条≤600s；图片+视频最多添加9条</view>
-    </view>
   </view>
 
   <!-- 底部按钮 -->

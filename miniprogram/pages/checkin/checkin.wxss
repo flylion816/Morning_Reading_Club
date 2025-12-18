@@ -172,24 +172,6 @@
   border-color: #4a90e2;
 }
 
-/* 提示信息 */
-.tips {
-  padding: 16rpx;
-  background: #f9f9f9;
-  border-radius: 8rpx;
-}
-
-.tip-item {
-  font-size: 22rpx;
-  color: #999;
-  line-height: 1.6;
-  margin-bottom: 8rpx;
-}
-
-.tip-item:last-child {
-  margin-bottom: 0;
-}
-
 /* 底部按钮 */
 .bottom-buttons {
   position: fixed;
