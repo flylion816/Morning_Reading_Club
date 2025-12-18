@@ -219,7 +219,7 @@
 
         <template #footer>
           <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveSection" :loading="saving">保存</el-button>
+          <el-button type="primary" :loading="saving" @click="saveSection">保存</el-button>
         </template>
       </el-dialog>
     </div>
@@ -268,8 +268,10 @@ async function loadPeriods() {
   try {
     const response = (await periodApi.getPeriods({
       limit: 100
-    })) as unknown as ListResponse<Period>;
-    periods.value = response.list || [];
+    })) as unknown as any;
+
+    // 拦截器返回兼容格式：{list: [...], data: [...], ...pagination}
+    periods.value = response?.list || response?.data || [];
 
     // 默认选择最新的期次
     if (periods.value.length > 0) {

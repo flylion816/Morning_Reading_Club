@@ -52,14 +52,14 @@ exports.login = async (req, res) => {
     await admin.save();
 
     // 生成 Token
-    const accessToken = generateToken(admin);
+    const token = generateToken(admin);
 
     // 返回成功响应
     const adminData = admin.toJSON();
     return res.json(
       success(
         {
-          accessToken,
+          token,
           admin: adminData
         },
         '登录成功'
@@ -133,7 +133,7 @@ exports.getAdmins = async (req, res) => {
     const skip = (page - 1) * limit;
     const admins = await Admin.find(filter)
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .sort({ createdAt: -1 });
 
     const total = await Admin.countDocuments(filter);
@@ -142,8 +142,8 @@ exports.getAdmins = async (req, res) => {
       success({
         list: admins.map(admin => admin.toJSON()),
         total,
-        page: parseInt(page),
-        limit: parseInt(limit)
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10)
       })
     );
   } catch (error) {

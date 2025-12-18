@@ -90,8 +90,18 @@ router.beforeEach((to, from, next) => {
   // 重新检查token（确保从localStorage同步）
   authStore.initToken();
 
+  // 添加调试日志以追踪路由跳转
+  console.log('[Router Guard] 导航检查:', {
+    to: to.name,
+    from: from.name,
+    requiresAuth: to.meta.requiresAuth,
+    isAuthenticated: authStore.isAuthenticated,
+    hasToken: !!localStorage.getItem('adminToken')
+  });
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     // 需要认证但未认证，重定向到登录
+    console.log('[Router Guard] 需要认证但未认证，重定向到登录页');
     if (to.name !== 'login') {
       next({ name: 'login' });
     } else {
@@ -99,8 +109,10 @@ router.beforeEach((to, from, next) => {
     }
   } else if (to.name === 'login' && authStore.isAuthenticated) {
     // 已登录时访问登录页，重定向到首页
+    console.log('[Router Guard] 已登录，从登录页重定向到首页');
     next({ name: 'dashboard' });
   } else {
+    console.log('[Router Guard] 允许导航');
     next();
   }
 });

@@ -7,7 +7,7 @@
           <el-button type="primary" @click="handleCreatePeriod">
             <span style="margin-right: 4px">➕</span>新建期次
           </el-button>
-          <el-button @click="handleRefresh" style="margin-left: 12px">
+          <el-button style="margin-left: 12px" @click="handleRefresh">
             <span style="margin-right: 4px">🔄</span>刷新
           </el-button>
         </div>
@@ -16,11 +16,11 @@
       <!-- 期次列表 -->
       <el-card>
         <el-table
+          v-loading="loading"
           :data="periods"
           stripe
           style="width: 100%"
-          :default-sort="{ prop: 'createdAt', order: 'descending' }"
-          v-loading="loading"
+          :default-sort="{ prop: 'endDate', order: 'descending' }"
         >
           <el-table-column prop="name" label="期次名称" width="100" />
           <el-table-column prop="title" label="标题" min-width="240" />
@@ -55,8 +55,8 @@
             <template #default="{ row }">
               <el-switch
                 v-model="row.isPublished"
-                @change="handlePublishChange(row)"
                 :loading="publishingId === row._id"
+                @change="handlePublishChange(row)"
               />
             </template>
           </el-table-column>
@@ -180,7 +180,7 @@
 
         <template #footer>
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">
+          <el-button type="primary" :loading="submitting" @click="handleSubmit">
             {{ isEditMode ? '更新' : '创建' }}
           </el-button>
         </template>
@@ -242,13 +242,42 @@ onMounted(() => {
 async function loadPeriods() {
   loading.value = true;
   try {
+    console.log('[PeriodsView] ============ 开始加载期次列表 ============');
+    console.log('[PeriodsView] 分页参数:', {
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize
+    });
+
     const response = (await periodApi.getPeriods({
       page: pagination.value.page,
       limit: pagination.value.pageSize
-    })) as unknown as ListResponse<Period>;
-    periods.value = response.list || [];
-    pagination.value.total = response.pagination?.total || 0;
-  } catch (err) {
+    })) as unknown as any;
+
+    console.log('[PeriodsView] API 返回的数据:', response);
+    console.log('[PeriodsView] response 的类型:', typeof response);
+
+    // 拦截器返回格式：{list: [...], data: [...], pagination: {...}, total: ..., page: ..., limit: ..., totalPages: ...}
+    // 支持多种访问方式
+    const itemList = response?.list || response?.data || (Array.isArray(response) ? response : []);
+    periods.value = itemList;
+
+    // 获取分页信息
+    if (response && typeof response === 'object') {
+      pagination.value.total = response.total || response.pagination?.total || 0;
+      console.log('[PeriodsView] 分页信息 - total:', pagination.value.total);
+    } else {
+      pagination.value.total = 0;
+    }
+
+    console.log('[PeriodsView] ✅ 已赋值 periods.value');
+    console.log('[PeriodsView] periods.value 长度:', periods.value.length);
+    console.log('[PeriodsView] periods.value[0]:', periods.value[0]);
+    console.log('[PeriodsView] 分页总数:', pagination.value.total);
+    console.log('[PeriodsView] ============ 加载完成 ============');
+  } catch (err: any) {
+    console.error('[PeriodsView] ❌ 加载失败，错误详情:', err);
+    console.error('[PeriodsView] 错误消息:', err.message);
+    console.error('[PeriodsView] 错误堆栈:', err.stack);
     ElMessage.error('加载期次列表失败');
   } finally {
     loading.value = false;

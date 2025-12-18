@@ -133,8 +133,10 @@ const handleLogin = async () => {
 
     if (success) {
       ElMessage.success('登录成功');
-      // 使用router.push跳转到dashboard，由于vite.config设置了base: '/admin/'
-      // 路由器会自动添加前缀，所以使用'/'会跳转到'/admin/'
+      // 登录成功后，等待一个 tick 确保 Pinia store 已完全更新
+      // 然后使用 router.push 导航到 dashboard
+      // 注：vite.config 中已移除 base 配置，所以 app 在根路径运行
+      await new Promise(resolve => setTimeout(resolve, 100));
       await router.push({ name: 'dashboard' });
     } else {
       // 错误提示已由 el-alert 显示

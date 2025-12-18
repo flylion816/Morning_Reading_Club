@@ -39,13 +39,42 @@ apiClient.interceptors.response.use(
   response => {
     logger.debug('[API Response] 成功', { url: response.config.url, status: response.status });
     logger.debug('[API Response] response.data:', response.data);
-    // 后端返回格式：{code, message, data: {...}}
-    // 确保返回 data 部分，避免返回整个响应对象
-    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      logger.debug('[API Response] 返回 response.data.data');
-      return response.data.data;
+    console.log('[API Interceptor] 原始 response.data:', response.data);
+
+    // 后端返回格式：{code, message, data: {...}, pagination: {...}, timestamp: ...}
+    if (response.data && typeof response.data === 'object') {
+      // 如果响应有标准结构 {code, message, data}，需要转换成兼容格式
+      if ('code' in response.data && 'message' in response.data && 'data' in response.data) {
+        logger.debug('[API Response] 标准格式，转换为兼容结构');
+        console.log('[API Interceptor] 检测到标准格式 {code, message, data, ...}');
+
+        const data = response.data.data;
+        console.log('[API Interceptor] 返回的 data:', data);
+        console.log('[API Interceptor] pagination:', response.data.pagination);
+
+        // 关键：返回兼容格式
+        // 如果 data 是数组，返回 {list: [...], ...pagination}
+        // 这样既保持向后兼容（response.list），也支持新用法（Array.isArray(response)）
+        if (Array.isArray(data)) {
+          const result: any = {
+            list: data,
+            data: data, // 同时支持 data 字段
+            ...response.data.pagination // 展开 pagination 字段
+          };
+          console.log('[API Interceptor] 返回兼容格式:', result);
+          return result;
+        }
+
+        // 如果不是数组，直接返回 data
+        return data;
+      }
+      // 否则直接返回响应数据
+      logger.debug('[API Response] 非标准格式，返回 response.data');
+      console.log('[API Interceptor] 非标准格式，返回整个 response.data');
+      return response.data;
     }
     logger.debug('[API Response] 返回 response.data');
+    console.log('[API Interceptor] 返回 response.data (非对象)');
     return response.data;
   },
   error => {

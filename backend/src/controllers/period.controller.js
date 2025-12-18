@@ -1,6 +1,39 @@
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 
+// 获取动态状态（基于当前日期和期次日期范围）
+function getDynamicStatus(period) {
+  const now = new Date();
+  const startDate = new Date(period.startDate);
+  const endDate = new Date(period.endDate);
+
+  // 比较日期（不考虑时间，只比较日期部分）
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  if (today < start) {
+    return 'not_started';
+  }
+  if (today > end) {
+    return 'completed';
+  }
+  return 'ongoing';
+}
+
+// 获取状态文本
+function getStatusText(period) {
+  // 动态计算状态，而不是使用数据库中的静态值
+  const dynamicStatus = getDynamicStatus(period);
+
+  const statusMap = {
+    not_started: '未开始',
+    ongoing: '进行中',
+    completed: '已完成'
+  };
+  return statusMap[dynamicStatus] || '未知状态';
+}
+
 // 获取期次列表
 async function getPeriodList(req, res, next) {
   try {
@@ -20,7 +53,7 @@ async function getPeriodList(req, res, next) {
     const total = await Period.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const periods = await Period.find(query)
-      .sort({ startDate: 1, createdAt: -1 })
+      .sort({ endDate: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
       .select('-__v');
@@ -60,39 +93,6 @@ async function getPeriodList(req, res, next) {
   } catch (error) {
     next(error);
   }
-}
-
-// 获取动态状态（基于当前日期和期次日期范围）
-function getDynamicStatus(period) {
-  const now = new Date();
-  const startDate = new Date(period.startDate);
-  const endDate = new Date(period.endDate);
-
-  // 比较日期（不考虑时间，只比较日期部分）
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-
-  if (today < start) {
-    return 'not_started';
-  } else if (today > end) {
-    return 'completed';
-  } else {
-    return 'ongoing';
-  }
-}
-
-// 获取状态文本
-function getStatusText(period) {
-  // 动态计算状态，而不是使用数据库中的静态值
-  const dynamicStatus = getDynamicStatus(period);
-
-  const statusMap = {
-    not_started: '未开始',
-    ongoing: '进行中',
-    completed: '已完成'
-  };
-  return statusMap[dynamicStatus] || '未知状态';
 }
 
 // 获取期次详情
