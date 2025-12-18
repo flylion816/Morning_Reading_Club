@@ -88,6 +88,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
+  // 重新检查token（确保从localStorage同步）
+  authStore.initToken();
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     // 需要认证但未认证，重定向到登录
     if (to.name !== 'login') {
