@@ -91,7 +91,6 @@ const UserSchema = new mongoose.Schema(
 );
 
 // 索引
-UserSchema.index({ openid: 1 }, { unique: true });
 UserSchema.index({ nickname: 1 });
 UserSchema.index({ createdAt: 1 });
 

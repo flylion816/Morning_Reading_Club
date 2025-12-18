@@ -2,7 +2,7 @@ const express = require('express');
 
 const router = express.Router();
 const { wechatLogin, refreshToken, logout } = require('../controllers/auth.controller');
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 /**
  * @route   POST /api/v1/auth/wechat/login
