@@ -8,9 +8,11 @@ require('dotenv').config();
 
 const { getCorsOptions } = require('./config/cors');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { monitoringMiddleware } = require('./middleware/monitoring');
 
 // 导入路由
 const authRoutes = require('./routes/auth.routes');
+const monitoringRoutes = require('./routes/monitoring.routes');
 const userRoutes = require('./routes/user.routes');
 const periodRoutes = require('./routes/period.routes');
 const sectionRoutes = require('./routes/section.routes');
@@ -47,6 +49,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// 性能监控中间件 - 在所有路由之前，用于追踪性能指标
+app.use(monitoringMiddleware({ enabled: true }));
+
 // 健康检查路由 - 不需要认证的公开端点
 app.use('/', healthRoutes);
 app.use('/api/v1', healthRoutes);
@@ -67,6 +72,7 @@ app.use('/api/v1/stats', statsRoutes); // 统计数据API
 app.use('/api/v1/audit-logs', auditRoutes); // 审计日志API
 app.use('/api/v1/notifications', notificationRoutes); // 通知API
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/monitoring', monitoringRoutes); // 监控API
 
 // 404处理
 app.use(notFoundHandler);

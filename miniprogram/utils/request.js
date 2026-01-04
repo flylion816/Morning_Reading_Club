@@ -14,6 +14,9 @@ class Request {
     this.header = {
       'Content-Type': 'application/json'
     };
+    // Token 刷新管理
+    this.isRefreshing = false; // 防止并发刷新
+    this.requestQueue = []; // 等待刷新完成的请求队列
   }
 
   /**
@@ -65,8 +68,8 @@ class Request {
             wx.hideLoading();
           }
 
-          // 处理响应
-          this.handleResponse(res, resolve, reject);
+          // 处理响应（传入原始请求选项用于重试）
+          this.handleResponse(res, resolve, reject, options);
         },
         fail: err => {
           if (showLoading) {
@@ -82,9 +85,9 @@ class Request {
   }
 
   /**
-   * 处理响应
+   * 处理响应（支持Token自动刷新）
    */
-  handleResponse(res, resolve, reject) {
+  handleResponse(res, resolve, reject, originalOptions) {
     const { statusCode, data } = res;
 
     // 成功响应
@@ -98,10 +101,9 @@ class Request {
         reject(data);
       }
     }
-    // 401 未授权
+    // 401 未授权 - 尝试刷新Token
     else if (statusCode === 401) {
-      this.handleAuthError();
-      reject(res);
+      this.handleTokenRefresh(resolve, reject, originalOptions);
     }
     // 403 禁止访问
     else if (statusCode === 403) {
@@ -123,6 +125,72 @@ class Request {
       this.showError(data.message || '请求失败');
       reject(res);
     }
+  }
+
+  /**
+   * 处理Token刷新（自动重试机制）
+   */
+  handleTokenRefresh(resolve, reject, originalOptions) {
+    const refreshToken = wx.getStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN);
+
+    if (!refreshToken) {
+      // 没有refreshToken，直接处理认证错误
+      this.handleAuthError();
+      reject(new Error('Token已过期，需要重新登录'));
+      return;
+    }
+
+    // 防止并发刷新
+    if (this.isRefreshing) {
+      // 将请求加入队列，等待刷新完成后重试
+      logger.info('加入请求队列，等待Token刷新');
+      this.requestQueue.push({ resolve, reject, options: originalOptions });
+      return;
+    }
+
+    // 标记为正在刷新
+    this.isRefreshing = true;
+    logger.info('开始刷新Token');
+
+    // 调用刷新Token API
+    const authService = require('../services/auth.service');
+    authService.refreshToken(refreshToken)
+      .then(newTokens => {
+        // 保存新Token
+        wx.setStorageSync(constants.STORAGE_KEYS.TOKEN, newTokens.accessToken);
+        wx.setStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN, newTokens.refreshToken);
+        logger.info('✅ Token刷新成功');
+
+        // 重试原始请求
+        this.request(originalOptions)
+          .then(resolve)
+          .catch(reject);
+
+        // 处理队列中的请求
+        const queue = this.requestQueue;
+        this.requestQueue = [];
+        queue.forEach(({ options, resolve: qResolve, reject: qReject }) => {
+          this.request(options)
+            .then(qResolve)
+            .catch(qReject);
+        });
+      })
+      .catch(refreshError => {
+        // Token刷新失败
+        logger.error('❌ Token刷新失败:', refreshError);
+        this.handleAuthError();
+
+        // 拒绝所有队列中的请求
+        this.requestQueue.forEach(({ reject: qReject }) => {
+          qReject(refreshError);
+        });
+        this.requestQueue = [];
+
+        reject(refreshError);
+      })
+      .finally(() => {
+        this.isRefreshing = false;
+      });
   }
 
   /**

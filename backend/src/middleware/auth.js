@@ -1,8 +1,10 @@
-const { verifyAccessToken } = require('../utils/jwt');
+const { verifyAccessToken, generateTokens } = require('../utils/jwt');
 const { errors } = require('../utils/response');
+const User = require('../models/User');
+const logger = require('../utils/logger');
 
-// 认证中间件
-function authMiddleware(req, res, next) {
+// 认证中间件（支持自动Token续期）
+async function authMiddleware(req, res, next) {
   try {
     // 从请求头获取token
     const authHeader = req.headers.authorization;
@@ -18,6 +20,36 @@ function authMiddleware(req, res, next) {
 
     // 将用户信息添加到请求对象
     req.user = decoded;
+
+    // 检查Token剩余有效期，如果<30分钟则自动续期
+    const expiresAt = decoded.exp * 1000; // 转换为毫秒
+    const now = Date.now();
+    const remainingTime = expiresAt - now;
+    const thirtyMinutes = 30 * 60 * 1000;
+
+    if (remainingTime < thirtyMinutes && remainingTime > 0) {
+      // Token剩余时间<30分钟，生成新Token并添加到响应头
+      try {
+        const user = await User.findById(decoded.userId || decoded._id);
+        if (user) {
+          const newTokens = generateTokens(user);
+
+          // 添加新Token到响应头，前端自动更新
+          res.setHeader('X-New-Token', newTokens.accessToken);
+          res.setHeader('X-New-Refresh-Token', newTokens.refreshToken);
+
+          logger.info('Token自动续期', {
+            userId: user._id,
+            remainingMinutes: Math.floor(remainingTime / 1000 / 60)
+          });
+        }
+      } catch (renewError) {
+        // 续期失败不影响当前请求，仅记录日志
+        logger.error('Token自动续期失败', renewError, {
+          userId: decoded.userId || decoded._id
+        });
+      }
+    }
 
     next();
   } catch (error) {

@@ -7,6 +7,7 @@ const { validateConfig } = require('./utils/config-validator');
 const ConfigSyncValidator = require('./utils/config-sync-validator');
 const logger = require('./utils/logger');
 const WebSocketManager = require('./utils/websocket');
+const redisManager = require('./utils/redis');
 
 // 尝试加载根目录的统一环境配置
 try {
@@ -42,6 +43,15 @@ logger.info('应用启动配置', {
 // 启动服务器
 async function startServer() {
   try {
+    // 初始化Redis连接
+    logger.info('正在连接 Redis...');
+    const redisConnected = await redisManager.connect();
+    if (redisConnected) {
+      logger.info('✅ Redis 连接成功');
+    } else {
+      logger.warn('⚠️ Redis 连接失败，将使用内存缓存作为降级方案');
+    }
+
     // 连接MongoDB
     logger.info('正在连接 MongoDB...');
     await connectMongoDB();
@@ -111,6 +121,8 @@ async function startServer() {
 process.on('SIGINT', async () => {
   logger.info('应用接收到 SIGINT 信号，正在优雅关闭...');
   logger.info('\n\n👋 Shutting down gracefully...');
+  // 断开Redis连接
+  await redisManager.disconnect();
   // eslint-disable-next-line no-process-exit
   process.exit(0);
 });
@@ -118,6 +130,8 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   logger.info('应用接收到 SIGTERM 信号，正在优雅关闭...');
   logger.info('\n\n👋 Shutting down gracefully...');
+  // 断开Redis连接
+  await redisManager.disconnect();
   // eslint-disable-next-line no-process-exit
   process.exit(0);
 });
