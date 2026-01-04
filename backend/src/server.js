@@ -4,6 +4,7 @@ const app = require('./app');
 const { connectMongoDB, testMySQLConnection } = require('./config/database');
 const { getSocketIoCorsOptions } = require('./config/cors');
 const { validateConfig } = require('./utils/config-validator');
+const ConfigSyncValidator = require('./utils/config-sync-validator');
 const logger = require('./utils/logger');
 const WebSocketManager = require('./utils/websocket');
 
@@ -25,6 +26,9 @@ require('dotenv').config();
 
 // 验证环境配置
 validateConfig();
+
+// 配置同步检查：验证前后端环境配置是否一致
+ConfigSyncValidator.validateConfigSync();
 
 const PORT = process.env.PORT || 3000;
 

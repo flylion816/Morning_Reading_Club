@@ -1,93 +1,96 @@
-const crypto = require('crypto');
 const User = require('../models/User');
+const wechatService = require('../services/wechat.service');
 const { generateTokens, verifyRefreshToken } = require('../utils/jwt');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 
-// Mock微信登录
+/**
+ * 微信登录处理
+ * 支持 Mock（开发环境）和真实微信授权（生产环境）的无缝切换
+ *
+ * 请求体：{ code: string, nickname?: string, avatar_url?: string, gender?: string }
+ */
 async function wechatLogin(req, res, next) {
   try {
-    const { code } = req.body;
+    const { code, nickname, avatarUrl, gender } = req.body;
 
+    // 参数验证
     if (!code) {
-      return res.status(400).json(errors.badRequest('缺少code参数'));
+      return res.status(400).json(errors.badRequest('缺少微信授权码'));
     }
 
-    let user;
+    // ====== 核心改动：调用 WechatService 获取 openid ======
+    let openid;
+    try {
+      const wechatResult = await wechatService.getOpenidFromCode(code);
+      openid = wechatResult.openid;
+      // sessionKey and unionid are optional and not used in current implementation
+    } catch (wechatError) {
+      // 微信服务错误（包括网络错误）
+      logger.error('微信认证失败', wechatError, {
+        code: `${code.substring(0, 4)}***`,
+        environment: process.env.NODE_ENV
+      });
+      return res.status(401).json(errors.unauthorized(wechatError.message));
+    }
+
+    // 查找或创建用户
+    let user = await User.findOne({ openid });
     let isNewUser = false;
 
-    // 开发环境：使用固定的测试用户进行测试
-    if (process.env.NODE_ENV === 'development') {
-      // 开发环境中使用固定的测试openid，确保每次登录使用同一用户
-      const testOpenid = 'mock_user_001'; // 狮子用户
-      user = await User.findOne({ openid: testOpenid });
-
-      if (!user) {
-        // 如果测试用户不存在，创建一个
-        logger.info('Creating test user for development environment');
-        user = await User.create({
-          openid: testOpenid,
-          nickname: '狮子',
-          avatar: '🦁',
-          role: 'user',
-          status: 'active'
-        });
-      }
-
-      logger.info('Development environment: using test user', {
-        userId: user._id,
-        nickname: user.nickname,
-        openid: testOpenid
+    if (!user) {
+      // 新用户：创建账户
+      logger.info('创建新用户', {
+        openid,
+        nickname: nickname || '晨读营用户'
       });
+
+      user = await User.create({
+        openid,
+        nickname: nickname || '晨读营用户',
+        avatar: '🦁', // 默认头像
+        avatarUrl,
+        gender: gender || 'unknown',
+        role: 'user',
+        status: 'active',
+        lastLoginAt: new Date()
+      });
+      isNewUser = true;
     } else {
-      // 生产环境：根据code获取openid
-      let mockOpenid;
-      if (code === 'test_user_atai') {
-        mockOpenid = 'mock_user_001';
-      } else if (code === 'test_user_wangwu') {
-        mockOpenid = 'mock_user_003';
-      } else if (code === 'test_user_admin') {
-        mockOpenid = 'mock_admin_001';
-      } else {
-        // Mock openid 应该基于 code 一致生成，而不是基于时间
-        // 这样同一个 code 总是返回同一个用户
-        const hash = crypto.createHash('md5').update(String(code)).digest('hex');
-        mockOpenid = `mock_${hash.substr(0, 16)}`;
-      }
-
-      // 查找或创建用户
-      user = await User.findOne({ openid: mockOpenid });
-      isNewUser = !user;
-
-      if (!user) {
-        // 创建新用户
-        user = await User.create({
-          openid: mockOpenid,
-          nickname: '微信用户',
-          avatar: '🦁',
-          role: 'user',
-          status: 'active'
-        });
-      } else {
-        // 更新最后登录时间
-        user.lastLoginAt = new Date();
-        await user.save();
-      }
-    }
-
-    // 更新最后登录时间
-    if (!isNewUser) {
+      // 既有用户：更新登录时间和头像信息
       user.lastLoginAt = new Date();
+
+      // 如果提供了新头像，更新头像
+      if (avatarUrl) {
+        user.avatarUrl = avatarUrl;
+      }
+
+      // 如果提供了昵称，更新昵称
+      if (nickname) {
+        user.nickname = nickname;
+      }
+
       await user.save();
     }
 
-    // 生成Token
+    // 生成JWT Token
     const tokens = generateTokens(user);
 
+    // 详细日志记录（用于监控）
+    logger.info('用户登录成功', {
+      userId: user._id,
+      nickname: user.nickname,
+      isNewUser,
+      environment: process.env.NODE_ENV
+    });
+
+    // 返回响应
     res.json(
       success(
         {
-          ...tokens,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresIn: tokens.expiresIn,
           user: {
             _id: user._id,
             openid: user.openid,
@@ -103,6 +106,9 @@ async function wechatLogin(req, res, next) {
       )
     );
   } catch (error) {
+    logger.error('登录处理异常', error, {
+      stack: error.stack
+    });
     next(error);
   }
 }

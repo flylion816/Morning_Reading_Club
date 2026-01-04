@@ -83,20 +83,37 @@ Page({
 
       this.setData({ loading: false });
 
-      // 处理用户拒绝授权的情况
-      if (error.errMsg && error.errMsg.includes('getUserProfile:fail auth deny')) {
-        wx.showToast({
-          title: '您拒绝了授权',
-          icon: 'none',
-          duration: 2000
-        });
-      } else {
-        wx.showToast({
-          title: '登录失败,请重试',
-          icon: 'none',
-          duration: 2000
-        });
+      // 根据错误类型显示友好的提示信息
+      let errorMessage = '登录失败，请稍后重试';
+
+      if (error.errMsg) {
+        // 处理微信客户端错误
+        if (error.errMsg.includes('getUserProfile:fail auth deny')) {
+          errorMessage = '您拒绝了用户信息授权';
+        } else if (error.errMsg.includes('getUserProfile:fail')) {
+          errorMessage = '获取用户信息失败，请检查网络';
+        }
+      } else if (error.message) {
+        // 处理来自后端的错误消息
+        const msg = error.message;
+        if (msg.includes('code无效') || msg.includes('已过期')) {
+          errorMessage = '授权码已过期，请重新登录';
+        } else if (msg.includes('频繁')) {
+          errorMessage = '请求过于频繁，请稍后再试';
+        } else if (msg.includes('使用')) {
+          errorMessage = '授权码已被使用，请重新登录';
+        } else if (msg.includes('异常')) {
+          errorMessage = '微信服务异常，请稍后重试';
+        } else {
+          errorMessage = msg; // 使用后端返回的具体错误信息
+        }
       }
+
+      wx.showToast({
+        title: errorMessage,
+        icon: 'none',
+        duration: 3000
+      });
     }
   },
 
