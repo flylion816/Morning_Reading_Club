@@ -84,7 +84,7 @@ function rateLimitMiddleware(options = {}) {
 const globalRateLimit = rateLimitMiddleware({
   windowMs: 60000, // 1分钟
   maxRequests: 1000, // 整个API最多1000请求/分钟
-  keyGenerator: (req) => 'ratelimit:global:all',
+  keyGenerator: (_req) => 'ratelimit:global:all',
   enabled: true
 });
 

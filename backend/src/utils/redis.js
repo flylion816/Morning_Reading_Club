@@ -73,8 +73,22 @@ class RedisManager {
         logger.warn('Redis正在重新连接...');
       });
 
-      // 连接到Redis
-      await this.client.connect();
+      // 连接到Redis（带超时机制，5秒后仍未连接则返回失败）
+      const connectPromise = this.client.connect();
+      // eslint-disable-next-line no-promise-executor-return
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Redis 连接超时'));
+        }, 5000);
+      });
+
+      try {
+        await Promise.race([connectPromise, timeoutPromise]);
+      } catch (timeoutError) {
+        logger.warn('Redis 连接超时，将使用内存缓存降级方案', timeoutError.message);
+        this.isConnected = false;
+        return false;
+      }
 
       // 测试连接
       await this.client.ping();

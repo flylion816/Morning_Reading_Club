@@ -206,7 +206,9 @@ async function checkAlerts(metrics) {
     }
 
     // 触发所有告警
+    // eslint-disable-next-line no-await-in-loop
     for (const alert of alerts) {
+      // eslint-disable-next-line no-await-in-loop
       await alerting.trigger(alert);
     }
   } catch (error) {
