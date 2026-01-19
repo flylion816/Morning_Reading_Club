@@ -1,5 +1,53 @@
 #!/usr/bin/env node
 
+/**
+ * ⚠️ MongoDB 数据库初始化脚本
+ *
+ * 警告：此脚本会完全删除数据库中的所有数据并重新初始化！
+ *
+ * 使用场景：
+ * - 本地开发环境：创建测试数据和演示环境
+ * - 测试环境：重置测试数据
+ *
+ * ❌ 禁用场景：
+ * - 生产环境：绝对禁止运行此脚本
+ *
+ * 历史教训（2025-12-03）：
+ * 一次误执行导致丢失 90+ 天的真实用户数据和业务数据。
+ *
+ * 使用方法：
+ * $ NODE_ENV=development node backend/scripts/init-mongodb.js
+ */
+
+// 环境保护检查：禁止在生产环境运行
+if (process.env.NODE_ENV === 'production') {
+  console.error('\n╔════════════════════════════════════════════════════════╗');
+  console.error('║                   🚫 致命错误                         ║');
+  console.error('╚════════════════════════════════════════════════════════╝\n');
+  console.error('❌ 此脚本禁止在生产环境运行！\n');
+  console.error('原因：此脚本会删除数据库中的所有数据。');
+  console.error('      在生产环境执行会导致不可恢复的数据丧失。\n');
+  console.error('允许的环境：development 或 test\n');
+  console.error('如需在生产环境初始化数据，请联系数据库管理员。\n');
+  process.exit(1);
+}
+
+// 增强的警告提示
+if (process.env.NODE_ENV !== 'test') {
+  console.warn('\n╔════════════════════════════════════════════════════════╗');
+  console.warn('║             ⚠️ 重要警告：即将删除所有数据！             ║');
+  console.warn('╚════════════════════════════════════════════════════════╝\n');
+  console.warn('此脚本将：');
+  console.warn('  1. 删除数据库中的所有用户数据');
+  console.warn('  2. 删除所有期次、课程、打卡记录');
+  console.warn('  3. 删除所有评论和小凡看见');
+  console.warn('\n请确保：');
+  console.warn('  ✓ 你在开发环境（NODE_ENV=development 或 test）');
+  console.warn('  ✓ 本地数据库中没有重要数据');
+  console.warn('  ✓ 你知道这个操作的后果\n');
+  console.warn('继续执行...\n');
+}
+
 const path = require('path');
 const envFile =
   process.env.NODE_ENV === 'production'
