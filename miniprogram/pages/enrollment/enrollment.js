@@ -105,9 +105,11 @@ Page({
 
     try {
       const res = await enrollmentService.getPeriods();
-      // request.js 返回的是 data.data 对象 {list: [...], pagination: {...}}
-      // 所以需要获取 list 属性
-      let periodList = res.list || [];
+      // API 返回的结构是：{array, timestamp, pagination}
+      // request.js 返回 data.data 对象，是一个数组或包含数据的对象
+      let periodList = Array.isArray(res) ? res : res.list || res.items || [];
+
+      console.log('获取到期次列表:', periodList);
 
       // ℹ️ 不过滤已完成的期次，让用户看到所有期次
       // 如果期次已完成，将在报名时验证并显示提示
