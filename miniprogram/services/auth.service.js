@@ -101,9 +101,19 @@ class AuthService {
   async wechatLogin(userInfo) {
     try {
       // 1. 获取微信授权码
-      // 生产环境：获取真实微信code
-      const loginRes = await this.getWechatCode();
-      const code = loginRes.code;
+      // 开发环境：使用mock code；生产环境：获取真实微信code
+      const envConfig = require('../config/env');
+      let code;
+
+      if (envConfig.currentEnv === 'dev') {
+        // 开发环境使用mock code（后端wechatService会检测并处理）
+        code = 'mock_code_' + Date.now();
+        logger.debug('开发环境使用mock code:', code);
+      } else {
+        // 生产环境获取真实code
+        const loginRes = await this.getWechatCode();
+        code = loginRes.code;
+      }
 
       // 2. 调用后端登录接口
       const loginData = await this.login(code, {
