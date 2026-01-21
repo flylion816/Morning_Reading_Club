@@ -66,14 +66,14 @@ router.get('/debug/enrollments/:userId', async (req, res) => {
   }
 });
 
+// 检查用户是否已报名（必须放在其他参数路由之前）
+router.get('/check/:periodId', authMiddleware, checkEnrollment);
+
 // 获取期次的成员列表
 router.get('/period/:periodId', authMiddleware, getPeriodMembers);
 
 // 获取用户的报名列表
 router.get('/user/:userId?', authMiddleware, getUserEnrollments);
-
-// 检查用户是否已报名
-router.get('/check/:periodId', authMiddleware, checkEnrollment);
 
 // 退出期次
 router.delete('/:enrollmentId', authMiddleware, withdrawEnrollment);
