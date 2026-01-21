@@ -42,16 +42,24 @@ Page({
         limit: this.data.limit
       });
 
-      // 转换数据
-      const members = res.list.map(item => ({
-        userId: item.userId,
-        nickname: item.nickname,
-        avatar: item.avatar,
-        avatarUrl: item.avatarUrl,
-        avatarColor: getAvatarColorByUserId(item.userId),
-        avatarText: item.nickname.charAt(item.nickname.length - 1),
-        enrolledAt: new Date(item.enrolledAt).toLocaleDateString('zh-CN')
-      }));
+      // 转换数据（兼容两种格式：简化格式和完整对象）
+      const members = res.list.map(item => {
+        // 兼容处理：如果 userId 是对象，则从对象中获取数据；否则从顶层获取
+        const userObj = typeof item.userId === 'object' ? item.userId : {};
+        const userId = typeof item.userId === 'object' ? item.userId._id : item.userId;
+        const nickname = userObj.nickname || item.nickname || '用户';
+        const avatar = userObj.avatar || item.avatar || '👤';
+
+        return {
+          userId: userId,
+          nickname: nickname,
+          avatar: avatar,
+          avatarUrl: userObj.avatarUrl || item.avatarUrl,
+          avatarColor: getAvatarColorByUserId(userId),
+          avatarText: nickname.charAt(nickname.length - 1),
+          enrolledAt: new Date(item.enrolledAt).toLocaleDateString('zh-CN')
+        };
+      });
 
       this.setData({
         members: reset ? members : [...this.data.members, ...members],
