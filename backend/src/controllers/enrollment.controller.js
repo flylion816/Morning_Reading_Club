@@ -294,6 +294,8 @@ exports.checkEnrollment = async (req, res) => {
     res.json(
       success({
         isEnrolled,
+        paymentStatus: enrollment?.paymentStatus || null,
+        enrollmentId: enrollment?._id || null,
         userId,
         periodId
       })

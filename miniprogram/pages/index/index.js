@@ -37,7 +37,7 @@ Page({
     if (this.data.isLogin) {
       console.log('🔄 已登录，强制重新加载用户信息...');
       this.loadUserInfo();
-      // 重新检查报名状态（用户可能在报名页面新增了报名）
+      // 重新检查报名状态（用户可能在报名页面新增了报名或已支付）
       if (this.data.periods.length > 0) {
         this.checkEnrollmentStatus(this.data.periods);
       }
@@ -153,14 +153,25 @@ Page({
         enrollmentService
           .checkEnrollment(period._id)
           .then(res => {
-            statusMap[period._id] = res.isEnrolled || false;
-            console.log(
-              `期次 ${period.name} (${period._id}): ${res.isEnrolled ? '已报名' : '未报名'}`
-            );
+            // 存储完整的报名信息：包括是否报名、支付状态、报名ID等
+            statusMap[period._id] = {
+              isEnrolled: res.isEnrolled || false,
+              paymentStatus: res.paymentStatus || null,
+              enrollmentId: res.enrollmentId || null
+            };
+
+            const statusText = res.isEnrolled
+              ? `已报名 (支付状态: ${res.paymentStatus || 'unknown'})`
+              : '未报名';
+            console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
           })
           .catch(error => {
             console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
-            statusMap[period._id] = false;
+            statusMap[period._id] = {
+              isEnrolled: false,
+              paymentStatus: null,
+              enrollmentId: null
+            };
           })
       );
 
@@ -227,15 +238,17 @@ Page({
       return;
     }
 
-    // 检查是否已报名
-    const isEnrolled = this.data.periodEnrollmentStatus[periodId];
-    console.log('isEnrolled:', isEnrolled);
+    // 获取报名信息（包括报名状态和支付状态）
+    const enrollmentInfo = this.data.periodEnrollmentStatus[periodId] || {};
+    const isEnrolled = enrollmentInfo.isEnrolled;
+    const paymentStatus = enrollmentInfo.paymentStatus;
+    const enrollmentId = enrollmentInfo.enrollmentId;
+
+    console.log('reportment info:', { isEnrolled, paymentStatus, enrollmentId });
 
     // 获取计算后的期次状态（基于日期）
     const calculatedStatus = period.calculatedStatus;
     console.log('calculatedStatus:', calculatedStatus);
-    console.log('检查条件：calculatedStatus === "completed"?', calculatedStatus === 'completed');
-    console.log('检查条件：!isEnrolled?', !isEnrolled);
 
     // 如果已完成且未报名，显示提示
     if (calculatedStatus === 'completed' && !isEnrolled) {
@@ -248,18 +261,32 @@ Page({
       return;
     }
 
-    if (isEnrolled) {
-      // 已报名，进入课程列表
-      console.log('已报名，进入课程列表');
-      wx.navigateTo({
-        url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
-      });
-    } else {
-      // 未报名，进入报名页面
+    if (!isEnrolled) {
+      // 【情况1】未报名，进入报名页面
       console.log('未报名，进入报名页面');
       wx.navigateTo({
         url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
+    } else if (paymentStatus === 'paid') {
+      // 【情况2】已报名且已支付，进入课程列表
+      console.log('已报名且已支付，进入课程列表');
+      wx.navigateTo({
+        url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
+      });
+    } else if (paymentStatus === 'pending') {
+      // 【情况3】已报名但未支付，跳到支付页面继续支付
+      console.log('已报名但未支付，继续支付');
+      wx.navigateTo({
+        url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startDate}&endDate=${period.endDate}&amount=99&isResumePayment=true`
+      });
+    } else {
+      // 【情况4】其他支付状态（如failed等），显示提示
+      wx.showToast({
+        title: '报名状态异常，请联系客服',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
     }
   },
 
