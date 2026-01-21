@@ -195,20 +195,11 @@ exports.getPeriodMembers = async (req, res) => {
       status
     });
 
-    // 转换数据格式，添加前端需要的字段
-    const members = result.list.map(enrollment => ({
-      userId: enrollment.userId._id,
-      nickname: enrollment.userId.nickname,
-      avatar: enrollment.userId.avatar,
-      avatarUrl: enrollment.userId.avatarUrl,
-      enrolledAt: enrollment.enrolledAt,
-      status: enrollment.status,
-      paymentStatus: enrollment.paymentStatus
-    }));
-
+    // 直接返回完整的 Enrollment 数据（包含 populate 后的 userId 对象）
+    // 前端可以通过 row.userId.nickname 等访问用户信息
     res.json(
       success({
-        list: members,
+        list: result.list,
         total: result.total,
         page: result.page,
         limit: result.limit,
