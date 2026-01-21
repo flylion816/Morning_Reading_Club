@@ -109,16 +109,17 @@ Page({
       // 所以需要获取 list 属性
       let periodList = res.list || [];
 
-      // 过滤掉已完成的期次，只显示可报名的期次（基于日期计算）
-      periodList = periodList.filter(p => {
-        const status = calculatePeriodStatus(p.startDate, p.endDate);
-        return status !== 'completed';
-      });
+      // ℹ️ 不过滤已完成的期次，让用户看到所有期次
+      // 如果期次已完成，将在报名时验证并显示提示
+      // periodList = periodList.filter(p => {
+      //   const status = calculatePeriodStatus(p.startDate, p.endDate);
+      //   return status !== 'completed';
+      // });
 
       if (periodList.length === 0) {
         // 没有可报名的期次，返回首页
         wx.showToast({
-          title: '暂无可报名期次',
+          title: '暂无期次',
           icon: 'none'
         });
         this.setData({ loading: false });
@@ -296,6 +297,18 @@ Page({
     if (!this.validateForm()) {
       wx.showToast({
         title: '请填写完整的表单',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 检查选中的期次是否已完成
+    const selectedPeriod = this.data.periodList[this.data.selectedPeriodIndex];
+    const periodStatus = calculatePeriodStatus(selectedPeriod.startDate, selectedPeriod.endDate);
+
+    if (periodStatus === 'completed') {
+      wx.showToast({
+        title: '该期晨读营已结束，无法报名',
         icon: 'none'
       });
       return;
