@@ -4,12 +4,14 @@
  */
 
 const paymentService = require('../../services/payment.service');
+const envConfig = require('../../config/env');
 
 Page({
   data: {
     loading: true,
     paying: false,
     paymentMethod: '', // 'wechat' or 'mock'
+    isDevelopment: envConfig.currentEnv !== 'prod', // 是否为开发/测试环境
 
     // 订单数据
     enrollmentData: {

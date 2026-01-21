@@ -71,8 +71,9 @@
         <view class="method-check {{paymentMethod === 'wechat' ? 'checked' : ''}}"></view>
       </view>
 
-      <!-- 模拟支付（开发测试） -->
-      <view class="method-item {{paymentMethod === 'mock' ? 'active' : ''}}"
+      <!-- 模拟支付（仅开发测试环境显示） -->
+      <view wx:if="{{isDevelopment}}"
+            class="method-item {{paymentMethod === 'mock' ? 'active' : ''}}"
             catchtap="selectPaymentMethod"
             data-method="mock">
         <view class="method-left">
