@@ -1,9 +1,17 @@
 // 登录页面
 const authService = require('../../services/auth.service');
+const envConfig = require('../../config/env');
 
 Page({
   data: {
-    loading: false
+    loading: false,
+    isDev: envConfig.currentEnv === 'dev', // 是否为开发环境
+    testUsers: [
+      { code: 'test_user_atai', label: '阿泰', openid: 'mock_user_001' },
+      { code: 'test_user_liming', label: '狮子', openid: 'mock_user_002' },
+      { code: 'test_user_wangwu', label: '王五', openid: 'mock_user_003' },
+      { code: 'test_user_admin', label: '管理员', openid: 'mock_admin_001' }
+    ]
   },
 
   onLoad(options) {
@@ -19,7 +27,7 @@ Page({
   },
 
   /**
-   * 微信一键登录
+   * 微信一键登录（完整流程）
    */
   async handleWechatLogin() {
     if (this.data.loading) return;
@@ -46,38 +54,83 @@ Page({
 
       console.log('用户信息获取完成，开始登录...');
 
-      // 2. 使用Mock登录（因为没有后端服务器）
-      const envConfig = require('../../config/env');
-      let loginData;
+      // 2. 调用真实登录（开发环境会自动生成mock code）
+      const loginData = await authService.wechatLogin(userInfo);
 
-      if (envConfig.useMock) {
-        // Mock模式
-        loginData = await authService.wechatLoginMock(userInfo);
-      } else {
-        // 生产模式
-        loginData = await authService.wechatLogin(userInfo);
+      this.completeLogin(loginData);
+    } catch (error) {
+      console.error('登录失败:', error);
+      this.setData({ loading: false });
+      let errorMessage = '登录失败，请稍后重试';
+      if (error.errMsg) {
+        if (error.errMsg.includes('cancel')) {
+          errorMessage = '你取消了登录';
+        }
       }
-
-      console.log('登录成功:', loginData);
-
-      // 3. 更新全局状态
-      const app = getApp();
-      app.globalData.isLogin = true;
-      app.globalData.userInfo = loginData.user;
-      app.globalData.token = loginData.accessToken;
-
       wx.showToast({
-        title: '登录成功',
-        icon: 'success',
+        title: errorMessage,
+        icon: 'none',
         duration: 2000
       });
+    }
+  },
 
-      // 4. 延迟跳转到首页（profile tab）
-      setTimeout(() => {
-        wx.switchTab({
-          url: '/pages/profile/profile'
-        });
-      }, 1500);
+  /**
+   * 快速登录测试账户（仅开发环境）
+   */
+  async handleQuickLogin(e) {
+    if (this.data.loading) return;
+
+    const { testUser } = e.currentTarget.dataset;
+    this.setData({ loading: true });
+
+    try {
+      console.log('快速登录测试账户:', testUser.label);
+
+      // 调用后端登录API，使用预定义的test code
+      const loginData = await authService.login(testUser.code, {
+        nickname: testUser.label,
+        gender: 'unknown'
+      });
+
+      console.log('测试账户登录成功:', loginData);
+
+      this.completeLogin(loginData);
+    } catch (error) {
+      console.error('快速登录失败:', error);
+      this.setData({ loading: false });
+      wx.showToast({
+        title: '快速登录失败，请重试',
+        icon: 'none',
+        duration: 2000
+      });
+    }
+  },
+
+  /**
+   * 完成登录（更新全局状态并跳转）
+   */
+  completeLogin(loginData) {
+    console.log('登录成功:', loginData);
+
+    // 更新全局状态
+    const app = getApp();
+    app.globalData.isLogin = true;
+    app.globalData.userInfo = loginData.user;
+    app.globalData.token = loginData.accessToken;
+
+    wx.showToast({
+      title: '登录成功',
+      icon: 'success',
+      duration: 2000
+    });
+
+    // 延迟跳转到首页（profile tab）
+    setTimeout(() => {
+      wx.switchTab({
+        url: '/pages/profile/profile'
+      });
+    }, 1500);
     } catch (error) {
       console.error('登录失败:', error);
 

@@ -23,6 +23,23 @@
       <text wx:else>登录中...</text>
     </button>
 
+    <!-- 开发环境快速登录 -->
+    <view wx:if="{{isDev}}" class="dev-quick-login">
+      <view class="dev-label">🔧 开发环境 - 快速登录</view>
+      <view class="test-users">
+        <button
+          wx:for="{{testUsers}}"
+          wx:key="code"
+          class="test-user-btn {{loading ? 'disabled' : ''}}"
+          bindtap="handleQuickLogin"
+          data-test-user="{{item}}"
+          disabled="{{loading}}"
+        >
+          {{item.label}}
+        </button>
+      </view>
+    </view>
+
     <!-- 用户协议 -->
     <view class="agreement">
       <text class="agreement-text">登录即表示同意</text>
