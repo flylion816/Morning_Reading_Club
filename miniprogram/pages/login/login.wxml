@@ -13,16 +13,6 @@
     <view class="card-title">明理实修，同见同行</view>
     <view class="card-desc">我们一起观心，谈心，用心，修心，明心</view>
 
-    <!-- 登录按钮 -->
-    <button
-      class="wechat-login-btn {{loading ? 'loading' : ''}}"
-      bindtap="handleWechatLogin"
-      disabled="{{loading}}"
-    >
-      <text wx:if="{{!loading}}">微信一键登录</text>
-      <text wx:else>登录中...</text>
-    </button>
-
     <!-- 开发环境快速登录 -->
     <view wx:if="{{isDev}}" class="dev-quick-login">
       <view class="dev-label">🔧 开发环境 - 快速登录 (isDev={{isDev}}, 用户数={{testUsers.length}})</view>
@@ -63,13 +53,13 @@
       </view>
     </view>
 
-    <!-- 登录按钮（需要勾选协议才能启用） -->
+    <!-- 微信登录按钮（需要勾选协议才能启用） -->
     <button
       class="login-agree-btn {{!agreePolicy ? 'disabled' : ''}}"
       bindtap="handleWechatLoginWithAgreement"
       disabled="{{!agreePolicy || loading}}"
     >
-      <text wx:if="{{!loading}}">同意并登录</text>
+      <text wx:if="{{!loading}}">微信一键登录</text>
       <text wx:else>登录中...</text>
     </button>
   </view>
