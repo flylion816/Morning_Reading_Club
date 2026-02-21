@@ -259,8 +259,7 @@ async function getPeriodCheckins(req, res, next) {
 
     const query = {
       periodId,
-      isPublic: true,
-      note: { $ne: null, $ne: '' }
+      isPublic: true
     };
 
     // 按日期筛选

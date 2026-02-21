@@ -40,12 +40,23 @@ Component({
     onCardTap(e) {
       console.log('===== course-card onCardTap 被调用 =====');
       console.log('this.properties.course:', this.properties.course);
-      console.log('this.data:', this.data);
+      console.log('this.properties.mode:', this.properties.mode);
 
       // 使用properties.course确保获取到正确的数据
       const course = this.properties.course;
+      const { mode } = this.properties;
       const { isPending } = this.data;
 
+      // 期次模式：导航到课程列表
+      if (mode === 'period') {
+        console.log('期次模式，导航到课程列表');
+        wx.navigateTo({
+          url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
+        });
+        return;
+      }
+
+      // 课节模式：触发自定义事件
       console.log('准备触发事件，course:', course);
       console.log('准备触发事件，isPending:', isPending);
 

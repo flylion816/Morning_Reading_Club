@@ -80,7 +80,7 @@ async function getSectionDetail(req, res, next) {
   try {
     const { sectionId } = req.params;
 
-    const section = await Section.findById(sectionId).populate('periodId', 'name title');
+    const section = await Section.findById(sectionId).populate('periodId', '_id name title');
 
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));

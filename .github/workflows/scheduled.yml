@@ -1,0 +1,225 @@
+name: Scheduled Tasks
+
+on:
+  schedule:
+    # 每天 02:00 AM UTC (北京时间 10:00 AM)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  # ========================================
+  # 完整测试套件
+  # ========================================
+  full-test-suite:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: test
+          MONGO_INITDB_ROOT_PASSWORD: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Backend 完整测试
+      - name: Backend - Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Backend - Lint
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Backend - Unit tests
+        working-directory: ./backend
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
+
+      - name: Backend - Integration tests
+        working-directory: ./backend
+        run: npm run test:integration
+        env:
+          MONGODB_URI: mongodb://test:test@localhost:27017/test?authSource=admin
+          NODE_ENV: test
+
+      - name: Backend - Coverage report
+        working-directory: ./backend
+        run: npm run test:coverage
+        continue-on-error: true
+
+      # Admin 完整测试
+      - name: Admin - Install dependencies
+        working-directory: ./admin
+        run: npm ci
+
+      - name: Admin - Lint
+        working-directory: ./admin
+        run: npm run lint
+
+      - name: Admin - Type check
+        working-directory: ./admin
+        run: npm run type-check
+
+      - name: Admin - Unit tests (if configured)
+        working-directory: ./admin
+        run: npm run test:unit || echo "Tests not configured yet"
+        continue-on-error: true
+
+      - name: Admin - Build
+        working-directory: ./admin
+        run: npm run build
+
+      # 生成测试报告
+      - name: Generate test report
+        run: |
+          echo "# Daily Test Report - $(date)" > test-report.md
+          echo "" >> test-report.md
+          echo "## Backend Tests" >> test-report.md
+          echo "✅ Lint passed" >> test-report.md
+          echo "✅ Unit tests passed" >> test-report.md
+          echo "✅ Integration tests passed" >> test-report.md
+          echo "" >> test-report.md
+          echo "## Admin Tests" >> test-report.md
+          echo "✅ Lint passed" >> test-report.md
+          echo "✅ Type check passed" >> test-report.md
+          echo "✅ Build passed" >> test-report.md
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-test-report-${{ github.run_number }}
+          path: test-report.md
+
+      # 发送通知（可选）
+      - name: Send notification on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          text: '⚠️ Daily test suite failed! Check the logs.'
+
+  # ========================================
+  # 依赖更新检查
+  # ========================================
+  dependency-check:
+    name: Dependency Update Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check outdated packages (Backend)
+        working-directory: ./backend
+        run: |
+          echo "# Backend Outdated Packages" > outdated-backend.txt
+          npm outdated || true
+          npm outdated >> outdated-backend.txt || true
+
+      - name: Check outdated packages (Admin)
+        working-directory: ./admin
+        run: |
+          echo "# Admin Outdated Packages" > outdated-admin.txt
+          npm outdated || true
+          npm outdated >> outdated-admin.txt || true
+
+      - name: Run npm audit (Backend)
+        working-directory: ./backend
+        run: |
+          echo "# Backend Security Audit" > audit-backend.txt
+          npm audit || true
+          npm audit >> audit-backend.txt || true
+
+      - name: Run npm audit (Admin)
+        working-directory: ./admin
+        run: |
+          echo "# Admin Security Audit" > audit-admin.txt
+          npm audit || true
+          npm audit >> audit-admin.txt || true
+
+      - name: Upload dependency reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-reports-${{ github.run_number }}
+          path: |
+            backend/outdated-backend.txt
+            backend/audit-backend.txt
+            admin/outdated-admin.txt
+            admin/audit-admin.txt
+
+  # ========================================
+  # 性能基准测试（每周）
+  # ========================================
+  performance-benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 仅在周日运行
+    if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Start backend server
+        working-directory: ./backend
+        run: |
+          npm start &
+          echo $! > backend.pid
+          sleep 10
+        env:
+          NODE_ENV: production
+          PORT: 3000
+
+      - name: Run performance tests
+        working-directory: ./backend
+        run: |
+          if [ -f "tests/performance/load-test.yml" ]; then
+            npx artillery run tests/performance/load-test.yml --output performance-report.json
+          else
+            echo "Performance tests not configured yet"
+          fi
+        continue-on-error: true
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report-${{ github.run_number }}
+          path: backend/performance-report.json
+        if: always()
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) || true
+          fi

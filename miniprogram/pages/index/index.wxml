@@ -14,7 +14,7 @@
       wx:for="{{periods}}"
       wx:key="_id"
       class="period-wrapper"
-      catchtap="handlePeriodClick"
+      bindtap="handlePeriodClick"
       data-period-id="{{item._id}}"
       data-period-name="{{item.name}}"
     >

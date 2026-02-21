@@ -24,6 +24,13 @@ class RedisManager {
    */
   async connect() {
     try {
+      // 检查Redis是否被禁用（开发环境默认禁用）
+      const redisEnabled = process.env.REDIS_ENABLED !== 'false';
+      if (!redisEnabled) {
+        logger.info('⏭️  Redis已禁用，使用内存缓存');
+        return false;
+      }
+
       const host = process.env.REDIS_HOST || 'localhost';
       const port = process.env.REDIS_PORT || 6379;
       const password = process.env.REDIS_PASSWORD;

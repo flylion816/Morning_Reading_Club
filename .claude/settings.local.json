@@ -41,7 +41,13 @@
       "Bash(__NEW_LINE__ echo \"========== 测试 IPv4 ==========\ncurl -s http://127.0.0.1:5173/ | head -5\n\necho \"\"\necho \"========== 测试 localhost ========== curl -s http://localhost:5173/)",
       "Bash(brew install:*)",
       "Bash(brew tap:*)",
-      "Bash(timeout 10 npm run dev:*)"
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(claude-code --version)",
+      "Bash(brew list:*)",
+      "Bash(bash)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []

@@ -12,6 +12,9 @@ App({
       // 检查登录状态
       this.checkLoginStatus();
 
+      // 根据登录状态导航到正确的页面
+      this.navigateToStartPage();
+
       // 获取系统信息
       this.getSystemInfo();
 
@@ -20,6 +23,32 @@ App({
     } catch (error) {
       console.error('❌ 应用启动失败:', error);
       logger.error('启动错误详情:', error.message, error.stack);
+    }
+  },
+
+  // 根据登录状态导航到正确的起始页面
+  navigateToStartPage() {
+    const pages = getCurrentPages();
+    logger.debug('当前页面栈:', pages.map(p => p.route));
+
+    if (!this.globalData.isLogin) {
+      // 未登录，导航到登录页
+      logger.info('未登录，导航到登录页');
+      wx.reLaunch({
+        url: '/pages/login/login',
+        fail: (err) => {
+          logger.error('导航到登录页失败:', err);
+        }
+      });
+    } else {
+      // 已登录，导航到首页
+      logger.info('已登录，导航到首页');
+      wx.reLaunch({
+        url: '/pages/index/index',
+        fail: (err) => {
+          logger.error('导航到首页失败:', err);
+        }
+      });
     }
   },
 

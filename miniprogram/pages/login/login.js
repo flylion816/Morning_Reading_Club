@@ -1,6 +1,7 @@
 // 登录页面
 const authService = require('../../services/auth.service');
 const envConfig = require('../../config/env');
+const logger = require('../../utils/logger');
 
 Page({
   data: {
@@ -43,9 +44,17 @@ Page({
    * 处理隐私政策复选框变化
    */
   handlePolicyChange(e) {
-    this.setData({
-      agreePolicy: e.detail.value
+    // 切换协议状态（通过点击外层 view 来实现）
+    const newState = !this.data.agreePolicy;
+    logger.warn('🔄 复选框点击事件触发', {
+      previousState: this.data.agreePolicy,
+      newState: newState,
+      timestamp: new Date().toISOString()
     });
+    this.setData({
+      agreePolicy: newState
+    });
+    logger.warn('✅ agreePolicy 已更新为:', newState);
   },
 
   /**

@@ -1,0 +1,122 @@
+#!/bin/bash
+# Pre-push Hook for Morning Reading Club
+# 推送前运行完整测试
+
+set -e
+
+echo "🚀 运行 Pre-push 检查..."
+echo ""
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+ERRORS=0
+START_TIME=$(date +%s)
+
+# 辅助函数：打印步骤标题
+print_step() {
+  echo ""
+  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${BLUE}$1${NC}"
+  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+# 1. 运行所有单元测试
+print_step "🧪 Step 1/4: 运行所有单元测试"
+
+echo "运行 Backend 单元测试..."
+cd backend
+if ! npm run test:unit 2>&1; then
+  echo -e "${RED}✗ Backend 单元测试失败${NC}"
+  ERRORS=$((ERRORS + 1))
+else
+  echo -e "${GREEN}✓ Backend 单元测试通过${NC}"
+fi
+cd ..
+
+echo ""
+echo "运行 Admin 单元测试（如已配置）..."
+cd admin
+if [ -f "vitest.config.ts" ]; then
+  if ! npm run test:unit 2>&1; then
+    echo -e "${RED}✗ Admin 单元测试失败${NC}"
+    ERRORS=$((ERRORS + 1))
+  else
+    echo -e "${GREEN}✓ Admin 单元测试通过${NC}"
+  fi
+else
+  echo -e "${YELLOW}⚠ Admin 单元测试未配置，跳过${NC}"
+fi
+cd ..
+
+# 2. 运行集成测试
+print_step "🔗 Step 2/4: 运行集成测试"
+
+echo "运行 Backend 集成测试..."
+cd backend
+if ! npm run test:integration 2>&1; then
+  echo -e "${RED}✗ Backend 集成测试失败${NC}"
+  ERRORS=$((ERRORS + 1))
+else
+  echo -e "${GREEN}✓ Backend 集成测试通过${NC}"
+fi
+cd ..
+
+# 3. 构建测试
+print_step "🏗️  Step 3/4: 构建测试"
+
+echo "构建 Admin 项目..."
+cd admin
+if ! npm run build-only 2>&1; then
+  echo -e "${RED}✗ Admin 构建失败${NC}"
+  ERRORS=$((ERRORS + 1))
+else
+  echo -e "${GREEN}✓ Admin 构建成功${NC}"
+  # 清理构建产物
+  rm -rf dist
+fi
+cd ..
+
+# 4. 检查是否有未提交的更改
+print_step "📝 Step 4/4: 检查未提交的更改"
+
+if ! git diff-index --quiet HEAD --; then
+  echo -e "${YELLOW}⚠ 发现未提交的更改${NC}"
+  echo "未提交的文件:"
+  git diff-index --name-only HEAD
+  echo ""
+  echo -e "${YELLOW}建议先提交或暂存这些更改${NC}"
+else
+  echo -e "${GREEN}✓ 没有未提交的更改${NC}"
+fi
+
+# 计算运行时间
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+# 结果汇总
+echo ""
+echo "========================================="
+echo "           检查结果汇总"
+echo "========================================="
+echo ""
+echo "总耗时: ${DURATION} 秒"
+echo ""
+
+if [ $ERRORS -eq 0 ]; then
+  echo -e "${GREEN}✅ Pre-push 检查通过！可以推送${NC}"
+  exit 0
+else
+  echo -e "${RED}❌ Pre-push 检查失败，共 $ERRORS 个错误${NC}"
+  echo ""
+  echo "修复建议:"
+  echo "1. 查看上方错误信息"
+  echo "2. 修复失败的测试"
+  echo "3. 重新运行 'git push'"
+  echo "4. 如需强制推送（非常不推荐），使用 'git push --no-verify'"
+  echo ""
+  exit 1
+fi

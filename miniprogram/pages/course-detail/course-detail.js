@@ -1,5 +1,6 @@
 const courseService = require('../../services/course.service');
 const checkinService = require('../../services/checkin.service');
+const commentService = require('../../services/comment.service');
 const constants = require('../../config/constants');
 
 Page({
@@ -134,6 +135,26 @@ Page({
         console.warn('从打卡API加载失败，尝试使用本地存储:', error);
       }
 
+      // 从每个打卡记录加载对应的评论
+      let allComments = [];
+      try {
+        for (const checkin of dbCheckins) {
+          try {
+            const checkinComments = await commentService.getCommentsByCheckin(checkin._id, {
+              limit: 100
+            });
+            if (checkinComments && checkinComments.list) {
+              allComments = allComments.concat(checkinComments.list);
+            }
+          } catch (err) {
+            console.warn(`获取打卡${checkin._id}的评论失败:`, err);
+          }
+        }
+        console.log('✅ 加载的所有评论:', allComments);
+      } catch (error) {
+        console.warn('加载评论失败:', error);
+      }
+
       // 如果数据库没有数据，则从本地存储加载
       if (dbCheckins.length === 0) {
         const storageKey = `checkins_${this.data.courseId}`;
@@ -141,15 +162,14 @@ Page({
         console.log('本地打卡记录:', dbCheckins);
       }
 
-      // 合并打卡记录和初始评论，使用 Map 去重
-      const commentsMap = new Map();
-
-      // 先添加数据库打卡记录，转换为评论格式
+      // 组织打卡记录的层级结构
+      // 打卡(Checkin)为主层级，评论(Comment)为子层级
       const app = getApp();
       let hasUserCheckedIn = false;
       const currentUserId = app.globalData.userInfo?.id;
 
-      dbCheckins.forEach(checkin => {
+      // 为每个打卡记录构建完整的数据结构
+      const checkinWithComments = dbCheckins.map(checkin => {
         // 检查当前用户是否已经打过卡
         const checkinUserId = checkin.userId?._id || checkin.userId?.id || checkin.userId;
         if (checkinUserId === currentUserId) {
@@ -173,10 +193,10 @@ Page({
           avatarText = checkin.avatarText || '👤';
         }
 
-        // 将打卡记录转换为评论格式
-        const comment = {
+        // 将打卡记录转换为前端格式
+        const checkinItem = {
           id: checkin._id || checkin.id,
-          userId: checkinUserId, // 添加userId字段以支持头像点击
+          userId: checkinUserId,
           userName: userName,
           avatarText: avatarText,
           avatarUrl: avatarUrl,
@@ -185,29 +205,49 @@ Page({
           createTime: checkin.createdAt ? this.formatTime(checkin.createdAt) : '刚刚',
           likeCount: checkin.likeCount || 0,
           isLiked: false,
-          replies: checkin.replies || []
+          replies: [] // 初始化为空，下面会填充评论
         };
-        commentsMap.set(comment.id, comment);
+
+        return checkinItem;
       });
 
       // 保存当前用户是否已打卡的状态
       this.setData({ hasUserCheckedIn });
 
-      // 再添加初始评论（如果ID已存在则不覆盖）
-      if (course.comments && course.comments.length > 0) {
-        course.comments.forEach(comment => {
-          if (!commentsMap.has(comment.id)) {
-            commentsMap.set(comment.id, comment);
+      // 将加载的Comment关联到对应的Checkin下
+      if (allComments && allComments.length > 0) {
+        allComments.forEach(comment => {
+          // 找到这个Comment所属的Checkin
+          const parentCheckin = checkinWithComments.find(
+            checkin => String(checkin.id) === String(comment.checkinId)
+          );
+
+          if (parentCheckin) {
+            // 格式化Comment
+            const formattedComment = {
+              id: comment._id,
+              userId: comment.userId?._id || comment.userId,
+              userName: comment.userId?.nickname || '匿名用户',
+              avatarText: comment.userId?.nickname ? comment.userId.nickname.charAt(0) : '👤',
+              avatarUrl: comment.userId?.avatarUrl || '',
+              avatarColor: '#7eb5f0',
+              content: comment.content || '',
+              createTime: comment.createdAt ? this.formatTime(comment.createdAt) : '刚刚',
+              likeCount: comment.likeCount || 0,
+              isLiked: false,
+              replies: comment.replies || []
+            };
+            parentCheckin.replies.push(formattedComment);
           }
         });
       }
 
-      // 转换为数组
-      const allComments = Array.from(commentsMap.values());
+      // 最终的打卡列表（包含每条打卡下的评论）
+      const finalComments = checkinWithComments;
 
       // 为评论和回复添加 avatarText 字段
-      if (allComments && allComments.length > 0) {
-        allComments.forEach(comment => {
+      if (finalComments && finalComments.length > 0) {
+        finalComments.forEach(comment => {
           // 如果没有avatarText，则生成
           if (!comment.avatarText) {
             comment.avatarText = comment.userName
@@ -228,7 +268,7 @@ Page({
         });
       }
 
-      course.comments = allComments;
+      course.comments = finalComments;
 
       const calendar = this.generateCalendar(course);
       const checkedDays = calendar.filter(d => d.status === 'checked').length;
@@ -299,18 +339,24 @@ Page({
   /**
    * 点赞评论
    */
-  handleLikeComment(e) {
+  async handleLikeComment(e) {
     const { id } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const comment = comments.find(c => c.id === id);
 
-    if (comment) {
+    if (!comment) {
+      return;
+    }
+
+    try {
       if (comment.isLiked) {
         // 取消点赞
+        await commentService.unlikeComment(id);
         comment.likeCount = Math.max(0, comment.likeCount - 1);
         comment.isLiked = false;
       } else {
         // 点赞
+        await commentService.likeComment(id);
         comment.likeCount += 1;
         comment.isLiked = true;
       }
@@ -318,13 +364,19 @@ Page({
       this.setData({
         'course.comments': comments
       });
+    } catch (error) {
+      console.error('点赞操作失败:', error);
+      wx.showToast({
+        title: '操作失败，请重试',
+        icon: 'none'
+      });
     }
   },
 
   /**
    * 回复评论
    */
-  handleReplyComment(e) {
+  async handleReplyComment(e) {
     const { id } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const comment = comments.find(c => c.id === id);
@@ -338,36 +390,57 @@ Page({
       title: `回复 ${comment.userName}`,
       editable: true,
       placeholderText: '请输入回复内容...',
-      success: res => {
+      success: async res => {
         if (res.confirm && res.content && res.content.trim()) {
-          // 创建新的回复
-          const newReply = {
-            id: Date.now(),
-            userId: 1000, // 当前用户ID（mock）
-            userName: '我',
-            avatarText: '我',
-            avatarColor: '#7eb5f0',
-            content: res.content.trim(),
-            createTime: '刚刚',
-            likeCount: 0,
-            isLiked: false
-          };
+          try {
+            // 直接创建评论（关联到打卡记录）
+            const app = getApp();
+            const currentUser = app.globalData.userInfo;
 
-          // 添加到回复列表
-          if (!comment.replies) {
-            comment.replies = [];
+            console.log('📝 创建评论，打卡ID:', id);
+
+            const replyData = await commentService.createComment({
+              checkinId: id,
+              content: res.content.trim()
+            });
+
+            console.log('✅ 评论已保存到数据库:', replyData);
+
+            // 创建新的回复对象
+            const newReply = {
+              id: replyData._id || replyData.id || Date.now(),
+              userId: currentUser?._id || currentUser?.id,
+              userName: currentUser?.nickname || '我',
+              avatarText: currentUser?.nickname ? currentUser.nickname.charAt(currentUser.nickname.length - 1) : '我',
+              avatarColor: '#7eb5f0',
+              content: res.content.trim(),
+              createTime: '刚刚',
+              likeCount: 0,
+              isLiked: false
+            };
+
+            // 添加到回复列表
+            if (!comment.replies) {
+              comment.replies = [];
+            }
+            comment.replies.push(newReply);
+
+            // 更新数据
+            this.setData({
+              'course.comments': comments
+            });
+
+            wx.showToast({
+              title: '回复成功',
+              icon: 'success'
+            });
+          } catch (error) {
+            console.error('回复失败:', error);
+            wx.showToast({
+              title: '回复失败，请重试',
+              icon: 'none'
+            });
           }
-          comment.replies.push(newReply);
-
-          // 更新数据
-          this.setData({
-            'course.comments': comments
-          });
-
-          wx.showToast({
-            title: '回复成功',
-            icon: 'success'
-          });
         }
       }
     });
@@ -406,7 +479,7 @@ Page({
   /**
    * 回复某条回复
    */
-  handleReplyToReply(e) {
+  async handleReplyToReply(e) {
     const { commentId, replyId, userName } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const comment = comments.find(c => c.id === commentId);
@@ -420,37 +493,58 @@ Page({
       title: `回复 ${userName}`,
       editable: true,
       placeholderText: '请输入回复内容...',
-      success: res => {
+      success: async res => {
         if (res.confirm && res.content && res.content.trim()) {
-          // 创建新的回复
-          const newReply = {
-            id: Date.now(),
-            userId: 1000, // 当前用户ID（mock）
-            userName: '我',
-            avatarText: '我',
-            avatarColor: '#7eb5f0',
-            content: res.content.trim(),
-            createTime: '刚刚',
-            likeCount: 0,
-            isLiked: false,
-            replyTo: userName // 标记这是回复谁的
-          };
+          try {
+            const app = getApp();
+            const currentUser = app.globalData.userInfo;
 
-          // 添加到回复列表
-          if (!comment.replies) {
-            comment.replies = [];
+            console.log('📝 回复评论，commentId:', commentId, 'replyId:', replyId);
+
+            // 调用API保存回复
+            const replyData = await commentService.replyComment(commentId, {
+              content: res.content.trim(),
+              replyToUserId: replyId // 标记回复的是哪条回复
+            });
+
+            console.log('✅ 回复已保存到数据库:', replyData);
+
+            // 创建新的回复对象
+            const newReply = {
+              id: replyData._id || replyData.id || Date.now(),
+              userId: currentUser?._id || currentUser?.id,
+              userName: currentUser?.nickname || '我',
+              avatarText: currentUser?.nickname ? currentUser.nickname.charAt(currentUser.nickname.length - 1) : '我',
+              avatarColor: '#7eb5f0',
+              content: res.content.trim(),
+              createTime: '刚刚',
+              likeCount: 0,
+              isLiked: false,
+              replyTo: userName // 标记这是回复谁的
+            };
+
+            // 添加到回复列表
+            if (!comment.replies) {
+              comment.replies = [];
+            }
+            comment.replies.push(newReply);
+
+            // 更新数据
+            this.setData({
+              'course.comments': comments
+            });
+
+            wx.showToast({
+              title: '回复成功',
+              icon: 'success'
+            });
+          } catch (error) {
+            console.error('回复失败:', error);
+            wx.showToast({
+              title: '回复失败，请重试',
+              icon: 'none'
+            });
           }
-          comment.replies.push(newReply);
-
-          // 更新数据
-          this.setData({
-            'course.comments': comments
-          });
-
-          wx.showToast({
-            title: '回复成功',
-            icon: 'success'
-          });
         }
       }
     });

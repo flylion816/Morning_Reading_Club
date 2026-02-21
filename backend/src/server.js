@@ -22,6 +22,9 @@ try {
   logger.warn('未找到统一环境配置文件 .env.config.js，将使用 .env 文件');
 }
 
+// 先加载 .env.local（本地开发覆盖）
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
+
 // 然后加载 .env 文件（会被上面的 process.env 设置覆盖）
 require('dotenv').config();
 

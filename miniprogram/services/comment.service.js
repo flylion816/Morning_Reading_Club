@@ -70,6 +70,16 @@ class CommentService {
   getCommentReplies(commentId, params = {}) {
     return request.get(`/comments/${commentId}/replies`, params);
   }
+
+  /**
+   * 获取打卡的评论列表
+   * @param {string} checkinId 打卡记录ID
+   * @param {Object} params 查询参数 {page, limit}
+   * @returns {Promise}
+   */
+  getCommentsByCheckin(checkinId, params = {}) {
+    return request.get(`/comments/checkin/${checkinId}`, params);
+  }
 }
 
 module.exports = new CommentService();

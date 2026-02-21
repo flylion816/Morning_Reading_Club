@@ -32,11 +32,10 @@
 
     <!-- 用户协议 - 明确同意 -->
     <view class="agreement-section">
-      <view class="agreement-checkbox">
+      <view class="agreement-checkbox" catchtap="handlePolicyChange">
         <checkbox
           class="checkbox-item"
           checked="{{agreePolicy}}"
-          bindchange="handlePolicyChange"
         />
         <text class="agreement-text">我已阅读并同意</text>
       </view>
