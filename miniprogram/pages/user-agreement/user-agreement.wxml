@@ -1,0 +1,86 @@
+<!-- 用户协议页面 -->
+<view class="page-agreement">
+  <!-- 标题 -->
+  <view class="header">
+    <view class="title">用户协议</view>
+    <view class="subtitle">使用条款和条件</view>
+  </view>
+
+  <!-- 内容 -->
+  <scroll-view scroll-y class="content">
+    <view class="section">
+      <view class="section-title">1. 服务概述</view>
+      <view class="section-content">
+        凡人晨读营小程序为用户提供在线学习、打卡记录、数据统计等服务。通过使用本服务，您同意接受本协议的所有条款和条件。
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">2. 用户责任</view>
+      <view class="section-content">
+        <view class="item">• 您负责维护账户密码的机密性</view>
+        <view class="item">• 您对账户下的所有活动负责</view>
+        <view class="item">• 您承诺不会进行任何违法或违反本协议的活动</view>
+        <view class="item">• 您不会骚扰、威胁或骂其他用户</view>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">3. 内容所有权</view>
+      <view class="section-content">
+        <view class="item">• 您保留对自己发布内容的所有权</view>
+        <view class="item">• 您授予我们使用、修改和分发您的内容的许可</view>
+        <view class="item">• 您保证您的内容不侵犯他人的权利</view>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">4. 行为规范</view>
+      <view class="section-content">
+        禁止行为：
+        <view class="item">• 发布仇恨、暴力、骚扰或非法内容</view>
+        <view class="item">• 冒充他人或欺骗其他用户</view>
+        <view class="item">• 进行垃圾邮件或骚扰活动</view>
+        <view class="item">• 进行任何形式的自动数据收集</view>
+        <view class="item">• 尝试破坏服务的安全性</view>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">5. 服务修改</view>
+      <view class="section-content">
+        我们保留随时修改、暂停或终止服务的权利。我们将在可能的情况下提前通知您重大更改。
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">6. 免责声明</view>
+      <view class="section-content">
+        <view class="item">• 本服务按"原样"提供，不提供任何保证</view>
+        <view class="item">• 我们不对服务中断或数据丢失负责</view>
+        <view class="item">• 我们不对用户内容负责</view>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">7. 协议修改</view>
+      <view class="section-content">
+        我们可能会不时更新本用户协议。任何实质性变更将通过小程序通知您。继续使用小程序即表示您接受更新后的协议。
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">8. 法律适用</view>
+      <view class="section-content">
+        本协议由中华人民共和国法律管辖。任何争议将由有管辖权的法院解决。
+      </view>
+    </view>
+
+    <view class="footer-space"></view>
+  </scroll-view>
+
+  <!-- 底部按钮 -->
+  <view class="footer">
+    <button class="btn-secondary" bindtap="handleBack">返回</button>
+  </view>
+</view>

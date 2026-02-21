@@ -5,6 +5,7 @@ const envConfig = require('../../config/env');
 Page({
   data: {
     loading: false,
+    agreePolicy: false, // 是否同意隐私政策和用户协议
     isDev: envConfig.currentEnv === 'dev', // 是否为开发环境
     testUsers: [
       { code: 'test_user_atai', label: '阿泰', openid: 'mock_user_001' },
@@ -16,14 +17,69 @@ Page({
 
   onLoad(options) {
     console.log('登录页面加载', options);
+    console.log('✅ 开发环境检查 isDev:', this.data.isDev);
+    console.log('✅ 当前环境:', envConfig.currentEnv);
+    console.log('✅ 测试用户列表:', this.data.testUsers);
 
-    // 检查是否已登录
-    if (authService.isLogin()) {
+    // 验证条件
+    const isLogin = authService.isLogin();
+    const isDev = envConfig.currentEnv === 'dev';
+    console.log('🔍 isLogin:', isLogin, '| isDev:', isDev);
+    console.log('🔍 条件判断: isLogin && !isDev =', isLogin && !isDev);
+
+    // 检查是否已登录（仅在非开发环境自动跳转，开发环境保持登录页便于快速切换）
+    if (authService.isLogin() && envConfig.currentEnv !== 'dev') {
+      console.log('⏭️  已登录且非开发环境，跳转到profile页面');
       // 已登录,跳转到首页（profile tab）
       wx.switchTab({
         url: '/pages/profile/profile'
       });
+    } else {
+      console.log('✅ 停留在登录页面');
     }
+  },
+
+  /**
+   * 处理隐私政策复选框变化
+   */
+  handlePolicyChange(e) {
+    this.setData({
+      agreePolicy: e.detail.value
+    });
+  },
+
+  /**
+   * 打开用户协议
+   */
+  handleOpenAgreement() {
+    wx.navigateTo({
+      url: '/pages/user-agreement/user-agreement'
+    });
+  },
+
+  /**
+   * 打开隐私政策
+   */
+  handleOpenPrivacy() {
+    wx.navigateTo({
+      url: '/pages/privacy-policy/privacy-policy'
+    });
+  },
+
+  /**
+   * 同意协议后微信登录
+   */
+  async handleWechatLoginWithAgreement() {
+    // 再次确认用户已同意
+    if (!this.data.agreePolicy) {
+      wx.showToast({
+        title: '请先同意协议',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    await this.handleWechatLogin();
   },
 
   /**
@@ -113,11 +169,19 @@ Page({
   completeLogin(loginData) {
     console.log('登录成功:', loginData);
 
+    // 保存token和用户信息到本地存储
+    const constants = require('../../config/constants');
+    wx.setStorageSync(constants.STORAGE_KEYS.TOKEN, loginData.accessToken);
+    wx.setStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN, loginData.refreshToken);
+    wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, loginData.user);
+
     // 更新全局状态
     const app = getApp();
     app.globalData.isLogin = true;
     app.globalData.userInfo = loginData.user;
     app.globalData.token = loginData.accessToken;
+
+    console.log('✅ Token已保存到本地存储:', loginData.accessToken.substring(0, 20) + '...');
 
     wx.showToast({
       title: '登录成功',
@@ -131,43 +195,6 @@ Page({
         url: '/pages/profile/profile'
       });
     }, 1500);
-    } catch (error) {
-      console.error('登录失败:', error);
-
-      this.setData({ loading: false });
-
-      // 根据错误类型显示友好的提示信息
-      let errorMessage = '登录失败，请稍后重试';
-
-      if (error.errMsg) {
-        // 处理微信客户端错误
-        if (error.errMsg.includes('getUserProfile:fail auth deny')) {
-          errorMessage = '您拒绝了用户信息授权';
-        } else if (error.errMsg.includes('getUserProfile:fail')) {
-          errorMessage = '获取用户信息失败，请检查网络';
-        }
-      } else if (error.message) {
-        // 处理来自后端的错误消息
-        const msg = error.message;
-        if (msg.includes('code无效') || msg.includes('已过期')) {
-          errorMessage = '授权码已过期，请重新登录';
-        } else if (msg.includes('频繁')) {
-          errorMessage = '请求过于频繁，请稍后再试';
-        } else if (msg.includes('使用')) {
-          errorMessage = '授权码已被使用，请重新登录';
-        } else if (msg.includes('异常')) {
-          errorMessage = '微信服务异常，请稍后重试';
-        } else {
-          errorMessage = msg; // 使用后端返回的具体错误信息
-        }
-      }
-
-      wx.showToast({
-        title: errorMessage,
-        icon: 'none',
-        duration: 3000
-      });
-    }
   },
 
   /**

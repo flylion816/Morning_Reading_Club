@@ -14,7 +14,9 @@
     "pages/share/share",
     "pages/login/login",
     "pages/enrollment/enrollment",
-    "pages/payment/payment"
+    "pages/payment/payment",
+    "pages/privacy-policy/privacy-policy",
+    "pages/user-agreement/user-agreement"
   ],
   "window": {
     "navigationBarTitleText": "凡人晨读营",

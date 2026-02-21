@@ -25,7 +25,7 @@
 
     <!-- 开发环境快速登录 -->
     <view wx:if="{{isDev}}" class="dev-quick-login">
-      <view class="dev-label">🔧 开发环境 - 快速登录</view>
+      <view class="dev-label">🔧 开发环境 - 快速登录 (isDev={{isDev}}, 用户数={{testUsers.length}})</view>
       <view class="test-users">
         <button
           wx:for="{{testUsers}}"
@@ -40,12 +40,37 @@
       </view>
     </view>
 
-    <!-- 用户协议 -->
-    <view class="agreement">
-      <text class="agreement-text">登录即表示同意</text>
-      <text class="agreement-link">《用户协议》</text>
-      <text class="agreement-text">和</text>
-      <text class="agreement-link">《隐私政策》</text>
+    <!-- 用户协议 - 明确同意 -->
+    <view class="agreement-section">
+      <view class="agreement-checkbox">
+        <checkbox
+          class="checkbox-item"
+          checked="{{agreePolicy}}"
+          bindchange="handlePolicyChange"
+        />
+        <text class="agreement-text">我已阅读并同意</text>
+      </view>
+      <view class="agreement-links">
+        <text
+          class="agreement-link"
+          bindtap="handleOpenAgreement"
+        >《用户协议》</text>
+        <text class="agreement-text">和</text>
+        <text
+          class="agreement-link"
+          bindtap="handleOpenPrivacy"
+        >《隐私政策》</text>
+      </view>
     </view>
+
+    <!-- 登录按钮（需要勾选协议才能启用） -->
+    <button
+      class="login-agree-btn {{!agreePolicy ? 'disabled' : ''}}"
+      bindtap="handleWechatLoginWithAgreement"
+      disabled="{{!agreePolicy || loading}}"
+    >
+      <text wx:if="{{!loading}}">同意并登录</text>
+      <text wx:else>登录中...</text>
+    </button>
   </view>
 </view>

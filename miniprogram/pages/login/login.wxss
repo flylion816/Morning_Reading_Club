@@ -149,23 +149,105 @@
   opacity: 0.6;
 }
 
-/* 用户协议 */
-.agreement {
+/* 用户协议 - 新样式 */
+.agreement-section {
+  margin-top: 40rpx;
+  padding: 24rpx;
+  background: #f9fafb;
+  border-radius: 12rpx;
+  border: 1rpx solid #e5e7eb;
+}
+
+.agreement-checkbox {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  font-size: 22rpx;
-  color: #9ca3af;
-  margin-top: 32rpx;
+  align-items: center;
+  margin-bottom: 12rpx;
+  font-size: 26rpx;
+  color: #374151;
+}
+
+.checkbox-item {
+  margin-right: 12rpx;
+  transform: scale(1.2);
 }
 
 .agreement-text {
-  color: #9ca3af;
+  color: #6b7280;
+  font-size: 26rpx;
+}
+
+.agreement-links {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-left: 42rpx;
 }
 
 .agreement-link {
   color: #4a90e2;
-  margin: 0 4rpx;
+  margin: 0 6rpx;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+/* 同意并登录按钮 */
+.login-agree-btn {
+  width: 100%;
+  padding: 32rpx;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.3);
+  transition: all 0.3s;
+  margin-top: 24rpx;
+}
+
+.login-agree-btn::after {
+  border: none;
+}
+
+.login-agree-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
+}
+
+.login-agree-btn.disabled {
+  opacity: 0.5;
+  background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+  box-shadow: none;
+}
+
+/* 旧的 wechat-login-btn 保留（用于微信登录） */
+.wechat-login-btn {
+  width: 100%;
+  padding: 32rpx;
+  background: linear-gradient(135deg, #07c160 0%, #05a650 100%);
+  color: white;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.3);
+  transition: all 0.3s;
+  margin-bottom: 32rpx;
+}
+
+.wechat-login-btn::after {
+  border: none;
+}
+
+.wechat-login-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.3);
+}
+
+.wechat-login-btn.loading {
+  opacity: 0.7;
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
 }
 
 /* 返回按钮 */
