@@ -78,11 +78,11 @@
 /* 微信登录按钮 */
 .wechat-login-btn {
   width: 100%;
-  padding: 32rpx;
+  padding: 24rpx;
   background: linear-gradient(135deg, #07c160 0%, #05a650 100%);
   color: white;
   border-radius: 16rpx;
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 600;
   border: none;
   box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.3);
@@ -126,11 +126,11 @@
 }
 
 .test-user-btn {
-  padding: 20rpx 16rpx;
+  padding: 14rpx 12rpx;
   background: #f3f4f6;
   color: #374151;
   border-radius: 12rpx;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 500;
   border: 2rpx solid #d1d5db;
   transition: all 0.3s;
@@ -152,10 +152,11 @@
 /* 用户协议 - 新样式 */
 .agreement-section {
   margin-top: 40rpx;
-  padding: 24rpx;
+  padding: 32rpx 24rpx;
   background: #f9fafb;
   border-radius: 12rpx;
   border: 1rpx solid #e5e7eb;
+  min-height: 100rpx;
 }
 
 .agreement-checkbox {
@@ -164,16 +165,18 @@
   margin-bottom: 12rpx;
   font-size: 26rpx;
   color: #374151;
+  line-height: 1.6;
 }
 
 .checkbox-item {
   margin-right: 12rpx;
-  transform: scale(1.2);
+  flex-shrink: 0;
 }
 
 .agreement-text {
   color: #6b7280;
   font-size: 26rpx;
+  line-height: 1.6;
 }
 
 .agreement-links {
@@ -182,6 +185,8 @@
   font-size: 24rpx;
   color: #6b7280;
   margin-left: 42rpx;
+  margin-bottom: 4rpx;
+  line-height: 1.6;
 }
 
 .agreement-link {
@@ -194,11 +199,11 @@
 /* 同意并登录按钮 */
 .login-agree-btn {
   width: 100%;
-  padding: 32rpx;
+  padding: 24rpx;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
   border-radius: 16rpx;
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 600;
   border: none;
   box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.3);
@@ -224,11 +229,11 @@
 /* 旧的 wechat-login-btn 保留（用于微信登录） */
 .wechat-login-btn {
   width: 100%;
-  padding: 32rpx;
+  padding: 24rpx;
   background: linear-gradient(135deg, #07c160 0%, #05a650 100%);
   color: white;
   border-radius: 16rpx;
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 600;
   border: none;
   box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.3);
