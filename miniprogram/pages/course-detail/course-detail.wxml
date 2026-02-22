@@ -124,12 +124,12 @@
                     <text class="reply-time">{{reply.createTime}}</text>
                   </view>
                   <view class="reply-text">{{reply.content}}</view>
-                  <view class="reply-footer">
-                    <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}">
+                  <view class="reply-footer" style="pointer-events: auto;">
+                    <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{reply.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
                       <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">❤️</text>
                       <text class="like-count">{{reply.likeCount || 0}}</text>
                     </view>
-                    <view class="reply-reply" bindtap="handleReplyToReply" data-comment-id="{{reply.id}}" data-reply-id="{{reply.userId}}" data-user-name="{{reply.userName}}">
+                    <view class="reply-reply" bindtap="handleReplyToReply" data-comment-id="{{reply.id}}" data-reply-id="{{reply.userId}}" data-user-name="{{reply.userName}}" style="pointer-events: auto;">
                       <text class="reply-icon">💬</text>
                       <text>回复</text>
                     </view>
