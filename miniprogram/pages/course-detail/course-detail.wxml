@@ -125,7 +125,7 @@
                   </view>
                   <view class="reply-text">{{reply.content}}</view>
                   <view class="reply-footer" style="pointer-events: auto;">
-                    <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{reply.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
+                    <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
                       <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">❤️</text>
                       <text class="like-count">{{reply.likeCount || 0}}</text>
                     </view>
