@@ -223,6 +223,20 @@ Page({
           );
 
           if (parentCheckin) {
+            // 格式化Comment中的回复（嵌套回复）
+            const formattedNestedReplies = (comment.replies || []).map(reply => ({
+              id: reply._id,
+              userId: reply.userId?._id || reply.userId,
+              userName: reply.userId?.nickname || '匿名用户',
+              avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
+              avatarUrl: reply.userId?.avatarUrl || '',
+              avatarColor: '#9cb5f0',
+              content: reply.content || '',
+              createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
+              likeCount: 0,
+              isLiked: false
+            }));
+
             // 格式化Comment
             const formattedComment = {
               id: comment._id,
@@ -235,7 +249,7 @@ Page({
               createTime: comment.createdAt ? this.formatTime(comment.createdAt) : '刚刚',
               likeCount: comment.likeCount || 0,
               isLiked: false,
-              replies: comment.replies || []
+              replies: formattedNestedReplies
             };
             parentCheckin.replies.push(formattedComment);
           }
@@ -262,6 +276,17 @@ Page({
                 reply.avatarText = reply.userName
                   ? reply.userName.charAt(reply.userName.length - 1)
                   : '';
+              }
+
+              // 添加嵌套回复的头像文字
+              if (reply.replies && reply.replies.length > 0) {
+                reply.replies.forEach(nestedReply => {
+                  if (!nestedReply.avatarText) {
+                    nestedReply.avatarText = nestedReply.userName
+                      ? nestedReply.userName.charAt(0)
+                      : '👤';
+                  }
+                });
               }
             });
           }
@@ -577,6 +602,16 @@ Page({
 
                     checkin.replies[commentIdx].replies = formattedReplies;
                     checkin.replies[commentIdx].replyCount = updatedCommentData.replyCount || 0;
+
+                    // 🔍 调试日志：验证嵌套回复数据结构
+                    console.log('✅ 更新后的评论结构:');
+                    console.log('   - 评论ID:', checkin.replies[commentIdx].id);
+                    console.log('   - 评论内容:', checkin.replies[commentIdx].content);
+                    console.log('   - 回复总数:', checkin.replies[commentIdx].replyCount);
+                    console.log('   - 回复列表:', checkin.replies[commentIdx].replies);
+                    if (checkin.replies[commentIdx].replies && checkin.replies[commentIdx].replies.length > 0) {
+                      console.log('   - 最后一条回复:', checkin.replies[commentIdx].replies[checkin.replies[commentIdx].replies.length - 1]);
+                    }
                   }
                 }
               }

@@ -444,3 +444,94 @@
   color: #999;
   padding: 8rpx 0;
 }
+
+/* 嵌套回复的样式（回复的回复） */
+.nested-replies-list {
+  margin-top: 16rpx;
+  padding-left: 20rpx;
+  border-left: 2rpx solid #f0f0f0;
+}
+
+.nested-reply-item {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12rpx;
+  position: relative;
+}
+
+.nested-reply-left-line {
+  width: 2rpx;
+  background: linear-gradient(180deg, #e8f4fd 0%, #f5faff 100%);
+  border-radius: 1rpx;
+  flex-shrink: 0;
+  margin-right: 12rpx;
+}
+
+.nested-reply-main {
+  flex: 1;
+  display: flex;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.nested-reply-avatar {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nested-reply-avatar .avatar-text {
+  font-size: 20rpx;
+  color: white;
+  font-weight: bold;
+}
+
+.nested-reply-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.nested-reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6rpx;
+}
+
+.nested-reply-user {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.nested-reply-text {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 8rpx;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.nested-reply-time {
+  font-size: 20rpx;
+  color: #bbb;
+}
+
+.nested-reply-footer {
+  display: flex;
+  gap: 24rpx;
+}
+
+.nested-reply-like {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 20rpx;
+  color: #bbb;
+  padding: 6rpx 0;
+}

@@ -15,7 +15,7 @@ Page({
       diaryCount: 0,
       featuredCount: 0,
       likeCount: 0,
-      totalDays: 0,
+      totalCheckins: 0,
       consecutiveDays: 0
     },
 

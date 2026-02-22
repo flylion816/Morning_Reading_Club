@@ -24,9 +24,16 @@
         enrolled="{{periodEnrollmentStatus[item._id]}}"
       />
 
-      <!-- 报名/已报名状态标签 -->
-      <view class="enrollment-label" wx:if="{{periodEnrollmentStatus[item._id]}}">
-        <text class="label-text enrolled-text">✓ 已报名</text>
+      <!-- 报名状态标签 -->
+      <view wx:if="{{periodEnrollmentStatus[item._id]}}">
+        <!-- 已报名 -->
+        <view class="enrollment-label enrolled" wx:if="{{periodEnrollmentStatus[item._id].isEnrolled}}">
+          <text class="label-text">✓ 已报名</text>
+        </view>
+        <!-- 未报名 -->
+        <view class="enrollment-label not-enrolled" wx:if="{{!periodEnrollmentStatus[item._id].isEnrolled}}">
+          <text class="label-text">未报名</text>
+        </view>
       </view>
     </view>
 

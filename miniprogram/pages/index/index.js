@@ -103,10 +103,14 @@ Page({
       let periods = res.list || res.items || res || [];
 
       // 为每个期次计算状态（基于日期而不是数据库status字段）
-      periods = periods.map(period => ({
-        ...period,
-        calculatedStatus: calculatePeriodStatus(period.startDate, period.endDate)
-      }));
+      periods = periods.map(period => {
+        const calculatedStatus = calculatePeriodStatus(period.startDate, period.endDate);
+        return {
+          ...period,
+          calculatedStatus,
+          statusText: this.getCourseStatusText(calculatedStatus)
+        };
+      });
 
       // 按结束时间倒序排列
       periods.sort((a, b) => {
@@ -164,6 +168,15 @@ Page({
               ? `已报名 (支付状态: ${res.paymentStatus || 'unknown'})`
               : '未报名';
             console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
+
+            // 详细日志：用于调试
+            console.log(`  └─ API返回值:`, {
+              isEnrolled: res.isEnrolled,
+              paymentStatus: res.paymentStatus,
+              enrollmentId: res.enrollmentId,
+              userId: res.userId,
+              periodId: res.periodId
+            });
           })
           .catch(error => {
             console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
@@ -244,7 +257,13 @@ Page({
     const paymentStatus = enrollmentInfo.paymentStatus;
     const enrollmentId = enrollmentInfo.enrollmentId;
 
-    console.log('reportment info:', { isEnrolled, paymentStatus, enrollmentId });
+    console.log('📊 reportment info:', {
+      periodId,
+      isEnrolled,
+      paymentStatus,
+      enrollmentId,
+      fullEnrollmentInfo: enrollmentInfo
+    });
 
     // 获取计算后的期次状态（基于日期）
     const calculatedStatus = period.calculatedStatus;
@@ -317,7 +336,7 @@ Page({
     const statusMap = {
       not_started: '未开始',
       ongoing: '进行中',
-      completed: '已完成'
+      completed: '已结束'
     };
     return statusMap[status] || '未知';
   },

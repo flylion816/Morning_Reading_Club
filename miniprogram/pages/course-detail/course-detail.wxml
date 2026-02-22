@@ -134,6 +134,31 @@
                       <text>回复</text>
                     </view>
                   </view>
+
+                  <!-- 嵌套回复列表（回复的回复） -->
+                  <view class="nested-replies-list" wx:if="{{reply.replies && reply.replies.length > 0}}">
+                    <view class="nested-reply-item" wx:for="{{reply.replies}}" wx:key="id" wx:for-item="nestedReply">
+                      <view class="nested-reply-left-line"></view>
+                      <view class="nested-reply-main">
+                        <view class="nested-reply-avatar" style="background: {{nestedReply.avatarColor || '#9cb5f0'}}">
+                          <text class="avatar-text">{{nestedReply.avatarText}}</text>
+                        </view>
+                        <view class="nested-reply-content">
+                          <view class="nested-reply-header">
+                            <text class="nested-reply-user">{{nestedReply.userName}}</text>
+                            <text class="nested-reply-time">{{nestedReply.createTime}}</text>
+                          </view>
+                          <view class="nested-reply-text">{{nestedReply.content}}</view>
+                          <view class="nested-reply-footer" style="pointer-events: auto;">
+                            <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{nestedReply.id}}" style="pointer-events: auto;">
+                              <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">❤️</text>
+                              <text class="like-count">{{nestedReply.likeCount || 0}}</text>
+                            </view>
+                          </view>
+                        </view>
+                      </view>
+                    </view>
+                  </view>
                 </view>
               </view>
             </view>

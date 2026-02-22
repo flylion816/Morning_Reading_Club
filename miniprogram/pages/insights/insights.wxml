@@ -5,6 +5,7 @@
     <view class="header-desc">{{headerDesc}}</view>
   </view>
 
+  <!-- 小凡看见列表 -->
   <view class="insights-list">
     <view
       wx:for="{{insights}}"

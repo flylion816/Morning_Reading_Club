@@ -24,8 +24,8 @@
         <view class="stat-label">获赞</view>
       </view>
       <view class="stat-item">
-        <view class="stat-value">{{stats.totalDays}}</view>
-        <view class="stat-label">累计天数</view>
+        <view class="stat-value">{{stats.totalCheckins}}</view>
+        <view class="stat-label">累计次数</view>
       </view>
       <view class="stat-item">
         <view class="stat-value">{{stats.consecutiveDays}}</view>

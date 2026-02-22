@@ -41,15 +41,56 @@ Component({
       console.log('===== course-card onCardTap 被调用 =====');
       console.log('this.properties.course:', this.properties.course);
       console.log('this.properties.mode:', this.properties.mode);
+      console.log('this.properties.enrolled:', this.properties.enrolled);
 
       // 使用properties.course确保获取到正确的数据
       const course = this.properties.course;
-      const { mode } = this.properties;
+      const { mode, enrolled } = this.properties;
       const { isPending } = this.data;
 
-      // 期次模式：导航到课程列表
+      // 期次模式：检查报名状态后导航
       if (mode === 'period') {
-        console.log('期次模式，导航到课程列表');
+        console.log('📌 期次模式点击');
+
+        // 检查报名状态
+        const isEnrolled = enrolled && enrolled.isEnrolled;
+        const paymentStatus = enrolled && enrolled.paymentStatus;
+        const calculatedStatus = course.calculatedStatus; // 'not_started'|'ongoing'|'completed'
+
+        console.log('报名信息检查:', { isEnrolled, paymentStatus, enrolled, calculatedStatus });
+
+        // 如果未报名，显示不同的提示取决于期次状态
+        if (!isEnrolled) {
+          if (calculatedStatus === 'completed') {
+            // 已结束未报名 → 提示已结束
+            wx.showToast({
+              title: '此期晨读营已结束，请报名最新一期，谢谢！',
+              icon: 'none',
+              duration: 2500
+            });
+          } else {
+            // 进行中或未开始未报名 → 提示去报名
+            wx.showToast({
+              title: '请先报名此期晨读营',
+              icon: 'none',
+              duration: 2000
+            });
+          }
+          return;
+        }
+
+        // 已报名但未支付
+        if (paymentStatus !== 'paid') {
+          wx.showToast({
+            title: '请先完成支付',
+            icon: 'none',
+            duration: 2000
+          });
+          return;
+        }
+
+        // 已报名且已支付，才导航到课程列表
+        console.log('✅ 已报名且已支付，导航到课程列表');
         wx.navigateTo({
           url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
         });

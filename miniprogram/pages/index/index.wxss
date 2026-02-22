@@ -176,8 +176,14 @@
   font-weight: 600;
 }
 
-.enrolled-text {
+.enrollment-label.enrolled .label-text {
   background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
   color: white;
   box-shadow: 0 2rpx 8rpx rgba(76, 175, 80, 0.3);
+}
+
+.enrollment-label.not-enrolled .label-text {
+  background: #e0e0e0;
+  color: #666;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }

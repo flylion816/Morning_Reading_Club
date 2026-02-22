@@ -80,18 +80,18 @@ router.get('/requests/received', authMiddleware, getReceivedRequests);
 router.get('/requests/sent', authMiddleware, getSentRequests);
 
 /**
- * @route   PUT /api/v1/insights/requests/:requestId/approve
+ * @route   POST /api/v1/insights/requests/:requestId/approve
  * @desc    同意查看申请
  * @access  Private
  */
-router.put('/requests/:requestId/approve', authMiddleware, approveInsightRequest);
+router.post('/requests/:requestId/approve', authMiddleware, approveInsightRequest);
 
 /**
- * @route   PUT /api/v1/insights/requests/:requestId/reject
+ * @route   POST /api/v1/insights/requests/:requestId/reject
  * @desc    拒绝查看申请
  * @access  Private
  */
-router.put('/requests/:requestId/reject', authMiddleware, rejectInsightRequest);
+router.post('/requests/:requestId/reject', authMiddleware, rejectInsightRequest);
 
 /**
  * @route   PUT /api/v1/insights/requests/:requestId/revoke

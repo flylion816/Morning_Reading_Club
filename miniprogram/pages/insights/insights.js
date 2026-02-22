@@ -96,6 +96,7 @@ Page({
       logger.debug('Token存在?:', !!token);
       logger.debug('是否查看他人:', this.data.isOtherUser);
       logger.debug('目标用户ID:', this.data.userId);
+      logger.debug('🔍 准备加载数据，isOtherUser =', this.data.isOtherUser);
 
       if (!currentUserId) {
         logger.warn('用户未登录，无法加载小凡看见');
@@ -204,10 +205,15 @@ Page({
     }
   },
 
+  /**
+   * 点击 insight 项
+   */
   handleInsightClick(e) {
     const { id } = e.currentTarget.dataset;
     wx.navigateTo({
       url: `/pages/insight-detail/insight-detail?id=${id}`
     });
-  }
+  },
+
+
 });

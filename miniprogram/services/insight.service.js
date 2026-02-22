@@ -130,10 +130,11 @@ class InsightService {
   /**
    * 批准权限请求
    * @param {number} requestId 请求ID
+   * @param {Object} data 请求数据 {periodId}
    * @returns {Promise}
    */
-  approveRequest(requestId) {
-    return request.post(`/insights/requests/${requestId}/approve`);
+  approveRequest(requestId, data = {}) {
+    return request.post(`/insights/requests/${requestId}/approve`, data);
   }
 
   /**

@@ -2,6 +2,7 @@
 const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
+const enrollmentService = require('../../services/enrollment.service');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 
 Page({
@@ -117,11 +118,12 @@ Page({
     this.setData({ loading: true });
 
     try {
-      // 并行加载用户信息、统计信息和当前期次
-      const [userInfo, stats, periods] = await Promise.all([
+      // 并行加载用户信息、统计信息、当前期次和用户的报名信息
+      const [userInfo, stats, periods, userEnrollments] = await Promise.all([
         userService.getUserProfile(),
         userService.getUserStats(),
-        courseService.getPeriods()
+        courseService.getPeriods(),
+        enrollmentService.getUserEnrollments({ limit: 100 }).catch(() => ({ list: [] })) // 获取用户的报名列表
       ]);
 
       const app = getApp();
@@ -137,13 +139,25 @@ Page({
       console.log('处理后的periodsList长度:', periodsList.length);
       console.log('periodsList:', periodsList);
 
+      // 获取用户报名的期次ID列表
+      const enrollmentList = userEnrollments.list || userEnrollments || [];
+      const enrolledPeriodIds = enrollmentList
+        .filter(e => e.status === 'active' || e.status === 'completed')
+        .map(e => e.periodId?._id || e.periodId);
+
+      console.log('👤 用户已报名的期次:', enrolledPeriodIds);
+
       let currentPeriod = null;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
+      // 🚨 关键修复：只从用户报名的期次中选择
+      const enrolledPeriods = periodsList.filter(p => enrolledPeriodIds.includes(p._id));
+      console.log('用户报名的期次列表长度:', enrolledPeriods.length);
+
       // 基于当前日期选择期次
-      // 优先级：1) 包含今天的期次  2) ongoing状态  3) 最近的期次
-      for (const period of periodsList) {
+      // 优先级：1) 包含今天的期次且已报名  2) ongoing状态且已报名  3) 最近报名的期次
+      for (const period of enrolledPeriods) {
         const startDate = new Date(period.startDate || period.startTime || 0);
         const endDate = new Date(period.endDate || period.endTime || 0);
         startDate.setHours(0, 0, 0, 0);
@@ -152,7 +166,7 @@ Page({
         if (today >= startDate && today <= endDate) {
           currentPeriod = period;
           console.log(
-            '📅 根据日期范围找到当前期次:',
+            '📅 根据日期范围找到当前报名期次:',
             currentPeriod.name || currentPeriod.title,
             '(status:',
             currentPeriod.status + ')'
@@ -163,27 +177,32 @@ Page({
 
       if (!currentPeriod) {
         // 如果没有包含今天的期次，选择 ongoing 状态的
-        currentPeriod = periodsList.find(p => p.status === 'ongoing');
+        currentPeriod = enrolledPeriods.find(p => p.status === 'ongoing');
         if (currentPeriod) {
           console.log(
-            '⚠️ 未找到包含今天的期次，使用ongoing期次:',
+            '⚠️ 未找到包含今天的报名期次，使用ongoing期次:',
             currentPeriod.name || currentPeriod.title
           );
         }
       }
 
-      if (!currentPeriod) {
-        // 最后选择最新创建的期次
-        const sortedPeriods = [...periodsList].sort((a, b) => {
+      if (!currentPeriod && enrolledPeriods.length > 0) {
+        // 最后选择最新报名的期次
+        const sortedPeriods = [...enrolledPeriods].sort((a, b) => {
           const timeA = new Date(a.createdAt || 0).getTime();
           const timeB = new Date(b.createdAt || 0).getTime();
           return timeB - timeA; // 倒序
         });
         currentPeriod = sortedPeriods[0];
         console.log(
-          '⚠️ 未找到合适期次，使用最新的期次:',
+          '⚠️ 未找到合适报名期次，使用最新报名的期次:',
           currentPeriod?.name || currentPeriod?.title
         );
+      }
+
+      // 如果用户没有报名任何期次，currentPeriod 为 null
+      if (!currentPeriod) {
+        console.log('❌ 用户未报名任何期次，不显示今日任务');
       }
 
       // 获取今日课节（根据当前日期动态计算）
@@ -492,44 +511,92 @@ Page({
   /**
    * 加载收到的小凡看见请求
    */
-  loadInsightRequests() {
-    const app = getApp();
-    const currentUser = app.globalData.userInfo;
+  async loadInsightRequests() {
+    try {
+      const insightService = require('../../services/insight.service');
+      const app = getApp();
+      const currentUser = app.globalData.userInfo;
 
-    if (!currentUser || !currentUser._id) {
+      if (!currentUser || !currentUser._id) {
+        console.warn('用户未登录，无法加载小凡看见请求');
+        this.setData({ insightRequests: [] });
+        return;
+      }
+
+      console.log('📋 开始加载小凡看见请求...');
+
+      // 调用后端API获取接收到的待处理申请（status === 'pending'）
+      const res = await insightService.getReceivedRequests({ status: 'pending' });
+
+      console.log('📋 API 返回原始响应:', res);
+      console.log('📋 是否为数组?:', Array.isArray(res));
+      console.log('📋 是否有 data 字段?:', res && res.data ? 'YES' : 'NO');
+
+      // request.js会自动解包响应，返回 data 字段
+      let receivedRequests = [];
+      if (Array.isArray(res)) {
+        receivedRequests = res;
+      } else if (res && Array.isArray(res.data)) {
+        receivedRequests = res.data;
+      } else if (res && Array.isArray(res.list)) {
+        receivedRequests = res.list;
+      }
+
+      console.log('✅ 小凡看见请求加载成功，共', receivedRequests.length, '条');
+      console.log('✅ 请求数据:', JSON.stringify(receivedRequests));
+
+      // 格式化数据以匹配WXML期望的字段
+      const formatted = receivedRequests.map(item => {
+        // 从 fromUserId 对象中提取信息
+        const fromUser = item.fromUserId || {};
+
+        // 格式化时间：如果是ISO日期，显示相对时间
+        let displayTime = '刚刚';
+        if (item.createdAt) {
+          const createdTime = new Date(item.createdAt).getTime();
+          const now = Date.now();
+          const diffMs = now - createdTime;
+          const diffMinutes = Math.floor(diffMs / 60000);
+          const diffHours = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / 86400000);
+
+          if (diffMinutes < 1) {
+            displayTime = '刚刚';
+          } else if (diffMinutes < 60) {
+            displayTime = `${diffMinutes}分钟前`;
+          } else if (diffHours < 24) {
+            displayTime = `${diffHours}小时前`;
+          } else if (diffDays < 7) {
+            displayTime = `${diffDays}天前`;
+          } else {
+            displayTime = new Date(item.createdAt).toLocaleDateString('zh-CN');
+          }
+        }
+
+        return {
+          id: item._id || item.id,
+          _id: item._id || item.id,
+          fromUserId: item.fromUserId,
+          fromUserName: fromUser.nickname || fromUser.name || '用户',
+          fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
+          avatarColor: fromUser.avatarColor || '#4a90e2',
+          toUserId: item.toUserId,
+          time: displayTime,
+          status: item.status,
+          createdAt: item.createdAt,
+          periodId: item.periodId
+        };
+      });
+
+      console.log('📦 格式化后的请求:', formatted);
+
+      this.setData({
+        insightRequests: formatted
+      });
+    } catch (error) {
+      console.error('加载小凡看见请求失败:', error);
       this.setData({ insightRequests: [] });
-      return;
     }
-
-    // 从本地存储读取所有申请
-    let allRequests = wx.getStorageSync('insight_requests') || [];
-
-    // 筛选出发给当前用户的待处理申请
-    let myRequests = allRequests.filter(
-      req => req.toUserId === currentUser._id && req.status === 'pending'
-    );
-
-    // 如果没有待处理申请，添加一个Mock申请（仅用于演示）
-    if (myRequests.length === 0) {
-      const mockRequest = {
-        id: Date.now(),
-        fromUserId: 1, // 阿泰的用户ID
-        fromUserName: '阿泰',
-        fromUserAvatar: '泰', // 使用名字的最后一个字
-        avatarColor: '#4a90e2', // 蓝色圆形背景
-        toUserId: currentUser._id,
-        toUserName: currentUser.nickname,
-        time: '2小时前',
-        status: 'pending'
-      };
-      myRequests = [mockRequest];
-    }
-
-    console.log('收到的小凡看见请求:', myRequests);
-
-    this.setData({
-      insightRequests: myRequests
-    });
   },
 
   /**
@@ -665,29 +732,51 @@ Page({
    */
   async approveRequest(request) {
     try {
-      console.log('批准请求:', request);
+      console.log('📨 批准请求:', request);
 
-      // 从本地存储更新请求状态
-      let allRequests = wx.getStorageSync('insight_requests') || [];
-      const requestIndex = allRequests.findIndex(r => r.id === request.id);
+      const insightService = require('../../services/insight.service');
+      const app = getApp();
 
-      if (requestIndex !== -1) {
-        allRequests[requestIndex].status = 'approved';
-        wx.setStorageSync('insight_requests', allRequests);
+      const requestId = request._id || request.id;
+
+      // 优先使用申请中的 periodId，如果没有则从全局数据中获取
+      let periodId = request.periodId;
+      if (!periodId) {
+        // 尝试从多个来源获取 periodId
+        periodId = app.globalData.periods?.[0]?._id ||
+                   app.globalData.currentPeriodId ||
+                   this.data.currentPeriod?._id ||
+                   this.data.currentPeriod?.id ||
+                   '';
       }
 
-      // 从待处理列表中移除该请求
-      const newRequests = this.data.insightRequests.filter(r => r.id !== request.id);
+      if (!periodId) {
+        wx.showToast({
+          title: '无法获取期次信息，请稍后重试',
+          icon: 'none'
+        });
+        return;
+      }
+
+      console.log('📋 使用期次ID:', periodId);
+
+      // 调用后端API批准申请
+      await insightService.approveRequest(requestId, { periodId });
+
+      console.log('✅ 申请已批准');
+
+      // 从列表中移除该申请
+      const newRequests = this.data.insightRequests.filter(r => (r._id || r.id) !== requestId);
       this.setData({ insightRequests: newRequests });
 
       wx.showToast({
-        title: '已授权',
+        title: '已批准申请',
         icon: 'success'
       });
     } catch (error) {
-      console.error('授权失败:', error);
+      console.error('❌ 批准申请失败:', error);
       wx.showToast({
-        title: '授权失败',
+        title: '批准失败',
         icon: 'none'
       });
     }
@@ -698,29 +787,30 @@ Page({
    */
   async rejectRequest(request) {
     try {
-      console.log('拒绝请求:', request);
+      console.log('📨 拒绝请求:', request);
 
-      // 从本地存储更新请求状态
-      let allRequests = wx.getStorageSync('insight_requests') || [];
-      const requestIndex = allRequests.findIndex(r => r.id === request.id);
+      const insightService = require('../../services/insight.service');
+      const requestId = request._id || request.id;
 
-      if (requestIndex !== -1) {
-        allRequests[requestIndex].status = 'rejected';
-        wx.setStorageSync('insight_requests', allRequests);
-      }
+      // 调用后端API拒绝申请
+      await insightService.rejectRequest(requestId, {
+        reason: '暂不同意'
+      });
+
+      console.log('✅ 申请已拒绝');
 
       // 从待处理列表中移除该请求
-      const newRequests = this.data.insightRequests.filter(r => r.id !== request.id);
+      const newRequests = this.data.insightRequests.filter(r => (r._id || r.id) !== requestId);
       this.setData({ insightRequests: newRequests });
 
       wx.showToast({
-        title: '已拒绝',
+        title: '已拒绝申请',
         icon: 'success'
       });
     } catch (error) {
-      console.error('拒绝失败:', error);
+      console.error('❌ 拒绝申请失败:', error);
       wx.showToast({
-        title: '操作失败',
+        title: '拒绝失败',
         icon: 'none'
       });
     }

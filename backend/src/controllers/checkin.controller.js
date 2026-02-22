@@ -166,7 +166,7 @@ async function getUserCheckins(req, res, next) {
       diaryCount: 0, // 日记总数（有内容的打卡）
       featuredCount: 0, // 精选次数
       likeCount: 0, // 获赞总数
-      totalDays: 0, // 总打卡天数
+      totalCheckins: 0, // 总打卡次数
       consecutiveDays: 0 // 连续打卡天数（待计算）
     };
 
@@ -176,13 +176,16 @@ async function getUserCheckins(req, res, next) {
     stats.diaryCount = allCheckins.filter(c => c.note && c.note.trim().length > 0).length;
     stats.featuredCount = allCheckins.filter(c => c.isFeatured).length;
     stats.likeCount = allCheckins.reduce((sum, c) => sum + (c.likeCount || 0), 0);
-    stats.totalDays = allCheckins.length;
+    stats.totalCheckins = allCheckins.length;
 
     // 计算连续打卡天数
+    // ✅ Bug修复：从最新打卡日期开始计算，而不是从今天开始
     if (allCheckins.length > 0) {
       const sortedCheckins = allCheckins.sort((a, b) => b.checkinDate - a.checkinDate);
       let consecutive = 0;
-      let expectedDate = new Date();
+
+      // 从最新打卡日期开始计算
+      let expectedDate = new Date(sortedCheckins[0].checkinDate);
       expectedDate.setHours(0, 0, 0, 0);
 
       for (const checkin of sortedCheckins) {

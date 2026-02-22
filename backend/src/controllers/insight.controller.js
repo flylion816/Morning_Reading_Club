@@ -162,8 +162,8 @@ async function getUserInsights(req, res, next) {
       ];
       query = { $or: orConditions };
     } else {
-      // 查看他人的insights（只返回他人创建的）
-      query = { userId: targetUserId, ...baseQuery };
+      // 查看他人的insights（只返回分配给他人的）
+      query = { targetUserId: targetUserId, ...baseQuery };
     }
 
     const total = await Insight.countDocuments(query);
