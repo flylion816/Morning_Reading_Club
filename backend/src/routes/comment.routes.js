@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
 const {
@@ -10,18 +11,25 @@ const {
 } = require('../controllers/comment.controller');
 
 /**
- * @route   GET /api/v1/comments/checkin/:checkinId
- * @desc    获取打卡的评论列表（第一优先级路由）
- * @access  Private
- */
-router.get('/checkin/:checkinId', authMiddleware, getCommentsByCheckin);
-
-/**
  * @route   POST /api/v1/comments/:commentId/replies
  * @desc    回复评论
  * @access  Private
  */
 router.post('/:commentId/replies', authMiddleware, replyToComment);
+
+/**
+ * @route   DELETE /api/v1/comments/:commentId/replies/:replyId
+ * @desc    删除回复
+ * @access  Private
+ */
+router.delete('/:commentId/replies/:replyId', authMiddleware, deleteReply);
+
+/**
+ * @route   GET /api/v1/comments/checkin/:checkinId
+ * @desc    获取打卡的评论列表（注意顺序，/:commentId 路由之后）
+ * @access  Private
+ */
+router.get('/checkin/:checkinId', authMiddleware, getCommentsByCheckin);
 
 /**
  * @route   DELETE /api/v1/comments/:commentId/replies/:replyId
