@@ -411,7 +411,9 @@ Page({
               id: replyData._id || replyData.id || Date.now(),
               userId: currentUser?._id || currentUser?.id,
               userName: currentUser?.nickname || '我',
-              avatarText: currentUser?.nickname ? currentUser.nickname.charAt(currentUser.nickname.length - 1) : '我',
+              avatarText: currentUser?.nickname
+                ? currentUser.nickname.charAt(currentUser.nickname.length - 1)
+                : '我',
               avatarColor: '#7eb5f0',
               content: res.content.trim(),
               createTime: '刚刚',
@@ -478,13 +480,41 @@ Page({
 
   /**
    * 回复某条回复
+   * 参数：
+   *   - checkinId: 打卡记录ID（打卡列表的ID）
+   *   - commentId: 评论ID（打卡的评论）
+   *   - replyId: 被回复的用户ID（评论的回复者）
+   *   - userName: 被回复的用户名
    */
   async handleReplyToReply(e) {
-    const { commentId, replyId, userName } = e.currentTarget.dataset;
-    const comments = this.data.course.comments;
-    const comment = comments.find(c => c.id === commentId);
+    const { checkinId, commentId, replyId, userName } = e.currentTarget.dataset;
+
+    console.log('📝 准备回复:', { checkinId, commentId, replyId, userName });
+
+    // 验证必要参数
+    if (!checkinId || !commentId || !replyId) {
+      console.error('❌ 参数不完整', { checkinId, commentId, replyId });
+      wx.showToast({
+        title: '参数错误',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 在 course.comments（打卡列表）中找到这个打卡
+    const checkins = this.data.course.comments;
+    const checkin = checkins.find(c => c.id === checkinId);
+
+    if (!checkin || !checkin.replies) {
+      console.error('❌ 找不到打卡或评论列表', { checkinId, checkin });
+      return;
+    }
+
+    // 在打卡的 replies（评论列表）中找到这条评论
+    const comment = checkin.replies.find(c => c.id === commentId);
 
     if (!comment) {
+      console.error('❌ 找不到评论', { commentId });
       return;
     }
 
@@ -499,12 +529,17 @@ Page({
             const app = getApp();
             const currentUser = app.globalData.userInfo;
 
-            console.log('📝 回复评论，commentId:', commentId, 'replyId:', replyId);
+            console.log(
+              '📝 提交回复: commentId=' +
+                commentId +
+                ', content=' +
+                res.content.trim().substring(0, 20)
+            );
 
-            // 调用API保存回复
+            // 调用API保存回复到这条评论
             const replyData = await commentService.replyComment(commentId, {
               content: res.content.trim(),
-              replyToUserId: replyId // 标记回复的是哪条回复
+              replyToUserId: replyId // 标记回复的是哪个用户
             });
 
             console.log('✅ 回复已保存到数据库:', replyData);
@@ -514,7 +549,9 @@ Page({
               id: replyData._id || replyData.id || Date.now(),
               userId: currentUser?._id || currentUser?.id,
               userName: currentUser?.nickname || '我',
-              avatarText: currentUser?.nickname ? currentUser.nickname.charAt(currentUser.nickname.length - 1) : '我',
+              avatarText: currentUser?.nickname
+                ? currentUser.nickname.charAt(currentUser.nickname.length - 1)
+                : '我',
               avatarColor: '#7eb5f0',
               content: res.content.trim(),
               createTime: '刚刚',
@@ -523,15 +560,15 @@ Page({
               replyTo: userName // 标记这是回复谁的
             };
 
-            // 添加到回复列表
+            // 将新回复添加到评论的回复列表
             if (!comment.replies) {
               comment.replies = [];
             }
             comment.replies.push(newReply);
 
-            // 更新数据
+            // 更新页面数据
             this.setData({
-              'course.comments': comments
+              'course.comments': checkins
             });
 
             wx.showToast({
@@ -539,7 +576,7 @@ Page({
               icon: 'success'
             });
           } catch (error) {
-            console.error('回复失败:', error);
+            console.error('❌ 回复失败:', error);
             wx.showToast({
               title: '回复失败，请重试',
               icon: 'none'

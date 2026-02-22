@@ -23,7 +23,7 @@ const envConfig = {
   dev: {
     // 后端配置
     backend: {
-      mongodbUri: 'mongodb://admin:admin123@localhost:27017/morning_reading_db?authSource=admin',
+      mongodbUri: 'mongodb://localhost:27017/morning_reading_db',
       nodeEnv: 'development',
       port: 3000,
     },
