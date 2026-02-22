@@ -32,13 +32,6 @@ router.delete('/:commentId/replies/:replyId', authMiddleware, deleteReply);
 router.get('/checkin/:checkinId', authMiddleware, getCommentsByCheckin);
 
 /**
- * @route   DELETE /api/v1/comments/:commentId/replies/:replyId
- * @desc    删除回复
- * @access  Private
- */
-router.delete('/:commentId/replies/:replyId', authMiddleware, deleteReply);
-
-/**
  * @route   POST /api/v1/comments
  * @desc    创建评论
  * @access  Private
