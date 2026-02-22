@@ -169,7 +169,8 @@
 }
 
 .checkbox-item {
-  margin-right: 12rpx;
+  transform: scale(0.8);  /* 缩小到80% */
+  margin-right: 8rpx;    /* 调整间距 */
   flex-shrink: 0;
 }
 
