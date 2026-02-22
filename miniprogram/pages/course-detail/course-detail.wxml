@@ -129,7 +129,7 @@
                       <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">❤️</text>
                       <text class="like-count">{{reply.likeCount || 0}}</text>
                     </view>
-                    <view class="reply-reply" bindtap="handleReplyToReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" data-user-name="{{reply.userName}}">
+                    <view class="reply-reply" bindtap="handleReplyToReply" data-comment-id="{{reply.id}}" data-reply-id="{{reply.userId}}" data-user-name="{{reply.userName}}">
                       <text class="reply-icon">💬</text>
                       <text>回复</text>
                     </view>
