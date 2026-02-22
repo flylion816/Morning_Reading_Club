@@ -125,6 +125,7 @@
 .diary-textarea {
   width: 100%;
   min-height: 300rpx;
+  padding: 12rpx 0;  /* ✅ 调整顶部和底部边距使光标对齐 */
   font-size: 28rpx;
   line-height: 1.6;
   color: #333;
