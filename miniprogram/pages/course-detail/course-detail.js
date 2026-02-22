@@ -537,34 +537,53 @@ Page({
             );
 
             // 调用API保存回复到这条评论
-            const replyData = await commentService.replyComment(commentId, {
+            // 后端返回的是整个更新后的 Comment 对象（包含更新的 replies 数组）
+            const updatedComment = await commentService.replyComment(commentId, {
               content: res.content.trim(),
               replyToUserId: replyId // 标记回复的是哪个用户
             });
 
-            console.log('✅ 回复已保存到数据库:', replyData);
+            console.log('✅ 回复已保存到数据库，更新后的评论:', updatedComment);
+            console.log('回复列表长度:', updatedComment.replies?.length);
 
-            // 创建新的回复对象
-            const newReply = {
-              id: replyData._id || replyData.id || Date.now(),
-              userId: currentUser?._id || currentUser?.id,
-              userName: currentUser?.nickname || '我',
-              avatarText: currentUser?.nickname
-                ? currentUser.nickname.charAt(currentUser.nickname.length - 1)
-                : '我',
-              avatarColor: '#7eb5f0',
-              content: res.content.trim(),
-              createTime: '刚刚',
-              likeCount: 0,
-              isLiked: false,
-              replyTo: userName // 标记这是回复谁的
-            };
+            // 重新加载该打卡的评论列表，确保前端数据与后端同步
+            // （因为后端返回的 replies 数据结构需要格式化才能显示）
+            try {
+              const refreshedComments = await commentService.getCommentsByCheckin(checkinId, {
+                limit: 100
+              });
 
-            // 将新回复添加到评论的回复列表
-            if (!comment.replies) {
-              comment.replies = [];
+              if (refreshedComments && refreshedComments.list) {
+                // 找到这条评论
+                const updatedCommentData = refreshedComments.list.find(c => c._id === commentId);
+
+                if (updatedCommentData && checkin.replies) {
+                  // 更新前端的这条评论数据
+                  const commentIdx = checkin.replies.findIndex(c => c.id === commentId);
+                  if (commentIdx !== -1) {
+                    // 重新格式化评论中的回复
+                    const formattedReplies = updatedCommentData.replies.map(reply => ({
+                      id: reply._id,
+                      userId: reply.userId?._id || reply.userId,
+                      userName: reply.userId?.nickname || '匿名用户',
+                      avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
+                      avatarUrl: reply.userId?.avatarUrl || '',
+                      avatarColor: '#7eb5f0',
+                      content: reply.content || '',
+                      createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
+                      likeCount: 0,
+                      isLiked: false
+                    }));
+
+                    checkin.replies[commentIdx].replies = formattedReplies;
+                    checkin.replies[commentIdx].replyCount = updatedCommentData.replyCount || 0;
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn('刷新评论数据失败:', err);
+              // 即使刷新失败也继续，不影响用户体验
             }
-            comment.replies.push(newReply);
 
             // 更新页面数据
             this.setData({
