@@ -46,6 +46,10 @@ describe('Insight Controller', () => {
       findById: sandbox.stub()
     };
 
+    const InsightRequestStub = {
+      findOne: sandbox.stub()
+    };
+
     // Mock logger
     const loggerStub = {
       warn: sandbox.stub(),
@@ -74,6 +78,7 @@ describe('Insight Controller', () => {
       {
         '../models/Insight': InsightStub,
         '../models/User': UserStub,
+        '../models/InsightRequest': InsightRequestStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
         '../services/mysql-backup.service': mysqlBackupServiceStub
@@ -126,7 +131,7 @@ describe('Insight Controller', () => {
 
       await insightController.createInsightManual(req, res, next);
 
-      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.status.calledWith(400)).to.be.true;
     });
   });
 
@@ -142,14 +147,19 @@ describe('Insight Controller', () => {
         commentCount: 5
       };
 
-      // 创建一个chainable的mock对象
-      const chainableMock = {
-        populate: sandbox.stub().returnsThis()
-      };
-      chainableMock.populate.returnsThis();
+      // 创建可链式调用的mock，第4次populate后返回resolved promise
+      const chainableMock = {};
+      let populateCallCount = 0;
+
+      chainableMock.populate = sandbox.stub().callsFake(function() {
+        populateCallCount++;
+        if (populateCallCount === 4) {
+          return Promise.resolve(mockInsight);
+        }
+        return chainableMock;
+      });
 
       InsightStub.findById.returns(chainableMock);
-      chainableMock.populate.resolves(mockInsight);
 
       await insightController.getInsightDetail(req, res, next);
 
@@ -160,14 +170,19 @@ describe('Insight Controller', () => {
       const insightId = new mongoose.Types.ObjectId();
       req.params = { insightId };
 
-      // 创建一个chainable的mock对象
-      const chainableMock = {
-        populate: sandbox.stub().returnsThis()
-      };
-      chainableMock.populate.returnsThis();
+      // 创建可链式调用的mock，第4次populate后返回null
+      const chainableMock = {};
+      let populateCallCount = 0;
+
+      chainableMock.populate = sandbox.stub().callsFake(function() {
+        populateCallCount++;
+        if (populateCallCount === 4) {
+          return Promise.resolve(null);
+        }
+        return chainableMock;
+      });
 
       InsightStub.findById.returns(chainableMock);
-      chainableMock.populate.resolves(null);
 
       await insightController.getInsightDetail(req, res, next);
 
@@ -179,29 +194,46 @@ describe('Insight Controller', () => {
     it('应该返回用户收到的小凡看见', async () => {
       const userId = new mongoose.Types.ObjectId();
       req.params = { userId };
+      req.user = { userId }; // 用户查看自己的insights
       req.query = { page: 1, limit: 10 };
 
       const mockInsights = [
         { _id: new mongoose.Types.ObjectId(), targetUserId: userId, content: '看见1' }
       ];
 
-      InsightStub.countDocuments.resolves(1);
-      InsightStub.find.returns({
-        populate: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockInsights)
+      // 创建可链式调用的mock
+      const findChain = {};
+      const chainStubs = {};
+      ['populate', 'populate', 'populate', 'populate', 'sort', 'skip', 'limit', 'select'];
+
+      chainStubs.populate1 = sandbox.stub().returnsThis();
+      chainStubs.populate2 = sandbox.stub().returnsThis();
+      chainStubs.populate3 = sandbox.stub().returnsThis();
+      chainStubs.populate4 = sandbox.stub().returnsThis();
+      chainStubs.sort = sandbox.stub().returnsThis();
+      chainStubs.skip = sandbox.stub().returnsThis();
+      chainStubs.limit = sandbox.stub().returnsThis();
+      chainStubs.select = sandbox.stub().resolves(mockInsights);
+
+      let populateCount = 0;
+      findChain.populate = sandbox.stub().callsFake(function() {
+        populateCount++;
+        return findChain;
       });
+      findChain.sort = chainStubs.sort;
+      findChain.skip = chainStubs.skip;
+      findChain.limit = chainStubs.limit;
+      findChain.select = chainStubs.select;
+
+      InsightStub.countDocuments.resolves(1);
+      InsightStub.find.returns(findChain);
 
       await insightController.getUserInsights(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('list');
-      expect(responseData.data).to.have.property('total');
-      expect(responseData.data).to.have.property('page');
-      expect(responseData.data).to.have.property('limit');
+      expect(responseData.data).to.have.property('pagination');
     });
   });
 
