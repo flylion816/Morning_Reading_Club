@@ -33,23 +33,23 @@ describe('InsightRequest Model', () => {
   describe('Schema Validation', () => {
     it('应该创建有效的观点请求', async () => {
       const request = await InsightRequest.create({
-        requesterId: userId,
-        targetUserId,
+        fromUserId: userId,
+        toUserId: targetUserId,
         periodId,
-        message: '可以分享你的想法吗？'
+        reason: '可以分享你的想法吗？'
       });
 
       expect(request._id).to.exist;
-      expect(request.requesterId.toString()).to.equal(userId.toString());
+      expect(request.fromUserId.toString()).to.equal(userId.toString());
       expect(request.status).to.equal('pending');
     });
 
     it('应该使用默认值', async () => {
       const request = await InsightRequest.create({
-        requesterId: new mongoose.Types.ObjectId(),
-        targetUserId: new mongoose.Types.ObjectId(),
+        fromUserId: new mongoose.Types.ObjectId(),
+        toUserId: new mongoose.Types.ObjectId(),
         periodId: new mongoose.Types.ObjectId(),
-        message: '请求'
+        reason: '请求'
       });
 
       expect(request.status).to.equal('pending');
@@ -59,38 +59,38 @@ describe('InsightRequest Model', () => {
   describe('Data Persistence', () => {
     it('应该保存并检索请求数据', async () => {
       const request = await InsightRequest.create({
-        requesterId: userId,
-        targetUserId,
+        fromUserId: userId,
+        toUserId: targetUserId,
         periodId,
-        message: '分享想法',
-        status: 'accepted'
+        reason: '分享想法',
+        status: 'approved'
       });
 
       const retrieved = await InsightRequest.findById(request._id);
-      expect(retrieved.message).to.equal('分享想法');
-      expect(retrieved.status).to.equal('accepted');
+      expect(retrieved.reason).to.equal('分享想法');
+      expect(retrieved.status).to.equal('approved');
     });
 
-    it('应该支持按targetUserId查询', async () => {
+    it('应该支持按toUserId查询', async () => {
       const requester = new mongoose.Types.ObjectId();
       const target = new mongoose.Types.ObjectId();
       const p = new mongoose.Types.ObjectId();
 
       await InsightRequest.create({
-        requesterId: requester,
-        targetUserId: target,
+        fromUserId: requester,
+        toUserId: target,
         periodId: p,
-        message: '请求1'
+        reason: '请求1'
       });
 
       await InsightRequest.create({
-        requesterId: new mongoose.Types.ObjectId(),
-        targetUserId: target,
+        fromUserId: new mongoose.Types.ObjectId(),
+        toUserId: target,
         periodId: p,
-        message: '请求2'
+        reason: '请求2'
       });
 
-      const requests = await InsightRequest.find({ targetUserId: target });
+      const requests = await InsightRequest.find({ toUserId: target });
       expect(requests).to.have.lengthOf(2);
     });
   });
@@ -98,10 +98,10 @@ describe('InsightRequest Model', () => {
   describe('Timestamps', () => {
     it('应该自动创建createdAt和updatedAt', async () => {
       const request = await InsightRequest.create({
-        requesterId: userId,
-        targetUserId,
+        fromUserId: userId,
+        toUserId: targetUserId,
         periodId,
-        message: '测试请求'
+        reason: '测试请求'
       });
 
       expect(request.createdAt).to.exist;

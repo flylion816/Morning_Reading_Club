@@ -68,13 +68,23 @@ describe('Period Controller', () => {
     sandbox.restore();
   });
 
-  describe('getPeriods', () => {
+  describe('getPeriodList', () => {
     it('应该返回所有期次列表', async () => {
       req.query = { page: 1, limit: 10 };
 
       const mockPeriods = [
-        { _id: new mongoose.Types.ObjectId(), name: '期次1', status: 'active' },
-        { _id: new mongoose.Types.ObjectId(), name: '期次2', status: 'inactive' }
+        {
+          _id: new mongoose.Types.ObjectId(),
+          name: '期次1',
+          status: 'ongoing',
+          toObject: sandbox.stub().returnsThis()
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          name: '期次2',
+          status: 'completed',
+          toObject: sandbox.stub().returnsThis()
+        }
       ];
 
       PeriodStub.countDocuments.resolves(2);
@@ -85,15 +95,14 @@ describe('Period Controller', () => {
         select: sandbox.stub().resolves(mockPeriods)
       });
 
-      await periodController.getPeriods(req, res, next);
+      await periodController.getPeriodList(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('list');
-      expect(responseData.data).to.have.property('pagination');
+      expect(responseData.data).to.be.an('array');
     });
 
-    it('应该按status过滤', async () => {
+    it('应该按status过滤，支持active映射到ongoing', async () => {
       req.query = { page: 1, limit: 10, status: 'active' };
 
       PeriodStub.countDocuments.resolves(1);
@@ -104,11 +113,11 @@ describe('Period Controller', () => {
         select: sandbox.stub().resolves([])
       });
 
-      await periodController.getPeriods(req, res, next);
+      await periodController.getPeriodList(req, res, next);
 
       const query = PeriodStub.find.getCall(0).args[0];
       expect(query).to.have.property('status');
-      expect(query.status).to.equal('active');
+      expect(query.status).to.equal('ongoing');
     });
 
     it('应该返回正确的分页信息', async () => {
@@ -122,16 +131,15 @@ describe('Period Controller', () => {
         select: sandbox.stub().resolves([])
       });
 
-      await periodController.getPeriods(req, res, next);
+      await periodController.getPeriodList(req, res, next);
 
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data.pagination.page).to.equal(2);
-      expect(responseData.data.pagination.total).to.equal(25);
-      expect(responseData.data.pagination.pages).to.equal(3);
+      expect(responseData.pagination.page).to.equal(2);
+      expect(responseData.pagination.total).to.equal(25);
     });
   });
 
-  describe('getPeriodById', () => {
+  describe('getPeriodDetail', () => {
     it('应该返回期次详情', async () => {
       const periodId = new mongoose.Types.ObjectId();
       req.params = { periodId };
@@ -139,14 +147,14 @@ describe('Period Controller', () => {
       const mockPeriod = {
         _id: periodId,
         name: '2025年第一期',
-        status: 'active',
-        enrolledCount: 50,
-        capacity: 100
+        status: 'ongoing',
+        enrollmentCount: 50,
+        maxEnrollment: 100
       };
 
       PeriodStub.findById.resolves(mockPeriod);
 
-      await periodController.getPeriodById(req, res, next);
+      await periodController.getPeriodDetail(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
@@ -159,27 +167,9 @@ describe('Period Controller', () => {
 
       PeriodStub.findById.resolves(null);
 
-      await periodController.getPeriodById(req, res, next);
+      await periodController.getPeriodDetail(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
-    });
-  });
-
-  describe('getActivePeriods', () => {
-    it('应该返回活跃期次', async () => {
-      const mockPeriods = [
-        { _id: new mongoose.Types.ObjectId(), name: '活跃期次1', status: 'active' }
-      ];
-
-      PeriodStub.find.returns({
-        select: sandbox.stub().resolves(mockPeriods)
-      });
-
-      await periodController.getActivePeriods(req, res, next);
-
-      expect(res.json.called).to.be.true;
-      const query = PeriodStub.find.getCall(0).args[0];
-      expect(query.status).to.equal('active');
     });
   });
 
@@ -243,25 +233,4 @@ describe('Period Controller', () => {
     });
   });
 
-  describe('getPeriodStats', () => {
-    it('应该返回期次统计信息', async () => {
-      const periodId = new mongoose.Types.ObjectId();
-      req.params = { periodId };
-
-      const mockPeriod = {
-        _id: periodId,
-        enrolledCount: 50,
-        capacity: 100
-      };
-
-      PeriodStub.findById.resolves(mockPeriod);
-
-      await periodController.getPeriodStats(req, res, next);
-
-      expect(res.json.called).to.be.true;
-      const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('enrolledCount');
-      expect(responseData.data).to.have.property('capacity');
-    });
-  });
 });

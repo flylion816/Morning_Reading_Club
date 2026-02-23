@@ -53,33 +53,35 @@ describe('Payment Controller', () => {
     sandbox.restore();
   });
 
-  describe('createPayment', () => {
-    it('应该创建支付记录', async () => {
+  describe('initiatePayment', () => {
+    it('应该初始化支付订单', async () => {
       const userId = new mongoose.Types.ObjectId();
+      const enrollmentId = new mongoose.Types.ObjectId();
       req.user = { userId };
       req.body = {
-        amount: 99.99,
-        description: '课程费用',
-        paymentMethod: 'wechat'
+        enrollmentId,
+        paymentMethod: 'wechat',
+        amount: 99
       };
 
       const mockPayment = {
         _id: new mongoose.Types.ObjectId(),
         userId,
+        enrollmentId,
         ...req.body,
         status: 'pending'
       };
 
       PaymentStub.create.resolves(mockPayment);
 
-      await paymentController.createPayment(req, res, next);
+      await paymentController.initiatePayment(req, res, next);
 
       expect(PaymentStub.create.called).to.be.true;
       expect(res.json.called).to.be.true;
     });
   });
 
-  describe('getPaymentHistory', () => {
+  describe('getUserPayments', () => {
     it('应该返回用户的支付历史', async () => {
       const userId = new mongoose.Types.ObjectId();
       req.params = { userId };
@@ -93,28 +95,19 @@ describe('Payment Controller', () => {
         select: sandbox.stub().resolves([])
       });
 
-      await paymentController.getPaymentHistory(req, res, next);
+      await paymentController.getUserPayments(req, res, next);
 
       expect(res.json.called).to.be.true;
     });
   });
 
-  describe('getPaymentStats', () => {
-    it('应该返回支付统计数据', async () => {
-      req.query = {};
-
-      PaymentStub.countDocuments.resolves(100);
-
-      await paymentController.getPaymentStats(req, res, next);
-
-      expect(res.json.called).to.be.true;
-    });
-  });
-
-  describe('verifyPayment', () => {
-    it('应该验证支付结果', async () => {
+  describe('confirmPayment', () => {
+    it('应该确认支付', async () => {
+      const userId = new mongoose.Types.ObjectId();
       const paymentId = new mongoose.Types.ObjectId();
+      req.user = { userId };
       req.params = { paymentId };
+      req.body = { transactionId: 'txn_123456' };
 
       const mockPayment = {
         _id: paymentId,
@@ -123,7 +116,7 @@ describe('Payment Controller', () => {
 
       PaymentStub.findById.resolves(mockPayment);
 
-      await paymentController.verifyPayment(req, res, next);
+      await paymentController.confirmPayment(req, res, next);
 
       expect(res.json.called).to.be.true;
     });

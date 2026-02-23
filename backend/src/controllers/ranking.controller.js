@@ -3,6 +3,7 @@ const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 获取期次排行榜

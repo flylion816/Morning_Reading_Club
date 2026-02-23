@@ -8,6 +8,7 @@ const Payment = require('../../../src/models/Payment');
 
 describe('Payment Model', () => {
   let userId;
+  let enrollmentId;
   let periodId;
 
   before(async () => {
@@ -15,6 +16,7 @@ describe('Payment Model', () => {
       await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/test');
     }
     userId = new mongoose.Types.ObjectId();
+    enrollmentId = new mongoose.Types.ObjectId();
     periodId = new mongoose.Types.ObjectId();
   });
 
@@ -31,6 +33,7 @@ describe('Payment Model', () => {
   describe('Schema Validation', () => {
     it('应该创建有效的支付记录', async () => {
       const payment = await Payment.create({
+        enrollmentId,
         userId,
         periodId,
         amount: 99.99,
@@ -45,6 +48,7 @@ describe('Payment Model', () => {
 
     it('应该使用默认值', async () => {
       const payment = await Payment.create({
+        enrollmentId: new mongoose.Types.ObjectId(),
         userId: new mongoose.Types.ObjectId(),
         periodId: new mongoose.Types.ObjectId(),
         amount: 50,
@@ -52,13 +56,14 @@ describe('Payment Model', () => {
       });
 
       expect(payment.status).to.equal('pending');
-      expect(payment.transactionId).to.be.null;
+      expect(payment.paidAt).to.be.null;
     });
   });
 
   describe('Data Persistence', () => {
     it('应该保存并检索支付数据', async () => {
       const payment = await Payment.create({
+        enrollmentId,
         userId,
         periodId,
         amount: 99.99,
@@ -73,9 +78,11 @@ describe('Payment Model', () => {
 
     it('应该支持按userId查询', async () => {
       const u1 = new mongoose.Types.ObjectId();
+      const e1 = new mongoose.Types.ObjectId();
       const p = new mongoose.Types.ObjectId();
 
       await Payment.create({
+        enrollmentId: e1,
         userId: u1,
         periodId: p,
         amount: 50,
@@ -83,6 +90,7 @@ describe('Payment Model', () => {
       });
 
       await Payment.create({
+        enrollmentId: new mongoose.Types.ObjectId(),
         userId: u1,
         periodId: p,
         amount: 99,
@@ -98,6 +106,7 @@ describe('Payment Model', () => {
     it('应该验证amount最小值', async () => {
       try {
         await Payment.create({
+          enrollmentId,
           userId,
           periodId,
           amount: -1,
@@ -113,6 +122,7 @@ describe('Payment Model', () => {
   describe('Timestamps', () => {
     it('应该自动创建createdAt和updatedAt', async () => {
       const payment = await Payment.create({
+        enrollmentId,
         userId,
         periodId,
         amount: 50,

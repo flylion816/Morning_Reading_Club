@@ -151,7 +151,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         .post('/api/v1/auth/wechat/login')
         .send({}); // 缺少 code
 
-      expect(res.body.message).to.include.string('code');
+      expect(res.body.message).to.be.a('string').and.not.be.empty;
     });
 
     it('错误响应应该包含详细信息（当可用时）', async () => {

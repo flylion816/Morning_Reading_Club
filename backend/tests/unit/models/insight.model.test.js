@@ -94,7 +94,7 @@ describe('Insight Model', () => {
       expect(insight.targetUserId).to.be.null;
       expect(insight.type).to.equal('daily');
       expect(insight.mediaType).to.equal('text');
-      expect(insight.isPublic).to.be.true;
+      expect(insight.isPublished).to.be.true;
       expect(insight.likeCount).to.equal(0);
     });
 
@@ -200,26 +200,26 @@ describe('Insight Model', () => {
   });
 
   describe('Boolean Fields', () => {
-    it('应该接受isPublic为true', async () => {
+    it('应该接受isPublished为true', async () => {
       const insight = await Insight.create({
         userId,
         periodId,
         content: '内容',
-        isPublic: true
+        isPublished: true
       });
 
-      expect(insight.isPublic).to.be.true;
+      expect(insight.isPublished).to.be.true;
     });
 
-    it('应该接受isPublic为false', async () => {
+    it('应该接受isPublished为false', async () => {
       const insight = await Insight.create({
         userId,
         periodId,
         content: '内容',
-        isPublic: false
+        isPublished: false
       });
 
-      expect(insight.isPublic).to.be.false;
+      expect(insight.isPublished).to.be.false;
     });
   });
 
@@ -235,7 +235,7 @@ describe('Insight Model', () => {
         type: 'daily',
         mediaType: 'text',
         content: '这是一个有深度的观点分享',
-        isPublic: true,
+        isPublished: true,
         likeCount: 25
       });
 
@@ -246,7 +246,7 @@ describe('Insight Model', () => {
       expect(retrieved.type).to.equal('daily');
       expect(retrieved.mediaType).to.equal('text');
       expect(retrieved.content).to.equal('这是一个有深度的观点分享');
-      expect(retrieved.isPublic).to.be.true;
+      expect(retrieved.isPublished).to.be.true;
       expect(retrieved.likeCount).to.equal(25);
     });
 

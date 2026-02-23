@@ -12,6 +12,8 @@ describe('Logger Utils', () => {
   let logger;
 
   beforeEach(() => {
+    delete require.cache[require.resolve('../../../src/utils/logger')];
+
     sandbox = sinon.createSandbox();
 
     // Mock Winston logger

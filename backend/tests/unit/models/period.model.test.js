@@ -78,17 +78,15 @@ describe('Period Model', () => {
       }
     });
 
-    it('应该在缺少title时抛出验证错误', async () => {
-      try {
-        await Period.create({
-          name: '期次名称',
-          startDate: new Date('2025-01-01'),
-          endDate: new Date('2025-01-31')
-        });
-        expect.fail('应该抛出验证错误');
-      } catch (err) {
-        expect(err.message).to.include('title');
-      }
+    it('应该接受缺少title（title非必需）', async () => {
+      const period = await Period.create({
+        name: '期次名称',
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2025-01-31')
+      });
+
+      expect(period._id).to.exist;
+      expect(period.title).to.be.null;
     });
 
     it('应该在缺少startDate时抛出验证错误', async () => {

@@ -92,8 +92,7 @@ const auditLogSchema = new mongoose.Schema(
     // 时间戳
     timestamp: {
       type: Date,
-      default: Date.now,
-      index: true
+      default: Date.now
     }
   },
   {

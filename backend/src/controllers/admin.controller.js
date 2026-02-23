@@ -67,7 +67,7 @@ exports.login = async (req, res) => {
     );
   } catch (error) {
     logger.error('Admin login error', error);
-    return res.status(500).json(errors.internal('登录失败'));
+    return res.status(500).json(errors.serverError('登录失败'));
   }
 };
 
@@ -84,7 +84,7 @@ exports.getProfile = async (req, res) => {
     return res.json(success(admin.toJSON()));
   } catch (error) {
     logger.error('Get admin profile error', error);
-    return res.status(500).json(errors.internal('获取用户信息失败'));
+    return res.status(500).json(errors.serverError('获取用户信息失败'));
   }
 };
 
@@ -95,7 +95,7 @@ exports.logout = async (req, res) => {
     return res.json(success(null, '已登出'));
   } catch (error) {
     logger.error('Admin logout error', error);
-    return res.status(500).json(errors.internal('登出失败'));
+    return res.status(500).json(errors.serverError('登出失败'));
   }
 };
 
@@ -117,7 +117,7 @@ exports.refreshToken = async (req, res) => {
     return res.json(success({ accessToken }, 'Token 已刷新'));
   } catch (error) {
     logger.error('Refresh token error', error);
-    return res.status(500).json(errors.internal('Token 刷新失败'));
+    return res.status(500).json(errors.serverError('Token 刷新失败'));
   }
 };
 
@@ -148,7 +148,7 @@ exports.getAdmins = async (req, res) => {
     );
   } catch (error) {
     logger.error('Get admins error', error);
-    return res.status(500).json(errors.internal('获取管理员列表失败'));
+    return res.status(500).json(errors.serverError('获取管理员列表失败'));
   }
 };
 
@@ -183,7 +183,7 @@ exports.createAdmin = async (req, res) => {
     return res.json(success(newAdmin.toJSON(), '管理员创建成功'));
   } catch (error) {
     logger.error('Create admin error', error);
-    return res.status(500).json(errors.internal('创建管理员失败'));
+    return res.status(500).json(errors.serverError('创建管理员失败'));
   }
 };
 
@@ -214,7 +214,7 @@ exports.updateAdmin = async (req, res) => {
     return res.json(success(admin.toJSON(), '管理员信息已更新'));
   } catch (error) {
     logger.error('Update admin error', error);
-    return res.status(500).json(errors.internal('更新管理员失败'));
+    return res.status(500).json(errors.serverError('更新管理员失败'));
   }
 };
 
@@ -246,7 +246,7 @@ exports.changePassword = async (req, res) => {
     return res.json(success(null, '密码已修改'));
   } catch (error) {
     logger.error('Change password error', error);
-    return res.status(500).json(errors.internal('修改密码失败'));
+    return res.status(500).json(errors.serverError('修改密码失败'));
   }
 };
 
@@ -269,7 +269,7 @@ exports.deleteAdmin = async (req, res) => {
     return res.json(success(null, '管理员已删除'));
   } catch (error) {
     logger.error('Delete admin error', error);
-    return res.status(500).json(errors.internal('删除管理员失败'));
+    return res.status(500).json(errors.serverError('删除管理员失败'));
   }
 };
 
@@ -301,6 +301,6 @@ exports.initSuperAdmin = async (req, res) => {
     );
   } catch (error) {
     logger.error('Init super admin error', error);
-    return res.status(500).json(errors.internal('初始化超级管理员失败'));
+    return res.status(500).json(errors.serverError('初始化超级管理员失败'));
   }
 };

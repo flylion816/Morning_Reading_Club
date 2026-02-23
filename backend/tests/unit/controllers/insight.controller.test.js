@@ -69,7 +69,7 @@ describe('Insight Controller', () => {
     sandbox.restore();
   });
 
-  describe('createInsight', () => {
+  describe('createInsightManual', () => {
     it('应该创建新的小凡看见', async () => {
       const userId = new mongoose.Types.ObjectId();
       const targetUserId = new mongoose.Types.ObjectId();
@@ -79,42 +79,39 @@ describe('Insight Controller', () => {
       req.body = {
         targetUserId,
         periodId,
-        content: '我看到你的努力',
-        images: []
+        type: 'insight',
+        mediaType: 'text',
+        content: '我看到你的努力'
       };
 
-      const mockUser = { _id: userId, nickname: '观察者' };
       const mockInsight = {
         _id: new mongoose.Types.ObjectId(),
         ...req.body,
-        userId
+        userId,
+        status: 'completed'
       };
 
-      UserStub.findById.resolves(mockUser);
       InsightStub.create.resolves(mockInsight);
 
-      await insightController.createInsight(req, res, next);
+      await insightController.createInsightManual(req, res, next);
 
       expect(InsightStub.create.called).to.be.true;
       expect(res.status.calledWith(201)).to.be.true;
     });
 
-    it('应该返回404当被观察者不存在', async () => {
+    it('应该返回400当缺少必填字段', async () => {
       const userId = new mongoose.Types.ObjectId();
-      const targetUserId = new mongoose.Types.ObjectId();
 
       req.user = { userId };
-      req.body = { targetUserId, periodId: new mongoose.Types.ObjectId() };
+      req.body = { targetUserId: new mongoose.Types.ObjectId() };
 
-      UserStub.findById.resolves(null);
+      await insightController.createInsightManual(req, res, next);
 
-      await insightController.createInsight(req, res, next);
-
-      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.status.calledWith(400)).to.be.true;
     });
   });
 
-  describe('getInsightById', () => {
+  describe('getInsightDetail', () => {
     it('应该返回小凡看见详情', async () => {
       const insightId = new mongoose.Types.ObjectId();
       req.params = { insightId };
@@ -122,17 +119,17 @@ describe('Insight Controller', () => {
       const mockInsight = {
         _id: insightId,
         content: '我看到你的努力',
-        likeCount: 10,
-        commentCount: 5
+        likeCount: 10
       };
 
       InsightStub.findById.returns({
         populate: sandbox.stub().returnsThis(),
         populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().resolves(mockInsight)
+        populate: sandbox.stub().returnsThis(),
+        resolves: sandbox.stub().resolves(mockInsight)
       });
 
-      await insightController.getInsightById(req, res, next);
+      await insightController.getInsightDetail(req, res, next);
 
       expect(res.json.called).to.be.true;
     });
@@ -144,10 +141,11 @@ describe('Insight Controller', () => {
       InsightStub.findById.returns({
         populate: sandbox.stub().returnsThis(),
         populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().resolves(null)
+        populate: sandbox.stub().returnsThis(),
+        resolves: sandbox.stub().resolves(null)
       });
 
-      await insightController.getInsightById(req, res, next);
+      await insightController.getInsightDetail(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });

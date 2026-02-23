@@ -16,7 +16,7 @@ describe('Response Utils', () => {
       const data = { id: 1, name: 'test' };
       const response = success(data);
 
-      expect(response).to.have.property('code', 200);
+      expect(response).to.have.property('code', 0);
       expect(response).to.have.property('message', 'success');
       expect(response).to.have.property('data', data);
       expect(response).to.have.property('timestamp');
@@ -41,7 +41,7 @@ describe('Response Utils', () => {
       const response = success(null);
 
       expect(response.data).to.be.null;
-      expect(response.code).to.equal(200);
+      expect(response.code).to.equal(0);
     });
 
     it('应该支持数组数据', () => {
@@ -75,7 +75,7 @@ describe('Response Utils', () => {
       const pagination = { page: 1, pageSize: 10, total: 25 };
       const response = successWithPagination(items, pagination);
 
-      expect(response).to.have.property('code', 200);
+      expect(response).to.have.property('code', 0);
       expect(response).to.have.property('message', 'success');
       expect(response).to.have.property('data');
       expect(response.data).to.have.property('items', items);

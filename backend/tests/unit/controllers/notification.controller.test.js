@@ -72,19 +72,23 @@ describe('Notification Controller', () => {
     });
   });
 
-  describe('markAsRead', () => {
+  describe('markNotificationAsRead', () => {
     it('应该标记通知为已读', async () => {
+      const userId = new mongoose.Types.ObjectId();
       const notificationId = new mongoose.Types.ObjectId();
+      req.user = { userId };
       req.params = { notificationId };
 
       const mockNotification = {
         _id: notificationId,
-        isRead: true
+        userId,
+        isRead: true,
+        save: sandbox.stub().resolves()
       };
 
-      NotificationStub.findByIdAndUpdate.resolves(mockNotification);
+      NotificationStub.findById.resolves(mockNotification);
 
-      await notificationController.markAsRead(req, res, next);
+      await notificationController.markNotificationAsRead(req, res, next);
 
       expect(res.json.called).to.be.true;
     });

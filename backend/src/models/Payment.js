@@ -76,8 +76,7 @@ const PaymentSchema = new mongoose.Schema(
     // 订单号（用于对账）
     orderNo: {
       type: String,
-      unique: true,
-      index: true
+      unique: true
     },
 
     // 是否已核销（对账）
@@ -202,12 +201,6 @@ PaymentSchema.methods.startProcessing = function () {
   return this.save();
 };
 
-// 索引：用户-期次复合索引
-PaymentSchema.index({ userId: 1, periodId: 1 });
-// 索引：订单号索引
-PaymentSchema.index({ orderNo: 1 });
-// 索引：创建时间索引（用于统计）
-PaymentSchema.index({ createdAt: -1 });
 
 const Payment = mongoose.model('Payment', PaymentSchema);
 

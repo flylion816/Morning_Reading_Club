@@ -105,9 +105,9 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       const res = await request(app)
         .get('/api/v1/periods');
 
-      const dates = res.body.data.map(p => new Date(p.startDate));
-      expect(dates[0] <= dates[1]).to.be.true;
-      expect(dates[1] <= dates[2]).to.be.true;
+      const dates = res.body.data.map(p => new Date(p.endDate));
+      expect(dates[0] >= dates[1]).to.be.true;
+      expect(dates[1] >= dates[2]).to.be.true;
     });
   });
 
@@ -267,7 +267,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
           password: 'admin123456'
         });
 
-      adminToken = res.body.data.accessToken;
+      adminToken = res.body.data.token;
     });
 
     describe('POST /api/v1/admin/periods - 创建期次', () => {
@@ -507,7 +507,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
           password: 'admin123456'
         });
 
-      const adminToken = loginRes.body.data.accessToken;
+      const adminToken = loginRes.body.data.token;
 
       // 3. 创建期次
       const createPeriodRes = await request(app)
