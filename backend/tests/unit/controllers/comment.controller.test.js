@@ -34,6 +34,11 @@ describe('Comment Controller', () => {
       countDocuments: sandbox.stub()
     };
 
+    // 为 findById 返回值添加 populate 方法链
+    CommentStub.findById.returns({
+      populate: sandbox.stub().returnsThis()
+    });
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {

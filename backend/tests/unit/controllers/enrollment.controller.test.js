@@ -41,7 +41,10 @@ describe('Enrollment Controller', () => {
       findById: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
-      findByIdAndUpdate: sandbox.stub()
+      findByIdAndUpdate: sandbox.stub(),
+      getUserEnrollments: sandbox.stub(),
+      getPeriodMembers: sandbox.stub(),
+      getEnrollmentStats: sandbox.stub()
     };
 
     UserStub = {
@@ -148,21 +151,25 @@ describe('Enrollment Controller', () => {
   describe('getUserEnrollments', () => {
     it('应该返回用户的报名列表', async () => {
       const userId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
       req.params = { userId };
       req.query = { page: 1, limit: 10 };
+      req.user = { userId };
 
-      const mockEnrollments = [
-        { _id: new mongoose.Types.ObjectId(), userId, periodId: new mongoose.Types.ObjectId() }
-      ];
+      const mockEnrollmentResult = {
+        list: [
+          {
+            _id: new mongoose.Types.ObjectId(),
+            userId,
+            periodId: { _id: periodId, title: '期次名', description: '描述', startDate: new Date(), endDate: new Date(), coverImage: '' }
+          }
+        ],
+        total: 1,
+        page: 1,
+        limit: 10
+      };
 
-      EnrollmentStub.countDocuments.resolves(1);
-      EnrollmentStub.find.returns({
-        populate: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockEnrollments)
-      });
+      EnrollmentStub.getUserEnrollments.resolves(mockEnrollmentResult);
 
       await enrollmentController.getUserEnrollments(req, res, next);
 

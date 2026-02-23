@@ -39,6 +39,11 @@ describe('Admin Controller', () => {
       findByIdAndUpdate: sandbox.stub()
     };
 
+    // 为 findById 返回值添加 select 方法链
+    AdminStub.findById.returns({
+      select: sandbox.stub().resolves(null)
+    });
+
     const jwtStub = {
       generateTokens: sandbox.stub(),
       verifyRefreshToken: sandbox.stub()
@@ -112,7 +117,13 @@ describe('Admin Controller', () => {
         _id: adminId,
         name: '管理员',
         email: 'admin@test.com',
-        role: 'admin'
+        role: 'admin',
+        toJSON: sandbox.stub().returns({
+          _id: adminId,
+          name: '管理员',
+          email: 'admin@test.com',
+          role: 'admin'
+        })
       };
 
       AdminStub.findById.resolves(mockAdmin);
