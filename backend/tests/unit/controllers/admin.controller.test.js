@@ -106,7 +106,7 @@ describe('Admin Controller', () => {
   describe('getCurrentAdmin', () => {
     it('应该返回当前管理员信息', async () => {
       const adminId = new mongoose.Types.ObjectId();
-      req.user = { id: adminId };
+      req.admin = { id: adminId };
 
       const mockAdmin = {
         _id: adminId,
@@ -117,7 +117,7 @@ describe('Admin Controller', () => {
 
       AdminStub.findById.resolves(mockAdmin);
 
-      await adminController.getCurrentAdmin(req, res, next);
+      await adminController.getProfile(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
@@ -128,19 +128,20 @@ describe('Admin Controller', () => {
   describe('updateAdminProfile', () => {
     it('应该更新管理员资料', async () => {
       const adminId = new mongoose.Types.ObjectId();
-      req.user = { id: adminId };
+      req.admin = { id: adminId, role: 'superadmin' };
       req.body = { name: '新名称', phone: '13800138000' };
 
       const mockAdmin = {
         _id: adminId,
         name: '新名称',
         phone: '13800138000',
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves(),
+        toJSON: sandbox.stub().returns({ name: '新名称', email: 'admin@test.com' })
       };
 
       AdminStub.findById.resolves(mockAdmin);
 
-      await adminController.updateAdminProfile(req, res, next);
+      await adminController.updateAdmin(req, res, next);
 
       expect(res.json.called).to.be.true;
     });
@@ -149,7 +150,7 @@ describe('Admin Controller', () => {
   describe('changePassword', () => {
     it('应该成功修改密码', async () => {
       const adminId = new mongoose.Types.ObjectId();
-      req.user = { id: adminId };
+      req.admin = { id: adminId };
       req.body = {
         oldPassword: 'oldpass123',
         newPassword: 'newpass123'
@@ -158,6 +159,7 @@ describe('Admin Controller', () => {
       const mockAdmin = {
         _id: adminId,
         password: 'hashed_old',
+        comparePassword: sandbox.stub().resolves(true),
         save: sandbox.stub().resolves()
       };
 

@@ -38,6 +38,7 @@ describe('Enrollment Controller', () => {
       create: sandbox.stub(),
       findOne: sandbox.stub(),
       find: sandbox.stub(),
+      findById: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub()
@@ -86,12 +87,21 @@ describe('Enrollment Controller', () => {
 
       const mockPeriod = { _id: periodId, enrolledCount: 10, capacity: 100 };
       const mockUser = { _id: userId };
-      const mockEnrollment = { userId, periodId, enrolledAt: new Date() };
+      const mockEnrollment = {
+        _id: new mongoose.Types.ObjectId(),
+        userId,
+        periodId,
+        enrolledAt: new Date(),
+        populate: sandbox.stub().returnsThis()
+      };
 
       PeriodStub.findById.resolves(mockPeriod);
       UserStub.findById.resolves(mockUser);
       EnrollmentStub.findOne.resolves(null);
       EnrollmentStub.create.resolves(mockEnrollment);
+      EnrollmentStub.findById.returns({
+        populate: sandbox.stub().returnsThis()
+      });
       PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
 
       await enrollmentController.enrollPeriod(req, res, next);

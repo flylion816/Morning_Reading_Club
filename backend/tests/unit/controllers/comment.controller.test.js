@@ -64,8 +64,12 @@ describe('Comment Controller', () => {
       req.body = { targetId, content: '很好的想法' };
 
       const mockComment = { _id: new mongoose.Types.ObjectId(), ...req.body, userId };
+      const mockPopulatedComment = { ...mockComment, userId: { nickname: '用户名' } };
 
       CommentStub.create.resolves(mockComment);
+      CommentStub.findById.returns({
+        populate: sandbox.stub().resolves(mockPopulatedComment)
+      });
 
       await commentController.createComment(req, res, next);
 
