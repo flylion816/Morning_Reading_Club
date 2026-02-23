@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>晨读营数据存储层架构图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layer {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .layer-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .layer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .component {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .component:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .component-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .component-desc {
+            color: #666;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .component.primary {
+            border-left-color: #667eea;
+        }
+
+        .component.backup {
+            border-left-color: #f093fb;
+        }
+
+        .component.cache {
+            border-left-color: #4facfe;
+        }
+
+        .data-flow {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .flow-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .flow-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .flow-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .flow-item-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .flow-item-desc {
+            font-size: 12px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border-top: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-detail {
+            color: #999;
+            font-size: 11px;
+        }
+
+        .mongodb {
+            border-top-color: #13aa52;
+        }
+
+        .mysql {
+            border-top-color: #f093fb;
+        }
+
+        .redis {
+            border-top-color: #4facfe;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .comparison-table tr:hover {
+            background: #f0f0f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .badge-backup {
+            background: #f093fb;
+            color: white;
+        }
+
+        .badge-cache {
+            background: #4facfe;
+            color: white;
+        }
+
+        .arrow {
+            text-align: center;
+            font-size: 20px;
+            color: #667eea;
+            margin: 15px 0;
+        }
+
+        .diagram-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .diagram-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .sync-flow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            font-size: 12px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .sync-item {
+            padding: 8px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .sync-item.async {
+            background: #f093fb;
+        }
+
+        .sync-arrow {
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .notes {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .notes-title {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 8px;
+        }
+
+        .notes-content {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ 晨读营数据存储层架构</h1>
+        <p class="subtitle">MongoDB（主库）+ MySQL（备份库）+ Redis（缓存） 三层架构</p>
+
+        <div class="architecture">
+            <!-- 第1层：前端 -->
+            <div class="layer">
+                <div class="layer-title">🖥️ 第一层：用户终端</div>
+                <div class="layer-content">
+                    <div class="component">
+                        <div class="component-name">📱 微信小程序</div>
+                        <div class="component-desc">用户日常操作：登录、打卡、报名、评论、分享</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-name">🎨 Vue 管理后台</div>
+                        <div class="component-desc">管理员操作：期次管理、数据查看、权限控制</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-name">🔧 管理员 API</div>
+                        <div class="component-desc">直接 HTTP 调用，备份/恢复数据</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第2层：后端 -->
+            <div class="layer">
+                <div class="layer-title">🚀 第二层：Express.js 后端服务</div>
+                <div class="layer-content">
+                    <div class="component">
+                        <div class="component-name">🎯 Controller 层</div>
+                        <div class="component-desc">
+                            <strong>11 个业务控制器：</strong><br>
+                            auth、user、period、section<br>
+                            checkin、enrollment、payment<br>
+                            insight、comment、notification、admin
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-name">💾 数据驱动层</div>
+                        <div class="component-desc">
+                            Mongoose ODM<br>
+                            MongoDB Driver<br>
+                            Redis Client
+                        </div>
+                    </div>
+                    <div class="component backup">
+                        <div class="component-name">🔄 备份服务</div>
+                        <div class="component-desc">
+                            <strong>mysqlBackupService</strong><br>
+                            异步同步 MongoDB<br>
+                            → MySQL 数据
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据流向 -->
+            <div class="data-flow">
+                <div class="flow-title">📊 核心数据流向</div>
+                <div class="flow-content">
+                    <div class="flow-item">
+                        <div class="flow-item-title">🔴 写入流程</div>
+                        <div class="flow-item-desc">
+                            1. 用户操作<br>
+                            2. MongoDB 保存 ✅<br>
+                            3. 立即返回用户<br>
+                            4. 后台异步 → MySQL
+                        </div>
+                    </div>
+                    <div class="flow-item">
+                        <div class="flow-item-title">🔵 读取流程</div>
+                        <div class="flow-item-desc">
+                            1. 检查 Redis 缓存<br>
+                            2. 未命中 → MongoDB<br>
+                            3. 存入 Redis (TTL)<br>
+                            4. 返回数据给用户
+                        </div>
+                    </div>
+                    <div class="flow-item">
+                        <div class="flow-item-title">🟢 管理查询</div>
+                        <div class="flow-item-desc">
+                            1. 查 MongoDB 统计<br>
+                            2. 查 MySQL 统计<br>
+                            3. 对比一致性<br>
+                            4. 一键同步缺失数据
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第3层：数据库 -->
+            <div class="layer">
+                <div class="layer-title">🗄️ 第三层：数据存储</div>
+                <div class="layer-content">
+                    <div class="component primary">
+                        <div class="component-name">🎯 MongoDB (主库)</div>
+                        <div class="component-desc">
+                            <strong>角色：</strong>唯一真实数据源<br>
+                            <strong>存储：</strong>12 个 Collection<br>
+                            <strong>用途：</strong>业务实时查询<br>
+                            <strong>特点：</strong>灵活 Schema、支持数组
+                        </div>
+                    </div>
+                    <div class="component backup">
+                        <div class="component-name">💾 MySQL (备份库)</div>
+                        <div class="component-desc">
+                            <strong>角色：</strong>热备份副本<br>
+                            <strong>存储：</strong>14 张 Table<br>
+                            <strong>用途：</strong>数据安全保障<br>
+                            <strong>特点：</strong>SQL 统计、异步同步
+                        </div>
+                    </div>
+                    <div class="component cache">
+                        <div class="component-name">⚡ Redis (缓存)</div>
+                        <div class="component-desc">
+                            <strong>角色：</strong>热数据缓存<br>
+                            <strong>存储：</strong>会话、限流、临时<br>
+                            <strong>用途：</strong>加速查询<br>
+                            <strong>特点：</strong>内存存储、TTL 过期
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据库统计 -->
+            <div class="layer">
+                <div class="layer-title">📈 数据库容量预估</div>
+                <div class="stats">
+                    <div class="stat-card mongodb">
+                        <div class="stat-label">MongoDB</div>
+                        <div class="stat-value">1-2 GB</div>
+                        <div class="stat-detail">12 Collections<br>实时主库</div>
+                    </div>
+                    <div class="stat-card mysql">
+                        <div class="stat-label">MySQL</div>
+                        <div class="stat-value">2-3 GB</div>
+                        <div class="stat-detail">14 Tables<br>热备份库</div>
+                    </div>
+                    <div class="stat-card redis">
+                        <div class="stat-label">Redis</div>
+                        <div class="stat-value">50-100 MB</div>
+                        <div class="stat-detail">内存缓存<br>临时数据</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据库对比 -->
+            <div class="layer">
+                <div class="layer-title">⚖️ 数据库特性对比</div>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">特性</th>
+                            <th style="width: 26%;">MongoDB 🎯</th>
+                            <th style="width: 26%;">MySQL 💾</th>
+                            <th style="width: 28%;">Redis ⚡</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>角色</strong></td>
+                            <td><span class="badge badge-primary">主数据库</span></td>
+                            <td><span class="badge badge-backup">备份数据库</span></td>
+                            <td><span class="badge badge-cache">缓存层</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>存储方式</strong></td>
+                            <td>内存 + 磁盘</td>
+                            <td>磁盘</td>
+                            <td>内存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>查询速度</strong></td>
+                            <td>快 (毫秒级)</td>
+                            <td>一般 (十毫秒)</td>
+                            <td>极快 (微秒级)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Schema</strong></td>
+                            <td>灵活</td>
+                            <td>固定表结构</td>
+                            <td>Key-Value</td>
+                        </tr>
+                        <tr>
+                            <td><strong>数组支持</strong></td>
+                            <td>原生支持</td>
+                            <td>拆分到独立表</td>
+                            <td>序列化存储</td>
+                        </tr>
+                        <tr>
+                            <td><strong>数据持久化</strong></td>
+                            <td>✅ 是</td>
+                            <td>✅ 是</td>
+                            <td>❌ 否 (重启丢失)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>主要用途</strong></td>
+                            <td>实时业务</td>
+                            <td>数据备份</td>
+                            <td>性能优化</td>
+                        </tr>
+                        <tr>
+                            <td><strong>故障恢复</strong></td>
+                            <td>靠 MySQL 恢复</td>
+                            <td>靠备份恢复</td>
+                            <td>自动重建</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- MongoDB → MySQL 同步 -->
+            <div class="diagram-section">
+                <div class="diagram-title">🔄 MongoDB → MySQL 异步同步机制</div>
+
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; color: #667eea; margin-bottom: 10px;">写入流程：</div>
+                    <div class="sync-flow">
+                        <div class="sync-item">用户操作</div>
+                        <div class="sync-arrow">→</div>
+                        <div class="sync-item">MongoDB 保存</div>
+                        <div class="sync-arrow">→</div>
+                        <div class="sync-item">✅ 立即返回</div>
+                        <div class="sync-arrow">→</div>
+                        <div class="sync-item async">后台异步 MySQL</div>
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 6px;">
+                    <div style="font-weight: bold; color: #667eea; margin-bottom: 10px;">同步特点：</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <strong>✅ 优点</strong>
+                            <ul style="margin-left: 20px; margin-top: 10px; font-size: 12px; line-height: 1.8;">
+                                <li>非阻塞，响应快</li>
+                                <li>失败不影响业务</li>
+                                <li>幂等操作（可重试）</li>
+                                <li>完整数据备份</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong>⚠️ 特点</strong>
+                            <ul style="margin-left: 20px; margin-top: 10px; font-size: 12px; line-height: 1.8;">
+                                <li>异步执行（秒级延迟）</li>
+                                <li>最终一致性</li>
+                                <li>可通过 API 手动同步</li>
+                                <li>失败日志完整记录</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 同步覆盖范围 -->
+            <div class="diagram-section">
+                <div class="diagram-title">📋 同步覆盖的 11 个 Controller 和 60+ 个操作</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ auth (用户登录)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ user (用户资料)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ checkin (打卡)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ period (期次管理)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ section (课节管理)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ enrollment (报名)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ payment (支付)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ insight (内容分享)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ comment (评论)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ notification (通知)</div>
+                    <div style="padding: 10px; background: #667eea; color: white; border-radius: 6px; font-size: 12px;">✅ admin (管理员)</div>
+                </div>
+            </div>
+
+            <!-- 关键特性 -->
+            <div class="layer">
+                <div class="layer-title">🌟 系统关键特性</div>
+                <div class="layer-content">
+                    <div class="component">
+                        <div class="component-name">🛡️ 数据安全</div>
+                        <div class="component-desc">
+                            • 完整的数据备份<br>
+                            • 异步容错机制<br>
+                            • 故障恢复能力<br>
+                            • 完整日志追踪
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-name">⚡ 性能优化</div>
+                        <div class="component-desc">
+                            • Redis 缓存加速<br>
+                            • 异步后台处理<br>
+                            • 连接池复用<br>
+                            • 索引优化
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-name">📊 可观测性</div>
+                        <div class="component-desc">
+                            • 详细日志记录<br>
+                            • 同步状态监控<br>
+                            • 一致性检查<br>
+                            • 备份统计信息
+                        </div>
+                    </div>
+                    <div class="component">
+                        <div class="component-name">🔄 灵活扩展</div>
+                        <div class="component-desc">
+                            • 支持全量同步<br>
+                            • 支持差量同步<br>
+                            • 手动触发<br>
+                            • 定时任务
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 重要说明 -->
+            <div class="notes">
+                <div class="notes-title">💡 重要说明</div>
+                <div class="notes-content">
+                    <strong>1. 一致性承诺：</strong> MongoDB 是唯一真实数据源，MySQL 是热备份，采用最终一致性保证。<br><br>
+                    <strong>2. 业务影响：</strong> MySQL 故障不影响主业务，只记录日志。业务不依赖 MySQL 读取。<br><br>
+                    <strong>3. 恢复策略：</strong> MongoDB 故障可用 MySQL 恢复；MySQL 故障可从备份恢复；Redis 故障自动重建。<br><br>
+                    <strong>4. 监控建议：</strong> 定期检查一致性、备份日志、故障恢复时间目标 (RTO)。<br><br>
+                    <strong>5. 定时维护：</strong> 每天全量对比，每周备份，每月性能审视。
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

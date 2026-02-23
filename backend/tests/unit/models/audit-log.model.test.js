@@ -31,27 +31,26 @@ describe('AuditLog Model', () => {
   describe('Schema Validation', () => {
     it('应该创建有效的审计日志', async () => {
       const log = await AuditLog.create({
-        userId,
-        action: 'user_created',
-        targetType: 'User',
-        targetId: userId,
-        changes: { nickname: '新用户' }
+        adminId,
+        adminName: '测试管理员',
+        actionType: 'CREATE',
+        resourceType: 'user',
+        resourceId: userId
       });
 
       expect(log._id).to.exist;
-      expect(log.userId.toString()).to.equal(userId.toString());
-      expect(log.action).to.equal('user_created');
+      expect(log.adminId.toString()).to.equal(adminId.toString());
+      expect(log.actionType).to.equal('CREATE');
     });
 
     it('应该使用默认值', async () => {
       const log = await AuditLog.create({
-        userId: new mongoose.Types.ObjectId(),
-        action: 'test_action',
-        targetType: 'Test',
-        targetId: new mongoose.Types.ObjectId()
+        adminId: new mongoose.Types.ObjectId(),
+        adminName: '测试管理员',
+        actionType: 'CREATE',
+        resourceType: 'user'
       });
 
-      expect(log.changes).to.deep.equal({});
       expect(log.status).to.equal('success');
     });
   });
@@ -59,74 +58,73 @@ describe('AuditLog Model', () => {
   describe('Data Persistence', () => {
     it('应该保存并检索审计日志', async () => {
       const log = await AuditLog.create({
-        userId,
-        action: 'period_updated',
-        targetType: 'Period',
-        targetId: new mongoose.Types.ObjectId(),
-        changes: { status: 'ongoing', enrollmentCount: 50 },
+        adminId,
+        adminName: '测试管理员',
+        actionType: 'UPDATE',
+        resourceType: 'period',
+        resourceId: new mongoose.Types.ObjectId(),
         status: 'success'
       });
 
       const retrieved = await AuditLog.findById(log._id);
-      expect(retrieved.action).to.equal('period_updated');
-      expect(retrieved.changes.status).to.equal('ongoing');
+      expect(retrieved.actionType).to.equal('UPDATE');
       expect(retrieved.status).to.equal('success');
     });
 
-    it('应该支持按userId查询', async () => {
-      const u1 = new mongoose.Types.ObjectId();
+    it('应该支持按adminId查询', async () => {
+      const a1 = new mongoose.Types.ObjectId();
 
       await AuditLog.create({
-        userId: u1,
-        action: 'action1',
-        targetType: 'Test',
-        targetId: new mongoose.Types.ObjectId()
+        adminId: a1,
+        adminName: '管理员1',
+        actionType: 'CREATE',
+        resourceType: 'user'
       });
 
       await AuditLog.create({
-        userId: u1,
-        action: 'action2',
-        targetType: 'Test',
-        targetId: new mongoose.Types.ObjectId()
+        adminId: a1,
+        adminName: '管理员1',
+        actionType: 'UPDATE',
+        resourceType: 'user'
       });
 
-      const logs = await AuditLog.find({ userId: u1 });
+      const logs = await AuditLog.find({ adminId: a1 });
       expect(logs).to.have.lengthOf(2);
     });
 
-    it('应该支持按action查询', async () => {
-      const u = new mongoose.Types.ObjectId();
+    it('应该支持按actionType查询', async () => {
+      const a = new mongoose.Types.ObjectId();
 
       await AuditLog.create({
-        userId: u,
-        action: 'created',
-        targetType: 'Test',
-        targetId: new mongoose.Types.ObjectId()
+        adminId: a,
+        adminName: '测试管理员',
+        actionType: 'CREATE',
+        resourceType: 'user'
       });
 
       await AuditLog.create({
-        userId: u,
-        action: 'deleted',
-        targetType: 'Test',
-        targetId: new mongoose.Types.ObjectId()
+        adminId: a,
+        adminName: '测试管理员',
+        actionType: 'DELETE',
+        resourceType: 'user'
       });
 
-      const logs = await AuditLog.find({ action: 'created' });
+      const logs = await AuditLog.find({ actionType: 'CREATE' });
       expect(logs).to.have.lengthOf(1);
     });
   });
 
   describe('Timestamps', () => {
-    it('应该自动创建createdAt', async () => {
+    it('应该自动创建timestamp', async () => {
       const log = await AuditLog.create({
-        userId,
-        action: 'test',
-        targetType: 'Test',
-        targetId: new mongoose.Types.ObjectId()
+        adminId,
+        adminName: '测试管理员',
+        actionType: 'CREATE',
+        resourceType: 'user'
       });
 
-      expect(log.createdAt).to.exist;
-      expect(log.createdAt).to.be.instanceof(Date);
+      expect(log.timestamp).to.exist;
+      expect(log.timestamp).to.be.instanceof(Date);
     });
   });
 });

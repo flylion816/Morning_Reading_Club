@@ -16,7 +16,6 @@ describe('Enrollment Controller', () => {
   let EnrollmentStub;
   let UserStub;
   let PeriodStub;
-  let mysqlBackupServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -39,13 +38,9 @@ describe('Enrollment Controller', () => {
       create: sandbox.stub(),
       findOne: sandbox.stub(),
       find: sandbox.stub(),
-      findById: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
-      findByIdAndUpdate: sandbox.stub(),
-      getUserEnrollments: sandbox.stub(),
-      getPeriodMembers: sandbox.stub(),
-      getEnrollmentStats: sandbox.stub()
+      findByIdAndUpdate: sandbox.stub()
     };
 
     UserStub = {
@@ -57,26 +52,12 @@ describe('Enrollment Controller', () => {
       findByIdAndUpdate: sandbox.stub()
     };
 
-    // Mock mysqlBackupService
-    mysqlBackupServiceStub = {
-      syncEnrollment: sandbox.stub().resolves()
-    };
-
-    // Mock logger
-    const loggerStub = {
-      warn: sandbox.stub(),
-      error: sandbox.stub(),
-      info: sandbox.stub(),
-      debug: sandbox.stub()
-    };
-
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
-        forbidden: (msg) => ({ code: 403, message: msg }),
-        serverError: (msg) => ({ code: 500, message: msg })
+        forbidden: (msg) => ({ code: 403, message: msg })
       }
     };
 
@@ -86,9 +67,7 @@ describe('Enrollment Controller', () => {
         '../models/Enrollment': EnrollmentStub,
         '../models/User': UserStub,
         '../models/Period': PeriodStub,
-        '../utils/response': responseUtils,
-        '../utils/logger': loggerStub,
-        '../services/mysql-backup.service': mysqlBackupServiceStub
+        '../utils/response': responseUtils
       }
     );
   });
@@ -107,21 +86,12 @@ describe('Enrollment Controller', () => {
 
       const mockPeriod = { _id: periodId, enrolledCount: 10, capacity: 100 };
       const mockUser = { _id: userId };
-      const mockEnrollment = {
-        _id: new mongoose.Types.ObjectId(),
-        userId,
-        periodId,
-        enrolledAt: new Date(),
-        populate: sandbox.stub().returnsThis()
-      };
+      const mockEnrollment = { userId, periodId, enrolledAt: new Date() };
 
       PeriodStub.findById.resolves(mockPeriod);
       UserStub.findById.resolves(mockUser);
       EnrollmentStub.findOne.resolves(null);
       EnrollmentStub.create.resolves(mockEnrollment);
-      EnrollmentStub.findById.returns({
-        populate: sandbox.stub().returnsThis()
-      });
       PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
 
       await enrollmentController.enrollPeriod(req, res, next);
@@ -168,35 +138,28 @@ describe('Enrollment Controller', () => {
   describe('getUserEnrollments', () => {
     it('应该返回用户的报名列表', async () => {
       const userId = new mongoose.Types.ObjectId();
-      const periodId = new mongoose.Types.ObjectId();
       req.params = { userId };
       req.query = { page: 1, limit: 10 };
-      req.user = { userId };
 
-      const mockEnrollmentResult = {
-        list: [
-          {
-            _id: new mongoose.Types.ObjectId(),
-            userId,
-            periodId: { _id: periodId, title: '期次名', description: '描述', startDate: new Date(), endDate: new Date(), coverImage: '' }
-          }
-        ],
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1
-      };
+      const mockEnrollments = [
+        { _id: new mongoose.Types.ObjectId(), userId, periodId: new mongoose.Types.ObjectId() }
+      ];
 
-      EnrollmentStub.getUserEnrollments.resolves(mockEnrollmentResult);
+      EnrollmentStub.countDocuments.resolves(1);
+      EnrollmentStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves(mockEnrollments)
+      });
 
       await enrollmentController.getUserEnrollments(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('list');
-      expect(responseData.data).to.have.property('total');
-      expect(responseData.data).to.have.property('page');
-      expect(responseData.data).to.have.property('limit');
+      expect(responseData.data).to.have.property('pagination');
     });
   });
 
@@ -222,31 +185,8 @@ describe('Enrollment Controller', () => {
       await enrollmentController.getPeriodMembers(req, res, next);
 
       expect(res.json.called).to.be.true;
-    });
-  });
-
-  describe('getEnrollments', () => {
-    it('应该返回报名列表', async () => {
-      const periodId = new mongoose.Types.ObjectId();
-      req.params = { periodId };
-      req.query = { page: 1, limit: 10 };
-
-      const mockEnrollments = [
-        { _id: new mongoose.Types.ObjectId(), periodId, userId: new mongoose.Types.ObjectId() }
-      ];
-
-      EnrollmentStub.countDocuments.resolves(1);
-      EnrollmentStub.find.returns({
-        populate: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockEnrollments)
-      });
-
-      await enrollmentController.getEnrollments(req, res, next);
-
-      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('list');
     });
   });
 
@@ -259,13 +199,16 @@ describe('Enrollment Controller', () => {
       req.user = { userId };
       req.params = { enrollmentId };
 
-      const mockEnrollment = { _id: enrollmentId, userId, periodId };
-      const mockPeriod = { _id: periodId, enrolledCount: 10 };
+      const mockEnrollment = {
+        _id: enrollmentId,
+        userId,
+        periodId,
+        status: 'active',
+        withdraw: sandbox.stub().resolves()
+      };
 
-      EnrollmentStub.findById.resolves(mockEnrollment);
-      EnrollmentStub.findByIdAndDelete.resolves(mockEnrollment);
-      PeriodStub.findById.resolves(mockPeriod);
-      PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
+      EnrollmentStub.findOne.resolves(mockEnrollment);
+      PeriodStub.findByIdAndUpdate.resolves({ _id: periodId });
 
       await enrollmentController.withdrawEnrollment(req, res, next);
 
@@ -277,7 +220,7 @@ describe('Enrollment Controller', () => {
       req.user = { userId: new mongoose.Types.ObjectId() };
       req.params = { enrollmentId };
 
-      EnrollmentStub.findById.resolves(null);
+      EnrollmentStub.findOne.resolves(null);
 
       await enrollmentController.withdrawEnrollment(req, res, next);
 

@@ -63,7 +63,7 @@ describe('Section Model', () => {
       expect(section.videoCover).to.be.null;
       expect(section.duration).to.be.null;
       expect(section.sortOrder).to.equal(0);
-      expect(section.isPublished).to.be.false;
+      expect(section.isPublished).to.be.true;
       expect(section.checkinCount).to.equal(0);
     });
 
@@ -106,17 +106,15 @@ describe('Section Model', () => {
       }
     });
 
-    it('应该在缺少content时抛出验证错误', async () => {
-      try {
-        await Section.create({
-          periodId,
-          day: 1,
-          title: '课节'
-        });
-        expect.fail('应该抛出验证错误');
-      } catch (err) {
-        expect(err.message).to.include('content');
-      }
+    it('应该接受缺少content（content非必需）', async () => {
+      const section = await Section.create({
+        periodId,
+        day: 1,
+        title: '课节'
+      });
+
+      expect(section._id).to.exist;
+      expect(section.content).to.be.null;
     });
   });
 

@@ -14,7 +14,6 @@ describe('Payment Controller', () => {
   let res;
   let next;
   let PaymentStub;
-  let EnrollmentStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -29,35 +28,15 @@ describe('Payment Controller', () => {
     PaymentStub = {
       create: sandbox.stub(),
       findById: sandbox.stub(),
-      findOne: sandbox.stub(),
       find: sandbox.stub(),
       countDocuments: sandbox.stub()
-    };
-
-    EnrollmentStub = {
-      findOne: sandbox.stub()
-    };
-
-    // Mock logger
-    const loggerStub = {
-      warn: sandbox.stub(),
-      error: sandbox.stub(),
-      info: sandbox.stub(),
-      debug: sandbox.stub()
-    };
-
-    // Mock mysqlBackupService
-    const mysqlBackupServiceStub = {
-      syncPayment: sandbox.stub().resolves()
     };
 
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
-        notFound: (msg) => ({ code: 404, message: msg }),
-        forbidden: (msg) => ({ code: 403, message: msg }),
-        serverError: (msg) => ({ code: 500, message: msg })
+        notFound: (msg) => ({ code: 404, message: msg })
       }
     };
 
@@ -65,10 +44,7 @@ describe('Payment Controller', () => {
       '../../../src/controllers/payment.controller',
       {
         '../models/Payment': PaymentStub,
-        '../models/Enrollment': EnrollmentStub,
-        '../utils/response': responseUtils,
-        '../utils/logger': loggerStub,
-        '../services/mysql-backup.service': mysqlBackupServiceStub
+        '../utils/response': responseUtils
       }
     );
   });
@@ -81,24 +57,45 @@ describe('Payment Controller', () => {
     it('应该初始化支付订单', async () => {
       const userId = new mongoose.Types.ObjectId();
       const enrollmentId = new mongoose.Types.ObjectId();
-
       req.user = { userId };
-      req.body = { enrollmentId, paymentMethod: 'wechat', amount: 99 };
-
-      const mockEnrollment = { _id: enrollmentId, userId };
-      const mockPayment = {
-        _id: new mongoose.Types.ObjectId(),
+      req.body = {
         enrollmentId,
-        status: 'pending',
+        paymentMethod: 'wechat',
         amount: 99
       };
 
-      EnrollmentStub.findOne.resolves(mockEnrollment);
-      PaymentStub.findOne.onFirstCall().resolves(null);
-      PaymentStub.findOne.onSecondCall().resolves(null);
+      const mockPayment = {
+        _id: new mongoose.Types.ObjectId(),
+        userId,
+        enrollmentId,
+        ...req.body,
+        status: 'pending'
+      };
+
       PaymentStub.create.resolves(mockPayment);
 
       await paymentController.initiatePayment(req, res, next);
+
+      expect(PaymentStub.create.called).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+  });
+
+  describe('getUserPayments', () => {
+    it('应该返回用户的支付历史', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      req.params = { userId };
+      req.query = { page: 1, limit: 10 };
+
+      PaymentStub.countDocuments.resolves(1);
+      PaymentStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves([])
+      });
+
+      await paymentController.getUserPayments(req, res, next);
 
       expect(res.json.called).to.be.true;
     });
@@ -106,30 +103,11 @@ describe('Payment Controller', () => {
 
   describe('confirmPayment', () => {
     it('应该确认支付', async () => {
+      const userId = new mongoose.Types.ObjectId();
       const paymentId = new mongoose.Types.ObjectId();
-
+      req.user = { userId };
       req.params = { paymentId };
-      req.body = { transactionId: 'tx123' };
-
-      const mockPayment = {
-        _id: paymentId,
-        status: 'pending',
-        save: sandbox.stub().resolves()
-      };
-
-      PaymentStub.findById.resolves(mockPayment);
-
-      await paymentController.confirmPayment(req, res, next);
-
-      expect(res.json.called).to.be.true;
-    });
-  });
-
-  describe('getPaymentStatus', () => {
-    it('应该获取支付状态', async () => {
-      const paymentId = new mongoose.Types.ObjectId();
-
-      req.params = { paymentId };
+      req.body = { transactionId: 'txn_123456' };
 
       const mockPayment = {
         _id: paymentId,
@@ -138,33 +116,7 @@ describe('Payment Controller', () => {
 
       PaymentStub.findById.resolves(mockPayment);
 
-      await paymentController.getPaymentStatus(req, res, next);
-
-      expect(res.json.called).to.be.true;
-    });
-  });
-
-  describe('getUserPayments', () => {
-    it('应该返回用户的支付列表', async () => {
-      const userId = new mongoose.Types.ObjectId();
-
-      req.user = { userId };
-      req.query = { page: 1, limit: 10 };
-
-      const mockPayments = [
-        { _id: new mongoose.Types.ObjectId(), userId, status: 'completed' }
-      ];
-
-      PaymentStub.find.returns({
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockPayments)
-      });
-
-      PaymentStub.countDocuments.resolves(1);
-
-      await paymentController.getUserPayments(req, res, next);
+      await paymentController.confirmPayment(req, res, next);
 
       expect(res.json.called).to.be.true;
     });

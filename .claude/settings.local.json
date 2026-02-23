@@ -42,12 +42,7 @@
       "Bash(brew install:*)",
       "Bash(brew tap:*)",
       "Bash(timeout 10 npm run dev:*)",
-      "Bash(claude-code --version)",
-      "Bash(brew list:*)",
-      "Bash(bash)",
-      "Bash(npm install:*)",
-      "Bash(ls:*)",
-      "Bash(xargs:*)"
+      "Bash(cd /var/www/Morning_Reading_Club/backend && npm test 2>&1)"
     ],
     "deny": [],
     "ask": []

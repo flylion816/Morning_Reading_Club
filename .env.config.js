@@ -7,13 +7,13 @@
  * 3. 管理后台连接哪个环境的服务
  *
  * 使用方法：
- * - 开发环境：设置 currentEnv = 'dev'
+ * - 开发环境：设置 currentEnv = 'prod'
  * - 线上环境：设置 currentEnv = 'prod'
  *
  * 📌 重要：修改此文件后需要重启所有服务才能生效
  */
 
-const currentEnv = 'prod'; // 'dev' | 'prod' ← 已切换为生产环境
+const currentEnv = 'prod'; // 'dev' | 'prod'
 
 /**
  * 环境配置定义
@@ -23,7 +23,7 @@ const envConfig = {
   dev: {
     // 后端配置
     backend: {
-      mongodbUri: 'mongodb://localhost:27017/morning_reading_db',
+      mongodbUri: 'mongodb://admin:admin123@localhost:27017/morning_reading_db?authSource=admin',
       nodeEnv: 'development',
       port: 3000,
     },

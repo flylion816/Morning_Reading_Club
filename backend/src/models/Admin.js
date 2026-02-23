@@ -81,7 +81,6 @@ adminSchema.methods.toJSON = function () {
 };
 
 // 创建索引
-adminSchema.index({ email: 1 });
 adminSchema.index({ status: 1 });
 adminSchema.index({ createdAt: -1 });
 

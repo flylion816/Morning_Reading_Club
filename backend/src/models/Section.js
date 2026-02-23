@@ -112,7 +112,6 @@ const SectionSchema = new mongoose.Schema(
 );
 
 // 索引
-SectionSchema.index({ periodId: 1, day: 1 });
 SectionSchema.index({ periodId: 1, sortOrder: 1 });
 SectionSchema.index({ isPublished: 1 });
 

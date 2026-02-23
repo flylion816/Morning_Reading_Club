@@ -14,7 +14,6 @@ describe('Admin Controller', () => {
   let res;
   let next;
   let AdminStub;
-  let mysqlBackupServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -23,8 +22,7 @@ describe('Admin Controller', () => {
       body: {},
       params: {},
       query: {},
-      user: {},
-      admin: {}
+      user: {}
     };
 
     res = {
@@ -39,19 +37,6 @@ describe('Admin Controller', () => {
       findOne: sandbox.stub(),
       create: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub()
-    };
-
-    // Mock mysqlBackupService
-    mysqlBackupServiceStub = {
-      syncAdmin: sandbox.stub().resolves()
-    };
-
-    // Mock logger
-    const loggerStub = {
-      warn: sandbox.stub(),
-      error: sandbox.stub(),
-      info: sandbox.stub(),
-      debug: sandbox.stub()
     };
 
     const jwtStub = {
@@ -73,9 +58,7 @@ describe('Admin Controller', () => {
       {
         '../models/Admin': AdminStub,
         '../utils/jwt': jwtStub,
-        '../utils/response': responseUtils,
-        '../utils/logger': loggerStub,
-        '../services/mysql-backup.service': mysqlBackupServiceStub
+        '../utils/response': responseUtils
       }
     );
   });
@@ -94,25 +77,11 @@ describe('Admin Controller', () => {
         password: 'hashed_password',
         name: '管理员',
         role: 'admin',
-        status: 'active',
-        lastLoginAt: new Date(),
-        loginCount: 0,
         comparePassword: sandbox.stub().resolves(true),
-        save: sandbox.stub().resolves(),
-        toJSON: function() {
-          return {
-            _id: this._id,
-            name: this.name,
-            email: this.email,
-            role: this.role
-          };
-        }
+        toJSON: sandbox.stub().returns({})
       };
 
-      // findOne().select() 链式调用
-      AdminStub.findOne.returns({
-        select: sandbox.stub().resolves(mockAdmin)
-      });
+      AdminStub.findOne.resolves(mockAdmin);
 
       await adminController.login(req, res, next);
 
@@ -136,7 +105,7 @@ describe('Admin Controller', () => {
     });
   });
 
-  describe('getCurrentAdmin', () => {
+  describe('getProfile', () => {
     it('应该返回当前管理员信息', async () => {
       const adminId = new mongoose.Types.ObjectId();
       req.admin = { id: adminId };
@@ -146,17 +115,14 @@ describe('Admin Controller', () => {
         name: '管理员',
         email: 'admin@test.com',
         role: 'admin',
-        toJSON: function() {
-          return {
-            _id: this._id,
-            name: this.name,
-            email: this.email,
-            role: this.role
-          };
-        }
+        toJSON: sandbox.stub().returns({
+          _id: adminId,
+          name: '管理员',
+          email: 'admin@test.com',
+          role: 'admin'
+        })
       };
 
-      // findById() 直接 await，返回 Promise
       AdminStub.findById.resolves(mockAdmin);
 
       await adminController.getProfile(req, res, next);
@@ -167,30 +133,23 @@ describe('Admin Controller', () => {
     });
   });
 
-  describe('updateAdminProfile', () => {
+  describe('updateAdmin', () => {
     it('应该更新管理员资料', async () => {
       const adminId = new mongoose.Types.ObjectId();
       req.admin = { id: adminId, role: 'superadmin' };
       req.params = { id: adminId };
-      req.body = { name: '新名称', phone: '13800138000' };
+      req.body = { name: '新名称' };
 
       const mockAdmin = {
         _id: adminId,
         name: '新名称',
-        phone: '13800138000',
-        email: 'admin@test.com',
         save: sandbox.stub().resolves(),
-        toJSON: function() {
-          return {
-            _id: this._id,
-            name: this.name,
-            email: this.email,
-            phone: this.phone
-          };
-        }
+        toJSON: sandbox.stub().returns({
+          _id: adminId,
+          name: '新名称'
+        })
       };
 
-      // findById() 直接 await，返回 Promise
       AdminStub.findById.resolves(mockAdmin);
 
       await adminController.updateAdmin(req, res, next);
@@ -202,7 +161,7 @@ describe('Admin Controller', () => {
   describe('changePassword', () => {
     it('应该成功修改密码', async () => {
       const adminId = new mongoose.Types.ObjectId();
-      req.admin = { id: adminId };
+      req.user = { id: adminId };
       req.body = {
         oldPassword: 'oldpass123',
         newPassword: 'newpass123'
@@ -211,14 +170,10 @@ describe('Admin Controller', () => {
       const mockAdmin = {
         _id: adminId,
         password: 'hashed_old',
-        comparePassword: sandbox.stub().resolves(true),
         save: sandbox.stub().resolves()
       };
 
-      // findById().select() 链式调用
-      AdminStub.findById.returns({
-        select: sandbox.stub().resolves(mockAdmin)
-      });
+      AdminStub.findById.resolves(mockAdmin);
 
       await adminController.changePassword(req, res, next);
 

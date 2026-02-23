@@ -30,21 +30,21 @@ describe('Notification Model', () => {
     it('应该创建有效的通知', async () => {
       const notification = await Notification.create({
         userId,
-        type: 'checkin',
+        type: 'request_created',
         title: '打卡提醒',
         content: '快来完成今天的打卡'
       });
 
       expect(notification._id).to.exist;
       expect(notification.userId.toString()).to.equal(userId.toString());
-      expect(notification.type).to.equal('checkin');
+      expect(notification.type).to.equal('request_created');
       expect(notification.isRead).to.be.false;
     });
 
     it('应该使用默认值', async () => {
       const notification = await Notification.create({
         userId: new mongoose.Types.ObjectId(),
-        type: 'system',
+        type: 'admin_approved',
         title: '系统通知',
         content: '内容'
       });
@@ -57,7 +57,7 @@ describe('Notification Model', () => {
     it('应该保存并检索通知数据', async () => {
       const notification = await Notification.create({
         userId,
-        type: 'checkin',
+        type: 'request_approved',
         title: '打卡提醒',
         content: '快来完成打卡',
         isRead: false
@@ -73,14 +73,14 @@ describe('Notification Model', () => {
 
       await Notification.create({
         userId: u1,
-        type: 'checkin',
+        type: 'request_created',
         title: '通知1',
         content: '内容1'
       });
 
       await Notification.create({
         userId: u1,
-        type: 'system',
+        type: 'request_approved',
         title: '通知2',
         content: '内容2'
       });
@@ -92,7 +92,7 @@ describe('Notification Model', () => {
     it('应该支持标记为已读', async () => {
       const notification = await Notification.create({
         userId,
-        type: 'checkin',
+        type: 'request_rejected',
         title: '通知',
         content: '内容',
         isRead: false
@@ -110,7 +110,7 @@ describe('Notification Model', () => {
     it('应该自动创建createdAt和updatedAt', async () => {
       const notification = await Notification.create({
         userId,
-        type: 'system',
+        type: 'permission_revoked',
         title: '时间测试',
         content: '内容'
       });

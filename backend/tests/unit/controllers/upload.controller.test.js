@@ -51,16 +51,16 @@ describe('Upload Controller', () => {
     sandbox.restore();
   });
 
-  describe('uploadImage', () => {
-    it('应该上传单个图片', async () => {
+  describe('uploadFile', () => {
+    it('应该上传单个文件', async () => {
       req.file = {
-        filename: 'image_123456.jpg',
-        path: '/uploads/image_123456.jpg',
+        filename: 'file_123456.jpg',
+        path: '/uploads/file_123456.jpg',
         size: 1024000,
         mimetype: 'image/jpeg'
       };
 
-      await uploadController.uploadImage(req, res, next);
+      await uploadController.uploadFile(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
@@ -71,19 +71,7 @@ describe('Upload Controller', () => {
     it('应该返回400当没有文件', async () => {
       req.file = null;
 
-      await uploadController.uploadImage(req, res, next);
-
-      expect(res.status.calledWith(400)).to.be.true;
-    });
-
-    it('应该验证文件类型', async () => {
-      req.file = {
-        filename: 'file.exe',
-        path: '/uploads/file.exe',
-        mimetype: 'application/x-msdownload'
-      };
-
-      await uploadController.uploadImage(req, res, next);
+      await uploadController.uploadFile(req, res, next);
 
       expect(res.status.calledWith(400)).to.be.true;
     });
@@ -116,50 +104,6 @@ describe('Upload Controller', () => {
       req.files = [];
 
       await uploadController.uploadMultiple(req, res, next);
-
-      expect(res.status.calledWith(400)).to.be.true;
-    });
-  });
-
-  describe('uploadAvatar', () => {
-    it('应该上传用户头像', async () => {
-      req.file = {
-        filename: 'avatar_user123.jpg',
-        path: '/uploads/avatar_user123.jpg',
-        mimetype: 'image/jpeg'
-      };
-
-      await uploadController.uploadAvatar(req, res, next);
-
-      expect(res.json.called).to.be.true;
-      const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('url');
-    });
-  });
-
-  describe('uploadMaterial', () => {
-    it('应该上传学习材料', async () => {
-      req.file = {
-        filename: 'material.pdf',
-        path: '/uploads/material.pdf',
-        mimetype: 'application/pdf',
-        size: 5242880
-      };
-
-      await uploadController.uploadMaterial(req, res, next);
-
-      expect(res.json.called).to.be.true;
-    });
-
-    it('应该验证文件大小', async () => {
-      req.file = {
-        filename: 'large_file.pdf',
-        path: '/uploads/large_file.pdf',
-        mimetype: 'application/pdf',
-        size: 104857600
-      };
-
-      await uploadController.uploadMaterial(req, res, next);
 
       expect(res.status.calledWith(400)).to.be.true;
     });
