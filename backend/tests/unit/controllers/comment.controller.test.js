@@ -14,6 +14,7 @@ describe('Comment Controller', () => {
   let res;
   let next;
   let CommentStub;
+  let CheckinStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -34,6 +35,10 @@ describe('Comment Controller', () => {
       countDocuments: sandbox.stub()
     };
 
+    CheckinStub = {
+      findById: sandbox.stub()
+    };
+
     // 为 findById 返回值添加 populate 方法链
     CommentStub.findById.returns({
       populate: sandbox.stub().returnsThis()
@@ -51,6 +56,7 @@ describe('Comment Controller', () => {
       '../../../src/controllers/comment.controller',
       {
         '../models/Comment': CommentStub,
+        '../models/Checkin': CheckinStub,
         '../utils/response': responseUtils
       }
     );
@@ -63,14 +69,16 @@ describe('Comment Controller', () => {
   describe('createComment', () => {
     it('应该创建新评论', async () => {
       const userId = new mongoose.Types.ObjectId();
-      const targetId = new mongoose.Types.ObjectId();
+      const checkinId = new mongoose.Types.ObjectId();
 
       req.user = { userId };
-      req.body = { targetId, content: '很好的想法' };
+      req.body = { checkinId, content: '很好的想法' };
 
+      const mockCheckin = { _id: checkinId };
       const mockComment = { _id: new mongoose.Types.ObjectId(), ...req.body, userId };
       const mockPopulatedComment = { ...mockComment, userId: { nickname: '用户名' } };
 
+      CheckinStub.findById.resolves(mockCheckin);
       CommentStub.create.resolves(mockComment);
       CommentStub.findById.returns({
         populate: sandbox.stub().resolves(mockPopulatedComment)
@@ -85,8 +93,8 @@ describe('Comment Controller', () => {
 
   describe('getComments', () => {
     it('应该返回评论列表', async () => {
-      const targetId = new mongoose.Types.ObjectId();
-      req.params = { targetId };
+      const checkinId = new mongoose.Types.ObjectId();
+      req.params = { checkinId };
       req.query = { page: 1, limit: 10 };
 
       CommentStub.countDocuments.resolves(5);
@@ -98,53 +106,51 @@ describe('Comment Controller', () => {
         select: sandbox.stub().resolves([])
       });
 
-      await commentController.getComments(req, res, next);
+      await commentController.getCommentsByCheckin(req, res, next);
 
       expect(res.json.called).to.be.true;
     });
   });
 
-  describe('updateComment', () => {
-    it('应该更新评论', async () => {
-      const userIdStr = '507f1f77bcf86cd799439014';
-      const commentId = new mongoose.Types.ObjectId();
-
-      req.user = { userId: userIdStr };
-      req.params = { commentId };
-      req.body = { content: '更新的内容' };
-
-      const mockComment = {
-        _id: commentId,
-        userId: userIdStr,
-        content: '更新的内容'
-      };
-
-      CommentStub.findById.resolves(mockComment);
-      CommentStub.findByIdAndUpdate.resolves(mockComment);
-
-      await commentController.updateComment(req, res, next);
-
-      expect(res.json.called).to.be.true;
-    });
-
-    it('应该返回403当修改他人评论', async () => {
+  describe('replyToComment', () => {
+    it('应该添加回复到评论', async () => {
       const userId = new mongoose.Types.ObjectId();
       const commentId = new mongoose.Types.ObjectId();
 
       req.user = { userId };
       req.params = { commentId };
-      req.body = { content: '新内容' };
+      req.body = { content: '很好的观点', replyToUserId: null };
 
       const mockComment = {
         _id: commentId,
-        userId: new mongoose.Types.ObjectId()
+        replies: [],
+        replyCount: 0,
+        save: sandbox.stub().resolves()
       };
 
+      CommentStub.findById.returns({
+        populate: sandbox.stub().resolves(mockComment)
+      });
       CommentStub.findById.resolves(mockComment);
 
-      await commentController.updateComment(req, res, next);
+      await commentController.replyToComment(req, res, next);
 
-      expect(res.status.calledWith(403)).to.be.true;
+      expect(CommentStub.findById.called).to.be.true;
+    });
+
+    it('应该返回404当评论不存在', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const commentId = new mongoose.Types.ObjectId();
+
+      req.user = { userId };
+      req.params = { commentId };
+      req.body = { content: '回复内容' };
+
+      CommentStub.findById.resolves(null);
+
+      await commentController.replyToComment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
     });
   });
 
