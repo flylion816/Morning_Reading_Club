@@ -46,12 +46,26 @@ describe('Insight Controller', () => {
       findById: sandbox.stub()
     };
 
+    // Mock logger
+    const loggerStub = {
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+      info: sandbox.stub(),
+      debug: sandbox.stub()
+    };
+
+    // Mock mysqlBackupService
+    const mysqlBackupServiceStub = {
+      syncInsight: sandbox.stub().resolves()
+    };
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
-        forbidden: (msg) => ({ code: 403, message: msg })
+        forbidden: (msg) => ({ code: 403, message: msg }),
+        serverError: (msg) => ({ code: 500, message: msg })
       }
     };
 
@@ -60,7 +74,9 @@ describe('Insight Controller', () => {
       {
         '../models/Insight': InsightStub,
         '../models/User': UserStub,
-        '../utils/response': responseUtils
+        '../utils/response': responseUtils,
+        '../utils/logger': loggerStub,
+        '../services/mysql-backup.service': mysqlBackupServiceStub
       }
     );
   });
@@ -69,7 +85,7 @@ describe('Insight Controller', () => {
     sandbox.restore();
   });
 
-  describe('createInsight', () => {
+  describe('createInsightManual', () => {
     it('应该创建新的小凡看见', async () => {
       const userId = new mongoose.Types.ObjectId();
       const targetUserId = new mongoose.Types.ObjectId();
@@ -79,42 +95,42 @@ describe('Insight Controller', () => {
       req.body = {
         targetUserId,
         periodId,
-        content: '我看到你的努力',
-        images: []
+        type: 'insight',
+        mediaType: 'text',
+        content: '我看到你的努力'
       };
 
-      const mockUser = { _id: userId, nickname: '观察者' };
       const mockInsight = {
         _id: new mongoose.Types.ObjectId(),
-        ...req.body,
-        userId
+        userId,
+        targetUserId,
+        periodId,
+        type: 'insight',
+        mediaType: 'text',
+        content: '我看到你的努力'
       };
 
-      UserStub.findById.resolves(mockUser);
       InsightStub.create.resolves(mockInsight);
 
-      await insightController.createInsight(req, res, next);
+      await insightController.createInsightManual(req, res, next);
 
       expect(InsightStub.create.called).to.be.true;
       expect(res.status.calledWith(201)).to.be.true;
     });
 
-    it('应该返回404当被观察者不存在', async () => {
+    it('应该返回400当缺少必填字段', async () => {
       const userId = new mongoose.Types.ObjectId();
-      const targetUserId = new mongoose.Types.ObjectId();
 
       req.user = { userId };
-      req.body = { targetUserId, periodId: new mongoose.Types.ObjectId() };
+      req.body = { targetUserId: new mongoose.Types.ObjectId() };
 
-      UserStub.findById.resolves(null);
-
-      await insightController.createInsight(req, res, next);
+      await insightController.createInsightManual(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });
   });
 
-  describe('getInsightById', () => {
+  describe('getInsightDetail', () => {
     it('应该返回小凡看见详情', async () => {
       const insightId = new mongoose.Types.ObjectId();
       req.params = { insightId };
@@ -126,13 +142,16 @@ describe('Insight Controller', () => {
         commentCount: 5
       };
 
-      InsightStub.findById.returns({
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().resolves(mockInsight)
-      });
+      // 创建一个chainable的mock对象
+      const chainableMock = {
+        populate: sandbox.stub().returnsThis()
+      };
+      chainableMock.populate.returnsThis();
 
-      await insightController.getInsightById(req, res, next);
+      InsightStub.findById.returns(chainableMock);
+      chainableMock.populate.resolves(mockInsight);
+
+      await insightController.getInsightDetail(req, res, next);
 
       expect(res.json.called).to.be.true;
     });
@@ -141,13 +160,16 @@ describe('Insight Controller', () => {
       const insightId = new mongoose.Types.ObjectId();
       req.params = { insightId };
 
-      InsightStub.findById.returns({
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().resolves(null)
-      });
+      // 创建一个chainable的mock对象
+      const chainableMock = {
+        populate: sandbox.stub().returnsThis()
+      };
+      chainableMock.populate.returnsThis();
 
-      await insightController.getInsightById(req, res, next);
+      InsightStub.findById.returns(chainableMock);
+      chainableMock.populate.resolves(null);
+
+      await insightController.getInsightDetail(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });
@@ -177,7 +199,9 @@ describe('Insight Controller', () => {
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('list');
-      expect(responseData.data).to.have.property('pagination');
+      expect(responseData.data).to.have.property('total');
+      expect(responseData.data).to.have.property('page');
+      expect(responseData.data).to.have.property('limit');
     });
   });
 
@@ -314,11 +338,17 @@ describe('Insight Controller', () => {
   describe('likeInsight', () => {
     it('应该增加小凡看见的点赞数', async () => {
       const insightId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
       req.params = { insightId };
+      req.user = { userId };
+      req.body = { action: 'like' };
 
       const mockInsight = {
         _id: insightId,
         likeCount: 10,
+        likes: [
+          { userId: new mongoose.Types.ObjectId() }
+        ],
         save: sandbox.stub().resolves()
       };
 
@@ -326,7 +356,7 @@ describe('Insight Controller', () => {
 
       await insightController.likeInsight(req, res, next);
 
-      expect(mockInsight.likeCount).to.equal(11);
+      expect(mockInsight.likes.length).to.equal(2);
       expect(res.json.called).to.be.true;
     });
 
