@@ -14,6 +14,7 @@ describe('Admin Controller', () => {
   let res;
   let next;
   let AdminStub;
+  let mysqlBackupServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -40,6 +41,19 @@ describe('Admin Controller', () => {
       findByIdAndUpdate: sandbox.stub()
     };
 
+    // Mock mysqlBackupService
+    mysqlBackupServiceStub = {
+      syncAdmin: sandbox.stub().resolves()
+    };
+
+    // Mock logger
+    const loggerStub = {
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+      info: sandbox.stub(),
+      debug: sandbox.stub()
+    };
+
     const jwtStub = {
       generateTokens: sandbox.stub(),
       verifyRefreshToken: sandbox.stub()
@@ -59,7 +73,9 @@ describe('Admin Controller', () => {
       {
         '../models/Admin': AdminStub,
         '../utils/jwt': jwtStub,
-        '../utils/response': responseUtils
+        '../utils/response': responseUtils,
+        '../utils/logger': loggerStub,
+        '../services/mysql-backup.service': mysqlBackupServiceStub
       }
     );
   });

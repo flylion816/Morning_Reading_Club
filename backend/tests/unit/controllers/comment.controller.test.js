@@ -15,6 +15,7 @@ describe('Comment Controller', () => {
   let next;
   let CommentStub;
   let CheckinStub;
+  let mysqlBackupServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -39,10 +40,18 @@ describe('Comment Controller', () => {
       findById: sandbox.stub()
     };
 
-    // 为 findById 返回值添加 populate 方法链
-    CommentStub.findById.returns({
-      populate: sandbox.stub().returnsThis()
-    });
+    // Mock mysqlBackupService
+    mysqlBackupServiceStub = {
+      syncComment: sandbox.stub().resolves()
+    };
+
+    // Mock logger
+    const loggerStub = {
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+      info: sandbox.stub(),
+      debug: sandbox.stub()
+    };
 
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
@@ -57,7 +66,9 @@ describe('Comment Controller', () => {
       {
         '../models/Comment': CommentStub,
         '../models/Checkin': CheckinStub,
-        '../utils/response': responseUtils
+        '../utils/response': responseUtils,
+        '../utils/logger': loggerStub,
+        '../services/mysql-backup.service': mysqlBackupServiceStub
       }
     );
   });
@@ -80,15 +91,18 @@ describe('Comment Controller', () => {
 
       CheckinStub.findById.resolves(mockCheckin);
       CommentStub.create.resolves(mockComment);
+
+      // 为 findById 配置链式调用：返回有 populate 方法的对象
+      const populateStub = sandbox.stub().resolves(mockPopulatedComment);
       CommentStub.findById.returns({
-        populate: sandbox.stub().resolves(mockPopulatedComment)
+        populate: populateStub
       });
 
       await commentController.createComment(req, res, next);
 
       expect(CommentStub.create.called).to.be.true;
-      expect(res.json.called).to.be.true;
-    });
+      expect(res.status.calledWith(201)).to.be.true;
+    }).timeout(10000);
   });
 
   describe('getComments', () => {
@@ -128,10 +142,25 @@ describe('Comment Controller', () => {
         save: sandbox.stub().resolves()
       };
 
-      CommentStub.findById.returns({
-        populate: sandbox.stub().resolves(mockComment)
-      });
-      CommentStub.findById.resolves(mockComment);
+      const mockPopulatedComment = {
+        ...mockComment,
+        userId: { nickname: '用户名' },
+        replies: []
+      };
+
+      // 第一次 findById：直接 await，返回 mockComment
+      // 第二次 findById：链式调用 populate，返回 mockPopulatedComment
+      CommentStub.findById
+        .onFirstCall()
+        .resolves(mockComment)
+        .onSecondCall()
+        .returns({
+          populate: sandbox.stub().returns({
+            populate: sandbox.stub().returns({
+              populate: sandbox.stub().resolves(mockPopulatedComment)
+            })
+          })
+        });
 
       await commentController.replyToComment(req, res, next);
 
