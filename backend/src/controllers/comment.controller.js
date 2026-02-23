@@ -1,12 +1,14 @@
 const Comment = require('../models/Comment');
 const Checkin = require('../models/Checkin');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
+const mysqlBackupService = require('../services/mysql-backup.service');
 
 // 创建评论
 async function createComment(req, res, next) {
   try {
     const { checkinId, content } = req.body;
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     // 验证打卡存在
     const checkin = await Checkin.findById(checkinId);
@@ -22,10 +24,20 @@ async function createComment(req, res, next) {
       replies: []
     });
 
-    // 填充用户信息
-    await comment.populate('userId', 'nickname avatar avatarUrl');
+    // 异步备份到MySQL
+    mysqlBackupService
+      .syncComment(comment)
+      .catch(err =>
+        logger.warn('MySQL backup failed for comment', { id: comment._id, error: err.message })
+      );
 
-    res.status(201).json(success(comment, '评论成功'));
+    // 填充用户信息（重新查询以获取populate后的数据）
+    const populatedComment = await Comment.findById(comment._id).populate(
+      'userId',
+      'nickname avatar avatarUrl'
+    );
+
+    res.status(201).json(success(populatedComment, '评论成功'));
   } catch (error) {
     next(error);
   }
@@ -44,15 +56,15 @@ async function getCommentsByCheckin(req, res, next) {
       .populate('replies.replyToUserId', 'nickname')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
     res.json(
       success({
         list: comments,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           total,
           pages: Math.ceil(total / limit)
         }
@@ -68,7 +80,7 @@ async function replyToComment(req, res, next) {
   try {
     const { commentId } = req.params;
     const { content, replyToUserId } = req.body;
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     const comment = await Comment.findById(commentId);
 
@@ -87,12 +99,20 @@ async function replyToComment(req, res, next) {
 
     await comment.save();
 
-    // 填充用户信息
-    await comment.populate('userId', 'nickname avatar avatarUrl');
-    await comment.populate('replies.userId', 'nickname avatar avatarUrl');
-    await comment.populate('replies.replyToUserId', 'nickname');
+    // 异步备份到MySQL
+    mysqlBackupService
+      .syncComment(comment)
+      .catch(err =>
+        logger.warn('MySQL backup failed for comment', { id: comment._id, error: err.message })
+      );
 
-    res.json(success(comment, '回复成功'));
+    // 填充用户信息（重新查询以获取populate后的数据）
+    const populatedComment = await Comment.findById(comment._id)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('replies.userId', 'nickname avatar avatarUrl')
+      .populate('replies.replyToUserId', 'nickname');
+
+    res.json(success(populatedComment, '回复成功'));
   } catch (error) {
     next(error);
   }
@@ -102,7 +122,7 @@ async function replyToComment(req, res, next) {
 async function deleteComment(req, res, next) {
   try {
     const { commentId } = req.params;
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     const comment = await Comment.findById(commentId);
 
@@ -127,7 +147,7 @@ async function deleteComment(req, res, next) {
 async function deleteReply(req, res, next) {
   try {
     const { commentId, replyId } = req.params;
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     const comment = await Comment.findById(commentId);
 

@@ -1,8 +1,8 @@
 const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
-const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const mysqlBackupService = require('../services/mysql-backup.service');
 
 /**
  * 提交报名表单（完整的报名信息）
@@ -16,7 +16,7 @@ exports.submitEnrollmentForm = async (req, res) => {
     });
 
     // 从认证token中获取userId（token payload中的字段名是userId）
-    const userId = req.user.userId;
+    const { userId } = req.user;
     const {
       periodId,
       name,
@@ -59,7 +59,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       if (!expectation) missingFields.push('expectation');
       if (!commitment) missingFields.push('commitment');
       logger.warn('Missing required enrollment fields', { missingFields, userId });
-      return res.status(400).json(errors.badRequest('缺少必填字段: ' + missingFields.join(', ')));
+      return res.status(400).json(errors.badRequest(`缺少必填字段: ${missingFields.join(', ')}`));
     }
 
     // 验证期次是否存在
@@ -87,10 +87,10 @@ exports.submitEnrollmentForm = async (req, res) => {
       gender,
       province,
       detailedAddress,
-      age: parseInt(age),
+      age: parseInt(age, 10),
       referrer,
       hasReadBook,
-      readTimes: hasReadBook === 'yes' ? parseInt(readTimes) : 0,
+      readTimes: hasReadBook === 'yes' ? parseInt(readTimes, 10) : 0,
       enrollReason,
       expectation,
       commitment,
@@ -98,19 +98,35 @@ exports.submitEnrollmentForm = async (req, res) => {
       status: 'active' // 直接生效
     });
 
-    // 填充用户和期次信息
-    await enrollment.populate('userId', 'nickname avatar avatarUrl');
-    await enrollment.populate('periodId', 'title description startDate endDate');
+    // 填充用户和期次信息（重新查询以获取populate后的数据）
+    const populatedEnrollment = await Enrollment.findById(enrollment._id)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('periodId', 'title description startDate endDate');
 
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(periodId, {
       $inc: { enrollmentCount: 1 }
     });
 
-    res.json(success(enrollment, '报名成功'));
+    // 异步备份到 MySQL（使用原始未populate的文档以避免数据库关系问题）
+    mysqlBackupService
+      .syncEnrollment(enrollment)
+      .catch(err =>
+        logger.warn('MySQL backup failed for enrollment', {
+          id: enrollment._id,
+          error: err.message
+        })
+      );
+    mysqlBackupService
+      .syncPeriod(period)
+      .catch(err =>
+        logger.warn('MySQL backup failed for period', { id: period._id, error: err.message })
+      );
+
+    res.json(success(populatedEnrollment, '报名成功'));
   } catch (error) {
     logger.error('Enrollment form submission failed', error, { userId: req.user.userId });
-    res.status(500).json(errors.serverError('报名失败: ' + error.message));
+    res.status(500).json(errors.serverError(`报名失败: ${error.message}`));
   }
 };
 
@@ -122,7 +138,7 @@ exports.enrollPeriod = async (req, res) => {
   try {
     const { periodId } = req.body;
     // 从认证token中获取userId（token payload中的字段名是userId）
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     // 验证期次是否存在
     const period = await Period.findById(periodId);
@@ -149,16 +165,17 @@ exports.enrollPeriod = async (req, res) => {
       status: 'active'
     });
 
-    // 填充用户和期次信息
-    await enrollment.populate('userId', 'nickname avatar avatarUrl');
-    await enrollment.populate('periodId', 'title description startDate endDate');
+    // 填充用户和期次信息（重新查询以获取populate后的数据）
+    const populatedEnrollment = await Enrollment.findById(enrollment._id)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('periodId', 'title description startDate endDate');
 
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(periodId, {
       $inc: { enrollmentCount: 1 }
     });
 
-    res.json(success(enrollment, '报名成功'));
+    res.json(success(populatedEnrollment, '报名成功'));
   } catch (error) {
     logger.error('Simple enrollment failed', error, { userId: req.user?.userId });
     res.status(500).json(errors.serverError(error.message));
@@ -188,10 +205,10 @@ exports.getPeriodMembers = async (req, res) => {
 
     // 获取成员列表
     const result = await Enrollment.getPeriodMembers(periodId, {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
       sortBy,
-      sortOrder: parseInt(sortOrder),
+      sortOrder: parseInt(sortOrder, 10),
       status
     });
 
@@ -208,7 +225,7 @@ exports.getPeriodMembers = async (req, res) => {
     );
   } catch (error) {
     logger.error('Get members list failed', error, { periodId: req.params.periodId });
-    res.status(500).json(errors.serverError('获取成员列表失败: ' + error.message));
+    res.status(500).json(errors.serverError(`获取成员列表失败: ${error.message}`));
   }
 };
 
@@ -223,8 +240,8 @@ exports.getUserEnrollments = async (req, res) => {
 
     // 获取报名列表
     const result = await Enrollment.getUserEnrollments(userId, {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
       status
     });
 
@@ -256,7 +273,7 @@ exports.getUserEnrollments = async (req, res) => {
     );
   } catch (error) {
     logger.error('Get enrollment list failed', error);
-    res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
+    res.status(500).json(errors.serverError(`获取报名列表失败: ${error.message}`));
   }
 };
 
@@ -267,7 +284,7 @@ exports.getUserEnrollments = async (req, res) => {
 exports.checkEnrollment = async (req, res) => {
   try {
     const { periodId } = req.params;
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     logger.debug('checkEnrollment called', {
       userId,
@@ -302,7 +319,7 @@ exports.checkEnrollment = async (req, res) => {
     );
   } catch (error) {
     logger.error('Check enrollment status failed', error);
-    res.status(500).json(errors.serverError('检查报名状态失败: ' + error.message));
+    res.status(500).json(errors.serverError(`检查报名状态失败: ${error.message}`));
   }
 };
 
@@ -313,7 +330,7 @@ exports.checkEnrollment = async (req, res) => {
 exports.withdrawEnrollment = async (req, res) => {
   try {
     const { enrollmentId } = req.params;
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     const enrollment = await Enrollment.findOne({
       _id: enrollmentId,
@@ -338,7 +355,7 @@ exports.withdrawEnrollment = async (req, res) => {
     res.json(success(enrollment, '退出成功'));
   } catch (error) {
     logger.error('Withdrawal failed', error);
-    res.status(500).json(errors.serverError('退出失败: ' + error.message));
+    res.status(500).json(errors.serverError(`退出失败: ${error.message}`));
   }
 };
 
@@ -365,7 +382,7 @@ exports.completeEnrollment = async (req, res) => {
     res.json(success(enrollment, '标记为已完成'));
   } catch (error) {
     logger.error('Completion failed', error);
-    res.status(500).json(errors.serverError('完成失败: ' + error.message));
+    res.status(500).json(errors.serverError(`完成失败: ${error.message}`));
   }
 };
 
@@ -387,7 +404,7 @@ exports.getEnrollments = async (req, res) => {
     } = req.query;
 
     // 构建查询条件
-    let query = {
+    const query = {
       deleted: { $ne: true } // ✅ 排除已删除的记录
     };
     if (status) query.status = status;
@@ -396,8 +413,8 @@ exports.getEnrollments = async (req, res) => {
     if (periodId) query.periodId = periodId;
 
     // 分页和排序
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const sort = { [sortBy]: parseInt(sortOrder) };
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const sort = { [sortBy]: parseInt(sortOrder, 10) };
 
     // 获取总数
     const total = await Enrollment.countDocuments(query);
@@ -408,21 +425,21 @@ exports.getEnrollments = async (req, res) => {
       .populate('periodId', 'name')
       .sort(sort)
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .lean();
 
     res.json(
       success({
         list: enrollments,
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit))
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        totalPages: Math.ceil(total / parseInt(limit, 10))
       })
     );
   } catch (error) {
     logger.error('Get enrollment list failed', error);
-    res.status(500).json(errors.serverError('获取报名列表失败: ' + error.message));
+    res.status(500).json(errors.serverError(`获取报名列表失败: ${error.message}`));
   }
 };
 
@@ -452,7 +469,7 @@ exports.updateEnrollment = async (req, res) => {
     res.json(success(enrollment, '更新成功'));
   } catch (error) {
     logger.error('Update failed', error);
-    res.status(500).json(errors.serverError('更新失败: ' + error.message));
+    res.status(500).json(errors.serverError(`更新失败: ${error.message}`));
   }
 };
 
@@ -477,7 +494,7 @@ exports.deleteEnrollment = async (req, res) => {
     res.json(success(null, '删除成功'));
   } catch (error) {
     logger.error('Deletion failed', error);
-    res.status(500).json(errors.serverError('删除失败: ' + error.message));
+    res.status(500).json(errors.serverError(`删除失败: ${error.message}`));
   }
 };
 
@@ -518,7 +535,7 @@ exports.debugCleanupEnrollments = async (req, res) => {
     );
   } catch (error) {
     logger.error('Cleanup failed', error);
-    res.status(500).json(errors.serverError('清理失败: ' + error.message));
+    res.status(500).json(errors.serverError(`清理失败: ${error.message}`));
   }
 };
 
@@ -538,14 +555,12 @@ exports.getUsersByPeriodName = async (req, res, next) => {
     }
 
     // 根据期次名称查询期次
-    const Period = require('../models/Period');
     const period = await Period.findOne({ name: periodName });
     if (!period) {
       return res.status(404).json(errors.notFound(`期次不存在：${periodName}`));
     }
 
     // 查询所有报名了该期次的用户（active 或 completed 状态）
-    const Enrollment = require('../models/Enrollment');
     const enrollments = await Enrollment.find({
       periodId: period._id,
       status: { $in: ['active', 'completed'] },
@@ -566,7 +581,7 @@ exports.getUsersByPeriodName = async (req, res, next) => {
         {
           periodName: period.name,
           userCount: users.length,
-          users: users
+          users
         },
         '获取成功'
       )

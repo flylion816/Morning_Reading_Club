@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const mysqlBackupService = require('../services/mysql-backup.service');
 require('dotenv').config();
 
 // 生成 JWT Token
@@ -75,6 +76,10 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     // req.admin 由 adminAuthMiddleware 设置
+    if (!req.admin || !req.admin.id) {
+      return res.status(401).json(errors.unauthorized('未授权访问'));
+    }
+
     const admin = await Admin.findById(req.admin.id);
 
     if (!admin) {
@@ -102,6 +107,11 @@ exports.logout = async (req, res) => {
 // 刷新 Token
 exports.refreshToken = async (req, res) => {
   try {
+    // req.admin 由 adminAuthMiddleware 设置
+    if (!req.admin || !req.admin.id) {
+      return res.status(401).json(errors.unauthorized('未授权访问'));
+    }
+
     const admin = await Admin.findById(req.admin.id);
 
     if (!admin) {
@@ -180,6 +190,13 @@ exports.createAdmin = async (req, res) => {
 
     await newAdmin.save();
 
+    // 异步备份到MySQL
+    mysqlBackupService
+      .syncAdmin(newAdmin)
+      .catch(err =>
+        logger.warn('MySQL backup failed for admin', { id: newAdmin._id, error: err.message })
+      );
+
     return res.json(success(newAdmin.toJSON(), '管理员创建成功'));
   } catch (error) {
     logger.error('Create admin error', error);
@@ -190,6 +207,11 @@ exports.createAdmin = async (req, res) => {
 // 修改管理员信息
 exports.updateAdmin = async (req, res) => {
   try {
+    // req.admin 由 adminAuthMiddleware 设置
+    if (!req.admin || !req.admin.role) {
+      return res.status(401).json(errors.unauthorized('未授权访问'));
+    }
+
     const { id } = req.params;
     const { name, role, permissions, status } = req.body;
 
@@ -211,6 +233,13 @@ exports.updateAdmin = async (req, res) => {
 
     await admin.save();
 
+    // 异步备份到MySQL
+    mysqlBackupService
+      .syncAdmin(admin)
+      .catch(err =>
+        logger.warn('MySQL backup failed for admin', { id: admin._id, error: err.message })
+      );
+
     return res.json(success(admin.toJSON(), '管理员信息已更新'));
   } catch (error) {
     logger.error('Update admin error', error);
@@ -221,6 +250,11 @@ exports.updateAdmin = async (req, res) => {
 // 修改密码
 exports.changePassword = async (req, res) => {
   try {
+    // req.admin 由 adminAuthMiddleware 设置
+    if (!req.admin || !req.admin.id) {
+      return res.status(401).json(errors.unauthorized('未授权访问'));
+    }
+
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -232,6 +266,10 @@ exports.changePassword = async (req, res) => {
     }
 
     const admin = await Admin.findById(req.admin.id).select('+password');
+
+    if (!admin) {
+      return res.status(404).json(errors.notFound('管理员不存在'));
+    }
 
     // 验证原密码
     const isPasswordValid = await admin.comparePassword(oldPassword);
@@ -253,6 +291,11 @@ exports.changePassword = async (req, res) => {
 // 删除管理员
 exports.deleteAdmin = async (req, res) => {
   try {
+    // req.admin 由 adminAuthMiddleware 设置
+    if (!req.admin || !req.admin.id) {
+      return res.status(401).json(errors.unauthorized('未授权访问'));
+    }
+
     const { id } = req.params;
 
     // 不能删除自己
