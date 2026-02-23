@@ -2,120 +2,217 @@
  * Ranking Controller 单元测试
  */
 
-const { expect } = require('chai');
-const sinon = require('sinon');
-const proxyquire = require('proxyquire').noCallThru();
+// Mock dependencies before requiring the controller
+jest.mock('../../../src/models/Checkin');
+jest.mock('../../../src/models/User');
+jest.mock('../../../src/models/Period');
+
+jest.mock('../../../src/utils/logger', () => ({
+  warn: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn()
+}));
+
+jest.mock('../../../src/utils/response', () => ({
+  success: (data, message) => ({ code: 200, message, data }),
+  errors: {
+    badRequest: (msg) => ({ code: 400, message: msg }),
+    notFound: (msg) => ({ code: 404, message: msg }),
+    forbidden: (msg) => ({ code: 403, message: msg }),
+    internalServerError: (msg) => ({ code: 500, message: msg })
+  }
+}));
+
 const mongoose = require('mongoose');
+const { getPeriodRanking } = require('../../../src/controllers/ranking.controller');
+const Checkin = require('../../../src/models/Checkin');
+const User = require('../../../src/models/User');
+const Period = require('../../../src/models/Period');
 
 describe('Ranking Controller', () => {
-  let rankingController;
-  let sandbox;
   let req;
   let res;
   let next;
-  let UserStub;
 
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
-
-    req = { query: {}, params: {}, user: {} };
-    res = { json: sandbox.stub().returnsThis() };
-    next = sandbox.stub();
-
-    UserStub = {
-      find: sandbox.stub(),
-      countDocuments: sandbox.stub()
+    req = {
+      params: { periodId: new mongoose.Types.ObjectId().toString() },
+      query: { page: 1, limit: 10 },
+      user: { userId: new mongoose.Types.ObjectId().toString() }
     };
 
-    const responseUtils = {
-      success: (data, message) => ({ code: 200, message, data })
+    res = {
+      json: jest.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis()
     };
 
-    rankingController = proxyquire(
-      '../../../src/controllers/ranking.controller',
-      {
-        '../models/User': UserStub,
-        '../utils/response': responseUtils
-      }
-    );
+    next = jest.fn();
+
+    jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    sandbox.restore();
-  });
+  describe('getPeriodRanking', () => {
+    it('应该返回期次排行榜列表', async () => {
+      const periodId = req.params.periodId;
+      const userId = req.user.userId;
+      const userObjId = new mongoose.Types.ObjectId(userId);
 
-  describe('getPointsRanking', () => {
-    it('应该返回积分排行榜', async () => {
-      req.query = { page: 1, limit: 10 };
+      // Mock Period.findById
+      Period.findById = jest.fn().mockResolvedValue({
+        _id: periodId,
+        name: '第一期',
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2025-01-31')
+      });
 
-      const mockUsers = [
-        { _id: new mongoose.Types.ObjectId(), nickname: '用户1', totalPoints: 1000 }
+      // Mock Checkin.aggregate
+      const mockAggregateResult = [
+        {
+          _id: userObjId,
+          checkinCount: 25,
+          lastCheckinDate: new Date('2025-01-20'),
+          userInfo: {
+            _id: userObjId,
+            nickname: '用户1',
+            avatar: 'avatar1.jpg',
+            avatarUrl: 'https://example.com/avatar1.jpg'
+          }
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          checkinCount: 20,
+          lastCheckinDate: new Date('2025-01-19'),
+          userInfo: {
+            _id: new mongoose.Types.ObjectId(),
+            nickname: '用户2',
+            avatar: 'avatar2.jpg',
+            avatarUrl: 'https://example.com/avatar2.jpg'
+          }
+        }
       ];
 
-      UserStub.countDocuments.resolves(1);
-      UserStub.find.returns({
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockUsers)
+      Checkin.aggregate = jest.fn().mockResolvedValue(mockAggregateResult);
+
+      // Mock User.findById for current user with chainable select
+      const mockUserData = {
+        _id: userObjId,
+        nickname: '用户1',
+        avatar: 'avatar1.jpg',
+        avatarUrl: 'https://example.com/avatar1.jpg'
+      };
+
+      User.findById = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockUserData)
       });
 
-      await rankingController.getPointsRanking(req, res, next);
+      await getPeriodRanking(req, res, next);
 
-      expect(res.json.called).to.be.true;
-      const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('list');
-      expect(responseData.data).to.have.property('pagination');
+      expect(res.json).toHaveBeenCalled();
+      const responseData = res.json.mock.calls[0][0];
+      expect(responseData.code).toBe(200);
+      expect(responseData.data).toHaveProperty('list');
+      expect(responseData.data).toHaveProperty('currentUser');
+      expect(responseData.data).toHaveProperty('total');
     });
-  });
 
-  describe('getStreakRanking', () => {
-    it('应该返回连续打卡排行', async () => {
-      req.query = { page: 1, limit: 10 };
+    it('应该支持时间范围过滤 - today', async () => {
+      req.query.timeRange = 'today';
 
-      UserStub.countDocuments.resolves(1);
-      UserStub.find.returns({
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves([])
+      Period.findById = jest.fn().mockResolvedValue({ _id: req.params.periodId });
+
+      const mockResult = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          checkinCount: 5,
+          lastCheckinDate: new Date(),
+          userInfo: { _id: new mongoose.Types.ObjectId(), nickname: '用户1', avatar: '' }
+        }
+      ];
+
+      Checkin.aggregate = jest.fn().mockResolvedValue(mockResult);
+      User.findById = jest.fn().mockResolvedValue({
+        _id: req.user.userId,
+        nickname: '用户',
+        avatar: ''
       });
 
-      await rankingController.getStreakRanking(req, res, next);
+      await getPeriodRanking(req, res, next);
 
-      expect(res.json.called).to.be.true;
+      expect(res.json).toHaveBeenCalled();
+      expect(Checkin.aggregate).toHaveBeenCalled();
     });
-  });
 
-  describe('getLevelRanking', () => {
-    it('应该返回等级排行榜', async () => {
-      req.query = { page: 1, limit: 10 };
+    it('应该支持时间范围过滤 - thisWeek', async () => {
+      req.query.timeRange = 'thisWeek';
 
-      UserStub.countDocuments.resolves(1);
-      UserStub.find.returns({
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves([])
+      Period.findById = jest.fn().mockResolvedValue({ _id: req.params.periodId });
+
+      const mockResult = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          checkinCount: 10,
+          lastCheckinDate: new Date(),
+          userInfo: { _id: new mongoose.Types.ObjectId(), nickname: '用户1', avatar: '' }
+        }
+      ];
+
+      Checkin.aggregate = jest.fn().mockResolvedValue(mockResult);
+      User.findById = jest.fn().mockResolvedValue({
+        _id: req.user.userId,
+        nickname: '用户',
+        avatar: ''
       });
 
-      await rankingController.getLevelRanking(req, res, next);
+      await getPeriodRanking(req, res, next);
 
-      expect(res.json.called).to.be.true;
+      expect(res.json).toHaveBeenCalled();
     });
-  });
 
-  describe('getUserRanking', () => {
-    it('应该返回用户在排行榜中的排名', async () => {
-      const userId = new mongoose.Types.ObjectId();
-      req.params = { userId };
-      req.query = { type: 'points' };
+    it('应该支持分页', async () => {
+      req.query = { page: 2, limit: 5, timeRange: 'all' };
 
-      UserStub.countDocuments.resolves(100);
+      Period.findById = jest.fn().mockResolvedValue({ _id: req.params.periodId });
 
-      await rankingController.getUserRanking(req, res, next);
+      const mockResult = Array.from({ length: 5 }, (_, i) => ({
+        _id: new mongoose.Types.ObjectId(),
+        checkinCount: 10 - i,
+        lastCheckinDate: new Date(),
+        userInfo: { _id: new mongoose.Types.ObjectId(), nickname: `用户${i}`, avatar: '' }
+      }));
 
-      expect(res.json.called).to.be.true;
+      Checkin.aggregate = jest.fn().mockResolvedValue(mockResult);
+      User.findById = jest.fn().mockResolvedValue({
+        _id: req.user.userId,
+        nickname: '用户',
+        avatar: ''
+      });
+
+      await getPeriodRanking(req, res, next);
+
+      expect(res.json).toHaveBeenCalled();
+      const responseData = res.json.mock.calls[0][0];
+      expect(responseData.data.page).toBe(2);
+      expect(responseData.data.limit).toBe(5);
+    });
+
+    it('应该返回404当期次不存在', async () => {
+      Period.findById = jest.fn().mockResolvedValue(null);
+
+      await getPeriodRanking(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalled();
+    });
+
+    it('应该在出错时调用next传递错误', async () => {
+      const testError = new Error('Database error');
+
+      Period.findById = jest.fn().mockRejectedValue(testError);
+
+      await getPeriodRanking(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(testError);
     });
   });
 });

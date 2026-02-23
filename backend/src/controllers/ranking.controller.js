@@ -3,6 +3,7 @@ const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 获取期次排行榜
@@ -18,7 +19,7 @@ async function getPeriodRanking(req, res, next) {
       limit = 20
     } = req.query;
 
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     // 验证期次是否存在
     const period = await Period.findById(periodId);
@@ -113,7 +114,10 @@ async function getPeriodRanking(req, res, next) {
     const total = countResult.length;
 
     // 分页
-    pipeline.push({ $skip: (parseInt(page) - 1) * parseInt(limit) }, { $limit: parseInt(limit) });
+    pipeline.push(
+      { $skip: (parseInt(page, 10) - 1) * parseInt(limit, 10) },
+      { $limit: parseInt(limit, 10) }
+    );
 
     // 填充用户信息
     pipeline.push({
@@ -134,7 +138,7 @@ async function getPeriodRanking(req, res, next) {
 
     // 转换数据格式，添加排名和前端需要的字段
     const list = rankings.map((item, index) => ({
-      rank: (parseInt(page) - 1) * parseInt(limit) + index + 1,
+      rank: (parseInt(page, 10) - 1) * parseInt(limit, 10) + index + 1,
       userId: item._id.toString(),
       nickname: item.userInfo.nickname,
       avatar: item.userInfo.avatar,
@@ -152,7 +156,7 @@ async function getPeriodRanking(req, res, next) {
       const currentUserInfo = await User.findById(userId).select('nickname avatar avatarUrl');
       currentUser = {
         rank: currentUserIndex + 1,
-        userId: userId,
+        userId,
         nickname: currentUserInfo.nickname,
         avatar: currentUserInfo.avatar,
         avatarUrl: currentUserInfo.avatarUrl,
@@ -165,9 +169,9 @@ async function getPeriodRanking(req, res, next) {
         list,
         currentUser,
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        totalPages: Math.ceil(total / parseInt(limit, 10)),
         timeRange
       })
     );
