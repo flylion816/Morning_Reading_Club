@@ -1,5 +1,6 @@
 const auditService = require('../services/audit.service');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 审计日志控制器
@@ -9,6 +10,7 @@ class AuditController {
    * 获取审计日志列表
    * GET /api/v1/audit-logs
    */
+  // eslint-disable-next-line class-methods-use-this
   async getLogs(req, res) {
     try {
       const {
@@ -32,7 +34,7 @@ class AuditController {
         query.endDate = endDate;
       }
 
-      const result = await auditService.getLogs(query, parseInt(page), parseInt(pageSize));
+      const result = await auditService.getLogs(query, parseInt(page, 10), parseInt(pageSize, 10));
       res.json(success(result, '获取审计日志成功'));
     } catch (error) {
       logger.error('获取审计日志失败:', error);
@@ -44,12 +46,17 @@ class AuditController {
    * 获取管理员的操作记录
    * GET /api/v1/audit-logs/admin/:adminId
    */
+  // eslint-disable-next-line class-methods-use-this
   async getAdminLogs(req, res) {
     try {
       const { adminId } = req.params;
       const { page = 1, pageSize = 20 } = req.query;
 
-      const result = await auditService.getAdminLogs(adminId, parseInt(page), parseInt(pageSize));
+      const result = await auditService.getAdminLogs(
+        adminId,
+        parseInt(page, 10),
+        parseInt(pageSize, 10)
+      );
       res.json(success(result, '获取管理员操作记录成功'));
     } catch (error) {
       logger.error('获取管理员操作记录失败:', error);
@@ -61,6 +68,7 @@ class AuditController {
    * 获取资源的操作记录
    * GET /api/v1/audit-logs/resource/:resourceType/:resourceId
    */
+  // eslint-disable-next-line class-methods-use-this
   async getResourceLogs(req, res) {
     try {
       const { resourceType, resourceId } = req.params;
@@ -69,8 +77,8 @@ class AuditController {
       const result = await auditService.getResourceLogs(
         resourceType,
         resourceId,
-        parseInt(page),
-        parseInt(pageSize)
+        parseInt(page, 10),
+        parseInt(pageSize, 10)
       );
       res.json(success(result, '获取资源操作记录成功'));
     } catch (error) {
@@ -83,6 +91,7 @@ class AuditController {
    * 获取操作统计
    * GET /api/v1/audit-logs/statistics
    */
+  // eslint-disable-next-line class-methods-use-this
   async getStatistics(req, res) {
     try {
       const stats = await auditService.getStatistics();
@@ -97,6 +106,7 @@ class AuditController {
    * 导出审计日志
    * GET /api/v1/audit-logs/export
    */
+  // eslint-disable-next-line class-methods-use-this
   async exportLogs(req, res) {
     try {
       const { adminId, actionType, resourceType, startDate, endDate, status } = req.query;
@@ -116,7 +126,7 @@ class AuditController {
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${Date.now()}.csv"`);
-      res.send('\ufeff' + csv); // BOM标记以确保Excel正确显示中文
+      res.send(`\ufeff${csv}`); // BOM标记以确保Excel正确显示中文
     } catch (error) {
       logger.error('导出审计日志失败:', error);
       res.status(500).json(errors.internalError('导出审计日志失败'));
@@ -127,6 +137,7 @@ class AuditController {
    * 清理过期日志
    * POST /api/v1/audit-logs/cleanup
    */
+  // eslint-disable-next-line class-methods-use-this
   async cleanupExpiredLogs(req, res) {
     try {
       // 检查是否是超级管理员
