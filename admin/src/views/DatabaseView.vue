@@ -294,9 +294,9 @@ async function loadMongodbTableData(page?: number) {
       pageSize.value
     );
 
-    if (response?.data?.data) {
-      mongoData.value = response.data.data.data || [];
-      mongoTotal.value = response.data.data.pagination?.total || 0;
+    if (response && Array.isArray(response.data)) {
+      mongoData.value = response.data || [];
+      mongoTotal.value = response.total || 0;
 
       // 动态生成列
       if (mongoData.value.length > 0) {
@@ -321,9 +321,9 @@ async function loadMysqlTableData(page?: number) {
       pageSize.value
     );
 
-    if (response?.data?.data) {
-      mysqlData.value = response.data.data.data || [];
-      mysqlTotal.value = response.data.data.pagination?.total || 0;
+    if (response && Array.isArray(response.data)) {
+      mysqlData.value = response.data || [];
+      mysqlTotal.value = response.total || 0;
 
       // 动态生成列
       if (mysqlData.value.length > 0) {
