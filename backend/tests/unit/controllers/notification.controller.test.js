@@ -149,4 +149,139 @@ describe('Notification Controller', () => {
       expect(responseData.data).to.have.property('unreadCount');
     });
   });
+
+  describe('deleteNotification', () => {
+    it('应该删除自己的通知', async () => {
+      const userId = req.user.userId;
+      const notificationId = new mongoose.Types.ObjectId();
+      req.params = { notificationId };
+
+      const mockNotification = {
+        _id: notificationId,
+        userId,
+        title: '通知',
+        isRead: false
+      };
+
+      NotificationStub.findById.resolves(mockNotification);
+      NotificationStub.findByIdAndDelete.resolves(mockNotification);
+
+      await notificationController.deleteNotification(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      expect(NotificationStub.findByIdAndDelete.called).to.be.true;
+    });
+
+    it('应该返回403当删除他人的通知', async () => {
+      const userId = req.user.userId;
+      const otherUserId = new mongoose.Types.ObjectId().toString();
+      const notificationId = new mongoose.Types.ObjectId();
+      req.params = { notificationId };
+
+      const mockNotification = {
+        _id: notificationId,
+        userId: otherUserId,
+        title: '通知'
+      };
+
+      NotificationStub.findById.resolves(mockNotification);
+
+      await notificationController.deleteNotification(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+    });
+
+    it('应该返回404当通知不存在', async () => {
+      const notificationId = new mongoose.Types.ObjectId();
+      req.params = { notificationId };
+
+      NotificationStub.findById.resolves(null);
+
+      await notificationController.deleteNotification(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('deleteAllNotifications', () => {
+    it('应该删除所有通知', async () => {
+      const userId = req.user.userId;
+
+      NotificationStub.deleteMany.resolves({ deletedCount: 5 });
+
+      await notificationController.deleteAllNotifications(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('deletedCount');
+      expect(responseData.data.deletedCount).to.equal(5);
+    });
+  });
+
+  describe('archiveNotification', () => {
+    it('应该归档自己的通知', async () => {
+      const userId = req.user.userId;
+      const notificationId = new mongoose.Types.ObjectId();
+      req.params = { notificationId };
+
+      const mockNotification = {
+        _id: notificationId,
+        userId,
+        title: '通知',
+        isArchived: false,
+        save: sandbox.stub().resolves()
+      };
+
+      NotificationStub.findById.resolves(mockNotification);
+
+      await notificationController.archiveNotification(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      expect(mockNotification.save.called).to.be.true;
+    });
+
+    it('应该返回404当通知不存在', async () => {
+      const notificationId = new mongoose.Types.ObjectId();
+      req.params = { notificationId };
+
+      NotificationStub.findById.resolves(null);
+
+      await notificationController.archiveNotification(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('getArchivedNotifications', () => {
+    it('应该返回已归档的通知列表', async () => {
+      const userId = req.user.userId;
+      req.query = { page: 1, limit: 20 };
+
+      const mockArchivedNotifications = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId,
+          title: '归档通知',
+          isArchived: true,
+          archivedAt: new Date()
+        }
+      ];
+
+      NotificationStub.countDocuments.resolves(1);
+      NotificationStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        resolves: sandbox.stub().resolves(mockArchivedNotifications)
+      });
+
+      await notificationController.getArchivedNotifications(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('notifications');
+      expect(responseData.data).to.have.property('pagination');
+    });
+  });
 });

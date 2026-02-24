@@ -207,4 +207,108 @@ describe('Admin Controller', () => {
       expect(res.json.called).to.be.true;
     });
   });
+
+  describe('getAdmins', () => {
+    it('应该返回管理员列表', async () => {
+      req.query = { page: 1, limit: 10 };
+
+      const mockAdmins = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          name: '管理员1',
+          email: 'admin1@test.com',
+          role: 'super_admin',
+          toJSON: sandbox.stub().returnsThis()
+        }
+      ];
+
+      AdminStub.find.returns({
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().resolves(mockAdmins)
+      });
+      AdminStub.countDocuments.resolves(1);
+
+      await adminController.getAdmins(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('list');
+      expect(responseData.data).to.have.property('total');
+    });
+  });
+
+  describe('createAdmin', () => {
+    it('应该创建新管理员', async () => {
+      req.body = {
+        name: '新管理员',
+        email: 'newadmin@test.com',
+        password: 'password123',
+        role: 'operator'
+      };
+
+      const mockNewAdmin = {
+        _id: new mongoose.Types.ObjectId(),
+        ...req.body,
+        status: 'active'
+      };
+
+      AdminStub.findOne.resolves(null);
+      AdminStub.create.resolves(mockNewAdmin);
+
+      await adminController.createAdmin(req, res, next);
+
+      expect(res.status.calledWith(201)).to.be.true;
+      expect(AdminStub.create.called).to.be.true;
+    });
+
+    it('应该返回400当邮箱已存在', async () => {
+      req.body = {
+        name: '管理员',
+        email: 'exist@test.com',
+        password: 'password123'
+      };
+
+      const existingAdmin = {
+        _id: new mongoose.Types.ObjectId(),
+        email: 'exist@test.com'
+      };
+
+      AdminStub.findOne.resolves(existingAdmin);
+
+      await adminController.createAdmin(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('应该刷新Token', async () => {
+      const adminId = new mongoose.Types.ObjectId();
+      req.admin = { id: adminId };
+
+      const mockAdmin = {
+        _id: adminId,
+        email: 'admin@test.com',
+        role: 'super_admin',
+        status: 'active'
+      };
+
+      AdminStub.findById.resolves(mockAdmin);
+
+      await adminController.refreshToken(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('accessToken');
+    });
+
+    it('应该返回401当没有授权', async () => {
+      req.admin = null;
+
+      await adminController.refreshToken(req, res, next);
+
+      expect(res.status.calledWith(401)).to.be.true;
+    });
+  });
 });

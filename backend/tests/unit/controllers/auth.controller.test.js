@@ -322,4 +322,14 @@ describe('Auth Controller', () => {
       expect(responseData.data.expiresIn).to.equal(3600);
     });
   });
+
+  describe('logout', () => {
+    it('应该返回登出成功', async () => {
+      await authController.logout(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.message).to.include('登出成功');
+    });
+  });
 });
