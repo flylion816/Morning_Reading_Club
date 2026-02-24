@@ -12,7 +12,7 @@
 
 // 当前环境 ('dev' | 'test' | 'prod')
 // ⚠️ 必须与根目录 .env.config.js 中的 currentEnv 值相同
-const currentEnv = 'prod'; // ← 已切换为生产环境
+const currentEnv = 'dev'; // ← 已切换为开发环境
 
 // 环境配置
 const envConfig = {
@@ -43,6 +43,10 @@ const envConfig = {
     useMock: false
   }
 };
+
+// 调试输出（开发环境用）
+console.log('[ENV DEBUG] currentEnv:', currentEnv);
+console.log('[ENV DEBUG] apiBaseUrl:', envConfig[currentEnv].apiBaseUrl);
 
 // 导出当前环境配置
 module.exports = {

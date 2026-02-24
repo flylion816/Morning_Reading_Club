@@ -170,7 +170,7 @@ Page({
             console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
 
             // 详细日志：用于调试
-            console.log(`  └─ API返回值:`, {
+            console.log('  └─ API返回值:', {
               isEnrolled: res.isEnrolled,
               paymentStatus: res.paymentStatus,
               enrollmentId: res.enrollmentId,
@@ -269,7 +269,7 @@ Page({
     const calculatedStatus = period.calculatedStatus;
     console.log('calculatedStatus:', calculatedStatus);
 
-    // 如果已完成且未报名，显示提示
+    // 【情况1】已完成且未报名，显示提示并拦截
     if (calculatedStatus === 'completed' && !isEnrolled) {
       console.log('✅ 触发：已完成且未报名，显示提示');
       wx.showToast({
@@ -280,26 +280,29 @@ Page({
       return;
     }
 
+    // 【情况2】未报名（且期次未完成），进入报名页面
     if (!isEnrolled) {
-      // 【情况1】未报名，进入报名页面
       console.log('未报名，进入报名页面');
       wx.navigateTo({
         url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
-    } else if (paymentStatus === 'paid') {
-      // 【情况2】已报名且已支付，进入课程列表
+    }
+    // 【情况3】已报名且已支付，进入课程列表（无论期次是否已完成）
+    else if (paymentStatus === 'paid') {
       console.log('已报名且已支付，进入课程列表');
       wx.navigateTo({
         url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
       });
-    } else if (paymentStatus === 'pending') {
-      // 【情况3】已报名但未支付，跳到支付页面继续支付
+    }
+    // 【情况4】已报名但未支付，跳到支付页面继续支付
+    else if (paymentStatus === 'pending') {
       console.log('已报名但未支付，继续支付');
       wx.navigateTo({
         url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startDate}&endDate=${period.endDate}&amount=99&isResumePayment=true`
       });
-    } else {
-      // 【情况4】其他支付状态（如failed等），显示提示
+    }
+    // 【情况5】其他支付状态（如failed等），显示提示
+    else {
       wx.showToast({
         title: '报名状态异常，请联系客服',
         icon: 'none',

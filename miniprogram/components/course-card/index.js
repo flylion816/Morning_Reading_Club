@@ -15,6 +15,11 @@ Component({
     mode: {
       type: String,
       value: 'section' // 默认为课节模式
+    },
+    // 报名信息（期次模式用）
+    enrolled: {
+      type: Object,
+      value: null
     }
   },
 
@@ -79,8 +84,17 @@ Component({
           return;
         }
 
-        // 已报名但未支付
-        if (paymentStatus !== 'paid') {
+        // 【情况3】已报名且已支付 → 导航到课程列表（无论期次是否已完成）
+        if (paymentStatus === 'paid') {
+          console.log('✅ 已报名且已支付，导航到课程列表');
+          wx.navigateTo({
+            url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
+          });
+          return;
+        }
+
+        // 【情况4】已报名但未支付 → 提示完成支付
+        if (paymentStatus === 'pending') {
           wx.showToast({
             title: '请先完成支付',
             icon: 'none',
@@ -89,10 +103,11 @@ Component({
           return;
         }
 
-        // 已报名且已支付，才导航到课程列表
-        console.log('✅ 已报名且已支付，导航到课程列表');
-        wx.navigateTo({
-          url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
+        // 【情况5】其他支付状态 → 异常提示
+        wx.showToast({
+          title: '报名状态异常，请联系客服',
+          icon: 'none',
+          duration: 2000
         });
         return;
       }

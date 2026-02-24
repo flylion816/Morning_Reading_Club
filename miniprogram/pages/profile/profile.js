@@ -404,36 +404,20 @@ Page({
 
   /**
    * 加载最近的小凡看见记录
-   * 只加载当前期次的小凡看见记录
+   * 改为加载所有小凡看见（不限期次），然后只取最新的2条
+   * 这样可以保证即使当前期次判断有误，也能显示用户的最新小凡看见
    */
   async loadRecentInsights(currentPeriod) {
     try {
       const insightService = require('../../services/insight.service');
 
-      // 如果参数中没有传入 currentPeriod，尝试从 this.data 读取（后续可能被调用时）
-      if (!currentPeriod) {
-        currentPeriod = this.data.currentPeriod;
-      }
-
-      if (!currentPeriod) {
-        console.warn('❌ 当前期次未加载，无法过滤小凡看见');
-        return [];
-      }
-
-      const periodId = currentPeriod._id || currentPeriod.id;
       console.log('=== 加载小凡看见 ===');
-      console.log('当前期次对象:', currentPeriod);
-      console.log('当前期次名称:', currentPeriod.name || currentPeriod.title);
-      console.log('按期次ID加载小凡看见，periodId:', periodId);
       console.log('当前用户ID:', this.data.userInfo?._id || this.data.userInfo?.id);
+      console.log('获取用户的所有小凡看见记录（不限制期次）');
 
-      if (!periodId) {
-        console.error('❌ 错误：periodId为空！无法加载小凡看见');
-        return [];
-      }
-
-      // 调用API获取指定期次的小凡看见记录
-      const res = await insightService.getInsightsForPeriod(periodId, { limit: 10 });
+      // 改为加载所有小凡看见，而不是只加载当前期次的
+      // 这样可以确保即使 currentPeriod 判断有问题，也能显示用户的最新小凡看见
+      const res = await insightService.getInsightsList({ limit: 10 });
 
       console.log('API 响应原始数据:', res);
       console.log('API 响应列表:', res?.list);
@@ -468,17 +452,15 @@ Page({
       const formatted = insights.map(item => {
         console.log('处理单条insight:', item);
 
-        // 提取preview：从content中提取前两行的纯文本
-        let preview = '';
-        if (item.content) {
+        // 提取preview：和insights.js保持一致逻辑
+        let preview = item.summary || '';
+        if (!preview && item.content) {
           // 提取纯文本（去除所有HTML标签）
           const plainText = item.content.replace(/<[^>]*>/g, '').trim();
-          // 分行并取前两行
-          const lines = plainText.split('\n').filter(line => line.trim());
-          preview = lines.slice(0, 2).join('\n');
-          // 如果超过150个字符，截断
-          if (preview.length > 150) {
-            preview = preview.substring(0, 150) + '...';
+          // 直接取前150个字符
+          preview = plainText.substring(0, 150);
+          if (plainText.length > 150) {
+            preview += '...';
           }
         }
 
@@ -743,11 +725,12 @@ Page({
       let periodId = request.periodId;
       if (!periodId) {
         // 尝试从多个来源获取 periodId
-        periodId = app.globalData.periods?.[0]?._id ||
-                   app.globalData.currentPeriodId ||
-                   this.data.currentPeriod?._id ||
-                   this.data.currentPeriod?.id ||
-                   '';
+        periodId =
+          app.globalData.periods?.[0]?._id ||
+          app.globalData.currentPeriodId ||
+          this.data.currentPeriod?._id ||
+          this.data.currentPeriod?.id ||
+          '';
       }
 
       if (!periodId) {
