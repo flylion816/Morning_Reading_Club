@@ -12,12 +12,7 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">📦 MongoDB</span>
-            <el-button
-              type="primary"
-              size="small"
-              :loading="syncing"
-              @click="handleFullSync"
-            >
+            <el-button type="primary" size="small" :loading="syncing" @click="handleFullSync">
               ▶ 同步到 MySQL
             </el-button>
           </div>
@@ -72,9 +67,7 @@
           </el-table-column>
         </el-table>
 
-        <div v-if="selectedMongoTable && mongoData.length === 0" class="empty-tip">
-          暂无数据
-        </div>
+        <div v-if="selectedMongoTable && mongoData.length === 0" class="empty-tip">暂无数据</div>
 
         <!-- 分页 -->
         <el-pagination
@@ -84,8 +77,8 @@
           :page-sizes="[10, 20, 50]"
           :total="mongoTotal"
           layout="total, sizes, prev, pager, next, jumper"
-          @change="loadMongodbTableData"
           style="margin-top: 20px; text-align: right"
+          @change="loadMongodbTableData"
         />
       </el-card>
 
@@ -94,12 +87,7 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">🗂️ MySQL</span>
-            <el-button
-              type="success"
-              size="small"
-              :loading="recovering"
-              @click="handleFullRecover"
-            >
+            <el-button type="success" size="small" :loading="recovering" @click="handleFullRecover">
               ↩ 从 MySQL 恢复
             </el-button>
           </div>
@@ -153,9 +141,7 @@
           </el-table-column>
         </el-table>
 
-        <div v-if="selectedMysqlTable && mysqlData.length === 0" class="empty-tip">
-          暂无数据
-        </div>
+        <div v-if="selectedMysqlTable && mysqlData.length === 0" class="empty-tip">暂无数据</div>
 
         <!-- 分页 -->
         <el-pagination
@@ -165,8 +151,8 @@
           :page-sizes="[10, 20, 50]"
           :total="mysqlTotal"
           layout="total, sizes, prev, pager, next, jumper"
-          @change="loadMysqlTableData"
           style="margin-top: 20px; text-align: right"
+          @change="loadMysqlTableData"
         />
       </el-card>
 
@@ -175,12 +161,7 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">📊 备份对比</span>
-            <el-button
-              type="info"
-              size="small"
-              :loading="comparing"
-              @click="compareBackup"
-            >
+            <el-button type="info" size="small" :loading="comparing" @click="compareBackup">
               🔄 对比数据
             </el-button>
           </div>
@@ -220,16 +201,35 @@ import { backupApi } from '../services/api';
 
 // MongoDB 集合列表
 const mongoTables = [
-  'users', 'admins', 'periods', 'sections', 'checkins',
-  'enrollments', 'payments', 'insights', 'insight_requests',
-  'comments', 'notifications'
+  'users',
+  'admins',
+  'periods',
+  'sections',
+  'checkins',
+  'enrollments',
+  'payments',
+  'insights',
+  'insight_requests',
+  'comments',
+  'notifications'
 ];
 
 // MySQL 表列表
 const mysqlTables = [
-  'users', 'admins', 'periods', 'sections', 'checkins', 'enrollments',
-  'payments', 'insights', 'insight_likes', 'insight_requests',
-  'insight_request_audit_logs', 'comments', 'comment_replies', 'notifications'
+  'users',
+  'admins',
+  'periods',
+  'sections',
+  'checkins',
+  'enrollments',
+  'payments',
+  'insights',
+  'insight_likes',
+  'insight_requests',
+  'insight_request_audit_logs',
+  'comments',
+  'comment_replies',
+  'notifications'
 ];
 
 // MongoDB 状态
@@ -261,8 +261,8 @@ const pageSize = ref(20);
 async function loadMongodbStats() {
   try {
     const response = await backupApi.getMongodbStats();
-    if (response?.data?.data) {
-      mongoStats.value = response.data.data;
+    if (response && typeof response === 'object') {
+      mongoStats.value = response;
     }
   } catch (error) {
     ElMessage.error('加载 MongoDB 统计失败');
@@ -273,8 +273,8 @@ async function loadMongodbStats() {
 async function loadMysqlStats() {
   try {
     const response = await backupApi.getMysqlStats();
-    if (response?.data?.data) {
-      mysqlStats.value = response.data.data;
+    if (response && typeof response === 'object') {
+      mysqlStats.value = response;
     }
   } catch (error) {
     ElMessage.error('加载 MySQL 统计失败');
@@ -341,8 +341,8 @@ async function compareBackup() {
   try {
     const response = await backupApi.compareBackup();
 
-    if (response?.data?.data?.comparison) {
-      const comparison = response.data.data.comparison;
+    if (response?.comparison) {
+      const comparison = response.comparison;
       comparisonData.value = Object.entries(comparison).map(([table, data]: any) => ({
         table,
         mongodb: data.mongodb,
@@ -375,9 +375,9 @@ async function handleFullSync() {
     syncing.value = true;
     const response = await backupApi.fullSync();
 
-    if (response?.data?.data) {
-      const syncResults = response.data.data.syncResults;
-      const totalSynced = response.data.data.totalSynced;
+    if (response?.syncResults && response?.totalSynced) {
+      const syncResults = response.syncResults;
+      const totalSynced = response.totalSynced;
 
       const resultMessage = Object.entries(syncResults)
         .map(([table, count]) => `${table}: ${count} 条`)
@@ -417,9 +417,9 @@ async function handleFullRecover() {
     recovering.value = true;
     const response = await backupApi.recoverFull();
 
-    if (response?.data?.data) {
-      const recoverResults = response.data.data.recoverResults;
-      const totalRecovered = response.data.data.totalRecovered;
+    if (response?.recoverResults && response?.totalRecovered) {
+      const recoverResults = response.recoverResults;
+      const totalRecovered = response.totalRecovered;
 
       const resultMessage = Object.entries(recoverResults)
         .map(([table, count]) => `${table}: ${count} 条`)
