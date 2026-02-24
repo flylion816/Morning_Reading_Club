@@ -50,6 +50,13 @@
             <span>🔍 审计日志</span>
           </el-menu-item>
         </el-menu-item-group>
+
+        <!-- 系统管理区块 -->
+        <el-menu-item-group title="系统管理">
+          <el-menu-item index="/database">
+            <span>🗄️ 数据库管理</span>
+          </el-menu-item>
+        </el-menu-item-group>
       </el-menu>
 
       <div class="sidebar-footer">

@@ -8,10 +8,10 @@
 const express = require('express');
 const router = express.Router();
 const backupController = require('../controllers/backup.controller');
-const { adminAuth } = require('../middleware/adminAuth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
 
 // 所有备份接口都需要管理员权限
-router.use(adminAuth);
+router.use(adminAuthMiddleware);
 
 // =========================================================================
 // 统计接口
@@ -66,5 +66,15 @@ router.post('/sync/full', backupController.fullSync);
  * POST /api/v1/backup/sync/delta
  */
 router.post('/sync/delta', backupController.deltaSync);
+
+// =========================================================================
+// 恢复接口
+// =========================================================================
+
+/**
+ * 全量恢复：从 MySQL 恢复所有数据到 MongoDB
+ * POST /api/v1/backup/recover/full
+ */
+router.post('/recover/full', backupController.recoverMysqlToMongo);
 
 module.exports = router;

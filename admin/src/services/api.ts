@@ -198,4 +198,25 @@ export const uploadApi = {
   deleteFile: (filename: string) => apiClient.delete(`/upload/${filename}`)
 };
 
+// 备份管理 API
+export const backupApi = {
+  // 统计
+  getMongodbStats: () => apiClient.get('/backup/mongodb/stats'),
+  getMysqlStats: () => apiClient.get('/backup/mysql/stats'),
+  compareBackup: () => apiClient.get('/backup/compare'),
+
+  // 数据查询
+  getMongodbTableData: (table: string, page: number, limit: number) =>
+    apiClient.get('/backup/mongodb/data', { params: { table, page, limit } }),
+  getMysqlTableData: (table: string, page: number, limit: number) =>
+    apiClient.get('/backup/mysql/data', { params: { table, page, limit } }),
+
+  // 同步
+  fullSync: () => apiClient.post('/backup/sync/full'),
+  deltaSync: () => apiClient.post('/backup/sync/delta'),
+
+  // 恢复
+  recoverFull: () => apiClient.post('/backup/recover/full')
+};
+
 export default apiClient;

@@ -28,6 +28,7 @@ const statsRoutes = require('./routes/stats.routes');
 const auditRoutes = require('./routes/audit.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const healthRoutes = require('./routes/health.routes');
+const backupRoutes = require('./routes/backup.routes');
 
 const app = express();
 
@@ -73,6 +74,7 @@ app.use('/api/v1/audit-logs', auditRoutes); // 审计日志API
 app.use('/api/v1/notifications', notificationRoutes); // 通知API
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/monitoring', monitoringRoutes); // 监控API
+app.use('/api/v1/backup', backupRoutes); // 备份管理API
 
 // 404处理
 app.use(notFoundHandler);

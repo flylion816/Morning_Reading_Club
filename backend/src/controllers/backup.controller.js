@@ -421,6 +421,96 @@ async function deltaSync(req, res, next) {
   }
 }
 
+// =========================================================================
+// 8. 全量恢复：从 MySQL 恢复所有数据到 MongoDB
+// =========================================================================
+/* eslint-disable no-restricted-syntax, no-await-in-loop, no-loop-func */
+async function recoverMysqlToMongo(req, res) {
+  try {
+    const conn = await mysqlPool.getConnection();
+    const recoverResults = {};
+
+    logger.info('Starting full recovery from MySQL to MongoDB');
+
+    // 定义表到模型的映射关系
+    const tableModelMapping = {
+      users: User,
+      admins: Admin,
+      periods: Period,
+      sections: Section,
+      checkins: Checkin,
+      enrollments: Enrollment,
+      payments: Payment,
+      insights: Insight,
+      insight_requests: InsightRequest,
+      comments: Comment,
+      notifications: Notification
+    };
+
+    try {
+      let totalRecovered = 0;
+
+      // 处理每个表
+      for (const [tableName, model] of Object.entries(tableModelMapping)) {
+        try {
+          // 从 MySQL 获取数据
+          const [rows] = await conn.query(
+            `SELECT raw_json FROM ${tableName} WHERE raw_json IS NOT NULL`
+          );
+
+          let recovered = 0;
+
+          // 批量恢复（每批20条）
+          const batchSize = 20;
+          for (let i = 0; i < rows.length; i += batchSize) {
+            const batch = rows.slice(i, i + batchSize);
+            const batchPromises = batch.map(row => {
+              try {
+                // 解析 JSON
+                const doc = JSON.parse(row.raw_json);
+
+                // 用 replaceOne 和 upsert 写回 MongoDB
+                return model.replaceOne(
+                  { _id: doc._id },
+                  doc,
+                  { upsert: true }
+                ).then(() => true);
+              } catch (parseError) {
+                logger.warn(`Failed to parse raw_json for ${tableName}`, parseError.message);
+                return false;
+              }
+            });
+
+            const results = await Promise.all(batchPromises);
+            recovered += results.filter(r => r).length;
+          }
+
+          recoverResults[tableName] = recovered;
+          totalRecovered += recovered;
+          logger.info(`Recovered ${tableName}`, { count: recovered });
+        } catch (tableError) {
+          logger.error(`Failed to recover table ${tableName}`, tableError);
+          recoverResults[tableName] = 0;
+        }
+      }
+
+      logger.info('Full recovery completed', { totalRecovered, tables: Object.keys(recoverResults).length });
+
+      res.json(success({
+        recoverResults,
+        totalRecovered,
+        message: '✅ 全量恢复完成'
+      }, '全量恢复结果'));
+    } finally {
+      conn.release();
+    }
+  } catch (error) {
+    logger.error('Full recovery failed', error);
+    res.status(500).json(errors.serverError('全量恢复失败'));
+  }
+}
+/* eslint-enable no-restricted-syntax, no-await-in-loop, no-loop-func */
+
 module.exports = {
   getMongodbStats,
   getMysqlStats,
@@ -428,5 +518,6 @@ module.exports = {
   getMongodbTableData,
   getMysqlTableData,
   fullSync,
-  deltaSync
+  deltaSync,
+  recoverMysqlToMongo
 };
