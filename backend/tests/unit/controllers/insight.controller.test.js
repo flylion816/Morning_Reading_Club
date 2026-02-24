@@ -50,7 +50,8 @@ describe('Insight Controller', () => {
     InsightRequestStub = {
       findOne: sandbox.stub(),
       findById: sandbox.stub(),
-      create: sandbox.stub()
+      create: sandbox.stub(),
+      save: sandbox.stub()
     };
 
     const responseUtils = {
