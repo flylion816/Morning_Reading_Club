@@ -10,8 +10,8 @@
               <span>总操作数</span>
             </div>
           </template>
-          <div class="stat-value">{{ stats.total }}</div>
-          <div class="stat-trend">今日: {{ stats.today }}</div>
+          <div class="stat-value">{{ stats?.total || 0 }}</div>
+          <div class="stat-trend">今日: {{ stats?.today || 0 }}</div>
         </el-card>
 
         <el-card class="stat-card">
@@ -21,7 +21,7 @@
               <span>失败操作</span>
             </div>
           </template>
-          <div class="stat-value">{{ stats.failed }}</div>
+          <div class="stat-value">{{ stats?.failed || 0 }}</div>
           <div class="stat-trend">{{ failureRate }}% 失败率</div>
         </el-card>
 
@@ -48,7 +48,11 @@
             </div>
           </template>
           <div class="stat-value-list">
-            <div v-for="admin in stats.topAdmins.slice(0, 3)" :key="admin._id" class="stat-item">
+            <div
+              v-for="admin in (stats?.topAdmins || []).slice(0, 3)"
+              :key="admin._id"
+              class="stat-item"
+            >
               <span>{{ admin._id }}</span>
               <span class="count">{{ admin.count }}</span>
             </div>
@@ -262,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, defineExpose } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
 import * as auditApi from '../api/audit';
@@ -299,14 +303,15 @@ const selectedLog = ref<AuditLog | null>(null);
 
 // 计算失败率
 const failureRate = computed(() => {
-  if (stats.value.total === 0) return 0;
+  if (!stats.value || stats.value.total === 0) return 0;
   return Math.round((stats.value.failed / stats.value.total) * 100);
 });
 
 // 计算前3个操作类型
 const topActions = computed(() => {
+  if (!stats.value?.actionTypeStats) return {};
   const sorted = Object.entries(stats.value.actionTypeStats)
-    .sort(([, a], [, b]) => b - a)
+    .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 3);
   return Object.fromEntries(sorted);
 });
@@ -366,9 +371,13 @@ const loadLogs = async () => {
 // 加载统计数据
 const loadStatistics = async () => {
   try {
-    stats.value = await auditApi.getAuditStatistics();
+    const data = await auditApi.getAuditStatistics();
+    if (data) {
+      stats.value = data;
+    }
   } catch (error) {
     console.error('加载统计数据失败:', error);
+    // 保留默认值，不覆盖
   }
 };
 
@@ -440,9 +449,17 @@ const handlePageSizeChange = () => {
   loadLogs();
 };
 
-onMounted(() => {
-  loadStatistics();
-  loadLogs();
+// 页面初始化
+const initPage = async () => {
+  await Promise.all([loadStatistics(), loadLogs()]);
+};
+
+// 使用 defineExpose 和同步初始化
+defineExpose({ initPage });
+
+// 在组件加载时初始化
+initPage().catch(error => {
+  console.error('页面初始化失败:', error);
 });
 </script>
 
