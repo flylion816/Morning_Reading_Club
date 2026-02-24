@@ -4,9 +4,10 @@
  * 统一初始化脚本（生产环境）
  * 按顺序执行以下初始化任务：
  * 1. 环境保护检查
- * 2. init-indexes.js - 创建数据库索引
- * 3. init-superadmin.js - 创建管理员账户
- * 4. init-23-days.js - 导入23天课程内容
+ * 2. init-mysql.js - 创建 MySQL 备份表结构
+ * 3. init-indexes.js - 创建数据库索引
+ * 4. init-superadmin.js - 创建管理员账户
+ * 5. init-23-days.js - 导入23天课程内容
  */
 
 require('dotenv').config();
@@ -29,6 +30,11 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const scripts = [
+  {
+    name: 'MySQL 表结构初始化',
+    script: 'init-mysql.js',
+    description: '创建 MySQL 备份表结构（用于 MongoDB ↔ MySQL 数据同步）'
+  },
   {
     name: '数据库索引创建',
     script: 'init-indexes.js',
