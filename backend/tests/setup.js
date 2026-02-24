@@ -1,6 +1,16 @@
 /**
- * Test setup file - configures MongoDB Memory Server for model tests
+ * Test setup file - Global MongoDB Memory Server setup for all tests
+ * This file is required by mocha before running tests
  */
+
+// Load test environment variables
+const path = require('path');
+const fs = require('fs');
+
+const envTestPath = path.join(__dirname, '..', '.env.test');
+if (fs.existsSync(envTestPath)) {
+  require('dotenv').config({ path: envTestPath });
+}
 
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
@@ -8,55 +18,62 @@ const mongoose = require('mongoose');
 let mongoServer;
 
 /**
- * Connect to in-memory MongoDB before tests
+ * Initialize MongoDB Memory Server once at startup
+ * This runs when the file is loaded, before any tests execute
  */
-before(async function() {
-  this.timeout(60000); // Allow 60 seconds for MongoDB Memory Server to start
-
+async function initializeMongoMemoryServer() {
   try {
+    console.log('⏳ Initializing MongoDB Memory Server...');
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
 
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    // Set environment variable for tests to use
+    process.env.MONGODB_URI = mongoUri;
 
-    console.log('✅ Connected to in-memory MongoDB for testing');
+    // Try to connect if not already connected
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+    }
+
+    console.log('✅ MongoDB Memory Server initialized');
   } catch (error) {
-    console.error('❌ Failed to setup MongoDB Memory Server:', error);
-    throw error;
+    console.error('❌ Failed to initialize MongoDB Memory Server:', error);
+    process.exit(1);
   }
-});
+}
 
 /**
- * Disconnect and cleanup after all tests
+ * Cleanup MongoDB Memory Server when tests complete
  */
-after(async function() {
-  this.timeout(10000);
-
+async function cleanupMongoMemoryServer() {
   try {
-    await mongoose.disconnect();
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+    }
+
     if (mongoServer) {
       await mongoServer.stop();
+      console.log('✅ MongoDB Memory Server cleaned up');
     }
-    console.log('✅ Disconnected from MongoDB and cleaned up');
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
   }
+}
+
+// Initialize on load
+initializeMongoMemoryServer();
+
+// Cleanup on process exit
+process.on('exit', () => {
+  cleanupMongoMemoryServer();
 });
 
-/**
- * Clear database between test suites
- */
-afterEach(async function() {
-  try {
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      const collection = collections[key];
-      await collection.deleteMany({});
-    }
-  } catch (error) {
-    console.error('Error clearing database:', error);
-  }
-});
+// Export for use in tests if needed
+module.exports = {
+  mongoServer,
+  initializeMongoMemoryServer,
+  cleanupMongoMemoryServer
+};
