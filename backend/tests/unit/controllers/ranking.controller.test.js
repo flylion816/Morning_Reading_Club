@@ -37,7 +37,14 @@ describe('Ranking Controller', () => {
     };
 
     UserStub = {
-      findById: sandbox.stub()
+      findById: sandbox.stub().returns({
+        select: sandbox.stub().resolves({
+          _id: 'userId',
+          nickname: 'User1',
+          avatar: 'avatar1.jpg',
+          avatarUrl: 'https://example.com/avatar1.jpg'
+        })
+      })
     };
 
     PeriodStub = {
@@ -110,14 +117,21 @@ describe('Ranking Controller', () => {
         .resolves(mockCountResult)
         .onSecondCall()
         .resolves(mockRankings);
-      UserStub.findById.resolves({
-        _id: userId,
-        nickname: '用户1',
-        avatar: 'avatar1.jpg',
-        avatarUrl: 'https://example.com/avatar1.jpg'
+      UserStub.findById.withArgs(userId).returns({
+        select: sandbox.stub().resolves({
+          _id: userId,
+          nickname: '用户1',
+          avatar: 'avatar1.jpg',
+          avatarUrl: 'https://example.com/avatar1.jpg'
+        })
       });
 
       await rankingController.getPeriodRanking(req, res, next);
+
+      // Debug: Check if next was called (error case)
+      if (next.called) {
+        console.log('next was called with error:', next.getCall(0).args[0]);
+      }
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
@@ -515,11 +529,13 @@ describe('Ranking Controller', () => {
         .resolves(mockCountResult)
         .onSecondCall()
         .resolves(mockRankings);
-      UserStub.findById.resolves({
-        _id: userId,
-        nickname: '当前用户',
-        avatar: 'current.jpg',
-        avatarUrl: 'https://example.com/current.jpg'
+      UserStub.findById.withArgs(userId).returns({
+        select: sandbox.stub().resolves({
+          _id: userId,
+          nickname: '当前用户',
+          avatar: 'current.jpg',
+          avatarUrl: 'https://example.com/current.jpg'
+        })
       });
 
       await rankingController.getPeriodRanking(req, res, next);

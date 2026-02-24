@@ -27,20 +27,37 @@ describe('Notification Controller', () => {
 
     NotificationStub = {
       find: sandbox.stub(),
+      findById: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
       updateMany: sandbox.stub()
     };
 
     const responseUtils = {
-      success: (data, message) => ({ code: 200, message, data })
+      success: (data, message) => ({ code: 200, message, data }),
+      errors: {
+        notFound: (msg) => ({ code: 404, message: msg }),
+        forbidden: (msg) => ({ code: 403, message: msg })
+      }
+    };
+
+    const UserStub = {
+      findById: sandbox.stub()
+    };
+
+    const loggerStub = {
+      error: sandbox.stub(),
+      warn: sandbox.stub(),
+      info: sandbox.stub()
     };
 
     notificationController = proxyquire(
       '../../../src/controllers/notification.controller',
       {
         '../models/Notification': NotificationStub,
-        '../utils/response': responseUtils
+        '../models/User': UserStub,
+        '../utils/response': responseUtils,
+        '../utils/logger': loggerStub
       }
     );
   });
@@ -52,37 +69,47 @@ describe('Notification Controller', () => {
   describe('getUserNotifications', () => {
     it('应该返回用户的通知列表', async () => {
       const userId = new mongoose.Types.ObjectId();
-      req.params = { userId };
+      req.user = { userId };
       req.query = { page: 1, limit: 10 };
+
+      const mockNotifications = [{
+        _id: new mongoose.Types.ObjectId(),
+        userId,
+        senderId: { nickname: 'User1', avatar: 'avatar1' },
+        message: 'Test notification',
+        isRead: false,
+        createdAt: new Date()
+      }];
 
       NotificationStub.countDocuments.resolves(5);
       NotificationStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves([])
+        limit: sandbox.stub().resolves(mockNotifications)
       });
 
       await notificationController.getUserNotifications(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('list');
+      expect(responseData.data).to.have.property('notifications');
       expect(responseData.data).to.have.property('pagination');
     });
   });
 
   describe('markNotificationAsRead', () => {
     it('应该标记通知为已读', async () => {
-      const userId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId().toString(); // Convert to string
       const notificationId = new mongoose.Types.ObjectId();
       req.user = { userId };
       req.params = { notificationId };
 
       const mockNotification = {
         _id: notificationId,
-        userId,
-        isRead: true,
+        userId: { toString: () => userId }, // Return the string userId
+        isRead: false,
+        readAt: null,
         save: sandbox.stub().resolves()
       };
 
@@ -90,6 +117,7 @@ describe('Notification Controller', () => {
 
       await notificationController.markNotificationAsRead(req, res, next);
 
+      expect(mockNotification.save.called).to.be.true;
       expect(res.json.called).to.be.true;
     });
   });

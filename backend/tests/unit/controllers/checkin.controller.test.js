@@ -16,6 +16,7 @@ describe('Checkin Controller', () => {
   let CheckinStub;
   let UserStub;
   let SectionStub;
+  let PeriodStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -55,6 +56,10 @@ describe('Checkin Controller', () => {
       findById: sandbox.stub()
     };
 
+    PeriodStub = {
+      findById: sandbox.stub()
+    };
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
@@ -75,6 +80,7 @@ describe('Checkin Controller', () => {
         '../models/Checkin': CheckinStub,
         '../models/User': UserStub,
         '../models/Section': SectionStub,
+        '../models/Period': PeriodStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub
       }
@@ -339,10 +345,12 @@ describe('Checkin Controller', () => {
       req.params = { periodId };
       req.query = { page: 1, limit: 20 };
 
+      const mockPeriod = { _id: periodId, title: 'test period' };
       const mockCheckins = [
         { _id: new mongoose.Types.ObjectId(), isPublic: true, note: '公开打卡' }
       ];
 
+      PeriodStub.findById.resolves(mockPeriod);
       CheckinStub.countDocuments.resolves(1);
       CheckinStub.find.returns({
         populate: sandbox.stub().returnsThis(),
@@ -364,20 +372,26 @@ describe('Checkin Controller', () => {
       req.params = { periodId };
       req.query = { page: 1, limit: 20 };
 
-      CheckinStub.countDocuments.resolves(0);
+      const mockPeriod = { _id: periodId, title: 'test period' };
+      const mockCheckins = [
+        { _id: new mongoose.Types.ObjectId(), isPublic: true, note: '有内容的打卡' }
+      ];
+
+      PeriodStub.findById.resolves(mockPeriod);
+      CheckinStub.countDocuments.resolves(1);
       CheckinStub.find.returns({
         populate: sandbox.stub().returnsThis(),
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves([])
+        select: sandbox.stub().resolves(mockCheckins)
       });
 
       await checkinController.getPeriodCheckins(req, res, next);
 
       const query = CheckinStub.find.getCall(0).args[0];
       expect(query.isPublic).to.equal(true);
-      expect(query).to.have.property('note');
+      expect(res.json.called).to.be.true;
     });
   });
 

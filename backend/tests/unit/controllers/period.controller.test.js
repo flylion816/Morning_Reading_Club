@@ -208,15 +208,17 @@ describe('Period Controller', () => {
 
       const mockPeriod = {
         _id: periodId,
-        name: '更新的名称',
-        status: 'active'
+        name: '原名称',
+        status: 'upcoming',
+        save: sandbox.stub().resolves()
       };
 
-      PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
+      PeriodStub.findById.resolves(mockPeriod);
 
       await periodController.updatePeriod(req, res, next);
 
-      expect(PeriodStub.findByIdAndUpdate.called).to.be.true;
+      expect(PeriodStub.findById.called).to.be.true;
+      expect(mockPeriod.save.called).to.be.true;
       expect(res.json.called).to.be.true;
     });
 

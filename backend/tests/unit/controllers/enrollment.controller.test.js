@@ -37,10 +37,13 @@ describe('Enrollment Controller', () => {
     EnrollmentStub = {
       create: sandbox.stub(),
       findOne: sandbox.stub(),
+      findById: sandbox.stub(),
       find: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
-      findByIdAndUpdate: sandbox.stub()
+      findByIdAndUpdate: sandbox.stub(),
+      getUserEnrollments: sandbox.stub(),
+      getPeriodMembers: sandbox.stub()
     };
 
     UserStub = {
@@ -86,12 +89,23 @@ describe('Enrollment Controller', () => {
 
       const mockPeriod = { _id: periodId, enrolledCount: 10, capacity: 100 };
       const mockUser = { _id: userId };
-      const mockEnrollment = { userId, periodId, enrolledAt: new Date() };
+      const enrollmentId = new mongoose.Types.ObjectId();
+      const mockEnrollment = { _id: enrollmentId, userId, periodId, enrolledAt: new Date() };
+      const mockPopulatedEnrollment = {
+        _id: enrollmentId,
+        userId: { _id: userId, nickname: 'test', avatar: '' },
+        periodId: { _id: periodId, title: 'test', description: '' },
+        enrolledAt: new Date()
+      };
 
       PeriodStub.findById.resolves(mockPeriod);
       UserStub.findById.resolves(mockUser);
       EnrollmentStub.findOne.resolves(null);
       EnrollmentStub.create.resolves(mockEnrollment);
+      EnrollmentStub.findById.returns({
+        populate: sandbox.stub().returnsThis(),
+        execPopulate: sandbox.stub().resolves(mockPopulatedEnrollment)
+      });
       PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
 
       await enrollmentController.enrollPeriod(req, res, next);
@@ -138,20 +152,31 @@ describe('Enrollment Controller', () => {
   describe('getUserEnrollments', () => {
     it('应该返回用户的报名列表', async () => {
       const userId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
       req.params = { userId };
       req.query = { page: 1, limit: 10 };
 
       const mockEnrollments = [
-        { _id: new mongoose.Types.ObjectId(), userId, periodId: new mongoose.Types.ObjectId() }
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId,
+          periodId: {
+            _id: periodId,
+            title: 'test period',
+            description: 'test',
+            startDate: new Date(),
+            endDate: new Date(),
+            coverImage: ''
+          },
+          enrolledAt: new Date(),
+          status: 'active',
+          paymentStatus: 'unpaid'
+        }
       ];
 
-      EnrollmentStub.countDocuments.resolves(1);
-      EnrollmentStub.find.returns({
-        populate: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockEnrollments)
+      EnrollmentStub.getUserEnrollments.resolves({
+        list: mockEnrollments,
+        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 }
       });
 
       await enrollmentController.getUserEnrollments(req, res, next);
@@ -166,20 +191,25 @@ describe('Enrollment Controller', () => {
   describe('getPeriodMembers', () => {
     it('应该返回期次的成员列表', async () => {
       const periodId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
       req.params = { periodId };
       req.query = { page: 1, limit: 10 };
 
+      const mockPeriod = { _id: periodId, title: 'test', description: '' };
       const mockEnrollments = [
-        { _id: new mongoose.Types.ObjectId(), periodId, userId: new mongoose.Types.ObjectId() }
+        {
+          _id: new mongoose.Types.ObjectId(),
+          periodId,
+          userId: { _id: userId, nickname: 'test user', avatar: '' },
+          enrolledAt: new Date(),
+          status: 'active'
+        }
       ];
 
-      EnrollmentStub.countDocuments.resolves(1);
-      EnrollmentStub.find.returns({
-        populate: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockEnrollments)
+      PeriodStub.findById.resolves(mockPeriod);
+      EnrollmentStub.getPeriodMembers.resolves({
+        list: mockEnrollments,
+        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 }
       });
 
       await enrollmentController.getPeriodMembers(req, res, next);

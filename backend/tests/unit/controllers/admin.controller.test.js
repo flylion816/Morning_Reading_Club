@@ -49,8 +49,20 @@ describe('Admin Controller', () => {
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
-        unauthorized: (msg) => ({ code: 401, message: msg })
+        unauthorized: (msg) => ({ code: 401, message: msg }),
+        forbidden: (msg) => ({ code: 403, message: msg }),
+        serverError: (msg) => ({ code: 500, message: msg })
       }
+    };
+
+    const mysqlBackupServiceStub = {
+      syncAdmin: sandbox.stub()
+    };
+
+    const loggerStub = {
+      error: sandbox.stub(),
+      warn: sandbox.stub(),
+      info: sandbox.stub()
     };
 
     adminController = proxyquire(
@@ -58,7 +70,9 @@ describe('Admin Controller', () => {
       {
         '../models/Admin': AdminStub,
         '../utils/jwt': jwtStub,
-        '../utils/response': responseUtils
+        '../utils/response': responseUtils,
+        '../services/mysql-backup.service': mysqlBackupServiceStub,
+        '../utils/logger': loggerStub
       }
     );
   });
@@ -77,11 +91,24 @@ describe('Admin Controller', () => {
         password: 'hashed_password',
         name: '管理员',
         role: 'admin',
+        status: 'active',
+        lastLoginAt: new Date(),
+        loginCount: 0,
         comparePassword: sandbox.stub().resolves(true),
-        toJSON: sandbox.stub().returns({})
+        save: sandbox.stub().resolves(),
+        toJSON: function() {
+          return {
+            _id: this._id,
+            email: this.email,
+            name: this.name,
+            role: this.role
+          };
+        }
       };
 
-      AdminStub.findOne.resolves(mockAdmin);
+      AdminStub.findOne.withArgs({ email: 'admin@test.com' }).returns({
+        select: sandbox.stub().resolves(mockAdmin)
+      });
 
       await adminController.login(req, res, next);
 

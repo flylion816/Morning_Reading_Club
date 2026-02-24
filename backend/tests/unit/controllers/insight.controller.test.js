@@ -140,9 +140,7 @@ describe('Insight Controller', () => {
 
       InsightStub.findById.returns({
         populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        resolves: sandbox.stub().resolves(null)
+        exec: sandbox.stub().resolves(null)
       });
 
       await insightController.getInsightDetail(req, res, next);
@@ -154,6 +152,7 @@ describe('Insight Controller', () => {
   describe('getUserInsights', () => {
     it('应该返回用户收到的小凡看见', async () => {
       const userId = new mongoose.Types.ObjectId();
+      req.user = { userId };
       req.params = { userId };
       req.query = { page: 1, limit: 10 };
 
@@ -312,11 +311,15 @@ describe('Insight Controller', () => {
   describe('likeInsight', () => {
     it('应该增加小凡看见的点赞数', async () => {
       const insightId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      req.user = { userId: userId.toString() };
       req.params = { insightId };
+      req.body = { action: 'like' };
 
       const mockInsight = {
         _id: insightId,
         likeCount: 10,
+        likes: [],
         save: sandbox.stub().resolves()
       };
 
@@ -324,7 +327,7 @@ describe('Insight Controller', () => {
 
       await insightController.likeInsight(req, res, next);
 
-      expect(mockInsight.likeCount).to.equal(11);
+      expect(mockInsight.likes.length).to.equal(1);
       expect(res.json.called).to.be.true;
     });
 
