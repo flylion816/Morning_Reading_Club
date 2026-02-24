@@ -663,8 +663,10 @@ describe('Checkin Controller', () => {
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('list');
-      expect(responseData.data.list.length).to.equal(1);
+      // 响应结构: {code, message, data: checkinsArray, pagination, timestamp}
+      expect(responseData.data).to.be.an('array');
+      expect(responseData.data.length).to.equal(1);
+      expect(responseData).to.have.property('pagination');
     });
   });
 
@@ -731,11 +733,34 @@ describe('Checkin Controller', () => {
   describe('deleteAdminCheckin', () => {
     it('应该删除指定的打卡记录', async () => {
       const checkinId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      const sectionId = new mongoose.Types.ObjectId();
       req.params = { checkinId };
 
-      const mockCheckin = { _id: checkinId, userId: new mongoose.Types.ObjectId() };
+      const mockCheckin = {
+        _id: checkinId,
+        userId,
+        sectionId,
+        points: 10
+      };
 
+      const mockUser = {
+        _id: userId,
+        totalCheckinDays: 5,
+        totalPoints: 100,
+        save: sandbox.stub().resolves()
+      };
+
+      const mockSection = {
+        _id: sectionId,
+        checkinCount: 10,
+        save: sandbox.stub().resolves()
+      };
+
+      CheckinStub.findById.resolves(mockCheckin);
       CheckinStub.findByIdAndDelete.resolves(mockCheckin);
+      UserStub.findById.resolves(mockUser);
+      SectionStub.findById.resolves(mockSection);
 
       await checkinController.deleteAdminCheckin(req, res, next);
 
@@ -747,7 +772,7 @@ describe('Checkin Controller', () => {
       const checkinId = new mongoose.Types.ObjectId();
       req.params = { checkinId };
 
-      CheckinStub.findByIdAndDelete.resolves(null);
+      CheckinStub.findById.resolves(null);
 
       await checkinController.deleteAdminCheckin(req, res, next);
 
