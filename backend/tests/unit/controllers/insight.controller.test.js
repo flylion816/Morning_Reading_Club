@@ -150,23 +150,18 @@ describe('Insight Controller', () => {
 
     it('应该返回404当小凡看见不存在', async () => {
       const insightId = new mongoose.Types.ObjectId();
-      req.params = { insightId };
+      req.params = { insightId: insightId.toString() };
 
-      const populateStub = sandbox.stub().returnsThis();
-      InsightStub.findById.returns({
-        populate: populateStub
-      });
-      // 模拟第三次 populate 后直接返回 null
+      // 修复：处理 .populate() 链式调用 - 每次 populate 返回自身用于链式调用，最后 resolve 为 null
+      const populateStub = sandbox.stub();
+      populateStub.onFirstCall().returnsThis();
+      populateStub.onSecondCall().returnsThis();
       populateStub.onThirdCall().returnsThis();
-      populateStub.returns({
-        populate: sandbox.stub().returnsThis()
-      });
+      populateStub.onCall(3).resolves(null);
 
-      // 最后让最终的链返回 null
-      InsightStub.findById.withArgs(insightId).returns({
-        populate: sandbox.stub().returnsThis(),
-        exec: sandbox.stub().resolves(null)
-      });
+      const chainObject = { populate: populateStub };
+
+      InsightStub.findById.returns(chainObject);
 
       await insightController.getInsightDetail(req, res, next);
 
