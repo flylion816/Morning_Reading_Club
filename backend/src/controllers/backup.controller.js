@@ -60,7 +60,7 @@ async function getMongodbStats(req, res, next) {
 // =========================================================================
 // 2. 获取 MySQL 统计信息（所有表）
 // =========================================================================
-async function getMysqlStats(req, res, next) {
+async function getMysqlStats(req, res) {
   try {
     const conn = await mysqlPool.getConnection();
     const stats = {};
@@ -73,8 +73,14 @@ async function getMysqlStats(req, res, next) {
 
     try {
       for (const table of tables) {
-        const [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
-        stats[table] = result[0].count;
+        try {
+          const [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
+          stats[table] = result[0].count;
+        } catch (tableError) {
+          // 表不存在或查询失败，记录为 0
+          logger.warn(`Table ${table} does not exist or cannot be queried`, tableError.message);
+          stats[table] = 0;
+        }
       }
     } finally {
       conn.release();
@@ -91,7 +97,7 @@ async function getMysqlStats(req, res, next) {
 // =========================================================================
 // 3. 对比 MongoDB 和 MySQL（统计）
 // =========================================================================
-async function compareBackup(req, res, next) {
+async function compareBackup(req, res) {
   try {
     const mongoStats = {};
     const mysqlStats = {};
@@ -111,8 +117,14 @@ async function compareBackup(req, res, next) {
       ];
 
       for (const table of tables) {
-        const [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
-        mysqlStats[table] = result[0].count;
+        try {
+          const [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
+          mysqlStats[table] = result[0].count;
+        } catch (tableError) {
+          // 表不存在，记录为 0
+          logger.warn(`Table ${table} does not exist or cannot be queried`, tableError.message);
+          mysqlStats[table] = 0;
+        }
       }
     } finally {
       conn.release();
@@ -199,7 +211,7 @@ async function getMongodbTableData(req, res, next) {
 // =========================================================================
 // 5. 获取某个表的 MySQL 数据（分页）
 // =========================================================================
-async function getMysqlTableData(req, res, next) {
+async function getMysqlTableData(req, res) {
   try {
     const { table, page = 1, limit = 20 } = req.query;
 
@@ -217,11 +229,22 @@ async function getMysqlTableData(req, res, next) {
     const conn = await mysqlPool.getConnection();
 
     try {
-      const [data] = await conn.query(
-        `SELECT * FROM ${table} LIMIT ? OFFSET ?`,
-        [parseInt(limit, 10), skip]
-      );
-      const [[{ total }]] = await conn.query(`SELECT COUNT(*) as total FROM ${table}`);
+      let data = [];
+      let total = 0;
+
+      try {
+        const [queryData] = await conn.query(
+          `SELECT * FROM ${table} LIMIT ? OFFSET ?`,
+          [parseInt(limit, 10), skip]
+        );
+        const [[countResult]] = await conn.query(`SELECT COUNT(*) as total FROM ${table}`);
+
+        data = queryData;
+        total = countResult.total;
+      } catch (tableError) {
+        // 表不存在，返回空数据
+        logger.warn(`Table ${table} does not exist or cannot be queried`, tableError.message);
+      }
 
       res.json(success({
         table,
@@ -230,7 +253,7 @@ async function getMysqlTableData(req, res, next) {
           page: parseInt(page, 10),
           limit: parseInt(limit, 10),
           total,
-          pages: Math.ceil(total / parseInt(limit, 10))
+          pages: total > 0 ? Math.ceil(total / parseInt(limit, 10)) : 0
         }
       }, `✅ MySQL 表 ${table} 数据`));
     } finally {
