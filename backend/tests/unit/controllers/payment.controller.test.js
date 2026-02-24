@@ -34,7 +34,8 @@ describe('Payment Controller', () => {
       countDocuments: sandbox.stub(),
       // Static methods
       getUserPayments: sandbox.stub(),
-      createOrder: sandbox.stub()
+      createOrder: sandbox.stub(),
+      getPaymentStatus: sandbox.stub()
     };
 
     EnrollmentStub = {

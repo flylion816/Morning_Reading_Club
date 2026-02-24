@@ -30,7 +30,9 @@ describe('Notification Controller', () => {
       findById: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
-      updateMany: sandbox.stub()
+      updateMany: sandbox.stub(),
+      findByIdAndDelete: sandbox.stub(),
+      deleteMany: sandbox.stub()
     };
 
     const responseUtils = {
