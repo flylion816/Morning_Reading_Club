@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 // 确保上传目录存在
 const uploadDir = path.join(__dirname, '../../uploads');

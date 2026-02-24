@@ -625,7 +625,10 @@ describe('Ranking Controller', () => {
         .resolves(mockCountResult)
         .onSecondCall()
         .resolves(mockRankings);
-      UserStub.findById.rejects(new Error('User query failed'));
+      // 修复：select 方法应该返回拒绝的 promise，而不是直接 rejects
+      UserStub.findById.returns({
+        select: sandbox.stub().rejects(new Error('User query failed'))
+      });
 
       await rankingController.getPeriodRanking(req, res, next);
 
