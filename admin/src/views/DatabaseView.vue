@@ -49,7 +49,7 @@
 
         <!-- 数据表格 -->
         <el-table
-          v-if="selectedMongoTable"
+          v-if="selectedMongoTable && mongoData.length > 0"
           :data="mongoData"
           stripe
           style="width: 100%; margin-top: 20px"
@@ -67,14 +67,18 @@
               <span v-if="col === 'raw_json' || col === 'profile_image'">
                 {{ truncateJson(JSON.stringify(row[col])) }}
               </span>
-              <span v-else>{{ row[col] }}</span>
+              <span v-else>{{ formatValue(row[col]) }}</span>
             </template>
           </el-table-column>
         </el-table>
 
+        <div v-if="selectedMongoTable && mongoData.length === 0" class="empty-tip">
+          暂无数据
+        </div>
+
         <!-- 分页 -->
         <el-pagination
-          v-if="selectedMongoTable"
+          v-if="selectedMongoTable && mongoTotal > 0"
           v-model:current-page="mongoPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50]"
@@ -127,7 +131,7 @@
 
         <!-- 数据表格 -->
         <el-table
-          v-if="selectedMysqlTable"
+          v-if="selectedMysqlTable && mysqlData.length > 0"
           :data="mysqlData"
           stripe
           style="width: 100%; margin-top: 20px"
@@ -144,14 +148,18 @@
               <span v-if="col === 'raw_json'">
                 {{ truncateJson(row[col]) }}
               </span>
-              <span v-else>{{ row[col] }}</span>
+              <span v-else>{{ formatValue(row[col]) }}</span>
             </template>
           </el-table-column>
         </el-table>
 
+        <div v-if="selectedMysqlTable && mysqlData.length === 0" class="empty-tip">
+          暂无数据
+        </div>
+
         <!-- 分页 -->
         <el-pagination
-          v-if="selectedMysqlTable"
+          v-if="selectedMysqlTable && mysqlTotal > 0"
           v-model:current-page="mysqlPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50]"
@@ -205,7 +213,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
 import { backupApi } from '../services/api';
@@ -253,7 +261,7 @@ const pageSize = ref(20);
 async function loadMongodbStats() {
   try {
     const response = await backupApi.getMongodbStats();
-    if (response.data.data) {
+    if (response?.data?.data) {
       mongoStats.value = response.data.data;
     }
   } catch (error) {
@@ -265,7 +273,7 @@ async function loadMongodbStats() {
 async function loadMysqlStats() {
   try {
     const response = await backupApi.getMysqlStats();
-    if (response.data.data) {
+    if (response?.data?.data) {
       mysqlStats.value = response.data.data;
     }
   } catch (error) {
@@ -286,7 +294,7 @@ async function loadMongodbTableData(page?: number) {
       pageSize.value
     );
 
-    if (response.data.data) {
+    if (response?.data?.data) {
       mongoData.value = response.data.data.data || [];
       mongoTotal.value = response.data.data.pagination?.total || 0;
 
@@ -313,7 +321,7 @@ async function loadMysqlTableData(page?: number) {
       pageSize.value
     );
 
-    if (response.data.data) {
+    if (response?.data?.data) {
       mysqlData.value = response.data.data.data || [];
       mysqlTotal.value = response.data.data.pagination?.total || 0;
 
@@ -333,7 +341,7 @@ async function compareBackup() {
   try {
     const response = await backupApi.compareBackup();
 
-    if (response.data.data?.comparison) {
+    if (response?.data?.data?.comparison) {
       const comparison = response.data.data.comparison;
       comparisonData.value = Object.entries(comparison).map(([table, data]: any) => ({
         table,
@@ -367,7 +375,7 @@ async function handleFullSync() {
     syncing.value = true;
     const response = await backupApi.fullSync();
 
-    if (response.data.data) {
+    if (response?.data?.data) {
       const syncResults = response.data.data.syncResults;
       const totalSynced = response.data.data.totalSynced;
 
@@ -409,7 +417,7 @@ async function handleFullRecover() {
     recovering.value = true;
     const response = await backupApi.recoverFull();
 
-    if (response.data.data) {
+    if (response?.data?.data) {
       const recoverResults = response.data.data.recoverResults;
       const totalRecovered = response.data.data.totalRecovered;
 
@@ -442,8 +450,15 @@ function truncateJson(json: string): string {
   return str.length > 100 ? str.substring(0, 100) + '...' : str;
 }
 
+// 格式化值显示
+function formatValue(value: any): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value).substring(0, 50);
+  return String(value);
+}
+
 // 页面挂载
-onMounted(async () => {
+const initPage = async () => {
   await Promise.all([loadMongodbStats(), loadMysqlStats()]);
 
   // 默认选择第一个集合
@@ -457,6 +472,14 @@ onMounted(async () => {
     selectedMysqlTable.value = mysqlTables[0];
     await loadMysqlTableData(1);
   }
+};
+
+// 使用 defineExpose 和同步初始化
+defineExpose({ initPage });
+
+// 在组件加载时初始化
+initPage().catch(error => {
+  console.error('页面初始化失败:', error);
 });
 </script>
 
