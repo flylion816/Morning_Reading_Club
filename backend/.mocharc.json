@@ -1,5 +1,9 @@
 {
   "require": ["tests/setup.js"],
-  "timeout": 60000,
-  "exit": true
+  "spec": ["tests/unit/**/*.test.js"],
+  "timeout": 10000,
+  "exit": true,
+  "env": {
+    "NODE_ENV": "test"
+  }
 }

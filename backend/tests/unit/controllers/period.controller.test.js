@@ -15,6 +15,7 @@ describe('Period Controller', () => {
   let next;
   let PeriodStub;
   let UserStub;
+  let EnrollmentStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -38,11 +39,16 @@ describe('Period Controller', () => {
       find: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
-      create: sandbox.stub()
+      create: sandbox.stub(),
+      findByIdAndDelete: sandbox.stub()
     };
 
     UserStub = {
       find: sandbox.stub()
+    };
+
+    EnrollmentStub = {
+      countDocuments: sandbox.stub()
     };
 
     const responseUtils = {
@@ -59,6 +65,7 @@ describe('Period Controller', () => {
       {
         '../models/Period': PeriodStub,
         '../models/User': UserStub,
+        '../models/Enrollment': EnrollmentStub,
         '../utils/response': responseUtils
       }
     );

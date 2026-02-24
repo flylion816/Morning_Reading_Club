@@ -15,15 +15,16 @@ let User;
 describe('Auth Integration - 认证流程', () => {
   before(async function() {
     this.timeout(60000);
-    // 启动内存 MongoDB
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
-    // 连接到内存数据库
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    // MongoDB已通过setup.js全局初始化，直接导入模型
+    // 如果需要创建新连接，仅在未连接时执行
+    if (mongoose.connection.readyState === 0) {
+      mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+    }
 
     // 导入 User 模型
     User = require('../../src/models/User');
@@ -34,10 +35,12 @@ describe('Auth Integration - 认证流程', () => {
 
   after(async function() {
     this.timeout(30000);
-    // 断开数据库连接
-    await mongoose.disconnect();
-    // 关闭内存 MongoDB
-    await mongoServer.stop();
+    // 仅清空集合，不断开连接（由setup.js管理）
+    try {
+      await User.deleteMany({});
+    } catch (err) {
+      console.log('Error clearing users:', err.message);
+    }
   });
 
   beforeEach(async () => {
