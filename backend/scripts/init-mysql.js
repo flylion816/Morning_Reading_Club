@@ -14,18 +14,28 @@ const TABLE_DEFINITIONS = {
   users: `
     CREATE TABLE IF NOT EXISTS users (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
-      wx_openid VARCHAR(100) UNIQUE COMMENT '微信 openid',
+      openid VARCHAR(100) UNIQUE COMMENT '微信 openid',
+      unionid VARCHAR(100) COMMENT '微信 unionid',
       nickname VARCHAR(100) COMMENT '昵称',
-      avatar VARCHAR(500) COMMENT '头像',
+      avatar VARCHAR(500) COMMENT '头像 emoji',
+      avatar_url VARCHAR(500) COMMENT '头像 URL',
       signature VARCHAR(500) COMMENT '个性签名',
-      phone VARCHAR(20) COMMENT '手机号',
-      email VARCHAR(100) UNIQUE COMMENT '邮箱',
-      is_admin BOOLEAN DEFAULT FALSE COMMENT '是否为管理员',
+      gender VARCHAR(20) COMMENT '性别: male/female/unknown',
+      total_checkin_days INT DEFAULT 0 COMMENT '总打卡天数',
+      current_streak INT DEFAULT 0 COMMENT '当前连续打卡天数',
+      max_streak INT DEFAULT 0 COMMENT '最长连续打卡天数',
+      total_completed_periods INT DEFAULT 0 COMMENT '完成的期数',
+      total_points INT DEFAULT 0 COMMENT '总积分',
+      level INT DEFAULT 1 COMMENT '等级',
+      role VARCHAR(50) COMMENT '角色: user/admin/super_admin',
+      status VARCHAR(50) COMMENT '状态: active/banned/deleted',
+      last_login_at TIMESTAMP NULL COMMENT '最后登录时间',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      INDEX idx_wx_openid (wx_openid),
-      INDEX idx_created_at (created_at)
+      INDEX idx_openid (openid),
+      INDEX idx_created_at (created_at),
+      INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
   `,
 

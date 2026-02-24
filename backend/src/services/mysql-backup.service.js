@@ -48,8 +48,63 @@ class MysqlBackupService {
 
   // ===================== 为每个模型提供便捷方法 =====================
 
+  // eslint-disable-next-line class-methods-use-this
   async syncUser(user) {
-    return this.syncDocument('users', user);
+    if (!user || !user._id) return;
+
+    try {
+      const conn = await mysqlPool.getConnection();
+      try {
+        const sql = `
+          INSERT INTO users (
+            id, openid, unionid, nickname, avatar, avatar_url, signature,
+            gender, total_checkin_days, current_streak, max_streak,
+            total_completed_periods, total_points, level, role, status,
+            last_login_at, created_at, updated_at, raw_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            openid=VALUES(openid), unionid=VALUES(unionid), nickname=VALUES(nickname),
+            avatar=VALUES(avatar), avatar_url=VALUES(avatar_url), signature=VALUES(signature),
+            gender=VALUES(gender), total_checkin_days=VALUES(total_checkin_days),
+            current_streak=VALUES(current_streak), max_streak=VALUES(max_streak),
+            total_completed_periods=VALUES(total_completed_periods), total_points=VALUES(total_points),
+            level=VALUES(level), role=VALUES(role), status=VALUES(status),
+            last_login_at=VALUES(last_login_at), updated_at=CURRENT_TIMESTAMP, raw_json=VALUES(raw_json)
+        `;
+
+        const params = [
+          user._id.toString(),
+          user.openid || null,
+          user.unionid || null,
+          user.nickname || null,
+          user.avatar || null,
+          user.avatarUrl || null,
+          user.signature || null,
+          user.gender || 'unknown',
+          user.totalCheckinDays || 0,
+          user.currentStreak || 0,
+          user.maxStreak || 0,
+          user.totalCompletedPeriods || 0,
+          user.totalPoints || 0,
+          user.level || 1,
+          user.role || 'user',
+          user.status || 'active',
+          user.lastLoginAt || null,
+          user.createdAt,
+          user.updatedAt,
+          JSON.stringify(user)
+        ];
+
+        await conn.query(sql, params);
+      } finally {
+        conn.release();
+      }
+    } catch (error) {
+      logger.warn('MySQL backup failed: syncUser', {
+        userId: user?._id,
+        error: error.message
+      });
+    }
   }
 
   async syncAdmin(admin) {
