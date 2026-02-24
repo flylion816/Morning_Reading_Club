@@ -189,4 +189,101 @@ describe('Payment Controller', () => {
       expect(res.json.called).to.be.true;
     });
   });
+
+  describe('cancelPayment', () => {
+    it('应该取消待支付的订单', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const paymentId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { paymentId };
+
+      const mockPayment = {
+        _id: paymentId,
+        userId,
+        status: 'pending',
+        markCancelled: sandbox.stub().resolves()
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+
+      await paymentController.cancelPayment(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      expect(mockPayment.markCancelled.called).to.be.true;
+    });
+
+    it('应该返回400当已完成的支付无法取消', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const paymentId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { paymentId };
+
+      const mockPayment = {
+        _id: paymentId,
+        userId,
+        status: 'completed'
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+
+      await paymentController.cancelPayment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const errorMsg = res.json.getCall(0).args[0].message;
+      expect(errorMsg).to.include('无法取消');
+    });
+
+    it('应该返回404当支付记录不存在', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const paymentId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { paymentId };
+
+      PaymentStub.findOne.resolves(null);
+
+      await paymentController.cancelPayment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('getPaymentStatus', () => {
+    it('应该返回支付状态', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const paymentId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { paymentId };
+
+      const mockPayment = {
+        _id: paymentId,
+        userId,
+        status: 'completed',
+        amount: 99,
+        paymentMethod: 'wechat',
+        paidAt: new Date()
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+
+      await paymentController.getPaymentStatus(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('status');
+      expect(responseData.data.status).to.equal('completed');
+    });
+
+    it('应该返回404当支付记录不存在', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const paymentId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { paymentId };
+
+      PaymentStub.findOne.resolves(null);
+
+      await paymentController.getPaymentStatus(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
 });

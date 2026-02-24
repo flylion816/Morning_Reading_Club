@@ -632,4 +632,126 @@ describe('Checkin Controller', () => {
       expect(parseFloat(responseData.data.averagePointsPerUser)).to.equal(200);
     });
   });
+
+  describe('getCheckins', () => {
+    it('应该返回打卡列表', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.query = { periodId };
+
+      const mockCheckins = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: new mongoose.Types.ObjectId(),
+          periodId,
+          sectionId: new mongoose.Types.ObjectId(),
+          checkinDate: new Date(),
+          readingTime: 30,
+          points: 10
+        }
+      ];
+
+      CheckinStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves(mockCheckins)
+      });
+      CheckinStub.countDocuments.resolves(1);
+
+      await checkinController.getCheckins(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('list');
+      expect(responseData.data.list.length).to.equal(1);
+    });
+  });
+
+  describe('updateCheckin', () => {
+    it('应该更新自己的打卡记录', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const checkinId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { checkinId };
+      req.body = { readingTime: 45, note: '更新的笔记' };
+
+      const mockCheckin = {
+        _id: checkinId,
+        userId,
+        readingTime: 30,
+        note: '原笔记',
+        save: sandbox.stub().resolves()
+      };
+
+      CheckinStub.findById.resolves(mockCheckin);
+
+      await checkinController.updateCheckin(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      expect(mockCheckin.save.called).to.be.true;
+    });
+
+    it('应该返回403当更新他人的打卡', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const otherUserId = new mongoose.Types.ObjectId().toString();
+      const checkinId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { checkinId };
+      req.body = { readingTime: 45 };
+
+      const mockCheckin = {
+        _id: checkinId,
+        userId: otherUserId, // 不同的用户
+        readingTime: 30
+      };
+
+      CheckinStub.findById.resolves(mockCheckin);
+
+      await checkinController.updateCheckin(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+    });
+
+    it('应该返回404当打卡不存在', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const checkinId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { checkinId };
+      req.body = { readingTime: 45 };
+
+      CheckinStub.findById.resolves(null);
+
+      await checkinController.updateCheckin(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('deleteAdminCheckin', () => {
+    it('应该删除指定的打卡记录', async () => {
+      const checkinId = new mongoose.Types.ObjectId();
+      req.params = { checkinId };
+
+      const mockCheckin = { _id: checkinId, userId: new mongoose.Types.ObjectId() };
+
+      CheckinStub.findByIdAndDelete.resolves(mockCheckin);
+
+      await checkinController.deleteAdminCheckin(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      expect(CheckinStub.findByIdAndDelete.called).to.be.true;
+    });
+
+    it('应该返回404当打卡不存在', async () => {
+      const checkinId = new mongoose.Types.ObjectId();
+      req.params = { checkinId };
+
+      CheckinStub.findByIdAndDelete.resolves(null);
+
+      await checkinController.deleteAdminCheckin(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
 });
