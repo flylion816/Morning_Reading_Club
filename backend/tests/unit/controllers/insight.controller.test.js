@@ -15,6 +15,7 @@ describe('Insight Controller', () => {
   let next;
   let InsightStub;
   let UserStub;
+  let InsightRequestStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -46,13 +47,24 @@ describe('Insight Controller', () => {
       findById: sandbox.stub()
     };
 
+    InsightRequestStub = {
+      findOne: sandbox.stub()
+    };
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
-        forbidden: (msg) => ({ code: 403, message: msg })
+        forbidden: (msg) => ({ code: 403, message: msg }),
+        serverError: (msg) => ({ code: 500, message: msg })
       }
+    };
+
+    const loggerStub = {
+      debug: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub()
     };
 
     insightController = proxyquire(
@@ -60,7 +72,9 @@ describe('Insight Controller', () => {
       {
         '../models/Insight': InsightStub,
         '../models/User': UserStub,
-        '../utils/response': responseUtils
+        '../models/InsightRequest': InsightRequestStub,
+        '../utils/response': responseUtils,
+        '../utils/logger': loggerStub
       }
     );
   });
@@ -138,7 +152,18 @@ describe('Insight Controller', () => {
       const insightId = new mongoose.Types.ObjectId();
       req.params = { insightId };
 
+      const populateStub = sandbox.stub().returnsThis();
       InsightStub.findById.returns({
+        populate: populateStub
+      });
+      // 模拟第三次 populate 后直接返回 null
+      populateStub.onThirdCall().returnsThis();
+      populateStub.returns({
+        populate: sandbox.stub().returnsThis()
+      });
+
+      // 最后让最终的链返回 null
+      InsightStub.findById.withArgs(insightId).returns({
         populate: sandbox.stub().returnsThis(),
         exec: sandbox.stub().resolves(null)
       });

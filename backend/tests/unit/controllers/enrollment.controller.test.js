@@ -99,6 +99,7 @@ describe('Enrollment Controller', () => {
       };
 
       PeriodStub.findById.resolves(mockPeriod);
+      PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
       UserStub.findById.resolves(mockUser);
       EnrollmentStub.findOne.resolves(null);
       EnrollmentStub.create.resolves(mockEnrollment);
@@ -106,7 +107,6 @@ describe('Enrollment Controller', () => {
         populate: sandbox.stub().returnsThis(),
         execPopulate: sandbox.stub().resolves(mockPopulatedEnrollment)
       });
-      PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
 
       await enrollmentController.enrollPeriod(req, res, next);
 
