@@ -103,7 +103,16 @@ Component({
           return;
         }
 
-        // 【情况5】其他支付状态 → 异常提示
+        // 【情况5】已报名且免费 → 导航到课程列表
+        if (paymentStatus === 'free') {
+          console.log('✅ 已报名且免费，导航到课程列表');
+          wx.navigateTo({
+            url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
+          });
+          return;
+        }
+
+        // 【情况6】其他支付状态 → 异常提示
         wx.showToast({
           title: '报名状态异常，请联系客服',
           icon: 'none',

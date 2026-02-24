@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * 统一初始化脚本
+ * 统一初始化脚本（开发环境）
  * 按顺序执行以下初始化任务：
  * 1. init-mongodb.js - 初始化数据库和基本数据
- * 2. init-admin.js - 创建管理员账户
- * 3. init-23-days.js - 导入23天课程内容
+ * 2. init-indexes.js - 创建数据库索引
+ * 3. init-superadmin.js - 创建管理员账户
+ * 4. init-23-days.js - 导入23天课程内容
  */
 
 require('dotenv').config();
@@ -17,6 +18,11 @@ const scripts = [
     name: 'MongoDB 初始化',
     script: 'init-mongodb.js',
     description: '创建基本的数据库结构和测试数据'
+  },
+  {
+    name: '数据库索引创建',
+    script: 'init-indexes.js',
+    description: '创建数据库索引以提升查询性能'
   },
   {
     name: '超级管理员初始化',

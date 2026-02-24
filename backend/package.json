@@ -6,9 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "init:mongodb": "node scripts/init-mongodb.js",
+    "init:dev": "NODE_ENV=development node scripts/init-all.js",
+    "init:prod": "NODE_ENV=production node scripts/init-production.js",
+    "init:indexes": "node scripts/init-indexes.js",
+    "init:mongodb": "NODE_ENV=development node scripts/init-mongodb.js",
     "init:mysql": "node scripts/init-mysql.js",
-    "init:all": "npm run init:mongodb && npm run init:mysql",
     "test": "NODE_ENV=test mocha 'tests/**/*.test.js'",
     "test:unit": "NODE_ENV=test mocha 'tests/unit/**/*.test.js'",
     "test:integration": "NODE_ENV=test mocha 'tests/integration/**/*.test.js'",

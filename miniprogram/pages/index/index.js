@@ -268,6 +268,7 @@ Page({
     // 获取计算后的期次状态（基于日期）
     const calculatedStatus = period.calculatedStatus;
     console.log('calculatedStatus:', calculatedStatus);
+    console.log('🔍 判断流程:', { isEnrolled, calculatedStatus, paymentStatus });
 
     // 【情况1】已完成且未报名，显示提示并拦截
     if (calculatedStatus === 'completed' && !isEnrolled) {
@@ -279,6 +280,7 @@ Page({
       });
       return;
     }
+    console.log('✓ 情况1检查完成，isEnrolled =', isEnrolled);
 
     // 【情况2】未报名（且期次未完成），进入报名页面
     if (!isEnrolled) {
@@ -301,7 +303,14 @@ Page({
         url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startDate}&endDate=${period.endDate}&amount=99&isResumePayment=true`
       });
     }
-    // 【情况5】其他支付状态（如failed等），显示提示
+    // 【情况5】已报名且免费，进入课程列表
+    else if (paymentStatus === 'free') {
+      console.log('已报名且免费，进入课程列表');
+      wx.navigateTo({
+        url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
+      });
+    }
+    // 【情况6】其他支付状态（如failed等），显示提示
     else {
       wx.showToast({
         title: '报名状态异常，请联系客服',
