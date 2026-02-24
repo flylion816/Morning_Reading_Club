@@ -35,14 +35,21 @@ describe('Upload Controller', () => {
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
-        badRequest: (msg) => ({ code: 400, message: msg })
+        badRequest: (msg) => ({ code: 400, message: msg }),
+        notFound: (msg) => ({ code: 404, message: msg }),
+        internalServerError: (msg) => ({ code: 500, message: msg })
       }
+    };
+
+    const loggerStub = {
+      error: sandbox.stub()
     };
 
     uploadController = proxyquire(
       '../../../src/controllers/upload.controller',
       {
-        '../utils/response': responseUtils
+        '../utils/response': responseUtils,
+        '../utils/logger': loggerStub
       }
     );
   });
@@ -83,12 +90,14 @@ describe('Upload Controller', () => {
         {
           filename: 'image_1.jpg',
           path: '/uploads/image_1.jpg',
-          mimetype: 'image/jpeg'
+          mimetype: 'image/jpeg',
+          size: 1024
         },
         {
           filename: 'image_2.jpg',
           path: '/uploads/image_2.jpg',
-          mimetype: 'image/jpeg'
+          mimetype: 'image/jpeg',
+          size: 2048
         }
       ];
 
@@ -96,8 +105,11 @@ describe('Upload Controller', () => {
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('urls');
-      expect(responseData.data.urls).to.have.lengthOf(2);
+      // 修复：实际返回的是 files 而不是 urls
+      expect(responseData.data).to.have.property('files');
+      expect(responseData.data).to.have.property('count');
+      expect(responseData.data.files).to.have.lengthOf(2);
+      expect(responseData.data.count).to.equal(2);
     });
 
     it('应该返回400当没有文件', async () => {

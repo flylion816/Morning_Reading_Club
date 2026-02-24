@@ -15,6 +15,7 @@ describe('Insight Controller', () => {
   let next;
   let InsightStub;
   let UserStub;
+  let InsightRequestStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -46,13 +47,26 @@ describe('Insight Controller', () => {
       findById: sandbox.stub()
     };
 
+    InsightRequestStub = {
+      findOne: sandbox.stub(),
+      findById: sandbox.stub(),
+      create: sandbox.stub()
+    };
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
-        forbidden: (msg) => ({ code: 403, message: msg })
+        forbidden: (msg) => ({ code: 403, message: msg }),
+        serverError: (msg) => ({ code: 500, message: msg })
       }
+    };
+
+    const loggerStub = {
+      debug: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub()
     };
 
     insightController = proxyquire(
@@ -60,7 +74,9 @@ describe('Insight Controller', () => {
       {
         '../models/Insight': InsightStub,
         '../models/User': UserStub,
-        '../utils/response': responseUtils
+        '../models/InsightRequest': InsightRequestStub,
+        '../utils/response': responseUtils,
+        '../utils/logger': loggerStub
       }
     );
   });
@@ -136,14 +152,18 @@ describe('Insight Controller', () => {
 
     it('应该返回404当小凡看见不存在', async () => {
       const insightId = new mongoose.Types.ObjectId();
-      req.params = { insightId };
+      req.params = { insightId: insightId.toString() };
 
-      InsightStub.findById.returns({
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        resolves: sandbox.stub().resolves(null)
-      });
+      // 修复：处理 .populate() 链式调用 - 每次 populate 返回自身用于链式调用，最后 resolve 为 null
+      const populateStub = sandbox.stub();
+      populateStub.onFirstCall().returnsThis();
+      populateStub.onSecondCall().returnsThis();
+      populateStub.onThirdCall().returnsThis();
+      populateStub.onCall(3).resolves(null);
+
+      const chainObject = { populate: populateStub };
+
+      InsightStub.findById.returns(chainObject);
 
       await insightController.getInsightDetail(req, res, next);
 
@@ -154,6 +174,7 @@ describe('Insight Controller', () => {
   describe('getUserInsights', () => {
     it('应该返回用户收到的小凡看见', async () => {
       const userId = new mongoose.Types.ObjectId();
+      req.user = { userId };
       req.params = { userId };
       req.query = { page: 1, limit: 10 };
 
@@ -312,11 +333,15 @@ describe('Insight Controller', () => {
   describe('likeInsight', () => {
     it('应该增加小凡看见的点赞数', async () => {
       const insightId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      req.user = { userId: userId.toString() };
       req.params = { insightId };
+      req.body = { action: 'like' };
 
       const mockInsight = {
         _id: insightId,
         likeCount: 10,
+        likes: [],
         save: sandbox.stub().resolves()
       };
 
@@ -324,7 +349,7 @@ describe('Insight Controller', () => {
 
       await insightController.likeInsight(req, res, next);
 
-      expect(mockInsight.likeCount).to.equal(11);
+      expect(mockInsight.likes.length).to.equal(1);
       expect(res.json.called).to.be.true;
     });
 
@@ -335,6 +360,75 @@ describe('Insight Controller', () => {
       InsightStub.findById.resolves(null);
 
       await insightController.likeInsight(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('createInsightRequest', () => {
+    it('应该创建申请请求', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const targetUserId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.body = { targetUserId, reason: '想了解你的想法' };
+
+      const mockRequest = {
+        _id: new mongoose.Types.ObjectId(),
+        fromUserId: userId,
+        toUserId: targetUserId,
+        reason: '想了解你的想法',
+        status: 'pending'
+      };
+
+      InsightRequestStub.create.resolves(mockRequest);
+
+      await insightController.createInsightRequest(req, res, next);
+
+      expect(res.status.calledWith(201)).to.be.true;
+      expect(InsightRequestStub.create.called).to.be.true;
+    });
+
+    it('应该返回400当自己申请自己', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      req.user = { userId };
+      req.body = { targetUserId: userId, reason: '原因' };
+
+      await insightController.createInsightRequest(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+    });
+  });
+
+  describe('approveInsightRequest', () => {
+    it('应该批准申请请求', async () => {
+      const requestId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId().toString();
+      req.params = { requestId };
+      req.user = { userId };
+
+      const mockRequest = {
+        _id: requestId,
+        toUserId: userId,
+        fromUserId: new mongoose.Types.ObjectId(),
+        status: 'pending',
+        save: sandbox.stub().resolves()
+      };
+
+      InsightRequestStub.findById.resolves(mockRequest);
+
+      await insightController.approveInsightRequest(req, res, next);
+
+      expect(mockRequest.save.called).to.be.true;
+    });
+
+    it('应该返回404当请求不存在', async () => {
+      const requestId = new mongoose.Types.ObjectId();
+      req.params = { requestId };
+      req.user = { userId: new mongoose.Types.ObjectId().toString() };
+
+      InsightRequestStub.findById.resolves(null);
+
+      await insightController.approveInsightRequest(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });

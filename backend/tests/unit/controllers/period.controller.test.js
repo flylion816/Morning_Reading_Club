@@ -208,15 +208,17 @@ describe('Period Controller', () => {
 
       const mockPeriod = {
         _id: periodId,
-        name: '更新的名称',
-        status: 'active'
+        name: '原名称',
+        status: 'upcoming',
+        save: sandbox.stub().resolves()
       };
 
-      PeriodStub.findByIdAndUpdate.resolves(mockPeriod);
+      PeriodStub.findById.resolves(mockPeriod);
 
       await periodController.updatePeriod(req, res, next);
 
-      expect(PeriodStub.findByIdAndUpdate.called).to.be.true;
+      expect(PeriodStub.findById.called).to.be.true;
+      expect(mockPeriod.save.called).to.be.true;
       expect(res.json.called).to.be.true;
     });
 
@@ -228,6 +230,49 @@ describe('Period Controller', () => {
       PeriodStub.findByIdAndUpdate.resolves(null);
 
       await periodController.updatePeriod(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('deletePeriod (Admin)', () => {
+    it('应该删除空的期次', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+
+      const mockPeriod = { _id: periodId, name: '期次', enrollmentCount: 0 };
+
+      PeriodStub.findById.resolves(mockPeriod);
+      PeriodStub.findByIdAndDelete.resolves(mockPeriod);
+
+      await periodController.deletePeriod(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      expect(PeriodStub.findByIdAndDelete.called).to.be.true;
+    });
+
+    it('应该返回400当期次有报名', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+
+      const mockPeriod = { _id: periodId, name: '期次', enrollmentCount: 5 };
+
+      PeriodStub.findById.resolves(mockPeriod);
+
+      await periodController.deletePeriod(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const errorMsg = res.json.getCall(0).args[0].message;
+      expect(errorMsg).to.include('已有用户报名');
+    });
+
+    it('应该返回404当期次不存在', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+
+      PeriodStub.findById.resolves(null);
+
+      await periodController.deletePeriod(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });

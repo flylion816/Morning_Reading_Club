@@ -15,6 +15,7 @@ describe('Auth Controller', () => {
   let next;
   let UserStub;
   let jwtStub;
+  let wechatServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -44,6 +45,10 @@ describe('Auth Controller', () => {
       verifyRefreshToken: sandbox.stub()
     };
 
+    wechatServiceStub = {
+      getOpenidFromCode: sandbox.stub()
+    };
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
@@ -66,7 +71,8 @@ describe('Auth Controller', () => {
         '../models/User': UserStub,
         '../utils/jwt': jwtStub,
         '../utils/response': responseUtils,
-        '../utils/logger': loggerStub
+        '../utils/logger': loggerStub,
+        '../services/wechat.service': wechatServiceStub
       }
     );
   });
@@ -89,19 +95,24 @@ describe('Auth Controller', () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
 
-      req.body = { code: 'test_code' };
+      req.body = { code: 'test_user_atai' };
 
       const mockUser = {
         _id: new mongoose.Types.ObjectId(),
-        openid: 'test_openid',
-        nickname: '测试用户',
+        openid: 'mock_user_001',
+        nickname: '阿泰',
         avatar: '🦁',
         role: 'user',
         status: 'active',
         save: sandbox.stub().resolves()
       };
 
-      UserStub.findById.resolves(mockUser);
+      // Mock wechatService to return mock openid in dev environment
+      wechatServiceStub.getOpenidFromCode.resolves({
+        openid: 'mock_user_001'
+      });
+
+      UserStub.findOne.resolves(mockUser);
       jwtStub.generateTokens.returns({
         accessToken: 'token123',
         refreshToken: 'refresh123',
@@ -110,7 +121,7 @@ describe('Auth Controller', () => {
 
       await authController.wechatLogin(req, res, next);
 
-      expect(UserStub.findById.called).to.be.true;
+      expect(res.json.called).to.be.true;
 
       process.env.NODE_ENV = originalEnv;
     });
@@ -128,6 +139,9 @@ describe('Auth Controller', () => {
         lastLoginAt: new Date()
       };
 
+      wechatServiceStub.getOpenidFromCode.resolves({
+        openid: 'mock_user_001'
+      });
       UserStub.findOne.resolves(null);
       UserStub.create.resolves(mockUser);
       jwtStub.generateTokens.returns({
@@ -157,6 +171,9 @@ describe('Auth Controller', () => {
         save: sandbox.stub().resolves()
       };
 
+      wechatServiceStub.getOpenidFromCode.resolves({
+        openid: 'mock_user_001'
+      });
       UserStub.findOne.resolves(mockUser);
       jwtStub.generateTokens.returns({
         accessToken: 'token123',
@@ -184,6 +201,9 @@ describe('Auth Controller', () => {
         save: sandbox.stub().resolves()
       };
 
+      wechatServiceStub.getOpenidFromCode.resolves({
+        openid: 'mock_user_001'
+      });
       UserStub.findOne.resolves(mockUser);
       jwtStub.generateTokens.returns({
         accessToken: 'token123',
@@ -300,6 +320,16 @@ describe('Auth Controller', () => {
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('expiresIn');
       expect(responseData.data.expiresIn).to.equal(3600);
+    });
+  });
+
+  describe('logout', () => {
+    it('应该返回登出成功', async () => {
+      await authController.logout(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.message).to.include('登出成功');
     });
   });
 });
