@@ -106,6 +106,13 @@ async function syncDocumentToMySQL(collection, documentId, data) {
       // 将 MongoDB 文档字段映射到 MySQL
       const mysqlData = transformDocumentForMySQL(collection, data);
 
+      // DEBUG: 输出转换后的数据
+      logger.info('✅ 日期格式修复已应用 - Transformed data for MySQL', {
+        collection,
+        last_login_at: mysqlData.last_login_at,
+        created_at: mysqlData.created_at
+      });
+
       // 更新或插入
       const placeholders = Object.keys(mysqlData).map(() => '?').join(',');
       const columns = Object.keys(mysqlData).join(',');
@@ -157,7 +164,13 @@ function transformDocumentForMySQL(collection, doc) {
     if (typeof value === 'boolean') {
       result[mysqlColumnName] = value ? 1 : 0;
     } else if (value instanceof Date) {
-      result[mysqlColumnName] = value.toISOString();
+      // MySQL DATETIME 格式：YYYY-MM-DD HH:MM:SS（不含 T 和 Z）
+      const isoString = value.toISOString();
+      result[mysqlColumnName] = isoString.split('.')[0].replace('T', ' ');
+    } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+      // ISO 格式的日期字符串（Mongoose toObject() 的输出）
+      // 转换：2026-02-25T01:32:10.381Z → 2026-02-25 01:32:10
+      result[mysqlColumnName] = value.split('.')[0].replace('T', ' ');
     } else if (typeof value === 'object' && value !== null) {
       // 对象存储为 JSON 字符串
       result[mysqlColumnName] = JSON.stringify(value);
