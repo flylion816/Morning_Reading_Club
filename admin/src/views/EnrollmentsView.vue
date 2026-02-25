@@ -22,7 +22,7 @@
             <el-option label="已支付" value="paid" />
             <el-option label="已退款" value="refunded" />
           </el-select>
-          <el-button type="primary" @click="handleSearch" style="margin-left: 10px">
+          <el-button type="primary" style="margin-left: 10px" @click="handleSearch">
             搜索
           </el-button>
         </div>
@@ -49,12 +49,12 @@
         </template>
 
         <el-table
+          ref="tableRef"
+          v-loading="loading"
           :data="enrollments"
           stripe
           style="width: 100%"
-          v-loading="loading"
           @selection-change="handleSelectionChange"
-          ref="tableRef"
         >
           <el-table-column type="selection" width="50" />
           <el-table-column label="ID" width="200">
@@ -89,10 +89,20 @@
               {{ formatDate(row.enrolledAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="280" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" text size="small" @click="showDetailDialog(row)">
                 详情
+              </el-button>
+              <!-- 免费按钮：仅在待支付时显示 -->
+              <el-button
+                v-if="row.paymentStatus === 'pending'"
+                type="success"
+                text
+                size="small"
+                @click="handleMarkAsFree(row)"
+              >
+                💳 免费
               </el-button>
               <el-button type="danger" text size="small" @click="handleDelete(row)">
                 删除
@@ -225,6 +235,28 @@ function handleSearch() {
 function showDetailDialog(enrollment: Enrollment) {
   currentEnrollment.value = enrollment;
   dialogs.value.detailVisible = true;
+}
+
+async function handleMarkAsFree(enrollment: Enrollment) {
+  try {
+    await ElMessageBox.confirm(`确定要将 ${enrollment.name} 的支付状态改为已支付吗？`, '确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info'
+    });
+
+    // 更新支付状态为 'paid'
+    await enrollmentApi.updateEnrollment(enrollment._id, {
+      paymentStatus: 'paid',
+      paymentMethod: 'free' // 标记为免费
+    });
+    ElMessage.success('已标记为免费');
+    loadEnrollments();
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error('操作失败');
+    }
+  }
 }
 
 async function handleDelete(enrollment: Enrollment) {
