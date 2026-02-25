@@ -104,7 +104,11 @@ Page({
 
       // 为每个期次计算状态（基于日期而不是数据库status字段）
       periods = periods.map(period => {
-        const calculatedStatus = calculatePeriodStatus(period.startDate, period.endDate);
+        // 后端返回的字段是 startTime/endTime，不是 startDate/endDate
+        const calculatedStatus = calculatePeriodStatus(
+          period.startTime || period.startDate,
+          period.endTime || period.endDate
+        );
         return {
           ...period,
           calculatedStatus,
@@ -300,7 +304,7 @@ Page({
     else if (paymentStatus === 'pending') {
       console.log('已报名但未支付，继续支付');
       wx.navigateTo({
-        url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startDate}&endDate=${period.endDate}&amount=99&isResumePayment=true`
+        url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startTime || period.startDate}&endDate=${period.endTime || period.endDate}&amount=99&isResumePayment=true`
       });
     }
     // 【情况5】已报名且免费，进入课程列表
