@@ -52,11 +52,12 @@
           max-height="400"
         >
           <el-table-column
-            v-for="col in mongoColumns.slice(0, 8)"
+            v-for="col in mongoColumns.filter(c => c !== '__v')"
             :key="col"
             :prop="col"
             :label="col"
             show-overflow-tooltip
+            :width="col === 'raw_json' ? '400px' : 'auto'"
           >
             <template #default="{ row }">
               <span v-if="col === 'raw_json' || col === 'profile_image'">
@@ -127,10 +128,11 @@
           max-height="400"
         >
           <el-table-column
-            v-for="col in mysqlColumns.slice(0, 8)"
+            v-for="col in mysqlColumns.filter(c => c !== '__v')"
             :key="col"
             :label="col"
             show-overflow-tooltip
+            :width="col === 'raw_json' ? '400px' : 'auto'"
           >
             <template #default="{ row }">
               <span v-if="col === 'raw_json'">
