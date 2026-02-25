@@ -205,6 +205,10 @@ export const backupApi = {
   getMysqlStats: () => apiClient.get('/backup/mysql/stats'),
   compareBackup: () => apiClient.get('/backup/compare'),
 
+  // 字段级对比
+  compareFieldsDetail: (tableName: string) =>
+    apiClient.get('/backup/compare/fields', { params: { tableName } }),
+
   // 数据查询
   getMongodbTableData: (table: string, page: number, limit: number) =>
     apiClient.get('/backup/mongodb/data', { params: { table, page, limit } }),

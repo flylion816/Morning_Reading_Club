@@ -534,10 +534,112 @@ async function recoverMysqlToMongo(req, res) {
 }
 /* eslint-enable no-restricted-syntax, no-await-in-loop, no-loop-func */
 
+// =========================================================================
+// 9. 字段级数据对比（细粒度验证）
+// =========================================================================
+async function compareFieldsDetail(req, res) {
+  try {
+    const { tableName } = req.query;
+
+    if (!tableName) {
+      return res.status(400).json(errors.badRequest('请指定表名'));
+    }
+
+    if (!MODELS[tableName]) {
+      return res.status(400).json(errors.badRequest('表名无效'));
+    }
+
+    const conn = await mysqlPool.getConnection();
+
+    try {
+      const model = MODELS[tableName];
+      let mongoData = [];
+
+      // 获取 MongoDB 数据
+      if (tableName === 'admins') {
+        mongoData = await model.find().select('+password').lean();
+      } else {
+        mongoData = await model.find().lean();
+      }
+
+      // 获取 MySQL 数据
+      const [mysqlData] = await conn.query(`SELECT * FROM \`${tableName}\``);
+
+      // 逐条对比
+      const details = mongoData.map((mongoRecord) => {
+        const mysqlRecord = mysqlData.find(
+          r => r.id === mongoRecord._id.toString()
+        );
+
+        const fieldComparison = {};
+        let allMatch = true;
+
+        if (!mysqlRecord) {
+          return {
+            id: mongoRecord._id.toString(),
+            status: '❌ MySQL 中不存在',
+            allMatch: false,
+            fields: {}
+          };
+        }
+
+        // 比对所有字段
+        Object.keys(mongoRecord).forEach((field) => {
+          if (field === '__v') return;
+
+          const mongoValue = mongoRecord[field];
+          const mysqlFieldName = field.replace(/([A-Z])/g, '_$1').toLowerCase();
+          const mysqlValue = mysqlRecord[mysqlFieldName];
+
+          const mongoStr = String(mongoValue || '').substring(0, 50);
+          const mysqlStr = String(mysqlValue || '').substring(0, 50);
+          const matches = mongoStr === mysqlStr;
+
+          if (!matches) {
+            allMatch = false;
+          }
+
+          fieldComparison[field] = {
+            mongodb: mongoValue,
+            mysql: mysqlValue,
+            matches
+          };
+        });
+
+        return {
+          id: mongoRecord._id.toString().substring(0, 8),
+          status: allMatch ? '✅ 完全匹配' : '⚠️ 字段不匹配',
+          allMatch,
+          fieldCount: Object.keys(fieldComparison).length,
+          matchedFields: Object.values(fieldComparison).filter(f => f.matches).length,
+          fields: fieldComparison
+        };
+      });
+
+      // 统计
+      const summary = {
+        tableName,
+        totalRecords: mongoData.length,
+        matchedRecords: details.filter(d => d.allMatch).length,
+        mismatchedRecords: details.filter(d => !d.allMatch).length,
+        details: details.slice(0, 20) // 仅返回前20条详情，避免数据过大
+      };
+
+      res.json(success(summary, '字段级对比完成'));
+    } finally {
+      conn.release();
+    }
+  } catch (error) {
+    logger.error('Field comparison failed', error);
+    res.status(500).json(errors.serverError('字段对比失败'));
+  }
+}
+
 module.exports = {
   getMongodbStats,
   getMysqlStats,
   compareBackup,
+  compareFieldsDetail,
   getMongodbTableData,
   getMysqlTableData,
   fullSync,

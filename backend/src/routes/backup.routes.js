@@ -35,6 +35,12 @@ router.get('/mysql/stats', backupController.getMysqlStats);
  */
 router.get('/compare', backupController.compareBackup);
 
+/**
+ * 字段级详细对比
+ * GET /api/v1/backup/compare/fields?tableName=users
+ */
+router.get('/compare/fields', backupController.compareFieldsDetail);
+
 // =========================================================================
 // 数据查询接口
 // =========================================================================
