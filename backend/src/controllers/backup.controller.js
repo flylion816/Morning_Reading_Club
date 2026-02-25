@@ -583,6 +583,41 @@ async function compareFieldsDetail(req, res) {
           };
         }
 
+        // 智能比较函数：处理布尔值、日期等特殊类型
+        const intelligentCompare = (mongoVal, mysqlVal) => {
+          // 处理 null/undefined
+          if ((mongoVal === null || mongoVal === undefined) && (mysqlVal === null || mysqlVal === undefined)) {
+            return true;
+          }
+
+          // 处理布尔值和 0/1 的对应关系
+          if (typeof mongoVal === 'boolean' && typeof mysqlVal === 'number') {
+            return (mongoVal === true && mysqlVal === 1) || (mongoVal === false && mysqlVal === 0);
+          }
+          if (typeof mongoVal === 'number' && typeof mysqlVal === 'boolean') {
+            return (mongoVal === 1 && mysqlVal === true) || (mongoVal === 0 && mysqlVal === false);
+          }
+
+          // 处理日期时间精度差异（MongoDB 毫秒级，MySQL 秒级）
+          if (mongoVal && mysqlVal && typeof mongoVal === 'string' && typeof mysqlVal === 'string') {
+            const mongoDate = new Date(mongoVal);
+            const mysqlDate = new Date(mysqlVal);
+            if (!isNaN(mongoDate.getTime()) && !isNaN(mysqlDate.getTime())) {
+              // 比较到秒级精度
+              const mongoSecs = Math.floor(mongoDate.getTime() / 1000);
+              const mysqlSecs = Math.floor(mysqlDate.getTime() / 1000);
+              if (mongoSecs === mysqlSecs) {
+                return true;
+              }
+            }
+          }
+
+          // 普通字符串比较
+          const mongoStr = String(mongoVal || '').substring(0, 50);
+          const mysqlStr = String(mysqlVal || '').substring(0, 50);
+          return mongoStr === mysqlStr;
+        };
+
         // 比对所有字段
         Object.keys(mongoRecord).forEach((field) => {
           if (field === '__v') return;
@@ -591,9 +626,7 @@ async function compareFieldsDetail(req, res) {
           const mysqlFieldName = field.replace(/([A-Z])/g, '_$1').toLowerCase();
           const mysqlValue = mysqlRecord[mysqlFieldName];
 
-          const mongoStr = String(mongoValue || '').substring(0, 50);
-          const mysqlStr = String(mysqlValue || '').substring(0, 50);
-          const matches = mongoStr === mysqlStr;
+          const matches = intelligentCompare(mongoValue, mysqlValue);
 
           if (!matches) {
             allMatch = false;
