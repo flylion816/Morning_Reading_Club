@@ -8,6 +8,7 @@ const ConfigSyncValidator = require('./utils/config-sync-validator');
 const logger = require('./utils/logger');
 const WebSocketManager = require('./utils/websocket');
 const redisManager = require('./utils/redis');
+const { startSyncListener } = require('./services/sync.service');
 
 // 尝试加载根目录的统一环境配置
 try {
@@ -64,6 +65,10 @@ async function startServer() {
     logger.info('正在测试 MySQL 连接...');
     await testMySQLConnection();
     logger.info('✅ MySQL 连接测试通过');
+
+    // 启动 MongoDB 同步监听器
+    logger.info('正在启动 MongoDB→MySQL 实时同步...');
+    await startSyncListener();
 
     // 启动HTTP服务器
     const server = app.listen(PORT, () => {

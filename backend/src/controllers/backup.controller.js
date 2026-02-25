@@ -171,7 +171,7 @@ async function compareBackup(req, res) {
         const mysqlCount = mysqlStats[table] || 0;
 
         if (mongoCount === 0 && mysqlCount === 0) {
-          // 两个库都没有数据，标记为一致
+          // 两个库都没有数据，无法计算一致率
           comparison[table] = {
             mongodb: 0,
             mysql: 0,
@@ -180,8 +180,8 @@ async function compareBackup(req, res) {
             totalRecords: 0,
             matchedRecords: 0,
             mismatchedRecords: 0,
-            matchPercentage: 100,
-            consistency: '✅ 完全一致'
+            matchPercentage: 0,
+            consistency: '➖ 无数据'
           };
           continue;
         }
@@ -216,9 +216,10 @@ async function compareBackup(req, res) {
 
           const [mysqlData] = await conn.query(`SELECT * FROM \`${table}\``);
 
-          let matchedRecords = 0;
+          let totalFields = 0;
+          let matchedFields = 0;
 
-          // 为每条 MongoDB 记录找到对应的 MySQL 记录并比较
+          // 为每条 MongoDB 记录找到对应的 MySQL 记录并比较所有字段
           for (const mongoRecord of mongoData) {
             const mysqlRecord = mysqlData.find(
               r => r.id === mongoRecord._id.toString()
@@ -226,8 +227,7 @@ async function compareBackup(req, res) {
 
             if (!mysqlRecord) continue;
 
-            // 检查所有字段是否匹配
-            let allFieldsMatch = true;
+            // 统计每条记录的所有字段
             for (const field of Object.keys(mongoRecord)) {
               if (field === '__v') continue;
 
@@ -235,19 +235,15 @@ async function compareBackup(req, res) {
               const mysqlFieldName = field.replace(/([A-Z])/g, '_$1').toLowerCase();
               const mysqlVal = mysqlRecord[mysqlFieldName];
 
-              if (!intelligentCompare(mongoVal, mysqlVal)) {
-                allFieldsMatch = false;
-                break;
+              totalFields++;
+              if (intelligentCompare(mongoVal, mysqlVal)) {
+                matchedFields++;
               }
-            }
-
-            if (allFieldsMatch) {
-              matchedRecords++;
             }
           }
 
-          const mismatchedRecords = mongoCount - matchedRecords;
-          const matchPercentage = mongoCount > 0 ? Math.round((matchedRecords / mongoCount) * 100) : 0;
+          const mismatchedFields = totalFields - matchedFields;
+          const matchPercentage = totalFields > 0 ? Math.round((matchedFields / totalFields) * 100) : 0;
 
           comparison[table] = {
             mongodb: mongoCount,
@@ -255,8 +251,8 @@ async function compareBackup(req, res) {
             difference: 0,
             recordsMatch: true,
             totalRecords: mongoCount,
-            matchedRecords,
-            mismatchedRecords,
+            matchedRecords: matchedFields,
+            mismatchedRecords: mismatchedFields,
             matchPercentage,
             consistency: matchPercentage === 100 ? '✅ 完全一致' : `⚠️ ${matchPercentage}% 一致`
           };

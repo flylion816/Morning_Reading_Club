@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
+const { publishSyncEvent } = require('../services/sync.service');
 
 // 获取当前用户信息
 async function getCurrentUser(req, res, next) {
@@ -58,6 +59,14 @@ async function updateProfile(req, res, next) {
     if (gender !== undefined) user.gender = gender;
 
     await user.save();
+
+    // 异步同步到 MySQL（不阻塞响应）
+    publishSyncEvent({
+      type: 'update',
+      collection: 'users',
+      documentId: user._id.toString(),
+      data: user.toObject()
+    });
 
     res.json(
       success(

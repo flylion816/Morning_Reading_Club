@@ -186,10 +186,10 @@
             </template>
           </el-table-column>
           <el-table-column prop="consistency" label="状态" width="140" align="center" show-overflow-tooltip />
-          <el-table-column label="记录匹配" width="130" align="center">
+          <el-table-column label="详情" width="120" align="center">
             <template #default="{ row }">
-              <span v-if="row.matchedRecords > 0 || row.mismatchedRecords > 0">
-                {{ row.matchedRecords }}/{{ row.totalRecords }}
+              <span v-if="row.totalRecords > 0">
+                {{ row.totalRecords }} 条
               </span>
               <span v-else>-</span>
             </template>
