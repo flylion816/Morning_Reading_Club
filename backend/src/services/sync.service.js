@@ -20,14 +20,12 @@ let redisClient = null;
 async function initRedisClient() {
   try {
     redisClient = redis.createClient({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: process.env.REDIS_PORT || 6379,
+      socket: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || 6379, 10)
+      },
       password: process.env.REDIS_PASSWORD || undefined,
-      db: process.env.REDIS_DB || 0,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      }
+      db: parseInt(process.env.REDIS_DB || 0, 10)
     });
 
     redisClient.on('error', (err) => {
@@ -38,20 +36,17 @@ async function initRedisClient() {
       logger.info('Redis sync queue connected');
     });
 
-    await new Promise((resolve) => {
-      redisClient.ping((err, res) => {
-        if (err) {
-          logger.error('Redis ping failed', err);
-          redisClient = null;
-          resolve();
-        } else {
-          logger.info('Redis ping successful');
-          resolve();
-        }
-      });
-    });
+    await redisClient.connect();
 
-    return !!redisClient;
+    const pong = await redisClient.ping();
+    if (pong === 'PONG') {
+      logger.info('Redis ping successful');
+      return true;
+    } else {
+      logger.error('Redis ping failed');
+      redisClient = null;
+      return false;
+    }
   } catch (error) {
     logger.error('Failed to initialize Redis client', error);
     redisClient = null;
@@ -79,22 +74,21 @@ function publishSyncEvent(event) {
     }
 
     // 异步推入队列（不阻塞主线程）
-    setImmediate(() => {
-      redisClient.lpush(
-        'mongodb:sync:queue',
-        JSON.stringify(eventData),
-        (err) => {
-          if (err) {
-            logger.error('Failed to push sync event to Redis queue', err);
-          } else {
-            logger.info('Sync event queued', {
-              collection: event.collection,
-              type: event.type,
-              documentId: event.documentId
-            });
-          }
-        }
-      );
+    setImmediate(async () => {
+      try {
+        await redisClient.lPush(
+          'mongodb:sync:queue',
+          JSON.stringify(eventData)
+        );
+
+        logger.info('Sync event queued', {
+          collection: event.collection,
+          type: event.type,
+          documentId: event.documentId
+        });
+      } catch (err) {
+        logger.error('Failed to push sync event to Redis queue', err);
+      }
     });
   } catch (error) {
     logger.error('Failed to publish sync event', error);
@@ -189,11 +183,7 @@ function startSyncListener() {
     while (true) {
       try {
         // 从队列右端弹出任务（FIFO）
-        const task = await new Promise((resolve) => {
-          redisClient.rpop('mongodb:sync:queue', (err, reply) => {
-            resolve(reply);
-          });
-        });
+        const task = await redisClient.rPop('mongodb:sync:queue');
 
         if (!task) {
           // 队列为空，等待 100ms 后继续
@@ -232,15 +222,12 @@ function startSyncListener() {
                 documentId: event.documentId,
                 retries: event.retries
               });
-              
+
               // 重新推入队列
-              await new Promise((resolve) => {
-                redisClient.lpush(
-                  'mongodb:sync:queue',
-                  JSON.stringify(event),
-                  () => resolve()
-                );
-              });
+              await redisClient.lPush(
+                'mongodb:sync:queue',
+                JSON.stringify(event)
+              );
             } else {
               logger.error('Sync failed after 3 retries, giving up', {
                 collection: event.collection,
