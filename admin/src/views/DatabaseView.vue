@@ -383,14 +383,19 @@ async function handleFullSync() {
         .map(([table, count]) => `${table}: ${count} 条`)
         .join('\n');
 
-      ElMessageBox.alert(
+      await ElMessageBox.alert(
         `同步完成！\n\n${resultMessage}\n\n总计: ${totalSynced} 条数据`,
         '同步结果',
         { confirmButtonText: '确定' }
       );
 
-      // 刷新统计数据
+      // 刷新统计数据和表数据
       await Promise.all([loadMongodbStats(), loadMysqlStats()]);
+
+      // 自动刷新当前选中的 MySQL 表数据
+      if (selectedMysqlTable.value) {
+        await loadMysqlTableData(1);
+      }
     }
   } catch (error: any) {
     if (error.message !== 'cancel') {
@@ -425,14 +430,22 @@ async function handleFullRecover() {
         .map(([table, count]) => `${table}: ${count} 条`)
         .join('\n');
 
-      ElMessageBox.alert(
+      await ElMessageBox.alert(
         `恢复完成！\n\n${resultMessage}\n\n总计: ${totalRecovered} 条数据`,
         '恢复结果',
         { confirmButtonText: '确定' }
       );
 
-      // 刷新统计数据
+      // 刷新统计数据和表数据
       await Promise.all([loadMongodbStats(), loadMysqlStats()]);
+
+      // 自动刷新当前选中的 MongoDB 和 MySQL 表数据
+      if (selectedMongoTable.value) {
+        await loadMongodbTableData(1);
+      }
+      if (selectedMysqlTable.value) {
+        await loadMysqlTableData(1);
+      }
     }
   } catch (error: any) {
     if (error.message !== 'cancel') {
