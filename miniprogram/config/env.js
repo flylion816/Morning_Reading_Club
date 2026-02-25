@@ -12,7 +12,7 @@
 
 // 当前环境 ('dev' | 'test' | 'prod')
 // ⚠️ 必须与根目录 .env.config.js 中的 currentEnv 值相同
-const currentEnv = 'dev'; // ← 已切换为开发环境
+const currentEnv = 'prod'; // ← 已切换为生产环境
 
 // 环境配置
 const envConfig = {
