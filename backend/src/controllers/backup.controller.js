@@ -284,7 +284,7 @@ async function fullSync(req, res, next) {
     syncResults.users = users.length;
 
     // 同步 Admins
-    const admins = await Admin.find({});
+    const admins = await Admin.find({}).select('+password');
     for (const admin of admins) {
       await mysqlBackupService.syncAdmin(admin);
       totalSynced++;

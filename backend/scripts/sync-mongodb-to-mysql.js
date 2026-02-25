@@ -53,7 +53,7 @@ async function syncData() {
 
     // 同步 admins
     console.log('[2/11] 正在同步 admins...');
-    const admins = await Admin.find();
+    const admins = await Admin.find().select('+password');
     for (const admin of admins) {
       await mysqlBackupService.syncAdmin(admin);
     }
