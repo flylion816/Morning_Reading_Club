@@ -3,6 +3,7 @@ const Checkin = require('../models/Checkin');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
+const { publishSyncEvent } = require('../services/sync.service');
 
 // 创建评论
 async function createComment(req, res, next) {
@@ -30,6 +31,14 @@ async function createComment(req, res, next) {
       .catch(err =>
         logger.warn('MySQL backup failed for comment', { id: comment._id, error: err.message })
       );
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'comments',
+      documentId: comment._id.toString(),
+      data: comment.toObject()
+    });
 
     // 填充用户信息（重新查询以获取populate后的数据）
     const populatedComment = await Comment.findById(comment._id).populate(
@@ -106,6 +115,14 @@ async function replyToComment(req, res, next) {
         logger.warn('MySQL backup failed for comment', { id: comment._id, error: err.message })
       );
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'comments',
+      documentId: comment._id.toString(),
+      data: comment.toObject()
+    });
+
     // 填充用户信息（重新查询以获取populate后的数据）
     const populatedComment = await Comment.findById(comment._id)
       .populate('userId', 'nickname avatar avatarUrl')
@@ -135,7 +152,18 @@ async function deleteComment(req, res, next) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 
+    // 保存评论信息用于同步
+    const commentData = comment.toObject();
+
     await Comment.findByIdAndDelete(commentId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'comments',
+      documentId: commentId,
+      data: commentData
+    });
 
     res.json(success(null, '评论删除成功'));
   } catch (error) {

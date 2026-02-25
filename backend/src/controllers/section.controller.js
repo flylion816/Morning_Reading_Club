@@ -2,6 +2,7 @@ const Section = require('../models/Section');
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { publishSyncEvent } = require('../services/sync.service');
 
 // 获取期次的课程列表（用户端 - 仅已发布）
 async function getSectionsByPeriod(req, res, next) {
@@ -143,6 +144,14 @@ async function createSection(req, res, next) {
       // isPublished defaults to true from schema
     });
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'sections',
+      documentId: section._id.toString(),
+      data: section.toObject()
+    });
+
     res.status(201).json(success(section, '课程创建成功'));
   } catch (error) {
     if (error.code === 11000) {
@@ -173,6 +182,14 @@ async function updateSection(req, res, next) {
 
     await section.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'sections',
+      documentId: section._id.toString(),
+      data: section.toObject()
+    });
+
     res.json(success(section, '课程更新成功'));
   } catch (error) {
     next(error);
@@ -190,7 +207,18 @@ async function deleteSection(req, res, next) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
 
+    // 保存课程信息用于同步
+    const sectionData = section.toObject();
+
     await Section.findByIdAndDelete(sectionId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'sections',
+      documentId: section._id.toString(),
+      data: sectionData
+    });
 
     res.json(success(null, '课程删除成功'));
   } catch (error) {

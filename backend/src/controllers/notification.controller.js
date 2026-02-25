@@ -2,6 +2,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { publishSyncEvent } = require('../services/sync.service');
 
 /**
  * 获取用户的通知列表
@@ -100,6 +101,14 @@ async function markNotificationAsRead(req, res, next) {
     notification.readAt = new Date();
     await notification.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'notifications',
+      documentId: notification._id.toString(),
+      data: notification.toObject()
+    });
+
     res.json(success(notification, '已标记为已读'));
   } catch (error) {
     next(error);
@@ -157,8 +166,19 @@ async function deleteNotification(req, res, next) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 
+    // 保存通知信息用于同步
+    const notificationData = notification.toObject();
+
     // 删除通知
     await Notification.findByIdAndDelete(notificationId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'notifications',
+      documentId: notificationId,
+      data: notificationData
+    });
 
     res.json(success(null, '通知已删除'));
   } catch (error) {
@@ -206,6 +226,14 @@ async function createNotification(userId, type, title, content, options = {}) {
 
     await notification.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'notifications',
+      documentId: notification._id.toString(),
+      data: notification.toObject()
+    });
+
     // 通过 WebSocket 推送通知（如果 wsManager 可用）
     if (options.wsManager) {
       options.wsManager.pushNotificationToUser(userId, {
@@ -240,6 +268,16 @@ async function createNotifications(userIds, type, title, content, options = {}) 
         data: options.data || {}
       }))
     );
+
+    // 异步同步到 MySQL（批量创建）
+    notifications.forEach(notification => {
+      publishSyncEvent({
+        type: 'create',
+        collection: 'notifications',
+        documentId: notification._id.toString(),
+        data: notification.toObject()
+      });
+    });
 
     // 通过 WebSocket 推送所有通知（如果 wsManager 可用）
     if (options.wsManager) {

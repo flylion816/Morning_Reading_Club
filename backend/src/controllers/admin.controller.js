@@ -3,6 +3,7 @@ const Admin = require('../models/Admin');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
+const { publishSyncEvent } = require('../services/sync.service');
 require('dotenv').config();
 
 // 生成 JWT Token
@@ -197,6 +198,14 @@ exports.createAdmin = async (req, res) => {
         logger.warn('MySQL backup failed for admin', { id: newAdmin._id, error: err.message })
       );
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'admins',
+      documentId: newAdmin._id.toString(),
+      data: newAdmin.toObject()
+    });
+
     return res.json(success(newAdmin.toJSON(), '管理员创建成功'));
   } catch (error) {
     logger.error('Create admin error', error);
@@ -239,6 +248,14 @@ exports.updateAdmin = async (req, res) => {
       .catch(err =>
         logger.warn('MySQL backup failed for admin', { id: admin._id, error: err.message })
       );
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'admins',
+      documentId: admin._id.toString(),
+      data: admin.toObject()
+    });
 
     return res.json(success(admin.toJSON(), '管理员信息已更新'));
   } catch (error) {

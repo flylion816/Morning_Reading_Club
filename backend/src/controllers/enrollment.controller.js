@@ -3,6 +3,7 @@ const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
+const { publishSyncEvent } = require('../services/sync.service');
 
 /**
  * 提交报名表单（完整的报名信息）
@@ -123,6 +124,14 @@ exports.submitEnrollmentForm = async (req, res) => {
         logger.warn('MySQL backup failed for period', { id: period._id, error: err.message })
       );
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollment.toObject()
+    });
+
     res.json(success(populatedEnrollment, '报名成功'));
   } catch (error) {
     logger.error('Enrollment form submission failed', error, { userId: req.user.userId });
@@ -173,6 +182,14 @@ exports.enrollPeriod = async (req, res) => {
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(periodId, {
       $inc: { enrollmentCount: 1 }
+    });
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollment.toObject()
     });
 
     res.json(success(populatedEnrollment, '报名成功'));
@@ -345,11 +362,22 @@ exports.withdrawEnrollment = async (req, res) => {
       return res.status(400).json(errors.badRequest('该报名已结束，无法退出'));
     }
 
+    // 保存报名信息用于同步
+    const enrollmentData = enrollment.toObject();
+
     await enrollment.withdraw();
 
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(enrollment.periodId, {
       $inc: { enrollmentCount: -1 }
+    });
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollmentData
     });
 
     res.json(success(enrollment, '退出成功'));
@@ -377,7 +405,18 @@ exports.completeEnrollment = async (req, res) => {
       return res.status(400).json(errors.badRequest('该报名不是进行中状态'));
     }
 
+    // 保存报名信息用于同步
+    const enrollmentData = enrollment.toObject();
+
     await enrollment.complete();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollmentData
+    });
 
     res.json(success(enrollment, '标记为已完成'));
   } catch (error) {
@@ -466,6 +505,15 @@ exports.updateEnrollment = async (req, res) => {
       return res.status(404).json(errors.notFound('报名记录不存在'));
     }
 
+    // 异步同步到 MySQL（转换为纯对象，避免populate的嵌套问题）
+    const enrollmentForSync = await Enrollment.findById(id).lean();
+    publishSyncEvent({
+      type: 'update',
+      collection: 'enrollments',
+      documentId: id,
+      data: enrollmentForSync
+    });
+
     res.json(success(enrollment, '更新成功'));
   } catch (error) {
     logger.error('Update failed', error);
@@ -481,14 +529,27 @@ exports.deleteEnrollment = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const enrollment = await Enrollment.findByIdAndDelete(id);
+    const enrollment = await Enrollment.findById(id);
     if (!enrollment) {
       return res.status(404).json(errors.notFound('报名记录不存在'));
     }
 
+    // 保存报名信息用于同步
+    const enrollmentData = enrollment.toObject();
+
+    await Enrollment.findByIdAndDelete(id);
+
     // 更新期次的报名人数
     await Period.findByIdAndUpdate(enrollment.periodId, {
       $inc: { enrollmentCount: -1 }
+    });
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'enrollments',
+      documentId: id,
+      data: enrollmentData
     });
 
     res.json(success(null, '删除成功'));

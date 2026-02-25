@@ -6,6 +6,7 @@ const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
 const { createNotification, createNotifications } = require('./notification.controller');
 const logger = require('../utils/logger');
+const { publishSyncEvent } = require('../services/sync.service');
 
 /**
  * 辅助函数：创建通知并自动添加 WebSocket 管理器
@@ -105,6 +106,14 @@ async function generateInsight(req, res, next) {
       summary: mockSummary,
       tags: ['学习反馈', '每日总结', '进步追踪'],
       status: 'completed'
+    });
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'insights',
+      documentId: insight._id.toString(),
+      data: insight.toObject()
     });
 
     res.status(201).json(success(insight, 'AI反馈生成成功'));
@@ -231,7 +240,18 @@ async function deleteInsight(req, res, next) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 
+    // 保存反馈信息用于同步
+    const insightData = insight.toObject();
+
     await Insight.findByIdAndDelete(insightId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'insights',
+      documentId: insightId,
+      data: insightData
+    });
 
     res.json(success(null, '反馈删除成功'));
   } catch (error) {
@@ -318,6 +338,14 @@ async function createInsightManual(req, res, next) {
       source: 'manual',
       status: 'completed',
       isPublished: true
+    });
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'insights',
+      documentId: insight._id.toString(),
+      data: insight.toObject()
     });
 
     res.status(201).json(success(insight, '小凡看见创建成功'));
@@ -440,6 +468,14 @@ async function updateInsight(req, res, next) {
 
     await insight.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'insights',
+      documentId: insight._id.toString(),
+      data: insight.toObject()
+    });
+
     // 保存后重新 populate 返回完整数据
     await insight.populate('targetUserId', 'nickname avatar');
 
@@ -481,7 +517,18 @@ async function deleteInsightManual(req, res, next) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 
+    // 保存反馈信息用于同步
+    const insightData = insight.toObject();
+
     await Insight.findByIdAndDelete(insightId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'insights',
+      documentId: insightId,
+      data: insightData
+    });
 
     res.json(success(null, '小凡看见删除成功'));
   } catch (error) {
@@ -555,6 +602,14 @@ async function createInsightRequest(req, res, next) {
     }
 
     const request = await InsightRequest.create(createData);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'insight_requests',
+      documentId: request._id.toString(),
+      data: request.toObject()
+    });
 
     // 获取申请者和被申请者信息
     const fromUser = await User.findById(fromUserId).select('nickname avatar');

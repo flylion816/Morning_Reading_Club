@@ -2,6 +2,7 @@ const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { publishSyncEvent } = require('../services/sync.service');
 
 /**
  * 初始化支付（创建订单）
@@ -60,6 +61,14 @@ exports.initiatePayment = async (req, res) => {
       paymentMethod
     );
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'payments',
+      documentId: payment._id.toString(),
+      data: payment.toObject()
+    });
+
     // 对于模拟支付，直接返回成功
     if (paymentMethod === 'mock') {
       await payment.confirmPayment();
@@ -68,6 +77,14 @@ exports.initiatePayment = async (req, res) => {
       await Enrollment.findByIdAndUpdate(enrollmentId, {
         paymentStatus: 'paid',
         paidAt: new Date()
+      });
+
+      // 异步同步到 MySQL（更新后）
+      publishSyncEvent({
+        type: 'update',
+        collection: 'payments',
+        documentId: payment._id.toString(),
+        data: payment.toObject()
       });
 
       return res.json(
@@ -135,6 +152,14 @@ exports.confirmPayment = async (req, res) => {
       },
       { new: true }
     );
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'payments',
+      documentId: payment._id.toString(),
+      data: payment.toObject()
+    });
 
     // 填充关联数据
     await payment.populate('enrollmentId', 'name');
@@ -220,6 +245,14 @@ exports.cancelPayment = async (req, res) => {
 
     // 取消支付
     await payment.markCancelled();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'payments',
+      documentId: payment._id.toString(),
+      data: payment.toObject()
+    });
 
     res.json(
       success(
@@ -309,10 +342,27 @@ exports.wechatCallback = async (req, res) => {
         paidAt: new Date()
       });
 
+      // 异步同步到 MySQL
+      publishSyncEvent({
+        type: 'update',
+        collection: 'payments',
+        documentId: payment._id.toString(),
+        data: payment.toObject()
+      });
+
       res.json(success({}, '支付确认成功'));
     } else {
       // 标记为失败
       await payment.markFailed('微信支付失败');
+
+      // 异步同步到 MySQL
+      publishSyncEvent({
+        type: 'update',
+        collection: 'payments',
+        documentId: payment._id.toString(),
+        data: payment.toObject()
+      });
+
       res.json(success({}, '支付失败'));
     }
   } catch (error) {
@@ -356,6 +406,14 @@ exports.mockConfirmPayment = async (req, res) => {
       },
       { new: true }
     );
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'payments',
+      documentId: payment._id.toString(),
+      data: payment.toObject()
+    });
 
     res.json(
       success(

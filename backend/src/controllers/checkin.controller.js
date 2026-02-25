@@ -4,6 +4,7 @@ const Section = require('../models/Section');
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { publishSyncEvent } = require('../services/sync.service');
 
 // 创建打卡记录
 async function createCheckin(req, res, next) {
@@ -95,6 +96,14 @@ async function createCheckin(req, res, next) {
     } catch (saveError) {
       logger.error('Section save failed', saveError, { sectionId: section._id });
     }
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'checkins',
+      documentId: checkin._id.toString(),
+      data: checkin.toObject()
+    });
 
     res.status(201).json(
       success(
@@ -342,6 +351,14 @@ async function updateCheckin(req, res, next) {
 
     await checkin.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'checkins',
+      documentId: checkin._id.toString(),
+      data: checkin.toObject()
+    });
+
     res.json(success(checkin, '打卡更新成功'));
   } catch (error) {
     next(error);
@@ -365,6 +382,9 @@ async function deleteCheckin(req, res, next) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 
+    // 保存打卡信息用于同步
+    const checkinData = checkin.toObject();
+
     await Checkin.findByIdAndDelete(checkinId);
 
     // 更新用户统计
@@ -372,6 +392,14 @@ async function deleteCheckin(req, res, next) {
     user.totalCheckinDays = Math.max(0, user.totalCheckinDays - 1);
     user.totalPoints = Math.max(0, user.totalPoints - checkin.points);
     await user.save();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'checkins',
+      documentId: checkin._id.toString(),
+      data: checkinData
+    });
 
     res.json(success(null, '打卡删除成功'));
   } catch (error) {
@@ -505,6 +533,9 @@ async function deleteAdminCheckin(req, res, next) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
 
+    // 保存打卡信息用于同步
+    const checkinData = checkin.toObject();
+
     // 更新用户统计
     const user = await User.findById(checkin.userId);
     if (user) {
@@ -522,6 +553,14 @@ async function deleteAdminCheckin(req, res, next) {
 
     // 删除打卡记录
     await Checkin.findByIdAndDelete(checkinId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'checkins',
+      documentId: checkin._id.toString(),
+      data: checkinData
+    });
 
     res.json(success(null, '打卡记录已删除'));
   } catch (error) {
