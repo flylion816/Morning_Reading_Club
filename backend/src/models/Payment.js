@@ -30,7 +30,7 @@ const PaymentSchema = new mongoose.Schema(
       index: true
     },
 
-    // 支付金额（单位：元）
+    // 支付金额（单位：分，100分 = 1元，例如：9900分 = 99.00元）
     amount: {
       type: Number,
       required: true,

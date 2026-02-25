@@ -60,6 +60,7 @@ async function getPeriodList(req, res, next) {
       .select('-__v');
 
     // 转换数据格式以匹配前端期望
+    // 注意：price 和 originalPrice 单位为"分"（100分 = 1元），前端负责转换显示
     const transformedPeriods = periods.map(period => {
       // 使用 virtuals: true 确保虚拟字段被包含
       const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
@@ -80,6 +81,7 @@ async function getPeriodList(req, res, next) {
         progress: 0, // 这个值也需要计算
         isCheckedIn: false,
         currentEnrollment: period.enrollmentCount || 0 // 报名人数（映射enrollmentCount为currentEnrollment）
+        // price 和 originalPrice 为分单位，不做转换，由前端负责转换为元显示
       };
     });
 

@@ -52,7 +52,8 @@ Page({
     }
 
     // 设置订单数据
-    const finalAmount = amount ? parseInt(amount) : 99;
+    // amount 单位为"分"（100分 = 1元），默认 9900分 = 99元
+    const finalAmount = amount ? parseInt(amount) : 9900;
     this.setData({
       'enrollmentData.enrollmentId': enrollmentId,
       'enrollmentData.periodId': periodId,

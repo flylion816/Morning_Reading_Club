@@ -11,7 +11,8 @@ const { publishSyncEvent } = require('../services/sync.service');
 exports.initiatePayment = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { enrollmentId, paymentMethod = 'wechat', amount = 99 } = req.body;
+    // amount 单位为"分"（100分 = 1元），默认 9900分 = 99元
+    const { enrollmentId, paymentMethod = 'wechat', amount = 9900 } = req.body;
 
     // 验证报名记录是否存在
     const enrollment = await Enrollment.findOne({

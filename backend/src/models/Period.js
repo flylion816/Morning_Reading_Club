@@ -50,15 +50,19 @@ const PeriodSchema = new mongoose.Schema(
       default: 23,
       min: 1
     },
+    // 价格统一使用"分"作为单位（100分 = 1元）
+    // 所有涉及金额的字段都遵循这个约定
     price: {
       type: Number,
       default: 0,
       min: 0
+      // 单位：分（例如：9900 = 99.00元）
     },
     originalPrice: {
       type: Number,
       default: 0,
       min: 0
+      // 单位：分（例如：9900 = 99.00元）
     },
     maxEnrollment: {
       type: Number,
