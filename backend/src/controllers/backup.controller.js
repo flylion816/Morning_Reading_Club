@@ -39,6 +39,43 @@ const MODELS = {
 };
 
 // =========================================================================
+// 智能字段比较函数（用于处理布尔值、日期等特殊类型）
+// =========================================================================
+function intelligentCompare(mongoVal, mysqlVal) {
+  // 处理 null/undefined
+  if ((mongoVal === null || mongoVal === undefined) && (mysqlVal === null || mysqlVal === undefined)) {
+    return true;
+  }
+
+  // 处理布尔值和 0/1 的对应关系
+  if (typeof mongoVal === 'boolean' && typeof mysqlVal === 'number') {
+    return (mongoVal === true && mysqlVal === 1) || (mongoVal === false && mysqlVal === 0);
+  }
+  if (typeof mongoVal === 'number' && typeof mysqlVal === 'boolean') {
+    return (mongoVal === 1 && mysqlVal === true) || (mongoVal === 0 && mysqlVal === false);
+  }
+
+  // 处理日期时间精度差异（MongoDB 毫秒级，MySQL 秒级）
+  if (mongoVal && mysqlVal && typeof mongoVal === 'string' && typeof mysqlVal === 'string') {
+    const mongoDate = new Date(mongoVal);
+    const mysqlDate = new Date(mysqlVal);
+    if (!Number.isNaN(mongoDate.getTime()) && !Number.isNaN(mysqlDate.getTime())) {
+      // 比较到秒级精度
+      const mongoSecs = Math.floor(mongoDate.getTime() / 1000);
+      const mysqlSecs = Math.floor(mysqlDate.getTime() / 1000);
+      if (mongoSecs === mysqlSecs) {
+        return true;
+      }
+    }
+  }
+
+  // 普通字符串比较
+  const mongoStr = String(mongoVal || '').substring(0, 50);
+  const mysqlStr = String(mysqlVal || '').substring(0, 50);
+  return mongoStr === mysqlStr;
+}
+
+// =========================================================================
 // 1. 获取 MongoDB 统计信息（所有表）
 // =========================================================================
 async function getMongodbStats(req, res, next) {
@@ -95,8 +132,9 @@ async function getMysqlStats(req, res) {
 }
 
 // =========================================================================
-// 3. 对比 MongoDB 和 MySQL（统计）
+// 3. 对比 MongoDB 和 MySQL（统计 + 字段级一致性）
 // =========================================================================
+/* eslint-disable no-restricted-syntax, no-await-in-loop, no-continue */
 async function compareBackup(req, res) {
   try {
     const mongoStats = {};
@@ -126,35 +164,132 @@ async function compareBackup(req, res) {
           mysqlStats[table] = 0;
         }
       }
+
+      // 计算字段级一致性统计（仅当两个库的记录数相同时）
+      for (const table of tables) {
+        const mongoCount = mongoStats[table] || 0;
+        const mysqlCount = mysqlStats[table] || 0;
+
+        if (mongoCount === 0 && mysqlCount === 0) {
+          // 两个库都没有数据，标记为一致
+          comparison[table] = {
+            mongodb: 0,
+            mysql: 0,
+            difference: 0,
+            recordsMatch: true,
+            totalRecords: 0,
+            matchedRecords: 0,
+            mismatchedRecords: 0,
+            matchPercentage: 100,
+            consistency: '✅ 完全一致'
+          };
+          continue;
+        }
+
+        if (mongoCount !== mysqlCount) {
+          // 记录数不一致
+          comparison[table] = {
+            mongodb: mongoCount,
+            mysql: mysqlCount,
+            difference: mongoCount - mysqlCount,
+            recordsMatch: false,
+            totalRecords: mongoCount,
+            matchedRecords: 0,
+            mismatchedRecords: mongoCount,
+            matchPercentage: 0,
+            consistency: '⚠️ 记录数不一致'
+          };
+          continue;
+        }
+
+        // 记录数相同，计算字段级一致性
+        try {
+          const model = MODELS[table];
+          if (!model) continue;
+
+          let mongoData = [];
+          if (table === 'admins') {
+            mongoData = await model.find().select('+password').lean();
+          } else {
+            mongoData = await model.find().lean();
+          }
+
+          const [mysqlData] = await conn.query(`SELECT * FROM \`${table}\``);
+
+          let matchedRecords = 0;
+
+          // 为每条 MongoDB 记录找到对应的 MySQL 记录并比较
+          for (const mongoRecord of mongoData) {
+            const mysqlRecord = mysqlData.find(
+              r => r.id === mongoRecord._id.toString()
+            );
+
+            if (!mysqlRecord) continue;
+
+            // 检查所有字段是否匹配
+            let allFieldsMatch = true;
+            for (const field of Object.keys(mongoRecord)) {
+              if (field === '__v') continue;
+
+              const mongoVal = mongoRecord[field];
+              const mysqlFieldName = field.replace(/([A-Z])/g, '_$1').toLowerCase();
+              const mysqlVal = mysqlRecord[mysqlFieldName];
+
+              if (!intelligentCompare(mongoVal, mysqlVal)) {
+                allFieldsMatch = false;
+                break;
+              }
+            }
+
+            if (allFieldsMatch) {
+              matchedRecords++;
+            }
+          }
+
+          const mismatchedRecords = mongoCount - matchedRecords;
+          const matchPercentage = mongoCount > 0 ? Math.round((matchedRecords / mongoCount) * 100) : 0;
+
+          comparison[table] = {
+            mongodb: mongoCount,
+            mysql: mysqlCount,
+            difference: 0,
+            recordsMatch: true,
+            totalRecords: mongoCount,
+            matchedRecords,
+            mismatchedRecords,
+            matchPercentage,
+            consistency: matchPercentage === 100 ? '✅ 完全一致' : `⚠️ ${matchPercentage}% 一致`
+          };
+        } catch (fieldError) {
+          logger.warn(`Failed to calculate field consistency for ${table}`, fieldError.message);
+          comparison[table] = {
+            mongodb: mongoCount,
+            mysql: mysqlCount,
+            difference: 0,
+            recordsMatch: true,
+            totalRecords: mongoCount,
+            matchedRecords: 0,
+            mismatchedRecords: 0,
+            matchPercentage: 0,
+            consistency: '❓ 无法计算'
+          };
+        }
+      }
     } finally {
       conn.release();
-    }
-
-    // 构建对比结果
-    const allTables = new Set([...Object.keys(mongoStats), ...Object.keys(mysqlStats)]);
-
-    for (const table of allTables) {
-      const mongoCount = mongoStats[table] || 0;
-      const mysqlCount = mysqlStats[table] || 0;
-      const isConsistent = mongoCount === mysqlCount;
-
-      comparison[table] = {
-        mongodb: mongoCount,
-        mysql: mysqlCount,
-        difference: mongoCount - mysqlCount,
-        isConsistent,
-        status: isConsistent ? '✅ 一致' : '⚠️ 不一致'
-      };
     }
 
     // 计算总体统计
     const totalMongo = Object.values(mongoStats).reduce((a, b) => a + b, 0);
     const totalMysql = Object.values(mysqlStats).reduce((a, b) => a + b, 0);
+    const totalMatchPercentage = Object.values(comparison).length > 0
+      ? Math.round(Object.values(comparison).reduce((sum, c) => sum + (c.matchPercentage || 0), 0) / Object.values(comparison).length)
+      : 0;
 
     logger.info('Backup comparison completed', {
       totalMongo,
       totalMysql,
-      differences: Object.values(comparison).filter(c => !c.isConsistent).length
+      averageMatchPercentage: totalMatchPercentage
     });
 
     res.json(success({
@@ -163,8 +298,10 @@ async function compareBackup(req, res) {
         totalMongo,
         totalMysql,
         totalDifference: totalMongo - totalMysql,
-        consistentTables: Object.values(comparison).filter(c => c.isConsistent).length,
-        inconsistentTables: Object.values(comparison).filter(c => !c.isConsistent).length
+        averageMatchPercentage: totalMatchPercentage,
+        fullyConsistentTables: Object.values(comparison).filter(c => c.matchPercentage === 100).length,
+        partiallyConsistentTables: Object.values(comparison).filter(c => c.matchPercentage > 0 && c.matchPercentage < 100).length,
+        inconsistentTables: Object.values(comparison).filter(c => c.matchPercentage === 0).length
       }
     }, '📊 备份对比结果'));
   } catch (error) {
@@ -172,6 +309,7 @@ async function compareBackup(req, res) {
     res.status(500).json(errors.serverError('备份对比失败'));
   }
 }
+/* eslint-enable no-restricted-syntax, no-await-in-loop, no-continue */
 
 // =========================================================================
 // 4. 获取某个表的 MongoDB 数据（分页）
@@ -582,41 +720,6 @@ async function compareFieldsDetail(req, res) {
             fields: {}
           };
         }
-
-        // 智能比较函数：处理布尔值、日期等特殊类型
-        const intelligentCompare = (mongoVal, mysqlVal) => {
-          // 处理 null/undefined
-          if ((mongoVal === null || mongoVal === undefined) && (mysqlVal === null || mysqlVal === undefined)) {
-            return true;
-          }
-
-          // 处理布尔值和 0/1 的对应关系
-          if (typeof mongoVal === 'boolean' && typeof mysqlVal === 'number') {
-            return (mongoVal === true && mysqlVal === 1) || (mongoVal === false && mysqlVal === 0);
-          }
-          if (typeof mongoVal === 'number' && typeof mysqlVal === 'boolean') {
-            return (mongoVal === 1 && mysqlVal === true) || (mongoVal === 0 && mysqlVal === false);
-          }
-
-          // 处理日期时间精度差异（MongoDB 毫秒级，MySQL 秒级）
-          if (mongoVal && mysqlVal && typeof mongoVal === 'string' && typeof mysqlVal === 'string') {
-            const mongoDate = new Date(mongoVal);
-            const mysqlDate = new Date(mysqlVal);
-            if (!isNaN(mongoDate.getTime()) && !isNaN(mysqlDate.getTime())) {
-              // 比较到秒级精度
-              const mongoSecs = Math.floor(mongoDate.getTime() / 1000);
-              const mysqlSecs = Math.floor(mysqlDate.getTime() / 1000);
-              if (mongoSecs === mysqlSecs) {
-                return true;
-              }
-            }
-          }
-
-          // 普通字符串比较
-          const mongoStr = String(mongoVal || '').substring(0, 50);
-          const mysqlStr = String(mysqlVal || '').substring(0, 50);
-          return mongoStr === mysqlStr;
-        };
 
         // 比对所有字段
         Object.keys(mongoRecord).forEach((field) => {

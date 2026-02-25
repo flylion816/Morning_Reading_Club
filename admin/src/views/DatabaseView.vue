@@ -178,11 +178,20 @@
           <el-table-column prop="table" label="集合/表名" width="150" />
           <el-table-column prop="mongodb" label="MongoDB 数量" width="120" align="center" />
           <el-table-column prop="mysql" label="MySQL 数量" width="120" align="center" />
-          <el-table-column prop="difference" label="差异" width="100" align="center">
+          <el-table-column prop="matchPercentage" label="字段一致率" width="120" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.difference === 0 ? 'success' : 'warning'">
-                {{ row.difference === 0 ? '✅ 一致' : `⚠️ ${row.difference}` }}
+              <el-tag :type="row.matchPercentage === 100 ? 'success' : (row.matchPercentage > 50 ? 'warning' : 'danger')">
+                {{ row.matchPercentage }}%
               </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="consistency" label="状态" width="140" align="center" show-overflow-tooltip />
+          <el-table-column label="记录匹配" width="130" align="center">
+            <template #default="{ row }">
+              <span v-if="row.matchedRecords > 0 || row.mismatchedRecords > 0">
+                {{ row.matchedRecords }}/{{ row.totalRecords }}
+              </span>
+              <span v-else>-</span>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="150" align="center">
@@ -420,7 +429,12 @@ async function compareBackup() {
         table,
         mongodb: data.mongodb,
         mysql: data.mysql,
-        difference: data.difference
+        difference: data.difference,
+        matchPercentage: data.matchPercentage || 0,
+        consistency: data.consistency || '❓ 未知',
+        totalRecords: data.totalRecords || 0,
+        matchedRecords: data.matchedRecords || 0,
+        mismatchedRecords: data.mismatchedRecords || 0
       }));
 
       ElMessage.success('数据对比完成');
