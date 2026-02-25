@@ -61,19 +61,20 @@ async function getPeriodList(req, res, next) {
 
     // 转换数据格式以匹配前端期望
     const transformedPeriods = periods.map(period => {
-      const periodObj = period.toObject ? period.toObject() : period;
+      // 使用 virtuals: true 确保虚拟字段被包含
+      const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
 
       // 添加前端需要的字段
       return {
         ...periodObj,
         // 状态映射：ongoing -> active （向后兼容）
         status: period.status === 'ongoing' ? 'active' : period.status,
-        id: period._id || period.id, // 前端期望使用 id 字段
+        title: period.title || period.name, // 如果没有title，使用name作为备选
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-        icon: period.icon || '📚',
+        icon: period.icon || period.coverEmoji || '📚',
         startTime: period.startDate ? period.startDate.toISOString() : null,
         endTime: period.endDate ? period.endDate.toISOString() : null,
-        dateRange: period.dateRange || '',
+        dateRange: periodObj.dateRange || '', // 虚拟字段现在应该被包含了
         statusText: getStatusText(period),
         checkedDays: 0, // 这个值需要从用户的打卡记录中计算
         progress: 0, // 这个值也需要计算
@@ -136,7 +137,7 @@ async function createPeriod(req, res, next) {
     const period = await Period.create({
       name,
       subtitle,
-      title,
+      title: title || name, // 如果没有提供title，使用name作为默认值
       description,
       icon,
       coverColor,
