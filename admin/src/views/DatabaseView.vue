@@ -183,12 +183,76 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="操作" width="150" align="center">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" @click="handleViewFieldDetails(row.table)">
+                查看字段详情
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
 
         <div v-if="comparisonData.length === 0" class="empty-tip">
           点击"对比数据"按钮查看数据一致性
         </div>
       </el-card>
+
+      <!-- 字段详情对话框 -->
+      <el-dialog
+        v-model="fieldDetailsDialogVisible"
+        :title="`${fieldDetailsTableName} - 字段级对比`"
+        width="90%"
+        max-height="80vh"
+      >
+        <div v-if="fieldDetailsLoading" class="loading-tip">
+          <el-icon class="is-loading">
+            <span>加载中...</span>
+          </el-icon>
+        </div>
+
+        <el-table
+          v-else-if="fieldDetailsData.length > 0"
+          :data="fieldDetailsData"
+          stripe
+          style="width: 100%"
+          max-height="600px"
+        >
+          <el-table-column prop="recordId" label="记录ID" width="200" show-overflow-tooltip />
+          <el-table-column prop="field" label="字段名" width="150" show-overflow-tooltip />
+          <el-table-column prop="mongoValue" label="MongoDB 值" width="200" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span :title="row.mongoValue">{{ truncateValue(row.mongoValue) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="mysqlValue" label="MySQL 值" width="200" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span :title="row.mysqlValue">{{ truncateValue(row.mysqlValue) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'match' ? 'success' : 'warning'">
+                {{ row.status === 'match' ? '✅ 一致' : '⚠️ 不一致' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div v-else class="empty-tip">暂无字段对比数据</div>
+
+        <!-- 字段对比统计 -->
+        <div
+          v-if="fieldDetailsSummary"
+          style="margin-top: 20px; padding: 15px; background: #f5f7fa; border-radius: 4px"
+        >
+          <p><strong>对比统计：</strong></p>
+          <p>总记录数: {{ fieldDetailsSummary.totalRecords }}</p>
+          <p>总字段数: {{ fieldDetailsSummary.totalFields }}</p>
+          <p>✅ 一致字段: {{ fieldDetailsSummary.matchedFields }}</p>
+          <p>⚠️ 不一致字段: {{ fieldDetailsSummary.mismatchedFields }}</p>
+          <p>一致率: {{ fieldDetailsSummary.matchPercentage }}%</p>
+        </div>
+      </el-dialog>
     </div>
   </AdminLayout>
 </template>
@@ -250,6 +314,13 @@ const mysqlTotal = ref(0);
 
 // 对比状态
 const comparisonData = ref<any[]>([]);
+
+// 字段详情对话框状态
+const fieldDetailsDialogVisible = ref(false);
+const fieldDetailsTableName = ref('');
+const fieldDetailsLoading = ref(false);
+const fieldDetailsData = ref<any[]>([]);
+const fieldDetailsSummary = ref<any>(null);
 
 // 操作状态
 const syncing = ref(false);
@@ -356,6 +427,64 @@ async function compareBackup() {
     ElMessage.error('数据对比失败');
   } finally {
     comparing.value = false;
+  }
+}
+
+// 查看字段详情
+async function handleViewFieldDetails(tableName: string) {
+  fieldDetailsTableName.value = tableName;
+  fieldDetailsDialogVisible.value = true;
+  fieldDetailsLoading.value = true;
+  fieldDetailsData.value = [];
+  fieldDetailsSummary.value = null;
+
+  try {
+    const response = await backupApi.compareFieldsDetail(tableName);
+
+    if (response?.details && Array.isArray(response.details)) {
+      // 转换数据为表格格式
+      const tableData: any[] = [];
+      let totalMatchedFields = 0;
+      let totalFields = 0;
+
+      response.details.forEach((record: any) => {
+        // 遍历 fields 对象（而不是数组）
+        if (record.fields && typeof record.fields === 'object') {
+          Object.entries(record.fields).forEach(([fieldName, fieldData]: any) => {
+            tableData.push({
+              recordId: record.id || 'N/A',
+              field: fieldName,
+              mongoValue:
+                fieldData.mongodb !== undefined ? JSON.stringify(fieldData.mongodb) : 'null',
+              mysqlValue: fieldData.mysql !== undefined ? JSON.stringify(fieldData.mysql) : 'null',
+              status: fieldData.matches ? 'match' : 'mismatch'
+            });
+            totalFields++;
+            if (fieldData.matches) {
+              totalMatchedFields++;
+            }
+          });
+        }
+      });
+
+      fieldDetailsData.value = tableData;
+
+      // 计算统计信息
+      fieldDetailsSummary.value = {
+        totalRecords: response.totalRecords || 0,
+        totalFields: totalFields,
+        matchedFields: totalMatchedFields,
+        mismatchedFields: totalFields - totalMatchedFields,
+        matchPercentage: totalFields > 0 ? Math.round((totalMatchedFields / totalFields) * 100) : 0
+      };
+
+      ElMessage.success('字段对比完成');
+    }
+  } catch (error) {
+    console.error('字段对比错误:', error);
+    ElMessage.error('获取字段对比数据失败');
+  } finally {
+    fieldDetailsLoading.value = false;
   }
 }
 
@@ -470,6 +599,12 @@ function formatValue(value: any): string {
   return String(value);
 }
 
+// 截断值显示（用于字段详情对话框）
+function truncateValue(value: string): string {
+  if (!value) return '';
+  return value.length > 50 ? value.substring(0, 50) + '...' : value;
+}
+
 // 页面挂载
 const initPage = async () => {
   await Promise.all([loadMongodbStats(), loadMysqlStats()]);
@@ -575,6 +710,13 @@ initPage().catch(error => {
   text-align: center;
   padding: 40px 20px;
   color: #999;
+  font-size: 14px;
+}
+
+.loading-tip {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
   font-size: 14px;
 }
 </style>
