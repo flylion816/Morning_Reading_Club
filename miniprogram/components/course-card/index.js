@@ -74,11 +74,10 @@ Component({
               duration: 2500
             });
           } else {
-            // 进行中或未开始未报名 → 提示去报名
-            wx.showToast({
-              title: '请先报名此期晨读营',
-              icon: 'none',
-              duration: 2000
+            // 进行中或未开始未报名 → 导航到报名页面
+            console.log('✅ 未报名，导航到报名页面');
+            wx.navigateTo({
+              url: `/pages/enrollment/enrollment?periodId=${course._id}`
             });
           }
           return;
