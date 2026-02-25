@@ -1,0 +1,174 @@
+# ========================================
+# 晨读营 - 生产环境 Docker Compose 配置
+# ========================================
+# 用于本地生产环境部署
+# 启动方式: docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # MongoDB - 文档数据库（生产版）
+  # ============================================================================
+  mongodb:
+    image: mongo:6-alpine
+    container_name: morning-reading-mongodb-prod
+    restart: always
+
+    # 环境变量 - 使用强密码和安全配置
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-Prod_Mongodb@Secure123!}
+      MONGO_INITDB_DATABASE: morning_reading
+
+    # 端口映射
+    ports:
+      - '${MONGO_PORT:-27017}:27017'
+
+    # 数据持久化
+    volumes:
+      - mongodb-prod-data:/data/db
+      - mongodb-prod-config:/data/configdb
+
+    # 健康检查
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    # 网络
+    networks:
+      - morning-reading-prod-network
+
+    # 资源限制（生产环境更高）
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+  # ============================================================================
+  # MySQL - 关系数据库（生产版）
+  # ============================================================================
+  mysql:
+    image: mysql:8.0-alpine
+    container_name: morning-reading-mysql-prod
+    restart: always
+
+    # 环境变量 - 使用强密码
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Prod_Root@Secure123!}
+      MYSQL_DATABASE: morning_reading
+      MYSQL_USER: ${MYSQL_USER:-morning_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-Prod_User@Secure123!}
+
+    # 端口映射
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+
+    # 数据持久化
+    volumes:
+      - mysql-prod-data:/var/lib/mysql
+
+    # MySQL 启动参数（生产优化）
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=1000
+      - --default-time-zone='+08:00'
+      - --slow_query_log=1
+      - --long_query_time=2
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    # 网络
+    networks:
+      - morning-reading-prod-network
+
+    # 资源限制（生产环境更高）
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+  # ============================================================================
+  # Redis - 缓存和消息队列（生产版）
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: morning-reading-redis-prod
+    restart: always
+
+    # 使用配置文件启动 Redis（设置强密码和持久化）
+    command: redis-server
+      --requirepass ${REDIS_PASSWORD:-Prod_Redis@Secure123!}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+
+    # 端口映射
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+
+    # 数据持久化
+    volumes:
+      - redis-prod-data:/data
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    # 网络
+    networks:
+      - morning-reading-prod-network
+
+    # 资源限制（生产环境更高）
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+# ============================================================================
+# 数据卷定义
+# ============================================================================
+volumes:
+  mongodb-prod-data:
+    driver: local
+  mongodb-prod-config:
+    driver: local
+  mysql-prod-data:
+    driver: local
+  redis-prod-data:
+    driver: local
+
+# ============================================================================
+# 网络定义
+# ============================================================================
+networks:
+  morning-reading-prod-network:
+    driver: bridge
