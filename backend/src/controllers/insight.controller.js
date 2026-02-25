@@ -753,6 +753,14 @@ async function approveInsightRequest(req, res, next) {
     request.approvedAt = new Date();
     await request.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'insight_requests',
+      documentId: request._id.toString(),
+      data: request.toObject()
+    });
+
     // 获取被申请者和期次信息
     const toUser = await User.findById(request.toUserId).select('nickname avatar');
     const Period = require('../models/Period');
@@ -809,6 +817,14 @@ async function rejectInsightRequest(req, res, next) {
     request.status = 'rejected';
     request.rejectedAt = new Date();
     await request.save();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'insight_requests',
+      documentId: request._id.toString(),
+      data: request.toObject()
+    });
 
     // 获取被申请者信息
     const toUser = await User.findById(request.toUserId).select('nickname avatar');
@@ -1003,6 +1019,14 @@ async function adminApproveRequest(req, res, next) {
 
     await request.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'insight_requests',
+      documentId: request._id.toString(),
+      data: request.toObject()
+    });
+
     // 获取申请者、被申请者和期次信息
     const Period = require('../models/Period');
     const fromUser = await User.findById(request.fromUserId).select('nickname avatar');
@@ -1067,6 +1091,14 @@ async function adminRejectRequest(req, res, next) {
 
     await request.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'insight_requests',
+      documentId: request._id.toString(),
+      data: request.toObject()
+    });
+
     // 发送通知给申请者
     await notifyUser(
       req,
@@ -1128,6 +1160,14 @@ async function revokeInsightRequest(req, res, next) {
 
     await request.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'insight_requests',
+      documentId: request._id.toString(),
+      data: request.toObject()
+    });
+
     // 获取被申请者信息
     const toUser = await User.findById(request.toUserId).select('nickname avatar');
 
@@ -1183,8 +1223,19 @@ async function deleteInsightRequest(req, res, next) {
     // 保存审计日志后删除
     await request.save();
 
+    // 保存请求数据用于同步
+    const requestData = request.toObject();
+
     // 然后删除记录
     await InsightRequest.findByIdAndDelete(requestId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'insight_requests',
+      documentId: requestId,
+      data: requestData
+    });
 
     res.json(success(null, '申请已删除'));
   } catch (error) {
@@ -1402,6 +1453,14 @@ async function createInsightFromExternal(req, res, next) {
       source: 'manual',
       status: 'completed',
       isPublished: true
+    });
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'insights',
+      documentId: insight._id.toString(),
+      data: insight.toObject()
     });
 
     // 返回简洁的响应（仅返回ID，不返回完整对象）

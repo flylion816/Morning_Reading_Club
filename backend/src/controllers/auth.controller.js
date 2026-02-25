@@ -3,6 +3,7 @@ const wechatService = require('../services/wechat.service');
 const { generateTokens, verifyRefreshToken } = require('../utils/jwt');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { publishSyncEvent } = require('../services/sync.service');
 
 /**
  * 微信登录处理
@@ -55,6 +56,15 @@ async function wechatLogin(req, res, next) {
         status: 'active',
         lastLoginAt: new Date()
       });
+
+      // 异步同步到 MySQL
+      publishSyncEvent({
+        type: 'create',
+        collection: 'users',
+        documentId: user._id.toString(),
+        data: user.toObject()
+      });
+
       isNewUser = true;
     } else {
       // 既有用户：更新登录时间和头像信息
@@ -71,6 +81,14 @@ async function wechatLogin(req, res, next) {
       }
 
       await user.save();
+
+      // 异步同步到 MySQL
+      publishSyncEvent({
+        type: 'update',
+        collection: 'users',
+        documentId: user._id.toString(),
+        data: user.toObject()
+      });
     }
 
     // 生成JWT Token

@@ -199,6 +199,14 @@ async function deleteReply(req, res, next) {
 
     await comment.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'comments',
+      documentId: comment._id.toString(),
+      data: comment.toObject()
+    });
+
     res.json(success(null, '回复删除成功'));
   } catch (error) {
     next(error);

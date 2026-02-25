@@ -193,7 +193,20 @@ async function deleteAllNotifications(req, res, next) {
   try {
     const userId = req.user.userId;
 
+    // 先查询所有要删除的通知
+    const notifications = await Notification.find({ userId });
+
     const result = await Notification.deleteMany({ userId });
+
+    // 异步同步到 MySQL（批量删除）
+    notifications.forEach(notification => {
+      publishSyncEvent({
+        type: 'delete',
+        collection: 'notifications',
+        documentId: notification._id.toString(),
+        data: notification.toObject()
+      });
+    });
 
     res.json(
       success(
@@ -326,6 +339,14 @@ async function archiveNotification(req, res, next) {
     notification.archivedAt = new Date();
     await notification.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'notifications',
+      documentId: notification._id.toString(),
+      data: notification.toObject()
+    });
+
     res.json(success(notification, '已归档'));
   } catch (error) {
     next(error);
@@ -434,6 +455,14 @@ async function unarchiveNotification(req, res, next) {
     notification.isArchived = false;
     notification.archivedAt = null;
     await notification.save();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'notifications',
+      documentId: notification._id.toString(),
+      data: notification.toObject()
+    });
 
     res.json(success(notification, '已取消归档'));
   } catch (error) {

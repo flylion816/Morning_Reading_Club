@@ -320,11 +320,26 @@ exports.deleteAdmin = async (req, res) => {
       return res.status(400).json(errors.badRequest('不能删除自己'));
     }
 
-    const admin = await Admin.findByIdAndDelete(id);
+    // 先获取管理员数据用于同步
+    const admin = await Admin.findById(id);
 
     if (!admin) {
       return res.status(404).json(errors.notFound('管理员不存在'));
     }
+
+    // 保存管理员数据用于同步
+    const adminData = admin.toObject();
+
+    // 删除管理员
+    await Admin.findByIdAndDelete(id);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'admins',
+      documentId: id,
+      data: adminData
+    });
 
     return res.json(success(null, '管理员已删除'));
   } catch (error) {
