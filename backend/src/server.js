@@ -8,7 +8,7 @@ const ConfigSyncValidator = require('./utils/config-sync-validator');
 const logger = require('./utils/logger');
 const WebSocketManager = require('./utils/websocket');
 const redisManager = require('./utils/redis');
-const { startSyncListener } = require('./services/sync.service');
+const { initRedisClient, startSyncListener } = require('./services/sync.service');
 
 // 尝试加载根目录的统一环境配置
 try {
@@ -66,9 +66,17 @@ async function startServer() {
     await testMySQLConnection();
     logger.info('✅ MySQL 连接测试通过');
 
-    // 启动 MongoDB 同步监听器
-    logger.info('正在启动 MongoDB→MySQL 实时同步...');
-    await startSyncListener();
+    // 初始化 Redis 同步队列
+    logger.info('正在初始化 Redis 同步队列...');
+    const redisReady = await initRedisClient();
+    if (redisReady) {
+      logger.info('✅ Redis 同步队列初始化成功');
+      // 启动 MongoDB 同步监听器
+      logger.info('正在启动 MongoDB→MySQL 实时同步...');
+      startSyncListener();
+    } else {
+      logger.warn('⚠️ Redis 初始化失败，同步功能将不可用');
+    }
 
     // 启动HTTP服务器
     const server = app.listen(PORT, () => {

@@ -1,5 +1,6 @@
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
+const { publishSyncEvent } = require('../services/sync.service');
 
 // 获取动态状态（基于当前日期和期次日期范围）
 function getDynamicStatus(period) {
@@ -152,6 +153,14 @@ async function createPeriod(req, res, next) {
       currentEnrollment: 0
     });
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'periods',
+      documentId: period._id.toString(),
+      data: period.toObject()
+    });
+
     res.status(201).json(success(period, '期次创建成功'));
   } catch (error) {
     next(error);
@@ -179,6 +188,14 @@ async function updatePeriod(req, res, next) {
 
     await period.save();
 
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'periods',
+      documentId: period._id.toString(),
+      data: period.toObject()
+    });
+
     res.json(success(period, '期次更新成功'));
   } catch (error) {
     next(error);
@@ -201,7 +218,18 @@ async function deletePeriod(req, res, next) {
       return res.status(400).json(errors.badRequest('该期次已有用户报名，无法删除'));
     }
 
+    // 保存期次信息用于同步
+    const periodData = period.toObject();
+
     await Period.findByIdAndDelete(periodId);
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'delete',
+      collection: 'periods',
+      documentId: period._id.toString(),
+      data: periodData
+    });
 
     res.json(success(null, '期次删除成功'));
   } catch (error) {

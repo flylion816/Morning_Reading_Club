@@ -1,42 +1,100 @@
 /**
- * MongoDB ↔ MySQL 实时同步服务
+ * MongoDB ↔ MySQL 实时同步服务（基于 Redis List）
  * 
  * 职责：
- * - 监听 MongoDB 更新事件
- * - 异步同步到 MySQL
- * - 使用事件驱动模式（EventEmitter）
+ * - 使用 Redis List 作为消息队列
+ * - 异步处理同步任务
+ * - 支持重试机制
+ * - 确保数据一致性
  */
 
-const EventEmitter = require('events');
+const redis = require('redis');
 const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
 
-// 全局事件发射器
-const syncEmitter = new EventEmitter();
-syncEmitter.setMaxListeners(20);
+let redisClient = null;
 
 // =========================================================================
-// 1. 发布同步事件
+// 1. 初始化 Redis 客户端
+// =========================================================================
+async function initRedisClient() {
+  try {
+    redisClient = redis.createClient({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: process.env.REDIS_PORT || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
+      db: process.env.REDIS_DB || 0,
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      }
+    });
+
+    redisClient.on('error', (err) => {
+      logger.error('Redis client error', err);
+    });
+
+    redisClient.on('connect', () => {
+      logger.info('Redis sync queue connected');
+    });
+
+    await new Promise((resolve) => {
+      redisClient.ping((err, res) => {
+        if (err) {
+          logger.error('Redis ping failed', err);
+          redisClient = null;
+          resolve();
+        } else {
+          logger.info('Redis ping successful');
+          resolve();
+        }
+      });
+    });
+
+    return !!redisClient;
+  } catch (error) {
+    logger.error('Failed to initialize Redis client', error);
+    redisClient = null;
+    return false;
+  }
+}
+
+// =========================================================================
+// 2. 发布同步事件到 Redis 队列
 // =========================================================================
 function publishSyncEvent(event) {
   try {
     const eventData = {
-      type: event.type,      // 'update', 'create', 'delete'
+      type: event.type,        // 'create', 'update', 'delete'
       collection: event.collection,
       documentId: event.documentId,
-      data: event.data,      // 完整的文档数据
-      timestamp: Date.now()
+      data: event.data,        // 完整的文档数据
+      timestamp: Date.now(),
+      retries: 0               // 重试次数
     };
 
-    // 异步发射事件（不阻塞主线程）
-    setImmediate(() => {
-      syncEmitter.emit('mongodb:update', eventData);
-    });
+    if (!redisClient) {
+      logger.warn('Redis client not available, skipping sync event');
+      return;
+    }
 
-    logger.info('Sync event queued', {
-      collection: event.collection,
-      type: event.type,
-      documentId: event.documentId
+    // 异步推入队列（不阻塞主线程）
+    setImmediate(() => {
+      redisClient.lpush(
+        'mongodb:sync:queue',
+        JSON.stringify(eventData),
+        (err) => {
+          if (err) {
+            logger.error('Failed to push sync event to Redis queue', err);
+          } else {
+            logger.info('Sync event queued', {
+              collection: event.collection,
+              type: event.type,
+              documentId: event.documentId
+            });
+          }
+        }
+      );
     });
   } catch (error) {
     logger.error('Failed to publish sync event', error);
@@ -44,7 +102,7 @@ function publishSyncEvent(event) {
 }
 
 // =========================================================================
-// 2. 同步单条记录到 MySQL（核心同步逻辑）
+// 3. 同步单条记录到 MySQL（核心同步逻辑）
 // =========================================================================
 async function syncDocumentToMySQL(collection, documentId, data) {
   try {
@@ -87,7 +145,7 @@ async function syncDocumentToMySQL(collection, documentId, data) {
 }
 
 // =========================================================================
-// 3. 将 MongoDB 文档转换为 MySQL 格式
+// 4. 将 MongoDB 文档转换为 MySQL 格式
 // =========================================================================
 function transformDocumentForMySQL(collection, doc) {
   const result = {
@@ -118,40 +176,97 @@ function transformDocumentForMySQL(collection, doc) {
 }
 
 // =========================================================================
-// 4. 启动事件监听器（在服务启动时调用）
+// 5. 启动队列消费者（持续处理同步任务）
 // =========================================================================
 function startSyncListener() {
-  // 监听 MongoDB 更新事件
-  syncEmitter.on('mongodb:update', async (event) => {
-    try {
-      logger.info('Processing sync event', {
-        collection: event.collection,
-        type: event.type,
-        documentId: event.documentId
-      });
+  if (!redisClient) {
+    logger.warn('Redis client not available, sync listener not started');
+    return;
+  }
 
-      // 同步到 MySQL（异步处理，不阻塞）
-      const success = await syncDocumentToMySQL(
-        event.collection,
-        event.documentId,
-        event.data
-      );
-
-      if (success) {
-        logger.info('Sync completed successfully', {
-          collection: event.collection,
-          documentId: event.documentId
+  // 持续消费队列中的任务
+  const processQueue = async () => {
+    while (true) {
+      try {
+        // 从队列右端弹出任务（FIFO）
+        const task = await new Promise((resolve) => {
+          redisClient.rpop('mongodb:sync:queue', (err, reply) => {
+            resolve(reply);
+          });
         });
-      }
-    } catch (error) {
-      logger.error('Error processing sync event', error);
-    }
-  });
 
-  logger.info('MongoDB→MySQL sync listener started (EventEmitter)');
+        if (!task) {
+          // 队列为空，等待 100ms 后继续
+          await new Promise(resolve => setTimeout(resolve, 100));
+          continue;
+        }
+
+        try {
+          const event = JSON.parse(task);
+
+          logger.info('Processing sync event from queue', {
+            collection: event.collection,
+            type: event.type,
+            documentId: event.documentId,
+            retries: event.retries
+          });
+
+          // 同步到 MySQL
+          const success = await syncDocumentToMySQL(
+            event.collection,
+            event.documentId,
+            event.data
+          );
+
+          if (success) {
+            logger.info('Sync completed successfully', {
+              collection: event.collection,
+              documentId: event.documentId
+            });
+          } else {
+            // 同步失败，重试（最多 3 次）
+            if (event.retries < 3) {
+              event.retries++;
+              logger.warn('Sync failed, retrying', {
+                collection: event.collection,
+                documentId: event.documentId,
+                retries: event.retries
+              });
+              
+              // 重新推入队列
+              await new Promise((resolve) => {
+                redisClient.lpush(
+                  'mongodb:sync:queue',
+                  JSON.stringify(event),
+                  () => resolve()
+                );
+              });
+            } else {
+              logger.error('Sync failed after 3 retries, giving up', {
+                collection: event.collection,
+                documentId: event.documentId
+              });
+            }
+          }
+        } catch (parseError) {
+          logger.error('Failed to parse sync event', parseError);
+        }
+      } catch (error) {
+        logger.error('Error in sync queue processor', error);
+        // 等待后继续
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  };
+
+  // 启动异步处理（不阻塞主线程）
+  setImmediate(() => processQueue());
+
+  logger.info('MongoDB→MySQL sync listener started (Redis List)');
 }
 
 module.exports = {
+  initRedisClient,
   publishSyncEvent,
   syncDocumentToMySQL,
   transformDocumentForMySQL,
