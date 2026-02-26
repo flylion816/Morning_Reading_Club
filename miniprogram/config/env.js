@@ -12,7 +12,7 @@
 
 // 当前环境 ('dev' | 'test' | 'prod')
 // ⚠️ 必须与根目录 .env.config.js 中的 currentEnv 值相同
-const currentEnv = 'dev'; // ← 本地开发环境 (连接 localhost:3000)
+const currentEnv = 'prod'; // ← 生产环境 (连接 https://wx.shubai01.com)
 
 // 环境配置
 const envConfig = {
