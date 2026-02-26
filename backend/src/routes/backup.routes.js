@@ -83,4 +83,20 @@ router.post('/sync/delta', backupController.deltaSync);
  */
 router.post('/recover/full', backupController.recoverMysqlToMongo);
 
+// =========================================================================
+// MongoDB 单条记录 CRUD 接口
+// =========================================================================
+
+/**
+ * 更新 MongoDB 单条记录
+ * PUT /api/v1/backup/mongodb/record
+ */
+router.put('/mongodb/record', backupController.updateMongodbRecord);
+
+/**
+ * 删除 MongoDB 单条记录
+ * DELETE /api/v1/backup/mongodb/record
+ */
+router.delete('/mongodb/record', backupController.deleteMongodbRecord);
+
 module.exports = router;

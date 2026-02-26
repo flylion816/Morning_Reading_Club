@@ -22,6 +22,7 @@ const { mysqlPool } = require('../config/database');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
+const { publishSyncEvent } = require('../services/sync.service');
 
 // 所有 MongoDB 模型清单
 const MODELS = {
@@ -767,6 +768,84 @@ async function compareFieldsDetail(req, res) {
   }
 }
 
+// =========================================================================
+// 6. MongoDB 单条记录 CRUD 操作
+// =========================================================================
+
+/**
+ * 更新 MongoDB 单条记录
+ * PUT /api/v1/backup/mongodb/record
+ * Body: { table, id, data }
+ */
+async function updateMongodbRecord(req, res) {
+  try {
+    const { table, id, data } = req.body;
+    if (!table || !id || !data) {
+      return res.status(400).json(errors.badRequest('缺少参数 table/id/data'));
+    }
+    const Model = MODELS[table];
+    if (!Model) {
+      return res.status(400).json(errors.badRequest(`无效的集合名: ${table}`));
+    }
+    // 防止修改 _id/__v/createdAt/updatedAt（这些字段从 data 中移除）
+    const safeData = { ...data };
+    delete safeData._id;
+    // eslint-disable-next-line no-underscore-dangle
+    delete safeData.__v;
+    delete safeData.createdAt;
+    delete safeData.updatedAt;
+
+    const updated = await Model.findByIdAndUpdate(id, safeData, { new: true });
+    if (!updated) {
+      return res.status(404).json(errors.notFound('记录不存在'));
+    }
+    publishSyncEvent({
+      type: 'update',
+      collection: table,
+      documentId: id,
+      data: updated.toObject()
+    });
+    return res.json(success(updated.toObject(), '记录已更新'));
+  } catch (error) {
+    logger.error('updateMongodbRecord error', error);
+    return res.status(500).json(errors.serverError('更新失败'));
+  }
+}
+
+/**
+ * 删除 MongoDB 单条记录
+ * DELETE /api/v1/backup/mongodb/record
+ * Query: { table, id }
+ */
+async function deleteMongodbRecord(req, res) {
+  try {
+    const { table, id } = req.query;   // DELETE 用 query string
+    if (!table || !id) {
+      return res.status(400).json(errors.badRequest('缺少参数 table/id'));
+    }
+    const Model = MODELS[table];
+    if (!Model) {
+      return res.status(400).json(errors.badRequest(`无效的集合名: ${table}`));
+    }
+    const doc = await Model.findById(id);
+    if (!doc) {
+      return res.status(404).json(errors.notFound('记录不存在'));
+    }
+    const docData = doc.toObject();
+    await Model.findByIdAndDelete(id);
+    publishSyncEvent({
+      type: 'delete',
+      collection: table,
+      documentId: id,
+      data: docData
+    });
+    return res.json(success(null, '记录已删除'));
+  } catch (error) {
+    logger.error('deleteMongodbRecord error', error);
+    return res.status(500).json(errors.serverError('删除失败'));
+  }
+}
+
 module.exports = {
   getMongodbStats,
   getMysqlStats,
@@ -776,5 +855,7 @@ module.exports = {
   getMysqlTableData,
   fullSync,
   deltaSync,
-  recoverMysqlToMongo
+  recoverMysqlToMongo,
+  updateMongodbRecord,
+  deleteMongodbRecord
 };

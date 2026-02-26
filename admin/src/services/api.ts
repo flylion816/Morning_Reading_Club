@@ -221,7 +221,13 @@ export const backupApi = {
   deltaSync: () => apiClient.post('/backup/sync/delta'),
 
   // 恢复
-  recoverFull: () => apiClient.post('/backup/recover/full')
+  recoverFull: () => apiClient.post('/backup/recover/full'),
+
+  // MongoDB 单条记录 CRUD
+  updateMongodbRecord: (table: string, id: string, data: any) =>
+    apiClient.put('/backup/mongodb/record', { table, id, data }),
+  deleteMongodbRecord: (table: string, id: string) =>
+    apiClient.delete('/backup/mongodb/record', { params: { table, id } })
 };
 
 export default apiClient;

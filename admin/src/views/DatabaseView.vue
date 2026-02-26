@@ -12,9 +12,12 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">📦 MongoDB</span>
-            <el-button type="primary" size="small" :loading="syncing" @click="handleFullSync">
-              ▶ 同步到 MySQL
-            </el-button>
+            <div style="display: flex; gap: 10px">
+              <el-button size="small" @click="loadMongodbTableData(mongoPage)">🔄 刷新</el-button>
+              <el-button type="primary" size="small" :loading="syncing" @click="handleFullSync">
+                ▶ 同步到 MySQL
+              </el-button>
+            </div>
           </div>
         </template>
 
@@ -66,6 +69,13 @@
               <span v-else>{{ formatValue(row[col]) }}</span>
             </template>
           </el-table-column>
+          <el-table-column label="操作" fixed="right" width="200" align="center">
+            <template #default="{ row }">
+              <el-button size="small" @click="handleViewRecord(row)">查看</el-button>
+              <el-button size="small" type="primary" @click="handleEditRecord(row)">编辑</el-button>
+              <el-button size="small" type="danger" @click="handleDeleteRecord(row)">删除</el-button>
+            </template>
+          </el-table-column>
         </el-table>
 
         <div v-if="selectedMongoTable && mongoData.length === 0" class="empty-tip">暂无数据</div>
@@ -88,9 +98,12 @@
         <template #header>
           <div class="card-header">
             <span class="card-title">🗂️ MySQL</span>
-            <el-button type="success" size="small" :loading="recovering" @click="handleFullRecover">
-              ↩ 从 MySQL 恢复
-            </el-button>
+            <div style="display: flex; gap: 10px">
+              <el-button size="small" @click="loadMysqlTableData(mysqlPage)">🔄 刷新</el-button>
+              <el-button type="success" size="small" :loading="recovering" @click="handleFullRecover">
+                ↩ 从 MySQL 恢复
+              </el-button>
+            </div>
           </div>
         </template>
 
@@ -207,6 +220,56 @@
           点击"对比数据"按钮查看数据一致性
         </div>
       </el-card>
+
+      <!-- 查看记录弹窗 -->
+      <el-dialog v-model="viewDialogVisible" title="查看记录" width="700px">
+        <el-descriptions v-if="viewRecord" :column="1" border>
+          <el-descriptions-item
+            v-for="(val, key) in viewRecord"
+            :key="String(key)"
+            :label="String(key)"
+          >
+            <pre style="margin: 0; white-space: pre-wrap; word-break: break-word; background: #f5f7fa; padding: 8px; border-radius: 4px">{{ formatFullValue(val) }}</pre>
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-dialog>
+
+      <!-- 编辑记录弹窗 -->
+      <el-dialog v-model="editDialogVisible" title="编辑记录" width="700px">
+        <el-form v-if="editRecord" :model="editRecord" label-width="160px">
+          <el-form-item
+            v-for="(val, key) in editRecord"
+            :key="String(key)"
+            :label="String(key)"
+          >
+            <!-- 只读字段 -->
+            <span v-if="READONLY_FIELDS.includes(String(key))" class="readonly-text">
+              {{ formatFullValue(val) }}
+            </span>
+            <!-- 布尔字段 -->
+            <el-switch v-else-if="typeof val === 'boolean'" v-model="editRecord[String(key)]" />
+            <!-- 数字字段 -->
+            <el-input
+              v-else-if="typeof val === 'number'"
+              v-model.number="editRecord[String(key)]"
+              type="number"
+            />
+            <!-- 长文本字段 -->
+            <el-input
+              v-else-if="isLongText(String(key), val)"
+              v-model="editRecord[String(key)]"
+              type="textarea"
+              :rows="4"
+            />
+            <!-- 普通文本 -->
+            <el-input v-else v-model="editRecord[String(key)]" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="savingRecord" @click="handleSaveRecord">保存</el-button>
+        </template>
+      </el-dialog>
 
       <!-- 字段详情对话框 -->
       <el-dialog
@@ -332,6 +395,14 @@ const fieldDetailsTableName = ref('');
 const fieldDetailsLoading = ref(false);
 const fieldDetailsData = ref<any[]>([]);
 const fieldDetailsSummary = ref<any>(null);
+
+// 查看/编辑弹窗状态
+const viewDialogVisible = ref(false);
+const editDialogVisible = ref(false);
+const viewRecord = ref<any>(null);
+const editRecord = ref<any>(null);
+const savingRecord = ref(false);
+const READONLY_FIELDS = ['_id', '__v', 'createdAt', 'updatedAt'];
 
 // 操作状态
 const syncing = ref(false);
@@ -619,6 +690,70 @@ function formatValue(value: any): string {
 function truncateValue(value: string): string {
   if (!value) return '';
   return value.length > 50 ? value.substring(0, 50) + '...' : value;
+}
+
+// 查看记录
+function handleViewRecord(row: any) {
+  viewRecord.value = row;
+  viewDialogVisible.value = true;
+}
+
+// 编辑记录
+function handleEditRecord(row: any) {
+  // 深拷贝，避免直接修改表格数据
+  editRecord.value = JSON.parse(JSON.stringify(row));
+  editDialogVisible.value = true;
+}
+
+// 删除记录
+async function handleDeleteRecord(row: any) {
+  try {
+    await ElMessageBox.confirm('确定要删除这条记录吗？此操作不可恢复！', '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    await backupApi.deleteMongodbRecord(selectedMongoTable.value, row._id);
+    ElMessage.success('删除成功，已异步同步到 MySQL');
+    await loadMongodbTableData(mongoPage.value);  // 刷新当前页
+  } catch (error: any) {
+    if (error !== 'cancel') ElMessage.error('删除失败');
+  }
+}
+
+// 保存编辑记录
+async function handleSaveRecord() {
+  savingRecord.value = true;
+  try {
+    await backupApi.updateMongodbRecord(
+      selectedMongoTable.value,
+      editRecord.value._id,
+      editRecord.value
+    );
+    ElMessage.success('保存成功，已异步同步到 MySQL');
+    editDialogVisible.value = false;
+    await loadMongodbTableData(mongoPage.value);  // 刷新当前页
+  } catch (error) {
+    ElMessage.error('保存失败');
+  } finally {
+    savingRecord.value = false;
+  }
+}
+
+// 格式化完整值显示（用于查看弹窗）
+function formatFullValue(value: any): string {
+  if (value === null || value === undefined) return '(空)';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
+// 判断是否为长文本字段
+function isLongText(key: string, value: any): boolean {
+  return (
+    key === 'raw_json' ||
+    key === 'profile_image' ||
+    (typeof value === 'string' && value.length > 100)
+  );
 }
 
 // 页面挂载
