@@ -84,7 +84,7 @@
           @close="authStore.clearError"
         />
 
-        <div class="login-tips">
+        <div v-if="isDev" class="login-tips">
           <p><span class="tip-label">演示账号：</span><code>admin@morningreading.com</code></p>
           <p><span class="tip-label">演示密码：</span><code>admin123456</code></p>
         </div>
@@ -107,8 +107,10 @@ const router = useRouter();
 const authStore = useAuthStore();
 const formRef = ref<FormInstance>();
 
+const isDev = import.meta.env.DEV;
+
 const form = reactive({
-  email: 'admin@morningreading.com',
+  email: isDev ? 'admin@morningreading.com' : '',
   password: ''
 });
 

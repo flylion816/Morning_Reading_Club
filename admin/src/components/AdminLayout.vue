@@ -95,11 +95,39 @@
         <slot />
       </el-main>
     </el-container>
+
+    <!-- 数据库访问二次验证对话框 -->
+    <el-dialog
+      v-model="dbAccessVisible"
+      title="数据库管理 - 二次验证"
+      width="400px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="db-access-form">
+        <p class="warning-text">⚠️ 您正在访问敏感的数据库管理功能，请输入验证密码</p>
+        <el-input
+          v-model="dbAccessPassword"
+          type="password"
+          placeholder="输入验证密码"
+          show-password
+          clearable
+          @keyup.enter="confirmDbAccess"
+        />
+        <div v-if="dbAccessError" class="error-text">{{ dbAccessError }}</div>
+      </div>
+      <template #footer>
+        <el-button @click="dbAccessVisible = false">取消</el-button>
+        <el-button type="primary" :loading="dbAccessVerifying" @click="confirmDbAccess">
+          验证
+        </el-button>
+      </template>
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -109,6 +137,12 @@ const route = useRoute();
 const authStore = useAuthStore();
 
 const activeMenu = computed(() => route.path);
+
+const dbAccessVisible = ref(false);
+const dbAccessPassword = ref('');
+const dbAccessError = ref('');
+const dbAccessVerifying = ref(false);
+const pendingRoute = ref<string | null>(null);
 
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
@@ -120,13 +154,46 @@ const pageTitle = computed(() => {
     '/users': '用户管理',
     '/content': '内容管理',
     '/insights': '小凡看见',
-    '/audit-logs': '审计日志'
+    '/insight-requests': '查看申请',
+    '/audit-logs': '审计日志',
+    '/database': '数据库管理'
   };
   return titles[route.path] || '管理后台';
 });
 
 const handleMenuSelect = (index: string) => {
+  // 数据库管理需要二次验证
+  if (index === '/database') {
+    pendingRoute.value = index;
+    dbAccessVisible.value = true;
+    dbAccessPassword.value = '';
+    dbAccessError.value = '';
+    return;
+  }
   router.push(index);
+};
+
+const confirmDbAccess = async () => {
+  dbAccessError.value = '';
+  dbAccessVerifying.value = true;
+
+  // 模拟验证延迟
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  const correctPassword = import.meta.env.VITE_DB_ACCESS_PASSWORD;
+
+  if (dbAccessPassword.value === correctPassword) {
+    ElMessage.success('验证成功');
+    dbAccessVisible.value = false;
+    dbAccessPassword.value = '';
+    if (pendingRoute.value) {
+      router.push(pendingRoute.value);
+    }
+  } else {
+    dbAccessError.value = '密码错误，请重试';
+  }
+
+  dbAccessVerifying.value = false;
 };
 
 const handleLogout = () => {
@@ -260,5 +327,32 @@ const handleLogout = () => {
   flex: 1;
   background: #f5f7fa;
   overflow: auto;
+}
+
+/* 数据库访问验证样式 */
+.db-access-form {
+  padding: 16px 0;
+}
+
+.db-access-form .warning-text {
+  margin: 0 0 16px 0;
+  color: #f56c6c;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.db-access-form :deep(.el-input) {
+  margin-bottom: 12px;
+}
+
+.error-text {
+  color: #f56c6c;
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 8px 8px;
+  background: #fef0f0;
+  border-radius: 4px;
+  border-left: 3px solid #f56c6c;
 }
 </style>
