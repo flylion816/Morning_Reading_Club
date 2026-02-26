@@ -21,6 +21,11 @@ const adminSchema = new mongoose.Schema(
       minlength: 6,
       select: false // 默认不返回密码字段
     },
+    dbAccessPassword: {
+      type: String,
+      default: null,
+      select: false // 默认不返回，需要显式 .select('+dbAccessPassword')
+    },
     avatar: {
       type: String,
       default: null
@@ -55,13 +60,15 @@ const adminSchema = new mongoose.Schema(
 
 // 密码保存前加密
 adminSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
+  const salt = await bcrypt.genSalt(10);
 
   try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    if (this.isModified('password')) {
+      this.password = await bcrypt.hash(this.password, salt);
+    }
+    if (this.isModified('dbAccessPassword') && this.dbAccessPassword) {
+      this.dbAccessPassword = await bcrypt.hash(this.dbAccessPassword, salt);
+    }
     next();
   } catch (error) {
     next(error);
@@ -71,6 +78,11 @@ adminSchema.pre('save', async function (next) {
 // 比较密码方法
 adminSchema.methods.comparePassword = async function (password) {
   return bcrypt.compare(password, this.password);
+};
+
+// 比较数据库访问密码方法
+adminSchema.methods.compareDbAccessPassword = async function (password) {
+  return bcrypt.compare(password, this.dbAccessPassword);
 };
 
 // 获取公开信息（不包含敏感数据）

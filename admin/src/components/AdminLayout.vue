@@ -130,6 +130,7 @@
 import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { authApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 const router = useRouter();
@@ -177,23 +178,19 @@ const confirmDbAccess = async () => {
   dbAccessError.value = '';
   dbAccessVerifying.value = true;
 
-  // 模拟验证延迟
-  await new Promise(resolve => setTimeout(resolve, 300));
-
-  const correctPassword = import.meta.env.VITE_DB_ACCESS_PASSWORD;
-
-  if (dbAccessPassword.value === correctPassword) {
+  try {
+    await authApi.verifyDbAccess(dbAccessPassword.value);
     ElMessage.success('验证成功');
     dbAccessVisible.value = false;
     dbAccessPassword.value = '';
     if (pendingRoute.value) {
       router.push(pendingRoute.value);
     }
-  } else {
-    dbAccessError.value = '密码错误，请重试';
+  } catch (error: any) {
+    dbAccessError.value = error?.response?.data?.message || '密码错误，请重试';
+  } finally {
+    dbAccessVerifying.value = false;
   }
-
-  dbAccessVerifying.value = false;
 };
 
 const handleLogout = () => {

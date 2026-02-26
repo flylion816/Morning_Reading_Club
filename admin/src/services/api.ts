@@ -103,7 +103,8 @@ export const authApi = {
   login: (email: string, password: string) =>
     apiClient.post('/auth/admin/login', { email, password }),
   logout: () => apiClient.post('/auth/admin/logout'),
-  getProfile: () => apiClient.get('/auth/admin/profile')
+  getProfile: () => apiClient.get('/auth/admin/profile'),
+  verifyDbAccess: (password: string) => apiClient.post('/auth/admin/verify-db-access', { password })
 };
 
 // 报名 API

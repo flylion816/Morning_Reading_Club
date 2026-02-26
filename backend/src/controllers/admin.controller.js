@@ -361,7 +361,8 @@ exports.initSuperAdmin = async (req, res) => {
     const superAdmin = new Admin({
       name: 'SuperAdmin',
       email: 'admin@morningreading.com',
-      password: 'admin123456',
+      password: process.env.ADMIN_DEFAULT_PASSWORD || 'admin123456',
+      dbAccessPassword: process.env.ADMIN_DB_ACCESS_PASSWORD || 'admin123456',
       role: 'superadmin',
       status: 'active'
     });
@@ -377,5 +378,32 @@ exports.initSuperAdmin = async (req, res) => {
   } catch (error) {
     logger.error('Init super admin error', error);
     return res.status(500).json(errors.serverError('初始化超级管理员失败'));
+  }
+};
+
+// 验证数据库访问密码
+exports.verifyDbAccess = async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json(errors.badRequest('请提供验证密码'));
+    }
+
+    const admin = await Admin.findById(req.admin.id).select('+dbAccessPassword');
+
+    if (!admin || !admin.dbAccessPassword) {
+      return res.status(400).json(errors.badRequest('数据库访问密码未设置'));
+    }
+
+    const isMatch = await admin.compareDbAccessPassword(password);
+    if (!isMatch) {
+      return res.status(401).json(errors.unauthorized('密码错误'));
+    }
+
+    return res.json(success({ verified: true }, '验证成功'));
+  } catch (error) {
+    logger.error('Verify db access error', error);
+    return res.status(500).json(errors.serverError('验证失败'));
   }
 };

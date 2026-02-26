@@ -16,6 +16,7 @@ router.get('/auth/admin/profile', adminAuthMiddleware, adminController.getProfil
 router.post('/auth/admin/logout', adminAuthMiddleware, adminController.logout);
 router.post('/auth/admin/refresh-token', adminAuthMiddleware, adminController.refreshToken);
 router.post('/auth/admin/change-password', adminAuthMiddleware, adminController.changePassword);
+router.post('/auth/admin/verify-db-access', adminAuthMiddleware, adminController.verifyDbAccess);
 
 // 超级管理员路由
 router.get('/admins', adminAuthMiddleware, requireRole('superadmin'), adminController.getAdmins);
