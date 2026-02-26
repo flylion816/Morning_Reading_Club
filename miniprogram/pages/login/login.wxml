@@ -61,5 +61,19 @@
       <text wx:if="{{!loading}}">微信一键登录</text>
       <text wx:else>登录中...</text>
     </button>
+
+    <!-- 错误信息显示 -->
+    <view wx:if="{{errorMessage}}" class="error-info">
+      <view class="error-title">❌ {{errorMessage}}</view>
+      <view wx:if="{{showDebugInfo}}" class="error-details">{{debugInfo}}</view>
+    </view>
+
+    <!-- 调试信息显示（仅开发/测试环境） -->
+    <view wx:if="{{showDebugInfo && debugInfo}}" class="debug-info">
+      <view class="debug-title">📊 调试信息</view>
+      <view class="debug-text">环境: {{isDev ? 'dev (开发)' : 'test (测试)'}}</view>
+      <view class="debug-text">API: {{apiBase || '未配置'}}</view>
+      <view class="debug-text">{{debugInfo}}</view>
+    </view>
   </view>
 </view>

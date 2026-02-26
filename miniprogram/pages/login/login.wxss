@@ -297,3 +297,69 @@
     opacity: 1;
   }
 }
+
+/* 错误信息显示 */
+.error-info {
+  width: 100%;
+  background: #fee;
+  border: 2rpx solid #fcc;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-top: 24rpx;
+  animation: shake 0.3s ease;
+}
+
+.error-title {
+  font-size: 26rpx;
+  color: #c33;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.error-details {
+  font-size: 20rpx;
+  color: #666;
+  line-height: 1.6;
+  word-break: break-all;
+  font-family: monospace;
+}
+
+/* 调试信息显示 */
+.debug-info {
+  width: 100%;
+  background: #f0f7ff;
+  border: 1rpx solid #b3d8ff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-top: 16rpx;
+  font-size: 18rpx;
+  color: #0050b3;
+}
+
+.debug-title {
+  font-weight: 600;
+  margin-bottom: 8rpx;
+  font-size: 20rpx;
+}
+
+.debug-text {
+  font-size: 18rpx;
+  line-height: 1.4;
+  word-break: break-all;
+  font-family: monospace;
+  color: #0050b3;
+  margin-bottom: 4rpx;
+}
+
+/* shake 动画 */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4rpx);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4rpx);
+  }
+}
