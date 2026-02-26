@@ -1,0 +1,152 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                   线上部署快速参考卡 - 执行步骤                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+🎯 核心目标
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ ✅ 更新代码到最新版本（commit: f3fd3b8）
+ ✅ 配置新的管理员密码
+ ✅ 配置数据库访问二次验证密码
+ ✅ 自动备份原配置文件
+
+🔧 快速执行步骤（5分钟）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  SSH 登录线上服务器
+    $ ssh your_server
+
+2️⃣  进入项目目录
+    $ cd /path/to/morning_reading_club
+
+3️⃣  拉取最新代码
+    $ git pull origin main
+
+4️⃣  执行部署脚本
+    $ ./deploy-db-access-password.sh
+
+5️⃣  按照脚本提示操作
+    • 脚本会自动检查 MongoDB
+    • 脚本会自动备份配置
+    • 脚本会自动更新环境变量
+    • 脚本会自动重置管理员密码
+
+6️⃣  重启后端服务（根据你的部署工具）
+    $ pm2 restart all
+    # 或
+    $ docker restart morning-reading-backend
+    # 或
+    $ systemctl restart morning-reading-backend
+
+7️⃣  验证部署成功
+    $ curl -X POST https://wx.shubai01.com/api/v1/auth/admin/login \
+      -H "Content-Type: application/json" \
+      -d '{"email":"admin@morningreading.com","password":"Km7$Px2Qw9"}'
+
+    期望看到: "message": "登录成功"
+
+📋 密码速查表
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 管理员邮箱:            admin@morningreading.com
+ 管理员登录密码:        Km7$Px2Qw9
+ 数据库访问密码:        Jb3#Rl8Tn5
+ MySQL用户密码:         Prod_User@Secure123!
+ Redis密码:             Prod_Redis@Secure123!
+
+⚙️  脚本自动执行的操作
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ ✅ 检查 MongoDB 连接状态
+ ✅ 创建 .env.production 备份 (.backup/ 目录)
+ ✅ 添加 ADMIN_DB_ACCESS_PASSWORD 环境变量
+ ✅ 更新 MYSQL_PASSWORD（如果存在）
+ ✅ 更新 REDIS_PASSWORD（如果存在）
+ ✅ 在 MongoDB 的 Admin 表中创建 dbAccessPassword 字段
+ ✅ 使用 bcrypt 哈希密码
+ ✅ 验证所有配置是否正确
+
+⏮️  灾难恢复（如果出错）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 恢复备份配置:
+ $ cp .backup/.env.production.backup.* backend/.env.production
+ $ pm2 restart all
+
+ 重新运行脚本（它会要求确认）:
+ $ ./deploy-db-access-password.sh
+
+ 手动重置密码:
+ $ cd backend
+ $ node scripts/reset-admin-password.js \
+     admin@morningreading.com \
+     Km7$Px2Qw9 \
+     Jb3#Rl8Tn5
+
+🔒 安全提示
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ ⚠️  备份前置条件
+    □ 已备份整个数据库
+    □ 已备份 .env.production 文件
+    □ 有回滚计划
+
+ ⚠️  部署后操作
+    □ 不要将 .env.production 提交到 Git
+    □ 妥善保管密码信息
+    □ 存储在密钥管理系统中
+    □ 监控 logs/error.log
+
+ ⚠️  监控检查
+    □ 后端服务是否成功启动
+    □ 是否有数据库连接错误
+    □ API 响应是否正常
+    □ 管理后台是否可访问
+
+📞 验证清单
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 部署完成后，逐项验证：
+
+ ✓ 代码已更新到最新版本
+   $ git log --oneline | head -1
+   期望: f3fd3b8 feat: 将数据库管理密码从前端迁移到后端 MongoDB
+
+ ✓ 环境变量已更新
+   $ grep ADMIN_DB_ACCESS_PASSWORD backend/.env.production
+   期望: ADMIN_DB_ACCESS_PASSWORD=Jb3#Rl8Tn5
+
+ ✓ 管理员可以登录
+   $ curl ... (见上面的测试命令)
+   期望: "message": "登录成功"
+
+ ✓ 数据库访问密码有效
+   $ curl ... (见上面的测试命令)
+   期望: "verified": true
+
+ ✓ 管理后台可访问
+   打开: https://wx.shubai01.com
+   登录: admin@morningreading.com / Km7$Px2Qw9
+   点击: 🗄️ 数据库管理
+   输入: 数据库访问密码 Jb3#Rl8Tn5
+   期望: 成功进入数据库管理页面
+
+📚 文档链接
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 详细部署说明:         ./DEPLOY_INSTRUCTIONS.md
+ 代码变更记录:         查看 commit f3fd3b8
+ 开发指南:             ./DEVELOPMENT.md
+ 问题排查:             ./BUG_FIXES.md
+
+💡 需要帮助？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. 查看脚本输出，按照提示操作
+ 2. 检查 DEPLOY_INSTRUCTIONS.md 中的故障排查部分
+ 3. 查看 logs/error.log 和 logs/combined.log
+ 4. 验证是否有备份文件可恢复
+
+═══════════════════════════════════════════════════════════════════════════════
+准备就绪！现在可以执行脚本了：./deploy-db-access-password.sh
+═══════════════════════════════════════════════════════════════════════════════
