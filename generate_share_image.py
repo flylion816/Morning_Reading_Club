@@ -67,6 +67,7 @@ def generate_share_image():
 
     # ====== 中央：主标题"小凡"和"看见" - 分两行，大间距 ======
     center_x = width / 2
+    offset_y = 100  # 所有内容往上挪的距离
 
     # 第一行：小凡（每个字单独绘制，增加字间距）
     text1_1 = "小"
@@ -74,7 +75,7 @@ def generate_share_image():
     char_spacing = 360  # 字间距（290px字体需要更大的间距）
 
     # 小凡 - 第一行（往上挪）
-    y_line1 = height / 2 - 240
+    y_line1 = height / 2 - 240 - offset_y
 
     x_char1 = center_x - char_spacing / 2
     x_char2 = center_x + char_spacing / 2
@@ -94,7 +95,7 @@ def generate_share_image():
     # 第二行：看见（每个字单独绘制，增加字间距）
     text2_1 = "看"
     text2_2 = "见"
-    y_line2 = height / 2 + 80  # 增加行间距（从 center_y + 120 改为 + 80，距离更大）
+    y_line2 = height / 2 + 80 - offset_y  # 增加行间距（从 center_y + 120 改为 + 80，距离更大）
 
     # 绘制阴影
     draw.text((x_char1 + 3, y_line2 + 4), text2_1,
@@ -117,7 +118,7 @@ def generate_share_image():
 
     # ====== 最下方：副标题 - 紧靠底边 ======
     subtitle_text = "在晨光中，遇见更好的自己"
-    subtitle_y = height - 100  # 靠近底部，保持100px的间距
+    subtitle_y = height - 100 - offset_y  # 靠近底部，保持100px的间距
     draw.text((center_x, subtitle_y), subtitle_text,
               fill=(255, 255, 255, 200), font=font_subtitle, anchor="mm")
 
