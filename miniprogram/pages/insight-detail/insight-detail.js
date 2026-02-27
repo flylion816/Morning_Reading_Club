@@ -127,8 +127,10 @@ Page({
    */
   onShareAppMessage() {
     const { insight } = this.data;
+    const app = getApp();
+    const userName = app.globalData.userInfo?.nickname || '晨读者';
     return {
-      title: `${insight.title || '凡人晨读营'} - 小凡看见`,
+      title: `${insight.title || '凡人晨读营'} - 致${userName}`,
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
       imageUrl: '/assets/images/share-insight.png' // 使用新的"小凡看见"专属分享图
     };
@@ -139,8 +141,10 @@ Page({
    */
   onShareTimeline() {
     const { insight } = this.data;
+    const app = getApp();
+    const userName = app.globalData.userInfo?.nickname || '晨读者';
     return {
-      title: `${insight.title || '晨读营'} - 小凡看见`,
+      title: `${insight.title || '凡人晨读营'} - 致${userName}`,
       query: `id=${this.data.insightId}`,
       imageUrl: '/assets/images/share-insight.png' // 使用新的"小凡看见"专属分享图
     };
