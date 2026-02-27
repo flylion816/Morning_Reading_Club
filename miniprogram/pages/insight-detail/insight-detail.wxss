@@ -283,3 +283,110 @@
   font-size: 24rpx;
   color: #ccc;
 }
+
+/* ===== 分享菜单弹窗（开发环境） ===== */
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.share-modal {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 24rpx 24rpx 0 0;
+  z-index: 1001;
+  max-height: 60vh;
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.close-btn {
+  font-size: 48rpx;
+  color: #999;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friends-list {
+  padding: 16rpx 32rpx;
+  max-height: 50vh;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 16rpx;
+  margin-bottom: 12rpx;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+}
+
+.friend-item:active {
+  background: #f5f5f5;
+}
+
+.friend-item .friend-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+}
+
+.friend-item image.friend-avatar {
+  object-fit: cover;
+}
+
+.friend-info {
+  flex: 1;
+}
+
+.friend-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.share-btn {
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 24rpx;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  min-width: 80rpx;
+  text-align: center;
+}
+
+.share-btn::after {
+  border: none;
+}

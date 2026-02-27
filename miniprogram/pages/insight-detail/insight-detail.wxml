@@ -19,6 +19,39 @@
   <!-- 底部按钮 -->
   <view class="action-buttons">
     <button class="btn-back" bindtap="handleBack">返回</button>
-    <button class="btn-share" open-type="share">分享给微信好友</button>
+    <!-- 生产环境：仅显示微信分享按钮 -->
+    <!-- 开发环境：显示分享菜单按钮 -->
+    <button wx:if="{{isDev}}" class="btn-share" bindtap="openShareMenu">分享</button>
+    <button wx:else class="btn-share" open-type="share">分享给微信好友</button>
+  </view>
+
+  <!-- 开发环境：分享菜单弹窗 -->
+  <view wx:if="{{isDev && showShareModal}}" class="share-modal-overlay" bindtap="closeShareModal">
+    <view class="share-modal" catchtap>
+      <view class="modal-header">
+        <text class="modal-title">分享给</text>
+        <view class="close-btn" bindtap="closeShareModal">×</view>
+      </view>
+      <scroll-view class="friends-list" scroll-y>
+        <!-- 微信好友 -->
+        <view class="friend-item">
+          <view class="friend-avatar">
+            <text class="wechat-icon">👥</text>
+          </view>
+          <view class="friend-info">
+            <text class="friend-name">微信好友</text>
+          </view>
+          <button class="share-btn" open-type="share">分享</button>
+        </view>
+        <!-- 虚拟好友 -->
+        <view wx:for="{{virtualFriends}}" wx:key="id" class="friend-item">
+          <image class="friend-avatar" src="{{item.avatar}}" />
+          <view class="friend-info">
+            <text class="friend-name">{{item.name}}</text>
+          </view>
+          <view class="share-btn" bindtap="handleShareToVirtualFriend">分享</view>
+        </view>
+      </scroll-view>
+    </view>
   </view>
 </view>

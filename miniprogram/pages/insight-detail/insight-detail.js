@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const env = require('../../config/env');
 
 /**
  * 将纯文本转换为HTML格式
@@ -29,7 +30,17 @@ function textToHtml(text) {
 Page({
   data: {
     insightId: null,
-    insight: {}
+    insight: {},
+    showShareModal: false,
+    isDev: env.currentEnv === 'dev',
+    // 虚拟好友（仅在开发环境使用）
+    virtualFriends: [
+      {
+        id: 'virtual_friend_1',
+        name: '虚拟好友',
+        avatar: '/assets/images/wechat-icon.png'
+      }
+    ]
   },
 
   onLoad(options) {
@@ -61,6 +72,41 @@ Page({
   handleBack() {
     wx.navigateBack({
       delta: 1
+    });
+  },
+
+  /**
+   * 打开分享菜单（仅在开发环境，用于虚拟好友分享）
+   */
+  openShareMenu() {
+    if (!this.data.isDev) return;
+    this.setData({ showShareModal: true });
+  },
+
+  /**
+   * 关闭分享菜单
+   */
+  closeShareModal() {
+    this.setData({ showShareModal: false });
+  },
+
+  /**
+   * 处理虚拟好友分享 - 拉起微信原生分享接口
+   */
+  handleShareToVirtualFriend() {
+    this.closeShareModal();
+    const { insight } = this.data;
+
+    wx.shareAppMessage({
+      title: `${insight.title || '晨读营'} - 小凡看见`,
+      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
+      imageUrl: '/assets/images/share-insight.png',
+      success() {
+        wx.showToast({ title: '分享成功', icon: 'success' });
+      },
+      fail() {
+        wx.showToast({ title: '分享失败', icon: 'none' });
+      }
     });
   },
 
