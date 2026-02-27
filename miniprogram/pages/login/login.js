@@ -21,6 +21,7 @@ Page({
   },
 
   onLoad(options) {
+    console.log('🔴🔴🔴 LOGIN.JS PAGE LOADED 🔴🔴🔴', options);
     console.log('登录页面加载', options);
     console.log('✅ 开发环境检查 isDev:', this.data.isDev);
     console.log('✅ 当前环境:', envConfig.currentEnv);

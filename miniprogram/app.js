@@ -28,15 +28,27 @@ App({
 
   // 根据登录状态导航到正确的起始页面
   navigateToStartPage() {
+    console.log('🔵🔵🔵 navigateToStartPage called, currentEnv:', envConfig.currentEnv);
     const pages = getCurrentPages();
-    logger.debug('当前页面栈:', pages.map(p => p.route));
+    logger.debug(
+      '当前页面栈:',
+      pages.map(p => p.route)
+    );
 
+    // 在开发环境，不自动导航（方便开发调试）
+    if (envConfig.currentEnv === 'dev') {
+      console.log('🔵🔵🔵 SKIP navigation in dev environment');
+      logger.debug('⚙️ 开发环境，不自动导航');
+      return;
+    }
+
+    // 生产环境：根据登录状态自动导航
     if (!this.globalData.isLogin) {
       // 未登录，导航到登录页
       logger.info('未登录，导航到登录页');
       wx.reLaunch({
         url: '/pages/login/login',
-        fail: (err) => {
+        fail: err => {
           logger.error('导航到登录页失败:', err);
         }
       });
@@ -45,7 +57,7 @@ App({
       logger.info('已登录，导航到首页');
       wx.reLaunch({
         url: '/pages/index/index',
-        fail: (err) => {
+        fail: err => {
           logger.error('导航到首页失败:', err);
         }
       });
