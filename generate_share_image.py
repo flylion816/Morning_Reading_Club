@@ -109,18 +109,18 @@ def generate_share_image():
     draw.text((x_char2, y_line2), text2_2,
               fill=(255, 255, 255), font=font_main, anchor="mm")
 
-    # ====== 下方：装饰线 ======（往上挪，增加与"看见"的间距）
-    line_y = y_line2 + 300  # 增加间距到300，确保不贴着
-    line_left = width / 2 - 150
-    line_right = width / 2 + 150
-    draw.line([(line_left, line_y), (line_right, line_y)],
-              fill=(255, 255, 255, 150), width=2)
-
     # ====== 最下方：副标题 - 往上挪一些 ======
     subtitle_text = "在晨光中，遇见更好的自己"
     subtitle_y = height - 100 - offset_y - 50  # 再往上挪50px，但保持底部间距
     draw.text((center_x, subtitle_y), subtitle_text,
               fill=(255, 255, 255, 200), font=font_subtitle, anchor="mm")
+
+    # ====== 下方：装饰线 ======（放在"看见"和副标题的中间）
+    line_y = (y_line2 + subtitle_y) / 2  # 在两者之间的中点
+    line_left = width / 2 - 150
+    line_right = width / 2 + 150
+    draw.line([(line_left, line_y), (line_right, line_y)],
+              fill=(255, 255, 255, 150), width=2)
 
     return img
 
