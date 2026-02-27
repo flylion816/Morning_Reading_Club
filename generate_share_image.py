@@ -126,72 +126,70 @@ def generate_share_image():
 
 def generate_default_image():
     """
-    生成首页分享图 - 清晨日出主题
-    背景色从深靛蓝夜色 (#1a1a2e) 渐变到暖橙晨光 (#e56c21)
+    生成首页分享图 - 现代简洁风格
+    竖排排列"凡人晨读营"，保持与 share-insight.png 一致的蓝色渐变背景
     """
     width, height = 1080, 1080
-    img = Image.new('RGB', (width, height), '#1a1a2e')
+    img = Image.new('RGB', (width, height), color='#5B9FE3')
     draw = ImageDraw.Draw(img)
 
-    # 渐变：从顶部深靛蓝 → 底部暖橙（由上至下）
+    # 蓝色渐变背景（与 share-insight.png 完全一致）
     for y in range(height):
-        t = y / height
-        # 顶部 (#1a1a2e) → 底部 (#e56c21)
-        r = int(26 + (229 - 26) * t)
-        g = int(26 + (108 - 26) * t)
-        b = int(46 + (33 - 46) * t)
-        draw.line([(0, y), (width, y)], fill=(r, g, b))
-
-    # 装饰：同心圆光晕（中心位置略高于中央，模拟太阳）
-    cx, cy = width // 2, int(height * 0.42)
-
-    # 使用 RGBA 模式绘制半透明圆环
-    for radius, alpha in [(320, 12), (240, 20), (160, 35), (90, 55), (40, 90)]:
-        overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-        overlay_draw = ImageDraw.Draw(overlay)
-        overlay_draw.ellipse(
-            [cx - radius, cy - radius, cx + radius, cy + radius],
-            outline=(255, 255, 255, alpha),
-            width=2
-        )
-        img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
-        draw = ImageDraw.Draw(img)
+        ratio = y / height
+        r = int(91 - (91 - 61) * ratio)
+        g = int(159 - (159 - 123) * ratio)
+        b = int(227 - (227 - 199) * ratio)
+        color = (r, g, b)
+        draw.line([(0, y), (width, y)], fill=color)
 
     # 加载字体
     font_path = find_font()
     if font_path and os.path.exists(font_path):
-        font_main = ImageFont.truetype(font_path, 180)
-        font_sub = ImageFont.truetype(font_path, 38)
+        font_main = ImageFont.truetype(font_path, 180)  # 180px
+        font_sub = ImageFont.truetype(font_path, 40)    # 40px
     else:
         font_main = ImageFont.load_default()
         font_sub = ImageFont.load_default()
 
-    # 主标题：「凡人晨读营」
+    # ====== 主标题：「凡人晨读营」竖排 ======
     chars = list('凡人晨读营')
-    char_w = 220  # 每个字的占位宽度
-    total_w = char_w * len(chars)
-    start_x = (width - total_w) // 2 + char_w // 2
-    text_y = int(height * 0.62)
+    char_h = 170  # 缩小字间距到 170px（相比 180px 字体）
+
+    # 计算起点：确保所有内容都在画布内
+    center_x = width // 2
+    start_y = 150  # 从150px开始
 
     for i, ch in enumerate(chars):
-        x = start_x + i * char_w
-        # 绘制阴影
-        draw.text((x + 3, text_y + 4), ch, fill=(0, 0, 0, 80), font=font_main, anchor='mm')
-        # 绘制主文字
-        draw.text((x, text_y), ch, fill=(255, 255, 255), font=font_main, anchor='mm')
+        y = start_y + i * char_h
 
-    # 分隔线
-    line_y = int(height * 0.77)
+        # 绘制阴影（黑色投影）
+        draw.text((center_x + 3, y + 3), ch,
+                  fill=(0, 0, 0, 50), font=font_main, anchor='mm')
+
+        # 绘制主文字（白色）
+        draw.text((center_x, y), ch,
+                  fill=(255, 255, 255), font=font_main, anchor='mm')
+
+    # ====== 分隔线（轻微） ======
+    last_char_y = start_y + (len(chars) - 1) * char_h
+    line_y = last_char_y + 60  # 最后一个字下方 60px
     draw.line(
         [(width // 2 - 240, line_y), (width // 2 + 240, line_y)],
         fill=(255, 255, 255),
         width=2
     )
 
-    # 副标题
-    subtitle = '在晨光中，遇见更好的自己'
-    sub_y = int(height * 0.85)
-    draw.text((width // 2, sub_y), subtitle, fill=(255, 240, 210), font=font_sub, anchor='mm')
+    # ====== 副标题：「每天晨读 · 遇见更好的自己」横排 ======
+    subtitle = '每天晨读 · 遇见更好的自己'
+    sub_y = line_y + 60  # 分隔线下方 60px
+
+    # 绘制阴影
+    draw.text((width // 2 + 2, sub_y + 2), subtitle,
+              fill=(0, 0, 0, 50), font=font_sub, anchor='mm')
+
+    # 绘制主文字（白色）
+    draw.text((width // 2, sub_y), subtitle,
+              fill=(255, 255, 255), font=font_sub, anchor='mm')
 
     return img
 
