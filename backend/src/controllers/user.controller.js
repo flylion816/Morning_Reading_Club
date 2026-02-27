@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Checkin = require('../models/Checkin');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
 
@@ -131,7 +132,7 @@ async function getUserById(req, res, next) {
 async function getUserStats(req, res, next) {
   try {
     // 如果userId是"me"或未提供，使用当前登录用户的ID
-    let userId = req.params.userId;
+    let { userId } = req.params;
     if (!userId || userId === 'me') {
       userId = req.user.userId;
     }
@@ -142,9 +143,12 @@ async function getUserStats(req, res, next) {
       return res.status(404).json(errors.notFound('用户不存在'));
     }
 
+    // 根据实际的打卡记录数计算 totalCheckinDays（不依赖可能不准确的字段）
+    const actualCheckinCount = await Checkin.countDocuments({ userId });
+
     res.json(
       success({
-        totalCheckinDays: user.totalCheckinDays,
+        totalCheckinDays: actualCheckinCount,
         currentStreak: user.currentStreak,
         maxStreak: user.maxStreak,
         totalCompletedPeriods: user.totalCompletedPeriods,
@@ -180,15 +184,15 @@ async function getUserList(req, res, next) {
     const users = await User.find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
     res.json(
       success({
         list: users,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           total,
           pages: Math.ceil(total / limit)
         }
