@@ -246,10 +246,10 @@ Page({
 
             // 设置封面样式
             if (!todaySection.coverColor) {
-              todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+              todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
             }
             if (!todaySection.coverEmoji) {
-              todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+              todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
             }
 
             // 处理subtitle：移除末尾的"至"
@@ -280,13 +280,13 @@ Page({
 
               if (todaySection) {
                 if (!todaySection.coverColor) {
-                  todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+                  todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
                 }
                 if (!todaySection.coverEmoji) {
-                  todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+                  todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
                 }
                 todaySection.periodId = periodId;
-                todaySection.periodTitle = currentPeriod.title;
+                todaySection.periodTitle = currentPeriod?.title;
 
                 // 确保包含isCheckedIn状态
                 if (todaySection.isCheckedIn === undefined) {
@@ -327,13 +327,13 @@ Page({
 
             if (todaySection) {
               if (!todaySection.coverColor) {
-                todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+                todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
               }
               if (!todaySection.coverEmoji) {
-                todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+                todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
               }
               todaySection.periodId = periodId;
-              todaySection.periodTitle = currentPeriod.title;
+              todaySection.periodTitle = currentPeriod?.title;
 
               // 确保包含isCheckedIn状态
               if (todaySection.isCheckedIn === undefined) {
