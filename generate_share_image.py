@@ -115,10 +115,10 @@ def generate_share_image():
     draw.text((center_x, subtitle_y), subtitle_text,
               fill=(255, 255, 255, 200), font=font_subtitle, anchor="mm")
 
-    # ====== 下方：装饰线 ======（放在"看见"和副标题的中间）
-    line_y = (y_line2 + subtitle_y) / 2  # 在两者之间的中点
-    line_left = width / 2 - 150
-    line_right = width / 2 + 150
+    # ====== 下方：装饰线 ======（放在"看见"和副标题的中间，长度加倍）
+    line_y = (y_line2 + subtitle_y) / 2 + 40  # 在两者之间的中点，略往下
+    line_left = width / 2 - 300  # 长度变成原来的两倍
+    line_right = width / 2 + 300
     draw.line([(line_left, line_y), (line_right, line_y)],
               fill=(255, 255, 255, 150), width=2)
 
