@@ -127,7 +127,7 @@ def generate_share_image():
 def generate_default_image():
     """
     生成首页分享图 - 现代简洁风格
-    竖排排列"凡人晨读营"，保持与 share-insight.png 一致的蓝色渐变背景
+    横排排列"凡人晨读营"，保持与 share-insight.png 一致的蓝色渐变背景
     """
     width, height = 1080, 1080
     img = Image.new('RGB', (width, height), color='#5B9FE3')
@@ -142,37 +142,47 @@ def generate_default_image():
         color = (r, g, b)
         draw.line([(0, y), (width, y)], fill=color)
 
-    # 加载字体
+    # 加载字体 - 优先使用微软雅黑
     font_path = find_font()
-    if font_path and os.path.exists(font_path):
-        font_main = ImageFont.truetype(font_path, 180)  # 180px
-        font_sub = ImageFont.truetype(font_path, 40)    # 40px
+
+    # 尝试找到微软雅黑字体
+    yahei_paths = [
+        "/Library/Fonts/Microsoft YaHei.ttf",
+        "/Library/Fonts/微软雅黑.ttf",
+    ]
+
+    yahei_font_path = None
+    for path in yahei_paths:
+        if os.path.exists(path):
+            yahei_font_path = path
+            print(f"📝 使用字体: {yahei_font_path}")
+            break
+
+    # 如果找不到微软雅黑，使用系统其他字体
+    if not yahei_font_path:
+        yahei_font_path = font_path
+
+    if yahei_font_path and os.path.exists(yahei_font_path):
+        font_main = ImageFont.truetype(yahei_font_path, 200)  # 200px 主标题
+        font_sub = ImageFont.truetype(yahei_font_path, 38)    # 38px 副标题
     else:
         font_main = ImageFont.load_default()
         font_sub = ImageFont.load_default()
 
-    # ====== 主标题：「凡人晨读营」竖排 ======
-    chars = list('凡人晨读营')
-    char_h = 170  # 缩小字间距到 170px（相比 180px 字体）
+    # ====== 主标题：「凡人晨读营」横排 ======
+    title_text = '凡人晨读营'
+    title_y = 380  # 调整到更靠上的位置
 
-    # 计算起点：确保所有内容都在画布内
-    center_x = width // 2
-    start_y = 150  # 从150px开始
+    # 绘制阴影（黑色投影）
+    draw.text((width // 2 + 4, title_y + 4), title_text,
+              fill=(0, 0, 0, 60), font=font_main, anchor='mm')
 
-    for i, ch in enumerate(chars):
-        y = start_y + i * char_h
+    # 绘制主文字（白色）
+    draw.text((width // 2, title_y), title_text,
+              fill=(255, 255, 255), font=font_main, anchor='mm')
 
-        # 绘制阴影（黑色投影）
-        draw.text((center_x + 3, y + 3), ch,
-                  fill=(0, 0, 0, 50), font=font_main, anchor='mm')
-
-        # 绘制主文字（白色）
-        draw.text((center_x, y), ch,
-                  fill=(255, 255, 255), font=font_main, anchor='mm')
-
-    # ====== 分隔线（轻微） ======
-    last_char_y = start_y + (len(chars) - 1) * char_h
-    line_y = last_char_y + 60  # 最后一个字下方 60px
+    # ====== 分隔线 ======
+    line_y = title_y + 120  # 主标题下方 120px
     draw.line(
         [(width // 2 - 240, line_y), (width // 2 + 240, line_y)],
         fill=(255, 255, 255),
@@ -181,7 +191,7 @@ def generate_default_image():
 
     # ====== 副标题：「每天晨读 · 遇见更好的自己」横排 ======
     subtitle = '每天晨读 · 遇见更好的自己'
-    sub_y = line_y + 60  # 分隔线下方 60px
+    sub_y = line_y + 70  # 分隔线下方 70px
 
     # 绘制阴影
     draw.text((width // 2 + 2, sub_y + 2), subtitle,
