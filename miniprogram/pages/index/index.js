@@ -387,7 +387,7 @@ Page({
    */
   onShareAppMessage() {
     return {
-      title: '晨读营 - 在晨光中,遇见更好的自己',
+      title: '凡人晨读营 - 在晨光中,遇见更好的自己',
       path: '/pages/index/index',
       imageUrl: '/assets/images/share-default.png'
     };

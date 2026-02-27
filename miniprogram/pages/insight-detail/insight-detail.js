@@ -128,7 +128,7 @@ Page({
   onShareAppMessage() {
     const { insight } = this.data;
     return {
-      title: `${insight.title || '晨读营'} - 小凡看见`,
+      title: `${insight.title || '凡人晨读营'} - 小凡看见`,
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
       imageUrl: '/assets/images/share-insight.png' // 使用新的"小凡看见"专属分享图
     };

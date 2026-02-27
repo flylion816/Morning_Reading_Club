@@ -10,7 +10,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '小凡看见 - 晨读营',
+      title: '小凡看见 - 凡人晨读营',
       path: '/pages/index/index',
       imageUrl: '/assets/images/share-default.png'
     };
