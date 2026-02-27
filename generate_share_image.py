@@ -48,8 +48,13 @@ def generate_share_image():
     font_path = find_font()
 
     if font_path and os.path.exists(font_path):
-        # 调整字体大小：300太大了，改为240
-        font_main = ImageFont.truetype(font_path, 220)
+        # 使用粗体字体，字体大小增加到 250
+        # 尝试加载粗体版本
+        bold_font_path = font_path.replace("Light", "Medium").replace("Light", "Bold")
+        if not os.path.exists(bold_font_path):
+            bold_font_path = font_path
+
+        font_main = ImageFont.truetype(bold_font_path, 250)
         font_subtitle = ImageFont.truetype(font_path, 38)
     else:
         print("⚠️  使用默认字体")
