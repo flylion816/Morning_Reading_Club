@@ -51,29 +51,37 @@ def generate_share_image():
     font_path = find_font()
 
     if font_path and os.path.exists(font_path):
-        font_title = ImageFont.truetype(font_path, 44)
-        font_main = ImageFont.truetype(font_path, 240)
+        # 尝试加载粗体字体
+        try:
+            font_main = ImageFont.truetype(font_path, 300)
+        except:
+            font_main = ImageFont.truetype(font_path, 300)
         font_subtitle = ImageFont.truetype(font_path, 40)
     else:
         print("⚠️  使用默认字体")
-        font_title = ImageFont.load_default()
         font_main = ImageFont.load_default()
         font_subtitle = ImageFont.load_default()
 
-    # ====== 左上角：标题 ======
-    title_text = "凡人晨读营-小凡看见"
-    draw.text((50, 70), title_text, fill=(255, 255, 255), font=font_title)
-
-    # ====== 中央：主标题"小凡看见" ======
-    main_text = "小凡看见"
+    # ====== 中央：主标题"小凡看见" - 分两行 ======
     center_x = width / 2
-    center_y = height / 2 - 80
+    center_y = height / 2 - 100
 
-    # 绘制字体阴影
-    draw.text((center_x + 3, center_y + 4), main_text,
+    # 第一行：小凡
+    text1 = "小凡"
+    # 阴影
+    draw.text((center_x + 3, center_y - 120 + 4), text1,
               fill=(0, 0, 0, 100), font=font_main, anchor="mm")
-    # 绘制主文字
-    draw.text((center_x, center_y), main_text,
+    # 主文字
+    draw.text((center_x, center_y - 120), text1,
+              fill=(255, 255, 255), font=font_main, anchor="mm")
+
+    # 第二行：看见
+    text2 = "看见"
+    # 阴影
+    draw.text((center_x + 3, center_y + 120 + 4), text2,
+              fill=(0, 0, 0, 100), font=font_main, anchor="mm")
+    # 主文字
+    draw.text((center_x, center_y + 120), text2,
               fill=(255, 255, 255), font=font_main, anchor="mm")
 
     # ====== 下方：装饰线 ======
