@@ -13,7 +13,7 @@ module.exports = {
    */
   enrollPeriod(periodId) {
     return request.request({
-      url: `/enrollments/`,
+      url: '/enrollments/',
       method: 'POST',
       data: {
         periodId
@@ -56,7 +56,7 @@ module.exports = {
     const { page = 1, limit = 20, status } = options;
 
     return request.request({
-      url: `/enrollments/user/`,
+      url: '/enrollments/user',
       method: 'GET',
       data: {
         page,
