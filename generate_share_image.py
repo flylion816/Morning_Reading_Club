@@ -9,12 +9,16 @@ from PIL import Image, ImageDraw, ImageFont
 
 def find_font():
     """
-    查找系统中的中文字体
+    查找系统中的中文字体，优先使用微软雅黑
     """
     font_paths = [
+        # 微软雅黑（Windows 字体，macOS 上如果安装了 Office 会有）
+        "/Library/Fonts/Microsoft YaHei.ttf",
+        "/Library/Fonts/微软雅黑.ttf",
+        # macOS 系统字体
         "/System/Library/Fonts/PingFang.ttc",
-        "/System/Library/Fonts/STHeiti Light.ttc",
         "/System/Library/Fonts/STHeiti Medium.ttc",
+        "/System/Library/Fonts/STHeiti Light.ttc",
         "/Library/Fonts/SimHei.ttf",
     ]
 
@@ -54,7 +58,7 @@ def generate_share_image():
         if not os.path.exists(bold_font_path):
             bold_font_path = font_path
 
-        font_main = ImageFont.truetype(bold_font_path, 250)
+        font_main = ImageFont.truetype(bold_font_path, 290)
         font_subtitle = ImageFont.truetype(font_path, 38)
     else:
         print("⚠️  使用默认字体")
@@ -67,7 +71,7 @@ def generate_share_image():
     # 第一行：小凡（每个字单独绘制，增加字间距）
     text1_1 = "小"
     text1_2 = "凡"
-    char_spacing = 300  # 字间距（220px字体需要更大的间距）
+    char_spacing = 360  # 字间距（290px字体需要更大的间距）
 
     # 小凡 - 第一行
     y_line1 = height / 2 - 180
