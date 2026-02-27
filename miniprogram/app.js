@@ -66,6 +66,10 @@ App({
 
   onShow(options) {
     logger.info('晨读营小程序显示', options);
+
+    // ⭐ 重新检查登录状态（防止token过期或globalData重置导致频繁跳转）
+    console.log('🔄 app.onShow: 重新检查登录状态');
+    this.checkLoginStatus();
   },
 
   onHide() {

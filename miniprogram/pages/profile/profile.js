@@ -3,6 +3,7 @@ const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
+const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 
 Page({
@@ -67,12 +68,31 @@ Page({
     const app = getApp();
     const isLogin = app.globalData.isLogin;
 
+    // ⭐ 改进：检查 token 是否存在，而不仅仅依赖 globalData.isLogin
+    // 因为 globalData 可能被重置，但 token 仍然有效
+    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
+
+    if (!token || !userInfo) {
+      console.log('⚠️ onShow: token或userInfo不存在，跳转到登录页');
+      wx.reLaunch({
+        url: '/pages/login/login'
+      });
+      return;
+    }
+
+    // token 存在，更新 globalData 并继续
+    if (!isLogin) {
+      console.log('🔄 onShow: 恢复登录状态 (token存在但globalData.isLogin为false)');
+      app.globalData.isLogin = true;
+      app.globalData.userInfo = userInfo;
+      app.globalData.token = token;
+    }
+
     this.checkLoginStatus();
 
-    // 直接使用app.globalData.isLogin判断，避免setData异步问题
-    if (isLogin) {
-      this.loadUserData();
-    }
+    // 刷新用户数据
+    this.loadUserData();
   },
 
   onPullDownRefresh() {
