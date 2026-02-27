@@ -32,15 +32,7 @@ Page({
     insightId: null,
     insight: {},
     showShareModal: false,
-    isDev: env.currentEnv === 'dev',
-    // 虚拟好友（仅在开发环境使用）
-    virtualFriends: [
-      {
-        id: 'virtual_friend_1',
-        name: '虚拟好友',
-        avatar: '/assets/images/wechat-icon.png'
-      }
-    ]
+    isDev: env.currentEnv === 'dev'
   },
 
   onLoad(options) {
@@ -76,7 +68,7 @@ Page({
   },
 
   /**
-   * 打开分享菜单（仅在开发环境，用于虚拟好友分享）
+   * 打开分享菜单（仅在开发环境）
    */
   openShareMenu() {
     if (!this.data.isDev) return;
@@ -91,9 +83,9 @@ Page({
   },
 
   /**
-   * 处理虚拟好友分享 - 拉起微信原生分享接口
+   * 分享到微信好友（在菜单中选择时）
    */
-  handleShareToVirtualFriend() {
+  shareToWechatFriend() {
     this.closeShareModal();
     const { insight } = this.data;
 
@@ -107,6 +99,26 @@ Page({
       fail() {
         wx.showToast({ title: '分享失败', icon: 'none' });
       }
+    });
+  },
+
+  /**
+   * 分享到虚拟好友（仅在开发环境）
+   */
+  shareToVirtualFriend() {
+    this.closeShareModal();
+    const { insight } = this.data;
+
+    // 模拟分享成功
+    wx.showToast({
+      title: '已分享给虚拟好友',
+      icon: 'success',
+      duration: 2000
+    });
+
+    console.log('虚拟好友分享:', {
+      title: `${insight.title || '晨读营'} - 小凡看见`,
+      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`
     });
   },
 

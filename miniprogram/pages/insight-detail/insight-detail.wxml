@@ -30,28 +30,28 @@
     <view class="share-modal" catchtap>
       <view class="modal-header">
         <text class="modal-title">分享给</text>
-        <view class="close-btn" bindtap="closeShareModal">×</view>
       </view>
-      <scroll-view class="friends-list" scroll-y>
-        <!-- 微信好友 -->
-        <view class="friend-item">
-          <view class="friend-avatar">
-            <text class="wechat-icon">👥</text>
+      <view class="share-options">
+        <!-- 微信好友选项 -->
+        <view class="share-option" bindtap="shareToWechatFriend">
+          <view class="option-icon">👥</view>
+          <view class="option-info">
+            <text class="option-name">微信好友</text>
+            <text class="option-desc">分享给微信好友</text>
           </view>
-          <view class="friend-info">
-            <text class="friend-name">微信好友</text>
-          </view>
-          <button class="share-btn" open-type="share">分享</button>
+          <view class="option-arrow">›</view>
         </view>
-        <!-- 虚拟好友 -->
-        <view wx:for="{{virtualFriends}}" wx:key="id" class="friend-item">
-          <image class="friend-avatar" src="{{item.avatar}}" />
-          <view class="friend-info">
-            <text class="friend-name">{{item.name}}</text>
+        <!-- 虚拟好友选项（仅开发环境） -->
+        <view class="share-option" bindtap="shareToVirtualFriend">
+          <view class="option-icon">🤖</view>
+          <view class="option-info">
+            <text class="option-name">虚拟好友</text>
+            <text class="option-desc">测试分享流程</text>
           </view>
-          <view class="share-btn" bindtap="handleShareToVirtualFriend">分享</view>
+          <view class="option-arrow">›</view>
         </view>
-      </scroll-view>
+      </view>
+      <view class="modal-cancel" bindtap="closeShareModal">取消</view>
     </view>
   </view>
 </view>
