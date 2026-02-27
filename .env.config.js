@@ -2,15 +2,16 @@
  * 项目统一环境配置文件
  *
  * 在这个文件中配置单个 currentEnv 值，可以同时控制：
- * 1. 小程序调用哪个环境的 API
- * 2. 后端加载哪个环境的数据库
- * 3. 管理后台连接哪个环境的服务
+ * 1. 后端加载哪个环境的数据库
+ * 2. 管理后台连接哪个环境的服务
+ *
+ * 📌 注意：小程序环境由 miniprogram/config/env.js 独立控制
  *
  * 使用方法：
- * - 开发环境：设置 currentEnv = 'prod'
- * - 线上环境：设置 currentEnv = 'prod'
+ * - 本地开发：设置 currentEnv = 'dev'（后端连接 localhost 数据库）
+ * - 线上环境：设置 currentEnv = 'prod'（后端连接线上数据库）
  *
- * 📌 重要：修改此文件后需要重启所有服务才能生效
+ * ⚠️ 重要：修改此文件后需要重启所有服务才能生效
  */
 
 const currentEnv = 'prod'; // 'dev' | 'prod'
