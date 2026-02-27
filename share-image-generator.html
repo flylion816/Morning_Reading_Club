@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小凡看见 - 分享图片生成器</title>
+    <title>晨读营 - 分享图片生成器</title>
     <style>
         * {
             margin: 0;
@@ -25,6 +25,45 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        /* Tab 切换区 */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            font-size: 14px;
+            border: none;
+            background: #f0f0f0;
+            color: #666;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #4a90e2;
+            border-bottom: 3px solid #4a90e2;
+            border-radius: 6px 6px 0 0;
         }
 
         /* 分享图片画布 - 正方形尺寸 1080x1080 */
@@ -79,10 +118,33 @@
             color: #666;
             font-size: 12px;
         }
+
+        .image-desc {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            margin-top: -10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <h1>🌅 晨读营分享图片生成器</h1>
+
+        <!-- Tab 切换 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('insight')">
+                📱 小凡看见 (蓝色系)
+            </button>
+            <button class="tab-btn" onclick="switchTab('default')">
+                🌅 首页 (日出主题)
+            </button>
+        </div>
+
+        <div class="image-desc" id="desc">
+            用于"小凡看见"页面的分享图，蓝色冷色调
+        </div>
+
         <canvas id="canvas" width="1080" height="1080"></canvas>
 
         <div class="button-group">
@@ -98,20 +160,43 @@
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        let currentTab = 'insight';
+
+        function switchTab(tab) {
+            currentTab = tab;
+
+            // 更新按钮状态
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 更新描述
+            const desc = document.getElementById('desc');
+            if (tab === 'insight') {
+                desc.textContent = '用于"小凡看见"页面的分享图，蓝色冷色调';
+            } else {
+                desc.textContent = '用于首页分享的图片，暖色调日出主题';
+            }
+
+            // 重新绘制
+            drawImage();
+        }
 
         function drawShareImage() {
+            // 小凡看见 - 蓝色系
             const width = canvas.width;
             const height = canvas.height;
 
-            // 背景：蓝色渐变（与小程序配色接近）
+            // 背景：蓝色渐变
             const gradient = ctx.createLinearGradient(0, 0, width, height);
-            gradient.addColorStop(0, '#5B9FE3');      // 亮蓝色
-            gradient.addColorStop(0.5, '#4A8FD8');    // 中蓝色
-            gradient.addColorStop(1, '#3D7BC7');      // 深蓝色
+            gradient.addColorStop(0, '#5B9FE3');
+            gradient.addColorStop(0.5, '#4A8FD8');
+            gradient.addColorStop(1, '#3D7BC7');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, width, height);
 
-            // 添加微妙的网格纹理效果
+            // 微妙网格纹理
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.lineWidth = 1;
             for (let i = 0; i < width; i += 40) {
@@ -142,35 +227,121 @@
             const centerY = height / 2;
             const lineHeight = 160;
 
-            // 第一行：小凡
-            // 阴影效果
+            // 第一行：小凡（阴影 + 主文字）
             ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
             ctx.fillText('小凡', width / 2 + 2, centerY - lineHeight / 2 + 3);
-
-            // 主文字
             ctx.fillStyle = 'rgba(255, 255, 255, 1)';
             ctx.fillText('小凡', width / 2, centerY - lineHeight / 2);
 
-            // 第二行：看见
-            // 阴影效果
+            // 第二行：看见（阴影 + 主文字）
             ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
             ctx.fillText('看见', width / 2 + 2, centerY + lineHeight / 2 + 3);
-
-            // 主文字
             ctx.fillStyle = 'rgba(255, 255, 255, 1)';
             ctx.fillText('看见', width / 2, centerY + lineHeight / 2);
         }
 
+        function drawDefaultImage() {
+            // 首页分享图 - 清晨日出主题
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // 背景渐变：深靛蓝 (#1a1a2e) → 暖橙 (#e56c21)
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#1a1a2e');    // 顶部：深靛蓝（夜晓）
+            gradient.addColorStop(0.5, '#9b4822');  // 中部：深橙
+            gradient.addColorStop(1, '#e56c21');    // 底部：暖橙（晨光）
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // 装饰：同心圆光晕（模拟太阳光晕）
+            const cx = width / 2;
+            const cy = height * 0.42;
+
+            const circles = [
+                { radius: 320, alpha: 0.08 },
+                { radius: 240, alpha: 0.15 },
+                { radius: 160, alpha: 0.25 },
+                { radius: 90, alpha: 0.35 },
+                { radius: 40, alpha: 0.5 }
+            ];
+
+            circles.forEach(circle => {
+                ctx.strokeStyle = `rgba(255, 255, 255, ${circle.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, circle.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            // 中心圆点
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 主标题：「凡人晨读营」- 每字单独定位
+            ctx.font = 'bold 160px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const chars = ['凡', '人', '晨', '读', '营'];
+            const charW = 200;  // 字间距
+            const totalW = charW * chars.length;
+            const startX = (width - totalW) / 2 + charW / 2;
+            const textY = height * 0.62;
+
+            chars.forEach((char, i) => {
+                const x = startX + i * charW;
+
+                // 阴影效果
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillText(char, x + 3, textY + 3);
+
+                // 主文字
+                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                ctx.fillText(char, x, textY);
+            });
+
+            // 分隔线
+            ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const lineY = height * 0.77;
+            ctx.moveTo(width / 2 - 240, lineY);
+            ctx.lineTo(width / 2 + 240, lineY);
+            ctx.stroke();
+
+            // 副标题
+            ctx.font = '32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(255, 240, 210, 1)';
+            const subY = height * 0.85;
+            ctx.fillText('在晨光中，遇见更好的自己', width / 2, subY);
+        }
+
+        function drawImage() {
+            if (currentTab === 'insight') {
+                drawShareImage();
+            } else {
+                drawDefaultImage();
+            }
+        }
+
         function downloadImage() {
-            drawShareImage();
+            drawImage();
             const link = document.createElement('a');
             link.href = canvas.toDataURL('image/png');
-            link.download = '小凡看见-分享图片.png';
+            const filename = currentTab === 'insight'
+                ? '小凡看见-分享图片.png'
+                : '首页分享图.png';
+            link.download = filename;
             link.click();
         }
 
         function copyToClipboard() {
-            drawShareImage();
+            drawImage();
             canvas.toBlob(blob => {
                 const item = new ClipboardItem({ 'image/png': blob });
                 navigator.clipboard.write([item]).then(() => {
@@ -183,7 +354,7 @@
         }
 
         // 初始绘制
-        drawShareImage();
+        drawImage();
     </script>
 </body>
 </html>

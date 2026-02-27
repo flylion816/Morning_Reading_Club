@@ -124,30 +124,109 @@ def generate_share_image():
 
     return img
 
+def generate_default_image():
+    """
+    生成首页分享图 - 清晨日出主题
+    背景色从深靛蓝夜色 (#1a1a2e) 渐变到暖橙晨光 (#e56c21)
+    """
+    width, height = 1080, 1080
+    img = Image.new('RGB', (width, height), '#1a1a2e')
+    draw = ImageDraw.Draw(img)
+
+    # 渐变：从顶部深靛蓝 → 底部暖橙（由上至下）
+    for y in range(height):
+        t = y / height
+        # 顶部 (#1a1a2e) → 底部 (#e56c21)
+        r = int(26 + (229 - 26) * t)
+        g = int(26 + (108 - 26) * t)
+        b = int(46 + (33 - 46) * t)
+        draw.line([(0, y), (width, y)], fill=(r, g, b))
+
+    # 装饰：同心圆光晕（中心位置略高于中央，模拟太阳）
+    cx, cy = width // 2, int(height * 0.42)
+
+    # 使用 RGBA 模式绘制半透明圆环
+    for radius, alpha in [(320, 12), (240, 20), (160, 35), (90, 55), (40, 90)]:
+        overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        overlay_draw = ImageDraw.Draw(overlay)
+        overlay_draw.ellipse(
+            [cx - radius, cy - radius, cx + radius, cy + radius],
+            outline=(255, 255, 255, alpha),
+            width=2
+        )
+        img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
+        draw = ImageDraw.Draw(img)
+
+    # 加载字体
+    font_path = find_font()
+    if font_path and os.path.exists(font_path):
+        font_main = ImageFont.truetype(font_path, 180)
+        font_sub = ImageFont.truetype(font_path, 38)
+    else:
+        font_main = ImageFont.load_default()
+        font_sub = ImageFont.load_default()
+
+    # 主标题：「凡人晨读营」
+    chars = list('凡人晨读营')
+    char_w = 220  # 每个字的占位宽度
+    total_w = char_w * len(chars)
+    start_x = (width - total_w) // 2 + char_w // 2
+    text_y = int(height * 0.62)
+
+    for i, ch in enumerate(chars):
+        x = start_x + i * char_w
+        # 绘制阴影
+        draw.text((x + 3, text_y + 4), ch, fill=(0, 0, 0, 80), font=font_main, anchor='mm')
+        # 绘制主文字
+        draw.text((x, text_y), ch, fill=(255, 255, 255), font=font_main, anchor='mm')
+
+    # 分隔线
+    line_y = int(height * 0.77)
+    draw.line(
+        [(width // 2 - 240, line_y), (width // 2 + 240, line_y)],
+        fill=(255, 255, 255),
+        width=2
+    )
+
+    # 副标题
+    subtitle = '在晨光中，遇见更好的自己'
+    sub_y = int(height * 0.85)
+    draw.text((width // 2, sub_y), subtitle, fill=(255, 240, 210), font=font_sub, anchor='mm')
+
+    return img
+
 def main():
     try:
-        print("🎨 生成小凡看见分享图片...")
-
-        img = generate_share_image()
+        print("🎨 生成分享图片...")
 
         # 确定输出目录
         base_dir = os.path.dirname(os.path.abspath(__file__))
         assets_dir = os.path.join(base_dir, "miniprogram", "assets", "images")
-        output_path = os.path.join(assets_dir, "share-insight.png")
 
         # 创建目录
         os.makedirs(assets_dir, exist_ok=True)
 
-        # 保存图片
-        img.save(output_path, "PNG")
+        # 生成 share-insight.png（小凡看见 - 蓝色系）
+        print("\n📱 生成小凡看见分享图 (share-insight.png)...")
+        img1 = generate_share_image()
+        path1 = os.path.join(assets_dir, "share-insight.png")
+        img1.save(path1, "PNG")
+        size1 = os.path.getsize(path1) / 1024
+        print(f"✅ 已生成: {path1}")
+        print(f"   尺寸: 1080x1080 px | 大小: {size1:.2f} KB")
 
-        # 获取文件大小
-        file_size = os.path.getsize(output_path) / 1024
+        # 生成 share-default.png（首页 - 清晨日出主题）
+        print("\n🌅 生成首页分享图 (share-default.png)...")
+        img2 = generate_default_image()
+        path2 = os.path.join(assets_dir, "share-default.png")
+        img2.save(path2, "PNG")
+        size2 = os.path.getsize(path2) / 1024
+        print(f"✅ 已生成: {path2}")
+        print(f"   尺寸: 1080x1080 px | 大小: {size2:.2f} KB")
 
-        print(f"✅ 分享图片已生成: {output_path}")
-        print(f"📐 尺寸: 1080x1080 px")
-        print(f"💾 文件大小: {file_size:.2f} KB")
-        print(f"📝 排版优化: 字间距60px + 行间距大 + 副标题底部")
+        print("\n" + "="*60)
+        print("🎉 所有分享图片生成完成！")
+        print("="*60)
 
     except Exception as e:
         print(f"❌ 生成失败: {str(e)}")
