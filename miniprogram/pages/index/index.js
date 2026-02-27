@@ -13,6 +13,11 @@ Page({
     // 期次列表
     periods: [],
     periodEnrollmentStatus: {}, // 记录每个期次的报名状态
+    defaultEnrollmentStatus: {
+      isEnrolled: false,
+      paymentStatus: null,
+      enrollmentId: null
+    },
     loading: true,
     refreshing: false,
 
@@ -123,12 +128,23 @@ Page({
         return dateB - dateA; // 倒序（最新的在前）
       });
 
+      // 初始化所有期次的默认报名状态（避免 undefined）
+      const initialStatusMap = {};
+      periods.forEach(period => {
+        initialStatusMap[period._id] = {
+          isEnrolled: false,
+          paymentStatus: null,
+          enrollmentId: null
+        };
+      });
+
       this.setData({
         periods,
+        periodEnrollmentStatus: initialStatusMap,
         loading: false
       });
 
-      // 如果已登录，检查每个期次的报名状态
+      // 如果已登录，检查每个期次的报名状态（异步更新）
       if (this.data.isLogin) {
         console.log('首页加载期次后，检查报名状态');
         this.checkEnrollmentStatus(periods);

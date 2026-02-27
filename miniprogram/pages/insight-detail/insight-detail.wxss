@@ -283,3 +283,97 @@
   font-size: 24rpx;
   color: #ccc;
 }
+
+/* ===== 分享菜单弹窗（开发环境） ===== */
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.share-modal {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 32rpx 32rpx 0 0;
+  z-index: 1001;
+  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+.modal-header {
+  padding: 32rpx 32rpx 24rpx;
+  text-align: center;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.share-options {
+  padding: 16rpx 0;
+}
+
+.share-option {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  transition: all 0.2s;
+}
+
+.share-option:active {
+  background: #f9f9f9;
+}
+
+.option-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+  width: 64rpx;
+  text-align: center;
+}
+
+.option-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.option-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.option-desc {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.option-arrow {
+  font-size: 32rpx;
+  color: #ccc;
+  margin-left: 16rpx;
+}
+
+.modal-cancel {
+  padding: 20rpx 32rpx;
+  margin-top: 12rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 16rpx 16rpx 0 0;
+  margin-left: 0;
+  margin-right: 0;
+}

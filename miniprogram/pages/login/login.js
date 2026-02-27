@@ -8,6 +8,10 @@ Page({
     loading: false,
     agreePolicy: false, // 是否同意隐私政策和用户协议
     isDev: envConfig.currentEnv === 'dev', // 是否为开发环境
+    errorMessage: '', // 错误信息
+    debugInfo: '', // 调试信息（用于线上问题诊断）
+    showDebugInfo: envConfig.currentEnv !== 'prod', // 是否显示调试信息（生产环境隐藏）
+    apiBase: envConfig.apiBaseUrl, // API 地址（用于调试）
     testUsers: [
       { code: 'test_user_atai', label: '阿泰', openid: 'mock_user_001' },
       { code: 'test_user_liming', label: '狮子', openid: 'mock_user_002' },
@@ -17,6 +21,7 @@ Page({
   },
 
   onLoad(options) {
+    console.log('🔴🔴🔴 LOGIN.JS PAGE LOADED 🔴🔴🔴', options);
     console.log('登录页面加载', options);
     console.log('✅ 开发环境检查 isDev:', this.data.isDev);
     console.log('✅ 当前环境:', envConfig.currentEnv);
@@ -101,6 +106,7 @@ Page({
 
     try {
       console.log('开始获取用户信息...');
+      this.setData({ errorMessage: '', debugInfo: '正在获取用户信息...' });
 
       // 1. 必须在点击事件中同步调用getUserProfile
       const userInfo = await new Promise((resolve, reject) => {
@@ -118,6 +124,7 @@ Page({
       });
 
       console.log('用户信息获取完成，开始登录...');
+      this.setData({ debugInfo: '正在调用登录API: ' + envConfig.apiBaseUrl });
 
       // 2. 调用真实登录（开发环境会自动生成mock code）
       const loginData = await authService.wechatLogin(userInfo);
@@ -126,12 +133,43 @@ Page({
     } catch (error) {
       console.error('登录失败:', error);
       this.setData({ loading: false });
+
+      // 生成详细的错误信息
       let errorMessage = '登录失败，请稍后重试';
+      let debugInfo = '';
+
       if (error.errMsg) {
         if (error.errMsg.includes('cancel')) {
           errorMessage = '你取消了登录';
+        } else if (error.errMsg.includes('timeout')) {
+          errorMessage = '请求超时，请检查网络';
+          debugInfo = '错误: 网络超时 (>10秒)';
+        } else if (error.errMsg.includes('fail')) {
+          errorMessage = '网络连接失败';
+          debugInfo = '错误: ' + error.errMsg;
         }
       }
+
+      // 如果是 API 错误响应
+      if (error.message) {
+        debugInfo = 'API错误: ' + error.message;
+      }
+
+      // 记录完整错误信息
+      console.error('[LOGIN_ERROR]', {
+        errorMessage,
+        debugInfo,
+        fullError: error,
+        timestamp: new Date().toISOString(),
+        env: envConfig.currentEnv,
+        apiBase: envConfig.apiBaseUrl
+      });
+
+      this.setData({
+        errorMessage: errorMessage,
+        debugInfo: debugInfo || '请联系管理员或检查网络连接'
+      });
+
       wx.showToast({
         title: errorMessage,
         icon: 'none',
@@ -147,10 +185,11 @@ Page({
     if (this.data.loading) return;
 
     const { testUser } = e.currentTarget.dataset;
-    this.setData({ loading: true });
+    this.setData({ loading: true, errorMessage: '', debugInfo: '正在登录: ' + testUser.label });
 
     try {
       console.log('快速登录测试账户:', testUser.label);
+      this.setData({ debugInfo: '调用API: POST ' + envConfig.apiBaseUrl + '/auth/wechat/login' });
 
       // 调用后端登录API，使用预定义的test code
       const loginData = await authService.login(testUser.code, {
@@ -163,9 +202,18 @@ Page({
       this.completeLogin(loginData);
     } catch (error) {
       console.error('快速登录失败:', error);
-      this.setData({ loading: false });
+
+      let errorMessage = '快速登录失败';
+      let debugInfo = '错误信息: ' + (error.message || JSON.stringify(error));
+
+      this.setData({
+        loading: false,
+        errorMessage: errorMessage,
+        debugInfo: debugInfo
+      });
+
       wx.showToast({
-        title: '快速登录失败，请重试',
+        title: errorMessage,
         icon: 'none',
         duration: 2000
       });

@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const env = require('../../config/env');
 
 /**
  * 将纯文本转换为HTML格式
@@ -31,20 +32,7 @@ Page({
     insightId: null,
     insight: {},
     showShareModal: false,
-    showShareSuccess: false,
-    shareSuccessInfo: {},
-    // 虚拟好友数据
-    virtualFriend: {
-      name: '虚拟好友',
-      avatar:
-        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNFOEVFRjEiLz48Y2lyY2xlIGN4PSIzMiIgY3k9IjIyIiByPSI4IiBmaWxsPSIjOUI4QUYzIi8+PHBhdGggZD0iTSAxNiAzOCBDIDE2IDM0IDE5IDMxIDMyIDMxIEMgNDUgMzEgNDggMzQgNDggMzggTCA0OCA0NiBDIDQ4IDQ4IDQ2IDUwIDMyIDUwIEMgMTggNTAgMTYgNDggMTYgNDYgWiIgZmlsbD0iIzlCOEFGMyIvPjwvc3ZnPg=='
-    },
-    // 微信好友数据
-    wechatFriend: {
-      name: '微信好友',
-      avatar:
-        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMwOUI4MzAiLz48cGF0aCBkPSJNIDMyIDEwIEMgMjAgMTAgMTAgMjAgMTAgMzIgQyAxMCA0MiAxNyA1MCAxNSA1OCBDIDEzIDU4IDE0IDQ2IDExIDQyIEMgOCA0MCA2IDM2IDYgMzIgQyA2IDIwIDE3IDEwIDMyIDEwIFoiIGZpbGw9IiNGRkZGRkYiIiBvcGFjaXR5PSIwLjMiLz48L3N2Zz4='
-    }
+    isDev: env.currentEnv === 'dev'
   },
 
   onLoad(options) {
@@ -80,73 +68,62 @@ Page({
   },
 
   /**
-   * 自定义转发弹窗
+   * 打开分享菜单（仅在开发环境）
    */
-  handleCustomShare() {
+  openShareMenu() {
+    if (!this.data.isDev) return;
     this.setData({ showShareModal: true });
   },
 
   /**
-   * 关闭转发弹窗
+   * 关闭分享菜单
    */
   closeShareModal() {
     this.setData({ showShareModal: false });
   },
 
   /**
-   * 转发给虚拟好友（开发环境模拟）
+   * 分享到微信好友（在菜单中选择时）
    */
-  handleShareToVirtualFriend() {
-    const { virtualFriend } = this.data;
-
-    // 显示转发成功提示
-    this.setData({
-      showShareSuccess: true,
-      shareSuccessInfo: {
-        name: virtualFriend.name,
-        avatar: virtualFriend.avatar
-      },
-      showShareModal: false
-    });
-
-    // 2秒后自动隐藏
-    setTimeout(() => {
-      this.setData({ showShareSuccess: false });
-    }, 2000);
-
-    console.log('✅ 已分享给虚拟好友');
-  },
-
-  /**
-   * 转发给微信好友（调用真实微信接口）
-   */
-  handleShareToWechat() {
-    // 关闭弹窗
-    this.setData({ showShareModal: false });
-
-    // 触发系统的转发菜单
-    this.triggerWechatShare();
-  },
-
-  /**
-   * 触发微信系统转发
-   */
-  triggerWechatShare() {
+  shareToWechatFriend() {
+    this.closeShareModal();
     const { insight } = this.data;
 
-    // 在真实微信环境中，调用 wx.shareAppMessage() 的参数
-    const shareData = {
+    wx.shareAppMessage({
       title: `${insight.title || '晨读营'} - 小凡看见`,
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
-      imageUrl: '/assets/images/share-insight.png'
-    };
-
-    // 通过 wx.shareAppMessage 分享到微信好友
-    wx.shareAppMessage(shareData);
+      imageUrl: '/assets/images/share-insight.png',
+      success() {
+        wx.showToast({ title: '分享成功', icon: 'success' });
+      },
+      fail() {
+        wx.showToast({ title: '分享失败', icon: 'none' });
+      }
+    });
   },
 
   /**
-   * 分享到微信好友和朋友圈（系统默认）
+   * 分享到虚拟好友（仅在开发环境）
+   */
+  shareToVirtualFriend() {
+    this.closeShareModal();
+    const { insight } = this.data;
+
+    // 模拟分享成功
+    wx.showToast({
+      title: '已分享给虚拟好友',
+      icon: 'success',
+      duration: 2000
+    });
+
+    console.log('虚拟好友分享:', {
+      title: `${insight.title || '晨读营'} - 小凡看见`,
+      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`
+    });
+  },
+
+  /**
+   * 分享到微信好友（系统原生分享）
    */
   onShareAppMessage() {
     const { insight } = this.data;

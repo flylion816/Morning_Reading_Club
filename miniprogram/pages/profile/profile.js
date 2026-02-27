@@ -3,6 +3,7 @@ const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
+const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 
 Page({
@@ -45,21 +46,53 @@ Page({
   },
 
   onLoad(options) {
+    console.log('🟢🟢🟢 PROFILE.JS ONLOAD CALLED 🟢🟢🟢', options);
     console.log('个人中心加载', options);
+
+    // 检查登录状态，未登录则跳转到登录页
+    const app = getApp();
+    if (!app.globalData.isLogin) {
+      console.log('未登录，跳转到登录页');
+      wx.reLaunch({
+        url: '/pages/login/login'
+      });
+      return;
+    }
+
     this.checkLoginStatus();
   },
 
   onShow() {
+    console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
     // 每次显示时刷新数据
     const app = getApp();
     const isLogin = app.globalData.isLogin;
 
+    // ⭐ 改进：检查 token 是否存在，而不仅仅依赖 globalData.isLogin
+    // 因为 globalData 可能被重置，但 token 仍然有效
+    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
+
+    if (!token || !userInfo) {
+      console.log('⚠️ onShow: token或userInfo不存在，跳转到登录页');
+      wx.reLaunch({
+        url: '/pages/login/login'
+      });
+      return;
+    }
+
+    // token 存在，更新 globalData 并继续
+    if (!isLogin) {
+      console.log('🔄 onShow: 恢复登录状态 (token存在但globalData.isLogin为false)');
+      app.globalData.isLogin = true;
+      app.globalData.userInfo = userInfo;
+      app.globalData.token = token;
+    }
+
     this.checkLoginStatus();
 
-    // 直接使用app.globalData.isLogin判断，避免setData异步问题
-    if (isLogin) {
-      this.loadUserData();
-    }
+    // 刷新用户数据
+    this.loadUserData();
   },
 
   onPullDownRefresh() {
@@ -141,11 +174,32 @@ Page({
 
       // 获取用户报名的期次ID列表
       const enrollmentList = userEnrollments.list || userEnrollments || [];
-      const enrolledPeriodIds = enrollmentList
-        .filter(e => e.status === 'active' || e.status === 'completed')
-        .map(e => e.periodId?._id || e.periodId);
+      console.log('📋 原始enrollmentList:', enrollmentList);
+      console.log('📋 enrollmentList长度:', enrollmentList.length);
+      if (enrollmentList.length > 0) {
+        console.log('📋 第一个enrollment:', enrollmentList[0]);
+        console.log('📋 第一个enrollment的status:', enrollmentList[0].status);
+      }
+      console.log('🔍 开始筛选报名期次...');
+      console.log('enrollmentList长度:', enrollmentList.length);
 
-      console.log('👤 用户已报名的期次:', enrolledPeriodIds);
+      const enrolledPeriodIds = enrollmentList
+        .filter(e => {
+          console.log('  检查enrollment:', {
+            status: e.status,
+            periodId: e.periodId,
+            isActive: e.status === 'active' || e.status === 'completed'
+          });
+          return e.status === 'active' || e.status === 'completed';
+        })
+        .map(e => {
+          const id = e.periodId?._id || e.periodId;
+          console.log('  提取periodId:', id);
+          return id;
+        });
+
+      console.log('👤 用户已报名的期次ID列表:', enrolledPeriodIds);
+      console.log('👤 期次ID列表长度:', enrolledPeriodIds.length);
 
       let currentPeriod = null;
       const today = new Date();
@@ -241,15 +295,33 @@ Page({
               isCheckedIn: taskRes.isCheckedIn || sectionRes.isCheckedIn || false
             };
 
+            // ⭐ 关键修复：直接从 periodsList 中根据 todaySection.periodId 找到对应的期次
+            // 而不是依赖 enrollmentList（可能为空或不完整）
+            if (taskRes.periodId && periodsList.length > 0) {
+              console.log('🔍 从periodsList中查找期次，periodId:', taskRes.periodId);
+              const foundPeriod = periodsList.find(
+                p => p._id === taskRes.periodId || p.id === taskRes.periodId
+              );
+              if (foundPeriod) {
+                currentPeriod = foundPeriod;
+                console.log(
+                  '✅ 直接从periodsList中找到当前期次:',
+                  foundPeriod.name || foundPeriod.title
+                );
+              } else {
+                console.log('⚠️ 在periodsList中未找到期次，periodId:', taskRes.periodId);
+              }
+            }
+
             // 计算进度：0% 未打卡，100% 已打卡
             todaySection.progress = todaySection.isCheckedIn ? 100 : 0;
 
             // 设置封面样式
             if (!todaySection.coverColor) {
-              todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+              todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
             }
             if (!todaySection.coverEmoji) {
-              todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+              todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
             }
 
             // 处理subtitle：移除末尾的"至"
@@ -280,13 +352,13 @@ Page({
 
               if (todaySection) {
                 if (!todaySection.coverColor) {
-                  todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+                  todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
                 }
                 if (!todaySection.coverEmoji) {
-                  todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+                  todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
                 }
                 todaySection.periodId = periodId;
-                todaySection.periodTitle = currentPeriod.title;
+                todaySection.periodTitle = currentPeriod?.title;
 
                 // 确保包含isCheckedIn状态
                 if (todaySection.isCheckedIn === undefined) {
@@ -327,13 +399,13 @@ Page({
 
             if (todaySection) {
               if (!todaySection.coverColor) {
-                todaySection.coverColor = currentPeriod.coverColor || '#4a90e2';
+                todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
               }
               if (!todaySection.coverEmoji) {
-                todaySection.coverEmoji = currentPeriod.coverEmoji || '🏔️';
+                todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
               }
               todaySection.periodId = periodId;
-              todaySection.periodTitle = currentPeriod.title;
+              todaySection.periodTitle = currentPeriod?.title;
 
               // 确保包含isCheckedIn状态
               if (todaySection.isCheckedIn === undefined) {
@@ -374,6 +446,15 @@ Page({
 
       console.log('setData前的recentInsights:', recentInsights);
       console.log('setData前的recentInsights长度:', recentInsights.length);
+
+      // 🔴 关键诊断日志
+      console.log('🔴🔴🔴 FINAL CHECK BEFORE SETDATA 🔴🔴🔴');
+      console.log('currentPeriod:', currentPeriod);
+      console.log('currentPeriod._id:', currentPeriod?._id);
+      console.log('currentPeriod.name:', currentPeriod?.name);
+      console.log('todaySection:', todaySection);
+      console.log('todaySection._id:', todaySection?._id);
+      console.log('todaySection.title:', todaySection?.title);
 
       this.setData(
         {
