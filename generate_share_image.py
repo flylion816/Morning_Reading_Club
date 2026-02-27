@@ -182,7 +182,7 @@ def generate_default_image():
               fill=(255, 255, 255), font=font_main, anchor='mm')
 
     # ====== 分隔线 ======
-    line_y = title_y + 120  # 主标题下方 120px
+    line_y = title_y + 150  # 主标题下方 150px（下移）
     draw.line(
         [(width // 2 - 240, line_y), (width // 2 + 240, line_y)],
         fill=(255, 255, 255),
@@ -191,7 +191,7 @@ def generate_default_image():
 
     # ====== 副标题：「每天晨读 · 遇见更好的自己」横排 ======
     subtitle = '每天晨读 · 遇见更好的自己'
-    sub_y = line_y + 70  # 分隔线下方 70px
+    sub_y = line_y + 90  # 分隔线下方 90px（下移）
 
     # 绘制阴影
     draw.text((width // 2 + 2, sub_y + 2), subtitle,
