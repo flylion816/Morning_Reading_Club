@@ -62,7 +62,7 @@ def generate_share_image():
     # 第一行：小凡（每个字单独绘制，增加字间距）
     text1_1 = "小"
     text1_2 = "凡"
-    char_spacing = 60  # 字间距
+    char_spacing = 200  # 字间距（220px字体需要更大的间距）
 
     # 小凡 - 第一行
     y_line1 = height / 2 - 180
