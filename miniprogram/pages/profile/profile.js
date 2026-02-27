@@ -1008,10 +1008,8 @@ Page({
    * 分享
    */
   onShareAppMessage() {
-    const { userInfo } = this.data;
-
     return {
-      title: `${userInfo?.nickname || '我'}邀请你一起晨读`,
+      title: '邀请您加入凡人晨读营',
       path: '/pages/index/index',
       imageUrl: '/assets/images/share-default.png'
     };
@@ -1022,7 +1020,7 @@ Page({
    */
   onShareTimeline() {
     return {
-      title: '晨读营 - 在晨光中,遇见更好的自己',
+      title: '邀请您加入凡人晨读营',
       query: '',
       imageUrl: '/assets/images/share-default.png'
     };

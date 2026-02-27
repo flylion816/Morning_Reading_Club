@@ -387,7 +387,7 @@ Page({
    */
   onShareAppMessage() {
     return {
-      title: '凡人晨读营 - 在晨光中,遇见更好的自己',
+      title: '邀请您加入凡人晨读营',
       path: '/pages/index/index',
       imageUrl: '/assets/images/share-default.png'
     };
@@ -398,7 +398,7 @@ Page({
    */
   onShareTimeline() {
     return {
-      title: '晨读营 - 在晨光中,遇见更好的自己',
+      title: '邀请您加入凡人晨读营',
       query: '',
       imageUrl: '/assets/images/share-default.png'
     };
