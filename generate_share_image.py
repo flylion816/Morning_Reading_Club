@@ -73,8 +73,8 @@ def generate_share_image():
     text1_2 = "凡"
     char_spacing = 360  # 字间距（290px字体需要更大的间距）
 
-    # 小凡 - 第一行
-    y_line1 = height / 2 - 180
+    # 小凡 - 第一行（往上挪）
+    y_line1 = height / 2 - 240
 
     x_char1 = center_x - char_spacing / 2
     x_char2 = center_x + char_spacing / 2
@@ -108,8 +108,8 @@ def generate_share_image():
     draw.text((x_char2, y_line2), text2_2,
               fill=(255, 255, 255), font=font_main, anchor="mm")
 
-    # ====== 下方：装饰线 ======
-    line_y = y_line2 + 180
+    # ====== 下方：装饰线 ======（往下挪）
+    line_y = y_line2 + 250
     line_left = width / 2 - 150
     line_right = width / 2 + 150
     draw.line([(line_left, line_y), (line_right, line_y)],
