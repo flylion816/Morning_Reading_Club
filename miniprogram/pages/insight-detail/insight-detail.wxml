@@ -19,45 +19,6 @@
   <!-- 底部按钮 -->
   <view class="action-buttons">
     <button class="btn-back" bindtap="handleBack">返回</button>
-    <button class="btn-share" bindtap="handleCustomShare">分享这个看见</button>
-  </view>
-
-  <!-- 转发选择弹窗 -->
-  <view class="share-modal" wx:if="{{showShareModal}}" bindtap="closeShareModal">
-    <view class="share-modal-content" catchtap>
-      <view class="share-modal-title">发送给：</view>
-
-      <!-- 虚拟好友 -->
-      <view class="share-friend-item" bindtap="handleShareToVirtualFriend">
-        <image class="friend-avatar" src="{{virtualFriend.avatar}}" />
-        <view class="friend-info">
-          <view class="friend-name">{{virtualFriend.name}}</view>
-          <view class="friend-desc">虚拟好友</view>
-        </view>
-        <view class="friend-arrow">›</view>
-      </view>
-
-      <!-- 真实好友 (如果需要) -->
-      <view class="share-friend-item" bindtap="handleShareToWechat">
-        <image class="friend-avatar" src="{{wechatFriend.avatar}}" />
-        <view class="friend-info">
-          <view class="friend-name">{{wechatFriend.name}}</view>
-          <view class="friend-desc">微信好友</view>
-        </view>
-        <view class="friend-arrow">›</view>
-      </view>
-
-      <view class="share-modal-cancel" bindtap="closeShareModal">取消</view>
-    </view>
-  </view>
-
-  <!-- 转发成功提示 -->
-  <view class="share-success-modal" wx:if="{{showShareSuccess}}">
-    <view class="success-content">
-      <image src="{{shareSuccessInfo.avatar}}" class="success-avatar" />
-      <view class="success-text">成功分享给</view>
-      <view class="success-name">{{shareSuccessInfo.name}}</view>
-      <view class="success-hint">对方可以查看你的学习反馈</view>
-    </view>
+    <button class="btn-share" open-type="share">分享给微信好友</button>
   </view>
 </view>
