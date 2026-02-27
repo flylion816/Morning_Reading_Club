@@ -1,44 +1,7 @@
 <!--个人中心页面-->
 <view class="page-profile">
-  <!-- 未登录状态 - 显示完整登录界面 -->
-  <view class="login-container" wx:if="{{!isLogin}}">
-    <!-- Logo和标题 -->
-    <view class="login-header">
-      <view class="logo">📚</view>
-      <text class="app-title">《高效能人士的七个习惯》</text>
-      <text class="app-title-second">凡人晨读营</text>
-      <text class="app-slogan">一个早起、读书、谈心的地方</text>
-      <!-- <text class="app-slogan-extra">在这里，我们一起</text>
-      <text class="app-slogan-extra">观心，谈心，用心，修心，明心</text> -->
-    </view>
-
-    <!-- 登录卡片 -->
-    <view class="login-card">
-      <view class="card-title">明理实修，同见同行</view>
-      <view class="card-desc">我们一起观心，谈心，用心，修心，明心</view>
-
-      <!-- 登录按钮 -->
-      <button
-        class="wechat-login-btn {{loading ? 'loading' : ''}}"
-        bindtap="handleWechatLogin"
-        disabled="{{loading}}"
-      >
-        <text wx:if="{{!loading}}">微信一键登录</text>
-        <text wx:else>登录中...</text>
-      </button>
-
-      <!-- 用户协议 -->
-      <view class="agreement">
-        <text class="agreement-text">登录即表示同意</text>
-        <text class="agreement-link">《用户协议》</text>
-        <text class="agreement-text">和</text>
-        <text class="agreement-link">《隐私政策》</text>
-      </view>
-    </view>
-  </view>
-
   <!-- 已登录状态 - 显示主页内容 -->
-  <view class="user-content" wx:else>
+  <view class="user-content">
     <!-- 顶部横幅 -->
     <view class="home-banner">
       <view class="user-avatar-container" bindtap="openEditProfile">
