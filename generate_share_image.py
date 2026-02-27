@@ -111,7 +111,7 @@ def generate_share_image():
 
     # ====== 最下方：副标题 - 往上挪一些 ======
     subtitle_text = "在晨光中，遇见更好的自己"
-    subtitle_y = height - 100 - offset_y - 50  # 再往上挪50px，但保持底部间距
+    subtitle_y = height - 100 - offset_y - 80  # 再往上挪80px，但保持底部间距
     draw.text((center_x, subtitle_y), subtitle_text,
               fill=(255, 255, 255, 200), font=font_subtitle, anchor="mm")
 
