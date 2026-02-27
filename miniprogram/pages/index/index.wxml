@@ -21,7 +21,7 @@
       <course-card
         course="{{item}}"
         mode="period"
-        enrolled="{{periodEnrollmentStatus[item._id] || {isEnrolled: false, paymentStatus: null, enrollmentId: null}}}"
+        enrolled="{{periodEnrollmentStatus[item._id]}}"
       />
 
       <!-- 报名状态标签 -->

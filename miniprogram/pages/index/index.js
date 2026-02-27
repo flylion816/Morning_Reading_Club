@@ -13,6 +13,11 @@ Page({
     // 期次列表
     periods: [],
     periodEnrollmentStatus: {}, // 记录每个期次的报名状态
+    defaultEnrollmentStatus: {
+      isEnrolled: false,
+      paymentStatus: null,
+      enrollmentId: null
+    },
     loading: true,
     refreshing: false,
 
