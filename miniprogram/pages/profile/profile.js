@@ -1160,6 +1160,11 @@ Page({
 
         // 关闭对话框
         this.setData({ showEditProfile: false });
+
+        // 延迟 500ms 后刷新页面数据，确保签名等信息立即显示
+        setTimeout(() => {
+          this.loadUserData();
+        }, 500);
       } else {
         wx.showToast({
           title: '保存失败，请重试',
