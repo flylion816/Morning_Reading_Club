@@ -81,13 +81,11 @@ Page({
       return;
     }
 
-    // token 存在，更新 globalData 并继续
-    if (!isLogin) {
-      console.log('🔄 onShow: 恢复登录状态 (token存在但globalData.isLogin为false)');
-      app.globalData.isLogin = true;
-      app.globalData.userInfo = userInfo;
-      app.globalData.token = token;
-    }
+    // token 存在，总是更新 globalData（确保最新的 userInfo）
+    console.log('🔄 onShow: 更新 globalData（确保使用最新的 userInfo）');
+    app.globalData.isLogin = true;
+    app.globalData.userInfo = userInfo;
+    app.globalData.token = token;
 
     this.checkLoginStatus();
 

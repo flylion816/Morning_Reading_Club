@@ -75,6 +75,7 @@ class AuthService {
           id: 1,
           nickname: userInfo.nickName || '晨读营用户',
           avatar: '🦁',
+          avatarUrl: userInfo.avatarUrl || null, // 添加 avatarUrl 字段
           signature: '天天开心，觉知当下！'
         }
       };
