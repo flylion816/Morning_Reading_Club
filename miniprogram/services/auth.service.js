@@ -106,8 +106,8 @@ class AuthService {
       let code;
 
       if (envConfig.currentEnv === 'dev') {
-        // 开发环境使用mock code（后端wechatService会检测并处理）
-        code = 'mock_code_' + Date.now();
+        // 开发环境使用固定的mock code（后端会通过MD5哈希生成一致的openid）
+        code = 'mock_code_dev';
         logger.debug('开发环境使用mock code:', code);
       } else {
         // 生产环境获取真实code
