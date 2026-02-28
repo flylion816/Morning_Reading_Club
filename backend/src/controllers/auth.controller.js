@@ -75,10 +75,9 @@ async function wechatLogin(req, res, next) {
         user.avatarUrl = avatarUrl;
       }
 
-      // 如果提供了昵称，更新昵称
-      if (nickname) {
-        user.nickname = nickname;
-      }
+      // ⚠️ 重要：既有用户不应该用微信昵称覆盖自定义昵称
+      // 只有新用户才使用微信昵称作为初始值
+      // 用户应该在个人页面编辑自己的昵称，登录不应该重置它
 
       await user.save();
 
