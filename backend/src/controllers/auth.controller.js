@@ -75,9 +75,23 @@ async function wechatLogin(req, res, next) {
         user.avatarUrl = avatarUrl;
       }
 
-      // ⚠️ 重要：既有用户不应该用微信昵称覆盖自定义昵称
-      // 只有新用户才使用微信昵称作为初始值
-      // 用户应该在个人页面编辑自己的昵称，登录不应该重置它
+      // ⚠️ 重要修复：既有用户的昵称保护机制
+      // 防止微信返回的默认昵称（如"微信用户"）覆盖自定义昵称
+      // 只在以下情况更新昵称：
+      // 1. 用户昵称为空或是默认值（如"晨读营用户"、"微信用户"）
+      // 2. 且前端提供了真实的用户昵称
+      const defaultNicknames = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
+      const isDefaultNickname = !user.nickname || defaultNicknames.includes(user.nickname);
+
+      if (isDefaultNickname && nickname && !defaultNicknames.includes(nickname)) {
+        // 如果当前昵称是默认值，且前端提供了真实昵称，才更新
+        user.nickname = nickname;
+        logger.info('更新既有用户昵称（从默认值）', {
+          userId: user._id,
+          oldNickname: user.nickname,
+          newNickname: nickname
+        });
+      }
 
       await user.save();
 
