@@ -11,8 +11,14 @@ set -e
 
 # 配置
 BACKEND_PATH="/var/www/morning-reading/backend"
-APP_NAME="morning-reading-api"
+APP_NAME="morning-reading-backend"
 LOG_DIR="/var/www/morning-reading/logs"
+
+# PM2 命令（优先使用全局，否则用 npx）
+PM2_CMD="pm2"
+if ! command -v pm2 >/dev/null 2>&1; then
+  PM2_CMD="npx -y pm2"
+fi
 
 # 颜色输出
 RED='\033[0;31m'
@@ -69,22 +75,22 @@ npm install --production 2>&1 | grep -E "(added|up to date)" || true
 
 # 4. 检查 PM2 状态
 log_info "检查 PM2 应用状态..."
-if pm2 describe "$APP_NAME" > /dev/null 2>&1; then
+if $PM2_CMD describe "$APP_NAME" > /dev/null 2>&1; then
   log_success "PM2 应用存在: $APP_NAME"
 
   # 5. 执行零停机重载
   log_info "执行零停机重载 (pm2 reload)..."
-  pm2 reload "$APP_NAME" --update-env
+  $PM2_CMD reload "$APP_NAME" --update-env
 
   sleep 2
 
   # 6. 检查重载结果
   log_info "检查重启后状态..."
-  if pm2 describe "$APP_NAME" | grep -q "online"; then
+  if $PM2_CMD describe "$APP_NAME" | grep -q "online"; then
     log_success "后端服务已成功重启，状态: online"
   else
     log_warning "后端服务状态异常，请手动检查"
-    pm2 describe "$APP_NAME"
+    $PM2_CMD describe "$APP_NAME"
     exit 1
   fi
 else
@@ -92,7 +98,7 @@ else
   log_info "尝试使用 PM2 启动服务..."
 
   if [ -f "pm2.config.js" ]; then
-    pm2 start pm2.config.js
+    $PM2_CMD start pm2.config.js --env production
     log_success "服务已启动"
   else
     log_error "pm2.config.js 文件不存在"
@@ -102,11 +108,11 @@ fi
 
 # 7. 显示详细状态
 log_info "详细状态信息："
-pm2 show "$APP_NAME" | grep -E "(status|memory|cpu|uptime)" | sed 's/^/  /'
+$PM2_CMD show "$APP_NAME" | grep -E "(status|memory|cpu|uptime)" | sed 's/^/  /'
 
 # 8. 显示最近日志
 log_info "最近日志（最后10行）:"
-if pm2 logs "$APP_NAME" --lines 10 --nostream 2>/dev/null | head -10 | sed 's/^/  /'; then
+if $PM2_CMD logs "$APP_NAME" --lines 10 --nostream 2>/dev/null | head -10 | sed 's/^/  /'; then
   :
 else
   log_warning "无法显示日志"
