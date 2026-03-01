@@ -16,7 +16,7 @@
 # 7. 本地清理临时文件
 ################################################################################
 
-set -e
+# 注意：不使用 set -e，允许脚本继续执行以显示所有步骤
 
 ################################################################################
 # 配置
@@ -31,11 +31,11 @@ SERVER_SCRIPTS_DIR="$PROJECT_ROOT/scripts/server"
 # 服务器配置
 SERVER_IP="118.25.145.179"
 SERVER_USER="ubuntu"
-SERVER_PASSWORD="!X2aZaxXvGO@Ud"
+SSH_KEY="$HOME/.ssh/id_rsa"  # SSH 密钥认证（推荐，比密码更安全）
 SERVER_BACKEND_PATH="/var/www/morning-reading/backend"
 SERVER_ADMIN_PATH="/var/www/morning-reading/admin/dist"
 SERVER_ROOT="/var/www/morning-reading"
-PM2_APP_NAME="morning-reading-api"
+PM2_APP_NAME="morning-reading-backend"
 
 # 打包配置
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -186,17 +186,26 @@ build_admin() {
 create_server_backup() {
   log_section "在服务器上创建备份"
 
-  local backup_cmd="mkdir -p /var/www && cp -r /var/www/morning-reading /var/www/morning-reading_bak_${TIMESTAMP}"
-
   log_info "服务器: $SERVER_IP"
-  log_info "备份命令: $backup_cmd"
 
-  if sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "$backup_cmd" 2>/dev/null; then
-    log_success "服务器备份完成: /var/www/morning-reading_bak_${TIMESTAMP}"
+  # 检查目录是否存在
+  if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "[ -d /var/www/morning-reading ]" 2>/dev/null; then
+    log_info "发现现有部署，创建备份..."
+    local backup_cmd="sudo cp -r /var/www/morning-reading /var/www/morning-reading_bak_${TIMESTAMP}"
+
+    if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "$backup_cmd" 2>/dev/null; then
+      log_success "服务器备份完成: /var/www/morning-reading_bak_${TIMESTAMP}"
+    else
+      log_error "服务器备份失败"
+      exit 1
+    fi
   else
-    log_error "服务器备份失败"
-    exit 1
+    log_success "首次部署，无需备份 (目录不存在)"
   fi
+
+  # 确保所有必要的目录存在
+  ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+    "mkdir -p /var/www/morning-reading/{backend,admin}" 2>/dev/null
 }
 
 ################################################################################
@@ -277,7 +286,7 @@ upload_to_server() {
   log_info "本地文件: $local_package"
   log_info "远程位置: $remote_package"
 
-  if sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no "$local_package" "$SERVER_USER@$SERVER_IP:$remote_package" 2>/dev/null; then
+  if scp -i "$SSH_KEY" -o StrictHostKeyChecking=no "$local_package" "$SERVER_USER@$SERVER_IP:$remote_package" 2>/dev/null; then
     log_success "文件上传完成"
   else
     log_error "文件上传失败"
@@ -318,18 +327,23 @@ log_info "解压文件..."
 mkdir -p "$EXTRACT_DIR"
 tar -xzf "$PACKAGE_PATH" -C "$EXTRACT_DIR" --strip-components=1
 
+# 确保目录存在且有正确权限
+sudo mkdir -p "$SERVER_ROOT/backend" "$SERVER_ROOT/admin/dist"
+sudo chown -R ubuntu:ubuntu "$SERVER_ROOT" 2>/dev/null || true
+
 log_info "部署后端..."
 if [ -d "$EXTRACT_DIR/backend" ]; then
-  cp -r "$EXTRACT_DIR/backend/src" "$SERVER_ROOT/backend/"
-  cp -r "$EXTRACT_DIR/backend/package.json" "$SERVER_ROOT/backend/"
-  cp -r "$EXTRACT_DIR/backend/package-lock.json" "$SERVER_ROOT/backend/" 2>/dev/null || true
+  sudo cp -r "$EXTRACT_DIR/backend/src" "$SERVER_ROOT/backend/"
+  sudo cp -r "$EXTRACT_DIR/backend/package.json" "$SERVER_ROOT/backend/"
+  sudo cp -r "$EXTRACT_DIR/backend/package-lock.json" "$SERVER_ROOT/backend/" 2>/dev/null || true
+  sudo cp -r "$EXTRACT_DIR/backend/pm2.config.js" "$SERVER_ROOT/backend/" 2>/dev/null || true
   log_success "后端文件已覆盖"
 fi
 
 log_info "部署管理后台..."
 if [ -d "$EXTRACT_DIR/admin/dist" ]; then
-  rm -rf "$SERVER_ROOT/admin/dist"
-  cp -r "$EXTRACT_DIR/admin/dist" "$SERVER_ROOT/admin/"
+  sudo rm -rf "$SERVER_ROOT/admin/dist"
+  sudo cp -r "$EXTRACT_DIR/admin/dist" "$SERVER_ROOT/admin/"
   log_success "管理后台已覆盖"
 fi
 
@@ -342,10 +356,24 @@ fi
 
 log_info "更新后端依赖..."
 cd "$SERVER_ROOT/backend"
-npm install --production --silent
+npm install --silent
 
 log_info "重启后端服务..."
-pm2 reload "$PM2_APP" --update-env
+# 确定 PM2 命令
+PM2_CMD="pm2"
+if ! command -v pm2 >/dev/null 2>&1; then
+  PM2_CMD="npx -y pm2"
+fi
+
+# 检查应用是否已存在，如果不存在则启动，否则重载
+if $PM2_CMD describe "$PM2_APP" >/dev/null 2>&1; then
+  # 应用已存在，执行重载
+  $PM2_CMD reload "$PM2_APP" --update-env
+else
+  # 应用不存在，使用 pm2.config.js 启动
+  log_info "首次启动应用，使用 pm2.config.js..."
+  $PM2_CMD start pm2.config.js --env production
+fi
 sleep 2
 
 log_info "重载 Nginx..."
@@ -362,7 +390,7 @@ EOF
   # 执行部署脚本
   local ssh_cmd="$deploy_script"
 
-  if sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+  if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
     bash -s "$remote_package" "$temp_extract" "$SERVER_ROOT" "$TIMESTAMP" "$PM2_APP_NAME" <<'SCRIPT'
 #!/bin/bash
 set -e
@@ -385,18 +413,23 @@ log_info "解压文件..."
 mkdir -p "$EXTRACT_DIR"
 tar -xzf "$PACKAGE_PATH" -C "$EXTRACT_DIR" --strip-components=1
 
+# 确保目录存在且有正确权限
+sudo mkdir -p "$SERVER_ROOT/backend" "$SERVER_ROOT/admin/dist"
+sudo chown -R ubuntu:ubuntu "$SERVER_ROOT" 2>/dev/null || true
+
 log_info "部署后端..."
 if [ -d "$EXTRACT_DIR/backend" ]; then
-  cp -r "$EXTRACT_DIR/backend/src" "$SERVER_ROOT/backend/"
-  cp -r "$EXTRACT_DIR/backend/package.json" "$SERVER_ROOT/backend/"
-  cp -r "$EXTRACT_DIR/backend/package-lock.json" "$SERVER_ROOT/backend/" 2>/dev/null || true
+  sudo cp -r "$EXTRACT_DIR/backend/src" "$SERVER_ROOT/backend/"
+  sudo cp -r "$EXTRACT_DIR/backend/package.json" "$SERVER_ROOT/backend/"
+  sudo cp -r "$EXTRACT_DIR/backend/package-lock.json" "$SERVER_ROOT/backend/" 2>/dev/null || true
+  sudo cp -r "$EXTRACT_DIR/backend/pm2.config.js" "$SERVER_ROOT/backend/" 2>/dev/null || true
   log_success "后端文件已覆盖"
 fi
 
 log_info "部署管理后台..."
 if [ -d "$EXTRACT_DIR/admin/dist" ]; then
-  rm -rf "$SERVER_ROOT/admin/dist"
-  cp -r "$EXTRACT_DIR/admin/dist" "$SERVER_ROOT/admin/"
+  sudo rm -rf "$SERVER_ROOT/admin/dist"
+  sudo cp -r "$EXTRACT_DIR/admin/dist" "$SERVER_ROOT/admin/"
   log_success "管理后台已覆盖"
 fi
 
@@ -409,10 +442,24 @@ fi
 
 log_info "更新后端依赖..."
 cd "$SERVER_ROOT/backend"
-npm install --production --silent
+npm install --silent
 
 log_info "重启后端服务..."
-pm2 reload "$PM2_APP" --update-env
+# 确定 PM2 命令
+PM2_CMD="pm2"
+if ! command -v pm2 >/dev/null 2>&1; then
+  PM2_CMD="npx -y pm2"
+fi
+
+# 检查应用是否已存在，如果不存在则启动，否则重载
+if $PM2_CMD describe "$PM2_APP" >/dev/null 2>&1; then
+  # 应用已存在，执行重载
+  $PM2_CMD reload "$PM2_APP" --update-env
+else
+  # 应用不存在，使用 pm2.config.js 启动
+  log_info "首次启动应用，使用 pm2.config.js..."
+  $PM2_CMD start pm2.config.js --env production
+fi
 sleep 2
 
 log_info "重载 Nginx..."
@@ -441,7 +488,7 @@ verify_deployment() {
 
   # 验证后端
   log_info "检查后端服务..."
-  if sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+  if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
     "pm2 describe $PM2_APP_NAME | grep -q 'online'" 2>/dev/null; then
     log_success "后端服务正常 (online)"
   else
@@ -450,7 +497,7 @@ verify_deployment() {
 
   # 验证管理后台
   log_info "检查管理后台文件..."
-  if sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+  if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
     "[ -f $SERVER_ADMIN_PATH/index.html ]" 2>/dev/null; then
     log_success "管理后台文件就绪"
   else
