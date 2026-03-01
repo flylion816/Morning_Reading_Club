@@ -99,6 +99,13 @@ Keep this managed block so 'openspec update' can refresh the instructions.
    - 项目开发里程碑记录
    - 经验教训与最佳实践
 
+4.5. **🆕 部署脚本指南** → [`DEPLOY_SCRIPTS.md`](./DEPLOY_SCRIPTS.md)
+
+- 一键部署脚本（打包+上传+部署）
+- 服务器重启脚本（PM2、Nginx）
+- 快速回滚方法
+- 部署问题排查
+
 5. **Memory 系统**（🆕 新增）→ [`.claude/memory/`](./.claude/memory/)
    - 快速问题查询：[`quick-reference.md`](./.claude/memory/quick-reference.md)
    - 使用指南：[`README.md`](./.claude/memory/README.md)
@@ -246,6 +253,7 @@ pkill -9 -f "npm.*run dev"; pkill -9 -f "node"; sleep 1
 | 🤖 了解Subagents    | `.claude/agents/README.md`                   |
 | 🧠 理解Memory系统   | `.claude/memory/README.md`                   |
 | 💻 Commands使用经验 | `.claude/memory/standards/commands-usage.md` |
+| 🚀 部署脚本使用指南 | `DEPLOY_SCRIPTS.md`                          |
 
 ### ⚡ 三步快速上手
 
@@ -555,6 +563,7 @@ curl -H "Authorization: Bearer <token>" \
 | 小程序怎么写？  | [`MINIPROGRAM_GUIDE.md`](./MINIPROGRAM_GUIDE.md) |
 | Git怎么用？     | [`GIT_WORKFLOW.md`](./GIT_WORKFLOW.md)           |
 | 遇到bug怎么办？ | [`BUG_FIXES.md`](./BUG_FIXES.md)                 |
+| 如何部署上线？  | [`DEPLOY_SCRIPTS.md`](./DEPLOY_SCRIPTS.md)       |
 | 项目总体情况？  | 本文件 (CLAUDE.md)                               |
 
 ---
