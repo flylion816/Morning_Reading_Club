@@ -117,33 +117,65 @@ class AuthService {
       }
 
       // 2. 调用后端登录接口
-      // ⚠️ 重要：过滤掉微信的默认昵称，防止覆盖用户已有的自定义昵称
-      const defaultNicknames = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
-      const isDefaultNickname = !userInfo.nickName || defaultNicknames.includes(userInfo.nickName);
-      const nicknameToSend = isDefaultNickname ? null : userInfo.nickName;
-
-      logger.debug('昵称处理', {
-        originalNickname: userInfo.nickName,
-        isDefault: isDefaultNickname,
-        toSend: nicknameToSend
-      });
-
+      // ⚠️ 新策略：让后端返回的数据为准，前端只在新用户时才用微信信息补充
       const loginData = await this.login(code, {
-        nickname: nicknameToSend,
+        nickname: userInfo.nickName,
         avatar_url: userInfo.avatarUrl,
         gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown'
       });
 
-      // 3. 保存token和用户信息
-      // 后端使用驼峰命名：accessToken, refreshToken
+      logger.info('登录结果', {
+        isNewUser: loginData.isNewUser,
+        needsWechatInfo: loginData.needsWechatInfo,
+        serverNickname: loginData.user.nickname,
+        wechatNickname: userInfo.nickName
+      });
+
+      // 3. 智能合并用户信息
+      // 策略：优先使用服务器的数据，只在新用户且服务器数据不完整时才补充微信信息
+      let finalUserInfo = { ...loginData.user };
+
+      if (loginData.isNewUser && loginData.needsWechatInfo) {
+        // 新用户：用微信信息补充服务器没有的字段
+        const defaultNicknames = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
+        const isDefaultNickname =
+          !userInfo.nickName || defaultNicknames.includes(userInfo.nickName);
+
+        logger.debug('新用户数据补充', {
+          hasServerNickname: !!finalUserInfo.nickname,
+          wechatNicknameIsDefault: isDefaultNickname
+        });
+
+        // 只有当服务器昵称为空或默认值，且微信昵称非默认值时，才用微信昵称
+        if (!finalUserInfo.nickname || defaultNicknames.includes(finalUserInfo.nickname)) {
+          if (!isDefaultNickname) {
+            finalUserInfo.nickname = userInfo.nickName;
+            logger.info('用微信昵称补充新用户', { nickname: userInfo.nickName });
+          }
+        }
+
+        // 补充头像URL
+        if (!finalUserInfo.avatarUrl && userInfo.avatarUrl) {
+          finalUserInfo.avatarUrl = userInfo.avatarUrl;
+        }
+      }
+      // 既有用户：完全使用服务器返回的数据，不用微信信息
+      // 这样既有用户改过的昵称（"老虎"）就不会被覆盖
+
+      // 4. 保存token和用户信息
       const accessToken = loginData.accessToken || loginData.access_token;
       const refreshToken = loginData.refreshToken || loginData.refresh_token;
 
       wx.setStorageSync('token', accessToken);
       wx.setStorageSync('refreshToken', refreshToken);
-      wx.setStorageSync('userInfo', loginData.user);
+      wx.setStorageSync('userInfo', finalUserInfo); // ← 保存合并后的信息
 
-      return loginData;
+      logger.info('用户信息已保存', {
+        nickname: finalUserInfo.nickname,
+        isNewUser: loginData.isNewUser
+      });
+
+      return { ...loginData, user: finalUserInfo };
     } catch (error) {
       logger.error('微信登录失败:', error);
       throw error;

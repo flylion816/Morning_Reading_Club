@@ -143,9 +143,10 @@ async function wechatLogin(req, res, next) {
             avatar: user.avatar,
             avatarUrl: user.avatarUrl,
             role: user.role,
-            status: user.status,
-            isNewUser
-          }
+            status: user.status
+          },
+          isNewUser, // ← 标记：是否新用户
+          needsWechatInfo: isNewUser // ← 标记：是否需要用微信信息补充
         },
         '登录成功'
       )
