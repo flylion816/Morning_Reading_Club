@@ -117,8 +117,19 @@ class AuthService {
       }
 
       // 2. 调用后端登录接口
+      // ⚠️ 重要：过滤掉微信的默认昵称，防止覆盖用户已有的自定义昵称
+      const defaultNicknames = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
+      const isDefaultNickname = !userInfo.nickName || defaultNicknames.includes(userInfo.nickName);
+      const nicknameToSend = isDefaultNickname ? null : userInfo.nickName;
+
+      logger.debug('昵称处理', {
+        originalNickname: userInfo.nickName,
+        isDefault: isDefaultNickname,
+        toSend: nicknameToSend
+      });
+
       const loginData = await this.login(code, {
-        nickname: userInfo.nickName,
+        nickname: nicknameToSend,
         avatar_url: userInfo.avatarUrl,
         gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown'
       });
