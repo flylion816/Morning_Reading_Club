@@ -77,19 +77,33 @@ async function wechatLogin(req, res, next) {
 
       // ⚠️ 重要修复：既有用户的昵称保护机制
       // 防止微信返回的默认昵称（如"微信用户"）覆盖自定义昵称
-      // 只在以下情况更新昵称：
-      // 1. 用户昵称为空或是默认值（如"晨读营用户"、"微信用户"）
-      // 2. 且前端提供了真实的用户昵称
+      // 策略：
+      // 1. 如果用户当前昵称是默认值，且前端提供非默认昵称，才更新
+      // 2. 如果前端提供的是默认昵称，永不覆盖（保留用户自定义的昵称）
       const defaultNicknames = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
       const isDefaultNickname = !user.nickname || defaultNicknames.includes(user.nickname);
+      const isFrontendNicknameDefault = !nickname || defaultNicknames.includes(nickname);
 
-      if (isDefaultNickname && nickname && !defaultNicknames.includes(nickname)) {
-        // 如果当前昵称是默认值，且前端提供了真实昵称，才更新
-        user.nickname = nickname;
-        logger.info('更新既有用户昵称（从默认值）', {
+      // 只在两种情况更新昵称：
+      // A. 当前昵称是默认值，且前端提供非默认昵称
+      // B. 当前昵称为空，且前端提供任何值（非空）
+      if (!isFrontendNicknameDefault) {
+        // 前端提供了真实昵称，使用它
+        if (isDefaultNickname || !user.nickname) {
+          user.nickname = nickname;
+          logger.info('更新既有用户昵称', {
+            userId: user._id,
+            oldNickname: user.nickname,
+            newNickname: nickname
+          });
+        }
+        // 否则保留用户现有的自定义昵称，不覆盖
+      } else {
+        // 前端提供的是默认昵称，绝不覆盖（保护用户已有的自定义昵称）
+        logger.debug('前端提供默认昵称，保护用户已有昵称', {
           userId: user._id,
-          oldNickname: user.nickname,
-          newNickname: nickname
+          currentNickname: user.nickname,
+          frontendNickname: nickname
         });
       }
 
