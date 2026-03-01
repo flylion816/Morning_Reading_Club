@@ -11,7 +11,8 @@ services:
   # MongoDB - 文档数据库（生产版）
   # ============================================================================
   mongodb:
-    image: mongo:6-alpine
+    image: mongo:7
+    platform: linux/amd64
     container_name: morning-reading-mongodb-prod
     restart: always
 
@@ -56,7 +57,8 @@ services:
   # MySQL - 关系数据库（生产版）
   # ============================================================================
   mysql:
-    image: mysql:8.0-alpine
+    image: mysql:8
+    platform: linux/amd64
     container_name: morning-reading-mysql-prod
     restart: always
 
@@ -112,6 +114,7 @@ services:
   # ============================================================================
   redis:
     image: redis:7-alpine
+    platform: linux/amd64
     container_name: morning-reading-redis-prod
     restart: always
 
