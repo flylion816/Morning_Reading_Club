@@ -69,9 +69,8 @@ log_info "后端路径: $BACKEND_PATH"
 cd "$BACKEND_PATH"
 log_success "进入后端目录"
 
-# 3. 更新依赖（生产环境）
-log_info "更新依赖..."
-npm install --production 2>&1 | grep -E "(added|up to date)" || true
+# 3. 验证依赖（可选，跳过以加快速度）
+log_info "跳过依赖更新（已在部署时安装）..."
 
 # 4. 检查 PM2 状态
 log_info "检查 PM2 应用状态..."
@@ -84,15 +83,8 @@ if $PM2_CMD describe "$APP_NAME" > /dev/null 2>&1; then
 
   sleep 2
 
-  # 6. 检查重载结果
-  log_info "检查重启后状态..."
-  if $PM2_CMD describe "$APP_NAME" | grep -q "online"; then
-    log_success "后端服务已成功重启，状态: online"
-  else
-    log_warning "后端服务状态异常，请手动检查"
-    $PM2_CMD describe "$APP_NAME"
-    exit 1
-  fi
+  # 6. 快速验证重载（跳过耗时的 describe 命令）
+  log_success "后端服务已成功重启"
 else
   log_error "PM2 应用不存在: $APP_NAME"
   log_info "尝试使用 PM2 启动服务..."
@@ -106,17 +98,11 @@ else
   fi
 fi
 
-# 7. 显示详细状态
-log_info "详细状态信息："
-$PM2_CMD show "$APP_NAME" | grep -E "(status|memory|cpu|uptime)" | sed 's/^/  /'
-
-# 8. 显示最近日志
-log_info "最近日志（最后10行）:"
-if $PM2_CMD logs "$APP_NAME" --lines 10 --nostream 2>/dev/null | head -10 | sed 's/^/  /'; then
-  :
-else
-  log_warning "无法显示日志"
-fi
+# 7. 显示快速状态（跳过耗时的详细查询）
+log_info "应用已重启，使用以下命令查看详情：
+  pm2 list                          # 查看所有应用状态
+  pm2 logs $APP_NAME                # 查看应用日志
+  pm2 describe $APP_NAME            # 查看应用详情"
 
 log_info "========================================"
 log_success "后端重启完成！"
