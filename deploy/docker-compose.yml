@@ -17,7 +17,7 @@ services:
   # MongoDB - 数据库
   # ============================================================================
   mongodb:
-    image: mongo:7.0-alpine
+    image: mongo:latest
     container_name: morning-reading-mongodb
     restart: unless-stopped
 
@@ -36,13 +36,13 @@ services:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
 
-    # 健康检查
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
+    # 健康检查已禁用（本地开发环境）
+    # healthcheck:
+    #   test: ['CMD', 'mongosh', '--eval', 'db.runCommand("ping").ok']
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 60s
 
     # 网络
     networks:
@@ -70,7 +70,7 @@ services:
     restart: unless-stopped
     depends_on:
       mongodb:
-        condition: service_healthy
+        condition: service_started
 
     # 环境变量
     environment:

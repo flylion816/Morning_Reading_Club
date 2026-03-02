@@ -1,0 +1,20 @@
+[Unit]
+Description=晨读营后端服务
+After=network.target mongodb.service mysql.service redis-server.service
+Requires=mongodb.service mysql.service redis-server.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/morning-reading/backend
+Environment="NODE_ENV=production"
+EnvironmentFile=/var/www/morning-reading/backend/.env.production
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=morning-reading-backend
+
+[Install]
+WantedBy=multi-user.target

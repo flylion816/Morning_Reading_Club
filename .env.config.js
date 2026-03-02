@@ -14,7 +14,7 @@
  * ⚠️ 重要：修改此文件后需要重启所有服务才能生效
  */
 
-const currentEnv = 'prod'; // 'dev' | 'prod'
+const currentEnv = 'dev'; // 'dev' | 'prod'
 
 /**
  * 环境配置定义

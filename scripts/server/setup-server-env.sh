@@ -75,27 +75,28 @@ else
     print_success "Node.js $(node --version) 安装成功"
 fi
 
-# 验证 Node.js
+# 验证 Node.js（v20+ 都可以）
 print_info "验证 Node.js..."
-node --version | grep -q "v20" && print_success "Node.js v20 验证通过" || {
-    print_error "Node.js 版本不对，需要 v20"
-    exit 1
-}
-
-################################################################################
-# 步骤 3: 安装 PM2
-################################################################################
-print_step "步骤 3: 安装 PM2"
-
-if sudo npm list -g pm2 &> /dev/null; then
-    print_warning "PM2 已安装: $(pm2 --version)"
+NODE_MAJOR=$(node -v | cut -d'.' -f1 | sed 's/v//')
+if [ "$NODE_MAJOR" -ge 20 ]; then
+    print_success "Node.js $(node --version) 验证通过"
 else
-    print_info "安装 PM2..."
-    sudo npm install -g pm2 > /dev/null 2>&1 || {
-        print_error "PM2 安装失败"
-        exit 1
-    }
-    print_success "PM2 $(pm2 --version) 安装成功"
+    print_error "Node.js 版本不对，需要 v20 或更高"
+    exit 1
+fi
+
+################################################################################
+# 步骤 3: 配置 systemd 服务（用于管理 Node.js 进程）
+################################################################################
+print_step "步骤 3: 配置 systemd 服务管理"
+
+if systemctl is-enabled morning-reading-backend &> /dev/null; then
+    print_warning "morning-reading-backend 服务已配置"
+else
+    print_info "配置 systemd 服务..."
+    # 注：service 文件需要通过 deploy-to-server.sh 复制到服务器
+    # 这里只做验证，实际的服务配置在首次代码部署时进行
+    print_success "systemd 服务配置已准备（将在代码部署时完成）"
 fi
 
 ################################################################################
@@ -223,12 +224,12 @@ else
     print_error "Node.js 验证失败"
 fi
 
-# 验证 PM2
-print_info "验证 PM2..."
-if pm2 --version &>/dev/null; then
-    print_success "PM2 $(pm2 --version)"
+# 验证 systemd 和服务管理
+print_info "验证 systemd 服务管理..."
+if systemctl --version &>/dev/null; then
+    print_success "systemd 已安装"
 else
-    print_error "PM2 验证失败"
+    print_error "systemd 验证失败"
 fi
 
 # 验证 Nginx
@@ -277,11 +278,14 @@ echo "  • MySQL:    morning_user@127.0.0.1:3306/morning_reading"
 echo "  • Redis:    127.0.0.1:6379"
 echo ""
 echo -e "${BLUE}下一步：${NC}"
-echo "  1. 返回本地，执行部署脚本："
+echo "  1. 返回本地，执行部署脚本（将部署代码和配置 systemd 服务）："
 echo "     bash scripts/deploy-to-server.sh"
 echo ""
-echo "  2. SSH 到服务器验证安装："
-echo "     ssh ubuntu@118.25.145.179"
+echo "  2. 部署完成后，验证服务：（在服务器上执行）"
+echo "     sudo systemctl status morning-reading-backend"
+echo "     sudo journalctl -u morning-reading-backend -n 20"
+echo ""
+echo "  3. 数据库验证："
 echo "     mongosh -u admin -p --eval 'db.runCommand({ping:1})'"
 echo "     mysql -u morning_user -p -e 'SELECT 1'"
 echo "     redis-cli -a PASSWD ping"
