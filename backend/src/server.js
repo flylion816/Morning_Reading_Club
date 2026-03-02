@@ -47,24 +47,35 @@ logger.info('应用启动配置', {
 // 启动服务器
 async function startServer() {
   try {
-    // 初始化Redis连接
+    // 初始化Redis连接（后台异步，不阻塞启动）
     logger.info('正在连接 Redis...');
-    const redisConnected = await redisManager.connect();
-    if (redisConnected) {
-      logger.info('✅ Redis 连接成功');
-    } else {
-      logger.warn('⚠️ Redis 连接失败，将使用内存缓存作为降级方案');
-    }
+    // 异步连接 Redis，不阻塞应用启动
+    redisManager
+      .connect()
+      .then(() => {
+        logger.info('✅ Redis 连接成功');
+      })
+      .catch(error => {
+        logger.warn('⚠️ Redis 连接失败，将使用内存缓存作为降级方案', error.message);
+      });
 
     // 连接MongoDB
     logger.info('正在连接 MongoDB...');
-    await connectMongoDB();
-    logger.info('✅ MongoDB 连接成功');
+    try {
+      await connectMongoDB();
+      logger.info('✅ MongoDB 连接成功');
+    } catch (dbError) {
+      logger.warn('⚠️ MongoDB 连接失败，应用将继续运行但数据库功能不可用', dbError.message);
+    }
 
     // 测试MySQL连接
     logger.info('正在测试 MySQL 连接...');
-    await testMySQLConnection();
-    logger.info('✅ MySQL 连接测试通过');
+    try {
+      await testMySQLConnection();
+      logger.info('✅ MySQL 连接测试通过');
+    } catch (dbError) {
+      logger.warn('⚠️ MySQL 连接测试失败，应用将继续运行但MySQL功能不可用', dbError.message);
+    }
 
     // 初始化 Redis 同步队列
     logger.info('正在初始化 Redis 同步队列...');

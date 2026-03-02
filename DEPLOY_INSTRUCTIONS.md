@@ -10,12 +10,14 @@
 
 ### 快速命令速查
 
-| 你需要做什么              | 快速命令                                                                                                                   | 时间     |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 🆕 **全新服务器首次部署** | `bash scripts/deploy-to-server.sh` → SSH → `bash scripts/setup-prod-server.sh` → `node backend/scripts/init-all.js` → 重启 | 5-10分钟 |
-| 📝 **日常代码更新**       | `bash scripts/deploy-to-server.sh`                                                                                         | 3-5分钟  |
-| 🔧 **重启后端服务**       | `pm2 restart morning-reading-backend`                                                                                      | < 1分钟  |
-| 🔄 **重启管理后台**       | `sudo nginx -s reload`                                                                                                     | < 1分钟  |
+| 你需要做什么              | 快速命令                                                               | 时间     |
+| ------------------------- | ---------------------------------------------------------------------- | -------- |
+| ⚙️ **环境安装**（一次性） | SSH → `bash scripts/server/setup-server-env.sh`                        | 5-10分钟 |
+| 🆕 **首次部署代码**       | Step 1: 本地 `bash scripts/deploy-to-server.sh` → Step 2-4: 参考第一章 | 5-10分钟 |
+| 📝 **日常代码更新**       | `bash scripts/deploy-to-server.sh`                                     | 3-5分钟  |
+| 🔧 **重启后端服务**       | `pm2 restart morning-reading-backend`                                  | < 1分钟  |
+| 🔄 **重启管理后台**       | `sudo nginx -s reload`                                                 | < 1分钟  |
+| 🔄 **重启管理后台**       | `sudo nginx -s reload`                                                 | < 1分钟  |
 
 ### 密码速查表
 
@@ -43,6 +45,25 @@
 ---
 
 ## 第一章：全新服务器首次部署（4 步完整流程）
+
+### 前置条件
+
+全新服务器部署需要先安装系统依赖：
+
+```bash
+# SSH 到服务器
+ssh ubuntu@118.25.145.179
+
+# 执行环境安装脚本（一次性）
+# 安装：Node.js 20、PM2、Nginx、Docker、MongoDB、MySQL、Redis
+bash /tmp/setup-server-env.sh
+
+# 或从项目克隆
+cd /tmp && git clone https://github.com/flylion816/Morning_Reading_Club.git
+cd Morning_Reading_Club && bash scripts/server/setup-server-env.sh
+```
+
+**这一步完成后**，服务器上已安装所有必要的依赖，可以执行后续部署步骤。
 
 ### 部署流程图
 
@@ -452,29 +473,40 @@ ssh ubuntu@118.25.145.179 "pm2 logs morning-reading-backend --lines 20"
 
 ## 第四章：密码配置与数据库管理
 
-### 配置数据库访问密码
+### 管理员密码
 
-**仅在以下情况执行**：
+管理员密码由 `init-all.js` 脚本自动生成并设置，包含两种密码：
 
-- ✅ 首次部署后（推荐）
-- ✅ 需要重置管理员密码
-- ✅ 需要更新密码
+- **登录密码**：用于管理后台登录（在 .env.production 中配置）
+- **数据库访问密码**：用于管理后台中的数据库管理功能（在 .env.production 中配置）
 
-### 执行步骤
+所有密码信息存储在 `.env.production` 文件中，请妥善保管。
 
-SSH 到服务器：
+### 密码信息（来自 .env.production）
 
-```bash
-ssh ubuntu@118.25.145.179
+| 用途                    | 密码                   |
+| ----------------------- | ---------------------- |
+| MongoDB 用户 admin      | p62CWhV0Kd1Unq         |
+| MySQL 用户 morning_user | Morning@Prod@User0816! |
+| Redis                   | Redis@Prod@User0816!   |
 
-cd /var/www/morning-reading
-```
+### 更新密码
 
-运行密码配置脚本：
+如需更新密码：
 
-```bash
-bash deploy-db-access-password.sh
-```
+1. **编辑 .env.production**：
+
+   ```bash
+   ssh ubuntu@118.25.145.179
+   cd /var/www/morning-reading/backend
+   nano .env.production
+   # 修改所需密码
+   ```
+
+2. **重启后端服务**：
+   ```bash
+   pm2 restart morning-reading-backend
+   ```
 
 脚本会提示确认：
 
@@ -717,7 +749,6 @@ pm2 restart morning-reading-backend
 │   ├── scripts/
 │   │   ├── deploy-to-server.sh         # 部署脚本（本地执行）
 │   │   ├── setup-prod-server.sh        # 初始化脚本（服务器执行）
-│   │   ├── deploy-db-access-password.sh
 │   │   └── server/
 │   │       ├── setup-server-env.sh     # 环境安装
 │   │       ├── restart-backend.sh
@@ -729,13 +760,12 @@ pm2 restart morning-reading-backend
 
 ### 部署脚本说明
 
-| 脚本                                 | 执行位置 | 用途                    |
-| ------------------------------------ | -------- | ----------------------- |
-| `scripts/deploy-to-server.sh`        | 本地 Mac | 打包 & 上传代码         |
-| `scripts/setup-prod-server.sh`       | 服务器   | 初始化数据库 & 启动服务 |
-| `scripts/server/setup-server-env.sh` | 服务器   | 安装系统依赖（一次性）  |
-| `backend/scripts/init-all.js`        | 服务器   | 初始化数据结构          |
-| `deploy-db-access-password.sh`       | 服务器   | 配置密码                |
+| 脚本                                 | 执行位置 | 用途                                                    | 何时执行             |
+| ------------------------------------ | -------- | ------------------------------------------------------- | -------------------- |
+| `scripts/server/setup-server-env.sh` | 服务器   | 安装 Node.js、PM2、Nginx、Docker、MongoDB、MySQL、Redis | 首次初始化（一次性） |
+| `scripts/deploy-to-server.sh`        | 本地 Mac | 构建、打包、上传代码                                    | 首次部署 + 日常更新  |
+| `scripts/setup-prod-server.sh`       | 服务器   | 启动 Docker、初始化 MySQL、启动 PM2                     | 首次部署后           |
+| `backend/scripts/init-all.js`        | 服务器   | 创建管理员、初始化 MongoDB、初始化数据                  | 首次部署后           |
 
 ### Docker 容器配置
 

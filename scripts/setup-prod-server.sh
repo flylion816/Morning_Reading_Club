@@ -251,29 +251,46 @@ if ! command -v docker &> /dev/null; then
 fi
 log_success "Docker 已安装"
 
-# 检查 docker-compose 是否已安装
+# 检查 docker-compose 是否已安装（兼容新版本 Docker Compose 插件）
 log_info "检查 docker-compose 是否已安装..."
-if ! command -v docker-compose &> /dev/null; then
-  log_error "docker-compose 未安装"
+# 尝试新版本 docker compose（作为 Docker 插件）
+if command -v docker-compose &> /dev/null; then
+  DOCKER_COMPOSE_CMD="docker-compose"
+  log_success "docker-compose 已安装"
+elif docker compose version &> /dev/null; then
+  DOCKER_COMPOSE_CMD="docker compose"
+  log_success "docker compose (插件版) 已安装"
+else
+  log_error "docker-compose 或 docker compose 未安装"
   exit 1
 fi
-log_success "docker-compose 已安装"
 
 # 进入服务器目录
 cd "$SERVER_ROOT"
 
 # 清理旧的容器（如果存在）
 log_info "清理旧的容器..."
-docker-compose down 2>/dev/null || true
+docker compose down 2>/dev/null || docker-compose down 2>/dev/null || true
 sleep 1
 
-# 启动数据库容器
+# 启动数据库容器（兼容两种版本的 docker-compose）
 log_info "启动数据库容器..."
-if docker-compose --env-file .env.docker up -d; then
-  log_success "容器启动完成"
+# 尝试新版本 docker compose 命令
+if docker compose version &>/dev/null; then
+  if docker compose --env-file .env.docker up -d; then
+    log_success "容器启动完成"
+  else
+    log_error "容器启动失败"
+    exit 1
+  fi
 else
-  log_error "容器启动失败"
-  exit 1
+  # 使用旧版本 docker-compose
+  if docker-compose --env-file .env.docker up -d; then
+    log_success "容器启动完成"
+  else
+    log_error "容器启动失败"
+    exit 1
+  fi
 fi
 
 # 等待服务健康
