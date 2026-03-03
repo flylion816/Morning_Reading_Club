@@ -36,9 +36,13 @@ miniprogram/miniprogram_npm/
 *.sln
 *.sw?
 
-# 环境变量文件
+# 环境变量文件（包含敏感信息，不要提交）
 .env.local
 .env.*.local
+.env.production        # 服务器生产环境配置（由 scripts/generate-env-production.js 生成）
+.env.docker           # Docker 环境配置（由 scripts/generate-env-production.js 生成）
+backend/.env.production
+.env.prod            # 本地生产环境配置（临时）
 
 # 测试覆盖率
 coverage/

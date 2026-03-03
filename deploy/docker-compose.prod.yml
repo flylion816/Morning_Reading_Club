@@ -78,8 +78,8 @@ services:
       - mysql-prod-data:/var/lib/mysql
 
     # MySQL 启动参数（生产优化）
+    # 注意: --default-authentication-plugin 在 MySQL 8.0.26+ 已弃用，8.4+ 已删除
     command:
-      - --default-authentication-plugin=mysql_native_password
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --max_connections=1000
