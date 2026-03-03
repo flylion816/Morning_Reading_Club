@@ -5,6 +5,10 @@
  *
  * 警告：此脚本会完全删除数据库中的所有数据并重新初始化！
  *
+ * 多环境支持：
+ * - 本地开发环境（.env.config.js currentEnv='dev'）：连接 localhost:27017 MongoDB，创建测试数据
+ * - 线上环境（.env.config.js currentEnv='prod'）：禁止执行（防止数据丢失）
+ *
  * 使用场景：
  * - 本地开发环境：创建测试数据和演示环境
  * - 测试环境：重置测试数据
@@ -15,8 +19,13 @@
  * 历史教训（2025-12-03）：
  * 一次误执行导致丢失 90+ 天的真实用户数据和业务数据。
  *
- * 使用方法：
+ * 使用方法（自动读取 .env.config.js 的环境配置）：
  * $ NODE_ENV=development node backend/scripts/init-mongodb.js
+ *
+ * 环境检查机制：
+ * 1. 先读取 .env 中的 NODE_ENV 值进行安全检查（防止生产环境误执行）
+ * 2. 然后读取 .env.config.js 中的 MongoDB URI（根据当前环境自动选择）
+ * 3. 在 development 模式下强制使用 .env.config.js 中的开发凭证
  */
 
 const path = require('path');

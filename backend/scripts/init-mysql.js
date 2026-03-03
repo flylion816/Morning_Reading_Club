@@ -4,33 +4,70 @@
  * MySQL 表结构初始化脚本（完整版）
  * 创建备份同步所需的所有 MySQL 表
  * 所有表都包含MongoDB所有字段 + raw_json
+ *
+ * 多环境支持：
+ * - 本地开发环境：.env.config.js (currentEnv='dev')
+ *   ├─ 连接: localhost:3306
+ *   ├─ 用户: morning_user
+ *   └─ 数据库: morning_reading
+ *
+ * - 线上环境：.env.config.js (currentEnv='prod')
+ *   ├─ 连接: localhost:13306 (Docker 映射)
+ *   ├─ 用户: root
+ *   └─ 数据库: morning_reading
+ *
+ * 配置加载优先级：
+ * 1. .env.config.js 中的 config.mysql（推荐）
+ * 2. 环境变量 MYSQL_* （备选）
+ * 3. .env 文件中的值（最后备选）
  */
 
 const path = require('path');
 
 // 先加载 .env.config.js（统一环境配置）
+let envConfig = null;
+let mysqlConfig = null;
+
 try {
   const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
-  const envConfig = require(envConfigPath);
+  envConfig = require(envConfigPath);
   process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
+  mysqlConfig = envConfig.config.mysql;
 } catch (error) {
   console.warn('⚠️  未找到 .env.config.js，将使用 .env 文件');
 }
 
-// 再加载 .env 文件
+// 再加载 .env 文件（作为备选配置来源）
 require('dotenv').config();
 
 // 创建临时连接池（不指定数据库，用于创建数据库）
+// 优先使用 .env.config.js 中的配置，否则使用 .env 中的值
 const mysql = require('mysql2/promise');
-const tempPool = mysql.createPool({
-  host: process.env.MYSQL_HOST,
-  port: parseInt(process.env.MYSQL_PORT, 10) || 13306,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const getTempPoolConfig = () => {
+  if (mysqlConfig) {
+    return {
+      host: mysqlConfig.host,
+      port: mysqlConfig.port,
+      user: mysqlConfig.user,
+      password: mysqlConfig.password,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    };
+  }
+  // 备选方案：从 .env 读取
+  return {
+    host: process.env.MYSQL_HOST || 'localhost',
+    port: parseInt(process.env.MYSQL_PORT, 10) || 3306,
+    user: process.env.MYSQL_USER || 'morning_user',
+    password: process.env.MYSQL_PASSWORD || 'morning123',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  };
+};
+
+const tempPool = mysql.createPool(getTempPoolConfig());
 
 const logger = require('../src/utils/logger');
 
@@ -393,11 +430,12 @@ async function initMysqlTables() {
 
   // 第一步：确保数据库存在
   try {
-    console.log('检查/创建数据库...');
+    const dbName = mysqlConfig?.database || process.env.MYSQL_DATABASE || 'morning_reading';
+    console.log(`检查/创建数据库 [${process.env.NODE_ENV}]...`);
     const tempConn = await tempPool.getConnection();
-    await tempConn.query(`CREATE DATABASE IF NOT EXISTS ${process.env.MYSQL_DATABASE} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+    await tempConn.query(`CREATE DATABASE IF NOT EXISTS ${dbName} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     tempConn.release();
-    console.log(`✅ 数据库 ${process.env.MYSQL_DATABASE} 已就绪\n`);
+    console.log(`✅ 数据库 ${dbName} 已就绪 (环境: ${process.env.NODE_ENV})\n`);
   } catch (error) {
     console.error(`❌ 无法创建数据库:`, error.message);
     throw error;

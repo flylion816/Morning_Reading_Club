@@ -28,6 +28,22 @@ const envConfig = {
       nodeEnv: 'development',
       port: 3000,
     },
+    // MySQL 配置（本地开发环境）
+    mysql: {
+      host: 'localhost',
+      port: 3306,
+      user: 'morning_user',
+      password: 'morning123',
+      database: 'morning_reading',
+      rootPassword: 'root-password',
+    },
+    // Redis 配置（本地开发环境）
+    redis: {
+      host: 'localhost',
+      port: 6379,
+      password: '',
+      db: 0,
+    },
     // 小程序配置
     miniprogram: {
       apiBaseUrl: 'http://localhost:3000/api/v1',
@@ -47,10 +63,22 @@ const envConfig = {
       mongodbUri: 'mongodb://mongodb:cephaEsLMPkNAemf@127.0.0.1:27017/morning_reading?authSource=admin',
       nodeEnv: 'production',
       port: 3000,
-      // ℹ️ 其他配置由 .env 或环境变量补充：
-      // REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
-      // MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD
-      // JWT_SECRET, JWT_REFRESH_SECRET, WECHAT_SECRET 等敏感信息
+    },
+    // MySQL 配置（线上 Docker 环境）
+    mysql: {
+      host: 'localhost',
+      port: 13306,  // Docker 映射端口
+      user: 'root',
+      password: 'L55PWzePtXYPNkn7',
+      database: 'morning_reading',
+      rootPassword: 'L55PWzePtXYPNkn7',
+    },
+    // Redis 配置（线上 Docker 环境）
+    redis: {
+      host: 'localhost',
+      port: 26379,
+      password: 'Redis@Prod@User0816!',
+      db: 0,
     },
     // 小程序配置
     miniprogram: {
