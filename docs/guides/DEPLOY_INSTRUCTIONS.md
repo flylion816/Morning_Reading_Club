@@ -1,8 +1,10 @@
 # 晨读营 - 完整部署指南
 
-**最后更新**: 2026-03-02
-**版本**: 3.0
+**最后更新**: 2026-03-03
+**版本**: 3.1
 **状态**: ✅ 生产就绪
+
+> 📌 **重要**：本部署指南涵盖所有部署步骤和环境配置说明。发布前，请仔细阅读本文档。
 
 ---
 
@@ -21,14 +23,15 @@
 
 ### 密码速查表
 
-| 服务               | 用户                     | 密码                   |
-| ------------------ | ------------------------ | ---------------------- |
-| **MongoDB**        | admin                    | p62CWhV0Kd1Unq         |
-| **MySQL root**     | root                     | Root@Prod@User0816!    |
-| **MySQL app**      | morning_user             | Morning@Prod@User0816! |
-| **Redis**          | —                        | Redis@Prod@User0816!   |
-| **管理员登录**     | admin@morningreading.com | Km7$Px2Qw9             |
-| **数据库访问密码** | —                        | Jb3#Rl8Tn5             |
+**⚠️ 所有密码来自 `.env.config.js`，不应手工编辑。参考第二部分《环境配置管理》了解如何修改密码。**
+
+| 服务               | 用户    | 密码                    | 说明                          |
+| ------------------ | ------- | ---------------------- | ----------------------------- |
+| **MongoDB**        | admin   | ProdMongodbSecure123   | 从 .env.config.js → prod      |
+| **MySQL root**     | root    | L55PWzePtXYPNkn7       | 从 .env.config.js → prod      |
+| **MySQL app**      | root    | L55PWzePtXYPNkn7       | Docker 中使用 root 用户       |
+| **Redis**          | —       | Redis@Prod@User0816!   | 从 .env.config.js → prod      |
+| **管理员登录**     | admin@morningreading.com | admin123456      | 初始化脚本自动创建           |
 
 ### 服务器信息
 
@@ -41,6 +44,56 @@
 | 前端路径  | /var/www/morning-reading/admin/dist |
 | PM2 应用  | morning-reading-backend             |
 | OS        | Ubuntu 24.04.3 LTS (x86_64)         |
+
+---
+
+## 📌 环境配置管理（所有密码的唯一来源）
+
+### 配置体系说明
+
+项目采用**三层配置系统**确保所有环境一致性：
+
+```
+第一层：.env.config.js ← 【唯一来源】所有密码在这里定义
+   ↓ （自动生成）
+第二层：.env.docker / .env.production ← 运行环境使用的配置
+   ↓ （应用读取）
+第三层：Docker 容器 / Node.js 进程 ← 实际运行的应用
+```
+
+### 文件说明
+
+| 文件                 | 用途                          | 提交 Git? | 编辑方式          |
+| -------------------- | ----------------------------- | --------- | ------------------- |
+| `.env.config.js`     | 所有密码配置的唯一来源        | ✅ 是     | 直接编辑          |
+| `.env.docker`        | Docker 环境配置（自动生成）   | ❌ 否     | 运行脚本生成      |
+| `.env.production`    | 服务器环境配置（自动生成）    | ❌ 否     | 运行脚本生成      |
+
+### 修改密码的完整流程
+
+**场景：需要更改生产环境 MongoDB 密码**
+
+```bash
+# 1️⃣ 编辑配置源
+vim .env.config.js
+# 修改：prod.backend.mongodbUri 中的密码
+
+# 2️⃣ 生成新的环境配置
+node scripts/generate-env-production.js --server
+
+# 3️⃣ 推送到服务器
+scp backend/.env.production ubuntu@118.25.145.179:/var/www/morning-reading/backend/
+
+# 4️⃣ 重启应用
+ssh ubuntu@118.25.145.179 "pm2 restart morning-reading-backend"
+```
+
+### 关键要点
+
+- ✅ **总是修改 `.env.config.js`**，不要手工编辑 `.env.production`
+- ✅ **修改后运行生成脚本**：`node scripts/generate-env-production.js --server`
+- ✅ **一个地方修改，所有环境同步** —— 避免密码不一致
+- ❌ **不要提交 `.env.docker` 和 `.env.production`** —— 已在 `.gitignore` 中
 
 ---
 
