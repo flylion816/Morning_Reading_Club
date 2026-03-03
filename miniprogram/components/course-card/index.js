@@ -74,8 +74,33 @@ Component({
               duration: 2500
             });
           } else {
-            // 进行中或未开始未报名 → 导航到报名页面
-            console.log('✅ 未报名，导航到报名页面');
+            // 进行中或未开始未报名 → 先检查登录状态，再导航到报名页面
+            // ⭐ 强制检查登录状态
+            const app = getApp();
+            const isLogin = app.globalData.isLogin;
+
+            console.log('🔐 course-card 登录检查:', { isLogin });
+
+            if (!isLogin) {
+              console.warn('⚠️ 未登录，拦截操作，显示登录提示');
+              wx.showModal({
+                title: '请先登录',
+                content: '需要登录才能进行报名',
+                confirmText: '去登录',
+                cancelText: '取消',
+                success: res => {
+                  if (res.confirm) {
+                    wx.navigateTo({
+                      url: '/pages/login/login'
+                    });
+                  }
+                }
+              });
+              return;
+            }
+
+            // 已登录，导航到报名页面
+            console.log('✅ 已登录，导航到报名页面');
             wx.navigateTo({
               url: `/pages/enrollment/enrollment?periodId=${course._id}`
             });
