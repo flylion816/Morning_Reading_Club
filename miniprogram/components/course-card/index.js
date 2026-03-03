@@ -53,9 +53,23 @@ Component({
       const { mode, enrolled } = this.properties;
       const { isPending } = this.data;
 
-      // 期次模式：检查报名状态后导航
+      // 期次模式：先检查登录状态
       if (mode === 'period') {
         console.log('📌 期次模式点击');
+
+        // ⭐ 最开始就检查登录状态 - 确保未登录用户无法操作
+        const app = getApp();
+        const isLogin = app.globalData.isLogin;
+
+        console.log('🔐 [最前置检查] course-card 登录状态:', { isLogin });
+
+        if (!isLogin) {
+          console.warn('⚠️ 未登录用户，直接导航到登录页面');
+          wx.navigateTo({
+            url: '/pages/login/login'
+          });
+          return;
+        }
 
         // 检查报名状态
         const isEnrolled = enrolled && enrolled.isEnrolled;
@@ -74,22 +88,8 @@ Component({
               duration: 2500
             });
           } else {
-            // 进行中或未开始未报名 → 先检查登录状态，再导航到报名页面
-            // ⭐ 强制检查登录状态
-            const app = getApp();
-            const isLogin = app.globalData.isLogin;
-
-            console.log('🔐 course-card 登录检查:', { isLogin });
-
-            if (!isLogin) {
-              console.warn('⚠️ 未登录，直接导航到登录页面');
-              wx.navigateTo({
-                url: '/pages/login/login'
-              });
-              return;
-            }
-
-            // 已登录，导航到报名页面
+            // 进行中或未开始未报名 → 导航到报名页面
+            // （已在最前面检查过登录状态，这里必定是已登录）
             console.log('✅ 已登录，导航到报名页面');
             wx.navigateTo({
               url: `/pages/enrollment/enrollment?periodId=${course._id}`
