@@ -1,8 +1,8 @@
 # 晨读营 - 完整部署指南
 
-**最后更新**: 2026-03-03 (SSL/Nginx 配置就绪)
-**版本**: 3.2
-**状态**: ✅ 生产就绪 + HTTPS 已配置
+**最后更新**: 2026-03-03 (SSL 证书过期通知已配置)
+**版本**: 3.3
+**状态**: ✅ 生产就绪 + HTTPS + 自动续期通知
 
 > 📌 **重要**：本部署指南涵盖所有部署步骤和环境配置说明。发布前，请仔细阅读本文档。
 
@@ -229,11 +229,27 @@ openssl s_client -connect wx.shubai01.com:443 -servername wx.shubai01.com </dev/
 # Not After : Jun  1 02:09:25 2026 GMT
 ```
 
+### SSL 证书有效期和续期通知
+
+**当前证书状态（wx.shubai01.com）**：
+- ✅ 签发日期：2026-03-03
+- ✅ 过期日期：**2026-06-01**（还剩 **89 天**）
+- ✅ 过期通知邮箱：308965039@qq.com
+
+**续期方案**：
+1. Certbot 会在证书过期前 **30 天** 开始每天尝试自动续期
+2. 续期成功后，自动调用通知脚本，发送邮件到 `308965039@qq.com`
+3. 邮件通知内容：续期完成、新过期时间、无需手动操作
+4. **无需手动干预** —— 自动续期和通知完全自动化
+
 ### 自动续期检查
 
 ```bash
-# 检查 Let's Encrypt 续期状态
+# 检查 Let's Encrypt 续期状态（模拟运行，不实际续期）
 sudo certbot renew --dry-run
+
+# 手动触发续期（测试通知脚本，不会真正续期如果还有90天以上）
+sudo certbot renew --force-renewal
 
 # 设置自动续期（通常已通过 Certbot 设置）
 sudo systemctl enable certbot.timer
@@ -241,6 +257,72 @@ sudo systemctl start certbot.timer
 
 # 查看续期日志
 sudo journalctl -u certbot.timer -n 50
+
+# 查看系统通知日志
+sudo tail -f /var/log/certbot-renewal.log
+```
+
+### 快到期时需要做什么
+
+**当你收到过期通知邮件时**：
+
+| 场景 | 需要做什么 |
+|------|-----------|
+| 📧 **收到续期成功邮件** | ✅ **无需操作** — 证书已自动更新，Nginx 已加载新证书 |
+| ❌ **没有收到邮件（快到期）** | 手动检查：`sudo certbot renew --force-renewal` |
+| 🔧 **续期失败** | 检查日志：`sudo journalctl -u certbot.timer \| tail -20` |
+| 🔒 **证书已过期** | 紧急续期：`sudo certbot renew --force-renewal` |
+
+### 续期失败的手动修复
+
+如果自动续期失败，手动续期步骤：
+
+```bash
+# 1️⃣ SSH 到服务器
+ssh ubuntu@118.25.145.179
+
+# 2️⃣ 强制续期
+sudo certbot renew --force-renewal
+
+# 3️⃣ 验证证书已更新
+sudo certbot certificates
+
+# 4️⃣ 重启 Nginx（通常 Certbot 会自动处理）
+sudo systemctl reload nginx
+
+# 5️⃣ 验证 HTTPS 仍可访问
+curl -I https://wx.shubai01.com/api/v1/health
+```
+
+### 邮件通知配置详情
+
+续期通知的配置位置：
+```bash
+# Certbot 续期配置文件
+/etc/letsencrypt/renewal/wx.shubai01.com.conf
+  ├─ email = 308965039@qq.com  (通知邮箱)
+  └─ renew_hook = /usr/local/bin/certbot-renewal-hook.sh  (续期后调用)
+
+# 续期通知脚本
+/usr/local/bin/certbot-renewal-hook.sh
+  ├─ 记录续期事件到日志
+  └─ 发送邮件通知到 308965039@qq.com
+```
+
+### 修改通知邮箱地址
+
+如果需要更改通知邮箱：
+
+```bash
+# 1️⃣ SSH 到服务器
+ssh ubuntu@118.25.145.179
+
+# 2️⃣ 编辑 Certbot 配置
+sudo sed -i 's/email = .*/email = 新邮箱@example.com/' \
+  /etc/letsencrypt/renewal/wx.shubai01.com.conf
+
+# 3️⃣ 验证修改
+sudo grep email /etc/letsencrypt/renewal/wx.shubai01.com.conf
 ```
 
 ### 常见问题
@@ -1123,7 +1205,7 @@ sudo journalctl -u docker -n 50
 
 ---
 
-**文档版本**: 3.2
-**最后更新**: 2026-03-03 (SSL 证书配置完成)
+**文档版本**: 3.3
+**最后更新**: 2026-03-03 (SSL 证书 + 过期通知配置完成)
 **维护者**: Claude Code
 **项目仓库**: https://github.com/flylion816/Morning_Reading_Club
