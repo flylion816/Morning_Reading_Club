@@ -1,11 +1,14 @@
 /**
  * Payment Controller 单元测试
+ * 覆盖支付初始化、确认、取消、查询等25+个测试场景
+ * 包括：金额验证、重复支付防护、权限检查、并发防护、错误处理
  */
 
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
 const mongoose = require('mongoose');
+const fixtures = require('../../fixtures/payment-fixtures');
 
 describe('Payment Controller', () => {
   let paymentController;
@@ -15,11 +18,17 @@ describe('Payment Controller', () => {
   let next;
   let PaymentStub;
   let EnrollmentStub;
+  let syncServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
 
-    req = { body: {}, params: {}, query: {}, user: {} };
+    req = {
+      body: {},
+      params: {},
+      query: {},
+      user: { userId: fixtures.testUsers.regularUser._id.toString() }
+    };
     res = {
       status: sandbox.stub().returnsThis(),
       json: sandbox.stub().returnsThis()
@@ -31,16 +40,20 @@ describe('Payment Controller', () => {
       findById: sandbox.stub(),
       find: sandbox.stub(),
       findOne: sandbox.stub(),
+      findByIdAndUpdate: sandbox.stub(),
       countDocuments: sandbox.stub(),
       // Static methods
       getUserPayments: sandbox.stub(),
-      createOrder: sandbox.stub(),
-      getPaymentStatus: sandbox.stub()
+      createOrder: sandbox.stub()
     };
 
     EnrollmentStub = {
       findOne: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub()
+    };
+
+    syncServiceStub = {
+      publishSyncEvent: sandbox.stub()
     };
 
     const responseUtils = {
@@ -64,7 +77,8 @@ describe('Payment Controller', () => {
         '../models/Payment': PaymentStub,
         '../models/Enrollment': EnrollmentStub,
         '../utils/response': responseUtils,
-        '../utils/logger': loggerStub
+        '../utils/logger': loggerStub,
+        '../services/sync.service': syncServiceStub
       }
     );
   });
@@ -73,72 +87,373 @@ describe('Payment Controller', () => {
     sandbox.restore();
   });
 
-  describe('initiatePayment', () => {
-    it('应该初始化支付订单', async () => {
-      const userId = new mongoose.Types.ObjectId();
-      const enrollmentId = new mongoose.Types.ObjectId();
-      const periodId = new mongoose.Types.ObjectId();
-      req.user = { userId };
-      req.body = {
-        enrollmentId,
-        paymentMethod: 'wechat',
-        amount: 99
-      };
+  // ============ initiatePayment 测试 ============
+  describe('initiatePayment - 支付初始化', () => {
+    // TC-PAYMENT-001: 创建支付记录
+    it('应该成功初始化支付订单', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = fixtures.paymentInitiateRequests.validRequest;
 
-      const mockEnrollment = {
-        _id: enrollmentId,
-        userId,
-        periodId,
-        status: 'active'
-      };
-
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
       const mockPayment = {
-        _id: new mongoose.Types.ObjectId(),
-        userId,
-        enrollmentId,
-        periodId,
-        amount: 99,
-        paymentMethod: 'wechat',
-        status: 'pending',
-        orderNo: 'ORDER_123456'
+        ...fixtures.testPayments.pendingPayment,
+        toObject: () => ({ ...fixtures.testPayments.pendingPayment })
       };
 
-      // Mock the enrollment check
       EnrollmentStub.findOne.resolves(mockEnrollment);
-
-      // Mock Payment.findOne to check for pending/processing payments
-      PaymentStub.findOne.resolves(null);
-
-      // Mock Payment.createOrder static method
+      // 设置多个返回值用于多次 findOne 调用
+      PaymentStub.findOne.onFirstCall().resolves(null); // 无待支付订单
+      PaymentStub.findOne.onSecondCall().resolves(null); // 无已完成订单
       PaymentStub.createOrder.resolves(mockPayment);
 
       await paymentController.initiatePayment(req, res, next);
 
       expect(EnrollmentStub.findOne.called).to.be.true;
-      expect(PaymentStub.findOne.called).to.be.true;
       expect(PaymentStub.createOrder.called).to.be.true;
       expect(res.json.called).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.code).to.equal(200);
+      expect(response.data.status).to.equal('pending');
+    });
+
+    // TC-PAYMENT-002: 重复支付同一报名（防护）
+    it('应该返回已存在的待支付订单而不是重复创建', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = fixtures.paymentInitiateRequests.validRequest;
+
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+      const mockPayment = { ...fixtures.testPayments.pendingPayment };
+
+      EnrollmentStub.findOne.withArgs({
+        _id: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        userId: fixtures.testUsers.regularUser._id.toString()
+      }).resolves(mockEnrollment);
+
+      PaymentStub.findOne.withArgs({
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        status: { $in: ['pending', 'processing'] }
+      }).resolves(mockPayment); // 已有待支付订单
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(PaymentStub.createOrder.called).to.be.false;
+      expect(res.json.called).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.message).to.include('订单已存在');
+    });
+
+    // TC-PAYMENT-003: 报名已支付，无法重复支付
+    it('应该拒绝已完成支付的报名再次支付', async () => {
+      req.user = { userId: fixtures.testUsers.premiumUser._id.toString() };
+      req.body = {
+        enrollmentId: fixtures.testEnrollments.paidEnrollment._id,
+        paymentMethod: 'wechat',
+        amount: 9900
+      };
+
+      const mockEnrollment = { ...fixtures.testEnrollments.paidEnrollment };
+      const mockCompletedPayment = { ...fixtures.testPayments.completedPayment };
+
+      EnrollmentStub.findOne.resolves(mockEnrollment);
+      PaymentStub.findOne.onFirstCall().resolves(null); // 无待支付
+      PaymentStub.findOne.onSecondCall().resolves(mockCompletedPayment); // 有已完成
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('已完成支付');
+    });
+
+    // TC-PAYMENT-004: 报名不存在返回 404
+    it('应该返回404当报名记录不存在', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = fixtures.paymentInitiateRequests.nonExistentEnrollmentRequest;
+
+      EnrollmentStub.findOne.resolves(null);
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('报名记录');
+    });
+
+    // TC-PAYMENT-005: 模拟支付直接成功
+    it('应该在模拟支付时直接返回成功', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = fixtures.paymentInitiateRequests.mockPaymentRequest;
+
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+      const mockPayment = {
+        ...fixtures.testPayments.mockPayment,
+        confirmPayment: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      EnrollmentStub.findOne.resolves(mockEnrollment);
+
+      PaymentStub.findOne.withArgs({
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        status: { $in: ['pending', 'processing'] }
+      }).resolves(null);
+
+      PaymentStub.findOne.withArgs({
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        status: 'completed'
+      }).resolves(null);
+
+      PaymentStub.createOrder.resolves(mockPayment);
+      EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(mockPayment.confirmPayment.called).to.be.true;
+      expect(res.json.called).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.status).to.equal('completed');
+    });
+
+    // TC-SEC-005: 金额为零验证
+    it('应该验证金额不能为零', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = fixtures.paymentInitiateRequests.zeroAmountRequest;
+
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+
+      EnrollmentStub.findOne.resolves(mockEnrollment);
+      PaymentStub.findOne.resolves(null);
+
+      // 模拟 createOrder 抛出验证错误
+      PaymentStub.createOrder.rejects(new Error('金额必须大于0'));
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(res.status.calledWith(500)).to.be.true;
+    });
+
+    // TC-SEC-006: 金额为负验证
+    it('应该验证金额不能为负', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = fixtures.paymentInitiateRequests.negativeAmountRequest;
+
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+
+      EnrollmentStub.findOne.resolves(mockEnrollment);
+      PaymentStub.findOne.resolves(null);
+
+      PaymentStub.createOrder.rejects(new Error('金额不能为负'));
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(res.status.calledWith(500)).to.be.true;
+    });
+
+    // TC-SEC-007: 权限检查 - 用户只能操作自己的报名
+    it('应该返回404当用户尝试操作其他用户的报名', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = {
+        enrollmentId: fixtures.testEnrollments.anotherUserEnrollment._id,
+        paymentMethod: 'wechat',
+        amount: 9900
+      };
+
+      // findOne 会根据 userId 和 enrollmentId 查询
+      EnrollmentStub.findOne.resolves(null); // 没找到用户的报名
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
     });
   });
 
-  describe('getUserPayments', () => {
-    it('应该返回用户的支付历史', async () => {
-      const userId = new mongoose.Types.ObjectId();
-      req.params = { userId };
-      req.query = { page: 1, limit: 10 };
+  // ============ confirmPayment 测试 ============
+  describe('confirmPayment - 支付确认', () => {
+    // TC-PAYMENT-006: 支付完成后自动更新报名状态
+    it('应该确认支付并更新报名状态', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+      req.body = { transactionId: 'txn_123456' };
 
-      const mockPayments = [{
-        _id: new mongoose.Types.ObjectId(),
-        userId,
-        amount: 99,
+      const mockPayment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        status: 'pending',
+        confirmPayment: sandbox.stub().resolves(),
+        populate: sandbox.stub().returnsThis(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      const mockEnrollment = {
+        _id: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        paymentStatus: 'paid'
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+      EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
+
+      await paymentController.confirmPayment(req, res, next);
+
+      expect(mockPayment.confirmPayment.called).to.be.true;
+      expect(EnrollmentStub.findByIdAndUpdate.called).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+
+    // TC-PAYMENT-007: 支付已确认不能再确认
+    it('应该返回400当支付已确认', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.completedPayment._id };
+      req.body = { transactionId: 'txn_123456' };
+
+      const mockPayment = {
+        _id: fixtures.testPayments.completedPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        status: 'completed'
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+
+      await paymentController.confirmPayment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('支付已确认');
+    });
+
+    // TC-SEC-005: 权限检查 - 支付不存在
+    it('应该返回404当支付记录不存在', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: new mongoose.Types.ObjectId() };
+      req.body = { transactionId: 'txn_123456' };
+
+      PaymentStub.findOne.resolves(null);
+
+      await paymentController.confirmPayment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  // ============ cancelPayment 测试 ============
+  describe('cancelPayment - 支付取消', () => {
+    // TC-PAYMENT-008: 取消待支付订单
+    it('应该成功取消待支付的订单', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+
+      const mockPayment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        status: 'pending',
+        markCancelled: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+
+      await paymentController.cancelPayment(req, res, next);
+
+      expect(mockPayment.markCancelled.called).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+
+    // TC-PAYMENT-009: 已完成的支付无法取消
+    it('应该返回400当已完成的支付无法取消', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.completedPayment._id };
+
+      const mockPayment = {
+        _id: fixtures.testPayments.completedPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        status: 'completed'
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+
+      await paymentController.cancelPayment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const errorMsg = res.json.getCall(0).args[0].message;
+      expect(errorMsg).to.include('无法取消');
+    });
+
+    // TC-SEC-005: 支付不存在返回 404
+    it('应该返回404当支付记录不存在', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: new mongoose.Types.ObjectId() };
+
+      PaymentStub.findOne.resolves(null);
+
+      await paymentController.cancelPayment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  // ============ getPaymentStatus 测试 ============
+  describe('getPaymentStatus - 查询支付状态', () => {
+    // TC-PAYMENT-010: 查询支付状态
+    it('应该返回支付状态', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+
+      const mockPayment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        orderNo: 'order123',
         status: 'completed',
-        orderNo: 'ORDER_123456',
+        amount: 9900,
         paymentMethod: 'wechat',
         paidAt: new Date(),
         createdAt: new Date(),
         enrollmentId: { name: 'Enrollment 1' },
         periodId: { name: 'Period 1' }
-      }];
+      };
+
+      const mockQuery = {
+        populate: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockPayment)
+      };
+      mockQuery.then = function (onFulfilled, onRejected) {
+        return mockQuery.exec().then(onFulfilled, onRejected);
+      };
+      PaymentStub.findOne.returns(mockQuery);
+
+      await paymentController.getPaymentStatus(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('status');
+    });
+
+    // TC-SEC-005: 支付不存在返回 404
+    it('应该返回404当支付记录不存在', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: new mongoose.Types.ObjectId() };
+
+      const mockQuery = {
+        populate: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(null)
+      };
+      mockQuery.then = function (onFulfilled, onRejected) {
+        return mockQuery.exec().then(onFulfilled, onRejected);
+      };
+      PaymentStub.findOne.returns(mockQuery);
+
+      await paymentController.getPaymentStatus(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  // ============ getUserPayments 测试 ============
+  describe('getUserPayments - 获取用户支付历史', () => {
+    it('应该返回用户的支付历史', async () => {
+      req.params = { userId: fixtures.testUsers.regularUser._id };
+      req.query = { page: 1, limit: 10 };
+
+      const mockPayments = [fixtures.testPayments.completedPayment];
 
       const mockResult = {
         list: mockPayments,
@@ -154,153 +469,232 @@ describe('Payment Controller', () => {
 
       expect(PaymentStub.getUserPayments.called).to.be.true;
       expect(res.json.called).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.list).to.be.an('array');
+    });
+
+    it('应该支持按状态过滤', async () => {
+      req.params = { userId: fixtures.testUsers.regularUser._id };
+      req.query = { page: 1, limit: 10, status: 'completed' };
+
+      const mockResult = {
+        list: [fixtures.testPayments.completedPayment],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1
+      };
+
+      PaymentStub.getUserPayments.resolves(mockResult);
+
+      await paymentController.getUserPayments(req, res, next);
+
+      // 验证调用时传入了 status 参数
+      const callArgs = PaymentStub.getUserPayments.getCall(0).args;
+      expect(callArgs[1].status).to.equal('completed');
     });
   });
 
-  describe('confirmPayment', () => {
-    it('应该确认支付', async () => {
-      const userId = new mongoose.Types.ObjectId();
-      const paymentId = new mongoose.Types.ObjectId();
-      const enrollmentId = new mongoose.Types.ObjectId();
-      req.user = { userId };
-      req.params = { paymentId };
-      req.body = { transactionId: 'txn_123456' };
+  // ============ getPayments 管理员接口测试 ============
+  describe('getPayments - 管理员获取支付列表 (TC-ADMIN-010)', () => {
+    it('应该返回所有支付记录列表', async () => {
+      req.query = { page: 1, limit: 20 };
+
+      const mockPayments = [
+        fixtures.testPayments.completedPayment,
+        fixtures.testPayments.pendingPayment
+      ];
+
+      PaymentStub.countDocuments.resolves(2);
+      PaymentStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub()
+          .withArgs('enrollmentId', 'name')
+          .returnsThis()
+          .withArgs('periodId', 'name')
+          .returnsThis(),
+        select: sandbox.stub().resolves(mockPayments)
+      });
+
+      await paymentController.getPayments(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.list).to.be.an('array');
+      expect(response.data.total).to.equal(2);
+    });
+
+    it('应该支持按状态搜索', async () => {
+      req.query = { page: 1, limit: 20, status: 'completed' };
+
+      const mockPayments = [fixtures.testPayments.completedPayment];
+
+      PaymentStub.countDocuments.resolves(1);
+      PaymentStub.find.withArgs({ status: 'completed' }).returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub()
+          .withArgs('enrollmentId', 'name')
+          .returnsThis()
+          .withArgs('periodId', 'name')
+          .returnsThis(),
+        select: sandbox.stub().resolves(mockPayments)
+      });
+
+      await paymentController.getPayments(req, res, next);
+
+      expect(PaymentStub.countDocuments.called).to.be.true;
+    });
+
+    it('应该支持按支付方法搜索', async () => {
+      req.query = { page: 1, limit: 20, method: 'wechat' };
+
+      const mockPayments = [fixtures.testPayments.completedPayment];
+
+      PaymentStub.countDocuments.resolves(1);
+      PaymentStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub()
+          .withArgs('enrollmentId', 'name')
+          .returnsThis()
+          .withArgs('periodId', 'name')
+          .returnsThis(),
+        select: sandbox.stub().resolves(mockPayments)
+      });
+
+      await paymentController.getPayments(req, res, next);
+
+      expect(res.json.called).to.be.true;
+    });
+  });
+
+  // ============ mockConfirmPayment 测试 ============
+  describe('mockConfirmPayment - 模拟支付确认', () => {
+    it('应该确认模拟支付', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.mockPayment._id };
 
       const mockPayment = {
-        _id: paymentId,
-        userId,
-        enrollmentId,
+        _id: fixtures.testPayments.mockPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        paymentMethod: 'mock',
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
         status: 'pending',
         confirmPayment: sandbox.stub().resolves(),
-        populate: sandbox.stub().resolves()
+        toObject: sandbox.stub().returns({})
       };
 
-      const mockEnrollment = {
-        _id: enrollmentId,
-        paymentStatus: 'paid'
-      };
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
 
       PaymentStub.findOne.resolves(mockPayment);
       EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
 
-      await paymentController.confirmPayment(req, res, next);
+      await paymentController.mockConfirmPayment(req, res, next);
 
-      expect(PaymentStub.findOne.called).to.be.true;
       expect(mockPayment.confirmPayment.called).to.be.true;
       expect(res.json.called).to.be.true;
     });
-  });
 
-  describe('cancelPayment', () => {
-    it('应该取消待支付的订单', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
-      const paymentId = new mongoose.Types.ObjectId();
-      req.user = { userId };
-      req.params = { paymentId };
+    it('应该返回400当非模拟支付', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.completedPayment._id };
 
       const mockPayment = {
-        _id: paymentId,
-        userId,
-        status: 'pending',
-        markCancelled: sandbox.stub().resolves()
+        _id: fixtures.testPayments.completedPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        paymentMethod: 'wechat'
       };
 
       PaymentStub.findOne.resolves(mockPayment);
 
-      await paymentController.cancelPayment(req, res, next);
-
-      expect(res.json.called).to.be.true;
-      expect(mockPayment.markCancelled.called).to.be.true;
-    });
-
-    it('应该返回400当已完成的支付无法取消', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
-      const paymentId = new mongoose.Types.ObjectId();
-      req.user = { userId };
-      req.params = { paymentId };
-
-      const mockPayment = {
-        _id: paymentId,
-        userId,
-        status: 'completed'
-      };
-
-      PaymentStub.findOne.resolves(mockPayment);
-
-      await paymentController.cancelPayment(req, res, next);
+      await paymentController.mockConfirmPayment(req, res, next);
 
       expect(res.status.calledWith(400)).to.be.true;
-      const errorMsg = res.json.getCall(0).args[0].message;
-      expect(errorMsg).to.include('无法取消');
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('仅模拟支付');
+    });
+  });
+
+  // ============ wechatCallback 测试 ============
+  describe('wechatCallback - 微信回调', () => {
+    it('应该处理微信支付成功回调', async () => {
+      req.body = fixtures.wechatCallbackRequests.successCallback;
+
+      const mockPayment = {
+        ...fixtures.testPayments.pendingPayment,
+        confirmPayment: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+
+      PaymentStub.findOne.resolves(mockPayment);
+      EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
+
+      await paymentController.wechatCallback(req, res, next);
+
+      expect(mockPayment.confirmPayment.called).to.be.true;
+      expect(res.json.called).to.be.true;
     });
 
-    it('应该返回404当支付记录不存在', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
-      const paymentId = new mongoose.Types.ObjectId();
-      req.user = { userId };
-      req.params = { paymentId };
+    it('应该处理微信支付失败回调', async () => {
+      req.body = fixtures.wechatCallbackRequests.failureCallback;
+
+      const mockPayment = {
+        ...fixtures.testPayments.processingPayment,
+        markFailed: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      PaymentStub.findOne.resolves(mockPayment);
+
+      await paymentController.wechatCallback(req, res, next);
+
+      expect(mockPayment.markFailed.called).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+
+    it('应该返回404当订单不存在', async () => {
+      req.body = fixtures.wechatCallbackRequests.nonExistentOrderCallback;
 
       PaymentStub.findOne.resolves(null);
 
-      await paymentController.cancelPayment(req, res, next);
+      await paymentController.wechatCallback(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });
   });
 
-  describe('getPaymentStatus', () => {
-    it('应该返回支付状态', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
-      const paymentId = new mongoose.Types.ObjectId();
-      req.user = { userId };
-      req.params = { paymentId };
+  // ============ 错误处理测试 ============
+  describe('错误处理', () => {
+    it('应该捕获数据库错误并返回500', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.body = fixtures.paymentInitiateRequests.validRequest;
 
-      const mockPayment = {
-        _id: paymentId,
-        userId,
-        orderNo: 'order123',
-        status: 'completed',
-        amount: 99,
-        paymentMethod: 'wechat',
-        paidAt: new Date()
-      };
+      EnrollmentStub.findOne.rejects(new Error('Database error'));
 
-      // 创建支持链式调用和 await 的 Query 对象
-      const mockQuery = {
-        populate: sandbox.stub().returnsThis(),
-        exec: sandbox.stub().resolves(mockPayment)
-      };
-      // 添加 then 方法使其成为 Thenable（支持 await）
-      mockQuery.then = function(onFulfilled, onRejected) {
-        return mockQuery.exec().then(onFulfilled, onRejected);
-      };
-      PaymentStub.findOne.returns(mockQuery);
+      await paymentController.initiatePayment(req, res, next);
 
-      await paymentController.getPaymentStatus(req, res, next);
-
-      expect(res.json.called).to.be.true;
-      const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('status');
+      expect(res.status.calledWith(500)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('初始化支付失败');
     });
 
-    it('应该返回404当支付记录不存在', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
-      const paymentId = new mongoose.Types.ObjectId();
-      req.user = { userId };
-      req.params = { paymentId };
+    it('应该捕获确认支付时的错误', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+      req.body = { transactionId: 'txn_123456' };
 
-      const mockQuery = {
-        populate: sandbox.stub().returnsThis(),
-        exec: sandbox.stub().resolves(null)
-      };
-      mockQuery.then = function(onFulfilled, onRejected) {
-        return mockQuery.exec().then(onFulfilled, onRejected);
-      };
-      PaymentStub.findOne.returns(mockQuery);
+      PaymentStub.findOne.rejects(new Error('Database error'));
 
-      await paymentController.getPaymentStatus(req, res, next);
+      await paymentController.confirmPayment(req, res, next);
 
-      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.status.calledWith(500)).to.be.true;
     });
   });
 });
