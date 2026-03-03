@@ -81,6 +81,50 @@ try {
 
 const mongoose = require('mongoose');
 
+// MongoDB 初始化辅助函数：确保管理员用户存在
+async function ensureAdminUser(mongodbUri) {
+  const { MongoClient } = require('mongodb');
+
+  // 提取 MongoDB 主机和端口（用于无密码连接）
+  const uriMatch = mongodbUri.match(/mongodb:\/\/([^:]+):([^@]+)@([^:]+):(\d+)/);
+  if (!uriMatch) {
+    console.warn('⚠️  无法解析 MongoDB URI，跳过管理员用户初始化检查');
+    return;
+  }
+
+  const [, user, password, host, port] = uriMatch;
+  const noAuthUri = `mongodb://${host}:${port}/?serverSelectionTimeoutMS=3000`;
+
+  try {
+    console.log('检查 MongoDB 管理员用户...');
+    // 首先尝试无认证连接（仅当 MongoDB 刚启动时有效）
+    const client = new MongoClient(noAuthUri);
+    await client.connect();
+    const adminDb = client.db('admin');
+
+    // 检查 admin 用户是否存在
+    const users = await adminDb.admin().listUsers();
+    const adminExists = users.some(u => u.user === 'admin');
+
+    if (!adminExists) {
+      console.log('📝 创建管理员用户 admin...');
+      await adminDb.admin().createUser({
+        user: 'admin',
+        pwd: password,
+        roles: ['root']
+      });
+      console.log('✅ 管理员用户已创建');
+    } else {
+      console.log('✅ 管理员用户已存在');
+    }
+
+    await client.close();
+  } catch (error) {
+    // 如果无密码连接失败，说明认证已启用，跳过
+    console.warn(`⚠️  ${error.message}`);
+  }
+}
+
 // 导入模型
 const User = require('../src/models/User');
 const Period = require('../src/models/Period');
@@ -96,6 +140,9 @@ async function initMongoDB() {
   let connection = null;
 
   try {
+    // 先检查并创建管理员用户（如果不存在）
+    await ensureAdminUser(MONGODB_URI);
+
     console.log('🔄 连接 MongoDB...');
     console.log('📍 连接字符串:', MONGODB_URI.replace(/:[\w!@#$%^&*()_+-=]*@/, ':****@'));
     connection = await mongoose.connect(MONGODB_URI, {
