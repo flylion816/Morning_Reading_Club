@@ -247,12 +247,23 @@ Page({
       return;
     }
 
+    // ⭐ 强制检查登录状态：使用 app.globalData 和 this.data 双重检查
+    const app = getApp();
+    const isLogin = app.globalData.isLogin || this.data.isLogin;
+
+    console.log('🔐 登录状态检查：');
+    console.log('  app.globalData.isLogin:', app.globalData.isLogin);
+    console.log('  this.data.isLogin:', this.data.isLogin);
+    console.log('  最终isLogin:', isLogin);
+
     // 检查是否已登录
-    if (!this.data.isLogin) {
+    if (!isLogin) {
+      console.warn('⚠️ 未登录，拦截操作，显示登录提示');
       wx.showModal({
         title: '请先登录',
         content: '需要登录才能进行操作',
         confirmText: '去登录',
+        cancelText: '取消',
         success: res => {
           if (res.confirm) {
             wx.navigateTo({
