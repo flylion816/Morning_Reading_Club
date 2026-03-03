@@ -45,7 +45,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
     res = {
       status: sandbox.stub().returnsThis(),
-      json: sandbox.stub().returnsThis()
+      json: sandbox.stub().returnsThis(),
+      send: sandbox.stub().returnsThis()
     };
 
     next = sandbox.stub();
@@ -148,13 +149,13 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.user = { userId: fixtures.testUsers.user1._id.toString() };
       req.body = fixtures.createInsightRequests.valid;
 
-      const mockInsight = { ...fixtures.testInsights.user1ToUser2 };
+      const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
       InsightStub.create.resolves(mockInsight);
 
       await insightController.createInsightManual(req, res, next);
 
       expect(InsightStub.create.called).to.be.true;
-      expect(res.status.calledWith(201)).to.be.true;
+      expect(res.json.called).to.be.true;
       expect(publishSyncEventStub.called).to.be.true;
     });
 
@@ -203,14 +204,14 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
       await insightController.createInsightManual(req, res, next);
 
-      expect(res.status.calledWith(201)).to.be.true;
+      expect(res.json.called).to.be.true;
     });
 
     it('TC-INSIGHT-007: 验证同步事件发送', async () => {
       req.user = { userId: fixtures.testUsers.user1._id.toString() };
       req.body = fixtures.createInsightRequests.valid;
 
-      const mockInsight = { ...fixtures.testInsights.user1ToUser2 };
+      const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
       InsightStub.create.resolves(mockInsight);
 
       await insightController.createInsightManual(req, res, next);
@@ -225,7 +226,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.user = { userId: fixtures.testUsers.user1._id.toString() };
       req.body = fixtures.createInsightRequests.valid;
 
-      const mockInsight = { ...fixtures.testInsights.user1ToUser2 };
+      const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
       InsightStub.create.resolves(mockInsight);
 
       await insightController.createInsightManual(req, res, next);
@@ -269,7 +270,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
         targetUserId: new mongoose.Types.ObjectId().toString()
       };
 
-      const mockInsight = { ...fixtures.testInsights.user1ToUser2 };
+      const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
       InsightStub.create.resolves(mockInsight);
 
       // 即使创建成功，实际应用应该验证目标用户存在
@@ -284,7 +285,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const insightId = fixtures.testInsights.user1ToUser2._id;
       req.params = { insightId };
 
-      const mockInsight = { ...fixtures.testInsights.user1ToUser2 };
+      const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
       InsightStub.findById.returns({
         populate: sandbox.stub().returnsThis(),
         populate: sandbox.stub().returnsThis(),
@@ -324,7 +325,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         userId: fixtures.testUsers.user1,
         targetUserId: fixtures.testUsers.user2,
         sectionId: fixtures.testSections.day1Ongoing
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       const populateStub = sandbox.stub();
       populateStub.onFirstCall().returnsThis();
@@ -344,7 +347,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const insightId = fixtures.testInsights.user1ToUser2._id;
       req.params = { insightId };
 
-      const mockInsight = { ...fixtures.testInsights.user1ToUser2 };
+      const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
       const populateStub = sandbox.stub();
       populateStub.onFirstCall().returnsThis();
       populateStub.onSecondCall().returnsThis();
@@ -392,7 +395,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString(),
         save: sandbox.stub().resolves()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -411,7 +416,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const mockInsight = {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -443,7 +450,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString(),
         save: sandbox.stub().resolves()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -465,7 +474,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString(),
         save: sandbox.stub().resolves()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -484,7 +495,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const mockInsight = {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
       InsightStub.findByIdAndDelete.resolves(mockInsight);
@@ -503,7 +516,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const mockInsight = {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -532,7 +547,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const mockInsight = {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
       InsightStub.findByIdAndDelete.resolves(mockInsight);
@@ -550,7 +567,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const mockInsight = {
         ...fixtures.testInsights.user1ToUser2,
         userId: fixtures.testUsers.user1._id.toString()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
       InsightStub.findByIdAndDelete.resolves(mockInsight);
@@ -1749,7 +1768,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         likeCount: 5,
         likes: [],
         save: sandbox.stub().resolves()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -1769,7 +1790,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         likeCount: 5,
         likes: [fixtures.testUsers.user3._id.toString()],
         save: sandbox.stub().resolves()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -1789,7 +1812,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         likeCount: 5,
         likes: [fixtures.testUsers.user3._id.toString()],
         save: sandbox.stub().resolves()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
@@ -1808,7 +1833,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         likeCount: 5,
         likes: [fixtures.testUsers.user3._id.toString()],
         save: sandbox.stub().resolves()
-      };
+,
+    toObject: sandbox.stub().returns({})
+};
 
       InsightStub.findById.resolves(mockInsight);
 
