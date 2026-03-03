@@ -57,6 +57,12 @@ const envConfig = {
       apiBaseUrl: 'http://localhost:3000/api/v1',
       enableDebug: true,
     },
+    // 管理员账户配置（开发环境）
+    adminUser: {
+      email: 'admin@morningreading.com',
+      defaultPassword: 'admin123456',
+      dbAccessPassword: 'admin123456',
+    },
   },
   prod: {
     // 后端配置
@@ -93,6 +99,12 @@ const envConfig = {
     admin: {
       apiBaseUrl: 'https://wx.shubai01.com/api/v1',
       enableDebug: false,
+    },
+    // 管理员账户配置（生产环境 - 使用强密码）
+    adminUser: {
+      email: 'admin@morningreading.com',
+      defaultPassword: 'Km7$Px2Qw9',
+      dbAccessPassword: 'Jb3#Rl8Tn5',
     },
   },
 };

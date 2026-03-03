@@ -27,6 +27,7 @@ const prodConfig = config.envConfig.prod;
 const mongoConfig = prodConfig.backend;
 const mysqlConfig = prodConfig.mysql;
 const redisConfig = prodConfig.redis;
+const adminConfig = prodConfig.adminUser;
 
 console.log('📝 从 .env.config.js 生成生产环境配置...\n');
 console.log('✓ 读取配置文件:', envConfigPath);
@@ -81,6 +82,11 @@ ADMIN_URL=https://wx.shubai01.com
 
 # 小程序 URL (用于CORS配置)
 MINIPROGRAM_URL=https://wx.shubai01.com
+
+# 管理员账户配置（生产环境）
+# ⚠️ 这些是敏感信息，仅在初始化新管理员时使用
+ADMIN_DEFAULT_PASSWORD=${adminConfig.defaultPassword}
+ADMIN_DB_ACCESS_PASSWORD=${adminConfig.dbAccessPassword}
 `;
 
   return envContent;
@@ -148,6 +154,10 @@ MINIPROGRAM_URL=http://localhost
 
 # 管理后台配置
 VITE_API_BASE_URL=http://localhost:3000/api/v1
+
+# 管理员账户配置（生产环境）
+ADMIN_DEFAULT_PASSWORD=${adminConfig.defaultPassword}
+ADMIN_DB_ACCESS_PASSWORD=${adminConfig.dbAccessPassword}
 `;
 
   return envContent;
