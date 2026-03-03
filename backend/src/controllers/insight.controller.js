@@ -443,13 +443,12 @@ async function updateInsight(req, res, next) {
 
     // 权限检查：允许以下情况编辑
     // 1. 内容创建者可以编辑自己创建的内容
-    // 2. 管理员（任何角色）可以编辑任何小凡看见（无论来源）
+    // 2. 管理员（任何角色：superadmin、admin、operator）可以编辑任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
     const isAdmin =
       userRole === 'admin' ||
       userRole === 'super_admin' ||
-      adminRole === 'superadmin' ||
-      adminRole === 'admin';
+      ['superadmin', 'admin', 'operator'].includes(adminRole);
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权编辑'));
@@ -505,13 +504,12 @@ async function deleteInsightManual(req, res, next) {
 
     // 权限检查：允许以下情况删除
     // 1. 内容创建者可以删除自己创建的内容
-    // 2. 管理员（任何角色）可以删除任何小凡看见（无论来源）
+    // 2. 管理员（任何角色：superadmin、admin、operator）可以删除任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
     const isAdmin =
       userRole === 'admin' ||
       userRole === 'super_admin' ||
-      adminRole === 'superadmin' ||
-      adminRole === 'admin';
+      ['superadmin', 'admin', 'operator'].includes(adminRole);
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权删除'));
