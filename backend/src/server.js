@@ -1,6 +1,5 @@
 const { Server } = require('socket.io');
 const path = require('path');
-const app = require('./app');
 const { connectMongoDB, testMySQLConnection } = require('./config/database');
 const { getSocketIoCorsOptions } = require('./config/cors');
 const { validateConfig } = require('./utils/config-validator');
@@ -9,6 +8,9 @@ const logger = require('./utils/logger');
 const WebSocketManager = require('./utils/websocket');
 const redisManager = require('./utils/redis');
 const { initRedisClient, startSyncListener } = require('./services/sync.service');
+
+// ⚠️ 重要：在 require app 之前设置环境变量
+// 因为 app.js 会在加载时初始化 CORS 等配置，这些配置依赖 NODE_ENV
 
 // 尝试加载根目录的统一环境配置
 try {
@@ -28,6 +30,9 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 
 // 然后加载 .env 文件（会被上面的 process.env 设置覆盖）
 require('dotenv').config();
+
+// 现在 app.js 可以安全加载，NODE_ENV 已经被正确设置
+const app = require('./app');
 
 // 验证环境配置
 validateConfig();

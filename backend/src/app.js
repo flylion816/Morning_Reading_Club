@@ -36,7 +36,9 @@ const app = express();
 app.use(helmet()); // 安全头
 app.use(cors(getCorsOptions())); // 跨域（安全配置，只允许指定的源）
 app.use(compression()); // 响应压缩
-app.use(morgan('dev')); // 请求日志
+// Morgan 日志格式：根据环境选择
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat)); // 请求日志
 app.use(express.json()); // JSON解析
 app.use(express.urlencoded({ extended: true })); // URL编码解析
 

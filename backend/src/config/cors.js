@@ -40,7 +40,12 @@ const getProductionOrigins = () => {
 // 根据环境选择允许的源
 const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === 'production') {
-    return getProductionOrigins();
+    const origins = getProductionOrigins();
+    console.log('[CORS DEBUG] Production origins:', origins);
+    console.log('[CORS DEBUG] NODE_ENV:', process.env.NODE_ENV);
+    console.log('[CORS DEBUG] ADMIN_URL:', process.env.ADMIN_URL);
+    console.log('[CORS DEBUG] API_BASE_URL:', process.env.API_BASE_URL);
+    return origins;
   }
   return developmentOrigins;
 };
@@ -50,18 +55,17 @@ const getAllowedOrigins = () => {
  * @returns {Object} Express CORS 中间件配置对象
  */
 const getCorsOptions = () => {
-  const allowedOrigins = getAllowedOrigins();
-
-  // 调试：打印允许的源
-  console.log('[CORS DEBUG] Allowed origins:', allowedOrigins);
-
   return {
     origin: (origin, callback) => {
+      // 每次请求时动态获取白名单（而不是在启动时缓存）
+      const allowedOrigins = getAllowedOrigins();
+
       // 允许无 origin 的请求（如 POST requests from HTML forms 或 curl requests）
-      console.log('[CORS DEBUG] Request origin:', origin, 'Allowed:', allowedOrigins.includes(origin));
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log('[CORS DEBUG] REJECTED - Request origin:', origin);
+        console.log('[CORS DEBUG] REJECTED - Allowed origins:', allowedOrigins);
         callback(new Error(`Origin ${origin} not allowed by CORS`));
       }
     },
