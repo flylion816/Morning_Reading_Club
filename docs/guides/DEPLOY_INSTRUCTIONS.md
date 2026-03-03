@@ -1,8 +1,8 @@
 # 晨读营 - 完整部署指南
 
-**最后更新**: 2026-03-03
-**版本**: 3.1
-**状态**: ✅ 生产就绪
+**最后更新**: 2026-03-03 (SSL/Nginx 配置就绪)
+**版本**: 3.2
+**状态**: ✅ 生产就绪 + HTTPS 已配置
 
 > 📌 **重要**：本部署指南涵盖所有部署步骤和环境配置说明。发布前，请仔细阅读本文档。
 
@@ -94,6 +94,185 @@ ssh ubuntu@118.25.145.179 "pm2 restart morning-reading-backend"
 - ✅ **修改后运行生成脚本**：`node scripts/generate-env-production.js --server`
 - ✅ **一个地方修改，所有环境同步** —— 避免密码不一致
 - ❌ **不要提交 `.env.docker` 和 `.env.production`** —— 已在 `.gitignore` 中
+
+---
+
+## 💻 Nginx 和 SSL 证书配置
+
+### 域名和 DNS 配置
+
+在配置 SSL 之前，确保 DNS 解析正确：
+
+```bash
+# 验证 DNS 记录（应该指向服务器 IP）
+dig wx.shubai01.com
+
+# 应该返回：
+# wx.shubai01.com.     300  IN  A  118.25.145.179
+```
+
+### SSL 证书申请（Let's Encrypt）
+
+使用 Certbot 自动申请和配置 SSL 证书：
+
+```bash
+# SSH 到服务器
+ssh ubuntu@118.25.145.179
+
+# 申请证书（需要 Certbot 已安装，通过 setup-server-env.sh 完成）
+sudo certbot certonly --nginx -d wx.shubai01.com \
+  --non-interactive --agree-tos --email admin@morningreading.com
+
+# 验证证书已申请成功
+sudo certbot certificates
+```
+
+**证书位置**：
+- 完整链：`/etc/letsencrypt/live/wx.shubai01.com/fullchain.pem`
+- 私钥：`/etc/letsencrypt/live/wx.shubai01.com/privkey.pem`
+- 自动续期：Certbot 会每 60 天自动续期
+
+### Nginx 虚拟主机配置
+
+创建 Nginx 配置文件 `/etc/nginx/sites-available/wx.shubai01.com`：
+
+```nginx
+server {
+    server_name wx.shubai01.com;
+
+    # 后端 API 反向代理
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 60s;
+    }
+
+    # 健康检查端点
+    location /health {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 管理后台静态文件
+    location /admin {
+        alias /var/www/morning-reading/admin/dist;
+        try_files $uri $uri/ /admin/index.html;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 默认首页重定向到管理后台
+    location = / {
+        return 301 /admin;
+    }
+
+    # SSL 配置
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/wx.shubai01.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/wx.shubai01.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+# HTTP 自动重定向到 HTTPS
+server {
+    listen 80;
+    server_name wx.shubai01.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+### 启用 Nginx 配置
+
+```bash
+# 创建软链接以启用配置
+sudo ln -sf /etc/nginx/sites-available/wx.shubai01.com /etc/nginx/sites-enabled/
+
+# 验证配置语法
+sudo nginx -t
+
+# 重启 Nginx
+sudo systemctl reload nginx
+
+# 验证启用状态
+ls -la /etc/nginx/sites-enabled/ | grep wx.shubai01.com
+```
+
+### 验证 HTTPS 访问
+
+```bash
+# 测试后端 API
+curl -I https://wx.shubai01.com/api/v1/health
+
+# 预期返回：HTTP/1.1 200 OK
+
+# 测试管理后台
+curl -I https://wx.shubai01.com/admin
+
+# 预期返回：HTTP/1.1 301 Moved Permanently（重定向到 /admin/）
+
+# 验证 SSL 证书
+openssl s_client -connect wx.shubai01.com:443 -servername wx.shubai01.com </dev/null 2>&1 | \
+  openssl x509 -noout -text | grep -E "Subject:|Issuer:|Not Before|Not After"
+
+# 预期输出：
+# Subject: CN=wx.shubai01.com
+# Issuer: C=US, O=Let's Encrypt, CN=E8
+# Not Before: Mar  3 02:09:26 2026 GMT
+# Not After : Jun  1 02:09:25 2026 GMT
+```
+
+### 自动续期检查
+
+```bash
+# 检查 Let's Encrypt 续期状态
+sudo certbot renew --dry-run
+
+# 设置自动续期（通常已通过 Certbot 设置）
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
+
+# 查看续期日志
+sudo journalctl -u certbot.timer -n 50
+```
+
+### 常见问题
+
+**问题 1：DNS 不解析**
+```bash
+# 检查 DNS A 记录是否指向正确的服务器 IP
+dig wx.shubai01.com +short
+# 应该返回：118.25.145.179
+
+# 如果不正确，在阿里云或域名注册商的管理后台更新 DNS 记录
+```
+
+**问题 2：证书申请失败**
+```bash
+# 常见原因：HTTP 端口 80 不可达
+# 确保防火墙允许 80 和 443 端口
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw reload
+
+# 查看 Certbot 日志
+sudo tail -f /var/log/letsencrypt/letsencrypt.log
+```
+
+**问题 3：HTTPS 仍然显示证书错误**
+```bash
+# 确保浏览器缓存已清除
+# 可以用隐身窗口/无痕浏览测试
+# 或使用 curl 强制清除缓存：
+curl -I --insecure https://wx.shubai01.com/admin
+```
 
 ---
 
@@ -944,7 +1123,7 @@ sudo journalctl -u docker -n 50
 
 ---
 
-**文档版本**: 3.0
-**最后更新**: 2026-03-02
+**文档版本**: 3.2
+**最后更新**: 2026-03-03 (SSL 证书配置完成)
 **维护者**: Claude Code
 **项目仓库**: https://github.com/flylion816/Morning_Reading_Club
