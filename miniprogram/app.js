@@ -42,26 +42,16 @@ App({
       return;
     }
 
-    // 生产环境：根据登录状态自动导航
-    if (!this.globalData.isLogin) {
-      // 未登录，导航到登录页
-      logger.info('未登录，导航到登录页');
-      wx.reLaunch({
-        url: '/pages/login/login',
-        fail: err => {
-          logger.error('导航到登录页失败:', err);
-        }
-      });
-    } else {
-      // 已登录，导航到首页
-      logger.info('已登录，导航到首页');
-      wx.reLaunch({
-        url: '/pages/index/index',
-        fail: err => {
-          logger.error('导航到首页失败:', err);
-        }
-      });
-    }
+    // 生产环境：所有用户（无论登录状态）都导航到首页
+    // 首页支持未登录用户浏览课程，只在需要时才要求登录
+    // 这符合 WeChat 审核要求：用户进入后先体验功能，再选择登录
+    logger.info('导航到首页（允许未登录用户浏览）');
+    wx.reLaunch({
+      url: '/pages/index/index',
+      fail: err => {
+        logger.error('导航到首页失败:', err);
+      }
+    });
   },
 
   onShow(options) {
