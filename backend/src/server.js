@@ -77,19 +77,7 @@ async function startServer() {
       logger.warn('⚠️ MySQL 连接测试失败，应用将继续运行但MySQL功能不可用', dbError.message);
     }
 
-    // 初始化 Redis 同步队列
-    logger.info('正在初始化 Redis 同步队列...');
-    const redisReady = await initRedisClient();
-    if (redisReady) {
-      logger.info('✅ Redis 同步队列初始化成功');
-      // 启动 MongoDB 同步监听器
-      logger.info('正在启动 MongoDB→MySQL 实时同步...');
-      startSyncListener();
-    } else {
-      logger.warn('⚠️ Redis 初始化失败，同步功能将不可用');
-    }
-
-    // 启动HTTP服务器
+    // 启动HTTP服务器（先启动，不等待 Redis）
     const server = app.listen(PORT, () => {
       logger.info('服务器已启动', {
         url: `http://localhost:${PORT}`,
@@ -117,6 +105,23 @@ async function startServer() {
     app.locals.io = io;
 
     logger.info('✅ WebSocket (Socket.IO) 已初始化');
+
+    // 后台初始化 Redis（不阻塞 HTTP 服务器启动）
+    logger.info('正在后台初始化 Redis 同步队列...');
+    initRedisClient()
+      .then(redisReady => {
+        if (redisReady) {
+          logger.info('✅ Redis 同步队列初始化成功');
+          // 启动 MongoDB 同步监听器
+          logger.info('正在启动 MongoDB→MySQL 实时同步...');
+          startSyncListener();
+        } else {
+          logger.warn('⚠️ Redis 初始化失败，同步功能将不可用');
+        }
+      })
+      .catch(error => {
+        logger.warn('⚠️ Redis 初始化异常，同步功能将不可用', error.message);
+      });
 
     // 设置服务器监听所有网卡
     server.on('listening', () => {
