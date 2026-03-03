@@ -79,11 +79,12 @@ services:
 
     # MySQL 启动参数（生产优化）
     # 注意: --default-authentication-plugin 在 MySQL 8.0.26+ 已弃用，8.4+ 已删除
+    # 注意: --default-time-zone 必须使用有效的时区名称（如 Asia/Shanghai），不支持 '+08:00' 格式
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --max_connections=1000
-      - --default-time-zone='+08:00'
+      - --default-time-zone=Asia/Shanghai
       - --slow_query_log=1
       - --long_query_time=2
 
