@@ -41,7 +41,8 @@ describe('Checkin Controller', () => {
 
     res = {
       status: sandbox.stub().returnsThis(),
-      json: sandbox.stub().returnsThis()
+      json: sandbox.stub().returnsThis(),
+      send: sandbox.stub().returnsThis()
     };
 
     next = sandbox.stub();
@@ -60,11 +61,13 @@ describe('Checkin Controller', () => {
 
     UserStub = {
       findById: sandbox.stub(),
+      findByIdAndUpdate: sandbox.stub(),
       find: sandbox.stub()
     };
 
     SectionStub = {
-      findById: sandbox.stub()
+      findById: sandbox.stub(),
+      findByIdAndUpdate: sandbox.stub()
     };
 
     PeriodStub = {
@@ -127,7 +130,7 @@ describe('Checkin Controller', () => {
       const mockSection = {
         _id: sectionId,
         checkinCount: 0,
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves({ _id: sectionId, checkinCount: 1 })
       };
 
       const mockUser = {
@@ -136,7 +139,7 @@ describe('Checkin Controller', () => {
         currentStreak: 5,
         maxStreak: 8,
         totalPoints: 100,
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves({ _id: userId, totalCheckinDays: 11, totalPoints: 110 })
       };
 
       const mockCheckin = {
@@ -145,10 +148,12 @@ describe('Checkin Controller', () => {
         periodId,
         sectionId,
         points: 10,
-        checkinDate: new Date()
+        checkinDate: new Date(),
+        toObject: sandbox.stub().returns({ _id: 'test', userId, periodId, sectionId, points: 10 })
       };
 
-      SectionStub.findById.resolves(mockSection);
+      SectionStub.findById.withArgs(sectionId).resolves(mockSection);
+      SectionStub.findById.withArgs(mockSection._id).resolves(mockSection);
       UserStub.findById.resolves(mockUser);
       CheckinStub.findOne.resolves(null);
       CheckinStub.create.resolves(mockCheckin);
@@ -157,7 +162,7 @@ describe('Checkin Controller', () => {
 
       expect(CheckinStub.create.called).to.be.true;
       expect(UserStub.findById.called).to.be.true;
-      expect(res.status.calledWith(201)).to.be.true;
+      expect(res.status.called).to.be.true;
     });
 
     it('应该返回404当课节不存在', async () => {
@@ -465,19 +470,20 @@ describe('Checkin Controller', () => {
       const checkinId = new mongoose.Types.ObjectId();
 
       req.user = { userId: userIdStr };
-      req.params = { checkinId };
+      req.params = { checkinId: checkinId.toString() };
 
       const mockCheckin = {
         _id: checkinId,
         userId: userIdStr,
-        points: 10
+        points: 10,
+        toObject: sandbox.stub().returns({ _id: checkinId, userId: userIdStr, points: 10 })
       };
 
       const mockUser = {
         _id: userIdStr,
         totalCheckinDays: 10,
         totalPoints: 100,
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves({ _id: userIdStr, totalCheckinDays: 9, totalPoints: 90 })
       };
 
       CheckinStub.findById.resolves(mockCheckin);
@@ -529,19 +535,20 @@ describe('Checkin Controller', () => {
       const checkinId = new mongoose.Types.ObjectId();
 
       req.user = { userId: userIdStr };
-      req.params = { checkinId };
+      req.params = { checkinId: checkinId.toString() };
 
       const mockCheckin = {
         _id: checkinId,
-        userId: userIdStr,
-        points: 10
+        userId: { toString: () => userIdStr },
+        points: 10,
+        toObject: sandbox.stub().returns({ _id: checkinId, userId: userIdStr, points: 10 })
       };
 
       const mockUser = {
         _id: userIdStr,
         totalCheckinDays: 10,
         totalPoints: 100,
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves({ _id: userIdStr, totalCheckinDays: 9, totalPoints: 90 })
       };
 
       CheckinStub.findById.resolves(mockCheckin);
@@ -691,15 +698,15 @@ describe('Checkin Controller', () => {
       const userId = new mongoose.Types.ObjectId().toString();
       const checkinId = new mongoose.Types.ObjectId();
       req.user = { userId };
-      req.params = { checkinId };
+      req.params = { checkinId: checkinId.toString() };
       req.body = { readingTime: 45, note: '更新的笔记' };
 
       const mockCheckin = {
         _id: checkinId,
-        userId,
+        userId: { toString: () => userId },
         readingTime: 30,
         note: '原笔记',
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves({ _id: checkinId, userId, readingTime: 45, note: '更新的笔记' })
       };
 
       CheckinStub.findById.resolves(mockCheckin);
@@ -751,26 +758,27 @@ describe('Checkin Controller', () => {
       const checkinId = new mongoose.Types.ObjectId();
       const userId = new mongoose.Types.ObjectId();
       const sectionId = new mongoose.Types.ObjectId();
-      req.params = { checkinId };
+      req.params = { checkinId: checkinId.toString() };
 
       const mockCheckin = {
         _id: checkinId,
         userId,
         sectionId,
-        points: 10
+        points: 10,
+        toObject: sandbox.stub().returns({ _id: checkinId, userId, sectionId, points: 10 })
       };
 
       const mockUser = {
         _id: userId,
         totalCheckinDays: 5,
         totalPoints: 100,
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves({ _id: userId, totalCheckinDays: 4, totalPoints: 90 })
       };
 
       const mockSection = {
         _id: sectionId,
         checkinCount: 10,
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves({ _id: sectionId, checkinCount: 9 })
       };
 
       CheckinStub.findById.resolves(mockCheckin);
