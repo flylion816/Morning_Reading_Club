@@ -146,19 +146,9 @@ Component({
       console.log('🔐 notification-badge 登录检查:', { isLogin });
 
       if (!isLogin) {
-        console.warn('⚠️ 未登录，拦截通知页面访问');
-        wx.showModal({
-          title: '请先登录',
-          content: '需要登录才能查看通知',
-          confirmText: '去登录',
-          cancelText: '取消',
-          success: res => {
-            if (res.confirm) {
-              wx.navigateTo({
-                url: '/pages/login/login'
-              });
-            }
-          }
+        console.warn('⚠️ 未登录，直接导航到登录页面');
+        wx.navigateTo({
+          url: '/pages/login/login'
         });
         return;
       }

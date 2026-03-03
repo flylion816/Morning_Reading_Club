@@ -258,19 +258,9 @@ Page({
 
     // 检查是否已登录
     if (!isLogin) {
-      console.warn('⚠️ 未登录，拦截操作，显示登录提示');
-      wx.showModal({
-        title: '请先登录',
-        content: '需要登录才能进行操作',
-        confirmText: '去登录',
-        cancelText: '取消',
-        success: res => {
-          if (res.confirm) {
-            wx.navigateTo({
-              url: '/pages/login/login'
-            });
-          }
-        }
+      console.warn('⚠️ 未登录，直接导航到登录页面');
+      wx.navigateTo({
+        url: '/pages/login/login'
       });
       return;
     }
