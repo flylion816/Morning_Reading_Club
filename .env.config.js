@@ -24,7 +24,8 @@ const envConfig = {
   dev: {
     // 后端配置
     backend: {
-      mongodbUri: 'mongodb://admin:admin123@localhost:27017/morning_reading_db?authSource=admin',
+      // 本地开发环境：使用 localhost MongoDB（开发级别密码）
+      mongodbUri: 'mongodb://admin:Dev_Mongodb@Local123@localhost:27017/morning_reading_db?authSource=admin',
       nodeEnv: 'development',
       port: 3000,
     },
@@ -60,7 +61,8 @@ const envConfig = {
   prod: {
     // 后端配置
     backend: {
-      mongodbUri: 'mongodb://mongodb:cephaEsLMPkNAemf@127.0.0.1:27017/morning_reading?authSource=admin',
+      // 线上环境：Docker 容器中的 MongoDB（使用 Docker Compose 配置的密码）
+      mongodbUri: 'mongodb://admin:Prod_Mongodb@Secure123!@127.0.0.1:27017/morning_reading?authSource=admin',
       nodeEnv: 'production',
       port: 3000,
     },
