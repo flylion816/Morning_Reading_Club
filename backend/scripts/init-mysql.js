@@ -6,7 +6,20 @@
  * 所有表都包含MongoDB所有字段 + raw_json
  */
 
+const path = require('path');
+
+// 先加载 .env.config.js（统一环境配置）
+try {
+  const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
+  const envConfig = require(envConfigPath);
+  process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
+} catch (error) {
+  console.warn('⚠️  未找到 .env.config.js，将使用 .env 文件');
+}
+
+// 再加载 .env 文件
 require('dotenv').config();
+
 const { mysqlPool } = require('../src/config/database');
 const logger = require('../src/utils/logger');
 

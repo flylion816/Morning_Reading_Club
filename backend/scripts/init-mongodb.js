@@ -19,6 +19,18 @@
  * $ NODE_ENV=development node backend/scripts/init-mongodb.js
  */
 
+const path = require('path');
+
+// 先加载 .env.config.js（统一环境配置）
+// 这样 NODE_ENV 会被正确设置，然后可以进行安全检查
+try {
+  const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
+  const envConfig = require(envConfigPath);
+  process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
+} catch (error) {
+  console.warn('⚠️  未找到 .env.config.js，将使用 .env 文件');
+}
+
 // 环境保护检查：禁止在生产环境运行
 if (process.env.NODE_ENV === 'production') {
   console.error('\n╔════════════════════════════════════════════════════════╗');
@@ -48,12 +60,23 @@ if (process.env.NODE_ENV !== 'test') {
   console.warn('继续执行...\n');
 }
 
-const path = require('path');
-const envFile =
+// 再加载 .env 文件（覆盖和补充）
+let envFile =
   process.env.NODE_ENV === 'production'
     ? path.join(__dirname, '../.env.production')
     : path.join(__dirname, '../.env');
 require('dotenv').config({ path: envFile });
+
+// 确保 MONGODB_URI 从 .env.config.js 加载
+if (!process.env.MONGODB_URI) {
+  try {
+    const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
+    const envConfig = require(envConfigPath);
+    process.env.MONGODB_URI = envConfig.config.backend.mongodbUri;
+  } catch (error) {
+    // 如果还是没有，使用默认值
+  }
+}
 
 const mongoose = require('mongoose');
 
