@@ -55,7 +55,7 @@ function generateShareImage() {
   ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText('凡人晨读营-小凡看见', 50, 60);
+  ctx.fillText('凡人共读-小凡看见', 50, 60);
 
   // 中心：大标题 "小凡看见" - 分两行显示
   ctx.font = 'bold 140px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';

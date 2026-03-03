@@ -2,7 +2,7 @@
   <el-container class="admin-layout">
     <el-aside class="admin-sidebar">
       <div class="sidebar-header">
-        <h2>凡人晨读营</h2>
+        <h2>凡人共读</h2>
       </div>
 
       <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">

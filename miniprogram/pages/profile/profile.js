@@ -1007,7 +1007,7 @@ Page({
    */
   onShareAppMessage() {
     return {
-      title: '邀请您加入凡人晨读营',
+      title: '邀请您加入凡人共读',
       path: '/pages/index/index',
       imageUrl: '/assets/images/share-default.png'
     };
@@ -1018,7 +1018,7 @@ Page({
    */
   onShareTimeline() {
     return {
-      title: '邀请您加入凡人晨读营',
+      title: '邀请您加入凡人共读',
       query: '',
       imageUrl: '/assets/images/share-default.png'
     };

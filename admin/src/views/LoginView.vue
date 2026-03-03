@@ -3,7 +3,7 @@
     <!-- 左侧内容区域 -->
     <div class="login-left">
       <div class="login-brand">
-        <h1>凡人晨读营</h1>
+        <h1>凡人共读</h1>
         <p>管理后台</p>
         <div class="brand-tagline">专业的晨读营学习管理平台</div>
       </div>
@@ -91,7 +91,7 @@
       </div>
 
       <div class="login-footer">
-        <p>&copy; 2025 凡人晨读营. All rights reserved.</p>
+        <p>&copy; 2025 凡人共读. All rights reserved.</p>
       </div>
     </div>
   </div>
