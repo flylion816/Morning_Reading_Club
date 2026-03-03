@@ -907,6 +907,85 @@ ps aux | grep -E "npm|node" | grep -v grep | wc -l
 
 ---
 
-**最后更新**：2025-11-30
+### 33. NODE_ENV 初始化顺序导致 CORS 和其他配置使用开发环境 (2026-03-03)
+
+**问题现象**：管理后台（https://wx.shubai01.com/admin）发送请求到后端 API 时，收到 CORS 错误："Origin https://wx.shubai01.com not allowed by CORS"，即使已配置 ADMIN_URL 和 API_BASE_URL 环境变量
+
+**根本原因**：`server.js` 中的加载顺序问题
+
+```javascript
+// ❌ 错误的加载顺序
+const app = require('./app');  // 第3行：app 在这里初始化 CORS
+
+// ... 很多代码后才设置 NODE_ENV
+process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;  // 第20行
+```
+
+`app.js` 在启动时初始化 CORS 中间件：
+```javascript
+app.use(cors(getCorsOptions()));  // 此时 NODE_ENV 还未被设置为 'production'
+```
+
+导致 CORS 使用了开发环境的白名单：`['http://localhost:3000', 'http://localhost:5173', ...]`
+
+**解决方案**（3部分）：
+
+1. **调整 server.js 加载顺序** - NODE_ENV 在 app 加载之前设置：
+```javascript
+// ✅ 正确的加载顺序
+// 先设置环境变量
+try {
+  const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
+  const envConfig = require(envConfigPath);
+  process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
+  process.env.MONGODB_URI = process.env.MONGODB_URI || envConfig.config.backend.mongodbUri;
+} catch (error) {
+  logger.warn('未找到统一环境配置文件 .env.config.js，将使用 .env 文件');
+}
+
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
+require('dotenv').config();
+
+// 现在才加载 app，此时 NODE_ENV 已正确设置
+const app = require('./app');
+```
+
+2. **改为动态获取 CORS 白名单** - 每次请求时动态获取，而非启动时缓存：
+```javascript
+// 在 cors.js 中，每次请求时调用 getAllowedOrigins()
+return {
+  origin: (origin, callback) => {
+    const allowedOrigins = getAllowedOrigins();  // 动态获取
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+```
+
+3. **Morgan 日志格式根据环境变量选择**：
+```javascript
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat));
+```
+
+**关键教训**：
+
+- ⚠️ **加载顺序很重要**：如果某个模块在初始化时依赖环境变量，必须确保该变量先被设置
+- ⚠️ **避免在启动时缓存依赖环境变量的配置**：改为每次请求时动态计算
+- ✅ **明确标记依赖关系**：用注释说明为什么某个模块必须在特定时刻加载
+- ✅ **环境变量应该尽早设置**：在所有模块加载之前完成
+
+**修改文件**：
+- `backend/src/server.js` - 调整加载顺序
+- `backend/src/app.js` - 改进 Morgan 日志格式选择
+- `backend/src/config/cors.js` - 改为动态获取白名单
+
+**提交记录**：commit 5eb30e4
+
+---
+
+**最后更新**：2026-03-03
 **维护者**：Claude Code
 **项目仓库**：[Morning_Reading_Club](https://github.com/flylion816/Morning_Reading_Club)

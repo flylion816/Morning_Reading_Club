@@ -105,9 +105,21 @@ class Request {
         reject(data);
       }
     }
-    // 401 未授权 - 尝试刷新Token
+    // 401 未授权 - 对公开端点直接返回错误，对受保护端点尝试刷新Token
     else if (statusCode === 401) {
-      this.handleTokenRefresh(resolve, reject, originalOptions);
+      // 公开端点不应该尝试刷新token
+      const publicEndpoints = ['/auth/wechat/login', '/auth/refresh'];
+      const isPublicEndpoint = publicEndpoints.some(endpoint => originalOptions.url.includes(endpoint));
+
+      if (isPublicEndpoint) {
+        // 公开端点的401表示请求本身失败，直接返回
+        logger.error('公开端点认证失败:', { url: originalOptions.url, message: data.message });
+        this.showError(data.message || '请求失败，请重试');
+        reject(data);
+      } else {
+        // 受保护端点的401表示token过期，尝试刷新
+        this.handleTokenRefresh(resolve, reject, originalOptions);
+      }
     }
     // 403 禁止访问
     else if (statusCode === 403) {

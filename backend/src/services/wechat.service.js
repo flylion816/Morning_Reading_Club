@@ -134,10 +134,19 @@ class WechatService {
         throw new Error('微信服务异常，请稍后重试');
       }
 
-      // 其他错误
+      // 其他错误 - 提供更详细的信息用于调试
+      const errorMessage = error.message || String(error);
       logger.error('微信API调用异常', error, {
-        code: WechatService.maskSensitive(code)
+        code: WechatService.maskSensitive(code),
+        errorMessage,
+        errorName: error.name,
+        hasResponse: !!error.response,
+        hasRequest: !!error.request
       });
+      // 返回更具体的错误信息以便诊断
+      if (errorMessage.includes('timeout')) {
+        throw new Error('微信API请求超时，请稍后重试');
+      }
       throw new Error('登录失败，请检查网络并重试');
     }
   }
