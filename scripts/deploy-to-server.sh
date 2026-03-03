@@ -222,10 +222,11 @@ create_deployment_package() {
   log_info "复制后端文件..."
   mkdir -p "$TEMP_DIR/backend"
   cp -r "$BACKEND_DIR/src" "$TEMP_DIR/backend/" 2>/dev/null || true
+  cp -r "$BACKEND_DIR/scripts" "$TEMP_DIR/backend/" 2>/dev/null || true
   cp -r "$BACKEND_DIR/pm2.config.js" "$TEMP_DIR/backend/" 2>/dev/null || true
   cp -r "$BACKEND_DIR/package.json" "$TEMP_DIR/backend/" 2>/dev/null || true
   cp -r "$BACKEND_DIR/package-lock.json" "$TEMP_DIR/backend/" 2>/dev/null || true
-  cp -r "$BACKEND_DIR/.env.production" "$TEMP_DIR/backend/" 2>/dev/null || true
+  cp -r "$BACKEND_DIR/.env" "$TEMP_DIR/backend/" 2>/dev/null || true
 
   # 验证后端文件
   if [ ! -f "$TEMP_DIR/backend/package.json" ]; then
@@ -254,10 +255,15 @@ create_deployment_package() {
 
   log_success "服务器脚本已复制"
 
+  # 复制根目录配置文件
+  log_info "复制根目录配置..."
+  cp "$PROJECT_ROOT/.env.config.js" "$TEMP_DIR/" 2>/dev/null || true
+  log_success "配置文件已复制"
+
   # 创建 tar.gz
   log_info "压缩文件..."
   cd "/tmp"
-  tar --exclude='node_modules' --exclude='.git' --exclude='.env*' -czf "$DEPLOY_PACKAGE" \
+  tar --exclude='node_modules' --exclude='.git' --exclude='.env.production' -czf "$DEPLOY_PACKAGE" \
     -C "$(dirname "$TEMP_DIR")" "$(basename "$TEMP_DIR")" 2>/dev/null
 
   if [ ! -f "/tmp/$DEPLOY_PACKAGE" ]; then

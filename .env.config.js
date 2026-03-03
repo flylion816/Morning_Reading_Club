@@ -44,9 +44,13 @@ const envConfig = {
   prod: {
     // 后端配置
     backend: {
-      mongodbUri: 'mongodb://admin:p62CWhV0Kd1Unq@127.0.0.1:27017/morning_reading?authSource=admin',
+      mongodbUri: 'mongodb://mongodb:cephaEsLMPkNAemf@127.0.0.1:27017/morning_reading?authSource=admin',
       nodeEnv: 'production',
       port: 3000,
+      // ℹ️ 其他配置由 .env 或环境变量补充：
+      // REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+      // MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD
+      // JWT_SECRET, JWT_REFRESH_SECRET, WECHAT_SECRET 等敏感信息
     },
     // 小程序配置
     miniprogram: {
