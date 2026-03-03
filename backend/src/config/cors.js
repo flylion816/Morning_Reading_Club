@@ -52,9 +52,13 @@ const getAllowedOrigins = () => {
 const getCorsOptions = () => {
   const allowedOrigins = getAllowedOrigins();
 
+  // 调试：打印允许的源
+  console.log('[CORS DEBUG] Allowed origins:', allowedOrigins);
+
   return {
     origin: (origin, callback) => {
       // 允许无 origin 的请求（如 POST requests from HTML forms 或 curl requests）
+      console.log('[CORS DEBUG] Request origin:', origin, 'Allowed:', allowedOrigins.includes(origin));
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
