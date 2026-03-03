@@ -21,17 +21,10 @@
 
 const path = require('path');
 
-// 先加载 .env.config.js（统一环境配置）
-// 这样 NODE_ENV 会被正确设置，然后可以进行安全检查
-try {
-  const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
-  const envConfig = require(envConfigPath);
-  process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
-} catch (error) {
-  console.warn('⚠️  未找到 .env.config.js，将使用 .env 文件');
-}
+// 先加载 .env 文件（获取真实的 NODE_ENV 值，用于初始化脚本的安全检查）
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// 环境保护检查：禁止在生产环境运行
+// 环境保护检查：禁止在生产环境运行（使用 .env 中的真实值，不覆盖）
 if (process.env.NODE_ENV === 'production') {
   console.error('\n╔════════════════════════════════════════════════════════╗');
   console.error('║                   🚫 致命错误                         ║');
@@ -60,22 +53,21 @@ if (process.env.NODE_ENV !== 'test') {
   console.warn('继续执行...\n');
 }
 
-// 再加载 .env 文件（覆盖和补充）
-let envFile =
-  process.env.NODE_ENV === 'production'
-    ? path.join(__dirname, '../.env.production')
-    : path.join(__dirname, '../.env');
-require('dotenv').config({ path: envFile });
-
-// 确保 MONGODB_URI 从 .env.config.js 加载
-if (!process.env.MONGODB_URI) {
-  try {
-    const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
-    const envConfig = require(envConfigPath);
+// 加载 .env.config.js 获取数据库连接信息（只在通过环境检查后才使用）
+try {
+  const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
+  const envConfig = require(envConfigPath);
+  // 在 development 模式下，强制使用 .env.config.js 中的 dev 配置
+  // （因为 .env 中可能是生产配置或有错误的凭证）
+  if (process.env.NODE_ENV === 'development') {
     process.env.MONGODB_URI = envConfig.config.backend.mongodbUri;
-  } catch (error) {
-    // 如果还是没有，使用默认值
+  } else if (!process.env.MONGODB_URI) {
+    // 其他环境下，只在 .env 中没有时才使用
+    process.env.MONGODB_URI = envConfig.config.backend.mongodbUri;
   }
+} catch (error) {
+  // 如果找不到 .env.config.js，继续使用 .env 中的值
+  console.warn('⚠️  无法加载 .env.config.js，使用 .env 中的配置');
 }
 
 const mongoose = require('mongoose');

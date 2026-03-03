@@ -20,7 +20,18 @@ try {
 // 再加载 .env 文件
 require('dotenv').config();
 
-const { mysqlPool } = require('../src/config/database');
+// 创建临时连接池（不指定数据库，用于创建数据库）
+const mysql = require('mysql2/promise');
+const tempPool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  port: parseInt(process.env.MYSQL_PORT, 10) || 13306,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
 const logger = require('../src/utils/logger');
 
 const TABLE_DEFINITIONS = {
@@ -380,6 +391,20 @@ async function initMysqlTables() {
   console.log('    🗄️  MySQL 表结构初始化');
   console.log('='.repeat(70) + '\n');
 
+  // 第一步：确保数据库存在
+  try {
+    console.log('检查/创建数据库...');
+    const tempConn = await tempPool.getConnection();
+    await tempConn.query(`CREATE DATABASE IF NOT EXISTS ${process.env.MYSQL_DATABASE} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+    tempConn.release();
+    console.log(`✅ 数据库 ${process.env.MYSQL_DATABASE} 已就绪\n`);
+  } catch (error) {
+    console.error(`❌ 无法创建数据库:`, error.message);
+    throw error;
+  }
+
+  // 现在可以使用主pool（包含数据库）
+  const { mysqlPool } = require('../src/config/database');
   const conn = await mysqlPool.getConnection();
 
   try {
