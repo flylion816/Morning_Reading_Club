@@ -42,18 +42,22 @@ class Request {
       });
     }
 
-    // 获取token
-    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
-
     // 合并请求头
     const requestHeader = {
       ...this.header,
       ...header
     };
 
-    // 添加认证token
-    if (token) {
-      requestHeader['Authorization'] = `Bearer ${token}`;
+    // 公开端点不需要token（避免旧token干扰）
+    const publicEndpoints = ['/auth/wechat/login', '/auth/refresh'];
+    const isPublicEndpoint = publicEndpoints.some(endpoint => url.includes(endpoint));
+
+    // 添加认证token（公开端点除外）
+    if (!isPublicEndpoint) {
+      const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+      if (token) {
+        requestHeader['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     return new Promise((resolve, reject) => {
