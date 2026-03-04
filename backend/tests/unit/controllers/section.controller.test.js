@@ -15,6 +15,7 @@ describe('Section Controller', () => {
   let next;
   let SectionStub;
   let PeriodStub;
+  let publishSyncEventStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -46,6 +47,8 @@ describe('Section Controller', () => {
       findById: sandbox.stub()
     };
 
+    publishSyncEventStub = sandbox.stub();
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
@@ -60,7 +63,10 @@ describe('Section Controller', () => {
       {
         '../models/Section': SectionStub,
         '../models/Period': PeriodStub,
-        '../utils/response': responseUtils
+        '../utils/response': responseUtils,
+        '../services/sync.service': {
+          publishSyncEvent: publishSyncEventStub
+        }
       }
     );
   });
@@ -164,7 +170,11 @@ describe('Section Controller', () => {
       };
 
       const mockPeriod = { _id: periodId, name: '期次' };
-      const mockSection = { _id: new mongoose.Types.ObjectId(), ...req.body };
+      const mockSection = {
+        _id: new mongoose.Types.ObjectId(),
+        ...req.body,
+        toObject: sandbox.stub().returnsThis()
+      };
 
       PeriodStub.findById.resolves(mockPeriod);
       SectionStub.create.resolves(mockSection);
@@ -174,6 +184,7 @@ describe('Section Controller', () => {
       expect(PeriodStub.findById.called).to.be.true;
       expect(SectionStub.create.called).to.be.true;
       expect(res.status.calledWith(201)).to.be.true;
+      expect(res.json.called).to.be.true;
     });
 
     it('应该返回404当期次不存在', async () => {
@@ -199,7 +210,8 @@ describe('Section Controller', () => {
         title: '原始标题',
         content: '原始内容',
         ...req.body,
-        save: sandbox.stub().resolves()
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returnsThis()
       };
 
       // 修复：updateSection 使用 findById + save，而不是 findByIdAndUpdate
@@ -230,7 +242,10 @@ describe('Section Controller', () => {
       const sectionId = new mongoose.Types.ObjectId();
       req.params = { sectionId };
 
-      const mockSection = { _id: sectionId };
+      const mockSection = {
+        _id: sectionId,
+        toObject: sandbox.stub().returns({ _id: sectionId })
+      };
 
       // 修复：deleteSection 使用 findById 检查存在性，然后调用 findByIdAndDelete
       SectionStub.findById.resolves(mockSection);

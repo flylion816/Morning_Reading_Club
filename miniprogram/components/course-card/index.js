@@ -107,9 +107,9 @@ Component({
           return;
         }
 
-        // 【情况4】已报名但未支付 → 进入支付页面继续支付
-        if (paymentStatus === 'pending') {
-          console.log('✅ 已报名但未支付，导航到支付页面');
+        // 【情况4】已报名但未支付 或 已退款 → 进入支付页面继续/重新支付
+        if (paymentStatus === 'pending' || paymentStatus === 'refunded') {
+          console.log('✅ 已报名但未支付或已退款，导航到支付页面');
           // 获取enrollmentId（从enrolled对象中）
           const enrollmentId = enrolled && enrolled.enrollmentId;
           if (!enrollmentId) {
@@ -136,6 +136,7 @@ Component({
         }
 
         // 【情况6】其他支付状态 → 异常提示
+        console.warn('⚠️ 支付状态异常:', paymentStatus);
         wx.showToast({
           title: '报名状态异常，请联系客服',
           icon: 'none',

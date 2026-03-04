@@ -317,9 +317,9 @@ Page({
         url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
       });
     }
-    // 【情况4】已报名但未支付，跳到支付页面继续支付
-    else if (paymentStatus === 'pending') {
-      console.log('已报名但未支付，继续支付');
+    // 【情况4】已报名但未支付 或 已退款，进入支付页面继续/重新支付
+    else if (paymentStatus === 'pending' || paymentStatus === 'refunded') {
+      console.log('已报名但未支付或已退款，进入支付页面重新支付');
       wx.navigateTo({
         url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startTime || period.startDate}&endDate=${period.endTime || period.endDate}&amount=99&isResumePayment=true`
       });
@@ -331,8 +331,9 @@ Page({
         url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
       });
     }
-    // 【情况6】其他支付状态（如failed等），显示提示
+    // 【情况6】其他支付状态，显示提示
     else {
+      console.warn('⚠️ 支付状态异常:', paymentStatus);
       wx.showToast({
         title: '报名状态异常，请联系客服',
         icon: 'none',

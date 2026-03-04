@@ -16,6 +16,7 @@ describe('Period Controller', () => {
   let PeriodStub;
   let UserStub;
   let EnrollmentStub;
+  let publishSyncEventStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -51,6 +52,8 @@ describe('Period Controller', () => {
       countDocuments: sandbox.stub()
     };
 
+    publishSyncEventStub = sandbox.stub();
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
@@ -66,7 +69,10 @@ describe('Period Controller', () => {
         '../models/Period': PeriodStub,
         '../models/User': UserStub,
         '../models/Enrollment': EnrollmentStub,
-        '../utils/response': responseUtils
+        '../utils/response': responseUtils,
+        '../services/sync.service': {
+          publishSyncEvent: publishSyncEventStub
+        }
       }
     );
   });
@@ -194,8 +200,9 @@ describe('Period Controller', () => {
       const mockPeriod = {
         _id: new mongoose.Types.ObjectId(),
         ...req.body,
-        status: 'draft',
-        enrolledCount: 0
+        status: 'not_started',
+        enrolledCount: 0,
+        toObject: sandbox.stub().returnsThis()
       };
 
       PeriodStub.create.resolves(mockPeriod);
@@ -203,6 +210,7 @@ describe('Period Controller', () => {
       await periodController.createPeriod(req, res, next);
 
       expect(PeriodStub.create.called).to.be.true;
+      expect(res.status.calledWith(201)).to.be.true;
       expect(res.json.called).to.be.true;
     });
   });
@@ -211,13 +219,14 @@ describe('Period Controller', () => {
     it('应该更新期次信息', async () => {
       const periodId = new mongoose.Types.ObjectId();
       req.params = { periodId };
-      req.body = { name: '更新的名称', status: 'active' };
+      req.body = { name: '更新的名称', status: 'ongoing' };
 
       const mockPeriod = {
         _id: periodId,
         name: '原名称',
-        status: 'upcoming',
-        save: sandbox.stub().resolves()
+        status: 'not_started',
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returnsThis()
       };
 
       PeriodStub.findById.resolves(mockPeriod);
@@ -234,7 +243,7 @@ describe('Period Controller', () => {
       req.params = { periodId };
       req.body = { name: '新名称' };
 
-      PeriodStub.findByIdAndUpdate.resolves(null);
+      PeriodStub.findById.resolves(null);
 
       await periodController.updatePeriod(req, res, next);
 
@@ -247,7 +256,12 @@ describe('Period Controller', () => {
       const periodId = new mongoose.Types.ObjectId();
       req.params = { periodId };
 
-      const mockPeriod = { _id: periodId, name: '期次', enrollmentCount: 0 };
+      const mockPeriod = {
+        _id: periodId,
+        name: '期次',
+        enrollmentCount: 0,
+        toObject: sandbox.stub().returns({ _id: periodId, name: '期次', enrollmentCount: 0 })
+      };
 
       PeriodStub.findById.resolves(mockPeriod);
       PeriodStub.findByIdAndDelete.resolves(mockPeriod);

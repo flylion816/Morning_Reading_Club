@@ -86,7 +86,17 @@ describe('Comment Controller', () => {
       req.body = { checkinId, content: '很好的想法' };
 
       const mockCheckin = { _id: checkinId };
-      const mockComment = { _id: new mongoose.Types.ObjectId(), ...req.body, userId };
+      const mockComment = {
+        _id: new mongoose.Types.ObjectId(),
+        ...req.body,
+        userId,
+        toObject: sandbox.stub().returns({
+          _id: new mongoose.Types.ObjectId(),
+          checkinId,
+          userId,
+          content: '很好的想法'
+        })
+      };
       const mockPopulatedComment = { ...mockComment, userId: { nickname: '用户名' } };
 
       CheckinStub.findById.resolves(mockCheckin);
@@ -102,6 +112,7 @@ describe('Comment Controller', () => {
 
       expect(CommentStub.create.called).to.be.true;
       expect(res.status.calledWith(201)).to.be.true;
+      expect(res.json.called).to.be.true;
     }).timeout(10000);
   });
 
@@ -193,7 +204,11 @@ describe('Comment Controller', () => {
 
       const mockComment = {
         _id: commentId,
-        userId: userIdStr
+        userId: userIdStr,
+        toObject: sandbox.stub().returns({
+          _id: commentId,
+          userId: userIdStr
+        })
       };
 
       CommentStub.findById.resolves(mockComment);

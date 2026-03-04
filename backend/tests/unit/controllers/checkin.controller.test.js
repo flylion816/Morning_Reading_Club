@@ -706,7 +706,13 @@ describe('Checkin Controller', () => {
         userId: { toString: () => userId },
         readingTime: 30,
         note: '原笔记',
-        save: sandbox.stub().resolves({ _id: checkinId, userId, readingTime: 45, note: '更新的笔记' })
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({
+          _id: checkinId,
+          userId,
+          readingTime: 45,
+          note: '更新的笔记'
+        })
       };
 
       CheckinStub.findById.resolves(mockCheckin);

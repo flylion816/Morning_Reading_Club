@@ -6,6 +6,11 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
 const mongoose = require('mongoose');
+const {
+  setupFindChain,
+  setupFindByIdChain,
+  createMockResponse
+} = require('../helpers/mock-helpers');
 
 describe('Notification Controller', () => {
   let notificationController;
@@ -14,16 +19,17 @@ describe('Notification Controller', () => {
   let res;
   let next;
   let NotificationStub;
+  let publishSyncEventStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
 
     req = { body: {}, params: {}, query: {}, user: {} };
-    res = {
-      status: sandbox.stub().returnsThis(),
-      json: sandbox.stub().returnsThis()
-    };
+    res = createMockResponse(sandbox);
     next = sandbox.stub();
+
+    // Mock publishSyncEvent to prevent errors
+    publishSyncEventStub = sandbox.stub().resolves();
 
     NotificationStub = {
       find: sandbox.stub(),
@@ -53,13 +59,18 @@ describe('Notification Controller', () => {
       info: sandbox.stub()
     };
 
+    const syncServiceStub = {
+      publishSyncEvent: publishSyncEventStub
+    };
+
     notificationController = proxyquire(
       '../../../src/controllers/notification.controller',
       {
         '../models/Notification': NotificationStub,
         '../models/User': UserStub,
         '../utils/response': responseUtils,
-        '../utils/logger': loggerStub
+        '../utils/logger': loggerStub,
+        '../services/sync.service': syncServiceStub
       }
     );
   });
@@ -83,13 +94,10 @@ describe('Notification Controller', () => {
         createdAt: new Date()
       }];
 
+      // Setup mocks using helper functions
       NotificationStub.countDocuments.resolves(5);
-      NotificationStub.find.returns({
-        populate: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().resolves(mockNotifications)
-      });
+      const chain = setupFindChain(sandbox, mockNotifications);
+      NotificationStub.find.returns(chain);
 
       await notificationController.getUserNotifications(req, res, next);
 
@@ -112,10 +120,13 @@ describe('Notification Controller', () => {
         userId: { toString: () => userId }, // Return the string userId
         isRead: false,
         readAt: null,
+        toObject: sandbox.stub().returns({}),
         save: sandbox.stub().resolves()
       };
 
-      NotificationStub.findById.resolves(mockNotification);
+      // Use setupFindByIdChain helper for proper chaining
+      const chain = setupFindByIdChain(sandbox, mockNotification);
+      NotificationStub.findById.returns(chain);
 
       await notificationController.markNotificationAsRead(req, res, next);
 
@@ -164,7 +175,13 @@ describe('Notification Controller', () => {
         userId,  // 使用字符串形式的 userId
         title: '通知',
         isRead: false,
-        toString: function() { return this.userId; }  // 提供 toString 方法
+        toString: function() { return this.userId; },  // 提供 toString 方法
+        toObject: sandbox.stub().returns({
+          _id: notificationId,
+          userId,
+          title: '通知',
+          isRead: false
+        })
       };
 
       NotificationStub.findById.resolves(mockNotification);
@@ -211,14 +228,28 @@ describe('Notification Controller', () => {
     it('应该删除所有通知', async () => {
       const userId = req.user.userId;
 
-      NotificationStub.deleteMany.resolves({ deletedCount: 5 });
+      const mockNotifications = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId,
+          toObject: sandbox.stub().returnsThis()
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId,
+          toObject: sandbox.stub().returnsThis()
+        }
+      ];
+
+      NotificationStub.find.resolves(mockNotifications);
+      NotificationStub.deleteMany.resolves({ deletedCount: 2 });
 
       await notificationController.deleteAllNotifications(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('deletedCount');
-      expect(responseData.data.deletedCount).to.equal(5);
+      expect(responseData.data.deletedCount).to.equal(2);
     });
   });
 
@@ -236,7 +267,8 @@ describe('Notification Controller', () => {
         isArchived: false,
         archivedAt: null,
         save: sandbox.stub().resolves(),
-        toString: function() { return this.userId; }
+        toString: function() { return this.userId; },
+        toObject: sandbox.stub().returnsThis()
       };
 
       NotificationStub.findById.resolves(mockNotification);
