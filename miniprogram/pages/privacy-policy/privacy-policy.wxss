@@ -1,5 +1,6 @@
 page {
   height: 100%;
+  background: #f5f5f5;
 }
 
 .page-privacy {
@@ -14,6 +15,7 @@ page {
   color: white;
   padding: 30rpx;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .title {
@@ -29,8 +31,10 @@ page {
 
 .content {
   flex: 1;
+  flex-shrink: 1;
   padding: 20rpx;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .section {
@@ -69,6 +73,7 @@ page {
   padding: 20rpx;
   border-top: 1rpx solid #eee;
   background: white;
+  flex-shrink: 0;
 }
 
 .btn-secondary {
