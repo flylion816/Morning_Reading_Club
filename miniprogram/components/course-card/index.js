@@ -107,12 +107,21 @@ Component({
           return;
         }
 
-        // 【情况4】已报名但未支付 → 提示完成支付
+        // 【情况4】已报名但未支付 → 进入支付页面继续支付
         if (paymentStatus === 'pending') {
-          wx.showToast({
-            title: '请先完成支付',
-            icon: 'none',
-            duration: 2000
+          console.log('✅ 已报名但未支付，导航到支付页面');
+          // 获取enrollmentId（从enrolled对象中）
+          const enrollmentId = enrolled && enrolled.enrollmentId;
+          if (!enrollmentId) {
+            wx.showToast({
+              title: '获取报名信息失败，请重试',
+              icon: 'none',
+              duration: 2000
+            });
+            return;
+          }
+          wx.navigateTo({
+            url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${course._id}&periodTitle=${course.name || ''}&startDate=${course.startTime || course.startDate}&endDate=${course.endTime || course.endDate}&amount=99&isResumePayment=true`
           });
           return;
         }
