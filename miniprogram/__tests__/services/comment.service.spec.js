@@ -240,7 +240,7 @@ describe('Comment & Interaction Service Tests (Stage 6: Task 6.2)', () => {
 
       const result = await commentService.likeInsight(insightId);
 
-      expect(request.post).toHaveBeenCalledWith(`/insights/${insightId}/like`, expect.any(Object));
+      expect(request.post).toHaveBeenCalledWith(`/insights/${insightId}/like`);
       expect(result.message).toBe('Insight liked');
     });
 

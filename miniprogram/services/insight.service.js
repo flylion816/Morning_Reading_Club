@@ -192,7 +192,7 @@ class InsightService {
    */
   getUserInsightsByUserId(userId) {
     return request.get(`/insights/user/${userId}`);
-  },
+  }
 
   /**
    * 获取特定期次insights
@@ -201,7 +201,7 @@ class InsightService {
    */
   getPeriodInsights(periodId) {
     return request.get(`/insights/period/${periodId}`);
-  },
+  }
 
   /**
    * 获取我收到的insights
@@ -209,7 +209,7 @@ class InsightService {
    */
   getReceivedInsights() {
     return request.get('/insights/received');
-  },
+  }
 
   /**
    * 更新insight
@@ -219,7 +219,7 @@ class InsightService {
    */
   updateInsight(insightId, data) {
     return request.put(`/insights/${insightId}`, data);
-  },
+  }
 
   /**
    * 删除insight
@@ -228,7 +228,7 @@ class InsightService {
    */
   deleteInsight(insightId) {
     return request.delete(`/insights/${insightId}`);
-  },
+  }
 
   /**
    * 获取insight详情
@@ -237,7 +237,7 @@ class InsightService {
    */
   getInsightDetails(insightId) {
     return request.get(`/insights/${insightId}`);
-  },
+  }
 
   /**
    * 获取相关insights
@@ -246,7 +246,7 @@ class InsightService {
    */
   getRelatedInsights(insightId) {
     return request.get(`/insights/${insightId}/related`);
-  },
+  }
 
   /**
    * 保存草稿
@@ -255,7 +255,7 @@ class InsightService {
    */
   saveDraft(draft) {
     return Promise.resolve({});
-  },
+  }
 
   /**
    * 获取草稿
@@ -263,7 +263,7 @@ class InsightService {
    */
   getDraft() {
     return Promise.resolve(null);
-  },
+  }
 
   /**
    * 获取insight统计
@@ -272,7 +272,7 @@ class InsightService {
    */
   getInsightStats(periodId) {
     return request.get(`/insights/period/${periodId}/stats`);
-  },
+  }
 
   /**
    * 搜索insights
@@ -282,7 +282,7 @@ class InsightService {
    */
   searchInsights(keyword, options = {}) {
     return request.get('/insights/search', { keyword, ...options });
-  },
+  }
 
   /**
    * 获取热门insights

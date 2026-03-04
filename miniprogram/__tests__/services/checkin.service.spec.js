@@ -32,6 +32,7 @@ describe('Checkin Service Tests (Stage 5: Task 5.1)', () => {
 
   describe('[CHECK-1] 提交打卡应返回打卡记录', () => {
     test('should return checkin record after submission', async () => {
+      const checkinData = { courseId: 'course_123' };
       const mockCheckin = createMockCheckin({
         _id: 'checkin_123',
         courseId: 'course_123',
@@ -40,11 +41,11 @@ describe('Checkin Service Tests (Stage 5: Task 5.1)', () => {
 
       request.post.mockResolvedValue(mockCheckin);
 
-      const result = await checkinService.submitCheckin('course_123');
+      const result = await checkinService.submitCheckin(checkinData);
 
       expect(result).toHaveProperty('_id');
       expect(result.status).toBe('completed');
-      expect(request.post).toHaveBeenCalledWith('/checkins', expect.any(Object));
+      expect(request.post).toHaveBeenCalledWith('/checkins', checkinData);
     });
 
     test('should include checkin timestamp', async () => {
@@ -54,7 +55,7 @@ describe('Checkin Service Tests (Stage 5: Task 5.1)', () => {
 
       request.post.mockResolvedValue(mockCheckin);
 
-      const result = await checkinService.submitCheckin('course_123');
+      const result = await checkinService.submitCheckin({ courseId: 'course_123' });
 
       expect(result).toHaveProperty('checkinTime');
     });

@@ -168,20 +168,20 @@ describe('Payment Service Tests (Stage 4)', () => {
 
   describe('[PAY-5] 支付成功应更新订单状态', () => {
     test('should update order status to completed on payment success', async () => {
-      const orderId = 'order_123';
+      const paymentId = 'payment_123';
       const mockPayment = createMockPayment({
-        orderId: orderId,
+        _id: paymentId,
         status: 'completed'
       });
 
-      request.put.mockResolvedValue(mockPayment);
+      request.post.mockResolvedValue(mockPayment);
 
-      const result = await paymentService.confirmPayment(orderId, {
+      const result = await paymentService.confirmPayment(paymentId, {
         transactionId: 'txn_123'
       });
 
-      expect(request.put).toHaveBeenCalledWith(
-        `/payments/orders/${orderId}/complete`,
+      expect(request.post).toHaveBeenCalledWith(
+        `/payments/${paymentId}/confirm`,
         expect.any(Object)
       );
       expect(result.status).toBe('completed');
@@ -192,9 +192,9 @@ describe('Payment Service Tests (Stage 4)', () => {
         transactionId: 'txn_20240315_001'
       });
 
-      request.put.mockResolvedValue(mockPayment);
+      request.post.mockResolvedValue(mockPayment);
 
-      const result = await paymentService.confirmPayment('order_123', {
+      const result = await paymentService.confirmPayment('payment_123', {
         transactionId: 'txn_20240315_001'
       });
 
@@ -204,26 +204,26 @@ describe('Payment Service Tests (Stage 4)', () => {
 
   describe('[PAY-6] 支付失败应返回错误信息', () => {
     test('should return error when payment fails', async () => {
-      request.put.mockRejectedValue({
+      request.post.mockRejectedValue({
         code: 400,
         message: 'Payment failed'
       });
 
       await expect(
-        paymentService.confirmPayment('order_123', { transactionId: 'txn_123' })
+        paymentService.confirmPayment('payment_123', { transactionId: 'txn_123' })
       ).rejects.toEqual(expect.objectContaining({
         message: 'Payment failed'
       }));
     });
 
     test('should include error code and message', async () => {
-      request.put.mockRejectedValue({
+      request.post.mockRejectedValue({
         code: 500,
         message: 'Payment processing error'
       });
 
       await expect(
-        paymentService.confirmPayment('order_123', {})
+        paymentService.confirmPayment('payment_123', {})
       ).rejects.toBeDefined();
     });
   });
@@ -234,9 +234,9 @@ describe('Payment Service Tests (Stage 4)', () => {
         status: 'cancelled'
       });
 
-      request.put.mockResolvedValue(mockPayment);
+      request.post.mockResolvedValue(mockPayment);
 
-      const result = await paymentService.cancelPayment('order_123');
+      const result = await paymentService.cancelPayment('payment_123');
 
       expect(result.status).toBe('cancelled');
     });
@@ -247,9 +247,9 @@ describe('Payment Service Tests (Stage 4)', () => {
         cancellationReason: 'User cancelled'
       });
 
-      request.put.mockResolvedValue(mockPayment);
+      request.post.mockResolvedValue(mockPayment);
 
-      const result = await paymentService.cancelPayment('order_123');
+      const result = await paymentService.cancelPayment('payment_123');
 
       expect(result).toHaveProperty('status');
     });
@@ -293,11 +293,11 @@ describe('Payment Service Tests (Stage 4)', () => {
         status: 'completed'
       });
 
-      request.put.mockResolvedValue(mockPayment);
+      request.post.mockResolvedValue(mockPayment);
 
-      await paymentService.confirmPayment('order_123', { transactionId: 'txn_123' });
+      await paymentService.confirmPayment('payment_123', { transactionId: 'txn_123' });
 
-      expect(request.put).toHaveBeenCalled();
+      expect(request.post).toHaveBeenCalled();
     });
   });
 
@@ -427,13 +427,13 @@ describe('Payment Service Tests (Stage 4)', () => {
 
   describe('[PAY-14] 同一订单不应重复支付', () => {
     test('should prevent duplicate payment for same order', async () => {
-      request.put.mockRejectedValue({
+      request.post.mockRejectedValue({
         code: 400,
         message: 'Order already paid'
       });
 
       await expect(
-        paymentService.confirmPayment('order_123', { transactionId: 'txn_123' })
+        paymentService.confirmPayment('payment_123', { transactionId: 'txn_123' })
       ).rejects.toEqual(expect.objectContaining({
         message: 'Order already paid'
       }));
@@ -492,22 +492,22 @@ describe('Payment Service Tests (Stage 4)', () => {
 
   describe('[PAY-18] 支付失败后应允许重新支付', () => {
     test('should allow retry after payment failure', async () => {
-      request.put.mockRejectedValueOnce({
+      request.post.mockRejectedValueOnce({
         code: 400,
         message: 'Payment failed'
       });
 
-      request.put.mockResolvedValueOnce(
+      request.post.mockResolvedValueOnce(
         createMockPayment({ status: 'pending' })
       );
 
       // First attempt fails
       await expect(
-        paymentService.confirmPayment('order_123', { transactionId: 'txn_1' })
+        paymentService.confirmPayment('payment_123', { transactionId: 'txn_1' })
       ).rejects.toBeDefined();
 
       // Retry succeeds
-      const result = await paymentService.confirmPayment('order_123', { transactionId: 'txn_2' });
+      const result = await paymentService.confirmPayment('payment_123', { transactionId: 'txn_2' });
 
       expect(result).toBeDefined();
     });
@@ -520,9 +520,9 @@ describe('Payment Service Tests (Stage 4)', () => {
         transactionId: transactionId
       });
 
-      request.put.mockResolvedValue(mockPayment);
+      request.post.mockResolvedValue(mockPayment);
 
-      const result = await paymentService.confirmPayment('order_123', {
+      const result = await paymentService.confirmPayment('payment_123', {
         transactionId: transactionId
       });
 

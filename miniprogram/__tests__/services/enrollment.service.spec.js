@@ -189,6 +189,7 @@ describe('Enrollment Service Tests (Stage 3: Task 3.1)', () => {
   describe('[ENROLL-4] 提交报名应返回报名记录', () => {
     test('should submit enrollment successfully', async () => {
       const periodId = 'period_123';
+      const enrollmentData = { periodId };
       const mockEnrollment = createMockEnrollment({
         _id: 'enrollment_123',
         userId: 'user_123',
@@ -198,12 +199,12 @@ describe('Enrollment Service Tests (Stage 3: Task 3.1)', () => {
 
       request.post.mockResolvedValue(mockEnrollment);
 
-      const result = await enrollmentService.submitEnrollment(periodId);
+      const result = await enrollmentService.submitEnrollment(enrollmentData);
 
       expect(result).toHaveProperty('_id');
       expect(result.periodId).toBe(periodId);
       expect(result.status).toBe('active');
-      expect(request.post).toHaveBeenCalledWith('/enrollments', expect.any(Object));
+      expect(request.post).toHaveBeenCalledWith('/enrollments', enrollmentData);
     });
 
     test('should return enrollment with creation timestamp', async () => {
@@ -213,7 +214,7 @@ describe('Enrollment Service Tests (Stage 3: Task 3.1)', () => {
 
       request.post.mockResolvedValue(mockEnrollment);
 
-      const result = await enrollmentService.submitEnrollment('period_123');
+      const result = await enrollmentService.submitEnrollment({ periodId: 'period_123' });
 
       expect(result.enrollmentDate).toBeDefined();
     });
@@ -221,7 +222,7 @@ describe('Enrollment Service Tests (Stage 3: Task 3.1)', () => {
     test('should handle enrollment submission error', async () => {
       request.post.mockRejectedValue(new Error('Enrollment failed'));
 
-      await expect(enrollmentService.submitEnrollment('period_123')).rejects.toThrow();
+      await expect(enrollmentService.submitEnrollment({ periodId: 'period_123' })).rejects.toThrow();
     });
   });
 

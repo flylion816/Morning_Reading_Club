@@ -90,7 +90,7 @@ class CommentService {
    */
   publishComment(insightId, data) {
     return request.post(`/insights/${insightId}/comments`, data);
-  },
+  }
 
   /**
    * 获取评论列表
@@ -100,7 +100,7 @@ class CommentService {
    */
   getCommentsList(insightId, options = {}) {
     return request.get(`/insights/${insightId}/comments`, options);
-  },
+  }
 
   /**
    * 更新评论
@@ -110,7 +110,7 @@ class CommentService {
    */
   updateComment(commentId, data) {
     return request.put(`/comments/${commentId}`, data);
-  },
+  }
 
   /**
    * 点赞insight
@@ -119,7 +119,7 @@ class CommentService {
    */
   likeInsight(insightId) {
     return request.post(`/insights/${insightId}/like`);
-  },
+  }
 
   /**
    * 取消点赞insight
@@ -128,7 +128,7 @@ class CommentService {
    */
   unlikeInsight(insightId) {
     return request.delete(`/insights/${insightId}/like`);
-  },
+  }
 
   /**
    * 获取insight点赞列表
@@ -138,7 +138,7 @@ class CommentService {
    */
   getInsightLikes(insightId, options = {}) {
     return request.get(`/insights/${insightId}/likes`, options);
-  },
+  }
 
   /**
    * 获取互动统计
@@ -147,7 +147,7 @@ class CommentService {
    */
   getInteractionStats(insightId) {
     return request.get(`/insights/${insightId}/stats`);
-  },
+  }
 
   /**
    * 获取用户互动历史
@@ -156,7 +156,7 @@ class CommentService {
    */
   getUserInteractionHistory(userId) {
     return request.get(`/users/${userId}/interactions`);
-  },
+  }
 
   /**
    * 检查用户点赞状态
@@ -166,7 +166,7 @@ class CommentService {
    */
   checkUserLikeStatus(userId, insightId) {
     return request.get(`/insights/${insightId}/like-status`);
-  },
+  }
 
   /**
    * 获取高赞评论

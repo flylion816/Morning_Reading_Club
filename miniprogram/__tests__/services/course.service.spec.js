@@ -287,7 +287,7 @@ describe('Course Service Tests (Stage 3: Task 3.2)', () => {
       const result = await courseService.getCourseInsights('course_123');
 
       expect(result.data.length).toBe(2);
-      expect(request.get).toHaveBeenCalledWith('/courses/course_123/insights', expect.any(Object));
+      expect(request.get).toHaveBeenCalledWith('/courses/course_123/insights');
     });
 
     test('should include insight creator info', async () => {
