@@ -14,6 +14,9 @@
     "format": "prettier --write '**/*.{js,ts,vue,json,md,yml,yaml}'",
     "format:check": "prettier --check '**/*.{js,ts,vue,json,md,yml,yaml}'",
     "test": "jest",
+    "test:miniprogram": "jest miniprogram/__tests__ --coverage",
+    "test:miniprogram:watch": "jest miniprogram/__tests__ --watch",
+    "test:all": "jest --coverage",
     "convert-icons": "node scripts/convert-icons.js"
   },
   "repository": {
@@ -44,5 +47,12 @@
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/miniprogram/__tests__/setup.js"],
+    "testMatch": ["**/__tests__/**/*.spec.js"],
+    "collectCoverageFrom": ["miniprogram/**/*.js"],
+    "coveragePathIgnorePatterns": ["__tests__", "node_modules"]
   }
 }
