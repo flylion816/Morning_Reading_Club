@@ -110,3 +110,54 @@ export const createMockUpcomingPeriod = (overrides: Partial<MockPeriod> = {}): M
     ...overrides
   });
 };
+
+/**
+ * 课节 Mock 对象接口
+ */
+export interface MockSection {
+  id?: string;
+  _id?: string;
+  periodId: string;
+  title: string;
+  description?: string;
+  content?: string;
+  order?: number;
+  duration?: number;
+  isPublished?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
+
+/**
+ * 创建课节 Mock 对象
+ */
+export const createMockSection = (overrides: Partial<MockSection> = {}): MockSection => ({
+  id: 'section-001',
+  _id: 'section-001',
+  periodId: 'period-001',
+  title: '课节1：晨读的意义',
+  description: '探讨晨读对个人成长的重要作用',
+  content: '晨读是一种修身养性的方式...',
+  order: 1,
+  duration: 30,
+  isPublished: true,
+  createdAt: new Date('2025-02-01'),
+  updatedAt: new Date('2025-02-01'),
+  ...overrides
+});
+
+/**
+ * 创建多个课节
+ */
+export const createMockSections = (count = 3, overrides: Partial<MockSection> = {}): MockSection[] =>
+  Array.from({ length: count }, (_, i) =>
+    createMockSection({
+      id: `section-${String(i + 1).padStart(3, '0')}`,
+      _id: `section-${String(i + 1).padStart(3, '0')}`,
+      title: `课节${i + 1}：主题${i + 1}`,
+      order: i + 1,
+      duration: 30 + i * 5,
+      ...overrides
+    })
+  );
