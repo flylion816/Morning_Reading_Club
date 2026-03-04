@@ -183,6 +183,40 @@ export const insightApi = {
   unpublishInsight: (id: string) => apiClient.put(`/insights/${id}`, { isPublished: false })
 };
 
+// 小凡看见申请 API（管理后台）
+export const insightRequestsApi = {
+  getRequests: (params?: any) => apiClient.get('/admin/requests', { params }),
+  getRequestDetail: (requestId: string) => apiClient.get(`/admin/requests/${requestId}`),
+  getRequestStats: () => apiClient.get('/admin/requests/stats'),
+  approveRequest: (requestId: string, data?: any) =>
+    apiClient.put(`/admin/requests/${requestId}/approve`, data),
+  rejectRequest: (requestId: string, data?: any) =>
+    apiClient.put(`/admin/requests/${requestId}/reject`, data),
+  batchApprove: (requestIds: string[]) =>
+    apiClient.post('/admin/requests/batch-approve', { requestIds }),
+  deleteRequest: (requestId: string) => apiClient.delete(`/admin/requests/${requestId}`)
+};
+
+// 审计日志 API
+export const auditLogsApi = {
+  getLogs: (params?: any) => apiClient.get('/audit-logs', { params }),
+  getStatistics: () => apiClient.get('/audit-logs/statistics'),
+  getAdminLogs: (adminId: string, params?: any) =>
+    apiClient.get(`/audit-logs/admin/${adminId}`, { params }),
+  getResourceLogs: (resourceType: string, resourceId: string, params?: any) =>
+    apiClient.get(`/audit-logs/resource/${resourceType}/${resourceId}`, { params }),
+  exportLogs: (params?: any) => apiClient.get('/audit-logs/export', { params, responseType: 'blob' })
+};
+
+// 数据分析 API
+export const analyticsApi = {
+  getUserTrend: (params?: any) => apiClient.get('/analytics/users/trend', { params }),
+  getEnrollmentTrend: (params?: any) => apiClient.get('/analytics/enrollments/trend', { params }),
+  getRevenueTrend: (params?: any) => apiClient.get('/analytics/revenue/trend', { params }),
+  getConversionMetrics: (params?: any) => apiClient.get('/analytics/conversion', { params }),
+  getKeyMetrics: () => apiClient.get('/analytics/metrics')
+};
+
 // 文件上传 API
 export const uploadApi = {
   uploadFile: (file: File) => {

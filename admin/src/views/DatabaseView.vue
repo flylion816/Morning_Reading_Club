@@ -1,6 +1,34 @@
 <template>
   <AdminLayout>
-    <div class="database-view">
+    <!-- 二次认证对话框 -->
+    <el-dialog
+      v-model="showAuthDialog"
+      title="安全验证"
+      width="400px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div class="auth-dialog">
+        <p class="auth-notice">⚠️ 这是高权限操作，请输入管理员密码以继续</p>
+        <el-form :model="authForm" label-width="80px">
+          <el-form-item label="密码">
+            <el-input
+              v-model="authForm.password"
+              type="password"
+              placeholder="输入您的管理员密码"
+              @keyup.enter="handleVerifyPassword"
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="handleCancelAuth">取消</el-button>
+        <el-button type="primary" :loading="verifying" @click="handleVerifyPassword">验证</el-button>
+      </template>
+    </el-dialog>
+
+    <div class="database-view" v-if="verified">
       <!-- 页面标题 -->
       <div class="header">
         <h1>🗄️ 数据库管理</h1>
@@ -328,14 +356,25 @@
         </div>
       </el-dialog>
     </div>
+    </div>
   </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
-import { backupApi } from '../services/api';
+import { authApi, backupApi } from '../services/api';
+
+// 二次认证状态
+const router = useRouter();
+const verified = ref(false);
+const showAuthDialog = ref(true);
+const verifying = ref(false);
+const authForm = ref({
+  password: ''
+});
 
 // MongoDB 集合列表
 const mongoTables = [
@@ -409,6 +448,48 @@ const syncing = ref(false);
 const recovering = ref(false);
 const comparing = ref(false);
 const pageSize = ref(20);
+
+// 二次认证处理
+async function handleVerifyPassword() {
+  if (!authForm.value.password.trim()) {
+    ElMessage.warning('请输入密码');
+    return;
+  }
+
+  verifying.value = true;
+  try {
+    await authApi.verifyDbAccess(authForm.value.password);
+    verified.value = true;
+    showAuthDialog.value = false;
+    ElMessage.success('验证成功，已进入数据库管理');
+  } catch (error: any) {
+    ElMessage.error(error.message || '密码错误，请重试');
+    authForm.value.password = '';
+  } finally {
+    verifying.value = false;
+  }
+}
+
+function handleCancelAuth() {
+  ElMessageBox.confirm(
+    '取消后将返回仪表板',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '继续输入',
+      type: 'warning'
+    }
+  ).then(() => {
+    router.push('/');
+  }).catch(() => {
+    // 用户选择继续输入，不做任何操作
+  });
+}
+
+onMounted(() => {
+  // 页面加载时，自动显示认证对话框
+  showAuthDialog.value = true;
+});
 
 // 加载 MongoDB 统计信息
 async function loadMongodbStats() {
@@ -869,5 +950,21 @@ initPage().catch(error => {
   padding: 40px 20px;
   color: #666;
   font-size: 14px;
+}
+
+.auth-dialog {
+  text-align: center;
+}
+
+.auth-notice {
+  color: #e6a23c;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.readonly-text {
+  color: #999;
+  font-style: italic;
 }
 </style>
