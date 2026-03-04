@@ -5,10 +5,19 @@
 
 import { beforeAll, afterAll, afterEach } from 'vitest';
 import { config } from '@vue/test-utils';
+import { createMockLocalStorage, createMockSessionStorage } from './helpers/mock-helpers';
 
-// Vue Test Utils 全局配置
+// 全局初始化 localStorage 和 sessionStorage
 beforeAll(() => {
-  // 配置全局属性
+  // 如果 localStorage 不存在或不可用，使用 mock
+  if (typeof localStorage === 'undefined' || !localStorage.getItem) {
+    (global as any).localStorage = createMockLocalStorage();
+  }
+  if (typeof sessionStorage === 'undefined' || !sessionStorage.getItem) {
+    (global as any).sessionStorage = createMockSessionStorage();
+  }
+
+  // Vue Test Utils 全局配置
   config.global.mocks = {
     $t: (key: string) => key // Mock i18n
   };

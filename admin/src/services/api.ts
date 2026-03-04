@@ -16,7 +16,12 @@ const apiClient = axios.create({
 // 请求拦截器 - 添加认证令牌
 apiClient.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('adminToken');
+    let token: string | null = null;
+    try {
+      token = localStorage.getItem('adminToken');
+    } catch (err) {
+      logger.warn('[API Request] ⚠️ 无法访问 localStorage:', err);
+    }
     logger.debug('[API Request] URL:', { url: config.url });
     logger.debug('[API Request] localStorage.adminToken:', { value: token ? '有值' : '无值' });
     if (token) {
@@ -83,8 +88,14 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       logger.warn('[API Response] ❌ 401 Unauthorized，清除token并重定向到登录页');
       // 清除过期的令牌并重定向到登录页
-      localStorage.removeItem('adminToken');
-      window.location.href = '/login';
+      try {
+        localStorage.removeItem('adminToken');
+      } catch (err) {
+        logger.warn('[API Response] ⚠️ 无法清除 localStorage:', err);
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
     // 返回更详细的错误信息
     const errorData = error.response?.data;
