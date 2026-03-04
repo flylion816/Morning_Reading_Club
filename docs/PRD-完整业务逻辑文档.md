@@ -1088,7 +1088,17 @@ GET /api/v1/insights/my
 显示所有用户提交的小凡看见申请，列包括申请人昵称、申请类型（新增/编辑/删除）、申请内容摘要、申请时间、审批状态（待审批/已同意/已拒绝）。支持多维筛选：按审批状态筛选、按申请人昵称搜索。支持操作：查看详情（查看完整申请内容）、同意申请（批准后自动生成对应小凡看见）、拒绝申请（向申请人发送拒绝通知）。
 
 **统计分析**:
-显示平均审批响应时间（从申请提交到管理员审批的时间）和同意率（已同意申请数 / 总申请数）。这些指标帮助管理员了解审批效率和用户申请通过率。后端API：`GET /api/v1/insights/:periodId` 获取小凡看见、`POST /api/v1/insights` 新增、`PUT /api/v1/insights/:id` 编辑、`DELETE /api/v1/insights/:id` 删除、`PATCH /api/v1/insights/:id/publish` 发布、`PATCH /api/v1/insights/:id/unpublish` 下架；申请API：`GET /api/v1/insight-requests` 获取申请列表、`PATCH /api/v1/insight-requests/:id/approve` 同意、`PATCH /api/v1/insight-requests/:id/reject` 拒绝。
+显示平均审批响应时间（从申请提交到管理员审批的时间）和同意率（已同意申请数 / 总申请数）。这些指标帮助管理员了解审批效率和用户申请通过率。
+- ✅ **已实现**：后端完整实现所有申请审批路由（12+ 个端点）
+- ✅ 前端 API 层已导出 `insightRequestsApi` 对象，包含所有必需的 API 方法：
+  - `getRequests()` - 获取申请列表
+  - `getRequestStats()` - 获取申请统计
+  - `approveRequest()` - 同意申请
+  - `rejectRequest()` - 拒绝申请
+  - `batchApprove()` - 批量同意
+  - `deleteRequest()` - 删除申请
+
+后端API：小凡看见API：`GET /api/v1/insights/:periodId` 获取小凡看见、`POST /api/v1/insights` 新增、`PUT /api/v1/insights/:id` 编辑、`DELETE /api/v1/insights/:id` 删除、`PATCH /api/v1/insights/:id/publish` 发布、`PATCH /api/v1/insights/:id/unpublish` 下架；申请API：`GET /api/v1/admin/requests` 获取申请列表、`GET /api/v1/admin/requests/stats` 获取申请统计、`PUT /api/v1/admin/requests/:id/approve` 同意、`PUT /api/v1/admin/requests/:id/reject` 拒绝、`POST /api/v1/admin/requests/batch-approve` 批量同意。
 
 ### 6.8 审计日志
 
@@ -1099,12 +1109,20 @@ GET /api/v1/insights/my
 支持多维筛选：(1)按操作员邮箱搜索；(2)按操作类型筛选（如仅查看"删除"操作）；(3)按操作对象筛选（如仅查看期次相关操作）；(4)按时间范围筛选。支持导出功能：将筛选结果导出为CSV或Excel文件，便于离线分析和审计。
 
 **统计分析**:
-仪表板展示操作统计：(1)按操作类型统计操作频次；(2)按操作员统计操作次数；(3)按时间维度显示操作趋势（如每小时/每日的操作量）。这些数据帮助系统管理员发现异常操作模式。后端API：`GET /api/v1/audit-logs` 获取审计日志列表（支持分页、筛选、排序）、`POST /api/v1/audit-logs/export` 导出日志。
+仪表板展示操作统计：(1)按操作类型统计操作频次；(2)按操作员统计操作次数；(3)按时间维度显示操作趋势（如每小时/每日的操作量）。这些数据帮助系统管理员发现异常操作模式。
+- ✅ **已实现**：后端完整实现所有审计日志路由
+- ✅ 前端 API 层已导出 `auditLogsApi` 对象，包含所有必需的 API 方法
+- ✅ AuditLogsView 使用独立的 `admin/src/api/audit.ts` 文件，实现完整的日志查询、统计、导出功能
+
+后端API：`GET /api/v1/audit-logs` 获取审计日志列表（支持分页、筛选、排序）、`GET /api/v1/audit-logs/statistics` 获取统计信息、`GET /api/v1/audit-logs/export` 导出日志。
 
 ### 6.9 数据库管理（高权限）
 
 **访问控制** (`DatabaseView`):
 仅限已登录的管理员访问。点击进入此页面时，系统要求二次密码认证（输入管理员登录密码）。验证成功后才能看到数据库管理界面。这是一种防误操作的设计，防止管理员不小心删除核心数据。
+- ✅ **已实现**：前端 DatabaseView 添加了密码验证对话框，验证成功后（调用 `authApi.verifyDbAccess(password)`）才显示数据库管理界面
+- ✅ 验证失败时显示错误提示，用户可重新输入
+- ✅ 取消验证时返回仪表板
 
 **MongoDB 数据查看**:
 提供MongoDB集合选择器，支持选择users、periods、enrollments、checkins、insights、payments等集合。选中集合后显示该集合的所有文档（分页显示）。支持MongoDB查询：输入MongoDB query（JSON格式），例如 `{"status": "paid"}` 查询所有已支付的报名。支持导出查询结果为JSON文件，便于数据分析和备份。
