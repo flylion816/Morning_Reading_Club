@@ -105,5 +105,70 @@ module.exports = {
    */
   submitEnrollment(data) {
     return request.post('/enrollments', data);
+  },
+
+  // Stage 3 Test Methods
+  /**
+   * 获取期次列表
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  getPeriodsList(options = {}) {
+    return request.get('/periods', options);
+  },
+
+  /**
+   * 获取期次详情
+   * @param {string} periodId - 期次ID
+   * @returns {Promise}
+   */
+  getPeriodDetails(periodId) {
+    return request.get(`/periods/${periodId}`);
+  },
+
+  /**
+   * 获取我的报名列表
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  getMyEnrollments(options = {}) {
+    return request.get('/enrollments/me', options);
+  },
+
+  /**
+   * 取消报名
+   * @param {string} enrollmentId - 报名ID
+   * @returns {Promise}
+   */
+  cancelEnrollment(enrollmentId) {
+    return request.delete(`/enrollments/${enrollmentId}`);
+  },
+
+  /**
+   * 获取报名统计
+   * @param {string} periodId - 期次ID
+   * @returns {Promise}
+   */
+  getEnrollmentStats(periodId) {
+    return request.get(`/enrollments/stats/${periodId}`);
+  },
+
+  /**
+   * 批量获取期次信息
+   * @param {Array} periodIds - 期次ID数组
+   * @returns {Promise}
+   */
+  getMultiplePeriods(periodIds) {
+    return request.post('/periods/batch', { periodIds });
+  },
+
+  /**
+   * 更新报名状态
+   * @param {string} enrollmentId - 报名ID
+   * @param {string} status - 新状态
+   * @returns {Promise}
+   */
+  updateEnrollmentStatus(enrollmentId, status) {
+    return request.put(`/enrollments/${enrollmentId}`, { status });
   }
 };

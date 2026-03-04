@@ -144,6 +144,51 @@ class CheckinService {
   getStreakDays() {
     return request.get('/checkins/streak');
   }
+
+  // Stage 5 Test Methods
+  /**
+   * 获取打卡列表
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  getCheckinList(options = {}) {
+    return request.get('/checkins', options);
+  }
+
+  /**
+   * 获取打卡统计
+   * @returns {Promise}
+   */
+  getCheckinStats() {
+    return request.get('/checkins/stats');
+  }
+
+  /**
+   * 获取某期次打卡数
+   * @param {string} periodId - 期次ID
+   * @returns {Promise}
+   */
+  getCheckinCountForPeriod(periodId) {
+    return request.get(`/checkins/period/${periodId}/count`);
+  }
+
+  /**
+   * 获取打卡进度
+   * @param {string} periodId - 期次ID
+   * @returns {Promise}
+   */
+  getCheckinProgress(periodId) {
+    return request.get(`/checkins/period/${periodId}/progress`);
+  }
+
+  /**
+   * 批量获取打卡信息
+   * @param {Array} courseIds - 课程ID数组
+   * @returns {Promise}
+   */
+  getMultipleCheckins(courseIds) {
+    return request.post('/checkins/batch', { courseIds });
+  }
 }
 
 module.exports = new CheckinService();

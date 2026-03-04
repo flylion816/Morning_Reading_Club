@@ -157,6 +157,64 @@ class CourseService {
     // 直接调用后端接口，由后端根据用户的报名信息和当前日期计算
     return request.get('/sections/today/task');
   }
+
+  // Stage 3 Test Methods
+  /**
+   * 获取课程列表（按天次排序）
+   * @param {string} periodId - 期次ID
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  getCoursesList(periodId, options = {}) {
+    return request.get(`/courses/period/${periodId}`, options);
+  }
+
+  /**
+   * 获取课程详情
+   * @param {string} courseId - 课程ID
+   * @returns {Promise}
+   */
+  getCourseDetails(courseId) {
+    return request.get(`/courses/${courseId}`);
+  }
+
+  /**
+   * 获取课程打卡统计
+   * @param {string} courseId - 课程ID
+   * @returns {Promise}
+   */
+  getCourseCheckinStats(courseId) {
+    return request.get(`/courses/${courseId}/stats`);
+  }
+
+  /**
+   * 获取课程评论列表
+   * @param {string} courseId - 课程ID
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  getCourseComments(courseId, options = {}) {
+    return request.get(`/courses/${courseId}/comments`, options);
+  }
+
+  /**
+   * 获取课程insights列表
+   * @param {string} courseId - 课程ID
+   * @returns {Promise}
+   */
+  getCourseInsights(courseId) {
+    return request.get(`/courses/${courseId}/insights`);
+  }
+
+  /**
+   * 更新课程
+   * @param {string} courseId - 课程ID
+   * @param {Object} data - 更新数据
+   * @returns {Promise}
+   */
+  updateCourse(courseId, data) {
+    return request.put(`/courses/${courseId}`, data);
+  }
 }
 
 module.exports = new CourseService();

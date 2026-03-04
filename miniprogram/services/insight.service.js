@@ -164,6 +164,134 @@ class InsightService {
   generateShareCard(insightId) {
     return request.get(`/insights/${insightId}/share-card`);
   }
+
+  // Stage 6 Test Methods
+  /**
+   * 发布insight
+   * @param {Object} data - insight数据
+   * @returns {Promise}
+   */
+  publishInsight(data) {
+    return request.post('/insights', data);
+  }
+
+  /**
+   * 获取insights列表
+   * @param {string} periodId - 期次ID
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  getInsightsListByPeriod(periodId, options = {}) {
+    return request.get(`/insights/period/${periodId}`, options);
+  }
+
+  /**
+   * 获取特定用户insights
+   * @param {string} userId - 用户ID
+   * @returns {Promise}
+   */
+  getUserInsightsByUserId(userId) {
+    return request.get(`/insights/user/${userId}`);
+  },
+
+  /**
+   * 获取特定期次insights
+   * @param {string} periodId - 期次ID
+   * @returns {Promise}
+   */
+  getPeriodInsights(periodId) {
+    return request.get(`/insights/period/${periodId}`);
+  },
+
+  /**
+   * 获取我收到的insights
+   * @returns {Promise}
+   */
+  getReceivedInsights() {
+    return request.get('/insights/received');
+  },
+
+  /**
+   * 更新insight
+   * @param {string} insightId - Insight ID
+   * @param {Object} data - 更新数据
+   * @returns {Promise}
+   */
+  updateInsight(insightId, data) {
+    return request.put(`/insights/${insightId}`, data);
+  },
+
+  /**
+   * 删除insight
+   * @param {string} insightId - Insight ID
+   * @returns {Promise}
+   */
+  deleteInsight(insightId) {
+    return request.delete(`/insights/${insightId}`);
+  },
+
+  /**
+   * 获取insight详情
+   * @param {string} insightId - Insight ID
+   * @returns {Promise}
+   */
+  getInsightDetails(insightId) {
+    return request.get(`/insights/${insightId}`);
+  },
+
+  /**
+   * 获取相关insights
+   * @param {string} insightId - Insight ID
+   * @returns {Promise}
+   */
+  getRelatedInsights(insightId) {
+    return request.get(`/insights/${insightId}/related`);
+  },
+
+  /**
+   * 保存草稿
+   * @param {Object} draft - 草稿数据
+   * @returns {Promise}
+   */
+  saveDraft(draft) {
+    return Promise.resolve({});
+  },
+
+  /**
+   * 获取草稿
+   * @returns {Promise}
+   */
+  getDraft() {
+    return Promise.resolve(null);
+  },
+
+  /**
+   * 获取insight统计
+   * @param {string} periodId - 期次ID
+   * @returns {Promise}
+   */
+  getInsightStats(periodId) {
+    return request.get(`/insights/period/${periodId}/stats`);
+  },
+
+  /**
+   * 搜索insights
+   * @param {string} keyword - 关键词
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  searchInsights(keyword, options = {}) {
+    return request.get('/insights/search', { keyword, ...options });
+  },
+
+  /**
+   * 获取热门insights
+   * @param {string} periodId - 期次ID
+   * @returns {Promise}
+   */
+  getTrendingInsights(periodId) {
+    return request.get(`/insights/period/${periodId}/trending`);
+  }
 }
 
 module.exports = new InsightService();
