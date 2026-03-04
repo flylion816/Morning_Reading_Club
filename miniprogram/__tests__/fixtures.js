@@ -71,11 +71,12 @@ function createMockCourse(overrides = {}) {
   const defaults = {
     _id: generateId(),
     periodId: generateId(),
-    title: `课程${Math.floor(Math.random() * 100)}`,
-    content: '这是课程内容',
-    duration: Math.floor(Math.random() * 60) + 5, // 5-65 minutes
-    order: Math.floor(Math.random() * 10) + 1,
+    dayOfPeriod: Math.floor(Math.random() * 30) + 1,
+    title: `成功来自于专注与坚持`,
+    description: '今天分享成功的秘诀',
+    content: '## 成功的三个要素\n1. 专注\n2. 坚持\n3. 反思',
     status: 'published',
+    checkinsCount: Math.floor(Math.random() * 50),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
