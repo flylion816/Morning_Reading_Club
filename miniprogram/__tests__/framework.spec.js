@@ -205,13 +205,114 @@ describe('Testing Framework Verification', () => {
     });
   });
 
-  describe('Math.random mock', () => {
-    test('Math.random should return 0.5', () => {
-      expect(Math.random()).toBe(0.5);
+  describe('ID generation', () => {
+    test('should generate unique IDs with counter', () => {
+      const id1 = fixtures.generateId();
+      const id2 = fixtures.generateId();
+      const id3 = fixtures.generateId();
+      expect(id1).not.toBe(id2);
+      expect(id2).not.toBe(id3);
+      expect(id1).not.toBe(id3);
     });
 
-    test('Math.random should have restore method', () => {
-      expect(typeof Math.random.restore).toBe('function');
+    test('generated IDs should be non-empty strings', () => {
+      const id = fixtures.generateId();
+      expect(typeof id).toBe('string');
+      expect(id.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('WxMock - Error Path Tests', () => {
+    let wxMock;
+
+    beforeEach(() => {
+      wxMock = new WxMock();
+    });
+
+    test('requestPayment should respect _successRate parameter', (done) => {
+      wxMock.setPaymentDelay(10);
+      let successCalled = false;
+
+      wxMock.requestPayment({
+        _successRate: 1,  // Guarantee success
+        success: () => {
+          successCalled = true;
+        },
+        fail: () => {
+          // Should not be called when _successRate = 1
+          expect(false).toBe(true);
+        }
+      });
+
+      setTimeout(() => {
+        expect(successCalled).toBe(true);
+        done();
+      }, 50);
+    });
+
+    test('requestPayment should call success callback with custom mock response', (done) => {
+      wxMock.setPaymentDelay(10);
+      const customResponse = { errMsg: 'requestPayment:ok', transactionId: 'custom_txn_123' };
+
+      wxMock.requestPayment({
+        _successRate: 1,  // Force success
+        _mockResponse: customResponse,
+        success: (response) => {
+          expect(response).toEqual(customResponse);
+          done();
+        }
+      });
+    });
+
+    test('request should call success callback with correct structure', (done) => {
+      wxMock.setRequestDelay(10);
+
+      wxMock.request({
+        url: 'http://test.com',
+        _mockResponse: { code: 200, message: 'OK' },
+        success: (response) => {
+          expect(response.statusCode).toBe(200);
+          expect(response.data.code).toBe(200);
+          expect(response.data.message).toBe('OK');
+          done();
+        }
+      });
+    });
+
+    test('factory functions should accept empty overrides', () => {
+      // Valid: empty override object
+      const user = fixtures.createMockUser({});
+      expect(user._id).toBeDefined();
+      expect(user.nickname).toBeDefined();
+      expect(user.status).toBe('active');
+    });
+
+    test('factory functions should accept partial overrides', () => {
+      // Valid: partial override
+      const user = fixtures.createMockUser({ nickname: 'Custom User', status: 'inactive' });
+      expect(user.nickname).toBe('Custom User');
+      expect(user.status).toBe('inactive');
+      expect(user._id).toBeDefined();  // Other fields should still be generated
+    });
+
+    test('multiple mock users should have different IDs', () => {
+      const user1 = fixtures.createMockUser();
+      const user2 = fixtures.createMockUser();
+      const user3 = fixtures.createMockUser();
+
+      expect(user1._id).not.toBe(user2._id);
+      expect(user2._id).not.toBe(user3._id);
+      expect(user1._id).not.toBe(user3._id);
+    });
+
+    test('should generate valid insight objects with all required fields', () => {
+      const insight = fixtures.createMockInsight();
+      expect(insight._id).toBeDefined();
+      expect(insight.creatorUserId).toBeDefined();
+      expect(insight.targetUserId).toBeDefined();
+      expect(insight.periodId).toBeDefined();
+      expect(insight.title).toBeDefined();
+      expect(insight.status).toBe('published');
     });
   });
 });

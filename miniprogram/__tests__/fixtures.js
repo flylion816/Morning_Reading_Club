@@ -4,10 +4,16 @@
  */
 
 /**
- * Generate random ID using Math.random()
- * @returns {string} Random ID like "507f1f77bcf86cd799439011"
+ * Generate deterministic unique ID using counter
+ * Falls back to timestamp-based ID if counter not available
+ * @returns {string} Unique ID like "id-12345" or "507f1f77bcf86cd799439011"
  */
 function generateId() {
+  // Use counter-based ID if available (in tests)
+  if (typeof global.__idCounter !== 'undefined') {
+    return `id_${global.__idCounter++}`;
+  }
+  // Fallback to timestamp-based ID (for non-test usage)
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 

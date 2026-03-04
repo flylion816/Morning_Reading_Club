@@ -137,16 +137,20 @@ class WxMock {
    * @param {Function} options.success - Success callback
    * @param {Function} options.fail - Failure callback
    * @param {number} options._successRate - (Optional) Success rate 0-1, defaults to 0.9
+   * @param {Object} options._mockResponse - (Optional) Custom success response to return
    */
   requestPayment(options) {
     const successRate = options._successRate !== undefined ? options._successRate : 0.9;
     const isSuccess = Math.random() < successRate;
+    const mockResponse = options._mockResponse;
 
     setTimeout(() => {
       if (isSuccess && options.success) {
-        options.success({
-          errMsg: 'requestPayment:ok',
-        });
+        options.success(
+          mockResponse || {
+            errMsg: 'requestPayment:ok',
+          }
+        );
       } else if (!isSuccess && options.fail) {
         options.fail({
           errMsg: 'requestPayment:fail cancel',

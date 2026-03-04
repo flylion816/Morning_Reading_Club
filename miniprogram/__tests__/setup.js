@@ -16,12 +16,10 @@ global.console = {
   error: jest.fn(),
 };
 
-// Mock global Math.random() to return predictable 0.5
-const originalRandom = Math.random;
-global.Math.random = jest.fn(() => 0.5);
-// Restore original for cases where we need randomness
-global.Math.random.restore = () => {
-  global.Math.random = originalRandom;
+// Create deterministic ID generator with counter for unique IDs
+global.__idCounter = 0;
+global.generateUniqueId = function() {
+  return String(global.__idCounter++);
 };
 
 // Mock WeChat global object with all APIs
