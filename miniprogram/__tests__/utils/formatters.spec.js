@@ -44,23 +44,19 @@ describe('Formatters Utility', () => {
     test('should format Date object', () => {
       const date = new Date('2025-03-04');
       const result = formatDate(date, 'YYYY-MM-DD');
-      expect(result).toContain('2025');
-      expect(result).toContain('03');
+      expect(result).toBe('2025-03-04');
     });
 
     test('should format with custom format string', () => {
       const date = '2025-03-04';
       const result = formatDate(date, 'DD/MM/YYYY');
-      expect(result).toContain('04');
-      expect(result).toContain('03');
-      expect(result).toContain('2025');
+      expect(result).toBe('04/03/2025');
     });
 
     test('should include time in YYYY-MM-DD HH:mm:ss format', () => {
       const date = new Date('2025-03-04T14:30:45');
       const result = formatDate(date, 'YYYY-MM-DD HH:mm:ss');
-      expect(result).toContain('2025-03-04');
-      expect(result).toContain(':');
+      expect(result).toMatch(/2025-03-04\s\d{2}:\d{2}:\d{2}/);
     });
 
     test('should return empty string for invalid date', () => {

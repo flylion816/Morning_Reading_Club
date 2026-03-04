@@ -106,7 +106,9 @@ describe('Request Service', () => {
         }, 10);
       });
 
-      await expect(request.get('/api/test')).rejects.toBeDefined();
+      await expect(request.get('/api/test')).rejects.toEqual(
+        expect.objectContaining({ errMsg: expect.stringContaining('network error') })
+      );
     });
 
     test('should reject on 404 Not Found', async () => {
@@ -121,7 +123,9 @@ describe('Request Service', () => {
         }, 10);
       });
 
-      await expect(request.get('/api/notfound')).rejects.toBeDefined();
+      await expect(request.get('/api/notfound')).rejects.toEqual(
+        expect.objectContaining({ statusCode: 404 })
+      );
     });
 
     test('should reject on 500 Server Error', async () => {
@@ -136,7 +140,9 @@ describe('Request Service', () => {
         }, 10);
       });
 
-      await expect(request.get('/api/error')).rejects.toBeDefined();
+      await expect(request.get('/api/error')).rejects.toEqual(
+        expect.objectContaining({ statusCode: 500 })
+      );
     });
 
     test('should show error toast on request failure', async () => {

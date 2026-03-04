@@ -253,12 +253,6 @@ describe('Storage Utility', () => {
   });
 
   describe('[STOR-6] 应支持 JSON 对象序列化和反序列化', () => {
-    beforeEach(() => {
-      // Reset storage before each test in this suite
-      global.wx.__storage = {};
-      jest.clearAllMocks();
-    });
-
     test('should serialize complex objects', () => {
       const complex = {
         user: {
@@ -325,7 +319,6 @@ describe('Storage Utility', () => {
     });
 
     test('should handle boolean values correctly', () => {
-      global.wx.__storage = {}; // Reset before test
       storage.set('true_val', true);
       storage.set('false_val', false);
 
@@ -334,7 +327,6 @@ describe('Storage Utility', () => {
     });
 
     test('should handle zero and empty string', () => {
-      global.wx.__storage = {}; // Reset before test
       storage.set('zero', 0);
       storage.set('empty', '');
 
@@ -352,12 +344,6 @@ describe('Storage Utility', () => {
   });
 
   describe('Additional Storage Features', () => {
-    beforeEach(() => {
-      // Reset storage before each test in this suite
-      global.wx.__storage = {};
-      jest.clearAllMocks();
-    });
-
     test('should support data expiration', () => {
       const now = Date.now();
       storage.set('temp', 'value', 1000); // 1 second expiration
@@ -374,14 +360,12 @@ describe('Storage Utility', () => {
     });
 
     test('should support data that never expires', () => {
-      global.wx.__storage = {}; // Reset storage
       storage.set('permanent', 'value', null);
       const retrieved = storage.get('permanent');
       expect(retrieved).toBe('value');
     });
 
     test('has() should return true for existing keys', () => {
-      global.wx.__storage = {}; // Reset storage
       storage.set('exists', 'value');
       expect(storage.has('exists')).toBe(true);
     });
