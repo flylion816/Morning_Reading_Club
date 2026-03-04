@@ -28,11 +28,15 @@ afterEach(() => {
   // 清理 DOM
   document.body.innerHTML = '';
 
-  // 清理 localStorage
-  localStorage.clear();
+  // 清理 localStorage（如果存在的话）
+  if (typeof localStorage !== 'undefined' && localStorage.clear) {
+    localStorage.clear();
+  }
 
-  // 清理 sessionStorage
-  sessionStorage.clear();
+  // 清理 sessionStorage（如果存在的话）
+  if (typeof sessionStorage !== 'undefined' && sessionStorage.clear) {
+    sessionStorage.clear();
+  }
 });
 
 // 所有测试完成后
