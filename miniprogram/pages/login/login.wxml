@@ -62,6 +62,15 @@
       <text wx:else>登录中...</text>
     </button>
 
+    <!-- 稍后登录按钮 - 允许用户不登录就进入应用 -->
+    <button
+      class="login-skip-btn"
+      bindtap="handleSkipLogin"
+      disabled="{{loading}}"
+    >
+      稍后登录
+    </button>
+
     <!-- 错误信息显示 -->
     <view wx:if="{{errorMessage}}" class="error-info">
       <view class="error-title">❌ {{errorMessage}}</view>

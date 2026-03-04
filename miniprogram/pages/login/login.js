@@ -255,6 +255,19 @@ Page({
   },
 
   /**
+   * 稍后登录 - 允许用户不登录就进入小程序
+   * 根据微信审核要求，不能强制用户登录
+   */
+  handleSkipLogin() {
+    console.log('用户选择稍后登录，跳过登录流程');
+
+    // 进入首页，无需登录
+    wx.switchTab({
+      url: '/pages/index/index'
+    });
+  },
+
+  /**
    * 返回首页
    */
   handleBackHome() {
