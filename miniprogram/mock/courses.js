@@ -119,11 +119,16 @@ const mockData = {
 
   // 课程详情
   detail: {
-    id: 1,
+    id: 802,
     title: '第一天 品德成功论',
-    period: 1,
-    startDate: '2025/11/10',
-    endDate: '2025/12/03',
+    periodId: {
+      _id: 8,
+      name: '勇敢的心',
+      title: '勇敢的心 - 七个习惯晨读营'
+    },
+    day: 1,
+    startDate: '2025/10/11',
+    endDate: '2025/10/13',
     currentDay: 4,
     isEnrolled: true,
     description: '21天养成阅读习惯',
