@@ -2,7 +2,7 @@
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
 const userService = require('../../services/user.service');
-const { formatDate, calculatePeriodStatus } = require('../../utils/formatters');
+const { formatDate, calculatePeriodStatus, formatDateRange } = require('../../utils/formatters');
 
 Page({
   data: {
@@ -109,13 +109,12 @@ Page({
 
       // 为每个期次计算状态（基于日期而不是数据库status字段）
       periods = periods.map(period => {
-        // 后端返回的字段是 startTime/endTime，不是 startDate/endDate
-        const calculatedStatus = calculatePeriodStatus(
-          period.startTime || period.startDate,
-          period.endTime || period.endDate
-        );
+        const startDate = period.startDate || period.startTime;
+        const endDate = period.endDate || period.endTime;
+        const calculatedStatus = calculatePeriodStatus(startDate, endDate);
         return {
           ...period,
+          dateRange: formatDateRange(startDate, endDate), // 覆盖为 "YYYY-MM-DD 至 YYYY-MM-DD"
           calculatedStatus,
           statusText: this.getCourseStatusText(calculatedStatus)
         };

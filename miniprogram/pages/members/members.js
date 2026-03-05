@@ -84,5 +84,14 @@ Page({
       this.setData({ page: this.data.page + 1 });
       this.loadMembers(false);
     }
+  },
+
+  /**
+   * 下拉刷新
+   */
+  onPullDownRefresh() {
+    this.loadMembers(true).finally(() => {
+      wx.stopPullDownRefresh();
+    });
   }
 });

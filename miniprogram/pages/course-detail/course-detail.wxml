@@ -168,22 +168,6 @@
     </view>
   </view>
 
-  <!-- 23天打卡日历 -->
-  <view class="calendar-section">
-    <view class="calendar-title">打卡日历 ({{checkedDays}}/23天)</view>
-    <view class="calendar-grid">
-      <view
-        wx:for="{{calendar}}"
-        wx:key="day"
-        class="calendar-day {{item.status}}"
-        bindtap="handleDayClick"
-        data-day="{{item}}">
-        <text class="day-number">{{item.day}}</text>
-        <text class="day-status">{{item.statusText}}</text>
-      </view>
-    </view>
-  </view>
-
   <!-- 底部按钮 -->
   <view class="fixed-buttons">
     <button class="btn-back" bindtap="handleBack">返回</button>

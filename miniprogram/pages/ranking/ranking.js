@@ -93,6 +93,15 @@ Page({
   },
 
   /**
+   * 下拉刷新
+   */
+  onPullDownRefresh() {
+    this.loadRanking(this.data.currentTab).finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
+  /**
    * 分享
    */
   handleShare() {

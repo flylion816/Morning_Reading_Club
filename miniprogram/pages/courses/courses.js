@@ -166,30 +166,25 @@ Page({
       // 切换到任务，滚动到顶部
       const oldScrollTop = this.data.scrollTop;
 
-      // 先设置一个不同的值,再设置为0,确保触发滚动
-      this.setData({ scrollTop: oldScrollTop + 1 });
-
-      setTimeout(() => {
+      // 只有在已经为0时才用+1强制触发，否则直接跳0即可
+      if (oldScrollTop === 0) {
+        this.setData({ scrollTop: 1 });
+        setTimeout(() => { this.setData({ scrollTop: 0 }); }, 50);
+      } else {
         this.setData({ scrollTop: 0 });
-      }, 50);
+      }
     } else if (tab === 'dynamics') {
       // 延迟执行,确保DOM渲染完成
       setTimeout(() => {
         const query = wx.createSelectorQuery().in(this);
         query.select('#dynamics-section').boundingClientRect();
         query.select('.content-scroll').scrollOffset();
+        query.select('.content-scroll').boundingClientRect(); // 新增：获取scroll-view自身的位置
         query.exec(res => {
-          if (res[0] && res[1]) {
-            // 计算需要滚动的距离
-            const targetTop = res[0].top + res[1].scrollTop;
-
-            // 先设置一个略微不同的值,确保触发变化
-            this.setData({ scrollTop: targetTop - 1 });
-
-            // 延迟后设置真实目标位置
-            setTimeout(() => {
-              this.setData({ scrollTop: targetTop });
-            }, 100);
+          if (res[0] && res[1] && res[2]) {
+            // 正确计算：当前偏移 + (动态区相对视口位置 - scroll-view相对视口位置)
+            const targetTop = res[1].scrollTop + (res[0].top - res[2].top);
+            this.setData({ scrollTop: targetTop });
           }
         });
       }, 100);

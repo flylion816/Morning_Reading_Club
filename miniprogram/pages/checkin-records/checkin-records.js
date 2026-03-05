@@ -214,5 +214,14 @@ Page({
     this.setData({ currentYear, currentMonth });
     this.updateMonthText();
     this.loadCheckinsWithStats();
+  },
+
+  /**
+   * 下拉刷新
+   */
+  onPullDownRefresh() {
+    this.loadCheckinsWithStats().finally(() => {
+      wx.stopPullDownRefresh();
+    });
   }
 });
