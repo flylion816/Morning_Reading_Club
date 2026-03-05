@@ -104,8 +104,8 @@ Page({
     this.setData({ loading: true });
 
     try {
-      // 如果用户已登录，调用认证API以获取用户个人的打卡统计
-      const res = await courseService.getPeriods({}, this.data.isLogin);
+      // 调用接口（已登录时自动带token，courseService会调用认证API）
+      const res = await courseService.getPeriods({}, true);
       let periods = res.list || res.items || res || [];
 
       // 为每个期次计算状态（基于日期而不是数据库status字段）

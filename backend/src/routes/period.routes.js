@@ -20,17 +20,17 @@ const {
 
 /**
  * @route   GET /api/v1/periods
- * @desc    获取期次列表
+ * @desc    获取期次列表（已登录时返回用户个人数据）
  * @access  Public
  */
-router.get('/', getPeriodList);
-
-/**
- * @route   GET /api/v1/periods/user
- * @desc    获取当前用户的期次列表（包含用户个人的打卡统计）
- * @access  Private
- */
-router.get('/user', authMiddleware, getPeriodListForUser);
+router.get('/', (req, res, next) => {
+  // 如果有token，使用认证版本；否则使用公开版本
+  if (req.headers.authorization) {
+    getPeriodListForUser(req, res, next);
+  } else {
+    getPeriodList(req, res, next);
+  }
+});
 
 /**
  * @route   GET /api/v1/periods/:periodId
