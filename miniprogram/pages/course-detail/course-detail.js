@@ -68,6 +68,9 @@ Page({
       console.log('开始加载课程详情，ID:', this.data.courseId);
       const course = await courseService.getCourseDetail(this.data.courseId);
       console.log('课程详情加载成功:', course);
+      console.log('📌 course.periodId:', course.periodId);
+      console.log('📌 course.periodId._id:', course.periodId?._id);
+      console.log('📌 course.periodId 类型:', typeof course.periodId);
 
       // 确保 course.comments 是数组（后端可能不返回这个字段）
       if (!course.comments) {
@@ -86,9 +89,15 @@ Page({
       try {
         // 使用 /checkins/period/:periodId 端点获取期次的所有打卡记录（包括其他用户的）
         // 这样才能在课程详情页显示所有人的打卡记录，与课程列表页保持一致
-        const checkinRes = await courseService.getPeriodCheckins(
-          course.periodId?._id || course.periodId
-        );
+        const periodId = course.periodId?._id || course.periodId;
+        console.log('🔍 准备调用 getPeriodCheckins，periodId:', periodId);
+
+        if (!periodId) {
+          console.error('❌ periodId 为空，无法加载打卡记录!');
+          throw new Error('periodId 为空');
+        }
+
+        const checkinRes = await courseService.getPeriodCheckins(periodId);
         console.log('打卡API响应:', checkinRes);
 
         if (checkinRes) {
