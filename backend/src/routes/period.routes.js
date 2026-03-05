@@ -23,9 +23,9 @@ const {
  * @desc    获取期次列表（已登录时返回用户个人数据）
  * @access  Public
  */
-router.get('/', (req, res, next) => {
-  // 如果有token，使用认证版本；否则使用公开版本
-  if (req.headers.authorization) {
+router.get('/', authMiddleware, (req, res, next) => {
+  // 如果成功通过认证，使用认证版本；否则使用公开版本
+  if (req.user) {
     getPeriodListForUser(req, res, next);
   } else {
     getPeriodList(req, res, next);
