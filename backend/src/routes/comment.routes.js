@@ -7,8 +7,40 @@ const {
   getCommentsByCheckin,
   replyToComment,
   deleteComment,
-  deleteReply
+  deleteReply,
+  likeComment,
+  unlikeComment,
+  likeReply,
+  unlikeReply
 } = require('../controllers/comment.controller');
+
+/**
+ * @route   POST /api/v1/comments/:commentId/like
+ * @desc    点赞评论
+ * @access  Private
+ */
+router.post('/:commentId/like', authMiddleware, likeComment);
+
+/**
+ * @route   DELETE /api/v1/comments/:commentId/like
+ * @desc    取消点赞评论
+ * @access  Private
+ */
+router.delete('/:commentId/like', authMiddleware, unlikeComment);
+
+/**
+ * @route   POST /api/v1/comments/:commentId/replies/:replyId/like
+ * @desc    点赞回复
+ * @access  Private
+ */
+router.post('/:commentId/replies/:replyId/like', authMiddleware, likeReply);
+
+/**
+ * @route   DELETE /api/v1/comments/:commentId/replies/:replyId/like
+ * @desc    取消点赞回复
+ * @access  Private
+ */
+router.delete('/:commentId/replies/:replyId/like', authMiddleware, unlikeReply);
 
 /**
  * @route   POST /api/v1/comments/:commentId/replies

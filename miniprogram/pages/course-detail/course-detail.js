@@ -485,29 +485,43 @@ Page({
   /**
    * 点赞回复
    */
-  handleLikeReply(e) {
+  async handleLikeReply(e) {
     const { commentId, replyId } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
-    const comment = comments.find(c => c.id === commentId);
+    const comment = comments.find(c => c.id === commentId || c._id === commentId);
 
     if (!comment || !comment.replies) {
+      console.error('评论或回复不存在', { commentId, replyId });
       return;
     }
 
-    const reply = comment.replies.find(r => r.id === replyId);
-    if (reply) {
+    const reply = comment.replies.find(r => r.id === replyId || r._id === replyId);
+    if (!reply) {
+      console.error('回复不存在');
+      return;
+    }
+
+    try {
       if (reply.isLiked) {
         // 取消点赞
+        await commentService.unlikeReply(commentId, replyId);
         reply.likeCount = Math.max(0, reply.likeCount - 1);
         reply.isLiked = false;
       } else {
         // 点赞
+        await commentService.likeReply(commentId, replyId);
         reply.likeCount = (reply.likeCount || 0) + 1;
         reply.isLiked = true;
       }
 
       this.setData({
         'course.comments': comments
+      });
+    } catch (error) {
+      console.error('回复点赞操作失败:', error);
+      wx.showToast({
+        title: '操作失败，请重试',
+        icon: 'none'
       });
     }
   },

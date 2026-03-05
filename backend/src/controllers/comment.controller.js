@@ -213,10 +213,168 @@ async function deleteReply(req, res, next) {
   }
 }
 
+// 点赞评论
+async function likeComment(req, res, next) {
+  try {
+    const { commentId } = req.params;
+    const { userId } = req.user;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    // 检查是否已点赞
+    const alreadyLiked = comment.likes.some(like => like.userId.toString() === userId);
+    if (alreadyLiked) {
+      return res.status(400).json(errors.badRequest('已经点过赞了'));
+    }
+
+    // 添加点赞
+    comment.likes.push({ userId, createdAt: new Date() });
+    comment.likeCount = comment.likes.length;
+    await comment.save();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'comments',
+      documentId: comment._id.toString(),
+      data: comment.toObject()
+    });
+
+    res.json(success(comment, '点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 取消点赞评论
+async function unlikeComment(req, res, next) {
+  try {
+    const { commentId } = req.params;
+    const { userId } = req.user;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    // 检查是否已点赞
+    const likeIndex = comment.likes.findIndex(like => like.userId.toString() === userId);
+    if (likeIndex === -1) {
+      return res.status(400).json(errors.badRequest('未点过赞'));
+    }
+
+    // 移除点赞
+    comment.likes.splice(likeIndex, 1);
+    comment.likeCount = comment.likes.length;
+    await comment.save();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'comments',
+      documentId: comment._id.toString(),
+      data: comment.toObject()
+    });
+
+    res.json(success(comment, '取消点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 点赞回复
+async function likeReply(req, res, next) {
+  try {
+    const { commentId, replyId } = req.params;
+    const { userId } = req.user;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const reply = comment.replies.id(replyId);
+    if (!reply) {
+      return res.status(404).json(errors.notFound('回复不存在'));
+    }
+
+    // 检查是否已点赞
+    const alreadyLiked = reply.likes.some(like => like.userId.toString() === userId);
+    if (alreadyLiked) {
+      return res.status(400).json(errors.badRequest('已经点过赞了'));
+    }
+
+    // 添加点赞
+    reply.likes.push({ userId, createdAt: new Date() });
+    reply.likeCount = reply.likes.length;
+    await comment.save();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'comments',
+      documentId: comment._id.toString(),
+      data: comment.toObject()
+    });
+
+    res.json(success(comment, '点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 取消点赞回复
+async function unlikeReply(req, res, next) {
+  try {
+    const { commentId, replyId } = req.params;
+    const { userId } = req.user;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const reply = comment.replies.id(replyId);
+    if (!reply) {
+      return res.status(404).json(errors.notFound('回复不存在'));
+    }
+
+    // 检查是否已点赞
+    const likeIndex = reply.likes.findIndex(like => like.userId.toString() === userId);
+    if (likeIndex === -1) {
+      return res.status(400).json(errors.badRequest('未点过赞'));
+    }
+
+    // 移除点赞
+    reply.likes.splice(likeIndex, 1);
+    reply.likeCount = reply.likes.length;
+    await comment.save();
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'comments',
+      documentId: comment._id.toString(),
+      data: comment.toObject()
+    });
+
+    res.json(success(comment, '取消点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createComment,
   getCommentsByCheckin,
   replyToComment,
   deleteComment,
-  deleteReply
+  deleteReply,
+  likeComment,
+  unlikeComment,
+  likeReply,
+  unlikeReply
 };

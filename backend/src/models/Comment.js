@@ -17,6 +17,24 @@ const ReplySchema = new mongoose.Schema(
       ref: 'User',
       default: null
     },
+    likes: {
+      type: [{
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }],
+      default: []
+    },
+    likeCount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     createdAt: {
       type: Date,
       default: Date.now
@@ -46,6 +64,24 @@ const CommentSchema = new mongoose.Schema(
       maxlength: 1000
     },
     replyCount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    likes: {
+      type: [{
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }],
+      default: []
+    },
+    likeCount: {
       type: Number,
       default: 0,
       min: 0

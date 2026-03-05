@@ -52,6 +52,26 @@ class CommentService {
   }
 
   /**
+   * 点赞回复
+   * @param {number} commentId 评论ID
+   * @param {number} replyId 回复ID
+   * @returns {Promise}
+   */
+  likeReply(commentId, replyId) {
+    return request.post(`/comments/${commentId}/replies/${replyId}/like`);
+  }
+
+  /**
+   * 取消点赞回复
+   * @param {number} commentId 评论ID
+   * @param {number} replyId 回复ID
+   * @returns {Promise}
+   */
+  unlikeReply(commentId, replyId) {
+    return request.delete(`/comments/${commentId}/replies/${replyId}/like`);
+  }
+
+  /**
    * 回复评论
    * @param {number} commentId 被回复的评论ID
    * @param {Object} data 回复数据
