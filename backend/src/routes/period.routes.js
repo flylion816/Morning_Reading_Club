@@ -3,6 +3,7 @@ const router = express.Router();
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const {
   getPeriodList,
+  getPeriodListForUser,
   getPeriodDetail,
   createPeriod,
   updatePeriod,
@@ -23,6 +24,13 @@ const {
  * @access  Public
  */
 router.get('/', getPeriodList);
+
+/**
+ * @route   GET /api/v1/periods/user
+ * @desc    获取当前用户的期次列表（包含用户个人的打卡统计）
+ * @access  Private
+ */
+router.get('/user', authMiddleware, getPeriodListForUser);
 
 /**
  * @route   GET /api/v1/periods/:periodId

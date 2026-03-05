@@ -1,4 +1,5 @@
 const Period = require('../models/Period');
+const Checkin = require('../models/Checkin');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
 
@@ -33,6 +34,72 @@ function getStatusText(period) {
     completed: '已完成'
   };
   return statusMap[dynamicStatus] || '未知状态';
+}
+
+// 获取当前用户的期次列表（包含用户个人的打卡统计）
+async function getPeriodListForUser(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const { page = 1, limit = 20, status, isPublished } = req.query;
+
+    const query = {};
+    if (status) {
+      if (status === 'active') {
+        query.status = 'ongoing';
+      } else {
+        query.status = status;
+      }
+    }
+    if (isPublished !== undefined) query.isPublished = isPublished === 'true';
+
+    const total = await Period.countDocuments(query);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const periods = await Period.find(query)
+      .sort({ endDate: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit, 10))
+      .select('-__v');
+
+    // 转换数据格式，并计算用户的打卡天数
+    const transformedPeriods = await Promise.all(
+      periods.map(async period => {
+        const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
+
+        // 查询用户在该期次的打卡日期数（不同的打卡日期数）
+        const checkinDates = await Checkin.distinct('checkinDate', {
+          userId,
+          periodId: period._id
+        });
+
+        return {
+          ...periodObj,
+          status: period.status === 'ongoing' ? 'active' : period.status,
+          title: period.title || period.name,
+          color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+          icon: period.icon || period.coverEmoji || '📚',
+          startTime: period.startDate ? period.startDate.toISOString() : null,
+          endTime: period.endDate ? period.endDate.toISOString() : null,
+          dateRange: periodObj.dateRange || '',
+          statusText: getStatusText(period),
+          checkedDays: checkinDates.length, // 真实的打卡天数
+          progress: 0,
+          isCheckedIn: false,
+          currentEnrollment: period.enrollmentCount || 0
+        };
+      })
+    );
+
+    const response = success(transformedPeriods);
+    response.pagination = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit, 10))
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
 }
 
 // 获取期次列表
@@ -242,6 +309,7 @@ async function deletePeriod(req, res, next) {
 
 module.exports = {
   getPeriodList,
+  getPeriodListForUser,
   getPeriodDetail,
   createPeriod,
   updatePeriod,

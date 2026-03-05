@@ -12,15 +12,21 @@ class CourseService {
   /**
    * 获取期次列表（首页显示）
    * @param {Object} params 查询参数
+   * @param {boolean} forAuthenticatedUser 是否为认证用户调用（会使用认证API返回用户个人数据）
    * @returns {Promise}
    */
-  getPeriods(params = {}) {
+  getPeriods(params = {}, forAuthenticatedUser = false) {
     // Mock模式
     if (envConfig.useMock) {
       return Promise.resolve({
         items: mockCourses.periods,
         total: mockCourses.periods.length
       });
+    }
+
+    // 认证用户调用 /periods/user（包含用户个人的打卡统计）
+    if (forAuthenticatedUser) {
+      return request.get('/periods/user', params);
     }
 
     return request.get('/periods', params);
