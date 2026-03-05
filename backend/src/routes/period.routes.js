@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { authMiddleware, optionalAuthMiddleware, adminMiddleware } = require('../middleware/auth');
 const {
   getPeriodList,
   getPeriodListForUser,
@@ -23,7 +23,7 @@ const {
  * @desc    获取期次列表（已登录时返回用户个人数据）
  * @access  Public
  */
-router.get('/', authMiddleware, (req, res, next) => {
+router.get('/', optionalAuthMiddleware, (req, res, next) => {
   // 如果成功通过认证，使用认证版本；否则使用公开版本
   if (req.user) {
     getPeriodListForUser(req, res, next);
