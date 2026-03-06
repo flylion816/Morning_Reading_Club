@@ -175,13 +175,14 @@ Page({
       // 打卡(Checkin)为主层级，评论(Comment)为子层级
       const app = getApp();
       let hasUserCheckedIn = false;
-      const currentUserId = app.globalData.userInfo?.id;
+      const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+
 
       // 为每个打卡记录构建完整的数据结构
       const checkinWithComments = dbCheckins.map(checkin => {
         // 检查当前用户是否已经打过卡
         const checkinUserId = checkin.userId?._id || checkin.userId?.id || checkin.userId;
-        if (checkinUserId === currentUserId) {
+        if (currentUserId && String(checkinUserId) === String(currentUserId)) {
           hasUserCheckedIn = true;
         }
 
@@ -202,6 +203,18 @@ Page({
           avatarText = checkin.avatarText || '👤';
         }
 
+        if (checkin.likes && checkin.likes.length > 0) {
+          console.log('--- Debug Likes (Checkin) ---', { checkinId: checkin._id || checkin.id, likes: checkin.likes, currentUserId });
+          checkin.likes.forEach(l => {
+            const extractedLikeId = String(l.userId?._id || l.userId?.id || l.userId || l);
+            console.log('Comparing:', { extractedLikeId, currentUserIdCasted: String(currentUserId), match: extractedLikeId === String(currentUserId) });
+          });
+        }
+
+        const isCheckinLikedLocally = Array.isArray(checkin.likes) && currentUserId ? checkin.likes.some(l =>
+          String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
+        ) : false;
+
         // 将打卡记录转换为前端格式
         const checkinItem = {
           id: checkin._id || checkin.id,
@@ -213,7 +226,7 @@ Page({
           content: checkin.note || checkin.content || '',
           createTime: checkin.createdAt ? this.formatTime(checkin.createdAt) : '刚刚',
           likeCount: checkin.likeCount || 0,
-          isLiked: false,
+          isLiked: isCheckinLikedLocally,
           replies: [] // 初始化为空，下面会填充评论
         };
 
@@ -233,20 +246,30 @@ Page({
 
           if (parentCheckin) {
             // 格式化Comment中的回复（嵌套回复）
-            const formattedNestedReplies = (comment.replies || []).map(reply => ({
-              id: reply._id,
-              userId: reply.userId?._id || reply.userId,
-              userName: reply.userId?.nickname || '匿名用户',
-              avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
-              avatarUrl: reply.userId?.avatarUrl || '',
-              avatarColor: '#9cb5f0',
-              content: reply.content || '',
-              createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
-              likeCount: 0,
-              isLiked: false
-            }));
+            const formattedNestedReplies = (comment.replies || []).map(reply => {
+              const isNestedReplyLikedLocally = Array.isArray(reply.likes) && currentUserId ? reply.likes.some(l =>
+                String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
+              ) : false;
+
+              return {
+                id: reply._id,
+                userId: reply.userId?._id || reply.userId,
+                userName: reply.userId?.nickname || '匿名用户',
+                avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
+                avatarUrl: reply.userId?.avatarUrl || '',
+                avatarColor: '#9cb5f0',
+                content: reply.content || '',
+                createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
+                likeCount: reply.likeCount || 0,
+                isLiked: isNestedReplyLikedLocally
+              };
+            });
 
             // 格式化Comment
+            const isCommentLikedLocally = Array.isArray(comment.likes) && currentUserId ? comment.likes.some(l =>
+              String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
+            ) : false;
+
             const formattedComment = {
               id: comment._id,
               userId: comment.userId?._id || comment.userId,
@@ -257,8 +280,8 @@ Page({
               content: comment.content || '',
               createTime: comment.createdAt ? this.formatTime(comment.createdAt) : '刚刚',
               likeCount: comment.likeCount || 0,
-              isLiked: false,
-              replies: formattedNestedReplies
+              isLiked: isCommentLikedLocally,
+              replies: formattedNestedReplies.map(reply => ({ ...reply, parentId: comment._id }))
             };
             parentCheckin.replies.push(formattedComment);
           }
@@ -371,7 +394,7 @@ Page({
   },
 
   /**
-   * 点赞评论
+   * 点赞打卡记录（顶层列表项是打卡记录，不是评论）
    */
   async handleLikeComment(e) {
     const { id } = e.currentTarget.dataset;
@@ -384,15 +407,19 @@ Page({
 
     try {
       if (comment.isLiked) {
-        // 取消点赞
-        await commentService.unlikeComment(id);
+        // 取消点赞打卡记录
+        console.log(`👎 取消点赞打卡: checkinId=${id}`);
+        await commentService.unlikeCheckin(id);
         comment.likeCount = Math.max(0, comment.likeCount - 1);
         comment.isLiked = false;
+        console.log(`✅ 取消点赞成功: 当前点赞数=${comment.likeCount}`);
       } else {
-        // 点赞
-        await commentService.likeComment(id);
+        // 点赞打卡记录
+        console.log(`👍 点赞打卡: checkinId=${id}`);
+        await commentService.likeCheckin(id);
         comment.likeCount += 1;
         comment.isLiked = true;
+        console.log(`✅ 点赞成功: 当前点赞数=${comment.likeCount}`);
       }
 
       this.setData({
@@ -483,7 +510,7 @@ Page({
   },
 
   /**
-   * 点赞回复
+   * 点赞评论（回复列表里的项是评论，commentId 是打卡ID，replyId 是评论ID）
    */
   async handleLikeReply(e) {
     const { commentId, replyId } = e.currentTarget.dataset;
@@ -495,7 +522,26 @@ Page({
       return;
     }
 
-    const reply = comment.replies.find(r => r.id === replyId || r._id === replyId);
+    let isNestedReply = false;
+    let parentCommentId = null;
+
+    let reply = comment.replies.find(r => r.id === replyId || r._id === replyId);
+
+    // 如果在第一层回复(replies)里找不到，就去第二层(replies.replies)里找
+    if (!reply) {
+      for (const r of comment.replies) {
+        if (r.replies && r.replies.length > 0) {
+          const nestedReply = r.replies.find(nr => nr.id === replyId || nr._id === replyId);
+          if (nestedReply) {
+            reply = nestedReply;
+            isNestedReply = true;
+            parentCommentId = nestedReply.parentId || r.id || r._id;
+            break;
+          }
+        }
+      }
+    }
+
     if (!reply) {
       console.error('回复不存在');
       return;
@@ -503,15 +549,27 @@ Page({
 
     try {
       if (reply.isLiked) {
-        // 取消点赞
-        await commentService.unlikeReply(commentId, replyId);
+        // 取消点赞评论
+        console.log(`👎 取消点赞回复: checkinId=${commentId}, isNested=${isNestedReply}, parentCommentId=${parentCommentId}, replyId=${replyId}`);
+        if (isNestedReply) {
+          await commentService.unlikeReply(parentCommentId, replyId);
+        } else {
+          await commentService.unlikeComment(replyId);
+        }
         reply.likeCount = Math.max(0, reply.likeCount - 1);
         reply.isLiked = false;
+        console.log(`✅ 取消点赞成功: 当前点赞数=${reply.likeCount}`);
       } else {
-        // 点赞
-        await commentService.likeReply(commentId, replyId);
+        // 点赞评论
+        console.log(`👍 点赞回复: checkinId=${commentId}, isNested=${isNestedReply}, parentCommentId=${parentCommentId}, replyId=${replyId}`);
+        if (isNestedReply) {
+          await commentService.likeReply(parentCommentId, replyId);
+        } else {
+          await commentService.likeComment(replyId);
+        }
         reply.likeCount = (reply.likeCount || 0) + 1;
         reply.isLiked = true;
+        console.log(`✅ 点赞成功: 当前点赞数=${reply.likeCount}`);
       }
 
       this.setData({
@@ -579,9 +637,9 @@ Page({
 
             console.log(
               '📝 提交回复: commentId=' +
-                commentId +
-                ', content=' +
-                res.content.trim().substring(0, 20)
+              commentId +
+              ', content=' +
+              res.content.trim().substring(0, 20)
             );
 
             // 调用API保存回复到这条评论
@@ -608,22 +666,26 @@ Page({
                 if (updatedCommentData && checkin.replies) {
                   // 更新前端的这条评论数据
                   const commentIdx = checkin.replies.findIndex(c => c.id === commentId);
-                  if (commentIdx !== -1) {
-                    // 重新格式化评论中的回复
-                    const formattedReplies = updatedCommentData.replies.map(reply => ({
-                      id: reply._id,
-                      userId: reply.userId?._id || reply.userId,
-                      userName: reply.userId?.nickname || '匿名用户',
-                      avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
-                      avatarUrl: reply.userId?.avatarUrl || '',
-                      avatarColor: '#7eb5f0',
-                      content: reply.content || '',
-                      createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
-                      likeCount: 0,
-                      isLiked: false
-                    }));
+                  if (commentIdx !== -1 && updatedCommentData && updatedCommentData.replies) {
+                    const formattedReplies = updatedCommentData.replies.map(reply => {
+                      const isNestedReplyLikedLocally = Array.isArray(reply.likes) && currentUser ? reply.likes.some(l =>
+                        String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUser?._id || currentUser?.id)
+                      ) : false;
 
-                    checkin.replies[commentIdx].replies = formattedReplies;
+                      return {
+                        id: reply._id,
+                        userId: reply.userId?._id || reply.userId,
+                        userName: reply.userId?.nickname || '匿名用户',
+                        avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
+                        avatarColor: '#7eb5f0',
+                        content: reply.content || '',
+                        createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
+                        likeCount: reply.likeCount || 0,
+                        isLiked: isNestedReplyLikedLocally
+                      };
+                    });
+
+                    checkin.replies[commentIdx].replies = formattedReplies.map(reply => ({ ...reply, parentId: commentId }));
                     checkin.replies[commentIdx].replyCount = updatedCommentData.replyCount || 0;
 
                     // 🔍 调试日志：验证嵌套回复数据结构

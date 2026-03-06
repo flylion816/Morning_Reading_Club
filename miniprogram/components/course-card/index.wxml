@@ -7,7 +7,7 @@
   <!-- 右侧内容区 -->
   <view class="course-info">
     <view class="course-title">{{course.title}}</view>
-    <view class="course-meta">{{course.dateRange}} • 已打卡 {{course.checkedDays || 0}} 天</view>
+    <view class="course-meta">{{course.dateRange}}<text wx:if="{{showCheckin && enrolled.isEnrolled}}"> • 已打卡 {{course.checkedDays || 0}} 天</text></view>
 
     <!-- 进度条 -->
     <view class="course-progress">

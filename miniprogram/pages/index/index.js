@@ -36,14 +36,21 @@ Page({
 
   onShow() {
     console.log('📱 首页onShow被触发');
+    // 记录之前的登录状态
+    const wasLoggedIn = this.data.isLogin;
     // 每次显示时检查登录状态
     this.checkLoginStatus();
     // 强制重新加载用户信息（必须从API获取最新数据，不使用缓存）
     if (this.data.isLogin) {
       console.log('🔄 已登录，强制重新加载用户信息...');
       this.loadUserInfo();
-      // 重新检查报名状态（用户可能在报名页面新增了报名或已支付）
-      if (this.data.periods.length > 0) {
+
+      // 如果登录状态刚变化（从未登录→已登录），重新加载期次以获取打卡统计
+      if (!wasLoggedIn) {
+        console.log('🔄 登录状态变化，重新加载期次列表（含打卡统计）');
+        this.loadPeriods();
+      } else if (this.data.periods.length > 0) {
+        // 重新检查报名状态（用户可能在报名页面新增了报名或已支付）
         this.checkEnrollmentStatus(this.data.periods);
       }
     } else {
@@ -104,9 +111,11 @@ Page({
     this.setData({ loading: true });
 
     try {
-      // 调用接口（已登录时自动带token，courseService会调用认证API）
-      const res = await courseService.getPeriods({}, true);
+      // 已登录时调用认证API（/periods/user，含打卡统计），未登录时调用公开API（/periods）
+      const res = await courseService.getPeriods({}, this.data.isLogin);
+      console.log('📊 [DEBUG] getPeriods 原始返回:', JSON.stringify(res).substring(0, 500));
       let periods = res.list || res.items || res || [];
+      console.log('📊 [DEBUG] 期次checkedDays:', periods.map(p => p.title + ':' + p.checkedDays));
 
       // 为每个期次计算状态（基于日期而不是数据库status字段）
       periods = periods.map(period => {
@@ -310,36 +319,19 @@ Page({
         url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
     }
-    // 【情况3】已报名且已支付，进入课程列表（无论期次是否已完成）
-    else if (paymentStatus === 'paid') {
-      console.log('已报名且已支付，进入课程列表');
+    // 【情况3】已报名且已确认(免费或已支付)，进入课程列表（无论期次是否已完成）
+    else if (paymentStatus === 'paid' || paymentStatus === 'free') {
+      console.log('已报名且已确认，进入课程列表');
       wx.navigateTo({
         url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
       });
     }
-    // 【情况4】已报名但未支付 或 已退款，进入支付页面继续/重新支付
-    else if (paymentStatus === 'pending' || paymentStatus === 'refunded') {
-      console.log('已报名但未支付或已退款，进入支付页面重新支付');
+    // 【情况4】其他所有支付状态（未支付、退款中、异常状态等），一律进入支付页面继续/重新支付
+    else {
+      console.log('已报名但未确认支付状态，进入支付页面:', paymentStatus);
       wx.navigateTo({
         url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startTime || period.startDate}&endDate=${period.endTime || period.endDate}&amount=99&isResumePayment=true`
       });
-    }
-    // 【情况5】已报名且免费，进入课程列表
-    else if (paymentStatus === 'free') {
-      console.log('已报名且免费，进入课程列表');
-      wx.navigateTo({
-        url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
-      });
-    }
-    // 【情况6】其他支付状态，显示提示
-    else {
-      console.warn('⚠️ 支付状态异常:', paymentStatus);
-      wx.showToast({
-        title: '报名状态异常，请联系客服',
-        icon: 'none',
-        duration: 2000
-      });
-      return;
     }
   },
 

@@ -101,6 +101,24 @@ class CommentService {
     return request.get(`/comments/checkin/${checkinId}`, params);
   }
 
+  /**
+   * 点赞打卡记录
+   * @param {string} checkinId 打卡记录ID
+   * @returns {Promise}
+   */
+  likeCheckin(checkinId) {
+    return request.post(`/checkins/${checkinId}/like`);
+  }
+
+  /**
+   * 取消点赞打卡记录
+   * @param {string} checkinId 打卡记录ID
+   * @returns {Promise}
+   */
+  unlikeCheckin(checkinId) {
+    return request.delete(`/checkins/${checkinId}/like`);
+  }
+
   // Stage 6 Test Methods
   /**
    * 发布评论

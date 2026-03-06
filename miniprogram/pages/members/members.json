@@ -2,5 +2,6 @@
   "navigationBarTitleText": "成员",
   "navigationBarBackgroundColor": "#4a90e2",
   "navigationBarTextStyle": "white",
-  "enablePullDownRefresh": true
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
 }

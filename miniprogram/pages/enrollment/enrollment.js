@@ -260,8 +260,8 @@ Page({
       errors.detailedAddress = '请输入详细地址';
     if (!form.age) {
       errors.age = '请输入年龄';
-    } else if (isNaN(parseInt(form.age)) || parseInt(form.age) < 1 || parseInt(form.age) > 120) {
-      errors.age = '年龄必须是1-120之间的数字';
+    } else if (isNaN(parseInt(form.age)) || parseInt(form.age) <= 10 || parseInt(form.age) > 120) {
+      errors.age = '年龄必须是10岁以上(11-120之间的数字)';
     }
     if (!form.referrer || form.referrer.trim() === '') errors.referrer = '请输入推荐人';
     if (!form.hasReadBook) errors.hasReadBook = '请选择是否读过此书';

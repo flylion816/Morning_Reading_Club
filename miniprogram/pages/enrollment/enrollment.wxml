@@ -85,6 +85,7 @@
             value="{{form.detailedAddress}}"
             bindinput="handleInput"
             data-field="detailedAddress"
+            maxlength="100"
             required
           />
         </view>

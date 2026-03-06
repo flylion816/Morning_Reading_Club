@@ -60,6 +60,10 @@ const CheckinSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    likes: [{
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      createdAt: { type: Date, default: Date.now }
+    }],
     likeCount: {
       type: Number,
       default: 0,

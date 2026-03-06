@@ -356,7 +356,6 @@
         </div>
       </el-dialog>
     </div>
-    </div>
   </AdminLayout>
 </template>
 

@@ -617,10 +617,10 @@ async function getCheckinStats(req, res, next) {
       statsAggregation.length > 0
         ? statsAggregation[0]
         : {
-            totalPoints: 0,
-            totalLikes: 0,
-            featuredCount: 0
-          };
+          totalPoints: 0,
+          totalLikes: 0,
+          featuredCount: 0
+        };
 
     // 今日统计
     const today = new Date();
@@ -653,6 +653,59 @@ async function getCheckinStats(req, res, next) {
   }
 }
 
+// 点赞打卡记录
+async function likeCheckin(req, res, next) {
+  try {
+    const { checkinId } = req.params;
+    const userId = req.user.userId || req.user._id;
+
+    const checkin = await Checkin.findById(checkinId);
+    if (!checkin) {
+      return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    const alreadyLiked = checkin.likes && checkin.likes.some(like => like.userId.toString() === userId);
+    if (alreadyLiked) {
+      return res.status(400).json(errors.badRequest('已经点过赞了'));
+    }
+
+    if (!checkin.likes) checkin.likes = [];
+    checkin.likes.push({ userId, createdAt: new Date() });
+    checkin.likeCount = checkin.likes.length;
+    await checkin.save();
+
+    res.json(success({ likeCount: checkin.likeCount }, '点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 取消点赞打卡记录
+async function unlikeCheckin(req, res, next) {
+  try {
+    const { checkinId } = req.params;
+    const userId = req.user.userId || req.user._id;
+
+    const checkin = await Checkin.findById(checkinId);
+    if (!checkin) {
+      return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    const likeIndex = checkin.likes ? checkin.likes.findIndex(like => like.userId.toString() === userId) : -1;
+    if (likeIndex === -1) {
+      return res.status(400).json(errors.badRequest('未点赞'));
+    }
+
+    checkin.likes.splice(likeIndex, 1);
+    checkin.likeCount = checkin.likes.length;
+    await checkin.save();
+
+    res.json(success({ likeCount: checkin.likeCount }, '取消点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createCheckin,
   getCheckins,
@@ -661,6 +714,8 @@ module.exports = {
   getCheckinDetail,
   updateCheckin,
   deleteCheckin,
+  likeCheckin,
+  unlikeCheckin,
   // Admin functions
   getAdminCheckins,
   deleteAdminCheckin,

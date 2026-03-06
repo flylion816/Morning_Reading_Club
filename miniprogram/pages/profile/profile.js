@@ -53,6 +53,7 @@ Page({
     const app = getApp();
     if (!app.globalData.isLogin) {
       console.log('未登录，跳转到登录页');
+      this._redirectingToLogin = true; // 标记已在跳转，防止 onShow 重复跳转
       wx.reLaunch({
         url: '/pages/login/login'
       });
@@ -64,6 +65,13 @@ Page({
 
   onShow() {
     console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
+
+    // 如果 onLoad 已经在跳转登录页，onShow 不要重复跳转（会导致框架崩溃）
+    if (this._redirectingToLogin) {
+      console.log('⏭️ onShow: onLoad 已在跳转登录页，跳过');
+      return;
+    }
+
     // 每次显示时刷新数据
     const app = getApp();
     const isLogin = app.globalData.isLogin;
@@ -1114,6 +1122,22 @@ Page({
     if (!editForm.nickname.trim()) {
       wx.showToast({
         title: '请输入昵称',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (editForm.nickname.length > 20) {
+      wx.showToast({
+        title: '昵称不能超过20个字符',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (editForm.signature && editForm.signature.length > 200) {
+      wx.showToast({
+        title: '签名不能超过200个字符',
         icon: 'none'
       });
       return;

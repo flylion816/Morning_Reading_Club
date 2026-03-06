@@ -20,6 +20,11 @@ Component({
     enrolled: {
       type: Object,
       value: null
+    },
+    // 是否显示打卡天数（未登录时隐藏）
+    showCheckin: {
+      type: Boolean,
+      value: false
     }
   },
 

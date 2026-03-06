@@ -39,7 +39,7 @@ function getStatusText(period) {
 // 获取当前用户的期次列表（包含用户个人的打卡统计）
 async function getPeriodListForUser(req, res, next) {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId || req.user._id;
     const { page = 1, limit = 20, status, isPublished } = req.query;
 
     const query = {};

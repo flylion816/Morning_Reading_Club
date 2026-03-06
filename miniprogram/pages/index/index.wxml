@@ -14,7 +14,6 @@
       wx:for="{{periods}}"
       wx:key="_id"
       class="period-wrapper"
-      bindtap="handlePeriodClick"
       data-period-id="{{item._id}}"
       data-period-name="{{item.name}}"
     >
@@ -22,6 +21,7 @@
         course="{{item}}"
         mode="period"
         enrolled="{{periodEnrollmentStatus[item._id]}}"
+        showCheckin="{{isLogin}}"
       />
 
       <!-- 报名状态标签 -->

@@ -8,7 +8,9 @@ const {
   getCheckinDetail,
   updateCheckin,
   deleteCheckin,
-  getCheckins
+  getCheckins,
+  likeCheckin,
+  unlikeCheckin
 } = require('../controllers/checkin.controller');
 
 /**
@@ -38,6 +40,20 @@ router.get('/user/:userId?', authMiddleware, getUserCheckins);
  * @access  Private
  */
 router.get('/period/:periodId', authMiddleware, getPeriodCheckins);
+
+/**
+ * @route   POST /api/v1/checkins/:checkinId/like
+ * @desc    点赞打卡记录
+ * @access  Private
+ */
+router.post('/:checkinId/like', authMiddleware, likeCheckin);
+
+/**
+ * @route   DELETE /api/v1/checkins/:checkinId/like
+ * @desc    取消点赞打卡记录
+ * @access  Private
+ */
+router.delete('/:checkinId/like', authMiddleware, unlikeCheckin);
 
 /**
  * @route   GET /api/v1/checkins/:checkinId
