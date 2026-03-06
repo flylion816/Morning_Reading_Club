@@ -14,7 +14,7 @@
  * ⚠️ 重要：修改此文件后需要重启所有服务才能生效
  */
 
-const currentEnv = 'prod'; // 'dev' | 'prod'
+const currentEnv = 'dev'; // 'dev' | 'prod'
 
 /**
  * 环境配置定义
@@ -25,13 +25,13 @@ const envConfig = {
     // 后端配置
     backend: {
       // 本地开发环境：使用 localhost MongoDB（开发级别密码）
-      mongodbUri: 'mongodb://admin:DevMongodbLocal123@localhost:27017/morning_reading_db?authSource=admin',
+      mongodbUri: 'mongodb://admin:admin123@127.0.0.1:27017/morning_reading_db?authSource=admin',
       nodeEnv: 'development',
       port: 3000,
     },
     // MySQL 配置（本地开发环境）
     mysql: {
-      host: 'localhost',
+      host: '127.0.0.1',
       port: 3306,
       user: 'morning_user',
       password: 'morning123',
@@ -40,7 +40,7 @@ const envConfig = {
     },
     // Redis 配置（本地开发环境）
     redis: {
-      host: 'localhost',
+      host: '127.0.0.1',
       port: 6379,
       password: '',
       db: 0,

@@ -11,7 +11,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
 # 配置
-ADMIN_URL = "https://wx.shubai01.com/admin"
+ADMIN_URL = os.getenv("ADMIN_URL", "http://localhost:5173")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@morningreading.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123456")
 SCREENSHOT_DIR = Path("/tmp/e2e-screenshots")
@@ -46,7 +46,7 @@ class AdminUITester:
 
             # 检查是否已登录（如果已登录则跳过）
             try:
-                self.page.locator('[data-testid="dashboard-title"]').wait_for(timeout=2000)
+                self.page.locator('h3:has-text("仪表板")').wait_for(timeout=2000)
                 self.log("✅ 已登录状态，跳过登录步骤")
                 self.test_results.append(("login", "SKIPPED", "Already logged in"))
                 return True
@@ -72,13 +72,18 @@ class AdminUITester:
             self.screenshot("02-login-success")
 
             # 验证登录成功
-            self.page.locator('[data-testid="dashboard-title"], h1:has-text("仪表板")').wait_for()
+            self.page.locator('h3:has-text("仪表板")').wait_for()
             self.log("✅ 登录成功")
             self.test_results.append(("login", "PASSED", "Successfully logged in"))
             return True
 
         except Exception as e:
             self.log(f"❌ 登录失败: {str(e)}", "ERROR")
+            try:
+                html = self.page.locator('body').inner_text()
+                self.log(f"当前页面文本内容: {html[:1000]}")
+            except:
+                pass
             self.screenshot("02-login-error")
             self.test_results.append(("login", "FAILED", str(e)))
             return False
