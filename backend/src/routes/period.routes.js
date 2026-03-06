@@ -33,6 +33,13 @@ router.get('/', optionalAuthMiddleware, (req, res, next) => {
 });
 
 /**
+ * @route   GET /api/v1/periods/user
+ * @desc    获取用户的期次列表（包含用户个人的打卡统计）
+ * @access  Private
+ */
+router.get('/user', authMiddleware, getPeriodListForUser);
+
+/**
  * @route   GET /api/v1/periods/:periodId
  * @desc    获取期次详情
  * @access  Public
