@@ -36,6 +36,27 @@ function getStatusText(period) {
   return statusMap[dynamicStatus] || '未知状态';
 }
 
+// 将 coverColor 转换为前端可识别的格式（hex 或 rgb，不支持渐变）
+function convertCoverColorForForm(coverColor) {
+  if (!coverColor) {
+    return '#4a90e2'; // 默认蓝色
+  }
+
+  // 如果是渐变格式，提取第一个颜色
+  if (coverColor.includes('linear-gradient') || coverColor.includes('rgb')) {
+    // 对于渐变，返回默认蓝色（表示这是旧数据）
+    return '#4a90e2';
+  }
+
+  // 如果已经是 hex 格式，直接返回
+  if (coverColor.startsWith('#')) {
+    return coverColor;
+  }
+
+  // 其他格式，返回默认值
+  return '#4a90e2';
+}
+
 // 获取当前用户的期次列表（包含用户个人的打卡统计）
 async function getPeriodListForUser(req, res, next) {
   try {
@@ -86,8 +107,8 @@ async function getPeriodListForUser(req, res, next) {
           status: period.status === 'ongoing' ? 'active' : period.status,
           title: period.title || period.name,
           color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-          // 保留原始的 coverColor 供编辑表单使用
-          coverColor: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+          // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
+          coverColor: convertCoverColorForForm(period.coverColor),
           icon: period.icon || period.coverEmoji || '📚',
           startTime: period.startDate ? period.startDate.toISOString() : null,
           endTime: period.endDate ? period.endDate.toISOString() : null,
@@ -158,8 +179,8 @@ async function getPeriodList(req, res, next) {
         status: period.status === 'ongoing' ? 'active' : period.status,
         title: period.title || period.name, // 如果没有title，使用name作为备选
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-        // 保留原始的 coverColor 供编辑表单使用
-        coverColor: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+        // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
+        coverColor: convertCoverColorForForm(period.coverColor),
         icon: period.icon || period.coverEmoji || '📚',
         startTime: period.startDate ? period.startDate.toISOString() : null,
         endTime: period.endDate ? period.endDate.toISOString() : null,
@@ -198,7 +219,24 @@ async function getPeriodDetail(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
-    res.json(success(period));
+    // 返回转换后的数据，与列表 API 格式一致
+    const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
+
+    const transformedPeriod = {
+      ...periodObj,
+      status: period.status === 'ongoing' ? 'active' : period.status,
+      title: period.title || period.name,
+      color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+      // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
+      coverColor: convertCoverColorForForm(period.coverColor),
+      icon: period.icon || period.coverEmoji || '📚',
+      startTime: period.startDate ? period.startDate.toISOString() : null,
+      endTime: period.endDate ? period.endDate.toISOString() : null,
+      dateRange: periodObj.dateRange || '',
+      statusText: getStatusText(period)
+    };
+
+    res.json(success(transformedPeriod));
   } catch (error) {
     next(error);
   }
