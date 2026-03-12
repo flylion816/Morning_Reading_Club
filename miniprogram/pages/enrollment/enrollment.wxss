@@ -159,7 +159,7 @@ picker {
   justify-content: space-between;
   align-items: center;
   height: 60rpx;
-  padding: 16rpx 16rpx;
+  padding: 16rpx 40rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
   background: white;
