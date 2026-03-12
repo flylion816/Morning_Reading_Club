@@ -174,6 +174,7 @@
           <el-form-item label="覆盖颜色" prop="coverColor">
             <el-color-picker
               v-model="formData.coverColor"
+              format="hex"
               style="width: 100%"
             />
           </el-form-item>
@@ -273,6 +274,7 @@
           <el-form-item label="覆盖颜色" prop="coverColor">
             <el-color-picker
               v-model="copyFormData.coverColor"
+              format="hex"
               style="width: 100%"
             />
           </el-form-item>
@@ -445,6 +447,13 @@ async function handleSubmit() {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
       };
+
+      console.log('📤 [PeriodsView] 发送的 payload:', {
+        id: currentEditId.value,
+        coverColor: payload.coverColor,
+        name: payload.name,
+        icon: payload.icon
+      });
 
       if (isEditMode.value && currentEditId.value) {
         await periodApi.updatePeriod(currentEditId.value, payload);
