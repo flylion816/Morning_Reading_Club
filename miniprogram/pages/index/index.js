@@ -181,8 +181,22 @@ Page({
     const statusMap = {};
 
     try {
+      // 过滤出有效的期次（必须有 _id）
+      const validPeriods = periods.filter(period => {
+        if (!period._id) {
+          console.warn('⚠️ 发现无效期次（缺少_id）:', period);
+          return false;
+        }
+        return true;
+      });
+
+      if (validPeriods.length === 0) {
+        console.warn('⚠️ 没有有效的期次可以检查报名状态');
+        return;
+      }
+
       // 并行检查所有期次的报名状态
-      const promises = periods.map(period =>
+      const promises = validPeriods.map(period =>
         enrollmentService
           .checkEnrollment(period._id)
           .then(res => {

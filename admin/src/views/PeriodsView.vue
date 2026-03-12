@@ -60,11 +60,14 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="260" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" text size="small" @click="handleEditPeriod(row)">
                   编辑
+                </el-button>
+                <el-button type="warning" text size="small" @click="handleCopyPeriod(row)">
+                  复制
                 </el-button>
                 <el-button type="danger" text size="small" @click="handleDeletePeriod(row)">
                   删除
@@ -185,6 +188,107 @@
           </el-button>
         </template>
       </el-dialog>
+
+      <!-- 复制对话框 -->
+      <el-dialog
+        v-model="copyDialogVisible"
+        title="复制期次"
+        width="700px"
+        @close="resetCopyForm"
+      >
+        <el-alert type="info" :closable="false" style="margin-bottom: 20px">
+          注意：保存后将同时复制该期次下的所有课程内容
+        </el-alert>
+        <el-form ref="copyFormRef" :model="copyFormData" :rules="formRules" label-width="120px">
+          <el-form-item label="期次名称" prop="name">
+            <el-input v-model="copyFormData.name" placeholder="例：第一期" clearable />
+          </el-form-item>
+
+          <el-form-item label="副标题" prop="subtitle">
+            <el-input v-model="copyFormData.subtitle" placeholder="可选的副标题" clearable />
+          </el-form-item>
+
+          <el-form-item label="标题" prop="title">
+            <el-input v-model="copyFormData.title" placeholder="期次的完整标题" clearable />
+          </el-form-item>
+
+          <el-form-item label="描述" prop="description">
+            <el-input
+              v-model="copyFormData.description"
+              type="textarea"
+              placeholder="期次的详细描述"
+              :rows="3"
+            />
+          </el-form-item>
+
+          <el-form-item label="起始日期" prop="startDate">
+            <el-date-picker
+              v-model="copyFormData.startDate"
+              type="date"
+              placeholder="选择起始日期"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-form-item label="结束日期" prop="endDate">
+            <el-date-picker
+              v-model="copyFormData.endDate"
+              type="date"
+              placeholder="选择结束日期"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-form-item label="课程天数" prop="totalDays">
+            <el-input-number v-model="copyFormData.totalDays" :min="1" :max="365" style="width: 100%" />
+          </el-form-item>
+
+          <el-form-item label="价格（分）" prop="price">
+            <el-input-number v-model="copyFormData.price" :min="0" style="width: 100%" />
+          </el-form-item>
+
+          <el-form-item label="原价（分）" prop="originalPrice">
+            <el-input-number v-model="copyFormData.originalPrice" :min="0" style="width: 100%" />
+          </el-form-item>
+
+          <el-form-item label="最大报名数" prop="maxEnrollment">
+            <el-input-number
+              v-model="copyFormData.maxEnrollment"
+              :min="0"
+              placeholder="不限制则留空"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-form-item label="排序" prop="sortOrder">
+            <el-input-number v-model="copyFormData.sortOrder" :min="0" style="width: 100%" />
+          </el-form-item>
+
+          <el-form-item label="图标" prop="icon">
+            <el-input
+              v-model="copyFormData.icon"
+              placeholder="输入 Emoji 或图标字符"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-form-item label="覆盖颜色" prop="coverColor">
+            <el-color-picker
+              v-model="copyFormData.coverColor"
+              show-alpha
+              color-format="rgb"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <el-button @click="copyDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="copyLoading" @click="submitCopyPeriod">
+            保存并复制
+          </el-button>
+        </template>
+      </el-dialog>
     </div>
   </AdminLayout>
 </template>
@@ -204,6 +308,10 @@ const dialogVisible = ref(false);
 const isEditMode = ref(false);
 const currentEditId = ref<string | null>(null);
 const formRef = ref<FormInstance>();
+const copyDialogVisible = ref(false);
+const copySourceId = ref<string | null>(null);
+const copyFormRef = ref<FormInstance>();
+const copyLoading = ref(false);
 
 const pagination = ref({
   page: 1,
@@ -222,6 +330,22 @@ const formData = reactive({
   endDate: null,
   totalDays: 23,
   price: 9900, // 99 元默认价格
+  originalPrice: 0,
+  maxEnrollment: null,
+  sortOrder: 0
+});
+
+const copyFormData = reactive({
+  name: '',
+  subtitle: '',
+  title: '',
+  description: '',
+  icon: '📚',
+  coverColor: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+  startDate: null,
+  endDate: null,
+  totalDays: 23,
+  price: 9900,
   originalPrice: 0,
   maxEnrollment: null,
   sortOrder: 0
@@ -342,6 +466,71 @@ async function handleSubmit() {
       submitting.value = false;
     }
   });
+}
+
+function handleCopyPeriod(row: Period) {
+  copySourceId.value = row._id;
+  Object.assign(copyFormData, {
+    name: `${row.name} (复制)`,
+    subtitle: row.subtitle,
+    title: row.title,
+    description: row.description,
+    icon: row.icon,
+    coverColor: row.coverColor,
+    startDate: row.startDate ? new Date(row.startDate) : null,
+    endDate: row.endDate ? new Date(row.endDate) : null,
+    totalDays: row.totalDays,
+    price: row.price,
+    originalPrice: row.originalPrice,
+    maxEnrollment: row.maxEnrollment,
+    sortOrder: row.sortOrder
+  });
+  copyDialogVisible.value = true;
+}
+
+async function submitCopyPeriod() {
+  if (!copyFormRef.value) return;
+
+  await copyFormRef.value.validate(async valid => {
+    if (!valid) return;
+
+    copyLoading.value = true;
+    try {
+      const payload = {
+        ...copyFormData,
+        startDate: copyFormData.startDate ? new Date(copyFormData.startDate).toISOString() : null,
+        endDate: copyFormData.endDate ? new Date(copyFormData.endDate).toISOString() : null
+      };
+
+      const response = await periodApi.copyPeriod(copySourceId.value!, payload);
+      const copiedCount = response?.copiedSectionCount || 0;
+      ElMessage.success(`期次复制成功，已复制 ${copiedCount} 节课程`);
+
+      copyDialogVisible.value = false;
+      await loadPeriods();
+    } catch (err: any) {
+      ElMessage.error(err.message || '复制失败');
+    } finally {
+      copyLoading.value = false;
+    }
+  });
+}
+
+function resetCopyForm() {
+  copyFormData.name = '';
+  copyFormData.subtitle = '';
+  copyFormData.title = '';
+  copyFormData.description = '';
+  copyFormData.icon = '📚';
+  copyFormData.coverColor = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+  copyFormData.startDate = null;
+  copyFormData.endDate = null;
+  copyFormData.totalDays = 23;
+  copyFormData.price = 9900;
+  copyFormData.originalPrice = 0;
+  copyFormData.maxEnrollment = null;
+  copyFormData.sortOrder = 0;
+  copyFormRef.value?.clearValidate();
 }
 
 function handleDeletePeriod(row: Period) {

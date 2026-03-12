@@ -7,7 +7,8 @@ const {
   getPeriodDetail,
   createPeriod,
   updatePeriod,
-  deletePeriod
+  deletePeriod,
+  copyPeriod
 } = require('../controllers/period.controller');
 const {
   getSectionsByPeriod,
@@ -66,6 +67,13 @@ router.put('/:periodId', authMiddleware, adminMiddleware, updatePeriod);
  * @access  Admin
  */
 router.delete('/:periodId', authMiddleware, adminMiddleware, deletePeriod);
+
+/**
+ * @route   POST /api/v1/periods/:id/copy
+ * @desc    复制期次（包括其下的所有课节）（管理员）
+ * @access  Admin
+ */
+router.post('/:id/copy', authMiddleware, adminMiddleware, copyPeriod);
 
 // ===== 课节相关路由 =====
 

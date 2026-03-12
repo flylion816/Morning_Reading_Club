@@ -14,7 +14,7 @@
 // 📌 注意：小程序可独立配置，不必与根目录 .env.config.js 同步
 //    根目录 .env.config.js 控制后端和管理后台
 //    此文件控制小程序开发工具连接的环境
-const currentEnv = 'prod'; // ← 开发环境 (本地后端 localhost:3000)
+const currentEnv = 'dev'; // ← 开发环境 (本地后端 localhost:3000)
 
 // 环境配置
 const envConfig = {
@@ -24,7 +24,7 @@ const envConfig = {
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
     enableLog: true,
-    useMock: true // 使用 Mock 数据进行本地测试
+    useMock: false // 使用真实 API 数据
   },
 
   // 测试环境

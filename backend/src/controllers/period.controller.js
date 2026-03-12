@@ -307,11 +307,100 @@ async function deletePeriod(req, res, next) {
   }
 }
 
+// 复制期次（管理员）
+async function copyPeriod(req, res, next) {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      subtitle,
+      title,
+      description,
+      icon,
+      coverColor,
+      coverEmoji,
+      startDate,
+      endDate,
+      totalDays,
+      price,
+      originalPrice,
+      maxEnrollment,
+      sortOrder
+    } = req.body;
+
+    // 验证源期次是否存在
+    const sourcePeriod = await Period.findById(id);
+    if (!sourcePeriod) {
+      return res.status(404).json(errors.notFound('源期次不存在'));
+    }
+
+    // 创建新期次
+    const newPeriod = await Period.create({
+      name,
+      subtitle,
+      title: title || name,
+      description,
+      icon,
+      coverColor,
+      coverEmoji,
+      startDate,
+      endDate,
+      totalDays,
+      price,
+      originalPrice,
+      maxEnrollment,
+      sortOrder,
+      status: 'not_started',
+      isPublished: false,
+      currentEnrollment: 0
+    });
+
+    // 获取源期次的所有课节
+    const Section = require('../models/Section');
+    const sourceSections = await Section.find({ periodId: id });
+
+    // 复制课节
+    let copiedSectionCount = 0;
+    if (sourceSections.length > 0) {
+      const newSections = sourceSections.map(section => {
+        const sectionObj = section.toObject();
+        delete sectionObj._id; // 删除_id以生成新的
+        delete sectionObj.createdAt;
+        delete sectionObj.updatedAt;
+        return {
+          ...sectionObj,
+          periodId: newPeriod._id,
+          checkinCount: 0 // 重置打卡数
+        };
+      });
+
+      await Section.insertMany(newSections);
+      copiedSectionCount = newSections.length;
+    }
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'create',
+      collection: 'periods',
+      documentId: newPeriod._id.toString(),
+      data: newPeriod.toObject()
+    });
+
+    res.status(201).json(success({
+      period: newPeriod,
+      copiedSectionCount
+    }, `期次复制成功，已复制 ${copiedSectionCount} 节课程`));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getPeriodList,
   getPeriodListForUser,
   getPeriodDetail,
   createPeriod,
   updatePeriod,
-  deletePeriod
+  deletePeriod,
+  copyPeriod
 };

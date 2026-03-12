@@ -8,13 +8,15 @@
  * 📌 注意：小程序环境由 miniprogram/config/env.js 独立控制
  *
  * 使用方法：
- * - 本地开发：设置 currentEnv = 'dev'（后端连接 localhost 数据库）
- * - 线上环境：设置 currentEnv = 'prod'（后端连接线上数据库）
+ * - 本地开发：NODE_ENV=development（或不设置）→ currentEnv = 'dev'
+ * - 线上环境：NODE_ENV=production → currentEnv = 'prod'
  *
  * ⚠️ 重要：修改此文件后需要重启所有服务才能生效
+ * ✅ currentEnv 会根据 NODE_ENV 自动决定，无需手动修改
  */
 
-const currentEnv = 'dev'; // 'dev' | 'prod'
+// ✅ 自动根据 NODE_ENV 决定环境（最安全的方式）
+const currentEnv = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
 
 /**
  * 环境配置定义
@@ -25,7 +27,7 @@ const envConfig = {
     // 后端配置
     backend: {
       // 本地开发环境：使用 localhost MongoDB（开发级别密码）
-      mongodbUri: 'mongodb://admin:admin123@127.0.0.1:27017/morning_reading_db?authSource=admin',
+      mongodbUri: 'mongodb://127.0.0.1:27017/morning_reading_db',
       nodeEnv: 'development',
       port: 3000,
     },

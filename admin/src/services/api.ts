@@ -143,6 +143,7 @@ export const periodApi = {
   createPeriod: (data: any) => apiClient.post('/periods', data),
   updatePeriod: (id: string, data: any) => apiClient.put(`/periods/${id}`, data),
   deletePeriod: (id: string) => apiClient.delete(`/periods/${id}`),
+  copyPeriod: (id: string, data: any) => apiClient.post(`/periods/${id}/copy`, data),
 
   // 课节相关 API
   getSections: (periodId: string, params?: any) =>
