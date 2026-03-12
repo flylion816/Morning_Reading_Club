@@ -20,7 +20,7 @@ const currentEnv = 'dev'; // ← 开发环境 (本地后端 localhost:3000)
 const envConfig = {
   // 开发环境
   dev: {
-    apiBaseUrl: 'http://192.168.102.60:3000/api/v1',
+    apiBaseUrl: 'http://localhost:3000/api/v1',
     wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
     enableLog: true,
