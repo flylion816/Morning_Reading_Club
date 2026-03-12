@@ -138,7 +138,7 @@
 /* input 元素特殊处理 - 垂直居中 */
 input.form-control {
   height: 60rpx !important;
-  padding: 0 16rpx !important;
+  padding: 0 40rpx !important;
   line-height: 60rpx !important;
 }
 
@@ -233,7 +233,7 @@ textarea.form-control {
   line-height: 1.6 !important;
   min-height: 180rpx !important;
   max-height: 350rpx !important;
-  padding: 16rpx 16rpx !important;
+  padding: 16rpx 40rpx !important;
   resize: vertical !important;
 }
 
