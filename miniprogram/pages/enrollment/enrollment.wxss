@@ -249,6 +249,8 @@ textarea.form-control::placeholder {
   color: #999;
   text-align: right;
   margin-top: 8rpx;
+  padding: 0 40rpx;
+  box-sizing: border-box;
 }
 
 /* 提交按钮 */
@@ -256,7 +258,7 @@ textarea.form-control::placeholder {
   display: flex;
   gap: 12rpx;
   margin-top: 40rpx;
-  padding: 20rpx 0;
+  padding: 20rpx 40rpx;
   border-top: 1rpx solid #e8e8e8;
 }
 
