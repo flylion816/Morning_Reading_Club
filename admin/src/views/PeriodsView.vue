@@ -173,9 +173,22 @@
 
           <el-form-item label="覆盖颜色" prop="coverColor">
             <el-color-picker
-              v-model="formData.coverColor"
+              :model-value="formData.coverColor"
+              @update:model-value="(val) => {
+                console.log('🎨 [PeriodsView] 颜色选择器值更新:', {
+                  传入的值: val,
+                  旧值: formData.coverColor
+                });
+                formData.coverColor = val;
+              }"
               format="hex"
               style="width: 100%"
+              @change="(val) => {
+                console.log('🎨 [PeriodsView] 颜色选择器 @change 事件:', {
+                  事件发出的值: val,
+                  当前formData: formData.coverColor
+                });
+              }"
             />
           </el-form-item>
         </el-form>
@@ -292,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { periodApi } from '../services/api';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
@@ -357,6 +370,18 @@ const formRules = {
   totalDays: [{ required: true, message: '课程天数不能为空', trigger: 'blur' }]
 };
 
+// 监听 formData.coverColor 的变化
+watch(
+  () => formData.coverColor,
+  (newVal, oldVal) => {
+    console.log('👁️ [PeriodsView] 监听到 formData.coverColor 变化:', {
+      旧值_oldVal: oldVal,
+      新值_newVal: newVal,
+      timestamp: new Date().toLocaleTimeString()
+    });
+  }
+);
+
 onMounted(() => {
   loadPeriods();
 });
@@ -414,6 +439,14 @@ function handleCreatePeriod() {
 }
 
 function handleEditPeriod(row: Period) {
+  console.log('📝 [PeriodsView] 开始编辑期次:');
+  console.log('[PeriodsView] 从列表中取出的数据:', {
+    id: row._id,
+    name: row.name,
+    coverColor: row.coverColor,
+    icon: row.icon
+  });
+
   isEditMode.value = true;
   currentEditId.value = row._id;
   Object.assign(formData, {
@@ -431,6 +464,8 @@ function handleEditPeriod(row: Period) {
     maxEnrollment: row.maxEnrollment,
     sortOrder: row.sortOrder
   });
+
+  console.log('[PeriodsView] 表单已初始化，当前 formData.coverColor:', formData.coverColor);
   dialogVisible.value = true;
 }
 
@@ -442,6 +477,12 @@ async function handleSubmit() {
 
     submitting.value = true;
     try {
+      console.log('🔍 [PeriodsView] 发送前的 formData 状态:', {
+        coverColor: formData.coverColor,
+        name: formData.name,
+        icon: formData.icon
+      });
+
       const payload = {
         ...formData,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
@@ -452,20 +493,51 @@ async function handleSubmit() {
         id: currentEditId.value,
         coverColor: payload.coverColor,
         name: payload.name,
-        icon: payload.icon
+        icon: payload.icon,
+        formDataColor: formData.coverColor
       });
 
       if (isEditMode.value && currentEditId.value) {
-        await periodApi.updatePeriod(currentEditId.value, payload);
+        const updateResponse = await periodApi.updatePeriod(currentEditId.value, payload);
+        console.log('✅ [PeriodsView] 更新响应数据:', {
+          id: updateResponse?.data?._id || updateResponse?._id,
+          name: updateResponse?.data?.name || updateResponse?.name,
+          coverColor: updateResponse?.data?.coverColor || updateResponse?.coverColor,
+          message: updateResponse?.message
+        });
         ElMessage.success('期次更新成功');
       } else {
-        await periodApi.createPeriod(payload);
+        const createResponse = await periodApi.createPeriod(payload);
+        console.log('✅ [PeriodsView] 创建响应数据:', {
+          id: createResponse?.data?._id || createResponse?._id,
+          name: createResponse?.data?.name || createResponse?.name,
+          coverColor: createResponse?.data?.coverColor || createResponse?.coverColor
+        });
         ElMessage.success('期次创建成功');
       }
 
+      console.log('🔄 [PeriodsView] 关闭对话框，重新加载列表...');
       dialogVisible.value = false;
       await loadPeriods();
+
+      console.log('✅ [PeriodsView] 列表已重新加载，当前列表数据:');
+      const updatedPeriodInList = periods.value.find(p => p._id === currentEditId.value);
+      console.log('[PeriodsView] 更新的期次在列表中的数据:',
+        updatedPeriodInList ?
+          {
+            name: updatedPeriodInList.name,
+            coverColor: updatedPeriodInList.coverColor,
+            color: updatedPeriodInList.color
+          } :
+          '未找到'
+      );
+      console.log('[PeriodsView] 完整的 periods.value[0]:', periods.value[0] ? {
+        name: periods.value[0].name,
+        coverColor: periods.value[0].coverColor,
+        color: periods.value[0].color
+      } : 'N/A');
     } catch (err: any) {
+      console.error('❌ [PeriodsView] 操作失败:', err);
       ElMessage.error(err.message || '操作失败');
     } finally {
       submitting.value = false;

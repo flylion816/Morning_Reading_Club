@@ -325,7 +325,23 @@ async function updatePeriod(req, res, next) {
       data: period.toObject()
     });
 
-    res.json(success(period, '期次更新成功'));
+    // 返回转换后的数据，与列表 API 格式一致
+    const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
+
+    const transformedPeriod = {
+      ...periodObj,
+      status: period.status === 'ongoing' ? 'active' : period.status,
+      title: period.title || period.name,
+      color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+      coverColor: convertCoverColorForForm(period.coverColor),
+      icon: period.icon || period.coverEmoji || '📚',
+      startTime: period.startDate ? period.startDate.toISOString() : null,
+      endTime: period.endDate ? period.endDate.toISOString() : null,
+      dateRange: periodObj.dateRange || '',
+      statusText: getStatusText(period)
+    };
+
+    res.json(success(transformedPeriod, '期次更新成功'));
   } catch (error) {
     next(error);
   }

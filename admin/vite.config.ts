@@ -18,5 +18,20 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@tests': fileURLToPath(new URL('./src/tests', import.meta.url))
     }
+  },
+
+  // 开发服务器配置
+  server: {
+    proxy: {
+      // API 请求代理
+      // 开发环境：http://localhost:5173/api/v1 → http://localhost:3000/api/v1
+      // 可通过 VITE_API_PROXY_TARGET 环境变量配置目标服务器
+      // 例：VITE_API_PROXY_TARGET=http://192.168.102.60:3000
+      '/api/v1': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path
+      }
+    }
   }
 });

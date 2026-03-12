@@ -2,7 +2,11 @@ import axios from 'axios';
 import logger from '../utils/logger';
 
 // 配置 API 基础 URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+// 开发环境：使用相对路径 /api/v1，由 Vite 代理转发到真实后端
+// 生产环境：使用完整 URL https://wx.shubai01.com/api/v1
+const API_BASE_URL = import.meta.env.VITE_API_URL || (
+  import.meta.env.DEV ? '/api/v1' : 'https://wx.shubai01.com/api/v1'
+);
 
 // 创建 axios 实例
 const apiClient = axios.create({
