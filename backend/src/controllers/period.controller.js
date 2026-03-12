@@ -86,6 +86,8 @@ async function getPeriodListForUser(req, res, next) {
           status: period.status === 'ongoing' ? 'active' : period.status,
           title: period.title || period.name,
           color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+          // 保留原始的 coverColor 供编辑表单使用
+          coverColor: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
           icon: period.icon || period.coverEmoji || '📚',
           startTime: period.startDate ? period.startDate.toISOString() : null,
           endTime: period.endDate ? period.endDate.toISOString() : null,
@@ -156,6 +158,8 @@ async function getPeriodList(req, res, next) {
         status: period.status === 'ongoing' ? 'active' : period.status,
         title: period.title || period.name, // 如果没有title，使用name作为备选
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+        // 保留原始的 coverColor 供编辑表单使用
+        coverColor: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         icon: period.icon || period.coverEmoji || '📚',
         startTime: period.startDate ? period.startDate.toISOString() : null,
         endTime: period.endDate ? period.endDate.toISOString() : null,

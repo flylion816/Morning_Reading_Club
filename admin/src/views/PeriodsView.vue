@@ -174,8 +174,6 @@
           <el-form-item label="覆盖颜色" prop="coverColor">
             <el-color-picker
               v-model="formData.coverColor"
-              show-alpha
-              color-format="rgb"
               style="width: 100%"
             />
           </el-form-item>
@@ -275,8 +273,6 @@
           <el-form-item label="覆盖颜色" prop="coverColor">
             <el-color-picker
               v-model="copyFormData.coverColor"
-              show-alpha
-              color-format="rgb"
               style="width: 100%"
             />
           </el-form-item>
@@ -325,7 +321,7 @@ const formData = reactive({
   title: '',
   description: '',
   icon: '📚',
-  coverColor: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+  coverColor: '#4a90e2', // 改为单色而非渐变（颜色选择器支持单色）
   startDate: null,
   endDate: null,
   totalDays: 23,
@@ -341,7 +337,7 @@ const copyFormData = reactive({
   title: '',
   description: '',
   icon: '📚',
-  coverColor: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+  coverColor: '#4a90e2',
   startDate: null,
   endDate: null,
   totalDays: 23,
@@ -522,7 +518,7 @@ function resetCopyForm() {
   copyFormData.title = '';
   copyFormData.description = '';
   copyFormData.icon = '📚';
-  copyFormData.coverColor = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+  copyFormData.coverColor = '#4a90e2';
   copyFormData.startDate = null;
   copyFormData.endDate = null;
   copyFormData.totalDays = 23;
@@ -577,7 +573,7 @@ function resetForm() {
   formData.title = '';
   formData.description = '';
   formData.icon = '📚';
-  formData.coverColor = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+  formData.coverColor = '#4a90e2';
   formData.startDate = null;
   formData.endDate = null;
   formData.totalDays = 23;
