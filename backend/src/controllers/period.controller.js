@@ -40,6 +40,7 @@ function getStatusText(period) {
 async function getPeriodListForUser(req, res, next) {
   try {
     const userId = req.user.userId || req.user._id;
+    const userRole = req.user.role;
     const { page = 1, limit = 20, status, isPublished } = req.query;
 
     const query = {};
@@ -50,7 +51,16 @@ async function getPeriodListForUser(req, res, next) {
         query.status = status;
       }
     }
-    if (isPublished !== undefined) query.isPublished = isPublished === 'true';
+
+    // 如果用户不是管理员，只返回已发布的期次
+    // 管理员可以看到所有期次用于管理后台
+    if (isPublished !== undefined) {
+      query.isPublished = isPublished === 'true';
+    } else if (userRole !== 'admin') {
+      // 非管理员：只显示已发布的期次
+      query.isPublished = true;
+    }
+    // 管理员：如果未指定 isPublished，返回所有期次
 
     const total = await Period.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
@@ -116,7 +126,14 @@ async function getPeriodList(req, res, next) {
         query.status = status;
       }
     }
-    if (isPublished !== undefined) query.isPublished = isPublished === 'true';
+
+    // 公开端点（未登录用户）：只返回已发布的期次
+    if (isPublished !== undefined) {
+      query.isPublished = isPublished === 'true';
+    } else {
+      // 默认只返回已发布的期次给公众
+      query.isPublished = true;
+    }
 
     const total = await Period.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
