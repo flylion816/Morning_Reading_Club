@@ -54,17 +54,28 @@ async function createIndexes() {
 
     for (const model of models) {
       try {
-        // collection.getIndexes() 会返回所有现有索引
+        // 主动同步索引：确保模型定义中的所有索引都被创建
+        await model.syncIndexes();
+
+        // 获取所有现有索引
         const indexes = await model.collection.getIndexes();
         const indexNames = Object.keys(indexes);
         totalIndexCount += indexNames.length;
         console.log(`  ✓ ${model.modelName}: ${indexNames.length} 个索引`);
+
+        // 详细输出每个索引（开发环境用于调试）
+        if (process.env.NODE_ENV !== 'production') {
+          indexNames.forEach(name => {
+            const spec = indexes[name];
+            console.log(`      - ${name}: ${JSON.stringify(spec.key)}`);
+          });
+        }
       } catch (err) {
         console.warn(`  ⚠ ${model.modelName}: ${err.message}`);
       }
     }
 
-    console.log(`\n✅ 索引检查完成 (共 ${totalIndexCount} 个索引)\n`);
+    console.log(`\n✅ 索引创建/同步完成 (共 ${totalIndexCount} 个索引)\n`);
 
     console.log('='.repeat(60));
     console.log('    ✅ 索引创建完成！');
