@@ -74,3 +74,8 @@ uploads/
 .claude/config/*.env
 .claude/config/*.key
 .claude/config/*.secret
+
+# 🔐 生产环境密码（本地备份，不提交到 git）
+.secrets/
+.env.production
+.env.local
