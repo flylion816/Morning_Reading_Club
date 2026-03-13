@@ -5,7 +5,7 @@ services:
   # MongoDB - 文档数据库
   # ============================================================================
   mongodb:
-    image: mongo:6-alpine
+    image: mongo:7
     container_name: morning-reading-mongodb
     restart: unless-stopped
 
@@ -47,7 +47,7 @@ services:
   # MySQL - 关系数据库
   # ============================================================================
   mysql:
-    image: mysql:8.0-alpine
+    image: mysql:8
     container_name: morning-reading-mysql
     restart: unless-stopped
 
@@ -104,9 +104,10 @@ services:
     # 使用配置文件启动 Redis（设置密码）
     command: redis-server --requirepass ${REDIS_PASSWORD:-Redis@Local123!} --appendonly yes --maxmemory 512mb
 
-    # 端口映射
+    # 端口映射 - 支持开发环境(6379)和生产环境(26379)
     ports:
-      - '${REDIS_PORT:-6379}:6379'
+      - '6379:6379'     # 开发环境默认端口
+      - '26379:6379'    # 生产环境映射端口
 
     # 数据持久化
     volumes:
@@ -147,15 +148,6 @@ volumes:
 # ============================================================================
 # 网络定义
 # ============================================================================
-networks:
-  morning-reading-network:
-    driver: bridge
-
-volumes:
-  mongodb-data:
-  mysql-data:
-  redis-data:
-
 networks:
   morning-reading-network:
     driver: bridge
