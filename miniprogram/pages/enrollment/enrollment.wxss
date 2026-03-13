@@ -47,7 +47,7 @@
 .enrollment-header {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
-  padding: 40rpx 30rpx 30rpx 30rpx;
+  padding: 30rpx 30rpx 30rpx 30rpx;
   text-align: center;
   margin: 0;
 }
@@ -71,7 +71,7 @@
 /* 表单 */
 .enrollment-form {
   background: white;
-  padding: 0 40rpx 30rpx 40rpx;
+  padding: 0 30rpx 30rpx 30rpx;
   margin: 0;
   border-radius: 0;
   box-shadow: none;
@@ -81,8 +81,8 @@
 .form-group {
   margin-bottom: 30rpx;
   margin-top: 0;
-  margin-left: 40rpx;
-  margin-right: 40rpx;
+  margin-left: 30rpx;
+  margin-right: 30rpx;
 }
 
 .form-group:first-of-type {
@@ -114,7 +114,7 @@
 .form-control {
   display: block;
   width: 100%;
-  padding: 0 40rpx;
+  padding: 0 30rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
   font-size: 28rpx;
@@ -258,9 +258,9 @@ textarea.form-control::placeholder {
 .form-actions {
   display: flex;
   gap: 12rpx;
-  margin-top: 40rpx;
-  margin-left: 40rpx;
-  margin-right: 40rpx;
+  margin-top: 30rpx;
+  margin-left: 30rpx;
+  margin-right: 30rpx;
   padding: 20rpx 0;
   border-top: 1rpx solid #e8e8e8;
 }
