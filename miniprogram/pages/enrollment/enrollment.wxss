@@ -135,11 +135,15 @@
   color: #999;
 }
 
-/* input 元素特殊处理 - 垂直居中 */
+/* input 元素特殊处理 - 垂直居中 + 左右间距 */
 input.form-control {
   height: 60rpx !important;
-  padding: 0 40rpx !important;
+  width: calc(100% - 80rpx) !important;
+  margin-left: 40rpx !important;
+  margin-right: 40rpx !important;
+  padding: 0 16rpx !important;
   line-height: 60rpx !important;
+  box-sizing: content-box !important;
 }
 
 /* 统一 placeholder 样式，防止焦点时上移 */
@@ -233,8 +237,12 @@ textarea.form-control {
   line-height: 1.6 !important;
   min-height: 180rpx !important;
   max-height: 350rpx !important;
-  padding: 16rpx 40rpx !important;
+  width: calc(100% - 80rpx) !important;
+  margin-left: 40rpx !important;
+  margin-right: 40rpx !important;
+  padding: 16rpx 16rpx !important;
   resize: vertical !important;
+  box-sizing: content-box !important;
 }
 
 /* textarea placeholder 样式统一 */

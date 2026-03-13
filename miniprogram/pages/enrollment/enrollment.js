@@ -97,6 +97,23 @@ Page({
     this.loadPeriods();
   },
 
+  onReady() {
+    console.log('[CSS DEBUG] 页面已准备，正在检查样式...');
+    // 使用 getComputedStyle 诊断输入框的实际样式
+    const query = wx.createSelectorQuery();
+    query.select('.form-control').boundingClientRect();
+    query.exec((res) => {
+      if (res[0]) {
+        console.log('[CSS DEBUG] .form-control 的实际尺寸:', {
+          width: res[0].width,
+          height: res[0].height,
+          left: res[0].left,
+          right: res[0].right
+        });
+      }
+    });
+  },
+
   /**
    * 加载期次列表
    */
