@@ -70,12 +70,15 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       await authApi.logout();
+      logger.info('登出API成功');
     } catch (err) {
-      logger.error('登出失败:', err);
+      logger.error('登出API失败:', err);
+      // 即使登出API失败，也继续清除本地状态
     } finally {
       adminToken.value = null;
       adminInfo.value = null;
       localStorage.removeItem('adminToken');
+      logger.info('本地登出状态已清除');
     }
   }
 

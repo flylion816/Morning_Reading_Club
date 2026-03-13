@@ -18,7 +18,11 @@ const path = require('path');
 const fs = require('fs');
 
 // 确保日志目录存在
-const logsDir = path.join(process.cwd(), 'logs');
+// 生产环境使用 /var/www/logs，开发环境使用项目内的 logs 目录
+const logsDir = process.env.NODE_ENV === 'production'
+  ? '/var/www/logs'
+  : path.join(process.cwd(), 'logs');
+
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }

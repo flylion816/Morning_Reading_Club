@@ -51,13 +51,13 @@ module.exports = {
       },
 
       // =====================================================================
-      // 日志配置
+      // 日志配置 - 使用独立的日志目录避免部署时日志丢失
       // =====================================================================
-      output: './logs/out.log', // 标准输出日志
-      error: './logs/error.log', // 错误日志
+      output: '/var/www/logs/morning-reading-out.log', // 标准输出日志
+      error: '/var/www/logs/morning-reading-error.log', // 错误日志
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z', // 日志时间格式
-      log_file: './logs/pm2.log', // PM2 事件日志
-      log: './logs/combined.log', // 合并日志
+      log_file: '/var/www/logs/morning-reading-pm2.log', // PM2 事件日志
+      log: '/var/www/logs/morning-reading-combined.log', // 合并日志
 
       // =====================================================================
       // 日志轮转配置（使用 pm2-logrotate 模块 - 免费）

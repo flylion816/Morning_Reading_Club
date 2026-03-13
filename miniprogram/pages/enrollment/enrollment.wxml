@@ -17,15 +17,15 @@
 
     <!-- 表单容器 -->
     <form class="enrollment-form" bindsubmit="handleSubmit">
-      <!-- 报名期数 -->
+      <!-- 报名期次 -->
       <view class="form-group">
         <view class="form-label">
           <text class="required">*</text>
-          <text>报名期数</text>
+          <text>报名期次</text>
         </view>
         <picker bindchange="handlePeriodChange" value="{{selectedPeriodIndex}}" range="{{periodList}}" range-key="name">
           <view class="form-control picker-control">
-            <text>{{selectedPeriodName || '请选择报名期数'}}</text>
+            <text>{{selectedPeriodName || '请选择报名期次'}}</text>
             <text class="picker-icon">›</text>
           </view>
         </picker>

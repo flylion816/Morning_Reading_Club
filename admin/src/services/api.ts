@@ -17,6 +17,9 @@ const apiClient = axios.create({
   }
 });
 
+// 设置默认的 Authorization 请求头获取器
+apiClient.defaults.headers.common['Authorization'] = '';
+
 // 请求拦截器 - 添加认证令牌
 apiClient.interceptors.request.use(
   config => {
@@ -29,12 +32,18 @@ apiClient.interceptors.request.use(
     logger.debug('[API Request] URL:', { url: config.url });
     logger.debug('[API Request] localStorage.adminToken:', { value: token ? '有值' : '无值' });
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // 使用 defaults 方式设置全局 Authorization 请求头
+      const authHeader = `Bearer ${token}`;
+      apiClient.defaults.headers.common['Authorization'] = authHeader;
+      // 同时也设置到当前请求的 config 中
+      (config.headers as any)['Authorization'] = authHeader;
       logger.debug('[API Request] Authorization header已设置:', {
         token: `Bearer ${token.substring(0, 20)}...`
       });
+      console.log('[API Interceptor] Authorization 请求头已添加:', authHeader.substring(0, 30) + '...');
     } else {
       logger.warn('[API Request] ⚠️ 没有token，不会附加Authorization header');
+      console.warn('[API Interceptor] 警告：没有 token');
     }
     return config;
   },
