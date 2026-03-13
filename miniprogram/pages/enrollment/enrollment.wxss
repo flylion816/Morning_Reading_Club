@@ -81,6 +81,8 @@
 .form-group {
   margin-bottom: 30rpx;
   margin-top: 0;
+  margin-left: 40rpx;
+  margin-right: 40rpx;
 }
 
 .form-group:first-of-type {
@@ -100,8 +102,6 @@
   margin-bottom: 12rpx;
   display: flex;
   align-items: center;
-  padding: 0 40rpx;
-  box-sizing: border-box;
 }
 
 .required {
@@ -135,15 +135,13 @@
   color: #999;
 }
 
-/* input 元素特殊处理 - 垂直居中 + 左右间距 */
+/* input 元素特殊处理 - 垂直居中 */
 input.form-control {
   height: 60rpx !important;
-  width: calc(100% - 80rpx) !important;
-  margin-left: 40rpx !important;
-  margin-right: 40rpx !important;
+  width: 100% !important;
   padding: 0 16rpx !important;
   line-height: 60rpx !important;
-  box-sizing: content-box !important;
+  box-sizing: border-box !important;
 }
 
 /* 统一 placeholder 样式，防止焦点时上移 */
@@ -163,7 +161,7 @@ picker {
   justify-content: space-between;
   align-items: center;
   height: 60rpx;
-  padding: 16rpx 40rpx;
+  padding: 16rpx 16rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
   background: white;
@@ -203,7 +201,7 @@ picker {
 .radio-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 40rpx;
+  padding: 16rpx 16rpx;
   min-height: 56rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
@@ -211,7 +209,6 @@ picker {
   cursor: pointer;
   transition: all 0.3s ease;
   box-sizing: border-box;
-  margin: 0 0;
 }
 
 .radio-item:active {
@@ -237,12 +234,10 @@ textarea.form-control {
   line-height: 1.6 !important;
   min-height: 180rpx !important;
   max-height: 350rpx !important;
-  width: calc(100% - 80rpx) !important;
-  margin-left: 40rpx !important;
-  margin-right: 40rpx !important;
+  width: 100% !important;
   padding: 16rpx 16rpx !important;
   resize: vertical !important;
-  box-sizing: content-box !important;
+  box-sizing: border-box !important;
 }
 
 /* textarea placeholder 样式统一 */
@@ -257,8 +252,6 @@ textarea.form-control::placeholder {
   color: #999;
   text-align: right;
   margin-top: 8rpx;
-  padding: 0 40rpx;
-  box-sizing: border-box;
 }
 
 /* 提交按钮 */
@@ -266,7 +259,9 @@ textarea.form-control::placeholder {
   display: flex;
   gap: 12rpx;
   margin-top: 40rpx;
-  padding: 20rpx 40rpx;
+  margin-left: 40rpx;
+  margin-right: 40rpx;
+  padding: 20rpx 0;
   border-top: 1rpx solid #e8e8e8;
 }
 
