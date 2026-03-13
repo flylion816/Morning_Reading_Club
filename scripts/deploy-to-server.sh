@@ -190,11 +190,12 @@ create_server_backup() {
 
   # 检查目录是否存在
   if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "[ -d /var/www/morning-reading ]" 2>/dev/null; then
-    log_info "发现现有部署，创建备份..."
-    local backup_cmd="sudo cp -r /var/www/morning-reading /var/www/morning-reading_bak_${TIMESTAMP}"
+    log_info "发现现有部署，创建备份（不含日志）..."
+    # 使用 tar 备份，排除日志、node_modules 等大文件，仅备份代码和配置
+    local backup_cmd="cd /var/www && sudo tar --exclude='morning-reading/backend/logs' --exclude='morning-reading/node_modules' --exclude='morning-reading/.git' -czf morning-reading_bak_${TIMESTAMP}.tar.gz morning-reading/"
 
     if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "$backup_cmd" 2>/dev/null; then
-      log_success "服务器备份完成: /var/www/morning-reading_bak_${TIMESTAMP}"
+      log_success "服务器备份完成（已排除logs和node_modules）: /var/www/morning-reading_bak_${TIMESTAMP}.tar.gz"
     else
       log_error "服务器备份失败"
       exit 1
@@ -263,7 +264,7 @@ create_deployment_package() {
   # 创建 tar.gz
   log_info "压缩文件..."
   cd "/tmp"
-  tar --exclude='node_modules' --exclude='.git' --exclude='.env.production' -czf "$DEPLOY_PACKAGE" \
+  tar --exclude='node_modules' --exclude='.git' --exclude='.env.production' --exclude='logs' -czf "$DEPLOY_PACKAGE" \
     -C "$(dirname "$TEMP_DIR")" "$(basename "$TEMP_DIR")" 2>/dev/null
 
   if [ ! -f "/tmp/$DEPLOY_PACKAGE" ]; then
@@ -382,6 +383,16 @@ else
 fi
 sleep 2
 
+log_info "配置 PM2 日志轮转..."
+# 安装 pm2-logrotate 模块（免费开源）
+$PM2_CMD install pm2-logrotate 2>/dev/null || true
+sleep 1
+
+# 配置日志轮转：单个文件 500MB，保留 10 个文件（总共 5GB）
+$PM2_CMD set pm2-logrotate:max_size 500M
+$PM2_CMD set pm2-logrotate:retain 10
+log_success "日志轮转已配置：500MB/文件 × 10个 = 5GB总量"
+
 log_info "重载 Nginx..."
 sudo nginx -t && sudo nginx -s reload
 
@@ -468,6 +479,16 @@ else
 fi
 sleep 2
 
+log_info "配置 PM2 日志轮转..."
+# 安装 pm2-logrotate 模块（免费开源）
+$PM2_CMD install pm2-logrotate 2>/dev/null || true
+sleep 1
+
+# 配置日志轮转：单个文件 500MB，保留 10 个文件（总共 5GB）
+$PM2_CMD set pm2-logrotate:max_size 500M
+$PM2_CMD set pm2-logrotate:retain 10
+log_success "日志轮转已配置：500MB/文件 × 10个 = 5GB总量"
+
 log_info "重载 Nginx..."
 sudo nginx -t && sudo nginx -s reload
 
@@ -536,12 +557,24 @@ main() {
   log_info "关键信息:"
   log_info "  • 后端 API: https://wx.shubai01.com/api/v1/health"
   log_info "  • 管理后台: https://wx.shubai01.com/admin"
-  log_info "  • 服务器备份: /var/www/morning-reading_bak_${TIMESTAMP}"
+  log_info "  • 服务器备份: /var/www/morning-reading_bak_${TIMESTAMP}.tar.gz"
   log_info "  • PM2 应用: $PM2_APP_NAME"
   log_info ""
   log_info "回滚命令（如需要）:"
   log_info "  sshpass -p '!X2aZaxXvGO@Ud' ssh ubuntu@118.25.145.179 \\"
-  log_info "    'rm -rf /var/www/morning-reading && mv /var/www/morning-reading_bak_${TIMESTAMP} /var/www/morning-reading'"
+  log_info "    'cd /var/www && sudo rm -rf morning-reading && sudo tar -xzf morning-reading_bak_${TIMESTAMP}.tar.gz'"
+  log_info ""
+  log_info "💡 备份说明："
+  log_info "  • 备份已排除 logs/ 目录（减少备份体积）"
+  log_info "  • 备份已排除 node_modules/（减少备份体积）"
+  log_info "  • 代码、配置、脚本完整保留"
+  log_info ""
+  log_info "📝 日志轮转配置："
+  log_info "  • PM2 日志轮转已启用（pm2-logrotate 模块）"
+  log_info "  • 单个日志文件大小：500MB"
+  log_info "  • 保留日志文件数：10 个"
+  log_info "  • 总日志空间：约 5GB"
+  log_info "  • 旧日志自动压缩存档，保留查询能力"
   log_info ""
 }
 
