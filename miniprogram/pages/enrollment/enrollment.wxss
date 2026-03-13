@@ -201,8 +201,8 @@ picker {
 .radio-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 16rpx;
-  min-height: 56rpx;
+  padding: 12rpx 16rpx;
+  min-height: 44rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
   background: white;
@@ -218,13 +218,13 @@ picker {
 
 .radio-item radio {
   margin-right: 12rpx;
-  transform: scale(0.8);
+  transform: scale(0.6);
 }
 
 .radio-item text {
-  font-size: 28rpx;
+  font-size: 24rpx;
   color: #333;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* 文本域 */
