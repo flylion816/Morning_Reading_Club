@@ -3,20 +3,21 @@
     <!-- 二次认证对话框 -->
     <el-dialog
       v-model="showAuthDialog"
-      title="安全验证"
+      title="数据库管理 - 二次验证"
       width="400px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       :show-close="false"
     >
       <div class="auth-dialog">
-        <p class="auth-notice">⚠️ 这是高权限操作，请输入管理员密码以继续</p>
-        <el-form :model="authForm" label-width="80px">
-          <el-form-item label="密码">
+        <p class="auth-notice">⚠️ 这是高权限操作，请输入数据库访问密码以继续</p>
+        <p class="auth-tip">💡 数据库访问密码与管理员登录密码不同</p>
+        <el-form :model="authForm" label-width="100px">
+          <el-form-item label="访问密码">
             <el-input
               v-model="authForm.password"
               type="password"
-              placeholder="输入您的管理员密码"
+              placeholder="输入数据库访问密码"
               @keyup.enter="handleVerifyPassword"
             />
           </el-form-item>
@@ -959,6 +960,13 @@ defineExpose({ initPage });
 .auth-notice {
   color: #e6a23c;
   font-size: 14px;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.auth-tip {
+  color: #606266;
+  font-size: 13px;
   margin-bottom: 20px;
   line-height: 1.6;
 }
