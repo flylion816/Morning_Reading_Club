@@ -77,11 +77,11 @@ const envConfig = {
     // MySQL 配置（线上 Docker 环境）
     mysql: {
       host: 'localhost',
-      port: 13306,  // Docker 映射端口
+      port: 3306,  // Docker 映射端口（统一为 3306）
       user: 'root',
-      password: 'L55PWzePtXYPNkn7',
+      password: 'Prod_Root@Secure123!',
       database: 'morning_reading',
-      rootPassword: 'L55PWzePtXYPNkn7',
+      rootPassword: 'Prod_Root@Secure123!',
     },
     // Redis 配置（线上 Docker 环境）
     redis: {
