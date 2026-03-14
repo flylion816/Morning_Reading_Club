@@ -34,6 +34,9 @@ const getProductionOrigins = () => {
     origins.push('https://wx.shubai01.com');
   }
 
+  // ✅ 微信小程序特殊来源（wx.request 的来源）
+  origins.push('https://servicewechat.com');
+
   return origins;
 };
 

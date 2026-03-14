@@ -84,13 +84,17 @@ main() {
 
   # 第 3.5 步：确保日志目录存在（部署前）
   log_section "第 3.5 步：准备日志目录"
-  ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
-    sudo mkdir -p /var/www/logs
-    sudo chown ubuntu:ubuntu /var/www/logs
-    sudo chmod 755 /var/www/logs
-    echo "✓ 日志目录已准备"
+  if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
+sudo mkdir -p /var/www/logs
+sudo chown ubuntu:ubuntu /var/www/logs
+sudo chmod 755 /var/www/logs
+echo "✓ 日志目录已准备"
 EOF
-  || log_warning "日志目录准备失败，但继续部署"
+  then
+    log_success "日志目录已准备"
+  else
+    log_warning "日志目录准备失败，但继续部署"
+  fi
 
   # 第 4 步：打包文件
   log_section "第 4 步：打包部署文件"
@@ -181,20 +185,73 @@ EOF
   # 第 7 步：验证
   log_section "第 7 步：验证部署"
 
-  if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
-    "npx pm2 describe morning-reading-backend 2>/dev/null | grep -q 'online'" 2>/dev/null; then
-    log_success "后端服务正常 (online)"
+  local verify_errors=0
+
+  # 7.1 检查PM2应用状态
+  log_info "检查PM2应用状态..."
+  local pm2_status=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+    "npx pm2 status 2>/dev/null | grep morning-reading-backend | grep -c 'online'" 2>/dev/null)
+
+  if [ "$pm2_status" -ge 3 ]; then
+    log_success "PM2应用正常 (至少3个实例online)"
   else
-    log_info "后端服务状态检查..."
-    ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
-      "npx pm2 status 2>/dev/null | grep morning-reading-backend || echo '应用正在启动中...'" 2>/dev/null
+    log_error "❌ PM2应用异常 (仅$pm2_status个实例online，需要4个)"
+    verify_errors=$((verify_errors + 1))
   fi
 
+  # 7.2 检查端口是否监听
+  log_info "检查端口3000是否监听..."
+  if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+    "lsof -i :3000 2>/dev/null | grep -q LISTEN" 2>/dev/null; then
+    log_success "端口3000监听正常"
+  else
+    log_error "❌ 端口3000未监听（应用可能未启动）"
+    verify_errors=$((verify_errors + 1))
+  fi
+
+  # 7.3 检查API是否响应
+  log_info "检查API健康状态..."
+  sleep 2  # 等待应用完全启动
+  local api_response=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+    "curl -s http://127.0.0.1:3000/api/v1/health 2>/dev/null" 2>/dev/null)
+
+  if echo "$api_response" | grep -q '"status":"ok"'; then
+    log_success "API健康检查通过"
+  else
+    log_error "❌ API无法响应或返回错误"
+    verify_errors=$((verify_errors + 1))
+  fi
+
+  # 7.4 检查应用错误日志
+  log_info "检查应用启动日志..."
+  local startup_errors=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+    "tail -5 /var/www/logs/morning-reading-error.log 2>/dev/null | grep -i 'eaddrinuse\|error.*bind' | wc -l" 2>/dev/null)
+
+  if [ "$startup_errors" -gt 0 ]; then
+    log_error "❌ 检测到端口冲突错误（EADDRINUSE）"
+    log_warning "需要手动清理占用3000端口的进程："
+    log_warning "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP"
+    log_warning "  pkill -9 -f 'node'"
+    log_warning "  cd /var/www/morning-reading/backend && npx pm2 start pm2.config.js --env production"
+    verify_errors=$((verify_errors + 1))
+  fi
+
+  # 7.5 检查管理后台文件
+  log_info "检查管理后台文件..."
   if ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
     "[ -f $SERVER_ROOT/admin/dist/index.html ]" 2>/dev/null; then
     log_success "管理后台文件就绪"
   else
-    log_warning "管理后台文件异常"
+    log_warning "⚠️ 管理后台文件异常"
+    verify_errors=$((verify_errors + 1))
+  fi
+
+  # 验证总结
+  log_info ""
+  if [ $verify_errors -eq 0 ]; then
+    log_success "✅ 部署验证通过！所有检查项目合格"
+  else
+    log_error "⚠️ 部署验证发现 $verify_errors 个问题，请查看上面的错误信息"
   fi
 
   # 显示总结
