@@ -124,33 +124,63 @@ Page({
     try {
       const { enrollmentData, finalAmount } = this.data;
 
-      // 1. 调用后端获取支付参数
-      console.log('获取微信支付参数...');
-      // 这里应该调用后端 API 获取支付参数
-      // const res = await enrollmentService.initWechatPayment({
-      //   enrollmentId: enrollmentData.enrollmentId,
-      //   amount: finalAmount
-      // });
+      // 1. 调用后端初始化支付并获取支付参数
+      console.log('初始化微信支付...');
+      const initRes = await paymentService.initiatePayment({
+        enrollmentId: enrollmentData.enrollmentId,
+        paymentMethod: 'wechat',
+        amount: finalAmount
+      });
 
-      // 2. 模拟获取支付参数（实际项目中应该从后端获取）
+      if (!initRes || !initRes.paymentId) {
+        throw new Error('支付初始化失败：无效的响应');
+      }
+
+      console.log('支付初始化成功，获取支付参数:', {
+        paymentId: initRes.paymentId,
+        orderNo: initRes.orderNo,
+        amount: initRes.amount,
+        status: initRes.status
+      });
+
+      // 检查是否获取到微信支付参数
+      if (!initRes.timeStamp || !initRes.nonceStr || !initRes.package || !initRes.paySign) {
+        console.warn('未获取到完整的微信支付参数，可能的原因：');
+        console.warn('1. 后端配置了微信商户信息（WECHAT_MCH_ID, WECHAT_API_KEY）');
+        console.warn('2. 微信 API 调用失败');
+        console.warn('响应数据:', initRes);
+
+        // 在开发环境下，使用模拟参数继续测试
+        if (this.data.isDevelopment) {
+          console.log('使用模拟支付参数进行测试...');
+          return this.handleMockWechatPayment(initRes.paymentId);
+        }
+
+        throw new Error('获取微信支付参数失败，请检查后端配置');
+      }
+
+      // 2. 调用微信支付 JSAPI
+      console.log('调用微信支付 JSAPI...');
       const paymentParams = {
-        timeStamp: Math.floor(Date.now() / 1000).toString(),
-        nonceStr: 'mock_nonce_' + Math.random().toString(36).substr(2, 9),
-        package: 'prepay_id=mock_' + Math.random().toString(36).substr(2, 20),
-        signType: 'RSA',
-        paySign: 'mock_signature_' + Math.random().toString(36).substr(2, 30)
+        timeStamp: initRes.timeStamp,
+        nonceStr: initRes.nonceStr,
+        package: initRes.package,
+        signType: initRes.signType,
+        paySign: initRes.paySign
       };
 
-      // 3. 调用微信支付
+      console.log('支付参数:', paymentParams);
+
+      // 3. 执行微信支付
       return new Promise((resolve, reject) => {
         wx.requestPayment({
-          timeStamp: paymentParams.timeStamp,
-          nonceStr: paymentParams.nonceStr,
-          package: paymentParams.package,
-          signType: paymentParams.signType,
-          paySign: paymentParams.paySign,
+          ...paymentParams,
           success: res => {
             console.log('微信支付成功:', res);
+
+            // 4. 支付成功后，通知后端确认支付
+            this.confirmPaymentWithBackend(initRes.paymentId);
+
             this.handlePaymentSuccess();
             resolve(res);
           },
@@ -162,8 +192,11 @@ Page({
                 title: '已取消支付',
                 icon: 'none'
               });
+              // 不抛出错误，允许用户重试
+              resolve(err);
             } else {
-              reject(new Error('微信支付失败'));
+              // 其他错误
+              reject(new Error(`微信支付失败: ${err.errMsg || '未知错误'}`));
             }
           }
         });
@@ -171,6 +204,42 @@ Page({
     } catch (error) {
       console.error('微信支付异常:', error);
       throw error;
+    }
+  },
+
+  /**
+   * 模拟微信支付（用于开发测试）
+   * 当后端未配置微信商户信息时使用
+   */
+  async handleMockWechatPayment(paymentId) {
+    console.log('使用模拟微信支付进行测试...');
+    return new Promise((resolve) => {
+      // 模拟微信支付流程：2秒后自动成功
+      setTimeout(() => {
+        console.log('模拟微信支付完成');
+        // 通知后端确认支付
+        this.confirmPaymentWithBackend(paymentId);
+        this.handlePaymentSuccess();
+        resolve({});
+      }, 2000);
+    });
+  },
+
+  /**
+   * 通知后端确认支付
+   * （微信支付成功后需要调用此 API）
+   */
+  async confirmPaymentWithBackend(paymentId) {
+    try {
+      console.log('通知后端确认支付，paymentId:', paymentId);
+      const confirmRes = await paymentService.confirmPayment(paymentId, {
+        transactionId: '' // 实际项目中应该从微信回调获取
+      });
+      console.log('后端确认支付成功:', confirmRes);
+    } catch (confirmErr) {
+      console.warn('后端确认支付失败，但微信支付已成功:', confirmErr);
+      // 不抛出错误，因为微信支付已经成功
+      // 可以在后续的支付状态查询中恢复
     }
   },
 

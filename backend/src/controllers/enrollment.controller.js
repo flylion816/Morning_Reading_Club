@@ -39,7 +39,6 @@ exports.submitEnrollmentForm = async (req, res) => {
       !name ||
       !gender ||
       !province ||
-      !detailedAddress ||
       !age ||
       !referrer ||
       !hasReadBook ||
@@ -52,7 +51,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       if (!name) missingFields.push('name');
       if (!gender) missingFields.push('gender');
       if (!province) missingFields.push('province');
-      if (!detailedAddress) missingFields.push('detailedAddress');
+      // 详细地址为可选字段
       if (!age) missingFields.push('age');
       if (!referrer) missingFields.push('referrer');
       if (!hasReadBook) missingFields.push('hasReadBook');

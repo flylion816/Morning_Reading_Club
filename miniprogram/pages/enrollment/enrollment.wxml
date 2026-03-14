@@ -81,12 +81,11 @@
           <input
             type="text"
             class="form-control"
-            placeholder="详细地址"
+            placeholder="详细地址 (选填)"
             value="{{form.detailedAddress}}"
             bindinput="handleInput"
             data-field="detailedAddress"
             maxlength="100"
-            required
           />
         </view>
       </view>

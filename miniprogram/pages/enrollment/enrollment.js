@@ -273,8 +273,7 @@ Page({
     if (!form.name || form.name.trim() === '') errors.name = '请输入姓名';
     if (!form.gender) errors.gender = '请选择性别';
     if (!form.province) errors.province = '请选择省/市/区(县)';
-    if (!form.detailedAddress || form.detailedAddress.trim() === '')
-      errors.detailedAddress = '请输入详细地址';
+    // 详细地址非必填项
     if (!form.age) {
       errors.age = '请输入年龄';
     } else if (isNaN(parseInt(form.age)) || parseInt(form.age) <= 10 || parseInt(form.age) > 120) {

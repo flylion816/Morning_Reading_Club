@@ -3,6 +3,7 @@ const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
+const paymentService = require('../services/payment.service');
 
 /**
  * 初始化支付（创建订单）
@@ -101,13 +102,59 @@ exports.initiatePayment = async (req, res) => {
       );
     }
 
-    // 对于真实微信支付，返回订单信息
+    // 对于真实微信支付，调用微信统一下单 API
+    // 1. 获取用户 openid（从登录用户信息中获取）
+    const userOpenid = req.user.openid || '';
+
+    // 2. 调用微信统一下单 API 获取 prepayId
+    const unifiedOrderResult = await paymentService.unifiedOrder({
+      orderId: payment.orderNo,
+      amount: payment.amount,
+      openid: userOpenid,
+      body: `晨读营课程费用 - 订单${payment.orderNo}`
+    });
+
+    if (!unifiedOrderResult.success) {
+      logger.warn('WeChat unifiedOrder failed', {
+        paymentId: payment._id,
+        error: unifiedOrderResult.error
+      });
+      // 即使微信 API 调用失败，也返回订单信息，让前端重试或使用其他方案
+      return res.json(
+        success({
+          paymentId: payment._id,
+          orderNo: payment.orderNo,
+          amount: payment.amount,
+          status: 'pending',
+          message: '订单创建成功，但获取支付参数失败，请重试'
+        })
+      );
+    }
+
+    // 3. 保存 prepayId 到支付记录
+    payment.wechat = payment.wechat || {};
+    payment.wechat.prepayId = unifiedOrderResult.prepayId;
+    await payment.save();
+
+    // 4. 生成前端所需的支付参数
+    const paymentParams = paymentService.generatePaymentParams(
+      unifiedOrderResult.prepayId
+    );
+
+    // 5. 返回完整的支付参数
     res.json(
       success({
         paymentId: payment._id,
         orderNo: payment.orderNo,
         amount: payment.amount,
         status: 'pending',
+        // 微信支付参数（wx.requestPayment 所需）
+        timeStamp: paymentParams.timeStamp,
+        nonceStr: paymentParams.nonceStr,
+        package: paymentParams.package,
+        signType: paymentParams.signType,
+        paySign: paymentParams.paySign,
+        total_fee: payment.amount, // 微信要求的字段
         message: '订单创建成功，请继续支付'
       })
     );

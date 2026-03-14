@@ -8,6 +8,7 @@ const logger = require('./utils/logger');
 const WebSocketManager = require('./utils/websocket');
 const redisManager = require('./utils/redis');
 const { initRedisClient, startSyncListener } = require('./services/sync.service');
+const backupService = require('./services/backup.service');
 
 // ⚠️ 重要：在 require app 之前设置环境变量
 // 因为 app.js 会在加载时初始化 CORS 等配置，这些配置依赖 NODE_ENV
@@ -131,6 +132,22 @@ async function startServer() {
       .catch(error => {
         logger.warn('⚠️ Redis 初始化异常，同步功能将不可用', error.message);
       });
+
+    // 初始化备份服务（仅在生产环境启用）
+    if (process.env.NODE_ENV === 'production') {
+      logger.info('正在初始化数据备份服务...');
+      backupService
+        .initBackupDirs()
+        .then(() => {
+          logger.info('✅ 备份目录初始化成功');
+          // 启动定时备份任务
+          backupService.startBackupSchedules();
+          logger.info('✅ 定时备份任务已启动（MongoDB: 02:00, MySQL: 02:30, 清理: 03:00）');
+        })
+        .catch(error => {
+          logger.error('❌ 备份服务初始化失败', error.message);
+        });
+    }
 
     // 设置服务器监听所有网卡
     server.on('listening', () => {
