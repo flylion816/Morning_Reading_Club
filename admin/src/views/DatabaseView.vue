@@ -461,6 +461,9 @@ async function handleVerifyPassword() {
     verified.value = true;
     showAuthDialog.value = false;
     ElMessage.success('验证成功，已进入数据库管理');
+
+    // 验证成功后加载页面数据
+    await initPage();
   } catch (error: any) {
     ElMessage.error(error.message || '密码错误，请重试');
     authForm.value.password = '';
@@ -853,13 +856,11 @@ const initPage = async () => {
   }
 };
 
-// 使用 defineExpose 和同步初始化
+// 使用 defineExpose
 defineExpose({ initPage });
 
-// 在组件加载时初始化
-initPage().catch(error => {
-  console.error('页面初始化失败:', error);
-});
+// 注意：initPage 在验证成功后调用，不在组件加载时调用
+// 这样可以确保数据在验证通过后才被加载
 </script>
 
 <style scoped>
