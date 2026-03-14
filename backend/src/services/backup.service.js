@@ -20,7 +20,7 @@ const logger = require('../utils/logger');
 const execAsync = promisify(exec);
 
 // 备份目录配置
-const BACKUP_BASE_DIR = process.env.BACKUP_DIR || '/var/backups/morning-reading';
+const BACKUP_BASE_DIR = process.env.BACKUP_DIR || '/var/backups';
 const MONGODB_BACKUP_DIR = path.join(BACKUP_BASE_DIR, 'mongodb');
 const MYSQL_BACKUP_DIR = path.join(BACKUP_BASE_DIR, 'mysql');
 const BACKUP_RETENTION_DAYS = 30; // 保留 30 天的备份
@@ -194,10 +194,110 @@ async function cleanupOldBackups() {
 }
 
 // =====================================================================
-// 5. 启动定时备份任务
+// 4B. 数据一致性检查和同步触发
+// =====================================================================
+async function checkDataConsistencyAndSync() {
+  try {
+    logger.info('🔍 Starting MongoDB/MySQL data consistency check...');
+
+    // 导入模型和同步函数
+    const User = require('../models/User');
+    const Admin = require('../models/Admin');
+    const Period = require('../models/Period');
+    const Section = require('../models/Section');
+    const Checkin = require('../models/Checkin');
+    const Enrollment = require('../models/Enrollment');
+    const Payment = require('../models/Payment');
+    const Insight = require('../models/Insight');
+    const InsightRequest = require('../models/InsightRequest');
+    const Comment = require('../models/Comment');
+    const Notification = require('../models/Notification');
+    const { publishSyncEvent } = require('./sync.service');
+
+    const MODELS = {
+      users: User,
+      admins: Admin,
+      periods: Period,
+      sections: Section,
+      checkins: Checkin,
+      enrollments: Enrollment,
+      payments: Payment,
+      insights: Insight,
+      insight_requests: InsightRequest,
+      comments: Comment,
+      notifications: Notification
+    };
+
+    const tables = Object.keys(MODELS);
+    let incompleteTableFound = false;
+
+    // 检查各表的数据一致性
+    for (const table of tables) {
+      const model = MODELS[table];
+      const mongoCount = await model.countDocuments();
+
+      // 获取 MySQL 记录数
+      const conn = await mysqlPool.getConnection();
+      try {
+        const [result] = await conn.query(`SELECT COUNT(*) as count FROM \`${table}\``);
+        const mysqlCount = result[0].count || 0;
+
+        if (mongoCount !== mysqlCount) {
+          incompleteTableFound = true;
+          logger.warn(`⚠️ Data mismatch found in table: ${table}`, {
+            mongodb: mongoCount,
+            mysql: mysqlCount,
+            difference: mongoCount - mysqlCount
+          });
+
+          // 发现不一致，触发该表的全量同步
+          logger.info(`🔄 Triggering full sync for table: ${table}`);
+          const mongoData = await model.find().lean();
+
+          for (const doc of mongoData) {
+            publishSyncEvent({
+              type: 'create',
+              collection: table,
+              documentId: doc._id.toString(),
+              data: doc
+            });
+          }
+
+          logger.info(`✅ Sync triggered for ${mongoData.length} records in ${table}`);
+        } else {
+          logger.info(`✅ Data consistent for table: ${table} (${mongoCount} records)`);
+        }
+      } finally {
+        conn.release();
+      }
+    }
+
+    if (!incompleteTableFound) {
+      logger.info('✅ All tables are consistent between MongoDB and MySQL');
+    }
+
+    return !incompleteTableFound;
+  } catch (error) {
+    logger.error('Failed to check data consistency', error);
+    return false;
+  }
+}
+
+// =====================================================================
+// 5. 启动定时备份和一致性检查任务
 // =====================================================================
 function startBackupSchedules() {
   try {
+    // 数据一致性检查：每天凌晨 1:00
+    cron.schedule('0 1 * * *', async () => {
+      try {
+        logger.info('🔍 Data consistency check scheduled triggered');
+        await checkDataConsistencyAndSync();
+      } catch (error) {
+        logger.error('Scheduled data consistency check failed', error);
+      }
+    });
+
     // MongoDB 备份：每天凌晨 2:00
     cron.schedule('0 2 * * *', async () => {
       try {
@@ -229,6 +329,7 @@ function startBackupSchedules() {
     });
 
     logger.info('✅ Backup schedules started successfully', {
+      consistencyCheck: '01:00 UTC',
       mongodbBackup: '02:00 UTC',
       mysqlBackup: '02:30 UTC',
       cleanup: '03:00 UTC'
