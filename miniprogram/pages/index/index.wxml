@@ -26,9 +26,13 @@
 
       <!-- 报名状态标签 -->
       <view wx:if="{{periodEnrollmentStatus[item._id]}}">
-        <!-- 已报名 -->
-        <view class="enrollment-label enrolled" wx:if="{{periodEnrollmentStatus[item._id].isEnrolled}}">
+        <!-- 已报名（已支付或免费） -->
+        <view class="enrollment-label enrolled" wx:if="{{periodEnrollmentStatus[item._id].isEnrolled && (periodEnrollmentStatus[item._id].paymentStatus === 'paid' || periodEnrollmentStatus[item._id].paymentStatus === 'free')}}">
           <text class="label-text">✓ 已报名</text>
+        </view>
+        <!-- 未支付（已报名但未支付） -->
+        <view class="enrollment-label unpaid" wx:if="{{periodEnrollmentStatus[item._id].isEnrolled && periodEnrollmentStatus[item._id].paymentStatus !== 'paid' && periodEnrollmentStatus[item._id].paymentStatus !== 'free'}}">
+          <text class="label-text">未支付</text>
         </view>
         <!-- 未报名 -->
         <view class="enrollment-label not-enrolled" wx:if="{{!periodEnrollmentStatus[item._id].isEnrolled}}">
