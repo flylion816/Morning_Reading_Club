@@ -117,7 +117,7 @@
   padding: 0 30rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
-  font-size: 28rpx;
+  font-size: 24rpx;
   color: #333;
   background: white;
   box-sizing: border-box;
@@ -230,7 +230,7 @@ picker {
 /* 文本域 */
 textarea.form-control {
   font-family: inherit !important;
-  font-size: 28rpx !important;
+  font-size: 24rpx !important;
   line-height: 1.6 !important;
   min-height: 180rpx !important;
   max-height: 350rpx !important;

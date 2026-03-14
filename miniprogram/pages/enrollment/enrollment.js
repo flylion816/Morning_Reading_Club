@@ -279,7 +279,7 @@ Page({
     } else if (isNaN(parseInt(form.age)) || parseInt(form.age) <= 10 || parseInt(form.age) > 120) {
       errors.age = '年龄必须是10岁以上(11-120之间的数字)';
     }
-    if (!form.referrer || form.referrer.trim() === '') errors.referrer = '请输入推荐人';
+    // 推荐人非必填项
     if (!form.hasReadBook) errors.hasReadBook = '请选择是否读过此书';
 
     // 如果读过，则验证读过的次数

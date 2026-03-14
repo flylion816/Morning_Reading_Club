@@ -81,7 +81,7 @@
           <input
             type="text"
             class="form-control"
-            placeholder="详细地址 (选填)"
+            placeholder="详细地址（选填）"
             value="{{form.detailedAddress}}"
             bindinput="handleInput"
             data-field="detailedAddress"
@@ -110,17 +110,15 @@
       <!-- 推荐人 -->
       <view class="form-group">
         <view class="form-label">
-          <text class="required">*</text>
           <text>您的推荐人</text>
         </view>
         <input
           type="text"
           class="form-control"
-          placeholder="请输入推荐人名字"
+          placeholder="请输入推荐人名字（选填）"
           value="{{form.referrer}}"
           bindinput="handleInput"
           data-field="referrer"
-          required
         />
       </view>
 
