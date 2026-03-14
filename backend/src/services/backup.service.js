@@ -16,6 +16,20 @@ const { promisify } = require('util');
 const mongoose = require('mongoose');
 const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
+const mysqlBackupService = require('./mysql-backup.service');
+
+// 导入所有模型用于同步
+const User = require('../models/User');
+const Admin = require('../models/Admin');
+const Period = require('../models/Period');
+const Section = require('../models/Section');
+const Checkin = require('../models/Checkin');
+const Enrollment = require('../models/Enrollment');
+const Payment = require('../models/Payment');
+const Insight = require('../models/Insight');
+const InsightRequest = require('../models/InsightRequest');
+const Comment = require('../models/Comment');
+const Notification = require('../models/Notification');
 
 const execAsync = promisify(exec);
 
@@ -284,17 +298,72 @@ async function checkDataConsistencyAndSync() {
 }
 
 // =====================================================================
-// 5. 启动定时备份和一致性检查任务
+// 5. MongoDB 全量同步到 MySQL（定时任务用）
+// =====================================================================
+async function fullSyncMongoToMySQL() {
+  try {
+    logger.info('🔄 Starting full sync from MongoDB to MySQL');
+    const syncResults = {};
+    let totalSynced = 0;
+
+    // 同步所有集合
+    const syncTasks = [
+      { name: 'users', model: User, method: 'syncUser' },
+      { name: 'admins', model: Admin, method: 'syncAdmin' },
+      { name: 'periods', model: Period, method: 'syncPeriod' },
+      { name: 'sections', model: Section, method: 'syncSection' },
+      { name: 'checkins', model: Checkin, method: 'syncCheckin' },
+      { name: 'enrollments', model: Enrollment, method: 'syncEnrollment' },
+      { name: 'payments', model: Payment, method: 'syncPayment' },
+      { name: 'insights', model: Insight, method: 'syncInsight' },
+      { name: 'insight_requests', model: InsightRequest, method: 'syncInsightRequest' },
+      { name: 'comments', model: Comment, method: 'syncComment' },
+      { name: 'notifications', model: Notification, method: 'syncNotification' }
+    ];
+
+    for (const task of syncTasks) {
+      try {
+        const documents = await task.model.find({});
+        let count = 0;
+
+        for (const doc of documents) {
+          try {
+            await mysqlBackupService[task.method](doc);
+            count++;
+          } catch (docError) {
+            logger.warn(`Failed to sync ${task.name} document ${doc._id}`, docError.message);
+          }
+        }
+
+        syncResults[task.name] = count;
+        totalSynced += count;
+        logger.info(`✅ Synced ${count} ${task.name} to MySQL`);
+      } catch (error) {
+        logger.error(`Failed to sync ${task.name}`, error);
+        syncResults[task.name] = 0;
+      }
+    }
+
+    logger.info('✅ Full sync completed', { totalSynced, tables: Object.keys(syncResults).length, syncResults });
+    return { success: true, totalSynced, syncResults };
+  } catch (error) {
+    logger.error('Full sync from MongoDB to MySQL failed', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// =====================================================================
+// 6. 启动定时备份和同步任务
 // =====================================================================
 function startBackupSchedules() {
   try {
-    // 数据一致性检查：每天凌晨 1:00
+    // MongoDB→MySQL 全量同步：每天凌晨 1:00
     cron.schedule('0 1 * * *', async () => {
       try {
-        logger.info('🔍 Data consistency check scheduled triggered');
-        await checkDataConsistencyAndSync();
+        logger.info('🔄 MongoDB→MySQL scheduled sync triggered');
+        await fullSyncMongoToMySQL();
       } catch (error) {
-        logger.error('Scheduled data consistency check failed', error);
+        logger.error('Scheduled MongoDB→MySQL sync failed', error);
       }
     });
 
@@ -329,7 +398,7 @@ function startBackupSchedules() {
     });
 
     logger.info('✅ Backup schedules started successfully', {
-      consistencyCheck: '01:00 UTC',
+      mongoToMySQLSync: '01:00 UTC',
       mongodbBackup: '02:00 UTC',
       mysqlBackup: '02:30 UTC',
       cleanup: '03:00 UTC'
