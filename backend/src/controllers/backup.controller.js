@@ -100,7 +100,7 @@ async function getMongodbStats(req, res, next) {
 // =========================================================================
 async function getMysqlStats(req, res) {
   try {
-    const conn = await mysqlPool.getConnection();
+    let conn;
     const stats = {};
 
     const tables = [
@@ -110,6 +110,9 @@ async function getMysqlStats(req, res) {
     ];
 
     try {
+      conn = await mysqlPool.getConnection();
+      logger.info('✅ MySQL connection established');
+
       for (const table of tables) {
         try {
           const [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
@@ -120,8 +123,19 @@ async function getMysqlStats(req, res) {
           stats[table] = 0;
         }
       }
+    } catch (connError) {
+      logger.error('❌ MySQL connection error:', {
+        message: connError.message,
+        code: connError.code,
+        errno: connError.errno,
+        sqlState: connError.sqlState
+      });
+      throw connError;
     } finally {
-      conn.release();
+      if (conn) {
+        conn.release();
+        logger.info('MySQL connection released');
+      }
     }
 
     logger.info('MySQL statistics fetched', { tables: tables.length });
