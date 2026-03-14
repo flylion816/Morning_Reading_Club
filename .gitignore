@@ -79,3 +79,4 @@ uploads/
 .secrets/
 .env.production
 .env.local
+morning-reading-deploy_*.tar.gz
