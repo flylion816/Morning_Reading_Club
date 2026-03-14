@@ -1,19 +1,12 @@
-const { Server } = require('socket.io');
 const path = require('path');
-const { connectMongoDB, testMySQLConnection } = require('./config/database');
-const { getSocketIoCorsOptions } = require('./config/cors');
-const { validateConfig } = require('./utils/config-validator');
-const ConfigSyncValidator = require('./utils/config-sync-validator');
-const logger = require('./utils/logger');
-const WebSocketManager = require('./utils/websocket');
-const redisManager = require('./utils/redis');
-const { initRedisClient, startSyncListener } = require('./services/sync.service');
-const backupService = require('./services/backup.service');
 
-// ⚠️ 重要：在 require app 之前设置环境变量
-// 因为 app.js 会在加载时初始化 CORS 等配置，这些配置依赖 NODE_ENV
+// ⚠️ 重要：最早加载 .env 文件，在任何模块 require 之前
+// 确保 NODE_ENV 被设置
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
 
-// 尝试加载根目录的统一环境配置
+// 首先尝试加载根目录的统一环境配置
 try {
   const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
   // eslint-disable-next-line global-require, import/no-dynamic-require
@@ -23,7 +16,7 @@ try {
   process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
   process.env.MONGODB_URI = process.env.MONGODB_URI || envConfig.config.backend.mongodbUri;
 } catch (error) {
-  logger.warn('未找到统一环境配置文件 .env.config.js，将使用 .env 文件');
+  // 如果没有 .env.config.js，使用 NODE_ENV 来判断
 }
 
 // 根据 NODE_ENV 加载相应的环境文件
@@ -35,6 +28,25 @@ require('dotenv').config({ path: envFile });
 
 // 再加载 .env.local（本地开发/测试覆盖）
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
+
+// 日志输出当前的 MYSQL_PORT 值（用于调试）
+const logger_temp = console;
+logger_temp.log('[DEBUG] After dotenv loading:');
+logger_temp.log('  NODE_ENV:', process.env.NODE_ENV);
+logger_temp.log('  MYSQL_HOST:', process.env.MYSQL_HOST);
+logger_temp.log('  MYSQL_PORT:', process.env.MYSQL_PORT);
+
+// 现在才能 require 其他模块，确保环境变量已加载
+const { Server } = require('socket.io');
+const { connectMongoDB, testMySQLConnection } = require('./config/database');
+const { getSocketIoCorsOptions } = require('./config/cors');
+const { validateConfig } = require('./utils/config-validator');
+const ConfigSyncValidator = require('./utils/config-sync-validator');
+const logger = require('./utils/logger');
+const WebSocketManager = require('./utils/websocket');
+const redisManager = require('./utils/redis');
+const { initRedisClient, startSyncListener } = require('./services/sync.service');
+const backupService = require('./services/backup.service');
 
 // 现在 app.js 可以安全加载，NODE_ENV 已经被正确设置
 const app = require('./app');

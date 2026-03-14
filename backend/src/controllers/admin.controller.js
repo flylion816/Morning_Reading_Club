@@ -407,3 +407,47 @@ exports.verifyDbAccess = async (req, res) => {
     return res.status(500).json(errors.serverError('验证失败'));
   }
 };
+
+// 修改数据库访问密码
+exports.changeDbAccessPassword = async (req, res) => {
+  try {
+    if (!req.admin || !req.admin.id) {
+      return res.status(401).json(errors.unauthorized('未授权访问'));
+    }
+
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json(errors.badRequest('原密码和新密码不能为空'));
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json(errors.badRequest('新密码长度不能少于6位'));
+    }
+
+    const admin = await Admin.findById(req.admin.id).select('+dbAccessPassword');
+
+    if (!admin) {
+      return res.status(404).json(errors.notFound('管理员不存在'));
+    }
+
+    // 验证原数据库访问密码
+    if (!admin.dbAccessPassword) {
+      return res.status(400).json(errors.badRequest('数据库访问密码未设置'));
+    }
+
+    const isMatch = await admin.compareDbAccessPassword(oldPassword);
+    if (!isMatch) {
+      return res.status(401).json(errors.unauthorized('原密码错误'));
+    }
+
+    // 更新新的数据库访问密码
+    admin.dbAccessPassword = newPassword;
+    await admin.save();
+
+    return res.json(success(null, '数据库访问密码已修改'));
+  } catch (error) {
+    logger.error('Change db access password error', error);
+    return res.status(500).json(errors.serverError('修改密码失败'));
+  }
+};
