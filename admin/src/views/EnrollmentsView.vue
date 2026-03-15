@@ -57,14 +57,20 @@
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="45" />
-          <el-table-column label="昵称" prop="userId.nickname" width="100" show-overflow-tooltip>
+          <el-table-column label="昵称" width="100" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ typeof row.userId === 'object' ? row.userId.nickname : '-' }}
+              {{ (typeof row.userId === 'object' ? row.userId.nickname : null) || '-' }}
             </template>
           </el-table-column>
-          <el-table-column prop="name" label="报名名称" width="100" show-overflow-tooltip />
-          <el-table-column prop="province" label="省份" width="70" />
-          <el-table-column prop="age" label="年龄" width="60" />
+          <el-table-column label="报名名称" width="100" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.name || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="省份" width="70">
+            <template #default="{ row }">{{ row.province || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="年龄" width="60">
+            <template #default="{ row }">{{ row.age || '-' }}</template>
+          </el-table-column>
           <el-table-column label="期次" width="120" show-overflow-tooltip>
             <template #default="{ row }">
               {{ row.periodId?.name || '未知' }}
