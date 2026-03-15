@@ -7,11 +7,13 @@
 
   <!-- 内容区 -->
   <view class="content-section">
-    <!-- 小凡看见标题 -->
-    <view class="section-title">小凡看见</view>
+    <!-- 图片内容 -->
+    <view class="content-image" wx:if="{{insight.imageUrl}}">
+      <image src="{{insight.imageUrl}}" mode="widthFix" style="width: 100%; border-radius: 8px;" show-menu-by-longpress="{{true}}" />
+    </view>
 
     <!-- 正文内容 -->
-    <view class="content-text">
+    <view class="content-text" wx:if="{{insight.content}}">
       <rich-text nodes="{{insight.content}}" />
     </view>
   </view>

@@ -419,8 +419,8 @@ async function saveInsight() {
     ElMessage.warning('请选择媒体类型');
     return;
   }
-  if (!editingInsight.value.content) {
-    ElMessage.warning('请输入内容');
+  if (!editingInsight.value.content && !editingInsight.value.imageUrl) {
+    ElMessage.warning('请输入内容或填写图片链接');
     return;
   }
 

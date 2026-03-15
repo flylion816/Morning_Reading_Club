@@ -558,7 +558,7 @@ Page({
           id: item._id || item.id,
           day: `第${item.day}天`,
           title: item.sectionId?.title || '学习反馈',
-          preview: preview || '暂无预览',
+          preview: preview || (item.imageUrl ? '点击查看小凡看见' : '暂无预览'),
           periodId: item.periodId, // 保留期次ID用于详情页跳转
           type: item.type, // 小凡看见类型
           typeConfig: typeConfig // 类型配置（用于显示）
