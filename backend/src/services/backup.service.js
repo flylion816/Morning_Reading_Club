@@ -67,17 +67,30 @@ async function backupMongoDB() {
     const backupName = `mongodb-backup-${timestamp}-${Date.now()}`;
     const backupPath = path.join(MONGODB_BACKUP_DIR, backupName);
 
-    // 构造 mongodump 命令
+    // 创建备份目录
+    await fs.mkdir(backupPath, { recursive: true });
+
+    // 通过 docker exec 在容器内执行 mongodump，输出到容器内临时目录，再 docker cp 到宿主机
+    const containerName = process.env.MONGODB_CONTAINER || 'morning-reading-mongodb';
+    const containerBackupDir = `/tmp/${backupName}`;
+
+    // 在容器内执行 mongodump
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db';
-    const dumpCmd = `mongodump --uri="${mongoUri}" --out="${backupPath}" --gzip`;
+    // 将宿主机连接地址替换为容器内 localhost
+    const containerUri = mongoUri.replace(/127\.0\.0\.1|localhost/, 'localhost');
+    const dumpCmd = `docker exec ${containerName} mongodump --uri="${containerUri}" --out="${containerBackupDir}" --gzip`;
 
-    logger.info('Executing mongodump command', { backupPath });
+    logger.info('Executing mongodump via docker exec', { backupPath });
 
-    const { stderr } = await execAsync(dumpCmd);
-
+    const { stderr } = await execAsync(dumpCmd, { timeout: 120000 });
     if (stderr) {
       logger.warn('mongodump warning/stderr', stderr);
     }
+
+    // 从容器复制到宿主机
+    await execAsync(`docker cp ${containerName}:${containerBackupDir}/. ${backupPath}/`);
+    // 清理容器内临时目录
+    await execAsync(`docker exec ${containerName} rm -rf ${containerBackupDir}`);
 
     // 创建备份元数据文件
     const metaData = {
@@ -85,7 +98,7 @@ async function backupMongoDB() {
       timestamp: new Date().toISOString(),
       backupName,
       backupPath,
-      mongoUri: mongoUri.replace(/password[^@]*@/, 'password:***@'), // 隐藏密码
+      mongoUri: mongoUri.replace(/:[^:@]*@/, ':***@'), // 隐藏密码
       size: await getDirectorySize(backupPath)
     };
 
@@ -103,53 +116,64 @@ async function backupMongoDB() {
 }
 
 // =====================================================================
-// 3. MySQL 备份（使用 mysqldump）
+// 3. MySQL 备份（通过连接池导出 JSON）
 // =====================================================================
 async function backupMySQL() {
   try {
     logger.info('Starting MySQL backup...');
 
     const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const backupName = `mysql-backup-${timestamp}-${Date.now()}.sql.gz`;
+    const backupName = `mysql-backup-${timestamp}-${Date.now()}`;
     const backupPath = path.join(MYSQL_BACKUP_DIR, backupName);
+    await fs.mkdir(backupPath, { recursive: true });
 
-    // 从环境变量获取 MySQL 配置
-    const host = process.env.MYSQL_HOST || 'localhost';
-    const port = process.env.MYSQL_PORT || 3306;
-    const user = process.env.MYSQL_USER || 'root';
-    const password = process.env.MYSQL_PASSWORD || '';
     const database = process.env.MYSQL_DATABASE || 'morning_reading';
 
-    // 构造 mysqldump 命令（使用管道压缩）
-    const dumpCmd = password
-      ? `mysqldump -h${host} -P${port} -u${user} -p${password} --single-transaction --quick --lock-tables=false ${database} | gzip > ${backupPath}`
-      : `mysqldump -h${host} -P${port} -u${user} --single-transaction --quick --lock-tables=false ${database} | gzip > ${backupPath}`;
+    // 通过已有连接池导出所有表数据为 JSON
+    const [tables] = await mysqlPool.query('SHOW TABLES');
+    const tableNames = tables.map(row => Object.values(row)[0]);
 
-    logger.info('Executing mysqldump command', { backupPath });
-
-    await execAsync(dumpCmd);
-
-    // 验证备份文件
-    const stats = await fs.stat(backupPath);
-    if (stats.size === 0) {
-      throw new Error('MySQL backup file is empty');
+    let totalRows = 0;
+    for (const tableName of tableNames) {
+      const [rows] = await mysqlPool.query(`SELECT * FROM \`${tableName}\``);
+      await fs.writeFile(
+        path.join(backupPath, `${tableName}.json`),
+        JSON.stringify(rows, null, 2)
+      );
+      totalRows += rows.length;
+      logger.info(`Backed up table ${tableName}: ${rows.length} rows`);
     }
+
+    // 同时导出表结构（CREATE TABLE 语句）
+    const schemaStatements = [];
+    for (const tableName of tableNames) {
+      const [createResult] = await mysqlPool.query(`SHOW CREATE TABLE \`${tableName}\``);
+      schemaStatements.push(createResult[0]['Create Table'] + ';');
+    }
+    await fs.writeFile(
+      path.join(backupPath, '_schema.sql'),
+      schemaStatements.join('\n\n')
+    );
+
+    // 计算备份大小
+    const backupSize = await getDirectorySize(backupPath);
 
     // 创建备份元数据文件
     const metaData = {
       type: 'mysql',
+      format: 'json',
       timestamp: new Date().toISOString(),
       backupName,
       backupPath,
-      host,
-      port,
       database,
-      size: stats.size,
-      sizeHuman: formatFileSize(stats.size)
+      tables: tableNames.length,
+      totalRows,
+      size: backupSize,
+      sizeHuman: formatFileSize(backupSize)
     };
 
     await fs.writeFile(
-      path.join(MYSQL_BACKUP_DIR, `${backupName}.meta.json`),
+      path.join(backupPath, 'backup-meta.json'),
       JSON.stringify(metaData, null, 2)
     );
 
@@ -357,7 +381,9 @@ async function fullSyncMongoToMySQL() {
 // =====================================================================
 function startBackupSchedules() {
   try {
-    // MongoDB→MySQL 全量同步：每天凌晨 1:00
+    const cronOptions = { timezone: 'Asia/Shanghai' };
+
+    // MongoDB→MySQL 全量同步：每天凌晨 1:00（北京时间）
     cron.schedule('0 1 * * *', async () => {
       try {
         logger.info('🔄 MongoDB→MySQL scheduled sync triggered');
@@ -365,9 +391,9 @@ function startBackupSchedules() {
       } catch (error) {
         logger.error('Scheduled MongoDB→MySQL sync failed', error);
       }
-    });
+    }, cronOptions);
 
-    // MongoDB 备份：每天凌晨 2:00
+    // MongoDB 备份：每天凌晨 2:00（北京时间）
     cron.schedule('0 2 * * *', async () => {
       try {
         logger.info('🔄 MongoDB scheduled backup triggered');
@@ -375,9 +401,9 @@ function startBackupSchedules() {
       } catch (error) {
         logger.error('Scheduled MongoDB backup failed', error);
       }
-    });
+    }, cronOptions);
 
-    // MySQL 备份：每天凌晨 2:30
+    // MySQL 备份：每天凌晨 2:30（北京时间）
     cron.schedule('30 2 * * *', async () => {
       try {
         logger.info('🔄 MySQL scheduled backup triggered');
@@ -385,9 +411,9 @@ function startBackupSchedules() {
       } catch (error) {
         logger.error('Scheduled MySQL backup failed', error);
       }
-    });
+    }, cronOptions);
 
-    // 清理过期备份：每天凌晨 3:00
+    // 清理过期备份：每天凌晨 3:00（北京时间）
     cron.schedule('0 3 * * *', async () => {
       try {
         logger.info('🔄 Backup cleanup triggered');
@@ -395,13 +421,13 @@ function startBackupSchedules() {
       } catch (error) {
         logger.error('Backup cleanup failed', error);
       }
-    });
+    }, cronOptions);
 
     logger.info('✅ Backup schedules started successfully', {
-      mongoToMySQLSync: '01:00 UTC',
-      mongodbBackup: '02:00 UTC',
-      mysqlBackup: '02:30 UTC',
-      cleanup: '03:00 UTC'
+      mongoToMySQLSync: '01:00 CST (北京时间)',
+      mongodbBackup: '02:00 CST (北京时间)',
+      mysqlBackup: '02:30 CST (北京时间)',
+      cleanup: '03:00 CST (北京时间)'
     });
   } catch (error) {
     logger.error('Failed to start backup schedules', error);
@@ -455,9 +481,9 @@ async function listBackups() {
     // 列举 MySQL 备份
     const mysqlFiles = await fs.readdir(MYSQL_BACKUP_DIR);
     for (const file of mysqlFiles) {
-      if (!file.endsWith('.meta.json')) continue;
+      const metaFile = path.join(MYSQL_BACKUP_DIR, file, 'backup-meta.json');
       try {
-        const meta = JSON.parse(await fs.readFile(path.join(MYSQL_BACKUP_DIR, file), 'utf-8'));
+        const meta = JSON.parse(await fs.readFile(metaFile, 'utf-8'));
         result.mysql.push(meta);
       } catch {
         // 忽略损坏的 meta 文件

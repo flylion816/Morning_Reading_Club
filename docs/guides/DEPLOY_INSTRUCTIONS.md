@@ -869,7 +869,7 @@ curl -X POST https://wx.shubai01.com/api/v1/auth/admin/verify-db-access \
 # {"code":0,"message":"验证成功","data":{"verified":true}}
 ```
 
-### 灾难恢复
+### 灾难恢复（环境配置）
 
 如果脚本失败，恢复备份：
 
@@ -886,6 +886,89 @@ cp /var/www/morning-reading/.backup/.env.production.backup.* \
 # 重启服务
 pm2 restart morning-reading-backend
 ```
+
+### 数据库自动备份
+
+系统通过 `backup.service.js` 中的 `node-cron` 定时任务自动执行备份，随后端服务启动。
+
+#### 定时任务计划（北京时间）
+
+| 时间 | 任务 | 说明 |
+|------|------|------|
+| 01:00 | MongoDB→MySQL 全量同步 | 将 MongoDB 数据同步到 MySQL（双重保障） |
+| 02:00 | MongoDB 备份 | `docker exec mongodump`，gzip 压缩，存储到 `/var/backups/mongodb/` |
+| 02:30 | MySQL 备份 | 通过连接池导出所有表为 JSON + schema SQL，存储到 `/var/backups/mysql/` |
+| 03:00 | 清理过期备份 | 删除 30 天前的备份文件 |
+
+#### 备份文件位置
+
+```
+/var/backups/
+├── mongodb/
+│   └── mongodb-backup-YYYY-MM-DD-TIMESTAMP/
+│       ├── morning_reading/        # 各集合的 .bson.gz 文件
+│       └── backup-meta.json        # 备份元数据
+└── mysql/
+    └── mysql-backup-YYYY-MM-DD-TIMESTAMP/
+        ├── users.json              # 各表数据（JSON格式）
+        ├── periods.json
+        ├── sections.json
+        ├── ...
+        ├── _schema.sql             # 所有表的 CREATE TABLE 语句
+        └── backup-meta.json        # 备份元数据
+```
+
+#### 检查备份状态
+
+```bash
+# 查看备份是否正常执行（检查 PM2 日志）
+grep -iE "backup.*completed|backup.*failed" /var/www/logs/morning-reading-out.log | tail -10
+
+# 查看备份文件
+ls -lt /var/backups/mongodb/ | head -5
+ls -lt /var/backups/mysql/ | head -5
+```
+
+### 数据库恢复（灾难恢复）
+
+使用恢复脚本 `backend/scripts/restore-from-backup.js`。
+
+#### 查看可用备份
+
+```bash
+cd /var/www/morning-reading/backend
+node scripts/restore-from-backup.js --list
+```
+
+#### 恢复 MongoDB
+
+```bash
+node scripts/restore-from-backup.js --mongodb mongodb-backup-2026-03-15-1773555079127
+```
+
+执行后会显示备份详情并要求确认（输入 `y`），使用 `mongorestore --drop` 恢复，会先删除现有集合再导入。
+
+#### 恢复 MySQL
+
+```bash
+node scripts/restore-from-backup.js --mysql mysql-backup-2026-03-15-1773555079400
+```
+
+通过连接池逐表清空并重新插入 JSON 数据。
+
+#### 同时恢复 MongoDB + MySQL（推荐）
+
+```bash
+# 按日期自动查找并恢复当天最新的备份
+node scripts/restore-from-backup.js --both 2026-03-15
+```
+
+#### 恢复注意事项
+
+- 恢复前建议先手动执行一次备份（以防万一）
+- 恢复操作会**覆盖**现有数据
+- 每次恢复前都需要手动确认
+- 恢复完成后重启后端服务：`pm2 restart morning-reading-backend`
 
 ---
 
