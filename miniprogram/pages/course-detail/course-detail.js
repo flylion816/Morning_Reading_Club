@@ -41,14 +41,21 @@ Page({
     // 2. 移除旧的 style 属性，然后重新添加
     cleaned = cleaned.replace(/\s+style="[^"]*"/gi, '');
 
-    // 3. 为所有 <img> 标签添加合适的 style
+    // 3. 识别手工输入的列表项格式（如"1. 文本"、"2. 文本"）并增加间距
+    // 匹配 <p> 标签中以数字+点开头的内容
+    cleaned = cleaned.replace(/<p>(\d+\.\s)/gi, (match) => {
+      // 为列表项段落添加 margin-bottom
+      return '<p style="margin-bottom:16px;">' + match.substring(3);
+    });
+
+    // 4. 为所有 <img> 标签添加合适的 style
     // 关键：使用 display:block 和 width:100% 让图片充满容器
     cleaned = cleaned.replace(
       /<img([^>]*?)>/gi,
       '<img$1 style="display:block;width:100%;height:auto;margin:12px 0;border-radius:4px;" />'
     );
 
-    // 4. 确保所有图片都有 alt 属性
+    // 5. 确保所有图片都有 alt 属性
     cleaned = cleaned.replace(/<img([^>]*?)src/gi, (match, before) => {
       if (!before.includes('alt=')) {
         return `<img${before}alt="图片" src`;
@@ -56,7 +63,7 @@ Page({
       return match;
     });
 
-    // 5. 移除其他不必要的属性（保留 src, href, alt, style）
+    // 6. 移除其他不必要的属性（保留 src, href, alt, style）
     cleaned = cleaned.replace(/\s+(?!src|href|alt|style)[\w-]+="[^"]*"/gi, '');
 
     return cleaned;
