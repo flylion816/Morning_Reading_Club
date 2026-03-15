@@ -25,6 +25,9 @@ Page({
       total_days: 23
     },
 
+    // 待支付订单
+    pendingPayments: [],
+
     // 最近的小凡看见（最多3条）
     recentInsights: [],
 
@@ -206,6 +209,23 @@ Page({
 
       console.log('👤 用户已报名的期次ID列表:', enrolledPeriodIds);
       console.log('👤 期次ID列表长度:', enrolledPeriodIds.length);
+
+      // 提取待支付订单
+      const pendingPayments = enrollmentList
+        .filter(e => e.status === 'active' && e.paymentStatus === 'pending')
+        .map(e => {
+          const periodId = e.periodId?._id || e.periodId;
+          const period = periodsList.find(p => p._id === periodId);
+          return {
+            enrollmentId: e._id || e.enrollmentId,
+            periodId: periodId,
+            periodTitle: period?.name || period?.title || e.periodTitle || '晨读营课程',
+            startDate: period ? (period.startDate || '').split('T')[0] : '',
+            endDate: period ? (period.endDate || '').split('T')[0] : '',
+            amount: 99
+          };
+        });
+      console.log('💳 待支付订单:', pendingPayments);
 
       let currentPeriod = null;
       const today = new Date();
@@ -468,6 +488,7 @@ Page({
           userStats: stats,
           currentPeriod: currentPeriod || null, // 确保不是undefined
           todaySection: todaySection || null, // 确保不是undefined
+          pendingPayments,
           recentInsights,
           loading: false
         },
@@ -889,6 +910,17 @@ Page({
   /**
    * 点击今日课节卡片
    */
+  /**
+   * 点击待支付订单 - 跳转到支付页面
+   */
+  handlePendingPaymentClick(e) {
+    const enrollment = e.currentTarget.dataset.enrollment;
+    if (!enrollment) return;
+    wx.navigateTo({
+      url: `/pages/payment/payment?enrollmentId=${enrollment.enrollmentId}&periodId=${enrollment.periodId}&periodTitle=${enrollment.periodTitle}&startDate=${enrollment.startDate}&endDate=${enrollment.endDate}&amount=${enrollment.amount}`
+    });
+  },
+
   handleTodaySectionClick() {
     console.log('🚨🚨🚨 handleTodaySectionClick 被触发 🚨🚨🚨');
 

@@ -7,6 +7,38 @@
   flex-direction: column;
 }
 
+/* 待支付提醒横幅 */
+.payment-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  padding: 20rpx 32rpx;
+  border-bottom: 2rpx solid #fde68a;
+}
+
+.payment-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.payment-banner-icon {
+  font-size: 32rpx;
+}
+
+.payment-banner-text {
+  font-size: 26rpx;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.payment-banner-arrow {
+  font-size: 36rpx;
+  color: #d97706;
+  font-weight: bold;
+}
+
 /* 头部区域 */
 .page-header {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);

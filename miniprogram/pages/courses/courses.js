@@ -1,5 +1,6 @@
 // 课节列表页 - 显示某一期的每天课程
 const courseService = require('../../services/course.service');
+const enrollmentService = require('../../services/enrollment.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 
 Page({
@@ -12,7 +13,9 @@ Page({
     makeupCount: 99, // 剩余补打卡次数
     allCheckins: [], // 所有打卡记录
     currentTab: 'tasks', // 当前选中的tab
-    scrollTop: 0 // 滚动位置
+    scrollTop: 0, // 滚动位置
+    paymentPending: false, // 是否有待支付
+    paymentEnrollmentId: '' // 待支付的报名ID
   },
 
   onLoad(options) {
@@ -38,6 +41,7 @@ Page({
       // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
       this.setData({ periodId: options.periodId });
       this.loadSections();
+      this.checkPaymentStatus();
     } else {
       wx.showToast({
         title: '参数错误',
@@ -50,6 +54,10 @@ Page({
     // 每次显示页面时重新加载打卡记录
     if (this.data.sections.length > 0) {
       this.loadAllCheckins();
+    }
+    // 刷新支付状态（从支付页返回后可能已支付）
+    if (this.data.periodId) {
+      this.checkPaymentStatus();
     }
   },
 
@@ -259,6 +267,39 @@ Page({
     // 直接跳转到打卡页面
     wx.navigateTo({
       url: `/pages/checkin/checkin?courseId=${sectionId}`
+    });
+  },
+
+  /**
+   * 检查支付状态
+   */
+  async checkPaymentStatus() {
+    try {
+      const res = await enrollmentService.checkEnrollment(this.data.periodId);
+      if (res.isEnrolled && res.paymentStatus !== 'paid' && res.paymentStatus !== 'free') {
+        this.setData({
+          paymentPending: true,
+          paymentEnrollmentId: res.enrollmentId || ''
+        });
+      } else {
+        this.setData({
+          paymentPending: false,
+          paymentEnrollmentId: ''
+        });
+      }
+    } catch (error) {
+      console.error('检查支付状态失败:', error);
+    }
+  },
+
+  /**
+   * 跳转到支付页面
+   */
+  navigateToPayment() {
+    const { paymentEnrollmentId, periodId, periodName, periodDate } = this.data;
+    if (!paymentEnrollmentId) return;
+    wx.navigateTo({
+      url: `/pages/payment/payment?enrollmentId=${paymentEnrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&amount=99`
     });
   },
 

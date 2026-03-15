@@ -333,18 +333,11 @@ Page({
         url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
     }
-    // 【情况3】已报名且已确认(免费或已支付)，进入课程列表（无论期次是否已完成）
-    else if (paymentStatus === 'paid' || paymentStatus === 'free') {
-      console.log('已报名且已确认，进入课程列表');
+    // 【情况3】已报名，进入课程列表（无论支付状态和期次是否已完成）
+    else {
+      console.log('已报名，进入课程列表，支付状态:', paymentStatus);
       wx.navigateTo({
         url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
-      });
-    }
-    // 【情况4】其他所有支付状态（未支付、退款中、异常状态等），一律进入支付页面继续/重新支付
-    else {
-      console.log('已报名但未确认支付状态，进入支付页面:', paymentStatus);
-      wx.navigateTo({
-        url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&startDate=${period.startTime || period.startDate}&endDate=${period.endTime || period.endDate}&amount=99&isResumePayment=true`
       });
     }
   },

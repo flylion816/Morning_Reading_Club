@@ -103,49 +103,10 @@ Component({
           return;
         }
 
-        // 【情况3】已报名且已支付 → 导航到课程列表（无论期次是否已完成）
-        if (paymentStatus === 'paid') {
-          console.log('✅ 已报名且已支付，导航到课程列表');
-          wx.navigateTo({
-            url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
-          });
-          return;
-        }
-
-        // 【情况4】已报名但未支付 或 已退款 → 进入支付页面继续/重新支付
-        if (paymentStatus === 'pending' || paymentStatus === 'refunded') {
-          console.log('✅ 已报名但未支付或已退款，导航到支付页面');
-          // 获取enrollmentId（从enrolled对象中）
-          const enrollmentId = enrolled && enrolled.enrollmentId;
-          if (!enrollmentId) {
-            wx.showToast({
-              title: '获取报名信息失败，请重试',
-              icon: 'none',
-              duration: 2000
-            });
-            return;
-          }
-          wx.navigateTo({
-            url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${course._id}&periodTitle=${course.name || ''}&startDate=${course.startTime || course.startDate}&endDate=${course.endTime || course.endDate}&amount=99&isResumePayment=true`
-          });
-          return;
-        }
-
-        // 【情况5】已报名且免费 → 导航到课程列表
-        if (paymentStatus === 'free') {
-          console.log('✅ 已报名且免费，导航到课程列表');
-          wx.navigateTo({
-            url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
-          });
-          return;
-        }
-
-        // 【情况6】其他支付状态 → 异常提示
-        console.warn('⚠️ 支付状态异常:', paymentStatus);
-        wx.showToast({
-          title: '报名状态异常，请联系客服',
-          icon: 'none',
-          duration: 2000
+        // 【情况3】已报名 → 导航到课程列表（无论支付状态）
+        console.log('✅ 已报名，导航到课程列表，支付状态:', paymentStatus);
+        wx.navigateTo({
+          url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
         });
         return;
       }

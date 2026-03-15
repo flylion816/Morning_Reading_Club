@@ -362,7 +362,7 @@ Page({
       console.log('报名成功，响应:', res);
 
       wx.showToast({
-        title: '报名成功，前往支付',
+        title: '报名成功，进入课程',
         icon: 'success',
         duration: 1500
       });
@@ -370,12 +370,12 @@ Page({
       // 获取期次信息
       const selectedPeriod = this.data.periodList[this.data.selectedPeriodIndex];
 
-      // 延迟1.5秒后导航到支付页面
+      // 延迟1.5秒后导航到课程列表
       setTimeout(() => {
         wx.navigateTo({
-          url: `/pages/payment/payment?enrollmentId=${res._id}&periodId=${selectedPeriod._id}&periodTitle=${selectedPeriod.name}&startDate=${selectedPeriod.startDate}&endDate=${selectedPeriod.endDate}&amount=99`,
+          url: `/pages/courses/courses?periodId=${selectedPeriod._id}&name=${selectedPeriod.name}`,
           fail: err => {
-            console.error('导航到支付页面失败:', err);
+            console.error('导航到课程列表失败:', err);
             wx.showToast({
               title: '导航失败，请重试',
               icon: 'none'

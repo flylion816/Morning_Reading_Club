@@ -352,37 +352,13 @@ Page({
     // 关闭弹窗
     this.closeModal();
 
-    // 延迟后跳转到课程页面（等待弹窗动画完成）
+    // 用 redirectTo 替换当前支付页面，直接进入课程列表
     setTimeout(() => {
-      // 先返回到首页
-      wx.navigateBack({
-        delta: 1,
-        success: () => {
-          // 返回成功后，跳转到课程列表
-          wx.navigateTo({
-            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
-            fail: err => {
-              console.error('导航到课程列表失败:', err);
-              wx.showToast({
-                title: '导航失败，请手动进入课程',
-                icon: 'none'
-              });
-            }
-          });
-        },
-        fail: err => {
-          console.error('返回首页失败:', err);
-          // 如果返回失败，尝试直接跳转到课程列表
-          wx.navigateTo({
-            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
-            fail: navErr => {
-              console.error('导航到课程列表失败:', navErr);
-              wx.showToast({
-                title: '导航失败，请手动进入课程',
-                icon: 'none'
-              });
-            }
-          });
+      wx.redirectTo({
+        url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
+        fail: () => {
+          // 回退：返回上一页
+          wx.navigateBack({ delta: 1 });
         }
       });
     }, 800);
@@ -403,16 +379,24 @@ Page({
   },
 
   /**
-   * 取消支付
+   * 取消支付（稍后支付）
    */
   handleCancel() {
+    const { enrollmentData } = this.data;
     wx.showModal({
-      title: '取消支付',
-      content: '确定要取消支付吗？',
+      title: '稍后支付',
+      content: '您可以稍后在课程页面或个人中心继续支付',
+      confirmText: '继续学习',
+      cancelText: '留在此页',
       success: res => {
         if (res.confirm) {
-          // 返回到报名页面或首页
-          wx.navigateBack({ delta: 1 });
+          // 跳转到课程列表
+          wx.redirectTo({
+            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
+            fail: () => {
+              wx.navigateBack({ delta: 1 });
+            }
+          });
         }
       }
     });
