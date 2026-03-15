@@ -192,12 +192,12 @@
 /* 富文本列表样式 */
 .section-content /deep/ ol,
 .section-content /deep/ ul {
-  margin: 16rpx 0;
+  margin: 24rpx 0;
   padding-left: 32rpx;
 }
 
 .section-content /deep/ li {
-  margin: 8rpx 0;
+  margin: 16rpx 0;
   line-height: 1.8;
 }
 
