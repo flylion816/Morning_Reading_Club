@@ -34,13 +34,13 @@ exports.submitEnrollmentForm = async (req, res) => {
     } = req.body;
 
     // 验证必填字段
+    // 详细地址(detailedAddress)和推荐人(referrer)为选填字段
     if (
       !periodId ||
       !name ||
       !gender ||
       !province ||
       !age ||
-      !referrer ||
       !hasReadBook ||
       !enrollReason ||
       !expectation ||
@@ -51,9 +51,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       if (!name) missingFields.push('name');
       if (!gender) missingFields.push('gender');
       if (!province) missingFields.push('province');
-      // 详细地址为可选字段
       if (!age) missingFields.push('age');
-      if (!referrer) missingFields.push('referrer');
       if (!hasReadBook) missingFields.push('hasReadBook');
       if (!enrollReason) missingFields.push('enrollReason');
       if (!expectation) missingFields.push('expectation');
