@@ -148,6 +148,7 @@
   color: #555;
   width: 100%;
   display: block;
+  letter-spacing: 1px;
 }
 
 /* 富文本段落样式 */
