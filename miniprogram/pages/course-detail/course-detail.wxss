@@ -152,7 +152,7 @@
 
 /* 富文本段落样式 */
 .section-content /deep/ p {
-  margin: 12rpx 0;
+  margin: 24rpx 0;
   line-height: 1.8;
 }
 
@@ -160,7 +160,7 @@
 .section-content /deep/ p:empty {
   min-height: 1em;
   display: block;
-  margin: 16rpx 0;
+  margin: 24rpx 0;
 }
 
 /* 富文本粗体样式 */
