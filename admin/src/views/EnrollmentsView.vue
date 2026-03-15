@@ -57,22 +57,15 @@
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column label="ID" width="200">
-            <template #default="{ row }">
-              <el-text copyable>{{
-                typeof row.userId === 'object' ? row.userId._id : row.userId
-              }}</el-text>
-            </template>
-          </el-table-column>
-          <el-table-column label="昵称" width="100">
+          <el-table-column label="昵称" min-width="100">
             <template #default="{ row }">
               {{ typeof row.userId === 'object' ? row.userId.nickname : '-' }}
             </template>
           </el-table-column>
-          <el-table-column prop="name" label="报名名称" width="100" />
-          <el-table-column prop="province" label="省份" width="100" />
-          <el-table-column prop="age" label="年龄" width="80" />
-          <el-table-column label="期次" width="120">
+          <el-table-column prop="name" label="报名名称" min-width="100" />
+          <el-table-column prop="province" label="省份" width="80" />
+          <el-table-column prop="age" label="年龄" width="60" />
+          <el-table-column label="期次" min-width="120">
             <template #default="{ row }">
               {{ row.periodId?.name || '未知' }}
             </template>
@@ -84,17 +77,16 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="报名时间" width="180">
+          <el-table-column label="报名时间" width="160">
             <template #default="{ row }">
               {{ formatDate(row.enrolledAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="280" fixed="right">
+          <el-table-column label="操作" width="200">
             <template #default="{ row }">
               <el-button type="primary" text size="small" @click="showDetailDialog(row)">
                 详情
               </el-button>
-              <!-- 免费按钮：仅在待支付时显示 -->
               <el-button
                 v-if="row.paymentStatus === 'pending'"
                 type="success"
