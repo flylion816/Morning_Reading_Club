@@ -39,8 +39,8 @@ app.use(compression()); // 响应压缩
 // Morgan 日志格式：根据环境选择
 const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
 app.use(morgan(morganFormat)); // 请求日志
-app.use(express.json()); // JSON解析
-app.use(express.urlencoded({ extended: true })); // URL编码解析
+app.use(express.json({ limit: '10mb' })); // JSON解析，支持富文本编辑器中的图片
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // URL编码解析
 
 // 静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

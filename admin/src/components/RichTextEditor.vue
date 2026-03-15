@@ -1,268 +1,187 @@
 <template>
   <div class="rich-text-editor">
-    <div class="editor-toolbar">
-      <button @click="insertFormat('bold')" class="toolbar-btn" title="加粗">
-        <strong>B</strong>
-      </button>
-      <button @click="insertFormat('italic')" class="toolbar-btn" title="斜体">
-        <em>I</em>
-      </button>
-      <button @click="insertFormat('underline')" class="toolbar-btn" title="下划线">
-        <u>U</u>
-      </button>
-      <div class="divider"></div>
-      <button @click="insertFormat('h1')" class="toolbar-btn">H1</button>
-      <button @click="insertFormat('h2')" class="toolbar-btn">H2</button>
-      <button @click="insertFormat('h3')" class="toolbar-btn">H3</button>
-      <div class="divider"></div>
-      <button @click="insertFormat('ul')" class="toolbar-btn" title="无序列表">•</button>
-      <button @click="insertFormat('ol')" class="toolbar-btn" title="有序列表">1.</button>
-      <button @click="insertFormat('blockquote')" class="toolbar-btn" title="引用">"</button>
-      <div class="divider"></div>
-      <button @click="insertFormat('link')" class="toolbar-btn" title="链接">🔗</button>
-      <button @click="triggerImageUpload" class="toolbar-btn" title="图片">🖼️</button>
-      <input
-        ref="imageInput"
-        type="file"
-        accept="image/*"
-        style="display: none"
-        @change="handleImageUpload"
-      />
-      <div class="divider"></div>
-      <button @click="insertFormat('clear')" class="toolbar-btn" title="清除格式">✕</button>
-    </div>
-
-    <textarea
-      ref="editorRef"
-      v-model="content"
-      class="editor-textarea"
-      placeholder="输入您的内容..."
-      @input="updateContent"
-    ></textarea>
-
-    <div class="editor-info">
-      <span>字数：{{ content.length }}</span>
-      <span v-if="maxLength">/ {{ maxLength }}</span>
-    </div>
+    <input 
+      ref="fileInput" 
+      type="file" 
+      accept="image/*" 
+      style="display: none" 
+      @change="handleImageSelect"
+    />
+    <div ref="editorRef" class="editor"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import Quill from 'quill';
+import 'quill/dist/quill.core.css';
+import 'quill/dist/quill.snow.css';
 import { ElMessage } from 'element-plus';
-import { uploadApi } from '../services/api';
 
 interface Props {
-  modelValue?: string;
-  maxLength?: number;
+  modelValue: string;
+  placeholder?: string;
+  height?: string;
 }
 
 interface Emits {
   (e: 'update:modelValue', value: string): void;
-  (e: 'imageUpload', file: File): void;
-  (e: 'imageUploaded', url: string): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
-  maxLength: undefined
+  placeholder: '请输入内容...',
+  height: '300px'
 });
 
 const emit = defineEmits<Emits>();
 
-const content = ref(props.modelValue);
-const editorRef = ref<HTMLTextAreaElement>();
-const imageInput = ref<HTMLInputElement>();
-const uploading = ref(false);
+const editorRef = ref<HTMLElement>();
+const fileInput = ref<HTMLInputElement>();
+let quill: Quill | null = null;
 
-watch(
-  () => props.modelValue,
-  newVal => {
-    content.value = newVal;
-  }
-);
+// 处理图片选择
+const handleImageSelect = async (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const files = target.files;
+  if (!files || files.length === 0) return;
 
-function updateContent() {
-  if (props.maxLength && content.value.length > props.maxLength) {
-    content.value = content.value.substring(0, props.maxLength);
-  }
-  emit('update:modelValue', content.value);
-}
-
-function insertFormat(format: string) {
-  const textarea = editorRef.value;
-  if (!textarea) return;
-
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const selectedText = content.value.substring(start, end) || '文本';
-
-  let formatted = '';
-
-  switch (format) {
-    case 'bold':
-      formatted = `**${selectedText}**`;
-      break;
-    case 'italic':
-      formatted = `*${selectedText}*`;
-      break;
-    case 'underline':
-      formatted = `<u>${selectedText}</u>`;
-      break;
-    case 'h1':
-      formatted = `# ${selectedText}`;
-      break;
-    case 'h2':
-      formatted = `## ${selectedText}`;
-      break;
-    case 'h3':
-      formatted = `### ${selectedText}`;
-      break;
-    case 'ul':
-      formatted = `- ${selectedText}`;
-      break;
-    case 'ol':
-      formatted = `1. ${selectedText}`;
-      break;
-    case 'blockquote':
-      formatted = `> ${selectedText}`;
-      break;
-    case 'link':
-      formatted = `[${selectedText}](url)`;
-      break;
-    case 'clear':
-      formatted = selectedText;
-      break;
-    default:
-      return;
-  }
-
-  const newContent = content.value.substring(0, start) + formatted + content.value.substring(end);
-  content.value = newContent;
-  updateContent();
-
-  // 更新光标位置
-  setTimeout(() => {
-    textarea.selectionStart = start + formatted.length;
-    textarea.selectionEnd = start + formatted.length;
-    textarea.focus();
-  }, 0);
-}
-
-function triggerImageUpload() {
-  imageInput.value?.click();
-}
-
-async function handleImageUpload(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-
-  // 验证文件类型
-  if (!file.type.startsWith('image/')) {
-    ElMessage.error('请选择图片文件');
+  const file = files[0];
+  
+  // 验证文件大小（限制 5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 5MB');
     return;
   }
 
-  // 验证文件大小 (10MB)
-  if (file.size > 10 * 1024 * 1024) {
-    ElMessage.error('图片大小不能超过 10MB');
-    return;
-  }
-
-  uploading.value = true;
   try {
-    const response = await uploadApi.uploadFile(file);
-    const imageUrl = response.data.url;
+    // 上传图片
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch('/api/v1/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      }
+    });
 
-    // 在编辑器中插入图片链接
-    const textarea = editorRef.value;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const imageMarkdown = `![${file.name}](${imageUrl})`;
-      const newContent =
-        content.value.substring(0, start) + imageMarkdown + content.value.substring(start);
-      content.value = newContent;
-      updateContent();
+    if (!response.ok) {
+      throw new Error(`上传失败: ${response.statusText}`);
     }
 
-    emit('imageUploaded', imageUrl);
+    const data = await response.json();
+    const imageUrl = data.data?.url || data.url;
+
+    if (!imageUrl) {
+      throw new Error('未获得图片 URL');
+    }
+
+    // 在编辑器中插入图片
+    if (quill) {
+      const range = quill.getSelection();
+      if (range) {
+        quill.insertEmbed(range.index, 'image', imageUrl);
+
+        // 设置图片的样式属性（响应式宽度）
+        setTimeout(() => {
+          const imgElements = quill!.root.querySelectorAll('img');
+          if (imgElements.length > 0) {
+            const lastImg = imgElements[imgElements.length - 1] as HTMLImageElement;
+            lastImg.style.maxWidth = '100%';
+            lastImg.style.height = 'auto';
+            lastImg.style.borderRadius = '8px';
+            lastImg.style.margin = '12px 0';
+            lastImg.alt = '课程内容图片';
+          }
+        }, 0);
+
+        quill.setSelection(range.index + 1);
+      }
+    }
+
     ElMessage.success('图片上传成功');
-  } catch (err) {
-    console.error('Image upload failed:', err);
-    ElMessage.error('图片上传失败，请重试');
-  } finally {
-    uploading.value = false;
-    // 重置输入框
-    input.value = '';
+  } catch (error) {
+    console.error('图片上传失败:', error);
+    ElMessage.error(`图片上传失败: ${error instanceof Error ? error.message : '未知错误'}`);
   }
-}
+
+  // 重置 input
+  target.value = '';
+};
+
+onMounted(() => {
+  if (!editorRef.value) return;
+
+  // 配置 Quill
+  quill = new Quill(editorRef.value, {
+    theme: 'snow',
+    placeholder: props.placeholder,
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline'],
+        ['image', 'link'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'align': [] }],
+      ]
+    }
+  });
+
+  // 自定义图片处理 - 点击图片按钮时打开文件选择
+  const toolbar = quill.getModule('toolbar');
+  toolbar.addHandler('image', () => {
+    fileInput.value?.click();
+  });
+
+  // 设置初始内容
+  if (props.modelValue) {
+    quill.root.innerHTML = props.modelValue;
+  }
+
+  // 监听编辑器变化
+  quill.on('text-change', () => {
+    const html = quill!.root.innerHTML;
+    emit('update:modelValue', html === '<p><br></p>' ? '' : html);
+  });
+});
+
+// 监听 modelValue 变化
+watch(() => props.modelValue, (newVal) => {
+  if (quill && quill.root.innerHTML !== newVal) {
+    quill.root.innerHTML = newVal || '';
+  }
+});
 </script>
 
 <style scoped>
 .rich-text-editor {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  overflow: hidden;
+  width: 100%;
 }
 
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #dcdfe6;
-  flex-wrap: wrap;
-}
-
-.toolbar-btn {
-  padding: 6px 12px;
-  background: white;
-  border: 1px solid #dcdfe6;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.3s;
-}
-
-.toolbar-btn:hover {
-  color: #409eff;
-  border-color: #409eff;
-}
-
-.toolbar-btn:active {
-  background: #f0f9ff;
-}
-
-.divider {
-  width: 1px;
-  height: 20px;
-  background: #dcdfe6;
-  margin: 0 4px;
-}
-
-.editor-textarea {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  outline: none;
-  resize: vertical;
-  min-height: 200px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+:deep(.ql-container) {
   font-size: 14px;
-  line-height: 1.6;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  min-height: v-bind(height);
 }
 
-.editor-info {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #f5f7fa;
-  border-top: 1px solid #dcdfe6;
-  font-size: 12px;
-  color: #999;
+:deep(.ql-editor) {
+  min-height: v-bind(height);
+  padding: 12px;
+}
+
+:deep(.ql-editor img) {
+  max-width: 100%;
+  height: auto;
+}
+
+:deep(.ql-toolbar) {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-color: #dcdfe6;
+}
+
+:deep(.ql-toolbar.ql-snow) {
+  padding: 8px;
 }
 </style>

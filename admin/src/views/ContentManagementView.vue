@@ -130,12 +130,10 @@
 
             <!-- 读一读 -->
             <el-form-item label="读一读">
-              <el-input
+              <RichTextEditor
                 v-model="editingSection.content"
-                type="textarea"
-                placeholder="主要课程内容"
-                :rows="4"
-                show-word-limit
+                placeholder="主要课程内容（支持图片、链接、格式化）"
+                height="400px"
               />
             </el-form-item>
 
@@ -229,6 +227,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import RichTextEditor from '../components/RichTextEditor.vue';
 import { periodApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Section } from '../types/api';

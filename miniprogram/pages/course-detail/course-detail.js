@@ -27,6 +27,42 @@ Page({
   },
 
   /**
+   * 清理 HTML，使其与小程序 rich-text 兼容
+   * 小程序 rich-text 支持：p、br、strong、em、u、s、span、img、a、li、ol、ul 等标签
+   */
+  cleanHtmlForRichText(html) {
+    if (!html) return '';
+
+    let cleaned = html;
+
+    // 1. 移除 class 属性
+    cleaned = cleaned.replace(/\s+class="[^"]*"/gi, '');
+
+    // 2. 移除旧的 style 属性，然后重新添加
+    cleaned = cleaned.replace(/\s+style="[^"]*"/gi, '');
+
+    // 3. 为所有 <img> 标签添加合适的 style
+    // 关键：使用 display:block 和 width:100% 让图片充满容器
+    cleaned = cleaned.replace(
+      /<img([^>]*?)>/gi,
+      '<img$1 style="display:block;width:100%;height:auto;margin:12px 0;border-radius:4px;" />'
+    );
+
+    // 4. 确保所有图片都有 alt 属性
+    cleaned = cleaned.replace(/<img([^>]*?)src/gi, (match, before) => {
+      if (!before.includes('alt=')) {
+        return `<img${before}alt="图片" src`;
+      }
+      return match;
+    });
+
+    // 5. 移除其他不必要的属性（保留 src, href, alt, style）
+    cleaned = cleaned.replace(/\s+(?!src|href|alt|style)[\w-]+="[^"]*"/gi, '');
+
+    return cleaned;
+  },
+
+  /**
    * 检查内容是否为空（包括去除空格）
    */
   isContentEmpty(content) {
@@ -56,6 +92,12 @@ Page({
       // 判断模块内容是否为空，添加 visible 标志
       const isEmpty = this.isContentEmpty(course[module]);
       course[`${module}Visible`] = !isEmpty;
+
+      // 如果是富文本内容（content），清理 HTML
+      if (module === 'content' && course[module]) {
+        course[module] = this.cleanHtmlForRichText(course[module]);
+        console.log('✅ 已清理富文本 HTML:', course[module].substring(0, 100) + '...');
+      }
     });
 
     return course;

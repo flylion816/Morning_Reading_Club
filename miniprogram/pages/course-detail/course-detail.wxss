@@ -3,6 +3,7 @@
   background: #f5f5f5;
   padding: 24rpx;
   padding-bottom: 160rpx;
+  overflow-x: hidden;
 }
 
 .course-header {
@@ -132,8 +133,12 @@
 .section-content {
   font-size: 28rpx;
   color: #555;
-  line-height: 1.8;
+  line-height: 2.2;
   text-align: justify;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  letter-spacing: 1px;
 }
 
 /* 富文本内容样式 */
@@ -141,6 +146,8 @@
   font-size: 28rpx;
   line-height: 1.8;
   color: #555;
+  width: 100%;
+  display: block;
 }
 
 /* 富文本段落样式 */
@@ -165,6 +172,33 @@
 /* 富文本缩进样式 */
 .section-content /deep/ p[style*="margin-left"] {
   margin-left: 2em;
+}
+
+/* 富文本图片样式 */
+.section-content /deep/ img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8rpx;
+  margin: 16rpx 0;
+  display: block;
+}
+
+/* 富文本链接样式 */
+.section-content /deep/ a {
+  color: #4a90e2;
+  text-decoration: underline;
+}
+
+/* 富文本列表样式 */
+.section-content /deep/ ol,
+.section-content /deep/ ul {
+  margin: 16rpx 0;
+  padding-left: 32rpx;
+}
+
+.section-content /deep/ li {
+  margin: 8rpx 0;
+  line-height: 1.8;
 }
 
 /* 底部固定按钮 */
