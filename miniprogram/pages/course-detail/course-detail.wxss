@@ -144,7 +144,7 @@
 /* 富文本内容样式 */
 .section-content rich-text {
   font-size: 32rpx;
-  line-height: 1.8;
+  line-height: 2.2;
   color: #555;
   width: 100%;
   display: block;
