@@ -59,11 +59,11 @@
           <el-table-column type="selection" width="45" />
           <el-table-column label="昵称" width="100" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ (typeof row.userId === 'object' ? row.userId.nickname : null) || '-' }}
+              {{ (row.userId && row.userId.nickname && row.userId.nickname.trim()) ? row.userId.nickname : '-' }}
             </template>
           </el-table-column>
           <el-table-column label="报名名称" width="100" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.name || '-' }}</template>
+            <template #default="{ row }">{{ (row.name && row.name.trim()) ? row.name : '-' }}</template>
           </el-table-column>
           <el-table-column label="省份" width="70">
             <template #default="{ row }">{{ row.province || '-' }}</template>
@@ -71,24 +71,24 @@
           <el-table-column label="年龄" width="60">
             <template #default="{ row }">{{ row.age || '-' }}</template>
           </el-table-column>
-          <el-table-column label="期次" width="120" show-overflow-tooltip>
+          <el-table-column label="期次" width="110" show-overflow-tooltip>
             <template #default="{ row }">
               {{ row.periodId?.name || '未知' }}
             </template>
           </el-table-column>
-          <el-table-column label="支付状态" width="90" align="center">
+          <el-table-column label="支付状态" width="85" align="center">
             <template #default="{ row }">
               <el-tag :type="getPaymentType(row.paymentStatus)" size="small">
                 {{ formatPaymentStatus(row.paymentStatus) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="报名时间" width="155">
+          <el-table-column label="报名时间" width="145">
             <template #default="{ row }">
               {{ formatDate(row.enrolledAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="180">
+          <el-table-column label="操作" min-width="230">
             <template #default="{ row }">
               <el-button type="primary" text size="small" @click="showDetailDialog(row)">
                 详情
