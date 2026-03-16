@@ -4,7 +4,7 @@ require('dotenv').config();
 // 生成Access Token
 function generateAccessToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '2h'
+    expiresIn: process.env.JWT_EXPIRES_IN || '14d'
   });
 }
 
@@ -52,7 +52,7 @@ function generateTokens(user) {
   return {
     accessToken: generateAccessToken(payload),
     refreshToken: generateRefreshToken(payload),
-    expiresIn: 7200 // 2小时（秒）
+    expiresIn: 1209600 // 14天（秒）
   };
 }
 

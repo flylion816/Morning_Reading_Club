@@ -116,6 +116,11 @@ class AuthService {
         code = loginRes.code;
       }
 
+      console.log('===== 微信登录调试 =====');
+      console.log('微信返回的 code:', code);
+      console.log('当前环境:', envConfig.currentEnv);
+      console.log('========================');
+
       // 2. 调用后端登录接口
       // ⚠️ 新策略：让后端返回的数据为准，前端只在新用户时才用微信信息补充
       const loginData = await this.login(code, {

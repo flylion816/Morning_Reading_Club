@@ -1,0 +1,74 @@
+<!--期次介绍页 - 公开页面，无需登录-->
+<view class="page-period-detail">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view wx:if="{{!loading && period}}" class="detail-content">
+    <!-- 顶部横幅 -->
+    <view class="detail-banner" style="background: {{period.coverColor || '#4a90e2'}}">
+      <text class="banner-emoji">{{period.coverEmoji || '📚'}}</text>
+      <text class="banner-title">{{period.name || period.title}}</text>
+      <text class="banner-subtitle">{{period.subtitle || ''}}</text>
+      <view class="banner-status {{period.calculatedStatus}}">
+        <text>{{statusText}}</text>
+      </view>
+    </view>
+
+    <!-- 期次信息 -->
+    <view class="info-card">
+      <view class="info-row">
+        <text class="info-label">时间</text>
+        <text class="info-value">{{period.dateRange}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">天数</text>
+        <text class="info-value">{{period.totalDays || sections.length}}天</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">已报名</text>
+        <text class="info-value">{{period.currentEnrollment || 0}}人</text>
+      </view>
+      <view class="info-row" wx:if="{{period.price}}">
+        <text class="info-label">费用</text>
+        <text class="info-value price">¥{{period.price}}</text>
+      </view>
+    </view>
+
+    <!-- 课程简介 -->
+    <view class="section-block" wx:if="{{period.description}}">
+      <view class="section-title">课程简介</view>
+      <view class="section-content">
+        <text class="description-text">{{period.description}}</text>
+      </view>
+    </view>
+
+    <!-- 课程大纲 -->
+    <view class="section-block">
+      <view class="section-title">课程大纲</view>
+      <view class="outline-list">
+        <view wx:for="{{sections}}" wx:key="_id" class="outline-item">
+          <view class="outline-day">Day {{item.day}}</view>
+          <view class="outline-info">
+            <text class="outline-title">{{item.title}}</text>
+            <text class="outline-subtitle" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
+          </view>
+        </view>
+        <view wx:if="{{sections.length === 0}}" class="outline-empty">
+          <text>课程内容准备中...</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部报名按钮 -->
+    <view class="bottom-bar">
+      <view class="enroll-btn {{period.calculatedStatus === 'completed' ? 'disabled' : ''}}" bindtap="handleEnroll">
+        <text wx:if="{{period.calculatedStatus === 'completed'}}">该期已结束</text>
+        <text wx:elif="{{period.calculatedStatus === 'ongoing'}}">立即报名</text>
+        <text wx:else>我要报名</text>
+      </view>
+    </view>
+  </view>
+</view>

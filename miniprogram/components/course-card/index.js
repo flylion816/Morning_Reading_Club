@@ -58,43 +58,39 @@ Component({
       const { mode, enrolled } = this.properties;
       const { isPending } = this.data;
 
-      // 期次模式：先检查登录状态
+      // 期次模式
       if (mode === 'period') {
         console.log('📌 期次模式点击');
 
-        // ⭐ 最开始就检查登录状态 - 确保未登录用户无法操作
         const app = getApp();
         const isLogin = app.globalData.isLogin;
 
-        console.log('🔐 [最前置检查] course-card 登录状态:', { isLogin });
+        console.log('🔐 course-card 登录状态:', { isLogin });
 
+        // 未登录：进入期次介绍页（公开页面，让用户先浏览）
         if (!isLogin) {
-          console.warn('⚠️ 未登录用户，直接导航到登录页面');
+          console.log('📖 未登录，进入期次介绍页');
           wx.navigateTo({
-            url: '/pages/login/login'
+            url: `/pages/period-detail/period-detail?periodId=${course._id}`
           });
           return;
         }
 
-        // 检查报名状态
+        // 已登录：根据报名状态导航
         const isEnrolled = enrolled && enrolled.isEnrolled;
         const paymentStatus = enrolled && enrolled.paymentStatus;
-        const calculatedStatus = course.calculatedStatus; // 'not_started'|'ongoing'|'completed'
+        const calculatedStatus = course.calculatedStatus;
 
         console.log('报名信息检查:', { isEnrolled, paymentStatus, enrolled, calculatedStatus });
 
-        // 如果未报名，显示不同的提示取决于期次状态
         if (!isEnrolled) {
           if (calculatedStatus === 'completed') {
-            // 已结束未报名 → 提示已结束
-            wx.showToast({
-              title: '此期晨读营已结束，请报名最新一期，谢谢！',
-              icon: 'none',
-              duration: 2500
+            // 已结束未报名 → 进入介绍页查看
+            wx.navigateTo({
+              url: `/pages/period-detail/period-detail?periodId=${course._id}`
             });
           } else {
-            // 进行中或未开始未报名 → 导航到报名页面
-            // （已在最前面检查过登录状态，这里必定是已登录）
+            // 未报名 → 导航到报名页面
             console.log('✅ 已登录，导航到报名页面');
             wx.navigateTo({
               url: `/pages/enrollment/enrollment?periodId=${course._id}`
@@ -103,7 +99,7 @@ Component({
           return;
         }
 
-        // 【情况3】已报名 → 导航到课程列表（无论支付状态）
+        // 已报名 → 导航到课程列表
         console.log('✅ 已报名，导航到课程列表，支付状态:', paymentStatus);
         wx.navigateTo({
           url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`

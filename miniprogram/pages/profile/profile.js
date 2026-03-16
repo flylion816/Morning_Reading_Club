@@ -53,7 +53,7 @@ Page({
     const app = getApp();
     if (!app.globalData.isLogin) {
       console.log('未登录，跳转到登录页');
-      this._redirectingToLogin = true; // 标记已在跳转，防止 onShow 重复跳转
+      this._redirectingToLogin = true;
       wx.reLaunch({
         url: '/pages/login/login'
       });
@@ -66,18 +66,13 @@ Page({
   onShow() {
     console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
 
-    // 如果 onLoad 已经在跳转登录页，onShow 不要重复跳转（会导致框架崩溃）
+    // 如果 onLoad 已经在跳转登录页，onShow 不要重复跳转
     if (this._redirectingToLogin) {
       console.log('⏭️ onShow: onLoad 已在跳转登录页，跳过');
       return;
     }
 
-    // 每次显示时刷新数据
     const app = getApp();
-    const isLogin = app.globalData.isLogin;
-
-    // ⭐ 改进：检查 token 是否存在，而不仅仅依赖 globalData.isLogin
-    // 因为 globalData 可能被重置，但 token 仍然有效
     const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
     const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
 
@@ -89,8 +84,8 @@ Page({
       return;
     }
 
-    // token 存在，总是更新 globalData（确保最新的 userInfo）
-    console.log('🔄 onShow: 更新 globalData（确保使用最新的 userInfo）');
+    // token 存在，更新 globalData
+    console.log('🔄 onShow: 更新 globalData');
     app.globalData.isLogin = true;
     app.globalData.userInfo = userInfo;
     app.globalData.token = token;

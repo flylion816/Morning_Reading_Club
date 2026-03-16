@@ -1,0 +1,244 @@
+/* 期次介绍页样式 */
+
+.page-period-detail {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 140rpx;
+}
+
+/* 加载中 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid rgba(74, 144, 226, 0.2);
+  border-top-color: #4a90e2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 顶部横幅 */
+.detail-banner {
+  padding: 60rpx 32rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.banner-emoji {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.banner-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  margin-bottom: 8rpx;
+}
+
+.banner-subtitle {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.banner-status {
+  display: inline-block;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  color: white;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.banner-status.ongoing {
+  background: rgba(76, 175, 80, 0.8);
+}
+
+.banner-status.not_started {
+  background: rgba(255, 152, 0, 0.8);
+}
+
+.banner-status.completed {
+  background: rgba(158, 158, 158, 0.8);
+}
+
+/* 信息卡片 */
+.info-card {
+  margin: -20rpx 24rpx 24rpx;
+  padding: 28rpx 32rpx;
+  background: white;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+}
+
+.info-row + .info-row {
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.info-value.price {
+  color: #ff6b35;
+  font-weight: 700;
+  font-size: 30rpx;
+}
+
+/* 区块 */
+.section-block {
+  margin: 24rpx;
+  padding: 28rpx 32rpx;
+  background: white;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20rpx;
+  padding-left: 16rpx;
+  border-left: 6rpx solid #4a90e2;
+}
+
+.section-content {
+  padding: 0;
+}
+
+.description-text {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.8;
+}
+
+/* 课程大纲列表 */
+.outline-list {
+  padding: 0;
+}
+
+.outline-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 16rpx 0;
+}
+
+.outline-item + .outline-item {
+  border-top: 1rpx solid #f5f5f5;
+}
+
+.outline-day {
+  flex-shrink: 0;
+  width: 100rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  background: #e8f0fe;
+  color: #4a90e2;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  margin-right: 20rpx;
+}
+
+.outline-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 48rpx;
+}
+
+.outline-title {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.5;
+}
+
+.outline-subtitle {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.outline-empty {
+  text-align: center;
+  padding: 40rpx 0;
+  color: #999;
+  font-size: 26rpx;
+}
+
+/* 底部报名栏 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  background: white;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.enroll-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 44rpx;
+  letter-spacing: 4rpx;
+}
+
+.enroll-btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+.enroll-btn.disabled {
+  background: #ccc;
+  color: #999;
+}

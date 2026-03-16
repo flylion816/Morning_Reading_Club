@@ -16,6 +16,7 @@
       class="period-wrapper"
       data-period-id="{{item._id}}"
       data-period-name="{{item.name}}"
+      bindtap="handlePeriodClick"
     >
       <course-card
         course="{{item}}"

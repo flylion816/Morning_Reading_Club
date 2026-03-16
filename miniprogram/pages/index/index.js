@@ -279,52 +279,37 @@ Page({
     console.log('  this.data.isLogin:', this.data.isLogin);
     console.log('  最终isLogin:', isLogin);
 
-    // 检查是否已登录
+    // 未登录：进入期次介绍页（公开页面，让用户先浏览内容）
     if (!isLogin) {
-      console.warn('⚠️ 未登录，直接导航到登录页面');
+      console.log('📖 未登录，进入期次介绍页');
       wx.navigateTo({
-        url: '/pages/login/login'
+        url: `/pages/period-detail/period-detail?periodId=${periodId}`
       });
       return;
     }
 
-    // 获取该期次的信息
+    // 已登录：根据报名状态导航
     const period = this.data.periods.find(p => p._id === periodId);
     if (!period) {
       console.error('找不到期次信息');
       return;
     }
 
-    // 获取报名信息（包括报名状态和支付状态）
     const enrollmentInfo = this.data.periodEnrollmentStatus[periodId] || {};
     const isEnrolled = enrollmentInfo.isEnrolled;
     const paymentStatus = enrollmentInfo.paymentStatus;
-    const enrollmentId = enrollmentInfo.enrollmentId;
-
-    console.log('📊 reportment info:', {
-      periodId,
-      isEnrolled,
-      paymentStatus,
-      enrollmentId,
-      fullEnrollmentInfo: enrollmentInfo
-    });
-
-    // 获取计算后的期次状态（基于日期）
     const calculatedStatus = period.calculatedStatus;
-    console.log('calculatedStatus:', calculatedStatus);
+
     console.log('🔍 判断流程:', { isEnrolled, calculatedStatus, paymentStatus });
 
-    // 【情况1】已完成且未报名，显示提示并拦截
+    // 【情况1】已完成且未报名，进入介绍页查看
     if (calculatedStatus === 'completed' && !isEnrolled) {
-      console.log('✅ 触发：已完成且未报名，显示提示');
-      wx.showToast({
-        title: '该期晨读营已结束！',
-        icon: 'none',
-        duration: 2000
+      console.log('已完成且未报名，进入介绍页');
+      wx.navigateTo({
+        url: `/pages/period-detail/period-detail?periodId=${periodId}`
       });
       return;
     }
-    console.log('✓ 情况1检查完成，isEnrolled =', isEnrolled);
 
     // 【情况2】未报名（且期次未完成），进入报名页面
     if (!isEnrolled) {
@@ -333,7 +318,7 @@ Page({
         url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
     }
-    // 【情况3】已报名，进入课程列表（无论支付状态和期次是否已完成）
+    // 【情况3】已报名，进入课程列表
     else {
       console.log('已报名，进入课程列表，支付状态:', paymentStatus);
       wx.navigateTo({

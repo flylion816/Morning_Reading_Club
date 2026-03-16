@@ -15,6 +15,12 @@ async function wechatLogin(req, res, next) {
   try {
     const { code, nickname, avatarUrl, gender } = req.body;
 
+    console.log('===== 后端收到微信登录请求 =====');
+    console.log('收到的 code:', code);
+    console.log('收到的 nickname:', nickname);
+    console.log('环境:', process.env.NODE_ENV);
+    console.log('================================');
+
     // 参数验证
     if (!code) {
       return res.status(400).json(errors.badRequest('缺少微信授权码'));
@@ -120,6 +126,15 @@ async function wechatLogin(req, res, next) {
 
     // 生成JWT Token
     const tokens = generateTokens(user);
+
+    console.log('===== 后端登录成功，返回数据 =====');
+    console.log('用户ID:', user._id);
+    console.log('用户昵称:', user.nickname);
+    console.log('openid:', user.openid);
+    console.log('accessToken:', tokens.accessToken);
+    console.log('refreshToken:', tokens.refreshToken);
+    console.log('isNewUser:', isNewUser);
+    console.log('====================================');
 
     // 详细日志记录（用于监控）
     logger.info('用户登录成功', {
