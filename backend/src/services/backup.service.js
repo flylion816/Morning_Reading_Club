@@ -381,6 +381,13 @@ async function fullSyncMongoToMySQL() {
 // =====================================================================
 function startBackupSchedules() {
   try {
+    // PM2 cluster 模式下，只让第一个实例（id=0）执行定时任务，避免重复备份
+    const instanceId = process.env.NODE_APP_INSTANCE;
+    if (instanceId && instanceId !== '0') {
+      logger.info(`Skipping backup schedules on instance ${instanceId} (only instance 0 runs backups)`);
+      return;
+    }
+
     const cronOptions = { timezone: 'Asia/Shanghai' };
 
     // MongoDB→MySQL 全量同步：每天凌晨 1:00（北京时间）
