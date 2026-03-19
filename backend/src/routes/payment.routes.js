@@ -17,6 +17,9 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 // 获取支付列表（管理员）
 router.get('/', authMiddleware, adminMiddleware, getPayments);
 
+// ===== 微信支付回调（无需认证，必须在参数化路由之前） =====
+router.post('/wechat/callback', wechatCallback);
+
 // ===== 用户路由 =====
 
 // 初始化支付（创建订单）
@@ -36,8 +39,5 @@ router.post('/:paymentId/cancel', authMiddleware, cancelPayment);
 
 // 模拟支付确认（用于开发测试）
 router.post('/:paymentId/mock-confirm', authMiddleware, mockConfirmPayment);
-
-// 微信支付回调（无需认证）
-router.post('/wechat/callback', wechatCallback);
 
 module.exports = router;

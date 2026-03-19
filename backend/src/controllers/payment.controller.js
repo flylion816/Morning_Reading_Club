@@ -365,24 +365,67 @@ exports.getUserPayments = async (req, res) => {
 /**
  * 微信支付回调
  * POST /api/v1/payments/wechat/callback
+ *
+ * 微信服务器发送 XML 格式的支付结果通知
+ * 必须返回 XML 格式的应答，否则微信会重复通知
  */
 exports.wechatCallback = async (req, res) => {
+  // 微信要求返回 XML 格式
+  const replySuccess = () => {
+    res.set('Content-Type', 'text/xml');
+    res.send('<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>');
+  };
+  const replyFail = (msg) => {
+    res.set('Content-Type', 'text/xml');
+    res.send(`<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[${msg}]]></return_msg></xml>`);
+  };
+
   try {
-    const { order_no, transaction_id, status } = req.body;
-
-    // 验证回调签名（实际项目中应验证微信签名）
-    // ...
-
-    // 查找支付记录
-    const payment = await Payment.findOne({ orderNo: order_no });
-
-    if (!payment) {
-      return res.status(404).json(errors.notFound('支付记录不存在'));
+    // 解析 XML body（express.text 中间件将 XML 作为字符串存入 req.body）
+    const xmlBody = typeof req.body === 'string' ? req.body : '';
+    if (!xmlBody) {
+      logger.warn('WeChat callback: empty body');
+      return replyFail('empty body');
     }
 
-    if (status === 'SUCCESS') {
-      // 确认支付
-      await payment.confirmPayment(transaction_id);
+    // 解析 XML 为对象
+    const { xmlToObject, verifyNotifySign } = require('../services/payment.service');
+    const notifyData = xmlToObject(xmlBody);
+
+    logger.info('WeChat callback received', {
+      return_code: notifyData.return_code,
+      result_code: notifyData.result_code,
+      out_trade_no: notifyData.out_trade_no
+    });
+
+    // 验证返回状态
+    if (notifyData.return_code !== 'SUCCESS') {
+      logger.warn('WeChat callback: return_code is not SUCCESS', notifyData);
+      return replyFail('return_code not SUCCESS');
+    }
+
+    // 验证签名
+    if (!verifyNotifySign(notifyData)) {
+      logger.warn('WeChat callback: signature verification failed');
+      return replyFail('sign error');
+    }
+
+    // 查找支付记录（微信回调用 out_trade_no，即我们的 orderNo）
+    const payment = await Payment.findOne({ orderNo: notifyData.out_trade_no });
+
+    if (!payment) {
+      logger.warn('WeChat callback: payment not found', { out_trade_no: notifyData.out_trade_no });
+      return replyFail('order not found');
+    }
+
+    // 防止重复处理
+    if (payment.status === 'completed') {
+      return replySuccess();
+    }
+
+    if (notifyData.result_code === 'SUCCESS') {
+      // 支付成功
+      await payment.confirmPayment(notifyData.transaction_id);
 
       // 更新报名记录
       await Enrollment.findByIdAndUpdate(payment.enrollmentId, {
@@ -398,12 +441,17 @@ exports.wechatCallback = async (req, res) => {
         data: payment.toObject()
       });
 
-      res.json(success({}, '支付确认成功'));
-    } else {
-      // 标记为失败
-      await payment.markFailed('微信支付失败');
+      logger.info('WeChat payment confirmed', {
+        orderNo: payment.orderNo,
+        transactionId: notifyData.transaction_id,
+        amount: notifyData.total_fee
+      });
 
-      // 异步同步到 MySQL
+      return replySuccess();
+    } else {
+      // 支付失败
+      await payment.markFailed(notifyData.err_code_des || '微信支付失败');
+
       publishSyncEvent({
         type: 'update',
         collection: 'payments',
@@ -411,11 +459,11 @@ exports.wechatCallback = async (req, res) => {
         data: payment.toObject()
       });
 
-      res.json(success({}, '支付失败'));
+      return replySuccess(); // 即使支付失败，也要告诉微信我们已处理
     }
   } catch (error) {
     logger.error('WeChat callback handling failed', error);
-    res.status(500).json(errors.serverError('处理回调失败: ' + error.message));
+    return replyFail(error.message);
   }
 };
 

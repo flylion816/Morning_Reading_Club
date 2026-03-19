@@ -41,6 +41,7 @@ const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
 app.use(morgan(morganFormat)); // 请求日志
 app.use(express.json({ limit: '10mb' })); // JSON解析，支持富文本编辑器中的图片
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // URL编码解析
+app.use(express.text({ type: ['text/xml', 'application/xml'] })); // XML解析（微信支付回调）
 
 // 静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

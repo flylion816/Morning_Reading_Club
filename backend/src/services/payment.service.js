@@ -113,15 +113,15 @@ async function unifiedOrder(params) {
  * @returns {string} MD5 签名
  */
 function generatePaymentSignature(params) {
+  // 小程序支付二次签名：字段名必须使用 camelCase（微信官方文档要求）
   const signData = {
-    appid: params.appId,
-    noncestr: params.nonceStr,
+    appId: params.appId,
+    nonceStr: params.nonceStr,
     package: `prepay_id=${params.prepayId}`,
-    signtype: 'MD5',
-    timestamp: params.timeStamp
+    signType: 'MD5',
+    timeStamp: params.timeStamp
   };
 
-  // 按照微信要求，key 按字母顺序排列，签名方式为 MD5
   return generateMD5Sign(signData, WECHAT_PAY_CONFIG.apiKey);
 }
 
@@ -229,11 +229,15 @@ function objectToXml(obj) {
  */
 function xmlToObject(xml) {
   const result = {};
-  const regex = /<(\w+)>([^<]+)<\/\1>/g;
+  // 支持两种格式（用 alternation 区分）：
+  // CDATA: <key><![CDATA[value]]></key>
+  // 普通:  <key>value</key>（value 不含 < 字符）
+  const regex = /<(\w+)>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]+))<\/\1>/g;
   let match;
 
   while ((match = regex.exec(xml)) !== null) {
-    result[match[1]] = match[2];
+    // match[2] 是 CDATA 内容，match[3] 是普通文本内容
+    result[match[1]] = match[2] !== undefined ? match[2] : match[3];
   }
 
   return result;
@@ -280,5 +284,6 @@ module.exports = {
   generatePaymentParams,
   generateNonceStr,
   verifyNotifySign,
+  xmlToObject,
   WECHAT_PAY_CONFIG
 };
