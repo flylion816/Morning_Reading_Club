@@ -157,6 +157,64 @@
     </view>
   </view>
 
+  <!-- 未登录状态 - 应用介绍页 -->
+  <view class="guest-content" wx:if="{{!isLogin && !loading}}">
+    <view class="guest-banner">
+      <text class="guest-emoji">🦁</text>
+      <text class="guest-title">凡人共读</text>
+      <text class="guest-subtitle">每日晨读，遇见更好的自己</text>
+    </view>
+
+    <!-- 功能亮点 -->
+    <view class="guest-features">
+      <view class="guest-feature-item">
+        <view class="feature-icon-wrap" style="background: #eef4ff;">
+          <text class="feature-icon">📖</text>
+        </view>
+        <view class="feature-text">
+          <text class="feature-title">每日晨读</text>
+          <text class="feature-desc">精选七个习惯经典章节，每天15分钟，23天养成好习惯</text>
+        </view>
+      </view>
+      <view class="guest-feature-item">
+        <view class="feature-icon-wrap" style="background: #fff4e6;">
+          <text class="feature-icon">✅</text>
+        </view>
+        <view class="feature-text">
+          <text class="feature-title">打卡记录</text>
+          <text class="feature-desc">每日学习打卡，记录成长轨迹，见证坚持的力量</text>
+        </view>
+      </view>
+      <view class="guest-feature-item">
+        <view class="feature-icon-wrap" style="background: #f0fdf4;">
+          <text class="feature-icon">✨</text>
+        </view>
+        <view class="feature-text">
+          <text class="feature-title">小凡看见</text>
+          <text class="feature-desc">老师为你写下专属反馈，看见你的每一份努力</text>
+        </view>
+      </view>
+      <view class="guest-feature-item">
+        <view class="feature-icon-wrap" style="background: #fef2f2;">
+          <text class="feature-icon">👥</text>
+        </view>
+        <view class="feature-text">
+          <text class="feature-title">共读社群</text>
+          <text class="feature-desc">和志同道合的伙伴一起学习，互相激励共同成长</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部登录提示 -->
+    <view class="guest-bottom">
+      <view class="guest-login-subtle" bindtap="goToLogin">登录查看我的学习数据</view>
+      <view class="guest-tip">
+        <text>点击下方「晨读营」可先</text>
+        <text class="guest-link" bindtap="handleBackHome">浏览课程</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 编辑个人信息模态框 -->
   <view class="edit-profile-modal" wx:if="{{showEditProfile}}" catchtap="closeEditProfile">
     <view class="modal-content" catchtap="stopPropagation">

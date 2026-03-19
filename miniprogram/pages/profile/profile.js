@@ -49,51 +49,32 @@ Page({
     console.log('🟢🟢🟢 PROFILE.JS ONLOAD CALLED 🟢🟢🟢', options);
     console.log('个人中心加载', options);
 
-    // 检查登录状态，未登录则跳转到登录页
-    const app = getApp();
-    if (!app.globalData.isLogin) {
-      console.log('未登录，跳转到登录页');
-      this._redirectingToLogin = true;
-      wx.reLaunch({
-        url: '/pages/login/login'
-      });
-      return;
-    }
-
+    // 检查登录状态，未登录显示访客视图（不跳转登录页，符合微信审核规范）
     this.checkLoginStatus();
   },
 
   onShow() {
     console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
 
-    // 如果 onLoad 已经在跳转登录页，onShow 不要重复跳转
-    if (this._redirectingToLogin) {
-      console.log('⏭️ onShow: onLoad 已在跳转登录页，跳过');
-      return;
-    }
-
     const app = getApp();
     const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
     const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
 
-    if (!token || !userInfo) {
-      console.log('⚠️ onShow: token或userInfo不存在，跳转到登录页');
-      wx.reLaunch({
-        url: '/pages/login/login'
-      });
-      return;
+    if (token && userInfo) {
+      // token 存在，更新 globalData
+      console.log('🔄 onShow: 更新 globalData');
+      app.globalData.isLogin = true;
+      app.globalData.userInfo = userInfo;
+      app.globalData.token = token;
+
+      this.checkLoginStatus();
+      // 刷新用户数据
+      this.loadUserData();
+    } else {
+      // 未登录：显示访客视图（不跳转）
+      console.log('⚠️ onShow: 未登录，显示访客视图');
+      this.checkLoginStatus();
     }
-
-    // token 存在，更新 globalData
-    console.log('🔄 onShow: 更新 globalData');
-    app.globalData.isLogin = true;
-    app.globalData.userInfo = userInfo;
-    app.globalData.token = token;
-
-    this.checkLoginStatus();
-
-    // 刷新用户数据
-    this.loadUserData();
   },
 
   onPullDownRefresh() {
@@ -129,15 +110,10 @@ Page({
 
   /**
    * 更新tabBar显示状态
+   * 始终显示tabBar，让用户可以浏览其他页面（符合微信审核规范）
    */
   updateTabBarVisibility(isLogin) {
-    if (isLogin) {
-      // 已登录：显示tabBar
-      wx.showTabBar();
-    } else {
-      // 未登录：隐藏tabBar
-      wx.hideTabBar();
-    }
+    wx.showTabBar();
   },
 
   /**
@@ -749,6 +725,15 @@ Page({
         });
       }
     }
+  },
+
+  /**
+   * 跳转到登录页（包含隐私协议）
+   */
+  goToLogin() {
+    wx.navigateTo({
+      url: '/pages/login/login'
+    });
   },
 
   /**

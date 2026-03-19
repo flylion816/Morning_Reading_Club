@@ -1290,30 +1290,31 @@
   border-color: #4a90e2;
 }
 
-/* ===== 未登录引导页 ===== */
+/* ===== 未登录介绍页 ===== */
 .guest-content {
   min-height: 100vh;
   background: #f5f5f5;
+  padding-bottom: 120rpx;
 }
 
 .guest-banner {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  padding: 80rpx 32rpx 60rpx;
+  padding: 60rpx 32rpx 50rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .guest-emoji {
-  font-size: 100rpx;
-  margin-bottom: 20rpx;
+  font-size: 90rpx;
+  margin-bottom: 16rpx;
 }
 
 .guest-title {
-  font-size: 40rpx;
+  font-size: 38rpx;
   font-weight: 700;
   color: white;
-  margin-bottom: 12rpx;
+  margin-bottom: 10rpx;
 }
 
 .guest-subtitle {
@@ -1321,44 +1322,81 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
-.guest-card {
-  margin: -30rpx 32rpx 0;
-  padding: 48rpx 40rpx;
+/* 功能亮点列表 */
+.guest-features {
+  margin: 24rpx 32rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.guest-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx 24rpx;
   background: white;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.feature-icon-wrap {
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 20rpx;
-  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
-  text-align: center;
-  position: relative;
-  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.guest-desc {
-  font-size: 26rpx;
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 40rpx;
-  display: block;
+.feature-icon {
+  font-size: 40rpx;
 }
 
-.guest-login-btn {
-  width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  color: white;
-  font-size: 32rpx;
+.feature-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  min-width: 0;
+}
+
+.feature-title {
+  font-size: 28rpx;
   font-weight: 600;
-  border-radius: 44rpx;
-  border: none;
-  letter-spacing: 4rpx;
+  color: #333;
 }
 
-.guest-login-btn:active {
-  opacity: 0.9;
+.feature-desc {
+  font-size: 24rpx;
+  color: #999;
+  line-height: 1.5;
+}
+
+/* 底部登录提示 */
+.guest-bottom {
+  margin: 40rpx 32rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.guest-login-subtle {
+  font-size: 28rpx;
+  color: #4a90e2;
+  font-weight: 500;
+  padding: 20rpx 48rpx;
+  border: 2rpx solid #4a90e2;
+  border-radius: 40rpx;
+}
+
+.guest-login-subtle:active {
+  background: #f0f6ff;
 }
 
 .guest-tip {
-  margin-top: 28rpx;
   font-size: 24rpx;
   color: #999;
 }
