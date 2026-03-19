@@ -177,7 +177,8 @@ async function wechatLogin(req, res, next) {
 // 刷新Token
 async function refreshToken(req, res, next) {
   try {
-    const { refreshToken: token } = req.body;
+    // 兼容前端两种字段名：refreshToken (camelCase) 和 refresh_token (snake_case)
+    const token = req.body.refreshToken || req.body.refresh_token;
 
     if (!token) {
       return res.status(400).json(errors.badRequest('缺少refreshToken'));
