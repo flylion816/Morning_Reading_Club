@@ -203,8 +203,11 @@ EnrollmentSchema.statics.getPeriodMembers = async function (periodId, options = 
     this.countDocuments(query)
   ]);
 
+  // 过滤掉 userId 为 null 的记录（用户已被删除时 populate 返回 null）
+  const filteredList = list.filter(item => item.userId != null);
+
   return {
-    list,
+    list: filteredList,
     total,
     page: parseInt(page),
     limit: parseInt(limit),

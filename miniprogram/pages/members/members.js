@@ -43,10 +43,11 @@ Page({
       });
 
       // 转换数据（兼容两种格式：简化格式和完整对象）
-      const members = res.list.map(item => {
+      // 过滤掉 userId 为 null 的记录（用户可能已被删除）
+      const members = res.list.filter(item => item.userId != null).map(item => {
         // 兼容处理：如果 userId 是对象，则从对象中获取数据；否则从顶层获取
-        const userObj = typeof item.userId === 'object' ? item.userId : {};
-        const userId = typeof item.userId === 'object' ? item.userId._id : item.userId;
+        const userObj = (typeof item.userId === 'object' && item.userId !== null) ? item.userId : {};
+        const userId = (typeof item.userId === 'object' && item.userId !== null) ? item.userId._id : item.userId;
         const nickname = userObj.nickname || item.nickname || '用户';
         const avatar = userObj.avatar || item.avatar || '👤';
 
@@ -63,7 +64,7 @@ Page({
 
       this.setData({
         members: reset ? members : [...this.data.members, ...members],
-        totalMembers: res.total,
+        totalMembers: reset ? members.length : this.data.members.length + members.length,
         loading: false
       });
     } catch (error) {

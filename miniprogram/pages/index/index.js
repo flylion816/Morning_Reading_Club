@@ -83,9 +83,9 @@ Page({
   },
 
   /**
-   * 加载用户信息
+   * 加载用户信息（含自动重试）
    */
-  async loadUserInfo() {
+  async loadUserInfo(retryCount = 0) {
     try {
       console.log('📥 开始加载用户信息...');
       const userInfo = await userService.getUserProfile();
@@ -101,13 +101,18 @@ Page({
       console.log('📝 页面 userInfo 已更新为:', this.data.userInfo);
     } catch (error) {
       console.error('❌ 获取用户信息失败:', error);
+      const isTimeout = error && (error.errMsg?.includes('timeout') || error.message?.includes('timeout'));
+      if (isTimeout && retryCount < 1) {
+        console.log('⏳ 用户信息请求超时，自动重试中...');
+        return this.loadUserInfo(retryCount + 1);
+      }
     }
   },
 
   /**
-   * 加载期次列表
+   * 加载期次列表（含自动重试，解决隔天首次打开超时问题）
    */
-  async loadPeriods() {
+  async loadPeriods(retryCount = 0) {
     this.setData({ loading: true });
 
     try {
@@ -160,6 +165,14 @@ Page({
       }
     } catch (error) {
       console.error('获取期次列表失败:', error);
+
+      // 超时自动重试（最多1次），解决隔天首次打开时MongoDB连接重建导致的超时
+      const isTimeout = error && (error.errMsg?.includes('timeout') || error.message?.includes('timeout'));
+      if (isTimeout && retryCount < 1) {
+        console.log('⏳ 首次请求超时，自动重试中...');
+        return this.loadPeriods(retryCount + 1);
+      }
+
       this.setData({
         loading: false,
         periods: []

@@ -9,7 +9,14 @@ async function connectMongoDB() {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      // 防止空闲连接被静默关闭（解决隔天首次请求超时问题）
+      heartbeatFrequencyMS: 10000,      // 每10秒检测服务器状态
+      serverSelectionTimeoutMS: 5000,   // 服务器选择超时5秒
+      socketTimeoutMS: 45000,           // Socket超时45秒
+      maxPoolSize: 10,                  // 连接池最大10个连接
+      minPoolSize: 2,                   // 保持最少2个活跃连接
+      maxIdleTimeMS: 60000,             // 空闲连接60秒后关闭（防止僵死）
     });
     logger.info('✅ MongoDB connected successfully');
   } catch (error) {
