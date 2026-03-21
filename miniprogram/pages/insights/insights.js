@@ -210,6 +210,10 @@ Page({
    */
   handleInsightClick(e) {
     const { id } = e.currentTarget.dataset;
+    if (!id) {
+      console.warn('insight id 不存在，跳过导航');
+      return;
+    }
     wx.navigateTo({
       url: `/pages/insight-detail/insight-detail?id=${id}`
     });

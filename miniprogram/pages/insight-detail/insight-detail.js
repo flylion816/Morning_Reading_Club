@@ -36,6 +36,12 @@ Page({
   },
 
   onLoad(options) {
+    if (!options.id) {
+      console.error('缺少 insight ID 参数');
+      wx.showToast({ title: '参数错误', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 1500);
+      return;
+    }
     this.setData({ insightId: options.id });
     this.loadInsightDetail();
   },

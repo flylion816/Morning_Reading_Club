@@ -55,14 +55,15 @@ module.exports = {
   getUserEnrollments(options = {}) {
     const { page = 1, limit = 20, status } = options;
 
+    const data = { page, limit };
+    if (status) {
+      data.status = status;
+    }
+
     return request.request({
       url: '/enrollments/user',
       method: 'GET',
-      data: {
-        page,
-        limit,
-        status
-      }
+      data
     });
   },
 

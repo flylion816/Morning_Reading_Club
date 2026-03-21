@@ -117,6 +117,7 @@ async function syncDocumentToMySQL(collection, documentId, data) {
       const placeholders = Object.keys(mysqlData).map(() => '?').join(',');
       const columns = Object.keys(mysqlData).join(',');
       const updateClauses = Object.keys(mysqlData)
+        .filter(col => col !== 'id')
         .map(col => `${col}=VALUES(${col})`)
         .join(',');
 

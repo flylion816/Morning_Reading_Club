@@ -17,6 +17,12 @@ Page({
 
   onLoad(options) {
     console.log('课程详情页加载，参数:', options);
+    if (!options.id) {
+      console.error('缺少课程 ID 参数');
+      wx.showToast({ title: '参数错误', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 1500);
+      return;
+    }
     this.setData({ courseId: options.id });
     this.loadCourseDetail();
   },
