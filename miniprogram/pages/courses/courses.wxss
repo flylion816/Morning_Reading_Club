@@ -43,7 +43,16 @@
 .page-header {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
-  padding: 40rpx 32rpx;
+  padding: 20rpx 32rpx;
+  max-height: 200rpx;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.page-header.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .header-content {
@@ -63,24 +72,33 @@
   opacity: 0.9;
 }
 
-/* 功能按钮区 */
+/* 功能按钮区（紧凑横排） */
 .action-buttons {
   display: flex;
   justify-content: space-around;
   background: white;
-  padding: 32rpx 24rpx;
+  padding: 16rpx 24rpx;
   margin-bottom: 0;
+  max-height: 200rpx;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.action-buttons.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .action-btn {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 12rpx;
+  gap: 8rpx;
 }
 
 .btn-icon {
-  font-size: 48rpx;
+  font-size: 36rpx;
 }
 
 .btn-text {

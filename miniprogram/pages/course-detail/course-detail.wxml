@@ -108,10 +108,15 @@
               <text class="reply-icon">💬</text>
               <text>回复</text>
             </view>
+            <view class="comment-toggle" bindtap="toggleComments" data-index="{{index}}">
+              <text class="toggle-icon">💬</text>
+              <text class="toggle-text" wx:if="{{!commentLoading[item.id]}}">{{commentExpanded[item.id] ? '收起评论' : '查看评论'}}</text>
+              <text class="toggle-text loading" wx:else>加载中...</text>
+            </view>
           </view>
 
-          <!-- 回复列表 -->
-          <view class="replies-list" wx:if="{{item.replies && item.replies.length > 0}}">
+          <!-- 回复列表（延迟加载） -->
+          <view class="replies-list" wx:if="{{commentExpanded[item.id] && item.replies && item.replies.length > 0}}">
             <view class="reply-item" wx:for="{{item.replies}}" wx:key="id" wx:for-item="reply">
               <view class="reply-left-line"></view>
               <view class="reply-main">

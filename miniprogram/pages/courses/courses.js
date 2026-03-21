@@ -15,7 +15,8 @@ Page({
     currentTab: 'tasks', // 当前选中的tab
     scrollTop: 0, // 滚动位置
     paymentPending: false, // 是否有待支付
-    paymentEnrollmentId: '' // 待支付的报名ID
+    paymentEnrollmentId: '', // 待支付的报名ID
+    headerCollapsed: false // 滚动时收起头部
   },
 
   onLoad(options) {
@@ -301,6 +302,22 @@ Page({
     wx.navigateTo({
       url: `/pages/payment/payment?enrollmentId=${paymentEnrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&amount=99`
     });
+  },
+
+  /**
+   * 滚动事件：向下滚动时收起头部，向上滚动时展开
+   */
+  onContentScroll(e) {
+    const scrollTop = e.detail.scrollTop;
+    const lastScrollTop = this._lastScrollTop || 0;
+
+    if (scrollTop > lastScrollTop && scrollTop > 50 && !this.data.headerCollapsed) {
+      this.setData({ headerCollapsed: true });
+    } else if (scrollTop < lastScrollTop && this.data.headerCollapsed) {
+      this.setData({ headerCollapsed: false });
+    }
+
+    this._lastScrollTop = scrollTop;
   },
 
   /**

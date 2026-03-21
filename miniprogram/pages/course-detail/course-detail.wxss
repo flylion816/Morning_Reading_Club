@@ -391,6 +391,28 @@
   font-size: 22rpx;
 }
 
+/* 查看评论按钮 */
+.comment-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #4a90e2;
+  padding: 8rpx 0;
+}
+
+.toggle-icon {
+  font-size: 24rpx;
+}
+
+.toggle-text {
+  font-size: 24rpx;
+}
+
+.toggle-text.loading {
+  color: #999;
+}
+
 /* 回复列表 */
 .replies-list {
   margin-top: 16rpx;

@@ -1,7 +1,7 @@
 <!--课节列表页-->
 <view class="page-courses">
-  <!-- 头部区域 -->
-  <view class="page-header">
+  <!-- 头部区域（滚动时收起） -->
+  <view class="page-header {{headerCollapsed ? 'collapsed' : ''}}">
     <view class="header-content">
       <view class="period-name">{{periodName}}</view>
       <view class="period-date">{{periodDate}}</view>
@@ -17,18 +17,18 @@
     <text class="payment-banner-arrow">›</text>
   </view>
 
-  <!-- 功能按钮区 -->
-  <view class="action-buttons">
+  <!-- 功能按钮区（紧凑横排 + 滚动时收起） -->
+  <view class="action-buttons {{headerCollapsed ? 'collapsed' : ''}}">
     <view class="action-btn" bindtap="handleRanking">
-      <view class="btn-icon">🏆</view>
+      <text class="btn-icon">🏆</text>
       <text class="btn-text">排行榜</text>
     </view>
     <view class="action-btn" bindtap="handleCheckinRecords">
-      <view class="btn-icon">📅</view>
+      <text class="btn-icon">📅</text>
       <text class="btn-text">打卡记录</text>
     </view>
     <view class="action-btn" bindtap="handleMembers">
-      <view class="btn-icon">👥</view>
+      <text class="btn-icon">👥</text>
       <text class="btn-text">成员</text>
     </view>
   </view>
@@ -58,7 +58,8 @@
     scroll-y
     class="content-scroll"
     scroll-top="{{scrollTop}}"
-    scroll-with-animation>
+    scroll-with-animation
+    bindscroll="onContentScroll">
 
     <!-- 任务区域 -->
     <view id="tasks-section" class="section-wrapper">

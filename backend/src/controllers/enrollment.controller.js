@@ -66,11 +66,12 @@ exports.submitEnrollmentForm = async (req, res) => {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
-    // 检查是否已报名
+    // 检查是否已报名（排除已删除的记录）
     const existingEnrollment = await Enrollment.findOne({
       userId,
       periodId,
-      status: { $in: ['active', 'completed'] }
+      status: { $in: ['active', 'completed'] },
+      deleted: { $ne: true }
     });
 
     if (existingEnrollment) {
@@ -150,11 +151,12 @@ exports.enrollPeriod = async (req, res) => {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
-    // 检查是否已报名
+    // 检查是否已报名（排除已删除的记录）
     const existingEnrollment = await Enrollment.findOne({
       userId,
       periodId,
-      status: { $in: ['active', 'completed'] }
+      status: { $in: ['active', 'completed'] },
+      deleted: { $ne: true }
     });
 
     if (existingEnrollment) {
@@ -314,11 +316,12 @@ exports.checkEnrollment = async (req, res) => {
       periodIdType: typeof periodId
     });
 
-    // 直接查询数据库
+    // 直接查询数据库（排除已删除的记录）
     const enrollment = await Enrollment.findOne({
       userId,
       periodId,
-      status: { $in: ['active', 'completed'] }
+      status: { $in: ['active', 'completed'] },
+      deleted: { $ne: true }
     });
 
     const isEnrolled = !!enrollment;

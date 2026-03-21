@@ -10,7 +10,9 @@ Page({
     calendar: [],
     checkedDays: 0,
     loading: true,
-    hasUserCheckedIn: false
+    hasUserCheckedIn: false,
+    commentExpanded: {},
+    commentLoading: {}
   },
 
   onLoad(options) {
@@ -193,26 +195,6 @@ Page({
         console.warn('从打卡API加载失败，尝试使用本地存储:', error);
       }
 
-      // 从每个打卡记录加载对应的评论
-      let allComments = [];
-      try {
-        for (const checkin of dbCheckins) {
-          try {
-            const checkinComments = await commentService.getCommentsByCheckin(checkin._id, {
-              limit: 100
-            });
-            if (checkinComments && checkinComments.list) {
-              allComments = allComments.concat(checkinComments.list);
-            }
-          } catch (err) {
-            console.warn(`获取打卡${checkin._id}的评论失败:`, err);
-          }
-        }
-        console.log('✅ 加载的所有评论:', allComments);
-      } catch (error) {
-        console.warn('加载评论失败:', error);
-      }
-
       // 如果数据库没有数据，则从本地存储加载
       if (dbCheckins.length === 0) {
         const storageKey = `checkins_${this.data.courseId}`;
@@ -285,96 +267,8 @@ Page({
       // 保存当前用户是否已打卡的状态
       this.setData({ hasUserCheckedIn });
 
-      // 将加载的Comment关联到对应的Checkin下
-      if (allComments && allComments.length > 0) {
-        allComments.forEach(comment => {
-          // 找到这个Comment所属的Checkin
-          const parentCheckin = checkinWithComments.find(
-            checkin => String(checkin.id) === String(comment.checkinId)
-          );
-
-          if (parentCheckin) {
-            // 格式化Comment中的回复（嵌套回复）
-            const formattedNestedReplies = (comment.replies || []).map(reply => {
-              const isNestedReplyLikedLocally = Array.isArray(reply.likes) && currentUserId ? reply.likes.some(l =>
-                String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
-              ) : false;
-
-              return {
-                id: reply._id,
-                userId: reply.userId?._id || reply.userId,
-                userName: reply.userId?.nickname || '匿名用户',
-                avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
-                avatarUrl: reply.userId?.avatarUrl || '',
-                avatarColor: '#9cb5f0',
-                content: reply.content || '',
-                createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
-                likeCount: reply.likeCount || 0,
-                isLiked: isNestedReplyLikedLocally
-              };
-            });
-
-            // 格式化Comment
-            const isCommentLikedLocally = Array.isArray(comment.likes) && currentUserId ? comment.likes.some(l =>
-              String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
-            ) : false;
-
-            const formattedComment = {
-              id: comment._id,
-              userId: comment.userId?._id || comment.userId,
-              userName: comment.userId?.nickname || '匿名用户',
-              avatarText: comment.userId?.nickname ? comment.userId.nickname.charAt(0) : '👤',
-              avatarUrl: comment.userId?.avatarUrl || '',
-              avatarColor: '#7eb5f0',
-              content: comment.content || '',
-              createTime: comment.createdAt ? this.formatTime(comment.createdAt) : '刚刚',
-              likeCount: comment.likeCount || 0,
-              isLiked: isCommentLikedLocally,
-              replies: formattedNestedReplies.map(reply => ({ ...reply, parentId: comment._id }))
-            };
-            parentCheckin.replies.push(formattedComment);
-          }
-        });
-      }
-
-      // 最终的打卡列表（包含每条打卡下的评论）
-      const finalComments = checkinWithComments;
-
-      // 为评论和回复添加 avatarText 字段
-      if (finalComments && finalComments.length > 0) {
-        finalComments.forEach(comment => {
-          // 如果没有avatarText，则生成
-          if (!comment.avatarText) {
-            comment.avatarText = comment.userName
-              ? comment.userName.charAt(comment.userName.length - 1)
-              : '';
-          }
-
-          // 添加回复的头像文字
-          if (comment.replies && comment.replies.length > 0) {
-            comment.replies.forEach(reply => {
-              if (!reply.avatarText) {
-                reply.avatarText = reply.userName
-                  ? reply.userName.charAt(reply.userName.length - 1)
-                  : '';
-              }
-
-              // 添加嵌套回复的头像文字
-              if (reply.replies && reply.replies.length > 0) {
-                reply.replies.forEach(nestedReply => {
-                  if (!nestedReply.avatarText) {
-                    nestedReply.avatarText = nestedReply.userName
-                      ? nestedReply.userName.charAt(0)
-                      : '👤';
-                  }
-                });
-              }
-            });
-          }
-        });
-      }
-
-      course.comments = finalComments;
+      // 评论改为延迟加载：用户点击"查看评论"时才加载，避免串行 N 次 API 请求
+      course.comments = checkinWithComments;
 
       const calendar = this.generateCalendar(course);
       const checkedDays = calendar.filter(d => d.status === 'checked').length;
@@ -440,6 +334,93 @@ Page({
     wx.navigateTo({
       url: `/pages/checkin/checkin?courseId=${this.data.courseId}`
     });
+  },
+
+  /**
+   * 切换评论展开/收起（延迟加载）
+   */
+  async toggleComments(e) {
+    const { index } = e.currentTarget.dataset;
+    const comments = this.data.course.comments;
+    const checkin = comments[index];
+    if (!checkin) return;
+
+    const expandedKey = `commentExpanded.${checkin.id}`;
+
+    // 已展开 → 收起
+    if (this.data.commentExpanded[checkin.id]) {
+      this.setData({ [expandedKey]: false });
+      return;
+    }
+
+    // 已加载过评论 → 直接展开
+    if (checkin.replies && checkin.replies.length > 0) {
+      this.setData({ [expandedKey]: true });
+      return;
+    }
+
+    // 首次展开：从 API 加载评论
+    const loadingKey = `commentLoading.${checkin.id}`;
+    this.setData({ [loadingKey]: true, [expandedKey]: true });
+
+    try {
+      const checkinComments = await commentService.getCommentsByCheckin(checkin.id, { limit: 100 });
+
+      if (checkinComments && checkinComments.list && checkinComments.list.length > 0) {
+        const app = getApp();
+        const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+
+        const formattedReplies = checkinComments.list.map(comment => {
+          const formattedNestedReplies = (comment.replies || []).map(reply => {
+            const isLiked = Array.isArray(reply.likes) && currentUserId
+              ? reply.likes.some(l => String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId))
+              : false;
+            return {
+              id: reply._id,
+              userId: reply.userId?._id || reply.userId,
+              userName: reply.userId?.nickname || '匿名用户',
+              avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
+              avatarUrl: reply.userId?.avatarUrl || '',
+              avatarColor: '#9cb5f0',
+              content: reply.content || '',
+              createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
+              likeCount: reply.likeCount || 0,
+              isLiked,
+              parentId: comment._id
+            };
+          });
+
+          const isCommentLiked = Array.isArray(comment.likes) && currentUserId
+            ? comment.likes.some(l => String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId))
+            : false;
+
+          return {
+            id: comment._id,
+            userId: comment.userId?._id || comment.userId,
+            userName: comment.userId?.nickname || '匿名用户',
+            avatarText: comment.userId?.nickname ? comment.userId.nickname.charAt(0) : '👤',
+            avatarUrl: comment.userId?.avatarUrl || '',
+            avatarColor: '#7eb5f0',
+            content: comment.content || '',
+            createTime: comment.createdAt ? this.formatTime(comment.createdAt) : '刚刚',
+            likeCount: comment.likeCount || 0,
+            isLiked: isCommentLiked,
+            replies: formattedNestedReplies
+          };
+        });
+
+        this.setData({
+          [`course.comments[${index}].replies`]: formattedReplies,
+          [loadingKey]: false
+        });
+      } else {
+        this.setData({ [loadingKey]: false });
+      }
+    } catch (error) {
+      console.error('加载评论失败:', error);
+      this.setData({ [loadingKey]: false, [expandedKey]: false });
+      wx.showToast({ title: '加载评论失败', icon: 'none' });
+    }
   },
 
   /**
