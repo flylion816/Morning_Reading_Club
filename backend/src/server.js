@@ -1,22 +1,23 @@
 const path = require('path');
 
-// ⚠️ 重要：最早加载 .env 文件，在任何模块 require 之前
-// 确保 NODE_ENV 被设置
-if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development';
-}
-
-// 首先尝试加载根目录的统一环境配置
+// ⚠️ 重要：最早加载环境配置，在任何模块 require 之前
+// 首先尝试加载根目录的统一环境配置（.env.config.js 是权威来源）
 try {
   const envConfigPath = path.resolve(__dirname, '../../.env.config.js');
   // eslint-disable-next-line global-require, import/no-dynamic-require
   const envConfig = require(envConfigPath);
 
-  // 根据统一配置设置 NODE_ENV 和 MONGODB_URI
-  process.env.NODE_ENV = process.env.NODE_ENV || envConfig.config.backend.nodeEnv;
+  // .env.config.js 的 nodeEnv 优先级高于默认值，但低于系统环境变量
+  // 只有当系统没有显式设置 NODE_ENV 时，才使用 .env.config.js 的值
+  if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = envConfig.config.backend.nodeEnv;
+  }
   process.env.MONGODB_URI = process.env.MONGODB_URI || envConfig.config.backend.mongodbUri;
 } catch (error) {
-  // 如果没有 .env.config.js，使用 NODE_ENV 来判断
+  // 如果没有 .env.config.js，使用默认值
+  if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = 'development';
+  }
 }
 
 // 根据 NODE_ENV 加载相应的环境文件

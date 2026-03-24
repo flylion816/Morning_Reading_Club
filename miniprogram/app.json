@@ -47,6 +47,7 @@
       }
     ]
   },
+  "navigateToMiniProgramAppIdList": ["wx33fd6cdc62520063"],
   "usingComponents": {},
   "permission": {
     "scope.userLocation": {

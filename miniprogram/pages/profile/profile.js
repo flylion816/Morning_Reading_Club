@@ -31,6 +31,10 @@ Page({
     // 收到的小凡看见请求列表
     insightRequests: [],
 
+    // 腾讯会议
+    hasMeeting: false,
+    meetingId: '',
+
     // 加载状态
     loading: true,
 
@@ -433,6 +437,10 @@ Page({
       console.log('todaySection._id:', todaySection?._id);
       console.log('todaySection.title:', todaySection?.title);
 
+      // 提取腾讯会议信息
+      const hasMeeting = !!(currentPeriod && currentPeriod.meetingId);
+      const meetingId = currentPeriod?.meetingId || '';
+
       this.setData(
         {
           userInfo,
@@ -440,6 +448,8 @@ Page({
           currentPeriod: currentPeriod || null, // 确保不是undefined
           todaySection: todaySection || null, // 确保不是undefined
           recentInsights,
+          hasMeeting,
+          meetingId,
           loading: false
         },
         () => {
@@ -972,6 +982,39 @@ Page({
 
     wx.navigateTo({
       url: `/pages/checkin/checkin?periodId=${periodId}&sectionId=${sectionId}`
+    });
+  },
+
+  /**
+   * 去晨读 - 跳转到腾讯会议小程序
+   */
+  handleJoinMeeting() {
+    const meetingId = this.data.meetingId;
+    if (!meetingId) {
+      wx.showToast({ title: '会议号未配置', icon: 'none' });
+      return;
+    }
+
+    // 清除空格和横杠，用于跳转参数
+    const cleanId = meetingId.replace(/[-\s]/g, '');
+
+    wx.navigateToMiniProgram({
+      appId: 'wx33fd6cdc62520063',
+      path: `pages/sub-preMeeting/join-meeting/join-meeting?scene=m=${cleanId}`,
+      success: () => console.log('跳转腾讯会议成功'),
+      fail: () => {
+        wx.showModal({
+          title: '无法打开腾讯会议',
+          content: '请手动打开腾讯会议APP，输入会议号：' + meetingId,
+          confirmText: '复制会议号',
+          cancelText: '知道了',
+          success: (res) => {
+            if (res.confirm) {
+              wx.setClipboardData({ data: meetingId });
+            }
+          }
+        });
+      }
     });
   },
 

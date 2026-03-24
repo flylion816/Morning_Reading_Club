@@ -102,6 +102,11 @@ const PeriodSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0
+    },
+    meetingId: {
+      type: String,
+      maxlength: 50,
+      default: null
     }
   },
   {

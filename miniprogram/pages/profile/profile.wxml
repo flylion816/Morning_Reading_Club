@@ -48,7 +48,13 @@
           <view class="period-info-new">
             <view class="period-title-row">
               <view class="period-title-new">{{todaySection.title}}</view>
-              <text class="progress-percent">{{todaySection.progress || 0}}%</text>
+              <view class="checkin-count-badge">
+                <view wx:for="{{todaySection.checkinUsers}}" wx:key="index" wx:if="{{index < 3}}" class="mini-avatar" style="z-index: {{99 - index}}">
+                  <image wx:if="{{item.avatarUrl}}" class="mini-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
+                  <text wx:else class="mini-avatar-emoji">{{item.avatar || '😊'}}</text>
+                </view>
+                <text class="checkin-count-text">{{todaySection.checkinCount || 0}}人已打卡</text>
+              </view>
             </view>
             <view class="period-meta-date">
               <view class="calendar-icon">
@@ -57,30 +63,17 @@
               </view>
               <text class="meta-date-text">{{todaySection.displayDate}}</text>
             </view>
-            <view class="period-progress-new">
-              <view class="progress-bar-wrapper">
-                <view class="progress-bar-fill" style="width: {{todaySection.progress || 0}}%"></view>
-                <view class="progress-bar-thumb" style="left: {{todaySection.progress || 0}}%"></view>
-              </view>
-            </view>
             <view class="checkin-footer">
-              <view class="avatar-group">
-                <!-- 实际打卡用户头像列表 -->
-                <view wx:for="{{todaySection.checkinUsers}}" wx:key="index" class="avatar-item user-avatar" style="z-index: {{999 - index}}">
-                  <!-- 头像图片 -->
-                  <image wx:if="{{item.avatarUrl}}" class="avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
-                  <!-- 头像emoji（当没有图片时） -->
-                  <text wx:else class="avatar-emoji">{{item.avatar || '😊'}}</text>
-                  <!-- 用户昵称tooltip -->
-                  <view class="avatar-tooltip">{{item.nickname}}</view>
+              <view class="footer-buttons">
+                <view class="meeting-btn" wx:if="{{hasMeeting}}" catchtap="handleJoinMeeting">
+                  <text>去晨读</text>
+                  <text class="btn-arrow">📹</text>
                 </view>
-                <!-- 打卡人数统计 -->
-                <view class="avatar-item count">{{todaySection.checkinCount || 0}}人</view>
-              </view>
-              <view class="checkin-btn {{todaySection.isCheckedIn ? 'checked' : ''}}" catchtap="handleCreateCheckin">
-                <text wx:if="{{todaySection.isCheckedIn}}">✓ 已打卡</text>
-                <text wx:else>去打卡</text>
-                <text class="btn-arrow" wx:if="{{!todaySection.isCheckedIn}}">→</text>
+                <view class="checkin-btn {{todaySection.isCheckedIn ? 'checked' : ''}}" catchtap="handleCreateCheckin">
+                  <text wx:if="{{todaySection.isCheckedIn}}">✓ 已打卡</text>
+                  <text wx:else>去打卡</text>
+                  <text class="btn-arrow" wx:if="{{!todaySection.isCheckedIn}}">→</text>
+                </view>
               </view>
             </view>
           </view>

@@ -60,6 +60,12 @@
               />
             </template>
           </el-table-column>
+          <el-table-column label="会议" width="80">
+            <template #default="{ row }">
+              <el-tag v-if="row.meetingId" type="success" size="small">已配置</el-tag>
+              <span v-else style="color: #c0c4cc; font-size: 12px;">-</span>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="260" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
@@ -190,6 +196,17 @@
                 });
               }"
             />
+          </el-form-item>
+
+          <el-form-item label="腾讯会议号" prop="meetingId">
+            <el-input
+              v-model="formData.meetingId"
+              placeholder="例：416 7154 0953"
+              clearable
+            />
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              配置后用户将在"今日任务"中看到"去晨读"按钮
+            </div>
           </el-form-item>
         </el-form>
 
@@ -343,7 +360,8 @@ const formData = reactive({
   price: 9900, // 99 元默认价格
   originalPrice: 0,
   maxEnrollment: null,
-  sortOrder: 0
+  sortOrder: 0,
+  meetingId: ''
 });
 
 const copyFormData = reactive({
@@ -462,7 +480,8 @@ function handleEditPeriod(row: Period) {
     price: row.price,
     originalPrice: row.originalPrice,
     maxEnrollment: row.maxEnrollment,
-    sortOrder: row.sortOrder
+    sortOrder: row.sortOrder,
+    meetingId: row.meetingId || ''
   });
 
   console.log('[PeriodsView] 表单已初始化，当前 formData.coverColor:', formData.coverColor);
@@ -483,8 +502,16 @@ async function handleSubmit() {
         icon: formData.icon
       });
 
+      // 清洗会议号：提取纯数字（支持 "#腾讯会议：416-7154-0953" 等各种格式）
+      let cleanMeetingId = formData.meetingId || '';
+      if (cleanMeetingId) {
+        cleanMeetingId = cleanMeetingId.replace(/[^\d]/g, ''); // 只保留数字
+        if (!cleanMeetingId) cleanMeetingId = ''; // 如果没有数字，置空
+      }
+
       const payload = {
         ...formData,
+        meetingId: cleanMeetingId || null,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
       };
@@ -662,6 +689,7 @@ function resetForm() {
   formData.originalPrice = 0;
   formData.maxEnrollment = null;
   formData.sortOrder = 0;
+  formData.meetingId = '';
   formRef.value?.clearValidate();
 }
 
