@@ -24,6 +24,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 source "$SCRIPT_DIR/lib/utils.sh"
 source "$SCRIPT_DIR/lib/deploy-functions.sh"
 source "$SCRIPT_DIR/lib/database-functions.sh"
+source "$SCRIPT_DIR/lib/infrastructure-functions.sh"
 
 ################################################################################
 # 配置
@@ -121,6 +122,13 @@ main() {
     log_warning "Nginx 重新加载失败，但继续..."
   fi
 
+  # 第 8 步：配置定时任务
+  log_section "第 8 步：配置 Cron 定时任务"
+
+  if ! setup_cron_jobs "$APP_ROOT"; then
+    log_warning "Cron 定时任务配置失败，请手动配置"
+  fi
+
   # 显示摘要
   log_section "应用部署摘要"
 
@@ -129,6 +137,7 @@ main() {
   log_info "✅ 日志轮转: 已配置（500MB/文件 × 10个）"
   log_info "✅ 管理后台: 已部署 ($ADMIN_DIST)"
   log_info "✅ Nginx: 已重新加载"
+  log_info "✅ Cron: 每日17:00日志巡检报告"
 
   log_header "应用部署完成！🎉"
 

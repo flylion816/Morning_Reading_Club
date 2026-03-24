@@ -470,6 +470,52 @@ setup_firewall_rules() {
   return 0
 }
 
+# 设置 Cron 定时任务
+# 用法：setup_cron_jobs <app_root>
+# 返回：0 成功，1 失败
+#
+# 配置的定时任务：
+#   1. 每日17:00 日志巡检报告（发送到QQ邮箱）
+#   2. 每日02:00 MongoDB自动备份（已在backup脚本中配置）
+#
+# 注意：QQ_SMTP_PASS 需要在QQ邮箱中生成SMTP授权码
+#   获取方式：mail.qq.com → 设置 → 账户 → POP3/SMTP服务 → 开启 → 获取授权码
+setup_cron_jobs() {
+  local app_root="${1:-/var/www/morning-reading}"
+
+  log_section "设置 Cron 定时任务"
+
+  local qq_smtp_pass="${QQ_SMTP_PASS:-xxzufiiuthxabjcj}"
+  local node_bin="/usr/bin/node"
+  local log_dir="/var/www/logs"
+
+  # 确保日志目录存在
+  mkdir -p "$log_dir" 2>/dev/null || true
+
+  # 构建 crontab 内容（保留已有的非本项目 cron）
+  local existing_cron
+  existing_cron=$(crontab -l 2>/dev/null | grep -v "daily-log-report" | grep -v "# 晨读营" || true)
+
+  local new_cron="${existing_cron}
+# 晨读营 - 每日17:00 日志巡检报告（发邮件到 308965039@qq.com）
+0 17 * * * QQ_SMTP_PASS=${qq_smtp_pass} ${node_bin} ${app_root}/backend/scripts/daily-log-report.js >> ${log_dir}/daily-report.log 2>&1"
+
+  echo "$new_cron" | crontab -
+
+  log_success "Cron 定时任务已配置"
+  log_info "  - 每日 17:00 日志巡检报告"
+
+  # 验证
+  if crontab -l 2>/dev/null | grep -q "daily-log-report"; then
+    log_success "Cron 验证通过"
+  else
+    log_error "Cron 配置失败，请手动检查"
+    return 1
+  fi
+
+  return 0
+}
+
 ################################################################################
 # 导出函数，使其在 sourced 脚本中可用
 ################################################################################
@@ -488,3 +534,4 @@ export -f setup_app_directories
 export -f copy_project_files
 export -f create_symlink
 export -f setup_firewall_rules
+export -f setup_cron_jobs

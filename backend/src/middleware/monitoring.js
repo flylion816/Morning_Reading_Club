@@ -56,7 +56,9 @@ function recordMetricsToMemory(metrics) {
   memoryMetrics.currentMinute[minuteKey].totalDuration += metrics.duration;
   memoryMetrics.currentMinute[minuteKey].durations.push(metrics.duration);
 
-  if (metrics.statusCode >= 400) {
+  const isAuthError = metrics.statusCode === 401;
+  const isNonApiNotFound = metrics.statusCode === 404 && !metrics.endpoint.startsWith('/api/');
+  if (metrics.statusCode >= 400 && !isAuthError && !isNonApiNotFound) {
     memoryMetrics.currentMinute[minuteKey].errors += 1;
   }
 
@@ -87,8 +89,10 @@ async function recordMetrics(metrics) {
     await redisManager.zAdd(latencyKey, metrics.duration, `${Date.now()}-${Math.random()}`);
     await redisManager.expire(latencyKey, 3600);
 
-    // 3. 记录错误计数
-    if (metrics.statusCode >= 400) {
+    // 3. 记录错误计数（排除401和非API路径的404，这些是正常行为）
+    const isAuthError = metrics.statusCode === 401;
+    const isNonApiNotFound = metrics.statusCode === 404 && !metrics.endpoint.startsWith('/api/');
+    if (metrics.statusCode >= 400 && !isAuthError && !isNonApiNotFound) {
       const errorKey = `metrics:errors:${minuteKey}`;
       await redisManager.incr(errorKey);
       await redisManager.expire(errorKey, 3600);
@@ -113,7 +117,7 @@ async function recordMetrics(metrics) {
     await redisManager.incr(hourCountKey);
     await redisManager.expire(hourCountKey, 86400); // 24小时过期
 
-    if (metrics.statusCode >= 400) {
+    if (metrics.statusCode >= 400 && !isAuthError && !isNonApiNotFound) {
       const hourErrorKey = `metrics:hour_errors:${hourKey}`;
       await redisManager.incr(hourErrorKey);
       await redisManager.expire(hourErrorKey, 86400);
@@ -152,31 +156,35 @@ async function checkAlerts(metrics) {
     // 根据条件触发告警
     const alerts = [];
 
+    // 最小请求数门槛：1分钟内至少10个请求才检查错误率
+    // 防止低流量时段（如凌晨bot扫描）的少量404触发误报
+    const MIN_REQUESTS_FOR_ERROR_RATE = 10;
+
     // 检查错误率
-    if (errorRate > 0.1) {
+    if (count >= MIN_REQUESTS_FOR_ERROR_RATE && errorRate > 0.1) {
       // 错误率>10%
       alerts.push({
         severity: 'CRITICAL',
         type: 'ERROR_RATE',
-        message: `API错误率达到${(errorRate * 100).toFixed(2)}% (阈值: 10%)`,
+        message: `API错误率达到${(errorRate * 100).toFixed(2)}% (${errors}/${count}请求, 阈值: 10%)`,
         value: errorRate,
         threshold: 0.1
       });
-    } else if (errorRate > 0.05) {
+    } else if (count >= MIN_REQUESTS_FOR_ERROR_RATE && errorRate > 0.05) {
       // 错误率>5%
       alerts.push({
         severity: 'HIGH',
         type: 'ERROR_RATE',
-        message: `API错误率达到${(errorRate * 100).toFixed(2)}% (阈值: 5%)`,
+        message: `API错误率达到${(errorRate * 100).toFixed(2)}% (${errors}/${count}请求, 阈值: 5%)`,
         value: errorRate,
         threshold: 0.05
       });
-    } else if (errorRate > 0.01) {
+    } else if (count >= MIN_REQUESTS_FOR_ERROR_RATE && errorRate > 0.01) {
       // 错误率>1%
       alerts.push({
         severity: 'MEDIUM',
         type: 'ERROR_RATE',
-        message: `API错误率达到${(errorRate * 100).toFixed(2)}% (阈值: 1%)`,
+        message: `API错误率达到${(errorRate * 100).toFixed(2)}% (${errors}/${count}请求, 阈值: 1%)`,
         value: errorRate,
         threshold: 0.01
       });
