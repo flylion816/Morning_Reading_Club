@@ -62,6 +62,20 @@ Page({
     }
   },
 
+  onShareAppMessage() {
+    return {
+      title: this.data.periodName || '凡人共读课程',
+      path: `/pages/courses/courses?periodId=${this.data.periodId}`
+    };
+  },
+
+  onShareTimeline() {
+    return {
+      title: this.data.periodName || '凡人共读课程',
+      query: `periodId=${this.data.periodId}`
+    };
+  },
+
   /**
    * 加载课节列表
    */
@@ -306,15 +320,22 @@ Page({
 
   /**
    * 滚动事件：向下滚动时收起头部，向上滚动时展开
+   * 使用防抖避免 collapse/expand 布局变化触发的二次滚动导致抖动
    */
   onContentScroll(e) {
+    if (this._scrollDebouncing) return;
+
     const scrollTop = e.detail.scrollTop;
     const lastScrollTop = this._lastScrollTop || 0;
 
-    if (scrollTop > lastScrollTop && scrollTop > 50 && !this.data.headerCollapsed) {
+    if (scrollTop > lastScrollTop && scrollTop > 80 && !this.data.headerCollapsed) {
+      this._scrollDebouncing = true;
       this.setData({ headerCollapsed: true });
-    } else if (scrollTop < lastScrollTop && this.data.headerCollapsed) {
+      setTimeout(() => { this._scrollDebouncing = false; }, 400);
+    } else if (scrollTop < lastScrollTop && scrollTop < 30 && this.data.headerCollapsed) {
+      this._scrollDebouncing = true;
       this.setData({ headerCollapsed: false });
+      setTimeout(() => { this._scrollDebouncing = false; }, 400);
     }
 
     this._lastScrollTop = scrollTop;

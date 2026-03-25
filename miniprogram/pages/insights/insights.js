@@ -205,6 +205,23 @@ Page({
     }
   },
 
+  onShareAppMessage() {
+    return {
+      title: this.data.isOtherUser
+        ? `${this.data.userName}的小凡看见`
+        : '我的小凡看见 - 凡人共读',
+      path: '/pages/profile/profile'
+    };
+  },
+
+  onShareTimeline() {
+    return {
+      title: this.data.isOtherUser
+        ? `${this.data.userName}的小凡看见`
+        : '我的小凡看见 - 凡人共读'
+    };
+  },
+
   /**
    * 点击 insight 项
    */

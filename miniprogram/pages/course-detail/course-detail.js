@@ -34,6 +34,22 @@ Page({
     }
   },
 
+  onShareAppMessage() {
+    const { course, courseId } = this.data;
+    return {
+      title: course.title || '课程详情',
+      path: `/pages/course-detail/course-detail?id=${courseId}`
+    };
+  },
+
+  onShareTimeline() {
+    const { course, courseId } = this.data;
+    return {
+      title: course.title || '课程详情',
+      query: `id=${courseId}`
+    };
+  },
+
   /**
    * 清理 HTML，使其与小程序 rich-text 兼容
    * 小程序 rich-text 支持：p、br、strong、em、u、s、span、img、a、li、ol、ul 等标签
