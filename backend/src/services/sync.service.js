@@ -128,7 +128,10 @@ async function syncDocumentToMySQL(collection, documentId, data) {
       `;
 
       const values = Object.values(mysqlData);
+      // 临时禁用外键检查，防止父记录未同步时子记录插入失败
+      await conn.query('SET FOREIGN_KEY_CHECKS=0');
       await conn.query(query, values);
+      await conn.query('SET FOREIGN_KEY_CHECKS=1');
 
       logger.info('Document synced to MySQL', {
         collection,
@@ -138,6 +141,7 @@ async function syncDocumentToMySQL(collection, documentId, data) {
 
       return true;
     } finally {
+      await conn.query('SET FOREIGN_KEY_CHECKS=1').catch(() => {});
       conn.release();
     }
   } catch (error) {

@@ -75,6 +75,38 @@ function readLogFile(filePath) {
 }
 
 /**
+ * 读取日志文件（包括 PM2 logrotate 产生的轮转文件）
+ * PM2 logrotate 每天 00:00 轮转，文件名格式: name__YYYY-MM-DD_HH-mm-ss.log
+ * 对于 17:00-17:00 的窗口，需要读取当前文件 + 轮转文件
+ */
+function readLogFileWithRotation(filePath) {
+  const lines = readLogFile(filePath);
+
+  // 查找同目录下的轮转文件
+  const dir = path.dirname(filePath);
+  const baseName = path.basename(filePath, '.log'); // e.g. "morning-reading-out"
+
+  try {
+    const files = fs.readdirSync(dir);
+    // 匹配轮转文件: morning-reading-out__2026-03-25_00-00-00.log
+    const rotatedFiles = files
+      .filter(f => f.startsWith(baseName + '__') && f.endsWith('.log'))
+      .sort()
+      .reverse(); // 最新的在前
+
+    // 只读最近 2 个轮转文件（覆盖 24-48 小时）
+    for (const rf of rotatedFiles.slice(0, 2)) {
+      const rotatedLines = readLogFile(path.join(dir, rf));
+      lines.unshift(...rotatedLines); // 旧的放前面
+    }
+  } catch (err) {
+    // 目录读取失败，只用当前文件
+  }
+
+  return lines;
+}
+
+/**
  * 解析 Winston JSON 格式日志行
  * 格式: {"timestamp":"2026-03-21 10:30:45 +08:00","level":"error","message":"..."}
  */
@@ -232,8 +264,13 @@ function suggestFix(message) {
 }
 
 /**
- * 统计 HTTP 请求（从 PM2 out.log，Morgan 格式带 ANSI 颜色码）
- * 格式: "2026-03-24 07:14:36 +08:00: GET /api/v1/users/me/stats [32m200[0m 19.780 ms - 170"
+ * 统计 HTTP 请求（从 PM2 out.log）
+ *
+ * 实际日志格式（Nginx 代理后的 Morgan combined）:
+ *   2026-03-26 07:14:09 +08:00: ::ffff:127.0.0.1 - - [25/Mar/2026:23:14:09 +0000] "GET /api/v1/periods HTTP/1.0" 200 - "referer" "ua"
+ *
+ * 也兼容 Morgan dev 格式:
+ *   GET /api/v1/periods 200 19.780 ms
  */
 function analyzeHttpRequests(pm2OutLines, since) {
   let total = 0;
@@ -247,24 +284,40 @@ function analyzeHttpRequests(pm2OutLines, since) {
   for (const line of pm2OutLines) {
     const clean = stripAnsi(line);
 
-    // 匹配时间戳
+    // 匹配时间戳（行首 "2026-03-26 07:14:09"）
     const timeMatch = clean.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
     if (timeMatch) {
       const logTime = new Date(timeMatch[1]);
       if (logTime < since) continue;
+    } else {
+      continue; // 无时间戳的行跳过
     }
 
-    // 匹配 HTTP 请求: "GET /api/v1/... 200 19.780 ms"
-    const httpMatch = clean.match(/(GET|POST|PUT|DELETE|PATCH)\s+(\S+)\s+(\d{3})\s+[\d.]+\s*ms/);
-    if (httpMatch) {
+    let method, urlPath, status;
+
+    // 格式1: Combined 格式 - "GET /api/v1/periods HTTP/1.0" 200
+    const combinedMatch = clean.match(/"(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+(\S+)\s+HTTP\/[\d.]+"\s+(\d{3})/);
+    if (combinedMatch) {
+      method = combinedMatch[1];
+      urlPath = combinedMatch[2];
+      status = parseInt(combinedMatch[3]);
+    } else {
+      // 格式2: Morgan dev 格式 - GET /api/v1/periods 200 19.780 ms
+      const devMatch = clean.match(/(GET|POST|PUT|DELETE|PATCH)\s+(\S+)\s+(\d{3})\s+[\d.]+\s*ms/);
+      if (devMatch) {
+        method = devMatch[1];
+        urlPath = devMatch[2];
+        status = parseInt(devMatch[3]);
+      }
+    }
+
+    if (method) {
       total++;
-      const status = parseInt(httpMatch[3]);
       if (status >= 400 && status < 500) status4xx++;
       if (status >= 500) status5xx++;
       if (status >= 400) {
-        // 清理 URL 中的 ObjectId 和查询参数
-        const url = httpMatch[2].replace(/[0-9a-f]{24}/g, '<ID>').replace(/\?.*/, '?...');
-        const key = `${httpMatch[1]} ${url.substring(0, 60)} → ${status}`;
+        const url = urlPath.replace(/[0-9a-f]{24}/g, '<ID>').replace(/\?.*/, '?...');
+        const key = `${method} ${url.substring(0, 60)} → ${status}`;
         endpoints[key] = (endpoints[key] || 0) + 1;
       }
     }
@@ -441,11 +494,12 @@ function generateHTML(report) {
   const totalExceptions = exceptionGroups.reduce((s, g) => s + g.count, 0);
 
   // 健康评分
+  // 注意：pm2Status.restarts 是累计值（包含历史所有重启），不是当天的
   let healthScore = 100;
   if (totalErrors > 0) healthScore -= Math.min(totalErrors * 5, 40);
-  if (totalExceptions > 0) healthScore -= totalExceptions * 15;
-  if (pm2Status.restarts > 0) healthScore -= pm2Status.restarts * 10;
-  if (httpStats.status5xx > 0) healthScore -= httpStats.status5xx * 5;
+  if (totalExceptions > 0) healthScore -= Math.min(totalExceptions * 15, 30);
+  if (pm2Status.restarts > 4) healthScore -= Math.min((pm2Status.restarts - 4) * 2, 15); // 4实例各1次正常，超出部分轻微扣分
+  if (httpStats.status5xx > 0) healthScore -= Math.min(httpStats.status5xx * 5, 25);
   healthScore = Math.max(0, healthScore);
 
   const healthColor = healthScore >= 80 ? '#27ae60' : healthScore >= 50 ? '#f39c12' : '#e74c3c';
@@ -514,7 +568,7 @@ ${errorGroups.slice(0, 8).map(g => `
   <div style="background: #1e1e1e; color: #d4d4d4; padding: 10px; margin: 8px 0; border-radius: 6px; font-size: 11px; font-family: monospace; overflow-x: auto; white-space: pre-wrap;">
 ${g.samples.map(s => escapeHtml(s)).join('\n---\n')}</div>`).join('')}
 </details>
-` : '<p style="color: #27ae60; font-size: 14px;">✅ 过去 ${hoursBack} 小时内无错误日志</p>'}
+` : `<p style="color: #27ae60; font-size: 14px;">✅ 过去 ${hoursBack} 小时内无错误日志</p>`}
 
 <!-- 告警详情 -->
 ${warnGroups.length > 0 ? `
@@ -628,8 +682,8 @@ async function main() {
   const combinedLines = readLogFile(path.join(logDir, CONFIG.logFiles.combined));
   const exceptionLines = readLogFile(path.join(logDir, CONFIG.logFiles.exceptions));
   const rejectionLines = readLogFile(path.join(logDir, CONFIG.logFiles.rejections));
-  const pm2OutLines = readLogFile(path.join(logDir, CONFIG.logFiles.pm2Out));
-  const pm2ErrorLines = readLogFile(path.join(logDir, CONFIG.logFiles.pm2Error));
+  const pm2OutLines = readLogFileWithRotation(path.join(logDir, CONFIG.logFiles.pm2Out));
+  const pm2ErrorLines = readLogFileWithRotation(path.join(logDir, CONFIG.logFiles.pm2Error));
 
   console.log(`📁 日志文件统计:`);
   console.log(`   error.log:       ${errorLines.length} 行`);
@@ -692,7 +746,7 @@ async function main() {
 
   let statusEmoji = '✅';
   if (totalErrors > 0 || totalExceptions > 0) statusEmoji = '⚠️';
-  if (totalErrors > 20 || totalExceptions > 0 || pm2Status.restarts > 5) statusEmoji = '🔴';
+  if (totalErrors > 20 || totalExceptions > 0 || pm2Status.restarts > 50) statusEmoji = '🔴';
 
   const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
   const subject = `${statusEmoji} 晨读营日志巡检 ${dateStr} | 错误${totalErrors} 告警${warnGroups.reduce((s, g) => s + g.count, 0)}`;
