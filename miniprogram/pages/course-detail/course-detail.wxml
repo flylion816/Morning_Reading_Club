@@ -95,7 +95,7 @@
         </view>
         <view class="comment-content">
           <view class="comment-header">
-            <text class="comment-user">{{item.userName}}</text>
+            <text class="comment-user" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
             <text class="comment-time">{{item.createTime}}</text>
           </view>
           <view class="comment-text">{{item.content}}</view>
@@ -120,12 +120,12 @@
             <view class="reply-item" wx:for="{{item.replies}}" wx:key="id" wx:for-item="reply">
               <view class="reply-left-line"></view>
               <view class="reply-main">
-                <view class="reply-avatar" style="background: {{reply.avatarColor || '#7eb5f0'}}">
+                <view class="reply-avatar" style="background: {{reply.avatarColor || '#7eb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">
                   <text class="avatar-text">{{reply.avatarText}}</text>
                 </view>
                 <view class="reply-content">
                   <view class="reply-header">
-                    <text class="reply-user">{{reply.userName}}</text>
+                    <text class="reply-user" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">{{reply.userName}}</text>
                     <text class="reply-time">{{reply.createTime}}</text>
                   </view>
                   <view class="reply-text">{{reply.content}}</view>
@@ -145,12 +145,12 @@
                     <view class="nested-reply-item" wx:for="{{reply.replies}}" wx:key="id" wx:for-item="nestedReply">
                       <view class="nested-reply-left-line"></view>
                       <view class="nested-reply-main">
-                        <view class="nested-reply-avatar" style="background: {{nestedReply.avatarColor || '#9cb5f0'}}">
+                        <view class="nested-reply-avatar" style="background: {{nestedReply.avatarColor || '#9cb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{nestedReply.userId}}">
                           <text class="avatar-text">{{nestedReply.avatarText}}</text>
                         </view>
                         <view class="nested-reply-content">
                           <view class="nested-reply-header">
-                            <text class="nested-reply-user">{{nestedReply.userName}}</text>
+                            <text class="nested-reply-user" bindtap="handleAvatarClick" data-user-id="{{nestedReply.userId}}">{{nestedReply.userName}}</text>
                             <text class="nested-reply-time">{{nestedReply.createTime}}</text>
                           </view>
                           <view class="nested-reply-text">{{nestedReply.content}}</view>

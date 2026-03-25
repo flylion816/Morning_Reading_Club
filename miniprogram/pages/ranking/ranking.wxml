@@ -44,7 +44,9 @@
     <view
       wx:for="{{rankingList}}"
       wx:key="userId"
-      class="ranking-item">
+      class="ranking-item"
+      bindtap="handleAvatarClick"
+      data-user-id="{{item.userId}}">
       <!-- 排名 -->
       <view class="rank-number {{item.rank <= 3 ? 'top-three rank-' + item.rank : ''}}">
         <text wx:if="{{item.rank <= 3}}" class="rank-icon">{{item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : '🥉'}}</text>

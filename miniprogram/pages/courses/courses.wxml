@@ -117,7 +117,7 @@
               <!-- 用户名 + 第几天标签 + 时间 -->
               <view class="checkin-top">
                 <view class="checkin-user-section">
-                  <text class="checkin-user">{{item.userName}}</text>
+                  <text class="checkin-user" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
                   <text class="section-tag">第{{item.sectionDay}}天</text>
                 </view>
                 <text class="checkin-time">{{item.createTime}}</text>

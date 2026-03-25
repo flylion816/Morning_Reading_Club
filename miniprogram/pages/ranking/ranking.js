@@ -112,6 +112,19 @@ Page({
   },
 
   /**
+   * 点击用户行 - 跳转到他人主页
+   */
+  handleAvatarClick(e) {
+    const { userId } = e.currentTarget.dataset;
+    if (!userId) return;
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (this.periodId) {
+      url += `&periodId=${this.periodId}`;
+    }
+    wx.navigateTo({ url });
+  },
+
+  /**
    * 页面分享配置
    */
   onShareAppMessage() {

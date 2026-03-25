@@ -14,7 +14,9 @@
     <view
       wx:for="{{members}}"
       wx:key="userId"
-      class="member-item">
+      class="member-item"
+      bindtap="handleAvatarClick"
+      data-user-id="{{item.userId}}">
       <view class="member-avatar" style="background: {{item.avatarColor}}">
         <text class="avatar-text">{{item.avatarText}}</text>
       </view>
