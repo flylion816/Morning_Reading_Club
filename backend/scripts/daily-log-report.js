@@ -312,6 +312,9 @@ function analyzeHttpRequests(pm2OutLines, since) {
     }
 
     if (method) {
+      // 只统计 /api/ 路径的请求，忽略 bot/扫描器流量（/, /favicon.ico, /dns-query 等）
+      if (!urlPath.startsWith('/api/')) continue;
+
       total++;
       if (status >= 400 && status < 500) status4xx++;
       if (status >= 500) status5xx++;
