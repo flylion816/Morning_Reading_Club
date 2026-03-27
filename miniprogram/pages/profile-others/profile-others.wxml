@@ -30,11 +30,11 @@
   <view class="insights-card">
     <view class="insights-header">
       <text class="insights-icon">✨</text>
-      <text class="insights-title">小凡看见 - 他的反馈</text>
+      <text class="insights-title">小凡看见</text>
     </view>
-    <view class="insights-content" bindtap="handleRequestInsights">
-      <text class="insights-link">查看{{userInfo.nickname || '用户'}}的所有反馈</text>
-      <text class="insights-desc">点击查看小凡对{{userInfo.nickname || '用户'}}每天的个性化反馈...</text>
+    <view class="insights-content" bindtap="handleViewInsights">
+      <text class="insights-link">查看{{userInfo.nickname || '用户'}}的小凡看见</text>
+      <text class="insights-desc">点击查看小凡为{{userInfo.nickname || '用户'}}写的反馈</text>
     </view>
   </view>
 

@@ -1,0 +1,35 @@
+<view class="page-insight-requests">
+  <view class="requests-list" wx:if="{{requests.length > 0}}">
+    <view wx:for="{{requests}}" wx:key="id" class="request-card">
+      <view class="request-head">
+        <view class="request-user">
+          <view class="request-avatar" style="background: {{item.avatarColor}}">
+            <text class="request-avatar-text">{{item.fromUserAvatar}}</text>
+          </view>
+          <view class="request-user-info">
+            <view class="request-user-top">
+              <text class="request-user-name">{{item.fromUserName}}</text>
+              <text class="request-status request-status-{{item.statusClass}}">{{item.statusText}}</text>
+            </view>
+            <text class="request-meta">{{item.requestMeta}}</text>
+            <text class="request-time">{{item.time}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="request-actions" wx:if="{{item.canApprove || item.canReject}}">
+        <view class="request-action approve" catchtap="handleApproveRequest" data-request="{{item}}">
+          同意
+        </view>
+        <view class="request-action reject" catchtap="handleRejectRequest" data-request="{{item}}">
+          拒绝
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">📬</text>
+    <text class="empty-text">暂无申请记录</text>
+  </view>
+</view>

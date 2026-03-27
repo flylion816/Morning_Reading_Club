@@ -255,7 +255,8 @@ E2E测试:     ████████ 8分钟
 │   │   ├── integration/          # 集成测试
 │   │   │   ├── auth.integration.test.js
 │   │   │   ├── checkin.integration.test.js
-│   │   │   └── insight.integration.test.js
+│   │   │   ├── insight.integration.test.js
+│   │   │   └── insight-request-flow.integration.test.js
 │   │   ├── performance/          # 性能测试
 │   │   │   └── load-test.yml
 │   │   └── api-contracts/        # API契约测试
@@ -298,6 +299,18 @@ E2E测试:     ████████ 8分钟
 │       └── scheduled.yml         # 定期任务
 │
 └── 测试文档/
+
+---
+
+## 2026-03-27 增量回归
+
+- 新增 `backend/tests/unit/controllers/insight.request-flow.test.js`
+- 新增 `backend/tests/integration/insight-request-flow.integration.test.js`
+- 覆盖范围：
+  - 同一用户对同一条 `insightId` 重复申请时只保留一条记录
+  - 单条授权不再外溢为整期授权
+  - 他人“小凡看见”列表按条锁定/解锁
+  - 收到/发起请求列表保留已处理状态并按 `updatedAt` 倒序返回
     ├── TESTING_STRATEGY.md       # 完整策略
     ├── TESTING_QUICKSTART.md     # 快速启动
     ├── TESTING_PACKAGE_UPDATES.md # 依赖更新

@@ -24,7 +24,11 @@ let mongoServer;
 async function initializeMongoMemoryServer() {
   try {
     console.log('⏳ Initializing MongoDB Memory Server...');
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        ip: '127.0.0.1'
+      }
+    });
     const mongoUri = mongoServer.getUri();
 
     // Set environment variable for tests to use

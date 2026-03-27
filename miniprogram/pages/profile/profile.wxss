@@ -701,8 +701,9 @@
   display: flex;
   flex-direction: column;
   gap: 12rpx;
-  min-height: 120rpx;
-  justify-content: center;
+  height: 176rpx;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .insight-header {
@@ -743,6 +744,8 @@
   display: flex;
   flex-direction: column;
   gap: 8rpx;
+  height: 100%;
+  justify-content: space-between;
 }
 
 .insight-title {
@@ -752,14 +755,38 @@
   line-height: 1.4;
 }
 
+.insight-period-tag {
+  font-size: 20rpx;
+  color: #4a90e2;
+  line-height: 1.4;
+  min-height: 28rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insight-thumb-small {
+  width: 100%;
+  height: 88rpx;
+  border-radius: 6rpx;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: top center;
+}
+
+.insight-thumb-top {
+  overflow: hidden;
+}
+
 .insight-text {
   font-size: 24rpx;
   color: #666;
   line-height: 1.6;
+  min-height: 78rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
@@ -800,32 +827,34 @@
 .request-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 20rpx 16rpx;
-  background: #f9f9f9;
+  align-items: flex-start;
+  padding: 16rpx 14rpx;
+  background: #f7f9fc;
   border-radius: 12rpx;
   border: none;
 }
 
 .request-item-left {
   display: flex;
-  align-items: center;
-  gap: 20rpx;
+  align-items: flex-start;
+  gap: 16rpx;
   flex: 1;
+  min-width: 0;
 }
 
 .request-user-avatar {
-  width: 80rpx;
-  height: 80rpx;
+  width: 68rpx;
+  height: 68rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.16);
 }
 
 .request-avatar-text {
-  font-size: 32rpx;
+  font-size: 28rpx;
   color: white;
   font-weight: 600;
 }
@@ -833,36 +862,86 @@
 .request-info {
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 2rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.request-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 
 .request-user-name {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #333333;
   font-weight: 600;
-  margin-bottom: 4rpx;
   text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.request-status {
+  font-size: 18rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  flex-shrink: 0;
+}
+
+.request-status-pending {
+  background: #eef4ff;
+  color: #4a90e2;
+}
+
+.request-status-approved {
+  background: #e8f8ef;
+  color: #1f9d55;
+}
+
+.request-status-rejected {
+  background: #fff1f0;
+  color: #d94841;
+}
+
+.request-status-revoked {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.request-meta {
+  font-size: 24rpx;
+  color: #5b6b82;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .request-time {
-  font-size: 24rpx;
-  color: #999999;
+  font-size: 20rpx;
+  color: #9aa3b2;
 }
 
 .request-actions {
   display: flex;
-  gap: 12rpx;
+  gap: 8rpx;
+  margin-left: 12rpx;
+  flex-shrink: 0;
 }
 
 .request-btn {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 50%;
+  min-width: 72rpx;
+  height: 44rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
-  font-weight: bold;
+  font-size: 22rpx;
+  font-weight: 600;
   transition: all 0.3s;
 }
 
@@ -877,8 +956,8 @@
 }
 
 .reject-btn {
-  background: #f0f0f0;
-  color: #999;
+  background: #eef2f7;
+  color: #6b7280;
 }
 
 .reject-btn:active {
@@ -891,6 +970,14 @@
   padding: 40rpx 0;
   font-size: 26rpx;
   color: #999999;
+}
+
+.requests-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 0 8rpx;
 }
 
 /* 加载状态 */

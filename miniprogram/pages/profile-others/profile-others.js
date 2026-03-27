@@ -63,7 +63,22 @@ Page({
   },
 
   /**
-   * 点击小凡看见 - 检查权限后展示内容或发起申请
+   * 点击小凡看见 - 直接跳转到 insights 列表页（权限检查在列表页完成）
+   */
+  handleViewInsights() {
+    const { userId, userInfo } = this.data;
+    const app = getApp();
+
+    // 保存目标用户信息到全局变量，供 insights 页面使用
+    app.globalData.targetUserForInsights = userInfo;
+
+    wx.navigateTo({
+      url: `/pages/insights/insights?userId=${userId}&userName=${encodeURIComponent(userInfo.nickname || '用户')}`
+    });
+  },
+
+  /**
+   * 点击小凡看见 - 检查权限后展示内容或发起申请（保留备用）
    */
   async handleRequestInsights() {
     const { userId, userInfo } = this.data;

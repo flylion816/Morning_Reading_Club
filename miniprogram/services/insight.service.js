@@ -140,11 +140,13 @@ class InsightService {
   /**
    * 拒绝权限请求
    * @param {number} requestId 请求ID
-   * @param {string} reason 拒绝原因
+   * @param {string|Object} reason 拒绝原因或请求体
    * @returns {Promise}
    */
   rejectRequest(requestId, reason = '') {
-    return request.post(`/insights/requests/${requestId}/reject`, { reason });
+    const payload =
+      typeof reason === 'object' && reason !== null ? reason : { reason };
+    return request.post(`/insights/requests/${requestId}/reject`, payload);
   }
 
   /**

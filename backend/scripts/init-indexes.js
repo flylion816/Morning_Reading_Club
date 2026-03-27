@@ -24,6 +24,7 @@ const User = require('../src/models/User');
 const Period = require('../src/models/Period');
 const Section = require('../src/models/Section');
 const Insight = require('../src/models/Insight');
+const InsightRequest = require('../src/models/InsightRequest');
 const Checkin = require('../src/models/Checkin');
 const Comment = require('../src/models/Comment');
 const AuditLog = require('../src/models/AuditLog');
@@ -49,7 +50,7 @@ async function createIndexes() {
     console.log('✅ MongoDB 连接成功\n');
 
     console.log('📇 创建索引...');
-    const models = [AdminUser, User, Period, Section, Insight, Checkin, Comment, AuditLog];
+    const models = [AdminUser, User, Period, Section, Insight, InsightRequest, Checkin, Comment, AuditLog];
     let totalIndexCount = 0;
 
     for (const model of models) {

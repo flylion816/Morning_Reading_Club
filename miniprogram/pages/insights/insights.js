@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const userService = require('../../services/user.service');
 const logger = require('../../utils/logger');
 
 Page({
@@ -8,9 +9,14 @@ Page({
     userId: null, // 目标用户ID（如果查看他人，此值为他人的ID）
     userName: '小凡看见', // 显示的标题
     isOtherUser: false, // 是否在查看他人的小凡看见
+    hasPermission: true, // 是否有查看权限
+    requestStatus: null, // 'none' | 'pending' | 'approved' | 'rejected'
+    approvedPeriodId: null,
+    lockedInsightCount: 0,
+    unlockedInsightCount: 0,
     headerEmoji: '🦁', // 头部emoji
     headerTitle: '小凡看见', // 头部标题
-    headerDesc: '按章节查看个性化反馈' // 头部描述
+    headerDesc: '按课程查看个性化反馈' // 头部描述
   },
 
   onLoad(options) {
@@ -33,13 +39,14 @@ Page({
       // 查看自己的小凡看见
       headerEmoji = currentUser?.avatar || currentUser?.avatarText || '🦁';
       headerTitle = '我的小凡看见';
-      headerDesc = '按章节查看个性化反馈';
+      headerDesc = '按课程查看个性化反馈';
     }
 
     this.setData({
       userId: targetUserId || null,
       userName: targetUserName,
       isOtherUser: !!targetUserId,
+      hasPermission: !targetUserId, // 查看他人时默认无权限，避免DOM切换导致FLOW错误
       headerEmoji,
       headerTitle,
       headerDesc
@@ -56,9 +63,10 @@ Page({
     // 如果是查看他人的小凡看见，从缓存或存储中获取目标用户的头像
     if (targetUserId) {
       this.loadTargetUserInfo();
+      this.checkPermission(targetUserId);
+    } else {
+      this.loadInsights();
     }
-
-    this.loadInsights();
   },
 
   async loadTargetUserInfo() {
@@ -162,6 +170,8 @@ Page({
       // 格式化数据以匹配WXML期望的字段
       const formatted = filtered.map(item => {
         let preview = item.summary || '';
+        const isAccessible = item.isAccessible !== false;
+
         if (!preview && item.content) {
           // 提取纯文本（去除所有HTML标签）
           const plainText = item.content.replace(/<[^>]*>/g, '').trim();
@@ -182,17 +192,30 @@ Page({
         return {
           id: item._id || item.id,
           dayNumber: item.day || 1,
-          periodName: periodName, // 添加期次名称
-          title: item.sectionId?.title || item.title || '学习反馈',
-          preview: preview || '暂无预览',
-          date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : ''
+          courseTitle: item.sectionId?.title || item.title || '学习反馈',
+          periodName: periodName || '七个习惯晨读营',
+          title: item.sectionId?.title || item.title || periodName || '小凡看见',
+          preview: isAccessible
+            ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
+            : '已锁定，获得授权后可查看完整内容',
+          mediaType: item.mediaType || 'text',
+          imageUrl: isAccessible ? item.imageUrl || null : null,
+          date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '',
+          periodId: item.periodId?._id || item.periodId || null,
+          isAccessible,
+          lockIcon: isAccessible ? '🔓' : '🔒'
         };
       });
 
       logger.debug('格式化后的insights:', formatted);
 
+      const unlockedInsightCount = formatted.filter(item => item.isAccessible).length;
+      const lockedInsightCount = formatted.length - unlockedInsightCount;
+
       this.setData({
         insights: formatted,
+        unlockedInsightCount,
+        lockedInsightCount,
         loading: false
       });
     } catch (error) {
@@ -223,10 +246,71 @@ Page({
   },
 
   /**
+   * 检查查看他人 insights 的权限
+   */
+  async checkPermission(targetUserId) {
+    try {
+      const status = await userService.checkInsightRequestStatus(targetUserId);
+      logger.debug('📋 权限检查结果:', status);
+
+      const requestStatus =
+        status?.status || (status?.approved ? 'approved' : status?.pending ? 'pending' : 'none');
+
+      this.setData({
+        hasPermission: !!status?.approved,
+        requestStatus,
+        approvedPeriodId: status?.periodId || null
+      });
+
+      this.loadInsights();
+    } catch (error) {
+      logger.error('权限检查失败:', error);
+      this.setData({ hasPermission: false, requestStatus: 'none', approvedPeriodId: null });
+      this.loadInsights();
+    }
+  },
+
+  /**
+   * 发起查看申请
+   */
+  async handleRequestInsight(periodId = null, insightId = null) {
+    const { userId, requestStatus, userName } = this.data;
+
+    if (requestStatus === 'pending') {
+      wx.showToast({ title: '申请已发起，请等待对方同意', icon: 'none' });
+      return;
+    }
+
+    wx.showModal({
+      title: '请求查看',
+      content: `向 ${userName} 发起查看小凡看见的申请？`,
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            await userService.createInsightRequest(userId, periodId, insightId);
+            this.setData({ requestStatus: 'pending' });
+            wx.showToast({ title: '申请已发送', icon: 'success' });
+          } catch (error) {
+            logger.error('发送申请失败:', error);
+            wx.showToast({ title: '申请发送失败', icon: 'none' });
+          }
+        }
+      }
+    });
+  },
+
+  /**
    * 点击 insight 项
    */
   handleInsightClick(e) {
-    const { id } = e.currentTarget.dataset;
+    const { id, accessible, periodId } = e.currentTarget.dataset;
+    const canAccess = accessible !== false && accessible !== 'false';
+
+    if (!canAccess) {
+      this.handleLockedInsightClick(periodId, id);
+      return;
+    }
+
     if (!id) {
       console.warn('insight id 不存在，跳过导航');
       return;
@@ -236,5 +320,23 @@ Page({
     });
   },
 
+  handleLockedInsightClick(periodId, insightId) {
+    const { requestStatus, userName } = this.data;
 
+    if (requestStatus === 'pending') {
+      wx.showToast({ title: '已发送申请，请等待对方同意', icon: 'none' });
+      return;
+    }
+
+    wx.showModal({
+      title: '内容已锁定',
+      content: `这条小凡看见暂未授权，是否向 ${userName} 发起查看申请？`,
+      confirmText: '发起申请',
+      success: res => {
+        if (res.confirm) {
+          this.handleRequestInsight(periodId || null, insightId || null);
+        }
+      }
+    });
+  },
 });

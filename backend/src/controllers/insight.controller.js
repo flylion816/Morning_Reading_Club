@@ -40,6 +40,88 @@ async function notifyUsers(req, userIds, type, title, content, options = {}) {
   });
 }
 
+async function getApprovedPeriodIdsForViewer(viewerUserId, targetUserId) {
+  if (!viewerUserId || !targetUserId || viewerUserId === targetUserId) {
+    return new Set();
+  }
+
+  const approvedRequests = await InsightRequest.find({
+    fromUserId: viewerUserId,
+    toUserId: targetUserId,
+    status: 'approved',
+    periodId: { $ne: null },
+    insightId: null
+  }).select('periodId');
+
+  return new Set(
+    approvedRequests
+      .map(request => request.periodId?.toString())
+      .filter(Boolean)
+  );
+}
+
+async function getApprovedInsightAccessForViewer(viewerUserId, targetUserId) {
+  if (!viewerUserId || !targetUserId || viewerUserId === targetUserId) {
+    return {
+      approvedInsightIds: new Set(),
+      approvedPeriodIds: new Set()
+    };
+  }
+
+  const approvedRequests = await InsightRequest.find({
+    fromUserId: viewerUserId,
+    toUserId: targetUserId,
+    status: 'approved'
+  }).select('insightId periodId');
+
+  return {
+    approvedInsightIds: new Set(
+      approvedRequests
+        .map(request => request.insightId?.toString())
+        .filter(Boolean)
+    ),
+    approvedPeriodIds: new Set(
+      approvedRequests
+        .filter(request => !request.insightId && request.periodId)
+        .map(request => request.periodId?.toString())
+        .filter(Boolean)
+    )
+  };
+}
+
+function serializeInsightForViewer(insight, options = {}) {
+  const {
+    isOwnerView = false,
+    allowedPeriodIds = new Set(),
+    allowedInsightIds = new Set()
+  } = options;
+  const insightData = insight.toObject ? insight.toObject() : insight;
+  const insightId = insightData._id?.toString?.() || insightData.id?.toString?.() || null;
+  const periodId =
+    insightData.periodId?._id?.toString?.() ||
+    insightData.periodId?.toString?.() ||
+    null;
+  const isAccessible =
+    isOwnerView ||
+    (!!insightId && allowedInsightIds.has(insightId)) ||
+    (!!periodId && allowedPeriodIds.has(periodId));
+
+  if (isAccessible) {
+    return {
+      ...insightData,
+      isAccessible: true
+    };
+  }
+
+  return {
+    ...insightData,
+    summary: null,
+    content: null,
+    imageUrl: null,
+    isAccessible: false
+  };
+}
+
 // 生成AI反馈（Mock版）
 async function generateInsight(req, res, next) {
   try {
@@ -135,25 +217,10 @@ async function getUserInsights(req, res, next) {
     const { page = 1, limit = 20, periodId, type } = req.query;
     const currentUserId = req.user.userId;
     const targetUserId = req.params.userId || currentUserId;
-
-    // 如果查看的是他人的小凡看见，需要检查权限
-    if (targetUserId !== currentUserId) {
-      logger.debug('🔐 检查权限 - 当前用户:', { currentUserId, targetUserId });
-
-      // 检查当前用户是否有approved的申请来查看目标用户的insights
-      const hasPermission = await InsightRequest.findOne({
-        fromUserId: currentUserId,
-        toUserId: targetUserId,
-        status: 'approved'
-      });
-
-      if (!hasPermission) {
-        logger.warn('⛔ 无权查看该用户的小凡看见', { currentUserId, targetUserId });
-        return res.status(403).json(errors.forbidden('无权查看该用户的小凡看见，需要获得用户同意'));
-      }
-
-      logger.debug('✅ 权限检查通过，允许查看', { currentUserId, targetUserId });
-    }
+    const isOwnerView = targetUserId === currentUserId;
+    const { approvedInsightIds, approvedPeriodIds } = isOwnerView
+      ? { approvedInsightIds: new Set(), approvedPeriodIds: new Set() }
+      : await getApprovedInsightAccessForViewer(currentUserId, targetUserId);
 
     // 构建查询条件：
     // 1. 如果查看自己：返回自己创建的 + 分配给自己的insights
@@ -186,9 +253,22 @@ async function getUserInsights(req, res, next) {
       .limit(parseInt(limit, 10))
       .select('-__v');
 
+    const serializedList = insights.map(insight =>
+      serializeInsightForViewer(insight, {
+        isOwnerView,
+        allowedPeriodIds: approvedPeriodIds,
+        allowedInsightIds: approvedInsightIds
+      })
+    );
+
     res.json(
       success({
-        list: insights,
+        list: serializedList,
+        access: {
+          isOwnerView,
+          allowedPeriodIds: [...approvedPeriodIds],
+          allowedInsightIds: [...approvedInsightIds]
+        },
         pagination: {
           page: parseInt(page, 10),
           limit: parseInt(limit, 10),
@@ -206,6 +286,7 @@ async function getUserInsights(req, res, next) {
 async function getInsightDetail(req, res, next) {
   try {
     const { insightId } = req.params;
+    const currentUserId = req.user.userId;
 
     const insight = await Insight.findById(insightId)
       .populate('userId', 'nickname avatar avatarUrl')
@@ -215,6 +296,29 @@ async function getInsightDetail(req, res, next) {
 
     if (!insight) {
       return res.status(404).json(errors.notFound('反馈不存在'));
+    }
+
+    const creatorUserId =
+      insight.userId?._id?.toString?.() || insight.userId?.toString?.() || null;
+    const targetUserId =
+      insight.targetUserId?._id?.toString?.() || insight.targetUserId?.toString?.() || null;
+    const ownerUserId = targetUserId || creatorUserId;
+
+    let canView = currentUserId === creatorUserId || currentUserId === ownerUserId;
+
+    if (!canView && ownerUserId) {
+      const { approvedInsightIds, approvedPeriodIds } =
+        await getApprovedInsightAccessForViewer(currentUserId, ownerUserId);
+      const insightRecordId = insight._id?.toString?.() || null;
+      const insightPeriodId =
+        insight.periodId?._id?.toString?.() || insight.periodId?.toString?.() || null;
+      canView =
+        (!!insightRecordId && approvedInsightIds.has(insightRecordId)) ||
+        (!!insightPeriodId && approvedPeriodIds.has(insightPeriodId));
+    }
+
+    if (!canView) {
+      return res.status(403).json(errors.forbidden('当前条目未获得查看授权'));
     }
 
     res.json(success(insight));
@@ -299,7 +403,7 @@ async function getInsights(req, res, next) {
 // 创建小凡看见（手动导入）
 async function createInsightManual(req, res, next) {
   try {
-    const { periodId, type, mediaType, content, imageUrl, targetUserId } = req.body;
+    const { periodId, periodName, sectionId, title, type, mediaType, content, imageUrl, targetUserId } = req.body;
 
     // ✅ 修复：支持两种认证方式
     // 1. 来自 authMiddleware 的小程序用户 (req.user.userId)
@@ -327,7 +431,7 @@ async function createInsightManual(req, res, next) {
     }
 
     // 创建小凡看见
-    const insight = await Insight.create({
+    const insightData = {
       userId,
       targetUserId: targetUserId || null,
       periodId,
@@ -338,7 +442,14 @@ async function createInsightManual(req, res, next) {
       source: 'manual',
       status: 'completed',
       isPublished: true
-    });
+    };
+
+    // 可选字段
+    if (sectionId) insightData.sectionId = sectionId;
+    if (periodName) insightData.periodName = periodName;
+    if (title) insightData.title = title;
+
+    const insight = await Insight.create(insightData);
 
     // 异步同步到 MySQL
     publishSyncEvent({
@@ -418,6 +529,9 @@ async function updateInsight(req, res, next) {
     const { insightId } = req.params;
     const {
       periodId,
+      periodName,
+      sectionId,
+      title,
       targetUserId,
       type,
       mediaType,
@@ -456,6 +570,9 @@ async function updateInsight(req, res, next) {
 
     // 更新所有字段
     if (periodId !== undefined) insight.periodId = periodId;
+    if (periodName !== undefined) insight.periodName = periodName || null;
+    if (sectionId !== undefined) insight.sectionId = sectionId || null;
+    if (title !== undefined) insight.title = title || null;
     if (targetUserId !== undefined) insight.targetUserId = targetUserId || null;
     if (type !== undefined) insight.type = type;
     if (mediaType !== undefined) insight.mediaType = mediaType;
@@ -537,7 +654,7 @@ async function deleteInsightManual(req, res, next) {
 // 创建小凡看见查看申请
 async function createInsightRequest(req, res, next) {
   try {
-    const { toUserId, periodId } = req.body;
+    const { toUserId, periodId, insightId } = req.body;
     const fromUserId = req.user.userId;
 
     if (!toUserId) {
@@ -548,34 +665,43 @@ async function createInsightRequest(req, res, next) {
       return res.status(400).json(errors.badRequest('不能申请查看自己的小凡看见'));
     }
 
-    // 检查是否已申请
-    const existingRequest = await InsightRequest.findOne({
-      fromUserId,
-      toUserId
-    });
+    let finalPeriodId = periodId;
+    let finalInsightId = insightId || null;
+    let requestPeriodName = '';
+    let requestInsightTitle = '';
+    let requestInsightDay = null;
 
-    if (existingRequest) {
-      if (existingRequest.status === 'approved') {
-        return res.json(success(existingRequest, '已获得查看权限'));
-      } else if (existingRequest.status === 'pending') {
-        return res.json(success(existingRequest, '申请已存在，请等待对方回复'));
-      } else if (existingRequest.status === 'rejected') {
-        return res.json(success(existingRequest, '申请已被拒绝'));
+    if (finalInsightId) {
+      const targetInsight = await Insight.findById(finalInsightId)
+        .populate('sectionId', 'title day')
+        .populate('periodId', 'name title')
+        .populate('targetUserId', '_id')
+        .populate('userId', '_id');
+
+      if (!targetInsight) {
+        return res.status(404).json(errors.notFound('目标小凡看见不存在'));
       }
+
+      const insightOwnerId =
+        targetInsight.targetUserId?._id?.toString?.() ||
+        targetInsight.targetUserId?.toString?.() ||
+        targetInsight.userId?._id?.toString?.() ||
+        targetInsight.userId?.toString?.();
+
+      if (insightOwnerId !== toUserId) {
+        return res.status(400).json(errors.badRequest('申请目标与小凡看见归属不一致'));
+      }
+
+      finalPeriodId =
+        targetInsight.periodId?._id?.toString?.() || targetInsight.periodId?.toString?.() || finalPeriodId;
+      requestPeriodName = targetInsight.periodId?.name || targetInsight.periodId?.title || '';
+      requestInsightTitle =
+        targetInsight.sectionId?.title || targetInsight.title || '学习反馈';
+      requestInsightDay = targetInsight.day || targetInsight.sectionId?.day || null;
     }
 
-    // 创建新的申请，包含可选的periodId
-    const createData = {
-      fromUserId,
-      toUserId,
-      status: 'pending'
-    };
-
-    // 如果提供了periodId，则使用它
-    let finalPeriodId = periodId;
-
     // 如果没有提供periodId，自动查询目标用户的报名记录
-    if (!periodId) {
+    if (!finalPeriodId) {
       // 先查询活跃的报名，如果没有再查询最近的报名
       let enrollment = await Enrollment.findOne({
         userId: toUserId,
@@ -594,9 +720,74 @@ async function createInsightRequest(req, res, next) {
       }
     }
 
+    // 检查同一期次是否已申请
+    const existingRequestQuery = {
+      fromUserId,
+      toUserId
+    };
+
+    if (finalInsightId) {
+      existingRequestQuery.insightId = finalInsightId;
+    } else if (finalPeriodId) {
+      existingRequestQuery.periodId = finalPeriodId;
+    }
+
+    const existingRequest = await InsightRequest.findOne(existingRequestQuery).sort({
+      updatedAt: -1
+    });
+
+    if (existingRequest) {
+      existingRequest.periodId = finalPeriodId || existingRequest.periodId || null;
+      existingRequest.insightId = finalInsightId || existingRequest.insightId || null;
+      existingRequest.requestPeriodName = requestPeriodName || existingRequest.requestPeriodName || '';
+      existingRequest.requestInsightTitle =
+        requestInsightTitle || existingRequest.requestInsightTitle || '';
+      existingRequest.requestInsightDay =
+        requestInsightDay !== null && requestInsightDay !== undefined
+          ? requestInsightDay
+          : existingRequest.requestInsightDay;
+
+      if (existingRequest.status === 'approved') {
+        await existingRequest.save();
+        return res.json(success(existingRequest, '已获得该内容的查看权限'));
+      }
+
+      if (existingRequest.status === 'rejected' || existingRequest.status === 'revoked') {
+        existingRequest.status = 'pending';
+        existingRequest.rejectedAt = null;
+        existingRequest.revokedAt = null;
+        existingRequest.approvedAt = null;
+      }
+
+      await existingRequest.save();
+
+      if (existingRequest.status === 'pending') {
+        return res.json(success(existingRequest, '申请已更新'));
+      }
+    }
+
+    // 创建新的申请，包含可选的periodId
+    const createData = {
+      fromUserId,
+      toUserId,
+      status: 'pending'
+    };
+
     // 保存periodId
     if (finalPeriodId) {
       createData.periodId = finalPeriodId;
+    }
+    if (finalInsightId) {
+      createData.insightId = finalInsightId;
+    }
+    if (requestPeriodName) {
+      createData.requestPeriodName = requestPeriodName;
+    }
+    if (requestInsightTitle) {
+      createData.requestInsightTitle = requestInsightTitle;
+    }
+    if (requestInsightDay !== null && requestInsightDay !== undefined) {
+      createData.requestInsightDay = requestInsightDay;
     }
 
     const request = await InsightRequest.create(createData);
@@ -654,7 +845,16 @@ async function getReceivedRequests(req, res, next) {
     // 查询申请，并populate申请者信息
     const requests = await InsightRequest.find(query)
       .populate('fromUserId', 'nickname avatarUrl avatar')
-      .sort({ createdAt: -1 });
+      .populate('periodId', 'name title')
+      .populate({
+        path: 'insightId',
+        select: 'day title periodName periodId sectionId',
+        populate: [
+          { path: 'periodId', select: 'name title' },
+          { path: 'sectionId', select: 'title day' }
+        ]
+      })
+      .sort({ updatedAt: -1 });
 
     res.json(success(requests, '获取成功'));
   } catch (error) {
@@ -677,7 +877,16 @@ async function getSentRequests(req, res, next) {
     // 查询申请，并populate被申请者信息
     const requests = await InsightRequest.find(query)
       .populate('toUserId', 'nickname avatarUrl avatar')
-      .sort({ createdAt: -1 });
+      .populate('periodId', 'name title')
+      .populate({
+        path: 'insightId',
+        select: 'day title periodName periodId sectionId',
+        populate: [
+          { path: 'periodId', select: 'name title' },
+          { path: 'sectionId', select: 'title day' }
+        ]
+      })
+      .sort({ updatedAt: -1 });
 
     res.json(success(requests, '获取成功'));
   } catch (error) {
@@ -691,24 +900,51 @@ async function getRequestStatus(req, res, next) {
     const userId = req.user.userId;
     const targetUserId = req.params.userId;
 
-    // 查询与该用户的最新申请
-    const request = await InsightRequest.findOne({
+    const allRequests = await InsightRequest.find({
       fromUserId: userId,
       toUserId: targetUserId
-    }).sort({ createdAt: -1 });
+    }).sort({ updatedAt: -1 });
 
-    if (!request) {
+    const latestRequest = allRequests[0];
+    const approvedPeriodIds = allRequests
+      .filter(request => request.status === 'approved' && request.periodId && !request.insightId)
+      .map(request => request.periodId.toString());
+    const approvedInsightIds = allRequests
+      .filter(request => request.status === 'approved' && request.insightId)
+      .map(request => request.insightId.toString());
+    const hasPending = allRequests.some(request => request.status === 'pending');
+
+    if (!latestRequest) {
       // 没有申请记录
-      return res.json(success({ approved: false, pending: false }, '无申请记录'));
+      return res.json(
+        success(
+          {
+            approved: false,
+            pending: false,
+            periodId: null,
+            approvedPeriodIds: [],
+            approvedInsightIds: []
+          },
+          '无申请记录'
+        )
+      );
     }
 
     // 返回申请状态
     const response = {
-      approved: request.status === 'approved',
-      pending: request.status === 'pending',
-      requestId: request._id,
-      status: request.status,
-      createdAt: request.createdAt
+      approved: approvedPeriodIds.length > 0 || approvedInsightIds.length > 0,
+      pending: hasPending,
+      requestId: latestRequest._id,
+      status:
+        hasPending
+          ? 'pending'
+          : approvedPeriodIds.length > 0 || approvedInsightIds.length > 0
+            ? 'approved'
+            : latestRequest.status,
+      createdAt: latestRequest.createdAt,
+      periodId: latestRequest.periodId || null,
+      approvedPeriodIds,
+      approvedInsightIds
     };
 
     res.json(success(response, '申请状态'));
@@ -722,11 +958,7 @@ async function approveInsightRequest(req, res, next) {
   try {
     const requestId = req.params.requestId;
     const userId = req.user.userId;
-    const { periodId } = req.body;
-
-    if (!periodId) {
-      return res.status(400).json(errors.badRequest('期次ID不能为空'));
-    }
+    let { periodId } = req.body;
 
     // 查找申请
     const request = await InsightRequest.findById(requestId);
@@ -743,6 +975,19 @@ async function approveInsightRequest(req, res, next) {
     // 验证申请状态为pending
     if (request.status !== 'pending') {
       return res.status(400).json(errors.badRequest('申请状态已改变，无法操作'));
+    }
+
+    if (!periodId) {
+      periodId = request.periodId;
+    }
+
+    if (!periodId && request.insightId) {
+      const targetInsight = await Insight.findById(request.insightId).select('periodId');
+      periodId = targetInsight?.periodId || null;
+    }
+
+    if (!periodId) {
+      return res.status(400).json(errors.badRequest('期次ID不能为空'));
     }
 
     // 更新申请
@@ -1377,6 +1622,7 @@ async function batchApproveRequests(req, res, next) {
  * @route   POST /api/v1/insights/external/create
  * @param   userId {string} - 用户ID（必填）
  * @param   periodName {string} - 期次名称（必填）
+ * @param   title {string} - 课程/课节标题（可选，如"积极主动"）
  * @param   day {number} - 第几天的课程（可选）
  * @param   content {string} - 小凡看见的文字内容（与imageUrl二选一）
  * @param   imageUrl {string} - 小凡看见的图片地址（与content二选一）
@@ -1384,7 +1630,7 @@ async function batchApproveRequests(req, res, next) {
  */
 async function createInsightFromExternal(req, res, next) {
   try {
-    const { periodName, day, content, imageUrl, targetUserId } = req.body;
+    const { periodName, title, day, content, imageUrl, targetUserId } = req.body;
 
     // 验证必填字段
     if (!periodName) {
@@ -1443,6 +1689,8 @@ async function createInsightFromExternal(req, res, next) {
       userId: creatorId,
       targetUserId: targetUser._id,
       periodId: period._id,
+      periodName: period.name || periodName,
+      title: title || null,
       day: day || null,
       type: 'insight',
       mediaType: imageUrl ? 'image' : 'text',
@@ -1466,6 +1714,8 @@ async function createInsightFromExternal(req, res, next) {
       _id: insight._id,
       targetUserId: insight.targetUserId,
       periodId: insight.periodId,
+      periodName: insight.periodName,
+      title: insight.title,
       day: insight.day,
       type: insight.type,
       mediaType: insight.mediaType,

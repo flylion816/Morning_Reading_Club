@@ -6,6 +6,73 @@ const enrollmentService = require('../../services/enrollment.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 
+function formatRelativeTime(dateString) {
+  if (!dateString) return '刚刚';
+
+  const createdTime = new Date(dateString).getTime();
+  const now = Date.now();
+  const diffMs = now - createdTime;
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMinutes < 1) return '刚刚';
+  if (diffMinutes < 60) return `${diffMinutes}分钟前`;
+  if (diffHours < 24) return `${diffHours}小时前`;
+  if (diffDays < 7) return `${diffDays}天前`;
+  return new Date(dateString).toLocaleDateString('zh-CN');
+}
+
+function buildInsightRequestDisplay(item) {
+  const fromUser = item.fromUserId || {};
+  const periodName =
+    item.requestPeriodName || item.periodId?.name || item.periodId?.title || '未知期次';
+  const insightTitle =
+    item.requestInsightTitle ||
+    item.insightId?.sectionId?.title ||
+    item.insightId?.title ||
+    '学习反馈';
+  const insightDay =
+    item.requestInsightDay || item.insightId?.day || item.insightId?.sectionId?.day || null;
+  const dayText = insightDay ? `第${insightDay}天` : '';
+  const metaParts = [periodName];
+  if (dayText) metaParts.push(dayText);
+  if (insightTitle) metaParts.push(insightTitle);
+
+  const statusMap = {
+    pending: { text: '待处理', className: 'pending' },
+    approved: { text: '已同意', className: 'approved' },
+    rejected: { text: '已拒绝', className: 'rejected' },
+    revoked: { text: '已撤销', className: 'revoked' }
+  };
+  const statusInfo = statusMap[item.status] || statusMap.pending;
+
+  return {
+    id: item._id || item.id,
+    _id: item._id || item.id,
+    fromUserId: item.fromUserId,
+    fromUserName: fromUser.nickname || fromUser.name || '用户',
+    fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
+    avatarColor: fromUser.avatarColor || '#4a90e2',
+    toUserId: item.toUserId,
+    time: formatRelativeTime(item.createdAt),
+    status: item.status,
+    statusText: statusInfo.text,
+    statusClass: statusInfo.className,
+    createdAt: item.createdAt,
+    periodId: item.periodId?._id || item.periodId || null,
+    insightId: item.insightId?._id || item.insightId || null,
+    requestPeriodName: periodName,
+    requestInsightTitle: insightTitle,
+    requestInsightDay: insightDay,
+    requestDayText: dayText,
+    requestMeta: metaParts.join(' · '),
+    requestSummary: dayText ? `${periodName} · ${dayText}` : periodName,
+    canApprove: item.status === 'pending',
+    canReject: item.status === 'pending'
+  };
+}
+
 Page({
   data: {
     // 用户信息
@@ -30,6 +97,8 @@ Page({
 
     // 收到的小凡看见请求列表
     insightRequests: [],
+    allInsightRequests: [],
+    insightRequestTotal: 0,
 
     // 腾讯会议
     hasMeeting: false,
@@ -539,10 +608,13 @@ Page({
           id: item._id || item.id,
           day: `第${item.day}天`,
           title: item.sectionId?.title || '学习反馈',
-          preview: preview || (item.imageUrl ? '点击查看小凡看见' : '暂无预览'),
-          periodId: item.periodId, // 保留期次ID用于详情页跳转
-          type: item.type, // 小凡看见类型
-          typeConfig: typeConfig // 类型配置（用于显示）
+          courseTitle: item.sectionId?.title || item.title || '学习反馈',
+          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+          mediaType: item.mediaType || 'text',
+          imageUrl: item.imageUrl || null,
+          periodId: item.periodId,
+          type: item.type,
+          typeConfig: typeConfig
         };
       });
 
@@ -575,8 +647,8 @@ Page({
 
       console.log('📋 开始加载小凡看见请求...');
 
-      // 调用后端API获取接收到的待处理申请（status === 'pending'）
-      const res = await insightService.getReceivedRequests({ status: 'pending' });
+      // 拉取全部请求，首页仅展示最近3条，但保留完整历史用于跳转
+      const res = await insightService.getReceivedRequests();
 
       console.log('📋 API 返回原始响应:', res);
       console.log('📋 是否为数组?:', Array.isArray(res));
@@ -595,57 +667,18 @@ Page({
       console.log('✅ 小凡看见请求加载成功，共', receivedRequests.length, '条');
       console.log('✅ 请求数据:', JSON.stringify(receivedRequests));
 
-      // 格式化数据以匹配WXML期望的字段
-      const formatted = receivedRequests.map(item => {
-        // 从 fromUserId 对象中提取信息
-        const fromUser = item.fromUserId || {};
-
-        // 格式化时间：如果是ISO日期，显示相对时间
-        let displayTime = '刚刚';
-        if (item.createdAt) {
-          const createdTime = new Date(item.createdAt).getTime();
-          const now = Date.now();
-          const diffMs = now - createdTime;
-          const diffMinutes = Math.floor(diffMs / 60000);
-          const diffHours = Math.floor(diffMs / 3600000);
-          const diffDays = Math.floor(diffMs / 86400000);
-
-          if (diffMinutes < 1) {
-            displayTime = '刚刚';
-          } else if (diffMinutes < 60) {
-            displayTime = `${diffMinutes}分钟前`;
-          } else if (diffHours < 24) {
-            displayTime = `${diffHours}小时前`;
-          } else if (diffDays < 7) {
-            displayTime = `${diffDays}天前`;
-          } else {
-            displayTime = new Date(item.createdAt).toLocaleDateString('zh-CN');
-          }
-        }
-
-        return {
-          id: item._id || item.id,
-          _id: item._id || item.id,
-          fromUserId: item.fromUserId,
-          fromUserName: fromUser.nickname || fromUser.name || '用户',
-          fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
-          avatarColor: fromUser.avatarColor || '#4a90e2',
-          toUserId: item.toUserId,
-          time: displayTime,
-          status: item.status,
-          createdAt: item.createdAt,
-          periodId: item.periodId
-        };
-      });
+      const formatted = receivedRequests.map(buildInsightRequestDisplay);
 
       console.log('📦 格式化后的请求:', formatted);
 
       this.setData({
-        insightRequests: formatted
+        allInsightRequests: formatted,
+        insightRequests: formatted.slice(0, 3),
+        insightRequestTotal: formatted.length
       });
     } catch (error) {
       console.error('加载小凡看见请求失败:', error);
-      this.setData({ insightRequests: [] });
+      this.setData({ insightRequests: [], allInsightRequests: [], insightRequestTotal: 0 });
     }
   },
 
@@ -798,36 +831,11 @@ Page({
 
       const requestId = request._id || request.id;
 
-      // 优先使用申请中的 periodId，如果没有则从全局数据中获取
-      let periodId = request.periodId;
-      if (!periodId) {
-        // 尝试从多个来源获取 periodId
-        periodId =
-          app.globalData.periods?.[0]?._id ||
-          app.globalData.currentPeriodId ||
-          this.data.currentPeriod?._id ||
-          this.data.currentPeriod?.id ||
-          '';
-      }
-
-      if (!periodId) {
-        wx.showToast({
-          title: '无法获取期次信息，请稍后重试',
-          icon: 'none'
-        });
-        return;
-      }
-
-      console.log('📋 使用期次ID:', periodId);
-
       // 调用后端API批准申请
-      await insightService.approveRequest(requestId, { periodId });
+      await insightService.approveRequest(requestId, { periodId: request.periodId || '' });
 
       console.log('✅ 申请已批准');
-
-      // 从列表中移除该申请
-      const newRequests = this.data.insightRequests.filter(r => (r._id || r.id) !== requestId);
-      this.setData({ insightRequests: newRequests });
+      this.updateInsightRequestStatus(requestId, 'approved');
 
       wx.showToast({
         title: '已批准申请',
@@ -858,10 +866,7 @@ Page({
       });
 
       console.log('✅ 申请已拒绝');
-
-      // 从待处理列表中移除该请求
-      const newRequests = this.data.insightRequests.filter(r => (r._id || r.id) !== requestId);
-      this.setData({ insightRequests: newRequests });
+      this.updateInsightRequestStatus(requestId, 'rejected');
 
       wx.showToast({
         title: '已拒绝申请',
@@ -874,6 +879,39 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  updateInsightRequestStatus(requestId, nextStatus) {
+    const statusMap = {
+      approved: { text: '已同意', className: 'approved' },
+      rejected: { text: '已拒绝', className: 'rejected' }
+    };
+    const statusInfo = statusMap[nextStatus];
+    if (!statusInfo) return;
+
+    const updatedAll = (this.data.allInsightRequests || []).map(item =>
+      (item._id || item.id) === requestId
+        ? {
+            ...item,
+            status: nextStatus,
+            statusText: statusInfo.text,
+            statusClass: statusInfo.className,
+            canApprove: false,
+            canReject: false
+          }
+        : item
+    );
+
+    this.setData({
+      allInsightRequests: updatedAll,
+      insightRequests: updatedAll.slice(0, 3)
+    });
+  },
+
+  navigateToInsightRequests() {
+    wx.navigateTo({
+      url: '/pages/insight-requests/insight-requests'
+    });
   },
 
   /**

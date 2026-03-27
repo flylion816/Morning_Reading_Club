@@ -100,7 +100,15 @@
             data-id="{{item.id}}"
             catchtap="handleInsightClick">
             <view class="insight-content-preview">
-              <view class="insight-text">{{item.preview}}</view>
+              <view class="insight-period-tag">{{item.courseTitle}}</view>
+              <block wx:if="{{item.mediaType === 'image' && item.imageUrl}}">
+                <view
+                  class="insight-thumb-small insight-thumb-top"
+                  style="background-image: url('{{item.imageUrl}}');"></view>
+              </block>
+              <block wx:else>
+                <view class="insight-text">{{item.preview}}</view>
+              </block>
             </view>
           </view>
           <view class="insight-empty" wx:if="{{recentInsights.length === 0}}">
@@ -129,22 +137,30 @@
                 <text class="request-avatar-text">{{item.fromUserAvatar || '😊'}}</text>
               </view>
               <view class="request-info">
-                <text class="request-user-name">{{item.fromUserName}}</text>
+                <view class="request-top-row">
+                  <text class="request-user-name">{{item.fromUserName}}</text>
+                  <text class="request-status request-status-{{item.statusClass}}">{{item.statusText}}</text>
+                </view>
+                <text class="request-meta">{{item.requestMeta}}</text>
                 <text class="request-time">{{item.time}}</text>
               </view>
             </view>
-            <view class="request-actions">
+            <view class="request-actions" wx:if="{{item.canApprove || item.canReject}}">
               <view class="request-btn approve-btn" catchtap="handleApproveRequest" data-request="{{item}}">
-                <text>✓</text>
+                <text>同意</text>
               </view>
               <view class="request-btn reject-btn" catchtap="handleRejectRequest" data-request="{{item}}">
-                <text>✗</text>
+                <text>拒绝</text>
               </view>
             </view>
           </view>
           <view class="requests-empty" wx:if="{{insightRequests.length === 0}}">
             暂无请求
           </view>
+        </view>
+        <view class="requests-more" wx:if="{{insightRequestTotal > 3}}" catchtap="navigateToInsightRequests">
+          <text class="more-text">查看更多请求</text>
+          <text class="more-arrow">→</text>
         </view>
       </view>
     </view>

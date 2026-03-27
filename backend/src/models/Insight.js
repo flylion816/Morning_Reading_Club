@@ -28,9 +28,19 @@ const InsightSchema = new mongoose.Schema(
       ref: 'Period',
       required: true
     },
+    // 课程名称（冗余字段，方便展示，可为空）
+    periodName: {
+      type: String,
+      default: null
+    },
     sectionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Section'
+    },
+    // 课节/课程标题（冗余字段，方便展示，可为空）
+    title: {
+      type: String,
+      default: null
     },
 
     // 第几天

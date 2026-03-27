@@ -36,6 +36,29 @@ const insightRequestSchema = new mongoose.Schema(
       default: null
     },
 
+    // 针对某一条小凡看见的申请
+    insightId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Insight',
+      default: null
+    },
+
+    // 申请目标快照，避免原内容变化后请求记录失真
+    requestPeriodName: {
+      type: String,
+      default: ''
+    },
+
+    requestInsightTitle: {
+      type: String,
+      default: ''
+    },
+
+    requestInsightDay: {
+      type: Number,
+      default: null
+    },
+
     // 审批时间戳
     approvedAt: {
       type: Date,
@@ -97,7 +120,7 @@ const insightRequestSchema = new mongoose.Schema(
 // 索引：加快查询
 // 防止重复pending申请：同一对用户不能有多个pending状态的申请
 insightRequestSchema.index(
-  { fromUserId: 1, toUserId: 1, status: 1 },
+  { fromUserId: 1, toUserId: 1, insightId: 1, status: 1 },
   {
     unique: true,
     partialFilterExpression: { status: 'pending' }
@@ -110,7 +133,7 @@ insightRequestSchema.index({ toUserId: 1, status: 1 });
 // 查询申请者发起的申请
 insightRequestSchema.index({ fromUserId: 1, status: 1 });
 
-// 按创建时间排序
-insightRequestSchema.index({ createdAt: -1 });
+// 按更新时间排序，便于重复申请后顶到前面
+insightRequestSchema.index({ updatedAt: -1 });
 
 module.exports = mongoose.model('InsightRequest', insightRequestSchema);

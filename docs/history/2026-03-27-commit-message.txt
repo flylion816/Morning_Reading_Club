@@ -1,0 +1,12 @@
+feat: refine insight request flow and miniprogram UI
+
+- switch insight request flow from period-level access to single-insight access
+- reuse repeated requests for the same insightId and sort request history by updatedAt
+- keep processed request records visible on home and request history pages
+- add per-item lock/unlock behavior for other users' insight lists
+- fix insight detail fallback text when title or periodName is null
+- flatten home request cards and compact request history layout
+- change insight image thumbnails to crop from the top instead of center
+- add targeted unit tests for insight request authorization behavior
+- add regression test scaffolding and update test documentation
+- add remote index management script for insight_requests unique index migration

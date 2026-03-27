@@ -27,6 +27,23 @@ function textToHtml(text) {
   return withParagraphs;
 }
 
+function normalizeInsightDetail(rawInsight) {
+  if (!rawInsight) return {};
+
+  const title = rawInsight.sectionId?.title || rawInsight.title || '学习反馈';
+  const periodName =
+    rawInsight.periodId?.name ||
+    rawInsight.periodId?.title ||
+    rawInsight.periodName ||
+    '七个习惯晨读营';
+
+  return {
+    ...rawInsight,
+    title,
+    periodName
+  };
+}
+
 Page({
   data: {
     insightId: null,
@@ -48,7 +65,8 @@ Page({
 
   async loadInsightDetail() {
     try {
-      const insight = await insightService.getInsightDetail(this.data.insightId);
+      const rawInsight = await insightService.getInsightDetail(this.data.insightId);
+      const insight = normalizeInsightDetail(rawInsight);
 
       // 添加 dayNumber 字段用于显示
       if (insight && !insight.dayNumber) {

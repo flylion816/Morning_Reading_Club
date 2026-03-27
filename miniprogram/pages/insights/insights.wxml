@@ -5,19 +5,54 @@
     <view class="header-desc">{{headerDesc}}</view>
   </view>
 
-  <!-- 小凡看见列表 -->
+  <!-- 权限提示（查看他人时） -->
+  <view class="permission-block" wx:if="{{isOtherUser && lockedInsightCount > 0}}">
+    <view class="permission-icon">🔒</view>
+    <view class="permission-text" wx:if="{{requestStatus === 'approved'}}">
+      你已获得部分查看权限，未授权的小凡看见仍保持锁定
+    </view>
+    <view class="permission-text" wx:else>{{userName}} 的部分小凡看见需要获得授权才能查看</view>
+    <view class="permission-status" wx:if="{{requestStatus === 'pending'}}">
+      已发送申请，等待对方同意
+    </view>
+    <view class="permission-status" wx:if="{{requestStatus === 'none'}}">
+      点击下方带锁的条目可单独发起查看申请
+    </view>
+    <view class="permission-status permission-rejected" wx:if="{{requestStatus === 'rejected'}}">
+      某次申请已被拒绝，可点击其他锁定条目重新申请
+    </view>
+  </view>
+
   <view class="insights-list">
     <view
       wx:for="{{insights}}"
       wx:key="id"
-      class="insight-item"
+      class="insight-item {{item.isAccessible ? 'is-unlocked' : 'is-locked'}}"
       bindtap="handleInsightClick"
-      data-id="{{item.id}}">
+      data-id="{{item.id}}"
+      data-accessible="{{item.isAccessible}}"
+      data-period-id="{{item.periodId}}">
       <view class="insight-header">
         <view class="insight-title">{{item.title}}</view>
-        <view class="insight-period" wx:if="{{item.periodName}}">{{item.periodName}}</view>
+        <view class="insight-meta">
+          <view class="insight-period">{{item.periodName}}</view>
+          <view
+            wx:if="{{isOtherUser}}"
+            class="insight-lock-badge {{item.isAccessible ? 'unlocked' : 'locked'}}">
+            {{item.lockIcon}}
+          </view>
+        </view>
       </view>
-      <view class="insight-preview">{{item.preview}}</view>
+      <block wx:if="{{item.mediaType === 'image' && item.imageUrl}}">
+        <view class="insight-preview">
+          <view
+            class="insight-thumb insight-thumb-top"
+            style="background-image: url('{{item.imageUrl}}');"></view>
+        </view>
+      </block>
+      <block wx:else>
+        <view class="insight-preview">{{item.preview}}</view>
+      </block>
       <view class="insight-date">{{item.date}}</view>
     </view>
 

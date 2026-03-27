@@ -1,8 +1,10 @@
 <view class="page-insight-detail">
   <!-- 顶部课程标题卡片 -->
   <view class="detail-header">
-    <view class="day-title">{{insight.title}}<text class="day-period">{{insight.periodName}}</text></view>
-    <view class="day-subtitle">你的个性化学习反馈</view>
+    <view class="day-title">
+      {{insight.title}}
+      <text wx:if="{{insight.periodName}}" class="day-period">{{insight.periodName}}</text>
+    </view>
   </view>
 
   <!-- 内容区 -->
