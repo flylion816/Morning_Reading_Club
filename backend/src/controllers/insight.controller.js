@@ -7,6 +7,8 @@ const { success, errors } = require('../utils/response');
 const { createNotification, createNotifications } = require('./notification.controller');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
+const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const { formatNotificationTime, truncateText } = require('../utils/notification-links');
 
 /**
  * 辅助函数：创建通知并自动添加 WebSocket 管理器
@@ -40,6 +42,46 @@ async function notifyUsers(req, userIds, type, title, content, options = {}) {
   });
 }
 
+async function notifyInsightRequestCreated(req, { request, fromUser, toUser }) {
+  const insightTitle = request.requestInsightTitle || '学习反馈';
+  const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
+  const dayText =
+    request.requestInsightDay && !titleHasDay ? `第${request.requestInsightDay}天` : '';
+  const remark = [request.requestPeriodName, dayText, insightTitle].filter(Boolean).join(' · ');
+
+  try {
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: request.toUserId,
+      notificationType: 'request_created',
+      title: '收到新的小凡看见查看申请',
+      content: `${fromUser?.nickname || '用户'} 申请查看你的小凡看见`,
+      scene: 'insight_request_created',
+      targetPage: 'pages/profile/profile',
+      senderId: request.fromUserId,
+      data: {
+        senderName: fromUser?.nickname,
+        senderAvatar: fromUser?.avatarUrl || '',
+        fromUserName: fromUser?.nickname,
+        toUserName: toUser?.nickname,
+        periodName: request.requestPeriodName || '',
+        insightRequestId: request._id.toString()
+      },
+      subscribeFields: {
+        requestUser: fromUser?.nickname || '用户',
+        remark: truncateText(remark || '小凡看见查看申请', 32),
+        requestTime: formatNotificationTime(request.createdAt || request.updatedAt || new Date())
+      },
+      sourceType: 'insight_request',
+      sourceId: request._id
+    });
+  } catch (error) {
+    logger.warn('小凡看见申请通知发送失败', {
+      requestId: request._id?.toString?.(),
+      message: error.message
+    });
+  }
+}
+
 async function getApprovedPeriodIdsForViewer(viewerUserId, targetUserId) {
   if (!viewerUserId || !targetUserId || viewerUserId === targetUserId) {
     return new Set();
@@ -60,32 +102,54 @@ async function getApprovedPeriodIdsForViewer(viewerUserId, targetUserId) {
   );
 }
 
-async function getApprovedInsightAccessForViewer(viewerUserId, targetUserId) {
+async function getViewerAccessContext(viewerUserId, targetUserId) {
   if (!viewerUserId || !targetUserId || viewerUserId === targetUserId) {
     return {
       approvedInsightIds: new Set(),
-      approvedPeriodIds: new Set()
+      approvedPeriodIds: new Set(),
+      latestInsightRequests: new Map(),
+      latestPeriodRequests: new Map()
     };
   }
 
-  const approvedRequests = await InsightRequest.find({
+  const requests = await InsightRequest.find({
     fromUserId: viewerUserId,
-    toUserId: targetUserId,
-    status: 'approved'
-  }).select('insightId periodId');
+    toUserId: targetUserId
+  })
+    .select('_id status insightId periodId createdAt updatedAt')
+    .sort({ updatedAt: -1, createdAt: -1 });
+
+  const approvedInsightIds = new Set();
+  const approvedPeriodIds = new Set();
+  const latestInsightRequests = new Map();
+  const latestPeriodRequests = new Map();
+
+  requests.forEach(request => {
+    const insightId = request.insightId?.toString();
+    const periodId = request.periodId?.toString();
+
+    if (request.status === 'approved') {
+      if (insightId) {
+        approvedInsightIds.add(insightId);
+      } else if (periodId) {
+        approvedPeriodIds.add(periodId);
+      }
+    }
+
+    if (insightId && !latestInsightRequests.has(insightId)) {
+      latestInsightRequests.set(insightId, request);
+    }
+
+    if (!insightId && periodId && !latestPeriodRequests.has(periodId)) {
+      latestPeriodRequests.set(periodId, request);
+    }
+  });
 
   return {
-    approvedInsightIds: new Set(
-      approvedRequests
-        .map(request => request.insightId?.toString())
-        .filter(Boolean)
-    ),
-    approvedPeriodIds: new Set(
-      approvedRequests
-        .filter(request => !request.insightId && request.periodId)
-        .map(request => request.periodId?.toString())
-        .filter(Boolean)
-    )
+    approvedInsightIds,
+    approvedPeriodIds,
+    latestInsightRequests,
+    latestPeriodRequests
   };
 }
 
@@ -93,7 +157,9 @@ function serializeInsightForViewer(insight, options = {}) {
   const {
     isOwnerView = false,
     allowedPeriodIds = new Set(),
-    allowedInsightIds = new Set()
+    allowedInsightIds = new Set(),
+    latestInsightRequests = new Map(),
+    latestPeriodRequests = new Map()
   } = options;
   const insightData = insight.toObject ? insight.toObject() : insight;
   const insightId = insightData._id?.toString?.() || insightData.id?.toString?.() || null;
@@ -105,11 +171,37 @@ function serializeInsightForViewer(insight, options = {}) {
     isOwnerView ||
     (!!insightId && allowedInsightIds.has(insightId)) ||
     (!!periodId && allowedPeriodIds.has(periodId));
+  const matchedInsightRequest =
+    !isOwnerView && insightId ? latestInsightRequests.get(insightId) || null : null;
+  const matchedPeriodRequest =
+    !isOwnerView && !matchedInsightRequest && periodId
+      ? latestPeriodRequests.get(periodId) || null
+      : null;
+  const matchedRequest = matchedInsightRequest || matchedPeriodRequest;
+  const requestScope = matchedInsightRequest
+    ? 'insight'
+    : matchedPeriodRequest
+      ? 'period'
+      : isOwnerView
+        ? 'owner'
+        : (!!insightId && allowedInsightIds.has(insightId))
+          ? 'insight'
+          : (!!periodId && allowedPeriodIds.has(periodId))
+            ? 'period'
+            : null;
+  const requestStatus = isOwnerView
+    ? 'owner'
+    : isAccessible
+      ? 'approved'
+      : matchedRequest?.status || 'none';
 
   if (isAccessible) {
     return {
       ...insightData,
-      isAccessible: true
+      isAccessible: true,
+      requestStatus,
+      requestScope,
+      requestId: matchedRequest?._id || null
     };
   }
 
@@ -118,7 +210,10 @@ function serializeInsightForViewer(insight, options = {}) {
     summary: null,
     content: null,
     imageUrl: null,
-    isAccessible: false
+    isAccessible: false,
+    requestStatus,
+    requestScope,
+    requestId: matchedRequest?._id || null
   };
 }
 
@@ -218,9 +313,19 @@ async function getUserInsights(req, res, next) {
     const currentUserId = req.user.userId;
     const targetUserId = req.params.userId || currentUserId;
     const isOwnerView = targetUserId === currentUserId;
-    const { approvedInsightIds, approvedPeriodIds } = isOwnerView
-      ? { approvedInsightIds: new Set(), approvedPeriodIds: new Set() }
-      : await getApprovedInsightAccessForViewer(currentUserId, targetUserId);
+    const {
+      approvedInsightIds,
+      approvedPeriodIds,
+      latestInsightRequests,
+      latestPeriodRequests
+    } = isOwnerView
+      ? {
+          approvedInsightIds: new Set(),
+          approvedPeriodIds: new Set(),
+          latestInsightRequests: new Map(),
+          latestPeriodRequests: new Map()
+        }
+      : await getViewerAccessContext(currentUserId, targetUserId);
 
     // 构建查询条件：
     // 1. 如果查看自己：返回自己创建的 + 分配给自己的insights
@@ -257,7 +362,9 @@ async function getUserInsights(req, res, next) {
       serializeInsightForViewer(insight, {
         isOwnerView,
         allowedPeriodIds: approvedPeriodIds,
-        allowedInsightIds: approvedInsightIds
+        allowedInsightIds: approvedInsightIds,
+        latestInsightRequests,
+        latestPeriodRequests
       })
     );
 
@@ -308,7 +415,7 @@ async function getInsightDetail(req, res, next) {
 
     if (!canView && ownerUserId) {
       const { approvedInsightIds, approvedPeriodIds } =
-        await getApprovedInsightAccessForViewer(currentUserId, ownerUserId);
+        await getViewerAccessContext(currentUserId, ownerUserId);
       const insightRecordId = insight._id?.toString?.() || null;
       const insightPeriodId =
         insight.periodId?._id?.toString?.() || insight.periodId?.toString?.() || null;
@@ -737,6 +844,7 @@ async function createInsightRequest(req, res, next) {
     });
 
     if (existingRequest) {
+      const previousStatus = existingRequest.status;
       existingRequest.periodId = finalPeriodId || existingRequest.periodId || null;
       existingRequest.insightId = finalInsightId || existingRequest.insightId || null;
       existingRequest.requestPeriodName = requestPeriodName || existingRequest.requestPeriodName || '';
@@ -752,17 +860,31 @@ async function createInsightRequest(req, res, next) {
         return res.json(success(existingRequest, '已获得该内容的查看权限'));
       }
 
+      let shouldNotify = false;
       if (existingRequest.status === 'rejected' || existingRequest.status === 'revoked') {
         existingRequest.status = 'pending';
         existingRequest.rejectedAt = null;
         existingRequest.revokedAt = null;
         existingRequest.approvedAt = null;
+        shouldNotify = true;
       }
 
       await existingRequest.save();
 
       if (existingRequest.status === 'pending') {
-        return res.json(success(existingRequest, '申请已更新'));
+        if (shouldNotify) {
+          const [fromUser, toUser] = await Promise.all([
+            User.findById(fromUserId).select('nickname avatar avatarUrl').lean(),
+            User.findById(toUserId).select('nickname avatar avatarUrl').lean()
+          ]);
+          await notifyInsightRequestCreated(req, {
+            request: existingRequest,
+            fromUser,
+            toUser
+          });
+        }
+
+        return res.json(success(existingRequest, previousStatus === 'pending' ? '申请已更新' : '申请已重新发送'));
       }
     }
 
@@ -801,27 +923,17 @@ async function createInsightRequest(req, res, next) {
     });
 
     // 获取申请者和被申请者信息
-    const fromUser = await User.findById(fromUserId).select('nickname avatar');
-    const toUser = await User.findById(toUserId).select('nickname avatar');
+    const [fromUser, toUser] = await Promise.all([
+      User.findById(fromUserId).select('nickname avatar avatarUrl').lean(),
+      User.findById(toUserId).select('nickname avatar avatarUrl').lean()
+    ]);
 
-    // 发送通知给被申请者
     if (toUser) {
-      await notifyUser(
-        req,
-        toUserId,
-        'request_created',
-        '收到新的小凡看见查看申请',
-        `${fromUser?.nickname || '用户'} 申请查看你的小凡看见`,
-        {
-          requestId: request._id,
-          senderId: fromUserId,
-          data: {
-            senderName: fromUser?.nickname,
-            senderAvatar: fromUser?.avatar,
-            fromUserName: fromUser?.nickname
-          }
-        }
-      );
+      await notifyInsightRequestCreated(req, {
+        request,
+        fromUser,
+        toUser
+      });
     }
 
     res.json(success(request, '申请已发送'));
@@ -1136,7 +1248,15 @@ async function getInsightRequestsAdmin(req, res, next) {
     const requests = await InsightRequest.find(query)
       .populate('fromUserId', 'nickname avatarUrl avatar email')
       .populate('toUserId', 'nickname avatarUrl avatar email')
-      .populate('periodId', 'name startDate endDate')
+      .populate('periodId', 'name title startDate endDate')
+      .populate({
+        path: 'insightId',
+        select: 'day title periodName periodId sectionId',
+        populate: [
+          { path: 'periodId', select: 'name title' },
+          { path: 'sectionId', select: 'title day' }
+        ]
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10));

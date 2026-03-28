@@ -139,6 +139,26 @@
           <el-table-column type="selection" width="50" />
           <el-table-column prop="fromUserId.nickname" label="申请者" width="120" />
           <el-table-column prop="toUserId.nickname" label="被申请者" width="120" />
+          <el-table-column label="申请期次" min-width="180">
+            <template #default="{ row }">
+              <span>{{ getRequestPeriodName(row) || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="课程名称" min-width="220">
+            <template #default="{ row }">
+              <div class="request-target-cell">
+                <div class="request-target-main">{{ getRequestCourseSummary(row) || '-' }}</div>
+                <div class="request-target-sub" v-if="getRequestScopeLabel(row)">
+                  {{ getRequestScopeLabel(row) }}
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="申请目标" min-width="220">
+            <template #default="{ row }">
+              <span>{{ getRequestTargetSummary(row) }}</span>
+            </template>
+          </el-table-column>
           <el-table-column label="申请状态" width="100">
             <template #default="{ row }">
               <el-tag :type="getStatusTagType(row.status)" :hit="true">
@@ -218,8 +238,17 @@
           <el-form-item label="被申请者">
             <span>{{ dialogApprove.form.toUserName }}</span>
           </el-form-item>
+          <el-form-item label="申请范围">
+            <span>{{ getRequestScopeLabel(dialogApprove.request) }}</span>
+          </el-form-item>
+          <el-form-item label="申请目标">
+            <span>{{ getRequestTargetSummary(dialogApprove.request) }}</span>
+          </el-form-item>
           <el-form-item label="允许查看期次">
-            <el-select v-model="dialogApprove.form.periodId" placeholder="选择期次">
+            <el-select
+              v-model="dialogApprove.form.periodId"
+              placeholder="选择期次"
+              :disabled="dialogApprove.lockPeriod">
               <el-option
                 v-for="period in periods"
                 :key="period._id"
@@ -289,6 +318,15 @@
           <el-form-item label="申请时间">
             <span>{{ formatTime(dialogDetail.request?.createdAt) }}</span>
           </el-form-item>
+          <el-form-item label="申请范围">
+            <span>{{ getRequestScopeLabel(dialogDetail.request) }}</span>
+          </el-form-item>
+          <el-form-item label="申请目标">
+            <span>{{ getRequestTargetSummary(dialogDetail.request) }}</span>
+          </el-form-item>
+          <el-form-item label="授权期次">
+            <span>{{ getRequestPeriodName(dialogDetail.request) || '-' }}</span>
+          </el-form-item>
           <el-form-item label="申请状态">
             <el-tag :type="getStatusTagType(dialogDetail.request?.status)">
               {{ getStatusLabel(dialogDetail.request?.status || '') }}
@@ -319,7 +357,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown } from '@element-plus/icons-vue';
 import AdminLayout from '../components/AdminLayout.vue';
@@ -367,6 +405,8 @@ const dialogApprove = ref({
     periodId: '',
     adminNote: ''
   },
+  request: null as InsightRequest | null,
+  lockPeriod: false,
   requestId: ''
 });
 
@@ -455,14 +495,95 @@ const loadPeriods = async () => {
   }
 };
 
-// 当选择期次名称时，自动更新对应的 periodId
-const updatePeriodId = () => {
-  const selectedName = (dialogApprove.value.form as any).periodName;
-  const matchedPeriod = periods.value.find(p => (p.name || p.title) === selectedName);
-  if (matchedPeriod) {
-    dialogApprove.value.form.periodId = matchedPeriod._id;
-    console.log('✅ 期次已更新:', { name: selectedName, id: matchedPeriod._id });
+const getRequestPeriodName = (request?: InsightRequest | null) => {
+  if (!request) return '';
+
+  if (request.requestPeriodName) {
+    return request.requestPeriodName;
   }
+
+  if (typeof request.periodId === 'object') {
+    return request.periodId?.name || request.periodId?.title || '';
+  }
+
+  if (typeof request.insightId === 'object') {
+    return (
+      request.insightId?.periodName ||
+      (typeof request.insightId?.periodId === 'object'
+        ? request.insightId?.periodId?.name || request.insightId?.periodId?.title || ''
+        : '')
+    );
+  }
+
+  return '';
+};
+
+const getRequestInsightTitle = (request?: InsightRequest | null) => {
+  if (!request) return '';
+
+  if (request.requestInsightTitle) {
+    return request.requestInsightTitle;
+  }
+
+  if (typeof request.insightId === 'object') {
+    return request.insightId?.sectionId?.title || request.insightId?.title || '';
+  }
+
+  return '';
+};
+
+const getRequestInsightDay = (request?: InsightRequest | null) => {
+  if (!request) return null;
+
+  if (request.requestInsightDay !== undefined && request.requestInsightDay !== null) {
+    return request.requestInsightDay;
+  }
+
+  if (typeof request.insightId === 'object') {
+    return request.insightId?.day || request.insightId?.sectionId?.day || null;
+  }
+
+  return null;
+};
+
+const getRequestCourseSummary = (request?: InsightRequest | null) => {
+  if (!request) return '';
+
+  const insightTitle = getRequestInsightTitle(request);
+  const insightDay = getRequestInsightDay(request);
+
+  if (insightDay && insightTitle) {
+    return `第${insightDay}天 · ${insightTitle}`;
+  }
+
+  if (insightDay) {
+    return `第${insightDay}天`;
+  }
+
+  return insightTitle;
+};
+
+const getRequestScopeLabel = (request?: InsightRequest | null) => {
+  if (!request) return '未标记范围';
+  return request.insightId ? '单条内容申请' : '整期查看申请';
+};
+
+const getRequestTargetSummary = (request?: InsightRequest | null) => {
+  if (!request) return '未指定目标';
+
+  const periodName = getRequestPeriodName(request);
+  const courseSummary = getRequestCourseSummary(request);
+  const parts = [];
+
+  if (periodName) {
+    parts.push(periodName);
+  }
+
+  if (courseSummary) {
+    parts.push(courseSummary);
+  }
+
+  return parts.join(' · ') || '未指定目标';
 };
 
 // 打开同意对话框
@@ -496,6 +617,8 @@ const openApproveDialog = (row: InsightRequest) => {
     periodId: defaultPeriodId,
     adminNote: ''
   };
+  dialogApprove.value.request = row;
+  dialogApprove.value.lockPeriod = !!row.insightId;
   dialogApprove.value.requestId = row._id;
   dialogApprove.value.visible = true;
 };
@@ -666,10 +789,14 @@ const batchReject = () => {
 
 // 生成导出数据
 const generateExportData = () => {
-  const headers = ['申请者', '被申请者', '申请原因', '申请时间', '申请状态', '处理时间'];
+  const headers = ['申请者', '被申请者', '申请期次', '课程名称', '申请范围', '申请目标', '申请原因', '申请时间', '申请状态', '处理时间'];
   const rows = requests.value.map(req => [
     (typeof req.fromUserId === 'object' ? req.fromUserId?.nickname : undefined) || '-',
     (typeof req.toUserId === 'object' ? req.toUserId?.nickname : undefined) || '-',
+    getRequestPeriodName(req) || '-',
+    getRequestCourseSummary(req) || '-',
+    getRequestScopeLabel(req),
+    getRequestTargetSummary(req),
     req.reason || '-',
     formatTime(req.createdAt),
     getStatusLabel(req.status || ''),
@@ -688,7 +815,7 @@ const handleExport = async (command: string) => {
       await exportToExcel(filename, headers, rows, {
         sheetName: '查看申请列表',
         frozenHeader: true,
-        columnWidths: [15, 15, 20, 20, 12, 20],
+        columnWidths: [15, 15, 18, 24, 16, 28, 20, 20, 12, 20],
         headerBackgroundColor: 'FF4472C4',
         headerTextColor: 'FFFFFFFF'
       });
@@ -854,6 +981,22 @@ onMounted(() => {
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
+}
+
+.request-target-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.request-target-main {
+  color: #303133;
+  line-height: 1.4;
+}
+
+.request-target-sub {
+  color: #909399;
+  font-size: 12px;
 }
 
 .action-buttons :deep(.el-button) {

@@ -1,6 +1,16 @@
 <view class="page-insight-requests">
+  <view class="notification-reminder" wx:if="{{notificationReminder}}">
+    <text class="notification-reminder-text">{{notificationReminder}}</text>
+    <view class="notification-reminder-link" bindtap="navigateToNotificationSettings">去补充</view>
+  </view>
+
   <view class="requests-list" wx:if="{{requests.length > 0}}">
-    <view wx:for="{{requests}}" wx:key="id" class="request-card">
+    <view
+      wx:for="{{requests}}"
+      wx:key="id"
+      class="request-card"
+      bindtap="handleRequestTap"
+      data-request="{{item}}">
       <view class="request-head">
         <view class="request-user">
           <view class="request-avatar" style="background: {{item.avatarColor}}">

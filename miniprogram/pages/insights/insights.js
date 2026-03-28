@@ -9,11 +9,10 @@ Page({
     userId: null, // 目标用户ID（如果查看他人，此值为他人的ID）
     userName: '小凡看见', // 显示的标题
     isOtherUser: false, // 是否在查看他人的小凡看见
-    hasPermission: true, // 是否有查看权限
-    requestStatus: null, // 'none' | 'pending' | 'approved' | 'rejected'
-    approvedPeriodId: null,
     lockedInsightCount: 0,
     unlockedInsightCount: 0,
+    pendingRequestCount: 0,
+    rejectedRequestCount: 0,
     headerEmoji: '🦁', // 头部emoji
     headerTitle: '小凡看见', // 头部标题
     headerDesc: '按课程查看个性化反馈' // 头部描述
@@ -46,7 +45,6 @@ Page({
       userId: targetUserId || null,
       userName: targetUserName,
       isOtherUser: !!targetUserId,
-      hasPermission: !targetUserId, // 查看他人时默认无权限，避免DOM切换导致FLOW错误
       headerEmoji,
       headerTitle,
       headerDesc
@@ -63,10 +61,9 @@ Page({
     // 如果是查看他人的小凡看见，从缓存或存储中获取目标用户的头像
     if (targetUserId) {
       this.loadTargetUserInfo();
-      this.checkPermission(targetUserId);
-    } else {
-      this.loadInsights();
     }
+
+    this.loadInsights();
   },
 
   async loadTargetUserInfo() {
@@ -87,6 +84,86 @@ Page({
     } catch (error) {
       logger.warn('获取目标用户头像出错:', error);
     }
+  },
+
+  getLockedPreview(requestStatus) {
+    if (requestStatus === 'pending') {
+      return '';
+    }
+
+    if (requestStatus === 'rejected' || requestStatus === 'revoked') {
+      return '';
+    }
+
+    return '已锁定，点击发起查看申请';
+  },
+
+  getRequestStatusText(requestStatus) {
+    const statusMap = {
+      approved: '已同意',
+      pending: '已发送申请',
+      rejected: '申请未通过',
+      revoked: '授权已撤销'
+    };
+
+    return statusMap[requestStatus] || '';
+  },
+
+  getLockedPlaceholder(requestStatus) {
+    const placeholderMap = {
+      pending: {
+        text: '等待对方同意后查看'
+      },
+      rejected: {
+        text: '暂未开放，可再次申请'
+      },
+      revoked: {
+        text: '授权已撤销，可重新申请'
+      },
+      none: {
+        text: '点击卡片申请查看'
+      }
+    };
+
+    return placeholderMap[requestStatus] || placeholderMap.none;
+  },
+
+  buildInsightRequestLabel({ periodName = '', dayNumber = null, title = '' } = {}) {
+    const parts = [];
+    const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(title);
+
+    if (periodName) {
+      parts.push(periodName);
+    }
+
+    if (dayNumber && !titleHasDay) {
+      parts.push(`第${dayNumber}天`);
+    }
+
+    if (title) {
+      parts.push(title);
+    }
+
+    return parts.join(' · ') || '这条小凡看见';
+  },
+
+  updateInsightsSummary(insights) {
+    const unlockedInsightCount = insights.filter(item => item.isAccessible).length;
+    const lockedInsights = insights.filter(item => !item.isAccessible);
+    const pendingRequestCount = lockedInsights.filter(
+      item => item.requestStatus === 'pending'
+    ).length;
+    const rejectedRequestCount = lockedInsights.filter(
+      item => item.requestStatus === 'rejected' || item.requestStatus === 'revoked'
+    ).length;
+
+    this.setData({
+      insights,
+      unlockedInsightCount,
+      lockedInsightCount: insights.length - unlockedInsightCount,
+      pendingRequestCount,
+      rejectedRequestCount
+    });
   },
 
   async loadInsights() {
@@ -191,33 +268,30 @@ Page({
 
         return {
           id: item._id || item.id,
-          dayNumber: item.day || 1,
+          dayNumber: item.day || item.sectionId?.day || null,
           courseTitle: item.sectionId?.title || item.title || '学习反馈',
           periodName: periodName || '七个习惯晨读营',
           title: item.sectionId?.title || item.title || periodName || '小凡看见',
           preview: isAccessible
             ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
-            : '已锁定，获得授权后可查看完整内容',
+            : this.getLockedPreview(item.requestStatus || 'none'),
           mediaType: item.mediaType || 'text',
           imageUrl: isAccessible ? item.imageUrl || null : null,
           date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '',
           periodId: item.periodId?._id || item.periodId || null,
           isAccessible,
-          lockIcon: isAccessible ? '🔓' : '🔒'
+          requestStatus: item.requestStatus || (isAccessible ? 'approved' : 'none'),
+          requestStatusText: this.getRequestStatusText(item.requestStatus || 'none'),
+          lockedPlaceholder: this.getLockedPlaceholder(item.requestStatus || 'none'),
+          requestScope: item.requestScope || null,
+          requestId: item.requestId || null
         };
       });
 
       logger.debug('格式化后的insights:', formatted);
 
-      const unlockedInsightCount = formatted.filter(item => item.isAccessible).length;
-      const lockedInsightCount = formatted.length - unlockedInsightCount;
-
-      this.setData({
-        insights: formatted,
-        unlockedInsightCount,
-        lockedInsightCount,
-        loading: false
-      });
+      this.updateInsightsSummary(formatted);
+      this.setData({ loading: false });
     } catch (error) {
       logger.error('加载失败:', error);
       this.setData({ loading: false });
@@ -246,68 +320,39 @@ Page({
   },
 
   /**
-   * 检查查看他人 insights 的权限
-   */
-  async checkPermission(targetUserId) {
-    try {
-      const status = await userService.checkInsightRequestStatus(targetUserId);
-      logger.debug('📋 权限检查结果:', status);
-
-      const requestStatus =
-        status?.status || (status?.approved ? 'approved' : status?.pending ? 'pending' : 'none');
-
-      this.setData({
-        hasPermission: !!status?.approved,
-        requestStatus,
-        approvedPeriodId: status?.periodId || null
-      });
-
-      this.loadInsights();
-    } catch (error) {
-      logger.error('权限检查失败:', error);
-      this.setData({ hasPermission: false, requestStatus: 'none', approvedPeriodId: null });
-      this.loadInsights();
-    }
-  },
-
-  /**
    * 发起查看申请
    */
-  async handleRequestInsight(periodId = null, insightId = null) {
-    const { userId, requestStatus, userName } = this.data;
-
-    if (requestStatus === 'pending') {
-      wx.showToast({ title: '申请已发起，请等待对方同意', icon: 'none' });
-      return;
+  async handleRequestInsight(periodId = null, insightId = null, insightMeta = {}) {
+    try {
+      const response = await userService.createInsightRequest(this.data.userId, periodId, insightId);
+      this.updateInsightRequestState({
+        insightId,
+        periodId,
+        requestStatus: 'pending',
+        requestScope: insightId ? 'insight' : 'period',
+        requestId: response?._id || response?.id || null
+      });
+      wx.showToast({ title: '申请已发送', icon: 'success' });
+    } catch (error) {
+      logger.error('发送申请失败:', error);
+      wx.showToast({ title: '申请发送失败', icon: 'none' });
     }
-
-    wx.showModal({
-      title: '请求查看',
-      content: `向 ${userName} 发起查看小凡看见的申请？`,
-      success: async (res) => {
-        if (res.confirm) {
-          try {
-            await userService.createInsightRequest(userId, periodId, insightId);
-            this.setData({ requestStatus: 'pending' });
-            wx.showToast({ title: '申请已发送', icon: 'success' });
-          } catch (error) {
-            logger.error('发送申请失败:', error);
-            wx.showToast({ title: '申请发送失败', icon: 'none' });
-          }
-        }
-      }
-    });
   },
 
   /**
    * 点击 insight 项
    */
   handleInsightClick(e) {
-    const { id, accessible, periodId } = e.currentTarget.dataset;
+    const { id, accessible, periodId, requestStatus, title, periodName, dayNumber } =
+      e.currentTarget.dataset;
     const canAccess = accessible !== false && accessible !== 'false';
 
     if (!canAccess) {
-      this.handleLockedInsightClick(periodId, id);
+      this.handleLockedInsightClick(periodId, id, requestStatus, {
+        title,
+        periodName,
+        dayNumber
+      });
       return;
     }
 
@@ -320,23 +365,50 @@ Page({
     });
   },
 
-  handleLockedInsightClick(periodId, insightId) {
-    const { requestStatus, userName } = this.data;
+  handleLockedInsightClick(periodId, insightId, requestStatus = 'none', insightMeta = {}) {
+    const { userName } = this.data;
+    const requestLabel = this.buildInsightRequestLabel(insightMeta);
 
     if (requestStatus === 'pending') {
-      wx.showToast({ title: '已发送申请，请等待对方同意', icon: 'none' });
+      wx.showToast({ title: '这条申请已发送，请等待对方同意', icon: 'none' });
       return;
     }
 
     wx.showModal({
       title: '内容已锁定',
-      content: `这条小凡看见暂未授权，是否向 ${userName} 发起查看申请？`,
+      content:
+        requestStatus === 'rejected' || requestStatus === 'revoked'
+          ? `「${requestLabel}」之前未获授权，是否向 ${userName} 重新发起查看申请？`
+          : `「${requestLabel}」暂未授权，是否向 ${userName} 发起查看申请？`,
       confirmText: '发起申请',
       success: res => {
         if (res.confirm) {
-          this.handleRequestInsight(periodId || null, insightId || null);
+          this.handleRequestInsight(periodId || null, insightId || null, insightMeta);
         }
       }
     });
   },
+
+  updateInsightRequestState({ insightId = null, periodId = null, requestStatus, requestScope, requestId }) {
+    const nextInsights = this.data.insights.map(item => {
+      const shouldUpdate = insightId
+        ? item.id === insightId
+        : !!periodId && item.periodId === periodId && !item.isAccessible;
+
+      if (!shouldUpdate) {
+        return item;
+      }
+
+      return {
+        ...item,
+        requestStatus,
+        requestStatusText: this.getRequestStatusText(requestStatus),
+        requestScope,
+        requestId,
+        preview: this.getLockedPreview(requestStatus)
+      };
+    });
+
+    this.updateInsightsSummary(nextInsights);
+  }
 });

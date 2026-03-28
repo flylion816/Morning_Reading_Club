@@ -38,9 +38,9 @@
 .insight-item {
   background: white;
   border-radius: 16rpx;
-  padding: 24rpx;
+  padding: 20rpx;
   border-left: 8rpx solid #4a90e2;
-  min-height: 220rpx;
+  min-height: 188rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -91,7 +91,7 @@
   color: #333;
   flex: 1;
   line-height: 1.5;
-  min-height: 84rpx;
+  min-height: 72rpx;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -104,7 +104,7 @@
   line-height: 1.6;
   margin-bottom: 12rpx;
   flex: 1;
-  min-height: 76rpx;
+  min-height: 52rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -112,66 +112,71 @@
   -webkit-box-orient: vertical;
 }
 
-.insight-lock-badge {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 50%;
+.locked-placeholder {
+  flex: 1;
+  min-height: 52rpx;
+  margin-bottom: 12rpx;
+  border-radius: 12rpx;
+  background:
+    linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.01) 100%);
+  border: 1rpx dashed rgba(74, 144, 226, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
-  flex-shrink: 0;
+  padding: 12rpx 16rpx;
+  box-sizing: border-box;
 }
 
-.insight-lock-badge.locked {
-  background: #eef2f9;
+.locked-placeholder-text {
+  color: #8a94a6;
+  font-size: 22rpx;
+  line-height: 1.5;
+  text-align: center;
 }
 
-.insight-lock-badge.unlocked {
+.insight-request-state {
+  align-self: flex-start;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.insight-request-state.approved {
   background: #e8f8ef;
+  color: #1f9d55;
+}
+
+.insight-request-state.pending {
+  background: #fff3e6;
+  color: #d97a00;
+}
+
+.insight-request-state.rejected,
+.insight-request-state.revoked {
+  background: #fdecec;
+  color: #d64545;
+}
+
+.insight-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: auto;
+}
+
+.insight-request-spacer {
+  min-width: 2rpx;
+  min-height: 40rpx;
 }
 
 .insight-date {
   font-size: 22rpx;
   color: #999;
-}
-
-.permission-block {
-  background: white;
-  border-radius: 16rpx;
-  padding: 60rpx 32rpx;
-  text-align: center;
-  margin-bottom: 24rpx;
-}
-
-.permission-icon {
-  font-size: 80rpx;
-  margin-bottom: 24rpx;
-}
-
-.permission-text {
-  font-size: 28rpx;
-  color: #666;
-  margin-bottom: 32rpx;
-  line-height: 1.6;
-}
-
-.permission-btn {
-  display: inline-block;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  color: white;
-  font-size: 28rpx;
-  padding: 16rpx 48rpx;
-  border-radius: 32rpx;
-}
-
-.permission-status {
-  font-size: 26rpx;
-  color: #999;
-}
-
-.permission-rejected {
-  color: #e74c3c;
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.4;
 }
 
 .insight-thumb {

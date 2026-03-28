@@ -3,6 +3,7 @@ const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
+const subscribeMessageService = require('../services/subscribe-message.service');
 
 /**
  * 获取用户的通知列表
@@ -216,6 +217,39 @@ async function deleteAllNotifications(req, res, next) {
         `已删除 ${result.deletedCount} 条通知`
       )
     );
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 获取当前用户的订阅消息场景状态
+ */
+async function getSubscriptionSettings(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const settings = await subscribeMessageService.getUserSubscriptionStates(userId);
+
+    res.json(success(settings, '获取成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * 保存订阅消息授权结果
+ */
+async function saveSubscriptionGrants(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const { grants = [] } = req.body || {};
+
+    if (!Array.isArray(grants)) {
+      return res.status(400).json(errors.badRequest('grants 必须是数组'));
+    }
+
+    const settings = await subscribeMessageService.recordUserGrantResults(userId, grants);
+    res.json(success(settings, '保存成功'));
   } catch (error) {
     next(error);
   }
@@ -473,10 +507,12 @@ async function unarchiveNotification(req, res, next) {
 module.exports = {
   getUserNotifications,
   getUnreadCount,
+  getSubscriptionSettings,
   markNotificationAsRead,
   markAllAsRead,
   deleteNotification,
   deleteAllNotifications,
+  saveSubscriptionGrants,
   createNotification,
   createNotifications,
   archiveNotification,

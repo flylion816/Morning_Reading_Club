@@ -66,8 +66,8 @@
         <!-- 标题和操作 -->
         <view class="notification-header">
           <view class="notification-title">
-            <text class="type-icon">{{getTypeIcon(item.type)}}</text>
-            <text class="type-label">{{getTypeLabel(item.type)}}</text>
+            <text class="type-icon">{{item.typeIcon}}</text>
+            <text class="type-label">{{item.typeLabel}}</text>
           </view>
           <view class="notification-actions">
             <text
@@ -86,16 +86,16 @@
 
         <!-- 发送者信息（如果有）-->
         <view class="sender-info" wx:if="{{item.data.senderName}}">
-          <image
-            class="sender-avatar"
-            src="{{item.data.senderAvatar || '/assets/images/default-avatar.png'}}"
-          ></image>
+          <image wx:if="{{item.senderAvatar}}" class="sender-avatar" src="{{item.senderAvatar}}"></image>
+          <view wx:else class="sender-avatar sender-avatar-fallback">
+            {{item.data.senderName.charAt(0)}}
+          </view>
           <text class="sender-name">{{item.data.senderName}}</text>
         </view>
 
         <!-- 时间和状态 -->
         <view class="notification-footer">
-          <text class="time">{{formatTime(item.createdAt)}}</text>
+          <text class="time">{{item.formattedTime}}</text>
           <text class="status" wx:if="{{!item.isRead}}">未读</text>
         </view>
       </view>

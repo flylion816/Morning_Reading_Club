@@ -5,6 +5,11 @@ const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
+const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const {
+  buildCourseDetailTargetPage,
+  formatNotificationTime
+} = require('../utils/notification-links');
 
 // 创建打卡记录
 async function createCheckin(req, res, next) {
@@ -673,6 +678,46 @@ async function likeCheckin(req, res, next) {
     checkin.likes.push({ userId, createdAt: new Date() });
     checkin.likeCount = checkin.likes.length;
     await checkin.save();
+
+    const checkinOwnerId = checkin.userId?.toString?.() || String(checkin.userId);
+    if (checkinOwnerId !== userId) {
+      try {
+        const actorUser = await User.findById(userId).select('nickname avatar avatarUrl').lean();
+        const targetPage = buildCourseDetailTargetPage(checkin.sectionId, {
+          focus: 'comments',
+          checkinId: checkin._id
+        });
+
+        await dispatchNotificationWithSubscribe(req, {
+          recipientUserId: checkinOwnerId,
+          notificationType: 'like_received',
+          title: '收到新的点赞',
+          content: `${actorUser?.nickname || '有人'} 点赞了你的打卡`,
+          scene: 'like_received',
+          targetPage,
+          senderId: userId,
+          data: {
+            senderName: actorUser?.nickname,
+            senderAvatar: actorUser?.avatarUrl || '',
+            sectionId: checkin.sectionId.toString(),
+            checkinId: checkin._id.toString(),
+            commentId: null,
+            replyId: null
+          },
+          subscribeFields: {
+            likeUser: actorUser?.nickname || '用户',
+            likeTime: formatNotificationTime(new Date())
+          },
+          sourceType: 'checkin_like',
+          sourceId: checkin._id
+        });
+      } catch (notifyError) {
+        logger.warn('打卡点赞通知发送失败', {
+          message: notifyError.message,
+          checkinId: checkin._id.toString()
+        });
+      }
+    }
 
     res.json(success({ likeCount: checkin.likeCount }, '点赞成功'));
   } catch (error) {

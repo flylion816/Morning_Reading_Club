@@ -1,9 +1,44 @@
 const Comment = require('../models/Comment');
 const Checkin = require('../models/Checkin');
+const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
+const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const {
+  buildCourseDetailTargetPage,
+  formatNotificationTime,
+  truncateText
+} = require('../utils/notification-links');
+
+async function getActorUser(userId) {
+  return User.findById(userId).select('nickname avatar avatarUrl').lean();
+}
+
+async function notifyCommentReceived(req, payload) {
+  try {
+    await dispatchNotificationWithSubscribe(req, payload);
+  } catch (error) {
+    logger.warn('评论类通知发送失败', {
+      message: error.message,
+      sourceId: payload.sourceId,
+      recipientUserId: payload.recipientUserId
+    });
+  }
+}
+
+async function notifyLikeReceived(req, payload) {
+  try {
+    await dispatchNotificationWithSubscribe(req, payload);
+  } catch (error) {
+    logger.warn('点赞类通知发送失败', {
+      message: error.message,
+      sourceId: payload.sourceId,
+      recipientUserId: payload.recipientUserId
+    });
+  }
+}
 
 // 创建评论
 async function createComment(req, res, next) {
@@ -12,7 +47,9 @@ async function createComment(req, res, next) {
     const { userId } = req.user;
 
     // 验证打卡存在
-    const checkin = await Checkin.findById(checkinId);
+    const checkin = await Checkin.findById(checkinId)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('sectionId', 'title');
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
@@ -45,6 +82,44 @@ async function createComment(req, res, next) {
       'userId',
       'nickname avatar avatarUrl'
     );
+
+    const checkinOwnerId = checkin.userId?._id?.toString?.() || checkin.userId?.toString?.();
+    if (checkinOwnerId && checkinOwnerId !== userId) {
+      const actorUser = await getActorUser(userId);
+      const sectionId = checkin.sectionId?._id?.toString?.() || checkin.sectionId?.toString?.();
+      const targetPage = buildCourseDetailTargetPage(sectionId, {
+        focus: 'comments',
+        checkinId: checkin._id,
+        commentId: comment._id
+      });
+
+      await notifyCommentReceived(req, {
+        recipientUserId: checkinOwnerId,
+        notificationType: 'comment_received',
+        title: '收到新的评论',
+        content: `${actorUser?.nickname || '有人'} 评论了你的打卡`,
+        scene: 'comment_received',
+        targetPage,
+        senderId: userId,
+        data: {
+          senderName: actorUser?.nickname,
+          senderAvatar: actorUser?.avatarUrl || '',
+          sectionId,
+          checkinId: checkin._id.toString(),
+          commentId: comment._id.toString()
+        },
+        subscribeFields: {
+          replyUser: actorUser?.nickname || '用户',
+          replyTopic: truncateText(
+            checkin.note || checkin.content || checkin.sectionId?.title || '打卡内容'
+          ),
+          replyContent: truncateText(content, 32),
+          replyTime: formatNotificationTime(comment.createdAt)
+        },
+        sourceType: 'comment',
+        sourceId: comment._id
+      });
+    }
 
     res.status(201).json(success(populatedComment, '评论成功'));
   } catch (error) {
@@ -91,11 +166,14 @@ async function replyToComment(req, res, next) {
     const { content, replyToUserId } = req.body;
     const { userId } = req.user;
 
-    const comment = await Comment.findById(commentId);
+    const comment = await Comment.findById(commentId).populate('userId', 'nickname avatar avatarUrl');
 
     if (!comment) {
       return res.status(404).json(errors.notFound('评论不存在'));
     }
+
+    const targetRecipientId =
+      replyToUserId || comment.userId?._id?.toString?.() || comment.userId?.toString?.();
 
     // 添加回复
     comment.replies.push({
@@ -123,11 +201,53 @@ async function replyToComment(req, res, next) {
       data: comment.toObject()
     });
 
+    const createdReply = comment.replies[comment.replies.length - 1];
+
     // 填充用户信息（重新查询以获取populate后的数据）
     const populatedComment = await Comment.findById(comment._id)
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('replies.userId', 'nickname avatar avatarUrl')
       .populate('replies.replyToUserId', 'nickname');
+
+    if (targetRecipientId && targetRecipientId !== userId) {
+      const [actorUser, checkin] = await Promise.all([
+        getActorUser(userId),
+        Checkin.findById(comment.checkinId).populate('sectionId', 'title')
+      ]);
+      const sectionId = checkin?.sectionId?._id?.toString?.() || checkin?.sectionId?.toString?.();
+      const targetPage = buildCourseDetailTargetPage(sectionId, {
+        focus: 'comments',
+        checkinId: comment.checkinId,
+        commentId: comment._id,
+        replyId: createdReply?._id
+      });
+
+      await notifyCommentReceived(req, {
+        recipientUserId: targetRecipientId,
+        notificationType: 'comment_received',
+        title: '收到新的回复',
+        content: `${actorUser?.nickname || '有人'} 回复了你的评论`,
+        scene: 'comment_received',
+        targetPage,
+        senderId: userId,
+        data: {
+          senderName: actorUser?.nickname,
+          senderAvatar: actorUser?.avatarUrl || '',
+          sectionId,
+          checkinId: comment.checkinId.toString(),
+          commentId: comment._id.toString(),
+          replyId: createdReply?._id?.toString?.() || null
+        },
+        subscribeFields: {
+          replyUser: actorUser?.nickname || '用户',
+          replyTopic: truncateText(comment.content || checkin?.note || checkin?.sectionId?.title || '评论内容'),
+          replyContent: truncateText(content, 32),
+          replyTime: formatNotificationTime(createdReply?.createdAt || new Date())
+        },
+        sourceType: 'comment_reply',
+        sourceId: createdReply?._id || comment._id
+      });
+    }
 
     res.json(success(populatedComment, '回复成功'));
   } catch (error) {
@@ -243,6 +363,43 @@ async function likeComment(req, res, next) {
       data: comment.toObject()
     });
 
+    const commentOwnerId = comment.userId?.toString?.() || String(comment.userId);
+    if (commentOwnerId !== userId) {
+      const [actorUser, checkin] = await Promise.all([
+        getActorUser(userId),
+        Checkin.findById(comment.checkinId).populate('sectionId', 'title')
+      ]);
+      const sectionId = checkin?.sectionId?._id?.toString?.() || checkin?.sectionId?.toString?.();
+      const targetPage = buildCourseDetailTargetPage(sectionId, {
+        focus: 'comments',
+        checkinId: comment.checkinId,
+        commentId: comment._id
+      });
+
+      await notifyLikeReceived(req, {
+        recipientUserId: commentOwnerId,
+        notificationType: 'like_received',
+        title: '收到新的点赞',
+        content: `${actorUser?.nickname || '有人'} 点赞了你的评论`,
+        scene: 'like_received',
+        targetPage,
+        senderId: userId,
+        data: {
+          senderName: actorUser?.nickname,
+          senderAvatar: actorUser?.avatarUrl || '',
+          sectionId,
+          checkinId: comment.checkinId.toString(),
+          commentId: comment._id.toString()
+        },
+        subscribeFields: {
+          likeUser: actorUser?.nickname || '用户',
+          likeTime: formatNotificationTime(new Date())
+        },
+        sourceType: 'comment_like',
+        sourceId: comment._id
+      });
+    }
+
     res.json(success(comment, '点赞成功'));
   } catch (error) {
     next(error);
@@ -319,6 +476,45 @@ async function likeReply(req, res, next) {
       documentId: comment._id.toString(),
       data: comment.toObject()
     });
+
+    const replyOwnerId = reply.userId?.toString?.() || String(reply.userId);
+    if (replyOwnerId !== userId) {
+      const [actorUser, checkin] = await Promise.all([
+        getActorUser(userId),
+        Checkin.findById(comment.checkinId).populate('sectionId', 'title')
+      ]);
+      const sectionId = checkin?.sectionId?._id?.toString?.() || checkin?.sectionId?.toString?.();
+      const targetPage = buildCourseDetailTargetPage(sectionId, {
+        focus: 'comments',
+        checkinId: comment.checkinId,
+        commentId: comment._id,
+        replyId: reply._id
+      });
+
+      await notifyLikeReceived(req, {
+        recipientUserId: replyOwnerId,
+        notificationType: 'like_received',
+        title: '收到新的点赞',
+        content: `${actorUser?.nickname || '有人'} 点赞了你的回复`,
+        scene: 'like_received',
+        targetPage,
+        senderId: userId,
+        data: {
+          senderName: actorUser?.nickname,
+          senderAvatar: actorUser?.avatarUrl || '',
+          sectionId,
+          checkinId: comment.checkinId.toString(),
+          commentId: comment._id.toString(),
+          replyId: reply._id.toString()
+        },
+        subscribeFields: {
+          likeUser: actorUser?.nickname || '用户',
+          likeTime: formatNotificationTime(new Date())
+        },
+        sourceType: 'reply_like',
+        sourceId: reply._id
+      });
+    }
 
     res.json(success(comment, '点赞成功'));
   } catch (error) {

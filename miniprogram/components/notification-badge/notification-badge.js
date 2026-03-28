@@ -123,13 +123,11 @@ Component({
     async loadUnreadCount() {
       try {
         const response = await notificationService.getUnreadCount();
-        if (response.code === 200) {
-          this.setData({ unreadCount: response.data.unreadCount });
-          // 触发自定义事件，通知父组件
-          this.triggerEvent('unreadCountChange', {
-            unreadCount: response.data.unreadCount
-          });
-        }
+        const unreadCount = response?.unreadCount || 0;
+        this.setData({ unreadCount });
+        this.triggerEvent('unreadCountChange', {
+          unreadCount
+        });
       } catch (error) {
         console.error('[NotificationBadge] 加载未读通知数量失败:', error);
       }

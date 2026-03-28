@@ -35,6 +35,7 @@
 | targetUserId | string | ✅   | 被看见人的用户ID             | `"692fe16a962d558224f4133f"`      |
 | content      | string | ⭕   | 文字内容（与imageUrl二选一） | `"感谢你的坚持和付出"`            |
 | imageUrl     | string | ⭕   | 图片地址（与content二选一）  | `"https://example.com/image.jpg"` |
+| title        | string | ❌   | 课程/课节标题（可选）        | `"积极主动"`                      |
 | day          | number | ❌   | 第几天的课程（可选）         | `7`                               |
 
 **⭕ 说明**: content 和 imageUrl 必须至少填写一个
@@ -51,6 +52,8 @@
     "_id": "6934e59a21146457e60d54ca",
     "targetUserId": "692fe16a962d558224f4133f",
     "periodId": "692fe16a962d558224f41347",
+    "periodName": "平衡之道",
+    "title": "积极主动",
     "day": 7,
     "type": "insight",
     "mediaType": "text",
@@ -140,6 +143,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
     "periodName": "平衡之道",
     "targetUserId": "692fe16a962d558224f4133f",
     "content": "狮子，我看见你在学习中的坚持",
+    "title": "积极主动",
     "day": 7
   }'
 
@@ -151,6 +155,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
     "targetUserId": "692fe16a962d558224f4133f",
     "content": "你在分享时表现出的深思熟虑给我留下了深刻印象",
     "imageUrl": "https://example.com/insights/photo.jpg",
+    "title": "以终为始",
     "day": 5
   }'
 ```
@@ -161,7 +166,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 import requests
 import json
 
-def create_insight(period_name, target_user_id, content, day=None, image_url=None):
+def create_insight(period_name, target_user_id, content, title=None, day=None, image_url=None):
     """创建小凡看见"""
     url = "https://wx.shubai01.com/api/v1/insights/external/create"
 
@@ -171,6 +176,8 @@ def create_insight(period_name, target_user_id, content, day=None, image_url=Non
         "content": content,
     }
 
+    if title:
+        payload["title"] = title
     if day:
         payload["day"] = day
     if image_url:
@@ -202,6 +209,7 @@ create_insight(
     period_name="平衡之道",
     target_user_id="692fe16a962d558224f4133f",
     content="感谢你的坚持和努力",
+    title="积极主动",
     day=7
 )
 ```
@@ -219,6 +227,7 @@ async function createInsight(params) {
         periodName: params.periodName,
         targetUserId: params.targetUserId,
         content: params.content,
+        title: params.title || undefined,
         day: params.day || undefined,
         imageUrl: params.imageUrl || undefined
       },
@@ -248,6 +257,7 @@ createInsight({
   periodName: '平衡之道',
   targetUserId: '692fe16a962d558224f4133f',
   content: '感谢你的坚持和努力',
+  title: '积极主动',
   day: 7
 });
 ```
@@ -482,10 +492,11 @@ getPeriodUsers('平衡之道');
 
 | 日期       | 版本 | 更新内容                  |
 | ---------- | ---- | ------------------------- |
+| 2026-03-27 | v1.1 | 新增 periodName(期次名称) 和 title(课程标题) 字段 |
 | 2025-12-07 | v1.0 | 初始版本，包含两个API文档 |
 
 ---
 
-**最后更新**: 2025-12-07
+**最后更新**: 2026-03-27
 
 **联系方式**: 请通过项目GitHub Issues联系技术支持

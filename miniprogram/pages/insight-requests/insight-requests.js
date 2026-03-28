@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const subscribeMessageService = require('../../services/subscribe-message.service');
 
 function formatRelativeTime(dateString) {
   if (!dateString) return '刚刚';
@@ -28,7 +29,8 @@ function buildInsightRequestDisplay(item) {
     '学习反馈';
   const insightDay =
     item.requestInsightDay || item.insightId?.day || item.insightId?.sectionId?.day || null;
-  const dayText = insightDay ? `第${insightDay}天` : '';
+  const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
+  const dayText = insightDay && !titleHasDay ? `第${insightDay}天` : '';
   const metaParts = [periodName];
   if (dayText) metaParts.push(dayText);
   if (insightTitle) metaParts.push(insightTitle);
@@ -44,6 +46,7 @@ function buildInsightRequestDisplay(item) {
   return {
     id: item._id || item.id,
     _id: item._id || item.id,
+    fromUserId: fromUser._id || fromUser.id || item.fromUserId || null,
     fromUserName: fromUser.nickname || fromUser.name || '用户',
     fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
     avatarColor: fromUser.avatarColor || '#4a90e2',
@@ -63,11 +66,13 @@ function buildInsightRequestDisplay(item) {
 Page({
   data: {
     requests: [],
-    loading: true
+    loading: true,
+    notificationReminder: ''
   },
 
   onShow() {
     this.loadRequests();
+    this.loadNotificationReminder();
   },
 
   async loadRequests() {
@@ -98,6 +103,27 @@ Page({
     }
   },
 
+  async loadNotificationReminder() {
+    try {
+      const response = await subscribeMessageService.getSettings();
+      const scene = (response.scenes || []).find(item => item.scene === 'insight_request_created');
+      this.setData({
+        notificationReminder:
+          scene && scene.availableCount <= 0
+            ? '新的请求看见提醒已用完，可去消息提醒页补充。'
+            : ''
+      });
+    } catch (error) {
+      console.warn('加载请求页订阅提醒失败:', error);
+    }
+  },
+
+  navigateToNotificationSettings() {
+    wx.navigateTo({
+      url: '/pages/notification-settings/notification-settings'
+    });
+  },
+
   handleApproveRequest(e) {
     const { request } = e.currentTarget.dataset;
     this.approveRequest(request);
@@ -106,6 +132,24 @@ Page({
   handleRejectRequest(e) {
     const { request } = e.currentTarget.dataset;
     this.rejectRequest(request);
+  },
+
+  handleRequestTap(e) {
+    const { request } = e.currentTarget.dataset;
+    const userId = request?.fromUserId;
+    const periodId = request?.periodId;
+
+    if (!userId) {
+      console.warn('请求记录缺少发起用户ID，无法跳转');
+      return;
+    }
+
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (periodId) {
+      url += `&periodId=${periodId}`;
+    }
+
+    wx.navigateTo({ url });
   },
 
   async approveRequest(request) {

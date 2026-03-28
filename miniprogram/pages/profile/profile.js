@@ -3,6 +3,7 @@ const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
+const subscribeMessageService = require('../../services/subscribe-message.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 
@@ -34,7 +35,8 @@ function buildInsightRequestDisplay(item) {
     '学习反馈';
   const insightDay =
     item.requestInsightDay || item.insightId?.day || item.insightId?.sectionId?.day || null;
-  const dayText = insightDay ? `第${insightDay}天` : '';
+  const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
+  const dayText = insightDay && !titleHasDay ? `第${insightDay}天` : '';
   const metaParts = [periodName];
   if (dayText) metaParts.push(dayText);
   if (insightTitle) metaParts.push(insightTitle);
@@ -50,7 +52,7 @@ function buildInsightRequestDisplay(item) {
   return {
     id: item._id || item.id,
     _id: item._id || item.id,
-    fromUserId: item.fromUserId,
+    fromUserId: fromUser._id || fromUser.id || item.fromUserId || null,
     fromUserName: fromUser.nickname || fromUser.name || '用户',
     fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
     avatarColor: fromUser.avatarColor || '#4a90e2',
@@ -99,6 +101,7 @@ Page({
     insightRequests: [],
     allInsightRequests: [],
     insightRequestTotal: 0,
+    subscriptionSummary: null,
 
     // 腾讯会议
     hasMeeting: false,
@@ -527,6 +530,8 @@ Page({
         }
       );
 
+      this.loadNotificationSubscriptionSummary();
+
       console.log('setData后this.data.recentInsights:', this.data.recentInsights);
     } catch (error) {
       console.error('加载用户数据失败:', error);
@@ -682,6 +687,22 @@ Page({
     }
   },
 
+  async loadNotificationSubscriptionSummary() {
+    if (!this.data.isLogin) {
+      this.setData({ subscriptionSummary: null });
+      return;
+    }
+
+    try {
+      const response = await subscribeMessageService.getSettings();
+      this.setData({
+        subscriptionSummary: response.summary || null
+      });
+    } catch (error) {
+      console.warn('加载订阅消息摘要失败:', error);
+    }
+  },
+
   /**
    * 微信一键登录
    */
@@ -788,6 +809,12 @@ Page({
     });
   },
 
+  navigateToNotificationSettings() {
+    wx.navigateTo({
+      url: '/pages/notification-settings/notification-settings'
+    });
+  },
+
   /**
    * 点击头像
    */
@@ -817,6 +844,27 @@ Page({
   handleRejectRequest(e) {
     const { request } = e.currentTarget.dataset;
     this.rejectRequest(request);
+  },
+
+  /**
+   * 点击请求记录 - 跳转到他人主页
+   */
+  handleInsightRequestTap(e) {
+    const { request } = e.currentTarget.dataset;
+    const userId = request?.fromUserId;
+    const periodId = request?.periodId;
+
+    if (!userId) {
+      console.warn('请求记录缺少发起用户ID，无法跳转');
+      return;
+    }
+
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (periodId) {
+      url += `&periodId=${periodId}`;
+    }
+
+    wx.navigateTo({ url });
   },
 
   /**

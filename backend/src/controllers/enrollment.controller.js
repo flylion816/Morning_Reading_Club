@@ -1,9 +1,53 @@
 const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
+const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
+const { createNotification } = require('./notification.controller');
+const subscribeMessageService = require('../services/subscribe-message.service');
+
+async function notifyEnrollmentSuccess(req, { userId, period }) {
+  try {
+    const user = await User.findById(userId).select('nickname').lean();
+    const periodName = period?.name || period?.title || '晨读营';
+
+    await createNotification(
+      userId,
+      'enrollment_result',
+      '报名成功',
+      `你已成功报名 ${periodName}`,
+      {
+        wsManager: req.wsManager,
+        data: {
+          scene: 'enrollment_result',
+          periodId: period?._id?.toString?.() || null,
+          periodName,
+          targetPage: 'pages/index/index'
+        }
+      }
+    );
+
+    await subscribeMessageService.sendSceneMessage({
+      scene: 'enrollment_result',
+      recipientUserId: userId,
+      fields: {
+        result: '报名成功',
+        name: user?.nickname || '微信用户',
+        content: periodName
+      },
+      page: 'pages/index/index',
+      sourceType: 'enrollment',
+      sourceId: `${userId}:${period?._id?.toString?.() || periodName}`
+    });
+  } catch (error) {
+    logger.warn('报名结果通知发送失败', {
+      userId,
+      message: error.message
+    });
+  }
+}
 
 /**
  * 提交报名表单（完整的报名信息）
@@ -128,6 +172,11 @@ exports.submitEnrollmentForm = async (req, res) => {
       data: enrollment.toObject()
     });
 
+    await notifyEnrollmentSuccess(req, {
+      userId,
+      period
+    });
+
     res.json(success(populatedEnrollment, '报名成功'));
   } catch (error) {
     logger.error('Enrollment form submission failed', error, { userId: req.user.userId });
@@ -187,6 +236,11 @@ exports.enrollPeriod = async (req, res) => {
       collection: 'enrollments',
       documentId: enrollment._id.toString(),
       data: enrollment.toObject()
+    });
+
+    await notifyEnrollmentSuccess(req, {
+      userId,
+      period
     });
 
     res.json(success(populatedEnrollment, '报名成功'));

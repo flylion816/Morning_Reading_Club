@@ -4,6 +4,56 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const paymentService = require('../services/payment.service');
+const { createNotification } = require('./notification.controller');
+const subscribeMessageService = require('../services/subscribe-message.service');
+const { formatNotificationTime } = require('../utils/notification-links');
+
+async function notifyPaymentSuccess(req, { userId, payment, enrollment }) {
+  try {
+    const periodName =
+      payment?.periodId?.name ||
+      payment?.periodId?.title ||
+      enrollment?.periodId?.name ||
+      enrollment?.periodId?.title ||
+      '晨读营';
+    const paidAt = payment?.paidAt || enrollment?.paidAt || new Date();
+
+    await createNotification(
+      userId,
+      'payment_result',
+      '付款成功',
+      `你已完成 ${periodName} 的付款`,
+      {
+        wsManager: req.wsManager,
+        data: {
+          scene: 'payment_result',
+          periodId:
+            payment?.periodId?._id?.toString?.() || payment?.periodId?.toString?.() || null,
+          periodName,
+          targetPage: 'pages/index/index'
+        }
+      }
+    );
+
+    await subscribeMessageService.sendSceneMessage({
+      scene: 'payment_result',
+      recipientUserId: userId,
+      fields: {
+        orderContent: periodName,
+        orderTime: formatNotificationTime(paidAt)
+      },
+      page: 'pages/index/index',
+      sourceType: 'payment',
+      sourceId: payment?._id?.toString?.() || `${userId}:${periodName}`
+    });
+  } catch (error) {
+    logger.warn('付款结果通知发送失败', {
+      userId,
+      paymentId: payment?._id?.toString?.(),
+      message: error.message
+    });
+  }
+}
 
 /**
  * 初始化支付（创建订单）
@@ -212,6 +262,13 @@ exports.confirmPayment = async (req, res) => {
     // 填充关联数据
     await payment.populate('enrollmentId', 'name');
     await payment.populate('periodId', 'name title');
+    await enrollment.populate('periodId', 'name title');
+
+    await notifyPaymentSuccess(req, {
+      userId,
+      payment,
+      enrollment
+    });
 
     res.json(
       success(

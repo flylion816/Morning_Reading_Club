@@ -3,7 +3,7 @@
  * 处理所有与通知相关的API调用
  */
 
-import { request } from './request';
+const request = require('../utils/request');
 
 class NotificationService {
   /**
@@ -75,7 +75,11 @@ class NotificationService {
       request_rejected: '申请已拒绝',
       permission_revoked: '权限已撤销',
       admin_approved: '管理员已同意',
-      admin_rejected: '管理员已拒绝'
+      admin_rejected: '管理员已拒绝',
+      enrollment_result: '报名结果',
+      payment_result: '付款结果',
+      comment_received: '收到评论',
+      like_received: '收到点赞'
     };
     return labels[type] || '通知';
   }
@@ -92,7 +96,11 @@ class NotificationService {
       request_rejected: '❌',
       permission_revoked: '🚫',
       admin_approved: '✅',
-      admin_rejected: '❌'
+      admin_rejected: '❌',
+      enrollment_result: '📚',
+      payment_result: '💰',
+      comment_received: '💬',
+      like_received: '❤️'
     };
     return icons[type] || '📬';
   }
@@ -109,7 +117,11 @@ class NotificationService {
       request_rejected: '#FA5151',
       permission_revoked: '#E64340',
       admin_approved: '#07C160',
-      admin_rejected: '#FA5151'
+      admin_rejected: '#FA5151',
+      enrollment_result: '#4A90E2',
+      payment_result: '#1F9D55',
+      comment_received: '#4A90E2',
+      like_received: '#E25555'
     };
     return colors[type] || '#999';
   }

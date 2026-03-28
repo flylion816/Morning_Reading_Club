@@ -24,6 +24,28 @@ Page({
     wsUnsubscribe: null // WebSocket 取消订阅函数
   },
 
+  isTabPage(page) {
+    return ['pages/profile/profile', 'pages/index/index'].includes(page);
+  },
+
+  navigateByTargetPage(targetPage = '') {
+    const normalized = String(targetPage || '').replace(/^\/+/, '');
+    if (!normalized) {
+      return;
+    }
+
+    if (this.isTabPage(normalized)) {
+      wx.switchTab({
+        url: `/${normalized}`
+      });
+      return;
+    }
+
+    wx.navigateTo({
+      url: `/${normalized}`
+    });
+  },
+
   onLoad() {
     this.loadNotifications();
     this.loadUnreadCount();
@@ -40,6 +62,16 @@ Page({
     if (this.data.wsUnsubscribe) {
       this.data.wsUnsubscribe();
     }
+  },
+
+  decorateNotification(notification = {}) {
+    return {
+      ...notification,
+      typeIcon: notificationService.getTypeIcon(notification.type),
+      typeLabel: notificationService.getTypeLabel(notification.type),
+      formattedTime: notificationService.formatTime(notification.createdAt),
+      senderAvatar: notification?.data?.senderAvatar || ''
+    };
   },
 
   /**
@@ -61,7 +93,7 @@ Page({
         console.log('[NotificationsPage] 收到新通知', notification);
         // 在页面顶部添加新通知
         const updatedNotifications = [
-          {
+          this.decorateNotification({
             _id: notification.notificationId || Math.random().toString(36).substr(2, 9),
             type: notification.type,
             title: notification.title,
@@ -69,7 +101,7 @@ Page({
             isRead: false,
             createdAt: notification.timestamp || new Date().toISOString(),
             data: notification.data || {}
-          },
+          }),
           ...this.data.notifications
         ];
 
@@ -104,25 +136,17 @@ Page({
         this.data.limit,
         this.data.activeTab
       );
+      const notifications = (response?.notifications || []).map(item => this.decorateNotification(item));
+      const pagination = response?.pagination || { page, totalPages: 1 };
 
-      if (response.code === 200) {
-        const { notifications, pagination } = response.data;
+      this.setData({
+        notifications: append ? [...this.data.notifications, ...notifications] : notifications,
+        page: pagination.page || page,
+        hasMore: (pagination.page || page) < (pagination.totalPages || 1),
+        loading: false
+      });
 
-        this.setData({
-          notifications: append ? [...this.data.notifications, ...notifications] : notifications,
-          page: pagination.page,
-          hasMore: pagination.page < pagination.totalPages,
-          loading: false
-        });
-
-        // 更新显示的通知
-        this.updateDisplayedNotifications();
-      } else {
-        this.setData({
-          error: response.message || '加载失败',
-          loading: false
-        });
-      }
+      this.updateDisplayedNotifications();
     } catch (error) {
       console.error('加载通知失败:', error);
       this.setData({
@@ -138,9 +162,7 @@ Page({
   async loadUnreadCount() {
     try {
       const response = await notificationService.getUnreadCount();
-      if (response.code === 200) {
-        this.setData({ unreadCount: response.data.unreadCount });
-      }
+      this.setData({ unreadCount: response?.unreadCount || 0 });
     } catch (error) {
       console.error('加载未读数量失败:', error);
     }
@@ -188,7 +210,9 @@ Page({
         await notificationService.markAsRead(id);
         // 更新本地数据
         const updatedNotifications = this.data.notifications.map(n =>
-          n._id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+          n._id === id
+            ? this.decorateNotification({ ...n, isRead: true, readAt: new Date().toISOString() })
+            : n
         );
         this.setData({ notifications: updatedNotifications });
         this.updateDisplayedNotifications();
@@ -198,10 +222,15 @@ Page({
       }
     }
 
-    // 如果有关联的申请，跳转到详情页
+    const targetPage = notification?.data?.targetPage;
+    if (targetPage) {
+      this.navigateByTargetPage(targetPage);
+      return;
+    }
+
     if (requestId) {
       wx.navigateTo({
-        url: `/pages/insight-request-detail/insight-request-detail?requestId=${requestId}`
+        url: '/pages/insight-requests/insight-requests'
       });
     }
   },
@@ -220,20 +249,17 @@ Page({
       success: async res => {
         if (res.confirm) {
           try {
-            const response = await notificationService.deleteNotification(notificationId);
-            if (response.code === 200) {
-              // 从列表中移除
-              const updated = this.data.notifications.filter(n => n._id !== notificationId);
-              this.setData({ notifications: updated });
-              this.updateDisplayedNotifications();
-              this.loadUnreadCount();
+            await notificationService.deleteNotification(notificationId);
+            const updated = this.data.notifications.filter(n => n._id !== notificationId);
+            this.setData({ notifications: updated });
+            this.updateDisplayedNotifications();
+            this.loadUnreadCount();
 
-              wx.showToast({
-                title: '已删除',
-                icon: 'success',
-                duration: 1500
-              });
-            }
+            wx.showToast({
+              title: '已删除',
+              icon: 'success',
+              duration: 1500
+            });
           } catch (error) {
             console.error('删除通知失败:', error);
             wx.showToast({
@@ -259,24 +285,21 @@ Page({
       success: async res => {
         if (res.confirm) {
           try {
-            const response = await notificationService.markAllAsRead();
-            if (response.code === 200) {
-              // 更新所有通知为已读
-              const updated = this.data.notifications.map(n => ({
-                ...n,
-                isRead: true,
-                readAt: new Date().toISOString()
-              }));
-              this.setData({ notifications: updated });
-              this.updateDisplayedNotifications();
-              this.loadUnreadCount();
+            await notificationService.markAllAsRead();
+            const updated = this.data.notifications.map(n => ({
+              ...n,
+              isRead: true,
+              readAt: new Date().toISOString()
+            })).map(item => this.decorateNotification(item));
+            this.setData({ notifications: updated });
+            this.updateDisplayedNotifications();
+            this.loadUnreadCount();
 
-              wx.showToast({
-                title: '已标记为已读',
-                icon: 'success',
-                duration: 1500
-              });
-            }
+            wx.showToast({
+              title: '已标记为已读',
+              icon: 'success',
+              duration: 1500
+            });
           } catch (error) {
             console.error('标记全部已读失败:', error);
             wx.showToast({
@@ -296,25 +319,4 @@ Page({
   handleLoadMore() {
     this.loadNotifications(true);
   },
-
-  /**
-   * 格式化时间
-   */
-  formatTime(timestamp) {
-    return notificationService.formatTime(timestamp);
-  },
-
-  /**
-   * 获取通知类型图标
-   */
-  getTypeIcon(type) {
-    return notificationService.getTypeIcon(type);
-  },
-
-  /**
-   * 获取通知类型标签
-   */
-  getTypeLabel(type) {
-    return notificationService.getTypeLabel(type);
-  }
 });

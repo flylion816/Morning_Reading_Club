@@ -4,10 +4,12 @@ const { authMiddleware } = require('../middleware/auth');
 const {
   getUserNotifications,
   getUnreadCount,
+  getSubscriptionSettings,
   markNotificationAsRead,
   markAllAsRead,
   deleteNotification,
   deleteAllNotifications,
+  saveSubscriptionGrants,
   archiveNotification,
   getArchivedNotifications,
   archiveAllNotifications,
@@ -27,6 +29,20 @@ router.get('/', authMiddleware, getUserNotifications);
  * @access  Private
  */
 router.get('/unread', authMiddleware, getUnreadCount);
+
+/**
+ * @route   GET /api/v1/notifications/subscriptions
+ * @desc    获取当前用户订阅消息场景状态
+ * @access  Private
+ */
+router.get('/subscriptions', authMiddleware, getSubscriptionSettings);
+
+/**
+ * @route   POST /api/v1/notifications/subscriptions/grants
+ * @desc    保存订阅消息授权结果
+ * @access  Private
+ */
+router.post('/subscriptions/grants', authMiddleware, saveSubscriptionGrants);
 
 /**
  * @route   GET /api/v1/notifications/archived

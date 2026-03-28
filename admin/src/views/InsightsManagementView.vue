@@ -152,12 +152,30 @@
             <div class="section-title">基本信息</div>
 
             <el-form-item label="期次">
-              <el-select v-model="editingInsight.periodId" placeholder="请选择期次">
+              <el-select v-model="editingInsight.periodId" placeholder="请选择期次" @change="handlePeriodChange">
                 <el-option
                   v-for="period in periods"
                   :key="period._id"
                   :label="period.name"
                   :value="period._id"
+                />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="课程">
+              <el-select
+                v-model="editingInsight.sectionId"
+                placeholder="选择课程（可选）"
+                clearable
+                :loading="loadingSections"
+                :disabled="!editingInsight.periodId"
+                @change="handleSectionChange"
+              >
+                <el-option
+                  v-for="section in sectionOptions"
+                  :key="section._id"
+                  :label="`第${section.day}天 - ${section.title}`"
+                  :value="section._id"
                 />
               </el-select>
             </el-form-item>
@@ -303,8 +321,15 @@ const imagePreview = ref('');
 const userOptions = ref<User[]>([]);
 const loadingUsers = ref(false);
 
+// 课程选择相关
+const sectionOptions = ref<any[]>([]);
+const loadingSections = ref(false);
+
 const editingInsight = ref<Partial<Insight>>({
   periodId: '',
+  sectionId: '',
+  title: '',
+  periodName: '',
   targetUserId: '',
   type: 'insight' as any,
   mediaType: 'text' as any,
@@ -330,6 +355,55 @@ async function loadPeriods() {
   } catch (err) {
     console.error('加载期次失败:', err);
     ElMessage.error('加载期次失败');
+  }
+}
+
+// 加载课程列表（根据期次ID）
+async function loadSections(periodId: string) {
+  if (!periodId) {
+    sectionOptions.value = [];
+    return;
+  }
+  loadingSections.value = true;
+  try {
+    const response = await periodApi.getAllSections(periodId, { limit: 100 });
+    // 响应可能是数组或 { list: [...] }
+    if (Array.isArray(response)) {
+      sectionOptions.value = response;
+    } else if (response && Array.isArray(response.list)) {
+      sectionOptions.value = response.list;
+    } else {
+      sectionOptions.value = response || [];
+    }
+  } catch (err) {
+    console.error('加载课程列表失败:', err);
+    sectionOptions.value = [];
+  } finally {
+    loadingSections.value = false;
+  }
+}
+
+// 期次变更时：加载该期次的课程列表，并自动填充期次名称
+function handlePeriodChange(periodId: string) {
+  // 清空已选课程
+  editingInsight.value.sectionId = '';
+  editingInsight.value.title = '';
+  // 自动填充期次名称
+  const period = periods.value.find((p: any) => p._id === periodId);
+  editingInsight.value.periodName = period?.name || '';
+  // 加载课程列表
+  loadSections(periodId);
+}
+
+// 课程变更时：自动填充 title 和 day
+function handleSectionChange(sectionId: string) {
+  if (!sectionId) {
+    editingInsight.value.title = '';
+    return;
+  }
+  const section = sectionOptions.value.find((s: any) => s._id === sectionId);
+  if (section) {
+    editingInsight.value.title = section.title || '';
   }
 }
 
@@ -364,6 +438,9 @@ function handleAddInsight() {
   isNewInsight.value = true;
   editingInsight.value = {
     periodId: selectedPeriodId.value || '',
+    sectionId: '',
+    title: '',
+    periodName: '',
     targetUserId: '',
     type: 'insight',
     mediaType: 'text',
@@ -373,8 +450,13 @@ function handleAddInsight() {
     tags: [],
     isPublished: false
   };
+  sectionOptions.value = [];
   tagInput.value = '';
   imagePreview.value = '';
+  // 如果已选期次，自动加载该期次的课程列表
+  if (selectedPeriodId.value) {
+    loadSections(selectedPeriodId.value);
+  }
   editDialogVisible.value = true;
 }
 
@@ -382,15 +464,23 @@ function handleAddInsight() {
 function handleEditInsight(insight: any) {
   isNewInsight.value = false;
   // ✅ 修复：提取 ID 字符串而不是整个对象
+  const periodIdStr = typeof insight.periodId === 'object' ? insight.periodId?._id : insight.periodId;
   editingInsight.value = {
     ...insight,
-    // 确保 targetUserId 和 periodId 都是字符串 ID
+    // 确保 targetUserId、periodId、sectionId 都是字符串 ID
     targetUserId:
       typeof insight.targetUserId === 'object' ? insight.targetUserId?._id : insight.targetUserId,
-    periodId: typeof insight.periodId === 'object' ? insight.periodId?._id : insight.periodId
+    periodId: periodIdStr,
+    sectionId: typeof insight.sectionId === 'object' ? insight.sectionId?._id : insight.sectionId || '',
+    title: insight.title || (typeof insight.sectionId === 'object' ? insight.sectionId?.title : '') || '',
+    periodName: insight.periodName || (typeof insight.periodId === 'object' ? insight.periodId?.name : '') || ''
   };
   tagInput.value = '';
   imagePreview.value = insight.imageUrl || '';
+  // 加载该期次的课程列表
+  if (periodIdStr) {
+    loadSections(periodIdStr);
+  }
 
   // ✅ 修复：如果有 targetUserId（已 populate 的对象），添加到 userOptions 中以便显示
   if (insight.targetUserId && typeof insight.targetUserId === 'object') {

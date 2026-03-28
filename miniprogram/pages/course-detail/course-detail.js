@@ -1,6 +1,7 @@
 const courseService = require('../../services/course.service');
 const checkinService = require('../../services/checkin.service');
 const commentService = require('../../services/comment.service');
+const subscribeMessageService = require('../../services/subscribe-message.service');
 const constants = require('../../config/constants');
 
 Page({
@@ -12,7 +13,14 @@ Page({
     loading: true,
     hasUserCheckedIn: false,
     commentExpanded: {},
-    commentLoading: {}
+    commentLoading: {},
+    notificationReminder: '',
+    focusCheckinId: '',
+    focusCommentId: '',
+    focusReplyId: '',
+    highlightCheckinId: '',
+    highlightCommentId: '',
+    highlightReplyId: ''
   },
 
   onLoad(options) {
@@ -23,8 +31,19 @@ Page({
       setTimeout(() => wx.navigateBack(), 1500);
       return;
     }
-    this.setData({ courseId: options.id });
+    this.setData({
+      courseId: options.id,
+      focusCheckinId: options.checkinId || '',
+      focusCommentId: options.commentId || '',
+      focusReplyId: options.replyId || ''
+    });
     this.loadCourseDetail();
+  },
+
+  onUnload() {
+    if (this.highlightTimer) {
+      clearTimeout(this.highlightTimer);
+    }
   },
 
   onShow() {
@@ -300,6 +319,9 @@ Page({
         calendar,
         checkedDays,
         loading: false
+      }, () => {
+        this.loadNotificationReminder();
+        this.restoreTargetFocus();
       });
 
       console.log('页面数据设置完成');
@@ -324,6 +346,35 @@ Page({
       });
     }
     return calendar;
+  },
+
+  async loadNotificationReminder() {
+    const app = getApp();
+    if (!app.globalData.isLogin) {
+      return;
+    }
+
+    try {
+      const response = await subscribeMessageService.getSettings();
+      const scenes = response.scenes || [];
+      const commentScene = scenes.find(item => item.scene === 'comment_received');
+      const likeScene = scenes.find(item => item.scene === 'like_received');
+      const needsReminder =
+        (commentScene && commentScene.availableCount <= 0) ||
+        (likeScene && likeScene.availableCount <= 0);
+
+      this.setData({
+        notificationReminder: needsReminder ? '评论或点赞提醒已用完，可去消息提醒页补充。' : ''
+      });
+    } catch (error) {
+      console.warn('加载课程详情通知提醒失败:', error);
+    }
+  },
+
+  navigateToNotificationSettings() {
+    wx.navigateTo({
+      url: '/pages/notification-settings/notification-settings'
+    });
   },
 
   handleDayClick(e) {
@@ -375,15 +426,27 @@ Page({
       return;
     }
 
-    // 已加载过评论 → 直接展开
+    try {
+      await this.expandCheckinCommentsByIndex(index);
+    } catch (error) {
+      console.error('加载评论失败:', error);
+      this.setData({ [expandedKey]: false });
+      wx.showToast({ title: '加载评论失败', icon: 'none' });
+    }
+  },
+
+  async expandCheckinCommentsByIndex(index) {
+    const comments = this.data.course.comments;
+    const checkin = comments[index];
+    if (!checkin) return;
+
     if (checkin.replies && checkin.replies.length > 0) {
-      this.setData({ [expandedKey]: true });
+      this.setData({ [`commentExpanded.${checkin.id}`]: true });
       return;
     }
 
-    // 首次展开：从 API 加载评论
     const loadingKey = `commentLoading.${checkin.id}`;
-    this.setData({ [loadingKey]: true, [expandedKey]: true });
+    this.setData({ [loadingKey]: true, [`commentExpanded.${checkin.id}`]: true });
 
     try {
       const checkinComments = await commentService.getCommentsByCheckin(checkin.id, { limit: 100 });
@@ -395,7 +458,10 @@ Page({
         const formattedReplies = checkinComments.list.map(comment => {
           const formattedNestedReplies = (comment.replies || []).map(reply => {
             const isLiked = Array.isArray(reply.likes) && currentUserId
-              ? reply.likes.some(l => String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId))
+              ? reply.likes.some(
+                  l =>
+                    String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
+                )
               : false;
             return {
               id: reply._id,
@@ -413,7 +479,9 @@ Page({
           });
 
           const isCommentLiked = Array.isArray(comment.likes) && currentUserId
-            ? comment.likes.some(l => String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId))
+            ? comment.likes.some(
+                l => String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
+              )
             : false;
 
           return {
@@ -435,14 +503,89 @@ Page({
           [`course.comments[${index}].replies`]: formattedReplies,
           [loadingKey]: false
         });
-      } else {
-        this.setData({ [loadingKey]: false });
+        return;
       }
+
+      this.setData({ [loadingKey]: false });
     } catch (error) {
-      console.error('加载评论失败:', error);
-      this.setData({ [loadingKey]: false, [expandedKey]: false });
-      wx.showToast({ title: '加载评论失败', icon: 'none' });
+      this.setData({
+        [loadingKey]: false,
+        [`commentExpanded.${checkin.id}`]: false
+      });
+      throw error;
     }
+  },
+
+  async restoreTargetFocus() {
+    const { focusCheckinId, focusCommentId, focusReplyId } = this.data;
+    if (!focusCheckinId) {
+      return;
+    }
+
+    const checkins = this.data.course.comments || [];
+    const targetIndex = checkins.findIndex(
+      item => String(item.id || item._id) === String(focusCheckinId)
+    );
+
+    if (targetIndex === -1) {
+      return;
+    }
+
+    try {
+      await this.expandCheckinCommentsByIndex(targetIndex);
+    } catch (error) {
+      console.warn('恢复评论定位失败:', error);
+    }
+
+    this.setData({
+      highlightCheckinId: focusCheckinId,
+      highlightCommentId: focusCommentId,
+      highlightReplyId: focusReplyId
+    });
+
+    if (this.highlightTimer) {
+      clearTimeout(this.highlightTimer);
+    }
+
+    this.highlightTimer = setTimeout(() => {
+      this.setData({
+        highlightCheckinId: '',
+        highlightCommentId: '',
+        highlightReplyId: ''
+      });
+    }, 2800);
+
+    const selector = focusReplyId
+      ? `#reply-${focusReplyId}`
+      : focusCommentId
+        ? `#comment-${focusCommentId}`
+        : `#checkin-${focusCheckinId}`;
+
+    this.scrollToSelector(selector, `#checkin-${focusCheckinId}`);
+    this.setData({
+      focusCheckinId: '',
+      focusCommentId: '',
+      focusReplyId: ''
+    });
+  },
+
+  scrollToSelector(selector, fallbackSelector = '') {
+    wx.nextTick(() => {
+      wx.pageScrollTo({
+        selector,
+        duration: 280,
+        offsetTop: 96,
+        fail: () => {
+          if (fallbackSelector && fallbackSelector !== selector) {
+            wx.pageScrollTo({
+              selector: fallbackSelector,
+              duration: 280,
+              offsetTop: 96
+            });
+          }
+        }
+      });
+    });
   },
 
   /**

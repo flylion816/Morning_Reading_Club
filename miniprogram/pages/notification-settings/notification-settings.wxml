@@ -1,0 +1,57 @@
+<view class="page-notification-settings">
+  <view class="settings-header">
+    <text class="settings-title">消息提醒</text>
+    <text class="settings-desc">一次授权只会发送一次消息，用完后可以回来继续补充。</text>
+  </view>
+
+  <view class="summary-card" wx:if="{{summary}}">
+    <view class="summary-main">
+      <view class="summary-block">
+        <text class="summary-number">{{summary.availableSceneCount || 0}}</text>
+        <text class="summary-label">有余量的场景</text>
+      </view>
+      <view class="summary-block">
+        <text class="summary-number">{{summary.totalAvailableCount || 0}}</text>
+        <text class="summary-label">可发送次数</text>
+      </view>
+    </view>
+    <button
+      class="subscribe-all-btn"
+      bindtap="handleSubscribeAll"
+      loading="{{submitting}}"
+      disabled="{{loading || submitting || subscribeAllDisabled}}"
+    >
+      {{subscribeAllButtonText}}
+    </button>
+    <text class="subscribe-all-hint" wx:if="{{subscribeAllHint}}">{{subscribeAllHint}}</text>
+  </view>
+
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <view class="scene-list" wx:else>
+    <view class="scene-card" wx:for="{{scenes}}" wx:key="scene">
+      <view class="scene-copy">
+        <view class="scene-top">
+          <text class="scene-title">{{item.title}}</text>
+          <view class="scene-count {{item.availableCount > 0 ? 'has-count' : 'empty-count'}}">
+            剩余 {{item.availableCount || 0}} 次
+          </view>
+        </view>
+        <text class="scene-desc">{{item.description}}</text>
+        <text class="scene-meta" wx:if="{{item.lastAcceptedAtText}}">最近补充：{{item.lastAcceptedAtText}}</text>
+        <text class="scene-meta" wx:elif="{{item.lastResult === 'reject' || item.lastResult === 'ban'}}">上次授权未接受</text>
+      </view>
+      <button
+        class="scene-action"
+        bindtap="handleSubscribeScene"
+        data-scene="{{item.scene}}"
+        loading="{{submitting}}"
+        disabled="{{submitting}}"
+      >
+        补充 1 次
+      </button>
+    </view>
+  </view>
+</view>

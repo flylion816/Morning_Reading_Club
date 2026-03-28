@@ -242,6 +242,16 @@
   background: #eee;
 }
 
+.sender-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #4a90e2;
+  color: white;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
 .sender-name {
   font-size: 26rpx;
   color: #999;

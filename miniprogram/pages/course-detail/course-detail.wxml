@@ -4,6 +4,11 @@
     <view class="course-title">{{course.title}}</view>
   </view>
 
+  <view class="notification-reminder" wx:if="{{notificationReminder}}">
+    <text class="notification-reminder-text">{{notificationReminder}}</text>
+    <view class="notification-reminder-link" bindtap="navigateToNotificationSettings">去补充</view>
+  </view>
+
   <!-- 五大学习模块 -->
   <!-- 静一静 -->
   <view class="content-section" wx:if="{{course.meditationVisible}}">
@@ -88,7 +93,13 @@
     </view>
 
     <view class="comments-list">
-      <view class="comment-item" wx:for="{{course.comments}}" wx:key="id" wx:if="{{item}}" >
+      <view
+        class="comment-item {{highlightCheckinId === item.id ? 'comment-item-focus' : ''}}"
+        id="checkin-{{item.id}}"
+        wx:for="{{course.comments}}"
+        wx:key="id"
+        wx:if="{{item}}"
+      >
         <view class="comment-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">
           <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
           <text wx:else class="avatar-text">{{item.avatarText}}</text>
@@ -117,7 +128,13 @@
 
           <!-- 回复列表（延迟加载） -->
           <view class="replies-list" wx:if="{{commentExpanded[item.id] && item.replies && item.replies.length > 0}}">
-            <view class="reply-item" wx:for="{{item.replies}}" wx:key="id" wx:for-item="reply">
+            <view
+              class="reply-item {{highlightCommentId === reply.id ? 'reply-item-focus' : ''}}"
+              id="comment-{{reply.id}}"
+              wx:for="{{item.replies}}"
+              wx:key="id"
+              wx:for-item="reply"
+            >
               <view class="reply-left-line"></view>
               <view class="reply-main">
                 <view class="reply-avatar" style="background: {{reply.avatarColor || '#7eb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">
@@ -142,7 +159,13 @@
 
                   <!-- 嵌套回复列表（回复的回复） -->
                   <view class="nested-replies-list" wx:if="{{reply.replies && reply.replies.length > 0}}">
-                    <view class="nested-reply-item" wx:for="{{reply.replies}}" wx:key="id" wx:for-item="nestedReply">
+                    <view
+                      class="nested-reply-item {{highlightReplyId === nestedReply.id ? 'nested-reply-item-focus' : ''}}"
+                      id="reply-{{nestedReply.id}}"
+                      wx:for="{{reply.replies}}"
+                      wx:key="id"
+                      wx:for-item="nestedReply"
+                    >
                       <view class="nested-reply-left-line"></view>
                       <view class="nested-reply-main">
                         <view class="nested-reply-avatar" style="background: {{nestedReply.avatarColor || '#9cb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{nestedReply.userId}}">

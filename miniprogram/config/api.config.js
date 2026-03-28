@@ -79,7 +79,9 @@ module.exports = {
     list: '/notifications', // 通知列表
     unread: '/notifications/unread', // 未读通知数
     read: notificationId => `/notifications/${notificationId}/read`, // 标记已读
-    readAll: '/notifications/read-all' // 全部已读
+    readAll: '/notifications/read-all', // 全部已读
+    subscriptions: '/notifications/subscriptions', // 订阅消息场景状态
+    subscriptionGrants: '/notifications/subscriptions/grants' // 保存订阅授权结果
   },
 
   // ==================== 搜索相关 ====================

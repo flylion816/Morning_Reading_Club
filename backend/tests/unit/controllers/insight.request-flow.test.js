@@ -186,8 +186,8 @@ describe('Insight Controller - 单条授权与请求流', () => {
     req.user = { userId: user2Id.toString() };
     req.params = { userId: user1Id.toString() };
 
-    InsightRequestStub.find.returns({
-      sort: sandbox.stub().resolves([
+    InsightRequestStub.find.returns(
+      createThenableQuery([
         {
           _id: requestId,
           fromUserId: user2Id,
@@ -198,7 +198,7 @@ describe('Insight Controller - 单条授权与请求流', () => {
           createdAt: new Date('2026-03-27T10:00:00.000Z')
         }
       ])
-    });
+    );
 
     await controller.getRequestStatus(req, res, next);
 
@@ -215,15 +215,16 @@ describe('Insight Controller - 单条授权与请求流', () => {
     req.params = { userId: user1Id.toString() };
     req.query = { page: 1, limit: 20 };
 
-    InsightRequestStub.find.returns({
-      select: sandbox.stub().resolves([
+    InsightRequestStub.find.returns(
+      createThenableQuery([
         {
+          _id: requestId,
           insightId: insightAId,
           periodId,
           status: 'approved'
         }
       ])
-    });
+    );
 
     InsightStub.countDocuments.resolves(2);
     InsightStub.find.returns(
@@ -264,8 +265,67 @@ describe('Insight Controller - 单条授权与请求流', () => {
 
     expect(accessible.isAccessible).to.equal(true);
     expect(accessible.content).to.equal('A 内容');
+    expect(accessible.requestStatus).to.equal('approved');
     expect(locked.isAccessible).to.equal(false);
     expect(locked.content).to.equal(null);
     expect(locked.summary).to.equal(null);
+    expect(locked.requestStatus).to.equal('none');
+  });
+
+  it('查看他人 insights 时 pending 只标记到对应条目', async () => {
+    req.user = { userId: user2Id.toString() };
+    req.params = { userId: user1Id.toString() };
+    req.query = { page: 1, limit: 20 };
+
+    InsightRequestStub.find.returns(
+      createThenableQuery([
+        {
+          _id: requestId,
+          insightId: insightAId,
+          periodId,
+          status: 'pending'
+        }
+      ])
+    );
+
+    InsightStub.countDocuments.resolves(2);
+    InsightStub.find.returns(
+      createThenableQuery([
+        {
+          _id: insightAId,
+          periodId: { _id: periodId, name: '内在之光' },
+          content: 'A 内容',
+          summary: 'A 摘要',
+          toObject: () => ({
+            _id: insightAId,
+            periodId: { _id: periodId, name: '内在之光' },
+            content: 'A 内容',
+            summary: 'A 摘要'
+          })
+        },
+        {
+          _id: insightBId,
+          periodId: { _id: periodId, name: '内在之光' },
+          content: 'B 内容',
+          summary: 'B 摘要',
+          toObject: () => ({
+            _id: insightBId,
+            periodId: { _id: periodId, name: '内在之光' },
+            content: 'B 内容',
+            summary: 'B 摘要'
+          })
+        }
+      ])
+    );
+
+    await controller.getUserInsights(req, res, next);
+
+    expect(res.json.calledOnce).to.equal(true);
+    const list = res.json.firstCall.args[0].data.list;
+    const pending = list.find(item => item._id.toString() === insightAId.toString());
+    const untouched = list.find(item => item._id.toString() === insightBId.toString());
+
+    expect(pending.requestStatus).to.equal('pending');
+    expect(untouched.requestStatus).to.equal('none');
   });
 });

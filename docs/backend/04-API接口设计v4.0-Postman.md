@@ -802,14 +802,16 @@ if (pm.response.code === 200) {
 - **请求体**:
 ```json
 {
-  "userId": "user_id_string",
+  "targetUserId": "user_id_string",
   "periodName": "勇敢的心",
+  "title": "积极主动",
   "day": 1,
   "content": "文字内容",
   "imageUrl": "https://..."
 }
 ```
 - **说明**: `content` 和 `imageUrl` 二选一
+- **响应**: 返回创建的 insight 对象，包含 `periodName` 课程名称字段
 
 ---
 

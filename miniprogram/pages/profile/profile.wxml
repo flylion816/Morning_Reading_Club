@@ -28,6 +28,24 @@
 
     <!-- 内容区域 -->
     <view class="content-area">
+      <view class="notification-entry-card" bindtap="navigateToNotificationSettings">
+        <view class="notification-entry-copy">
+          <view class="notification-entry-top">
+            <text class="notification-entry-title">消息提醒设置</text>
+            <view class="notification-entry-badge {{subscriptionSummary && subscriptionSummary.shortageSceneCount > 0 ? 'warning' : 'safe'}}">
+              {{subscriptionSummary && subscriptionSummary.shortageSceneCount > 0 ? '待补充' : '已开启'}}
+            </view>
+          </view>
+          <view class="notification-entry-bottom">
+            <text class="notification-entry-desc" wx:if="{{subscriptionSummary}}">
+              已就绪 {{subscriptionSummary.availableSceneCount || 0}} 个场景，剩余 {{subscriptionSummary.totalAvailableCount || 0}} 次提醒
+            </text>
+            <text class="notification-entry-desc" wx:else>补充报名、付款、评论、点赞和请求看见提醒</text>
+            <text class="notification-entry-arrow">→</text>
+          </view>
+        </view>
+      </view>
+
       <!-- 今日任务 -->
       <view class="task-section">
         <view class="section-header">
@@ -55,13 +73,6 @@
                 </view>
                 <text class="checkin-count-text">{{todaySection.checkinCount || 0}}人已打卡</text>
               </view>
-            </view>
-            <view class="period-meta-date">
-              <view class="calendar-icon">
-                <view class="calendar-top"></view>
-                <text class="calendar-text">{{todaySection.day}}</text>
-              </view>
-              <text class="meta-date-text">{{todaySection.displayDate}}</text>
             </view>
             <view class="checkin-footer">
               <view class="footer-buttons">
@@ -131,7 +142,9 @@
           <view
             wx:for="{{insightRequests}}"
             wx:key="id"
-            class="request-item">
+            class="request-item"
+            bindtap="handleInsightRequestTap"
+            data-request="{{item}}">
             <view class="request-item-left">
               <view class="request-user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
                 <text class="request-avatar-text">{{item.fromUserAvatar || '😊'}}</text>
@@ -139,18 +152,20 @@
               <view class="request-info">
                 <view class="request-top-row">
                   <text class="request-user-name">{{item.fromUserName}}</text>
-                  <text class="request-status request-status-{{item.statusClass}}">{{item.statusText}}</text>
                 </view>
                 <text class="request-meta">{{item.requestMeta}}</text>
                 <text class="request-time">{{item.time}}</text>
               </view>
             </view>
-            <view class="request-actions" wx:if="{{item.canApprove || item.canReject}}">
-              <view class="request-btn approve-btn" catchtap="handleApproveRequest" data-request="{{item}}">
-                <text>同意</text>
-              </view>
-              <view class="request-btn reject-btn" catchtap="handleRejectRequest" data-request="{{item}}">
-                <text>拒绝</text>
+            <view class="request-side">
+              <text class="request-status request-status-{{item.statusClass}}">{{item.statusText}}</text>
+              <view class="request-actions" wx:if="{{item.canApprove || item.canReject}}">
+                <view class="request-btn approve-btn" catchtap="handleApproveRequest" data-request="{{item}}">
+                  <text>同意</text>
+                </view>
+                <view class="request-btn reject-btn" catchtap="handleRejectRequest" data-request="{{item}}">
+                  <text>拒绝</text>
+                </view>
               </view>
             </view>
           </view>

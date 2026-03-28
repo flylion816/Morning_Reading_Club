@@ -78,6 +78,12 @@ export interface Insight {
   fromUserId?: string | User;
   targetUserId?: string | User;
   periodId?: string | Period;
+  sectionId?: {
+    title?: string;
+    day?: number;
+  };
+  periodName?: string;
+  day?: number;
   content?: string;
   title?: string;
   isPublished?: boolean;
@@ -93,10 +99,14 @@ export interface InsightRequest {
   fromUserId?: string | User;
   toUserId?: string | User;
   targetUserId?: string | User;
+  insightId?: string | Insight;
   periodId?: string | Period;
   reason?: string;
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: 'pending' | 'approved' | 'rejected' | 'revoked';
   adminNote?: string;
+  requestPeriodName?: string;
+  requestInsightTitle?: string;
+  requestInsightDay?: number | null;
   createdAt?: string;
   approvedAt?: string;
   rejectedAt?: string;

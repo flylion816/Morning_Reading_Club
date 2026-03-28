@@ -81,109 +81,16 @@ Page({
    * 点击小凡看见 - 检查权限后展示内容或发起申请（保留备用）
    */
   async handleRequestInsights() {
-    const { userId, userInfo } = this.data;
-    const app = getApp();
-    const currentUser = app.globalData.userInfo;
-
-    if (!currentUser || !currentUser._id) {
-      wx.showToast({
-        title: '请先登录',
-        icon: 'none'
-      });
-      return;
-    }
-
-    // 检查是否在点击自己的头像
-    if (currentUser._id === userId) {
-      // 自己的小凡看见页面
-      wx.navigateTo({
-        url: '/pages/insights/insights'
-      });
-      return;
-    }
-
-    // 检查与该用户的申请状态
-    try {
-      const status = await userService.checkInsightRequestStatus(userId);
-      logger.debug('📋 小凡看见申请状态:', status);
-
-      if (status && status.approved) {
-        // 已批准，直接查看他人的小凡看见
-        logger.debug('✅ 已获得查看权限，跳转到他人小凡看见列表');
-
-        // 保存目标用户信息到全局变量，供 insights 页面使用
-        const app = getApp();
-        app.globalData.targetUserForInsights = userInfo;
-
-        wx.navigateTo({
-          url: `/pages/insights/insights?userId=${userId}&userName=${encodeURIComponent(userInfo.nickname)}`
-        });
-      } else if (status && status.pending) {
-        // 申请中，提示用户等待
-        wx.showToast({
-          title: '申请已发起，请等待对方同意',
-          icon: 'none'
-        });
-      } else {
-        // 没有申请，显示发起申请对话框
-        wx.showModal({
-          title: '查看小凡看见',
-          content: `需要向 ${userInfo.nickname} 发起查看申请，对方同意后才能查看`,
-          confirmText: '发起申请',
-          cancelText: '取消',
-          success: res => {
-            if (res.confirm) {
-              this.sendInsightRequest();
-            }
-          }
-        });
-      }
-    } catch (error) {
-      logger.error('❌ 检查申请状态失败:', error);
-      // 如果检查失败，显示发起申请对话框（fallback）
-      wx.showModal({
-        title: '查看小凡看见',
-        content: `需要向 ${userInfo.nickname} 发起查看申请，对方同意后才能查看`,
-        confirmText: '发起申请',
-        cancelText: '取消',
-        success: res => {
-          if (res.confirm) {
-            this.sendInsightRequest();
-          }
-        }
-      });
-    }
+    logger.warn('handleRequestInsights 已切换为列表内逐条申请流程');
+    this.handleViewInsights();
   },
 
   /**
    * 发送查看小凡看见的申请
    */
   async sendInsightRequest() {
-    const { userId, userInfo, periodId } = this.data;
-
-    logger.debug('📤 sendInsightRequest - 准备发送申请:', {
-      userId,
-      periodId,
-      userInfo: userInfo.nickname
-    });
-
-    try {
-      // 调用API创建申请，同时传递periodId
-      logger.debug('📨 调用 userService.createInsightRequest，传递参数:', { userId, periodId });
-      const response = await userService.createInsightRequest(userId, periodId);
-      logger.info('✅ 申请发送成功，后端响应:', response);
-
-      wx.showToast({
-        title: '申请已发送',
-        icon: 'success'
-      });
-    } catch (error) {
-      logger.error('❌ 发送申请失败:', error);
-      wx.showToast({
-        title: '申请失败',
-        icon: 'none'
-      });
-    }
+    logger.warn('sendInsightRequest 已废弃，改为在锁定条目上逐条申请');
+    this.handleViewInsights();
   },
 
   /**

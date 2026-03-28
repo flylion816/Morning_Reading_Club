@@ -18,7 +18,11 @@ const notificationSchema = new mongoose.Schema(
         'request_rejected', // 申请被拒绝
         'permission_revoked', // 权限被撤销
         'admin_approved', // 管理员同意
-        'admin_rejected' // 管理员拒绝
+        'admin_rejected', // 管理员拒绝
+        'enrollment_result', // 报名结果
+        'payment_result', // 付款结果
+        'comment_received', // 收到评论/回复
+        'like_received' // 收到点赞
       ],
       required: true
     },
@@ -80,7 +84,15 @@ const notificationSchema = new mongoose.Schema(
       fromUserName: String, // 申请者昵称（对于request_created）
       toUserName: String, // 被申请者昵称（对于request_created）
       periodName: String, // 期次名称（对于request_approved）
-      reason: String // 原因（对于request_rejected）
+      reason: String, // 原因（对于request_rejected）
+      scene: String,
+      targetPage: String,
+      sectionId: String,
+      checkinId: String,
+      commentId: String,
+      replyId: String,
+      periodId: String,
+      insightRequestId: String
     }
   },
   {

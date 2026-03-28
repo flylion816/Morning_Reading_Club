@@ -10,11 +10,43 @@
   gap: 16rpx;
 }
 
+.notification-reminder {
+  background: #fff8e8;
+  border: 2rpx solid #f7d48b;
+  border-radius: 16rpx;
+  padding: 18rpx 20rpx;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  color: #8a5a00;
+}
+
+.notification-reminder-text {
+  flex: 1;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+
+.notification-reminder-link {
+  flex-shrink: 0;
+  color: #357abd;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
 .request-card {
   background: white;
   border-radius: 16rpx;
   padding: 18rpx 18rpx 16rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.request-card:active {
+  background: #eef4ff;
+  transform: scale(0.99);
 }
 
 .request-user {
