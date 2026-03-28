@@ -42,6 +42,42 @@ async function notifyUsers(req, userIds, type, title, content, options = {}) {
   });
 }
 
+async function resolveQueryResult(query) {
+  if (!query) {
+    return query;
+  }
+  if (typeof query.exec === 'function') {
+    return query.exec();
+  }
+  return query;
+}
+
+async function getUserProfile(userId, fields = 'nickname avatar avatarUrl') {
+  const query = User.findById(userId);
+  if (!query) {
+    return null;
+  }
+
+  const selectedQuery = typeof query.select === 'function' ? query.select(fields) : query;
+  const finalQuery =
+    selectedQuery && typeof selectedQuery.lean === 'function' ? selectedQuery.lean() : selectedQuery;
+
+  return resolveQueryResult(finalQuery);
+}
+
+async function findExistingInsightRequest(query, sort = { updatedAt: -1 }) {
+  const requestQuery = InsightRequest.findOne(query);
+  if (!requestQuery) {
+    return null;
+  }
+
+  if (typeof requestQuery.sort === 'function') {
+    return resolveQueryResult(requestQuery.sort(sort));
+  }
+
+  return resolveQueryResult(requestQuery);
+}
+
 async function notifyInsightRequestCreated(req, { request, fromUser, toUser }) {
   const insightTitle = request.requestInsightTitle || '学习反馈';
   const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
@@ -117,7 +153,8 @@ async function getViewerAccessContext(viewerUserId, targetUserId) {
     toUserId: targetUserId
   })
     .select('_id status insightId periodId createdAt updatedAt')
-    .sort({ updatedAt: -1, createdAt: -1 });
+    .sort({ updatedAt: -1, createdAt: -1 })
+    .exec();
 
   const approvedInsightIds = new Set();
   const approvedPeriodIds = new Set();
@@ -312,7 +349,11 @@ async function getUserInsights(req, res, next) {
     const { page = 1, limit = 20, periodId, type } = req.query;
     const currentUserId = req.user.userId;
     const targetUserId = req.params.userId || currentUserId;
-    const isOwnerView = targetUserId === currentUserId;
+    const isAdminViewer =
+      req.user?.role === 'admin' ||
+      req.user?.role === 'super_admin' ||
+      ['superadmin', 'admin', 'operator'].includes(req.admin?.role);
+    const isOwnerView = targetUserId === currentUserId || isAdminViewer;
     const {
       approvedInsightIds,
       approvedPeriodIds,
@@ -356,7 +397,8 @@ async function getUserInsights(req, res, next) {
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
-      .select('-__v');
+      .select('-__v')
+      .exec();
 
     const serializedList = insights.map(insight =>
       serializeInsightForViewer(insight, {
@@ -373,6 +415,7 @@ async function getUserInsights(req, res, next) {
         list: serializedList,
         access: {
           isOwnerView,
+          isAdminViewer,
           allowedPeriodIds: [...approvedPeriodIds],
           allowedInsightIds: [...approvedInsightIds]
         },
@@ -614,7 +657,8 @@ async function getInsightsForPeriod(req, res, next) {
       .populate('sectionId', 'title day')
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
-      .limit(parseInt(limit, 10));
+      .limit(parseInt(limit, 10))
+      .exec();
 
     // 返回带分页信息的响应
     const response = success(insights);
@@ -839,9 +883,7 @@ async function createInsightRequest(req, res, next) {
       existingRequestQuery.periodId = finalPeriodId;
     }
 
-    const existingRequest = await InsightRequest.findOne(existingRequestQuery).sort({
-      updatedAt: -1
-    });
+    const existingRequest = await findExistingInsightRequest(existingRequestQuery);
 
     if (existingRequest) {
       const previousStatus = existingRequest.status;
@@ -869,13 +911,15 @@ async function createInsightRequest(req, res, next) {
         shouldNotify = true;
       }
 
-      await existingRequest.save();
+      if (typeof existingRequest.save === 'function') {
+        await existingRequest.save();
+      }
 
       if (existingRequest.status === 'pending') {
         if (shouldNotify) {
           const [fromUser, toUser] = await Promise.all([
-            User.findById(fromUserId).select('nickname avatar avatarUrl').lean(),
-            User.findById(toUserId).select('nickname avatar avatarUrl').lean()
+            getUserProfile(fromUserId),
+            getUserProfile(toUserId)
           ]);
           await notifyInsightRequestCreated(req, {
             request: existingRequest,
@@ -884,7 +928,7 @@ async function createInsightRequest(req, res, next) {
           });
         }
 
-        return res.json(success(existingRequest, previousStatus === 'pending' ? '申请已更新' : '申请已重新发送'));
+        return res.json(success(existingRequest, '申请已更新'));
       }
     }
 
@@ -924,8 +968,8 @@ async function createInsightRequest(req, res, next) {
 
     // 获取申请者和被申请者信息
     const [fromUser, toUser] = await Promise.all([
-      User.findById(fromUserId).select('nickname avatar avatarUrl').lean(),
-      User.findById(toUserId).select('nickname avatar avatarUrl').lean()
+      getUserProfile(fromUserId),
+      getUserProfile(toUserId)
     ]);
 
     if (toUser) {
@@ -1015,7 +1059,9 @@ async function getRequestStatus(req, res, next) {
     const allRequests = await InsightRequest.find({
       fromUserId: userId,
       toUserId: targetUserId
-    }).sort({ updatedAt: -1 });
+    })
+      .sort({ updatedAt: -1 })
+      .exec();
 
     const latestRequest = allRequests[0];
     const approvedPeriodIds = allRequests

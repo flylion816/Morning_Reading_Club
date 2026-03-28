@@ -30,6 +30,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
   let SectionStub;
   let CheckinStub;
   let notificationServiceStub;
+  let dispatchNotificationWithSubscribeStub;
   let publishSyncEventStub;
 
   beforeEach(() => {
@@ -52,7 +53,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
     next = sandbox.stub();
 
     // 创建一个辅助函数来生成可链式调用的 stub 对象
-    const createChainableStub = () => {
+    const createChainableStub = (result = []) => {
       const chain = {
         populate: sandbox.stub().returnsThis(),
         sort: sandbox.stub().returnsThis(),
@@ -60,8 +61,11 @@ describe('Insight Controller - 102+ 完整测试', () => {
         limit: sandbox.stub().returnsThis(),
         select: sandbox.stub().returnsThis(),
         lean: sandbox.stub().returnsThis(),
-        exec: sandbox.stub().resolves([]),
-        resolves: sandbox.stub().resolves([])
+        exec: sandbox.stub().resolves(result),
+        resolves: sandbox.stub().resolves(result),
+        then(onFulfilled, onRejected) {
+          return Promise.resolve(result).then(onFulfilled, onRejected);
+        }
       };
       return chain;
     };
@@ -132,6 +136,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       createNotifications: sandbox.stub().resolves()
     };
 
+    dispatchNotificationWithSubscribeStub = sandbox.stub().resolves();
     publishSyncEventStub = sandbox.stub();
 
     insightController = proxyquire(
@@ -145,6 +150,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
         '../models/Section': SectionStub,
         '../models/Checkin': CheckinStub,
         './notification.controller': notificationServiceStub,
+        '../services/user-notification.service': {
+          dispatchNotificationWithSubscribe: dispatchNotificationWithSubscribeStub
+        },
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
         '../services/sync.service': { publishSyncEvent: publishSyncEventStub }
@@ -311,15 +319,21 @@ describe('Insight Controller - 102+ 完整测试', () => {
   describe('TC-INSIGHT-011~015: 获取 Insight 详情', () => {
     it('TC-INSIGHT-011: 获取 insight 详情成功', async () => {
       const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
       req.params = { insightId };
 
-      const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
-      InsightStub.findById.returns({
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        populate: sandbox.stub().returnsThis(),
-        resolves: sandbox.stub().resolves(mockInsight)
-      });
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        userId: fixtures.testUsers.user1,
+        targetUserId: fixtures.testUsers.user2,
+        toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 })
+      };
+      const populateStub = sandbox.stub();
+      populateStub.onFirstCall().returnsThis();
+      populateStub.onSecondCall().returnsThis();
+      populateStub.onThirdCall().returnsThis();
+      populateStub.onCall(3).resolves(mockInsight);
+      InsightStub.findById.returns({ populate: populateStub });
 
       await insightController.getInsightDetail(req, res, next);
 
@@ -346,6 +360,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
     it('TC-INSIGHT-013: 返回完整的关联对象（populate）', async () => {
       const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
       req.params = { insightId };
 
       const mockInsight = {
@@ -373,6 +388,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
     it('TC-INSIGHT-014: 验证返回字段完整性', async () => {
       const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
       req.params = { insightId };
 
       const mockInsight = { ...fixtures.testInsights.user1ToUser2, toObject: sandbox.stub().returns({ ...fixtures.testInsights.user1ToUser2 }) };
@@ -699,15 +715,15 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
       // Mock UserStub.findById to handle two calls: fromUser and toUser
       const selectStub = sandbox.stub();
-      selectStub.withArgs('nickname avatar').onFirstCall().resolves(mockUser);
-      selectStub.withArgs('nickname avatar').onSecondCall().resolves(mockUser);
+      selectStub.withArgs('nickname avatar avatarUrl').onFirstCall().resolves(mockUser);
+      selectStub.withArgs('nickname avatar avatarUrl').onSecondCall().resolves(mockUser);
       UserStub.findById.returns({ select: selectStub });
 
       EnrollmentStub.findOne.resolves(null);
 
       await insightController.createInsightRequest(req, res, next);
 
-      expect(notificationServiceStub.createNotification.called).to.be.true;
+      expect(dispatchNotificationWithSubscribeStub.called).to.be.true;
     });
 
     it('TC-REQUEST-007: 申请包含原因', async () => {
@@ -1193,14 +1209,13 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.params = { userId: fixtures.testUsers.user1._id.toString() };
 
       const mockRequest = { ...fixtures.testInsightRequests.user2ToUser1Pending };
-
-      // findOne().sort() chain
-      const findOneChain = {
-        sort: sandbox.stub().resolves(mockRequest),
-        lean: sandbox.stub().returnsThis(),
-        exec: sandbox.stub().resolves(mockRequest)
-      };
-      InsightRequestStub.findOne.returns(findOneChain);
+      InsightRequestStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([mockRequest]),
+        then(onFulfilled, onRejected) {
+          return Promise.resolve([mockRequest]).then(onFulfilled, onRejected);
+        }
+      });
 
       await insightController.getRequestStatus(req, res, next);
 
@@ -1223,7 +1238,14 @@ describe('Insight Controller - 102+ 完整测试', () => {
         fixtures.testInsights.user2ToUser1
       ];
 
-      InsightStub.find.resolves(mockInsights);
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockInsights)
+      });
       InsightStub.countDocuments.resolves(2);
 
       await insightController.getUserInsights(req, res, next);
@@ -1238,7 +1260,14 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.params = { userId: fixtures.testUsers.user1._id.toString() };
       req.query = { page: 1, limit: 20 };
 
-      InsightStub.find.resolves([]);
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([])
+      });
       InsightStub.countDocuments.resolves(0);
 
       await insightController.getUserInsights(req, res, next);
@@ -1252,7 +1281,14 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.params = { userId: fixtures.testUsers.user1._id.toString() };
       req.query = { page: 1, limit: 20 };
 
-      InsightStub.find.resolves([]);
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([])
+      });
       InsightStub.countDocuments.resolves(0);
 
       await insightController.getUserInsights(req, res, next);
@@ -1266,11 +1302,26 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.params = { userId: fixtures.testUsers.user1._id.toString() };
       req.query = { page: 1, limit: 20 };
 
-      InsightRequestStub.findOne.resolves(null);
+      InsightRequestStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([])
+      });
+      const mockInsights = [fixtures.testInsights.user1ToUser2];
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockInsights)
+      });
+      InsightStub.countDocuments.resolves(1);
 
       await insightController.getUserInsights(req, res, next);
 
-      expect(res.status.calledWith(403)).to.be.true;
+      expect(res.json.called).to.be.true;
+      expect(res.json.firstCall.args[0].data.list[0].isAccessible).to.equal(false);
     });
 
     it('TC-AUTH-005: 有批准的权限申请可以查看', async () => {
@@ -1284,17 +1335,18 @@ describe('Insight Controller - 102+ 完整测试', () => {
       };
       const mockInsights = [fixtures.testInsights.user1ToUser2];
 
-      // Mock findOne() to return approved request when checking permissions
-      InsightRequestStub.findOne.resolves(mockRequest);
+      InsightRequestStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([mockRequest])
+      });
 
-      // Mock Insight.find() chain
       const chain = {
         populate: sandbox.stub().returnsThis(),
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
         select: sandbox.stub().returnsThis(),
-        lean: sandbox.stub().returnsThis(),
         exec: sandbox.stub().resolves(mockInsights)
       };
       InsightStub.find.returns(chain);
@@ -1303,6 +1355,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       await insightController.getUserInsights(req, res, next);
 
       expect(res.json.called).to.be.true;
+      expect(res.json.firstCall.args[0].data.list[0].isAccessible).to.equal(true);
     });
 
     it('TC-AUTH-006: 无权限的申请无法查看', async () => {
@@ -1310,13 +1363,26 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.params = { userId: fixtures.testUsers.user1._id.toString() };
       req.query = { page: 1, limit: 20 };
 
-      // User2 requesting user1's insights - should check for approved permission
-      // There's no approved request, so should return 403
-      InsightRequestStub.findOne.resolves(null);
+      InsightRequestStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([])
+      });
+      const mockInsights = [fixtures.testInsights.user1ToUser2];
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockInsights)
+      });
+      InsightStub.countDocuments.resolves(1);
 
       await insightController.getUserInsights(req, res, next);
 
-      expect(res.status.calledWith(403)).to.be.true;
+      expect(res.json.called).to.be.true;
+      expect(res.json.firstCall.args[0].data.list[0].requestStatus).to.equal('none');
     });
 
     it('TC-AUTH-007: 管理员可以查看任何用户', async () => {
@@ -1325,7 +1391,14 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.query = { page: 1, limit: 20 };
 
       const mockInsights = [fixtures.testInsights.user1ToUser2];
-      InsightStub.find.resolves(mockInsights);
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockInsights)
+      });
       InsightStub.countDocuments.resolves(1);
 
       await insightController.getUserInsights(req, res, next);
@@ -1339,7 +1412,13 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.query = { page: 1, limit: 20 };
 
       const mockInsights = [fixtures.testInsights.user1ToUser2];
-      InsightStub.find.resolves(mockInsights);
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockInsights)
+      });
       InsightStub.countDocuments.resolves(1);
 
       await insightController.getInsightsForPeriod(req, res, next);
@@ -1354,7 +1433,13 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.query = { page: 1, limit: 20 };
 
       const mockInsights = [fixtures.testInsights.user1ToUser2];
-      InsightStub.find.resolves(mockInsights);
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockInsights)
+      });
       InsightStub.countDocuments.resolves(1);
 
       await insightController.getInsightsForPeriod(req, res, next);
@@ -1368,14 +1453,28 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.params = { userId: fixtures.testUsers.user2._id.toString() };
       req.query = { page: 1, limit: 20 };
 
-      // A revoked request should not grant access
-      // Controller looks for status === 'approved', so revoked should return null
-      InsightRequestStub.findOne.resolves(null);
+      InsightRequestStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([
+          { ...fixtures.testInsightRequests.user3ToUser1Rejected, status: 'revoked' }
+        ])
+      });
+      const mockInsights = [fixtures.testInsights.user2ToUser1];
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves(mockInsights)
+      });
+      InsightStub.countDocuments.resolves(1);
 
       await insightController.getUserInsights(req, res, next);
 
-      // revoked 状态的申请不应该允许访问
-      expect(res.status.calledWith(403)).to.be.true;
+      expect(res.json.called).to.be.true;
+      expect(res.json.firstCall.args[0].data.list[0].requestStatus).to.equal('revoked');
     });
 
     it('TC-AUTH-011: 禁用用户无法操作', async () => {
@@ -1396,8 +1495,11 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const mockRequest = { ...fixtures.testInsightRequests.user2ToUser1Approved, status: 'approved' };
       const mockInsights = [fixtures.testInsights.user1ToUser2];
 
-      // Mock findOne() for permission check
-      InsightRequestStub.findOne.resolves(mockRequest);
+      InsightRequestStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([mockRequest])
+      });
 
       // Mock Insight.find() chain
       const chain = {
@@ -1406,7 +1508,6 @@ describe('Insight Controller - 102+ 完整测试', () => {
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
         select: sandbox.stub().returnsThis(),
-        lean: sandbox.stub().returnsThis(),
         exec: sandbox.stub().resolves(mockInsights)
       };
       InsightStub.find.returns(chain);
@@ -1415,6 +1516,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       await insightController.getUserInsights(req, res, next);
 
       expect(res.json.called).to.be.true;
+      expect(res.json.firstCall.args[0].data.list[0].isAccessible).to.equal(true);
     });
 
     it('TC-AUTH-013: 验证权限查询条件完整', async () => {
@@ -1422,14 +1524,26 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.params = { userId: fixtures.testUsers.user1._id.toString() };
       req.query = { page: 1, limit: 20 };
 
-      InsightRequestStub.findOne.resolves(null);
+      InsightRequestStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([])
+      });
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([])
+      });
+      InsightStub.countDocuments.resolves(0);
 
       await insightController.getUserInsights(req, res, next);
 
-      const query = InsightRequestStub.findOne.firstCall.args[0];
+      const query = InsightRequestStub.find.firstCall.args[0];
       expect(query.fromUserId).to.equal(fixtures.testUsers.user2._id.toString());
       expect(query.toUserId).to.equal(fixtures.testUsers.user1._id.toString());
-      expect(query.status).to.equal('approved');
     });
 
     it('TC-AUTH-014: 分页信息返回正确', async () => {

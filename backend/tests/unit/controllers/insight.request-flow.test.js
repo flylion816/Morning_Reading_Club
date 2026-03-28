@@ -17,6 +17,7 @@ describe('Insight Controller - 单条授权与请求流', () => {
   let CheckinStub;
   let SectionStub;
   let publishSyncEventStub;
+  let dispatchNotificationWithSubscribeStub;
 
   const user1Id = new mongoose.Types.ObjectId();
   const user2Id = new mongoose.Types.ObjectId();
@@ -105,6 +106,7 @@ describe('Insight Controller - 单条授权与请求流', () => {
     };
 
     publishSyncEventStub = sandbox.stub();
+    dispatchNotificationWithSubscribeStub = sandbox.stub().resolves();
 
     controller = proxyquire('../../../src/controllers/insight.controller', {
       '../models/Insight': InsightStub,
@@ -117,6 +119,9 @@ describe('Insight Controller - 单条授权与请求流', () => {
       './notification.controller': {
         createNotification: sandbox.stub().resolves(),
         createNotifications: sandbox.stub().resolves()
+      },
+      '../services/user-notification.service': {
+        dispatchNotificationWithSubscribe: dispatchNotificationWithSubscribeStub
       },
       '../utils/response': responseUtils,
       '../utils/logger': {

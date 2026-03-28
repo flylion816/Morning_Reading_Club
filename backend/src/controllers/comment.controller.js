@@ -12,6 +12,23 @@ const {
   truncateText
 } = require('../utils/notification-links');
 
+async function loadCheckinWithRelations(checkinId) {
+  const checkin = await Checkin.findById(checkinId);
+  if (checkin && typeof checkin.populate === 'function') {
+    await checkin.populate('userId', 'nickname avatar avatarUrl');
+    await checkin.populate('sectionId', 'title');
+  }
+  return checkin;
+}
+
+async function loadCommentWithUser(commentId) {
+  const comment = await Comment.findById(commentId);
+  if (comment && typeof comment.populate === 'function') {
+    await comment.populate('userId', 'nickname avatar avatarUrl');
+  }
+  return comment;
+}
+
 async function getActorUser(userId) {
   return User.findById(userId).select('nickname avatar avatarUrl').lean();
 }
@@ -47,9 +64,7 @@ async function createComment(req, res, next) {
     const { userId } = req.user;
 
     // 验证打卡存在
-    const checkin = await Checkin.findById(checkinId)
-      .populate('userId', 'nickname avatar avatarUrl')
-      .populate('sectionId', 'title');
+    const checkin = await loadCheckinWithRelations(checkinId);
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
@@ -166,7 +181,7 @@ async function replyToComment(req, res, next) {
     const { content, replyToUserId } = req.body;
     const { userId } = req.user;
 
-    const comment = await Comment.findById(commentId).populate('userId', 'nickname avatar avatarUrl');
+    const comment = await loadCommentWithUser(commentId);
 
     if (!comment) {
       return res.status(404).json(errors.notFound('评论不存在'));
@@ -212,7 +227,7 @@ async function replyToComment(req, res, next) {
     if (targetRecipientId && targetRecipientId !== userId) {
       const [actorUser, checkin] = await Promise.all([
         getActorUser(userId),
-        Checkin.findById(comment.checkinId).populate('sectionId', 'title')
+        loadCheckinWithRelations(comment.checkinId)
       ]);
       const sectionId = checkin?.sectionId?._id?.toString?.() || checkin?.sectionId?.toString?.();
       const targetPage = buildCourseDetailTargetPage(sectionId, {

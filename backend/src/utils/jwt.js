@@ -3,14 +3,14 @@ require('dotenv').config();
 
 // 生成Access Token
 function generateAccessToken(payload) {
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '14d'
+  return jwt.sign(payload, process.env.JWT_SECRET || 'dev-secret-key-12345678', {
+    expiresIn: process.env.JWT_EXPIRES_IN || '2h'
   });
 }
 
 // 生成Refresh Token
 function generateRefreshToken(payload) {
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key-87654321', {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
   });
 }
@@ -48,11 +48,14 @@ function generateTokens(user) {
     openid: user.openid,
     role: user.role || 'user'
   };
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+  const decodedAccessToken = jwt.decode(accessToken) || {};
 
   return {
-    accessToken: generateAccessToken(payload),
-    refreshToken: generateRefreshToken(payload),
-    expiresIn: 1209600 // 14天（秒）
+    accessToken,
+    refreshToken,
+    expiresIn: (decodedAccessToken.exp || 0) - (decodedAccessToken.iat || 0)
   };
 }
 
