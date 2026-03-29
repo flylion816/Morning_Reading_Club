@@ -367,6 +367,8 @@ describe('Payment Controller', () => {
 
       expect(mockPayment.confirmPayment.called).to.be.true;
       expect(EnrollmentStub.findByIdAndUpdate.called).to.be.true;
+      expect(notificationControllerStub.createNotification.calledOnce).to.be.true;
+      expect(subscribeMessageServiceStub.sendSceneMessage.calledOnce).to.be.true;
       expect(res.json.called).to.be.true;
     });
 
@@ -795,10 +797,14 @@ describe('Payment Controller', () => {
         enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
         status: 'pending',
         confirmPayment: sandbox.stub().resolves(),
+        populate: sandbox.stub().returnsThis(),
         toObject: sandbox.stub().returns({})
       };
 
-      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+      const mockEnrollment = {
+        ...fixtures.testEnrollments.pendingPaymentEnrollment,
+        populate: sandbox.stub().returnsThis()
+      };
 
       PaymentStub.findOne.resolves(mockPayment);
       EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
@@ -806,6 +812,8 @@ describe('Payment Controller', () => {
       await paymentController.mockConfirmPayment(req, res, next);
 
       expect(mockPayment.confirmPayment.called).to.be.true;
+      expect(notificationControllerStub.createNotification.calledOnce).to.be.true;
+      expect(subscribeMessageServiceStub.sendSceneMessage.calledOnce).to.be.true;
       expect(res.json.called).to.be.true;
     });
 
@@ -836,18 +844,26 @@ describe('Payment Controller', () => {
 
       const mockPayment = {
         ...fixtures.testPayments.pendingPayment,
+        userId: fixtures.testUsers.regularUser._id.toString(),
         confirmPayment: sandbox.stub().resolves(),
+        populate: sandbox.stub().returnsThis(),
         toObject: sandbox.stub().returns({})
       };
 
-      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+      const mockEnrollment = {
+        ...fixtures.testEnrollments.pendingPaymentEnrollment,
+        populate: sandbox.stub().returnsThis()
+      };
 
       PaymentStub.findOne.resolves(mockPayment);
+      EnrollmentStub.findById.resolves(mockEnrollment);
       EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
 
       await paymentController.wechatCallback(req, res, next);
 
       expect(mockPayment.confirmPayment.called).to.be.true;
+      expect(notificationControllerStub.createNotification.calledOnce).to.be.true;
+      expect(subscribeMessageServiceStub.sendSceneMessage.calledOnce).to.be.true;
       expect(res.json.called).to.be.true;
     });
 

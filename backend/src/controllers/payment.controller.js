@@ -297,9 +297,13 @@ exports.confirmPayment = async (req, res) => {
     });
 
     // 填充关联数据
-    await payment.populate('enrollmentId', 'name');
-    await payment.populate('periodId', 'name title');
-    await enrollment.populate('periodId', 'name title');
+    if (typeof payment.populate === 'function') {
+      await payment.populate('enrollmentId', 'name');
+      await payment.populate('periodId', 'name title');
+    }
+    if (enrollment && typeof enrollment.populate === 'function') {
+      await enrollment.populate('periodId', 'name title');
+    }
 
     await notifyPaymentSuccess(req, {
       userId,
@@ -669,6 +673,23 @@ exports.wechatCallback = async (req, res) => {
         data: payment.toObject()
       });
 
+      if (typeof payment.populate === 'function') {
+        await payment.populate('enrollmentId', 'name');
+        await payment.populate('periodId', 'name title');
+      }
+
+      const enrollment = await Enrollment.findById(payment.enrollmentId);
+      if (enrollment) {
+        if (typeof enrollment.populate === 'function') {
+          await enrollment.populate('periodId', 'name title');
+        }
+        await notifyPaymentSuccess(req, {
+          userId: payment.userId?.toString?.() || payment.userId,
+          payment,
+          enrollment
+        });
+      }
+
       logger.info('WeChat payment confirmed', {
         orderNo: payment.orderNo,
         transactionId: notifyData.transaction_id,
@@ -737,6 +758,20 @@ exports.mockConfirmPayment = async (req, res) => {
       collection: 'payments',
       documentId: payment._id.toString(),
       data: payment.toObject()
+    });
+
+    if (typeof payment.populate === 'function') {
+      await payment.populate('enrollmentId', 'name');
+      await payment.populate('periodId', 'name title');
+    }
+    if (typeof enrollment.populate === 'function') {
+      await enrollment.populate('periodId', 'name title');
+    }
+
+    await notifyPaymentSuccess(req, {
+      userId: userId,
+      payment,
+      enrollment
     });
 
     res.json(
