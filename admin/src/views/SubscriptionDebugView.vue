@@ -40,7 +40,7 @@
             <el-option label="收到评论" value="comment_received" />
             <el-option label="收到点赞" value="like_received" />
             <el-option label="申请小凡看见" value="insight_request_created" />
-            <el-option label="明日学习提醒" value="next_day_study_reminder" />
+            <el-option label="明日开课通知" value="next_day_study_reminder" />
           </el-select>
 
           <el-input
@@ -323,7 +323,7 @@ const sceneColumns = [
   { scene: 'comment_received', title: '收到评论', description: '有人评论或回复时提醒' },
   { scene: 'like_received', title: '收到点赞', description: '有人点赞时提醒' },
   { scene: 'insight_request_created', title: '申请小凡看见', description: '有人请求查看时提醒' },
-  { scene: 'next_day_study_reminder', title: '明日学习提醒', description: '次日 05:45 学习提醒' }
+  { scene: 'next_day_study_reminder', title: '明日开课通知', description: '次日 05:45 发送晨读营开课通知' }
 ] as const;
 
 const loading = ref(false);

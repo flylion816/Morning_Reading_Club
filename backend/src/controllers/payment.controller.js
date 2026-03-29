@@ -1,5 +1,6 @@
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
+const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
@@ -121,11 +122,30 @@ exports.initiatePayment = async (req, res) => {
       return res.status(404).json(errors.notFound('报名记录不存在'));
     }
 
+    const period = await Period.findById(enrollment.periodId).select('price');
+    const fallbackAmount = Number.isFinite(Number(amount)) ? Number(amount) : 9900;
+    const resolvedAmount = Number.isFinite(Number(period?.price))
+      ? Number(period.price)
+      : fallbackAmount;
+
     // 检查是否已有待支付的订单
     let payment = await Payment.findOne({
       enrollmentId,
       status: { $in: ['pending', 'processing'] }
     });
+
+    if (payment && payment.amount !== resolvedAmount) {
+      if (typeof payment.markCancelled === 'function') {
+        await payment.markCancelled('期次价格已更新，已生成新订单');
+      } else {
+        payment.status = 'cancelled';
+        payment.failureReason = '期次价格已更新，已生成新订单';
+        if (typeof payment.save === 'function') {
+          await payment.save();
+        }
+      }
+      payment = null;
+    }
 
     // 如果已有待支付或处理中的订单，直接返回该订单
     if (payment) {
@@ -171,7 +191,7 @@ exports.initiatePayment = async (req, res) => {
       enrollmentId,
       userId,
       enrollment.periodId,
-      amount,
+      resolvedAmount,
       paymentMethod
     );
 

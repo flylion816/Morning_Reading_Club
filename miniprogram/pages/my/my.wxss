@@ -9,7 +9,6 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
   background: #ffffff;
   padding: 32rpx 32rpx 28rpx;
   margin-bottom: 20rpx;
@@ -71,23 +70,6 @@
 .streak-num {
   color: #4a90e2;
   font-weight: 600;
-}
-
-.user-card-edit {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4rpx;
-  color: #4a90e2;
-  flex-shrink: 0;
-}
-
-.edit-text {
-  font-size: 26rpx;
-}
-
-.edit-arrow {
-  font-size: 26rpx;
 }
 
 /* 设置分组 */

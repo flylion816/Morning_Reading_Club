@@ -33,16 +33,16 @@
       <view class="section">
         <view class="price-row">
           <text class="price-label">课程费用</text>
-          <text class="price-value">¥{{paymentAmount}}</text>
+          <text class="price-value">¥{{paymentAmountDisplay}}</text>
         </view>
         <view class="price-row">
           <text class="price-label">优惠金额</text>
-          <text class="price-discount">-¥{{discountAmount}}</text>
+          <text class="price-discount">-¥{{discountAmountDisplay}}</text>
         </view>
         <view class="divider-light"></view>
         <view class="price-row total">
           <text class="price-label">应付金额</text>
-          <text class="price-total">¥{{finalAmount}}</text>
+          <text class="price-total">¥{{finalAmountDisplay}}</text>
         </view>
       </view>
 
@@ -94,7 +94,7 @@
               catchtap="handlePayment"
               disabled="{{!paymentMethod || paying}}"
               loading="{{paying}}">
-        {{paying ? '支付中...' : '确认支付 ¥' + finalAmount}}
+        {{paying ? '支付中...' : '确认支付 ¥' + finalAmountDisplay}}
       </button>
     </view>
 

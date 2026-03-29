@@ -84,16 +84,25 @@ async function queueRetryForGrant(grantId, retryAt, extra = {}) {
   );
 }
 
-function buildReminderFields({ section, sendDate }) {
+function buildReminderActivityName(period = {}) {
+  const rawName = String(period?.name || period?.title || '凡人共读').trim();
+  if (!rawName) {
+    return '凡人共读晨读营';
+  }
+
+  return rawName.includes('晨读营') ? rawName : `${rawName}晨读营`;
+}
+
+function buildReminderFields({ period, section, sendDate }) {
   const dayIndex = Number(section?.day || 0);
-  const sectionTitle = String(section?.title || '晨读任务').replace(/^第[\d一二三四五六七八九十百零两]+天\s*/u, '').trim();
+  const sectionTitle = String(section?.title || '').trim();
+  const displayStartTime = getShanghaiDateTime(getShanghaiDateKey(sendDate), 6, 0, 0);
 
   return {
-    startTime: formatShanghaiDateTimeLabel(sendDate),
-    activityName: `第${dayIndex + 1}天《${sectionTitle || '晨读任务'}》`,
-    activityContent: '今日晨读任务即将开始，请点击打开学习',
-    joinMethod: '进入小程序去学习',
-    location: '凡人共读晨读营'
+    activityName: buildReminderActivityName(period),
+    activityContent: sectionTitle || `第${dayIndex + 1}天 晨读任务`,
+    startTime: formatShanghaiDateTimeLabel(displayStartTime || sendDate),
+    joinMethod: '进入凡人共读小程序去学习'
   };
 }
 
@@ -156,7 +165,7 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
   const delivery = await subscribeMessageService.sendSceneMessage({
     scene: SCENE,
     recipientUserId: grant.userId,
-    fields: buildReminderFields({ section: resolvedSection, sendDate: plan.sendDate }),
+    fields: buildReminderFields({ period, section: resolvedSection, sendDate: plan.sendDate }),
     page: sceneConfig.page,
     sourceType: 'study_reminder',
     sourceId: `${grant.userId}:${periodId}:${plan.sendDateKey}`,

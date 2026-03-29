@@ -18,6 +18,7 @@ describe('Payment Controller', () => {
   let next;
   let PaymentStub;
   let EnrollmentStub;
+  let PeriodStub;
   let syncServiceStub;
   let paymentServiceStub;
   let notificationControllerStub;
@@ -57,6 +58,12 @@ describe('Payment Controller', () => {
       findOne: sandbox.stub(),
       findById: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub()
+    };
+
+    PeriodStub = {
+      findById: sandbox.stub().returns({
+        select: sandbox.stub().resolves({ price: 9900 })
+      })
     };
 
     syncServiceStub = {
@@ -105,6 +112,7 @@ describe('Payment Controller', () => {
       {
         '../models/Payment': PaymentStub,
         '../models/Enrollment': EnrollmentStub,
+        '../models/Period': PeriodStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
         '../services/sync.service': syncServiceStub,
@@ -241,6 +249,87 @@ describe('Payment Controller', () => {
       expect(res.status.calledWith(404)).to.be.true;
       const response = res.json.getCall(0).args[0];
       expect(response.message).to.include('报名记录');
+    });
+
+    it('应该优先使用期次当前价格创建订单', async () => {
+      req.user = {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      };
+      req.body = {
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        paymentMethod: 'wechat',
+        amount: 99
+      };
+
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+      const mockPayment = {
+        ...fixtures.testPayments.pendingPayment,
+        amount: 1,
+        toObject: () => ({ ...fixtures.testPayments.pendingPayment, amount: 1 })
+      };
+
+      EnrollmentStub.findOne.resolves(mockEnrollment);
+      PeriodStub.findById.returns({
+        select: sandbox.stub().resolves({ price: 1 })
+      });
+      PaymentStub.findOne.onFirstCall().resolves(null);
+      PaymentStub.findOne.onSecondCall().resolves(null);
+      PaymentStub.createOrder.resolves(mockPayment);
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(PaymentStub.createOrder.calledWith(
+        fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        fixtures.testUsers.regularUser._id.toString(),
+        fixtures.testEnrollments.pendingPaymentEnrollment.periodId,
+        1,
+        'wechat'
+      )).to.equal(true);
+    });
+
+    it('应该在期次价格更新后取消旧待支付订单并创建新订单', async () => {
+      req.user = {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      };
+      req.body = {
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        paymentMethod: 'wechat',
+        amount: 99
+      };
+
+      const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
+      const stalePayment = {
+        ...fixtures.testPayments.pendingPayment,
+        amount: 99,
+        markCancelled: sandbox.stub().resolves()
+      };
+      const freshPayment = {
+        ...fixtures.testPayments.pendingPayment,
+        amount: 1,
+        orderNo: 'ORDER_REFRESHED',
+        toObject: () => ({ ...fixtures.testPayments.pendingPayment, amount: 1, orderNo: 'ORDER_REFRESHED' })
+      };
+
+      EnrollmentStub.findOne.resolves(mockEnrollment);
+      PeriodStub.findById.returns({
+        select: sandbox.stub().resolves({ price: 1 })
+      });
+      PaymentStub.findOne.onFirstCall().resolves(stalePayment);
+      PaymentStub.findOne.onSecondCall().resolves(null);
+      PaymentStub.createOrder.resolves(freshPayment);
+
+      await paymentController.initiatePayment(req, res, next);
+
+      expect(stalePayment.markCancelled.calledOnce).to.equal(true);
+      expect(PaymentStub.createOrder.calledWith(
+        fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        fixtures.testUsers.regularUser._id.toString(),
+        fixtures.testEnrollments.pendingPaymentEnrollment.periodId,
+        1,
+        'wechat'
+      )).to.equal(true);
     });
 
     // TC-PAYMENT-005: 模拟支付直接成功

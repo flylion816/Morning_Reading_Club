@@ -10,11 +10,19 @@ const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'next_day_study_reminder'
 ];
 
+function formatAmountInYuan(amountInCents = 0) {
+  const normalizedAmount = Number(amountInCents);
+  const safeAmount = Number.isFinite(normalizedAmount) && normalizedAmount >= 0 ? normalizedAmount : 0;
+  return (safeAmount / 100).toFixed(2);
+}
+
 Page({
   data: {
     periodId: null,
     periodName: '',
     periodDate: '',
+    periodPrice: 0,
+    periodPriceDisplay: '0.00',
     sections: [],
     loading: true,
     makeupCount: 99, // 剩余补打卡次数
@@ -121,7 +129,9 @@ Page({
       this.setData({
         sections,
         loading: false,
-        periodName: currentPeriod ? currentPeriod.title : '晨读营',
+        periodName: currentPeriod ? currentPeriod.title || currentPeriod.name || '晨读营' : '晨读营',
+        periodPrice: currentPeriod ? Number(currentPeriod.price || 0) : 0,
+        periodPriceDisplay: formatAmountInYuan(currentPeriod ? Number(currentPeriod.price || 0) : 0),
         periodDate: currentPeriod
           ? `${formatDate(currentPeriod.startDate)} 至 ${formatDate(currentPeriod.endDate)}`
           : ''
@@ -390,10 +400,10 @@ Page({
    * 跳转到支付页面
    */
   navigateToPayment() {
-    const { paymentEnrollmentId, periodId, periodName, periodDate } = this.data;
+    const { paymentEnrollmentId, periodId, periodName, periodPrice } = this.data;
     if (!paymentEnrollmentId) return;
     wx.navigateTo({
-      url: `/pages/payment/payment?enrollmentId=${paymentEnrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&amount=99`
+      url: `/pages/payment/payment?enrollmentId=${paymentEnrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&amount=${Number(periodPrice || 0)}`
     });
   },
 

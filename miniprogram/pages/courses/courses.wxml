@@ -12,7 +12,7 @@
   <view class="payment-banner" wx:if="{{paymentPending}}" bindtap="navigateToPayment">
     <view class="payment-banner-content">
       <text class="payment-banner-icon">💳</text>
-      <text class="payment-banner-text">您有待支付订单（¥99），点击前往支付</text>
+      <text class="payment-banner-text">您有待支付订单（¥{{periodPriceDisplay}}），点击前往支付</text>
     </view>
     <text class="payment-banner-arrow">›</text>
   </view>

@@ -4,8 +4,21 @@
  */
 
 const paymentService = require('../../services/payment.service');
+const courseService = require('../../services/course.service');
 const envConfig = require('../../config/env');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+
+function normalizeAmountInCents(value, fallback = 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return Math.round(parsed);
+}
+
+function formatAmountInYuan(amountInCents = 0) {
+  return (normalizeAmountInCents(amountInCents) / 100).toFixed(2);
+}
 
 Page({
   data: {
@@ -24,9 +37,12 @@ Page({
     },
 
     // 支付金额
-    paymentAmount: 99, // 默认课程费用 99 元
-    discountAmount: 0, // 优惠金额
-    finalAmount: 99, // 最终支付金额
+    paymentAmount: 9900, // 单位：分
+    discountAmount: 0, // 单位：分
+    finalAmount: 9900, // 单位：分
+    paymentAmountDisplay: '99.00',
+    discountAmountDisplay: '0.00',
+    finalAmountDisplay: '99.00',
 
     // 支付结果
     showPaymentResult: false,
@@ -52,19 +68,46 @@ Page({
       return;
     }
 
-    // 设置订单数据
-    // amount 单位为"分"（100分 = 1元），默认 9900分 = 99元
-    const finalAmount = amount ? parseInt(amount) : 9900;
+    // amount 单位为"分"（100分 = 1元）
+    const finalAmount = normalizeAmountInCents(amount, 0);
     this.setData({
       'enrollmentData.enrollmentId': enrollmentId,
       'enrollmentData.periodId': periodId,
       'enrollmentData.periodTitle': periodTitle || '晨读营课程',
       'enrollmentData.startDate': startDate || '2025-11-10',
       'enrollmentData.endDate': endDate || '2025-12-02',
-      paymentAmount: finalAmount,
-      finalAmount: finalAmount,
       loading: false
     });
+    this.updateAmountDisplay(finalAmount);
+    this.syncPeriodPrice(periodId, finalAmount);
+  },
+
+  updateAmountDisplay(amountInCents, discountInCents = 0) {
+    const normalizedAmount = normalizeAmountInCents(amountInCents, 0);
+    const normalizedDiscount = normalizeAmountInCents(discountInCents, 0);
+    const normalizedFinalAmount = Math.max(normalizedAmount - normalizedDiscount, 0);
+
+    this.setData({
+      paymentAmount: normalizedAmount,
+      discountAmount: normalizedDiscount,
+      finalAmount: normalizedFinalAmount,
+      paymentAmountDisplay: formatAmountInYuan(normalizedAmount),
+      discountAmountDisplay: formatAmountInYuan(normalizedDiscount),
+      finalAmountDisplay: formatAmountInYuan(normalizedFinalAmount)
+    });
+  },
+
+  async syncPeriodPrice(periodId, fallbackAmount = 0) {
+    try {
+      const response = await courseService.getPeriods();
+      const periods = response.list || response.items || response || [];
+      const matchedPeriod = periods.find(item => item.id === periodId || item._id === periodId);
+      const latestAmount = normalizeAmountInCents(matchedPeriod?.price, fallbackAmount);
+      this.updateAmountDisplay(latestAmount);
+    } catch (error) {
+      console.warn('同步期次价格失败，使用页面金额兜底:', error);
+      this.updateAmountDisplay(fallbackAmount);
+    }
   },
 
   /**
@@ -151,6 +194,10 @@ Page({
         amount: initRes.amount,
         status: initRes.status
       });
+
+      if (typeof initRes.amount !== 'undefined') {
+        this.updateAmountDisplay(initRes.amount);
+      }
 
       // 检查是否获取到微信支付参数
       if (!initRes.timeStamp || !initRes.nonceStr || !initRes.package || !initRes.paySign) {
@@ -329,7 +376,7 @@ Page({
       periodTitle: enrollmentData.periodTitle,
       paymentStatus: 'paid',
       paidAt: new Date().toISOString(),
-      finalAmount: finalAmount
+      finalAmount
     };
 
     wx.setStorageSync('lastEnrollment', enrollmentInfo);

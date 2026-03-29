@@ -155,6 +155,11 @@ describe('Study Reminder Service', () => {
 
     expect(summary.sent).to.equal(1);
     expect(subscribeMessageServiceStub.sendSceneMessage.calledOnce).to.be.true;
+    const sendArgs = subscribeMessageServiceStub.sendSceneMessage.firstCall.args[0];
+    expect(sendArgs.fields.activityName).to.equal('凡人共读晨读营');
+    expect(sendArgs.fields.activityContent).to.equal('第十八天 晨读任务');
+    expect(sendArgs.fields.startTime).to.include('06:00');
+    expect(sendArgs.fields.joinMethod).to.equal('进入凡人共读小程序去学习');
     expect(SubscribeMessageGrantStub.findByIdAndUpdate.called).to.be.true;
     const update = SubscribeMessageGrantStub.findByIdAndUpdate.firstCall.args[1];
     expect(update.$set.availableCount).to.equal(0);

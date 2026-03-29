@@ -94,24 +94,22 @@ const sceneConfigs = {
   },
   next_day_study_reminder: {
     scene: 'next_day_study_reminder',
-    title: '明日学习提醒',
-    description: '次日 05:45 提醒用户打开首页继续学习',
-    templateId: 'aVKlwM2zva8WuT04AdaiblJIXiNL9YvgHncb2uJbU_A',
+    title: '明日开课通知',
+    description: '次日 05:45 发送晨读营开课通知',
+    templateId: 'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
     page: 'pages/index/index',
     autoTopUpTarget: 1,
     fieldDefinitions: [
-      { name: 'startTime', label: '开始时间' },
       { name: 'activityName', label: '活动名称' },
       { name: 'activityContent', label: '活动内容' },
+      { name: 'startTime', label: '开始时间' },
       { name: 'joinMethod', label: '参与方式' },
-      { name: 'location', label: '活动地点' }
     ],
     defaultFieldKeyMap: {
-      startTime: 'date3',
       activityName: 'thing4',
       activityContent: 'thing2',
       joinMethod: 'thing12',
-      location: 'thing6'
+      startTime: 'date3'
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_NEXT_DAY_STUDY_REMINDER'
   }

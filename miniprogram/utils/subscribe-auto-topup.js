@@ -61,9 +61,9 @@ const AUTO_TOP_UP_POLICIES = {
   },
   next_day_study_reminder: {
     scene: 'next_day_study_reminder',
-    title: '明日学习提醒',
-    description: '次日早上 5:45 提醒用户打开首页去学习',
-    templateId: 'aVKlwM2zva8WuT04AdaiblJIXiNL9YvgHncb2uJbU_A',
+    title: '明日开课通知',
+    description: '次日早上 5:45 发送晨读营开课通知',
+    templateId: 'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
     target: 1,
     requiresPeriodId: true,
     scheduledSendText: '每天 05:45 自动发送'
@@ -212,6 +212,99 @@ function requestSubscribeMessage(tmplIds = []) {
   });
 }
 
+function getErrorMessage(error) {
+  if (!error) {
+    return '';
+  }
+
+  return error.errMsg || error.message || String(error);
+}
+
+function isInvalidTemplateRequestError(error) {
+  const message = getErrorMessage(error);
+  return (
+    message.includes('No template data return') ||
+    message.includes('verify the template id exist') ||
+    message.includes('20001')
+  );
+}
+
+function buildGrantContext(options = {}, periodId = null) {
+  return {
+    periodId: periodId || null,
+    sourceAction: options.sourceAction || '',
+    sourcePage: options.sourcePage || '',
+    sectionId: options.sectionId || options.courseId || null,
+    courseId: options.courseId || null
+  };
+}
+
+function buildGrantPayloads(requestScenes = [], requestResult = {}, options = {}, periodId = null) {
+  return requestScenes.map(scene => ({
+    scene: scene.scene,
+    templateId: scene.templateId,
+    result: requestResult[scene.templateId] || 'error',
+    context: buildGrantContext(options, periodId || scene.periodId || null)
+  }));
+}
+
+function buildErrorGrantPayloads(requestScenes = [], options = {}, periodId = null) {
+  return requestScenes.map(scene => ({
+    scene: scene.scene,
+    templateId: scene.templateId,
+    result: 'error',
+    context: buildGrantContext(options, periodId || scene.periodId || null)
+  }));
+}
+
+async function requestSceneSubscriptions(requestScenes = [], options = {}) {
+  if (!Array.isArray(requestScenes) || !requestScenes.length) {
+    return {
+      grants: [],
+      fallbackTriggered: false
+    };
+  }
+
+  const periodId = options.periodId || null;
+
+  try {
+    const batchResult = await requestSubscribeMessage(requestScenes.map(scene => scene.templateId));
+    return {
+      grants: buildGrantPayloads(requestScenes, batchResult, options, periodId),
+      fallbackTriggered: false
+    };
+  } catch (batchError) {
+    if (!isInvalidTemplateRequestError(batchError) || requestScenes.length === 1) {
+      return {
+        grants: buildErrorGrantPayloads(requestScenes, options, periodId),
+        fallbackTriggered: false,
+        error: batchError
+      };
+    }
+
+    const grants = [];
+    for (const scene of requestScenes) {
+      try {
+        const singleResult = await requestSubscribeMessage([scene.templateId]);
+        grants.push(...buildGrantPayloads([scene], singleResult, options, periodId));
+      } catch (singleError) {
+        console.warn('单模板订阅授权失败:', {
+          scene: scene.scene,
+          templateId: scene.templateId,
+          error: getErrorMessage(singleError)
+        });
+        grants.push(...buildErrorGrantPayloads([scene], options, periodId));
+      }
+    }
+
+    return {
+      grants,
+      fallbackTriggered: true,
+      error: batchError
+    };
+  }
+}
+
 async function getSettings(forceRefresh = false) {
   const now = Date.now();
   if (!forceRefresh && settingsCache && now - settingsCacheAt < SETTINGS_CACHE_TTL_MS) {
@@ -306,19 +399,11 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
     }
 
     const requestBatch = requestScenes.slice(0, MAX_SUBSCRIBE_SCENES_PER_REQUEST);
-    const requestResult = await requestSubscribeMessage(requestBatch.map(scene => scene.templateId));
-    const grants = requestBatch.map(scene => ({
-      scene: scene.scene,
-      templateId: scene.templateId,
-      result: requestResult[scene.templateId] || 'error',
-      context: {
-        periodId: periodId || scene.periodId || null,
-        sourceAction: options.sourceAction || '',
-        sourcePage: options.sourcePage || '',
-        sectionId: options.sectionId || options.courseId || null,
-        courseId: options.courseId || null
-      }
-    }));
+    const requestMeta = await requestSceneSubscriptions(requestBatch, {
+      ...options,
+      periodId
+    });
+    const grants = requestMeta.grants;
 
     const saveResult = await subscribeMessageService.saveGrants(grants);
     updateSettingsCache(saveResult);
@@ -327,7 +412,8 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
       skipped: false,
       requestedScenes: requestBatch.map(scene => scene.scene),
       grants,
-      saveResult
+      saveResult,
+      fallbackTriggered: !!requestMeta.fallbackTriggered
     };
   })()
     .catch(error => {
@@ -355,6 +441,7 @@ module.exports = {
   getSubscriptionSettingMap,
   mergeAutoTopUpScenes,
   maybeAutoTopUpSubscriptions,
+  requestSceneSubscriptions,
   resetAutoTopUpState,
   updateSettingsCache
 };

@@ -9,6 +9,7 @@ const {
   buildEligibleScenes,
   mergeAutoTopUpScenes,
   maybeAutoTopUpSubscriptions,
+  requestSceneSubscriptions,
   resetAutoTopUpState
 } = require('../../utils/subscribe-auto-topup');
 
@@ -249,6 +250,91 @@ describe('subscribe-auto-topup helper', () => {
     expect(global.wx.requestSubscribeMessage.mock.calls[0][0].tmplIds).toEqual([
       AUTO_TOP_UP_POLICIES.enrollment_result.templateId,
       AUTO_TOP_UP_POLICIES.payment_result.templateId
+    ]);
+  });
+
+  test('requestSceneSubscriptions should retry single templates when batch contains invalid template', async () => {
+    const requestScenes = [
+      {
+        scene: 'comment_received',
+        templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId
+      },
+      {
+        scene: 'like_received',
+        templateId: AUTO_TOP_UP_POLICIES.like_received.templateId
+      },
+      {
+        scene: 'next_day_study_reminder',
+        templateId: AUTO_TOP_UP_POLICIES.next_day_study_reminder.templateId,
+        periodId: 'period_001'
+      }
+    ];
+
+    global.wx.requestSubscribeMessage
+      .mockImplementationOnce(({ fail }) => {
+        fail({
+          errMsg: 'requestSubscribeMessage:fail No template data return, verify the template id exist',
+          errCode: 20001
+        });
+      })
+      .mockImplementationOnce(({ tmplIds, success }) => {
+        success({ [tmplIds[0]]: 'accept' });
+      })
+      .mockImplementationOnce(({ tmplIds, success }) => {
+        success({ [tmplIds[0]]: 'accept' });
+      })
+      .mockImplementationOnce(({ fail }) => {
+        fail({
+          errMsg: 'requestSubscribeMessage:fail No template data return, verify the template id exist',
+          errCode: 20001
+        });
+      });
+
+    const result = await requestSceneSubscriptions(requestScenes, {
+      periodId: 'period_001',
+      sourceAction: 'course_detail_checkin',
+      sourcePage: 'course-detail'
+    });
+
+    expect(result.fallbackTriggered).toBe(true);
+    expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(4);
+    expect(result.grants).toEqual([
+      {
+        scene: 'comment_received',
+        templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+        result: 'accept',
+        context: {
+          periodId: 'period_001',
+          sourceAction: 'course_detail_checkin',
+          sourcePage: 'course-detail',
+          sectionId: null,
+          courseId: null
+        }
+      },
+      {
+        scene: 'like_received',
+        templateId: AUTO_TOP_UP_POLICIES.like_received.templateId,
+        result: 'accept',
+        context: {
+          periodId: 'period_001',
+          sourceAction: 'course_detail_checkin',
+          sourcePage: 'course-detail',
+          sectionId: null,
+          courseId: null
+        }
+      },
+      {
+        scene: 'next_day_study_reminder',
+        templateId: AUTO_TOP_UP_POLICIES.next_day_study_reminder.templateId,
+        result: 'error',
+        context: {
+          periodId: 'period_001',
+          sourceAction: 'course_detail_checkin',
+          sourcePage: 'course-detail',
+          sectionId: null,
+          courseId: null
+        }
+      }
     ]);
   });
 });

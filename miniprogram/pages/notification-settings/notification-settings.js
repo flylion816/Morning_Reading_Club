@@ -3,7 +3,8 @@ const {
   AUTO_TOP_UP_POLICIES,
   MAX_SUBSCRIBE_SCENES_PER_REQUEST,
   getSceneAutoTopUpTarget,
-  mergeAutoTopUpScenes
+  mergeAutoTopUpScenes,
+  requestSceneSubscriptions
 } = require('../../utils/subscribe-auto-topup');
 const MAX_SUBSCRIBE_SCENES_PER_TAP = MAX_SUBSCRIBE_SCENES_PER_REQUEST;
 
@@ -167,37 +168,13 @@ Page({
 
     try {
       const requestScenes = targetSceneList.slice(0, MAX_SUBSCRIBE_SCENES_PER_TAP);
-      const templateIds = requestScenes.map(scene => scene.templateId);
-      const requestResult = await new Promise((resolve, reject) => {
-        wx.requestSubscribeMessage({
-          tmplIds: templateIds,
-          success: resolve,
-          fail: reject
-        });
+      const requestMeta = await requestSceneSubscriptions(requestScenes, {
+        periodId: this.data.periodId || null,
+        sourceAction: 'notification_settings_manual',
+        sourcePage: 'notification-settings'
       });
 
-      const collectGrantResults = (tmplIds, result) => {
-        tmplIds.forEach(templateId => {
-          const matchedScene = requestScenes.find(scene => scene.templateId === templateId);
-          if (!matchedScene) {
-            return;
-          }
-
-          grants.push({
-            scene: matchedScene.scene,
-            templateId,
-            result: result[templateId] || 'error',
-            context: {
-              periodId:
-                matchedScene.scene === 'next_day_study_reminder' ? this.data.periodId || null : null,
-              sourceAction: 'notification_settings_manual',
-              sourcePage: 'notification-settings'
-            }
-          });
-        });
-      };
-
-      collectGrantResults(templateIds, requestResult);
+      grants.push(...requestMeta.grants);
 
       const response = await subscribeMessageService.saveGrants(grants);
       const normalized = normalizeResponse(response);
