@@ -1,6 +1,9 @@
 // 报名页面
 const enrollmentService = require('../../services/enrollment.service');
 const { calculatePeriodStatus } = require('../../utils/formatters');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+
+const SUBSCRIBE_SCENES = ['enrollment_result'];
 
 Page({
   data: {
@@ -355,6 +358,14 @@ Page({
       console.log('- enrollReason:', submitData.enrollReason, '✓');
       console.log('- expectation:', submitData.expectation, '✓');
       console.log('- commitment:', submitData.commitment, '✓');
+
+      await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+        sourceAction: 'enrollment_submit',
+        sourcePage: 'enrollment',
+        periodId: selectedPeriod._id,
+        sceneKeys: SUBSCRIBE_SCENES,
+        requestMode: 'any'
+      });
 
       // 调用API提交报名
       const res = await enrollmentService.submitEnrollment(submitData);

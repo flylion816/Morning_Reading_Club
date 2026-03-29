@@ -279,7 +279,7 @@ Page({
   /**
    * 点击课节卡片 - 跳转到课程详情页
    */
-  handleSectionClick(e) {
+  async handleSectionClick(e) {
     const { section } = e.currentTarget.dataset;
     const sectionId = section && (section.id || section._id);
 
@@ -292,13 +292,14 @@ Page({
       return;
     }
 
-    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+    await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
       sourceAction: 'courses_section_click',
       periodId: this.data.periodId,
       sectionId,
       courseId: sectionId,
       sourcePage: 'courses',
-      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
+      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES,
+      requestMode: 'any'
     });
 
     // 跳转到课程详情页（学习内容）
@@ -310,7 +311,7 @@ Page({
   /**
    * 点击"去打卡"按钮 - 直接跳转到打卡页面
    */
-  handleCheckinClick(e) {
+  async handleCheckinClick(e) {
     const { section } = e.currentTarget.dataset;
     const sectionId = section && (section.id || section._id);
 
@@ -323,13 +324,14 @@ Page({
       return;
     }
 
-    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+    await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
       sourceAction: 'courses_checkin_click',
       periodId: this.data.periodId,
       sectionId,
       courseId: sectionId,
       sourcePage: 'courses',
-      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
+      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES,
+      requestMode: 'any'
     });
 
     if (this.data.communityAccessState !== 'enabled') {

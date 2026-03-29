@@ -429,13 +429,14 @@ Page({
   },
 
   triggerAutoTopUp(sourceAction) {
-    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+    return subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
       sourceAction,
       periodId: this.data.periodId || extractId(this.data.course?.periodId),
       sectionId: this.data.courseId,
       courseId: this.data.courseId,
       sourcePage: 'course-detail',
-      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
+      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES,
+      requestMode: 'any'
     });
   },
 
@@ -464,12 +465,12 @@ Page({
     wx.navigateBack();
   },
 
-  handleCheckin() {
+  async handleCheckin() {
     if (this.data.communityAccessState !== 'enabled') {
       return;
     }
 
-    this.triggerAutoTopUp('course_detail_checkin');
+    await this.triggerAutoTopUp('course_detail_checkin');
 
     // 跳转到打卡页面
     wx.navigateTo({

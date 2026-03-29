@@ -14,6 +14,24 @@ function resetAutoTopUpState() {
 }
 
 const AUTO_TOP_UP_POLICIES = {
+  enrollment_result: {
+    scene: 'enrollment_result',
+    title: '报名结果',
+    description: '报名成功后提醒用户进入晨读营',
+    templateId: 'Qzn9auOyMjCKUaHrfekzK0XMaQ64nO0mfdikQNXjbdo',
+    target: 1,
+    requiresPeriodId: false,
+    scheduledSendText: ''
+  },
+  payment_result: {
+    scene: 'payment_result',
+    title: '付款结果',
+    description: '支付完成后提醒用户进入晨读营',
+    templateId: 'UCzIuWtUYbc_ucf05GEOqglXK1HJHzwtN50e1NkmhCI',
+    target: 1,
+    requiresPeriodId: false,
+    scheduledSendText: ''
+  },
   comment_received: {
     scene: 'comment_received',
     title: '收到评论',
@@ -156,6 +174,25 @@ function buildEligibleScenes(scenes = [], options = {}) {
   });
 }
 
+function buildPromptableScenes(options = {}) {
+  const { sceneKeys = null, periodId = null } = options;
+  const targetSceneKeys =
+    Array.isArray(sceneKeys) && sceneKeys.length > 0
+      ? sceneKeys
+      : Object.keys(AUTO_TOP_UP_POLICIES);
+
+  return targetSceneKeys
+    .map(sceneKey => getScenePolicy(sceneKey))
+    .filter(Boolean)
+    .filter(scene => !scene.requiresPeriodId || !!periodId)
+    .map(scene =>
+      mergeSceneMetadata({
+        ...scene,
+        periodId: periodId || null
+      })
+    );
+}
+
 function getSubscriptionSettingMap(settingResponse = {}) {
   const subscriptionsSetting = settingResponse.subscriptionsSetting || {};
   return subscriptionsSetting.itemSettings || {};
@@ -220,27 +257,52 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
   }
 
   inFlightPromise = (async () => {
-    const { sceneKeys = null, periodId = null } = options;
-    const response = await getSettings();
-    const serverScenes = Array.isArray(response?.scenes) ? response.scenes : [];
-    const eligibleScenes = buildEligibleScenes(serverScenes, { sceneKeys, periodId });
+    const {
+      sceneKeys = null,
+      periodId = null,
+      requestMode = 'remembered'
+    } = options;
+    let requestScenes = [];
+    if (requestMode === 'remembered') {
+      const response = await getSettings();
+      const serverScenes = Array.isArray(response?.scenes) ? response.scenes : [];
+      const eligibleScenes = buildEligibleScenes(serverScenes, { sceneKeys, periodId });
+      if (!eligibleScenes.length) {
+        return {
+          skipped: true,
+          reason: 'no_eligible_scene'
+        };
+      }
 
-    if (!eligibleScenes.length) {
-      return {
-        skipped: true,
-        reason: 'no_eligible_scene'
-      };
-    }
+      const settingResponse = await getWxSettingWithSubscriptions();
+      const itemSettings = getSubscriptionSettingMap(settingResponse);
+      requestScenes = eligibleScenes.filter(scene => itemSettings[scene.templateId] === 'accept');
+      if (!requestScenes.length) {
+        return {
+          skipped: true,
+          reason: 'no_remembered_accept'
+        };
+      }
+    } else {
+      const promptableScenes = buildPromptableScenes({ sceneKeys, periodId });
+      if (!promptableScenes.length) {
+        return {
+          skipped: true,
+          reason: 'no_eligible_scene'
+        };
+      }
 
-    const settingResponse = await getWxSettingWithSubscriptions();
-    const itemSettings = getSubscriptionSettingMap(settingResponse);
-
-    const requestScenes = eligibleScenes.filter(scene => itemSettings[scene.templateId] === 'accept');
-    if (!requestScenes.length) {
-      return {
-        skipped: true,
-        reason: 'no_remembered_accept'
-      };
+      const settingResponse = await getWxSettingWithSubscriptions();
+      const itemSettings = getSubscriptionSettingMap(settingResponse);
+      requestScenes = promptableScenes.filter(
+        scene => itemSettings[scene.templateId] !== 'reject' && itemSettings[scene.templateId] !== 'ban'
+      );
+      if (!requestScenes.length) {
+        return {
+          skipped: true,
+          reason: 'no_requestable_scene'
+        };
+      }
     }
 
     const requestBatch = requestScenes.slice(0, MAX_SUBSCRIBE_SCENES_PER_REQUEST);

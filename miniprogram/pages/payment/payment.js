@@ -5,6 +5,7 @@
 
 const paymentService = require('../../services/payment.service');
 const envConfig = require('../../config/env');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 
 Page({
   data: {
@@ -123,6 +124,14 @@ Page({
   async handleWechatPayment() {
     try {
       const { enrollmentData, finalAmount } = this.data;
+
+      await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+        sourceAction: 'payment_click',
+        sourcePage: 'payment',
+        periodId: enrollmentData.periodId,
+        sceneKeys: ['payment_result'],
+        requestMode: 'any'
+      });
 
       // 1. 调用后端初始化支付并获取支付参数
       console.log('初始化微信支付...');

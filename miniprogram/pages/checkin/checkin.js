@@ -194,13 +194,14 @@ Page({
     try {
       wx.showLoading({ title: '提交中...' });
 
-      subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+      await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
         sourceAction: 'checkin_submit',
         periodId: this.data.periodId,
         sectionId: this.data.sectionId || this.data.courseId,
         courseId: this.data.courseId,
         sourcePage: 'checkin',
-        sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
+        sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES,
+        requestMode: 'any'
       });
 
       // 获取当前期次和课节信息

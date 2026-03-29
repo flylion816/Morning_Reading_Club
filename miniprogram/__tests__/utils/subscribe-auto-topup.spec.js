@@ -32,6 +32,8 @@ describe('subscribe-auto-topup helper', () => {
 
     const sceneKeys = merged.map(item => item.scene);
     expect(sceneKeys).toContain('comment_received');
+    expect(sceneKeys).toContain('enrollment_result');
+    expect(sceneKeys).toContain('payment_result');
     expect(sceneKeys).toContain('next_day_study_reminder');
 
     const nextDay = merged.find(item => item.scene === 'next_day_study_reminder');
@@ -210,6 +212,43 @@ describe('subscribe-auto-topup helper', () => {
     expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(1);
     expect(global.wx.requestSubscribeMessage.mock.calls[0][0].tmplIds).toEqual([
       AUTO_TOP_UP_POLICIES.comment_received.templateId
+    ]);
+  });
+
+  test('maybeAutoTopUpSubscriptions should request scenes even without remembered accept in direct prompt mode', async () => {
+    global.wx.getSetting.mockImplementation(({ success }) => {
+      success({
+        subscriptionsSetting: {
+          itemSettings: {}
+        }
+      });
+    });
+
+    global.wx.requestSubscribeMessage.mockImplementation(({ tmplIds, success }) => {
+      success(
+        tmplIds.reduce((result, templateId) => {
+          result[templateId] = 'accept';
+          return result;
+        }, {})
+      );
+    });
+
+    subscribeMessageService.saveGrants.mockResolvedValue({
+      scenes: []
+    });
+
+    const result = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['enrollment_result', 'payment_result'],
+      requestMode: 'any'
+    });
+
+    expect(result.skipped).toBe(false);
+    expect(subscribeMessageService.getSettings).not.toHaveBeenCalled();
+    expect(global.wx.getSetting).toHaveBeenCalledTimes(1);
+    expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(1);
+    expect(global.wx.requestSubscribeMessage.mock.calls[0][0].tmplIds).toEqual([
+      AUTO_TOP_UP_POLICIES.enrollment_result.templateId,
+      AUTO_TOP_UP_POLICIES.payment_result.templateId
     ]);
   });
 });
