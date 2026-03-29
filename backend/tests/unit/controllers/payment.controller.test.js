@@ -19,6 +19,9 @@ describe('Payment Controller', () => {
   let PaymentStub;
   let EnrollmentStub;
   let syncServiceStub;
+  let paymentServiceStub;
+  let notificationControllerStub;
+  let subscribeMessageServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -27,7 +30,10 @@ describe('Payment Controller', () => {
       body: {},
       params: {},
       query: {},
-      user: { userId: fixtures.testUsers.regularUser._id.toString() }
+      user: {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      }
     };
     res = {
       status: sandbox.stub().returnsThis(),
@@ -57,6 +63,28 @@ describe('Payment Controller', () => {
       publishSyncEvent: sandbox.stub()
     };
 
+    paymentServiceStub = {
+      unifiedOrder: sandbox.stub().resolves({
+        success: true,
+        prepayId: 'mock_prepay_id'
+      }),
+      generatePaymentParams: sandbox.stub().returns({
+        timeStamp: '1234567890',
+        nonceStr: 'nonce_str',
+        package: 'prepay_id=mock_prepay_id',
+        signType: 'MD5',
+        paySign: 'mock_sign'
+      })
+    };
+
+    notificationControllerStub = {
+      createNotification: sandbox.stub().resolves()
+    };
+
+    subscribeMessageServiceStub = {
+      sendSceneMessage: sandbox.stub().resolves()
+    };
+
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
@@ -79,7 +107,13 @@ describe('Payment Controller', () => {
         '../models/Enrollment': EnrollmentStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
-        '../services/sync.service': syncServiceStub
+        '../services/sync.service': syncServiceStub,
+        '../services/payment.service': paymentServiceStub,
+        './notification.controller': notificationControllerStub,
+        '../services/subscribe-message.service': subscribeMessageServiceStub,
+        '../utils/notification-links': {
+          formatNotificationTime: sandbox.stub().returns('2026-03-29 12:00')
+        }
       }
     );
   });
@@ -92,7 +126,10 @@ describe('Payment Controller', () => {
   describe('initiatePayment - 支付初始化', () => {
     // TC-PAYMENT-001: 创建支付记录
     it('应该成功初始化支付订单', async () => {
-      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.user = {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      };
       req.body = fixtures.paymentInitiateRequests.validRequest;
 
       const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
@@ -115,15 +152,28 @@ describe('Payment Controller', () => {
       const response = res.json.getCall(0).args[0];
       expect(response.code).to.equal(200);
       expect(response.data.status).to.equal('pending');
+      expect(response.data).to.include({
+        timeStamp: '1234567890',
+        nonceStr: 'nonce_str',
+        package: 'prepay_id=mock_prepay_id',
+        paySign: 'mock_sign'
+      });
     });
 
     // TC-PAYMENT-002: 重复支付同一报名（防护）
     it('应该返回已存在的待支付订单而不是重复创建', async () => {
-      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.user = {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      };
       req.body = fixtures.paymentInitiateRequests.validRequest;
 
       const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
-      const mockPayment = { ...fixtures.testPayments.pendingPayment };
+      const mockPayment = {
+        ...fixtures.testPayments.pendingPayment,
+        wechat: { prepayId: 'existing_prepay_id' },
+        save: sandbox.stub().resolves()
+      };
 
       EnrollmentStub.findOne.withArgs({
         _id: fixtures.testEnrollments.pendingPaymentEnrollment._id,
@@ -141,11 +191,21 @@ describe('Payment Controller', () => {
       expect(res.json.called).to.be.true;
       const response = res.json.getCall(0).args[0];
       expect(response.data.message).to.include('订单已存在');
+      expect(paymentServiceStub.unifiedOrder.calledOnce).to.be.true;
+      expect(response.data).to.include({
+        timeStamp: '1234567890',
+        nonceStr: 'nonce_str',
+        package: 'prepay_id=mock_prepay_id',
+        paySign: 'mock_sign'
+      });
     });
 
     // TC-PAYMENT-003: 报名已支付，无法重复支付
     it('应该拒绝已完成支付的报名再次支付', async () => {
-      req.user = { userId: fixtures.testUsers.premiumUser._id.toString() };
+      req.user = {
+        userId: fixtures.testUsers.premiumUser._id.toString(),
+        openid: fixtures.testUsers.premiumUser.wechatOpenId
+      };
       req.body = {
         enrollmentId: fixtures.testEnrollments.paidEnrollment._id,
         paymentMethod: 'wechat',
@@ -168,7 +228,10 @@ describe('Payment Controller', () => {
 
     // TC-PAYMENT-004: 报名不存在返回 404
     it('应该返回404当报名记录不存在', async () => {
-      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.user = {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      };
       req.body = fixtures.paymentInitiateRequests.nonExistentEnrollmentRequest;
 
       EnrollmentStub.findOne.resolves(null);
@@ -182,7 +245,10 @@ describe('Payment Controller', () => {
 
     // TC-PAYMENT-005: 模拟支付直接成功
     it('应该在模拟支付时直接返回成功', async () => {
-      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.user = {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      };
       req.body = fixtures.paymentInitiateRequests.mockPaymentRequest;
 
       const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };
@@ -217,7 +283,10 @@ describe('Payment Controller', () => {
 
     // TC-SEC-005: 金额为零验证
     it('应该验证金额不能为零', async () => {
-      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.user = {
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        openid: fixtures.testUsers.regularUser.wechatOpenId
+      };
       req.body = fixtures.paymentInitiateRequests.zeroAmountRequest;
 
       const mockEnrollment = { ...fixtures.testEnrollments.pendingPaymentEnrollment };

@@ -25,6 +25,9 @@ exports.getDashboardStats = async (req, res) => {
     // 获取总报名数
     const totalEnrollments = await Enrollment.countDocuments({});
 
+    // 获取总用户数
+    const totalUsers = await User.countDocuments({});
+
     // 获取待审批报名数
     const pendingEnrollments = await Enrollment.countDocuments({
       approvalStatus: 'pending'
@@ -33,6 +36,11 @@ exports.getDashboardStats = async (req, res) => {
     // 获取已支付报名数
     const paidEnrollments = await Enrollment.countDocuments({
       paymentStatus: 'paid'
+    });
+
+    // 获取已完成支付笔数
+    const totalPayments = await Payment.countDocuments({
+      status: 'completed'
     });
 
     // 获取总支付金额
@@ -55,15 +63,21 @@ exports.getDashboardStats = async (req, res) => {
       lastLoginAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
     });
 
+    const conversionRate =
+      totalUsers > 0 ? Number(((paidEnrollments / totalUsers) * 100).toFixed(1)) : 0;
+
     res.json(
       success({
+        totalUsers,
+        activeUsers,
         totalPeriods,
         activePeriods,
         totalEnrollments,
         pendingEnrollments,
         paidEnrollments,
+        totalPayments,
+        conversionRate,
         totalPaymentAmount,
-        activeUsers,
         recentEnrollments: recentEnrollments.map(e => ({
           id: e._id,
           userName: e.userId?.nickname || '匿名用户',

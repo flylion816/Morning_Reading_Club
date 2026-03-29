@@ -156,7 +156,7 @@ Page({
           return this.handleMockWechatPayment(initRes.paymentId);
         }
 
-        throw new Error('获取微信支付参数失败，请检查后端配置');
+        throw new Error(initRes.message || '获取微信支付参数失败，请稍后重试');
       }
 
       // 2. 调用微信支付 JSAPI

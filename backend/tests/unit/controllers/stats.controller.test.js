@@ -112,15 +112,23 @@ describe('Stats Controller', () => {
       });
 
       PaymentStub.aggregate.resolves([{ totalAmount: 10000 }]);
+      PaymentStub.countDocuments.resolves(80);
 
-      UserStub.countDocuments.resolves(50);
+      UserStub.countDocuments.resolves(200);
+      UserStub.countDocuments.withArgs({
+        lastLoginAt: { $gte: sinon.match.any }
+      }).resolves(50);
 
       await statsController.getDashboardStats(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('totalUsers', 200);
+      expect(responseData.data).to.have.property('activeUsers', 50);
       expect(responseData.data).to.have.property('totalPeriods');
       expect(responseData.data).to.have.property('totalEnrollments');
+      expect(responseData.data).to.have.property('totalPayments', 80);
+      expect(responseData.data).to.have.property('conversionRate', 40);
       expect(responseData.data).to.have.property('totalPaymentAmount');
     });
   });

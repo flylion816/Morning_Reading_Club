@@ -320,12 +320,18 @@ describe('JWT Utils', () => {
     });
 
     it('多次生成token应该生成不同的token（由于时间戳不同）', () => {
-      const token1 = generateAccessToken(testPayload);
-      // 等待一点时间确保时间戳不同
-      setTimeout(() => {
+      const clock = sinon.useFakeTimers(new Date('2026-01-01T00:00:00Z'));
+
+      try {
+        const token1 = generateAccessToken(testPayload);
+        // JWT 的 iat/exp 是秒级，推进 1 秒才能稳定得到不同 token。
+        clock.tick(1000);
         const token2 = generateAccessToken(testPayload);
+
         expect(token1).not.to.equal(token2);
-      }, 10);
+      } finally {
+        clock.restore();
+      }
     });
   });
 });

@@ -363,14 +363,25 @@ const loadAnalytics = async () => {
   try {
     // 获取真实的仪表板统计数据
     const dashboardStats = await statsApi.getDashboardStats();
+    const totalUsers = dashboardStats.totalUsers || 0;
+    const activeUsers = dashboardStats.activeUsers || 0;
+    const completedEnrollments =
+      dashboardStats.completedEnrollments ||
+      dashboardStats.paidEnrollments ||
+      dashboardStats.totalEnrollments ||
+      0;
+    const conversionRate =
+      dashboardStats.conversionRate ||
+      (totalUsers > 0 ? Number(((completedEnrollments / totalUsers) * 100).toFixed(1)) : 0);
+    const totalPayments =
+      dashboardStats.totalPayments || dashboardStats.paidEnrollments || 0;
 
     // 构建分析数据
     analytics.value = {
-      totalUsers: dashboardStats.totalUsers || 0,
-      completedEnrollments:
-        dashboardStats.completedEnrollments || dashboardStats.totalEnrollments || 0,
+      totalUsers,
+      completedEnrollments,
       totalRevenue: dashboardStats.totalPaymentAmount || 0,
-      conversionRate: dashboardStats.conversionRate || 0,
+      conversionRate,
       userTrend: dashboardStats.userTrend || 0,
       enrollmentTrend: dashboardStats.enrollmentTrend || 0,
       revenueTrend: dashboardStats.revenueTrend || 0
@@ -384,9 +395,9 @@ const loadAnalytics = async () => {
       dailyStatsData.push({
         date: date.toISOString().split('T')[0],
         enrollmentCount: Math.floor(dashboardStats.totalEnrollments / 7) || 0,
-        paymentCount: Math.floor(dashboardStats.totalPayments / 7) || 0,
+        paymentCount: Math.floor(totalPayments / 7) || 0,
         paymentAmount: Math.floor((dashboardStats.totalPaymentAmount || 0) / 7),
-        activeUsers: Math.floor(dashboardStats.totalUsers / 7) || 0,
+        activeUsers: Math.floor(activeUsers / 7) || 0,
         newUsers: 0
       });
     }
@@ -398,9 +409,9 @@ const loadAnalytics = async () => {
 
     // 获取支付方法统计（根据真实数据估算）
     const paymentMethodStats = {
-      wechat: Math.floor((dashboardStats.totalPayments || 0) * 0.7),
-      alipay: Math.floor((dashboardStats.totalPayments || 0) * 0.2),
-      mock: Math.floor((dashboardStats.totalPayments || 0) * 0.1)
+      wechat: Math.floor(totalPayments * 0.7),
+      alipay: Math.floor(totalPayments * 0.2),
+      mock: Math.floor(totalPayments * 0.1)
     };
     initPaymentMethodChart(paymentMethodStats);
 

@@ -55,6 +55,52 @@ async function notifyPaymentSuccess(req, { userId, payment, enrollment }) {
   }
 }
 
+async function attachWechatPaymentParams(payment, userOpenid) {
+  let prepayId = payment?.wechat?.prepayId || '';
+  let unifiedOrderError = '';
+
+  if (userOpenid) {
+    const unifiedOrderResult = await paymentService.unifiedOrder({
+      orderId: payment.orderNo,
+      amount: payment.amount,
+      openid: userOpenid,
+      body: `晨读营课程费用 - 订单${payment.orderNo}`
+    });
+
+    if (unifiedOrderResult.success && unifiedOrderResult.prepayId) {
+      prepayId = unifiedOrderResult.prepayId;
+      payment.wechat = payment.wechat || {};
+      payment.wechat.prepayId = unifiedOrderResult.prepayId;
+
+      if (typeof payment.save === 'function') {
+        await payment.save();
+      }
+    } else {
+      unifiedOrderError = unifiedOrderResult.error || '获取微信支付参数失败，请稍后重试';
+      logger.warn('WeChat unifiedOrder failed', {
+        paymentId: payment._id,
+        orderNo: payment.orderNo,
+        error: unifiedOrderError
+      });
+    }
+  } else if (!prepayId) {
+    unifiedOrderError = '缺少用户 openid，无法发起微信支付';
+  }
+
+  if (!prepayId) {
+    return {
+      success: false,
+      error: unifiedOrderError || '获取微信支付参数失败，请稍后重试'
+    };
+  }
+
+  const paymentParams = paymentService.generatePaymentParams(prepayId);
+  return {
+    success: true,
+    paymentParams
+  };
+}
+
 /**
  * 初始化支付（创建订单）
  * POST /api/v1/payments/initiate
@@ -83,14 +129,30 @@ exports.initiatePayment = async (req, res) => {
 
     // 如果已有待支付或处理中的订单，直接返回该订单
     if (payment) {
+      let responseData = {
+        paymentId: payment._id,
+        orderNo: payment.orderNo,
+        amount: payment.amount,
+        status: payment.status,
+        message: '订单已存在，请继续支付'
+      };
+
+      if (payment.paymentMethod === 'wechat') {
+        const wechatPaymentResult = await attachWechatPaymentParams(payment, req.user.openid || '');
+
+        if (wechatPaymentResult.success) {
+          responseData = {
+            ...responseData,
+            ...wechatPaymentResult.paymentParams,
+            total_fee: payment.amount
+          };
+        } else {
+          responseData.message = `订单已存在，但获取支付参数失败，请重试：${wechatPaymentResult.error}`;
+        }
+      }
+
       return res.json(
-        success({
-          paymentId: payment._id,
-          orderNo: payment.orderNo,
-          amount: payment.amount,
-          status: payment.status,
-          message: '订单已存在，请继续支付'
-        })
+        success(responseData)
       );
     }
 
@@ -152,44 +214,19 @@ exports.initiatePayment = async (req, res) => {
       );
     }
 
-    // 对于真实微信支付，调用微信统一下单 API
-    // 1. 获取用户 openid（从登录用户信息中获取）
-    const userOpenid = req.user.openid || '';
+    const wechatPaymentResult = await attachWechatPaymentParams(payment, req.user.openid || '');
 
-    // 2. 调用微信统一下单 API 获取 prepayId
-    const unifiedOrderResult = await paymentService.unifiedOrder({
-      orderId: payment.orderNo,
-      amount: payment.amount,
-      openid: userOpenid,
-      body: `晨读营课程费用 - 订单${payment.orderNo}`
-    });
-
-    if (!unifiedOrderResult.success) {
-      logger.warn('WeChat unifiedOrder failed', {
-        paymentId: payment._id,
-        error: unifiedOrderResult.error
-      });
-      // 即使微信 API 调用失败，也返回订单信息，让前端重试或使用其他方案
+    if (!wechatPaymentResult.success) {
       return res.json(
         success({
           paymentId: payment._id,
           orderNo: payment.orderNo,
           amount: payment.amount,
           status: 'pending',
-          message: '订单创建成功，但获取支付参数失败，请重试'
+          message: `订单创建成功，但获取支付参数失败，请重试：${wechatPaymentResult.error}`
         })
       );
     }
-
-    // 3. 保存 prepayId 到支付记录
-    payment.wechat = payment.wechat || {};
-    payment.wechat.prepayId = unifiedOrderResult.prepayId;
-    await payment.save();
-
-    // 4. 生成前端所需的支付参数
-    const paymentParams = paymentService.generatePaymentParams(
-      unifiedOrderResult.prepayId
-    );
 
     // 5. 返回完整的支付参数
     res.json(
@@ -199,11 +236,11 @@ exports.initiatePayment = async (req, res) => {
         amount: payment.amount,
         status: 'pending',
         // 微信支付参数（wx.requestPayment 所需）
-        timeStamp: paymentParams.timeStamp,
-        nonceStr: paymentParams.nonceStr,
-        package: paymentParams.package,
-        signType: paymentParams.signType,
-        paySign: paymentParams.paySign,
+        timeStamp: wechatPaymentResult.paymentParams.timeStamp,
+        nonceStr: wechatPaymentResult.paymentParams.nonceStr,
+        package: wechatPaymentResult.paymentParams.package,
+        signType: wechatPaymentResult.paymentParams.signType,
+        paySign: wechatPaymentResult.paymentParams.paySign,
         total_fee: payment.amount, // 微信要求的字段
         message: '订单创建成功，请继续支付'
       })
