@@ -1,0 +1,252 @@
+/* 我的页面样式 */
+.page-my {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+/* 用户信息卡 */
+.user-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 32rpx 32rpx 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.user-card-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+
+.user-avatar-wrap {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: #f0f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-avatar-img {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+}
+
+.user-avatar-emoji {
+  font-size: 52rpx;
+  line-height: 1;
+}
+
+.user-info {
+  margin-left: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.user-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.user-phone {
+  font-size: 26rpx;
+  color: #888888;
+}
+
+.user-streak {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+.streak-num {
+  color: #4a90e2;
+  font-weight: 600;
+}
+
+.user-card-edit {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4rpx;
+  color: #4a90e2;
+  flex-shrink: 0;
+}
+
+.edit-text {
+  font-size: 26rpx;
+}
+
+.edit-arrow {
+  font-size: 26rpx;
+}
+
+/* 设置分组 */
+.settings-group {
+  background: #ffffff;
+  margin-bottom: 0;
+}
+
+.settings-divider {
+  height: 20rpx;
+  background: #f5f5f5;
+}
+
+/* 设置 cell */
+.settings-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32rpx;
+  height: 100rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  background: #ffffff;
+}
+
+.settings-cell:last-child {
+  border-bottom: none;
+}
+
+.cell-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+}
+
+.cell-icon {
+  font-size: 36rpx;
+  width: 44rpx;
+  text-align: center;
+}
+
+.cell-label {
+  font-size: 30rpx;
+  color: #1a1a1a;
+}
+
+.cell-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.cell-value {
+  font-size: 28rpx;
+  color: #888888;
+}
+
+.cell-arrow {
+  font-size: 36rpx;
+  color: #cccccc;
+  font-weight: 300;
+}
+
+/* 手机号绑定按钮 */
+.cell-phone-btn,
+.cell-rebind-btn {
+  font-size: 26rpx;
+  color: #4a90e2;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  min-height: auto;
+}
+
+.cell-phone-btn::after,
+.cell-rebind-btn::after {
+  border: none;
+}
+
+/* 退出登录 */
+.logout-wrap {
+  margin-top: 40rpx;
+  padding: 0 32rpx;
+}
+
+.logout-btn {
+  text-align: center;
+  color: #e74c3c;
+  font-size: 30rpx;
+  padding: 28rpx 0;
+  background: #ffffff;
+  border-radius: 12rpx;
+}
+
+/* 未登录 */
+.guest-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 160rpx;
+  gap: 48rpx;
+}
+
+.guest-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.guest-emoji {
+  font-size: 80rpx;
+}
+
+.guest-tip {
+  font-size: 30rpx;
+  color: #666666;
+}
+
+.guest-login-btn {
+  width: 400rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  background: #4a90e2;
+  color: #ffffff;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+/* 加载遮罩 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top-color: #4a90e2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

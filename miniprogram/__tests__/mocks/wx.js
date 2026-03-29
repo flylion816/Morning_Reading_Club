@@ -126,6 +126,40 @@ class WxMock {
   }
 
   /**
+   * Subscription Message API - getSetting
+   * Simulates settings lookup with subscription itemSettings
+   * @param {Object} options - Options
+   * @param {Function} options.success - Success callback
+   */
+  getSetting(options) {
+    if (options.success) {
+      options.success({
+        subscriptionsSetting: {
+          itemSettings: {}
+        }
+      });
+    }
+  }
+
+  /**
+   * Subscription Message API - requestSubscribeMessage
+   * Simulates subscribe message request
+   * @param {Object} options - Options
+   * @param {Array} options.tmplIds - Template IDs
+   * @param {Function} options.success - Success callback
+   * @param {Function} options.fail - Failure callback
+   */
+  requestSubscribeMessage(options) {
+    if (options.success) {
+      const result = {};
+      (options.tmplIds || []).forEach(templateId => {
+        result[templateId] = 'accept';
+      });
+      options.success(result);
+    }
+  }
+
+  /**
    * Payment API - requestPayment
    * Simulates WeChat payment with configurable success rate
    * @param {Object} options - Payment options

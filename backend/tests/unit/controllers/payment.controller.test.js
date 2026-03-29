@@ -49,6 +49,7 @@ describe('Payment Controller', () => {
 
     EnrollmentStub = {
       findOne: sandbox.stub(),
+      findById: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub()
     };
 
@@ -386,6 +387,145 @@ describe('Payment Controller', () => {
       PaymentStub.findOne.resolves(null);
 
       await paymentController.cancelPayment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  // ============ adminCancelPayment 测试 ============
+  describe('adminCancelPayment - 管理员取消支付', () => {
+    it('应该允许管理员取消待支付订单', async () => {
+      req.user = { id: 'admin-001', role: 'admin', email: 'admin@test.com' };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+
+      const mockPayment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        status: 'pending',
+        markCancelled: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      PaymentStub.findById.resolves(mockPayment);
+
+      await paymentController.adminCancelPayment(req, res, next);
+
+      expect(mockPayment.markCancelled.calledOnce).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+
+    it('应该拒绝管理员直接取消已完成支付', async () => {
+      req.user = { id: 'admin-001', role: 'admin', email: 'admin@test.com' };
+      req.params = { paymentId: fixtures.testPayments.completedPayment._id };
+
+      const mockPayment = {
+        _id: fixtures.testPayments.completedPayment._id,
+        status: 'completed'
+      };
+
+      PaymentStub.findById.resolves(mockPayment);
+
+      await paymentController.adminCancelPayment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+    });
+  });
+
+  // ============ adminResetPaymentToPending 测试 ============
+  describe('adminResetPaymentToPending - 管理员重置为待支付', () => {
+    it('应该将报名重置为待支付并取消相关订单', async () => {
+      req.user = { id: 'admin-001', role: 'admin', email: 'admin@test.com' };
+      req.params = { paymentId: fixtures.testPayments.completedPayment._id };
+
+      const resetPayment = {
+        _id: fixtures.testPayments.completedPayment._id,
+        enrollmentId: fixtures.testEnrollments.paidEnrollment._id,
+        status: 'completed',
+        paidAt: new Date(),
+        reconciled: true,
+        reconciledAt: new Date(),
+        wechat: {
+          prepayId: 'prepay_1',
+          transactionId: 'txn_1',
+          successTime: new Date()
+        },
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      const relatedPendingPayment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        enrollmentId: fixtures.testEnrollments.paidEnrollment._id,
+        status: 'pending',
+        paidAt: null,
+        reconciled: false,
+        reconciledAt: null,
+        wechat: {
+          prepayId: 'prepay_pending'
+        },
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      const enrollment = {
+        _id: fixtures.testEnrollments.paidEnrollment._id,
+        paymentStatus: 'paid',
+        paymentAmount: 9900,
+        paidAt: new Date(),
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      PaymentStub.findById.resolves(resetPayment);
+      EnrollmentStub.findById.resolves(enrollment);
+      PaymentStub.find.resolves([resetPayment, relatedPendingPayment]);
+
+      await paymentController.adminResetPaymentToPending(req, res, next);
+
+      expect(enrollment.paymentStatus).to.equal('pending');
+      expect(enrollment.paymentAmount).to.equal(0);
+      expect(enrollment.paidAt).to.equal(null);
+      expect(enrollment.save.calledOnce).to.be.true;
+
+      expect(resetPayment.status).to.equal('cancelled');
+      expect(resetPayment.paidAt).to.equal(null);
+      expect(resetPayment.reconciled).to.equal(false);
+      expect(resetPayment.reconciledAt).to.equal(null);
+      expect(resetPayment.wechat).to.deep.equal({});
+      expect(resetPayment.save.calledOnce).to.be.true;
+
+      expect(relatedPendingPayment.status).to.equal('cancelled');
+      expect(relatedPendingPayment.save.calledOnce).to.be.true;
+
+      expect(res.json.called).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.paymentStatus).to.equal('pending');
+      expect(response.data.cancelledPaymentCount).to.equal(2);
+    });
+
+    it('应该在支付记录不存在时返回404', async () => {
+      req.user = { id: 'admin-001', role: 'admin', email: 'admin@test.com' };
+      req.params = { paymentId: new mongoose.Types.ObjectId() };
+
+      PaymentStub.findById.resolves(null);
+
+      await paymentController.adminResetPaymentToPending(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    it('应该在报名记录不存在时返回404', async () => {
+      req.user = { id: 'admin-001', role: 'admin', email: 'admin@test.com' };
+      req.params = { paymentId: fixtures.testPayments.completedPayment._id };
+
+      const resetPayment = {
+        _id: fixtures.testPayments.completedPayment._id,
+        enrollmentId: fixtures.testEnrollments.paidEnrollment._id
+      };
+
+      PaymentStub.findById.resolves(resetPayment);
+      EnrollmentStub.findById.resolves(null);
+
+      await paymentController.adminResetPaymentToPending(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });

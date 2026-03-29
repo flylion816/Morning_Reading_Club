@@ -5,6 +5,7 @@ const sceneConfigs = {
     description: '报名成功后提醒用户进入晨读营',
     templateId: 'Qzn9auOyMjCKUaHrfekzK0XMaQ64nO0mfdikQNXjbdo',
     page: 'pages/index/index',
+    autoTopUpTarget: 1,
     fieldDefinitions: [
       { name: 'result', label: '报名结果' },
       { name: 'name', label: '姓名' },
@@ -23,6 +24,7 @@ const sceneConfigs = {
     description: '支付完成后提醒用户进入晨读营',
     templateId: 'UCzIuWtUYbc_ucf05GEOqglXK1HJHzwtN50e1NkmhCI',
     page: 'pages/index/index',
+    autoTopUpTarget: 1,
     fieldDefinitions: [
       { name: 'orderContent', label: '订单内容' },
       { name: 'orderTime', label: '下单时间' }
@@ -39,6 +41,7 @@ const sceneConfigs = {
     description: '有人评论或回复时提醒查看',
     templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
     page: 'pages/course-detail/course-detail',
+    autoTopUpTarget: 50,
     fieldDefinitions: [
       { name: 'replyUser', label: '回复人' },
       { name: 'replyTopic', label: '回复主题' },
@@ -59,6 +62,7 @@ const sceneConfigs = {
     description: '有人点赞打卡或评论时提醒查看',
     templateId: '7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek',
     page: 'pages/course-detail/course-detail',
+    autoTopUpTarget: 50,
     fieldDefinitions: [
       { name: 'likeUser', label: '点赞用户' },
       { name: 'likeTime', label: '点赞时间' }
@@ -75,6 +79,7 @@ const sceneConfigs = {
     description: '有人请求查看你的小凡看见时提醒处理',
     templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
     page: 'pages/profile/profile',
+    autoTopUpTarget: 1,
     fieldDefinitions: [
       { name: 'requestUser', label: '申请人' },
       { name: 'remark', label: '备注' },
@@ -86,6 +91,29 @@ const sceneConfigs = {
       requestTime: 'date1'
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_INSIGHT_REQUEST_CREATED'
+  },
+  next_day_study_reminder: {
+    scene: 'next_day_study_reminder',
+    title: '明日学习提醒',
+    description: '次日 05:45 提醒用户打开首页继续学习',
+    templateId: 'aVKlwM2zva8WuT04AdaiblJIXiNL9YvgHncb2uJbU_A',
+    page: 'pages/index/index',
+    autoTopUpTarget: 1,
+    fieldDefinitions: [
+      { name: 'startTime', label: '开始时间' },
+      { name: 'activityName', label: '活动名称' },
+      { name: 'activityContent', label: '活动内容' },
+      { name: 'joinMethod', label: '参与方式' },
+      { name: 'location', label: '活动地点' }
+    ],
+    defaultFieldKeyMap: {
+      startTime: 'date3',
+      activityName: 'thing4',
+      activityContent: 'thing2',
+      joinMethod: 'thing12',
+      location: 'thing6'
+    },
+    fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_NEXT_DAY_STUDY_REMINDER'
   }
 };
 

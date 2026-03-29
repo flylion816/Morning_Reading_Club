@@ -91,8 +91,8 @@
             :page-sizes="[10, 20, 50]"
             :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
-            @current-page-change="loadPeriods"
-            @page-size-change="loadPeriods"
+            @current-change="loadPeriods"
+            @size-change="handlePageSizeChange"
           />
         </div>
       </el-card>
@@ -447,6 +447,11 @@ async function loadPeriods() {
   } finally {
     loading.value = false;
   }
+}
+
+function handlePageSizeChange() {
+  pagination.value.page = 1;
+  loadPeriods();
 }
 
 function handleCreatePeriod() {

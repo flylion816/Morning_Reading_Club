@@ -17,7 +17,43 @@ const subscribeMessageGrantSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    periodId: {
+      type: String,
+      default: null,
+      index: true
+    },
+    sourceAction: {
+      type: String,
+      default: null
+    },
+    context: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
     availableCount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    autoTopUpTarget: {
+      type: Number,
+      default: 1,
+      min: 1
+    },
+    scheduledSendDate: {
+      type: Date,
+      default: null
+    },
+    scheduledSendDateKey: {
+      type: String,
+      default: null,
+      index: true
+    },
+    retryAt: {
+      type: Date,
+      default: null
+    },
+    retryCount: {
       type: Number,
       default: 0,
       min: 0
@@ -48,5 +84,6 @@ const subscribeMessageGrantSchema = new mongoose.Schema(
 );
 
 subscribeMessageGrantSchema.index({ userId: 1, scene: 1, templateId: 1 }, { unique: true });
+subscribeMessageGrantSchema.index({ scene: 1, scheduledSendDate: 1, retryAt: 1, availableCount: 1 });
 
 module.exports = mongoose.model('SubscribeMessageGrant', subscribeMessageGrantSchema);

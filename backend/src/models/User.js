@@ -82,6 +82,15 @@ const UserSchema = new mongoose.Schema(
     lastLoginAt: {
       type: Date,
       default: null
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: null
+    },
+    phoneBindAt: {
+      type: Date,
+      default: null
     }
   },
   {
@@ -93,6 +102,7 @@ const UserSchema = new mongoose.Schema(
 // 索引
 UserSchema.index({ nickname: 1 });
 UserSchema.index({ createdAt: 1 });
+UserSchema.index({ phone: 1 }, { sparse: true });
 
 // 虚拟字段 - 头像文字
 UserSchema.virtual('avatarText').get(function () {

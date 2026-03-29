@@ -8,7 +8,9 @@ const {
   getUserStats,
   getUserList,
   updateUser,
-  deleteUser
+  deleteUser,
+  bindPhone,
+  getPhoneInfo
 } = require('../controllers/user.controller');
 
 /**
@@ -24,6 +26,20 @@ router.get('/me', authMiddleware, getCurrentUser);
  * @access  Private
  */
 router.put('/profile', authMiddleware, updateProfile);
+
+/**
+ * @route   POST /api/v1/users/bindPhone
+ * @desc    绑定手机号
+ * @access  Private
+ */
+router.post('/bindPhone', authMiddleware, bindPhone);
+
+/**
+ * @route   GET /api/v1/users/phone
+ * @desc    获取当前用户手机号信息
+ * @access  Private
+ */
+router.get('/phone', authMiddleware, getPhoneInfo);
 
 /**
  * @route   GET /api/v1/users/:userId

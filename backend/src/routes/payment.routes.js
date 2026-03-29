@@ -5,6 +5,8 @@ const {
   confirmPayment,
   getPaymentStatus,
   cancelPayment,
+  adminCancelPayment,
+  adminResetPaymentToPending,
   getUserPayments,
   wechatCallback,
   mockConfirmPayment,
@@ -36,6 +38,17 @@ router.post('/:paymentId/confirm', authMiddleware, confirmPayment);
 
 // 取消支付
 router.post('/:paymentId/cancel', authMiddleware, cancelPayment);
+
+// 管理员取消支付
+router.post('/:paymentId/admin-cancel', authMiddleware, adminMiddleware, adminCancelPayment);
+
+// 管理员重置为待支付
+router.post(
+  '/:paymentId/reset-to-pending',
+  authMiddleware,
+  adminMiddleware,
+  adminResetPaymentToPending
+);
 
 // 模拟支付确认（用于开发测试）
 router.post('/:paymentId/mock-confirm', authMiddleware, mockConfirmPayment);

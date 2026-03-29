@@ -1,5 +1,11 @@
 const subscribeMessageService = require('../../services/subscribe-message.service');
-const MAX_SUBSCRIBE_SCENES_PER_TAP = 3;
+const {
+  AUTO_TOP_UP_POLICIES,
+  MAX_SUBSCRIBE_SCENES_PER_REQUEST,
+  getSceneAutoTopUpTarget,
+  mergeAutoTopUpScenes
+} = require('../../utils/subscribe-auto-topup');
+const MAX_SUBSCRIBE_SCENES_PER_TAP = MAX_SUBSCRIBE_SCENES_PER_REQUEST;
 
 function formatDateTime(value) {
   if (!value) {
@@ -15,10 +21,24 @@ function formatDateTime(value) {
 }
 
 function normalizeResponse(response) {
-  const scenes = (response.scenes || []).map(scene => ({
-    ...scene,
-    lastAcceptedAtText: formatDateTime(scene.lastAcceptedAt)
-  }));
+  const scenes = mergeAutoTopUpScenes(response.scenes || []).map(scene => {
+    const policy = AUTO_TOP_UP_POLICIES[scene.scene] || null;
+    const scheduledSendText = scene.scheduledSendText
+      || (scene.scheduledSendDate ? `计划发送：${formatDateTime(scene.scheduledSendDate)}` : '')
+      || (policy ? policy.scheduledSendText : '');
+
+    return {
+      ...scene,
+      lastAcceptedAtText: formatDateTime(scene.lastAcceptedAt),
+      autoTopUpTarget: scene.autoTopUpTarget || (policy ? policy.target : 0),
+      scheduledSendText,
+      localOnly: !!scene.localOnly,
+      sceneHint:
+        scene.scene === 'next_day_study_reminder'
+          ? '只在期次开始到结束日期之间发送'
+          : ''
+    };
+  });
 
   return {
     scenes,
@@ -26,15 +46,23 @@ function normalizeResponse(response) {
   };
 }
 
+function isSceneUnderTarget(scene = {}) {
+  if (scene.localOnly) {
+    return false;
+  }
+
+  return (scene.availableCount || 0) < getSceneAutoTopUpTarget(scene);
+}
+
 function getMissingScenes(scenes = []) {
-  return scenes.filter(scene => (scene.availableCount || 0) <= 0);
+  return scenes.filter(isSceneUnderTarget);
 }
 
 function buildPendingSceneKeys(scenes = [], pendingSceneKeys = []) {
   const sceneMap = new Map(scenes.map(scene => [scene.scene, scene]));
   return pendingSceneKeys.filter(sceneKey => {
     const scene = sceneMap.get(sceneKey);
-    return scene && (scene.availableCount || 0) <= 0;
+    return scene && isSceneUnderTarget(scene);
   });
 }
 
@@ -72,12 +100,19 @@ Page({
   data: {
     loading: true,
     submitting: false,
+    periodId: '',
     scenes: [],
     summary: null,
     pendingSceneKeys: [],
     subscribeAllButtonText: '一键补充全部',
     subscribeAllHint: '',
     subscribeAllDisabled: false
+  },
+
+  onLoad(options) {
+    this.setData({
+      periodId: options.periodId || ''
+    });
   },
 
   onShow() {
@@ -118,11 +153,20 @@ Page({
       return;
     }
 
+    const targetSceneList = sceneList.filter(scene => !scene.localOnly);
+    if (!targetSceneList.length) {
+      wx.showToast({
+        title: '该场景暂未启用',
+        icon: 'none'
+      });
+      return;
+    }
+
     this.setData({ submitting: true });
     const grants = [];
 
     try {
-      const requestScenes = sceneList.slice(0, MAX_SUBSCRIBE_SCENES_PER_TAP);
+      const requestScenes = targetSceneList.slice(0, MAX_SUBSCRIBE_SCENES_PER_TAP);
       const templateIds = requestScenes.map(scene => scene.templateId);
       const requestResult = await new Promise((resolve, reject) => {
         wx.requestSubscribeMessage({
@@ -142,7 +186,13 @@ Page({
           grants.push({
             scene: matchedScene.scene,
             templateId,
-            result: result[templateId] || 'error'
+            result: result[templateId] || 'error',
+            context: {
+              periodId:
+                matchedScene.scene === 'next_day_study_reminder' ? this.data.periodId || null : null,
+              sourceAction: 'notification_settings_manual',
+              sourcePage: 'notification-settings'
+            }
           });
         });
       };
@@ -191,6 +241,13 @@ Page({
     if (!targetScene) {
       return;
     }
+    if (targetScene.localOnly) {
+      wx.showToast({
+        title: '该场景暂未启用',
+        icon: 'none'
+      });
+      return;
+    }
     this.requestSubscriptions([targetScene], {
       remainingSceneKeys: []
     });
@@ -205,7 +262,7 @@ Page({
         : getMissingScenes(this.data.scenes).map(scene => scene.scene)
     )
       .map(scene => sceneMap.get(scene))
-      .filter(Boolean);
+      .filter(scene => scene && !scene.localOnly);
 
     if (!queue.length) {
       wx.showToast({

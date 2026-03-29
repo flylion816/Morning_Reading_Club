@@ -86,3 +86,19 @@
     </view>
   </view>
 </view>
+
+<!-- 手机号绑定弹窗 -->
+<view class="phone-bind-modal" wx:if="{{showPhoneBindModal}}">
+  <view class="modal-mask"></view>
+  <view class="modal-content">
+    <view class="modal-title">绑定手机号</view>
+    <view class="modal-desc">绑定后可通过手机号找回账号</view>
+    <button
+      class="bind-btn"
+      open-type="getPhoneNumber"
+      bindgetphonenumber="handleGetPhoneNumber"
+      loading="{{phoneBinding}}"
+    >微信授权绑定手机号</button>
+    <view class="skip-btn" bindtap="handleSkipPhoneBind">暂时跳过</view>
+  </view>
+</view>

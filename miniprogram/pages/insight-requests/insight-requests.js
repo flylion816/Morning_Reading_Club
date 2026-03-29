@@ -1,5 +1,8 @@
 const insightService = require('../../services/insight.service');
 const subscribeMessageService = require('../../services/subscribe-message.service');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+
+const INSIGHT_AUTO_TOP_UP_SCENES = ['insight_request_created'];
 
 function formatRelativeTime(dateString) {
   if (!dateString) return '刚刚';
@@ -119,8 +122,17 @@ Page({
   },
 
   navigateToNotificationSettings() {
+    this.triggerAutoTopUp('insight_requests_notification_settings');
     wx.navigateTo({
       url: '/pages/notification-settings/notification-settings'
+    });
+  },
+
+  triggerAutoTopUp(sourceAction) {
+    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+      sourceAction,
+      sourcePage: 'insight-requests',
+      sceneKeys: INSIGHT_AUTO_TOP_UP_SCENES
     });
   },
 
@@ -135,6 +147,8 @@ Page({
   },
 
   handleRequestTap(e) {
+    this.triggerAutoTopUp('insight_request_tap');
+
     const { request } = e.currentTarget.dataset;
     const userId = request?.fromUserId;
     const periodId = request?.periodId;
@@ -154,6 +168,7 @@ Page({
 
   async approveRequest(request) {
     try {
+      this.triggerAutoTopUp('insight_request_approve');
       const requestId = request._id || request.id;
       await insightService.approveRequest(requestId, { periodId: request.periodId || '' });
       this.updateRequestStatus(requestId, 'approved');
@@ -166,6 +181,7 @@ Page({
 
   async rejectRequest(request) {
     try {
+      this.triggerAutoTopUp('insight_request_reject');
       const requestId = request._id || request.id;
       await insightService.rejectRequest(requestId, { reason: '暂不同意' });
       this.updateRequestStatus(requestId, 'rejected');

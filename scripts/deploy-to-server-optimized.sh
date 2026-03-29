@@ -41,6 +41,8 @@ PM2_APP_NAME="morning-reading-backend"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DEPLOY_PACKAGE="morning-reading-deploy_${TIMESTAMP}.tar.gz"
 TEMP_DIR="/tmp/morning-reading-deploy-${TIMESTAMP}"
+TMP_PACKAGE_PATH="/tmp/$DEPLOY_PACKAGE"
+LOCAL_PACKAGE_PATH="$PROJECT_ROOT/$DEPLOY_PACKAGE"
 
 ################################################################################
 # 清理函数
@@ -49,6 +51,8 @@ TEMP_DIR="/tmp/morning-reading-deploy-${TIMESTAMP}"
 cleanup() {
   log_section "清理本地临时文件"
   [ -d "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
+  [ -f "$TMP_PACKAGE_PATH" ] && rm -f "$TMP_PACKAGE_PATH"
+  [ -f "$LOCAL_PACKAGE_PATH" ] && rm -f "$LOCAL_PACKAGE_PATH"
   log_success "清理完成"
 }
 
@@ -121,20 +125,20 @@ EOF
     -C "$(dirname "$TEMP_DIR")" "$(basename "$TEMP_DIR")" 2>/dev/null
   cd "$PROJECT_ROOT"
 
-  if [ ! -f "/tmp/$DEPLOY_PACKAGE" ]; then
+  if [ ! -f "$TMP_PACKAGE_PATH" ]; then
     log_error "打包失败"
     exit 1
   fi
 
-  cp "/tmp/$DEPLOY_PACKAGE" "$PROJECT_ROOT/"
-  local package_size=$(du -h "/tmp/$DEPLOY_PACKAGE" | cut -f1)
+  cp "$TMP_PACKAGE_PATH" "$LOCAL_PACKAGE_PATH"
+  local package_size=$(du -h "$TMP_PACKAGE_PATH" | cut -f1)
   log_success "打包完成: $DEPLOY_PACKAGE (大小: $package_size)"
 
   # 第 5 步：上传和部署
   log_section "第 5 步：上传到服务器"
 
   local remote_package="/tmp/$DEPLOY_PACKAGE"
-  if ! scp -i "$SSH_KEY" -o StrictHostKeyChecking=no "$PROJECT_ROOT/$DEPLOY_PACKAGE" \
+  if ! scp -i "$SSH_KEY" -o StrictHostKeyChecking=no "$LOCAL_PACKAGE_PATH" \
     "$SERVER_USER@$SERVER_IP:$remote_package" 2>/dev/null; then
     log_error "上传失败"
     exit 1

@@ -1,7 +1,14 @@
 // 课节列表页 - 显示某一期的每天课程
 const courseService = require('../../services/course.service');
-const enrollmentService = require('../../services/enrollment.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const { getPeriodAccess } = require('../../utils/period-access');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+
+const COMMUNITY_AUTO_TOP_UP_SCENES = [
+  'comment_received',
+  'like_received',
+  'next_day_study_reminder'
+];
 
 Page({
   data: {
@@ -15,7 +22,10 @@ Page({
     currentTab: 'tasks', // 当前选中的tab
     scrollTop: 0, // 滚动位置
     paymentPending: false, // 是否有待支付
+    paymentStatus: null, // 当前报名支付状态
     paymentEnrollmentId: '', // 待支付的报名ID
+    canAccessCommunity: false, // 是否可访问打卡/社区功能
+    communityAccessState: 'locked', // enabled | locked
     headerCollapsed: false // 滚动时收起头部
   },
 
@@ -40,7 +50,16 @@ Page({
 
     if (options.periodId) {
       // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
-      this.setData({ periodId: options.periodId });
+      this.setData({
+        periodId: options.periodId,
+        paymentPending: false,
+        paymentStatus: null,
+        paymentEnrollmentId: '',
+        canAccessCommunity: false,
+        communityAccessState: 'locked',
+        currentTab: 'tasks',
+        allCheckins: []
+      });
       this.loadSections();
       this.checkPaymentStatus();
     } else {
@@ -53,7 +72,7 @@ Page({
 
   onShow() {
     // 每次显示页面时重新加载打卡记录
-    if (this.data.sections.length > 0) {
+    if (this.data.sections.length > 0 && this.data.communityAccessState === 'enabled') {
       this.loadAllCheckins();
     }
     // 刷新支付状态（从支付页返回后可能已支付）
@@ -108,8 +127,9 @@ Page({
           : ''
       });
 
-      // 加载所有打卡记录
-      this.loadAllCheckins();
+      if (this.data.communityAccessState === 'enabled') {
+        this.loadAllCheckins();
+      }
     } catch (error) {
       console.error('获取课节列表失败:', error);
       this.setData({
@@ -179,6 +199,9 @@ Page({
    */
   handleTabChange(e) {
     const { tab } = e.currentTarget.dataset;
+    if (tab === 'dynamics' && this.data.communityAccessState !== 'enabled') {
+      return;
+    }
 
     this.setData({
       currentTab: tab
@@ -218,6 +241,10 @@ Page({
    * 跳转到排行榜
    */
   handleRanking() {
+    if (this.data.communityAccessState !== 'enabled') {
+      wx.showToast({ title: '未支付暂不可互动', icon: 'none' });
+      return;
+    }
     wx.navigateTo({
       url: `/pages/ranking/ranking?periodId=${this.data.periodId}`
     });
@@ -227,6 +254,10 @@ Page({
    * 跳转到打卡记录
    */
   handleCheckinRecords() {
+    if (this.data.communityAccessState !== 'enabled') {
+      wx.showToast({ title: '未支付暂不可互动', icon: 'none' });
+      return;
+    }
     wx.navigateTo({
       url: `/pages/checkin-records/checkin-records?periodId=${this.data.periodId}`
     });
@@ -236,6 +267,10 @@ Page({
    * 跳转到成员列表
    */
   handleMembers() {
+    if (this.data.communityAccessState !== 'enabled') {
+      wx.showToast({ title: '未支付暂不可互动', icon: 'none' });
+      return;
+    }
     wx.navigateTo({
       url: `/pages/members/members?periodId=${this.data.periodId}`
     });
@@ -256,6 +291,15 @@ Page({
       });
       return;
     }
+
+    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+      sourceAction: 'courses_section_click',
+      periodId: this.data.periodId,
+      sectionId,
+      courseId: sectionId,
+      sourcePage: 'courses',
+      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
+    });
 
     // 跳转到课程详情页（学习内容）
     wx.navigateTo({
@@ -279,9 +323,25 @@ Page({
       return;
     }
 
+    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+      sourceAction: 'courses_checkin_click',
+      periodId: this.data.periodId,
+      sectionId,
+      courseId: sectionId,
+      sourcePage: 'courses',
+      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
+    });
+
+    if (this.data.communityAccessState !== 'enabled') {
+      wx.navigateTo({
+        url: `/pages/course-detail/course-detail?id=${sectionId}`
+      });
+      return;
+    }
+
     // 直接跳转到打卡页面
     wx.navigateTo({
-      url: `/pages/checkin/checkin?courseId=${sectionId}`
+      url: `/pages/checkin/checkin?courseId=${sectionId}&periodId=${this.data.periodId}`
     });
   },
 
@@ -290,16 +350,33 @@ Page({
    */
   async checkPaymentStatus() {
     try {
-      const res = await enrollmentService.checkEnrollment(this.data.periodId);
-      if (res.isEnrolled && res.paymentStatus !== 'paid' && res.paymentStatus !== 'free') {
+      const access = await getPeriodAccess(this.data.periodId);
+      const communityEnabled = access.communityAccessState === 'enabled';
+
+      console.log('课程列表权限检查:', {
+        periodId: this.data.periodId,
+        paymentStatus: access.paymentStatus,
+        paymentPending: access.paymentPending,
+        communityAccessState: access.communityAccessState,
+        canAccessCommunity: access.canAccessCommunity
+      });
+
+      this.setData({
+        paymentPending: access.paymentPending,
+        paymentStatus: access.paymentStatus || null,
+        paymentEnrollmentId: access.enrollmentId || '',
+        canAccessCommunity: communityEnabled,
+        communityAccessState: access.communityAccessState || 'locked',
+        currentTab: communityEnabled ? this.data.currentTab : 'tasks'
+      });
+
+      if (communityEnabled) {
+        if (this.data.sections.length > 0) {
+          this.loadAllCheckins();
+        }
+      } else if (this.data.allCheckins.length > 0) {
         this.setData({
-          paymentPending: true,
-          paymentEnrollmentId: res.enrollmentId || ''
-        });
-      } else {
-        this.setData({
-          paymentPending: false,
-          paymentEnrollmentId: ''
+          allCheckins: []
         });
       }
     } catch (error) {

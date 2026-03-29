@@ -1,6 +1,10 @@
 // 成员列表页面
 const enrollmentService = require('../../services/enrollment.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const {
+  getPeriodAccess,
+  redirectAfterCommunityDenied
+} = require('../../utils/period-access');
 
 Page({
   data: {
@@ -20,9 +24,15 @@ Page({
     loading: true
   },
 
-  onLoad(options) {
+  async onLoad(options) {
     console.log('成员列表页面加载', options);
     if (options.periodId) {
+      const access = await getPeriodAccess(options.periodId);
+      if (access.communityAccessState !== 'enabled') {
+        redirectAfterCommunityDenied(`/pages/courses/courses?periodId=${options.periodId}`);
+        return;
+      }
+
       this.periodId = options.periodId;
       this.loadMembers();
     }

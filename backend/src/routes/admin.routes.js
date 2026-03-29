@@ -1,5 +1,6 @@
 const express = require('express');
 const adminController = require('../controllers/admin.controller');
+const adminSubscriptionController = require('../controllers/admin-subscription.controller');
 const checkinController = require('../controllers/checkin.controller');
 const periodController = require('../controllers/period.controller');
 const sectionController = require('../controllers/section.controller');
@@ -42,6 +43,18 @@ router.delete(
   '/admin/checkins/:checkinId',
   adminAuthMiddleware,
   checkinController.deleteAdminCheckin
+);
+
+// 订阅消息排查路由（管理员，只读）
+router.get(
+  '/admin/subscription-grants',
+  adminAuthMiddleware,
+  adminSubscriptionController.getSubscriptionGrantList
+);
+router.get(
+  '/admin/subscription-grants/:userId',
+  adminAuthMiddleware,
+  adminSubscriptionController.getSubscriptionGrantDetail
 );
 
 // 期次管理路由（管理员）

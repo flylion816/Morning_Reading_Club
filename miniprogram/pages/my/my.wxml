@@ -1,0 +1,126 @@
+<!-- 我的页面 -->
+<view class="page-my">
+
+  <!-- 已登录状态 -->
+  <view wx:if="{{isLogin}}" class="logged-in-content">
+
+    <!-- 用户信息卡 -->
+    <view class="user-card">
+      <view class="user-card-left">
+        <view class="user-avatar-wrap">
+          <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+          <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+        </view>
+        <view class="user-info">
+          <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
+          <text class="user-phone">{{hasPhone ? phoneMasked : '未绑定手机号'}}</text>
+          <text class="user-streak">坚持晨读打卡第 <text class="streak-num">{{stats.totalCheckinDays || 0}}</text> 天</text>
+        </view>
+      </view>
+      <view class="user-card-edit" bindtap="goToEditProfile">
+        <text class="edit-text">编辑</text>
+        <text class="edit-arrow">→</text>
+      </view>
+    </view>
+
+    <!-- 设置列表 -->
+    <view class="settings-group">
+
+      <!-- 手机号管理 -->
+      <view wx:if="{{!hasPhone}}" class="settings-cell">
+        <view class="cell-left">
+          <text class="cell-icon">📱</text>
+          <text class="cell-label">绑定手机号</text>
+        </view>
+        <button
+          class="cell-phone-btn"
+          open-type="getPhoneNumber"
+          bindgetphonenumber="handleGetPhoneNumber"
+        >立即绑定</button>
+      </view>
+      <view wx:else class="settings-cell">
+        <view class="cell-left">
+          <text class="cell-icon">📱</text>
+          <text class="cell-label">手机号管理</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-value">{{phoneMasked}}</text>
+          <button
+            class="cell-rebind-btn"
+            open-type="getPhoneNumber"
+            bindgetphonenumber="handleGetPhoneNumber"
+          >换绑</button>
+        </view>
+      </view>
+
+      <!-- 消息提醒设置 -->
+      <view class="settings-cell" bindtap="goToNotificationSettings">
+        <view class="cell-left">
+          <text class="cell-icon">🔔</text>
+          <text class="cell-label">消息提醒设置</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+
+      <!-- 编辑资料 -->
+      <view class="settings-cell" bindtap="goToEditProfile">
+        <view class="cell-left">
+          <text class="cell-icon">📝</text>
+          <text class="cell-label">编辑资料</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 分隔线 -->
+    <view class="settings-divider"></view>
+
+    <!-- 协议列表 -->
+    <view class="settings-group">
+      <view class="settings-cell" bindtap="goToPrivacy">
+        <view class="cell-left">
+          <text class="cell-icon">📄</text>
+          <text class="cell-label">隐私政策</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+      <view class="settings-cell" bindtap="goToAgreement">
+        <view class="cell-left">
+          <text class="cell-icon">📄</text>
+          <text class="cell-label">用户协议</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <view class="logout-wrap">
+      <view class="logout-btn" bindtap="handleLogout">退出登录</view>
+    </view>
+
+  </view>
+
+  <!-- 未登录状态 -->
+  <view wx:if="{{!isLogin}}" class="guest-content">
+    <view class="guest-banner">
+      <text class="guest-emoji">🦁</text>
+      <text class="guest-tip">登录后查看个人信息</text>
+    </view>
+    <view class="guest-login-btn" bindtap="goToLogin">立即登录</view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-overlay">
+    <view class="loading-spinner"></view>
+  </view>
+
+</view>

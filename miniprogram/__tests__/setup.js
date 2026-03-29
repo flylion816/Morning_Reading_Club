@@ -88,6 +88,27 @@ global.wx = {
     }, 100);
   }),
 
+  // Subscription Message APIs
+  getSetting: jest.fn((options) => {
+    if (options && options.success) {
+      options.success({
+        subscriptionsSetting: {
+          itemSettings: {}
+        }
+      });
+    }
+  }),
+
+  requestSubscribeMessage: jest.fn((options) => {
+    if (options && options.success) {
+      const result = {};
+      (options.tmplIds || []).forEach(templateId => {
+        result[templateId] = 'accept';
+      });
+      options.success(result);
+    }
+  }),
+
   // Network Info API
   getNetworkType: jest.fn((options) => {
     // Simulate network info

@@ -6,10 +6,15 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const { ensurePeriodCommunityAccess } = require('../services/community-access.service');
 const {
   buildCourseDetailTargetPage,
   formatNotificationTime
 } = require('../utils/notification-links');
+
+function getRequestUserId(req) {
+  return req.user.id || req.user.userId || req.user._id;
+}
 
 // 创建打卡记录
 async function createCheckin(req, res, next) {
@@ -18,12 +23,17 @@ async function createCheckin(req, res, next) {
       req.body;
 
     // JWT payload from admin controller uses 'id', from auth uses 'userId'
-    const userId = req.user.id || req.user.userId;
+    const userId = getRequestUserId(req);
 
     // 验证课程存在
     const section = await Section.findById(sectionId);
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));
+    }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(res, userId, periodId);
+    if (!hasCommunityAccess) {
+      return;
     }
 
     // 规范化checkinDate为当天的00:00:00（仅用于连续打卡计算）
@@ -662,11 +672,16 @@ async function getCheckinStats(req, res, next) {
 async function likeCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
-    const userId = req.user.userId || req.user._id;
+    const userId = getRequestUserId(req);
 
     const checkin = await Checkin.findById(checkinId);
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(res, userId, checkin.periodId);
+    if (!hasCommunityAccess) {
+      return;
     }
 
     const alreadyLiked = checkin.likes && checkin.likes.some(like => like.userId.toString() === userId);
@@ -729,11 +744,16 @@ async function likeCheckin(req, res, next) {
 async function unlikeCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
-    const userId = req.user.userId || req.user._id;
+    const userId = getRequestUserId(req);
 
     const checkin = await Checkin.findById(checkinId);
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(res, userId, checkin.periodId);
+    if (!hasCommunityAccess) {
+      return;
     }
 
     const likeIndex = checkin.likes ? checkin.likes.findIndex(like => like.userId.toString() === userId) : -1;

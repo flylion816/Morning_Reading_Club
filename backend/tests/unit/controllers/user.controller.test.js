@@ -29,6 +29,8 @@ describe('User Controller - 100% Coverage', () => {
   let UserStub;
   let CheckinStub;
   let syncServiceStub;
+  let axiosStub;
+  let subscribeMessageServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -73,7 +75,8 @@ describe('User Controller - 100% Coverage', () => {
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
-        forbidden: (msg) => ({ code: 403, message: msg })
+        forbidden: (msg) => ({ code: 403, message: msg }),
+        serverError: (msg) => ({ code: 500, message: msg })
       }
     };
 
@@ -82,13 +85,25 @@ describe('User Controller - 100% Coverage', () => {
       publishSyncEvent: sandbox.stub()
     };
 
+    // Mock axios (used by bindPhone)
+    axiosStub = {
+      post: sandbox.stub()
+    };
+
+    // Mock subscribe-message service (used by bindPhone for getAccessToken)
+    subscribeMessageServiceStub = {
+      getAccessToken: sandbox.stub().resolves('fake-access-token')
+    };
+
     userController = proxyquire(
       '../../../src/controllers/user.controller',
       {
+        'axios': axiosStub,
         '../models/User': UserStub,
         '../models/Checkin': CheckinStub,
         '../utils/response': responseUtils,
-        '../services/sync.service': syncServiceStub
+        '../services/sync.service': syncServiceStub,
+        '../services/subscribe-message.service': subscribeMessageServiceStub
       }
     );
   });
@@ -879,6 +894,228 @@ describe('User Controller - 100% Coverage', () => {
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.code).to.equal(200);
+    });
+  });
+
+  // =====================================================
+  // TC-USER-010: bindPhone
+  // =====================================================
+  describe('bindPhone - TC-USER-010: 绑定手机号', () => {
+    it('应该成功绑定手机号并返回脱敏号码', async () => {
+      // Given
+      const userId = fixtures.testUsers.normalUser._id;
+      req.user = { userId };
+      req.body = { code: 'wx-phone-code-123' };
+
+      const saveSpy = sandbox.stub().resolves();
+      const mockUser = {
+        ...fixtures.testUsers.normalUser,
+        phone: null,
+        phoneBindAt: null,
+        save: saveSpy,
+        toObject: sandbox.stub().returns(fixtures.testUsers.normalUser)
+      };
+      UserStub.findById.resolves(mockUser);
+
+      axiosStub.post.resolves({
+        data: {
+          errcode: 0,
+          phone_info: { purePhoneNumber: '13812341234' }
+        }
+      });
+
+      // When
+      await userController.bindPhone(req, res, next);
+
+      // Then
+      expect(subscribeMessageServiceStub.getAccessToken.called).to.be.true;
+      expect(axiosStub.post.called).to.be.true;
+      expect(saveSpy.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.code).to.equal(200);
+      expect(responseData.data.phone).to.equal('138****1234');
+      expect(responseData.message).to.include('绑定成功');
+    });
+
+    it('应该返回400当 code 缺失', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      req.body = {};
+
+      // When
+      await userController.bindPhone(req, res, next);
+
+      // Then
+      expect(res.status.calledWith(400)).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.code).to.equal(400);
+    });
+
+    it('应该返回404当用户不存在', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      req.body = { code: 'some-code' };
+      UserStub.findById.resolves(null);
+
+      // When
+      await userController.bindPhone(req, res, next);
+
+      // Then
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    it('应该返回502当获取 access_token 失败', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      req.body = { code: 'some-code' };
+      const mockUser = { ...fixtures.testUsers.normalUser };
+      UserStub.findById.resolves(mockUser);
+      subscribeMessageServiceStub.getAccessToken.rejects(new Error('微信服务不可用'));
+
+      // When
+      await userController.bindPhone(req, res, next);
+
+      // Then
+      expect(res.status.calledWith(502)).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.code).to.equal(500);
+    });
+
+    it('应该返回400当微信接口返回 code 无效错误(40029)', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      req.body = { code: 'expired-code' };
+      const mockUser = { ...fixtures.testUsers.normalUser };
+      UserStub.findById.resolves(mockUser);
+
+      axiosStub.post.resolves({
+        data: { errcode: 40029, errmsg: 'invalid code' }
+      });
+
+      // When
+      await userController.bindPhone(req, res, next);
+
+      // Then
+      expect(res.status.calledWith(400)).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.code).to.equal(400);
+    });
+
+    it('应该返回502当微信接口调用网络失败', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      req.body = { code: 'some-code' };
+      const mockUser = { ...fixtures.testUsers.normalUser };
+      UserStub.findById.resolves(mockUser);
+      axiosStub.post.rejects(new Error('Network Error'));
+
+      // When
+      await userController.bindPhone(req, res, next);
+
+      // Then
+      expect(res.status.calledWith(502)).to.be.true;
+    });
+
+    it('应该在数据库 save 失败时调用 next', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      req.body = { code: 'some-code' };
+      const dbError = new Error('Save failed');
+      const mockUser = {
+        ...fixtures.testUsers.normalUser,
+        phone: null,
+        save: sandbox.stub().rejects(dbError)
+      };
+      UserStub.findById.resolves(mockUser);
+      axiosStub.post.resolves({
+        data: {
+          errcode: 0,
+          phone_info: { purePhoneNumber: '13812341234' }
+        }
+      });
+
+      // When
+      await userController.bindPhone(req, res, next);
+
+      // Then
+      expect(next.calledWith(dbError)).to.be.true;
+    });
+  });
+
+  // =====================================================
+  // TC-USER-011: getPhoneInfo
+  // =====================================================
+  describe('getPhoneInfo - TC-USER-011: 获取手机号信息', () => {
+    it('应该返回已绑定的脱敏手机号', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      const phoneBindAt = new Date('2026-01-01');
+      UserStub.findById.returns({
+        select: sandbox.stub().resolves({
+          phone: '13812341234',
+          phoneBindAt
+        })
+      });
+
+      // When
+      await userController.getPhoneInfo(req, res, next);
+
+      // Then
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.code).to.equal(200);
+      expect(responseData.data.bound).to.be.true;
+      expect(responseData.data.phone).to.equal('138****1234');
+      expect(responseData.data.phoneBindAt).to.equal(phoneBindAt);
+    });
+
+    it('应该返回未绑定状态当用户没有手机号', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      UserStub.findById.returns({
+        select: sandbox.stub().resolves({
+          phone: null,
+          phoneBindAt: null
+        })
+      });
+
+      // When
+      await userController.getPhoneInfo(req, res, next);
+
+      // Then
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.code).to.equal(200);
+      expect(responseData.data.bound).to.be.false;
+      expect(responseData.data.phone).to.be.null;
+      expect(responseData.data.phoneBindAt).to.be.null;
+    });
+
+    it('应该返回404当用户不存在', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      UserStub.findById.returns({
+        select: sandbox.stub().resolves(null)
+      });
+
+      // When
+      await userController.getPhoneInfo(req, res, next);
+
+      // Then
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    it('应该在数据库错误时调用 next', async () => {
+      // Given
+      req.user = { userId: fixtures.testUsers.normalUser._id };
+      const dbError = new Error('DB error');
+      UserStub.findById.returns({
+        select: sandbox.stub().rejects(dbError)
+      });
+
+      // When
+      await userController.getPhoneInfo(req, res, next);
+
+      // Then
+      expect(next.calledWith(dbError)).to.be.true;
     });
   });
 

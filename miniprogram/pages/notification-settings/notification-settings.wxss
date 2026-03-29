@@ -156,6 +156,10 @@
   color: #94a3b8;
 }
 
+.scene-meta-warning {
+  color: #c2410c;
+}
+
 .scene-action {
   min-width: 180rpx;
   padding: 0 20rpx;

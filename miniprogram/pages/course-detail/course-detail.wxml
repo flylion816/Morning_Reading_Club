@@ -4,7 +4,7 @@
     <view class="course-title">{{course.title}}</view>
   </view>
 
-  <view class="notification-reminder" wx:if="{{notificationReminder}}">
+  <view class="notification-reminder" wx:if="{{communityAccessState === 'enabled' && notificationReminder}}">
     <text class="notification-reminder-text">{{notificationReminder}}</text>
     <view class="notification-reminder-link" bindtap="navigateToNotificationSettings">去补充</view>
   </view>
@@ -85,7 +85,7 @@
   </view>
 
   <!-- 每日打卡 -->
-  <view class="comments-section" wx:if="{{course.comments}}">
+  <view class="comments-section" wx:if="{{communityAccessState === 'enabled'}}">
     <view class="comments-header">
       <view class="comments-icon">✅</view>
       <text class="comments-title">每日打卡</text>
@@ -197,9 +197,10 @@
   </view>
 
   <!-- 底部按钮 -->
-  <view class="fixed-buttons">
-    <button class="btn-back" bindtap="handleBack">返回</button>
+  <view class="fixed-buttons {{communityAccessState !== 'enabled' ? 'single-action' : ''}}">
+    <button class="btn-back {{communityAccessState !== 'enabled' ? 'full-width' : ''}}" bindtap="handleBack">返回</button>
     <button
+      wx:if="{{communityAccessState === 'enabled'}}"
       class="btn-checkin {{hasUserCheckedIn ? 'disabled' : ''}}"
       bindtap="handleCheckin"
       disabled="{{hasUserCheckedIn}}">

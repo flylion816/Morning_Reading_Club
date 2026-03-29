@@ -16,6 +16,7 @@ describe('Comment Controller', () => {
   let CommentStub;
   let CheckinStub;
   let mysqlBackupServiceStub;
+  let communityAccessServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -45,6 +46,10 @@ describe('Comment Controller', () => {
       syncComment: sandbox.stub().resolves()
     };
 
+    communityAccessServiceStub = {
+      ensurePeriodCommunityAccess: sandbox.stub().resolves(true)
+    };
+
     // Mock logger
     const loggerStub = {
       warn: sandbox.stub(),
@@ -68,7 +73,8 @@ describe('Comment Controller', () => {
         '../models/Checkin': CheckinStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
-        '../services/mysql-backup.service': mysqlBackupServiceStub
+        '../services/mysql-backup.service': mysqlBackupServiceStub,
+        '../services/community-access.service': communityAccessServiceStub
       }
     );
   });
@@ -114,6 +120,27 @@ describe('Comment Controller', () => {
       expect(res.status.calledWith(201)).to.be.true;
       expect(res.json.called).to.be.true;
     }).timeout(10000);
+
+    it('应该在未支付时拒绝创建评论', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const checkinId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+
+      req.user = { userId };
+      req.body = { checkinId, content: '很好的想法' };
+
+      const mockCheckin = { _id: checkinId, periodId };
+      CheckinStub.findById.resolves(mockCheckin);
+      communityAccessServiceStub.ensurePeriodCommunityAccess.callsFake(async response => {
+        response.status(403).json({ code: 403, message: '当前期次未支付，暂不可打卡或互动' });
+        return false;
+      });
+
+      await commentController.createComment(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+      expect(CommentStub.create.called).to.be.false;
+    });
   });
 
   describe('getComments', () => {
@@ -191,6 +218,37 @@ describe('Comment Controller', () => {
       await commentController.replyToComment(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    it('应该在未支付时拒绝回复评论', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const commentId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+
+      req.user = { userId };
+      req.params = { commentId };
+      req.body = { content: '回复内容' };
+
+      const mockComment = {
+        _id: commentId,
+        checkinId: new mongoose.Types.ObjectId(),
+        replies: [],
+        replyCount: 0,
+        save: sandbox.stub().resolves()
+      };
+      const mockCheckin = { _id: mockComment.checkinId, periodId };
+
+      CommentStub.findById.resolves(mockComment);
+      CheckinStub.findById.resolves(mockCheckin);
+      communityAccessServiceStub.ensurePeriodCommunityAccess.callsFake(async response => {
+        response.status(403).json({ code: 403, message: '当前期次未支付，暂不可打卡或互动' });
+        return false;
+      });
+
+      await commentController.replyToComment(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+      expect(mockComment.save.called).to.be.false;
     });
   });
 

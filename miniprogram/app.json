@@ -20,7 +20,9 @@
     "pages/enrollment/enrollment",
     "pages/payment/payment",
     "pages/privacy-policy/privacy-policy",
-    "pages/user-agreement/user-agreement"
+    "pages/user-agreement/user-agreement",
+    "pages/my/my",
+    "pages/edit-profile/edit-profile"
   ],
   "window": {
     "navigationBarTitleText": "凡人共读",
@@ -45,8 +47,14 @@
       {
         "pagePath": "pages/index/index",
         "text": "晨读营",
-        "iconPath": "assets/icons/user.png",
-        "selectedIconPath": "assets/icons/user-active.png"
+        "iconPath": "assets/icons/book.png",
+        "selectedIconPath": "assets/icons/book-active.png"
+      },
+      {
+        "pagePath": "pages/my/my",
+        "text": "我的",
+        "iconPath": "assets/icons/my.png",
+        "selectedIconPath": "assets/icons/my-active.png"
       }
     ]
   },

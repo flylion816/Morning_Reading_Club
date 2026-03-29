@@ -1,5 +1,8 @@
 const axios = require('axios');
+const Enrollment = require('../models/Enrollment');
+const Section = require('../models/Section');
 const User = require('../models/User');
+const Period = require('../models/Period');
 const SubscribeMessageGrant = require('../models/SubscribeMessageGrant');
 const SubscribeMessageDelivery = require('../models/SubscribeMessageDelivery');
 const logger = require('../utils/logger');
@@ -8,6 +11,42 @@ const {
   getSubscribeSceneList,
   normalizeMiniProgramPage
 } = require('../config/subscribe-message.config');
+const {
+  buildNextDayStudyReminderPlan,
+  normalizeGrantContext
+} = require('../utils/study-reminder.utils');
+
+function getSceneAutoTopUpTarget(sceneConfig) {
+  const target = Number(sceneConfig?.autoTopUpTarget);
+  if (Number.isInteger(target) && target > 0) {
+    return target;
+  }
+  return 1;
+}
+
+async function resolveLeanResult(queryOrValue) {
+  if (!queryOrValue) {
+    return queryOrValue;
+  }
+
+  if (typeof queryOrValue.lean === 'function') {
+    const leanResult = queryOrValue.lean();
+    if (leanResult && typeof leanResult.exec === 'function') {
+      return leanResult.exec();
+    }
+    return leanResult;
+  }
+
+  if (typeof queryOrValue.exec === 'function') {
+    return queryOrValue.exec();
+  }
+
+  if (typeof queryOrValue.then === 'function') {
+    return queryOrValue;
+  }
+
+  return queryOrValue;
+}
 
 function parseFieldKeyMap(envKey) {
   const raw = process.env[envKey];
@@ -79,11 +118,16 @@ class SubscribeMessageService {
   }
 
   buildSummary(scenes) {
-    const shortageScenes = scenes.filter(scene => scene.availableCount <= 0).map(scene => scene.scene);
+    const shortageScenes = scenes
+      .filter(scene => (scene.availableCount || 0) < getSceneAutoTopUpTarget(scene))
+      .map(scene => scene.scene);
 
     return {
       totalScenes: scenes.length,
       availableSceneCount: scenes.filter(scene => scene.availableCount > 0).length,
+      targetReadySceneCount: scenes.filter(
+        scene => (scene.availableCount || 0) >= getSceneAutoTopUpTarget(scene)
+      ).length,
       shortageSceneCount: shortageScenes.length,
       totalAvailableCount: scenes.reduce((sum, scene) => sum + (scene.availableCount || 0), 0),
       shortageScenes
@@ -91,18 +135,29 @@ class SubscribeMessageService {
   }
 
   async getUserSubscriptionStates(userId) {
-    const grants = await SubscribeMessageGrant.find({ userId }).lean();
+    const grants = (await resolveLeanResult(SubscribeMessageGrant.find({ userId }))) || [];
     const grantMap = new Map(grants.map(item => [item.scene, item]));
 
     const scenes = getSubscribeSceneList().map(sceneConfig => {
       const grant = grantMap.get(sceneConfig.scene);
+      const autoTopUpTarget = getSceneAutoTopUpTarget(sceneConfig);
+      const availableCount = grant?.availableCount || 0;
       return {
         scene: sceneConfig.scene,
         title: sceneConfig.title,
         description: sceneConfig.description,
         templateId: sceneConfig.templateId,
         page: normalizeMiniProgramPage(sceneConfig.page),
-        availableCount: grant?.availableCount || 0,
+        availableCount,
+        autoTopUpTarget,
+        remainingToTarget: Math.max(0, autoTopUpTarget - availableCount),
+        periodId: grant?.periodId || grant?.context?.periodId || null,
+        sourceAction: grant?.sourceAction || grant?.context?.sourceAction || null,
+        scheduledSendDate: grant?.scheduledSendDate || null,
+        scheduledSendDateKey: grant?.scheduledSendDateKey || null,
+        retryAt: grant?.retryAt || null,
+        retryCount: grant?.retryCount || 0,
+        context: grant?.context || {},
         lastResult: grant?.lastResult || null,
         lastAcceptedAt: grant?.lastAcceptedAt || null,
         lastRejectedAt: grant?.lastRejectedAt || null,
@@ -125,22 +180,101 @@ class SubscribeMessageService {
         continue;
       }
 
+      const existingGrant = await SubscribeMessageGrant.findOne({
+        userId,
+        scene: sceneConfig.scene,
+        templateId: sceneConfig.templateId
+      });
+      const currentAvailableCount = existingGrant?.availableCount || 0;
+      const autoTopUpTarget = getSceneAutoTopUpTarget(sceneConfig);
+      const normalizedContext = normalizeGrantContext(grant.context);
+      let normalizedPeriodId = normalizedContext.periodId || existingGrant?.periodId || null;
       const result = grant.result === 'accept' ? 'accept' : grant.result === 'reject' ? 'reject' : grant.result === 'ban' ? 'ban' : 'error';
       const update = {
         $set: {
           templateId: sceneConfig.templateId,
           lastResult: result,
-          lastRequestedAt: now
+          lastRequestedAt: now,
+          autoTopUpTarget,
+          context: normalizedContext,
+          periodId: normalizedPeriodId,
+          sourceAction: normalizedContext.sourceAction || existingGrant?.sourceAction || null
         }
       };
 
       if (result === 'accept') {
-        update.$inc = { availableCount: 1 };
         update.$set.lastAcceptedAt = now;
+
+        if (sceneConfig.scene === 'next_day_study_reminder') {
+          const eligibleEnrollment = normalizedPeriodId
+            ? await resolveLeanResult(
+                Enrollment.findOne({
+                  userId,
+                  periodId: normalizedPeriodId,
+                  status: { $in: ['active', 'completed'] },
+                  paymentStatus: { $in: ['paid', 'free'] },
+                  deleted: { $ne: true }
+                }).select('periodId')
+              )
+            : await resolveLeanResult(
+                Enrollment.findOne({
+                  userId,
+                  status: { $in: ['active', 'completed'] },
+                  paymentStatus: { $in: ['paid', 'free'] },
+                  deleted: { $ne: true }
+                })
+                  .sort({ enrolledAt: -1, createdAt: -1 })
+                  .select('periodId')
+              );
+
+          if (eligibleEnrollment?.periodId) {
+            normalizedPeriodId = String(eligibleEnrollment.periodId);
+            update.$set.periodId = normalizedPeriodId;
+            update.$set.context = {
+              ...normalizedContext,
+              periodId: normalizedPeriodId
+            };
+          }
+
+          const period = normalizedPeriodId
+            ? await resolveLeanResult(Period.findById(normalizedPeriodId))
+            : null;
+          const reminderPlan = buildNextDayStudyReminderPlan({ period, now });
+
+          // next_day 场景需要真实期次信息；如果 context 中没有 periodId，或者超出期次边界，
+          // 就只记录本次授权事件，不覆盖已有的未来提醒状态。
+          if (reminderPlan.status === 'ok') {
+            const section = await resolveLeanResult(
+              Section.findOne({
+                periodId: normalizedPeriodId,
+                day: reminderPlan.dayIndex,
+                isPublished: true
+              }).select('_id')
+            );
+
+            if (section) {
+              update.$set.availableCount = 1;
+              update.$set.scheduledSendDate = reminderPlan.sendDate;
+              update.$set.scheduledSendDateKey = reminderPlan.sendDateKey;
+              update.$set.retryAt = null;
+              update.$set.retryCount = 0;
+            }
+          }
+        } else {
+          const nextAvailableCount = Math.min(currentAvailableCount + 1, autoTopUpTarget);
+          update.$set.availableCount = nextAvailableCount;
+        }
       }
 
       if (result === 'reject' || result === 'ban') {
         update.$set.lastRejectedAt = now;
+        if (sceneConfig.scene === 'next_day_study_reminder') {
+          update.$set.availableCount = 0;
+          update.$set.scheduledSendDate = null;
+          update.$set.scheduledSendDateKey = null;
+          update.$set.retryAt = null;
+          update.$set.retryCount = 0;
+        }
       }
 
       await SubscribeMessageGrant.findOneAndUpdate(
@@ -226,7 +360,8 @@ class SubscribeMessageService {
     fields = {},
     page = '',
     sourceType = null,
-    sourceId = null
+    sourceId = null,
+    consumeOnSuccess = false
   }) {
     const sceneConfig = getSubscribeSceneConfig(scene);
     if (!sceneConfig) {
@@ -265,20 +400,24 @@ class SubscribeMessageService {
       });
     }
 
-    const grant = await SubscribeMessageGrant.findOneAndUpdate(
-      {
-        userId: recipientUserId,
-        scene,
-        templateId: sceneConfig.templateId,
-        availableCount: { $gt: 0 }
-      },
-      {
-        $inc: { availableCount: -1 }
-      },
-      {
-        new: true
-      }
-    );
+    const grantQuery = {
+      userId: recipientUserId,
+      scene,
+      templateId: sceneConfig.templateId,
+      availableCount: { $gt: 0 }
+    };
+
+    const grant = consumeOnSuccess
+      ? await SubscribeMessageGrant.findOne(grantQuery)
+      : await SubscribeMessageGrant.findOneAndUpdate(
+          grantQuery,
+          {
+            $inc: { availableCount: -1 }
+          },
+          {
+            new: true
+          }
+        );
 
     if (!grant) {
       return this.createDeliveryLog({
@@ -309,6 +448,12 @@ class SubscribeMessageService {
     }
 
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      if (consumeOnSuccess) {
+        await SubscribeMessageGrant.findByIdAndUpdate(grant._id, {
+          $inc: { availableCount: -1 }
+        });
+      }
+
       return this.createDeliveryLog({
         userId: recipientUserId,
         scene,
@@ -356,6 +501,12 @@ class SubscribeMessageService {
           errorMessage: response.data.errmsg || '订阅消息发送失败',
           sourceType,
           sourceId
+        });
+      }
+
+      if (consumeOnSuccess) {
+        await SubscribeMessageGrant.findByIdAndUpdate(grant._id, {
+          $inc: { availableCount: -1 }
         });
       }
 

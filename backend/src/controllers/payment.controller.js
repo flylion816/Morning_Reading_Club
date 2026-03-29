@@ -375,6 +375,119 @@ exports.cancelPayment = async (req, res) => {
 };
 
 /**
+ * 管理员取消支付
+ * POST /api/v1/payments/:paymentId/admin-cancel
+ */
+exports.adminCancelPayment = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const operator = req.user?.email || req.user?.id || 'admin';
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json(errors.notFound('支付记录不存在'));
+    }
+
+    if (payment.status === 'completed') {
+      return res.status(400).json(errors.badRequest('已完成的支付请使用“重置为待支付”'));
+    }
+
+    await payment.markCancelled(`管理员取消: ${operator}`);
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'payments',
+      documentId: payment._id.toString(),
+      data: payment.toObject()
+    });
+
+    res.json(
+      success(
+        {
+          paymentId: payment._id,
+          status: payment.status
+        },
+        '支付已取消'
+      )
+    );
+  } catch (error) {
+    logger.error('Admin payment cancellation failed', error);
+    res.status(500).json(errors.serverError('管理员取消支付失败: ' + error.message));
+  }
+};
+
+/**
+ * 管理员重置为待支付
+ * POST /api/v1/payments/:paymentId/reset-to-pending
+ */
+exports.adminResetPaymentToPending = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const operator = req.user?.email || req.user?.id || 'admin';
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json(errors.notFound('支付记录不存在'));
+    }
+
+    const enrollment = await Enrollment.findById(payment.enrollmentId);
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+
+    enrollment.paymentStatus = 'pending';
+    enrollment.paymentAmount = 0;
+    enrollment.paidAt = null;
+    await enrollment.save();
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollment.toObject()
+    });
+
+    const relatedPayments = await Payment.find({
+      enrollmentId: payment.enrollmentId,
+      status: { $in: ['pending', 'processing', 'completed'] }
+    });
+
+    const resetReason = `管理员重置为待支付: ${operator}`;
+    for (const item of relatedPayments) {
+      item.status = 'cancelled';
+      item.failureReason = resetReason;
+      item.paidAt = null;
+      item.reconciled = false;
+      item.reconciledAt = null;
+      item.wechat = {};
+      await item.save();
+
+      publishSyncEvent({
+        type: 'update',
+        collection: 'payments',
+        documentId: item._id.toString(),
+        data: item.toObject()
+      });
+    }
+
+    res.json(
+      success(
+        {
+          paymentId: payment._id,
+          enrollmentId: enrollment._id,
+          paymentStatus: enrollment.paymentStatus,
+          cancelledPaymentCount: relatedPayments.length
+        },
+        '已重置为待支付'
+      )
+    );
+  } catch (error) {
+    logger.error('Admin reset payment to pending failed', error);
+    res.status(500).json(errors.serverError('重置为待支付失败: ' + error.message));
+  }
+};
+
+/**
  * 获取用户的支付记录列表
  * GET /api/v1/payments/user/:userId?
  */

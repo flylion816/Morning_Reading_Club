@@ -3,9 +3,9 @@ const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
-const subscribeMessageService = require('../../services/subscribe-message.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
+const { getPeriodAccess } = require('../../utils/period-access');
 
 function formatRelativeTime(dateString) {
   if (!dateString) return '刚刚';
@@ -84,6 +84,9 @@ Page({
 
     // 当前期次
     currentPeriod: null,
+    currentPeriodPaymentStatus: null,
+    canAccessCurrentPeriodCommunity: false,
+    currentPeriodCommunityState: 'locked',
 
     // 今日课节
     todaySection: null,
@@ -101,7 +104,6 @@ Page({
     insightRequests: [],
     allInsightRequests: [],
     insightRequestTotal: 0,
-    subscriptionSummary: null,
 
     // 腾讯会议
     hasMeeting: false,
@@ -512,12 +514,19 @@ Page({
       // 提取腾讯会议信息
       const hasMeeting = !!(currentPeriod && currentPeriod.meetingId);
       const meetingId = currentPeriod?.meetingId || '';
+      const currentPeriodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
+      const currentPeriodAccess = currentPeriodId
+        ? await getPeriodAccess(currentPeriodId, { enrollmentList, skipRequest: true })
+        : { canAccessCommunity: false, communityAccessState: 'locked', paymentStatus: null };
 
       this.setData(
         {
           userInfo,
           userStats: stats,
           currentPeriod: currentPeriod || null, // 确保不是undefined
+          currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
+          canAccessCurrentPeriodCommunity: currentPeriodAccess.canAccessCommunity,
+          currentPeriodCommunityState: currentPeriodAccess.communityAccessState || 'locked',
           todaySection: todaySection || null, // 确保不是undefined
           recentInsights,
           hasMeeting,
@@ -529,8 +538,6 @@ Page({
           this.updateSignatureValidation();
         }
       );
-
-      this.loadNotificationSubscriptionSummary();
 
       console.log('setData后this.data.recentInsights:', this.data.recentInsights);
     } catch (error) {
@@ -687,22 +694,6 @@ Page({
     }
   },
 
-  async loadNotificationSubscriptionSummary() {
-    if (!this.data.isLogin) {
-      this.setData({ subscriptionSummary: null });
-      return;
-    }
-
-    try {
-      const response = await subscribeMessageService.getSettings();
-      this.setData({
-        subscriptionSummary: response.summary || null
-      });
-    } catch (error) {
-      console.warn('加载订阅消息摘要失败:', error);
-    }
-  },
-
   /**
    * 微信一键登录
    */
@@ -806,12 +797,6 @@ Page({
   handleBackHome() {
     wx.switchTab({
       url: '/pages/index/index'
-    });
-  },
-
-  navigateToNotificationSettings() {
-    wx.navigateTo({
-      url: '/pages/notification-settings/notification-settings'
     });
   },
 
@@ -1044,13 +1029,18 @@ Page({
   handleCreateCheckin() {
     console.log('⚠️⚠️⚠️ handleCreateCheckin 被触发! ⚠️⚠️⚠️');
 
-    const { currentPeriod, todaySection } = this.data;
+    const { currentPeriod, todaySection, currentPeriodCommunityState } = this.data;
 
     if (!currentPeriod || !todaySection) {
       wx.showToast({
         title: '无法获取课程信息',
         icon: 'none'
       });
+      return;
+    }
+
+    if (currentPeriodCommunityState !== 'enabled') {
+      this.handleTodaySectionClick();
       return;
     }
 

@@ -1,10 +1,23 @@
 const checkinService = require('../../services/checkin.service');
 const courseService = require('../../services/course.service');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const {
+  getPeriodAccess,
+  extractId,
+  redirectAfterCommunityDenied
+} = require('../../utils/period-access');
+
+const COMMUNITY_AUTO_TOP_UP_SCENES = [
+  'comment_received',
+  'like_received',
+  'next_day_study_reminder'
+];
 
 Page({
   data: {
     courseId: null,
     sectionId: null,
+    periodId: null,
     courseTitle: '',
     courseDate: '',
 
@@ -43,19 +56,46 @@ Page({
       return;
     }
 
+    let resolvedPeriodId = extractId(periodId);
+    let prefetchedCourse = null;
+
+    try {
+      prefetchedCourse = await courseService.getCourseDetail(sectionId);
+      resolvedPeriodId = resolvedPeriodId || extractId(prefetchedCourse.periodId);
+    } catch (error) {
+      console.error('预加载课程详情失败:', error);
+    }
+
+    if (!resolvedPeriodId) {
+      wx.showToast({
+        title: '缺少期次信息',
+        icon: 'none'
+      });
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1500);
+      return;
+    }
+
+    const access = await getPeriodAccess(resolvedPeriodId);
+    if (access.communityAccessState !== 'enabled') {
+      redirectAfterCommunityDenied(`/pages/course-detail/course-detail?id=${sectionId}`);
+      return;
+    }
+
     this.setData({
       courseId: sectionId,
-      sectionId: sectionId,
-      periodId: periodId
+      sectionId,
+      periodId: resolvedPeriodId
     });
 
     // 并行加载课程详情和期次信息
-    await Promise.all([this.loadCourseDetail(), this.loadPeriods()]);
+    await Promise.all([this.loadCourseDetail(prefetchedCourse), this.loadPeriods()]);
   },
 
-  async loadCourseDetail() {
+  async loadCourseDetail(prefetchedCourse = null) {
     try {
-      const course = await courseService.getCourseDetail(this.data.courseId);
+      const course = prefetchedCourse || (await courseService.getCourseDetail(this.data.courseId));
       console.log('打卡页面-加载课程详情:', course);
 
       // 格式化日期
@@ -74,7 +114,8 @@ Page({
         action: course.action || '',
         // 保存期次ID和课节的day数（用于打卡时使用）
         sectionDay: course.day || 1,
-        sectionPeriodId: course.periodId || null
+        sectionPeriodId: course.periodId || null,
+        periodId: this.data.periodId || extractId(course.periodId)
       });
     } catch (error) {
       console.error('加载课程详情失败:', error);
@@ -152,6 +193,15 @@ Page({
 
     try {
       wx.showLoading({ title: '提交中...' });
+
+      subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+        sourceAction: 'checkin_submit',
+        periodId: this.data.periodId,
+        sectionId: this.data.sectionId || this.data.courseId,
+        courseId: this.data.courseId,
+        sourcePage: 'checkin',
+        sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
+      });
 
       // 获取当前期次和课节信息
       const app = getApp();

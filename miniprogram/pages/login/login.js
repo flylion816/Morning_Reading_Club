@@ -1,5 +1,6 @@
 // 登录页面
 const authService = require('../../services/auth.service');
+const userService = require('../../services/user.service');
 const envConfig = require('../../config/env');
 const logger = require('../../utils/logger');
 
@@ -17,7 +18,9 @@ Page({
       { code: 'test_user_liming', label: '狮子', openid: 'mock_user_002' },
       { code: 'test_user_wangwu', label: '王五', openid: 'mock_user_003' },
       { code: 'test_user_admin', label: '管理员', openid: 'mock_admin_001' }
-    ]
+    ],
+    showPhoneBindModal: false, // 是否显示手机号绑定弹窗
+    phoneBinding: false // 手机号绑定中
   },
 
   onLoad(options) {
@@ -221,7 +224,7 @@ Page({
   },
 
   /**
-   * 完成登录（更新全局状态并跳转）
+   * 完成登录（更新全局状态，显示手机号绑定弹窗）
    */
   completeLogin(loginData) {
     console.log('登录成功:', loginData);
@@ -243,15 +246,84 @@ Page({
     wx.showToast({
       title: '登录成功',
       icon: 'success',
-      duration: 2000
+      duration: 1500
     });
 
-    // 延迟跳转到首页（profile tab）
+    // 显示手机号绑定弹窗，不立即跳转
     setTimeout(() => {
-      wx.switchTab({
-        url: '/pages/profile/profile'
-      });
+      this.setData({ loading: false, showPhoneBindModal: true });
     }, 1500);
+  },
+
+  /**
+   * 跳转进入应用
+   */
+  navigateToApp() {
+    wx.switchTab({
+      url: '/pages/profile/profile'
+    });
+  },
+
+  /**
+   * 处理微信授权获取手机号
+   */
+  async handleGetPhoneNumber(e) {
+    if (!e.detail.code) {
+      // 用户拒绝授权，提示可稍后绑定
+      wx.showToast({
+        title: '可稍后在设置中绑定',
+        icon: 'none',
+        duration: 2000
+      });
+      this.setData({ showPhoneBindModal: false });
+      this.navigateToApp();
+      return;
+    }
+
+    this.setData({ phoneBinding: true });
+
+    try {
+      const result = await userService.bindPhone(e.detail.code);
+      console.log('手机号绑定成功:', result);
+
+      // 更新本地存储的用户信息
+      const constants = require('../../config/constants');
+      const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
+      if (userInfo && result && result.phone) {
+        userInfo.phone = result.phone;
+        wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, userInfo);
+        const app = getApp();
+        app.globalData.userInfo = userInfo;
+      }
+
+      wx.showToast({
+        title: '手机号绑定成功',
+        icon: 'success',
+        duration: 1500
+      });
+
+      this.setData({ showPhoneBindModal: false, phoneBinding: false });
+      setTimeout(() => {
+        this.navigateToApp();
+      }, 1500);
+    } catch (error) {
+      console.error('手机号绑定失败:', error);
+      wx.showToast({
+        title: '绑定失败，可稍后在设置中绑定',
+        icon: 'none',
+        duration: 2000
+      });
+      this.setData({ showPhoneBindModal: false, phoneBinding: false });
+      this.navigateToApp();
+    }
+  },
+
+  /**
+   * 跳过手机号绑定
+   */
+  handleSkipPhoneBind() {
+    this.setData({ showPhoneBindModal: false });
+    this.navigateToApp();
   },
 
   /**

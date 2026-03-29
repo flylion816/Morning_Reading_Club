@@ -28,6 +28,7 @@ describe('Checkin Controller', () => {
   let UserStub;
   let SectionStub;
   let PeriodStub;
+  let communityAccessServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -92,6 +93,10 @@ describe('Checkin Controller', () => {
       publishSyncEvent: sandbox.stub()
     };
 
+    communityAccessServiceStub = {
+      ensurePeriodCommunityAccess: sandbox.stub().resolves(true)
+    };
+
     checkinController = proxyquire(
       '../../../src/controllers/checkin.controller',
       {
@@ -101,7 +106,8 @@ describe('Checkin Controller', () => {
         '../models/Period': PeriodStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
-        '../services/sync.service': syncServiceStub
+        '../services/sync.service': syncServiceStub,
+        '../services/community-access.service': communityAccessServiceStub
       }
     );
   });
@@ -177,6 +183,32 @@ describe('Checkin Controller', () => {
       await checkinController.createCheckin(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    it('应该在未支付时拒绝创建打卡', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      const sectionId = new mongoose.Types.ObjectId();
+
+      req.user = { userId };
+      req.body = { sectionId, periodId, day: 1 };
+
+      const mockSection = {
+        _id: sectionId,
+        checkinCount: 0,
+        save: sandbox.stub().resolves()
+      };
+
+      SectionStub.findById.resolves(mockSection);
+      communityAccessServiceStub.ensurePeriodCommunityAccess.callsFake(async response => {
+        response.status(403).json({ code: 403, message: '当前期次未支付，暂不可打卡或互动' });
+        return false;
+      });
+
+      await checkinController.createCheckin(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+      expect(CheckinStub.create.called).to.be.false;
     });
 
     it('应该更新用户的连续打卡数', async () => {

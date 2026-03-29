@@ -1,7 +1,9 @@
+const axios = require('axios');
 const User = require('../models/User');
 const Checkin = require('../models/Checkin');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
+const subscribeMessageService = require('../services/subscribe-message.service');
 
 // 获取当前用户信息
 async function getCurrentUser(req, res, next) {
@@ -33,7 +35,9 @@ async function getCurrentUser(req, res, next) {
         level: user.level,
         role: user.role,
         status: user.status,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        phone: user.phone ? user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : null,
+        phoneBindAt: user.phoneBindAt || null
       })
     );
   } catch (error) {
@@ -249,6 +253,92 @@ async function deleteUser(req, res, next) {
   }
 }
 
+// 绑定手机号
+async function bindPhone(req, res, next) {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json(errors.badRequest('缺少微信手机号授权 code'));
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json(errors.notFound('用户不存在'));
+    }
+
+    // 获取 access_token（复用 subscribe-message 服务中的缓存逻辑）
+    let accessToken;
+    try {
+      accessToken = await subscribeMessageService.getAccessToken();
+    } catch (err) {
+      return res.status(502).json(errors.serverError('获取微信 access_token 失败: ' + err.message));
+    }
+
+    // 调用微信接口获取手机号
+    let wxResponse;
+    try {
+      wxResponse = await axios.post(
+        `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${accessToken}`,
+        { code },
+        { timeout: 5000 }
+      );
+    } catch (err) {
+      return res.status(502).json(errors.serverError('调用微信手机号接口失败'));
+    }
+
+    const { errcode, errmsg, phone_info } = wxResponse.data;
+    if (errcode && errcode !== 0) {
+      // code 无效或已过期
+      if (errcode === 40029 || errcode === 40163) {
+        return res.status(400).json(errors.badRequest('手机号授权 code 无效或已过期，请重新授权'));
+      }
+      return res.status(502).json(errors.serverError(`微信接口错误: ${errmsg || errcode}`));
+    }
+
+    const purePhoneNumber = phone_info && phone_info.purePhoneNumber;
+    if (!purePhoneNumber) {
+      return res.status(502).json(errors.serverError('未能从微信获取手机号'));
+    }
+
+    user.phone = purePhoneNumber;
+    user.phoneBindAt = new Date();
+    await user.save();
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'users',
+      documentId: user._id.toString(),
+      data: user.toObject()
+    });
+
+    const maskedPhone = purePhoneNumber.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+
+    res.json(success({ phone: maskedPhone, phoneBindAt: user.phoneBindAt }, '手机号绑定成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取当前用户手机号信息
+async function getPhoneInfo(req, res, next) {
+  try {
+    const user = await User.findById(req.user.userId).select('phone phoneBindAt');
+    if (!user) {
+      return res.status(404).json(errors.notFound('用户不存在'));
+    }
+
+    const bound = !!user.phone;
+    const maskedPhone = bound
+      ? user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+      : null;
+
+    res.json(success({ bound, phone: maskedPhone, phoneBindAt: user.phoneBindAt || null }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getCurrentUser,
   updateProfile,
@@ -256,5 +346,7 @@ module.exports = {
   getUserStats,
   getUserList,
   updateUser,
-  deleteUser
+  deleteUser,
+  bindPhone,
+  getPhoneInfo
 };

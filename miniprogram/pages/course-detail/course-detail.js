@@ -1,16 +1,27 @@
 const courseService = require('../../services/course.service');
-const checkinService = require('../../services/checkin.service');
 const commentService = require('../../services/comment.service');
 const subscribeMessageService = require('../../services/subscribe-message.service');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const constants = require('../../config/constants');
+const { getPeriodAccess, extractId } = require('../../utils/period-access');
+
+const COMMUNITY_AUTO_TOP_UP_SCENES = [
+  'comment_received',
+  'like_received',
+  'next_day_study_reminder'
+];
 
 Page({
   data: {
     courseId: null,
+    periodId: null,
+    paymentStatus: null,
     course: {},
     calendar: [],
     checkedDays: 0,
     loading: true,
+    canAccessCommunity: false,
+    communityAccessState: 'locked',
     hasUserCheckedIn: false,
     commentExpanded: {},
     commentLoading: {},
@@ -33,6 +44,9 @@ Page({
     }
     this.setData({
       courseId: options.id,
+      paymentStatus: null,
+      canAccessCommunity: false,
+      communityAccessState: 'locked',
       focusCheckinId: options.checkinId || '',
       focusCommentId: options.commentId || '',
       focusReplyId: options.replyId || ''
@@ -163,6 +177,17 @@ Page({
       console.log('📌 course.periodId:', course.periodId);
       console.log('📌 course.periodId._id:', course.periodId?._id);
       console.log('📌 course.periodId 类型:', typeof course.periodId);
+      const periodId = extractId(course.periodId);
+      const access = await getPeriodAccess(periodId);
+      const communityEnabled = access.communityAccessState === 'enabled';
+      console.log('课程详情权限检查:', {
+        courseId: this.data.courseId,
+        periodId,
+        paymentStatus: access.paymentStatus,
+        paymentPending: access.paymentPending,
+        communityAccessState: access.communityAccessState,
+        canAccessCommunity: access.canAccessCommunity
+      });
 
       // 确保 course.comments 是数组（后端可能不返回这个字段）
       if (!course.comments) {
@@ -176,12 +201,33 @@ Page({
       console.log('comments 是否存在:', !!course.comments);
       console.log('comments 长度:', course.comments ? course.comments.length : 0);
 
+      if (!communityEnabled) {
+        course.comments = [];
+        const calendar = this.generateCalendar(course);
+        const checkedDays = calendar.filter(d => d.status === 'checked').length;
+
+        this.setData({
+          periodId,
+          paymentStatus: access.paymentStatus || null,
+          canAccessCommunity: false,
+          communityAccessState: access.communityAccessState || 'locked',
+          hasUserCheckedIn: false,
+          commentExpanded: {},
+          commentLoading: {},
+          notificationReminder: '',
+          course,
+          calendar,
+          checkedDays,
+          loading: false
+        });
+        return;
+      }
+
       // 从数据库加载打卡记录
       let dbCheckins = [];
       try {
         // 使用 /checkins/period/:periodId 端点获取期次的所有打卡记录（包括其他用户的）
         // 这样才能在课程详情页显示所有人的打卡记录，与课程列表页保持一致
-        const periodId = course.periodId?._id || course.periodId;
         console.log('🔍 准备调用 getPeriodCheckins，periodId:', periodId);
 
         if (!periodId) {
@@ -315,6 +361,10 @@ Page({
       const checkedDays = calendar.filter(d => d.status === 'checked').length;
 
       this.setData({
+        periodId,
+        paymentStatus: access.paymentStatus || null,
+        canAccessCommunity: true,
+        communityAccessState: access.communityAccessState || 'enabled',
         course,
         calendar,
         checkedDays,
@@ -350,7 +400,7 @@ Page({
 
   async loadNotificationReminder() {
     const app = getApp();
-    if (!app.globalData.isLogin) {
+    if (!app.globalData.isLogin || this.data.communityAccessState !== 'enabled') {
       return;
     }
 
@@ -372,8 +422,20 @@ Page({
   },
 
   navigateToNotificationSettings() {
+    this.triggerAutoTopUp('course_detail_notification_settings');
     wx.navigateTo({
-      url: '/pages/notification-settings/notification-settings'
+      url: `/pages/notification-settings/notification-settings?periodId=${this.data.periodId || ''}`
+    });
+  },
+
+  triggerAutoTopUp(sourceAction) {
+    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+      sourceAction,
+      periodId: this.data.periodId || extractId(this.data.course?.periodId),
+      sectionId: this.data.courseId,
+      courseId: this.data.courseId,
+      sourcePage: 'course-detail',
+      sceneKeys: COMMUNITY_AUTO_TOP_UP_SCENES
     });
   },
 
@@ -403,9 +465,15 @@ Page({
   },
 
   handleCheckin() {
+    if (this.data.communityAccessState !== 'enabled') {
+      return;
+    }
+
+    this.triggerAutoTopUp('course_detail_checkin');
+
     // 跳转到打卡页面
     wx.navigateTo({
-      url: `/pages/checkin/checkin?courseId=${this.data.courseId}`
+      url: `/pages/checkin/checkin?courseId=${this.data.courseId}&periodId=${this.data.periodId}`
     });
   },
 
@@ -413,6 +481,12 @@ Page({
    * 切换评论展开/收起（延迟加载）
    */
   async toggleComments(e) {
+    if (this.data.communityAccessState !== 'enabled') {
+      return;
+    }
+
+    this.triggerAutoTopUp('course_detail_expand_comments');
+
     const { index } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const checkin = comments[index];
@@ -517,6 +591,10 @@ Page({
   },
 
   async restoreTargetFocus() {
+    if (this.data.communityAccessState !== 'enabled') {
+      return;
+    }
+
     const { focusCheckinId, focusCommentId, focusReplyId } = this.data;
     if (!focusCheckinId) {
       return;
@@ -592,6 +670,12 @@ Page({
    * 点赞打卡记录（顶层列表项是打卡记录，不是评论）
    */
   async handleLikeComment(e) {
+    if (this.data.communityAccessState !== 'enabled') {
+      return;
+    }
+
+    this.triggerAutoTopUp('course_detail_like_checkin');
+
     const { id } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const comment = comments.find(c => c.id === id);
@@ -633,6 +717,12 @@ Page({
    * 回复评论
    */
   async handleReplyComment(e) {
+    if (this.data.communityAccessState !== 'enabled') {
+      return;
+    }
+
+    this.triggerAutoTopUp('course_detail_reply_checkin');
+
     const { id } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const comment = comments.find(c => c.id === id);
@@ -708,6 +798,12 @@ Page({
    * 点赞评论（回复列表里的项是评论，commentId 是打卡ID，replyId 是评论ID）
    */
   async handleLikeReply(e) {
+    if (this.data.communityAccessState !== 'enabled') {
+      return;
+    }
+
+    this.triggerAutoTopUp('course_detail_like_reply');
+
     const { commentId, replyId } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const comment = comments.find(c => c.id === commentId || c._id === commentId);
@@ -788,6 +884,12 @@ Page({
    *   - userName: 被回复的用户名
    */
   async handleReplyToReply(e) {
+    if (this.data.communityAccessState !== 'enabled') {
+      return;
+    }
+
+    this.triggerAutoTopUp('course_detail_reply_reply');
+
     const { checkinId, commentId, replyId, userName } = e.currentTarget.dataset;
 
     console.log('📝 准备回复:', { checkinId, commentId, replyId, userName });

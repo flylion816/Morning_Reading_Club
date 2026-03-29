@@ -18,7 +18,7 @@
   </view>
 
   <!-- 功能按钮区（紧凑横排 + 滚动时收起） -->
-  <view class="action-buttons {{headerCollapsed ? 'collapsed' : ''}}">
+  <view class="action-buttons {{headerCollapsed ? 'collapsed' : ''}}" wx:if="{{communityAccessState === 'enabled'}}">
     <view class="action-btn" bindtap="handleRanking">
       <text class="btn-icon">🏆</text>
       <text class="btn-text">排行榜</text>
@@ -34,7 +34,7 @@
   </view>
 
   <!-- Tab切换 -->
-  <view class="tabs-container">
+  <view class="tabs-container" wx:if="{{communityAccessState === 'enabled'}}">
     <view class="tabs">
       <view
         class="tab-item {{currentTab === 'tasks' ? 'active' : ''}}"
@@ -46,7 +46,8 @@
       <view
         class="tab-item {{currentTab === 'dynamics' ? 'active' : ''}}"
         bindtap="handleTabChange"
-        data-tab="dynamics">
+        data-tab="dynamics"
+        wx:if="{{communityAccessState === 'enabled'}}">
         <text>动态</text>
         <view class="tab-underline" wx:if="{{currentTab === 'dynamics'}}"></view>
       </view>
@@ -77,11 +78,11 @@
           <!-- 时间范围 -->
           <view class="section-time" wx:if="{{item.startTime && item.endTime}}">{{item.startTime.split('T')[0]}} 至 {{item.endTime.split('T')[0]}}</view>
 
-          <!-- 底部：打卡人数 + 按钮 -->
+          <!-- 底部：人数信息 + 按钮 -->
           <view class="section-footer">
-            <text class="checkin-info">{{item.checkinCount}}人已打卡</text>
+            <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已打卡' : '已学习'}}</text>
             <view class="btn-action" catchtap="handleCheckinClick" data-section="{{item}}">
-              去打卡
+              {{communityAccessState === 'enabled' ? '去打卡' : '去学习'}}
             </view>
           </view>
         </view>
@@ -101,7 +102,7 @@
     </view>
 
     <!-- 动态区域（打卡记录） -->
-    <view id="dynamics-section" class="section-wrapper">
+    <view id="dynamics-section" class="section-wrapper" wx:if="{{communityAccessState === 'enabled'}}">
       <view class="all-checkins-section" wx:if="{{allCheckins.length > 0}}">
         <view class="checkins-header">
           <text class="checkins-title">所有打卡记录</text>

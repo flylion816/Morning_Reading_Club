@@ -1,6 +1,10 @@
 // 打卡记录页面
 const checkinService = require('../../services/checkin.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const {
+  getPeriodAccess,
+  redirectAfterCommunityDenied
+} = require('../../utils/period-access');
 
 Page({
   data: {
@@ -33,11 +37,16 @@ Page({
     loading: true
   },
 
-  onLoad(options) {
+  async onLoad(options) {
     // 获取URL参数中的periodId
     const periodId = options?.periodId;
     if (periodId) {
       this.setData({ periodId });
+      const access = await getPeriodAccess(periodId);
+      if (access.communityAccessState !== 'enabled') {
+        redirectAfterCommunityDenied(`/pages/courses/courses?periodId=${periodId}`);
+        return;
+      }
     }
 
     // 获取当前登录用户信息

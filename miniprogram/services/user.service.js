@@ -153,6 +153,23 @@ class UserService {
   getUserInsightsList(userId, params = {}) {
     return request.get(`/insights/users/${userId}`, params);
   }
+
+  /**
+   * 绑定手机号
+   * @param {string} code 微信授权获取手机号的 code
+   * @returns {Promise}
+   */
+  bindPhone(code) {
+    return request.post('/users/bindPhone', { code });
+  }
+
+  /**
+   * 获取当前用户手机号信息
+   * @returns {Promise}
+   */
+  getPhoneInfo() {
+    return request.get('/users/phone');
+  }
 }
 
 module.exports = new UserService();

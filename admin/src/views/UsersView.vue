@@ -100,8 +100,8 @@
             :page-sizes="[10, 20, 50, 100]"
             :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
-            @current-page-change="loadUsers"
-            @page-size-change="loadUsers"
+            @current-change="loadUsers"
+            @size-change="handlePageSizeChange"
           />
         </div>
       </el-card>
@@ -244,6 +244,11 @@ async function loadUsers() {
 }
 
 function handleSearch() {
+  pagination.value.page = 1;
+  loadUsers();
+}
+
+function handlePageSizeChange() {
   pagination.value.page = 1;
   loadUsers();
 }

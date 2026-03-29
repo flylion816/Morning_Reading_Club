@@ -1,6 +1,10 @@
 // 排行榜页面
 const rankingService = require('../../services/ranking.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const {
+  getPeriodAccess,
+  redirectAfterCommunityDenied
+} = require('../../utils/period-access');
 
 Page({
   data: {
@@ -29,9 +33,15 @@ Page({
     loading: true
   },
 
-  onLoad(options) {
+  async onLoad(options) {
     console.log('排行榜页面加载', options);
     if (options.periodId) {
+      const access = await getPeriodAccess(options.periodId);
+      if (access.communityAccessState !== 'enabled') {
+        redirectAfterCommunityDenied(`/pages/courses/courses?periodId=${options.periodId}`);
+        return;
+      }
+
       this.periodId = options.periodId;
       this.loadRanking('all');
     }

@@ -6,11 +6,16 @@ const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const { ensurePeriodCommunityAccess } = require('../services/community-access.service');
 const {
   buildCourseDetailTargetPage,
   formatNotificationTime,
   truncateText
 } = require('../utils/notification-links');
+
+function getRequestUserId(req) {
+  return req.user.userId || req.user.id || req.user._id;
+}
 
 async function loadCheckinWithRelations(checkinId) {
   const checkin = await Checkin.findById(checkinId);
@@ -31,6 +36,22 @@ async function loadCommentWithUser(commentId) {
 
 async function getActorUser(userId) {
   return User.findById(userId).select('nickname avatar avatarUrl').lean();
+}
+
+function getCheckinPeriodId(checkin) {
+  return checkin?.periodId?._id?.toString?.() || checkin?.periodId?.toString?.();
+}
+
+async function loadCommentCheckin(comment) {
+  if (!comment?.checkinId) {
+    return null;
+  }
+
+  const checkin = await Checkin.findById(comment.checkinId);
+  if (checkin && typeof checkin.populate === 'function') {
+    await checkin.populate('sectionId', 'title');
+  }
+  return checkin;
 }
 
 async function notifyCommentReceived(req, payload) {
@@ -61,12 +82,21 @@ async function notifyLikeReceived(req, payload) {
 async function createComment(req, res, next) {
   try {
     const { checkinId, content } = req.body;
-    const { userId } = req.user;
+    const userId = getRequestUserId(req);
 
     // 验证打卡存在
     const checkin = await loadCheckinWithRelations(checkinId);
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      userId,
+      getCheckinPeriodId(checkin)
+    );
+    if (!hasCommunityAccess) {
+      return;
     }
 
     const comment = await Comment.create({
@@ -179,12 +209,22 @@ async function replyToComment(req, res, next) {
   try {
     const { commentId } = req.params;
     const { content, replyToUserId } = req.body;
-    const { userId } = req.user;
+    const userId = getRequestUserId(req);
 
     const comment = await loadCommentWithUser(commentId);
 
     if (!comment) {
       return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const checkin = await loadCommentCheckin(comment);
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      userId,
+      getCheckinPeriodId(checkin)
+    );
+    if (!hasCommunityAccess) {
+      return;
     }
 
     const targetRecipientId =
@@ -225,11 +265,12 @@ async function replyToComment(req, res, next) {
       .populate('replies.replyToUserId', 'nickname');
 
     if (targetRecipientId && targetRecipientId !== userId) {
-      const [actorUser, checkin] = await Promise.all([
+      const [actorUser, relatedCheckin] = await Promise.all([
         getActorUser(userId),
-        loadCheckinWithRelations(comment.checkinId)
+        checkin ? Promise.resolve(checkin) : loadCheckinWithRelations(comment.checkinId)
       ]);
-      const sectionId = checkin?.sectionId?._id?.toString?.() || checkin?.sectionId?.toString?.();
+      const sectionId =
+        relatedCheckin?.sectionId?._id?.toString?.() || relatedCheckin?.sectionId?.toString?.();
       const targetPage = buildCourseDetailTargetPage(sectionId, {
         focus: 'comments',
         checkinId: comment.checkinId,
@@ -255,7 +296,9 @@ async function replyToComment(req, res, next) {
         },
         subscribeFields: {
           replyUser: actorUser?.nickname || '用户',
-          replyTopic: truncateText(comment.content || checkin?.note || checkin?.sectionId?.title || '评论内容'),
+          replyTopic: truncateText(
+            comment.content || relatedCheckin?.note || relatedCheckin?.sectionId?.title || '评论内容'
+          ),
           replyContent: truncateText(content, 32),
           replyTime: formatNotificationTime(createdReply?.createdAt || new Date())
         },
@@ -352,11 +395,21 @@ async function deleteReply(req, res, next) {
 async function likeComment(req, res, next) {
   try {
     const { commentId } = req.params;
-    const { userId } = req.user;
+    const userId = getRequestUserId(req);
 
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const checkin = await loadCommentCheckin(comment);
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      userId,
+      getCheckinPeriodId(checkin)
+    );
+    if (!hasCommunityAccess) {
+      return;
     }
 
     // 检查是否已点赞
@@ -380,10 +433,7 @@ async function likeComment(req, res, next) {
 
     const commentOwnerId = comment.userId?.toString?.() || String(comment.userId);
     if (commentOwnerId !== userId) {
-      const [actorUser, checkin] = await Promise.all([
-        getActorUser(userId),
-        Checkin.findById(comment.checkinId).populate('sectionId', 'title')
-      ]);
+      const actorUser = await getActorUser(userId);
       const sectionId = checkin?.sectionId?._id?.toString?.() || checkin?.sectionId?.toString?.();
       const targetPage = buildCourseDetailTargetPage(sectionId, {
         focus: 'comments',
@@ -425,11 +475,21 @@ async function likeComment(req, res, next) {
 async function unlikeComment(req, res, next) {
   try {
     const { commentId } = req.params;
-    const { userId } = req.user;
+    const userId = getRequestUserId(req);
 
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const checkin = await loadCommentCheckin(comment);
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      userId,
+      getCheckinPeriodId(checkin)
+    );
+    if (!hasCommunityAccess) {
+      return;
     }
 
     // 检查是否已点赞
@@ -461,11 +521,21 @@ async function unlikeComment(req, res, next) {
 async function likeReply(req, res, next) {
   try {
     const { commentId, replyId } = req.params;
-    const { userId } = req.user;
+    const userId = getRequestUserId(req);
 
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const checkin = await loadCommentCheckin(comment);
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      userId,
+      getCheckinPeriodId(checkin)
+    );
+    if (!hasCommunityAccess) {
+      return;
     }
 
     const reply = comment.replies.id(replyId);
@@ -494,10 +564,7 @@ async function likeReply(req, res, next) {
 
     const replyOwnerId = reply.userId?.toString?.() || String(reply.userId);
     if (replyOwnerId !== userId) {
-      const [actorUser, checkin] = await Promise.all([
-        getActorUser(userId),
-        Checkin.findById(comment.checkinId).populate('sectionId', 'title')
-      ]);
+      const actorUser = await getActorUser(userId);
       const sectionId = checkin?.sectionId?._id?.toString?.() || checkin?.sectionId?.toString?.();
       const targetPage = buildCourseDetailTargetPage(sectionId, {
         focus: 'comments',
@@ -541,11 +608,21 @@ async function likeReply(req, res, next) {
 async function unlikeReply(req, res, next) {
   try {
     const { commentId, replyId } = req.params;
-    const { userId } = req.user;
+    const userId = getRequestUserId(req);
 
     const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const checkin = await loadCommentCheckin(comment);
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      userId,
+      getCheckinPeriodId(checkin)
+    );
+    if (!hasCommunityAccess) {
+      return;
     }
 
     const reply = comment.replies.id(replyId);

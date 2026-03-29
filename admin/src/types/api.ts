@@ -160,6 +160,113 @@ export interface Payment {
 }
 
 /**
+ * 订阅消息场景对象
+ */
+export interface SubscriptionGrantScene {
+  scene: string;
+  title?: string;
+  description?: string;
+  templateId?: string;
+  page?: string;
+  availableCount?: number;
+  autoTopUpTarget?: number;
+  remainingToTarget?: number;
+  lastResult?: 'accept' | 'reject' | 'ban' | 'error' | null;
+  lastAcceptedAt?: string | null;
+  lastRejectedAt?: string | null;
+  lastRequestedAt?: string | null;
+  scheduledSendDate?: string | null;
+  scheduledSendDateKey?: string | null;
+  retryAt?: string | null;
+  retryCount?: number;
+  periodId?: string | null;
+  sourceAction?: string | null;
+  context?: Record<string, any>;
+  localOnly?: boolean;
+  statusLabel?: string;
+  statusType?: 'success' | 'warning' | 'danger' | 'info';
+}
+
+/**
+ * 订阅消息排查列表项
+ */
+export interface SubscriptionGrantRow {
+  userId?: string;
+  nickname?: string;
+  phone?: string;
+  openid?: string;
+  periodId?: string;
+  periodName?: string;
+  status?: string;
+  statusLabel?: string;
+  totalAvailableCount?: number;
+  shortageSceneCount?: number;
+  anomalyCount?: number;
+  targetReadySceneCount?: number;
+  lastRequestedAt?: string | null;
+  lastAcceptedAt?: string | null;
+  lastRejectedAt?: string | null;
+  summaryStatus?: string;
+  hasAnomaly?: boolean;
+  scenes?: SubscriptionGrantScene[];
+  sceneStates?: SubscriptionGrantScene[];
+  user?: User;
+}
+
+/**
+ * 订阅消息排查概览
+ */
+export interface SubscriptionGrantSummary {
+  totalUsers?: number;
+  totalAvailableCount?: number;
+  readyUserCount?: number;
+  shortageUserCount?: number;
+  anomalyUserCount?: number;
+  plannedReminderCount?: number;
+  targetReadySceneCount?: number;
+}
+
+/**
+ * 订阅消息排查详情
+ */
+export interface SubscriptionGrantDetail {
+  user?: User;
+  summary?: SubscriptionGrantSummary;
+  scenes?: SubscriptionGrantScene[];
+  sceneStates?: SubscriptionGrantScene[];
+  deliveries?: Array<{
+    _id?: string;
+    scene?: string;
+    status?: string;
+    templateId?: string;
+    targetPage?: string;
+    errorCode?: number | null;
+    errorMessage?: string | null;
+    sourceType?: string | null;
+    sourceId?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  }>;
+  recentDeliveries?: Array<{
+    _id?: string;
+    scene?: string;
+    status?: string;
+    templateId?: string;
+    targetPage?: string;
+    errorCode?: number | null;
+    errorMessage?: string | null;
+    sourceType?: string | null;
+    sourceId?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  }>;
+  enrollments?: Enrollment[];
+  latestEnrollment?: Enrollment | null;
+  period?: Period | null;
+  currentPeriod?: Period | null;
+}
+
+/**
  * 课节对象
  */
 export interface Section {

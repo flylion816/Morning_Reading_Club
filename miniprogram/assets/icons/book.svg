@@ -1,0 +1,6 @@
+<svg width="81" height="81" viewBox="0 0 81 81" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Open book icon -->
+  <path d="M40.5 22V62" stroke="#999999" stroke-width="2" stroke-linecap="round"/>
+  <path d="M40.5 22C36 19 28 17 18 18C16.3 18.2 15 19.5 15 21.2V56.8C15 58.7 16.6 60.2 18.5 60C28 59 35.5 60.5 40.5 64" fill="#999999" stroke="#999999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M40.5 22C45 19 53 17 63 18C64.7 18.2 66 19.5 66 21.2V56.8C66 58.7 64.4 60.2 62.5 60C53 59 45.5 60.5 40.5 64" fill="#999999" stroke="#999999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

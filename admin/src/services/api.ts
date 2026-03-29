@@ -145,6 +145,8 @@ export const paymentApi = {
   getPayments: (params?: any) => apiClient.get('/payments', { params }),
   getPaymentDetail: (id: string) => apiClient.get(`/payments/${id}`),
   cancelPayment: (id: string) => apiClient.post(`/payments/${id}/cancel`),
+  adminCancelPayment: (id: string) => apiClient.post(`/payments/${id}/admin-cancel`),
+  resetPaymentToPending: (id: string) => apiClient.post(`/payments/${id}/reset-to-pending`),
   getUserPayments: (userId: string, params?: any) =>
     apiClient.get(`/payments/user/${userId}`, { params })
 };
@@ -209,6 +211,13 @@ export const insightRequestsApi = {
   batchApprove: (requestIds: string[]) =>
     apiClient.post('/admin/requests/batch-approve', { requestIds }),
   deleteRequest: (requestId: string) => apiClient.delete(`/admin/requests/${requestId}`)
+};
+
+// 订阅消息排查 API
+export const subscriptionDebugApi = {
+  getGrants: (params?: any) => apiClient.get('/admin/subscription-grants', { params }),
+  getGrantDetail: (userId: string, params?: any) =>
+    apiClient.get(`/admin/subscription-grants/${userId}`, { params })
 };
 
 // 审计日志 API

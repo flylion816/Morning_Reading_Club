@@ -147,13 +147,22 @@
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button
-                  v-if="row.status !== 'cancelled'"
+                  v-if="row.status === 'pending' || row.status === 'processing'"
                   type="danger"
                   text
                   size="small"
                   @click="cancelPayment(row)"
                 >
                   取消
+                </el-button>
+                <el-button
+                  v-if="row.status === 'completed'"
+                  type="warning"
+                  text
+                  size="small"
+                  @click="resetToPending(row)"
+                >
+                  重置待支付
                 </el-button>
                 <el-button type="primary" text size="small" @click="viewDetails(row)">
                   详情
@@ -171,8 +180,8 @@
             :page-sizes="[10, 20, 50, 100]"
             :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
-            @current-page-change="loadPayments"
-            @page-size-change="loadPayments"
+            @current-change="loadPayments"
+            @size-change="handlePageSizeChange"
           />
         </div>
       </el-card>
@@ -256,7 +265,6 @@ const detailsDialog = ref({
 
 onMounted(async () => {
   await loadPayments();
-  await loadStatistics();
 });
 
 async function loadPayments() {
@@ -280,6 +288,7 @@ async function loadPayments() {
     const response = (await paymentApi.getPayments(params)) as unknown as ListResponse<Payment>;
     payments.value = response.list || [];
     pagination.value.total = response.total || 0;
+    updateStatistics();
   } catch (err) {
     ElMessage.error('加载支付数据失败');
   } finally {
@@ -287,7 +296,7 @@ async function loadPayments() {
   }
 }
 
-async function loadStatistics() {
+function updateStatistics() {
   try {
     // 在这里可以调用统计API，现在仅计算当前数据
     const completed = payments.value.filter(p => p.status === 'completed').length;
@@ -313,8 +322,13 @@ function handleSearch() {
   loadPayments();
 }
 
-function handleRefresh() {
+function handlePageSizeChange() {
+  pagination.value.page = 1;
   loadPayments();
+}
+
+async function handleRefresh() {
+  await loadPayments();
   ElMessage.success('已刷新');
 }
 
@@ -326,11 +340,35 @@ async function cancelPayment(row: Payment) {
   })
     .then(async () => {
       try {
-        await paymentApi.cancelPayment(row._id);
+        await paymentApi.adminCancelPayment(row._id);
         ElMessage.success('取消成功');
         await loadPayments();
       } catch (err: any) {
         ElMessage.error(err.message || '取消失败');
+      }
+    })
+    .catch(() => {
+      // 用户取消了操作
+    });
+}
+
+async function resetToPending(row: Payment) {
+  ElMessageBox.confirm(
+    '确定将该报名重置为待支付吗？系统会清除已支付标记，并让用户可以重新发起支付。',
+    '重置待支付',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+    .then(async () => {
+      try {
+        await paymentApi.resetPaymentToPending(row._id);
+        ElMessage.success('已重置为待支付');
+        await loadPayments();
+      } catch (err: any) {
+        ElMessage.error(err.message || '重置失败');
       }
     })
     .catch(() => {

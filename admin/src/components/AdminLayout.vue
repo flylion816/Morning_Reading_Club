@@ -53,6 +53,9 @@
 
         <!-- 系统管理区块 -->
         <el-menu-item-group title="系统管理">
+          <el-menu-item index="/subscription-debug">
+            <span>🔔 订阅消息排查</span>
+          </el-menu-item>
           <el-menu-item index="/database">
             <span>🗄️ 数据库管理</span>
           </el-menu-item>
@@ -156,6 +159,7 @@ const pageTitle = computed(() => {
     '/content': '内容管理',
     '/insights': '小凡看见',
     '/insight-requests': '查看申请',
+    '/subscription-debug': '订阅消息排查',
     '/audit-logs': '审计日志',
     '/database': '数据库管理'
   };
