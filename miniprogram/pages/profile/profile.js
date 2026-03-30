@@ -126,33 +126,11 @@ Page({
   onLoad(options) {
     console.log('🟢🟢🟢 PROFILE.JS ONLOAD CALLED 🟢🟢🟢', options);
     console.log('个人中心加载', options);
-
-    // 检查登录状态，未登录显示访客视图（不跳转登录页，符合微信审核规范）
-    this.checkLoginStatus();
   },
 
   onShow() {
     console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
-
-    const app = getApp();
-    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
-    const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
-
-    if (token && userInfo) {
-      // token 存在，更新 globalData
-      console.log('🔄 onShow: 更新 globalData');
-      app.globalData.isLogin = true;
-      app.globalData.userInfo = userInfo;
-      app.globalData.token = token;
-
-      this.checkLoginStatus();
-      // 刷新用户数据
-      this.loadUserData();
-    } else {
-      // 未登录：显示访客视图（不跳转）
-      console.log('⚠️ onShow: 未登录，显示访客视图');
-      this.checkLoginStatus();
-    }
+    this.checkLoginStatus({ refreshUserData: true });
   },
 
   onPullDownRefresh() {
@@ -165,25 +143,57 @@ Page({
   /**
    * 检查登录状态
    */
-  checkLoginStatus() {
+  checkLoginStatus(options = {}) {
+    const { refreshUserData = false } = options;
     const app = getApp();
-    const isLogin = app.globalData.isLogin;
-    const userInfo = app.globalData.userInfo;
+    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    const storedUserInfo = token ? wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO) : null;
+    const isLogin = !!(token && storedUserInfo);
+    const userInfo = isLogin ? storedUserInfo : null;
+    const hasValidSignature = !!(userInfo && this.isValidSignature(userInfo.signature));
 
-    this.setData(
-      {
-        isLogin,
-        userInfo,
-        loading: false // 设置loading为false
-      },
-      () => {
-        // 更新签名有效性状态
-        this.updateSignatureValidation();
+    if (isLogin) {
+      console.log('🔄 onShow: 更新 globalData');
+      app.globalData.isLogin = true;
+      app.globalData.userInfo = userInfo;
+      app.globalData.token = token;
+    } else {
+      console.log('⚠️ onShow: 未登录，显示访客视图');
+      app.globalData.isLogin = false;
+      app.globalData.userInfo = null;
+      app.globalData.token = null;
+    }
+
+    const nextData = {
+      isLogin,
+      userInfo,
+      hasValidSignature,
+      loading: isLogin ? !!refreshUserData : false
+    };
+
+    if (!isLogin) {
+      Object.assign(nextData, {
+        currentPeriod: null,
+        currentPeriodPaymentStatus: null,
+        canAccessCurrentPeriodCommunity: false,
+        currentPeriodCommunityState: 'locked',
+        todaySection: null,
+        recentInsights: [],
+        insightRequests: [],
+        allInsightRequests: [],
+        insightRequestTotal: 0,
+        hasMeeting: false,
+        meetingId: ''
+      });
+    }
+
+    this.setData(nextData, () => {
+      this.updateTabBarVisibility(isLogin);
+
+      if (isLogin && refreshUserData) {
+        this.loadUserData(true);
       }
-    );
-
-    // 根据登录状态显示/隐藏tabBar
-    this.updateTabBarVisibility(isLogin);
+    });
   },
 
   /**
@@ -197,8 +207,8 @@ Page({
   /**
    * 加载用户数据
    */
-  async loadUserData() {
-    if (!this.data.isLogin) {
+  async loadUserData(forceLoggedIn = false) {
+    if (!(forceLoggedIn || this.data.isLogin)) {
       this.setData({ loading: false });
       return;
     }
@@ -496,8 +506,7 @@ Page({
         console.error('加载小凡看见失败:', error);
       }
 
-      // 加载收到的小凡看见请求
-      this.loadInsightRequests();
+      const allInsightRequests = await this.loadInsightRequests(false);
 
       console.log('setData前的recentInsights:', recentInsights);
       console.log('setData前的recentInsights长度:', recentInsights.length);
@@ -522,6 +531,7 @@ Page({
       this.setData(
         {
           userInfo,
+          hasValidSignature: !!this.isValidSignature(userInfo && userInfo.signature),
           userStats: stats,
           currentPeriod: currentPeriod || null, // 确保不是undefined
           currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
@@ -529,13 +539,12 @@ Page({
           currentPeriodCommunityState: currentPeriodAccess.communityAccessState || 'locked',
           todaySection: todaySection || null, // 确保不是undefined
           recentInsights,
+          allInsightRequests,
+          insightRequests: allInsightRequests.slice(0, 3),
+          insightRequestTotal: allInsightRequests.length,
           hasMeeting,
           meetingId,
           loading: false
-        },
-        () => {
-          // 更新签名有效性状态
-          this.updateSignatureValidation();
         }
       );
 
@@ -645,7 +654,7 @@ Page({
   /**
    * 加载收到的小凡看见请求
    */
-  async loadInsightRequests() {
+  async loadInsightRequests(updatePage = true) {
     try {
       const insightService = require('../../services/insight.service');
       const app = getApp();
@@ -653,8 +662,10 @@ Page({
 
       if (!currentUser || !currentUser._id) {
         console.warn('用户未登录，无法加载小凡看见请求');
-        this.setData({ insightRequests: [] });
-        return;
+        if (updatePage) {
+          this.setData({ insightRequests: [], allInsightRequests: [], insightRequestTotal: 0 });
+        }
+        return [];
       }
 
       console.log('📋 开始加载小凡看见请求...');
@@ -683,14 +694,21 @@ Page({
 
       console.log('📦 格式化后的请求:', formatted);
 
-      this.setData({
-        allInsightRequests: formatted,
-        insightRequests: formatted.slice(0, 3),
-        insightRequestTotal: formatted.length
-      });
+      if (updatePage) {
+        this.setData({
+          allInsightRequests: formatted,
+          insightRequests: formatted.slice(0, 3),
+          insightRequestTotal: formatted.length
+        });
+      }
+
+      return formatted;
     } catch (error) {
       console.error('加载小凡看见请求失败:', error);
-      this.setData({ insightRequests: [], allInsightRequests: [], insightRequestTotal: 0 });
+      if (updatePage) {
+        this.setData({ insightRequests: [], allInsightRequests: [], insightRequestTotal: 0 });
+      }
+      return [];
     }
   },
 
@@ -1265,7 +1283,10 @@ Page({
           signature: editForm.signature || null
         };
 
-        this.setData({ userInfo: updatedUserInfo });
+        this.setData({
+          userInfo: updatedUserInfo,
+          hasValidSignature: !!this.isValidSignature(updatedUserInfo.signature)
+        });
 
         // 更新全局应用数据
         app.globalData.userInfo = updatedUserInfo;

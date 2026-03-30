@@ -82,6 +82,7 @@ describe('Enrollment Controller', () => {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
         forbidden: (msg) => ({ code: 403, message: msg }),
+        serviceUnavailable: (msg) => ({ code: 503, message: msg }),
         serverError: (msg) => ({ code: 500, message: msg })
       }
     };
@@ -711,6 +712,72 @@ describe('Enrollment Controller', () => {
       // 验证 create 时传递的数据中 readTimes 被正确设置
       const createCall = EnrollmentStub.create.getCall(0);
       expect(createCall.args[0].readTimes).to.equal(0);
+    });
+
+    it('应该复用已取消的报名记录并允许重新报名', async () => {
+      const userId = fixtures.testUsers.anotherUser._id;
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      const enrollmentId = fixtures.enrollmentRecords.withdrawnEnrollment._id;
+
+      req.user = { userId: userId.toString() };
+      req.body = {
+        periodId: periodId.toString(),
+        name: '回归学员',
+        gender: 'female',
+        province: '上海',
+        detailedAddress: '浦东新区',
+        age: 35,
+        referrer: '朋友推荐',
+        hasReadBook: 'yes',
+        readTimes: 2,
+        enrollReason: '重新参加',
+        expectation: '坚持完成',
+        commitment: 'yes'
+      };
+
+      const restoredEnrollment = {
+        _id: enrollmentId,
+        userId,
+        periodId,
+        status: 'withdrawn',
+        deleted: false,
+        set: sandbox.stub(),
+        save: sandbox.stub(),
+        toObject: sandbox.stub().returns({
+          _id: enrollmentId,
+          userId: userId.toString(),
+          periodId: periodId.toString(),
+          status: 'active',
+          deleted: false
+        })
+      };
+      restoredEnrollment.save.resolves(restoredEnrollment);
+
+      const mockPopulatedEnrollment = {
+        _id: enrollmentId,
+        userId: { _id: userId, nickname: fixtures.testUsers.anotherUser.nickname, avatar: fixtures.testUsers.anotherUser.avatar },
+        periodId: { _id: periodId, title: fixtures.testPeriods.ongoingPeriod.title, description: fixtures.testPeriods.ongoingPeriod.description },
+        status: 'active',
+        paymentStatus: 'pending'
+      };
+
+      PeriodStub.findById.resolves(fixtures.testPeriods.ongoingPeriod);
+      EnrollmentStub.findOne.resolves(restoredEnrollment);
+      EnrollmentStub.findById.returns({
+        populate: sandbox.stub().returnsThis(),
+        execPopulate: sandbox.stub().resolves(mockPopulatedEnrollment)
+      });
+      PeriodStub.findByIdAndUpdate.resolves(fixtures.testPeriods.ongoingPeriod);
+
+      await enrollmentController.submitEnrollmentForm(req, res, next);
+
+      expect(EnrollmentStub.create.called).to.be.false;
+      expect(restoredEnrollment.set.calledOnce).to.be.true;
+      expect(restoredEnrollment.save.calledOnce).to.be.true;
+      expect(PeriodStub.findByIdAndUpdate.calledOnce).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.called).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.status.called).to.be.false;
     });
   });
 

@@ -132,7 +132,7 @@ Page({
       // 2. 调用真实登录（开发环境会自动生成mock code）
       const loginData = await authService.wechatLogin(userInfo);
 
-      this.completeLogin(loginData);
+      await this.completeLogin(loginData);
     } catch (error) {
       console.error('登录失败:', error);
       this.setData({ loading: false });
@@ -202,7 +202,7 @@ Page({
 
       console.log('测试账户登录成功:', loginData);
 
-      this.completeLogin(loginData);
+      await this.completeLogin(loginData);
     } catch (error) {
       console.error('快速登录失败:', error);
 
@@ -226,7 +226,7 @@ Page({
   /**
    * 完成登录（更新全局状态，显示手机号绑定弹窗）
    */
-  completeLogin(loginData) {
+  async completeLogin(loginData) {
     console.log('登录成功:', loginData);
 
     // 保存token和用户信息到本地存储
@@ -249,9 +249,23 @@ Page({
       duration: 1500
     });
 
-    // 显示手机号绑定弹窗，不立即跳转
+    let shouldPromptPhoneBind = false;
+    try {
+      const phoneInfo = await userService.getPhoneInfo();
+      shouldPromptPhoneBind = !(phoneInfo && phoneInfo.bound);
+    } catch (error) {
+      console.warn('获取手机号绑定状态失败，默认直接进入应用:', error);
+    }
+
     setTimeout(() => {
-      this.setData({ loading: false, showPhoneBindModal: true });
+      this.setData({
+        loading: false,
+        showPhoneBindModal: shouldPromptPhoneBind
+      });
+
+      if (!shouldPromptPhoneBind) {
+        this.navigateToApp();
+      }
     }, 1500);
   },
 

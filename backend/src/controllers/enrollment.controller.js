@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
 const User = require('../models/User');
@@ -49,6 +50,10 @@ async function notifyEnrollmentSuccess(req, { userId, period }) {
   }
 }
 
+function shouldReuseEnrollment(enrollment) {
+  return !!(enrollment && (enrollment.status === 'withdrawn' || enrollment.deleted === true));
+}
+
 /**
  * 提交报名表单（完整的报名信息）
  * POST /api/v1/enrollments
@@ -59,6 +64,14 @@ exports.submitEnrollmentForm = async (req, res) => {
       userId: req.user.userId,
       hasBody: !!req.body
     });
+
+    if (process.env.NODE_ENV === 'production' && mongoose.connection.readyState !== 1) {
+      logger.error('Enrollment submission rejected because MongoDB is unavailable', {
+        readyState: mongoose.connection.readyState,
+        userId: req.user.userId
+      });
+      return res.status(503).json(errors.serviceUnavailable('数据库连接不可用，请稍后重试'));
+    }
 
     // 从认证token中获取userId（token payload中的字段名是userId）
     const { userId } = req.user;
@@ -110,20 +123,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
-    // 检查是否已报名（排除已删除的记录）
-    const existingEnrollment = await Enrollment.findOne({
-      userId,
-      periodId,
-      status: { $in: ['active', 'completed'] },
-      deleted: { $ne: true }
-    });
-
-    if (existingEnrollment) {
-      return res.status(400).json(errors.badRequest('您已报名该期次'));
-    }
-
-    // 创建报名记录（包含所有表单字段）
-    const enrollment = await Enrollment.create({
+    const enrollmentPayload = {
       userId,
       periodId,
       name,
@@ -137,9 +137,45 @@ exports.submitEnrollmentForm = async (req, res) => {
       enrollReason,
       expectation,
       commitment,
-      paymentStatus: 'pending', // 报名后需要支付
-      status: 'active' // 直接生效
+      paymentStatus: 'pending',
+      paymentAmount: 0,
+      paidAt: null,
+      completedAt: null,
+      withdrawnAt: null,
+      enrolledAt: new Date(),
+      status: 'active',
+      deleted: false
+    };
+
+    // 检查是否已有同一期次报名记录
+    const existingEnrollment = await Enrollment.findOne({
+      userId,
+      periodId
     });
+
+    if (existingEnrollment) {
+      if (!shouldReuseEnrollment(existingEnrollment)) {
+        return res.status(400).json(errors.badRequest('您已报名该期次'));
+      }
+
+      logger.info('Reactivating previous enrollment record', {
+        userId,
+        periodId,
+        enrollmentId: existingEnrollment._id,
+        previousStatus: existingEnrollment.status,
+        previousDeleted: existingEnrollment.deleted === true
+      });
+    }
+
+    let enrollment;
+    let syncEventType = 'create';
+    if (shouldReuseEnrollment(existingEnrollment)) {
+      existingEnrollment.set(enrollmentPayload);
+      enrollment = await existingEnrollment.save();
+      syncEventType = 'update';
+    } else {
+      enrollment = await Enrollment.create(enrollmentPayload);
+    }
 
     // 填充用户和期次信息（重新查询以获取populate后的数据）
     const populatedEnrollment = await Enrollment.findById(enrollment._id)
@@ -166,7 +202,7 @@ exports.submitEnrollmentForm = async (req, res) => {
 
     // 异步同步到 MySQL
     publishSyncEvent({
-      type: 'create',
+      type: syncEventType,
       collection: 'enrollments',
       documentId: enrollment._id.toString(),
       data: enrollment.toObject()
@@ -179,6 +215,15 @@ exports.submitEnrollmentForm = async (req, res) => {
 
     res.json(success(populatedEnrollment, '报名成功'));
   } catch (error) {
+    if (error.code === 11000) {
+      logger.warn('Duplicate enrollment prevented by unique index', {
+        userId: req.user.userId,
+        keyPattern: error.keyPattern,
+        keyValue: error.keyValue
+      });
+      return res.status(400).json(errors.badRequest('您已报名该期次'));
+    }
+
     logger.error('Enrollment form submission failed', error, { userId: req.user.userId });
     res.status(500).json(errors.serverError(`报名失败: ${error.message}`));
   }
@@ -200,16 +245,52 @@ exports.enrollPeriod = async (req, res) => {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
-    // 检查是否已报名（排除已删除的记录）
+    // 检查是否已有同一期次报名记录
     const existingEnrollment = await Enrollment.findOne({
       userId,
-      periodId,
-      status: { $in: ['active', 'completed'] },
-      deleted: { $ne: true }
+      periodId
     });
 
     if (existingEnrollment) {
-      return res.status(400).json(errors.badRequest('您已报名该期次'));
+      if (!shouldReuseEnrollment(existingEnrollment)) {
+        return res.status(400).json(errors.badRequest('您已报名该期次'));
+      }
+
+      existingEnrollment.set({
+        userId,
+        periodId,
+        paymentStatus: 'free',
+        paymentAmount: 0,
+        paidAt: null,
+        completedAt: null,
+        withdrawnAt: null,
+        enrolledAt: new Date(),
+        status: 'active',
+        deleted: false
+      });
+
+      const restoredEnrollment = await existingEnrollment.save();
+      const populatedEnrollment = await Enrollment.findById(restoredEnrollment._id)
+        .populate('userId', 'nickname avatar avatarUrl')
+        .populate('periodId', 'title description startDate endDate');
+
+      await Period.findByIdAndUpdate(periodId, {
+        $inc: { enrollmentCount: 1 }
+      });
+
+      publishSyncEvent({
+        type: 'update',
+        collection: 'enrollments',
+        documentId: restoredEnrollment._id.toString(),
+        data: restoredEnrollment.toObject()
+      });
+
+      await notifyEnrollmentSuccess(req, {
+        userId,
+        period
+      });
+
+      return res.json(success(populatedEnrollment, '报名成功'));
     }
 
     // 创建报名记录
@@ -245,6 +326,10 @@ exports.enrollPeriod = async (req, res) => {
 
     res.json(success(populatedEnrollment, '报名成功'));
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json(errors.badRequest('您已报名该期次'));
+    }
+
     logger.error('Simple enrollment failed', error, { userId: req.user?.userId });
     res.status(500).json(errors.serverError(error.message));
   }

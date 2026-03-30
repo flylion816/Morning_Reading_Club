@@ -55,6 +55,7 @@ const errors = {
   notFound: (message = '资源不存在') => error(404, message),
   conflict: (message = '资源冲突') => error(409, message),
   tooManyRequests: (message = '请求过于频繁') => error(429, message),
+  serviceUnavailable: (message = '服务暂不可用') => error(503, message),
   serverError: (message = '服务器内部错误') => error(500, message)
 };
 

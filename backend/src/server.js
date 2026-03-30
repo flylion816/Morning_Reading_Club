@@ -1,4 +1,5 @@
 const path = require('path');
+const mongoose = require('mongoose');
 
 // ⚠️ 重要：最早加载环境配置，在任何模块 require 之前
 // 首先尝试加载根目录的统一环境配置（.env.config.js 是权威来源）
@@ -60,6 +61,41 @@ validateConfig();
 ConfigSyncValidator.validateConfigSync();
 
 const PORT = process.env.PORT || 3000;
+let mongoFailureTriggered = false;
+
+function handleMongoDependencyFailure(reason) {
+  if (mongoFailureTriggered) return;
+  mongoFailureTriggered = true;
+
+  logger.error('MongoDB 依赖不可用，当前 worker 将退出', { reason });
+
+  setTimeout(() => {
+    // eslint-disable-next-line no-process-exit
+    process.exit(1);
+  }, 100);
+}
+
+function setupMongoLifecycleHandlers() {
+  mongoose.connection.on('error', error => {
+    logger.error('MongoDB 运行时错误', error, {
+      readyState: mongoose.connection.readyState
+    });
+  });
+
+  mongoose.connection.on('reconnected', () => {
+    logger.info('MongoDB 已重新连接');
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    logger.error('MongoDB 连接已断开', {
+      readyState: mongoose.connection.readyState
+    });
+
+    if (process.env.NODE_ENV === 'production') {
+      handleMongoDependencyFailure('mongodb disconnected');
+    }
+  });
+}
 
 // 记录应用启动配置
 logger.info('应用启动配置', {
@@ -71,6 +107,8 @@ logger.info('应用启动配置', {
 // 启动服务器
 async function startServer() {
   try {
+    setupMongoLifecycleHandlers();
+
     // 初始化Redis连接（后台异步，不阻塞启动）
     logger.info('正在连接 Redis...');
     // 异步连接 Redis，不阻塞应用启动
@@ -85,12 +123,8 @@ async function startServer() {
 
     // 连接MongoDB
     logger.info('正在连接 MongoDB...');
-    try {
-      await connectMongoDB();
-      logger.info('✅ MongoDB 连接成功');
-    } catch (dbError) {
-      logger.warn('⚠️ MongoDB 连接失败，应用将继续运行但数据库功能不可用', dbError.message);
-    }
+    await connectMongoDB();
+    logger.info('✅ MongoDB 连接成功');
 
     // 测试MySQL连接
     logger.info('正在测试 MySQL 连接...');
