@@ -36,17 +36,22 @@
 | content      | string | ⭕   | 文字内容（与imageUrl二选一） | `"感谢你的坚持和付出"`            |
 | imageUrl     | string | ⭕   | 图片地址（与content二选一）  | `"https://example.com/image.jpg"` |
 | title        | string | ❌   | 课程/课节标题（可选）        | `"积极主动"`                      |
-| day          | number | ❌   | 第几天的课程（可选）         | `7`                               |
+| day          | number | ❌   | 第几天的课程（可选，从1开始） | `7`                               |
 
 **⭕ 说明**: content 和 imageUrl 必须至少填写一个
 
+**📅 day 参数说明**:
+- 系统中 day 从 0 开始编号：`day 0` = 开营词，`day 1` = 第一天课程，以此类推
+- 但通过此 API 传入时，**建议从 1 开始**（即第一天课程传 `1`），因为 day=0 在存储时会被视为空值
+- 如果不传 day 参数，小凡看见将不关联到具体某天的课程
+
 ### 成功响应示例
 
-**HTTP状态码**: `200 OK`
+**HTTP状态码**: `201 Created`
 
 ```json
 {
-  "code": 200,
+  "code": 0,
   "message": "小凡看见创建成功",
   "data": {
     "_id": "6934e59a21146457e60d54ca",
@@ -192,7 +197,7 @@ def create_insight(period_name, target_user_id, content, title=None, day=None, i
         response.raise_for_status()
 
         result = response.json()
-        if result["code"] == 200:
+        if result["code"] == 0:
             print("✅ 小凡看见创建成功")
             print(f"ID: {result['data']['_id']}")
             return result["data"]
@@ -238,7 +243,7 @@ async function createInsight(params) {
       }
     );
 
-    if (response.data.code === 200) {
+    if (response.data.code === 0) {
       console.log('✅ 小凡看见创建成功');
       console.log('ID:', response.data.data._id);
       return response.data.data;
@@ -292,7 +297,7 @@ createInsight({
 
 ```json
 {
-  "code": 200,
+  "code": 0,
   "message": "获取成功",
   "data": {
     "periodName": "平衡之道",
@@ -374,7 +379,7 @@ def get_period_users(period_name):
         response.raise_for_status()
 
         result = response.json()
-        if result["code"] == 200:
+        if result["code"] == 0:
             data = result["data"]
             print(f"✅ 获取成功")
             print(f"期次: {data['periodName']}")
@@ -412,7 +417,7 @@ async function getPeriodUsers(periodName) {
       }
     );
 
-    if (response.data.code === 200) {
+    if (response.data.code === 0) {
       const data = response.data.data;
       console.log('✅ 获取成功');
       console.log(`期次: ${data.periodName}`);
@@ -492,11 +497,12 @@ getPeriodUsers('平衡之道');
 
 | 日期       | 版本 | 更新内容                  |
 | ---------- | ---- | ------------------------- |
+| 2026-03-31 | v1.2 | 修正响应格式：HTTP状态码201、成功code为0；补充day参数映射说明 |
 | 2026-03-27 | v1.1 | 新增 periodName(期次名称) 和 title(课程标题) 字段 |
 | 2025-12-07 | v1.0 | 初始版本，包含两个API文档 |
 
 ---
 
-**最后更新**: 2026-03-27
+**最后更新**: 2026-03-31
 
 **联系方式**: 请通过项目GitHub Issues联系技术支持
