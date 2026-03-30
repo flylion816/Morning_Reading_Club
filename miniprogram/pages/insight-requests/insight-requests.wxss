@@ -7,7 +7,7 @@
 .requests-list {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .notification-reminder {
@@ -36,25 +36,31 @@
   font-weight: 600;
 }
 
-.request-card {
-  background: white;
-  border-radius: 16rpx;
-  padding: 18rpx 18rpx 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+.request-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: 16rpx 14rpx;
+  background: #f7f9fc;
+  border-radius: 12rpx;
+  border: none;
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.request-card:active {
+.request-item:active {
   background: #eef4ff;
   transform: scale(0.99);
 }
 
-.request-user {
+.request-item-left {
   display: flex;
+  align-items: flex-start;
   gap: 16rpx;
+  flex: 1;
+  min-width: 0;
 }
 
-.request-avatar {
+.request-user-avatar {
   width: 68rpx;
   height: 68rpx;
   border-radius: 50%;
@@ -62,7 +68,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.14);
+  box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.16);
 }
 
 .request-avatar-text {
@@ -71,25 +77,24 @@
   font-weight: 600;
 }
 
-.request-user-info {
-  flex: 1;
-  min-width: 0;
+.request-info {
   display: flex;
   flex-direction: column;
   gap: 2rpx;
+  flex: 1;
+  min-width: 0;
 }
 
-.request-user-top {
+.request-top-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12rpx;
 }
 
 .request-user-name {
   font-size: 26rpx;
+  color: #333333;
   font-weight: 600;
-  color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -100,6 +105,7 @@
   padding: 4rpx 10rpx;
   border-radius: 999rpx;
   flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .request-status-pending {
@@ -136,30 +142,52 @@
   color: #9aa3b2;
 }
 
+.request-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+  min-width: 168rpx;
+}
+
 .request-actions {
   display: flex;
+  flex-direction: row;
+  gap: 8rpx;
+  align-items: center;
   justify-content: flex-end;
-  gap: 10rpx;
-  margin-top: 14rpx;
+  flex-wrap: nowrap;
+  margin-top: auto;
 }
 
-.request-action {
-  min-width: 104rpx;
-  padding: 12rpx 0;
+.request-btn {
+  min-width: 76rpx;
+  height: 44rpx;
+  padding: 0 18rpx;
   border-radius: 999rpx;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 22rpx;
   font-weight: 600;
+  transition: all 0.3s;
 }
 
-.request-action.approve {
+.approve-btn {
   background: #4a90e2;
-  color: white;
+  color: #ffffff;
 }
 
-.request-action.reject {
+.reject-btn {
   background: #f3f4f6;
-  color: #666;
+  color: #666666;
+}
+
+.approve-btn:active,
+.reject-btn:active {
+  transform: scale(0.96);
 }
 
 .empty-state {

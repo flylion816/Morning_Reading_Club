@@ -8,31 +8,30 @@
     <view
       wx:for="{{requests}}"
       wx:key="id"
-      class="request-card"
+      class="request-item"
       bindtap="handleRequestTap"
       data-request="{{item}}">
-      <view class="request-head">
-        <view class="request-user">
-          <view class="request-avatar" style="background: {{item.avatarColor}}">
-            <text class="request-avatar-text">{{item.fromUserAvatar}}</text>
+      <view class="request-item-left">
+        <view class="request-user-avatar" style="background: {{item.avatarColor}}">
+          <text class="request-avatar-text">{{item.fromUserAvatar}}</text>
+        </view>
+        <view class="request-info">
+          <view class="request-top-row">
+            <text class="request-user-name">{{item.fromUserName}}</text>
           </view>
-          <view class="request-user-info">
-            <view class="request-user-top">
-              <text class="request-user-name">{{item.fromUserName}}</text>
-              <text class="request-status request-status-{{item.statusClass}}">{{item.statusText}}</text>
-            </view>
-            <text class="request-meta">{{item.requestMeta}}</text>
-            <text class="request-time">{{item.time}}</text>
-          </view>
+          <text class="request-meta">{{item.requestMeta}}</text>
+          <text class="request-time">{{item.time}}</text>
         </view>
       </view>
-
-      <view class="request-actions" wx:if="{{item.canApprove || item.canReject}}">
-        <view class="request-action approve" catchtap="handleApproveRequest" data-request="{{item}}">
-          同意
-        </view>
-        <view class="request-action reject" catchtap="handleRejectRequest" data-request="{{item}}">
-          拒绝
+      <view class="request-side">
+        <text class="request-status request-status-{{item.statusClass}}">{{item.statusText}}</text>
+        <view class="request-actions" wx:if="{{item.canApprove || item.canReject}}">
+          <view class="request-btn approve-btn" catchtap="handleApproveRequest" data-request="{{item}}">
+            <text>同意</text>
+          </view>
+          <view class="request-btn reject-btn" catchtap="handleRejectRequest" data-request="{{item}}">
+            <text>拒绝</text>
+          </view>
         </view>
       </view>
     </view>

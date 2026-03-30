@@ -356,10 +356,11 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
       requestMode = 'remembered'
     } = options;
     let requestScenes = [];
+    const response = await getSettings();
+    const serverScenes = Array.isArray(response?.scenes) ? response.scenes : [];
+    const eligibleScenes = buildEligibleScenes(serverScenes, { sceneKeys, periodId });
+
     if (requestMode === 'remembered') {
-      const response = await getSettings();
-      const serverScenes = Array.isArray(response?.scenes) ? response.scenes : [];
-      const eligibleScenes = buildEligibleScenes(serverScenes, { sceneKeys, periodId });
       if (!eligibleScenes.length) {
         return {
           skipped: true,
@@ -377,7 +378,12 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
         };
       }
     } else {
-      const promptableScenes = buildPromptableScenes({ sceneKeys, periodId });
+      const promptableSceneMap = new Map(
+        buildPromptableScenes({ sceneKeys, periodId }).map(scene => [scene.scene, scene])
+      );
+      const promptableScenes = eligibleScenes
+        .map(scene => promptableSceneMap.get(scene.scene))
+        .filter(Boolean);
       if (!promptableScenes.length) {
         return {
           skipped: true,

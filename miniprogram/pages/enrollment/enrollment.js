@@ -5,6 +5,16 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 
 const SUBSCRIBE_SCENES = ['enrollment_result'];
 
+function getPeriodId(period) {
+  if (!period || typeof period !== 'object') return '';
+  return period._id || period.id || '';
+}
+
+function getPeriodName(period) {
+  if (!period || typeof period !== 'object') return '';
+  return period.name || period.title || '未命名期次';
+}
+
 Page({
   data: {
     // 加载状态
@@ -128,6 +138,7 @@ Page({
       // API 返回的结构是：{array, timestamp, pagination}
       // request.js 返回 data.data 对象，是一个数组或包含数据的对象
       let periodList = Array.isArray(res) ? res : res.list || res.items || [];
+      periodList = periodList.filter(item => item && typeof item === 'object' && getPeriodId(item));
 
       console.log('获取到期次列表:', periodList);
 
@@ -156,20 +167,24 @@ Page({
       const periodId = this.data.periodId;
 
       if (periodId) {
-        selectedIndex = periodList.findIndex(p => p._id === periodId);
+        selectedIndex = periodList.findIndex(p => getPeriodId(p) === periodId);
         if (selectedIndex === -1) selectedIndex = 0;
       }
 
-      const selectedPeriod = periodList[selectedIndex];
+      const selectedPeriod = periodList[selectedIndex] || periodList[0] || null;
+
+      if (!selectedPeriod) {
+        throw new Error('未找到有效的报名期次');
+      }
 
       this.setData({
         periodList,
         selectedPeriodIndex: selectedIndex,
-        selectedPeriodName: selectedPeriod.name,
-        periodName: selectedPeriod.name,
+        selectedPeriodName: getPeriodName(selectedPeriod),
+        periodName: getPeriodName(selectedPeriod),
         form: {
           ...this.data.form,
-          periodId: selectedPeriod._id
+          periodId: getPeriodId(selectedPeriod)
         },
         loading: false
       });
@@ -190,15 +205,36 @@ Page({
     const index = parseInt(e.detail.value);
     const selectedPeriod = this.data.periodList[index];
 
+    if (!selectedPeriod) {
+      console.warn('切换报名期次时未找到期次:', { index, periodListLength: this.data.periodList.length });
+      return;
+    }
+
     this.setData({
       selectedPeriodIndex: index,
-      selectedPeriodName: selectedPeriod.name,
-      periodId: selectedPeriod._id,
+      selectedPeriodName: getPeriodName(selectedPeriod),
+      periodId: getPeriodId(selectedPeriod),
       form: {
         ...this.data.form,
-        periodId: selectedPeriod._id
+        periodId: getPeriodId(selectedPeriod)
       }
     });
+  },
+
+  getSelectedPeriod() {
+    const byIndex = this.data.periodList[this.data.selectedPeriodIndex];
+    if (byIndex && getPeriodId(byIndex)) {
+      return byIndex;
+    }
+
+    const byFormPeriodId = this.data.periodList.find(
+      item => getPeriodId(item) === this.data.form.periodId
+    );
+    if (byFormPeriodId) {
+      return byFormPeriodId;
+    }
+
+    return this.data.periodList[0] || null;
   },
 
   /**
@@ -324,7 +360,14 @@ Page({
     }
 
     // 检查选中的期次是否已完成
-    const selectedPeriod = this.data.periodList[this.data.selectedPeriodIndex];
+    const selectedPeriod = this.getSelectedPeriod();
+    if (!selectedPeriod) {
+      wx.showToast({
+        title: '报名期次异常，请返回重试',
+        icon: 'none'
+      });
+      return;
+    }
     const periodStatus = calculatePeriodStatus(selectedPeriod.startDate, selectedPeriod.endDate);
 
     if (periodStatus === 'completed') {
@@ -362,7 +405,7 @@ Page({
       await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
         sourceAction: 'enrollment_submit',
         sourcePage: 'enrollment',
-        periodId: selectedPeriod._id,
+        periodId: getPeriodId(selectedPeriod),
         sceneKeys: SUBSCRIBE_SCENES,
         requestMode: 'any'
       });
@@ -379,12 +422,12 @@ Page({
       });
 
       // 获取期次信息
-      const selectedPeriod = this.data.periodList[this.data.selectedPeriodIndex];
+      const selectedPeriod = this.getSelectedPeriod();
 
       // 延迟1.5秒后导航到课程列表
       setTimeout(() => {
         wx.navigateTo({
-          url: `/pages/courses/courses?periodId=${selectedPeriod._id}&name=${selectedPeriod.name}`,
+          url: `/pages/courses/courses?periodId=${getPeriodId(selectedPeriod)}&name=${getPeriodName(selectedPeriod)}`,
           fail: err => {
             console.error('导航到课程列表失败:', err);
             wx.showToast({

@@ -33,7 +33,7 @@
       </view>
       <view class="info-row" wx:if="{{period.price}}">
         <text class="info-label">费用</text>
-        <text class="info-value price">¥{{period.price}}</text>
+        <text class="info-value price">¥{{period.priceDisplay}}</text>
       </view>
     </view>
 

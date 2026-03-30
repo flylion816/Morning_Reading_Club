@@ -74,31 +74,30 @@ Page({
   },
 
   onShow() {
-    this.loadRequests();
-    this.loadNotificationReminder();
+    this.loadPageData();
   },
 
-  async loadRequests() {
-    try {
-      this.setData({ loading: true });
-      const res = await insightService.getReceivedRequests();
+  async loadPageData() {
+    this.setData({ loading: true });
 
-      let requests = [];
-      if (Array.isArray(res)) {
-        requests = res;
-      } else if (res && Array.isArray(res.data)) {
-        requests = res.data;
-      } else if (res && Array.isArray(res.list)) {
-        requests = res.list;
-      }
+    try {
+      const [requests, notificationReminder] = await Promise.all([
+        this.fetchRequests(),
+        this.fetchNotificationReminder()
+      ]);
 
       this.setData({
-        requests: requests.map(buildInsightRequestDisplay),
+        requests,
+        notificationReminder,
         loading: false
       });
     } catch (error) {
-      console.error('加载请求列表失败:', error);
-      this.setData({ requests: [], loading: false });
+      console.error('加载请求页数据失败:', error);
+      this.setData({
+        requests: [],
+        notificationReminder: '',
+        loading: false
+      });
       wx.showToast({
         title: '加载失败',
         icon: 'none'
@@ -106,33 +105,46 @@ Page({
     }
   },
 
-  async loadNotificationReminder() {
+  async fetchRequests() {
+    const res = await insightService.getReceivedRequests();
+
+    let requests = [];
+    if (Array.isArray(res)) {
+      requests = res;
+    } else if (res && Array.isArray(res.data)) {
+      requests = res.data;
+    } else if (res && Array.isArray(res.list)) {
+      requests = res.list;
+    }
+
+    return requests.map(buildInsightRequestDisplay);
+  },
+
+  async fetchNotificationReminder() {
     try {
       const response = await subscribeMessageService.getSettings();
       const scene = (response.scenes || []).find(item => item.scene === 'insight_request_created');
-      this.setData({
-        notificationReminder:
-          scene && scene.availableCount <= 0
-            ? '新的请求看见提醒已用完，可去消息提醒页补充。'
-            : ''
-      });
+      const shortage = !scene || scene.availableCount <= 0;
+      return shortage ? '新的请求看见提醒未开启或已用完，可去补充。' : '';
     } catch (error) {
       console.warn('加载请求页订阅提醒失败:', error);
+      return '';
     }
   },
 
   navigateToNotificationSettings() {
-    this.triggerAutoTopUp('insight_requests_notification_settings');
+    this.triggerAutoTopUp('insight_requests_notification_settings', 'prompt');
     wx.navigateTo({
       url: '/pages/notification-settings/notification-settings'
     });
   },
 
-  triggerAutoTopUp(sourceAction) {
+  triggerAutoTopUp(sourceAction, requestMode = 'remembered') {
     subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
       sourceAction,
       sourcePage: 'insight-requests',
-      sceneKeys: INSIGHT_AUTO_TOP_UP_SCENES
+      sceneKeys: INSIGHT_AUTO_TOP_UP_SCENES,
+      requestMode
     });
   },
 
@@ -147,7 +159,7 @@ Page({
   },
 
   handleRequestTap(e) {
-    this.triggerAutoTopUp('insight_request_tap');
+    this.triggerAutoTopUp('insight_request_tap', 'prompt');
 
     const { request } = e.currentTarget.dataset;
     const userId = request?.fromUserId;
@@ -168,7 +180,7 @@ Page({
 
   async approveRequest(request) {
     try {
-      this.triggerAutoTopUp('insight_request_approve');
+      this.triggerAutoTopUp('insight_request_approve', 'prompt');
       const requestId = request._id || request.id;
       await insightService.approveRequest(requestId, { periodId: request.periodId || '' });
       this.updateRequestStatus(requestId, 'approved');
@@ -181,7 +193,7 @@ Page({
 
   async rejectRequest(request) {
     try {
-      this.triggerAutoTopUp('insight_request_reject');
+      this.triggerAutoTopUp('insight_request_reject', 'prompt');
       const requestId = request._id || request.id;
       await insightService.rejectRequest(requestId, { reason: '暂不同意' });
       this.updateRequestStatus(requestId, 'rejected');

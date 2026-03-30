@@ -831,7 +831,7 @@
 .request-item {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
   padding: 16rpx 14rpx;
   background: #f7f9fc;
   border-radius: 12rpx;
@@ -939,21 +939,24 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10rpx;
+  justify-content: space-between;
   margin-left: 12rpx;
   flex-shrink: 0;
-  min-width: 96rpx;
+  min-width: 168rpx;
 }
 
 .request-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8rpx;
-  align-items: stretch;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  margin-top: auto;
 }
 
 .request-btn {
-  min-width: 72rpx;
+  min-width: 76rpx;
   height: 44rpx;
   padding: 0 18rpx;
   border-radius: 999rpx;

@@ -1,5 +1,10 @@
 /* 登录页面样式 */
 
+.page-login-wrapper {
+  min-height: 100vh;
+  position: relative;
+}
+
 .page-login {
   min-height: 100vh;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
@@ -159,19 +164,52 @@
   min-height: 100rpx;
 }
 
-.agreement-checkbox {
+.agreement-row {
   display: flex;
   align-items: center;
   margin-bottom: 12rpx;
-  font-size: 26rpx;
-  color: #374151;
-  line-height: 1.6;
+  min-height: 44rpx;
+}
+
+.checkbox-touch-target {
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .checkbox-item {
-  transform: scale(0.8);  /* 缩小到80% */
-  margin-right: 8rpx;    /* 调整间距 */
+  width: 32rpx;
+  height: 32rpx;
   flex-shrink: 0;
+  border-radius: 8rpx;
+  border: 2rpx solid #c7d2e0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.checkbox-item.checked {
+  background: #4a90e2;
+  border-color: #4a90e2;
+}
+
+.checkbox-tick {
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.agreement-consent-text {
+  margin-left: 8rpx;
+  color: #6b7280;
+  font-size: 26rpx;
+  line-height: 1.6;
 }
 
 .agreement-text {
@@ -185,7 +223,7 @@
   flex-wrap: wrap;
   font-size: 24rpx;
   color: #6b7280;
-  margin-left: 42rpx;
+  margin-left: 52rpx;
   margin-bottom: 4rpx;
   line-height: 1.6;
 }

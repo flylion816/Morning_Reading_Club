@@ -2,6 +2,18 @@
 const courseService = require('../../services/course.service');
 const { formatDateRange, calculatePeriodStatus } = require('../../utils/formatters');
 
+function normalizeAmountInCents(value, fallback = 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return Math.round(parsed);
+}
+
+function formatAmountInYuan(amountInCents = 0) {
+  return (normalizeAmountInCents(amountInCents) / 100).toFixed(2);
+}
+
 Page({
   data: {
     periodId: '',
@@ -76,7 +88,8 @@ Page({
         period: {
           ...period,
           dateRange: formatDateRange(startDate, endDate),
-          calculatedStatus
+          calculatedStatus,
+          priceDisplay: formatAmountInYuan(period.price || 0)
         },
         statusText: statusMap[calculatedStatus] || ''
       });

@@ -1,104 +1,107 @@
 <!--登录页面-->
-<view class="page-login">
-  <!-- Logo和标题 -->
-  <view class="login-header">
-    <view class="logo">📚</view>
-    <text class="app-title">《高效能人士的七个习惯》</text>
-    <text class="app-title-second">凡人共读</text>
-    <text class="app-slogan">一个早起、读书、谈心的地方</text>
+<view class="page-login-wrapper">
+  <view class="page-login">
+    <!-- Logo和标题 -->
+    <view class="login-header">
+      <view class="logo">📚</view>
+      <text class="app-title">《高效能人士的七个习惯》</text>
+      <text class="app-title-second">凡人共读</text>
+      <text class="app-slogan">一个早起、读书、谈心的地方</text>
+    </view>
+
+    <!-- 登录卡片 -->
+    <view class="login-card">
+      <view class="card-title">明理实修，同见同行</view>
+      <view class="card-desc">我们一起观心，谈心，用心，修心，明心</view>
+
+      <!-- 开发环境快速登录 -->
+      <view wx:if="{{isDev}}" class="dev-quick-login">
+        <view class="dev-label">🔧 开发环境 - 快速登录 (isDev={{isDev}}, 用户数={{testUsers.length}})</view>
+        <view class="test-users">
+          <button
+            wx:for="{{testUsers}}"
+            wx:key="code"
+            class="test-user-btn {{loading ? 'disabled' : ''}}"
+            bindtap="handleQuickLogin"
+            data-test-user="{{item}}"
+            disabled="{{loading}}"
+          >
+            {{item.label}}
+          </button>
+        </view>
+      </view>
+
+      <!-- 用户协议 - 明确同意 -->
+      <view class="agreement-section">
+        <view class="agreement-row">
+          <view class="checkbox-touch-target" catchtap="handlePolicyChange">
+            <view class="checkbox-item {{agreePolicy ? 'checked' : ''}}">
+              <text wx:if="{{agreePolicy}}" class="checkbox-tick">✓</text>
+            </view>
+          </view>
+          <text class="agreement-consent-text" catchtap="handlePolicyChange">我已阅读并同意</text>
+        </view>
+        <view class="agreement-links">
+          <text
+            class="agreement-link"
+            bindtap="handleOpenAgreement"
+          >《用户协议》</text>
+          <text class="agreement-text">和</text>
+          <text
+            class="agreement-link"
+            bindtap="handleOpenPrivacy"
+          >《隐私政策》</text>
+        </view>
+      </view>
+
+      <!-- 登录按钮（需要勾选协议才能启用） -->
+      <button
+        class="login-agree-btn {{!agreePolicy ? 'disabled' : ''}}"
+        bindtap="handleWechatLoginWithAgreement"
+        disabled="{{!agreePolicy || loading}}"
+      >
+        <text wx:if="{{!loading}}">快捷登录</text>
+        <text wx:else>登录中...</text>
+      </button>
+
+      <!-- 稍后登录按钮 - 允许用户不登录就进入应用 -->
+      <button
+        class="login-skip-btn"
+        bindtap="handleSkipLogin"
+        disabled="{{loading}}"
+      >
+        稍后登录
+      </button>
+
+      <!-- 错误信息显示 -->
+      <view wx:if="{{errorMessage}}" class="error-info">
+        <view class="error-title">❌ {{errorMessage}}</view>
+        <view wx:if="{{showDebugInfo}}" class="error-details">{{debugInfo}}</view>
+      </view>
+
+      <!-- 调试信息显示（仅开发/测试环境） -->
+      <view wx:if="{{showDebugInfo && debugInfo}}" class="debug-info">
+        <view class="debug-title">📊 调试信息</view>
+        <view class="debug-text">环境: {{isDev ? 'dev (开发)' : 'test (测试)'}}</view>
+        <view class="debug-text">API: {{apiBase || '未配置'}}</view>
+        <view class="debug-text">{{debugInfo}}</view>
+      </view>
+    </view>
   </view>
 
-  <!-- 登录卡片 -->
-  <view class="login-card">
-    <view class="card-title">明理实修，同见同行</view>
-    <view class="card-desc">我们一起观心，谈心，用心，修心，明心</view>
-
-    <!-- 开发环境快速登录 -->
-    <view wx:if="{{isDev}}" class="dev-quick-login">
-      <view class="dev-label">🔧 开发环境 - 快速登录 (isDev={{isDev}}, 用户数={{testUsers.length}})</view>
-      <view class="test-users">
-        <button
-          wx:for="{{testUsers}}"
-          wx:key="code"
-          class="test-user-btn {{loading ? 'disabled' : ''}}"
-          bindtap="handleQuickLogin"
-          data-test-user="{{item}}"
-          disabled="{{loading}}"
-        >
-          {{item.label}}
-        </button>
-      </view>
+  <!-- 手机号绑定弹窗 -->
+  <view class="phone-bind-modal" wx:if="{{showPhoneBindModal}}">
+    <view class="modal-mask"></view>
+    <view class="modal-content">
+      <view class="modal-title">补充手机号</view>
+      <view class="modal-desc">补充后可更方便找回账号与接收服务通知</view>
+      <button
+        class="bind-btn"
+        open-type="getPhoneNumber"
+        bindgetphonenumber="handleGetPhoneNumber"
+        loading="{{phoneBinding}}"
+      >手机号快捷绑定</button>
+      <view class="skip-btn" bindtap="handleSkipPhoneBind">暂时跳过</view>
     </view>
-
-    <!-- 用户协议 - 明确同意 -->
-    <view class="agreement-section">
-      <view class="agreement-checkbox" catchtap="handlePolicyChange">
-        <checkbox
-          class="checkbox-item"
-          checked="{{agreePolicy}}"
-        />
-        <text class="agreement-text">我已阅读并同意</text>
-      </view>
-      <view class="agreement-links">
-        <text
-          class="agreement-link"
-          bindtap="handleOpenAgreement"
-        >《用户协议》</text>
-        <text class="agreement-text">和</text>
-        <text
-          class="agreement-link"
-          bindtap="handleOpenPrivacy"
-        >《隐私政策》</text>
-      </view>
-    </view>
-
-    <!-- 登录按钮（需要勾选协议才能启用） -->
-    <button
-      class="login-agree-btn {{!agreePolicy ? 'disabled' : ''}}"
-      bindtap="handleWechatLoginWithAgreement"
-      disabled="{{!agreePolicy || loading}}"
-    >
-      <text wx:if="{{!loading}}">快捷登录</text>
-      <text wx:else>登录中...</text>
-    </button>
-
-    <!-- 稍后登录按钮 - 允许用户不登录就进入应用 -->
-    <button
-      class="login-skip-btn"
-      bindtap="handleSkipLogin"
-      disabled="{{loading}}"
-    >
-      稍后登录
-    </button>
-
-    <!-- 错误信息显示 -->
-    <view wx:if="{{errorMessage}}" class="error-info">
-      <view class="error-title">❌ {{errorMessage}}</view>
-      <view wx:if="{{showDebugInfo}}" class="error-details">{{debugInfo}}</view>
-    </view>
-
-    <!-- 调试信息显示（仅开发/测试环境） -->
-    <view wx:if="{{showDebugInfo && debugInfo}}" class="debug-info">
-      <view class="debug-title">📊 调试信息</view>
-      <view class="debug-text">环境: {{isDev ? 'dev (开发)' : 'test (测试)'}}</view>
-      <view class="debug-text">API: {{apiBase || '未配置'}}</view>
-      <view class="debug-text">{{debugInfo}}</view>
-    </view>
-  </view>
-</view>
-
-<!-- 手机号绑定弹窗 -->
-<view class="phone-bind-modal" wx:if="{{showPhoneBindModal}}">
-  <view class="modal-mask"></view>
-  <view class="modal-content">
-    <view class="modal-title">补充手机号</view>
-    <view class="modal-desc">补充后可更方便找回账号与接收服务通知</view>
-    <button
-      class="bind-btn"
-      open-type="getPhoneNumber"
-      bindgetphonenumber="handleGetPhoneNumber"
-      loading="{{phoneBinding}}"
-    >手机号快捷绑定</button>
-    <view class="skip-btn" bindtap="handleSkipPhoneBind">暂时跳过</view>
   </view>
 </view>
