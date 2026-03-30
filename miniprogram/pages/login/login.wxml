@@ -52,13 +52,13 @@
       </view>
     </view>
 
-    <!-- 微信登录按钮（需要勾选协议才能启用） -->
+    <!-- 登录按钮（需要勾选协议才能启用） -->
     <button
       class="login-agree-btn {{!agreePolicy ? 'disabled' : ''}}"
       bindtap="handleWechatLoginWithAgreement"
       disabled="{{!agreePolicy || loading}}"
     >
-      <text wx:if="{{!loading}}">微信一键登录</text>
+      <text wx:if="{{!loading}}">快捷登录</text>
       <text wx:else>登录中...</text>
     </button>
 
@@ -91,14 +91,14 @@
 <view class="phone-bind-modal" wx:if="{{showPhoneBindModal}}">
   <view class="modal-mask"></view>
   <view class="modal-content">
-    <view class="modal-title">绑定手机号</view>
-    <view class="modal-desc">绑定后可通过手机号找回账号</view>
+    <view class="modal-title">补充手机号</view>
+    <view class="modal-desc">补充后可更方便找回账号与接收服务通知</view>
     <button
       class="bind-btn"
       open-type="getPhoneNumber"
       bindgetphonenumber="handleGetPhoneNumber"
       loading="{{phoneBinding}}"
-    >微信授权绑定手机号</button>
+    >手机号快捷绑定</button>
     <view class="skip-btn" bindtap="handleSkipPhoneBind">暂时跳过</view>
   </view>
 </view>
