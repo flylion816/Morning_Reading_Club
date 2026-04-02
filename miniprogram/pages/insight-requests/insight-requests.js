@@ -1,6 +1,8 @@
 const insightService = require('../../services/insight.service');
 const subscribeMessageService = require('../../services/subscribe-message.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const enrollmentService = require('../../services/enrollment.service');
+const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
 
 const INSIGHT_AUTO_TOP_UP_SCENES = ['insight_request_created'];
 
@@ -81,6 +83,21 @@ Page({
     this.setData({ loading: true });
 
     try {
+      const userEnrollments = await enrollmentService
+        .getUserEnrollments({ limit: 100 })
+        .catch(() => ({ list: [] }));
+      const enrollmentList = userEnrollments.list || userEnrollments || [];
+
+      if (!hasPaidEnrollment(enrollmentList)) {
+        this.setData({
+          requests: [],
+          notificationReminder: '',
+          loading: false
+        });
+        redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看');
+        return;
+      }
+
       const [requests, notificationReminder] = await Promise.all([
         this.fetchRequests(),
         this.fetchNotificationReminder()

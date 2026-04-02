@@ -10,7 +10,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '邀请您加入凡人共读',
+      title: '凡人共读｜每日晨读',
       path: '/pages/index/index',
       imageUrl: '/assets/images/share-default.png'
     };

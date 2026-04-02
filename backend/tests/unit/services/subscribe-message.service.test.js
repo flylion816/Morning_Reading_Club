@@ -16,6 +16,7 @@ describe('Subscribe Message Service', () => {
   let SubscribeMessageGrantStub;
   let SubscribeMessageDeliveryStub;
   let loggerStub;
+  let axiosStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -53,6 +54,11 @@ describe('Subscribe Message Service', () => {
       error: sandbox.stub()
     };
 
+    axiosStub = {
+      get: sandbox.stub(),
+      post: sandbox.stub()
+    };
+
     subscribeMessageService = proxyquire(
       '../../../src/services/subscribe-message.service',
       {
@@ -63,10 +69,7 @@ describe('Subscribe Message Service', () => {
         '../models/SubscribeMessageGrant': SubscribeMessageGrantStub,
         '../models/SubscribeMessageDelivery': SubscribeMessageDeliveryStub,
         '../utils/logger': loggerStub,
-        axios: {
-          get: sandbox.stub(),
-          post: sandbox.stub()
-        }
+        axios: axiosStub
       }
     );
   });
@@ -100,6 +103,7 @@ describe('Subscribe Message Service', () => {
     const userId = new mongoose.Types.ObjectId();
     const periodId = new mongoose.Types.ObjectId();
     const sceneConfig = getSubscribeSceneConfig('next_day_study_reminder');
+    const now = new Date('2026-03-29T10:00:00+08:00');
     const period = {
       _id: periodId,
       startDate: new Date('2026-03-13T00:00:00+08:00'),
@@ -112,7 +116,12 @@ describe('Subscribe Message Service', () => {
     };
     const expectedPlan = buildNextDayStudyReminderPlan({
       period,
-      now: new Date('2026-03-29T10:00:00+08:00')
+      now
+    });
+
+    sandbox.useFakeTimers({
+      now,
+      toFake: ['Date']
     });
 
     EnrollmentStub.findOne.returns(setupFindChain(sandbox, enrollment));
@@ -210,5 +219,108 @@ describe('Subscribe Message Service', () => {
     expect(nextDayScene.scheduledSendDate).to.deep.equal(grant.scheduledSendDate);
     expect(nextDayScene.periodId).to.equal('period_1');
     expect(nextDayScene.sourceAction).to.equal('course_detail_click');
+  });
+
+  it('should restore inventory when WeChat returns 43101 for non-consuming scenes', async () => {
+    const recipientUserId = new mongoose.Types.ObjectId();
+    const grantId = new mongoose.Types.ObjectId();
+    const sceneConfig = getSubscribeSceneConfig('like_received');
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    UserStub.findById.returns(setupFindChain(sandbox, {
+      _id: recipientUserId,
+      openid: 'openid-123',
+      nickname: '测试用户'
+    }));
+    SubscribeMessageGrantStub.findOneAndUpdate.resolves({
+      _id: grantId,
+      availableCount: 4
+    });
+    SubscribeMessageGrantStub.findByIdAndUpdate.resolves({});
+    axiosStub.get.resolves({
+      data: {
+        access_token: 'access-token',
+        expires_in: 7200
+      }
+    });
+    axiosStub.post.resolves({
+      data: {
+        errcode: 43101,
+        errmsg: 'user refuse to accept the msg'
+      }
+    });
+
+    process.env.NODE_ENV = 'production';
+    try {
+      await subscribeMessageService.sendSceneMessage({
+        scene: 'like_received',
+        recipientUserId,
+        fields: {
+          likeUser: '点赞人',
+          likeTime: '2026-03-31 07:00'
+        },
+        sourceType: 'checkin_like',
+        sourceId: 'checkin-1'
+      });
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    expect(SubscribeMessageGrantStub.findOneAndUpdate.calledOnce).to.be.true;
+    expect(SubscribeMessageGrantStub.findByIdAndUpdate.calledTwice).to.be.true;
+    expect(SubscribeMessageGrantStub.findByIdAndUpdate.firstCall.args[0]).to.equal(grantId);
+    expect(SubscribeMessageGrantStub.findByIdAndUpdate.firstCall.args[1]).to.deep.equal({
+      $inc: { availableCount: 1 }
+    });
+    expect(SubscribeMessageGrantStub.findByIdAndUpdate.secondCall.args[0]).to.equal(grantId);
+    expect(SubscribeMessageGrantStub.findByIdAndUpdate.secondCall.args[1].$set.deliveryBlocked).to.equal(true);
+    expect(SubscribeMessageGrantStub.findByIdAndUpdate.secondCall.args[1].$set.deliveryBlockedReason).to.equal('wechat_delivery_refused');
+    expect(SubscribeMessageGrantStub.findByIdAndUpdate.secondCall.args[1].$set.lastWechatErrorCode).to.equal(43101);
+    expect(SubscribeMessageDeliveryStub.create.calledOnce).to.be.true;
+    expect(SubscribeMessageDeliveryStub.create.firstCall.args[0]).to.include({
+      scene: sceneConfig.scene,
+      status: 'failed',
+      errorCode: 43101
+    });
+  });
+
+  it('should skip sending when grant is blocked pending reauthorization', async () => {
+    const recipientUserId = new mongoose.Types.ObjectId();
+    const sceneConfig = getSubscribeSceneConfig('comment_received');
+
+    UserStub.findById.returns(setupFindChain(sandbox, {
+      _id: recipientUserId,
+      openid: 'openid-123',
+      nickname: '测试用户'
+    }));
+    SubscribeMessageGrantStub.findOne
+      .onFirstCall()
+      .resolves({
+        _id: new mongoose.Types.ObjectId(),
+        availableCount: 3,
+        deliveryBlocked: true,
+        lastWechatErrorCode: 43101
+      });
+
+    await subscribeMessageService.sendSceneMessage({
+      scene: 'comment_received',
+      recipientUserId,
+      fields: {
+        replyUser: '回复者',
+        replyTopic: '主题',
+        replyContent: '内容',
+        replyTime: '2026-03-31 08:00'
+      },
+      sourceType: 'comment_reply',
+      sourceId: 'comment-1'
+    });
+
+    expect(SubscribeMessageGrantStub.findOneAndUpdate.called).to.be.false;
+    expect(SubscribeMessageDeliveryStub.create.calledOnce).to.be.true;
+    expect(SubscribeMessageDeliveryStub.create.firstCall.args[0]).to.include({
+      scene: sceneConfig.scene,
+      status: 'skipped_reauthorization_required',
+      errorCode: 43101
+    });
   });
 });

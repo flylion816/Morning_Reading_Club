@@ -16,6 +16,9 @@ const {
   normalizeGrantContext
 } = require('../utils/study-reminder.utils');
 
+const NON_CONSUMING_FAILURE_CODES = new Set([43101]);
+const WECHAT_REAUTH_REQUIRED_ERROR_CODES = new Set([43101]);
+
 function getSceneAutoTopUpTarget(sceneConfig) {
   const target = Number(sceneConfig?.autoTopUpTarget);
   if (Number.isInteger(target) && target > 0) {
@@ -121,6 +124,9 @@ class SubscribeMessageService {
     const shortageScenes = scenes
       .filter(scene => (scene.availableCount || 0) < getSceneAutoTopUpTarget(scene))
       .map(scene => scene.scene);
+    const reauthorizationScenes = scenes
+      .filter(scene => scene.deliveryBlocked)
+      .map(scene => scene.scene);
 
     return {
       totalScenes: scenes.length,
@@ -129,8 +135,10 @@ class SubscribeMessageService {
         scene => (scene.availableCount || 0) >= getSceneAutoTopUpTarget(scene)
       ).length,
       shortageSceneCount: shortageScenes.length,
+      needsReauthorizationSceneCount: reauthorizationScenes.length,
       totalAvailableCount: scenes.reduce((sum, scene) => sum + (scene.availableCount || 0), 0),
-      shortageScenes
+      shortageScenes,
+      reauthorizationScenes
     };
   }
 
@@ -161,7 +169,12 @@ class SubscribeMessageService {
         lastResult: grant?.lastResult || null,
         lastAcceptedAt: grant?.lastAcceptedAt || null,
         lastRejectedAt: grant?.lastRejectedAt || null,
-        lastRequestedAt: grant?.lastRequestedAt || null
+        lastRequestedAt: grant?.lastRequestedAt || null,
+        deliveryBlocked: !!grant?.deliveryBlocked,
+        deliveryBlockedReason: grant?.deliveryBlockedReason || null,
+        lastWechatErrorCode: grant?.lastWechatErrorCode || null,
+        lastWechatRefusedAt: grant?.lastWechatRefusedAt || null,
+        needsReauthorization: !!grant?.deliveryBlocked
       };
     });
 
@@ -204,6 +217,10 @@ class SubscribeMessageService {
 
       if (result === 'accept') {
         update.$set.lastAcceptedAt = now;
+        update.$set.deliveryBlocked = false;
+        update.$set.deliveryBlockedReason = null;
+        update.$set.lastWechatErrorCode = null;
+        update.$set.lastWechatRefusedAt = null;
 
         if (sceneConfig.scene === 'next_day_study_reminder') {
           const eligibleEnrollment = normalizedPeriodId
@@ -268,6 +285,10 @@ class SubscribeMessageService {
 
       if (result === 'reject' || result === 'ban') {
         update.$set.lastRejectedAt = now;
+        update.$set.deliveryBlocked = true;
+        update.$set.deliveryBlockedReason = result === 'ban' ? 'wechat_user_ban' : 'wechat_user_reject';
+        update.$set.lastWechatErrorCode = null;
+        update.$set.lastWechatRefusedAt = now;
         if (sceneConfig.scene === 'next_day_study_reminder') {
           update.$set.availableCount = 0;
           update.$set.scheduledSendDate = null;
@@ -320,6 +341,41 @@ class SubscribeMessageService {
       errorMessage,
       sourceType,
       sourceId: sourceId ? String(sourceId) : null
+    });
+  }
+
+  async restoreGrantInventoryIfNeeded(grant, { consumeOnSuccess = false, errorCode = null } = {}) {
+    if (consumeOnSuccess || !grant?._id) {
+      return;
+    }
+
+    const normalizedErrorCode = Number(errorCode);
+    if (!NON_CONSUMING_FAILURE_CODES.has(normalizedErrorCode)) {
+      return;
+    }
+
+    await SubscribeMessageGrant.findByIdAndUpdate(grant._id, {
+      $inc: { availableCount: 1 }
+    });
+  }
+
+  async markGrantDeliveryBlockedIfNeeded(grant, { errorCode = null } = {}) {
+    if (!grant?._id) {
+      return;
+    }
+
+    const normalizedErrorCode = Number(errorCode);
+    if (!WECHAT_REAUTH_REQUIRED_ERROR_CODES.has(normalizedErrorCode)) {
+      return;
+    }
+
+    await SubscribeMessageGrant.findByIdAndUpdate(grant._id, {
+      $set: {
+        deliveryBlocked: true,
+        deliveryBlockedReason: 'wechat_delivery_refused',
+        lastWechatErrorCode: normalizedErrorCode,
+        lastWechatRefusedAt: new Date()
+      }
     });
   }
 
@@ -407,10 +463,36 @@ class SubscribeMessageService {
       availableCount: { $gt: 0 }
     };
 
+    const blockedGrant = await SubscribeMessageGrant.findOne({
+      ...grantQuery,
+      deliveryBlocked: true
+    });
+
+    if (blockedGrant) {
+      return this.createDeliveryLog({
+        userId: recipientUserId,
+        scene,
+        templateId: sceneConfig.templateId,
+        status: 'skipped_reauthorization_required',
+        targetPage,
+        payload: { fields },
+        errorCode: blockedGrant.lastWechatErrorCode || null,
+        errorMessage: '微信侧订阅授权已失效，等待用户重新授权',
+        sourceType,
+        sourceId
+      });
+    }
+
     const grant = consumeOnSuccess
-      ? await SubscribeMessageGrant.findOne(grantQuery)
+      ? await SubscribeMessageGrant.findOne({
+          ...grantQuery,
+          deliveryBlocked: { $ne: true }
+        })
       : await SubscribeMessageGrant.findOneAndUpdate(
-          grantQuery,
+          {
+            ...grantQuery,
+            deliveryBlocked: { $ne: true }
+          },
           {
             $inc: { availableCount: -1 }
           },
@@ -489,6 +571,14 @@ class SubscribeMessageService {
       );
 
       if (response.data.errcode && response.data.errcode !== 0) {
+        await this.restoreGrantInventoryIfNeeded(grant, {
+          consumeOnSuccess,
+          errorCode: response.data.errcode
+        });
+        await this.markGrantDeliveryBlockedIfNeeded(grant, {
+          errorCode: response.data.errcode
+        });
+
         return this.createDeliveryLog({
           userId: recipientUserId,
           scene,

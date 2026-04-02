@@ -278,4 +278,106 @@ describe('Admin Subscription Debug Service', () => {
     expect(result.recentDeliveries).to.have.length(1);
     expect(result.summary.totalAvailableCount).to.equal(1);
   });
+
+  it('should keep rejected enrollment scenes with remaining inventory in warning state', async () => {
+    const user = {
+      _id: userId1,
+      nickname: '用户A',
+      phone: '13800000001',
+      openid: 'openid-a',
+      status: 'active',
+      createdAt: new Date('2026-03-01T00:00:00+08:00'),
+      updatedAt: new Date('2026-03-02T00:00:00+08:00')
+    };
+
+    const enrollment = {
+      _id: new mongoose.Types.ObjectId(),
+      userId: userId1,
+      periodId,
+      status: 'active',
+      paymentStatus: 'paid',
+      enrolledAt: new Date('2026-03-05T00:00:00+08:00'),
+      createdAt: new Date('2026-03-05T00:00:00+08:00')
+    };
+
+    const grant = {
+      _id: new mongoose.Types.ObjectId(),
+      userId: userId1,
+      scene: 'enrollment_result',
+      templateId: 'enrollment-template',
+      availableCount: 3,
+      autoTopUpTarget: 1,
+      lastResult: 'reject',
+      lastAcceptedAt: new Date('2026-03-28T17:24:16+08:00'),
+      lastRejectedAt: new Date('2026-03-28T17:25:34+08:00'),
+      updatedAt: new Date('2026-03-28T17:25:34+08:00')
+    };
+
+    UserStub.findOne.returns(setupFindChain(sandbox, user));
+    EnrollmentStub.find.returns(setupFindChain(sandbox, [enrollment]));
+    SubscribeMessageGrantStub.find.returns(setupFindChain(sandbox, [grant]));
+    SubscribeMessageDeliveryStub.find.returns(setupFindChain(sandbox, []));
+    PeriodStub.find.returns(setupFindChain(sandbox, [
+      {
+        _id: periodId,
+        title: '成都营',
+        name: '成都营',
+        startDate: new Date('2026-03-13T00:00:00+08:00'),
+        endDate: new Date('2026-04-04T00:00:00+08:00'),
+        dateRange: '03/13 至 04/04',
+        status: 'ongoing',
+        isPublished: true
+      }
+    ]));
+
+    const result = await service.getSubscriptionDebugUserDetail(userId1.toString());
+    const enrollmentScene = result.sceneStates.find(scene => scene.scene === 'enrollment_result');
+
+    expect(enrollmentScene.status).to.equal('ready');
+    expect(enrollmentScene.statusLabel).to.equal('曾拒绝');
+    expect(enrollmentScene.statusType).to.equal('warning');
+    expect(result.summary.blockedSceneCount).to.equal(0);
+  });
+
+  it('should mark delivery-blocked scenes as reauthorization required', async () => {
+    const user = {
+      _id: userId1,
+      nickname: '用户A',
+      phone: '13800000001',
+      openid: 'openid-a',
+      status: 'active',
+      createdAt: new Date('2026-03-01T00:00:00+08:00'),
+      updatedAt: new Date('2026-03-02T00:00:00+08:00')
+    };
+
+    UserStub.findOne.returns(setupFindChain(sandbox, user));
+    EnrollmentStub.find.returns(setupFindChain(sandbox, []));
+    SubscribeMessageGrantStub.find.returns(setupFindChain(sandbox, [
+      {
+        _id: new mongoose.Types.ObjectId(),
+        userId: userId1,
+        scene: 'like_received',
+        templateId: 'like-template',
+        availableCount: 5,
+        autoTopUpTarget: 50,
+        deliveryBlocked: true,
+        deliveryBlockedReason: 'wechat_delivery_refused',
+        lastWechatErrorCode: 43101,
+        lastWechatRefusedAt: new Date('2026-03-30T23:17:52+08:00'),
+        updatedAt: new Date('2026-03-30T23:17:52+08:00')
+      }
+    ]));
+    SubscribeMessageDeliveryStub.find.returns(setupFindChain(sandbox, []));
+    PeriodStub.find.returns(setupFindChain(sandbox, []));
+
+    const result = await service.getSubscriptionDebugUserDetail(userId1.toString());
+    const likeScene = result.sceneStates.find(scene => scene.scene === 'like_received');
+
+    expect(likeScene.status).to.equal('needs_reauthorization');
+    expect(likeScene.statusLabel).to.equal('待重新授权');
+    expect(likeScene.statusType).to.equal('warning');
+    expect(result.status).to.equal('needs_reauthorization');
+    expect(result.statusLabel).to.equal('待重新授权');
+    expect(result.summary.needsReauthorizationSceneCount).to.equal(1);
+  });
 });

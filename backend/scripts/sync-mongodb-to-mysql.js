@@ -24,6 +24,10 @@ const Notification = require('../src/models/Notification');
 
 // 导入备份服务
 const mysqlBackupService = require('../src/services/mysql-backup.service');
+const {
+  buildSyncReferenceContext,
+  filterDocumentsForMysqlSync
+} = require('../src/services/mongo-mysql-sync-filter.service');
 
 async function syncData() {
   try {
@@ -39,7 +43,9 @@ async function syncData() {
     }
 
     const syncResults = {};
+    const skippedResults = {};
     let totalSynced = 0;
+    const syncContext = await buildSyncReferenceContext();
 
     // 同步 users
     console.log('[1/11] 正在同步 users...');
@@ -74,82 +80,142 @@ async function syncData() {
     // 同步 sections
     console.log('[4/11] 正在同步 sections...');
     const sections = await Section.find();
-    for (const section of sections) {
+    const sectionBatch = filterDocumentsForMysqlSync('sections', sections, syncContext);
+    for (const section of sectionBatch.syncableDocs) {
       await mysqlBackupService.syncSection(section);
     }
-    syncResults.sections = sections.length;
-    totalSynced += sections.length;
-    console.log(`✅ sections: ${sections.length} 条\n`);
+    syncResults.sections = sectionBatch.syncableDocs.length;
+    skippedResults.sections = sectionBatch.skippedDocs.length;
+    totalSynced += sectionBatch.syncableDocs.length;
+    console.log(`✅ sections: ${sectionBatch.syncableDocs.length} 条`);
+    if (sectionBatch.skippedDocs.length) {
+      console.log(`⚠️  sections 跳过: ${sectionBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 同步 checkins
     console.log('[5/11] 正在同步 checkins...');
     const checkins = await Checkin.find();
-    for (const checkin of checkins) {
+    const checkinBatch = filterDocumentsForMysqlSync('checkins', checkins, syncContext);
+    for (const checkin of checkinBatch.syncableDocs) {
       await mysqlBackupService.syncCheckin(checkin);
     }
-    syncResults.checkins = checkins.length;
-    totalSynced += checkins.length;
-    console.log(`✅ checkins: ${checkins.length} 条\n`);
+    syncResults.checkins = checkinBatch.syncableDocs.length;
+    skippedResults.checkins = checkinBatch.skippedDocs.length;
+    totalSynced += checkinBatch.syncableDocs.length;
+    console.log(`✅ checkins: ${checkinBatch.syncableDocs.length} 条`);
+    if (checkinBatch.skippedDocs.length) {
+      console.log(`⚠️  checkins 跳过: ${checkinBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 同步 enrollments
     console.log('[6/11] 正在同步 enrollments...');
     const enrollments = await Enrollment.find();
-    for (const enrollment of enrollments) {
+    const enrollmentBatch = filterDocumentsForMysqlSync('enrollments', enrollments, syncContext);
+    for (const enrollment of enrollmentBatch.syncableDocs) {
       await mysqlBackupService.syncEnrollment(enrollment);
     }
-    syncResults.enrollments = enrollments.length;
-    totalSynced += enrollments.length;
-    console.log(`✅ enrollments: ${enrollments.length} 条\n`);
+    syncResults.enrollments = enrollmentBatch.syncableDocs.length;
+    skippedResults.enrollments = enrollmentBatch.skippedDocs.length;
+    totalSynced += enrollmentBatch.syncableDocs.length;
+    console.log(`✅ enrollments: ${enrollmentBatch.syncableDocs.length} 条`);
+    if (enrollmentBatch.skippedDocs.length) {
+      console.log(`⚠️  enrollments 跳过: ${enrollmentBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 同步 payments
     console.log('[7/11] 正在同步 payments...');
     const payments = await Payment.find();
-    for (const payment of payments) {
+    const paymentBatch = filterDocumentsForMysqlSync('payments', payments, syncContext);
+    for (const payment of paymentBatch.syncableDocs) {
       await mysqlBackupService.syncPayment(payment);
     }
-    syncResults.payments = payments.length;
-    totalSynced += payments.length;
-    console.log(`✅ payments: ${payments.length} 条\n`);
+    syncResults.payments = paymentBatch.syncableDocs.length;
+    skippedResults.payments = paymentBatch.skippedDocs.length;
+    totalSynced += paymentBatch.syncableDocs.length;
+    console.log(`✅ payments: ${paymentBatch.syncableDocs.length} 条`);
+    if (paymentBatch.skippedDocs.length) {
+      console.log(`⚠️  payments 跳过: ${paymentBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 同步 insights
     console.log('[8/11] 正在同步 insights...');
     const insights = await Insight.find();
-    for (const insight of insights) {
+    const insightBatch = filterDocumentsForMysqlSync('insights', insights, syncContext);
+    for (const insight of insightBatch.syncableDocs) {
       await mysqlBackupService.syncInsight(insight);
     }
-    syncResults.insights = insights.length;
-    totalSynced += insights.length;
-    console.log(`✅ insights: ${insights.length} 条\n`);
+    syncResults.insights = insightBatch.syncableDocs.length;
+    skippedResults.insights = insightBatch.skippedDocs.length;
+    totalSynced += insightBatch.syncableDocs.length;
+    console.log(`✅ insights: ${insightBatch.syncableDocs.length} 条`);
+    if (insightBatch.skippedDocs.length) {
+      console.log(`⚠️  insights 跳过: ${insightBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 同步 insight_requests
     console.log('[9/11] 正在同步 insight_requests...');
     const insightRequests = await InsightRequest.find();
-    for (const request of insightRequests) {
+    const requestBatch = filterDocumentsForMysqlSync('insight_requests', insightRequests, syncContext);
+    for (const request of requestBatch.syncableDocs) {
       await mysqlBackupService.syncInsightRequest(request);
     }
-    syncResults.insight_requests = insightRequests.length;
-    totalSynced += insightRequests.length;
-    console.log(`✅ insight_requests: ${insightRequests.length} 条\n`);
+    syncResults.insight_requests = requestBatch.syncableDocs.length;
+    skippedResults.insight_requests = requestBatch.skippedDocs.length;
+    totalSynced += requestBatch.syncableDocs.length;
+    console.log(`✅ insight_requests: ${requestBatch.syncableDocs.length} 条`);
+    if (requestBatch.skippedDocs.length) {
+      console.log(`⚠️  insight_requests 跳过: ${requestBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 同步 comments
     console.log('[10/11] 正在同步 comments...');
     const comments = await Comment.find();
-    for (const comment of comments) {
+    const commentBatch = filterDocumentsForMysqlSync('comments', comments, syncContext);
+    for (const comment of commentBatch.syncableDocs) {
       await mysqlBackupService.syncComment(comment);
     }
-    syncResults.comments = comments.length;
-    totalSynced += comments.length;
-    console.log(`✅ comments: ${comments.length} 条\n`);
+    syncResults.comments = commentBatch.syncableDocs.length;
+    skippedResults.comments = commentBatch.skippedDocs.length;
+    totalSynced += commentBatch.syncableDocs.length;
+    console.log(`✅ comments: ${commentBatch.syncableDocs.length} 条`);
+    if (commentBatch.skippedDocs.length) {
+      console.log(`⚠️  comments 跳过: ${commentBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 同步 notifications
     console.log('[11/11] 正在同步 notifications...');
     const notifications = await Notification.find();
-    for (const notification of notifications) {
+    const notificationBatch = filterDocumentsForMysqlSync(
+      'notifications',
+      notifications,
+      syncContext
+    );
+    for (const notification of notificationBatch.syncableDocs) {
       await mysqlBackupService.syncNotification(notification);
     }
-    syncResults.notifications = notifications.length;
-    totalSynced += notifications.length;
-    console.log(`✅ notifications: ${notifications.length} 条\n`);
+    syncResults.notifications = notificationBatch.syncableDocs.length;
+    skippedResults.notifications = notificationBatch.skippedDocs.length;
+    totalSynced += notificationBatch.syncableDocs.length;
+    console.log(`✅ notifications: ${notificationBatch.syncableDocs.length} 条`);
+    if (notificationBatch.skippedDocs.length) {
+      console.log(`⚠️  notifications 跳过: ${notificationBatch.skippedDocs.length} 条\n`);
+    } else {
+      console.log('');
+    }
 
     // 打印总结
     console.log('='.repeat(70));
@@ -159,6 +225,13 @@ async function syncData() {
     Object.entries(syncResults).forEach(([table, count]) => {
       console.log(`   ${table}: ${count} 条`);
     });
+    const skippedEntries = Object.entries(skippedResults).filter(([, count]) => count > 0);
+    if (skippedEntries.length > 0) {
+      console.log('\n   跳过：');
+      skippedEntries.forEach(([table, count]) => {
+        console.log(`   ${table}: ${count} 条`);
+      });
+    }
     console.log(`\n   总计: ${totalSynced} 条数据\n`);
 
     process.exit(0);

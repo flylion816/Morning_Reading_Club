@@ -73,6 +73,12 @@ async function wechatLogin(req, res, next) {
 
       isNewUser = true;
     } else {
+      if (user.status !== 'active') {
+        return res.status(403).json(
+          errors.forbidden(user.status === 'deleted' ? '用户已被删除' : '用户已被禁用')
+        );
+      }
+
       // 既有用户：更新登录时间和头像信息
       user.lastLoginAt = new Date();
 

@@ -107,6 +107,8 @@ function normalizeStatusFilter(status) {
   const map = {
     normal: 'ready',
     ready: 'ready',
+    reauthorization: 'needs_reauthorization',
+    needs_reauthorization: 'needs_reauthorization',
     shortage: 'needs_topup',
     needs_topup: 'needs_topup',
     planned: 'scheduled',
@@ -142,8 +144,11 @@ function getSceneState(sceneConfig, grant, currentPeriodId = null, options = {})
   const retryCount = Number(grant?.retryCount || 0);
   const effectivePeriodId = getGrantPeriodId(grant) || currentPeriodId || null;
   const disableTargetCheck = !!options.disableTargetCheck;
+  const deliveryBlocked = !!grant?.deliveryBlocked;
+  const hasHistoricalReject = lastResult === 'reject' && availableCount > 0;
 
-  const isBlocked = lastResult === 'reject' || lastResult === 'ban';
+  const isBlocked = lastResult === 'ban' || (lastResult === 'reject' && !hasHistoricalReject);
+  const needsReauthorization = deliveryBlocked && !isBlocked;
   const isScheduled =
     sceneConfig.scene === 'next_day_study_reminder' ? !!scheduledSendDate || !!retryAt : false;
   const isShortage = !disableTargetCheck && availableCount < target;
@@ -151,6 +156,8 @@ function getSceneState(sceneConfig, grant, currentPeriodId = null, options = {})
   let status = 'ready';
   if (isBlocked) {
     status = 'blocked';
+  } else if (needsReauthorization) {
+    status = 'needs_reauthorization';
   } else if (isScheduled) {
     status = 'scheduled';
   } else if (isShortage) {
@@ -163,6 +170,14 @@ function getSceneState(sceneConfig, grant, currentPeriodId = null, options = {})
       code: 'scene_blocked',
       scene: sceneConfig.scene,
       label: `${sceneConfig.title} 最近授权被拒绝`,
+      severity: 'high'
+    });
+  }
+  if (needsReauthorization) {
+    anomalyReasons.push({
+      code: 'scene_reauthorization_required',
+      scene: sceneConfig.scene,
+      label: `${sceneConfig.title} 需要重新授权`,
       severity: 'high'
     });
   }
@@ -195,12 +210,30 @@ function getSceneState(sceneConfig, grant, currentPeriodId = null, options = {})
     retryAt,
     retryCount,
     context: grant?.context || {},
+    deliveryBlocked,
+    deliveryBlockedReason: grant?.deliveryBlockedReason || null,
+    lastWechatErrorCode: grant?.lastWechatErrorCode || null,
+    lastWechatRefusedAt: grant?.lastWechatRefusedAt || null,
     status,
+    statusType: options.statusTypeOverride
+      || (isBlocked
+        ? 'danger'
+        : needsReauthorization
+          ? 'warning'
+        : hasHistoricalReject
+          ? 'warning'
+          : status === 'needs_topup'
+            ? 'warning'
+            : 'success'),
     statusLabel: options.statusLabelOverride
       || (status === 'blocked'
         ? lastResult === 'ban'
           ? '已封禁'
           : '已拒绝'
+        : status === 'needs_reauthorization'
+          ? '待重新授权'
+        : hasHistoricalReject
+          ? '曾拒绝'
         : status === 'scheduled'
           ? '计划发送'
           : status === 'needs_topup'
@@ -217,6 +250,10 @@ function buildRowStatus(user, sceneStates) {
 
   if (sceneStates.some(scene => scene.status === 'blocked')) {
     return 'blocked';
+  }
+
+  if (sceneStates.some(scene => scene.status === 'needs_reauthorization')) {
+    return 'needs_reauthorization';
   }
 
   if (sceneStates.some(scene => scene.status === 'scheduled')) {
@@ -414,6 +451,8 @@ function buildUserRow(user, grants = [], enrollments = [], periodsMap = new Map(
     statusLabel:
       status === 'blocked'
         ? '已阻断'
+        : status === 'needs_reauthorization'
+          ? '待重新授权'
         : status === 'scheduled'
           ? '计划发送'
           : status === 'needs_topup'
@@ -422,9 +461,11 @@ function buildUserRow(user, grants = [], enrollments = [], periodsMap = new Map(
     summaryStatus:
       status === 'blocked'
         ? '异常'
+        : status === 'needs_reauthorization'
+          ? '待授权'
         : status === 'needs_topup'
           ? '待补量'
-          : status === 'scheduled'
+        : status === 'scheduled'
             ? '计划发送'
             : '正常',
     anomalyReasons: anomalies,
@@ -558,13 +599,15 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
       summary: {
         totalUsers: 0,
         readyCount: 0,
+        needsReauthorizationCount: 0,
         needsTopUpCount: 0,
         scheduledCount: 0,
         blockedCount: 0,
         anomalyCount: 0,
         totalAvailableCount: 0,
         shortageSceneCount: 0,
-        targetReadySceneCount: 0
+        targetReadySceneCount: 0,
+        reauthorizationUserCount: 0
       },
       pagination: {
         page: 1,
@@ -703,6 +746,7 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
       acc.shortageSceneCount += row.shortageSceneCount;
       acc.targetReadySceneCount += row.targetReadySceneCount;
       if (row.status === 'ready') acc.readyCount += 1;
+      if (row.status === 'needs_reauthorization') acc.needsReauthorizationCount += 1;
       if (row.status === 'needs_topup') acc.needsTopUpCount += 1;
       if (row.status === 'scheduled') acc.scheduledCount += 1;
       if (row.status === 'blocked') acc.blockedCount += 1;
@@ -712,6 +756,7 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
     {
       totalUsers: 0,
       readyCount: 0,
+      needsReauthorizationCount: 0,
       needsTopUpCount: 0,
       scheduledCount: 0,
       blockedCount: 0,
@@ -726,7 +771,8 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
     }
   );
 
-  summary.readyUserCount = summary.readyCount;
+    summary.readyUserCount = summary.readyCount;
+  summary.reauthorizationUserCount = summary.needsReauthorizationCount;
   summary.shortageUserCount = summary.needsTopUpCount;
   summary.plannedReminderCount = summary.scheduledCount;
   summary.anomalyUserCount = summary.anomalyCount;
@@ -838,6 +884,8 @@ async function getSubscriptionDebugUserDetail(userId, params = {}) {
     statusLabel:
       status === 'blocked'
         ? '已阻断'
+        : status === 'needs_reauthorization'
+          ? '待重新授权'
         : status === 'scheduled'
           ? '计划发送'
           : status === 'needs_topup'
@@ -849,6 +897,9 @@ async function getSubscriptionDebugUserDetail(userId, params = {}) {
       shortageSceneCount: sceneStates.filter(sceneState => sceneState.status === 'needs_topup').length,
       targetReadySceneCount: sceneStates.filter(
         sceneState => sceneState.availableCount >= sceneState.autoTopUpTarget
+      ).length,
+      needsReauthorizationSceneCount: sceneStates.filter(
+        sceneState => sceneState.status === 'needs_reauthorization'
       ).length,
       blockedSceneCount: sceneStates.filter(sceneState => sceneState.status === 'blocked').length,
       scheduledSceneCount: sceneStates.filter(sceneState => sceneState.status === 'scheduled').length,

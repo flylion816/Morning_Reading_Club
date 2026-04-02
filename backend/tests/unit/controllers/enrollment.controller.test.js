@@ -57,6 +57,7 @@ describe('Enrollment Controller', () => {
 
     PeriodStub = {
       findById: sandbox.stub(),
+      findOne: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub()
     };
 
@@ -308,6 +309,62 @@ describe('Enrollment Controller', () => {
       const response = res.json.getCall(0).args[0];
       expect(response.data.list).to.be.empty;
       expect(response.data.total).to.equal(0);
+    });
+  });
+
+  describe('getUsersByPeriodName - 外部期次用户接口', () => {
+    it('应该跳过 userId 为空的孤儿报名记录并返回有效用户', async () => {
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      req.query = { periodName: '内在之光' };
+
+      PeriodStub.findOne.resolves({
+        _id: periodId,
+        name: '内在之光'
+      });
+
+      const leanStub = sandbox.stub().resolves([
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: {
+            _id: fixtures.testUsers.normalUser._id,
+            nickname: fixtures.testUsers.normalUser.nickname
+          }
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: null
+        }
+      ]);
+      const sortStub = sandbox.stub().returns({ lean: leanStub });
+      const populateStub = sandbox.stub().returns({ sort: sortStub });
+      EnrollmentStub.find.returns({ populate: populateStub });
+
+      await enrollmentController.getUsersByPeriodName(req, res, next);
+
+      expect(res.json.calledOnce).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.code).to.equal(200);
+      expect(response.data.periodName).to.equal('内在之光');
+      expect(response.data.userCount).to.equal(1);
+      expect(response.data.users).to.deep.equal([
+        {
+          userId: fixtures.testUsers.normalUser._id,
+          nickname: fixtures.testUsers.normalUser.nickname
+        }
+      ]);
+      expect(loggerStub.warn.calledOnce).to.be.true;
+      expect(next.called).to.be.false;
+    });
+
+    it('应该在缺少 periodName 时返回 400', async () => {
+      req.query = {};
+
+      await enrollmentController.getUsersByPeriodName(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0].message).to.include('periodName');
+      expect(PeriodStub.findOne.called).to.be.false;
     });
   });
 

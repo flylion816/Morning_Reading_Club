@@ -23,6 +23,7 @@ const subscribeMessageDeliverySchema = new mongoose.Schema(
         'sent',
         'mocked',
         'skipped_no_grant',
+        'skipped_reauthorization_required',
         'skipped_missing_openid',
         'skipped_missing_config',
         'failed'

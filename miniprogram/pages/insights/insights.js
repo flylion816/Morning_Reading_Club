@@ -1,6 +1,8 @@
 const insightService = require('../../services/insight.service');
 const userService = require('../../services/user.service');
+const enrollmentService = require('../../services/enrollment.service');
 const logger = require('../../utils/logger');
+const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
 
 Page({
   data: {
@@ -201,6 +203,17 @@ Page({
             url: '/pages/login/login'
           });
         }, 1500);
+        return;
+      }
+
+      const userEnrollments = await enrollmentService
+        .getUserEnrollments({ limit: 100 })
+        .catch(() => ({ list: [] }));
+      const enrollmentList = userEnrollments.list || userEnrollments || [];
+
+      if (!hasPaidEnrollment(enrollmentList)) {
+        this.setData({ insights: [], loading: false });
+        redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看');
         return;
       }
 

@@ -249,23 +249,13 @@ Page({
       duration: 1500
     });
 
-    let shouldPromptPhoneBind = false;
-    try {
-      const phoneInfo = await userService.getPhoneInfo();
-      shouldPromptPhoneBind = !(phoneInfo && phoneInfo.bound);
-    } catch (error) {
-      console.warn('获取手机号绑定状态失败，默认直接进入应用:', error);
-    }
-
     setTimeout(() => {
       this.setData({
         loading: false,
-        showPhoneBindModal: shouldPromptPhoneBind
+        showPhoneBindModal: false
       });
 
-      if (!shouldPromptPhoneBind) {
-        this.navigateToApp();
-      }
+      this.navigateToApp();
     }, 1500);
   },
 

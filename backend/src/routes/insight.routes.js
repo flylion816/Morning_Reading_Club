@@ -221,9 +221,10 @@ router.post('/admin/requests/batch-approve', adminAuthMiddleware, batchApproveRe
 /**
  * @route   POST /api/v1/insights/external/create
  * @desc    外部系统创建小凡看见（无需认证）
- * @param   userId {string} - 用户ID（必填）
- * @param   periodName {string} - 期次名称（必填）
- * @param   day {number} - 第几天（可选）
+ * @param   targetUserId {string} - 被看见用户ID（必填）
+ * @param   periodId|periodName {string} - 期次ID/名称（二选一）
+ * @param   sessionId {string} - 课节ID（与day二选一，推荐）
+ * @param   day {number} - 第几天（与sessionId二选一，兼容旧调用）
  * @param   content {string} - 文字内容（与imageUrl二选一）
  * @param   imageUrl {string} - 图片地址（与content二选一）
  * @access  Public

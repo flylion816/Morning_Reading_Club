@@ -75,7 +75,7 @@ const TABLE_DEFINITIONS = {
   users: `
     CREATE TABLE IF NOT EXISTS users (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
-      openid VARCHAR(100) UNIQUE COMMENT '微信 openid',
+      openid VARCHAR(100) COMMENT '微信 openid',
       unionid VARCHAR(100) COMMENT '微信 unionid',
       nickname VARCHAR(100) COMMENT '昵称',
       avatar VARCHAR(500) COMMENT '头像 emoji',
@@ -90,6 +90,8 @@ const TABLE_DEFINITIONS = {
       level INT DEFAULT 1 COMMENT '等级',
       role VARCHAR(50) DEFAULT 'user' COMMENT '角色',
       status VARCHAR(50) DEFAULT 'active' COMMENT '状态',
+      phone VARCHAR(20) DEFAULT NULL COMMENT '手机号',
+      phone_bind_at DATETIME(6) DEFAULT NULL COMMENT '手机号绑定时间',
       last_login_at TIMESTAMP NULL COMMENT '最后登录时间',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
@@ -145,6 +147,7 @@ const TABLE_DEFINITIONS = {
       checkin_count INT DEFAULT 0 COMMENT '打卡数',
       total_checkins INT DEFAULT 0 COMMENT '总打卡',
       meeting_id VARCHAR(50) DEFAULT NULL COMMENT '腾讯会议号',
+      meeting_join_url VARCHAR(1000) DEFAULT NULL COMMENT '腾讯会议邀请链接',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
@@ -335,6 +338,10 @@ const TABLE_DEFINITIONS = {
       status VARCHAR(50) DEFAULT 'pending' COMMENT '状态',
       reason VARCHAR(255) COMMENT '原因',
       period_id CHAR(24) COMMENT '期次 ID',
+      insight_id CHAR(24) DEFAULT NULL COMMENT '小凡看见 ID',
+      request_period_name VARCHAR(100) DEFAULT NULL COMMENT '申请期次名称快照',
+      request_insight_title VARCHAR(255) DEFAULT NULL COMMENT '申请看见标题快照',
+      request_insight_day INT DEFAULT NULL COMMENT '申请看见天数快照',
       approved_at TIMESTAMP NULL COMMENT '批准时间',
       rejected_at TIMESTAMP NULL COMMENT '拒绝时间',
       revoked_at TIMESTAMP NULL COMMENT '撤销时间',
@@ -344,6 +351,7 @@ const TABLE_DEFINITIONS = {
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
       FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (to_user_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_insight_id (insight_id),
       INDEX idx_from_user_id (from_user_id),
       INDEX idx_to_user_id (to_user_id),
       INDEX idx_status (status)
@@ -433,6 +441,16 @@ const TABLE_DEFINITIONS = {
   `
 };
 
+const SCHEMA_UPGRADES = [
+  {
+    name: 'periods.meeting_join_url',
+    sql: `
+      ALTER TABLE periods
+      ADD COLUMN IF NOT EXISTS meeting_join_url VARCHAR(1000) DEFAULT NULL COMMENT '腾讯会议邀请链接' AFTER meeting_id
+    `
+  }
+];
+
 async function initMysqlTables() {
   console.log('\n' + '='.repeat(70));
   console.log('    🗄️  MySQL 表结构初始化');
@@ -475,6 +493,12 @@ async function initMysqlTables() {
           throw error;
         }
       }
+    }
+
+    for (const upgrade of SCHEMA_UPGRADES) {
+      console.log(`执行表结构升级: ${upgrade.name}...`);
+      await conn.query(upgrade.sql);
+      console.log(`✅ 表结构升级完成: ${upgrade.name}\n`);
     }
 
     console.log('='.repeat(70));

@@ -108,6 +108,7 @@ Page({
     // 腾讯会议
     hasMeeting: false,
     meetingId: '',
+    meetingJoinUrl: '',
 
     // 加载状态
     loading: true,
@@ -183,7 +184,8 @@ Page({
         allInsightRequests: [],
         insightRequestTotal: 0,
         hasMeeting: false,
-        meetingId: ''
+        meetingId: '',
+        meetingJoinUrl: ''
       });
     }
 
@@ -497,16 +499,24 @@ Page({
       }
       console.log('===== 今日任务获取完成，最终结果: =====', todaySection);
 
-      // 加载最近的小凡看见记录（最多3条）
-      // 重要：传递 currentPeriod 作为参数，避免从 this.data 读取（可能还未更新）
-      let recentInsights = [];
-      try {
-        recentInsights = await this.loadRecentInsights(currentPeriod);
-      } catch (error) {
-        console.error('加载小凡看见失败:', error);
-      }
+      const currentPeriodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
+      const currentPeriodAccess = currentPeriodId
+        ? await getPeriodAccess(currentPeriodId, { enrollmentList, skipRequest: true })
+        : { canAccessCommunity: false, communityAccessState: 'locked', paymentStatus: null };
+      const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
 
-      const allInsightRequests = await this.loadInsightRequests(false);
+      // 加载最近的小凡看见记录（最多3条）
+      let recentInsights = [];
+      let allInsightRequests = [];
+      if (communityEnabled) {
+        try {
+          recentInsights = await this.loadRecentInsights(currentPeriod);
+        } catch (error) {
+          console.error('加载小凡看见失败:', error);
+        }
+
+        allInsightRequests = await this.loadInsightRequests(false);
+      }
 
       console.log('setData前的recentInsights:', recentInsights);
       console.log('setData前的recentInsights长度:', recentInsights.length);
@@ -521,12 +531,9 @@ Page({
       console.log('todaySection.title:', todaySection?.title);
 
       // 提取腾讯会议信息
-      const hasMeeting = !!(currentPeriod && currentPeriod.meetingId);
+      const hasMeeting = !!(currentPeriod && (currentPeriod.meetingId || currentPeriod.meetingJoinUrl));
       const meetingId = currentPeriod?.meetingId || '';
-      const currentPeriodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
-      const currentPeriodAccess = currentPeriodId
-        ? await getPeriodAccess(currentPeriodId, { enrollmentList, skipRequest: true })
-        : { canAccessCommunity: false, communityAccessState: 'locked', paymentStatus: null };
+      const meetingJoinUrl = currentPeriod?.meetingJoinUrl || '';
 
       this.setData(
         {
@@ -535,7 +542,7 @@ Page({
           userStats: stats,
           currentPeriod: currentPeriod || null, // 确保不是undefined
           currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
-          canAccessCurrentPeriodCommunity: currentPeriodAccess.canAccessCommunity,
+          canAccessCurrentPeriodCommunity: communityEnabled,
           currentPeriodCommunityState: currentPeriodAccess.communityAccessState || 'locked',
           todaySection: todaySection || null, // 确保不是undefined
           recentInsights,
@@ -544,6 +551,7 @@ Page({
           insightRequestTotal: allInsightRequests.length,
           hasMeeting,
           meetingId,
+          meetingJoinUrl,
           loading: false
         }
       );
@@ -712,6 +720,18 @@ Page({
     }
   },
 
+  ensureCurrentPeriodCommunityAccess(title = '完成支付后可查看') {
+    if (this.data.currentPeriodCommunityState === 'enabled') {
+      return true;
+    }
+
+    wx.showToast({
+      title,
+      icon: 'none'
+    });
+    return false;
+  },
+
   /**
    * 微信一键登录
    */
@@ -837,6 +857,9 @@ Page({
    * 授权请求 - 同意查看小凡看见
    */
   handleApproveRequest(e) {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+      return;
+    }
     const { request } = e.currentTarget.dataset;
     this.approveRequest(request);
   },
@@ -845,6 +868,9 @@ Page({
    * 拒绝请求
    */
   handleRejectRequest(e) {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+      return;
+    }
     const { request } = e.currentTarget.dataset;
     this.rejectRequest(request);
   },
@@ -853,6 +879,9 @@ Page({
    * 点击请求记录 - 跳转到他人主页
    */
   handleInsightRequestTap(e) {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看请求')) {
+      return;
+    }
     const { request } = e.currentTarget.dataset;
     const userId = request?.fromUserId;
     const periodId = request?.periodId;
@@ -874,6 +903,9 @@ Page({
    * 批准请求
    */
   async approveRequest(request) {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+      return;
+    }
     try {
       console.log('📨 批准请求:', request);
 
@@ -905,6 +937,9 @@ Page({
    * 拒绝请求
    */
   async rejectRequest(request) {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+      return;
+    }
     try {
       console.log('📨 拒绝请求:', request);
 
@@ -960,6 +995,9 @@ Page({
   },
 
   navigateToInsightRequests() {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看请求')) {
+      return;
+    }
     wx.navigateTo({
       url: '/pages/insight-requests/insight-requests'
     });
@@ -993,6 +1031,9 @@ Page({
    * 点击小凡看见条目
    */
   handleInsightClick(e) {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看反馈')) {
+      return;
+    }
     console.log('🚨🚨🚨 handleInsightClick 被触发 🚨🚨🚨');
     console.log('Event:', e);
 
@@ -1024,6 +1065,9 @@ Page({
    * 跳转到小凡看见列表
    */
   navigateToInsights() {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看反馈')) {
+      return;
+    }
     console.log('🚨🚨🚨 navigateToInsights 被触发 🚨🚨🚨');
 
     wx.showToast({
@@ -1080,34 +1124,194 @@ Page({
   },
 
   /**
-   * 去晨读 - 跳转到腾讯会议小程序
+   * 去晨读
+   * 桌面端给出浏览器打开指引
+   * 手机端优先走腾讯会议小程序
    */
   handleJoinMeeting() {
     const meetingId = this.data.meetingId;
-    if (!meetingId) {
+    const meetingJoinUrl = this.normalizeMeetingJoinUrl(this.data.meetingJoinUrl);
+    const desktopLikePlatform = this.isDesktopLikePlatform();
+
+    if (!meetingId && !meetingJoinUrl) {
       wx.showToast({ title: '会议号未配置', icon: 'none' });
       return;
     }
 
-    // 清除空格和横杠，用于跳转参数
-    const cleanId = meetingId.replace(/[-\s]/g, '');
+    if (meetingJoinUrl) {
+      if (desktopLikePlatform) {
+        this.showInviteLinkGuide(meetingJoinUrl);
+        return;
+      }
+
+      this.showMeetingLaunchOptions({
+        meetingId,
+        meetingJoinUrl
+      });
+      return;
+    }
+
+    if (desktopLikePlatform) {
+      this.promptManualMeetingJoin(
+        meetingId,
+        '当前期次还没有配置腾讯会议邀请链接，暂时无法直接拉起桌面客户端。'
+      );
+      return;
+    }
+
+    this.openMeetingMiniProgram(meetingId);
+  },
+
+  getCurrentPlatform() {
+    const app = getApp();
+    const platform = app?.globalData?.platform || wx.getSystemInfoSync().platform || '';
+    return String(platform).toLowerCase();
+  },
+
+  showInviteLinkGuide(meetingJoinUrl) {
+    wx.showModal({
+      title: '请在浏览器中打开腾讯会议',
+      content: '复制链接后，请在浏览器中打开腾讯会议。',
+      confirmText: '复制链接',
+      cancelText: '取消',
+      success: res => {
+        if (res.confirm) {
+          this.copyMeetingValue(meetingJoinUrl, '邀请链接已复制');
+        }
+      }
+    });
+  },
+
+  showMeetingLaunchOptions({ meetingId, meetingJoinUrl }) {
+    const itemList = [];
+    const actions = [];
+
+    const pushAction = (label, action) => {
+      itemList.push(label);
+      actions.push(action);
+    };
+
+    if (meetingId) {
+      pushAction('打开腾讯会议小程序', () => this.openMeetingMiniProgram(meetingId));
+    }
+
+    pushAction('复制邀请链接', () => {
+      this.showInviteLinkGuide(meetingJoinUrl);
+    });
+
+    wx.showActionSheet({
+      itemList,
+      success: res => {
+        const action = actions[res.tapIndex];
+        if (action) {
+          action();
+        }
+      },
+      fail: err => {
+        if (err && err.errMsg && err.errMsg.includes('cancel')) {
+          return;
+        }
+
+        if (meetingId) {
+          this.openMeetingMiniProgram(meetingId);
+          return;
+        }
+
+        this.promptManualMeetingJoin(meetingId);
+      }
+    });
+  },
+
+  copyMeetingValue(value, title) {
+    if (!value) {
+      wx.showToast({
+        title: '暂无可复制内容',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.setClipboardData({
+      data: value,
+      success: () => {
+        wx.showToast({
+          title,
+          icon: 'success'
+        });
+      }
+    });
+  },
+
+  isDesktopPlatform() {
+    const platform = this.getCurrentPlatform();
+    return platform === 'windows' || platform === 'mac';
+  },
+
+  isDesktopLikePlatform() {
+    const platform = this.getCurrentPlatform();
+    return platform === 'windows' || platform === 'mac' || platform === 'devtools';
+  },
+
+  normalizeMeetingJoinUrl(url) {
+    if (!url || typeof url !== 'string') {
+      return '';
+    }
+
+    const trimmedUrl = url.trim();
+    const allowedHostPattern = /^https:\/\/(meeting\.tencent\.com|wemeet\.qq\.com|voovmeeting\.com)\//i;
+    return allowedHostPattern.test(trimmedUrl) ? trimmedUrl : '';
+  },
+
+  openMeetingWebView(meetingJoinUrl, meetingId = '') {
+    wx.navigateTo({
+      url:
+        '/pages/meeting-webview/meeting-webview?url=' +
+        encodeURIComponent(meetingJoinUrl) +
+        '&meetingId=' +
+        encodeURIComponent(meetingId || ''),
+      fail: () => {
+        this.promptManualMeetingJoin(meetingId, '当前环境无法打开腾讯会议邀请链接。');
+      }
+    });
+  },
+
+  openMeetingMiniProgram(meetingId) {
+    const cleanId = String(meetingId || '').replace(/[-\s]/g, '');
+    if (!cleanId) {
+      this.promptManualMeetingJoin(meetingId);
+      return;
+    }
 
     wx.navigateToMiniProgram({
       appId: 'wx33fd6cdc62520063',
       path: `pages/sub-preMeeting/join-meeting/join-meeting?scene=m=${cleanId}`,
       success: () => console.log('跳转腾讯会议成功'),
       fail: () => {
-        wx.showModal({
-          title: '无法打开腾讯会议',
-          content: '请手动打开腾讯会议APP，输入会议号：' + meetingId,
-          confirmText: '复制会议号',
-          cancelText: '知道了',
-          success: (res) => {
-            if (res.confirm) {
-              wx.setClipboardData({ data: meetingId });
-            }
-          }
-        });
+        this.promptManualMeetingJoin(meetingId);
+      }
+    });
+  },
+
+  promptManualMeetingJoin(meetingId, prefix = '') {
+    const contentParts = [];
+    if (prefix) {
+      contentParts.push(prefix);
+    }
+    if (meetingId) {
+      contentParts.push(`请手动打开腾讯会议APP，输入会议号：${meetingId}`);
+    } else {
+      contentParts.push('请手动打开腾讯会议APP或浏览器中的腾讯会议邀请链接。');
+    }
+
+    wx.showModal({
+      title: '无法直接打开腾讯会议',
+      content: contentParts.join('\n'),
+      confirmText: meetingId ? '复制会议号' : '知道了',
+      cancelText: '取消',
+      success: res => {
+        if (res.confirm && meetingId) {
+          wx.setClipboardData({ data: meetingId });
+        }
       }
     });
   },
@@ -1132,7 +1336,7 @@ Page({
    */
   onShareAppMessage() {
     return {
-      title: '邀请您加入凡人共读',
+      title: '凡人共读｜每日晨读',
       path: '/pages/index/index',
       imageUrl: '/assets/images/share-default.png'
     };
@@ -1143,7 +1347,7 @@ Page({
    */
   onShareTimeline() {
     return {
-      title: '邀请您加入凡人共读',
+      title: '凡人共读｜每日晨读',
       query: '',
       imageUrl: '/assets/images/share-default.png'
     };

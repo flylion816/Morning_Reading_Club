@@ -803,15 +803,15 @@ if (pm.response.code === 200) {
 ```json
 {
   "targetUserId": "user_id_string",
-  "periodName": "勇敢的心",
-  "title": "积极主动",
-  "day": 1,
+  "periodId": "period_id_string",
+  "sessionId": "section_id_string",
   "content": "文字内容",
   "imageUrl": "https://..."
 }
 ```
-- **说明**: `content` 和 `imageUrl` 二选一
-- **响应**: 返回创建的 insight 对象，包含 `periodName` 课程名称字段
+- **兼容旧参数**: 文档只保留 `sessionId`；历史调用若仍传 `sectionId`，服务端当前仍兼容。仍支持 `periodName + day`，服务端会自动反查 `sessionId`
+- **说明**: `periodId` 和 `periodName` 二选一；`sessionId` 和 `day` 二选一；`content` 和 `imageUrl` 二选一；若仅传 `imageUrl`，后端会自动补一个单空格作为 `content` 占位；推荐优先传 `periodId + sessionId`
+- **响应**: 返回创建的 insight 对象，包含 `periodName`、`sectionId`、`day`
 
 ---
 

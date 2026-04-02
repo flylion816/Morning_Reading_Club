@@ -260,7 +260,8 @@ async function createPeriod(req, res, next) {
       originalPrice,
       maxEnrollment,
       sortOrder,
-      meetingId
+      meetingId,
+      meetingJoinUrl
     } = req.body;
 
     const period = await Period.create({
@@ -279,6 +280,7 @@ async function createPeriod(req, res, next) {
       maxEnrollment,
       sortOrder,
       meetingId: meetingId || null,
+      meetingJoinUrl: meetingJoinUrl || null,
       status: 'not_started',
       isPublished: false,
       currentEnrollment: 0
@@ -411,7 +413,7 @@ async function copyPeriod(req, res, next) {
       return res.status(404).json(errors.notFound('源期次不存在'));
     }
 
-    // 创建新期次（meetingId 设为 null，新期次会议号不同）
+    // 创建新期次（会议号和邀请链接都设为 null，新期次会议配置不同）
     const newPeriod = await Period.create({
       name,
       subtitle,
@@ -428,6 +430,7 @@ async function copyPeriod(req, res, next) {
       maxEnrollment,
       sortOrder,
       meetingId: null,
+      meetingJoinUrl: null,
       status: 'not_started',
       isPublished: false,
       currentEnrollment: 0

@@ -115,6 +115,11 @@ function mergeSceneMetadata(scene = {}) {
     autoTopUpTarget,
     scheduledSendDate,
     scheduledSendText,
+    deliveryBlocked: !!scene.deliveryBlocked,
+    deliveryBlockedReason: scene.deliveryBlockedReason || null,
+    lastWechatErrorCode: scene.lastWechatErrorCode || null,
+    lastWechatRefusedAt: scene.lastWechatRefusedAt || null,
+    needsReauthorization: !!scene.deliveryBlocked,
     localOnly: !!scene.localOnly,
     requiresPeriodId: scene.requiresPeriodId ?? !!(policy && policy.requiresPeriodId)
   };
@@ -170,7 +175,7 @@ function buildEligibleScenes(scenes = [], options = {}) {
       return false;
     }
 
-    return normalizeCount(scene.availableCount) < target;
+    return !!scene.deliveryBlocked || normalizeCount(scene.availableCount) < target;
   });
 }
 

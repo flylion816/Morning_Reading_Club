@@ -74,6 +74,22 @@ const subscribeMessageGrantSchema = new mongoose.Schema(
     lastRequestedAt: {
       type: Date,
       default: null
+    },
+    deliveryBlocked: {
+      type: Boolean,
+      default: false
+    },
+    deliveryBlockedReason: {
+      type: String,
+      default: null
+    },
+    lastWechatErrorCode: {
+      type: Number,
+      default: null
+    },
+    lastWechatRefusedAt: {
+      type: Date,
+      default: null
     }
   },
   {

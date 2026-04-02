@@ -17,6 +17,12 @@ function isActiveEnrollment(enrollment) {
   return enrollment.status === 'active' || enrollment.status === 'completed';
 }
 
+function hasPaidEnrollment(enrollmentList = []) {
+  return enrollmentList.some(enrollment => {
+    return isActiveEnrollment(enrollment) && isPaidStatus(enrollment.paymentStatus || null);
+  });
+}
+
 function findEnrollmentForPeriod(enrollmentList = [], periodId) {
   const normalizedPeriodId = extractId(periodId);
   return enrollmentList.find(enrollment => {
@@ -112,6 +118,8 @@ function redirectAfterCommunityDenied(targetUrl, title = '未支付暂不可互�
 module.exports = {
   extractId,
   isPaidStatus,
+  isActiveEnrollment,
+  hasPaidEnrollment,
   findEnrollmentForPeriod,
   getPeriodAccess,
   redirectAfterCommunityDenied

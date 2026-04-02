@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/profile/profile",
+    "pages/meeting-webview/meeting-webview",
     "pages/courses/courses",
     "pages/course-detail/course-detail",
     "pages/checkin/checkin",

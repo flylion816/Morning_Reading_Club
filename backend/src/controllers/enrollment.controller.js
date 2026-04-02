@@ -777,8 +777,20 @@ exports.getUsersByPeriodName = async (req, res, next) => {
       .sort({ enrolledAt: -1 })
       .lean();
 
+    const validEnrollments = enrollments.filter(enrollment => enrollment.userId && enrollment.userId._id);
+    const orphanEnrollments = enrollments.filter(enrollment => !enrollment.userId || !enrollment.userId._id);
+
+    if (orphanEnrollments.length > 0) {
+      logger.warn('外部期次用户接口跳过孤儿报名记录', {
+        periodId: period._id,
+        periodName: period.name,
+        skippedCount: orphanEnrollments.length,
+        skippedEnrollmentIds: orphanEnrollments.map(enrollment => enrollment._id)
+      });
+    }
+
     // 构建返回数据：只包含 userId 和 nickname
-    const users = enrollments.map(enrollment => ({
+    const users = validEnrollments.map(enrollment => ({
       userId: enrollment.userId._id,
       nickname: enrollment.userId.nickname
     }));

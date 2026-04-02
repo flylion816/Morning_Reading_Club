@@ -1,6 +1,8 @@
 // 我的页面
 const userService = require('../../services/user.service');
+const enrollmentService = require('../../services/enrollment.service');
 const constants = require('../../config/constants');
+const { hasPaidEnrollment } = require('../../utils/period-access');
 
 Page({
   data: {
@@ -11,6 +13,7 @@ Page({
     isLogin: false,
     phoneMasked: '',
     hasPhone: false,
+    canUsePaidFeatures: false,
     loading: false
   },
 
@@ -26,8 +29,11 @@ Page({
   async _loadUserData() {
     this.setData({ loading: true });
     try {
-      const userInfo = await userService.getUserProfile();
-      const stats = await userService.getUserStats();
+      const [userInfo, stats, userEnrollments] = await Promise.all([
+        userService.getUserProfile(),
+        userService.getUserStats(),
+        enrollmentService.getUserEnrollments({ limit: 100 }).catch(() => ({ list: [] }))
+      ]);
 
       // 处理手机号脱敏
       const phone = userInfo.phone || '';
@@ -35,12 +41,15 @@ Page({
       const phoneMasked = hasPhone
         ? phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
         : '';
+      const enrollmentList = userEnrollments.list || userEnrollments || [];
+      const canUsePaidFeatures = hasPaidEnrollment(enrollmentList);
 
       this.setData({
         userInfo,
         stats: stats || { totalCheckinDays: 0 },
         hasPhone,
-        phoneMasked
+        phoneMasked,
+        canUsePaidFeatures
       });
     } catch (err) {
       console.error('加载用户数据失败', err);
@@ -51,6 +60,11 @@ Page({
 
   // 获取/换绑手机号
   async handleGetPhoneNumber(e) {
+    if (!this.data.canUsePaidFeatures) {
+      wx.showToast({ title: '完成支付后可绑定手机号', icon: 'none' });
+      return;
+    }
+
     if (e.detail.errMsg !== 'getPhoneNumber:ok') {
       return;
     }
@@ -72,6 +86,10 @@ Page({
   },
 
   goToNotificationSettings() {
+    if (!this.data.canUsePaidFeatures) {
+      wx.showToast({ title: '完成支付后可管理提醒', icon: 'none' });
+      return;
+    }
     wx.navigateTo({ url: '/pages/notification-settings/notification-settings' });
   },
 

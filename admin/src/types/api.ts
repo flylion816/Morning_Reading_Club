@@ -35,6 +35,8 @@ export interface Period {
   description?: string;
   icon?: string;
   coverColor?: string;
+  meetingId?: string;
+  meetingJoinUrl?: string;
   startDate?: string;
   endDate?: string;
   totalDays?: number;

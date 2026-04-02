@@ -3,6 +3,8 @@ const Checkin = require('../models/Checkin');
 const InsightRequest = require('../models/InsightRequest');
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
+const Period = require('../models/Period');
+const Section = require('../models/Section');
 const { success, errors } = require('../utils/response');
 const { createNotification, createNotifications } = require('./notification.controller');
 const logger = require('../utils/logger');
@@ -40,6 +42,127 @@ async function notifyUsers(req, userIds, type, title, content, options = {}) {
     ...options,
     wsManager: req.wsManager
   });
+}
+
+async function persistInsight(insightData) {
+  const insight = await Insight.create(insightData);
+
+  publishSyncEvent({
+    type: 'create',
+    collection: 'insights',
+    documentId: insight._id.toString(),
+    data: insight.toObject()
+  });
+
+  return insight;
+}
+
+function normalizeOptionalDay(day) {
+  if (day === undefined || day === null || day === '') {
+    return null;
+  }
+
+  const parsed = Number(day);
+  return Number.isInteger(parsed) ? parsed : Number.NaN;
+}
+
+function normalizeInsightContent({ content, imageUrl }) {
+  if (content) {
+    return content;
+  }
+
+  if (imageUrl) {
+    return ' ';
+  }
+
+  return content;
+}
+
+async function resolveExternalInsightContext({
+  periodId,
+  periodName,
+  sectionId,
+  day
+}) {
+  const normalizedDay = normalizeOptionalDay(day);
+  if (Number.isNaN(normalizedDay)) {
+    return {
+      status: 400,
+      body: errors.badRequest('day 必须是整数')
+    };
+  }
+
+  let period = null;
+  if (periodId) {
+    period = await Period.findById(periodId).select('_id name title');
+    if (!period) {
+      return {
+        status: 404,
+        body: errors.notFound(`期次不存在：ID ${periodId}`)
+      };
+    }
+  } else if (periodName) {
+    period = await Period.findOne({ name: periodName }).select('_id name title');
+    if (!period) {
+      return {
+        status: 404,
+        body: errors.notFound(`期次不存在：${periodName}`)
+      };
+    }
+  }
+
+  let section = null;
+  if (sectionId) {
+    section = await Section.findById(sectionId).select('_id periodId title day');
+    if (!section) {
+      return {
+        status: 404,
+        body: errors.notFound(`课节不存在：ID ${sectionId}`)
+      };
+    }
+
+    if (period && section.periodId?.toString() !== period._id.toString()) {
+      return {
+        status: 400,
+        body: errors.badRequest('sectionId 与 periodId/periodName 不匹配')
+      };
+    }
+
+    if (!period) {
+      period = await Period.findById(section.periodId).select('_id name title');
+      if (!period) {
+        return {
+          status: 404,
+          body: errors.notFound(`课节所属期次不存在：${section.periodId}`)
+        };
+      }
+    }
+  } else if (period && normalizedDay !== null) {
+    section = await Section.findOne({
+      periodId: period._id,
+      day: normalizedDay
+    }).select('_id periodId title day');
+
+    if (!section) {
+      return {
+        status: 404,
+        body: errors.notFound(`期次 ${period.name || period.title} 下不存在第 ${normalizedDay} 天课程`)
+      };
+    }
+  }
+
+  return {
+    status: 200,
+    body: {
+      period,
+      section,
+      resolvedPeriodId: period?._id || null,
+      resolvedPeriodName: period?.name || period?.title || periodName || null,
+      resolvedSectionId: section?._id || sectionId || null,
+      resolvedTitle: section?.title || null,
+      resolvedDay: section?.day ?? normalizedDay
+    }
+  };
 }
 
 async function resolveQueryResult(query) {
@@ -553,7 +676,18 @@ async function getInsights(req, res, next) {
 // 创建小凡看见（手动导入）
 async function createInsightManual(req, res, next) {
   try {
-    const { periodId, periodName, sectionId, title, type, mediaType, content, imageUrl, targetUserId } = req.body;
+    const {
+      periodId,
+      periodName,
+      sectionId,
+      title,
+      day,
+      type,
+      mediaType,
+      content,
+      imageUrl,
+      targetUserId
+    } = req.body;
 
     // ✅ 修复：支持两种认证方式
     // 1. 来自 authMiddleware 的小程序用户 (req.user.userId)
@@ -561,7 +695,7 @@ async function createInsightManual(req, res, next) {
     const userId = req.user?.userId || req.admin?.id;
 
     // 验证必填字段
-    if (!periodId || !type || !mediaType || !content) {
+    if (!periodId || !type || !mediaType || (!content && !imageUrl)) {
       return res.status(400).json(errors.badRequest('缺少必填字段'));
     }
 
@@ -587,7 +721,7 @@ async function createInsightManual(req, res, next) {
       periodId,
       type,
       mediaType,
-      content,
+      content: normalizeInsightContent({ content, imageUrl }),
       imageUrl: mediaType === 'image' ? imageUrl : null,
       source: 'manual',
       status: 'completed',
@@ -599,15 +733,9 @@ async function createInsightManual(req, res, next) {
     if (periodName) insightData.periodName = periodName;
     if (title) insightData.title = title;
 
-    const insight = await Insight.create(insightData);
+    if (day !== undefined) insightData.day = day;
 
-    // 异步同步到 MySQL
-    publishSyncEvent({
-      type: 'create',
-      collection: 'insights',
-      documentId: insight._id.toString(),
-      data: insight.toObject()
-    });
+    const insight = await persistInsight(insightData);
 
     res.status(201).json(success(insight, '小凡看见创建成功'));
   } catch (error) {
@@ -1786,21 +1914,36 @@ async function batchApproveRequests(req, res, next) {
  * 外部接口：创建小凡看见
  * 用于外部系统提交用户的"小凡看见"内容
  * @route   POST /api/v1/insights/external/create
- * @param   userId {string} - 用户ID（必填）
- * @param   periodName {string} - 期次名称（必填）
- * @param   title {string} - 课程/课节标题（可选，如"积极主动"）
- * @param   day {number} - 第几天的课程（可选）
+ * @param   targetUserId {string} - 被看见用户ID（必填）
+ * @param   periodId|periodName {string} - 期次ID/名称（二选一）
+ * @param   sessionId {string} - 课节ID（与day二选一，推荐）
+ * @param   day {number} - 第几天的课程（与sessionId二选一，兼容旧写法）
  * @param   content {string} - 小凡看见的文字内容（与imageUrl二选一）
  * @param   imageUrl {string} - 小凡看见的图片地址（与content二选一）
  * @access  Public (外部系统调用)
  */
 async function createInsightFromExternal(req, res, next) {
   try {
-    const { periodName, title, day, content, imageUrl, targetUserId } = req.body;
+    const {
+      periodName,
+      periodId: rawPeriodId,
+      period_id: rawPeriodIdSnake,
+      sectionId: rawSectionId,
+      section_id: rawSectionIdSnake,
+      sessionId: rawSessionId,
+      session_id: rawSessionIdSnake,
+      day,
+      content,
+      imageUrl,
+      targetUserId
+    } = req.body;
+    const periodId = rawPeriodId || rawPeriodIdSnake || null;
+    const sectionId =
+      rawSectionId || rawSectionIdSnake || rawSessionId || rawSessionIdSnake || null;
 
     // 验证必填字段
-    if (!periodName) {
-      return res.status(400).json(errors.badRequest('缺少必填字段：periodName'));
+    if (!periodId && !periodName) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：periodId 或 periodName'));
     }
 
     if (!targetUserId) {
@@ -1814,12 +1957,27 @@ async function createInsightFromExternal(req, res, next) {
         .json(errors.badRequest('content 和 imageUrl 必选其一（至少填写一个）'));
     }
 
-    // 根据期次名称查询期次
-    const Period = require('../models/Period');
-    const period = await Period.findOne({ name: periodName });
-    if (!period) {
-      return res.status(404).json(errors.notFound(`期次不存在：${periodName}`));
+    if (!sectionId && (day === undefined || day === null || day === '')) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：sessionId 或 day'));
     }
+
+    const resolvedContext = await resolveExternalInsightContext({
+      periodId,
+      periodName,
+      sectionId,
+      day
+    });
+    if (resolvedContext.status !== 200) {
+      return res.status(resolvedContext.status).json(resolvedContext.body);
+    }
+    const {
+      period,
+      resolvedPeriodId,
+      resolvedPeriodName,
+      resolvedSectionId,
+      resolvedTitle,
+      resolvedDay
+    } = resolvedContext.body;
 
     // 查询并验证被看见人是否存在
     const targetUser = await User.findById(targetUserId);
@@ -1830,12 +1988,12 @@ async function createInsightFromExternal(req, res, next) {
     // 检查被看见人是否已报名该期次
     const enrollment = await Enrollment.findOne({
       userId: targetUser._id,
-      periodId: period._id
+      periodId: resolvedPeriodId
     });
     if (!enrollment) {
       return res
         .status(403)
-        .json(errors.forbidden(`用户 ${targetUser.nickname} 未报名期次 ${periodName}`));
+        .json(errors.forbidden(`用户 ${targetUser.nickname} 未报名期次 ${resolvedPeriodName}`));
     }
 
     // 获取系统用户作为创建者（如果存在），否则使用被看见人作为创建者
@@ -1851,28 +2009,21 @@ async function createInsightFromExternal(req, res, next) {
     const creatorId = user ? user._id : targetUser._id;
 
     // 创建小凡看见
-    const insight = await Insight.create({
+    const insight = await persistInsight({
       userId: creatorId,
       targetUserId: targetUser._id,
-      periodId: period._id,
-      periodName: period.name || periodName,
-      title: title || null,
-      day: day || null,
+      periodId: resolvedPeriodId,
+      periodName: resolvedPeriodName,
+      sectionId: resolvedSectionId,
+      title: resolvedTitle,
+      day: resolvedDay,
       type: 'insight',
       mediaType: imageUrl ? 'image' : 'text',
-      content,
+      content: normalizeInsightContent({ content, imageUrl }),
       imageUrl: imageUrl || null,
       source: 'manual',
       status: 'completed',
       isPublished: true
-    });
-
-    // 异步同步到 MySQL
-    publishSyncEvent({
-      type: 'create',
-      collection: 'insights',
-      documentId: insight._id.toString(),
-      data: insight.toObject()
     });
 
     // 返回简洁的响应（仅返回ID，不返回完整对象）
@@ -1881,7 +2032,7 @@ async function createInsightFromExternal(req, res, next) {
       targetUserId: insight.targetUserId,
       periodId: insight.periodId,
       periodName: insight.periodName,
-      title: insight.title,
+      sectionId: insight.sectionId || null,
       day: insight.day,
       type: insight.type,
       mediaType: insight.mediaType,

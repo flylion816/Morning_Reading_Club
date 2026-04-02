@@ -242,10 +242,20 @@ async function deleteUser(req, res, next) {
   try {
     const { userId } = req.params;
 
-    const user = await User.findByIdAndDelete(userId);
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json(errors.notFound('用户不存在'));
     }
+
+    user.status = 'deleted';
+    await user.save();
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'users',
+      documentId: user._id.toString(),
+      data: user.toObject()
+    });
 
     res.json(success({ _id: userId }, '用户已删除'));
   } catch (error) {

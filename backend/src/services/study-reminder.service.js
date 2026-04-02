@@ -84,6 +84,22 @@ async function queueRetryForGrant(grantId, retryAt, extra = {}) {
   );
 }
 
+async function pauseGrantScheduleForReauthorization(grantId, extra = {}) {
+  return SubscribeMessageGrant.findByIdAndUpdate(
+    grantId,
+    {
+      $set: {
+        scheduledSendDate: null,
+        scheduledSendDateKey: null,
+        retryAt: null,
+        retryCount: 0,
+        ...extra
+      }
+    },
+    { new: true }
+  );
+}
+
 function buildReminderActivityName(period = {}) {
   const rawName = String(period?.name || period?.title || '凡人共读').trim();
   if (!rawName) {
@@ -177,6 +193,14 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
     return { status: 'sent' };
   }
 
+  if (
+    delivery.status === 'skipped_reauthorization_required'
+    || (delivery.status === 'failed' && Number(delivery.errorCode) === 43101)
+  ) {
+    await pauseGrantScheduleForReauthorization(grant._id);
+    return { status: 'skipped_reauthorization_required' };
+  }
+
   if (isRetryableDelivery(delivery) && attemptType !== 'retry' && (!grant.retryCount || grant.retryCount < 1)) {
     const retryAt = getShanghaiDateTime(getShanghaiDateKey(plan.sendDate), 6, 0, 0);
     await queueRetryForGrant(grant._id, retryAt, {
@@ -190,7 +214,13 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
   }
 
   await clearGrantSchedule(grant._id);
-  return { status: delivery.status === 'failed' ? 'failed' : `skipped_${delivery.status}` };
+  return {
+    status: delivery.status === 'failed'
+      ? 'failed'
+      : delivery.status.startsWith('skipped_')
+        ? delivery.status
+        : `skipped_${delivery.status}`
+  };
 }
 
 async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) {

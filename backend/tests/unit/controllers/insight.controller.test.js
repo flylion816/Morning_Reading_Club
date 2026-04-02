@@ -33,6 +33,16 @@ describe('Insight Controller - 102+ 完整测试', () => {
   let dispatchNotificationWithSubscribeStub;
   let publishSyncEventStub;
 
+  const createSelectQuery = (sandboxInstance, result) => ({
+    select: sandboxInstance.stub().returnsThis(),
+    populate: sandboxInstance.stub().returnsThis(),
+    lean: sandboxInstance.stub().returnsThis(),
+    exec: sandboxInstance.stub().resolves(result),
+    then(onFulfilled, onRejected) {
+      return Promise.resolve(result).then(onFulfilled, onRejected);
+    }
+  });
+
   beforeEach(() => {
     sandbox = sinon.createSandbox();
 
@@ -108,7 +118,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
     };
 
     SectionStub = {
-      findById: sandbox.stub()
+      findById: sandbox.stub(),
+      findOne: sandbox.stub()
     };
 
     CheckinStub = {
@@ -2113,7 +2124,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.body = {
         periodName: '心流之境',
         targetUserId: fixtures.testUsers.user1._id.toString(),
-        content: '有效的文本内容'
+        content: '有效的文本内容',
+        day: 1
       };
 
       const mockInsight = {
@@ -2133,7 +2145,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
         toObject: sandbox.stub().returns({})
       };
 
-      PeriodStub.findOne.resolves(fixtures.testPeriods.activeOngoing);
+      PeriodStub.findOne.returns(createSelectQuery(sandbox, fixtures.testPeriods.activeOngoing));
+      SectionStub.findOne.returns(createSelectQuery(sandbox, fixtures.testSections.day1Ongoing));
       UserStub.findById.resolves(fixtures.testUsers.user1);
       EnrollmentStub.findOne.resolves({
         userId: fixtures.testUsers.user1._id,
@@ -2150,6 +2163,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       req.body = {
         periodName: '心流之境',
         targetUserId: fixtures.testUsers.user1._id.toString(),
+        day: 1,
         imageUrl: 'https://example.com/image.jpg'
       };
 
@@ -2170,7 +2184,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
         toObject: sandbox.stub().returns({})
       };
 
-      PeriodStub.findOne.resolves(fixtures.testPeriods.activeOngoing);
+      PeriodStub.findOne.returns(createSelectQuery(sandbox, fixtures.testPeriods.activeOngoing));
+      SectionStub.findOne.returns(createSelectQuery(sandbox, fixtures.testSections.day1Ongoing));
       UserStub.findById.resolves(fixtures.testUsers.user1);
       EnrollmentStub.findOne.resolves({
         userId: fixtures.testUsers.user1._id,
@@ -2181,16 +2196,19 @@ describe('Insight Controller - 102+ 完整测试', () => {
       await insightController.createInsightFromExternal(req, res, next);
 
       expect(res.status.calledWith(201)).to.be.true;
+      expect(InsightStub.create.calledOnce).to.be.true;
+      expect(InsightStub.create.firstCall.args[0].content).to.equal(' ');
     });
 
     it('TC-EXTERNAL-006: 验证字段验证正常工作', async () => {
       req.body = {
         periodName: '不存在的期次',
         targetUserId: fixtures.testUsers.user1._id.toString(),
-        content: '测试'
+        content: '测试',
+        day: 1
       };
 
-      PeriodStub.findOne.resolves(null);
+      PeriodStub.findOne.returns(createSelectQuery(sandbox, null));
       UserStub.findById.resolves(fixtures.testUsers.user1);
 
       // 期次不存在应该返回 404
@@ -2222,6 +2240,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
         _id: new mongoose.Types.ObjectId(),
         targetUserId: fixtures.testUsers.user1._id,
         periodId: fixtures.testPeriods.activeOngoing._id,
+        sectionId: fixtures.testSections.day1Ongoing._id,
+        title: fixtures.testSections.day1Ongoing.title,
         day: 1,
         type: 'insight',
         mediaType: 'text',
@@ -2235,7 +2255,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
         toObject: sandbox.stub().returns({})
       };
 
-      PeriodStub.findOne.resolves(fixtures.testPeriods.activeOngoing);
+      PeriodStub.findOne.returns(createSelectQuery(sandbox, fixtures.testPeriods.activeOngoing));
+      SectionStub.findOne.returns(createSelectQuery(sandbox, fixtures.testSections.day1Ongoing));
       UserStub.findById.resolves(fixtures.testUsers.user1);
       EnrollmentStub.findOne.resolves({
         userId: fixtures.testUsers.user1._id,
@@ -2247,6 +2268,80 @@ describe('Insight Controller - 102+ 完整测试', () => {
       await insightController.createInsightFromExternal(req, res, next);
 
       expect(res.status.calledWith(201)).to.be.true;
+      expect(SectionStub.findOne.calledWith({
+        periodId: fixtures.testPeriods.activeOngoing._id,
+        day: 1
+      })).to.be.true;
+      expect(InsightStub.create.calledOnce).to.be.true;
+      expect(InsightStub.create.firstCall.args[0]).to.include({
+        periodId: fixtures.testPeriods.activeOngoing._id,
+        sectionId: fixtures.testSections.day1Ongoing._id,
+        title: fixtures.testSections.day1Ongoing.title,
+        day: 1
+      });
+    });
+
+    it('TC-EXTERNAL-009: 外部接口支持直接传 periodId 和 sessionId', async () => {
+      req.body = {
+        periodId: fixtures.testPeriods.activeOngoing._id.toString(),
+        sessionId: fixtures.testSections.day2Ongoing._id.toString(),
+        targetUserId: fixtures.testUsers.user1._id.toString(),
+        content: '通过规范 ID 创建'
+      };
+
+      const mockInsight = {
+        _id: new mongoose.Types.ObjectId(),
+        targetUserId: fixtures.testUsers.user1._id,
+        periodId: fixtures.testPeriods.activeOngoing._id,
+        sectionId: fixtures.testSections.day2Ongoing._id,
+        title: fixtures.testSections.day2Ongoing.title,
+        day: fixtures.testSections.day2Ongoing.day,
+        type: 'insight',
+        mediaType: 'text',
+        content: '通过规范 ID 创建',
+        imageUrl: null,
+        source: 'manual',
+        status: 'completed',
+        isPublished: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      PeriodStub.findById.returns(createSelectQuery(sandbox, fixtures.testPeriods.activeOngoing));
+      SectionStub.findById.returns(createSelectQuery(sandbox, fixtures.testSections.day2Ongoing));
+      UserStub.findById.resolves(fixtures.testUsers.user1);
+      EnrollmentStub.findOne.resolves({
+        userId: fixtures.testUsers.user1._id,
+        periodId: fixtures.testPeriods.activeOngoing._id
+      });
+      InsightStub.create.resolves(mockInsight);
+
+      await insightController.createInsightFromExternal(req, res, next);
+
+      expect(res.status.calledWith(201)).to.be.true;
+      expect(SectionStub.findById.calledWith(fixtures.testSections.day2Ongoing._id.toString())).to.be
+        .true;
+      expect(InsightStub.create.firstCall.args[0]).to.include({
+        periodId: fixtures.testPeriods.activeOngoing._id,
+        sectionId: fixtures.testSections.day2Ongoing._id,
+        title: fixtures.testSections.day2Ongoing.title,
+        day: fixtures.testSections.day2Ongoing.day
+      });
+    });
+
+    it('TC-EXTERNAL-010: 缺少 sessionId 和 day 时返回 400', async () => {
+      req.body = {
+        periodId: fixtures.testPeriods.activeOngoing._id.toString(),
+        targetUserId: fixtures.testUsers.user1._id.toString(),
+        content: '缺少课节定位参数'
+      };
+
+      await insightController.createInsightFromExternal(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.firstCall.args[0].message).to.equal('缺少必填字段：sessionId 或 day');
     });
   });
 

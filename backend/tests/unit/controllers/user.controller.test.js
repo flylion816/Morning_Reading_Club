@@ -55,7 +55,6 @@ describe('User Controller - 100% Coverage', () => {
     // Mock User 模型
     UserStub = {
       findById: sandbox.stub(),
-      findByIdAndDelete: sandbox.stub(),
       find: sandbox.stub(),
       countDocuments: sandbox.stub()
     };
@@ -803,14 +802,24 @@ describe('User Controller - 100% Coverage', () => {
       // Given
       const userId = fixtures.testUsers.normalUser._id;
       req.params = { userId: userId.toString() };
-      const mockUser = { ...fixtures.testUsers.normalUser };
-      UserStub.findByIdAndDelete.resolves(mockUser);
+      const mockUser = {
+        ...fixtures.testUsers.normalUser,
+        save: sandbox.stub().resolvesThis(),
+        toObject: sandbox.stub().returns({
+          ...fixtures.testUsers.normalUser,
+          status: 'deleted'
+        })
+      };
+      UserStub.findById.resolves(mockUser);
 
       // When
       await userController.deleteUser(req, res, next);
 
       // Then
-      expect(UserStub.findByIdAndDelete.calledWith(userId.toString())).to.be.true;
+      expect(UserStub.findById.calledWith(userId.toString())).to.be.true;
+      expect(mockUser.status).to.equal('deleted');
+      expect(mockUser.save.calledOnce).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.calledOnce).to.be.true;
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.code).to.equal(200);
@@ -820,7 +829,7 @@ describe('User Controller - 100% Coverage', () => {
     it('应该返回404当用户不存在', async () => {
       // Given
       req.params = { userId: new mongoose.Types.ObjectId().toString() };
-      UserStub.findByIdAndDelete.resolves(null);
+      UserStub.findById.resolves(null);
 
       // When
       await userController.deleteUser(req, res, next);
@@ -835,7 +844,7 @@ describe('User Controller - 100% Coverage', () => {
       // Given
       req.params = { userId: new mongoose.Types.ObjectId().toString() };
       const dbError = new Error('Delete failed');
-      UserStub.findByIdAndDelete.rejects(dbError);
+      UserStub.findById.rejects(dbError);
 
       // When
       await userController.deleteUser(req, res, next);

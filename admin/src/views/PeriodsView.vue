@@ -62,7 +62,7 @@
           </el-table-column>
           <el-table-column label="会议" width="80">
             <template #default="{ row }">
-              <el-tag v-if="row.meetingId" type="success" size="small">已配置</el-tag>
+              <el-tag v-if="row.meetingId || row.meetingJoinUrl" type="success" size="small">已配置</el-tag>
               <span v-else style="color: #c0c4cc; font-size: 12px;">-</span>
             </template>
           </el-table-column>
@@ -205,7 +205,19 @@
               clearable
             />
             <div style="font-size: 12px; color: #909399; margin-top: 4px;">
-              配置后用户将在"今日任务"中看到"去晨读"按钮
+              手机端继续使用会议号跳转腾讯会议小程序
+            </div>
+          </el-form-item>
+
+          <el-form-item label="邀请链接" prop="meetingJoinUrl">
+            <el-input
+              v-model="formData.meetingJoinUrl"
+              type="textarea"
+              :rows="3"
+              placeholder="可直接粘贴腾讯会议邀请链接，或整段“会议邀请信息”"
+            />
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              桌面端会优先用这个链接唤起腾讯会议客户端。支持粘贴完整邀请文本，保存时会自动提取链接。
             </div>
           </el-form-item>
         </el-form>
@@ -361,7 +373,8 @@ const formData = reactive({
   originalPrice: 0,
   maxEnrollment: null,
   sortOrder: 0,
-  meetingId: ''
+  meetingId: '',
+  meetingJoinUrl: ''
 });
 
 const copyFormData = reactive({
@@ -486,7 +499,8 @@ function handleEditPeriod(row: Period) {
     originalPrice: row.originalPrice,
     maxEnrollment: row.maxEnrollment,
     sortOrder: row.sortOrder,
-    meetingId: row.meetingId || ''
+    meetingId: row.meetingId || '',
+    meetingJoinUrl: row.meetingJoinUrl || ''
   });
 
   console.log('[PeriodsView] 表单已初始化，当前 formData.coverColor:', formData.coverColor);
@@ -514,9 +528,16 @@ async function handleSubmit() {
         if (!cleanMeetingId) cleanMeetingId = ''; // 如果没有数字，置空
       }
 
+      const cleanMeetingJoinUrl = extractMeetingJoinUrl(formData.meetingJoinUrl);
+      const fallbackMeetingId = extractMeetingId(formData.meetingJoinUrl);
+      if (!cleanMeetingId && fallbackMeetingId) {
+        cleanMeetingId = fallbackMeetingId;
+      }
+
       const payload = {
         ...formData,
         meetingId: cleanMeetingId || null,
+        meetingJoinUrl: cleanMeetingJoinUrl || null,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
       };
@@ -695,7 +716,23 @@ function resetForm() {
   formData.maxEnrollment = null;
   formData.sortOrder = 0;
   formData.meetingId = '';
+  formData.meetingJoinUrl = '';
   formRef.value?.clearValidate();
+}
+
+function extractMeetingJoinUrl(rawValue: string | null | undefined): string {
+  if (!rawValue) return '';
+
+  const text = rawValue.trim();
+  const match = text.match(/https:\/\/(?:meeting\.tencent\.com|wemeet\.qq\.com|voovmeeting\.com)\/[^\s)）]+/i);
+  return match ? match[0] : '';
+}
+
+function extractMeetingId(rawValue: string | null | undefined): string {
+  if (!rawValue) return '';
+
+  const text = rawValue.replace(/[^\d]/g, '');
+  return text || '';
 }
 
 function formatDateRange(startDate: string, endDate: string): string {

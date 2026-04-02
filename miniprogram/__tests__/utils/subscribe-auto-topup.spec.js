@@ -77,6 +77,23 @@ describe('subscribe-auto-topup helper', () => {
     ]);
   });
 
+  test('buildEligibleScenes should include delivery-blocked scenes for reauthorization', () => {
+    const scenes = [
+      {
+        scene: 'payment_result',
+        templateId: AUTO_TOP_UP_POLICIES.payment_result.templateId,
+        availableCount: 1,
+        deliveryBlocked: true
+      }
+    ];
+
+    const eligibleScenes = buildEligibleScenes(scenes, {
+      sceneKeys: ['payment_result']
+    });
+
+    expect(eligibleScenes.map(item => item.scene)).toEqual(['payment_result']);
+  });
+
   test('maybeAutoTopUpSubscriptions should only request remembered accept templates', async () => {
     subscribeMessageService.getSettings.mockResolvedValue({
       scenes: [
@@ -217,6 +234,21 @@ describe('subscribe-auto-topup helper', () => {
   });
 
   test('maybeAutoTopUpSubscriptions should request scenes even without remembered accept in direct prompt mode', async () => {
+    subscribeMessageService.getSettings.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'enrollment_result',
+          templateId: AUTO_TOP_UP_POLICIES.enrollment_result.templateId,
+          availableCount: 0
+        },
+        {
+          scene: 'payment_result',
+          templateId: AUTO_TOP_UP_POLICIES.payment_result.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
     global.wx.getSetting.mockImplementation(({ success }) => {
       success({
         subscriptionsSetting: {
@@ -244,7 +276,7 @@ describe('subscribe-auto-topup helper', () => {
     });
 
     expect(result.skipped).toBe(false);
-    expect(subscribeMessageService.getSettings).not.toHaveBeenCalled();
+    expect(subscribeMessageService.getSettings).toHaveBeenCalledTimes(1);
     expect(global.wx.getSetting).toHaveBeenCalledTimes(1);
     expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(1);
     expect(global.wx.requestSubscribeMessage.mock.calls[0][0].tmplIds).toEqual([

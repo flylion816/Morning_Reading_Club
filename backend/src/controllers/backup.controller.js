@@ -23,6 +23,10 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
+const {
+  buildSyncReferenceContext,
+  filterDocumentsForMysqlSync
+} = require('../services/mongo-mysql-sync-filter.service');
 
 // 所有 MongoDB 模型清单
 const MODELS = {
@@ -420,7 +424,9 @@ async function getMysqlTableData(req, res) {
 async function fullSync(req, res, next) {
   try {
     const syncResults = {};
+    const skippedResults = {};
     let totalSynced = 0;
+    const syncContext = await buildSyncReferenceContext();
 
     logger.info('Starting full sync from MongoDB to MySQL');
 
@@ -450,72 +456,97 @@ async function fullSync(req, res, next) {
 
     // 同步 Sections
     const sections = await Section.find({});
-    for (const section of sections) {
+    const sectionBatch = filterDocumentsForMysqlSync('sections', sections, syncContext);
+    for (const section of sectionBatch.syncableDocs) {
       await mysqlBackupService.syncSection(section);
       totalSynced++;
     }
-    syncResults.sections = sections.length;
+    syncResults.sections = sectionBatch.syncableDocs.length;
+    skippedResults.sections = sectionBatch.skippedDocs.length;
 
     // 同步 Checkins
     const checkins = await Checkin.find({});
-    for (const checkin of checkins) {
+    const checkinBatch = filterDocumentsForMysqlSync('checkins', checkins, syncContext);
+    for (const checkin of checkinBatch.syncableDocs) {
       await mysqlBackupService.syncCheckin(checkin);
       totalSynced++;
     }
-    syncResults.checkins = checkins.length;
+    syncResults.checkins = checkinBatch.syncableDocs.length;
+    skippedResults.checkins = checkinBatch.skippedDocs.length;
 
     // 同步 Enrollments
     const enrollments = await Enrollment.find({});
-    for (const enrollment of enrollments) {
+    const enrollmentBatch = filterDocumentsForMysqlSync('enrollments', enrollments, syncContext);
+    for (const enrollment of enrollmentBatch.syncableDocs) {
       await mysqlBackupService.syncEnrollment(enrollment);
       totalSynced++;
     }
-    syncResults.enrollments = enrollments.length;
+    syncResults.enrollments = enrollmentBatch.syncableDocs.length;
+    skippedResults.enrollments = enrollmentBatch.skippedDocs.length;
 
     // 同步 Payments
     const payments = await Payment.find({});
-    for (const payment of payments) {
+    const paymentBatch = filterDocumentsForMysqlSync('payments', payments, syncContext);
+    for (const payment of paymentBatch.syncableDocs) {
       await mysqlBackupService.syncPayment(payment);
       totalSynced++;
     }
-    syncResults.payments = payments.length;
+    syncResults.payments = paymentBatch.syncableDocs.length;
+    skippedResults.payments = paymentBatch.skippedDocs.length;
 
     // 同步 Insights
     const insights = await Insight.find({});
-    for (const insight of insights) {
+    const insightBatch = filterDocumentsForMysqlSync('insights', insights, syncContext);
+    for (const insight of insightBatch.syncableDocs) {
       await mysqlBackupService.syncInsight(insight);
       totalSynced++;
     }
-    syncResults.insights = insights.length;
+    syncResults.insights = insightBatch.syncableDocs.length;
+    skippedResults.insights = insightBatch.skippedDocs.length;
 
     // 同步 InsightRequests
     const requests = await InsightRequest.find({});
-    for (const req of requests) {
-      await mysqlBackupService.syncInsightRequest(req);
+    const requestBatch = filterDocumentsForMysqlSync('insight_requests', requests, syncContext);
+    for (const insightRequest of requestBatch.syncableDocs) {
+      await mysqlBackupService.syncInsightRequest(insightRequest);
       totalSynced++;
     }
-    syncResults.insight_requests = requests.length;
+    syncResults.insight_requests = requestBatch.syncableDocs.length;
+    skippedResults.insight_requests = requestBatch.skippedDocs.length;
 
     // 同步 Comments
     const comments = await Comment.find({});
-    for (const comment of comments) {
+    const commentBatch = filterDocumentsForMysqlSync('comments', comments, syncContext);
+    for (const comment of commentBatch.syncableDocs) {
       await mysqlBackupService.syncComment(comment);
       totalSynced++;
     }
-    syncResults.comments = comments.length;
+    syncResults.comments = commentBatch.syncableDocs.length;
+    skippedResults.comments = commentBatch.skippedDocs.length;
 
     // 同步 Notifications
     const notifications = await Notification.find({});
-    for (const notification of notifications) {
+    const notificationBatch = filterDocumentsForMysqlSync(
+      'notifications',
+      notifications,
+      syncContext
+    );
+    for (const notification of notificationBatch.syncableDocs) {
       await mysqlBackupService.syncNotification(notification);
       totalSynced++;
     }
-    syncResults.notifications = notifications.length;
+    syncResults.notifications = notificationBatch.syncableDocs.length;
+    skippedResults.notifications = notificationBatch.skippedDocs.length;
 
-    logger.info('Full sync completed', { totalSynced, tables: Object.keys(syncResults).length });
+    logger.info('Full sync completed', {
+      totalSynced,
+      tables: Object.keys(syncResults).length,
+      skippedResults
+    });
 
     res.json(success({
       syncResults,
+      skippedResults,
       totalSynced,
       message: '✅ 全量同步完成'
     }, '全量同步结果'));

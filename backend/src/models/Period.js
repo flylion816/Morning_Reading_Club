@@ -107,6 +107,12 @@ const PeriodSchema = new mongoose.Schema(
       type: String,
       maxlength: 50,
       default: null
+    },
+    meetingJoinUrl: {
+      type: String,
+      maxlength: 1000,
+      trim: true,
+      default: null
     }
   },
   {

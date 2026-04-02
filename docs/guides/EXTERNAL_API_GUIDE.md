@@ -29,21 +29,42 @@
 
 ### 请求参数
 
-| 参数         | 类型   | 必填 | 说明                         | 示例                              |
-| ------------ | ------ | ---- | ---------------------------- | --------------------------------- |
-| periodName   | string | ✅   | 期次名称（精确匹配）         | `"平衡之道"`                      |
-| targetUserId | string | ✅   | 被看见人的用户ID             | `"692fe16a962d558224f4133f"`      |
-| content      | string | ⭕   | 文字内容（与imageUrl二选一） | `"感谢你的坚持和付出"`            |
-| imageUrl     | string | ⭕   | 图片地址（与content二选一）  | `"https://example.com/image.jpg"` |
-| title        | string | ❌   | 课程/课节标题（可选）        | `"积极主动"`                      |
-| day          | number | ❌   | 第几天的课程（可选，从1开始） | `7`                               |
+| 参数         | 类型   | 必填     | 说明                                    | 示例                              |
+| ------------ | ------ | -------- | --------------------------------------- | --------------------------------- |
+| periodId     | string | 二选一   | 期次 ID，推荐优先传                     | `"692fe16a962d558224f41347"`      |
+| periodName   | string | 二选一   | 期次名称，兼容旧调用方式                | `"平衡之道"`                      |
+| sessionId    | string | 二选一   | 课节 ID，推荐优先传                     | `"692fe16a962d558224f49999"`      |
+| day          | number | 二选一   | 第几天课程；仅在未传 sessionId 时使用   | `7`                               |
+| targetUserId | string | ✅       | 被看见人的用户ID                        | `"692fe16a962d558224f4133f"`      |
+| content      | string | ⭕       | 文字内容（与imageUrl二选一）            | `"感谢你的坚持和付出"`            |
+| imageUrl     | string | ⭕       | 图片地址（与content二选一）             | `"https://example.com/image.jpg"` |
 
-**⭕ 说明**: content 和 imageUrl 必须至少填写一个
+`periodId` 和 `periodName` 只需要传一个，推荐传 `periodId`
+`sessionId` 和 `day` 只需要传一个，推荐传 `sessionId`
+
+**⭕ 说明**:
+- `content` 和 `imageUrl` 必须至少填写一个
+- 若仅传 `imageUrl`，后端会自动补一个单空格作为 `content` 占位，外部调用方无需自行传 `" "`
+- 文档只保留 `sessionId` 作为课节参数；历史调用里若仍传 `sectionId`，服务端当前仍兼容
+
+### 参数优先级与解析规则
+
+系统当前采用以下解析顺序：
+
+1. 如果传了 `periodId`，直接使用该期次
+2. 否则使用 `periodName` 精确匹配期次
+3. 如果传了 `sessionId`，直接绑定到该课节
+4. 否则如果传了 `day`，系统会在该期次下查找对应 `day` 的课节，并自动补齐 `sessionId`
+
+**推荐调用方式**：
+
+- 优先传 `periodId + sessionId`
+- `periodName + day` 仅作为兼容旧接入的写法
 
 **📅 day 参数说明**:
-- 系统中 day 从 0 开始编号：`day 0` = 开营词，`day 1` = 第一天课程，以此类推
-- 但通过此 API 传入时，**建议从 1 开始**（即第一天课程传 `1`），因为 day=0 在存储时会被视为空值
-- 如果不传 day 参数，小凡看见将不关联到具体某天的课程
+- `day` 会用于反查该期次下的课节，并自动得到 `sessionId`
+- 如果传了 `day` 但该期次下找不到对应课程，接口会返回 `404`
+- 如果同时传了 `sessionId` 和 `day`，以 `sessionId` 为准
 
 ### 成功响应示例
 
@@ -58,7 +79,7 @@
     "targetUserId": "692fe16a962d558224f4133f",
     "periodId": "692fe16a962d558224f41347",
     "periodName": "平衡之道",
-    "title": "积极主动",
+    "sectionId": "692fe16a962d558224f49999",
     "day": 7,
     "type": "insight",
     "mediaType": "text",
@@ -124,6 +145,18 @@
 }
 ```
 
+#### 4.1 课节不存在
+
+**HTTP状态码**: `404 Not Found`
+
+```json
+{
+  "code": 404,
+  "message": "期次 平衡之道 下不存在第 7 天课程",
+  "timestamp": 1765072123456
+}
+```
+
 #### 5. content和imageUrl都未提供
 
 **HTTP状态码**: `400 Bad Request`
@@ -145,22 +178,19 @@
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "Content-Type: application/json" \
   -d '{
-    "periodName": "平衡之道",
+    "periodId": "692fe16a962d558224f41347",
+    "sessionId": "692fe16a962d558224f49999",
     "targetUserId": "692fe16a962d558224f4133f",
-    "content": "狮子，我看见你在学习中的坚持",
-    "title": "积极主动",
-    "day": 7
+    "content": "狮子，我看见你在学习中的坚持"
   }'
 
-# 包含文字和图片
+# 兼容旧方式：传 periodName + day，由系统自动反查 sessionId
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "Content-Type: application/json" \
   -d '{
     "periodName": "心流之境",
     "targetUserId": "692fe16a962d558224f4133f",
     "content": "你在分享时表现出的深思熟虑给我留下了深刻印象",
-    "imageUrl": "https://example.com/insights/photo.jpg",
-    "title": "以终为始",
     "day": 5
   }'
 ```
@@ -171,19 +201,20 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 import requests
 import json
 
-def create_insight(period_name, target_user_id, content, title=None, day=None, image_url=None):
+def create_insight(period_id, target_user_id, content=None, session_id=None, day=None, image_url=None):
     """创建小凡看见"""
     url = "https://wx.shubai01.com/api/v1/insights/external/create"
 
     payload = {
-        "periodName": period_name,
-        "targetUserId": target_user_id,
-        "content": content,
+        "periodId": period_id,
+        "targetUserId": target_user_id
     }
 
-    if title:
-        payload["title"] = title
-    if day:
+    if session_id:
+        payload["sessionId"] = session_id
+    if content is not None:
+        payload["content"] = content
+    if day is not None:
         payload["day"] = day
     if image_url:
         payload["imageUrl"] = image_url
@@ -211,11 +242,10 @@ def create_insight(period_name, target_user_id, content, title=None, day=None, i
 
 # 使用示例
 create_insight(
-    period_name="平衡之道",
+    period_id="692fe16a962d558224f41347",
     target_user_id="692fe16a962d558224f4133f",
     content="感谢你的坚持和努力",
-    title="积极主动",
-    day=7
+    session_id="692fe16a962d558224f49999"
 )
 ```
 
@@ -229,11 +259,11 @@ async function createInsight(params) {
     const response = await axios.post(
       'https://wx.shubai01.com/api/v1/insights/external/create',
       {
-        periodName: params.periodName,
+        periodId: params.periodId,
+        sessionId: params.sessionId || undefined,
         targetUserId: params.targetUserId,
-        content: params.content,
-        title: params.title || undefined,
-        day: params.day || undefined,
+        content: params.content ?? undefined,
+        day: params.day ?? undefined,
         imageUrl: params.imageUrl || undefined
       },
       {
@@ -259,11 +289,10 @@ async function createInsight(params) {
 
 // 使用示例
 createInsight({
-  periodName: '平衡之道',
+  periodId: '692fe16a962d558224f41347',
+  sessionId: '692fe16a962d558224f49999',
   targetUserId: '692fe16a962d558224f4133f',
-  content: '感谢你的坚持和努力',
-  title: '积极主动',
-  day: 7
+  content: '感谢你的坚持和努力'
 });
 ```
 
@@ -497,7 +526,7 @@ getPeriodUsers('平衡之道');
 
 | 日期       | 版本 | 更新内容                  |
 | ---------- | ---- | ------------------------- |
-| 2026-03-31 | v1.2 | 修正响应格式：HTTP状态码201、成功code为0；补充day参数映射说明 |
+| 2026-03-31 | v1.2 | 收紧外部创建参数：`periodId/periodName` 二选一、`sessionId/day` 二选一；移除 `title` 请求字段；文档统一仅保留 `sessionId` 写法 |
 | 2026-03-27 | v1.1 | 新增 periodName(期次名称) 和 title(课程标题) 字段 |
 | 2025-12-07 | v1.0 | 初始版本，包含两个API文档 |
 

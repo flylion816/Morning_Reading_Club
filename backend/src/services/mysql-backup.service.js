@@ -74,8 +74,8 @@ class MysqlBackupService {
             id, openid, unionid, nickname, avatar, avatar_url, signature,
             gender, total_checkin_days, current_streak, max_streak,
             total_completed_periods, total_points, level, role, status,
-            last_login_at, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            phone, phone_bind_at, last_login_at, created_at, updated_at, raw_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             openid=VALUES(openid), unionid=VALUES(unionid), nickname=VALUES(nickname),
             avatar=VALUES(avatar), avatar_url=VALUES(avatar_url), signature=VALUES(signature),
@@ -83,6 +83,7 @@ class MysqlBackupService {
             current_streak=VALUES(current_streak), max_streak=VALUES(max_streak),
             total_completed_periods=VALUES(total_completed_periods), total_points=VALUES(total_points),
             level=VALUES(level), role=VALUES(role), status=VALUES(status),
+            phone=VALUES(phone), phone_bind_at=VALUES(phone_bind_at),
             last_login_at=VALUES(last_login_at), updated_at=CURRENT_TIMESTAMP, raw_json=VALUES(raw_json)
         `;
 
@@ -103,6 +104,8 @@ class MysqlBackupService {
           user.level || 1,
           user.role || 'user',
           user.status || 'active',
+          coerce(user.phone),
+          coerce(user.phoneBindAt),
           user.lastLoginAt || null,
           user.createdAt,
           user.updatedAt,
@@ -551,11 +554,14 @@ class MysqlBackupService {
         const sql = `
           INSERT INTO insight_requests (
             id, from_user_id, to_user_id, status, reason, period_id,
+            insight_id, request_period_name, request_insight_title, request_insight_day,
             approved_at, rejected_at, revoked_at, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             from_user_id=VALUES(from_user_id), to_user_id=VALUES(to_user_id),
             status=VALUES(status), reason=VALUES(reason), period_id=VALUES(period_id),
+            insight_id=VALUES(insight_id), request_period_name=VALUES(request_period_name),
+            request_insight_title=VALUES(request_insight_title), request_insight_day=VALUES(request_insight_day),
             approved_at=VALUES(approved_at), rejected_at=VALUES(rejected_at),
             revoked_at=VALUES(revoked_at), updated_at=CURRENT_TIMESTAMP,
             raw_json=VALUES(raw_json)
@@ -568,6 +574,10 @@ class MysqlBackupService {
           coerce(request.status, 'pending'),
           coerce(request.reason),
           coerce(request.periodId?.toString()),
+          coerce(request.insightId?.toString()),
+          coerce(request.requestPeriodName),
+          coerce(request.requestInsightTitle),
+          coerce(request.requestInsightDay),
           coerce(request.approvedAt),
           coerce(request.rejectedAt),
           coerce(request.revokedAt),
@@ -659,7 +669,7 @@ class MysqlBackupService {
           coerce(notification.type),
           coerce(notification.title),
           coerce(notification.content),
-          coerce(notification.requestId),
+          coerce(notification.requestId?.toString()),
           coerce(notification.senderId?.toString()),
           notification.isRead === true ? 1 : (notification.isRead === false ? 0 : null),
           coerce(notification.readAt),

@@ -1,4 +1,5 @@
 const subscribeMessageService = require('../../services/subscribe-message.service');
+const enrollmentService = require('../../services/enrollment.service');
 const {
   AUTO_TOP_UP_POLICIES,
   MAX_SUBSCRIBE_SCENES_PER_REQUEST,
@@ -6,6 +7,7 @@ const {
   mergeAutoTopUpScenes,
   requestSceneSubscriptions
 } = require('../../utils/subscribe-auto-topup');
+const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
 const MAX_SUBSCRIBE_SCENES_PER_TAP = MAX_SUBSCRIBE_SCENES_PER_REQUEST;
 
 function formatDateTime(value) {
@@ -52,7 +54,7 @@ function isSceneUnderTarget(scene = {}) {
     return false;
   }
 
-  return (scene.availableCount || 0) < getSceneAutoTopUpTarget(scene);
+  return !!scene.deliveryBlocked || (scene.availableCount || 0) < getSceneAutoTopUpTarget(scene);
 }
 
 function getMissingScenes(scenes = []) {
@@ -117,7 +119,33 @@ Page({
   },
 
   onShow() {
-    this.loadSettings();
+    this.ensurePaidAccessAndLoad();
+  },
+
+  async ensurePaidAccessAndLoad() {
+    this.setData({ loading: true });
+
+    try {
+      const userEnrollments = await enrollmentService
+        .getUserEnrollments({ limit: 100 })
+        .catch(() => ({ list: [] }));
+      const enrollmentList = userEnrollments.list || userEnrollments || [];
+
+      if (!hasPaidEnrollment(enrollmentList)) {
+        this.setData({ loading: false });
+        redirectAfterCommunityDenied('/pages/my/my', '完成支付后可管理提醒');
+        return;
+      }
+
+      await this.loadSettings();
+    } catch (error) {
+      console.error('检查提醒页访问权限失败:', error);
+      this.setData({ loading: false });
+      wx.showToast({
+        title: '加载失败',
+        icon: 'none'
+      });
+    }
   },
 
   async loadSettings() {

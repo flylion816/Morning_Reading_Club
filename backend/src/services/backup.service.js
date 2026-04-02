@@ -17,6 +17,10 @@ const mongoose = require('mongoose');
 const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('./mysql-backup.service');
+const {
+  buildSyncReferenceContext,
+  filterDocumentsForMysqlSync
+} = require('./mongo-mysql-sync-filter.service');
 
 // 导入所有模型用于同步
 const User = require('../models/User');
@@ -328,7 +332,9 @@ async function fullSyncMongoToMySQL() {
   try {
     logger.info('🔄 Starting full sync from MongoDB to MySQL');
     const syncResults = {};
+    const skippedResults = {};
     let totalSynced = 0;
+    const syncContext = await buildSyncReferenceContext();
 
     // 同步所有集合
     const syncTasks = [
@@ -348,9 +354,14 @@ async function fullSyncMongoToMySQL() {
     for (const task of syncTasks) {
       try {
         const documents = await task.model.find({});
+        const { syncableDocs, skippedDocs } = filterDocumentsForMysqlSync(
+          task.name,
+          documents,
+          syncContext
+        );
         let count = 0;
 
-        for (const doc of documents) {
+        for (const doc of syncableDocs) {
           try {
             await mysqlBackupService[task.method](doc);
             count++;
@@ -360,16 +371,29 @@ async function fullSyncMongoToMySQL() {
         }
 
         syncResults[task.name] = count;
+        skippedResults[task.name] = skippedDocs.length;
         totalSynced += count;
+        if (skippedDocs.length > 0) {
+          logger.warn(`Skipped orphan ${task.name} documents during full sync`, {
+            count: skippedDocs.length,
+            sample: skippedDocs.slice(0, 5)
+          });
+        }
         logger.info(`✅ Synced ${count} ${task.name} to MySQL`);
       } catch (error) {
         logger.error(`Failed to sync ${task.name}`, error);
         syncResults[task.name] = 0;
+        skippedResults[task.name] = 0;
       }
     }
 
-    logger.info('✅ Full sync completed', { totalSynced, tables: Object.keys(syncResults).length, syncResults });
-    return { success: true, totalSynced, syncResults };
+    logger.info('✅ Full sync completed', {
+      totalSynced,
+      tables: Object.keys(syncResults).length,
+      syncResults,
+      skippedResults
+    });
+    return { success: true, totalSynced, syncResults, skippedResults };
   } catch (error) {
     logger.error('Full sync from MongoDB to MySQL failed', error);
     return { success: false, error: error.message };

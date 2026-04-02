@@ -23,7 +23,7 @@
     <view class="settings-group">
 
       <!-- 手机号管理 -->
-      <view wx:if="{{!hasPhone}}" class="settings-cell">
+      <view wx:if="{{canUsePaidFeatures && !hasPhone}}" class="settings-cell">
         <view class="cell-left">
           <text class="cell-icon">📱</text>
           <text class="cell-label">绑定手机号</text>
@@ -34,7 +34,7 @@
           bindgetphonenumber="handleGetPhoneNumber"
         >立即绑定</button>
       </view>
-      <view wx:else class="settings-cell">
+      <view wx:elif="{{canUsePaidFeatures}}" class="settings-cell">
         <view class="cell-left">
           <text class="cell-icon">📱</text>
           <text class="cell-label">手机号管理</text>
@@ -50,7 +50,7 @@
       </view>
 
       <!-- 消息提醒设置 -->
-      <view class="settings-cell" bindtap="goToNotificationSettings">
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToNotificationSettings">
         <view class="cell-left">
           <text class="cell-icon">🔔</text>
           <text class="cell-label">消息提醒设置</text>
