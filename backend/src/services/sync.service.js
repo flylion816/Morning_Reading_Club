@@ -14,6 +14,23 @@ const logger = require('../utils/logger');
 
 let redisClient = null;
 
+const SYNC_FIELD_EXCLUSIONS = {
+  payments: new Set(['isProcessing'])
+};
+
+function isObjectIdLike(value) {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    (
+      value._bsontype === 'ObjectId' ||
+      value._bsontype === 'ObjectID' ||
+      value.constructor?.name === 'ObjectId'
+    ) &&
+    typeof value.toString === 'function'
+  );
+}
+
 // =========================================================================
 // 1. 初始化 Redis 客户端
 // =========================================================================
@@ -157,10 +174,11 @@ function transformDocumentForMySQL(collection, doc) {
   const result = {
     id: doc._id.toString() // MongoDB ObjectId → 字符串
   };
+  const excludedFields = SYNC_FIELD_EXCLUSIONS[collection] || new Set();
 
   // 遍历文档字段，转换为 MySQL 列名（camelCase → snake_case）
   for (const [key, value] of Object.entries(doc)) {
-    if (key === '_id' || key === '__v') continue;
+    if (key === '_id' || key === '__v' || excludedFields.has(key)) continue;
 
     // camelCase 转 snake_case
     const mysqlColumnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -176,6 +194,8 @@ function transformDocumentForMySQL(collection, doc) {
       // ISO 格式的日期字符串（Mongoose toObject() 的输出）
       // 转换：2026-02-25T01:32:10.381Z → 2026-02-25 01:32:10
       result[mysqlColumnName] = value.split('.')[0].replace('T', ' ');
+    } else if (isObjectIdLike(value)) {
+      result[mysqlColumnName] = value.toString();
     } else if (typeof value === 'object' && value !== null) {
       // 对象存储为 JSON 字符串
       result[mysqlColumnName] = JSON.stringify(value);
@@ -275,5 +295,6 @@ module.exports = {
   publishSyncEvent,
   syncDocumentToMySQL,
   transformDocumentForMySQL,
-  startSyncListener
+  startSyncListener,
+  isObjectIdLike
 };

@@ -443,14 +443,17 @@ class MysqlBackupService {
         const sql = `
           INSERT INTO payments (
             id, enrollment_id, user_id, period_id, amount, payment_method,
-            status, wechat, order_no, reconciled, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            status, wechat, order_no, reconciled, paid_at, failure_reason,
+            notes, reconciled_at, created_at, updated_at, raw_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             enrollment_id=VALUES(enrollment_id), user_id=VALUES(user_id),
             period_id=VALUES(period_id), amount=VALUES(amount),
             payment_method=VALUES(payment_method), status=VALUES(status),
             wechat=VALUES(wechat), order_no=VALUES(order_no),
-            reconciled=VALUES(reconciled), updated_at=CURRENT_TIMESTAMP,
+            reconciled=VALUES(reconciled), paid_at=VALUES(paid_at),
+            failure_reason=VALUES(failure_reason), notes=VALUES(notes),
+            reconciled_at=VALUES(reconciled_at), updated_at=CURRENT_TIMESTAMP,
             raw_json=VALUES(raw_json)
         `;
 
@@ -465,6 +468,10 @@ class MysqlBackupService {
           payment.wechat ? JSON.stringify(payment.wechat) : null,
           coerce(payment.orderNo),
           payment.reconciled === true ? 1 : (payment.reconciled === false ? 0 : null),
+          payment.paidAt || null,
+          coerce(payment.failureReason),
+          coerce(payment.notes),
+          payment.reconciledAt || null,
           payment.createdAt,
           payment.updatedAt,
           JSON.stringify(payment)

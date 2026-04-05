@@ -348,15 +348,20 @@ function getPM2Status() {
     const list = JSON.parse(output);
     const app = list.filter(p => p.name === 'morning-reading-backend');
 
-    if (app.length === 0) return { online: 0, total: 0, restarts: 0, memory: 0, uptime: '' };
+    if (app.length === 0) {
+      return {
+        online: 0,
+        total: 0,
+        memory: 0,
+        uptime: ''
+      };
+    }
 
-    let totalRestarts = 0;
     let totalMemory = 0;
     let online = 0;
 
     for (const inst of app) {
       if (inst.pm2_env && inst.pm2_env.status === 'online') online++;
-      totalRestarts += (inst.pm2_env && inst.pm2_env.restart_time) || 0;
       totalMemory += (inst.monit && inst.monit.memory) || 0;
     }
 
@@ -365,12 +370,16 @@ function getPM2Status() {
     return {
       online,
       total: app.length,
-      restarts: totalRestarts,
       memory: Math.round(totalMemory / 1024 / 1024),
       uptime,
     };
   } catch (err) {
-    return { online: -1, total: -1, restarts: -1, memory: -1, uptime: 'PM2 unavailable' };
+    return {
+      online: -1,
+      total: -1,
+      memory: -1,
+      uptime: 'PM2 unavailable'
+    };
   }
 }
 
@@ -431,9 +440,8 @@ function getSystemStatus() {
         const mysql = require('./backend/node_modules/mysql2/promise');
         (async () => {
           const conn = await mysql.createConnection({ host:'localhost', port:3306, user:'root', password:'Prod_Root@Secure123!', database:'morning_reading' });
-          const [rows] = await conn.query('SELECT COUNT(*) as cnt FROM users');
           const [recent] = await conn.query('SELECT MAX(updated_at) as last_sync FROM users');
-          console.log(JSON.stringify({ count: rows[0].cnt, lastSync: recent[0].last_sync }));
+          console.log(JSON.stringify({ lastSync: recent[0].last_sync }));
           await conn.end();
         })().catch(e => console.log(JSON.stringify({ error: e.message })));
       "`,
@@ -446,10 +454,10 @@ function getSystemStatus() {
       const syncTime = mysqlData.lastSync ? new Date(mysqlData.lastSync) : null;
       const hoursAgo = syncTime ? Math.round((Date.now() - syncTime.getTime()) / 3600000) : -1;
       status.mysqlSync = hoursAgo <= 24
-        ? `✅ ${mysqlData.count}条用户记录, 最近同步 ${hoursAgo}小时前`
+        ? `✅ 最近同步 ${hoursAgo}小时前`
         : hoursAgo > 24
-          ? `⚠️ ${mysqlData.count}条用户记录, 最近同步 ${hoursAgo}小时前`
-          : `⚠️ ${mysqlData.count}条用户记录, 无同步时间`;
+          ? `⚠️ 最近同步 ${hoursAgo}小时前`
+          : '⚠️ 无同步时间';
     }
   } catch (e) {
     status.mysqlSync = 'N/A';
@@ -496,12 +504,10 @@ function generateHTML(report) {
   const totalWarns = warnGroups.reduce((s, g) => s + g.count, 0);
   const totalExceptions = exceptionGroups.reduce((s, g) => s + g.count, 0);
 
-  // 健康评分
-  // 注意：pm2Status.restarts 是累计值（包含历史所有重启），不是当天的
+  // 健康评分：只使用报告窗口内的错误/异常/5xx，不混入生命周期累计值
   let healthScore = 100;
   if (totalErrors > 0) healthScore -= Math.min(totalErrors * 5, 40);
   if (totalExceptions > 0) healthScore -= Math.min(totalExceptions * 15, 30);
-  if (pm2Status.restarts > 4) healthScore -= Math.min((pm2Status.restarts - 4) * 2, 15); // 4实例各1次正常，超出部分轻微扣分
   if (httpStats.status5xx > 0) healthScore -= Math.min(httpStats.status5xx * 5, 25);
   healthScore = Math.max(0, healthScore);
 
@@ -536,7 +542,6 @@ function generateHTML(report) {
   ${overviewCard('异常', totalExceptions, totalExceptions > 0 ? '#e74c3c' : '#27ae60')}
   ${overviewCard('4xx', httpStats.status4xx, httpStats.status4xx > 10 ? '#f39c12' : '#27ae60')}
   ${overviewCard('5xx', httpStats.status5xx, httpStats.status5xx > 0 ? '#e74c3c' : '#27ae60')}
-  ${overviewCard('PM2重启', pm2Status.restarts, pm2Status.restarts > 0 ? '#f39c12' : '#27ae60')}
 </div>
 
 <!-- 错误详情 -->
@@ -613,9 +618,9 @@ ${exceptionGroups.map(g => `
 <!-- 系统状态 -->
 <h2 style="font-size: 16px; color: #2c3e50; border-bottom: 2px solid #bdc3c7; padding-bottom: 8px;">🖥️ 系统状态</h2>
 <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">
-  <tr><td style="padding: 6px 0; color: #888; width: 120px;">PM2 实例</td><td>${pm2Status.online}/${pm2Status.total} 在线</td></tr>
-  <tr><td style="padding: 6px 0; color: #888;">PM2 运行时间</td><td>${pm2Status.uptime}</td></tr>
-  <tr><td style="padding: 6px 0; color: #888;">内存使用</td><td>${pm2Status.memory > 0 ? pm2Status.memory + ' MB' : 'N/A'}</td></tr>
+  <tr><td style="padding: 6px 0; color: #888; width: 120px;">当前在线实例</td><td>${pm2Status.online}/${pm2Status.total}</td></tr>
+  <tr><td style="padding: 6px 0; color: #888;">当前连续运行时长</td><td>${pm2Status.uptime}</td></tr>
+  <tr><td style="padding: 6px 0; color: #888;">当前内存使用</td><td>${pm2Status.memory > 0 ? pm2Status.memory + ' MB' : 'N/A'}</td></tr>
   <tr><td style="padding: 6px 0; color: #888;">磁盘使用</td><td>${systemStatus.disk}</td></tr>
   <tr><td style="padding: 6px 0; color: #888;">系统负载</td><td>${systemStatus.load}</td></tr>
   <tr><td style="padding: 6px 0; color: #888;">MongoDB 备份</td><td>${systemStatus.lastBackup}</td></tr>
@@ -728,7 +733,7 @@ async function main() {
   const pm2Status = getPM2Status();
   const systemStatus = getSystemStatus();
 
-  console.log(`\n🖥️  PM2: ${pm2Status.online}/${pm2Status.total} 在线, ${pm2Status.restarts} 次重启, ${pm2Status.memory}MB 内存`);
+  console.log(`\n🖥️  PM2 当前状态: ${pm2Status.online}/${pm2Status.total} 在线, 连续运行 ${pm2Status.uptime}, ${pm2Status.memory}MB 内存`);
   console.log(`   磁盘: ${systemStatus.disk}, 负载: ${systemStatus.load}`);
 
   // 5. 生成报告
@@ -749,7 +754,7 @@ async function main() {
 
   let statusEmoji = '✅';
   if (totalErrors > 0 || totalExceptions > 0) statusEmoji = '⚠️';
-  if (totalErrors > 20 || totalExceptions > 0 || pm2Status.restarts > 50) statusEmoji = '🔴';
+  if (totalErrors > 20 || totalExceptions > 0) statusEmoji = '🔴';
 
   const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
   const subject = `${statusEmoji} 晨读营日志巡检 ${dateStr} | 错误${totalErrors} 告警${warnGroups.reduce((s, g) => s + g.count, 0)}`;

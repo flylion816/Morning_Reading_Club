@@ -11,6 +11,15 @@ const path = require('path');
  * 这是一个可选的安全检查，可以在启动时发现配置不同步的问题。
  */
 class ConfigSyncValidator {
+  static resolveEnvConfigPath() {
+    const candidates = [
+      path.resolve(__dirname, '../../../.env.config.js'),
+      path.join(process.cwd(), '.env.config.js')
+    ];
+
+    return candidates.find(candidate => fs.existsSync(candidate)) || null;
+  }
+
   /**
    * 执行配置同步检查
    * 启动时调用此函数，将检查结果输出到控制台
@@ -18,24 +27,22 @@ class ConfigSyncValidator {
   static validateConfigSync() {
     try {
       // 读取前端配置文件
-      const envConfigPath = path.join(process.cwd(), '.env.config.js');
+      const envConfigPath = ConfigSyncValidator.resolveEnvConfigPath();
 
-      if (!fs.existsSync(envConfigPath)) {
+      if (!envConfigPath) {
         console.warn('⚠️  警告: 未找到 .env.config.js 文件，配置同步检查跳过');
         return;
       }
 
-      const envConfigContent = fs.readFileSync(envConfigPath, 'utf-8');
+      delete require.cache[require.resolve(envConfigPath)];
+      // eslint-disable-next-line global-require, import/no-dynamic-require
+      const envConfig = require(envConfigPath);
+      const currentEnv = envConfig && envConfig.currentEnv;
 
-      // 提取 currentEnv 变量
-      // 匹配: const currentEnv = 'dev' 或 const currentEnv = "prod"
-      const match = envConfigContent.match(/currentEnv\s*=\s*['"](\w+)['"]/);
-      if (!match) {
-        console.warn('⚠️  警告: 无法从 .env.config.js 提取 currentEnv，配置同步检查跳过');
+      if (!currentEnv) {
+        console.warn('⚠️  警告: 无法从 .env.config.js 读取 currentEnv，配置同步检查跳过');
         return;
       }
-
-      const currentEnv = match[1]; // 'dev' 或 'prod'
       const expectedNodeEnv = ConfigSyncValidator.mapEnvToNodeEnv(currentEnv);
       const actualNodeEnv = process.env.NODE_ENV || 'development'; // 默认值
 

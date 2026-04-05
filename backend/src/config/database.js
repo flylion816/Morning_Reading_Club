@@ -8,8 +8,6 @@ const logger = require('../utils/logger');
 async function connectMongoDB() {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       // 防止空闲连接被静默关闭（解决隔天首次请求超时问题）
       heartbeatFrequencyMS: 10000,      // 每10秒检测服务器状态
       serverSelectionTimeoutMS: 5000,   // 服务器选择超时5秒
