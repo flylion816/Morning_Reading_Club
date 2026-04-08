@@ -15,7 +15,8 @@ const logger = require('../utils/logger');
 let redisClient = null;
 
 const SYNC_FIELD_EXCLUSIONS = {
-  payments: new Set(['isProcessing'])
+  payments: new Set(['isProcessing']),
+  enrollments: new Set(['isPaid', 'isActive'])
 };
 
 function normalizeSpecialField(collection, key, value) {

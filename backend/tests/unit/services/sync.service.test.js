@@ -67,7 +67,9 @@ describe('Sync Service', () => {
       const transformed = transformDocumentForMySQL('enrollments', {
         _id: { toString: () => 'enrollment123' },
         hasReadBook: true,
-        commitment: false
+        commitment: false,
+        isPaid: true,
+        isActive: true
       });
 
       expect(transformed).to.include({
@@ -75,6 +77,8 @@ describe('Sync Service', () => {
         has_read_book: 'yes',
         commitment: 'no'
       });
+      expect(transformed).to.not.have.property('is_paid');
+      expect(transformed).to.not.have.property('is_active');
     });
 
     it('should quote reserved section column names in generated upsert SQL', () => {
