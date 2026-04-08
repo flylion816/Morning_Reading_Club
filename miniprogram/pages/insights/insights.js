@@ -2,6 +2,7 @@ const insightService = require('../../services/insight.service');
 const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
 const logger = require('../../utils/logger');
+const { richContentToPlainText } = require('../../utils/markdown');
 const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
 
 Page({
@@ -259,12 +260,11 @@ Page({
 
       // 格式化数据以匹配WXML期望的字段
       const formatted = filtered.map(item => {
-        let preview = item.summary || '';
+        let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
         const isAccessible = item.isAccessible !== false;
 
         if (!preview && item.content) {
-          // 提取纯文本（去除所有HTML标签）
-          const plainText = item.content.replace(/<[^>]*>/g, '').trim();
+          const plainText = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
           // 取前150个字符
           preview = plainText.substring(0, 150);
           if (plainText.length > 150) {

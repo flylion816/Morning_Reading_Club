@@ -24,6 +24,12 @@ function coerce(value, defaultValue = null) {
   return value;
 }
 
+function normalizeYesNoField(value) {
+  if (value === true || value === 'yes') return 'yes';
+  if (value === false || value === 'no') return 'no';
+  return null;
+}
+
 class MysqlBackupService {
   /**
    * 通用同步函数 - 对所有类型的文档适用
@@ -411,11 +417,11 @@ class MysqlBackupService {
           coerce(enrollment.detailedAddress),
           coerce(enrollment.age),
           coerce(enrollment.referrer),
-          enrollment.hasReadBook === true ? 1 : (enrollment.hasReadBook === false ? 0 : null),
+          normalizeYesNoField(enrollment.hasReadBook),
           coerce(enrollment.readTimes),
           coerce(enrollment.enrollReason),
           coerce(enrollment.expectation),
-          coerce(enrollment.commitment),
+          normalizeYesNoField(enrollment.commitment),
           enrollment.createdAt,
           enrollment.updatedAt,
           JSON.stringify(enrollment)
@@ -498,15 +504,16 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO insights (
-            id, user_id, target_user_id, checkin_id, period_id, section_id,
-            day, type, media_type, content, image_url, summary, tags,
+            id, user_id, target_user_id, checkin_id, period_id, period_name, section_id,
+            title, day, type, media_type, content, image_url, summary, tags,
             status, source, is_published, likes, like_count,
             created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             user_id=VALUES(user_id), target_user_id=VALUES(target_user_id),
             checkin_id=VALUES(checkin_id), period_id=VALUES(period_id),
-            section_id=VALUES(section_id), day=VALUES(day), type=VALUES(type),
+            period_name=VALUES(period_name), section_id=VALUES(section_id),
+            title=VALUES(title), day=VALUES(day), type=VALUES(type),
             media_type=VALUES(media_type), content=VALUES(content),
             image_url=VALUES(image_url), summary=VALUES(summary),
             tags=VALUES(tags), status=VALUES(status), source=VALUES(source),
@@ -521,7 +528,9 @@ class MysqlBackupService {
           coerce(insight.targetUserId?.toString()),
           coerce(insight.checkinId?.toString()),
           coerce(insight.periodId?.toString()),
+          coerce(insight.periodName),
           coerce(insight.sectionId?.toString()),
+          coerce(insight.title),
           coerce(insight.day),
           coerce(insight.type),
           coerce(insight.mediaType),

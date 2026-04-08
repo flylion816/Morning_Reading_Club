@@ -325,6 +325,29 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
       expect(InsightStub.create.called).to.be.true;
     });
+
+    it('TC-INSIGHT-011: 后台创建应保留 markdown 原文', async () => {
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
+      req.body = {
+        ...fixtures.createInsightRequests.valid,
+        content: '看到你的 **专注** 与 *柔软*。\n\n- 第一条\n- 第二条'
+      };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        content: req.body.content,
+        toObject: sandbox
+          .stub()
+          .returns({ ...fixtures.testInsights.user1ToUser2, content: req.body.content })
+      };
+      InsightStub.create.resolves(mockInsight);
+
+      await insightController.createInsightManual(req, res, next);
+
+      expect(InsightStub.create.calledOnce).to.be.true;
+      expect(InsightStub.create.firstCall.args[0].content).to.equal(req.body.content);
+      expect(res.json.called).to.be.true;
+    });
   });
 
   describe('TC-INSIGHT-011~015: 获取 Insight 详情', () => {
@@ -2198,6 +2221,47 @@ describe('Insight Controller - 102+ 完整测试', () => {
       expect(res.status.calledWith(201)).to.be.true;
       expect(InsightStub.create.calledOnce).to.be.true;
       expect(InsightStub.create.firstCall.args[0].content).to.equal(' ');
+    });
+
+    it('TC-EXTERNAL-005A: 外部接口创建应保留 markdown 原文', async () => {
+      req.body = {
+        periodName: '心流之境',
+        targetUserId: fixtures.testUsers.user1._id.toString(),
+        day: 1,
+        content: '首先，我看到你 **像种子一样** 的力量。'
+      };
+
+      const mockInsight = {
+        _id: new mongoose.Types.ObjectId(),
+        targetUserId: fixtures.testUsers.user1._id,
+        periodId: fixtures.testPeriods.activeOngoing._id,
+        day: null,
+        type: 'insight',
+        mediaType: 'text',
+        content: req.body.content,
+        imageUrl: null,
+        source: 'manual',
+        status: 'completed',
+        isPublished: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      PeriodStub.findOne.returns(createSelectQuery(sandbox, fixtures.testPeriods.activeOngoing));
+      SectionStub.findOne.returns(createSelectQuery(sandbox, fixtures.testSections.day1Ongoing));
+      UserStub.findById.resolves(fixtures.testUsers.user1);
+      EnrollmentStub.findOne.resolves({
+        userId: fixtures.testUsers.user1._id,
+        periodId: fixtures.testPeriods.activeOngoing._id
+      });
+      InsightStub.create.resolves(mockInsight);
+
+      await insightController.createInsightFromExternal(req, res, next);
+
+      expect(InsightStub.create.calledOnce).to.be.true;
+      expect(InsightStub.create.firstCall.args[0].content).to.equal(req.body.content);
+      expect(res.status.calledWith(201)).to.be.true;
     });
 
     it('TC-EXTERNAL-006: 验证字段验证正常工作', async () => {

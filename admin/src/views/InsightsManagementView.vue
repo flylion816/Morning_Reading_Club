@@ -224,7 +224,7 @@
               <el-input
                 v-model="editingInsight.content"
                 type="textarea"
-                placeholder="请输入内容"
+                placeholder="请输入内容，支持 Markdown"
                 :rows="5"
                 show-word-limit
                 maxlength="2000"
@@ -656,9 +656,26 @@ function stripHtmlTags(text: string): string {
   return text.replace(/<[^>]+>/g, '').trim();
 }
 
+function stripMarkdownSyntax(text: string): string {
+  return text
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '$1')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?=[^*]|$)/g, '$1$2')
+    .replace(/(^|[^_])_([^_\n]+)_(?=[^_]|$)/g, '$1$2')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^>\s+/gm, '')
+    .replace(/^[-*+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function truncateText(text: string, length: number) {
-  // 先移除HTML标签，再截断
-  const plainText = stripHtmlTags(text);
+  // 先移除 HTML 和 Markdown 标记，再截断
+  const plainText = stripMarkdownSyntax(stripHtmlTags(text)).replace(/\s+/g, ' ').trim();
   return plainText.length > length ? plainText.substring(0, length) + '...' : plainText;
 }
 

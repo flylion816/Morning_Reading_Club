@@ -170,6 +170,11 @@ watch(() => props.modelValue, (newVal) => {
   padding: 12px;
 }
 
+:deep(.ql-editor strong),
+:deep(.ql-editor b) {
+  font-weight: 700;
+}
+
 :deep(.ql-editor img) {
   max-width: 100%;
   height: auto;

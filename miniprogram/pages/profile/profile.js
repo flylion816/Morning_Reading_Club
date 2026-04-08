@@ -5,6 +5,7 @@ const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
+const { richContentToPlainText } = require('../../utils/markdown');
 const { getPeriodAccess } = require('../../utils/period-access');
 
 function formatRelativeTime(dateString) {
@@ -619,10 +620,9 @@ Page({
         console.log('处理单条insight:', item);
 
         // 提取preview：和insights.js保持一致逻辑
-        let preview = item.summary || '';
+        let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
         if (!preview && item.content) {
-          // 提取纯文本（去除所有HTML标签）
-          const plainText = item.content.replace(/<[^>]*>/g, '').trim();
+          const plainText = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
           // 直接取前150个字符
           preview = plainText.substring(0, 150);
           if (plainText.length > 150) {

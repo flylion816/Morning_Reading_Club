@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 
-const { transformDocumentForMySQL } = require('../../../src/services/sync.service');
+const { transformDocumentForMySQL, buildUpsertStatement } = require('../../../src/services/sync.service');
 
 describe('Sync Service', () => {
   describe('transformDocumentForMySQL', () => {
@@ -45,6 +45,50 @@ describe('Sync Service', () => {
         user_id: '69d1167bf6ee02a393891f7b',
         period_id: '69d1167bf6ee02a393891f7a'
       });
+    });
+
+    it('should preserve insight snapshot fields for MySQL snake_case columns', () => {
+      const transformed = transformDocumentForMySQL('insights', {
+        _id: { toString: () => 'insight123' },
+        periodName: '内在之光',
+        title: '第十八天 移情聆听',
+        mediaType: 'text'
+      });
+
+      expect(transformed).to.include({
+        id: 'insight123',
+        period_name: '内在之光',
+        title: '第十八天 移情聆听',
+        media_type: 'text'
+      });
+    });
+
+    it('should normalize enrollment yes/no fields before syncing to MySQL', () => {
+      const transformed = transformDocumentForMySQL('enrollments', {
+        _id: { toString: () => 'enrollment123' },
+        hasReadBook: true,
+        commitment: false
+      });
+
+      expect(transformed).to.include({
+        id: 'enrollment123',
+        has_read_book: 'yes',
+        commitment: 'no'
+      });
+    });
+
+    it('should quote reserved section column names in generated upsert SQL', () => {
+      const { query, values, columns } = buildUpsertStatement('sections', {
+        id: 'section123',
+        order: 1,
+        checkin_count: 2
+      });
+
+      expect(columns).to.deep.equal(['id', 'order', 'checkin_count']);
+      expect(values).to.deep.equal(['section123', 1, 2]);
+      expect(query).to.include('INSERT INTO `sections` (`id`,`order`,`checkin_count`)');
+      expect(query).to.include('`order`=VALUES(`order`)');
+      expect(query).to.include('`checkin_count`=VALUES(`checkin_count`)');
     });
   });
 });

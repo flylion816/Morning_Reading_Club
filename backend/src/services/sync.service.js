@@ -18,6 +18,37 @@ const SYNC_FIELD_EXCLUSIONS = {
   payments: new Set(['isProcessing'])
 };
 
+function normalizeSpecialField(collection, key, value) {
+  if (collection === 'enrollments' && (key === 'hasReadBook' || key === 'commitment')) {
+    if (value === true) return 'yes';
+    if (value === false) return 'no';
+  }
+
+  return value;
+}
+
+function quoteIdentifier(identifier) {
+  return `\`${String(identifier).replace(/`/g, '``')}\``;
+}
+
+function buildUpsertStatement(collection, mysqlData) {
+  const columns = Object.keys(mysqlData);
+  const placeholders = columns.map(() => '?').join(',');
+  const quotedColumns = columns.map((column) => quoteIdentifier(column)).join(',');
+  const updateClauses = columns
+    .filter((column) => column !== 'id')
+    .map((column) => `${quoteIdentifier(column)}=VALUES(${quoteIdentifier(column)})`)
+    .join(',');
+
+  const query = `
+    INSERT INTO ${quoteIdentifier(collection)} (${quotedColumns})
+    VALUES (${placeholders})
+    ON DUPLICATE KEY UPDATE ${updateClauses}
+  `;
+
+  return { query, values: Object.values(mysqlData), columns };
+}
+
 function isObjectIdLike(value) {
   return Boolean(
     value &&
@@ -131,20 +162,7 @@ async function syncDocumentToMySQL(collection, documentId, data) {
       });
 
       // 更新或插入
-      const placeholders = Object.keys(mysqlData).map(() => '?').join(',');
-      const columns = Object.keys(mysqlData).join(',');
-      const updateClauses = Object.keys(mysqlData)
-        .filter(col => col !== 'id')
-        .map(col => `${col}=VALUES(${col})`)
-        .join(',');
-
-      const query = `
-        INSERT INTO \`${collection}\` (${columns})
-        VALUES (${placeholders})
-        ON DUPLICATE KEY UPDATE ${updateClauses}
-      `;
-
-      const values = Object.values(mysqlData);
+      const { query, values, columns } = buildUpsertStatement(collection, mysqlData);
       // 临时禁用外键检查，防止父记录未同步时子记录插入失败
       await conn.query('SET FOREIGN_KEY_CHECKS=0');
       await conn.query(query, values);
@@ -182,25 +200,26 @@ function transformDocumentForMySQL(collection, doc) {
 
     // camelCase 转 snake_case
     const mysqlColumnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+    const normalizedValue = normalizeSpecialField(collection, key, value);
 
     // 处理特殊类型
-    if (typeof value === 'boolean') {
-      result[mysqlColumnName] = value ? 1 : 0;
-    } else if (value instanceof Date) {
+    if (typeof normalizedValue === 'boolean') {
+      result[mysqlColumnName] = normalizedValue ? 1 : 0;
+    } else if (normalizedValue instanceof Date) {
       // MySQL DATETIME 格式：YYYY-MM-DD HH:MM:SS（不含 T 和 Z）
-      const isoString = value.toISOString();
+      const isoString = normalizedValue.toISOString();
       result[mysqlColumnName] = isoString.split('.')[0].replace('T', ' ');
-    } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+    } else if (typeof normalizedValue === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(normalizedValue)) {
       // ISO 格式的日期字符串（Mongoose toObject() 的输出）
       // 转换：2026-02-25T01:32:10.381Z → 2026-02-25 01:32:10
-      result[mysqlColumnName] = value.split('.')[0].replace('T', ' ');
-    } else if (isObjectIdLike(value)) {
-      result[mysqlColumnName] = value.toString();
-    } else if (typeof value === 'object' && value !== null) {
+      result[mysqlColumnName] = normalizedValue.split('.')[0].replace('T', ' ');
+    } else if (isObjectIdLike(normalizedValue)) {
+      result[mysqlColumnName] = normalizedValue.toString();
+    } else if (typeof normalizedValue === 'object' && normalizedValue !== null) {
       // 对象存储为 JSON 字符串
-      result[mysqlColumnName] = JSON.stringify(value);
+      result[mysqlColumnName] = JSON.stringify(normalizedValue);
     } else {
-      result[mysqlColumnName] = value;
+      result[mysqlColumnName] = normalizedValue;
     }
   }
 
@@ -295,6 +314,8 @@ module.exports = {
   publishSyncEvent,
   syncDocumentToMySQL,
   transformDocumentForMySQL,
+  buildUpsertStatement,
   startSyncListener,
-  isObjectIdLike
+  isObjectIdLike,
+  quoteIdentifier
 };
