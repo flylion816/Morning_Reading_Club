@@ -12,6 +12,8 @@
     "init:mongodb": "NODE_ENV=development node scripts/init-mongodb.js",
     "init:mysql": "node scripts/init-mysql.js",
     "check:openid": "node scripts/check-openid-health.js",
+    "report:daily": "node scripts/daily-log-report.js",
+    "report:diagnose": "node scripts/diagnose-daily-report.js",
     "test": "NODE_ENV=test mocha 'tests/**/*.test.js'",
     "test:unit": "NODE_ENV=test mocha 'tests/unit/**/*.test.js'",
     "test:integration": "NODE_ENV=test mocha 'tests/integration/**/*.test.js'",

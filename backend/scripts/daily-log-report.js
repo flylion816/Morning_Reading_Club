@@ -15,7 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 // ============================================================
 // 配置
@@ -23,6 +23,10 @@ const { execSync } = require('child_process');
 
 const CONFIG = {
   logDir: '/var/www/logs',
+  reportFiles: {
+    latestHtml: 'daily-report-latest.html',
+    latestJson: 'daily-report-latest.json',
+  },
 
   // 要分析的日志文件
   logFiles: {
@@ -504,12 +508,7 @@ function generateHTML(report) {
   const totalWarns = warnGroups.reduce((s, g) => s + g.count, 0);
   const totalExceptions = exceptionGroups.reduce((s, g) => s + g.count, 0);
 
-  // 健康评分：只使用报告窗口内的错误/异常/5xx，不混入生命周期累计值
-  let healthScore = 100;
-  if (totalErrors > 0) healthScore -= Math.min(totalErrors * 5, 40);
-  if (totalExceptions > 0) healthScore -= Math.min(totalExceptions * 15, 30);
-  if (httpStats.status5xx > 0) healthScore -= Math.min(httpStats.status5xx * 5, 25);
-  healthScore = Math.max(0, healthScore);
+  const healthScore = calculateHealthScore(totalErrors, totalExceptions, httpStats.status5xx);
 
   const healthColor = healthScore >= 80 ? '#27ae60' : healthScore >= 50 ? '#f39c12' : '#e74c3c';
   const healthEmoji = healthScore >= 80 ? '✅' : healthScore >= 50 ? '⚠️' : '🔴';
@@ -671,6 +670,128 @@ async function sendEmail(html, subject) {
   console.log(`✅ 邮件已发送至 ${CONFIG.mailTo}`);
 }
 
+function resolveOutputDir() {
+  try {
+    if (fs.existsSync(CONFIG.logDir)) {
+      fs.accessSync(CONFIG.logDir, fs.constants.W_OK);
+      return CONFIG.logDir;
+    }
+  } catch (err) {
+    // fall through to tmp
+  }
+
+  const fallbackDir = path.join('/tmp', 'morning-reading-reports');
+  fs.mkdirSync(fallbackDir, { recursive: true });
+  return fallbackDir;
+}
+
+function calculateHealthScore(totalErrors, totalExceptions, status5xx) {
+  let healthScore = 100;
+  if (totalErrors > 0) healthScore -= Math.min(totalErrors * 5, 40);
+  if (totalExceptions > 0) healthScore -= Math.min(totalExceptions * 15, 30);
+  if (status5xx > 0) healthScore -= Math.min(status5xx * 5, 25);
+  return Math.max(0, healthScore);
+}
+
+function buildReportSummary(report) {
+  const totalErrors = report.errorGroups.reduce((s, g) => s + g.count, 0);
+  const totalWarns = report.warnGroups.reduce((s, g) => s + g.count, 0);
+  const totalExceptions = report.exceptionGroups.reduce((s, g) => s + g.count, 0);
+  const healthScore = calculateHealthScore(totalErrors, totalExceptions, report.httpStats.status5xx);
+
+  return {
+    reportId: `${report.timeRange.to.toISOString()}-${healthScore}-${totalErrors}-${totalWarns}-${totalExceptions}`,
+    generatedAt: new Date().toISOString(),
+    hoursBack,
+    timeRange: {
+      from: report.timeRange.from.toISOString(),
+      to: report.timeRange.to.toISOString(),
+    },
+    score: healthScore,
+    counts: {
+      errors: totalErrors,
+      warnings: totalWarns,
+      exceptions: totalExceptions,
+      requests: report.httpStats.total,
+      status4xx: report.httpStats.status4xx,
+      status5xx: report.httpStats.status5xx,
+    },
+    pm2Status: report.pm2Status,
+    systemStatus: report.systemStatus,
+    topErrors: report.errorGroups.slice(0, 10).map(group => ({
+      message: group.message,
+      count: group.count,
+      lastOccurredAt: group.lastTime ? group.lastTime.toISOString() : null,
+      samples: group.samples,
+    })),
+    topWarnings: report.warnGroups.slice(0, 10).map(group => ({
+      message: group.message,
+      count: group.count,
+      lastOccurredAt: group.lastTime ? group.lastTime.toISOString() : null,
+      samples: group.samples,
+    })),
+    topExceptions: report.exceptionGroups.slice(0, 10).map(group => ({
+      message: group.message,
+      count: group.count,
+      lastOccurredAt: group.lastTime ? group.lastTime.toISOString() : null,
+      samples: group.samples,
+    })),
+    shouldTriggerDiagnosis: totalErrors > 0 || totalWarns > 0 || totalExceptions > 0 || report.httpStats.status5xx > 0,
+  };
+}
+
+function writeReportArtifacts(reportSummary, html) {
+  const outputDir = resolveOutputDir();
+  const datePart = new Date(reportSummary.timeRange.to).toISOString().slice(0, 10);
+  const htmlLatest = path.join(outputDir, CONFIG.reportFiles.latestHtml);
+  const jsonLatest = path.join(outputDir, CONFIG.reportFiles.latestJson);
+  const htmlArchive = path.join(outputDir, `daily-report-${datePart}.html`);
+  const jsonArchive = path.join(outputDir, `daily-report-${datePart}.json`);
+
+  fs.writeFileSync(htmlLatest, html);
+  fs.writeFileSync(jsonLatest, JSON.stringify(reportSummary, null, 2));
+  fs.writeFileSync(htmlArchive, html);
+  fs.writeFileSync(jsonArchive, JSON.stringify(reportSummary, null, 2));
+
+  return {
+    htmlLatest,
+    jsonLatest,
+    htmlArchive,
+    jsonArchive,
+  };
+}
+
+function triggerDiagnosisIfNeeded(reportSummary, options = {}) {
+  if (!reportSummary.shouldTriggerDiagnosis) {
+    console.log('🩺 报告窗口内无需要诊断的问题，跳过自动诊断');
+    return;
+  }
+
+  const diagnosisScript = path.join(__dirname, 'diagnose-daily-report.js');
+  const childArgs = [diagnosisScript, '--input', options.inputFile];
+  if (options.testMode) childArgs.push('--test');
+
+  console.log(`🩺 触发自动诊断: ${path.basename(diagnosisScript)}`);
+  const result = spawnSync(process.execPath, childArgs, {
+    cwd: path.dirname(__dirname),
+    env: process.env,
+    encoding: 'utf-8',
+    timeout: 120000,
+  });
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+
+  if (result.error) {
+    console.error(`⚠️ 自动诊断触发失败: ${result.error.message}`);
+    return;
+  }
+
+  if (result.status !== 0) {
+    console.error(`⚠️ 自动诊断退出码异常: ${result.status}`);
+  }
+}
+
 // ============================================================
 // 主流程
 // ============================================================
@@ -748,6 +869,8 @@ async function main() {
   };
 
   const html = generateHTML(report);
+  const reportSummary = buildReportSummary(report);
+  const artifacts = writeReportArtifacts(reportSummary, html);
 
   const totalErrors = errorGroups.reduce((s, g) => s + g.count, 0);
   const totalExceptions = exceptionGroups.reduce((s, g) => s + g.count, 0);
@@ -763,30 +886,26 @@ async function main() {
   if (isTestMode) {
     console.log(`\n📧 [测试模式] 邮件主题: ${subject}`);
     console.log(`   邮件 HTML 长度: ${html.length} 字符`);
-    // 写入临时文件方便预览
-    const tmpFile = '/tmp/daily-log-report.html';
-    fs.writeFileSync(tmpFile, html);
-    console.log(`   HTML 已保存到: ${tmpFile}`);
+    console.log(`   HTML 已保存到: ${artifacts.htmlLatest}`);
+    console.log(`   JSON 已保存到: ${artifacts.jsonLatest}`);
     console.log(`   可用浏览器打开预览`);
+    triggerDiagnosisIfNeeded(reportSummary, { inputFile: artifacts.jsonLatest, testMode: true });
   } else {
     if (!CONFIG.smtp.auth.pass) {
       console.error('❌ 未配置 QQ_SMTP_PASS 环境变量，无法发送邮件');
       console.error('   请设置: export QQ_SMTP_PASS="你的QQ邮箱授权码"');
-      // 仍然保存报告到文件
-      const reportFile = path.join(logDir, `daily-report-${now.toISOString().slice(0, 10)}.html`);
-      fs.writeFileSync(reportFile, html);
-      console.log(`   报告已保存到: ${reportFile}`);
+      console.log(`   报告已保存到: ${artifacts.htmlArchive}`);
+      console.log(`   摘要已保存到: ${artifacts.jsonArchive}`);
       process.exit(1);
     }
 
     try {
       await sendEmail(html, subject);
+      triggerDiagnosisIfNeeded(reportSummary, { inputFile: artifacts.jsonLatest, testMode: false });
     } catch (err) {
       console.error(`❌ 邮件发送失败: ${err.message}`);
-      // 保存到文件作为备份
-      const reportFile = path.join(logDir, `daily-report-${now.toISOString().slice(0, 10)}.html`);
-      fs.writeFileSync(reportFile, html);
-      console.log(`   报告已保存到: ${reportFile}`);
+      console.log(`   报告已保存到: ${artifacts.htmlArchive}`);
+      console.log(`   摘要已保存到: ${artifacts.jsonArchive}`);
       process.exit(1);
     }
   }
