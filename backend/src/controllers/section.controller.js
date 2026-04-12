@@ -4,6 +4,9 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 
+const ADMIN_SECTION_LIST_FIELDS =
+  '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt';
+
 // 获取期次的课程列表（用户端 - 仅已发布）
 async function getSectionsByPeriod(req, res, next) {
   try {
@@ -58,7 +61,9 @@ async function getAllSectionsByPeriod(req, res, next) {
     const sections = await Section.find(query)
       .sort({ day: 1, sortOrder: 1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
-      .limit(parseInt(limit, 10));
+      .limit(parseInt(limit, 10))
+      .select(ADMIN_SECTION_LIST_FIELDS)
+      .lean();
 
     res.json(
       success({

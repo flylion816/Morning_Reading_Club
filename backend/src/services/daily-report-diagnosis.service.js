@@ -130,12 +130,26 @@ function classifyIssue(message) {
 
 function buildDiagnosis(reportSummary) {
   const normalizedIssues = [
+    ...(reportSummary.infrastructureAlerts || []).map(issue => ({ ...issue, source: 'infrastructure' })),
     ...(reportSummary.topErrors || []).map(issue => ({ ...issue, source: 'error' })),
     ...(reportSummary.topWarnings || []).map(issue => ({ ...issue, source: 'warning' })),
     ...(reportSummary.topExceptions || []).map(issue => ({ ...issue, source: 'exception' })),
   ];
 
   const issues = normalizedIssues.map(issue => {
+    if (issue.source === 'infrastructure' && issue.summary && issue.likelyCause && issue.recommendedAction) {
+      return {
+        ruleId: issue.ruleId || issue.id || 'infrastructure',
+        severity: issue.severity || 'medium',
+        category: issue.category || 'actionable',
+        summary: issue.summary,
+        likelyCause: issue.likelyCause,
+        recommendedAction: issue.recommendedAction,
+        autoRepairEligible: issue.autoRepairEligible || false,
+        ...issue,
+      };
+    }
+
     const classification = classifyIssue(issue.message);
     return {
       ...issue,

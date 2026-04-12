@@ -4,6 +4,7 @@ const { authMiddleware } = require('../middleware/auth');
 const {
   createCheckin,
   getUserCheckins,
+  getUserCheckinSummary,
   getPeriodCheckins,
   getCheckinDetail,
   updateCheckin,
@@ -26,6 +27,20 @@ router.post('/', authMiddleware, createCheckin);
  * @access  Private
  */
 router.get('/', authMiddleware, getCheckins);
+
+/**
+ * @route   GET /api/v1/checkins/user/summary
+ * @desc    获取当前用户的打卡日记聚合信息
+ * @access  Private
+ */
+router.get('/user/summary', authMiddleware, getUserCheckinSummary);
+
+/**
+ * @route   GET /api/v1/checkins/user/:userId/summary
+ * @desc    获取指定用户的打卡日记聚合信息
+ * @access  Private
+ */
+router.get('/user/:userId/summary', authMiddleware, getUserCheckinSummary);
 
 /**
  * @route   GET /api/v1/checkins/user/:userId?

@@ -163,21 +163,35 @@ cd /var/www/morning-reading/backend
 # 安装依赖
 npm install --silent
 
+NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org}"
+
+# 确保使用稳定的全局 PM2，而不是依赖 npx 临时缓存
+if ! command -v pm2 >/dev/null 2>&1; then
+  sudo npm install -g pm2 --silent --registry "$NPM_REGISTRY"
+fi
+
 # 检查应用是否已存在，决定是启动还是重新加载
-if npx pm2 describe morning-reading-backend >/dev/null 2>&1; then
+if pm2 describe morning-reading-backend >/dev/null 2>&1; then
   # 应用已存在，执行重新加载
-  npx pm2 reload morning-reading-backend --update-env
+  pm2 reload morning-reading-backend --update-env
 else
   # 应用不存在，从配置文件启动
-  npx pm2 start pm2.config.js
+  pm2 start pm2.config.js --env production
 fi
 
 sleep 2
 
+# 保存进程清单并配置 systemd 开机自启
+pm2 save
+sudo env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  pm2 startup systemd -u "$(id -un)" --hp "$HOME" >/dev/null 2>&1
+sudo systemctl daemon-reload
+sudo systemctl enable "pm2-$(id -un)" >/dev/null 2>&1
+
 # 安装和配置日志轮转模块
-npx pm2 install pm2-logrotate 2>/dev/null || true
-npx pm2 set pm2-logrotate:max_size 500M 2>/dev/null || true
-npx pm2 set pm2-logrotate:retain 10 2>/dev/null || true
+pm2 install pm2-logrotate 2>/dev/null || true
+pm2 set pm2-logrotate:max_size 500M 2>/dev/null || true
+pm2 set pm2-logrotate:retain 10 2>/dev/null || true
 EOF
   then
     log_error "部署后处理失败"
@@ -194,7 +208,7 @@ EOF
   # 7.1 检查PM2应用状态
   log_info "检查PM2应用状态..."
   local pm2_status=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
-    "npx pm2 status 2>/dev/null | grep morning-reading-backend | grep -c 'online'" 2>/dev/null)
+    "pm2 status 2>/dev/null | grep morning-reading-backend | grep -c 'online'" 2>/dev/null)
 
   if [ "$pm2_status" -ge 3 ]; then
     log_success "PM2应用正常 (至少3个实例online)"

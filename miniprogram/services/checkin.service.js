@@ -14,7 +14,6 @@ class CheckinService {
    * @returns {Promise}
    */
   submitCheckin(data) {
-    // Mock模式
     if (envConfig.useMock) {
       logger.debug('Mock提交打卡:', data);
       return Promise.resolve({
@@ -48,12 +47,7 @@ class CheckinService {
 
   /**
    * 获取打卡列表（用户的打卡记录）
-   * 支持获取统计数据和日历数据
    * @param {Object} params 查询参数
-   * @param {string} params.page - 页码
-   * @param {string} params.limit - 每页数量
-   * @param {string} params.year - 年份（用于日历）
-   * @param {string} params.month - 月份（用于日历）
    * @returns {Promise}
    */
   getCheckins(params = {}) {
@@ -62,13 +56,8 @@ class CheckinService {
 
   /**
    * 获取用户打卡记录（带统计和日历）
-   * @param {Object} options - 选项
-   * @param {string} options.page - 页码
-   * @param {string} options.limit - 每页数量
-   * @param {string} options.year - 年份
-   * @param {string} options.month - 月份
-   * @param {string} options.periodId - 期次ID（可选，用于只获取特定期次的打卡记录）
-   * @returns {Promise} 返回 { list, stats, calendar, pagination }
+   * @param {Object} options 查询参数
+   * @returns {Promise}
    */
   getUserCheckinsWithStats(options = {}) {
     const { page = 1, limit = 20, year, month, periodId } = options;
@@ -78,13 +67,11 @@ class CheckinService {
       limit
     };
 
-    // 如果提供了年月，添加日历查询
     if (year && month) {
       data.year = year;
       data.month = month;
     }
 
-    // 如果提供了期次ID，只获取该期次的打卡记录
     if (periodId) {
       data.periodId = periodId;
     }
@@ -93,10 +80,20 @@ class CheckinService {
   }
 
   /**
+   * 获取“我的打卡日记”概览信息
+   * @param {string} userId 用户ID（可选）
+   * @returns {Promise}
+   */
+  getUserDiarySummary(userId = '') {
+    const path = userId ? `/checkins/user/${userId}/summary` : '/checkins/user/summary';
+    return request.get(path);
+  }
+
+  /**
    * 获取用户月度打卡日历
-   * @param {number} year - 年份
-   * @param {number} month - 月份
-   * @returns {Promise} 返回日历数据
+   * @param {number} year 年份
+   * @param {number} month 月份
+   * @returns {Promise}
    */
   getMonthlyCalendar(year, month) {
     return this.getUserCheckinsWithStats({
@@ -104,10 +101,7 @@ class CheckinService {
       limit: 1,
       year,
       month
-    }).then(res => {
-      // 返回日历部分（request.js已解包，直接访问res.calendar）
-      return res.calendar;
-    });
+    }).then(res => res.calendar);
   }
 
   /**
@@ -146,46 +140,22 @@ class CheckinService {
   }
 
   // Stage 5 Test Methods
-  /**
-   * 获取打卡列表
-   * @param {Object} options - 选项
-   * @returns {Promise}
-   */
   getCheckinList(options = {}) {
     return request.get('/checkins', options);
   }
 
-  /**
-   * 获取打卡统计
-   * @returns {Promise}
-   */
   getCheckinStats() {
     return request.get('/checkins/stats');
   }
 
-  /**
-   * 获取某期次打卡数
-   * @param {string} periodId - 期次ID
-   * @returns {Promise}
-   */
   getCheckinCountForPeriod(periodId) {
     return request.get(`/checkins/period/${periodId}/count`);
   }
 
-  /**
-   * 获取打卡进度
-   * @param {string} periodId - 期次ID
-   * @returns {Promise}
-   */
   getCheckinProgress(periodId) {
     return request.get(`/checkins/period/${periodId}/progress`);
   }
 
-  /**
-   * 批量获取打卡信息
-   * @param {Array} courseIds - 课程ID数组
-   * @returns {Promise}
-   */
   getMultipleCheckins(courseIds) {
     return request.post('/checkins/batch', { courseIds });
   }

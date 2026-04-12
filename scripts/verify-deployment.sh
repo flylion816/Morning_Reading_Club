@@ -37,6 +37,7 @@ PM2_APP_NAME="morning-reading-backend"
 DOMAIN="wx.shubai01.com"
 API_ENDPOINT="http://127.0.0.1:3000/api/v1/health"
 API_ENDPOINT_HTTPS="https://$DOMAIN/api/v1/health"
+PM2_SERVICE_NAME="pm2-$(id -un)"
 
 # 计数器
 CHECKS_TOTAL=0
@@ -49,20 +50,20 @@ CHECKS_WARNING=0
 ################################################################################
 
 pass_check() {
-  ((CHECKS_TOTAL++))
-  ((CHECKS_PASSED++))
+  CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+  CHECKS_PASSED=$((CHECKS_PASSED + 1))
   log_success "$1"
 }
 
 fail_check() {
-  ((CHECKS_TOTAL++))
-  ((CHECKS_FAILED++))
+  CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+  CHECKS_FAILED=$((CHECKS_FAILED + 1))
   log_error "$1"
 }
 
 warn_check() {
-  ((CHECKS_TOTAL++))
-  ((CHECKS_WARNING++))
+  CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+  CHECKS_WARNING=$((CHECKS_WARNING + 1))
   log_warning "$1"
 }
 
@@ -100,6 +101,15 @@ main() {
     pass_check "网络连接正常"
   else
     warn_check "网络连接异常"
+  fi
+
+  log_info "检查 DNS 解析..."
+  if getent hosts "$DOMAIN" &>/dev/null; then
+    local dns_result
+    dns_result=$(getent hosts "$DOMAIN" | head -n 1 | awk '{print $1}')
+    pass_check "DNS 解析正常 ($DOMAIN -> $dns_result)"
+  else
+    fail_check "DNS 解析失败 ($DOMAIN)"
   fi
 
   # 第 2 步：依赖验证
@@ -159,6 +169,49 @@ main() {
     fail_check "Certbot 未安装"
   fi
 
+  log_info "检查 PM2 开机自启服务..."
+  if systemctl list-unit-files | grep -q "^${PM2_SERVICE_NAME}\.service"; then
+    local pm2_service_state
+    local pm2_service_enabled
+    pm2_service_state=$(systemctl is-active "$PM2_SERVICE_NAME" 2>/dev/null || true)
+    pm2_service_enabled=$(systemctl is-enabled "$PM2_SERVICE_NAME" 2>/dev/null || true)
+    if [ "$pm2_service_state" = "active" ] && [ "$pm2_service_enabled" = "enabled" ]; then
+      pass_check "PM2 自启动服务正常 (${PM2_SERVICE_NAME}: active/enabled)"
+    else
+      fail_check "PM2 自启动服务异常 (${PM2_SERVICE_NAME}: ${pm2_service_state:-unknown}/${pm2_service_enabled:-unknown})"
+    fi
+  else
+    fail_check "PM2 自启动服务不存在 (${PM2_SERVICE_NAME})"
+  fi
+
+  log_info "检查 systemd-resolved..."
+  if systemctl list-unit-files | grep -q "^systemd-resolved\.service"; then
+    local resolved_state
+    local resolved_enabled
+    resolved_state=$(systemctl is-active systemd-resolved 2>/dev/null || true)
+    resolved_enabled=$(systemctl is-enabled systemd-resolved 2>/dev/null || true)
+    if [ "$resolved_state" = "active" ] && [ "$resolved_enabled" = "enabled" ]; then
+      pass_check "DNS 解析器正常 (systemd-resolved: active/enabled)"
+    else
+      fail_check "DNS 解析器异常 (systemd-resolved: ${resolved_state:-unknown}/${resolved_enabled:-unknown})"
+    fi
+  else
+    warn_check "systemd-resolved 服务不存在，请确认当前 DNS 管理方式"
+  fi
+
+  log_info "检查 /etc/resolv.conf..."
+  if [ -e /etc/resolv.conf ] && [ -r /etc/resolv.conf ]; then
+    local resolv_target
+    resolv_target=$(readlink -f /etc/resolv.conf 2>/dev/null || echo "/etc/resolv.conf")
+    if [ -e "$resolv_target" ]; then
+      pass_check "/etc/resolv.conf 正常 ($resolv_target)"
+    else
+      fail_check "/etc/resolv.conf 指向无效目标 ($resolv_target)"
+    fi
+  else
+    fail_check "/etc/resolv.conf 不存在或不可读"
+  fi
+
   # 第 3 步：Docker 容器检查
   log_section "第 3 步：Docker 容器检查"
 
@@ -209,11 +262,22 @@ main() {
 
   log_info "检查 PM2 应用状态..."
   if pm2 describe "$PM2_APP_NAME" &>/dev/null; then
-    local pm2_status=$(pm2 describe "$PM2_APP_NAME" | grep "status" | awk '{print $2}')
-    if [ "$pm2_status" = "online" ]; then
-      pass_check "PM2 应用在线 ($PM2_APP_NAME)"
+    local pm2_summary
+    pm2_summary=$(pm2 jlist 2>/dev/null | node -e "
+      const fs = require('fs');
+      const list = JSON.parse(fs.readFileSync(0, 'utf8'));
+      const appName = process.argv[1];
+      const app = list.filter(item => item.name === appName);
+      const total = app.length;
+      const online = app.filter(item => item.pm2_env && item.pm2_env.status === 'online').length;
+      process.stdout.write(\`\${online}/\${total}\`);
+    " "$PM2_APP_NAME")
+    local pm2_online=${pm2_summary%%/*}
+    local pm2_total=${pm2_summary##*/}
+    if [ "$pm2_total" -gt 0 ] && [ "$pm2_online" -eq "$pm2_total" ]; then
+      pass_check "PM2 应用在线 ($PM2_APP_NAME: $pm2_summary)"
     else
-      fail_check "PM2 应用状态异常 ($pm2_status)"
+      fail_check "PM2 应用状态异常 ($PM2_APP_NAME: $pm2_summary)"
     fi
   else
     fail_check "PM2 应用未找到 ($PM2_APP_NAME)"
@@ -272,7 +336,16 @@ main() {
     pass_check "SSL 证书存在"
 
     # 获取证书过期时间
-    local expiry_date=$(sudo certbot certificates 2>/dev/null | grep -A1 "$DOMAIN" | grep "Expiry" | awk '{print $NF}' | head -1)
+    local expiry_date
+    expiry_date=$(sudo certbot certificates 2>/dev/null | awk -v domain="$DOMAIN" '
+      $0 ~ ("Domains: " domain "$") { found=1; next }
+      found && /Expiry Date:/ {
+        sub(/.*Expiry Date: /, "", $0);
+        sub(/ \(VALID:.*/, "", $0);
+        print;
+        exit;
+      }
+    ')
     if [ -n "$expiry_date" ]; then
       log_info "证书过期时间: $expiry_date"
 

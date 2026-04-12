@@ -72,7 +72,8 @@ describe('Checkin Controller', () => {
     };
 
     PeriodStub = {
-      findById: sandbox.stub()
+      findById: sandbox.stub(),
+      find: sandbox.stub()
     };
 
     const responseUtils = {
@@ -389,6 +390,157 @@ describe('Checkin Controller', () => {
       const firstCall = CheckinStub.find.getCall(0).args[0];
       expect(firstCall).to.have.property('periodId');
       expect(firstCall.periodId.toString()).to.equal(periodId.toString());
+    });
+  });
+
+  describe('getUserCheckinSummary', () => {
+    function mockSummaryQuery(checkins) {
+      CheckinStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves(checkins)
+      });
+    }
+
+    it('应该返回当前用户的打卡日记聚合信息', async () => {
+      const currentUserId = new mongoose.Types.ObjectId().toString();
+      const periodA = new mongoose.Types.ObjectId().toString();
+      const periodB = new mongoose.Types.ObjectId().toString();
+      const sectionA1 = new mongoose.Types.ObjectId().toString();
+      const sectionA2 = new mongoose.Types.ObjectId().toString();
+      const sectionB1 = new mongoose.Types.ObjectId().toString();
+
+      req.user = { userId: currentUserId };
+
+      const checkins = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: currentUserId,
+          periodId: {
+            _id: periodA,
+            name: '心流之境',
+            title: '心流之境',
+            icon: '📘',
+            coverColor: '#4a90e2',
+            enrollmentCount: 88,
+            totalDays: 23
+          },
+          sectionId: {
+            _id: sectionA1,
+            title: '第 1 节',
+            day: 1
+          },
+          note: '第一篇日记',
+          likeCount: 2,
+          checkinDate: new Date('2025-04-10T10:00:00.000Z')
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: currentUserId,
+          periodId: {
+            _id: periodA,
+            name: '心流之境',
+            title: '心流之境',
+            icon: '📘',
+            coverColor: '#4a90e2',
+            enrollmentCount: 88,
+            totalDays: 23
+          },
+          sectionId: {
+            _id: sectionA2,
+            title: '第 2 节',
+            day: 2
+          },
+          note: '  ',
+          likeCount: 1,
+          checkinDate: new Date('2025-04-12T10:00:00.000Z')
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: currentUserId,
+          periodId: {
+            _id: periodB,
+            name: '能量之泉',
+            title: '能量之泉',
+            icon: '📙',
+            coverColor: '#f39c12',
+            currentEnrollment: 45,
+            totalDays: 23
+          },
+          sectionId: {
+            _id: sectionB1,
+            title: '第 1 节',
+            day: 1
+          },
+          note: '第二篇日记',
+          likeCount: 3,
+          checkinDate: new Date('2025-04-13T10:00:00.000Z')
+        }
+      ];
+
+      mockSummaryQuery(checkins);
+
+      await checkinController.getUserCheckinSummary(req, res, next);
+
+      expect(CheckinStub.find.calledOnce).to.be.true;
+      expect(CheckinStub.find.getCall(0).args[0]).to.deep.include({ userId: currentUserId });
+
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.stats.diaryCount).to.equal(2);
+      expect(responseData.data.stats.likeCount).to.equal(6);
+      expect(responseData.data.stats.totalCheckins).to.equal(3);
+      expect(responseData.data.stats.periodCount).to.equal(2);
+      expect(responseData.data.periods).to.have.length(2);
+
+      const firstPeriod = responseData.data.periods[0];
+      expect(firstPeriod.periodId).to.equal(periodB);
+      expect(firstPeriod.title).to.equal('能量之泉');
+      expect(firstPeriod.coverColor).to.equal('#f39c12');
+      expect(firstPeriod.diaryCount).to.equal(1);
+      expect(firstPeriod.totalCheckins).to.equal(1);
+      expect(firstPeriod.likeCount).to.equal(3);
+      expect(firstPeriod.lastCheckinSection.title).to.equal('第 1 节');
+    });
+
+    it('应该支持指定用户ID查询', async () => {
+      const targetUserId = new mongoose.Types.ObjectId().toString();
+      req.user = { userId: new mongoose.Types.ObjectId().toString() };
+      req.params = { userId: targetUserId };
+
+      mockSummaryQuery([]);
+
+      await checkinController.getUserCheckinSummary(req, res, next);
+
+      expect(CheckinStub.find.calledOnce).to.be.true;
+      expect(CheckinStub.find.getCall(0).args[0]).to.deep.include({ userId: targetUserId });
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.userId).to.equal(targetUserId);
+    });
+
+    it('应该在没有打卡记录时返回空统计', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId().toString() };
+      mockSummaryQuery([]);
+
+      await checkinController.getUserCheckinSummary(req, res, next);
+
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.stats).to.deep.include({
+        diaryCount: 0,
+        likeCount: 0,
+        totalCheckins: 0,
+        periodCount: 0
+      });
+      expect(responseData.data.periods).to.deep.equal([]);
+    });
+
+    it('应该支持req.user.id作为兜底用户ID', async () => {
+      const fallbackUserId = new mongoose.Types.ObjectId().toString();
+      req.user = { id: fallbackUserId };
+      mockSummaryQuery([]);
+
+      await checkinController.getUserCheckinSummary(req, res, next);
+
+      expect(CheckinStub.find.getCall(0).args[0]).to.deep.include({ userId: fallbackUserId });
     });
   });
 

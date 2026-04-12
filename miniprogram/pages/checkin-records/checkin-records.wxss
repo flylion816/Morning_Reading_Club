@@ -1,261 +1,398 @@
-/* 打卡记录页面样式 */
-
 .page-checkin-records {
   min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 40rpx;
+  background: linear-gradient(180deg, #f7fbff 0%, #f5f7fb 35%, #f5f5f5 100%);
+  padding: 24rpx;
+  box-sizing: border-box;
 }
 
-/* 用户信息卡片 */
-.user-card {
-  background: white;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
+.hero-card {
+  padding: 28rpx 28rpx 30rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%);
+  box-shadow: 0 16rpx 40rpx rgba(74, 144, 226, 0.08);
 }
 
-.user-header {
+.hero-user {
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  margin-bottom: 32rpx;
+  gap: 20rpx;
 }
 
-.user-avatar {
-  width: 96rpx;
-  height: 96rpx;
+.hero-avatar-wrap {
+  width: 104rpx;
+  height: 104rpx;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   flex-shrink: 0;
-}
-
-.user-avatar .avatar-text {
-  font-size: 36rpx;
-  color: white;
-  font-weight: bold;
-}
-
-.user-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-/* 统计信息网格 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 24rpx;
-}
-
-.stat-item {
+  background: linear-gradient(135deg, #4a90e2 0%, #7fb1ff 100%);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.stat-value {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #4a90e2;
-}
-
-.stat-label {
-  font-size: 24rpx;
-  color: #666;
-}
-
-/* 日历区域 */
-.calendar-section {
-  background: white;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-}
-
-.calendar-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 24rpx;
-}
-
-.month-selector {
-  display: flex;
-  align-items: center;
-  gap: 32rpx;
-}
-
-.month-btn {
-  font-size: 36rpx;
-  color: #4a90e2;
-  font-weight: bold;
-  padding: 8rpx 16rpx;
-}
-
-.month-text {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
-  min-width: 160rpx;
-  text-align: center;
-}
-
-.calendar-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  margin-bottom: 16rpx;
-}
-
-.weekday {
-  text-align: center;
-  font-size: 24rpx;
-  color: #999;
-  padding: 12rpx 0;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8rpx;
-}
-
-.calendar-day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border-radius: 12rpx;
-  position: relative;
 }
 
-.calendar-day.other-month {
-  opacity: 0.3;
-}
-
-.calendar-day.checked {
-  background: #e8f4fd;
-  border: 2rpx solid #4a90e2;
-}
-
-.day-number {
-  font-size: 24rpx;
-  color: #333;
-  font-weight: 500;
-}
-
-.calendar-day.checked .day-number {
-  color: #4a90e2;
-  font-weight: bold;
-}
-
-.day-dot {
-  width: 8rpx;
-  height: 8rpx;
-  background: #4a90e2;
+.hero-avatar-image {
+  width: 104rpx;
+  height: 104rpx;
   border-radius: 50%;
-  position: absolute;
-  bottom: 8rpx;
 }
 
-/* 打卡记录区域 */
-.records-section {
-  padding: 0 24rpx;
+.hero-avatar-text {
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.hero-user-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.hero-user-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1d2433;
+}
+
+.hero-user-subtitle {
+  font-size: 24rpx;
+  color: #8c97a8;
+}
+
+.hero-stats {
+  margin-top: 24rpx;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 10rpx 8rpx 0;
+}
+
+.hero-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.hero-stat-divider {
+  width: 1rpx;
+  background: rgba(74, 144, 226, 0.12);
+  margin: 4rpx 20rpx 0;
+}
+
+.hero-stat-value {
+  font-size: 40rpx;
+  line-height: 1;
+  font-weight: 700;
+  color: #2a5bd7;
+}
+
+.hero-stat-label {
+  font-size: 24rpx;
+  color: #8c97a8;
+}
+
+.section-block {
+  margin-top: 24rpx;
+  padding-bottom: 20rpx;
 }
 
 .section-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 24rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1d2433;
+  margin: 4rpx 2rpx 18rpx;
+}
+
+.period-scroll {
+  width: 100%;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.period-scroll-inner {
+  display: flex;
+  gap: 18rpx;
+  align-items: stretch;
+  padding: 6rpx 2rpx 18rpx;
+  box-sizing: border-box;
+}
+
+.period-card {
+  width: 286rpx;
+  min-height: 110rpx;
+  flex-shrink: 0;
+  display: flex;
+  gap: 12rpx;
+  padding: 16rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  border: 2rpx solid transparent;
+  box-shadow: 0 10rpx 26rpx rgba(18, 46, 89, 0.06);
+  box-sizing: border-box;
+}
+
+.period-card-active {
+  border-color: #4a90e2;
+  box-shadow: 0 16rpx 36rpx rgba(74, 144, 226, 0.16);
+}
+
+.period-card-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.period-card-icon-text {
+  font-size: 38rpx;
+}
+
+.period-card-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.period-card-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1d2433;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.period-card-subtitle {
+  font-size: 22rpx;
+  line-height: 1.35;
+  color: #8c97a8;
+}
+
+.selected-period-banner {
+  margin: 10rpx 0 22rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
+  border: 1rpx solid rgba(74, 144, 226, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  box-sizing: border-box;
+}
+
+.selected-period-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected-period-icon-text {
+  font-size: 36rpx;
+}
+
+.selected-period-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  padding-left: 4rpx;
+}
+
+.selected-period-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1d2433;
+}
+
+.selected-period-line {
+  font-size: 22rpx;
+  color: #708096;
+}
+
+.selected-period-arrow {
+  font-size: 36rpx;
+  color: #c3ccdb;
 }
 
 .records-list {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 22rpx;
 }
 
-.record-item {
+.record-row {
   display: flex;
-  flex-direction: column;
   gap: 16rpx;
 }
 
-.record-date {
-  font-size: 26rpx;
-  color: #999;
-  font-weight: 500;
+.record-date-col {
+  width: 72rpx;
+  flex-shrink: 0;
+  padding-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.record-day {
+  font-size: 40rpx;
+  line-height: 1;
+  font-weight: 700;
+  color: #1d2433;
+}
+
+.record-month {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #8c97a8;
 }
 
 .record-card {
-  background: white;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  flex: 1;
+  padding: 22rpx 22rpx 20rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: 0 10rpx 24rpx rgba(18, 46, 89, 0.06);
 }
 
-.record-course {
+.record-header {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 16rpx;
+}
+
+.record-avatar-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.record-avatar-image {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+}
+
+.record-avatar-text {
+  font-size: 24rpx;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.record-header-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.record-user-name {
   font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 12rpx;
+  color: #1d2433;
+  font-weight: 700;
+}
+
+.record-header-subtitle {
+  font-size: 22rpx;
+  color: #8c97a8;
+}
+
+.record-more {
+  color: #c3ccdb;
+  font-size: 36rpx;
+  line-height: 1;
 }
 
 .record-content {
-  font-size: 26rpx;
-  color: #555;
+  font-size: 28rpx;
   line-height: 1.8;
-  margin-bottom: 16rpx;
+  color: #3b4657;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
+.record-content-empty {
+  color: #9aa5b4;
+}
+
 .record-footer {
+  margin-top: 18rpx;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-.record-time {
+.record-meta {
   font-size: 22rpx;
-  color: #999;
+  color: #8c97a8;
 }
 
-.record-stats {
+.record-like {
   display: flex;
   align-items: center;
   gap: 8rpx;
+  color: #8c97a8;
 }
 
-.stat-icon {
+.record-like-icon {
   font-size: 24rpx;
+  color: #ea4f4f;
 }
 
-.stat-count {
+.record-like-count {
   font-size: 22rpx;
-  color: #999;
 }
 
-/* 空状态 */
 .empty-state {
+  margin-top: 72rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 120rpx 0;
+  gap: 18rpx;
+  padding: 40rpx 0 28rpx;
 }
 
 .empty-state-icon {
-  font-size: 160rpx;
-  margin-bottom: 32rpx;
-  opacity: 0.5;
+  font-size: 64rpx;
 }
 
-.empty-state-text {
+.empty-state-title {
   font-size: 28rpx;
-  color: #9ca3af;
+  font-weight: 700;
+  color: #1d2433;
+}
+
+.empty-state-desc {
+  font-size: 24rpx;
+  color: #8c97a8;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.load-more {
+  text-align: center;
+  font-size: 22rpx;
+  color: #8c97a8;
+  padding: 16rpx 0 8rpx;
 }

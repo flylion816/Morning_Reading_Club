@@ -93,6 +93,10 @@ Page({
     wx.navigateTo({ url: '/pages/notification-settings/notification-settings' });
   },
 
+  goToMyCheckinRecords() {
+    wx.navigateTo({ url: '/pages/checkin-records/checkin-records' });
+  },
+
   goToEditProfile() {
     wx.navigateTo({ url: '/pages/edit-profile/edit-profile' });
   },

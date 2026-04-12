@@ -1,6 +1,10 @@
 const redisManager = require('../utils/redis');
 const alerting = require('../utils/alerting');
 const logger = require('../utils/logger');
+const {
+  shouldTrackMetrics,
+  shouldCountAsError,
+} = require('../utils/monitoring-rules');
 
 /**
  * 性能监控中间件
@@ -39,6 +43,10 @@ function getCurrentHourKey() {
  * 内存缓存降级
  */
 function recordMetricsToMemory(metrics) {
+  if (!shouldTrackMetrics(metrics)) {
+    return;
+  }
+
   const now = new Date();
   const minuteKey = Math.floor(now.getTime() / 60000);
 
@@ -56,9 +64,7 @@ function recordMetricsToMemory(metrics) {
   memoryMetrics.currentMinute[minuteKey].totalDuration += metrics.duration;
   memoryMetrics.currentMinute[minuteKey].durations.push(metrics.duration);
 
-  const isAuthError = metrics.statusCode === 401;
-  const isNonApiNotFound = metrics.statusCode === 404 && !metrics.endpoint.startsWith('/api/');
-  if (metrics.statusCode >= 400 && !isAuthError && !isNonApiNotFound) {
+  if (shouldCountAsError(metrics)) {
     memoryMetrics.currentMinute[minuteKey].errors += 1;
   }
 
@@ -76,6 +82,10 @@ function recordMetricsToMemory(metrics) {
  */
 async function recordMetrics(metrics) {
   try {
+    if (!shouldTrackMetrics(metrics)) {
+      return;
+    }
+
     const minuteKey = getCurrentMinuteKey();
     const hourKey = getCurrentHourKey();
 
@@ -89,10 +99,8 @@ async function recordMetrics(metrics) {
     await redisManager.zAdd(latencyKey, metrics.duration, `${Date.now()}-${Math.random()}`);
     await redisManager.expire(latencyKey, 3600);
 
-    // 3. 记录错误计数（排除401和非API路径的404，这些是正常行为）
-    const isAuthError = metrics.statusCode === 401;
-    const isNonApiNotFound = metrics.statusCode === 404 && !metrics.endpoint.startsWith('/api/');
-    if (metrics.statusCode >= 400 && !isAuthError && !isNonApiNotFound) {
+    // 3. 记录错误计数（只关注真实业务 API，排除401）
+    if (shouldCountAsError(metrics)) {
       const errorKey = `metrics:errors:${minuteKey}`;
       await redisManager.incr(errorKey);
       await redisManager.expire(errorKey, 3600);
@@ -117,7 +125,7 @@ async function recordMetrics(metrics) {
     await redisManager.incr(hourCountKey);
     await redisManager.expire(hourCountKey, 86400); // 24小时过期
 
-    if (metrics.statusCode >= 400 && !isAuthError && !isNonApiNotFound) {
+    if (shouldCountAsError(metrics)) {
       const hourErrorKey = `metrics:hour_errors:${hourKey}`;
       await redisManager.incr(hourErrorKey);
       await redisManager.expire(hourErrorKey, 86400);
@@ -134,6 +142,10 @@ async function recordMetrics(metrics) {
  */
 async function checkAlerts(metrics) {
   try {
+    if (!shouldTrackMetrics(metrics)) {
+      return;
+    }
+
     const minuteKey = getCurrentMinuteKey();
 
     // 获取当前指标

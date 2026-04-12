@@ -5,6 +5,8 @@
 **状态**: ✅ 生产就绪 + HTTPS + 自动续期通知
 
 > 📌 **重要**：本部署指南涵盖所有部署步骤和环境配置说明。发布前，请仔细阅读本文档。
+>
+> 📌 **运维补充**：线上重启、DNS、PM2 自启动、重启后验收请参考 [PRODUCTION_OPERATIONS_RUNBOOK.md](./PRODUCTION_OPERATIONS_RUNBOOK.md)
 
 ---
 
@@ -17,6 +19,8 @@
 | ⚙️ **环境安装**（一次性） | SSH → `bash scripts/server/setup-server-env.sh`                        | 5-10分钟 |
 | 🆕 **首次部署代码**       | Step 1: 本地 `bash scripts/deploy-to-server.sh` → Step 2-4: 参考第一章 | 5-10分钟 |
 | 📝 **日常代码更新**       | `bash scripts/deploy-to-server.sh`                                     | 3-5分钟  |
+| 🛡️ **重启前/后巡检**     | `ssh ubuntu@118.25.145.179 'cd /var/www/morning-reading && bash scripts/verify-deployment.sh'` | 2-5分钟 |
+| 🔁 **服务器重启 Runbook** | 参考 `docs/guides/PRODUCTION_OPERATIONS_RUNBOOK.md`                    | 5-15分钟 |
 | 🔧 **重启后端服务**       | `pm2 restart morning-reading-backend`                                  | < 1分钟  |
 | 🔄 **重启管理后台**       | `sudo nginx -s reload`                                                 | < 1分钟  |
 | 🔄 **重启管理后台**       | `sudo nginx -s reload`                                                 | < 1分钟  |

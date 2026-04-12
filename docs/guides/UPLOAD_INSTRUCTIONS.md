@@ -1,5 +1,9 @@
 # 微信小程序上传指南 v0.0.8
 
+## 相关专项清单
+
+- 打卡详情与长图分享发布: `docs/guides/CHECKIN_DIARY_RELEASE_CHECKLIST.md`
+
 ## 📋 上传前检查清单
 
 ### ✅ 已完成的准备工作

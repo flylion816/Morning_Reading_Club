@@ -50,9 +50,14 @@
           <el-table-column label="操作" width="280" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button type="primary" size="small" @click="handleEditSection(row)"
-                  >编辑</el-button
+                <el-button
+                  type="primary"
+                  size="small"
+                  :loading="loadingSectionId === row._id"
+                  @click="handleEditSection(row)"
                 >
+                  编辑
+                </el-button>
                 <el-button type="warning" size="small" @click="togglePublish(row)">
                   {{ row.isPublished ? '下架' : '发布' }}
                 </el-button>
@@ -129,8 +134,41 @@
             </el-form-item>
 
             <!-- 读一读 -->
+            <el-form-item label="正文格式">
+              <div class="content-editor-mode">
+                <el-button
+                  size="small"
+                  :type="contentEditorMode === 'markdown' ? 'primary' : 'default'"
+                  @click="contentEditorMode = 'markdown'"
+                >
+                  Markdown
+                </el-button>
+                <el-button
+                  size="small"
+                  :type="contentEditorMode === 'richtext' ? 'primary' : 'default'"
+                  @click="contentEditorMode = 'richtext'"
+                >
+                  富文本
+                </el-button>
+              </div>
+              <div class="editor-mode-hint">
+                Markdown 模式会原样保存语法，小程序正文自动按 Markdown 渲染；富文本模式继续兼容旧 HTML 内容。
+              </div>
+            </el-form-item>
+
             <el-form-item label="读一读">
+              <el-input
+                v-if="contentEditorMode === 'markdown'"
+                v-model="editingSection.content"
+                type="textarea"
+                class="markdown-editor"
+                placeholder="请输入 Markdown 正文，例如：# 标题 / - 列表 / **粗体**"
+                :rows="16"
+                show-word-limit
+                maxlength="20000"
+              />
               <RichTextEditor
+                v-else
                 v-model="editingSection.content"
                 placeholder="主要课程内容（支持图片、链接、格式化）"
                 height="400px"
@@ -232,31 +270,42 @@ import { periodApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Section } from '../types/api';
 
+interface SectionForm {
+  _id?: string;
+  periodId?: string;
+  day: number;
+  title: string;
+  subtitle: string;
+  icon: string;
+  meditation: string;
+  question: string;
+  content: string;
+  reflection: string;
+  action: string;
+  learn: string;
+  extract: string;
+  say: string;
+  duration: number;
+  isPublished: boolean;
+}
+
+type SectionFormSource = Partial<SectionForm> & {
+  _id?: string;
+  periodId?: string | Period;
+};
+
 const selectedPeriodId = ref<string | null>(null);
 const periods = ref<Period[]>([]);
 const currentPeriod = ref<Period | null>(null);
 const sections = ref<Section[]>([]);
 const saving = ref(false);
+const loadingSectionId = ref<string | null>(null);
+const contentEditorMode = ref<'markdown' | 'richtext'>('markdown');
 
 // 编辑弹窗
 const editDialogVisible = ref(false);
 const isNewSection = ref(false);
-const editingSection = ref<any>({
-  day: 0,
-  title: '',
-  subtitle: '',
-  icon: '📖',
-  meditation: '',
-  question: '',
-  content: '',
-  reflection: '',
-  action: '',
-  learn: '',
-  extract: '',
-  say: '',
-  duration: 0,
-  isPublished: false
-});
+const editingSection = ref<SectionForm>(createEmptySectionDraft());
 
 onMounted(() => {
   loadPeriods();
@@ -273,8 +322,9 @@ async function loadPeriods() {
     periods.value = response?.list || response?.data || [];
 
     // 默认选择最新的期次
-    if (periods.value.length > 0) {
-      selectedPeriodId.value = periods.value[0]._id;
+    const [firstPeriod] = periods.value;
+    if (firstPeriod?._id) {
+      selectedPeriodId.value = firstPeriod._id;
       await loadSections();
     }
   } catch (err: any) {
@@ -287,15 +337,12 @@ async function loadSections() {
   if (!selectedPeriodId.value) return;
 
   try {
-    // 获取期次信息
-    currentPeriod.value = (await periodApi.getPeriodDetail(
-      selectedPeriodId.value
-    )) as unknown as Period;
+    const [period, response] = (await Promise.all([
+      periodApi.getPeriodDetail(selectedPeriodId.value),
+      periodApi.getAllSections(selectedPeriodId.value, { limit: 100 })
+    ])) as unknown as [Period, ListResponse<Section>];
 
-    // 加载该期次的所有课节（管理员权限，包括草稿）
-    const response = (await periodApi.getAllSections(
-      selectedPeriodId.value
-    )) as unknown as ListResponse<Section>;
+    currentPeriod.value = period;
     sections.value = response.list || response || [];
   } catch (err: any) {
     console.error('Failed to load sections:', err);
@@ -307,32 +354,41 @@ async function loadSections() {
 // 新增课节
 function handleAddSection() {
   isNewSection.value = true;
-  editingSection.value = {
-    periodId: selectedPeriodId.value,
+  contentEditorMode.value = 'markdown';
+  editingSection.value = createEmptySectionDraft({
+    periodId: selectedPeriodId.value || undefined,
     day: sections.value.length,
-    title: '',
-    subtitle: '',
-    icon: '📖',
-    meditation: '',
-    question: '',
-    content: '',
-    reflection: '',
-    action: '',
-    duration: 0,
-    isPublished: false
-  };
+  });
   editDialogVisible.value = true;
 }
 
 // 编辑课节
-function handleEditSection(section: any) {
+async function handleEditSection(section: Section) {
+  if (!section._id) return;
+
   isNewSection.value = false;
-  editingSection.value = { ...section };
-  editDialogVisible.value = true;
+  loadingSectionId.value = section._id;
+
+  try {
+    const detail = (await periodApi.getSectionDetail(section._id)) as unknown as Section;
+    contentEditorMode.value = detectContentEditorMode(detail.content);
+    editingSection.value = normalizeSectionForm(detail);
+    editDialogVisible.value = true;
+  } catch (err) {
+    console.error('Failed to load section detail:', err);
+    ElMessage.error('加载课节详情失败');
+  } finally {
+    loadingSectionId.value = null;
+  }
 }
 
 // 保存课节
 async function saveSection() {
+  if (!selectedPeriodId.value) {
+    ElMessage.error('请先选择期次');
+    return;
+  }
+
   if (!editingSection.value.title) {
     ElMessage.warning('请输入课程标题');
     return;
@@ -340,13 +396,17 @@ async function saveSection() {
 
   saving.value = true;
   try {
+    const payload = buildSectionPayload(editingSection.value);
+
     if (isNewSection.value) {
-      // 新增
-      await periodApi.createSection(selectedPeriodId.value, editingSection.value);
+      await periodApi.createSection(selectedPeriodId.value, payload);
       ElMessage.success('课节创建成功');
     } else {
-      // 编辑
-      await periodApi.updateSection(editingSection.value._id, editingSection.value);
+      if (!editingSection.value._id) {
+        throw new Error('missing section id');
+      }
+
+      await periodApi.updateSection(editingSection.value._id, payload);
       ElMessage.success('课节保存成功');
     }
     editDialogVisible.value = false;
@@ -402,7 +462,13 @@ async function handleDeleteSection(section: any) {
 
 // 重置表单
 function resetForm() {
-  editingSection.value = {
+  contentEditorMode.value = 'markdown';
+  editingSection.value = createEmptySectionDraft();
+}
+
+function createEmptySectionDraft(overrides: Partial<SectionForm> = {}): SectionForm {
+  return {
+    periodId: selectedPeriodId.value || undefined,
     day: 0,
     title: '',
     subtitle: '',
@@ -416,8 +482,65 @@ function resetForm() {
     extract: '',
     say: '',
     duration: 0,
-    isPublished: false
+    isPublished: false,
+    ...overrides
   };
+}
+
+function normalizeSectionForm(section: SectionFormSource): SectionForm {
+  const periodId =
+    typeof section.periodId === 'string'
+      ? section.periodId
+      : section.periodId?._id || selectedPeriodId.value || undefined;
+
+  return createEmptySectionDraft({
+    _id: section._id,
+    periodId,
+    day: section.day,
+    title: section.title,
+    subtitle: section.subtitle,
+    icon: section.icon,
+    meditation: section.meditation,
+    question: section.question,
+    content: section.content,
+    reflection: section.reflection,
+    action: section.action,
+    learn: section.learn,
+    extract: section.extract,
+    say: section.say,
+    duration: section.duration,
+    isPublished: section.isPublished
+  });
+}
+
+function buildSectionPayload(section: SectionForm) {
+  const normalized = normalizeSectionForm(section);
+
+  return {
+    periodId: normalized.periodId,
+    day: normalized.day,
+    title: normalized.title,
+    subtitle: normalized.subtitle,
+    icon: normalized.icon,
+    meditation: normalized.meditation,
+    question: normalized.question,
+    content: normalized.content,
+    reflection: normalized.reflection,
+    action: normalized.action,
+    learn: normalized.learn,
+    extract: normalized.extract,
+    say: normalized.say,
+    duration: normalized.duration,
+    isPublished: normalized.isPublished
+  };
+}
+
+function detectContentEditorMode(content?: string) {
+  return isLikelyHtml(content) ? 'richtext' : 'markdown';
+}
+
+function isLikelyHtml(content?: string) {
+  return typeof content === 'string' && /<\/?[a-z][\s\S]*>/i.test(content);
 }
 </script>
 
@@ -463,5 +586,27 @@ function resetForm() {
   white-space: nowrap;
   padding: 6px 12px;
   font-size: 12px;
+}
+
+.content-editor-mode {
+  display: flex;
+  gap: 8px;
+}
+
+.editor-mode-hint {
+  margin-top: 8px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.markdown-editor :deep(.el-textarea__inner) {
+  font-family:
+    'SFMono-Regular',
+    'JetBrains Mono',
+    'Fira Code',
+    'Menlo',
+    monospace;
+  line-height: 1.7;
 }
 </style>

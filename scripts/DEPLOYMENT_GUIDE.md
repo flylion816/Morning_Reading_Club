@@ -2,9 +2,18 @@
 
 > 基于 Method C: Hybrid Reuse 架构的完整自动化部署系统
 
+> 运维补充：线上重启、PM2 自启动、DNS 故障处理、重启后复核请参考 [docs/guides/PRODUCTION_OPERATIONS_RUNBOOK.md](../docs/guides/PRODUCTION_OPERATIONS_RUNBOOK.md)
+
 ---
 
 ## 🚀 快速开始
+
+### 运维入口
+
+```bash
+# 服务器重启前 / 重启后统一验收
+ssh ubuntu@118.25.145.179 'cd /var/www/morning-reading && bash scripts/verify-deployment.sh'
+```
 
 ### 全新服务器部署（一键部署）
 

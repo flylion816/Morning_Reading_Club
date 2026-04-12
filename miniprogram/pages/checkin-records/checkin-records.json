@@ -1,7 +1,7 @@
 {
-  "navigationBarTitleText": "打卡记录",
-  "navigationBarBackgroundColor": "#4a90e2",
-  "navigationBarTextStyle": "white",
+  "navigationBarTitleText": "我的打卡日记",
+  "navigationBarBackgroundColor": "#f7fbff",
+  "navigationBarTextStyle": "black",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark"
 }

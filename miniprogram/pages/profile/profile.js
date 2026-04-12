@@ -3,6 +3,7 @@ const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
+const checkinService = require('../../services/checkin.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
@@ -76,6 +77,44 @@ function buildInsightRequestDisplay(item) {
   };
 }
 
+function formatRecentCheckinDate(dateString) {
+  if (!dateString) {
+    return '';
+  }
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${month}.${day}`;
+}
+
+function buildRecentCheckinCard(item) {
+  const previewSource = richContentToPlainText(item.note || item.content || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const preview = previewSource || '这篇打卡还没有填写正文';
+  const periodInfo = item.periodId && typeof item.periodId === 'object' ? item.periodId : {};
+  const sectionInfo = item.sectionId && typeof item.sectionId === 'object' ? item.sectionId : {};
+
+  return {
+    id: item._id || item.id,
+    sectionId: sectionInfo._id || sectionInfo.id || item.sectionId || '',
+    periodId: periodInfo._id || periodInfo.id || item.periodId || '',
+    periodTitle: periodInfo.title || periodInfo.name || '我的打卡',
+    sectionTitle: sectionInfo.title || '打卡日记',
+    preview,
+    likeCount: item.likeCount || 0,
+    dayLabel: sectionInfo.day ? `第${sectionInfo.day}天` : '',
+    dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
+    icon: periodInfo.coverEmoji || periodInfo.icon || '📘',
+    color: periodInfo.coverColor || periodInfo.color || '#4a90e2'
+  };
+}
+
 Page({
   data: {
     // 用户信息
@@ -100,6 +139,9 @@ Page({
 
     // 最近的小凡看见（最多3条）
     recentInsights: [],
+
+    // 最近的打卡日记（最多3条）
+    recentCheckins: [],
 
     // 收到的小凡看见请求列表
     insightRequests: [],
@@ -180,6 +222,7 @@ Page({
         canAccessCurrentPeriodCommunity: false,
         currentPeriodCommunityState: 'locked',
         todaySection: null,
+        recentCheckins: [],
         recentInsights: [],
         insightRequests: [],
         allInsightRequests: [],
@@ -506,6 +549,15 @@ Page({
         : { canAccessCommunity: false, communityAccessState: 'locked', paymentStatus: null };
       const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
 
+      let recentCheckins = [];
+      if (communityEnabled) {
+        try {
+          recentCheckins = await this.loadRecentCheckins();
+        } catch (error) {
+          console.error('加载最近打卡失败:', error);
+        }
+      }
+
       // 加载最近的小凡看见记录（最多3条）
       let recentInsights = [];
       let allInsightRequests = [];
@@ -546,6 +598,7 @@ Page({
           canAccessCurrentPeriodCommunity: communityEnabled,
           currentPeriodCommunityState: currentPeriodAccess.communityAccessState || 'locked',
           todaySection: todaySection || null, // 确保不是undefined
+          recentCheckins,
           recentInsights,
           allInsightRequests,
           insightRequests: allInsightRequests.slice(0, 3),
@@ -566,6 +619,27 @@ Page({
         title: '加载失败,请重试',
         icon: 'none'
       });
+    }
+  },
+
+  async loadRecentCheckins() {
+    try {
+      const res = await checkinService.getUserCheckinsWithStats({
+        page: 1,
+        limit: 6
+      });
+
+      const list = Array.isArray(res?.list) ? res.list : Array.isArray(res) ? res : [];
+      return list
+        .filter(item => {
+          const text = richContentToPlainText(item.note || item.content || '').trim();
+          return text.length > 0;
+        })
+        .slice(0, 3)
+        .map(buildRecentCheckinCard);
+    } catch (error) {
+      console.error('加载最近打卡失败:', error);
+      return [];
     }
   },
 
@@ -1024,6 +1098,65 @@ Page({
     // 跳转到课程详情页
     wx.navigateTo({
       url: `/pages/course-detail/course-detail?id=${sectionId}`
+    });
+  },
+
+  handleRecentCheckinTap(e) {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看打卡日记')) {
+      return;
+    }
+
+    const { checkinId, sectionId } = e.currentTarget.dataset || {};
+    if (!checkinId) {
+      wx.showToast({
+        title: '打卡记录不存在',
+        icon: 'none'
+      });
+      return;
+    }
+
+    return this.openCheckinDetail(checkinId, sectionId);
+  },
+
+  async openCheckinDetail(checkinId, sectionId = '') {
+    let targetSectionId = sectionId;
+
+    try {
+      if (!targetSectionId) {
+        wx.showLoading({
+          title: '正在打开...',
+          mask: true
+        });
+
+        const detail = await checkinService.getCheckinDetail(checkinId);
+        targetSectionId = detail?.sectionId?._id || detail?.sectionId || '';
+      }
+
+      if (!targetSectionId) {
+        throw new Error('sectionId missing');
+      }
+
+      wx.navigateTo({
+        url: `/pages/course-detail/course-detail?id=${targetSectionId}&checkinId=${checkinId}`
+      });
+    } catch (error) {
+      console.error('打开打卡详情失败:', error);
+      wx.showToast({
+        title: '打开详情失败',
+        icon: 'none'
+      });
+    } finally {
+      wx.hideLoading?.();
+    }
+  },
+
+  navigateToCheckinRecords() {
+    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看打卡日记')) {
+      return;
+    }
+
+    wx.navigateTo({
+      url: '/pages/checkin-records/checkin-records'
     });
   },
 

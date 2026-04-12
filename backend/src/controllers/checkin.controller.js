@@ -16,6 +16,94 @@ function getRequestUserId(req) {
   return req.user.id || req.user.userId || req.user._id;
 }
 
+function isNonEmptyNote(note) {
+  return typeof note === 'string' && note.trim().length > 0;
+}
+
+function buildPeriodSummaryItem(checkin) {
+  const period = checkin.periodId || {};
+
+  return {
+    periodId: String(period._id || checkin.periodId || 'unknown'),
+    name: period.name || period.title || '未知期次',
+    title: period.title || period.name || '未知期次',
+    icon: period.icon || period.coverEmoji || '📚',
+    coverEmoji: period.coverEmoji || period.icon || '📚',
+    coverColor: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+    color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+    currentEnrollment: period.currentEnrollment || period.enrollmentCount || 0,
+    totalDays: period.totalDays || 0,
+    totalCheckins: 0,
+    checkedDays: 0,
+    diaryCount: 0,
+    likeCount: 0,
+    lastCheckinAt: null,
+    lastCheckinSection: null,
+    lastCheckinDay: null,
+    status: period.status || null
+  };
+}
+
+function buildUserDiarySummary(checkins = []) {
+  const stats = {
+    diaryCount: 0,
+    likeCount: 0,
+    totalCheckins: checkins.length,
+    periodCount: 0
+  };
+
+  const periodMap = new Map();
+
+  for (const checkin of checkins) {
+    const periodKey = String(
+      (checkin.periodId && checkin.periodId._id) || checkin.periodId || 'unknown'
+    );
+
+    let summary = periodMap.get(periodKey);
+    if (!summary) {
+      summary = buildPeriodSummaryItem(checkin);
+      periodMap.set(periodKey, summary);
+    }
+
+    summary.totalCheckins += 1;
+    summary.checkedDays += 1;
+    summary.likeCount += checkin.likeCount || 0;
+
+    if (isNonEmptyNote(checkin.note)) {
+      summary.diaryCount += 1;
+      stats.diaryCount += 1;
+    }
+
+    stats.likeCount += checkin.likeCount || 0;
+
+    const checkinTime = checkin.checkinDate ? new Date(checkin.checkinDate) : null;
+    if (checkinTime && (!summary.lastCheckinAt || checkinTime > summary.lastCheckinAt)) {
+      summary.lastCheckinAt = checkinTime;
+      summary.lastCheckinSection = checkin.sectionId
+        ? {
+            sectionId: String(checkin.sectionId._id || checkin.sectionId),
+            title: checkin.sectionId.title || '课程',
+            day: checkin.sectionId.day ?? null
+          }
+        : null;
+      summary.lastCheckinDay = checkin.day ?? null;
+    }
+  }
+
+  const periods = Array.from(periodMap.values()).sort((a, b) => {
+    const aTime = a.lastCheckinAt ? new Date(a.lastCheckinAt).getTime() : 0;
+    const bTime = b.lastCheckinAt ? new Date(b.lastCheckinAt).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  stats.periodCount = periods.length;
+
+  return {
+    stats,
+    periods
+  };
+}
+
 // 创建打卡记录
 async function createCheckin(req, res, next) {
   try {
@@ -265,6 +353,31 @@ async function getUserCheckins(req, res, next) {
           total,
           pages: Math.ceil(total / limit)
         }
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取用户的打卡日记聚合信息（顶部统计 + 期次聚合）
+async function getUserCheckinSummary(req, res, next) {
+  try {
+    const userId = req.params.userId || req.user.userId || req.user.id || req.user._id;
+
+    const checkins = await Checkin.find({ userId })
+      .populate('periodId', 'name title icon coverColor coverEmoji currentEnrollment enrollmentCount totalDays status')
+      .populate('sectionId', 'title day')
+      .sort({ checkinDate: -1 })
+      .select('-__v');
+
+    const summary = buildUserDiarySummary(checkins);
+
+    res.json(
+      success({
+        userId,
+        stats: summary.stats,
+        periods: summary.periods
       })
     );
   } catch (error) {
@@ -775,6 +888,7 @@ module.exports = {
   createCheckin,
   getCheckins,
   getUserCheckins,
+  getUserCheckinSummary,
   getPeriodCheckins,
   getCheckinDetail,
   updateCheckin,

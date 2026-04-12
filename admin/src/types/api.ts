@@ -274,9 +274,23 @@ export interface SubscriptionGrantDetail {
 export interface Section {
   _id: string;
   periodId?: string | Period;
+  day?: number;
   title?: string;
+  subtitle?: string;
+  icon?: string;
+  meditation?: string;
+  question?: string;
   content?: string;
+  reflection?: string;
+  action?: string;
+  learn?: string;
+  extract?: string;
+  say?: string;
+  duration?: number;
+  sortOrder?: number;
   order?: number;
+  isPublished?: boolean;
+  checkinCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }

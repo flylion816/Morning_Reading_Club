@@ -74,15 +74,23 @@ main() {
   # 等待应用稳定
   sleep 3
 
-  # 第 3 步：配置 PM2 日志轮转
-  log_section "第 3 步：配置 PM2 日志轮转"
+  # 第 3 步：配置 PM2 开机自启
+  log_section "第 3 步：配置 PM2 开机自启"
+
+  if ! ensure_pm2_autostart "$BACKEND_DIR"; then
+    log_error "PM2 开机自启配置失败"
+    exit 1
+  fi
+
+  # 第 4 步：配置 PM2 日志轮转
+  log_section "第 4 步：配置 PM2 日志轮转"
 
   if ! setup_pm2_logrotate; then
     log_warning "PM2 日志轮转配置失败，继续..."
   fi
 
-  # 第 4 步：检查应用状态
-  log_section "第 4 步：检查 PM2 应用状态"
+  # 第 5 步：检查应用状态
+  log_section "第 5 步：检查 PM2 应用状态"
 
   if check_pm2_status "$PM2_APP_NAME"; then
     log_success "PM2 应用状态正常"
@@ -90,8 +98,8 @@ main() {
     log_warning "PM2 应用可能未运行，请检查"
   fi
 
-  # 第 5 步：复制管理后台文件
-  log_section "第 5 步：部署管理后台"
+  # 第 6 步：复制管理后台文件
+  log_section "第 6 步：部署管理后台"
 
   if [ -d "$ADMIN_DIST" ] && [ -f "$ADMIN_DIST/index.html" ]; then
     log_success "管理后台文件已就位 ($ADMIN_DIST)"
@@ -101,8 +109,8 @@ main() {
     log_info "  cd $ADMIN_DIR && npm install && npm run build"
   fi
 
-  # 第 6 步：验证后端服务
-  log_section "第 6 步：验证后端服务"
+  # 第 7 步：验证后端服务
+  log_section "第 7 步：验证后端服务"
 
   log_info "等待后端启动..."
   sleep 2
@@ -115,15 +123,15 @@ main() {
     log_info "  pm2 logs $PM2_APP_NAME"
   fi
 
-  # 第 7 步：重新加载 Nginx
-  log_section "第 7 步：重新加载 Nginx"
+  # 第 8 步：重新加载 Nginx
+  log_section "第 8 步：重新加载 Nginx"
 
   if ! reload_nginx; then
     log_warning "Nginx 重新加载失败，但继续..."
   fi
 
-  # 第 8 步：配置定时任务
-  log_section "第 8 步：配置 Cron 定时任务"
+  # 第 9 步：配置定时任务
+  log_section "第 9 步：配置 Cron 定时任务"
 
   if ! setup_cron_jobs "$APP_ROOT"; then
     log_warning "Cron 定时任务配置失败，请手动配置"
@@ -134,6 +142,7 @@ main() {
 
   log_info "✅ 后端依赖: 已安装"
   log_info "✅ PM2 应用: 已启动 ($PM2_APP_NAME)"
+  log_info "✅ PM2 自启动: 已启用"
   log_info "✅ 日志轮转: 已配置（500MB/文件 × 10个）"
   log_info "✅ 管理后台: 已部署 ($ADMIN_DIST)"
   log_info "✅ Nginx: 已重新加载"

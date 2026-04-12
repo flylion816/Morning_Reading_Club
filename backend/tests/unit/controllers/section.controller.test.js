@@ -285,11 +285,13 @@ describe('Section Controller', () => {
 
       PeriodStub.findById.resolves(mockPeriod);
       SectionStub.countDocuments.resolves(2);
+      const lean = sandbox.stub().resolves(mockSections);
+      const select = sandbox.stub().returns({ lean });
       SectionStub.find.returns({
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
-        resolves: mockSections
+        select
       });
 
       await sectionController.getAllSectionsByPeriod(req, res, next);
@@ -298,6 +300,12 @@ describe('Section Controller', () => {
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('list');
       expect(responseData.data).to.have.property('pagination');
+      expect(responseData.data.list).to.deep.equal(mockSections);
+      expect(
+        select.calledWith(
+          '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt'
+        )
+      ).to.be.true;
     });
   });
 

@@ -60,6 +60,17 @@
         </view>
       </view>
 
+      <!-- 我的打卡日记 -->
+      <view class="settings-cell" bindtap="goToMyCheckinRecords">
+        <view class="cell-left">
+          <text class="cell-icon">📔</text>
+          <text class="cell-label">我的打卡日记</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+
       <!-- 编辑资料 -->
       <view class="settings-cell" bindtap="goToEditProfile">
         <view class="cell-left">

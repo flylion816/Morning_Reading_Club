@@ -165,6 +165,7 @@ export const periodApi = {
     apiClient.get(`/periods/${periodId}/sections`, { params }),
   getAllSections: (periodId: string, params?: any) =>
     apiClient.get(`/periods/${periodId}/sections/admin/all`, { params }),
+  getSectionDetail: (sectionId: string) => apiClient.get(`/sections/${sectionId}`),
   createSection: (periodId: string, data: any) =>
     apiClient.post(`/periods/${periodId}/sections`, data),
   updateSection: (sectionId: string, data: any) => apiClient.put(`/sections/${sectionId}`, data),

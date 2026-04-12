@@ -210,13 +210,16 @@ install_docker_compose() {
 install_pm2() {
   log_section "安装 PM2"
 
+  local npm_registry="${NPM_REGISTRY:-https://registry.npmjs.org}"
+
   if npm list -g pm2 &>/dev/null; then
     log_success "PM2 已安装"
     return 0
   fi
 
   log_info "全局安装 PM2..."
-  if sudo npm install -g pm2 --silent >/dev/null 2>&1; then
+  log_info "NPM Registry: $npm_registry"
+  if sudo npm install -g pm2 --silent --registry "$npm_registry" >/dev/null 2>&1; then
     log_success "PM2 安装完成"
     return 0
   else

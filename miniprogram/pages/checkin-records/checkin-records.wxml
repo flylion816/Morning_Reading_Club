@@ -1,92 +1,117 @@
-<!--打卡记录页面-->
 <view class="page-checkin-records">
-  <!-- 用户信息卡片 -->
-  <view class="user-card">
-    <view class="user-header">
-      <view class="user-avatar" style="background: {{userInfo.avatarColor}}">
-        <text class="avatar-text">{{userInfo.avatarText}}</text>
+  <view class="hero-card">
+    <view class="hero-user">
+      <view wx:if="{{userInfo.avatarUrl}}" class="hero-avatar-wrap">
+        <image class="hero-avatar-image" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
       </view>
-      <view class="user-name">{{userInfo.userName}}</view>
+      <view wx:else class="hero-avatar-wrap hero-avatar-fallback" style="background: {{userInfo.avatarColor}}">
+        <text class="hero-avatar-text">{{userInfo.avatarText}}</text>
+      </view>
+      <view class="hero-user-copy">
+        <text class="hero-user-name">{{userInfo.userName}}</text>
+        <text class="hero-user-subtitle">记录每一次觉察，也回看自己的成长轨迹</text>
+      </view>
     </view>
 
-    <!-- 统计信息 -->
-    <view class="stats-grid">
-      <view class="stat-item">
-        <view class="stat-value">{{stats.diaryCount}}</view>
-        <view class="stat-label">日记</view>
+    <view class="hero-stats">
+      <view class="hero-stat">
+        <text class="hero-stat-value">{{stats.diaryCount || 0}}</text>
+        <text class="hero-stat-label">日记</text>
       </view>
-      <view class="stat-item">
-        <view class="stat-value">{{stats.featuredCount}}</view>
-        <view class="stat-label">精选</view>
-      </view>
-      <view class="stat-item">
-        <view class="stat-value">{{stats.likeCount}}</view>
-        <view class="stat-label">获赞</view>
-      </view>
-      <view class="stat-item">
-        <view class="stat-value">{{stats.totalCheckins}}</view>
-        <view class="stat-label">累计次数</view>
-      </view>
-      <view class="stat-item">
-        <view class="stat-value">{{stats.consecutiveDays}}</view>
-        <view class="stat-label">连续天数</view>
+      <view class="hero-stat-divider"></view>
+      <view class="hero-stat">
+        <text class="hero-stat-value">{{stats.likeCount || 0}}</text>
+        <text class="hero-stat-label">获赞</text>
       </view>
     </view>
   </view>
 
-  <!-- 日历视图 -->
-  <view class="calendar-section">
-    <view class="calendar-header">
-      <view class="month-selector">
-        <view class="month-btn" bindtap="handlePrevMonth">‹</view>
-        <view class="month-text">{{monthText}}</view>
-        <view class="month-btn" bindtap="handleNextMonth">›</view>
-      </view>
-    </view>
-
-    <view class="calendar-weekdays">
-      <view class="weekday" wx:for="{{weekdays}}" wx:key="*this">{{item}}</view>
-    </view>
-
-    <view class="calendar-grid">
-      <view
-        wx:for="{{calendarDays}}"
-        wx:key="day"
-        class="calendar-day {{item.isCurrentMonth ? '' : 'other-month'}} {{item.hasCheckin ? 'checked' : ''}}">
-        <view class="day-number">{{item.day}}</view>
-        <view wx:if="{{item.hasCheckin}}" class="day-dot"></view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 打卡记录列表 -->
-  <view class="records-section">
+  <view class="section-block">
     <view class="section-title">打卡记录</view>
+    <scroll-view scroll-x class="period-scroll" show-scrollbar="{{false}}" enhanced="true">
+      <view class="period-scroll-inner">
+        <view
+          wx:for="{{periodOptions}}"
+          wx:key="id"
+          class="period-card {{item.id === periodId ? 'period-card-active' : ''}}"
+          bindtap="handlePeriodSelect"
+          data-period-id="{{item.id}}"
+        >
+          <view class="period-card-icon" style="background: {{item.id === periodId ? item.color : '#eef3ff'}}">
+            <text class="period-card-icon-text">{{item.icon}}</text>
+          </view>
+          <view class="period-card-copy">
+            <text class="period-card-title">{{item.displayTitle || item.title}}</text>
+            <text class="period-card-subtitle">{{item.subtitle}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
 
-    <view wx:if="{{checkinRecords.length > 0}}" class="records-list">
-      <view
-        wx:for="{{checkinRecords}}"
-        wx:key="id"
-        class="record-item">
-        <view class="record-date">{{item.date}}</view>
-        <view class="record-card">
-          <view class="record-course">{{item.courseTitle}}</view>
-          <view class="record-content">{{item.content}}</view>
-          <view class="record-footer">
-            <text class="record-time">{{item.time}}</text>
-            <view class="record-stats">
-              <text class="stat-icon">❤️</text>
-              <text class="stat-count">{{item.likeCount}}</text>
-            </view>
+  <view
+    wx:if="{{selectedPeriod && selectedPeriod.id !== 'all'}}"
+    class="selected-period-banner"
+    bindtap="handleSelectedPeriodTap">
+    <view class="selected-period-icon" style="background: {{selectedPeriod.color}}">
+      <text class="selected-period-icon-text">{{selectedPeriod.icon}}</text>
+    </view>
+    <view class="selected-period-copy">
+      <text class="selected-period-title">{{selectedPeriod.title}}</text>
+      <text wx:for="{{selectedPeriodMetaLines}}" wx:key="*this" class="selected-period-line">{{item}}</text>
+    </view>
+    <text class="selected-period-arrow">›</text>
+  </view>
+
+  <view wx:if="{{checkinRecords.length > 0}}" class="records-list">
+    <view
+      wx:for="{{checkinRecords}}"
+      wx:key="id"
+      class="record-row"
+      bindtap="handleRecordTap"
+      data-checkin-id="{{item.id}}"
+      data-section-id="{{item.sectionId}}"
+    >
+      <view class="record-date-col">
+        <text class="record-day">{{item.dayLabel}}</text>
+        <text class="record-month">{{item.monthLabel}}</text>
+      </view>
+
+      <view class="record-card">
+        <view class="record-header">
+          <view wx:if="{{userInfo.avatarUrl}}" class="record-avatar-wrap">
+            <image class="record-avatar-image" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+          </view>
+          <view wx:else class="record-avatar-wrap record-avatar-fallback" style="background: {{userInfo.avatarColor}}">
+            <text class="record-avatar-text">{{userInfo.avatarText}}</text>
+          </view>
+
+          <view class="record-header-copy">
+            <text class="record-user-name">{{userInfo.userName}}</text>
+            <text class="record-header-subtitle">{{item.courseTitle}}</text>
+          </view>
+
+          <text class="record-more">···</text>
+        </view>
+
+        <view class="record-content {{item.hasDiary ? '' : 'record-content-empty'}}">{{item.preview}}</view>
+
+        <view class="record-footer">
+          <text class="record-meta">{{item.metaLabel}}</text>
+          <view class="record-like">
+            <text class="record-like-icon">♡</text>
+            <text class="record-like-count">{{item.likeCount}}</text>
           </view>
         </view>
       </view>
     </view>
-
-    <!-- 空状态 -->
-    <view wx:if="{{checkinRecords.length === 0}}" class="empty-state">
-      <text class="empty-state-icon">📝</text>
-      <text class="empty-state-text">暂无打卡记录</text>
-    </view>
   </view>
+
+  <view wx:if="{{!loading && checkinRecords.length === 0}}" class="empty-state">
+    <text class="empty-state-icon">📝</text>
+    <text class="empty-state-title">还没有打卡日记</text>
+    <text class="empty-state-desc">完成晨读打卡后，这里会汇总你的所有记录</text>
+  </view>
+
+  <view wx:if="{{loadingMore}}" class="load-more">加载更多中...</view>
 </view>

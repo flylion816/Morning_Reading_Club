@@ -16,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync, spawnSync } = require('child_process');
+const { isTrackedApiPath } = require('../src/utils/monitoring-rules');
 
 // ============================================================
 // 配置
@@ -316,8 +317,8 @@ function analyzeHttpRequests(pm2OutLines, since) {
     }
 
     if (method) {
-      // 只统计 /api/ 路径的请求，忽略 bot/扫描器流量（/, /favicon.ico, /dns-query 等）
-      if (!urlPath.startsWith('/api/')) continue;
+      // 只统计真实业务 API，排除 /api/sonicos、/api/vendor 等扫描流量
+      if (!isTrackedApiPath(urlPath)) continue;
 
       total++;
       if (status >= 400 && status < 500) status4xx++;
@@ -393,6 +394,125 @@ function formatUptime(ms) {
   if (days > 0) return `${days}天${hours}小时`;
   const mins = Math.floor((ms % 3600000) / 60000);
   return `${hours}小时${mins}分钟`;
+}
+
+function getSystemdServiceStatus(serviceName) {
+  try {
+    const active = execSync(`systemctl is-active ${serviceName}`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    const enabled = execSync(`systemctl is-enabled ${serviceName}`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    return {
+      service: serviceName,
+      active,
+      enabled,
+      ok: active === 'active' && enabled === 'enabled',
+      summary: `${active === 'active' && enabled === 'enabled' ? '✅' : '❌'} ${serviceName}: ${active}/${enabled}`,
+    };
+  } catch (e) {
+    const active = safeExec(`systemctl is-active ${serviceName}`);
+    const enabled = safeExec(`systemctl is-enabled ${serviceName}`);
+    const state = active || enabled ? `${active || 'unknown'}/${enabled || 'unknown'}` : 'unavailable';
+    return {
+      service: serviceName,
+      active: active || 'unknown',
+      enabled: enabled || 'unknown',
+      ok: false,
+      summary: `❌ ${serviceName}: ${state}`,
+    };
+  }
+}
+
+function safeExec(command, timeout = 3000) {
+  try {
+    return execSync(command, { encoding: 'utf-8', timeout }).trim();
+  } catch (e) {
+    return '';
+  }
+}
+
+function getResolvConfStatus() {
+  const target = safeExec('readlink -f /etc/resolv.conf');
+  if (!target) {
+    return {
+      ok: false,
+      target: '',
+      summary: '❌ /etc/resolv.conf 不存在或无法解析目标',
+    };
+  }
+
+  if (!fs.existsSync(target)) {
+    return {
+      ok: false,
+      target,
+      summary: `❌ /etc/resolv.conf 指向无效目标 (${target})`,
+    };
+  }
+
+  return {
+    ok: true,
+    target,
+    summary: `✅ /etc/resolv.conf -> ${target}`,
+  };
+}
+
+function getDnsProbeStatus(hostname) {
+  const output = safeExec(`getent hosts ${hostname} | head -n 1`, 5000);
+  if (!output) {
+    return {
+      ok: false,
+      host: hostname,
+      result: '',
+      summary: `❌ DNS 探测失败 (${hostname})`,
+    };
+  }
+
+  const resolvedTarget = output.split(/\s+/).slice(0, 2).join(' ');
+  return {
+    ok: true,
+    host: hostname,
+    result: output,
+    summary: `✅ ${hostname} -> ${resolvedTarget}`,
+  };
+}
+
+function collectInfrastructureAlerts(systemStatus) {
+  const alerts = [];
+  const dnsReasons = [];
+
+  if (!systemStatus.pm2Autostart?.ok) {
+    alerts.push({
+      id: 'pm2-autostart-unhealthy',
+      message: systemStatus.pm2Autostart?.summary || 'PM2 开机自启状态未知',
+      count: 1,
+      severity: 'high',
+      category: 'actionable',
+      summary: 'PM2 开机自启异常',
+      likelyCause: 'PM2 的 systemd 服务未处于 active/enabled，重启后应用可能无法自动恢复。',
+      recommendedAction: '检查 pm2-<user>.service 是否存在且为 active/enabled，并重新执行 pm2 save 与 pm2 startup。',
+      autoRepairEligible: false,
+      samples: [systemStatus.pm2Autostart?.summary || 'PM2 开机自启状态未知'],
+    });
+  }
+
+  if (!systemStatus.dnsResolver?.ok) dnsReasons.push(systemStatus.dnsResolver?.summary || 'systemd-resolved 状态未知');
+  if (!systemStatus.resolvConf?.ok) dnsReasons.push(systemStatus.resolvConf?.summary || '/etc/resolv.conf 状态未知');
+  if (!systemStatus.dnsProbe?.ok) dnsReasons.push(systemStatus.dnsProbe?.summary || 'DNS 探测失败');
+
+  if (dnsReasons.length > 0) {
+    alerts.push({
+      id: 'dns-bootstrap-chain-unhealthy',
+      message: `DNS 启动链异常: ${dnsReasons.join('；')}`,
+      count: 1,
+      severity: 'high',
+      category: 'actionable',
+      summary: 'DNS 启动链异常',
+      likelyCause: dnsReasons.join('；'),
+      recommendedAction: '确认 systemd-resolved 为 active/enabled，/etc/resolv.conf 指向有效 resolver 文件，并执行 getent hosts 验证域名解析。',
+      autoRepairEligible: false,
+      samples: dnsReasons,
+    });
+  }
+
+  return alerts;
 }
 
 // ============================================================
@@ -483,6 +603,14 @@ function getSystemStatus() {
     status.docker = ['N/A'];
   }
 
+  // PM2 开机自启状态
+  status.pm2Autostart = getSystemdServiceStatus(`pm2-${process.env.USER || 'ubuntu'}`);
+
+  // DNS 解析链状态
+  status.dnsResolver = getSystemdServiceStatus('systemd-resolved');
+  status.resolvConf = getResolvConfStatus();
+  status.dnsProbe = getDnsProbeStatus('wx.shubai01.com');
+
   return status;
 }
 
@@ -502,13 +630,13 @@ function formatDate(date) {
 }
 
 function generateHTML(report) {
-  const { errorGroups, warnGroups, exceptionGroups, httpStats, pm2Status, systemStatus, timeRange } = report;
+  const { errorGroups, warnGroups, exceptionGroups, httpStats, pm2Status, systemStatus, timeRange, infrastructureAlerts } = report;
 
   const totalErrors = errorGroups.reduce((s, g) => s + g.count, 0);
   const totalWarns = warnGroups.reduce((s, g) => s + g.count, 0);
   const totalExceptions = exceptionGroups.reduce((s, g) => s + g.count, 0);
 
-  const healthScore = calculateHealthScore(totalErrors, totalExceptions, httpStats.status5xx);
+  const healthScore = calculateHealthScore(totalErrors, totalExceptions, httpStats.status5xx, infrastructureAlerts);
 
   const healthColor = healthScore >= 80 ? '#27ae60' : healthScore >= 50 ? '#f39c12' : '#e74c3c';
   const healthEmoji = healthScore >= 80 ? '✅' : healthScore >= 50 ? '⚠️' : '🔴';
@@ -595,7 +723,7 @@ ${warnGroups.length > 0 ? `
 </table>` : ''}
 
 <!-- HTTP 错误端点 -->
-${httpStats.topErrors.length > 0 ? `
+  ${httpStats.topErrors.length > 0 ? `
 <h2 style="font-size: 16px; color: #8e44ad; border-bottom: 2px solid #8e44ad; padding-bottom: 8px;">🌐 HTTP 错误端点 Top 10</h2>
 <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
   ${httpStats.topErrors.map(([endpoint, count], i) => `
@@ -606,7 +734,7 @@ ${httpStats.topErrors.length > 0 ? `
 </table>` : ''}
 
 <!-- 未捕获异常 -->
-${exceptionGroups.length > 0 ? `
+  ${exceptionGroups.length > 0 ? `
 <h2 style="font-size: 16px; color: #c0392b; border-bottom: 2px solid #c0392b; padding-bottom: 8px;">💥 未捕获异常 (${totalExceptions})</h2>
 ${exceptionGroups.map(g => `
 <div style="background: #fdf2f2; padding: 12px; margin: 8px 0; border-left: 4px solid #c0392b; border-radius: 0 6px 6px 0;">
@@ -624,8 +752,22 @@ ${exceptionGroups.map(g => `
   <tr><td style="padding: 6px 0; color: #888;">系统负载</td><td>${systemStatus.load}</td></tr>
   <tr><td style="padding: 6px 0; color: #888;">MongoDB 备份</td><td>${systemStatus.lastBackup}</td></tr>
   <tr><td style="padding: 6px 0; color: #888;">MySQL 同步</td><td>${systemStatus.mysqlSync}</td></tr>
+  <tr><td style="padding: 6px 0; color: #888;">PM2 自启动</td><td>${systemStatus.pm2Autostart?.summary || 'N/A'}</td></tr>
+  <tr><td style="padding: 6px 0; color: #888;">DNS 解析器</td><td>${systemStatus.dnsResolver?.summary || 'N/A'}</td></tr>
+  <tr><td style="padding: 6px 0; color: #888;">resolv.conf</td><td>${systemStatus.resolvConf?.summary || 'N/A'}</td></tr>
+  <tr><td style="padding: 6px 0; color: #888;">DNS 探测</td><td>${systemStatus.dnsProbe?.summary || 'N/A'}</td></tr>
   ${systemStatus.docker.map(d => `<tr><td style="padding: 6px 0; color: #888;">Docker</td><td>${d}</td></tr>`).join('')}
 </table>
+
+${infrastructureAlerts.length > 0 ? `
+<h2 style="font-size: 16px; color: #c0392b; border-bottom: 2px solid #c0392b; padding-bottom: 8px;">🛡️ 基础设施告警</h2>
+${infrastructureAlerts.map(alert => `
+<div style="background: #fff5f5; padding: 12px; margin: 8px 0; border-left: 4px solid #c0392b; border-radius: 0 6px 6px 0;">
+  <strong>${escapeHtml(alert.summary)}</strong>
+  <div style="font-size: 13px; color: #444; margin-top: 6px;"><strong>根因：</strong>${escapeHtml(alert.likelyCause)}</div>
+  <div style="font-size: 13px; color: #444; margin-top: 4px;"><strong>建议：</strong>${escapeHtml(alert.recommendedAction)}</div>
+</div>`).join('')}
+` : ''}
 
 <p style="color: #aaa; font-size: 11px; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
   此报告由 daily-log-report.js 自动生成 | ${formatDate(new Date())}
@@ -685,11 +827,19 @@ function resolveOutputDir() {
   return fallbackDir;
 }
 
-function calculateHealthScore(totalErrors, totalExceptions, status5xx) {
+function calculateHealthScore(totalErrors, totalExceptions, status5xx, infrastructureAlerts = []) {
   let healthScore = 100;
   if (totalErrors > 0) healthScore -= Math.min(totalErrors * 5, 40);
   if (totalExceptions > 0) healthScore -= Math.min(totalExceptions * 15, 30);
   if (status5xx > 0) healthScore -= Math.min(status5xx * 5, 25);
+  if (infrastructureAlerts.length > 0) {
+    const infraPenalty = infrastructureAlerts.reduce((sum, alert) => {
+      if (alert.severity === 'high') return sum + 20;
+      if (alert.severity === 'medium') return sum + 10;
+      return sum + 5;
+    }, 0);
+    healthScore -= Math.min(infraPenalty, 40);
+  }
   return Math.max(0, healthScore);
 }
 
@@ -697,7 +847,7 @@ function buildReportSummary(report) {
   const totalErrors = report.errorGroups.reduce((s, g) => s + g.count, 0);
   const totalWarns = report.warnGroups.reduce((s, g) => s + g.count, 0);
   const totalExceptions = report.exceptionGroups.reduce((s, g) => s + g.count, 0);
-  const healthScore = calculateHealthScore(totalErrors, totalExceptions, report.httpStats.status5xx);
+  const healthScore = calculateHealthScore(totalErrors, totalExceptions, report.httpStats.status5xx, report.infrastructureAlerts);
 
   return {
     reportId: `${report.timeRange.to.toISOString()}-${healthScore}-${totalErrors}-${totalWarns}-${totalExceptions}`,
@@ -712,12 +862,14 @@ function buildReportSummary(report) {
       errors: totalErrors,
       warnings: totalWarns,
       exceptions: totalExceptions,
+      infrastructureAlerts: report.infrastructureAlerts.length,
       requests: report.httpStats.total,
       status4xx: report.httpStats.status4xx,
       status5xx: report.httpStats.status5xx,
     },
     pm2Status: report.pm2Status,
     systemStatus: report.systemStatus,
+    infrastructureAlerts: report.infrastructureAlerts,
     topErrors: report.errorGroups.slice(0, 10).map(group => ({
       message: group.message,
       count: group.count,
@@ -736,7 +888,7 @@ function buildReportSummary(report) {
       lastOccurredAt: group.lastTime ? group.lastTime.toISOString() : null,
       samples: group.samples,
     })),
-    shouldTriggerDiagnosis: totalErrors > 0 || totalWarns > 0 || totalExceptions > 0 || report.httpStats.status5xx > 0,
+    shouldTriggerDiagnosis: totalErrors > 0 || totalWarns > 0 || totalExceptions > 0 || report.httpStats.status5xx > 0 || report.infrastructureAlerts.length > 0,
   };
 }
 
@@ -853,9 +1005,14 @@ async function main() {
   // 4. 获取系统状态
   const pm2Status = getPM2Status();
   const systemStatus = getSystemStatus();
+  const infrastructureAlerts = collectInfrastructureAlerts(systemStatus);
 
   console.log(`\n🖥️  PM2 当前状态: ${pm2Status.online}/${pm2Status.total} 在线, 连续运行 ${pm2Status.uptime}, ${pm2Status.memory}MB 内存`);
   console.log(`   磁盘: ${systemStatus.disk}, 负载: ${systemStatus.load}`);
+  console.log(`   PM2 自启动: ${systemStatus.pm2Autostart?.summary || 'N/A'}`);
+  console.log(`   DNS 解析器: ${systemStatus.dnsResolver?.summary || 'N/A'}`);
+  console.log(`   DNS 探测: ${systemStatus.dnsProbe?.summary || 'N/A'}`);
+  console.log(`   基础设施告警: ${infrastructureAlerts.length}`);
 
   // 5. 生成报告
   const report = {
@@ -865,6 +1022,7 @@ async function main() {
     httpStats,
     pm2Status,
     systemStatus,
+    infrastructureAlerts,
     timeRange: { from: cutoffTime, to: now },
   };
 

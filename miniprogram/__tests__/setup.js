@@ -22,6 +22,61 @@ global.generateUniqueId = function() {
   return String(global.__idCounter++);
 };
 
+global.__mockCanvasGradient = {
+  addColorStop: jest.fn()
+};
+
+global.__mockCanvasImageSrcs = [];
+global.__mockCanvasCreateImage = jest.fn(() => {
+  const image = {
+    onload: null,
+    onerror: null,
+    _src: ''
+  };
+
+  Object.defineProperty(image, 'src', {
+    get() {
+      return image._src;
+    },
+    set(value) {
+      image._src = value;
+      global.__mockCanvasImageSrcs.push(value);
+      setTimeout(() => {
+        if (image.onload) {
+          image.onload();
+        }
+      }, 0);
+    }
+  });
+
+  return image;
+});
+
+global.__mockCanvasContext = {
+  save: jest.fn(),
+  restore: jest.fn(),
+  beginPath: jest.fn(),
+  closePath: jest.fn(),
+  clip: jest.fn(),
+  moveTo: jest.fn(),
+  lineTo: jest.fn(),
+  arcTo: jest.fn(),
+  arc: jest.fn(),
+  fill: jest.fn(),
+  stroke: jest.fn(),
+  scale: jest.fn(),
+  clearRect: jest.fn(),
+  fillRect: jest.fn(),
+  fillText: jest.fn(),
+  measureText: jest.fn(text => ({
+    width: String(text || '').length * 12
+  })),
+  drawImage: jest.fn(),
+  setTransform: jest.fn(),
+  resetTransform: jest.fn(),
+  createLinearGradient: jest.fn(() => global.__mockCanvasGradient)
+};
+
 // Mock WeChat global object with all APIs
 global.wx = {
   // Storage APIs
@@ -182,6 +237,21 @@ global.wx = {
   showToast: jest.fn((options) => {
     // Toast doesn't have callbacks, but we mock it for completeness
   }),
+  showLoading: jest.fn(),
+  hideLoading: jest.fn(),
+  showActionSheet: jest.fn((options) => {
+    if (options.success) {
+      options.success({ tapIndex: 0 });
+    }
+  }),
+  previewImage: jest.fn(),
+  saveImageToPhotosAlbum: jest.fn((options) => {
+    if (options.success) {
+      options.success({});
+    }
+  }),
+  openSetting: jest.fn(),
+  setNavigationBarTitle: jest.fn(),
 
   showModal: jest.fn((options) => {
     if (options.success) {
@@ -212,6 +282,40 @@ global.wx = {
       fontSizeSetting: 16,
       SDKVersion: '2.24.0',
     };
+  }),
+
+  createSelectorQuery: jest.fn(() => ({
+    in() {
+      return this;
+    },
+    select() {
+      return this;
+    },
+    fields() {
+      return this;
+    },
+    exec(callback) {
+      callback([
+        {
+          node: {
+            width: 0,
+            height: 0,
+            getContext: () => global.__mockCanvasContext,
+            createImage: global.__mockCanvasCreateImage
+          },
+          width: 1040,
+          height: 1600
+        }
+      ]);
+    }
+  })),
+
+  canvasToTempFilePath: jest.fn((options) => {
+    if (options.success) {
+      options.success({
+        tempFilePath: '/tmp/mock-long-image.png'
+      });
+    }
   }),
 
   // Storage for internal test usage

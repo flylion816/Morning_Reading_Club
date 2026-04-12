@@ -1,14 +1,69 @@
 const courseService = require('../../services/course.service');
+const checkinService = require('../../services/checkin.service');
 const commentService = require('../../services/comment.service');
 const subscribeMessageService = require('../../services/subscribe-message.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const constants = require('../../config/constants');
+const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getPeriodAccess, extractId } = require('../../utils/period-access');
+const { renderRichTextContent } = require('../../utils/markdown');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
   'like_received',
   'next_day_study_reminder'
+];
+
+const MINI_PROGRAM_CODE_ASSET_PATHS = [
+  '/assets/images/mini-program-code.png',
+  '../../assets/images/mini-program-code.png'
+];
+
+const POSTER_STYLE_PRESETS = [
+  {
+    id: 'aurora',
+    name: '青岚',
+    cardFill: '#ffffff',
+    bgColors: ['#dff9ef', '#8fe5db', '#f7fffd'],
+    accentColors: ['#50d1b2', '#7dd8ff'],
+    chipFill: '#eefaf7',
+    chipText: '#24a381',
+    contentCardFill: '#ffffff',
+    footerText: '#8fa0b2'
+  },
+  {
+    id: 'lilac',
+    name: '暮紫',
+    cardFill: '#ffffff',
+    bgColors: ['#f5ebff', '#d7dcff', '#fff9ff'],
+    accentColors: ['#9e84ff', '#e7a7ff'],
+    chipFill: '#f4eeff',
+    chipText: '#775ee8',
+    contentCardFill: '#ffffff',
+    footerText: '#988fb5'
+  },
+  {
+    id: 'sky',
+    name: '晴空',
+    cardFill: '#ffffff',
+    bgColors: ['#dff2ff', '#8fd1ff', '#ffffff'],
+    accentColors: ['#4b8cff', '#7cc7ff'],
+    chipFill: '#edf4ff',
+    chipText: '#356ed9',
+    contentCardFill: '#ffffff',
+    footerText: '#8ba1bf'
+  },
+  {
+    id: 'paper',
+    name: '留白',
+    cardFill: '#fffdf8',
+    bgColors: ['#f7f4ee', '#ffffff', '#f3f6fb'],
+    accentColors: ['#2c3f63', '#5d7596'],
+    chipFill: '#f2efe8',
+    chipText: '#516278',
+    contentCardFill: '#ffffff',
+    footerText: '#9da7b6'
+  }
 ];
 
 Page({
@@ -26,9 +81,20 @@ Page({
     commentExpanded: {},
     commentLoading: {},
     notificationReminder: '',
+    isCheckinDetailMode: false,
+    detailCheckin: null,
+    posterGenerating: false,
+    posterTempFilePath: '',
+    posterSourceCheckinId: '',
+    posterGalleryVisible: false,
+    posterGalleryItems: [],
+    posterSelectedIndex: 0,
+    selectedPoster: null,
     focusCheckinId: '',
     focusCommentId: '',
     focusReplyId: '',
+    shareCheckinId: '',
+    shareCheckinUserName: '',
     highlightCheckinId: '',
     highlightCommentId: '',
     highlightReplyId: ''
@@ -47,10 +113,27 @@ Page({
       paymentStatus: null,
       canAccessCommunity: false,
       communityAccessState: 'locked',
+      isCheckinDetailMode: !!options.checkinId,
+      detailCheckin: null,
+      posterGenerating: false,
+      posterTempFilePath: '',
+      posterSourceCheckinId: '',
+      posterGalleryVisible: false,
+      posterGalleryItems: [],
+      posterSelectedIndex: 0,
+      selectedPoster: null,
       focusCheckinId: options.checkinId || '',
       focusCommentId: options.commentId || '',
-      focusReplyId: options.replyId || ''
+      focusReplyId: options.replyId || '',
+      shareCheckinId: options.checkinId || '',
+      shareCheckinUserName: ''
     });
+
+    if (options.checkinId) {
+      wx.setNavigationBarTitle({
+        title: '动态详情'
+      });
+    }
     this.loadCourseDetail();
   },
 
@@ -68,7 +151,15 @@ Page({
   },
 
   onShareAppMessage() {
-    const { course, courseId } = this.data;
+    const { course, courseId, shareCheckinId, shareCheckinUserName } = this.data;
+
+    if (shareCheckinId) {
+      return {
+        title: shareCheckinUserName ? `${shareCheckinUserName}的打卡日记` : (course.title || '动态详情'),
+        path: `/pages/course-detail/course-detail?id=${courseId}&checkinId=${shareCheckinId}`
+      };
+    }
+
     return {
       title: course.title || '课程详情',
       path: `/pages/course-detail/course-detail?id=${courseId}`
@@ -76,7 +167,15 @@ Page({
   },
 
   onShareTimeline() {
-    const { course, courseId } = this.data;
+    const { course, courseId, shareCheckinId, shareCheckinUserName } = this.data;
+
+    if (shareCheckinId) {
+      return {
+        title: shareCheckinUserName ? `${shareCheckinUserName}的打卡日记` : (course.title || '动态详情'),
+        query: `id=${courseId}&checkinId=${shareCheckinId}`
+      };
+    }
+
     return {
       title: course.title || '课程详情',
       query: `id=${courseId}`
@@ -87,23 +186,20 @@ Page({
    * 清理 HTML，使其与小程序 rich-text 兼容
    * 小程序 rich-text 支持：p、br、strong、em、u、s、span、img、a、li、ol、ul 等标签
    */
-  cleanHtmlForRichText(html) {
-    if (!html) return '';
+  cleanHtmlForRichText(content) {
+    if (!content) return '';
 
-    let cleaned = html;
+    let cleaned = renderRichTextContent(content);
 
     // 1. 移除 class 属性
     cleaned = cleaned.replace(/\s+class="[^"]*"/gi, '');
 
-    // 2. 移除旧的 style 属性，然后重新添加
-    cleaned = cleaned.replace(/\s+style="[^"]*"/gi, '');
+    // 2. 仅移除图片旧样式，保留 Markdown 渲染所需的段落/列表样式
+    cleaned = cleaned.replace(/<img([^>]*?)\s+style="[^"]*"/gi, '<img$1');
 
     // 3. 识别手工输入的列表项格式（如"1. 文本"、"2. 文本"）并增加间距
     // 匹配 <p> 标签中以数字+点开头的内容
-    cleaned = cleaned.replace(/<p>(\d+\.\s)/gi, (match) => {
-      // 为列表项段落添加 margin-bottom
-      return '<p style="margin-bottom:16px;">' + match.substring(3);
-    });
+    cleaned = cleaned.replace(/<p>(\d+\.\s)/gi, '<p style="margin-bottom:16px;">$1');
 
     // 4. 为所有 <img> 标签添加合适的 style
     // 关键：使用 display:block 和 width:100% 让图片充满容器
@@ -137,6 +233,664 @@ Page({
     return false;
   },
 
+  normalizeId(value) {
+    if (!value) return '';
+    if (typeof value === 'object') {
+      return String(value._id || value.id || '');
+    }
+    return String(value);
+  },
+
+  buildCheckinItem(checkin = {}) {
+    const app = getApp();
+    const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+    const userInfo = checkin.userId && typeof checkin.userId === 'object' ? checkin.userId : {};
+    const sectionInfo =
+      checkin.sectionId && typeof checkin.sectionId === 'object' ? checkin.sectionId : {};
+    const periodInfo = checkin.periodId && typeof checkin.periodId === 'object' ? checkin.periodId : {};
+    const userName = userInfo.nickname || checkin.userName || '匿名用户';
+    const avatarUrl = userInfo.avatarUrl || '';
+    const normalizedUserId = this.normalizeId(userInfo._id || userInfo.id || checkin.userId || userName);
+
+    return {
+      id: this.normalizeId(checkin._id || checkin.id),
+      userId: this.normalizeId(userInfo._id || userInfo.id || checkin.userId),
+      periodId: this.normalizeId(periodInfo._id || periodInfo.id || checkin.periodId || this.data.periodId),
+      sectionId: this.normalizeId(sectionInfo._id || sectionInfo.id || checkin.sectionId || this.data.courseId),
+      userName,
+      avatarText: avatarUrl ? '' : (userName ? userName.charAt(0) : '👤'),
+      avatarUrl,
+      avatarColor: checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
+      content: checkin.note || checkin.content || '',
+      createTime: checkin.createdAt || checkin.checkinDate ? this.formatTime(checkin.createdAt || checkin.checkinDate) : '刚刚',
+      checkinDate: checkin.checkinDate || checkin.createdAt || '',
+      likeCount: checkin.likeCount || 0,
+      isLiked: Array.isArray(checkin.likes) && currentUserId
+        ? checkin.likes.some(
+            like =>
+              String(like.userId?._id || like.userId?.id || like.userId || like) ===
+              String(currentUserId)
+          )
+        : false,
+      replies: [],
+      day: checkin.day ?? sectionInfo.day ?? this.data.course?.day ?? null,
+      sectionDay: sectionInfo.day ?? checkin.day ?? this.data.course?.day ?? null,
+      sectionTitle: sectionInfo.title || this.data.course?.title || '晨读任务',
+      sectionIcon: sectionInfo.icon || '',
+      periodTitle:
+        periodInfo.title ||
+        periodInfo.name ||
+        this.data.course?.periodId?.title ||
+        this.data.course?.periodId?.name ||
+        ''
+    };
+  },
+
+  formatDetailDateTime(dateStr) {
+    if (!dateStr) return '';
+
+    try {
+      const date = new Date(dateStr);
+      if (Number.isNaN(date.getTime())) {
+        return '';
+      }
+
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      const hh = String(date.getHours()).padStart(2, '0');
+      const mi = String(date.getMinutes()).padStart(2, '0');
+      const ss = String(date.getSeconds()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+    } catch (error) {
+      return '';
+    }
+  },
+
+  buildDetailCheckinData(checkin) {
+    if (!checkin) {
+      return null;
+    }
+
+    const sectionDay = checkin.sectionDay || checkin.day || this.data.course?.day || null;
+    const metaParts = [];
+    if (sectionDay) {
+      metaParts.push(`第${sectionDay}天打卡`);
+      metaParts.push(`第${sectionDay}个任务`);
+    } else {
+      metaParts.push('打卡日记');
+    }
+
+    const periodTitle =
+      checkin.periodTitle ||
+      this.data.course?.periodId?.title ||
+      this.data.course?.periodId?.name ||
+      '';
+    const sectionTitle = checkin.sectionTitle || this.data.course?.title || '晨读任务';
+    const hashTag = sectionDay ? `#第${sectionDay}天 ${sectionTitle}` : `#${sectionTitle}`;
+
+    return {
+      ...checkin,
+      metaLine: metaParts.join(' | '),
+      hashTag,
+      periodChip: periodTitle || sectionTitle,
+      dateLabel: this.formatDetailDateTime(checkin.checkinDate),
+      commentCount: Array.isArray(checkin.replies) ? checkin.replies.length : 0
+    };
+  },
+
+  syncDetailCheckinState(checkinId = this.data.shareCheckinId) {
+    if (!this.data.isCheckinDetailMode || !checkinId) {
+      return;
+    }
+
+    const targetCheckin = (this.data.course.comments || []).find(
+      item => String(item.id || item._id) === String(checkinId)
+    );
+
+    if (!targetCheckin) {
+      return;
+    }
+
+    this.setData({
+      detailCheckin: this.buildDetailCheckinData(targetCheckin)
+    });
+  },
+
+  getPosterTextUnits(text = '') {
+    return Array.from(String(text)).reduce((sum, char) => {
+      return sum + (/[^\x00-\xff]/.test(char) ? 2 : 1);
+    }, 0);
+  },
+
+  wrapPosterText(text = '', maxUnits = 34) {
+    const lines = [];
+    const paragraphs = String(text || '').split('\n');
+
+    paragraphs.forEach((paragraph, paragraphIndex) => {
+      const trimmed = paragraph.replace(/\r/g, '');
+      if (!trimmed) {
+        lines.push('');
+        return;
+      }
+
+      let currentLine = '';
+      let currentUnits = 0;
+
+      Array.from(trimmed).forEach(char => {
+        const nextUnits = this.getPosterTextUnits(char);
+        if (currentLine && currentUnits + nextUnits > maxUnits) {
+          lines.push(currentLine);
+          currentLine = char;
+          currentUnits = nextUnits;
+          return;
+        }
+
+        currentLine += char;
+        currentUnits += nextUnits;
+      });
+
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+
+      if (paragraphIndex < paragraphs.length - 1) {
+        lines.push('');
+      }
+    });
+
+    return lines.length > 0 ? lines : [''];
+  },
+
+  buildPosterSnapshot(detailCheckin, stylePreset = POSTER_STYLE_PRESETS[0]) {
+    const contentText = String(detailCheckin?.content || '这篇打卡还没有填写正文');
+    const contentLines = this.wrapPosterText(contentText, 34);
+    const titleLines = this.wrapPosterText(`${detailCheckin?.userName || '伙伴'}的打卡日记`, 22);
+    const tagLines = detailCheckin?.hashTag ? this.wrapPosterText(detailCheckin.hashTag, 28) : [];
+    const periodChip = detailCheckin?.periodChip || detailCheckin?.sectionTitle || '晨读任务';
+    const dateLabel = detailCheckin?.dateLabel || '';
+    const sectionTitle = detailCheckin?.sectionTitle || '晨读任务';
+    const statsLine = `获赞 ${detailCheckin?.likeCount || 0} · 评论 ${detailCheckin?.commentCount || 0}`;
+    const lineHeight = 54;
+    const baseHeight =
+      180 +
+      titleLines.length * 54 +
+      120 +
+      contentLines.length * lineHeight +
+      (tagLines.length > 0 ? tagLines.length * 44 + 20 : 0) +
+      170 +
+      110;
+
+    return {
+      width: 1040,
+      height: Math.max(1480, baseHeight),
+      titleLines,
+      contentLines,
+      tagLines,
+      periodChip,
+      dateLabel,
+      sectionTitle,
+      statsLine,
+      authorName: detailCheckin?.userName || '伙伴',
+      authorMeta: detailCheckin?.metaLine || '打卡日记',
+      avatarText: detailCheckin?.avatarText || (detailCheckin?.userName || '伙').charAt(0) || '伙',
+      miniProgramCodePath: MINI_PROGRAM_CODE_ASSET_PATHS[0],
+      styleId: stylePreset.id,
+      styleName: stylePreset.name,
+      stylePreset
+    };
+  },
+
+  async loadPosterImage(canvas, srcCandidates = []) {
+    if (!canvas || typeof canvas.createImage !== 'function') {
+      throw new Error('当前环境不支持图片绘制');
+    }
+
+    const candidates = Array.isArray(srcCandidates) ? srcCandidates : [srcCandidates];
+    let lastError = null;
+
+    for (const src of candidates) {
+      if (!src) {
+        continue;
+      }
+
+      try {
+        const image = await new Promise((resolve, reject) => {
+          const instance = canvas.createImage();
+          instance.onload = () => resolve(instance);
+          instance.onerror = error => reject(error || new Error(`加载图片失败: ${src}`));
+          instance.src = src;
+        });
+        return image;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('加载图片失败');
+  },
+
+  async getPosterCanvasNode() {
+    if (!wx.createSelectorQuery) {
+      throw new Error('当前环境不支持长图生成');
+    }
+
+    return new Promise((resolve, reject) => {
+      const query = wx.createSelectorQuery();
+      if (typeof query.in === 'function') {
+        query.in(this);
+      }
+
+      query
+        .select('#longImageCanvas')
+        .fields({ node: true, size: true })
+        .exec(result => {
+          const target = result && result[0];
+          if (!target || !target.node) {
+            reject(new Error('找不到长图画布'));
+            return;
+          }
+          resolve(target);
+        });
+    });
+  },
+
+  drawPosterRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.arcTo(x + width, y, x + width, y + radius, radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+    ctx.lineTo(x + radius, y + height);
+    ctx.arcTo(x, y + height, x, y + height - radius, radius);
+    ctx.lineTo(x, y + radius);
+    ctx.arcTo(x, y, x + radius, y, radius);
+    ctx.closePath();
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+    ctx.restore();
+  },
+
+  drawPosterTextLines(ctx, lines, startX, startY, lineHeight) {
+    let cursorY = startY;
+    lines.forEach(line => {
+      if (!line) {
+        cursorY += Math.floor(lineHeight * 0.65);
+        return;
+      }
+
+      ctx.fillText(line, startX, cursorY);
+      cursorY += lineHeight;
+    });
+    return cursorY;
+  },
+
+  drawPosterDecoration(ctx, snapshot, stylePreset) {
+    const cardMargin = 48;
+    const cardX = cardMargin;
+    const cardY = cardMargin;
+    const cardWidth = snapshot.width - cardMargin * 2;
+    const cardHeight = snapshot.height - cardMargin * 2;
+    const borderRadius = 40;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.06)';
+    ctx.shadowBlur = 32;
+    ctx.shadowOffsetY = 12;
+    this.drawPosterRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, borderRadius, '#ffffff');
+    ctx.restore();
+
+    const clipInner = () => {
+      ctx.beginPath();
+      ctx.moveTo(cardX + borderRadius, cardY);
+      ctx.lineTo(cardX + cardWidth - borderRadius, cardY);
+      ctx.arcTo(cardX + cardWidth, cardY, cardX + cardWidth, cardY + borderRadius, borderRadius);
+      ctx.lineTo(cardX + cardWidth, cardY + cardHeight - borderRadius);
+      ctx.arcTo(cardX + cardWidth, cardY + cardHeight, cardX + cardWidth - borderRadius, cardY + cardHeight, borderRadius);
+      ctx.lineTo(cardX + borderRadius, cardY + cardHeight);
+      ctx.arcTo(cardX, cardY + cardHeight, cardX, cardY + cardHeight - borderRadius, borderRadius);
+      ctx.lineTo(cardX, cardY + borderRadius);
+      ctx.arcTo(cardX, cardY, cardX + borderRadius, cardY, borderRadius);
+      ctx.closePath();
+      ctx.clip();
+    };
+
+    ctx.save();
+    clipInner();
+
+    if (stylePreset.id === 'aurora') {
+      ctx.globalAlpha = 0.5;
+      const grad1 = ctx.createLinearGradient(0, 0, snapshot.width, 400);
+      grad1.addColorStop(0, stylePreset.accentColors[0]);
+      grad1.addColorStop(1, '#ffffff');
+      ctx.fillStyle = grad1;
+      ctx.beginPath();
+      ctx.arc(snapshot.width - 50, 50, 400, 0, Math.PI * 2);
+      ctx.fill();
+
+      const grad2 = ctx.createLinearGradient(0, 0, 400, 400);
+      grad2.addColorStop(0, stylePreset.accentColors[1]);
+      grad2.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad2;
+      ctx.beginPath();
+      ctx.arc(cardX, 300, 350, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (stylePreset.id === 'lilac') {
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = stylePreset.accentColors[0];
+      ctx.beginPath();
+      ctx.arc(cardWidth / 2 + cardX, cardY - 50, 450, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.3;
+      const grad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + 400);
+      grad.addColorStop(0, stylePreset.bgColors[0]);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(cardX, cardY, cardWidth, 400);
+    } else if (stylePreset.id === 'sky') {
+      const grad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + 400);
+      grad.addColorStop(0, stylePreset.accentColors[0] || '#4b8cff');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.globalAlpha = 0.1;
+      ctx.fillStyle = grad;
+      ctx.fillRect(cardX, cardY, cardWidth, 500);
+
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = stylePreset.accentColors[0];
+      this.drawPosterRoundedRect(ctx, cardX + 32, cardY + 32, cardWidth - 64, 280, 24, stylePreset.accentColors[0]);
+    } else if (stylePreset.id === 'paper') {
+      ctx.globalAlpha = 0.02;
+      ctx.fillStyle = stylePreset.accentColors[0];
+      ctx.font = 'bold italic 160px sans-serif';
+      ctx.fillText('DIARY', snapshot.width - 450, cardY + 160);
+    }
+
+    ctx.restore();
+  },
+
+  drawPosterOutline(ctx, x, y, width, height, radius, strokeStyle, lineWidth = 2) {
+    ctx.save();
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.arcTo(x + width, y, x + width, y + radius, radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+    ctx.lineTo(x + radius, y + height);
+    ctx.arcTo(x, y + height, x, y + height - radius, radius);
+    ctx.lineTo(x, y + radius);
+    ctx.arcTo(x, y, x + radius, y, radius);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  },
+
+  async generateLongImagePoster(detailCheckin, stylePreset = POSTER_STYLE_PRESETS[0]) {
+    const snapshot = this.buildPosterSnapshot(detailCheckin, stylePreset);
+    const target = await this.getPosterCanvasNode();
+    const canvas = target.node;
+    const ctx = canvas.getContext('2d');
+    const dpr = wx.getSystemInfoSync?.().pixelRatio || 2;
+    let miniProgramCodeImage = null;
+
+    canvas.width = snapshot.width * dpr;
+    canvas.height = snapshot.height * dpr;
+
+    if (typeof ctx.resetTransform === 'function') {
+      ctx.resetTransform();
+    } else if (typeof ctx.setTransform === 'function') {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, snapshot.width, snapshot.height);
+
+    try {
+      miniProgramCodeImage = await this.loadPosterImage(canvas, MINI_PROGRAM_CODE_ASSET_PATHS);
+    } catch (error) {
+      console.warn('加载小程序码失败，继续生成无二维码长图', error);
+    }
+
+    const backgroundGradient = ctx.createLinearGradient(0, 0, 0, snapshot.height);
+    backgroundGradient.addColorStop(0, stylePreset.bgColors[0] || '#eaf3ff');
+    backgroundGradient.addColorStop(0.5, stylePreset.bgColors[1] || '#f8fbff');
+    backgroundGradient.addColorStop(1, stylePreset.bgColors[2] || '#ffffff');
+    ctx.fillStyle = backgroundGradient;
+    ctx.fillRect(0, 0, snapshot.width, snapshot.height);
+
+    this.drawPosterDecoration(ctx, snapshot, stylePreset);
+
+    const avatarGradient = ctx.createLinearGradient(96, 160, 220, 260);
+    avatarGradient.addColorStop(0, stylePreset.accentColors[0]);
+    avatarGradient.addColorStop(1, stylePreset.accentColors[1]);
+    ctx.fillStyle = avatarGradient;
+    ctx.beginPath();
+    ctx.arc(140, 152, 44, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 34px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(snapshot.avatarText, 140, 152);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#8b94a5';
+    ctx.font = '24px sans-serif';
+    ctx.fillText(snapshot.authorMeta, 204, 140);
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 34px sans-serif';
+    ctx.fillText(snapshot.authorName, 204, 182);
+
+    const contentStartX = stylePreset.id === 'paper' ? 152 : 96;
+    let cursorY = stylePreset.id === 'paper' ? 242 : 260;
+    ctx.fillStyle = stylePreset.id === 'paper' ? '#22324a' : '#111827';
+    ctx.font = 'bold 44px sans-serif';
+    cursorY = this.drawPosterTextLines(ctx, snapshot.titleLines, contentStartX, cursorY, 58);
+
+    ctx.fillStyle = stylePreset.id === 'paper' ? '#607089' : '#6b7280';
+    ctx.font = '26px sans-serif';
+    cursorY += 14;
+    ctx.fillText(snapshot.sectionTitle, contentStartX, cursorY);
+
+    cursorY += 80;
+    ctx.fillStyle = '#1f2937';
+    ctx.font = '34px sans-serif';
+    cursorY = this.drawPosterTextLines(ctx, snapshot.contentLines, contentStartX, cursorY, 56);
+
+    if (snapshot.tagLines.length > 0) {
+      cursorY += 32;
+      ctx.fillStyle = stylePreset.chipText;
+      ctx.font = '28px sans-serif';
+      cursorY = this.drawPosterTextLines(ctx, snapshot.tagLines, contentStartX, cursorY, 44);
+    }
+
+    cursorY += 40;
+    const chipPadding = 24;
+    ctx.font = '24px sans-serif';
+    const chipTextParam = snapshot.periodChip;
+    const textWidth = ctx.measureText(chipTextParam).width;
+    this.drawPosterRoundedRect(ctx, contentStartX, cursorY - 26, textWidth + chipPadding * 2, 54, 27, stylePreset.chipFill);
+    ctx.fillStyle = stylePreset.chipText;
+    ctx.font = '24px sans-serif';
+    ctx.fillText(chipTextParam, contentStartX + chipPadding, cursorY + 10);
+
+    cursorY += 84;
+    ctx.fillStyle = '#8b94a5';
+    ctx.font = '24px sans-serif';
+    if (snapshot.dateLabel) {
+      ctx.fillText(snapshot.dateLabel, contentStartX, cursorY);
+    }
+
+    cursorY += 56;
+    ctx.fillText(snapshot.statsLine, contentStartX, cursorY);
+
+    ctx.strokeStyle = '#f1f5f9';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(96, snapshot.height - 250);
+    ctx.lineTo(snapshot.width - 96, snapshot.height - 250);
+    ctx.stroke();
+
+    ctx.fillStyle = stylePreset.footerText;
+    ctx.font = '24px sans-serif';
+    ctx.fillText('凡人共读 · 动态详情长图', contentStartX, snapshot.height - 170);
+    ctx.fillText('打开小程序查看完整评论与互动', contentStartX, snapshot.height - 130);
+
+    if (miniProgramCodeImage && typeof ctx.drawImage === 'function') {
+      const qrCardSize = 120;
+      const qrPadding = 10;
+      const qrCardX = snapshot.width - 96 - qrCardSize;
+      const qrCardY = snapshot.height - 216;
+
+      this.drawPosterRoundedRect(ctx, qrCardX, qrCardY, qrCardSize, qrCardSize, 20, '#ffffff');
+      this.drawPosterOutline(ctx, qrCardX, qrCardY, qrCardSize, qrCardSize, 20, '#e8edf5', 2);
+      ctx.drawImage(
+        miniProgramCodeImage,
+        qrCardX + qrPadding,
+        qrCardY + qrPadding,
+        qrCardSize - qrPadding * 2,
+        qrCardSize - qrPadding * 2
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      wx.canvasToTempFilePath({
+        canvas,
+        width: snapshot.width,
+        height: snapshot.height,
+        destWidth: snapshot.width * 2,
+        destHeight: snapshot.height * 2,
+        fileType: 'png',
+        quality: 1,
+        success: res => resolve(res.tempFilePath),
+        fail: reject
+      });
+    });
+  },
+
+  syncSelectedPoster(index = 0) {
+    const posterGalleryItems = Array.isArray(this.data.posterGalleryItems) ? this.data.posterGalleryItems : [];
+    const safeIndex = Math.min(Math.max(Number(index) || 0, 0), Math.max(posterGalleryItems.length - 1, 0));
+    const selectedPoster = posterGalleryItems[safeIndex] || null;
+
+    this.setData({
+      posterSelectedIndex: safeIndex,
+      selectedPoster,
+      posterTempFilePath: selectedPoster?.tempFilePath || ''
+    });
+  },
+
+  async generatePosterGallery(detailCheckin) {
+    const items = [];
+
+    for (let index = 0; index < POSTER_STYLE_PRESETS.length; index += 1) {
+      const stylePreset = POSTER_STYLE_PRESETS[index];
+      if (wx.showLoading) {
+        wx.showLoading({
+          title: `海报 ${index + 1}/${POSTER_STYLE_PRESETS.length}`,
+          mask: true
+        });
+      }
+
+      const tempFilePath = await this.generateLongImagePoster(detailCheckin, stylePreset);
+      items.push({
+        id: stylePreset.id,
+        name: stylePreset.name,
+        tempFilePath
+      });
+    }
+
+    return items;
+  },
+
+  previewGeneratedPoster(tempFilePath) {
+    if (!tempFilePath) {
+      return;
+    }
+
+    if (wx.previewImage) {
+      wx.previewImage({
+        current: tempFilePath,
+        urls: [tempFilePath]
+      });
+    }
+  },
+
+  savePosterToAlbum(tempFilePath) {
+    return new Promise((resolve, reject) => {
+      wx.saveImageToPhotosAlbum({
+        filePath: tempFilePath,
+        success: () => {
+          wx.showToast({
+            title: '已保存到相册',
+            icon: 'success'
+          });
+          resolve();
+        },
+        fail: error => {
+          if (String(error?.errMsg || '').includes('auth deny') && wx.showModal) {
+            wx.showModal({
+              title: '需要相册权限',
+              content: '请在设置中允许保存到相册后重试',
+              success: modalRes => {
+                if (modalRes.confirm && wx.openSetting) {
+                  wx.openSetting({});
+                }
+              }
+            });
+          } else {
+            wx.showToast({
+              title: '保存失败',
+              icon: 'none'
+            });
+          }
+          reject(error);
+        }
+      });
+    });
+  },
+
+  openPosterGallery() {
+    if (!Array.isArray(this.data.posterGalleryItems) || this.data.posterGalleryItems.length === 0) {
+      return;
+    }
+
+    this.setData({
+      posterGalleryVisible: true
+    });
+  },
+
+  closePosterGallery() {
+    this.setData({
+      posterGalleryVisible: false
+    });
+  },
+
+  noop() {},
+
+  handlePosterTemplateSelect(e) {
+    const { index } = e.currentTarget.dataset || {};
+    this.syncSelectedPoster(index);
+  },
+
+  handlePreviewSelectedPoster() {
+    this.previewGeneratedPoster(this.data.selectedPoster?.tempFilePath);
+  },
+
+  handleSaveSelectedPoster() {
+    if (!this.data.selectedPoster?.tempFilePath) {
+      return;
+    }
+    this.savePosterToAlbum(this.data.selectedPoster.tempFilePath);
+  },
+
   /**
    * 处理课程数据，添加模块可见性标志
    */
@@ -165,6 +919,46 @@ Page({
     });
 
     return course;
+  },
+
+  async loadFocusedCheckinDetail(course, periodId, access) {
+    const detail = await checkinService.getCheckinDetail(this.data.shareCheckinId);
+    const checkinItem = this.buildCheckinItem(detail || {});
+    const app = getApp();
+    const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+    const calendar = this.generateCalendar(course);
+    const checkedDays = calendar.filter(d => d.status === 'checked').length;
+
+    course.comments = [checkinItem];
+    this.syncShareCheckinMeta(course.comments);
+
+    this.setData(
+      {
+        periodId: periodId || this.normalizeId(detail?.periodId),
+        paymentStatus: access.paymentStatus || null,
+        canAccessCommunity: !!access.canAccessCommunity,
+        communityAccessState: access.communityAccessState || 'locked',
+        hasUserCheckedIn:
+          !!currentUserId && String(checkinItem.userId) === String(currentUserId),
+        commentExpanded: { [checkinItem.id]: true },
+        commentLoading: {},
+        notificationReminder: '',
+        course,
+        calendar,
+        checkedDays,
+        loading: false
+      },
+      async () => {
+        this.syncDetailCheckinState(checkinItem.id);
+        try {
+          await this.expandCheckinCommentsByIndex(0);
+        } catch (error) {
+          console.warn('加载打卡详情评论失败:', error);
+        }
+        this.syncDetailCheckinState(checkinItem.id);
+        this.loadNotificationReminder();
+      }
+    );
   },
 
   async loadCourseDetail() {
@@ -200,6 +994,11 @@ Page({
       console.log('course.comments:', course.comments);
       console.log('comments 是否存在:', !!course.comments);
       console.log('comments 长度:', course.comments ? course.comments.length : 0);
+
+      if (this.data.isCheckinDetailMode) {
+        await this.loadFocusedCheckinDetail(course, periodId, access);
+        return;
+      }
 
       if (!communityEnabled) {
         course.comments = [];
@@ -291,8 +1090,8 @@ Page({
 
       // 组织打卡记录的层级结构
       // 打卡(Checkin)为主层级，评论(Comment)为子层级
-      const app = getApp();
       let hasUserCheckedIn = false;
+      const app = getApp();
       const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
 
 
@@ -304,23 +1103,6 @@ Page({
           hasUserCheckedIn = true;
         }
 
-        // 获取用户信息（可能是被populate的对象，也可能只是ID字符串）
-        let userName = '匿名用户';
-        let avatarText = '👤';
-        let avatarUrl = '';
-
-        if (checkin.userId && typeof checkin.userId === 'object') {
-          // userId被populate了，包含用户完整信息
-          userName = checkin.userId.nickname || '匿名用户';
-          avatarUrl = checkin.userId.avatarUrl || '';
-          // 优先使用真实头像，没有则用昵称首字
-          avatarText = avatarUrl ? '' : userName ? userName.charAt(0) : '👤';
-        } else {
-          // userId只是字符串ID，使用默认信息
-          userName = checkin.userName || '匿名用户';
-          avatarText = checkin.avatarText || '👤';
-        }
-
         if (checkin.likes && checkin.likes.length > 0) {
           console.log('--- Debug Likes (Checkin) ---', { checkinId: checkin._id || checkin.id, likes: checkin.likes, currentUserId });
           checkin.likes.forEach(l => {
@@ -329,26 +1111,7 @@ Page({
           });
         }
 
-        const isCheckinLikedLocally = Array.isArray(checkin.likes) && currentUserId ? checkin.likes.some(l =>
-          String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
-        ) : false;
-
-        // 将打卡记录转换为前端格式
-        const checkinItem = {
-          id: checkin._id || checkin.id,
-          userId: checkinUserId,
-          userName: userName,
-          avatarText: avatarText,
-          avatarUrl: avatarUrl,
-          avatarColor: checkin.avatarColor || '#4a90e2',
-          content: checkin.note || checkin.content || '',
-          createTime: checkin.createdAt ? this.formatTime(checkin.createdAt) : '刚刚',
-          likeCount: checkin.likeCount || 0,
-          isLiked: isCheckinLikedLocally,
-          replies: [] // 初始化为空，下面会填充评论
-        };
-
-        return checkinItem;
+        return this.buildCheckinItem(checkin);
       });
 
       // 保存当前用户是否已打卡的状态
@@ -356,6 +1119,7 @@ Page({
 
       // 评论改为延迟加载：用户点击"查看评论"时才加载，避免串行 N 次 API 请求
       course.comments = checkinWithComments;
+      this.syncShareCheckinMeta(checkinWithComments);
 
       const calendar = this.generateCalendar(course);
       const checkedDays = calendar.filter(d => d.status === 'checked').length;
@@ -384,6 +1148,25 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  syncShareCheckinMeta(checkins = []) {
+    const { shareCheckinId } = this.data;
+    if (!shareCheckinId) {
+      return;
+    }
+
+    const targetCheckin = checkins.find(
+      item => String(item.id || item._id) === String(shareCheckinId)
+    );
+
+    if (!targetCheckin) {
+      return;
+    }
+
+    this.setData({
+      shareCheckinUserName: targetCheckin.userName || ''
+    });
   },
 
   generateCalendar(course) {
@@ -544,7 +1327,7 @@ Page({
               userName: reply.userId?.nickname || '匿名用户',
               avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
               avatarUrl: reply.userId?.avatarUrl || '',
-              avatarColor: '#9cb5f0',
+              avatarColor: getAvatarColorByUserId(reply.userId?._id || reply.userId || reply.userId?.nickname || '匿名用户'),
               content: reply.content || '',
               createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
               likeCount: reply.likeCount || 0,
@@ -565,7 +1348,7 @@ Page({
             userName: comment.userId?.nickname || '匿名用户',
             avatarText: comment.userId?.nickname ? comment.userId.nickname.charAt(0) : '👤',
             avatarUrl: comment.userId?.avatarUrl || '',
-            avatarColor: '#7eb5f0',
+            avatarColor: getAvatarColorByUserId(comment.userId?._id || comment.userId || comment.userId?.nickname || '匿名用户'),
             content: comment.content || '',
             createTime: comment.createdAt ? this.formatTime(comment.createdAt) : '刚刚',
             likeCount: comment.likeCount || 0,
@@ -578,10 +1361,12 @@ Page({
           [`course.comments[${index}].replies`]: formattedReplies,
           [loadingKey]: false
         });
+        this.syncDetailCheckinState(checkin.id);
         return;
       }
 
       this.setData({ [loadingKey]: false });
+      this.syncDetailCheckinState(checkin.id);
     } catch (error) {
       this.setData({
         [loadingKey]: false,
@@ -705,6 +1490,7 @@ Page({
       this.setData({
         'course.comments': comments
       });
+      this.syncDetailCheckinState(id);
     } catch (error) {
       console.error('点赞操作失败:', error);
       wx.showToast({
@@ -758,10 +1544,11 @@ Page({
               id: replyData._id || replyData.id || Date.now(),
               userId: currentUser?._id || currentUser?.id,
               userName: currentUser?.nickname || '我',
-              avatarText: currentUser?.nickname
-                ? currentUser.nickname.charAt(currentUser.nickname.length - 1)
-                : '我',
-              avatarColor: '#7eb5f0',
+              avatarText: currentUser?.avatarUrl
+                ? ''
+                : (currentUser?.nickname ? currentUser.nickname.charAt(0) : '我'),
+              avatarUrl: currentUser?.avatarUrl || '',
+              avatarColor: getAvatarColorByUserId(currentUser?._id || currentUser?.id || currentUser?.nickname || '我'),
               content: res.content.trim(),
               createTime: '刚刚',
               likeCount: 0,
@@ -778,6 +1565,7 @@ Page({
             this.setData({
               'course.comments': comments
             });
+            this.syncDetailCheckinState(id);
 
             wx.showToast({
               title: '回复成功',
@@ -867,6 +1655,7 @@ Page({
       this.setData({
         'course.comments': comments
       });
+      this.syncDetailCheckinState(commentId);
     } catch (error) {
       console.error('回复点赞操作失败:', error);
       wx.showToast({
@@ -975,7 +1764,7 @@ Page({
                         userId: reply.userId?._id || reply.userId,
                         userName: reply.userId?.nickname || '匿名用户',
                         avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
-                        avatarColor: '#7eb5f0',
+                        avatarColor: getAvatarColorByUserId(reply.userId?._id || reply.userId || reply.userId?.nickname || '匿名用户'),
                         content: reply.content || '',
                         createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
                         likeCount: reply.likeCount || 0,
@@ -1007,6 +1796,7 @@ Page({
             this.setData({
               'course.comments': checkins
             });
+            this.syncDetailCheckinState(checkinId);
 
             wx.showToast({
               title: '回复成功',
@@ -1077,5 +1867,56 @@ Page({
 
     console.log('🔗 最终导航URL:', url);
     wx.navigateTo({ url });
+  },
+
+  handleLongImageShare() {
+    const { detailCheckin, posterGenerating, posterGalleryItems, posterSourceCheckinId } = this.data;
+
+    if (!detailCheckin) {
+      wx.showToast({
+        title: '暂无可生成的内容',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (posterGenerating) {
+      return;
+    }
+
+    if (Array.isArray(posterGalleryItems) && posterGalleryItems.length > 0 && posterSourceCheckinId === detailCheckin.id) {
+      this.openPosterGallery();
+      return;
+    }
+
+    this.setData({ posterGenerating: true });
+    if (wx.showLoading) {
+      wx.showLoading({
+        title: '生成长图中...',
+        mask: true
+      });
+    }
+
+    this.generatePosterGallery(detailCheckin)
+      .then(galleryItems => {
+        this.setData({
+          posterGenerating: false,
+          posterTempFilePath: galleryItems[0]?.tempFilePath || '',
+          posterSourceCheckinId: detailCheckin.id,
+          posterGalleryItems: galleryItems,
+          posterGalleryVisible: true
+        });
+        this.syncSelectedPoster(0);
+        wx.hideLoading?.();
+      })
+      .catch(error => {
+        console.error('生成长图失败:', error);
+        this.setData({ posterGenerating: false });
+        wx.hideLoading?.();
+        wx.showToast({
+          title: '长图生成失败',
+          icon: 'none'
+        });
+      });
   }
 });

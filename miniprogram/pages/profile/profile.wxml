@@ -77,6 +77,63 @@
         </view>
       </view>
 
+      <view class="checkins-section" wx:if="{{currentPeriodCommunityState === 'enabled'}}">
+        <view class="section-header">
+          <view class="section-header-left">
+            <view class="section-icon-checkin">📝</view>
+            <text class="section-header-title">我的打卡</text>
+          </view>
+        </view>
+
+        <scroll-view
+          wx:if="{{recentCheckins.length > 0}}"
+          scroll-x
+          class="checkins-scroll"
+          show-scrollbar="{{false}}"
+          enhanced="true">
+          <view class="checkins-scroll-track">
+            <view
+              wx:for="{{recentCheckins}}"
+              wx:key="id"
+              class="checkin-diary-card"
+              bindtap="handleRecentCheckinTap"
+              data-checkin-id="{{item.id}}"
+              data-section-id="{{item.sectionId}}">
+              
+              <view class="checkin-diary-card-title">{{item.sectionTitle}}</view>
+
+              <view class="checkin-diary-card-footer">
+                <text class="checkin-diary-card-period">{{item.periodTitle}}</text>
+                <view class="checkin-diary-card-meta">
+                  <text class="checkin-diary-card-date">{{item.dateLabel}}</text>
+                  <view class="checkin-diary-card-like">
+                    <text class="checkin-diary-card-like-icon">♡</text>
+                    <text>{{item.likeCount}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <view class="checkin-diary-more-card" bindtap="navigateToCheckinRecords">
+              <view class="checkin-diary-more-icon">→</view>
+              <text class="checkin-diary-more-title">查看更多</text>
+              <view class="checkin-diary-more-desc">
+                <view>进入我的</view>
+                <view>打卡日记</view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view wx:else class="checkins-empty">
+          <text class="checkins-empty-text">最近还没有打卡日记</text>
+          <view class="checkins-empty-link" bindtap="navigateToCheckinRecords">
+            <text>去看看我的打卡日记</text>
+            <text class="more-arrow">→</text>
+          </view>
+        </view>
+      </view>
+
       <!-- 小凡看见 -->
       <view class="insights-section" wx:if="{{currentPeriodCommunityState === 'enabled'}}">
         <view class="section-header">

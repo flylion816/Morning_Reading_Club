@@ -88,6 +88,102 @@ install_backend_dependencies() {
 # PM2 进程管理相关
 ################################################################################
 
+# 获取 PM2 命令，优先使用全局安装版本
+get_pm2_cmd() {
+  if command -v pm2 &>/dev/null; then
+    echo "pm2"
+  else
+    echo "npx -y pm2"
+  fi
+}
+
+# 确保全局 PM2 可用，以便配置 systemd 自启动
+ensure_global_pm2() {
+  if command -v pm2 &>/dev/null; then
+    log_success "全局 PM2 已可用: $(command -v pm2)"
+    return 0
+  fi
+
+  log_warning "未检测到全局 PM2，准备安装以支持开机自启"
+  if [ "$(type -t install_pm2)" = "function" ]; then
+    install_pm2 || return 1
+  else
+    local npm_registry="${NPM_REGISTRY:-https://registry.npmjs.org}"
+    sudo npm install -g pm2 --silent --registry "$npm_registry" >/dev/null 2>&1 || {
+      log_error "全局 PM2 安装失败"
+      return 1
+    }
+  fi
+
+  if command -v pm2 &>/dev/null; then
+    log_success "全局 PM2 安装完成: $(command -v pm2)"
+    return 0
+  fi
+
+  log_error "全局 PM2 仍不可用"
+  return 1
+}
+
+# 保存 PM2 进程列表并配置 systemd 开机自启动
+ensure_pm2_autostart() {
+  local backend_dir="$1"
+  local service_user="${SUDO_USER:-$(id -un)}"
+  local service_home="$HOME"
+
+  log_section "配置 PM2 开机自启"
+
+  if ! ensure_global_pm2; then
+    log_error "无法配置 PM2 开机自启"
+    return 1
+  fi
+
+  if command -v getent &>/dev/null; then
+    local detected_home
+    detected_home="$(getent passwd "$service_user" | cut -d: -f6)"
+    if [ -n "$detected_home" ]; then
+      service_home="$detected_home"
+    fi
+  fi
+
+  local pm2_cmd="pm2"
+  local service_name="pm2-$service_user"
+  local systemd_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+  if [ -n "$backend_dir" ] && [ -d "$backend_dir" ]; then
+    cd "$backend_dir" || return 1
+  fi
+
+  log_info "保存当前 PM2 进程列表..."
+  $pm2_cmd save >/dev/null || {
+    log_error "PM2 save 失败"
+    return 1
+  }
+
+  if ! command -v systemctl &>/dev/null; then
+    log_warning "未检测到 systemctl，跳过 PM2 开机自启配置"
+    return 0
+  fi
+
+  log_info "配置 systemd 服务: $service_name"
+  sudo env PATH="$systemd_path" "$pm2_cmd" startup systemd -u "$service_user" --hp "$service_home" >/dev/null 2>&1 || {
+    log_error "PM2 startup 配置失败"
+    return 1
+  }
+
+  sudo systemctl daemon-reload >/dev/null 2>&1 || {
+    log_error "systemd daemon-reload 失败"
+    return 1
+  }
+
+  sudo systemctl enable "$service_name" >/dev/null 2>&1 || {
+    log_error "启用 $service_name 失败"
+    return 1
+  }
+
+  log_success "PM2 开机自启已启用: $service_name"
+  return 0
+}
+
 # 重启 PM2 应用
 # 用法：restart_pm2_app morning-reading-backend /var/www/morning-reading/backend
 # 返回：0 成功，1 失败
@@ -103,10 +199,8 @@ restart_pm2_app() {
   log_section "重启 PM2 应用"
 
   # 确定 PM2 命令
-  local pm2_cmd="pm2"
-  if ! command -v pm2 &>/dev/null; then
-    pm2_cmd="npx -y pm2"
-  fi
+  local pm2_cmd
+  pm2_cmd="$(get_pm2_cmd)"
 
   log_info "PM2 命令: $pm2_cmd"
   log_info "应用名称: $app_name"
@@ -150,10 +244,8 @@ stop_pm2_app() {
 
   log_section "停止 PM2 应用"
 
-  local pm2_cmd="pm2"
-  if ! command -v pm2 &>/dev/null; then
-    pm2_cmd="npx -y pm2"
-  fi
+  local pm2_cmd
+  pm2_cmd="$(get_pm2_cmd)"
 
   log_info "停止应用: $app_name"
   $pm2_cmd stop "$app_name" 2>/dev/null || {
@@ -170,10 +262,8 @@ stop_pm2_app() {
 setup_pm2_logrotate() {
   log_section "配置 PM2 日志轮转"
 
-  local pm2_cmd="pm2"
-  if ! command -v pm2 &>/dev/null; then
-    pm2_cmd="npx -y pm2"
-  fi
+  local pm2_cmd
+  pm2_cmd="$(get_pm2_cmd)"
 
   log_info "安装 pm2-logrotate 模块..."
   $pm2_cmd install pm2-logrotate 2>/dev/null || {
@@ -201,10 +291,8 @@ check_pm2_status() {
     return 1
   fi
 
-  local pm2_cmd="pm2"
-  if ! command -v pm2 &>/dev/null; then
-    pm2_cmd="npx -y pm2"
-  fi
+  local pm2_cmd
+  pm2_cmd="$(get_pm2_cmd)"
 
   $pm2_cmd describe "$app_name" 2>/dev/null || {
     log_warning "应用 $app_name 未在 PM2 中"
@@ -493,6 +581,9 @@ verify_admin_files() {
 
 export -f build_admin
 export -f install_backend_dependencies
+export -f get_pm2_cmd
+export -f ensure_global_pm2
+export -f ensure_pm2_autostart
 export -f restart_pm2_app
 export -f stop_pm2_app
 export -f setup_pm2_logrotate

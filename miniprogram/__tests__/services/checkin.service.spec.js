@@ -11,7 +11,7 @@
  * - Checkin caching
  */
 
-const checkinService = require('../../services/checkin.service');
+const checkinService = require('../../services/checkin.service.js');
 const request = require('../../utils/request');
 const { createMockCheckin, createMockCourse, createMockUser, generateId } = require('../fixtures');
 
@@ -199,6 +199,33 @@ describe('Checkin Service Tests (Stage 5: Task 5.1)', () => {
       const result = await checkinService.getCheckinList();
 
       expect(result.data.every(c => c.userId === userId)).toBe(true);
+    });
+  });
+
+  describe('[CHECK-6A] 获取我的打卡日记概览', () => {
+    test('should request current user diary summary endpoint', async () => {
+      request.get.mockResolvedValue({
+        userId: 'user_123',
+        stats: { diaryCount: 2, likeCount: 5 },
+        periods: []
+      });
+
+      const result = await checkinService.getUserDiarySummary();
+
+      expect(request.get).toHaveBeenCalledWith('/checkins/user/summary');
+      expect(result.stats.diaryCount).toBe(2);
+    });
+
+    test('should request target user summary endpoint when userId is provided', async () => {
+      request.get.mockResolvedValue({
+        userId: 'user_456',
+        stats: { diaryCount: 1, likeCount: 1 },
+        periods: []
+      });
+
+      await checkinService.getUserDiarySummary('user_456');
+
+      expect(request.get).toHaveBeenCalledWith('/checkins/user/user_456/summary');
     });
   });
 

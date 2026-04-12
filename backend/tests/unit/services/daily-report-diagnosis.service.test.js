@@ -57,4 +57,34 @@ describe('Daily Report Diagnosis Service', () => {
     expect(diagnosis.summary.shouldEscalate).to.equal(true);
     expect(diagnosis.autoRepairEligibleIssues).to.have.lengthOf(1);
   });
+
+  it('should include infrastructure alerts as actionable diagnosis items', () => {
+    const diagnosis = buildDiagnosis({
+      reportId: 'report-2',
+      timeRange: {
+        from: '2026-04-10T09:00:00.000Z',
+        to: '2026-04-11T09:00:00.000Z',
+      },
+      infrastructureAlerts: [
+        {
+          id: 'dns-bootstrap-chain-unhealthy',
+          message: 'DNS 启动链异常: systemd-resolved 未运行',
+          severity: 'high',
+          category: 'actionable',
+          summary: 'DNS 启动链异常',
+          likelyCause: 'systemd-resolved 未运行；/etc/resolv.conf 指向无效目标',
+          recommendedAction: '恢复 systemd-resolved 并验证 getent hosts。',
+          autoRepairEligible: false,
+          count: 1,
+          samples: ['systemd-resolved: inactive/disabled'],
+        }
+      ]
+    });
+
+    expect(diagnosis.counts.total).to.equal(1);
+    expect(diagnosis.counts.actionable).to.equal(1);
+    expect(diagnosis.counts.critical).to.equal(1);
+    expect(diagnosis.summary.shouldEscalate).to.equal(true);
+    expect(diagnosis.actionableIssues[0].summary).to.equal('DNS 启动链异常');
+  });
 });

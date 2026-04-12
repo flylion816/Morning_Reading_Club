@@ -2,6 +2,8 @@
 
 > 项目中所有可用脚本的说明和使用方法
 
+> 线上重启、PM2 自启动、DNS 故障处理请配合阅读 [PRODUCTION_OPERATIONS_RUNBOOK.md](./PRODUCTION_OPERATIONS_RUNBOOK.md)
+
 ## 🎯 快速开始
 
 ### 本地开发环境
@@ -101,9 +103,36 @@ sshpass -p 'PASSWORD' ssh ubuntu@118.25.145.179 'rm -rf /var/www/morning-reading
 
 ---
 
+#### 4. `scripts/verify-deployment.sh` ⭐ 推荐
+
+**用途**：生产环境完整验收与重启后复核  
+**执行位置**：线上服务器
+
+**功能**：
+- 检查磁盘、内存、网络
+- 检查 PM2、Docker、Nginx、Certbot
+- 检查 `pm2-ubuntu` 自启动服务
+- 检查 `systemd-resolved`、`/etc/resolv.conf`、DNS 解析
+- 检查容器、后端、本机 HTTP、公网 HTTPS、SSL 证书
+
+**使用方式**：
+```bash
+ssh ubuntu@118.25.145.179
+cd /var/www/morning-reading
+bash scripts/verify-deployment.sh
+```
+
+**何时使用**：
+- 每次部署完成后
+- 每次服务器重启前
+- 每次服务器重启后
+- 怀疑 DNS 或 PM2 自启动异常时
+
+---
+
 ### 🔧 工具脚本
 
-#### 4. `quick-restart.sh`
+#### 5. `quick-restart.sh`
 
 **用途**：快速重启本地服务（应急工具）
 **功能**：快速清理进程并重启
@@ -115,7 +144,7 @@ bash quick-restart.sh
 
 ---
 
-#### 5. `scripts/install-test-hooks.sh`
+#### 6. `scripts/install-test-hooks.sh`
 
 **用途**：安装 Git Hooks（自动化工具）
 **功能**：安装增强版 Git Hooks，进行代码质量检查
@@ -127,7 +156,7 @@ bash scripts/install-test-hooks.sh
 
 ---
 
-#### 6. `scripts/fix-mocha-tests.sh`
+#### 7. `scripts/fix-mocha-tests.sh`
 
 **用途**：修复测试中的 Jest 语法问题（维护工具）
 **功能**：将 Jest 的 `beforeAll/afterAll` 转换为 Mocha 的 `before/after`
@@ -150,6 +179,7 @@ bash scripts/fix-mocha-tests.sh
 | `start-all-local.sh` | 启动本地开发环境 | 本地 | ⭐⭐⭐ 必用 |
 | `stop-all-local.sh` | 停止本地开发环境 | 本地 | ⭐⭐⭐ 必用 |
 | `scripts/deploy-to-server.sh` | 生产部署 | 本地 | ⭐⭐⭐ 关键 |
+| `scripts/verify-deployment.sh` | 生产验收/重启复核 | 线上服务器 | ⭐⭐⭐ 关键 |
 | `quick-restart.sh` | 应急重启 | 本地 | ⭐ 可选 |
 | `scripts/install-test-hooks.sh` | 安装 Git Hooks | 本地 | ⭐ 可选 |
 | `scripts/fix-mocha-tests.sh` | 修复测试语法 | 本地 | ⭐ 可选 |
