@@ -14,6 +14,46 @@ if [ -z "$(type -t log_success)" ]; then
   }
 fi
 
+# 解析 docker compose 需要使用的环境文件。
+# 服务器环境必须显式使用项目根目录的 .env.docker，避免误读 backend/.env
+resolve_docker_compose_env_file() {
+  local backend_dir="$1"
+  local project_root=""
+
+  if [ -n "${DOCKER_COMPOSE_ENV_FILE:-}" ]; then
+    echo "$DOCKER_COMPOSE_ENV_FILE"
+    return 0
+  fi
+
+  project_root="$(dirname "$backend_dir")"
+  if [[ "$backend_dir" == /var/www/* ]] && [ -f "$project_root/.env.docker" ]; then
+    echo "$project_root/.env.docker"
+    return 0
+  fi
+
+  return 1
+}
+
+run_docker_compose() {
+  local backend_dir="$1"
+  shift
+
+  local env_file=""
+  env_file=$(resolve_docker_compose_env_file "$backend_dir" 2>/dev/null || true)
+
+  if [[ "$backend_dir" == /var/www/* ]] && [ -z "$env_file" ]; then
+    log_error "缺少 Docker Compose 环境文件，请确认已部署 $(dirname "$backend_dir")/.env.docker"
+    return 1
+  fi
+
+  if [ -n "$env_file" ]; then
+    log_info "docker compose 使用环境文件: $env_file"
+    docker compose --env-file "$env_file" "$@"
+  else
+    docker compose "$@"
+  fi
+}
+
 ################################################################################
 # Docker 容器管理相关
 ################################################################################
@@ -34,7 +74,7 @@ start_docker_containers() {
   cd "$backend_dir" || return 1
 
   log_info "执行 docker compose up -d..."
-  if docker compose up -d 2>/dev/null; then
+  if run_docker_compose "$backend_dir" up -d 2>/dev/null; then
     log_success "Docker 容器已启动"
     sleep 3  # 等待容器初始化
     return 0
@@ -60,7 +100,7 @@ stop_docker_containers() {
   cd "$backend_dir" || return 1
 
   log_info "执行 docker compose down..."
-  if docker compose down 2>/dev/null; then
+  if run_docker_compose "$backend_dir" down 2>/dev/null; then
     log_success "Docker 容器已停止"
     return 0
   else
@@ -123,7 +163,7 @@ cleanup_docker_containers() {
   cd "$backend_dir" || return 1
 
   log_info "执行清理..."
-  docker compose down -v 2>/dev/null || true
+  run_docker_compose "$backend_dir" down -v 2>/dev/null || true
 
   log_success "Docker 清理完成"
   return 0
@@ -167,6 +207,35 @@ wait_for_redis() {
 
   log_section "等待 Redis 就绪"
   wait_for_port "$host" "$port" "$timeout"
+}
+
+# 验证 Redis 连接
+# 用法：verify_redis_connection localhost 26379 "password"
+verify_redis_connection() {
+  local host="${1:-localhost}"
+  local port="${2:-6379}"
+  local password="${3:-}"
+
+  log_section "验证 Redis 连接"
+
+  if ! command -v redis-cli &>/dev/null; then
+    log_warning "redis-cli 未安装，跳过 Redis 连接验证"
+    return 0
+  fi
+
+  local -a redis_cmd
+  redis_cmd=(redis-cli -h "$host" -p "$port")
+  if [ -n "$password" ]; then
+    redis_cmd+=(-a "$password")
+  fi
+
+  if "${redis_cmd[@]}" ping 2>/dev/null | grep -q "PONG"; then
+    log_success "Redis 连接成功"
+    return 0
+  fi
+
+  log_error "Redis 连接失败"
+  return 1
 }
 
 # 验证 MongoDB 连接

@@ -32,6 +32,8 @@ source "$SCRIPT_DIR/lib/deploy-functions.sh"
 
 APP_ROOT="/var/www/morning-reading"
 BACKEND_DIR="$APP_ROOT/backend"
+BACKEND_ENV_FILE="$BACKEND_DIR/.env.production"
+DOCKER_ENV_FILE="$APP_ROOT/.env.docker"
 ADMIN_DIST="$APP_ROOT/admin/dist"
 PM2_APP_NAME="morning-reading-backend"
 DOMAIN="wx.shubai01.com"
@@ -73,6 +75,13 @@ warn_check() {
 
 main() {
   log_header "部署验证 - 完整系统检查"
+
+  if [ -f "$BACKEND_ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    set -a
+    source "$BACKEND_ENV_FILE"
+    set +a
+  fi
 
   log_info "开始时间: $(date)"
   log_info "应用目录: $APP_ROOT"
@@ -199,6 +208,19 @@ main() {
     warn_check "systemd-resolved 服务不存在，请确认当前 DNS 管理方式"
   fi
 
+  log_info "检查系统 redis-server 服务..."
+  if systemctl list-unit-files | grep -q "^redis-server\.service"; then
+    local system_redis_state
+    system_redis_state=$(systemctl is-active redis-server 2>/dev/null || true)
+    if [ "$system_redis_state" = "active" ]; then
+      warn_check "系统 redis-server 正在运行，当前生产应以 Docker Redis 为准，请确认无端口冲突"
+    else
+      pass_check "系统 redis-server 未运行（避免与 Docker Redis 混用）"
+    fi
+  else
+    pass_check "系统 redis-server 服务不存在（当前仅使用 Docker Redis）"
+  fi
+
   log_info "检查 /etc/resolv.conf..."
   if [ -e /etc/resolv.conf ] && [ -r /etc/resolv.conf ]; then
     local resolv_target
@@ -239,6 +261,35 @@ main() {
   log_info "检查 Redis 容器..."
   if docker ps | grep -q "morning-reading-redis"; then
     pass_check "Redis 容器运行中"
+
+    local redis_health
+    redis_health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' morning-reading-redis 2>/dev/null || true)
+    if [ "$redis_health" = "healthy" ]; then
+      pass_check "Redis 容器健康检查通过"
+    elif [ "$redis_health" = "starting" ] || [ "$redis_health" = "no-healthcheck" ]; then
+      warn_check "Redis 容器健康状态未稳定 (${redis_health})"
+    else
+      fail_check "Redis 容器健康检查失败 (${redis_health:-unknown})"
+    fi
+
+    log_info "检查 Redis 认证连通性..."
+    if [ -f "$BACKEND_ENV_FILE" ]; then
+      local redis_host redis_port redis_password
+      redis_host="${REDIS_HOST:-localhost}"
+      redis_port="${REDIS_PORT:-26379}"
+      redis_password="${REDIS_PASSWORD:-}"
+
+      if command -v redis-cli &>/dev/null && \
+        redis-cli -h "$redis_host" -p "$redis_port" -a "$redis_password" ping 2>/dev/null | grep -q "PONG"; then
+        pass_check "Redis 认证探测通过 (${redis_host}:${redis_port})"
+      elif docker exec morning-reading-redis sh -lc "redis-cli -a \"$redis_password\" ping" 2>/dev/null | grep -q "PONG"; then
+        pass_check "Redis 认证探测通过（容器内校验）"
+      else
+        fail_check "Redis 认证探测失败 (${redis_host}:${redis_port})，请检查密码/端口是否与 .env.production 一致"
+      fi
+    else
+      fail_check "缺少后端生产环境文件，无法验证 Redis 认证状态 ($BACKEND_ENV_FILE)"
+    fi
   else
     fail_check "Redis 容器未运行"
   fi
@@ -251,6 +302,20 @@ main() {
     pass_check "后端目录存在"
   else
     fail_check "后端目录不存在"
+  fi
+
+  log_info "检查后端生产环境文件..."
+  if [ -f "$BACKEND_ENV_FILE" ]; then
+    pass_check "后端生产环境文件存在"
+  else
+    fail_check "后端生产环境文件不存在 ($BACKEND_ENV_FILE)"
+  fi
+
+  log_info "检查 Docker 环境文件..."
+  if [ -f "$DOCKER_ENV_FILE" ]; then
+    pass_check "Docker 环境文件存在"
+  else
+    fail_check "Docker 环境文件不存在 ($DOCKER_ENV_FILE)"
   fi
 
   log_info "检查后端依赖..."

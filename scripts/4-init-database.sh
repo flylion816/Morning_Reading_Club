@@ -33,15 +33,39 @@ source "$SCRIPT_DIR/lib/database-functions.sh"
 
 APP_ROOT="/var/www/morning-reading"
 BACKEND_DIR="$APP_ROOT/backend"
+APP_ENV_FILE="$BACKEND_DIR/.env.production"
+DOCKER_ENV_FILE="$APP_ROOT/.env.docker"
 COURSE_DATA_SCRIPT="${1:-}"  # 可选的课程数据脚本
 
-# 从 .env.config.js 读取数据库配置（简化版）
+# 应用与 Docker 使用不同的环境文件：
+# - backend/.env.production: 后端连接配置
+# - .env.docker: docker-compose 容器启动配置
+if [ ! -f "$APP_ENV_FILE" ]; then
+  log_error "应用环境文件不存在: $APP_ENV_FILE"
+  log_error "数据库初始化必须依赖 $APP_ENV_FILE，避免应用使用错误连接参数"
+  exit 1
+fi
+
+if [ ! -f "$DOCKER_ENV_FILE" ]; then
+  log_error "Docker 环境文件不存在: $DOCKER_ENV_FILE"
+  log_error "数据库初始化必须依赖 $DOCKER_ENV_FILE，避免容器使用默认密码启动"
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+set -a
+source "$APP_ENV_FILE"
+set +a
+
+export DOCKER_COMPOSE_ENV_FILE="$DOCKER_ENV_FILE"
+
 MONGODB_HOST="${MONGODB_HOST:-localhost}"
 MONGODB_PORT="${MONGODB_PORT:-27017}"
 MYSQL_HOST="${MYSQL_HOST:-localhost}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 REDIS_HOST="${REDIS_HOST:-localhost}"
-REDIS_PORT="${REDIS_PORT:-6379}"
+REDIS_PORT="${REDIS_PORT:-26379}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 
 ################################################################################
 # 主函数
@@ -52,6 +76,8 @@ main() {
 
   log_info "开始时间: $(date)"
   log_info "后端目录: $BACKEND_DIR"
+  log_info "应用环境文件: $APP_ENV_FILE"
+  log_info "Docker 环境文件: $DOCKER_ENV_FILE"
   log_info ""
 
   # 验证后端目录存在
@@ -105,7 +131,12 @@ main() {
   log_success "MySQL 准备就绪（$MYSQL_HOST:$MYSQL_PORT）"
 
   log_info "验证 Redis 连接..."
-  log_success "Redis 准备就绪（$REDIS_HOST:$REDIS_PORT）"
+  if verify_redis_connection "$REDIS_HOST" "$REDIS_PORT" "$REDIS_PASSWORD"; then
+    log_success "Redis 准备就绪（$REDIS_HOST:$REDIS_PORT）"
+  else
+    log_error "Redis 认证验证失败，请检查 $APP_ENV_FILE 与 $DOCKER_ENV_FILE 是否一致"
+    exit 1
+  fi
 
   # 第 5 步：运行基础初始化脚本
   log_section "第 5 步：运行数据库初始化脚本"

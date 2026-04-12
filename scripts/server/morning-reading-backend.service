@@ -1,7 +1,7 @@
 [Unit]
 Description=晨读营后端服务
-After=network.target mongodb.service mysql.service redis-server.service
-Requires=mongodb.service mysql.service redis-server.service
+After=network-online.target docker.service
+Wants=network-online.target docker.service
 
 [Service]
 Type=simple
