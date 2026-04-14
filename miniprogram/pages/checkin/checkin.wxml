@@ -1,7 +1,7 @@
 <view class="page-checkin">
   <!-- 课程标题 -->
-  <view class="course-title">{{courseTitle}}</view>
-  <view class="course-date">{{courseDate}}</view>
+  <view class="course-title"><text selectable>{{courseTitle}}</text></view>
+  <view class="course-date"><text selectable>{{courseDate}}</text></view>
 
   <!-- 五大学习模块 -->
   <view class="content-preview" wx:if="{{!expanded}}">

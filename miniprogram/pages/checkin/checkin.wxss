@@ -217,6 +217,8 @@
 }
 
 /* 允许长按选择文字 */
+.course-title,
+.course-date,
 .section-content,
 .section-content-short {
   user-select: text;
