@@ -9,7 +9,7 @@
       <view class="section-icon">静</view>
       <text class="section-name">静一静</text>
     </view>
-    <view class="section-content-short">{{meditation}}</view>
+    <view class="section-content-short"><text selectable>{{meditation}}</text></view>
   </view>
 
   <!-- 展开按钮 -->
@@ -26,7 +26,7 @@
         <view class="section-icon">静</view>
         <text>静一静</text>
       </view>
-      <view class="section-content">{{meditation}}</view>
+      <view class="section-content"><text selectable>{{meditation}}</text></view>
     </view>
 
     <!-- 问一问 -->
@@ -35,7 +35,7 @@
         <view class="section-icon">问</view>
         <text>问一问</text>
       </view>
-      <view class="section-content">{{question}}</view>
+      <view class="section-content"><text selectable>{{question}}</text></view>
     </view>
 
     <!-- 读一读 -->
@@ -55,7 +55,7 @@
         <view class="section-icon">想</view>
         <text>想一想</text>
       </view>
-      <view class="section-content">{{reflection}}</view>
+      <view class="section-content"><text selectable>{{reflection}}</text></view>
     </view>
 
     <!-- 记一记 -->
@@ -64,7 +64,7 @@
         <view class="section-icon">记</view>
         <text>记一记 / 摘一摘 / 说一说</text>
       </view>
-      <view class="section-content">{{action}}</view>
+      <view class="section-content"><text selectable>{{action}}</text></view>
     </view>
   </view>
 
@@ -75,10 +75,10 @@
       placeholder="请输入日记内容..."
       value="{{diaryContent}}"
       bindinput="handleInput"
-      maxlength="10000"
+      maxlength="{{maxDiaryLength}}"
       auto-height
     />
-    <view class="char-count">{{diaryContent.length}}/10000</view>
+    <view class="char-count">{{diaryContent.length}}/{{maxDiaryLength}}</view>
 
     <!-- 可见范围 -->
     <view class="visibility-section">

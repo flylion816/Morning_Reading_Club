@@ -24,11 +24,12 @@
           <text>报名期次</text>
         </view>
         <picker bindchange="handlePeriodChange" value="{{selectedPeriodIndex}}" range="{{periodList}}" range-key="name">
-          <view class="form-control picker-control">
+          <view class="form-control picker-control {{errors.periodId ? 'form-control-error' : ''}}">
             <text>{{selectedPeriodName || '请选择报名期次'}}</text>
             <text class="picker-icon">›</text>
           </view>
         </picker>
+        <text wx:if="{{errors.periodId}}" class="form-error">{{errors.periodId}}</text>
       </view>
 
       <!-- 姓名 -->
@@ -39,7 +40,7 @@
         </view>
         <input
           type="text"
-          class="form-control"
+          class="form-control {{errors.name ? 'form-control-error' : ''}}"
           name="name"
           placeholder="请输入您的姓名"
           value="{{form.name}}"
@@ -47,6 +48,7 @@
           data-field="name"
           required
         />
+        <text wx:if="{{errors.name}}" class="form-error">{{errors.name}}</text>
       </view>
 
       <!-- 性别 -->
@@ -63,6 +65,7 @@
             </label>
           </view>
         </radio-group>
+        <text wx:if="{{errors.gender}}" class="form-error">{{errors.gender}}</text>
       </view>
 
       <!-- 地址 -->
@@ -73,7 +76,7 @@
         </view>
         <view class="address-group">
           <picker bindchange="handleProvinceChange" value="{{selectedProvinceIndex}}" range="{{provinceList}}">
-            <view class="form-control picker-control">
+            <view class="form-control picker-control {{errors.province ? 'form-control-error' : ''}}">
               <text>{{form.province || '请选择省/市/区(县)'}}</text>
               <text class="picker-icon">›</text>
             </view>
@@ -88,6 +91,7 @@
             maxlength="100"
           />
         </view>
+        <text wx:if="{{errors.province}}" class="form-error">{{errors.province}}</text>
       </view>
 
       <!-- 年龄 -->
@@ -98,13 +102,15 @@
         </view>
         <input
           type="number"
-          class="form-control"
-          placeholder="请输入您的年龄"
+          class="form-control {{errors.age ? 'form-control-error' : ''}}"
+          placeholder="请输入您的年龄（11-120）"
           value="{{form.age}}"
-          bindinput="handleInput"
+          bindinput="handleNumberInput"
+          bindblur="handleNumberBlur"
           data-field="age"
-          required
+          maxlength="3"
         />
+        <text wx:if="{{errors.age}}" class="form-error">{{errors.age}}</text>
       </view>
 
       <!-- 推荐人 -->
@@ -136,6 +142,7 @@
             </label>
           </view>
         </radio-group>
+        <text wx:if="{{errors.hasReadBook}}" class="form-error">{{errors.hasReadBook}}</text>
       </view>
 
       <!-- 读过几遍（仅在选择"是"时显示） -->
@@ -146,12 +153,15 @@
         </view>
         <input
           type="number"
-          class="form-control"
-          placeholder="请输入阅读次数"
+          class="form-control {{errors.readTimes ? 'form-control-error' : ''}}"
+          placeholder="请输入阅读次数（正整数）"
           value="{{form.readTimes}}"
-          bindinput="handleInput"
+          bindinput="handleNumberInput"
+          bindblur="handleNumberBlur"
           data-field="readTimes"
+          maxlength="3"
         />
+        <text wx:if="{{errors.readTimes}}" class="form-error">{{errors.readTimes}}</text>
       </view>
 
       <!-- 参加课程的缘起 -->
@@ -161,7 +171,7 @@
           <text>您参加课程的缘起</text>
         </view>
         <textarea
-          class="form-control textarea"
+          class="form-control textarea {{errors.enrollReason ? 'form-control-error' : ''}}"
           placeholder="请简述参加课程的原因..."
           value="{{form.enrollReason}}"
           bindinput="handleInput"
@@ -170,6 +180,7 @@
           required
         />
         <view class="text-count">{{form.enrollReason.length}}/500</view>
+        <text wx:if="{{errors.enrollReason}}" class="form-error">{{errors.enrollReason}}</text>
       </view>
 
       <!-- 对课程的期待 -->
@@ -179,7 +190,7 @@
           <text>您对课程的期待</text>
         </view>
         <textarea
-          class="form-control textarea"
+          class="form-control textarea {{errors.expectation ? 'form-control-error' : ''}}"
           placeholder="请简述对课程的期待..."
           value="{{form.expectation}}"
           bindinput="handleInput"
@@ -188,6 +199,7 @@
           required
         />
         <view class="text-count">{{form.expectation.length}}/500</view>
+        <text wx:if="{{errors.expectation}}" class="form-error">{{errors.expectation}}</text>
       </view>
 
       <!-- 承诺事项 -->
@@ -204,6 +216,7 @@
             </label>
           </view>
         </radio-group>
+        <text wx:if="{{errors.commitment}}" class="form-error">{{errors.commitment}}</text>
       </view>
 
       <!-- 提交按钮 -->

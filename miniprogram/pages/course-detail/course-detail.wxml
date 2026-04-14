@@ -24,7 +24,12 @@
         </view>
       </view>
 
-      <view class="dynamic-detail-content">{{detailCheckin.content}}</view>
+      <view class="dynamic-detail-content {{detailCheckin.canExpandContent && !detailCheckin.contentExpanded ? 'dynamic-detail-content-clamped' : ''}}"><text selectable>{{detailCheckin.content}}</text></view>
+      <view
+        wx:if="{{detailCheckin.canExpandContent}}"
+        class="checkin-content-toggle dynamic-content-toggle"
+        bindtap="toggleCheckinContent"
+        data-checkin-id="{{detailCheckin.id}}">{{detailCheckin.contentExpanded ? '收起' : '展开更多'}}</view>
 
       <view wx:if="{{detailCheckin.hashTag}}" class="dynamic-hashtag">{{detailCheckin.hashTag}}</view>
 
@@ -32,7 +37,7 @@
 
       <view wx:if="{{detailCheckin.dateLabel}}" class="dynamic-date">{{detailCheckin.dateLabel}}</view>
 
-      <view class="dynamic-share-actions">
+      <view wx:if="{{detailCheckin.canShare}}" class="dynamic-share-actions">
         <button class="dynamic-share-btn dynamic-share-btn-plain" bindtap="handleLongImageShare">{{posterGenerating ? '生成中...' : '长图'}}</button>
         <button class="dynamic-share-btn" open-type="share">微信好友</button>
       </view>
@@ -147,7 +152,7 @@
         <text class="dynamic-bottom-action-icon {{detailCheckin.isLiked ? 'liked' : ''}}">♡</text>
         <text>{{detailCheckin.likeCount || 0}}</text>
       </view>
-      <button class="dynamic-bottom-action dynamic-bottom-share" open-type="share">↗</button>
+      <button wx:if="{{detailCheckin.canShare}}" class="dynamic-bottom-action dynamic-bottom-share" open-type="share">↗</button>
     </view>
   </block>
 
@@ -166,7 +171,7 @@
         <view class="section-icon calm">静</view>
         <text>静一静</text>
       </view>
-      <view class="section-content">{{course.meditation}}</view>
+      <view class="section-content"><text selectable>{{course.meditation}}</text></view>
     </view>
 
     <view class="content-section" wx:if="{{course.questionVisible}}">
@@ -174,7 +179,7 @@
         <view class="section-icon question">问</view>
         <text>问一问</text>
       </view>
-      <view class="section-content">{{course.question}}</view>
+      <view class="section-content"><text selectable>{{course.question}}</text></view>
     </view>
 
     <view class="content-section" wx:if="{{course.contentVisible}}">
@@ -192,7 +197,7 @@
         <view class="section-icon think">想</view>
         <text>想一想</text>
       </view>
-      <view class="section-content">{{course.reflection}}</view>
+      <view class="section-content"><text selectable>{{course.reflection}}</text></view>
     </view>
 
     <view class="content-section" wx:if="{{course.actionVisible}}">
@@ -200,7 +205,7 @@
         <view class="section-icon write">记</view>
         <text>记一记</text>
       </view>
-      <view class="section-content">{{course.action}}</view>
+      <view class="section-content"><text selectable>{{course.action}}</text></view>
     </view>
 
     <view class="content-section" wx:if="{{course.extractVisible}}">
@@ -208,7 +213,7 @@
         <view class="section-icon extract">摘</view>
         <text>摘一摘</text>
       </view>
-      <view class="section-content">{{course.extract}}</view>
+      <view class="section-content"><text selectable>{{course.extract}}</text></view>
     </view>
 
     <view class="content-section" wx:if="{{course.sayVisible}}">
@@ -216,7 +221,7 @@
         <view class="section-icon share">说</view>
         <text>说一说</text>
       </view>
-      <view class="section-content">{{course.say}}</view>
+      <view class="section-content"><text selectable>{{course.say}}</text></view>
     </view>
 
     <view class="content-section" wx:if="{{course.learnVisible}}">
@@ -224,7 +229,7 @@
         <view class="section-icon learn">学</view>
         <text>学一学</text>
       </view>
-      <view class="section-content">{{course.learn}}</view>
+      <view class="section-content"><text selectable>{{course.learn}}</text></view>
     </view>
 
     <view class="comments-section" wx:if="{{communityAccessState === 'enabled'}}">
@@ -240,34 +245,42 @@
           id="checkin-{{item.id}}"
           wx:for="{{course.comments}}"
           wx:key="id"
-          wx:if="{{item}}">
-          <view class="comment-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">
+          wx:if="{{item}}"
+          bindtap="handleCheckinDetailTap"
+          data-checkin-id="{{item.id}}"
+          data-section-id="{{item.sectionId || courseId}}">
+          <view class="comment-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
             <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
             <text wx:else class="avatar-text">{{item.avatarText}}</text>
           </view>
           <view class="comment-content">
             <view class="comment-header">
-              <text class="comment-user" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
+              <text class="comment-user" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
               <text class="comment-time">{{item.createTime}}</text>
             </view>
-            <view class="comment-text">{{item.content}}</view>
+            <view class="comment-text {{item.canExpandContent && !item.contentExpanded ? 'comment-text-clamped' : ''}}"><text selectable>{{item.content}}</text></view>
+            <view
+              wx:if="{{item.canExpandContent}}"
+              class="checkin-content-toggle"
+              catchtap="toggleCheckinContent"
+              data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
             <view class="comment-footer">
-              <view class="comment-like" bindtap="handleLikeComment" data-id="{{item.id}}">
+              <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">
                 <text class="like-icon {{item.isLiked ? 'liked' : ''}}">❤️</text>
                 <text class="like-count">{{item.likeCount}}</text>
               </view>
-              <view class="comment-reply" bindtap="handleReplyComment" data-id="{{item.id}}">
+              <view class="comment-reply" catchtap="handleReplyComment" data-id="{{item.id}}">
                 <text class="reply-icon">💬</text>
                 <text>回复</text>
               </view>
-              <view class="comment-toggle" bindtap="toggleComments" data-index="{{index}}">
+              <view class="comment-toggle" catchtap="toggleComments" data-index="{{index}}">
                 <text class="toggle-icon">💬</text>
                 <text class="toggle-text" wx:if="{{!commentLoading[item.id]}}">{{commentExpanded[item.id] ? '收起评论' : '查看评论'}}</text>
                 <text class="toggle-text loading" wx:else>加载中...</text>
               </view>
             </view>
 
-            <view class="replies-list" wx:if="{{commentExpanded[item.id] && item.replies && item.replies.length > 0}}">
+            <view class="replies-list" wx:if="{{commentExpanded[item.id] && item.replies && item.replies.length > 0}}" catchtap="noop">
               <view
                 class="reply-item {{highlightCommentId === reply.id ? 'reply-item-focus' : ''}}"
                 id="comment-{{reply.id}}"
@@ -284,7 +297,7 @@
                       <text class="reply-user" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">{{reply.userName}}</text>
                       <text class="reply-time">{{reply.createTime}}</text>
                     </view>
-                    <view class="reply-text">{{reply.content}}</view>
+                    <view class="reply-text"><text selectable>{{reply.content}}</text></view>
                     <view class="reply-footer" style="pointer-events: auto;">
                       <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
                         <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">❤️</text>
@@ -313,7 +326,7 @@
                               <text class="nested-reply-user" bindtap="handleAvatarClick" data-user-id="{{nestedReply.userId}}">{{nestedReply.userName}}</text>
                               <text class="nested-reply-time">{{nestedReply.createTime}}</text>
                             </view>
-                            <view class="nested-reply-text">{{nestedReply.content}}</view>
+                            <view class="nested-reply-text"><text selectable>{{nestedReply.content}}</text></view>
                             <view class="nested-reply-footer" style="pointer-events: auto;">
                               <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{nestedReply.id}}" style="pointer-events: auto;">
                                 <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">❤️</text>
@@ -381,7 +394,7 @@
       <view class="poster-gallery-actions">
         <button class="poster-gallery-btn poster-gallery-btn-plain" bindtap="handleSaveSelectedPoster">保存</button>
         <button class="poster-gallery-btn poster-gallery-btn-ghost" bindtap="handlePreviewSelectedPoster">预览</button>
-        <button class="poster-gallery-btn" open-type="share">微信好友</button>
+        <button wx:if="{{canShareCurrentCheckin}}" class="poster-gallery-btn" open-type="share">微信好友</button>
       </view>
     </view>
   </view>

@@ -275,6 +275,62 @@ Page({
   },
 
   /**
+   * 处理数字输入框 - 实时过滤非数字字符
+   */
+  handleNumberInput(e) {
+    const field = e.currentTarget.dataset.field;
+    const raw = e.detail.value;
+    // 只保留数字
+    const cleaned = raw.replace(/[^0-9]/g, '');
+
+    const newForm = { ...this.data.form };
+    newForm[field] = cleaned;
+
+    const newErrors = { ...this.data.errors };
+    delete newErrors[field];
+
+    this.setData({
+      form: newForm,
+      errors: newErrors
+    });
+  },
+
+  /**
+   * 处理数字输入框失去焦点 - 即时校验范围
+   */
+  handleNumberBlur(e) {
+    const field = e.currentTarget.dataset.field;
+    const value = this.data.form[field];
+    const errors = { ...this.data.errors };
+
+    if (field === 'age') {
+      if (!value) {
+        errors.age = '请输入年龄';
+      } else {
+        const age = parseInt(value, 10);
+        if (isNaN(age) || age <= 10 || age > 120) {
+          errors.age = '年龄需在11-120之间';
+        } else {
+          delete errors.age;
+        }
+      }
+    } else if (field === 'readTimes') {
+      if (!value) {
+        errors.readTimes = '请输入阅读次数';
+      } else {
+        const times = parseInt(value, 10);
+        if (isNaN(times) || times < 1) {
+          errors.readTimes = '阅读次数必须是正整数';
+        } else {
+          delete errors.readTimes;
+        }
+      }
+    }
+
+    this.setData({ errors });
+  },
+
+  /**
    * 处理单选框变化
    */
   handleRadioChange(e) {
@@ -352,9 +408,12 @@ Page({
 
     // 验证表单
     if (!this.validateForm()) {
+      const errors = this.data.errors;
+      const firstError = Object.values(errors)[0] || '请填写完整的表单';
       wx.showToast({
-        title: '请填写完整的表单',
-        icon: 'none'
+        title: firstError,
+        icon: 'none',
+        duration: 2500
       });
       return;
     }

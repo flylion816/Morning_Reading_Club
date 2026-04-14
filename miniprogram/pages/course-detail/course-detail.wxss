@@ -583,6 +583,20 @@
   letter-spacing: 1px;
 }
 
+.comment-text-clamped {
+  max-height: 396rpx;
+  overflow: hidden;
+}
+
+.checkin-content-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  color: #4a90e2;
+  font-weight: 500;
+}
+
 .comment-footer {
   display: flex;
   gap: 32rpx;
@@ -878,6 +892,16 @@
   letter-spacing: 1rpx;
 }
 
+.dynamic-detail-content-clamped {
+  max-height: 408rpx;
+  overflow: hidden;
+}
+
+.dynamic-content-toggle {
+  margin-top: 16rpx;
+  margin-bottom: 0;
+}
+
 .dynamic-hashtag {
   margin-top: 28rpx;
   font-size: 28rpx;
@@ -1043,4 +1067,13 @@
 
 .dynamic-bottom-share::after {
   border: none;
+}
+
+/* 允许长按选择文字 */
+.section-content,
+.dynamic-detail-content,
+.comment-text,
+.reply-text,
+.nested-reply-text {
+  user-select: text;
 }

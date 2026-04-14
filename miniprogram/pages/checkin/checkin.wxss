@@ -215,3 +215,9 @@
 .btn-submit::after {
   border: none;
 }
+
+/* 允许长按选择文字 */
+.section-content,
+.section-content-short {
+  user-select: text;
+}

@@ -635,10 +635,12 @@ class MysqlBackupService {
 
         const params = [
           comment._id.toString(),
-          coerce(comment.userId?.toString()),
+          // userId 可能是 populated User 对象，需提取 _id
+          coerce(comment.userId?._id?.toString() ?? comment.userId?.toString()),
           coerce(comment.content),
-          coerce(comment.replyToUserId?.toString()),
-          coerce(comment.checkinId?.toString()),
+          // replyToUserId 同上
+          coerce(comment.replyToUserId?._id?.toString() ?? comment.replyToUserId?.toString()),
+          coerce(comment.checkinId?._id?.toString() ?? comment.checkinId?.toString()),
           coerce(comment.replyCount, 0),
           comment.createdAt,
           comment.updatedAt,

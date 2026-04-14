@@ -216,6 +216,16 @@ function transformDocumentForMySQL(collection, doc) {
       result[mysqlColumnName] = normalizedValue.split('.')[0].replace('T', ' ');
     } else if (isObjectIdLike(normalizedValue)) {
       result[mysqlColumnName] = normalizedValue.toString();
+    } else if (
+      typeof normalizedValue === 'object' &&
+      normalizedValue !== null &&
+      !Array.isArray(normalizedValue) &&
+      normalizedValue._id !== undefined &&
+      mysqlColumnName.endsWith('_id')
+    ) {
+      // Populated 关联对象（如 userId populate 后变成 User 文档）
+      // 只保存 _id 字符串，避免超长
+      result[mysqlColumnName] = normalizedValue._id.toString();
     } else if (typeof normalizedValue === 'object' && normalizedValue !== null) {
       // 对象存储为 JSON 字符串
       result[mysqlColumnName] = JSON.stringify(normalizedValue);

@@ -224,7 +224,7 @@ exports.updateAdmin = async (req, res) => {
     const { id } = req.params;
     const { name, role, permissions, status } = req.body;
 
-    const admin = await Admin.findById(id);
+    const admin = await Admin.findById(id).select('+password');
     if (!admin) {
       return res.status(404).json(errors.notFound('管理员不存在'));
     }
