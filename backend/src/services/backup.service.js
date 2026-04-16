@@ -88,7 +88,7 @@ async function backupMongoDB() {
 
     const { stderr } = await execAsync(dumpCmd, { timeout: 120000 });
     if (stderr) {
-      logger.warn('mongodump warning/stderr', stderr);
+      logger.warn('mongodump warning/stderr', { output: stderr });
     }
 
     // 从容器复制到宿主机
@@ -339,7 +339,7 @@ async function fullSyncMongoToMySQL() {
     // 同步所有集合
     const syncTasks = [
       { name: 'users', model: User, method: 'syncUser' },
-      { name: 'admins', model: Admin, method: 'syncAdmin' },
+      { name: 'admins', model: Admin, method: 'syncAdmin', select: '+password' },
       { name: 'periods', model: Period, method: 'syncPeriod' },
       { name: 'sections', model: Section, method: 'syncSection' },
       { name: 'checkins', model: Checkin, method: 'syncCheckin' },
@@ -353,7 +353,9 @@ async function fullSyncMongoToMySQL() {
 
     for (const task of syncTasks) {
       try {
-        const documents = await task.model.find({});
+        const query = task.model.find({});
+        if (task.select) query.select(task.select);
+        const documents = await query;
         const { syncableDocs, skippedDocs } = filterDocumentsForMysqlSync(
           task.name,
           documents,
@@ -546,7 +548,7 @@ async function restoreMongoDBFromBackup(backupPath) {
     const { stderr } = await execAsync(restoreCmd);
 
     if (stderr) {
-      logger.warn('mongorestore warning/stderr', stderr);
+      logger.warn('mongorestore warning/stderr', { output: stderr });
     }
 
     logger.info('✅ MongoDB restore completed successfully');
