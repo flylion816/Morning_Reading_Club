@@ -995,7 +995,7 @@ async function main() {
 
   // 3. 分析
   const errorGroups = analyzeEntries(allErrors);
-  const warnGroups = analyzeEntries(warnEntries);
+  const warnGroups = analyzeEntries(warnEntries.filter(e => !e.message || !e.message.includes('mongodump')));
   const exceptionGroups = analyzeEntries(exceptionEntries);
   const httpStats = analyzeHttpRequests(pm2OutLines, cutoffTime);
 
