@@ -147,6 +147,8 @@ export const authApi = {
     apiClient.post('/auth/admin/login', { email, password }),
   logout: () => apiClient.post('/auth/admin/logout'),
   getProfile: () => apiClient.get('/auth/admin/profile'),
+  updateProfile: (data: { name: string; avatar?: string | null }) =>
+    apiClient.put('/auth/admin/profile', data),
   verifyDbAccess: (password: string) =>
     apiClient.post('/auth/admin/verify-db-access', { password })
 };

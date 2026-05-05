@@ -14,6 +14,7 @@ router.post('/auth/admin/init', adminController.initSuperAdmin);
 
 // 受保护的路由（需要认证）
 router.get('/auth/admin/profile', adminAuthMiddleware, adminController.getProfile);
+router.put('/auth/admin/profile', adminAuthMiddleware, adminController.updateProfile);
 router.post('/auth/admin/logout', adminAuthMiddleware, adminController.logout);
 router.post('/auth/admin/refresh-token', adminAuthMiddleware, adminController.refreshToken);
 router.post('/auth/admin/change-password', adminAuthMiddleware, adminController.changePassword);

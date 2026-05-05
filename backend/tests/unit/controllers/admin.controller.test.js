@@ -58,7 +58,18 @@ describe('Admin Controller', () => {
     };
 
     const mysqlBackupServiceStub = {
-      syncAdmin: sandbox.stub()
+      syncAdmin: sandbox.stub().resolves()
+    };
+
+    const auditHelperStub = {
+      logAction: sandbox.stub().resolves(),
+      compareChanges: sandbox.stub().returns({
+        name: { before: '旧姓名', after: '新姓名' }
+      })
+    };
+
+    const syncServiceStub = {
+      publishSyncEvent: sandbox.stub()
     };
 
     const loggerStub = {
@@ -74,6 +85,8 @@ describe('Admin Controller', () => {
         '../utils/jwt': jwtStub,
         '../utils/response': responseUtils,
         '../services/mysql-backup.service': mysqlBackupServiceStub,
+        '../utils/auditHelper': auditHelperStub,
+        '../services/sync.service': syncServiceStub,
         '../utils/logger': loggerStub
       }
     );
@@ -159,6 +172,41 @@ describe('Admin Controller', () => {
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('name');
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('应该更新当前管理员个人资料', async () => {
+      const adminId = new mongoose.Types.ObjectId();
+      req.admin = { id: adminId, name: '旧姓名', email: 'admin@test.com' };
+      req.body = { name: '新姓名', avatar: 'https://example.com/avatar.jpg' };
+
+      const mockAdmin = {
+        _id: adminId,
+        name: '旧姓名',
+        avatar: null,
+        save: sandbox.stub().resolves(),
+        toJSON: sandbox.stub().returns({
+          _id: adminId,
+          name: '新姓名',
+          avatar: 'https://example.com/avatar.jpg'
+        }),
+        toObject: sandbox.stub().returns({
+          _id: adminId,
+          name: '新姓名',
+          avatar: 'https://example.com/avatar.jpg'
+        })
+      };
+
+      AdminStub.findById.returns({
+        select: sandbox.stub().resolves(mockAdmin)
+      });
+
+      await adminController.updateProfile(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.message).to.equal('个人资料已更新');
     });
   });
 

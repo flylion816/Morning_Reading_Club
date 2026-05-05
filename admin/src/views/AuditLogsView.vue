@@ -53,7 +53,7 @@
               :key="admin._id"
               class="stat-item"
             >
-              <span>{{ admin._id }}</span>
+              <span>{{ admin.name || admin.email || '未知' }}</span>
               <span class="count">{{ admin.count }}</span>
             </div>
           </div>

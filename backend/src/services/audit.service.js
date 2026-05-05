@@ -1,4 +1,5 @@
 const AuditLog = require('../models/AuditLog');
+const Admin = require('../models/Admin');
 const logger = require('../utils/logger');
 
 /**
@@ -200,12 +201,30 @@ class AuditService {
             { $sort: { count: -1 } }
           ]),
           AuditLog.aggregate([
-            { $group: { _id: '$adminName', count: { $sum: 1 } } },
+            {
+              $group: {
+                _id: '$adminId',
+                count: { $sum: 1 },
+                adminNameSnapshot: { $first: '$adminName' }
+              }
+            },
             { $sort: { count: -1 } },
             { $limit: 10 }
           ]),
           AuditLog.countDocuments({ status: 'failure' })
         ]);
+
+      const adminIds = adminStats
+        .map(item => item._id)
+        .filter(Boolean);
+
+      const adminDocs = adminIds.length > 0
+        ? await Admin.find({ _id: { $in: adminIds } })
+            .select('name email')
+            .lean()
+        : [];
+
+      const adminMap = new Map(adminDocs.map(admin => [admin._id.toString(), admin]));
 
       return {
         total: totalLogs,
@@ -219,7 +238,17 @@ class AuditService {
           acc[item._id] = item.count;
           return acc;
         }, {}),
-        topAdmins: adminStats
+        topAdmins: adminStats.map(item => {
+          const adminId = item._id ? item._id.toString() : '';
+          const admin = adminMap.get(adminId);
+
+          return {
+            _id: adminId,
+            name: admin?.name || item.adminNameSnapshot || '未知',
+            email: admin?.email || '',
+            count: item.count
+          };
+        })
       };
     } catch (error) {
       logger.error('获取操作统计失败:', error);

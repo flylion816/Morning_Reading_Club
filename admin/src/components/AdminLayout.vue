@@ -89,15 +89,17 @@
             <p v-if="pageSubtitle">{{ pageSubtitle }}</p>
           </div>
           <div class="header-user">
-            <el-avatar
-              :src="authStore.adminInfo?.avatar"
-              shape="circle"
-              :size="36"
-              :fallback="true"
-            >
-              <span style="font-size: 20px">👨‍💼</span>
-            </el-avatar>
-            <span class="user-name">{{ authStore.adminInfo?.name }}</span>
+            <button class="profile-entry" type="button" @click="goToProfile">
+              <el-avatar
+                :src="authStore.adminInfo?.avatar"
+                shape="circle"
+                :size="36"
+                :fallback="true"
+              >
+                <span style="font-size: 20px">👨‍💼</span>
+              </el-avatar>
+              <span class="user-name">{{ authStore.adminInfo?.name }}</span>
+            </button>
           </div>
         </div>
       </el-header>
@@ -176,7 +178,8 @@ const pageTitle = computed(() => {
     '/subscription-debug': '订阅消息排查',
     '/audit-logs': '审计日志',
     '/database': '数据库管理',
-    '/account-management': '账号管理'
+    '/account-management': '账号管理',
+    '/profile': '个人账号设置'
   };
   return titles[route.path] || '管理后台';
 });
@@ -185,7 +188,8 @@ const pageSubtitle = computed(() => {
   const subtitles: Record<string, string> = {
     '/': '查看当前业务状态、待处理事项和最近动态。',
     '/analytics': '按时间范围查看趋势、转化、收入结构和用户活跃度。',
-    '/account-management': '管理后台登录账号、角色权限和启停状态。'
+    '/account-management': '管理后台登录账号、角色权限和启停状态。',
+    '/profile': '修改当前登录账号的姓名和头像。'
   };
   return subtitles[route.path] || '';
 });
@@ -235,6 +239,10 @@ const handleLogout = () => {
     .catch(() => {
       // 取消退出
     });
+};
+
+const goToProfile = () => {
+  router.push('/profile');
 };
 </script>
 
@@ -347,6 +355,25 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.profile-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.profile-entry:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .user-name {

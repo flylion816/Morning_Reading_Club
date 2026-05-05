@@ -54,7 +54,7 @@ export interface AuditStatistics {
   failed: number;
   actionTypeStats: Record<string, number>;
   resourceTypeStats: Record<string, number>;
-  topAdmins: Array<{ _id: string; count: number }>;
+  topAdmins: Array<{ _id: string; name?: string; email?: string; count: number }>;
 }
 
 /**

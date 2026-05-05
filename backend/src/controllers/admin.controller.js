@@ -96,6 +96,74 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+// 更新当前管理员个人资料
+exports.updateProfile = async (req, res) => {
+  try {
+    if (!req.admin || !req.admin.id) {
+      return res.status(401).json(errors.unauthorized('未授权访问'));
+    }
+
+    const { name, avatar } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json(errors.badRequest('姓名不能为空'));
+    }
+
+    const admin = await Admin.findById(req.admin.id).select('+password');
+    if (!admin) {
+      return res.status(404).json(errors.notFound('管理员不存在'));
+    }
+
+    const before = {
+      name: admin.name,
+      avatar: admin.avatar || null
+    };
+
+    admin.name = name.trim();
+    if (avatar !== undefined) {
+      admin.avatar = avatar && avatar.trim() ? avatar.trim() : null;
+    }
+
+    await admin.save();
+
+    req.admin.name = before.name;
+
+    await AuditHelper.logAction(
+      req,
+      'UPDATE',
+      'admin',
+      admin._id,
+      before.name,
+      '更新个人资料',
+      AuditHelper.compareChanges(before, {
+        name: admin.name,
+        avatar: admin.avatar || null
+      })
+    );
+
+    mysqlBackupService
+      .syncAdmin(admin)
+      .catch(err =>
+        logger.warn('MySQL backup failed for admin profile update', {
+          id: admin._id,
+          error: err.message
+        })
+      );
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'admins',
+      documentId: admin._id.toString(),
+      data: admin.toObject()
+    });
+
+    return res.json(success(admin.toJSON(), '个人资料已更新'));
+  } catch (error) {
+    logger.error('Update admin profile error', error);
+    return res.status(500).json(errors.serverError('更新个人资料失败'));
+  }
+};
+
 // 管理员登出
 exports.logout = async (req, res) => {
   try {
@@ -558,4 +626,3 @@ exports.updateAdminStatus = async (req, res) => {
     return res.status(500).json(errors.serverError('更新状态失败'));
   }
 };
-
