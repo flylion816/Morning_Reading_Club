@@ -57,6 +57,9 @@
 
         <!-- 系统管理区块 -->
         <el-menu-item-group title="系统管理">
+          <el-menu-item index="/account-management" v-if="authStore.adminInfo?.role === 'superadmin'">
+            <span>👤 账号管理</span>
+          </el-menu-item>
           <el-menu-item index="/subscription-debug">
             <span>🔔 订阅消息排查</span>
           </el-menu-item>
@@ -172,7 +175,8 @@ const pageTitle = computed(() => {
     '/insight-requests': '查看申请',
     '/subscription-debug': '订阅消息排查',
     '/audit-logs': '审计日志',
-    '/database': '数据库管理'
+    '/database': '数据库管理',
+    '/account-management': '账号管理'
   };
   return titles[route.path] || '管理后台';
 });
@@ -180,7 +184,8 @@ const pageTitle = computed(() => {
 const pageSubtitle = computed(() => {
   const subtitles: Record<string, string> = {
     '/': '查看当前业务状态、待处理事项和最近动态。',
-    '/analytics': '按时间范围查看趋势、转化、收入结构和用户活跃度。'
+    '/analytics': '按时间范围查看趋势、转化、收入结构和用户活跃度。',
+    '/account-management': '管理后台登录账号、角色权限和启停状态。'
   };
   return subtitles[route.path] || '';
 });

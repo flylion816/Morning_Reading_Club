@@ -454,3 +454,108 @@ exports.changeDbAccessPassword = async (req, res) => {
     return res.status(500).json(errors.serverError('修改密码失败'));
   }
 };
+
+// 获取管理员详情（超级管理员权限）
+exports.getAdminDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const admin = await Admin.findById(id);
+    if (!admin) {
+      return res.status(404).json(errors.notFound('管理员不存在'));
+    }
+    return res.json(success(admin.toJSON()));
+  } catch (error) {
+    logger.error('Get admin detail error', error);
+    return res.status(500).json(errors.serverError('获取管理员详情失败'));
+  }
+};
+
+// 重置管理员密码（超级管理员权限）
+exports.resetAdminPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json(errors.badRequest('新密码不能为空'));
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json(errors.badRequest('新密码长度不能少于6位'));
+    }
+
+    const admin = await Admin.findById(id).select('+password');
+    if (!admin) {
+      return res.status(404).json(errors.notFound('管理员不存在'));
+    }
+
+    admin.password = password;
+    await admin.save();
+
+    // 记录审计日志
+    await AuditHelper.logAction(
+      req,
+      'PASSWORD_RESET',
+      'admin',
+      admin._id,
+      admin.name || admin.email,
+      `重置管理员密码：${admin.email}`
+    );
+
+    return res.json(success(null, '密码重置成功'));
+  } catch (error) {
+    logger.error('Reset admin password error', error);
+    return res.status(500).json(errors.serverError('重置密码失败'));
+  }
+};
+
+// 更新管理员状态（超级管理员权限）
+exports.updateAdminStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['active', 'inactive'].includes(status)) {
+      return res.status(400).json(errors.badRequest('无效的状态值'));
+    }
+
+    // 防止禁用自己
+    if (id === req.admin.id.toString() && status === 'inactive') {
+      return res.status(400).json(errors.badRequest('不能禁用自己的账号'));
+    }
+
+    const admin = await Admin.findById(id);
+    if (!admin) {
+      return res.status(404).json(errors.notFound('管理员不存在'));
+    }
+
+    const oldStatus = admin.status;
+    admin.status = status;
+    await admin.save();
+
+    // 记录审计日志
+    await AuditHelper.logAction(
+      req,
+      'STATUS_CHANGE',
+      'admin',
+      admin._id,
+      admin.name || admin.email,
+      `修改管理员状态：${status === 'active' ? '启用' : '禁用'}`,
+      { status: { before: oldStatus, after: status } }
+    );
+
+    // 异步同步到 MySQL
+    publishSyncEvent({
+      type: 'update',
+      collection: 'admins',
+      documentId: admin._id.toString(),
+      data: admin.toObject()
+    });
+
+    return res.json(success(admin.toJSON(), '管理员状态已更新'));
+  } catch (error) {
+    logger.error('Update admin status error', error);
+    return res.status(500).json(errors.serverError('更新状态失败'));
+  }
+};
+

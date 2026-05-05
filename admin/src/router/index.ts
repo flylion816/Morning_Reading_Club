@@ -87,6 +87,12 @@ const routes: RouteRecordRaw[] = [
     name: 'subscriptionDebug',
     component: () => import('../views/SubscriptionDebugView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/account-management',
+    name: 'accountManagement',
+    component: () => import('../views/AccountManagementView.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

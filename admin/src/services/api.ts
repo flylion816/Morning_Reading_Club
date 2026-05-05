@@ -151,6 +151,19 @@ export const authApi = {
     apiClient.post('/auth/admin/verify-db-access', { password })
 };
 
+// 账号管理 API
+export const accountApi = {
+  getAdmins: (params?: any) => apiClient.get('/admins', { params }),
+  getAdminDetail: (id: string) => apiClient.get(`/admins/${id}`),
+  createAdmin: (data: any) => apiClient.post('/admins', data),
+  updateAdmin: (id: string, data: any) => apiClient.put(`/admins/${id}`, data),
+  deleteAdmin: (id: string) => apiClient.delete(`/admins/${id}`),
+  resetPassword: (id: string, password: string) => 
+    apiClient.patch(`/admins/${id}/password`, { password }),
+  updateStatus: (id: string, status: string) => 
+    apiClient.patch(`/admins/${id}/status`, { status })
+};
+
 // 报名 API
 export const enrollmentApi = {
   getEnrollments: (params?: any) => apiClient.get('/enrollments', { params }),

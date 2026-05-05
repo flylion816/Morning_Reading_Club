@@ -35,6 +35,24 @@ router.delete(
   requireRole('superadmin'),
   adminController.deleteAdmin
 );
+router.get(
+  '/admins/:id',
+  adminAuthMiddleware,
+  requireRole('superadmin'),
+  adminController.getAdminDetail
+);
+router.patch(
+  '/admins/:id/password',
+  adminAuthMiddleware,
+  requireRole('superadmin'),
+  adminController.resetAdminPassword
+);
+router.patch(
+  '/admins/:id/status',
+  adminAuthMiddleware,
+  requireRole('superadmin'),
+  adminController.updateAdminStatus
+);
 
 // 打卡管理路由（管理员）
 router.get('/admin/checkins', adminAuthMiddleware, checkinController.getAdminCheckins);
