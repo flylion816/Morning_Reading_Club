@@ -31,7 +31,7 @@ mongoose.connect(mongodbUri, {
     const admin = await Admin.create({
       email: 'admin@morningreading.com',
       password: hashedPassword,
-      role: 'admin',
+      role: 'superadmin',
       status: 'active'
     });
 

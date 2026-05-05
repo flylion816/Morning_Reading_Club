@@ -32,7 +32,7 @@ mongoose.connect(mongodbUri, {
       name: '系统管理员',
       email: 'admin@morningreading.com',
       password: hashedPassword,
-      role: 'admin',
+      role: 'superadmin',
       status: 'active'
     });
 

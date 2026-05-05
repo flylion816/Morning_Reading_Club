@@ -227,8 +227,8 @@ const handleLogout = () => {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
-      authStore.logout();
+    .then(async () => {
+      await authStore.logout();
       ElMessage.success('已退出登录');
       router.push('/login');
     })

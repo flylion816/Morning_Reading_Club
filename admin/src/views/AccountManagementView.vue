@@ -1,5 +1,6 @@
 <template>
-  <div class="account-management">
+  <AdminLayout>
+    <div class="account-management">
     <!-- Top Summary Cards -->
     <el-row :gutter="20" class="summary-cards" v-loading="loadingSummary">
       <el-col :span="6">
@@ -207,9 +208,11 @@
       </template>
     </el-dialog>
   </div>
+  </AdminLayout>
 </template>
 
 <script setup lang="ts">
+import AdminLayout from '../components/AdminLayout.vue';
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { accountApi } from '../services/api';

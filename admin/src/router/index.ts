@@ -125,6 +125,15 @@ router.beforeEach((to, from, next) => {
     } else {
       next();
     }
+  } else if (to.meta.requiresAuth && authStore.isAuthenticated && !authStore.adminInfo) {
+    // 已认证但缺失用户信息（例如页面刷新），重新获取
+    console.log('[Router Guard] 获取用户信息');
+    authStore.getProfile().then(() => {
+      next();
+    }).catch(() => {
+      authStore.logout();
+      next({ name: 'login' });
+    });
   } else if (to.name === 'login' && authStore.isAuthenticated) {
     // 已登录时访问登录页，重定向到首页
     console.log('[Router Guard] 已登录，从登录页重定向到首页');
