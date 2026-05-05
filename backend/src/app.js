@@ -9,6 +9,7 @@ require('dotenv').config();
 const { getCorsOptions } = require('./config/cors');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { monitoringMiddleware } = require('./middleware/monitoring');
+const auditLogMiddleware = require('./middleware/auditLog');
 
 // 导入路由
 const authRoutes = require('./routes/auth.routes');
@@ -30,6 +31,7 @@ const notificationRoutes = require('./routes/notification.routes');
 const healthRoutes = require('./routes/health.routes');
 const backupRoutes = require('./routes/backup.routes');
 const meetingRoutes = require('./routes/meeting.routes');
+const activityRoutes = require('./routes/activity.routes');
 
 const app = express();
 
@@ -62,6 +64,9 @@ app.use('/', healthRoutes);
 app.use('/api/v1', healthRoutes);
 app.use('/', meetingRoutes);
 
+// 审计日志中间件 - 记录后续管理员写操作
+app.use(auditLogMiddleware);
+
 // API路由
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', adminRoutes); // Admin routes (auth endpoints are here)
@@ -80,6 +85,7 @@ app.use('/api/v1/notifications', notificationRoutes); // 通知API
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/monitoring', monitoringRoutes); // 监控API
 app.use('/api/v1/backup', backupRoutes); // 备份管理API
+app.use('/api/v1/activities', activityRoutes); // 用户行为活跃度API
 
 // 404处理
 app.use(notFoundHandler);

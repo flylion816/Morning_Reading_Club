@@ -2,7 +2,11 @@ const insightService = require('../../services/insight.service');
 const subscribeMessageService = require('../../services/subscribe-message.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const enrollmentService = require('../../services/enrollment.service');
-const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
+const activityService = require('../../services/activity.service');
+const {
+  hasPaidEnrollment,
+  redirectAfterCommunityDenied
+} = require('../../utils/period-access');
 
 const INSIGHT_AUTO_TOP_UP_SCENES = ['insight_request_created'];
 
@@ -26,14 +30,20 @@ function formatRelativeTime(dateString) {
 function buildInsightRequestDisplay(item) {
   const fromUser = item.fromUserId || {};
   const periodName =
-    item.requestPeriodName || item.periodId?.name || item.periodId?.title || '未知期次';
+    item.requestPeriodName ||
+    item.periodId?.name ||
+    item.periodId?.title ||
+    '未知期次';
   const insightTitle =
     item.requestInsightTitle ||
     item.insightId?.sectionId?.title ||
     item.insightId?.title ||
     '学习反馈';
   const insightDay =
-    item.requestInsightDay || item.insightId?.day || item.insightId?.sectionId?.day || null;
+    item.requestInsightDay ||
+    item.insightId?.day ||
+    item.insightId?.sectionId?.day ||
+    null;
   const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
   const dayText = insightDay && !titleHasDay ? `第${insightDay}天` : '';
   const metaParts = [periodName];
@@ -94,7 +104,10 @@ Page({
           notificationReminder: '',
           loading: false
         });
-        redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看');
+        redirectAfterCommunityDenied(
+          '/pages/profile/profile',
+          '完成支付后可查看'
+        );
         return;
       }
 
@@ -140,7 +153,9 @@ Page({
   async fetchNotificationReminder() {
     try {
       const response = await subscribeMessageService.getSettings();
-      const scene = (response.scenes || []).find(item => item.scene === 'insight_request_created');
+      const scene = (response.scenes || []).find(
+        (item) => item.scene === 'insight_request_created'
+      );
       const shortage = !scene || scene.availableCount <= 0;
       return shortage ? '新的请求看见提醒未开启或已用完，可去补充。' : '';
     } catch (error) {
@@ -199,7 +214,17 @@ Page({
     try {
       this.triggerAutoTopUp('insight_request_approve', 'prompt');
       const requestId = request._id || request.id;
-      await insightService.approveRequest(requestId, { periodId: request.periodId || '' });
+      await insightService.approveRequest(requestId, {
+        periodId: request.periodId || ''
+      });
+      activityService.track('insight_request_approve', {
+        targetType: 'insight_request',
+        targetId: requestId,
+        periodId: request.periodId || null,
+        metadata: {
+          fromUserId: request.fromUserId || null
+        }
+      });
       this.updateRequestStatus(requestId, 'approved');
       wx.showToast({ title: '已批准申请', icon: 'success' });
     } catch (error) {
@@ -229,7 +254,7 @@ Page({
     const statusInfo = statusMap[nextStatus];
     if (!statusInfo) return;
 
-    const requests = this.data.requests.map(item =>
+    const requests = this.data.requests.map((item) =>
       (item._id || item.id) === requestId
         ? {
             ...item,

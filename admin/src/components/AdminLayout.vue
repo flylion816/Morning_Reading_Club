@@ -5,7 +5,11 @@
         <h2>凡人共读</h2>
       </div>
 
-      <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
+      <el-menu
+        :default-active="activeMenu"
+        class="sidebar-menu"
+        @select="handleMenuSelect"
+      >
         <!-- 数据看板区块 -->
         <el-menu-item-group title="数据看板">
           <el-menu-item index="/">
@@ -79,6 +83,7 @@
         <div class="header-content">
           <div class="header-title">
             <h3>{{ pageTitle }}</h3>
+            <p v-if="pageSubtitle">{{ pageSubtitle }}</p>
           </div>
           <div class="header-user">
             <el-avatar
@@ -108,7 +113,9 @@
       :close-on-press-escape="false"
     >
       <div class="db-access-form">
-        <p class="warning-text">⚠️ 您正在访问敏感的数据库管理功能，请输入验证密码</p>
+        <p class="warning-text">
+          ⚠️ 您正在访问敏感的数据库管理功能，请输入验证密码
+        </p>
         <el-input
           v-model="dbAccessPassword"
           type="password"
@@ -121,7 +128,11 @@
       </div>
       <template #footer>
         <el-button @click="dbAccessVisible = false">取消</el-button>
-        <el-button type="primary" :loading="dbAccessVerifying" @click="confirmDbAccess">
+        <el-button
+          type="primary"
+          :loading="dbAccessVerifying"
+          @click="confirmDbAccess"
+        >
           验证
         </el-button>
       </template>
@@ -150,8 +161,8 @@ const pendingRoute = ref<string | null>(null);
 
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
-    '/': '仪表板',
-    '/analytics': '数据分析',
+    '/': '仪表板：现在要做什么',
+    '/analytics': '数据分析：过去发生了什么、为什么',
     '/enrollments': '报名管理',
     '/payments': '支付记录',
     '/periods': '期次管理',
@@ -164,6 +175,14 @@ const pageTitle = computed(() => {
     '/database': '数据库管理'
   };
   return titles[route.path] || '管理后台';
+});
+
+const pageSubtitle = computed(() => {
+  const subtitles: Record<string, string> = {
+    '/': '查看当前业务状态、待处理事项和最近动态。',
+    '/analytics': '按时间范围查看趋势、转化、收入结构和用户活跃度。'
+  };
+  return subtitles[route.path] || '';
 });
 
 const handleMenuSelect = (index: string) => {
@@ -311,6 +330,12 @@ const handleLogout = () => {
   font-size: 18px;
   color: #333;
   font-weight: 600;
+}
+
+.header-title p {
+  margin: 4px 0 0;
+  color: #777;
+  font-size: 13px;
 }
 
 .header-user {

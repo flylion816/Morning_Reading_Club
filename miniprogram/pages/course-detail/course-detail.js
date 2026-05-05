@@ -1,6 +1,7 @@
 const courseService = require('../../services/course.service');
 const checkinService = require('../../services/checkin.service');
 const commentService = require('../../services/comment.service');
+const activityService = require('../../services/activity.service');
 const subscribeMessageService = require('../../services/subscribe-message.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const constants = require('../../config/constants');
@@ -18,6 +19,9 @@ const MINI_PROGRAM_CODE_ASSET_PATHS = [
   '/assets/images/mini-program-code.png',
   '../../assets/images/mini-program-code.png'
 ];
+const SECTION_CHECKIN_FETCH_LIMIT = 500;
+const CHECKIN_CONTENT_FOLD_LINE_LIMIT = 6;
+const CHECKIN_CONTENT_FOLD_UNITS_PER_LINE = 18;
 
 const POSTER_STYLE_PRESETS = [
   {
@@ -95,6 +99,8 @@ Page({
     focusReplyId: '',
     shareCheckinId: '',
     shareCheckinUserName: '',
+    canShareCurrentCheckin: true,
+    checkinContentExpanded: {},
     highlightCheckinId: '',
     highlightCommentId: '',
     highlightReplyId: ''
@@ -102,6 +108,7 @@ Page({
 
   onLoad(options) {
     console.log('课程详情页加载，参数:', options);
+    this._skipNextOnShowRefresh = true;
     if (!options.id) {
       console.error('缺少课程 ID 参数');
       wx.showToast({ title: '参数错误', icon: 'none' });
@@ -126,8 +133,12 @@ Page({
       focusCommentId: options.commentId || '',
       focusReplyId: options.replyId || '',
       shareCheckinId: options.checkinId || '',
-      shareCheckinUserName: ''
+      shareCheckinUserName: '',
+      canShareCurrentCheckin: !options.checkinId,
+      checkinContentExpanded: {}
     });
+
+    this.updateShareMenu(!options.checkinId, !!options.checkinId);
 
     if (options.checkinId) {
       wx.setNavigationBarTitle({
@@ -144,6 +155,11 @@ Page({
   },
 
   onShow() {
+    if (this._skipNextOnShowRefresh) {
+      this._skipNextOnShowRefresh = false;
+      return;
+    }
+
     // 每次显示页面时重新加载，以显示最新的打卡记录
     if (this.data.courseId && this.data.course) {
       this.loadCourseDetail();
@@ -151,11 +167,19 @@ Page({
   },
 
   onShareAppMessage() {
-    const { course, courseId, shareCheckinId, shareCheckinUserName } = this.data;
+    const {
+      course,
+      courseId,
+      shareCheckinId,
+      shareCheckinUserName,
+      canShareCurrentCheckin
+    } = this.data;
 
-    if (shareCheckinId) {
+    if (shareCheckinId && canShareCurrentCheckin) {
       return {
-        title: shareCheckinUserName ? `${shareCheckinUserName}的打卡日记` : (course.title || '动态详情'),
+        title: shareCheckinUserName
+          ? `${shareCheckinUserName}的打卡日记`
+          : course.title || '动态详情',
         path: `/pages/course-detail/course-detail?id=${courseId}&checkinId=${shareCheckinId}`
       };
     }
@@ -167,11 +191,19 @@ Page({
   },
 
   onShareTimeline() {
-    const { course, courseId, shareCheckinId, shareCheckinUserName } = this.data;
+    const {
+      course,
+      courseId,
+      shareCheckinId,
+      shareCheckinUserName,
+      canShareCurrentCheckin
+    } = this.data;
 
-    if (shareCheckinId) {
+    if (shareCheckinId && canShareCurrentCheckin) {
       return {
-        title: shareCheckinUserName ? `${shareCheckinUserName}的打卡日记` : (course.title || '动态详情'),
+        title: shareCheckinUserName
+          ? `${shareCheckinUserName}的打卡日记`
+          : course.title || '动态详情',
         query: `id=${courseId}&checkinId=${shareCheckinId}`
       };
     }
@@ -199,7 +231,10 @@ Page({
 
     // 3. 识别手工输入的列表项格式（如"1. 文本"、"2. 文本"）并增加间距
     // 匹配 <p> 标签中以数字+点开头的内容
-    cleaned = cleaned.replace(/<p>(\d+\.\s)/gi, '<p style="margin-bottom:16px;">$1');
+    cleaned = cleaned.replace(
+      /<p>(\d+\.\s)/gi,
+      '<p style="margin-bottom:16px;">$1'
+    );
 
     // 4. 为所有 <img> 标签添加合适的 style
     // 关键：使用 display:block 和 width:100% 让图片充满容器
@@ -241,40 +276,132 @@ Page({
     return String(value);
   },
 
+  getCurrentUserId() {
+    const app = getApp();
+    return this.normalizeId(
+      app.globalData.userInfo?._id || app.globalData.userInfo?.id
+    );
+  },
+
+  getCheckinContentUnits(text = '') {
+    return Array.from(String(text || '')).reduce((sum, char) => {
+      return sum + (/[^\x00-\xff]/.test(char) ? 1 : 0.5);
+    }, 0);
+  },
+
+  estimateCheckinContentLines(text = '') {
+    const paragraphs = String(text || '')
+      .replace(/\r/g, '')
+      .split('\n');
+
+    return paragraphs.reduce((total, paragraph) => {
+      const units = this.getCheckinContentUnits(paragraph || ' ');
+      return (
+        total +
+        Math.max(1, Math.ceil(units / CHECKIN_CONTENT_FOLD_UNITS_PER_LINE))
+      );
+    }, 0);
+  },
+
+  shouldFoldCheckinContent(text = '') {
+    return (
+      this.estimateCheckinContentLines(text) > CHECKIN_CONTENT_FOLD_LINE_LIMIT
+    );
+  },
+
+  isOwnCheckin(checkin = {}) {
+    const currentUserId = this.getCurrentUserId();
+    if (!currentUserId) {
+      return false;
+    }
+
+    return String(this.normalizeId(checkin.userId)) === String(currentUserId);
+  },
+
+  updateShareMenu(
+    canShare = true,
+    forceDetailMode = this.data.isCheckinDetailMode
+  ) {
+    if (forceDetailMode && !canShare) {
+      if (typeof wx.hideShareMenu === 'function') {
+        wx.hideShareMenu();
+      }
+      return;
+    }
+
+    if (typeof wx.showShareMenu === 'function') {
+      wx.showShareMenu({
+        withShareTicket: false
+      });
+    }
+  },
+
   buildCheckinItem(checkin = {}) {
     const app = getApp();
-    const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
-    const userInfo = checkin.userId && typeof checkin.userId === 'object' ? checkin.userId : {};
+    const currentUserId =
+      app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+    const userInfo =
+      checkin.userId && typeof checkin.userId === 'object'
+        ? checkin.userId
+        : {};
     const sectionInfo =
-      checkin.sectionId && typeof checkin.sectionId === 'object' ? checkin.sectionId : {};
-    const periodInfo = checkin.periodId && typeof checkin.periodId === 'object' ? checkin.periodId : {};
+      checkin.sectionId && typeof checkin.sectionId === 'object'
+        ? checkin.sectionId
+        : {};
+    const periodInfo =
+      checkin.periodId && typeof checkin.periodId === 'object'
+        ? checkin.periodId
+        : {};
     const userName = userInfo.nickname || checkin.userName || '匿名用户';
     const avatarUrl = userInfo.avatarUrl || '';
-    const normalizedUserId = this.normalizeId(userInfo._id || userInfo.id || checkin.userId || userName);
+    const normalizedUserId = this.normalizeId(
+      userInfo._id || userInfo.id || checkin.userId || userName
+    );
+    const id = this.normalizeId(checkin._id || checkin.id);
+    const content = checkin.note || checkin.content || '';
 
     return {
-      id: this.normalizeId(checkin._id || checkin.id),
+      id,
       userId: this.normalizeId(userInfo._id || userInfo.id || checkin.userId),
-      periodId: this.normalizeId(periodInfo._id || periodInfo.id || checkin.periodId || this.data.periodId),
-      sectionId: this.normalizeId(sectionInfo._id || sectionInfo.id || checkin.sectionId || this.data.courseId),
+      periodId: this.normalizeId(
+        periodInfo._id ||
+          periodInfo.id ||
+          checkin.periodId ||
+          this.data.periodId
+      ),
+      sectionId: this.normalizeId(
+        sectionInfo._id ||
+          sectionInfo.id ||
+          checkin.sectionId ||
+          this.data.courseId
+      ),
       userName,
-      avatarText: avatarUrl ? '' : (userName ? userName.charAt(0) : '👤'),
+      avatarText: avatarUrl ? '' : userName ? userName.charAt(0) : '👤',
       avatarUrl,
-      avatarColor: checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
-      content: checkin.note || checkin.content || '',
-      createTime: checkin.createdAt || checkin.checkinDate ? this.formatTime(checkin.createdAt || checkin.checkinDate) : '刚刚',
+      avatarColor:
+        checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
+      content,
+      canExpandContent: this.shouldFoldCheckinContent(content),
+      contentExpanded: !!this.data.checkinContentExpanded[id],
+      createTime:
+        checkin.createdAt || checkin.checkinDate
+          ? this.formatTime(checkin.createdAt || checkin.checkinDate)
+          : '刚刚',
       checkinDate: checkin.checkinDate || checkin.createdAt || '',
       likeCount: checkin.likeCount || 0,
-      isLiked: Array.isArray(checkin.likes) && currentUserId
-        ? checkin.likes.some(
-            like =>
-              String(like.userId?._id || like.userId?.id || like.userId || like) ===
-              String(currentUserId)
-          )
-        : false,
+      isLiked:
+        Array.isArray(checkin.likes) && currentUserId
+          ? checkin.likes.some(
+              (like) =>
+                String(
+                  like.userId?._id || like.userId?.id || like.userId || like
+                ) === String(currentUserId)
+            )
+          : false,
       replies: [],
       day: checkin.day ?? sectionInfo.day ?? this.data.course?.day ?? null,
-      sectionDay: sectionInfo.day ?? checkin.day ?? this.data.course?.day ?? null,
+      sectionDay:
+        sectionInfo.day ?? checkin.day ?? this.data.course?.day ?? null,
       sectionTitle: sectionInfo.title || this.data.course?.title || '晨读任务',
       sectionIcon: sectionInfo.icon || '',
       periodTitle:
@@ -312,7 +439,8 @@ Page({
       return null;
     }
 
-    const sectionDay = checkin.sectionDay || checkin.day || this.data.course?.day || null;
+    const sectionDay =
+      checkin.sectionDay || checkin.day || this.data.course?.day || null;
     const metaParts = [];
     if (sectionDay) {
       metaParts.push(`第${sectionDay}天打卡`);
@@ -326,8 +454,12 @@ Page({
       this.data.course?.periodId?.title ||
       this.data.course?.periodId?.name ||
       '';
-    const sectionTitle = checkin.sectionTitle || this.data.course?.title || '晨读任务';
-    const hashTag = sectionDay ? `#第${sectionDay}天 ${sectionTitle}` : `#${sectionTitle}`;
+    const sectionTitle =
+      checkin.sectionTitle || this.data.course?.title || '晨读任务';
+    const hashTag = sectionDay
+      ? `#第${sectionDay}天 ${sectionTitle}`
+      : `#${sectionTitle}`;
+    const checkinId = this.normalizeId(checkin.id || checkin._id);
 
     return {
       ...checkin,
@@ -335,7 +467,14 @@ Page({
       hashTag,
       periodChip: periodTitle || sectionTitle,
       dateLabel: this.formatDetailDateTime(checkin.checkinDate),
-      commentCount: Array.isArray(checkin.replies) ? checkin.replies.length : 0
+      commentCount: Array.isArray(checkin.replies) ? checkin.replies.length : 0,
+      canShare:
+        this.isOwnCheckin(checkin) ||
+        (this.data.isCheckinDetailMode && !!this.data.canShareCurrentCheckin),
+      canExpandContent:
+        checkin.canExpandContent ||
+        this.shouldFoldCheckinContent(checkin.content),
+      contentExpanded: !!this.data.checkinContentExpanded[checkinId]
     };
   },
 
@@ -345,16 +484,77 @@ Page({
     }
 
     const targetCheckin = (this.data.course.comments || []).find(
-      item => String(item.id || item._id) === String(checkinId)
+      (item) => String(item.id || item._id) === String(checkinId)
     );
 
     if (!targetCheckin) {
+      this.setData({
+        detailCheckin: null,
+        canShareCurrentCheckin: false
+      });
+      this.updateShareMenu(false);
       return;
     }
 
+    const detailCheckin = this.buildDetailCheckinData(targetCheckin);
     this.setData({
-      detailCheckin: this.buildDetailCheckinData(targetCheckin)
+      detailCheckin,
+      canShareCurrentCheckin: !!detailCheckin.canShare
     });
+    this.updateShareMenu(!!detailCheckin.canShare);
+  },
+
+  syncCheckinContentExpandedState(checkinId, expanded) {
+    if (!checkinId) {
+      return;
+    }
+
+    const nextExpandedMap = {
+      ...this.data.checkinContentExpanded,
+      [checkinId]: expanded
+    };
+
+    const nextComments = Array.isArray(this.data.course?.comments)
+      ? this.data.course.comments.map((item) => {
+          if (String(item.id || item._id) !== String(checkinId)) {
+            return item;
+          }
+
+          return {
+            ...item,
+            contentExpanded: expanded
+          };
+        })
+      : null;
+
+    const nextData = {
+      checkinContentExpanded: nextExpandedMap
+    };
+
+    if (nextComments) {
+      nextData.course = {
+        ...this.data.course,
+        comments: nextComments
+      };
+    }
+
+    if (
+      this.data.detailCheckin &&
+      String(this.data.detailCheckin.id) === String(checkinId)
+    ) {
+      nextData.detailCheckin = {
+        ...this.data.detailCheckin,
+        contentExpanded: expanded
+      };
+    }
+
+    this.setData(nextData);
+  },
+
+  toggleCheckinContent(e) {
+    const { checkinId } = e.currentTarget.dataset;
+    const expanded = !this.data.checkinContentExpanded[checkinId];
+    this.syncCheckinContentExpandedState(checkinId, expanded);
   },
 
   getPosterTextUnits(text = '') {
@@ -377,7 +577,7 @@ Page({
       let currentLine = '';
       let currentUnits = 0;
 
-      Array.from(trimmed).forEach(char => {
+      Array.from(trimmed).forEach((char) => {
         const nextUnits = this.getPosterTextUnits(char);
         if (currentLine && currentUnits + nextUnits > maxUnits) {
           lines.push(currentLine);
@@ -403,11 +603,19 @@ Page({
   },
 
   buildPosterSnapshot(detailCheckin, stylePreset = POSTER_STYLE_PRESETS[0]) {
-    const contentText = String(detailCheckin?.content || '这篇打卡还没有填写正文');
+    const contentText = String(
+      detailCheckin?.content || '这篇打卡还没有填写正文'
+    );
     const contentLines = this.wrapPosterText(contentText, 34);
-    const titleLines = this.wrapPosterText(`${detailCheckin?.userName || '伙伴'}的打卡日记`, 22);
-    const tagLines = detailCheckin?.hashTag ? this.wrapPosterText(detailCheckin.hashTag, 28) : [];
-    const periodChip = detailCheckin?.periodChip || detailCheckin?.sectionTitle || '晨读任务';
+    const titleLines = this.wrapPosterText(
+      `${detailCheckin?.userName || '伙伴'}的打卡日记`,
+      22
+    );
+    const tagLines = detailCheckin?.hashTag
+      ? this.wrapPosterText(detailCheckin.hashTag, 28)
+      : [];
+    const periodChip =
+      detailCheckin?.periodChip || detailCheckin?.sectionTitle || '晨读任务';
     const dateLabel = detailCheckin?.dateLabel || '';
     const sectionTitle = detailCheckin?.sectionTitle || '晨读任务';
     const statsLine = `获赞 ${detailCheckin?.likeCount || 0} · 评论 ${detailCheckin?.commentCount || 0}`;
@@ -433,7 +641,10 @@ Page({
       statsLine,
       authorName: detailCheckin?.userName || '伙伴',
       authorMeta: detailCheckin?.metaLine || '打卡日记',
-      avatarText: detailCheckin?.avatarText || (detailCheckin?.userName || '伙').charAt(0) || '伙',
+      avatarText:
+        detailCheckin?.avatarText ||
+        (detailCheckin?.userName || '伙').charAt(0) ||
+        '伙',
       miniProgramCodePath: MINI_PROGRAM_CODE_ASSET_PATHS[0],
       styleId: stylePreset.id,
       styleName: stylePreset.name,
@@ -446,7 +657,9 @@ Page({
       throw new Error('当前环境不支持图片绘制');
     }
 
-    const candidates = Array.isArray(srcCandidates) ? srcCandidates : [srcCandidates];
+    const candidates = Array.isArray(srcCandidates)
+      ? srcCandidates
+      : [srcCandidates];
     let lastError = null;
 
     for (const src of candidates) {
@@ -458,7 +671,8 @@ Page({
         const image = await new Promise((resolve, reject) => {
           const instance = canvas.createImage();
           instance.onload = () => resolve(instance);
-          instance.onerror = error => reject(error || new Error(`加载图片失败: ${src}`));
+          instance.onerror = (error) =>
+            reject(error || new Error(`加载图片失败: ${src}`));
           instance.src = src;
         });
         return image;
@@ -484,7 +698,7 @@ Page({
       query
         .select('#longImageCanvas')
         .fields({ node: true, size: true })
-        .exec(result => {
+        .exec((result) => {
           const target = result && result[0];
           if (!target || !target.node) {
             reject(new Error('找不到长图画布'));
@@ -515,7 +729,7 @@ Page({
 
   drawPosterTextLines(ctx, lines, startX, startY, lineHeight) {
     let cursorY = startY;
-    lines.forEach(line => {
+    lines.forEach((line) => {
       if (!line) {
         cursorY += Math.floor(lineHeight * 0.65);
         return;
@@ -539,18 +753,44 @@ Page({
     ctx.shadowColor = 'rgba(0, 0, 0, 0.06)';
     ctx.shadowBlur = 32;
     ctx.shadowOffsetY = 12;
-    this.drawPosterRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, borderRadius, '#ffffff');
+    this.drawPosterRoundedRect(
+      ctx,
+      cardX,
+      cardY,
+      cardWidth,
+      cardHeight,
+      borderRadius,
+      '#ffffff'
+    );
     ctx.restore();
 
     const clipInner = () => {
       ctx.beginPath();
       ctx.moveTo(cardX + borderRadius, cardY);
       ctx.lineTo(cardX + cardWidth - borderRadius, cardY);
-      ctx.arcTo(cardX + cardWidth, cardY, cardX + cardWidth, cardY + borderRadius, borderRadius);
+      ctx.arcTo(
+        cardX + cardWidth,
+        cardY,
+        cardX + cardWidth,
+        cardY + borderRadius,
+        borderRadius
+      );
       ctx.lineTo(cardX + cardWidth, cardY + cardHeight - borderRadius);
-      ctx.arcTo(cardX + cardWidth, cardY + cardHeight, cardX + cardWidth - borderRadius, cardY + cardHeight, borderRadius);
+      ctx.arcTo(
+        cardX + cardWidth,
+        cardY + cardHeight,
+        cardX + cardWidth - borderRadius,
+        cardY + cardHeight,
+        borderRadius
+      );
       ctx.lineTo(cardX + borderRadius, cardY + cardHeight);
-      ctx.arcTo(cardX, cardY + cardHeight, cardX, cardY + cardHeight - borderRadius, borderRadius);
+      ctx.arcTo(
+        cardX,
+        cardY + cardHeight,
+        cardX,
+        cardY + cardHeight - borderRadius,
+        borderRadius
+      );
       ctx.lineTo(cardX, cardY + borderRadius);
       ctx.arcTo(cardX, cardY, cardX + borderRadius, cardY, borderRadius);
       ctx.closePath();
@@ -600,7 +840,15 @@ Page({
 
       ctx.globalAlpha = 0.08;
       ctx.fillStyle = stylePreset.accentColors[0];
-      this.drawPosterRoundedRect(ctx, cardX + 32, cardY + 32, cardWidth - 64, 280, 24, stylePreset.accentColors[0]);
+      this.drawPosterRoundedRect(
+        ctx,
+        cardX + 32,
+        cardY + 32,
+        cardWidth - 64,
+        280,
+        24,
+        stylePreset.accentColors[0]
+      );
     } else if (stylePreset.id === 'paper') {
       ctx.globalAlpha = 0.02;
       ctx.fillStyle = stylePreset.accentColors[0];
@@ -611,7 +859,16 @@ Page({
     ctx.restore();
   },
 
-  drawPosterOutline(ctx, x, y, width, height, radius, strokeStyle, lineWidth = 2) {
+  drawPosterOutline(
+    ctx,
+    x,
+    y,
+    width,
+    height,
+    radius,
+    strokeStyle,
+    lineWidth = 2
+  ) {
     ctx.save();
     ctx.strokeStyle = strokeStyle;
     ctx.lineWidth = lineWidth;
@@ -630,7 +887,10 @@ Page({
     ctx.restore();
   },
 
-  async generateLongImagePoster(detailCheckin, stylePreset = POSTER_STYLE_PRESETS[0]) {
+  async generateLongImagePoster(
+    detailCheckin,
+    stylePreset = POSTER_STYLE_PRESETS[0]
+  ) {
     const snapshot = this.buildPosterSnapshot(detailCheckin, stylePreset);
     const target = await this.getPosterCanvasNode();
     const canvas = target.node;
@@ -651,12 +911,20 @@ Page({
     ctx.clearRect(0, 0, snapshot.width, snapshot.height);
 
     try {
-      miniProgramCodeImage = await this.loadPosterImage(canvas, MINI_PROGRAM_CODE_ASSET_PATHS);
+      miniProgramCodeImage = await this.loadPosterImage(
+        canvas,
+        MINI_PROGRAM_CODE_ASSET_PATHS
+      );
     } catch (error) {
       console.warn('加载小程序码失败，继续生成无二维码长图', error);
     }
 
-    const backgroundGradient = ctx.createLinearGradient(0, 0, 0, snapshot.height);
+    const backgroundGradient = ctx.createLinearGradient(
+      0,
+      0,
+      0,
+      snapshot.height
+    );
     backgroundGradient.addColorStop(0, stylePreset.bgColors[0] || '#eaf3ff');
     backgroundGradient.addColorStop(0.5, stylePreset.bgColors[1] || '#f8fbff');
     backgroundGradient.addColorStop(1, stylePreset.bgColors[2] || '#ffffff');
@@ -692,7 +960,13 @@ Page({
     let cursorY = stylePreset.id === 'paper' ? 242 : 260;
     ctx.fillStyle = stylePreset.id === 'paper' ? '#22324a' : '#111827';
     ctx.font = 'bold 44px sans-serif';
-    cursorY = this.drawPosterTextLines(ctx, snapshot.titleLines, contentStartX, cursorY, 58);
+    cursorY = this.drawPosterTextLines(
+      ctx,
+      snapshot.titleLines,
+      contentStartX,
+      cursorY,
+      58
+    );
 
     ctx.fillStyle = stylePreset.id === 'paper' ? '#607089' : '#6b7280';
     ctx.font = '26px sans-serif';
@@ -702,13 +976,25 @@ Page({
     cursorY += 80;
     ctx.fillStyle = '#1f2937';
     ctx.font = '34px sans-serif';
-    cursorY = this.drawPosterTextLines(ctx, snapshot.contentLines, contentStartX, cursorY, 56);
+    cursorY = this.drawPosterTextLines(
+      ctx,
+      snapshot.contentLines,
+      contentStartX,
+      cursorY,
+      56
+    );
 
     if (snapshot.tagLines.length > 0) {
       cursorY += 32;
       ctx.fillStyle = stylePreset.chipText;
       ctx.font = '28px sans-serif';
-      cursorY = this.drawPosterTextLines(ctx, snapshot.tagLines, contentStartX, cursorY, 44);
+      cursorY = this.drawPosterTextLines(
+        ctx,
+        snapshot.tagLines,
+        contentStartX,
+        cursorY,
+        44
+      );
     }
 
     cursorY += 40;
@@ -716,7 +1002,15 @@ Page({
     ctx.font = '24px sans-serif';
     const chipTextParam = snapshot.periodChip;
     const textWidth = ctx.measureText(chipTextParam).width;
-    this.drawPosterRoundedRect(ctx, contentStartX, cursorY - 26, textWidth + chipPadding * 2, 54, 27, stylePreset.chipFill);
+    this.drawPosterRoundedRect(
+      ctx,
+      contentStartX,
+      cursorY - 26,
+      textWidth + chipPadding * 2,
+      54,
+      27,
+      stylePreset.chipFill
+    );
     ctx.fillStyle = stylePreset.chipText;
     ctx.font = '24px sans-serif';
     ctx.fillText(chipTextParam, contentStartX + chipPadding, cursorY + 10);
@@ -740,8 +1034,16 @@ Page({
 
     ctx.fillStyle = stylePreset.footerText;
     ctx.font = '24px sans-serif';
-    ctx.fillText('凡人共读 · 动态详情长图', contentStartX, snapshot.height - 170);
-    ctx.fillText('打开小程序查看完整评论与互动', contentStartX, snapshot.height - 130);
+    ctx.fillText(
+      '凡人共读 · 动态详情长图',
+      contentStartX,
+      snapshot.height - 170
+    );
+    ctx.fillText(
+      '打开小程序查看完整评论与互动',
+      contentStartX,
+      snapshot.height - 130
+    );
 
     if (miniProgramCodeImage && typeof ctx.drawImage === 'function') {
       const qrCardSize = 120;
@@ -749,8 +1051,25 @@ Page({
       const qrCardX = snapshot.width - 96 - qrCardSize;
       const qrCardY = snapshot.height - 216;
 
-      this.drawPosterRoundedRect(ctx, qrCardX, qrCardY, qrCardSize, qrCardSize, 20, '#ffffff');
-      this.drawPosterOutline(ctx, qrCardX, qrCardY, qrCardSize, qrCardSize, 20, '#e8edf5', 2);
+      this.drawPosterRoundedRect(
+        ctx,
+        qrCardX,
+        qrCardY,
+        qrCardSize,
+        qrCardSize,
+        20,
+        '#ffffff'
+      );
+      this.drawPosterOutline(
+        ctx,
+        qrCardX,
+        qrCardY,
+        qrCardSize,
+        qrCardSize,
+        20,
+        '#e8edf5',
+        2
+      );
       ctx.drawImage(
         miniProgramCodeImage,
         qrCardX + qrPadding,
@@ -769,15 +1088,20 @@ Page({
         destHeight: snapshot.height * 2,
         fileType: 'png',
         quality: 1,
-        success: res => resolve(res.tempFilePath),
+        success: (res) => resolve(res.tempFilePath),
         fail: reject
       });
     });
   },
 
   syncSelectedPoster(index = 0) {
-    const posterGalleryItems = Array.isArray(this.data.posterGalleryItems) ? this.data.posterGalleryItems : [];
-    const safeIndex = Math.min(Math.max(Number(index) || 0, 0), Math.max(posterGalleryItems.length - 1, 0));
+    const posterGalleryItems = Array.isArray(this.data.posterGalleryItems)
+      ? this.data.posterGalleryItems
+      : [];
+    const safeIndex = Math.min(
+      Math.max(Number(index) || 0, 0),
+      Math.max(posterGalleryItems.length - 1, 0)
+    );
     const selectedPoster = posterGalleryItems[safeIndex] || null;
 
     this.setData({
@@ -799,7 +1123,10 @@ Page({
         });
       }
 
-      const tempFilePath = await this.generateLongImagePoster(detailCheckin, stylePreset);
+      const tempFilePath = await this.generateLongImagePoster(
+        detailCheckin,
+        stylePreset
+      );
       items.push({
         id: stylePreset.id,
         name: stylePreset.name,
@@ -834,12 +1161,15 @@ Page({
           });
           resolve();
         },
-        fail: error => {
-          if (String(error?.errMsg || '').includes('auth deny') && wx.showModal) {
+        fail: (error) => {
+          if (
+            String(error?.errMsg || '').includes('auth deny') &&
+            wx.showModal
+          ) {
             wx.showModal({
               title: '需要相册权限',
               content: '请在设置中允许保存到相册后重试',
-              success: modalRes => {
+              success: (modalRes) => {
                 if (modalRes.confirm && wx.openSetting) {
                   wx.openSetting({});
                 }
@@ -858,7 +1188,10 @@ Page({
   },
 
   openPosterGallery() {
-    if (!Array.isArray(this.data.posterGalleryItems) || this.data.posterGalleryItems.length === 0) {
+    if (
+      !Array.isArray(this.data.posterGalleryItems) ||
+      this.data.posterGalleryItems.length === 0
+    ) {
       return;
     }
 
@@ -906,7 +1239,7 @@ Page({
       'say'
     ];
 
-    modules.forEach(module => {
+    modules.forEach((module) => {
       // 判断模块内容是否为空，添加 visible 标志
       const isEmpty = this.isContentEmpty(course[module]);
       course[`${module}Visible`] = !isEmpty;
@@ -914,7 +1247,10 @@ Page({
       // 如果是富文本内容（content），清理 HTML
       if (module === 'content' && course[module]) {
         course[module] = this.cleanHtmlForRichText(course[module]);
-        console.log('✅ 已清理富文本 HTML:', course[module].substring(0, 100) + '...');
+        console.log(
+          '✅ 已清理富文本 HTML:',
+          course[module].substring(0, 100) + '...'
+        );
       }
     });
 
@@ -922,15 +1258,21 @@ Page({
   },
 
   async loadFocusedCheckinDetail(course, periodId, access) {
-    const detail = await checkinService.getCheckinDetail(this.data.shareCheckinId);
+    const detail = await checkinService.getCheckinDetail(
+      this.data.shareCheckinId
+    );
     const checkinItem = this.buildCheckinItem(detail || {});
     const app = getApp();
-    const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+    const currentUserId =
+      app.globalData.userInfo?._id || app.globalData.userInfo?.id;
     const calendar = this.generateCalendar(course);
-    const checkedDays = calendar.filter(d => d.status === 'checked').length;
+    const checkedDays = calendar.filter((d) => d.status === 'checked').length;
 
     course.comments = [checkinItem];
     this.syncShareCheckinMeta(course.comments);
+
+    const isOwnCheckinBool =
+      !!currentUserId && String(checkinItem.userId) === String(currentUserId);
 
     this.setData(
       {
@@ -938,8 +1280,8 @@ Page({
         paymentStatus: access.paymentStatus || null,
         canAccessCommunity: !!access.canAccessCommunity,
         communityAccessState: access.communityAccessState || 'locked',
-        hasUserCheckedIn:
-          !!currentUserId && String(checkinItem.userId) === String(currentUserId),
+        hasUserCheckedIn: isOwnCheckinBool,
+        canShareCurrentCheckin: isOwnCheckinBool,
         commentExpanded: { [checkinItem.id]: true },
         commentLoading: {},
         notificationReminder: '',
@@ -967,6 +1309,15 @@ Page({
     try {
       console.log('开始加载课程详情，ID:', this.data.courseId);
       const course = await courseService.getCourseDetail(this.data.courseId);
+      activityService.track('course_view', {
+        targetType: 'section',
+        targetId: this.data.courseId,
+        periodId: extractId(course.periodId),
+        sectionId: this.data.courseId,
+        metadata: {
+          title: course.title || course.name || ''
+        }
+      });
       console.log('课程详情加载成功:', course);
       console.log('📌 course.periodId:', course.periodId);
       console.log('📌 course.periodId._id:', course.periodId?._id);
@@ -993,7 +1344,10 @@ Page({
 
       console.log('course.comments:', course.comments);
       console.log('comments 是否存在:', !!course.comments);
-      console.log('comments 长度:', course.comments ? course.comments.length : 0);
+      console.log(
+        'comments 长度:',
+        course.comments ? course.comments.length : 0
+      );
 
       if (this.data.isCheckinDetailMode) {
         await this.loadFocusedCheckinDetail(course, periodId, access);
@@ -1003,7 +1357,9 @@ Page({
       if (!communityEnabled) {
         course.comments = [];
         const calendar = this.generateCalendar(course);
-        const checkedDays = calendar.filter(d => d.status === 'checked').length;
+        const checkedDays = calendar.filter(
+          (d) => d.status === 'checked'
+        ).length;
 
         this.setData({
           periodId,
@@ -1025,55 +1381,44 @@ Page({
       // 从数据库加载打卡记录
       let dbCheckins = [];
       try {
-        // 使用 /checkins/period/:periodId 端点获取期次的所有打卡记录（包括其他用户的）
-        // 这样才能在课程详情页显示所有人的打卡记录，与课程列表页保持一致
-        console.log('🔍 准备调用 getPeriodCheckins，periodId:', periodId);
+        // 直接按课节查询打卡记录，避免先拉整期数据再前端过滤
+        console.log(
+          '🔍 准备调用 getSectionCheckins，periodId:',
+          periodId,
+          'courseId:',
+          this.data.courseId
+        );
 
         if (!periodId) {
           console.error('❌ periodId 为空，无法加载打卡记录!');
           throw new Error('periodId 为空');
         }
 
-        const checkinRes = await courseService.getPeriodCheckins(periodId);
+        const checkinRes = await courseService.getSectionCheckins(
+          periodId,
+          this.data.courseId,
+          { limit: SECTION_CHECKIN_FETCH_LIMIT }
+        );
         console.log('打卡API响应:', checkinRes);
 
         if (checkinRes) {
-          // request.js 会自动提取 data.data，所以这里应该是 { list: [...], pagination: {...} }
-          let allCheckins = [];
-          if (checkinRes.list) {
-            allCheckins = checkinRes.list;
-          } else if (Array.isArray(checkinRes)) {
-            allCheckins = checkinRes;
-          }
+          dbCheckins = checkinRes.list || checkinRes.items || checkinRes || [];
 
-          // 过滤出当前课节的打卡记录
-          // 注意：API返回的sectionId可能被populate了，需要取_id并转换为字符串比对
-          console.log('🔍 开始过滤打卡记录，目标courseId:', this.data.courseId);
-          console.log('📊 需要过滤的打卡记录数:', allCheckins.length);
+          console.log('🔍 已按课节查询打卡记录，courseId:', this.data.courseId);
+          console.log('📊 当前课节打卡记录数:', dbCheckins.length);
 
-          // 显示前几条的用户信息
-          if (allCheckins.length > 0) {
+          if (dbCheckins.length > 0) {
             console.log(
               '📌 打卡记录来源用户ID:',
-              allCheckins[0].userId?._id || allCheckins[0].userId || 'unknown'
+              dbCheckins[0].userId?._id || dbCheckins[0].userId || 'unknown'
             );
             console.log(
               '📌 当前登录用户ID:',
-              getApp().globalData.userInfo?.id || getApp().globalData.userInfo?._id || 'unknown'
+              getApp().globalData.userInfo?.id ||
+                getApp().globalData.userInfo?._id ||
+                'unknown'
             );
           }
-
-          dbCheckins = allCheckins.filter((checkin, index) => {
-            const sectionId = checkin.sectionId?._id || checkin.sectionId;
-            const sectionIdStr = String(sectionId);
-            const matches = sectionIdStr === this.data.courseId;
-
-            console.log(
-              `  [${index}] sectionId=${sectionId} (type: ${typeof checkin.sectionId}), 转换后=${sectionIdStr}, 匹配=${matches}`
-            );
-
-            return matches;
-          });
 
           console.log('✅ 从数据库加载的打卡记录:', dbCheckins);
         }
@@ -1092,22 +1437,33 @@ Page({
       // 打卡(Checkin)为主层级，评论(Comment)为子层级
       let hasUserCheckedIn = false;
       const app = getApp();
-      const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
-
+      const currentUserId =
+        app.globalData.userInfo?._id || app.globalData.userInfo?.id;
 
       // 为每个打卡记录构建完整的数据结构
-      const checkinWithComments = dbCheckins.map(checkin => {
+      const checkinWithComments = dbCheckins.map((checkin) => {
         // 检查当前用户是否已经打过卡
-        const checkinUserId = checkin.userId?._id || checkin.userId?.id || checkin.userId;
+        const checkinUserId =
+          checkin.userId?._id || checkin.userId?.id || checkin.userId;
         if (currentUserId && String(checkinUserId) === String(currentUserId)) {
           hasUserCheckedIn = true;
         }
 
         if (checkin.likes && checkin.likes.length > 0) {
-          console.log('--- Debug Likes (Checkin) ---', { checkinId: checkin._id || checkin.id, likes: checkin.likes, currentUserId });
-          checkin.likes.forEach(l => {
-            const extractedLikeId = String(l.userId?._id || l.userId?.id || l.userId || l);
-            console.log('Comparing:', { extractedLikeId, currentUserIdCasted: String(currentUserId), match: extractedLikeId === String(currentUserId) });
+          console.log('--- Debug Likes (Checkin) ---', {
+            checkinId: checkin._id || checkin.id,
+            likes: checkin.likes,
+            currentUserId
+          });
+          checkin.likes.forEach((l) => {
+            const extractedLikeId = String(
+              l.userId?._id || l.userId?.id || l.userId || l
+            );
+            console.log('Comparing:', {
+              extractedLikeId,
+              currentUserIdCasted: String(currentUserId),
+              match: extractedLikeId === String(currentUserId)
+            });
           });
         }
 
@@ -1122,21 +1478,24 @@ Page({
       this.syncShareCheckinMeta(checkinWithComments);
 
       const calendar = this.generateCalendar(course);
-      const checkedDays = calendar.filter(d => d.status === 'checked').length;
+      const checkedDays = calendar.filter((d) => d.status === 'checked').length;
 
-      this.setData({
-        periodId,
-        paymentStatus: access.paymentStatus || null,
-        canAccessCommunity: true,
-        communityAccessState: access.communityAccessState || 'enabled',
-        course,
-        calendar,
-        checkedDays,
-        loading: false
-      }, () => {
-        this.loadNotificationReminder();
-        this.restoreTargetFocus();
-      });
+      this.setData(
+        {
+          periodId,
+          paymentStatus: access.paymentStatus || null,
+          canAccessCommunity: true,
+          communityAccessState: access.communityAccessState || 'enabled',
+          course,
+          calendar,
+          checkedDays,
+          loading: false
+        },
+        () => {
+          this.loadNotificationReminder();
+          this.restoreTargetFocus();
+        }
+      );
 
       console.log('页面数据设置完成');
       console.log('this.data.course.comments:', this.data.course.comments);
@@ -1157,7 +1516,7 @@ Page({
     }
 
     const targetCheckin = checkins.find(
-      item => String(item.id || item._id) === String(shareCheckinId)
+      (item) => String(item.id || item._id) === String(shareCheckinId)
     );
 
     if (!targetCheckin) {
@@ -1183,21 +1542,28 @@ Page({
 
   async loadNotificationReminder() {
     const app = getApp();
-    if (!app.globalData.isLogin || this.data.communityAccessState !== 'enabled') {
+    if (
+      !app.globalData.isLogin ||
+      this.data.communityAccessState !== 'enabled'
+    ) {
       return;
     }
 
     try {
       const response = await subscribeMessageService.getSettings();
       const scenes = response.scenes || [];
-      const commentScene = scenes.find(item => item.scene === 'comment_received');
-      const likeScene = scenes.find(item => item.scene === 'like_received');
+      const commentScene = scenes.find(
+        (item) => item.scene === 'comment_received'
+      );
+      const likeScene = scenes.find((item) => item.scene === 'like_received');
       const needsReminder =
         (commentScene && commentScene.availableCount <= 0) ||
         (likeScene && likeScene.availableCount <= 0);
 
       this.setData({
-        notificationReminder: needsReminder ? '评论或点赞提醒已用完，可去消息提醒页补充。' : ''
+        notificationReminder: needsReminder
+          ? '评论或点赞提醒已用完，可去消息提醒页补充。'
+          : ''
       });
     } catch (error) {
       console.warn('加载课程详情通知提醒失败:', error);
@@ -1232,7 +1598,7 @@ Page({
     wx.showModal({
       title: '确认报名',
       content: '确定要报名该课程吗？',
-      success: res => {
+      success: (res) => {
         if (res.confirm) {
           // TODO: 调用报名API
           wx.showToast({
@@ -1246,6 +1612,35 @@ Page({
 
   handleBack() {
     wx.navigateBack();
+  },
+
+  handleCheckinDetailTap(e) {
+    const { checkinId, sectionId } = e.currentTarget.dataset;
+    this.openCheckinDetail(checkinId, sectionId || this.data.courseId);
+  },
+
+  openCheckinDetail(checkinId, sectionId = '') {
+    const targetSectionId = sectionId || this.data.courseId;
+
+    if (!checkinId || !targetSectionId) {
+      wx.showToast({
+        title: '缺少详情参数',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (
+      this.data.isCheckinDetailMode &&
+      String(this.data.shareCheckinId) === String(checkinId) &&
+      String(this.data.courseId) === String(targetSectionId)
+    ) {
+      return;
+    }
+
+    wx.navigateTo({
+      url: `/pages/course-detail/course-detail?id=${targetSectionId}&checkinId=${checkinId}`
+    });
   },
 
   async handleCheckin() {
@@ -1304,53 +1699,90 @@ Page({
     }
 
     const loadingKey = `commentLoading.${checkin.id}`;
-    this.setData({ [loadingKey]: true, [`commentExpanded.${checkin.id}`]: true });
+    this.setData({
+      [loadingKey]: true,
+      [`commentExpanded.${checkin.id}`]: true
+    });
 
     try {
-      const checkinComments = await commentService.getCommentsByCheckin(checkin.id, { limit: 100 });
+      const checkinComments = await commentService.getCommentsByCheckin(
+        checkin.id,
+        { limit: 100 }
+      );
 
-      if (checkinComments && checkinComments.list && checkinComments.list.length > 0) {
+      if (
+        checkinComments &&
+        checkinComments.list &&
+        checkinComments.list.length > 0
+      ) {
         const app = getApp();
-        const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+        const currentUserId =
+          app.globalData.userInfo?._id || app.globalData.userInfo?.id;
 
-        const formattedReplies = checkinComments.list.map(comment => {
-          const formattedNestedReplies = (comment.replies || []).map(reply => {
-            const isLiked = Array.isArray(reply.likes) && currentUserId
-              ? reply.likes.some(
-                  l =>
-                    String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
+        const formattedReplies = checkinComments.list.map((comment) => {
+          const formattedNestedReplies = (comment.replies || []).map(
+            (reply) => {
+              const isLiked =
+                Array.isArray(reply.likes) && currentUserId
+                  ? reply.likes.some(
+                      (l) =>
+                        String(
+                          l.userId?._id || l.userId?.id || l.userId || l
+                        ) === String(currentUserId)
+                    )
+                  : false;
+              return {
+                id: reply._id,
+                userId: reply.userId?._id || reply.userId,
+                userName: reply.userId?.nickname || '匿名用户',
+                avatarText: reply.userId?.nickname
+                  ? reply.userId.nickname.charAt(0)
+                  : '👤',
+                avatarUrl: reply.userId?.avatarUrl || '',
+                avatarColor: getAvatarColorByUserId(
+                  reply.userId?._id ||
+                    reply.userId ||
+                    reply.userId?.nickname ||
+                    '匿名用户'
+                ),
+                content: reply.content || '',
+                createTime: reply.createdAt
+                  ? this.formatTime(reply.createdAt)
+                  : '刚刚',
+                likeCount: reply.likeCount || 0,
+                isLiked,
+                parentId: comment._id
+              };
+            }
+          );
+
+          const isCommentLiked =
+            Array.isArray(comment.likes) && currentUserId
+              ? comment.likes.some(
+                  (l) =>
+                    String(l.userId?._id || l.userId?.id || l.userId || l) ===
+                    String(currentUserId)
                 )
               : false;
-            return {
-              id: reply._id,
-              userId: reply.userId?._id || reply.userId,
-              userName: reply.userId?.nickname || '匿名用户',
-              avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
-              avatarUrl: reply.userId?.avatarUrl || '',
-              avatarColor: getAvatarColorByUserId(reply.userId?._id || reply.userId || reply.userId?.nickname || '匿名用户'),
-              content: reply.content || '',
-              createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
-              likeCount: reply.likeCount || 0,
-              isLiked,
-              parentId: comment._id
-            };
-          });
-
-          const isCommentLiked = Array.isArray(comment.likes) && currentUserId
-            ? comment.likes.some(
-                l => String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUserId)
-              )
-            : false;
 
           return {
             id: comment._id,
             userId: comment.userId?._id || comment.userId,
             userName: comment.userId?.nickname || '匿名用户',
-            avatarText: comment.userId?.nickname ? comment.userId.nickname.charAt(0) : '👤',
+            avatarText: comment.userId?.nickname
+              ? comment.userId.nickname.charAt(0)
+              : '👤',
             avatarUrl: comment.userId?.avatarUrl || '',
-            avatarColor: getAvatarColorByUserId(comment.userId?._id || comment.userId || comment.userId?.nickname || '匿名用户'),
+            avatarColor: getAvatarColorByUserId(
+              comment.userId?._id ||
+                comment.userId ||
+                comment.userId?.nickname ||
+                '匿名用户'
+            ),
             content: comment.content || '',
-            createTime: comment.createdAt ? this.formatTime(comment.createdAt) : '刚刚',
+            createTime: comment.createdAt
+              ? this.formatTime(comment.createdAt)
+              : '刚刚',
             likeCount: comment.likeCount || 0,
             isLiked: isCommentLiked,
             replies: formattedNestedReplies
@@ -1388,7 +1820,7 @@ Page({
 
     const checkins = this.data.course.comments || [];
     const targetIndex = checkins.findIndex(
-      item => String(item.id || item._id) === String(focusCheckinId)
+      (item) => String(item.id || item._id) === String(focusCheckinId)
     );
 
     if (targetIndex === -1) {
@@ -1464,7 +1896,7 @@ Page({
 
     const { id } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
-    const comment = comments.find(c => c.id === id);
+    const comment = comments.find((c) => c.id === id);
 
     if (!comment) {
       return;
@@ -1482,6 +1914,12 @@ Page({
         // 点赞打卡记录
         console.log(`👍 点赞打卡: checkinId=${id}`);
         await commentService.likeCheckin(id);
+        activityService.track('like_create', {
+          targetType: 'checkin',
+          targetId: id,
+          periodId: this.data.periodId || extractId(this.data.course?.periodId),
+          sectionId: this.data.courseId
+        });
         comment.likeCount += 1;
         comment.isLiked = true;
         console.log(`✅ 点赞成功: 当前点赞数=${comment.likeCount}`);
@@ -1512,7 +1950,7 @@ Page({
 
     const { id } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
-    const comment = comments.find(c => c.id === id);
+    const comment = comments.find((c) => c.id === id);
 
     if (!comment) {
       return;
@@ -1523,7 +1961,7 @@ Page({
       title: `回复 ${comment.userName}`,
       editable: true,
       placeholderText: '请输入回复内容...',
-      success: async res => {
+      success: async (res) => {
         if (res.confirm && res.content && res.content.trim()) {
           try {
             // 直接创建评论（关联到打卡记录）
@@ -1536,6 +1974,13 @@ Page({
               checkinId: id,
               content: res.content.trim()
             });
+            activityService.track('comment_create', {
+              targetType: 'checkin',
+              targetId: id,
+              periodId:
+                this.data.periodId || extractId(this.data.course?.periodId),
+              sectionId: this.data.courseId
+            });
 
             console.log('✅ 评论已保存到数据库:', replyData);
 
@@ -1546,9 +1991,16 @@ Page({
               userName: currentUser?.nickname || '我',
               avatarText: currentUser?.avatarUrl
                 ? ''
-                : (currentUser?.nickname ? currentUser.nickname.charAt(0) : '我'),
+                : currentUser?.nickname
+                  ? currentUser.nickname.charAt(0)
+                  : '我',
               avatarUrl: currentUser?.avatarUrl || '',
-              avatarColor: getAvatarColorByUserId(currentUser?._id || currentUser?.id || currentUser?.nickname || '我'),
+              avatarColor: getAvatarColorByUserId(
+                currentUser?._id ||
+                  currentUser?.id ||
+                  currentUser?.nickname ||
+                  '我'
+              ),
               content: res.content.trim(),
               createTime: '刚刚',
               likeCount: 0,
@@ -1595,7 +2047,9 @@ Page({
 
     const { commentId, replyId } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
-    const comment = comments.find(c => c.id === commentId || c._id === commentId);
+    const comment = comments.find(
+      (c) => c.id === commentId || c._id === commentId
+    );
 
     if (!comment || !comment.replies) {
       console.error('评论或回复不存在', { commentId, replyId });
@@ -1605,13 +2059,17 @@ Page({
     let isNestedReply = false;
     let parentCommentId = null;
 
-    let reply = comment.replies.find(r => r.id === replyId || r._id === replyId);
+    let reply = comment.replies.find(
+      (r) => r.id === replyId || r._id === replyId
+    );
 
     // 如果在第一层回复(replies)里找不到，就去第二层(replies.replies)里找
     if (!reply) {
       for (const r of comment.replies) {
         if (r.replies && r.replies.length > 0) {
-          const nestedReply = r.replies.find(nr => nr.id === replyId || nr._id === replyId);
+          const nestedReply = r.replies.find(
+            (nr) => nr.id === replyId || nr._id === replyId
+          );
           if (nestedReply) {
             reply = nestedReply;
             isNestedReply = true;
@@ -1630,7 +2088,9 @@ Page({
     try {
       if (reply.isLiked) {
         // 取消点赞评论
-        console.log(`👎 取消点赞回复: checkinId=${commentId}, isNested=${isNestedReply}, parentCommentId=${parentCommentId}, replyId=${replyId}`);
+        console.log(
+          `👎 取消点赞回复: checkinId=${commentId}, isNested=${isNestedReply}, parentCommentId=${parentCommentId}, replyId=${replyId}`
+        );
         if (isNestedReply) {
           await commentService.unlikeReply(parentCommentId, replyId);
         } else {
@@ -1641,12 +2101,20 @@ Page({
         console.log(`✅ 取消点赞成功: 当前点赞数=${reply.likeCount}`);
       } else {
         // 点赞评论
-        console.log(`👍 点赞回复: checkinId=${commentId}, isNested=${isNestedReply}, parentCommentId=${parentCommentId}, replyId=${replyId}`);
+        console.log(
+          `👍 点赞回复: checkinId=${commentId}, isNested=${isNestedReply}, parentCommentId=${parentCommentId}, replyId=${replyId}`
+        );
         if (isNestedReply) {
           await commentService.likeReply(parentCommentId, replyId);
         } else {
           await commentService.likeComment(replyId);
         }
+        activityService.track('like_create', {
+          targetType: isNestedReply ? 'reply' : 'comment',
+          targetId: replyId,
+          periodId: this.data.periodId || extractId(this.data.course?.periodId),
+          sectionId: this.data.courseId
+        });
         reply.likeCount = (reply.likeCount || 0) + 1;
         reply.isLiked = true;
         console.log(`✅ 点赞成功: 当前点赞数=${reply.likeCount}`);
@@ -1696,7 +2164,7 @@ Page({
 
     // 在 course.comments（打卡列表）中找到这个打卡
     const checkins = this.data.course.comments;
-    const checkin = checkins.find(c => c.id === checkinId);
+    const checkin = checkins.find((c) => c.id === checkinId);
 
     if (!checkin || !checkin.replies) {
       console.error('❌ 找不到打卡或评论列表', { checkinId, checkin });
@@ -1704,7 +2172,7 @@ Page({
     }
 
     // 在打卡的 replies（评论列表）中找到这条评论
-    const comment = checkin.replies.find(c => c.id === commentId);
+    const comment = checkin.replies.find((c) => c.id === commentId);
 
     if (!comment) {
       console.error('❌ 找不到评论', { commentId });
@@ -1716,7 +2184,7 @@ Page({
       title: `回复 ${userName}`,
       editable: true,
       placeholderText: '请输入回复内容...',
-      success: async res => {
+      success: async (res) => {
         if (res.confirm && res.content && res.content.trim()) {
           try {
             const app = getApp();
@@ -1724,17 +2192,20 @@ Page({
 
             console.log(
               '📝 提交回复: commentId=' +
-              commentId +
-              ', content=' +
-              res.content.trim().substring(0, 20)
+                commentId +
+                ', content=' +
+                res.content.trim().substring(0, 20)
             );
 
             // 调用API保存回复到这条评论
             // 后端返回的是整个更新后的 Comment 对象（包含更新的 replies 数组）
-            const updatedComment = await commentService.replyComment(commentId, {
-              content: res.content.trim(),
-              replyToUserId: replyId // 标记回复的是哪个用户
-            });
+            const updatedComment = await commentService.replyComment(
+              commentId,
+              {
+                content: res.content.trim(),
+                replyToUserId: replyId // 标记回复的是哪个用户
+              }
+            );
 
             console.log('✅ 回复已保存到数据库，更新后的评论:', updatedComment);
             console.log('回复列表长度:', updatedComment.replies?.length);
@@ -1742,47 +2213,97 @@ Page({
             // 重新加载该打卡的评论列表，确保前端数据与后端同步
             // （因为后端返回的 replies 数据结构需要格式化才能显示）
             try {
-              const refreshedComments = await commentService.getCommentsByCheckin(checkinId, {
-                limit: 100
-              });
+              const refreshedComments =
+                await commentService.getCommentsByCheckin(checkinId, {
+                  limit: 100
+                });
 
               if (refreshedComments && refreshedComments.list) {
                 // 找到这条评论
-                const updatedCommentData = refreshedComments.list.find(c => c._id === commentId);
+                const updatedCommentData = refreshedComments.list.find(
+                  (c) => c._id === commentId
+                );
 
                 if (updatedCommentData && checkin.replies) {
                   // 更新前端的这条评论数据
-                  const commentIdx = checkin.replies.findIndex(c => c.id === commentId);
-                  if (commentIdx !== -1 && updatedCommentData && updatedCommentData.replies) {
-                    const formattedReplies = updatedCommentData.replies.map(reply => {
-                      const isNestedReplyLikedLocally = Array.isArray(reply.likes) && currentUser ? reply.likes.some(l =>
-                        String(l.userId?._id || l.userId?.id || l.userId || l) === String(currentUser?._id || currentUser?.id)
-                      ) : false;
+                  const commentIdx = checkin.replies.findIndex(
+                    (c) => c.id === commentId
+                  );
+                  if (
+                    commentIdx !== -1 &&
+                    updatedCommentData &&
+                    updatedCommentData.replies
+                  ) {
+                    const formattedReplies = updatedCommentData.replies.map(
+                      (reply) => {
+                        const isNestedReplyLikedLocally =
+                          Array.isArray(reply.likes) && currentUser
+                            ? reply.likes.some(
+                                (l) =>
+                                  String(
+                                    l.userId?._id ||
+                                      l.userId?.id ||
+                                      l.userId ||
+                                      l
+                                  ) ===
+                                  String(currentUser?._id || currentUser?.id)
+                              )
+                            : false;
 
-                      return {
-                        id: reply._id,
-                        userId: reply.userId?._id || reply.userId,
-                        userName: reply.userId?.nickname || '匿名用户',
-                        avatarText: reply.userId?.nickname ? reply.userId.nickname.charAt(0) : '👤',
-                        avatarColor: getAvatarColorByUserId(reply.userId?._id || reply.userId || reply.userId?.nickname || '匿名用户'),
-                        content: reply.content || '',
-                        createTime: reply.createdAt ? this.formatTime(reply.createdAt) : '刚刚',
-                        likeCount: reply.likeCount || 0,
-                        isLiked: isNestedReplyLikedLocally
-                      };
-                    });
+                        return {
+                          id: reply._id,
+                          userId: reply.userId?._id || reply.userId,
+                          userName: reply.userId?.nickname || '匿名用户',
+                          avatarText: reply.userId?.nickname
+                            ? reply.userId.nickname.charAt(0)
+                            : '👤',
+                          avatarColor: getAvatarColorByUserId(
+                            reply.userId?._id ||
+                              reply.userId ||
+                              reply.userId?.nickname ||
+                              '匿名用户'
+                          ),
+                          content: reply.content || '',
+                          createTime: reply.createdAt
+                            ? this.formatTime(reply.createdAt)
+                            : '刚刚',
+                          likeCount: reply.likeCount || 0,
+                          isLiked: isNestedReplyLikedLocally
+                        };
+                      }
+                    );
 
-                    checkin.replies[commentIdx].replies = formattedReplies.map(reply => ({ ...reply, parentId: commentId }));
-                    checkin.replies[commentIdx].replyCount = updatedCommentData.replyCount || 0;
+                    checkin.replies[commentIdx].replies = formattedReplies.map(
+                      (reply) => ({ ...reply, parentId: commentId })
+                    );
+                    checkin.replies[commentIdx].replyCount =
+                      updatedCommentData.replyCount || 0;
 
                     // 🔍 调试日志：验证嵌套回复数据结构
                     console.log('✅ 更新后的评论结构:');
                     console.log('   - 评论ID:', checkin.replies[commentIdx].id);
-                    console.log('   - 评论内容:', checkin.replies[commentIdx].content);
-                    console.log('   - 回复总数:', checkin.replies[commentIdx].replyCount);
-                    console.log('   - 回复列表:', checkin.replies[commentIdx].replies);
-                    if (checkin.replies[commentIdx].replies && checkin.replies[commentIdx].replies.length > 0) {
-                      console.log('   - 最后一条回复:', checkin.replies[commentIdx].replies[checkin.replies[commentIdx].replies.length - 1]);
+                    console.log(
+                      '   - 评论内容:',
+                      checkin.replies[commentIdx].content
+                    );
+                    console.log(
+                      '   - 回复总数:',
+                      checkin.replies[commentIdx].replyCount
+                    );
+                    console.log(
+                      '   - 回复列表:',
+                      checkin.replies[commentIdx].replies
+                    );
+                    if (
+                      checkin.replies[commentIdx].replies &&
+                      checkin.replies[commentIdx].replies.length > 0
+                    ) {
+                      console.log(
+                        '   - 最后一条回复:',
+                        checkin.replies[commentIdx].replies[
+                          checkin.replies[commentIdx].replies.length - 1
+                        ]
+                      );
                     }
                   }
                 }
@@ -1870,7 +2391,12 @@ Page({
   },
 
   handleLongImageShare() {
-    const { detailCheckin, posterGenerating, posterGalleryItems, posterSourceCheckinId } = this.data;
+    const {
+      detailCheckin,
+      posterGenerating,
+      posterGalleryItems,
+      posterSourceCheckinId
+    } = this.data;
 
     if (!detailCheckin) {
       wx.showToast({
@@ -1880,11 +2406,23 @@ Page({
       return;
     }
 
+    if (this.data.isCheckinDetailMode && !this.data.canShareCurrentCheckin) {
+      wx.showToast({
+        title: '仅自己的小凡看见可分享',
+        icon: 'none'
+      });
+      return;
+    }
+
     if (posterGenerating) {
       return;
     }
 
-    if (Array.isArray(posterGalleryItems) && posterGalleryItems.length > 0 && posterSourceCheckinId === detailCheckin.id) {
+    if (
+      Array.isArray(posterGalleryItems) &&
+      posterGalleryItems.length > 0 &&
+      posterSourceCheckinId === detailCheckin.id
+    ) {
       this.openPosterGallery();
       return;
     }
@@ -1898,7 +2436,7 @@ Page({
     }
 
     this.generatePosterGallery(detailCheckin)
-      .then(galleryItems => {
+      .then((galleryItems) => {
         this.setData({
           posterGenerating: false,
           posterTempFilePath: galleryItems[0]?.tempFilePath || '',
@@ -1909,7 +2447,7 @@ Page({
         this.syncSelectedPoster(0);
         wx.hideLoading?.();
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('生成长图失败:', error);
         this.setData({ posterGenerating: false });
         wx.hideLoading?.();

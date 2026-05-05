@@ -3,7 +3,8 @@
  * 处理与后端的 WebSocket 连接和实时通知推送
  */
 
-import api from './api';
+const envConfig = require('../config/env');
+const constants = require('../config/constants');
 const logger = require('../utils/logger');
 
 class WebSocketService {
@@ -13,6 +14,8 @@ class WebSocketService {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
+    this.allowReconnect = false;
+    this.manualClose = false;
     this.eventListeners = new Map();
     this.messageQueue = [];
     this.userId = null;
@@ -33,9 +36,11 @@ class WebSocketService {
         }
 
         this.userId = userId;
+        this.allowReconnect = options.allowReconnect === true;
+        this.manualClose = false;
 
         // 获取服务器地址
-        const apiUrl = api.getBaseUrl();
+        const apiUrl = envConfig.apiBaseUrl;
         const socketUrl = apiUrl
           .replace('http://', 'ws://')
           .replace('https://', 'wss://')
@@ -47,7 +52,7 @@ class WebSocketService {
         this.socket = wx.connectSocket({
           url: socketUrl,
           header: {
-            Authorization: `Bearer ${wx.getStorageSync('token')}`
+            Authorization: `Bearer ${wx.getStorageSync(constants.STORAGE_KEYS.TOKEN)}`
           }
         });
 
@@ -84,7 +89,9 @@ class WebSocketService {
         this.socket.onError(error => {
           logger.error('[WebSocket] 连接错误:', error);
           this.isConnected = false;
-          this.handleReconnect();
+          if (this.allowReconnect && !this.manualClose) {
+            this.handleReconnect();
+          }
           reject(error);
         });
 
@@ -94,7 +101,9 @@ class WebSocketService {
           logger.log('[WebSocket] 连接已关闭');
           this.isConnected = false;
           this.stopHeartbeat();
-          this.handleReconnect();
+          if (this.allowReconnect && !this.manualClose) {
+            this.handleReconnect();
+          }
         });
 
         // 超时处理
@@ -282,6 +291,10 @@ class WebSocketService {
    * @private
    */
   handleReconnect() {
+    if (!this.allowReconnect || this.manualClose) {
+      return;
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       logger.error('[WebSocket] 达到最大重连次数，停止重连');
       return;
@@ -306,11 +319,13 @@ class WebSocketService {
    */
   disconnect() {
     logger.log('[WebSocket] 正在断开连接...');
+    this.manualClose = true;
+    this.allowReconnect = false;
     this.stopHeartbeat();
 
     if (this.socket) {
       try {
-        this.socket.closeSocket();
+        this.socket.close();
       } catch (error) {
         logger.error('[WebSocket] 关闭失败:', error);
       }
@@ -336,4 +351,4 @@ class WebSocketService {
 }
 
 // 导出单例
-export default new WebSocketService();
+module.exports = new WebSocketService();

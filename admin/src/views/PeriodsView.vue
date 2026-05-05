@@ -10,6 +10,14 @@
           <el-button style="margin-left: 12px" @click="handleRefresh">
             <span style="margin-right: 4px">🔄</span>刷新
           </el-button>
+          <el-button
+            type="success"
+            style="margin-left: 12px"
+            :loading="syncingStatus"
+            @click="handleSyncStatus"
+          >
+            <span style="margin-right: 4px">⏱️</span>更新期次状态
+          </el-button>
         </div>
       </el-card>
 
@@ -342,6 +350,7 @@ import type { ListResponse, Period } from '../types/api';
 
 const loading = ref(false);
 const submitting = ref(false);
+const syncingStatus = ref(false);
 const publishingId = ref<string | null>(null);
 const periods = ref<Period[]>([]);
 const dialogVisible = ref(false);
@@ -699,6 +708,33 @@ async function handlePublishChange(row: Period) {
 function handleRefresh() {
   loadPeriods();
   ElMessage.success('已刷新');
+}
+
+async function handleSyncStatus() {
+  try {
+    await ElMessageBox.confirm(
+      '将根据每个期次的开始/结束日期，重新计算并写回 status 字段（未开始 / 进行中 / 已完成）。确定继续吗？',
+      '更新期次状态',
+      {
+        confirmButtonText: '开始更新',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    );
+
+    syncingStatus.value = true;
+    const result: any = await periodApi.syncAllPeriodsStatus();
+    const updated = result?.updatedCount ?? 0;
+    const total = result?.totalPeriods ?? 0;
+    ElMessage.success(`同步完成：扫描 ${total} 个期次，更新 ${updated} 个状态`);
+    loadPeriods();
+  } catch (err: any) {
+    if (err === 'cancel') return;
+    ElMessage.error(err?.message || '同步失败');
+    console.error(err);
+  } finally {
+    syncingStatus.value = false;
+  }
 }
 
 function resetForm() {

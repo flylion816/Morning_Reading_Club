@@ -186,6 +186,34 @@ describe('Checkin Controller', () => {
       expect(res.status.calledWith(404)).to.be.true;
     });
 
+    it('应该返回400当打卡内容超过3000字', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      const sectionId = new mongoose.Types.ObjectId();
+
+      req.user = { userId };
+      req.body = {
+        periodId,
+        sectionId,
+        day: 1,
+        note: 'x'.repeat(3001)
+      };
+
+      const mockSection = {
+        _id: sectionId,
+        checkinCount: 0,
+        save: sandbox.stub().resolves()
+      };
+
+      SectionStub.findById.resolves(mockSection);
+
+      await checkinController.createCheckin(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(CheckinStub.create.called).to.be.false;
+      expect(communityAccessServiceStub.ensurePeriodCommunityAccess.called).to.be.false;
+    });
+
     it('应该在未支付时拒绝创建打卡', async () => {
       const userId = new mongoose.Types.ObjectId();
       const periodId = new mongoose.Types.ObjectId();
@@ -602,6 +630,30 @@ describe('Checkin Controller', () => {
       expect(query.isPublic).to.equal(true);
       expect(res.json.called).to.be.true;
     });
+
+    it('应该支持按sectionId过滤期次打卡', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      const sectionId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+      req.query = { page: 1, limit: 20, sectionId: String(sectionId) };
+
+      PeriodStub.findById.resolves({ _id: periodId, title: 'test period' });
+      CheckinStub.countDocuments.resolves(0);
+      CheckinStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves([])
+      });
+
+      await checkinController.getPeriodCheckins(req, res, next);
+
+      const query = CheckinStub.find.getCall(0).args[0];
+      expect(query.periodId).to.equal(periodId);
+      expect(query.sectionId).to.equal(String(sectionId));
+      expect(query.isPublic).to.equal(true);
+    });
   });
 
   describe('getCheckinDetail', () => {
@@ -940,6 +992,27 @@ describe('Checkin Controller', () => {
       await checkinController.updateCheckin(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    it('应该返回400当更新内容超过3000字', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const checkinId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { checkinId: checkinId.toString() };
+      req.body = { note: 'x'.repeat(3001) };
+
+      const mockCheckin = {
+        _id: checkinId,
+        userId: { toString: () => userId },
+        save: sandbox.stub().resolves()
+      };
+
+      CheckinStub.findById.resolves(mockCheckin);
+
+      await checkinController.updateCheckin(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(mockCheckin.save.called).to.be.false;
     });
   });
 

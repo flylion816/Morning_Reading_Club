@@ -20,6 +20,12 @@ function isNonEmptyNote(note) {
   return typeof note === 'string' && note.trim().length > 0;
 }
 
+const MAX_CHECKIN_NOTE_LENGTH = 3000;
+
+function isNoteTooLong(note) {
+  return typeof note === 'string' && note.length > MAX_CHECKIN_NOTE_LENGTH;
+}
+
 function buildPeriodSummaryItem(checkin) {
   const period = checkin.periodId || {};
 
@@ -117,6 +123,12 @@ async function createCheckin(req, res, next) {
     const section = await Section.findById(sectionId);
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));
+    }
+
+    if (isNoteTooLong(note)) {
+      return res
+        .status(400)
+        .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
     }
 
     const hasCommunityAccess = await ensurePeriodCommunityAccess(res, userId, periodId);
@@ -389,7 +401,7 @@ async function getUserCheckinSummary(req, res, next) {
 async function getPeriodCheckins(req, res, next) {
   try {
     const { periodId } = req.params;
-    const { page = 1, limit = 20, day } = req.query;
+    const { page = 1, limit = 20, day, sectionId } = req.query;
 
     // 验证期次存在
     const period = await Period.findById(periodId);
@@ -401,6 +413,10 @@ async function getPeriodCheckins(req, res, next) {
       periodId,
       isPublic: true
     };
+
+    if (sectionId) {
+      query.sectionId = sectionId;
+    }
 
     // 按日期筛选
     if (day) {
@@ -467,6 +483,12 @@ async function updateCheckin(req, res, next) {
     // 只能更新自己的打卡
     if (checkin.userId.toString() !== userId) {
       return res.status(403).json(errors.forbidden('无权更新'));
+    }
+
+    if (isNoteTooLong(note)) {
+      return res
+        .status(400)
+        .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
     }
 
     // 更新允许的字段

@@ -22,8 +22,31 @@
             <el-option label="已支付" value="paid" />
             <el-option label="已退款" value="refunded" />
           </el-select>
+          <el-select
+            v-model="filters.periodId"
+            placeholder="选择期次"
+            clearable
+            filterable
+            style="width: 200px; margin-left: 10px"
+            @change="handleSearch"
+          >
+            <el-option
+              v-for="period in periodOptions"
+              :key="period._id"
+              :label="period.name || period.title"
+              :value="period._id"
+            />
+          </el-select>
           <el-button type="primary" style="margin-left: 10px" @click="handleSearch">
             搜索
+          </el-button>
+          <el-button
+            type="success"
+            style="margin-left: 10px"
+            :loading="syncingNicknames"
+            @click="handleSyncNicknames"
+          >
+            🔄 同步报名名称到昵称
           </el-button>
         </div>
 
@@ -170,16 +193,20 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
-import { enrollmentApi } from '../services/api';
+import { enrollmentApi, periodApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Enrollment } from '../types/api';
 
 const loading = ref(false);
+const syncingNicknames = ref(false);
 
 const filters = ref({
   search: '',
-  paymentStatus: ''
+  paymentStatus: '',
+  periodId: ''
 });
+
+const periodOptions = ref<any[]>([]);
 
 const pagination = ref({
   page: 1,
@@ -201,16 +228,27 @@ const dialogs = ref({
 
 onMounted(() => {
   loadEnrollments();
+  loadPeriods();
 });
+
+async function loadPeriods() {
+  try {
+    const response: any = await periodApi.getPeriods({ page: 1, limit: 100 });
+    periodOptions.value = response.list || response.data || [];
+  } catch (err) {
+    console.error('加载期次列表失败', err);
+  }
+}
 
 async function loadEnrollments() {
   loading.value = true;
   try {
-    const params = {
+    const params: any = {
       page: pagination.value.page,
-      limit: pagination.value.limit,
-      paymentStatus: filters.value.paymentStatus
+      limit: pagination.value.limit
     };
+    if (filters.value.paymentStatus) params.paymentStatus = filters.value.paymentStatus;
+    if (filters.value.periodId) params.periodId = filters.value.periodId;
 
     const response = (await enrollmentApi.getEnrollments(
       params
@@ -228,6 +266,36 @@ async function loadEnrollments() {
 function handleSearch() {
   pagination.value.page = 1;
   loadEnrollments();
+}
+
+async function handleSyncNicknames() {
+  try {
+    await ElMessageBox.confirm(
+      '将扫描所有昵称为「微信用户」等默认值的用户，使用其报名名称更新昵称。确定继续吗？',
+      '同步报名名称到昵称',
+      {
+        confirmButtonText: '开始同步',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    );
+
+    syncingNicknames.value = true;
+    const result: any = await enrollmentApi.syncNicknamesFromEnrollments();
+    const updated = result?.updatedCount ?? 0;
+    const candidates = result?.candidateCount ?? 0;
+    const skipped = result?.skippedNoName ?? 0;
+    ElMessage.success(
+      `同步完成：扫描 ${candidates} 个用户，更新 ${updated} 个昵称，跳过 ${skipped} 个无报名名称的用户`
+    );
+    loadEnrollments();
+  } catch (err: any) {
+    if (err === 'cancel') return;
+    ElMessage.error(err?.message || '同步失败');
+    console.error(err);
+  } finally {
+    syncingNicknames.value = false;
+  }
 }
 
 function showDetailDialog(enrollment: Enrollment) {

@@ -29,12 +29,18 @@ Page({
   onLoad(options) {
     console.log('===== 首页onLoad开始 =====');
     console.log('首页加载', options);
+    this._skipNextOnShowRefresh = true;
     this.checkLoginStatus();
     this.loadPeriods();
     console.log('===== 首页onLoad结束 =====');
   },
 
   onShow() {
+    if (this._skipNextOnShowRefresh) {
+      this._skipNextOnShowRefresh = false;
+      return;
+    }
+
     console.log('📱 首页onShow被触发');
     // 记录之前的登录状态
     const wasLoggedIn = this.data.isLogin;

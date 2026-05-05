@@ -1,9 +1,13 @@
 const insightService = require('../../services/insight.service');
 const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
+const activityService = require('../../services/activity.service');
 const logger = require('../../utils/logger');
 const { richContentToPlainText } = require('../../utils/markdown');
-const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
+const {
+  hasPaidEnrollment,
+  redirectAfterCommunityDenied
+} = require('../../utils/period-access');
 
 Page({
   data: {
@@ -24,7 +28,9 @@ Page({
   onLoad(options) {
     // 检查是否是查看他人的小凡看见
     const targetUserId = options.userId;
-    const targetUserName = options.userName ? decodeURIComponent(options.userName) : '小凡看见';
+    const targetUserName = options.userName
+      ? decodeURIComponent(options.userName)
+      : '小凡看见';
 
     const app = getApp();
     const currentUser = app.globalData.userInfo;
@@ -131,7 +137,11 @@ Page({
     return placeholderMap[requestStatus] || placeholderMap.none;
   },
 
-  buildInsightRequestLabel({ periodName = '', dayNumber = null, title = '' } = {}) {
+  buildInsightRequestLabel({
+    periodName = '',
+    dayNumber = null,
+    title = ''
+  } = {}) {
     const parts = [];
     const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(title);
 
@@ -151,13 +161,16 @@ Page({
   },
 
   updateInsightsSummary(insights) {
-    const unlockedInsightCount = insights.filter(item => item.isAccessible).length;
-    const lockedInsights = insights.filter(item => !item.isAccessible);
+    const unlockedInsightCount = insights.filter(
+      (item) => item.isAccessible
+    ).length;
+    const lockedInsights = insights.filter((item) => !item.isAccessible);
     const pendingRequestCount = lockedInsights.filter(
-      item => item.requestStatus === 'pending'
+      (item) => item.requestStatus === 'pending'
     ).length;
     const rejectedRequestCount = lockedInsights.filter(
-      item => item.requestStatus === 'rejected' || item.requestStatus === 'revoked'
+      (item) =>
+        item.requestStatus === 'rejected' || item.requestStatus === 'revoked'
     ).length;
 
     this.setData({
@@ -214,7 +227,10 @@ Page({
 
       if (!hasPaidEnrollment(enrollmentList)) {
         this.setData({ insights: [], loading: false });
-        redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看');
+        redirectAfterCommunityDenied(
+          '/pages/profile/profile',
+          '完成支付后可查看'
+        );
         return;
       }
 
@@ -223,11 +239,22 @@ Page({
       if (this.data.isOtherUser) {
         // 查看他人的小凡看见（需要已获得权限）
         logger.debug('📖 加载他人的小凡看见...');
-        res = await insightService.getUserInsightsList(this.data.userId, { limit: 100 });
+        res = await insightService.getUserInsightsList(this.data.userId, {
+          limit: 100
+        });
+        activityService.track('other_insight_view', {
+          targetType: 'user',
+          targetId: this.data.userId,
+          metadata: { page: 'insights' }
+        });
       } else {
         // 查看自己的小凡看见
         logger.debug('📖 加载自己的小凡看见...');
         res = await insightService.getInsightsList({ limit: 100 });
+        activityService.track('own_insight_view', {
+          targetType: 'insight_list',
+          metadata: { page: 'insights' }
+        });
       }
 
       logger.debug('获取insights列表响应:', res);
@@ -254,17 +281,21 @@ Page({
       // 获取所有期次信息用于映射期次名称
       const periods = app.globalData.periods || [];
       const periodMap = {};
-      periods.forEach(period => {
+      periods.forEach((period) => {
         periodMap[period._id] = period.name || period.title;
       });
 
       // 格式化数据以匹配WXML期望的字段
-      const formatted = filtered.map(item => {
-        let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
+      const formatted = filtered.map((item) => {
+        let preview = richContentToPlainText(item.summary || '')
+          .replace(/\s+/g, ' ')
+          .trim();
         const isAccessible = item.isAccessible !== false;
 
         if (!preview && item.content) {
-          const plainText = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
+          const plainText = richContentToPlainText(item.content)
+            .replace(/\s+/g, ' ')
+            .trim();
           // 取前150个字符
           preview = plainText.substring(0, 150);
           if (plainText.length > 150) {
@@ -284,18 +315,26 @@ Page({
           dayNumber: item.day || item.sectionId?.day || null,
           courseTitle: item.sectionId?.title || item.title || '学习反馈',
           periodName: periodName || '七个习惯晨读营',
-          title: item.sectionId?.title || item.title || periodName || '小凡看见',
+          title:
+            item.sectionId?.title || item.title || periodName || '小凡看见',
           preview: isAccessible
             ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
             : this.getLockedPreview(item.requestStatus || 'none'),
           mediaType: item.mediaType || 'text',
           imageUrl: isAccessible ? item.imageUrl || null : null,
-          date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '',
+          date: item.createdAt
+            ? new Date(item.createdAt).toLocaleDateString('zh-CN')
+            : '',
           periodId: item.periodId?._id || item.periodId || null,
           isAccessible,
-          requestStatus: item.requestStatus || (isAccessible ? 'approved' : 'none'),
-          requestStatusText: this.getRequestStatusText(item.requestStatus || 'none'),
-          lockedPlaceholder: this.getLockedPlaceholder(item.requestStatus || 'none'),
+          requestStatus:
+            item.requestStatus || (isAccessible ? 'approved' : 'none'),
+          requestStatusText: this.getRequestStatusText(
+            item.requestStatus || 'none'
+          ),
+          lockedPlaceholder: this.getLockedPlaceholder(
+            item.requestStatus || 'none'
+          ),
           requestScope: item.requestScope || null,
           requestId: item.requestId || null
         };
@@ -335,9 +374,17 @@ Page({
   /**
    * 发起查看申请
    */
-  async handleRequestInsight(periodId = null, insightId = null, insightMeta = {}) {
+  async handleRequestInsight(
+    periodId = null,
+    insightId = null,
+    insightMeta = {}
+  ) {
     try {
-      const response = await userService.createInsightRequest(this.data.userId, periodId, insightId);
+      const response = await userService.createInsightRequest(
+        this.data.userId,
+        periodId,
+        insightId
+      );
       this.updateInsightRequestState({
         insightId,
         periodId,
@@ -356,8 +403,15 @@ Page({
    * 点击 insight 项
    */
   handleInsightClick(e) {
-    const { id, accessible, periodId, requestStatus, title, periodName, dayNumber } =
-      e.currentTarget.dataset;
+    const {
+      id,
+      accessible,
+      periodId,
+      requestStatus,
+      title,
+      periodName,
+      dayNumber
+    } = e.currentTarget.dataset;
     const canAccess = accessible !== false && accessible !== 'false';
 
     if (!canAccess) {
@@ -378,7 +432,12 @@ Page({
     });
   },
 
-  handleLockedInsightClick(periodId, insightId, requestStatus = 'none', insightMeta = {}) {
+  handleLockedInsightClick(
+    periodId,
+    insightId,
+    requestStatus = 'none',
+    insightMeta = {}
+  ) {
     const { userName } = this.data;
     const requestLabel = this.buildInsightRequestLabel(insightMeta);
 
@@ -394,16 +453,26 @@ Page({
           ? `「${requestLabel}」之前未获授权，是否向 ${userName} 重新发起查看申请？`
           : `「${requestLabel}」暂未授权，是否向 ${userName} 发起查看申请？`,
       confirmText: '发起申请',
-      success: res => {
+      success: (res) => {
         if (res.confirm) {
-          this.handleRequestInsight(periodId || null, insightId || null, insightMeta);
+          this.handleRequestInsight(
+            periodId || null,
+            insightId || null,
+            insightMeta
+          );
         }
       }
     });
   },
 
-  updateInsightRequestState({ insightId = null, periodId = null, requestStatus, requestScope, requestId }) {
-    const nextInsights = this.data.insights.map(item => {
+  updateInsightRequestState({
+    insightId = null,
+    periodId = null,
+    requestStatus,
+    requestScope,
+    requestId
+  }) {
+    const nextInsights = this.data.insights.map((item) => {
       const shouldUpdate = insightId
         ? item.id === insightId
         : !!periodId && item.periodId === periodId && !item.isAccessible;

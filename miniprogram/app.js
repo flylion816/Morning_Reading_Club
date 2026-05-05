@@ -2,6 +2,7 @@
 const envConfig = require('./config/env');
 const constants = require('./config/constants');
 const logger = require('./utils/logger');
+const activityService = require('./services/activity.service');
 
 App({
   onLaunch(options) {
@@ -28,11 +29,14 @@ App({
 
   // 根据登录状态导航到正确的起始页面
   navigateToStartPage() {
-    console.log('🔵🔵🔵 navigateToStartPage called, currentEnv:', envConfig.currentEnv);
+    console.log(
+      '🔵🔵🔵 navigateToStartPage called, currentEnv:',
+      envConfig.currentEnv
+    );
     const pages = getCurrentPages();
     logger.debug(
       '当前页面栈:',
-      pages.map(p => p.route)
+      pages.map((p) => p.route)
     );
 
     // 在开发环境，不自动导航（方便开发调试）
@@ -48,7 +52,7 @@ App({
     logger.info('导航到首页（允许未登录用户浏览）');
     wx.reLaunch({
       url: '/pages/index/index',
-      fail: err => {
+      fail: (err) => {
         logger.error('导航到首页失败:', err);
       }
     });
@@ -60,6 +64,15 @@ App({
     // ⭐ 重新检查登录状态（防止token过期或globalData重置导致频繁跳转）
     console.log('🔄 app.onShow: 重新检查登录状态');
     this.checkLoginStatus();
+    if (this.globalData.isLogin) {
+      activityService.track('app_open', {
+        targetType: 'app',
+        metadata: {
+          scene: options?.scene || null,
+          path: options?.path || null
+        }
+      });
+    }
   },
 
   onHide() {
@@ -104,7 +117,7 @@ App({
   // 获取系统信息
   getSystemInfo() {
     wx.getSystemInfo({
-      success: res => {
+      success: (res) => {
         this.globalData.systemInfo = res;
         this.globalData.statusBarHeight = res.statusBarHeight;
         this.globalData.screenHeight = res.screenHeight;
@@ -123,7 +136,7 @@ App({
     if (wx.canIUse('getUpdateManager')) {
       const updateManager = wx.getUpdateManager();
 
-      updateManager.onCheckForUpdate(res => {
+      updateManager.onCheckForUpdate((res) => {
         if (res.hasUpdate) {
           logger.info('发现新版本');
         }
@@ -133,7 +146,7 @@ App({
         wx.showModal({
           title: '更新提示',
           content: '新版本已准备好，是否重启应用？',
-          success: res => {
+          success: (res) => {
             if (res.confirm) {
               updateManager.applyUpdate();
             }

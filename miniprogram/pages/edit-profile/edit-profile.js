@@ -1,5 +1,6 @@
 const app = getApp();
 const userService = require('../../services/user.service');
+const activityService = require('../../services/activity.service');
 const constants = require('../../config/constants');
 
 Page({
@@ -7,7 +8,20 @@ Page({
     nickname: '',
     avatar: '🦁',
     signature: '',
-    avatarList: ['🦁', '🐯', '🐻', '🐼', '🐨', '🦊', '🦝', '🐶', '🐱', '🦌', '🦅', '⭐'],
+    avatarList: [
+      '🦁',
+      '🐯',
+      '🐻',
+      '🐼',
+      '🐨',
+      '🦊',
+      '🦝',
+      '🐶',
+      '🐱',
+      '🦌',
+      '🦅',
+      '⭐'
+    ],
     saving: false
   },
 
@@ -53,6 +67,10 @@ Page({
       });
 
       if (response && response._id) {
+        activityService.track('profile_update', {
+          targetType: 'profile'
+        });
+
         const updatedUserInfo = {
           ...app.globalData.userInfo,
           avatar,

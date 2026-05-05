@@ -35,9 +35,18 @@
             <view class="section-icon-clipboard">📋</view>
             <text class="section-header-title">今日任务</text>
           </view>
-          <view class="refresh-timer" wx:if="{{refreshTime}}">
-            <text class="timer-icon">⏱</text>
-            <text class="timer-text">刷新 {{refreshTime}} 小时</text>
+          <view class="section-header-right">
+            <view class="refresh-timer" wx:if="{{refreshTime}}">
+              <text class="timer-icon">⏱</text>
+              <text class="timer-text">刷新 {{refreshTime}} 小时</text>
+            </view>
+            <view class="task-notification-entry" bindtap="navigateToNotifications">
+              <text class="task-notification-icon">🔔</text>
+              <text
+                wx:if="{{unreadNotificationCount > 0}}"
+                class="task-notification-badge"
+              >{{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}}</text>
+            </view>
           </view>
         </view>
         <view class="period-card" wx:if="{{todaySection}}" catchtap="handleTodaySectionClick">
@@ -137,8 +146,10 @@
       <!-- 小凡看见 -->
       <view class="insights-section" wx:if="{{currentPeriodCommunityState === 'enabled'}}">
         <view class="section-header">
-          <view class="section-icon-sparkle">✨</view>
-          <text class="section-header-title">小凡看见</text>
+          <view class="section-header-left">
+            <view class="section-icon-sparkle">✨</view>
+            <text class="section-header-title">小凡看见</text>
+          </view>
         </view>
         <view class="insights-list">
           <view
@@ -173,8 +184,10 @@
       <!-- 请求看见 -->
       <view class="requests-section" wx:if="{{currentPeriodCommunityState === 'enabled'}}">
         <view class="section-header">
-          <view class="section-icon-mailbox">📬</view>
-          <text class="section-header-title">请求看见</text>
+          <view class="section-header-left">
+            <view class="section-icon-mailbox">📬</view>
+            <text class="section-header-title">请求看见</text>
+          </view>
         </view>
         <view class="requests-content">
           <view

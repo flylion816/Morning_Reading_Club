@@ -12,26 +12,28 @@ async function getUserNotifications(req, res, next) {
   try {
     const userId = req.user.userId;
     const { page = 1, limit = 20, isRead } = req.query;
+    const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const parsedLimit = Math.max(parseInt(limit, 10) || 20, 1);
 
     // 构建查询条件
-    const query = { userId };
+    const query = { userId, isArchived: false };
     if (isRead !== undefined && isRead !== 'all') {
       query.isRead = isRead === 'true';
     }
 
     // 计算分页
-    const skip = (page - 1) * limit;
+    const skip = (parsedPage - 1) * parsedLimit;
 
     // 查询总数
     const total = await Notification.countDocuments(query);
 
     // 查询通知，populate相关用户信息
     const notifications = await Notification.find(query)
-      .populate('senderId', 'nickname avatar')
+      .populate('senderId', 'nickname avatar avatarUrl')
       .populate('requestId', 'status fromUserId toUserId')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parsedLimit);
 
     res.json(
       success(
@@ -39,9 +41,9 @@ async function getUserNotifications(req, res, next) {
           notifications,
           pagination: {
             total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(total / limit)
+            page: parsedPage,
+            limit: parsedLimit,
+            totalPages: Math.ceil(total / parsedLimit)
           }
         },
         '获取成功'
@@ -61,7 +63,8 @@ async function getUnreadCount(req, res, next) {
 
     const unreadCount = await Notification.countDocuments({
       userId,
-      isRead: false
+      isRead: false,
+      isArchived: false
     });
 
     res.json(
@@ -125,7 +128,7 @@ async function markAllAsRead(req, res, next) {
 
     // 更新所有未读通知
     const result = await Notification.updateMany(
-      { userId, isRead: false },
+      { userId, isRead: false, isArchived: false },
       {
         $set: {
           isRead: true,

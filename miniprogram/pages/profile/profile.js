@@ -4,10 +4,15 @@ const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
 const checkinService = require('../../services/checkin.service');
+const notificationServiceModule = require('../../services/notification.service');
+const activityService = require('../../services/activity.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
 const { getPeriodAccess } = require('../../utils/period-access');
+
+const notificationService =
+  notificationServiceModule.default || notificationServiceModule;
 
 function formatRelativeTime(dateString) {
   if (!dateString) return '刚刚';
@@ -29,14 +34,20 @@ function formatRelativeTime(dateString) {
 function buildInsightRequestDisplay(item) {
   const fromUser = item.fromUserId || {};
   const periodName =
-    item.requestPeriodName || item.periodId?.name || item.periodId?.title || '未知期次';
+    item.requestPeriodName ||
+    item.periodId?.name ||
+    item.periodId?.title ||
+    '未知期次';
   const insightTitle =
     item.requestInsightTitle ||
     item.insightId?.sectionId?.title ||
     item.insightId?.title ||
     '学习反馈';
   const insightDay =
-    item.requestInsightDay || item.insightId?.day || item.insightId?.sectionId?.day || null;
+    item.requestInsightDay ||
+    item.insightId?.day ||
+    item.insightId?.sectionId?.day ||
+    null;
   const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
   const dayText = insightDay && !titleHasDay ? `第${insightDay}天` : '';
   const metaParts = [periodName];
@@ -97,8 +108,10 @@ function buildRecentCheckinCard(item) {
     .replace(/\s+/g, ' ')
     .trim();
   const preview = previewSource || '这篇打卡还没有填写正文';
-  const periodInfo = item.periodId && typeof item.periodId === 'object' ? item.periodId : {};
-  const sectionInfo = item.sectionId && typeof item.sectionId === 'object' ? item.sectionId : {};
+  const periodInfo =
+    item.periodId && typeof item.periodId === 'object' ? item.periodId : {};
+  const sectionInfo =
+    item.sectionId && typeof item.sectionId === 'object' ? item.sectionId : {};
 
   return {
     id: item._id || item.id,
@@ -147,6 +160,7 @@ Page({
     insightRequests: [],
     allInsightRequests: [],
     insightRequestTotal: 0,
+    unreadNotificationCount: 0,
 
     // 腾讯会议
     hasMeeting: false,
@@ -159,7 +173,20 @@ Page({
     // 编辑个人信息相关
     showEditProfile: false,
     isSavingProfile: false,
-    avatarOptions: ['🦁', '🐯', '🐻', '🐼', '🐨', '🦊', '🦝', '🐶', '🐱', '🦌', '🦅', '⭐'],
+    avatarOptions: [
+      '🦁',
+      '🐯',
+      '🐻',
+      '🐼',
+      '🐨',
+      '🦊',
+      '🦝',
+      '🐶',
+      '🐱',
+      '🦌',
+      '🦅',
+      '⭐'
+    ],
     editForm: {
       avatar: '🦁',
       nickname: '',
@@ -191,10 +218,14 @@ Page({
     const { refreshUserData = false } = options;
     const app = getApp();
     const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
-    const storedUserInfo = token ? wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO) : null;
+    const storedUserInfo = token
+      ? wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO)
+      : null;
     const isLogin = !!(token && storedUserInfo);
     const userInfo = isLogin ? storedUserInfo : null;
-    const hasValidSignature = !!(userInfo && this.isValidSignature(userInfo.signature));
+    const hasValidSignature = !!(
+      userInfo && this.isValidSignature(userInfo.signature)
+    );
 
     if (isLogin) {
       console.log('🔄 onShow: 更新 globalData');
@@ -227,6 +258,7 @@ Page({
         insightRequests: [],
         allInsightRequests: [],
         insightRequestTotal: 0,
+        unreadNotificationCount: 0,
         hasMeeting: false,
         meetingId: '',
         meetingJoinUrl: ''
@@ -238,6 +270,7 @@ Page({
 
       if (isLogin && refreshUserData) {
         this.loadUserData(true);
+        this.loadUnreadNotificationCount();
       }
     });
   },
@@ -262,363 +295,196 @@ Page({
     this.setData({ loading: true });
 
     try {
-      // 并行加载用户信息、统计信息、当前期次和用户的报名信息
-      const [userInfo, stats, periods, userEnrollments] = await Promise.all([
-        userService.getUserProfile(),
-        userService.getUserStats(),
-        courseService.getPeriods(),
-        enrollmentService.getUserEnrollments({ limit: 100 }).catch(() => ({ list: [] })) // 获取用户的报名列表
-      ]);
+      // ── Wave 1: 所有独立请求并行 ──────────────────────────────
+      const [userInfo, stats, periods, userEnrollments, taskRes] =
+        await Promise.all([
+          userService.getUserProfile(),
+          userService.getUserStats(),
+          courseService.getPeriods(),
+          enrollmentService
+            .getUserEnrollments({ limit: 100 })
+            .catch(() => ({ list: [] })),
+          courseService.getTodayTask().catch(() => null)
+        ]);
 
       const app = getApp();
       app.globalData.userInfo = userInfo;
 
-      // 根据期次状态选择当前期次
-      console.log('====== getPeriods 原始响应 ======');
-      console.log('periods类型:', typeof periods);
-      console.log('periods:', periods);
-      console.log('periods.list:', periods?.list);
-
+      // 计算当前期次
       const periodsList = periods.list || periods.items || periods || [];
-      console.log('处理后的periodsList长度:', periodsList.length);
-      console.log('periodsList:', periodsList);
-
-      // 获取用户报名的期次ID列表
       const enrollmentList = userEnrollments.list || userEnrollments || [];
-      console.log('📋 原始enrollmentList:', enrollmentList);
-      console.log('📋 enrollmentList长度:', enrollmentList.length);
-      if (enrollmentList.length > 0) {
-        console.log('📋 第一个enrollment:', enrollmentList[0]);
-        console.log('📋 第一个enrollment的status:', enrollmentList[0].status);
-      }
-      console.log('🔍 开始筛选报名期次...');
-      console.log('enrollmentList长度:', enrollmentList.length);
-
       const enrolledPeriodIds = enrollmentList
-        .filter(e => {
-          console.log('  检查enrollment:', {
-            status: e.status,
-            periodId: e.periodId,
-            isActive: e.status === 'active' || e.status === 'completed'
-          });
-          return e.status === 'active' || e.status === 'completed';
-        })
-        .map(e => {
-          const id = e.periodId?._id || e.periodId;
-          console.log('  提取periodId:', id);
-          return id;
-        });
-
-      console.log('👤 用户已报名的期次ID列表:', enrolledPeriodIds);
-      console.log('👤 期次ID列表长度:', enrolledPeriodIds.length);
+        .filter((e) => e.status === 'active' || e.status === 'completed')
+        .map((e) => e.periodId?._id || e.periodId);
+      const enrolledPeriods = periodsList.filter((p) =>
+        enrolledPeriodIds.includes(p._id)
+      );
 
       let currentPeriod = null;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
 
-      // 🚨 关键修复：只从用户报名的期次中选择
-      const enrolledPeriods = periodsList.filter(p => enrolledPeriodIds.includes(p._id));
-      console.log('用户报名的期次列表长度:', enrolledPeriods.length);
-
-      // 基于当前日期选择期次
-      // 优先级：1) 包含今天的期次且已报名  2) ongoing状态且已报名  3) 最近报名的期次
       for (const period of enrolledPeriods) {
         const startDate = new Date(period.startDate || period.startTime || 0);
         const endDate = new Date(period.endDate || period.endTime || 0);
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
-
-        if (today >= startDate && today <= endDate) {
+        if (todayDate >= startDate && todayDate <= endDate) {
           currentPeriod = period;
-          console.log(
-            '📅 根据日期范围找到当前报名期次:',
-            currentPeriod.name || currentPeriod.title,
-            '(status:',
-            currentPeriod.status + ')'
-          );
           break;
         }
       }
-
-      if (!currentPeriod) {
-        // 如果没有包含今天的期次，选择 ongoing 状态的
-        currentPeriod = enrolledPeriods.find(p => p.status === 'ongoing');
-        if (currentPeriod) {
-          console.log(
-            '⚠️ 未找到包含今天的报名期次，使用ongoing期次:',
-            currentPeriod.name || currentPeriod.title
-          );
-        }
-      }
-
+      if (!currentPeriod)
+        currentPeriod =
+          enrolledPeriods.find((p) => p.status === 'ongoing') || null;
       if (!currentPeriod && enrolledPeriods.length > 0) {
-        // 最后选择最新报名的期次
-        const sortedPeriods = [...enrolledPeriods].sort((a, b) => {
-          const timeA = new Date(a.createdAt || 0).getTime();
-          const timeB = new Date(b.createdAt || 0).getTime();
-          return timeB - timeA; // 倒序
-        });
-        currentPeriod = sortedPeriods[0];
-        console.log(
-          '⚠️ 未找到合适报名期次，使用最新报名的期次:',
-          currentPeriod?.name || currentPeriod?.title
+        currentPeriod = [...enrolledPeriods].sort(
+          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        )[0];
+      }
+
+      const hasValidTask = !!(taskRes && taskRes.sectionId);
+
+      // taskRes 返回了 periodId，优先用它来确定当前期次
+      if (hasValidTask && taskRes.periodId && periodsList.length > 0) {
+        const foundPeriod = periodsList.find(
+          (p) => p._id === taskRes.periodId || p.id === taskRes.periodId
         );
+        if (foundPeriod) currentPeriod = foundPeriod;
       }
 
-      // 如果用户没有报名任何期次，currentPeriod 为 null
-      if (!currentPeriod) {
-        console.log('❌ 用户未报名任何期次，不显示今日任务');
-      }
+      const currentPeriodId = currentPeriod?._id || currentPeriod?.id || null;
 
-      // 获取今日课节（根据当前日期动态计算）
+      // ── Wave 2: 依赖 Wave1 的两个请求并行 ──────────────────────
+      const [sectionRes, currentPeriodAccess] = await Promise.all([
+        hasValidTask
+          ? courseService.getSectionDetail(taskRes.sectionId)
+          : Promise.resolve(null),
+        currentPeriodId
+          ? getPeriodAccess(currentPeriodId, {
+              enrollmentList,
+              skipRequest: true
+            })
+          : Promise.resolve({
+              canAccessCommunity: false,
+              communityAccessState: 'locked',
+              paymentStatus: null
+            })
+      ]);
+
+      // 构建 todaySection（只保留展示需要的字段，避免传输全课节内容）
       let todaySection = null;
-      console.log('===== 开始获取今日任务 =====');
-      try {
-        const taskRes = await courseService.getTodayTask();
-        console.log('✅ 今日任务API响应:', taskRes);
-        console.log('taskRes类型:', typeof taskRes);
-        console.log('taskRes.sectionId:', taskRes?.sectionId);
-        console.log('taskRes.code:', taskRes?.code);
-        console.log('taskRes.message:', taskRes?.message);
+      const d = new Date();
+      const displayDate = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 全天`;
 
-        // 检查是否有有效的任务数据
-        // API返回格式：{code: 200, message: "...", data: {...}} 或 {code: 200, message: "暂无任务", data: null}
-        // request.js会解包返回：{...data.data} 或 {code, message, data: null}
-        const hasValidTask = taskRes && taskRes.sectionId && taskRes.sectionId !== undefined;
-
-        if (hasValidTask) {
-          console.log('🔄 开始获取课节详情，sectionId:', taskRes.sectionId);
-          // 获取该课节的完整信息用于显示
-          const sectionRes = await courseService.getSectionDetail(taskRes.sectionId);
-          console.log('✅ 课节详情API响应:', sectionRes);
-
-          if (sectionRes) {
-            // 合并任务信息和课节信息
+      if (hasValidTask && sectionRes) {
+        todaySection = {
+          _id: sectionRes._id || taskRes.sectionId,
+          id: sectionRes.id || taskRes.sectionId,
+          day: taskRes.day,
+          title: sectionRes.title,
+          periodId: taskRes.periodId,
+          periodTitle: taskRes.periodTitle,
+          checkinCount: taskRes.checkinCount || 0,
+          checkinUsers: (taskRes.checkinUsers || []).slice(0, 3),
+          isCheckedIn: !!(taskRes.isCheckedIn || sectionRes.isCheckedIn),
+          progress: taskRes.isCheckedIn || sectionRes.isCheckedIn ? 100 : 0,
+          coverColor:
+            sectionRes.coverColor || currentPeriod?.coverColor || '#4a90e2',
+          coverEmoji:
+            sectionRes.coverEmoji || currentPeriod?.coverEmoji || '🏔️',
+          subtitleDisplay: (sectionRes.subtitle || '').replace(/至$/, ''),
+          displayDate
+        };
+      } else if (!hasValidTask && currentPeriodId) {
+        // 降级方案：从期次课节列表取第一个未打卡课节
+        try {
+          const sectionsRes =
+            await courseService.getPeriodSections(currentPeriodId);
+          const sections =
+            sectionsRes.list || sectionsRes.items || sectionsRes || [];
+          const section =
+            sections.filter((s) => s.day > 0).find((s) => !s.isCheckedIn) ||
+            sections.filter((s) => s.day > 0)[0];
+          if (section) {
             todaySection = {
-              ...sectionRes,
-              _id: sectionRes._id || taskRes.sectionId,
-              id: sectionRes.id || taskRes.sectionId,
-              day: taskRes.day,
-              periodId: taskRes.periodId,
-              periodTitle: taskRes.periodTitle,
-              checkinCount: taskRes.checkinCount || 0,
-              checkinUsers: taskRes.checkinUsers || [],
-              isCheckedIn: taskRes.isCheckedIn || sectionRes.isCheckedIn || false
+              _id: section._id,
+              id: section.id,
+              day: section.day,
+              title: section.title,
+              periodId: currentPeriodId,
+              periodTitle: currentPeriod?.title,
+              checkinCount: section.checkinCount || 0,
+              checkinUsers: [],
+              isCheckedIn: !!section.isCheckedIn,
+              progress: section.isCheckedIn ? 100 : 0,
+              coverColor: currentPeriod?.coverColor || '#4a90e2',
+              coverEmoji: currentPeriod?.coverEmoji || '🏔️',
+              subtitleDisplay: (section.subtitle || '').replace(/至$/, ''),
+              displayDate
             };
-
-            // ⭐ 关键修复：直接从 periodsList 中根据 todaySection.periodId 找到对应的期次
-            // 而不是依赖 enrollmentList（可能为空或不完整）
-            if (taskRes.periodId && periodsList.length > 0) {
-              console.log('🔍 从periodsList中查找期次，periodId:', taskRes.periodId);
-              const foundPeriod = periodsList.find(
-                p => p._id === taskRes.periodId || p.id === taskRes.periodId
-              );
-              if (foundPeriod) {
-                currentPeriod = foundPeriod;
-                console.log(
-                  '✅ 直接从periodsList中找到当前期次:',
-                  foundPeriod.name || foundPeriod.title
-                );
-              } else {
-                console.log('⚠️ 在periodsList中未找到期次，periodId:', taskRes.periodId);
-              }
-            }
-
-            // 计算进度：0% 未打卡，100% 已打卡
-            todaySection.progress = todaySection.isCheckedIn ? 100 : 0;
-
-            // 设置封面样式
-            if (!todaySection.coverColor) {
-              todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
-            }
-            if (!todaySection.coverEmoji) {
-              todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
-            }
-
-            // 处理subtitle：移除末尾的"至"
-            if (todaySection.subtitle) {
-              todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
-            }
-
-            // 动态计算当天日期
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const date = String(today.getDate()).padStart(2, '0');
-            todaySection.displayDate = `${year}.${month}.${date} 全天`;
-
-            console.log('✅ 处理后的今日课节:', todaySection);
           }
-        } else {
-          console.warn('⚠️ API返回暂无任务，使用备选方案:', taskRes);
-          // 使用备选方案：获取当前期次的第一个未打卡或第一个课节
-          const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
-          console.log('📋 使用备选方案，periodId:', periodId);
-          if (periodId) {
-            try {
-              const sectionsRes = await courseService.getPeriodSections(periodId);
-              const sections = sectionsRes.list || sectionsRes.items || sectionsRes || [];
-              const normalSections = sections.filter(s => s.day > 0);
-              todaySection = normalSections.find(s => !s.isCheckedIn) || normalSections[0];
-
-              if (todaySection) {
-                if (!todaySection.coverColor) {
-                  todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
-                }
-                if (!todaySection.coverEmoji) {
-                  todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
-                }
-                todaySection.periodId = periodId;
-                todaySection.periodTitle = currentPeriod?.title;
-
-                // 确保包含isCheckedIn状态
-                if (todaySection.isCheckedIn === undefined) {
-                  todaySection.isCheckedIn = false;
-                }
-                // 计算进度：0% 未打卡，100% 已打卡
-                todaySection.progress = todaySection.isCheckedIn ? 100 : 0;
-
-                if (todaySection.subtitle) {
-                  todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
-                }
-                // 动态计算当天日期
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const date = String(today.getDate()).padStart(2, '0');
-                todaySection.displayDate = `${year}.${month}.${date} 全天`;
-                console.log('✅ 备选方案成功:', todaySection);
-              }
-            } catch (fallbackError) {
-              console.error('❌ 备选方案也失败了:', fallbackError);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ 获取今日任务失败:', error);
-        console.error('错误消息:', error.message);
-        console.error('错误详情:', error);
-        // 降级方案：如果动态获取失败，使用备选方案
-        const periodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
-        console.log('📋 发生错误，使用备选方案，periodId:', periodId);
-        if (periodId) {
-          try {
-            const sectionsRes = await courseService.getPeriodSections(periodId);
-            const sections = sectionsRes.list || sectionsRes.items || sectionsRes || [];
-            const normalSections = sections.filter(s => s.day > 0);
-            todaySection = normalSections.find(s => !s.isCheckedIn) || normalSections[0];
-
-            if (todaySection) {
-              if (!todaySection.coverColor) {
-                todaySection.coverColor = currentPeriod?.coverColor || '#4a90e2';
-              }
-              if (!todaySection.coverEmoji) {
-                todaySection.coverEmoji = currentPeriod?.coverEmoji || '🏔️';
-              }
-              todaySection.periodId = periodId;
-              todaySection.periodTitle = currentPeriod?.title;
-
-              // 确保包含isCheckedIn状态
-              if (todaySection.isCheckedIn === undefined) {
-                todaySection.isCheckedIn = false;
-              }
-              // 计算进度：0% 未打卡，100% 已打卡
-              todaySection.progress = todaySection.isCheckedIn ? 100 : 0;
-
-              if (todaySection.subtitle) {
-                todaySection.subtitleDisplay = todaySection.subtitle.replace(/至$/, '');
-              }
-              // 动态计算当天日期
-              const today = new Date();
-              const year = today.getFullYear();
-              const month = String(today.getMonth() + 1).padStart(2, '0');
-              const date = String(today.getDate()).padStart(2, '0');
-              todaySection.displayDate = `${year}.${month}.${date} 全天`;
-              console.log('✅ 备选方案成功:', todaySection);
-            }
-          } catch (fallbackError) {
-            console.error('❌ 备选方案也失败了:', fallbackError);
-          }
+        } catch (e) {
+          console.error('降级获取课节失败:', e);
         }
       }
-      console.log('===== 今日任务获取完成，最终结果: =====', todaySection);
 
-      const currentPeriodId = currentPeriod && (currentPeriod._id || currentPeriod.id);
-      const currentPeriodAccess = currentPeriodId
-        ? await getPeriodAccess(currentPeriodId, { enrollmentList, skipRequest: true })
-        : { canAccessCommunity: false, communityAccessState: 'locked', paymentStatus: null };
       const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
 
-      let recentCheckins = [];
-      if (communityEnabled) {
-        try {
-          recentCheckins = await this.loadRecentCheckins();
-        } catch (error) {
-          console.error('加载最近打卡失败:', error);
-        }
-      }
+      // ── Wave 3: 社区数据并行加载 ────────────────────────────────
+      const [recentCheckins, recentInsights, allInsightRequests] =
+        communityEnabled
+          ? await Promise.all([
+              this.loadRecentCheckins().catch(() => []),
+              this.loadRecentInsights(currentPeriod).catch(() => []),
+              this.loadInsightRequests(false).catch(() => [])
+            ])
+          : [[], [], []];
 
-      // 加载最近的小凡看见记录（最多3条）
-      let recentInsights = [];
-      let allInsightRequests = [];
-      if (communityEnabled) {
-        try {
-          recentInsights = await this.loadRecentInsights(currentPeriod);
-        } catch (error) {
-          console.error('加载小凡看见失败:', error);
-        }
+      // 只存展示字段，避免 setData 传输整个 period 对象
+      const currentPeriodDisplay = currentPeriod
+        ? {
+            _id: currentPeriod._id,
+            id: currentPeriod.id,
+            name: currentPeriod.name,
+            title: currentPeriod.title,
+            coverColor: currentPeriod.coverColor,
+            coverEmoji: currentPeriod.coverEmoji,
+            status: currentPeriod.status,
+            meetingId: currentPeriod.meetingId || '',
+            meetingJoinUrl: currentPeriod.meetingJoinUrl || ''
+          }
+        : null;
 
-        allInsightRequests = await this.loadInsightRequests(false);
-      }
-
-      console.log('setData前的recentInsights:', recentInsights);
-      console.log('setData前的recentInsights长度:', recentInsights.length);
-
-      // 🔴 关键诊断日志
-      console.log('🔴🔴🔴 FINAL CHECK BEFORE SETDATA 🔴🔴🔴');
-      console.log('currentPeriod:', currentPeriod);
-      console.log('currentPeriod._id:', currentPeriod?._id);
-      console.log('currentPeriod.name:', currentPeriod?.name);
-      console.log('todaySection:', todaySection);
-      console.log('todaySection._id:', todaySection?._id);
-      console.log('todaySection.title:', todaySection?.title);
-
-      // 提取腾讯会议信息
-      const hasMeeting = !!(currentPeriod && (currentPeriod.meetingId || currentPeriod.meetingJoinUrl));
-      const meetingId = currentPeriod?.meetingId || '';
-      const meetingJoinUrl = currentPeriod?.meetingJoinUrl || '';
-
-      this.setData(
-        {
-          userInfo,
-          hasValidSignature: !!this.isValidSignature(userInfo && userInfo.signature),
-          userStats: stats,
-          currentPeriod: currentPeriod || null, // 确保不是undefined
-          currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
-          canAccessCurrentPeriodCommunity: communityEnabled,
-          currentPeriodCommunityState: currentPeriodAccess.communityAccessState || 'locked',
-          todaySection: todaySection || null, // 确保不是undefined
-          recentCheckins,
-          recentInsights,
-          allInsightRequests,
-          insightRequests: allInsightRequests.slice(0, 3),
-          insightRequestTotal: allInsightRequests.length,
-          hasMeeting,
-          meetingId,
-          meetingJoinUrl,
-          loading: false
-        }
-      );
-
-      console.log('setData后this.data.recentInsights:', this.data.recentInsights);
+      this.setData({
+        userInfo,
+        hasValidSignature: !!this.isValidSignature(
+          userInfo && userInfo.signature
+        ),
+        userStats: stats,
+        currentPeriod: currentPeriodDisplay,
+        currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
+        canAccessCurrentPeriodCommunity: communityEnabled,
+        currentPeriodCommunityState:
+          currentPeriodAccess.communityAccessState || 'locked',
+        todaySection: todaySection || null,
+        recentCheckins,
+        recentInsights,
+        allInsightRequests,
+        insightRequests: allInsightRequests.slice(0, 3),
+        insightRequestTotal: allInsightRequests.length,
+        hasMeeting: !!(
+          currentPeriod &&
+          (currentPeriod.meetingId || currentPeriod.meetingJoinUrl)
+        ),
+        meetingId: currentPeriod?.meetingId || '',
+        meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
+        loading: false
+      });
     } catch (error) {
       console.error('加载用户数据失败:', error);
       this.setData({ loading: false });
-
-      wx.showToast({
-        title: '加载失败,请重试',
-        icon: 'none'
-      });
+      wx.showToast({ title: '加载失败,请重试', icon: 'none' });
     }
   },
 
@@ -629,10 +495,16 @@ Page({
         limit: 6
       });
 
-      const list = Array.isArray(res?.list) ? res.list : Array.isArray(res) ? res : [];
+      const list = Array.isArray(res?.list)
+        ? res.list
+        : Array.isArray(res)
+          ? res
+          : [];
       return list
-        .filter(item => {
-          const text = richContentToPlainText(item.note || item.content || '').trim();
+        .filter((item) => {
+          const text = richContentToPlainText(
+            item.note || item.content || ''
+          ).trim();
           return text.length > 0;
         })
         .slice(0, 3)
@@ -652,17 +524,7 @@ Page({
     try {
       const insightService = require('../../services/insight.service');
 
-      console.log('=== 加载小凡看见 ===');
-      console.log('当前用户ID:', this.data.userInfo?._id || this.data.userInfo?.id);
-      console.log('获取用户的所有小凡看见记录（不限制期次）');
-
-      // 改为加载所有小凡看见，而不是只加载当前期次的
-      // 这样可以确保即使 currentPeriod 判断有问题，也能显示用户的最新小凡看见
       const res = await insightService.getInsightsList({ limit: 10 });
-
-      console.log('API 响应原始数据:', res);
-      console.log('API 响应列表:', res?.list);
-      console.log('API 响应列表长度:', res?.list?.length);
 
       // request.js 会自动提取 data.data，所以这里 res 应该是 { list: [...], pagination: {...} }
       let insights = [];
@@ -674,10 +536,7 @@ Page({
         insights = res;
       }
 
-      console.log('处理后的insights数据:', insights);
-
       if (!insights || insights.length === 0) {
-        console.warn('当前期次没有小凡看见记录');
         return [];
       }
 
@@ -690,13 +549,15 @@ Page({
 
       // 格式化数据
       const { getInsightTypeConfig } = require('../../utils/formatters');
-      const formatted = insights.map(item => {
-        console.log('处理单条insight:', item);
-
+      const formatted = insights.map((item) => {
         // 提取preview：和insights.js保持一致逻辑
-        let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
+        let preview = richContentToPlainText(item.summary || '')
+          .replace(/\s+/g, ' ')
+          .trim();
         if (!preview && item.content) {
-          const plainText = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
+          const plainText = richContentToPlainText(item.content)
+            .replace(/\s+/g, ' ')
+            .trim();
           // 直接取前150个字符
           preview = plainText.substring(0, 150);
           if (plainText.length > 150) {
@@ -721,12 +582,7 @@ Page({
         };
       });
 
-      console.log('格式化后的insights:', formatted);
-
-      // 只返回前2条（已按createdAt倒序排列）
-      const recent = formatted.slice(0, 2);
-      console.log('返回的最近insights:', recent);
-      return recent;
+      return formatted.slice(0, 2);
     } catch (error) {
       console.error('加载小凡看见失败:', error);
       return [];
@@ -745,21 +601,17 @@ Page({
       if (!currentUser || !currentUser._id) {
         console.warn('用户未登录，无法加载小凡看见请求');
         if (updatePage) {
-          this.setData({ insightRequests: [], allInsightRequests: [], insightRequestTotal: 0 });
+          this.setData({
+            insightRequests: [],
+            allInsightRequests: [],
+            insightRequestTotal: 0
+          });
         }
         return [];
       }
 
-      console.log('📋 开始加载小凡看见请求...');
-
-      // 拉取全部请求，首页仅展示最近3条，但保留完整历史用于跳转
       const res = await insightService.getReceivedRequests();
 
-      console.log('📋 API 返回原始响应:', res);
-      console.log('📋 是否为数组?:', Array.isArray(res));
-      console.log('📋 是否有 data 字段?:', res && res.data ? 'YES' : 'NO');
-
-      // request.js会自动解包响应，返回 data 字段
       let receivedRequests = [];
       if (Array.isArray(res)) {
         receivedRequests = res;
@@ -769,12 +621,7 @@ Page({
         receivedRequests = res.list;
       }
 
-      console.log('✅ 小凡看见请求加载成功，共', receivedRequests.length, '条');
-      console.log('✅ 请求数据:', JSON.stringify(receivedRequests));
-
       const formatted = receivedRequests.map(buildInsightRequestDisplay);
-
-      console.log('📦 格式化后的请求:', formatted);
 
       if (updatePage) {
         this.setData({
@@ -788,7 +635,11 @@ Page({
     } catch (error) {
       console.error('加载小凡看见请求失败:', error);
       if (updatePage) {
-        this.setData({ insightRequests: [], allInsightRequests: [], insightRequestTotal: 0 });
+        this.setData({
+          insightRequests: [],
+          allInsightRequests: [],
+          insightRequestTotal: 0
+        });
       }
       return [];
     }
@@ -821,11 +672,11 @@ Page({
       const userInfo = await new Promise((resolve, reject) => {
         wx.getUserProfile({
           desc: '用于完善会员资料',
-          success: res => {
+          success: (res) => {
             console.log('获取用户信息成功:', res.userInfo);
             resolve(res.userInfo);
           },
-          fail: err => {
+          fail: (err) => {
             console.error('获取用户信息失败:', err);
             reject(err);
           }
@@ -878,7 +729,10 @@ Page({
       this.setData({ loading: false });
 
       // 处理用户拒绝授权的情况
-      if (error.errMsg && error.errMsg.includes('getUserProfile:fail auth deny')) {
+      if (
+        error.errMsg &&
+        error.errMsg.includes('getUserProfile:fail auth deny')
+      ) {
         wx.showToast({
           title: '您拒绝了授权',
           icon: 'none',
@@ -989,7 +843,17 @@ Page({
       const requestId = request._id || request.id;
 
       // 调用后端API批准申请
-      await insightService.approveRequest(requestId, { periodId: request.periodId || '' });
+      await insightService.approveRequest(requestId, {
+        periodId: request.periodId || ''
+      });
+      activityService.track('insight_request_approve', {
+        targetType: 'insight_request',
+        targetId: requestId,
+        periodId: request.periodId || null,
+        metadata: {
+          fromUserId: request.fromUserId || null
+        }
+      });
 
       console.log('✅ 申请已批准');
       this.updateInsightRequestStatus(requestId, 'approved');
@@ -1049,7 +913,7 @@ Page({
     const statusInfo = statusMap[nextStatus];
     if (!statusInfo) return;
 
-    const updatedAll = (this.data.allInsightRequests || []).map(item =>
+    const updatedAll = (this.data.allInsightRequests || []).map((item) =>
       (item._id || item.id) === requestId
         ? {
             ...item,
@@ -1116,6 +980,28 @@ Page({
     }
 
     return this.openCheckinDetail(checkinId, sectionId);
+  },
+
+  async loadUnreadNotificationCount() {
+    if (!this.data.isLogin) {
+      this.setData({ unreadNotificationCount: 0 });
+      return;
+    }
+
+    try {
+      const unreadResponse = await notificationService.getUnreadCount();
+      this.setData({
+        unreadNotificationCount: unreadResponse?.unreadCount || 0
+      });
+    } catch (error) {
+      console.error('加载首页通知未读数失败:', error);
+    }
+  },
+
+  navigateToNotifications() {
+    wx.navigateTo({
+      url: '/pages/notifications/notifications'
+    });
   },
 
   async openCheckinDetail(checkinId, sectionId = '') {
@@ -1190,7 +1076,7 @@ Page({
     wx.navigateTo({
       url: url,
       success: () => console.log('✅ 跳转成功'),
-      fail: err => console.error('❌ 跳转失败:', err)
+      fail: (err) => console.error('❌ 跳转失败:', err)
     });
   },
 
@@ -1214,7 +1100,7 @@ Page({
     wx.navigateTo({
       url: url,
       success: () => console.log('✅ 跳转成功'),
-      fail: err => console.error('❌ 跳转失败:', err)
+      fail: (err) => console.error('❌ 跳转失败:', err)
     });
   },
 
@@ -1224,7 +1110,8 @@ Page({
   handleCreateCheckin() {
     console.log('⚠️⚠️⚠️ handleCreateCheckin 被触发! ⚠️⚠️⚠️');
 
-    const { currentPeriod, todaySection, currentPeriodCommunityState } = this.data;
+    const { currentPeriod, todaySection, currentPeriodCommunityState } =
+      this.data;
 
     if (!currentPeriod || !todaySection) {
       wx.showToast({
@@ -1263,8 +1150,19 @@ Page({
    */
   handleJoinMeeting() {
     const meetingId = this.data.meetingId;
-    const meetingJoinUrl = this.normalizeMeetingJoinUrl(this.data.meetingJoinUrl);
+    const meetingJoinUrl = this.normalizeMeetingJoinUrl(
+      this.data.meetingJoinUrl
+    );
     const desktopLikePlatform = this.isDesktopLikePlatform();
+    activityService.track('meeting_enter', {
+      targetType: 'meeting',
+      periodId:
+        this.data.currentPeriod?._id || this.data.currentPeriod?.id || null,
+      metadata: {
+        meetingId: meetingId || null,
+        hasJoinUrl: !!meetingJoinUrl
+      }
+    });
 
     if (!meetingId && !meetingJoinUrl) {
       wx.showToast({ title: '会议号未配置', icon: 'none' });
@@ -1297,7 +1195,8 @@ Page({
 
   getCurrentPlatform() {
     const app = getApp();
-    const platform = app?.globalData?.platform || wx.getSystemInfoSync().platform || '';
+    const platform =
+      app?.globalData?.platform || wx.getSystemInfoSync().platform || '';
     return String(platform).toLowerCase();
   },
 
@@ -1307,7 +1206,7 @@ Page({
       content: '复制链接后，请在浏览器中打开腾讯会议。',
       confirmText: '复制链接',
       cancelText: '取消',
-      success: res => {
+      success: (res) => {
         if (res.confirm) {
           this.copyMeetingValue(meetingJoinUrl, '邀请链接已复制');
         }
@@ -1325,7 +1224,9 @@ Page({
     };
 
     if (meetingId) {
-      pushAction('打开腾讯会议小程序', () => this.openMeetingMiniProgram(meetingId));
+      pushAction('打开腾讯会议小程序', () =>
+        this.openMeetingMiniProgram(meetingId)
+      );
     }
 
     pushAction('复制邀请链接', () => {
@@ -1334,13 +1235,13 @@ Page({
 
     wx.showActionSheet({
       itemList,
-      success: res => {
+      success: (res) => {
         const action = actions[res.tapIndex];
         if (action) {
           action();
         }
       },
-      fail: err => {
+      fail: (err) => {
         if (err && err.errMsg && err.errMsg.includes('cancel')) {
           return;
         }
@@ -1382,7 +1283,9 @@ Page({
 
   isDesktopLikePlatform() {
     const platform = this.getCurrentPlatform();
-    return platform === 'windows' || platform === 'mac' || platform === 'devtools';
+    return (
+      platform === 'windows' || platform === 'mac' || platform === 'devtools'
+    );
   },
 
   normalizeMeetingJoinUrl(url) {
@@ -1391,7 +1294,8 @@ Page({
     }
 
     const trimmedUrl = url.trim();
-    const allowedHostPattern = /^https:\/\/(meeting\.tencent\.com|wemeet\.qq\.com|voovmeeting\.com)\//i;
+    const allowedHostPattern =
+      /^https:\/\/(meeting\.tencent\.com|wemeet\.qq\.com|voovmeeting\.com)\//i;
     return allowedHostPattern.test(trimmedUrl) ? trimmedUrl : '';
   },
 
@@ -1403,7 +1307,10 @@ Page({
         '&meetingId=' +
         encodeURIComponent(meetingId || ''),
       fail: () => {
-        this.promptManualMeetingJoin(meetingId, '当前环境无法打开腾讯会议邀请链接。');
+        this.promptManualMeetingJoin(
+          meetingId,
+          '当前环境无法打开腾讯会议邀请链接。'
+        );
       }
     });
   },
@@ -1441,7 +1348,7 @@ Page({
       content: contentParts.join('\n'),
       confirmText: meetingId ? '复制会议号' : '知道了',
       cancelText: '取消',
-      success: res => {
+      success: (res) => {
         if (res.confirm && meetingId) {
           wx.setClipboardData({ data: meetingId });
         }
@@ -1563,7 +1470,8 @@ Page({
    */
   updateSignatureValidation() {
     const { userInfo } = this.data;
-    const hasValidSignature = userInfo && this.isValidSignature(userInfo.signature);
+    const hasValidSignature =
+      userInfo && this.isValidSignature(userInfo.signature);
     this.setData({ hasValidSignature });
   },
 
@@ -1612,6 +1520,10 @@ Page({
       // 如果没有异常，说明request.js已经验证了响应成功
       // 此时response是解包后的用户数据对象
       if (response && response._id) {
+        activityService.track('profile_update', {
+          targetType: 'profile'
+        });
+
         // 更新本地用户信息
         const updatedUserInfo = {
           ...userInfo,

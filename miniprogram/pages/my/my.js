@@ -1,8 +1,11 @@
 // 我的页面
 const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
+const notificationServiceModule = require('../../services/notification.service');
 const constants = require('../../config/constants');
 const { hasPaidEnrollment } = require('../../utils/period-access');
+
+const notificationService = notificationServiceModule.default || notificationServiceModule;
 
 Page({
   data: {
@@ -14,15 +17,20 @@ Page({
     phoneMasked: '',
     hasPhone: false,
     canUsePaidFeatures: false,
+    unreadNotificationCount: 0,
     loading: false
   },
 
   onShow() {
     const app = getApp();
     const isLogin = app.globalData.isLogin;
-    this.setData({ isLogin });
+    this.setData({
+      isLogin,
+      unreadNotificationCount: isLogin ? this.data.unreadNotificationCount : 0
+    });
     if (isLogin) {
       this._loadUserData();
+      this.loadUnreadNotificationCount();
     }
   },
 
@@ -55,6 +63,17 @@ Page({
       console.error('加载用户数据失败', err);
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  async loadUnreadNotificationCount() {
+    try {
+      const unreadResponse = await notificationService.getUnreadCount();
+      this.setData({
+        unreadNotificationCount: unreadResponse?.unreadCount || 0
+      });
+    } catch (error) {
+      console.error('加载通知未读数失败', error);
     }
   },
 
@@ -91,6 +110,10 @@ Page({
       return;
     }
     wx.navigateTo({ url: '/pages/notification-settings/notification-settings' });
+  },
+
+  goToNotifications() {
+    wx.navigateTo({ url: '/pages/notifications/notifications' });
   },
 
   goToMyCheckinRecords() {

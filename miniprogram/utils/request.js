@@ -50,7 +50,9 @@ class Request {
 
     // 公开端点不需要token（避免旧token干扰）
     const publicEndpoints = ['/auth/wechat/login', '/auth/refresh'];
-    const isPublicEndpoint = publicEndpoints.some(endpoint => url.includes(endpoint));
+    const isPublicEndpoint = publicEndpoints.some((endpoint) =>
+      url.includes(endpoint)
+    );
 
     // 添加认证token（公开端点除外）
     if (!isPublicEndpoint) {
@@ -67,7 +69,7 @@ class Request {
         data,
         header: requestHeader,
         timeout: this.timeout,
-        success: res => {
+        success: (res) => {
           if (showLoading) {
             wx.hideLoading();
           }
@@ -75,7 +77,7 @@ class Request {
           // 处理响应（传入原始请求选项用于重试）
           this.handleResponse(res, resolve, reject, options);
         },
-        fail: err => {
+        fail: (err) => {
           if (showLoading) {
             wx.hideLoading();
           }
@@ -98,6 +100,10 @@ class Request {
     if (statusCode >= 200 && statusCode < 300) {
       // 检查业务状态码
       if (data.code === 0 || data.code === 200 || statusCode === 200) {
+        if (originalOptions.preserveResponse) {
+          resolve(data);
+          return;
+        }
         resolve(data.data || data);
       } else {
         // 业务错误
@@ -109,11 +115,16 @@ class Request {
     else if (statusCode === 401) {
       // 公开端点不应该尝试刷新token
       const publicEndpoints = ['/auth/wechat/login', '/auth/refresh'];
-      const isPublicEndpoint = publicEndpoints.some(endpoint => originalOptions.url.includes(endpoint));
+      const isPublicEndpoint = publicEndpoints.some((endpoint) =>
+        originalOptions.url.includes(endpoint)
+      );
 
       if (isPublicEndpoint) {
         // 公开端点的401表示请求本身失败，直接返回
-        logger.error('公开端点认证失败:', { url: originalOptions.url, message: data.message });
+        logger.error('公开端点认证失败:', {
+          url: originalOptions.url,
+          message: data.message
+        });
         this.showError(data.message || '请求失败，请重试');
         reject(data);
       } else {
@@ -147,7 +158,9 @@ class Request {
    * 处理Token刷新（自动重试机制）
    */
   handleTokenRefresh(resolve, reject, originalOptions) {
-    const refreshToken = wx.getStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN);
+    const refreshToken = wx.getStorageSync(
+      constants.STORAGE_KEYS.REFRESH_TOKEN
+    );
 
     if (!refreshToken) {
       // 没有refreshToken，直接处理认证错误
@@ -170,28 +183,28 @@ class Request {
 
     // 调用刷新Token API
     const authService = require('../services/auth.service');
-    authService.refreshToken(refreshToken)
-      .then(newTokens => {
+    authService
+      .refreshToken(refreshToken)
+      .then((newTokens) => {
         // 保存新Token
         wx.setStorageSync(constants.STORAGE_KEYS.TOKEN, newTokens.accessToken);
-        wx.setStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN, newTokens.refreshToken);
+        wx.setStorageSync(
+          constants.STORAGE_KEYS.REFRESH_TOKEN,
+          newTokens.refreshToken
+        );
         logger.info('✅ Token刷新成功');
 
         // 重试原始请求
-        this.request(originalOptions)
-          .then(resolve)
-          .catch(reject);
+        this.request(originalOptions).then(resolve).catch(reject);
 
         // 处理队列中的请求
         const queue = this.requestQueue;
         this.requestQueue = [];
         queue.forEach(({ options, resolve: qResolve, reject: qReject }) => {
-          this.request(options)
-            .then(qResolve)
-            .catch(qReject);
+          this.request(options).then(qResolve).catch(qReject);
         });
       })
-      .catch(refreshError => {
+      .catch((refreshError) => {
         // Token刷新失败
         logger.error('❌ Token刷新失败:', refreshError);
         this.handleAuthError();
@@ -339,7 +352,7 @@ class Request {
         header: {
           Authorization: token ? `Bearer ${token}` : ''
         },
-        success: res => {
+        success: (res) => {
           const data = JSON.parse(res.data);
           if (res.statusCode === 200 && data.code === 0) {
             resolve(data.data);
@@ -348,7 +361,7 @@ class Request {
             reject(data);
           }
         },
-        fail: err => {
+        fail: (err) => {
           logger.error('上传失败:', err);
           this.showError('上传失败');
           reject(err);

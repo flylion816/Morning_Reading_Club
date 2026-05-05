@@ -1,4 +1,5 @@
 const AuditLog = require('../models/AuditLog');
+const logger = require('../utils/logger');
 
 /**
  * 审计日志服务 - 记录所有管理员操作
@@ -19,6 +20,7 @@ class AuditService {
         resourceId = null,
         resourceName = null,
         description = null,
+        details = null,
         changes = null,
         reason = null,
         batchCount = null,
@@ -36,10 +38,14 @@ class AuditService {
         resourceId,
         resourceName,
         details: {
-          description,
-          changes: changes ? new Map(Object.entries(changes)) : null,
-          reason,
-          batchCount
+          description: description || details?.description,
+          changes: changes
+            ? new Map(Object.entries(changes))
+            : details?.changes
+              ? new Map(Object.entries(details.changes))
+              : null,
+          reason: reason || details?.reason,
+          batchCount: batchCount ?? details?.batchCount
         },
         ipAddress,
         userAgent,

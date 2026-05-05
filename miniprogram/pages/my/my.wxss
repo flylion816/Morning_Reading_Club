@@ -130,6 +130,21 @@
   color: #888888;
 }
 
+.cell-badge {
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 10rpx;
+  border-radius: 999rpx;
+  background: #ff5a5f;
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 700;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .cell-arrow {
   font-size: 36rpx;
   color: #cccccc;

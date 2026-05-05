@@ -12,6 +12,20 @@ function buildCourseDetailTargetPage(sectionId, params = {}) {
   return `pages/course-detail/course-detail?${search.toString()}`;
 }
 
+function buildProfileOthersTargetPage(userId, params = {}) {
+  const search = new URLSearchParams();
+
+  search.set('userId', String(userId));
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  });
+
+  return `pages/profile-others/profile-others?${search.toString()}`;
+}
+
 function formatNotificationTime(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
   const year = date.getFullYear();
@@ -40,6 +54,7 @@ function truncateText(text, maxLength = 24) {
 
 module.exports = {
   buildCourseDetailTargetPage,
+  buildProfileOthersTargetPage,
   formatNotificationTime,
   truncateText
 };

@@ -53,28 +53,23 @@
     <view
       class="notification-item {{item.isRead ? 'read' : 'unread'}}"
       wx:for="{{displayedNotifications}}"
-      wx:key="{{item._id}}"
+      wx:key="_id"
       bindtap="handleNotificationTap"
       data-id="{{item._id}}"
-      data-request-id="{{item.requestId}}"
     >
-      <!-- 未读指示符 -->
-      <view class="unread-indicator" wx:if="{{!item.isRead}}"></view>
-
       <!-- 通知内容 -->
       <view class="notification-content">
         <!-- 标题和操作 -->
         <view class="notification-header">
           <view class="notification-title">
-            <text class="type-icon">{{item.typeIcon}}</text>
+            <text class="type-icon" style="color: {{item.typeColor}}">{{item.typeIcon}}</text>
             <text class="type-label">{{item.typeLabel}}</text>
           </view>
           <view class="notification-actions">
             <text
               class="action-btn delete-btn"
-              bindtap="handleDelete"
+              catchtap="handleDelete"
               data-id="{{item._id}}"
-              catchtap
             >
               ✕
             </text>
@@ -85,18 +80,21 @@
         <view class="notification-message">{{item.content}}</view>
 
         <!-- 发送者信息（如果有）-->
-        <view class="sender-info" wx:if="{{item.data.senderName}}">
+        <view class="sender-info" wx:if="{{item.senderName}}">
           <image wx:if="{{item.senderAvatar}}" class="sender-avatar" src="{{item.senderAvatar}}"></image>
           <view wx:else class="sender-avatar sender-avatar-fallback">
-            {{item.data.senderName.charAt(0)}}
+            {{item.senderName.charAt(0)}}
           </view>
-          <text class="sender-name">{{item.data.senderName}}</text>
+          <text class="sender-name">{{item.senderName}}</text>
         </view>
 
         <!-- 时间和状态 -->
         <view class="notification-footer">
-          <text class="time">{{item.formattedTime}}</text>
-          <text class="status" wx:if="{{!item.isRead}}">未读</text>
+          <view class="notification-footer-left">
+            <view class="notification-status-dot" wx:if="{{!item.isRead}}"></view>
+            <text class="time">{{item.formattedTime}}</text>
+          </view>
+          <text class="notification-action-hint" wx:if="{{item.actionText}}">{{item.actionText}}</text>
         </view>
       </view>
     </view>

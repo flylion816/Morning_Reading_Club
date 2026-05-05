@@ -58,13 +58,40 @@ exports.getDashboardStats = async (req, res) => {
       .limit(10)
       .lean();
 
+    // 期次热度排行（按真实报名人数倒序，取前 10 个）
+    const periodStatsAgg = await Enrollment.aggregate([
+      { $match: { deleted: { $ne: true } } },
+      { $group: { _id: '$periodId', enrollmentCount: { $sum: 1 } } },
+      { $sort: { enrollmentCount: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: 'periods',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'period'
+        }
+      },
+      { $unwind: { path: '$period', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          periodId: '$_id',
+          periodName: { $ifNull: ['$period.name', '已删除的期次'] },
+          enrollmentCount: 1
+        }
+      }
+    ]);
+
     // 获取活跃用户数
     const activeUsers = await User.countDocuments({
       lastLoginAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
     });
 
     const conversionRate =
-      totalUsers > 0 ? Number(((paidEnrollments / totalUsers) * 100).toFixed(1)) : 0;
+      totalUsers > 0
+        ? Number(((paidEnrollments / totalUsers) * 100).toFixed(1))
+        : 0;
 
     res.json(
       success({
@@ -78,7 +105,8 @@ exports.getDashboardStats = async (req, res) => {
         totalPayments,
         conversionRate,
         totalPaymentAmount,
-        recentEnrollments: recentEnrollments.map(e => ({
+        periodStats: periodStatsAgg,
+        recentEnrollments: recentEnrollments.map((e) => ({
           id: e._id,
           userName: e.userId?.nickname || '匿名用户',
           userAvatar: e.userId?.avatar,
@@ -107,12 +135,25 @@ exports.getEnrollmentStats = async (req, res) => {
         $group: {
           _id: '$periodId',
           count: { $sum: 1 },
-          approved: { $sum: { $cond: [{ $eq: ['$approvalStatus', 'approved'] }, 1, 0] } },
-          pending: { $sum: { $cond: [{ $eq: ['$approvalStatus', 'pending'] }, 1, 0] } },
-          rejected: { $sum: { $cond: [{ $eq: ['$approvalStatus', 'rejected'] }, 1, 0] } }
+          approved: {
+            $sum: { $cond: [{ $eq: ['$approvalStatus', 'approved'] }, 1, 0] }
+          },
+          pending: {
+            $sum: { $cond: [{ $eq: ['$approvalStatus', 'pending'] }, 1, 0] }
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ['$approvalStatus', 'rejected'] }, 1, 0] }
+          }
         }
       },
-      { $lookup: { from: 'periods', localField: '_id', foreignField: '_id', as: 'period' } },
+      {
+        $lookup: {
+          from: 'periods',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'period'
+        }
+      },
       { $unwind: '$period' },
       {
         $project: {
@@ -191,13 +232,52 @@ exports.getEnrollmentStats = async (req, res) => {
       }
     ]);
 
+    // 报名趋势（最近30天）
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const enrollmentTrend = await Enrollment.aggregate([
+      { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          enrollmentCount: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          enrollmentCount: 1
+        }
+      }
+    ]);
+
+    // 报名状态分布
+    const statusStats = await Enrollment.aggregate([
+      {
+        $group: {
+          _id: '$approvalStatus',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          status: '$_id',
+          count: 1
+        }
+      }
+    ]);
+
     res.json(
       success({
         periodStats,
         genderStats,
         regionStats,
         ageStats,
-        channelStats
+        channelStats,
+        enrollmentTrend,
+        statusStats
       })
     );
   } catch (error) {
@@ -321,7 +401,14 @@ exports.getCheckinStats = async (req, res) => {
           count: { $sum: 1 }
         }
       },
-      { $lookup: { from: 'periods', localField: '_id', foreignField: '_id', as: 'period' } },
+      {
+        $lookup: {
+          from: 'periods',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'period'
+        }
+      },
       { $unwind: '$period' },
       {
         $project: {
@@ -340,7 +427,14 @@ exports.getCheckinStats = async (req, res) => {
           checkinCount: { $sum: 1 }
         }
       },
-      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
       { $unwind: '$user' },
       { $sort: { checkinCount: -1 } },
       { $limit: 20 },
@@ -400,15 +494,21 @@ exports.getCheckinStats = async (req, res) => {
     const totalCheckins = await Checkin.countDocuments(query);
 
     // 获取打卡记录
-    const checkins = await Checkin.find(query).select('readingTime checkinDate');
+    const checkins = await Checkin.find(query).select(
+      'readingTime checkinDate'
+    );
 
     // 计算统计信息
-    const totalDuration = checkins.reduce((sum, c) => sum + (c.readingTime || 0), 0);
-    const averageDuration = totalCheckins > 0 ? Math.round(totalDuration / totalCheckins) : 0;
+    const totalDuration = checkins.reduce(
+      (sum, c) => sum + (c.readingTime || 0),
+      0
+    );
+    const averageDuration =
+      totalCheckins > 0 ? Math.round(totalDuration / totalCheckins) : 0;
 
     // 计算连续打卡天数
     const uniqueDays = new Set();
-    checkins.forEach(c => {
+    checkins.forEach((c) => {
       const dateKey = new Date(c.checkinDate).toDateString();
       uniqueDays.add(dateKey);
     });

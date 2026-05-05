@@ -14,6 +14,7 @@ describe('Period Controller', () => {
   let res;
   let next;
   let PeriodStub;
+  let CheckinStub;
   let UserStub;
   let EnrollmentStub;
   let publishSyncEventStub;
@@ -44,6 +45,10 @@ describe('Period Controller', () => {
       findByIdAndDelete: sandbox.stub()
     };
 
+    CheckinStub = {
+      aggregate: sandbox.stub()
+    };
+
     UserStub = {
       find: sandbox.stub()
     };
@@ -67,6 +72,7 @@ describe('Period Controller', () => {
       '../../../src/controllers/period.controller',
       {
         '../models/Period': PeriodStub,
+        '../models/Checkin': CheckinStub,
         '../models/User': UserStub,
         '../models/Enrollment': EnrollmentStub,
         '../utils/response': responseUtils,
@@ -149,6 +155,66 @@ describe('Period Controller', () => {
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.pagination.page).to.equal(2);
       expect(responseData.pagination.total).to.equal(25);
+    });
+  });
+
+  describe('getPeriodListForUser', () => {
+    it('应该通过一次聚合合并用户打卡统计', async () => {
+      const periodId1 = new mongoose.Types.ObjectId();
+      const periodId2 = new mongoose.Types.ObjectId();
+      req.user = {
+        userId: new mongoose.Types.ObjectId(),
+        role: 'user'
+      };
+      req.query = { page: 1, limit: 20 };
+
+      const mockPeriods = [
+        {
+          _id: periodId1,
+          name: '期次1',
+          title: '期次1',
+          status: 'ongoing',
+          coverColor: '#4a90e2',
+          toObject: sandbox.stub().returns({
+            _id: periodId1,
+            name: '期次1',
+            title: '期次1',
+            status: 'ongoing'
+          })
+        },
+        {
+          _id: periodId2,
+          name: '期次2',
+          title: '期次2',
+          status: 'completed',
+          coverColor: '#357abd',
+          toObject: sandbox.stub().returns({
+            _id: periodId2,
+            name: '期次2',
+            title: '期次2',
+            status: 'completed'
+          })
+        }
+      ];
+
+      PeriodStub.countDocuments.resolves(2);
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves(mockPeriods)
+      });
+      CheckinStub.aggregate.resolves([
+        { _id: periodId1, checkedDays: 3 },
+        { _id: periodId2, checkedDays: 1 }
+      ]);
+
+      await periodController.getPeriodListForUser(req, res, next);
+
+      expect(CheckinStub.aggregate.calledOnce).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data[0].checkedDays).to.equal(3);
+      expect(responseData.data[1].checkedDays).to.equal(1);
     });
   });
 

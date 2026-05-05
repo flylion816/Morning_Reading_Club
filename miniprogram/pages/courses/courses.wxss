@@ -389,3 +389,44 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.checkin-content-clamped {
+  max-height: 288rpx;
+  overflow: hidden;
+}
+
+.checkin-content-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #4a90e2;
+  font-weight: 500;
+}
+
+.checkin-load-more {
+  padding: 24rpx 0 8rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.checkin-load-more-btn {
+  font-size: 28rpx;
+  color: #4a90e2;
+  background: #f0f6ff;
+  border: none;
+  border-radius: 40rpx;
+  padding: 16rpx 64rpx;
+  line-height: 1.5;
+}
+
+.checkin-load-more-btn::after {
+  border: none;
+}
+
+.checkin-no-more {
+  padding: 24rpx 0 8rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #bbb;
+}

@@ -54,6 +54,51 @@ function shouldReuseEnrollment(enrollment) {
   return !!(enrollment && (enrollment.status === 'withdrawn' || enrollment.deleted === true));
 }
 
+const DEFAULT_NICKNAMES = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
+
+function isDefaultNickname(nickname) {
+  if (!nickname || !nickname.trim()) return true;
+  return DEFAULT_NICKNAMES.includes(nickname.trim());
+}
+
+/**
+ * 在报名成功后，将报名表单中的姓名同步到用户昵称
+ * 仅在用户当前昵称为默认值（如"微信用户"）时执行
+ */
+async function syncNicknameFromEnrollmentName({ userId, enrollmentName }) {
+  try {
+    if (!userId || !enrollmentName || !enrollmentName.trim()) return;
+
+    const user = await User.findById(userId).select('nickname');
+    if (!user) return;
+
+    if (!isDefaultNickname(user.nickname)) return;
+
+    const oldNickname = user.nickname;
+    user.nickname = enrollmentName.trim();
+    await user.save();
+
+    logger.info('已根据报名名称同步用户昵称', {
+      userId: user._id.toString(),
+      oldNickname,
+      newNickname: user.nickname
+    });
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'users',
+      documentId: user._id.toString(),
+      data: user.toObject()
+    });
+  } catch (error) {
+    logger.warn('同步报名名称到昵称失败', {
+      userId,
+      enrollmentName,
+      message: error.message
+    });
+  }
+}
+
 /**
  * 提交报名表单（完整的报名信息）
  * POST /api/v1/enrollments
@@ -207,6 +252,8 @@ exports.submitEnrollmentForm = async (req, res) => {
       documentId: enrollment._id.toString(),
       data: enrollment.toObject()
     });
+
+    await syncNicknameFromEnrollmentName({ userId, enrollmentName: name });
 
     await notifyEnrollmentSuccess(req, {
       userId,
@@ -702,6 +749,92 @@ exports.deleteEnrollment = async (req, res) => {
   } catch (error) {
     logger.error('Deletion failed', error);
     res.status(500).json(errors.serverError(`删除失败: ${error.message}`));
+  }
+};
+
+/**
+ * 批量同步报名名称到用户昵称（管理员）
+ * POST /api/v1/enrollments/sync-nicknames
+ *
+ * 找出所有昵称为默认值（如"微信用户"）但有报名名称的用户，
+ * 用最新一条带名称的报名记录中的 name 字段更新其 nickname。
+ */
+exports.syncNicknamesFromEnrollments = async (req, res) => {
+  try {
+    const defaultNicknameQuery = {
+      $or: [
+        { nickname: { $in: DEFAULT_NICKNAMES } },
+        { nickname: '' },
+        { nickname: null }
+      ],
+      status: { $ne: 'deleted' }
+    };
+
+    const candidateUsers = await User.find(defaultNicknameQuery).select('_id nickname').lean();
+
+    let updatedCount = 0;
+    let skippedNoName = 0;
+    const updates = [];
+
+    for (const user of candidateUsers) {
+      const enrollment = await Enrollment.findOne({
+        userId: user._id,
+        deleted: { $ne: true },
+        name: { $exists: true, $nin: [null, ''] }
+      })
+        .sort({ enrolledAt: -1 })
+        .select('name')
+        .lean();
+
+      if (!enrollment || !enrollment.name || !enrollment.name.trim()) {
+        skippedNoName += 1;
+        continue;
+      }
+
+      const newNickname = enrollment.name.trim();
+      const result = await User.findByIdAndUpdate(
+        user._id,
+        { nickname: newNickname },
+        { new: true }
+      );
+
+      if (result) {
+        updatedCount += 1;
+        updates.push({
+          userId: user._id.toString(),
+          oldNickname: user.nickname || '',
+          newNickname
+        });
+
+        publishSyncEvent({
+          type: 'update',
+          collection: 'users',
+          documentId: result._id.toString(),
+          data: result.toObject()
+        });
+      }
+    }
+
+    logger.info('批量同步报名名称到昵称完成', {
+      candidateCount: candidateUsers.length,
+      updatedCount,
+      skippedNoName
+    });
+
+    res.json(
+      success(
+        {
+          candidateCount: candidateUsers.length,
+          updatedCount,
+          skippedNoName,
+          updates
+        },
+        `成功同步 ${updatedCount} 个用户昵称`
+      )
+    );
+  } catch (error) {
+    logger.error('批量同步报名名称到昵称失败', error);
+    res.status(500).json(errors.serverError(`同步失败: ${error.message}`));
   }
 };
 

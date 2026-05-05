@@ -3,17 +3,39 @@
     <div class="dashboard-container">
       <!-- 统计卡片 -->
       <div class="stats-grid">
-        <el-card class="stat-card" @click="navigateTo('/users')" style="cursor: pointer">
+        <el-card
+          class="stat-card"
+          @click="navigateTo('/users')"
+          style="cursor: pointer"
+        >
           <div class="stat-item">
             <div>
-              <div class="stat-value">{{ stats.totalEnrollments || 0 }}</div>
-              <div class="stat-label">总报名数</div>
+              <div class="stat-value">{{ stats.totalUsers || 0 }}</div>
+              <div class="stat-label">总用户数</div>
             </div>
             <span class="stat-icon">👥</span>
           </div>
         </el-card>
 
-        <el-card class="stat-card" @click="navigateTo('/enrollments')" style="cursor: pointer">
+        <el-card
+          class="stat-card"
+          @click="navigateTo('/enrollments')"
+          style="cursor: pointer"
+        >
+          <div class="stat-item">
+            <div>
+              <div class="stat-value">{{ stats.totalEnrollments || 0 }}</div>
+              <div class="stat-label">总报名数</div>
+            </div>
+            <span class="stat-icon">📝</span>
+          </div>
+        </el-card>
+
+        <el-card
+          class="stat-card urgent"
+          @click="navigateTo('/enrollments')"
+          style="cursor: pointer"
+        >
           <div class="stat-item">
             <div>
               <div class="stat-value">{{ stats.pendingEnrollments || 0 }}</div>
@@ -23,7 +45,25 @@
           </div>
         </el-card>
 
-        <el-card class="stat-card" @click="navigateTo('/payments')" style="cursor: pointer">
+        <el-card
+          class="stat-card"
+          @click="navigateTo('/enrollments')"
+          style="cursor: pointer"
+        >
+          <div class="stat-item">
+            <div>
+              <div class="stat-value">{{ stats.paidEnrollments || 0 }}</div>
+              <div class="stat-label">已支付报名</div>
+            </div>
+            <span class="stat-icon success">✅</span>
+          </div>
+        </el-card>
+
+        <el-card
+          class="stat-card"
+          @click="navigateTo('/payments')"
+          style="cursor: pointer"
+        >
           <div class="stat-item">
             <div>
               <div class="stat-value">
@@ -35,7 +75,11 @@
           </div>
         </el-card>
 
-        <el-card class="stat-card" @click="navigateTo('/periods')" style="cursor: pointer">
+        <el-card
+          class="stat-card"
+          @click="navigateTo('/periods')"
+          style="cursor: pointer"
+        >
           <div class="stat-item">
             <div>
               <div class="stat-value">{{ stats.activePeriods || 0 }}</div>
@@ -45,6 +89,41 @@
           </div>
         </el-card>
       </div>
+
+      <!-- 待办事项 -->
+      <el-card class="todo-card">
+        <template #header>
+          <div class="card-header">
+            <span class="title">待处理事项</span>
+          </div>
+        </template>
+
+        <div class="todo-grid">
+          <div class="todo-item" @click="navigateTo('/enrollments')">
+            <div>
+              <div class="todo-title">待审批报名</div>
+              <div class="todo-desc">需要确认是否通过的报名记录</div>
+            </div>
+            <div class="todo-count">{{ stats.pendingEnrollments || 0 }}</div>
+          </div>
+
+          <div class="todo-item" @click="navigateTo('/payments')">
+            <div>
+              <div class="todo-title">待完成支付</div>
+              <div class="todo-desc">已发起但尚未完成的支付订单</div>
+            </div>
+            <div class="todo-count">{{ pendingPaymentsTotal }}</div>
+          </div>
+
+          <div class="todo-item" @click="navigateTo('/analytics')">
+            <div>
+              <div class="todo-title">今日活跃检查</div>
+              <div class="todo-desc">查看访问、打卡、小凡看见等关键行为</div>
+            </div>
+            <div class="todo-count">去看</div>
+          </div>
+        </div>
+      </el-card>
 
       <!-- 最近报名 -->
       <el-card style="margin-top: 24px">
@@ -68,7 +147,10 @@
           <el-table-column prop="period" label="期次" width="150" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="getStatusType(row.approvalStatus)" disable-transitions>
+              <el-tag
+                :type="getStatusType(row.approvalStatus)"
+                disable-transitions
+              >
                 {{ formatStatus(row.approvalStatus) }}
               </el-tag>
             </template>
@@ -80,7 +162,12 @@
           </el-table-column>
           <el-table-column label="操作" width="100" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" text size="small" @click="navigateTo('/enrollments')">
+              <el-button
+                type="primary"
+                text
+                size="small"
+                @click="navigateTo('/enrollments')"
+              >
                 查看
               </el-button>
             </template>
@@ -93,7 +180,9 @@
         <template #header>
           <div class="card-header">
             <span class="title">最近支付</span>
-            <el-button type="primary" text @click="navigateTo('/payments')"> 查看全部 </el-button>
+            <el-button type="primary" text @click="navigateTo('/payments')">
+              查看全部
+            </el-button>
           </div>
         </template>
 
@@ -106,11 +195,16 @@
           <el-table-column prop="orderNo" label="订单号" min-width="200" />
           <el-table-column prop="userName" label="用户" width="120" />
           <el-table-column label="金额" width="100">
-            <template #default="{ row }"> ¥{{ (row.amount / 100).toFixed(2) }} </template>
+            <template #default="{ row }">
+              ¥{{ (row.amount / 100).toFixed(2) }}
+            </template>
           </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="getPaymentStatusType(row.status)" disable-transitions>
+              <el-tag
+                :type="getPaymentStatusType(row.status)"
+                disable-transitions
+              >
                 {{ formatPaymentStatus(row.status) }}
               </el-tag>
             </template>
@@ -137,17 +231,26 @@ import type { ListResponse, Enrollment, Payment } from '../types/api';
 const router = useRouter();
 
 const stats = ref({
+  totalUsers: 0,
   totalEnrollments: 0,
-  pendingApprovals: 0,
+  pendingEnrollments: 0,
+  paidEnrollments: 0,
   totalPayments: 0,
+  totalPaymentAmount: 0,
   activePeriods: 0
 });
 
 const recentEnrollments = ref<Enrollment[]>([]);
 const recentPayments = ref<Payment[]>([]);
+const pendingPaymentsTotal = ref(0);
 
 onMounted(async () => {
-  await Promise.all([loadStats(), loadRecentEnrollments(), loadRecentPayments()]);
+  await Promise.all([
+    loadStats(),
+    loadRecentEnrollments(),
+    loadRecentPayments(),
+    loadPendingPayments()
+  ]);
 });
 
 async function loadStats() {
@@ -180,6 +283,22 @@ async function loadRecentPayments() {
     recentPayments.value = response.list || [];
   } catch (err: any) {
     ElMessage.error('加载支付数据失败');
+  }
+}
+
+async function loadPendingPayments() {
+  try {
+    const response = (await paymentApi.getPayments({
+      status: 'pending',
+      limit: 1
+    })) as unknown as ListResponse<Payment>;
+    pendingPaymentsTotal.value =
+      response.pagination?.total ||
+      response.total ||
+      response.list?.length ||
+      0;
+  } catch (err: any) {
+    pendingPaymentsTotal.value = 0;
   }
 }
 
@@ -230,11 +349,9 @@ function getPaymentStatusType(status: string): string {
 function formatDate(dateString: string): string {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
-}
-
-function formatCurrency(amount: number): string {
-  return (amount / 100).toFixed(2);
+  return (
+    date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN')
+  );
 }
 </script>
 
@@ -253,6 +370,10 @@ function formatCurrency(amount: number): string {
 .stat-card {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
+}
+
+.stat-card.urgent {
+  border-color: #f59e0b;
 }
 
 .stat-card:hover {
@@ -298,5 +419,50 @@ function formatCurrency(amount: number): string {
 .title {
   font-weight: 600;
   font-size: 16px;
+}
+
+.todo-card {
+  margin-top: 24px;
+}
+
+.todo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.todo-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.todo-item:hover {
+  border-color: #409eff;
+  background: #f5f9ff;
+}
+
+.todo-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.todo-desc {
+  margin-top: 6px;
+  color: #888;
+  font-size: 13px;
+}
+
+.todo-count {
+  min-width: 48px;
+  text-align: right;
+  font-size: 20px;
+  font-weight: 700;
+  color: #409eff;
 }
 </style>

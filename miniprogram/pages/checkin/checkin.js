@@ -1,5 +1,6 @@
 const checkinService = require('../../services/checkin.service');
 const courseService = require('../../services/course.service');
+const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const {
   getPeriodAccess,
@@ -12,6 +13,18 @@ const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'like_received',
   'next_day_study_reminder'
 ];
+
+const MAX_DIARY_LENGTH = 3000;
+
+function getErrorMessage(error) {
+  return (
+    error?.message ||
+    error?.data?.message ||
+    error?.errMsg ||
+    error?.error?.message ||
+    ''
+  );
+}
 
 Page({
   data: {
@@ -33,6 +46,7 @@ Page({
 
     // 日记内容
     diaryContent: '',
+    maxDiaryLength: MAX_DIARY_LENGTH,
 
     // 可见范围
     visibility: 'all' // 'all' 或 'admin'
@@ -61,7 +75,8 @@ Page({
 
     try {
       prefetchedCourse = await courseService.getCourseDetail(sectionId);
-      resolvedPeriodId = resolvedPeriodId || extractId(prefetchedCourse.periodId);
+      resolvedPeriodId =
+        resolvedPeriodId || extractId(prefetchedCourse.periodId);
     } catch (error) {
       console.error('预加载课程详情失败:', error);
     }
@@ -79,7 +94,9 @@ Page({
 
     const access = await getPeriodAccess(resolvedPeriodId);
     if (access.communityAccessState !== 'enabled') {
-      redirectAfterCommunityDenied(`/pages/course-detail/course-detail?id=${sectionId}`);
+      redirectAfterCommunityDenied(
+        `/pages/course-detail/course-detail?id=${sectionId}`
+      );
       return;
     }
 
@@ -90,12 +107,17 @@ Page({
     });
 
     // 并行加载课程详情和期次信息
-    await Promise.all([this.loadCourseDetail(prefetchedCourse), this.loadPeriods()]);
+    await Promise.all([
+      this.loadCourseDetail(prefetchedCourse),
+      this.loadPeriods()
+    ]);
   },
 
   async loadCourseDetail(prefetchedCourse = null) {
     try {
-      const course = prefetchedCourse || (await courseService.getCourseDetail(this.data.courseId));
+      const course =
+        prefetchedCourse ||
+        (await courseService.getCourseDetail(this.data.courseId));
       console.log('打卡页面-加载课程详情:', course);
 
       // 格式化日期
@@ -144,7 +166,8 @@ Page({
       app.globalData.periods = periods;
 
       // 找到第一个进行中的期次作为当前期次
-      const currentPeriod = periods.find(p => p.status === 'ongoing') || periods[0];
+      const currentPeriod =
+        periods.find((p) => p.status === 'ongoing') || periods[0];
       if (currentPeriod) {
         app.globalData.currentPeriod = currentPeriod;
         console.log('设置当前期次:', currentPeriod);
@@ -163,8 +186,9 @@ Page({
 
   // 输入日记内容
   handleInput(e) {
+    const diaryContent = (e.detail.value || '').slice(0, MAX_DIARY_LENGTH);
     this.setData({
-      diaryContent: e.detail.value
+      diaryContent
     });
   },
 
@@ -183,9 +207,19 @@ Page({
 
   // 提交打卡
   async handleSubmit() {
-    if (!this.data.diaryContent.trim()) {
+    const diaryContent = (this.data.diaryContent || '').trim();
+
+    if (!diaryContent) {
       wx.showToast({
         title: '请输入打卡内容',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (diaryContent.length > MAX_DIARY_LENGTH) {
+      wx.showToast({
+        title: `打卡内容不能超过${MAX_DIARY_LENGTH}字`,
         icon: 'none'
       });
       return;
@@ -215,20 +249,30 @@ Page({
       if (!periodId && this.data.sectionPeriodId) {
         if (typeof this.data.sectionPeriodId === 'string') {
           periodId = this.data.sectionPeriodId;
-        } else if (typeof this.data.sectionPeriodId === 'object' && this.data.sectionPeriodId._id) {
-          periodId = this.data.sectionPeriodId._id || this.data.sectionPeriodId.id;
+        } else if (
+          typeof this.data.sectionPeriodId === 'object' &&
+          this.data.sectionPeriodId._id
+        ) {
+          periodId =
+            this.data.sectionPeriodId._id || this.data.sectionPeriodId.id;
         }
       }
 
       // 如果还是没有，从全局currentPeriod获取
       if (!periodId && app.globalData.currentPeriod) {
-        periodId = app.globalData.currentPeriod._id || app.globalData.currentPeriod.id;
+        periodId =
+          app.globalData.currentPeriod._id || app.globalData.currentPeriod.id;
       }
 
       // 如果仍然没有，从全局periods列表获取
-      if (!periodId && app.globalData.periods && app.globalData.periods.length > 0) {
+      if (
+        !periodId &&
+        app.globalData.periods &&
+        app.globalData.periods.length > 0
+      ) {
         const period =
-          app.globalData.periods.find(p => p.status === 'ongoing') || app.globalData.periods[0];
+          app.globalData.periods.find((p) => p.status === 'ongoing') ||
+          app.globalData.periods[0];
         if (period) {
           periodId = period._id || period.id;
         }
@@ -256,7 +300,7 @@ Page({
         day: this.data.sectionDay || 1, // 课节的day值（表示第几节课）
         readingTime: Math.floor(Math.random() * 30) + 10, // 模拟阅读时间 10-40 分钟
         completionRate: 88, // 模拟完成度
-        note: this.data.diaryContent,
+        note: diaryContent,
         isPublic: this.data.visibility === 'all',
         mood: 'happy'
       };
@@ -266,6 +310,16 @@ Page({
       console.log('提交打卡数据:', submitData);
 
       const result = await checkinService.submitCheckin(submitData);
+      activityService.track('checkin_submit', {
+        targetType: 'checkin',
+        targetId: result?._id || result?.id || null,
+        periodId,
+        sectionId: this.data.sectionId || this.data.courseId,
+        metadata: {
+          visibility: this.data.visibility,
+          day: submitData.day
+        }
+      });
 
       // 保存打卡记录到本地存储
       const storageKey = `checkins_${this.data.courseId}`;
@@ -282,7 +336,7 @@ Page({
         userName: currentUser.nickname || '我',
         avatarText: currentUser.avatar || '我',
         avatarColor: '#4a90e2',
-        content: this.data.diaryContent,
+        content: diaryContent,
         likeCount: 0,
         createTime: '刚刚',
         isLiked: false,
@@ -317,8 +371,9 @@ Page({
     } catch (error) {
       wx.hideLoading();
       console.error('打卡失败:', error);
+      const message = getErrorMessage(error) || '打卡失败';
       wx.showToast({
-        title: '打卡失败',
+        title: message,
         icon: 'none'
       });
     }

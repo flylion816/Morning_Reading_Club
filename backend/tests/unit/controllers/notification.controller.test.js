@@ -102,6 +102,8 @@ describe('Notification Controller', () => {
       await notificationController.getUserNotifications(req, res, next);
 
       expect(res.json.called).to.be.true;
+      expect(NotificationStub.countDocuments.calledWith({ userId, isArchived: false })).to.be.true;
+      expect(NotificationStub.find.calledWith({ userId, isArchived: false })).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('notifications');
       expect(responseData.data).to.have.property('pagination');
@@ -145,6 +147,9 @@ describe('Notification Controller', () => {
       await notificationController.markAllAsRead(req, res, next);
 
       expect(res.json.called).to.be.true;
+      expect(
+        NotificationStub.updateMany.calledWithMatch({ userId, isRead: false, isArchived: false })
+      ).to.be.true;
     });
   });
 
@@ -158,6 +163,9 @@ describe('Notification Controller', () => {
       await notificationController.getUnreadCount(req, res, next);
 
       expect(res.json.called).to.be.true;
+      expect(
+        NotificationStub.countDocuments.calledWith({ userId, isRead: false, isArchived: false })
+      ).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('unreadCount');
     });

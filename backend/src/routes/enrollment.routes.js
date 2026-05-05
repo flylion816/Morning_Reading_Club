@@ -12,7 +12,8 @@ const {
   updateEnrollment,
   deleteEnrollment,
   debugCleanupEnrollments,
-  getUsersByPeriodName
+  getUsersByPeriodName,
+  syncNicknamesFromEnrollments
 } = require('../controllers/enrollment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
@@ -20,6 +21,9 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 // 获取报名列表（管理员）
 router.get('/', authMiddleware, adminMiddleware, getEnrollments);
+
+// 批量同步报名名称到用户昵称（管理员）
+router.post('/sync-nicknames', authMiddleware, adminMiddleware, syncNicknamesFromEnrollments);
 
 // 更新报名记录（管理员）
 router.put('/:id', authMiddleware, adminMiddleware, updateEnrollment);

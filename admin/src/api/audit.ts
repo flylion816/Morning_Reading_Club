@@ -1,6 +1,23 @@
-import axios from 'axios';
+import axios from "axios";
+import type { AxiosRequestConfig } from "axios";
 
-const BASE_URL = '/api/v1/audit-logs';
+const BASE_URL = "/api/v1/audit-logs";
+
+const withAuth = (config: AxiosRequestConfig = {}): AxiosRequestConfig => {
+  const token = localStorage.getItem("adminToken");
+
+  if (!token) {
+    return config;
+  }
+
+  return {
+    ...config,
+    headers: {
+      ...config.headers,
+      Authorization: `Bearer ${token}`,
+    },
+  };
+};
 
 export interface AuditLog {
   _id: string;
@@ -18,7 +35,7 @@ export interface AuditLog {
   };
   ipAddress?: string;
   userAgent?: string;
-  status: 'success' | 'failure';
+  status: "success" | "failure";
   errorMessage?: string;
   timestamp: string;
 }
@@ -54,7 +71,9 @@ export const getAuditLogs = (params: {
   endDate?: string;
   status?: string;
 }): Promise<AuditLogsResponse> => {
-  return axios.get(BASE_URL, { params }).then(res => res.data.data || res.data);
+  return axios
+    .get(BASE_URL, withAuth({ params }))
+    .then((res) => res.data.data || res.data);
 };
 
 /**
@@ -63,11 +82,14 @@ export const getAuditLogs = (params: {
 export const getAdminLogs = (
   adminId: string,
   page = 1,
-  pageSize = 20
+  pageSize = 20,
 ): Promise<AuditLogsResponse> => {
   return axios
-    .get(`${BASE_URL}/admin/${adminId}`, { params: { page, pageSize } })
-    .then(res => res.data.data);
+    .get(
+      `${BASE_URL}/admin/${adminId}`,
+      withAuth({ params: { page, pageSize } }),
+    )
+    .then((res) => res.data.data);
 };
 
 /**
@@ -77,18 +99,23 @@ export const getResourceLogs = (
   resourceType: string,
   resourceId: string,
   page = 1,
-  pageSize = 20
+  pageSize = 20,
 ): Promise<AuditLogsResponse> => {
   return axios
-    .get(`${BASE_URL}/resource/${resourceType}/${resourceId}`, { params: { page, pageSize } })
-    .then(res => res.data.data);
+    .get(
+      `${BASE_URL}/resource/${resourceType}/${resourceId}`,
+      withAuth({ params: { page, pageSize } }),
+    )
+    .then((res) => res.data.data);
 };
 
 /**
  * 获取操作统计
  */
 export const getAuditStatistics = (): Promise<AuditStatistics> => {
-  return axios.get(`${BASE_URL}/statistics`).then(res => res.data.data);
+  return axios
+    .get(`${BASE_URL}/statistics`, withAuth())
+    .then((res) => res.data.data);
 };
 
 /**
@@ -103,16 +130,21 @@ export const exportAuditLogs = (params: {
   status?: string;
 }): Promise<Blob> => {
   return axios
-    .get(`${BASE_URL}/export`, {
-      params,
-      responseType: 'blob'
-    })
-    .then(res => res.data);
+    .get(
+      `${BASE_URL}/export`,
+      withAuth({
+        params,
+        responseType: "blob",
+      }),
+    )
+    .then((res) => res.data);
 };
 
 /**
  * 清理过期日志
  */
 export const cleanupExpiredLogs = (): Promise<{ deletedCount: number }> => {
-  return axios.post(`${BASE_URL}/cleanup`).then(res => res.data.data);
+  return axios
+    .post(`${BASE_URL}/cleanup`, undefined, withAuth())
+    .then((res) => res.data.data);
 };

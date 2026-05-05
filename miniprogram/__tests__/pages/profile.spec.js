@@ -23,6 +23,10 @@ jest.mock('../../services/checkin.service.js', () => ({
   getCheckinDetail: jest.fn()
 }));
 
+jest.mock('../../services/notification.service.js', () => ({
+  getUnreadCount: jest.fn(() => Promise.resolve({ unreadCount: 0 }))
+}));
+
 jest.mock('../../config/constants.js', () => ({
   STORAGE_KEYS: {
     TOKEN: 'token',
@@ -242,6 +246,14 @@ describe('profile page', () => {
 
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/checkin-records/checkin-records'
+    });
+  });
+
+  test('should navigate to notifications page from home task header', () => {
+    pageInstance.navigateToNotifications.call(pageInstance);
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/notifications/notifications'
     });
   });
 

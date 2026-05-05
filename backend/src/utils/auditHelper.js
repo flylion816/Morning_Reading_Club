@@ -5,14 +5,23 @@ const logger = require('./logger');
  * 审计日志辅助工具 - 在各个 controller 中使用
  */
 class AuditHelper {
+  static getActor(req) {
+    const principal = req.admin || req.user || {};
+    return {
+      id: principal.id || principal._id || principal.userId,
+      name: principal.name || principal.email || '管理员'
+    };
+  }
+
   /**
    * 记录批量批准操作
    */
   static async logBatchApprove(req, ids, resourceType = 'enrollment', description = '批量批准') {
     try {
+      const actor = this.getActor(req);
       const log = {
-        adminId: req.user.id,
-        adminName: req.user.name,
+        adminId: actor.id,
+        adminName: actor.name,
         actionType: 'BATCH_UPDATE',
         resourceType,
         description,
@@ -42,9 +51,10 @@ class AuditHelper {
     description = '批量拒绝'
   ) {
     try {
+      const actor = this.getActor(req);
       const log = {
-        adminId: req.user.id,
-        adminName: req.user.name,
+        adminId: actor.id,
+        adminName: actor.name,
         actionType: 'BATCH_UPDATE',
         resourceType,
         description,
@@ -69,9 +79,10 @@ class AuditHelper {
    */
   static async logBatchDelete(req, ids, resourceType = 'enrollment', description = '批量删除') {
     try {
+      const actor = this.getActor(req);
       const log = {
-        adminId: req.user.id,
-        adminName: req.user.name,
+        adminId: actor.id,
+        adminName: actor.name,
         actionType: 'BATCH_DELETE',
         resourceType,
         description,
@@ -103,9 +114,10 @@ class AuditHelper {
     changes = null
   ) {
     try {
+      const actor = this.getActor(req);
       const log = {
-        adminId: req.user.id,
-        adminName: req.user.name,
+        adminId: actor.id,
+        adminName: actor.name,
         actionType,
         resourceType,
         resourceId,
@@ -152,9 +164,10 @@ class AuditHelper {
    */
   static async logLogout(req) {
     try {
+      const actor = this.getActor(req);
       const log = {
-        adminId: req.user?.id,
-        adminName: req.user?.name,
+        adminId: actor.id,
+        adminName: actor.name,
         actionType: 'LOGOUT',
         resourceType: 'system',
         description: '管理员登出',
@@ -174,9 +187,10 @@ class AuditHelper {
    */
   static async logError(req, actionType, resourceType, errorMessage, resourceId = null) {
     try {
+      const actor = this.getActor(req);
       const log = {
-        adminId: req.user?.id,
-        adminName: req.user?.name,
+        adminId: actor.id,
+        adminName: actor.name,
         actionType,
         resourceType,
         resourceId,

@@ -10,7 +10,11 @@ const { createNotification, createNotifications } = require('./notification.cont
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
-const { formatNotificationTime, truncateText } = require('../utils/notification-links');
+const {
+  buildProfileOthersTargetPage,
+  formatNotificationTime,
+  truncateText
+} = require('../utils/notification-links');
 
 /**
  * 辅助函数：创建通知并自动添加 WebSocket 管理器
@@ -22,8 +26,21 @@ const { formatNotificationTime, truncateText } = require('../utils/notification-
  * @param {Object} options - 选项
  */
 async function notifyUser(req, userId, type, title, content, options = {}) {
+  const data = {
+    ...(options.data || {})
+  };
+
+  if (options.scene) {
+    data.scene = options.scene;
+  }
+
+  if (options.targetPage) {
+    data.targetPage = options.targetPage;
+  }
+
   return createNotification(userId, type, title, content, {
     ...options,
+    data,
     wsManager: req.wsManager
   });
 }
@@ -38,8 +55,21 @@ async function notifyUser(req, userId, type, title, content, options = {}) {
  * @param {Object} options - 选项
  */
 async function notifyUsers(req, userIds, type, title, content, options = {}) {
+  const data = {
+    ...(options.data || {})
+  };
+
+  if (options.scene) {
+    data.scene = options.scene;
+  }
+
+  if (options.targetPage) {
+    data.targetPage = options.targetPage;
+  }
+
   return createNotifications(userIds, type, title, content, {
     ...options,
+    data,
     wsManager: req.wsManager
   });
 }
@@ -1291,9 +1321,12 @@ async function approveInsightRequest(req, res, next) {
     });
 
     // 获取被申请者和期次信息
-    const toUser = await User.findById(request.toUserId).select('nickname avatar');
+    const toUser = await User.findById(request.toUserId).select('nickname avatar avatarUrl');
     const Period = require('../models/Period');
-    const period = await Period.findById(periodId).select('name');
+    const period = await Period.findById(periodId).select('name title');
+    const targetPage = buildProfileOthersTargetPage(request.toUserId.toString(), {
+      periodId
+    });
 
     // 发送通知给申请者
     await notifyUser(
@@ -1305,10 +1338,14 @@ async function approveInsightRequest(req, res, next) {
       {
         requestId: request._id,
         senderId: request.toUserId,
+        targetPage,
         data: {
           senderName: toUser?.nickname,
-          senderAvatar: toUser?.avatar,
-          periodName: period?.name
+          senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
+          periodId: periodId?.toString?.() || String(periodId),
+          periodName: period?.name || period?.title || '',
+          targetUserId: request.toUserId.toString(),
+          targetUserName: toUser?.nickname || ''
         }
       }
     );
@@ -1356,7 +1393,10 @@ async function rejectInsightRequest(req, res, next) {
     });
 
     // 获取被申请者信息
-    const toUser = await User.findById(request.toUserId).select('nickname avatar');
+    const toUser = await User.findById(request.toUserId).select('nickname avatar avatarUrl');
+    const targetPage = buildProfileOthersTargetPage(request.toUserId.toString(), {
+      periodId: request.periodId?.toString?.() || ''
+    });
 
     // 发送通知给申请者
     await notifyUser(
@@ -1368,9 +1408,13 @@ async function rejectInsightRequest(req, res, next) {
       {
         requestId: request._id,
         senderId: request.toUserId,
+        targetPage,
         data: {
           senderName: toUser?.nickname,
-          senderAvatar: toUser?.avatar
+          senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
+          targetUserId: request.toUserId.toString(),
+          targetUserName: toUser?.nickname || '',
+          periodId: request.periodId?.toString?.() || ''
         }
       }
     );
@@ -1566,9 +1610,12 @@ async function adminApproveRequest(req, res, next) {
 
     // 获取申请者、被申请者和期次信息
     const Period = require('../models/Period');
-    const fromUser = await User.findById(request.fromUserId).select('nickname avatar');
-    const toUser = await User.findById(request.toUserId).select('nickname avatar');
-    const period = await Period.findById(periodId).select('name');
+    const fromUser = await User.findById(request.fromUserId).select('nickname avatar avatarUrl');
+    const toUser = await User.findById(request.toUserId).select('nickname avatar avatarUrl');
+    const period = await Period.findById(periodId).select('name title');
+    const targetPage = buildProfileOthersTargetPage(request.toUserId.toString(), {
+      periodId
+    });
 
     // 发送通知给申请者
     await notifyUser(
@@ -1579,8 +1626,14 @@ async function adminApproveRequest(req, res, next) {
       `管理员已批准你的查看申请，允许查看 ${period?.name || '本期'} 的小凡看见`,
       {
         requestId: request._id,
+        targetPage,
         data: {
-          periodName: period?.name
+          periodId: periodId?.toString?.() || String(periodId),
+          periodName: period?.name || period?.title || '',
+          targetUserId: request.toUserId.toString(),
+          targetUserName: toUser?.nickname || '',
+          senderName: fromUser?.nickname || '',
+          senderAvatar: fromUser?.avatarUrl || fromUser?.avatar || ''
         }
       }
     );
@@ -1637,6 +1690,10 @@ async function adminRejectRequest(req, res, next) {
     });
 
     // 发送通知给申请者
+    const targetPage = buildProfileOthersTargetPage(request.toUserId.toString(), {
+      periodId: request.periodId?.toString?.() || ''
+    });
+
     await notifyUser(
       req,
       request.fromUserId,
@@ -1645,8 +1702,11 @@ async function adminRejectRequest(req, res, next) {
       `管理员已拒绝你的查看申请`,
       {
         requestId: request._id,
+        targetPage,
         data: {
-          reason: adminNote
+          reason: adminNote,
+          targetUserId: request.toUserId.toString(),
+          periodId: request.periodId?.toString?.() || ''
         }
       }
     );
@@ -1706,7 +1766,10 @@ async function revokeInsightRequest(req, res, next) {
     });
 
     // 获取被申请者信息
-    const toUser = await User.findById(request.toUserId).select('nickname avatar');
+    const toUser = await User.findById(request.toUserId).select('nickname avatar avatarUrl');
+    const targetPage = buildProfileOthersTargetPage(request.toUserId.toString(), {
+      periodId: request.periodId?.toString?.() || ''
+    });
 
     // 发送通知给申请者
     await notifyUser(
@@ -1718,9 +1781,13 @@ async function revokeInsightRequest(req, res, next) {
       {
         requestId: request._id,
         senderId: request.toUserId,
+        targetPage,
         data: {
           senderName: toUser?.nickname,
-          senderAvatar: toUser?.avatar
+          senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
+          targetUserId: request.toUserId.toString(),
+          targetUserName: toUser?.nickname || '',
+          periodId: request.periodId?.toString?.() || ''
         }
       }
     );

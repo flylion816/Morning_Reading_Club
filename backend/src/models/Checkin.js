@@ -39,7 +39,7 @@ const CheckinSchema = new mongoose.Schema(
     },
     note: {
       type: String,
-      maxlength: 1000,
+      maxlength: 3000,
       default: null
     },
     images: {
@@ -98,6 +98,7 @@ CheckinSchema.index({ sectionId: 1 });
 CheckinSchema.index({ isPublic: 1, createdAt: -1 }); // 公开打卡查询
 CheckinSchema.index({ isFeatured: 1, likeCount: -1 }); // 精选和热门排序
 CheckinSchema.index({ periodId: 1, userId: 1 }); // 用户在期次内的打卡
+CheckinSchema.index({ periodId: 1, sectionId: 1, isPublic: 1, createdAt: -1 }); // 课程详情广场
 CheckinSchema.index({ createdAt: -1 }); // 按创建时间排序
 CheckinSchema.index({ mood: 1 }); // 心情筛选
 

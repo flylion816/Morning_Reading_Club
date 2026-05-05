@@ -3,40 +3,151 @@
  *
  * 支持两种通知更新模式：
  * 1. WebSocket 实时推送（有新通知立即显示）
- * 2. 定时轮询（WebSocket 不可用时的降级方案）
+ * 2. 重新进入页面时刷新列表
  */
 
-import notificationService from '../../services/notification.service';
-import websocketService from '../../services/websocket.service';
+const notificationServiceModule = require('../../services/notification.service');
+const websocketServiceModule = require('../../services/websocket.service');
+const constants = require('../../config/constants');
+
+const notificationService = notificationServiceModule.default || notificationServiceModule;
+const websocketService = websocketServiceModule.default || websocketServiceModule;
+
+function buildQueryString(params = {}) {
+  return Object.entries(params)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
+    .join('&');
+}
 
 Page({
   data: {
-    notifications: [], // 所有通知
-    displayedNotifications: [], // 根据筛选显示的通知
-    unreadCount: 0, // 未读数量
-    activeTab: 'all', // 当前选中的选项卡
-    page: 1, // 当前页码
-    limit: 20, // 每页数量
-    hasMore: true, // 是否有更多
-    loading: false, // 是否加载中
-    error: null, // 错误信息
-    useWebSocket: false, // 是否使用 WebSocket
-    wsUnsubscribe: null // WebSocket 取消订阅函数
+    notifications: [],
+    displayedNotifications: [],
+    unreadCount: 0,
+    activeTab: 'all',
+    page: 1,
+    limit: 20,
+    hasMore: true,
+    loading: false,
+    error: null,
+    useWebSocket: false,
+    wsUnsubscribe: null
   },
 
-  isTabPage(page) {
-    return ['pages/profile/profile', 'pages/index/index'].includes(page);
+  onLoad() {
+    this._skipNextShowRefresh = true;
+    this.refreshNotifications();
+  },
+
+  onShow() {
+    if (this._skipNextShowRefresh) {
+      this._skipNextShowRefresh = false;
+      return;
+    }
+
+    this.refreshNotifications();
+  },
+
+  onPullDownRefresh() {
+    this.refreshNotifications().finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
+  onReachBottom() {
+    if (!this.data.loading && this.data.hasMore) {
+      this.handleLoadMore();
+    }
+  },
+
+  onUnload() {
+    if (this.data.wsUnsubscribe) {
+      this.data.wsUnsubscribe();
+    }
+    websocketService.disconnect();
+  },
+
+  refreshNotifications() {
+    return Promise.all([this.loadNotifications(false), this.loadUnreadCount()]);
+  },
+
+  isImageSource(value = '') {
+    const normalized = String(value || '').trim();
+    if (!normalized) {
+      return false;
+    }
+
+    return /^(https?:\/\/|wxfile:\/\/|cloud:\/\/|data:image\/|\/)/i.test(normalized);
+  },
+
+  getNotificationRequestId(notification = {}) {
+    return (
+      notification?.requestId?._id ||
+      notification?.requestId ||
+      notification?.data?.insightRequestId ||
+      ''
+    );
+  },
+
+  getNotificationTargetUser(notification = {}) {
+    const sender = notification?.senderId || {};
+    return {
+      userId:
+        notification?.data?.targetUserId ||
+        sender?._id ||
+        sender?.id ||
+        notification?.senderId ||
+        '',
+      userName:
+        notification?.data?.targetUserName ||
+        notification?.data?.senderName ||
+        sender?.nickname ||
+        ''
+    };
+  },
+
+  getNotificationPeriodId(notification = {}) {
+    return notification?.data?.periodId || '';
+  },
+
+  buildProfileOthersTargetPage(userId, params = {}) {
+    if (!userId) {
+      return '';
+    }
+
+    const query = buildQueryString({
+      userId,
+      ...params
+    });
+
+    return query
+      ? `pages/profile-others/profile-others?${query}`
+      : 'pages/profile-others/profile-others';
+  },
+
+  normalizeTargetPage(targetPage = '') {
+    return String(targetPage || '').replace(/^\/+/, '').trim();
+  },
+
+  getTabPagePath(targetPage = '') {
+    return this.normalizeTargetPage(targetPage).split('?')[0];
+  },
+
+  isTabPage(pagePath = '') {
+    return ['pages/profile/profile', 'pages/index/index'].includes(pagePath);
   },
 
   navigateByTargetPage(targetPage = '') {
-    const normalized = String(targetPage || '').replace(/^\/+/, '');
+    const normalized = this.normalizeTargetPage(targetPage);
     if (!normalized) {
       return;
     }
 
-    if (this.isTabPage(normalized)) {
+    const pagePath = this.getTabPagePath(normalized);
+    if (this.isTabPage(pagePath)) {
       wx.switchTab({
-        url: `/${normalized}`
+        url: `/${pagePath}`
       });
       return;
     }
@@ -46,55 +157,110 @@ Page({
     });
   },
 
-  onLoad() {
-    this.loadNotifications();
-    this.loadUnreadCount();
-    this.initWebSocket();
-  },
-
-  onShow() {
-    // 每次页面显示时刷新通知
-    this.loadNotifications();
-  },
-
-  onUnload() {
-    // 页面卸载时取消 WebSocket 订阅
-    if (this.data.wsUnsubscribe) {
-      this.data.wsUnsubscribe();
+  resolveNotificationTarget(notification = {}) {
+    const directTarget = notification?.data?.targetPage;
+    if (directTarget) {
+      return directTarget;
     }
+
+    const { type } = notification;
+    const sectionId = notification?.data?.sectionId || '';
+    const checkinId = notification?.data?.checkinId || '';
+    const commentId = notification?.data?.commentId || '';
+    const replyId = notification?.data?.replyId || '';
+    const requestId = this.getNotificationRequestId(notification);
+    const periodId = this.getNotificationPeriodId(notification);
+    const targetUser = this.getNotificationTargetUser(notification);
+
+    if (sectionId && checkinId && (type === 'comment_received' || type === 'like_received')) {
+      const query = buildQueryString({
+        id: sectionId,
+        checkinId,
+        focus: 'comments',
+        commentId,
+        replyId
+      });
+      return `pages/course-detail/course-detail?${query}`;
+    }
+
+    if (type === 'request_created') {
+      return 'pages/profile/profile';
+    }
+
+    if (['request_approved', 'admin_approved'].includes(type) && targetUser.userId) {
+      return this.buildProfileOthersTargetPage(targetUser.userId, { periodId });
+    }
+
+    if (
+      ['request_rejected', 'admin_rejected', 'permission_revoked'].includes(type) &&
+      targetUser.userId
+    ) {
+      return this.buildProfileOthersTargetPage(targetUser.userId, { periodId });
+    }
+
+    if (['enrollment_result', 'payment_result'].includes(type)) {
+      return 'pages/index/index';
+    }
+
+    if (requestId) {
+      return 'pages/insight-requests/insight-requests';
+    }
+
+    return '';
+  },
+
+  getNotificationActionText(notification = {}) {
+    const actionTextMap = {
+      comment_received: '查看打卡详情',
+      like_received: '查看打卡详情',
+      request_created: '去首页处理',
+      request_approved: '查看对方小凡看见',
+      admin_approved: '查看对方小凡看见',
+      request_rejected: '查看申请状态',
+      admin_rejected: '查看申请状态',
+      permission_revoked: '查看申请状态',
+      enrollment_result: '查看课程首页',
+      payment_result: '查看课程首页'
+    };
+
+    return actionTextMap[notification?.type] || '';
   },
 
   decorateNotification(notification = {}) {
+    const sender = notification?.senderId || {};
+    const senderName = notification?.data?.senderName || sender?.nickname || '';
+    const rawSenderAvatar =
+      notification?.data?.senderAvatar || sender?.avatarUrl || sender?.avatar || '';
+    const senderAvatar = this.isImageSource(rawSenderAvatar) ? rawSenderAvatar : '';
+
     return {
       ...notification,
       typeIcon: notificationService.getTypeIcon(notification.type),
       typeLabel: notificationService.getTypeLabel(notification.type),
+      typeColor: notificationService.getTypeColor(notification.type),
       formattedTime: notificationService.formatTime(notification.createdAt),
-      senderAvatar: notification?.data?.senderAvatar || ''
+      senderName,
+      senderAvatar,
+      requestIdValue: this.getNotificationRequestId(notification),
+      resolvedTargetPage: this.resolveNotificationTarget(notification),
+      actionText: this.getNotificationActionText(notification)
     };
   },
 
-  /**
-   * 初始化 WebSocket
-   */
   async initWebSocket() {
     try {
-      const userInfo = wx.getStorageSync('user_info');
+      const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
       if (!userInfo || !userInfo._id) {
         console.warn('[NotificationsPage] 用户信息不存在，WebSocket 不可用');
         return;
       }
 
-      // 连接 WebSocket
       await websocketService.connect(userInfo._id);
 
-      // 订阅新通知事件
       const unsubscribe = websocketService.on('notification:new', notification => {
-        console.log('[NotificationsPage] 收到新通知', notification);
-        // 在页面顶部添加新通知
         const updatedNotifications = [
           this.decorateNotification({
-            _id: notification.notificationId || Math.random().toString(36).substr(2, 9),
+            _id: notification.notificationId || Math.random().toString(36).slice(2, 11),
             type: notification.type,
             title: notification.title,
             content: notification.content,
@@ -114,18 +280,15 @@ Page({
       });
 
       this.setData({ wsUnsubscribe: unsubscribe, useWebSocket: true });
-      console.log('[NotificationsPage] WebSocket 连接成功，启用实时推送');
     } catch (error) {
-      console.warn('[NotificationsPage] WebSocket 初始化失败，使用轮询模式:', error);
-      // 降级到轮询
+      console.warn('[NotificationsPage] WebSocket 初始化失败，使用刷新模式:', error);
     }
   },
 
-  /**
-   * 加载通知列表
-   */
   async loadNotifications(append = false) {
-    if (this.data.loading) return;
+    if (this.data.loading) {
+      return;
+    }
 
     this.setData({ loading: true, error: null });
 
@@ -156,9 +319,6 @@ Page({
     }
   },
 
-  /**
-   * 加载未读数量
-   */
   async loadUnreadCount() {
     try {
       const response = await notificationService.getUnreadCount();
@@ -168,27 +328,19 @@ Page({
     }
   },
 
-  /**
-   * 更新显示的通知（根据当前选项卡）
-   */
   updateDisplayedNotifications() {
     const { notifications, activeTab } = this.data;
     let displayed = notifications;
 
     if (activeTab === 'true') {
-      // 仅显示已读
-      displayed = notifications.filter(n => n.isRead);
+      displayed = notifications.filter(item => item.isRead);
     } else if (activeTab === 'false') {
-      // 仅显示未读
-      displayed = notifications.filter(n => !n.isRead);
+      displayed = notifications.filter(item => !item.isRead);
     }
 
     this.setData({ displayedNotifications: displayed });
   },
 
-  /**
-   * 处理选项卡切换
-   */
   handleTabChange(event) {
     const tab = event.currentTarget.dataset.tab;
     if (tab !== this.data.activeTab) {
@@ -197,22 +349,25 @@ Page({
     }
   },
 
-  /**
-   * 处理通知点击
-   */
   async handleNotificationTap(event) {
-    const { id, requestId } = event.currentTarget.dataset;
-    const notification = this.data.notifications.find(n => n._id === id);
+    const { id } = event.currentTarget.dataset;
+    const notification = this.data.notifications.find(item => item._id === id);
 
-    // 标记为已读
+    if (!notification) {
+      return;
+    }
+
     if (!notification.isRead) {
       try {
         await notificationService.markAsRead(id);
-        // 更新本地数据
-        const updatedNotifications = this.data.notifications.map(n =>
-          n._id === id
-            ? this.decorateNotification({ ...n, isRead: true, readAt: new Date().toISOString() })
-            : n
+        const updatedNotifications = this.data.notifications.map(item =>
+          item._id === id
+            ? this.decorateNotification({
+                ...item,
+                isRead: true,
+                readAt: new Date().toISOString()
+              })
+            : item
         );
         this.setData({ notifications: updatedNotifications });
         this.updateDisplayedNotifications();
@@ -222,22 +377,12 @@ Page({
       }
     }
 
-    const targetPage = notification?.data?.targetPage;
+    const targetPage = notification.resolvedTargetPage || this.resolveNotificationTarget(notification);
     if (targetPage) {
       this.navigateByTargetPage(targetPage);
-      return;
-    }
-
-    if (requestId) {
-      wx.navigateTo({
-        url: '/pages/insight-requests/insight-requests'
-      });
     }
   },
 
-  /**
-   * 处理删除通知
-   */
   handleDelete(event) {
     const notificationId = event.currentTarget.dataset.id;
 
@@ -247,35 +392,34 @@ Page({
       confirmText: '删除',
       cancelText: '取消',
       success: async res => {
-        if (res.confirm) {
-          try {
-            await notificationService.deleteNotification(notificationId);
-            const updated = this.data.notifications.filter(n => n._id !== notificationId);
-            this.setData({ notifications: updated });
-            this.updateDisplayedNotifications();
-            this.loadUnreadCount();
+        if (!res.confirm) {
+          return;
+        }
 
-            wx.showToast({
-              title: '已删除',
-              icon: 'success',
-              duration: 1500
-            });
-          } catch (error) {
-            console.error('删除通知失败:', error);
-            wx.showToast({
-              title: '删除失败',
-              icon: 'error',
-              duration: 1500
-            });
-          }
+        try {
+          await notificationService.deleteNotification(notificationId);
+          const updated = this.data.notifications.filter(item => item._id !== notificationId);
+          this.setData({ notifications: updated });
+          this.updateDisplayedNotifications();
+          this.loadUnreadCount();
+
+          wx.showToast({
+            title: '已删除',
+            icon: 'success',
+            duration: 1500
+          });
+        } catch (error) {
+          console.error('删除通知失败:', error);
+          wx.showToast({
+            title: '删除失败',
+            icon: 'error',
+            duration: 1500
+          });
         }
       }
     });
   },
 
-  /**
-   * 处理全部已读
-   */
   handleMarkAllAsRead() {
     wx.showModal({
       title: '标记全部已读',
@@ -283,40 +427,41 @@ Page({
       confirmText: '标记',
       cancelText: '取消',
       success: async res => {
-        if (res.confirm) {
-          try {
-            await notificationService.markAllAsRead();
-            const updated = this.data.notifications.map(n => ({
-              ...n,
+        if (!res.confirm) {
+          return;
+        }
+
+        try {
+          await notificationService.markAllAsRead();
+          const updated = this.data.notifications
+            .map(item => ({
+              ...item,
               isRead: true,
               readAt: new Date().toISOString()
-            })).map(item => this.decorateNotification(item));
-            this.setData({ notifications: updated });
-            this.updateDisplayedNotifications();
-            this.loadUnreadCount();
+            }))
+            .map(item => this.decorateNotification(item));
+          this.setData({ notifications: updated });
+          this.updateDisplayedNotifications();
+          this.loadUnreadCount();
 
-            wx.showToast({
-              title: '已标记为已读',
-              icon: 'success',
-              duration: 1500
-            });
-          } catch (error) {
-            console.error('标记全部已读失败:', error);
-            wx.showToast({
-              title: '操作失败',
-              icon: 'error',
-              duration: 1500
-            });
-          }
+          wx.showToast({
+            title: '已标记为已读',
+            icon: 'success',
+            duration: 1500
+          });
+        } catch (error) {
+          console.error('标记全部已读失败:', error);
+          wx.showToast({
+            title: '操作失败',
+            icon: 'error',
+            duration: 1500
+          });
         }
       }
     });
   },
 
-  /**
-   * 处理加载更多
-   */
   handleLoadMore() {
     this.loadNotifications(true);
-  },
+  }
 });

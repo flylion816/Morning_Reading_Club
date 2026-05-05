@@ -1,5 +1,6 @@
 const Period = require('../models/Period');
 const Checkin = require('../models/Checkin');
+const mongoose = require('mongoose');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
 
@@ -91,36 +92,52 @@ async function getPeriodListForUser(req, res, next) {
       .limit(parseInt(limit, 10))
       .select('-__v');
 
-    // 转换数据格式，并计算用户的打卡天数
-    const transformedPeriods = await Promise.all(
-      periods.map(async period => {
-        const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
-
-        // 查询用户在该期次的打卡日期数（不同的打卡日期数）
-        const checkinDates = await Checkin.distinct('checkinDate', {
-          userId,
-          periodId: period._id
-        });
-
-        return {
-          ...periodObj,
-          status: period.status === 'ongoing' ? 'active' : period.status,
-          title: period.title || period.name,
-          color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-          // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
-          coverColor: convertCoverColorForForm(period.coverColor),
-          icon: period.icon || period.coverEmoji || '📚',
-          startTime: period.startDate ? period.startDate.toISOString() : null,
-          endTime: period.endDate ? period.endDate.toISOString() : null,
-          dateRange: periodObj.dateRange || '',
-          statusText: getStatusText(period),
-          checkedDays: checkinDates.length, // 真实的打卡天数
-          progress: 0,
-          isCheckedIn: false,
-          currentEnrollment: period.enrollmentCount || 0
-        };
-      })
+    const periodIds = periods.map(period => period._id).filter(Boolean);
+    const normalizedUserId = mongoose.Types.ObjectId.isValid(String(userId))
+      ? new mongoose.Types.ObjectId(String(userId))
+      : userId;
+    const checkinStats = periodIds.length
+      ? await Checkin.aggregate([
+          {
+            $match: {
+              userId: normalizedUserId,
+              periodId: { $in: periodIds }
+            }
+          },
+          {
+            $group: {
+              _id: '$periodId',
+              checkedDays: { $sum: 1 }
+            }
+          }
+        ])
+      : [];
+    const checkedDaysByPeriod = new Map(
+      checkinStats.map(item => [String(item._id), item.checkedDays || 0])
     );
+
+    // 转换数据格式，并合并用户的打卡统计
+    const transformedPeriods = periods.map(period => {
+      const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
+
+      return {
+        ...periodObj,
+        status: period.status === 'ongoing' ? 'active' : period.status,
+        title: period.title || period.name,
+        color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+        // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
+        coverColor: convertCoverColorForForm(period.coverColor),
+        icon: period.icon || period.coverEmoji || '📚',
+        startTime: period.startDate ? period.startDate.toISOString() : null,
+        endTime: period.endDate ? period.endDate.toISOString() : null,
+        dateRange: periodObj.dateRange || '',
+        statusText: getStatusText(period),
+        checkedDays: checkedDaysByPeriod.get(String(period._id)) || 0,
+        progress: 0,
+        isCheckedIn: false,
+        currentEnrollment: period.enrollmentCount || 0
+      };
+    });
 
     const response = success(transformedPeriods);
     response.pagination = {
@@ -476,6 +493,55 @@ async function copyPeriod(req, res, next) {
   }
 }
 
+/**
+ * 根据当前日期批量同步所有期次的 status 字段
+ * POST /api/v1/periods/sync-status
+ */
+async function syncAllPeriodsStatus(req, res, next) {
+  try {
+    const periods = await Period.find({}).select('_id name status startDate endDate');
+
+    let updatedCount = 0;
+    const updates = [];
+
+    for (const period of periods) {
+      const expectedStatus = getDynamicStatus(period);
+      if (period.status !== expectedStatus) {
+        const oldStatus = period.status;
+        period.status = expectedStatus;
+        await period.save();
+        updatedCount += 1;
+        updates.push({
+          periodId: period._id.toString(),
+          periodName: period.name,
+          oldStatus,
+          newStatus: expectedStatus
+        });
+
+        publishSyncEvent({
+          type: 'update',
+          collection: 'periods',
+          documentId: period._id.toString(),
+          data: period.toObject()
+        });
+      }
+    }
+
+    res.json(
+      success(
+        {
+          totalPeriods: periods.length,
+          updatedCount,
+          updates
+        },
+        `成功同步 ${updatedCount} 个期次的状态`
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getPeriodList,
   getPeriodListForUser,
@@ -483,5 +549,6 @@ module.exports = {
   createPeriod,
   updatePeriod,
   deletePeriod,
-  copyPeriod
+  copyPeriod,
+  syncAllPeriodsStatus
 };

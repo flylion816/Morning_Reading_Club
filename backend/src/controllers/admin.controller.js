@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const AuditHelper = require('../utils/auditHelper');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 require('dotenv').config();
@@ -55,6 +56,7 @@ exports.login = async (req, res) => {
 
     // 生成 Token
     const token = generateToken(admin);
+    await AuditHelper.logLogin(req, admin._id, admin.name || admin.email);
 
     // 返回成功响应
     const adminData = admin.toJSON();
@@ -98,6 +100,7 @@ exports.getProfile = async (req, res) => {
 exports.logout = async (req, res) => {
   try {
     // 在客户端删除 token，这里只需返回成功消息
+    await AuditHelper.logLogout(req);
     return res.json(success(null, '已登出'));
   } catch (error) {
     logger.error('Admin logout error', error);

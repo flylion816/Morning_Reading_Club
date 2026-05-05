@@ -70,16 +70,16 @@ class NotificationService {
    */
   getTypeLabel(type) {
     const labels = {
-      request_created: '新申请',
-      request_approved: '申请已同意',
-      request_rejected: '申请已拒绝',
+      request_created: '有人申请看见',
+      request_approved: '申请已通过',
+      request_rejected: '申请未通过',
       permission_revoked: '权限已撤销',
-      admin_approved: '管理员已同意',
+      admin_approved: '管理员已通过',
       admin_rejected: '管理员已拒绝',
-      enrollment_result: '报名结果',
-      payment_result: '付款结果',
-      comment_received: '收到评论',
-      like_received: '收到点赞'
+      enrollment_result: '报名通知',
+      payment_result: '付款通知',
+      comment_received: '评论提醒',
+      like_received: '点赞提醒'
     };
     return labels[type] || '通知';
   }

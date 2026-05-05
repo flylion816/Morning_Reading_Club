@@ -43,12 +43,14 @@ const auditLogMiddleware = (req, res, next) => {
         return;
       }
 
-      // 只有管理员操作才记录
-      if (!req.user || !req.user.id) {
+      const actor = getAuditActor(req);
+      if (!actor) {
         return;
       }
 
-      const { method, path, auditInfo } = req;
+      const method = req.method;
+      const path = getRequestPath(req);
+      const auditInfo = res.auditInfo || {};
       const statusCode = auditInfo.statusCode || res.statusCode;
 
       // 只记录状态码为 200-299 的操作（成功）和某些失败的关键操作
@@ -64,8 +66,8 @@ const auditLogMiddleware = (req, res, next) => {
 
       // 创建审计日志
       const auditLog = {
-        adminId: req.user.id,
-        adminName: req.user.name,
+        adminId: actor.id,
+        adminName: actor.name,
         actionType: actionInfo.actionType,
         resourceType: actionInfo.resourceType,
         resourceId: actionInfo.resourceId,
@@ -92,15 +94,20 @@ const auditLogMiddleware = (req, res, next) => {
  * 判断是否应该跳过记录
  */
 function shouldSkipAudit(req) {
+  const path = getRequestPath(req);
   const skipPaths = [
     '/api/v1/auth/login', // 登录已有专门处理
+    '/api/v1/auth/admin/login', // 管理员登录已有专门处理
+    '/api/v1/auth/admin/logout', // 管理员登出已有专门处理
+    '/api/v1/auth/admin/refresh-token', // token续期不记录
     '/api/v1/health', // 健康检查
     '/api/v1/audit-logs', // 查看日志不记录
     '/uploads', // 文件上传
-    '/api/v1/stats' // 查看统计不记录
+    '/api/v1/stats', // 查看统计不记录
+    '/api/v1/activities' // 查看活跃度统计不记录
   ];
 
-  return skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET';
+  return skipPaths.some(skipPath => path.startsWith(skipPath)) || req.method === 'GET';
 }
 
 /**
@@ -111,6 +118,11 @@ function isImportantAction(method, path) {
     '/api/v1/enrollments', // 报名
     '/api/v1/payments', // 支付
     '/api/v1/periods', // 期次
+    '/api/v1/admin/periods', // 后台期次
+    '/api/v1/admin/sections', // 后台课节
+    '/api/v1/admin/checkins', // 后台打卡
+    '/api/v1/auth/admin', // 管理员账户操作
+    '/api/v1/admins', // 管理员管理
     '/api/v1/admin' // 管理员操作
   ];
 
@@ -183,9 +195,31 @@ function extractActionInfo(method, path, body) {
             ? '取消支付'
             : '更新支付';
     }
-  } else if (path.includes('/admin')) {
+  } else if (path.includes('/sections')) {
+    resourceType = 'section';
+    const match = path.match(/\/sections\/([a-f0-9]{24})/);
+    if (match) resourceId = match[1];
+
+    description =
+      actionType === 'CREATE' ? '创建课节' : actionType === 'DELETE' ? '删除课节' : '更新课节';
+  } else if (path.includes('/checkins')) {
+    resourceType = 'system';
+    const match = path.match(/\/checkins\/([a-f0-9]{24})/);
+    if (match) resourceId = match[1];
+
+    description = actionType === 'DELETE' ? '删除打卡记录' : '更新打卡记录';
+  } else if (path.includes('/auth/admin/change-password')) {
     resourceType = 'admin';
-    const match = path.match(/\/admin\/([a-f0-9]{24})/);
+    description = '修改管理员密码';
+  } else if (path.includes('/auth/admin/change-db-access-password')) {
+    resourceType = 'admin';
+    description = '修改数据库访问密码';
+  } else if (path.includes('/auth/admin/verify-db-access')) {
+    resourceType = 'system';
+    description = '验证数据库访问密码';
+  } else if (path.includes('/admins') || path.includes('/admin')) {
+    resourceType = 'admin';
+    const match = path.match(/\/admins?\/([a-f0-9]{24})/);
     if (match) resourceId = match[1];
 
     description =
@@ -203,6 +237,30 @@ function extractActionInfo(method, path, body) {
     resourceName,
     description: description || `${actionType} ${resourceType}`,
     changes
+  };
+}
+
+function getRequestPath(req) {
+  return req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
+}
+
+function getAuditActor(req) {
+  const principal = req.admin || req.user;
+  if (!principal) {
+    return null;
+  }
+
+  const role = principal.role;
+  const isAdmin = ['superadmin', 'admin', 'operator'].includes(role);
+  const id = principal.id || principal._id || principal.userId;
+
+  if (!isAdmin || !id) {
+    return null;
+  }
+
+  return {
+    id,
+    name: principal.name || principal.email || '管理员'
   };
 }
 

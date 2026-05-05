@@ -305,6 +305,17 @@ textarea.form-control::placeholder {
   margin-top: 6rpx;
 }
 
+.form-error {
+  display: block;
+  font-size: 22rpx;
+  color: #e74c3c;
+  margin-top: 8rpx;
+}
+
+.form-control-error {
+  border-color: #e74c3c !important;
+}
+
 /* 响应式调整 */
 @media (max-width: 360px) {
   .enrollment-form {

@@ -4,9 +4,9 @@ import logger from '../utils/logger';
 // 配置 API 基础 URL
 // 开发环境：使用相对路径 /api/v1，由 Vite 代理转发到真实后端
 // 生产环境：使用完整 URL https://wx.shubai01.com/api/v1
-const API_BASE_URL = import.meta.env.VITE_API_URL || (
-  import.meta.env.DEV ? '/api/v1' : 'https://wx.shubai01.com/api/v1'
-);
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? '/api/v1' : 'https://wx.shubai01.com/api/v1');
 
 // 创建 axios 实例
 const apiClient = axios.create({
@@ -22,7 +22,7 @@ apiClient.defaults.headers.common['Authorization'] = '';
 
 // 请求拦截器 - 添加认证令牌
 apiClient.interceptors.request.use(
-  config => {
+  (config) => {
     let token: string | null = null;
     try {
       token = localStorage.getItem('adminToken');
@@ -30,7 +30,9 @@ apiClient.interceptors.request.use(
       logger.warn('[API Request] ⚠️ 无法访问 localStorage:', err);
     }
     logger.debug('[API Request] URL:', { url: config.url });
-    logger.debug('[API Request] localStorage.adminToken:', { value: token ? '有值' : '无值' });
+    logger.debug('[API Request] localStorage.adminToken:', {
+      value: token ? '有值' : '无值'
+    });
     if (token) {
       // 使用 defaults 方式设置全局 Authorization 请求头
       const authHeader = `Bearer ${token}`;
@@ -40,31 +42,43 @@ apiClient.interceptors.request.use(
       logger.debug('[API Request] Authorization header已设置:', {
         token: `Bearer ${token.substring(0, 20)}...`
       });
-      console.log('[API Interceptor] Authorization 请求头已添加:', authHeader.substring(0, 30) + '...');
+      console.log(
+        '[API Interceptor] Authorization 请求头已添加:',
+        authHeader.substring(0, 30) + '...'
+      );
     } else {
       logger.warn('[API Request] ⚠️ 没有token，不会附加Authorization header');
       console.warn('[API Interceptor] 警告：没有 token');
     }
     return config;
   },
-  error => {
+  (error) => {
     return Promise.reject(error);
   }
 );
 
 // 响应拦截器 - 处理错误和令牌过期
 apiClient.interceptors.response.use(
-  response => {
-    logger.debug('[API Response] 成功', { url: response.config.url, status: response.status });
+  (response) => {
+    logger.debug('[API Response] 成功', {
+      url: response.config.url,
+      status: response.status
+    });
     logger.debug('[API Response] response.data:', response.data);
     console.log('[API Interceptor] 原始 response.data:', response.data);
 
     // 后端返回格式：{code, message, data: {...}, pagination: {...}, timestamp: ...}
     if (response.data && typeof response.data === 'object') {
       // 如果响应有标准结构 {code, message, data}，需要转换成兼容格式
-      if ('code' in response.data && 'message' in response.data && 'data' in response.data) {
+      if (
+        'code' in response.data &&
+        'message' in response.data &&
+        'data' in response.data
+      ) {
         logger.debug('[API Response] 标准格式，转换为兼容结构');
-        console.log('[API Interceptor] 检测到标准格式 {code, message, data, ...}');
+        console.log(
+          '[API Interceptor] 检测到标准格式 {code, message, data, ...}'
+        );
 
         const data = response.data.data;
         console.log('[API Interceptor] 返回的 data:', data);
@@ -95,11 +109,16 @@ apiClient.interceptors.response.use(
     console.log('[API Interceptor] 返回 response.data (非对象)');
     return response.data;
   },
-  error => {
-    logger.warn('[API Response] 错误', { url: error.config?.url, status: error.response?.status });
+  (error) => {
+    logger.warn('[API Response] 错误', {
+      url: error.config?.url,
+      status: error.response?.status
+    });
     logger.debug('[API Response] 错误详情:', error.response?.data);
     if (error.response?.status === 401) {
-      logger.warn('[API Response] ❌ 401 Unauthorized，清除token并重定向到登录页');
+      logger.warn(
+        '[API Response] ❌ 401 Unauthorized，清除token并重定向到登录页'
+      );
       // 清除过期的令牌并重定向到登录页
       try {
         localStorage.removeItem('adminToken');
@@ -128,16 +147,22 @@ export const authApi = {
     apiClient.post('/auth/admin/login', { email, password }),
   logout: () => apiClient.post('/auth/admin/logout'),
   getProfile: () => apiClient.get('/auth/admin/profile'),
-  verifyDbAccess: (password: string) => apiClient.post('/auth/admin/verify-db-access', { password })
+  verifyDbAccess: (password: string) =>
+    apiClient.post('/auth/admin/verify-db-access', { password })
 };
 
 // 报名 API
 export const enrollmentApi = {
   getEnrollments: (params?: any) => apiClient.get('/enrollments', { params }),
   getEnrollmentDetail: (id: string) => apiClient.get(`/enrollments/${id}`),
-  approveEnrollment: (id: string, data?: any) => apiClient.post(`/enrollments/${id}/approve`, data),
-  rejectEnrollment: (id: string, data?: any) => apiClient.post(`/enrollments/${id}/reject`, data),
-  updateEnrollment: (id: string, data: any) => apiClient.put(`/enrollments/${id}`, data)
+  approveEnrollment: (id: string, data?: any) =>
+    apiClient.post(`/enrollments/${id}/approve`, data),
+  rejectEnrollment: (id: string, data?: any) =>
+    apiClient.post(`/enrollments/${id}/reject`, data),
+  updateEnrollment: (id: string, data: any) =>
+    apiClient.put(`/enrollments/${id}`, data),
+  syncNicknamesFromEnrollments: () =>
+    apiClient.post('/enrollments/sync-nicknames')
 };
 
 // 支付 API
@@ -145,8 +170,10 @@ export const paymentApi = {
   getPayments: (params?: any) => apiClient.get('/payments', { params }),
   getPaymentDetail: (id: string) => apiClient.get(`/payments/${id}`),
   cancelPayment: (id: string) => apiClient.post(`/payments/${id}/cancel`),
-  adminCancelPayment: (id: string) => apiClient.post(`/payments/${id}/admin-cancel`),
-  resetPaymentToPending: (id: string) => apiClient.post(`/payments/${id}/reset-to-pending`),
+  adminCancelPayment: (id: string) =>
+    apiClient.post(`/payments/${id}/admin-cancel`),
+  resetPaymentToPending: (id: string) =>
+    apiClient.post(`/payments/${id}/reset-to-pending`),
   getUserPayments: (userId: string, params?: any) =>
     apiClient.get(`/payments/user/${userId}`, { params })
 };
@@ -156,20 +183,26 @@ export const periodApi = {
   getPeriods: (params?: any) => apiClient.get('/periods', { params }),
   getPeriodDetail: (id: string) => apiClient.get(`/periods/${id}`),
   createPeriod: (data: any) => apiClient.post('/periods', data),
-  updatePeriod: (id: string, data: any) => apiClient.put(`/periods/${id}`, data),
+  updatePeriod: (id: string, data: any) =>
+    apiClient.put(`/periods/${id}`, data),
   deletePeriod: (id: string) => apiClient.delete(`/periods/${id}`),
-  copyPeriod: (id: string, data: any) => apiClient.post(`/periods/${id}/copy`, data),
+  copyPeriod: (id: string, data: any) =>
+    apiClient.post(`/periods/${id}/copy`, data),
+  syncAllPeriodsStatus: () => apiClient.post('/periods/sync-status'),
 
   // 课节相关 API
   getSections: (periodId: string, params?: any) =>
     apiClient.get(`/periods/${periodId}/sections`, { params }),
   getAllSections: (periodId: string, params?: any) =>
     apiClient.get(`/periods/${periodId}/sections/admin/all`, { params }),
-  getSectionDetail: (sectionId: string) => apiClient.get(`/sections/${sectionId}`),
+  getSectionDetail: (sectionId: string) =>
+    apiClient.get(`/sections/${sectionId}`),
   createSection: (periodId: string, data: any) =>
     apiClient.post(`/periods/${periodId}/sections`, data),
-  updateSection: (sectionId: string, data: any) => apiClient.put(`/sections/${sectionId}`, data),
-  deleteSection: (sectionId: string) => apiClient.delete(`/sections/${sectionId}`)
+  updateSection: (sectionId: string, data: any) =>
+    apiClient.put(`/sections/${sectionId}`, data),
+  deleteSection: (sectionId: string) =>
+    apiClient.delete(`/sections/${sectionId}`)
 };
 
 // 用户 API
@@ -183,8 +216,10 @@ export const userApi = {
 // 统计 API
 export const statsApi = {
   getDashboardStats: () => apiClient.get('/stats/dashboard'),
-  getEnrollmentStats: (params?: any) => apiClient.get('/stats/enrollments', { params }),
-  getPaymentStats: (params?: any) => apiClient.get('/stats/payments', { params })
+  getEnrollmentStats: (params?: any) =>
+    apiClient.get('/stats/enrollments', { params }),
+  getPaymentStats: (params?: any) =>
+    apiClient.get('/stats/payments', { params })
 };
 
 // 小凡看见 API
@@ -194,16 +229,20 @@ export const insightApi = {
     apiClient.get(`/insights/period/${periodId}`, { params }),
   getInsightDetail: (id: string) => apiClient.get(`/insights/${id}`),
   createInsight: (data: any) => apiClient.post('/insights/manual/create', data),
-  updateInsight: (id: string, data: any) => apiClient.put(`/insights/${id}`, data),
+  updateInsight: (id: string, data: any) =>
+    apiClient.put(`/insights/${id}`, data),
   deleteInsight: (id: string) => apiClient.delete(`/insights/manual/${id}`),
-  publishInsight: (id: string) => apiClient.put(`/insights/${id}`, { isPublished: true }),
-  unpublishInsight: (id: string) => apiClient.put(`/insights/${id}`, { isPublished: false })
+  publishInsight: (id: string) =>
+    apiClient.put(`/insights/${id}`, { isPublished: true }),
+  unpublishInsight: (id: string) =>
+    apiClient.put(`/insights/${id}`, { isPublished: false })
 };
 
 // 小凡看见申请 API（管理后台）
 export const insightRequestsApi = {
   getRequests: (params?: any) => apiClient.get('/admin/requests', { params }),
-  getRequestDetail: (requestId: string) => apiClient.get(`/admin/requests/${requestId}`),
+  getRequestDetail: (requestId: string) =>
+    apiClient.get(`/admin/requests/${requestId}`),
   getRequestStats: () => apiClient.get('/admin/requests/stats'),
   approveRequest: (requestId: string, data?: any) =>
     apiClient.put(`/admin/requests/${requestId}/approve`, data),
@@ -211,12 +250,14 @@ export const insightRequestsApi = {
     apiClient.put(`/admin/requests/${requestId}/reject`, data),
   batchApprove: (requestIds: string[]) =>
     apiClient.post('/admin/requests/batch-approve', { requestIds }),
-  deleteRequest: (requestId: string) => apiClient.delete(`/admin/requests/${requestId}`)
+  deleteRequest: (requestId: string) =>
+    apiClient.delete(`/admin/requests/${requestId}`)
 };
 
 // 订阅消息排查 API
 export const subscriptionDebugApi = {
-  getGrants: (params?: any) => apiClient.get('/admin/subscription-grants', { params }),
+  getGrants: (params?: any) =>
+    apiClient.get('/admin/subscription-grants', { params }),
   getGrantDetail: (userId: string, params?: any) =>
     apiClient.get(`/admin/subscription-grants/${userId}`, { params })
 };
@@ -228,17 +269,26 @@ export const auditLogsApi = {
   getAdminLogs: (adminId: string, params?: any) =>
     apiClient.get(`/audit-logs/admin/${adminId}`, { params }),
   getResourceLogs: (resourceType: string, resourceId: string, params?: any) =>
-    apiClient.get(`/audit-logs/resource/${resourceType}/${resourceId}`, { params }),
-  exportLogs: (params?: any) => apiClient.get('/audit-logs/export', { params, responseType: 'blob' })
+    apiClient.get(`/audit-logs/resource/${resourceType}/${resourceId}`, {
+      params
+    }),
+  exportLogs: (params?: any) =>
+    apiClient.get('/audit-logs/export', { params, responseType: 'blob' })
 };
 
 // 数据分析 API
 export const analyticsApi = {
-  getUserTrend: (params?: any) => apiClient.get('/analytics/users/trend', { params }),
-  getEnrollmentTrend: (params?: any) => apiClient.get('/analytics/enrollments/trend', { params }),
-  getRevenueTrend: (params?: any) => apiClient.get('/analytics/revenue/trend', { params }),
-  getConversionMetrics: (params?: any) => apiClient.get('/analytics/conversion', { params }),
-  getKeyMetrics: () => apiClient.get('/analytics/metrics')
+  getUserTrend: (params?: any) =>
+    apiClient.get('/analytics/users/trend', { params }),
+  getEnrollmentTrend: (params?: any) =>
+    apiClient.get('/analytics/enrollments/trend', { params }),
+  getRevenueTrend: (params?: any) =>
+    apiClient.get('/analytics/revenue/trend', { params }),
+  getConversionMetrics: (params?: any) =>
+    apiClient.get('/analytics/conversion', { params }),
+  getKeyMetrics: () => apiClient.get('/analytics/metrics'),
+  getActivityAnalytics: (params?: any) =>
+    apiClient.get('/activities/analytics', { params })
 };
 
 // 文件上传 API
@@ -255,7 +305,7 @@ export const uploadApi = {
 
   uploadMultiple: (files: File[]) => {
     const formData = new FormData();
-    files.forEach(file => {
+    files.forEach((file) => {
       formData.append('files', file);
     });
     return apiClient.post('/upload/multiple', formData, {

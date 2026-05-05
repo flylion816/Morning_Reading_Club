@@ -769,7 +769,7 @@
 .section-header {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 8rpx;
   margin-bottom: 20rpx;
   border: none;
@@ -779,6 +779,13 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
+}
+
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-left: auto;
 }
 
 .section-icon-clipboard,
@@ -821,6 +828,37 @@
   font-size: 20rpx;
   font-weight: 500;
   color: #f97316;
+}
+
+.task-notification-entry {
+  position: relative;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 18rpx;
+  background: #f3f7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-notification-icon {
+  font-size: 28rpx;
+}
+
+.task-notification-badge {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  min-width: 32rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 999rpx;
+  background: #ff5a5f;
+  color: #ffffff;
+  font-size: 18rpx;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(255, 90, 95, 0.28);
 }
 
 .section-period-name {

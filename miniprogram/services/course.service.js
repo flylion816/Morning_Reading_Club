@@ -52,6 +52,15 @@ class CourseService {
   }
 
   /**
+   * 获取期次详情（课程列表页头部）
+   * @param {string} periodId 期次ID
+   * @returns {Promise}
+   */
+  getPeriodDetail(periodId) {
+    return request.get(`/periods/${periodId}`);
+  }
+
+  /**
    * 获取课节详情（课程详情页显示）
    * @param {number} sectionId 课节ID
    * @returns {Promise}
@@ -69,7 +78,9 @@ class CourseService {
       logger.debug('comments 字段是否存在:', 'comments' in mockCourses.detail);
       logger.debug(
         'comments 数组长度:',
-        mockCourses.detail.comments ? mockCourses.detail.comments.length : '不存在'
+        mockCourses.detail.comments
+          ? mockCourses.detail.comments.length
+          : '不存在'
       );
       return Promise.resolve(mockCourses.detail);
     }
@@ -151,7 +162,23 @@ class CourseService {
    * @returns {Promise}
    */
   getPeriodCheckins(periodId, params = {}) {
-    return request.get(`/checkins/period/${periodId}`, params);
+    return request.get(`/checkins/period/${periodId}`, params, {
+      preserveResponse: true
+    });
+  }
+
+  /**
+   * 获取指定课节的打卡记录
+   * @param {string} periodId 期次ID
+   * @param {string} sectionId 课节ID
+   * @param {Object} params 查询参数
+   * @returns {Promise}
+   */
+  getSectionCheckins(periodId, sectionId, params = {}) {
+    return this.getPeriodCheckins(periodId, {
+      ...params,
+      sectionId
+    });
   }
 
   /**

@@ -8,7 +8,8 @@ const {
   createPeriod,
   updatePeriod,
   deletePeriod,
-  copyPeriod
+  copyPeriod,
+  syncAllPeriodsStatus
 } = require('../controllers/period.controller');
 const {
   getSectionsByPeriod,
@@ -39,6 +40,13 @@ router.get('/', optionalAuthMiddleware, (req, res, next) => {
  * @access  Private
  */
 router.get('/user', authMiddleware, getPeriodListForUser);
+
+/**
+ * @route   POST /api/v1/periods/sync-status
+ * @desc    根据当前日期批量同步所有期次的 status 字段（管理员）
+ * @access  Admin
+ */
+router.post('/sync-status', authMiddleware, adminMiddleware, syncAllPeriodsStatus);
 
 /**
  * @route   GET /api/v1/periods/:periodId

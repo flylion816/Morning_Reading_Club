@@ -1,6 +1,7 @@
 const insightService = require('../../services/insight.service');
 const env = require('../../config/env');
 const { renderRichTextContent } = require('../../utils/markdown');
+const activityService = require('../../services/activity.service');
 
 function normalizeInsightDetail(rawInsight) {
   if (!rawInsight) return {};
@@ -40,8 +41,33 @@ Page({
 
   async loadInsightDetail() {
     try {
-      const rawInsight = await insightService.getInsightDetail(this.data.insightId);
+      const rawInsight = await insightService.getInsightDetail(
+        this.data.insightId
+      );
       const insight = normalizeInsightDetail(rawInsight);
+      const app = getApp();
+      const currentUserId =
+        app?.globalData?.userInfo?._id || app?.globalData?.userInfo?.id;
+      const ownerId =
+        insight.userId?._id ||
+        insight.userId ||
+        insight.targetUserId?._id ||
+        insight.targetUserId;
+      const isOwnInsight =
+        currentUserId && ownerId && String(currentUserId) === String(ownerId);
+
+      activityService.track(
+        isOwnInsight ? 'own_insight_view' : 'other_insight_view',
+        {
+          targetType: 'insight',
+          targetId: this.data.insightId,
+          periodId: insight.periodId?._id || insight.periodId || null,
+          sectionId: insight.sectionId?._id || insight.sectionId || null,
+          metadata: {
+            title: insight.title || ''
+          }
+        }
+      );
 
       // 添加 dayNumber 字段用于显示
       if (insight && !insight.dayNumber) {

@@ -103,32 +103,44 @@
 
     <!-- 动态区域（打卡记录） -->
     <view id="dynamics-section" class="section-wrapper" wx:if="{{communityAccessState === 'enabled'}}">
-      <view class="all-checkins-section" wx:if="{{allCheckins.length > 0}}">
+      <view class="all-checkins-section" wx:if="{{allCheckins.length > 0 || checkinTotal > 0}}">
         <view class="checkins-header">
-          <text class="checkins-title">所有打卡记录</text>
-          <text class="checkins-count">（{{allCheckins.length}} 条）</text>
+          <text class="checkins-title">每日打卡</text>
+          <text class="checkins-count" wx:if="{{checkinTotal > 0}}">（{{checkinTotal}} 条）</text>
         </view>
 
         <view class="checkins-list">
-          <view class="checkin-item" wx:for="{{allCheckins}}" wx:key="id">
-            <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">
+          <view class="checkin-item" wx:for="{{allCheckins}}" wx:key="id" bindtap="handleCheckinItemTap" data-checkin-id="{{item.id}}" data-section-id="{{item.sectionId}}">
+            <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
               <text class="avatar-text">{{item.avatarText || item.userName}}</text>
             </view>
             <view class="checkin-main">
               <!-- 用户名 + 第几天标签 + 时间 -->
               <view class="checkin-top">
                 <view class="checkin-user-section">
-                  <text class="checkin-user" bindtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
+                  <text class="checkin-user" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
                   <text class="section-tag">第{{item.sectionDay}}天</text>
                 </view>
                 <text class="checkin-time">{{item.createTime}}</text>
               </view>
-              <!-- 课节标题 -->
-              <view class="checkin-section-title">{{item.sectionTitle}}</view>
               <!-- 打卡内容 -->
-              <view class="checkin-content">{{item.content}}</view>
+              <view class="checkin-content {{item.canExpandContent && !item.contentExpanded ? 'checkin-content-clamped' : ''}}">{{item.content}}</view>
+              <view
+                wx:if="{{item.canExpandContent}}"
+                class="checkin-content-toggle"
+                catchtap="toggleCheckinContent"
+                data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
             </view>
           </view>
+        </view>
+
+        <!-- 加载更多 -->
+        <view class="checkin-load-more" wx:if="{{checkinHasMore}}">
+          <button class="checkin-load-more-btn" bindtap="handleLoadMoreCheckins" loading="{{checkinLoadingMore}}">加载更多</button>
+        </view>
+        <!-- 没有更多 -->
+        <view class="checkin-no-more" wx:if="{{!checkinHasMore && allCheckins.length > 0}}">
+          <text>没有更多打卡记录了</text>
         </view>
       </view>
 

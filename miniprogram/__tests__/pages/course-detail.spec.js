@@ -63,6 +63,10 @@ describe('course-detail page markdown support', () => {
     if (commentService.createComment) {
       commentService.createComment.mockReset();
     }
+    wx.showShareMenu = wx.showShareMenu || jest.fn();
+    wx.hideShareMenu = wx.hideShareMenu || jest.fn();
+    wx.showShareMenu.mockClear();
+    wx.hideShareMenu.mockClear();
     wx.showModal.mockClear();
   });
 
@@ -141,6 +145,27 @@ describe('course-detail page markdown support', () => {
     expect(pageInstance.loadCourseDetail).toHaveBeenCalled();
   });
 
+  test('should navigate to checkin detail when tapping a checkin card', () => {
+    pageInstance.setData({
+      courseId: 'section_123',
+      isCheckinDetailMode: false,
+      shareCheckinId: ''
+    });
+
+    pageInstance.handleCheckinDetailTap.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          checkinId: 'checkin_456',
+          sectionId: 'section_123'
+        }
+      }
+    });
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/course-detail/course-detail?id=section_123&checkinId=checkin_456'
+    });
+  });
+
   test('should build single checkin detail payload for dynamic detail view', () => {
     pageInstance.setData({
       course: {
@@ -180,6 +205,56 @@ describe('course-detail page markdown support', () => {
       commentCount: 1
     });
     expect(pageInstance.data.detailCheckin.dateLabel).toBe('2025-07-04 15:09:53');
+  });
+
+  test('should disable sharing for other users detail checkin', () => {
+    pageInstance.setData({
+      course: {
+        comments: [
+          {
+            id: 'checkin_999',
+            userId: 'user_other',
+            userName: '陌生人',
+            content: '这是别人的小凡看见'
+          }
+        ]
+      },
+      isCheckinDetailMode: true,
+      shareCheckinId: 'checkin_999'
+    });
+
+    pageInstance.syncDetailCheckinState.call(pageInstance);
+
+    expect(pageInstance.data.detailCheckin.canShare).toBe(false);
+    expect(pageInstance.data.canShareCurrentCheckin).toBe(false);
+    expect(wx.hideShareMenu).toHaveBeenCalled();
+  });
+
+  test('should mark long checkin content as expandable and toggle expanded state', () => {
+    const longCheckin = pageInstance.buildCheckinItem.call(pageInstance, {
+      _id: 'checkin_long',
+      userId: 'user_fox',
+      note: '这是很长的打卡内容'.repeat(20)
+    });
+
+    pageInstance.setData({
+      course: {
+        comments: [longCheckin]
+      }
+    });
+
+    expect(longCheckin.canExpandContent).toBe(true);
+    expect(longCheckin.contentExpanded).toBe(false);
+
+    pageInstance.toggleCheckinContent.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          checkinId: 'checkin_long'
+        }
+      }
+    });
+
+    expect(pageInstance.data.course.comments[0].contentExpanded).toBe(true);
   });
 
   test('should build poster snapshot from detail checkin data', () => {
