@@ -21,7 +21,7 @@ const withAuth = (config: AxiosRequestConfig = {}): AxiosRequestConfig => {
 
 export interface AuditLog {
   _id: string;
-  adminId: string;
+  adminId: string | { _id?: string; name?: string; email?: string; role?: string };
   adminName: string;
   actionType: string;
   resourceType: string;

@@ -106,6 +106,10 @@ class AuditService {
         filter.actionType = query.actionType;
       }
 
+      if (query.adminName) {
+        filter.adminName = { $regex: query.adminName, $options: 'i' };
+      }
+
       if (query.resourceType) {
         filter.resourceType = query.resourceType;
       }

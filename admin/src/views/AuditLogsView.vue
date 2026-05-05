@@ -143,7 +143,17 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="adminName" label="管理员" width="120" />
+          <el-table-column label="管理员姓名" width="120">
+            <template #default="{ row }">
+              {{ getAdminName(row) }}
+            </template>
+          </el-table-column>
+
+          <el-table-column label="管理员账号" width="180" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ getAdminAccount(row) }}
+            </template>
+          </el-table-column>
 
           <el-table-column label="操作类型" width="120">
             <template #default="{ row }">
@@ -158,8 +168,6 @@
               <el-tag>{{ row.resourceType }}</el-tag>
             </template>
           </el-table-column>
-
-          <el-table-column prop="resourceName" label="资源名称" width="150" show-overflow-tooltip />
 
           <el-table-column label="状态" width="80">
             <template #default="{ row }">
@@ -187,8 +195,13 @@
           </div>
 
           <div class="detail-row">
-            <span class="label">管理员:</span>
-            <span>{{ selectedLog.adminName }}</span>
+            <span class="label">管理员姓名:</span>
+            <span>{{ getAdminName(selectedLog) }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="label">管理员账号:</span>
+            <span>{{ getAdminAccount(selectedLog) }}</span>
           </div>
 
           <div class="detail-row">
@@ -206,11 +219,6 @@
           <div class="detail-row">
             <span class="label">资源ID:</span>
             <code>{{ selectedLog.resourceId || '无' }}</code>
-          </div>
-
-          <div class="detail-row">
-            <span class="label">资源名称:</span>
-            <span>{{ selectedLog.resourceName || '无' }}</span>
           </div>
 
           <div class="detail-row">
@@ -320,6 +328,25 @@ const topActions = computed(() => {
 const formatTime = (timestamp: string | number): string => {
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
+};
+
+const getAdminName = (log: AuditLog | null | undefined): string => {
+  if (!log) return '无';
+  if (typeof log.adminId === 'object' && log.adminId?.name) {
+    return log.adminId.name;
+  }
+  return log.adminName || '无';
+};
+
+const getAdminAccount = (log: AuditLog | null | undefined): string => {
+  if (!log) return '无';
+  if (typeof log.adminId === 'object' && log.adminId?.email) {
+    return log.adminId.email;
+  }
+  if (typeof log.adminId === 'string') {
+    return log.adminId;
+  }
+  return '无';
 };
 
 // 获取操作类型的颜色
