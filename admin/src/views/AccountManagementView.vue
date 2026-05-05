@@ -77,7 +77,9 @@
       <el-table-column label="账号信息" min-width="250">
         <template #default="{ row }">
           <div class="user-info">
-            <el-avatar :src="row.avatar" :size="40" class="mr-3">{{ row.name?.charAt(0) || 'U' }}</el-avatar>
+            <el-avatar :src="row.avatar" :size="40" class="admin-avatar">
+              <span class="admin-avatar-fallback">{{ getAvatarText(row.name) }}</span>
+            </el-avatar>
             <div class="user-details">
               <div class="user-name">{{ row.name }} <el-tag size="small" type="info" v-if="row._id === currentUserId">当前账号</el-tag></div>
               <div class="user-email">{{ row.email }}</div>
@@ -108,10 +110,11 @@
           <span class="time-text">{{ formatDate(row.createdAt) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right" v-if="isSuperadmin">
+      <el-table-column label="操作" width="330" fixed="right" v-if="isSuperadmin">
         <template #default="{ row }">
           <el-button type="primary" link size="small" @click="openEditDialog(row)">编辑</el-button>
           <el-button type="warning" link size="small" @click="openResetPasswordDialog(row)">重置密码</el-button>
+          <el-button type="success" link size="small" @click="openCopyDialog(row)">复制</el-button>
           
           <el-popconfirm
             v-if="row._id !== currentUserId"
@@ -187,6 +190,37 @@
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" @click="submitForm" :loading="submitting">确定</el-button>
         </span>
+      </template>
+    </el-dialog>
+
+    <!-- Copy Credentials Dialog -->
+    <el-dialog title="复制登录信息" v-model="copyDialogVisible" width="480px">
+      <el-alert
+        v-if="copyPassword"
+        title="账号创建成功！请复制下方登录信息并发送给该管理员。"
+        type="success"
+        :closable="false"
+        style="margin-bottom: 14px;"
+      />
+      <div style="margin-bottom: 12px; color: #606266; font-size: 14px;">
+        账号：<strong>{{ currentCopyAdmin?.name }}（{{ currentCopyAdmin?.email }}）</strong>
+      </div>
+      <el-input
+        v-model="copyPassword"
+        placeholder="输入密码后文本会自动更新（不输入则保留占位符）"
+        show-password
+        style="margin-bottom: 12px;"
+      />
+      <el-input
+        type="textarea"
+        :model-value="copyCredentialText"
+        readonly
+        :rows="3"
+        style="font-family: monospace; font-size: 13px; line-height: 1.8;"
+      />
+      <template #footer>
+        <el-button @click="copyDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="copyCredentials">复制到剪贴板</el-button>
       </template>
     </el-dialog>
 
@@ -295,6 +329,16 @@ const resetRules = {
   ]
 };
 
+// Copy Credentials
+const copyDialogVisible = ref(false);
+const currentCopyAdmin = ref<any>(null);
+const copyPassword = ref('');
+const copyCredentialText = computed(() => {
+  if (!currentCopyAdmin.value) return '';
+  const pwd = copyPassword.value || '{密码}';
+  return `凡人共读管理员登录地址：https://wx.shubai01.com/admin/login\n凡人共读管理员登录名：${currentCopyAdmin.value.email}\n凡人共读管理员登录密码：${pwd}`;
+});
+
 // Lifecycle
 onMounted(() => {
   if (!isSuperadmin.value) {
@@ -392,7 +436,15 @@ const submitForm = async () => {
           const payload = { ...formData };
           delete payload._id;
           await accountApi.createAdmin(payload);
-          ElMessage.success('账号创建成功，请提醒该用户登录后修改密码');
+          ElMessage.success('账号创建成功');
+          dialogVisible.value = false;
+          // 创建成功后自动弹出复制对话框，密码在此刻已知
+          currentCopyAdmin.value = { name: formData.name, email: formData.email };
+          copyPassword.value = formData.password;
+          copyDialogVisible.value = true;
+          loadAdmins();
+          loadAllForSummary();
+          return;
         } else {
           const payload = {
             name: formData.name,
@@ -472,6 +524,22 @@ const deleteAdmin = async (row: any) => {
   }
 };
 
+const openCopyDialog = (row: any) => {
+  currentCopyAdmin.value = row;
+  copyPassword.value = '';
+  copyDialogVisible.value = true;
+};
+
+const copyCredentials = async () => {
+  try {
+    await navigator.clipboard.writeText(copyCredentialText.value);
+    ElMessage.success('登录信息已复制到剪贴板');
+    copyDialogVisible.value = false;
+  } catch {
+    ElMessage.error('复制失败，请手动复制');
+  }
+};
+
 // Utils
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -494,6 +562,11 @@ const getRoleType = (role: string) => {
     operator: 'info'
   };
   return map[role] || 'info';
+};
+
+const getAvatarText = (name: string) => {
+  if (!name) return 'U';
+  return name.trim().charAt(0).toUpperCase();
 };
 </script>
 
@@ -567,6 +640,29 @@ const getRoleType = (role: string) => {
 .user-info {
   display: flex;
   align-items: center;
+  min-height: 48px;
+}
+
+.admin-avatar {
+  flex: 0 0 40px;
+  background: #dbeafe;
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.admin-avatar :deep(.el-avatar__text) {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.admin-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
 }
 
 .user-details {
