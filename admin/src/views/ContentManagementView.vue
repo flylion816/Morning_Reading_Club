@@ -77,6 +77,9 @@
         v-model="editDialogVisible"
         :title="isNewSection ? '新增课节' : '编辑课节'"
         width="900px"
+        :close-on-click-modal="false"
+        :close-on-press-escape="false"
+        :before-close="handleDialogBeforeClose"
         @close="resetForm"
       >
         <el-form
@@ -254,7 +257,7 @@
         </el-form>
 
         <template #footer>
-          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button @click="requestCloseDialog">取消</el-button>
           <el-button type="primary" :loading="saving" @click="saveSection">保存</el-button>
         </template>
       </el-dialog>
@@ -263,7 +266,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
 import { periodApi } from '../services/api';
@@ -301,6 +305,7 @@ const sections = ref<Section[]>([]);
 const saving = ref(false);
 const loadingSectionId = ref<string | null>(null);
 const contentEditorMode = ref<'markdown' | 'richtext'>('markdown');
+const sectionSnapshot = ref('');
 
 // 编辑弹窗
 const editDialogVisible = ref(false);
@@ -359,6 +364,7 @@ function handleAddSection() {
     periodId: selectedPeriodId.value || undefined,
     day: sections.value.length,
   });
+  captureSectionSnapshot();
   editDialogVisible.value = true;
 }
 
@@ -373,6 +379,7 @@ async function handleEditSection(section: Section) {
     const detail = (await periodApi.getSectionDetail(section._id)) as unknown as Section;
     contentEditorMode.value = detectContentEditorMode(detail.content);
     editingSection.value = normalizeSectionForm(detail);
+    captureSectionSnapshot();
     editDialogVisible.value = true;
   } catch (err) {
     console.error('Failed to load section detail:', err);
@@ -464,6 +471,51 @@ async function handleDeleteSection(section: any) {
 function resetForm() {
   contentEditorMode.value = 'markdown';
   editingSection.value = createEmptySectionDraft();
+  sectionSnapshot.value = '';
+}
+
+function buildDirtySnapshot() {
+  return JSON.stringify({
+    ...buildSectionPayload(editingSection.value),
+    contentEditorMode: contentEditorMode.value
+  });
+}
+
+function captureSectionSnapshot() {
+  sectionSnapshot.value = buildDirtySnapshot();
+}
+
+const isSectionDirty = computed(() => {
+  return editDialogVisible.value && sectionSnapshot.value !== buildDirtySnapshot();
+});
+
+async function confirmDiscardChanges() {
+  if (!isSectionDirty.value) return true;
+
+  try {
+    await ElMessageBox.confirm('内容已修改但尚未保存，确定要关闭窗口吗？', '未保存内容', {
+      confirmButtonText: '确定关闭',
+      cancelButtonText: '继续编辑',
+      type: 'warning'
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function requestCloseDialog() {
+  const shouldClose = await confirmDiscardChanges();
+  if (shouldClose) {
+    editDialogVisible.value = false;
+  }
+}
+
+async function handleDialogBeforeClose(done: () => void) {
+  const shouldClose = await confirmDiscardChanges();
+  if (shouldClose) {
+    done();
+  }
 }
 
 function createEmptySectionDraft(overrides: Partial<SectionForm> = {}): SectionForm {
@@ -542,6 +594,25 @@ function detectContentEditorMode(content?: string) {
 function isLikelyHtml(content?: string) {
   return typeof content === 'string' && /<\/?[a-z][\s\S]*>/i.test(content);
 }
+
+onBeforeRouteLeave(async () => {
+  if (!isSectionDirty.value) return true;
+  return confirmDiscardChanges();
+});
+
+function handleBeforeUnload(event: BeforeUnloadEvent) {
+  if (!isSectionDirty.value) return;
+  event.preventDefault();
+  event.returnValue = '';
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+});
 </script>
 
 <style scoped>
