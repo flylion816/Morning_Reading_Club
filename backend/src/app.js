@@ -35,6 +35,9 @@ const activityRoutes = require('./routes/activity.routes');
 
 const app = express();
 
+// 信任 Nginx 反向代理，使 req.ip 返回真实客户端 IP（来自 X-Forwarded-For）
+app.set('trust proxy', 1);
+
 // 中间件
 app.use(helmet()); // 安全头
 app.use(cors(getCorsOptions())); // 跨域（安全配置，只允许指定的源）

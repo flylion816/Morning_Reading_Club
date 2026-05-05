@@ -1,6 +1,7 @@
 const auditService = require('../services/audit.service');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const AuditHelper = require('../utils/auditHelper');
 
 const serverError = message => (errors.serverError || errors.internalError)(message);
 
@@ -157,7 +158,7 @@ class AuditController {
         actionType: 'DELETE',
         resourceType: 'system',
         description: `清理过期审计日志，删除${result.deletedCount}条`,
-        ipAddress: req.ip,
+        ipAddress: AuditHelper.getClientIp(req),
         userAgent: req.get('user-agent')
       });
 

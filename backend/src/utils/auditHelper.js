@@ -211,10 +211,19 @@ class AuditHelper {
    * 获取客户端IP
    */
   static getClientIp(req) {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const realIp = req.headers['x-real-ip'];
+    const cloudflareIp = req.headers['cf-connecting-ip'];
+
+    const forwardedIp = Array.isArray(req.ips) && req.ips.length > 0 ? req.ips[0] : null;
+
     return (
-      (req.headers['x-forwarded-for'] || '').split(',')[0] ||
-      req.socket?.remoteAddress ||
+      (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : '') ||
+      (typeof realIp === 'string' ? realIp.trim() : '') ||
+      (typeof cloudflareIp === 'string' ? cloudflareIp.trim() : '') ||
+      forwardedIp ||
       req.ip ||
+      req.socket?.remoteAddress ||
       'unknown'
     );
   }

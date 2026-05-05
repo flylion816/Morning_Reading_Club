@@ -1,5 +1,6 @@
 const auditService = require('../services/audit.service');
 const logger = require('../utils/logger');
+const AuditHelper = require('../utils/auditHelper');
 
 /**
  * 审计日志中间件 - 自动记录所有API操作
@@ -74,7 +75,7 @@ const auditLogMiddleware = (req, res, next) => {
         resourceName: actionInfo.resourceName,
         description: actionInfo.description,
         changes: actionInfo.changes,
-        ipAddress: req.ip || req.connection.remoteAddress,
+        ipAddress: AuditHelper.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: statusCode < 300 ? 'success' : 'failure',
         errorMessage: statusCode >= 400 ? auditInfo.responseBody?.message || '操作失败' : null
