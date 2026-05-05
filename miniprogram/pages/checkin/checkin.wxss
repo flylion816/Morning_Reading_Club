@@ -108,10 +108,75 @@
 }
 
 .section-content {
-  font-size: 26rpx;
+  font-size: 32rpx;
   color: #555;
-  line-height: 1.8;
+  line-height: 2.2;
   text-align: justify;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  letter-spacing: 1px;
+}
+
+/* 富文本内容样式 */
+.section-content rich-text {
+  font-size: 32rpx;
+  line-height: 2.2;
+  color: #555;
+  width: 100%;
+  display: block;
+  letter-spacing: 1px;
+}
+
+/* 富文本段落样式 */
+.section-content /deep/ p {
+  margin: 24rpx 0;
+  line-height: 1.8;
+}
+
+/* 富文本空段落样式 - 确保空行可见 */
+.section-content /deep/ p:empty {
+  min-height: 1em;
+  display: block;
+  margin: 24rpx 0;
+}
+
+/* 富文本粗体样式 */
+.section-content /deep/ strong {
+  font-weight: bold;
+  color: #333;
+}
+
+/* 富文本缩进样式 */
+.section-content /deep/ p[style*="margin-left"] {
+  margin-left: 2em;
+}
+
+/* 富文本图片样式 */
+.section-content /deep/ img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8rpx;
+  margin: 16rpx 0;
+  display: block;
+}
+
+/* 富文本链接样式 */
+.section-content /deep/ a {
+  color: #4a90e2;
+  text-decoration: underline;
+}
+
+/* 富文本列表样式 */
+.section-content /deep/ ol,
+.section-content /deep/ ul {
+  margin: 24rpx 0;
+  padding-left: 32rpx;
+}
+
+.section-content /deep/ li {
+  margin: 16rpx 0;
+  line-height: 1.8;
 }
 
 /* 日记输入区域 */

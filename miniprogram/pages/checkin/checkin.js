@@ -2,6 +2,7 @@ const checkinService = require('../../services/checkin.service');
 const courseService = require('../../services/course.service');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const { renderRichTextContent } = require('../../utils/markdown');
 const {
   getPeriodAccess,
   extractId,
@@ -50,6 +51,35 @@ Page({
 
     // 可见范围
     visibility: 'all' // 'all' 或 'admin'
+  },
+
+  /**
+   * 清理 HTML，使其与课程详情页的 rich-text 呈现一致
+   */
+  cleanHtmlForRichText(content) {
+    if (!content) return '';
+
+    let cleaned = renderRichTextContent(content);
+
+    cleaned = cleaned.replace(/\s+class="[^"]*"/gi, '');
+    cleaned = cleaned.replace(/<img([^>]*?)\s+style="[^"]*"/gi, '<img$1');
+    cleaned = cleaned.replace(
+      /<p>(\d+\.\s)/gi,
+      '<p style="margin-bottom:16px;">$1'
+    );
+    cleaned = cleaned.replace(
+      /<img([^>]*?)>/gi,
+      '<img$1 style="display:block;width:100%;height:auto;margin:12px 0;border-radius:4px;" />'
+    );
+    cleaned = cleaned.replace(/<img([^>]*?)src/gi, (match, before) => {
+      if (!before.includes('alt=')) {
+        return `<img${before}alt="图片" src`;
+      }
+      return match;
+    });
+    cleaned = cleaned.replace(/\s+(?!src|href|alt|style)[\w-]+="[^"]*"/gi, '');
+
+    return cleaned;
   },
 
   async onLoad(options) {
@@ -131,7 +161,7 @@ Page({
         courseDate: courseDate,
         meditation: course.meditation || '',
         question: course.question || '',
-        content: course.content || '',
+        content: this.cleanHtmlForRichText(course.content || ''),
         reflection: course.reflection || '',
         action: course.action || '',
         // 保存期次ID和课节的day数（用于打卡时使用）
