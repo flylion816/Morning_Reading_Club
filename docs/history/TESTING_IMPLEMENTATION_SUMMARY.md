@@ -461,7 +461,7 @@ cd admin && npm run lint:fix
 | `TESTING_QUICKSTART.md`      | 30分钟快速上手指南     |
 | `TESTING_PACKAGE_UPDATES.md` | 依赖和配置更新建议     |
 | `DEVELOPMENT.md`             | 开发流程和规范         |
-| `BUG_FIXES.md`               | 历史问题和解决方案     |
+| `docs/guides/BUG_FIXES.md`               | 历史问题和解决方案     |
 
 ---
 

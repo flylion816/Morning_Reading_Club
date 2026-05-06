@@ -93,7 +93,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
    - Commit message 规范
    - 常见问题排查
 
-4. **Bug修复经验库** → [`BUG_FIXES.md`](./BUG_FIXES.md)
+4. **Bug修复经验库** → [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md)
    - 30+ 个常见问题及解决方案
    - 调试技巧与排查流程
    - 项目开发里程碑记录
@@ -162,7 +162,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 .claude/commands/search/search-bug.sh "你的问题关键词"
 
 # 优先级3：查看 Bug 修复经验库
-BUG_FIXES.md (问题编号和解决方案)
+docs/guides/BUG_FIXES.md (问题编号和解决方案)
 ```
 
 #### 场景2️⃣：开始日常开发
@@ -385,12 +385,12 @@ cat .claude/memory/quick-reference.md
 
 | 问题分类                        | 查看位置                                        |
 | ------------------------------- | ----------------------------------------------- |
-| 页面空白、CSS错误、组件问题     | [`BUG_FIXES.md`](./BUG_FIXES.md) 问题1-5        |
-| 日期格式、时间不一致、数据问题  | [`BUG_FIXES.md`](./BUG_FIXES.md) 问题6-10       |
-| 事件处理、数据传递、状态管理    | [`BUG_FIXES.md`](./BUG_FIXES.md) 问题11-15      |
-| API返回结构、响应处理           | [`BUG_FIXES.md`](./BUG_FIXES.md) 问题27-30      |
-| Flex布局、scroll-view、日历组件 | [`BUG_FIXES.md`](./BUG_FIXES.md) 问题18-24      |
-| 调试技巧、排查流程              | [`BUG_FIXES.md`](./BUG_FIXES.md) - 调试技巧部分 |
+| 页面空白、CSS错误、组件问题     | [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md) 问题1-5        |
+| 日期格式、时间不一致、数据问题  | [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md) 问题6-10       |
+| 事件处理、数据传递、状态管理    | [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md) 问题11-15      |
+| API返回结构、响应处理           | [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md) 问题27-30      |
+| Flex布局、scroll-view、日历组件 | [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md) 问题18-24      |
+| 调试技巧、排查流程              | [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md) - 调试技巧部分 |
 
 ---
 
@@ -467,7 +467,7 @@ curl -H "Authorization: Bearer <token>" \
 ├── DEVELOPMENT.md            # 开发流程与规范
 ├── MINIPROGRAM_GUIDE.md      # 小程序开发指南
 ├── GIT_WORKFLOW.md           # Git工作流程
-├── BUG_FIXES.md              # Bug修复经验库
+├── docs/guides/BUG_FIXES.md # Bug修复经验库
 └── README.md                 # 项目说明
 ```
 
@@ -543,7 +543,7 @@ curl -H "Authorization: Bearer <token>" \
 - 创建 `DEVELOPMENT.md`：开发流程与规范（250行）
 - 创建 `MINIPROGRAM_GUIDE.md`：小程序开发指南（352行）
 - 创建 `GIT_WORKFLOW.md`：Git工作流程（199行）
-- 创建 `BUG_FIXES.md`：Bug修复经验库（3908行）
+- 创建 `docs/guides/BUG_FIXES.md`：Bug修复经验库（3908行）
 - 改进文档可读性和查找效率
 
 **优点**：
@@ -562,7 +562,7 @@ curl -H "Authorization: Bearer <token>" \
 | 如何开始开发？  | [`DEVELOPMENT.md`](./DEVELOPMENT.md)             |
 | 小程序怎么写？  | [`MINIPROGRAM_GUIDE.md`](./MINIPROGRAM_GUIDE.md) |
 | Git怎么用？     | [`GIT_WORKFLOW.md`](./GIT_WORKFLOW.md)           |
-| 遇到bug怎么办？ | [`BUG_FIXES.md`](./BUG_FIXES.md)                 |
+| 遇到bug怎么办？ | [`BUG_FIXES.md`](./docs/guides/BUG_FIXES.md)                 |
 | 如何部署上线？  | [`DEPLOY_SCRIPTS.md`](./DEPLOY_SCRIPTS.md)       |
 | 项目总体情况？  | 本文件 (CLAUDE.md)                               |
 

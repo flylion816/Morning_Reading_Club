@@ -50,7 +50,7 @@
       </view>
     </view>
 
-    <view class="dynamic-comments-block">
+    <view wx:if="{{detailCheckin}}" class="dynamic-comments-block">
       <view class="dynamic-comments-title">全部评论</view>
 
       <view

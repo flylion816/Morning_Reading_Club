@@ -30,14 +30,20 @@
   color: #333;
 }
 
-.badge {
+.badge,
+.tab-badge {
   background: #fa5151;
   color: white;
   font-size: 20rpx;
-  padding: 4rpx 10rpx;
-  border-radius: 20rpx;
-  min-width: 30rpx;
-  text-align: center;
+  min-width: 34rpx;
+  height: 34rpx;
+  padding: 0 8rpx;
+  border-radius: 17rpx;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 34rpx;
 }
 
 .header-actions {
@@ -115,16 +121,6 @@
 .tab-item.active {
   color: #667eea;
   border-bottom-color: #667eea;
-}
-
-.tab-badge {
-  background: #fa5151;
-  color: white;
-  font-size: 20rpx;
-  padding: 2rpx 8rpx;
-  border-radius: 16rpx;
-  min-width: 28rpx;
-  text-align: center;
 }
 
 /* 通知列表 */

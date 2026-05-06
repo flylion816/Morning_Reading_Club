@@ -53,7 +53,7 @@ npm run test
 **阅读以下内容**（按顺序）：
 
 1. 本文（TESTING_QUICK_START.md）- 5 分钟
-2. [TESTING_PLAN_REFERENCE.md](./.claude/memory/TESTING_PLAN_REFERENCE.md) - 5 分钟
+2. [TESTING_PLAN_REFERENCE.md](../../../.claude/memory/TESTING_PLAN_REFERENCE.md) - 5 分钟
 3. **或** [TESTING_ANALYSIS.md](./TESTING_ANALYSIS.md) - 15 分钟（如想深入了解）
 
 ### 步骤 3: 选择开始点（准备工作）
@@ -313,7 +313,7 @@ A: 遵循 Backend 的风格：
 
 **查看示例**: [TESTING_ANALYSIS.md](./TESTING_ANALYSIS.md)（代码示例和分析）
 
-**日常参考**: [.claude/memory/TESTING_PLAN_REFERENCE.md](./.claude/memory/TESTING_PLAN_REFERENCE.md)（快速参考表）
+**日常参考**: [.claude/memory/TESTING_PLAN_REFERENCE.md](../../../.claude/memory/TESTING_PLAN_REFERENCE.md)（快速参考表）
 
 ---
 

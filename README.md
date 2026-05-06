@@ -243,7 +243,7 @@ globalData: {
 - [主项目指南和快速参考](./CLAUDE.md) - 项目总体情况、工作流程、常见问题
 - [开发流程指南](./DEVELOPMENT.md) - 标准工作流程、自测方法、文档更新
 - [部署上线指南](./DEPLOYMENT.md) - 生产部署步骤、环保生成、配置管理
-- [Bug修复经验库](./BUG_FIXES.md) - 30+ 个常见问题及解决方案
+- [Bug修复经验库](./docs/guides/BUG_FIXES.md) - 30+ 个常见问题及解决方案
 
 ### 📖 专题文档
 

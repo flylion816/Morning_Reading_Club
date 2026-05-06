@@ -220,7 +220,7 @@ server.js: 在测试环境下延迟启动，仅导出 app
 
 1. TESTING_GUIDE.md - 完整的测试文档
 2. 各测试文件的注释 - 具体的实现说明
-3. BUG_FIXES.md - 已知问题和解决方案
+3. docs/guides/BUG_FIXES.md - 已知问题和解决方案
 
 **本测试基础已为项目的长期成功奠定了坚实的基础。**
 

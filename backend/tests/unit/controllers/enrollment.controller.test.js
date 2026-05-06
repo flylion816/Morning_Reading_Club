@@ -18,6 +18,7 @@ describe('Enrollment Controller', () => {
   let EnrollmentStub;
   let UserStub;
   let PeriodStub;
+  let SectionStub;
   let loggerStub;
   let mysqlBackupServiceStub;
   let syncServiceStub;
@@ -56,9 +57,14 @@ describe('Enrollment Controller', () => {
     };
 
     PeriodStub = {
+      find: sandbox.stub(),
       findById: sandbox.stub(),
       findOne: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub()
+    };
+
+    SectionStub = {
+      find: sandbox.stub()
     };
 
     loggerStub = {
@@ -94,6 +100,7 @@ describe('Enrollment Controller', () => {
         '../models/Enrollment': EnrollmentStub,
         '../models/User': UserStub,
         '../models/Period': PeriodStub,
+        '../models/Section': SectionStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
         '../services/mysql-backup.service': mysqlBackupServiceStub,
@@ -312,7 +319,125 @@ describe('Enrollment Controller', () => {
     });
   });
 
-  describe('getUsersByPeriodName - 外部期次用户接口', () => {
+  describe('外部期次接口', () => {
+    it('应该返回当前运行中的期次及当天 sessionId', async () => {
+      const clock = sandbox.useFakeTimers(new Date('2026-05-11T02:00:00.000Z'));
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      const sectionId = new mongoose.Types.ObjectId();
+      const period = {
+        _id: periodId,
+        name: '内在之光',
+        startDate: new Date('2026-05-09T00:00:00.000Z'),
+        endDate: new Date('2026-05-31T00:00:00.000Z'),
+        totalDays: 23
+      };
+
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([period])
+        })
+      });
+
+      SectionStub.find.returns({
+        select: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([
+            {
+              _id: sectionId,
+              periodId,
+              day: 2
+            }
+          ])
+        })
+      });
+
+      await enrollmentController.getActivePeriodsForExternal(req, res, next);
+
+      expect(res.json.calledOnce).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.code).to.equal(200);
+      expect(response.data.total).to.equal(1);
+      expect(response.data.list).to.deep.equal([
+        {
+          periodId: periodId.toString(),
+          periodName: '内在之光',
+          day: 2,
+          sessionId: sectionId.toString()
+        }
+      ]);
+      const periodQuery = PeriodStub.find.getCall(0).args[0];
+      expect(periodQuery.startDate.$lte.getFullYear()).to.equal(2026);
+      expect(periodQuery.startDate.$lte.getMonth()).to.equal(4);
+      expect(periodQuery.startDate.$lte.getDate()).to.equal(11);
+      expect(periodQuery.startDate.$lte.getHours()).to.equal(23);
+      expect(periodQuery.startDate.$lte.getMinutes()).to.equal(59);
+      expect(periodQuery.startDate.$lte.getSeconds()).to.equal(59);
+      expect(periodQuery.startDate.$lte.getMilliseconds()).to.equal(999);
+      expect(periodQuery.endDate.$gte.getFullYear()).to.equal(2026);
+      expect(periodQuery.endDate.$gte.getMonth()).to.equal(4);
+      expect(periodQuery.endDate.$gte.getDate()).to.equal(11);
+      expect(periodQuery.endDate.$gte.getHours()).to.equal(0);
+      expect(periodQuery.endDate.$gte.getMinutes()).to.equal(0);
+      expect(periodQuery.endDate.$gte.getSeconds()).to.equal(0);
+      expect(periodQuery.endDate.$gte.getMilliseconds()).to.equal(0);
+      const sectionQuery = SectionStub.find.getCall(0).args[0].$or[0];
+      expect(sectionQuery.day).to.equal(2);
+      expect(next.called).to.be.false;
+      clock.restore();
+    });
+
+    it('应该在期次最后一个自然日仍返回运行中期次', async () => {
+      const clock = sandbox.useFakeTimers(new Date('2026-05-31T12:00:00.000Z'));
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      const period = {
+        _id: periodId,
+        name: '内在之光',
+        startDate: new Date('2026-05-09T00:00:00.000Z'),
+        endDate: new Date('2026-05-31T00:00:00.000Z'),
+        totalDays: 23
+      };
+
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([period])
+        })
+      });
+
+      SectionStub.find.returns({
+        select: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([])
+        })
+      });
+
+      await enrollmentController.getActivePeriodsForExternal(req, res, next);
+
+      const periodQuery = PeriodStub.find.getCall(0).args[0];
+      expect(periodQuery.startDate.$lte.getFullYear()).to.equal(2026);
+      expect(periodQuery.startDate.$lte.getMonth()).to.equal(4);
+      expect(periodQuery.startDate.$lte.getDate()).to.equal(31);
+      expect(periodQuery.startDate.$lte.getHours()).to.equal(23);
+      expect(periodQuery.startDate.$lte.getMinutes()).to.equal(59);
+      expect(periodQuery.startDate.$lte.getSeconds()).to.equal(59);
+      expect(periodQuery.startDate.$lte.getMilliseconds()).to.equal(999);
+      expect(periodQuery.endDate.$gte.getFullYear()).to.equal(2026);
+      expect(periodQuery.endDate.$gte.getMonth()).to.equal(4);
+      expect(periodQuery.endDate.$gte.getDate()).to.equal(31);
+      expect(periodQuery.endDate.$gte.getHours()).to.equal(0);
+      expect(periodQuery.endDate.$gte.getMinutes()).to.equal(0);
+      expect(periodQuery.endDate.$gte.getSeconds()).to.equal(0);
+      expect(periodQuery.endDate.$gte.getMilliseconds()).to.equal(0);
+      const sectionQuery = SectionStub.find.getCall(0).args[0].$or[0];
+      expect(sectionQuery.day).to.equal(22);
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.list[0]).to.include({
+        periodId: periodId.toString(),
+        periodName: '内在之光',
+        day: 22,
+        sessionId: null
+      });
+      expect(next.called).to.be.false;
+      clock.restore();
+    });
+
     it('应该跳过 userId 为空的孤儿报名记录并返回有效用户', async () => {
       const periodId = fixtures.testPeriods.ongoingPeriod._id;
       req.query = { periodName: '内在之光' };
@@ -356,14 +481,47 @@ describe('Enrollment Controller', () => {
       expect(next.called).to.be.false;
     });
 
-    it('应该在缺少 periodName 时返回 400', async () => {
+    it('应该支持通过 periodId 获取期次用户列表', async () => {
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      req.query = { periodId: periodId.toString() };
+
+      PeriodStub.findById.resolves({
+        _id: periodId,
+        name: '内在之光'
+      });
+
+      const leanStub = sandbox.stub().resolves([
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: {
+            _id: fixtures.testUsers.normalUser._id,
+            nickname: fixtures.testUsers.normalUser.nickname
+          }
+        }
+      ]);
+      const sortStub = sandbox.stub().returns({ lean: leanStub });
+      const populateStub = sandbox.stub().returns({ sort: sortStub });
+      EnrollmentStub.find.returns({ populate: populateStub });
+
+      await enrollmentController.getUsersByPeriodName(req, res, next);
+
+      expect(PeriodStub.findById.calledWith(periodId.toString())).to.be.true;
+      expect(PeriodStub.findOne.called).to.be.false;
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.periodId).to.equal(periodId.toString());
+      expect(response.data.periodName).to.equal('内在之光');
+      expect(response.data.userCount).to.equal(1);
+      expect(next.called).to.be.false;
+    });
+
+    it('应该在缺少 periodId 和 periodName 时返回 400', async () => {
       req.query = {};
 
       await enrollmentController.getUsersByPeriodName(req, res, next);
 
       expect(res.status.calledWith(400)).to.be.true;
       expect(res.json.calledOnce).to.be.true;
-      expect(res.json.getCall(0).args[0].message).to.include('periodName');
+      expect(res.json.getCall(0).args[0].message).to.include('periodId 或 periodName');
       expect(PeriodStub.findOne.called).to.be.false;
     });
   });

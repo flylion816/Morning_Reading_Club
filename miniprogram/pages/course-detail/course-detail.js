@@ -1289,10 +1289,10 @@ Page({
     return course;
   },
 
-  async loadFocusedCheckinDetail(course, periodId, access) {
-    const detail = await checkinService.getCheckinDetail(
-      this.data.shareCheckinId
-    );
+  async loadFocusedCheckinDetail(course, periodId, access, prefetchedDetail = null) {
+    const detail =
+      prefetchedDetail ||
+      (await checkinService.getCheckinDetail(this.data.shareCheckinId));
     const checkinItem = this.buildCheckinItem(detail || {});
     const app = getApp();
     const currentUserId =
@@ -1348,16 +1348,25 @@ Page({
     try {
       console.log('开始加载课程详情，ID:', this.data.courseId);
 
-      // 优化：当 periodId 已知时，①getCourseDetail 与 ②checkEnrollment 并行执行
+      const checkinDetailPromise =
+        this.data.isCheckinDetailMode && this.data.shareCheckinId
+          ? checkinService.getCheckinDetail(this.data.shareCheckinId)
+          : Promise.resolve(null);
+
+      // 优化：当 periodId 已知时，课程、权限、动态详情并行执行
       const knownPeriodId = this.data.periodId;
-      let course, access;
+      let course, access, focusedCheckinDetail;
       if (knownPeriodId) {
-        [course, access] = await Promise.all([
+        [course, access, focusedCheckinDetail] = await Promise.all([
           courseService.getCourseDetail(this.data.courseId),
-          getPeriodAccess(knownPeriodId)
+          getPeriodAccess(knownPeriodId),
+          checkinDetailPromise
         ]);
       } else {
-        course = await courseService.getCourseDetail(this.data.courseId);
+        [course, focusedCheckinDetail] = await Promise.all([
+          courseService.getCourseDetail(this.data.courseId),
+          checkinDetailPromise
+        ]);
         access = await getPeriodAccess(extractId(course.periodId));
       }
 
@@ -1397,7 +1406,12 @@ Page({
       );
 
       if (this.data.isCheckinDetailMode) {
-        await this.loadFocusedCheckinDetail(course, periodId, access);
+        await this.loadFocusedCheckinDetail(
+          course,
+          periodId,
+          access,
+          focusedCheckinDetail
+        );
         return;
       }
 

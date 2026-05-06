@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
+const Section = require('../models/Section');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
@@ -879,25 +880,119 @@ exports.debugCleanupEnrollments = async (req, res) => {
   }
 };
 
+function getStartOfDay(date) {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function getEndOfDay(date) {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+
+function calculatePeriodDayIndex(period, now = new Date()) {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const startTime = getStartOfDay(period.startDate).getTime();
+  const todayTime = getStartOfDay(now).getTime();
+  const rawDayIndex = Math.floor((todayTime - startTime) / dayMs);
+  const maxDayIndex = Math.max((Number(period.totalDays) || rawDayIndex + 1) - 1, 0);
+
+  return Math.min(Math.max(rawDayIndex, 0), maxDayIndex);
+}
+
+function getSectionId(section) {
+  if (!section) return null;
+  return section._id?.toString?.() || String(section._id);
+}
+
 /**
- * 外部接口：根据期次名称获取参加该期次的所有用户
+ * 外部接口：获取当前运行中的期次列表
+ * @route   GET /api/v1/enrollments/external/active-periods
+ * @access  Public (外部系统调用)
+ */
+exports.getActivePeriodsForExternal = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const todayStart = getStartOfDay(now);
+    const todayEnd = getEndOfDay(now);
+
+    const periods = await Period.find({
+      isPublished: true,
+      startDate: { $lte: todayEnd },
+      endDate: { $gte: todayStart }
+    })
+      .sort({ startDate: -1 })
+      .lean();
+
+    const periodDays = periods.map(period => ({
+      period,
+      dayIndex: calculatePeriodDayIndex(period, now)
+    }));
+
+    const sectionQuery = periodDays.map(({ period, dayIndex }) => ({
+      periodId: period._id,
+      day: dayIndex,
+      isPublished: true
+    }));
+
+    const sections =
+      sectionQuery.length > 0
+        ? await Section.find({ $or: sectionQuery }).select('_id periodId day').lean()
+        : [];
+
+    const sectionMap = new Map(
+      sections.map(section => [`${section.periodId?.toString?.() || section.periodId}:${section.day}`, section])
+    );
+
+    const list = periodDays.map(({ period, dayIndex }) => {
+      const periodId = period._id?.toString?.() || String(period._id);
+      const section = sectionMap.get(`${periodId}:${dayIndex}`);
+
+      return {
+        periodId,
+        periodName: period.name,
+        day: section?.day ?? dayIndex,
+        sessionId: getSectionId(section)
+      };
+    });
+
+    res.json(success({ list, total: list.length }, '获取成功'));
+  } catch (error) {
+    logger.error('获取运行中期次失败:', error);
+    next(error);
+  }
+};
+
+/**
+ * 外部接口：根据期次 ID 或名称获取参加该期次的所有用户
  * @route   GET /api/v1/enrollments/external/users-by-period
- * @param   periodName {string} - 期次名称（必填）
+ * @param   periodId {string} - 期次 ID（与 periodName 二选一，优先）
+ * @param   periodName {string} - 期次名称（与 periodId 二选一）
  * @access  Public (外部系统调用)
  */
 exports.getUsersByPeriodName = async (req, res, next) => {
   try {
-    const { periodName } = req.query;
+    const { periodId, periodName } = req.query;
 
     // 验证必填字段
-    if (!periodName) {
-      return res.status(400).json(errors.badRequest('缺少必填字段：periodName'));
+    if (!periodId && !periodName) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：periodId 或 periodName'));
     }
 
-    // 根据期次名称查询期次
-    const period = await Period.findOne({ name: periodName });
+    let period;
+    if (periodId) {
+      if (!mongoose.Types.ObjectId.isValid(periodId)) {
+        return res.status(400).json(errors.badRequest('periodId 格式不正确'));
+      }
+      period = await Period.findById(periodId);
+    } else {
+      period = await Period.findOne({ name: periodName });
+    }
+
     if (!period) {
-      return res.status(404).json(errors.notFound(`期次不存在：${periodName}`));
+      return res.status(404).json(errors.notFound(`期次不存在：${periodId || periodName}`));
     }
 
     // 查询所有报名了该期次的用户（active 或 completed 状态）
@@ -931,6 +1026,7 @@ exports.getUsersByPeriodName = async (req, res, next) => {
     res.json(
       success(
         {
+          periodId: period._id?.toString?.() || String(period._id),
           periodName: period.name,
           userCount: users.length,
           users

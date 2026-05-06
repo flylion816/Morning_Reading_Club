@@ -202,11 +202,11 @@
 
 | 文档 | 路径 |
 |------|------|
-| TESTING_QUICK_START.md | `/TESTING_QUICK_START.md` |
-| TESTING_PLAN.md | `/TESTING_PLAN.md` |
-| TESTING_ANALYSIS.md | `/TESTING_ANALYSIS.md` |
+| TESTING_QUICK_START.md | `/docs/plans/testing/TESTING_QUICK_START.md` |
+| TESTING_PLAN.md | `/docs/plans/testing/TESTING_PLAN.md` |
+| TESTING_ANALYSIS.md | `/docs/plans/testing/TESTING_ANALYSIS.md` |
 | TESTING_PLAN_REFERENCE.md | `/.claude/memory/TESTING_PLAN_REFERENCE.md` |
-| TESTING_INDEX.md (本文) | `/TESTING_INDEX.md` |
+| TESTING_INDEX.md (本文) | `/docs/plans/testing/TESTING_INDEX.md` |
 
 ---
 

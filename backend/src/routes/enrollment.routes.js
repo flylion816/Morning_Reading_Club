@@ -12,6 +12,7 @@ const {
   updateEnrollment,
   deleteEnrollment,
   debugCleanupEnrollments,
+  getActivePeriodsForExternal,
   getUsersByPeriodName,
   syncNicknamesFromEnrollments
 } = require('../controllers/enrollment.controller');
@@ -88,9 +89,17 @@ router.put('/:enrollmentId/complete', authMiddleware, adminMiddleware, completeE
 // ==================== 外部接口 ====================
 
 /**
+ * @route   GET /api/v1/enrollments/external/active-periods
+ * @desc    获取当前运行中的期次列表及当天课节 sessionId
+ * @access  Public
+ */
+router.get('/external/active-periods', getActivePeriodsForExternal);
+
+/**
  * @route   GET /api/v1/enrollments/external/users-by-period
- * @desc    根据期次名称获取参加该期次的所有用户
- * @param   periodName {string} - 期次名称（必填）
+ * @desc    根据期次 ID 或名称获取参加该期次的所有用户
+ * @param   periodId {string} - 期次 ID（与 periodName 二选一，优先）
+ * @param   periodName {string} - 期次名称（与 periodId 二选一）
  * @access  Public
  */
 router.get('/external/users-by-period', getUsersByPeriodName);

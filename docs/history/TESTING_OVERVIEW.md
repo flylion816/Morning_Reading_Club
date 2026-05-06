@@ -436,7 +436,7 @@ E2E测试:     ████████ 8分钟
 | 依赖安装 | [`TESTING_PACKAGE_UPDATES.md`](./TESTING_PACKAGE_UPDATES.md)               |
 | 实施总结 | [`TESTING_IMPLEMENTATION_SUMMARY.md`](./TESTING_IMPLEMENTATION_SUMMARY.md) |
 | 开发流程 | [`DEVELOPMENT.md`](./DEVELOPMENT.md)                                       |
-| Bug经验  | [`BUG_FIXES.md`](./BUG_FIXES.md)                                           |
+| Bug经验  | [`docs/guides/BUG_FIXES.md`](../guides/BUG_FIXES.md)                                           |
 
 ---
 
