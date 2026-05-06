@@ -3,7 +3,7 @@ const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
 const notificationServiceModule = require('../../services/notification.service');
 const constants = require('../../config/constants');
-const { hasPaidEnrollment } = require('../../utils/period-access');
+const { hasPaidEnrollment, clearEnrollmentCache } = require('../../utils/period-access');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 
@@ -143,9 +143,14 @@ Page({
         wx.removeStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN);
         wx.removeStorageSync(constants.STORAGE_KEYS.USER_INFO);
         const app = getApp();
+        const previousUserKey =
+          app.globalData.userInfo?._id || app.globalData.userInfo?.id || '';
+        clearEnrollmentCache(null, previousUserKey);
         app.globalData.isLogin = false;
         app.globalData.userInfo = null;
         app.globalData.token = null;
+        app.globalData._enrollmentChanged = false;
+        app.globalData._enrollmentCheckedAt = 0;
         wx.reLaunch({ url: '/pages/login/login' });
       }
     });

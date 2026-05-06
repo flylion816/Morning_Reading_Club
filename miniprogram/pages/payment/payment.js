@@ -7,6 +7,44 @@ const paymentService = require('../../services/payment.service');
 const courseService = require('../../services/course.service');
 const envConfig = require('../../config/env');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const {
+  getCachedEnrollmentAccess,
+  setCachedEnrollmentAccess,
+  signalEnrollmentChanged
+} = require('../../utils/period-access');
+
+const OPTIMISTIC_ENROLLMENT_TTL_MS = 2 * 60 * 1000;
+
+function buildOptimisticEnrollmentAccess(enrollmentData, syncPending = true) {
+  if (!enrollmentData || !enrollmentData.periodId) {
+    return null;
+  }
+
+  return {
+    periodId: enrollmentData.periodId,
+    isEnrolled: true,
+    paymentStatus: 'paid',
+    enrollmentId: enrollmentData.enrollmentId || '',
+    paymentPending: false,
+    canAccessCommunity: true,
+    communityAccessState: 'enabled',
+    communityLocked: false,
+    syncPending,
+    syncPendingExpiresAt: syncPending
+      ? new Date(Date.now() + OPTIMISTIC_ENROLLMENT_TTL_MS).toISOString()
+      : null,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function applyOptimisticEnrollmentAccess(enrollmentData, syncPending = true) {
+  const access = buildOptimisticEnrollmentAccess(enrollmentData, syncPending);
+  if (!access) {
+    return;
+  }
+
+  setCachedEnrollmentAccess(enrollmentData.periodId, access);
+}
 
 function normalizeAmountInCents(value, fallback = 0) {
   const parsed = Number(value);
@@ -234,10 +272,11 @@ Page({
           success: res => {
             console.log('微信支付成功:', res);
 
-            // 4. 支付成功后，通知后端确认支付
-            this.confirmPaymentWithBackend(initRes.paymentId);
-
+            applyOptimisticEnrollmentAccess(enrollmentData, true);
+            signalEnrollmentChanged();
             this.handlePaymentSuccess();
+            // 4. 支付成功后，异步通知后端确认支付，不阻塞成功态
+            this.confirmPaymentWithBackend(initRes.paymentId, enrollmentData.periodId);
             resolve(res);
           },
           fail: err => {
@@ -273,9 +312,11 @@ Page({
       // 模拟微信支付流程：2秒后自动成功
       setTimeout(() => {
         console.log('模拟微信支付完成');
-        // 通知后端确认支付
-        this.confirmPaymentWithBackend(paymentId);
+        applyOptimisticEnrollmentAccess(this.data.enrollmentData, true);
+        signalEnrollmentChanged();
         this.handlePaymentSuccess();
+        // 通知后端确认支付，不阻塞成功态
+        this.confirmPaymentWithBackend(paymentId, this.data.enrollmentData.periodId);
         resolve({});
       }, 2000);
     });
@@ -285,17 +326,33 @@ Page({
    * 通知后端确认支付
    * （微信支付成功后需要调用此 API）
    */
-  async confirmPaymentWithBackend(paymentId) {
+  async confirmPaymentWithBackend(paymentId, periodId = null) {
     try {
       console.log('通知后端确认支付，paymentId:', paymentId);
       const confirmRes = await paymentService.confirmPayment(paymentId, {
         transactionId: '' // 实际项目中应该从微信回调获取
       });
       console.log('后端确认支付成功:', confirmRes);
+
+      if (periodId) {
+        const currentAccess = getCachedEnrollmentAccess(periodId);
+        if (currentAccess && currentAccess.syncPending) {
+          // 后端已确认支付，将乐观缓存转为普通已支付缓存，不再受 TTL 限制
+          setCachedEnrollmentAccess(periodId, {
+            ...currentAccess,
+            syncPending: false,
+            syncPendingExpiresAt: null,
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+
+      return true;
     } catch (confirmErr) {
       console.warn('后端确认支付失败，但微信支付已成功:', confirmErr);
       // 不抛出错误，因为微信支付已经成功
       // 可以在后续的支付状态查询中恢复
+      return false;
     }
   },
 
@@ -324,6 +381,8 @@ Page({
         // 所以直接显示成功
         if (initRes.status === 'completed') {
           console.log('模拟支付已完成');
+          applyOptimisticEnrollmentAccess(enrollmentData, false);
+          signalEnrollmentChanged();
           this.handlePaymentSuccess();
           return Promise.resolve();
         } else if (initRes.status === 'pending') {
@@ -335,6 +394,8 @@ Page({
               try {
                 const confirmRes = await paymentService.confirmPayment(initRes.paymentId);
                 console.log('支付确认成功:', confirmRes);
+                applyOptimisticEnrollmentAccess(enrollmentData, false);
+                signalEnrollmentChanged();
                 this.handlePaymentSuccess();
                 resolve();
               } catch (confirmErr) {

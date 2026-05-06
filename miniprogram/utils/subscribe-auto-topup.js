@@ -2,6 +2,7 @@ const subscribeMessageService = require('../services/subscribe-message.service')
 
 const MAX_SUBSCRIBE_SCENES_PER_REQUEST = 5;
 const SETTINGS_CACHE_TTL_MS = 15000;
+const PROMPT_THROTTLE_STORAGE_PREFIX = 'subscribe_prompt_throttle';
 
 let settingsCache = null;
 let settingsCacheAt = 0;
@@ -80,6 +81,80 @@ function getAppInstance() {
   } catch (error) {
     return null;
   }
+}
+
+function getCurrentUserCacheKey() {
+  const app = getAppInstance();
+  const userInfo = app?.globalData?.userInfo || {};
+  return String(userInfo._id || userInfo.id || 'anonymous');
+}
+
+function getTodayDateKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getPromptThrottleStorageKey() {
+  return `${PROMPT_THROTTLE_STORAGE_PREFIX}_${getCurrentUserCacheKey()}`;
+}
+
+function readPromptThrottleState() {
+  if (typeof wx === 'undefined' || typeof wx.getStorageSync !== 'function') {
+    return {};
+  }
+
+  try {
+    const state = wx.getStorageSync(getPromptThrottleStorageKey());
+    return state && typeof state === 'object' ? state : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writePromptThrottleState(state) {
+  if (typeof wx === 'undefined' || typeof wx.setStorageSync !== 'function') {
+    return;
+  }
+
+  try {
+    wx.setStorageSync(getPromptThrottleStorageKey(), state);
+  } catch (error) {
+    // 忽略本地存储失败，不影响主流程
+  }
+}
+
+function isPromptThrottled(templateId) {
+  if (!templateId) {
+    return false;
+  }
+
+  const today = getTodayDateKey();
+  const state = readPromptThrottleState();
+  if (state[templateId] === today) {
+    return true;
+  }
+
+  return false;
+}
+
+function markPromptThrottled(templateIds = []) {
+  if (!Array.isArray(templateIds) || !templateIds.length) {
+    return;
+  }
+
+  const state = readPromptThrottleState();
+  const today = getTodayDateKey();
+
+  templateIds.forEach(templateId => {
+    if (templateId) {
+      state[templateId] = today;
+    }
+  });
+
+  writePromptThrottleState(state);
 }
 
 function normalizeCount(value) {
@@ -401,10 +476,12 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
       requestScenes = promptableScenes.filter(
         scene => itemSettings[scene.templateId] !== 'reject' && itemSettings[scene.templateId] !== 'ban'
       );
+      const throttledScenes = requestScenes.filter(scene => isPromptThrottled(scene.templateId));
+      requestScenes = requestScenes.filter(scene => !isPromptThrottled(scene.templateId));
       if (!requestScenes.length) {
         return {
           skipped: true,
-          reason: 'no_requestable_scene'
+          reason: throttledScenes.length ? 'prompt_throttled' : 'no_requestable_scene'
         };
       }
     }
@@ -418,6 +495,14 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
 
     const saveResult = await subscribeMessageService.saveGrants(grants);
     updateSettingsCache(saveResult);
+
+    const successfulGrantTemplateIds = grants
+      .filter(grant => grant && grant.templateId && grant.result !== 'error')
+      .map(grant => grant.templateId);
+
+    if (requestMode !== 'remembered' && successfulGrantTemplateIds.length > 0) {
+      markPromptThrottled(successfulGrantTemplateIds);
+    }
 
     return {
       skipped: false,
@@ -454,5 +539,7 @@ module.exports = {
   maybeAutoTopUpSubscriptions,
   requestSceneSubscriptions,
   resetAutoTopUpState,
-  updateSettingsCache
+  updateSettingsCache,
+  isPromptThrottled,
+  markPromptThrottled
 };

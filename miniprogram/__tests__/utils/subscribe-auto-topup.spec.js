@@ -14,11 +14,18 @@ const {
 } = require('../../utils/subscribe-auto-topup');
 
 describe('subscribe-auto-topup helper', () => {
+  let storageState;
+
   beforeEach(() => {
     jest.clearAllMocks();
     resetAutoTopUpState();
+    storageState = {};
     global.wx.getSetting = jest.fn();
     global.wx.requestSubscribeMessage = jest.fn();
+    global.wx.getStorageSync = jest.fn(key => storageState[key]);
+    global.wx.setStorageSync = jest.fn((key, value) => {
+      storageState[key] = value;
+    });
   });
 
   test('mergeAutoTopUpScenes should add missing next_day scene for display', () => {
@@ -137,7 +144,13 @@ describe('subscribe-auto-topup helper', () => {
     });
 
     subscribeMessageService.saveGrants.mockResolvedValue({
-      scenes: []
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
     });
 
     const result = await maybeAutoTopUpSubscriptions({
@@ -220,7 +233,13 @@ describe('subscribe-auto-topup helper', () => {
     });
 
     subscribeMessageService.saveGrants.mockResolvedValue({
-      scenes: []
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
     });
 
     await maybeAutoTopUpSubscriptions({
@@ -267,7 +286,13 @@ describe('subscribe-auto-topup helper', () => {
     });
 
     subscribeMessageService.saveGrants.mockResolvedValue({
-      scenes: []
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
     });
 
     const result = await maybeAutoTopUpSubscriptions({
@@ -283,6 +308,247 @@ describe('subscribe-auto-topup helper', () => {
       AUTO_TOP_UP_POLICIES.enrollment_result.templateId,
       AUTO_TOP_UP_POLICIES.payment_result.templateId
     ]);
+  });
+
+  test('maybeAutoTopUpSubscriptions should throttle direct prompt mode on the same day', async () => {
+    subscribeMessageService.getSettings.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    global.wx.getSetting.mockImplementation(({ success }) => {
+      success({
+        subscriptionsSetting: {
+          itemSettings: {
+            [AUTO_TOP_UP_POLICIES.comment_received.templateId]: 'accept'
+          }
+        }
+      });
+    });
+
+    global.wx.requestSubscribeMessage.mockImplementation(({ tmplIds, success }) => {
+      success(
+        tmplIds.reduce((result, templateId) => {
+          result[templateId] = 'accept';
+          return result;
+        }, {})
+      );
+    });
+
+    subscribeMessageService.saveGrants.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    const firstResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received'],
+      requestMode: 'any'
+    });
+
+    const secondResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received'],
+      requestMode: 'any'
+    });
+
+    expect(firstResult.skipped).toBe(false);
+    expect(secondResult.skipped).toBe(true);
+    expect(secondResult.reason).toBe('prompt_throttled');
+    expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(1);
+  });
+
+  test('maybeAutoTopUpSubscriptions should not throttle when direct prompt request fails', async () => {
+    subscribeMessageService.getSettings.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    global.wx.getSetting.mockImplementation(({ success }) => {
+      success({
+        subscriptionsSetting: {
+          itemSettings: {
+            [AUTO_TOP_UP_POLICIES.comment_received.templateId]: 'accept'
+          }
+        }
+      });
+    });
+
+    global.wx.requestSubscribeMessage.mockImplementation(({ fail }) => {
+      fail({
+        errMsg: 'requestSubscribeMessage:fail network error'
+      });
+    });
+
+    subscribeMessageService.saveGrants.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    const firstResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received'],
+      requestMode: 'any'
+    });
+
+    const secondResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received'],
+      requestMode: 'any'
+    });
+
+    expect(firstResult.skipped).toBe(false);
+    expect(secondResult.skipped).toBe(false);
+    expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(2);
+    expect(global.wx.setStorageSync).not.toHaveBeenCalled();
+  });
+
+  test('maybeAutoTopUpSubscriptions should not throttle when grant persistence fails', async () => {
+    subscribeMessageService.getSettings.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    global.wx.getSetting.mockImplementation(({ success }) => {
+      success({
+        subscriptionsSetting: {
+          itemSettings: {
+            [AUTO_TOP_UP_POLICIES.comment_received.templateId]: 'accept'
+          }
+        }
+      });
+    });
+
+    global.wx.requestSubscribeMessage.mockImplementation(({ tmplIds, success }) => {
+      success(
+        tmplIds.reduce((result, templateId) => {
+          result[templateId] = 'accept';
+          return result;
+        }, {})
+      );
+    });
+
+    subscribeMessageService.saveGrants
+      .mockRejectedValueOnce(new Error('save failed'))
+      .mockResolvedValueOnce({
+        scenes: [
+          {
+            scene: 'comment_received',
+            templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+            availableCount: 0
+          }
+        ]
+      });
+
+    const firstResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received'],
+      requestMode: 'any'
+    });
+
+    const secondResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received'],
+      requestMode: 'any'
+    });
+
+    expect(firstResult.skipped).toBe(true);
+    expect(firstResult.reason).toBe('error');
+    expect(secondResult.skipped).toBe(false);
+    expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(2);
+    expect(global.wx.setStorageSync).toHaveBeenCalledTimes(1);
+  });
+
+  test('maybeAutoTopUpSubscriptions should throttle successful fallback prompts with invalid batch template', async () => {
+    subscribeMessageService.getSettings.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        },
+        {
+          scene: 'like_received',
+          templateId: AUTO_TOP_UP_POLICIES.like_received.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    global.wx.getSetting.mockImplementation(({ success }) => {
+      success({
+        subscriptionsSetting: {
+          itemSettings: {
+            [AUTO_TOP_UP_POLICIES.comment_received.templateId]: 'accept',
+            [AUTO_TOP_UP_POLICIES.like_received.templateId]: 'accept'
+          }
+        }
+      });
+    });
+
+    global.wx.requestSubscribeMessage
+      .mockImplementationOnce(({ fail }) => {
+        fail({
+          errMsg: 'requestSubscribeMessage:fail No template data return, verify the template id exist',
+          errCode: 20001
+        });
+      })
+      .mockImplementationOnce(({ tmplIds, success }) => {
+        success({ [tmplIds[0]]: 'accept' });
+      })
+      .mockImplementationOnce(({ tmplIds, success }) => {
+        success({ [tmplIds[0]]: 'accept' });
+      });
+
+    subscribeMessageService.saveGrants.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'comment_received',
+          templateId: AUTO_TOP_UP_POLICIES.comment_received.templateId,
+          availableCount: 0
+        },
+        {
+          scene: 'like_received',
+          templateId: AUTO_TOP_UP_POLICIES.like_received.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    const firstResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received', 'like_received'],
+      requestMode: 'any'
+    });
+
+    const secondResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['comment_received', 'like_received'],
+      requestMode: 'any'
+    });
+
+    expect(firstResult.skipped).toBe(false);
+    expect(firstResult.fallbackTriggered).toBe(true);
+    expect(secondResult.skipped).toBe(true);
+    expect(secondResult.reason).toBe('prompt_throttled');
+    expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(3);
   });
 
   test('requestSceneSubscriptions should retry single templates when batch contains invalid template', async () => {

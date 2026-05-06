@@ -2,6 +2,7 @@
 const enrollmentService = require('../../services/enrollment.service');
 const { calculatePeriodStatus } = require('../../utils/formatters');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const { markEnrollmentCacheDirty } = require('../../utils/period-access');
 
 const SUBSCRIBE_SCENES = ['enrollment_result'];
 
@@ -473,15 +474,13 @@ Page({
       const res = await enrollmentService.submitEnrollment(submitData);
 
       console.log('报名成功，响应:', res);
+      markEnrollmentCacheDirty(getPeriodId(selectedPeriod));
 
       wx.showToast({
         title: '报名成功，进入课程',
         icon: 'success',
         duration: 1500
       });
-
-      // 获取期次信息
-      const selectedPeriod = this.getSelectedPeriod();
 
       // 延迟1.5秒后导航到课程列表
       setTimeout(() => {

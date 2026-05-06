@@ -3,6 +3,11 @@ const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
 const userService = require('../../services/user.service');
 const { formatDate, calculatePeriodStatus, formatDateRange } = require('../../utils/formatters');
+const {
+  getCachedEnrollmentAccess,
+  setCachedEnrollmentAccess,
+  isFreshOptimisticEnrollmentAccess
+} = require('../../utils/period-access');
 
 Page({
   data: {
@@ -42,25 +47,43 @@ Page({
     }
 
     console.log('📱 首页onShow被触发');
-    // 记录之前的登录状态
     const wasLoggedIn = this.data.isLogin;
-    // 每次显示时检查登录状态
     this.checkLoginStatus();
-    // 强制重新加载用户信息（必须从API获取最新数据，不使用缓存）
-    if (this.data.isLogin) {
-      console.log('🔄 已登录，强制重新加载用户信息...');
-      this.loadUserInfo();
 
-      // 如果登录状态刚变化（从未登录→已登录），重新加载期次以获取打卡统计
-      if (!wasLoggedIn) {
-        console.log('🔄 登录状态变化，重新加载期次列表（含打卡统计）');
-        this.loadPeriods();
-      } else if (this.data.periods.length > 0) {
-        // 重新检查报名状态（用户可能在报名页面新增了报名或已支付）
-        this.checkEnrollmentStatus(this.data.periods);
-      }
-    } else {
+    if (!this.data.isLogin) {
       console.log('❌ 未登录');
+      return;
+    }
+
+    const app = getApp();
+
+    // 使用 globalData 缓存的用户信息，profile 页保存时会同步更新，避免每次返回都发起 API 请求
+    if (app.globalData.userInfo) {
+      this.setData({ userInfo: app.globalData.userInfo });
+    } else {
+      this.loadUserInfo();
+    }
+
+    // 登录状态刚变化（未登录→已登录）：重新加载期次（含打卡统计）
+    if (!wasLoggedIn) {
+      console.log('🔄 登录状态变化，重新加载期次列表（含打卡统计）');
+      this.loadPeriods();
+      return;
+    }
+
+    // 报名状态：刷新窗口要短于乐观授权缓存，避免旧状态滞留过久
+    const ENROLLMENT_TTL = 90 * 1000;
+    const enrollmentChanged = app.globalData._enrollmentChanged;
+    const enrollmentStale =
+      !this._enrollmentCheckedAt ||
+      Date.now() - this._enrollmentCheckedAt > ENROLLMENT_TTL;
+
+    if ((enrollmentChanged || enrollmentStale) && this.data.periods.length > 0) {
+      this.checkEnrollmentStatus(this.data.periods).then(refreshSucceeded => {
+        if (enrollmentChanged && refreshSucceeded) {
+          app.globalData._enrollmentChanged = false;
+        }
+      });
     }
   },
 
@@ -195,7 +218,7 @@ Page({
    * 检查期次报名状态
    */
   async checkEnrollmentStatus(periods) {
-    if (!periods || periods.length === 0) return;
+    if (!periods || periods.length === 0) return false;
 
     const statusMap = {};
 
@@ -211,53 +234,98 @@ Page({
 
       if (validPeriods.length === 0) {
         console.warn('⚠️ 没有有效的期次可以检查报名状态');
-        return;
+        return false;
       }
 
+      let allChecksSucceeded = true;
       // 并行检查所有期次的报名状态
       const promises = validPeriods.map(period =>
         enrollmentService
           .checkEnrollment(period._id)
           .then(res => {
-            // 存储完整的报名信息：包括是否报名、支付状态、报名ID等
-            statusMap[period._id] = {
-              isEnrolled: res.isEnrolled || false,
-              paymentStatus: res.paymentStatus || null,
-              enrollmentId: res.enrollmentId || null
-            };
+            const existingAccess = getCachedEnrollmentAccess(period._id);
+            const canAccess =
+              !!res.isEnrolled &&
+              (res.paymentStatus === 'paid' || res.paymentStatus === 'free');
+            const optimisticAccess =
+              existingAccess &&
+              isFreshOptimisticEnrollmentAccess(existingAccess) &&
+              existingAccess.canAccessCommunity &&
+              !canAccess;
 
-            const statusText = res.isEnrolled
-              ? `已报名 (支付状态: ${res.paymentStatus || 'unknown'})`
-              : '未报名';
-            console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
+            const accessToCache = optimisticAccess
+              ? {
+                  ...existingAccess,
+                  syncPending: true
+                }
+              : {
+                  periodId: period._id,
+                  isEnrolled: res.isEnrolled || false,
+                  paymentStatus: res.paymentStatus || null,
+                  enrollmentId: res.enrollmentId || null,
+                  paymentPending: !!res.isEnrolled && !canAccess,
+                  canAccessCommunity: canAccess,
+                  communityAccessState: canAccess ? 'enabled' : 'locked',
+                  communityLocked: !canAccess,
+                  syncPending: false
+                };
 
-            // 详细日志：用于调试
-            console.log('  └─ API返回值:', {
-              isEnrolled: res.isEnrolled,
-              paymentStatus: res.paymentStatus,
-              enrollmentId: res.enrollmentId,
-              userId: res.userId,
-              periodId: res.periodId
-            });
+            setCachedEnrollmentAccess(period._id, accessToCache);
+            statusMap[period._id] = optimisticAccess
+              ? {
+                  isEnrolled: true,
+                  paymentStatus: existingAccess.paymentStatus || 'paid',
+                  enrollmentId: existingAccess.enrollmentId || null
+                }
+              : {
+                  isEnrolled: res.isEnrolled || false,
+                  paymentStatus: res.paymentStatus || null,
+                  enrollmentId: res.enrollmentId || null
+                };
+
+            if (optimisticAccess) {
+              console.log(`期次 ${period.name} (${period._id}): 使用本地待确认权限缓存`);
+            } else {
+              const statusText = res.isEnrolled
+                ? `已报名 (支付状态: ${res.paymentStatus || 'unknown'})`
+                : '未报名';
+              console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
+            }
           })
           .catch(error => {
+            allChecksSucceeded = false;
             console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
-            statusMap[period._id] = {
-              isEnrolled: false,
-              paymentStatus: null,
-              enrollmentId: null
-            };
+            // API 失败时先查本地缓存，保留已知的报名/付费状态，避免把刚付款的用户显示为未报名
+            const cachedAccess = getCachedEnrollmentAccess(period._id);
+            if (cachedAccess && cachedAccess.isEnrolled) {
+              statusMap[period._id] = {
+                isEnrolled: true,
+                paymentStatus: cachedAccess.paymentStatus || null,
+                enrollmentId: cachedAccess.enrollmentId || null
+              };
+            } else {
+              statusMap[period._id] = {
+                isEnrolled: false,
+                paymentStatus: null,
+                enrollmentId: null
+              };
+            }
           })
       );
 
       await Promise.all(promises);
 
+      if (allChecksSucceeded) {
+        this._enrollmentCheckedAt = Date.now();
+      }
       console.log('报名状态检查完成:', statusMap);
       this.setData({
         periodEnrollmentStatus: statusMap
       });
+      return allChecksSucceeded;
     } catch (error) {
       console.error('检查报名状态失败:', error);
+      return false;
     }
   },
 

@@ -16,7 +16,9 @@ let redisClient = null;
 
 const SYNC_FIELD_EXCLUSIONS = {
   payments: new Set(['isProcessing']),
-  enrollments: new Set(['isPaid', 'isActive'])
+  enrollments: new Set(['isPaid', 'isActive']),
+  // dbAccessPassword 是管理员的数据库访问密码哈希，MySQL 表中无此列且不应同步
+  admins: new Set(['dbAccessPassword'])
 };
 
 function normalizeSpecialField(collection, key, value) {

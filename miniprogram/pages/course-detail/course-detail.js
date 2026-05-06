@@ -1306,6 +1306,13 @@ Page({
     const isOwnCheckinBool =
       !!currentUserId && String(checkinItem.userId) === String(currentUserId);
 
+    // 动态详情模式不渲染课程富文本内容，只关闭显示开关并移除正文字段，避免富文本块渲染
+    const courseForDetail = {
+      ...course,
+      contentVisible: false
+    };
+    delete courseForDetail.content;
+
     this.setData(
       {
         periodId: periodId || this.normalizeId(detail?.periodId),
@@ -1317,7 +1324,7 @@ Page({
         commentExpanded: { [checkinItem.id]: true },
         commentLoading: {},
         notificationReminder: '',
-        course,
+        course: courseForDetail,
         calendar,
         checkedDays,
         loading: false

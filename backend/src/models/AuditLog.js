@@ -29,7 +29,8 @@ const auditLogSchema = new mongoose.Schema(
         'BATCH_DELETE', // 批量删除
         'LOGIN', // 登录
         'LOGOUT', // 登出
-        'ROLE_CHANGE' // 角色变更
+        'ROLE_CHANGE', // 角色变更
+        'PASSWORD_RESET' // 密码重置
       ],
       required: true,
       index: true
