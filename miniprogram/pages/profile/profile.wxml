@@ -86,7 +86,7 @@
         </view>
       </view>
 
-      <view class="checkins-section" wx:if="{{currentPeriodCommunityState === 'enabled'}}">
+      <view class="checkins-section" wx:if="{{canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-checkin">📝</view>
@@ -107,7 +107,8 @@
               class="checkin-diary-card"
               bindtap="handleRecentCheckinTap"
               data-checkin-id="{{item.id}}"
-              data-section-id="{{item.sectionId}}">
+              data-section-id="{{item.sectionId}}"
+              data-period-id="{{item.periodId}}">
               
               <view class="checkin-diary-card-title">{{item.sectionTitle}}</view>
 
@@ -144,7 +145,7 @@
       </view>
 
       <!-- 小凡看见 -->
-      <view class="insights-section" wx:if="{{currentPeriodCommunityState === 'enabled'}}">
+      <view class="insights-section" wx:if="{{canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-sparkle">✨</view>
@@ -182,7 +183,7 @@
       </view>
 
       <!-- 请求看见 -->
-      <view class="requests-section" wx:if="{{currentPeriodCommunityState === 'enabled'}}">
+      <view class="requests-section" wx:if="{{canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-mailbox">📬</view>

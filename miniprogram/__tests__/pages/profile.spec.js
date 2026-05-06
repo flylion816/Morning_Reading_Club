@@ -23,6 +23,13 @@ jest.mock('../../services/checkin.service.js', () => ({
   getCheckinDetail: jest.fn()
 }));
 
+jest.mock('../../services/insight.service.js', () => ({
+  getInsightsList: jest.fn(),
+  getReceivedRequests: jest.fn(),
+  approveRequest: jest.fn(),
+  rejectRequest: jest.fn()
+}));
+
 jest.mock('../../services/notification.service.js', () => ({
   getUnreadCount: jest.fn(() => Promise.resolve({ unreadCount: 0 }))
 }));
@@ -55,12 +62,23 @@ jest.mock('../../utils/period-access.js', () => ({
       communityAccessState: 'enabled',
       paymentStatus: 'paid'
     })
+  ),
+  hasPaidEnrollment: jest.fn((enrollmentList = []) =>
+    enrollmentList.some(item =>
+      ['active', 'completed'].includes(item.status) &&
+      ['paid', 'free'].includes(item.paymentStatus)
+    )
   )
 }));
 
 let pageConfig;
 let pageInstance;
 let checkinService;
+let userService;
+let courseService;
+let enrollmentService;
+let periodAccess;
+let insightService;
 
 describe('profile page', () => {
   beforeEach(() => {
@@ -88,6 +106,11 @@ describe('profile page', () => {
     wx.showTabBar = jest.fn();
 
     checkinService = require('../../services/checkin.service.js');
+    userService = require('../../services/user.service.js');
+    courseService = require('../../services/course.service.js');
+    enrollmentService = require('../../services/enrollment.service.js');
+    periodAccess = require('../../utils/period-access.js');
+    insightService = require('../../services/insight.service.js');
     require('../../pages/profile/profile.js');
 
     pageInstance = {
@@ -104,9 +127,21 @@ describe('profile page', () => {
       }
     };
     pageInstance.data.currentPeriodCommunityState = 'enabled';
+    pageInstance.data.canUsePaidFeatures = true;
 
     checkinService.getUserCheckinsWithStats.mockReset();
     checkinService.getCheckinDetail.mockReset();
+    userService.getUserProfile.mockReset();
+    userService.getUserStats.mockReset();
+    courseService.getPeriods.mockReset();
+    courseService.getTodayTask.mockReset();
+    courseService.getSectionDetail.mockReset();
+    courseService.getPeriodSections.mockReset();
+    enrollmentService.getUserEnrollments.mockReset();
+    periodAccess.getPeriodAccess.mockReset();
+    periodAccess.hasPaidEnrollment.mockClear();
+    insightService.getInsightsList.mockReset();
+    insightService.getReceivedRequests.mockReset();
   });
 
   afterEach(() => {
@@ -259,6 +294,7 @@ describe('profile page', () => {
 
   test('should block checkin navigation when current period community is locked', async () => {
     pageInstance.data.currentPeriodCommunityState = 'locked';
+    pageInstance.data.canUsePaidFeatures = false;
 
     await pageInstance.handleRecentCheckinTap.call(pageInstance, {
       currentTarget: {
@@ -274,5 +310,89 @@ describe('profile page', () => {
       icon: 'none'
     });
     expect(wx.navigateTo).not.toHaveBeenCalled();
+  });
+
+  test('should keep paid homepage sections visible when current period is unpaid', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '小狐狸',
+      signature: '呼噜呼噜'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 5 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_current',
+          title: '秩序之锚',
+          name: '秩序之锚',
+          startDate: '2026-05-01T00:00:00.000Z',
+          endDate: '2026-05-31T00:00:00.000Z',
+          coverColor: '#4a90e2',
+          coverEmoji: '∞'
+        },
+        {
+          _id: 'period_paid',
+          title: '内在之光',
+          name: '内在之光',
+          startDate: '2026-03-01T00:00:00.000Z',
+          endDate: '2026-03-31T00:00:00.000Z'
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [
+        {
+          _id: 'enrollment_current',
+          periodId: 'period_current',
+          status: 'active',
+          paymentStatus: 'pending'
+        },
+        {
+          _id: 'enrollment_paid',
+          periodId: 'period_paid',
+          status: 'completed',
+          paymentStatus: 'paid'
+        }
+      ]
+    });
+    courseService.getTodayTask.mockResolvedValue({
+      sectionId: 'section_today',
+      periodId: 'period_current',
+      periodTitle: '秩序之锚',
+      day: 6,
+      checkinCount: 0,
+      checkinUsers: [],
+      isCheckedIn: false
+    });
+    courseService.getSectionDetail.mockResolvedValue({
+      _id: 'section_today',
+      title: '开营词'
+    });
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: false,
+      communityAccessState: 'locked',
+      paymentStatus: 'pending'
+    });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({
+      list: [
+        {
+          _id: 'checkin_paid',
+          createdAt: '2026-03-29T13:11:00.000Z',
+          note: '历史打卡',
+          sectionId: { _id: 'section_paid', title: '第二天', day: 2 },
+          periodId: { _id: 'period_paid', title: '内在之光' }
+        }
+      ]
+    });
+    insightService.getInsightsList.mockResolvedValue({ list: [] });
+    insightService.getReceivedRequests.mockResolvedValue([]);
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+
+    expect(pageInstance.data.currentPeriodCommunityState).toBe('locked');
+    expect(pageInstance.data.canUsePaidFeatures).toBe(true);
+    expect(checkinService.getUserCheckinsWithStats).toHaveBeenCalled();
+    expect(insightService.getInsightsList).toHaveBeenCalledWith({ limit: 10 });
+    expect(pageInstance.data.recentCheckins).toHaveLength(1);
   });
 });

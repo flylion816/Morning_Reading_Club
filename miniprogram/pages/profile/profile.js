@@ -9,7 +9,7 @@ const activityService = require('../../services/activity.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
-const { getPeriodAccess } = require('../../utils/period-access');
+const { getPeriodAccess, hasPaidEnrollment } = require('../../utils/period-access');
 
 const notificationService =
   notificationServiceModule.default || notificationServiceModule;
@@ -140,6 +140,7 @@ Page({
     currentPeriodPaymentStatus: null,
     canAccessCurrentPeriodCommunity: false,
     currentPeriodCommunityState: 'locked',
+    canUsePaidFeatures: false,
 
     // 今日课节
     todaySection: null,
@@ -252,6 +253,7 @@ Page({
         currentPeriodPaymentStatus: null,
         canAccessCurrentPeriodCommunity: false,
         currentPeriodCommunityState: 'locked',
+        canUsePaidFeatures: false,
         todaySection: null,
         recentCheckins: [],
         recentInsights: [],
@@ -430,10 +432,12 @@ Page({
       }
 
       const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
+      const paidFeatureAccessEnabled =
+        communityEnabled || hasPaidEnrollment(enrollmentList);
 
       // ── Wave 3: 社区数据并行加载 ────────────────────────────────
       const [recentCheckins, recentInsights, allInsightRequests] =
-        communityEnabled
+        paidFeatureAccessEnabled
           ? await Promise.all([
               this.loadRecentCheckins().catch(() => []),
               this.loadRecentInsights(currentPeriod).catch(() => []),
@@ -467,6 +471,7 @@ Page({
         canAccessCurrentPeriodCommunity: communityEnabled,
         currentPeriodCommunityState:
           currentPeriodAccess.communityAccessState || 'locked',
+        canUsePaidFeatures: paidFeatureAccessEnabled,
         todaySection: todaySection || null,
         recentCheckins,
         recentInsights,
@@ -657,6 +662,18 @@ Page({
     return false;
   },
 
+  ensurePaidFeatureAccess(title = '完成支付后可查看') {
+    if (this.data.canUsePaidFeatures) {
+      return true;
+    }
+
+    wx.showToast({
+      title,
+      icon: 'none'
+    });
+    return false;
+  },
+
   /**
    * 微信一键登录
    */
@@ -785,7 +802,7 @@ Page({
    * 授权请求 - 同意查看小凡看见
    */
   handleApproveRequest(e) {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
       return;
     }
     const { request } = e.currentTarget.dataset;
@@ -796,7 +813,7 @@ Page({
    * 拒绝请求
    */
   handleRejectRequest(e) {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
       return;
     }
     const { request } = e.currentTarget.dataset;
@@ -807,7 +824,7 @@ Page({
    * 点击请求记录 - 跳转到他人主页
    */
   handleInsightRequestTap(e) {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看请求')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看请求')) {
       return;
     }
     const { request } = e.currentTarget.dataset;
@@ -831,7 +848,7 @@ Page({
    * 批准请求
    */
   async approveRequest(request) {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
       return;
     }
     try {
@@ -875,7 +892,7 @@ Page({
    * 拒绝请求
    */
   async rejectRequest(request) {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可处理申请')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
       return;
     }
     try {
@@ -933,7 +950,7 @@ Page({
   },
 
   navigateToInsightRequests() {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看请求')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看请求')) {
       return;
     }
     wx.navigateTo({
@@ -966,7 +983,7 @@ Page({
   },
 
   handleRecentCheckinTap(e) {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看打卡日记')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看打卡日记')) {
       return;
     }
 
@@ -1041,7 +1058,7 @@ Page({
   },
 
   navigateToCheckinRecords() {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看打卡日记')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看打卡日记')) {
       return;
     }
 
@@ -1054,7 +1071,7 @@ Page({
    * 点击小凡看见条目
    */
   handleInsightClick(e) {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看反馈')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看反馈')) {
       return;
     }
     console.log('🚨🚨🚨 handleInsightClick 被触发 🚨🚨🚨');
@@ -1088,7 +1105,7 @@ Page({
    * 跳转到小凡看见列表
    */
   navigateToInsights() {
-    if (!this.ensureCurrentPeriodCommunityAccess('完成支付后可查看反馈')) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看反馈')) {
       return;
     }
     console.log('🚨🚨🚨 navigateToInsights 被触发 🚨🚨🚨');
