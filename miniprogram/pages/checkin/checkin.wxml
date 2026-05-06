@@ -9,7 +9,7 @@
       <view class="section-icon">静</view>
       <text class="section-name">静一静</text>
     </view>
-    <view class="section-content-short"><text selectable>{{meditation}}</text></view>
+    <view class="section-content"><text selectable>{{meditation}}</text></view>
   </view>
 
   <!-- 展开按钮 -->

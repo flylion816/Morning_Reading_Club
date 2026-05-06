@@ -79,13 +79,25 @@ async function getPeriodAccess(periodId, options = {}) {
     return buildPeriodAccess({ periodId: normalizedPeriodId });
   }
 
+  // session 级别缓存：同一个 periodId 在同一个会话里只查一次
+  const app = getApp();
+  if (!app.globalData._enrollmentCache) {
+    app.globalData._enrollmentCache = {};
+  }
+  const cached = app.globalData._enrollmentCache[normalizedPeriodId];
+  if (cached) {
+    return cached;
+  }
+
   const result = await enrollmentService.checkEnrollment(normalizedPeriodId);
-  return buildPeriodAccess({
+  const access = buildPeriodAccess({
     periodId: normalizedPeriodId,
     isEnrolled: result.isEnrolled,
     paymentStatus: result.paymentStatus || null,
     enrollmentId: extractId(result.enrollmentId)
   });
+  app.globalData._enrollmentCache[normalizedPeriodId] = access;
+  return access;
 }
 
 function redirectAfterCommunityDenied(targetUrl, title = '未支付暂不可互动') {

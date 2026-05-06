@@ -445,7 +445,7 @@ Page({
 
     // 跳转到课程详情页（学习内容）
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${sectionId}`
+      url: `/pages/course-detail/course-detail?id=${sectionId}&periodId=${this.data.periodId}`
     });
   },
 
@@ -477,7 +477,7 @@ Page({
 
     if (this.data.communityAccessState !== 'enabled') {
       wx.navigateTo({
-        url: `/pages/course-detail/course-detail?id=${sectionId}`
+        url: `/pages/course-detail/course-detail?id=${sectionId}&periodId=${this.data.periodId}`
       });
       return;
     }
@@ -622,7 +622,7 @@ Page({
     }
 
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${sectionId}&checkinId=${checkinId}`
+      url: `/pages/course-detail/course-detail?id=${sectionId}&checkinId=${checkinId}&periodId=${this.data.periodId}`
     });
   }
 });

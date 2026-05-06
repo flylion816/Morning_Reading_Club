@@ -19,7 +19,7 @@ const MINI_PROGRAM_CODE_ASSET_PATHS = [
   '/assets/images/mini-program-code.png',
   '../../assets/images/mini-program-code.png'
 ];
-const SECTION_CHECKIN_FETCH_LIMIT = 500;
+const SECTION_CHECKIN_FETCH_LIMIT = 30;
 const CHECKIN_CONTENT_FOLD_LINE_LIMIT = 6;
 const CHECKIN_CONTENT_FOLD_UNITS_PER_LINE = 18;
 
@@ -70,6 +70,34 @@ const POSTER_STYLE_PRESETS = [
   }
 ];
 
+function normalizeCheckinListResponse(response) {
+  if (!response) return [];
+
+  const candidates = [
+    response.data,
+    response.list,
+    response.items,
+    response.docs,
+    response.rows,
+    response
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  if (response.data && typeof response.data === 'object') {
+    if (Array.isArray(response.data.list)) return response.data.list;
+    if (Array.isArray(response.data.items)) return response.data.items;
+    if (Array.isArray(response.data.docs)) return response.data.docs;
+    if (Array.isArray(response.data.rows)) return response.data.rows;
+  }
+
+  return [];
+}
+
 Page({
   data: {
     courseId: null,
@@ -103,7 +131,10 @@ Page({
     checkinContentExpanded: {},
     highlightCheckinId: '',
     highlightCommentId: '',
-    highlightReplyId: ''
+    highlightReplyId: '',
+    checkinPage: 1,
+    checkinHasMore: false,
+    checkinLoadingMore: false
   },
 
   onLoad(options) {
@@ -117,6 +148,7 @@ Page({
     }
     this.setData({
       courseId: options.id,
+      periodId: options.periodId || null,
       paymentStatus: null,
       canAccessCommunity: false,
       communityAccessState: 'locked',
@@ -1308,22 +1340,30 @@ Page({
 
     try {
       console.log('开始加载课程详情，ID:', this.data.courseId);
-      const course = await courseService.getCourseDetail(this.data.courseId);
+
+      // 优化：当 periodId 已知时，①getCourseDetail 与 ②checkEnrollment 并行执行
+      const knownPeriodId = this.data.periodId;
+      let course, access;
+      if (knownPeriodId) {
+        [course, access] = await Promise.all([
+          courseService.getCourseDetail(this.data.courseId),
+          getPeriodAccess(knownPeriodId)
+        ]);
+      } else {
+        course = await courseService.getCourseDetail(this.data.courseId);
+        access = await getPeriodAccess(extractId(course.periodId));
+      }
+
+      const periodId = extractId(course.periodId) || knownPeriodId;
+
+      // 行为追踪（fire-and-forget，不阻塞渲染）
       activityService.track('course_view', {
         targetType: 'section',
         targetId: this.data.courseId,
-        periodId: extractId(course.periodId),
+        periodId,
         sectionId: this.data.courseId,
-        metadata: {
-          title: course.title || course.name || ''
-        }
+        metadata: { title: course.title || course.name || '' }
       });
-      console.log('课程详情加载成功:', course);
-      console.log('📌 course.periodId:', course.periodId);
-      console.log('📌 course.periodId._id:', course.periodId?._id);
-      console.log('📌 course.periodId 类型:', typeof course.periodId);
-      const periodId = extractId(course.periodId);
-      const access = await getPeriodAccess(periodId);
       const communityEnabled = access.communityAccessState === 'enabled';
       console.log('课程详情权限检查:', {
         courseId: this.data.courseId,
@@ -1380,15 +1420,8 @@ Page({
 
       // 从数据库加载打卡记录
       let dbCheckins = [];
+      let checkinHasMore = false;
       try {
-        // 直接按课节查询打卡记录，避免先拉整期数据再前端过滤
-        console.log(
-          '🔍 准备调用 getSectionCheckins，periodId:',
-          periodId,
-          'courseId:',
-          this.data.courseId
-        );
-
         if (!periodId) {
           console.error('❌ periodId 为空，无法加载打卡记录!');
           throw new Error('periodId 为空');
@@ -1397,30 +1430,14 @@ Page({
         const checkinRes = await courseService.getSectionCheckins(
           periodId,
           this.data.courseId,
-          { limit: SECTION_CHECKIN_FETCH_LIMIT }
+          { limit: SECTION_CHECKIN_FETCH_LIMIT, page: 1 }
         );
-        console.log('打卡API响应:', checkinRes);
 
         if (checkinRes) {
-          dbCheckins = checkinRes.list || checkinRes.items || checkinRes || [];
-
-          console.log('🔍 已按课节查询打卡记录，courseId:', this.data.courseId);
-          console.log('📊 当前课节打卡记录数:', dbCheckins.length);
-
-          if (dbCheckins.length > 0) {
-            console.log(
-              '📌 打卡记录来源用户ID:',
-              dbCheckins[0].userId?._id || dbCheckins[0].userId || 'unknown'
-            );
-            console.log(
-              '📌 当前登录用户ID:',
-              getApp().globalData.userInfo?.id ||
-                getApp().globalData.userInfo?._id ||
-                'unknown'
-            );
-          }
-
-          console.log('✅ 从数据库加载的打卡记录:', dbCheckins);
+          dbCheckins = normalizeCheckinListResponse(checkinRes);
+          const pagination = checkinRes.pagination;
+          checkinHasMore = !!(pagination && pagination.hasNext);
+          console.log(`📊 打卡记录首页: ${dbCheckins.length} 条，hasMore=${checkinHasMore}`);
         }
       } catch (error) {
         console.warn('从打卡API加载失败，尝试使用本地存储:', error);
@@ -1442,31 +1459,11 @@ Page({
 
       // 为每个打卡记录构建完整的数据结构
       const checkinWithComments = dbCheckins.map((checkin) => {
-        // 检查当前用户是否已经打过卡
         const checkinUserId =
           checkin.userId?._id || checkin.userId?.id || checkin.userId;
         if (currentUserId && String(checkinUserId) === String(currentUserId)) {
           hasUserCheckedIn = true;
         }
-
-        if (checkin.likes && checkin.likes.length > 0) {
-          console.log('--- Debug Likes (Checkin) ---', {
-            checkinId: checkin._id || checkin.id,
-            likes: checkin.likes,
-            currentUserId
-          });
-          checkin.likes.forEach((l) => {
-            const extractedLikeId = String(
-              l.userId?._id || l.userId?.id || l.userId || l
-            );
-            console.log('Comparing:', {
-              extractedLikeId,
-              currentUserIdCasted: String(currentUserId),
-              match: extractedLikeId === String(currentUserId)
-            });
-          });
-        }
-
         return this.buildCheckinItem(checkin);
       });
 
@@ -1489,7 +1486,10 @@ Page({
           course,
           calendar,
           checkedDays,
-          loading: false
+          loading: false,
+          checkinPage: 1,
+          checkinHasMore,
+          checkinLoadingMore: false
         },
         () => {
           this.loadNotificationReminder();
@@ -1506,6 +1506,49 @@ Page({
         title: '加载失败',
         icon: 'none'
       });
+    }
+  },
+
+  async loadMoreCheckins() {
+    if (this.data.checkinLoadingMore || !this.data.checkinHasMore) return;
+
+    this.setData({ checkinLoadingMore: true });
+    const nextPage = this.data.checkinPage + 1;
+
+    try {
+      const checkinRes = await courseService.getSectionCheckins(
+        this.data.periodId,
+        this.data.courseId,
+        { limit: SECTION_CHECKIN_FETCH_LIMIT, page: nextPage }
+      );
+
+      const newRawCheckins = normalizeCheckinListResponse(checkinRes || {});
+      const pagination = checkinRes?.pagination;
+      const hasMore = !!(pagination?.hasNext);
+
+      const app = getApp();
+      const currentUserId = app.globalData.userInfo?._id || app.globalData.userInfo?.id;
+      let hasUserCheckedIn = this.data.hasUserCheckedIn;
+
+      const newItems = newRawCheckins.map((checkin) => {
+        const checkinUserId = checkin.userId?._id || checkin.userId?.id || checkin.userId;
+        if (!hasUserCheckedIn && currentUserId && String(checkinUserId) === String(currentUserId)) {
+          hasUserCheckedIn = true;
+        }
+        return this.buildCheckinItem(checkin);
+      });
+
+      const currentComments = this.data.course?.comments || [];
+      this.setData({
+        'course.comments': [...currentComments, ...newItems],
+        checkinPage: nextPage,
+        checkinHasMore: hasMore,
+        checkinLoadingMore: false,
+        hasUserCheckedIn
+      });
+    } catch (error) {
+      console.error('加载更多打卡记录失败:', error);
+      this.setData({ checkinLoadingMore: false });
     }
   },
 

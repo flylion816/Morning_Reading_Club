@@ -136,11 +136,7 @@ Page({
       periodId: resolvedPeriodId
     });
 
-    // 并行加载课程详情和期次信息
-    await Promise.all([
-      this.loadCourseDetail(prefetchedCourse),
-      this.loadPeriods()
-    ]);
+    await this.loadCourseDetail(prefetchedCourse);
   },
 
   async loadCourseDetail(prefetchedCourse = null) {
