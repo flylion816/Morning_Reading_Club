@@ -138,8 +138,9 @@ onMounted(() => {
     quill.root.innerHTML = props.modelValue;
   }
 
-  // 监听编辑器变化
-  quill.on('text-change', () => {
+  // 监听编辑器变化（source='api' 是程序设置 innerHTML 触发的，忽略；只响应用户实际输入）
+  quill.on('text-change', (_delta: any, _old: any, source: string) => {
+    if (source !== 'user') return;
     const html = quill!.root.innerHTML;
     emit('update:modelValue', html === '<p><br></p>' ? '' : html);
   });

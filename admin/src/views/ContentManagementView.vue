@@ -266,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
@@ -357,15 +357,19 @@ async function loadSections() {
 }
 
 // 新增课节
-function handleAddSection() {
+async function handleAddSection() {
   isNewSection.value = true;
   contentEditorMode.value = 'markdown';
   editingSection.value = createEmptySectionDraft({
     periodId: selectedPeriodId.value || undefined,
     day: sections.value.length,
   });
-  captureSectionSnapshot();
+  sectionSnapshot.value = '';
   editDialogVisible.value = true;
+  // 等表单组件全部挂载（el-input-number 等会规范化值）后再拍快照
+  await nextTick();
+  await nextTick();
+  captureSectionSnapshot();
 }
 
 // 编辑课节
@@ -379,8 +383,12 @@ async function handleEditSection(section: Section) {
     const detail = (await periodApi.getSectionDetail(section._id)) as unknown as Section;
     contentEditorMode.value = detectContentEditorMode(detail.content);
     editingSection.value = normalizeSectionForm(detail);
-    captureSectionSnapshot();
+    sectionSnapshot.value = '';
     editDialogVisible.value = true;
+    // 等所有表单组件挂载并完成值规范化后再拍快照，避免误判为有改动
+    await nextTick();
+    await nextTick();
+    captureSectionSnapshot();
   } catch (err) {
     console.error('Failed to load section detail:', err);
     ElMessage.error('加载课节详情失败');
@@ -486,7 +494,8 @@ function captureSectionSnapshot() {
 }
 
 const isSectionDirty = computed(() => {
-  return editDialogVisible.value && sectionSnapshot.value !== buildDirtySnapshot();
+  // sectionSnapshot 为空时说明快照尚未就绪（等待组件挂载），不判断为脏
+  return editDialogVisible.value && sectionSnapshot.value !== '' && sectionSnapshot.value !== buildDirtySnapshot();
 });
 
 async function confirmDiscardChanges() {
