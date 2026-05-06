@@ -217,12 +217,57 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 :deep(.ql-toolbar.ql-snow) {
-  padding: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 每个按钮组垂直居中 */
+:deep(.ql-toolbar.ql-snow .ql-formats) {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+/* 所有工具栏按钮统一高度和对齐 */
+:deep(.ql-toolbar button),
+:deep(.ql-toolbar .ql-picker) {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+:deep(.ql-toolbar button svg) {
+  display: block;
+}
+
+/* 颜色选择器：色条+图标整体垂直居中 */
+:deep(.ql-color-picker) {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.ql-color-picker svg) {
+  display: block;
 }
 
 /* 字号下拉框宽度 */
 :deep(.ql-size) {
   width: 70px;
+}
+
+/* 下拉框 label 垂直居中 */
+:deep(.ql-picker-label) {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 4px;
 }
 
 /* 字号下拉选项中文标注 */
