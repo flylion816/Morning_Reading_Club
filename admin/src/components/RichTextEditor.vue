@@ -1,10 +1,10 @@
 <template>
   <div class="rich-text-editor">
-    <input 
-      ref="fileInput" 
-      type="file" 
-      accept="image/*" 
-      style="display: none" 
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      style="display: none"
       @change="handleImageSelect"
     />
     <div ref="editorRef" class="editor"></div>
@@ -17,6 +17,15 @@ import Quill from 'quill';
 import 'quill/dist/quill.core.css';
 import 'quill/dist/quill.snow.css';
 import { ElMessage } from 'element-plus';
+
+// 将字号格式配置为 inline style（font-size:16px），而非 class（ql-size-large）
+// 必须在任何 Quill 实例创建前执行，否则已有实例不会受影响
+const SizeStyle = Quill.import('attributors/style/size') as any;
+const FONT_SIZES = ['12px', false, '16px', '18px', '20px', '24px', '28px'];
+if (SizeStyle) {
+  SizeStyle.whitelist = FONT_SIZES;
+  Quill.register(SizeStyle, true);
+}
 
 interface Props {
   modelValue: string;
@@ -39,25 +48,22 @@ const editorRef = ref<HTMLElement>();
 const fileInput = ref<HTMLInputElement>();
 let quill: Quill | null = null;
 
-// 处理图片选择
 const handleImageSelect = async (e: Event) => {
   const target = e.target as HTMLInputElement;
   const files = target.files;
   if (!files || files.length === 0) return;
 
   const file = files[0];
-  
-  // 验证文件大小（限制 5MB）
+
   if (file.size > 5 * 1024 * 1024) {
     ElMessage.error('图片大小不能超过 5MB');
     return;
   }
 
   try {
-    // 上传图片
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const response = await fetch('/api/v1/upload', {
       method: 'POST',
       body: formData,
@@ -77,13 +83,11 @@ const handleImageSelect = async (e: Event) => {
       throw new Error('未获得图片 URL');
     }
 
-    // 在编辑器中插入图片
     if (quill) {
       const range = quill.getSelection();
       if (range) {
         quill.insertEmbed(range.index, 'image', imageUrl);
 
-        // 设置图片的样式属性（响应式宽度）
         setTimeout(() => {
           const imgElements = quill!.root.querySelectorAll('img');
           if (imgElements.length > 0) {
@@ -106,20 +110,19 @@ const handleImageSelect = async (e: Event) => {
     ElMessage.error(`图片上传失败: ${error instanceof Error ? error.message : '未知错误'}`);
   }
 
-  // 重置 input
   target.value = '';
 };
 
 onMounted(() => {
   if (!editorRef.value) return;
 
-  // 配置 Quill
   quill = new Quill(editorRef.value, {
     theme: 'snow',
     placeholder: props.placeholder,
     modules: {
       toolbar: [
         ['bold', 'italic', 'underline'],
+        [{ 'color': [] }, { 'size': FONT_SIZES }],
         ['image', 'link'],
         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
         [{ 'align': [] }],
@@ -127,18 +130,15 @@ onMounted(() => {
     }
   });
 
-  // 自定义图片处理 - 点击图片按钮时打开文件选择
   const toolbar = quill.getModule('toolbar');
   toolbar.addHandler('image', () => {
     fileInput.value?.click();
   });
 
-  // 设置初始内容
   if (props.modelValue) {
     quill.root.innerHTML = props.modelValue;
   }
 
-  // 监听编辑器变化（source='api' 是程序设置 innerHTML 触发的，忽略；只响应用户实际输入）
   quill.on('text-change', (_delta: any, _old: any, source: string) => {
     if (source !== 'user') return;
     const html = quill!.root.innerHTML;
@@ -146,7 +146,6 @@ onMounted(() => {
   });
 });
 
-// 监听 modelValue 变化
 watch(() => props.modelValue, (newVal) => {
   if (quill && quill.root.innerHTML !== newVal) {
     quill.root.innerHTML = newVal || '';
@@ -176,6 +175,36 @@ watch(() => props.modelValue, (newVal) => {
   font-weight: 700;
 }
 
+/* 确保粗体+斜体+下划线可叠加 */
+:deep(.ql-editor strong em),
+:deep(.ql-editor em strong) {
+  font-weight: 700;
+  font-style: italic;
+}
+
+:deep(.ql-editor strong u),
+:deep(.ql-editor u strong) {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+:deep(.ql-editor em u),
+:deep(.ql-editor u em) {
+  font-style: italic;
+  text-decoration: underline;
+}
+
+:deep(.ql-editor strong em u),
+:deep(.ql-editor strong u em),
+:deep(.ql-editor em strong u),
+:deep(.ql-editor em u strong),
+:deep(.ql-editor u strong em),
+:deep(.ql-editor u em strong) {
+  font-weight: 700;
+  font-style: italic;
+  text-decoration: underline;
+}
+
 :deep(.ql-editor img) {
   max-width: 100%;
   height: auto;
@@ -190,4 +219,25 @@ watch(() => props.modelValue, (newVal) => {
 :deep(.ql-toolbar.ql-snow) {
   padding: 8px;
 }
+
+/* 字号下拉框宽度 */
+:deep(.ql-size) {
+  width: 70px;
+}
+
+/* 字号下拉选项中文标注 */
+:deep(.ql-size .ql-picker-item[data-value="12px"]::before) { content: '12px 小'; }
+:deep(.ql-size .ql-picker-item[data-value="16px"]::before) { content: '16px 大'; }
+:deep(.ql-size .ql-picker-item[data-value="18px"]::before) { content: '18px'; }
+:deep(.ql-size .ql-picker-item[data-value="20px"]::before) { content: '20px'; }
+:deep(.ql-size .ql-picker-item[data-value="24px"]::before) { content: '24px 标题'; }
+:deep(.ql-size .ql-picker-item[data-value="28px"]::before) { content: '28px 大标题'; }
+
+/* 字号选中值显示标签 */
+:deep(.ql-size .ql-picker-label[data-value="12px"]::before) { content: '12px'; }
+:deep(.ql-size .ql-picker-label[data-value="16px"]::before) { content: '16px'; }
+:deep(.ql-size .ql-picker-label[data-value="18px"]::before) { content: '18px'; }
+:deep(.ql-size .ql-picker-label[data-value="20px"]::before) { content: '20px'; }
+:deep(.ql-size .ql-picker-label[data-value="24px"]::before) { content: '24px'; }
+:deep(.ql-size .ql-picker-label[data-value="28px"]::before) { content: '28px'; }
 </style>
