@@ -146,7 +146,7 @@ Page({
     return {
       title: period ? `${period.name || period.title} - 凡人共读` : '凡人共读',
       path: `/pages/period-detail/period-detail?periodId=${this.data.periodId}`,
-      imageUrl: '/assets/images/share-default.png'
+      imageUrl: '/assets/images/share-default.jpg'
     };
   }
 });

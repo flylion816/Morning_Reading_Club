@@ -117,7 +117,7 @@ Page({
     wx.shareAppMessage({
       title: `${insight.title || '晨读营'} - 小凡看见`,
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
-      imageUrl: '/assets/images/share-insight.png',
+      imageUrl: '/assets/images/share-insight.jpg',
       success() {
         wx.showToast({ title: '分享成功', icon: 'success' });
       },
@@ -157,7 +157,7 @@ Page({
     return {
       title: `${insight.title || '凡人共读'} - 致${userName}`,
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
-      imageUrl: '/assets/images/share-insight.png' // 使用新的"小凡看见"专属分享图
+      imageUrl: '/assets/images/share-insight.jpg' // 使用新的"小凡看见"专属分享图
     };
   },
 
@@ -171,7 +171,7 @@ Page({
     return {
       title: `${insight.title || '凡人共读'} - 致${userName}`,
       query: `id=${this.data.insightId}`,
-      imageUrl: '/assets/images/share-insight.png' // 使用新的"小凡看见"专属分享图
+      imageUrl: '/assets/images/share-insight.jpg' // 使用新的"小凡看见"专属分享图
     };
   }
 });

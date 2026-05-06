@@ -970,7 +970,7 @@ Page({
       return;
     }
 
-    const { checkinId, sectionId } = e.currentTarget.dataset || {};
+    const { checkinId, sectionId, periodId } = e.currentTarget.dataset || {};
     if (!checkinId) {
       wx.showToast({
         title: '打卡记录不存在',
@@ -979,7 +979,7 @@ Page({
       return;
     }
 
-    return this.openCheckinDetail(checkinId, sectionId);
+    return this.openCheckinDetail(checkinId, sectionId, periodId);
   },
 
   async loadUnreadNotificationCount() {
@@ -1004,8 +1004,9 @@ Page({
     });
   },
 
-  async openCheckinDetail(checkinId, sectionId = '') {
+  async openCheckinDetail(checkinId, sectionId = '', periodId = '') {
     let targetSectionId = sectionId;
+    let targetPeriodId = periodId;
 
     try {
       if (!targetSectionId) {
@@ -1016,6 +1017,7 @@ Page({
 
         const detail = await checkinService.getCheckinDetail(checkinId);
         targetSectionId = detail?.sectionId?._id || detail?.sectionId || '';
+        targetPeriodId = detail?.periodId?._id || detail?.periodId || targetPeriodId;
       }
 
       if (!targetSectionId) {
@@ -1023,7 +1025,9 @@ Page({
       }
 
       wx.navigateTo({
-        url: `/pages/course-detail/course-detail?id=${targetSectionId}&checkinId=${checkinId}`
+        url:
+          `/pages/course-detail/course-detail?id=${targetSectionId}&checkinId=${checkinId}` +
+          (targetPeriodId ? `&periodId=${targetPeriodId}` : '')
       });
     } catch (error) {
       console.error('打开打卡详情失败:', error);
@@ -1378,7 +1382,7 @@ Page({
     return {
       title: '凡人共读｜每日晨读',
       path: '/pages/index/index',
-      imageUrl: '/assets/images/share-default.png'
+      imageUrl: '/assets/images/share-default.jpg'
     };
   },
 
@@ -1389,7 +1393,7 @@ Page({
     return {
       title: '凡人共读｜每日晨读',
       query: '',
-      imageUrl: '/assets/images/share-default.png'
+      imageUrl: '/assets/images/share-default.jpg'
     };
   },
 

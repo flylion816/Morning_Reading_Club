@@ -462,7 +462,7 @@ Page({
     return {
       title: '凡人共读｜每日晨读',
       path: '/pages/index/index',
-      imageUrl: '/assets/images/share-default.png'
+      imageUrl: '/assets/images/share-default.jpg'
     };
   },
 
@@ -473,7 +473,7 @@ Page({
     return {
       title: '凡人共读｜每日晨读',
       query: '',
-      imageUrl: '/assets/images/share-default.png'
+      imageUrl: '/assets/images/share-default.jpg'
     };
   }
 });
