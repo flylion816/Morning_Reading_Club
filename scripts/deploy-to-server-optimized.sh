@@ -33,7 +33,18 @@ BACKEND_DIR="$PROJECT_ROOT/backend"
 # 服务器
 SERVER_IP="118.25.145.179"
 SERVER_USER="ubuntu"
-SSH_KEY="$HOME/.ssh/id_rsa"
+# 自动检测本机 SSH key，优先 id_ed25519，兼容旧版 id_rsa
+SSH_KEY=""
+for _key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/id_rsa" "$HOME/.ssh/id_ecdsa"; do
+  if [ -f "$_key" ]; then
+    SSH_KEY="$_key"
+    break
+  fi
+done
+if [ -z "$SSH_KEY" ]; then
+  echo "[✗] 未找到 SSH 私钥，请先生成：ssh-keygen -t ed25519"
+  exit 1
+fi
 SERVER_ROOT="/var/www/morning-reading"
 PM2_APP_NAME="morning-reading-backend"
 
@@ -72,7 +83,7 @@ main() {
 
   # 第 1 步：检查依赖
   log_section "第 1 步：检查依赖"
-  for cmd in sshpass npm tar ssh scp; do
+  for cmd in npm tar ssh scp; do
     check_command "$cmd" || exit 1
   done
 

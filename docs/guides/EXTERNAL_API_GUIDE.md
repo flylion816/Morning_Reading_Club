@@ -193,7 +193,8 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 | periodName | string | 二选一 | 期次名称，兼容旧调用方式 | `秩序之锚` |
 | sessionId | string | 二选一 | 课节 ID，推荐优先传 | `69f9bf45cb1c9ac0600ad55b` |
 | day | number | 二选一 | 第几天课程；仅在未传 `sessionId` 时使用 | `1` |
-| targetUserId | string | 必填 | 被看见人的用户 ID | `692fe16a962d558224f4133f` |
+| targetUserId | string | 二选一 | 被看见人的用户 ID，推荐优先传 | `692fe16a962d558224f4133f` |
+| targetUserName | string | 二选一 | 被看见人的昵称；昵称在系统内不唯一时报错，建议改用 `targetUserId` | `狮子` |
 | content | string | 二选一 | 小凡看见文字内容 | `我看见你今天很认真地完成了晨读。` |
 | imageUrl | string | 二选一 | 小凡看见图片地址 | `https://example.com/image.jpg` |
 
@@ -201,6 +202,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 
 - `periodId` 和 `periodName` 只需要传一个，推荐传 `periodId`
 - `sessionId` 和 `day` 只需要传一个，推荐传 `sessionId`
+- `targetUserId` 和 `targetUserName` 只需要传一个，推荐传 `targetUserId`；若同时传，以 `targetUserId` 为准
 - `content` 和 `imageUrl` 至少填写一个
 - 若同时传 `sessionId` 和 `day`，以 `sessionId` 为准
 - 历史调用里若仍传 `sectionId`，服务端当前仍兼容，但新接入建议统一使用 `sessionId`
@@ -256,6 +258,26 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 }
 ```
 
+缺少被看见人参数：
+
+```json
+{
+  "code": 400,
+  "message": "缺少必填字段：targetUserId 或 targetUserName",
+  "timestamp": 1778077219250
+}
+```
+
+`targetUserName` 对应多个用户：
+
+```json
+{
+  "code": 400,
+  "message": "昵称 \"狮子\" 对应多个用户，请改用 targetUserId 精确指定",
+  "timestamp": 1778077219250
+}
+```
+
 用户未报名期次：
 
 ```json
@@ -269,12 +291,23 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 ### 使用示例
 
 ```bash
+# 推荐：通过 targetUserId 指定被看见人
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
     "sessionId": "69f9bf45cb1c9ac0600ad55b",
     "targetUserId": "692fe16a962d558224f4133f",
+    "content": "我看见你今天很认真地完成了晨读。"
+  }'
+
+# 兼容：通过 targetUserName 指定被看见人（昵称须在系统内唯一）
+curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "periodId": "69f9bf45cb1c9ac0600ad556",
+    "sessionId": "69f9bf45cb1c9ac0600ad55b",
+    "targetUserName": "狮子",
     "content": "我看见你今天很认真地完成了晨读。"
   }'
 ```
@@ -305,9 +338,13 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 可以。系统会根据 `periodId/periodName + day` 查找对应课节，并自动绑定到该课节。
 
-### Q4: 为什么创建小凡看见时提示“用户未报名期次”？
+### Q4: 为什么创建小凡看见时提示”用户未报名期次”？
 
-说明 `targetUserId` 对应用户没有报名该期次。请先调用“获取期次用户列表”确认用户在该期次中。
+说明 `targetUserId` 对应用户没有报名该期次。请先调用”获取期次用户列表”确认用户在该期次中。
+
+### Q5: 传 `targetUserName` 时提示”昵称对应多个用户”怎么办？
+
+系统内存在同名用户，无法通过昵称唯一确定目标。请先调用”获取期次用户列表”获取用户的 `userId`，改用 `targetUserId` 传入。
 
 ---
 
@@ -315,6 +352,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-05-10 | v1.4 | 创建小凡看见接口支持 `targetUserName`（与 `targetUserId` 二选一） |
 | 2026-05-06 | v1.3 | 新增运行中期次查询接口；期次用户接口支持 `periodId` 或 `periodName`；示例更新为最新期次和第 1 天 `sessionId` |
 | 2026-03-31 | v1.2 | 收紧外部创建参数：`periodId/periodName` 二选一、`sessionId/day` 二选一；移除 `title` 请求字段；文档统一仅保留 `sessionId` 写法 |
 | 2026-03-27 | v1.1 | 新增 `periodName` 和 `title` 字段 |
@@ -322,4 +360,4 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 ---
 
-**最后更新**: 2026-05-06
+**最后更新**: 2026-05-10

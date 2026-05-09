@@ -2002,7 +2002,8 @@ async function createInsightFromExternal(req, res, next) {
       day,
       content,
       imageUrl,
-      targetUserId
+      targetUserId,
+      targetUserName
     } = req.body;
     const periodId = rawPeriodId || rawPeriodIdSnake || null;
     const sectionId =
@@ -2013,8 +2014,8 @@ async function createInsightFromExternal(req, res, next) {
       return res.status(400).json(errors.badRequest('缺少必填字段：periodId 或 periodName'));
     }
 
-    if (!targetUserId) {
-      return res.status(400).json(errors.badRequest('缺少必填字段：targetUserId'));
+    if (!targetUserId && !targetUserName) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：targetUserId 或 targetUserName'));
     }
 
     // 验证content和imageUrl至少有一个
@@ -2046,10 +2047,24 @@ async function createInsightFromExternal(req, res, next) {
       resolvedDay
     } = resolvedContext.body;
 
-    // 查询并验证被看见人是否存在
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json(errors.notFound(`被看见人不存在：ID ${targetUserId}`));
+    // 查询并验证被看见人是否存在（targetUserId 优先，否则按 targetUserName 查找）
+    let targetUser;
+    if (targetUserId) {
+      targetUser = await User.findById(targetUserId);
+      if (!targetUser) {
+        return res.status(404).json(errors.notFound(`被看见人不存在：ID ${targetUserId}`));
+      }
+    } else {
+      const matched = await User.find({ nickname: targetUserName }).limit(2);
+      if (matched.length === 0) {
+        return res.status(404).json(errors.notFound(`被看见人不存在：昵称 ${targetUserName}`));
+      }
+      if (matched.length > 1) {
+        return res.status(400).json(errors.badRequest(
+          `昵称 "${targetUserName}" 对应多个用户，请改用 targetUserId 精确指定`
+        ));
+      }
+      targetUser = matched[0];
     }
 
     // 检查被看见人是否已报名该期次
