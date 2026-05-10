@@ -144,7 +144,9 @@ describe('course-detail page markdown support', () => {
 
     expect(pageInstance.data.isCheckinDetailMode).toBe(true);
     expect(pageInstance.data.shareCheckinId).toBe('checkin_456');
+    expect(pageInstance.data.canShareCurrentCheckin).toBe(true);
     expect(wx.setNavigationBarTitle).toHaveBeenCalledWith({ title: '动态详情' });
+    expect(wx.showShareMenu).toHaveBeenCalled();
     expect(pageInstance.loadCourseDetail).toHaveBeenCalled();
   });
 
@@ -245,7 +247,7 @@ describe('course-detail page markdown support', () => {
     wx.showShareImageMenu = originalShowShareImageMenu;
   });
 
-  test('should disable sharing for other users detail checkin', () => {
+  test('should allow sharing for other users detail checkin', () => {
     pageInstance.setData({
       course: {
         comments: [
@@ -263,9 +265,10 @@ describe('course-detail page markdown support', () => {
 
     pageInstance.syncDetailCheckinState.call(pageInstance);
 
-    expect(pageInstance.data.detailCheckin.canShare).toBe(false);
-    expect(pageInstance.data.canShareCurrentCheckin).toBe(false);
-    expect(wx.hideShareMenu).toHaveBeenCalled();
+    expect(pageInstance.data.detailCheckin.canShare).toBe(true);
+    expect(pageInstance.data.canShareCurrentCheckin).toBe(true);
+    expect(wx.showShareMenu).toHaveBeenCalled();
+    expect(wx.hideShareMenu).not.toHaveBeenCalled();
   });
 
   test('should mark long checkin content as expandable and toggle expanded state', () => {

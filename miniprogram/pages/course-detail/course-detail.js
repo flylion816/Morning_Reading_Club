@@ -166,11 +166,11 @@ Page({
       focusReplyId: options.replyId || '',
       shareCheckinId: options.checkinId || '',
       shareCheckinUserName: '',
-      canShareCurrentCheckin: !options.checkinId,
+      canShareCurrentCheckin: true,
       checkinContentExpanded: {}
     });
 
-    this.updateShareMenu(!options.checkinId, !!options.checkinId);
+    this.updateShareMenu(true, !!options.checkinId);
 
     if (options.checkinId) {
       wx.setNavigationBarTitle({
@@ -500,9 +500,7 @@ Page({
       periodChip: periodTitle || sectionTitle,
       dateLabel: this.formatDetailDateTime(checkin.checkinDate),
       commentCount: Array.isArray(checkin.replies) ? checkin.replies.length : 0,
-      canShare:
-        this.isOwnCheckin(checkin) ||
-        (this.data.isCheckinDetailMode && !!this.data.canShareCurrentCheckin),
+      canShare: true,
       canExpandContent:
         checkin.canExpandContent ||
         this.shouldFoldCheckinContent(checkin.content),
@@ -522,9 +520,9 @@ Page({
     if (!targetCheckin) {
       this.setData({
         detailCheckin: null,
-        canShareCurrentCheckin: false
+        canShareCurrentCheckin: true
       });
-      this.updateShareMenu(false);
+      this.updateShareMenu(true);
       return;
     }
 
@@ -1370,17 +1368,11 @@ Page({
       prefetchedDetail ||
       (await checkinService.getCheckinDetail(this.data.shareCheckinId));
     const checkinItem = this.buildCheckinItem(detail || {});
-    const app = getApp();
-    const currentUserId =
-      app.globalData.userInfo?._id || app.globalData.userInfo?.id;
     const calendar = this.generateCalendar(course);
     const checkedDays = calendar.filter((d) => d.status === 'checked').length;
 
     course.comments = [checkinItem];
     this.syncShareCheckinMeta(course.comments);
-
-    const isOwnCheckinBool =
-      !!currentUserId && String(checkinItem.userId) === String(currentUserId);
 
     // 动态详情模式不渲染课程富文本内容，只关闭显示开关并移除正文字段，避免富文本块渲染
     const courseForDetail = {
@@ -1395,8 +1387,8 @@ Page({
         paymentStatus: access.paymentStatus || null,
         canAccessCommunity: !!access.canAccessCommunity,
         communityAccessState: access.communityAccessState || 'locked',
-        hasUserCheckedIn: isOwnCheckinBool,
-        canShareCurrentCheckin: isOwnCheckinBool,
+        hasUserCheckedIn: this.isOwnCheckin(checkinItem),
+        canShareCurrentCheckin: true,
         commentExpanded: { [checkinItem.id]: true },
         commentLoading: {},
         notificationReminder: '',
@@ -2541,14 +2533,6 @@ Page({
     if (!detailCheckin) {
       wx.showToast({
         title: '暂无可生成的内容',
-        icon: 'none'
-      });
-      return;
-    }
-
-    if (this.data.isCheckinDetailMode && !this.data.canShareCurrentCheckin) {
-      wx.showToast({
-        title: '仅自己的小凡看见可分享',
         icon: 'none'
       });
       return;
