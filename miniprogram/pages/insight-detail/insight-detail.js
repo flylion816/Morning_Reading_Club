@@ -220,6 +220,18 @@ Page({
     const { posterTempFilePath } = this.data;
     if (!posterTempFilePath) return;
 
+    // wx.showShareImageMenu：基础库 2.14.3+，弹出原生图片分享菜单（含"发送给朋友"）
+    if (typeof wx.showShareImageMenu === 'function') {
+      wx.showShareImageMenu({
+        path: posterTempFilePath,
+        fail() {
+          wx.showToast({ title: '分享失败，请长按图片操作', icon: 'none' });
+        }
+      });
+      return;
+    }
+
+    // 降级：wx.shareImageMessage（2.22.0+）
     if (typeof wx.shareImageMessage === 'function') {
       wx.shareImageMessage({
         imagePath: posterTempFilePath,
@@ -227,21 +239,11 @@ Page({
           wx.showToast({ title: '请长按图片选择转发', icon: 'none' });
         }
       });
-    } else {
-      wx.saveImageToPhotosAlbum({
-        filePath: posterTempFilePath,
-        success() {
-          wx.showModal({
-            title: '提示',
-            content: '已保存到相册，请在相册中长按图片选择"发送给朋友"',
-            showCancel: false
-          });
-        },
-        fail() {
-          wx.showToast({ title: '请长按图片选择转发', icon: 'none' });
-        }
-      });
+      return;
     }
+
+    // 最终降级：提示用户长按
+    wx.showToast({ title: '请长按图片选择转发', icon: 'none' });
   },
 
   _stripHtmlForCanvas(html) {
