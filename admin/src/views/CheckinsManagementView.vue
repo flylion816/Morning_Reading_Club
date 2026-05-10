@@ -120,7 +120,6 @@
               <div class="user-cell">
                 <div v-if="row.userId && typeof row.userId === 'object'" class="user-info">
                   <div class="user-name">{{ row.userId.nickname }}</div>
-                  <div class="user-id">{{ row.userId.openid }}</div>
                 </div>
                 <div v-else>未知用户</div>
               </div>
@@ -137,7 +136,7 @@
           </el-table-column>
 
           <!-- 课程 -->
-          <el-table-column label="课程" width="150">
+          <el-table-column label="课程" width="300">
             <template #default="{ row }">
               <div v-if="row.sectionId && typeof row.sectionId === 'object'">
                 Day {{ row.sectionId.day }} - {{ row.sectionId.title }}
@@ -153,56 +152,22 @@
             </template>
           </el-table-column>
 
-          <!-- 阅读时间 -->
-          <el-table-column label="阅读时间(分)" width="120">
+          <!-- 打卡时间（分） -->
+          <el-table-column label="打卡时间（分）" width="130">
             <template #default="{ row }">
               {{ row.readingTime || '-' }}
             </template>
           </el-table-column>
 
-          <!-- 完成度 -->
-          <el-table-column label="完成度" width="100">
-            <template #default="{ row }">
-              <el-progress
-                :percentage="row.completionRate || 0"
-                :color="getProgressColor"
-                :text-inside="true"
-                :stroke-width="20"
-              />
-            </template>
-          </el-table-column>
-
-          <!-- 心情 -->
-          <el-table-column label="心情" width="80">
-            <template #default="{ row }">
-              <el-tag v-if="row.mood" :type="getMoodColor(row.mood)">
-                {{ getMoodLabel(row.mood) }}
-              </el-tag>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-
-          <!-- 积分 -->
-          <el-table-column label="积分" width="80">
-            <template #default="{ row }">
-              <el-tag type="success">{{ row.points || 0 }}</el-tag>
-            </template>
-          </el-table-column>
-
-          <!-- 日记 -->
-          <el-table-column label="日记" width="80">
-            <template #default="{ row }">
-              <el-tag v-if="row.note && row.note.trim()" type="info">有内容</el-tag>
-              <span v-else style="color: #999">无</span>
-            </template>
-          </el-table-column>
-
           <!-- 操作 -->
-          <el-table-column label="操作" width="150" fixed="right">
+          <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" size="small" @click="handleViewDetail(row)"
                   >详情</el-button
+                >
+                <el-button type="warning" size="small" @click="handleEditCheckin(row)"
+                  >修改</el-button
                 >
                 <el-button type="danger" size="small" @click="handleDeleteCheckin(row)"
                   >删除</el-button
@@ -212,6 +177,30 @@
           </el-table-column>
         </el-table>
       </el-card>
+
+      <!-- 修改弹窗 -->
+      <el-dialog v-model="editDialogVisible" title="修改打卡内容" width="600px">
+        <el-form v-if="editingCheckin" :model="editForm" label-width="80px">
+          <el-form-item label="打卡内容">
+            <el-input
+              v-model="editForm.note"
+              type="textarea"
+              :rows="8"
+              placeholder="打卡内容"
+            />
+          </el-form-item>
+          <el-form-item label="可见范围">
+            <el-radio-group v-model="editForm.isPublic">
+              <el-radio :label="true">公开</el-radio>
+              <el-radio :label="false">仅管理员可见</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="editLoading" @click="handleUpdateCheckin">保存</el-button>
+        </template>
+      </el-dialog>
 
       <!-- 详情弹窗 -->
       <el-dialog v-model="detailDialogVisible" title="打卡详情" width="700px">
@@ -339,6 +328,11 @@ const total = ref(0);
 const detailDialogVisible = ref(false);
 const selectedCheckin = ref<Checkin | null>(null);
 
+const editDialogVisible = ref(false);
+const editingCheckin = ref<Checkin | null>(null);
+const editLoading = ref(false);
+const editForm = ref({ note: '', isPublic: true });
+
 const filters = ref({
   search: '',
   periodId: '',
@@ -426,9 +420,10 @@ const loadCheckins = async () => {
     checkins.value = res.list;
     total.value = res.pagination.total;
     stats.value = {
+      ...stats.value,
       totalCount: res.stats.totalCount,
       todayCount: res.stats.todayCount,
-      uniqueUserCount: total.value // Use pagination total as user count is calculated differently
+      uniqueUserCount: total.value
     };
   } catch (error) {
     ElMessage.error('加载打卡列表失败');
@@ -470,6 +465,28 @@ const loadPeriods = async () => {
 const handleViewDetail = (checkin: Checkin) => {
   selectedCheckin.value = checkin;
   detailDialogVisible.value = true;
+};
+
+const handleEditCheckin = (checkin: Checkin) => {
+  editingCheckin.value = checkin;
+  editForm.value = { note: checkin.note || '', isPublic: checkin.isPublic !== false };
+  editDialogVisible.value = true;
+};
+
+const handleUpdateCheckin = async () => {
+  if (!editingCheckin.value) return;
+  editLoading.value = true;
+  try {
+    await api.put(`/admin/checkins/${editingCheckin.value._id}`, editForm.value);
+    ElMessage.success('修改成功');
+    editDialogVisible.value = false;
+    loadCheckins();
+  } catch (error) {
+    ElMessage.error('修改失败');
+    console.error(error);
+  } finally {
+    editLoading.value = false;
+  }
 };
 
 const handleDeleteCheckin = (checkin: Checkin) => {

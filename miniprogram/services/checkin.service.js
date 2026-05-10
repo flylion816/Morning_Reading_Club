@@ -123,6 +123,16 @@ class CheckinService {
   }
 
   /**
+   * 更新打卡
+   * @param {string} checkinId 打卡ID
+   * @param {object} data 更新数据（note, isPublic 等）
+   * @returns {Promise}
+   */
+  updateCheckin(checkinId, data) {
+    return request.put(`/checkins/${checkinId}`, data);
+  }
+
+  /**
    * 删除打卡
    * @param {number} checkinId 打卡ID
    * @returns {Promise}

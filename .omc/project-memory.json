@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1774702544714,
+  "lastScanned": 1774912847601,
   "projectRoot": "/Users/pica_1/我的坚果云/flylion/AI项目开发/七个习惯晨读营",
   "techStack": {
     "languages": [
@@ -70,7 +70,7 @@
       "path": "admin",
       "purpose": null,
       "fileCount": 17,
-      "lastAccessed": 1774702544577,
+      "lastAccessed": 1774912847567,
       "keyFiles": [
         "FRAMEWORK_COMPLETION_REPORT.md",
         "README.md",
@@ -83,7 +83,7 @@
       "path": "backend",
       "purpose": null,
       "fileCount": 22,
-      "lastAccessed": 1774702544577,
+      "lastAccessed": 1774912847573,
       "keyFiles": [
         "Dockerfile",
         "admin-server.js",
@@ -96,7 +96,7 @@
       "path": "backups",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1774702544582,
+      "lastAccessed": 1774912847574,
       "keyFiles": [
         "db_backup_20251207_105446.tar.gz",
         "db_backup_20251207_105505.tar.gz"
@@ -106,7 +106,7 @@
       "path": "config",
       "purpose": "Configuration files",
       "fileCount": 6,
-      "lastAccessed": 1774702544582,
+      "lastAccessed": 1774912847576,
       "keyFiles": [
         "commitlint.config.js",
         "cypress.config.js"
@@ -116,7 +116,7 @@
       "path": "coverage",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1774702544582,
+      "lastAccessed": 1774912847576,
       "keyFiles": [
         "clover.xml",
         "coverage-final.json",
@@ -127,14 +127,14 @@
       "path": "cypress",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1774702544583,
+      "lastAccessed": 1774912847578,
       "keyFiles": []
     },
     "database": {
       "path": "database",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1774702544583,
+      "lastAccessed": 1774912847578,
       "keyFiles": [
         "README.md",
         "init-data.sql",
@@ -145,7 +145,7 @@
       "path": "deploy",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1774702544583,
+      "lastAccessed": 1774912847579,
       "keyFiles": [
         "docker-compose.prod.yml",
         "docker-compose.yml"
@@ -155,7 +155,7 @@
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 8,
-      "lastAccessed": 1774702544584,
+      "lastAccessed": 1774912847580,
       "keyFiles": [
         "PRD-完整业务逻辑文档.md",
         "TEST-CASES-完整测试用例集.md",
@@ -168,7 +168,7 @@
       "path": "logs",
       "purpose": null,
       "fileCount": 6,
-      "lastAccessed": 1774702544584,
+      "lastAccessed": 1774912847580,
       "keyFiles": [
         "combined.log",
         "debug.log",
@@ -181,7 +181,7 @@
       "path": "miniprogram",
       "purpose": null,
       "fileCount": 5,
-      "lastAccessed": 1774702544585,
+      "lastAccessed": 1774912847581,
       "keyFiles": [
         "app.js",
         "app.json",
@@ -193,7 +193,7 @@
       "path": "openspec",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1774702544585,
+      "lastAccessed": 1774912847582,
       "keyFiles": [
         "AGENTS.md",
         "project.md"
@@ -203,7 +203,7 @@
       "path": "scripts",
       "purpose": "Build/utility scripts",
       "fileCount": 19,
-      "lastAccessed": 1774702544585,
+      "lastAccessed": 1774912847583,
       "keyFiles": [
         "1-initial-setup.sh",
         "2-install-dependencies.sh",
@@ -216,14 +216,14 @@
       "path": "tests",
       "purpose": "Test files",
       "fileCount": 0,
-      "lastAccessed": 1774702544585,
+      "lastAccessed": 1774912847583,
       "keyFiles": []
     },
     "admin/dist": {
       "path": "admin/dist",
       "purpose": "Distribution/build output",
       "fileCount": 2,
-      "lastAccessed": 1774702544586,
+      "lastAccessed": 1774912847584,
       "keyFiles": [
         "favicon.ico",
         "index.html"
@@ -233,7 +233,7 @@
       "path": "miniprogram/__tests__",
       "purpose": "Test files",
       "fileCount": 3,
-      "lastAccessed": 1774702544588,
+      "lastAccessed": 1774912847586,
       "keyFiles": [
         "fixtures.js",
         "framework.spec.js",
@@ -244,7 +244,7 @@
       "path": "miniprogram/assets",
       "purpose": "Static assets",
       "fileCount": 2,
-      "lastAccessed": 1774702544588,
+      "lastAccessed": 1774912847586,
       "keyFiles": [
         "README.md"
       ]
@@ -253,14 +253,14 @@
       "path": "miniprogram/components",
       "purpose": "UI components",
       "fileCount": 0,
-      "lastAccessed": 1774702544588,
+      "lastAccessed": 1774912847587,
       "keyFiles": []
     },
     "miniprogram/config": {
       "path": "miniprogram/config",
       "purpose": "Configuration files",
       "fileCount": 3,
-      "lastAccessed": 1774702544589,
+      "lastAccessed": 1774912847587,
       "keyFiles": [
         "api.config.js",
         "constants.js",
@@ -271,232 +271,154 @@
       "path": "miniprogram/pages",
       "purpose": "Page components",
       "fileCount": 0,
-      "lastAccessed": 1774702544589,
+      "lastAccessed": 1774912847588,
       "keyFiles": []
     }
   },
   "hotPaths": [
     {
-      "path": "miniprogram/pages/profile/profile.js",
-      "accessCount": 20,
-      "lastAccessed": 1774757291402,
-      "type": "file"
-    },
-    {
-      "path": "backend/tests/unit/controllers/user.controller.test.js",
+      "path": "backend/src/controllers/insight.controller.js",
       "accessCount": 11,
-      "lastAccessed": 1774757444953,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/app.json",
-      "accessCount": 11,
-      "lastAccessed": 1774757718075,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/login/login.js",
-      "accessCount": 7,
-      "lastAccessed": 1774756958228,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/profile/profile.wxml",
-      "accessCount": 7,
-      "lastAccessed": 1774756981564,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/profile/profile.wxss",
-      "accessCount": 6,
-      "lastAccessed": 1774750139307,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/services/user.service.js",
-      "accessCount": 6,
-      "lastAccessed": 1774756932271,
-      "type": "file"
-    },
-    {
-      "path": "backend/src/controllers/user.controller.js",
-      "accessCount": 6,
-      "lastAccessed": 1774757409803,
-      "type": "file"
-    },
-    {
-      "path": "backend/src/services/subscribe-message.service.js",
-      "accessCount": 5,
-      "lastAccessed": 1774750063297,
-      "type": "file"
-    },
-    {
-      "path": "backend/src/models/User.js",
-      "accessCount": 5,
-      "lastAccessed": 1774756925054,
-      "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 5,
-      "lastAccessed": 1774757042736,
+      "lastAccessed": 1774943740894,
       "type": "directory"
     },
     {
-      "path": "backend/src/routes/user.routes.js",
-      "accessCount": 4,
-      "lastAccessed": 1774756927437,
+      "path": "docs/guides/EXTERNAL_API_GUIDE.md",
+      "accessCount": 9,
+      "lastAccessed": 1774912974242,
       "type": "file"
     },
     {
-      "path": "miniprogram/pages/login/login.wxml",
-      "accessCount": 4,
-      "lastAccessed": 1774756958741,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/login/login.wxss",
+      "path": "admin/src/views/InsightsManagementView.vue",
       "accessCount": 3,
-      "lastAccessed": 1774756959474,
+      "lastAccessed": 1774913430037,
       "type": "file"
     },
     {
-      "path": "miniprogram/config/constants.js",
+      "path": "backend/src",
       "accessCount": 2,
-      "lastAccessed": 1774750047261,
-      "type": "file"
+      "lastAccessed": 1774912880343,
+      "type": "directory"
     },
     {
-      "path": "miniprogram/pages/my/my.js",
+      "path": "backend/src/utils/response.js",
       "accessCount": 2,
-      "lastAccessed": 1774756947946,
-      "type": "file"
+      "lastAccessed": 1774912906116,
+      "type": "directory"
     },
     {
-      "path": "miniprogram/pages/my/my.wxml",
-      "accessCount": 2,
-      "lastAccessed": 1774756948486,
-      "type": "file"
+      "path": "backend",
+      "accessCount": 1,
+      "lastAccessed": 1774912856741,
+      "type": "directory"
     },
     {
-      "path": "miniprogram/pages/my/my.wxss",
-      "accessCount": 2,
-      "lastAccessed": 1774756948920,
-      "type": "file"
+      "path": "admin/src/views",
+      "accessCount": 1,
+      "lastAccessed": 1774913413299,
+      "type": "directory"
     },
     {
-      "path": "miniprogram/pages/my/my.json",
-      "accessCount": 2,
-      "lastAccessed": 1774756949315,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/edit-profile/edit-profile.js",
-      "accessCount": 2,
-      "lastAccessed": 1774756950056,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/edit-profile/edit-profile.wxml",
-      "accessCount": 2,
-      "lastAccessed": 1774756950426,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/edit-profile/edit-profile.wxss",
-      "accessCount": 2,
-      "lastAccessed": 1774756950808,
-      "type": "file"
-    },
-    {
-      "path": "miniprogram/pages/edit-profile/edit-profile.json",
-      "accessCount": 2,
-      "lastAccessed": 1774756951553,
+      "path": "miniprogram/app.json",
+      "accessCount": 1,
+      "lastAccessed": 1774945822734,
       "type": "file"
     },
     {
       "path": "miniprogram/app.js",
       "accessCount": 1,
-      "lastAccessed": 1774747924865,
+      "lastAccessed": 1774945823167,
       "type": "file"
     },
     {
-      "path": "miniprogram/pages/index/index.wxml",
+      "path": "miniprogram/pages/my/my.js",
       "accessCount": 1,
-      "lastAccessed": 1774747936669,
+      "lastAccessed": 1774945826431,
       "type": "file"
     },
     {
-      "path": "miniprogram/services/auth.service.js",
+      "path": "miniprogram/pages/profile/profile.js",
       "accessCount": 1,
-      "lastAccessed": 1774747940519,
+      "lastAccessed": 1774945829556,
+      "type": "file"
+    },
+    {
+      "path": "miniprogram/pages/edit-profile/edit-profile.js",
+      "accessCount": 1,
+      "lastAccessed": 1774945829893,
       "type": "file"
     },
     {
       "path": "miniprogram/pages/notification-settings/notification-settings.js",
       "accessCount": 1,
-      "lastAccessed": 1774747941010,
+      "lastAccessed": 1774945830160,
       "type": "file"
     },
     {
-      "path": "miniprogram/pages/notification-settings/notification-settings.wxml",
+      "path": "backend/src/models/User.js",
       "accessCount": 1,
-      "lastAccessed": 1774747941186,
+      "lastAccessed": 1774945832804,
       "type": "file"
     },
     {
-      "path": "miniprogram/services/subscribe-message.service.js",
+      "path": "backend/src/routes/user.routes.js",
       "accessCount": 1,
-      "lastAccessed": 1774747944681,
+      "lastAccessed": 1774945835720,
       "type": "file"
     },
     {
-      "path": "backend/src/models/Notification.js",
+      "path": "backend/src/controllers/user.controller.js",
       "accessCount": 1,
-      "lastAccessed": 1774747945140,
+      "lastAccessed": 1774945836301,
       "type": "file"
     },
     {
-      "path": "backend/src/controllers/notification.controller.js",
+      "path": "miniprogram/services/user.service.js",
       "accessCount": 1,
-      "lastAccessed": 1774747951573,
+      "lastAccessed": 1774945836362,
       "type": "file"
     },
     {
-      "path": "backend/src/models/SubscribeMessageGrant.js",
+      "path": "miniprogram/pages/login/login.js",
       "accessCount": 1,
-      "lastAccessed": 1774747951654,
+      "lastAccessed": 1774945839369,
       "type": "file"
     },
     {
-      "path": "backend/src/routes/notification.routes.js",
+      "path": "miniprogram/services/auth.service.js",
       "accessCount": 1,
-      "lastAccessed": 1774747955625,
+      "lastAccessed": 1774945842246,
       "type": "file"
     },
     {
-      "path": "miniprogram/assets/icons/home.svg",
+      "path": "backend/src/controllers/auth.controller.js",
       "accessCount": 1,
-      "lastAccessed": 1774757680247,
+      "lastAccessed": 1774945842667,
       "type": "file"
     },
     {
-      "path": "miniprogram/assets/icons/user.svg",
+      "path": "miniprogram/pages/my/my.wxml",
       "accessCount": 1,
-      "lastAccessed": 1774757681212,
+      "lastAccessed": 1774945845292,
       "type": "file"
     },
     {
-      "path": "miniprogram/assets/icons/book.svg",
+      "path": "miniprogram/config/constants.js",
       "accessCount": 1,
-      "lastAccessed": 1774757696408,
+      "lastAccessed": 1774945851495,
       "type": "file"
     },
     {
-      "path": "miniprogram/assets/icons/book-active.svg",
+      "path": "miniprogram/pages/profile/profile.wxml",
       "accessCount": 1,
-      "lastAccessed": 1774757699270,
+      "lastAccessed": 1774945851905,
       "type": "file"
+    },
+    {
+      "path": "miniprogram/pages/profile",
+      "accessCount": 1,
+      "lastAccessed": 1775000083368,
+      "type": "directory"
     }
   ],
   "userDirectives": []

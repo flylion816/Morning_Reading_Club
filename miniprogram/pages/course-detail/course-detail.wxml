@@ -153,6 +153,8 @@
         <text>{{detailCheckin.likeCount || 0}}</text>
       </view>
       <button wx:if="{{detailCheckin.canShare}}" class="dynamic-bottom-action dynamic-bottom-share" open-type="share">↗</button>
+      <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action" bindtap="handleEditCheckin">编辑</view>
+      <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-delete" bindtap="handleDeleteCheckin">删除</view>
     </view>
   </block>
 

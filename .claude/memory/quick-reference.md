@@ -83,6 +83,11 @@
   - 查看详情：[issues/frontend/api-integration.md](./issues/frontend/api-integration.md)
   - 典型问题：问题27, 问题28, 问题29, 问题30
 
+- **接口返回的是对象不是数组，`map` 报错**
+  - 常见原因：`preserveResponse: true` 后直接把响应包装对象当数组处理
+  - 查看详情：[issues/frontend/api-integration.md](./issues/frontend/api-integration.md)
+  - 典型问题：问题35
+
 ### 🚀 部署和基础设施问题 ⭐ **线上部署必读**
 
 - **页面白屏 + JavaScript 加载失败（MIME 类型错误）**
@@ -118,6 +123,7 @@
 | `数据查询为空`           | $or查询失效、条件错误       | [architecture/insights-feature.md](./architecture/insights-feature.md) |
 | `样式不生效`             | WXSS权重、路径错误          | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md)         |
 | `日期格式错误`           | ISO转换、时区差异           | [issues/common/datetime.md](./issues/common/datetime.md)               |
+| `map is not a function`  | 响应对象误当数组使用        | [issues/frontend/api-integration.md](./issues/frontend/api-integration.md) |
 | `点击按钮触发父事件`     | Button标签事件冒泡          | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
 | `嵌套点击失效`           | bindtap无法阻止冒泡         | [issues/frontend/wxml-wxss.md](./issues/frontend/wxml-wxss.md) - 问题4 |
 
@@ -144,6 +150,7 @@
    - 用户ID字段不统一 (`id` vs `_id`)
    - 响应unwrapping失败
    - 错误格式不标准
+   - 接口返回对象却被当数组，导致 `map` 报错
    - 📖 [查看详情](./architecture/user-id-field.md)
 
 2. **认证中间件缺失**

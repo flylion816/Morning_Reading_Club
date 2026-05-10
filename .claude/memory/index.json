@@ -150,6 +150,11 @@
       "problems": [27, 28]
     },
     {
+      "term": "map is not a function",
+      "files": ["issues/frontend/api-integration.md"],
+      "problems": [35]
+    },
+    {
       "term": "日期格式",
       "files": ["issues/common/datetime.md"],
       "problems": [6, 7]
@@ -166,6 +171,13 @@
     }
   ],
   "recentProblems": [
+    {
+      "id": 35,
+      "title": "课程详情页打卡记录响应为对象导致 map 失败",
+      "file": "issues/frontend/api-integration.md",
+      "keywords": ["preserveResponse", "map is not a function", "data数组", "课程详情"],
+      "lastUpdated": "2026-05-06"
+    },
     {
       "id": 31,
       "title": "路由认证中间件缺失",

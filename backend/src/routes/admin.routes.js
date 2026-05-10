@@ -58,6 +58,11 @@ router.patch(
 // 打卡管理路由（管理员）
 router.get('/admin/checkins', adminAuthMiddleware, checkinController.getAdminCheckins);
 router.get('/admin/checkins/stats', adminAuthMiddleware, checkinController.getCheckinStats);
+router.put(
+  '/admin/checkins/:checkinId',
+  adminAuthMiddleware,
+  checkinController.updateAdminCheckin
+);
 router.delete(
   '/admin/checkins/:checkinId',
   adminAuthMiddleware,

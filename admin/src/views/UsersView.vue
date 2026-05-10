@@ -42,7 +42,6 @@
           </el-table-column>
 
           <el-table-column prop="nickname" label="用户名" width="120" />
-          <el-table-column prop="email" label="邮箱" min-width="180" />
           <el-table-column prop="phone" label="电话" width="140" />
           <el-table-column prop="signature" label="个人签名" min-width="150">
             <template #default="{ row }">

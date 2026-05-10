@@ -45,7 +45,10 @@
       "Bash(cd /var/www/Morning_Reading_Club/backend && npm test 2>&1)",
       "Bash(ssh root@wx.shubai01.com \"tail -50 /var/log/nginx/error.log\" 2>&1)",
       "Bash(grep:*)",
-      "Bash(ghostty +list-themes:*)"
+      "Bash(ghostty +list-themes:*)",
+      "Bash(claude install:*)",
+      "Skill(claude-hud:setup)",
+      "Skill(claude-hud:configure)"
     ],
     "deny": [],
     "ask": []

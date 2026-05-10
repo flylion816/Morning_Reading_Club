@@ -174,7 +174,7 @@ Page({
 
     if (options.checkinId) {
       wx.setNavigationBarTitle({
-        title: '动态详情'
+        title: '打卡详情'
       });
     }
     this.loadCourseDetail();
@@ -501,6 +501,7 @@ Page({
       dateLabel: this.formatDetailDateTime(checkin.checkinDate),
       commentCount: Array.isArray(checkin.replies) ? checkin.replies.length : 0,
       canShare: true,
+      isOwner: this.isOwnCheckin(checkin),
       canExpandContent:
         checkin.canExpandContent ||
         this.shouldFoldCheckinContent(checkin.content),
@@ -2012,6 +2013,38 @@ Page({
           }
         }
       });
+    });
+  },
+
+  handleEditCheckin() {
+    const { detailCheckin } = this.data;
+    if (!detailCheckin) return;
+    wx.navigateTo({
+      url: `/pages/checkin/checkin?checkinId=${detailCheckin.id}&sectionId=${detailCheckin.sectionId}&periodId=${detailCheckin.periodId}`
+    });
+  },
+
+  handleDeleteCheckin() {
+    const { detailCheckin } = this.data;
+    if (!detailCheckin) return;
+    wx.showModal({
+      title: '确认删除',
+      content: '删除后无法恢复，确定要删除这条打卡吗？',
+      confirmText: '删除',
+      confirmColor: '#e74c3c',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          wx.showLoading({ title: '删除中...' });
+          await checkinService.deleteCheckin(detailCheckin.id);
+          wx.hideLoading();
+          wx.showToast({ title: '删除成功', icon: 'success' });
+          setTimeout(() => wx.navigateBack(), 1500);
+        } catch (error) {
+          wx.hideLoading();
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
+        }
+      }
     });
   },
 

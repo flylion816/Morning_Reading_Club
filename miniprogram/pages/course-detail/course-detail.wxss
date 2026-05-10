@@ -1069,6 +1069,11 @@
   border: none;
 }
 
+.dynamic-bottom-delete {
+  color: #e74c3c;
+  border-color: #fde8e6;
+}
+
 /* 允许长按选择文字 */
 .section-content,
 .dynamic-detail-content,

@@ -279,7 +279,7 @@
           <el-card style="margin-top: 24px">
             <template #header>
               <div class="card-header">
-                <span>👤 用户行为明细</span>
+                <span>👤 当日用户行为明细</span>
               </div>
             </template>
 
@@ -599,8 +599,14 @@ const loadActivityAnalytics = async () => {
   try {
     const data = await analyticsApi.getActivityAnalytics(getDateParams());
     activitySummary.value = data.summary || activitySummary.value;
-    activityDailyRows.value = data.daily || [];
+    activityDailyRows.value = (data.daily || []).sort((a: any, b: any) => b.date.localeCompare(a.date));
     activityDetailRows.value = data.details || [];
+
+    const activeMap = new Map(activityDailyRows.value.map((r: any) => [r.date, r.activeUserCount || 0]));
+    dailyStats.value = dailyStats.value.map((row: any) => ({
+      ...row,
+      activeUsers: activeMap.get(row.date) || row.activeUsers || 0
+    }));
 
     await nextTick();
     initActivityChart(activityDailyRows.value);
@@ -683,7 +689,7 @@ const loadAnalytics = async () => {
       dailyStatsMap.set(date, row);
     });
     const dailyStatsData = Array.from(dailyStatsMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
+      b.date.localeCompare(a.date)
     );
     dailyStats.value = dailyStatsData;
 

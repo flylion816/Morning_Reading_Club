@@ -673,6 +673,34 @@ async function getAdminCheckins(req, res, next) {
 }
 
 // 【Admin】删除打卡记录（管理员可删除任何记录）
+async function updateAdminCheckin(req, res, next) {
+  try {
+    const { checkinId } = req.params;
+    const { note, isPublic } = req.body;
+
+    const checkin = await Checkin.findById(checkinId);
+    if (!checkin) {
+      return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    if (note !== undefined) checkin.note = note;
+    if (isPublic !== undefined) checkin.isPublic = isPublic;
+
+    await checkin.save();
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'checkins',
+      documentId: checkin._id.toString(),
+      data: checkin.toObject()
+    });
+
+    res.json(success(checkin, '打卡记录已更新'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function deleteAdminCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
@@ -919,6 +947,7 @@ module.exports = {
   unlikeCheckin,
   // Admin functions
   getAdminCheckins,
+  updateAdminCheckin,
   deleteAdminCheckin,
   getCheckinStats
 };

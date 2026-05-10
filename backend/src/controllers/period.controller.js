@@ -192,8 +192,7 @@ async function getPeriodList(req, res, next) {
       // 添加前端需要的字段
       return {
         ...periodObj,
-        // 状态映射：ongoing -> active （向后兼容）
-        status: period.status === 'ongoing' ? 'active' : period.status,
+        status: getDynamicStatus(period),
         title: period.title || period.name, // 如果没有title，使用name作为备选
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）

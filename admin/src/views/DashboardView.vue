@@ -142,9 +142,16 @@
           style="width: 100%"
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
         >
-          <el-table-column prop="name" label="姓名" width="120" />
-          <el-table-column prop="email" label="邮箱" min-width="180" />
-          <el-table-column prop="period" label="期次" width="150" />
+          <el-table-column label="姓名" width="120">
+            <template #default="{ row }">
+              {{ row.userId?.nickname || '匿名' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="期次" width="150">
+            <template #default="{ row }">
+              {{ row.periodId?.name || '-' }}
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag
@@ -157,7 +164,7 @@
           </el-table-column>
           <el-table-column label="报名时间" width="180">
             <template #default="{ row }">
-              {{ formatDate(row.createdAt) }}
+              {{ formatDate(row.enrolledAt || row.createdAt) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="100" fixed="right">

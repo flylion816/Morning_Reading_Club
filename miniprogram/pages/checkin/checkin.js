@@ -33,6 +33,8 @@ Page({
     courseId: null,
     sectionId: null,
     periodId: null,
+    checkinId: null,
+    isEditMode: false,
     courseTitle: '',
     courseDate: '',
 
@@ -99,6 +101,12 @@ Page({
       this.setData({ statusBarHeight: 20 });
     }
 
+    // 编辑模式：从打卡详情页进入
+    if (options.checkinId) {
+      this.setData({ checkinId: options.checkinId, isEditMode: true });
+      wx.setNavigationBarTitle({ title: '编辑打卡' });
+    }
+
     // 兼容多种参数形式：courseId、id、sectionId
     const sectionId = options.sectionId || options.courseId || options.id;
     const periodId = options.periodId;
@@ -150,7 +158,23 @@ Page({
       periodId: resolvedPeriodId
     });
 
-    this._restoreDraft(sectionId);
+    // 编辑模式：加载已有打卡内容填充表单（覆盖草稿）
+    if (options.checkinId) {
+      try {
+        const existing = await checkinService.getCheckinDetail(options.checkinId);
+        if (existing) {
+          this.setData({
+            diaryContent: existing.note || existing.content || '',
+            visibility: existing.isPublic === false ? 'admin' : 'all',
+            isDirty: false
+          });
+        }
+      } catch (e) {
+        console.error('加载打卡内容失败:', e);
+      }
+    } else {
+      this._restoreDraft(sectionId);
+    }
 
     await this.loadCourseDetail(prefetchedCourse);
   },
@@ -364,6 +388,21 @@ Page({
 
     try {
       wx.showLoading({ title: '提交中...' });
+
+      // 编辑模式：直接更新已有打卡
+      if (this.data.isEditMode && this.data.checkinId) {
+        await checkinService.updateCheckin(this.data.checkinId, {
+          note: diaryContent,
+          isPublic: this.data.visibility === 'all'
+        });
+        this._disableLeaveGuard();
+        this._clearDraft();
+        this.setData({ isDirty: false });
+        wx.hideLoading();
+        wx.showToast({ title: '修改成功', icon: 'success' });
+        setTimeout(() => wx.navigateBack(), 1500);
+        return;
+      }
 
       await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
         sourceAction: 'checkin_submit',

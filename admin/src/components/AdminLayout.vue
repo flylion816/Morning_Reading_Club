@@ -2,6 +2,7 @@
   <el-container class="admin-layout">
     <el-aside class="admin-sidebar">
       <div class="sidebar-header">
+        <img src="/logo.png" class="sidebar-logo" alt="logo" />
         <h2>凡人共读</h2>
       </div>
 
@@ -264,6 +265,16 @@ const goToProfile = () => {
   padding: 24px 16px;
   color: white;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .sidebar-header h2 {
