@@ -50,6 +50,7 @@ const redisManager = require('./utils/redis');
 const { initRedisClient, startSyncListener } = require('./services/sync.service');
 const backupService = require('./services/backup.service');
 const studyReminderService = require('./services/study-reminder.service');
+const periodStatusService = require('./services/period-status.service');
 
 // 现在 app.js 可以安全加载，NODE_ENV 已经被正确设置
 const app = require('./app');
@@ -183,6 +184,9 @@ async function startServer() {
 
     // 初始化备份服务（仅在生产环境启用）
     if (process.env.NODE_ENV === 'production') {
+      periodStatusService.startPeriodStatusSchedules();
+      logger.info('✅ 期次状态自动同步任务已启动（启动时执行一次，每天 00:05 同步）');
+
       studyReminderService.startStudyReminderSchedules();
       logger.info('✅ 明日学习提醒定时任务已启动（05:45 首发，06:00 重试）');
 

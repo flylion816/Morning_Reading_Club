@@ -3,33 +3,16 @@ const Checkin = require('../models/Checkin');
 const mongoose = require('mongoose');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
-const { getPeriodDateKeys, getShanghaiDateKey } = require('../utils/study-reminder.utils');
-
-// 获取动态状态（基于当前日期和期次日期范围）
-function getDynamicStatus(period) {
-  const todayKey = getShanghaiDateKey(new Date());
-  const { startKey, endKey } = getPeriodDateKeys(period);
-
-  if (!startKey || !endKey || todayKey < startKey) {
-    return 'not_started';
-  }
-  if (todayKey > endKey) {
-    return 'completed';
-  }
-  return 'ongoing';
-}
+const {
+  calculatePeriodStatus,
+  getPeriodStatusText,
+  syncAllPeriodsStatus: syncPeriodStatuses
+} = require('../services/period-status.service');
 
 // 获取状态文本
 function getStatusText(period) {
   // 动态计算状态，而不是使用数据库中的静态值
-  const dynamicStatus = getDynamicStatus(period);
-
-  const statusMap = {
-    not_started: '未开始',
-    ongoing: '进行中',
-    completed: '已完成'
-  };
-  return statusMap[dynamicStatus] || '未知状态';
+  return getPeriodStatusText(calculatePeriodStatus(period));
 }
 
 // 将 coverColor 转换为前端可识别的格式（hex 或 rgb，不支持渐变）
@@ -117,7 +100,7 @@ async function getPeriodListForUser(req, res, next) {
 
       return {
         ...periodObj,
-        status: getDynamicStatus(period),
+        status: calculatePeriodStatus(period),
         title: period.title || period.name,
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
@@ -187,7 +170,7 @@ async function getPeriodList(req, res, next) {
       // 添加前端需要的字段
       return {
         ...periodObj,
-        status: getDynamicStatus(period),
+        status: calculatePeriodStatus(period),
         title: period.title || period.name, // 如果没有title，使用name作为备选
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
@@ -235,7 +218,7 @@ async function getPeriodDetail(req, res, next) {
 
     const transformedPeriod = {
       ...periodObj,
-      status: getDynamicStatus(period),
+      status: calculatePeriodStatus(period),
       title: period.title || period.name,
       color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
       // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
@@ -292,7 +275,7 @@ async function createPeriod(req, res, next) {
       sortOrder,
       meetingId: meetingId || null,
       meetingJoinUrl: meetingJoinUrl || null,
-      status: 'not_started',
+      status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
       currentEnrollment: 0
     });
@@ -330,6 +313,7 @@ async function updatePeriod(req, res, next) {
       }
     });
 
+    period.status = calculatePeriodStatus(period);
     await period.save();
 
     // 异步同步到 MySQL
@@ -345,7 +329,7 @@ async function updatePeriod(req, res, next) {
 
     const transformedPeriod = {
       ...periodObj,
-      status: getDynamicStatus(period),
+      status: calculatePeriodStatus(period),
       title: period.title || period.name,
       color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
       coverColor: convertCoverColorForForm(period.coverColor),
@@ -442,7 +426,7 @@ async function copyPeriod(req, res, next) {
       sortOrder,
       meetingId: null,
       meetingJoinUrl: null,
-      status: 'not_started',
+      status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
       currentEnrollment: 0
     });
@@ -493,42 +477,12 @@ async function copyPeriod(req, res, next) {
  */
 async function syncAllPeriodsStatus(req, res, next) {
   try {
-    const periods = await Period.find({}).select('_id name status startDate endDate');
-
-    let updatedCount = 0;
-    const updates = [];
-
-    for (const period of periods) {
-      const expectedStatus = getDynamicStatus(period);
-      if (period.status !== expectedStatus) {
-        const oldStatus = period.status;
-        period.status = expectedStatus;
-        await period.save();
-        updatedCount += 1;
-        updates.push({
-          periodId: period._id.toString(),
-          periodName: period.name,
-          oldStatus,
-          newStatus: expectedStatus
-        });
-
-        publishSyncEvent({
-          type: 'update',
-          collection: 'periods',
-          documentId: period._id.toString(),
-          data: period.toObject()
-        });
-      }
-    }
+    const result = await syncPeriodStatuses();
 
     res.json(
       success(
-        {
-          totalPeriods: periods.length,
-          updatedCount,
-          updates
-        },
-        `成功同步 ${updatedCount} 个期次的状态`
+        result,
+        `成功同步 ${result.updatedCount} 个期次的状态`
       )
     );
   } catch (error) {
