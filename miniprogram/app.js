@@ -45,14 +45,14 @@ App({
       return;
     }
 
-    // 生产环境：所有用户（无论登录状态）都导航到首页
-    // 首页支持未登录用户浏览课程，只在需要时才要求登录
+    // 生产环境：所有用户（无论登录状态）都导航到首页 tab
+    // 首页 tab 支持未登录用户浏览介绍和跳转课程，只在需要时才要求登录
     // 这符合 WeChat 审核要求：用户进入后先体验功能，再选择登录
-    logger.info('导航到首页（允许未登录用户浏览）');
+    logger.info('导航到首页 tab（允许未登录用户浏览）');
     wx.reLaunch({
-      url: '/pages/index/index',
+      url: '/pages/profile/profile',
       fail: (err) => {
-        logger.error('导航到首页失败:', err);
+        logger.error('导航到首页 tab 失败:', err);
       }
     });
   },
