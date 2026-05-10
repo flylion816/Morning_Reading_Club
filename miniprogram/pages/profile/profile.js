@@ -1219,7 +1219,7 @@ Page({
   getCurrentPlatform() {
     const app = getApp();
     const platform =
-      app?.globalData?.platform || wx.getSystemInfoSync().platform || '';
+      app?.globalData?.platform || wx.getDeviceInfo?.().platform || '';
     return String(platform).toLowerCase();
   },
 

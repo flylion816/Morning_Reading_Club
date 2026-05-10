@@ -116,19 +116,28 @@ App({
 
   // 获取系统信息
   getSystemInfo() {
-    wx.getSystemInfo({
-      success: (res) => {
-        this.globalData.systemInfo = res;
-        this.globalData.statusBarHeight = res.statusBarHeight;
-        this.globalData.screenHeight = res.screenHeight;
-        this.globalData.screenWidth = res.screenWidth;
-        this.globalData.platform = res.platform;
+    try {
+      const windowInfo = wx.getWindowInfo?.() || {};
+      const deviceInfo = wx.getDeviceInfo?.() || {};
+      const appBaseInfo = wx.getAppBaseInfo?.() || {};
+      const systemInfo = {
+        ...windowInfo,
+        ...deviceInfo,
+        ...appBaseInfo
+      };
 
-        if (envConfig.enableDebug) {
-          logger.debug('系统信息:', res);
-        }
+      this.globalData.systemInfo = systemInfo;
+      this.globalData.statusBarHeight = windowInfo.statusBarHeight || 0;
+      this.globalData.screenHeight = windowInfo.screenHeight || 0;
+      this.globalData.screenWidth = windowInfo.screenWidth || 0;
+      this.globalData.platform = deviceInfo.platform || '';
+
+      if (envConfig.enableDebug) {
+        logger.debug('系统信息:', systemInfo);
       }
-    });
+    } catch (error) {
+      logger.warn('获取系统信息失败:', error);
+    }
   },
 
   // 检查小程序更新

@@ -963,8 +963,7 @@ Page({
     const target = await this.getPosterCanvasNode();
     const canvas = target.node;
     const ctx = canvas.getContext('2d');
-    const dpr =
-      wx.getWindowInfo?.().pixelRatio || wx.getSystemInfoSync?.().pixelRatio || 2;
+    const dpr = wx.getWindowInfo?.().pixelRatio || 2;
     let miniProgramCodeImage = null;
 
     canvas.width = snapshot.width * dpr;

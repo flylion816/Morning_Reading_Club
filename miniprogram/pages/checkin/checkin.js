@@ -93,7 +93,7 @@ Page({
 
     // 获取状态栏高度，用于自定义导航栏
     try {
-      const { statusBarHeight } = wx.getSystemInfoSync();
+      const { statusBarHeight } = wx.getWindowInfo?.() || {};
       this.setData({ statusBarHeight: statusBarHeight || 20 });
     } catch (e) {
       this.setData({ statusBarHeight: 20 });
