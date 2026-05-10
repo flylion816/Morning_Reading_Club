@@ -37,6 +37,27 @@
     type="2d"
     class="long-image-canvas"></canvas>
 
+  <!-- 长图预览弹层 -->
+  <view wx:if="{{showPosterPanel}}" class="poster-panel-mask" bindtap="closePosterPanel">
+    <view class="poster-panel" catchtap="noop">
+      <view class="poster-panel-header">
+        <text class="poster-panel-title">长图预览</text>
+        <text class="poster-panel-close" bindtap="closePosterPanel">×</text>
+      </view>
+      <scroll-view scroll-y class="poster-panel-body">
+        <image
+          class="poster-panel-img"
+          src="{{posterTempFilePath}}"
+          mode="widthFix"
+          show-menu-by-longpress="{{true}}" />
+      </scroll-view>
+      <view class="poster-panel-footer">
+        <button class="poster-btn poster-btn-outline" bindtap="handleSavePoster">保存相册</button>
+        <button class="poster-btn" bindtap="handleSharePoster">转发好友</button>
+      </view>
+    </view>
+  </view>
+
   <!-- 开发环境：分享菜单弹窗 -->
   <view wx:if="{{isDev && showShareModal}}" class="share-modal-overlay" bindtap="closeShareModal">
     <view class="share-modal" catchtap>

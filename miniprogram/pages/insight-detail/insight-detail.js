@@ -26,7 +26,9 @@ Page({
     insight: {},
     showShareModal: false,
     isDev: env.currentEnv === 'dev',
-    posterGenerating: false
+    posterGenerating: false,
+    posterTempFilePath: '',
+    showPosterPanel: false
   },
 
   onLoad(options) {
@@ -168,9 +170,12 @@ Page({
 
     this._generateInsightLongImage(insight)
       .then(tempFilePath => {
-        this.setData({ posterGenerating: false });
+        this.setData({
+          posterGenerating: false,
+          posterTempFilePath: tempFilePath,
+          showPosterPanel: true
+        });
         wx.hideLoading();
-        wx.previewImage({ current: tempFilePath, urls: [tempFilePath] });
       })
       .catch(error => {
         this.setData({ posterGenerating: false });
@@ -178,6 +183,65 @@ Page({
         console.error('生成长图失败:', error);
         wx.showToast({ title: '长图生成失败', icon: 'none' });
       });
+  },
+
+  closePosterPanel() {
+    this.setData({ showPosterPanel: false });
+  },
+
+  noop() {},
+
+  handleSavePoster() {
+    const { posterTempFilePath } = this.data;
+    if (!posterTempFilePath) return;
+
+    wx.saveImageToPhotosAlbum({
+      filePath: posterTempFilePath,
+      success() {
+        wx.showToast({ title: '已保存到相册', icon: 'success' });
+      },
+      fail(err) {
+        if (String(err?.errMsg || '').includes('auth deny') && wx.showModal) {
+          wx.showModal({
+            title: '需要相册权限',
+            content: '请在设置中允许保存到相册后重试',
+            success(res) {
+              if (res.confirm && wx.openSetting) wx.openSetting({});
+            }
+          });
+        } else {
+          wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  handleSharePoster() {
+    const { posterTempFilePath } = this.data;
+    if (!posterTempFilePath) return;
+
+    if (typeof wx.shareImageMessage === 'function') {
+      wx.shareImageMessage({
+        imagePath: posterTempFilePath,
+        fail() {
+          wx.showToast({ title: '请长按图片选择转发', icon: 'none' });
+        }
+      });
+    } else {
+      wx.saveImageToPhotosAlbum({
+        filePath: posterTempFilePath,
+        success() {
+          wx.showModal({
+            title: '提示',
+            content: '已保存到相册，请在相册中长按图片选择"发送给朋友"',
+            showCancel: false
+          });
+        },
+        fail() {
+          wx.showToast({ title: '请长按图片选择转发', icon: 'none' });
+        }
+      });
+    }
   },
 
   _stripHtmlForCanvas(html) {
@@ -240,11 +304,11 @@ Page({
             const dpr = wx.getWindowInfo?.().pixelRatio || 2;
 
             const W = 750;
-            const PADDING = 48;
+            const PADDING = 56;
             const CONTENT_W = W - PADDING * 2;
             const FOOTER_H = 180;
-            const TITLE_LINE_H = 52;
-            const CONTENT_LINE_H = 46;
+            const TITLE_LINE_H = 74;
+            const CONTENT_LINE_H = 50;
 
             const rawTitle = insight.title || '小凡看见';
             const rawContent = this._stripHtmlForCanvas(insight.content || '');
@@ -255,7 +319,7 @@ Page({
             canvas.height = 400 * dpr;
             ctx.scale(dpr, dpr);
 
-            const titleLines = this._wrapTextForCanvas(ctx, 'bold 36px sans-serif', rawTitle, CONTENT_W);
+            const titleLines = this._wrapTextForCanvas(ctx, 'bold 52px sans-serif', rawTitle, CONTENT_W);
             const contentLines = this._wrapTextForCanvas(ctx, '30px sans-serif', rawContent, CONTENT_W);
 
             const contentTextH = contentLines.reduce(
@@ -263,7 +327,7 @@ Page({
               0
             );
             const H = Math.max(
-              PADDING + titleLines.length * TITLE_LINE_H + 40 + 36 + 48 + contentTextH + 64 + FOOTER_H + PADDING,
+              PADDING + titleLines.length * TITLE_LINE_H + 56 + 36 + 56 + contentTextH + 64 + FOOTER_H + PADDING,
               900
             );
 
@@ -283,13 +347,13 @@ Page({
             ctx.fillRect(0, 0, W, H);
 
             // Top accent bar
-            ctx.fillStyle = '#4a90e2';
-            ctx.fillRect(0, 0, W, 6);
+            ctx.fillStyle = '#0d4f6c';
+            ctx.fillRect(0, 0, W, 8);
 
-            // Title
+            // Title — large bold dark teal (参考 Image #7 风格)
             let cursorY = PADDING + TITLE_LINE_H;
-            ctx.fillStyle = '#111827';
-            ctx.font = 'bold 36px sans-serif';
+            ctx.fillStyle = '#0d4f6c';
+            ctx.font = 'bold 52px sans-serif';
             ctx.textBaseline = 'alphabetic';
             ctx.textAlign = 'left';
             for (const line of titleLines) {
@@ -298,21 +362,21 @@ Page({
             }
 
             // Period label
-            cursorY += 20;
-            ctx.fillStyle = '#4a90e2';
-            ctx.font = '24px sans-serif';
+            cursorY += 24;
+            ctx.fillStyle = '#2980b9';
+            ctx.font = '26px sans-serif';
             ctx.fillText(periodName, PADDING, cursorY);
-            cursorY += 40;
+            cursorY += 44;
 
-            // Thin divider under period label
+            // Divider under period label
             cursorY += 16;
-            ctx.strokeStyle = '#f3f4f6';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#e2eaf3';
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(PADDING, cursorY);
             ctx.lineTo(W - PADDING, cursorY);
             ctx.stroke();
-            cursorY += 32;
+            cursorY += 40;
 
             // Content text
             ctx.fillStyle = '#374151';
