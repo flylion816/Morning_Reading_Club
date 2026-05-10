@@ -62,9 +62,11 @@ class Request {
       }
     }
 
+    const requestUrl = `${this.baseURL}${url}`;
+
     return new Promise((resolve, reject) => {
       wx.request({
-        url: `${this.baseURL}${url}`,
+        url: requestUrl,
         method,
         data,
         header: requestHeader,
@@ -82,7 +84,12 @@ class Request {
             wx.hideLoading();
           }
 
-          logger.error('请求失败:', err);
+          logger.error('请求失败:', {
+            url: requestUrl,
+            method,
+            errMsg: err.errMsg,
+            error: err
+          });
           this.handleError(err);
           reject(err);
         }

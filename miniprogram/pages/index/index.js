@@ -9,6 +9,8 @@ const {
   isFreshOptimisticEnrollmentAccess
 } = require('../../utils/period-access');
 
+const ENROLLMENT_CHECK_CONCURRENCY = 2;
+
 Page({
   data: {
     // 用户信息
@@ -238,82 +240,94 @@ Page({
       }
 
       let allChecksSucceeded = true;
-      // 并行检查所有期次的报名状态
-      const promises = validPeriods.map(period =>
-        enrollmentService
-          .checkEnrollment(period._id)
-          .then(res => {
-            const existingAccess = getCachedEnrollmentAccess(period._id);
-            const canAccess =
-              !!res.isEnrolled &&
-              (res.paymentStatus === 'paid' || res.paymentStatus === 'free');
-            const optimisticAccess =
-              existingAccess &&
-              isFreshOptimisticEnrollmentAccess(existingAccess) &&
-              existingAccess.canAccessCommunity &&
-              !canAccess;
+      let cursor = 0;
 
-            const accessToCache = optimisticAccess
-              ? {
-                  ...existingAccess,
-                  syncPending: true
-                }
-              : {
-                  periodId: period._id,
-                  isEnrolled: res.isEnrolled || false,
-                  paymentStatus: res.paymentStatus || null,
-                  enrollmentId: res.enrollmentId || null,
-                  paymentPending: !!res.isEnrolled && !canAccess,
-                  canAccessCommunity: canAccess,
-                  communityAccessState: canAccess ? 'enabled' : 'locked',
-                  communityLocked: !canAccess,
-                  syncPending: false
-                };
+      const checkOnePeriod = async period => {
+        try {
+          const res = await enrollmentService.checkEnrollment(period._id);
+          const existingAccess = getCachedEnrollmentAccess(period._id);
+          const canAccess =
+            !!res.isEnrolled &&
+            (res.paymentStatus === 'paid' || res.paymentStatus === 'free');
+          const optimisticAccess =
+            existingAccess &&
+            isFreshOptimisticEnrollmentAccess(existingAccess) &&
+            existingAccess.canAccessCommunity &&
+            !canAccess;
 
-            setCachedEnrollmentAccess(period._id, accessToCache);
-            statusMap[period._id] = optimisticAccess
-              ? {
-                  isEnrolled: true,
-                  paymentStatus: existingAccess.paymentStatus || 'paid',
-                  enrollmentId: existingAccess.enrollmentId || null
-                }
-              : {
-                  isEnrolled: res.isEnrolled || false,
-                  paymentStatus: res.paymentStatus || null,
-                  enrollmentId: res.enrollmentId || null
-                };
+          const accessToCache = optimisticAccess
+            ? {
+                ...existingAccess,
+                syncPending: true
+              }
+            : {
+                periodId: period._id,
+                isEnrolled: res.isEnrolled || false,
+                paymentStatus: res.paymentStatus || null,
+                enrollmentId: res.enrollmentId || null,
+                paymentPending: !!res.isEnrolled && !canAccess,
+                canAccessCommunity: canAccess,
+                communityAccessState: canAccess ? 'enabled' : 'locked',
+                communityLocked: !canAccess,
+                syncPending: false
+              };
 
-            if (optimisticAccess) {
-              console.log(`期次 ${period.name} (${period._id}): 使用本地待确认权限缓存`);
-            } else {
-              const statusText = res.isEnrolled
-                ? `已报名 (支付状态: ${res.paymentStatus || 'unknown'})`
-                : '未报名';
-              console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
-            }
-          })
-          .catch(error => {
-            allChecksSucceeded = false;
-            console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
-            // API 失败时先查本地缓存，保留已知的报名/付费状态，避免把刚付款的用户显示为未报名
-            const cachedAccess = getCachedEnrollmentAccess(period._id);
-            if (cachedAccess && cachedAccess.isEnrolled) {
-              statusMap[period._id] = {
+          setCachedEnrollmentAccess(period._id, accessToCache);
+          statusMap[period._id] = optimisticAccess
+            ? {
                 isEnrolled: true,
-                paymentStatus: cachedAccess.paymentStatus || null,
-                enrollmentId: cachedAccess.enrollmentId || null
+                paymentStatus: existingAccess.paymentStatus || 'paid',
+                enrollmentId: existingAccess.enrollmentId || null
+              }
+            : {
+                isEnrolled: res.isEnrolled || false,
+                paymentStatus: res.paymentStatus || null,
+                enrollmentId: res.enrollmentId || null
               };
-            } else {
-              statusMap[period._id] = {
-                isEnrolled: false,
-                paymentStatus: null,
-                enrollmentId: null
-              };
-            }
-          })
+
+          if (optimisticAccess) {
+            console.log(`期次 ${period.name} (${period._id}): 使用本地待确认权限缓存`);
+          } else {
+            const statusText = res.isEnrolled
+              ? `已报名 (支付状态: ${res.paymentStatus || 'unknown'})`
+              : '未报名';
+            console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
+          }
+        } catch (error) {
+          allChecksSucceeded = false;
+          console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
+          // API 失败时先查本地缓存，保留已知的报名/付费状态，避免把刚付款的用户显示为未报名
+          const cachedAccess = getCachedEnrollmentAccess(period._id);
+          if (cachedAccess && cachedAccess.isEnrolled) {
+            statusMap[period._id] = {
+              isEnrolled: true,
+              paymentStatus: cachedAccess.paymentStatus || null,
+              enrollmentId: cachedAccess.enrollmentId || null
+            };
+          } else {
+            statusMap[period._id] = {
+              isEnrolled: false,
+              paymentStatus: null,
+              enrollmentId: null
+            };
+          }
+        }
+      };
+
+      const workers = Array.from(
+        {
+          length: Math.min(ENROLLMENT_CHECK_CONCURRENCY, validPeriods.length)
+        },
+        async () => {
+          while (cursor < validPeriods.length) {
+            const period = validPeriods[cursor];
+            cursor += 1;
+            await checkOnePeriod(period);
+          }
+        }
       );
 
-      await Promise.all(promises);
+      await Promise.all(workers);
 
       if (allChecksSucceeded) {
         this._enrollmentCheckedAt = Date.now();
