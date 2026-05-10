@@ -136,6 +136,18 @@
               />
             </el-form-item>
 
+            <!-- 学一学 -->
+            <el-form-item label="学一学">
+              <el-input
+                v-model="editingSection.learn"
+                type="textarea"
+                placeholder="学习要点"
+                :rows="3"
+                maxlength="500"
+                show-word-limit
+              />
+            </el-form-item>
+
             <!-- 读一读 -->
             <el-form-item label="正文格式">
               <div class="content-editor-mode">
@@ -196,18 +208,6 @@
                 v-model="editingSection.action"
                 type="textarea"
                 placeholder="行动建议或笔记"
-                :rows="3"
-                maxlength="500"
-                show-word-limit
-              />
-            </el-form-item>
-
-            <!-- 学一学 -->
-            <el-form-item label="学一学">
-              <el-input
-                v-model="editingSection.learn"
-                type="textarea"
-                placeholder="学习要点"
                 :rows="3"
                 maxlength="500"
                 show-word-limit
