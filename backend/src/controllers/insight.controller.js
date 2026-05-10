@@ -87,6 +87,43 @@ async function persistInsight(insightData) {
   return insight;
 }
 
+async function upsertExternalInsight(insightData) {
+  const existingInsight = await Insight.findOne({
+    targetUserId: insightData.targetUserId,
+    periodId: insightData.periodId,
+    sectionId: insightData.sectionId,
+    type: 'insight'
+  });
+
+  if (!existingInsight) {
+    const insight = await persistInsight(insightData);
+    return { insight, created: true };
+  }
+
+  existingInsight.set({
+    userId: insightData.userId,
+    periodName: insightData.periodName,
+    title: insightData.title,
+    day: insightData.day,
+    mediaType: insightData.mediaType,
+    content: insightData.content,
+    imageUrl: insightData.imageUrl,
+    source: insightData.source,
+    status: insightData.status,
+    isPublished: insightData.isPublished
+  });
+  const insight = await existingInsight.save();
+
+  publishSyncEvent({
+    type: 'update',
+    collection: 'insights',
+    documentId: insight._id.toString(),
+    data: insight.toObject()
+  });
+
+  return { insight, created: false };
+}
+
 function normalizeOptionalDay(day) {
   if (day === undefined || day === null || day === '') {
     return null;
@@ -2160,8 +2197,8 @@ async function createInsightFromExternal(req, res, next) {
     // 如果没有系统用户，则使用被看见人作为创建者
     const creatorId = user ? user._id : targetUser._id;
 
-    // 创建小凡看见
-    const insight = await persistInsight({
+    // 同一用户、同一期次、同一课节只保留一条外部生成的小凡看见；重复提交时更新原记录。
+    const { insight, created } = await upsertExternalInsight({
       userId: creatorId,
       targetUserId: targetUser._id,
       periodId: resolvedPeriodId,
@@ -2197,7 +2234,7 @@ async function createInsightFromExternal(req, res, next) {
       updatedAt: insight.updatedAt
     };
 
-    res.status(201).json(success(result, '小凡看见创建成功'));
+    res.status(created ? 201 : 200).json(success(result, created ? '小凡看见创建成功' : '小凡看见更新成功'));
   } catch (error) {
     logger.error('创建外部小凡看见失败:', error);
     next(error);

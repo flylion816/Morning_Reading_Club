@@ -206,11 +206,14 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 - 使用 `targetUserName` 时，匹配范围是当前 `periodId/periodName` 对应期次的有效报名用户，不再按全站用户昵称匹配
 - `content` 和 `imageUrl` 至少填写一个
 - 若同时传 `sessionId` 和 `day`，以 `sessionId` 为准
+- 同一 `targetUserId + periodId + sessionId` 只保留一条小凡看见；重复提交会更新原记录内容，不会新增重复记录
 - 历史调用里若仍传 `sectionId`，服务端当前仍兼容，但新接入建议统一使用 `sessionId`
 
 ### 成功响应示例
 
 **HTTP 状态码**: `201 Created`
+
+首次提交返回 `201 Created`；重复提交命中同一用户、期次、课节时返回 `200 OK`，响应结构相同，`message` 为 `小凡看见更新成功`。
 
 ```json
 {
@@ -353,6 +356,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-05-10 | v1.6 | 创建小凡看见接口支持按 `targetUserId + periodId + sessionId` 幂等更新，避免重复生成多条记录 |
 | 2026-05-10 | v1.5 | `targetUserName` 改为按指定期次的有效报名用户匹配，避免全站同名用户误判重复 |
 | 2026-05-10 | v1.4 | 创建小凡看见接口支持 `targetUserName`（与 `targetUserId` 二选一） |
 | 2026-05-06 | v1.3 | 新增运行中期次查询接口；期次用户接口支持 `periodId` 或 `periodName`；示例更新为最新期次和第 1 天 `sessionId` |

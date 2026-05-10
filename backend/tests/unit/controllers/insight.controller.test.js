@@ -2467,6 +2467,74 @@ describe('Insight Controller - 102+ 完整测试', () => {
       expect(res.status.calledWith(201)).to.be.true;
       expect(InsightStub.create.firstCall.args[0].targetUserId).to.equal(targetUser._id);
     });
+
+    it('TC-EXTERNAL-012: 同一用户同一期次同一课节重复提交时更新原小凡看见', async () => {
+      req.body = {
+        periodId: fixtures.testPeriods.activeOngoing._id.toString(),
+        sessionId: fixtures.testSections.day1Ongoing._id.toString(),
+        targetUserId: fixtures.testUsers.user1._id.toString(),
+        content: '第二次生成的新内容'
+      };
+
+      const existingInsight = {
+        _id: new mongoose.Types.ObjectId(),
+        userId: fixtures.testUsers.user1._id,
+        targetUserId: fixtures.testUsers.user1._id,
+        periodId: fixtures.testPeriods.activeOngoing._id,
+        sectionId: fixtures.testSections.day1Ongoing._id,
+        title: '旧标题',
+        day: 1,
+        type: 'insight',
+        mediaType: 'text',
+        content: '旧内容',
+        imageUrl: null,
+        source: 'manual',
+        status: 'completed',
+        isPublished: true,
+        createdAt: new Date('2026-05-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-01T00:00:00.000Z'),
+        set: sandbox.stub(),
+        save: sandbox.stub(),
+        toObject: sandbox.stub().returns({})
+      };
+      existingInsight.save.resolves(existingInsight);
+
+      PeriodStub.findById.returns(createSelectQuery(sandbox, fixtures.testPeriods.activeOngoing));
+      SectionStub.findById.returns(createSelectQuery(sandbox, fixtures.testSections.day1Ongoing));
+      UserStub.findById.resolves(fixtures.testUsers.user1);
+      EnrollmentStub.findOne.resolves({
+        userId: fixtures.testUsers.user1._id,
+        periodId: fixtures.testPeriods.activeOngoing._id
+      });
+      InsightStub.findOne.resolves(existingInsight);
+
+      await insightController.createInsightFromExternal(req, res, next);
+
+      expect(InsightStub.create.called).to.be.false;
+      expect(InsightStub.findOne.calledWith({
+        targetUserId: fixtures.testUsers.user1._id,
+        periodId: fixtures.testPeriods.activeOngoing._id,
+        sectionId: fixtures.testSections.day1Ongoing._id,
+        type: 'insight'
+      })).to.be.true;
+      expect(existingInsight.set.calledWithMatch({
+        content: '第二次生成的新内容',
+        mediaType: 'text',
+        imageUrl: null,
+        title: fixtures.testSections.day1Ongoing.title,
+        day: fixtures.testSections.day1Ongoing.day,
+        status: 'completed',
+        isPublished: true
+      })).to.be.true;
+      expect(existingInsight.save.calledOnce).to.be.true;
+      expect(publishSyncEventStub.calledWithMatch({
+        type: 'update',
+        collection: 'insights',
+        documentId: existingInsight._id.toString()
+      })).to.be.true;
+      expect(res.status.calledWith(200)).to.be.true;
+      expect(res.json.firstCall.args[0].message).to.equal('小凡看见更新成功');
+    });
   });
 
   // ========================================
