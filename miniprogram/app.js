@@ -19,8 +19,7 @@ App({
       // 获取系统信息
       this.getSystemInfo();
 
-      // 检查更新
-      this.checkUpdate();
+      // 更新检查在开发者工具中可能触发基础库 timeout，线上由微信客户端托管版本更新。
     } catch (error) {
       console.error('❌ 应用启动失败:', error);
       logger.error('启动错误详情:', error.message, error.stack);
