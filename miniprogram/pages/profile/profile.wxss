@@ -220,7 +220,7 @@
   height: 160rpx;
 }
 
-/* 顶部行 - 昵称、期次和坚持晨读 */
+/* 顶部行 - 昵称、期次和晨读 */
 .banner-top-row {
   display: flex;
   align-items: center;

@@ -17,7 +17,7 @@
               <view class="user-period-tag" wx:if="{{currentPeriod}}">{{currentPeriod.name || currentPeriod.title}}</view>
             </view>
           </view>
-          <text class="user-streak">坚持晨读打卡第 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
+          <text class="user-streak">晨读打卡第 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
         </view>
         <view class="banner-bubble">
           <text class="bubble-text" wx:if="{{hasValidSignature}}">{{userInfo.signature}}</text>
@@ -52,7 +52,7 @@
         <view class="period-card" wx:if="{{todaySection}}" catchtap="handleTodaySectionClick">
           <view class="period-cover">
             <view class="book-icon-svg"></view>
-            <text class="period-day">Day {{todaySection.day || '06'}}</text>
+            <text class="period-day">Day {{todaySection.dayDisplay}}</text>
           </view>
           <view class="period-info-new">
             <view class="period-title-row">

@@ -29,6 +29,7 @@ function getErrorMessage(error) {
 
 Page({
   data: {
+    statusBarHeight: 20,
     courseId: null,
     sectionId: null,
     periodId: null,
@@ -50,7 +51,12 @@ Page({
     maxDiaryLength: MAX_DIARY_LENGTH,
 
     // 可见范围
-    visibility: 'all' // 'all' 或 'admin'
+    visibility: 'all', // 'all' 或 'admin'
+
+    // 草稿状态
+    isDirty: false,
+    autoSaveStatus: '',
+    showExitModal: false
   },
 
   /**
@@ -84,6 +90,14 @@ Page({
 
   async onLoad(options) {
     console.log('打卡页面加载，参数:', options);
+
+    // 获取状态栏高度，用于自定义导航栏
+    try {
+      const { statusBarHeight } = wx.getSystemInfoSync();
+      this.setData({ statusBarHeight: statusBarHeight || 20 });
+    } catch (e) {
+      this.setData({ statusBarHeight: 20 });
+    }
 
     // 兼容多种参数形式：courseId、id、sectionId
     const sectionId = options.sectionId || options.courseId || options.id;
@@ -135,6 +149,8 @@ Page({
       sectionId,
       periodId: resolvedPeriodId
     });
+
+    this._restoreDraft(sectionId);
 
     await this.loadCourseDetail(prefetchedCourse);
   },
@@ -213,22 +229,117 @@ Page({
   // 输入日记内容
   handleInput(e) {
     const diaryContent = (e.detail.value || '').slice(0, MAX_DIARY_LENGTH);
-    this.setData({
-      diaryContent
-    });
+    const wasClean = !this.data.isDirty;
+    this.setData({ diaryContent, isDirty: true });
+
+    // 第一次输入时启用离开拦截（兜底左上角返回）
+    if (wasClean) this._enableLeaveGuard();
+
+    if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+    this._autoSaveTimer = setTimeout(() => this._saveDraft(), 2000);
   },
 
   // 选择可见范围
   handleVisibilityChange(e) {
     const { value } = e.currentTarget.dataset;
-    this.setData({
-      visibility: value
-    });
+    this.setData({ visibility: value });
   },
 
-  // 取消
+  // 草稿：保存
+  _saveDraft() {
+    const { sectionId, diaryContent, visibility } = this.data;
+    if (!sectionId || !diaryContent) return;
+    this.setData({ autoSaveStatus: '保存中...' });
+    try {
+      wx.setStorageSync(`checkin_draft_${sectionId}`, { content: diaryContent, visibility, savedAt: Date.now() });
+      const now = new Date();
+      const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      this.setData({ autoSaveStatus: `已自动保存 ${t}` });
+    } catch (e) {
+      this.setData({ autoSaveStatus: '' });
+    }
+  },
+
+  // 离开拦截：启用（兜底左上角返回，不支持 onBackPress 的旧版本）
+  _enableLeaveGuard() {
+    try {
+      wx.enableAlertBeforeUnload({ message: '日记内容尚未发布，确定要离开？' });
+    } catch (e) {}
+  },
+
+  // 离开拦截：关闭（提交或主动丢弃时调用，避免正常返回也弹窗）
+  _disableLeaveGuard() {
+    try {
+      wx.disableAlertBeforeUnload();
+    } catch (e) {}
+  },
+
+  // 草稿：清除
+  _clearDraft() {
+    const { sectionId } = this.data;
+    if (!sectionId) return;
+    try { wx.removeStorageSync(`checkin_draft_${sectionId}`); } catch (e) {}
+  },
+
+  // 草稿：恢复
+  _restoreDraft(sectionId) {
+    try {
+      const draft = wx.getStorageSync(`checkin_draft_${sectionId}`);
+      if (draft && draft.content) {
+        this.setData({
+          diaryContent: draft.content,
+          visibility: draft.visibility || 'all',
+          isDirty: true,
+          autoSaveStatus: '已恢复草稿'
+        });
+        setTimeout(() => this.setData({ autoSaveStatus: '' }), 3000);
+      }
+    } catch (e) {}
+  },
+
+  // 退出：系统返回键拦截
+  onBackPress() {
+    if (this.data.isDirty) {
+      this.setData({ showExitModal: true });
+      return true;
+    }
+  },
+
+  // 退出：取消按钮
   handleCancel() {
-    wx.navigateBack();
+    if (this.data.isDirty) {
+      this.setData({ showExitModal: true });
+    } else {
+      wx.navigateBack();
+    }
+  },
+
+  // 退出：弹窗操作
+  handleExitAction(e) {
+    const { action } = e.currentTarget.dataset;
+    this.setData({ showExitModal: false });
+    if (action === 'publish') {
+      this.handleSubmit();
+    } else if (action === 'discard') {
+      this._disableLeaveGuard();
+      this._clearDraft();
+      wx.navigateBack();
+    }
+    // 'stay' 关闭弹窗继续编辑
+  },
+
+  // 退出：点击遮罩 = 继续编辑
+  handleModalMaskTap() {
+    this.setData({ showExitModal: false });
+  },
+
+  // 阻止弹窗内部点击冒泡
+  noop() {},
+
+  // 页面卸载时清理
+  onUnload() {
+    if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+    this._disableLeaveGuard();
   },
 
   // 提交打卡
@@ -384,6 +495,10 @@ Page({
 
       console.log('保存打卡后的记录:', checkins);
       console.log('全局打卡记录:', allCheckins);
+
+      this._disableLeaveGuard();
+      this._clearDraft();
+      this.setData({ isDirty: false });
 
       wx.hideLoading();
       wx.showToast({

@@ -1,8 +1,52 @@
 .page-checkin {
   min-height: 100vh;
   background: #f5f5f5;
+  padding: 0 0 160rpx;
+}
+
+/* 自定义导航栏 */
+.custom-nav {
+  background: #4a90e2;
+  display: flex;
+  align-items: center;
+  height: auto;
+  padding-bottom: 0;
+  position: relative;
+}
+
+.nav-back {
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nav-back-arrow {
+  width: 22rpx;
+  height: 22rpx;
+  border-left: 4rpx solid white;
+  border-bottom: 4rpx solid white;
+  transform: rotate(45deg);
+  margin-left: 10rpx;
+}
+
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: white;
+}
+
+.nav-placeholder {
+  width: 88rpx;
+  flex-shrink: 0;
+}
+
+.page-body {
   padding: 24rpx;
-  padding-bottom: 160rpx;
 }
 
 /* 课程标题 */
@@ -196,12 +240,91 @@
   color: #333;
 }
 
-.char-count {
-  text-align: right;
-  font-size: 24rpx;
-  color: #999;
+.char-count-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 12rpx;
   margin-bottom: 24rpx;
+}
+
+.auto-save-status {
+  font-size: 22rpx;
+  color: #aaa;
+}
+
+.char-count {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 退出确认弹窗 */
+.exit-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 999;
+}
+
+.exit-modal {
+  width: 100%;
+  background: white;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 48rpx 32rpx 64rpx;
+}
+
+.exit-modal-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.exit-modal-desc {
+  font-size: 26rpx;
+  color: #888;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.exit-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.exit-btn {
+  width: 100%;
+  padding: 28rpx;
+  border-radius: 48rpx;
+  font-size: 30rpx;
+  border: none;
+}
+
+.exit-btn::after {
+  border: none;
+}
+
+.exit-btn-publish {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  font-weight: bold;
+}
+
+.exit-btn-discard {
+  background: #fff0f0;
+  color: #e54545;
+}
+
+.exit-btn-stay {
+  background: #f5f5f5;
+  color: #666;
 }
 
 /* 可见范围 */

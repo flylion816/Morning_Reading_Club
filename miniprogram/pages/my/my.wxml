@@ -14,7 +14,7 @@
         <view class="user-info">
           <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
           <text class="user-phone">{{hasPhone ? phoneMasked : '未绑定手机号'}}</text>
-          <text class="user-streak">坚持晨读打卡第 <text class="streak-num">{{stats.totalCheckinDays || 0}}</text> 天</text>
+          <text class="user-streak">晨读打卡第 <text class="streak-num">{{stats.totalCheckinDays || 0}}</text> 天</text>
         </view>
       </view>
     </view>

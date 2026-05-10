@@ -1,1 +1,5 @@
-{ "navigationBarTitleText": "每日打卡", "usingComponents": {} }
+{
+  "navigationBarTitleText": "每日打卡",
+  "navigationStyle": "custom",
+  "usingComponents": {}
+}
