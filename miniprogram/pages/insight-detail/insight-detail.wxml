@@ -23,11 +23,19 @@
   <!-- 底部按钮 -->
   <view class="action-buttons">
     <button class="btn-back" bindtap="handleBack">返回</button>
+    <button class="btn-long-share" bindtap="handleLongImageShare">{{posterGenerating ? '生成中...' : '长图分享'}}</button>
     <!-- 生产环境：仅显示微信分享按钮 -->
     <!-- 开发环境：显示分享菜单按钮 -->
     <button wx:if="{{isDev}}" class="btn-share" bindtap="openShareMenu">分享</button>
-    <button wx:else class="btn-share" open-type="share">分享给微信好友</button>
+    <button wx:else class="btn-share" open-type="share">微信好友</button>
   </view>
+
+  <!-- 长图生成画布（隐藏） -->
+  <canvas
+    id="insightLongImageCanvas"
+    canvas-id="insightLongImageCanvas"
+    type="2d"
+    class="long-image-canvas"></canvas>
 
   <!-- 开发环境：分享菜单弹窗 -->
   <view wx:if="{{isDev && showShareModal}}" class="share-modal-overlay" bindtap="closeShareModal">

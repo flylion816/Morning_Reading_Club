@@ -25,7 +25,8 @@ Page({
     insightId: null,
     insight: {},
     showShareModal: false,
-    isDev: env.currentEnv === 'dev'
+    isDev: env.currentEnv === 'dev',
+    posterGenerating: false
   },
 
   onLoad(options) {
@@ -56,18 +57,20 @@ Page({
       const isOwnInsight =
         currentUserId && ownerId && String(currentUserId) === String(ownerId);
 
-      activityService.track(
-        isOwnInsight ? 'own_insight_view' : 'other_insight_view',
-        {
-          targetType: 'insight',
-          targetId: this.data.insightId,
-          periodId: insight.periodId?._id || insight.periodId || null,
-          sectionId: insight.sectionId?._id || insight.sectionId || null,
-          metadata: {
-            title: insight.title || ''
+      if (currentUserId) {
+        activityService.track(
+          isOwnInsight ? 'own_insight_view' : 'other_insight_view',
+          {
+            targetType: 'insight',
+            targetId: this.data.insightId,
+            periodId: insight.periodId?._id || insight.periodId || null,
+            sectionId: insight.sectionId?._id || insight.sectionId || null,
+            metadata: {
+              title: insight.title || ''
+            }
           }
-        }
-      );
+        );
+      }
 
       // 添加 dayNumber 字段用于显示
       if (insight && !insight.dayNumber) {
@@ -116,7 +119,7 @@ Page({
 
     wx.shareAppMessage({
       title: `${insight.title || '晨读营'} - 小凡看见`,
-      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
+      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`,
       imageUrl: '/assets/images/share-insight.jpg',
       success() {
         wx.showToast({ title: '分享成功', icon: 'success' });
@@ -143,7 +146,243 @@ Page({
 
     console.log('虚拟好友分享:', {
       title: `${insight.title || '晨读营'} - 小凡看见`,
-      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`
+      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`
+    });
+  },
+
+  /**
+   * 长图分享入口
+   */
+  handleLongImageShare() {
+    const { insight, posterGenerating } = this.data;
+
+    if (!insight || !insight.content) {
+      wx.showToast({ title: '暂无可生成的内容', icon: 'none' });
+      return;
+    }
+
+    if (posterGenerating) return;
+
+    this.setData({ posterGenerating: true });
+    wx.showLoading({ title: '生成中...', mask: true });
+
+    this._generateInsightLongImage(insight)
+      .then(tempFilePath => {
+        this.setData({ posterGenerating: false });
+        wx.hideLoading();
+        wx.previewImage({ current: tempFilePath, urls: [tempFilePath] });
+      })
+      .catch(error => {
+        this.setData({ posterGenerating: false });
+        wx.hideLoading();
+        console.error('生成长图失败:', error);
+        wx.showToast({ title: '长图生成失败', icon: 'none' });
+      });
+  },
+
+  _stripHtmlForCanvas(html) {
+    return (html || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  },
+
+  _wrapTextForCanvas(ctx, fontStr, text, maxWidth) {
+    ctx.font = fontStr;
+    const lines = [];
+    const paragraphs = text.split('\n');
+
+    for (const para of paragraphs) {
+      if (!para.trim()) {
+        lines.push('');
+        continue;
+      }
+      let line = '';
+      for (const char of para) {
+        const test = line + char;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          lines.push(line);
+          line = char;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+    }
+
+    while (lines.length > 0 && !lines[lines.length - 1]) lines.pop();
+    return lines.length > 0 ? lines : [''];
+  },
+
+  _generateInsightLongImage(insight) {
+    return new Promise((resolve, reject) => {
+      const query = wx.createSelectorQuery().in(this);
+      query
+        .select('#insightLongImageCanvas')
+        .fields({ node: true, size: true })
+        .exec(async result => {
+          if (!result || !result[0] || !result[0].node) {
+            reject(new Error('找不到画布'));
+            return;
+          }
+
+          try {
+            const canvas = result[0].node;
+            const ctx = canvas.getContext('2d');
+            const dpr = wx.getWindowInfo?.().pixelRatio || 2;
+
+            const W = 750;
+            const PADDING = 48;
+            const CONTENT_W = W - PADDING * 2;
+            const FOOTER_H = 180;
+            const TITLE_LINE_H = 52;
+            const CONTENT_LINE_H = 46;
+
+            const rawTitle = insight.title || '小凡看见';
+            const rawContent = this._stripHtmlForCanvas(insight.content || '');
+            const periodName = insight.periodName || '凡人共读';
+
+            // Pass 1: measure text to compute canvas height
+            canvas.width = W * dpr;
+            canvas.height = 400 * dpr;
+            ctx.scale(dpr, dpr);
+
+            const titleLines = this._wrapTextForCanvas(ctx, 'bold 36px sans-serif', rawTitle, CONTENT_W);
+            const contentLines = this._wrapTextForCanvas(ctx, '30px sans-serif', rawContent, CONTENT_W);
+
+            const contentTextH = contentLines.reduce(
+              (sum, line) => sum + (line ? CONTENT_LINE_H : Math.floor(CONTENT_LINE_H * 0.6)),
+              0
+            );
+            const H = Math.max(
+              PADDING + titleLines.length * TITLE_LINE_H + 40 + 36 + 48 + contentTextH + 64 + FOOTER_H + PADDING,
+              900
+            );
+
+            // Pass 2: resize canvas and draw
+            if (typeof ctx.resetTransform === 'function') {
+              ctx.resetTransform();
+            } else if (typeof ctx.setTransform === 'function') {
+              ctx.setTransform(1, 0, 0, 1, 0, 0);
+            }
+            canvas.width = W * dpr;
+            canvas.height = H * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, W, H);
+
+            // White background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, W, H);
+
+            // Top accent bar
+            ctx.fillStyle = '#4a90e2';
+            ctx.fillRect(0, 0, W, 6);
+
+            // Title
+            let cursorY = PADDING + TITLE_LINE_H;
+            ctx.fillStyle = '#111827';
+            ctx.font = 'bold 36px sans-serif';
+            ctx.textBaseline = 'alphabetic';
+            ctx.textAlign = 'left';
+            for (const line of titleLines) {
+              ctx.fillText(line, PADDING, cursorY);
+              cursorY += TITLE_LINE_H;
+            }
+
+            // Period label
+            cursorY += 20;
+            ctx.fillStyle = '#4a90e2';
+            ctx.font = '24px sans-serif';
+            ctx.fillText(periodName, PADDING, cursorY);
+            cursorY += 40;
+
+            // Thin divider under period label
+            cursorY += 16;
+            ctx.strokeStyle = '#f3f4f6';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(PADDING, cursorY);
+            ctx.lineTo(W - PADDING, cursorY);
+            ctx.stroke();
+            cursorY += 32;
+
+            // Content text
+            ctx.fillStyle = '#374151';
+            ctx.font = '30px sans-serif';
+            for (const line of contentLines) {
+              if (line) {
+                ctx.fillText(line, PADDING, cursorY);
+                cursorY += CONTENT_LINE_H;
+              } else {
+                cursorY += Math.floor(CONTENT_LINE_H * 0.6);
+              }
+            }
+
+            // Footer divider
+            const footerTop = H - FOOTER_H;
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(PADDING, footerTop + 24);
+            ctx.lineTo(W - PADDING, footerTop + 24);
+            ctx.stroke();
+
+            // QR / logo image (right side)
+            let qrImage = null;
+            try {
+              qrImage = await new Promise((res, rej) => {
+                const img = canvas.createImage();
+                img.onload = () => res(img);
+                img.onerror = rej;
+                img.src = '/assets/images/mini-program-code.png';
+              });
+            } catch (e) {
+              // continue without image
+            }
+
+            const QR_SIZE = 108;
+            const QR_X = W - PADDING - QR_SIZE;
+            const QR_Y = footerTop + 44;
+
+            if (qrImage) {
+              ctx.drawImage(qrImage, QR_X, QR_Y, QR_SIZE, QR_SIZE);
+            }
+
+            // Branding text (left side)
+            const brandY = footerTop + 84;
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 28px sans-serif';
+            ctx.fillText('By 小凡@凡人学堂', PADDING, brandY);
+
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '24px sans-serif';
+            ctx.fillText('AI生成，注意甄别！', PADDING, brandY + 40);
+
+            // Export to temp file
+            const scale = H > 2200 ? 1.5 : 2;
+            wx.canvasToTempFilePath({
+              canvas,
+              width: W,
+              height: H,
+              destWidth: Math.round(W * scale),
+              destHeight: Math.round(H * scale),
+              fileType: 'png',
+              quality: 1,
+              success: res => resolve(res.tempFilePath),
+              fail: err => reject(err)
+            });
+          } catch (err) {
+            reject(err);
+          }
+        });
     });
   },
 
@@ -156,7 +395,7 @@ Page({
     const userName = app.globalData.userInfo?.nickname || '晨读者';
     return {
       title: `${insight.title || '凡人共读'} - 致${userName}`,
-      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}`,
+      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`,
       imageUrl: '/assets/images/share-insight.jpg' // 使用新的"小凡看见"专属分享图
     };
   },
@@ -170,7 +409,7 @@ Page({
     const userName = app.globalData.userInfo?.nickname || '晨读者';
     return {
       title: `${insight.title || '凡人共读'} - 致${userName}`,
-      query: `id=${this.data.insightId}`,
+      query: `id=${this.data.insightId}&from=share`,
       imageUrl: '/assets/images/share-insight.jpg' // 使用新的"小凡看见"专属分享图
     };
   }

@@ -118,8 +118,28 @@
   transform: scale(0.98);
 }
 
+.btn-long-share {
+  flex: 1;
+  background: white;
+  color: #4a90e2;
+  border: 1rpx solid #c9dff8;
+  border-radius: 48rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.btn-long-share::after {
+  border: none;
+}
+
+.btn-long-share:active {
+  background: #edf4fd;
+  transform: scale(0.98);
+}
+
 .btn-share {
-  flex: 2;
+  flex: 1.5;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
   border: none;
@@ -131,6 +151,17 @@
 
 .btn-share::after {
   border: none;
+}
+
+/* 隐藏的长图生成画布 */
+.long-image-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ===== 转发弹窗样式 ===== */
