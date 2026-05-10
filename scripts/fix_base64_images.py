@@ -71,7 +71,7 @@ def main():
 
     print("\n登录中...")
     resp = api("/auth/admin/login", method="POST", data={"email": email, "password": password})
-    if not resp or resp.get("code") != 200:
+    if not resp or "data" not in resp or "token" not in resp.get("data", {}):
         print(f"登录失败: {resp}")
         sys.exit(1)
     token = resp["data"]["token"]
@@ -80,7 +80,7 @@ def main():
     # 2. 获取第二天内容
     print(f"\n获取课程内容 (section: {SECTION_ID})...")
     resp = api(f"/sections/{SECTION_ID}")
-    if not resp or resp.get("code") != 200:
+    if not resp or "data" not in resp:
         print(f"获取课程失败: {resp}")
         sys.exit(1)
     content = resp["data"].get("content", "")
@@ -112,7 +112,7 @@ def main():
             token=token,
             files={"file": (filename, img_bytes, mime)}
         )
-        if not upload_resp or upload_resp.get("code") != 200:
+        if not upload_resp or "data" not in upload_resp:
             print(f"    ❌ 上传失败: {upload_resp}")
             continue
 
@@ -137,7 +137,7 @@ def main():
         data={"content": new_content},
         token=token
     )
-    if not update_resp or update_resp.get("code") not in (200, 201):
+    if not update_resp or "data" not in update_resp:
         print(f"❌ 更新失败: {update_resp}")
         sys.exit(1)
 
