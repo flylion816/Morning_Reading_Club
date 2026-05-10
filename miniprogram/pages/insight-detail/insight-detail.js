@@ -92,9 +92,12 @@ Page({
   },
 
   handleBack() {
-    wx.navigateBack({
-      delta: 1
-    });
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack({ delta: 1 });
+    } else {
+      wx.switchTab({ url: '/pages/index/index' });
+    }
   },
 
   /**
@@ -348,9 +351,7 @@ Page({
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, W, H);
 
-            // Top accent bar
-            ctx.fillStyle = '#0d4f6c';
-            ctx.fillRect(0, 0, W, 8);
+            // 无顶部色条，保持纯白背景
 
             // Title — large bold dark teal (参考 Image #7 风格)
             let cursorY = PADDING + TITLE_LINE_H;
