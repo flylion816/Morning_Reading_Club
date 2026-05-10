@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   generateInsight,
@@ -110,9 +110,9 @@ router.get('/user/:userId?', authMiddleware, getUserInsights);
 /**
  * @route   GET /api/v1/insights/:insightId
  * @desc    获取反馈详情
- * @access  Private
+ * @access  Public for published insight shares, otherwise private/authorized
  */
-router.get('/:insightId', authMiddleware, getInsightDetail);
+router.get('/:insightId', optionalAuthMiddleware, getInsightDetail);
 
 /**
  * @route   PUT /api/v1/insights/:insightId

@@ -161,6 +161,9 @@ Page({
     insightRequests: [],
     allInsightRequests: [],
     insightRequestTotal: 0,
+    focusRequestId: '',
+    focusInsightId: '',
+    highlightRequestId: '',
     unreadNotificationCount: 0,
 
     // 腾讯会议
@@ -198,6 +201,7 @@ Page({
   onLoad(options) {
     console.log('🟢🟢🟢 PROFILE.JS ONLOAD CALLED 🟢🟢🟢', options);
     console.log('个人中心加载', options);
+    this.captureInsightRequestFocus(options);
   },
 
   onShow() {
@@ -283,6 +287,104 @@ Page({
    */
   updateTabBarVisibility(isLogin) {
     wx.showTabBar();
+  },
+
+  captureInsightRequestFocus(options = {}) {
+    const focusRequestId = options.focusRequestId || options.requestId || '';
+    const focusInsightId = options.focusInsightId || options.insightId || '';
+
+    if (!focusRequestId && !focusInsightId) {
+      return;
+    }
+
+    this.setData({
+      focusRequestId,
+      focusInsightId
+    });
+  },
+
+  getInsightRequestPreview(requests = []) {
+    const topRequests = requests.slice(0, 3);
+    const { focusRequestId, focusInsightId } = this.data;
+
+    if (!focusRequestId && !focusInsightId) {
+      return topRequests;
+    }
+
+    const focusedRequest = requests.find((item) => {
+      const requestId = item._id || item.id;
+      const insightId = item.insightId;
+      return (
+        (focusRequestId && String(requestId) === String(focusRequestId)) ||
+        (focusInsightId && String(insightId) === String(focusInsightId))
+      );
+    });
+
+    if (!focusedRequest) {
+      return topRequests;
+    }
+
+    const focusedRequestId = focusedRequest._id || focusedRequest.id;
+    const alreadyVisible = topRequests.some(
+      (item) => String(item._id || item.id) === String(focusedRequestId)
+    );
+
+    if (alreadyVisible) {
+      return topRequests;
+    }
+
+    return [
+      focusedRequest,
+      ...topRequests
+        .filter((item) => String(item._id || item.id) !== String(focusedRequestId))
+        .slice(0, 2)
+    ];
+  },
+
+  findFocusedInsightRequest(requests = this.data.insightRequests) {
+    const { focusRequestId, focusInsightId } = this.data;
+
+    if (!focusRequestId && !focusInsightId) {
+      return null;
+    }
+
+    return requests.find((item) => {
+      const requestId = item._id || item.id;
+      const insightId = item.insightId;
+      return (
+        (focusRequestId && String(requestId) === String(focusRequestId)) ||
+        (focusInsightId && String(insightId) === String(focusInsightId))
+      );
+    });
+  },
+
+  revealFocusedInsightRequest() {
+    const focusedRequest = this.findFocusedInsightRequest();
+    if (!focusedRequest) {
+      return;
+    }
+
+    const requestId = focusedRequest._id || focusedRequest.id;
+    const selector = `#request-${requestId}`;
+
+    clearTimeout(this._requestHighlightTimer);
+    setTimeout(() => {
+      this.setData({ highlightRequestId: requestId });
+      wx.pageScrollTo({
+        selector,
+        offsetTop: 96,
+        duration: 520,
+        fail: () => {
+          wx.pageScrollTo({ scrollTop: 760, duration: 520 });
+        }
+      });
+
+      this._requestHighlightTimer = setTimeout(() => {
+        if (this.data.highlightRequestId === requestId) {
+          this.setData({ highlightRequestId: '' });
+        }
+      }, 3600);
+    }, 120);
   },
 
   /**
@@ -462,32 +564,35 @@ Page({
           }
         : null;
 
-      this.setData({
-        userInfo,
-        hasValidSignature: !!this.isValidSignature(
-          userInfo && userInfo.signature
-        ),
-        userStats: stats,
-        currentPeriod: currentPeriodDisplay,
-        currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
-        canAccessCurrentPeriodCommunity: communityEnabled,
-        currentPeriodCommunityState:
-          currentPeriodAccess.communityAccessState || 'locked',
-        canUsePaidFeatures: paidFeatureAccessEnabled,
-        todaySection: todaySection || null,
-        recentCheckins,
-        recentInsights,
-        allInsightRequests,
-        insightRequests: allInsightRequests.slice(0, 3),
-        insightRequestTotal: allInsightRequests.length,
-        hasMeeting: !!(
-          currentPeriod &&
-          (currentPeriod.meetingId || currentPeriod.meetingJoinUrl)
-        ),
-        meetingId: currentPeriod?.meetingId || '',
-        meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
-        loading: false
-      });
+      this.setData(
+        {
+          userInfo,
+          hasValidSignature: !!this.isValidSignature(
+            userInfo && userInfo.signature
+          ),
+          userStats: stats,
+          currentPeriod: currentPeriodDisplay,
+          currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
+          canAccessCurrentPeriodCommunity: communityEnabled,
+          currentPeriodCommunityState:
+            currentPeriodAccess.communityAccessState || 'locked',
+          canUsePaidFeatures: paidFeatureAccessEnabled,
+          todaySection: todaySection || null,
+          recentCheckins,
+          recentInsights,
+          allInsightRequests,
+          insightRequests: this.getInsightRequestPreview(allInsightRequests),
+          insightRequestTotal: allInsightRequests.length,
+          hasMeeting: !!(
+            currentPeriod &&
+            (currentPeriod.meetingId || currentPeriod.meetingJoinUrl)
+          ),
+          meetingId: currentPeriod?.meetingId || '',
+          meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
+          loading: false
+        },
+        () => this.revealFocusedInsightRequest()
+      );
     } catch (error) {
       console.error('加载用户数据失败:', error);
       this.setData({ loading: false });
@@ -631,11 +736,14 @@ Page({
       const formatted = receivedRequests.map(buildInsightRequestDisplay);
 
       if (updatePage) {
-        this.setData({
-          allInsightRequests: formatted,
-          insightRequests: formatted.slice(0, 3),
-          insightRequestTotal: formatted.length
-        });
+        this.setData(
+          {
+            allInsightRequests: formatted,
+            insightRequests: this.getInsightRequestPreview(formatted),
+            insightRequestTotal: formatted.length
+          },
+          () => this.revealFocusedInsightRequest()
+        );
       }
 
       return formatted;
@@ -947,7 +1055,7 @@ Page({
 
     this.setData({
       allInsightRequests: updatedAll,
-      insightRequests: updatedAll.slice(0, 3)
+      insightRequests: this.getInsightRequestPreview(updatedAll)
     });
   },
 

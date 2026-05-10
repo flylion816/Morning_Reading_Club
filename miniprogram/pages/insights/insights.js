@@ -22,7 +22,9 @@ Page({
     rejectedRequestCount: 0,
     headerEmoji: '🦁', // 头部emoji
     headerTitle: '小凡看见', // 头部标题
-    headerDesc: '按课程查看个性化反馈' // 头部描述
+    headerDesc: '按课程查看个性化反馈', // 头部描述
+    showRequestSharePrompt: false,
+    pendingShareRequest: null
   },
 
   onLoad(options) {
@@ -354,7 +356,18 @@ Page({
     }
   },
 
-  onShareAppMessage() {
+  onShareAppMessage(event = {}) {
+    const shareRequest = this.data.pendingShareRequest;
+    const shareType = event?.target?.dataset?.shareType;
+
+    if (shareRequest && (event.from === 'button' || shareType === 'insightRequest')) {
+      return {
+        title: shareRequest.shareTitle,
+        path: shareRequest.sharePath,
+        imageUrl: '/assets/images/share-insight.jpg'
+      };
+    }
+
     return {
       title: this.data.isOtherUser
         ? `${this.data.userName}的小凡看见`
@@ -385,19 +398,78 @@ Page({
         periodId,
         insightId
       );
+      const requestId = response?._id || response?.id || null;
       this.updateInsightRequestState({
         insightId,
         periodId,
         requestStatus: 'pending',
         requestScope: insightId ? 'insight' : 'period',
-        requestId: response?._id || response?.id || null
+        requestId
       });
       wx.showToast({ title: '申请已发送', icon: 'success' });
+      this.openRequestSharePrompt({
+        requestId,
+        insightId,
+        periodId,
+        insightMeta
+      });
     } catch (error) {
       logger.error('发送申请失败:', error);
       wx.showToast({ title: '申请发送失败', icon: 'none' });
     }
   },
+
+  buildRequestSharePath({ requestId, insightId = null, periodId = null }) {
+    const query = [
+      ['from', 'insightRequestShare'],
+      ['focusRequestId', requestId],
+      ['focusInsightId', insightId || ''],
+      ['focusPeriodId', periodId || '']
+    ]
+      .filter(([, value]) => value)
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join('&');
+
+    return `/pages/profile/profile?${query}`;
+  },
+
+  openRequestSharePrompt({ requestId, insightId, periodId, insightMeta = {} }) {
+    if (!requestId) {
+      return;
+    }
+
+    const app = getApp();
+    const fromUserName =
+      app.globalData.userInfo?.nickname || app.globalData.userInfo?.name || '有人';
+    const requestLabel = this.buildInsightRequestLabel(insightMeta);
+    const toUserName = this.data.userName || '对方';
+
+    this.setData({
+      showRequestSharePrompt: true,
+      pendingShareRequest: {
+        requestId,
+        insightId: insightId || null,
+        periodId: periodId || null,
+        requestLabel,
+        toUserName,
+        shareTitle: `${fromUserName} 想查看你的「${requestLabel}」`,
+        sharePath: this.buildRequestSharePath({
+          requestId,
+          insightId,
+          periodId
+        })
+      }
+    });
+  },
+
+  closeRequestSharePrompt() {
+    this.setData({
+      showRequestSharePrompt: false,
+      pendingShareRequest: null
+    });
+  },
+
+  stopTap() {},
 
   /**
    * 点击 insight 项

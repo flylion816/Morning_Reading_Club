@@ -714,10 +714,11 @@ async function getUserInsights(req, res, next) {
 async function getInsightDetail(req, res, next) {
   try {
     const { insightId } = req.params;
-    const currentUserId = req.user.userId;
+    const currentUserId = req.user?.userId;
 
     const insight = await Insight.findById(insightId)
       .populate('userId', 'nickname avatar avatarUrl')
+      .populate('targetUserId', 'nickname avatar avatarUrl')
       .populate('sectionId', 'title day icon')
       .populate('periodId', 'name title')
       .populate('checkinId');
@@ -731,10 +732,17 @@ async function getInsightDetail(req, res, next) {
     const targetUserId =
       insight.targetUserId?._id?.toString?.() || insight.targetUserId?.toString?.() || null;
     const ownerUserId = targetUserId || creatorUserId;
+    const isPublicPublished =
+      insight.type === 'insight' &&
+      insight.status === 'completed' &&
+      insight.isPublished === true;
 
-    let canView = currentUserId === creatorUserId || currentUserId === ownerUserId;
+    let canView =
+      isPublicPublished ||
+      (!!currentUserId &&
+        (currentUserId === creatorUserId || currentUserId === ownerUserId));
 
-    if (!canView && ownerUserId) {
+    if (!canView && currentUserId && ownerUserId) {
       const { approvedInsightIds, approvedPeriodIds } =
         await getViewerAccessContext(currentUserId, ownerUserId);
       const insightRecordId = insight._id?.toString?.() || null;

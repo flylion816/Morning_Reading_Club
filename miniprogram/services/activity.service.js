@@ -1,8 +1,14 @@
 const request = require('../utils/request');
 const logger = require('../utils/logger');
+const constants = require('../config/constants');
 
 class ActivityService {
   track(action, data = {}) {
+    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    if (!token) {
+      return Promise.resolve();
+    }
+
     return request
       .post(
         '/activities',

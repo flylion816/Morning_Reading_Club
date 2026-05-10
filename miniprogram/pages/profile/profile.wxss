@@ -1026,6 +1026,26 @@
   transform: scale(0.99);
 }
 
+.request-item-focused {
+  background: #eef4ff;
+  box-shadow: 0 18rpx 42rpx rgba(74, 144, 226, 0.24);
+  animation: requestFocusPulse 1.2s ease-in-out 2;
+}
+
+@keyframes requestFocusPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  45% {
+    transform: scale(1.035);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
 .request-item-left {
   display: flex;
   align-items: flex-start;

@@ -366,7 +366,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
       populateStub.onFirstCall().returnsThis();
       populateStub.onSecondCall().returnsThis();
       populateStub.onThirdCall().returnsThis();
-      populateStub.onCall(3).resolves(mockInsight);
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(mockInsight);
       InsightStub.findById.returns({ populate: populateStub });
 
       await insightController.getInsightDetail(req, res, next);
@@ -382,7 +383,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
       populateStub.onFirstCall().returnsThis();
       populateStub.onSecondCall().returnsThis();
       populateStub.onThirdCall().returnsThis();
-      populateStub.onCall(3).resolves(null);
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(null);
 
       const chainObject = { populate: populateStub };
       InsightStub.findById.returns(chainObject);
@@ -410,7 +412,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
       populateStub.onFirstCall().returnsThis();
       populateStub.onSecondCall().returnsThis();
       populateStub.onThirdCall().returnsThis();
-      populateStub.onCall(3).resolves(mockInsight);
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(mockInsight);
 
       const chainObject = { populate: populateStub };
       InsightStub.findById.returns(chainObject);
@@ -430,7 +433,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
       populateStub.onFirstCall().returnsThis();
       populateStub.onSecondCall().returnsThis();
       populateStub.onThirdCall().returnsThis();
-      populateStub.onCall(3).resolves(mockInsight);
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(mockInsight);
 
       const chainObject = { populate: populateStub };
       InsightStub.findById.returns(chainObject);
@@ -451,7 +455,8 @@ describe('Insight Controller - 102+ 完整测试', () => {
       populateStub.onFirstCall().returnsThis();
       populateStub.onSecondCall().returnsThis();
       populateStub.onThirdCall().returnsThis();
-      populateStub.onCall(3).resolves(null);
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(null);
 
       const chainObject = { populate: populateStub };
       InsightStub.findById.returns(chainObject);
@@ -459,6 +464,88 @@ describe('Insight Controller - 102+ 完整测试', () => {
       await insightController.getInsightDetail(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    it('TC-INSIGHT-015A: 未登录用户可查看已发布 insight 分享详情', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = undefined;
+      req.params = { insightId };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        userId: fixtures.testUsers.user1,
+        targetUserId: fixtures.testUsers.user2,
+        status: 'completed',
+        isPublished: true
+      };
+      const populateStub = sandbox.stub();
+      populateStub.onFirstCall().returnsThis();
+      populateStub.onSecondCall().returnsThis();
+      populateStub.onThirdCall().returnsThis();
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(mockInsight);
+
+      InsightStub.findById.returns({ populate: populateStub });
+
+      await insightController.getInsightDetail(req, res, next);
+
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.firstCall.args[0].data).to.equal(mockInsight);
+    });
+
+    it('TC-INSIGHT-015B: 未登录用户不可查看未发布 insight', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = undefined;
+      req.params = { insightId };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        userId: fixtures.testUsers.user1,
+        targetUserId: fixtures.testUsers.user2,
+        status: 'completed',
+        isPublished: false
+      };
+      const populateStub = sandbox.stub();
+      populateStub.onFirstCall().returnsThis();
+      populateStub.onSecondCall().returnsThis();
+      populateStub.onThirdCall().returnsThis();
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(mockInsight);
+
+      InsightStub.findById.returns({ populate: populateStub });
+
+      await insightController.getInsightDetail(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+      expect(res.json.firstCall.args[0].message).to.equal('当前条目未获得查看授权');
+    });
+
+    it('TC-INSIGHT-015C: 未登录用户不可查看已发布的非 insight 类型反馈', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = undefined;
+      req.params = { insightId };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        userId: fixtures.testUsers.user1,
+        targetUserId: fixtures.testUsers.user2,
+        type: 'daily',
+        status: 'completed',
+        isPublished: true
+      };
+      const populateStub = sandbox.stub();
+      populateStub.onFirstCall().returnsThis();
+      populateStub.onSecondCall().returnsThis();
+      populateStub.onThirdCall().returnsThis();
+      populateStub.onCall(3).returnsThis();
+      populateStub.onCall(4).resolves(mockInsight);
+
+      InsightStub.findById.returns({ populate: populateStub });
+
+      await insightController.getInsightDetail(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+      expect(res.json.firstCall.args[0].message).to.equal('当前条目未获得查看授权');
     });
   });
 

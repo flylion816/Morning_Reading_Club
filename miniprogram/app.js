@@ -14,7 +14,7 @@ App({
       this.checkLoginStatus();
 
       // 根据登录状态导航到正确的页面
-      this.navigateToStartPage();
+      this.navigateToStartPage(options);
 
       // 获取系统信息
       this.getSystemInfo();
@@ -27,7 +27,7 @@ App({
   },
 
   // 根据登录状态导航到正确的起始页面
-  navigateToStartPage() {
+  navigateToStartPage(launchOptions = {}) {
     console.log(
       '🔵🔵🔵 navigateToStartPage called, currentEnv:',
       envConfig.currentEnv
@@ -45,7 +45,29 @@ App({
       return;
     }
 
-    // 生产环境：所有用户（无论登录状态）都导航到首页 tab
+    const launchPath = launchOptions.path || '';
+    const launchQuery = launchOptions.query || {};
+    const hasLaunchQuery = Object.keys(launchQuery).length > 0;
+    const shouldRespectLaunchPath =
+      !!launchPath && (launchPath !== 'pages/profile/profile' || hasLaunchQuery);
+
+    if (shouldRespectLaunchPath) {
+      const query = Object.keys(launchQuery)
+        .map((key) => `${key}=${encodeURIComponent(launchQuery[key])}`)
+        .join('&');
+      const url = `/${launchPath}${query ? `?${query}` : ''}`;
+
+      logger.info('保留分享/外部入口路径', { url });
+      wx.reLaunch({
+        url,
+        fail: (err) => {
+          logger.error('导航到入口路径失败:', err);
+        }
+      });
+      return;
+    }
+
+    // 生产环境：所有普通启动（无论登录状态）都导航到首页 tab
     // 首页 tab 支持未登录用户浏览介绍和跳转课程，只在需要时才要求登录
     // 这符合 WeChat 审核要求：用户进入后先体验功能，再选择登录
     logger.info('导航到首页 tab（允许未登录用户浏览）');

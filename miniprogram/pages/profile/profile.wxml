@@ -194,7 +194,8 @@
           <view
             wx:for="{{insightRequests}}"
             wx:key="id"
-            class="request-item"
+            id="request-{{item.id}}"
+            class="request-item {{highlightRequestId === item.id ? 'request-item-focused' : ''}}"
             bindtap="handleInsightRequestTap"
             data-request="{{item}}">
             <view class="request-item-left">

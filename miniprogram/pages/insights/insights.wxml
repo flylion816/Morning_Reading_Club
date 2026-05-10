@@ -55,4 +55,23 @@
       <text class="empty-text">暂无反馈</text>
     </view>
   </view>
+
+  <view wx:if="{{showRequestSharePrompt}}" class="request-share-mask" catchtap="closeRequestSharePrompt">
+    <view class="request-share-panel" catchtap="stopTap">
+      <view class="request-share-title">申请已发送</view>
+      <view class="request-share-desc">
+        转发给{{pendingShareRequest.toUserName}}，对方点开后会直接定位到这条请求。
+      </view>
+      <view class="request-share-target">{{pendingShareRequest.requestLabel}}</view>
+      <view class="request-share-actions">
+        <button class="request-share-secondary" catchtap="closeRequestSharePrompt">取消转发到微信</button>
+        <button
+          class="request-share-primary"
+          open-type="share"
+          data-share-type="insightRequest">
+          转发给好友或群
+        </button>
+      </view>
+    </view>
+  </view>
 </view>
