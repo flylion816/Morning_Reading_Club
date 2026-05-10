@@ -3,22 +3,17 @@ const Checkin = require('../models/Checkin');
 const mongoose = require('mongoose');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
+const { getPeriodDateKeys, getShanghaiDateKey } = require('../utils/study-reminder.utils');
 
 // 获取动态状态（基于当前日期和期次日期范围）
 function getDynamicStatus(period) {
-  const now = new Date();
-  const startDate = new Date(period.startDate);
-  const endDate = new Date(period.endDate);
+  const todayKey = getShanghaiDateKey(new Date());
+  const { startKey, endKey } = getPeriodDateKeys(period);
 
-  // 比较日期（不考虑时间，只比较日期部分）
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-
-  if (today < start) {
+  if (!startKey || !endKey || todayKey < startKey) {
     return 'not_started';
   }
-  if (today > end) {
+  if (todayKey > endKey) {
     return 'completed';
   }
   return 'ongoing';
@@ -122,7 +117,7 @@ async function getPeriodListForUser(req, res, next) {
 
       return {
         ...periodObj,
-        status: period.status === 'ongoing' ? 'active' : period.status,
+        status: getDynamicStatus(period),
         title: period.title || period.name,
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
@@ -240,7 +235,7 @@ async function getPeriodDetail(req, res, next) {
 
     const transformedPeriod = {
       ...periodObj,
-      status: period.status === 'ongoing' ? 'active' : period.status,
+      status: getDynamicStatus(period),
       title: period.title || period.name,
       color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
       // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
@@ -350,7 +345,7 @@ async function updatePeriod(req, res, next) {
 
     const transformedPeriod = {
       ...periodObj,
-      status: period.status === 'ongoing' ? 'active' : period.status,
+      status: getDynamicStatus(period),
       title: period.title || period.name,
       color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
       coverColor: convertCoverColorForForm(period.coverColor),

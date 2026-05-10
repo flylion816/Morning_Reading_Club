@@ -159,6 +159,50 @@ describe('Period Controller', () => {
   });
 
   describe('getPeriodListForUser', () => {
+    it('应该根据日期返回动态状态，而不是数据库中的旧状态', async () => {
+      sandbox.useFakeTimers(new Date('2026-05-10T08:00:00.000Z'));
+
+      const periodId = new mongoose.Types.ObjectId();
+      req.user = {
+        userId: new mongoose.Types.ObjectId(),
+        role: 'admin'
+      };
+      req.query = { page: 1, limit: 20 };
+
+      const mockPeriod = {
+        _id: periodId,
+        name: '秩序之锚',
+        title: '秩序之锚 - 七个习惯晨读营',
+        status: 'not_started',
+        startDate: new Date('2026-05-08T16:00:00.000Z'),
+        endDate: new Date('2026-05-30T16:00:00.000Z'),
+        coverColor: '#4a90e2',
+        toObject: sandbox.stub().returns({
+          _id: periodId,
+          name: '秩序之锚',
+          title: '秩序之锚 - 七个习惯晨读营',
+          status: 'not_started',
+          startDate: new Date('2026-05-08T16:00:00.000Z'),
+          endDate: new Date('2026-05-30T16:00:00.000Z')
+        })
+      };
+
+      PeriodStub.countDocuments.resolves(1);
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves([mockPeriod])
+      });
+      CheckinStub.aggregate.resolves([]);
+
+      await periodController.getPeriodListForUser(req, res, next);
+
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data[0].status).to.equal('ongoing');
+      expect(responseData.data[0].statusText).to.equal('进行中');
+    });
+
     it('应该通过一次聚合合并用户打卡统计', async () => {
       const periodId1 = new mongoose.Types.ObjectId();
       const periodId2 = new mongoose.Types.ObjectId();
