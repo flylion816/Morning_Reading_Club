@@ -4,6 +4,12 @@ const userService = require('../../services/user.service');
 const envConfig = require('../../config/env');
 const logger = require('../../utils/logger');
 
+const DEFAULT_WECHAT_USER_INFO = {
+  nickName: '微信用户',
+  avatarUrl: '',
+  gender: 0
+};
+
 Page({
   data: {
     loading: false,
@@ -108,29 +114,11 @@ Page({
     this.setData({ loading: true });
 
     try {
-      console.log('开始获取用户信息...');
-      this.setData({ errorMessage: '', debugInfo: '正在获取用户信息...' });
-
-      // 1. 必须在点击事件中同步调用getUserProfile
-      const userInfo = await new Promise((resolve, reject) => {
-        wx.getUserProfile({
-          desc: '用于完善会员资料',
-          success: res => {
-            console.log('获取用户信息成功:', res.userInfo);
-            resolve(res.userInfo);
-          },
-          fail: err => {
-            console.error('获取用户信息失败:', err);
-            reject(err);
-          }
-        });
-      });
-
-      console.log('用户信息获取完成，开始登录...');
+      console.log('开始微信登录...');
       this.setData({ debugInfo: '正在调用登录API: ' + envConfig.apiBaseUrl });
 
-      // 2. 调用真实登录（开发环境会自动生成mock code）
-      const loginData = await authService.wechatLogin(userInfo);
+      // 微信昵称/头像接口已不再稳定返回真实资料，登录只依赖 wx.login code。
+      const loginData = await authService.wechatLogin(DEFAULT_WECHAT_USER_INFO);
 
       await this.completeLogin(loginData);
     } catch (error) {
