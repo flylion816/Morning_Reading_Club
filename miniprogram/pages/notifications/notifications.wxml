@@ -112,7 +112,3 @@
     <text>没有更多通知了</text>
   </view>
 </view>
-
-<style>
-@import './notifications.wxss';
-</style>

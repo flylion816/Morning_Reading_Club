@@ -927,7 +927,8 @@ Page({
     const target = await this.getPosterCanvasNode();
     const canvas = target.node;
     const ctx = canvas.getContext('2d');
-    const dpr = wx.getSystemInfoSync?.().pixelRatio || 2;
+    const dpr =
+      wx.getWindowInfo?.().pixelRatio || wx.getSystemInfoSync?.().pixelRatio || 2;
     let miniProgramCodeImage = null;
 
     canvas.width = snapshot.width * dpr;
@@ -1254,6 +1255,42 @@ Page({
       return;
     }
     this.savePosterToAlbum(this.data.selectedPoster.tempFilePath);
+  },
+
+  handleShareSelectedPoster() {
+    const tempFilePath = this.data.selectedPoster?.tempFilePath;
+
+    if (!tempFilePath) {
+      wx.showToast({
+        title: '请先选择长图',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (!wx.showShareImageMenu) {
+      wx.showToast({
+        title: '当前微信版本不支持图片分享',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showShareImageMenu({
+      path: tempFilePath,
+      fail: (error) => {
+        if (String(error?.errMsg || '').includes('cancel')) {
+          return;
+        }
+        const isTimeout = String(error?.errMsg || error?.message || '').includes(
+          'timeout'
+        );
+        wx.showToast({
+          title: isTimeout ? '分享超时，请重试' : '分享图片失败',
+          icon: 'none'
+        });
+      }
+    });
   },
 
   /**

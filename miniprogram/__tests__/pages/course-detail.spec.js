@@ -68,6 +68,8 @@ describe('course-detail page markdown support', () => {
     wx.showShareMenu.mockClear();
     wx.hideShareMenu.mockClear();
     wx.showModal.mockClear();
+    wx.showToast.mockClear();
+    wx.showShareImageMenu?.mockClear();
   });
 
   afterEach(() => {
@@ -205,6 +207,41 @@ describe('course-detail page markdown support', () => {
       commentCount: 1
     });
     expect(pageInstance.data.detailCheckin.dateLabel).toBe('2025-07-04 15:09:53');
+  });
+
+  test('should share selected poster image to WeChat friend', () => {
+    pageInstance.setData({
+      selectedPoster: {
+        tempFilePath: 'wxfile://selected-poster.png'
+      }
+    });
+
+    pageInstance.handleShareSelectedPoster.call(pageInstance);
+
+    expect(wx.showShareImageMenu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: 'wxfile://selected-poster.png'
+      })
+    );
+  });
+
+  test('should show toast when poster image sharing is unavailable', () => {
+    const originalShowShareImageMenu = wx.showShareImageMenu;
+    delete wx.showShareImageMenu;
+    pageInstance.setData({
+      selectedPoster: {
+        tempFilePath: 'wxfile://selected-poster.png'
+      }
+    });
+
+    pageInstance.handleShareSelectedPoster.call(pageInstance);
+
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '当前微信版本不支持图片分享',
+      icon: 'none'
+    });
+
+    wx.showShareImageMenu = originalShowShareImageMenu;
   });
 
   test('should disable sharing for other users detail checkin', () => {

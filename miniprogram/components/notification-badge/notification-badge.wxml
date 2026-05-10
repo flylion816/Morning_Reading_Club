@@ -14,7 +14,3 @@
     </view>
   </view>
 </view>
-
-<style>
-@import './notification-badge.wxss';
-</style>

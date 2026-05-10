@@ -245,6 +245,11 @@ global.wx = {
     }
   }),
   previewImage: jest.fn(),
+  showShareImageMenu: jest.fn((options) => {
+    if (options.success) {
+      options.success({});
+    }
+  }),
   saveImageToPhotosAlbum: jest.fn((options) => {
     if (options.success) {
       options.success({});
