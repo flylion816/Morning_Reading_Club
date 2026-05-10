@@ -2407,6 +2407,66 @@ describe('Insight Controller - 102+ 完整测试', () => {
       expect(res.json.calledOnce).to.be.true;
       expect(res.json.firstCall.args[0].message).to.equal('缺少必填字段：sessionId 或 day');
     });
+
+    it('TC-EXTERNAL-011: targetUserName 按期次报名用户匹配', async () => {
+      req.body = {
+        periodName: '心流之境',
+        targetUserName: '狮子',
+        content: '基于报名昵称创建',
+        day: 1
+      };
+
+      const period = fixtures.testPeriods.activeOngoing;
+      const section = fixtures.testSections.day1Ongoing;
+      const targetUser = {
+        ...fixtures.testUsers.user1,
+        nickname: '狮子'
+      };
+      const mockInsight = {
+        _id: new mongoose.Types.ObjectId(),
+        targetUserId: targetUser._id,
+        periodId: period._id,
+        sectionId: section._id,
+        title: section.title,
+        day: section.day,
+        type: 'insight',
+        mediaType: 'text',
+        content: req.body.content,
+        imageUrl: null,
+        source: 'manual',
+        status: 'completed',
+        isPublished: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      PeriodStub.findOne.returns(createSelectQuery(sandbox, period));
+      SectionStub.findOne.returns(createSelectQuery(sandbox, section));
+      EnrollmentStub.find.returns(createSelectQuery(sandbox, [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: targetUser,
+          periodId: period._id,
+          status: 'active',
+          deleted: false,
+          name: '报名姓名'
+        }
+      ]));
+      UserStub.findById.resolves(null);
+      InsightStub.create.resolves(mockInsight);
+
+      await insightController.createInsightFromExternal(req, res, next);
+
+      expect(UserStub.find.called).to.be.false;
+      expect(EnrollmentStub.find.calledWith({
+        periodId: period._id,
+        status: { $in: ['active', 'completed'] },
+        deleted: { $ne: true }
+      })).to.be.true;
+      expect(res.status.calledWith(201)).to.be.true;
+      expect(InsightStub.create.firstCall.args[0].targetUserId).to.equal(targetUser._id);
+    });
   });
 
   // ========================================

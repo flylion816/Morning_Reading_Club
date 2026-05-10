@@ -195,6 +195,94 @@ async function resolveExternalInsightContext({
   };
 }
 
+function isActiveEnrollment(enrollment) {
+  return (
+    enrollment &&
+    enrollment.deleted !== true &&
+    ['active', 'completed'].includes(enrollment.status || 'active')
+  );
+}
+
+function getEnrollmentUser(enrollment) {
+  return enrollment?.userId && typeof enrollment.userId === 'object' ? enrollment.userId : null;
+}
+
+function doesEnrollmentMatchTargetName(enrollment, targetUserName) {
+  const normalizedName = String(targetUserName || '').trim();
+  if (!normalizedName) {
+    return false;
+  }
+
+  const user = getEnrollmentUser(enrollment);
+  return [user?.nickname, enrollment?.name]
+    .filter(Boolean)
+    .some(name => String(name).trim() === normalizedName);
+}
+
+async function findTargetUserForExternalInsight({ targetUserId, targetUserName, periodId, periodName }) {
+  if (targetUserId) {
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return {
+        status: 404,
+        body: errors.notFound(`被看见人不存在：ID ${targetUserId}`)
+      };
+    }
+
+    const enrollment = await Enrollment.findOne({
+      userId: targetUser._id,
+      periodId,
+      status: { $in: ['active', 'completed'] },
+      deleted: { $ne: true }
+    });
+    if (!enrollment) {
+      return {
+        status: 403,
+        body: errors.forbidden(`用户 ${targetUser.nickname} 未报名期次 ${periodName}`)
+      };
+    }
+
+    return { status: 200, body: { targetUser, enrollment } };
+  }
+
+  const enrollments = await Enrollment.find({
+    periodId,
+    status: { $in: ['active', 'completed'] },
+    deleted: { $ne: true }
+  })
+    .populate('userId', 'nickname avatar avatarUrl status')
+    .lean();
+
+  const matchedEnrollments = (enrollments || [])
+    .filter(isActiveEnrollment)
+    .filter(enrollment => getEnrollmentUser(enrollment))
+    .filter(enrollment => doesEnrollmentMatchTargetName(enrollment, targetUserName));
+
+  if (matchedEnrollments.length === 0) {
+    return {
+      status: 404,
+      body: errors.notFound(`期次 ${periodName} 中不存在被看见人：昵称 ${targetUserName}`)
+    };
+  }
+
+  if (matchedEnrollments.length > 1) {
+    return {
+      status: 400,
+      body: errors.badRequest(
+        `期次 ${periodName} 中昵称 "${targetUserName}" 对应多个报名用户，请改用 targetUserId 精确指定`
+      )
+    };
+  }
+
+  return {
+    status: 200,
+    body: {
+      targetUser: matchedEnrollments[0].userId,
+      enrollment: matchedEnrollments[0]
+    }
+  };
+}
+
 async function resolveQueryResult(query) {
   if (!query) {
     return query;
@@ -1981,7 +2069,7 @@ async function batchApproveRequests(req, res, next) {
  * 外部接口：创建小凡看见
  * 用于外部系统提交用户的"小凡看见"内容
  * @route   POST /api/v1/insights/external/create
- * @param   targetUserId {string} - 被看见用户ID（必填）
+ * @param   targetUserId|targetUserName {string} - 被看见用户ID/昵称（二选一，ID优先；昵称按期次报名用户匹配）
  * @param   periodId|periodName {string} - 期次ID/名称（二选一）
  * @param   sessionId {string} - 课节ID（与day二选一，推荐）
  * @param   day {number} - 第几天的课程（与sessionId二选一，兼容旧写法）
@@ -2047,36 +2135,18 @@ async function createInsightFromExternal(req, res, next) {
       resolvedDay
     } = resolvedContext.body;
 
-    // 查询并验证被看见人是否存在（targetUserId 优先，否则按 targetUserName 查找）
-    let targetUser;
-    if (targetUserId) {
-      targetUser = await User.findById(targetUserId);
-      if (!targetUser) {
-        return res.status(404).json(errors.notFound(`被看见人不存在：ID ${targetUserId}`));
-      }
-    } else {
-      const matched = await User.find({ nickname: targetUserName }).limit(2);
-      if (matched.length === 0) {
-        return res.status(404).json(errors.notFound(`被看见人不存在：昵称 ${targetUserName}`));
-      }
-      if (matched.length > 1) {
-        return res.status(400).json(errors.badRequest(
-          `昵称 "${targetUserName}" 对应多个用户，请改用 targetUserId 精确指定`
-        ));
-      }
-      targetUser = matched[0];
-    }
-
-    // 检查被看见人是否已报名该期次
-    const enrollment = await Enrollment.findOne({
-      userId: targetUser._id,
-      periodId: resolvedPeriodId
+    // 查询并验证被看见人是否存在且报名该期次。
+    // targetUserName 必须限定在当前期次报名记录内匹配，避免全局同名用户误判重复。
+    const resolvedTarget = await findTargetUserForExternalInsight({
+      targetUserId,
+      targetUserName,
+      periodId: resolvedPeriodId,
+      periodName: resolvedPeriodName
     });
-    if (!enrollment) {
-      return res
-        .status(403)
-        .json(errors.forbidden(`用户 ${targetUser.nickname} 未报名期次 ${resolvedPeriodName}`));
+    if (resolvedTarget.status !== 200) {
+      return res.status(resolvedTarget.status).json(resolvedTarget.body);
     }
+    const { targetUser } = resolvedTarget.body;
 
     // 获取系统用户作为创建者（如果存在），否则使用被看见人作为创建者
     // 这里可以配置一个系统用户ID

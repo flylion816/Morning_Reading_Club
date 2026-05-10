@@ -194,7 +194,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 | sessionId | string | 二选一 | 课节 ID，推荐优先传 | `69f9bf45cb1c9ac0600ad55b` |
 | day | number | 二选一 | 第几天课程；仅在未传 `sessionId` 时使用 | `1` |
 | targetUserId | string | 二选一 | 被看见人的用户 ID，推荐优先传 | `692fe16a962d558224f4133f` |
-| targetUserName | string | 二选一 | 被看见人的昵称；昵称在系统内不唯一时报错，建议改用 `targetUserId` | `狮子` |
+| targetUserName | string | 二选一 | 被看见人的昵称；服务端会在指定期次的有效报名用户中匹配，若该期次内仍不唯一则报错，建议改用 `targetUserId` | `狮子` |
 | content | string | 二选一 | 小凡看见文字内容 | `我看见你今天很认真地完成了晨读。` |
 | imageUrl | string | 二选一 | 小凡看见图片地址 | `https://example.com/image.jpg` |
 
@@ -203,6 +203,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 - `periodId` 和 `periodName` 只需要传一个，推荐传 `periodId`
 - `sessionId` 和 `day` 只需要传一个，推荐传 `sessionId`
 - `targetUserId` 和 `targetUserName` 只需要传一个，推荐传 `targetUserId`；若同时传，以 `targetUserId` 为准
+- 使用 `targetUserName` 时，匹配范围是当前 `periodId/periodName` 对应期次的有效报名用户，不再按全站用户昵称匹配
 - `content` 和 `imageUrl` 至少填写一个
 - 若同时传 `sessionId` 和 `day`，以 `sessionId` 为准
 - 历史调用里若仍传 `sectionId`，服务端当前仍兼容，但新接入建议统一使用 `sessionId`
@@ -268,12 +269,12 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 }
 ```
 
-`targetUserName` 对应多个用户：
+`targetUserName` 在当前期次内对应多个报名用户：
 
 ```json
 {
   "code": 400,
-  "message": "昵称 \"狮子\" 对应多个用户，请改用 targetUserId 精确指定",
+  "message": "期次 秩序之锚 中昵称 \"狮子\" 对应多个报名用户，请改用 targetUserId 精确指定",
   "timestamp": 1778077219250
 }
 ```
@@ -301,7 +302,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
     "content": "我看见你今天很认真地完成了晨读。"
   }'
 
-# 兼容：通过 targetUserName 指定被看见人（昵称须在系统内唯一）
+# 兼容：通过 targetUserName 指定被看见人（昵称须在该期次报名用户内唯一）
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "Content-Type: application/json" \
   -d '{
@@ -344,7 +345,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 ### Q5: 传 `targetUserName` 时提示”昵称对应多个用户”怎么办？
 
-系统内存在同名用户，无法通过昵称唯一确定目标。请先调用”获取期次用户列表”获取用户的 `userId`，改用 `targetUserId` 传入。
+当前期次报名用户里仍存在同名用户，无法通过昵称唯一确定目标。请先调用”获取期次用户列表”获取用户的 `userId`，改用 `targetUserId` 传入。
 
 ---
 
@@ -352,6 +353,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-05-10 | v1.5 | `targetUserName` 改为按指定期次的有效报名用户匹配，避免全站同名用户误判重复 |
 | 2026-05-10 | v1.4 | 创建小凡看见接口支持 `targetUserName`（与 `targetUserId` 二选一） |
 | 2026-05-06 | v1.3 | 新增运行中期次查询接口；期次用户接口支持 `periodId` 或 `periodName`；示例更新为最新期次和第 1 天 `sessionId` |
 | 2026-03-31 | v1.2 | 收紧外部创建参数：`periodId/periodName` 二选一、`sessionId/day` 二选一；移除 `title` 请求字段；文档统一仅保留 `sessionId` 写法 |
