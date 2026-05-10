@@ -134,8 +134,8 @@ App({
   // 检查小程序更新
   checkUpdate() {
     const envVersion = wx.getAccountInfoSync?.().miniProgram?.envVersion;
-    if (envVersion && envVersion !== 'release') {
-      logger.debug('非线上版本，跳过小程序更新检查:', envVersion);
+    if (envVersion !== 'release') {
+      logger.debug('非线上版本，跳过小程序更新检查:', envVersion || 'unknown');
       return;
     }
 
