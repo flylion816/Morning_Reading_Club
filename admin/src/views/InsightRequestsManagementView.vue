@@ -45,15 +45,15 @@
       </div>
 
       <!-- 搜索和筛选 -->
-      <el-card style="margin-bottom: 20px">
+      <el-card class="filter-card">
         <template #header>
           <div class="card-header">
             <span class="card-title">搜索和筛选</span>
           </div>
         </template>
 
-        <el-form :model="filters" layout="inline">
-          <el-form-item label="申请状态">
+        <el-form :model="filters" class="compact-filter-form">
+          <el-form-item label="申请状态" class="filter-status">
             <el-select
               v-model="filters.status"
               placeholder="选择状态"
@@ -68,7 +68,7 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="申请者">
+          <el-form-item label="申请者" class="filter-user">
             <el-input
               v-model="filters.fromUser"
               placeholder="搜索申请者"
@@ -77,7 +77,7 @@
             />
           </el-form-item>
 
-          <el-form-item label="被申请者">
+          <el-form-item label="被申请者" class="filter-user">
             <el-input
               v-model="filters.toUser"
               placeholder="搜索被申请者"
@@ -86,7 +86,7 @@
             />
           </el-form-item>
 
-          <el-form-item>
+          <el-form-item class="filter-actions">
             <el-button type="primary" @click="loadRequests">查询</el-button>
             <el-button @click="resetFilters">重置</el-button>
           </el-form-item>
@@ -970,6 +970,45 @@ onMounted(() => {
 
 .card-title {
   font-weight: 600;
+}
+
+.filter-card {
+  margin-bottom: 20px;
+}
+
+.compact-filter-form {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  align-items: center;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.compact-filter-form :deep(.el-form-item) {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.compact-filter-form :deep(.el-form-item__label) {
+  white-space: nowrap;
+}
+
+.compact-filter-form :deep(.el-select),
+.compact-filter-form :deep(.el-input) {
+  width: 100%;
+}
+
+.filter-status {
+  width: 250px;
+}
+
+.filter-user {
+  width: 320px;
+}
+
+.filter-actions {
+  width: auto;
 }
 
 .header-actions {
