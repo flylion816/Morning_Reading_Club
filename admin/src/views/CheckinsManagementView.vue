@@ -37,15 +37,15 @@
       </div>
 
       <!-- 搜索和筛选 -->
-      <el-card style="margin-bottom: 20px">
+      <el-card class="filter-card">
         <template #header>
           <div class="card-header">
             <span class="card-title">搜索和筛选</span>
           </div>
         </template>
 
-        <el-form :model="filters" layout="inline">
-          <el-form-item label="用户昵称">
+        <el-form :model="filters" class="compact-filter-form">
+          <el-form-item label="用户昵称" class="filter-search">
             <el-input
               v-model="filters.search"
               placeholder="搜索用户昵称或ID"
@@ -54,7 +54,7 @@
             />
           </el-form-item>
 
-          <el-form-item label="期次">
+          <el-form-item label="期次" class="filter-period">
             <el-select
               v-model="filters.periodId"
               placeholder="选择期次"
@@ -70,7 +70,7 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="开始日期">
+          <el-form-item label="开始日期" class="filter-date">
             <el-date-picker
               v-model="filters.dateFrom"
               type="date"
@@ -79,7 +79,7 @@
             />
           </el-form-item>
 
-          <el-form-item label="结束日期">
+          <el-form-item label="结束日期" class="filter-date">
             <el-date-picker
               v-model="filters.dateTo"
               type="date"
@@ -88,7 +88,7 @@
             />
           </el-form-item>
 
-          <el-form-item>
+          <el-form-item class="filter-actions">
             <el-button type="primary" @click="loadCheckins">查询</el-button>
             <el-button @click="resetFilters">重置</el-button>
           </el-form-item>
@@ -563,6 +563,51 @@ onMounted(() => {
     .card-title {
       font-weight: bold;
       color: #333;
+    }
+  }
+
+  .filter-card {
+    margin-bottom: 20px;
+  }
+
+  .compact-filter-form {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.3fr) minmax(220px, 1fr) 220px 220px auto;
+    gap: 12px 16px;
+    align-items: center;
+
+    :deep(.el-form-item) {
+      margin: 0;
+    }
+
+    :deep(.el-form-item__label) {
+      white-space: nowrap;
+    }
+
+    :deep(.el-input),
+    :deep(.el-select),
+    :deep(.el-date-editor) {
+      width: 100%;
+    }
+
+    .filter-actions {
+      justify-self: start;
+    }
+  }
+
+  @media (max-width: 1500px) {
+    .compact-filter-form {
+      grid-template-columns: minmax(260px, 1fr) minmax(220px, 1fr) 220px 220px;
+
+      .filter-actions {
+        grid-column: 1 / -1;
+      }
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .compact-filter-form {
+      grid-template-columns: 1fr 1fr;
     }
   }
 

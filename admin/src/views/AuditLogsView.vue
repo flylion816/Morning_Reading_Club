@@ -163,6 +163,12 @@
             </template>
           </el-table-column>
 
+          <el-table-column label="操作说明" min-width="240" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ getLogDescription(row) }}
+            </template>
+          </el-table-column>
+
           <el-table-column label="资源类型" width="100">
             <template #default="{ row }">
               <el-tag>{{ row.resourceType }}</el-tag>
@@ -347,6 +353,10 @@ const getAdminAccount = (log: AuditLog | null | undefined): string => {
     return log.adminId;
   }
   return '无';
+};
+
+const getLogDescription = (log: AuditLog | null | undefined): string => {
+  return log?.details?.description || '无';
 };
 
 // 获取操作类型的颜色
@@ -559,7 +569,13 @@ initPage().catch(error => {
   display: flex;
   gap: 10px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.filter-panel > * {
+  flex: 0 0 auto;
 }
 
 .table-card {
