@@ -919,6 +919,44 @@ Page({
     ctx.restore();
   },
 
+  exportPosterCanvasToTempFilePath(canvas, snapshot) {
+    const preferredScales =
+      snapshot.height > 2200 ? [1.5, 1.25, 1] : [2, 1.5, 1];
+    let attemptIndex = 0;
+
+    return new Promise((resolve, reject) => {
+      const tryExport = () => {
+        const scale = preferredScales[attemptIndex];
+
+        wx.canvasToTempFilePath({
+          canvas,
+          width: snapshot.width,
+          height: snapshot.height,
+          destWidth: Math.round(snapshot.width * scale),
+          destHeight: Math.round(snapshot.height * scale),
+          fileType: 'png',
+          quality: 1,
+          success: (res) => resolve(res.tempFilePath),
+          fail: (error) => {
+            const isLastAttempt = attemptIndex >= preferredScales.length - 1;
+            if (isLastAttempt) {
+              reject(error);
+              return;
+            }
+            console.warn('长图导出失败，降低清晰度重试', {
+              scale,
+              error
+            });
+            attemptIndex += 1;
+            tryExport();
+          }
+        });
+      };
+
+      tryExport();
+    });
+  },
+
   async generateLongImagePoster(
     detailCheckin,
     stylePreset = POSTER_STYLE_PRESETS[0]
@@ -1112,19 +1150,7 @@ Page({
       );
     }
 
-    return new Promise((resolve, reject) => {
-      wx.canvasToTempFilePath({
-        canvas,
-        width: snapshot.width,
-        height: snapshot.height,
-        destWidth: snapshot.width * 2,
-        destHeight: snapshot.height * 2,
-        fileType: 'png',
-        quality: 1,
-        success: (res) => resolve(res.tempFilePath),
-        fail: reject
-      });
-    });
+    return this.exportPosterCanvasToTempFilePath(canvas, snapshot);
   },
 
   syncSelectedPoster(index = 0) {
@@ -1146,6 +1172,7 @@ Page({
 
   async generatePosterGallery(detailCheckin) {
     const items = [];
+    let lastError = null;
 
     for (let index = 0; index < POSTER_STYLE_PRESETS.length; index += 1) {
       const stylePreset = POSTER_STYLE_PRESETS[index];
@@ -1156,15 +1183,27 @@ Page({
         });
       }
 
-      const tempFilePath = await this.generateLongImagePoster(
-        detailCheckin,
-        stylePreset
-      );
-      items.push({
-        id: stylePreset.id,
-        name: stylePreset.name,
-        tempFilePath
-      });
+      try {
+        const tempFilePath = await this.generateLongImagePoster(
+          detailCheckin,
+          stylePreset
+        );
+        items.push({
+          id: stylePreset.id,
+          name: stylePreset.name,
+          tempFilePath
+        });
+      } catch (error) {
+        lastError = error;
+        console.warn('单个长图模板生成失败，继续生成其他模板', {
+          styleId: stylePreset.id,
+          error
+        });
+      }
+    }
+
+    if (items.length === 0) {
+      throw lastError || new Error('长图生成失败');
     }
 
     return items;

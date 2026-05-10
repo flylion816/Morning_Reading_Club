@@ -70,6 +70,7 @@ describe('course-detail page markdown support', () => {
     wx.showModal.mockClear();
     wx.showToast.mockClear();
     wx.showShareImageMenu?.mockClear();
+    wx.canvasToTempFilePath?.mockClear();
   });
 
   afterEach(() => {
@@ -332,6 +333,41 @@ describe('course-detail page markdown support', () => {
     expect(global.__mockCanvasContext.drawImage).toHaveBeenCalled();
   });
 
+  test('should retry poster export with lower scale after timeout', async () => {
+    wx.canvasToTempFilePath
+      .mockImplementationOnce((options) => {
+        options.fail({ errMsg: 'canvasToTempFilePath:fail timeout' });
+      })
+      .mockImplementationOnce((options) => {
+        options.success({ tempFilePath: '/tmp/retry-poster.png' });
+      });
+
+    const tempFilePath = await pageInstance.exportPosterCanvasToTempFilePath.call(
+      pageInstance,
+      {},
+      {
+        width: 1040,
+        height: 1480
+      }
+    );
+
+    expect(tempFilePath).toBe('/tmp/retry-poster.png');
+    expect(wx.canvasToTempFilePath).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        destWidth: 2080,
+        destHeight: 2960
+      })
+    );
+    expect(wx.canvasToTempFilePath).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        destWidth: 1560,
+        destHeight: 2220
+      })
+    );
+  });
+
   test('should generate poster gallery for all built-in styles', async () => {
     pageInstance.generateLongImagePoster = jest
       .fn()
@@ -351,6 +387,29 @@ describe('course-detail page markdown support', () => {
     expect(galleryItems.map(item => item.tempFilePath)).toEqual([
       '/tmp/poster-1.png',
       '/tmp/poster-2.png',
+      '/tmp/poster-3.png',
+      '/tmp/poster-4.png'
+    ]);
+  });
+
+  test('should keep generated poster templates when one style fails', async () => {
+    pageInstance.generateLongImagePoster = jest
+      .fn()
+      .mockResolvedValueOnce('/tmp/poster-1.png')
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValueOnce('/tmp/poster-3.png')
+      .mockResolvedValueOnce('/tmp/poster-4.png');
+
+    const galleryItems = await pageInstance.generatePosterGallery.call(pageInstance, {
+      id: 'checkin_123',
+      userName: '狮子',
+      content: '测试正文'
+    });
+
+    expect(pageInstance.generateLongImagePoster).toHaveBeenCalledTimes(4);
+    expect(galleryItems.map(item => item.id)).toEqual(['aurora', 'sky', 'paper']);
+    expect(galleryItems.map(item => item.tempFilePath)).toEqual([
+      '/tmp/poster-1.png',
       '/tmp/poster-3.png',
       '/tmp/poster-4.png'
     ]);
