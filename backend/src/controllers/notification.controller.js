@@ -264,6 +264,59 @@ async function saveSubscriptionGrants(req, res, next) {
  */
 async function createNotification(userId, type, title, content, options = {}) {
   try {
+    const data = options.data || {};
+
+    if (options.upsertExisting && options.requestId) {
+      const requestIdText = options.requestId.toString();
+      const existingNotification = await Notification.findOne({
+        userId,
+        type,
+        $or: [{ requestId: options.requestId }, { 'data.insightRequestId': requestIdText }]
+      });
+
+      if (existingNotification) {
+        const refreshedAt = new Date();
+        existingNotification.title = title;
+        existingNotification.content = content;
+        existingNotification.requestId = options.requestId;
+        existingNotification.senderId = options.senderId || null;
+        existingNotification.data = data;
+        existingNotification.isRead = false;
+        existingNotification.readAt = null;
+        existingNotification.isArchived = false;
+        existingNotification.archivedAt = null;
+        existingNotification.createdAt = refreshedAt;
+        existingNotification.updatedAt = refreshedAt;
+
+        await existingNotification.save();
+        if (Notification.collection && typeof Notification.collection.updateOne === 'function') {
+          await Notification.collection.updateOne(
+            { _id: existingNotification._id },
+            { $set: { createdAt: refreshedAt, updatedAt: refreshedAt } }
+          );
+        }
+
+        publishSyncEvent({
+          type: 'update',
+          collection: 'notifications',
+          documentId: existingNotification._id.toString(),
+          data: existingNotification.toObject()
+        });
+
+        if (options.wsManager) {
+          options.wsManager.pushNotificationToUser(userId, {
+            type,
+            title,
+            content,
+            notificationId: existingNotification._id,
+            data
+          });
+        }
+
+        return existingNotification;
+      }
+    }
+
     const notification = new Notification({
       userId,
       type,
@@ -271,7 +324,7 @@ async function createNotification(userId, type, title, content, options = {}) {
       content,
       requestId: options.requestId || null,
       senderId: options.senderId || null,
-      data: options.data || {}
+      data
     });
 
     await notification.save();
@@ -291,7 +344,7 @@ async function createNotification(userId, type, title, content, options = {}) {
         title,
         content,
         notificationId: notification._id,
-        data: options.data || {}
+        data
       });
     }
 
@@ -301,7 +354,6 @@ async function createNotification(userId, type, title, content, options = {}) {
     return null;
   }
 }
-
 /**
  * 内部函数：创建多条通知
  */

@@ -33,12 +33,16 @@ describe('Notification Controller', () => {
 
     NotificationStub = {
       find: sandbox.stub(),
+      findOne: sandbox.stub(),
       findById: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
       updateMany: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
-      deleteMany: sandbox.stub()
+      deleteMany: sandbox.stub(),
+      collection: {
+        updateOne: sandbox.stub().resolves()
+      }
     };
 
     const responseUtils = {
@@ -329,6 +333,66 @@ describe('Notification Controller', () => {
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('notifications');
       expect(responseData.data).to.have.property('pagination');
+    });
+  });
+
+  describe('createNotification', () => {
+    it('重复的小凡看见申请通知应更新原站内信而不是新建', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const requestId = new mongoose.Types.ObjectId();
+      const notificationId = new mongoose.Types.ObjectId();
+      const existingNotification = {
+        _id: notificationId,
+        title: '旧标题',
+        content: '旧内容',
+        senderId: null,
+        data: {},
+        isRead: true,
+        readAt: new Date('2026-05-10T12:00:00.000Z'),
+        isArchived: true,
+        archivedAt: new Date('2026-05-10T12:00:00.000Z'),
+        createdAt: new Date('2026-05-10T12:00:00.000Z'),
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({ _id: notificationId, title: '新申请' })
+      };
+
+      NotificationStub.findOne.resolves(existingNotification);
+
+      const result = await notificationController.createNotification(
+        userId,
+        'request_created',
+        '新申请',
+        '用户申请查看你的小凡看见',
+        {
+          requestId,
+          upsertExisting: true,
+          data: { insightRequestId: requestId.toString() }
+        }
+      );
+
+      expect(NotificationStub.findOne.calledWithMatch({ userId, type: 'request_created' })).to.be.true;
+      expect(NotificationStub.findOne.firstCall.args[0].$or).to.deep.equal([
+        { requestId },
+        { 'data.insightRequestId': requestId.toString() }
+      ]);
+      expect(existingNotification.save.calledOnce).to.be.true;
+      expect(result).to.equal(existingNotification);
+      expect(existingNotification.title).to.equal('新申请');
+      expect(existingNotification.content).to.equal('用户申请查看你的小凡看见');
+      expect(existingNotification.requestId).to.equal(requestId);
+      expect(existingNotification.isRead).to.equal(false);
+      expect(existingNotification.readAt).to.equal(null);
+      expect(existingNotification.isArchived).to.equal(false);
+      expect(existingNotification.archivedAt).to.equal(null);
+      expect(NotificationStub.collection.updateOne.calledOnce).to.be.true;
+      expect(NotificationStub.collection.updateOne.firstCall.args[0]).to.deep.equal({
+        _id: notificationId
+      });
+      expect(NotificationStub.collection.updateOne.firstCall.args[1].$set.createdAt).to.be.an.instanceOf(
+        Date
+      );
+      expect(publishSyncEventStub.calledWithMatch({ type: 'update', collection: 'notifications' })).to.be
+        .true;
     });
   });
 });

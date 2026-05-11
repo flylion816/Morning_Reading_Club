@@ -14,12 +14,16 @@ async function dispatchNotificationWithSubscribe(
     data = {},
     subscribeFields = {},
     sourceType = null,
-    sourceId = null
+    sourceId = null,
+    requestId = null,
+    upsertExistingNotification = false
   }
 ) {
   await createNotification(recipientUserId, notificationType, title, content, {
     wsManager: req.wsManager,
+    requestId,
     senderId,
+    upsertExisting: upsertExistingNotification,
     data: {
       ...data,
       scene,

@@ -372,6 +372,8 @@ async function notifyInsightRequestCreated(req, { request, fromUser, toUser }) {
       scene: 'insight_request_created',
       targetPage: 'pages/profile/profile',
       senderId: request.fromUserId,
+      requestId: request._id,
+      upsertExistingNotification: true,
       data: {
         senderName: fromUser?.nickname,
         senderAvatar: fromUser?.avatarUrl || '',
@@ -1193,13 +1195,13 @@ async function createInsightRequest(req, res, next) {
         return res.json(success(existingRequest, '已获得该内容的查看权限'));
       }
 
-      let shouldNotify = false;
+      let shouldRefreshNotification = existingRequest.status === 'pending';
       if (existingRequest.status === 'rejected' || existingRequest.status === 'revoked') {
         existingRequest.status = 'pending';
         existingRequest.rejectedAt = null;
         existingRequest.revokedAt = null;
         existingRequest.approvedAt = null;
-        shouldNotify = true;
+        shouldRefreshNotification = true;
       }
 
       if (typeof existingRequest.save === 'function') {
@@ -1207,7 +1209,7 @@ async function createInsightRequest(req, res, next) {
       }
 
       if (existingRequest.status === 'pending') {
-        if (shouldNotify) {
+        if (shouldRefreshNotification) {
           const [fromUser, toUser] = await Promise.all([
             getUserProfile(fromUserId),
             getUserProfile(toUserId)

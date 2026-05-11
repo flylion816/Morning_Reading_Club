@@ -108,6 +108,10 @@ notificationSchema.index({ userId: 1, isArchived: 1, createdAt: -1 });
 // 查询某用户的未读通知
 notificationSchema.index({ userId: 1, isRead: 1 });
 
+// 复用同一条小凡看见申请站内信
+notificationSchema.index({ userId: 1, type: 1, requestId: 1 });
+notificationSchema.index({ userId: 1, type: 1, 'data.insightRequestId': 1 });
+
 // 按创建时间排序
 notificationSchema.index({ createdAt: -1 });
 

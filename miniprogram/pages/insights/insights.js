@@ -123,7 +123,7 @@ Page({
   getLockedPlaceholder(requestStatus) {
     const placeholderMap = {
       pending: {
-        text: '等待对方同意后查看'
+        text: '等待对方同意后查看，可点击再次提醒'
       },
       rejected: {
         text: '暂未开放，可再次申请'
@@ -514,7 +514,11 @@ Page({
     const requestLabel = this.buildInsightRequestLabel(insightMeta);
 
     if (requestStatus === 'pending') {
-      wx.showToast({ title: '这条申请已发送，请等待对方同意', icon: 'none' });
+      this.handleRequestInsight(
+        periodId || null,
+        insightId || null,
+        insightMeta
+      );
       return;
     }
 

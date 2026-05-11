@@ -185,6 +185,63 @@ describe('Insight Controller - 单条授权与请求流', () => {
     expect(existingRequest.requestInsightDay).to.equal(3);
     expect(res.json.calledOnce).to.equal(true);
     expect(res.json.firstCall.args[0].message).to.equal('申请已更新');
+    expect(dispatchNotificationWithSubscribeStub.calledOnce).to.equal(true);
+    expect(dispatchNotificationWithSubscribeStub.firstCall.args[1]).to.include({
+      notificationType: 'request_created',
+      upsertExistingNotification: true
+    });
+    expect(dispatchNotificationWithSubscribeStub.firstCall.args[1].requestId.toString()).to.equal(
+      requestId.toString()
+    );
+  });
+
+  it('重复点击 pending 申请时应刷新站内信但不创建新的申请记录', async () => {
+    req.user = { userId: user2Id.toString() };
+    req.body = {
+      toUserId: user1Id.toString(),
+      insightId: insightAId.toString()
+    };
+
+    const targetInsight = {
+      _id: insightAId,
+      userId: user1Id,
+      targetUserId: user1Id,
+      periodId: { _id: periodId, name: '内在之光' },
+      sectionId: { title: '第三天 以原则为中心的思维方式', day: 3 }
+    };
+
+    const existingRequest = {
+      _id: requestId,
+      fromUserId: user2Id,
+      toUserId: user1Id,
+      periodId,
+      insightId: insightAId,
+      status: 'pending',
+      requestPeriodName: '内在之光',
+      requestInsightTitle: '第三天 以原则为中心的思维方式',
+      requestInsightDay: 3,
+      save: sandbox.stub().resolves()
+    };
+
+    InsightStub.findById.returns(createThenableQuery(targetInsight));
+    InsightRequestStub.findOne.returns({
+      sort: sandbox.stub().resolves(existingRequest)
+    });
+
+    await controller.createInsightRequest(req, res, next);
+
+    expect(InsightRequestStub.create.called).to.equal(false);
+    expect(existingRequest.save.calledOnce).to.equal(true);
+    expect(existingRequest.status).to.equal('pending');
+    expect(dispatchNotificationWithSubscribeStub.calledOnce).to.equal(true);
+    expect(dispatchNotificationWithSubscribeStub.firstCall.args[1]).to.include({
+      notificationType: 'request_created',
+      upsertExistingNotification: true
+    });
+    expect(dispatchNotificationWithSubscribeStub.firstCall.args[1].requestId.toString()).to.equal(
+      requestId.toString()
+    );
+    expect(res.json.firstCall.args[0].message).to.equal('申请已更新');
   });
 
   it('单条授权状态查询不应把 insight 申请当成整期授权', async () => {
