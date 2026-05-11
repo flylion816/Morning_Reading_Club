@@ -324,8 +324,8 @@ Page({
             : this.getLockedPreview(item.requestStatus || 'none'),
           mediaType: item.mediaType || 'text',
           imageUrl: isAccessible ? item.imageUrl || null : null,
-          date: item.createdAt
-            ? new Date(item.createdAt).toLocaleDateString('zh-CN')
+          date: item.updatedAt || item.createdAt
+            ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN')
             : '',
           periodId: item.periodId?._id || item.periodId || null,
           isAccessible,

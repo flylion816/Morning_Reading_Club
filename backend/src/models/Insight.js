@@ -137,7 +137,9 @@ const InsightSchema = new mongoose.Schema(
 
 // 索引
 InsightSchema.index({ userId: 1, createdAt: -1 });
+InsightSchema.index({ userId: 1, updatedAt: -1, createdAt: -1 });
 InsightSchema.index({ periodId: 1 });
+InsightSchema.index({ periodId: 1, updatedAt: -1, createdAt: -1 });
 InsightSchema.index({ type: 1, isPublished: 1 });
 InsightSchema.index({ status: 1 });
 

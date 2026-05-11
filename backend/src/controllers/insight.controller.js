@@ -672,7 +672,7 @@ async function getUserInsights(req, res, next) {
       .populate('periodId', 'name title')
       .populate('userId', 'nickname avatar _id')
       .populate('targetUserId', 'nickname avatar _id')
-      .sort({ createdAt: -1 })
+      .sort({ updatedAt: -1, createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
       .select('-__v')
@@ -817,7 +817,7 @@ async function getInsights(req, res, next) {
       .populate('targetUserId', 'nickname avatar')
       .populate('periodId', 'name title')
       .populate('sectionId', 'title day')
-      .sort({ createdAt: -1 })
+      .sort({ updatedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
       .select('-__v');
@@ -946,7 +946,7 @@ async function getInsightsForPeriod(req, res, next) {
       .populate('userId', 'nickname avatar _id')
       .populate('targetUserId', 'nickname avatar _id')
       .populate('sectionId', 'title day')
-      .sort({ createdAt: -1 })
+      .sort({ updatedAt: -1, createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
       .exec();
