@@ -654,7 +654,7 @@ exports.getEnrollments = async (req, res) => {
 
     // 获取数据
     const enrollments = await Enrollment.find(query)
-      .populate('userId', 'nickname avatar')
+      .populate('userId', 'nickname avatar avatarUrl')
       .populate('periodId', 'name')
       .sort(sort)
       .skip(skip)
@@ -692,7 +692,7 @@ exports.updateEnrollment = async (req, res) => {
     });
 
     const enrollment = await Enrollment.findByIdAndUpdate(id, updateData, { new: true })
-      .populate('userId', 'nickname avatar')
+      .populate('userId', 'nickname avatar avatarUrl')
       .populate('periodId', 'name');
 
     if (!enrollment) {

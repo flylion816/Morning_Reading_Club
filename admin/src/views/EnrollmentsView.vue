@@ -80,6 +80,17 @@
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="45" />
+          <el-table-column label="头像" width="70" align="center">
+            <template #default="{ row }">
+              <el-avatar
+                :src="getEnrollmentUserAvatarUrl(row)"
+                :size="36"
+                class="user-avatar"
+              >
+                {{ getEnrollmentUserAvatarText(row) }}
+              </el-avatar>
+            </template>
+          </el-table-column>
           <el-table-column label="昵称" width="100" show-overflow-tooltip>
             <template #default="{ row }">
               {{ (row.userId && row.userId.nickname && row.userId.nickname.trim()) ? row.userId.nickname : '-' }}
@@ -428,6 +439,24 @@ function formatGender(gender: string): string {
   };
   return genderMap[gender] || gender;
 }
+
+function getEnrollmentUser(enrollment: Enrollment): any {
+  return enrollment.userId && typeof enrollment.userId === 'object' ? enrollment.userId : null;
+}
+
+function getEnrollmentUserAvatarUrl(enrollment: Enrollment): string {
+  return getEnrollmentUser(enrollment)?.avatarUrl || '';
+}
+
+function getEnrollmentUserAvatarText(enrollment: Enrollment): string {
+  const user = getEnrollmentUser(enrollment);
+  const avatar = user?.avatar;
+  if (avatar && !String(avatar).startsWith('http')) {
+    return avatar;
+  }
+  const nickname = user?.nickname || enrollment.name || '';
+  return nickname ? String(nickname).slice(0, 1) : '用';
+}
 </script>
 
 <style scoped>
@@ -467,6 +496,12 @@ function formatGender(gender: string): string {
   font-size: 14px;
   display: flex;
   align-items: center;
+}
+
+.user-avatar {
+  background: #eef4ff;
+  color: #4a90e2;
+  font-weight: 600;
 }
 
 .batch-actions {

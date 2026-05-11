@@ -58,6 +58,8 @@ export interface User {
   _id: string;
   id?: string;
   nickname?: string;
+  avatar?: string;
+  avatarUrl?: string;
   email?: string;
   phone?: string;
   signature?: string;

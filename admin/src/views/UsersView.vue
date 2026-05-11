@@ -10,7 +10,7 @@
         <div class="filter-panel">
           <el-input
             v-model="filters.search"
-            placeholder="搜索用户名或邮箱..."
+            placeholder="搜索昵称或邮箱..."
             clearable
             style="width: 220px"
             @keyup.enter="handleSearch"
@@ -41,7 +41,14 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="nickname" label="用户名" width="120" />
+          <el-table-column label="头像" width="80" align="center">
+            <template #default="{ row }">
+              <el-avatar :src="getUserAvatarUrl(row)" :size="36" class="user-avatar">
+                {{ getUserAvatarText(row) }}
+              </el-avatar>
+            </template>
+          </el-table-column>
+          <el-table-column prop="nickname" label="昵称" width="120" />
           <el-table-column prop="phone" label="电话" width="140" />
           <el-table-column prop="signature" label="个人签名" min-width="150">
             <template #default="{ row }">
@@ -111,7 +118,7 @@
           <el-descriptions-item label="用户ID">
             <span style="font-family: monospace; font-size: 12px">{{ selectedUser._id }}</span>
           </el-descriptions-item>
-          <el-descriptions-item label="用户名">
+          <el-descriptions-item label="昵称">
             {{ selectedUser.nickname }}
           </el-descriptions-item>
           <el-descriptions-item label="邮箱">
@@ -148,8 +155,8 @@
           label-width="100px"
           style="padding-right: 20px"
         >
-          <el-form-item label="用户名">
-            <el-input v-model="editDialog.form.nickname" placeholder="请输入用户名" />
+          <el-form-item label="昵称">
+            <el-input v-model="editDialog.form.nickname" placeholder="请输入昵称" />
           </el-form-item>
 
           <el-form-item label="邮箱">
@@ -361,6 +368,18 @@ function getAvatarColor(userId?: string): string {
   }
   return colors[Math.abs(hash) % colors.length] as string;
 }
+
+function getUserAvatarUrl(user: User): string {
+  return user.avatarUrl || '';
+}
+
+function getUserAvatarText(user: User): string {
+  const avatar = user.avatar;
+  if (avatar && !String(avatar).startsWith('http')) {
+    return avatar;
+  }
+  return user.nickname ? String(user.nickname).slice(0, 1) : '用';
+}
 </script>
 
 <style scoped>
@@ -409,6 +428,12 @@ function getAvatarColor(userId?: string): string {
   font-weight: bold;
   font-size: 18px;
   flex-shrink: 0;
+}
+
+.user-avatar {
+  background: #eef4ff;
+  color: #4a90e2;
+  font-weight: 600;
 }
 
 .cell-ellipsis {
