@@ -177,22 +177,9 @@ Page({
     // 编辑个人信息相关
     showEditProfile: false,
     isSavingProfile: false,
-    avatarOptions: [
-      '🦁',
-      '🐯',
-      '🐻',
-      '🐼',
-      '🐨',
-      '🦊',
-      '🦝',
-      '🐶',
-      '🐱',
-      '🦌',
-      '🦅',
-      '⭐'
-    ],
     editForm: {
       avatar: '🦁',
+      avatarUrl: '',
       nickname: '',
       signature: ''
     }
@@ -1535,6 +1522,7 @@ Page({
       showEditProfile: true,
       editForm: {
         avatar: userInfo.avatar || '🦁',
+        avatarUrl: userInfo.avatarUrl || '',
         nickname: userInfo.nickname || userInfo.name || '',
         signature: userInfo.signature || ''
       }
@@ -1558,13 +1546,60 @@ Page({
   },
 
   /**
-   * 选择头像
+   * 使用微信头像
    */
-  selectAvatar(e) {
-    const { avatar } = e.currentTarget.dataset;
+  async handleChooseWechatAvatar(e) {
+    const avatarUrl = e.detail && e.detail.avatarUrl;
+    if (!avatarUrl) {
+      wx.showToast({
+        title: '未获取到头像',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const normalizedAvatar = await this.compressAvatarImage(avatarUrl);
     this.setData({
-      'editForm.avatar': avatar
+      'editForm.avatarUrl': normalizedAvatar
     });
+  },
+
+  /**
+   * 压缩头像，降低上传体积
+   */
+  compressAvatarImage(filePath) {
+    if (!filePath || !wx.compressImage) {
+      return Promise.resolve(filePath);
+    }
+
+    return new Promise((resolve) => {
+      wx.compressImage({
+        src: filePath,
+        quality: 80,
+        success: (res) => {
+          resolve(res.tempFilePath || filePath);
+        },
+        fail: () => {
+          resolve(filePath);
+        }
+      });
+    });
+  },
+
+  isRemoteAvatarUrl(avatarUrl) {
+    return /^https?:\/\//i.test(avatarUrl || '');
+  },
+
+  /**
+   * 将微信临时头像路径上传为可长期访问的 URL
+   */
+  async prepareAvatarUrlForSave(avatarUrl) {
+    if (!avatarUrl || this.isRemoteAvatarUrl(avatarUrl)) {
+      return avatarUrl || '';
+    }
+
+    const uploadResult = await userService.uploadAvatar(avatarUrl);
+    return uploadResult.avatarUrl || uploadResult.url || '';
   },
 
   /**
@@ -1640,10 +1675,12 @@ Page({
 
     try {
       const app = getApp();
+      const savedAvatarUrl = await this.prepareAvatarUrlForSave(editForm.avatarUrl);
 
       // 调用更新用户信息API
       const response = await userService.updateUserProfile({
         avatar: editForm.avatar,
+        avatarUrl: savedAvatarUrl,
         nickname: editForm.nickname,
         signature: editForm.signature || null
       });
@@ -1659,6 +1696,8 @@ Page({
         const updatedUserInfo = {
           ...userInfo,
           avatar: editForm.avatar,
+          avatarUrl:
+            response.avatarUrl !== undefined ? response.avatarUrl : savedAvatarUrl,
           nickname: editForm.nickname,
           signature: editForm.signature || null
         };

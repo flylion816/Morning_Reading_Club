@@ -9,6 +9,17 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+function getPublicFileUrl(req, fileUrl) {
+  const baseUrl =
+    process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return `${baseUrl.replace(/\/$/, '')}${fileUrl}`;
+}
+
+function serverError(message) {
+  const errorFactory = errors.serverError || errors.internalServerError;
+  return errorFactory ? errorFactory(message) : { code: 500, message };
+}
+
 module.exports = {
   /**
    * 上传单个文件
@@ -39,7 +50,39 @@ module.exports = {
       );
     } catch (err) {
       logger.error('File upload error:', err);
-      res.status(500).json(errors.internalServerError('文件上传失败'));
+      res.status(500).json(serverError('文件上传失败'));
+    }
+  },
+
+  /**
+   * 上传用户头像
+   * POST /api/v1/upload/avatar
+   */
+  uploadAvatar: (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json(errors.badRequest('未找到上传的头像'));
+      }
+
+      const { filename, mimetype, size } = req.file;
+      const fileUrl = `/uploads/${filename}`;
+
+      res.json(
+        success(
+          {
+            filename,
+            mimetype,
+            size,
+            url: fileUrl,
+            avatarUrl: getPublicFileUrl(req, fileUrl),
+            uploadedAt: new Date()
+          },
+          '头像上传成功'
+        )
+      );
+    } catch (err) {
+      logger.error('Avatar upload error:', err);
+      res.status(500).json(serverError('头像上传失败'));
     }
   },
 
@@ -72,7 +115,7 @@ module.exports = {
       );
     } catch (err) {
       logger.error('Multiple files upload error:', err);
-      res.status(500).json(errors.internalServerError('文件上传失败'));
+      res.status(500).json(serverError('文件上传失败'));
     }
   },
 
@@ -105,7 +148,7 @@ module.exports = {
       res.json(success(null, '文件删除成功'));
     } catch (err) {
       logger.error('File deletion error:', err);
-      res.status(500).json(errors.internalServerError('文件删除失败'));
+      res.status(500).json(serverError('文件删除失败'));
     }
   }
 };

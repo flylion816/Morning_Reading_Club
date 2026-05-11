@@ -1,21 +1,24 @@
 <!--编辑资料页面-->
 <view class="page-edit-profile">
-  <!-- 头像选择区 -->
-  <view class="section avatar-section">
-    <view class="section-title">选择头像</view>
-    <view class="current-avatar-wrap">
-      <text class="current-avatar">{{avatar}}</text>
-    </view>
-    <view class="avatar-grid">
-      <view
-        wx:for="{{avatarList}}"
-        wx:key="index"
-        class="avatar-item {{avatar === item ? 'selected' : ''}}"
-        bindtap="selectAvatar"
-        data-avatar="{{item}}"
-      >
-        <text class="avatar-emoji">{{item}}</text>
+  <!-- 头像 -->
+  <view class="section">
+    <view class="section-title">头像</view>
+    <view class="avatar-picker-panel">
+      <view class="avatar-preview">
+        <image wx:if="{{avatarUrl}}" class="avatar-preview-image" src="{{avatarUrl}}" mode="aspectFill" />
+        <text wx:else class="avatar-preview-emoji">{{avatar || '🦁'}}</text>
       </view>
+      <view class="avatar-picker-info">
+        <text class="avatar-picker-title">使用你的微信头像</text>
+        <text class="avatar-picker-desc">头像仅用于晨读营内展示</text>
+      </view>
+      <button
+        class="avatar-action-button primary"
+        open-type="chooseAvatar"
+        bindchooseavatar="handleChooseWechatAvatar"
+      >
+        更换微信头像
+      </button>
     </view>
   </view>
 

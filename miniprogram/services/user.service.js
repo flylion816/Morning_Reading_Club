@@ -36,6 +36,37 @@ class UserService {
   }
 
   /**
+   * 上传用户头像
+   * @param {string} filePath 本地临时文件路径
+   * @returns {Promise}
+   */
+  async uploadAvatar(filePath) {
+    if (envConfig.useMock) {
+      return Promise.resolve({ avatarUrl: filePath });
+    }
+
+    const result = await request.upload('/upload/avatar', filePath);
+    const avatarUrl = result.avatarUrl || this.toAbsoluteFileUrl(result.url);
+    return {
+      ...result,
+      avatarUrl
+    };
+  }
+
+  /**
+   * 将后端返回的相对上传路径转换为完整 URL
+   */
+  toAbsoluteFileUrl(url) {
+    if (!url || /^https?:\/\//i.test(url)) {
+      return url || '';
+    }
+
+    const apiOrigin = envConfig.apiBaseUrl.replace(/\/api\/v\d+.*$/, '');
+    const filePath = url.startsWith('/') ? url : `/${url}`;
+    return `${apiOrigin}${filePath}`;
+  }
+
+  /**
    * 获取用户统计信息
    * @returns {Promise}
    */

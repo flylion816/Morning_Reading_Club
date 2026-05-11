@@ -300,13 +300,21 @@
         <text class="modal-close" bindtap="closeEditProfile">×</text>
       </view>
 
-      <!-- 头像选择 -->
+      <!-- 头像 -->
       <view class="modal-section">
-        <text class="section-label">选择头像</text>
-        <view class="avatar-options">
-          <view wx:for="{{avatarOptions}}" wx:key="index" class="avatar-option {{editForm.avatar === item ? 'selected' : ''}}" bindtap="selectAvatar" data-avatar="{{item}}">
-            <text class="avatar-option-text">{{item}}</text>
+        <text class="section-label">头像</text>
+        <view class="avatar-picker-panel">
+          <view class="avatar-preview">
+            <image wx:if="{{editForm.avatarUrl}}" class="avatar-preview-image" src="{{editForm.avatarUrl}}" mode="aspectFill" />
+            <text wx:else class="avatar-preview-emoji">{{editForm.avatar || '🦁'}}</text>
           </view>
+          <view class="avatar-picker-info">
+            <text class="avatar-picker-title">使用你的微信头像</text>
+            <text class="avatar-picker-desc">头像仅用于晨读营内展示</text>
+          </view>
+          <button class="avatar-action-button primary" open-type="chooseAvatar" bindchooseavatar="handleChooseWechatAvatar">
+            更换微信头像
+          </button>
         </view>
       </view>
 
