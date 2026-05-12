@@ -163,8 +163,6 @@ Page({
   },
 
   handleScrollToLower() {
-    this._stickToLastParagraphUntil = Date.now() + 1200;
-    this.activateParagraph(this.data.paragraphs.length - 1);
     this.persistProgress();
   },
 
@@ -200,28 +198,11 @@ Page({
         return;
       }
 
+      // 仅当真正滚到底部（scrollTop + viewport >= scrollHeight - 4px 容差）时激活最后一段
       const scrollDetail = this._latestScrollDetail || {};
-      const maxScrollTop =
-        scrollDetail.scrollHeight && scrollRect.height
-          ? scrollDetail.scrollHeight - scrollRect.height
-          : 0;
-      const bottomThreshold = 180;
-      const isNearBottom =
-        maxScrollTop > 0 &&
-        this._latestScrollTop >= maxScrollTop - bottomThreshold;
-      const shouldStickToLast =
-        isNearBottom || Date.now() < (this._stickToLastParagraphUntil || 0);
-      if (shouldStickToLast) {
-        if (isNearBottom) {
-          this._stickToLastParagraphUntil = Date.now() + 600;
-        }
-        this.activateParagraph(paragraphRects.length - 1);
-        return;
-      }
-
-      const visibleBottom = scrollRect.bottom - 56;
-      const lastRect = paragraphRects[paragraphRects.length - 1];
-      if (lastRect && lastRect.bottom <= visibleBottom) {
+      const scrollHeight = scrollDetail.scrollHeight || 0;
+      const scrollTop = this._latestScrollTop || 0;
+      if (scrollHeight > 0 && scrollTop + scrollRect.height >= scrollHeight - 4) {
         this.activateParagraph(paragraphRects.length - 1);
         return;
       }
@@ -327,6 +308,13 @@ Page({
     };
   },
 
+  getPosterDateLabel() {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const date = now.getDate();
+    return `${month}月${date}日`;
+  },
+
   getCanvasNode() {
     return new Promise((resolve, reject) => {
       const query = wx.createSelectorQuery().in(this);
@@ -400,14 +388,100 @@ Page({
     );
   },
 
+  wrapCanvasText(ctx, text = '', maxWidth, maxLines = 99) {
+    const lines = [];
+    let currentLine = '';
+
+    Array.from(String(text || '').trim()).forEach((char) => {
+      const testLine = currentLine + char;
+      if (currentLine && ctx.measureText(testLine).width > maxWidth) {
+        lines.push(currentLine);
+        currentLine = char;
+        return;
+      }
+      currentLine = testLine;
+    });
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    if (lines.length > maxLines) {
+      const clipped = lines.slice(0, maxLines);
+      let lastLine = clipped[maxLines - 1] || '';
+      while (lastLine && ctx.measureText(`${lastLine}...`).width > maxWidth) {
+        lastLine = lastLine.slice(0, -1);
+      }
+      clipped[maxLines - 1] = `${lastLine.replace(/[，。；、,.!?！？]?$/, '')}...`;
+      return clipped;
+    }
+
+    return lines;
+  },
+
+  getPosterParagraphSlice() {
+    const { paragraphs, currentParagraphIndex } = this.data;
+    const total = paragraphs.length;
+    if (!total) {
+      return [];
+    }
+
+    const activeIndex = Math.min(Math.max(currentParagraphIndex || 0, 0), total - 1);
+    const startIndex = Math.max(0, activeIndex - 1);
+    const endIndex = Math.min(total, activeIndex + 5);
+
+    return paragraphs.slice(startIndex, endIndex).map((paragraph, offset) => ({
+      ...paragraph,
+      sourceIndex: startIndex + offset,
+      active: startIndex + offset === activeIndex
+    }));
+  },
+
   async generateMomentPoster() {
     const canvas = await this.getCanvasNode();
     const ctx = canvas.getContext('2d');
-    const W = 1080;
-    const H = 1440;
-    const dpr = wx.getWindowInfo?.().pixelRatio || 2;
-    const excerpt = this.getPosterExcerpt();
+    const W = 900;
+    const dpr = Math.min(wx.getWindowInfo?.().pixelRatio || 2, 2);
+    const pageX = 58;
+    const contentW = W - pageX * 2;
+    const periodName = this.data.periodName || '凡人共读';
+    const title = this.data.course.title || '读一读';
+    const posterParagraphs = this.getPosterParagraphSlice();
+    const footerH = 240;
+    const topPadding = 70;
+    const titleLineH = 58;
+    const paragraphLineH = 54;
     let qrImage = null;
+
+    if (typeof ctx.resetTransform === 'function') {
+      ctx.resetTransform();
+    } else if (typeof ctx.setTransform === 'function') {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    try {
+      qrImage = await this.loadCanvasImage(canvas, MINI_PROGRAM_CODE_ASSET_PATHS);
+    } catch (error) {
+      console.warn('加载小程序码失败，生成无二维码海报', error);
+    }
+
+    ctx.font = 'bold 42px sans-serif';
+    const titleLines = this.wrapCanvasText(ctx, title, contentW, 2);
+
+    const measuredParagraphs = posterParagraphs.map((paragraph) => {
+      ctx.font = paragraph.active ? 'bold 34px sans-serif' : 'bold 31px sans-serif';
+      const textX = paragraph.active ? pageX + 28 : pageX + 22;
+      const maxLines = paragraph.active ? 8 : 5;
+      const lines = this.wrapCanvasText(ctx, paragraph.text, W - textX - pageX, maxLines);
+      return { ...paragraph, textX, lines };
+    });
+
+    const headerH = topPadding + 58 + 44 + titleLines.length * titleLineH + 98;
+    const bodyH = measuredParagraphs.reduce((sum, paragraph) => {
+      const blockH = paragraph.lines.length * paragraphLineH + (paragraph.active ? 38 : 28);
+      return sum + blockH;
+    }, 0);
+    const H = Math.max(1120, Math.min(3000, headerH + bodyH + footerH + 58));
 
     canvas.width = W * dpr;
     canvas.height = H * dpr;
@@ -420,130 +494,93 @@ Page({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
 
-    try {
-      qrImage = await this.loadCanvasImage(canvas, MINI_PROGRAM_CODE_ASSET_PATHS);
-    } catch (error) {
-      console.warn('加载小程序码失败，生成无二维码海报', error);
-    }
-
-    const outerPadding = 56;
-    const cardX = outerPadding;
-    const cardY = outerPadding;
-    const cardW = W - outerPadding * 2;
-    const cardH = H - outerPadding * 2;
-    const innerX = 112;
-    const footerTop = H - 270;
-    const bodyBottom = footerTop - 42;
-
     const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#dceeff');
-    bg.addColorStop(0.3, '#fffdf8');
-    bg.addColorStop(1, '#f8fbff');
+    bg.addColorStop(0, '#f2f7ff');
+    bg.addColorStop(0.18, '#fffdf8');
+    bg.addColorStop(1, '#fffdf8');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    this.drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 40, '#ffffff');
+    ctx.font = 'bold 24px sans-serif';
+    const periodTag = this.wrapCanvasText(ctx, periodName, 220, 1)[0] || '凡人共读';
+    const tagInsetX = 23;
+    const tagW = Math.min(260, Math.max(152, ctx.measureText(periodTag).width + tagInsetX * 2));
+    this.drawRoundedRect(ctx, pageX - tagInsetX, topPadding, tagW, 48, 24, '#eef5ff');
+    ctx.fillStyle = '#357abd';
+    ctx.fillText(periodTag, pageX, topPadding + 32);
 
-    const headerH = 250;
-    const header = ctx.createLinearGradient(cardX, cardY, W - cardX, cardY + headerH);
-    header.addColorStop(0, '#4a90e2');
-    header.addColorStop(1, '#76c5ff');
-    this.drawRoundedRect(ctx, cardX, cardY, cardW, headerH, 36, header);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px sans-serif';
-    ctx.fillText(this.data.periodName || '凡人共读', innerX, 142);
-    ctx.font = 'bold 44px sans-serif';
-    this.drawTextLines(
-      ctx,
-      this.wrapText(
-        this.data.course.title || '读一读',
-        28,
-        2
-      ),
-      innerX,
-      212,
-      54
-    );
-
-    ctx.fillStyle = '#91c9ff';
-    ctx.globalAlpha = 0.28;
-    ctx.beginPath();
-    ctx.arc(W - 126, 126, 118, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    let cursorY = cardY + headerH + 84;
-    if (excerpt.before) {
-      ctx.fillStyle = '#8b94a5';
-      ctx.font = '30px sans-serif';
-      cursorY = this.drawPosterParagraph(
-        ctx,
-        excerpt.before,
-        innerX,
-        cursorY,
-        42,
-        3,
-        48
-      );
-      cursorY += 28;
-    }
-
-    const highlightLines = this.wrapText(excerpt.current, 31, 5);
-    const highlightHeight = Math.min(
-      Math.max(230, highlightLines.length * 58 + 82),
-      Math.max(230, bodyBottom - cursorY - 190)
-    );
-    this.drawRoundedRect(
-      ctx,
-      92,
-      cursorY - 42,
-      W - 184,
-      highlightHeight,
-      30,
-      '#f2f7ff'
-    );
+    this.drawRoundedRect(ctx, W - pageX - 120, topPadding, 120, 48, 24, '#ffffff');
     ctx.fillStyle = '#4a90e2';
-    this.drawRoundedRect(ctx, 112, cursorY - 16, 8, highlightHeight - 52, 4, '#4a90e2');
+    ctx.font = 'bold 24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${this.data.readingProgress || 0}%`, W - pageX - 60, topPadding + 32);
+    ctx.textAlign = 'left';
+
     ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 40px sans-serif';
-    cursorY = this.drawTextLines(ctx, highlightLines, 146, cursorY + 10, 58);
-    cursorY = Math.max(cursorY + 58, cursorY - 10 + highlightHeight + 38);
+    ctx.font = 'bold 42px sans-serif';
+    let cursorY = this.drawTextLines(ctx, titleLines, pageX, topPadding + 116, titleLineH);
 
-    if (excerpt.after && cursorY < bodyBottom - 70) {
-      ctx.fillStyle = '#687385';
-      ctx.font = '30px sans-serif';
-      const remainingLines = Math.max(1, Math.floor((bodyBottom - cursorY) / 48));
-      this.drawPosterParagraph(
-        ctx,
-        excerpt.after,
-        innerX,
-        cursorY,
-        42,
-        Math.min(4, remainingLines),
-        48
-      );
-    }
+    ctx.fillStyle = '#9aa3af';
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText('每天晨读内容', pageX, cursorY + 38);
+    ctx.strokeStyle = '#ef6b78';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(pageX, cursorY + 49);
+    ctx.lineTo(pageX + 148, cursorY + 49);
+    ctx.stroke();
+    cursorY += 100;
 
-    ctx.strokeStyle = '#edf2f7';
+    measuredParagraphs.forEach((paragraph) => {
+      if (paragraph.active) {
+        const lineTop = cursorY - 38;
+        const lineHeight = paragraph.lines.length * paragraphLineH - 10;
+        this.drawRoundedRect(ctx, pageX, lineTop, 6, lineHeight, 3, '#4a90e2');
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 34px sans-serif';
+      } else {
+        ctx.fillStyle = '#a2abb7';
+        ctx.font = 'bold 31px sans-serif';
+      }
+
+      paragraph.lines.forEach((line) => {
+        ctx.fillText(line, paragraph.textX, cursorY);
+        cursorY += paragraphLineH;
+      });
+
+      cursorY += paragraph.active ? 42 : 32;
+    });
+
+    const footerTop = H - footerH;
+
+    ctx.strokeStyle = '#e8edf3';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(innerX, footerTop);
-    ctx.lineTo(W - innerX, footerTop);
+    ctx.moveTo(pageX, footerTop);
+    ctx.lineTo(W - pageX, footerTop);
     ctx.stroke();
 
     ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('凡人共读', innerX, H - 178);
+    ctx.font = 'bold 34px sans-serif';
+    ctx.fillText('凡人共读', pageX, footerTop + 78);
     ctx.fillStyle = '#8b94a5';
-    ctx.font = '26px sans-serif';
-    ctx.fillText('一个早起、读书、谈心的地方', innerX, H - 132);
+    ctx.font = '24px sans-serif';
+    ctx.fillText('一个早起、读书、谈心的地方', pageX, footerTop + 118);
+    ctx.fillStyle = '#b0bac6';
+    ctx.font = '22px sans-serif';
+    ctx.fillText(`${this.getPosterDateLabel()} · 沉浸阅读`, pageX, footerTop + 154);
 
     if (qrImage && typeof ctx.drawImage === 'function') {
-      const qrSize = 132;
-      const qrX = W - 112 - qrSize;
-      const qrY = H - 222;
-      this.drawRoundedRect(ctx, qrX - 12, qrY - 12, qrSize + 24, qrSize + 24, 22, '#ffffff');
+      const qrSize = 116;
+      const qrX = W - pageX - qrSize;
+      const qrY = footerTop + 48;
+      this.drawRoundedRect(ctx, qrX - 14, qrY - 14, qrSize + 28, qrSize + 28, 22, '#ffffff');
       ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+      ctx.fillStyle = '#8b94a5';
+      ctx.font = '22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('扫码共读', qrX + qrSize / 2, qrY + qrSize + 44);
+      ctx.textAlign = 'left';
     }
 
     return new Promise((resolve, reject) => {

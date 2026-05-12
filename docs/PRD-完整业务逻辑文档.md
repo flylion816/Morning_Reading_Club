@@ -1,5 +1,10 @@
 # 凡人共读小程序 - 完整PRD文档（业务逻辑版）
 
+> **当前维护说明（2026-05-12）**
+> 本文档保留为历史完整业务背景。当前代码同步后的 PRD 权威入口为：
+> [`docs/PRD-代码同步版-2026-05-12.md`](./PRD-代码同步版-2026-05-12.md)。
+> 后续新增或变更需求，应优先更新代码同步版 PRD，再按需回填本文档。
+
 > **文档版本**: v6.1（完整业务逻辑 + 测试覆盖版）
 > **创建日期**: 2026-03-03
 > **最后更新**: 2026-03-06
@@ -62,7 +67,7 @@
 小程序启动
     │
     ├─ onLaunch()
-    │   ├─ checkLoginStatus() 
+    │   ├─ checkLoginStatus()
     │   │   └─ 检查本地存储 (TOKEN & USER_INFO)
     │   │       ├─ 存在 → globalData.isLogin = true
     │   │       └─ 不存在 → globalData.isLogin = false
@@ -200,7 +205,7 @@
     │   └─ 重新检查登录状态
     │
     └─ 如果已登录:
-        ├─ loadUserInfo() 
+        ├─ loadUserInfo()
         │   └─ 强制重新加载用户信息(不使用缓存)
         │
         └─ checkEnrollmentStatus()
@@ -1472,4 +1477,3 @@ npm test -- --onlyFailures
 **文档最后更新**: 2026-03-06
 **GitHub Commit**: cc26d92 (最新)
 **状态**: ✅ 完成并已提交 GitHub
-

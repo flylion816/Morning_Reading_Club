@@ -48,10 +48,9 @@
         <text class="dynamic-like-pill-icon {{detailCheckin.isLiked ? 'liked' : ''}}">{{detailCheckin.isLiked ? '❤️' : '♡'}}</text>
         <text class="like-count" wx:if="{{detailCheckin.likeCount}}">({{detailCheckin.likeCount}})</text>
         <view class="like-avatars" wx:if="{{detailCheckin.likeAvatars && detailCheckin.likeAvatars.length > 0}}">
-          <block wx:for="{{detailCheckin.displayLikeAvatars || detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-            <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
-            <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
-            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+          <block wx:for="{{detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+            <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
+            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
           </block>
         </view>
       </view>
@@ -91,10 +90,9 @@
                   <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '❤️' : '♡'}}</text>
                   <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
                   <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
-                    <block wx:for="{{reply.displayLikeAvatars || reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                      <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
-                      <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
-                      <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                    <block wx:for="{{reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                      <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
+                      <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
                     </block>
                   </view>
                 </view>
@@ -144,10 +142,9 @@
                           <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '❤️' : '♡'}}</text>
                           <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
                           <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
-                            <block wx:for="{{nestedReply.displayLikeAvatars || nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                              <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
-                              <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
-                              <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                            <block wx:for="{{nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                              <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
+                              <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
                             </block>
                           </view>
                         </view>
@@ -308,11 +305,10 @@
               <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">
                 <text class="like-icon {{item.isLiked ? 'liked' : ''}}">{{item.isLiked ? '❤️' : '♡'}}</text>
                 <text class="like-count" wx:if="{{item.likeCount}}">({{item.likeCount}})</text>
-                <view class="like-avatars" wx:if="{{item.likeAvatars && item.likeAvatars.length > 0}}">
-                  <block wx:for="{{item.displayLikeAvatars || item.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                    <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
-                    <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
-                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                <view class="like-avatars" wx:if="{{item.displayLikeAvatars && item.displayLikeAvatars.length > 0}}">
+                  <block wx:for="{{item.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                    <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
+                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
                   </block>
                 </view>
               </view>
@@ -352,11 +348,10 @@
                       <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
                         <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '❤️' : '♡'}}</text>
                         <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
-                        <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
-                          <block wx:for="{{reply.displayLikeAvatars || reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                            <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
-                            <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
-                            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                        <view class="like-avatars" wx:if="{{reply.displayLikeAvatars && reply.displayLikeAvatars.length > 0}}">
+                          <block wx:for="{{reply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                            <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
+                            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
                           </block>
                         </view>
                       </view>
@@ -394,11 +389,10 @@
                               <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{nestedReply.id}}" style="pointer-events: auto;">
                                 <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '❤️' : '♡'}}</text>
                                 <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
-                                <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
-                                  <block wx:for="{{nestedReply.displayLikeAvatars || nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                                    <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
-                                    <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
-                                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                                <view class="like-avatars" wx:if="{{nestedReply.displayLikeAvatars && nestedReply.displayLikeAvatars.length > 0}}">
+                                  <block wx:for="{{nestedReply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                                    <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
+                                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
                                   </block>
                                 </view>
                               </view>
@@ -454,6 +448,18 @@
           class="poster-gallery-preview"
           src="{{selectedPoster.tempFilePath}}"
           mode="aspectFit" />
+        <view wx:else class="poster-gallery-preview-placeholder {{selectedPoster.previewClass}}">
+          <view class="poster-preview-mock">
+            <view class="poster-preview-mock-title"></view>
+            <view class="poster-preview-mock-subtitle"></view>
+            <view class="poster-preview-mock-card">
+              <view class="poster-preview-mock-line poster-preview-mock-line-strong"></view>
+              <view class="poster-preview-mock-line"></view>
+              <view class="poster-preview-mock-line"></view>
+              <view class="poster-preview-mock-line poster-preview-mock-line-short"></view>
+            </view>
+          </view>
+        </view>
         <view class="poster-gallery-index">{{posterSelectedIndex + 1}} / {{posterGalleryItems.length}}</view>
       </view>
 
@@ -465,7 +471,21 @@
             class="poster-gallery-thumb {{index === posterSelectedIndex ? 'poster-gallery-thumb-active' : ''}}"
             bindtap="handlePosterTemplateSelect"
             data-index="{{index}}">
-            <image class="poster-gallery-thumb-image" src="{{item.tempFilePath}}" mode="aspectFill" />
+            <image wx:if="{{item.tempFilePath}}" class="poster-gallery-thumb-image" src="{{item.tempFilePath}}" mode="aspectFill" />
+            <view wx:else class="poster-gallery-thumb-image poster-gallery-thumb-placeholder {{item.previewClass}}">
+              <view class="poster-thumb-mock-head">
+                <view class="poster-thumb-mock-avatar"></view>
+                <view class="poster-thumb-mock-name"></view>
+              </view>
+              <view class="poster-thumb-mock-line poster-thumb-mock-line-title"></view>
+              <view class="poster-thumb-mock-line"></view>
+              <view class="poster-thumb-mock-line"></view>
+              <view class="poster-thumb-mock-line poster-thumb-mock-line-short"></view>
+              <view class="poster-thumb-mock-footer">
+                <view class="poster-thumb-mock-chip"></view>
+                <view class="poster-thumb-mock-qr"></view>
+              </view>
+            </view>
             <text class="poster-gallery-thumb-name">{{item.name}}</text>
           </view>
         </view>

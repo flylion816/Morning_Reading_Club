@@ -317,6 +317,129 @@ Page({
       .trim();
   },
 
+  // Parse HTML paragraph inner content into bold/regular runs
+  _parseRunsFromHtmlInner(inner) {
+    const clean = s => s
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"');
+
+    const runs = [];
+    const boldRe = /<(?:strong|b)\b[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi;
+    let last = 0;
+    let m;
+
+    while ((m = boldRe.exec(inner)) !== null) {
+      const before = clean(inner.slice(last, m.index));
+      if (before) runs.push({ text: before, bold: false });
+      const bt = clean(m[1]);
+      if (bt) runs.push({ text: bt, bold: true });
+      last = m.index + m[0].length;
+    }
+
+    const after = clean(inner.slice(last));
+    if (after) runs.push({ text: after, bold: false });
+    if (runs.length === 0) {
+      const t = clean(inner);
+      if (t) runs.push({ text: t, bold: false });
+    }
+    return runs;
+  },
+
+  // Wrap runs into canvas lines, each line is [{text, bold}]
+  _wrapRunsForCanvas(ctx, runs, maxWidth, regularFont, boldFont) {
+    const lines = [];
+    let curLine = [];
+    let curW = 0;
+
+    const flush = () => { lines.push(curLine); curLine = []; curW = 0; };
+
+    for (const run of runs) {
+      ctx.font = run.bold ? boldFont : regularFont;
+      let i = 0;
+      const text = run.text;
+
+      while (i < text.length) {
+        if (text[i] === '\n') { flush(); i++; continue; }
+
+        let seg = '';
+        let j = i;
+        while (j < text.length && text[j] !== '\n') {
+          const test = seg + text[j];
+          if (curW + ctx.measureText(test).width > maxWidth) {
+            if (seg) break;
+            if (curLine.length > 0) {
+              flush();
+              continue;
+            }
+          }
+          seg += text[j];
+          j++;
+        }
+
+        if (!seg) { flush(); seg = text[i]; j = i + 1; }
+
+        curLine.push({ text: seg, bold: run.bold });
+        curW += ctx.measureText(seg).width;
+        i = j;
+
+        if (i < text.length && text[i] !== '\n') flush();
+      }
+    }
+
+    if (curLine.length > 0) flush();
+    return lines.length > 0 ? lines : [[{ text: '', bold: false }]];
+  },
+
+  _hasPosterBlockTags(html = '') {
+    return /<(p|li|blockquote|div|h[1-6])\b[^>]*>/i.test(html);
+  },
+
+  _collectHtmlParagraphs(html, inheritedQuote = false) {
+    const paragraphs = [];
+    const blockRegex = /<(p|li|blockquote|div|h[1-6])\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+    let match;
+
+    while ((match = blockRegex.exec(html)) !== null) {
+      const tagName = String(match[1] || '').toLowerCase();
+      const attrs = match[2] || '';
+      const inner = match[3];
+      const isListItem = tagName === 'li';
+      const isQuote = inheritedQuote || tagName === 'blockquote' || /border-left/i.test(attrs);
+
+      if (!isListItem && this._hasPosterBlockTags(inner)) {
+        paragraphs.push(...this._collectHtmlParagraphs(inner, isQuote));
+        continue;
+      }
+
+      const runs = isListItem
+        ? [{ text: '• ', bold: false }, ...this._parseRunsFromHtmlInner(inner)]
+        : this._parseRunsFromHtmlInner(inner);
+      const plainText = runs.map(r => r.text).join('').trim();
+      if (plainText) paragraphs.push({ runs, isQuote });
+    }
+
+    return paragraphs;
+  },
+
+  // Parse HTML into paragraphs: [{runs:[{text,bold}], isQuote}]
+  _parseHtmlToParagraphs(html) {
+    const paragraphs = this._collectHtmlParagraphs(html);
+
+    if (paragraphs.length === 0) {
+      this._stripHtmlForCanvas(html).split('\n').forEach(line => {
+        const t = line.trim();
+        if (t) paragraphs.push({ runs: [{ text: t, bold: false }], isQuote: false });
+      });
+    }
+
+    return paragraphs;
+  },
+
   _wrapTextForCanvas(ctx, fontStr, text, maxWidth) {
     ctx.font = fontStr;
     const lines = [];
@@ -390,7 +513,7 @@ Page({
     }
 
     const systemDpr = wx.getWindowInfo?.().pixelRatio || 2;
-    return Math.min(systemDpr, height > 3200 ? 1.5 : 2);
+    return Math.min(systemDpr, height > 3200 ? 1.5 : height > 2200 ? 2 : 3);
   },
 
   _exportInsightPosterCanvas(canvas, width, height, mode = 'hd') {
@@ -469,16 +592,19 @@ Page({
             const W = INSIGHT_POSTER_WIDTH;
             const PADDING = 48;
             const CONTENT_W = W - PADDING * 2;
-            const FOOTER_H = 176;
+            const FOOTER_H = 148;
             const TITLE_FONT = 42;
             const TITLE_LINE_H = 58;
             const CONTENT_FONT = 28;
             const CONTENT_LINE_H = 48;
             const PERIOD_FONT = 24;
+            const REGULAR_FONT = `${CONTENT_FONT}px sans-serif`;
+            const BOLD_FONT = `bold ${CONTENT_FONT}px sans-serif`;
 
             const rawTitle = insight.title || '小凡看见';
-            const rawContent = this._stripHtmlForCanvas(insight.content || '');
             const periodName = insight.periodName || '凡人共读';
+            const htmlParagraphs = this._parseHtmlToParagraphs(insight.content || '');
+            const PARA_GAP = Math.floor(CONTENT_LINE_H * 0.75);
 
             // Pass 1: measure text to compute canvas height
             canvas.width = W;
@@ -490,16 +616,19 @@ Page({
               rawTitle,
               CONTENT_W
             );
-            const contentLines = this._wrapTextForCanvas(
-              ctx,
-              `${CONTENT_FONT}px sans-serif`,
-              rawContent,
-              CONTENT_W
-            );
 
-            const contentTextH = this._getCanvasLinesHeight(contentLines, CONTENT_LINE_H);
+            // Wrap each paragraph into lines of [{text, bold}] segments
+            const wrappedParas = htmlParagraphs.map(para => {
+              const lines = this._wrapRunsForCanvas(ctx, para.runs, CONTENT_W, REGULAR_FONT, BOLD_FONT);
+              return { ...para, lines };
+            });
+
+            const contentTextH = wrappedParas.reduce((sum, para, i) => {
+              return sum + para.lines.length * CONTENT_LINE_H +
+                (i < wrappedParas.length - 1 ? PARA_GAP : 0);
+            }, 0);
             const headerBodyGap = TITLE_LINE_H + 98;
-            const footerGap = 56;
+            const footerGap = 48;
             const H = Math.max(
               PADDING +
                 titleLines.length * TITLE_LINE_H +
@@ -508,7 +637,7 @@ Page({
                 footerGap +
                 FOOTER_H +
                 PADDING,
-              900
+              700
             );
 
             // Pass 2: resize canvas and draw
@@ -557,15 +686,29 @@ Page({
             ctx.stroke();
             cursorY += 36;
 
-            // Content text
-            ctx.fillStyle = '#374151';
-            ctx.font = `${CONTENT_FONT}px sans-serif`;
-            for (const line of contentLines) {
-              if (line) {
-                ctx.fillText(line, PADDING, cursorY);
+            // Content text - inline-bold-aware segment rendering
+            for (let pi = 0; pi < wrappedParas.length; pi++) {
+              const para = wrappedParas[pi];
+
+              if (para.isQuote) {
+                ctx.fillStyle = '#d6e4ff';
+                ctx.fillRect(PADDING, cursorY - CONTENT_LINE_H + 10, 3, para.lines.length * CONTENT_LINE_H - 10);
+              }
+
+              const baseX = para.isQuote ? PADDING + 14 : PADDING;
+              for (const lineSegs of para.lines) {
+                let segX = baseX;
+                for (const seg of lineSegs) {
+                  ctx.font = seg.bold ? BOLD_FONT : REGULAR_FONT;
+                  ctx.fillStyle = para.isQuote ? '#5b6b8c' : (seg.bold ? '#111827' : '#374151');
+                  ctx.fillText(seg.text, segX, cursorY);
+                  segX += ctx.measureText(seg.text).width;
+                }
                 cursorY += CONTENT_LINE_H;
-              } else {
-                cursorY += Math.floor(CONTENT_LINE_H * 0.6);
+              }
+
+              if (pi < wrappedParas.length - 1) {
+                cursorY += PARA_GAP;
               }
             }
 

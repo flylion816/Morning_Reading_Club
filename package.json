@@ -17,7 +17,9 @@
     "test:miniprogram": "jest miniprogram/__tests__ --coverage",
     "test:miniprogram:watch": "jest miniprogram/__tests__ --watch",
     "test:all": "jest --coverage",
-    "convert-icons": "node scripts/convert-icons.js"
+    "convert-icons": "node scripts/convert-icons.js",
+    "openspec:list": "OPENSPEC_TELEMETRY=0 openspec list",
+    "openspec:validate": "OPENSPEC_TELEMETRY=0 openspec validate --changes --strict"
   },
   "repository": {
     "type": "git",
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@commitlint/cli": "^18.6.1",
     "@commitlint/config-conventional": "^18.6.3",
+    "@fission-ai/openspec": "^1.3.1",
     "eslint": "^8.0.0",
     "husky": "^8.0.3",
     "jest": "^29.0.0",
@@ -50,9 +53,18 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "setupFilesAfterEnv": ["<rootDir>/miniprogram/__tests__/setup.js"],
-    "testMatch": ["**/__tests__/**/*.spec.js"],
-    "collectCoverageFrom": ["miniprogram/**/*.js"],
-    "coveragePathIgnorePatterns": ["__tests__", "node_modules"]
+    "setupFilesAfterEnv": [
+      "<rootDir>/miniprogram/__tests__/setup.js"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.spec.js"
+    ],
+    "collectCoverageFrom": [
+      "miniprogram/**/*.js"
+    ],
+    "coveragePathIgnorePatterns": [
+      "__tests__",
+      "node_modules"
+    ]
   }
 }

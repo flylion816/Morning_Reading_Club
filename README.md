@@ -6,6 +6,24 @@
 
 晨读营是一个基于微信小程序的习惯养成和打卡学习平台,通过23天的课程学习帮助用户培养良好的晨读习惯。
 
+## 当前文档入口
+
+2026-05-12 已完成一轮基于当前代码的文档同步。新开发优先参考：
+
+- [PRD 代码同步版](./docs/PRD-代码同步版-2026-05-12.md)
+- [详细设计代码同步版](./docs/architecture/DETAILED-DESIGN-代码同步版-2026-05-12.md)
+- [API 接口索引代码同步版](./docs/backend/API-接口索引-代码同步版-2026-05-12.md)
+- [数据模型索引代码同步版](./docs/backend/DATA-MODEL-代码同步版-2026-05-12.md)
+- [长图分享设计说明](./docs/guides/LONG_IMAGE_SHARE_DESIGN.md)
+- [文档矩阵与维护策略](./docs/DOCUMENTATION-MATRIX-2026-05-12.md)
+
+OpenSpec 命令已接入本地 devDependency：
+
+```bash
+npm run openspec:list
+npm run openspec:validate
+```
+
 ### 核心功能
 
 - 📚 **课程学习**: 浏览和报名课程,查看每日学习内容

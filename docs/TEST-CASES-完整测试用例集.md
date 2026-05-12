@@ -1,5 +1,11 @@
 # 凡人共读小程序 - 完整测试体系（219 手工 + 1,597 自动化）
 
+> **当前维护说明（2026-05-12）**
+> 本文档保留为完整测试体系历史基线。长图分享和小凡看见海报生成的最新专项测试说明见：
+> [`docs/guides/LONG_IMAGE_SHARE_DESIGN.md`](./guides/LONG_IMAGE_SHARE_DESIGN.md)。
+> 单元测试新增覆盖见 `miniprogram/__tests__/pages/course-detail.spec.js` 和
+> `miniprogram/__tests__/pages/insight-detail.spec.js`。
+
 > **文档版本**: v3.1（完整测试体系 - 手工验收测试 + 自动化单元测试 + E2E 测试）
 > **创建日期**: 2026-03-03
 > **最后更新**: 2026-03-06（新增 v6.1 功能测试用例 + E2E 自动化测试）
@@ -156,7 +162,7 @@ UI 观察:
 
 ### TC-APP-002: 已登录用户 - 重新启动
 
-**前置条件**: 
+**前置条件**:
 - 应用已安装，有有效的登录信息
 - localStorage 中存在 token 和 user_info
 - AccessToken 有效（未过期）
@@ -465,7 +471,7 @@ UI 观察:
 
 ### TC-INDEX-005: 期次列表 - 未登录用户点击期次
 
-**前置条件**: 
+**前置条件**:
 - 未登录状态
 - 首页显示期次列表
 

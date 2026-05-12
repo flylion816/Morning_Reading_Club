@@ -5,6 +5,9 @@ jest.mock('../../services/checkin.service', () => ({
 jest.mock('../../services/comment.service', () => ({
   createComment: jest.fn()
 }));
+jest.mock('../../services/activity.service', () => ({
+  track: jest.fn(() => Promise.resolve())
+}));
 jest.mock('../../services/subscribe-message.service', () => ({}));
 jest.mock('../../utils/subscribe-auto-topup', () => ({}));
 jest.mock('../../config/constants', () => ({}));
@@ -44,10 +47,25 @@ describe('course-detail page markdown support', () => {
       ...pageConfig,
       data: JSON.parse(JSON.stringify(pageConfig.data)),
       setData(update) {
-        this.data = {
-          ...this.data,
-          ...update
-        };
+        const nextData = { ...this.data };
+        Object.entries(update).forEach(([key, value]) => {
+          if (!key.includes('.')) {
+            nextData[key] = value;
+            return;
+          }
+
+          const parts = key.split('.');
+          let target = nextData;
+          parts.forEach((part, index) => {
+            if (index === parts.length - 1) {
+              target[part] = value;
+              return;
+            }
+            target[part] = { ...(target[part] || {}) };
+            target = target[part];
+          });
+        });
+        this.data = nextData;
       }
     };
 
@@ -145,7 +163,7 @@ describe('course-detail page markdown support', () => {
     expect(pageInstance.data.isCheckinDetailMode).toBe(true);
     expect(pageInstance.data.shareCheckinId).toBe('checkin_456');
     expect(pageInstance.data.canShareCurrentCheckin).toBe(true);
-    expect(wx.setNavigationBarTitle).toHaveBeenCalledWith({ title: '动态详情' });
+    expect(wx.setNavigationBarTitle).toHaveBeenCalledWith({ title: '打卡详情' });
     expect(wx.showShareMenu).toHaveBeenCalled();
     expect(pageInstance.loadCourseDetail).toHaveBeenCalled();
   });
@@ -311,12 +329,52 @@ describe('course-detail page markdown support', () => {
     });
 
     expect(snapshot.width).toBe(1040);
-    expect(snapshot.height).toBeGreaterThanOrEqual(1480);
+    expect(snapshot.height).toBeGreaterThanOrEqual(900);
     expect(snapshot.titleLines[0]).toContain('狮子的打卡日记');
     expect(snapshot.contentLines).toContain('第一段内容');
+    expect(snapshot.contentTruncated).toBe(false);
     expect(snapshot.tagLines[0]).toBe('#第20天 统合综效');
     expect(snapshot.statsLine).toBe('获赞 4 · 评论 2');
     expect(snapshot.miniProgramCodePath).toBe('/assets/images/mini-program-code.png');
+  });
+
+  test('should keep oversized poster content complete by default', () => {
+    const content = Array.from({ length: 180 }, (_, index) => `第${index + 1}句很长的打卡正文`).join('，');
+
+    const snapshot = pageInstance.buildPosterSnapshot.call(pageInstance, {
+      userName: '狮子',
+      content,
+      hashTag: '#第3天 第三天 以原则为中心的思维方式',
+      periodChip: '秩序之锚 - 七个习惯晨读营',
+      dateLabel: '2026-05-12 10:41:25',
+      sectionTitle: '第三天 以原则为中心的思维方式'
+    });
+
+    expect(snapshot.height).toBeGreaterThan(2400);
+    expect(snapshot.contentTruncated).toBe(false);
+    expect(snapshot.contentLines).not.toContain('进入小程序查看完整内容');
+  });
+
+  test('should truncate oversized poster content only for fallback poster', () => {
+    const content = Array.from({ length: 180 }, (_, index) => `第${index + 1}句很长的打卡正文`).join('，');
+
+    const snapshot = pageInstance.buildPosterSnapshot.call(
+      pageInstance,
+      {
+        userName: '狮子',
+        content,
+        hashTag: '#第3天 第三天 以原则为中心的思维方式',
+        periodChip: '秩序之锚 - 七个习惯晨读营',
+        dateLabel: '2026-05-12 10:41:25',
+        sectionTitle: '第三天 以原则为中心的思维方式'
+      },
+      undefined,
+      { maxHeight: 2400 }
+    );
+
+    expect(snapshot.height).toBeLessThanOrEqual(2400);
+    expect(snapshot.contentTruncated).toBe(true);
+    expect(snapshot.contentLines).toContain('进入小程序查看完整内容');
   });
 
   test('should draw mini program qr code into poster canvas', async () => {
@@ -371,13 +429,10 @@ describe('course-detail page markdown support', () => {
     );
   });
 
-  test('should generate poster gallery for all built-in styles', async () => {
+  test('should create all poster template entries and generate the first one', async () => {
     pageInstance.generateLongImagePoster = jest
       .fn()
-      .mockResolvedValueOnce('/tmp/poster-1.png')
-      .mockResolvedValueOnce('/tmp/poster-2.png')
-      .mockResolvedValueOnce('/tmp/poster-3.png')
-      .mockResolvedValueOnce('/tmp/poster-4.png');
+      .mockResolvedValueOnce('/tmp/poster-1.png');
 
     const galleryItems = await pageInstance.generatePosterGallery.call(pageInstance, {
       id: 'checkin_123',
@@ -385,23 +440,21 @@ describe('course-detail page markdown support', () => {
       content: '测试正文'
     });
 
-    expect(pageInstance.generateLongImagePoster).toHaveBeenCalledTimes(4);
+    expect(pageInstance.generateLongImagePoster).toHaveBeenCalledTimes(1);
     expect(galleryItems.map(item => item.name)).toEqual(['青岚', '暮紫', '晴空', '留白']);
     expect(galleryItems.map(item => item.tempFilePath)).toEqual([
       '/tmp/poster-1.png',
-      '/tmp/poster-2.png',
-      '/tmp/poster-3.png',
-      '/tmp/poster-4.png'
+      '',
+      '',
+      ''
     ]);
   });
 
-  test('should keep generated poster templates when one style fails', async () => {
+  test('should fall back to clipped poster when first template export fails', async () => {
     pageInstance.generateLongImagePoster = jest
       .fn()
-      .mockResolvedValueOnce('/tmp/poster-1.png')
       .mockRejectedValueOnce(new Error('timeout'))
-      .mockResolvedValueOnce('/tmp/poster-3.png')
-      .mockResolvedValueOnce('/tmp/poster-4.png');
+      .mockResolvedValueOnce('/tmp/poster-fallback.png');
 
     const galleryItems = await pageInstance.generatePosterGallery.call(pageInstance, {
       id: 'checkin_123',
@@ -409,13 +462,58 @@ describe('course-detail page markdown support', () => {
       content: '测试正文'
     });
 
-    expect(pageInstance.generateLongImagePoster).toHaveBeenCalledTimes(4);
-    expect(galleryItems.map(item => item.id)).toEqual(['aurora', 'sky', 'paper']);
+    expect(pageInstance.generateLongImagePoster).toHaveBeenCalledTimes(2);
+    expect(pageInstance.generateLongImagePoster).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ id: 'checkin_123' }),
+      expect.objectContaining({ id: 'aurora' }),
+      { maxHeight: 2400 }
+    );
     expect(galleryItems.map(item => item.tempFilePath)).toEqual([
-      '/tmp/poster-1.png',
-      '/tmp/poster-3.png',
-      '/tmp/poster-4.png'
+      '/tmp/poster-fallback.png',
+      '',
+      '',
+      ''
     ]);
+  });
+
+  test('should generate selected poster template on demand', async () => {
+    pageInstance.generateLongImagePoster = jest
+      .fn()
+      .mockResolvedValueOnce('/tmp/poster-lilac.png');
+    pageInstance.setData({
+      detailCheckin: {
+        id: 'checkin_123',
+        userName: '狮子',
+        content: '测试正文'
+      },
+      posterGalleryItems: [
+        { id: 'aurora', name: '青岚', tempFilePath: '/tmp/poster-1.png', generated: true },
+        { id: 'lilac', name: '暮紫', tempFilePath: '', generated: false },
+        { id: 'sky', name: '晴空', tempFilePath: '', generated: false },
+        { id: 'paper', name: '留白', tempFilePath: '', generated: false }
+      ]
+    });
+
+    await pageInstance.handlePosterTemplateSelect.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          index: 1
+        }
+      }
+    });
+
+    expect(pageInstance.generateLongImagePoster).toHaveBeenCalledTimes(1);
+    expect(pageInstance.generateLongImagePoster).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'checkin_123' }),
+      expect.objectContaining({ id: 'lilac' })
+    );
+    expect(pageInstance.data.posterSelectedIndex).toBe(1);
+    expect(pageInstance.data.selectedPoster).toMatchObject({
+      id: 'lilac',
+      tempFilePath: '/tmp/poster-lilac.png',
+      generated: true
+    });
   });
 
   test('should show toast when generating long image without detail checkin', () => {
@@ -488,6 +586,8 @@ describe('course-detail page markdown support', () => {
         }
       }
     });
+    await Promise.resolve();
+    await Promise.resolve();
 
     expect(pageInstance.data.course.comments[0].replies[0]).toMatchObject({
       userName: '小狐狸',

@@ -22,6 +22,9 @@ const MINI_PROGRAM_CODE_ASSET_PATHS = [
 const SECTION_CHECKIN_FETCH_LIMIT = 30;
 const CHECKIN_CONTENT_FOLD_LINE_LIMIT = 6;
 const CHECKIN_CONTENT_FOLD_UNITS_PER_LINE = 18;
+const POSTER_MIN_HEIGHT = 900;
+const POSTER_LONG_IMAGE_HEIGHT = 2600;
+const POSTER_FALLBACK_MAX_HEIGHT = 2400;
 const GENERIC_AVATAR_NAMES = new Set(['用户', '匿名用户', '匿名', 'user', 'member']);
 
 const POSTER_STYLE_PRESETS = [
@@ -438,7 +441,7 @@ Page({
   getNameAvatarText(name, fallback = '用') {
     const text = String(name || '').trim();
     if (!text) return fallback;
-    return text.charAt(text.length - 1);
+    return text.charAt(0);
   },
 
   findKnownUserById(userId) {
@@ -805,6 +808,49 @@ Page({
     return lines.length > 0 ? lines : [''];
   },
 
+  getPosterLinesHeight(lines = [], lineHeight, emptyLineHeight) {
+    return lines.reduce((sum, line) => {
+      return sum + (line ? lineHeight : emptyLineHeight);
+    }, 0);
+  },
+
+  trimPosterTrailingBlankLines(lines = []) {
+    const nextLines = [...lines];
+    while (nextLines.length > 0 && !nextLines[nextLines.length - 1]) {
+      nextLines.pop();
+    }
+    return nextLines;
+  },
+
+  fitPosterLinesToHeight(lines = [], maxHeight, lineHeight, emptyLineHeight) {
+    const overflowLines = ['', '……', '进入小程序查看完整内容'];
+    const overflowHeight = this.getPosterLinesHeight(
+      overflowLines,
+      lineHeight,
+      emptyLineHeight
+    );
+    const fittedLines = [];
+    let usedHeight = 0;
+
+    for (const line of lines) {
+      const currentHeight = line ? lineHeight : emptyLineHeight;
+      if (usedHeight + currentHeight + overflowHeight > maxHeight) {
+        return {
+          lines: [...this.trimPosterTrailingBlankLines(fittedLines), ...overflowLines],
+          truncated: true
+        };
+      }
+
+      fittedLines.push(line);
+      usedHeight += currentHeight;
+    }
+
+    return {
+      lines,
+      truncated: false
+    };
+  },
+
   normalizePosterContent(text = '') {
     return String(text || '')
       .replace(/\[爱心\]/g, '❤️')
@@ -813,14 +859,18 @@ Page({
       .replace(/\[玫瑰花\]/g, '🌹');
   },
 
-  buildPosterSnapshot(detailCheckin, stylePreset = POSTER_STYLE_PRESETS[0]) {
+  buildPosterSnapshot(
+    detailCheckin,
+    stylePreset = POSTER_STYLE_PRESETS[0],
+    options = {}
+  ) {
     const contentText = this.normalizePosterContent(
       detailCheckin?.content || '这篇打卡还没有填写正文'
     );
     const contentWrapUnits = stylePreset.id === 'paper' ? 50 : 52;
     const titleWrapUnits = stylePreset.id === 'paper' ? 28 : 30;
     const tagWrapUnits = stylePreset.id === 'paper' ? 36 : 38;
-    const contentLines = this.wrapPosterText(contentText, contentWrapUnits);
+    const rawContentLines = this.wrapPosterText(contentText, contentWrapUnits);
     const titleLines = this.wrapPosterText(
       `${detailCheckin?.userName || '伙伴'}的打卡日记`,
       titleWrapUnits
@@ -836,20 +886,52 @@ Page({
     const titleLineHeight = 54;
     const contentLineHeight = 52;
     const tagLineHeight = 42;
-    const footerHeight = 270;
-    const baseHeight =
-      220 +
+    const emptyLineHeight = Math.floor(contentLineHeight * 0.65);
+    const emptyTagLineHeight = Math.floor(tagLineHeight * 0.65);
+    const fullTagLines = tagLines.filter(l => !!l).length;
+    const emptyTagLines = tagLines.length - fullTagLines;
+    const footerHeight = 380;
+    const tagHeight =
+      tagLines.length > 0
+        ? fullTagLines * tagLineHeight + emptyTagLines * emptyTagLineHeight + 24
+        : 0;
+    const fixedHeight =
+      120 +
       titleLines.length * titleLineHeight +
       96 +
-      contentLines.length * contentLineHeight +
-      (tagLines.length > 0 ? tagLines.length * tagLineHeight + 24 : 0) +
+      tagHeight +
       footerHeight;
+    const maxHeight = Number(options.maxHeight) || 0;
+    const fittedContent = maxHeight
+      ? this.fitPosterLinesToHeight(
+          rawContentLines,
+          Math.max(contentLineHeight * 6, maxHeight - fixedHeight),
+          contentLineHeight,
+          emptyLineHeight
+        )
+      : {
+          lines: rawContentLines,
+          truncated: false
+        };
+    const contentLines = fittedContent.lines;
+    const contentHeight = this.getPosterLinesHeight(
+      contentLines,
+      contentLineHeight,
+      emptyLineHeight
+    );
+    const baseHeight =
+      fixedHeight +
+      contentHeight;
 
     return {
       width: 1040,
-      height: Math.max(1480, baseHeight),
+      height: Math.max(
+        POSTER_MIN_HEIGHT,
+        maxHeight ? Math.min(maxHeight, baseHeight) : baseHeight
+      ),
       titleLines,
       contentLines,
+      contentTruncated: fittedContent.truncated,
       tagLines,
       periodChip,
       dateLabel,
@@ -1106,8 +1188,12 @@ Page({
   },
 
   exportPosterCanvasToTempFilePath(canvas, snapshot) {
-    const preferredScales =
-      snapshot.height > 2200 ? [1.5, 1.25, 1] : [2, 1.5, 1];
+    const isLongPoster = snapshot.height > POSTER_LONG_IMAGE_HEIGHT;
+    const preferredScales = isLongPoster
+      ? [1, 0.85]
+      : snapshot.height > 2200
+        ? [1.25, 1]
+        : [2, 1.5, 1];
     let attemptIndex = 0;
 
     return new Promise((resolve, reject) => {
@@ -1120,8 +1206,8 @@ Page({
           height: snapshot.height,
           destWidth: Math.round(snapshot.width * scale),
           destHeight: Math.round(snapshot.height * scale),
-          fileType: 'png',
-          quality: 1,
+          fileType: isLongPoster ? 'jpg' : 'png',
+          quality: isLongPoster ? 0.88 : 1,
           success: (res) => resolve(res.tempFilePath),
           fail: (error) => {
             const isLastAttempt = attemptIndex >= preferredScales.length - 1;
@@ -1145,13 +1231,17 @@ Page({
 
   async generateLongImagePoster(
     detailCheckin,
-    stylePreset = POSTER_STYLE_PRESETS[0]
+    stylePreset = POSTER_STYLE_PRESETS[0],
+    options = {}
   ) {
-    const snapshot = this.buildPosterSnapshot(detailCheckin, stylePreset);
+    const snapshot = this.buildPosterSnapshot(detailCheckin, stylePreset, options);
     const target = await this.getPosterCanvasNode();
     const canvas = target.node;
     const ctx = canvas.getContext('2d');
-    const dpr = wx.getWindowInfo?.().pixelRatio || 2;
+    const systemDpr = wx.getWindowInfo?.().pixelRatio || 2;
+    const dpr = snapshot.height > POSTER_LONG_IMAGE_HEIGHT
+      ? 1
+      : Math.min(systemDpr, 2);
     let miniProgramCodeImage = null;
 
     canvas.width = snapshot.width * dpr;
@@ -1189,31 +1279,8 @@ Page({
 
     this.drawPosterDecoration(ctx, snapshot, stylePreset);
 
-    const avatarGradient = ctx.createLinearGradient(92, 152, 220, 262);
-    avatarGradient.addColorStop(0, stylePreset.accentColors[0]);
-    avatarGradient.addColorStop(1, stylePreset.accentColors[1]);
-    ctx.fillStyle = avatarGradient;
-    ctx.beginPath();
-    ctx.arc(140, 152, 44, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 34px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(snapshot.avatarText, 140, 152);
-
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = '#8b94a5';
-    ctx.font = '24px sans-serif';
-    ctx.fillText(snapshot.authorMeta, 204, 140);
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 34px sans-serif';
-    ctx.fillText(snapshot.authorName, 204, 182);
-
     const contentStartX = 72;
-    let cursorY = stylePreset.id === 'paper' ? 240 : 250;
+    let cursorY = 120;
     ctx.fillStyle = stylePreset.id === 'paper' ? '#22324a' : '#111827';
     ctx.font = 'bold 44px sans-serif';
     cursorY = this.drawPosterTextLines(
@@ -1306,7 +1373,13 @@ Page({
     ctx.fillText('凡人共读 · 动态详情长图', footerTextX, footerTextY);
     ctx.fillStyle = '#8b94a5';
     ctx.font = '22px sans-serif';
-    ctx.fillText('打开小程序查看完整评论与互动', footerTextX, footerTextY + 42);
+    ctx.fillText(
+      snapshot.contentTruncated
+        ? '正文已截取，进入小程序查看完整内容'
+        : '打开小程序查看完整评论与互动',
+      footerTextX,
+      footerTextY + 42
+    );
     ctx.fillStyle = '#5f6f82';
     ctx.font = '24px sans-serif';
     if (snapshot.dateLabel) {
@@ -1370,41 +1443,50 @@ Page({
     });
   },
 
+  buildPosterGalleryItems() {
+    return POSTER_STYLE_PRESETS.map((stylePreset) => ({
+      id: stylePreset.id,
+      name: stylePreset.name,
+      previewClass: `poster-template-${stylePreset.id}`,
+      tempFilePath: '',
+      generated: false
+    }));
+  },
+
+  async generatePosterForStyle(detailCheckin, stylePreset) {
+    try {
+      return await this.generateLongImagePoster(detailCheckin, stylePreset);
+    } catch (error) {
+      console.warn('完整长图模板生成失败，尝试降级生成', {
+        styleId: stylePreset.id,
+        error
+      });
+
+      return this.generateLongImagePoster(
+        detailCheckin,
+        stylePreset,
+        { maxHeight: POSTER_FALLBACK_MAX_HEIGHT }
+      );
+    }
+  },
+
   async generatePosterGallery(detailCheckin) {
-    const items = [];
-    let lastError = null;
+    const items = this.buildPosterGalleryItems();
+    const firstStylePreset = POSTER_STYLE_PRESETS[0];
+    const firstTempFilePath = await this.generatePosterForStyle(
+      detailCheckin,
+      firstStylePreset
+    );
 
-    for (let index = 0; index < POSTER_STYLE_PRESETS.length; index += 1) {
-      const stylePreset = POSTER_STYLE_PRESETS[index];
-      if (wx.showLoading) {
-        wx.showLoading({
-          title: `海报 ${index + 1}/${POSTER_STYLE_PRESETS.length}`,
-          mask: true
-        });
-      }
-
-      try {
-        const tempFilePath = await this.generateLongImagePoster(
-          detailCheckin,
-          stylePreset
-        );
-        items.push({
-          id: stylePreset.id,
-          name: stylePreset.name,
-          tempFilePath
-        });
-      } catch (error) {
-        lastError = error;
-        console.warn('单个长图模板生成失败，继续生成其他模板', {
-          styleId: stylePreset.id,
-          error
-        });
-      }
+    if (!firstTempFilePath) {
+      throw new Error('长图生成失败');
     }
 
-    if (items.length === 0) {
-      throw lastError || new Error('长图生成失败');
-    }
+    items[0] = {
+      ...items[0],
+      tempFilePath: firstTempFilePath,
+      generated: true
+    };
 
     return items;
   },
@@ -1480,9 +1562,72 @@ Page({
 
   noop() {},
 
-  handlePosterTemplateSelect(e) {
+  async handlePosterTemplateSelect(e) {
     const { index } = e.currentTarget.dataset || {};
-    this.syncSelectedPoster(index);
+    const posterGalleryItems = Array.isArray(this.data.posterGalleryItems)
+      ? this.data.posterGalleryItems
+      : [];
+    const safeIndex = Math.min(
+      Math.max(Number(index) || 0, 0),
+      Math.max(posterGalleryItems.length - 1, 0)
+    );
+    const selectedPoster = posterGalleryItems[safeIndex];
+
+    this.syncSelectedPoster(safeIndex);
+
+    if (!selectedPoster || selectedPoster.tempFilePath) {
+      return;
+    }
+
+    if (this.data.posterGenerating || !this.data.detailCheckin) {
+      return;
+    }
+
+    const stylePreset = POSTER_STYLE_PRESETS.find(
+      (item) => item.id === selectedPoster.id
+    );
+    if (!stylePreset) {
+      return;
+    }
+
+    this.setData({ posterGenerating: true });
+    wx.showLoading?.({
+      title: '生成长图中...',
+      mask: true
+    });
+
+    try {
+      const tempFilePath = await this.generatePosterForStyle(
+        this.data.detailCheckin,
+        stylePreset
+      );
+      const nextItems = posterGalleryItems.map((item, itemIndex) => {
+        if (itemIndex !== safeIndex) {
+          return item;
+        }
+
+        return {
+          ...item,
+          tempFilePath,
+          generated: true
+        };
+      });
+
+      this.setData({
+        posterGenerating: false,
+        posterGalleryItems: nextItems
+      });
+      this.syncSelectedPoster(safeIndex);
+      wx.hideLoading?.();
+    } catch (error) {
+      console.error('生成模板长图失败:', error);
+      this.setData({ posterGenerating: false });
+      wx.hideLoading?.();
+      wx.showToast({
+        title: '长图生成失败',
+        icon: 'none'
+      });
+    }
   },
 
   handlePreviewSelectedPoster() {
@@ -2802,6 +2947,18 @@ Page({
     }
 
     console.log('🔗 最终导航URL:', url);
+    wx.navigateTo({ url });
+  },
+
+  handleLikeAvatarClick(e) {
+    const { userId } = e.currentTarget.dataset;
+    if (!userId) return;
+    const { course } = this.data;
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (course && course.periodId) {
+      const periodId = course.periodId._id || course.periodId;
+      url += `&periodId=${periodId}`;
+    }
     wx.navigateTo({ url });
   },
 
