@@ -115,6 +115,13 @@ router.get('/user/:userId?', authMiddleware, getUserInsights);
 router.get('/:insightId', optionalAuthMiddleware, getInsightDetail);
 
 /**
+ * @route   PUT /api/v1/insights/admin/:insightId
+ * @desc    更新小凡看见（管理员）
+ * @access  Private (Admin)
+ */
+router.put('/admin/:insightId', adminAuthMiddleware, updateInsight);
+
+/**
  * @route   PUT /api/v1/insights/:insightId
  * @desc    更新反馈（用户编辑自己的）
  * @access  Private
@@ -157,13 +164,6 @@ router.post('/manual/create', adminAuthMiddleware, createInsightManual);
  * @access  Public (with optional auth for personalized results)
  */
 router.get('/period/:periodId', authMiddleware, getInsightsForPeriod);
-
-/**
- * @route   PUT /api/v1/insights/:insightId
- * @desc    更新小凡看见（编辑文案）
- * @access  Private (Admin)
- */
-router.put('/:insightId', adminAuthMiddleware, updateInsight);
 
 /**
  * @route   DELETE /api/v1/insights/manual/:insightId

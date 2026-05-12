@@ -17,7 +17,7 @@ export default mergeConfig(
 
       // 覆盖率配置
       coverage: {
-        provider: 'c8',
+        provider: 'v8',
         reporter: ['text', 'json', 'html', 'lcov'],
         exclude: [
           'node_modules/',
@@ -29,10 +29,12 @@ export default mergeConfig(
           '.nuxt/'
         ],
         // 覆盖率阈值
-        lines: 60,
-        functions: 65,
-        branches: 55,
-        statements: 60
+        thresholds: {
+          lines: 60,
+          functions: 65,
+          branches: 55,
+          statements: 60
+        }
       },
 
       // 根目录

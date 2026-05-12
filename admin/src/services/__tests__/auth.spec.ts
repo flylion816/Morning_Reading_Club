@@ -3,10 +3,15 @@
  * 测试 authApi 相关接口的定义和参数接口
  */
 
-import { describe, it, expect } from 'vitest';
-import { authApi } from '../api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import apiClient, { authApi } from '../api';
 
 describe('Auth API', () => {
+  beforeEach(() => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    vi.spyOn(apiClient, 'post').mockResolvedValue({});
+  });
+
   describe('login', () => {
     it('应该导出 login 函数', () => {
       expect(authApi.login).toBeDefined();

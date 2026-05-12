@@ -18,7 +18,20 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
   }
 
   function clone(value) {
-    return structuredClone(value);
+    if (value instanceof Date) {
+      return new Date(value.getTime());
+    }
+    if (Array.isArray(value)) {
+      return value.map(item => clone(item));
+    }
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value)
+          .filter(([, item]) => typeof item !== 'function')
+          .map(([key, item]) => [key, clone(item)])
+      );
+    }
+    return value;
   }
 
   function toComparable(value) {
@@ -65,6 +78,15 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
     }
 
     const keys = fields.split(/\s+/).filter(Boolean);
+    const isExclusion = keys.every(key => key.startsWith('-'));
+    if (isExclusion) {
+      const selected = clone(doc);
+      keys.forEach(key => {
+        delete selected[key.slice(1)];
+      });
+      return selected;
+    }
+
     const selected = {};
 
     keys.forEach(key => {
@@ -432,6 +454,9 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
         publishSyncEvent: event => {
           publishSyncEvents.push(event);
         }
+      },
+      '../services/user-notification.service': {
+        dispatchNotificationWithSubscribe: async () => {}
       }
     });
   }
@@ -525,7 +550,7 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
           content: 'B insight content',
           summary: 'B summary',
           status: 'completed',
-          isPublished: true,
+          isPublished: false,
           createdAt: new Date('2026-03-27T09:10:00.000Z'),
           updatedAt: new Date('2026-03-27T09:10:00.000Z')
         }

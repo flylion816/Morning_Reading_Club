@@ -54,9 +54,17 @@ const handleImageSelect = async (e: Event) => {
   if (!files || files.length === 0) return;
 
   const file = files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件');
+    target.value = '';
+    return;
+  }
 
   if (file.size > 5 * 1024 * 1024) {
     ElMessage.error('图片大小不能超过 5MB');
+    target.value = '';
     return;
   }
 
@@ -130,7 +138,7 @@ onMounted(() => {
     }
   });
 
-  const toolbar = quill.getModule('toolbar');
+  const toolbar = quill.getModule('toolbar') as { addHandler: (name: string, handler: () => void) => void };
   toolbar.addHandler('image', () => {
     fileInput.value?.click();
   });
@@ -150,6 +158,10 @@ watch(() => props.modelValue, (newVal) => {
   if (quill && quill.root.innerHTML !== newVal) {
     quill.root.innerHTML = newVal || '';
   }
+});
+
+defineExpose({
+  handleImageSelect
 });
 </script>
 

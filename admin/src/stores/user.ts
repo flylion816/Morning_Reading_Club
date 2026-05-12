@@ -7,10 +7,10 @@ import { ref, computed } from 'vue';
 import { userApi } from '../services/api';
 
 interface User {
-  id: string;
-  _id: string;
-  email: string;
-  nickname: string;
+  id?: string;
+  _id?: string;
+  email?: string;
+  nickname?: string;
   role?: string;
   status?: string;
   createdAt?: string;
@@ -29,7 +29,10 @@ export const useUserStore = defineStore('user', () => {
   const isLoading = computed(() => loading.value);
   const hasError = computed(() => error.value !== null);
   const selectedUsers = computed(() =>
-    users.value.filter(user => selectedUserIds.value.includes(user.id || user._id))
+    users.value.filter(user => {
+      const userId = user.id || user._id;
+      return !!userId && selectedUserIds.value.includes(userId);
+    })
   );
 
   // Actions
@@ -66,7 +69,7 @@ export const useUserStore = defineStore('user', () => {
   function updateUser(userId: string, updates: Partial<User>) {
     const index = users.value.findIndex(u => u.id === userId || u._id === userId);
     if (index > -1) {
-      users.value[index] = { ...users.value[index], ...updates };
+      users.value[index] = { ...(users.value[index] || {}), ...updates };
     }
   }
 
@@ -81,7 +84,9 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function selectAll() {
-    selectedUserIds.value = users.value.map(u => u.id || u._id);
+    selectedUserIds.value = users.value
+      .map(u => u.id || u._id)
+      .filter((id): id is string => !!id);
   }
 
   function deselectAll() {

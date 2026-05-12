@@ -59,6 +59,7 @@ describe('Checkin Controller', () => {
       distinct: sandbox.stub(),
       aggregate: sandbox.stub()
     };
+    CheckinStub.distinct.resolves([]);
 
     UserStub = {
       findById: sandbox.stub(),
@@ -664,15 +665,21 @@ describe('Checkin Controller', () => {
       const mockCheckin = {
         _id: checkinId,
         userId: new mongoose.Types.ObjectId(),
-        note: '打卡详情'
+        note: '打卡详情',
+        likes: [],
+        toObject() {
+          return { ...this, toObject: undefined };
+        }
       };
 
       const populateStub1 = sandbox.stub().returnsThis();
       const populateStub2 = sandbox.stub().returnsThis();
-      const populateStub3 = sandbox.stub().resolves(mockCheckin);
+      const populateStub3 = sandbox.stub().returnsThis();
+      const populateStub4 = sandbox.stub().resolves(mockCheckin);
 
       populateStub1.returns({ populate: populateStub2 });
       populateStub2.returns({ populate: populateStub3 });
+      populateStub3.returns({ populate: populateStub4 });
 
       CheckinStub.findById.returns({ populate: populateStub1 });
 
@@ -687,10 +694,12 @@ describe('Checkin Controller', () => {
 
       const populateStub1 = sandbox.stub().returnsThis();
       const populateStub2 = sandbox.stub().returnsThis();
-      const populateStub3 = sandbox.stub().resolves(null);
+      const populateStub3 = sandbox.stub().returnsThis();
+      const populateStub4 = sandbox.stub().resolves(null);
 
       populateStub1.returns({ populate: populateStub2 });
       populateStub2.returns({ populate: populateStub3 });
+      populateStub3.returns({ populate: populateStub4 });
 
       CheckinStub.findById.returns({ populate: populateStub1 });
 
@@ -2042,15 +2051,21 @@ describe('Checkin Controller', () => {
         note: '详细内容',
         isPublic: true,
         likeCount: 5,
-        isFeatured: true
+        isFeatured: true,
+        likes: [],
+        toObject() {
+          return { ...this, toObject: undefined };
+        }
       };
 
       const populateStub1 = sandbox.stub().returnsThis();
       const populateStub2 = sandbox.stub().returnsThis();
-      const populateStub3 = sandbox.stub().resolves(mockCheckin);
+      const populateStub3 = sandbox.stub().returnsThis();
+      const populateStub4 = sandbox.stub().resolves(mockCheckin);
 
       populateStub1.returns({ populate: populateStub2 });
       populateStub2.returns({ populate: populateStub3 });
+      populateStub3.returns({ populate: populateStub4 });
 
       CheckinStub.findById.returns({ populate: populateStub1 });
 
@@ -2070,15 +2085,21 @@ describe('Checkin Controller', () => {
         _id: checkinId,
         userId: { nickname: '用户名' },
         sectionId: { title: '课节标题' },
-        periodId: { name: '期次名称' }
+        periodId: { name: '期次名称' },
+        likes: [],
+        toObject() {
+          return { ...this, toObject: undefined };
+        }
       };
 
       const populateStub1 = sandbox.stub().returnsThis();
       const populateStub2 = sandbox.stub().returnsThis();
-      const populateStub3 = sandbox.stub().resolves(mockCheckin);
+      const populateStub3 = sandbox.stub().returnsThis();
+      const populateStub4 = sandbox.stub().resolves(mockCheckin);
 
       populateStub1.returns({ populate: populateStub2 });
       populateStub2.returns({ populate: populateStub3 });
+      populateStub3.returns({ populate: populateStub4 });
 
       CheckinStub.findById.returns({ populate: populateStub1 });
 
@@ -2095,10 +2116,12 @@ describe('Checkin Controller', () => {
 
       const populateStub1 = sandbox.stub().returnsThis();
       const populateStub2 = sandbox.stub().returnsThis();
-      const populateStub3 = sandbox.stub().resolves(null);
+      const populateStub3 = sandbox.stub().returnsThis();
+      const populateStub4 = sandbox.stub().resolves(null);
 
       populateStub1.returns({ populate: populateStub2 });
       populateStub2.returns({ populate: populateStub3 });
+      populateStub3.returns({ populate: populateStub4 });
 
       CheckinStub.findById.returns({ populate: populateStub1 });
 
@@ -2115,15 +2138,21 @@ describe('Checkin Controller', () => {
       const mockCheckin = {
         _id: checkinId,
         createdAt,
-        updatedAt
+        updatedAt,
+        likes: [],
+        toObject() {
+          return { ...this, toObject: undefined };
+        }
       };
 
       const populateStub1 = sandbox.stub().returnsThis();
       const populateStub2 = sandbox.stub().returnsThis();
-      const populateStub3 = sandbox.stub().resolves(mockCheckin);
+      const populateStub3 = sandbox.stub().returnsThis();
+      const populateStub4 = sandbox.stub().resolves(mockCheckin);
 
       populateStub1.returns({ populate: populateStub2 });
       populateStub2.returns({ populate: populateStub3 });
+      populateStub3.returns({ populate: populateStub4 });
 
       CheckinStub.findById.returns({ populate: populateStub1 });
 

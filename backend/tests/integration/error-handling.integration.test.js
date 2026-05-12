@@ -11,17 +11,21 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 let app;
 let mongoServer;
 let User;
+let ownsMongoConnection = false;
 
 describe('Error Handling Integration - 错误处理和数据验证', () => {
   before(async function() {
     this.timeout(60000);
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
+    if (mongoose.connection.readyState === 0) {
+      mongoServer = await MongoMemoryServer.create();
+      ownsMongoConnection = true;
+      const mongoUri = mongoServer.getUri();
 
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+    }
 
     User = require('../../src/models/User');
     app = require('../../src/server');
@@ -29,8 +33,10 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
   after(async function() {
     this.timeout(30000);
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    if (ownsMongoConnection) {
+      await mongoose.disconnect();
+      await mongoServer.stop();
+    }
   });
 
   beforeEach(async () => {
@@ -76,10 +82,12 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         .send({ code: 'test-user-b' });
 
       const userBToken = userBRes.body.data.accessToken;
+      const userBId = userBRes.body.data.user._id;
 
       // 用户B创建打卡
       const Period = require('../../src/models/Period');
       const Section = require('../../src/models/Section');
+      const Enrollment = require('../../src/models/Enrollment');
       const period = await Period.create({
         name: '测试',
         title: '测试标题',
@@ -93,6 +101,13 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         title: '测试课节',
         day: 1,
         content: '测试'
+      });
+
+      await Enrollment.create({
+        userId: userBId,
+        periodId: period._id,
+        status: 'active',
+        paymentStatus: 'free'
       });
 
       const checkinRes = await request(app)

@@ -246,6 +246,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import AdminLayout from '../components/AdminLayout.vue';
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';

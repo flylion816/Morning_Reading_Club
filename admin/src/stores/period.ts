@@ -7,9 +7,9 @@ import { ref, computed } from 'vue';
 import { periodApi } from '../services/api';
 
 interface Period {
-  id: string;
-  _id: string;
-  name: string;
+  id?: string;
+  _id?: string;
+  name?: string;
   status?: string;
   startDate?: string;
   endDate?: string;
@@ -83,11 +83,11 @@ export const usePeriodStore = defineStore('period', () => {
   function updatePeriod(periodId: string, updates: Partial<Period>) {
     const index = periods.value.findIndex(p => p.id === periodId || p._id === periodId);
     if (index > -1) {
-      periods.value[index] = { ...periods.value[index], ...updates };
+      periods.value[index] = { ...(periods.value[index] || {}), ...updates };
 
       // 同时更新 currentPeriod
       if (currentPeriod.value?.id === periodId || currentPeriod.value?._id === periodId) {
-        currentPeriod.value = periods.value[index];
+        currentPeriod.value = periods.value[index] || null;
       }
     }
   }

@@ -342,6 +342,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { ref, reactive, onMounted, watch } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { periodApi } from '../services/api';

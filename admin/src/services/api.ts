@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import logger from '../utils/logger';
 
 // 配置 API 基础 URL
@@ -8,8 +8,16 @@ const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? '/api/v1' : 'https://wx.shubai01.com/api/v1');
 
-// 创建 axios 实例
-const apiClient = axios.create({
+type DataApiClient = {
+  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+};
+
+// 创建 axios 实例。响应拦截器会返回 response.data，因此业务层使用 DataApiClient 类型。
+const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
@@ -18,10 +26,10 @@ const apiClient = axios.create({
 });
 
 // 设置默认的 Authorization 请求头获取器
-apiClient.defaults.headers.common['Authorization'] = '';
+axiosClient.defaults.headers.common['Authorization'] = '';
 
 // 请求拦截器 - 添加认证令牌
-apiClient.interceptors.request.use(
+axiosClient.interceptors.request.use(
   (config) => {
     let token: string | null = null;
     try {
@@ -36,7 +44,7 @@ apiClient.interceptors.request.use(
     if (token) {
       // 使用 defaults 方式设置全局 Authorization 请求头
       const authHeader = `Bearer ${token}`;
-      apiClient.defaults.headers.common['Authorization'] = authHeader;
+      axiosClient.defaults.headers.common['Authorization'] = authHeader;
       // 同时也设置到当前请求的 config 中
       (config.headers as any)['Authorization'] = authHeader;
       logger.debug('[API Request] Authorization header已设置:', {
@@ -58,7 +66,7 @@ apiClient.interceptors.request.use(
 );
 
 // 响应拦截器 - 处理错误和令牌过期
-apiClient.interceptors.response.use(
+axiosClient.interceptors.response.use(
   (response) => {
     logger.debug('[API Response] 成功', {
       url: response.config.url,
@@ -141,6 +149,8 @@ apiClient.interceptors.response.use(
   }
 );
 
+const apiClient = axiosClient as unknown as DataApiClient;
+
 // 认证 API
 export const authApi = {
   login: (email: string, password: string) =>
@@ -197,6 +207,7 @@ export const paymentApi = {
 export const periodApi = {
   getPeriods: (params?: any) => apiClient.get('/periods', { params }),
   getPeriodDetail: (id: string) => apiClient.get(`/periods/${id}`),
+  getPeriodById: (id: string) => apiClient.get(`/periods/${id}`),
   createPeriod: (data: any) => apiClient.post('/periods', data),
   updatePeriod: (id: string, data: any) =>
     apiClient.put(`/periods/${id}`, data),
@@ -222,7 +233,13 @@ export const periodApi = {
 
 // 用户 API
 export const userApi = {
-  getUsers: (params?: any) => apiClient.get('/users', { params }),
+  getUsers: (paramsOrPage?: any, pageSize?: number) => {
+    const params =
+      typeof paramsOrPage === 'number'
+        ? { page: paramsOrPage, limit: pageSize }
+        : paramsOrPage;
+    return apiClient.get('/users', { params });
+  },
   getUserDetail: (id: string) => apiClient.get(`/users/${id}`),
   updateUser: (id: string, data: any) => apiClient.put(`/users/${id}`, data),
   deleteUser: (id: string) => apiClient.delete(`/users/${id}`)
@@ -245,28 +262,29 @@ export const insightApi = {
   getInsightDetail: (id: string) => apiClient.get(`/insights/${id}`),
   createInsight: (data: any) => apiClient.post('/insights/manual/create', data),
   updateInsight: (id: string, data: any) =>
-    apiClient.put(`/insights/${id}`, data),
+    apiClient.put(`/insights/admin/${id}`, data),
   deleteInsight: (id: string) => apiClient.delete(`/insights/manual/${id}`),
   publishInsight: (id: string) =>
-    apiClient.put(`/insights/${id}`, { isPublished: true }),
+    apiClient.put(`/insights/admin/${id}`, { isPublished: true }),
   unpublishInsight: (id: string) =>
-    apiClient.put(`/insights/${id}`, { isPublished: false })
+    apiClient.put(`/insights/admin/${id}`, { isPublished: false })
 };
 
 // 小凡看见申请 API（管理后台）
 export const insightRequestsApi = {
-  getRequests: (params?: any) => apiClient.get('/admin/requests', { params }),
+  getRequests: (params?: any) =>
+    apiClient.get('/insights/admin/requests', { params }),
   getRequestDetail: (requestId: string) =>
-    apiClient.get(`/admin/requests/${requestId}`),
-  getRequestStats: () => apiClient.get('/admin/requests/stats'),
+    apiClient.get(`/insights/admin/requests/${requestId}`),
+  getRequestStats: () => apiClient.get('/insights/admin/requests/stats'),
   approveRequest: (requestId: string, data?: any) =>
-    apiClient.put(`/admin/requests/${requestId}/approve`, data),
+    apiClient.put(`/insights/admin/requests/${requestId}/approve`, data),
   rejectRequest: (requestId: string, data?: any) =>
-    apiClient.put(`/admin/requests/${requestId}/reject`, data),
+    apiClient.put(`/insights/admin/requests/${requestId}/reject`, data),
   batchApprove: (requestIds: string[]) =>
-    apiClient.post('/admin/requests/batch-approve', { requestIds }),
+    apiClient.post('/insights/admin/requests/batch-approve', { requestIds }),
   deleteRequest: (requestId: string) =>
-    apiClient.delete(`/admin/requests/${requestId}`)
+    apiClient.delete(`/insights/admin/requests/${requestId}`)
 };
 
 // 订阅消息排查 API

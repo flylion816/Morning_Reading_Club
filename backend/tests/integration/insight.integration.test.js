@@ -13,17 +13,21 @@ let mongoServer;
 let User;
 let Insight;
 let Period;
+let ownsMongoConnection = false;
 
 describe('Insight Integration - 小凡看见业务流程', () => {
   before(async function() {
     this.timeout(60000);
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
+    if (mongoose.connection.readyState === 0) {
+      mongoServer = await MongoMemoryServer.create();
+      ownsMongoConnection = true;
+      const mongoUri = mongoServer.getUri();
 
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+    }
 
     User = require('../../src/models/User');
     Insight = require('../../src/models/Insight');
@@ -34,8 +38,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
 
   after(async function() {
     this.timeout(30000);
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    if (ownsMongoConnection) {
+      await mongoose.disconnect();
+      await mongoServer.stop();
+    }
   });
 
   beforeEach(async () => {

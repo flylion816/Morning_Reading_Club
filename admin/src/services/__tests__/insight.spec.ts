@@ -2,10 +2,17 @@
  * 小凡看见 API 单元测试
  */
 
-import { describe, it, expect } from 'vitest';
-import { insightApi } from '../api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import apiClient, { insightApi } from '../api';
 
 describe('Insight API', () => {
+  beforeEach(() => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    vi.spyOn(apiClient, 'post').mockResolvedValue({});
+    vi.spyOn(apiClient, 'put').mockResolvedValue({});
+    vi.spyOn(apiClient, 'delete').mockResolvedValue({});
+  });
+
   it('应该导出 getInsights 方法', () => {
     const result = insightApi.getInsights();
     expect(result).toBeInstanceOf(Promise);

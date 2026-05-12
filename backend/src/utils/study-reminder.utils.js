@@ -21,8 +21,22 @@ function pad(value) {
   return String(value).padStart(2, '0');
 }
 
+function normalizeDate(date) {
+  if (!date) {
+    return null;
+  }
+
+  const normalized = date instanceof Date ? date : new Date(date);
+  return Number.isNaN(normalized.getTime()) ? null : normalized;
+}
+
 function toDateTimeParts(date = new Date()) {
-  return SHANGHAI_DATE_TIME_FORMATTER.formatToParts(date).reduce((acc, part) => {
+  const normalized = normalizeDate(date);
+  if (!normalized) {
+    return {};
+  }
+
+  return SHANGHAI_DATE_TIME_FORMATTER.formatToParts(normalized).reduce((acc, part) => {
     if (part.type !== 'literal') {
       acc[part.type] = part.value;
     }
@@ -31,7 +45,12 @@ function toDateTimeParts(date = new Date()) {
 }
 
 function toDateParts(date = new Date()) {
-  return SHANGHAI_DATE_FORMATTER.formatToParts(date).reduce((acc, part) => {
+  const normalized = normalizeDate(date);
+  if (!normalized) {
+    return {};
+  }
+
+  return SHANGHAI_DATE_FORMATTER.formatToParts(normalized).reduce((acc, part) => {
     if (part.type !== 'literal') {
       acc[part.type] = part.value;
     }
@@ -41,6 +60,10 @@ function toDateParts(date = new Date()) {
 
 function getShanghaiDateKey(date = new Date()) {
   const { year, month, day } = toDateParts(date);
+  if (!year || !month || !day) {
+    return null;
+  }
+
   return `${year}-${month}-${day}`;
 }
 

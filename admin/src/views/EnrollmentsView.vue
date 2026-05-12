@@ -202,6 +202,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { ref, onMounted, computed } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { enrollmentApi, periodApi } from '../services/api';

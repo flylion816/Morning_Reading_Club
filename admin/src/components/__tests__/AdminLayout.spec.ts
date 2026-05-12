@@ -37,7 +37,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
 
   // ============ 页面标题计算 (3 个) ============
   describe('页面标题计算', () => {
-    it('[Title-1] 默认路由的页面标题应该是"仪表板"', async () => {
+    it('[Title-1] 默认路由的页面标题应该是"仪表板：现在要做什么"', async () => {
       await router.push('/');
       await router.isReady();
 
@@ -49,7 +49,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
         }
       });
 
-      expect(wrapper.vm.pageTitle).toBe('仪表板');
+      expect(wrapper.vm.pageTitle).toBe('仪表板：现在要做什么');
     });
 
     it('[Title-2] /users 路由的页面标题应该是"用户管理"', async () => {
@@ -67,7 +67,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       expect(wrapper.vm.pageTitle).toBe('用户管理');
     });
 
-    it('[Title-3] /analytics 路由的页面标题应该是"数据分析"', async () => {
+    it('[Title-3] /analytics 路由的页面标题应该是"数据分析：过去发生了什么、为什么"', async () => {
       await router.push('/analytics');
       await router.isReady();
 
@@ -79,7 +79,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
         }
       });
 
-      expect(wrapper.vm.pageTitle).toBe('数据分析');
+      expect(wrapper.vm.pageTitle).toBe('数据分析：过去发生了什么、为什么');
     });
   });
 

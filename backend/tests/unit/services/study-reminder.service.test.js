@@ -107,7 +107,7 @@ describe('Study Reminder Service', () => {
   it('should send reminder and clear grant after success', async () => {
     const userId = new mongoose.Types.ObjectId();
     const periodId = new mongoose.Types.ObjectId();
-    const sendDate = new Date(Date.now() - 60 * 1000);
+    const sendDate = new Date('2026-03-30T05:45:00+08:00');
     const scheduledPlan = buildScheduledStudyReminderPlan({
       period: {
         startDate: new Date('2026-03-13T00:00:00+08:00'),
@@ -170,7 +170,7 @@ describe('Study Reminder Service', () => {
   it('should queue one retry on temporary failure and clear after retry attempt', async () => {
     const userId = new mongoose.Types.ObjectId();
     const periodId = new mongoose.Types.ObjectId();
-    const sendDate = new Date(Date.now() - 60 * 1000);
+    const sendDate = new Date('2026-03-30T05:45:00+08:00');
     const scheduledPlan = buildScheduledStudyReminderPlan({
       period: {
         startDate: new Date('2026-03-13T00:00:00+08:00'),

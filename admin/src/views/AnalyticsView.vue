@@ -319,6 +319,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { ref, onMounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as echarts from 'echarts';

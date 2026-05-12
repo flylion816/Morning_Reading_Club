@@ -2,10 +2,17 @@
  * 期次管理 API 单元测试
  */
 
-import { describe, it, expect } from 'vitest';
-import { periodApi } from '../api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import apiClient, { periodApi } from '../api';
 
 describe('Period API', () => {
+  beforeEach(() => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    vi.spyOn(apiClient, 'post').mockResolvedValue({});
+    vi.spyOn(apiClient, 'put').mockResolvedValue({});
+    vi.spyOn(apiClient, 'delete').mockResolvedValue({});
+  });
+
   it('应该导出 getPeriods 方法', () => {
     const result = periodApi.getPeriods();
     expect(result).toBeInstanceOf(Promise);

@@ -2,28 +2,39 @@
  * 统计 API 单元测试
  */
 
-import { describe, it, expect } from 'vitest';
-import { statsApi } from '../api';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import apiClient, { statsApi } from '../api';
 
 describe('Stats API', () => {
-  it('应该导出 getDashboardStats 方法', () => {
-    const result = statsApi.getDashboardStats();
-    expect(result).toBeInstanceOf(Promise);
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('应该导出 getEnrollmentStats 方法', () => {
-    const result = statsApi.getEnrollmentStats();
-    expect(result).toBeInstanceOf(Promise);
-
-    const withParams = statsApi.getEnrollmentStats({ startDate: '2025-01-01' });
-    expect(withParams).toBeInstanceOf(Promise);
+  it('应该导出 getDashboardStats 方法', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    await expect(statsApi.getDashboardStats()).resolves.toEqual({});
+    expect(getSpy).toHaveBeenCalledWith('/stats/dashboard');
   });
 
-  it('应该导出 getPaymentStats 方法', () => {
-    const result = statsApi.getPaymentStats();
-    expect(result).toBeInstanceOf(Promise);
+  it('应该导出 getEnrollmentStats 方法', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    await expect(statsApi.getEnrollmentStats()).resolves.toEqual({});
+    expect(getSpy).toHaveBeenCalledWith('/stats/enrollments', { params: undefined });
 
-    const withParams = statsApi.getPaymentStats({ status: 'success' });
-    expect(withParams).toBeInstanceOf(Promise);
+    await statsApi.getEnrollmentStats({ startDate: '2025-01-01' });
+    expect(getSpy).toHaveBeenCalledWith('/stats/enrollments', {
+      params: { startDate: '2025-01-01' }
+    });
+  });
+
+  it('应该导出 getPaymentStats 方法', async () => {
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    await expect(statsApi.getPaymentStats()).resolves.toEqual({});
+    expect(getSpy).toHaveBeenCalledWith('/stats/payments', { params: undefined });
+
+    await statsApi.getPaymentStats({ status: 'success' });
+    expect(getSpy).toHaveBeenCalledWith('/stats/payments', {
+      params: { status: 'success' }
+    });
   });
 });

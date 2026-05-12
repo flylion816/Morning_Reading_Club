@@ -2,10 +2,15 @@
  * 支付管理 API 单元测试
  */
 
-import { describe, it, expect } from 'vitest';
-import { paymentApi } from '../api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import apiClient, { paymentApi } from '../api';
 
 describe('Payment API', () => {
+  beforeEach(() => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    vi.spyOn(apiClient, 'post').mockResolvedValue({});
+  });
+
   it('应该导出 getPayments 方法，并接受可选参数', () => {
     const result = paymentApi.getPayments();
     expect(result).toBeInstanceOf(Promise);

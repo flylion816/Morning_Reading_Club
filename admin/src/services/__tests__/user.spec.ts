@@ -2,10 +2,16 @@
  * 用户管理 API 单元测试
  */
 
-import { describe, it, expect } from 'vitest';
-import { userApi } from '../api';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import apiClient, { userApi } from '../api';
 
 describe('User API', () => {
+  beforeEach(() => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({});
+    vi.spyOn(apiClient, 'put').mockResolvedValue({});
+    vi.spyOn(apiClient, 'delete').mockResolvedValue({});
+  });
+
   it('应该导出 getUsers 方法', () => {
     const result = userApi.getUsers();
     expect(result).toBeInstanceOf(Promise);

@@ -385,7 +385,10 @@ describe('Ranking Controller', () => {
 
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data.list).to.be.an('array').that.is.empty;
-      expect(responseData.data.currentUser).to.be.null;
+      expect(responseData.data.currentUser).to.include({
+        rank: null,
+        checkinCount: 0
+      });
       expect(responseData.data.total).to.equal(0);
     });
 
@@ -427,7 +430,10 @@ describe('Ranking Controller', () => {
 
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data.list.length).to.equal(1);
-      expect(responseData.data.currentUser).to.be.null;
+      expect(responseData.data.currentUser).to.include({
+        rank: null,
+        checkinCount: 0
+      });
     });
   });
 

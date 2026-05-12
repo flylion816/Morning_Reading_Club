@@ -13,17 +13,21 @@ let mongoServer;
 let Period;
 let Section;
 let Admin;
+let ownsMongoConnection = false;
 
 describe('Period & Section Integration - 期次和课节管理', () => {
   before(async function() {
     this.timeout(60000);
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
+    if (mongoose.connection.readyState === 0) {
+      mongoServer = await MongoMemoryServer.create();
+      ownsMongoConnection = true;
+      const mongoUri = mongoServer.getUri();
 
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+    }
 
     Period = require('../../src/models/Period');
     Section = require('../../src/models/Section');
@@ -34,8 +38,10 @@ describe('Period & Section Integration - 期次和课节管理', () => {
 
   after(async function() {
     this.timeout(30000);
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    if (ownsMongoConnection) {
+      await mongoose.disconnect();
+      await mongoServer.stop();
+    }
   });
 
   beforeEach(async () => {
@@ -46,28 +52,33 @@ describe('Period & Section Integration - 期次和课节管理', () => {
 
   describe('GET /api/v1/periods - 查询期次', () => {
     beforeEach(async () => {
+      const now = Date.now();
+      const day = 24 * 60 * 60 * 1000;
       // 创建多个期次
       const periods = [
         {
           name: '第一季',
           title: '第一季标题',
-          startDate: new Date('2025-01-01'),
-          endDate: new Date('2025-03-31'),
-          status: 'completed'
+          startDate: new Date(now - 90 * day),
+          endDate: new Date(now - 30 * day),
+          status: 'completed',
+          isPublished: true
         },
         {
           name: '第二季',
           title: '第二季标题',
-          startDate: new Date('2025-04-01'),
-          endDate: new Date('2025-06-30'),
-          status: 'ongoing'
+          startDate: new Date(now - 5 * day),
+          endDate: new Date(now + 5 * day),
+          status: 'ongoing',
+          isPublished: true
         },
         {
           name: '第三季',
           title: '第三季标题',
-          startDate: new Date('2025-07-01'),
-          endDate: new Date('2025-09-30'),
-          status: 'not_started'
+          startDate: new Date(now + 30 * day),
+          endDate: new Date(now + 90 * day),
+          status: 'not_started',
+          isPublished: true
         }
       ];
 
@@ -89,7 +100,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
 
       expect(res.status).to.equal(200);
       expect(res.body.data).to.have.lengthOf(1);
-      expect(res.body.data[0]).to.have.property('status', 'active');
+      expect(res.body.data[0]).to.have.property('status', 'ongoing');
     });
 
     it('应该支持分页查询', async () => {
@@ -278,8 +289,8 @@ describe('Period & Section Integration - 期次和课节管理', () => {
           .send({
             name: '新期次',
             title: '新期次标题',
-            startDate: '2025-10-01',
-            endDate: '2025-12-31',
+            startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            endDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
             description: '新期次描述'
           });
 
@@ -341,12 +352,13 @@ describe('Period & Section Integration - 期次和课节管理', () => {
         expect(res.body.data).to.have.property('name', '更新后的期次名称');
       });
 
-      it('应该能够更改期次状态', async () => {
+      it('应该根据日期重新计算期次状态', async () => {
         const res = await request(app)
           .put(`/api/v1/admin/periods/${periodId}`)
           .set('Authorization', `Bearer ${adminToken}`)
           .send({
-            status: 'completed'
+            startDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+            endDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
           });
 
         expect(res.status).to.equal(200);
