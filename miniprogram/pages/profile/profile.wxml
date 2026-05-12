@@ -67,9 +67,9 @@
             </view>
             <view class="checkin-footer">
               <view class="footer-buttons">
-                <view class="meeting-btn" wx:if="{{hasMeeting}}" catchtap="handleJoinMeeting">
+                <view class="meeting-btn" wx:if="{{todaySection}}" catchtap="handleJoinMeeting">
                   <text>去晨读</text>
-                  <text class="btn-arrow">📹</text>
+                  <text class="btn-arrow">→</text>
                 </view>
                 <view class="checkin-btn {{todaySection.isCheckedIn ? 'checked' : ''}}" catchtap="handleCreateCheckin">
                   <text wx:if="{{currentPeriodCommunityState === 'enabled' && todaySection.isCheckedIn}}">✓ 已打卡</text>

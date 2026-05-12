@@ -68,7 +68,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="会议" width="80">
+          <el-table-column v-if="MEETING_CONFIG_ENABLED" label="会议" width="80">
             <template #default="{ row }">
               <el-tag v-if="row.meetingId || row.meetingJoinUrl" type="success" size="small">已配置</el-tag>
               <span v-else style="color: #c0c4cc; font-size: 12px;">-</span>
@@ -206,7 +206,7 @@
             />
           </el-form-item>
 
-          <el-form-item label="腾讯会议号" prop="meetingId">
+          <el-form-item v-if="MEETING_CONFIG_ENABLED" label="腾讯会议号" prop="meetingId">
             <el-input
               v-model="formData.meetingId"
               placeholder="例：416 7154 0953"
@@ -217,7 +217,7 @@
             </div>
           </el-form-item>
 
-          <el-form-item label="邀请链接" prop="meetingJoinUrl">
+          <el-form-item v-if="MEETING_CONFIG_ENABLED" label="邀请链接" prop="meetingJoinUrl">
             <el-input
               v-model="formData.meetingJoinUrl"
               type="textarea"
@@ -348,6 +348,8 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { periodApi } from '../services/api';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import type { ListResponse, Period } from '../types/api';
+
+const MEETING_CONFIG_ENABLED = false;
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -531,26 +533,36 @@ async function handleSubmit() {
         icon: formData.icon
       });
 
-      // 清洗会议号：提取纯数字（支持 "#腾讯会议：416-7154-0953" 等各种格式）
-      let cleanMeetingId = formData.meetingId || '';
-      if (cleanMeetingId) {
-        cleanMeetingId = cleanMeetingId.replace(/[^\d]/g, ''); // 只保留数字
-        if (!cleanMeetingId) cleanMeetingId = ''; // 如果没有数字，置空
-      }
+      let cleanMeetingId = '';
+      let cleanMeetingJoinUrl = '';
+      if (MEETING_CONFIG_ENABLED) {
+        // 清洗会议号：提取纯数字（支持 "#腾讯会议：416-7154-0953" 等各种格式）
+        cleanMeetingId = formData.meetingId || '';
+        if (cleanMeetingId) {
+          cleanMeetingId = cleanMeetingId.replace(/[^\d]/g, ''); // 只保留数字
+          if (!cleanMeetingId) cleanMeetingId = ''; // 如果没有数字，置空
+        }
 
-      const cleanMeetingJoinUrl = extractMeetingJoinUrl(formData.meetingJoinUrl);
-      const fallbackMeetingId = extractMeetingId(formData.meetingJoinUrl);
-      if (!cleanMeetingId && fallbackMeetingId) {
-        cleanMeetingId = fallbackMeetingId;
+        cleanMeetingJoinUrl = extractMeetingJoinUrl(formData.meetingJoinUrl);
+        const fallbackMeetingId = extractMeetingId(formData.meetingJoinUrl);
+        if (!cleanMeetingId && fallbackMeetingId) {
+          cleanMeetingId = fallbackMeetingId;
+        }
       }
 
       const payload = {
         ...formData,
-        meetingId: cleanMeetingId || null,
-        meetingJoinUrl: cleanMeetingJoinUrl || null,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
       };
+
+      if (MEETING_CONFIG_ENABLED) {
+        payload.meetingId = cleanMeetingId || null;
+        payload.meetingJoinUrl = cleanMeetingJoinUrl || null;
+      } else {
+        delete payload.meetingId;
+        delete payload.meetingJoinUrl;
+      }
 
       console.log('📤 [PeriodsView] 发送的 payload:', {
         id: currentEditId.value,

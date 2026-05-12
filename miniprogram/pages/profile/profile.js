@@ -167,7 +167,7 @@ Page({
     highlightRequestId: '',
     unreadNotificationCount: 0,
 
-    // 腾讯会议
+    // 去晨读入口（腾讯会议入口暂时屏蔽）
     hasMeeting: false,
     meetingId: '',
     meetingJoinUrl: '',
@@ -571,10 +571,7 @@ Page({
           allInsightRequests,
           insightRequests: this.getInsightRequestPreview(allInsightRequests),
           insightRequestTotal: allInsightRequests.length,
-          hasMeeting: !!(
-            currentPeriod &&
-            (currentPeriod.meetingId || currentPeriod.meetingJoinUrl)
-          ),
+          hasMeeting: !!todaySection,
           meetingId: currentPeriod?.meetingId || '',
           meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
           loading: false
@@ -1288,52 +1285,33 @@ Page({
 
   /**
    * 去晨读
-   * 桌面端给出浏览器打开指引
-   * 手机端优先走腾讯会议小程序
+   * 腾讯会议入口暂时屏蔽，统一进入当前课节的沉浸阅读页。
    */
   handleJoinMeeting() {
-    const meetingId = this.data.meetingId;
-    const meetingJoinUrl = this.normalizeMeetingJoinUrl(
-      this.data.meetingJoinUrl
-    );
-    const desktopLikePlatform = this.isDesktopLikePlatform();
+    const { currentPeriod, todaySection } = this.data;
+    const periodId =
+      todaySection?.periodId || currentPeriod?._id || currentPeriod?.id || '';
+    const sectionId = todaySection?._id || todaySection?.id || '';
+
+    if (!sectionId) {
+      wx.showToast({ title: '课节信息不存在', icon: 'none' });
+      return;
+    }
+
     activityService.track('meeting_enter', {
-      targetType: 'meeting',
-      periodId:
-        this.data.currentPeriod?._id || this.data.currentPeriod?.id || null,
+      targetType: 'immersive_reading',
+      targetId: sectionId,
+      periodId: periodId || null,
+      sectionId,
       metadata: {
-        meetingId: meetingId || null,
-        hasJoinUrl: !!meetingJoinUrl
+        source: 'profile_today_task',
+        tencentMeetingDisabled: true
       }
     });
 
-    if (!meetingId && !meetingJoinUrl) {
-      wx.showToast({ title: '会议号未配置', icon: 'none' });
-      return;
-    }
-
-    if (meetingJoinUrl) {
-      if (desktopLikePlatform) {
-        this.showInviteLinkGuide(meetingJoinUrl);
-        return;
-      }
-
-      this.showMeetingLaunchOptions({
-        meetingId,
-        meetingJoinUrl
-      });
-      return;
-    }
-
-    if (desktopLikePlatform) {
-      this.promptManualMeetingJoin(
-        meetingId,
-        '当前期次还没有配置腾讯会议邀请链接，暂时无法直接拉起桌面客户端。'
-      );
-      return;
-    }
-
-    this.openMeetingMiniProgram(meetingId);
+    wx.navigateTo({
+      url: `/pages/reading-mode/reading-mode?id=${sectionId}&periodId=${periodId || ''}`
+    });
   },
 
   getCurrentPlatform() {
@@ -1458,20 +1436,10 @@ Page({
     });
   },
 
-  openMeetingMiniProgram(meetingId) {
-    const cleanId = String(meetingId || '').replace(/[-\s]/g, '');
-    if (!cleanId) {
-      this.promptManualMeetingJoin(meetingId);
-      return;
-    }
-
-    wx.navigateToMiniProgram({
-      appId: 'wx33fd6cdc62520063',
-      path: `pages/sub-preMeeting/join-meeting/join-meeting?scene=m=${cleanId}`,
-      success: () => console.log('跳转腾讯会议成功'),
-      fail: () => {
-        this.promptManualMeetingJoin(meetingId);
-      }
+  openMeetingMiniProgram() {
+    wx.showToast({
+      title: '腾讯会议入口已暂停',
+      icon: 'none'
     });
   },
 

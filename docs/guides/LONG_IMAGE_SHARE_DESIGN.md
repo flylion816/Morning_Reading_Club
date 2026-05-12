@@ -39,7 +39,7 @@
 ### 2.1 入口
 
 - 页面：`miniprogram/pages/insight-detail/insight-detail.wxml`
-- 按钮：高清长图、完整长图
+- 按钮：返回、长图分享、微信好友；不再单独暴露“完整长图”入口。
 - 画布：`#insightLongImageCanvas`
 
 ### 2.2 内容解析

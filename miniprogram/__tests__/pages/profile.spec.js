@@ -34,6 +34,10 @@ jest.mock('../../services/notification.service.js', () => ({
   getUnreadCount: jest.fn(() => Promise.resolve({ unreadCount: 0 }))
 }));
 
+jest.mock('../../services/activity.service.js', () => ({
+  track: jest.fn(() => Promise.resolve())
+}));
+
 jest.mock('../../config/constants.js', () => ({
   STORAGE_KEYS: {
     TOKEN: 'token',
@@ -79,6 +83,7 @@ let courseService;
 let enrollmentService;
 let periodAccess;
 let insightService;
+let activityService;
 
 describe('profile page', () => {
   beforeEach(() => {
@@ -103,6 +108,7 @@ describe('profile page', () => {
     wx.showToast.mockClear();
     wx.showLoading.mockClear();
     wx.hideLoading.mockClear();
+    wx.navigateToMiniProgram = jest.fn();
     wx.showTabBar = jest.fn();
 
     checkinService = require('../../services/checkin.service.js');
@@ -111,6 +117,7 @@ describe('profile page', () => {
     enrollmentService = require('../../services/enrollment.service.js');
     periodAccess = require('../../utils/period-access.js');
     insightService = require('../../services/insight.service.js');
+    activityService = require('../../services/activity.service.js');
     require('../../pages/profile/profile.js');
 
     pageInstance = {
@@ -142,6 +149,7 @@ describe('profile page', () => {
     periodAccess.hasPaidEnrollment.mockClear();
     insightService.getInsightsList.mockReset();
     insightService.getReceivedRequests.mockReset();
+    activityService.track.mockClear();
   });
 
   afterEach(() => {
@@ -290,6 +298,49 @@ describe('profile page', () => {
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/notifications/notifications'
     });
+  });
+
+  test('should open immersive reading from the morning reading button', () => {
+    pageInstance.data.currentPeriod = {
+      _id: 'period_1'
+    };
+    pageInstance.data.todaySection = {
+      _id: 'section_today',
+      periodId: 'period_1'
+    };
+
+    pageInstance.handleJoinMeeting.call(pageInstance);
+
+    expect(activityService.track).toHaveBeenCalledWith('meeting_enter', {
+      targetType: 'immersive_reading',
+      targetId: 'section_today',
+      periodId: 'period_1',
+      sectionId: 'section_today',
+      metadata: {
+        source: 'profile_today_task',
+        tencentMeetingDisabled: true
+      }
+    });
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/reading-mode/reading-mode?id=section_today&periodId=period_1'
+    });
+    expect(wx.navigateToMiniProgram).not.toHaveBeenCalled();
+  });
+
+  test('should show an error when morning reading has no section id', () => {
+    pageInstance.data.currentPeriod = {
+      _id: 'period_1'
+    };
+    pageInstance.data.todaySection = {};
+
+    pageInstance.handleJoinMeeting.call(pageInstance);
+
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '课节信息不存在',
+      icon: 'none'
+    });
+    expect(wx.navigateTo).not.toHaveBeenCalled();
+    expect(activityService.track).not.toHaveBeenCalled();
   });
 
   test('should block checkin navigation when current period community is locked', async () => {

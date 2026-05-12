@@ -91,9 +91,9 @@
   left: 0;
   right: 0;
   background: white;
-  padding: 20rpx 20rpx calc(20rpx + env(safe-area-inset-bottom));
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
   display: flex;
-  gap: 12rpx;
+  gap: 16rpx;
   box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
   z-index: 100;
 }
@@ -103,10 +103,10 @@
   min-width: 0;
   height: 84rpx;
   margin: 0;
-  padding: 0 8rpx;
+  padding: 0 18rpx;
   border: none;
   border-radius: 42rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
   line-height: 84rpx;
   white-space: nowrap;
@@ -118,7 +118,7 @@
 }
 
 .btn-back {
-  flex: 0.78;
+  flex: 0 0 124rpx;
   background: #f5f5f5;
   color: #666;
   transition: all 0.3s;
@@ -136,21 +136,13 @@
   border: 1rpx solid #c9dff8;
 }
 
-.btn-full-share {
-  flex: 1;
-  background: #f2f7ff;
-  color: #357abd;
-  border: 1rpx solid #c9dff8;
-}
-
-.btn-long-share:active,
-.btn-full-share:active {
+.btn-long-share:active {
   background: #edf4fd;
   transform: scale(0.98);
 }
 
 .btn-share {
-  flex: 1.08;
+  flex: 1;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
   font-weight: bold;
