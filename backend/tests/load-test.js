@@ -231,7 +231,9 @@ async function runAllTests() {
     }
 
     // 测试之间等待 500ms
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 500);
+    });
   }
 
   const totalDuration = Date.now() - startTime;

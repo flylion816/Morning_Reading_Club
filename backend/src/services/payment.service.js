@@ -209,7 +209,7 @@ function generateNonceStr(length = 32) {
 function objectToXml(obj) {
   let xml = '<xml>';
   for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
       if (value !== null && value !== undefined && value !== '') {
         xml += `<${key}>${escapeXml(value.toString())}</${key}>`;
@@ -233,9 +233,8 @@ function xmlToObject(xml) {
   // CDATA: <key><![CDATA[value]]></key>
   // 普通:  <key>value</key>（value 不含 < 字符）
   const regex = /<(\w+)>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]+))<\/\1>/g;
-  let match;
 
-  while ((match = regex.exec(xml)) !== null) {
+  for (const match of xml.matchAll(regex)) {
     // match[2] 是 CDATA 内容，match[3] 是普通文本内容
     result[match[1]] = match[2] !== undefined ? match[2] : match[3];
   }

@@ -8,7 +8,7 @@
     "dev": "echo '请使用微信开发者工具打开本项目'",
     "build": "echo '请使用微信开发者工具进行编译'",
     "lint": "npm run lint:backend && npm run lint:admin && npm run lint:miniprogram",
-    "lint:backend": "cd backend && eslint 'src/**/*.js' || true",
+    "lint:backend": "cd backend && npm run lint",
     "lint:admin": "cd admin && eslint 'src/**/*.{ts,vue}' || true",
     "lint:miniprogram": "eslint 'miniprogram/**/*.js' || true",
     "format": "prettier --write '**/*.{js,ts,vue,json,md,yml,yaml}'",

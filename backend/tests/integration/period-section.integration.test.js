@@ -221,7 +221,6 @@ describe('Period & Section Integration - 期次和课节管理', () => {
         periodId,
         title: '详情测试课节',
         day: 1,
-        content: '测试内容',
         order: 1,
         duration: 20,
         description: '这是一个测试课节',

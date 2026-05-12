@@ -4,6 +4,7 @@ const Payment = require('../models/Payment');
 const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 获取仪表板统计数据

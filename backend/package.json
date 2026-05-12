@@ -14,6 +14,8 @@
     "check:openid": "node scripts/check-openid-health.js",
     "report:daily": "node scripts/daily-log-report.js",
     "report:diagnose": "node scripts/diagnose-daily-report.js",
+    "lint": "eslint 'src/**/*.js'",
+    "lint:tests": "eslint 'tests/**/*.js'",
     "test": "NODE_ENV=test mocha 'tests/**/*.test.js'",
     "test:unit": "NODE_ENV=test mocha 'tests/unit/**/*.test.js'",
     "test:integration": "NODE_ENV=test mocha 'tests/integration/**/*.test.js'",
@@ -29,6 +31,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "dependencies": {
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",

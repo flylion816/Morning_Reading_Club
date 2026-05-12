@@ -189,7 +189,7 @@ const loggerWrapper = {
    * 记录信息级别日志
    */
   info: (message, meta = {}) => {
-    const context = _buildContext(meta);
+    const context = buildContext(meta);
     logger.info(message, context);
   },
 
@@ -197,7 +197,7 @@ const loggerWrapper = {
    * 记录警告级别日志
    */
   warn: (message, meta = {}) => {
-    const context = _buildContext(meta);
+    const context = buildContext(meta);
     logger.warn(message, context);
   },
 
@@ -205,7 +205,7 @@ const loggerWrapper = {
    * 记录错误级别日志
    */
   error: (message, error = null, meta = {}) => {
-    const context = _buildContext(meta);
+    const context = buildContext(meta);
     if (error instanceof Error) {
       context.stack = error.stack;
       context.message = error.message;
@@ -219,7 +219,7 @@ const loggerWrapper = {
    * 记录调试级别日志
    */
   debug: (message, meta = {}) => {
-    const context = _buildContext(meta);
+    const context = buildContext(meta);
     logger.debug(message, context);
   },
 
@@ -287,7 +287,7 @@ const loggerWrapper = {
 /**
  * 辅助函数：构建日志上下文
  */
-function _buildContext(meta) {
+function buildContext(meta) {
   const context = { ...meta };
 
   // 添加进程信息

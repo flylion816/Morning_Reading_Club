@@ -65,7 +65,9 @@ function createAuthUser(userId, role = 'user') {
  * 延迟执行（用于异步测试）
  */
 function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 module.exports = {

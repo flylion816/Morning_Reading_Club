@@ -672,7 +672,9 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
 
     expect(rejectRes.status).to.equal(200);
 
-    await new Promise(resolve => setTimeout(resolve, 15));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 15);
+    });
 
     const secondCreateRes = await request(app)
       .post('/api/v1/insights/requests')

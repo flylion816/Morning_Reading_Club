@@ -257,7 +257,9 @@ function startSyncListener() {
 
         if (!task) {
           // 队列为空，等待 100ms 后继续
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => {
+            setTimeout(resolve, 100);
+          });
           continue;
         }
 
@@ -311,7 +313,9 @@ function startSyncListener() {
       } catch (error) {
         logger.error('Error in sync queue processor', error);
         // 等待后继续
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1000);
+        });
       }
     }
   };
