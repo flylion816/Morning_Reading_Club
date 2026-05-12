@@ -1,6 +1,6 @@
 .page-checkin-records {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f7fbff 0%, #f5f7fb 35%, #f5f5f5 100%);
+  background: linear-gradient(180deg, #eaf4ff 0%, #f3f8ff 42%, #eef5ff 100%);
   padding: 24rpx;
   box-sizing: border-box;
 }

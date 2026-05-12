@@ -1,0 +1,73 @@
+<view class="page-reading-mode">
+  <view class="reading-topbar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="reading-back" bindtap="handleBack">‹</view>
+    <view class="reading-title-wrap">
+      <view class="reading-title">{{course.title || '读一读'}}</view>
+    </view>
+    <view class="reading-progress">{{readingProgress}}%</view>
+  </view>
+
+  <scroll-view
+    class="reader-scroll"
+    scroll-y
+    enhanced="true"
+    show-scrollbar="{{false}}"
+    scroll-top="{{restoreScrollTop}}"
+    bindscroll="handleReaderScroll"
+    bindscrolltolower="handleScrollToLower">
+    <view class="reader-content reader-font-{{fontSizeLevel}}" style="padding-top: {{topbarHeight}}px;">
+      <view class="reader-meta">
+        <view class="reader-period">{{periodName || '凡人共读'}}</view>
+        <view class="reader-heading">每天晨读内容</view>
+      </view>
+
+      <view
+        wx:for="{{paragraphs}}"
+        wx:key="id"
+        id="para-{{index}}"
+        class="reader-paragraph {{index === currentParagraphIndex ? 'reader-paragraph-active' : ''}}">
+        <text user-select>{{item.text}}</text>
+      </view>
+
+      <view wx:if="{{paragraphs.length === 0}}" class="reader-empty">
+        暂无可朗读内容
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="reading-toolbar">
+    <view class="toolbar-btn" bindtap="cycleFontSize">Aa</view>
+    <view class="toolbar-btn toolbar-btn-primary" bindtap="handleShareMoment">
+      {{posterGenerating ? '生成中' : '分享此刻'}}
+    </view>
+    <view class="toolbar-btn toolbar-btn-checkin" bindtap="handleGoCheckin">
+      去打卡
+    </view>
+  </view>
+
+  <view wx:if="{{posterPanelVisible}}" class="poster-panel-mask" bindtap="closePosterPanel">
+    <view class="poster-panel" catchtap="noop">
+      <view class="poster-panel-header">
+        <view>
+          <view class="poster-panel-title">分享此刻</view>
+          <view class="poster-panel-subtitle">当前读到的内容已放大呈现</view>
+        </view>
+        <view class="poster-panel-close" bindtap="closePosterPanel">×</view>
+      </view>
+      <view class="poster-preview-wrap">
+        <image class="poster-preview" src="{{posterTempFilePath}}" mode="aspectFit" />
+      </view>
+      <view class="poster-actions">
+        <button class="poster-btn poster-btn-plain" bindtap="handleSavePoster">保存</button>
+        <button class="poster-btn poster-btn-ghost" bindtap="handlePreviewPoster">预览</button>
+        <button class="poster-btn" bindtap="handleSharePoster">微信好友</button>
+      </view>
+    </view>
+  </view>
+
+  <canvas
+    id="readingMomentCanvas"
+    canvas-id="readingMomentCanvas"
+    type="2d"
+    class="reading-poster-canvas"></canvas>
+</view>

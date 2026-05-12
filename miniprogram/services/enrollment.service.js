@@ -68,6 +68,26 @@ module.exports = {
   },
 
   /**
+   * 获取指定用户的报名列表
+   * @param {string} userId - 用户ID
+   * @param {Object} options - 选项
+   * @returns {Promise}
+   */
+  getUserEnrollmentsByUserId(userId, options = {}) {
+    const { page = 1, limit = 100, status } = options;
+    const data = { page, limit };
+    if (status) {
+      data.status = status;
+    }
+
+    return request.request({
+      url: `/enrollments/user/${userId}`,
+      method: 'GET',
+      data
+    });
+  },
+
+  /**
    * 检查用户是否已报名
    * @param {string} periodId - 期次ID
    * @returns {Promise}

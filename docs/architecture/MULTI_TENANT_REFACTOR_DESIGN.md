@@ -6,7 +6,15 @@
 >
 > **预计工时**：单人 3–5 个工作日（含数据迁移与测试）。
 >
-> **当前版本**：v1.4（基线时间 2026-05-10，补齐 v1.3-review 后剩余 4 个落地必踩坑：小程序真机 ws header 限制 + 短期 wsToken 方案、nginx ws upgrade 配置、连接心跳清理、legacy 模式 appId 校验冲突修正）
+> **当前版本**：v1.10（基线时间 2026-05-11，第六轮 review 修复 3 处：①§7.8.3 文件迁移片段 `const fsExtra = require('fs')` / `const pathLib = require('path')` 使用了误导性别名（`fsExtra` 易被误认为 npm `fs-extra` 包），改为标准名 `fs` / `path`，统一更新所有引用。②§7.8.3 第一个"追加"代码块 `await withSystemContext(...)` 出现在表面顶层，CommonJS 不支持顶层 await，直接追加文件末尾会抛 SyntaxError；加注释说明 `require()` 语句放文件顶部，`await` 块必须放 `main()` 内部。③同节第二个"追加"块有相同顶层 await 问题，且直接使用 `db` 变量而未在块内声明（`db` 只存在于 `main()` 的 `withSystemContext` 回调里）；加注释说明放置规则并在回调首行补 `const db = mongoose.connection.db`。）
+>
+> **前版本**：v1.9（基线时间 2026-05-11，第五轮 review 修复 2 处：①§7.8.3 迁移脚本 Section 富文本 URL 重写循环中，带 `/g` 标志的正则 `re` 在 `re.test(s.audioUrl)` 后 `lastIndex` 前移，导致 `re.test(s.videoCover)` 从错误位置搜索、漏更新该字段；修复：在每次 `.test()` 前插入 `re.lastIndex = 0` 重置。②§7.5.4 `tenantCron.js` 在 `utils/` 目录下却用 `require('../utils/tenantContext')` 绕行一步，改为更直接的 `require('./tenantContext')`。）
+>
+> **前版本**：v1.8（基线时间 2026-05-11，第四轮 review 修复 3 处 withSystemContext 导入路径错误：①§5.4 auth.js 示例 require('./tenantContext') → require('../utils/tenantContext')（auth.js 在 middleware/ 下，原路径解析到 middleware/tenantContext 而非 utils）；②§10 迁移脚本 require('../src/middleware/tenantContext') → require('../src/utils/tenantContext')；③§11 Phase 2 验证片段 require('./src/middleware/tenantContext') → require('./src/utils/tenantContext')。三处均违反"withSystemContext 必须从 utils/tenantContext 导入"原则，其余章节路径均已正确。）
+>
+> **前版本**：v1.7（基线时间 2026-05-11，第三轮 review 修复 8 处问题：①jwt.js 补充 verifyAccessToken 定义防止 WS 握手 ReferenceError；②setNxEx 生产环境 Redis 断线拒绝 fallback memoryCache；③_installHeartbeat 删除第二个 connection handler，isAlive 初始化归入认证成功路径；④§6.3 删除 module.exports.publicTenantContext 反模式行；⑤§4.5 publicTenantContext 导出注释更清晰；⑥迁移脚本 admin updateMany 注释说明 superadmin 不被二次命中的原因；⑦storage.get 注释补充 wx 文档依据；⑧§14.2 auth.js 行说明"用户认证中间件，区别于 adminAuth.js"。）
+>
+> **前版本**：v1.6（第二轮 review 修复 15 处问题：①Tenant 模型重复 wxAppIds 索引；②findByWxAppId 加 appId 格式校验；③tenantPlugin explicitTenantValue 支持递归 $eq 解包；④新增 TenantContextError 自定义错误类；⑤wsToken 端点加 ALS vs JWT tenantId 一致性校验；⑥period-status.service.js 按 tenantId 分组保存（减少 ALS 切换）；⑦buildDefaultKey/tenantCacheKey 不一致行为补充注释说明；⑧deleteFile 加 realpath 二次路径校验防符号链接绕过；⑨updateTenant 加 secret 空值处理规则；⑩X-Wx-AppId header 补充健康检查端点排除说明；⑪storage 迁移并发说明；⑫迁移脚本幂等性详细注释；⑬§10.3 加索引重建顺序约束检查项；⑭checklist 4B 按 ws/socketio 分支细化；⑮createAdmin 加邮箱唯一性约束说明）
 
 ---
 
@@ -214,8 +222,8 @@ const TenantSchema = new mongoose.Schema(
     // 关键：用于登录时反查 tenantId
     wxAppIds: {
       type: [String],
-      default: [],
-      index: true
+      default: []
+      // 索引由下方 TenantSchema.index({ wxAppIds: 1 }) 统一定义，不在字段上重复声明
     },
     // 微信登录配置（用于 code2session，不能和支付密钥混用）
     wechatLogin: {
@@ -255,7 +263,10 @@ TenantSchema.index({ 'wechatPay.appId': 1, 'wechatPay.mchId': 1 });
 
 // 静态方法：通过 wxAppId 查找租户
 TenantSchema.statics.findByWxAppId = async function (wxAppId) {
-  if (!wxAppId) return null;
+  if (!wxAppId || typeof wxAppId !== 'string') return null;
+  // 微信 appId 固定格式：wx 开头、18 位字母数字
+  // 校验失败直接返回 null（避免把畸形字符串传入 DB 查询）
+  if (!/^wx[0-9a-f]{16}$/i.test(wxAppId)) return null;
   return this.findOne({
     status: 'active',
     $or: [
@@ -430,8 +441,11 @@ role: {
 
 **新文件**：`backend/src/utils/tenantContext.js`
 
+> ⚠️ **架构说明**：`withSystemContext` 定义在此 **utils** 文件中，而非 middleware 文件。Services、Controllers、Cron 任务应从 `utils/tenantContext` 导入，不要从 `middleware/tenantContext` 导入 `withSystemContext`，否则会造成 service → middleware 的反向依赖。
+
 ```javascript
 const { AsyncLocalStorage } = require('async_hooks');
+const mongoose = require('mongoose');
 
 const storage = new AsyncLocalStorage();
 
@@ -467,11 +481,30 @@ function shouldBypassFilter() {
   return !!(ctx && ctx.bypassTenantFilter);
 }
 
+/**
+ * 系统脚本/迁移/Cron 用：手动设置租户上下文，绕过 HTTP 请求链路
+ * - tenantId 有值 → 以该租户身份运行，bypassTenantFilter = false
+ * - tenantId 为 null → 跨租户 bypass 模式，仅供迁移脚本、全量备份使用
+ *
+ * ⚠️ Services / Controllers 从本文件（utils）导入此函数，不要从 middleware 导入
+ */
+function withSystemContext(tenantId, fn) {
+  return runWithTenant(
+    {
+      tenantId: tenantId ? new mongoose.Types.ObjectId(tenantId) : null,
+      bypassTenantFilter: !tenantId,
+      actor: { type: 'system' }
+    },
+    fn
+  );
+}
+
 module.exports = {
   runWithTenant,
   getTenantContext,
   getCurrentTenantId,
-  shouldBypassFilter
+  shouldBypassFilter,
+  withSystemContext   // ← Services/Controllers/Cron 用这个
 };
 ```
 
@@ -482,12 +515,31 @@ module.exports = {
 ```javascript
 const { getCurrentTenantId, shouldBypassFilter } = require('../../utils/tenantContext');
 
+/**
+ * 租户上下文缺失时的专用错误类，便于调用方区分租户隔离错误和其他运行时错误
+ */
+class TenantContextError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'TenantContextError';
+  }
+}
+
 function toIdString(value) {
   if (!value) return '';
   return value.toString ? value.toString() : String(value);
 }
 
-function explicitTenantValue(value) {
+/**
+ * 从 query filter 里的 tenantId 值中提取真实 ObjectId。
+ * 支持递归解包 $eq（如某些 Mongoose 插件或测试工具会生成 { $eq: { $eq: realId } }）。
+ * depth 最大为 3，防止无限递归。
+ * 返回 undefined 表示该 tenantId 表达式不是合法的等值约束（如 $in/$ne/$exists），
+ * 调用方应拒绝此查询。
+ */
+function explicitTenantValue(value, depth) {
+  if (depth === undefined) depth = 0;
+  if (depth > 3) return undefined;
   if (
     !value ||
     typeof value !== 'object' ||
@@ -498,7 +550,9 @@ function explicitTenantValue(value) {
   }
   // 只允许 { tenantId: { $eq: currentTenantId } } 这种明确等值表达式。
   // $in/$ne/$exists 等表达式一律拒绝，避免绕开租户边界。
-  if (Object.prototype.hasOwnProperty.call(value, '$eq')) return value.$eq;
+  if (Object.prototype.hasOwnProperty.call(value, '$eq')) {
+    return explicitTenantValue(value.$eq, depth + 1);
+  }
   return undefined;
 }
 
@@ -506,7 +560,9 @@ function requireTenant(operation) {
   if (shouldBypassFilter()) return null;
   const tenantId = getCurrentTenantId();
   if (!tenantId) {
-    throw new Error(`[tenantPlugin] ${operation} 缺少 tenantId 上下文。HTTP 请求请检查路由中间件；脚本请显式使用 withSystemContext。`);
+    throw new TenantContextError(
+      `[tenantPlugin] ${operation} 缺少 tenantId 上下文。HTTP 请求请检查路由中间件；脚本请显式使用 withSystemContext。`
+    );
   }
   return tenantId;
 }
@@ -633,6 +689,7 @@ function tenantPlugin(schema) {
 }
 
 module.exports = tenantPlugin;
+module.exports.TenantContextError = TenantContextError;
 ```
 
 > `bulkWrite`、`Model.collection.*`、`mongoose.connection.db.collection(...)` 不依赖普通查询 hook，按高风险路径处理：业务代码禁止使用；迁移/备份脚本必须包在 `withSystemContext(...)` 中，并手动带 `tenantId`。
@@ -650,12 +707,16 @@ XxxSchema.plugin(tenantPlugin);
 
 **注意**：`Tenant.js`（自己）和 `Admin.js` **不要**启用此 plugin。`AuditLog.js` 启用，但允许 tenantId 为 null（在 plugin 中已处理：`shouldBypassFilter` 时不强制要求）。
 
+> **AuditLog null tenantId 的实际时机**：普通 HTTP 请求路径中，`userTenantContext / adminTenantContext` 已将 tenantId 写入 ALS，plugin 会自动填充，AuditLog 的 tenantId 不会是 null。只有 `platform_superadmin` 发起跨租户操作（`bypassTenantFilter = true`）时，AuditLog 才会以 null tenantId 写入，代表"平台级操作，不归属任何单一租户"。
+
 ### 4.5 创建 tenantContext 中间件
 
 **新文件**：`backend/src/middleware/tenantContext.js`
 
+> ⚠️ **此文件只导出 HTTP 中间件函数**（`userTenantContext / adminTenantContext / publicTenantContext / optionalUserOrPublicTenantContext`）。`withSystemContext` 从 utils 导入并再导出，是为了兼容少数已经从 middleware 路径 require 的调用方；**新代码请直接从 `utils/tenantContext` 导入 `withSystemContext`**。
+
 ```javascript
-const { runWithTenant } = require('../utils/tenantContext');
+const { runWithTenant, withSystemContext } = require('../utils/tenantContext');
 const mongoose = require('mongoose');
 
 /**
@@ -735,27 +796,18 @@ function adminTenantContext(req, res, next) {
   );
 }
 
-/**
- * 系统脚本/迁移用：手动设置租户上下文
- * 仅在数据迁移、定时任务等无 HTTP 请求场景使用
- */
-function withSystemContext(tenantId, fn) {
-  return runWithTenant(
-    {
-      tenantId: tenantId ? new mongoose.Types.ObjectId(tenantId) : null,
-      bypassTenantFilter: !tenantId,
-      actor: { type: 'system' }
-    },
-    fn
-  );
-}
+// withSystemContext 已从 utils/tenantContext 导入，不再重复定义
 
 module.exports = {
   userTenantContext,
   adminTenantContext,
-  withSystemContext
+  withSystemContext,           // 从 utils 导入后再导出，仅为向后兼容；新代码请从 utils/tenantContext 直接 require
+  publicTenantContext,         // 函数实现见 §6.3，实施时 paste 到本文件并从此处统一导出
+  optionalUserOrPublicTenantContext  // 同上
 };
 ```
+
+> ⚠️ **统一 exports 说明**：`publicTenantContext` 和 `optionalUserOrPublicTenantContext` 在 §6.3 的代码块中定义，实施时应将这两个函数的定义放在同一个文件里，并在此处统一 `module.exports`，而不是追加多次 `module.exports.xxx = ...`。
 
 ---
 
@@ -813,7 +865,7 @@ function generateToken(admin) {
 修改方式：续期查询用 JWT 里的 `tenantId` 建立临时上下文；老 token 没有 tenantId 时跳过续期，让后续 `userTenantContext` 返回 403。
 
 ```javascript
-const { withSystemContext } = require('./tenantContext');
+const { withSystemContext } = require('../utils/tenantContext');  // ← auth.js 在 middleware/ 下，需上跳一层到 utils/
 
 // authMiddleware 内部，decoded 已经解析后：
 if (remainingTime < thirtyMinutes && remainingTime > 0 && decoded.tenantId) {
@@ -846,7 +898,7 @@ if (remainingTime < thirtyMinutes && remainingTime > 0 && decoded.tenantId) {
 
 ```javascript
 const Tenant = require('../models/Tenant');
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('../utils/tenantContext');  // ← 从 utils 导入，不从 middleware
 
 async function wechatLogin(req, res, next) {
   try {
@@ -1014,14 +1066,14 @@ async function publicTenantContext(req, res, next) {
   }
 }
 
-module.exports.publicTenantContext = publicTenantContext;
-
 function optionalUserOrPublicTenantContext(req, res, next) {
   if (req.user) return userTenantContext(req, res, next);
   return publicTenantContext(req, res, next);
 }
 
-module.exports.optionalUserOrPublicTenantContext = optionalUserOrPublicTenantContext;
+// ⚠️ 不要在这里追加 module.exports.xxx = ... ！
+// 以上两个函数（publicTenantContext / optionalUserOrPublicTenantContext）应直接加入
+// §4.5 的统一 module.exports 块，和 userTenantContext/adminTenantContext 一起导出。
 ```
 
 > **注意**：`publicTenantContext` 内部调用 `Tenant.findByWxAppId` 时还在原始上下文中（无 tenantId）。Tenant 模型未启用 plugin，所以查询不会被注入 filter，安全。
@@ -1497,6 +1549,13 @@ disconnectAndClearForTenantSwitch() {
 async setNxEx(key, seconds, value) {
   try {
     if (!this.isConnected || !this.client) {
+      // 生产环境 + PM2 cluster：memoryCache 无法跨进程原子操作。
+      // 两个进程都 fallback 时，两者都能"消费"同一个 wsToken，一次性安全保证失效。
+      // 必须 fail，让握手失败（拒绝连接），而不是静默破坏安全性。
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('[redis] 生产环境 Redis 断线，setNxEx 拒绝 fallback 到 memoryCache');
+      }
+      // 开发环境：允许单进程内的 NX 语义 fallback
       const existing = this.memoryCache.get(key);
       if (existing && existing.expireAt > Date.now()) return false;
       this.memoryCache.set(key, {
@@ -1514,7 +1573,7 @@ async setNxEx(key, seconds, value) {
 }
 ```
 
-> 生产多实例下必须使用 Redis；内存 fallback 只适合本地开发，不能保证 PM2 多进程间的一次性消费。
+> ⚠️ 生产多实例下**必须保持 Redis 连接**。Redis 断线时 `setNxEx` 抛错 → `consumeWsToken` 失败 → ws 握手被拒绝（安全兜底），而不是静默允许重复消费。memoryCache fallback 仅供本地开发使用。
 
 **修改文件 2**：`backend/src/utils/jwt.js` 末尾追加：
 
@@ -1557,9 +1616,27 @@ async function consumeWsToken(token) {
   return decoded;
 }
 
+/**
+ * 验证普通 access token（用于 WS 握手时解析 Authorization header）
+ * 与 verifyWsToken 的区别：
+ *   - verifyAccessToken：接受普通登录 token，拒绝 ws 专用 token（kind === 'ws'）
+ *   - verifyWsToken：只接受 ws 专用 token（kind === 'ws'），拒绝普通 token
+ *
+ * ⚠️ 此函数必须导出，§7.4.5.2 和 §7.4.6 的握手代码依赖它
+ */
+function verifyAccessToken(token) {
+  const secret = process.env.JWT_SECRET || 'dev-secret-key-12345678';
+  const decoded = jwt.verify(token, secret);
+  // access token 不应有 kind 字段，或 kind !== 'ws'
+  // 防止有人用短期 wsToken 代替 access token 发起业务请求
+  if (decoded.kind === 'ws') throw new Error('不能用 wsToken 作为 access token');
+  return decoded;
+}
+
 module.exports.generateWsToken = generateWsToken;
 module.exports.verifyWsToken = verifyWsToken;
 module.exports.consumeWsToken = consumeWsToken;
+module.exports.verifyAccessToken = verifyAccessToken;
 module.exports.WS_TOKEN_TTL_SECONDS = WS_TOKEN_TTL_SECONDS;
 ```
 
@@ -1573,9 +1650,17 @@ router.post(
   authMiddleware,         // 必须已登录
   userTenantContext,
   (req, res) => {
+    const { getCurrentTenantId } = require('../utils/tenantContext');
+    const alsTenantId = getCurrentTenantId();
+    const jwtTenantId = req.user.tenantId;
+    // 安全校验：ALS（由中间件注入）与 JWT（由客户端携带）的 tenantId 必须一致
+    // 不一致说明中间件链路出现错误配置（如 adminTenantContext 被误挂到用户路由），应拒绝
+    if (!alsTenantId || !jwtTenantId || alsTenantId.toString() !== jwtTenantId.toString()) {
+      return res.status(403).json({ code: 403, message: '租户上下文不一致，请重新登录' });
+    }
     const wsToken = generateWsToken({
       _id: req.user.userId || req.user._id,
-      tenantId: req.user.tenantId
+      tenantId: jwtTenantId
     });
     res.json({
       code: 0,
@@ -1665,6 +1750,8 @@ async connect(userId, options = {}) {
 > - 重连时自动换新 wsToken（每次 `connect()` 都先调 `/auth/ws-token`）
 >
 > 缺点：每次 ws 重连多 1 次 HTTP 调用，但 30 秒 TTL 足以覆盖建连+握手时延，极端场景才会过期。
+>
+> **重连逻辑说明**：小程序断线重连时只需再次调用 `connect(userId)` 完整流程（先 `/auth/ws-token` 换 token，再 `wx.connectSocket`）。**不要**单独实现"wsToken 过期重试"，因为 `connect()` 本身就是完整链路，重连触发时会自动获取新 wsToken。
 
 #### 7.4.6 选项 B（推荐）：后端改原生 `ws` 完整模板
 
@@ -1761,6 +1848,8 @@ class WebSocketManager {
         if (!this.tenantRooms.has(tenantKey)) this.tenantRooms.set(tenantKey, new Set());
         this.tenantRooms.get(tenantKey).add(ws);
         this.socketUsers.set(ws, { tenantId, userId });
+        ws.isAlive = true;
+        ws.on('pong', () => { ws.isAlive = true; });
 
         logger.info('WebSocket 连接建立', { tenantId, userId });
         this._send(ws, { type: 'user:joined', status: 'success', userId });
@@ -1954,13 +2043,7 @@ class WebSocketManager {
   _installHeartbeat() {
     if (!this.wss) return;
 
-    // 1. 每个新连接初始化 isAlive 标志，pong 时重置
-    this.wss.on('connection', (ws) => {
-      ws.isAlive = true;
-      ws.on('pong', () => { ws.isAlive = true; });
-    });
-
-    // 2. 每 30 秒巡检一次：
+    // isAlive 标志已在 _installAuthAndConnection 认证成功路径中初始化，此处只做定时巡检：
     //    - 上一轮没回 pong → 视为已死，强制 terminate（触发 close 事件清理 Map）
     //    - 还活着 → 标记为 false，发 ping，等下一轮验证
     this._heartbeatInterval = setInterval(() => {
@@ -2132,32 +2215,42 @@ cron / 系统任务里调用时必须显式传 tenantId（参考 §7.5）。
 `syncAllPeriodsStatus` 改为：
 
 ```javascript
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('../utils/tenantContext');  // ← 从 utils 导入，不从 middleware
 
 async function syncAllPeriodsStatus({ now = new Date(), emitSyncEvent = true } = {}) {
   return withSystemContext(null, async () => {
     const periods = await Period.find({}).select('_id tenantId name status startDate endDate');
+
+    // 按 tenantId 分组，减少 ALS 上下文切换次数（N 个期次 → M 个租户，M << N）
+    const byTenant = new Map();
+    for (const period of periods) {
+      const key = period.tenantId.toString();
+      if (!byTenant.has(key)) byTenant.set(key, []);
+      byTenant.get(key).push(period);
+    }
+
     let updatedCount = 0;
     const updates = [];
 
-    for (const period of periods) {
-      const expectedStatus = calculatePeriodStatus(period, now);
-      if (period.status !== expectedStatus) {
-        const oldStatus = period.status;
-        // 单条 save 必须切换到该 period 的 tenant 上下文，让 plugin 校验通过
-        await withSystemContext(period.tenantId, async () => {
-          period.status = expectedStatus;
-          await period.save();
-        });
-        updatedCount += 1;
-        updates.push({
-          tenantId: period.tenantId.toString(),
-          periodId: period._id.toString(),
-          periodName: period.name,
-          oldStatus,
-          newStatus: expectedStatus
-        });
-      }
+    for (const [tenantIdStr, tenantPeriods] of byTenant) {
+      await withSystemContext(tenantIdStr, async () => {
+        for (const period of tenantPeriods) {
+          const expectedStatus = calculatePeriodStatus(period, now);
+          if (period.status !== expectedStatus) {
+            const oldStatus = period.status;
+            period.status = expectedStatus;
+            await period.save();
+            updatedCount += 1;
+            updates.push({
+              tenantId: tenantIdStr,
+              periodId: period._id.toString(),
+              periodName: period.name,
+              oldStatus,
+              newStatus: expectedStatus
+            });
+          }
+        }
+      });
     }
     return { updatedCount, updates };
   });
@@ -2171,7 +2264,7 @@ async function syncAllPeriodsStatus({ now = new Date(), emitSyncEvent = true } =
 改造方式：先用 bypass 拿到所有待发送 grant 的 `tenantId` 列表，再按租户分组发送。
 
 ```javascript
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('../utils/tenantContext');  // ← 从 utils 导入，不从 middleware
 
 async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) {
   const now = new Date();
@@ -2215,7 +2308,7 @@ async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) 
 数据备份本质上是跨租户操作（备份所有数据），统一在 `withSystemContext(null, ...)` 里跑：
 
 ```javascript
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('../utils/tenantContext');  // ← 从 utils 导入，不从 middleware
 
 async function performMongoBackup() {
   return withSystemContext(null, async () => {
@@ -2238,7 +2331,7 @@ async function performMysqlSync() {
 **新建辅助文件**：`backend/src/utils/tenantCron.js`
 
 ```javascript
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('./tenantContext');  // ← 本文件在 utils/ 下，直接同目录引入即可
 const Tenant = require('../models/Tenant');
 
 /**
@@ -2285,9 +2378,10 @@ const { getCurrentTenantId } = require('../utils/tenantContext');
 
 function buildDefaultKey(req) {
   const tenantId = getCurrentTenantId();
-  // 公开接口（如 /health）确实可能没有租户上下文
-  // 但已挂 publicTenantContext 的接口 tenantId 必然存在
-  // 没上下文的接口绝不能用响应缓存（可能跨租户）—— 直接拒绝缓存
+  // 公开接口（如 /health、/metrics）确实可能没有租户上下文，
+  // 但已挂 publicTenantContext 的接口 tenantId 必然存在。
+  // 没上下文的接口绝不能用响应缓存（可能跨租户）—— 降级：返回 null 跳过缓存，请求正常通过。
+  // ⚠️ 这里返回 null 而非抛错（与 tenantCacheKey 不同，见下方 §7.6.3 说明）
   if (!tenantId) {
     return null;
   }
@@ -2375,6 +2469,15 @@ function cacheInvalidationMiddleware(patterns = []) {
 // backend/src/utils/cacheKey.js
 const { getCurrentTenantId } = require('./tenantContext');
 
+/**
+ * 显式 keyGenerator 调用方使用。
+ * ⚠️ 此函数与 buildDefaultKey 的行为不同：
+ *   - buildDefaultKey（中间件层）：无上下文时降级返回 null，让请求正常通过但不缓存。
+ *     适用于"某些路由可能无租户上下文"的情形（如健康检查走同一个 cacheMiddleware）。
+ *   - tenantCacheKey（route 层显式调用）：无上下文时抛错。
+ *     因为路由配置了 keyGenerator 就代表这条路由一定需要缓存、一定有租户上下文；
+ *     缺失说明路由中间件链路配置错误，应在开发期暴露而非静默跳过。
+ */
 function tenantCacheKey(suffix) {
   const tenantId = getCurrentTenantId();
   if (!tenantId) throw new Error('[cache] 缺少 tenantId 上下文，无法生成缓存 key');
@@ -2514,29 +2617,14 @@ router.post('/wechat/login', authIpRateLimit, authRateLimit, wechatLogin);
 
 **v1.3 改为**：multer 用动态 `destination` 函数从一开始就写到 tenant 子目录，filename 用 `crypto.randomBytes(16)`（128 bit 熵，不可枚举）。
 
-##### 7.8.1.1 upload.routes.js 完整重写
+##### 7.8.1.0 新建共享工具 `backend/src/utils/tenantSlug.js`
+
+`upload.routes.js` 和 `upload.controller.js` 都需要通过 `tenantId` 解析 `slug`，不要各自重复实现 `slugCache`，统一放到这个 util：
 
 ```javascript
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const uploadController = require('../controllers/upload.controller');
-const { adminAuthMiddleware } = require('../middleware/adminAuth');
-const { adminTenantContext } = require('../middleware/tenantContext');
-const { getCurrentTenantId } = require('../utils/tenantContext');
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('./tenantContext');  // ← 从 utils 导入
 const Tenant = require('../models/Tenant');
-const { errors } = require('../utils/response');
 
-const router = express.Router();
-
-const uploadRoot = path.join(__dirname, '../../uploads');
-const tenantsRoot = path.join(uploadRoot, 'tenants');
-if (!fs.existsSync(tenantsRoot)) fs.mkdirSync(tenantsRoot, { recursive: true });
-
-// === slug 缓存（5 分钟 TTL） ===
 const slugCache = new Map();  // tenantId → { slug, expiresAt }
 const SLUG_TTL = 5 * 60 * 1000;
 
@@ -2552,6 +2640,35 @@ async function resolveTenantSlug(tenantId) {
   slugCache.set(key, { slug: t.slug, expiresAt: now + SLUG_TTL });
   return t.slug;
 }
+
+module.exports = { resolveTenantSlug };
+```
+
+`upload.routes.js` 和 `upload.controller.js` 都改为：
+```javascript
+const { resolveTenantSlug } = require('../utils/tenantSlug');
+```
+
+##### 7.8.1.1 upload.routes.js 完整重写
+
+```javascript
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const uploadController = require('../controllers/upload.controller');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { adminTenantContext } = require('../middleware/tenantContext');
+const { getCurrentTenantId } = require('../utils/tenantContext');
+const { resolveTenantSlug } = require('../utils/tenantSlug');  // ← 共享工具，见 §7.8.1.0
+const { errors } = require('../utils/response');
+
+const router = express.Router();
+
+const uploadRoot = path.join(__dirname, '../../uploads');
+const tenantsRoot = path.join(uploadRoot, 'tenants');
+if (!fs.existsSync(tenantsRoot)) fs.mkdirSync(tenantsRoot, { recursive: true });
 
 function ensureTenantDir(slug) {
   const dir = path.join(tenantsRoot, slug);
@@ -2641,27 +2758,10 @@ const fs = require('fs');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
-const Tenant = require('../models/Tenant');
-const { withSystemContext } = require('../middleware/tenantContext');
+const { resolveTenantSlug } = require('../utils/tenantSlug');  // ← 共享工具，见 §7.8.1.0（不再重复实现）
 
 const uploadRoot = path.join(__dirname, '../../uploads');
 const tenantsRoot = path.join(uploadRoot, 'tenants');
-
-// 与 upload.routes.js 共享的 slug 缓存（实现重复，可抽到 utils；为保持示例独立性这里复制）
-const slugCache = new Map();
-const SLUG_TTL = 5 * 60 * 1000;
-async function resolveTenantSlug(tenantId) {
-  const key = tenantId.toString();
-  const now = Date.now();
-  const hit = slugCache.get(key);
-  if (hit && hit.expiresAt > now) return hit.slug;
-  const t = await withSystemContext(null, () =>
-    Tenant.findById(tenantId).select('slug').lean()
-  );
-  if (!t) throw new Error('租户不存在');
-  slugCache.set(key, { slug: t.slug, expiresAt: now + SLUG_TTL });
-  return t.slug;
-}
 
 module.exports = {
   uploadFile: async (req, res) => {
@@ -2715,12 +2815,24 @@ module.exports = {
       const tenantDir = path.join(tenantsRoot, slug);
       const filePath = path.join(tenantDir, filename);
 
-      // 严格限制：只能删本租户目录下的文件（防 path traversal）
+      // 第一关：字符串层面防路径遍历（快速拒绝）
       if (!filePath.startsWith(tenantDir + path.sep)) {
         return res.status(400).json(errors.badRequest('无效的文件路径'));
       }
       if (!fs.existsSync(filePath)) {
         return res.status(404).json(errors.notFound('文件不存在'));
+      }
+      // 第二关：realpath 跟踪符号链接。
+      // 若 tenantDir 或 filename 目标是符号链接指向其他目录，
+      // realpath 解析后会逃脱 tenantDir 边界，此处再次拦截。
+      try {
+        const realTenantDir = fs.realpathSync(tenantDir);
+        const realFilePath = fs.realpathSync(filePath);
+        if (!realFilePath.startsWith(realTenantDir + path.sep)) {
+          return res.status(400).json(errors.badRequest('无效的文件路径'));
+        }
+      } catch (_) {
+        return res.status(400).json(errors.badRequest('无效的文件路径'));
       }
       fs.unlinkSync(filePath);
       res.json(success(null, '文件删除成功'));
@@ -2770,19 +2882,19 @@ app.get('/api/v1/files/:slug/:filename', authMiddleware, userTenantContext, asyn
 迁移脚本 `migrate-to-multi-tenant.js` 末尾追加：将 `backend/uploads/*` 下的所有文件移动到 `backend/uploads/tenants/fanren/` 目录：
 
 ```javascript
-const fsExtra = require('fs');
-const pathLib = require('path');
-const uploadDir = pathLib.join(__dirname, '../uploads');
-const fanrenDir = pathLib.join(uploadDir, 'tenants', 'fanren');
-if (!fsExtra.existsSync(fanrenDir)) fsExtra.mkdirSync(fanrenDir, { recursive: true });
-const items = fsExtra.readdirSync(uploadDir);
+const fs = require('fs');
+const path = require('path');
+const uploadDir = path.join(__dirname, '../uploads');
+const fanrenDir = path.join(uploadDir, 'tenants', 'fanren');
+if (!fs.existsSync(fanrenDir)) fs.mkdirSync(fanrenDir, { recursive: true });
+const items = fs.readdirSync(uploadDir);
 let moved = 0;
 for (const name of items) {
   if (name === 'tenants') continue;
-  const oldPath = pathLib.join(uploadDir, name);
-  const stat = fsExtra.statSync(oldPath);
+  const oldPath = path.join(uploadDir, name);
+  const stat = fs.statSync(oldPath);
   if (stat.isFile()) {
-    fsExtra.renameSync(oldPath, pathLib.join(fanrenDir, name));
+    fs.renameSync(oldPath, path.join(fanrenDir, name));
     moved += 1;
   }
 }
@@ -2794,11 +2906,14 @@ console.log(`[migrate] uploads 文件迁移: ${moved} 个`);
 > 除了下面示例里的字段，还要审查富文本和媒体字段：`Section.content`、`Section.description`、`Section.audioUrl`、`Section.videoCover`、`Period` 相关封面字段、`Comment.content`、`Notification.content` 等。只要保存过 `/uploads/...`，都要重写。
 
 ```javascript
-// 在 migrate 脚本里追加
-const Insight = require('../src/models/Insight');
-const User = require('../src/models/User');
-const Checkin = require('../src/models/Checkin');
-
+// ① 将以下 3 行 require 加到文件顶部（与其他 require 同级）：
+//    const Insight = require('../src/models/Insight');
+//    const User    = require('../src/models/User');
+//    const Checkin = require('../src/models/Checkin');
+//
+// ② ⚠️ 以下 await 块必须放在 async function main() 内部
+//    （CommonJS 不支持顶层 await，直接追加到文件末尾会抛 SyntaxError）。
+//    建议紧跟在 main() 已有的 withSystemContext 调用之后：
 await withSystemContext(null, async () => {
   await Insight.updateMany(
     { imageUrl: { $regex: /^\/uploads\/[^/]+$/ } },
@@ -2809,8 +2924,9 @@ await withSystemContext(null, async () => {
     [{ $set: { avatarUrl: { $replaceOne: { input: '$avatarUrl', find: '/uploads/', replacement: '/uploads/tenants/fanren/' } } } }]
   );
   // Checkin.images 是数组，需要 $map
+  // ⚠️ 注意：过滤条件改用 $elemMatch，避免只有第 2/3 张图是旧 URL 时漏更新
   await Checkin.updateMany(
-    { 'images.0': { $regex: /^\/uploads\/[^/]+$/ } },
+    { images: { $elemMatch: { $regex: /^\/uploads\/[^/]+$/ } } },
     [{
       $set: {
         images: {
@@ -2833,6 +2949,78 @@ await withSystemContext(null, async () => {
 ```
 
 > `$replaceOne` 与 `$regexMatch` 需要 MongoDB 4.4+；如果版本更老，改用 JS 端遍历重写。
+
+**富文本字段 URL 重写（Section.content 及其他含嵌入 HTML 的字段）**
+
+`$replaceOne` 只能替换字段值整体，不能处理嵌入在 HTML 里的 URL。`Section.content`、`Comment.content`、`Notification.content`、`Period.description` 等富文本字段必须用 JS cursor 遍历 + 正则替换：
+
+```javascript
+// ⚠️ 以下 await 块同样必须放在 async function main() 内部（CommonJS 不支持顶层 await）。
+// 如果作为独立的 withSystemContext 调用追加在 main() 里，需在回调内先声明 db：
+await withSystemContext(null, async () => {
+  const db = mongoose.connection.db;  // ← 独立调用时需要；若合并到已有 withSystemContext 块则已存在
+  // 1. Section.content / Section.description / Section.audioUrl / Section.videoCover
+  const sectionCursor = db.collection('sections').find({
+    $or: [
+      { content: { $regex: /\/uploads\/(?!tenants\/)/ } },
+      { description: { $regex: /\/uploads\/(?!tenants\/)/ } },
+      { audioUrl: { $regex: /^\/uploads\/(?!tenants\/)/ } },
+      { videoCover: { $regex: /^\/uploads\/(?!tenants\/)/ } }
+    ]
+  });
+  let sectionFixed = 0;
+  for await (const s of sectionCursor) {
+    const update = {};
+    const re = /\/uploads\/(?!tenants\/)([^"'\s<>]+)/g;
+    if (s.content)     update.content     = s.content.replace(re, '/uploads/tenants/fanren/$1');
+    if (s.description) update.description = s.description.replace(re, '/uploads/tenants/fanren/$1');
+    // ⚠️ 必须在每次 re.test() 前重置 lastIndex：带 /g 的正则调用 .test() 后 lastIndex 会前移，
+    // 不重置则下一次 .test() 从上次位置开始搜索，可能漏匹配 videoCover 等短 URL。
+    re.lastIndex = 0;
+    if (s.audioUrl && re.test(s.audioUrl))     update.audioUrl    = s.audioUrl.replace(/^\/uploads\//, '/uploads/tenants/fanren/');
+    re.lastIndex = 0;
+    if (s.videoCover && re.test(s.videoCover)) update.videoCover  = s.videoCover.replace(/^\/uploads\//, '/uploads/tenants/fanren/');
+    if (Object.keys(update).length > 0) {
+      await db.collection('sections').updateOne({ _id: s._id }, { $set: update });
+      sectionFixed += 1;
+    }
+  }
+  console.log(`[migrate] sections 富文本 URL 重写: ${sectionFixed} 条`);
+
+  // 2. Period.coverImage / Period.description（如含图片）
+  const periodCursor = db.collection('periods').find({
+    $or: [
+      { coverImage: { $regex: /^\/uploads\/(?!tenants\/)/ } },
+      { description: { $regex: /\/uploads\/(?!tenants\/)/ } }
+    ]
+  });
+  let periodFixed = 0;
+  for await (const p of periodCursor) {
+    const update = {};
+    if (p.coverImage) update.coverImage = p.coverImage.replace(/^\/uploads\//, '/uploads/tenants/fanren/');
+    if (p.description) update.description = p.description.replace(/\/uploads\/(?!tenants\/)([^"'\s<>]+)/g, '/uploads/tenants/fanren/$1');
+    if (Object.keys(update).length > 0) {
+      await db.collection('periods').updateOne({ _id: p._id }, { $set: update });
+      periodFixed += 1;
+    }
+  }
+  console.log(`[migrate] periods 富文本 URL 重写: ${periodFixed} 条`);
+
+  // 3. Comment.content / Notification.content（如含图片链接）
+  for (const [collName, field] of [['comments', 'content'], ['notifications', 'content']]) {
+    const cursor = db.collection(collName).find({ [field]: { $regex: /\/uploads\/(?!tenants\/)/ } });
+    let fixed = 0;
+    for await (const doc of cursor) {
+      const newVal = doc[field].replace(/\/uploads\/(?!tenants\/)([^"'\s<>]+)/g, '/uploads/tenants/fanren/$1');
+      await db.collection(collName).updateOne({ _id: doc._id }, { $set: { [field]: newVal } });
+      fixed += 1;
+    }
+    console.log(`[migrate] ${collName}.${field} URL 重写: ${fixed} 条`);
+  }
+});
+```
+
+> ⚠️ 正则 `/\/uploads\/(?!tenants\/)/` 用负向前瞻排除已经是 `/uploads/tenants/` 的 URL，避免幂等运行时重复替换。迁移脚本应可以安全重复执行。
 
 ---
 
@@ -2866,6 +3054,9 @@ exports.createAdmin = async (req, res) => {
     effectiveTenantId = req.admin.tenantId;
   }
 
+  // 邮箱在整个平台全局唯一（见 §3.3 Admin 模型说明）。
+  // Mongoose 的 unique 约束会在 duplicate key 时抛 MongoServerError code 11000，
+  // 调用方需捕获并转换为友好错误信息（email 已存在）。
   const admin = await Admin.create({
     name, email, password, role, permissions,
     tenantId: role === 'platform_superadmin' ? null : effectiveTenantId
@@ -2903,7 +3094,7 @@ exports.getAdmins = async (req, res) => {
 ```javascript
 const Tenant = require('../models/Tenant');
 const { success, errors } = require('../utils/response');
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('../utils/tenantContext');  // ← 从 utils 导入，不从 middleware
 
 /**
  * 列出所有租户（仅 platform_superadmin）
@@ -2954,6 +3145,18 @@ exports.updateTenant = async (req, res) => {
   const updates = req.body;
   delete updates._id;
   delete updates.slug; // slug 不允许修改（数据隔离键）
+
+  // Secret 字段空值语义：前端编辑时密钥字段始终为空，空字符串 = 不修改
+  // 对应前端 TenantsView.vue 中"留空则不修改"的 UX 规则
+  if (updates.wechatLogin?.appSecret === '') delete updates['wechatLogin.appSecret'];
+  if (updates.wechatPay?.apiKey === '') delete updates['wechatPay.apiKey'];
+  // 处理嵌套对象写法（前端可能提交整个对象）
+  if (updates.wechatLogin && updates.wechatLogin.appSecret === '') {
+    delete updates.wechatLogin.appSecret;
+  }
+  if (updates.wechatPay && updates.wechatPay.apiKey === '') {
+    delete updates.wechatPay.apiKey;
+  }
 
   const tenant = await withSystemContext(null, () =>
     Tenant.findByIdAndUpdate(tenantId, updates, { new: true })
@@ -3129,7 +3332,32 @@ import TenantSwitcher from './TenantSwitcher.vue';
 
 **新文件**：`admin/src/views/TenantsView.vue`
 
-提供 CRUD 界面（列表、新建、编辑），仅在 `role === 'platform_superadmin'`（迁移期兼容 `superadmin`）时在侧边栏菜单显示。具体实现参照 `PeriodsView.vue` 的样式即可，字段对应 Tenant 模型：`slug, name, description, wxAppIds[], wechatLogin.appId, wechatLogin.appSecret, wechatPay.{appId,mchId,apiKey}, branding.{logo, primaryColor, brandName}, status`。密钥字段只允许写入或重置，不在列表中明文展示。
+提供 CRUD 界面，仅在 `role === 'platform_superadmin'`（迁移期兼容 `superadmin`）时在侧边栏菜单显示。参照 `PeriodsView.vue` 的页面结构（顶部统计卡片 + 表格 + 操作弹窗）实现。
+
+**列表表格列定义**（按此顺序）：
+
+| 列名 | 字段 | 宽度 | 说明 |
+|------|------|------|------|
+| Slug | `slug` | 120 | 只读，创建后不可修改 |
+| 名称 | `name` | 180 | |
+| 状态 | `status` | 90 | Tag：active=绿、suspended=橙、archived=灰 |
+| 小程序数 | `wxAppIds.length` | 90 | 显示数量，不展开列表 |
+| 创建时间 | `createdAt` | 160 | 格式化日期 |
+| 操作 | — | 120 | 编辑、暂停/恢复 按钮 |
+
+**新建/编辑弹窗字段分组**：
+
+- **基本信息**：`slug`（新建时可填，编辑时禁用）、`name`（必填）、`description`、`status`（下拉）
+- **小程序配置**：`wxAppIds`（tag input，支持多个 appId）、`wechatLogin.appId`、`wechatLogin.appSecret`（密码框，只允许输入不展示现有值，提示"留空则不修改"）
+- **微信支付配置**（可选）：`wechatPay.appId`、`wechatPay.mchId`、`wechatPay.apiKey`（同上，密码框）
+- **品牌定制**：`branding.brandName`、`branding.primaryColor`（颜色选择器）、`branding.logo`（URL 输入）
+
+**密钥字段处理规则**：`appSecret` / `apiKey` 在编辑时始终为空（提交时后端判断：空字符串 = 不修改，非空 = 更新）。不要在列表或详情里 `console.log` 或展示这些字段。
+
+**API 调用**：
+- 列表：`GET /api/v1/admin/tenants`
+- 新建：`POST /api/v1/admin/tenants`
+- 编辑：`PUT /api/v1/admin/tenants/:tenantId`（`slug` 不可出现在 body 里，后端会忽略）
 
 侧边栏菜单中新增（`AdminLayout.vue`）：
 
@@ -3213,6 +3441,8 @@ const requestHeader = {
 ```
 
 > 这样后端的 `publicTenantContext` 中间件可以从请求头解析租户。已登录请求中后端会优先用 JWT 里的 tenantId（因为 `userTenantContext` 在前），未登录请求才使用请求头。
+>
+> ⚠️ **健康检查等端点**（`/health`、`/metrics`、`/api/v1/ping`）不挂 `publicTenantContext`，后端收到 `X-Wx-AppId` 时直接忽略，不会报错。小程序侧对所有请求统一带上此 header 是安全的，后端只在真正需要时读取它。
 
 ### 9.4 小程序本地缓存隔离
 
@@ -3229,7 +3459,53 @@ wx.setStorageSync(tenantStorageKey('accessToken'), token);
 wx.getStorageSync(tenantStorageKey('accessToken'));
 ```
 
-上线前检查 `miniprogram/utils/storage.js`、`miniprogram/utils/period-access.js` 和直接调用 `wx.getStorageSync` 的页面，避免 A 租户 token 被 B 租户壳读取。
+**具体实现**：在 `miniprogram/utils/storage.js` 新增以下封装函数，用于替换项目中所有长期缓存的读写：
+
+```javascript
+const envConfig = require('../config/env');
+
+function _prefixKey(key) {
+  const appId = envConfig.wxAppId || 'default';
+  return `${appId}:${key}`;
+}
+
+const storage = {
+  set(key, value) {
+    wx.setStorageSync(_prefixKey(key), value);
+  },
+  get(key) {
+    // 迁移兼容：先读带前缀的 key，回退到旧 key（首次升级时迁移旧数据）
+    const val = wx.getStorageSync(_prefixKey(key));
+    if (val !== '' && val !== null && val !== undefined) return val;
+    const legacy = wx.getStorageSync(key);  // 兼容旧版无前缀缓存
+    if (legacy !== '' && legacy !== null && legacy !== undefined) {
+      this.set(key, legacy);             // 升级：写入带前缀的新 key
+      wx.removeStorageSync(key);         // 删除旧 key
+      // ⚠️ 并发说明：若两次 get() 同时触发（小程序多页面同时加载），
+      // 两者都读到 legacy → 两者都 set 新 key → 两者都 removeSync 旧 key。
+      // removeStorage 对不存在的 key 是幂等操作，不报错，最终结果正确
+      // （按微信官方文档，wx.removeStorageSync 在 key 不存在时静默成功，不抛错）。
+      return legacy;
+    }
+    return null;
+  },
+  remove(key) {
+    wx.removeStorageSync(_prefixKey(key));
+    wx.removeStorageSync(key);  // 同时清理可能残留的旧 key
+  }
+};
+
+module.exports = storage;
+```
+
+然后将项目中所有 `wx.getStorageSync(constants.STORAGE_KEYS.TOKEN)` / `wx.setStorageSync(constants.STORAGE_KEYS.TOKEN, ...)` 等调用改为 `storage.get('token')` / `storage.set('token', ...)`。需要改的文件：
+- `miniprogram/app.js`（`checkLoginStatus`）
+- `miniprogram/utils/request.js`（读 token）
+- `miniprogram/pages/login/login.js`（写 token/userInfo）
+- `miniprogram/services/websocket.service.js`（读 token）
+- `miniprogram/utils/period-access.js`（缓存报名状态）
+
+上线前用 `grep -rn "getStorageSync\|setStorageSync" miniprogram/` 确认无遗漏。
 
 ### 9.5 新增小程序壳的步骤（未来增加新租户时）
 
@@ -3328,15 +3604,23 @@ for (const name of collections) {
  *   PLATFORM_ADMIN_PASSWORD=ChangeMeNow123 \
  *   node scripts/migrate-to-multi-tenant.js
  *
- * 安全：
- * - 脚本是幂等的：重复运行不会重复创建（通过 slug 去重）
+ * 安全与幂等性：
+ * - 步骤 1（创建租户）：通过 slug 去重，重复运行安全
+ * - 步骤 2（回填 tenantId）：filter { tenantId: { $exists: false } }，已回填的文档自动跳过
+ * - 步骤 3（重建索引）：dropIndexByKeyIfExists 在索引不存在时直接返回；createIndex 在索引已存在且参数相同时为幂等操作
+ * - 步骤 4（admin 角色迁移）：
+ *     第一条 updateMany 以 { role: 'superadmin', tenantId: { $exists: false } } 为条件，
+ *     已迁移的 superadmin（tenantId 已存在）不会被重复处理；
+ *     第二条 updateMany 以 { tenantId: { $exists: false } } 为条件，已补全的 admin/operator 同样跳过。
+ *     脚本中途中断后重跑，两条 updateMany 都只处理"剩余未完成"的记录，不会重复操作。
+ * - 步骤 5（创建 platform_superadmin）：通过 email 去重，重复运行安全
  * - 全程使用 withSystemContext 绕过租户过滤
  * - 完成后立即修改 platform_superadmin 密码
  */
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
-const { withSystemContext } = require('../src/middleware/tenantContext');
+const { withSystemContext } = require('../src/utils/tenantContext');  // ← 脚本在 scripts/ 下，必须从 utils 导入
 const Tenant = require('../src/models/Tenant');
 const Admin = require('../src/models/Admin');
 
@@ -3472,12 +3756,21 @@ async function main() {
     // 3. 重建 unique 索引：必须在 tenantId 回填后执行
     await rebuildUniqueIndexes(db);
 
-    // 4. 现有 admin 重写：把 superadmin → tenant_admin（绑定到初始租户）
-    const adminUpdate = await Admin.updateMany(
-      { tenantId: { $exists: false } },
+    // 4. 现有 admin 重写：
+    //    - superadmin → tenant_admin（权限语义不变，名称统一）
+    //    - admin / operator 保持原 role，只补 tenantId
+    // ⚠️ 必须两步走，避免把 admin/operator 错误升级为 tenant_admin
+    const superadminUpdate = await Admin.updateMany(
+      { role: 'superadmin', tenantId: { $exists: false } },
       { $set: { tenantId: tenant._id, role: 'tenant_admin' } }
     );
-    console.log(`[migrate] admin 表回填: ${adminUpdate.modifiedCount} 条`);
+    console.log(`[migrate] superadmin → tenant_admin 升级: ${superadminUpdate.modifiedCount} 条`);
+
+    const otherAdminUpdate = await Admin.updateMany(
+      { tenantId: { $exists: false } },  // 上步已迁移的 superadmin 有 tenantId，此条件不会再次命中；实际匹配的只剩无 tenantId 的 admin/operator
+      { $set: { tenantId: tenant._id } } // 只补 tenantId，不改 role
+    );
+    console.log(`[migrate] admin/operator 补 tenantId: ${otherAdminUpdate.modifiedCount} 条`);
 
     // 5. 创建 platform_superadmin（如果配置了凭证且不存在）
     const platformEmail = process.env.PLATFORM_ADMIN_EMAIL;
@@ -3527,6 +3820,7 @@ main().catch((err) => {
 - [ ] 已确认 `WECHAT_APPID` 环境变量是真实的生产 appId（脚本会用它写入 `tenant.wxAppIds`）
 - [ ] 已确认 `WECHAT_SECRET` 环境变量是真实生产 secret（脚本会写入 `tenant.wechatLogin.appSecret`）
 - [ ] 已用 `db.<coll>.getIndexes()` 记录旧索引，确认脚本里的 `UNIQUE_INDEX_MIGRATIONS` 覆盖所有旧 unique 索引
+- [ ] 已理解顺序约束：**必须先完成步骤 2（tenantId 回填），再执行步骤 3（重建 unique 索引）**。若顺序颠倒，建索引前数据中已有多条相同 openid/orderNo 等会导致唯一约束冲突，createIndex 报错
 - [ ] 服务进程已停止或处于维护模式（防止迁移过程中产生新数据）
 
 执行后**必须**验证：
@@ -3581,7 +3875,7 @@ cd backend
 npm test -- --testPathPattern=tenantContext   # 如果写了单元测试
 # 或手动：
 node -e "
-  const m = require('./src/middleware/tenantContext');
+  const m = require('./src/utils/tenantContext');
   m.withSystemContext(null, async () => {
     const User = require('./src/models/User');
     console.log('Querying without tenantId in bypass mode:');
@@ -3700,7 +3994,7 @@ node -e "require('./src/services/period-status.service').syncAllPeriodsStatus()"
 
 ```javascript
 const mongoose = require('mongoose');
-const { withSystemContext } = require('../middleware/tenantContext');
+const { withSystemContext } = require('../utils/tenantContext');  // ← 从 utils 导入，不从 middleware
 const User = require('../models/User');
 const Tenant = require('../models/Tenant');
 
@@ -3840,6 +4134,7 @@ describe('多租户隔离', () => {
 | `backend/src/controllers/tenant.controller.js` | 租户管理接口 | §8.2 |
 | `backend/src/utils/tenantCron.js` | cron 辅助：按租户遍历 | §7.5.4 |
 | `backend/src/utils/cacheKey.js` | 缓存 key 工具：强制带 tenant 前缀 | §7.6.3 |
+| `backend/src/utils/tenantSlug.js` | tenantId → slug 解析缓存（upload.routes/controller 共用） | §7.8.1.0 |
 | `backend/src/utils/ws-pubsub.js`（仅原生 ws 方案） | PM2 cluster 多实例 ws 广播 | §7.4.7-B |
 | `backend/scripts/migrate-to-multi-tenant.js` | 一次性数据迁移（含 unique 索引重建、文件目录迁移、URL 重写） | §10.2、§7.8.3 |
 | `admin/src/components/TenantSwitcher.vue` | 租户切换器 | §8.4.2 |
@@ -3853,7 +4148,7 @@ describe('多租户隔离', () => {
 | `backend/src/models/User.js` | 加 tenantId、改 unique 索引、启用 plugin | §3.2、§4.4 |
 | `backend/src/models/Admin.js` | 加 tenantId、扩展 role | §3.3 |
 | `backend/src/models/Period.js` 等 13 个业务模型 | 加 tenantId、加索引、启用 plugin | §3.2、§4.4 |
-| `backend/src/utils/jwt.js` | payload 加 tenantId；新增 `generateWsToken/verifyWsToken/consumeWsToken`（30s 短期、jti 一次性消费） | §5.1、§7.4.5.2 |
+| `backend/src/utils/jwt.js` | payload 加 tenantId；新增 `generateWsToken/verifyWsToken/consumeWsToken`（30s 短期、jti 一次性消费）；新增 `verifyAccessToken`（WS 握手 Authorization header 路径使用） | §5.1、§7.4.5.2 |
 | `backend/src/utils/redis.js` | 新增 `setNxEx`，用于 wsToken 跨实例一次性消费 | §7.4.5.2 |
 | `backend/src/routes/auth.routes.js` | 新增 `POST /auth/ws-token` 颁发短期 wsToken | §7.4.5.2 |
 | `backend/src/services/wechat.service.js` | wxAppId 校验兼容 legacy；多登录 appId 场景需扩展 appId/appSecret 映射 | §6.2 |
@@ -3861,7 +4156,7 @@ describe('多租户隔离', () => {
 | `backend/src/controllers/admin.controller.js` | 登录 token、createAdmin、getAdmins | §5.2、§8.1 |
 | `backend/src/controllers/auth.controller.js` | wechatLogin 解析租户 | §6.1 |
 | `backend/src/services/wechat.service.js` | 按租户读 secret | §6.2 |
-| `backend/src/middleware/auth.js` | 用户 token 续期查询需要租户上下文或显式按 JWT tenant 查询；admin role 兼容新角色 | §6.3、§8 |
+| `backend/src/middleware/auth.js`（用户认证中间件，区别于 `adminAuth.js`） | 用户 token 续期查询需要租户上下文或显式按 JWT tenant 查询 | §6.3 |
 | `backend/src/middleware/adminAuth.js` | `requireRole/requirePermission` 兼容 `platform_superadmin/tenant_admin` | §6.4、§8 |
 | `backend/src/app.js` | 保持 route module 挂载，不做全局用户认证挂载 | §6.3 |
 | `backend/src/routes/admin.routes.js` | 加 adminTenantContext、租户路由 | §6.4、§8.3 |
@@ -3894,6 +4189,9 @@ describe('多租户隔离', () => {
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v1.7 | 2026-05-11 | 第三轮 review：①`_installHeartbeat` 删除第二个 `wss.on('connection', ...)` 块，将 `ws.isAlive` 初始化移入 `_installAuthAndConnection` 认证成功路径；②`§6.3` 代码块删除 `module.exports.publicTenantContext = ...` 反模式行（保留末尾统一导出注释）；③§4.5 中 publicTenantContext 导出注释改为"函数实现见 §6.3，实施时 paste 到本文件"；④迁移脚本第二条 updateMany 内联注释说明上步已迁移 superadmin 有 tenantId 不会被重复命中；⑤storage.get 并发注释补充微信官方文档说明 removeStorageSync 静默成功；⑥§14.2 auth.js 行改名说明"用户认证中间件，区别于 adminAuth.js"并删除误置的"admin role 兼容"描述。 |
+| v1.6 | 2026-05-11 | 第二轮 review：①去除 Tenant 模型重复 wxAppIds 索引声明；②findByWxAppId 加 wxAppId 格式校验（wx 开头 18 位）；③explicitTenantValue 递归解包 $eq（最大深度 3），修复嵌套 $eq 时隔离失效问题；④新增 TenantContextError 自定义错误类便于调用方区分；⑤wsToken 端点加 ALS vs JWT tenantId 一致性校验；⑥period-status.service.js 改为按 tenant 分组批量保存，减少 ALS 切换次数；⑦buildDefaultKey（返回 null）与 tenantCacheKey（抛错）不一致行为补充注释说明；⑧deleteFile 加 realpath 跟踪符号链接二次路径校验；⑨updateTenant 加空值 secret 过滤（空字符串=不修改）；⑩X-Wx-AppId 补充健康检查端点不需要此 header 的说明；⑪storage.get 并发迁移场景说明（幂等）；⑫迁移脚本注释详细说明各步骤的幂等原理；⑬§10.3 加索引重建必须在 tenantId 回填后执行的顺序约束检查项；⑭checklist 4B 按 ws/socket.io 两条分支分别标注步骤；⑮createAdmin 补充邮箱全局唯一约束的 MongoServerError 处理说明。 |
+| v1.5 | 2026-05-11 | 修复 6 处实施 bug：①迁移脚本 admin updateMany 把 operator/admin 也升级为 tenant_admin；②`withSystemContext` 从 middleware 迁移到 utils（避免 service→middleware 反向依赖）；③middleware/tenantContext.js 多次 module.exports 改为统一块；④新增 `utils/tenantSlug.js` 消除 upload 两文件的 slugCache 重复；⑤`Checkin.images` 过滤从 `images.0` 改为 `$elemMatch`；⑥补全富文本字段 URL 重写代码（Section.content / Period / Comment / Notification）。补充 3 处歧义说明：TenantsView.vue 字段详细规范、storage key 前缀具体实现、wsToken 重连机制说明、_installHeartbeat 双 connection handler 说明、AuditLog null tenantId 时机。 |
 | v1.4 | 2026-05-10 | 补齐 v1.3-review 后剩余 4 个落地必踩坑：§7.4.5.1/7.4.5.2 真机 header 验证步骤 + jti 一次性 wsToken 颁发/消费接口（取代 access token 走 query 方案）；§7.4.6 第 5 步 nginx `/ws` location 配置 + wscat 验证；§7.4.6 第 6 步 ping/pong 心跳 + 无效连接巡检清理；§6.2 兼容 legacy appId，并补充多 appId 必须有 appSecret 映射 |
 | v1.3-review | 2026-05-10 | 审查 v1.3 后修正原生 ws 与小程序现有 `type` 消息 envelope 不一致、`WebSocket.OPEN` 判断、query token 风险、PM2 多实例单用户多连接漏推；补充旧小程序 `wxAppId` 过渡开关、登录纯 IP 兜底限流、旧 `/uploads` 静态路由必须替换而非并存 |
 | v1.3 | 2026-05-10 | 补齐 v1.2-review 三个实施盲点：§7.4.0 给出 WebSocket 协议二选一决策依据（推荐原生 ws）+ §7.4.6 完整原生 ws 后端改造模板；§7.4.7 给出 PM2 cluster 多实例广播两套实现（redis-adapter 与自实现 ws-pubsub）；§7.8.1 改 multer 动态 destination + 高熵 filename，去除 fs.renameSync 跨设备风险 |
@@ -3924,12 +4222,17 @@ describe('多租户隔离', () => {
 - [ ] **4.1** route 文件按公开/用户/管理员/回调分别挂中间件
 - [ ] **4.2** admin.routes.js 挂载 adminTenantContext
 - [ ] **4.3** 公开路由挂载 publicTenantContext / optionalUserOrPublicTenantContext
-- [ ] **4B.0** WebSocket 协议拍板：原生 ws（推荐）或 Socket.IO（§7.4.0）
-- [ ] **4B.1** WebSocket 后端改造：握手 + 房间命名 + emit 签名带 tenantId（§7.4.1–4 或 §7.4.6）
+- [ ] **4B.0** WebSocket 协议拍板：原生 ws（推荐）或 Socket.IO（§7.4.0）⬅️ **必须先完成，后续步骤依赖此决策**
+- [ ] **4B.1** WebSocket 后端改造（⚠️ 分支选择）：
+  - 若选**原生 ws**（推荐）：完整替换 `websocket.js` → §7.4.6
+  - 若选 **Socket.IO**：修改握手中间件 + 房间命名 → §7.4.1–§7.4.4
+  两种方案均需：握手校验 JWT / wsToken + 房间命名含 tenantId + emit 签名带 tenantId
 - [ ] **4B.1a** wsToken 颁发接口 + 握手同时支持 header / query wsToken（§7.4.5.2）
 - [ ] **4B.1b** nginx `/ws` location upgrade header + 长连接超时配置（§7.4.6 第 5 步）
-- [ ] **4B.1c** WebSocket 心跳 ping/pong 30 秒巡检（§7.4.6 第 6 步）
-- [ ] **4B.2** WebSocket 多实例广播：redis-adapter 或 ws-pubsub.js（§7.4.7）
+- [ ] **4B.1c** WebSocket 心跳 ping/pong 30 秒巡检（§7.4.6 第 6 步，原生 ws 方案必做；Socket.IO 已内置心跳）
+- [ ] **4B.2** WebSocket 多实例广播（⚠️ 分支选择）：
+  - 若选**原生 ws**：自实现 `ws-pubsub.js` + Redis pub/sub → §7.4.7-B
+  - 若选 **Socket.IO**：安装 `@socket.io/redis-adapter` → §7.4.7-A
 - [ ] **4B.3** WebSocket 调用方：grep 全部加 tenantId（§7.4.8）
 - [ ] **4B.4** WebSocket 小程序端按所选协议适配（§7.4.5）；默认接入 wsToken，如只用 header 则必须真机扫码验证（§7.4.5.1）
 - [ ] **4B.5** 3 个 cron service 改造 + 新建 utils/tenantCron.js（§7.5）

@@ -1,14 +1,24 @@
 const axios = require('axios');
 const User = require('../models/User');
 const Checkin = require('../models/Checkin');
+const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
 const subscribeMessageService = require('../services/subscribe-message.service');
 
+function buildParticipatingEnrollmentQuery(userId) {
+  return {
+    userId,
+    status: { $in: ['active', 'completed'] },
+    deleted: { $ne: true }
+  };
+}
+
 // 获取当前用户信息
 async function getCurrentUser(req, res, next) {
   try {
-    const user = await User.findById(req.user.userId);
+    const userId = req.user.userId;
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json(errors.notFound('用户不存在'));
@@ -17,6 +27,11 @@ async function getCurrentUser(req, res, next) {
     if (user.status !== 'active') {
       return res.status(403).json(errors.forbidden('用户已被禁用'));
     }
+
+    const [actualCheckinCount, enrollmentPeriodCount] = await Promise.all([
+      Checkin.countDocuments({ userId }),
+      Enrollment.countDocuments(buildParticipatingEnrollmentQuery(userId))
+    ]);
 
     res.json(
       success({
@@ -27,10 +42,10 @@ async function getCurrentUser(req, res, next) {
         avatarUrl: user.avatarUrl,
         signature: user.signature,
         gender: user.gender,
-        totalCheckinDays: user.totalCheckinDays,
+        totalCheckinDays: actualCheckinCount,
         currentStreak: user.currentStreak,
         maxStreak: user.maxStreak,
-        totalCompletedPeriods: user.totalCompletedPeriods,
+        totalCompletedPeriods: enrollmentPeriodCount,
         totalPoints: user.totalPoints,
         level: user.level,
         role: user.role,
@@ -110,6 +125,11 @@ async function getUserById(req, res, next) {
       return res.status(403).json(errors.forbidden('用户已被禁用'));
     }
 
+    const [actualCheckinCount, enrollmentPeriodCount] = await Promise.all([
+      Checkin.countDocuments({ userId }),
+      Enrollment.countDocuments(buildParticipatingEnrollmentQuery(userId))
+    ]);
+
     res.json(
       success({
         _id: user._id,
@@ -118,10 +138,10 @@ async function getUserById(req, res, next) {
         avatar: user.avatar,
         signature: user.signature,
         gender: user.gender,
-        totalCheckinDays: user.totalCheckinDays,
+        totalCheckinDays: actualCheckinCount,
         currentStreak: user.currentStreak,
         maxStreak: user.maxStreak,
-        totalCompletedPeriods: user.totalCompletedPeriods,
+        totalCompletedPeriods: enrollmentPeriodCount,
         totalPoints: user.totalPoints,
         level: user.level,
         createdAt: user.createdAt
@@ -147,15 +167,18 @@ async function getUserStats(req, res, next) {
       return res.status(404).json(errors.notFound('用户不存在'));
     }
 
-    // 根据实际的打卡记录数计算 totalCheckinDays（不依赖可能不准确的字段）
-    const actualCheckinCount = await Checkin.countDocuments({ userId });
+    // 根据实际记录计算统计值（不依赖可能不准确的用户缓存字段）
+    const [actualCheckinCount, enrollmentPeriodCount] = await Promise.all([
+      Checkin.countDocuments({ userId }),
+      Enrollment.countDocuments(buildParticipatingEnrollmentQuery(userId))
+    ]);
 
     res.json(
       success({
         totalCheckinDays: actualCheckinCount,
         currentStreak: user.currentStreak,
         maxStreak: user.maxStreak,
-        totalCompletedPeriods: user.totalCompletedPeriods,
+        totalCompletedPeriods: enrollmentPeriodCount,
         totalPoints: user.totalPoints,
         level: user.level
       })

@@ -22,12 +22,13 @@
 
   <!-- 底部按钮 -->
   <view class="action-buttons">
-    <button class="btn-back" bindtap="handleBack">返回</button>
-    <button class="btn-long-share" bindtap="handleLongImageShare">{{posterGenerating ? '生成中...' : '长图分享'}}</button>
+    <button class="action-btn btn-back" bindtap="handleBack">返回</button>
+    <button class="action-btn btn-long-share" data-mode="hd" bindtap="handleLongImageShare">{{posterGenerating && posterGeneratingMode === 'hd' ? '生成中' : '高清长图'}}</button>
+    <button class="action-btn btn-full-share" data-mode="full" bindtap="handleLongImageShare">{{posterGenerating && posterGeneratingMode === 'full' ? '生成中' : '完整长图'}}</button>
     <!-- 生产环境：仅显示微信分享按钮 -->
     <!-- 开发环境：显示分享菜单按钮 -->
-    <button wx:if="{{isDev}}" class="btn-share" bindtap="openShareMenu">分享</button>
-    <button wx:else class="btn-share" open-type="share">微信好友</button>
+    <button wx:if="{{isDev}}" class="action-btn btn-share" bindtap="openShareMenu">微信好友</button>
+    <button wx:else class="action-btn btn-share" open-type="share">微信好友</button>
   </view>
 
   <!-- 长图生成画布（隐藏） -->

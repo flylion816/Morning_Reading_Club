@@ -66,6 +66,7 @@ Page({
       // 转换数据：添加 avatarColor 和头像文字
       const list = res.list.map(item => ({
         ...item,
+        avatarUrl: item.avatarUrl || '',
         avatarColor: getAvatarColorByUserId(item.userId),
         avatarText: item.nickname.charAt(item.nickname.length - 1)
       }));
@@ -73,6 +74,10 @@ Page({
       const currentUser = res.currentUser
         ? {
             ...res.currentUser,
+            avatarUrl: res.currentUser.avatarUrl || '',
+            rankText: res.currentUser.rank
+              ? `我的排名：第${res.currentUser.rank}名`
+              : '我的排名：暂未上榜',
             avatarColor: getAvatarColorByUserId(res.currentUser.userId),
             avatarText: res.currentUser.nickname.charAt(res.currentUser.nickname.length - 1)
           }

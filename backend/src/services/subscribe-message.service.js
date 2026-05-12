@@ -79,6 +79,40 @@ function stringifyTemplateValue(value) {
   return String(value);
 }
 
+function truncateTemplateValue(value, maxLength) {
+  const normalized = stringifyTemplateValue(value)
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized || normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  if (maxLength <= 3) {
+    return normalized.slice(0, maxLength);
+  }
+
+  return `${normalized.slice(0, maxLength - 3)}...`;
+}
+
+function normalizeTemplateValueByKey(fieldKey, value) {
+  const normalizedKey = String(fieldKey || '');
+
+  if (normalizedKey.startsWith('thing')) {
+    return truncateTemplateValue(value, 20);
+  }
+
+  if (normalizedKey.startsWith('name')) {
+    return truncateTemplateValue(value, 10);
+  }
+
+  if (normalizedKey.startsWith('phrase')) {
+    return truncateTemplateValue(value, 5);
+  }
+
+  return truncateTemplateValue(value, 32);
+}
+
 class SubscribeMessageService {
   constructor() {
     this.accessToken = null;
@@ -113,8 +147,9 @@ class SubscribeMessageService {
     }
 
     return sceneConfig.fieldDefinitions.reduce((result, field) => {
-      result[fieldKeyMap[field.name]] = {
-        value: stringifyTemplateValue(fields[field.name])
+      const fieldKey = fieldKeyMap[field.name];
+      result[fieldKey] = {
+        value: normalizeTemplateValueByKey(fieldKey, fields[field.name])
       };
       return result;
     }, {});
@@ -410,6 +445,11 @@ class SubscribeMessageService {
     return this.accessToken;
   }
 
+  clearAccessTokenCache() {
+    this.accessToken = null;
+    this.accessTokenExpiresAt = 0;
+  }
+
   async sendSceneMessage({
     scene,
     recipientUserId,
@@ -562,13 +602,25 @@ class SubscribeMessageService {
         data: templateData
       };
 
-      const response = await axios.post(
+      let response = await axios.post(
         `https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=${accessToken}`,
         payload,
         {
           timeout: 5000
         }
       );
+
+      if (Number(response.data?.errcode) === 40001) {
+        this.clearAccessTokenCache();
+        const refreshedAccessToken = await this.getAccessToken();
+        response = await axios.post(
+          `https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=${refreshedAccessToken}`,
+          payload,
+          {
+            timeout: 5000
+          }
+        );
+      }
 
       if (response.data.errcode && response.data.errcode !== 0) {
         await this.restoreGrantInventoryIfNeeded(grant, {

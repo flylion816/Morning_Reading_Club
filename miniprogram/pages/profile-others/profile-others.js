@@ -1,4 +1,5 @@
 const userService = require('../../services/user.service');
+const enrollmentService = require('../../services/enrollment.service');
 const logger = require('../../utils/logger');
 
 Page({
@@ -7,6 +8,31 @@ Page({
     periodId: null,
     userInfo: {},
     stats: {}
+  },
+
+  normalizeAvatarUrl(avatarUrl) {
+    if (!avatarUrl) {
+      return '';
+    }
+
+    if (typeof userService.toAbsoluteFileUrl === 'function') {
+      return userService.toAbsoluteFileUrl(avatarUrl);
+    }
+
+    return avatarUrl;
+  },
+
+  countParticipatingEnrollments(enrollmentResponse) {
+    const list = Array.isArray(enrollmentResponse?.list)
+      ? enrollmentResponse.list
+      : Array.isArray(enrollmentResponse)
+        ? enrollmentResponse
+        : [];
+
+    return list.filter(item =>
+      ['active', 'completed'].includes(item.status) &&
+      item.deleted !== true
+    ).length;
   },
 
   onLoad(options) {
@@ -33,8 +59,19 @@ Page({
     try {
       logger.debug('加载用户资料，ID:', this.data.userId);
 
-      // 调用API获取用户信息
-      const userInfo = await userService.getUserById(this.data.userId);
+      const [userInfo, enrollmentResponse] = await Promise.all([
+        userService.getUserById(this.data.userId),
+        enrollmentService
+          .getUserEnrollmentsByUserId(this.data.userId, { limit: 100 })
+          .catch(error => {
+            logger.warn('加载他人报名列表失败，使用用户资料中的统计值:', error);
+            return null;
+          })
+      ]);
+      const participatingPeriodCount =
+        enrollmentResponse
+          ? this.countParticipatingEnrollments(enrollmentResponse)
+          : userInfo.totalCompletedPeriods || 0;
 
       logger.debug('用户信息:', userInfo);
 
@@ -42,15 +79,15 @@ Page({
         userInfo: {
           _id: userInfo._id,
           nickname: userInfo.nickname,
-          avatarUrl: userInfo.avatarUrl,
+          avatarUrl: this.normalizeAvatarUrl(userInfo.avatarUrl),
           avatar: userInfo.avatar,
           signature: userInfo.signature,
           totalCheckinDays: userInfo.totalCheckinDays || 0,
-          totalCompletedPeriods: userInfo.totalCompletedPeriods || 0
+          totalCompletedPeriods: participatingPeriodCount
         },
         stats: {
           totalCheckinDays: userInfo.totalCheckinDays || 0,
-          totalCompletedPeriods: userInfo.totalCompletedPeriods || 0
+          totalCompletedPeriods: participatingPeriodCount
         }
       });
     } catch (error) {

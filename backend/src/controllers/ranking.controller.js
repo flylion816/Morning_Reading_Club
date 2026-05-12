@@ -5,6 +5,10 @@ const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 
+function getRequestUserId(req) {
+  return req.user?.userId || req.user?.id || req.user?._id || '';
+}
+
 /**
  * 获取期次排行榜
  * 按照期次内的打卡次数排名
@@ -19,7 +23,7 @@ async function getPeriodRanking(req, res, next) {
       limit = 20
     } = req.query;
 
-    const { userId } = req.user;
+    const userId = getRequestUserId(req);
 
     // 验证期次是否存在
     const period = await Period.findById(periodId);
@@ -148,12 +152,17 @@ async function getPeriodRanking(req, res, next) {
     }));
 
     // 获取当前用户的排名和打卡次数
-    const currentUserIndex = countResult.findIndex(item => item._id.toString() === userId);
+    const currentUserIndex = countResult.findIndex(
+      item => String(item._id) === String(userId)
+    );
 
     let currentUser = null;
-    if (currentUserIndex !== -1) {
+    const currentUserInfo = userId
+      ? await User.findById(userId).select('nickname avatar avatarUrl')
+      : null;
+
+    if (currentUserIndex !== -1 && currentUserInfo) {
       const currentUserData = countResult[currentUserIndex];
-      const currentUserInfo = await User.findById(userId).select('nickname avatar avatarUrl');
       currentUser = {
         rank: currentUserIndex + 1,
         userId,
@@ -161,6 +170,15 @@ async function getPeriodRanking(req, res, next) {
         avatar: currentUserInfo.avatar,
         avatarUrl: currentUserInfo.avatarUrl,
         checkinCount: currentUserData.checkinCount
+      };
+    } else if (currentUserInfo) {
+      currentUser = {
+        rank: null,
+        userId,
+        nickname: currentUserInfo.nickname,
+        avatar: currentUserInfo.avatar,
+        avatarUrl: currentUserInfo.avatarUrl,
+        checkinCount: 0
       };
     }
 

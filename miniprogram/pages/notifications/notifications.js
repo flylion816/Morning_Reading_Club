@@ -81,6 +81,33 @@ Page({
     return /^(https?:\/\/|wxfile:\/\/|cloud:\/\/|data:image\/|\/)/i.test(normalized);
   },
 
+  getFirstTextChar(value = '') {
+    return Array.from(String(value || '').trim())[0] || '';
+  },
+
+  resolveSenderAvatar(notification = {}) {
+    const sender = notification?.displaySender || notification?.senderId || {};
+    const candidates = [
+      sender?.avatarUrl,
+      sender?.avatar,
+      notification?.data?.senderAvatar
+    ].filter(value => value !== null && value !== undefined && String(value).trim());
+
+    const imageSource = candidates.find(value => this.isImageSource(value));
+    if (imageSource) {
+      return {
+        image: String(imageSource).trim(),
+        text: ''
+      };
+    }
+
+    const textSource = candidates.find(value => !this.isImageSource(value));
+    return {
+      image: '',
+      text: textSource ? this.getFirstTextChar(textSource) : ''
+    };
+  },
+
   getNotificationRequestId(notification = {}) {
     return (
       notification?.requestId?._id ||
@@ -227,11 +254,15 @@ Page({
   },
 
   decorateNotification(notification = {}) {
-    const sender = notification?.senderId || {};
-    const senderName = notification?.data?.senderName || sender?.nickname || '';
-    const rawSenderAvatar =
-      notification?.data?.senderAvatar || sender?.avatarUrl || sender?.avatar || '';
-    const senderAvatar = this.isImageSource(rawSenderAvatar) ? rawSenderAvatar : '';
+    const sender = notification?.displaySender || notification?.senderId || {};
+    const senderName = sender?.nickname || notification?.data?.senderName || '';
+    const senderAvatar = this.resolveSenderAvatar(notification);
+    const senderUserId =
+      sender?._id ||
+      sender?.id ||
+      notification?.data?.senderId ||
+      (typeof notification?.senderId === 'string' ? notification.senderId : '') ||
+      '';
 
     return {
       ...notification,
@@ -240,8 +271,12 @@ Page({
       typeColor: notificationService.getTypeColor(notification.type),
       formattedTime: notificationService.formatTime(notification.createdAt),
       senderName,
-      senderAvatar,
+      senderAvatar: senderAvatar.image,
+      senderAvatarText: senderAvatar.text,
+      senderInitial: this.getFirstTextChar(senderName),
+      senderUserId,
       requestIdValue: this.getNotificationRequestId(notification),
+      periodIdValue: this.getNotificationPeriodId(notification),
       resolvedTargetPage: this.resolveNotificationTarget(notification),
       actionText: this.getNotificationActionText(notification)
     };
@@ -381,6 +416,16 @@ Page({
     if (targetPage) {
       this.navigateByTargetPage(targetPage);
     }
+  },
+
+  handleSenderAvatarTap(event) {
+    const { userId, periodId } = event.currentTarget.dataset;
+    if (!userId) {
+      return;
+    }
+
+    const targetPage = this.buildProfileOthersTargetPage(userId, { periodId });
+    this.navigateByTargetPage(targetPage);
   },
 
   handleDelete(event) {

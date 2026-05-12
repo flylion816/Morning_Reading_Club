@@ -63,6 +63,7 @@ function buildInsightRequestDisplay(item) {
     _id: item._id || item.id,
     fromUserId: fromUser._id || fromUser.id || item.fromUserId || null,
     fromUserName: fromUser.nickname || fromUser.name || '用户',
+    fromUserAvatarUrl: fromUser.avatarUrl || '',
     fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
     avatarColor: fromUser.avatarColor || '#4a90e2',
     time: formatRelativeTime(item.createdAt),
@@ -199,6 +200,20 @@ Page({
 
     if (!userId) {
       console.warn('请求记录缺少发起用户ID，无法跳转');
+      return;
+    }
+
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (periodId) {
+      url += `&periodId=${periodId}`;
+    }
+
+    wx.navigateTo({ url });
+  },
+
+  handleRequestAvatarClick(e) {
+    const { userId, periodId } = e.currentTarget.dataset;
+    if (!userId) {
       return;
     }
 

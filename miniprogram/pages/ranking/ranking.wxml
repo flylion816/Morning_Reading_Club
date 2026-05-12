@@ -3,11 +3,12 @@
   <!-- 当前用户信息卡片 -->
   <view class="user-card" wx:if="{{currentUser}}">
     <view class="user-info">
-      <view class="user-avatar" style="background: {{currentUser.avatarColor}}">
-        <text class="avatar-text">{{currentUser.avatarText}}</text>
+      <view class="user-avatar" style="background: {{currentUser.avatarColor}}" catchtap="handleAvatarClick" data-user-id="{{currentUser.userId}}">
+        <image wx:if="{{currentUser.avatarUrl}}" class="avatar-image" src="{{currentUser.avatarUrl}}" mode="aspectFill" />
+        <text wx:else class="avatar-text">{{currentUser.avatarText}}</text>
       </view>
       <view class="user-details">
-        <view class="user-rank">我的排名：第{{currentUser.rank}}名</view>
+        <view class="user-rank">{{currentUser.rankText}}</view>
         <view class="user-stats">已打卡 {{currentUser.checkinCount}} 天</view>
       </view>
     </view>
@@ -17,7 +18,7 @@
   <!-- 当前用户未参与此时间范围 -->
   <view class="user-card" wx:else>
     <view class="user-info">
-      <text class="empty-message">该时间范围内暂无打卡记录</text>
+      <text class="empty-message">我在该时间范围内暂无打卡记录</text>
     </view>
     <view class="participant-count">{{participantCount}} 人参与</view>
   </view>
@@ -55,7 +56,8 @@
 
       <!-- 用户信息 -->
       <view class="user-avatar" style="background: {{item.avatarColor}}">
-        <text class="avatar-text">{{item.avatarText}}</text>
+        <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
+        <text wx:else class="avatar-text">{{item.avatarText}}</text>
       </view>
       <view class="user-name">{{item.nickname}}</view>
 

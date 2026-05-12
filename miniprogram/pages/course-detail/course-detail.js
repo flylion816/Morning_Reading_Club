@@ -22,6 +22,7 @@ const MINI_PROGRAM_CODE_ASSET_PATHS = [
 const SECTION_CHECKIN_FETCH_LIMIT = 30;
 const CHECKIN_CONTENT_FOLD_LINE_LIMIT = 6;
 const CHECKIN_CONTENT_FOLD_UNITS_PER_LINE = 18;
+const GENERIC_AVATAR_NAMES = new Set(['用户', '匿名用户', '匿名', 'user', 'member']);
 
 const POSTER_STYLE_PRESETS = [
   {
@@ -134,7 +135,8 @@ Page({
     highlightReplyId: '',
     checkinPage: 1,
     checkinHasMore: false,
-    checkinLoadingMore: false
+    checkinLoadingMore: false,
+    readingContentExpanded: false
   },
 
   onLoad(options) {
@@ -368,6 +370,164 @@ Page({
     }
   },
 
+  getAvatarDisplayInfo(user, options = {}) {
+    const fallbackName = options.fallbackName || '用户';
+    const fallbackAvatarText = options.fallbackAvatarText || this.getNameAvatarText(fallbackName);
+    const suppressGenericFallback = !!options.suppressGenericFallback;
+
+    if (!user) {
+      return {
+        avatarUrl: '',
+        avatarText: suppressGenericFallback ? '' : fallbackAvatarText,
+        avatarIsEmoji: false,
+        avatarColor: getAvatarColorByUserId(fallbackName),
+        userId: '',
+        isGenericAvatar: suppressGenericFallback
+      };
+    }
+
+    if (typeof user === 'string') {
+      const knownUser = this.findKnownUserById(user);
+      if (knownUser) {
+        return this.getAvatarDisplayInfo(knownUser, options);
+      }
+
+      return {
+        userId: String(user),
+        avatarUrl: '',
+        avatarText: suppressGenericFallback ? '' : fallbackAvatarText,
+        avatarIsEmoji: false,
+        avatarColor: getAvatarColorByUserId(user),
+        isGenericAvatar: suppressGenericFallback
+      };
+    }
+
+    const name =
+      user.nickname ||
+      user.name ||
+      user.userName ||
+      user.displayName ||
+      fallbackName;
+    const avatarValue = typeof user.avatar === 'string' ? user.avatar.trim() : '';
+    const userId = String(user._id || user.id || user.userId || '');
+    let avatarUrl = user.avatarUrl || '';
+    let avatarText = '';
+
+    if (!avatarUrl && avatarValue.startsWith('http')) {
+      avatarUrl = avatarValue;
+    }
+
+    if (!avatarUrl) {
+      if (name && !GENERIC_AVATAR_NAMES.has(String(name).trim().toLowerCase())) {
+        avatarText = this.getNameAvatarText(name, fallbackAvatarText);
+      } else {
+        avatarText = suppressGenericFallback ? '' : fallbackAvatarText;
+      }
+    }
+
+    return {
+      userId,
+      avatarUrl,
+      avatarText: avatarText || (suppressGenericFallback ? '' : fallbackAvatarText),
+      avatarIsEmoji: false,
+      avatarColor: user.avatarColor || getAvatarColorByUserId(userId || name || fallbackName),
+      isGenericAvatar: !avatarUrl && !avatarText && suppressGenericFallback
+    };
+  },
+
+  getNameAvatarText(name, fallback = '用') {
+    const text = String(name || '').trim();
+    if (!text) return fallback;
+    return text.charAt(text.length - 1);
+  },
+
+  findKnownUserById(userId) {
+    const targetId = String(userId || '');
+    if (!targetId) return null;
+
+    const comments = this.data.course?.comments || [];
+    const candidates = [];
+    comments.forEach((item) => {
+      candidates.push(item);
+      (item.replies || []).forEach((reply) => {
+        candidates.push(reply);
+        (reply.replies || []).forEach((nestedReply) => candidates.push(nestedReply));
+      });
+    });
+    if (this.data.detailCheckin) {
+      candidates.push(this.data.detailCheckin);
+      (this.data.detailCheckin.replies || []).forEach((reply) => candidates.push(reply));
+    }
+
+    const matched = candidates.find((item) => String(item.userId || '') === targetId);
+    if (matched) {
+      return {
+        _id: matched.userId,
+        nickname: matched.userName,
+        avatar: '',
+        avatarUrl: matched.avatarUrl || '',
+        avatarColor: matched.avatarColor || getAvatarColorByUserId(matched.userId || matched.userName)
+      };
+    }
+
+    const app = getApp();
+    const currentUser = app.globalData.userInfo || {};
+    const currentUserId = String(currentUser._id || currentUser.id || '');
+    return currentUserId && currentUserId === targetId ? currentUser : null;
+  },
+
+  getLikeAvatarInfo(user) {
+    if (!user) return null;
+
+    // populate 成功：like.userId 是用户对象，有 _id 或 nickname
+    if (typeof user === 'object' && (user._id || user.id || user.nickname || user.avatarUrl)) {
+      const name = user.nickname || user.name || user.userName || '';
+      return this.getAvatarDisplayInfo(user, {
+        fallbackName: name || '赞',
+        fallbackAvatarText: name ? this.getNameAvatarText(name) : '赞',
+        suppressGenericFallback: false
+      });
+    }
+
+    // populate 失败：like.userId || like 拿到的是原始 like 文档 {userId: ObjectId, createdAt}
+    // 或者 like.userId 是字符串 ObjectId
+    const userId = typeof user === 'string'
+      ? user
+      : String(user.userId || '');
+
+    if (!userId) return null;
+
+    const knownUser = this.findKnownUserById(userId);
+    if (knownUser) {
+      return this.getAvatarDisplayInfo(knownUser, {
+        fallbackName: knownUser.nickname || '赞',
+        fallbackAvatarText: this.getNameAvatarText(knownUser.nickname || '赞'),
+        suppressGenericFallback: false
+      });
+    }
+
+    return {
+      userId,
+      avatarUrl: '',
+      avatarText: '赞',
+      avatarIsEmoji: false,
+      avatarColor: getAvatarColorByUserId(userId),
+      isGenericAvatar: true
+    };
+  },
+
+  getLikeAvatarsFromLikes(likes = []) {
+    if (!Array.isArray(likes)) return [];
+    return likes
+      .map((like) => this.getLikeAvatarInfo(like.userId || like))
+      .filter(Boolean);
+  },
+
+  getDisplayLikeAvatars(likeAvatars) {
+    if (!likeAvatars || !Array.isArray(likeAvatars)) return [];
+    return likeAvatars.slice(0, 4);
+  },
+
   buildCheckinItem(checkin = {}) {
     const app = getApp();
     const currentUserId =
@@ -385,7 +545,11 @@ Page({
         ? checkin.periodId
         : {};
     const userName = userInfo.nickname || checkin.userName || '匿名用户';
-    const avatarUrl = userInfo.avatarUrl || '';
+    const avatarSource = {
+      ...userInfo,
+      avatarUrl: userInfo.avatarUrl || checkin.avatarUrl || '',
+      avatar: userInfo.avatar || checkin.avatar || ''
+    };
     const normalizedUserId = this.normalizeId(
       userInfo._id || userInfo.id || checkin.userId || userName
     );
@@ -408,8 +572,10 @@ Page({
           this.data.courseId
       ),
       userName,
-      avatarText: avatarUrl ? '' : userName ? userName.charAt(0) : '👤',
-      avatarUrl,
+      ...this.getAvatarDisplayInfo(avatarSource, {
+        fallbackName: userName,
+        fallbackAvatarText: this.getNameAvatarText(userName)
+      }),
       avatarColor:
         checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
       content,
@@ -430,6 +596,8 @@ Page({
                 ) === String(currentUserId)
             )
           : false,
+      likeAvatars: this.getLikeAvatarsFromLikes(checkin.likes),
+      displayLikeAvatars: this.getDisplayLikeAvatars(this.getLikeAvatarsFromLikes(checkin.likes)),
       replies: [],
       day: checkin.day ?? sectionInfo.day ?? this.data.course?.day ?? null,
       sectionDay:
@@ -588,6 +756,10 @@ Page({
     this.syncCheckinContentExpandedState(checkinId, expanded);
   },
 
+  toggleReadingContent() {
+    this.setData({ readingContentExpanded: !this.data.readingContentExpanded });
+  },
+
   getPosterTextUnits(text = '') {
     return Array.from(String(text)).reduce((sum, char) => {
       return sum + (/[^\x00-\xff]/.test(char) ? 2 : 1);
@@ -633,32 +805,45 @@ Page({
     return lines.length > 0 ? lines : [''];
   },
 
+  normalizePosterContent(text = '') {
+    return String(text || '')
+      .replace(/\[爱心\]/g, '❤️')
+      .replace(/\[拥抱\]/g, '🤗')
+      .replace(/\[玫瑰\]/g, '🌹')
+      .replace(/\[玫瑰花\]/g, '🌹');
+  },
+
   buildPosterSnapshot(detailCheckin, stylePreset = POSTER_STYLE_PRESETS[0]) {
-    const contentText = String(
+    const contentText = this.normalizePosterContent(
       detailCheckin?.content || '这篇打卡还没有填写正文'
     );
-    const contentLines = this.wrapPosterText(contentText, 34);
+    const contentWrapUnits = stylePreset.id === 'paper' ? 50 : 52;
+    const titleWrapUnits = stylePreset.id === 'paper' ? 28 : 30;
+    const tagWrapUnits = stylePreset.id === 'paper' ? 36 : 38;
+    const contentLines = this.wrapPosterText(contentText, contentWrapUnits);
     const titleLines = this.wrapPosterText(
       `${detailCheckin?.userName || '伙伴'}的打卡日记`,
-      22
+      titleWrapUnits
     );
     const tagLines = detailCheckin?.hashTag
-      ? this.wrapPosterText(detailCheckin.hashTag, 28)
+      ? this.wrapPosterText(detailCheckin.hashTag, tagWrapUnits)
       : [];
     const periodChip =
       detailCheckin?.periodChip || detailCheckin?.sectionTitle || '晨读任务';
     const dateLabel = detailCheckin?.dateLabel || '';
     const sectionTitle = detailCheckin?.sectionTitle || '晨读任务';
     const statsLine = `获赞 ${detailCheckin?.likeCount || 0} · 评论 ${detailCheckin?.commentCount || 0}`;
-    const lineHeight = 54;
+    const titleLineHeight = 54;
+    const contentLineHeight = 52;
+    const tagLineHeight = 42;
+    const footerHeight = 270;
     const baseHeight =
-      180 +
-      titleLines.length * 54 +
-      120 +
-      contentLines.length * lineHeight +
-      (tagLines.length > 0 ? tagLines.length * 44 + 20 : 0) +
-      170 +
-      110;
+      220 +
+      titleLines.length * titleLineHeight +
+      96 +
+      contentLines.length * contentLineHeight +
+      (tagLines.length > 0 ? tagLines.length * tagLineHeight + 24 : 0) +
+      footerHeight;
 
     return {
       width: 1040,
@@ -670,6 +855,7 @@ Page({
       dateLabel,
       sectionTitle,
       statsLine,
+      contentWrapUnits,
       authorName: detailCheckin?.userName || '伙伴',
       authorMeta: detailCheckin?.metaLine || '打卡日记',
       avatarText:
@@ -679,7 +865,8 @@ Page({
       miniProgramCodePath: MINI_PROGRAM_CODE_ASSET_PATHS[0],
       styleId: stylePreset.id,
       styleName: stylePreset.name,
-      stylePreset
+      stylePreset,
+      footerHeight
     };
   },
 
@@ -1002,7 +1189,7 @@ Page({
 
     this.drawPosterDecoration(ctx, snapshot, stylePreset);
 
-    const avatarGradient = ctx.createLinearGradient(96, 160, 220, 260);
+    const avatarGradient = ctx.createLinearGradient(92, 152, 220, 262);
     avatarGradient.addColorStop(0, stylePreset.accentColors[0]);
     avatarGradient.addColorStop(1, stylePreset.accentColors[1]);
     ctx.fillStyle = avatarGradient;
@@ -1025,8 +1212,8 @@ Page({
     ctx.font = 'bold 34px sans-serif';
     ctx.fillText(snapshot.authorName, 204, 182);
 
-    const contentStartX = stylePreset.id === 'paper' ? 152 : 96;
-    let cursorY = stylePreset.id === 'paper' ? 242 : 260;
+    const contentStartX = 72;
+    let cursorY = stylePreset.id === 'paper' ? 240 : 250;
     ctx.fillStyle = stylePreset.id === 'paper' ? '#22324a' : '#111827';
     ctx.font = 'bold 44px sans-serif';
     cursorY = this.drawPosterTextLines(
@@ -1050,7 +1237,7 @@ Page({
       snapshot.contentLines,
       contentStartX,
       cursorY,
-      56
+      52
     );
 
     if (snapshot.tagLines.length > 0) {
@@ -1062,11 +1249,11 @@ Page({
         snapshot.tagLines,
         contentStartX,
         cursorY,
-        44
+        42
       );
     }
 
-    cursorY += 40;
+    cursorY += 44;
     const chipPadding = 24;
     ctx.font = '24px sans-serif';
     const chipTextParam = snapshot.periodChip;
@@ -1084,41 +1271,56 @@ Page({
     ctx.font = '24px sans-serif';
     ctx.fillText(chipTextParam, contentStartX + chipPadding, cursorY + 10);
 
-    cursorY += 84;
+    const footerTop = Math.max(
+      cursorY + 74,
+      snapshot.height - (snapshot.footerHeight || 270) - 64
+    );
+    const footerBottom = snapshot.height - 68;
+    const footerCardX = 60;
+    const footerCardWidth = snapshot.width - 120;
+    const footerCardHeight = footerBottom - footerTop + 16;
+    this.drawPosterRoundedRect(
+      ctx,
+      footerCardX,
+      footerTop - 24,
+      footerCardWidth,
+      footerCardHeight,
+      28,
+      '#f8fbff'
+    );
+    this.drawPosterOutline(
+      ctx,
+      footerCardX,
+      footerTop - 24,
+      footerCardWidth,
+      footerCardHeight,
+      28,
+      '#edf3fb',
+      2
+    );
+
+    const footerTextX = contentStartX + 8;
+    const footerTextY = footerTop + 30;
+    ctx.fillStyle = '#607089';
+    ctx.font = '24px sans-serif';
+    ctx.fillText('凡人共读 · 动态详情长图', footerTextX, footerTextY);
     ctx.fillStyle = '#8b94a5';
+    ctx.font = '22px sans-serif';
+    ctx.fillText('打开小程序查看完整评论与互动', footerTextX, footerTextY + 42);
+    ctx.fillStyle = '#5f6f82';
     ctx.font = '24px sans-serif';
     if (snapshot.dateLabel) {
-      ctx.fillText(snapshot.dateLabel, contentStartX, cursorY);
+      ctx.fillText(snapshot.dateLabel, footerTextX, footerTextY + 84);
     }
-
-    cursorY += 56;
-    ctx.fillText(snapshot.statsLine, contentStartX, cursorY);
-
-    ctx.strokeStyle = '#f1f5f9';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(96, snapshot.height - 250);
-    ctx.lineTo(snapshot.width - 96, snapshot.height - 250);
-    ctx.stroke();
-
-    ctx.fillStyle = stylePreset.footerText;
+    ctx.fillStyle = '#8b94a5';
     ctx.font = '24px sans-serif';
-    ctx.fillText(
-      '凡人共读 · 动态详情长图',
-      contentStartX,
-      snapshot.height - 170
-    );
-    ctx.fillText(
-      '打开小程序查看完整评论与互动',
-      contentStartX,
-      snapshot.height - 130
-    );
+    ctx.fillText(snapshot.statsLine, footerTextX, footerTextY + 120);
 
     if (miniProgramCodeImage && typeof ctx.drawImage === 'function') {
       const qrCardSize = 120;
       const qrPadding = 10;
-      const qrCardX = snapshot.width - 96 - qrCardSize;
-      const qrCardY = snapshot.height - 216;
+      const qrCardX = snapshot.width - 72 - qrCardSize;
+      const qrCardY = footerTop + Math.max((footerCardHeight - qrCardSize) / 2, 0);
 
       this.drawPosterRoundedRect(
         ctx,
@@ -1746,6 +1948,13 @@ Page({
     wx.navigateBack();
   },
 
+  handleImmersiveReading() {
+    const { courseId, periodId } = this.data;
+    wx.navigateTo({
+      url: `/pages/reading-mode/reading-mode?id=${courseId}&periodId=${periodId || ''}`
+    });
+  },
+
   handleCheckinDetailTap(e) {
     const { checkinId, sectionId } = e.currentTarget.dataset;
     this.openCheckinDetail(checkinId, sectionId || this.data.courseId);
@@ -1863,14 +2072,15 @@ Page({
                         ) === String(currentUserId)
                     )
                   : false;
+              const replyLikeAvatars = this.getLikeAvatarsFromLikes(reply.likes);
               return {
                 id: reply._id,
                 userId: reply.userId?._id || reply.userId,
                 userName: reply.userId?.nickname || '匿名用户',
-                avatarText: reply.userId?.nickname
-                  ? reply.userId.nickname.charAt(0)
-                  : '👤',
-                avatarUrl: reply.userId?.avatarUrl || '',
+                ...this.getAvatarDisplayInfo(reply.userId, {
+                  fallbackName: '匿名用户',
+                  fallbackAvatarText: this.getNameAvatarText(reply.userId?.nickname || '匿名用户')
+                }),
                 avatarColor: getAvatarColorByUserId(
                   reply.userId?._id ||
                     reply.userId ||
@@ -1883,6 +2093,8 @@ Page({
                   : '刚刚',
                 likeCount: reply.likeCount || 0,
                 isLiked,
+                likeAvatars: replyLikeAvatars,
+                displayLikeAvatars: this.getDisplayLikeAvatars(replyLikeAvatars),
                 parentId: comment._id
               };
             }
@@ -1896,15 +2108,16 @@ Page({
                     String(currentUserId)
                 )
               : false;
+          const commentLikeAvatars = this.getLikeAvatarsFromLikes(comment.likes);
 
           return {
             id: comment._id,
             userId: comment.userId?._id || comment.userId,
             userName: comment.userId?.nickname || '匿名用户',
-            avatarText: comment.userId?.nickname
-              ? comment.userId.nickname.charAt(0)
-              : '👤',
-            avatarUrl: comment.userId?.avatarUrl || '',
+            ...this.getAvatarDisplayInfo(comment.userId, {
+              fallbackName: '匿名用户',
+              fallbackAvatarText: this.getNameAvatarText(comment.userId?.nickname || '匿名用户')
+            }),
             avatarColor: getAvatarColorByUserId(
               comment.userId?._id ||
                 comment.userId ||
@@ -1917,6 +2130,8 @@ Page({
               : '刚刚',
             likeCount: comment.likeCount || 0,
             isLiked: isCommentLiked,
+            likeAvatars: commentLikeAvatars,
+            displayLikeAvatars: this.getDisplayLikeAvatars(commentLikeAvatars),
             replies: formattedNestedReplies
           };
         });
@@ -2058,6 +2273,9 @@ Page({
 
     this.triggerAutoTopUp('course_detail_like_checkin');
 
+    const app = getApp();
+    const currentUserId = String(app.globalData.userInfo?._id || app.globalData.userInfo?.id || '');
+
     const { id } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
     const comment = comments.find((c) => c.id === id);
@@ -2073,6 +2291,10 @@ Page({
         await commentService.unlikeCheckin(id);
         comment.likeCount = Math.max(0, comment.likeCount - 1);
         comment.isLiked = false;
+        if (comment.likeAvatars) {
+          comment.likeAvatars = comment.likeAvatars.filter(l => String(l.userId) !== currentUserId);
+          comment.displayLikeAvatars = this.getDisplayLikeAvatars(comment.likeAvatars);
+        }
         console.log(`✅ 取消点赞成功: 当前点赞数=${comment.likeCount}`);
       } else {
         // 点赞打卡记录
@@ -2086,6 +2308,16 @@ Page({
         });
         comment.likeCount += 1;
         comment.isLiked = true;
+        if (!comment.likeAvatars) comment.likeAvatars = [];
+        const currentUserInfo = this.getLikeAvatarInfo(app.globalData.userInfo);
+        comment.likeAvatars.unshift({
+          userId: currentUserId,
+          avatarUrl: currentUserInfo.avatarUrl,
+          avatarText: currentUserInfo.avatarText,
+          avatarIsEmoji: currentUserInfo.avatarIsEmoji,
+          avatarColor: currentUserInfo.avatarColor
+        });
+        comment.displayLikeAvatars = this.getDisplayLikeAvatars(comment.likeAvatars);
         console.log(`✅ 点赞成功: 当前点赞数=${comment.likeCount}`);
       }
 
@@ -2153,12 +2385,10 @@ Page({
               id: replyData._id || replyData.id || Date.now(),
               userId: currentUser?._id || currentUser?.id,
               userName: currentUser?.nickname || '我',
-              avatarText: currentUser?.avatarUrl
-                ? ''
-                : currentUser?.nickname
-                  ? currentUser.nickname.charAt(0)
-                  : '我',
-              avatarUrl: currentUser?.avatarUrl || '',
+              ...this.getAvatarDisplayInfo(currentUser, {
+                fallbackName: currentUser?.nickname || '我',
+                fallbackAvatarText: this.getNameAvatarText(currentUser?.nickname || '我')
+              }),
               avatarColor: getAvatarColorByUserId(
                 currentUser?._id ||
                   currentUser?.id ||
@@ -2208,6 +2438,9 @@ Page({
     }
 
     this.triggerAutoTopUp('course_detail_like_reply');
+
+    const app = getApp();
+    const currentUserId = String(app.globalData.userInfo?._id || app.globalData.userInfo?.id || '');
 
     const { commentId, replyId } = e.currentTarget.dataset;
     const comments = this.data.course.comments;
@@ -2262,6 +2495,10 @@ Page({
         }
         reply.likeCount = Math.max(0, reply.likeCount - 1);
         reply.isLiked = false;
+        if (reply.likeAvatars) {
+          reply.likeAvatars = reply.likeAvatars.filter(l => String(l.userId) !== currentUserId);
+          reply.displayLikeAvatars = this.getDisplayLikeAvatars(reply.likeAvatars);
+        }
         console.log(`✅ 取消点赞成功: 当前点赞数=${reply.likeCount}`);
       } else {
         // 点赞评论
@@ -2281,6 +2518,16 @@ Page({
         });
         reply.likeCount = (reply.likeCount || 0) + 1;
         reply.isLiked = true;
+        if (!reply.likeAvatars) reply.likeAvatars = [];
+        const currentUserInfo = this.getLikeAvatarInfo(app.globalData.userInfo);
+        reply.likeAvatars.unshift({
+          userId: currentUserId,
+          avatarUrl: currentUserInfo.avatarUrl,
+          avatarText: currentUserInfo.avatarText,
+          avatarIsEmoji: currentUserInfo.avatarIsEmoji,
+          avatarColor: currentUserInfo.avatarColor
+        });
+        reply.displayLikeAvatars = this.getDisplayLikeAvatars(reply.likeAvatars);
         console.log(`✅ 点赞成功: 当前点赞数=${reply.likeCount}`);
       }
 
@@ -2414,13 +2661,15 @@ Page({
                               )
                             : false;
 
+                        const replyLikeAvatars = this.getLikeAvatarsFromLikes(reply.likes);
                         return {
                           id: reply._id,
                           userId: reply.userId?._id || reply.userId,
                           userName: reply.userId?.nickname || '匿名用户',
-                          avatarText: reply.userId?.nickname
-                            ? reply.userId.nickname.charAt(0)
-                            : '👤',
+                          ...this.getAvatarDisplayInfo(reply.userId, {
+                            fallbackName: '匿名用户',
+                            fallbackAvatarText: this.getNameAvatarText(reply.userId?.nickname || '匿名用户')
+                          }),
                           avatarColor: getAvatarColorByUserId(
                             reply.userId?._id ||
                               reply.userId ||
@@ -2432,7 +2681,9 @@ Page({
                             ? this.formatTime(reply.createdAt)
                             : '刚刚',
                           likeCount: reply.likeCount || 0,
-                          isLiked: isNestedReplyLikedLocally
+                          isLiked: isNestedReplyLikedLocally,
+                          likeAvatars: replyLikeAvatars,
+                          displayLikeAvatars: this.getDisplayLikeAvatars(replyLikeAvatars)
                         };
                       }
                     );

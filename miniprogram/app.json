@@ -5,6 +5,7 @@
     "pages/meeting-webview/meeting-webview",
     "pages/courses/courses",
     "pages/course-detail/course-detail",
+    "pages/reading-mode/reading-mode",
     "pages/checkin/checkin",
     "pages/ranking/ranking",
     "pages/checkin-records/checkin-records",

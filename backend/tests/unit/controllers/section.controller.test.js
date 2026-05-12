@@ -15,6 +15,7 @@ describe('Section Controller', () => {
   let next;
   let SectionStub;
   let PeriodStub;
+  let CheckinStub;
   let publishSyncEventStub;
 
   beforeEach(() => {
@@ -47,6 +48,10 @@ describe('Section Controller', () => {
       findById: sandbox.stub()
     };
 
+    CheckinStub = {
+      aggregate: sandbox.stub()
+    };
+
     publishSyncEventStub = sandbox.stub();
 
     const responseUtils = {
@@ -63,6 +68,7 @@ describe('Section Controller', () => {
       {
         '../models/Section': SectionStub,
         '../models/Period': PeriodStub,
+        '../models/Checkin': CheckinStub,
         '../utils/response': responseUtils,
         '../services/sync.service': {
           publishSyncEvent: publishSyncEventStub
@@ -93,8 +99,12 @@ describe('Section Controller', () => {
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
-        select: sandbox.stub().resolves(mockSections)
+        select: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves(mockSections)
       });
+      CheckinStub.aggregate.resolves([
+        { _id: mockSections[0]._id, count: 3 }
+      ]);
 
       await sectionController.getSectionsByPeriod(req, res, next);
 
@@ -103,6 +113,8 @@ describe('Section Controller', () => {
       // 修复：getSectionsByPeriod 返回的是数组，不是有 list/pagination 的对象
       expect(Array.isArray(responseData.data)).to.be.true;
       expect(responseData.data.length).to.equal(2);
+      expect(responseData.data[0].checkinCount).to.equal(3);
+      expect(responseData.data[1].checkinCount).to.equal(0);
     });
 
     it('应该验证期次存在', async () => {

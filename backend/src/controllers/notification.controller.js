@@ -5,6 +5,55 @@ const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const subscribeMessageService = require('../services/subscribe-message.service');
 
+function serializeNotificationUser(user) {
+  if (!user || typeof user !== 'object') {
+    return null;
+  }
+
+  return {
+    _id: user._id,
+    nickname: user.nickname || '',
+    avatar: user.avatar || '',
+    avatarUrl: user.avatarUrl || ''
+  };
+}
+
+function resolveNotificationDisplaySender(notification) {
+  const request = notification.requestId || {};
+
+  if (notification.type === 'request_created') {
+    return serializeNotificationUser(request.fromUserId) || serializeNotificationUser(notification.senderId);
+  }
+
+  if (['request_approved', 'request_rejected', 'permission_revoked'].includes(notification.type)) {
+    return serializeNotificationUser(request.toUserId) || serializeNotificationUser(notification.senderId);
+  }
+
+  return serializeNotificationUser(notification.senderId);
+}
+
+function decorateNotificationForResponse(notification) {
+  const data =
+    notification && typeof notification.toObject === 'function'
+      ? notification.toObject()
+      : notification;
+  const displaySender = resolveNotificationDisplaySender(data);
+
+  if (!displaySender) {
+    return data;
+  }
+
+  return {
+    ...data,
+    displaySender,
+    data: {
+      ...(data.data || {}),
+      senderName: displaySender.nickname || data.data?.senderName || '',
+      senderAvatar: displaySender.avatarUrl || displaySender.avatar || data.data?.senderAvatar || ''
+    }
+  };
+}
+
 /**
  * 获取用户的通知列表
  */
@@ -30,15 +79,23 @@ async function getUserNotifications(req, res, next) {
     // 查询通知，populate相关用户信息
     const notifications = await Notification.find(query)
       .populate('senderId', 'nickname avatar avatarUrl')
-      .populate('requestId', 'status fromUserId toUserId')
+      .populate({
+        path: 'requestId',
+        select: 'status fromUserId toUserId',
+        populate: [
+          { path: 'fromUserId', select: 'nickname avatar avatarUrl' },
+          { path: 'toUserId', select: 'nickname avatar avatarUrl' }
+        ]
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parsedLimit);
+    const responseNotifications = notifications.map(decorateNotificationForResponse);
 
     res.json(
       success(
         {
-          notifications,
+          notifications: responseNotifications,
           pagination: {
             total,
             page: parsedPage,
@@ -262,9 +319,36 @@ async function saveSubscriptionGrants(req, res, next) {
  * 内部函数：创建通知
  * 供其他controller调用
  */
+async function buildNotificationData(options = {}) {
+  const data = { ...(options.data || {}) };
+  if (!options.senderId) {
+    return data;
+  }
+
+  try {
+    const sender = await User.findById(options.senderId)
+      .select('nickname avatar avatarUrl')
+      .lean();
+
+    if (!sender) {
+      return data;
+    }
+
+    data.senderName = sender.nickname || data.senderName || '';
+    data.senderAvatar = sender.avatarUrl || sender.avatar || data.senderAvatar || '';
+  } catch (error) {
+    logger.warn('Failed to enrich notification sender data', {
+      senderId: options.senderId?.toString?.() || options.senderId,
+      message: error.message
+    });
+  }
+
+  return data;
+}
+
 async function createNotification(userId, type, title, content, options = {}) {
   try {
-    const data = options.data || {};
+    const data = await buildNotificationData(options);
 
     if (options.upsertExisting && options.requestId) {
       const requestIdText = options.requestId.toString();
@@ -354,11 +438,13 @@ async function createNotification(userId, type, title, content, options = {}) {
     return null;
   }
 }
+
 /**
  * 内部函数：创建多条通知
  */
 async function createNotifications(userIds, type, title, content, options = {}) {
   try {
+    const data = await buildNotificationData(options);
     const notifications = await Notification.insertMany(
       userIds.map(userId => ({
         userId,
@@ -367,7 +453,7 @@ async function createNotifications(userIds, type, title, content, options = {}) 
         content,
         requestId: options.requestId || null,
         senderId: options.senderId || null,
-        data: options.data || {}
+        data
       }))
     );
 
@@ -388,7 +474,7 @@ async function createNotifications(userIds, type, title, content, options = {}) 
           type,
           title,
           content,
-          data: options.data || {}
+          data
         });
       });
     }

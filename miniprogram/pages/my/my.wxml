@@ -51,7 +51,7 @@
 
       <view class="settings-cell" bindtap="goToNotifications">
         <view class="cell-left">
-          <text class="cell-icon">🔔</text>
+          <text class="cell-icon">📨</text>
           <text class="cell-label">消息通知</text>
         </view>
         <view class="cell-right">
@@ -65,7 +65,7 @@
       <!-- 消息提醒设置 -->
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToNotificationSettings">
         <view class="cell-left">
-          <text class="cell-icon">🔔</text>
+          <text class="cell-icon">⏰</text>
           <text class="cell-label">消息提醒设置</text>
         </view>
         <view class="cell-right">
@@ -104,7 +104,7 @@
     <view class="settings-group">
       <view class="settings-cell" bindtap="goToPrivacy">
         <view class="cell-left">
-          <text class="cell-icon">📄</text>
+          <text class="cell-icon">🔒</text>
           <text class="cell-label">隐私政策</text>
         </view>
         <view class="cell-right">
@@ -113,7 +113,7 @@
       </view>
       <view class="settings-cell" bindtap="goToAgreement">
         <view class="cell-left">
-          <text class="cell-icon">📄</text>
+          <text class="cell-icon">📜</text>
           <text class="cell-label">用户协议</text>
         </view>
         <view class="cell-right">

@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: #f5f5f5;
   padding: 24rpx;
-  padding-bottom: 140rpx;
+  padding-bottom: 144rpx;
 }
 
 /* 顶部标题卡片 */
@@ -91,26 +91,37 @@
   left: 0;
   right: 0;
   background: white;
-  padding: 24rpx;
+  padding: 20rpx 20rpx calc(20rpx + env(safe-area-inset-bottom));
   display: flex;
-  gap: 24rpx;
+  gap: 12rpx;
   box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
   z-index: 100;
 }
 
-.btn-back {
-  flex: 1;
-  background: #f5f5f5;
-  color: #666;
+.action-btn {
+  width: auto;
+  min-width: 0;
+  height: 84rpx;
+  margin: 0;
+  padding: 0 8rpx;
   border: none;
-  border-radius: 48rpx;
-  padding: 24rpx;
-  font-size: 28rpx;
-  transition: all 0.3s;
+  border-radius: 42rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 84rpx;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
-.btn-back::after {
+.action-btn::after {
   border: none;
+}
+
+.btn-back {
+  flex: 0.78;
+  background: #f5f5f5;
+  color: #666;
+  transition: all 0.3s;
 }
 
 .btn-back:active {
@@ -123,34 +134,26 @@
   background: white;
   color: #4a90e2;
   border: 1rpx solid #c9dff8;
-  border-radius: 48rpx;
-  padding: 24rpx;
-  font-size: 28rpx;
-  font-weight: 500;
 }
 
-.btn-long-share::after {
-  border: none;
+.btn-full-share {
+  flex: 1;
+  background: #f2f7ff;
+  color: #357abd;
+  border: 1rpx solid #c9dff8;
 }
 
-.btn-long-share:active {
+.btn-long-share:active,
+.btn-full-share:active {
   background: #edf4fd;
   transform: scale(0.98);
 }
 
 .btn-share {
-  flex: 1.5;
+  flex: 1.08;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
-  border: none;
-  border-radius: 48rpx;
-  padding: 24rpx;
-  font-size: 28rpx;
   font-weight: bold;
-}
-
-.btn-share::after {
-  border: none;
 }
 
 /* ===== 长图预览弹层 ===== */
@@ -245,8 +248,8 @@
   position: fixed;
   left: -9999px;
   top: -9999px;
-  width: 1px;
-  height: 1px;
+  width: 750px;
+  height: 1200px;
   opacity: 0;
   pointer-events: none;
 }

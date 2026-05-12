@@ -3,7 +3,7 @@
     <view wx:if="{{detailCheckin}}" class="dynamic-detail-card">
       <view class="dynamic-author-row">
         <view
-          class="comment-avatar"
+          class="comment-avatar {{detailCheckin.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}"
           style="background: {{detailCheckin.avatarColor || '#4a90e2'}}"
           bindtap="handleAvatarClick"
           data-user-id="{{detailCheckin.userId}}">
@@ -45,8 +45,15 @@
 
     <view wx:if="{{detailCheckin}}" class="dynamic-like-strip">
       <view class="dynamic-like-pill" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
-        <text class="dynamic-like-pill-icon {{detailCheckin.isLiked ? 'liked' : ''}}">♡</text>
-        <text class="dynamic-like-pill-count">{{detailCheckin.likeCount || 0}}</text>
+        <text class="dynamic-like-pill-icon {{detailCheckin.isLiked ? 'liked' : ''}}">{{detailCheckin.isLiked ? '❤️' : '♡'}}</text>
+        <text class="like-count" wx:if="{{detailCheckin.likeCount}}">({{detailCheckin.likeCount}})</text>
+        <view class="like-avatars" wx:if="{{detailCheckin.likeAvatars && detailCheckin.likeAvatars.length > 0}}">
+          <block wx:for="{{detailCheckin.displayLikeAvatars || detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+            <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
+            <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
+            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+          </block>
+        </view>
       </view>
     </view>
 
@@ -65,7 +72,7 @@
           <view class="reply-left-line"></view>
           <view class="reply-main">
             <view
-              class="reply-avatar"
+              class="reply-avatar {{reply.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}"
               style="background: {{reply.avatarColor || '#7eb5f0'}}"
               bindtap="handleAvatarClick"
               data-user-id="{{reply.userId}}">
@@ -81,18 +88,30 @@
               <view class="reply-text">{{reply.content}}</view>
               <view class="reply-footer">
                 <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{reply.id}}">
-                  <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">♡</text>
-                  <text class="like-count">{{reply.likeCount || 0}}</text>
+                  <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '❤️' : '♡'}}</text>
+                  <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
+                  <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
+                    <block wx:for="{{reply.displayLikeAvatars || reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                      <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
+                      <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
+                      <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                    </block>
+                  </view>
                 </view>
-                <view
-                  class="reply-reply"
-                  bindtap="handleReplyToReply"
-                  data-checkin-id="{{detailCheckin.id}}"
-                  data-comment-id="{{reply.id}}"
-                  data-reply-id="{{reply.userId}}"
-                  data-user-name="{{reply.userName}}">
-                  <text class="reply-icon">💬</text>
-                  <text>回复</text>
+                <view class="comment-actions-right">
+                  <view
+                    class="reply-reply"
+                    bindtap="handleReplyToReply"
+                    data-checkin-id="{{detailCheckin.id}}"
+                    data-comment-id="{{reply.id}}"
+                    data-reply-id="{{reply.userId}}"
+                    data-user-name="{{reply.userName}}">
+                    <text class="reply-icon">💬</text>
+                    <text>回复</text>
+                  </view>
+                  <view wx:if="{{reply.canDelete}}" class="reply-delete" catchtap="handleDeleteComment" data-checkin-id="{{detailCheckin.id}}" data-comment-id="{{reply.id}}" style="pointer-events: auto;">
+                    <text>删除</text>
+                  </view>
                 </view>
               </view>
 
@@ -106,7 +125,7 @@
                   <view class="nested-reply-left-line"></view>
                   <view class="nested-reply-main">
                     <view
-                      class="nested-reply-avatar"
+                      class="nested-reply-avatar {{nestedReply.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}"
                       style="background: {{nestedReply.avatarColor || '#9cb5f0'}}"
                       bindtap="handleAvatarClick"
                       data-user-id="{{nestedReply.userId}}">
@@ -122,8 +141,15 @@
                       <view class="nested-reply-text">{{nestedReply.content}}</view>
                       <view class="nested-reply-footer">
                         <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{nestedReply.id}}">
-                          <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">♡</text>
-                          <text class="like-count">{{nestedReply.likeCount || 0}}</text>
+                          <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '❤️' : '♡'}}</text>
+                          <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
+                          <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
+                            <block wx:for="{{nestedReply.displayLikeAvatars || nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                              <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
+                              <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
+                              <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                            </block>
+                          </view>
                         </view>
                       </view>
                     </view>
@@ -148,10 +174,7 @@
         data-id="{{detailCheckin.id}}">
         说点什么...
       </view>
-      <view class="dynamic-bottom-action" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
-        <text class="dynamic-bottom-action-icon {{detailCheckin.isLiked ? 'liked' : ''}}">♡</text>
-        <text>{{detailCheckin.likeCount || 0}}</text>
-      </view>
+
       <button wx:if="{{detailCheckin.canShare}}" class="dynamic-bottom-action dynamic-bottom-share" open-type="share">↗</button>
       <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action" bindtap="handleEditCheckin">编辑</view>
       <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-delete" bindtap="handleDeleteCheckin">删除</view>
@@ -196,9 +219,24 @@
       <view class="section-title">
         <view class="section-icon read">读</view>
         <text>读一读</text>
+        <view class="immersive-entry" bindtap="handleImmersiveReading">
+          <text class="immersive-entry-icon">⊙</text>
+          <text>沉浸阅读</text>
+        </view>
       </view>
-      <view class="section-content">
-        <rich-text nodes="{{course.content}}"></rich-text>
+      <view class="reading-outer-wrap">
+        <view class="reading-content-wrap {{readingContentExpanded ? '' : 'reading-content-collapsed'}}">
+          <view class="section-content">
+            <rich-text nodes="{{course.content}}"></rich-text>
+          </view>
+          <view wx:if="{{!readingContentExpanded}}" class="reading-fade-mask" bindtap="toggleReadingContent"></view>
+        </view>
+      </view>
+      <view class="reading-toggle-row" bindtap="toggleReadingContent">
+        <view class="reading-chevron-group {{readingContentExpanded ? 'reading-chevron-group-up' : ''}}">
+          <view class="reading-chevron"></view>
+          <view class="reading-chevron"></view>
+        </view>
       </view>
     </view>
 
@@ -251,7 +289,7 @@
           bindtap="handleCheckinDetailTap"
           data-checkin-id="{{item.id}}"
           data-section-id="{{item.sectionId || courseId}}">
-          <view class="comment-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
+          <view class="comment-avatar {{item.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
             <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
             <text wx:else class="avatar-text">{{item.avatarText}}</text>
           </view>
@@ -268,17 +306,26 @@
               data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
             <view class="comment-footer">
               <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">
-                <text class="like-icon {{item.isLiked ? 'liked' : ''}}">❤️</text>
-                <text class="like-count">{{item.likeCount}}</text>
+                <text class="like-icon {{item.isLiked ? 'liked' : ''}}">{{item.isLiked ? '❤️' : '♡'}}</text>
+                <text class="like-count" wx:if="{{item.likeCount}}">({{item.likeCount}})</text>
+                <view class="like-avatars" wx:if="{{item.likeAvatars && item.likeAvatars.length > 0}}">
+                  <block wx:for="{{item.displayLikeAvatars || item.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                    <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
+                    <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
+                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                  </block>
+                </view>
               </view>
-              <view class="comment-reply" catchtap="handleReplyComment" data-id="{{item.id}}">
-                <text class="reply-icon">💬</text>
-                <text>回复</text>
-              </view>
-              <view class="comment-toggle" catchtap="toggleComments" data-index="{{index}}">
-                <text class="toggle-icon">💬</text>
-                <text class="toggle-text" wx:if="{{!commentLoading[item.id]}}">{{commentExpanded[item.id] ? '收起评论' : '查看评论'}}</text>
-                <text class="toggle-text loading" wx:else>加载中...</text>
+              <view class="comment-actions-right">
+                <view class="comment-reply" catchtap="handleReplyComment" data-id="{{item.id}}">
+                  <text class="reply-icon">💬</text>
+                  <text>回复</text>
+                </view>
+                <view class="comment-toggle" catchtap="toggleComments" data-index="{{index}}">
+                  <text class="toggle-icon">💬</text>
+                  <text class="toggle-text" wx:if="{{!commentLoading[item.id]}}">{{commentExpanded[item.id] ? '收起评论' : '查看评论'}}</text>
+                  <text class="toggle-text loading" wx:else>加载中...</text>
+                </view>
               </view>
             </view>
 
@@ -291,8 +338,9 @@
                 wx:for-item="reply">
                 <view class="reply-left-line"></view>
                 <view class="reply-main">
-                  <view class="reply-avatar" style="background: {{reply.avatarColor || '#7eb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">
-                    <text class="avatar-text">{{reply.avatarText}}</text>
+                  <view class="reply-avatar {{reply.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}" style="background: {{reply.avatarColor || '#7eb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">
+                    <image wx:if="{{reply.avatarUrl}}" class="avatar-image avatar-image-small" src="{{reply.avatarUrl}}" mode="aspectFill" />
+                    <text wx:else class="avatar-text">{{reply.avatarText}}</text>
                   </view>
                   <view class="reply-content">
                     <view class="reply-header">
@@ -302,12 +350,24 @@
                     <view class="reply-text"><text user-select>{{reply.content}}</text></view>
                     <view class="reply-footer" style="pointer-events: auto;">
                       <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
-                        <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">❤️</text>
-                        <text class="like-count">{{reply.likeCount || 0}}</text>
+                        <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '❤️' : '♡'}}</text>
+                        <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
+                        <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
+                          <block wx:for="{{reply.displayLikeAvatars || reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                            <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
+                            <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
+                            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                          </block>
+                        </view>
                       </view>
-                      <view class="reply-reply" bindtap="handleReplyToReply" data-checkin-id="{{item.id}}" data-comment-id="{{reply.id}}" data-reply-id="{{reply.userId}}" data-user-name="{{reply.userName}}" style="pointer-events: auto;">
-                        <text class="reply-icon">💬</text>
-                        <text>回复</text>
+                      <view class="comment-actions-right">
+                        <view class="reply-reply" bindtap="handleReplyToReply" data-checkin-id="{{item.id}}" data-comment-id="{{reply.id}}" data-reply-id="{{reply.userId}}" data-user-name="{{reply.userName}}" style="pointer-events: auto;">
+                          <text class="reply-icon">💬</text>
+                          <text>回复</text>
+                        </view>
+                        <view wx:if="{{reply.canDelete}}" class="reply-delete" catchtap="handleDeleteComment" data-checkin-id="{{item.id}}" data-comment-id="{{reply.id}}" style="pointer-events: auto;">
+                          <text>删除</text>
+                        </view>
                       </view>
                     </view>
 
@@ -320,8 +380,9 @@
                         wx:for-item="nestedReply">
                         <view class="nested-reply-left-line"></view>
                         <view class="nested-reply-main">
-                          <view class="nested-reply-avatar" style="background: {{nestedReply.avatarColor || '#9cb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{nestedReply.userId}}">
-                            <text class="avatar-text">{{nestedReply.avatarText}}</text>
+                          <view class="nested-reply-avatar {{nestedReply.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}" style="background: {{nestedReply.avatarColor || '#9cb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{nestedReply.userId}}">
+                            <image wx:if="{{nestedReply.avatarUrl}}" class="avatar-image avatar-image-tiny" src="{{nestedReply.avatarUrl}}" mode="aspectFill" />
+                            <text wx:else class="avatar-text">{{nestedReply.avatarText}}</text>
                           </view>
                           <view class="nested-reply-content">
                             <view class="nested-reply-header">
@@ -331,8 +392,20 @@
                             <view class="nested-reply-text"><text user-select>{{nestedReply.content}}</text></view>
                             <view class="nested-reply-footer" style="pointer-events: auto;">
                               <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{nestedReply.id}}" style="pointer-events: auto;">
-                                <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">❤️</text>
-                                <text class="like-count">{{nestedReply.likeCount || 0}}</text>
+                                <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '❤️' : '♡'}}</text>
+                                <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
+                                <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
+                                  <block wx:for="{{nestedReply.displayLikeAvatars || nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
+                                    <view wx:if="{{avatar.isMore}}" class="like-avatar-more">+</view>
+                                    <image wx:elif="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" />
+                                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || '#4a90e2'}}">{{avatar.avatarText}}</view>
+                                  </block>
+                                </view>
+                              </view>
+                              <view class="comment-actions-right">
+                                <view wx:if="{{nestedReply.canDelete}}" class="nested-reply-delete" catchtap="handleDeleteComment" data-checkin-id="{{item.id}}" data-comment-id="{{nestedReply.id}}" style="pointer-events: auto;">
+                                  <text>删除</text>
+                                </view>
                               </view>
                             </view>
                           </view>

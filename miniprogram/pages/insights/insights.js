@@ -21,6 +21,7 @@ Page({
     pendingRequestCount: 0,
     rejectedRequestCount: 0,
     headerEmoji: '🦁', // 头部emoji
+    headerAvatarUrl: '',
     headerTitle: '小凡看见', // 头部标题
     headerDesc: '按课程查看个性化反馈', // 头部描述
     showRequestSharePrompt: false,
@@ -38,16 +39,18 @@ Page({
     const currentUser = app.globalData.userInfo;
 
     // 初始化数据（在获取用户信息前）
-    let headerEmoji, headerTitle, headerDesc;
+    let headerEmoji, headerAvatarUrl, headerTitle, headerDesc;
 
     if (targetUserId) {
       // 查看他人的小凡看见 - 先用默认值，稍后从用户缓存中获取
       headerEmoji = '👤';
+      headerAvatarUrl = '';
       headerTitle = targetUserName;
       headerDesc = '的个性化学习反馈';
     } else {
       // 查看自己的小凡看见
       headerEmoji = currentUser?.avatar || currentUser?.avatarText || '🦁';
+      headerAvatarUrl = currentUser?.avatarUrl || '';
       headerTitle = '我的小凡看见';
       headerDesc = '按课程查看个性化反馈';
     }
@@ -57,6 +60,7 @@ Page({
       userName: targetUserName,
       isOtherUser: !!targetUserId,
       headerEmoji,
+      headerAvatarUrl,
       headerTitle,
       headerDesc
     });
@@ -85,12 +89,27 @@ Page({
       if (targetUser) {
         // 从目标用户信息中获取头像
         const headerEmoji = targetUser.avatar || targetUser.avatarText || '👤';
-        this.setData({ headerEmoji });
+        const headerAvatarUrl = targetUser.avatarUrl || '';
+        this.setData({ headerEmoji, headerAvatarUrl });
         logger.debug('✅ 已获取目标用户头像:', headerEmoji);
         // 清理临时变量，避免内存泄漏
         app.globalData.targetUserForInsights = null;
       } else {
-        logger.warn('⚠️ 无法从全局变量中获取用户信息，使用默认值');
+        const targetUserId = this.data.userId;
+        if (!targetUserId) {
+          logger.warn('⚠️ 无法从全局变量中获取用户信息，使用默认值');
+          return;
+        }
+
+        const fetchedUser = await userService.getUserById(targetUserId);
+        const headerEmoji = fetchedUser.avatar || fetchedUser.avatarText || '👤';
+        const headerAvatarUrl = fetchedUser.avatarUrl || '';
+        this.setData({
+          headerEmoji,
+          headerAvatarUrl,
+          headerTitle: fetchedUser.nickname || this.data.headerTitle
+        });
+        logger.debug('✅ 已从接口获取目标用户头像:', headerEmoji);
       }
     } catch (error) {
       logger.warn('获取目标用户头像出错:', error);
@@ -361,11 +380,14 @@ Page({
     const shareType = event?.target?.dataset?.shareType;
 
     if (shareRequest && (event.from === 'button' || shareType === 'insightRequest')) {
-      return {
+      const shareConfig = {
         title: shareRequest.shareTitle,
         path: shareRequest.sharePath,
         imageUrl: '/assets/images/share-insight.jpg'
       };
+
+      this.closeRequestSharePrompt();
+      return shareConfig;
     }
 
     return {

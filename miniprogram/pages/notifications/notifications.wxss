@@ -8,29 +8,6 @@
   padding-bottom: 20rpx;
 }
 
-/* 页面标题 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx 30rpx;
-  background: white;
-  border-bottom: 1rpx solid #eee;
-}
-
-.title-section {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-.badge,
 .tab-badge {
   background: #fa5151;
   color: white;
@@ -44,16 +21,6 @@
   align-items: center;
   justify-content: center;
   line-height: 34rpx;
-}
-
-.header-actions {
-  display: flex;
-  gap: 20rpx;
-}
-
-.action-link {
-  color: #667eea;
-  font-size: 28rpx;
 }
 
 /* 空状态 */
@@ -99,9 +66,10 @@
 /* 选项卡 */
 .tabs {
   display: flex;
+  align-items: center;
   background: white;
   border-bottom: 1rpx solid #eee;
-  padding: 0 30rpx;
+  padding: 0 20rpx 0 30rpx;
 }
 
 .tab-item {
@@ -121,6 +89,17 @@
 .tab-item.active {
   color: #667eea;
   border-bottom-color: #667eea;
+}
+
+.tab-action {
+  flex-shrink: 0;
+  margin-left: 8rpx;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: #eef4ff;
+  color: #4a90e2;
+  font-size: 24rpx;
+  line-height: 1;
 }
 
 /* 通知列表 */
@@ -223,6 +202,7 @@
   height: 40rpx;
   border-radius: 50%;
   background: #eee;
+  flex-shrink: 0;
 }
 
 .sender-avatar-fallback {
@@ -233,6 +213,12 @@
   color: white;
   font-size: 20rpx;
   font-weight: 600;
+}
+
+.sender-avatar-text {
+  background: #f0f4ff;
+  color: #1d2433;
+  font-size: 24rpx;
 }
 
 .sender-name {
@@ -313,7 +299,4 @@
     max-width: 600rpx;
   }
 
-  .page-header {
-    padding: 30rpx;
-  }
 }

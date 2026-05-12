@@ -246,6 +246,7 @@ async function getCheckins(req, res, next) {
     const checkins = await Checkin.find(query)
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('sectionId', 'title day')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
@@ -280,6 +281,7 @@ async function getUserCheckins(req, res, next) {
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('sectionId', 'title day icon')
       .populate('periodId', 'name title')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ checkinDate: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
@@ -380,6 +382,7 @@ async function getUserCheckinSummary(req, res, next) {
     const checkins = await Checkin.find({ userId })
       .populate('periodId', 'name title icon coverColor coverEmoji currentEnrollment enrollmentCount totalDays status')
       .populate('sectionId', 'title day')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ checkinDate: -1 })
       .select('-__v');
 
@@ -427,6 +430,7 @@ async function getPeriodCheckins(req, res, next) {
     const checkins = await Checkin.find(query)
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('sectionId', 'title day')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
@@ -455,13 +459,36 @@ async function getCheckinDetail(req, res, next) {
     const checkin = await Checkin.findById(checkinId)
       .populate('userId', 'nickname avatar avatarUrl signature')
       .populate('sectionId', 'title day icon')
-      .populate('periodId', 'name title');
+      .populate('periodId', 'name title')
+      .populate('likes.userId', 'nickname avatar avatarUrl');
 
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
 
-    res.json(success(checkin));
+    const checkinObj = checkin.toObject();
+
+    // populate('likes.userId') 可能因为存储类型问题而失败（userId 存为字符串而非 ObjectId）
+    // 手动补充：对 populate 失败的 like 重新查询用户信息
+    const unpopulatedIds = checkinObj.likes
+      .filter(l => l.userId && typeof l.userId !== 'object')
+      .map(l => String(l.userId));
+
+    if (unpopulatedIds.length > 0) {
+      const likers = await User.find({ _id: { $in: unpopulatedIds } })
+        .select('nickname avatar avatarUrl')
+        .lean();
+      const likerMap = {};
+      likers.forEach(u => { likerMap[String(u._id)] = u; });
+      checkinObj.likes = checkinObj.likes.map(like => {
+        if (like.userId && typeof like.userId !== 'object') {
+          return { ...like, userId: likerMap[String(like.userId)] || like.userId };
+        }
+        return like;
+      });
+    }
+
+    res.json(success(checkinObj));
   } catch (error) {
     next(error);
   }
@@ -615,6 +642,7 @@ async function getAdminCheckins(req, res, next) {
             stats: {
               totalCount: 0,
               todayCount: 0,
+              uniqueUserCount: 0,
               totalPoints: 0
             }
           })
@@ -630,6 +658,7 @@ async function getAdminCheckins(req, res, next) {
       .populate('userId', 'nickname avatar avatarUrl openid')
       .populate('sectionId', 'title day')
       .populate('periodId', 'name title')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ checkinDate: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
@@ -648,7 +677,10 @@ async function getAdminCheckins(req, res, next) {
       }
     });
 
-    const allCheckins = await Checkin.find(query).select('points');
+    const [allCheckins, uniqueUsers] = await Promise.all([
+      Checkin.find(query).select('points'),
+      Checkin.distinct('userId', query)
+    ]);
     const totalPoints = allCheckins.reduce((sum, c) => sum + (c.points || 0), 0);
 
     res.json(
@@ -663,6 +695,7 @@ async function getAdminCheckins(req, res, next) {
         stats: {
           totalCount: total,
           todayCount,
+          uniqueUserCount: uniqueUsers.length,
           totalPoints
         }
       })

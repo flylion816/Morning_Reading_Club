@@ -1,16 +1,5 @@
 <!--通知页面-->
 <view class="notifications-container">
-  <!-- 页面标题 -->
-  <view class="page-header">
-    <view class="title-section">
-      <text class="title">通知</text>
-      <view class="badge" wx:if="{{unreadCount > 0}}">{{unreadCount}}</view>
-    </view>
-    <view class="header-actions" wx:if="{{notifications.length > 0 && unreadCount > 0}}">
-      <text class="action-link" bindtap="handleMarkAllAsRead">全部已读</text>
-    </view>
-  </view>
-
   <!-- 空状态 -->
   <view class="empty-state" wx:if="{{!loading && notifications.length === 0}}">
     <view class="empty-icon">📬</view>
@@ -46,6 +35,13 @@
     >
       已读
     </view>
+    <text
+      class="tab-action"
+      wx:if="{{unreadCount > 0}}"
+      catchtap="handleMarkAllAsRead"
+    >
+      全部已读
+    </text>
   </view>
 
   <!-- 通知列表 -->
@@ -81,9 +77,12 @@
 
         <!-- 发送者信息（如果有）-->
         <view class="sender-info" wx:if="{{item.senderName}}">
-          <image wx:if="{{item.senderAvatar}}" class="sender-avatar" src="{{item.senderAvatar}}"></image>
-          <view wx:else class="sender-avatar sender-avatar-fallback">
-            {{item.senderName.charAt(0)}}
+          <image wx:if="{{item.senderAvatar}}" class="sender-avatar" src="{{item.senderAvatar}}" mode="aspectFill" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}"></image>
+          <view wx:elif="{{item.senderAvatarText}}" class="sender-avatar sender-avatar-fallback sender-avatar-text" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}">
+            {{item.senderAvatarText}}
+          </view>
+          <view wx:else class="sender-avatar sender-avatar-fallback" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}">
+            {{item.senderInitial}}
           </view>
           <text class="sender-name">{{item.senderName}}</text>
         </view>

@@ -183,6 +183,8 @@ async function getCommentsByCheckin(req, res, next) {
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('replies.userId', 'nickname avatar avatarUrl')
       .populate('replies.replyToUserId', 'nickname')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
+      .populate('replies.likes.userId', 'nickname avatar avatarUrl')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit, 10))
@@ -262,7 +264,9 @@ async function replyToComment(req, res, next) {
     const populatedComment = await Comment.findById(comment._id)
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('replies.userId', 'nickname avatar avatarUrl')
-      .populate('replies.replyToUserId', 'nickname');
+      .populate('replies.replyToUserId', 'nickname')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
+      .populate('replies.likes.userId', 'nickname avatar avatarUrl');
 
     if (targetRecipientId && targetRecipientId !== userId) {
       const [actorUser, relatedCheckin] = await Promise.all([

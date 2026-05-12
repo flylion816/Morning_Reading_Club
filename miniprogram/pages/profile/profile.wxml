@@ -58,7 +58,7 @@
             <view class="period-title-row">
               <view class="period-title-new">{{todaySection.title}}</view>
               <view class="checkin-count-badge">
-                <view wx:for="{{todaySection.checkinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled' && index < 3}}" class="mini-avatar" style="z-index: {{99 - index}}">
+                <view wx:for="{{todaySection.checkinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled' && index < 3}}" class="mini-avatar" style="z-index: {{99 - index}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
                   <image wx:if="{{item.avatarUrl}}" class="mini-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
                   <text wx:else class="mini-avatar-emoji">{{item.avatar || '😊'}}</text>
                 </view>
@@ -199,8 +199,9 @@
             bindtap="handleInsightRequestTap"
             data-request="{{item}}">
             <view class="request-item-left">
-              <view class="request-user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
-                <text class="request-avatar-text">{{item.fromUserAvatar || '😊'}}</text>
+              <view class="request-user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleRequestAvatarClick" data-user-id="{{item.fromUserId}}" data-period-id="{{item.periodId}}">
+                <image wx:if="{{item.fromUserAvatarUrl}}" class="request-avatar-image" src="{{item.fromUserAvatarUrl}}" mode="aspectFill" />
+                <text wx:else class="request-avatar-text">{{item.fromUserAvatar || '😊'}}</text>
               </view>
               <view class="request-info">
                 <view class="request-top-row">

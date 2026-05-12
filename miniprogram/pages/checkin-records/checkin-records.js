@@ -162,6 +162,16 @@ Page({
     await this.bootstrapPage();
   },
 
+  onShow() {
+    try {
+      const stale = wx.getStorageSync('checkin_list_stale');
+      if (stale) {
+        wx.removeStorageSync('checkin_list_stale');
+        this.bootstrapPage();
+      }
+    } catch (e) {}
+  },
+
   onPullDownRefresh() {
     this.bootstrapPage().finally(() => {
       wx.stopPullDownRefresh();

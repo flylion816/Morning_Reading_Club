@@ -323,4 +323,93 @@ describe('Subscribe Message Service', () => {
       errorCode: 43101
     });
   });
+
+  it('should constrain template values to WeChat field limits before sending', () => {
+    const sceneConfig = getSubscribeSceneConfig('comment_received');
+
+    const templateData = subscribeMessageService.buildTemplateData(sceneConfig, {
+      replyUser: '王可心很长很长的名字',
+      replyTopic: '感觉可心的管理能力也在蹭蹭上涨了，对同事更加关心',
+      replyContent: '哈哈哈 谢谢！以前觉得公司的成绩重要，现在觉得让他们几个幸福更重要',
+      replyTime: '2026-05-11 21:23'
+    });
+
+    expect(templateData.thing1.value).to.have.lengthOf.at.most(20);
+    expect(templateData.thing5.value).to.have.lengthOf.at.most(20);
+    expect(templateData.thing2.value).to.have.lengthOf.at.most(20);
+    expect(templateData.thing5.value).to.equal('感觉可心的管理能力也在蹭蹭上涨了，...');
+    expect(templateData.time3.value).to.equal('2026-05-11 21:23');
+  });
+
+  it('should refresh access token and retry once when WeChat returns 40001', async () => {
+    const recipientUserId = new mongoose.Types.ObjectId();
+    const grantId = new mongoose.Types.ObjectId();
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    UserStub.findById.returns(setupFindChain(sandbox, {
+      _id: recipientUserId,
+      openid: 'openid-123',
+      nickname: '测试用户'
+    }));
+    SubscribeMessageGrantStub.findOneAndUpdate.resolves({
+      _id: grantId,
+      availableCount: 4
+    });
+    axiosStub.get
+      .onFirstCall()
+      .resolves({
+        data: {
+          access_token: 'stale-access-token',
+          expires_in: 7200
+        }
+      })
+      .onSecondCall()
+      .resolves({
+        data: {
+          access_token: 'fresh-access-token',
+          expires_in: 7200
+        }
+      });
+    axiosStub.post
+      .onFirstCall()
+      .resolves({
+        data: {
+          errcode: 40001,
+          errmsg: 'invalid credential'
+        }
+      })
+      .onSecondCall()
+      .resolves({
+        data: {
+          errcode: 0,
+          errmsg: 'ok'
+        }
+      });
+
+    process.env.NODE_ENV = 'production';
+    try {
+      await subscribeMessageService.sendSceneMessage({
+        scene: 'like_received',
+        recipientUserId,
+        fields: {
+          likeUser: '点赞人',
+          likeTime: '2026-03-31 07:00'
+        },
+        sourceType: 'checkin_like',
+        sourceId: 'checkin-1'
+      });
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    expect(axiosStub.get.calledTwice).to.be.true;
+    expect(axiosStub.post.calledTwice).to.be.true;
+    expect(axiosStub.post.firstCall.args[0]).to.include('stale-access-token');
+    expect(axiosStub.post.secondCall.args[0]).to.include('fresh-access-token');
+    expect(SubscribeMessageDeliveryStub.create.calledOnce).to.be.true;
+    expect(SubscribeMessageDeliveryStub.create.firstCall.args[0]).to.include({
+      status: 'sent',
+      errorCode: null
+    });
+  });
 });

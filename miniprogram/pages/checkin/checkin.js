@@ -1,5 +1,6 @@
 const checkinService = require('../../services/checkin.service');
 const courseService = require('../../services/course.service');
+const checkinConfigService = require('../../services/checkinConfig.service');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { renderRichTextContent } = require('../../utils/markdown');
@@ -58,7 +59,12 @@ Page({
     // 草稿状态
     isDirty: false,
     autoSaveStatus: '',
-    showExitModal: false
+    showExitModal: false,
+
+    // 打卡庆祝动画
+    showCelebration: false,
+    celebrationStyle: 'A',   // 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
+    celebrationMessage: '打卡成功！坚持就是力量！'
   },
 
   /**
@@ -177,6 +183,7 @@ Page({
     }
 
     await this.loadCourseDetail(prefetchedCourse);
+    this.loadCelebrationConfig();
   },
 
   async loadCourseDetail(prefetchedCourse = null) {
@@ -360,8 +367,78 @@ Page({
   // 阻止弹窗内部点击冒泡
   noop() {},
 
+  // 每次 onLoad 都从服务端拉取最新配置（不缓存，保证实时性）
+  async loadCelebrationConfig() {
+    try {
+      const res = await checkinConfigService.getConfig();
+      if (res) {
+        this._celebrationCfg = res; // 存到实例变量，不污染 globalData
+      }
+    } catch (e) {
+      console.warn('[checkin] 获取庆祝配置失败，使用内置默认值', e);
+    }
+  },
+
+  // 格式化打卡庆祝文字，如果是长句，尽量在标点符号处换行
+  formatCelebrationMessage(message) {
+    if (!message || message.length <= 13) return message;
+    
+    // 如果消息本身已经有换行，则不处理
+    if (message.includes('\n')) return message;
+
+    const punctuations = ['，', '。', '！', '？', ',', '.', '!', '?', '；', ';', '、'];
+    let breakIndex = -1;
+    
+    // 假设每行大约容纳14-15个中文字符
+    // 我们在这个限制范围内寻找最后一个标点符号
+    for (let i = Math.min(14, message.length - 2); i >= 3; i--) {
+      if (punctuations.includes(message[i])) {
+        breakIndex = i;
+        break;
+      }
+    }
+    
+    if (breakIndex !== -1) {
+      // 在标点符号后插入换行符
+      return message.substring(0, breakIndex + 1) + '\n' + message.substring(breakIndex + 1).trim();
+    }
+    
+    return message;
+  },
+
+  // 打卡成功后展示庆祝动画
+  showCheckinCelebration() {
+    const cfg = this._celebrationCfg || {};
+
+    // 决定动画方式
+    let style = cfg.animationStyle || 'random';
+    if (style === 'random') {
+      const styles = Array.isArray(cfg.enabledAnimationStyles) && cfg.enabledAnimationStyles.length > 0
+        ? cfg.enabledAnimationStyles
+        : ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+      style = styles[Math.floor(Math.random() * styles.length)];
+    }
+
+    // 服务端已随机返回一条，直接用；没有则用兜底文案
+    let message = cfg.message || '打卡成功！坚持就是力量！';
+    message = this.formatCelebrationMessage(message);
+
+    this.setData({ showCelebration: true, celebrationStyle: style, celebrationMessage: message });
+
+    if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
+    this._celebrationTimer = setTimeout(() => this.dismissCelebration(), 3000);
+  },
+
+  // 关闭庆祝动画并返回
+  dismissCelebration() {
+    if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
+    this.setData({ showCelebration: false });
+    wx.navigateBack();
+  },
+
   // 页面卸载时清理
   onUnload() {
+    if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
     if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
     this._disableLeaveGuard();
   },
@@ -535,19 +612,16 @@ Page({
       console.log('保存打卡后的记录:', checkins);
       console.log('全局打卡记录:', allCheckins);
 
+      if (this._autoSaveTimer) {
+        clearTimeout(this._autoSaveTimer);
+        this._autoSaveTimer = null;
+      }
       this._disableLeaveGuard();
       this._clearDraft();
-      this.setData({ isDirty: false });
+      this.setData({ isDirty: false, diaryContent: '' });
 
       wx.hideLoading();
-      wx.showToast({
-        title: '打卡成功',
-        icon: 'success'
-      });
-
-      setTimeout(() => {
-        wx.navigateBack();
-      }, 1500);
+      this.showCheckinCelebration();
     } catch (error) {
       wx.hideLoading();
       console.error('打卡失败:', error);

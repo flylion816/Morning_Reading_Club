@@ -48,7 +48,8 @@
       "Bash(ghostty +list-themes:*)",
       "Bash(claude install:*)",
       "Skill(claude-hud:setup)",
-      "Skill(claude-hud:configure)"
+      "Skill(claude-hud:configure)",
+      "Bash(xargs -I{} git grep -l \"沉浸\" {} --)"
     ],
     "deny": [],
     "ask": []

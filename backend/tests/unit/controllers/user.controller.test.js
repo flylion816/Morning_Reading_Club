@@ -28,6 +28,7 @@ describe('User Controller - 100% Coverage', () => {
   let next;
   let UserStub;
   let CheckinStub;
+  let EnrollmentStub;
   let syncServiceStub;
   let axiosStub;
   let subscribeMessageServiceStub;
@@ -62,6 +63,10 @@ describe('User Controller - 100% Coverage', () => {
     // Mock Checkin 模型
     CheckinStub = {
       countDocuments: sandbox.stub()
+    };
+
+    EnrollmentStub = {
+      countDocuments: sandbox.stub().resolves(0)
     };
 
     // Mock 响应工具
@@ -100,6 +105,7 @@ describe('User Controller - 100% Coverage', () => {
         'axios': axiosStub,
         '../models/User': UserStub,
         '../models/Checkin': CheckinStub,
+        '../models/Enrollment': EnrollmentStub,
         '../utils/response': responseUtils,
         '../services/sync.service': syncServiceStub,
         '../services/subscribe-message.service': subscribeMessageServiceStub
@@ -364,6 +370,8 @@ describe('User Controller - 100% Coverage', () => {
       req.params = { userId: userId.toString() };
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
+      CheckinStub.countDocuments.resolves(12);
+      EnrollmentStub.countDocuments.resolves(3);
 
       // When
       await userController.getUserById(req, res, next);
@@ -375,6 +383,13 @@ describe('User Controller - 100% Coverage', () => {
       expect(responseData.code).to.equal(200);
       expect(responseData.data).to.have.property('nickname');
       expect(responseData.data).to.have.property('totalCheckinDays');
+      expect(responseData.data.totalCheckinDays).to.equal(12);
+      expect(responseData.data.totalCompletedPeriods).to.equal(3);
+      expect(EnrollmentStub.countDocuments.calledWithMatch({
+        userId: userId.toString(),
+        status: { $in: ['active', 'completed'] },
+        deleted: { $ne: true }
+      })).to.be.true;
     });
 
     it('应该返回404当用户不存在', async () => {
@@ -427,6 +442,8 @@ describe('User Controller - 100% Coverage', () => {
       req.params = { userId: userId.toString() };
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
+      CheckinStub.countDocuments.resolves(0);
+      EnrollmentStub.countDocuments.resolves(0);
 
       // When
       await userController.getUserById(req, res, next);
@@ -462,6 +479,7 @@ describe('User Controller - 100% Coverage', () => {
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
       CheckinStub.countDocuments.resolves(10);
+      EnrollmentStub.countDocuments.resolves(2);
 
       // When
       await userController.getUserStats(req, res, next);
@@ -473,6 +491,7 @@ describe('User Controller - 100% Coverage', () => {
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.code).to.equal(200);
       expect(responseData.data).to.have.property('totalCheckinDays');
+      expect(responseData.data.totalCompletedPeriods).to.equal(2);
     });
 
     it('应该使用实际的打卡数而不是缓存的字段', async () => {
@@ -483,6 +502,7 @@ describe('User Controller - 100% Coverage', () => {
       const mockUser = { ...fixtures.testUsers.normalUser, totalCheckinDays: 5 };
       UserStub.findById.resolves(mockUser);
       CheckinStub.countDocuments.resolves(10);  // 实际打卡数
+      EnrollmentStub.countDocuments.resolves(4);
 
       // When
       await userController.getUserStats(req, res, next);
@@ -490,6 +510,7 @@ describe('User Controller - 100% Coverage', () => {
       // Then: 应该使用实际的打卡数 10，而不是缓存的 5
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data.totalCheckinDays).to.equal(10);
+      expect(responseData.data.totalCompletedPeriods).to.equal(4);
     });
 
     it('应该返回指定用户的统计信息', async () => {
@@ -499,6 +520,7 @@ describe('User Controller - 100% Coverage', () => {
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
       CheckinStub.countDocuments.resolves(fixtures.testUsers.normalUser.totalCheckinDays);
+      EnrollmentStub.countDocuments.resolves(3);
 
       // When
       await userController.getUserStats(req, res, next);
@@ -507,6 +529,7 @@ describe('User Controller - 100% Coverage', () => {
       expect(UserStub.findById.calledWith(userId.toString())).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.code).to.equal(200);
+      expect(responseData.data.totalCompletedPeriods).to.equal(3);
     });
 
     it('应该返回404当用户不存在', async () => {
@@ -530,6 +553,7 @@ describe('User Controller - 100% Coverage', () => {
       const mockUser = { ...fixtures.testUsers.newUser };
       UserStub.findById.resolves(mockUser);
       CheckinStub.countDocuments.resolves(0);
+      EnrollmentStub.countDocuments.resolves(0);
 
       // When
       await userController.getUserStats(req, res, next);

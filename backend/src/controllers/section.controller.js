@@ -1,5 +1,6 @@
 const Section = require('../models/Section');
 const Period = require('../models/Period');
+const Checkin = require('../models/Checkin');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
@@ -35,9 +36,35 @@ async function getSectionsByPeriod(req, res, next) {
       .sort({ day: 1, order: 1, sortOrder: 1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
-      .select('-content -__v'); // 列表不返回详细内容
+      .select('-content -__v')
+      .lean(); // 列表不返回详细内容
 
-    res.json(success(sections));
+    const sectionIds = sections.map(section => section._id);
+    const checkinCounts = sectionIds.length > 0
+      ? await Checkin.aggregate([
+          {
+            $match: {
+              sectionId: { $in: sectionIds },
+              isPublic: true
+            }
+          },
+          {
+            $group: {
+              _id: '$sectionId',
+              count: { $sum: 1 }
+            }
+          }
+        ])
+      : [];
+    const checkinCountMap = new Map(
+      checkinCounts.map(item => [String(item._id), item.count])
+    );
+    const sectionsWithLiveCheckinCount = sections.map(section => ({
+      ...section,
+      checkinCount: checkinCountMap.get(String(section._id)) || 0
+    }));
+
+    res.json(success(sectionsWithLiveCheckinCount));
   } catch (error) {
     next(error);
   }

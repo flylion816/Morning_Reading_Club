@@ -112,7 +112,8 @@
         <view class="checkins-list">
           <view class="checkin-item" wx:for="{{allCheckins}}" wx:key="id" bindtap="handleCheckinItemTap" data-checkin-id="{{item.id}}" data-section-id="{{item.sectionId}}">
             <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
-              <text class="avatar-text">{{item.avatarText || item.userName}}</text>
+              <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
+              <text wx:else class="avatar-text">{{item.avatarText || item.userName}}</text>
             </view>
             <view class="checkin-main">
               <!-- 用户名 + 第几天标签 + 时间 -->
