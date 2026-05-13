@@ -10,7 +10,7 @@ function extractId(value) {
 }
 
 function isPaidStatus(paymentStatus) {
-  return paymentStatus === 'paid' || paymentStatus === 'free';
+  return paymentStatus === 'paid';
 }
 
 function isActiveEnrollment(enrollment) {

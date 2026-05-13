@@ -21,6 +21,8 @@ describe('checkin page', () => {
   let pageConfig;
   let pageInstance;
   let checkinService;
+  let courseService;
+  let periodAccess;
 
   beforeEach(() => {
     jest.resetModules();
@@ -44,6 +46,8 @@ describe('checkin page', () => {
     }));
 
     checkinService = require('../../services/checkin.service');
+    courseService = require('../../services/course.service');
+    periodAccess = require('../../utils/period-access');
     require('../../pages/checkin/checkin');
 
     pageInstance = {
@@ -58,6 +62,14 @@ describe('checkin page', () => {
     };
 
     checkinService.submitCheckin.mockReset();
+    courseService.getCourseDetail.mockReset();
+    periodAccess.getPeriodAccess.mockClear();
+    periodAccess.redirectAfterCommunityDenied.mockClear();
+    courseService.getCourseDetail.mockResolvedValue({
+      _id: 'section_1',
+      periodId: 'period_1',
+      title: '第一课'
+    });
     wx.showToast.mockClear();
     wx.showLoading.mockClear();
     wx.hideLoading.mockClear();
@@ -82,6 +94,7 @@ describe('checkin page', () => {
 
   test('should block submit when diary exceeds 3000 characters', async () => {
     pageInstance.setData({
+      accessChecked: true,
       diaryContent: 'x'.repeat(3001)
     });
 
@@ -92,5 +105,21 @@ describe('checkin page', () => {
       icon: 'none'
     });
     expect(checkinService.submitCheckin).not.toHaveBeenCalled();
+  });
+
+  test('should not reveal checkin form when period access is denied', async () => {
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      communityAccessState: 'locked'
+    });
+
+    await pageInstance.onLoad.call(pageInstance, {
+      sectionId: 'section_1',
+      periodId: 'period_1'
+    });
+
+    expect(pageInstance.data.accessChecked).toBe(false);
+    expect(periodAccess.redirectAfterCommunityDenied).toHaveBeenCalledWith(
+      '/pages/course-detail/course-detail?id=section_1'
+    );
   });
 });

@@ -107,7 +107,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         userId: userBId,
         periodId: period._id,
         status: 'active',
-        paymentStatus: 'free'
+        paymentStatus: 'paid'
       });
 
       const checkinRes = await request(app)

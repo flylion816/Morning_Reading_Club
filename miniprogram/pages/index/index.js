@@ -6,7 +6,8 @@ const { formatDate, calculatePeriodStatus, formatDateRange } = require('../../ut
 const {
   getCachedEnrollmentAccess,
   setCachedEnrollmentAccess,
-  isFreshOptimisticEnrollmentAccess
+  isFreshOptimisticEnrollmentAccess,
+  isPaidStatus
 } = require('../../utils/period-access');
 
 const ENROLLMENT_CHECK_CONCURRENCY = 2;
@@ -246,9 +247,7 @@ Page({
         try {
           const res = await enrollmentService.checkEnrollment(period._id);
           const existingAccess = getCachedEnrollmentAccess(period._id);
-          const canAccess =
-            !!res.isEnrolled &&
-            (res.paymentStatus === 'paid' || res.paymentStatus === 'free');
+          const canAccess = !!res.isEnrolled && isPaidStatus(res.paymentStatus);
           const optimisticAccess =
             existingAccess &&
             isFreshOptimisticEnrollmentAccess(existingAccess) &&

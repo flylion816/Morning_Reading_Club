@@ -1,7 +1,9 @@
 const checkinService = require('../../services/checkin.service');
+const enrollmentService = require('../../services/enrollment.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const {
   getPeriodAccess,
+  hasPaidEnrollment,
   redirectAfterCommunityDenied
 } = require('../../utils/period-access');
 
@@ -144,22 +146,49 @@ Page({
     hasMore: false,
     loading: true,
     loadingMore: false,
-    summaryLoaded: false
+    summaryLoaded: false,
+    accessChecked: false
   },
 
   async onLoad(options) {
     const initialPeriodId = options?.periodId || 'all';
-    if (initialPeriodId !== 'all') {
+    const canAccess = await this.ensureDiaryAccess(initialPeriodId);
+    if (!canAccess) {
+      return;
+    }
+
+    wx.setNavigationBarTitle({ title: '我的打卡日记' });
+    this.setData({ periodId: initialPeriodId, accessChecked: true });
+    this.syncUserInfo();
+    await this.bootstrapPage();
+  },
+
+  async ensureDiaryAccess(initialPeriodId) {
+    try {
+      if (initialPeriodId === 'all') {
+        const result = await enrollmentService.getUserEnrollments({ limit: 100 });
+        const enrollmentList = Array.isArray(result?.list) ? result.list : [];
+
+        if (!hasPaidEnrollment(enrollmentList)) {
+          redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看打卡日记');
+          return false;
+        }
+
+        return true;
+      }
+
       const access = await getPeriodAccess(initialPeriodId);
       if (access.communityAccessState !== 'enabled') {
         redirectAfterCommunityDenied(`/pages/courses/courses?periodId=${initialPeriodId}`);
-        return;
+        return false;
       }
-    }
 
-    this.setData({ periodId: initialPeriodId });
-    this.syncUserInfo();
-    await this.bootstrapPage();
+      return true;
+    } catch (error) {
+      console.error('校验打卡日记访问权限失败:', error);
+      redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看打卡日记');
+      return false;
+    }
   },
 
   onShow() {

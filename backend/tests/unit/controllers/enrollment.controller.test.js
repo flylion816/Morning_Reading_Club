@@ -126,7 +126,7 @@ describe('Enrollment Controller', () => {
         _id: new mongoose.Types.ObjectId(),
         userId,
         periodId,
-        paymentStatus: 'free',
+        paymentStatus: 'pending',
         status: 'active',
         enrolledAt: new Date(),
         toObject: sandbox.stub().returns({
@@ -142,7 +142,7 @@ describe('Enrollment Controller', () => {
         userId: { _id: userId, nickname: fixtures.testUsers.normalUser.nickname, avatar: fixtures.testUsers.normalUser.avatar },
         periodId: { _id: periodId, title: fixtures.testPeriods.ongoingPeriod.title, description: fixtures.testPeriods.ongoingPeriod.description },
         status: 'active',
-        paymentStatus: 'free'
+        paymentStatus: 'pending'
       };
 
       PeriodStub.findById.resolves(fixtures.testPeriods.ongoingPeriod);

@@ -6,7 +6,9 @@ const enrollmentService = require('../../services/enrollment.service');
 const {
   getPeriodAccess,
   findEnrollmentForPeriod,
-  isFreshOptimisticEnrollmentAccess
+  isFreshOptimisticEnrollmentAccess,
+  isPaidStatus,
+  hasPaidEnrollment
 } = require('../../utils/period-access');
 
 describe('Period Access Utility', () => {
@@ -67,6 +69,38 @@ describe('Period Access Utility', () => {
         canAccessCommunity: true,
         communityAccessState: 'enabled',
         communityLocked: false
+      })
+    );
+  });
+
+  test('不应将 free 报名识别为已支付社交权限', async () => {
+    enrollmentService.checkEnrollment.mockResolvedValue({
+      isEnrolled: true,
+      paymentStatus: 'free',
+      enrollmentId: 'enroll_free'
+    });
+
+    const result = await getPeriodAccess('period_free');
+
+    expect(isPaidStatus('free')).toBe(false);
+    expect(
+      hasPaidEnrollment([
+        {
+          _id: 'enroll_free',
+          periodId: 'period_free',
+          status: 'active',
+          paymentStatus: 'free'
+        }
+      ])
+    ).toBe(false);
+    expect(result).toEqual(
+      expect.objectContaining({
+        periodId: 'period_free',
+        isEnrolled: true,
+        paymentStatus: 'free',
+        paymentPending: true,
+        canAccessCommunity: false,
+        communityAccessState: 'locked'
       })
     );
   });

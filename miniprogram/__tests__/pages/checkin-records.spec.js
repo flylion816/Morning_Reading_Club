@@ -4,16 +4,23 @@ jest.mock('../../services/checkin.service.js', () => ({
   getCheckinDetail: jest.fn()
 }));
 
+jest.mock('../../services/enrollment.service.js', () => ({
+  getUserEnrollments: jest.fn()
+}));
+
 jest.mock('../../utils/formatters.js', () => ({
   getAvatarColorByUserId: jest.fn(() => '#4a90e2')
 }));
 
 jest.mock('../../utils/period-access.js', () => ({
   getPeriodAccess: jest.fn(() => Promise.resolve({ communityAccessState: 'enabled' })),
+  hasPaidEnrollment: jest.fn(() => true),
   redirectAfterCommunityDenied: jest.fn()
 }));
 
 let checkinService;
+let enrollmentService;
+let periodAccess;
 
 describe('checkin-records page', () => {
   let pageConfig;
@@ -37,6 +44,8 @@ describe('checkin-records page', () => {
     }));
 
     checkinService = require('../../services/checkin.service.js');
+    enrollmentService = require('../../services/enrollment.service.js');
+    periodAccess = require('../../utils/period-access.js');
     require('../../pages/checkin-records/checkin-records.js');
 
     pageInstance = {
@@ -53,6 +62,14 @@ describe('checkin-records page', () => {
     checkinService.getUserDiarySummary.mockReset();
     checkinService.getUserCheckinsWithStats.mockReset();
     checkinService.getCheckinDetail.mockReset();
+    enrollmentService.getUserEnrollments.mockReset();
+    periodAccess.getPeriodAccess.mockClear();
+    periodAccess.hasPaidEnrollment.mockClear();
+    periodAccess.redirectAfterCommunityDenied.mockClear();
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [{ status: 'active', paymentStatus: 'paid', periodId: 'period_a' }]
+    });
+    periodAccess.hasPaidEnrollment.mockReturnValue(true);
     wx.showLoading = wx.showLoading || jest.fn();
     wx.hideLoading = wx.hideLoading || jest.fn();
     wx.navigateTo.mockClear();
@@ -101,6 +118,37 @@ describe('checkin-records page', () => {
     expect(pageInstance.data.selectedPeriodMetaLines).toContain('18人参与本期共读');
     expect(pageInstance.data.selectedPeriodMetaLines).toContain('已完成3次打卡');
     expect(pageInstance.data.selectedPeriodMetaLines).toContain('共发布2篇日记');
+  });
+
+  test('should block default diary entry when the user has no paid enrollment', async () => {
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [{ status: 'active', paymentStatus: 'free', periodId: 'period_a' }]
+    });
+    periodAccess.hasPaidEnrollment.mockReturnValue(false);
+    checkinService.getUserDiarySummary.mockResolvedValue({ stats: {}, periods: [] });
+
+    await pageInstance.onLoad.call(pageInstance, {});
+
+    expect(enrollmentService.getUserEnrollments).toHaveBeenCalledWith({ limit: 100 });
+    expect(periodAccess.redirectAfterCommunityDenied).toHaveBeenCalledWith(
+      '/pages/profile/profile',
+      '完成支付后可查看打卡日记'
+    );
+    expect(checkinService.getUserDiarySummary).not.toHaveBeenCalled();
+  });
+
+  test('should verify period access when opened with a target period', async () => {
+    checkinService.getUserDiarySummary.mockResolvedValue({ stats: {}, periods: [] });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({
+      list: [],
+      pagination: { pages: 1 }
+    });
+
+    await pageInstance.onLoad.call(pageInstance, { periodId: 'period_a' });
+
+    expect(periodAccess.getPeriodAccess).toHaveBeenCalledWith('period_a');
+    expect(enrollmentService.getUserEnrollments).not.toHaveBeenCalled();
+    expect(checkinService.getUserDiarySummary).toHaveBeenCalled();
   });
 
   test('should truncate long period title for the scroll card display', async () => {

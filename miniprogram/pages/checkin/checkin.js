@@ -55,6 +55,7 @@ Page({
 
     // 可见范围
     visibility: 'all', // 'all' 或 'admin'
+    accessChecked: false,
 
     // 草稿状态
     isDirty: false,
@@ -161,7 +162,8 @@ Page({
     this.setData({
       courseId: sectionId,
       sectionId,
-      periodId: resolvedPeriodId
+      periodId: resolvedPeriodId,
+      accessChecked: true
     });
 
     // 编辑模式：加载已有打卡内容填充表单（覆盖草稿）
@@ -445,6 +447,14 @@ Page({
 
   // 提交打卡
   async handleSubmit() {
+    if (!this.data.accessChecked) {
+      wx.showToast({
+        title: '完成支付后可打卡',
+        icon: 'none'
+      });
+      return;
+    }
+
     const diaryContent = (this.data.diaryContent || '').trim();
 
     if (!diaryContent) {

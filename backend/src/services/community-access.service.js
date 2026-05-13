@@ -11,14 +11,31 @@ async function findCommunityEnrollment(userId, periodId) {
   return Enrollment.findOne({
     userId,
     periodId,
-    status: { $in: ['active', 'completed'] }
+    status: { $in: ['active', 'completed'] },
+    deleted: { $ne: true }
   }).select('paymentStatus status');
+}
+
+async function getCommunityAccessiblePeriodIds(userId) {
+  if (!userId) {
+    return [];
+  }
+
+  const enrollments = await Enrollment.find({
+    userId,
+    status: { $in: ['active', 'completed'] },
+    paymentStatus: 'paid',
+    deleted: { $ne: true }
+  })
+    .select('periodId')
+    .lean();
+
+  return enrollments.map(enrollment => enrollment.periodId).filter(Boolean);
 }
 
 async function ensurePeriodCommunityAccess(res, userId, periodId) {
   const enrollment = await findCommunityEnrollment(userId, periodId);
-  const hasCommunityAccess =
-    !!enrollment && (enrollment.paymentStatus === 'paid' || enrollment.paymentStatus === 'free');
+  const hasCommunityAccess = !!enrollment && enrollment.paymentStatus === 'paid';
 
   if (hasCommunityAccess) {
     return true;
@@ -31,5 +48,6 @@ async function ensurePeriodCommunityAccess(res, userId, periodId) {
 module.exports = {
   COMMUNITY_ACCESS_DENIED_MESSAGE,
   ensurePeriodCommunityAccess,
-  findCommunityEnrollment
+  findCommunityEnrollment,
+  getCommunityAccessiblePeriodIds
 };

@@ -117,6 +117,10 @@ Page({
   },
 
   goToMyCheckinRecords() {
+    if (!this.data.canUsePaidFeatures) {
+      wx.showToast({ title: '完成支付后可查看打卡日记', icon: 'none' });
+      return;
+    }
     wx.navigateTo({ url: '/pages/checkin-records/checkin-records' });
   },
 

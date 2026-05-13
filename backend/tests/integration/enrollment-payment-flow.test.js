@@ -139,7 +139,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       expect(enrollRes.status).to.equal(200);
       expect(enrollRes.body.data).to.have.property('_id');
       expect(enrollRes.body.data).to.have.property('status', 'active');
-      expect(enrollRes.body.data).to.have.property('paymentStatus', 'free');
+      expect(enrollRes.body.data).to.have.property('paymentStatus', 'pending');
 
       testEnrollment = enrollRes.body.data;
       const enrollmentId = testEnrollment._id;
@@ -238,7 +238,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
     });
 
     it('应该返回存在的待支付订单而非创建新订单', async () => {
-      // 创建报名（默认paymentStatus为free）
+      // 创建报名（默认 paymentStatus 为 pending）
       const enrollRes = await request(app)
         .post('/api/v1/enrollments/simple')
         .set('Authorization', `Bearer ${authToken}`)

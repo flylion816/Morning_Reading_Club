@@ -29,6 +29,7 @@ describe('my page', () => {
   let userService;
   let enrollmentService;
   let notificationService;
+  let periodAccess;
 
   beforeEach(() => {
     jest.resetModules();
@@ -45,10 +46,12 @@ describe('my page', () => {
     }));
 
     wx.navigateTo.mockClear();
+    wx.showToast.mockClear();
 
     userService = require('../../services/user.service');
     enrollmentService = require('../../services/enrollment.service');
     notificationService = require('../../services/notification.service');
+    periodAccess = require('../../utils/period-access');
 
     userService.getUserProfile.mockResolvedValue({
       nickname: '小狐狸',
@@ -63,6 +66,8 @@ describe('my page', () => {
     notificationService.getUnreadCount.mockResolvedValue({
       unreadCount: 6
     });
+    periodAccess.hasPaidEnrollment.mockClear();
+    periodAccess.hasPaidEnrollment.mockReturnValue(true);
 
     require('../../pages/my/my');
 
@@ -102,6 +107,20 @@ describe('my page', () => {
 
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/notifications/notifications'
+    });
+  });
+
+  test('should not navigate to checkin records without paid access', () => {
+    pageInstance.setData({ canUsePaidFeatures: false });
+
+    pageInstance.goToMyCheckinRecords.call(pageInstance);
+
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '完成支付后可查看打卡日记',
+      icon: 'none'
+    });
+    expect(wx.navigateTo).not.toHaveBeenCalledWith({
+      url: '/pages/checkin-records/checkin-records'
     });
   });
 });

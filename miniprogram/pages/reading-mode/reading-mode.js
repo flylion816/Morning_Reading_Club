@@ -1,6 +1,9 @@
 const courseService = require('../../services/course.service');
 const { richContentToPlainText } = require('../../utils/markdown');
-const { extractId } = require('../../utils/period-access');
+const {
+  extractId,
+  getPeriodAccess
+} = require('../../utils/period-access');
 
 const MINI_PROGRAM_CODE_ASSET_PATHS = [
   '/assets/images/mini-program-code.png',
@@ -51,7 +54,8 @@ Page({
     posterTempFilePath: '',
     statusBarHeight: 0,
     topbarHeight: 88,
-    fontSizeLevel: 'standard'
+    fontSizeLevel: 'standard',
+    canAccessCheckin: false
   },
 
   onLoad(options) {
@@ -113,6 +117,17 @@ Page({
         '';
       const contentText = richContentToPlainText(course.content || '');
       const paragraphs = splitParagraphs(contentText);
+      let canAccessCheckin = false;
+
+      if (periodId) {
+        try {
+          const access = await getPeriodAccess(periodId);
+          canAccessCheckin = access.communityAccessState === 'enabled';
+        } catch (accessError) {
+          console.warn('读取打卡权限失败:', accessError);
+        }
+      }
+
       const saved = this.loadSavedState();
       const safeIndex = Math.min(
         Math.max(saved.currentParagraphIndex, 0),
@@ -124,6 +139,7 @@ Page({
           course,
           periodId,
           periodName,
+          canAccessCheckin,
           paragraphs,
           currentParagraphIndex: safeIndex,
           readingProgress: this.calculateProgress(safeIndex, paragraphs.length),
@@ -256,6 +272,11 @@ Page({
   },
 
   handleGoCheckin() {
+    if (!this.data.canAccessCheckin) {
+      wx.showToast({ title: '完成支付后可打卡', icon: 'none' });
+      return;
+    }
+
     this.persistProgress();
     wx.navigateTo({
       url: `/pages/checkin/checkin?courseId=${this.data.sectionId}&periodId=${this.data.periodId}`

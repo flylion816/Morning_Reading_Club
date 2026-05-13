@@ -6,7 +6,10 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
-const { ensurePeriodCommunityAccess } = require('../services/community-access.service');
+const {
+  ensurePeriodCommunityAccess,
+  getCommunityAccessiblePeriodIds
+} = require('../services/community-access.service');
 const {
   buildCourseDetailTargetPage,
   formatNotificationTime
@@ -21,6 +24,26 @@ function isNonEmptyNote(note) {
 }
 
 const MAX_CHECKIN_NOTE_LENGTH = 3000;
+
+function buildEmptyUserCheckinPayload(page = 1, limit = 20) {
+  return {
+    list: [],
+    stats: {
+      diaryCount: 0,
+      featuredCount: 0,
+      likeCount: 0,
+      totalCheckins: 0,
+      consecutiveDays: 0
+    },
+    calendar: null,
+    pagination: {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      total: 0,
+      pages: 0
+    }
+  };
+}
 
 function isNoteTooLong(note) {
   return typeof note === 'string' && note.length > MAX_CHECKIN_NOTE_LENGTH;
@@ -238,9 +261,27 @@ async function createCheckin(req, res, next) {
 async function getCheckins(req, res, next) {
   try {
     const { periodId, page = 1, limit = 20 } = req.query;
+    const userId = getRequestUserId(req);
 
     const query = {};
-    if (periodId) query.periodId = periodId;
+    if (periodId) {
+      const hasCommunityAccess = await ensurePeriodCommunityAccess(res, userId, periodId);
+      if (!hasCommunityAccess) return;
+      query.periodId = periodId;
+    } else {
+      const accessiblePeriodIds = await getCommunityAccessiblePeriodIds(userId);
+      if (accessiblePeriodIds.length === 0) {
+        const response = success([]);
+        response.pagination = {
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
+          total: 0,
+          totalPages: 0
+        };
+        return res.json(response);
+      }
+      query.periodId = { $in: accessiblePeriodIds };
+    }
 
     const total = await Checkin.countDocuments(query);
     const checkins = await Checkin.find(query)
@@ -271,9 +312,20 @@ async function getUserCheckins(req, res, next) {
   try {
     const { page = 1, limit = 20, periodId, year, month } = req.query;
     const userId = req.params.userId || req.user.userId;
+    const requestUserId = getRequestUserId(req);
 
     const query = { userId };
-    if (periodId) query.periodId = periodId;
+    if (periodId) {
+      const hasCommunityAccess = await ensurePeriodCommunityAccess(res, requestUserId, periodId);
+      if (!hasCommunityAccess) return;
+      query.periodId = periodId;
+    } else {
+      const accessiblePeriodIds = await getCommunityAccessiblePeriodIds(requestUserId);
+      if (accessiblePeriodIds.length === 0) {
+        return res.json(success(buildEmptyUserCheckinPayload(page, limit)));
+      }
+      query.periodId = { $in: accessiblePeriodIds };
+    }
 
     // 获取打卡列表
     const total = await Checkin.countDocuments(query);
@@ -378,8 +430,24 @@ async function getUserCheckins(req, res, next) {
 async function getUserCheckinSummary(req, res, next) {
   try {
     const userId = req.params.userId || req.user.userId || req.user.id || req.user._id;
+    const requestUserId = getRequestUserId(req);
+    const accessiblePeriodIds = await getCommunityAccessiblePeriodIds(requestUserId);
 
-    const checkins = await Checkin.find({ userId })
+    if (accessiblePeriodIds.length === 0) {
+      const summary = buildUserDiarySummary([]);
+      return res.json(
+        success({
+          userId,
+          stats: summary.stats,
+          periods: summary.periods
+        })
+      );
+    }
+
+    const checkins = await Checkin.find({
+      userId,
+      periodId: { $in: accessiblePeriodIds }
+    })
       .populate('periodId', 'name title icon coverColor coverEmoji currentEnrollment enrollmentCount totalDays status')
       .populate('sectionId', 'title day')
       .populate('likes.userId', 'nickname avatar avatarUrl')
@@ -411,6 +479,13 @@ async function getPeriodCheckins(req, res, next) {
     if (!period) {
       return res.json(success([])); // 返回空数组而不是404
     }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      getRequestUserId(req),
+      periodId
+    );
+    if (!hasCommunityAccess) return;
 
     const query = {
       periodId,
@@ -465,6 +540,13 @@ async function getCheckinDetail(req, res, next) {
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      getRequestUserId(req),
+      checkin.periodId?._id || checkin.periodId
+    );
+    if (!hasCommunityAccess) return;
 
     const checkinObj = checkin.toObject();
 

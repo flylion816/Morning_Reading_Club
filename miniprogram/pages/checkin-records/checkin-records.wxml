@@ -1,4 +1,4 @@
-<view class="page-checkin-records">
+<view class="page-checkin-records" wx:if="{{accessChecked}}">
   <view class="hero-card">
     <view class="hero-user">
       <view wx:if="{{userInfo.avatarUrl}}" class="hero-avatar-wrap">

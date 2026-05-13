@@ -256,29 +256,29 @@
       </view>
       <view class="guest-feature-item">
         <view class="feature-icon-wrap" style="background: #fff4e6;">
-          <text class="feature-icon">✅</text>
+          <text class="feature-icon">📌</text>
         </view>
         <view class="feature-text">
-          <text class="feature-title">打卡记录</text>
-          <text class="feature-desc">每日学习打卡，记录成长轨迹，见证坚持的力量</text>
+          <text class="feature-title">学习进度</text>
+          <text class="feature-desc">按天完成晨读内容，清晰掌握自己的学习节奏</text>
         </view>
       </view>
       <view class="guest-feature-item">
         <view class="feature-icon-wrap" style="background: #f0fdf4;">
-          <text class="feature-icon">✨</text>
+          <text class="feature-icon">🧭</text>
         </view>
         <view class="feature-text">
-          <text class="feature-title">小凡看见</text>
-          <text class="feature-desc">老师为你写下专属反馈，看见你的每一份努力</text>
+          <text class="feature-title">课程引导</text>
+          <text class="feature-desc">围绕经典章节设置问题与行动练习，帮助理解和应用</text>
         </view>
       </view>
       <view class="guest-feature-item">
         <view class="feature-icon-wrap" style="background: #fef2f2;">
-          <text class="feature-icon">👥</text>
+          <text class="feature-icon">⏱</text>
         </view>
         <view class="feature-text">
-          <text class="feature-title">学习陪伴</text>
-          <text class="feature-desc">跟随课程节奏稳步学习，持续积累晨读习惯</text>
+          <text class="feature-title">晨读节奏</text>
+          <text class="feature-desc">跟随课程安排稳步学习，持续积累晨读习惯</text>
         </view>
       </view>
     </view>

@@ -307,7 +307,7 @@ exports.enrollPeriod = async (req, res) => {
       existingEnrollment.set({
         userId,
         periodId,
-        paymentStatus: 'free',
+        paymentStatus: 'pending',
         paymentAmount: 0,
         paidAt: null,
         completedAt: null,
@@ -345,7 +345,8 @@ exports.enrollPeriod = async (req, res) => {
     const enrollment = await Enrollment.create({
       userId,
       periodId,
-      paymentStatus: 'free', // 默认免费
+      paymentStatus: 'pending',
+      paymentAmount: 0,
       status: 'active'
     });
 

@@ -96,7 +96,10 @@ describe('Checkin Controller', () => {
     };
 
     communityAccessServiceStub = {
-      ensurePeriodCommunityAccess: sandbox.stub().resolves(true)
+      ensurePeriodCommunityAccess: sandbox.stub().resolves(true),
+      getCommunityAccessiblePeriodIds: sandbox.stub().resolves([
+        fixtures.testPeriods.activeOngoing._id
+      ])
     };
 
     checkinController = proxyquire(

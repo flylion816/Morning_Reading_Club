@@ -74,7 +74,7 @@
       </view>
 
       <!-- 我的打卡日记 -->
-      <view class="settings-cell" bindtap="goToMyCheckinRecords">
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyCheckinRecords">
         <view class="cell-left">
           <text class="cell-icon">📔</text>
           <text class="cell-label">我的打卡日记</text>
