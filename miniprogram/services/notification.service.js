@@ -79,7 +79,8 @@ class NotificationService {
       enrollment_result: '报名通知',
       payment_result: '付款通知',
       comment_received: '评论提醒',
-      like_received: '点赞提醒'
+      like_received: '点赞提醒',
+      insight_created: '小凡看见发布'
     };
     return labels[type] || '通知';
   }
@@ -100,7 +101,8 @@ class NotificationService {
       enrollment_result: '📚',
       payment_result: '💰',
       comment_received: '💬',
-      like_received: '❤️'
+      like_received: '❤️',
+      insight_created: '👁️'
     };
     return icons[type] || '📬';
   }
@@ -121,7 +123,8 @@ class NotificationService {
       enrollment_result: '#4A90E2',
       payment_result: '#1F9D55',
       comment_received: '#4A90E2',
-      like_received: '#E25555'
+      like_received: '#E25555',
+      insight_created: '#7B5EA7'
     };
     return colors[type] || '#999';
   }
