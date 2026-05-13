@@ -422,8 +422,8 @@ async function notifyInsightCreated(req, { insight, targetUser, periodName, sect
       },
       subscribeFields: {
         replyUser: '小凡',
-        replyTopic: truncateText(topic || periodName || '晨读营', 32),
-        replyContent: contentPreview,
+        replyTopic: truncateText(periodName || '晨读营', 32),
+        replyContent: truncateText([dayText, sectionTitle].filter(Boolean).join(' ') || contentPreview, 32),
         replyTime: formatNotificationTime(insight.createdAt || new Date())
       },
       sourceType: 'insight',
