@@ -524,11 +524,13 @@ Page({
           return;
         }
 
-        const viewTop = scrollRect.top;
-        const viewBottom = scrollRect.bottom;
+        // reader-scroll 从 y=0 起，topbar fixed 覆盖上方，需要加 topbarHeight 才是真实可见上边界
+        const effectiveTop = scrollRect.top + (this.data.topbarHeight || 88);
+        // 底部工具栏约 80px，超出部分不算可见
+        const effectiveBottom = scrollRect.bottom - 80;
         const visible = rects
           .map((rect, i) => ({ rect, item: paragraphs[i], index: i }))
-          .filter(({ rect }) => rect.bottom > viewTop && rect.top < viewBottom)
+          .filter(({ rect }) => rect.bottom > effectiveTop && rect.top < effectiveBottom)
           .map(({ item, index }) => ({
             ...item,
             sourceIndex: index,
@@ -577,10 +579,16 @@ Page({
       if (item.type === 'image') {
         try {
           const img = await this.loadCanvasImage(canvas, [item.src]);
-          const ratio = img.height > 0 ? img.width / img.height : 1;
-          const displayW = contentW;
-          const displayH = Math.min(Math.round(displayW / ratio), 560);
-          measuredItems.push({ ...item, img, displayW, displayH, lines: [] });
+          const naturalW = img.width || contentW;
+          const naturalH = img.height || contentW;
+          const ratio = naturalW / naturalH || 1;
+          const naturalDisplayH = Math.round(contentW / ratio);
+          // 超高时按高度限制，同步缩小宽度保持比例，水平居中
+          const maxH = 700;
+          const displayH = Math.min(naturalDisplayH, maxH);
+          const displayW = displayH < naturalDisplayH ? Math.round(displayH * ratio) : contentW;
+          const drawX = pageX + Math.round((contentW - displayW) / 2);
+          measuredItems.push({ ...item, img, displayW, displayH, drawX, lines: [] });
         } catch {
           // 加载失败的图片跳过
         }
@@ -652,7 +660,7 @@ Page({
 
     measuredItems.forEach((item) => {
       if (item.type === 'image') {
-        ctx.drawImage(item.img, pageX, cursorY, item.displayW, item.displayH);
+        ctx.drawImage(item.img, item.drawX !== undefined ? item.drawX : pageX, cursorY, item.displayW, item.displayH);
         cursorY += item.displayH + 24;
         return;
       }
