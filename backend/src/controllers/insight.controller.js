@@ -942,6 +942,22 @@ async function createInsightManual(req, res, next) {
 
     const insight = await persistInsight(insightData);
 
+    // 如果有被看见人，异步发送通知
+    if (targetUserId) {
+      const targetUser = await User.findById(targetUserId).select('_id nickname');
+      if (targetUser) {
+        const period = periodId ? await Period.findById(periodId).select('name') : null;
+        const section = sectionId ? await Section.findById(sectionId).select('title') : null;
+        notifyInsightCreated(req, {
+          insight,
+          targetUser,
+          periodName: periodName || period?.name || '',
+          sectionTitle: title || section?.title || '',
+          day: day || null
+        }).catch(() => {});
+      }
+    }
+
     res.status(201).json(success(insight, '小凡看见创建成功'));
   } catch (error) {
     next(error);
