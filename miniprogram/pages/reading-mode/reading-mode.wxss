@@ -4,6 +4,16 @@
   color: #2f3437;
 }
 
+.reader-init-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fffdf8;
+  z-index: 999;
+}
+
 .reading-topbar {
   position: fixed;
   top: 0;

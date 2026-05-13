@@ -55,7 +55,8 @@ Page({
     statusBarHeight: 0,
     topbarHeight: 88,
     fontSizeLevel: 'standard',
-    canAccessCheckin: false
+    canAccessCheckin: false,
+    contentReady: false
   },
 
   onLoad(options) {
@@ -148,7 +149,10 @@ Page({
         },
         () => {
           this.applyFontSizeClass(saved.fontSizeLevel);
-          setTimeout(() => this.updateCurrentParagraphByViewport(), 350);
+          setTimeout(() => {
+            this.updateCurrentParagraphByViewport();
+            this.setData({ contentReady: true });
+          }, 350);
         }
       );
       wx.hideLoading();

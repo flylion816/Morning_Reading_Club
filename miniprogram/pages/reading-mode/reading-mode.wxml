@@ -70,4 +70,6 @@
     canvas-id="readingMomentCanvas"
     type="2d"
     class="reading-poster-canvas"></canvas>
+
+  <view wx:if="{{!contentReady}}" class="reader-init-mask"></view>
 </view>
