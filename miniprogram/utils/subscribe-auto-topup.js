@@ -77,6 +77,15 @@ const AUTO_TOP_UP_POLICIES = {
     target: 1,
     requiresPeriodId: true,
     scheduledSendText: '每天 05:45 自动发送'
+  },
+  insight_created: {
+    scene: 'insight_created',
+    title: '小凡看见发布',
+    description: '小凡发布专属看见内容时第一时间提醒查看',
+    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    target: 50,
+    requiresPeriodId: false,
+    scheduledSendText: ''
   }
 };
 

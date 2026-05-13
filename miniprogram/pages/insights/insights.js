@@ -80,6 +80,18 @@ Page({
     }
 
     this.loadInsights();
+
+    // 查看自己的小凡看见时，静默补充订阅次数
+    if (!targetUserId) {
+      subscribeAutoTopUp
+        .maybeAutoTopUpSubscriptions({
+          sourceAction: 'insights_page_load',
+          sourcePage: 'insights',
+          sceneKeys: ['insight_created'],
+          requestMode: 'remembered'
+        })
+        .catch(() => {});
+    }
   },
 
   async loadTargetUserInfo() {
