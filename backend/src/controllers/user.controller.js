@@ -196,7 +196,8 @@ async function getUserList(req, res, next) {
     // 支持 search 和 keyword 两个参数名（search 用于前端搜索框，keyword 用于兼容）
     const searchTerm = search || keyword;
 
-    const query = {};
+    // 默认排除已删除用户；若前端明确指定 status=deleted 则显示
+    const query = { status: { $ne: 'deleted' } };
     if (role) query.role = role;
     if (status) query.status = status;
     if (searchTerm) {

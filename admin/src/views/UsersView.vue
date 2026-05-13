@@ -374,10 +374,7 @@ function getUserAvatarUrl(user: User): string {
 }
 
 function getUserAvatarText(user: User): string {
-  const avatar = user.avatar;
-  if (avatar && !String(avatar).startsWith('http')) {
-    return avatar;
-  }
+  // avatar 字段默认值是 '🦁'，不是用户自定义内容，直接用昵称首字做头像文字
   return user.nickname ? String(user.nickname).slice(0, 1) : '用';
 }
 </script>

@@ -451,10 +451,7 @@ function getEnrollmentUserAvatarUrl(enrollment: Enrollment): string {
 
 function getEnrollmentUserAvatarText(enrollment: Enrollment): string {
   const user = getEnrollmentUser(enrollment);
-  const avatar = user?.avatar;
-  if (avatar && !String(avatar).startsWith('http')) {
-    return avatar;
-  }
+  // avatar 字段默认 '🦁'，不作为头像文字使用，直接取昵称首字
   const nickname = user?.nickname || enrollment.name || '';
   return nickname ? String(nickname).slice(0, 1) : '用';
 }
