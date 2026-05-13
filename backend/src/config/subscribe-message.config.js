@@ -111,6 +111,27 @@ const sceneConfigs = {
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_INSIGHT_REQUEST_APPROVED'
   },
+  insight_created: {
+    scene: 'insight_created',
+    title: '小凡看见通知',
+    description: '外部系统创建小凡看见时通知被看见的用户',
+    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
+    page: 'pages/insights/insights',
+    autoTopUpTarget: 50,
+    fieldDefinitions: [
+      { name: 'replyUser', label: '看见人' },
+      { name: 'replyTopic', label: '看见主题' },
+      { name: 'replyContent', label: '看见内容' },
+      { name: 'replyTime', label: '看见时间' }
+    ],
+    defaultFieldKeyMap: {
+      replyUser: 'thing1',
+      replyTopic: 'thing5',
+      replyContent: 'thing2',
+      replyTime: 'time3'
+    },
+    fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_INSIGHT_CREATED'
+  },
   next_day_study_reminder: {
     scene: 'next_day_study_reminder',
     title: '明日开课通知',

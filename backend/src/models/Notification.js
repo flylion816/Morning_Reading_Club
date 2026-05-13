@@ -22,7 +22,8 @@ const notificationSchema = new mongoose.Schema(
         'enrollment_result', // 报名结果
         'payment_result', // 付款结果
         'comment_received', // 收到评论/回复
-        'like_received' // 收到点赞
+        'like_received', // 收到点赞
+        'insight_created' // 被小凡看见
       ],
       required: true
     },

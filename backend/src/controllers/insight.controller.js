@@ -399,6 +399,45 @@ async function notifyInsightRequestCreated(req, { request, fromUser, toUser }) {
   }
 }
 
+async function notifyInsightCreated(req, { insight, targetUser, periodName, sectionTitle, day }) {
+  const contentPreview = truncateText(
+    insight.content || (insight.imageUrl ? '[图片]' : '小凡看见'),
+    32
+  );
+  const dayText = day ? `第${day}天` : '';
+  const topic = [periodName, dayText, sectionTitle].filter(Boolean).join(' · ');
+
+  try {
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: targetUser._id,
+      notificationType: 'insight_created',
+      title: '你被小凡看见了',
+      content: truncateText(topic || contentPreview, 50),
+      scene: 'insight_created',
+      targetPage: 'pages/insights/insights',
+      data: {
+        insightId: insight._id.toString(),
+        periodName: periodName || '',
+        day: day || null
+      },
+      subscribeFields: {
+        replyUser: '小凡',
+        replyTopic: truncateText(topic || periodName || '晨读营', 32),
+        replyContent: contentPreview,
+        replyTime: formatNotificationTime(insight.createdAt || new Date())
+      },
+      sourceType: 'insight',
+      sourceId: insight._id
+    });
+  } catch (error) {
+    logger.warn('小凡看见创建通知发送失败', {
+      insightId: insight._id?.toString?.(),
+      targetUserId: targetUser._id?.toString?.(),
+      message: error.message
+    });
+  }
+}
+
 async function getApprovedPeriodIdsForViewer(viewerUserId, targetUserId) {
   if (!viewerUserId || !targetUserId || viewerUserId === targetUserId) {
     return new Set();
@@ -2268,6 +2307,17 @@ async function createInsightFromExternal(req, res, next) {
       createdAt: insight.createdAt,
       updatedAt: insight.updatedAt
     };
+
+    // 仅新建时推送通知，更新不重复打扰
+    if (created) {
+      notifyInsightCreated(req, {
+        insight,
+        targetUser,
+        periodName: resolvedPeriodName,
+        sectionTitle: resolvedTitle,
+        day: resolvedDay
+      }).catch(() => {});
+    }
 
     res.status(created ? 201 : 200).json(success(result, created ? '小凡看见创建成功' : '小凡看见更新成功'));
   } catch (error) {
