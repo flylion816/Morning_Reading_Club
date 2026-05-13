@@ -1,5 +1,5 @@
 ---
-name: deploy
+name: 7deploy
 description: 提交所有未提交代码到 GitHub，然后发布到线上服务器
 ---
 
