@@ -40,8 +40,8 @@
     <view class="toolbar-btn toolbar-btn-primary" bindtap="handleShareMoment">
       {{posterGenerating ? '生成中' : '分享此刻'}}
     </view>
-    <view wx:if="{{canAccessCheckin}}" class="toolbar-btn toolbar-btn-checkin" bindtap="handleGoCheckin">
-      去打卡
+    <view class="toolbar-btn toolbar-btn-secondary" bindtap="handleBack">
+      退出
     </view>
   </view>
 

@@ -193,12 +193,16 @@
 
 .toolbar-btn-primary {
   flex: 1;
+  min-width: 0;
   color: #ffffff;
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   box-shadow: 0 10rpx 24rpx rgba(74, 144, 226, 0.24);
 }
 
-.toolbar-btn-checkin {
+.toolbar-btn-secondary {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
   color: #357abd;
   background: #eef5ff;
 }
