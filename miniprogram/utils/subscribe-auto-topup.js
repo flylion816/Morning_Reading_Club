@@ -60,6 +60,15 @@ const AUTO_TOP_UP_POLICIES = {
     requiresPeriodId: false,
     scheduledSendText: ''
   },
+  insight_request_approved: {
+    scene: 'insight_request_approved',
+    title: '小凡看见申请通过',
+    description: '你发起的小凡看见查看申请被同意时提醒查看',
+    templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
+    target: 1,
+    requiresPeriodId: false,
+    scheduledSendText: ''
+  },
   next_day_study_reminder: {
     scene: 'next_day_study_reminder',
     title: '明日开课通知',

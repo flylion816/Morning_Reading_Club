@@ -7,83 +7,34 @@ const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
 } = require('../../utils/period-access');
+const {
+  buildInsightRequestDisplay,
+  extractInsightRequests
+} = require('../../utils/insight-request-display');
 
 const INSIGHT_AUTO_TOP_UP_SCENES = ['insight_request_created'];
 
-function formatRelativeTime(dateString) {
-  if (!dateString) return '刚刚';
-
-  const createdTime = new Date(dateString).getTime();
-  const now = Date.now();
-  const diffMs = now - createdTime;
-  const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMinutes < 1) return '刚刚';
-  if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-  if (diffHours < 24) return `${diffHours}小时前`;
-  if (diffDays < 7) return `${diffDays}天前`;
-  return new Date(dateString).toLocaleDateString('zh-CN');
-}
-
-function buildInsightRequestDisplay(item) {
-  const fromUser = item.fromUserId || {};
-  const periodName =
-    item.requestPeriodName ||
-    item.periodId?.name ||
-    item.periodId?.title ||
-    '未知期次';
-  const insightTitle =
-    item.requestInsightTitle ||
-    item.insightId?.sectionId?.title ||
-    item.insightId?.title ||
-    '学习反馈';
-  const insightDay =
-    item.requestInsightDay ||
-    item.insightId?.day ||
-    item.insightId?.sectionId?.day ||
-    null;
-  const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
-  const dayText = insightDay && !titleHasDay ? `第${insightDay}天` : '';
-  const metaParts = [periodName];
-  if (dayText) metaParts.push(dayText);
-  if (insightTitle) metaParts.push(insightTitle);
-
-  const statusMap = {
-    pending: { text: '待处理', className: 'pending' },
-    approved: { text: '已同意', className: 'approved' },
-    rejected: { text: '已拒绝', className: 'rejected' },
-    revoked: { text: '已撤销', className: 'revoked' }
-  };
-  const statusInfo = statusMap[item.status] || statusMap.pending;
-
-  return {
-    id: item._id || item.id,
-    _id: item._id || item.id,
-    fromUserId: fromUser._id || fromUser.id || item.fromUserId || null,
-    fromUserName: fromUser.nickname || fromUser.name || '用户',
-    fromUserAvatarUrl: fromUser.avatarUrl || '',
-    fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
-    avatarColor: fromUser.avatarColor || '#4a90e2',
-    time: formatRelativeTime(item.createdAt),
-    status: item.status,
-    statusText: statusInfo.text,
-    statusClass: statusInfo.className,
-    periodId: item.periodId?._id || item.periodId || null,
-    requestMeta: metaParts.join(' · '),
-    requestSummary: dayText ? `${periodName} · ${dayText}` : periodName,
-    requestInsightTitle: insightTitle,
-    canApprove: item.status === 'pending',
-    canReject: item.status === 'pending'
-  };
-}
-
 Page({
   data: {
+    requestDirectionTabs: [
+      { value: 'received', label: '收到的' },
+      { value: 'sent', label: '我发起的' }
+    ],
+    activeRequestDirection: 'received',
+    receivedRequests: [],
+    sentRequests: [],
     requests: [],
     loading: true,
+    emptyText: '暂无收到的请求',
     notificationReminder: ''
+  },
+
+  onLoad(options = {}) {
+    const direction = options.direction === 'sent' ? 'sent' : 'received';
+    this.setData({
+      activeRequestDirection: direction,
+      emptyText: this.getEmptyText(direction)
+    });
   },
 
   onShow() {
@@ -101,7 +52,10 @@ Page({
 
       if (!hasPaidEnrollment(enrollmentList)) {
         this.setData({
+          receivedRequests: [],
+          sentRequests: [],
           requests: [],
+          emptyText: this.getEmptyText(this.data.activeRequestDirection),
           notificationReminder: '',
           loading: false
         });
@@ -112,20 +66,30 @@ Page({
         return;
       }
 
-      const [requests, notificationReminder] = await Promise.all([
-        this.fetchRequests(),
+      const [requestGroups, notificationReminder] = await Promise.all([
+        this.fetchAllRequests(),
         this.fetchNotificationReminder()
       ]);
+      const requests = this.getRequestsForDirection(
+        requestGroups,
+        this.data.activeRequestDirection
+      );
 
       this.setData({
+        receivedRequests: requestGroups.receivedRequests,
+        sentRequests: requestGroups.sentRequests,
         requests,
+        emptyText: this.getEmptyText(this.data.activeRequestDirection),
         notificationReminder,
         loading: false
       });
     } catch (error) {
       console.error('加载请求页数据失败:', error);
       this.setData({
+        receivedRequests: [],
+        sentRequests: [],
         requests: [],
+        emptyText: this.getEmptyText(this.data.activeRequestDirection),
         notificationReminder: '',
         loading: false
       });
@@ -136,19 +100,50 @@ Page({
     }
   },
 
-  async fetchRequests() {
-    const res = await insightService.getReceivedRequests();
+  async fetchAllRequests() {
+    const [receivedResponse, sentResponse] = await Promise.all([
+      insightService.getReceivedRequests(),
+      insightService.getSentRequests()
+    ]);
 
-    let requests = [];
-    if (Array.isArray(res)) {
-      requests = res;
-    } else if (res && Array.isArray(res.data)) {
-      requests = res.data;
-    } else if (res && Array.isArray(res.list)) {
-      requests = res.list;
+    return {
+      receivedRequests: extractInsightRequests(receivedResponse).map((item) =>
+        buildInsightRequestDisplay(item, { direction: 'received' })
+      ),
+      sentRequests: extractInsightRequests(sentResponse).map((item) =>
+        buildInsightRequestDisplay(item, { direction: 'sent' })
+      )
+    };
+  },
+
+  getRequestsForDirection(requestGroups = {}, direction = 'received') {
+    return direction === 'sent'
+      ? requestGroups.sentRequests || []
+      : requestGroups.receivedRequests || [];
+  },
+
+  getEmptyText(direction = 'received') {
+    return direction === 'sent'
+      ? '你还没有发起过看见请求'
+      : '暂无收到的请求';
+  },
+
+  handleRequestDirectionTap(e) {
+    const direction = e.currentTarget.dataset.direction;
+    if (!direction || direction === this.data.activeRequestDirection) {
+      return;
     }
 
-    return requests.map(buildInsightRequestDisplay);
+    const requestGroups = {
+      receivedRequests: this.data.receivedRequests,
+      sentRequests: this.data.sentRequests
+    };
+
+    this.setData({
+      activeRequestDirection: direction,
+      requests: this.getRequestsForDirection(requestGroups, direction),
+      emptyText: this.getEmptyText(direction)
+    });
   },
 
   async fetchNotificationReminder() {
@@ -195,11 +190,15 @@ Page({
     this.triggerAutoTopUp('insight_request_tap', 'prompt');
 
     const { request } = e.currentTarget.dataset;
-    const userId = request?.fromUserId;
+    if (!request?.canNavigate) {
+      return;
+    }
+
+    const userId = request?.displayUserId;
     const periodId = request?.periodId;
 
     if (!userId) {
-      console.warn('请求记录缺少发起用户ID，无法跳转');
+      console.warn('请求记录缺少展示用户ID，无法跳转');
       return;
     }
 
@@ -212,7 +211,11 @@ Page({
   },
 
   handleRequestAvatarClick(e) {
-    const { userId, periodId } = e.currentTarget.dataset;
+    const { request, userId, periodId } = e.currentTarget.dataset;
+    if (request && !request.canNavigate) {
+      return;
+    }
+
     if (!userId) {
       return;
     }
@@ -272,16 +275,29 @@ Page({
     const requests = this.data.requests.map((item) =>
       (item._id || item.id) === requestId
         ? {
-            ...item,
-            status: nextStatus,
-            statusText: statusInfo.text,
-            statusClass: statusInfo.className,
-            canApprove: false,
-            canReject: false
-          }
+          ...item,
+          status: nextStatus,
+          statusText: statusInfo.text,
+          statusClass: statusInfo.className,
+          canApprove: false,
+          canReject: false
+        }
         : item
     );
 
-    this.setData({ requests });
+    const receivedRequests = this.data.receivedRequests.map((item) =>
+      (item._id || item.id) === requestId
+        ? {
+          ...item,
+          status: nextStatus,
+          statusText: statusInfo.text,
+          statusClass: statusInfo.className,
+          canApprove: false,
+          canReject: false
+        }
+        : item
+    );
+
+    this.setData({ requests, receivedRequests });
   }
 });

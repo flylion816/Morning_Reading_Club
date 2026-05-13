@@ -4,7 +4,22 @@
     <view class="notification-reminder-link" bindtap="navigateToNotificationSettings">去补充</view>
   </view>
 
-  <view class="requests-list" wx:if="{{requests.length > 0}}">
+  <view class="request-direction-tabs">
+    <view
+      wx:for="{{requestDirectionTabs}}"
+      wx:key="value"
+      class="request-direction-tab {{activeRequestDirection === item.value ? 'request-direction-tab-active' : ''}}"
+      bindtap="handleRequestDirectionTap"
+      data-direction="{{item.value}}">
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <view class="requests-loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <view class="requests-list" wx:elif="{{requests.length > 0}}">
     <view
       wx:for="{{requests}}"
       wx:key="id"
@@ -12,13 +27,14 @@
       bindtap="handleRequestTap"
       data-request="{{item}}">
       <view class="request-item-left">
-        <view class="request-user-avatar" style="background: {{item.avatarColor}}" catchtap="handleRequestAvatarClick" data-user-id="{{item.fromUserId}}" data-period-id="{{item.periodId}}">
-          <image wx:if="{{item.fromUserAvatarUrl}}" class="request-avatar-image" src="{{item.fromUserAvatarUrl}}" mode="aspectFill" />
-          <text wx:else class="request-avatar-text">{{item.fromUserAvatar}}</text>
+        <view class="request-user-avatar" style="background: {{item.avatarColor}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
+          <image wx:if="{{item.displayUserAvatarUrl}}" class="request-avatar-image" src="{{item.displayUserAvatarUrl}}" mode="aspectFill" />
+          <text wx:else class="request-avatar-text">{{item.displayUserAvatar}}</text>
         </view>
         <view class="request-info">
           <view class="request-top-row">
-            <text class="request-user-name">{{item.fromUserName}}</text>
+            <text class="request-user-role">{{item.displayUserRoleText}}</text>
+            <text class="request-user-name">{{item.displayUserName}}</text>
           </view>
           <text class="request-meta">{{item.requestMeta}}</text>
           <text class="request-time">{{item.time}}</text>
@@ -40,6 +56,6 @@
 
   <view class="empty-state" wx:else>
     <text class="empty-icon">📬</text>
-    <text class="empty-text">暂无申请记录</text>
+    <text class="empty-text">{{emptyText}}</text>
   </view>
 </view>

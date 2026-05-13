@@ -26,6 +26,56 @@ function buildProfileOthersTargetPage(userId, params = {}) {
   return `pages/profile-others/profile-others?${search.toString()}`;
 }
 
+function buildInsightDetailTargetPage(insightId, params = {}) {
+  const search = new URLSearchParams();
+
+  search.set('id', String(insightId));
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  });
+
+  return `pages/insight-detail/insight-detail?${search.toString()}`;
+}
+
+function buildInsightsListTargetPage(params = {}) {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  });
+
+  const query = search.toString();
+  return query ? `pages/insights/insights?${query}` : 'pages/insights/insights';
+}
+
+function buildInsightApprovalTargetPage({
+  insightId = null,
+  requestId = null,
+  targetUserId = null,
+  periodId = null,
+  from = 'service_notice'
+} = {}) {
+  const params = {
+    from,
+    requestId
+  };
+
+  if (insightId) {
+    return buildInsightDetailTargetPage(insightId, params);
+  }
+
+  return buildInsightsListTargetPage({
+    userId: targetUserId,
+    periodId,
+    ...params
+  });
+}
+
 function formatNotificationTime(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
   const year = date.getFullYear();
@@ -54,6 +104,9 @@ function truncateText(text, maxLength = 24) {
 
 module.exports = {
   buildCourseDetailTargetPage,
+  buildInsightApprovalTargetPage,
+  buildInsightDetailTargetPage,
+  buildInsightsListTargetPage,
   buildProfileOthersTargetPage,
   formatNotificationTime,
   truncateText

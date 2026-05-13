@@ -150,6 +150,12 @@ describe('Insight Controller - 102+ 完整测试', () => {
     dispatchNotificationWithSubscribeStub = sandbox.stub().resolves();
     publishSyncEventStub = sandbox.stub();
 
+    UserStub.findById.returns(createSelectQuery(sandbox, fixtures.testUsers.user1));
+    PeriodStub.findById.returns(createSelectQuery(sandbox, {
+      _id: fixtures.testPeriods.activeOngoing._id,
+      name: fixtures.testPeriods.activeOngoing.name || '期次'
+    }));
+
     insightController = proxyquire(
       '../../../src/controllers/insight.controller',
       {
@@ -1006,6 +1012,72 @@ describe('Insight Controller - 102+ 完整测试', () => {
       await insightController.approveInsightRequest(req, res, next);
 
       expect(res.json.called).to.be.true;
+    });
+
+    it('TC-REQUEST-014A: 批准具体小凡看见申请后订阅通知直达详情', async () => {
+      const requestId = fixtures.testInsightRequests.user2ToUser1Pending._id;
+      const periodId = fixtures.testPeriods.activeOngoing._id;
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
+      req.params = { requestId };
+      req.body = {};
+
+      const mockRequest = {
+        ...fixtures.testInsightRequests.user2ToUser1Pending,
+        insightId,
+        periodId: null,
+        status: 'pending',
+        toUserId: fixtures.testUsers.user1._id,
+        fromUserId: fixtures.testUsers.user2._id,
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      InsightRequestStub.findById.resolves(mockRequest);
+      InsightStub.findById.returns({
+        select: sandbox.stub().resolves({
+          _id: insightId,
+          periodId,
+          title: '第7天 反馈'
+        })
+      });
+
+      await insightController.approveInsightRequest(req, res, next);
+
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload.targetPage).to.include('pages/insight-detail/insight-detail');
+      expect(notificationPayload.targetPage).to.include(`id=${insightId.toString()}`);
+      expect(notificationPayload.targetPage).to.include('from=service_notice');
+      expect(notificationPayload.scene).to.equal('insight_request_approved');
+      expect(notificationPayload.subscribeFields.remark).to.include('第7天 反馈');
+    });
+
+    it('TC-REQUEST-014B: 批准期次级申请后订阅通知降级到列表', async () => {
+      const requestId = fixtures.testInsightRequests.user2ToUser1Pending._id;
+      const periodId = fixtures.testPeriods.activeOngoing._id;
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
+      req.params = { requestId };
+      req.body = { periodId };
+
+      const mockRequest = {
+        ...fixtures.testInsightRequests.user2ToUser1Pending,
+        insightId: null,
+        status: 'pending',
+        toUserId: fixtures.testUsers.user1._id,
+        fromUserId: fixtures.testUsers.user2._id,
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      InsightRequestStub.findById.resolves(mockRequest);
+
+      await insightController.approveInsightRequest(req, res, next);
+
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload.targetPage).to.include('pages/insights/insights');
+      expect(notificationPayload.targetPage).to.include(`userId=${fixtures.testUsers.user1._id.toString()}`);
+      expect(notificationPayload.targetPage).to.include(`periodId=${periodId.toString()}`);
+      expect(notificationPayload.scene).to.equal('insight_request_approved');
     });
 
     it('TC-REQUEST-015: 拒绝申请成功', async () => {

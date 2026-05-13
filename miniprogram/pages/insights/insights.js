@@ -4,6 +4,7 @@ const enrollmentService = require('../../services/enrollment.service');
 const activityService = require('../../services/activity.service');
 const logger = require('../../utils/logger');
 const { richContentToPlainText } = require('../../utils/markdown');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
@@ -428,6 +429,16 @@ Page({
         requestScope: insightId ? 'insight' : 'period',
         requestId
       });
+      subscribeAutoTopUp
+        .maybeAutoTopUpSubscriptions({
+          sourceAction: 'insight_request_sent',
+          sourcePage: 'insights',
+          sceneKeys: ['insight_request_approved'],
+          requestMode: 'prompt'
+        })
+        .catch((subscribeError) => {
+          logger.warn('补充小凡看见通过提醒授权失败:', subscribeError);
+        });
       wx.showToast({ title: '申请已发送', icon: 'success' });
       this.openRequestSharePrompt({
         requestId,

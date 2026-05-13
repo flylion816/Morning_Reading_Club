@@ -221,6 +221,27 @@ describe('Subscribe Message Service', () => {
     expect(nextDayScene.sourceAction).to.equal('course_detail_click');
   });
 
+  it('should expose insight request approved scene in subscription states', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const sceneConfig = getSubscribeSceneConfig('insight_request_approved');
+
+    SubscribeMessageGrantStub.find.returns(setupFindChain(sandbox, []));
+
+    const result = await subscribeMessageService.getUserSubscriptionStates(userId);
+    const approvedScene = result.scenes.find(
+      item => item.scene === 'insight_request_approved'
+    );
+
+    expect(sceneConfig).to.exist;
+    expect(approvedScene).to.include({
+      scene: 'insight_request_approved',
+      title: '小凡看见申请通过',
+      templateId: sceneConfig.templateId,
+      availableCount: 0,
+      autoTopUpTarget: 1
+    });
+  });
+
   it('should restore inventory when WeChat returns 43101 for non-consuming scenes', async () => {
     const recipientUserId = new mongoose.Types.ObjectId();
     const grantId = new mongoose.Types.ObjectId();

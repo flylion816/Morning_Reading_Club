@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
 const {
+  buildInsightApprovalTargetPage,
   buildProfileOthersTargetPage,
   formatNotificationTime,
   truncateText
@@ -1432,9 +1433,16 @@ async function approveInsightRequest(req, res, next) {
       periodId = request.periodId;
     }
 
-    if (!periodId && request.insightId) {
-      const targetInsight = await Insight.findById(request.insightId).select('periodId');
-      periodId = targetInsight?.periodId || null;
+    let targetInsight = null;
+    if (request.insightId) {
+      const targetInsightQuery = Insight.findById(request.insightId);
+      targetInsight =
+        targetInsightQuery && typeof targetInsightQuery.select === 'function'
+          ? await targetInsightQuery.select('periodId title sectionId day')
+          : await targetInsightQuery;
+      if (!periodId) {
+        periodId = targetInsight?.periodId || null;
+      }
     }
 
     if (!periodId) {
@@ -1457,33 +1465,50 @@ async function approveInsightRequest(req, res, next) {
 
     // 获取被申请者和期次信息
     const toUser = await User.findById(request.toUserId).select('nickname avatar avatarUrl');
-    const Period = require('../models/Period');
     const period = await Period.findById(periodId).select('name title');
-    const targetPage = buildProfileOthersTargetPage(request.toUserId.toString(), {
-      periodId
+    const requestIdText = request._id?.toString?.() || String(request._id);
+    const insightIdText = request.insightId?.toString?.() || '';
+    const periodIdText = periodId?.toString?.() || String(periodId);
+    const targetUserIdText = request.toUserId?.toString?.() || String(request.toUserId);
+    const insightTitle =
+      request.requestInsightTitle ||
+      targetInsight?.title ||
+      targetInsight?.sectionId?.title ||
+      '小凡看见';
+    const targetPage = buildInsightApprovalTargetPage({
+      insightId: insightIdText,
+      requestId: requestIdText,
+      targetUserId: targetUserIdText,
+      periodId: periodIdText
     });
 
-    // 发送通知给申请者
-    await notifyUser(
-      req,
-      request.fromUserId,
-      'request_approved',
-      '小凡看见查看申请已批准',
-      `${toUser?.nickname || '用户'} 同意了你的查看申请，允许查看 ${period?.name || '本期'} 的小凡看见`,
-      {
-        requestId: request._id,
-        senderId: request.toUserId,
-        targetPage,
-        data: {
-          senderName: toUser?.nickname,
-          senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
-          periodId: periodId?.toString?.() || String(periodId),
-          periodName: period?.name || period?.title || '',
-          targetUserId: request.toUserId.toString(),
-          targetUserName: toUser?.nickname || ''
-        }
-      }
-    );
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: request.fromUserId,
+      notificationType: 'request_approved',
+      title: '小凡看见查看申请已批准',
+      content: `${toUser?.nickname || '用户'} 同意了你的查看申请，允许查看 ${period?.name || '本期'} 的小凡看见`,
+      scene: 'insight_request_approved',
+      targetPage,
+      requestId: request._id,
+      senderId: request.toUserId,
+      data: {
+        senderName: toUser?.nickname,
+        senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
+        periodId: periodIdText,
+        periodName: period?.name || period?.title || '',
+        targetUserId: targetUserIdText,
+        targetUserName: toUser?.nickname || '',
+        insightId: insightIdText,
+        insightTitle
+      },
+      subscribeFields: {
+        approverName: toUser?.nickname || '用户',
+        remark: truncateText(`${period?.name || period?.title || '本期'} · ${insightTitle}`, 32),
+        approvedTime: formatNotificationTime(request.approvedAt || new Date())
+      },
+      sourceType: 'insight_request',
+      sourceId: request._id
+    });
 
     res.json(success(request, '已同意查看请求'));
   } catch (error) {

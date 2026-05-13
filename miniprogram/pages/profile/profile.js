@@ -10,83 +10,60 @@ const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
 const { getPeriodAccess, hasPaidEnrollment } = require('../../utils/period-access');
+const {
+  buildInsightRequestDisplay,
+  extractInsightRequests
+} = require('../../utils/insight-request-display');
 
 const notificationService =
   notificationServiceModule.default || notificationServiceModule;
 
-function formatRelativeTime(dateString) {
-  if (!dateString) return '刚刚';
+const TASK_CARD_LAYOUT_RPX = {
+  screenWidth: 750,
+  contentPadding: 48,
+  sectionPadding: 64,
+  coverWidth: 160,
+  cardGap: 24,
+  avatarSize: 38,
+  avatarStep: 28,
+  badgeGap: 10,
+  countCharWidth: 26,
+  maxBackendAvatars: 10
+};
 
-  const createdTime = new Date(dateString).getTime();
-  const now = Date.now();
-  const diffMs = now - createdTime;
-  const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+function getVisibleTaskCheckinUsers(
+  users = [],
+  checkinCount = 0,
+  communityEnabled = true
+) {
+  if (!communityEnabled || !Array.isArray(users) || users.length === 0) {
+    return [];
+  }
 
-  if (diffMinutes < 1) return '刚刚';
-  if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-  if (diffHours < 24) return `${diffHours}小时前`;
-  if (diffDays < 7) return `${diffDays}天前`;
-  return new Date(dateString).toLocaleDateString('zh-CN');
-}
+  const layout = TASK_CARD_LAYOUT_RPX;
+  const availableWidth =
+    layout.screenWidth -
+    layout.contentPadding -
+    layout.sectionPadding -
+    layout.coverWidth -
+    layout.cardGap;
+  const countText = `${checkinCount || 0}人已打卡`;
+  const countTextWidth = countText.length * layout.countCharWidth;
+  const avatarWidthBudget =
+    availableWidth - countTextWidth - layout.badgeGap;
 
-function buildInsightRequestDisplay(item) {
-  const fromUser = item.fromUserId || {};
-  const periodName =
-    item.requestPeriodName ||
-    item.periodId?.name ||
-    item.periodId?.title ||
-    '未知期次';
-  const insightTitle =
-    item.requestInsightTitle ||
-    item.insightId?.sectionId?.title ||
-    item.insightId?.title ||
-    '学习反馈';
-  const insightDay =
-    item.requestInsightDay ||
-    item.insightId?.day ||
-    item.insightId?.sectionId?.day ||
-    null;
-  const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
-  const dayText = insightDay && !titleHasDay ? `第${insightDay}天` : '';
-  const metaParts = [periodName];
-  if (dayText) metaParts.push(dayText);
-  if (insightTitle) metaParts.push(insightTitle);
+  if (avatarWidthBudget < layout.avatarSize) {
+    return [];
+  }
 
-  const statusMap = {
-    pending: { text: '待处理', className: 'pending' },
-    approved: { text: '已同意', className: 'approved' },
-    rejected: { text: '已拒绝', className: 'rejected' },
-    revoked: { text: '已撤销', className: 'revoked' }
-  };
-  const statusInfo = statusMap[item.status] || statusMap.pending;
+  const maxAvatarCount =
+    1 + Math.floor((avatarWidthBudget - layout.avatarSize) / layout.avatarStep);
+  const visibleCount = Math.max(
+    0,
+    Math.min(users.length, layout.maxBackendAvatars, maxAvatarCount)
+  );
 
-  return {
-    id: item._id || item.id,
-    _id: item._id || item.id,
-    fromUserId: fromUser._id || fromUser.id || item.fromUserId || null,
-    fromUserName: fromUser.nickname || fromUser.name || '用户',
-    fromUserAvatarUrl: fromUser.avatarUrl || '',
-    fromUserAvatar: fromUser.avatar || fromUser.nickname?.charAt(0) || '😊',
-    avatarColor: fromUser.avatarColor || '#4a90e2',
-    toUserId: item.toUserId,
-    time: formatRelativeTime(item.createdAt),
-    status: item.status,
-    statusText: statusInfo.text,
-    statusClass: statusInfo.className,
-    createdAt: item.createdAt,
-    periodId: item.periodId?._id || item.periodId || null,
-    insightId: item.insightId?._id || item.insightId || null,
-    requestPeriodName: periodName,
-    requestInsightTitle: insightTitle,
-    requestInsightDay: insightDay,
-    requestDayText: dayText,
-    requestMeta: metaParts.join(' · '),
-    requestSummary: dayText ? `${periodName} · ${dayText}` : periodName,
-    canApprove: item.status === 'pending',
-    canReject: item.status === 'pending'
-  };
+  return users.slice(0, visibleCount);
 }
 
 function formatRecentCheckinDate(dateString) {
@@ -158,10 +135,18 @@ Page({
     // 最近的打卡日记（最多3条）
     recentCheckins: [],
 
-    // 收到的小凡看见请求列表
+    // 小凡看见请求列表
+    requestDirectionTabs: [
+      { value: 'received', label: '收到的' },
+      { value: 'sent', label: '我发起的' }
+    ],
+    activeInsightRequestDirection: 'received',
+    receivedInsightRequests: [],
+    sentInsightRequests: [],
     insightRequests: [],
     allInsightRequests: [],
     insightRequestTotal: 0,
+    insightRequestEmptyText: '暂无收到的请求',
     focusRequestId: '',
     focusInsightId: '',
     highlightRequestId: '',
@@ -249,9 +234,14 @@ Page({
         todaySection: null,
         recentCheckins: [],
         recentInsights: [],
+        receivedInsightRequests: [],
+        sentInsightRequests: [],
         insightRequests: [],
         allInsightRequests: [],
         insightRequestTotal: 0,
+        insightRequestEmptyText: this.getInsightRequestEmptyText(
+          this.data.activeInsightRequestDirection
+        ),
         unreadNotificationCount: 0,
         hasMeeting: false,
         meetingId: '',
@@ -273,7 +263,7 @@ Page({
    * 更新tabBar显示状态
    * 始终显示tabBar，让用户可以浏览其他页面（符合微信审核规范）
    */
-  updateTabBarVisibility(isLogin) {
+  updateTabBarVisibility() {
     wx.showTabBar();
   },
 
@@ -327,6 +317,50 @@ Page({
         .filter((item) => String(item._id || item.id) !== String(focusedRequestId))
         .slice(0, 2)
     ];
+  },
+
+  getInsightRequestEmptyText(direction = 'received') {
+    return direction === 'sent'
+      ? '你还没有发起过看见请求'
+      : '暂无收到的请求';
+  },
+
+  getInsightRequestListForDirection(requestGroups = {}, direction = 'received') {
+    return direction === 'sent'
+      ? requestGroups.sentInsightRequests || []
+      : requestGroups.receivedInsightRequests || [];
+  },
+
+  setInsightRequestDirection(direction) {
+    const nextDirection = direction === 'sent' ? 'sent' : 'received';
+    const requestGroups = {
+      receivedInsightRequests: this.data.receivedInsightRequests,
+      sentInsightRequests: this.data.sentInsightRequests
+    };
+    const allInsightRequests = this.getInsightRequestListForDirection(
+      requestGroups,
+      nextDirection
+    );
+
+    this.setData(
+      {
+        activeInsightRequestDirection: nextDirection,
+        allInsightRequests,
+        insightRequests: this.getInsightRequestPreview(allInsightRequests),
+        insightRequestTotal: allInsightRequests.length,
+        insightRequestEmptyText: this.getInsightRequestEmptyText(nextDirection)
+      },
+      () => this.revealFocusedInsightRequest()
+    );
+  },
+
+  handleInsightRequestDirectionTap(e) {
+    const direction = e.currentTarget.dataset.direction;
+    if (!direction || direction === this.data.activeInsightRequestDirection) {
+      return;
+    }
+
+    this.setInsightRequestDirection(direction);
   },
 
   findFocusedInsightRequest(requests = this.data.insightRequests) {
@@ -454,22 +488,27 @@ Page({
           : Promise.resolve(null),
         currentPeriodId
           ? getPeriodAccess(currentPeriodId, {
-              enrollmentList,
-              skipRequest: true
-            })
+            enrollmentList,
+            skipRequest: true
+          })
           : Promise.resolve({
-              canAccessCommunity: false,
-              communityAccessState: 'locked',
-              paymentStatus: null
-            })
+            canAccessCommunity: false,
+            communityAccessState: 'locked',
+            paymentStatus: null
+          })
       ]);
 
       // 构建 todaySection（只保留展示需要的字段，避免传输全课节内容）
       let todaySection = null;
       const d = new Date();
       const displayDate = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 全天`;
+      const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
 
       if (hasValidTask && sectionRes) {
+        const checkinUsers = (taskRes.checkinUsers || []).slice(
+          0,
+          TASK_CARD_LAYOUT_RPX.maxBackendAvatars
+        );
         todaySection = {
           _id: sectionRes._id || taskRes.sectionId,
           id: sectionRes.id || taskRes.sectionId,
@@ -479,7 +518,12 @@ Page({
           periodId: taskRes.periodId,
           periodTitle: taskRes.periodTitle,
           checkinCount: taskRes.checkinCount || 0,
-          checkinUsers: (taskRes.checkinUsers || []).slice(0, 3),
+          checkinUsers,
+          visibleCheckinUsers: getVisibleTaskCheckinUsers(
+            checkinUsers,
+            taskRes.checkinCount || 0,
+            communityEnabled
+          ),
           isCheckedIn: !!(taskRes.isCheckedIn || sectionRes.isCheckedIn),
           progress: taskRes.isCheckedIn || sectionRes.isCheckedIn ? 100 : 0,
           coverColor:
@@ -510,6 +554,7 @@ Page({
               periodTitle: currentPeriod?.title,
               checkinCount: section.checkinCount || 0,
               checkinUsers: [],
+              visibleCheckinUsers: [],
               isCheckedIn: !!section.isCheckedIn,
               progress: section.isCheckedIn ? 100 : 0,
               coverColor: currentPeriod?.coverColor || '#4a90e2',
@@ -523,33 +568,43 @@ Page({
         }
       }
 
-      const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
       const paidFeatureAccessEnabled =
         communityEnabled || hasPaidEnrollment(enrollmentList);
 
       // ── Wave 3: 社区数据并行加载 ────────────────────────────────
-      const [recentCheckins, recentInsights, allInsightRequests] =
+      const [recentCheckins, recentInsights, insightRequestGroups] =
         paidFeatureAccessEnabled
           ? await Promise.all([
-              this.loadRecentCheckins().catch(() => []),
-              this.loadRecentInsights(currentPeriod).catch(() => []),
-              this.loadInsightRequests(false).catch(() => [])
-            ])
-          : [[], [], []];
+            this.loadRecentCheckins().catch(() => []),
+            this.loadRecentInsights(currentPeriod).catch(() => []),
+            this.loadInsightRequests(false).catch(() => ({
+              receivedInsightRequests: [],
+              sentInsightRequests: []
+            }))
+          ])
+          : [
+            [],
+            [],
+            { receivedInsightRequests: [], sentInsightRequests: [] }
+          ];
+      const allInsightRequests = this.getInsightRequestListForDirection(
+        insightRequestGroups,
+        this.data.activeInsightRequestDirection
+      );
 
       // 只存展示字段，避免 setData 传输整个 period 对象
       const currentPeriodDisplay = currentPeriod
         ? {
-            _id: currentPeriod._id,
-            id: currentPeriod.id,
-            name: currentPeriod.name,
-            title: currentPeriod.title,
-            coverColor: currentPeriod.coverColor,
-            coverEmoji: currentPeriod.coverEmoji,
-            status: currentPeriod.status,
-            meetingId: currentPeriod.meetingId || '',
-            meetingJoinUrl: currentPeriod.meetingJoinUrl || ''
-          }
+          _id: currentPeriod._id,
+          id: currentPeriod.id,
+          name: currentPeriod.name,
+          title: currentPeriod.title,
+          coverColor: currentPeriod.coverColor,
+          coverEmoji: currentPeriod.coverEmoji,
+          status: currentPeriod.status,
+          meetingId: currentPeriod.meetingId || '',
+          meetingJoinUrl: currentPeriod.meetingJoinUrl || ''
+        }
         : null;
 
       this.setData(
@@ -568,9 +623,15 @@ Page({
           todaySection: todaySection || null,
           recentCheckins,
           recentInsights,
+          receivedInsightRequests:
+            insightRequestGroups.receivedInsightRequests || [],
+          sentInsightRequests: insightRequestGroups.sentInsightRequests || [],
           allInsightRequests,
           insightRequests: this.getInsightRequestPreview(allInsightRequests),
           insightRequestTotal: allInsightRequests.length,
+          insightRequestEmptyText: this.getInsightRequestEmptyText(
+            this.data.activeInsightRequestDirection
+          ),
           hasMeeting: !!todaySection,
           meetingId: currentPeriod?.meetingId || '',
           meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
@@ -617,7 +678,7 @@ Page({
    * 改为加载所有小凡看见（不限期次），然后只取最新的2条
    * 这样可以保证即使当前期次判断有误，也能显示用户的最新小凡看见
    */
-  async loadRecentInsights(currentPeriod) {
+  async loadRecentInsights() {
     try {
       const insightService = require('../../services/insight.service');
 
@@ -687,7 +748,7 @@ Page({
   },
 
   /**
-   * 加载收到的小凡看见请求
+   * 加载小凡看见请求
    */
   async loadInsightRequests(updatePage = true) {
     try {
@@ -699,49 +760,69 @@ Page({
         console.warn('用户未登录，无法加载小凡看见请求');
         if (updatePage) {
           this.setData({
+            receivedInsightRequests: [],
+            sentInsightRequests: [],
             insightRequests: [],
             allInsightRequests: [],
-            insightRequestTotal: 0
+            insightRequestTotal: 0,
+            insightRequestEmptyText: this.getInsightRequestEmptyText(
+              this.data.activeInsightRequestDirection
+            )
           });
         }
-        return [];
+        return { receivedInsightRequests: [], sentInsightRequests: [] };
       }
 
-      const res = await insightService.getReceivedRequests();
+      const [receivedResponse, sentResponse] = await Promise.all([
+        insightService.getReceivedRequests(),
+        insightService.getSentRequests()
+      ]);
 
-      let receivedRequests = [];
-      if (Array.isArray(res)) {
-        receivedRequests = res;
-      } else if (res && Array.isArray(res.data)) {
-        receivedRequests = res.data;
-      } else if (res && Array.isArray(res.list)) {
-        receivedRequests = res.list;
-      }
-
-      const formatted = receivedRequests.map(buildInsightRequestDisplay);
+      const requestGroups = {
+        receivedInsightRequests: extractInsightRequests(receivedResponse).map(
+          (item) => buildInsightRequestDisplay(item, { direction: 'received' })
+        ),
+        sentInsightRequests: extractInsightRequests(sentResponse).map((item) =>
+          buildInsightRequestDisplay(item, { direction: 'sent' })
+        )
+      };
+      const allInsightRequests = this.getInsightRequestListForDirection(
+        requestGroups,
+        this.data.activeInsightRequestDirection
+      );
 
       if (updatePage) {
         this.setData(
           {
-            allInsightRequests: formatted,
-            insightRequests: this.getInsightRequestPreview(formatted),
-            insightRequestTotal: formatted.length
+            receivedInsightRequests: requestGroups.receivedInsightRequests,
+            sentInsightRequests: requestGroups.sentInsightRequests,
+            allInsightRequests,
+            insightRequests: this.getInsightRequestPreview(allInsightRequests),
+            insightRequestTotal: allInsightRequests.length,
+            insightRequestEmptyText: this.getInsightRequestEmptyText(
+              this.data.activeInsightRequestDirection
+            )
           },
           () => this.revealFocusedInsightRequest()
         );
       }
 
-      return formatted;
+      return requestGroups;
     } catch (error) {
       console.error('加载小凡看见请求失败:', error);
       if (updatePage) {
         this.setData({
+          receivedInsightRequests: [],
+          sentInsightRequests: [],
           insightRequests: [],
           allInsightRequests: [],
-          insightRequestTotal: 0
+          insightRequestTotal: 0,
+          insightRequestEmptyText: this.getInsightRequestEmptyText(
+            this.data.activeInsightRequestDirection
+          )
         });
       }
-      return [];
+      return { receivedInsightRequests: [], sentInsightRequests: [] };
     }
   },
 
@@ -923,11 +1004,15 @@ Page({
       return;
     }
     const { request } = e.currentTarget.dataset;
-    const userId = request?.fromUserId;
+    if (!request?.canNavigate) {
+      return;
+    }
+
+    const userId = request?.displayUserId;
     const periodId = request?.periodId;
 
     if (!userId) {
-      console.warn('请求记录缺少发起用户ID，无法跳转');
+      console.warn('请求记录缺少展示用户ID，无法跳转');
       return;
     }
 
@@ -940,7 +1025,11 @@ Page({
   },
 
   handleRequestAvatarClick(e) {
-    const { userId, periodId } = e.currentTarget.dataset;
+    const { request, userId, periodId } = e.currentTarget.dataset;
+    if (request && !request.canNavigate) {
+      return;
+    }
+
     this.navigateToOtherProfile(userId, periodId);
   },
 
@@ -974,8 +1063,6 @@ Page({
       console.log('📨 批准请求:', request);
 
       const insightService = require('../../services/insight.service');
-      const app = getApp();
-
       const requestId = request._id || request.id;
 
       // 调用后端API批准申请
@@ -1049,9 +1136,10 @@ Page({
     const statusInfo = statusMap[nextStatus];
     if (!statusInfo) return;
 
-    const updatedAll = (this.data.allInsightRequests || []).map((item) =>
-      (item._id || item.id) === requestId
-        ? {
+    const updatedReceived = (this.data.receivedInsightRequests || []).map(
+      (item) =>
+        (item._id || item.id) === requestId
+          ? {
             ...item,
             status: nextStatus,
             statusText: statusInfo.text,
@@ -1059,12 +1147,22 @@ Page({
             canApprove: false,
             canReject: false
           }
-        : item
+          : item
+    );
+    const requestGroups = {
+      receivedInsightRequests: updatedReceived,
+      sentInsightRequests: this.data.sentInsightRequests || []
+    };
+    const updatedAll = this.getInsightRequestListForDirection(
+      requestGroups,
+      this.data.activeInsightRequestDirection
     );
 
     this.setData({
+      receivedInsightRequests: updatedReceived,
       allInsightRequests: updatedAll,
-      insightRequests: this.getInsightRequestPreview(updatedAll)
+      insightRequests: this.getInsightRequestPreview(updatedAll),
+      insightRequestTotal: updatedAll.length
     });
   },
 
@@ -1073,7 +1171,9 @@ Page({
       return;
     }
     wx.navigateTo({
-      url: '/pages/insight-requests/insight-requests'
+      url:
+        '/pages/insight-requests/insight-requests?direction=' +
+        (this.data.activeInsightRequestDirection || 'received')
     });
   },
 

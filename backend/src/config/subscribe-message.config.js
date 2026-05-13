@@ -92,6 +92,25 @@ const sceneConfigs = {
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_INSIGHT_REQUEST_CREATED'
   },
+  insight_request_approved: {
+    scene: 'insight_request_approved',
+    title: '小凡看见申请通过',
+    description: '你发起的小凡看见查看申请被同意时提醒查看',
+    templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
+    page: 'pages/insight-detail/insight-detail',
+    autoTopUpTarget: 1,
+    fieldDefinitions: [
+      { name: 'approverName', label: '同意人' },
+      { name: 'remark', label: '备注' },
+      { name: 'approvedTime', label: '同意时间' }
+    ],
+    defaultFieldKeyMap: {
+      approverName: 'name2',
+      remark: 'thing3',
+      approvedTime: 'date1'
+    },
+    fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_INSIGHT_REQUEST_APPROVED'
+  },
   next_day_study_reminder: {
     scene: 'next_day_study_reminder',
     title: '明日开课通知',
