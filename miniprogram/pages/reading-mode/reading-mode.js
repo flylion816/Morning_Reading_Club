@@ -501,7 +501,43 @@ Page({
       ...paragraph,
       sourceIndex: startIndex + offset,
       active: startIndex + offset === activeIndex
-    })).filter((p) => p.type !== 'image');
+    }));
+  },
+
+  // 查询当前屏幕上实际可见的段落（含图片），用于海报内容
+  getVisibleParagraphSlice() {
+    return new Promise((resolve) => {
+      const { paragraphs } = this.data;
+      if (!paragraphs.length) {
+        resolve([]);
+        return;
+      }
+
+      const query = wx.createSelectorQuery().in(this);
+      query.select('.reader-scroll').boundingClientRect();
+      query.selectAll('.reader-paragraph').boundingClientRect();
+      query.exec((result) => {
+        const scrollRect = result?.[0];
+        const rects = result?.[1] || [];
+        if (!scrollRect || !rects.length) {
+          resolve(this.getPosterParagraphSlice());
+          return;
+        }
+
+        const viewTop = scrollRect.top;
+        const viewBottom = scrollRect.bottom;
+        const visible = rects
+          .map((rect, i) => ({ rect, item: paragraphs[i], index: i }))
+          .filter(({ rect }) => rect.bottom > viewTop && rect.top < viewBottom)
+          .map(({ item, index }) => ({
+            ...item,
+            sourceIndex: index,
+            active: index === this.data.currentParagraphIndex
+          }));
+
+        resolve(visible.length ? visible : this.getPosterParagraphSlice());
+      });
+    });
   },
 
   async generateMomentPoster() {
@@ -513,7 +549,7 @@ Page({
     const contentW = W - pageX * 2;
     const periodName = this.data.periodName || '凡人共读';
     const title = this.data.course.title || '读一读';
-    const posterParagraphs = this.getPosterParagraphSlice();
+    const posterItems = await this.getVisibleParagraphSlice();
     const footerH = 240;
     const topPadding = 70;
     const titleLineH = 58;
@@ -535,18 +571,34 @@ Page({
     ctx.font = 'bold 42px sans-serif';
     const titleLines = this.wrapCanvasText(ctx, title, contentW, 2);
 
-    const measuredParagraphs = posterParagraphs.map((paragraph) => {
-      ctx.font = paragraph.active ? 'bold 34px sans-serif' : 'bold 31px sans-serif';
-      const textX = paragraph.active ? pageX + 28 : pageX + 22;
-      const maxLines = paragraph.active ? 8 : 5;
-      const lines = this.wrapCanvasText(ctx, paragraph.text, W - textX - pageX, maxLines);
-      return { ...paragraph, textX, lines };
-    });
+    // 预加载图片项，同时测量文字项
+    const measuredItems = [];
+    for (const item of posterItems) {
+      if (item.type === 'image') {
+        try {
+          const img = await this.loadCanvasImage(canvas, [item.src]);
+          const ratio = img.height > 0 ? img.width / img.height : 1;
+          const displayW = contentW;
+          const displayH = Math.min(Math.round(displayW / ratio), 560);
+          measuredItems.push({ ...item, img, displayW, displayH, lines: [] });
+        } catch {
+          // 加载失败的图片跳过
+        }
+      } else {
+        ctx.font = item.active ? 'bold 34px sans-serif' : 'bold 31px sans-serif';
+        const textX = item.active ? pageX + 28 : pageX + 22;
+        const maxLines = item.active ? 8 : 5;
+        const lines = this.wrapCanvasText(ctx, item.text, W - textX - pageX, maxLines);
+        measuredItems.push({ ...item, textX, lines });
+      }
+    }
 
     const headerH = topPadding + 58 + 44 + titleLines.length * titleLineH + 98;
-    const bodyH = measuredParagraphs.reduce((sum, paragraph) => {
-      const blockH = paragraph.lines.length * paragraphLineH + (paragraph.active ? 38 : 28);
-      return sum + blockH;
+    const bodyH = measuredItems.reduce((sum, item) => {
+      if (item.type === 'image') {
+        return sum + item.displayH + 24;
+      }
+      return sum + item.lines.length * paragraphLineH + (item.active ? 38 : 28);
     }, 0);
     const H = Math.max(1120, Math.min(3000, headerH + bodyH + footerH + 58));
 
@@ -598,10 +650,16 @@ Page({
     ctx.stroke();
     cursorY += 100;
 
-    measuredParagraphs.forEach((paragraph) => {
-      if (paragraph.active) {
+    measuredItems.forEach((item) => {
+      if (item.type === 'image') {
+        ctx.drawImage(item.img, pageX, cursorY, item.displayW, item.displayH);
+        cursorY += item.displayH + 24;
+        return;
+      }
+
+      if (item.active) {
         const lineTop = cursorY - 38;
-        const lineHeight = paragraph.lines.length * paragraphLineH - 10;
+        const lineHeight = item.lines.length * paragraphLineH - 10;
         this.drawRoundedRect(ctx, pageX, lineTop, 6, lineHeight, 3, '#4a90e2');
         ctx.fillStyle = '#1f2937';
         ctx.font = 'bold 34px sans-serif';
@@ -610,12 +668,12 @@ Page({
         ctx.font = 'bold 31px sans-serif';
       }
 
-      paragraph.lines.forEach((line) => {
-        ctx.fillText(line, paragraph.textX, cursorY);
+      item.lines.forEach((line) => {
+        ctx.fillText(line, item.textX, cursorY);
         cursorY += paragraphLineH;
       });
 
-      cursorY += paragraph.active ? 42 : 32;
+      cursorY += item.active ? 42 : 32;
     });
 
     const footerTop = H - footerH;
