@@ -1,5 +1,5 @@
 const courseService = require('../../services/course.service');
-const { richContentToPlainText } = require('../../utils/markdown');
+const { richContentToPlainText, isLikelyHtml } = require('../../utils/markdown');
 const {
   extractId,
   getPeriodAccess
@@ -37,6 +37,49 @@ function splitParagraphs(content = '') {
       id: `${index}-${text.slice(0, 8)}`,
       text
     }));
+}
+
+// 解析内容，保留图片节点，返回 {type:'text'|'image', text?, src?} 的混合数组
+function splitParagraphsWithImages(content = '') {
+  if (!content) return [];
+
+  const items = [];
+  let idCounter = 0;
+
+  function pushText(raw) {
+    const text = richContentToPlainText(raw);
+    splitParagraphs(text).forEach((p) => {
+      items.push({ ...p, id: `t${idCounter++}-${p.id}` });
+    });
+  }
+
+  function pushImage(src) {
+    items.push({ id: `img-${idCounter++}`, type: 'image', src });
+  }
+
+  if (isLikelyHtml(content)) {
+    // HTML：按 <img> 标签切分
+    content.split(/(<img[^>]+>)/gi).forEach((part) => {
+      const m = part.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+      if (m) {
+        pushImage(m[1]);
+      } else if (part.trim()) {
+        pushText(part);
+      }
+    });
+  } else {
+    // Markdown：按 ![alt](url) 切分
+    content.split(/(!\[[^\]]*\]\([^)]+\))/g).forEach((part) => {
+      const m = part.match(/!\[[^\]]*\]\(([^)]+)\)/);
+      if (m) {
+        pushImage(m[1]);
+      } else if (part.trim()) {
+        pushText(part);
+      }
+    });
+  }
+
+  return items;
 }
 
 Page({
@@ -116,8 +159,7 @@ Page({
         course.periodId?.title ||
         course.periodName ||
         '';
-      const contentText = richContentToPlainText(course.content || '');
-      const paragraphs = splitParagraphs(contentText);
+      const paragraphs = splitParagraphsWithImages(course.content || '');
       let canAccessCheckin = false;
 
       if (periodId) {
@@ -453,13 +495,13 @@ Page({
 
     const activeIndex = Math.min(Math.max(currentParagraphIndex || 0, 0), total - 1);
     const startIndex = Math.max(0, activeIndex - 1);
-    const endIndex = Math.min(total, activeIndex + 5);
+    const endIndex = Math.min(total, activeIndex + 3);
 
     return paragraphs.slice(startIndex, endIndex).map((paragraph, offset) => ({
       ...paragraph,
       sourceIndex: startIndex + offset,
       active: startIndex + offset === activeIndex
-    }));
+    })).filter((p) => p.type !== 'image');
   },
 
   async generateMomentPoster() {

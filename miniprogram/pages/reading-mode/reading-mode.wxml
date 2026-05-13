@@ -26,7 +26,8 @@
         wx:key="id"
         id="para-{{index}}"
         class="reader-paragraph {{index === currentParagraphIndex ? 'reader-paragraph-active' : ''}}">
-        <text user-select>{{item.text}}</text>
+        <image wx:if="{{item.type === 'image'}}" src="{{item.src}}" mode="widthFix" class="reader-image" />
+        <text wx:else user-select>{{item.text}}</text>
       </view>
 
       <view wx:if="{{paragraphs.length === 0}}" class="reader-empty">

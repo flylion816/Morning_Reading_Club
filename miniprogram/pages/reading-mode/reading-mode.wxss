@@ -311,3 +311,10 @@
   opacity: 0;
   pointer-events: none;
 }
+
+
+.reader-image {
+  width: 100%;
+  border-radius: 8rpx;
+  display: block;
+}
