@@ -414,7 +414,7 @@ async function notifyInsightCreated(req, { insight, targetUser, periodName, sect
       title: '你被小凡看见了',
       content: truncateText(topic || contentPreview, 50),
       scene: 'insight_created',
-      targetPage: 'pages/insights/insights',
+      targetPage: `pages/insight-detail/insight-detail?id=${insight._id}`,
       data: {
         insightId: insight._id.toString(),
         periodName: periodName || '',

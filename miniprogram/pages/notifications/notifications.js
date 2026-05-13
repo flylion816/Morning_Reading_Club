@@ -247,7 +247,8 @@ Page({
       admin_rejected: '查看申请状态',
       permission_revoked: '查看申请状态',
       enrollment_result: '查看课程首页',
-      payment_result: '查看课程首页'
+      payment_result: '查看课程首页',
+      insight_created: '查看小凡看见'
     };
 
     return actionTextMap[notification?.type] || '';
