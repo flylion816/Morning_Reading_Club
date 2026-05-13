@@ -115,20 +115,20 @@ const sceneConfigs = {
     scene: 'insight_created',
     title: '小凡看见通知',
     description: '外部系统创建小凡看见时通知被看见的用户',
-    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
-    page: 'pages/insights/insights',
+    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    page: 'pages/insight-detail/insight-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
-      { name: 'replyUser', label: '看见人' },
-      { name: 'replyTopic', label: '看见主题' },
-      { name: 'replyContent', label: '看见内容' },
-      { name: 'replyTime', label: '看见时间' }
+      { name: 'replyUser', label: '作者' },
+      { name: 'replyTopic', label: '项目名称' },
+      { name: 'replyContent', label: '发布标题' },
+      { name: 'replyTime', label: '发布时间' }
     ],
     defaultFieldKeyMap: {
-      replyUser: 'thing1',
-      replyTopic: 'thing5',
-      replyContent: 'thing2',
-      replyTime: 'time3'
+      replyUser: 'thing6',
+      replyTopic: 'thing14',
+      replyContent: 'thing12',
+      replyTime: 'time8'
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_INSIGHT_CREATED'
   },
