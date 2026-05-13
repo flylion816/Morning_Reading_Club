@@ -67,16 +67,26 @@ App({
       return;
     }
 
-    // 生产环境：所有普通启动（无论登录状态）都导航到首页 tab
-    // 首页 tab 支持未登录用户浏览介绍和跳转课程，只在需要时才要求登录
-    // 这符合 WeChat 审核要求：用户进入后先体验功能，再选择登录
-    logger.info('导航到首页 tab（允许未登录用户浏览）');
-    wx.reLaunch({
-      url: '/pages/profile/profile',
-      fail: (err) => {
-        logger.error('导航到首页 tab 失败:', err);
-      }
-    });
+    // 生产环境：根据登录状态决定起始页
+    // 未登录（首次打开）→ 晨读营首页（公开浏览，符合微信审核要求：先体验再登录）
+    // 已登录（回访用户）→ 个人中心（保持原有体验）
+    if (this.globalData.isLogin) {
+      logger.info('已登录，导航到个人中心');
+      wx.reLaunch({
+        url: '/pages/profile/profile',
+        fail: (err) => {
+          logger.error('导航到个人中心失败:', err);
+        }
+      });
+    } else {
+      logger.info('未登录，导航到晨读营首页（公开页面）');
+      wx.reLaunch({
+        url: '/pages/index/index',
+        fail: (err) => {
+          logger.error('导航到晨读营首页失败:', err);
+        }
+      });
+    }
   },
 
   onShow(options) {

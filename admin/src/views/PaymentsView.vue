@@ -114,7 +114,14 @@
           </el-table-column>
 
           <el-table-column label="订单号" prop="orderNo" min-width="180" />
-          <el-table-column label="用户" width="120">
+          <el-table-column label="头像" width="60" align="center">
+            <template #default="{ row }">
+              <el-avatar :src="getPaymentAvatarUrl(row)" :size="32" class="user-avatar">
+                {{ getPaymentAvatarText(row) }}
+              </el-avatar>
+            </template>
+          </el-table-column>
+          <el-table-column label="昵称" width="120">
             <template #default="{ row }">
               {{ row.userName || '未知' }}
             </template>
@@ -417,6 +424,15 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
 }
+
+function getPaymentAvatarUrl(row: any): string {
+  return row.userAvatarUrl || '';
+}
+
+function getPaymentAvatarText(row: any): string {
+  const nickname = row.userName || '';
+  return nickname ? String(nickname).slice(0, 1) : '用';
+}
 </script>
 
 <style scoped>
@@ -460,5 +476,10 @@ function formatDate(dateString: string): string {
   gap: 8px;
   flex-wrap: nowrap;
   align-items: center;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  font-size: 14px;
 }
 </style>

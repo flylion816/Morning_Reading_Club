@@ -142,7 +142,14 @@
           style="width: 100%"
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
         >
-          <el-table-column label="姓名" width="120">
+          <el-table-column label="头像" width="60" align="center">
+            <template #default="{ row }">
+              <el-avatar :src="getEnrollmentAvatarUrl(row)" :size="32" class="user-avatar">
+                {{ getEnrollmentAvatarText(row) }}
+              </el-avatar>
+            </template>
+          </el-table-column>
+          <el-table-column label="昵称" width="120">
             <template #default="{ row }">
               {{ row.userId?.nickname || '匿名' }}
             </template>
@@ -200,7 +207,18 @@
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
         >
           <el-table-column prop="orderNo" label="订单号" min-width="200" />
-          <el-table-column prop="userName" label="用户" width="120" />
+          <el-table-column label="头像" width="60" align="center">
+            <template #default="{ row }">
+              <el-avatar :src="getPaymentAvatarUrl(row)" :size="32" class="user-avatar">
+                {{ getPaymentAvatarText(row) }}
+              </el-avatar>
+            </template>
+          </el-table-column>
+          <el-table-column label="昵称" width="120">
+            <template #default="{ row }">
+              {{ row.userName || '未知' }}
+            </template>
+          </el-table-column>
           <el-table-column label="金额" width="100">
             <template #default="{ row }">
               ¥{{ (row.amount / 100).toFixed(2) }}
@@ -360,6 +378,26 @@ function formatDate(dateString: string): string {
     date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN')
   );
 }
+
+function getEnrollmentAvatarUrl(row: Enrollment): string {
+  const user = row.userId as any;
+  return user?.avatarUrl || user?.avatar || '';
+}
+
+function getEnrollmentAvatarText(row: Enrollment): string {
+  const user = row.userId as any;
+  const nickname = user?.nickname || (row as any).name || '';
+  return nickname ? String(nickname).slice(0, 1) : '用';
+}
+
+function getPaymentAvatarUrl(row: Payment): string {
+  return (row as any).userAvatarUrl || '';
+}
+
+function getPaymentAvatarText(row: Payment): string {
+  const nickname = row.userName || '';
+  return nickname ? String(nickname).slice(0, 1) : '用';
+}
 </script>
 
 <style scoped>
@@ -463,6 +501,11 @@ function formatDate(dateString: string): string {
   margin-top: 6px;
   color: #888;
   font-size: 13px;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  font-size: 14px;
 }
 
 .todo-count {

@@ -832,7 +832,7 @@ exports.getPayments = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
-      .populate('userId', 'nickname')
+      .populate('userId', 'nickname avatar avatarUrl')
       .populate('enrollmentId', 'name')
       .populate('periodId', 'name')
       .select('-__v');
@@ -840,6 +840,9 @@ exports.getPayments = async (req, res) => {
     const paymentList = payments.map(p => {
       const obj = p.toObject ? p.toObject() : p;
       obj.userName = p.userId?.nickname || obj.userName || '未知';
+      obj.userAvatarUrl = typeof p.userId === 'object'
+        ? (p.userId?.avatarUrl || p.userId?.avatar || null)
+        : null;
       return obj;
     });
 
