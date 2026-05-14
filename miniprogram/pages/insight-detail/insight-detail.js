@@ -77,8 +77,8 @@ Page({
     posterGeneratingMode: '',
     posterTempFilePath: '',
     showPosterPanel: false,
-    // 弹幕相关（持久化开关，默认 true）
-    danmakuEnabled: wx.getStorageSync('danmakuEnabled') !== false,
+    // 弹幕相关
+    danmakuEnabled: true,
     showDanmakuPanel: false,
     danmakuList: [],
     activeDanmaku: [],
@@ -111,7 +111,11 @@ Page({
     }
     this._danmakuCooldowns = new Map();
     this._laneReleaseTimes = new Array(DANMAKU_LANES).fill(0);
-    this.setData({ insightId: options.id });
+    const savedDanmaku = wx.getStorageSync('danmakuEnabled');
+    this.setData({
+      insightId: options.id,
+      danmakuEnabled: savedDanmaku === false ? false : true
+    });
     this.loadInsightDetail();
     this.loadDanmaku();
   },

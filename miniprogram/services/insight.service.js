@@ -87,7 +87,7 @@ class InsightService {
    * @returns {Promise}
    */
   unlikeInsight(insightId) {
-    return request.delete(`/insights/${insightId}/like`);
+    return request.post(`/insights/${insightId}/unlike`);
   }
 
   /**
