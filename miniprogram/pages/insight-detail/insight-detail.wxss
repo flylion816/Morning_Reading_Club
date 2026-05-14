@@ -510,7 +510,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 360rpx;
+  height: 400rpx;
   overflow: hidden;
   pointer-events: none;
   z-index: 50;
@@ -544,11 +544,11 @@
   text-overflow: ellipsis;
 }
 
-/* 4 条泳道，bubble 高≈62rpx，各自留足间隙不超出 360rpx */
-.danmaku-lane-0 { top: 20rpx; }
-.danmaku-lane-1 { top: 100rpx; }
-.danmaku-lane-2 { top: 180rpx; }
-.danmaku-lane-3 { top: 260rpx; }
+/* 4 条泳道：bubble 高≈76rpx，间隙 20rpx，最底 372rpx < 400rpx */
+.danmaku-lane-0 { top: 8rpx; }
+.danmaku-lane-1 { top: 104rpx; }
+.danmaku-lane-2 { top: 200rpx; }
+.danmaku-lane-3 { top: 296rpx; }
 
 /* ===== 爱心飘散层 ===== */
 .hearts-overlay {

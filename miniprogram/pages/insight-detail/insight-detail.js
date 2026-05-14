@@ -8,8 +8,11 @@ const activityService = require('../../services/activity.service');
 const DANMAKU_LANES = 4;
 // 弹幕横跨屏幕时长（秒）
 const DANMAKU_DURATION = 18;
-// 同屏最大弹幕数
-const DANMAKU_MAX_VISIBLE = 3;
+// 同屏最大弹幕数（允许多条共存，不同泳道错开）
+const DANMAKU_MAX_VISIBLE = 10;
+// 同一泳道两条弹幕最小间隔（ms）：让前一条有足够空间移走再进下一条
+// 72vw 宽气泡 + 20vw 间隙 = 92vw，220vw/18s ≈ 12.2vw/s → 92/12.2 ≈ 7.5s
+const DANMAKU_LANE_COOLDOWN = 7500;
 
 const INSIGHT_POSTER_WIDTH = 750;
 
@@ -986,7 +989,8 @@ Page({
 
     const id = `${item._id || item.id}_${now}`;
     const duration = DANMAKU_DURATION;
-    lanes[lane] = now + duration * 1000;
+    // 只锁 7.5s（气泡移出足够距离），不等整个 18s 结束，允许同一泳道队列式进入
+    lanes[lane] = now + DANMAKU_LANE_COOLDOWN;
     this._laneReleaseTimes = lanes;
 
     const danmakuEntry = {
