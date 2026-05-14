@@ -13,6 +13,7 @@ const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
 const {
   buildInsightApprovalTargetPage,
+  buildInsightDetailTargetPage,
   buildProfileOthersTargetPage,
   formatNotificationTime,
   truncateText
@@ -436,6 +437,64 @@ async function notifyInsightCreated(req, { insight, targetUser, periodName, sect
       targetUserId: targetUser._id?.toString?.(),
       message: error.message
     });
+  }
+}
+
+async function notifyInsightLiked(req, { insight, actorUser, insightId }) {
+  try {
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: insight.targetUserId,
+      notificationType: 'insight_liked',
+      title: '你的看见收到了点赞',
+      content: `${actorUser?.nickname || '有人'} 为你的「${truncateText(insight.title || '小凡看见', 20)}」点了赞`,
+      scene: 'insight_liked',
+      targetPage: buildInsightDetailTargetPage(insightId),
+      senderId: actorUser?._id,
+      data: {
+        insightId: insightId.toString(),
+        senderName: actorUser?.nickname || '',
+        senderAvatar: actorUser?.avatarUrl || ''
+      },
+      subscribeFields: {
+        replyUser: actorUser?.nickname || '用户',
+        replyTopic: truncateText(insight.title || '小凡看见', 32),
+        replyContent: '为你的看见点了赞 ❤️',
+        replyTime: formatNotificationTime(new Date())
+      },
+      sourceType: 'insight',
+      sourceId: insight._id
+    });
+  } catch (error) {
+    logger.warn('点赞通知发送失败', { insightId: insightId?.toString(), message: error.message });
+  }
+}
+
+async function notifyInsightDanmaku(req, { insight, danmaku, actorUser, insightId }) {
+  try {
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: insight.targetUserId,
+      notificationType: 'danmaku_received',
+      title: '你的看见收到了弹幕',
+      content: `${actorUser?.nickname || '有人'} 在你的看见发表了弹幕：${truncateText(danmaku.content, 20)}`,
+      scene: 'danmaku_received',
+      targetPage: buildInsightDetailTargetPage(insightId),
+      senderId: actorUser?._id,
+      data: {
+        insightId: insightId.toString(),
+        danmakuId: danmaku._id.toString(),
+        senderName: actorUser?.nickname || ''
+      },
+      subscribeFields: {
+        replyUser: actorUser?.nickname || '用户',
+        replyTopic: truncateText(insight.title || '小凡看见', 32),
+        replyContent: truncateText(danmaku.content, 32),
+        replyTime: formatNotificationTime(danmaku.createdAt)
+      },
+      sourceType: 'danmaku',
+      sourceId: danmaku._id
+    });
+  } catch (error) {
+    logger.warn('弹幕通知发送失败', { insightId: insightId?.toString(), message: error.message });
   }
 }
 
@@ -2368,6 +2427,14 @@ async function likeInsight(req, res, next) {
       insight.likeCount = insight.likes.length;
       await insight.save();
 
+      // 通知看见的主人（异步，不阻塞响应）
+      const insightOwnerId = insight.targetUserId?.toString?.();
+      if (insightOwnerId && insightOwnerId !== userId) {
+        User.findById(userId).select('nickname avatarUrl').then(actorUser => {
+          notifyInsightLiked(req, { insight, actorUser, insightId });
+        }).catch(() => {});
+      }
+
       res.json(success(insight, '点赞成功'));
     } else if (action === 'unlike') {
       // 检查是否已点赞
@@ -2450,6 +2517,14 @@ async function postDanmaku(req, res, next) {
       scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
       color
     });
+
+    // 评论弹幕通知看见主人（点赞弹幕已由 likeInsight 单独通知，避免重复）
+    if (type === 'comment') {
+      const insightOwnerId = insight.targetUserId?.toString?.();
+      if (insightOwnerId && insightOwnerId !== userId) {
+        notifyInsightDanmaku(req, { insight, danmaku, actorUser: user, insightId });
+      }
+    }
 
     res.json(success(danmaku, '弹幕发送成功'));
   } catch (error) {
