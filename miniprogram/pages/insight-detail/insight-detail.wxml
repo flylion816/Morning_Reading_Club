@@ -61,12 +61,12 @@
       </view>
 
       <!-- 弹幕开关 -->
-      <view class="panel-section panel-toggle-row">
-        <view class="panel-section-label">
-          <text class="section-title">弹幕显示</text>
+      <view class="panel-section">
+        <text class="section-title">弹幕显示</text>
+        <view class="panel-toggle-row">
           <text class="section-desc">{{danmakuEnabled ? '已开启' : '已关闭'}}</text>
+          <switch checked="{{danmakuEnabled}}" bindchange="toggleDanmaku" color="#4a90e2" />
         </view>
-        <switch checked="{{danmakuEnabled}}" bindchange="toggleDanmaku" color="#4a90e2" />
       </view>
 
       <!-- 点赞 -->

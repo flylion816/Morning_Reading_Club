@@ -934,8 +934,8 @@ Page({
         const insight = { ...this.data.insight, likeCount: (this.data.insight.likeCount || 0) + 1 };
         const danmakuList = [...this.data.danmakuList, likeItem];
         this.setData({ isLiked: true, insight, danmakuList });
+        // _showDanmaku 内部会因 type==='like' 触发爱心，无需在此额外调用
         this._showDanmaku(likeItem);
-        this._showHearts();
         this.closeDanmakuPanel();
       }
     } catch (e) {
@@ -1031,6 +1031,11 @@ Page({
     };
 
     this.setData({ activeDanmaku: [...activeDanmaku, danmakuEntry] });
+
+    // 点赞弹幕触发爱心效果（弹幕开关开启时）
+    if (item.type === 'like' && this.data.danmakuEnabled) {
+      setTimeout(() => this._showHearts(), 400);
+    }
 
     // duration 秒后从列表移除
     setTimeout(() => {
