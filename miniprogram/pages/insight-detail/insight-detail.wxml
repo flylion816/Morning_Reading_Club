@@ -6,10 +6,8 @@
         wx:for="{{activeDanmaku}}"
         wx:key="id"
         class="danmaku-item danmaku-lane-{{item.lane}}"
-        style="border-color:{{item.color}};animation-duration:{{item.duration}}s;animation-delay:{{item.animDelay}}s"
-      >
-        <text class="danmaku-text">{{item.content}}</text>
-      </view>
+        style="animation-duration:{{item.duration}}s;animation-delay:{{item.animDelay}}s"
+      ><text class="danmaku-name" style="border-color:{{item.color}};color:{{item.color}}">{{item.nickname}}</text><text class="danmaku-msg">{{item.msg}}</text></view>
     </block>
   </view>
 

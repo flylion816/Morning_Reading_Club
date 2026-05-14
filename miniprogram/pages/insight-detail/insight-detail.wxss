@@ -525,23 +525,38 @@
 .danmaku-item {
   position: absolute;
   display: inline-flex;
-  align-items: center;
+  flex-direction: row;
+  align-items: stretch;
   background: rgba(255, 255, 255, 0.93);
-  border-left: 5rpx solid #4a90e2;
   border-radius: 36rpx;
-  padding: 16rpx 32rpx 16rpx 26rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.13);
   white-space: nowrap;
   max-width: 72vw;
   animation: danmakuFlow linear forwards;
+  overflow: hidden;
 }
 
-.danmaku-text {
+/* 昵称徽章：左+上+下三边彩色边框，左侧圆角，形成半胶囊 */
+.danmaku-name {
+  padding: 14rpx 16rpx 14rpx 22rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-top: 6rpx solid;
+  border-left: 6rpx solid;
+  border-bottom: 6rpx solid;
+  letter-spacing: 0.5rpx;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* 正文内容：无边框 */
+.danmaku-msg {
+  padding: 14rpx 24rpx 14rpx 12rpx;
   font-size: 30rpx;
   color: #1a2a3a;
   letter-spacing: 0.5rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 /* 4 条泳道：bubble 高≈76rpx，间隙 20rpx，最底 372rpx < 400rpx */
@@ -643,7 +658,7 @@
 .panel-section-label {
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
+  gap: 16rpx;
 }
 
 /* 面板内标签文字（覆盖全局 .section-title 的蓝色+粗体） */

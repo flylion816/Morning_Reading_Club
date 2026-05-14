@@ -916,7 +916,7 @@ Page({
       const { danmakuColor } = this.data;
 
       // 发一条点赞弹幕，绑定当前位置
-      const likeContent = `❤️ ${nickname} 有所触动`;
+      const likeContent = '被你触动到了！❤️';
       const likeResult = await danmakuService.postDanmaku(insightId, {
         content: likeContent,
         type: 'like',
@@ -995,7 +995,8 @@ Page({
 
     const danmakuEntry = {
       id,
-      content: item.userNickname ? `${item.userNickname}：${item.content}` : item.content,
+      nickname: item.userNickname || '',
+      msg: item.content,
       lane,
       color: item.color || '#4a90e2',
       duration,
