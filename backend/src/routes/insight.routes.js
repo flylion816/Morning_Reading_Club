@@ -17,6 +17,11 @@ const {
   unlikeInsight,
   postDanmaku,
   getDanmaku,
+  adminGetInsightDetail,
+  adminGetDanmaku,
+  adminLikeForUser,
+  adminPostDanmakuForUser,
+  adminDeleteDanmaku,
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,
@@ -115,6 +120,12 @@ router.get('/user/:userId?', authMiddleware, getUserInsights);
  * @access  Public for published insight shares, otherwise private/authorized
  */
 router.get('/:insightId', optionalAuthMiddleware, getInsightDetail);
+
+router.get('/admin/:insightId/detail', adminAuthMiddleware, adminGetInsightDetail);
+router.get('/admin/:insightId/danmaku', adminAuthMiddleware, adminGetDanmaku);
+router.post('/admin/:insightId/like', adminAuthMiddleware, adminLikeForUser);
+router.post('/admin/:insightId/danmaku', adminAuthMiddleware, adminPostDanmakuForUser);
+router.delete('/admin/danmaku/:danmakuId', adminAuthMiddleware, adminDeleteDanmaku);
 
 /**
  * @route   PUT /api/v1/insights/admin/:insightId

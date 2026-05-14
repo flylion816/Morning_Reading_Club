@@ -49,7 +49,8 @@
       "Bash(claude install:*)",
       "Skill(claude-hud:setup)",
       "Skill(claude-hud:configure)",
-      "Bash(xargs -I{} git grep -l \"沉浸\" {} --)"
+      "Bash(xargs -I{} git grep -l \"沉浸\" {} --)",
+      "Bash(bash scripts/deploy-to-server-optimized.sh)"
     ],
     "deny": [],
     "ask": []

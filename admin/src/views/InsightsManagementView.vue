@@ -113,9 +113,12 @@
           </el-table-column>
 
           <!-- 操作 -->
-          <el-table-column label="操作" width="220" fixed="right">
+          <el-table-column label="操作" width="280" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
+                <el-button type="info" size="small" @click="handleViewInsight(row)"
+                  >查看</el-button
+                >
                 <el-button type="primary" size="small" @click="handleEditInsight(row)"
                   >编辑</el-button
                 >
@@ -134,6 +137,182 @@
           </el-table-column>
         </el-table>
       </el-card>
+
+      <!-- 查看小凡看见弹窗 -->
+      <el-dialog
+        v-model="viewDialogVisible"
+        title="查看小凡看见"
+        width="1100px"
+        destroy-on-close
+        class="view-dialog"
+      >
+        <div v-if="viewLoading" class="view-loading">
+          <el-icon class="is-loading"><Loading /></el-icon> 加载中...
+        </div>
+        <div v-else-if="viewingInsight" class="view-layout">
+
+          <!-- 左侧：内容 + 操作区 -->
+          <div class="view-left">
+            <div class="view-title">{{ viewingInsight.sectionId?.title || viewingInsight.title || '无标题' }}</div>
+            <div class="view-meta">
+              <el-tag size="small" type="info">{{ viewingInsight.periodId?.name || '-' }}</el-tag>
+              <span v-if="viewingInsight.targetUserId?.nickname" class="view-meta-owner">
+                被看见人：{{ viewingInsight.targetUserId.nickname }}
+              </span>
+            </div>
+
+            <!-- 可滚动内容区（监听滚动还原手机位置） -->
+            <div class="view-scroll-area" @scroll="onViewScroll">
+              <div v-if="viewingInsight.imageUrl" class="view-image">
+                <img :src="viewingInsight.imageUrl" alt="内容图片" />
+              </div>
+              <div
+                v-if="viewingInsight.content"
+                class="view-body"
+                v-html="renderMarkdown(viewingInsight.content)"
+              ></div>
+            </div>
+
+            <!-- 位置指示条 -->
+            <div class="scroll-position-bar">
+              <span class="scroll-position-label">当前阅读位置</span>
+              <el-progress
+                :percentage="opScrollPercent"
+                :show-text="false"
+                style="flex:1"
+                :stroke-width="6"
+                color="#4a90e2"
+              />
+              <span class="scroll-position-pct">{{ opScrollPercent }}%</span>
+            </div>
+
+            <!-- 操作区 -->
+            <div class="view-ops">
+              <div class="ops-label">管理操作</div>
+              <div class="ops-row">
+                <el-select
+                  v-model="opUserId"
+                  filterable
+                  remote
+                  clearable
+                  :remote-method="searchOpUsers"
+                  :loading="opUserLoading"
+                  placeholder="搜索用户昵称"
+                  style="flex:1"
+                >
+                  <el-option
+                    v-for="u in opUserOptions"
+                    :key="u._id"
+                    :label="u.nickname"
+                    :value="u._id"
+                  />
+                </el-select>
+                <el-button
+                  type="primary"
+                  :loading="opLiking"
+                  :disabled="!opUserId"
+                  @click="adminDoLike"
+                >点赞</el-button>
+              </div>
+              <div class="ops-row" style="margin-top:10px">
+                <el-input
+                  v-model="opDanmakuContent"
+                  placeholder="输入弹幕内容（以选中用户身份发送）"
+                  maxlength="60"
+                  show-word-limit
+                  style="flex:1"
+                />
+                <el-button
+                  type="success"
+                  :loading="opSending"
+                  :disabled="!opUserId || !opDanmakuContent.trim()"
+                  @click="adminDoSendDanmaku"
+                >发送弹幕</el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：弹幕操作列表 -->
+          <div class="view-right">
+            <div class="view-section-title">
+              弹幕操作列表
+              <span class="view-section-count">{{ viewDanmakuTotal }} 条</span>
+            </div>
+            <div v-if="viewDanmakuLoading" class="view-empty">加载中...</div>
+            <div v-else-if="!viewDanmakuList.length" class="view-empty">暂无弹幕</div>
+            <div v-else class="danmaku-table-wrap">
+            <el-table
+              :data="viewDanmakuList"
+              size="small"
+              class="danmaku-table"
+              height="100%"
+              style="width:100%"
+            >
+              <!-- 用户 -->
+              <el-table-column label="用户" width="120">
+                <template #default="{ row }">
+                  <div class="danmaku-top">
+                    <img
+                      v-if="row.userId?.avatarUrl || row.userId?.avatar"
+                      :src="row.userId.avatarUrl || row.userId.avatar"
+                      class="danmaku-avatar"
+                    />
+                    <div v-else class="danmaku-avatar-fallback">
+                      {{ (row.userNickname || '?').charAt(0) }}
+                    </div>
+                    <div class="danmaku-color-dot" :style="{ background: row.color || '#4a90e2' }"></div>
+                    <span class="danmaku-nickname">{{ row.userNickname || '匿名' }}</span>
+                  </div>
+                  <el-tag v-if="row.type === 'like'" size="small" type="danger" style="margin-top:2px">❤️ 点赞</el-tag>
+                </template>
+              </el-table-column>
+              <!-- 内容 -->
+              <el-table-column label="内容" prop="content" min-width="120">
+                <template #default="{ row }">
+                  <span style="word-break:break-all;color:#374151">{{ row.content }}</span>
+                </template>
+              </el-table-column>
+              <!-- 位置 -->
+              <el-table-column label="位置" width="60" align="center">
+                <template #default="{ row }">
+                  <el-tag size="small" type="info">{{ row.scrollPercent ?? 0 }}%</el-tag>
+                </template>
+              </el-table-column>
+              <!-- 时间 -->
+              <el-table-column label="时间" width="100" align="center">
+                <template #default="{ row }">
+                  <span style="font-size:11px;color:#aaa">{{ formatDate(row.createdAt) }}</span>
+                </template>
+              </el-table-column>
+              <!-- 操作 -->
+              <el-table-column label="操作" width="80" align="center">
+                <template #default="{ row }">
+                  <el-button
+                    size="small"
+                    type="danger"
+                    plain
+                    :loading="row._deleting"
+                    @click="adminDeleteDanmaku(row)"
+                  >删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            </div>
+            <el-pagination
+              v-if="viewDanmakuTotal > viewDanmakuPageSize"
+              :current-page="viewDanmakuPage"
+              :page-size="viewDanmakuPageSize"
+              :total="viewDanmakuTotal"
+              layout="prev, pager, next"
+              style="margin-top:12px"
+              @current-change="onViewDanmakuPageChange"
+            />
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="viewDialogVisible = false">关闭</el-button>
+        </template>
+      </el-dialog>
 
       <!-- 编辑小凡看见弹窗 -->
       <el-dialog
@@ -227,7 +406,7 @@
                 placeholder="请输入内容，支持 Markdown"
                 :rows="5"
                 show-word-limit
-                maxlength="2000"
+                maxlength="5000"
               />
             </el-form-item>
 
@@ -298,6 +477,7 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { ref, onMounted, computed } from 'vue';
+import { Loading } from '@element-plus/icons-vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { insightApi, periodApi, userApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -311,6 +491,25 @@ const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const saving = ref(false);
+
+// 查看弹窗
+const viewDialogVisible = ref(false);
+const viewLoading = ref(false);
+const viewingInsight = ref<any>(null);
+const viewDanmakuList = ref<any[]>([]);
+const viewDanmakuTotal = ref(0);
+const viewDanmakuPage = ref(1);
+const viewDanmakuPageSize = 20;
+const viewDanmakuLoading = ref(false);
+
+// 管理操作
+const opUserId = ref('');
+const opUserOptions = ref<any[]>([]);
+const opUserLoading = ref(false);
+const opDanmakuContent = ref('');
+const opLiking = ref(false);
+const opSending = ref(false);
+const opScrollPercent = ref(0);
 
 // 编辑弹窗
 const editDialogVisible = ref(false);
@@ -432,6 +631,141 @@ async function loadInsights() {
     console.error('加载小凡看见列表失败:', err);
     ElMessage.error('加载小凡看见列表失败');
   }
+}
+
+// 查看
+async function handleViewInsight(row: any) {
+  viewDialogVisible.value = true;
+  viewLoading.value = true;
+  viewingInsight.value = null;
+  viewDanmakuList.value = [];
+  viewDanmakuTotal.value = 0;
+  viewDanmakuPage.value = 1;
+  opUserId.value = '';
+  opUserOptions.value = [];
+  opDanmakuContent.value = '';
+  opScrollPercent.value = 0;
+  try {
+    const res = await insightApi.getInsightDetailAdmin(row._id);
+    viewingInsight.value = res as any;
+    await loadViewDanmaku(row._id, 1);
+  } catch (err) {
+    ElMessage.error('加载详情失败');
+  } finally {
+    viewLoading.value = false;
+  }
+}
+
+async function loadViewDanmaku(insightId: string, page: number) {
+  viewDanmakuLoading.value = true;
+  try {
+    const res = await insightApi.getDanmakuAdmin(insightId);
+    const list: any[] = (res as any).list ?? (res as any).data ?? [];
+    list.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    viewDanmakuTotal.value = list.length;
+    const start = (page - 1) * viewDanmakuPageSize;
+    viewDanmakuList.value = list.slice(start, start + viewDanmakuPageSize);
+    viewDanmakuPage.value = page;
+  } catch (err) {
+    viewDanmakuList.value = [];
+  } finally {
+    viewDanmakuLoading.value = false;
+  }
+}
+
+function onViewDanmakuPageChange(page: number) {
+  if (viewingInsight.value?._id) {
+    loadViewDanmaku(viewingInsight.value._id, page);
+  }
+}
+
+function onViewScroll(e: Event) {
+  const el = e.target as HTMLElement;
+  if (!el) return;
+  const max = el.scrollHeight - el.clientHeight;
+  opScrollPercent.value = max > 0 ? Math.round((el.scrollTop / max) * 100) : 0;
+}
+
+async function searchOpUsers(keyword: string) {
+  if (!keyword) { opUserOptions.value = []; return; }
+  opUserLoading.value = true;
+  try {
+    const res = (await userApi.getUsers({ search: keyword, limit: 20 })) as any;
+    opUserOptions.value = (res.list || []).filter((u: any) => u.nickname);
+  } catch { opUserOptions.value = []; }
+  finally { opUserLoading.value = false; }
+}
+
+async function adminDoLike() {
+  if (!opUserId.value || !viewingInsight.value?._id) return;
+  opLiking.value = true;
+  try {
+    await insightApi.likeForUserAdmin(viewingInsight.value._id, opUserId.value, opScrollPercent.value);
+    ElMessage.success('点赞成功');
+    // 刷新列表
+    await loadViewDanmaku(viewingInsight.value._id, viewDanmakuPage.value);
+    // 更新点赞数
+    const res = await insightApi.getInsightDetailAdmin(viewingInsight.value._id);
+    viewingInsight.value = res as any;
+  } catch (err: any) {
+    ElMessage.error(err.message || '点赞失败');
+  } finally { opLiking.value = false; }
+}
+
+async function adminDoSendDanmaku() {
+  if (!opUserId.value || !opDanmakuContent.value.trim() || !viewingInsight.value?._id) return;
+  opSending.value = true;
+  try {
+    await insightApi.postDanmakuForUserAdmin(viewingInsight.value._id, {
+      userId: opUserId.value,
+      content: opDanmakuContent.value.trim(),
+      scrollPercent: opScrollPercent.value
+    });
+    ElMessage.success('弹幕发送成功');
+    opDanmakuContent.value = '';
+    await loadViewDanmaku(viewingInsight.value._id, viewDanmakuPage.value);
+  } catch (err: any) {
+    ElMessage.error(err.message || '发送失败');
+  } finally { opSending.value = false; }
+}
+
+async function adminDeleteDanmaku(danmaku: any) {
+  danmaku._deleting = true;
+  try {
+    await insightApi.deleteDanmakuAdmin(danmaku._id);
+    ElMessage.success('已删除');
+    await loadViewDanmaku(viewingInsight.value._id, viewDanmakuPage.value);
+    const res = await insightApi.getInsightDetailAdmin(viewingInsight.value._id);
+    viewingInsight.value = res as any;
+  } catch (err: any) {
+    ElMessage.error(err.message || '操作失败');
+    danmaku._deleting = false;
+  }
+}
+
+async function adminCancelLike(danmaku: any) {
+  return adminDeleteDanmaku(danmaku);
+}
+
+function renderMarkdown(text: string): string {
+  if (!text) return '';
+  // Already HTML
+  if (/<\/?[a-z][\s\S]*>/i.test(text)) return text;
+  const escaped = (s: string) => s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = (s: string) => escaped(s)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?=[^*]|$)/g, '$1<em>$2</em>');
+  return text.split(/\n{2,}/).map(para => {
+    const t = para.trim();
+    if (!t) return '';
+    if (/^#{1,3}\s/.test(t)) {
+      const level = t.match(/^(#{1,3})/)?.[1].length || 2;
+      return `<h${level} style="margin:0 0 10px;font-size:${level===1?18:level===2?16:14}px">${inline(t.replace(/^#+\s*/, ''))}</h${level}>`;
+    }
+    return `<p style="margin:0 0 14px;line-height:1.8">${inline(t).replace(/\n/g, '<br>')}</p>`;
+  }).join('');
 }
 
 // 新增
@@ -804,5 +1138,179 @@ function getTypeColor(type: string) {
   white-space: nowrap;
   padding: 6px 12px;
   font-size: 12px;
+}
+
+/* 查看弹窗 */
+.view-loading {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+}
+.view-layout {
+  display: flex;
+  gap: 20px;
+  height: 620px;
+}
+.view-left {
+  flex: 0 0 55%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.view-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid #ebeef5;
+  padding-left: 20px;
+  overflow: hidden;
+}
+.view-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a2a3a;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.view-meta {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.view-meta-owner {
+  color: #666;
+  font-size: 13px;
+}
+.view-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+.view-image {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.view-image img {
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+.view-body {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #374151;
+}
+.view-body :deep(p) { margin: 0 0 14px; }
+.view-body :deep(h1),
+.view-body :deep(h2),
+.view-body :deep(h3) { margin: 0 0 10px; font-weight: 700; }
+.view-body :deep(strong) { font-weight: 700; color: #111; }
+.view-ops {
+  border-top: 1px solid #ebeef5;
+  padding-top: 12px;
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+.scroll-position-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 8px;
+  flex-shrink: 0;
+}
+.scroll-position-label {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+.scroll-position-pct {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a90e2;
+  min-width: 32px;
+  text-align: right;
+}
+.ops-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
+}
+.ops-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.view-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+.view-section-count {
+  font-weight: normal;
+  color: #999;
+  font-size: 13px;
+  margin-left: 6px;
+}
+.view-empty {
+  color: #bbb;
+  font-size: 13px;
+  padding: 8px 0;
+}
+.danmaku-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.danmaku-table {
+  height: 100%;
+}
+.danmaku-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+.danmaku-avatar-fallback {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #d0e8ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a90e2;
+  flex-shrink: 0;
+}
+.danmaku-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.danmaku-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.danmaku-nickname {
+  font-weight: 500;
+  font-size: 12px;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60px;
 }
 </style>

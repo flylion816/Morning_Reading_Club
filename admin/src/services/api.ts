@@ -267,7 +267,12 @@ export const insightApi = {
   publishInsight: (id: string) =>
     apiClient.put(`/insights/admin/${id}`, { isPublished: true }),
   unpublishInsight: (id: string) =>
-    apiClient.put(`/insights/admin/${id}`, { isPublished: false })
+    apiClient.put(`/insights/admin/${id}`, { isPublished: false }),
+  getInsightDetailAdmin: (id: string) => apiClient.get(`/insights/admin/${id}/detail`),
+  getDanmakuAdmin: (id: string) => apiClient.get(`/insights/admin/${id}/danmaku`),
+  likeForUserAdmin: (id: string, userId: string, scrollPercent?: number) => apiClient.post(`/insights/admin/${id}/like`, { userId, scrollPercent: scrollPercent ?? 0 }),
+  postDanmakuForUserAdmin: (id: string, data: any) => apiClient.post(`/insights/admin/${id}/danmaku`, data),
+  deleteDanmakuAdmin: (danmakuId: string) => apiClient.delete(`/insights/admin/danmaku/${danmakuId}`)
 };
 
 // 小凡看见申请 API（管理后台）

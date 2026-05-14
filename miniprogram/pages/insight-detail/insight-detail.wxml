@@ -42,13 +42,25 @@
     </view>
   </view>
 
-  <!-- 底部按钮：返回 + 弹幕功能 + 长图分享 + 微信好友 -->
-  <view class="action-buttons">
-    <button class="action-btn btn-back" bindtap="handleBack">返回</button>
-    <button class="action-btn btn-danmaku" bindtap="openDanmakuPanel">弹幕</button>
-    <button class="action-btn btn-long-share" data-mode="hd" bindtap="handleLongImageShare">{{posterGenerating && posterGeneratingMode === 'hd' ? '生成中' : '长图分享'}}</button>
-    <button wx:if="{{isDev}}" class="action-btn btn-share" bindtap="openShareMenu">微信好友</button>
-    <button wx:else class="action-btn btn-share" open-type="share">微信好友</button>
+  <!-- 底部检测哨兵：用于 IntersectionObserver 判断用户是否到达页面末尾 -->
+  <view id="scroll-end-sentinel" style="height:1px"></view>
+
+  <!-- 底部栏：阅读进度 + 操作按钮 -->
+  <view class="bottom-bar">
+    <view class="reading-progress-row">
+      <text class="reading-progress-label">当前阅读位置</text>
+      <view class="reading-progress-track">
+        <view class="reading-progress-fill" style="width:{{scrollPercent}}%"></view>
+      </view>
+      <text class="reading-progress-pct">{{scrollPercent}}%</text>
+    </view>
+    <view class="action-buttons">
+      <button class="action-btn btn-back" bindtap="handleBack">返回</button>
+      <button class="action-btn btn-danmaku" bindtap="openDanmakuPanel">弹幕</button>
+      <button class="action-btn btn-long-share" data-mode="hd" bindtap="handleLongImageShare">{{posterGenerating && posterGeneratingMode === 'hd' ? '生成中' : '长图分享'}}</button>
+      <button wx:if="{{isDev}}" class="action-btn btn-share" bindtap="openShareMenu">微信好友</button>
+      <button wx:else class="action-btn btn-share" open-type="share">微信好友</button>
+    </view>
   </view>
 
   <!-- 弹幕功能浮层 -->

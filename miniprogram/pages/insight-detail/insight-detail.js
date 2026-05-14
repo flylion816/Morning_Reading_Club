@@ -8,8 +8,8 @@ const activityService = require('../../services/activity.service');
 const DANMAKU_LANES = 4;
 // 弹幕横跨屏幕时长（秒）
 const DANMAKU_DURATION = 18;
-// 同屏最大弹幕数（允许多条共存，不同泳道错开）
-const DANMAKU_MAX_VISIBLE = 10;
+// activeDanmaku 上限（包含排队等候但尚未出现的条目，给足余量）
+const DANMAKU_MAX_VISIBLE = 20;
 // 同一泳道两条弹幕最小间隔（ms）：让前一条有足够空间移走再进下一条
 // 72vw 宽气泡 + 20vw 间隙 = 92vw，220vw/18s ≈ 12.2vw/s → 92/12.2 ≈ 7.5s
 const DANMAKU_LANE_COOLDOWN = 7500;
@@ -93,7 +93,8 @@ Page({
     ],
     isLiked: false,
     showHearts: false,
-    heartItems: []
+    heartItems: [],
+    scrollPercent: 0
   },
 
   // 弹幕引擎内部状态（不需要响应式，放实例属性）
@@ -111,7 +112,8 @@ Page({
     }
     this._danmakuCooldowns = new Map();
     this._laneReleaseTimes = new Array(DANMAKU_LANES).fill(0);
-    this._heartsTimer = null;
+    this._pendingDanmakuIds = new Set();
+    this._heartsBatchTimers = [];
     const savedDanmaku = wx.getStorageSync('danmakuEnabled');
     this.setData({
       insightId: options.id,
@@ -122,24 +124,67 @@ Page({
   },
 
   onReady() {
-    // 测量页面可滚动高度，用于 scrollPercent 计算
+    // onReady 时内容可能尚未渲染，先做一次粗测；loadInsightDetail 完成后会精确重测
+    this._measurePageHeight();
+    // 延迟设置哨兵观察器，确保元素已渲染
+    setTimeout(() => this._setupBottomObserver(), 600);
+  },
+
+  onUnload() {
+    if (this._bottomObserver) {
+      this._bottomObserver.disconnect();
+      this._bottomObserver = null;
+    }
+  },
+
+  // 用 IntersectionObserver 监测底部哨兵是否进入视口，滚到底时强制设 100%
+  _setupBottomObserver() {
+    if (this._bottomObserver) this._bottomObserver.disconnect();
+    this._bottomObserver = wx.createIntersectionObserver(this, { thresholds: [0] });
+    this._bottomObserver.relativeToViewport({ bottom: 0 }).observe('#scroll-end-sentinel', res => {
+      // 只在已滚动到较深位置（>85%）时才认定为到底，避免短内容页误判
+      if (res.intersectionRatio > 0 && this.data.scrollPercent >= 85) {
+        if (this.data.scrollPercent < 100) {
+          this.setData({ scrollPercent: 100 });
+          this._currentScrollPercent = 100;
+        }
+      }
+    });
+  },
+
+  _measurePageHeight() {
+    const sysInfo = wx.getSystemInfoSync();
+    // 196rpx = padding-bottom on .page-insight-detail（为固定底部栏预留），
+    // WeChat 不允许滚动进入 padding 区域，所以从分母中减去它，保证滚到底时刚好是 100%
+    const paddingBottomPx = Math.round(196 * sysInfo.windowWidth / 750);
     wx.createSelectorQuery()
       .select('.page-insight-detail')
       .boundingClientRect(rect => {
-        if (rect) {
-          const sysInfo = wx.getSystemInfoSync();
-          this._pageScrollHeight = Math.max(1, rect.height - sysInfo.windowHeight);
+        if (rect && rect.height > 0) {
+          const h = rect.height - sysInfo.windowHeight - paddingBottomPx;
+          // 只在新值比旧值大时更新，避免用未渲染时的小值覆盖正确值
+          if (h > (this._pageScrollHeight || 0)) {
+            this._pageScrollHeight = Math.max(1, h);
+          }
         }
       })
       .exec();
   },
 
   onPageScroll({ scrollTop }) {
+    // scrollTop 超过存储高度说明之前测量时内容还没渲染完，立即重测
+    if (scrollTop > 0 && scrollTop >= this._pageScrollHeight) {
+      this._measurePageHeight();
+    }
     if (this._pageScrollHeight > 0) {
       const percent = Math.min(100, Math.round((scrollTop / this._pageScrollHeight) * 100));
       this._currentScrollPercent = percent;
       if (this.data.danmakuEnabled) {
         this._checkDanmakuTrigger(percent);
+      }
+      // 仅在值变化时才 setData，减少频繁渲染
+      if (percent !== this.data.scrollPercent) {
+        this.setData({ scrollPercent: percent });
       }
     }
   },
@@ -189,6 +234,8 @@ Page({
         : false;
 
       this.setData({ insight, isLiked });
+      // 富文本渲染完后重测页面高度（rich-text 渲染需要一点时间）
+      setTimeout(() => this._measurePageHeight(), 400);
     } catch (error) {
       console.error('加载失败:', error);
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -862,6 +909,10 @@ Page({
     try {
       const list = await danmakuService.getDanmaku(this.data.insightId);
       this.setData({ danmakuList: Array.isArray(list) ? list : [] });
+      // 如果用户已经滚动到某位置后列表才加载完，补充检测一次当前位置
+      if (this.data.danmakuEnabled && this._currentScrollPercent > 0) {
+        this._checkDanmakuTrigger(this._currentScrollPercent);
+      }
     } catch (e) {
       // 弹幕加载失败不影响主流程，静默处理
     }
@@ -945,14 +996,15 @@ Page({
   },
 
   _showHearts() {
+    if (!this._heartsBatchTimers) this._heartsBatchTimers = [];
+    const batchId = Date.now();
     const emojis = ['💖', '💗', '💝', '💓', '💕', '🌸', '💞', '💘'];
     const count = Math.floor(Math.random() * 4) + 5; // 5-8颗
-    // 8个散落目标位置（相对屏幕中心的偏移），覆盖内容区各角落
     const scatter = [
       [-30, -22], [28, -26], [-34, 4], [32, -8],
       [-16, -32], [26, 14], [-24, 20], [36, -32]
     ];
-    const heartItems = Array.from({ length: count }, (_, i) => {
+    const newItems = Array.from({ length: count }, (_, i) => {
       const signX = Math.random() > 0.5 ? 1 : -1;
       const startX = (signX * (Math.random() * 22 + 10)).toFixed(1) + 'vw';
       const startY = (Math.random() * 18 + 28).toFixed(1) + 'vh';
@@ -960,42 +1012,55 @@ Page({
       const destX = (dest[0] + (Math.random() * 6 - 3)).toFixed(1) + 'vw';
       const destY = (dest[1] + (Math.random() * 6 - 3)).toFixed(1) + 'vh';
       return {
-        id: Date.now() + i,
+        id: `${batchId}_${i}`,
+        batchId,
         emoji: emojis[i % emojis.length],
         startX, startY, destX, destY,
         delay: (i * 0.2).toFixed(2)
       };
     });
-    // 清掉旧的 timer，避免上次调用提前杀掉本次动画
-    if (this._heartsTimer) clearTimeout(this._heartsTimer);
-    this.setData({ showHearts: true, heartItems });
-    // 最后一颗延迟 1.4s + 动画 6s + 0.6s 缓冲 = 8s
-    this._heartsTimer = setTimeout(() => {
-      this.setData({ showHearts: false, heartItems: [] });
-      this._heartsTimer = null;
+
+    // 超过5批时销毁最旧的一批
+    if (this._heartsBatchTimers.length >= 5) {
+      const oldest = this._heartsBatchTimers.shift();
+      clearTimeout(oldest.timer);
+      const filtered = this.data.heartItems.filter(h => h.batchId !== oldest.batchId);
+      this.setData({ heartItems: filtered });
+    }
+
+    const merged = [...(this.data.heartItems || []), ...newItems];
+    this.setData({ showHearts: true, heartItems: merged });
+
+    const timer = setTimeout(() => {
+      const remaining = this.data.heartItems.filter(h => h.batchId !== batchId);
+      this._heartsBatchTimers = (this._heartsBatchTimers || []).filter(t => t.batchId !== batchId);
+      this.setData({ heartItems: remaining, showHearts: remaining.length > 0 });
     }, 8000);
+    this._heartsBatchTimers.push({ batchId, timer });
   },
 
   // 触发位置匹配的弹幕（滚动时调用）
-  // 使用冷却机制：每条弹幕播完后（动画时长 + 10s 缓冲）可再次出现
+  // cooldown 在实际展示时才标记，避免因泳道满而被静默丢弃
   _checkDanmakuTrigger(percent) {
     const { danmakuList } = this.data;
     const cooldowns = this._danmakuCooldowns;
     if (!cooldowns) return;
+    if (!this._pendingDanmakuIds) this._pendingDanmakuIds = new Set();
 
     const now = Date.now();
     const cooldownMs = (DANMAKU_DURATION + 10) * 1000;
 
-    // 收集所有命中弹幕，按 scrollPercent 升序排列，错峰出场
+    // 收集命中弹幕：未在冷却期 且 未在待展示队列中
     const triggered = [];
     danmakuList.forEach(item => {
       const id = item._id || item.id;
       const lastShown = cooldowns.get(id) || 0;
       if (
-        Math.abs((item.scrollPercent || 0) - percent) <= 3 &&
-        now - lastShown > cooldownMs
+        Math.abs((item.scrollPercent || 0) - percent) <= 10 &&
+        now - lastShown > cooldownMs &&
+        !this._pendingDanmakuIds.has(id)
       ) {
-        cooldowns.set(id, now);
+        this._pendingDanmakuIds.add(id);
         triggered.push(item);
       }
     });
@@ -1006,49 +1071,62 @@ Page({
   },
 
   // 将一条弹幕加入屏幕
+  // 泳道满时用 animation-delay 让气泡在屏幕右侧排队，前一条走出足够间距后自动跟出
   _showDanmaku(item) {
+    const itemId = item._id || item.id;
+    if (!this._pendingDanmakuIds) this._pendingDanmakuIds = new Set();
+
     const { activeDanmaku } = this.data;
-    if (activeDanmaku.length >= DANMAKU_MAX_VISIBLE) return;
+    // activeDanmaku 同时包含正在播放和排队等待的条目，给足余量
+    if (activeDanmaku.length >= DANMAKU_MAX_VISIBLE) {
+      this._pendingDanmakuIds.delete(itemId);
+      return;
+    }
 
     const now = Date.now();
     const lanes = this._laneReleaseTimes || new Array(DANMAKU_LANES).fill(0);
-    // 选一个已释放的最旧泳道
+
+    // 选等待时间最短的泳道（不拒绝，允许排队）
     let lane = 0;
     let earliest = lanes[0];
     for (let i = 1; i < DANMAKU_LANES; i++) {
       if (lanes[i] < earliest) { earliest = lanes[i]; lane = i; }
     }
-    // 若最早泳道还未释放，不强行显示（避免叠字）
-    if (earliest > now) return;
 
-    const id = `${item._id || item.id}_${now}`;
-    const duration = DANMAKU_DURATION;
-    // 只锁 7.5s（气泡移出足够距离），不等整个 18s 结束，允许同一泳道队列式进入
-    lanes[lane] = now + DANMAKU_LANE_COOLDOWN;
+    // 需要等待的毫秒数 → 转换为 CSS animation-delay（秒）
+    // 元素会在屏幕右侧（translateX(110%)）静止等候，间距 ≈ 半屏
+    const waitMs = Math.max(0, earliest - now);
+    const animDelay = waitMs / 1000;
+
+    const displayId = `${itemId}_${now}`;
+    // 下次该泳道可用时间 = 本条等待时间 + 泳道冷却时间
+    lanes[lane] = now + waitMs + DANMAKU_LANE_COOLDOWN;
     this._laneReleaseTimes = lanes;
 
-    const danmakuEntry = {
-      id,
-      nickname: item.userNickname || '',
-      msg: item.content,
-      lane,
-      color: item.color || '#4a90e2',
-      duration,
-      animDelay: 0
-    };
+    if (this._danmakuCooldowns) this._danmakuCooldowns.set(itemId, now);
+    this._pendingDanmakuIds.delete(itemId);
 
-    this.setData({ activeDanmaku: [...activeDanmaku, danmakuEntry] });
+    this.setData({
+      activeDanmaku: [...this.data.activeDanmaku, {
+        id: displayId,
+        nickname: item.userNickname || '',
+        msg: item.content,
+        lane,
+        color: item.color || '#4a90e2',
+        duration: DANMAKU_DURATION,
+        animDelay
+      }]
+    });
 
-    // 点赞弹幕触发爱心效果（弹幕开关开启时）
     if (item.type === 'like' && this.data.danmakuEnabled) {
-      setTimeout(() => this._showHearts(), 400);
+      setTimeout(() => this._showHearts(), waitMs + 400);
     }
 
-    // duration 秒后从列表移除
+    // 等候时间 + 动画时长后从列表移除
     setTimeout(() => {
       this.setData({
-        activeDanmaku: this.data.activeDanmaku.filter(d => d.id !== id)
+        activeDanmaku: this.data.activeDanmaku.filter(d => d.id !== displayId)
       });
-    }, (duration + 0.5) * 1000);
+    }, (DANMAKU_DURATION + 0.5 + animDelay) * 1000);
   }
 });

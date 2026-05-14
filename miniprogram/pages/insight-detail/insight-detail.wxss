@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: #f5f5f5;
   padding: 24rpx;
-  padding-bottom: 144rpx;
+  padding-bottom: 196rpx;
 }
 
 /* 顶部标题卡片 */
@@ -85,17 +85,59 @@
 }
 
 /* 底部按钮 */
-.action-buttons {
+.bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   background: white;
-  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
-  display: flex;
-  gap: 16rpx;
   box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
   z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.reading-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 10rpx 24rpx 8rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.reading-progress-label {
+  font-size: 22rpx;
+  color: #999;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.reading-progress-track {
+  flex: 1;
+  height: 8rpx;
+  background: #e8e8e8;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.reading-progress-fill {
+  height: 100%;
+  background: #4a90e2;
+  border-radius: 4rpx;
+}
+
+.reading-progress-pct {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #4a90e2;
+  min-width: 60rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
 }
 
 .action-btn {
@@ -532,7 +574,7 @@
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.13);
   white-space: nowrap;
   max-width: 72vw;
-  animation: danmakuFlow linear forwards;
+  animation: danmakuFlow linear both;
   overflow: hidden;
 }
 

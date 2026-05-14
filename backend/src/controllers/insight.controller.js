@@ -2545,6 +2545,125 @@ async function getDanmaku(req, res, next) {
   }
 }
 
+async function adminGetInsightDetail(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const insight = await Insight.findById(insightId)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('targetUserId', 'nickname avatar avatarUrl')
+      .populate('sectionId', 'title day icon')
+      .populate('periodId', 'name title')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
+      .lean();
+    if (!insight) {
+      return res.status(404).json(errors.notFound('内容不存在'));
+    }
+    res.json(success(insight));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function adminGetDanmaku(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const danmakuList = await InsightDanmaku.find({ insightId })
+      .populate('userId', 'nickname avatar avatarUrl')
+      .sort({ createdAt: 1 })
+      .lean();
+    res.json(success(danmakuList));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function adminLikeForUser(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const { userId, scrollPercent = 0 } = req.body;
+    if (!userId) return res.status(400).json(errors.badRequest('userId is required'));
+
+    const insight = await Insight.findById(insightId);
+    if (!insight) return res.status(404).json(errors.notFound('小凡看见不存在'));
+
+    const alreadyLiked = insight.likes.some(l => String(l.userId) === String(userId));
+    if (alreadyLiked) return res.status(400).json(errors.badRequest('该用户已点过赞'));
+
+    const user = await User.findById(userId).select('nickname avatar avatarUrl');
+    if (!user) return res.status(404).json(errors.notFound('用户不存在'));
+
+    insight.likes.push({ userId, createdAt: new Date() });
+    insight.likeCount = insight.likes.length;
+    await insight.save();
+
+    const danmaku = await InsightDanmaku.create({
+      insightId,
+      userId,
+      userNickname: user.nickname || '匿名',
+      content: '被你触动到了！❤️',
+      type: 'like',
+      scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
+      color: '#e8a0b4'
+    });
+
+    res.json(success({ likeCount: insight.likeCount, danmaku }, '点赞成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function adminPostDanmakuForUser(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const { userId, content, color = '#4a90e2', scrollPercent = 0 } = req.body;
+    if (!userId || !content?.trim()) {
+      return res.status(400).json(errors.badRequest('userId 和 content 不能为空'));
+    }
+
+    const insight = await Insight.findById(insightId);
+    if (!insight) return res.status(404).json(errors.notFound('小凡看见不存在'));
+
+    const user = await User.findById(userId).select('nickname');
+    if (!user) return res.status(404).json(errors.notFound('用户不存在'));
+
+    const danmaku = await InsightDanmaku.create({
+      insightId,
+      userId,
+      userNickname: user.nickname || '匿名',
+      content: content.trim(),
+      type: 'comment',
+      scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
+      color
+    });
+
+    res.json(success(danmaku, '弹幕发送成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function adminDeleteDanmaku(req, res, next) {
+  try {
+    const { danmakuId } = req.params;
+    const danmaku = await InsightDanmaku.findById(danmakuId);
+    if (!danmaku) return res.status(404).json(errors.notFound('弹幕不存在'));
+
+    if (danmaku.type === 'like') {
+      const insight = await Insight.findById(danmaku.insightId);
+      if (insight) {
+        insight.likes = insight.likes.filter(l => String(l.userId) !== String(danmaku.userId));
+        insight.likeCount = insight.likes.length;
+        await insight.save();
+      }
+    }
+
+    await InsightDanmaku.findByIdAndDelete(danmakuId);
+    res.json(success(null, '已删除'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -2560,6 +2679,11 @@ module.exports = {
   unlikeInsight,
   postDanmaku,
   getDanmaku,
+  adminGetInsightDetail,
+  adminGetDanmaku,
+  adminLikeForUser,
+  adminPostDanmakuForUser,
+  adminDeleteDanmaku,
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,
