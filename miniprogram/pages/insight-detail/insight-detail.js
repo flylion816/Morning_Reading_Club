@@ -111,6 +111,7 @@ Page({
     }
     this._danmakuCooldowns = new Map();
     this._laneReleaseTimes = new Array(DANMAKU_LANES).fill(0);
+    this._heartsTimer = null;
     const savedDanmaku = wx.getStorageSync('danmakuEnabled');
     this.setData({
       insightId: options.id,
@@ -965,8 +966,14 @@ Page({
         delay: (i * 0.2).toFixed(2)
       };
     });
+    // 清掉旧的 timer，避免上次调用提前杀掉本次动画
+    if (this._heartsTimer) clearTimeout(this._heartsTimer);
     this.setData({ showHearts: true, heartItems });
-    setTimeout(() => this.setData({ showHearts: false, heartItems: [] }), 6000);
+    // 最后一颗延迟 1.4s + 动画 6s + 0.6s 缓冲 = 8s
+    this._heartsTimer = setTimeout(() => {
+      this.setData({ showHearts: false, heartItems: [] });
+      this._heartsTimer = null;
+    }, 8000);
   },
 
   // 触发位置匹配的弹幕（滚动时调用）
