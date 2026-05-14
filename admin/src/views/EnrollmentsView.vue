@@ -86,6 +86,7 @@
                 :src="getEnrollmentUserAvatarUrl(row)"
                 :size="36"
                 class="user-avatar"
+                :style="{ background: getEnrollmentUserAvatarColor(row) }"
               >
                 {{ getEnrollmentUserAvatarText(row) }}
               </el-avatar>
@@ -208,6 +209,11 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { enrollmentApi, periodApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Enrollment } from '../types/api';
+import {
+  getAvatarColorByUserId,
+  getLastTextChar,
+  getUserAvatarUrl
+} from '../utils/avatar';
 
 const loading = ref(false);
 const syncingNicknames = ref(false);
@@ -446,14 +452,18 @@ function getEnrollmentUser(enrollment: Enrollment): any {
 }
 
 function getEnrollmentUserAvatarUrl(enrollment: Enrollment): string {
-  return getEnrollmentUser(enrollment)?.avatarUrl || '';
+  return getUserAvatarUrl(getEnrollmentUser(enrollment));
 }
 
 function getEnrollmentUserAvatarText(enrollment: Enrollment): string {
   const user = getEnrollmentUser(enrollment);
-  // avatar 字段默认 '🦁'，不作为头像文字使用，直接取昵称首字
   const nickname = user?.nickname || enrollment.name || '';
-  return nickname ? String(nickname).slice(0, 1) : '用';
+  return getLastTextChar(nickname, '用');
+}
+
+function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
+  const user = getEnrollmentUser(enrollment);
+  return getAvatarColorByUserId(user?._id || user?.id || String(enrollment.userId || ''));
 }
 </script>
 
@@ -497,8 +507,7 @@ function getEnrollmentUserAvatarText(enrollment: Enrollment): string {
 }
 
 .user-avatar {
-  background: #eef4ff;
-  color: #4a90e2;
+  color: #fff;
   font-weight: 600;
 }
 

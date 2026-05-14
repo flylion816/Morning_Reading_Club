@@ -841,7 +841,7 @@ exports.getPayments = async (req, res) => {
       const obj = p.toObject ? p.toObject() : p;
       obj.userName = p.userId?.nickname || obj.userName || '未知';
       obj.userAvatarUrl = typeof p.userId === 'object'
-        ? (p.userId?.avatarUrl || p.userId?.avatar || null)
+        ? (p.userId?.avatarUrl || null)
         : null;
       return obj;
     });

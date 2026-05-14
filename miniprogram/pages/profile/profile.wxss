@@ -206,6 +206,8 @@
 
 .user-avatar-emoji {
   font-size: 80rpx;
+  color: #fff;
+  font-weight: 600;
 }
 
 /* 用户信息和气泡的容器 */
@@ -478,6 +480,8 @@
 .mini-avatar-emoji {
   font-size: 20rpx;
   line-height: 1;
+  color: #fff;
+  font-weight: 600;
 }
 
 .period-title-new {
@@ -893,11 +897,34 @@
   padding: 20rpx;
   border-left: 6rpx solid #4a90e2;
   display: flex;
-  flex-direction: column;
-  gap: 12rpx;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16rpx;
   height: 176rpx;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+.insight-card-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.insight-card-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.insight-card-avatar-text {
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: 600;
 }
 
 .insight-header {
@@ -938,6 +965,8 @@
   display: flex;
   flex-direction: column;
   gap: 8rpx;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   justify-content: space-between;
 }
@@ -1411,6 +1440,8 @@
 .avatar-preview-emoji {
   font-size: 62rpx;
   line-height: 1;
+  color: #fff;
+  font-weight: 600;
 }
 
 .avatar-picker-info {

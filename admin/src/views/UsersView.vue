@@ -43,7 +43,12 @@
 
           <el-table-column label="头像" width="80" align="center">
             <template #default="{ row }">
-              <el-avatar :src="getUserAvatarUrl(row)" :size="36" class="user-avatar">
+              <el-avatar
+                :src="getUserAvatarUrl(row)"
+                :size="36"
+                class="user-avatar"
+                :style="{ background: getUserAvatarColor(row) }"
+              >
                 {{ getUserAvatarText(row) }}
               </el-avatar>
             </template>
@@ -198,6 +203,11 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { userApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, User } from '../types/api';
+import {
+  getAvatarColorByUserId,
+  getLastTextChar,
+  getUserAvatarUrl as resolveUserAvatarUrl
+} from '../utils/avatar';
 
 const loading = ref(false);
 const users = ref<User[]>([]);
@@ -345,37 +355,16 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
 }
 
-/**
- * 根据用户ID生成稳定的头像颜色
- * 使用哈希算法确保相同ID总是返回相同颜色
- */
-function getAvatarColor(userId?: string): string {
-  const colors: string[] = [
-    '#4a90e2',
-    '#7ed321',
-    '#f5a623',
-    '#bd10e0',
-    '#50e3c2',
-    '#b8e986',
-    '#ff6b6b',
-    '#4ecdc4'
-  ];
-  if (!userId) return colors[0] as string;
-
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = (hash << 5) - hash + userId.charCodeAt(i);
-  }
-  return colors[Math.abs(hash) % colors.length] as string;
-}
-
 function getUserAvatarUrl(user: User): string {
-  return user.avatarUrl || '';
+  return resolveUserAvatarUrl(user);
 }
 
 function getUserAvatarText(user: User): string {
-  // avatar 字段默认值是 '🦁'，不是用户自定义内容，直接用昵称首字做头像文字
-  return user.nickname ? String(user.nickname).slice(0, 1) : '用';
+  return getLastTextChar(user.nickname, '用');
+}
+
+function getUserAvatarColor(user: User): string {
+  return getAvatarColorByUserId(user._id || user.id);
 }
 </script>
 
@@ -428,8 +417,7 @@ function getUserAvatarText(user: User): string {
 }
 
 .user-avatar {
-  background: #eef4ff;
-  color: #4a90e2;
+  color: #fff;
   font-weight: 600;
 }
 

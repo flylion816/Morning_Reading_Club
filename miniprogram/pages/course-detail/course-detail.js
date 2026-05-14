@@ -411,14 +411,9 @@ Page({
       user.userName ||
       user.displayName ||
       fallbackName;
-    const avatarValue = typeof user.avatar === 'string' ? user.avatar.trim() : '';
     const userId = String(user._id || user.id || user.userId || '');
     let avatarUrl = user.avatarUrl || '';
     let avatarText = '';
-
-    if (!avatarUrl && avatarValue.startsWith('http')) {
-      avatarUrl = avatarValue;
-    }
 
     if (!avatarUrl) {
       if (name && !GENERIC_AVATAR_NAMES.has(String(name).trim().toLowerCase())) {
@@ -439,9 +434,9 @@ Page({
   },
 
   getNameAvatarText(name, fallback = '用') {
-    const text = String(name || '').trim();
-    if (!text) return fallback;
-    return text.charAt(0);
+    const chars = Array.from(String(name || '').trim());
+    if (chars.length === 0) return fallback;
+    return chars[chars.length - 1];
   },
 
   findKnownUserById(userId) {
@@ -942,7 +937,7 @@ Page({
       authorMeta: detailCheckin?.metaLine || '打卡日记',
       avatarText:
         detailCheckin?.avatarText ||
-        (detailCheckin?.userName || '伙').charAt(0) ||
+        this.getNameAvatarText(detailCheckin?.userName || '伙伴', '伙') ||
         '伙',
       miniProgramCodePath: MINI_PROGRAM_CODE_ASSET_PATHS[0],
       styleId: stylePreset.id,

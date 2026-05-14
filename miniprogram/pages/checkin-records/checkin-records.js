@@ -1,6 +1,7 @@
 const checkinService = require('../../services/checkin.service');
 const enrollmentService = require('../../services/enrollment.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const { getLastTextChar } = require('../../utils/avatar');
 const {
   getPeriodAccess,
   hasPaidEnrollment,
@@ -223,7 +224,7 @@ Page({
         userName: displayName,
         avatarUrl: user.avatarUrl || '',
         avatarColor: getAvatarColorByUserId(user._id || displayName),
-        avatarText: displayName.charAt(0) || 'U'
+        avatarText: getLastTextChar(displayName, '用')
       }
     });
   },

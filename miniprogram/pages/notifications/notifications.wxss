@@ -216,8 +216,7 @@
 }
 
 .sender-avatar-text {
-  background: #f0f4ff;
-  color: #1d2433;
+  color: #fff;
   font-size: 24rpx;
 }
 

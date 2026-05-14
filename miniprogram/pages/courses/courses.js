@@ -1,6 +1,7 @@
 // 课节列表页 - 显示某一期的每天课程
 const courseService = require('../../services/course.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const { getLastTextChar } = require('../../utils/avatar');
 const { getPeriodAccess } = require('../../utils/period-access');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 
@@ -181,7 +182,7 @@ Page({
       userName: checkin.userId?.nickname || '用户',
       avatar: checkin.userId?.avatar,
       avatarUrl: checkin.userId?.avatarUrl,
-      avatarText: (checkin.userId?.nickname || '用户').slice(-1),
+      avatarText: getLastTextChar(checkin.userId?.nickname || '用户', '用'),
       avatarColor: getAvatarColorByUserId(userId),
       sectionId: checkin.sectionId?._id || checkin.sectionId,
       sectionTitle: checkin.sectionId?.title || '未知课程',

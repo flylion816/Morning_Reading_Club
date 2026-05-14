@@ -29,7 +29,7 @@
       <view class="request-item-left">
         <view class="request-user-avatar" style="background: {{item.avatarColor}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
           <image wx:if="{{item.displayUserAvatarUrl}}" class="request-avatar-image" src="{{item.displayUserAvatarUrl}}" mode="aspectFill" />
-          <text wx:else class="request-avatar-text">{{item.displayUserAvatar}}</text>
+          <text wx:else class="request-avatar-text">{{item.displayUserAvatarText}}</text>
         </view>
         <view class="request-info">
           <view class="request-top-row">

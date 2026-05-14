@@ -4,9 +4,9 @@
   <view class="user-content" wx:if="{{isLogin}}">
     <!-- 顶部横幅 -->
     <view class="home-banner">
-      <view class="user-avatar-container" bindtap="openEditProfile">
+      <view class="user-avatar-container" style="background: {{userInfo.avatarColor || '#4a90e2'}}" bindtap="openEditProfile">
         <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+        <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
         <view class="avatar-edit-badge">✏️</view>
       </view>
       <view class="banner-content">
@@ -58,9 +58,9 @@
             <view class="period-title-area">
               <view class="period-title-new">{{todaySection.title}}</view>
               <view class="checkin-count-badge">
-                <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
+                <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}; background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
                   <image wx:if="{{item.avatarUrl}}" class="mini-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
-                  <text wx:else class="mini-avatar-emoji">{{item.avatar || '😊'}}</text>
+                  <text wx:else class="mini-avatar-emoji">{{item.avatarText || '用'}}</text>
                 </view>
                 <text class="checkin-count-text">{{todaySection.checkinCount || 0}}人{{currentPeriodCommunityState === 'enabled' ? '已打卡' : '已学习'}}</text>
               </view>
@@ -152,14 +152,28 @@
             <text class="section-header-title">小凡看见</text>
           </view>
         </view>
+        <view class="request-direction-tabs">
+          <view
+            class="request-direction-tab {{insightActiveTab === 'mine' ? 'request-direction-tab-active' : ''}}"
+            bindtap="handleInsightTabTap"
+            data-tab="mine">我的</view>
+          <view
+            class="request-direction-tab {{insightActiveTab === 'others' ? 'request-direction-tab-active' : ''}}"
+            bindtap="handleInsightTabTap"
+            data-tab="others">他人的</view>
+        </view>
         <view class="insights-list">
           <view
-            wx:for="{{recentInsights}}"
+            wx:for="{{insightActiveTab === 'mine' ? recentInsights : recentOtherInsights}}"
             wx:key="id"
             class="insight-item"
             style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
             data-id="{{item.id}}"
             catchtap="handleInsightClick">
+            <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||'#4a90e2'}}">
+              <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
+              <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
+            </view>
             <view class="insight-content-preview">
               <view class="insight-period-tag">{{item.courseTitle}}</view>
               <block wx:if="{{item.mediaType === 'image' && item.imageUrl}}">
@@ -172,8 +186,14 @@
               </block>
             </view>
           </view>
-          <view class="insight-empty" wx:if="{{recentInsights.length === 0}}">
+          <view class="insight-empty" wx:if="{{insightActiveTab === 'mine' && recentInsights.length === 0}}">
             本期暂无小凡看见记录
+          </view>
+          <view class="insight-empty" wx:if="{{insightActiveTab === 'others' && otherInsightsLoading}}">
+            加载中...
+          </view>
+          <view class="insight-empty" wx:if="{{insightActiveTab === 'others' && recentOtherInsights.length === 0 && !otherInsightsLoading}}">
+            暂无他人授权查看
           </view>
         </view>
         <view class="insights-more" catchtap="navigateToInsights">
@@ -211,7 +231,7 @@
             <view class="request-item-left">
               <view class="request-user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
                 <image wx:if="{{item.displayUserAvatarUrl}}" class="request-avatar-image" src="{{item.displayUserAvatarUrl}}" mode="aspectFill" />
-                <text wx:else class="request-avatar-text">{{item.displayUserAvatar || '😊'}}</text>
+                <text wx:else class="request-avatar-text">{{item.displayUserAvatarText}}</text>
               </view>
               <view class="request-info">
                 <view class="request-top-row">
@@ -316,9 +336,9 @@
       <view class="modal-section">
         <text class="section-label">头像</text>
         <view class="avatar-picker-panel">
-          <view class="avatar-preview">
+          <view class="avatar-preview" style="background: {{editForm.avatarColor || '#4a90e2'}}">
             <image wx:if="{{editForm.avatarUrl}}" class="avatar-preview-image" src="{{editForm.avatarUrl}}" mode="aspectFill" />
-            <text wx:else class="avatar-preview-emoji">{{editForm.avatar || '🦁'}}</text>
+            <text wx:else class="avatar-preview-emoji">{{editForm.avatarText || '用'}}</text>
           </view>
           <view class="avatar-picker-info">
             <text class="avatar-picker-title">使用你的微信头像</text>

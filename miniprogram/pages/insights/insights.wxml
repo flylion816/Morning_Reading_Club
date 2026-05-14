@@ -1,16 +1,28 @@
 <view class="page-insights">
   <view class="insights-header">
-    <view class="header-avatar">
+    <view class="header-avatar" style="background: {{headerAvatarColor || '#4a90e2'}}">
       <image wx:if="{{headerAvatarUrl}}" class="header-avatar-image" src="{{headerAvatarUrl}}" mode="aspectFill" />
-      <text wx:else class="header-emoji">{{headerEmoji}}</text>
+      <text wx:else class="header-emoji">{{headerAvatarText || '用'}}</text>
     </view>
     <view class="header-title">{{headerTitle}}</view>
     <view class="header-desc">{{headerDesc}}</view>
   </view>
 
+  <!-- Tab 栏：仅在查看自己时显示 -->
+  <view class="insight-tab-bar" wx:if="{{!isOtherUser}}">
+    <view
+      class="insight-tab {{activeTab === 'mine' ? 'insight-tab-active' : ''}}"
+      bindtap="switchTab"
+      data-tab="mine">我的</view>
+    <view
+      class="insight-tab {{activeTab === 'others' ? 'insight-tab-active' : ''}}"
+      bindtap="switchTab"
+      data-tab="others">他人的</view>
+  </view>
+
   <view class="insights-list">
     <view
-      wx:for="{{insights}}"
+      wx:for="{{activeTab === 'mine' ? insights : otherInsights}}"
       wx:key="id"
       class="insight-item {{item.isAccessible ? 'is-unlocked' : 'is-locked'}}"
       bindtap="handleInsightClick"
@@ -22,8 +34,12 @@
       data-period-name="{{item.periodName}}"
       data-day-number="{{item.dayNumber}}">
       <view class="insight-header">
-        <view class="insight-title">{{item.title}}</view>
-        <view class="insight-meta">
+        <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||'#4a90e2'}}">
+          <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
+          <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
+        </view>
+        <view class="insight-title-meta">
+          <view class="insight-title">{{item.title}}</view>
           <view class="insight-period">{{item.periodName}}</view>
         </view>
       </view>
@@ -53,9 +69,17 @@
       </view>
     </view>
 
-    <view class="empty-state" wx:if="{{insights.length === 0}}">
+    <view class="empty-state" wx:if="{{activeTab === 'mine' && insights.length === 0 && !loading}}">
       <text class="empty-icon">✨</text>
       <text class="empty-text">暂无反馈</text>
+    </view>
+    <view class="empty-state" wx:if="{{activeTab === 'others' && otherInsights.length === 0 && !otherInsightsLoading}}">
+      <text class="empty-icon">👥</text>
+      <text class="empty-text">暂无他人授权查看</text>
+    </view>
+    <view class="empty-state" wx:if="{{activeTab === 'others' && otherInsightsLoading}}">
+      <text class="empty-icon">⏳</text>
+      <text class="empty-text">加载中...</text>
     </view>
   </view>
 

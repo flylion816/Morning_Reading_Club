@@ -4,6 +4,7 @@ const checkinConfigService = require('../../services/checkinConfig.service');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { renderRichTextContent } = require('../../utils/markdown');
+const { getLastTextChar } = require('../../utils/avatar');
 const {
   getPeriodAccess,
   extractId,
@@ -597,7 +598,8 @@ Page({
         id: result.id || Date.now(),
         userId: currentUser.id || 1, // 当前用户ID
         userName: currentUser.nickname || '我',
-        avatarText: currentUser.avatar || '我',
+        avatarUrl: currentUser.avatarUrl || '',
+        avatarText: getLastTextChar(currentUser.nickname || '我', '我'),
         avatarColor: '#4a90e2',
         content: diaryContent,
         likeCount: 0,

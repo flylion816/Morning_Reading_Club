@@ -7,9 +7,9 @@
     <!-- 用户信息卡 -->
     <view class="user-card">
       <view class="user-card-left">
-        <view class="user-avatar-wrap">
+        <view class="user-avatar-wrap" style="background: {{userInfo.avatarColor || '#4a90e2'}}">
           <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-          <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '🦁'}}</text>
+          <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
         </view>
         <view class="user-info">
           <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>

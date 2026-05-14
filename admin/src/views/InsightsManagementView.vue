@@ -253,12 +253,16 @@
                 <template #default="{ row }">
                   <div class="danmaku-top">
                     <img
-                      v-if="row.userId?.avatarUrl || row.userId?.avatar"
-                      :src="row.userId.avatarUrl || row.userId.avatar"
+                      v-if="getInsightUserAvatarUrl(row)"
+                      :src="getInsightUserAvatarUrl(row)"
                       class="danmaku-avatar"
                     />
-                    <div v-else class="danmaku-avatar-fallback">
-                      {{ (row.userNickname || '?').charAt(0) }}
+                    <div
+                      v-else
+                      class="danmaku-avatar-fallback"
+                      :style="{ background: getInsightUserAvatarColor(row) }"
+                    >
+                      {{ getInsightUserAvatarText(row) }}
                     </div>
                     <div class="danmaku-color-dot" :style="{ background: row.color || '#4a90e2' }"></div>
                     <span class="danmaku-nickname">{{ row.userNickname || '匿名' }}</span>
@@ -482,6 +486,11 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { insightApi, periodApi, userApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Insight, User } from '../types/api';
+import {
+  getAvatarColorByUserId,
+  getLastTextChar,
+  getUserAvatarUrl
+} from '../utils/avatar';
 
 // 数据
 const selectedPeriodId = ref<string>('');
@@ -1024,6 +1033,24 @@ function formatDate(date: string) {
   });
 }
 
+function getInsightUser(insight: any): any {
+  return insight.userId && typeof insight.userId === 'object' ? insight.userId : null;
+}
+
+function getInsightUserAvatarUrl(insight: any): string {
+  return getUserAvatarUrl(getInsightUser(insight));
+}
+
+function getInsightUserAvatarText(insight: any): string {
+  const user = getInsightUser(insight);
+  return getLastTextChar(user?.nickname || insight.userNickname || '', '用');
+}
+
+function getInsightUserAvatarColor(insight: any): string {
+  const user = getInsightUser(insight);
+  return getAvatarColorByUserId(user?._id || user?.id || String(insight.userId || ''));
+}
+
 function getTypeLabel(type: string) {
   const labels: { [key: string]: string } = {
     daily: '每日',
@@ -1284,7 +1311,8 @@ function getTypeColor(type: string) {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #d0e8ff;
+  color: #fff;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;

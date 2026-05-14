@@ -772,8 +772,8 @@ async function getUserInsights(req, res, next) {
     const insights = await Insight.find(query)
       .populate('sectionId', 'title day icon')
       .populate('periodId', 'name title')
-      .populate('userId', 'nickname avatar _id')
-      .populate('targetUserId', 'nickname avatar _id')
+      .populate('userId', 'nickname avatar avatarUrl _id')
+      .populate('targetUserId', 'nickname avatar avatarUrl _id')
       .sort({ updatedAt: -1, createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
@@ -915,8 +915,8 @@ async function getInsights(req, res, next) {
     const total = await Insight.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const insights = await Insight.find(query)
-      .populate('userId', 'nickname avatar')
-      .populate('targetUserId', 'nickname avatar')
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('targetUserId', 'nickname avatar avatarUrl')
       .populate('periodId', 'name title')
       .populate('sectionId', 'title day')
       .sort({ updatedAt: -1, createdAt: -1 })
@@ -1061,8 +1061,8 @@ async function getInsightsForPeriod(req, res, next) {
 
     const total = await Insight.countDocuments(query);
     const insights = await Insight.find(query)
-      .populate('userId', 'nickname avatar _id')
-      .populate('targetUserId', 'nickname avatar _id')
+      .populate('userId', 'nickname avatar avatarUrl _id')
+      .populate('targetUserId', 'nickname avatar avatarUrl _id')
       .populate('sectionId', 'title day')
       .sort({ updatedAt: -1, createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
@@ -1153,7 +1153,7 @@ async function updateInsight(req, res, next) {
     });
 
     // 保存后重新 populate 返回完整数据
-    await insight.populate('targetUserId', 'nickname avatar');
+    await insight.populate('targetUserId', 'nickname avatar avatarUrl');
 
     res.json(success(insight, '小凡看见更新成功'));
   } catch (error) {
@@ -1608,7 +1608,7 @@ async function approveInsightRequest(req, res, next) {
       senderId: request.toUserId,
       data: {
         senderName: toUser?.nickname,
-        senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
+        senderAvatar: toUser?.avatarUrl || '',
         periodId: periodIdText,
         periodName: period?.name || period?.title || '',
         targetUserId: targetUserIdText,
@@ -1686,7 +1686,7 @@ async function rejectInsightRequest(req, res, next) {
         targetPage,
         data: {
           senderName: toUser?.nickname,
-          senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
+          senderAvatar: toUser?.avatarUrl || '',
           targetUserId: request.toUserId.toString(),
           targetUserName: toUser?.nickname || '',
           periodId: request.periodId?.toString?.() || ''
@@ -1908,7 +1908,7 @@ async function adminApproveRequest(req, res, next) {
           targetUserId: request.toUserId.toString(),
           targetUserName: toUser?.nickname || '',
           senderName: fromUser?.nickname || '',
-          senderAvatar: fromUser?.avatarUrl || fromUser?.avatar || ''
+          senderAvatar: fromUser?.avatarUrl || ''
         }
       }
     );
@@ -2059,7 +2059,7 @@ async function revokeInsightRequest(req, res, next) {
         targetPage,
         data: {
           senderName: toUser?.nickname,
-          senderAvatar: toUser?.avatarUrl || toUser?.avatar || '',
+          senderAvatar: toUser?.avatarUrl || '',
           targetUserId: request.toUserId.toString(),
           targetUserName: toUser?.nickname || '',
           periodId: request.periodId?.toString?.() || ''

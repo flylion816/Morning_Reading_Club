@@ -49,7 +49,7 @@ function decorateNotificationForResponse(notification) {
     data: {
       ...(data.data || {}),
       senderName: displaySender.nickname || data.data?.senderName || '',
-      senderAvatar: displaySender.avatarUrl || displaySender.avatar || data.data?.senderAvatar || ''
+      senderAvatar: displaySender.avatarUrl || data.data?.senderAvatar || ''
     }
   };
 }
@@ -335,7 +335,7 @@ async function buildNotificationData(options = {}) {
     }
 
     data.senderName = sender.nickname || data.senderName || '';
-    data.senderAvatar = sender.avatarUrl || sender.avatar || data.senderAvatar || '';
+    data.senderAvatar = sender.avatarUrl || data.senderAvatar || '';
   } catch (error) {
     logger.warn('Failed to enrich notification sender data', {
       senderId: options.senderId?.toString?.() || options.senderId,
@@ -550,7 +550,7 @@ async function getArchivedNotifications(req, res, next) {
       userId,
       isArchived: true
     })
-      .populate('senderId', 'nickname avatar')
+      .populate('senderId', 'nickname avatar avatarUrl')
       .populate('requestId', 'status fromUserId toUserId')
       .sort({ archivedAt: -1 })
       .skip(skip)

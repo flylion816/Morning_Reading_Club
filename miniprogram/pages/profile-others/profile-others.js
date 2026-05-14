@@ -1,6 +1,7 @@
 const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
 const logger = require('../../utils/logger');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 
 Page({
   data: {
@@ -74,13 +75,15 @@ Page({
           : userInfo.totalCompletedPeriods || 0;
 
       logger.debug('用户信息:', userInfo);
+      const avatarDisplay = getUserAvatarDisplay(userInfo);
 
       this.setData({
         userInfo: {
           _id: userInfo._id,
           nickname: userInfo.nickname,
           avatarUrl: this.normalizeAvatarUrl(userInfo.avatarUrl),
-          avatar: userInfo.avatar,
+          avatarText: avatarDisplay.avatarText,
+          avatarColor: avatarDisplay.avatarColor,
           signature: userInfo.signature,
           totalCheckinDays: userInfo.totalCheckinDays || 0,
           totalCompletedPeriods: participatingPeriodCount

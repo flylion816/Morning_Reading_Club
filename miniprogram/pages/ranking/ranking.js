@@ -1,6 +1,7 @@
 // 排行榜页面
 const rankingService = require('../../services/ranking.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const { getLastTextChar } = require('../../utils/avatar');
 const {
   getPeriodAccess,
   redirectAfterCommunityDenied
@@ -68,7 +69,7 @@ Page({
         ...item,
         avatarUrl: item.avatarUrl || '',
         avatarColor: getAvatarColorByUserId(item.userId),
-        avatarText: item.nickname.charAt(item.nickname.length - 1)
+        avatarText: getLastTextChar(item.nickname, '用')
       }));
 
       const currentUser = res.currentUser
@@ -79,7 +80,7 @@ Page({
               ? `我的排名：第${res.currentUser.rank}名`
               : '我的排名：暂未上榜',
             avatarColor: getAvatarColorByUserId(res.currentUser.userId),
-            avatarText: res.currentUser.nickname.charAt(res.currentUser.nickname.length - 1)
+            avatarText: getLastTextChar(res.currentUser.nickname, '用')
           }
         : null;
 

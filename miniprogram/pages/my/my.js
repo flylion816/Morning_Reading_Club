@@ -4,6 +4,7 @@ const enrollmentService = require('../../services/enrollment.service');
 const notificationServiceModule = require('../../services/notification.service');
 const constants = require('../../config/constants');
 const { hasPaidEnrollment, clearEnrollmentCache } = require('../../utils/period-access');
+const { decorateUserAvatar } = require('../../utils/avatar');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 
@@ -52,8 +53,10 @@ Page({
       const enrollmentList = userEnrollments.list || userEnrollments || [];
       const canUsePaidFeatures = hasPaidEnrollment(enrollmentList);
 
+      const displayUserInfo = decorateUserAvatar(userInfo);
+
       this.setData({
-        userInfo,
+        userInfo: displayUserInfo,
         stats: stats || { totalCheckinDays: 0 },
         hasPhone,
         phoneMasked,

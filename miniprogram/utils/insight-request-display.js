@@ -1,3 +1,6 @@
+const { getAvatarColorByUserId } = require('./formatters');
+const { getLastTextChar } = require('./avatar');
+
 function formatRelativeTime(dateString) {
   if (!dateString) return '刚刚';
 
@@ -91,9 +94,9 @@ function buildInsightRequestDisplay(item, options = {}) {
     displayUserId,
     displayUserName: displayName,
     displayUserAvatarUrl: displayUser.avatarUrl || '',
-    displayUserAvatar: displayUser.avatar || displayName.charAt(0) || '😊',
+    displayUserAvatarText: getLastTextChar(displayName, '用'),
     displayUserRoleText: isSent ? '发给' : '来自',
-    avatarColor: displayUser.avatarColor || '#4a90e2',
+    avatarColor: getAvatarColorByUserId(displayUserId),
     fromUserId: normalizeId(fromUser),
     fromUserName: fromUser.nickname || fromUser.name || '用户',
     toUserId: normalizeId(toUser),

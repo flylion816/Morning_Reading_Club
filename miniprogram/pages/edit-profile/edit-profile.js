@@ -2,22 +2,28 @@ const app = getApp();
 const userService = require('../../services/user.service');
 const activityService = require('../../services/activity.service');
 const constants = require('../../config/constants');
+const { decorateUserAvatar, getUserAvatarDisplay } = require('../../utils/avatar');
 
 Page({
   data: {
     nickname: '',
     avatar: '🦁',
     avatarUrl: '',
+    avatarText: '用',
+    avatarColor: '#4a90e2',
     signature: '',
     saving: false
   },
 
   onLoad() {
     const userInfo = app.globalData.userInfo || {};
+    const avatarDisplay = getUserAvatarDisplay(userInfo);
     this.setData({
       nickname: userInfo.nickname || userInfo.name || '',
       avatar: userInfo.avatar || '🦁',
       avatarUrl: userInfo.avatarUrl || '',
+      avatarText: userInfo.avatarText || avatarDisplay.avatarText,
+      avatarColor: userInfo.avatarColor || avatarDisplay.avatarColor,
       signature: userInfo.signature || ''
     });
   },
@@ -66,7 +72,15 @@ Page({
   },
 
   onNicknameInput(e) {
-    this.setData({ nickname: e.detail.value });
+    const nickname = e.detail.value;
+    const avatarDisplay = getUserAvatarDisplay(app.globalData.userInfo || {}, {
+      displayName: nickname || '用户'
+    });
+    this.setData({
+      nickname,
+      avatarText: avatarDisplay.avatarText,
+      avatarColor: avatarDisplay.avatarColor
+    });
   },
 
   onSignatureInput(e) {
@@ -99,13 +113,13 @@ Page({
           targetType: 'profile'
         });
 
-        const updatedUserInfo = {
+        const updatedUserInfo = decorateUserAvatar({
           ...app.globalData.userInfo,
           avatar,
           avatarUrl: response.avatarUrl !== undefined ? response.avatarUrl : savedAvatarUrl,
           nickname: nickname.trim(),
           signature: signature || null
-        };
+        });
 
         app.globalData.userInfo = updatedUserInfo;
         wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, updatedUserInfo);

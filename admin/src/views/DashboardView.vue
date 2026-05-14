@@ -144,7 +144,12 @@
         >
           <el-table-column label="头像" width="60" align="center">
             <template #default="{ row }">
-              <el-avatar :src="getEnrollmentAvatarUrl(row)" :size="32" class="user-avatar">
+              <el-avatar
+                :src="getEnrollmentAvatarUrl(row)"
+                :size="32"
+                class="user-avatar"
+                :style="{ background: getEnrollmentAvatarColor(row) }"
+              >
                 {{ getEnrollmentAvatarText(row) }}
               </el-avatar>
             </template>
@@ -209,7 +214,12 @@
           <el-table-column prop="orderNo" label="订单号" min-width="200" />
           <el-table-column label="头像" width="60" align="center">
             <template #default="{ row }">
-              <el-avatar :src="getPaymentAvatarUrl(row)" :size="32" class="user-avatar">
+              <el-avatar
+                :src="getPaymentAvatarUrl(row)"
+                :size="32"
+                class="user-avatar"
+                :style="{ background: getPaymentAvatarColor(row) }"
+              >
                 {{ getPaymentAvatarText(row) }}
               </el-avatar>
             </template>
@@ -252,6 +262,11 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { statsApi, enrollmentApi, paymentApi } from '../services/api';
 import { ElMessage } from 'element-plus';
 import type { ListResponse, Enrollment, Payment } from '../types/api';
+import {
+  getAvatarColorByUserId,
+  getLastTextChar,
+  getUserAvatarUrl
+} from '../utils/avatar';
 
 const router = useRouter();
 
@@ -381,13 +396,18 @@ function formatDate(dateString: string): string {
 
 function getEnrollmentAvatarUrl(row: Enrollment): string {
   const user = row.userId as any;
-  return user?.avatarUrl || user?.avatar || '';
+  return getUserAvatarUrl(user);
 }
 
 function getEnrollmentAvatarText(row: Enrollment): string {
   const user = row.userId as any;
   const nickname = user?.nickname || (row as any).name || '';
-  return nickname ? String(nickname).slice(0, 1) : '用';
+  return getLastTextChar(nickname, '用');
+}
+
+function getEnrollmentAvatarColor(row: Enrollment): string {
+  const user = row.userId as any;
+  return getAvatarColorByUserId(user?._id || user?.id || String(row.userId || ''));
 }
 
 function getPaymentAvatarUrl(row: Payment): string {
@@ -396,7 +416,11 @@ function getPaymentAvatarUrl(row: Payment): string {
 
 function getPaymentAvatarText(row: Payment): string {
   const nickname = row.userName || '';
-  return nickname ? String(nickname).slice(0, 1) : '用';
+  return getLastTextChar(nickname, '用');
+}
+
+function getPaymentAvatarColor(row: Payment): string {
+  return getAvatarColorByUserId(String((row as any).userId?._id || (row as any).userId || ''));
 }
 </script>
 
@@ -506,6 +530,8 @@ function getPaymentAvatarText(row: Payment): string {
 .user-avatar {
   flex-shrink: 0;
   font-size: 14px;
+  color: #fff;
+  font-weight: 600;
 }
 
 .todo-count {

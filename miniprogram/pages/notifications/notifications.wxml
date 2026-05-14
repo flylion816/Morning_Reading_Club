@@ -78,10 +78,10 @@
         <!-- 发送者信息（如果有）-->
         <view class="sender-info" wx:if="{{item.senderName}}">
           <image wx:if="{{item.senderAvatar}}" class="sender-avatar" src="{{item.senderAvatar}}" mode="aspectFill" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}"></image>
-          <view wx:elif="{{item.senderAvatarText}}" class="sender-avatar sender-avatar-fallback sender-avatar-text" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}">
+          <view wx:elif="{{item.senderAvatarText}}" class="sender-avatar sender-avatar-fallback sender-avatar-text" style="background: {{item.senderAvatarColor || '#4a90e2'}}" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}">
             {{item.senderAvatarText}}
           </view>
-          <view wx:else class="sender-avatar sender-avatar-fallback" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}">
+          <view wx:else class="sender-avatar sender-avatar-fallback" style="background: {{item.senderAvatarColor || '#4a90e2'}}" catchtap="handleSenderAvatarTap" data-user-id="{{item.senderUserId}}" data-period-id="{{item.periodIdValue}}">
             {{item.senderInitial}}
           </view>
           <text class="sender-name">{{item.senderName}}</text>

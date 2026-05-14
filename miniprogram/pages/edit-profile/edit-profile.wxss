@@ -53,6 +53,8 @@
 .avatar-preview-emoji {
   font-size: 62rpx;
   line-height: 1;
+  color: #fff;
+  font-weight: 600;
 }
 
 .avatar-picker-info {

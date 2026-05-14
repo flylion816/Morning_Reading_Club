@@ -116,7 +116,12 @@
           <el-table-column label="订单号" prop="orderNo" min-width="180" />
           <el-table-column label="头像" width="60" align="center">
             <template #default="{ row }">
-              <el-avatar :src="getPaymentAvatarUrl(row)" :size="32" class="user-avatar">
+              <el-avatar
+                :src="getPaymentAvatarUrl(row)"
+                :size="32"
+                class="user-avatar"
+                :style="{ background: getPaymentAvatarColor(row) }"
+              >
                 {{ getPaymentAvatarText(row) }}
               </el-avatar>
             </template>
@@ -242,6 +247,7 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { paymentApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Payment } from '../types/api';
+import { getAvatarColorByUserId, getLastTextChar } from '../utils/avatar';
 
 const loading = ref(false);
 const payments = ref<Payment[]>([]);
@@ -431,7 +437,11 @@ function getPaymentAvatarUrl(row: any): string {
 
 function getPaymentAvatarText(row: any): string {
   const nickname = row.userName || '';
-  return nickname ? String(nickname).slice(0, 1) : '用';
+  return getLastTextChar(nickname, '用');
+}
+
+function getPaymentAvatarColor(row: any): string {
+  return getAvatarColorByUserId(String(row.userId?._id || row.userId || ''));
 }
 </script>
 
@@ -481,5 +491,7 @@ function getPaymentAvatarText(row: any): string {
 .user-avatar {
   flex-shrink: 0;
   font-size: 14px;
+  color: #fff;
+  font-weight: 600;
 }
 </style>

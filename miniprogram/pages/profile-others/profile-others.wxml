@@ -1,14 +1,14 @@
 <view class="page-profile-others">
   <!-- 用户信息卡片 -->
   <view class="user-card">
-    <view class="user-avatar-wrapper">
+    <view class="user-avatar-wrapper" style="background: {{userInfo.avatarColor || '#4a90e2'}}">
       <image
         wx:if="{{userInfo.avatarUrl}}"
         class="user-avatar-image"
         src="{{userInfo.avatarUrl}}"
         mode="aspectFill"
       />
-      <text wx:else class="user-avatar-emoji">{{userInfo.avatar || '😊'}}</text>
+      <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
     </view>
     <view class="user-nickname">{{userInfo.nickname || '用户'}}</view>
     <view class="user-signature">{{userInfo.signature || '知名心灵大师'}}</view>

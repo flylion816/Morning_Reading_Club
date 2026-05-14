@@ -26,6 +26,8 @@
 
 .user-avatar-emoji {
   font-size: 60rpx;
+  color: #fff;
+  font-weight: 600;
 }
 
 .user-avatar-image {

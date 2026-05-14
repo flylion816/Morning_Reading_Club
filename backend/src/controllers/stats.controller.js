@@ -53,7 +53,7 @@ exports.getDashboardStats = async (req, res) => {
 
     // 获取最近10条报名记录
     const recentEnrollments = await Enrollment.find({})
-      .populate('userId', 'nickname avatar')
+      .populate('userId', 'nickname avatar avatarUrl')
       .populate('periodId', 'name')
       .sort({ enrolledAt: -1 })
       .limit(10)
@@ -110,7 +110,7 @@ exports.getDashboardStats = async (req, res) => {
         recentEnrollments: recentEnrollments.map((e) => ({
           id: e._id,
           userName: e.userId?.nickname || '匿名用户',
-          userAvatar: e.userId?.avatar,
+          userAvatar: e.userId?.avatarUrl,
           periodName: e.periodId?.name || '已删除的期次',
           enrolledAt: e.enrolledAt,
           approvalStatus: e.approvalStatus,
@@ -443,7 +443,7 @@ exports.getCheckinStats = async (req, res) => {
         $project: {
           rank: 1,
           userName: '$user.nickname',
-          userAvatar: '$user.avatar',
+          userAvatar: '$user.avatarUrl',
           checkinCount: 1,
           _id: 0
         }

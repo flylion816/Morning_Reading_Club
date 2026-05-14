@@ -5,6 +5,7 @@ const activityService = require('../../services/activity.service');
 const logger = require('../../utils/logger');
 const { richContentToPlainText } = require('../../utils/markdown');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
@@ -14,6 +15,10 @@ Page({
   data: {
     insights: [],
     loading: true,
+    activeTab: 'mine',
+    otherInsights: [],
+    otherInsightsLoaded: false,
+    otherInsightsLoading: false,
     userId: null, // 目标用户ID（如果查看他人，此值为他人的ID）
     userName: '小凡看见', // 显示的标题
     isOtherUser: false, // 是否在查看他人的小凡看见
@@ -23,6 +28,8 @@ Page({
     rejectedRequestCount: 0,
     headerEmoji: '🦁', // 头部emoji
     headerAvatarUrl: '',
+    headerAvatarText: '用',
+    headerAvatarColor: '#4a90e2',
     headerTitle: '小凡看见', // 头部标题
     headerDesc: '按课程查看个性化反馈', // 头部描述
     showRequestSharePrompt: false,
@@ -32,6 +39,7 @@ Page({
   onLoad(options) {
     // 检查是否是查看他人的小凡看见
     const targetUserId = options.userId;
+    const initialTab = (!targetUserId && (options.tab === 'others' || options.tab === 'mine')) ? options.tab : 'mine';
     const targetUserName = options.userName
       ? decodeURIComponent(options.userName)
       : '小凡看见';
@@ -50,18 +58,31 @@ Page({
       headerDesc = '的个性化学习反馈';
     } else {
       // 查看自己的小凡看见
-      headerEmoji = currentUser?.avatar || currentUser?.avatarText || '🦁';
-      headerAvatarUrl = currentUser?.avatarUrl || '';
+      const currentAvatar = getUserAvatarDisplay(currentUser || {});
+      headerEmoji = currentAvatar.avatarText;
+      headerAvatarUrl = currentAvatar.avatarUrl;
       headerTitle = '我的小凡看见';
       headerDesc = '按课程查看个性化反馈';
     }
+    const initialHeaderAvatar = getUserAvatarDisplay(
+      targetUserId ? { nickname: targetUserName } : currentUser || {},
+      {
+        userId: targetUserId || currentUser?._id || currentUser?.id,
+        displayName: targetUserId
+          ? targetUserName
+          : currentUser?.nickname || currentUser?.name || '用户'
+      }
+    );
 
     this.setData({
       userId: targetUserId || null,
       userName: targetUserName,
       isOtherUser: !!targetUserId,
+      activeTab: initialTab,
       headerEmoji,
       headerAvatarUrl,
+      headerAvatarText: initialHeaderAvatar.avatarText,
+      headerAvatarColor: initialHeaderAvatar.avatarColor,
       headerTitle,
       headerDesc
     });
@@ -80,6 +101,10 @@ Page({
     }
 
     this.loadInsights();
+
+    if (!targetUserId && initialTab === 'others') {
+      this.loadOtherInsights();
+    }
 
     // 查看自己的小凡看见时，静默补充订阅次数
     if (!targetUserId) {
@@ -101,10 +126,14 @@ Page({
 
       if (targetUser) {
         // 从目标用户信息中获取头像
-        const headerEmoji = targetUser.avatar || targetUser.avatarText || '👤';
-        const headerAvatarUrl = targetUser.avatarUrl || '';
-        this.setData({ headerEmoji, headerAvatarUrl });
-        logger.debug('✅ 已获取目标用户头像:', headerEmoji);
+        const targetAvatar = getUserAvatarDisplay(targetUser);
+        this.setData({
+          headerEmoji: targetAvatar.avatarText,
+          headerAvatarUrl: targetAvatar.avatarUrl,
+          headerAvatarText: targetAvatar.avatarText,
+          headerAvatarColor: targetAvatar.avatarColor
+        });
+        logger.debug('✅ 已获取目标用户头像:', targetAvatar.avatarText);
         // 清理临时变量，避免内存泄漏
         app.globalData.targetUserForInsights = null;
       } else {
@@ -115,14 +144,15 @@ Page({
         }
 
         const fetchedUser = await userService.getUserById(targetUserId);
-        const headerEmoji = fetchedUser.avatar || fetchedUser.avatarText || '👤';
-        const headerAvatarUrl = fetchedUser.avatarUrl || '';
+        const fetchedAvatar = getUserAvatarDisplay(fetchedUser);
         this.setData({
-          headerEmoji,
-          headerAvatarUrl,
+          headerEmoji: fetchedAvatar.avatarText,
+          headerAvatarUrl: fetchedAvatar.avatarUrl,
+          headerAvatarText: fetchedAvatar.avatarText,
+          headerAvatarColor: fetchedAvatar.avatarColor,
           headerTitle: fetchedUser.nickname || this.data.headerTitle
         });
-        logger.debug('✅ 已从接口获取目标用户头像:', headerEmoji);
+        logger.debug('✅ 已从接口获取目标用户头像:', fetchedAvatar.avatarText);
       }
     } catch (error) {
       logger.warn('获取目标用户头像出错:', error);
@@ -214,6 +244,88 @@ Page({
       pendingRequestCount,
       rejectedRequestCount
     });
+  },
+
+  switchTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (tab === this.data.activeTab) return;
+    this.setData({ activeTab: tab });
+    if (tab === 'others' && !this.data.otherInsightsLoaded && !this.data.otherInsightsLoading) {
+      this.loadOtherInsights();
+    }
+  },
+
+  async loadOtherInsights() {
+    this.setData({ otherInsightsLoading: true });
+    try {
+      const sentRes = await insightService.getSentRequests({ status: 'approved', limit: 100 });
+      const approvedRequests = sentRes.list || (Array.isArray(sentRes) ? sentRes : []);
+
+      const userMap = {};
+      approvedRequests.forEach(req => {
+        const userObj = req.toUserId;
+        const uid = (typeof userObj === 'object' ? userObj?._id : userObj) || null;
+        if (uid && !userMap[uid]) userMap[uid] = userObj;
+      });
+
+      const allRaw = [];
+      await Promise.all(Object.entries(userMap).map(async ([userId, userInfo]) => {
+        const res = await insightService.getUserInsightsList(userId, { limit: 100 });
+        const list = (res.list || (Array.isArray(res) ? res : [])).filter(item => item.isAccessible !== false);
+        const nickname = (typeof userInfo === 'object' ? userInfo?.nickname || userInfo?.name : '') || '用户';
+        const avatarUrl = (typeof userInfo === 'object' ? userInfo?.avatarUrl : '') || '';
+        list.forEach(insight => {
+          allRaw.push({ ...insight, _targetUserId: userId, _targetNickname: nickname, _targetAvatarUrl: avatarUrl });
+        });
+      }));
+
+      allRaw.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      const app = getApp();
+      const periods = app.globalData.periods || [];
+      const periodMap = {};
+      periods.forEach(p => { periodMap[p._id] = p.name || p.title; });
+
+      const formatted = allRaw.map(item => {
+        let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
+        if (!preview && item.content) {
+          const plain = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
+          preview = plain.substring(0, 150) + (plain.length > 150 ? '...' : '');
+        }
+        const periodName = item.periodId?.name || item.periodId?.title || periodMap[item.periodId?._id || item.periodId] || '';
+        const nickname = item._targetNickname;
+        const targetAvatar = getUserAvatarDisplay(
+          { avatarUrl: item._targetAvatarUrl, nickname },
+          { userId: item._targetUserId, displayName: nickname }
+        );
+        return {
+          id: item._id || item.id,
+          title: item.sectionId?.title || item.title || periodName || '小凡看见',
+          periodName: periodName || '七个习惯晨读营',
+          dayNumber: item.day || item.sectionId?.day || null,
+          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+          mediaType: item.mediaType || 'text',
+          imageUrl: item.imageUrl || null,
+          date: item.updatedAt || item.createdAt ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN') : '',
+          periodId: item.periodId?._id || item.periodId || null,
+          isAccessible: true,
+          requestStatus: 'approved',
+          requestStatusText: '',
+          lockedPlaceholder: { text: '' },
+          requestScope: null,
+          requestId: null,
+          targetUserAvatarUrl: targetAvatar.avatarUrl,
+          targetUserAvatarText: targetAvatar.avatarText,
+          targetUserAvatarColor: targetAvatar.avatarColor
+        };
+      });
+
+      this.setData({ otherInsights: formatted, otherInsightsLoaded: true });
+    } catch (err) {
+      logger.error('加载他人洞见失败:', err);
+    } finally {
+      this.setData({ otherInsightsLoading: false });
+    }
   },
 
   async loadInsights() {
@@ -320,6 +432,24 @@ Page({
       });
 
       // 格式化数据以匹配WXML期望的字段
+      const targetUserId2 = this.data.userId;
+      let targetNickname, targetAvatarUrl, targetUid;
+      if (targetUserId2) {
+        // 查看他人：从缓存取
+        const cachedUser = app.globalData.targetUserForInsights || {};
+        targetNickname = cachedUser.nickname || cachedUser.name || this.data.userName || '用户';
+        targetAvatarUrl = cachedUser.avatarUrl || this.data.headerAvatarUrl || '';
+        targetUid = targetUserId2;
+      } else {
+        // 查看自己
+        targetNickname = currentUserId ? (app.globalData.userInfo?.nickname || app.globalData.userInfo?.name || '用户') : '用户';
+        targetAvatarUrl = app.globalData.userInfo?.avatarUrl || '';
+        targetUid = currentUserId;
+      }
+      const listAvatar = getUserAvatarDisplay(
+        { avatarUrl: targetAvatarUrl, nickname: targetNickname },
+        { userId: targetUid, displayName: targetNickname }
+      );
       const formatted = filtered.map((item) => {
         let preview = richContentToPlainText(item.summary || '')
           .replace(/\s+/g, ' ')
@@ -370,7 +500,10 @@ Page({
             item.requestStatus || 'none'
           ),
           requestScope: item.requestScope || null,
-          requestId: item.requestId || null
+          requestId: item.requestId || null,
+          targetUserAvatarUrl: listAvatar.avatarUrl,
+          targetUserAvatarText: listAvatar.avatarText,
+          targetUserAvatarColor: listAvatar.avatarColor
         };
       });
 

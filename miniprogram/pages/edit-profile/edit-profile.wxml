@@ -4,9 +4,9 @@
   <view class="section">
     <view class="section-title">头像</view>
     <view class="avatar-picker-panel">
-      <view class="avatar-preview">
+      <view class="avatar-preview" style="background: {{avatarColor || '#4a90e2'}}">
         <image wx:if="{{avatarUrl}}" class="avatar-preview-image" src="{{avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="avatar-preview-emoji">{{avatar || '🦁'}}</text>
+        <text wx:else class="avatar-preview-emoji">{{avatarText || '用'}}</text>
       </view>
       <view class="avatar-picker-info">
         <text class="avatar-picker-title">使用你的微信头像</text>

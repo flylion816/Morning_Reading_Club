@@ -1,6 +1,7 @@
 // 成员列表页面
 const enrollmentService = require('../../services/enrollment.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const { getLastTextChar } = require('../../utils/avatar');
 const {
   getPeriodAccess,
   redirectAfterCommunityDenied
@@ -67,7 +68,7 @@ Page({
           avatar: avatar,
           avatarUrl: userObj.avatarUrl || item.avatarUrl,
           avatarColor: getAvatarColorByUserId(userId),
-          avatarText: nickname.charAt(nickname.length - 1),
+          avatarText: getLastTextChar(nickname, '用'),
           enrolledAt: new Date(item.enrolledAt).toLocaleDateString('zh-CN')
         };
       });
