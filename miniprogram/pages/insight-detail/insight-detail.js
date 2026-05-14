@@ -94,7 +94,7 @@ Page({
   },
 
   // 弹幕引擎内部状态（不需要响应式，放实例属性）
-  _shownDanmakuIds: null,
+  _danmakuCooldowns: null,   // Map<id, lastShownTimestamp>，用冷却替代永久屏蔽
   _laneReleaseTimes: null,
   _pageScrollHeight: 0,
   _currentScrollPercent: 0,
@@ -106,7 +106,7 @@ Page({
       setTimeout(() => wx.navigateBack(), 1500);
       return;
     }
-    this._shownDanmakuIds = new Set();
+    this._danmakuCooldowns = new Map();
     this._laneReleaseTimes = new Array(DANMAKU_LANES).fill(0);
     this.setData({ insightId: options.id });
     this.loadInsightDetail();
@@ -946,15 +946,23 @@ Page({
   },
 
   // 触发位置匹配的弹幕（滚动时调用）
+  // 使用冷却机制：每条弹幕播完后（动画时长 + 10s 缓冲）可再次出现
   _checkDanmakuTrigger(percent) {
     const { danmakuList } = this.data;
-    const ids = this._shownDanmakuIds;
-    if (!ids) return;
+    const cooldowns = this._danmakuCooldowns;
+    if (!cooldowns) return;
+
+    const now = Date.now();
+    const cooldownMs = (DANMAKU_DURATION + 10) * 1000;
 
     danmakuList.forEach(item => {
       const id = item._id || item.id;
-      if (!ids.has(id) && Math.abs((item.scrollPercent || 0) - percent) <= 3) {
-        ids.add(id);
+      const lastShown = cooldowns.get(id) || 0;
+      if (
+        Math.abs((item.scrollPercent || 0) - percent) <= 3 &&
+        now - lastShown > cooldownMs
+      ) {
+        cooldowns.set(id, now);
         this._showDanmaku(item);
       }
     });

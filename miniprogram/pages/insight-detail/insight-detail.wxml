@@ -88,7 +88,7 @@
           class="danmaku-textarea"
           value="{{danmakuInput}}"
           bindinput="onDanmakuInput"
-          placeholder="写下你读到这里的感悟..."
+          placeholder="写下你划到的段落带给你的感悟"
           maxlength="60"
           auto-height
           show-confirm-bar="{{false}}"

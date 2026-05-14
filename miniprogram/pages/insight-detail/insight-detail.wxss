@@ -494,7 +494,7 @@
 /* ===== 弹幕按钮 ===== */
 .btn-danmaku {
   flex: 1;
-  background: linear-gradient(135deg, #7b68ee 0%, #5a4fcf 100%);
+  background: linear-gradient(135deg, #52c5a0 0%, #3aaa85 100%);
   color: white;
   font-weight: bold;
 }
@@ -526,29 +526,30 @@
   position: absolute;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.88);
-  border-left: 4rpx solid #4a90e2;
-  border-radius: 30rpx;
-  padding: 10rpx 24rpx 10rpx 20rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.93);
+  border-left: 5rpx solid #4a90e2;
+  border-radius: 36rpx;
+  padding: 16rpx 32rpx 16rpx 26rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.13);
   white-space: nowrap;
-  max-width: 60vw;
+  max-width: 72vw;
   animation: danmakuFlow linear forwards;
 }
 
 .danmaku-text {
-  font-size: 24rpx;
-  color: #374151;
+  font-size: 30rpx;
+  color: #1a2a3a;
+  letter-spacing: 0.5rpx;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* 5 条泳道（top 值） */
-.danmaku-lane-0 { top: 20rpx; }
-.danmaku-lane-1 { top: 80rpx; }
-.danmaku-lane-2 { top: 140rpx; }
-.danmaku-lane-3 { top: 200rpx; }
-.danmaku-lane-4 { top: 260rpx; }
+.danmaku-lane-0 { top: 18rpx; }
+.danmaku-lane-1 { top: 84rpx; }
+.danmaku-lane-2 { top: 150rpx; }
+.danmaku-lane-3 { top: 216rpx; }
+.danmaku-lane-4 { top: 282rpx; }
 
 /* ===== 爱心飘散层 ===== */
 .hearts-overlay {
@@ -606,11 +607,10 @@
 }
 
 .panel-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  position: relative;
   padding: 24rpx 32rpx 20rpx;
   border-bottom: 1rpx solid #f5f5f5;
+  text-align: center;
 }
 
 .panel-title {
@@ -620,6 +620,10 @@
 }
 
 .panel-close {
+  position: absolute;
+  right: 32rpx;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 48rpx;
   color: #bbb;
   line-height: 1;
@@ -747,7 +751,7 @@
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #7b68ee 0%, #5a4fcf 100%);
+  background: linear-gradient(135deg, #52c5a0 0%, #3aaa85 100%);
   color: white;
   border: none;
   border-radius: 40rpx;
