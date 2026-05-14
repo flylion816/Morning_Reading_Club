@@ -1,14 +1,16 @@
 <view class="page-insight-detail">
-  <!-- 弹幕叠加层：屏幕顶部固定区域，pointer-events:none 不遮挡点击 -->
-  <view class="danmaku-overlay" wx:if="{{danmakuEnabled && activeDanmaku.length > 0}}">
-    <view
-      wx:for="{{activeDanmaku}}"
-      wx:key="id"
-      class="danmaku-item danmaku-lane-{{item.lane}}"
-      style="border-color:{{item.color}};animation-duration:{{item.duration}}s;animation-delay:{{item.animDelay}}s"
-    >
-      <text class="danmaku-text">{{item.content}}</text>
-    </view>
+  <!-- 弹幕叠加层：常驻 DOM 避免 position:fixed 渲染时序问题 -->
+  <view class="danmaku-overlay">
+    <block wx:if="{{danmakuEnabled}}">
+      <view
+        wx:for="{{activeDanmaku}}"
+        wx:key="id"
+        class="danmaku-item danmaku-lane-{{item.lane}}"
+        style="border-color:{{item.color}};animation-duration:{{item.duration}}s;animation-delay:{{item.animDelay}}s"
+      >
+        <text class="danmaku-text">{{item.content}}</text>
+      </view>
+    </block>
   </view>
 
   <!-- 爱心飘散层：右下角向上飘散，不拦截点击 -->

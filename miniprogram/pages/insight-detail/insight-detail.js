@@ -5,7 +5,7 @@ const { renderRichTextContent } = require('../../utils/markdown');
 const activityService = require('../../services/activity.service');
 
 // 弹幕泳道数量
-const DANMAKU_LANES = 5;
+const DANMAKU_LANES = 4;
 // 弹幕横跨屏幕时长（秒）
 const DANMAKU_DURATION = 18;
 // 同屏最大弹幕数
