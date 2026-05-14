@@ -946,15 +946,22 @@ Page({
   _showHearts() {
     const emojis = ['❤️', '💖', '💕', '💗', '💓'];
     const count = Math.floor(Math.random() * 4) + 5; // 5-8颗
+    // 8个散落目标位置（相对屏幕中心的偏移），覆盖内容区各角落
+    const scatter = [
+      [-30, -22], [28, -26], [-34, 4], [32, -8],
+      [-16, -32], [26, 14], [-24, 20], [36, -32]
+    ];
     const heartItems = Array.from({ length: count }, (_, i) => {
       const signX = Math.random() > 0.5 ? 1 : -1;
       const startX = (signX * (Math.random() * 22 + 10)).toFixed(1) + 'vw';
       const startY = (Math.random() * 18 + 28).toFixed(1) + 'vh';
+      const dest = scatter[i % scatter.length];
+      const destX = (dest[0] + (Math.random() * 6 - 3)).toFixed(1) + 'vw';
+      const destY = (dest[1] + (Math.random() * 6 - 3)).toFixed(1) + 'vh';
       return {
         id: Date.now() + i,
         emoji: emojis[i % emojis.length],
-        startX,
-        startY,
+        startX, startY, destX, destY,
         delay: (i * 0.2).toFixed(2)
       };
     });
@@ -972,6 +979,8 @@ Page({
     const now = Date.now();
     const cooldownMs = (DANMAKU_DURATION + 10) * 1000;
 
+    // 收集所有命中弹幕，按 scrollPercent 升序排列，错峰出场
+    const triggered = [];
     danmakuList.forEach(item => {
       const id = item._id || item.id;
       const lastShown = cooldowns.get(id) || 0;
@@ -980,8 +989,12 @@ Page({
         now - lastShown > cooldownMs
       ) {
         cooldowns.set(id, now);
-        this._showDanmaku(item);
+        triggered.push(item);
       }
+    });
+    triggered.sort((a, b) => (a.scrollPercent || 0) - (b.scrollPercent || 0));
+    triggered.forEach((item, idx) => {
+      setTimeout(() => this._showDanmaku(item), idx * 600);
     });
   },
 

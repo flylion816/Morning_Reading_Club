@@ -17,7 +17,7 @@
       wx:for="{{heartItems}}"
       wx:key="id"
       class="heart-item"
-      style="animation-delay:{{item.delay}}s;--sx:{{item.startX}};--sy:{{item.startY}}"
+      style="animation-delay:{{item.delay}}s;--sx:{{item.startX}};--sy:{{item.startY}};--dx:{{item.destX}};--dy:{{item.destY}}"
     >{{item.emoji}}</text>
   </view>
 

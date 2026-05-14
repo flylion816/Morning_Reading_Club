@@ -526,7 +526,7 @@
   position: absolute;
   display: inline-flex;
   flex-direction: row;
-  align-items: stretch;
+  align-items: center;
   background: rgba(255, 255, 255, 0.93);
   border-radius: 36rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.13);
@@ -541,9 +541,9 @@
   padding: 14rpx 16rpx 14rpx 22rpx;
   font-size: 30rpx;
   font-weight: 600;
-  border-top: 6rpx solid;
-  border-left: 6rpx solid;
-  border-bottom: 6rpx solid;
+  border-top: 3rpx solid;
+  border-left: 3rpx solid;
+  border-bottom: 3rpx solid;
   letter-spacing: 0.5rpx;
   line-height: 1.4;
   white-space: nowrap;
@@ -577,19 +577,19 @@
   z-index: 200;
 }
 
-/* 每颗爱心从屏幕下方随机位置飞向中心，跳动3次后放大消失 */
+/* 每颗爱心从底部飞向各自散落位置，跳动3次后放大消失 */
 @keyframes heartJourney {
   0%   { transform: translate(var(--sx, 20vw), var(--sy, 35vh)) scale(0.4); opacity: 0; }
   8%   { opacity: 1; }
-  25%  { transform: translate(0, 0) scale(1); opacity: 1; }
-  37%  { transform: translate(0, 0) scale(1.6); }
-  44%  { transform: translate(0, 0) scale(0.85); }
-  57%  { transform: translate(0, 0) scale(1.6); }
-  64%  { transform: translate(0, 0) scale(0.85); }
-  76%  { transform: translate(0, 0) scale(1.6); }
-  83%  { transform: translate(0, 0) scale(0.85); opacity: 1; }
-  93%  { transform: translate(0, 0) scale(6); opacity: 0.6; }
-  100% { transform: translate(0, 0) scale(18); opacity: 0; }
+  25%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(1); opacity: 1; }
+  37%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(1.6); }
+  44%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.85); }
+  57%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(1.6); }
+  64%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.85); }
+  76%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(1.6); }
+  83%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.85); opacity: 1; }
+  93%  { transform: translate(var(--dx, 0), var(--dy, 0)) scale(6); opacity: 0.6; }
+  100% { transform: translate(var(--dx, 0), var(--dy, 0)) scale(18); opacity: 0; }
 }
 
 .heart-item {
