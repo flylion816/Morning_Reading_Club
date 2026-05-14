@@ -526,7 +526,7 @@
   position: absolute;
   display: inline-flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   background: rgba(255, 255, 255, 0.93);
   border-radius: 36rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.13);
@@ -536,16 +536,18 @@
   overflow: hidden;
 }
 
-/* 昵称徽章：左+上+下三边彩色边框，左侧圆角，形成半胶囊 */
+/* 昵称徽章：三边彩色边框 + 左侧圆角与药丸吻合，stretch 撑满高度后用 flex 居中文字 */
 .danmaku-name {
-  padding: 14rpx 16rpx 14rpx 22rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 16rpx 0 22rpx;
   font-size: 30rpx;
   font-weight: 600;
   border-top: 3rpx solid;
   border-left: 3rpx solid;
   border-bottom: 3rpx solid;
+  border-radius: 36rpx 0 0 36rpx;
   letter-spacing: 0.5rpx;
-  line-height: 1.4;
   white-space: nowrap;
 }
 
@@ -599,6 +601,7 @@
   font-size: 80rpx;
   opacity: 0;
   animation: heartJourney 4.5s ease-in-out forwards;
+  filter: drop-shadow(0 0 12rpx rgba(255, 100, 130, 0.7));
 }
 
 /* ===== 弹幕功能浮层 ===== */

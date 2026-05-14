@@ -944,7 +944,7 @@ Page({
   },
 
   _showHearts() {
-    const emojis = ['❤️', '💖', '💕', '💗', '💓'];
+    const emojis = ['💖', '💗', '💝', '💓', '💕', '🌸', '💞', '💘'];
     const count = Math.floor(Math.random() * 4) + 5; // 5-8颗
     // 8个散落目标位置（相对屏幕中心的偏移），覆盖内容区各角落
     const scatter = [
