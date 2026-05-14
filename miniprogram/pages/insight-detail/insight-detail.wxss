@@ -566,28 +566,39 @@
 .danmaku-lane-3 { top: 296rpx; }
 
 /* ===== 爱心飘散层 ===== */
+/* 爱心全屏动效层 */
 .hearts-overlay {
   position: fixed;
-  bottom: 160rpx;
-  right: 20rpx;
-  width: 160rpx;
-  height: 400rpx;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   pointer-events: none;
-  z-index: 60;
-  overflow: hidden;
+  z-index: 200;
 }
 
-@keyframes heartFloat {
-  0%   { transform: translateY(0) scale(1);   opacity: 1; }
-  50%  { transform: translateY(-150rpx) scale(1.2); opacity: 0.8; }
-  100% { transform: translateY(-340rpx) scale(0.6); opacity: 0; }
+/* 每颗爱心从屏幕下方随机位置飞向中心，跳动3次后放大消失 */
+@keyframes heartJourney {
+  0%   { transform: translate(var(--sx, 20vw), var(--sy, 35vh)) scale(0.4); opacity: 0; }
+  8%   { opacity: 1; }
+  25%  { transform: translate(0, 0) scale(1); opacity: 1; }
+  37%  { transform: translate(0, 0) scale(1.6); }
+  44%  { transform: translate(0, 0) scale(0.85); }
+  57%  { transform: translate(0, 0) scale(1.6); }
+  64%  { transform: translate(0, 0) scale(0.85); }
+  76%  { transform: translate(0, 0) scale(1.6); }
+  83%  { transform: translate(0, 0) scale(0.85); opacity: 1; }
+  93%  { transform: translate(0, 0) scale(6); opacity: 0.6; }
+  100% { transform: translate(0, 0) scale(18); opacity: 0; }
 }
 
 .heart-item {
   position: absolute;
-  bottom: 0;
-  font-size: 40rpx;
-  animation: heartFloat 2.8s ease-out forwards;
+  left: calc(50% - 40rpx);
+  top: calc(45% - 40rpx);
+  font-size: 80rpx;
+  opacity: 0;
+  animation: heartJourney 4.5s ease-in-out forwards;
 }
 
 /* ===== 弹幕功能浮层 ===== */

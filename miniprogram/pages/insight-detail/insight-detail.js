@@ -77,8 +77,8 @@ Page({
     posterGeneratingMode: '',
     posterTempFilePath: '',
     showPosterPanel: false,
-    // 弹幕相关
-    danmakuEnabled: true,
+    // 弹幕相关（持久化开关，默认 true）
+    danmakuEnabled: wx.getStorageSync('danmakuEnabled') !== false,
     showDanmakuPanel: false,
     danmakuList: [],
     activeDanmaku: [],
@@ -871,7 +871,9 @@ Page({
   },
 
   toggleDanmaku(e) {
-    this.setData({ danmakuEnabled: e.detail.value });
+    const val = e.detail.value;
+    this.setData({ danmakuEnabled: val });
+    wx.setStorageSync('danmakuEnabled', val);
   },
 
   onDanmakuInput(e) {
@@ -905,47 +907,55 @@ Page({
   },
 
   async handleDanmakuLike() {
-    if (this.data.isLiked) return;
-    const { insightId } = this.data;
-
+    const { insightId, isLiked } = this.data;
     try {
-      await insightService.likeInsight(insightId);
-      const app = getApp();
-      const currentUser = app?.globalData?.userInfo || {};
-      const nickname = currentUser.nickname || '晨读者';
-      const { danmakuColor } = this.data;
+      if (isLiked) {
+        await insightService.unlikeInsight(insightId);
+        const insight = { ...this.data.insight, likeCount: Math.max(0, (this.data.insight.likeCount || 1) - 1) };
+        this.setData({ isLiked: false, insight });
+      } else {
+        await insightService.likeInsight(insightId);
+        const app = getApp();
+        const currentUser = app?.globalData?.userInfo || {};
+        const { danmakuColor } = this.data;
 
-      // 发一条点赞弹幕，绑定当前位置
-      const likeContent = '被你触动到了！❤️';
-      const likeResult = await danmakuService.postDanmaku(insightId, {
-        content: likeContent,
-        type: 'like',
-        scrollPercent: this._currentScrollPercent,
-        color: danmakuColor
-      });
+        const likeResult = await danmakuService.postDanmaku(insightId, {
+          content: '被你触动到了！❤️',
+          type: 'like',
+          scrollPercent: this._currentScrollPercent,
+          color: danmakuColor
+        });
 
-      const likeItem = likeResult.data || likeResult;
-      const insight = { ...this.data.insight, likeCount: (this.data.insight.likeCount || 0) + 1 };
-      const danmakuList = [...this.data.danmakuList, likeItem];
-      this.setData({ isLiked: true, insight, danmakuList });
-      this._showDanmaku(likeItem);
-      this._showHearts();
-      this.closeDanmakuPanel();
+        const likeItem = likeResult.data || likeResult;
+        const insight = { ...this.data.insight, likeCount: (this.data.insight.likeCount || 0) + 1 };
+        const danmakuList = [...this.data.danmakuList, likeItem];
+        this.setData({ isLiked: true, insight, danmakuList });
+        this._showDanmaku(likeItem);
+        this._showHearts();
+        this.closeDanmakuPanel();
+      }
     } catch (e) {
-      wx.showToast({ title: '点赞失败', icon: 'none' });
+      wx.showToast({ title: isLiked ? '取消点赞失败' : '点赞失败', icon: 'none' });
     }
   },
 
   _showHearts() {
-    const emojis = ['❤️', '💛', '✨', '🌟', '💫', '❤️', '✨', '💛'];
-    const heartItems = Array.from({ length: 7 }, (_, i) => ({
-      id: Date.now() + i,
-      emoji: emojis[i % emojis.length],
-      x: Math.floor(Math.random() * 120),
-      delay: (i * 0.22).toFixed(2)
-    }));
+    const emojis = ['❤️', '💖', '💕', '💗', '💓'];
+    const count = Math.floor(Math.random() * 4) + 5; // 5-8颗
+    const heartItems = Array.from({ length: count }, (_, i) => {
+      const signX = Math.random() > 0.5 ? 1 : -1;
+      const startX = (signX * (Math.random() * 22 + 10)).toFixed(1) + 'vw';
+      const startY = (Math.random() * 18 + 28).toFixed(1) + 'vh';
+      return {
+        id: Date.now() + i,
+        emoji: emojis[i % emojis.length],
+        startX,
+        startY,
+        delay: (i * 0.2).toFixed(2)
+      };
+    });
     this.setData({ showHearts: true, heartItems });
-    setTimeout(() => this.setData({ showHearts: false, heartItems: [] }), 3200);
+    setTimeout(() => this.setData({ showHearts: false, heartItems: [] }), 6000);
   },
 
   // 触发位置匹配的弹幕（滚动时调用）

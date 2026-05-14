@@ -17,7 +17,7 @@
       wx:for="{{heartItems}}"
       wx:key="id"
       class="heart-item"
-      style="left:{{item.x}}rpx;animation-delay:{{item.delay}}s"
+      style="animation-delay:{{item.delay}}s;--sx:{{item.startX}};--sy:{{item.startY}}"
     >{{item.emoji}}</text>
   </view>
 
@@ -78,7 +78,6 @@
         <button
           class="like-btn {{isLiked ? 'liked' : ''}}"
           bindtap="handleDanmakuLike"
-          disabled="{{isLiked}}"
         >{{isLiked ? '❤️ 已点赞' : '♡ 点个赞'}}</button>
       </view>
 
