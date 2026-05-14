@@ -1,3 +1,47 @@
+# Bug 修复经验库
+
+本文件是项目历史 bug 经验的完整归档，内容很长。默认不要从头读到尾，先用下面的索引定位，再跳到目标章节。
+
+## 建议阅读顺序
+
+1. 高频问题先看 `.claude/memory/quick-reference.md`
+2. 需要按关键词搜索时，用 `.claude/commands/search/search-bug.sh "关键词"`
+3. 只有在需要完整历史案例时，再打开本文件对应章节
+
+## 快速入口
+
+- 页面空白、WXSS、样式异常：看“问题 1-5”
+- 日期、时间、格式兼容：看“问题 6-10”
+- 数据绑定、事件、状态管理：看“问题 11-17”
+- Flex、scroll-view、布局问题：看“问题 18-24”
+- API 返回结构、接口联调：看“问题 27-30”
+- 用户 ID、认证链路、权限中间件：搜索 `用户ID`、`authMiddleware`
+- 环境变量、CORS、NODE_ENV：搜索 `NODE_ENV`、`CORS`
+
+## 关键词速查
+
+```bash
+.claude/commands/search/search-bug.sh "页面空白"
+.claude/commands/search/search-bug.sh "用户ID"
+.claude/commands/search/search-bug.sh "API错误"
+.claude/commands/search/search-bug.sh frontend
+.claude/commands/search/search-bug.sh backend
+```
+
+## 文档定位
+
+- 根入口规则和危险操作：`AGENTS.md`
+- 历史复盘归档：`docs/guides/AGENTS_HISTORY.md`
+- Memory 使用说明：`.claude/memory/README.md`
+
+## 维护规则
+
+- 新案例先写摘要，再决定是否需要完整长文
+- 能归入 `AGENTS_HISTORY.md` 的会话复盘，不回灌到本文件
+- 能归入 `quick-reference.md` 的高频问题，优先做索引而不是堆正文
+
+---
+
 git checkout -- <file>
 
 # 撤销已暂存的文件

@@ -490,3 +490,286 @@
   margin-left: 0;
   margin-right: 0;
 }
+
+/* ===== 弹幕按钮 ===== */
+.btn-danmaku {
+  flex: 1;
+  background: linear-gradient(135deg, #7b68ee 0%, #5a4fcf 100%);
+  color: white;
+  font-weight: bold;
+}
+
+.btn-danmaku:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+/* ===== 弹幕叠加层 ===== */
+.danmaku-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300rpx;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* 弹幕动画：从右向左匀速漂移 */
+@keyframes danmakuFlow {
+  from { transform: translateX(110vw); }
+  to   { transform: translateX(-110vw); }
+}
+
+.danmaku-item {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border-left: 4rpx solid #4a90e2;
+  border-radius: 30rpx;
+  padding: 10rpx 24rpx 10rpx 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+  max-width: 60vw;
+  animation: danmakuFlow linear forwards;
+}
+
+.danmaku-text {
+  font-size: 24rpx;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 5 条泳道（top 值） */
+.danmaku-lane-0 { top: 20rpx; }
+.danmaku-lane-1 { top: 80rpx; }
+.danmaku-lane-2 { top: 140rpx; }
+.danmaku-lane-3 { top: 200rpx; }
+.danmaku-lane-4 { top: 260rpx; }
+
+/* ===== 爱心飘散层 ===== */
+.hearts-overlay {
+  position: fixed;
+  bottom: 160rpx;
+  right: 20rpx;
+  width: 160rpx;
+  height: 400rpx;
+  pointer-events: none;
+  z-index: 60;
+  overflow: hidden;
+}
+
+@keyframes heartFloat {
+  0%   { transform: translateY(0) scale(1);   opacity: 1; }
+  50%  { transform: translateY(-150rpx) scale(1.2); opacity: 0.8; }
+  100% { transform: translateY(-340rpx) scale(0.6); opacity: 0; }
+}
+
+.heart-item {
+  position: absolute;
+  bottom: 0;
+  font-size: 40rpx;
+  animation: heartFloat 2.8s ease-out forwards;
+}
+
+/* ===== 弹幕功能浮层 ===== */
+.danmaku-panel-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1500;
+  display: flex;
+  align-items: flex-end;
+}
+
+.danmaku-panel {
+  width: 100%;
+  background: white;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 0 0 calc(32rpx + env(safe-area-inset-bottom));
+  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.1);
+}
+
+.panel-handle {
+  width: 72rpx;
+  height: 8rpx;
+  background: #e0e0e0;
+  border-radius: 4rpx;
+  margin: 20rpx auto 0;
+}
+
+.panel-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 32rpx 20rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.panel-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #222;
+}
+
+.panel-close {
+  font-size: 48rpx;
+  color: #bbb;
+  line-height: 1;
+  padding: 0 4rpx;
+}
+
+.panel-section {
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.panel-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-section-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+/* 面板内标签文字（覆盖全局 .section-title 的蓝色+粗体） */
+.danmaku-panel .section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0;
+}
+
+.section-desc {
+  font-size: 22rpx;
+  color: #aaa;
+}
+
+/* 点赞区 */
+.panel-like-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.like-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.like-count {
+  font-size: 22rpx;
+  color: #aaa;
+}
+
+.like-btn {
+  background: #fff7f7;
+  color: #e05252;
+  border: 1rpx solid #f5c6c6;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  padding: 0 28rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  margin: 0;
+  min-width: 160rpx;
+}
+
+.like-btn::after { border: none; }
+
+.like-btn.liked {
+  background: #ffe8e8;
+  color: #c0392b;
+  border-color: #f5aaaa;
+}
+
+/* 输入区 */
+.panel-input-area {
+  border-bottom: none;
+}
+
+.danmaku-textarea {
+  width: 100%;
+  min-height: 88rpx;
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+  border: 1rpx solid #eee;
+}
+
+.color-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  align-items: center;
+}
+
+.color-dot {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  border: 3rpx solid transparent;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.color-dot.selected {
+  border-color: #333;
+  transform: scale(1.2);
+}
+
+.send-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16rpx;
+}
+
+.char-count {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.send-btn {
+  background: linear-gradient(135deg, #7b68ee 0%, #5a4fcf 100%);
+  color: white;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0 40rpx;
+  margin: 0;
+}
+
+.send-btn::after { border: none; }
+
+.send-btn[disabled] {
+  background: #ddd;
+  color: #aaa;
+}
+
+.panel-stats {
+  display: block;
+  text-align: center;
+  font-size: 22rpx;
+  color: #bbb;
+  padding: 24rpx 32rpx 0;
+}

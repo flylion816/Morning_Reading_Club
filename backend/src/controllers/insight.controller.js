@@ -1,4 +1,5 @@
 const Insight = require('../models/Insight');
+const InsightDanmaku = require('../models/InsightDanmaku');
 const Checkin = require('../models/Checkin');
 const InsightRequest = require('../models/InsightRequest');
 const User = require('../models/User');
@@ -2418,6 +2419,57 @@ async function unlikeInsight(req, res, next) {
   }
 }
 
+// 发送弹幕
+async function postDanmaku(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const userId = req.user.userId;
+    const { content, type = 'comment', scrollPercent = 0, color = '#4a90e2' } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json(errors.badRequest('弹幕内容不能为空'));
+    }
+    if (content.length > 60) {
+      return res.status(400).json(errors.badRequest('弹幕内容不能超过60字'));
+    }
+
+    const insight = await Insight.findById(insightId);
+    if (!insight) {
+      return res.status(404).json(errors.notFound('小凡看见不存在'));
+    }
+
+    const user = await User.findById(userId).select('nickname');
+    const userNickname = user?.nickname || '匿名读者';
+
+    const danmaku = await InsightDanmaku.create({
+      insightId,
+      userId,
+      userNickname,
+      content: content.trim(),
+      type,
+      scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
+      color
+    });
+
+    res.json(success(danmaku, '弹幕发送成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取弹幕列表
+async function getDanmaku(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    const danmakuList = await InsightDanmaku.find({ insightId })
+      .sort({ createdAt: 1 })
+      .lean();
+    res.json(success(danmakuList));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -2431,6 +2483,8 @@ module.exports = {
   deleteInsightManual,
   likeInsight,
   unlikeInsight,
+  postDanmaku,
+  getDanmaku,
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,

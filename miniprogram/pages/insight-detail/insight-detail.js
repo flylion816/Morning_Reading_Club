@@ -1,7 +1,15 @@
 const insightService = require('../../services/insight.service');
+const danmakuService = require('../../services/danmaku.service');
 const env = require('../../config/env');
 const { renderRichTextContent } = require('../../utils/markdown');
 const activityService = require('../../services/activity.service');
+
+// 弹幕泳道数量
+const DANMAKU_LANES = 5;
+// 弹幕横跨屏幕时长（秒）
+const DANMAKU_DURATION = 18;
+// 同屏最大弹幕数
+const DANMAKU_MAX_VISIBLE = 3;
 
 const INSIGHT_POSTER_WIDTH = 750;
 
@@ -65,8 +73,31 @@ Page({
     posterGenerating: false,
     posterGeneratingMode: '',
     posterTempFilePath: '',
-    showPosterPanel: false
+    showPosterPanel: false,
+    // 弹幕相关
+    danmakuEnabled: true,
+    showDanmakuPanel: false,
+    danmakuList: [],
+    activeDanmaku: [],
+    danmakuInput: '',
+    danmakuColor: '#4a90e2',
+    danmakuColors: [
+      { name: '晨蓝', value: '#4a90e2' },
+      { name: '暖金', value: '#e6a23c' },
+      { name: '草绿', value: '#52c41a' },
+      { name: '淡紫', value: '#9b8fc4' },
+      { name: '玫瑰', value: '#e8a0b4' }
+    ],
+    isLiked: false,
+    showHearts: false,
+    heartItems: []
   },
+
+  // 弹幕引擎内部状态（不需要响应式，放实例属性）
+  _shownDanmakuIds: null,
+  _laneReleaseTimes: null,
+  _pageScrollHeight: 0,
+  _currentScrollPercent: 0,
 
   onLoad(options) {
     if (!options.id) {
@@ -75,8 +106,34 @@ Page({
       setTimeout(() => wx.navigateBack(), 1500);
       return;
     }
+    this._shownDanmakuIds = new Set();
+    this._laneReleaseTimes = new Array(DANMAKU_LANES).fill(0);
     this.setData({ insightId: options.id });
     this.loadInsightDetail();
+    this.loadDanmaku();
+  },
+
+  onReady() {
+    // 测量页面可滚动高度，用于 scrollPercent 计算
+    wx.createSelectorQuery()
+      .select('.page-insight-detail')
+      .boundingClientRect(rect => {
+        if (rect) {
+          const sysInfo = wx.getSystemInfoSync();
+          this._pageScrollHeight = Math.max(1, rect.height - sysInfo.windowHeight);
+        }
+      })
+      .exec();
+  },
+
+  onPageScroll({ scrollTop }) {
+    if (this._pageScrollHeight > 0) {
+      const percent = Math.min(100, Math.round((scrollTop / this._pageScrollHeight) * 100));
+      this._currentScrollPercent = percent;
+      if (this.data.danmakuEnabled) {
+        this._checkDanmakuTrigger(percent);
+      }
+    }
   },
 
   async loadInsightDetail() {
@@ -118,7 +175,12 @@ Page({
         insight.content = renderRichTextContent(insight.content);
       }
 
-      this.setData({ insight });
+      // 检测当前用户是否已点赞
+      const isLiked = Array.isArray(insight.likes) && currentUserId
+        ? insight.likes.some(l => String(l.userId || l) === String(currentUserId))
+        : false;
+
+      this.setData({ insight, isLiked });
     } catch (error) {
       console.error('加载失败:', error);
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -784,5 +846,157 @@ Page({
       query: `id=${this.data.insightId}&from=share`,
       imageUrl: '/assets/images/share-insight.jpg' // 使用新的"小凡看见"专属分享图
     };
+  },
+
+  // ===================== 弹幕功能 =====================
+
+  async loadDanmaku() {
+    try {
+      const list = await danmakuService.getDanmaku(this.data.insightId);
+      this.setData({ danmakuList: Array.isArray(list) ? list : [] });
+    } catch (e) {
+      // 弹幕加载失败不影响主流程，静默处理
+    }
+  },
+
+  openDanmakuPanel() {
+    this.setData({ showDanmakuPanel: true });
+  },
+
+  closeDanmakuPanel() {
+    this.setData({ showDanmakuPanel: false });
+  },
+
+  toggleDanmaku(e) {
+    this.setData({ danmakuEnabled: e.detail.value });
+  },
+
+  onDanmakuInput(e) {
+    this.setData({ danmakuInput: e.detail.value });
+  },
+
+  selectColor(e) {
+    this.setData({ danmakuColor: e.currentTarget.dataset.color });
+  },
+
+  async sendDanmaku() {
+    const { danmakuInput, danmakuColor, insightId } = this.data;
+    if (!danmakuInput || !danmakuInput.trim()) return;
+
+    try {
+      const result = await danmakuService.postDanmaku(insightId, {
+        content: danmakuInput.trim(),
+        type: 'comment',
+        scrollPercent: this._currentScrollPercent,
+        color: danmakuColor
+      });
+
+      const newItem = result.data || result;
+      const danmakuList = [...this.data.danmakuList, newItem];
+      this.setData({ danmakuList, danmakuInput: '' });
+      this._showDanmaku(newItem);
+      this.closeDanmakuPanel();
+    } catch (e) {
+      wx.showToast({ title: '发送失败，请重试', icon: 'none' });
+    }
+  },
+
+  async handleDanmakuLike() {
+    if (this.data.isLiked) return;
+    const { insightId } = this.data;
+
+    try {
+      await insightService.likeInsight(insightId);
+      const app = getApp();
+      const currentUser = app?.globalData?.userInfo || {};
+      const nickname = currentUser.nickname || '晨读者';
+      const { danmakuColor } = this.data;
+
+      // 发一条点赞弹幕，绑定当前位置
+      const likeContent = `❤️ ${nickname} 有所触动`;
+      const likeResult = await danmakuService.postDanmaku(insightId, {
+        content: likeContent,
+        type: 'like',
+        scrollPercent: this._currentScrollPercent,
+        color: danmakuColor
+      });
+
+      const likeItem = likeResult.data || likeResult;
+      const insight = { ...this.data.insight, likeCount: (this.data.insight.likeCount || 0) + 1 };
+      const danmakuList = [...this.data.danmakuList, likeItem];
+      this.setData({ isLiked: true, insight, danmakuList });
+      this._showDanmaku(likeItem);
+      this._showHearts();
+      this.closeDanmakuPanel();
+    } catch (e) {
+      wx.showToast({ title: '点赞失败', icon: 'none' });
+    }
+  },
+
+  _showHearts() {
+    const emojis = ['❤️', '💛', '✨', '🌟', '💫', '❤️', '✨', '💛'];
+    const heartItems = Array.from({ length: 7 }, (_, i) => ({
+      id: Date.now() + i,
+      emoji: emojis[i % emojis.length],
+      x: Math.floor(Math.random() * 120),
+      delay: (i * 0.22).toFixed(2)
+    }));
+    this.setData({ showHearts: true, heartItems });
+    setTimeout(() => this.setData({ showHearts: false, heartItems: [] }), 3200);
+  },
+
+  // 触发位置匹配的弹幕（滚动时调用）
+  _checkDanmakuTrigger(percent) {
+    const { danmakuList } = this.data;
+    const ids = this._shownDanmakuIds;
+    if (!ids) return;
+
+    danmakuList.forEach(item => {
+      const id = item._id || item.id;
+      if (!ids.has(id) && Math.abs((item.scrollPercent || 0) - percent) <= 3) {
+        ids.add(id);
+        this._showDanmaku(item);
+      }
+    });
+  },
+
+  // 将一条弹幕加入屏幕
+  _showDanmaku(item) {
+    const { activeDanmaku } = this.data;
+    if (activeDanmaku.length >= DANMAKU_MAX_VISIBLE) return;
+
+    const now = Date.now();
+    const lanes = this._laneReleaseTimes || new Array(DANMAKU_LANES).fill(0);
+    // 选一个已释放的最旧泳道
+    let lane = 0;
+    let earliest = lanes[0];
+    for (let i = 1; i < DANMAKU_LANES; i++) {
+      if (lanes[i] < earliest) { earliest = lanes[i]; lane = i; }
+    }
+    // 若最早泳道还未释放，不强行显示（避免叠字）
+    if (earliest > now) return;
+
+    const id = `${item._id || item.id}_${now}`;
+    const duration = DANMAKU_DURATION;
+    lanes[lane] = now + duration * 1000;
+    this._laneReleaseTimes = lanes;
+
+    const danmakuEntry = {
+      id,
+      content: item.userNickname ? `${item.userNickname}：${item.content}` : item.content,
+      lane,
+      color: item.color || '#4a90e2',
+      duration,
+      animDelay: 0
+    };
+
+    this.setData({ activeDanmaku: [...activeDanmaku, danmakuEntry] });
+
+    // duration 秒后从列表移除
+    setTimeout(() => {
+      this.setData({
+        activeDanmaku: this.data.activeDanmaku.filter(d => d.id !== id)
+      });
+    }, (duration + 0.5) * 1000);
   }
 });

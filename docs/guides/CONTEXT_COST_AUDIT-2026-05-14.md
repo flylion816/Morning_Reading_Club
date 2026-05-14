@@ -6,7 +6,7 @@
 
 高成本入口文件：
 
-- `CLAUDE.md`: 991 行
+- `CLAUDE.md`: 177 行
 - `AGENTS.md`: 177 行
 - `docs/guides/BUG_FIXES.md`: 4404 行
 - `docs/guides/AGENTS_HISTORY.md`: 322 行
@@ -34,6 +34,9 @@
 
 1. 将根 `AGENTS.md` 保持为短版入口，历史案例迁移到 `docs/guides/AGENTS_HISTORY.md`
 2. 将 `CLAUDE.md` 同步压缩为短版入口，去掉与 `AGENTS.md` 重复的大段历史和案例
+3. 将 `.claude/memory/ENV_CONFIG_GUIDE.md` 从完整正文缩成 46 行索引页，权威内容指向 `docs/guides/ENV_CONFIG_GUIDE.md`
+4. 将 `.claude/memory/testing-guide.md` 从完整正文缩成 44 行索引页，权威内容指向 `docs/guides/TESTING_GUIDE.md`
+5. 将 `.claude/memory/TESTING_PLAN_REFERENCE.md` 缩成 31 行历史计划入口，改为指向 `docs/plans/testing/`
 
 ## 建议优先级
 
@@ -159,11 +162,11 @@
 
 按投入产出比排序：
 
-1. 合并或瘦身 `.claude/memory/ENV_CONFIG_GUIDE.md`
-2. 合并测试相关 memory 文档
-3. 把 deployment memory 文档改成索引 + 场景卡片
-4. 给 `docs/guides/BUG_FIXES.md` 增加前置目录页
-5. 将 `.claude/memory/IMPLEMENTATION_LOG.md` 和 `day-*` 迁入 `docs/history/`
+1. 把 deployment memory 文档改成索引 + 场景卡片
+2. 给 `docs/guides/BUG_FIXES.md` 增加前置目录页
+3. 将 `.claude/memory/IMPLEMENTATION_LOG.md` 和 `day-*` 迁入 `docs/history/`
+4. 合并通知相关 memory 文档
+5. 收敛 `.claude/memory/project-structure.md` 与 `docs/guides/QUICK_START.md`
 
 ## 判断标准
 

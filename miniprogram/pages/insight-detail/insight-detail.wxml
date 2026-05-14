@@ -1,4 +1,26 @@
 <view class="page-insight-detail">
+  <!-- 弹幕叠加层：屏幕顶部固定区域，pointer-events:none 不遮挡点击 -->
+  <view class="danmaku-overlay" wx:if="{{danmakuEnabled && activeDanmaku.length > 0}}">
+    <view
+      wx:for="{{activeDanmaku}}"
+      wx:key="id"
+      class="danmaku-item danmaku-lane-{{item.lane}}"
+      style="border-color:{{item.color}};animation-duration:{{item.duration}}s;animation-delay:{{item.animDelay}}s"
+    >
+      <text class="danmaku-text">{{item.content}}</text>
+    </view>
+  </view>
+
+  <!-- 爱心飘散层：右下角向上飘散，不拦截点击 -->
+  <view class="hearts-overlay" wx:if="{{showHearts}}">
+    <text
+      wx:for="{{heartItems}}"
+      wx:key="id"
+      class="heart-item"
+      style="left:{{item.x}}rpx;animation-delay:{{item.delay}}s"
+    >{{item.emoji}}</text>
+  </view>
+
   <!-- 顶部课程标题卡片 -->
   <view class="detail-header">
     <view class="day-title">
@@ -20,14 +42,79 @@
     </view>
   </view>
 
-  <!-- 底部按钮 -->
+  <!-- 底部按钮：返回 + 弹幕功能 + 长图分享 + 微信好友 -->
   <view class="action-buttons">
     <button class="action-btn btn-back" bindtap="handleBack">返回</button>
+    <button class="action-btn btn-danmaku" bindtap="openDanmakuPanel">弹幕</button>
     <button class="action-btn btn-long-share" data-mode="hd" bindtap="handleLongImageShare">{{posterGenerating && posterGeneratingMode === 'hd' ? '生成中' : '长图分享'}}</button>
-    <!-- 生产环境：仅显示微信分享按钮 -->
-    <!-- 开发环境：显示分享菜单按钮 -->
     <button wx:if="{{isDev}}" class="action-btn btn-share" bindtap="openShareMenu">微信好友</button>
     <button wx:else class="action-btn btn-share" open-type="share">微信好友</button>
+  </view>
+
+  <!-- 弹幕功能浮层 -->
+  <view wx:if="{{showDanmakuPanel}}" class="danmaku-panel-mask" bindtap="closeDanmakuPanel">
+    <view class="danmaku-panel" catchtap="noop">
+      <view class="panel-handle"></view>
+      <view class="panel-title-row">
+        <text class="panel-title">弹幕功能</text>
+        <text class="panel-close" bindtap="closeDanmakuPanel">×</text>
+      </view>
+
+      <!-- 弹幕开关 -->
+      <view class="panel-section panel-toggle-row">
+        <view class="panel-section-label">
+          <text class="section-title">弹幕显示</text>
+          <text class="section-desc">{{danmakuEnabled ? '已开启' : '已关闭'}}</text>
+        </view>
+        <switch checked="{{danmakuEnabled}}" bindchange="toggleDanmaku" color="#4a90e2" />
+      </view>
+
+      <!-- 点赞 -->
+      <view class="panel-section panel-like-row">
+        <view class="like-info">
+          <text class="section-title">为这篇看见点赞</text>
+          <text class="like-count">{{insight.likeCount || 0}} 人点赞</text>
+        </view>
+        <button
+          class="like-btn {{isLiked ? 'liked' : ''}}"
+          bindtap="handleDanmakuLike"
+          disabled="{{isLiked}}"
+        >{{isLiked ? '❤️ 已点赞' : '♡ 点个赞'}}</button>
+      </view>
+
+      <!-- 发送弹幕 -->
+      <view class="panel-section panel-input-area">
+        <textarea
+          class="danmaku-textarea"
+          value="{{danmakuInput}}"
+          bindinput="onDanmakuInput"
+          placeholder="写下你读到这里的感悟..."
+          maxlength="60"
+          auto-height
+          show-confirm-bar="{{false}}"
+        />
+        <view class="color-row">
+          <view
+            wx:for="{{danmakuColors}}"
+            wx:key="value"
+            class="color-dot {{danmakuColor === item.value ? 'selected' : ''}}"
+            style="background:{{item.value}}"
+            bindtap="selectColor"
+            data-color="{{item.value}}"
+          ></view>
+        </view>
+        <view class="send-row">
+          <text class="char-count">{{danmakuInput.length}}/60</text>
+          <button
+            class="send-btn"
+            bindtap="sendDanmaku"
+            disabled="{{!danmakuInput}}"
+          >发送</button>
+        </view>
+      </view>
+
+      <text class="panel-stats">已有 {{danmakuList.length}} 条弹幕共鸣</text>
+    </view>
   </view>
 
   <!-- 长图生成画布（隐藏） -->
@@ -65,7 +152,6 @@
         <text class="modal-title">分享给</text>
       </view>
       <view class="share-options">
-        <!-- 微信好友选项 -->
         <view class="share-option" bindtap="shareToWechatFriend">
           <view class="option-icon">👥</view>
           <view class="option-info">
@@ -74,7 +160,6 @@
           </view>
           <view class="option-arrow">›</view>
         </view>
-        <!-- 虚拟好友选项（仅开发环境） -->
         <view class="share-option" bindtap="shareToVirtualFriend">
           <view class="option-icon">🤖</view>
           <view class="option-info">

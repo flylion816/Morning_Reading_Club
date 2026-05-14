@@ -15,6 +15,8 @@ const {
   deleteInsightManual,
   likeInsight,
   unlikeInsight,
+  postDanmaku,
+  getDanmaku,
   createInsightRequest,
   getReceivedRequests,
   getSentRequests,
@@ -148,6 +150,20 @@ router.post('/:insightId/like', authMiddleware, likeInsight);
  * @access  Private
  */
 router.post('/:insightId/unlike', authMiddleware, unlikeInsight);
+
+/**
+ * @route   GET /api/v1/insights/:insightId/danmaku
+ * @desc    获取弹幕列表
+ * @access  Private
+ */
+router.get('/:insightId/danmaku', authMiddleware, getDanmaku);
+
+/**
+ * @route   POST /api/v1/insights/:insightId/danmaku
+ * @desc    发送弹幕
+ * @access  Private
+ */
+router.post('/:insightId/danmaku', authMiddleware, postDanmaku);
 
 // ==================== 小凡看见(Insight) 相关路由 ====================
 
