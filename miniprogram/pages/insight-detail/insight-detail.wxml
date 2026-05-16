@@ -61,10 +61,12 @@
     </view>
     <view class="action-buttons">
       <button class="action-btn btn-back" bindtap="handleBack">返回</button>
+      <button class="action-btn btn-like {{isLiked ? 'liked' : ''}}" bindtap="handleLike">
+        <text>{{isLiked ? '❤️' : '♡'}}</text>
+        <text>{{isLiked ? '已赞' : '点赞'}}</text>
+      </button>
       <button class="action-btn btn-danmaku" bindtap="openDanmakuPanel">弹幕</button>
-      <button class="action-btn btn-long-share" data-mode="hd" bindtap="handleLongImageShare">{{posterGenerating && posterGeneratingMode === 'hd' ? '生成中' : '长图分享'}}</button>
-      <button wx:if="{{isDev}}" class="action-btn btn-share" bindtap="openShareMenu">微信好友</button>
-      <button wx:else class="action-btn btn-share" open-type="share">微信好友</button>
+      <button class="action-btn btn-share" bindtap="openShareMenu">分享</button>
     </view>
   </view>
 
@@ -84,18 +86,6 @@
           <text class="section-desc">{{danmakuEnabled ? '已开启' : '已关闭'}}</text>
           <switch checked="{{danmakuEnabled}}" bindchange="toggleDanmaku" color="#4a90e2" />
         </view>
-      </view>
-
-      <!-- 点赞 -->
-      <view class="panel-section panel-like-row">
-        <view class="like-info">
-          <text class="section-title">为这篇看见点赞</text>
-          <text class="like-count">{{insight.likeCount || 0}} 人点赞</text>
-        </view>
-        <button
-          class="like-btn {{isLiked ? 'liked' : ''}}"
-          bindtap="handleDanmakuLike"
-        >{{isLiked ? '❤️ 已点赞' : '♡ 点个赞'}}</button>
       </view>
 
       <!-- 发送弹幕 -->
@@ -162,32 +152,12 @@
     </view>
   </view>
 
-  <!-- 开发环境：分享菜单弹窗 -->
-  <view wx:if="{{isDev && showShareModal}}" class="share-modal-overlay" bindtap="closeShareModal">
-    <view class="share-modal" catchtap>
-      <view class="modal-header">
-        <text class="modal-title">分享给</text>
-      </view>
-      <view class="share-options">
-        <view class="share-option" bindtap="shareToWechatFriend">
-          <view class="option-icon">👥</view>
-          <view class="option-info">
-            <text class="option-name">微信好友</text>
-            <text class="option-desc">分享给微信好友</text>
-          </view>
-          <view class="option-arrow">›</view>
-        </view>
-        <view class="share-option" bindtap="shareToVirtualFriend">
-          <view class="option-icon">🤖</view>
-          <view class="option-info">
-            <text class="option-name">虚拟好友</text>
-            <text class="option-desc">测试分享流程</text>
-          </view>
-          <view class="option-arrow">›</view>
-        </view>
-      </view>
-      <view class="modal-cancel" bindtap="closeShareModal">取消</view>
-    </view>
+  <!-- 分享小菜单 -->
+  <view wx:if="{{showShareModal}}" class="share-popover-mask" bindtap="closeShareModal"></view>
+  <view wx:if="{{showShareModal}}" class="share-popover" catchtap="noop">
+    <button class="share-popover-item share-popover-button" open-type="share" bindtap="closeShareModal">微信</button>
+    <view class="share-popover-item" bindtap="handleShareMenuLongImage">长图</view>
+    <view class="share-popover-item" bindtap="handleTextShare">文本</view>
   </view>
   </block>
 </view>

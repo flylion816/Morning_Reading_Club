@@ -94,6 +94,10 @@ describe('course-detail page markdown support', () => {
   afterEach(() => {
     delete global.Page;
     delete global.getApp;
+    delete global.wx.env;
+    delete global.wx.getFileSystemManager;
+    delete global.wx.shareFileMessage;
+    delete global.wx.setClipboardData;
   });
 
   test('should render markdown course content into rich-text html', () => {
@@ -149,6 +153,75 @@ describe('course-detail page markdown support', () => {
 
     expect(shareConfig.title).toBe('狮子的打卡日记');
     expect(shareConfig.path).toBe('/pages/course-detail/course-detail?id=section_123&checkinId=checkin_456');
+  });
+
+  test('should prepare checkin txt file before showing share menu and forward it on tap', async () => {
+    let writtenFile = null;
+    global.wx.env = { USER_DATA_PATH: '/mock-user-data' };
+    global.wx.getFileSystemManager = jest.fn(() => ({
+      writeFile: jest.fn(options => {
+        writtenFile = options;
+        options.success();
+      })
+    }));
+    global.wx.shareFileMessage = jest.fn();
+    global.wx.setClipboardData = jest.fn();
+
+    pageInstance.setData({
+      course: { title: '觉察日记' },
+      shareCheckinId: 'checkin_456',
+      shareCheckinUserName: '狮子',
+      detailCheckin: {
+        id: 'checkin_456',
+        userName: '狮子',
+        metaLine: '第2天打卡 | 第2个任务',
+        hashTag: '#第2天 思维方式的力量',
+        periodChip: '内在之光',
+        dateLabel: '2026-03-29 22:11:39',
+        content: '哈哈哈哈笑死我了！'
+      }
+    });
+
+    await pageInstance.openCheckinShareMenu.call(pageInstance);
+
+    expect(writtenFile.filePath).toBe('/mock-user-data/凡人共读：狮子的打卡日记.txt');
+    expect(writtenFile.encoding).toBe('utf8');
+    expect(writtenFile.data).toContain('狮子的打卡日记');
+    expect(writtenFile.data).toContain('哈哈哈哈笑死我了！');
+    expect(pageInstance.data.showCheckinShareMenu).toBe(true);
+    expect(pageInstance.data.checkinTextShareFilePath).toBe('/mock-user-data/凡人共读：狮子的打卡日记.txt');
+
+    pageInstance.handleCheckinTextShare.call(pageInstance);
+
+    expect(global.wx.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({
+      filePath: '/mock-user-data/凡人共读：狮子的打卡日记.txt',
+      fileName: '凡人共读：狮子的打卡日记.txt'
+    }));
+    expect(global.wx.setClipboardData).not.toHaveBeenCalled();
+  });
+
+  test('should not copy checkin text when txt file forwarding is unavailable', () => {
+    global.wx.setClipboardData = jest.fn();
+    global.wx.showToast = jest.fn();
+
+    pageInstance.setData({
+      detailCheckin: {
+        id: 'checkin_456',
+        userName: '狮子',
+        content: '哈哈哈哈笑死我了！'
+      },
+      checkinTextShareFilePath: '/mock-user-data/凡人共读：狮子的打卡日记.txt',
+      checkinTextShareFileName: '凡人共读：狮子的打卡日记.txt',
+      showCheckinShareMenu: true
+    });
+
+    pageInstance.handleCheckinTextShare.call(pageInstance);
+
+    expect(global.wx.setClipboardData).not.toHaveBeenCalled();
+    expect(global.wx.showToast).toHaveBeenCalledWith({
+      title: '当前微信版本不支持txt转发',
+      icon: 'none'
+    });
   });
 
   test('should enable dynamic detail mode when opened with checkinId', () => {

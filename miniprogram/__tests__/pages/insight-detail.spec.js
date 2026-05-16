@@ -42,6 +42,10 @@ describe('insight-detail poster rendering', () => {
   afterEach(() => {
     delete global.Page;
     delete global.getApp;
+    delete global.wx.env;
+    delete global.wx.getFileSystemManager;
+    delete global.wx.shareFileMessage;
+    delete global.wx.setClipboardData;
   });
 
   test('should keep list items when poster content mixes paragraphs and lists', () => {
@@ -103,5 +107,86 @@ describe('insight-detail poster rendering', () => {
       [{ text: 'abc', bold: false }],
       [{ text: 'Z', bold: true }]
     ]);
+  });
+
+  test('should build plain text content for txt sharing', () => {
+    const content = pageInstance.buildTextShareContent.call(pageInstance, {
+      title: '第七天 积极主动的定义',
+      periodName: '秩序之锚',
+      content: '<p>第一段<strong>重点</strong></p><p>第二段&amp;符号</p>'
+    });
+
+    expect(content).toContain('第七天 积极主动的定义 - 致晨读者');
+    expect(content).toContain('秩序之锚');
+    expect(content).toContain('第一段重点');
+    expect(content).toContain('第二段&符号');
+    expect(content).toContain('By 小凡@凡人学堂');
+  });
+
+  test('should sanitize txt share file names', () => {
+    const fileName = pageInstance.getTextShareFileName.call(pageInstance, {
+      title: '第七天: 积极/主动*定义?'
+    });
+
+    expect(fileName).toBe('小凡看见：第七天积极主动定义-致晨读者.txt');
+  });
+
+  test('should prepare a txt file before showing the share menu and forward it on tap', async () => {
+    let writtenFile = null;
+    global.wx.env = { USER_DATA_PATH: '/mock-user-data' };
+    global.wx.getFileSystemManager = jest.fn(() => ({
+      writeFile: jest.fn(options => {
+        writtenFile = options;
+        options.success();
+      })
+    }));
+    global.wx.shareFileMessage = jest.fn();
+    global.wx.setClipboardData = jest.fn();
+
+    pageInstance.setData({
+      insight: {
+        title: '第七天 积极主动的定义',
+        periodName: '秩序之锚',
+        content: '<p>分享正文</p>'
+      },
+      showShareModal: false
+    });
+
+    await pageInstance.openShareMenu.call(pageInstance);
+
+    expect(writtenFile.filePath).toBe('/mock-user-data/小凡看见：第七天积极主动的定义-致晨读者.txt');
+    expect(writtenFile.encoding).toBe('utf8');
+    expect(writtenFile.data).toContain('分享正文');
+    expect(pageInstance.data.showShareModal).toBe(true);
+    expect(pageInstance.data.textShareFilePath).toBe('/mock-user-data/小凡看见：第七天积极主动的定义-致晨读者.txt');
+
+    pageInstance.handleTextShare.call(pageInstance);
+
+    expect(global.wx.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({
+      filePath: '/mock-user-data/小凡看见：第七天积极主动的定义-致晨读者.txt',
+      fileName: '小凡看见：第七天积极主动的定义-致晨读者.txt'
+    }));
+    expect(global.wx.setClipboardData).not.toHaveBeenCalled();
+  });
+
+  test('should not copy text when txt file forwarding is unavailable', () => {
+    global.wx.setClipboardData = jest.fn();
+    global.wx.showToast = jest.fn();
+
+    pageInstance.setData({
+      insight: {
+        title: '第七天 积极主动的定义',
+        content: '<p>分享正文</p>'
+      },
+      showShareModal: true
+    });
+
+    pageInstance.handleTextShare.call(pageInstance);
+
+    expect(global.wx.setClipboardData).not.toHaveBeenCalled();
+    expect(global.wx.showToast).toHaveBeenCalledWith({
+      title: '当前微信版本不支持txt转发',
+      icon: 'none'
+    });
   });
 });

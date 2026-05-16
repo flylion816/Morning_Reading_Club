@@ -39,10 +39,6 @@
 
       <view wx:if="{{detailCheckin.dateLabel}}" class="dynamic-date">{{detailCheckin.dateLabel}}</view>
 
-      <view wx:if="{{detailCheckin.canShare}}" class="dynamic-share-actions">
-        <button class="dynamic-share-btn dynamic-share-btn-plain" bindtap="handleLongImageShare">{{posterGenerating ? '生成中...' : '长图分享'}}</button>
-        <button class="dynamic-share-btn" open-type="share">微信好友</button>
-      </view>
     </view>
 
     <view wx:if="{{detailCheckin}}" class="dynamic-like-strip">
@@ -167,16 +163,24 @@
     </view>
 
     <view wx:if="{{detailCheckin}}" class="dynamic-bottom-bar">
-      <view
-        class="dynamic-input-trigger {{communityAccessState !== 'enabled' ? 'dynamic-input-trigger-disabled' : ''}}"
-        bindtap="handleReplyComment"
-        data-id="{{detailCheckin.id}}">
-        说点什么...
-      </view>
+      <view class="dynamic-bottom-action" bindtap="handleReplyComment" data-id="{{detailCheckin.id}}">评论</view>
 
-      <button wx:if="{{detailCheckin.canShare}}" class="dynamic-bottom-action dynamic-bottom-share" open-type="share">↗</button>
       <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action" bindtap="handleEditCheckin">编辑</view>
       <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-delete" bindtap="handleDeleteCheckin">删除</view>
+
+      <view wx:if="{{!detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-like {{detailCheckin.isLiked ? 'dynamic-bottom-liked' : ''}}" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
+        <text>{{detailCheckin.isLiked ? '❤️' : '♡'}}</text>
+        <text>点赞</text>
+      </view>
+
+      <view wx:if="{{detailCheckin.canShare}}" class="dynamic-bottom-action dynamic-bottom-share-menu" bindtap="openCheckinShareMenu">分享</view>
+    </view>
+
+    <view wx:if="{{showCheckinShareMenu}}" class="checkin-share-popover-mask" bindtap="closeCheckinShareMenu"></view>
+    <view wx:if="{{showCheckinShareMenu}}" class="checkin-share-popover" catchtap="noop">
+      <button class="checkin-share-popover-item checkin-share-popover-button" open-type="share" bindtap="closeCheckinShareMenu">微信</button>
+      <view class="checkin-share-popover-item" bindtap="handleCheckinShareMenuLongImage">长图</view>
+      <view class="checkin-share-popover-item" bindtap="handleCheckinTextShare">文本</view>
     </view>
   </block>
 

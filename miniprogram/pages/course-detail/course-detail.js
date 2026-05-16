@@ -140,7 +140,10 @@ Page({
     checkinPage: 1,
     checkinHasMore: false,
     checkinLoadingMore: false,
-    readingContentExpanded: false
+    readingContentExpanded: false,
+    showCheckinShareMenu: false,
+    checkinTextShareFilePath: '',
+    checkinTextShareFileName: ''
   },
 
   _hasRevealedContent: false,
@@ -176,7 +179,10 @@ Page({
       shareCheckinId: options.checkinId || '',
       shareCheckinUserName: '',
       canShareCurrentCheckin: true,
-      checkinContentExpanded: {}
+      checkinContentExpanded: {},
+      showCheckinShareMenu: false,
+      checkinTextShareFilePath: '',
+      checkinTextShareFileName: ''
     });
 
     this.updateShareMenu(true, !!options.checkinId);
@@ -219,15 +225,12 @@ Page({
       course,
       courseId,
       shareCheckinId,
-      shareCheckinUserName,
       canShareCurrentCheckin
     } = this.data;
 
     if (shareCheckinId && canShareCurrentCheckin) {
       return {
-        title: shareCheckinUserName
-          ? `${shareCheckinUserName}的打卡日记`
-          : course.title || '动态详情',
+        title: this.getCheckinShareTitle(),
         path: `/pages/course-detail/course-detail?id=${courseId}&checkinId=${shareCheckinId}`
       };
     }
@@ -243,15 +246,12 @@ Page({
       course,
       courseId,
       shareCheckinId,
-      shareCheckinUserName,
       canShareCurrentCheckin
     } = this.data;
 
     if (shareCheckinId && canShareCurrentCheckin) {
       return {
-        title: shareCheckinUserName
-          ? `${shareCheckinUserName}的打卡日记`
-          : course.title || '动态详情',
+        title: this.getCheckinShareTitle(),
         query: `id=${courseId}&checkinId=${shareCheckinId}`
       };
     }
@@ -260,6 +260,124 @@ Page({
       title: course.title || '课程详情',
       query: `id=${courseId}`
     };
+  },
+
+  getCheckinShareTitle() {
+    const { course, shareCheckinUserName, detailCheckin } = this.data;
+    const userName = shareCheckinUserName || detailCheckin?.userName || '';
+    return userName
+      ? `${userName}的打卡日记`
+      : course.title || '动态详情';
+  },
+
+  buildCheckinTextShareContent(checkin = this.data.detailCheckin) {
+    const title = this.getCheckinShareTitle();
+    const lines = [
+      title,
+      checkin?.metaLine || '',
+      checkin?.hashTag || '',
+      checkin?.periodChip || '',
+      checkin?.dateLabel || '',
+      '',
+      checkin?.content || '',
+      '',
+      'By 凡人共读'
+    ];
+
+    return lines
+      .filter((line, index) => line || lines[index - 1] !== '')
+      .join('\n')
+      .trim();
+  },
+
+  getCheckinTextShareFileName() {
+    const displayName = `凡人共读：${this.getCheckinShareTitle()}`;
+    const fileName = String(displayName)
+      .replace(/[\\/:*?"<>|]/g, ' ')
+      .replace(/\s+/g, '')
+      .slice(0, 48) || '凡人共读';
+    return `${fileName}.txt`;
+  },
+
+  prepareCheckinTextShareFile() {
+    const content = this.buildCheckinTextShareContent();
+
+    if (!content.trim()) {
+      this.setData({ checkinTextShareFilePath: '', checkinTextShareFileName: '' });
+      return Promise.resolve(false);
+    }
+
+    const fileSystemManager = wx.getFileSystemManager && wx.getFileSystemManager();
+    const userDataPath = wx.env && wx.env.USER_DATA_PATH;
+
+    if (!fileSystemManager || !userDataPath) {
+      this.setData({ checkinTextShareFilePath: '', checkinTextShareFileName: '' });
+      return Promise.resolve(false);
+    }
+
+    const fileName = this.getCheckinTextShareFileName();
+    const filePath = `${userDataPath}/${fileName}`;
+    wx.showLoading?.({ title: '生成文本...', mask: true });
+
+    return new Promise(resolve => {
+      fileSystemManager.writeFile({
+        filePath,
+        data: content,
+        encoding: 'utf8',
+        success: () => {
+          wx.hideLoading?.();
+          this.setData({
+            checkinTextShareFilePath: filePath,
+            checkinTextShareFileName: fileName
+          });
+          resolve(true);
+        },
+        fail: error => {
+          wx.hideLoading?.();
+          console.error('打卡文本文件生成失败:', error);
+          this.setData({ checkinTextShareFilePath: '', checkinTextShareFileName: '' });
+          resolve(false);
+        }
+      });
+    });
+  },
+
+  async openCheckinShareMenu() {
+    await this.prepareCheckinTextShareFile();
+    this.setData({ showCheckinShareMenu: true });
+  },
+
+  closeCheckinShareMenu() {
+    this.setData({ showCheckinShareMenu: false });
+  },
+
+  handleCheckinShareMenuLongImage() {
+    this.closeCheckinShareMenu();
+    this.handleLongImageShare();
+  },
+
+  handleCheckinTextShare() {
+    this.closeCheckinShareMenu();
+
+    if (typeof wx.shareFileMessage !== 'function') {
+      wx.showToast({ title: '当前微信版本不支持txt转发', icon: 'none' });
+      return;
+    }
+
+    const { checkinTextShareFilePath, checkinTextShareFileName } = this.data;
+    if (!checkinTextShareFilePath) {
+      wx.showToast({ title: '文本未生成，请重新点分享', icon: 'none' });
+      return;
+    }
+
+    wx.shareFileMessage({
+      filePath: checkinTextShareFilePath,
+      fileName: checkinTextShareFileName,
+      fail: error => {
+        console.error('打卡文本文件转发失败:', error);
+        wx.showToast({ title: '转发失败，请重试', icon: 'none' });
+      }
+    });
   },
 
   /**

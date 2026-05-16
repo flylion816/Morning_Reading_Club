@@ -97,7 +97,9 @@ Page({
     isLiked: false,
     showHearts: false,
     heartItems: [],
-    scrollPercent: 0
+    scrollPercent: 0,
+    textShareFilePath: '',
+    textShareFileName: ''
   },
 
   // 弹幕引擎内部状态（不需要响应式，放实例属性）
@@ -275,10 +277,10 @@ Page({
   },
 
   /**
-   * 打开分享菜单（仅在开发环境）
+   * 打开分享菜单
    */
-  openShareMenu() {
-    if (!this.data.isDev) return;
+  async openShareMenu() {
+    await this.prepareTextShareFile();
     this.setData({ showShareModal: true });
   },
 
@@ -289,51 +291,104 @@ Page({
     this.setData({ showShareModal: false });
   },
 
-  /**
-   * 分享到微信好友（在菜单中选择时）
-   */
-  shareToWechatFriend() {
-    this.closeShareModal();
-    const { insight } = this.data;
-    const title = this.getShareTitle(insight);
-
-    wx.shareAppMessage({
-      title,
-      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`,
-      imageUrl: '/assets/images/share-insight.jpg',
-      success() {
-        wx.showToast({ title: '分享成功', icon: 'success' });
-      },
-      fail() {
-        wx.showToast({ title: '分享失败', icon: 'none' });
-      }
-    });
-  },
-
-  /**
-   * 分享到虚拟好友（仅在开发环境）
-   */
-  shareToVirtualFriend() {
-    this.closeShareModal();
-    const { insight } = this.data;
-
-    // 模拟分享成功
-    wx.showToast({
-      title: '已分享给虚拟好友',
-      icon: 'success',
-      duration: 2000
-    });
-
-    console.log('虚拟好友分享:', {
-      title: this.getShareTitle(insight),
-      path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`
-    });
-  },
-
   getShareTitle(insight = {}) {
     const app = getApp();
     const owner = resolveInsightOwner(insight, app?.globalData?.userInfo || {});
     return `${insight.title || '凡人共读'} - 致${owner.name}`;
+  },
+
+  buildTextShareContent(insight = {}) {
+    const title = this.getShareTitle(insight);
+    const periodName = insight.periodName || '七个习惯晨读营';
+    const body = this._stripHtmlForCanvas(insight.content || '');
+
+    return [
+      title,
+      periodName,
+      '',
+      body,
+      '',
+      'By 小凡@凡人学堂',
+      'AI生成，注意甄别！'
+    ].filter((line, index, lines) => line || lines[index - 1] !== '').join('\n');
+  },
+
+  getTextShareFileName(insight = {}) {
+    const displayName = `小凡看见：${this.getShareTitle(insight)}`;
+    const fileName = String(displayName)
+      .replace(/[\\/:*?"<>|]/g, ' ')
+      .replace(/\s+/g, '')
+      .slice(0, 48) || '小凡看见';
+    return `${fileName}.txt`;
+  },
+
+  handleShareMenuLongImage() {
+    this.closeShareModal();
+    this.handleLongImageShare({ currentTarget: { dataset: { mode: 'hd' } } });
+  },
+
+  prepareTextShareFile() {
+    const { insight } = this.data;
+    const content = this.buildTextShareContent(insight);
+
+    if (!content.trim()) {
+      this.setData({ textShareFilePath: '', textShareFileName: '' });
+      return Promise.resolve(false);
+    }
+
+    const fileSystemManager = wx.getFileSystemManager && wx.getFileSystemManager();
+    const userDataPath = wx.env && wx.env.USER_DATA_PATH;
+
+    if (!fileSystemManager || !userDataPath) {
+      this.setData({ textShareFilePath: '', textShareFileName: '' });
+      return Promise.resolve(false);
+    }
+
+    const fileName = this.getTextShareFileName(insight);
+    const filePath = `${userDataPath}/${fileName}`;
+    wx.showLoading({ title: '生成文本...', mask: true });
+    return new Promise(resolve => {
+      fileSystemManager.writeFile({
+        filePath,
+        data: content,
+        encoding: 'utf8',
+        success: () => {
+          wx.hideLoading();
+          this.setData({ textShareFilePath: filePath, textShareFileName: fileName });
+          resolve(true);
+        },
+        fail: error => {
+          wx.hideLoading();
+          console.error('文本文件生成失败:', error);
+          this.setData({ textShareFilePath: '', textShareFileName: '' });
+          resolve(false);
+        }
+      });
+    });
+  },
+
+  handleTextShare() {
+    this.closeShareModal();
+
+    if (typeof wx.shareFileMessage !== 'function') {
+      wx.showToast({ title: '当前微信版本不支持txt转发', icon: 'none' });
+      return;
+    }
+
+    const { textShareFilePath, textShareFileName } = this.data;
+    if (!textShareFilePath) {
+      wx.showToast({ title: '文本未生成，请重新点分享', icon: 'none' });
+      return;
+    }
+
+    wx.shareFileMessage({
+      filePath: textShareFilePath,
+      fileName: textShareFileName,
+      fail: error => {
+        console.error('文本文件转发失败:', error);
+        wx.showToast({ title: '转发失败，请重试', icon: 'none' });
+      }
+    });
   },
 
   /**
@@ -985,7 +1040,7 @@ Page({
     }
   },
 
-  async handleDanmakuLike() {
+  async handleLike() {
     const { insightId, isLiked } = this.data;
     try {
       if (isLiked) {
@@ -994,8 +1049,6 @@ Page({
         this.setData({ isLiked: false, insight });
       } else {
         await insightService.likeInsight(insightId);
-        const app = getApp();
-        const currentUser = app?.globalData?.userInfo || {};
         const { danmakuColor } = this.data;
 
         const likeResult = await danmakuService.postDanmaku(insightId, {
@@ -1011,11 +1064,14 @@ Page({
         this.setData({ isLiked: true, insight, danmakuList });
         // _showDanmaku 内部会因 type==='like' 触发爱心，无需在此额外调用
         this._showDanmaku(likeItem);
-        this.closeDanmakuPanel();
       }
     } catch (e) {
       wx.showToast({ title: isLiked ? '取消点赞失败' : '点赞失败', icon: 'none' });
     }
+  },
+
+  handleDanmakuLike() {
+    return this.handleLike();
   },
 
   _showHearts() {
