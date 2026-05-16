@@ -1,0 +1,1 @@
+Data-access boundary through Mongoose models and database configuration. It reads/writes MongoDB documents, creates MySQL pool connections for sync and comparison, and enforces schema indexes and model-level helper methods.

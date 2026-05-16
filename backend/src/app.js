@@ -33,6 +33,7 @@ const backupRoutes = require('./routes/backup.routes');
 const meetingRoutes = require('./routes/meeting.routes');
 const activityRoutes = require('./routes/activity.routes');
 const checkinConfigRoutes = require('./routes/checkinConfig.routes');
+const wechatRoutes = require('./routes/wechat.routes');
 
 const app = express();
 
@@ -91,6 +92,7 @@ app.use('/api/v1/monitoring', monitoringRoutes); // 监控API
 app.use('/api/v1/backup', backupRoutes); // 备份管理API
 app.use('/api/v1/activities', activityRoutes); // 用户行为活跃度API
 app.use('/api/v1/checkin-celebration-config', checkinConfigRoutes); // 打卡庆祝配置
+app.use('/api/v1/wechat', wechatRoutes); // 微信网页能力
 
 // 404处理
 app.use(notFoundHandler);

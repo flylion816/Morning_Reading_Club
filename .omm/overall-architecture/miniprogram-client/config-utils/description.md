@@ -1,0 +1,1 @@
+Miniprogram configuration and utilities under miniprogram/config/ and miniprogram/utils/. They define environment-specific API endpoints and app IDs, constants, local storage helpers, formatting, markdown conversion, avatar handling, period access, and subscription auto top-up helpers.

@@ -1,0 +1,1 @@
+Vue 3 admin console under admin/src/. It provides authenticated operational screens for dashboard metrics, enrollments, payments, periods, users, content, check-ins, insights, analytics, audit logs, database comparison, subscription debugging, admin account management, and profile management.

@@ -1,0 +1,1 @@
+MongoDB is the authoritative store for live application data. MySQL receives transformed document copies for backup/read purposes. Redis carries runtime data that can be rebuilt or degraded, except sync queue loss can delay cross-store consistency.

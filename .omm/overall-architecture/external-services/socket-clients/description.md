@@ -1,0 +1,1 @@
+Realtime client boundary for Socket.IO/WebSocket updates. The backend maps user IDs to socket connections in backend/src/utils/websocket.js, while miniprogram/services/websocket.service.js manages client-side connect, reconnect, message dispatch, and event handlers.

@@ -1,0 +1,9 @@
+created: 2026-05-16T07:45:50.545Z
+updated: 2026-05-16T07:45:50.546Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: request-client
+children: []
+parentPath:
+  - miniprogram-client

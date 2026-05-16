@@ -1,0 +1,1 @@
+Client-side request initiation in miniprogram/utils/request.js and admin/src/services/api.ts. It attaches tokens, applies base URLs, handles uploads or JSON requests, and normalizes success/error behavior for pages and views.

@@ -1,0 +1,1 @@
+Authentication and monetization entry pages: login, enrollment, and payment. They coordinate WeChat login, token storage, enrollment submission, order creation, payment confirmation, and user access state.

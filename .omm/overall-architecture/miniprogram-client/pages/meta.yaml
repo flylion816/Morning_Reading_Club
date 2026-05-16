@@ -1,0 +1,9 @@
+created: 2026-05-16T07:45:35.527Z
+updated: 2026-05-16T07:45:35.527Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: pages
+children: []
+parentPath:
+  - miniprogram-client

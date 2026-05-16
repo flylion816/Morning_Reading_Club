@@ -1,0 +1,1 @@
+MongoDB primary database configured by MONGODB_URI and connected in backend/src/config/database.js. It is required for normal backend operation and protected by lifecycle handlers in backend/src/server.js.

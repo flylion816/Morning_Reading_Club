@@ -1,0 +1,1 @@
+Environment variables must be loaded before requiring modules that read them at module initialization. Callback endpoints such as WeChat Pay must accept the expected XML body format and remain reachable from the public production domain.

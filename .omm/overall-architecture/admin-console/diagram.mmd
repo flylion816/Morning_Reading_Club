@@ -1,0 +1,16 @@
+graph LR
+    app-shell["App Shell\nadmin/src/main.ts App.vue"]
+    router["Router\nadmin/src/router/"]
+    views["Views\nadmin/src/views/"]
+    stores["Pinia Stores\nadmin/src/stores/"]
+    api-client["API Client\nadmin/src/services/api.ts admin/src/api/"]
+    components["Components\nadmin/src/components/"]
+    utils-types["Utils and Types\nadmin/src/utils/ admin/src/types/"]
+
+    app-shell -->|"installs Vue, router, Pinia, Element Plus"| router
+    router -->|"guards authenticated navigation"| views
+    views -->|"read and mutate shared admin state"| stores
+    views -->|"call backend APIs"| api-client
+    views -->|"reuse layout/editor/widgets"| components
+    api-client -->|"normalizes response envelopes and auth headers"| utils-types
+    stores -->|"persist token and expose derived state"| api-client

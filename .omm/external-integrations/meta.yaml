@@ -1,0 +1,15 @@
+created: 2026-05-16T07:56:17.420Z
+updated: 2026-05-16T07:57:01.065Z
+update_count: 7
+last_field: note
+git_commit: d9f867e
+git_branch: main
+children:
+  - backend-services
+  - email-runtime
+  - miniprogram-wx
+  - socketio-runtime
+  - subscribe-api
+  - wechat-login-api
+  - wechat-pay-api
+  - wechat-token-api

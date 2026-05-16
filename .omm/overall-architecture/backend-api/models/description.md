@@ -1,0 +1,1 @@
+Mongoose model definitions under backend/src/models/. The main document families include Admin, User, Period, Section, Enrollment, Payment, Checkin, Comment, Insight, InsightRequest, InsightDanmaku, Notification, audit logs, subscription grants/deliveries, reading completions, user activity, and check-in celebration config.

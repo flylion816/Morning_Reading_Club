@@ -1,0 +1,1 @@
+Some controllers perform direct model writes and then trigger asynchronous sync or notification side effects. Failures in side effects may not fail the original request, so observability and idempotency matter for payment, enrollment, and notification flows.

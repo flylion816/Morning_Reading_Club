@@ -1,0 +1,1 @@
+Email capability represented by the nodemailer backend dependency. It is available for notification or operational delivery features, though current core flows center on WeChat and in-app notifications.

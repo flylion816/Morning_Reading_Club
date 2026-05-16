@@ -1,0 +1,1 @@
+Native WeChat miniprogram located under miniprogram/. It contains app startup logic, page definitions, reusable components, service wrappers around backend APIs, request/token handling, environment configuration, and local utilities for formatting, markdown, storage, and subscription-message behavior.

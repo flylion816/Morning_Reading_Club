@@ -1,0 +1,1 @@
+Persistence and runtime storage used by the backend. MongoDB is the source of truth for application documents, MySQL is maintained through sync and backup services, Redis supports cache/metrics/rate limiting/sync queues with memory fallback, and backend/uploads stores uploaded files served by Express.

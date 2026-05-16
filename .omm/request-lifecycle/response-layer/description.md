@@ -1,0 +1,1 @@
+Response and error handling through backend/src/utils/response.js and backend/src/middleware/errorHandler.js. It returns success payloads, pagination where applicable, business errors, 404 responses, and centralized uncaught route errors.

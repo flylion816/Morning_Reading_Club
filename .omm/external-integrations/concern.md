@@ -1,0 +1,1 @@
+Third-party API failures are common operational risks: expired WeChat codes, invalid credentials, template field mismatch, user subscription refusal, payment callback retries, and network timeouts all need explicit logging and user-safe fallback behavior.

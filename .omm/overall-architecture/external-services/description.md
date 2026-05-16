@@ -1,0 +1,1 @@
+External service boundary for WeChat platform APIs, WeChat Pay, Socket.IO clients, browser clients consuming the deployed API, and email/notification dependencies declared by the backend. These services are reached primarily from backend/src/services/ and miniprogram wx APIs.

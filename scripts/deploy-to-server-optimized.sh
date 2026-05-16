@@ -93,6 +93,13 @@ main() {
     exit 1
   fi
 
+  log_info "复制管理员操作指南静态文件..."
+  mkdir -p "$ADMIN_DIR/dist/admin-guide"
+  cp "$PROJECT_ROOT/docs/admin-guide/fanren-reading-admin-guide.html" \
+    "$ADMIN_DIR/dist/admin-guide/" 2>/dev/null || true
+  cp -r "$PROJECT_ROOT/docs/admin-guide-assets" \
+    "$ADMIN_DIR/dist/" 2>/dev/null || true
+
   # 第 3 步：创建备份
   log_section "第 3 步：在服务器创建备份"
   create_server_backup "$SERVER_ROOT" "$SERVER_USER" "$SERVER_IP" "$SSH_KEY" || true

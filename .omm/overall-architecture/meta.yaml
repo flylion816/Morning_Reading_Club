@@ -1,0 +1,13 @@
+created: 2026-05-16T07:44:22.980Z
+updated: 2026-05-16T07:45:07.938Z
+update_count: 7
+last_field: note
+git_commit: 960129f
+git_branch: main
+children:
+  - admin-console
+  - backend-api
+  - external-services
+  - miniprogram-client
+  - operations-scripts
+  - storage-layer

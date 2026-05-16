@@ -1,0 +1,1 @@
+Utility modules under backend/src/utils/. They provide JWT helpers, logging, Redis access with memory fallback, Socket.IO user maps, response helpers, config validation, monitoring rules, cache helpers, audit helpers, notification links, alerting, and study-reminder calculations.

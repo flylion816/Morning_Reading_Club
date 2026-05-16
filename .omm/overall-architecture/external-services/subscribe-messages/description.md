@@ -1,0 +1,1 @@
+WeChat subscribe-message delivery API used by backend/src/services/subscribe-message.service.js and reminder schedules. The backend tracks grants and delivery attempts in MongoDB and sends templated messages when users have available authorization.

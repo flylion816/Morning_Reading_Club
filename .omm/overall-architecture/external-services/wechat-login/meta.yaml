@@ -1,0 +1,9 @@
+created: 2026-05-16T07:49:31.133Z
+updated: 2026-05-16T07:49:31.134Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: wechat-login
+children: []
+parentPath:
+  - external-services

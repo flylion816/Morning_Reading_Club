@@ -1,0 +1,1 @@
+The backend has broad operational power: payment changes, enrollment state, notification dispatch, backup/sync, and database management share one API process. Any change in these areas needs targeted validation for authentication, authorization, data consistency, and production-data safety.

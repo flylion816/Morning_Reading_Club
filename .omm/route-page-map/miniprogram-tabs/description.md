@@ -1,0 +1,1 @@
+Main miniprogram tabBar entries configured in miniprogram/app.json: pages/index/index, pages/periods/periods, and pages/profile/profile. Startup routing in miniprogram/app.js chooses among these based on environment, login state, and external launch path.

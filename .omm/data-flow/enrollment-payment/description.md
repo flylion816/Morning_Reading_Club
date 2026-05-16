@@ -1,0 +1,1 @@
+Enrollment and payment data covers Enrollment and Payment models, access checks, payment initiation, confirmation, cancellation, admin cancellation/reset, WeChat callback handling, and membership status updates.

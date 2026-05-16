@@ -1,0 +1,1 @@
+WeChat login endpoint used by backend/src/services/wechat.service.js in production to exchange wx.login codes for openid, session_key, and unionid. Development and test environments return deterministic mock users instead.

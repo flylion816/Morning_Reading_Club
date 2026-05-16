@@ -1,0 +1,1 @@
+Application bootstrap files miniprogram/app.js and miniprogram/app.json. They define page registration, tab bar entries, startup navigation, login-state restoration, system information capture, and app lifecycle activity tracking.

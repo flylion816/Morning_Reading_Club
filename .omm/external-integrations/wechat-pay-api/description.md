@@ -1,0 +1,1 @@
+WeChat Pay unified-order API and callback flow. backend/src/services/payment.service.js builds XML requests and MD5 signatures, while payment routes/controllers accept callbacks and update Payment and Enrollment state.

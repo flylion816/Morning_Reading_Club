@@ -1,0 +1,1 @@
+Backup service in backend/src/services/backup.service.js plus related MySQL backup support. It creates backup directories, exports MongoDB and MySQL snapshots, compares data, runs scheduled jobs in production, and supports recovery endpoints through backup routes.

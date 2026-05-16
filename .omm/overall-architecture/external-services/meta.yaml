@@ -1,0 +1,13 @@
+created: 2026-05-16T07:49:15.416Z
+updated: 2026-05-16T07:49:23.859Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: external-services
+children:
+  - socket-clients
+  - subscribe-messages
+  - wechat-jssdk
+  - wechat-login
+  - wechat-pay
+parentPath: []

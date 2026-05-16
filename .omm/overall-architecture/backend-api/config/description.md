@@ -1,0 +1,1 @@
+Backend configuration under backend/src/config/. It defines database connections for MongoDB and MySQL, CORS policy for Express and Socket.IO, subscription-message templates, and synchronization configuration.

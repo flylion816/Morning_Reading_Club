@@ -1,0 +1,1 @@
+Vue Router configuration in admin/src/router/. It defines login and protected admin routes, restores tokens from localStorage on navigation, fetches missing profile data, and redirects unauthenticated users to /login.

@@ -1,0 +1,1 @@
+Most user workflows enter through /api/v1 endpoints. The miniprogram uses wx.request through a custom wrapper with token refresh, while the admin console uses Axios with localStorage-based admin tokens and response-envelope normalization.

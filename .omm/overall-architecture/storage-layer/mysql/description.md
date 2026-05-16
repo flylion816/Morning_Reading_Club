@@ -1,0 +1,1 @@
+Secondary relational store reached through mysql2 in backend/src/config/database.js. It receives transformed MongoDB documents through sync services and is included in backup, comparison, and recovery workflows.

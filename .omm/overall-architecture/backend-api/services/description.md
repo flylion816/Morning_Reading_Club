@@ -1,0 +1,1 @@
+Service modules under backend/src/services/. They isolate external WeChat calls, payment signing/order creation, subscription-message delivery, MongoDB-to-MySQL synchronization, backups, audit helpers, community access checks, period status schedules, study reminders, notification creation, and debug/diagnostic support.

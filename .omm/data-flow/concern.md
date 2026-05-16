@@ -1,0 +1,1 @@
+MongoDB-to-MySQL sync transforms populated objects, ObjectIds, dates, booleans, and JSON fields. Schema drift or populated forms can create subtle sync failures, so payment, enrollment, and admin-account changes need sync verification.

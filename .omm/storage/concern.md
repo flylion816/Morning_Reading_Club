@@ -1,0 +1,1 @@
+Redis fallback prevents many cache failures from breaking requests, but sync-queue, monitoring, and rate-limit semantics differ when Redis is unavailable. MongoDB disconnects in production are fatal by design.

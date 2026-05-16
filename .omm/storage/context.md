@@ -1,0 +1,1 @@
+The backend starts MongoDB before accepting normal work, tests MySQL but can continue with limited MySQL availability, and initializes Redis with fallback behavior for cache-like functions. Production schedules run backup, reminder, and period-status jobs only in production.

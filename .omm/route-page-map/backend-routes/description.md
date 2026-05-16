@@ -1,0 +1,1 @@
+Backend route family collection under backend/src/routes/. It is the shared target for miniprogram services and admin API services, with public, user-authenticated, admin-authenticated, and external callback endpoints.

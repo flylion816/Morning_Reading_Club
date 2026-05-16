@@ -1,0 +1,9 @@
+created: 2026-05-16T07:48:10.076Z
+updated: 2026-05-16T07:48:10.077Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: api-client
+children: []
+parentPath:
+  - admin-console

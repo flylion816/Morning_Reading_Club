@@ -1,0 +1,1 @@
+MongoDB primary application store, accessed through Mongoose models and connection lifecycle handlers. Production disconnects are treated as fatal because live request handling depends on this database.

@@ -1,0 +1,1 @@
+Backend process entry in backend/src/server.js. It loads environment files before importing dependent modules, validates configuration, connects Redis and MongoDB, tests MySQL, starts Express, initializes Socket.IO, wires app.locals for realtime delivery, and starts production-only scheduled jobs.

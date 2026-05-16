@@ -1,0 +1,1 @@
+WeChat client APIs invoked from the miniprogram runtime, including wx.login, wx.request, wx.uploadFile, wx.requestPayment, wx.requestSubscribeMessage, wx.connectSocket, storage APIs, navigation APIs, and update/system APIs.

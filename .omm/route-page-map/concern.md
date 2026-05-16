@@ -1,0 +1,1 @@
+There are profile-related pages under both pages/profile/profile and newly added pages/profile/my plus pages/index/profile in the working tree. Navigation and app.json registration should be checked when this area is finalized.

@@ -1,0 +1,14 @@
+graph LR
+    wechat-login["WeChat Login API\napi.weixin.qq.com/sns/jscode2session"]
+    wechat-jssdk["WeChat JSSDK API\napi.weixin.qq.com/cgi-bin/"]
+    wechat-pay["WeChat Pay API\napi.mch.weixin.qq.com/pay/unifiedorder"]
+    subscribe-messages["Subscribe Messages\napi.weixin.qq.com/cgi-bin/message/subscribe/send"]
+    socket-clients["Socket Clients\nminiprogram websocket clients"]
+
+    wechat-login -->|"returns openid/session_key for login"| subscribe-messages
+    wechat-jssdk -->|"returns access token and ticket for webview signing"| socket-clients
+    wechat-pay -->|"returns prepay id and asynchronous payment callbacks"| socket-clients
+    subscribe-messages -->|"delivers reminder and action notifications"| socket-clients
+
+    classDef external fill:#585b70,stroke:#585b70,color:#cdd6f4
+    class wechat-login,wechat-jssdk,wechat-pay,subscribe-messages,socket-clients external

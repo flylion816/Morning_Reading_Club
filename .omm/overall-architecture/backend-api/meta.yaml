@@ -1,0 +1,17 @@
+created: 2026-05-16T07:46:09.355Z
+updated: 2026-05-16T07:46:22.583Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: backend-api
+children:
+  - config
+  - controllers
+  - express-app
+  - middleware
+  - models
+  - routes
+  - server-runtime
+  - services
+  - utilities
+parentPath: []

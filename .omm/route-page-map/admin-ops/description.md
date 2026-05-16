@@ -1,0 +1,1 @@
+Admin operational views for check-ins, insights, insight requests, analytics, audit logs, database comparison, subscription debugging, account management, and profile. These screens require careful auth and audit behavior because they expose sensitive operations.

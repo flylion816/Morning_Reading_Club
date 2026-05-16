@@ -1,0 +1,1 @@
+Member learning workflow pages: checkin, checkin-records, ranking, members, share, and related course/section views. They rely on enrollment access, task data, check-in APIs, comment APIs, and ranking APIs.

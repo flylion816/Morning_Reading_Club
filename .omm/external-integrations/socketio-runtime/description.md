@@ -1,0 +1,1 @@
+Socket.IO realtime runtime created in backend/src/server.js and managed by backend/src/utils/websocket.js. It tracks user-to-socket mappings and lets controllers/services push targeted or broadcast notifications.

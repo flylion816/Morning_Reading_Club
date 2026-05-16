@@ -1,0 +1,9 @@
+created: 2026-05-16T07:48:39.971Z
+updated: 2026-05-16T07:48:39.972Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: mongodb
+children: []
+parentPath:
+  - storage-layer

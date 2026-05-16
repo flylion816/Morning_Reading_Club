@@ -1,0 +1,15 @@
+created: 2026-05-16T07:47:27.029Z
+updated: 2026-05-16T07:47:36.096Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: admin-console
+children:
+  - api-client
+  - app-shell
+  - components
+  - router
+  - stores
+  - utils-types
+  - views
+parentPath: []

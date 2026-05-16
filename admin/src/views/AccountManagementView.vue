@@ -251,6 +251,7 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { accountApi } from '../services/api';
+import { getLastTextChar } from '../utils/avatar';
 import { ElMessage } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
@@ -566,8 +567,7 @@ const getRoleType = (role: string) => {
 };
 
 const getAvatarText = (name: string) => {
-  if (!name) return 'U';
-  return name.trim().charAt(0).toUpperCase();
+  return getLastTextChar(name, 'U').toUpperCase();
 };
 </script>
 

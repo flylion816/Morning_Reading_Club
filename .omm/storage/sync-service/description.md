@@ -1,0 +1,1 @@
+MongoDB-to-MySQL sync service in backend/src/services/sync.service.js. It publishes events to a Redis list, consumes queued tasks, transforms documents into MySQL columns, and performs upserts with retry behavior.

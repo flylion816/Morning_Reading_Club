@@ -1,0 +1,1 @@
+Reusable miniprogram components under miniprogram/components/, including course cards and notification badges. They provide shared UI pieces for pages without introducing a separate frontend framework.

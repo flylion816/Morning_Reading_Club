@@ -1,0 +1,1 @@
+WeChat subscribe-message send endpoint. backend/src/services/subscribe-message.service.js builds scene-specific template data, respects grant counts and refusal states, records delivery attempts, and supports reminder scheduling.

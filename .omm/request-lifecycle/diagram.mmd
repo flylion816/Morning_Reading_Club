@@ -1,0 +1,20 @@
+graph LR
+    client-request["Client Request\nminiprogram/utils/request.js admin/src/services/api.ts"]
+    edge-middleware["Express Middleware\nbackend/src/app.js backend/src/middleware/"]
+    route-dispatch["Route Dispatch\nbackend/src/routes/"]
+    controller-handler["Controller Handler\nbackend/src/controllers/"]
+    domain-services["Domain Services\nbackend/src/services/"]
+    data-access["Data Access\nbackend/src/models/ backend/src/config/database.js"]
+    side-effects["Side Effects\nRedis / Socket.IO / WeChat / MySQL sync"]
+    response-layer["Response and Errors\nbackend/src/utils/response.js errorHandler.js"]
+
+    client-request -->|"sends JSON, auth token, uploads, or refresh requests"| edge-middleware
+    edge-middleware -->|"parses, secures, audits, monitors, and attaches ws refs"| route-dispatch
+    route-dispatch -->|"matches versioned endpoint and middleware chain"| controller-handler
+    controller-handler -->|"validates intent and orchestrates business flow"| domain-services
+    controller-handler -->|"reads and writes documents directly when simple"| data-access
+    domain-services -->|"performs complex logic and integrations"| data-access
+    domain-services -->|"queues sync, sends notifications, creates backups"| side-effects
+    data-access -->|"returns persisted state or errors"| response-layer
+    side-effects -->|"returns async status or logs failures"| response-layer
+    response-layer -->|"normalizes success/error envelope"| client-request

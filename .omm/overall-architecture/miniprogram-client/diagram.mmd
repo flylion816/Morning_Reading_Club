@@ -1,0 +1,14 @@
+graph LR
+    app-entry["App Entry\nminiprogram/app.js app.json"]
+    pages["Pages\nminiprogram/pages/"]
+    services["Service Layer\nminiprogram/services/"]
+    request-client["Request Client\nminiprogram/utils/request.js"]
+    components["Components\nminiprogram/components/"]
+    config-utils["Config and Utilities\nminiprogram/config/ miniprogram/utils/"]
+
+    app-entry -->|"sets startup navigation and global login state"| pages
+    pages -->|"render workflows and call domain services"| services
+    pages -->|"reuse visual widgets"| components
+    services -->|"share token, retry, upload, and error handling"| request-client
+    request-client -->|"reads endpoint, storage keys, timeout"| config-utils
+    app-entry -->|"reads environment and constants"| config-utils

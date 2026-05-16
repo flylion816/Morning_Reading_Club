@@ -1,0 +1,15 @@
+created: 2026-05-16T07:50:15.863Z
+updated: 2026-05-16T07:50:54.058Z
+update_count: 7
+last_field: note
+git_commit: d9f867e
+git_branch: main
+children:
+  - client-request
+  - controller-handler
+  - data-access
+  - domain-services
+  - edge-middleware
+  - response-layer
+  - route-dispatch
+  - side-effects

@@ -1,0 +1,1 @@
+Admin management views for core operations: dashboard metrics, enrollments, payments, periods, users, and content management. They primarily call admin API groups exposed through admin/src/services/api.ts and backend /api/v1 routes.

@@ -1,0 +1,1 @@
+Shared HTTP/upload wrapper in miniprogram/utils/request.js. It adds auth tokens except on public endpoints, normalizes success/error responses, refreshes expired tokens with a request queue, clears login state on auth failure, and exposes get/post/put/delete/patch/upload helpers.

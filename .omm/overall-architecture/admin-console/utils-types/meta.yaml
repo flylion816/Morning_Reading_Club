@@ -1,0 +1,9 @@
+created: 2026-05-16T07:48:20.872Z
+updated: 2026-05-16T07:48:20.872Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: utils-types
+children: []
+parentPath:
+  - admin-console

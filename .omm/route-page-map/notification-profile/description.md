@@ -1,0 +1,1 @@
+Notification and profile pages: notifications, notification-settings, profile/profile, edit-profile, profile-others, and newer profile-related files currently present in the working tree. They manage user identity, avatars, preferences, notification read/archive state, and subscription permissions.

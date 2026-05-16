@@ -1,0 +1,1 @@
+Admin router in admin/src/router/index.ts. It defines the /login route and protected routes for dashboard, enrollments, payments, periods, users, content, check-ins, insights, insight requests, analytics, audit logs, database, subscription debug, account management, and profile.

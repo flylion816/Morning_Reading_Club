@@ -1,0 +1,1 @@
+Route modules under backend/src/routes/. They bind HTTP methods and paths to middleware chains and controller functions for versioned /api/v1 endpoints plus health, status, readiness, liveness, and meeting launch pages.

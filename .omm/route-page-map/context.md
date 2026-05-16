@@ -1,0 +1,1 @@
+The miniprogram exposes tabBar entries for home, reading camps, and profile. app.js may preserve external launch paths, redirect old shared profile links, or send unauthenticated production users to the public period list. The admin console uses Vue Router with auth guards for every operational view except login.

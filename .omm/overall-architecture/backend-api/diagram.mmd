@@ -1,0 +1,20 @@
+graph LR
+    server-runtime["Server Runtime\nbackend/src/server.js"]
+    express-app["Express App\nbackend/src/app.js"]
+    routes["Routes\nbackend/src/routes/"]
+    middleware["Middleware\nbackend/src/middleware/"]
+    controllers["Controllers\nbackend/src/controllers/"]
+    services["Services\nbackend/src/services/"]
+    models["Models\nbackend/src/models/"]
+    utilities["Utilities\nbackend/src/utils/"]
+    config["Config\nbackend/src/config/"]
+
+    server-runtime -->|"loads env, validates config, starts HTTP and Socket.IO"| express-app
+    express-app -->|"mounts route families"| routes
+    express-app -->|"applies auth, audit, monitoring, error handling"| middleware
+    routes -->|"dispatch endpoint handlers"| controllers
+    controllers -->|"orchestrate business actions"| services
+    controllers -->|"query and mutate documents"| models
+    services -->|"query, sync, notify, schedule"| models
+    services -->|"use logging, Redis, JWT, websocket helpers"| utilities
+    server-runtime -->|"connects database and CORS settings"| config

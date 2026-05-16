@@ -1,0 +1,1 @@
+Redis runtime data includes cache entries, sorted-set monitoring samples, rate-limit counters, alert throttles, and MongoDB-to-MySQL sync queue tasks. The utility wrapper can fall back to in-memory cache for many operations.

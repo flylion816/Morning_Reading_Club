@@ -1,0 +1,9 @@
+created: 2026-05-16T07:48:53.873Z
+updated: 2026-05-16T07:48:53.874Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: redis
+children: []
+parentPath:
+  - storage-layer

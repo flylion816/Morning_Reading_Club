@@ -1,0 +1,1 @@
+Admin HTTP layer in admin/src/services/api.ts and admin/src/api/. It creates the Axios client, attaches Bearer tokens from localStorage, unwraps the backend response envelope, redirects on 401, and groups domain APIs for auth, accounts, enrollments, payments, periods, users, stats, insights, and other admin screens.

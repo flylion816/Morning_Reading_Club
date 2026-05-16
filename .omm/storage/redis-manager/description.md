@@ -1,0 +1,1 @@
+Redis runtime manager in backend/src/utils/redis.js. It wraps Redis connection, basic key operations, expiry, key scanning, sorted-set operations, counters, status reporting, and fallback memory cache.

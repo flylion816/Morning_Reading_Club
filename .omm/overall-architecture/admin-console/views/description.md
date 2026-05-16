@@ -1,0 +1,1 @@
+View components under admin/src/views/. They implement operational pages for dashboard, enrollments, payments, periods, users, content, check-ins, insights, analytics, audit logs, database comparison, subscription debugging, account management, login, and profile.

@@ -1,0 +1,1 @@
+Routes that need user identity must mount auth middleware at the route layer. Admin-only routes must additionally enforce admin middleware or role checks. Public endpoints should stay explicit to avoid accidental token refresh loops or exposing admin behavior.

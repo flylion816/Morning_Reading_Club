@@ -1,0 +1,1 @@
+Integration-owning backend service modules under backend/src/services/. They wrap WeChat login, JSSDK token/ticket lookup, payment order/signature generation, subscription-message delivery, and other outbound effects behind application-specific interfaces.

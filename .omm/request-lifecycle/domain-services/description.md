@@ -1,0 +1,1 @@
+Backend service layer under backend/src/services/. It owns reusable business processes such as WeChat login/JSSDK calls, payment signing, subscription-message grants and sends, reminders, period status schedules, MongoDB-to-MySQL sync, backup operations, user notifications, and audit support.

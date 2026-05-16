@@ -1,0 +1,20 @@
+graph LR
+    mongoose-models["Mongoose Models\nbackend/src/models/"]
+    mongodb["MongoDB\nMONGODB_URI"]
+    mysql-pool["MySQL Pool\nbackend/src/config/database.js"]
+    redis-manager["Redis Manager\nbackend/src/utils/redis.js"]
+    sync-service["Sync Service\nbackend/src/services/sync.service.js"]
+    backup-service["Backup Service\nbackend/src/services/backup.service.js"]
+    upload-files["Upload Files\nbackend/uploads/"]
+
+    mongoose-models -->|"read/write primary documents"| mongodb
+    mongodb -->|"change events are published by controllers/services"| sync-service
+    sync-service -->|"pushes and consumes mongodb:sync:queue"| redis-manager
+    sync-service -->|"upserts transformed rows"| mysql-pool
+    backup-service -->|"exports MongoDB snapshots"| mongodb
+    backup-service -->|"exports MySQL snapshots"| mysql-pool
+    upload-files -->|"served by Express and referenced by documents"| mongodb
+    redis-manager -->|"stores cache, metrics, rate-limit state"| mongodb
+
+    classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+    class mongodb,mysql-pool,redis-manager,upload-files store

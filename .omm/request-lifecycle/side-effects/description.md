@@ -1,0 +1,1 @@
+Asynchronous or external effects triggered during request handling. This includes Redis cache and monitoring writes, Redis sync queue events, Socket.IO notifications, WeChat API calls, subscribe-message delivery, MySQL sync, and backup operations.

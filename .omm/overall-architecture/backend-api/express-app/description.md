@@ -1,0 +1,1 @@
+Express composition root in backend/src/app.js. It configures proxy trust, security headers, CORS, compression, request parsers, static uploads, WebSocket references, monitoring, public health/meeting routes, audit logging, API route mounts, 404 handling, and error handling.

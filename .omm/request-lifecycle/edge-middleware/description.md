@@ -1,0 +1,1 @@
+Express middleware configured in backend/src/app.js and backend/src/middleware/. It handles security headers, CORS, compression, body parsing, XML payment callbacks, static uploads, monitoring, audit logging, authentication, authorization, rate limiting, caching, 404s, and errors.

@@ -1,0 +1,1 @@
+Express backend under backend/src/. It loads environment configuration, starts HTTP and Socket.IO, connects MongoDB/MySQL/Redis, mounts middleware and API route families, owns business controllers/services/models, and starts production schedules for reminders, period status, backups, and sync.

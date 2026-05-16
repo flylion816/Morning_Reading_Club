@@ -1,0 +1,1 @@
+Audit and operations data includes admin write audit logs, user activity records, monitoring metrics, alert throttle keys, backup metadata, database comparison output, and deployment helper artifacts.

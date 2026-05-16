@@ -1,0 +1,17 @@
+created: 2026-05-16T07:58:15.967Z
+updated: 2026-05-16T07:58:56.451Z
+update_count: 7
+last_field: note
+git_commit: d9f867e
+git_branch: main
+children:
+  - admin-management
+  - admin-ops
+  - admin-router
+  - auth-entry
+  - backend-routes
+  - insight-workflows
+  - learning-workflows
+  - miniprogram-tabs
+  - notification-profile
+  - public-browse

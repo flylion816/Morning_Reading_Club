@@ -1,0 +1,1 @@
+The product serves learners in a recurring reading camp. The miniprogram handles learner workflows, the backend owns authentication and data rules, and the admin console supports operational management. MongoDB is the primary application store; MySQL is maintained as a synchronized backup/read copy; Redis supports cache, monitoring, rate limiting, and sync queues.

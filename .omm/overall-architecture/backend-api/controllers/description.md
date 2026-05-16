@@ -1,0 +1,1 @@
+Controller modules under backend/src/controllers/. They implement route handlers, validate request context, call models and services, transform response payloads, and coordinate user-facing and admin-facing workflows.

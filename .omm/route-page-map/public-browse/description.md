@@ -1,0 +1,1 @@
+Public and semi-public learning browse pages: periods, period-detail, courses, course-detail, reading-mode, meeting-webview, privacy-policy, and user-agreement. They let users inspect camp content before or around authentication.

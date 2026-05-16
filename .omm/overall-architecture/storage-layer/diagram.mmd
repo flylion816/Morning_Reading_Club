@@ -1,0 +1,15 @@
+graph LR
+    mongodb["MongoDB\nbackend/src/models/"]
+    mysql["MySQL\nbackend/src/config/database.js"]
+    redis["Redis\nbackend/src/utils/redis.js sync.service.js"]
+    uploads["Uploaded Files\nbackend/uploads/ served at /uploads"]
+    backups["Backup Files\nbackups/ backend/backups/"]
+
+    mongodb -->|"primary document writes"| mysql
+    redis -->|"queues MongoDB to MySQL sync tasks"| mysql
+    mongodb -->|"exports scheduled snapshots"| backups
+    mysql -->|"exports scheduled snapshots"| backups
+    uploads -->|"static file references stored in documents"| mongodb
+
+    classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+    class mongodb,mysql,redis,uploads,backups store

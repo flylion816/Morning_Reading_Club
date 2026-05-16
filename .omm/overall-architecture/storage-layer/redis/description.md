@@ -1,0 +1,1 @@
+Redis runtime store used by backend utilities and sync services. It backs cache operations, rate limiting, monitoring metrics, alert throttling, and the mongodb:sync:queue list. backend/src/utils/redis.js falls back to bounded in-memory storage when Redis is disabled or unavailable.

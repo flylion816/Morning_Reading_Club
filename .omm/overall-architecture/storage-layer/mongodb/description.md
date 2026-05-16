@@ -1,0 +1,1 @@
+Primary document database accessed through Mongoose models in backend/src/models/. It stores users, admins, periods, sections, enrollments, payments, check-ins, comments, insights, notifications, subscription grants and deliveries, audit logs, user activity, and related state.

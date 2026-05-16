@@ -1,0 +1,1 @@
+Domain service wrappers under miniprogram/services/. Each service groups backend API calls for auth, periods/courses, enrollment, payment, check-in, comments, ranking, notifications, subscription messages, insights, user activity, and WebSocket updates.

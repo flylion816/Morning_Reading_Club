@@ -1,0 +1,1 @@
+High-level architecture for the Morning Reading Club WeChat mini program. The system is split into a native WeChat client, an Express backend, a Vue 3 admin console, several storage systems, external WeChat-facing services, and local operations scripts.

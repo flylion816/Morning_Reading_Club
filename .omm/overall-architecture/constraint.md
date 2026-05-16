@@ -1,0 +1,1 @@
+WeChat miniprogram code stays native and uses WeUI rather than adding a third-party frontend framework. Backend user identity is based on MongoDB _id values. Authenticated routes must mount route-level auth middleware. Database reset or initialization scripts must never be run without explicit user confirmation.

@@ -1,0 +1,1 @@
+External integration map for platform APIs and runtime services outside the project codebase, centered on WeChat login, WeChat JS SDK signing, WeChat Pay, subscription messages, Socket.IO realtime delivery, and email capability.

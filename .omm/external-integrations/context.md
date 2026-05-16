@@ -1,0 +1,1 @@
+Production user identity and payment confirmation depend on WeChat platform services. Development and test modes mock WeChat login, but production mode requires correctly loaded WECHAT_* environment variables before dependent modules are imported.

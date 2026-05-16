@@ -1,0 +1,1 @@
+WeChat Pay unified-order and callback boundary used by backend/src/services/payment.service.js and backend/src/controllers/payment.controller.js. It creates prepay parameters for wx.requestPayment and accepts payment-result callbacks at /api/v1/payments/wechat/callback.

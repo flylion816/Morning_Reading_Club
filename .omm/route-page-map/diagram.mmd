@@ -1,0 +1,22 @@
+graph LR
+    miniprogram-tabs["Miniprogram Tabs\npages/index pages/periods pages/profile"]
+    public-browse["Public Browse\nperiods / period-detail / course-detail / reading-mode"]
+    auth-entry["Auth Entry\nlogin / enrollment / payment"]
+    learning-workflows["Learning Workflows\ncheckin / ranking / members / records"]
+    insight-workflows["Insight Workflows\ninsights / insight-detail / insight-requests"]
+    notification-profile["Notifications and Profile\nnotifications / settings / profile pages"]
+    admin-router["Admin Router\nadmin/src/router/index.ts"]
+    admin-management["Admin Management Views\ndashboard / enrollments / payments / periods / users / content"]
+    admin-ops["Admin Ops Views\ncheckins / insights / analytics / audit / database / accounts"]
+    backend-routes["Backend Routes\nbackend/src/routes/"]
+
+    miniprogram-tabs -->|"tabBar entry points"| public-browse
+    public-browse -->|"requires login for enrollment or protected details"| auth-entry
+    auth-entry -->|"enrollment/payment unlocks member flows"| learning-workflows
+    learning-workflows -->|"creates community content and stats"| insight-workflows
+    insight-workflows -->|"notifies users and links profiles"| notification-profile
+    notification-profile -->|"uses user, notification, subscription APIs"| backend-routes
+    admin-router -->|"guards authenticated navigation"| admin-management
+    admin-router -->|"guards operational routes"| admin-ops
+    admin-management -->|"calls admin API groups"| backend-routes
+    admin-ops -->|"calls admin and operational API groups"| backend-routes

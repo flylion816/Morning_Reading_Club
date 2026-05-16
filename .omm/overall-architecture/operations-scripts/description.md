@@ -1,0 +1,1 @@
+Project operations helpers in .claude/commands/, scripts/, deploy/, and documentation. They start local services, run targeted tests, search historical bug notes, check deployments, back up databases, and deploy to production. Database initialization/reset scripts are explicitly excluded from automatic use.
