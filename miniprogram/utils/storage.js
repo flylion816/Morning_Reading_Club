@@ -204,4 +204,37 @@ class Storage {
 }
 
 // 导出单例
-module.exports = new Storage();
+const storageInstance = new Storage();
+
+// 多租户隔离存储：所有 key 带 wxAppId 前缀
+const envConfig = require('../config/env');
+
+function _prefixKey(key) {
+  const appId = envConfig.wxAppId || 'default';
+  return `${appId}:${key}`;
+}
+
+const tenantStorage = {
+  set(key, value) {
+    wx.setStorageSync(_prefixKey(key), value);
+  },
+  get(key) {
+    // 迁移兼容：先读带前缀的 key，回退到旧 key（首次升级时迁移旧数据）
+    const val = wx.getStorageSync(_prefixKey(key));
+    if (val !== '' && val !== null && val !== undefined) return val;
+    const legacy = wx.getStorageSync(key);
+    if (legacy !== '' && legacy !== null && legacy !== undefined) {
+      tenantStorage.set(key, legacy);
+      wx.removeStorageSync(key);
+      return legacy;
+    }
+    return null;
+  },
+  remove(key) {
+    wx.removeStorageSync(_prefixKey(key));
+    wx.removeStorageSync(key);
+  }
+};
+
+module.exports = storageInstance;
+module.exports.tenantStorage = tenantStorage;

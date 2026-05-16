@@ -238,6 +238,61 @@ class RedisManager {
   }
 
   /**
+   * 原子 SET NX EX：仅当 key 不存在时设置值并指定过期时间（秒）
+   * 用于 wsToken 一次性消费等需要原子 "set if not exists" 的场景
+   * @returns {boolean} true=设置成功（key不存在），false=key已存在
+   */
+  async setNxEx(key, seconds, value) {
+    try {
+      if (!this.isConnected || !this.client) {
+        // 生产环境 + PM2 cluster：memoryCache 无法跨进程原子操作。
+        // 两个进程都 fallback 时，两者都能"消费"同一个 wsToken，一次性安全保证失效。
+        // 必须 fail，让握手失败（拒绝连接），而不是静默破坏安全性。
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error('[redis] 生产环境 Redis 断线，setNxEx 拒绝 fallback 到 memoryCache');
+        }
+        // 开发环境：允许单进程内的 NX 语义 fallback
+        const existing = this.memoryCache.get(key);
+        if (existing && existing.expireAt > Date.now()) return false;
+        this.memoryCache.set(key, {
+          data: value,
+          expireAt: Date.now() + seconds * 1000
+        });
+        return true;
+      }
+      const result = await this.client.set(key, value, { NX: true, EX: seconds });
+      return result === 'OK';
+    } catch (error) {
+      logger.error('Redis setNxEx 操作失败', error, { key, seconds });
+      return false;
+    }
+  }
+
+  /**
+   * 按前缀删除键（使用 SCAN 避免阻塞 Redis）
+   */
+  async delByPrefix(prefix) {
+    if (!this.isConnected || !this.client) {
+      let count = 0;
+      for (const key of Array.from(this.memoryCache.keys())) {
+        if (key.startsWith(prefix) && this.memoryCache.delete(key)) count += 1;
+      }
+      return count;
+    }
+
+    let cursor = 0;
+    let deleted = 0;
+    do {
+      const reply = await this.client.scan(cursor, { MATCH: `${prefix}*`, COUNT: 100 });
+      cursor = Number(reply.cursor);
+      if (reply.keys.length > 0) {
+        deleted += await this.client.del(reply.keys);
+      }
+    } while (cursor !== 0);
+    return deleted;
+  }
+
+  /**
    * 设置过期时间
    */
   async expire(key, seconds) {

@@ -103,6 +103,12 @@ const SectionSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -116,6 +122,10 @@ SectionSchema.index({ periodId: 1, sortOrder: 1 });
 SectionSchema.index({ isPublished: 1 });
 
 // 复合唯一索引：同一期次中的同一天只能有一个
-SectionSchema.index({ periodId: 1, day: 1 }, { unique: true });
+SectionSchema.index({ tenantId: 1, periodId: 1, day: 1 }, { unique: true });
+SectionSchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+SectionSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Section', SectionSchema);

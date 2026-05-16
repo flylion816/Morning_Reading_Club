@@ -54,6 +54,12 @@ axiosClient.interceptors.request.use(
         '[API Interceptor] Authorization 请求头已添加:',
         authHeader.substring(0, 30) + '...'
       );
+
+      // 多租户：platform_superadmin 切换租户时附带
+      const activeTenant = localStorage.getItem('admin_active_tenant');
+      if (activeTenant) {
+        (config.headers as any)['X-Active-Tenant'] = activeTenant;
+      }
     } else {
       logger.warn('[API Request] ⚠️ 没有token，不会附加Authorization header');
       console.warn('[API Interceptor] 警告：没有 token');

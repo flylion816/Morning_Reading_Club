@@ -1,35 +1,45 @@
 const redisManager = require('../utils/redis');
 const logger = require('../utils/logger');
+const { getCurrentTenantId } = require('../utils/tenantContext');
+
+/**
+ * 缓存 key 默认生成：带 tenant 前缀隔离
+ * 无 tenantId 时返回 null 跳过缓存（不报错）
+ */
+function buildDefaultKey(req) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    return null;
+  }
+  return `cache:tenant:${tenantId}:${req.path}:${JSON.stringify(req.query)}`;
+}
 
 /**
  * 响应缓存中间件
- *
- * 功能：
- * - 缓存GET请求的响应
- * - 自定义TTL和缓存键生成
- * - Redis失败时自动降级
  */
-
 function cacheMiddleware(options = {}) {
   const {
-    ttl = 300, // 默认5分钟
-    keyGenerator, // 自定义缓存键生成函数
+    ttl = 300,
+    keyGenerator,
     enabled = true
   } = options;
 
   return async (req, res, next) => {
-    // 如果禁用或不是GET请求，直接跳过
     if (!enabled || req.method !== 'GET') {
       return next();
     }
 
     try {
-      // 生成缓存键
       const cacheKey = keyGenerator
         ? keyGenerator(req)
-        : `cache:${req.path}:${JSON.stringify(req.query)}`;
+        : buildDefaultKey(req);
 
-      // 尝试从缓存获取
+      if (!cacheKey) {
+        // 没有租户上下文 → 不缓存（也不报错，让请求正常通过）
+        res.set('X-Cache', 'SKIP_NO_TENANT');
+        return next();
+      }
+
       const cached = await redisManager.get(cacheKey);
       if (cached) {
         logger.debug('缓存命中', { path: req.path, key: cacheKey });
@@ -39,10 +49,8 @@ function cacheMiddleware(options = {}) {
 
       res.set('X-Cache', 'MISS');
 
-      // 拦截res.json方法
       const originalJson = res.json;
       res.json = function (data) {
-        // 保存到缓存（异步，不等待）
         redisManager.setEx(cacheKey, ttl, JSON.stringify(data))
           .catch(err => logger.warn('缓存写入失败', { error: err.message }));
 
@@ -58,32 +66,21 @@ function cacheMiddleware(options = {}) {
 }
 
 /**
- * 缓存失效中间件
- * 用于POST/PUT/DELETE请求时清除相关缓存
+ * 缓存失效中间件（按租户前缀删除）
  */
 function cacheInvalidationMiddleware(patterns = []) {
   return async (req, res, next) => {
-    // 保存原始的res.json方法
     const originalJson = res.json;
 
     res.json = function (data) {
-      // 对于修改操作（POST/PUT/DELETE），清除相关缓存
       if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
-        // 清除匹配的缓存键
-        patterns.forEach(pattern => {
-          redisManager.mDel(
-            [`cache:${pattern}:*`].map(p => {
-              // 简单的模式匹配
-              return p.replace(/\*/g, '.*');
-            })
-          ).catch(err => logger.warn('缓存清除失败', { error: err.message }));
-        });
-
-        logger.debug('缓存已失效', {
-          method: req.method,
-          path: req.path,
-          patterns
-        });
+        const tenantId = getCurrentTenantId();
+        if (tenantId) {
+          patterns.forEach(pattern => {
+            redisManager.delByPrefix(`cache:tenant:${tenantId}:${pattern}`)
+              .catch(err => logger.warn('缓存清除失败', { error: err.message }));
+          });
+        }
       }
 
       return originalJson.call(this, data);

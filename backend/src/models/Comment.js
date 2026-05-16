@@ -89,6 +89,12 @@ const CommentSchema = new mongoose.Schema(
     replies: {
       type: [ReplySchema],
       default: []
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -100,5 +106,9 @@ const CommentSchema = new mongoose.Schema(
 // 索引
 CommentSchema.index({ checkinId: 1, createdAt: -1 });
 CommentSchema.index({ userId: 1 });
+CommentSchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+CommentSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Comment', CommentSchema);

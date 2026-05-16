@@ -57,6 +57,12 @@ const subscribeMessageDeliverySchema = new mongoose.Schema(
     sourceId: {
       type: String,
       default: null
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -68,5 +74,9 @@ const subscribeMessageDeliverySchema = new mongoose.Schema(
 
 subscribeMessageDeliverySchema.index({ userId: 1, scene: 1, createdAt: -1 });
 subscribeMessageDeliverySchema.index({ sourceType: 1, sourceId: 1 });
+subscribeMessageDeliverySchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+subscribeMessageDeliverySchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('SubscribeMessageDelivery', subscribeMessageDeliverySchema);

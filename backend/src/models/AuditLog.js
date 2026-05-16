@@ -94,6 +94,12 @@ const auditLogSchema = new mongoose.Schema(
     timestamp: {
       type: Date,
       default: Date.now
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+      index: true
     }
   },
   {
@@ -106,8 +112,12 @@ auditLogSchema.index({ adminId: 1, timestamp: -1 });
 auditLogSchema.index({ resourceType: 1, timestamp: -1 });
 auditLogSchema.index({ actionType: 1, timestamp: -1 });
 auditLogSchema.index({ timestamp: -1 });
+auditLogSchema.index({ tenantId: 1, createdAt: -1 });
 
 // 创建TTL索引，30天后自动删除
 auditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 2592000 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+auditLogSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

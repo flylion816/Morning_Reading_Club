@@ -39,13 +39,13 @@ logger_temp.log('  MYSQL_HOST:', process.env.MYSQL_HOST);
 logger_temp.log('  MYSQL_PORT:', process.env.MYSQL_PORT);
 
 // 现在才能 require 其他模块，确保环境变量已加载
-const { Server } = require('socket.io');
+const { WebSocketServer } = require('ws');
 const { connectMongoDB, testMySQLConnection } = require('./config/database');
-const { getSocketIoCorsOptions } = require('./config/cors');
 const { validateConfig } = require('./utils/config-validator');
 const ConfigSyncValidator = require('./utils/config-sync-validator');
 const logger = require('./utils/logger');
 const WebSocketManager = require('./utils/websocket');
+const { initWsPubSub } = require('./utils/ws-pubsub');
 const redisManager = require('./utils/redis');
 const { initRedisClient, startSyncListener } = require('./services/sync.service');
 const backupService = require('./services/backup.service');
@@ -152,18 +152,17 @@ async function startServer() {
       logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}\n`);
     });
 
-    // 初始化 WebSocket (Socket.IO)
-    const io = new Server(server, {
-      cors: getSocketIoCorsOptions()
-    });
+    // 初始化 WebSocket（原生 ws）
+    const wss = new WebSocketServer({ server, path: '/ws' });
+    const wsManager = new WebSocketManager(wss);
 
-    const wsManager = new WebSocketManager(io);
+    // 多实例广播（PM2 cluster mode）
+    initWsPubSub(wsManager);
 
     // 将 WebSocket 管理器附加到 app，以便其他模块可以访问
     app.locals.wsManager = wsManager;
-    app.locals.io = io;
 
-    logger.info('✅ WebSocket (Socket.IO) 已初始化');
+    logger.info('✅ WebSocket (native ws) 已初始化');
 
     // 后台初始化 Redis（不阻塞 HTTP 服务器启动）
     logger.info('正在后台初始化 Redis 同步队列...');

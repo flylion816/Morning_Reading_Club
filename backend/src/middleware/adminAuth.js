@@ -75,8 +75,23 @@ function requireRole(...roles) {
 }
 
 /**
+ * 是否为平台级角色（platform_superadmin 或迁移期兼容的 superadmin）
+ */
+function isPlatformRole(role) {
+  return role === 'platform_superadmin' || role === 'superadmin';
+}
+
+/**
+ * 是否为租户级管理员角色
+ */
+function isTenantAdminRole(role) {
+  return role === 'tenant_admin' || role === 'admin' || role === 'operator';
+}
+
+/**
  * 权限检查中间件
  * 检查用户是否具有特定权限
+ * platform_superadmin 和 tenant_admin 拥有所有权限
  */
 function requirePermission(...permissions) {
   return (req, res, next) => {
@@ -87,8 +102,8 @@ function requirePermission(...permissions) {
       });
     }
 
-    // 超级管理员拥有所有权限
-    if (req.admin.role === 'superadmin') {
+    // platform_superadmin（和迁移期兼容的 superadmin）和 tenant_admin 拥有所有权限
+    if (isPlatformRole(req.admin.role) || req.admin.role === 'tenant_admin') {
       return next();
     }
 
@@ -110,5 +125,7 @@ function requirePermission(...permissions) {
 module.exports = {
   adminAuthMiddleware,
   requireRole,
-  requirePermission
+  requirePermission,
+  isPlatformRole,
+  isTenantAdminRole
 };

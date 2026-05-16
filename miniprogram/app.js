@@ -3,6 +3,7 @@ const envConfig = require('./config/env');
 const constants = require('./config/constants');
 const logger = require('./utils/logger');
 const activityService = require('./services/activity.service');
+const { tenantStorage } = require('./utils/storage');
 
 App({
   onLaunch(options) {
@@ -139,8 +140,8 @@ App({
   // 检查登录状态
   checkLoginStatus() {
     try {
-      const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
-      const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
+      const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
+      const userInfo = tenantStorage.get(constants.STORAGE_KEYS.USER_INFO);
 
       logger.debug('=== checkLoginStatus ===');
       logger.debug('Token存在?:', !!token);

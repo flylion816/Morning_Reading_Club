@@ -17,6 +17,7 @@ const mongoose = require('mongoose');
 const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('./mysql-backup.service');
+const { withSystemContext } = require('../utils/tenantContext');
 const {
   buildSyncReferenceContext,
   filterDocumentsForMysqlSync
@@ -329,8 +330,9 @@ async function checkDataConsistencyAndSync() {
 // 5. MongoDB 全量同步到 MySQL（定时任务用）
 // =====================================================================
 async function fullSyncMongoToMySQL() {
-  try {
-    logger.info('🔄 Starting full sync from MongoDB to MySQL');
+  return withSystemContext(null, async () => {
+    try {
+      logger.info('🔄 Starting full sync from MongoDB to MySQL');
     const syncResults = {};
     const skippedResults = {};
     let totalSynced = 0;
@@ -400,6 +402,7 @@ async function fullSyncMongoToMySQL() {
     logger.error('Full sync from MongoDB to MySQL failed', error);
     return { success: false, error: error.message };
   }
+  });
 }
 
 // =====================================================================

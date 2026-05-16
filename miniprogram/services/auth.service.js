@@ -5,6 +5,7 @@
 
 const request = require('../utils/request');
 const logger = require('../utils/logger');
+const { tenantStorage } = require('../utils/storage');
 
 class AuthService {
   /**
@@ -81,9 +82,9 @@ class AuthService {
       };
 
       // 保存token和用户信息
-      wx.setStorageSync('token', mockLoginData.accessToken);
-      wx.setStorageSync('refreshToken', mockLoginData.refreshToken);
-      wx.setStorageSync('userInfo', mockLoginData.user);
+      tenantStorage.set('token', mockLoginData.accessToken);
+      tenantStorage.set('refreshToken', mockLoginData.refreshToken);
+      tenantStorage.set('userInfo', mockLoginData.user);
 
       logger.debug('Mock登录成功');
 
@@ -126,7 +127,8 @@ class AuthService {
       const loginData = await this.login(code, {
         nickname: userInfo.nickName,
         avatar_url: userInfo.avatarUrl,
-        gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown'
+        gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown',
+        wxAppId: envConfig.wxAppId
       });
 
       logger.info('登录结果', {
@@ -171,9 +173,9 @@ class AuthService {
       const accessToken = loginData.accessToken || loginData.access_token;
       const refreshToken = loginData.refreshToken || loginData.refresh_token;
 
-      wx.setStorageSync('token', accessToken);
-      wx.setStorageSync('refreshToken', refreshToken);
-      wx.setStorageSync('userInfo', finalUserInfo); // ← 保存合并后的信息
+      tenantStorage.set('token', accessToken);
+      tenantStorage.set('refreshToken', refreshToken);
+      tenantStorage.set('userInfo', finalUserInfo); // ← 保存合并后的信息
 
       logger.info('用户信息已保存', {
         nickname: finalUserInfo.nickname,
@@ -213,7 +215,7 @@ class AuthService {
    * @returns {boolean}
    */
   isLogin() {
-    const token = wx.getStorageSync('token');
+    const token = tenantStorage.get('token');
     return !!token;
   }
 }

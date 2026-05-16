@@ -113,6 +113,12 @@ const PeriodSchema = new mongoose.Schema(
       maxlength: 1000,
       trim: true,
       default: null
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -125,6 +131,7 @@ const PeriodSchema = new mongoose.Schema(
 PeriodSchema.index({ startDate: 1, endDate: 1 });
 PeriodSchema.index({ status: 1 });
 PeriodSchema.index({ isPublished: 1, sortOrder: 1 });
+PeriodSchema.index({ tenantId: 1, createdAt: -1 });
 
 // 虚拟字段 - 日期范围格式化
 // 直接从 Date 对象提取本地日期，避免 toISOString() 导致的 UTC 转换
@@ -142,5 +149,8 @@ PeriodSchema.virtual('dateRange').get(function () {
   const end = formatLocalDate(this.endDate);
   return `${start} 至 ${end}`;
 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+PeriodSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Period', PeriodSchema);

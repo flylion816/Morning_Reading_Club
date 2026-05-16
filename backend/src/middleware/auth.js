@@ -1,4 +1,5 @@
 const { verifyAccessToken, generateTokens } = require('../utils/jwt');
+const { withSystemContext } = require('../utils/tenantContext');
 const { errors } = require('../utils/response');
 const User = require('../models/User');
 const logger = require('../utils/logger');
@@ -27,10 +28,13 @@ async function authMiddleware(req, res, next) {
     const remainingTime = expiresAt - now;
     const thirtyMinutes = 30 * 60 * 1000;
 
-    if (remainingTime < thirtyMinutes && remainingTime > 0) {
-      // Token剩余时间<30分钟，生成新Token并添加到响应头
+    if (remainingTime < thirtyMinutes && remainingTime > 0 && decoded.tenantId) {
+      // Token剩余时间<30分钟且有 tenantId，生成新Token并添加到响应头
+      // 老 token 没有 tenantId 时跳过续期，让后续 userTenantContext 返回 403
       try {
-        const user = await User.findById(decoded.userId || decoded._id);
+        const user = await withSystemContext(decoded.tenantId, () =>
+          User.findById(decoded.userId || decoded._id)
+        );
         if (user) {
           const newTokens = generateTokens(user);
 

@@ -5,7 +5,6 @@ const UserSchema = new mongoose.Schema(
     openid: {
       type: String,
       required: true,
-      unique: true,
       maxlength: 64
     },
     unionid: {
@@ -91,6 +90,12 @@ const UserSchema = new mongoose.Schema(
     phoneBindAt: {
       type: Date,
       default: null
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -103,6 +108,8 @@ const UserSchema = new mongoose.Schema(
 UserSchema.index({ nickname: 1 });
 UserSchema.index({ createdAt: 1 });
 UserSchema.index({ phone: 1 }, { sparse: true });
+UserSchema.index({ tenantId: 1, openid: 1 }, { unique: true });
+UserSchema.index({ tenantId: 1, createdAt: -1 });
 
 // 虚拟字段 - 头像文字
 UserSchema.virtual('avatarText').get(function () {
@@ -118,5 +125,8 @@ UserSchema.virtual('isActive').get(function () {
 UserSchema.set('toJSON', {
   virtuals: true
 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+UserSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('User', UserSchema);

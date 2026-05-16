@@ -98,6 +98,12 @@ const notificationSchema = new mongoose.Schema(
       insightRequestId: String,
       insightId: String,
       danmakuId: String
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -122,5 +128,9 @@ notificationSchema.index({ createdAt: -1 });
 
 // 按归档时间排序
 notificationSchema.index({ archivedAt: -1 });
+notificationSchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+notificationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Notification', notificationSchema);

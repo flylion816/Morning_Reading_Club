@@ -148,6 +148,12 @@ const EnrollmentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       index: true
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -158,13 +164,14 @@ const EnrollmentSchema = new mongoose.Schema(
 );
 
 // 复合唯一索引：一个用户在一个期次只能报名一次
-EnrollmentSchema.index({ userId: 1, periodId: 1 }, { unique: true });
+EnrollmentSchema.index({ tenantId: 1, userId: 1, periodId: 1 }, { unique: true });
 
 // 性能优化索引
 EnrollmentSchema.index({ paymentStatus: 1, createdAt: -1 }); // 支付状态查询
 EnrollmentSchema.index({ status: 1, createdAt: -1 }); // 报名状态查询
 EnrollmentSchema.index({ createdAt: -1 }); // 按创建时间排序
 EnrollmentSchema.index({ enrolledAt: -1 }); // 按报名时间排序
+EnrollmentSchema.index({ tenantId: 1, createdAt: -1 });
 
 // 虚拟字段：是否已支付
 EnrollmentSchema.virtual('isPaid').get(function () {
@@ -278,6 +285,9 @@ EnrollmentSchema.methods.confirmPayment = function (amount) {
   this.paidAt = new Date();
   return this.save();
 };
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+EnrollmentSchema.plugin(tenantPlugin);
 
 const Enrollment = mongoose.model('Enrollment', EnrollmentSchema);
 

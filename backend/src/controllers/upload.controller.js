@@ -2,153 +2,84 @@ const path = require('path');
 const fs = require('fs');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { getCurrentTenantId } = require('../utils/tenantContext');
+const { resolveTenantSlug } = require('../utils/tenantSlug');
 
-// 确保上传目录存在
-const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-function getPublicFileUrl(req, fileUrl) {
-  const baseUrl =
-    process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-  return `${baseUrl.replace(/\/$/, '')}${fileUrl}`;
-}
-
-function serverError(message) {
-  const errorFactory = errors.serverError || errors.internalServerError;
-  return errorFactory ? errorFactory(message) : { code: 500, message };
-}
+const uploadRoot = path.join(__dirname, '../../uploads');
+const tenantsRoot = path.join(uploadRoot, 'tenants');
 
 module.exports = {
-  /**
-   * 上传单个文件
-   * POST /api/v1/upload
-   */
-  uploadFile: (req, res) => {
+  uploadFile: async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json(errors.badRequest('未找到上传的文件'));
-      }
-
-      const { filename, mimetype, size } = req.file;
-
-      // 返回文件信息和访问 URL
-      const fileUrl = `/uploads/${filename}`;
-
-      res.json(
-        success(
-          {
-            filename,
-            mimetype,
-            size,
-            url: fileUrl,
-            uploadedAt: new Date()
-          },
-          '文件上传成功'
-        )
-      );
+      if (!req.file) return res.status(400).json(errors.badRequest('未找到上传的文件'));
+      const tenantId = getCurrentTenantId();
+      const slug = await resolveTenantSlug(tenantId);
+      res.json(success({
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        url: `/uploads/tenants/${slug}/${req.file.filename}`,
+        uploadedAt: new Date()
+      }, '文件上传成功'));
     } catch (err) {
       logger.error('File upload error:', err);
-      res.status(500).json(serverError('文件上传失败'));
+      res.status(500).json(errors.internalServerError('文件上传失败'));
     }
   },
 
-  /**
-   * 上传用户头像
-   * POST /api/v1/upload/avatar
-   */
-  uploadAvatar: (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json(errors.badRequest('未找到上传的头像'));
-      }
-
-      const { filename, mimetype, size } = req.file;
-      const fileUrl = `/uploads/${filename}`;
-
-      res.json(
-        success(
-          {
-            filename,
-            mimetype,
-            size,
-            url: fileUrl,
-            avatarUrl: getPublicFileUrl(req, fileUrl),
-            uploadedAt: new Date()
-          },
-          '头像上传成功'
-        )
-      );
-    } catch (err) {
-      logger.error('Avatar upload error:', err);
-      res.status(500).json(serverError('头像上传失败'));
-    }
-  },
-
-  /**
-   * 上传多个文件
-   * POST /api/v1/upload/multiple
-   */
-  uploadMultiple: (req, res) => {
+  uploadMultiple: async (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json(errors.badRequest('未找到上传的文件'));
       }
-
+      const tenantId = getCurrentTenantId();
+      const slug = await resolveTenantSlug(tenantId);
       const uploadedFiles = req.files.map(file => ({
         filename: file.filename,
         mimetype: file.mimetype,
         size: file.size,
-        url: `/uploads/${file.filename}`,
+        url: `/uploads/tenants/${slug}/${file.filename}`,
         uploadedAt: new Date()
       }));
-
-      res.json(
-        success(
-          {
-            files: uploadedFiles,
-            count: uploadedFiles.length
-          },
-          '文件上传成功'
-        )
-      );
+      res.json(success({ files: uploadedFiles, count: uploadedFiles.length }, '文件上传成功'));
     } catch (err) {
       logger.error('Multiple files upload error:', err);
-      res.status(500).json(serverError('文件上传失败'));
+      res.status(500).json(errors.internalServerError('文件上传失败'));
     }
   },
 
-  /**
-   * 删除文件
-   * DELETE /api/v1/upload/:filename
-   */
-  deleteFile: (req, res) => {
+  deleteFile: async (req, res) => {
     try {
       const { filename } = req.params;
-
-      // 防止路径遍历攻击
       if (filename.includes('..') || filename.includes('/')) {
         return res.status(400).json(errors.badRequest('无效的文件名'));
       }
+      const tenantId = getCurrentTenantId();
+      const slug = await resolveTenantSlug(tenantId);
+      const tenantDir = path.join(tenantsRoot, slug);
+      const filePath = path.join(tenantDir, filename);
 
-      const filePath = path.join(uploadDir, filename);
-
-      // 确保文件在上传目录内
-      if (!filePath.startsWith(uploadDir)) {
+      if (!filePath.startsWith(tenantDir + path.sep)) {
         return res.status(400).json(errors.badRequest('无效的文件路径'));
       }
-
       if (!fs.existsSync(filePath)) {
         return res.status(404).json(errors.notFound('文件不存在'));
       }
-
+      // realpath 符号链接校验
+      try {
+        const realTenantDir = fs.realpathSync(tenantDir);
+        const realFilePath = fs.realpathSync(filePath);
+        if (!realFilePath.startsWith(realTenantDir + path.sep)) {
+          return res.status(400).json(errors.badRequest('无效的文件路径'));
+        }
+      } catch (_) {
+        return res.status(400).json(errors.badRequest('无效的文件路径'));
+      }
       fs.unlinkSync(filePath);
-
       res.json(success(null, '文件删除成功'));
     } catch (err) {
       logger.error('File deletion error:', err);
-      res.status(500).json(serverError('文件删除失败'));
+      res.status(500).json(errors.internalServerError('文件删除失败'));
     }
   }
 };

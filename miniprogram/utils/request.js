@@ -6,6 +6,7 @@
 const envConfig = require('../config/env');
 const constants = require('../config/constants');
 const logger = require('./logger');
+const { tenantStorage } = require('./storage');
 
 class Request {
   constructor() {
@@ -45,7 +46,8 @@ class Request {
     // 合并请求头
     const requestHeader = {
       ...this.header,
-      ...header
+      ...header,
+      'X-Wx-AppId': envConfig.wxAppId
     };
 
     // 公开端点不需要token（避免旧token干扰）
@@ -56,7 +58,7 @@ class Request {
 
     // 添加认证token（公开端点除外）
     if (!isPublicEndpoint) {
-      const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+      const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
       if (token) {
         requestHeader['Authorization'] = `Bearer ${token}`;
       }
@@ -165,7 +167,7 @@ class Request {
    * 处理Token刷新（自动重试机制）
    */
   handleTokenRefresh(resolve, reject, originalOptions) {
-    const refreshToken = wx.getStorageSync(
+    const refreshToken = tenantStorage.get(
       constants.STORAGE_KEYS.REFRESH_TOKEN
     );
 
@@ -194,8 +196,8 @@ class Request {
       .refreshToken(refreshToken)
       .then((newTokens) => {
         // 保存新Token
-        wx.setStorageSync(constants.STORAGE_KEYS.TOKEN, newTokens.accessToken);
-        wx.setStorageSync(
+        tenantStorage.set(constants.STORAGE_KEYS.TOKEN, newTokens.accessToken);
+        tenantStorage.set(
           constants.STORAGE_KEYS.REFRESH_TOKEN,
           newTokens.refreshToken
         );
@@ -240,9 +242,9 @@ class Request {
     });
 
     // 清除本地存储
-    wx.removeStorageSync(constants.STORAGE_KEYS.TOKEN);
-    wx.removeStorageSync(constants.STORAGE_KEYS.USER_INFO);
-    wx.removeStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN);
+    tenantStorage.remove(constants.STORAGE_KEYS.TOKEN);
+    tenantStorage.remove(constants.STORAGE_KEYS.USER_INFO);
+    tenantStorage.remove(constants.STORAGE_KEYS.REFRESH_TOKEN);
 
     // 更新全局登录状态
     const app = getApp();
@@ -348,7 +350,7 @@ class Request {
    * 上传文件
    */
   upload(url, filePath, formData = {}, options = {}) {
-    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
 
     return new Promise((resolve, reject) => {
       wx.uploadFile({

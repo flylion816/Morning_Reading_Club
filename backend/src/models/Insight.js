@@ -127,6 +127,12 @@ const InsightSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -142,5 +148,9 @@ InsightSchema.index({ periodId: 1 });
 InsightSchema.index({ periodId: 1, updatedAt: -1, createdAt: -1 });
 InsightSchema.index({ type: 1, isPublished: 1 });
 InsightSchema.index({ status: 1 });
+InsightSchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+InsightSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Insight', InsightSchema);

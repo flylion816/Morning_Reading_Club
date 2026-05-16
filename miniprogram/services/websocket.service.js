@@ -6,6 +6,7 @@
 const envConfig = require('../config/env');
 const constants = require('../config/constants');
 const logger = require('../utils/logger');
+const { tenantStorage } = require('../utils/storage');
 
 class WebSocketService {
   constructor() {
@@ -35,6 +36,13 @@ class WebSocketService {
           return resolve();
         }
 
+        // 登录前禁止建连守卫
+        const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
+        if (!token) {
+          logger.warn('[WebSocket] 未登录，拒绝建立连接');
+          return reject(new Error('未登录，无法建立 WebSocket 连接'));
+        }
+
         this.userId = userId;
         this.allowReconnect = options.allowReconnect === true;
         this.manualClose = false;
@@ -48,70 +56,81 @@ class WebSocketService {
 
         logger.debug('[WebSocket] 正在连接到:', socketUrl);
 
-        // 创建 WebSocket 连接
-        this.socket = wx.connectSocket({
-          url: socketUrl,
-          header: {
-            Authorization: `Bearer ${wx.getStorageSync(constants.STORAGE_KEYS.TOKEN)}`
-          }
-        });
+        // 先获取 wsToken 再建立连接（§7.4.5.2 兜底方案）
+        const request = require('../utils/request');
+        request.post('/auth/ws-token', {})
+          .then((wsTokenData) => {
+            const wsToken = wsTokenData.token || wsTokenData.wsToken;
+            if (!wsToken) {
+              throw new Error('获取 wsToken 失败');
+            }
 
-        // 连接成功
-        // eslint-disable-next-line no-unused-vars
-        this.socket.onOpen(res => {
-          logger.log('[WebSocket] 连接成功');
-          this.isConnected = true;
-          this.reconnectAttempts = 0;
+            // 创建 WebSocket 连接
+            this.socket = wx.connectSocket({
+              url: `${socketUrl}?token=${wsToken}`
+            });
 
-          // 发送用户加入事件
-          this.emit('user:join', { userId });
+            // 连接成功
+            // eslint-disable-next-line no-unused-vars
+            this.socket.onOpen(res => {
+              logger.log('[WebSocket] 连接成功');
+              this.isConnected = true;
+              this.reconnectAttempts = 0;
 
-          // 启动心跳检测
-          this.startHeartbeat();
+              // 发送用户加入事件
+              this.emit('user:join', { userId });
 
-          // 处理消息队列
-          this.flushMessageQueue();
+              // 启动心跳检测
+              this.startHeartbeat();
 
-          resolve();
-        });
+              // 处理消息队列
+              this.flushMessageQueue();
 
-        // 接收消息
-        this.socket.onMessage(res => {
-          try {
-            const data = JSON.parse(res.data);
-            this.handleMessage(data);
-          } catch (error) {
-            logger.error('[WebSocket] 消息解析错误:', error, res.data);
-          }
-        });
+              resolve();
+            });
 
-        // 连接错误
-        this.socket.onError(error => {
-          logger.error('[WebSocket] 连接错误:', error);
-          this.isConnected = false;
-          if (this.allowReconnect && !this.manualClose) {
-            this.handleReconnect();
-          }
-          reject(error);
-        });
+            // 接收消息
+            this.socket.onMessage(res => {
+              try {
+                const data = JSON.parse(res.data);
+                this.handleMessage(data);
+              } catch (error) {
+                logger.error('[WebSocket] 消息解析错误:', error, res.data);
+              }
+            });
 
-        // 连接关闭
-        // eslint-disable-next-line no-unused-vars
-        this.socket.onClose(res => {
-          logger.log('[WebSocket] 连接已关闭');
-          this.isConnected = false;
-          this.stopHeartbeat();
-          if (this.allowReconnect && !this.manualClose) {
-            this.handleReconnect();
-          }
-        });
+            // 连接错误
+            this.socket.onError(error => {
+              logger.error('[WebSocket] 连接错误:', error);
+              this.isConnected = false;
+              if (this.allowReconnect && !this.manualClose) {
+                this.handleReconnect();
+              }
+              reject(error);
+            });
 
-        // 超时处理
-        setTimeout(() => {
-          if (!this.isConnected) {
-            reject(new Error('WebSocket 连接超时'));
-          }
-        }, options.timeout || 10000);
+            // 连接关闭
+            // eslint-disable-next-line no-unused-vars
+            this.socket.onClose(res => {
+              logger.log('[WebSocket] 连接已关闭');
+              this.isConnected = false;
+              this.stopHeartbeat();
+              if (this.allowReconnect && !this.manualClose) {
+                this.handleReconnect();
+              }
+            });
+
+            // 超时处理
+            setTimeout(() => {
+              if (!this.isConnected) {
+                reject(new Error('WebSocket 连接超时'));
+              }
+            }, options.timeout || 10000);
+          })
+          .catch((err) => {
+            logger.error('[WebSocket] 获取 wsToken 失败:', err);
+            reject(err);
+          });
       } catch (error) {
         logger.error('[WebSocket] 初始化失败:', error);
         reject(error);
@@ -312,6 +331,31 @@ class WebSocketService {
         });
       }
     }, delay);
+  }
+
+  /**
+   * 租户切换时断开连接并清理状态
+   */
+  disconnectAndClearForTenantSwitch() {
+    logger.log('[WebSocket] 租户切换：断开连接并清理状态');
+    this.manualClose = true;
+    this.allowReconnect = false;
+    this.stopHeartbeat();
+
+    if (this.socket) {
+      try {
+        this.socket.close();
+      } catch (error) {
+        logger.error('[WebSocket] 关闭失败:', error);
+      }
+    }
+
+    this.isConnected = false;
+    this.socket = null;
+    this.userId = null;
+    this.reconnectAttempts = 0;
+    this.eventListeners.clear();
+    this.messageQueue = [];
   }
 
   /**

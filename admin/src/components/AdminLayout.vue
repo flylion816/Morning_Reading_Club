@@ -56,6 +56,13 @@
           </el-menu-item>
         </el-menu-item-group>
 
+        <!-- 平台管理区块 -->
+        <el-menu-item-group title="平台管理" v-if="isPlatformSuperAdmin">
+          <el-menu-item index="/tenants">
+            <span>🏢 租户管理</span>
+          </el-menu-item>
+        </el-menu-item-group>
+
         <!-- 系统管理区块 -->
         <el-menu-item-group title="系统管理">
           <el-menu-item index="/account-management" v-if="authStore.adminInfo?.role === 'superadmin'">
@@ -89,7 +96,9 @@
             <h3>{{ pageTitle }}</h3>
             <p v-if="pageSubtitle">{{ pageSubtitle }}</p>
           </div>
-          <div class="header-user">
+          <div class="header-right">
+            <TenantSwitcher />
+            <div class="header-user">
             <button class="profile-entry" type="button" @click="goToProfile">
               <el-avatar
                 :src="authStore.adminInfo?.avatar"
@@ -101,6 +110,7 @@
               </el-avatar>
               <span class="user-name">{{ authStore.adminInfo?.name }}</span>
             </button>
+          </div>
           </div>
         </div>
       </el-header>
@@ -152,12 +162,17 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { authApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import TenantSwitcher from './TenantSwitcher.vue';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 
 const activeMenu = computed(() => route.path);
+
+const isPlatformSuperAdmin = computed(() =>
+  ['platform_superadmin', 'superadmin'].includes(authStore.adminInfo?.role)
+);
 
 const dbAccessVisible = ref(false);
 const dbAccessPassword = ref('');
@@ -180,6 +195,7 @@ const pageTitle = computed(() => {
     '/audit-logs': '审计日志',
     '/database': '数据库管理',
     '/account-management': '账号管理',
+    '/tenants': '租户管理',
     '/profile': '个人账号设置'
   };
   return titles[route.path] || '管理后台';

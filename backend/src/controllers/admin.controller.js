@@ -13,7 +13,8 @@ function generateToken(admin) {
     {
       id: admin._id,
       email: admin.email,
-      role: admin.role
+      role: admin.role,
+      tenantId: admin.tenantId ? admin.tenantId.toString() : null
     },
     process.env.JWT_SECRET || 'dev-secret-key-12345678',
     { expiresIn: process.env.JWT_EXPIRES_IN || '2h' }
@@ -212,6 +213,15 @@ exports.getAdmins = async (req, res) => {
     if (role) filter.role = role;
     if (status) filter.status = status;
 
+    // 按租户过滤：普通管理员只能看到自己租户的 admin
+    if (req.admin.role !== 'platform_superadmin') {
+      filter.tenantId = req.admin.tenantId;
+    } else {
+      // platform_superadmin 可选按 X-Active-Tenant 过滤
+      const activeTenant = req.header('X-Active-Tenant');
+      if (activeTenant) filter.tenantId = activeTenant;
+    }
+
     const skip = (page - 1) * limit;
     const admins = await Admin.find(filter)
       .skip(skip)
@@ -237,11 +247,27 @@ exports.getAdmins = async (req, res) => {
 // 创建新管理员（超级管理员权限）
 exports.createAdmin = async (req, res) => {
   try {
-    const { name, email, password, role = 'operator', permissions = [] } = req.body;
+    const { name, email, password, role = 'operator', permissions = [], tenantId } = req.body;
 
     // 验证必填字段
     if (!name || !email || !password) {
       return res.status(400).json(errors.badRequest('姓名、邮箱和密码不能为空'));
+    }
+
+    // platform_superadmin 不需要 tenantId，其他角色必须指定
+    if (role !== 'platform_superadmin' && !tenantId) {
+      return res.status(400).json(errors.badRequest('普通管理员必须指定 tenantId'));
+    }
+
+    // 只有 platform_superadmin 可以创建 platform_superadmin
+    if (role === 'platform_superadmin' && req.admin.role !== 'platform_superadmin') {
+      return res.status(403).json(errors.forbidden('权限不足'));
+    }
+
+    // 普通租户管理员只能在自己租户内创建账号
+    let effectiveTenantId = tenantId;
+    if (req.admin.role !== 'platform_superadmin') {
+      effectiveTenantId = req.admin.tenantId;
     }
 
     // 检查邮箱是否已存在
@@ -257,7 +283,8 @@ exports.createAdmin = async (req, res) => {
       password,
       role,
       permissions,
-      status: 'active'
+      status: 'active',
+      tenantId: role === 'platform_superadmin' ? null : effectiveTenantId
     });
 
     await newAdmin.save();

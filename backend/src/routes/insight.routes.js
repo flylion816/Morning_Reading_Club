@@ -3,6 +3,11 @@ const router = express.Router();
 const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const {
+  userTenantContext,
+  publicTenantContext,
+  optionalUserOrPublicTenantContext
+} = require('../middleware/tenantContext');
+const {
   generateInsight,
   getUserInsights,
   getInsightDetail,
@@ -37,226 +42,46 @@ const {
   batchApproveRequests
 } = require('../controllers/insight.controller');
 
-/**
- * @route   GET /api/v1/insights
- * @desc    获取小凡看见列表（管理后台）
- * @access  Private (Admin)
- */
-router.get('/', adminAuthMiddleware, getInsights);
+// ===== 外部公开接口（无需认证） =====
+router.post('/external/create', publicTenantContext, createInsightFromExternal);
 
-/**
- * @route   POST /api/v1/insights
- * @desc    创建小凡看见（通用接口）
- * @access  Private
- */
-router.post('/', authMiddleware, createInsightManual);
+// ===== 管理员路由 =====
+router.get('/', adminAuthMiddleware, userTenantContext, getInsights);
+router.get('/admin/:insightId/detail', adminAuthMiddleware, userTenantContext, adminGetInsightDetail);
+router.get('/admin/:insightId/danmaku', adminAuthMiddleware, userTenantContext, adminGetDanmaku);
+router.post('/admin/:insightId/like', adminAuthMiddleware, userTenantContext, adminLikeForUser);
+router.post('/admin/:insightId/danmaku', adminAuthMiddleware, userTenantContext, adminPostDanmakuForUser);
+router.delete('/admin/danmaku/:danmakuId', adminAuthMiddleware, userTenantContext, adminDeleteDanmaku);
+router.put('/admin/:insightId', adminAuthMiddleware, userTenantContext, updateInsight);
+router.post('/manual/create', adminAuthMiddleware, userTenantContext, createInsightManual);
+router.delete('/manual/:insightId', adminAuthMiddleware, userTenantContext, deleteInsightManual);
+router.get('/admin/requests', adminAuthMiddleware, userTenantContext, getInsightRequestsAdmin);
+router.get('/admin/requests/stats', adminAuthMiddleware, userTenantContext, getInsightRequestsStats);
+router.put('/admin/requests/:requestId/approve', adminAuthMiddleware, userTenantContext, adminApproveRequest);
+router.put('/admin/requests/:requestId/reject', adminAuthMiddleware, userTenantContext, adminRejectRequest);
+router.delete('/admin/requests/:requestId', adminAuthMiddleware, userTenantContext, deleteInsightRequest);
+router.post('/admin/requests/batch-approve', adminAuthMiddleware, userTenantContext, batchApproveRequests);
 
-/**
- * @route   POST /api/v1/insights/generate
- * @desc    生成AI反馈
- * @access  Private
- */
-router.post('/generate', authMiddleware, generateInsight);
+// ===== 用户路由 =====
+router.post('/', authMiddleware, userTenantContext, createInsightManual);
+router.post('/generate', authMiddleware, userTenantContext, generateInsight);
+router.post('/requests', authMiddleware, userTenantContext, createInsightRequest);
+router.get('/requests/status/:userId', authMiddleware, userTenantContext, getRequestStatus);
+router.get('/requests/received', authMiddleware, userTenantContext, getReceivedRequests);
+router.get('/requests/sent', authMiddleware, userTenantContext, getSentRequests);
+router.post('/requests/:requestId/approve', authMiddleware, userTenantContext, approveInsightRequest);
+router.post('/requests/:requestId/reject', authMiddleware, userTenantContext, rejectInsightRequest);
+router.put('/requests/:requestId/revoke', authMiddleware, userTenantContext, revokeInsightRequest);
+router.get('/user/:userId?', authMiddleware, userTenantContext, getUserInsights);
+router.get('/period/:periodId', authMiddleware, userTenantContext, getInsightsForPeriod);
+router.put('/:insightId', authMiddleware, userTenantContext, updateInsight);
+router.delete('/:insightId', authMiddleware, userTenantContext, deleteInsight);
+router.post('/:insightId/like', authMiddleware, userTenantContext, likeInsight);
+router.post('/:insightId/unlike', authMiddleware, userTenantContext, unlikeInsight);
+router.get('/:insightId/danmaku', authMiddleware, userTenantContext, getDanmaku);
+router.post('/:insightId/danmaku', authMiddleware, userTenantContext, postDanmaku);
 
-/**
- * @route   POST /api/v1/insights/requests
- * @desc    创建小凡看见查看申请
- * @access  Private
- */
-router.post('/requests', authMiddleware, createInsightRequest);
-
-/**
- * @route   GET /api/v1/insights/requests/status/:userId
- * @desc    检查与某个用户的小凡看见查看申请状态
- * @access  Private
- */
-router.get('/requests/status/:userId', authMiddleware, getRequestStatus);
-
-/**
- * @route   GET /api/v1/insights/requests/received
- * @desc    获取收到的查看申请列表
- * @access  Private
- */
-router.get('/requests/received', authMiddleware, getReceivedRequests);
-
-/**
- * @route   GET /api/v1/insights/requests/sent
- * @desc    获取发起的查看申请列表
- * @access  Private
- */
-router.get('/requests/sent', authMiddleware, getSentRequests);
-
-/**
- * @route   POST /api/v1/insights/requests/:requestId/approve
- * @desc    同意查看申请
- * @access  Private
- */
-router.post('/requests/:requestId/approve', authMiddleware, approveInsightRequest);
-
-/**
- * @route   POST /api/v1/insights/requests/:requestId/reject
- * @desc    拒绝查看申请
- * @access  Private
- */
-router.post('/requests/:requestId/reject', authMiddleware, rejectInsightRequest);
-
-/**
- * @route   PUT /api/v1/insights/requests/:requestId/revoke
- * @desc    撤销已批准的权限（用户操作）
- * @access  Private
- */
-router.put('/requests/:requestId/revoke', authMiddleware, revokeInsightRequest);
-
-/**
- * @route   GET /api/v1/insights/user/:userId?
- * @desc    获取用户的反馈列表
- * @access  Private
- */
-router.get('/user/:userId?', authMiddleware, getUserInsights);
-
-/**
- * @route   GET /api/v1/insights/:insightId
- * @desc    获取反馈详情
- * @access  Public for published insight shares, otherwise private/authorized
- */
-router.get('/:insightId', optionalAuthMiddleware, getInsightDetail);
-
-router.get('/admin/:insightId/detail', adminAuthMiddleware, adminGetInsightDetail);
-router.get('/admin/:insightId/danmaku', adminAuthMiddleware, adminGetDanmaku);
-router.post('/admin/:insightId/like', adminAuthMiddleware, adminLikeForUser);
-router.post('/admin/:insightId/danmaku', adminAuthMiddleware, adminPostDanmakuForUser);
-router.delete('/admin/danmaku/:danmakuId', adminAuthMiddleware, adminDeleteDanmaku);
-
-/**
- * @route   PUT /api/v1/insights/admin/:insightId
- * @desc    更新小凡看见（管理员）
- * @access  Private (Admin)
- */
-router.put('/admin/:insightId', adminAuthMiddleware, updateInsight);
-
-/**
- * @route   PUT /api/v1/insights/:insightId
- * @desc    更新反馈（用户编辑自己的）
- * @access  Private
- */
-router.put('/:insightId', authMiddleware, updateInsight);
-
-/**
- * @route   DELETE /api/v1/insights/:insightId
- * @desc    删除反馈
- * @access  Private
- */
-router.delete('/:insightId', authMiddleware, deleteInsight);
-
-/**
- * @route   POST /api/v1/insights/:insightId/like
- * @desc    点赞小凡看见
- * @access  Private
- */
-router.post('/:insightId/like', authMiddleware, likeInsight);
-
-/**
- * @route   POST /api/v1/insights/:insightId/unlike
- * @desc    取消点赞小凡看见
- * @access  Private
- */
-router.post('/:insightId/unlike', authMiddleware, unlikeInsight);
-
-/**
- * @route   GET /api/v1/insights/:insightId/danmaku
- * @desc    获取弹幕列表
- * @access  Private
- */
-router.get('/:insightId/danmaku', authMiddleware, getDanmaku);
-
-/**
- * @route   POST /api/v1/insights/:insightId/danmaku
- * @desc    发送弹幕
- * @access  Private
- */
-router.post('/:insightId/danmaku', authMiddleware, postDanmaku);
-
-// ==================== 小凡看见(Insight) 相关路由 ====================
-
-/**
- * @route   POST /api/v1/insights/manual/create
- * @desc    创建小凡看见（手动导入）
- * @access  Private (Admin)
- */
-router.post('/manual/create', adminAuthMiddleware, createInsightManual);
-
-/**
- * @route   GET /api/v1/insights/period/:periodId
- * @desc    获取某期次的小凡看见列表
- * @access  Public (with optional auth for personalized results)
- */
-router.get('/period/:periodId', authMiddleware, getInsightsForPeriod);
-
-/**
- * @route   DELETE /api/v1/insights/manual/:insightId
- * @desc    删除小凡看见
- * @access  Private (Admin)
- */
-router.delete('/manual/:insightId', adminAuthMiddleware, deleteInsightManual);
-
-// ==================== 管理员查看申请管理接口 ====================
-
-/**
- * @route   GET /api/v1/admin/insights/requests
- * @desc    获取所有查看申请列表（管理员视图）
- * @access  Private (Admin)
- */
-router.get('/admin/requests', adminAuthMiddleware, getInsightRequestsAdmin);
-
-/**
- * @route   GET /api/v1/admin/insights/requests/stats
- * @desc    获取申请统计信息
- * @access  Private (Admin)
- */
-router.get('/admin/requests/stats', adminAuthMiddleware, getInsightRequestsStats);
-
-/**
- * @route   PUT /api/v1/admin/insights/requests/:requestId/approve
- * @desc    管理员同意查看申请
- * @access  Private (Admin)
- */
-router.put('/admin/requests/:requestId/approve', adminAuthMiddleware, adminApproveRequest);
-
-/**
- * @route   PUT /api/v1/admin/insights/requests/:requestId/reject
- * @desc    管理员拒绝查看申请
- * @access  Private (Admin)
- */
-router.put('/admin/requests/:requestId/reject', adminAuthMiddleware, adminRejectRequest);
-
-/**
- * @route   DELETE /api/v1/admin/insights/requests/:requestId
- * @desc    管理员删除查看申请
- * @access  Private (Admin)
- */
-router.delete('/admin/requests/:requestId', adminAuthMiddleware, deleteInsightRequest);
-
-/**
- * @route   POST /api/v1/admin/insights/requests/batch-approve
- * @desc    管理员批量同意查看申请
- * @access  Private (Admin)
- */
-router.post('/admin/requests/batch-approve', adminAuthMiddleware, batchApproveRequests);
-
-// ==================== 外部接口 ====================
-
-/**
- * @route   POST /api/v1/insights/external/create
- * @desc    外部系统创建小凡看见（无需认证）
- * @param   targetUserId {string} - 被看见用户ID（与targetUserName二选一，优先）
- * @param   targetUserName {string} - 被看见用户昵称（与targetUserId二选一，昵称重复时报错）
- * @param   periodId|periodName {string} - 期次ID/名称（二选一）
- * @param   sessionId {string} - 课节ID（与day二选一，推荐）
- * @param   day {number} - 第几天（与sessionId二选一，兼容旧调用）
- * @param   content {string} - 文字内容（与imageUrl二选一）
- * @param   imageUrl {string} - 图片地址（与content二选一）
- * @access  Public
- */
-router.post('/external/create', createInsightFromExternal);
+// 公开详情页（可选登录）
+router.get('/:insightId', optionalAuthMiddleware, optionalUserOrPublicTenantContext, getInsightDetail);
 
 module.exports = router;

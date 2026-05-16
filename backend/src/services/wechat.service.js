@@ -37,9 +37,10 @@ class WechatService {
   /**
    * 统一入口：根据环境自动选择 Mock 或真实登录
    * @param {string} code 微信授权码
+   * @param {Object} ctx 可选，{ appId, tenantId } 多租户上下文
    * @returns {Promise<{openid: string, session_key: string, unionid?: string}>}
    */
-  async getOpenidFromCode(code) {
+  async getOpenidFromCode(code, ctx = {}) {
     const env = process.env.NODE_ENV;
 
     try {
@@ -47,7 +48,7 @@ class WechatService {
         return await this.getMockOpenid(code);
       }
       if (env === 'production') {
-        return await this.getRealOpenid(code);
+        return await this.getRealOpenid(code, ctx);
       }
       throw new Error(`未知环境: ${env}`);
     } catch (error) {
@@ -64,38 +65,52 @@ class WechatService {
    * 生产环境使用，需要真实的 WECHAT_APPID 和 WECHAT_SECRET
    *
    * @param {string} code 临时登录凭证，由微信小程序 wx.login() 获取
+   * @param {Object} ctx 可选，{ appId, tenantId } 多租户上下文
    * @returns {Promise<{openid: string, session_key: string, unionid?: string}>}
    * @throws {Error} 微信API调用失败时抛出错误
    */
-  async getRealOpenid(code) {
-    const appid = process.env.WECHAT_APPID;
-    const secret = process.env.WECHAT_SECRET;
+  async getRealOpenid(code, { appId, tenantId } = {}) {
+    // 优先使用调用方传入的 appId（多租户路径）
+    // 兼容性：未传入则回退到环境变量（仅供单租户老配置）
+    const useAppId = appId || process.env.WECHAT_APPID;
 
-    // 验证配置
-    if (!appid || !secret) {
-      const errorMsg = '未配置 WECHAT_APPID 或 WECHAT_SECRET';
-      logger.error(errorMsg, null, {
-        hasAppid: !!appid,
-        hasSecret: !!secret
-      });
-      throw new Error(errorMsg);
+    // 通过 tenantId 查 Tenant 拿登录 secret。登录凭证和支付凭证必须分开。
+    const Tenant = require('../models/Tenant');
+    let secret = process.env.WECHAT_SECRET;
+    if (tenantId) {
+      const tenant = await Tenant.findById(tenantId)
+        .select('+wechatLogin.appSecret wechatLogin')
+        .lean();
+      secret = tenant?.wechatLogin?.appSecret || process.env.WECHAT_SECRET;
+      // 放宽校验：允许 useAppId 在以下任一处出现：
+      //  - tenant.wechatLogin.appId（主登录 appId）
+      //  - tenant.wxAppIds[]（同租户名下多个小程序 appId）
+      const validAppIds = new Set(
+        [tenant?.wechatLogin?.appId, ...(tenant?.wxAppIds || [])].filter(Boolean)
+      );
+      if (validAppIds.size > 0 && !validAppIds.has(useAppId)) {
+        throw new Error(`wxAppId ${useAppId} 不属于租户 ${tenant.slug || tenantId} 配置`);
+      }
+    }
+    if (!useAppId || !secret) {
+      throw new Error('租户未配置微信登录凭证');
     }
 
     try {
       logger.info('开始调用微信 jscode2session API', {
-        appid: `${appid.substring(0, 8)}***`, // 脱敏
+        appid: `${useAppId.substring(0, 8)}***`,
         code: WechatService.maskSensitive(code)
       });
 
       // 调用微信官方API
       const response = await axios.get(this.wechatApiUrl, {
         params: {
-          appid,
+          appid: useAppId,
           secret,
           js_code: code,
           grant_type: 'authorization_code'
         },
-        timeout: 5000 // 5秒超时
+        timeout: 5000
       });
 
       // 处理微信API错误
@@ -103,7 +118,6 @@ class WechatService {
         WechatService.handleWechatError(response.data, code);
       }
 
-      // 成功响应
       logger.info('微信 jscode2session API 调用成功', {
         openid: WechatService.maskSensitive(response.data.openid),
         hasSessionKey: !!response.data.session_key,
@@ -116,6 +130,11 @@ class WechatService {
         unionid: response.data.unionid || null
       };
     } catch (error) {
+      // 如果已经是业务错误（来自 Tenant 校验或微信 API 错误处理），直接抛出
+      if (error.message.includes('不属于租户') || error.message.includes('未配置微信登录凭证')) {
+        throw error;
+      }
+
       // 网络错误或超时
       if (error.code === 'ECONNABORTED') {
         const errorMsg = '微信API请求超时，请稍后重试';
@@ -124,7 +143,6 @@ class WechatService {
       }
 
       if (error.response) {
-        // HTTP错误响应
         const errorMsg = `微信API错误: ${error.response.status} ${error.response.statusText}`;
         logger.error(errorMsg, error, {
           status: error.response.status,
@@ -134,7 +152,6 @@ class WechatService {
         throw new Error('微信服务异常，请稍后重试');
       }
 
-      // 其他错误 - 提供更详细的信息用于调试
       const errorMessage = error.message || String(error);
       logger.error('微信API调用异常', error, {
         code: WechatService.maskSensitive(code),
@@ -143,7 +160,6 @@ class WechatService {
         hasResponse: !!error.response,
         hasRequest: !!error.request
       });
-      // 返回更具体的错误信息以便诊断
       if (errorMessage.includes('timeout')) {
         throw new Error('微信API请求超时，请稍后重试');
       }

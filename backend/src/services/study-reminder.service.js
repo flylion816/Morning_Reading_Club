@@ -12,6 +12,7 @@ const {
   getShanghaiDateTime
 } = require('../utils/study-reminder.utils');
 const { getSubscribeSceneConfig } = require('../config/subscribe-message.config');
+const { withSystemContext } = require('../utils/tenantContext');
 
 const SCENE = 'next_day_study_reminder';
 const CRON_OPTIONS = { timezone: 'Asia/Shanghai' };
@@ -235,46 +236,68 @@ async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) 
   }
 
   const now = new Date();
-  const grants = await SubscribeMessageGrant.find({
-    scene: SCENE,
-    templateId: sceneConfig.templateId,
-    availableCount: { $gt: 0 },
-    scheduledSendDate: { $lte: now },
-    $or: [{ retryAt: null }, { retryAt: { $lte: now } }]
-  })
-    .sort({ scheduledSendDate: 1, createdAt: 1 })
-    .lean();
+  // 第一步：跨租户拿出所有"到期未发送"的 grant，只读 tenantId 和 _id
+  const allDueIds = await withSystemContext(null, () =>
+    SubscribeMessageGrant.find({
+      scene: SCENE,
+      templateId: sceneConfig.templateId,
+      availableCount: { $gt: 0 },
+      scheduledSendDate: { $lte: now },
+      $or: [{ retryAt: null }, { retryAt: { $lte: now } }]
+    })
+      .select('_id tenantId')
+      .sort({ scheduledSendDate: 1, createdAt: 1 })
+      .lean()
+  );
+
+  // 第二步：按 tenantId 分组
+  const byTenant = new Map();
+  for (const item of allDueIds) {
+    const key = item.tenantId ? item.tenantId.toString() : '__no_tenant__';
+    if (!byTenant.has(key)) byTenant.set(key, []);
+    byTenant.get(key).push(item._id);
+  }
 
   const summary = {
-    total: grants.length,
+    total: allDueIds.length,
     sent: 0,
     failed: 0,
     skipped: 0,
     retryQueued: 0
   };
 
-  for (const grant of grants) {
-    try {
-      const result = await sendOneReminder(grant, { attemptType });
-      if (result.status === 'sent') {
-        summary.sent += 1;
-      } else if (result.status === 'retry_queued') {
-        summary.retryQueued += 1;
-      } else if (result.status === 'failed') {
-        summary.failed += 1;
-      } else {
-        summary.skipped += 1;
+  // 第三步：每个租户独立发送
+  for (const [tenantIdStr, ids] of byTenant) {
+    const tenantId = tenantIdStr === '__no_tenant__' ? null : tenantIdStr;
+    await withSystemContext(tenantId, async () => {
+      const grants = await SubscribeMessageGrant.find({ _id: { $in: ids } })
+        .sort({ scheduledSendDate: 1, createdAt: 1 })
+        .lean();
+
+      for (const grant of grants) {
+        try {
+          const result = await sendOneReminder(grant, { attemptType });
+          if (result.status === 'sent') {
+            summary.sent += 1;
+          } else if (result.status === 'retry_queued') {
+            summary.retryQueued += 1;
+          } else if (result.status === 'failed') {
+            summary.failed += 1;
+          } else {
+            summary.skipped += 1;
+          }
+        } catch (error) {
+          summary.failed += 1;
+          logger.error('明日学习提醒发送失败', error, {
+            userId: grant.userId,
+            periodId: grant.periodId || grant.context?.periodId || null
+          });
+          if (attemptType === 'retry') {
+            await clearGrantSchedule(grant._id);
+          }
+        }
       }
-    } catch (error) {
-      summary.failed += 1;
-      logger.error('明日学习提醒发送失败', error, {
-        userId: grant.userId,
-        periodId: grant.periodId || grant.context?.periodId || null
-      });
-      if (attemptType === 'retry') {
-        await clearGrantSchedule(grant._id);
-      }
-    }
+    });
   }
 
   return summary;

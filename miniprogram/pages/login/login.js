@@ -3,6 +3,7 @@ const authService = require('../../services/auth.service');
 const userService = require('../../services/user.service');
 const envConfig = require('../../config/env');
 const logger = require('../../utils/logger');
+const { tenantStorage } = require('../../utils/storage');
 
 const DEFAULT_WECHAT_USER_INFO = {
   nickName: '微信用户',
@@ -219,9 +220,9 @@ Page({
 
     // 保存token和用户信息到本地存储
     const constants = require('../../config/constants');
-    wx.setStorageSync(constants.STORAGE_KEYS.TOKEN, loginData.accessToken);
-    wx.setStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN, loginData.refreshToken);
-    wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, loginData.user);
+    tenantStorage.set(constants.STORAGE_KEYS.TOKEN, loginData.accessToken);
+    tenantStorage.set(constants.STORAGE_KEYS.REFRESH_TOKEN, loginData.refreshToken);
+    tenantStorage.set(constants.STORAGE_KEYS.USER_INFO, loginData.user);
 
     // 更新全局状态
     const app = getApp();
@@ -280,10 +281,10 @@ Page({
 
       // 更新本地存储的用户信息
       const constants = require('../../config/constants');
-      const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
+      const userInfo = tenantStorage.get(constants.STORAGE_KEYS.USER_INFO);
       if (userInfo && result && result.phone) {
         userInfo.phone = result.phone;
-        wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, userInfo);
+        tenantStorage.set(constants.STORAGE_KEYS.USER_INFO, userInfo);
         const app = getApp();
         app.globalData.userInfo = userInfo;
       }

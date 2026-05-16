@@ -1,7 +1,9 @@
 const User = require('../models/User');
+const Tenant = require('../models/Tenant');
 const wechatService = require('../services/wechat.service');
 const { generateTokens, verifyRefreshToken } = require('../utils/jwt');
 const { success, errors } = require('../utils/response');
+const { withSystemContext } = require('../utils/tenantContext');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 
@@ -9,31 +11,38 @@ const { publishSyncEvent } = require('../services/sync.service');
  * 微信登录处理
  * 支持 Mock（开发环境）和真实微信授权（生产环境）的无缝切换
  *
- * 请求体：{ code: string, nickname?: string, avatar_url?: string, gender?: string }
+ * 请求体：{ code: string, nickname?: string, avatar_url?: string, gender?: string, wxAppId?: string }
  */
 async function wechatLogin(req, res, next) {
   try {
     const { code, nickname, avatarUrl, gender } = req.body;
-
-    console.log('===== 后端收到微信登录请求 =====');
-    console.log('收到的 code:', code);
-    console.log('收到的 nickname:', nickname);
-    console.log('环境:', process.env.NODE_ENV);
-    console.log('================================');
+    const wxAppId = req.body.wxAppId
+      || req.header('X-Wx-AppId')
+      || (process.env.ENABLE_LEGACY_DEFAULT_TENANT === 'true' ? process.env.WECHAT_APPID : null);
 
     // 参数验证
     if (!code) {
       return res.status(400).json(errors.badRequest('缺少微信授权码'));
     }
+    if (!wxAppId) {
+      return res.status(400).json(errors.badRequest('缺少 wxAppId'));
+    }
 
-    // ====== 核心改动：调用 WechatService 获取 openid ======
+    // 第一步：通过 wxAppId 找到租户（系统级查询，绕过租户过滤）
+    const tenant = await withSystemContext(null, () => Tenant.findByWxAppId(wxAppId));
+    if (!tenant) {
+      return res.status(403).json(errors.forbidden(`未识别的小程序 appId: ${wxAppId}`));
+    }
+
+    // 第二步：调用微信。wxAppId 只是租户候选值，最终以 code2session 成功为准。
     let openid;
     try {
-      const wechatResult = await wechatService.getOpenidFromCode(code);
+      const wechatResult = await wechatService.getOpenidFromCode(code, {
+        appId: wxAppId,
+        tenantId: tenant._id
+      });
       openid = wechatResult.openid;
-      // sessionKey and unionid are optional and not used in current implementation
     } catch (wechatError) {
-      // 微信服务错误（包括网络错误）
       logger.error('微信认证失败', wechatError, {
         code: `${code.substring(0, 4)}***`,
         environment: process.env.NODE_ENV
@@ -41,116 +50,89 @@ async function wechatLogin(req, res, next) {
       return res.status(401).json(errors.unauthorized(wechatError.message));
     }
 
-    // 查找或创建用户
-    let user = await User.findOne({ openid });
-    let isNewUser = false;
+    // 第三步：在租户上下文中查/建用户
+    const user = await withSystemContext(tenant._id, async () => {
+      let u = await User.findOne({ tenantId: tenant._id, openid });
+      let isNewUser = false;
 
-    if (!user) {
-      // 新用户：创建账户
-      logger.info('创建新用户', {
-        openid,
-        nickname: nickname || '晨读营用户'
-      });
+      if (!u) {
+        logger.info('创建新用户', {
+          openid,
+          nickname: nickname || '晨读营用户',
+          tenantId: tenant._id
+        });
 
-      user = await User.create({
-        openid,
-        nickname: nickname || '晨读营用户',
-        avatar: '🦁', // 默认头像
-        avatarUrl,
-        gender: gender || 'unknown',
-        role: 'user',
-        status: 'active',
-        lastLoginAt: new Date()
-      });
+        u = await User.create({
+          tenantId: tenant._id,
+          openid,
+          nickname: nickname || '晨读营用户',
+          avatar: '🦁',
+          avatarUrl,
+          gender: gender || 'unknown',
+          role: 'user',
+          status: 'active',
+          lastLoginAt: new Date()
+        });
 
-      // 异步同步到 MySQL
-      publishSyncEvent({
-        type: 'create',
-        collection: 'users',
-        documentId: user._id.toString(),
-        data: user.toObject()
-      });
+        publishSyncEvent({
+          type: 'create',
+          collection: 'users',
+          documentId: u._id.toString(),
+          data: u.toObject()
+        });
 
-      isNewUser = true;
-    } else {
-      if (user.status !== 'active') {
-        return res.status(403).json(
-          errors.forbidden(user.status === 'deleted' ? '用户已被删除' : '用户已被禁用')
-        );
-      }
-
-      // 既有用户：更新登录时间和头像信息
-      user.lastLoginAt = new Date();
-
-      // 如果提供了新头像，更新头像
-      if (avatarUrl) {
-        user.avatarUrl = avatarUrl;
-      }
-
-      // ⚠️ 重要修复：既有用户的昵称保护机制
-      // 防止微信返回的默认昵称（如"微信用户"）覆盖自定义昵称
-      // 策略：
-      // 1. 如果用户当前昵称是默认值，且前端提供非默认昵称，才更新
-      // 2. 如果前端提供的是默认昵称，永不覆盖（保留用户自定义的昵称）
-      const defaultNicknames = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
-      const isDefaultNickname = !user.nickname || defaultNicknames.includes(user.nickname);
-      const isFrontendNicknameDefault = !nickname || defaultNicknames.includes(nickname);
-
-      // 只在两种情况更新昵称：
-      // A. 当前昵称是默认值，且前端提供非默认昵称
-      // B. 当前昵称为空，且前端提供任何值（非空）
-      if (!isFrontendNicknameDefault) {
-        // 前端提供了真实昵称，使用它
-        if (isDefaultNickname || !user.nickname) {
-          user.nickname = nickname;
-          logger.info('更新既有用户昵称', {
-            userId: user._id,
-            oldNickname: user.nickname,
-            newNickname: nickname
-          });
-        }
-        // 否则保留用户现有的自定义昵称，不覆盖
+        isNewUser = true;
       } else {
-        // 前端提供的是默认昵称，绝不覆盖（保护用户已有的自定义昵称）
-        logger.debug('前端提供默认昵称，保护用户已有昵称', {
-          userId: user._id,
-          currentNickname: user.nickname,
-          frontendNickname: nickname
+        if (u.status !== 'active') {
+          return { user: u, isNewUser: false, error: u.status === 'deleted' ? '用户已被删除' : '用户已被禁用' };
+        }
+
+        u.lastLoginAt = new Date();
+
+        if (avatarUrl) {
+          u.avatarUrl = avatarUrl;
+        }
+
+        // 昵称保护机制：防止默认昵称覆盖用户自定义昵称
+        const defaultNicknames = ['微信用户', '晨读营用户', '晨读营', 'wechat user'];
+        const isDefaultNickname = !u.nickname || defaultNicknames.includes(u.nickname);
+        const isFrontendNicknameDefault = !nickname || defaultNicknames.includes(nickname);
+
+        if (!isFrontendNicknameDefault) {
+          if (isDefaultNickname || !u.nickname) {
+            u.nickname = nickname;
+          }
+        }
+
+        await u.save();
+
+        publishSyncEvent({
+          type: 'update',
+          collection: 'users',
+          documentId: u._id.toString(),
+          data: u.toObject()
         });
       }
 
-      await user.save();
+      return { user: u, isNewUser };
+    });
 
-      // 异步同步到 MySQL
-      publishSyncEvent({
-        type: 'update',
-        collection: 'users',
-        documentId: user._id.toString(),
-        data: user.toObject()
-      });
+    // 处理用户被禁用的情况
+    if (user.error) {
+      return res.status(403).json(errors.forbidden(user.error));
     }
 
-    // 生成JWT Token
-    const tokens = generateTokens(user);
+    // 第四步：生成 token（generateTokens 已经改为读 user.tenantId）
+    const tokens = generateTokens(user.user);
 
-    console.log('===== 后端登录成功，返回数据 =====');
-    console.log('用户ID:', user._id);
-    console.log('用户昵称:', user.nickname);
-    console.log('openid:', user.openid);
-    console.log('accessToken:', tokens.accessToken);
-    console.log('refreshToken:', tokens.refreshToken);
-    console.log('isNewUser:', isNewUser);
-    console.log('====================================');
-
-    // 详细日志记录（用于监控）
     logger.info('用户登录成功', {
-      userId: user._id,
-      nickname: user.nickname,
-      isNewUser,
+      userId: user.user._id,
+      nickname: user.user.nickname,
+      isNewUser: user.isNewUser,
+      tenantId: tenant._id,
       environment: process.env.NODE_ENV
     });
 
-    // 返回响应
     res.json(
       success(
         {
@@ -158,16 +140,17 @@ async function wechatLogin(req, res, next) {
           refreshToken: tokens.refreshToken,
           expiresIn: tokens.expiresIn,
           user: {
-            _id: user._id,
-            openid: user.openid,
-            nickname: user.nickname,
-            avatar: user.avatar,
-            avatarUrl: user.avatarUrl,
-            role: user.role,
-            status: user.status
+            _id: user.user._id,
+            openid: user.user.openid,
+            nickname: user.user.nickname,
+            avatar: user.user.avatar,
+            avatarUrl: user.user.avatarUrl,
+            role: user.user.role,
+            status: user.user.status
           },
-          isNewUser, // ← 标记：是否新用户
-          needsWechatInfo: isNewUser // ← 标记：是否需要用微信信息补充
+          isNewUser: user.isNewUser,
+          needsWechatInfo: user.isNewUser,
+          tenant: { _id: tenant._id, slug: tenant.slug, name: tenant.name }
         },
         '登录成功'
       )

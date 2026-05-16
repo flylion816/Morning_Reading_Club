@@ -72,6 +72,12 @@ const CheckinSchema = new mongoose.Schema(
     isFeatured: {
       type: Boolean,
       default: false
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -83,7 +89,7 @@ const CheckinSchema = new mongoose.Schema(
 // 索引
 // 用户在同一期次、同一天只能打卡一次（基于日期而非day字段）
 CheckinSchema.index(
-  { userId: 1, periodId: 1, checkinDate: 1 },
+  { tenantId: 1, userId: 1, periodId: 1, checkinDate: 1 },
   {
     unique: true,
     // 将checkinDate转换为日期（不含时间），确保同一天只能打卡一次
@@ -101,5 +107,9 @@ CheckinSchema.index({ periodId: 1, userId: 1 }); // 用户在期次内的打卡
 CheckinSchema.index({ periodId: 1, sectionId: 1, isPublic: 1, createdAt: -1 }); // 课程详情广场
 CheckinSchema.index({ createdAt: -1 }); // 按创建时间排序
 CheckinSchema.index({ mood: 1 }); // 心情筛选
+CheckinSchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+CheckinSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Checkin', CheckinSchema);

@@ -4,6 +4,7 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const subscribeMessageService = require('../services/subscribe-message.service');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 
 function serializeNotificationUser(user) {
   if (!user || typeof user !== 'object') {
@@ -408,13 +409,16 @@ async function createNotification(userId, type, title, content, options = {}) {
         });
 
         if (options.wsManager) {
-          options.wsManager.pushNotificationToUser(userId, {
-            type,
-            title,
-            content,
-            notificationId: existingNotification._id,
-            data
-          });
+          const tenantId = getCurrentTenantId();
+          if (tenantId) {
+            options.wsManager.pushNotificationToUser(tenantId, userId, {
+              type,
+              title,
+              content,
+              notificationId: existingNotification._id,
+              data
+            });
+          }
         }
 
         return existingNotification;
@@ -443,13 +447,16 @@ async function createNotification(userId, type, title, content, options = {}) {
 
     // 通过 WebSocket 推送通知（如果 wsManager 可用）
     if (options.wsManager) {
-      options.wsManager.pushNotificationToUser(userId, {
-        type,
-        title,
-        content,
-        notificationId: notification._id,
-        data
-      });
+      const tenantId = getCurrentTenantId();
+      if (tenantId) {
+        options.wsManager.pushNotificationToUser(tenantId, userId, {
+          type,
+          title,
+          content,
+          notificationId: notification._id,
+          data
+        });
+      }
     }
 
     return notification;
@@ -489,14 +496,17 @@ async function createNotifications(userIds, type, title, content, options = {}) 
 
     // 通过 WebSocket 推送所有通知（如果 wsManager 可用）
     if (options.wsManager) {
-      userIds.forEach(userId => {
-        options.wsManager.pushNotificationToUser(userId, {
-          type,
-          title,
-          content,
-          data
+      const tenantId = getCurrentTenantId();
+      if (tenantId) {
+        userIds.forEach(userId => {
+          options.wsManager.pushNotificationToUser(tenantId, userId, {
+            type,
+            title,
+            content,
+            data
+          });
         });
-      });
+      }
     }
 
     return notifications;

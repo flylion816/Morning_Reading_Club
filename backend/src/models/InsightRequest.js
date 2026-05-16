@@ -76,6 +76,12 @@ const insightRequestSchema = new mongoose.Schema(
       default: null
     },
 
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
+    },
     // 审计日志：记录所有操作
     auditLog: [
       {
@@ -120,7 +126,7 @@ const insightRequestSchema = new mongoose.Schema(
 // 索引：加快查询
 // 防止重复pending申请：同一对用户不能有多个pending状态的申请
 insightRequestSchema.index(
-  { fromUserId: 1, toUserId: 1, insightId: 1, status: 1 },
+  { tenantId: 1, fromUserId: 1, toUserId: 1, insightId: 1, status: 1 },
   {
     unique: true,
     partialFilterExpression: { status: 'pending' }
@@ -135,5 +141,9 @@ insightRequestSchema.index({ fromUserId: 1, status: 1 });
 
 // 按更新时间排序，便于重复申请后顶到前面
 insightRequestSchema.index({ updatedAt: -1 });
+insightRequestSchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+insightRequestSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('InsightRequest', insightRequestSchema);

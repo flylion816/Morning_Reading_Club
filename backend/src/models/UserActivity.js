@@ -63,6 +63,12 @@ const UserActivitySchema = new mongoose.Schema(
     userAgent: {
       type: String,
       default: null
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -76,6 +82,10 @@ UserActivitySchema.index({ occurredAt: -1 });
 UserActivitySchema.index({ userId: 1, occurredAt: -1 });
 UserActivitySchema.index({ action: 1, occurredAt: -1 });
 UserActivitySchema.index({ periodId: 1, actionDate: 1 });
+UserActivitySchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+UserActivitySchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('UserActivity', UserActivitySchema);
 module.exports.ACTIONS = ACTIONS;

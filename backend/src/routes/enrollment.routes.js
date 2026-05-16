@@ -17,36 +17,28 @@ const {
   syncNicknamesFromEnrollments
 } = require('../controllers/enrollment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const {
+  userTenantContext,
+  publicTenantContext
+} = require('../middleware/tenantContext');
 
-// ===== 管理员路由（必须放在最前面，以避免被参数路由覆盖） =====
+// ===== 外部公开接口（无需认证，必须在参数化路由之前） =====
+router.get('/external/active-periods', publicTenantContext, getActivePeriodsForExternal);
+router.get('/external/users-by-period', publicTenantContext, getUsersByPeriodName);
 
-// 获取报名列表（管理员）
-router.get('/', authMiddleware, adminMiddleware, getEnrollments);
-
-// 批量同步报名名称到用户昵称（管理员）
-router.post('/sync-nicknames', authMiddleware, adminMiddleware, syncNicknamesFromEnrollments);
-
-// 更新报名记录（管理员）
-router.put('/:id', authMiddleware, adminMiddleware, updateEnrollment);
-
-// 删除报名记录（管理员）
-router.delete('/:id', authMiddleware, adminMiddleware, deleteEnrollment);
+// ===== 管理员路由（必须放在用户路由前面） =====
+router.get('/', authMiddleware, userTenantContext, adminMiddleware, getEnrollments);
+router.post('/sync-nicknames', authMiddleware, userTenantContext, adminMiddleware, syncNicknamesFromEnrollments);
+router.put('/:id', authMiddleware, userTenantContext, adminMiddleware, updateEnrollment);
+router.delete('/:id', authMiddleware, userTenantContext, adminMiddleware, deleteEnrollment);
 
 // ===== 用户路由 =====
+router.post('/', authMiddleware, userTenantContext, submitEnrollmentForm);
+router.post('/submit', authMiddleware, userTenantContext, submitEnrollmentForm);
+router.post('/simple', authMiddleware, userTenantContext, enrollPeriod);
 
-// 默认报名路由 - POST /api/v1/enrollments（小程序调用）
-router.post('/', authMiddleware, submitEnrollmentForm);
-
-// 提交报名表单（包含完整信息）
-router.post('/submit', authMiddleware, submitEnrollmentForm);
-
-// 简化报名（仅periodId）
-router.post('/simple', authMiddleware, enrollPeriod);
-
-// 调试：清理报名记录（仅开发环境，必须放在其他路由之前）
+// 调试路由（开发环境）
 router.delete('/debug/cleanup/:userId/:keepPeriodId', debugCleanupEnrollments);
-
-// 调试：查看用户的所有报名记录
 router.get('/debug/enrollments/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
@@ -71,37 +63,10 @@ router.get('/debug/enrollments/:userId', async (req, res) => {
   }
 });
 
-// 检查用户是否已报名（必须放在其他参数路由之前）
-router.get('/check/:periodId', authMiddleware, checkEnrollment);
-
-// 获取期次的成员列表
-router.get('/period/:periodId', authMiddleware, getPeriodMembers);
-
-// 获取用户的报名列表
-router.get('/user/:userId?', authMiddleware, getUserEnrollments);
-
-// 退出期次
-router.delete('/:enrollmentId', authMiddleware, withdrawEnrollment);
-
-// 完成期次（管理员）
-router.put('/:enrollmentId/complete', authMiddleware, adminMiddleware, completeEnrollment);
-
-// ==================== 外部接口 ====================
-
-/**
- * @route   GET /api/v1/enrollments/external/active-periods
- * @desc    获取当前运行中的期次列表及当天课节 sessionId
- * @access  Public
- */
-router.get('/external/active-periods', getActivePeriodsForExternal);
-
-/**
- * @route   GET /api/v1/enrollments/external/users-by-period
- * @desc    根据期次 ID 或名称获取参加该期次的所有用户
- * @param   periodId {string} - 期次 ID（与 periodName 二选一，优先）
- * @param   periodName {string} - 期次名称（与 periodId 二选一）
- * @access  Public
- */
-router.get('/external/users-by-period', getUsersByPeriodName);
+router.get('/check/:periodId', authMiddleware, userTenantContext, checkEnrollment);
+router.get('/period/:periodId', authMiddleware, userTenantContext, getPeriodMembers);
+router.get('/user/:userId?', authMiddleware, userTenantContext, getUserEnrollments);
+router.delete('/:enrollmentId', authMiddleware, userTenantContext, withdrawEnrollment);
+router.put('/:enrollmentId/complete', authMiddleware, userTenantContext, adminMiddleware, completeEnrollment);
 
 module.exports = router;

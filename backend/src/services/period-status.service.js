@@ -3,6 +3,7 @@ const Period = require('../models/Period');
 const logger = require('../utils/logger');
 const { getPeriodDateKeys, getShanghaiDateKey } = require('../utils/study-reminder.utils');
 const { publishSyncEvent } = require('./sync.service');
+const { withSystemContext } = require('../utils/tenantContext');
 
 const CRON_OPTIONS = { timezone: 'Asia/Shanghai' };
 const STATUS_TEXT_MAP = {
@@ -29,41 +30,57 @@ function getPeriodStatusText(status) {
 }
 
 async function syncAllPeriodsStatus({ now = new Date(), emitSyncEvent = true } = {}) {
-  const periods = await Period.find({}).select('_id name status startDate endDate');
+  return withSystemContext(null, async () => {
+    const periods = await Period.find({}).select('_id tenantId name status startDate endDate');
 
-  let updatedCount = 0;
-  const updates = [];
-
-  for (const period of periods) {
-    const expectedStatus = calculatePeriodStatus(period, now);
-    if (period.status !== expectedStatus) {
-      const oldStatus = period.status;
-      period.status = expectedStatus;
-      await period.save();
-      updatedCount += 1;
-      updates.push({
-        periodId: period._id.toString(),
-        periodName: period.name,
-        oldStatus,
-        newStatus: expectedStatus
-      });
-
-      if (emitSyncEvent) {
-        publishSyncEvent({
-          type: 'update',
-          collection: 'periods',
-          documentId: period._id.toString(),
-          data: period.toObject()
-        });
-      }
+    // 按 tenantId 分组，减少 ALS 上下文切换次数
+    const byTenant = new Map();
+    for (const period of periods) {
+      const key = period.tenantId ? period.tenantId.toString() : '__no_tenant__';
+      if (!byTenant.has(key)) byTenant.set(key, []);
+      byTenant.get(key).push(period);
     }
-  }
 
-  return {
-    totalPeriods: periods.length,
-    updatedCount,
-    updates
-  };
+    let updatedCount = 0;
+    const updates = [];
+
+    for (const [tenantIdStr, tenantPeriods] of byTenant) {
+      const tenantId = tenantIdStr === '__no_tenant__' ? null : tenantIdStr;
+      await withSystemContext(tenantId, async () => {
+        for (const period of tenantPeriods) {
+          const expectedStatus = calculatePeriodStatus(period, now);
+          if (period.status !== expectedStatus) {
+            const oldStatus = period.status;
+            period.status = expectedStatus;
+            await period.save();
+            updatedCount += 1;
+            updates.push({
+              tenantId: tenantIdStr,
+              periodId: period._id.toString(),
+              periodName: period.name,
+              oldStatus,
+              newStatus: expectedStatus
+            });
+
+            if (emitSyncEvent) {
+              publishSyncEvent({
+                type: 'update',
+                collection: 'periods',
+                documentId: period._id.toString(),
+                data: period.toObject()
+              });
+            }
+          }
+        }
+      });
+    }
+
+    return {
+      totalPeriods: periods.length,
+      updatedCount,
+      updates
+    };
+  });
 }
 
 function startPeriodStatusSchedules() {

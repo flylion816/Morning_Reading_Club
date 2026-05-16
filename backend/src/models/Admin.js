@@ -32,7 +32,7 @@ const adminSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['superadmin', 'admin', 'operator'],
+      enum: ['platform_superadmin', 'tenant_admin', 'admin', 'operator', 'superadmin'],
       default: 'operator'
     },
     permissions: {
@@ -51,6 +51,12 @@ const adminSchema = new mongoose.Schema(
     loginCount: {
       type: Number,
       default: 0
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+      index: true
     }
   },
   {

@@ -90,6 +90,12 @@ const subscribeMessageGrantSchema = new mongoose.Schema(
     lastWechatRefusedAt: {
       type: Date,
       default: null
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
     }
   },
   {
@@ -99,7 +105,11 @@ const subscribeMessageGrantSchema = new mongoose.Schema(
   }
 );
 
-subscribeMessageGrantSchema.index({ userId: 1, scene: 1, templateId: 1 }, { unique: true });
+subscribeMessageGrantSchema.index({ tenantId: 1, userId: 1, scene: 1, templateId: 1 }, { unique: true });
 subscribeMessageGrantSchema.index({ scene: 1, scheduledSendDate: 1, retryAt: 1, availableCount: 1 });
+subscribeMessageGrantSchema.index({ tenantId: 1, createdAt: -1 });
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+subscribeMessageGrantSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('SubscribeMessageGrant', subscribeMessageGrantSchema);

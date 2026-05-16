@@ -75,8 +75,7 @@ const PaymentSchema = new mongoose.Schema(
 
     // 订单号（用于对账）
     orderNo: {
-      type: String,
-      unique: true
+      type: String
     },
 
     // 是否已核销（对账）
@@ -86,7 +85,13 @@ const PaymentSchema = new mongoose.Schema(
     },
 
     // 核销时间
-    reconciledAt: Date
+    reconciledAt: Date,
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
+    }
   },
   {
     timestamps: true,
@@ -102,6 +107,8 @@ PaymentSchema.index({ periodId: 1, status: 1 }); // 期次的支付状态
 PaymentSchema.index({ createdAt: -1 }); // 按创建时间排序
 PaymentSchema.index({ paidAt: -1 }); // 按支付时间排序
 PaymentSchema.index({ reconciled: 1, createdAt: -1 }); // 核销状态查询
+PaymentSchema.index({ tenantId: 1, orderNo: 1 }, { unique: true });
+PaymentSchema.index({ tenantId: 1, createdAt: -1 });
 
 // 虚拟字段：是否已支付
 PaymentSchema.virtual('isPaid').get(function () {
@@ -201,6 +208,9 @@ PaymentSchema.methods.startProcessing = function () {
   return this.save();
 };
 
+
+const tenantPlugin = require('./plugins/tenantPlugin');
+PaymentSchema.plugin(tenantPlugin);
 
 const Payment = mongoose.model('Payment', PaymentSchema);
 
