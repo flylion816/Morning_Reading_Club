@@ -422,11 +422,12 @@ async function notifyInsightCreated(req, { insight, targetUser, periodName, sect
         periodName: periodName || '',
         day: day || null
       },
+      upsertExistingNotification: true,
       subscribeFields: {
         replyUser: '小凡',
         replyTopic: truncateText(periodName || '晨读营', 32),
         replyContent: truncateText([dayText, sectionTitle].filter(Boolean).join(' ') || contentPreview, 32),
-        replyTime: formatNotificationTime(insight.createdAt || new Date())
+        replyTime: formatNotificationTime(insight.updatedAt || insight.createdAt || new Date())
       },
       sourceType: 'insight',
       sourceId: insight._id
@@ -2382,16 +2383,13 @@ async function createInsightFromExternal(req, res, next) {
       updatedAt: insight.updatedAt
     };
 
-    // 仅新建时推送通知，更新不重复打扰
-    if (created) {
-      notifyInsightCreated(req, {
-        insight,
-        targetUser,
-        periodName: resolvedPeriodName,
-        sectionTitle: resolvedTitle,
-        day: resolvedDay
-      }).catch(() => {});
-    }
+    await notifyInsightCreated(req, {
+      insight,
+      targetUser,
+      periodName: resolvedPeriodName,
+      sectionTitle: resolvedTitle,
+      day: resolvedDay
+    });
 
     res.status(created ? 201 : 200).json(success(result, created ? '小凡看见创建成功' : '小凡看见更新成功'));
   } catch (error) {

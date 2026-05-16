@@ -394,5 +394,52 @@ describe('Notification Controller', () => {
       expect(publishSyncEventStub.calledWithMatch({ type: 'update', collection: 'notifications' })).to.be
         .true;
     });
+
+    it('重复的小凡看见发布通知应按 insightId 更新原站内信', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const insightId = new mongoose.Types.ObjectId();
+      const notificationId = new mongoose.Types.ObjectId();
+      const existingNotification = {
+        _id: notificationId,
+        title: '旧标题',
+        content: '旧内容',
+        requestId: null,
+        senderId: null,
+        data: {},
+        isRead: true,
+        readAt: new Date('2026-05-10T12:00:00.000Z'),
+        isArchived: true,
+        archivedAt: new Date('2026-05-10T12:00:00.000Z'),
+        createdAt: new Date('2026-05-10T12:00:00.000Z'),
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({ _id: notificationId, title: '你被小凡看见了' })
+      };
+
+      NotificationStub.findOne.resolves(existingNotification);
+
+      const result = await notificationController.createNotification(
+        userId,
+        'insight_created',
+        '你被小凡看见了',
+        '秩序之锚 · 第1天',
+        {
+          upsertExisting: true,
+          data: { insightId: insightId.toString(), periodName: '秩序之锚' }
+        }
+      );
+
+      expect(NotificationStub.findOne.calledWithMatch({ userId, type: 'insight_created' })).to.be.true;
+      expect(NotificationStub.findOne.firstCall.args[0].$or).to.deep.equal([
+        { 'data.insightId': insightId.toString() }
+      ]);
+      expect(existingNotification.save.calledOnce).to.be.true;
+      expect(result).to.equal(existingNotification);
+      expect(existingNotification.title).to.equal('你被小凡看见了');
+      expect(existingNotification.content).to.equal('秩序之锚 · 第1天');
+      expect(existingNotification.isRead).to.equal(false);
+      expect(existingNotification.isArchived).to.equal(false);
+      expect(publishSyncEventStub.calledWithMatch({ type: 'update', collection: 'notifications' })).to.be
+        .true;
+    });
   });
 });

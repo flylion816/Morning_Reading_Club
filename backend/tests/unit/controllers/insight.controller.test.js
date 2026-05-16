@@ -2560,6 +2560,19 @@ describe('Insight Controller - 102+ 完整测试', () => {
         title: fixtures.testSections.day2Ongoing.title,
         day: fixtures.testSections.day2Ongoing.day
       });
+      expect(dispatchNotificationWithSubscribeStub.calledOnce).to.be.true;
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload).to.include({
+        recipientUserId: fixtures.testUsers.user1._id,
+        notificationType: 'insight_created',
+        title: '你被小凡看见了',
+        scene: 'insight_created',
+        upsertExistingNotification: true
+      });
+      expect(notificationPayload.targetPage).to.include('pages/insight-detail/insight-detail');
+      expect(notificationPayload.targetPage).to.include(`id=${mockInsight._id.toString()}`);
+      expect(notificationPayload.data.insightId).to.equal(mockInsight._id.toString());
+      expect(notificationPayload.subscribeFields.replyUser).to.equal('小凡');
     });
 
     it('TC-EXTERNAL-010: 缺少 sessionId 和 day 时返回 400', async () => {
@@ -2700,6 +2713,16 @@ describe('Insight Controller - 102+ 完整测试', () => {
         collection: 'insights',
         documentId: existingInsight._id.toString()
       })).to.be.true;
+      expect(dispatchNotificationWithSubscribeStub.calledOnce).to.be.true;
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload).to.include({
+        recipientUserId: fixtures.testUsers.user1._id,
+        notificationType: 'insight_created',
+        scene: 'insight_created',
+        upsertExistingNotification: true
+      });
+      expect(notificationPayload.data.insightId).to.equal(existingInsight._id.toString());
+      expect(notificationPayload.targetPage).to.include(`id=${existingInsight._id.toString()}`);
       expect(res.status.calledWith(200)).to.be.true;
       expect(res.json.firstCall.args[0].message).to.equal('小凡看见更新成功');
     });

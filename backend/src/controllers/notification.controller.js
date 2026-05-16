@@ -346,17 +346,37 @@ async function buildNotificationData(options = {}) {
   return data;
 }
 
+function buildNotificationUpsertQuery(userId, type, options = {}, data = {}) {
+  const alternatives = [];
+
+  if (options.requestId) {
+    const requestIdText = options.requestId.toString();
+    alternatives.push({ requestId: options.requestId });
+    alternatives.push({ 'data.insightRequestId': requestIdText });
+  }
+
+  if (data.insightId) {
+    alternatives.push({ 'data.insightId': data.insightId.toString() });
+  }
+
+  if (alternatives.length === 0) {
+    return null;
+  }
+
+  return {
+    userId,
+    type,
+    $or: alternatives
+  };
+}
+
 async function createNotification(userId, type, title, content, options = {}) {
   try {
     const data = await buildNotificationData(options);
 
-    if (options.upsertExisting && options.requestId) {
-      const requestIdText = options.requestId.toString();
-      const existingNotification = await Notification.findOne({
-        userId,
-        type,
-        $or: [{ requestId: options.requestId }, { 'data.insightRequestId': requestIdText }]
-      });
+    if (options.upsertExisting) {
+      const upsertQuery = buildNotificationUpsertQuery(userId, type, options, data);
+      const existingNotification = upsertQuery ? await Notification.findOne(upsertQuery) : null;
 
       if (existingNotification) {
         const refreshedAt = new Date();
