@@ -113,6 +113,15 @@ function normalizeTemplateValueByKey(fieldKey, value) {
   return truncateTemplateValue(value, 32);
 }
 
+function buildGrantQuery({ userId, scene, templateId }) {
+  return {
+    userId,
+    scene,
+    templateId,
+    availableCount: { $gt: 0 }
+  };
+}
+
 class SubscribeMessageService {
   constructor() {
     this.accessToken = null;
@@ -496,12 +505,11 @@ class SubscribeMessageService {
       });
     }
 
-    const grantQuery = {
+    const grantQuery = buildGrantQuery({
       userId: recipientUserId,
       scene,
-      templateId: sceneConfig.templateId,
-      availableCount: { $gt: 0 }
-    };
+      templateId: sceneConfig.templateId
+    });
 
     const blockedGrant = await SubscribeMessageGrant.findOne({
       ...grantQuery,
@@ -523,23 +531,45 @@ class SubscribeMessageService {
       });
     }
 
-    const grant = consumeOnSuccess
+    let grant = consumeOnSuccess
       ? await SubscribeMessageGrant.findOne({
+        ...grantQuery,
+        deliveryBlocked: { $ne: true }
+      })
+      : await SubscribeMessageGrant.findOneAndUpdate(
+        {
           ...grantQuery,
           deliveryBlocked: { $ne: true }
-        })
-      : await SubscribeMessageGrant.findOneAndUpdate(
-          {
-            ...grantQuery,
-            deliveryBlocked: { $ne: true }
-          },
+        },
+        {
+          $inc: { availableCount: -1 }
+        },
+        {
+          new: true
+        }
+      );
+
+    if (!grant) {
+      const reusableTemplateGrantQuery = {
+        userId: recipientUserId,
+        templateId: sceneConfig.templateId,
+        availableCount: { $gt: 0 },
+        deliveryBlocked: { $ne: true }
+      };
+
+      grant = consumeOnSuccess
+        ? await SubscribeMessageGrant.findOne(reusableTemplateGrantQuery).sort({ updatedAt: 1 })
+        : await SubscribeMessageGrant.findOneAndUpdate(
+          reusableTemplateGrantQuery,
           {
             $inc: { availableCount: -1 }
           },
           {
-            new: true
+            new: true,
+            sort: { updatedAt: 1 }
           }
         );
+    }
 
     if (!grant) {
       return this.createDeliveryLog({

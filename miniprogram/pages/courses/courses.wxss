@@ -190,11 +190,35 @@
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
+.section-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
 .section-title {
+  flex: 1;
+  min-width: 0;
   font-size: 32rpx;
   font-weight: bold;
   color: #333;
-  margin-bottom: 16rpx;
+  line-height: 1.45;
+}
+
+.section-status-line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  flex-wrap: wrap;
+}
+
+.reading-complete-inline {
+  color: #059669;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .section-time {
@@ -215,7 +239,6 @@
 .checkin-info {
   font-size: 26rpx;
   color: #666;
-  flex: 1;
 }
 
 .btn-action {

@@ -16,6 +16,7 @@ describe('Section Controller', () => {
   let SectionStub;
   let PeriodStub;
   let CheckinStub;
+  let UserReadingCompletionStub;
   let publishSyncEventStub;
 
   beforeEach(() => {
@@ -52,6 +53,12 @@ describe('Section Controller', () => {
       aggregate: sandbox.stub()
     };
 
+    UserReadingCompletionStub = {
+      find: sandbox.stub(),
+      findOneAndUpdate: sandbox.stub(),
+      findOne: sandbox.stub()
+    };
+
     publishSyncEventStub = sandbox.stub();
 
     const responseUtils = {
@@ -69,6 +76,7 @@ describe('Section Controller', () => {
         '../models/Section': SectionStub,
         '../models/Period': PeriodStub,
         '../models/Checkin': CheckinStub,
+        '../models/UserReadingCompletion': UserReadingCompletionStub,
         '../utils/response': responseUtils,
         '../services/sync.service': {
           publishSyncEvent: publishSyncEventStub
@@ -117,6 +125,46 @@ describe('Section Controller', () => {
       expect(responseData.data[1].checkinCount).to.equal(0);
     });
 
+    it('应该为已登录用户附加阅读完成状态', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      req.params = { periodId };
+      req.query = { page: 1, limit: 20 };
+      req.user = { userId: userId.toString() };
+
+      const mockSections = [
+        { _id: new mongoose.Types.ObjectId(), periodId, day: 1, title: '第一课' },
+        { _id: new mongoose.Types.ObjectId(), periodId, day: 2, title: '第二课' }
+      ];
+
+      PeriodStub.findById.resolves({ _id: periodId, name: '期次' });
+      SectionStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves(mockSections)
+      });
+      CheckinStub.aggregate.resolves([]);
+      UserReadingCompletionStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves([
+          {
+            sectionId: mockSections[1]._id,
+            durationMs: 91000,
+            completedAt: new Date('2026-05-14T00:00:00.000Z')
+          }
+        ])
+      });
+
+      await sectionController.getSectionsByPeriod(req, res, next);
+
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data[0].readingCompleted).to.equal(false);
+      expect(responseData.data[1].readingCompleted).to.equal(true);
+      expect(responseData.data[1].readingDurationMs).to.equal(91000);
+    });
+
     it('应该验证期次存在', async () => {
       const periodId = new mongoose.Types.ObjectId();
       req.params = { periodId };
@@ -146,7 +194,9 @@ describe('Section Controller', () => {
       };
 
       SectionStub.findById.returns({
-        populate: sandbox.stub().resolves(mockSection)
+        populate: sandbox.stub().returns({
+          lean: sandbox.stub().resolves(mockSection)
+        })
       });
 
       await sectionController.getSectionDetail(req, res, next);
@@ -154,6 +204,45 @@ describe('Section Controller', () => {
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data.title).to.equal('第一课');
+      expect(responseData.data.readingCompleted).to.equal(false);
+    });
+
+    it('应该在课节详情中附加当前用户阅读完成状态', async () => {
+      const sectionId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      req.params = { sectionId };
+      req.user = { userId: userId.toString() };
+
+      const mockSection = {
+        _id: sectionId,
+        day: 1,
+        title: '第一课',
+        content: '课程内容',
+        periodId
+      };
+
+      SectionStub.findById.returns({
+        populate: sandbox.stub().returns({
+          lean: sandbox.stub().resolves(mockSection)
+        })
+      });
+      UserReadingCompletionStub.find.returns({
+        select: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves([
+          {
+            sectionId,
+            durationMs: 72000,
+            completedAt: new Date('2026-05-14T00:00:00.000Z')
+          }
+        ])
+      });
+
+      await sectionController.getSectionDetail(req, res, next);
+
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.readingCompleted).to.equal(true);
+      expect(responseData.data.readingDurationMs).to.equal(72000);
     });
 
     it('应该返回404当课节不存在', async () => {
@@ -161,10 +250,66 @@ describe('Section Controller', () => {
       req.params = { sectionId };
 
       SectionStub.findById.returns({
-        populate: sandbox.stub().resolves(null)
+        populate: sandbox.stub().returns({
+          lean: sandbox.stub().resolves(null)
+        })
       });
 
       await sectionController.getSectionDetail(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('markReadingCompletion', () => {
+    it('应该保存当前用户的课节阅读完成状态', async () => {
+      const sectionId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      const completedAt = '2026-05-14T01:02:03.000Z';
+      req.params = { sectionId };
+      req.user = { userId: userId.toString() };
+      req.body = {
+        durationMs: 88000,
+        completedAt
+      };
+
+      SectionStub.findById.returns({
+        select: sandbox.stub().resolves({ _id: sectionId, periodId })
+      });
+      UserReadingCompletionStub.findOneAndUpdate.returns({
+        lean: sandbox.stub().resolves({
+          userId,
+          sectionId,
+          periodId,
+          durationMs: 88000,
+          completedAt: new Date(completedAt)
+        })
+      });
+
+      await sectionController.markReadingCompletion(req, res, next);
+
+      expect(UserReadingCompletionStub.findOneAndUpdate.calledOnce).to.be.true;
+      const updateArgs = UserReadingCompletionStub.findOneAndUpdate.getCall(0).args;
+      expect(updateArgs[0].userId).to.equal(userId.toString());
+      expect(updateArgs[0].sectionId).to.equal(sectionId);
+      expect(updateArgs[1].$set.durationMs).to.equal(88000);
+      expect(updateArgs[2].upsert).to.equal(true);
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.readingCompleted).to.equal(true);
+      expect(responseData.data.readingDurationMs).to.equal(88000);
+    });
+
+    it('课节不存在时应该返回404', async () => {
+      const sectionId = new mongoose.Types.ObjectId();
+      req.params = { sectionId };
+      req.user = { userId: new mongoose.Types.ObjectId().toString() };
+
+      SectionStub.findById.returns({
+        select: sandbox.stub().resolves(null)
+      });
+
+      await sectionController.markReadingCompletion(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
     });

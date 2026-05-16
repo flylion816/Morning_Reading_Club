@@ -48,8 +48,25 @@ App({
     const launchPath = launchOptions.path || '';
     const launchQuery = launchOptions.query || {};
     const hasLaunchQuery = Object.keys(launchQuery).length > 0;
+
+    if (launchPath === 'pages/profile/profile' && launchQuery.from === 'share') {
+      const query = Object.keys(launchQuery)
+        .map((key) => `${key}=${encodeURIComponent(launchQuery[key])}`)
+        .join('&');
+      const url = `/pages/index/index${query ? `?${query}` : ''}`;
+
+      logger.info('旧分享入口重定向到首页', { url });
+      wx.reLaunch({
+        url,
+        fail: (err) => {
+          logger.error('导航到首页失败:', err);
+        }
+      });
+      return;
+    }
+
     const shouldRespectLaunchPath =
-      !!launchPath && (launchPath !== 'pages/profile/profile' || hasLaunchQuery);
+      !!launchPath && (launchPath !== 'pages/index/index' || hasLaunchQuery);
 
     if (shouldRespectLaunchPath) {
       const query = Object.keys(launchQuery)
@@ -68,22 +85,22 @@ App({
     }
 
     // 生产环境：根据登录状态决定起始页
-    // 未登录（首次打开）→ 晨读营首页（公开浏览，符合微信审核要求：先体验再登录）
-    // 已登录（回访用户）→ 个人中心（保持原有体验）
+    // 未登录（首次打开）→ 晨读营列表（公开浏览，符合微信审核要求：先体验再登录）
+    // 已登录（回访用户）→ 首页（今日任务）
     if (this.globalData.isLogin) {
-      logger.info('已登录，导航到个人中心');
-      wx.reLaunch({
-        url: '/pages/profile/profile',
-        fail: (err) => {
-          logger.error('导航到个人中心失败:', err);
-        }
-      });
-    } else {
-      logger.info('未登录，导航到晨读营首页（公开页面）');
+      logger.info('已登录，导航到首页');
       wx.reLaunch({
         url: '/pages/index/index',
         fail: (err) => {
-          logger.error('导航到晨读营首页失败:', err);
+          logger.error('导航到首页失败:', err);
+        }
+      });
+    } else {
+      logger.info('未登录，导航到晨读营列表（公开页面）');
+      wx.reLaunch({
+        url: '/pages/periods/periods',
+        fail: (err) => {
+          logger.error('导航到晨读营列表失败:', err);
         }
       });
     }

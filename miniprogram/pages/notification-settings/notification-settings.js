@@ -133,7 +133,7 @@ Page({
 
       if (!hasPaidEnrollment(enrollmentList)) {
         this.setData({ loading: false });
-        redirectAfterCommunityDenied('/pages/my/my', '完成支付后可管理提醒');
+        redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可管理提醒');
         return;
       }
 

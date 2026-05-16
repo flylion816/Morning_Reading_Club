@@ -3,7 +3,7 @@
   "rules": [
     {
       "action": "allow",
-      "page": "pages/index/index"
+      "page": "pages/periods/periods"
     },
     {
       "action": "allow",
@@ -15,7 +15,7 @@
     },
     {
       "action": "disallow",
-      "page": "pages/profile/profile"
+      "page": "pages/index/index"
     },
     {
       "action": "disallow",

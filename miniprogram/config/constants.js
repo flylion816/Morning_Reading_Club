@@ -213,6 +213,6 @@ module.exports = {
   SHARE: {
     DEFAULT_TITLE: '晨读营 - 在晨光中,遇见更好的自己',
     DEFAULT_IMAGE: '/assets/images/share-default.jpg',
-    DEFAULT_PATH: '/pages/index/index'
+    DEFAULT_PATH: '/pages/index/index?from=share'
   }
 };

@@ -1,471 +1,1792 @@
-// 首页 - 课程列表
+// 首页页面
+const userService = require('../../services/user.service');
+const authService = require('../../services/auth.service');
 const courseService = require('../../services/course.service');
 const enrollmentService = require('../../services/enrollment.service');
-const userService = require('../../services/user.service');
-const { formatDate, calculatePeriodStatus, formatDateRange } = require('../../utils/formatters');
+const checkinService = require('../../services/checkin.service');
+const notificationServiceModule = require('../../services/notification.service');
+const activityService = require('../../services/activity.service');
+const constants = require('../../config/constants');
+const { formatNumber, formatDate } = require('../../utils/formatters');
+const { richContentToPlainText } = require('../../utils/markdown');
+const { getPeriodAccess, hasPaidEnrollment } = require('../../utils/period-access');
 const {
-  getCachedEnrollmentAccess,
-  setCachedEnrollmentAccess,
-  isFreshOptimisticEnrollmentAccess,
-  isPaidStatus
-} = require('../../utils/period-access');
+  decorateSectionWithReadingCompletion
+} = require('../../utils/reading-completion');
+const {
+  decorateUserAvatar,
+  getLastTextChar,
+  getUserAvatarDisplay
+} = require('../../utils/avatar');
+const {
+  buildInsightRequestDisplay,
+  extractInsightRequests
+} = require('../../utils/insight-request-display');
 
-const ENROLLMENT_CHECK_CONCURRENCY = 2;
+const notificationService =
+  notificationServiceModule.default || notificationServiceModule;
+
+const MORNING_READ_PROMPT_KEY = 'morning_read_prompt_date';
+const MORNING_READ_PROMPT_START_MINUTE = 5 * 60 + 50;
+const MORNING_READ_PROMPT_END_MINUTE = 6 * 60 + 15;
+
+const TASK_CARD_LAYOUT_RPX = {
+  screenWidth: 750,
+  contentPadding: 48,
+  sectionPadding: 64,
+  coverWidth: 160,
+  cardGap: 24,
+  avatarSize: 38,
+  avatarStep: 28,
+  badgeGap: 10,
+  countCharWidth: 26,
+  maxBackendAvatars: 10
+};
+
+function getVisibleTaskCheckinUsers(
+  users = [],
+  checkinCount = 0,
+  communityEnabled = true
+) {
+  if (!communityEnabled || !Array.isArray(users) || users.length === 0) {
+    return [];
+  }
+
+  const layout = TASK_CARD_LAYOUT_RPX;
+  const availableWidth =
+    layout.screenWidth -
+    layout.contentPadding -
+    layout.sectionPadding -
+    layout.coverWidth -
+    layout.cardGap;
+  const countText = `${checkinCount || 0}人已打卡`;
+  const countTextWidth = countText.length * layout.countCharWidth;
+  const avatarWidthBudget =
+    availableWidth - countTextWidth - layout.badgeGap;
+
+  if (avatarWidthBudget < layout.avatarSize) {
+    return [];
+  }
+
+  const maxAvatarCount =
+    1 + Math.floor((avatarWidthBudget - layout.avatarSize) / layout.avatarStep);
+  const visibleCount = Math.max(
+    0,
+    Math.min(users.length, layout.maxBackendAvatars, maxAvatarCount)
+  );
+
+  return users.slice(0, visibleCount);
+}
+
+function formatRecentCheckinDate(dateString) {
+  if (!dateString) {
+    return '';
+  }
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${month}.${day}`;
+}
+
+function buildRecentCheckinCard(item) {
+  const previewSource = richContentToPlainText(item.note || item.content || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const preview = previewSource || '这篇打卡还没有填写正文';
+  const periodInfo =
+    item.periodId && typeof item.periodId === 'object' ? item.periodId : {};
+  const sectionInfo =
+    item.sectionId && typeof item.sectionId === 'object' ? item.sectionId : {};
+
+  return {
+    id: item._id || item.id,
+    sectionId: sectionInfo._id || sectionInfo.id || item.sectionId || '',
+    periodId: periodInfo._id || periodInfo.id || item.periodId || '',
+    periodTitle: periodInfo.title || periodInfo.name || '我的打卡',
+    sectionTitle: sectionInfo.title || '打卡日记',
+    preview,
+    likeCount: item.likeCount || 0,
+    dayLabel: sectionInfo.day ? `第${sectionInfo.day}天` : '',
+    dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
+    icon: periodInfo.coverEmoji || periodInfo.icon || '📘',
+    color: periodInfo.coverColor || periodInfo.color || '#4a90e2'
+  };
+}
+
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isMorningReadPromptTime(date = new Date()) {
+  const minuteOfDay = date.getHours() * 60 + date.getMinutes();
+  return (
+    minuteOfDay >= MORNING_READ_PROMPT_START_MINUTE &&
+    minuteOfDay <= MORNING_READ_PROMPT_END_MINUTE
+  );
+}
+
+function buildReadingModeUrl(sectionId, periodId = '', section = {}) {
+  const params = [
+    `id=${encodeURIComponent(sectionId)}`,
+    `periodId=${encodeURIComponent(periodId || '')}`
+  ];
+
+  if (section.readingCompleted) {
+    params.push('readingCompleted=1');
+    params.push(
+      `readingDurationMs=${encodeURIComponent(section.readingDurationMs || 0)}`
+    );
+    if (section.readingCompletedAt) {
+      params.push(
+        `readingCompletedAt=${encodeURIComponent(section.readingCompletedAt)}`
+      );
+    }
+  }
+
+  return `/pages/reading-mode/reading-mode?${params.join('&')}`;
+}
 
 Page({
   data: {
     // 用户信息
     userInfo: null,
     isLogin: false,
+    hasValidSignature: false,
 
-    // 期次列表
-    periods: [],
-    periodEnrollmentStatus: {}, // 记录每个期次的报名状态
-    defaultEnrollmentStatus: {
-      isEnrolled: false,
-      paymentStatus: null,
-      enrollmentId: null
+    // 当前期次
+    currentPeriod: null,
+    currentPeriodPaymentStatus: null,
+    canAccessCurrentPeriodCommunity: false,
+    currentPeriodCommunityState: 'locked',
+    canUsePaidFeatures: false,
+
+    // 今日课节
+    todaySection: null,
+    showMorningReadPrompt: false,
+
+    // 统计信息
+    stats: {
+      current_day: 1,
+      total_days: 23
     },
-    loading: true,
-    refreshing: false,
 
-    // Banner文本
-    bannerText: '☀️ 天天开心！',
-    bannerSubtext: '在晨光中,遇见更好的自己'
+    // 最近的小凡看见（最多3条）
+    recentInsights: [],
+    recentOtherInsights: [],
+    insightActiveTab: 'mine',
+    otherInsightsLoading: false,
+
+    // 最近的打卡日记（最多3条）
+    recentCheckins: [],
+
+    // 小凡看见请求列表
+    requestDirectionTabs: [
+      { value: 'received', label: '收到的' },
+      { value: 'sent', label: '我发起的' }
+    ],
+    activeInsightRequestDirection: 'received',
+    receivedInsightRequests: [],
+    sentInsightRequests: [],
+    insightRequests: [],
+    allInsightRequests: [],
+    insightRequestTotal: 0,
+    insightRequestEmptyText: '暂无收到的请求',
+    focusRequestId: '',
+    focusInsightId: '',
+    highlightRequestId: '',
+    unreadNotificationCount: 0,
+
+    // 去晨读入口（腾讯会议入口暂时屏蔽）
+    hasMeeting: false,
+    meetingId: '',
+    meetingJoinUrl: '',
+
+    // 加载状态
+    loading: true,
+
+    // 编辑个人信息相关
+    showEditProfile: false,
+    isSavingProfile: false,
+    editForm: {
+      avatar: '🦁',
+      avatarUrl: '',
+      nickname: '',
+      signature: ''
+    }
   },
 
   onLoad(options) {
-    console.log('===== 首页onLoad开始 =====');
-    console.log('首页加载', options);
-    this._skipNextOnShowRefresh = true;
-    this.checkLoginStatus();
-    this.loadPeriods();
-    console.log('===== 首页onLoad结束 =====');
+    console.log('🟢🟢🟢 PROFILE.JS ONLOAD CALLED 🟢🟢🟢', options);
+    console.log('个人中心加载', options);
+    this.captureInsightRequestFocus(options);
   },
 
   onShow() {
-    if (this._skipNextOnShowRefresh) {
-      this._skipNextOnShowRefresh = false;
-      return;
-    }
-
-    console.log('📱 首页onShow被触发');
-    const wasLoggedIn = this.data.isLogin;
-    this.checkLoginStatus();
-
-    if (!this.data.isLogin) {
-      console.log('❌ 未登录');
-      return;
-    }
-
-    const app = getApp();
-
-    // 使用 globalData 缓存的用户信息，profile 页保存时会同步更新，避免每次返回都发起 API 请求
-    if (app.globalData.userInfo) {
-      this.setData({ userInfo: app.globalData.userInfo });
-    } else {
-      this.loadUserInfo();
-    }
-
-    // 登录状态刚变化（未登录→已登录）：重新加载期次（含打卡统计）
-    if (!wasLoggedIn) {
-      console.log('🔄 登录状态变化，重新加载期次列表（含打卡统计）');
-      this.loadPeriods();
-      return;
-    }
-
-    // 报名状态：刷新窗口要短于乐观授权缓存，避免旧状态滞留过久
-    const ENROLLMENT_TTL = 90 * 1000;
-    const enrollmentChanged = app.globalData._enrollmentChanged;
-    const enrollmentStale =
-      !this._enrollmentCheckedAt ||
-      Date.now() - this._enrollmentCheckedAt > ENROLLMENT_TTL;
-
-    if ((enrollmentChanged || enrollmentStale) && this.data.periods.length > 0) {
-      this.checkEnrollmentStatus(this.data.periods).then(refreshSucceeded => {
-        if (enrollmentChanged && refreshSucceeded) {
-          app.globalData._enrollmentChanged = false;
-        }
-      });
-    }
+    console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
+    this.checkLoginStatus({ refreshUserData: true });
   },
 
   onPullDownRefresh() {
     console.log('下拉刷新');
-    this.refreshPeriods();
+    this.loadUserData().then(() => {
+      wx.stopPullDownRefresh();
+    });
   },
 
   /**
    * 检查登录状态
    */
-  checkLoginStatus() {
+  checkLoginStatus(options = {}) {
+    const { refreshUserData = false } = options;
     const app = getApp();
-    const isLogin = app.globalData.isLogin;
-    const userInfo = app.globalData.userInfo;
+    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    const storedUserInfo = token
+      ? wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO)
+      : null;
+    const isLogin = !!(token && storedUserInfo);
+    const userInfo = isLogin ? storedUserInfo : null;
+    const hasValidSignature = !!(
+      userInfo && this.isValidSignature(userInfo.signature)
+    );
+
+    if (isLogin) {
+      console.log('🔄 onShow: 更新 globalData');
+      app.globalData.isLogin = true;
+      app.globalData.userInfo = userInfo;
+      app.globalData.token = token;
+    } else {
+      console.log('⚠️ onShow: 未登录，显示访客视图');
+      app.globalData.isLogin = false;
+      app.globalData.userInfo = null;
+      app.globalData.token = null;
+    }
+
+    const nextData = {
+      isLogin,
+      userInfo,
+      hasValidSignature,
+      loading: isLogin ? !!refreshUserData : false
+    };
+
+    if (!isLogin) {
+      Object.assign(nextData, {
+        currentPeriod: null,
+        currentPeriodPaymentStatus: null,
+        canAccessCurrentPeriodCommunity: false,
+        currentPeriodCommunityState: 'locked',
+        canUsePaidFeatures: false,
+        todaySection: null,
+        showMorningReadPrompt: false,
+        recentCheckins: [],
+        recentInsights: [],
+        receivedInsightRequests: [],
+        sentInsightRequests: [],
+        insightRequests: [],
+        allInsightRequests: [],
+        insightRequestTotal: 0,
+        insightRequestEmptyText: this.getInsightRequestEmptyText(
+          this.data.activeInsightRequestDirection
+        ),
+        unreadNotificationCount: 0,
+        hasMeeting: false,
+        meetingId: '',
+        meetingJoinUrl: ''
+      });
+    }
+
+    this.setData(nextData, () => {
+      this.updateTabBarVisibility(isLogin);
+
+      if (isLogin && refreshUserData) {
+        this.loadUserData(true);
+        this.loadUnreadNotificationCount();
+      }
+    });
+  },
+
+  /**
+   * 更新tabBar显示状态
+   * 始终显示tabBar，让用户可以浏览其他页面（符合微信审核规范）
+   */
+  updateTabBarVisibility() {
+    wx.showTabBar();
+  },
+
+  captureInsightRequestFocus(options = {}) {
+    const focusRequestId = options.focusRequestId || options.requestId || '';
+    const focusInsightId = options.focusInsightId || options.insightId || '';
+
+    if (!focusRequestId && !focusInsightId) {
+      return;
+    }
 
     this.setData({
-      isLogin,
-      userInfo
+      focusRequestId,
+      focusInsightId
+    });
+  },
+
+  getInsightRequestPreview(requests = []) {
+    const topRequests = requests.slice(0, 3);
+    const { focusRequestId, focusInsightId } = this.data;
+
+    if (!focusRequestId && !focusInsightId) {
+      return topRequests;
+    }
+
+    const focusedRequest = requests.find((item) => {
+      const requestId = item._id || item.id;
+      const insightId = item.insightId;
+      return (
+        (focusRequestId && String(requestId) === String(focusRequestId)) ||
+        (focusInsightId && String(insightId) === String(focusInsightId))
+      );
     });
 
-    // 如果已登录,获取用户信息
-    if (isLogin && !userInfo) {
-      this.loadUserInfo();
+    if (!focusedRequest) {
+      return topRequests;
     }
+
+    const focusedRequestId = focusedRequest._id || focusedRequest.id;
+    const alreadyVisible = topRequests.some(
+      (item) => String(item._id || item.id) === String(focusedRequestId)
+    );
+
+    if (alreadyVisible) {
+      return topRequests;
+    }
+
+    return [
+      focusedRequest,
+      ...topRequests
+        .filter((item) => String(item._id || item.id) !== String(focusedRequestId))
+        .slice(0, 2)
+    ];
   },
 
-  /**
-   * 加载用户信息（含自动重试）
-   */
-  async loadUserInfo(retryCount = 0) {
-    try {
-      console.log('📥 开始加载用户信息...');
-      const userInfo = await userService.getUserProfile();
-      console.log('✅ 获取用户信息成功:', userInfo);
+  getInsightRequestEmptyText(direction = 'received') {
+    return direction === 'sent'
+      ? '你还没有发起过看见请求'
+      : '暂无收到的请求';
+  },
 
-      const app = getApp();
-      app.globalData.userInfo = userInfo;
+  getInsightRequestListForDirection(requestGroups = {}, direction = 'received') {
+    return direction === 'sent'
+      ? requestGroups.sentInsightRequests || []
+      : requestGroups.receivedInsightRequests || [];
+  },
 
-      this.setData({
-        userInfo
+  setInsightRequestDirection(direction) {
+    const nextDirection = direction === 'sent' ? 'sent' : 'received';
+    const requestGroups = {
+      receivedInsightRequests: this.data.receivedInsightRequests,
+      sentInsightRequests: this.data.sentInsightRequests
+    };
+    const allInsightRequests = this.getInsightRequestListForDirection(
+      requestGroups,
+      nextDirection
+    );
+
+    this.setData(
+      {
+        activeInsightRequestDirection: nextDirection,
+        allInsightRequests,
+        insightRequests: this.getInsightRequestPreview(allInsightRequests),
+        insightRequestTotal: allInsightRequests.length,
+        insightRequestEmptyText: this.getInsightRequestEmptyText(nextDirection)
+      },
+      () => this.revealFocusedInsightRequest()
+    );
+  },
+
+  handleInsightRequestDirectionTap(e) {
+    const direction = e.currentTarget.dataset.direction;
+    if (!direction || direction === this.data.activeInsightRequestDirection) {
+      return;
+    }
+
+    this.setInsightRequestDirection(direction);
+  },
+
+  findFocusedInsightRequest(requests = this.data.insightRequests) {
+    const { focusRequestId, focusInsightId } = this.data;
+
+    if (!focusRequestId && !focusInsightId) {
+      return null;
+    }
+
+    return requests.find((item) => {
+      const requestId = item._id || item.id;
+      const insightId = item.insightId;
+      return (
+        (focusRequestId && String(requestId) === String(focusRequestId)) ||
+        (focusInsightId && String(insightId) === String(focusInsightId))
+      );
+    });
+  },
+
+  revealFocusedInsightRequest() {
+    const focusedRequest = this.findFocusedInsightRequest();
+    if (!focusedRequest) {
+      return;
+    }
+
+    const requestId = focusedRequest._id || focusedRequest.id;
+    const selector = `#request-${requestId}`;
+
+    clearTimeout(this._requestHighlightTimer);
+    setTimeout(() => {
+      this.setData({ highlightRequestId: requestId });
+      wx.pageScrollTo({
+        selector,
+        offsetTop: 96,
+        duration: 520,
+        fail: () => {
+          wx.pageScrollTo({ scrollTop: 760, duration: 520 });
+        }
       });
 
-      console.log('📝 页面 userInfo 已更新为:', this.data.userInfo);
-    } catch (error) {
-      console.error('❌ 获取用户信息失败:', error);
-      const isTimeout = error && (error.errMsg?.includes('timeout') || error.message?.includes('timeout'));
-      if (isTimeout && retryCount < 1) {
-        console.log('⏳ 用户信息请求超时，自动重试中...');
-        return this.loadUserInfo(retryCount + 1);
-      }
-    }
+      this._requestHighlightTimer = setTimeout(() => {
+        if (this.data.highlightRequestId === requestId) {
+          this.setData({ highlightRequestId: '' });
+        }
+      }, 3600);
+    }, 120);
   },
 
   /**
-   * 加载期次列表（含自动重试，解决隔天首次打开超时问题）
+   * 加载用户数据
    */
-  async loadPeriods(retryCount = 0) {
+  async loadUserData(forceLoggedIn = false) {
+    if (!(forceLoggedIn || this.data.isLogin)) {
+      this.setData({ loading: false });
+      return;
+    }
+
     this.setData({ loading: true });
 
     try {
-      // 已登录时调用认证API（/periods/user，含打卡统计），未登录时调用公开API（/periods）
-      const res = await courseService.getPeriods({}, this.data.isLogin);
-      console.log('📊 [DEBUG] getPeriods 原始返回:', JSON.stringify(res).substring(0, 500));
-      let periods = res.list || res.items || res || [];
-      console.log('📊 [DEBUG] 期次checkedDays:', periods.map(p => p.title + ':' + p.checkedDays));
+      // ── Wave 1: 所有独立请求并行 ──────────────────────────────
+      const [userInfo, stats, periods, userEnrollments, taskRes] =
+        await Promise.all([
+          userService.getUserProfile(),
+          userService.getUserStats(),
+          courseService.getPeriods(),
+          enrollmentService
+            .getUserEnrollments({ limit: 100 })
+            .catch(() => ({ list: [] })),
+          courseService.getTodayTask().catch(() => null)
+        ]);
 
-      // 为每个期次计算状态（基于日期而不是数据库status字段）
-      periods = periods.map(period => {
-        const startDate = period.startDate || period.startTime;
-        const endDate = period.endDate || period.endTime;
-        const calculatedStatus = calculatePeriodStatus(startDate, endDate);
+      const displayUserInfo = decorateUserAvatar(userInfo);
+      const app = getApp();
+      app.globalData.userInfo = displayUserInfo;
+
+      // 计算当前期次
+      const periodsList = periods.list || periods.items || periods || [];
+      const enrollmentList = userEnrollments.list || userEnrollments || [];
+      const enrolledPeriodIds = enrollmentList
+        .filter((e) => e.status === 'active' || e.status === 'completed')
+        .map((e) => e.periodId?._id || e.periodId);
+      const enrolledPeriods = periodsList.filter((p) =>
+        enrolledPeriodIds.includes(p._id)
+      );
+
+      let currentPeriod = null;
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+
+      for (const period of enrolledPeriods) {
+        const startDate = new Date(period.startDate || period.startTime || 0);
+        const endDate = new Date(period.endDate || period.endTime || 0);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        if (todayDate >= startDate && todayDate <= endDate) {
+          currentPeriod = period;
+          break;
+        }
+      }
+      if (!currentPeriod)
+        currentPeriod =
+          enrolledPeriods.find((p) => p.status === 'ongoing') || null;
+      if (!currentPeriod && enrolledPeriods.length > 0) {
+        currentPeriod = [...enrolledPeriods].sort(
+          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        )[0];
+      }
+
+      const hasValidTask = !!(taskRes && taskRes.sectionId);
+
+      // taskRes 返回了 periodId，优先用它来确定当前期次
+      if (hasValidTask && taskRes.periodId && periodsList.length > 0) {
+        const foundPeriod = periodsList.find(
+          (p) => p._id === taskRes.periodId || p.id === taskRes.periodId
+        );
+        if (foundPeriod) currentPeriod = foundPeriod;
+      }
+
+      const currentPeriodId = currentPeriod?._id || currentPeriod?.id || null;
+
+      // ── Wave 2: 依赖 Wave1 的两个请求并行 ──────────────────────
+      const [sectionRes, currentPeriodAccess] = await Promise.all([
+        hasValidTask
+          ? courseService.getSectionDetail(taskRes.sectionId)
+          : Promise.resolve(null),
+        currentPeriodId
+          ? getPeriodAccess(currentPeriodId, {
+            enrollmentList,
+            skipRequest: true
+          })
+          : Promise.resolve({
+            canAccessCommunity: false,
+            communityAccessState: 'locked',
+            paymentStatus: null
+          })
+      ]);
+
+      // 构建 todaySection（只保留展示需要的字段，避免传输全课节内容）
+      let todaySection = null;
+      const d = new Date();
+      const displayDate = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 全天`;
+      const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
+
+      if (hasValidTask && sectionRes) {
+        const checkinUsers = (taskRes.checkinUsers || [])
+          .slice(0, TASK_CARD_LAYOUT_RPX.maxBackendAvatars)
+          .map((user) => ({
+            ...user,
+            ...getUserAvatarDisplay(user, {
+              userId: user._id || user.userId,
+              displayName: user.nickname || user.name || '用户'
+            })
+          }));
+        todaySection = {
+          _id: sectionRes._id || taskRes.sectionId,
+          id: sectionRes.id || taskRes.sectionId,
+          day: taskRes.day,
+          dayDisplay: String(typeof taskRes.day === 'number' ? taskRes.day : 0).padStart(2, '0'),
+          title: sectionRes.title,
+          periodId: taskRes.periodId,
+          periodTitle: taskRes.periodTitle,
+          checkinCount: taskRes.checkinCount || 0,
+          checkinUsers,
+          visibleCheckinUsers: getVisibleTaskCheckinUsers(
+            checkinUsers,
+            taskRes.checkinCount || 0,
+            communityEnabled
+          ),
+          isCheckedIn: !!(taskRes.isCheckedIn || sectionRes.isCheckedIn),
+          progress: taskRes.isCheckedIn || sectionRes.isCheckedIn ? 100 : 0,
+          readingCompleted: !!(
+            taskRes.readingCompleted || sectionRes.readingCompleted
+          ),
+          readingCompletedAt:
+            taskRes.readingCompletedAt || sectionRes.readingCompletedAt || null,
+          readingDurationMs:
+            taskRes.readingDurationMs || sectionRes.readingDurationMs || 0,
+          coverColor:
+            sectionRes.coverColor || currentPeriod?.coverColor || '#4a90e2',
+          coverEmoji:
+            sectionRes.coverEmoji || currentPeriod?.coverEmoji || '🏔️',
+          subtitleDisplay: (sectionRes.subtitle || '').replace(/至$/, ''),
+          displayDate
+        };
+      } else if (!hasValidTask && currentPeriodId) {
+        // 降级方案：从期次课节列表取第一个未打卡课节
+        try {
+          const sectionsRes =
+            await courseService.getPeriodSections(currentPeriodId);
+          const sections =
+            sectionsRes.list || sectionsRes.items || sectionsRes || [];
+          const section =
+            sections.filter((s) => s.day > 0).find((s) => !s.isCheckedIn) ||
+            sections.filter((s) => s.day > 0)[0];
+          if (section) {
+            todaySection = {
+              _id: section._id,
+              id: section.id,
+              day: section.day,
+              dayDisplay: String(typeof section.day === 'number' ? section.day : 0).padStart(2, '0'),
+              title: section.title,
+              periodId: currentPeriodId,
+              periodTitle: currentPeriod?.title,
+              checkinCount: section.checkinCount || 0,
+              checkinUsers: [],
+              visibleCheckinUsers: [],
+              isCheckedIn: !!section.isCheckedIn,
+              progress: section.isCheckedIn ? 100 : 0,
+              readingCompleted: !!section.readingCompleted,
+              readingCompletedAt: section.readingCompletedAt || null,
+              readingDurationMs: section.readingDurationMs || 0,
+              coverColor: currentPeriod?.coverColor || '#4a90e2',
+              coverEmoji: currentPeriod?.coverEmoji || '🏔️',
+              subtitleDisplay: (section.subtitle || '').replace(/至$/, ''),
+              displayDate
+            };
+          }
+        } catch (e) {
+          console.error('降级获取课节失败:', e);
+        }
+      }
+
+      const paidFeatureAccessEnabled =
+        communityEnabled || hasPaidEnrollment(enrollmentList);
+      if (todaySection) {
+        todaySection = decorateSectionWithReadingCompletion(todaySection);
+      }
+
+      // ── Wave 3: 社区数据并行加载 ────────────────────────────────
+      const [recentCheckins, recentInsights, insightRequestGroups] =
+        paidFeatureAccessEnabled
+          ? await Promise.all([
+            this.loadRecentCheckins().catch(() => []),
+            this.loadRecentInsights(currentPeriod).catch(() => []),
+            this.loadInsightRequests(false).catch(() => ({
+              receivedInsightRequests: [],
+              sentInsightRequests: []
+            }))
+          ])
+          : [
+            [],
+            [],
+            { receivedInsightRequests: [], sentInsightRequests: [] }
+          ];
+      const allInsightRequests = this.getInsightRequestListForDirection(
+        insightRequestGroups,
+        this.data.activeInsightRequestDirection
+      );
+
+      // 只存展示字段，避免 setData 传输整个 period 对象
+      const currentPeriodDisplay = currentPeriod
+        ? {
+          _id: currentPeriod._id,
+          id: currentPeriod.id,
+          name: currentPeriod.name,
+          title: currentPeriod.title,
+          coverColor: currentPeriod.coverColor,
+          coverEmoji: currentPeriod.coverEmoji,
+          status: currentPeriod.status,
+          meetingId: currentPeriod.meetingId || '',
+          meetingJoinUrl: currentPeriod.meetingJoinUrl || ''
+        }
+        : null;
+
+      this.setData(
+        {
+          userInfo: displayUserInfo,
+          hasValidSignature: !!this.isValidSignature(
+            displayUserInfo && displayUserInfo.signature
+          ),
+          userStats: stats,
+          currentPeriod: currentPeriodDisplay,
+          currentPeriodPaymentStatus: currentPeriodAccess.paymentStatus || null,
+          canAccessCurrentPeriodCommunity: communityEnabled,
+          currentPeriodCommunityState:
+            currentPeriodAccess.communityAccessState || 'locked',
+          canUsePaidFeatures: paidFeatureAccessEnabled,
+          todaySection: todaySection || null,
+          recentCheckins,
+          recentInsights,
+          receivedInsightRequests:
+            insightRequestGroups.receivedInsightRequests || [],
+          sentInsightRequests: insightRequestGroups.sentInsightRequests || [],
+          allInsightRequests,
+          insightRequests: this.getInsightRequestPreview(allInsightRequests),
+          insightRequestTotal: allInsightRequests.length,
+          insightRequestEmptyText: this.getInsightRequestEmptyText(
+            this.data.activeInsightRequestDirection
+          ),
+          hasMeeting: !!todaySection,
+          meetingId: currentPeriod?.meetingId || '',
+          meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
+          loading: false
+        },
+        () => {
+          this.revealFocusedInsightRequest();
+          this.maybeShowMorningReadPrompt();
+        }
+      );
+    } catch (error) {
+      console.error('加载用户数据失败:', error);
+      this.setData({ loading: false });
+      wx.showToast({ title: '加载失败,请重试', icon: 'none' });
+    }
+  },
+
+  maybeShowMorningReadPrompt() {
+    const { isLogin, todaySection, showMorningReadPrompt } = this.data;
+
+    if (!isLogin || showMorningReadPrompt || !todaySection) {
+      return;
+    }
+
+    if (todaySection.readingCompleted) {
+      return;
+    }
+
+    const now = new Date();
+    if (!isMorningReadPromptTime(now)) {
+      return;
+    }
+
+    const todayKey = getLocalDateKey(now);
+    let promptedDate = '';
+    try {
+      promptedDate = wx.getStorageSync(MORNING_READ_PROMPT_KEY);
+    } catch (error) {
+      console.warn('读取晨读提醒状态失败:', error);
+    }
+    if (promptedDate === todayKey) {
+      return;
+    }
+
+    this.setData({ showMorningReadPrompt: true });
+  },
+
+  markMorningReadPromptHandled() {
+    try {
+      wx.setStorageSync(MORNING_READ_PROMPT_KEY, getLocalDateKey());
+    } catch (error) {
+      console.warn('保存晨读提醒状态失败:', error);
+    }
+  },
+
+  handleMorningReadPromptCancel() {
+    this.markMorningReadPromptHandled();
+    this.setData({ showMorningReadPrompt: false });
+  },
+
+  handleMorningReadPromptGo() {
+    this.markMorningReadPromptHandled();
+    this.setData({ showMorningReadPrompt: false }, () => {
+      this.handleJoinMeeting();
+    });
+  },
+
+  async loadRecentCheckins() {
+    try {
+      const res = await checkinService.getUserCheckinsWithStats({
+        page: 1,
+        limit: 6
+      });
+
+      const list = Array.isArray(res?.list)
+        ? res.list
+        : Array.isArray(res)
+          ? res
+          : [];
+      return list
+        .filter((item) => {
+          const text = richContentToPlainText(
+            item.note || item.content || ''
+          ).trim();
+          return text.length > 0;
+        })
+        .slice(0, 3)
+        .map(buildRecentCheckinCard);
+    } catch (error) {
+      console.error('加载最近打卡失败:', error);
+      return [];
+    }
+  },
+
+  /**
+   * 加载最近的小凡看见记录
+   * 改为加载所有小凡看见（不限期次），然后只取最新的2条
+   * 这样可以保证即使当前期次判断有误，也能显示用户的最新小凡看见
+   */
+  async loadRecentInsights() {
+    try {
+      const insightService = require('../../services/insight.service');
+
+      const res = await insightService.getInsightsList({ limit: 10 });
+
+      // request.js 会自动提取 data.data，所以这里 res 应该是 { list: [...], pagination: {...} }
+      let insights = [];
+      if (res && res.list) {
+        // 标准格式
+        insights = res.list;
+      } else if (Array.isArray(res)) {
+        // 直接是数组
+        insights = res;
+      }
+
+      if (!insights || insights.length === 0) {
+        return [];
+      }
+
+      // 按创建时间倒序排列（最新的在前）
+      insights.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+
+      // 格式化数据
+      const { getInsightTypeConfig, getAvatarColorByUserId } = require('../../utils/formatters');
+      const currentUser = getApp().globalData.userInfo || {};
+      const currentUserId = currentUser._id || '';
+      const currentNickname = currentUser.nickname || currentUser.name || '用户';
+      const currentAvatar = getUserAvatarDisplay(currentUser, {
+        userId: currentUserId,
+        displayName: currentNickname
+      });
+      const formatted = insights.map((item) => {
+        // 提取preview：和insights.js保持一致逻辑
+        let preview = richContentToPlainText(item.summary || '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (!preview && item.content) {
+          const plainText = richContentToPlainText(item.content)
+            .replace(/\s+/g, ' ')
+            .trim();
+          // 直接取前150个字符
+          preview = plainText.substring(0, 150);
+          if (plainText.length > 150) {
+            preview += '...';
+          }
+        }
+
+        const typeConfig = getInsightTypeConfig(item.type);
+
         return {
-          ...period,
-          dateRange: formatDateRange(startDate, endDate), // 覆盖为 "YYYY-MM-DD 至 YYYY-MM-DD"
-          calculatedStatus,
-          statusText: this.getCourseStatusText(calculatedStatus)
+          id: item._id || item.id,
+          day: `第${item.day}天`,
+          title: item.sectionId?.title || '学习反馈',
+          courseTitle: item.sectionId?.title || item.title || '学习反馈',
+          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+          mediaType: item.mediaType || 'text',
+          imageUrl: item.imageUrl || null,
+          periodId: item.periodId,
+          type: item.type,
+          typeConfig: typeConfig,
+          targetUserAvatarUrl: currentAvatar.avatarUrl,
+          targetUserAvatarText: currentAvatar.avatarText,
+          targetUserAvatarColor: getAvatarColorByUserId(currentUserId)
         };
       });
 
-      // 按结束时间倒序排列
-      periods.sort((a, b) => {
-        const dateA = new Date(a.endDate || 0);
-        const dateB = new Date(b.endDate || 0);
-        return dateB - dateA; // 倒序（最新的在前）
+      return formatted.slice(0, 2);
+    } catch (error) {
+      console.error('加载小凡看见失败:', error);
+      return [];
+    }
+  },
+
+  handleInsightTabTap(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (tab === this.data.insightActiveTab) return;
+    this.setData({ insightActiveTab: tab });
+    if (tab === 'others' && this.data.recentOtherInsights.length === 0 && !this.data.otherInsightsLoading) {
+      this.loadRecentOtherInsights();
+    }
+  },
+
+  async loadRecentOtherInsights() {
+    this.setData({ otherInsightsLoading: true });
+    try {
+      const insightService = require('../../services/insight.service');
+      const { getInsightTypeConfig, getAvatarColorByUserId } = require('../../utils/formatters');
+
+      const sentRes = await insightService.getSentRequests({ status: 'approved', limit: 100 });
+      const approvedRequests = sentRes.list || sentRes || [];
+
+      const userMap = {};
+      approvedRequests.forEach(req => {
+        const userObj = req.toUserId;
+        const uid = (typeof userObj === 'object' ? userObj?._id : userObj) || null;
+        if (uid && !userMap[uid]) userMap[uid] = userObj;
       });
 
-      // 初始化所有期次的默认报名状态（避免 undefined）
-      const initialStatusMap = {};
-      periods.forEach(period => {
-        initialStatusMap[period._id] = {
-          isEnrolled: false,
-          paymentStatus: null,
-          enrollmentId: null
+      const allInsights = [];
+      await Promise.all(Object.entries(userMap).map(async ([userId, userInfo]) => {
+        const res = await insightService.getUserInsightsList(userId, { limit: 100 });
+        const list = (res.list || (Array.isArray(res) ? res : [])).filter(item => item.isAccessible !== false);
+        const nickname = (typeof userInfo === 'object' ? userInfo?.nickname || userInfo?.name : '') || '用户';
+        list.forEach(insight => {
+          allInsights.push({ ...insight, _targetUserId: userId, _targetNickname: nickname, _targetAvatarUrl: (typeof userInfo === 'object' ? userInfo?.avatarUrl : '') || '' });
+        });
+      }));
+
+      allInsights.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      const formatted = allInsights.slice(0, 2).map(item => {
+        let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
+        if (!preview && item.content) {
+          const plain = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
+          preview = plain.substring(0, 150) + (plain.length > 150 ? '...' : '');
+        }
+        const typeConfig = getInsightTypeConfig(item.type);
+        const nickname = item._targetNickname;
+        const targetAvatar = getUserAvatarDisplay(
+          { avatarUrl: item._targetAvatarUrl, nickname },
+          { userId: item._targetUserId, displayName: nickname }
+        );
+        return {
+          id: item._id || item.id,
+          courseTitle: item.sectionId?.title || item.title || '学习反馈',
+          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+          mediaType: item.mediaType || 'text',
+          imageUrl: item.imageUrl || null,
+          type: item.type,
+          typeConfig: typeConfig,
+          targetUserAvatarUrl: targetAvatar.avatarUrl,
+          targetUserAvatarText: targetAvatar.avatarText,
+          targetUserAvatarColor: getAvatarColorByUserId(item._targetUserId)
         };
       });
 
+      this.setData({ recentOtherInsights: formatted });
+    } catch (err) {
+      console.error('加载他人洞见失败:', err);
+    } finally {
+      this.setData({ otherInsightsLoading: false });
+    }
+  },
+
+  /**
+   * 加载小凡看见请求
+   */
+  async loadInsightRequests(updatePage = true) {
+    try {
+      const insightService = require('../../services/insight.service');
+      const app = getApp();
+      const currentUser = app.globalData.userInfo;
+
+      if (!currentUser || !currentUser._id) {
+        console.warn('用户未登录，无法加载小凡看见请求');
+        if (updatePage) {
+          this.setData({
+            receivedInsightRequests: [],
+            sentInsightRequests: [],
+            insightRequests: [],
+            allInsightRequests: [],
+            insightRequestTotal: 0,
+            insightRequestEmptyText: this.getInsightRequestEmptyText(
+              this.data.activeInsightRequestDirection
+            )
+          });
+        }
+        return { receivedInsightRequests: [], sentInsightRequests: [] };
+      }
+
+      const [receivedResponse, sentResponse] = await Promise.all([
+        insightService.getReceivedRequests(),
+        insightService.getSentRequests()
+      ]);
+
+      const requestGroups = {
+        receivedInsightRequests: extractInsightRequests(receivedResponse).map(
+          (item) => buildInsightRequestDisplay(item, { direction: 'received' })
+        ),
+        sentInsightRequests: extractInsightRequests(sentResponse).map((item) =>
+          buildInsightRequestDisplay(item, { direction: 'sent' })
+        )
+      };
+      const allInsightRequests = this.getInsightRequestListForDirection(
+        requestGroups,
+        this.data.activeInsightRequestDirection
+      );
+
+      if (updatePage) {
+        this.setData(
+          {
+            receivedInsightRequests: requestGroups.receivedInsightRequests,
+            sentInsightRequests: requestGroups.sentInsightRequests,
+            allInsightRequests,
+            insightRequests: this.getInsightRequestPreview(allInsightRequests),
+            insightRequestTotal: allInsightRequests.length,
+            insightRequestEmptyText: this.getInsightRequestEmptyText(
+              this.data.activeInsightRequestDirection
+            )
+          },
+          () => this.revealFocusedInsightRequest()
+        );
+      }
+
+      return requestGroups;
+    } catch (error) {
+      console.error('加载小凡看见请求失败:', error);
+      if (updatePage) {
+        this.setData({
+          receivedInsightRequests: [],
+          sentInsightRequests: [],
+          insightRequests: [],
+          allInsightRequests: [],
+          insightRequestTotal: 0,
+          insightRequestEmptyText: this.getInsightRequestEmptyText(
+            this.data.activeInsightRequestDirection
+          )
+        });
+      }
+      return { receivedInsightRequests: [], sentInsightRequests: [] };
+    }
+  },
+
+  ensureCurrentPeriodCommunityAccess(title = '完成支付后可查看') {
+    if (this.data.currentPeriodCommunityState === 'enabled') {
+      return true;
+    }
+
+    wx.showToast({
+      title,
+      icon: 'none'
+    });
+    return false;
+  },
+
+  ensurePaidFeatureAccess(title = '完成支付后可查看') {
+    if (this.data.canUsePaidFeatures) {
+      return true;
+    }
+
+    wx.showToast({
+      title,
+      icon: 'none'
+    });
+    return false;
+  },
+
+  /**
+   * 微信一键登录
+   */
+  async handleWechatLogin() {
+    if (this.data.loading) return;
+
+    this.setData({ loading: true });
+
+    try {
+      console.log('开始获取用户信息...');
+
+      // 1. 必须在点击事件中同步调用getUserProfile
+      const userInfo = await new Promise((resolve, reject) => {
+        wx.getUserProfile({
+          desc: '用于完善会员资料',
+          success: (res) => {
+            console.log('获取用户信息成功:', res.userInfo);
+            resolve(res.userInfo);
+          },
+          fail: (err) => {
+            console.error('获取用户信息失败:', err);
+            reject(err);
+          }
+        });
+      });
+
+      console.log('用户信息获取完成，开始登录...');
+
+      // 2. 使用Mock登录（因为没有后端服务器）
+      const envConfig = require('../../config/env');
+      let loginData;
+
+      if (envConfig.useMock) {
+        // Mock模式
+        loginData = await authService.wechatLoginMock(userInfo);
+      } else {
+        // 生产模式
+        loginData = await authService.wechatLogin(userInfo);
+      }
+
+      console.log('登录成功:', loginData);
+
+      // 3. 更新全局状态
+      const app = getApp();
+      app.globalData.isLogin = true;
+      const loginUserInfo = decorateUserAvatar(loginData.user);
+      app.globalData.userInfo = loginUserInfo;
+      app.globalData.token = loginData.access_token;
+
+      // 4. 更新页面状态
       this.setData({
-        periods,
-        periodEnrollmentStatus: initialStatusMap,
+        isLogin: true,
+        userInfo: loginUserInfo,
         loading: false
       });
 
-      // 如果已登录，检查每个期次的报名状态（异步更新）
-      if (this.data.isLogin) {
-        console.log('首页加载期次后，检查报名状态');
-        this.checkEnrollmentStatus(periods);
-      }
-    } catch (error) {
-      console.error('获取期次列表失败:', error);
-
-      // 超时自动重试（最多1次），解决隔天首次打开时MongoDB连接重建导致的超时
-      const isTimeout = error && (error.errMsg?.includes('timeout') || error.message?.includes('timeout'));
-      if (isTimeout && retryCount < 1) {
-        console.log('⏳ 首次请求超时，自动重试中...');
-        return this.loadPeriods(retryCount + 1);
-      }
-
-      this.setData({
-        loading: false,
-        periods: []
-      });
+      // 5. 显示tabBar
+      this.updateTabBarVisibility(true);
 
       wx.showToast({
-        title: '加载失败,请重试',
+        title: '登录成功',
+        icon: 'success',
+        duration: 2000
+      });
+
+      // 6. 加载用户数据
+      this.loadUserData();
+    } catch (error) {
+      console.error('登录失败:', error);
+
+      this.setData({ loading: false });
+
+      // 处理用户拒绝授权的情况
+      if (
+        error.errMsg &&
+        error.errMsg.includes('getUserProfile:fail auth deny')
+      ) {
+        wx.showToast({
+          title: '您拒绝了授权',
+          icon: 'none',
+          duration: 2000
+        });
+      } else {
+        wx.showToast({
+          title: '登录失败,请重试',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    }
+  },
+
+  /**
+   * 跳转到登录页（包含隐私协议）
+   */
+  goToLogin() {
+    wx.navigateTo({
+      url: '/pages/login/login'
+    });
+  },
+
+  /**
+   * 返回首页
+   */
+  handleBackHome() {
+    wx.switchTab({
+      url: '/pages/periods/periods'
+    });
+  },
+
+  /**
+   * 点击头像
+   */
+  handleAvatarClick() {
+    if (!this.data.isLogin) {
+      this.handleLogin();
+      return;
+    }
+
+    // 跳转到编辑资料页面
+    wx.navigateTo({
+      url: '/pages/edit-profile/edit-profile'
+    });
+  },
+
+  /**
+   * 授权请求 - 同意查看小凡看见
+   */
+  handleApproveRequest(e) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
+      return;
+    }
+    const { request } = e.currentTarget.dataset;
+    this.approveRequest(request);
+  },
+
+  /**
+   * 拒绝请求
+   */
+  handleRejectRequest(e) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
+      return;
+    }
+    const { request } = e.currentTarget.dataset;
+    this.rejectRequest(request);
+  },
+
+  /**
+   * 点击请求记录 - 跳转到他人主页
+   */
+  handleInsightRequestTap(e) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看请求')) {
+      return;
+    }
+    const { request } = e.currentTarget.dataset;
+    if (!request?.canNavigate) {
+      return;
+    }
+
+    const userId = request?.displayUserId;
+    const periodId = request?.periodId;
+
+    if (!userId) {
+      console.warn('请求记录缺少展示用户ID，无法跳转');
+      return;
+    }
+
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (periodId) {
+      url += `&periodId=${periodId}`;
+    }
+
+    wx.navigateTo({ url });
+  },
+
+  handleRequestAvatarClick(e) {
+    const { request, userId, periodId } = e.currentTarget.dataset;
+    if (request && !request.canNavigate) {
+      return;
+    }
+
+    this.navigateToOtherProfile(userId, periodId);
+  },
+
+  handleMiniAvatarClick(e) {
+    const { userId } = e.currentTarget.dataset;
+    const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id;
+    this.navigateToOtherProfile(userId, periodId);
+  },
+
+  navigateToOtherProfile(userId, periodId = '') {
+    if (!userId) {
+      return;
+    }
+
+    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    if (periodId) {
+      url += `&periodId=${periodId}`;
+    }
+
+    wx.navigateTo({ url });
+  },
+
+  /**
+   * 批准请求
+   */
+  async approveRequest(request) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
+      return;
+    }
+    try {
+      console.log('📨 批准请求:', request);
+
+      const insightService = require('../../services/insight.service');
+      const requestId = request._id || request.id;
+
+      // 调用后端API批准申请
+      await insightService.approveRequest(requestId, {
+        periodId: request.periodId || ''
+      });
+      activityService.track('insight_request_approve', {
+        targetType: 'insight_request',
+        targetId: requestId,
+        periodId: request.periodId || null,
+        metadata: {
+          fromUserId: request.fromUserId || null
+        }
+      });
+
+      console.log('✅ 申请已批准');
+      this.updateInsightRequestStatus(requestId, 'approved');
+
+      wx.showToast({
+        title: '已批准申请',
+        icon: 'success'
+      });
+    } catch (error) {
+      console.error('❌ 批准申请失败:', error);
+      wx.showToast({
+        title: '批准失败',
         icon: 'none'
       });
     }
   },
 
   /**
-   * 检查期次报名状态
+   * 拒绝请求
    */
-  async checkEnrollmentStatus(periods) {
-    if (!periods || periods.length === 0) return false;
+  async rejectRequest(request) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可处理申请')) {
+      return;
+    }
+    try {
+      console.log('📨 拒绝请求:', request);
 
-    const statusMap = {};
+      const insightService = require('../../services/insight.service');
+      const requestId = request._id || request.id;
+
+      // 调用后端API拒绝申请
+      await insightService.rejectRequest(requestId, {
+        reason: '暂不同意'
+      });
+
+      console.log('✅ 申请已拒绝');
+      this.updateInsightRequestStatus(requestId, 'rejected');
+
+      wx.showToast({
+        title: '已拒绝申请',
+        icon: 'success'
+      });
+    } catch (error) {
+      console.error('❌ 拒绝申请失败:', error);
+      wx.showToast({
+        title: '拒绝失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  updateInsightRequestStatus(requestId, nextStatus) {
+    const statusMap = {
+      approved: { text: '已同意', className: 'approved' },
+      rejected: { text: '已拒绝', className: 'rejected' }
+    };
+    const statusInfo = statusMap[nextStatus];
+    if (!statusInfo) return;
+
+    const updatedReceived = (this.data.receivedInsightRequests || []).map(
+      (item) =>
+        (item._id || item.id) === requestId
+          ? {
+            ...item,
+            status: nextStatus,
+            statusText: statusInfo.text,
+            statusClass: statusInfo.className,
+            canApprove: false,
+            canReject: false
+          }
+          : item
+    );
+    const requestGroups = {
+      receivedInsightRequests: updatedReceived,
+      sentInsightRequests: this.data.sentInsightRequests || []
+    };
+    const updatedAll = this.getInsightRequestListForDirection(
+      requestGroups,
+      this.data.activeInsightRequestDirection
+    );
+
+    this.setData({
+      receivedInsightRequests: updatedReceived,
+      allInsightRequests: updatedAll,
+      insightRequests: this.getInsightRequestPreview(updatedAll),
+      insightRequestTotal: updatedAll.length
+    });
+  },
+
+  navigateToInsightRequests() {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看请求')) {
+      return;
+    }
+    wx.navigateTo({
+      url:
+        '/pages/insight-requests/insight-requests?direction=' +
+        (this.data.activeInsightRequestDirection || 'received')
+    });
+  },
+
+  /**
+   * 点击今日课节卡片
+   */
+  handleTodaySectionClick() {
+    console.log('🚨🚨🚨 handleTodaySectionClick 被触发 🚨🚨🚨');
+
+    const { todaySection } = this.data;
+    const sectionId = todaySection && (todaySection.id || todaySection._id);
+
+    if (!sectionId) {
+      console.error('今日课节信息不存在');
+      wx.showToast({
+        title: '课节信息不存在',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 跳转到课程详情页
+    wx.navigateTo({
+      url: `/pages/course-detail/course-detail?id=${sectionId}`
+    });
+  },
+
+  handleRecentCheckinTap(e) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看打卡日记')) {
+      return;
+    }
+
+    const { checkinId, sectionId, periodId } = e.currentTarget.dataset || {};
+    if (!checkinId) {
+      wx.showToast({
+        title: '打卡记录不存在',
+        icon: 'none'
+      });
+      return;
+    }
+
+    return this.openCheckinDetail(checkinId, sectionId, periodId);
+  },
+
+  async loadUnreadNotificationCount() {
+    if (!this.data.isLogin) {
+      this.setData({ unreadNotificationCount: 0 });
+      return;
+    }
 
     try {
-      // 过滤出有效的期次（必须有 _id）
-      const validPeriods = periods.filter(period => {
-        if (!period._id) {
-          console.warn('⚠️ 发现无效期次（缺少_id）:', period);
-          return false;
-        }
-        return true;
-      });
-
-      if (validPeriods.length === 0) {
-        console.warn('⚠️ 没有有效的期次可以检查报名状态');
-        return false;
-      }
-
-      let allChecksSucceeded = true;
-      let cursor = 0;
-
-      const checkOnePeriod = async period => {
-        try {
-          const res = await enrollmentService.checkEnrollment(period._id);
-          const existingAccess = getCachedEnrollmentAccess(period._id);
-          const canAccess = !!res.isEnrolled && isPaidStatus(res.paymentStatus);
-          const optimisticAccess =
-            existingAccess &&
-            isFreshOptimisticEnrollmentAccess(existingAccess) &&
-            existingAccess.canAccessCommunity &&
-            !canAccess;
-
-          const accessToCache = optimisticAccess
-            ? {
-                ...existingAccess,
-                syncPending: true
-              }
-            : {
-                periodId: period._id,
-                isEnrolled: res.isEnrolled || false,
-                paymentStatus: res.paymentStatus || null,
-                enrollmentId: res.enrollmentId || null,
-                paymentPending: !!res.isEnrolled && !canAccess,
-                canAccessCommunity: canAccess,
-                communityAccessState: canAccess ? 'enabled' : 'locked',
-                communityLocked: !canAccess,
-                syncPending: false
-              };
-
-          setCachedEnrollmentAccess(period._id, accessToCache);
-          statusMap[period._id] = optimisticAccess
-            ? {
-                isEnrolled: true,
-                paymentStatus: existingAccess.paymentStatus || 'paid',
-                enrollmentId: existingAccess.enrollmentId || null
-              }
-            : {
-                isEnrolled: res.isEnrolled || false,
-                paymentStatus: res.paymentStatus || null,
-                enrollmentId: res.enrollmentId || null
-              };
-
-          if (optimisticAccess) {
-            console.log(`期次 ${period.name} (${period._id}): 使用本地待确认权限缓存`);
-          } else {
-            const statusText = res.isEnrolled
-              ? `已报名 (支付状态: ${res.paymentStatus || 'unknown'})`
-              : '未报名';
-            console.log(`期次 ${period.name} (${period._id}): ${statusText}`);
-          }
-        } catch (error) {
-          allChecksSucceeded = false;
-          console.error(`检查期次 ${period._id} 的报名状态失败:`, error);
-          // API 失败时先查本地缓存，保留已知的报名/付费状态，避免把刚付款的用户显示为未报名
-          const cachedAccess = getCachedEnrollmentAccess(period._id);
-          if (cachedAccess && cachedAccess.isEnrolled) {
-            statusMap[period._id] = {
-              isEnrolled: true,
-              paymentStatus: cachedAccess.paymentStatus || null,
-              enrollmentId: cachedAccess.enrollmentId || null
-            };
-          } else {
-            statusMap[period._id] = {
-              isEnrolled: false,
-              paymentStatus: null,
-              enrollmentId: null
-            };
-          }
-        }
-      };
-
-      const workers = Array.from(
-        {
-          length: Math.min(ENROLLMENT_CHECK_CONCURRENCY, validPeriods.length)
-        },
-        async () => {
-          while (cursor < validPeriods.length) {
-            const period = validPeriods[cursor];
-            cursor += 1;
-            await checkOnePeriod(period);
-          }
-        }
-      );
-
-      await Promise.all(workers);
-
-      if (allChecksSucceeded) {
-        this._enrollmentCheckedAt = Date.now();
-      }
-      console.log('报名状态检查完成:', statusMap);
+      const unreadResponse = await notificationService.getUnreadCount();
       this.setData({
-        periodEnrollmentStatus: statusMap
+        unreadNotificationCount: unreadResponse?.unreadCount || 0
       });
-      return allChecksSucceeded;
     } catch (error) {
-      console.error('检查报名状态失败:', error);
-      return false;
+      console.error('加载首页通知未读数失败:', error);
     }
   },
 
-  /**
-   * 刷新期次列表
-   */
-  async refreshPeriods() {
-    this.setData({ refreshing: true });
-    await this.loadPeriods();
-    this.setData({ refreshing: false });
-    wx.stopPullDownRefresh();
-  },
-
-  /**
-   * 点击期次卡片 - 根据报名状态智能导航
-   */
-  handlePeriodClick(e) {
-    console.log('====== handlePeriodClick 被调用 ======');
-    console.log('e.currentTarget.dataset:', e.currentTarget.dataset);
-
-    const { periodId, periodName } = e.currentTarget.dataset;
-
-    console.log('提取的数据：');
-    console.log('  periodId:', periodId, typeof periodId);
-    console.log('  periodName:', periodName, typeof periodName);
-
-    if (!periodId) {
-      console.error('periodId 不存在');
-      return;
-    }
-
-    // ⭐ 强制检查登录状态：使用 app.globalData 和 this.data 双重检查
-    const app = getApp();
-    const isLogin = app.globalData.isLogin || this.data.isLogin;
-
-    console.log('🔐 登录状态检查：');
-    console.log('  app.globalData.isLogin:', app.globalData.isLogin);
-    console.log('  this.data.isLogin:', this.data.isLogin);
-    console.log('  最终isLogin:', isLogin);
-
-    // 未登录：进入期次介绍页（公开页面，让用户先浏览内容）
-    if (!isLogin) {
-      console.log('📖 未登录，进入期次介绍页');
-      wx.navigateTo({
-        url: `/pages/period-detail/period-detail?periodId=${periodId}`
-      });
-      return;
-    }
-
-    // 已登录：根据报名状态导航
-    const period = this.data.periods.find(p => p._id === periodId);
-    if (!period) {
-      console.error('找不到期次信息');
-      return;
-    }
-
-    const enrollmentInfo = this.data.periodEnrollmentStatus[periodId] || {};
-    const isEnrolled = enrollmentInfo.isEnrolled;
-    const paymentStatus = enrollmentInfo.paymentStatus;
-    const calculatedStatus = period.calculatedStatus;
-
-    console.log('🔍 判断流程:', { isEnrolled, calculatedStatus, paymentStatus });
-
-    // 【情况1】已完成且未报名，进入介绍页查看
-    if (calculatedStatus === 'completed' && !isEnrolled) {
-      console.log('已完成且未报名，进入介绍页');
-      wx.navigateTo({
-        url: `/pages/period-detail/period-detail?periodId=${periodId}`
-      });
-      return;
-    }
-
-    // 【情况2】未报名（且期次未完成），进入报名页面
-    if (!isEnrolled) {
-      console.log('未报名，进入报名页面');
-      wx.navigateTo({
-        url: `/pages/enrollment/enrollment?periodId=${periodId}`
-      });
-    }
-    // 【情况3】已报名，进入课程列表
-    else {
-      console.log('已报名，进入课程列表，支付状态:', paymentStatus);
-      wx.navigateTo({
-        url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
-      });
-    }
-  },
-
-  /**
-   * 计算课程进度百分比
-   */
-  getProgressPercentage(completed, total) {
-    if (!total || total === 0) return 0;
-    return Math.round((completed / total) * 100);
-  },
-
-  /**
-   * 格式化日期范围
-   */
-  formatDateRange(startDate, endDate) {
-    if (!startDate || !endDate) return '';
-
-    const start = formatDate(startDate, 'MM-DD');
-    const end = formatDate(endDate, 'MM-DD');
-
-    return `${start} ~ ${end}`;
-  },
-
-  /**
-   * 获取课程状态文本
-   */
-  getCourseStatusText(status) {
-    const statusMap = {
-      not_started: '未开始',
-      ongoing: '进行中',
-      completed: '已结束'
-    };
-    return statusMap[status] || '未知';
-  },
-
-  /**
-   * 跳转到个人中心
-   */
-  navigateToProfile() {
-    wx.switchTab({
-      url: '/pages/profile/profile'
+  navigateToNotifications() {
+    wx.navigateTo({
+      url: '/pages/notifications/notifications'
     });
+  },
+
+  async openCheckinDetail(checkinId, sectionId = '', periodId = '') {
+    let targetSectionId = sectionId;
+    let targetPeriodId = periodId;
+
+    try {
+      if (!targetSectionId) {
+        wx.showLoading({
+          title: '正在打开...',
+          mask: true
+        });
+
+        const detail = await checkinService.getCheckinDetail(checkinId);
+        targetSectionId = detail?.sectionId?._id || detail?.sectionId || '';
+        targetPeriodId = detail?.periodId?._id || detail?.periodId || targetPeriodId;
+      }
+
+      if (!targetSectionId) {
+        throw new Error('sectionId missing');
+      }
+
+      wx.navigateTo({
+        url:
+          `/pages/course-detail/course-detail?id=${targetSectionId}&checkinId=${checkinId}` +
+          (targetPeriodId ? `&periodId=${targetPeriodId}` : '')
+      });
+    } catch (error) {
+      console.error('打开打卡详情失败:', error);
+      wx.showToast({
+        title: '打开详情失败',
+        icon: 'none'
+      });
+    } finally {
+      wx.hideLoading?.();
+    }
+  },
+
+  navigateToCheckinRecords() {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看打卡日记')) {
+      return;
+    }
+
+    wx.navigateTo({
+      url: '/pages/checkin-records/checkin-records'
+    });
+  },
+
+  /**
+   * 点击小凡看见条目
+   */
+  handleInsightClick(e) {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看反馈')) {
+      return;
+    }
+    console.log('🚨🚨🚨 handleInsightClick 被触发 🚨🚨🚨');
+    console.log('Event:', e);
+
+    const { id } = e.currentTarget.dataset;
+    console.log('Insight ID:', id);
+
+    if (!id) {
+      console.error('❌ ID不存在');
+      return;
+    }
+
+    // 暂时添加Toast以确认函数被调用
+    wx.showToast({
+      title: '正在跳转详情...',
+      icon: 'none'
+    });
+
+    const url = `/pages/insight-detail/insight-detail?id=${id}`;
+    console.log('🚀 准备跳转:', url);
+
+    wx.navigateTo({
+      url: url,
+      success: () => console.log('✅ 跳转成功'),
+      fail: (err) => console.error('❌ 跳转失败:', err)
+    });
+  },
+
+  /**
+   * 跳转到小凡看见列表
+   */
+  navigateToInsights() {
+    if (!this.ensurePaidFeatureAccess('完成支付后可查看反馈')) {
+      return;
+    }
+    console.log('🚨🚨🚨 navigateToInsights 被触发 🚨🚨🚨');
+
+    wx.showToast({
+      title: '正在跳转列表...',
+      icon: 'none'
+    });
+
+    const tab = this.data.insightActiveTab || 'mine';
+    const url = `/pages/insights/insights?tab=${tab}`;
+    console.log('🚀 准备跳转:', url);
+
+    wx.navigateTo({
+      url: url,
+      success: () => console.log('✅ 跳转成功'),
+      fail: (err) => console.error('❌ 跳转失败:', err)
+    });
+  },
+
+  /**
+   * 去打卡 - 跳转到打卡页面（或显示已打卡提示）
+   */
+  handleCreateCheckin() {
+    console.log('⚠️⚠️⚠️ handleCreateCheckin 被触发! ⚠️⚠️⚠️');
+
+    const { currentPeriod, todaySection, currentPeriodCommunityState } =
+      this.data;
+
+    if (!currentPeriod || !todaySection) {
+      wx.showToast({
+        title: '无法获取课程信息',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (currentPeriodCommunityState !== 'enabled') {
+      this.handleTodaySectionClick();
+      return;
+    }
+
+    // 检查是否已经打卡
+    if (todaySection.isCheckedIn) {
+      wx.showToast({
+        title: '今天已打卡，继续加油！',
+        icon: 'success'
+      });
+      return;
+    }
+
+    const periodId = currentPeriod._id || currentPeriod.id;
+    const sectionId = todaySection._id || todaySection.id;
+
+    wx.navigateTo({
+      url: `/pages/checkin/checkin?periodId=${periodId}&sectionId=${sectionId}`
+    });
+  },
+
+  /**
+   * 去晨读
+   * 腾讯会议入口暂时屏蔽，统一进入当前课节的沉浸阅读页。
+   */
+  handleJoinMeeting() {
+    const { currentPeriod, todaySection } = this.data;
+    const periodId =
+      todaySection?.periodId || currentPeriod?._id || currentPeriod?.id || '';
+    const sectionId = todaySection?._id || todaySection?.id || '';
+
+    if (!sectionId) {
+      wx.showToast({ title: '课节信息不存在', icon: 'none' });
+      return;
+    }
+
+    activityService.track('meeting_enter', {
+      targetType: 'immersive_reading',
+      targetId: sectionId,
+      periodId: periodId || null,
+      sectionId,
+      metadata: {
+        source: 'profile_today_task',
+        tencentMeetingDisabled: true
+      }
+    });
+
+    wx.navigateTo({
+      url: buildReadingModeUrl(sectionId, periodId, todaySection)
+    });
+  },
+
+  getCurrentPlatform() {
+    const app = getApp();
+    const platform =
+      app?.globalData?.platform || wx.getDeviceInfo?.().platform || '';
+    return String(platform).toLowerCase();
+  },
+
+  showInviteLinkGuide(meetingJoinUrl) {
+    wx.showModal({
+      title: '请在浏览器中打开腾讯会议',
+      content: '复制链接后，请在浏览器中打开腾讯会议。',
+      confirmText: '复制链接',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          this.copyMeetingValue(meetingJoinUrl, '邀请链接已复制');
+        }
+      }
+    });
+  },
+
+  showMeetingLaunchOptions({ meetingId, meetingJoinUrl }) {
+    const itemList = [];
+    const actions = [];
+
+    const pushAction = (label, action) => {
+      itemList.push(label);
+      actions.push(action);
+    };
+
+    if (meetingId) {
+      pushAction('打开腾讯会议小程序', () =>
+        this.openMeetingMiniProgram(meetingId)
+      );
+    }
+
+    pushAction('复制邀请链接', () => {
+      this.showInviteLinkGuide(meetingJoinUrl);
+    });
+
+    wx.showActionSheet({
+      itemList,
+      success: (res) => {
+        const action = actions[res.tapIndex];
+        if (action) {
+          action();
+        }
+      },
+      fail: (err) => {
+        if (err && err.errMsg && err.errMsg.includes('cancel')) {
+          return;
+        }
+
+        if (meetingId) {
+          this.openMeetingMiniProgram(meetingId);
+          return;
+        }
+
+        this.promptManualMeetingJoin(meetingId);
+      }
+    });
+  },
+
+  copyMeetingValue(value, title) {
+    if (!value) {
+      wx.showToast({
+        title: '暂无可复制内容',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.setClipboardData({
+      data: value,
+      success: () => {
+        wx.showToast({
+          title,
+          icon: 'success'
+        });
+      }
+    });
+  },
+
+  isDesktopPlatform() {
+    const platform = this.getCurrentPlatform();
+    return platform === 'windows' || platform === 'mac';
+  },
+
+  isDesktopLikePlatform() {
+    const platform = this.getCurrentPlatform();
+    return (
+      platform === 'windows' || platform === 'mac' || platform === 'devtools'
+    );
+  },
+
+  normalizeMeetingJoinUrl(url) {
+    if (!url || typeof url !== 'string') {
+      return '';
+    }
+
+    const trimmedUrl = url.trim();
+    const allowedHostPattern =
+      /^https:\/\/(meeting\.tencent\.com|wemeet\.qq\.com|voovmeeting\.com)\//i;
+    return allowedHostPattern.test(trimmedUrl) ? trimmedUrl : '';
+  },
+
+  openMeetingWebView(meetingJoinUrl, meetingId = '') {
+    wx.navigateTo({
+      url:
+        '/pages/meeting-webview/meeting-webview?url=' +
+        encodeURIComponent(meetingJoinUrl) +
+        '&meetingId=' +
+        encodeURIComponent(meetingId || ''),
+      fail: () => {
+        this.promptManualMeetingJoin(
+          meetingId,
+          '当前环境无法打开腾讯会议邀请链接。'
+        );
+      }
+    });
+  },
+
+  openMeetingMiniProgram() {
+    wx.showToast({
+      title: '腾讯会议入口已暂停',
+      icon: 'none'
+    });
+  },
+
+  promptManualMeetingJoin(meetingId, prefix = '') {
+    const contentParts = [];
+    if (prefix) {
+      contentParts.push(prefix);
+    }
+    if (meetingId) {
+      contentParts.push(`请手动打开腾讯会议APP，输入会议号：${meetingId}`);
+    } else {
+      contentParts.push('请手动打开腾讯会议APP或浏览器中的腾讯会议邀请链接。');
+    }
+
+    wx.showModal({
+      title: '无法直接打开腾讯会议',
+      content: contentParts.join('\n'),
+      confirmText: meetingId ? '复制会议号' : '知道了',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm && meetingId) {
+          wx.setClipboardData({ data: meetingId });
+        }
+      }
+    });
+  },
+
+  /**
+   * 格式化数字
+   */
+  formatNumber(num) {
+    return formatNumber(num);
+  },
+
+  /**
+   * 格式化加入时间
+   */
+  formatJoinDate(date) {
+    if (!date) return '';
+    return '加入于 ' + formatDate(date, 'YYYY-MM-DD');
   },
 
   /**
@@ -474,7 +1795,7 @@ Page({
   onShareAppMessage() {
     return {
       title: '凡人共读｜每日晨读',
-      path: '/pages/index/index',
+      path: '/pages/index/index?from=share',
       imageUrl: '/assets/images/share-default.jpg'
     };
   },
@@ -488,5 +1809,249 @@ Page({
       query: '',
       imageUrl: '/assets/images/share-default.jpg'
     };
+  },
+
+  /**
+   * 打开编辑个人信息模态框
+   */
+  openEditProfile() {
+    const { userInfo } = this.data;
+    if (!userInfo) return;
+
+    this.setData({
+      showEditProfile: true,
+      editForm: {
+        avatar: userInfo.avatar || '🦁',
+        avatarUrl: userInfo.avatarUrl || '',
+        avatarText:
+          userInfo.avatarText ||
+          getLastTextChar(userInfo.nickname || userInfo.name || '', '用'),
+        avatarColor:
+          userInfo.avatarColor ||
+          getUserAvatarDisplay(userInfo).avatarColor,
+        nickname: userInfo.nickname || userInfo.name || '',
+        signature: userInfo.signature || ''
+      }
+    });
+  },
+
+  /**
+   * 关闭编辑个人信息模态框
+   */
+  closeEditProfile() {
+    this.setData({
+      showEditProfile: false
+    });
+  },
+
+  /**
+   * 防止事件冒泡
+   */
+  stopPropagation() {
+    return false;
+  },
+
+  /**
+   * 使用微信头像
+   */
+  async handleChooseWechatAvatar(e) {
+    const avatarUrl = e.detail && e.detail.avatarUrl;
+    if (!avatarUrl) {
+      wx.showToast({
+        title: '未获取到头像',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const normalizedAvatar = await this.compressAvatarImage(avatarUrl);
+    this.setData({
+      'editForm.avatarUrl': normalizedAvatar
+    });
+  },
+
+  /**
+   * 压缩头像，降低上传体积
+   */
+  compressAvatarImage(filePath) {
+    if (!filePath || !wx.compressImage) {
+      return Promise.resolve(filePath);
+    }
+
+    return new Promise((resolve) => {
+      wx.compressImage({
+        src: filePath,
+        quality: 80,
+        success: (res) => {
+          resolve(res.tempFilePath || filePath);
+        },
+        fail: () => {
+          resolve(filePath);
+        }
+      });
+    });
+  },
+
+  isRemoteAvatarUrl(avatarUrl) {
+    return /^https?:\/\//i.test(avatarUrl || '');
+  },
+
+  /**
+   * 将微信临时头像路径上传为可长期访问的 URL
+   */
+  async prepareAvatarUrlForSave(avatarUrl) {
+    if (!avatarUrl || this.isRemoteAvatarUrl(avatarUrl)) {
+      return avatarUrl || '';
+    }
+
+    const uploadResult = await userService.uploadAvatar(avatarUrl);
+    return uploadResult.avatarUrl || uploadResult.url || '';
+  },
+
+  /**
+   * 昵称输入事件
+   */
+  onNicknameInput(e) {
+    const { value } = e.detail;
+    const avatarDisplay = getUserAvatarDisplay(this.data.editForm, {
+      displayName: value || '用户',
+      userId: this.data.userInfo?._id || this.data.userInfo?.id
+    });
+    this.setData({
+      'editForm.nickname': value,
+      'editForm.avatarText': avatarDisplay.avatarText,
+      'editForm.avatarColor': avatarDisplay.avatarColor
+    });
+  },
+
+  /**
+   * 签名输入事件
+   */
+  onSignatureInput(e) {
+    const { value } = e.detail;
+    this.setData({
+      'editForm.signature': value
+    });
+  },
+
+  /**
+   * 检查签名是否有效（不为空、不只有空白字符和换行）
+   */
+  isValidSignature(signature) {
+    if (!signature) return false;
+    // 移除所有空白字符和换行，如果还有内容则认为有效
+    return signature.trim().length > 0;
+  },
+
+  /**
+   * 更新签名有效性状态
+   */
+  updateSignatureValidation() {
+    const { userInfo } = this.data;
+    const hasValidSignature =
+      userInfo && this.isValidSignature(userInfo.signature);
+    this.setData({ hasValidSignature });
+  },
+
+  /**
+   * 保存用户个人信息
+   */
+  async saveUserProfile() {
+    const { editForm, userInfo } = this.data;
+
+    if (!editForm.nickname.trim()) {
+      wx.showToast({
+        title: '请输入昵称',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (editForm.nickname.length > 20) {
+      wx.showToast({
+        title: '昵称不能超过20个字符',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (editForm.signature && editForm.signature.length > 200) {
+      wx.showToast({
+        title: '签名不能超过200个字符',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({ isSavingProfile: true });
+
+    try {
+      const app = getApp();
+      const savedAvatarUrl = await this.prepareAvatarUrlForSave(editForm.avatarUrl);
+
+      // 调用更新用户信息API
+      const response = await userService.updateUserProfile({
+        avatar: editForm.avatar,
+        avatarUrl: savedAvatarUrl,
+        nickname: editForm.nickname,
+        signature: editForm.signature || null
+      });
+
+      // 如果没有异常，说明request.js已经验证了响应成功
+      // 此时response是解包后的用户数据对象
+      if (response && response._id) {
+        activityService.track('profile_update', {
+          targetType: 'profile'
+        });
+
+        // 更新本地用户信息
+        const updatedUserInfo = decorateUserAvatar({
+          ...userInfo,
+          avatar: editForm.avatar,
+          avatarUrl:
+            response.avatarUrl !== undefined ? response.avatarUrl : savedAvatarUrl,
+          nickname: editForm.nickname,
+          signature: editForm.signature || null
+        });
+
+        this.setData({
+          userInfo: updatedUserInfo,
+          hasValidSignature: !!this.isValidSignature(updatedUserInfo.signature)
+        });
+
+        // 更新全局应用数据
+        app.globalData.userInfo = updatedUserInfo;
+
+        // 保存到本地存储（使用 constants 中定义的 key 保持一致）
+        const constants = require('../../config/constants');
+        wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, updatedUserInfo);
+
+        wx.showToast({
+          title: '保存成功',
+          icon: 'success'
+        });
+
+        // 关闭对话框
+        this.setData({ showEditProfile: false });
+
+        // 延迟 500ms 后刷新页面数据，确保签名等信息立即显示
+        setTimeout(() => {
+          this.loadUserData();
+        }, 500);
+      } else {
+        wx.showToast({
+          title: '保存失败，请重试',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      console.error('保存用户信息失败:', error);
+      wx.showToast({
+        title: '保存失败，请重试',
+        icon: 'none'
+      });
+    } finally {
+      this.setData({ isSavingProfile: false });
+    }
   }
 });

@@ -1,10 +1,15 @@
 const express = require('express');
 
 const router = express.Router();
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const {
+  authMiddleware,
+  optionalAuthMiddleware,
+  adminMiddleware
+} = require('../middleware/auth');
 const {
   getSectionsByPeriod,
   getSectionDetail,
+  markReadingCompletion,
   createSection,
   updateSection,
   deleteSection,
@@ -21,16 +26,23 @@ router.get('/today/task', authMiddleware, getTodayTask);
 /**
  * @route   GET /api/v1/sections/period/:periodId
  * @desc    获取期次的课程列表
- * @access  Public
+ * @access  Public / Optional Auth
  */
-router.get('/period/:periodId', getSectionsByPeriod);
+router.get('/period/:periodId', optionalAuthMiddleware, getSectionsByPeriod);
+
+/**
+ * @route   POST /api/v1/sections/:sectionId/reading-completion
+ * @desc    标记当前用户完成课节沉浸阅读
+ * @access  Protected
+ */
+router.post('/:sectionId/reading-completion', authMiddleware, markReadingCompletion);
 
 /**
  * @route   GET /api/v1/sections/:sectionId
  * @desc    获取课程详情
- * @access  Public
+ * @access  Public / Optional Auth
  */
-router.get('/:sectionId', getSectionDetail);
+router.get('/:sectionId', optionalAuthMiddleware, getSectionDetail);
 
 /**
  * @route   POST /api/v1/sections

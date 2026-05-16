@@ -111,6 +111,7 @@ Page({
     calendar: [],
     checkedDays: 0,
     loading: true,
+    showPageContent: false,
     canAccessCommunity: false,
     communityAccessState: 'locked',
     hasUserCheckedIn: false,
@@ -142,6 +143,8 @@ Page({
     readingContentExpanded: false
   },
 
+  _hasRevealedContent: false,
+
   onLoad(options) {
     console.log('课程详情页加载，参数:', options);
     this._skipNextOnShowRefresh = true;
@@ -153,6 +156,7 @@ Page({
     }
     this.setData({
       courseId: options.id,
+      showPageContent: false,
       periodId: options.periodId || null,
       paymentStatus: null,
       canAccessCommunity: false,
@@ -188,6 +192,13 @@ Page({
   onUnload() {
     if (this.highlightTimer) {
       clearTimeout(this.highlightTimer);
+    }
+  },
+
+  revealPageContent() {
+    this._hasRevealedContent = true;
+    if (!this.data.showPageContent) {
+      this.setData({ showPageContent: true });
     }
   },
 
@@ -1740,6 +1751,7 @@ Page({
         loading: false
       },
       async () => {
+        this.revealPageContent();
         this.syncDetailCheckinState(checkinItem.id);
         try {
           await this.expandCheckinCommentsByIndex(0);
@@ -1753,7 +1765,11 @@ Page({
   },
 
   async loadCourseDetail() {
-    this.setData({ loading: true });
+    this.setData(
+      this._hasRevealedContent
+        ? { loading: true }
+        : { loading: true, showPageContent: false }
+    );
 
     try {
       console.log('开始加载课程详情，ID:', this.data.courseId);
@@ -1846,6 +1862,7 @@ Page({
           checkedDays,
           loading: false
         });
+        this.revealPageContent();
         return;
       }
 
@@ -1923,6 +1940,7 @@ Page({
           checkinLoadingMore: false
         },
         () => {
+          this.revealPageContent();
           this.loadNotificationReminder();
           this.restoreTargetFocus();
         }

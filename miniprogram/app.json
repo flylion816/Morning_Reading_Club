@@ -1,7 +1,7 @@
 {
   "pages": [
-    "pages/profile/profile",
     "pages/index/index",
+    "pages/periods/periods",
     "pages/meeting-webview/meeting-webview",
     "pages/courses/courses",
     "pages/course-detail/course-detail",
@@ -23,7 +23,7 @@
     "pages/payment/payment",
     "pages/privacy-policy/privacy-policy",
     "pages/user-agreement/user-agreement",
-    "pages/my/my",
+    "pages/profile/profile",
     "pages/edit-profile/edit-profile"
   ],
   "window": {
@@ -41,19 +41,19 @@
     "borderStyle": "black",
     "list": [
       {
-        "pagePath": "pages/profile/profile",
+        "pagePath": "pages/index/index",
         "text": "首页",
         "iconPath": "assets/icons/home.png",
         "selectedIconPath": "assets/icons/home-active.png"
       },
       {
-        "pagePath": "pages/index/index",
+        "pagePath": "pages/periods/periods",
         "text": "晨读营",
         "iconPath": "assets/icons/book.png",
         "selectedIconPath": "assets/icons/book-active.png"
       },
       {
-        "pagePath": "pages/my/my",
+        "pagePath": "pages/profile/profile",
         "text": "我的",
         "iconPath": "assets/icons/my.png",
         "selectedIconPath": "assets/icons/my-active.png"

@@ -13,6 +13,34 @@
       {
         "value": "node_modules",
         "type": "folder"
+      },
+      {
+        "value": "admin",
+        "type": "folder"
+      },
+      {
+        "value": "backend",
+        "type": "folder"
+      },
+      {
+        "value": "coverage",
+        "type": "folder"
+      },
+      {
+        "value": "docs",
+        "type": "folder"
+      },
+      {
+        "value": "logs",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram/__tests__",
+        "type": "folder"
+      },
+      {
+        "value": "__tests__",
+        "type": "folder"
       }
     ],
     "include": []

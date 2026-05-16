@@ -171,7 +171,7 @@ Page({
         const enrollmentList = Array.isArray(result?.list) ? result.list : [];
 
         if (!hasPaidEnrollment(enrollmentList)) {
-          redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看打卡日记');
+          redirectAfterCommunityDenied('/pages/index/index', '完成支付后可查看打卡日记');
           return false;
         }
 
@@ -187,7 +187,7 @@ Page({
       return true;
     } catch (error) {
       console.error('校验打卡日记访问权限失败:', error);
-      redirectAfterCommunityDenied('/pages/profile/profile', '完成支付后可查看打卡日记');
+      redirectAfterCommunityDenied('/pages/index/index', '完成支付后可查看打卡日记');
       return false;
     }
   },

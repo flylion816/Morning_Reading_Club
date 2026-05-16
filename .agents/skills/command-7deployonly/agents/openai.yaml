@@ -1,0 +1,6 @@
+interface:
+  display_name: "/7deployonly"
+  short_description: "不提交代码，直接发布线上服务器"
+  default_prompt: "Use $command-7deployonly to deploy the current project to production without committing or pushing."
+policy:
+  allow_implicit_invocation: true

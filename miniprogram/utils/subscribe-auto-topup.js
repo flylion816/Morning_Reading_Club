@@ -51,6 +51,24 @@ const AUTO_TOP_UP_POLICIES = {
     requiresPeriodId: false,
     scheduledSendText: ''
   },
+  danmaku_received: {
+    scene: 'danmaku_received',
+    title: '小凡看见弹幕',
+    description: '有人在你的小凡看见发表弹幕时提醒查看',
+    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
+    target: 50,
+    requiresPeriodId: false,
+    scheduledSendText: ''
+  },
+  insight_liked: {
+    scene: 'insight_liked',
+    title: '小凡看见点赞',
+    description: '有人给你的小凡看见点赞时提醒查看',
+    templateId: '7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek',
+    target: 50,
+    requiresPeriodId: false,
+    scheduledSendText: ''
+  },
   insight_request_created: {
     scene: 'insight_request_created',
     title: '申请小凡看见',
@@ -144,31 +162,35 @@ function writePromptThrottleState(state) {
   }
 }
 
-function isPromptThrottled(templateId) {
-  if (!templateId) {
+function buildPromptThrottleKey(scene = {}) {
+  return `${scene.scene || 'unknown'}:${scene.templateId || ''}`;
+}
+
+function isPromptThrottled(scene) {
+  if (!scene?.templateId) {
     return false;
   }
 
   const today = getTodayDateKey();
   const state = readPromptThrottleState();
-  if (state[templateId] === today) {
+  if (state[buildPromptThrottleKey(scene)] === today) {
     return true;
   }
 
   return false;
 }
 
-function markPromptThrottled(templateIds = []) {
-  if (!Array.isArray(templateIds) || !templateIds.length) {
+function markPromptThrottled(scenes = []) {
+  if (!Array.isArray(scenes) || !scenes.length) {
     return;
   }
 
   const state = readPromptThrottleState();
   const today = getTodayDateKey();
 
-  templateIds.forEach(templateId => {
-    if (templateId) {
-      state[templateId] = today;
+  scenes.forEach(scene => {
+    if (scene?.templateId) {
+      state[buildPromptThrottleKey(scene)] = today;
     }
   });
 
@@ -494,8 +516,8 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
       requestScenes = promptableScenes.filter(
         scene => itemSettings[scene.templateId] !== 'reject' && itemSettings[scene.templateId] !== 'ban'
       );
-      const throttledScenes = requestScenes.filter(scene => isPromptThrottled(scene.templateId));
-      requestScenes = requestScenes.filter(scene => !isPromptThrottled(scene.templateId));
+      const throttledScenes = requestScenes.filter(scene => isPromptThrottled(scene));
+      requestScenes = requestScenes.filter(scene => !isPromptThrottled(scene));
       if (!requestScenes.length) {
         return {
           skipped: true,
@@ -514,12 +536,15 @@ async function maybeAutoTopUpSubscriptions(options = {}) {
     const saveResult = await subscribeMessageService.saveGrants(grants);
     updateSettingsCache(saveResult);
 
-    const successfulGrantTemplateIds = grants
+    const successfulGrantScenes = grants
       .filter(grant => grant && grant.templateId && grant.result !== 'error')
-      .map(grant => grant.templateId);
+      .map(grant => ({
+        scene: grant.scene,
+        templateId: grant.templateId
+      }));
 
-    if (requestMode !== 'remembered' && successfulGrantTemplateIds.length > 0) {
-      markPromptThrottled(successfulGrantTemplateIds);
+    if (requestMode !== 'remembered' && successfulGrantScenes.length > 0) {
+      markPromptThrottled(successfulGrantScenes);
     }
 
     return {

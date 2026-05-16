@@ -1,0 +1,6 @@
+interface:
+  display_name: "/7deploy"
+  short_description: "提交代码到 GitHub 并发布线上服务器"
+  default_prompt: "Use $command-7deploy to commit all project changes, push to GitHub, and deploy production."
+policy:
+  allow_implicit_invocation: true

@@ -11,7 +11,7 @@ Page({
   onShareAppMessage() {
     return {
       title: '凡人共读｜每日晨读',
-      path: '/pages/index/index',
+      path: '/pages/index/index?from=share',
       imageUrl: '/assets/images/share-default.jpg'
     };
   }

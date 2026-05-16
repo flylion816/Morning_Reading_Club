@@ -89,9 +89,9 @@ describe('notifications page', () => {
     });
 
     expect(notificationService.markAsRead).toHaveBeenCalledWith('notice_1');
-    expect(wx.navigateTo).toHaveBeenCalledWith({
+    expect(wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({
       url: '/pages/profile-others/profile-others?userId=user_target&periodId=period_1'
-    });
+    }));
   });
 
   test('should switch to home tab for new insight request notification', async () => {
@@ -100,7 +100,7 @@ describe('notifications page', () => {
       type: 'request_created',
       isRead: true,
       data: {
-        targetPage: 'pages/profile/profile'
+        targetPage: 'pages/index/index'
       }
     });
 
@@ -116,8 +116,95 @@ describe('notifications page', () => {
       }
     });
 
-    expect(wx.switchTab).toHaveBeenCalledWith({
-      url: '/pages/profile/profile'
+    expect(wx.switchTab).toHaveBeenCalledWith(expect.objectContaining({
+      url: '/pages/index/index'
+    }));
+  });
+
+  test('should ignore legacy profile target for new insight request notification', async () => {
+    const notification = pageInstance.decorateNotification.call(pageInstance, {
+      _id: 'notice_legacy_profile',
+      type: 'request_created',
+      isRead: true,
+      data: {
+        targetPage: 'pages/profile/profile'
+      }
     });
+
+    pageInstance.setData({
+      notifications: [notification]
+    });
+
+    await pageInstance.handleNotificationTap.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          id: 'notice_legacy_profile'
+        }
+      }
+    });
+
+    expect(wx.switchTab).toHaveBeenCalledWith(expect.objectContaining({
+      url: '/pages/index/index'
+    }));
+  });
+
+  test('should navigate immediately when action hint is tapped', () => {
+    notificationService.markAsRead.mockImplementation(() => new Promise(() => {}));
+
+    const notification = pageInstance.decorateNotification.call(pageInstance, {
+      _id: 'notice_3',
+      type: 'request_created',
+      isRead: false,
+      data: {
+        targetPage: 'pages/index/index'
+      }
+    });
+
+    pageInstance.setData({
+      notifications: [notification],
+      displayedNotifications: [notification],
+      unreadCount: 1
+    });
+
+    pageInstance.handleNotificationActionTap.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          id: 'notice_3'
+        }
+      }
+    });
+
+    expect(notificationService.markAsRead).toHaveBeenCalledWith('notice_3');
+    expect(wx.switchTab).toHaveBeenCalledWith(expect.objectContaining({
+      url: '/pages/index/index'
+    }));
+  });
+
+  test('should still navigate when dataset id is missing but index is present', () => {
+    const notification = pageInstance.decorateNotification.call(pageInstance, {
+      _id: 'notice_4',
+      type: 'request_created',
+      isRead: true,
+      data: {
+        targetPage: 'pages/index/index'
+      }
+    });
+
+    pageInstance.setData({
+      notifications: [notification],
+      displayedNotifications: [notification]
+    });
+
+    pageInstance.handleNotificationActionTap.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          index: 0
+        }
+      }
+    });
+
+    expect(wx.switchTab).toHaveBeenCalledWith(expect.objectContaining({
+      url: '/pages/index/index'
+    }));
   });
 });

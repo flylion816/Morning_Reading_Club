@@ -80,7 +80,9 @@ class NotificationService {
       payment_result: '付款通知',
       comment_received: '评论提醒',
       like_received: '点赞提醒',
-      insight_created: '小凡看见发布'
+      insight_created: '小凡看见发布',
+      insight_liked: '看见点赞提醒',
+      danmaku_received: '看见弹幕提醒'
     };
     return labels[type] || '通知';
   }
@@ -102,7 +104,9 @@ class NotificationService {
       payment_result: '💰',
       comment_received: '💬',
       like_received: '❤️',
-      insight_created: '👁️'
+      insight_created: '👁️',
+      insight_liked: '❤️',
+      danmaku_received: '💬'
     };
     return icons[type] || '📬';
   }
@@ -124,7 +128,9 @@ class NotificationService {
       payment_result: '#1F9D55',
       comment_received: '#4A90E2',
       like_received: '#E25555',
-      insight_created: '#7B5EA7'
+      insight_created: '#7B5EA7',
+      insight_liked: '#E25555',
+      danmaku_received: '#4A90E2'
     };
     return colors[type] || '#999';
   }

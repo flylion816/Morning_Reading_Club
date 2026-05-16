@@ -24,6 +24,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
   let next;
   let InsightStub;
   let UserStub;
+  let InsightDanmakuStub;
   let InsightRequestStub;
   let EnrollmentStub;
   let PeriodStub;
@@ -97,6 +98,13 @@ describe('Insight Controller - 102+ 完整测试', () => {
       find: sandbox.stub()
     };
 
+    InsightDanmakuStub = {
+      create: sandbox.stub(),
+      find: sandbox.stub(),
+      findById: sandbox.stub(),
+      findByIdAndDelete: sandbox.stub()
+    };
+
     InsightRequestStub = {
       create: sandbox.stub(),
       findById: sandbox.stub(),
@@ -160,6 +168,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       '../../../src/controllers/insight.controller',
       {
         '../models/Insight': InsightStub,
+        '../models/InsightDanmaku': InsightDanmakuStub,
         '../models/User': UserStub,
         '../models/InsightRequest': InsightRequestStub,
         '../models/Enrollment': EnrollmentStub,
@@ -2721,6 +2730,181 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
       expect(mockInsight.likes.length).to.be.greaterThan(0);
       expect(mockInsight.save.called).to.be.true;
+    });
+
+    it('TC-INTERACT-001A: 给他人的小凡看见点赞会发送站内和微信订阅通知', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.user = { userId: fixtures.testUsers.user3._id.toString() };
+      req.params = { insightId };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        likeCount: 5,
+        likes: [],
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      InsightStub.findById.resolves(mockInsight);
+      UserStub.findById.returns({
+        select: sandbox.stub().resolves(fixtures.testUsers.user3)
+      });
+
+      await insightController.likeInsight(req, res, next);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(dispatchNotificationWithSubscribeStub.calledOnce).to.equal(true);
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload).to.include({
+        recipientUserId: mockInsight.targetUserId,
+        notificationType: 'insight_liked',
+        scene: 'insight_liked',
+        sourceType: 'insight'
+      });
+      expect(notificationPayload.targetPage).to.include('pages/insight-detail/insight-detail');
+      expect(notificationPayload.data.insightId).to.equal(insightId.toString());
+      expect(notificationPayload.subscribeFields.likeUser).to.equal(fixtures.testUsers.user3.nickname);
+    });
+
+    it('TC-INTERACT-001B: 给他人的小凡看见发弹幕会发送站内和微信订阅通知', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      const danmakuId = new mongoose.Types.ObjectId();
+      req.user = { userId: fixtures.testUsers.user3._id.toString() };
+      req.params = { insightId };
+      req.body = {
+        content: '这句看见很触动我',
+        type: 'comment',
+        scrollPercent: 42,
+        color: '#4a90e2'
+      };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        toObject: sandbox.stub().returns({})
+      };
+      const mockDanmaku = {
+        _id: danmakuId,
+        insightId,
+        userId: fixtures.testUsers.user3._id,
+        userNickname: fixtures.testUsers.user3.nickname,
+        content: req.body.content,
+        type: 'comment',
+        createdAt: new Date('2026-05-16T08:00:00+08:00')
+      };
+
+      InsightStub.findById.resolves(mockInsight);
+      UserStub.findById.returns({
+        select: sandbox.stub().resolves(fixtures.testUsers.user3)
+      });
+      InsightDanmakuStub.create.resolves(mockDanmaku);
+
+      await insightController.postDanmaku(req, res, next);
+
+      expect(dispatchNotificationWithSubscribeStub.calledOnce).to.equal(true);
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload).to.include({
+        recipientUserId: mockInsight.targetUserId,
+        notificationType: 'danmaku_received',
+        scene: 'danmaku_received',
+        sourceType: 'danmaku'
+      });
+      expect(notificationPayload.targetPage).to.include('pages/insight-detail/insight-detail');
+      expect(notificationPayload.data.insightId).to.equal(insightId.toString());
+      expect(notificationPayload.data.danmakuId).to.equal(danmakuId.toString());
+      expect(notificationPayload.subscribeFields.replyContent).to.equal(req.body.content);
+    });
+
+    it('TC-INTERACT-001C: 管理后台代用户点赞也会发送站内和微信订阅通知', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      const danmakuId = new mongoose.Types.ObjectId();
+      req.params = { insightId };
+      req.body = {
+        userId: fixtures.testUsers.user3._id.toString(),
+        scrollPercent: 0
+      };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        likeCount: 5,
+        likes: [],
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+      const mockDanmaku = {
+        _id: danmakuId,
+        insightId,
+        userId: fixtures.testUsers.user3._id,
+        userNickname: fixtures.testUsers.user3.nickname,
+        content: '被你触动到了！❤️',
+        type: 'like',
+        createdAt: new Date('2026-05-16T09:44:00+08:00')
+      };
+
+      InsightStub.findById.resolves(mockInsight);
+      UserStub.findById.returns({
+        select: sandbox.stub().resolves(fixtures.testUsers.user3)
+      });
+      InsightDanmakuStub.create.resolves(mockDanmaku);
+
+      await insightController.adminLikeForUser(req, res, next);
+
+      expect(dispatchNotificationWithSubscribeStub.calledOnce).to.equal(true);
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload).to.include({
+        recipientUserId: mockInsight.targetUserId,
+        notificationType: 'insight_liked',
+        scene: 'insight_liked',
+        sourceType: 'insight'
+      });
+      expect(notificationPayload.data.insightId).to.equal(insightId.toString());
+      expect(notificationPayload.subscribeFields.likeUser).to.equal(fixtures.testUsers.user3.nickname);
+    });
+
+    it('TC-INTERACT-001D: 管理后台代用户发弹幕也会发送站内和微信订阅通知', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      const danmakuId = new mongoose.Types.ObjectId();
+      req.params = { insightId };
+      req.body = {
+        userId: fixtures.testUsers.user3._id.toString(),
+        content: '后台补录的弹幕',
+        scrollPercent: 20,
+        color: '#4a90e2'
+      };
+
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        toObject: sandbox.stub().returns({})
+      };
+      const mockDanmaku = {
+        _id: danmakuId,
+        insightId,
+        userId: fixtures.testUsers.user3._id,
+        userNickname: fixtures.testUsers.user3.nickname,
+        content: req.body.content,
+        type: 'comment',
+        createdAt: new Date('2026-05-16T09:45:00+08:00')
+      };
+
+      InsightStub.findById.resolves(mockInsight);
+      UserStub.findById.returns({
+        select: sandbox.stub().resolves(fixtures.testUsers.user3)
+      });
+      InsightDanmakuStub.create.resolves(mockDanmaku);
+
+      await insightController.adminPostDanmakuForUser(req, res, next);
+
+      expect(dispatchNotificationWithSubscribeStub.calledOnce).to.equal(true);
+      const notificationPayload = dispatchNotificationWithSubscribeStub.firstCall.args[1];
+      expect(notificationPayload).to.include({
+        recipientUserId: mockInsight.targetUserId,
+        notificationType: 'danmaku_received',
+        scene: 'danmaku_received',
+        sourceType: 'danmaku'
+      });
+      expect(notificationPayload.data.insightId).to.equal(insightId.toString());
+      expect(notificationPayload.data.danmakuId).to.equal(danmakuId.toString());
+      expect(notificationPayload.subscribeFields.replyContent).to.equal(req.body.content);
     });
 
     it('TC-INTERACT-002: 重复点赞检测', async () => {

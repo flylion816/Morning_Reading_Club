@@ -4,6 +4,9 @@ const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getLastTextChar } = require('../../utils/avatar');
 const { getPeriodAccess } = require('../../utils/period-access');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const {
+  decorateSectionsWithReadingCompletion
+} = require('../../utils/reading-completion');
 
 // 相对时间格式化（与课程详情页统一）
 function formatTime(dateStr) {
@@ -119,6 +122,9 @@ Page({
     }
 
     // 每次显示页面时重新加载打卡记录
+    if (this.data.sections.length > 0) {
+      this.applyReadingCompletionToSections();
+    }
     if (
       this.data.sections.length > 0 &&
       this.data.communityAccessState === 'enabled'
@@ -240,7 +246,9 @@ Page({
         courseService.getPeriodSections(this.data.periodId),
         courseService.getPeriodDetail(this.data.periodId)
       ]);
-      const sections = res.list || res.items || res || [];
+      const sections = decorateSectionsWithReadingCompletion(
+        res.list || res.items || res || []
+      );
 
       // 格式化日期（只显示到日期部分，去掉时间）
       const formatDate = (dateStr) => {
@@ -278,6 +286,12 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  applyReadingCompletionToSections() {
+    this.setData({
+      sections: decorateSectionsWithReadingCompletion(this.data.sections)
+    });
   },
 
   /**

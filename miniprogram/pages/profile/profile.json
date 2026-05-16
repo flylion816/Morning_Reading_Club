@@ -1,6 +1,4 @@
 {
-  "navigationBarTitleText": "首页",
-  "enablePullDownRefresh": true,
-  "backgroundTextStyle": "light",
+  "navigationBarTitleText": "我的",
   "usingComponents": {}
 }

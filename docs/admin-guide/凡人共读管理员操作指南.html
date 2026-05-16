@@ -1,0 +1,193 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>凡人共读管理员操作指南</title><style>
+:root{--ink:#0b2545;--muted:#64748b;--line:#d9e2ec;--blue:#1f4e79;--soft:#f6f8fb;--red:#b42318}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:#172033;background:#f3f6fa;line-height:1.65}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}.nav{position:sticky;top:0;height:100vh;overflow:auto;background:#0b2545;color:white;padding:22px 18px}.nav h2{font-size:18px;margin:0 0 14px}.nav a{display:block;color:#dbeafe;text-decoration:none;padding:7px 8px;border-radius:6px;font-size:14px}.nav a:hover{background:rgba(255,255,255,.12)}
+main{padding:34px 42px 60px}.hero,.card{background:white;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.05)}.hero{padding:42px;margin-bottom:22px}.hero h1{font-size:36px;line-height:1.2;color:var(--ink);margin:0 0 12px}.hero p{margin:6px 0;color:#475569}.quick{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:26px}.card{padding:22px}.card h2{margin:0 0 12px;color:var(--blue);font-size:22px}.card h3{margin:18px 0 8px;color:var(--blue);font-size:17px}.warn{border-left:4px solid var(--red);background:#fff7f5;padding:10px 12px;color:#7a271a;border-radius:4px}.menu-table{width:100%;border-collapse:collapse;font-size:14px}.menu-table th,.menu-table td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}.menu-table th{background:#e8eef5;color:#0b2545}.section{padding:24px;margin:0 0 28px}.section h2{margin:0 0 8px;font-size:26px;color:var(--ink)}.purpose{color:#475569;margin:0 0 12px}.content-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}.legend{margin:0;padding-left:22px}.legend li{margin:3px 0}.shot{width:100%;display:block;border:1px solid var(--line);border-radius:8px;background:#fff}.caption{font-size:13px;color:var(--muted);margin-top:8px}.files{display:flex;gap:10px;flex-wrap:wrap}.file{display:inline-block;background:#1f4e79;color:white;text-decoration:none;padding:8px 12px;border-radius:6px;font-size:14px}@media print{body{background:white}.layout{display:block}.nav{display:none}main{padding:0}.card,.hero,.section{box-shadow:none;break-inside:avoid}.section{page-break-before:always}.quick{display:block}.content-grid{display:block}.file{display:none}}@media(max-width:900px){.layout{display:block}.nav{position:relative;height:auto}.quick,.content-grid{grid-template-columns:1fr}main{padding:20px}.hero h1{font-size:28px}}
+</style></head><body><div class="layout"><aside class="nav"><h2>凡人共读<br>管理员指南</h2>
+<a href="#dashboard">1. 仪表板</a>
+<a href="#analytics">2. 数据分析</a>
+<a href="#registrations">3. 报名管理</a>
+<a href="#users">4. 用户管理</a>
+<a href="#payments">5. 支付记录</a>
+<a href="#sections">6. 期次管理</a>
+<a href="#contents">7. 内容管理</a>
+<a href="#checkins">8. 每日打卡</a>
+<a href="#insights">9. 小凡看见</a>
+<a href="#applications">10. 查看申请</a>
+<a href="#audit">11. 审计日志</a>
+<a href="#accounts">12. 账号管理</a>
+<a href="#subscription">13. 订阅消息排查</a>
+<a href="#database">14. 数据库管理</a>
+</aside><main><section class="hero"><h1>凡人共读管理员操作指南</h1><p>围绕后台左侧侧边栏全部功能整理，适合新管理员上手。</p><p>基于 https://wx.shubai01.com/admin/ · 生成日期：2026-05-15</p><p>截图中的红色编号对应说明；真实用户、订单号、openid 等敏感数据已遮挡。</p><div class="files"><a class="file" href="凡人共读管理员操作指南.docx">打开 Word 版本</a><a class="file" href="凡人共读管理员操作指南.pdf">打开 PDF 版本</a></div></section>
+<div class="quick"><section class="card"><h2>5分钟上手流程</h2><ol><li>进入后台后先看左侧菜单，确认自己要处理的是数据、业务、内容还是系统问题。</li><li>需要查找记录时，先输入关键词，再选择状态、期次、日期等筛选条件，最后点击查询或搜索。</li><li>需要新增内容时，先确认所属期次，再点击新增按钮。</li><li>需要编辑、下架、删除、批量同意或重置状态时，先核对对象，再执行操作。</li><li>数据库管理、账号权限、删除类操作属于高风险操作，没有明确授权不要继续。</li></ol></section><section class="card"><h2>安全提醒</h2><p class="warn">不要在未确认的情况下点击删除、重置、批量同意/拒绝、数据库初始化等操作。数据库管理入口只在负责人明确授权时使用。</p></section></div>
+<section class="card"><h2>左侧菜单速查</h2><table class="menu-table"><thead><tr><th>区域</th><th>包含菜单</th><th>什么时候用</th></tr></thead><tbody><tr><td>数据看板</td><td>仪表板、数据分析</td><td>看总体数据、趋势和异常</td></tr><tr><td>业务管理</td><td>报名管理、用户管理、支付记录、期次管理</td><td>处理报名、用户、订单和期次</td></tr><tr><td>内容管理</td><td>内容管理、每日打卡、小凡看见、查看申请、审计日志</td><td>维护课程内容、打卡、展示申请并追踪操作记录</td></tr><tr><td>系统管理</td><td>账号管理、订阅消息排查、数据库管理</td><td>管理后台账号、排查订阅消息、高风险数据库入口</td></tr></tbody></table></section>
+<section class="card section" id="dashboard"><h2>1. 仪表板</h2><p class="purpose"><strong>用途：</strong>用来快速判断今天后台有没有需要处理的事项。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>先看总用户数、报名数、支付额、活跃期次等总览。</li>
+<li>再看“待处理事项”，确认是否有待审批、待支付或需要关注的活跃行为。</li>
+<li>如果要看明细，点“查看全部”进入对应列表。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>这里只适合看概况，具体处理仍要进入对应功能页。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 左侧菜单：进入各功能页</li>
+<li>2 关键业务数字：先看当前总体情况</li>
+<li>3 查看全部：进入对应列表页追踪明细</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-01-dashboard.png" alt="仪表板截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="analytics"><h2>2. 数据分析</h2><p class="purpose"><strong>用途：</strong>用来按时间范围查看趋势、转化、收入和活跃度。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>选择开始日期和结束日期。</li>
+<li>点击“刷新数据”。</li>
+<li>查看趋势图、转化指标和收入结构，判断近期变化。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>分析页主要用于复盘，不建议把单个异常直接当成结论，要回到明细页核对。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 数据分析入口</li>
+<li>2 选择开始/结束日期</li>
+<li>3 刷新数据：按时间范围重算趋势</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-02-analytics.png" alt="数据分析截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="registrations"><h2>3. 报名管理</h2><p class="purpose"><strong>用途：</strong>用来查报名记录、确认报名状态、处理报名相关信息。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>在搜索框输入学员姓名或昵称。</li>
+<li>按状态、期次继续缩小范围。</li>
+<li>点击“搜索”查看结果。</li>
+<li>需要批量修正展示名时，使用“同步报名名称到昵称”。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>同步类按钮会影响展示数据，执行前先确认筛选范围和操作目的。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 报名管理入口</li>
+<li>2 输入姓名、状态、期次筛选</li>
+<li>3 搜索：查报名记录</li>
+<li>4 同步报名名称到昵称：批量修正展示名</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-03-registrations.png" alt="报名管理截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="users"><h2>4. 用户管理</h2><p class="purpose"><strong>用途：</strong>用来查看用户资料、角色和状态。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>输入昵称或邮箱。</li>
+<li>按角色、状态筛选。</li>
+<li>点击“搜索”定位用户，再查看用户相关信息。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>不要随意修改用户状态；涉及封禁、启用、权限变化时先确认原因。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 用户管理入口</li>
+<li>2 按昵称/邮箱、角色、状态筛选用户</li>
+<li>3 搜索：查看符合条件的用户</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-04-users.png" alt="用户管理截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="payments"><h2>5. 支付记录</h2><p class="purpose"><strong>用途：</strong>用来查订单、支付状态、金额和支付时间。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>输入订单号或用户名。</li>
+<li>按支付状态、时间筛选。</li>
+<li>点击“刷新”重新加载列表。</li>
+<li>需要看单笔订单时点“详情”。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>“重置待支付”属于状态修正操作，只在确认支付异常时使用。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 支付记录入口</li>
+<li>2 按订单号/用户名、状态、日期筛选</li>
+<li>3 刷新：重新加载支付列表</li>
+<li>4 详情/重置待支付：先核实订单再操作</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-05-payments.png" alt="支付记录截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="sections"><h2>6. 期次管理</h2><p class="purpose"><strong>用途：</strong>用来创建、编辑、复制、删除读书营期次。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>点击“新建期次”创建新一期。</li>
+<li>已有期次可点“编辑”调整名称、时间、状态等信息。</li>
+<li>相似期次可用“复制”减少重复录入。</li>
+<li>点“更新期次状态”可按规则刷新状态。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>删除期次前必须确认是否有关联报名、课程内容、打卡记录。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 期次管理入口</li>
+<li>2 新建期次、刷新、更新期次状态</li>
+<li>3 编辑/复制/删除：维护具体期次</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-06-sections.png" alt="期次管理截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="contents"><h2>7. 内容管理</h2><p class="purpose"><strong>用途：</strong>用来维护每个期次下的课程课节。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>先选择要管理的期次。</li>
+<li>点击“新增课节”创建新的课程内容。</li>
+<li>已有课节可“编辑”修改内容。</li>
+<li>暂时不展示可“下架”，确认不用时才考虑删除。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>优先使用下架，谨慎删除；删除前确认小程序端不会再需要该内容。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 内容管理入口</li>
+<li>2 先选择要管理的期次</li>
+<li>3 新增课节：创建当天内容</li>
+<li>4 编辑/下架/删除：维护课节</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-07-contents.png" alt="内容管理截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="checkins"><h2>8. 每日打卡</h2><p class="purpose"><strong>用途：</strong>用来查看学员打卡情况。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>输入用户昵称或 ID。</li>
+<li>选择期次和日期范围。</li>
+<li>点击“查询”查看打卡记录。</li>
+<li>筛选混乱时点击“重置”重新开始。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>打卡页通常用于查询和核对，不要把空结果直接理解为数据丢失，先检查筛选条件。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 每日打卡入口</li>
+<li>2 输入用户、期次、日期条件</li>
+<li>3 查询/重置：筛选打卡记录</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-08-checkins.png" alt="每日打卡截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="insights"><h2>9. 小凡看见</h2><p class="purpose"><strong>用途：</strong>用来管理“小凡看见”的展示内容。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>先选择所属期次。</li>
+<li>点击“新增小凡看见”发布新内容。</li>
+<li>列表中可查看、编辑、下架或删除已有内容。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>下架适合临时隐藏；删除是不可逆倾向操作，先确认内容不再需要。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 小凡看见入口</li>
+<li>2 先选择所属期次</li>
+<li>3 新增小凡看见：发布展示内容</li>
+<li>4 查看/编辑/下架/删除：维护内容状态</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-09-insights.png" alt="小凡看见截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="applications"><h2>10. 查看申请</h2><p class="purpose"><strong>用途：</strong>用来处理用户申请被“小凡看见”的记录。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>按状态筛选待处理、已同意或已拒绝。</li>
+<li>输入申请者或被申请者搜索。</li>
+<li>点击“查询”查看结果。</li>
+<li>勾选记录后可批量同意、批量拒绝，或导出数据。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>批量同意/拒绝会影响用户展示权限，操作前要确认勾选对象。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 查看申请入口</li>
+<li>2 按状态、申请者、被申请者筛选</li>
+<li>3 查询/重置筛选条件</li>
+<li>4 批量同意/拒绝、导出数据</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-10-applications.png" alt="查看申请截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="audit"><h2>11. 审计日志</h2><p class="purpose"><strong>用途：</strong>用来追踪后台管理员做过什么操作。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>按管理员、模块、动作、对象 ID、时间范围筛选。</li>
+<li>点击“查询”定位日志。</li>
+<li>需要留档时点击“导出”。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>排查问题时先看时间范围和操作者，避免在全量日志里盲找。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 审计日志入口</li>
+<li>2 按管理员、模块、动作、对象、时间筛选</li>
+<li>3 查询/重置/导出日志</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-11-audit.png" alt="审计日志截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="accounts"><h2>12. 账号管理</h2><p class="purpose"><strong>用途：</strong>用来管理后台登录账号、角色权限和启停状态。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>输入姓名或邮箱搜索账号。</li>
+<li>按角色、状态筛选。</li>
+<li>点击“新建账号”添加管理员。</li>
+<li>已有账号可编辑、重置密码、复制、禁用或删除。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>账号权限直接影响后台安全。新增、禁用、删除账号前要确认授权。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 账号管理入口</li>
+<li>2 搜索姓名/邮箱并筛选角色、状态</li>
+<li>3 新建账号：添加后台管理员</li>
+<li>4 编辑/重置密码/复制/禁用/删除账号</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-12-accounts.png" alt="账号管理截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="subscription"><h2>13. 订阅消息排查</h2><p class="purpose"><strong>用途：</strong>只读查看用户订阅消息状态，排查为什么收不到提醒。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>输入昵称、手机号、openid 或用户 ID。</li>
+<li>按期次 ID、状态筛选。</li>
+<li>点击“刷新”或“详情”查看具体订阅状态。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>这是排查页，不负责直接修复用户授权。用户未授权时需要引导其在小程序端重新订阅。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 订阅消息排查入口</li>
+<li>2 搜索用户、期次、订阅状态</li>
+<li>3 刷新：重新读取排查数据</li>
+<li>4 重置筛选条件</li>
+<li>5 详情：查看某个用户的订阅状态</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-13-subscription.png" alt="订阅消息排查截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+<section class="card section" id="database"><h2>14. 数据库管理</h2><p class="purpose"><strong>用途：</strong>高风险维护入口，进入前需要验证密码。</p><div class="content-grid"><div><h3>操作流程</h3><ol>
+<li>点击左侧“数据库管理”。</li>
+<li>系统弹出验证密码框。</li>
+<li>没有明确授权时，点击右上角关闭弹窗退出。</li>
+</ol>
+<p class="warn"><strong>注意：</strong>严禁随意进入或执行初始化、清空、重置类操作；必须先获得负责人明确确认。</p>
+</div><div><h3>截图编号说明</h3><ul class="legend">
+<li>1 数据库管理入口</li>
+<li>2 需要输入验证密码才能继续</li>
+<li>3 关闭弹窗：不进入高风险操作</li>
+</ul></div></div><img class="shot" src="../admin-guide-assets/annotated-14-database.png" alt="数据库管理截图标注"><p class="caption">红色编号对应本节说明，部分真实数据已遮挡。</p></section>
+</main></div></body></html>

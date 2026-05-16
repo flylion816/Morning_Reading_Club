@@ -31,7 +31,7 @@ async function notifyPaymentSuccess(req, { userId, payment, enrollment }) {
           periodId:
             payment?.periodId?._id?.toString?.() || payment?.periodId?.toString?.() || null,
           periodName,
-          targetPage: 'pages/index/index'
+          targetPage: 'pages/periods/periods'
         }
       }
     );
@@ -43,7 +43,7 @@ async function notifyPaymentSuccess(req, { userId, payment, enrollment }) {
         orderContent: periodName,
         orderTime: formatNotificationTime(paidAt)
       },
-      page: 'pages/index/index',
+      page: 'pages/periods/periods',
       sourceType: 'payment',
       sourceId: payment?._id?.toString?.() || `${userId}:${periodName}`
     });

@@ -373,7 +373,7 @@ async function notifyInsightRequestCreated(req, { request, fromUser, toUser }) {
       title: '收到新的小凡看见查看申请',
       content: `${fromUser?.nickname || '用户'} 申请查看你的小凡看见`,
       scene: 'insight_request_created',
-      targetPage: 'pages/profile/profile',
+      targetPage: 'pages/index/index',
       senderId: request.fromUserId,
       requestId: request._id,
       upsertExistingNotification: true,
@@ -456,10 +456,8 @@ async function notifyInsightLiked(req, { insight, actorUser, insightId }) {
         senderAvatar: actorUser?.avatarUrl || ''
       },
       subscribeFields: {
-        replyUser: actorUser?.nickname || '用户',
-        replyTopic: truncateText(insight.title || '小凡看见', 32),
-        replyContent: '为你的看见点了赞 ❤️',
-        replyTime: formatNotificationTime(new Date())
+        likeUser: actorUser?.nickname || '用户',
+        likeTime: formatNotificationTime(new Date())
       },
       sourceType: 'insight',
       sourceId: insight._id
@@ -2606,6 +2604,11 @@ async function adminLikeForUser(req, res, next) {
       color: '#e8a0b4'
     });
 
+    const insightOwnerId = insight.targetUserId?.toString?.();
+    if (insightOwnerId && insightOwnerId !== String(userId)) {
+      await notifyInsightLiked(req, { insight, actorUser: user, insightId });
+    }
+
     res.json(success({ likeCount: insight.likeCount, danmaku }, '点赞成功'));
   } catch (error) {
     next(error);
@@ -2623,7 +2626,7 @@ async function adminPostDanmakuForUser(req, res, next) {
     const insight = await Insight.findById(insightId);
     if (!insight) return res.status(404).json(errors.notFound('小凡看见不存在'));
 
-    const user = await User.findById(userId).select('nickname');
+    const user = await User.findById(userId).select('nickname avatar avatarUrl');
     if (!user) return res.status(404).json(errors.notFound('用户不存在'));
 
     const danmaku = await InsightDanmaku.create({
@@ -2635,6 +2638,11 @@ async function adminPostDanmakuForUser(req, res, next) {
       scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
       color
     });
+
+    const insightOwnerId = insight.targetUserId?.toString?.();
+    if (insightOwnerId && insightOwnerId !== String(userId)) {
+      await notifyInsightDanmaku(req, { insight, danmaku, actorUser: user, insightId });
+    }
 
     res.json(success(danmaku, '弹幕发送成功'));
   } catch (error) {

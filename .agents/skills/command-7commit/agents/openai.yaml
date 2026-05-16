@@ -1,0 +1,6 @@
+interface:
+  display_name: "/7commit"
+  short_description: "提交并推送代码，不部署服务器"
+  default_prompt: "Use $command-7commit to commit all project changes and push them to GitHub without deploying."
+policy:
+  allow_implicit_invocation: true

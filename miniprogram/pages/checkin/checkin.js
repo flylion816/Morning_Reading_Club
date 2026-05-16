@@ -57,6 +57,7 @@ Page({
     // 可见范围
     visibility: 'all', // 'all' 或 'admin'
     accessChecked: false,
+    showPageContent: false,
 
     // 草稿状态
     isDirty: false,
@@ -186,7 +187,18 @@ Page({
     }
 
     await this.loadCourseDetail(prefetchedCourse);
+    this.revealPageContent();
     this.loadCelebrationConfig();
+  },
+
+  revealPageContent() {
+    if (this._pageRevealTimer) {
+      clearTimeout(this._pageRevealTimer);
+    }
+    this._pageRevealTimer = setTimeout(() => {
+      this._pageRevealTimer = null;
+      this.setData({ showPageContent: true });
+    }, 450);
   },
 
   async loadCourseDetail(prefetchedCourse = null) {
@@ -441,6 +453,7 @@ Page({
 
   // 页面卸载时清理
   onUnload() {
+    if (this._pageRevealTimer) clearTimeout(this._pageRevealTimer);
     if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
     if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
     this._disableLeaveGuard();

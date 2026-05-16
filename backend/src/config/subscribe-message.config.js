@@ -4,7 +4,7 @@ const sceneConfigs = {
     title: '报名结果',
     description: '报名成功后提醒用户进入晨读营',
     templateId: 'Qzn9auOyMjCKUaHrfekzK0XMaQ64nO0mfdikQNXjbdo',
-    page: 'pages/index/index',
+    page: 'pages/periods/periods',
     autoTopUpTarget: 1,
     fieldDefinitions: [
       { name: 'result', label: '报名结果' },
@@ -23,7 +23,7 @@ const sceneConfigs = {
     title: '付款结果',
     description: '支付完成后提醒用户进入晨读营',
     templateId: 'UCzIuWtUYbc_ucf05GEOqglXK1HJHzwtN50e1NkmhCI',
-    page: 'pages/index/index',
+    page: 'pages/periods/periods',
     autoTopUpTarget: 1,
     fieldDefinitions: [
       { name: 'orderContent', label: '订单内容' },
@@ -73,12 +73,50 @@ const sceneConfigs = {
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_LIKE_RECEIVED'
   },
+  danmaku_received: {
+    scene: 'danmaku_received',
+    title: '小凡看见弹幕',
+    description: '有人在你的小凡看见发表弹幕时提醒查看',
+    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
+    page: 'pages/insight-detail/insight-detail',
+    autoTopUpTarget: 50,
+    fieldDefinitions: [
+      { name: 'replyUser', label: '回复人' },
+      { name: 'replyTopic', label: '回复主题' },
+      { name: 'replyContent', label: '回复内容' },
+      { name: 'replyTime', label: '回复时间' }
+    ],
+    defaultFieldKeyMap: {
+      replyUser: 'thing1',
+      replyTopic: 'thing5',
+      replyContent: 'thing2',
+      replyTime: 'time3'
+    },
+    fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_DANMAKU_RECEIVED'
+  },
+  insight_liked: {
+    scene: 'insight_liked',
+    title: '小凡看见点赞',
+    description: '有人给你的小凡看见点赞时提醒查看',
+    templateId: '7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek',
+    page: 'pages/insight-detail/insight-detail',
+    autoTopUpTarget: 50,
+    fieldDefinitions: [
+      { name: 'likeUser', label: '点赞用户' },
+      { name: 'likeTime', label: '点赞时间' }
+    ],
+    defaultFieldKeyMap: {
+      likeUser: 'thing1',
+      likeTime: 'time2'
+    },
+    fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_INSIGHT_LIKED'
+  },
   insight_request_created: {
     scene: 'insight_request_created',
     title: '申请小凡看见',
     description: '有人请求查看你的小凡看见时提醒处理',
     templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
-    page: 'pages/profile/profile',
+    page: 'pages/index/index',
     autoTopUpTarget: 1,
     fieldDefinitions: [
       { name: 'requestUser', label: '申请人' },
@@ -137,7 +175,7 @@ const sceneConfigs = {
     title: '明日开课通知',
     description: '次日 05:45 发送晨读营开课通知',
     templateId: 'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
-    page: 'pages/index/index',
+    page: 'pages/periods/periods',
     autoTopUpTarget: 1,
     fieldDefinitions: [
       { name: 'activityName', label: '活动名称' },

@@ -110,6 +110,41 @@ Page({
     );
   },
 
+  getNotificationId(notification = {}) {
+    const id =
+      notification?._id ||
+      notification?.id ||
+      notification?.notificationId ||
+      notification?.data?.notificationId ||
+      '';
+
+    return id ? String(id) : '';
+  },
+
+  findNotificationFromEvent(event = {}) {
+    const { id, index } = event.currentTarget?.dataset || {};
+    const idText = id ? String(id) : '';
+
+    if (idText) {
+      const matched = this.data.notifications.find(
+        item => this.getNotificationId(item) === idText
+      );
+      if (matched) {
+        return matched;
+      }
+    }
+
+    const itemIndex = Number(index);
+    if (Number.isInteger(itemIndex) && itemIndex >= 0) {
+      const displayedNotification = this.data.displayedNotifications[itemIndex];
+      if (displayedNotification) {
+        return displayedNotification;
+      }
+    }
+
+    return null;
+  },
+
   getNotificationTargetUser(notification = {}) {
     const sender = notification?.senderId || {};
     return {
@@ -155,7 +190,26 @@ Page({
   },
 
   isTabPage(pagePath = '') {
-    return ['pages/profile/profile', 'pages/index/index'].includes(pagePath);
+    return ['pages/index/index', 'pages/periods/periods'].includes(pagePath);
+  },
+
+  fallbackNavigateToTarget(targetPage = '') {
+    const normalized = this.normalizeTargetPage(targetPage);
+    if (!normalized) {
+      return;
+    }
+
+    wx.reLaunch({
+      url: `/${normalized}`,
+      fail: error => {
+        console.error('通知跳转失败:', error);
+        wx.showToast({
+          title: '跳转失败，请从底部首页进入',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    });
   },
 
   navigateByTargetPage(targetPage = '') {
@@ -167,23 +221,36 @@ Page({
     const pagePath = this.getTabPagePath(normalized);
     if (this.isTabPage(pagePath)) {
       wx.switchTab({
-        url: `/${pagePath}`
+        url: `/${pagePath}`,
+        fail: error => {
+          console.warn('通知 switchTab 失败，尝试 reLaunch:', error);
+          this.fallbackNavigateToTarget(normalized);
+        }
       });
       return;
     }
 
     wx.navigateTo({
-      url: `/${normalized}`
+      url: `/${normalized}`,
+      fail: error => {
+        console.warn('通知 navigateTo 失败，尝试 reLaunch:', error);
+        this.fallbackNavigateToTarget(normalized);
+      }
     });
   },
 
   resolveNotificationTarget(notification = {}) {
+    const { type } = notification;
+
+    if (type === 'request_created') {
+      return 'pages/index/index';
+    }
+
     const directTarget = notification?.data?.targetPage;
     if (directTarget) {
       return directTarget;
     }
 
-    const { type } = notification;
     const sectionId = notification?.data?.sectionId || '';
     const checkinId = notification?.data?.checkinId || '';
     const commentId = notification?.data?.commentId || '';
@@ -203,10 +270,6 @@ Page({
       return `pages/course-detail/course-detail?${query}`;
     }
 
-    if (type === 'request_created') {
-      return 'pages/profile/profile';
-    }
-
     if (['request_approved', 'admin_approved'].includes(type) && targetUser.userId) {
       return this.buildProfileOthersTargetPage(targetUser.userId, { periodId });
     }
@@ -219,7 +282,7 @@ Page({
     }
 
     if (['enrollment_result', 'payment_result'].includes(type)) {
-      return 'pages/index/index';
+      return 'pages/periods/periods';
     }
 
     if (requestId) {
@@ -233,6 +296,8 @@ Page({
     const actionTextMap = {
       comment_received: '查看打卡详情',
       like_received: '查看打卡详情',
+      insight_liked: '查看小凡看见',
+      danmaku_received: '查看小凡看见',
       request_created: '去首页处理',
       request_approved: '查看对方小凡看见',
       admin_approved: '查看对方小凡看见',
@@ -274,6 +339,7 @@ Page({
       senderInitial: getLastTextChar(senderName, '用'),
       senderAvatarColor: senderAvatarDisplay.avatarColor,
       senderUserId,
+      notificationIdValue: this.getNotificationId(notification),
       requestIdValue: this.getNotificationRequestId(notification),
       periodIdValue: this.getNotificationPeriodId(notification),
       resolvedTargetPage: this.resolveNotificationTarget(notification),
@@ -383,38 +449,57 @@ Page({
     }
   },
 
-  async handleNotificationTap(event) {
-    const { id } = event.currentTarget.dataset;
-    const notification = this.data.notifications.find(item => item._id === id);
-
-    if (!notification) {
+  markNotificationAsReadInBackground(notification = {}) {
+    const notificationId = this.getNotificationId(notification);
+    if (!notificationId || notification.isRead) {
       return;
     }
 
-    if (!notification.isRead) {
-      try {
-        await notificationService.markAsRead(id);
-        const updatedNotifications = this.data.notifications.map(item =>
-          item._id === id
-            ? this.decorateNotification({
-                ...item,
-                isRead: true,
-                readAt: new Date().toISOString()
-              })
-            : item
-        );
-        this.setData({ notifications: updatedNotifications });
-        this.updateDisplayedNotifications();
+    const updatedNotifications = this.data.notifications.map(item =>
+      this.getNotificationId(item) === notificationId
+        ? this.decorateNotification({
+            ...item,
+            isRead: true,
+            readAt: new Date().toISOString()
+          })
+        : item
+    );
+
+    this.setData({
+      notifications: updatedNotifications,
+      unreadCount: Math.max((this.data.unreadCount || 0) - 1, 0)
+    });
+    this.updateDisplayedNotifications();
+
+    notificationService
+      .markAsRead(notificationId)
+      .then(() => {
         this.loadUnreadCount();
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('标记为已读失败:', error);
-      }
+        this.loadUnreadCount();
+      });
+  },
+
+  handleNotificationTap(event) {
+    const notification = this.findNotificationFromEvent(event);
+
+    if (!notification) {
+      console.warn('通知点击缺少可识别的通知数据:', event.currentTarget?.dataset || {});
+      return;
     }
 
     const targetPage = notification.resolvedTargetPage || this.resolveNotificationTarget(notification);
+    this.markNotificationAsReadInBackground(notification);
+
     if (targetPage) {
       this.navigateByTargetPage(targetPage);
     }
+  },
+
+  handleNotificationActionTap(event) {
+    this.handleNotificationTap(event);
   },
 
   handleSenderAvatarTap(event) {
@@ -465,6 +550,10 @@ Page({
   },
 
   handleMarkAllAsRead() {
+    if (this.data.unreadCount <= 0) {
+      return;
+    }
+
     wx.showModal({
       title: '标记全部已读',
       content: '将所有通知标记为已读？',
@@ -484,7 +573,7 @@ Page({
               readAt: new Date().toISOString()
             }))
             .map(item => this.decorateNotification(item));
-          this.setData({ notifications: updated });
+          this.setData({ notifications: updated, unreadCount: 0 });
           this.updateDisplayedNotifications();
           this.loadUnreadCount();
 

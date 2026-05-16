@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "凡人共读",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "light",
+  "usingComponents": {
+    "course-card": "/components/course-card/index"
+  }
+}

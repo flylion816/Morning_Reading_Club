@@ -1,4 +1,7 @@
-<view class="page-insight-detail">
+<view class="page-insight-detail {{isDetailReady ? 'page-insight-detail-ready' : 'page-insight-detail-loading-state'}}">
+  <view wx:if="{{!isDetailReady}}" class="insight-detail-loading"></view>
+
+  <block wx:if="{{isDetailReady}}">
   <!-- 弹幕叠加层：常驻 DOM 避免 position:fixed 渲染时序问题 -->
   <view class="danmaku-overlay">
     <block wx:if="{{danmakuEnabled}}">
@@ -13,12 +16,14 @@
 
   <!-- 爱心飘散层：右下角向上飘散，不拦截点击 -->
   <view class="hearts-overlay" wx:if="{{showHearts}}">
-    <text
+    <image
       wx:for="{{heartItems}}"
       wx:key="id"
       class="heart-item"
+      src="/assets/images/heart.png"
+      mode="aspectFit"
       style="animation-delay:{{item.delay}}s;--sx:{{item.startX}};--sy:{{item.startY}};--dx:{{item.destX}};--dy:{{item.destY}}"
-    >{{item.emoji}}</text>
+    />
   </view>
 
   <!-- 顶部课程标题卡片 -->
@@ -38,7 +43,7 @@
 
     <!-- 正文内容 -->
     <view class="content-text" wx:if="{{insight.content}}">
-      <rich-text nodes="{{insight.content}}" />
+      <rich-text class="selectable-rich-text" nodes="{{insight.content}}" selectable="{{true}}" />
     </view>
   </view>
 
@@ -184,4 +189,5 @@
       <view class="modal-cancel" bindtap="closeShareModal">取消</view>
     </view>
   </view>
+  </block>
 </view>

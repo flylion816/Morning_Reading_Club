@@ -242,6 +242,85 @@ describe('Subscribe Message Service', () => {
     });
   });
 
+  it('should expose insight interaction scenes in subscription states', async () => {
+    const userId = new mongoose.Types.ObjectId();
+
+    SubscribeMessageGrantStub.find.returns(setupFindChain(sandbox, []));
+
+    const result = await subscribeMessageService.getUserSubscriptionStates(userId);
+    const likedScene = result.scenes.find(item => item.scene === 'insight_liked');
+    const danmakuScene = result.scenes.find(item => item.scene === 'danmaku_received');
+
+    expect(likedScene).to.include({
+      scene: 'insight_liked',
+      title: '小凡看见点赞',
+      templateId: getSubscribeSceneConfig('like_received').templateId,
+      availableCount: 0,
+      autoTopUpTarget: 50
+    });
+    expect(danmakuScene).to.include({
+      scene: 'danmaku_received',
+      title: '小凡看见弹幕',
+      templateId: getSubscribeSceneConfig('comment_received').templateId,
+      availableCount: 0,
+      autoTopUpTarget: 50
+    });
+  });
+
+  it('should reuse available grant from the same template when scene-specific grant is missing', async () => {
+    const recipientUserId = new mongoose.Types.ObjectId();
+    const grantId = new mongoose.Types.ObjectId();
+    const sceneConfig = getSubscribeSceneConfig('insight_request_approved');
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    UserStub.findById.returns(setupFindChain(sandbox, {
+      _id: recipientUserId,
+      openid: 'openid-123',
+      nickname: '林泰君'
+    }));
+    SubscribeMessageGrantStub.findOne.resolves(null);
+    SubscribeMessageGrantStub.findOneAndUpdate
+      .onFirstCall()
+      .resolves(null)
+      .onSecondCall()
+      .resolves({
+        _id: grantId,
+        scene: 'insight_request_created',
+        templateId: sceneConfig.templateId,
+        availableCount: 0
+      });
+
+    process.env.NODE_ENV = 'test';
+    try {
+      await subscribeMessageService.sendSceneMessage({
+        scene: 'insight_request_approved',
+        recipientUserId,
+        fields: {
+          approverName: '狮子',
+          remark: '秩序之锚 · 第五天',
+          approvedTime: '2026-05-16 07:30'
+        },
+        sourceType: 'insight_request',
+        sourceId: 'request-1'
+      });
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    expect(SubscribeMessageGrantStub.findOneAndUpdate.calledTwice).to.be.true;
+    const fallbackQuery = SubscribeMessageGrantStub.findOneAndUpdate.secondCall.args[0];
+    expect(fallbackQuery).to.include({
+      userId: recipientUserId,
+      templateId: sceneConfig.templateId
+    });
+    expect(fallbackQuery.scene).to.be.undefined;
+    expect(SubscribeMessageDeliveryStub.create.calledOnce).to.be.true;
+    expect(SubscribeMessageDeliveryStub.create.firstCall.args[0]).to.include({
+      scene: 'insight_request_approved',
+      status: 'mocked'
+    });
+  });
+
   it('should restore inventory when WeChat returns 43101 for non-consuming scenes', async () => {
     const recipientUserId = new mongoose.Types.ObjectId();
     const grantId = new mongoose.Types.ObjectId();

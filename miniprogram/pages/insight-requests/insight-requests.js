@@ -60,7 +60,7 @@ Page({
           loading: false
         });
         redirectAfterCommunityDenied(
-          '/pages/profile/profile',
+          '/pages/index/index',
           '完成支付后可查看'
         );
         return;

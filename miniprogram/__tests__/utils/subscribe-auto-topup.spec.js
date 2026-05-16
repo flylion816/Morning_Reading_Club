@@ -366,6 +366,66 @@ describe('subscribe-auto-topup helper', () => {
     expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(1);
   });
 
+  test('maybeAutoTopUpSubscriptions should not throttle a different scene sharing the same template', async () => {
+    subscribeMessageService.getSettings.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'insight_request_created',
+          templateId: AUTO_TOP_UP_POLICIES.insight_request_created.templateId,
+          availableCount: 0
+        },
+        {
+          scene: 'insight_request_approved',
+          templateId: AUTO_TOP_UP_POLICIES.insight_request_approved.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    global.wx.getSetting.mockImplementation(({ success }) => {
+      success({
+        subscriptionsSetting: {
+          itemSettings: {
+            [AUTO_TOP_UP_POLICIES.insight_request_created.templateId]: 'accept'
+          }
+        }
+      });
+    });
+
+    global.wx.requestSubscribeMessage.mockImplementation(({ tmplIds, success }) => {
+      success({ [tmplIds[0]]: 'accept' });
+    });
+
+    subscribeMessageService.saveGrants.mockResolvedValue({
+      scenes: [
+        {
+          scene: 'insight_request_created',
+          templateId: AUTO_TOP_UP_POLICIES.insight_request_created.templateId,
+          availableCount: 0
+        },
+        {
+          scene: 'insight_request_approved',
+          templateId: AUTO_TOP_UP_POLICIES.insight_request_approved.templateId,
+          availableCount: 0
+        }
+      ]
+    });
+
+    const firstResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['insight_request_created'],
+      requestMode: 'any'
+    });
+
+    const secondResult = await maybeAutoTopUpSubscriptions({
+      sceneKeys: ['insight_request_approved'],
+      requestMode: 'any'
+    });
+
+    expect(firstResult.skipped).toBe(false);
+    expect(secondResult.skipped).toBe(false);
+    expect(global.wx.requestSubscribeMessage).toHaveBeenCalledTimes(2);
+  });
+
   test('maybeAutoTopUpSubscriptions should not throttle when direct prompt request fails', async () => {
     subscribeMessageService.getSettings.mockResolvedValue({
       scenes: [

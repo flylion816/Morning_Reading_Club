@@ -23,7 +23,9 @@ const notificationSchema = new mongoose.Schema(
         'payment_result', // 付款结果
         'comment_received', // 收到评论/回复
         'like_received', // 收到点赞
-        'insight_created' // 被小凡看见
+        'insight_created', // 被小凡看见
+        'insight_liked', // 小凡看见收到点赞
+        'danmaku_received' // 小凡看见收到弹幕
       ],
       required: true
     },
@@ -93,7 +95,9 @@ const notificationSchema = new mongoose.Schema(
       commentId: String,
       replyId: String,
       periodId: String,
-      insightRequestId: String
+      insightRequestId: String,
+      insightId: String,
+      danmakuId: String
     }
   },
   {

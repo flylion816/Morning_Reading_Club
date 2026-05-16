@@ -131,7 +131,7 @@ describe('checkin-records page', () => {
 
     expect(enrollmentService.getUserEnrollments).toHaveBeenCalledWith({ limit: 100 });
     expect(periodAccess.redirectAfterCommunityDenied).toHaveBeenCalledWith(
-      '/pages/profile/profile',
+      '/pages/index/index',
       '完成支付后可查看打卡日记'
     );
     expect(checkinService.getUserDiarySummary).not.toHaveBeenCalled();

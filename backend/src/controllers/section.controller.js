@@ -1,12 +1,51 @@
 const Section = require('../models/Section');
 const Period = require('../models/Period');
 const Checkin = require('../models/Checkin');
+const UserReadingCompletion = require('../models/UserReadingCompletion');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 
 const ADMIN_SECTION_LIST_FIELDS =
   '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt';
+
+function getRequestUserId(req) {
+  return req.user?.userId || req.user?.id || req.user?._id || '';
+}
+
+async function getReadingCompletionMap(userId, sectionIds = []) {
+  if (!userId || !sectionIds.length) {
+    return new Map();
+  }
+
+  const completions = await UserReadingCompletion.find({
+    userId,
+    sectionId: { $in: sectionIds }
+  })
+    .select('sectionId durationMs completedAt')
+    .lean();
+
+  return new Map(
+    completions.map(item => [
+      String(item.sectionId),
+      {
+        readingCompleted: true,
+        readingCompletedAt: item.completedAt || null,
+        readingDurationMs: item.durationMs || 0
+      }
+    ])
+  );
+}
+
+function attachReadingCompletion(section, completionMap) {
+  const completion = completionMap.get(String(section._id));
+  return {
+    ...section,
+    readingCompleted: !!completion,
+    readingCompletedAt: completion?.readingCompletedAt || null,
+    readingDurationMs: completion?.readingDurationMs || 0
+  };
+}
 
 // 获取期次的课程列表（用户端 - 仅已发布）
 async function getSectionsByPeriod(req, res, next) {
@@ -59,12 +98,69 @@ async function getSectionsByPeriod(req, res, next) {
     const checkinCountMap = new Map(
       checkinCounts.map(item => [String(item._id), item.count])
     );
+    const readingCompletionMap = await getReadingCompletionMap(
+      getRequestUserId(req),
+      sectionIds
+    );
     const sectionsWithLiveCheckinCount = sections.map(section => ({
-      ...section,
+      ...attachReadingCompletion(section, readingCompletionMap),
       checkinCount: checkinCountMap.get(String(section._id)) || 0
     }));
 
     res.json(success(sectionsWithLiveCheckinCount));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function markReadingCompletion(req, res, next) {
+  try {
+    const { sectionId } = req.params;
+    const userId = getRequestUserId(req);
+    const durationMs = Math.max(0, Number(req.body?.durationMs) || 0);
+    const clientCompletedAt = req.body?.completedAt
+      ? new Date(req.body.completedAt)
+      : null;
+    const completedAt =
+      clientCompletedAt && !Number.isNaN(clientCompletedAt.getTime())
+        ? clientCompletedAt
+        : new Date();
+
+    const section = await Section.findById(sectionId).select('periodId');
+    if (!section) {
+      return res.status(404).json(errors.notFound('课程不存在'));
+    }
+
+    const completion = await UserReadingCompletion.findOneAndUpdate(
+      { userId, sectionId },
+      {
+        $set: {
+          userId,
+          periodId: section.periodId,
+          sectionId,
+          durationMs,
+          completedAt
+        }
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true
+      }
+    ).lean();
+
+    return res.json(
+      success(
+        {
+          sectionId: String(completion.sectionId),
+          periodId: String(completion.periodId),
+          readingCompleted: true,
+          readingCompletedAt: completion.completedAt,
+          readingDurationMs: completion.durationMs || 0
+        },
+        '阅读完成状态已保存'
+      )
+    );
   } catch (error) {
     next(error);
   }
@@ -113,14 +209,21 @@ async function getSectionDetail(req, res, next) {
   try {
     const { sectionId } = req.params;
 
-    const section = await Section.findById(sectionId).populate('periodId', '_id name title');
+    const section = await Section.findById(sectionId)
+      .populate('periodId', '_id name title')
+      .lean();
 
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
 
+    const readingCompletionMap = await getReadingCompletionMap(
+      getRequestUserId(req),
+      [section._id]
+    );
+
     // 返回课程详情（无论是否发布，因为可能是管理员查询）
-    res.json(success(section));
+    res.json(success(attachReadingCompletion(section, readingCompletionMap)));
   } catch (error) {
     next(error);
   }
@@ -345,6 +448,13 @@ async function getTodayTask(req, res, next) {
           const isCheckedIn = !!existingCheckin;
           logger.debug('Checkin status', { sectionId: section._id, isCheckedIn });
 
+          const readingCompletion = await UserReadingCompletion.findOne({
+            userId,
+            sectionId: section._id
+          })
+            .select('durationMs completedAt')
+            .lean();
+
           // 获取打卡用户的头像列表（最多10个）
           const sectionCheckins = await Checkin.find({
             sectionId: section._id,
@@ -378,7 +488,10 @@ async function getTodayTask(req, res, next) {
             learn: section.learn,
             checkinCount: section.checkinCount || 0,
             checkinUsers: checkinUsers,
-            isCheckedIn: isCheckedIn
+            isCheckedIn: isCheckedIn,
+            readingCompleted: !!readingCompletion,
+            readingCompletedAt: readingCompletion?.completedAt || null,
+            readingDurationMs: readingCompletion?.durationMs || 0
           };
 
           // 找到今天的任务就可以返回
@@ -409,6 +522,7 @@ module.exports = {
   getSectionsByPeriod,
   getAllSectionsByPeriod,
   getSectionDetail,
+  markReadingCompletion,
   createSection,
   updateSection,
   deleteSection,

@@ -73,7 +73,7 @@
 .reader-content {
   padding-left: 48rpx;
   padding-right: 48rpx;
-  padding-bottom: 180rpx;
+  padding-bottom: calc(54vh + 180rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -317,4 +317,172 @@
   width: 100%;
   border-radius: 8rpx;
   display: block;
+}
+
+.reading-completion-card {
+  position: relative;
+  margin: 54rpx 0 28rpx;
+  padding: 34rpx 32rpx 48rpx;
+  border: 1rpx solid rgba(16, 185, 129, 0.22);
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #f1fbf5 0%, #fffdf8 100%);
+  box-shadow: 0 14rpx 34rpx rgba(16, 185, 129, 0.1);
+  overflow: visible;
+}
+
+.completion-kicker {
+  display: inline-flex;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.completion-title {
+  margin-top: 18rpx;
+  color: #1f2937;
+  font-size: 32rpx;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.completion-text {
+  margin-top: 12rpx;
+  color: #56606d;
+  font-size: 27rpx;
+  line-height: 1.8;
+  font-weight: 500;
+}
+
+.completion-fireworks-ring {
+  position: absolute;
+  left: -18rpx;
+  right: -18rpx;
+  top: -18rpx;
+  bottom: -18rpx;
+  pointer-events: none;
+  opacity: 0;
+  animation: fireworksFade 5s ease-out forwards;
+}
+
+.firework {
+  position: absolute;
+  width: 44rpx;
+  height: 44rpx;
+  transform: scale(0.2);
+  opacity: 0;
+  animation: fireworkBloom 1.08s ease-out forwards;
+}
+
+.firework-1 {
+  left: 2%;
+  top: 8rpx;
+  animation-delay: 0.05s;
+}
+
+.firework-2 {
+  left: 36%;
+  top: -6rpx;
+  animation-delay: 0.18s;
+}
+
+.firework-3 {
+  right: 6%;
+  top: 8rpx;
+  animation-delay: 0.1s;
+}
+
+.firework-4 {
+  right: -6rpx;
+  top: 42%;
+  animation-delay: 0.26s;
+}
+
+.firework-5 {
+  right: 8%;
+  bottom: -6rpx;
+  animation-delay: 0.15s;
+}
+
+.firework-6 {
+  left: 44%;
+  bottom: -12rpx;
+  animation-delay: 0.32s;
+}
+
+.firework-7 {
+  left: 8%;
+  bottom: -6rpx;
+  animation-delay: 0.21s;
+}
+
+.firework-8 {
+  left: -6rpx;
+  top: 44%;
+  animation-delay: 0.38s;
+}
+
+.spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7rpx;
+  height: 22rpx;
+  margin-left: -3.5rpx;
+  margin-top: -11rpx;
+  border-radius: 999rpx;
+  background: #f5b841;
+  transform-origin: 50% 86%;
+}
+
+.spark-b {
+  background: #10b981;
+  transform: rotate(90deg);
+}
+
+.spark-c {
+  background: #4a90e2;
+  transform: rotate(45deg);
+}
+
+.spark-d {
+  background: #f28ca2;
+  transform: rotate(135deg);
+}
+
+@keyframes fireworksFade {
+  0% {
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes fireworkBloom {
+  0% {
+    opacity: 0;
+    transform: translateY(24rpx) scale(0.2);
+  }
+
+  38% {
+    opacity: 1;
+    transform: translateY(-12rpx) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-42rpx) scale(1.08);
+  }
 }

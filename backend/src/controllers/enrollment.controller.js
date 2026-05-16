@@ -26,7 +26,7 @@ async function notifyEnrollmentSuccess(req, { userId, period }) {
           scene: 'enrollment_result',
           periodId: period?._id?.toString?.() || null,
           periodName,
-          targetPage: 'pages/index/index'
+          targetPage: 'pages/periods/periods'
         }
       }
     );
@@ -39,7 +39,7 @@ async function notifyEnrollmentSuccess(req, { userId, period }) {
         name: user?.nickname || '微信用户',
         content: periodName
       },
-      page: 'pages/index/index',
+      page: 'pages/periods/periods',
       sourceType: 'enrollment',
       sourceId: `${userId}:${period?._id?.toString?.() || periodName}`
     });

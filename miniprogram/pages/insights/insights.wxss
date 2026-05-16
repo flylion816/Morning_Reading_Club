@@ -290,61 +290,73 @@
   top: 0;
   bottom: 0;
   z-index: 30;
-  background: rgba(20, 26, 35, 0.42);
+  background: rgba(0, 0, 0, 0.52);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  box-sizing: border-box;
 }
 
 .request-share-panel {
   width: 100%;
+  max-width: 560rpx;
   background: #ffffff;
-  border-radius: 24rpx 24rpx 0 0;
-  padding: 34rpx 32rpx calc(34rpx + env(safe-area-inset-bottom));
+  border-radius: 28rpx;
+  padding: 54rpx 0 0;
   box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 20rpx 64rpx rgba(15, 23, 42, 0.18);
 }
 
 .request-share-title {
-  font-size: 32rpx;
+  padding: 0 48rpx;
+  font-size: 34rpx;
   font-weight: 700;
-  color: #202733;
-  line-height: 1.4;
+  color: #1f2937;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .request-share-desc {
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #667085;
-  line-height: 1.6;
+  margin-top: 26rpx;
+  padding: 0 48rpx;
+  font-size: 28rpx;
+  color: #7a7f89;
+  line-height: 1.55;
+  text-align: center;
 }
 
 .request-share-target {
-  margin-top: 20rpx;
-  padding: 18rpx 20rpx;
+  margin: 28rpx 42rpx 42rpx;
+  padding: 18rpx 22rpx;
   border-radius: 12rpx;
-  background: #f4f8ff;
-  color: #315f9b;
-  font-size: 24rpx;
-  line-height: 1.5;
+  background: #f5f7fb;
+  color: #426ea9;
+  font-size: 26rpx;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
 }
 
 .request-share-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20rpx;
-  margin-top: 28rpx;
+  display: flex;
+  border-top: 1rpx solid #edf0f5;
 }
 
 .request-share-secondary,
 .request-share-primary {
-  height: 88rpx;
-  border-radius: 999rpx;
-  padding: 0 18rpx;
+  flex: 1;
+  height: 96rpx;
+  border-radius: 0;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26rpx;
+  background: #ffffff;
+  font-size: 30rpx;
   font-weight: 600;
-  line-height: 88rpx;
+  line-height: 96rpx;
   white-space: nowrap;
 }
 
@@ -354,11 +366,10 @@
 }
 
 .request-share-secondary {
-  background: #f2f4f7;
-  color: #667085;
+  color: #1f2937;
 }
 
 .request-share-primary {
-  background: #4a90e2;
-  color: #ffffff;
+  color: #4a6f9f;
+  border-left: 1rpx solid #edf0f5;
 }

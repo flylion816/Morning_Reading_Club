@@ -1,398 +1,145 @@
-<!--个人中心页面-->
-<view class="page-profile">
-  <!-- 已登录状态 - 显示主页内容 -->
-  <view class="user-content" wx:if="{{isLogin}}">
-    <!-- 顶部横幅 -->
-    <view class="home-banner">
-      <view class="user-avatar-container" style="background: {{userInfo.avatarColor || '#4a90e2'}}" bindtap="openEditProfile">
-        <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
-        <view class="avatar-edit-badge">✏️</view>
-      </view>
-      <view class="banner-content">
-        <view class="banner-top-row">
-          <view class="user-info-display">
-            <view class="user-name-and-period">
-              <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
-              <view class="user-period-tag" wx:if="{{currentPeriod}}">{{currentPeriod.name || currentPeriod.title}}</view>
-            </view>
-          </view>
-          <text class="user-streak">晨读打卡第 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
+<!-- 我的页面 -->
+<view class="page-my">
+
+  <!-- 已登录状态 -->
+  <view wx:if="{{isLogin}}" class="logged-in-content">
+
+    <!-- 用户信息卡 -->
+    <view class="user-card">
+      <view class="user-card-left">
+        <view class="user-avatar-wrap" style="background: {{userInfo.avatarColor || '#4a90e2'}}">
+          <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+          <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
         </view>
-        <view class="banner-bubble">
-          <text class="bubble-text" wx:if="{{hasValidSignature}}">{{userInfo.signature}}</text>
-          <text class="bubble-text" wx:else>暂无签名</text>
+        <view class="user-info">
+          <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
+          <text class="user-phone">{{hasPhone ? phoneMasked : '未绑定手机号'}}</text>
+          <text class="user-streak">晨读打卡第 <text class="streak-num">{{stats.totalCheckinDays || 0}}</text> 天</text>
         </view>
       </view>
     </view>
 
-    <!-- 内容区域 -->
-    <view class="content-area">
-      <!-- 今日任务 -->
-      <view class="task-section">
-        <view class="section-header">
-          <view class="section-header-left">
-            <view class="section-icon-clipboard">📋</view>
-            <text class="section-header-title">今日任务</text>
-          </view>
-          <view class="section-header-right">
-            <view class="refresh-timer" wx:if="{{refreshTime}}">
-              <text class="timer-icon">⏱</text>
-              <text class="timer-text">刷新 {{refreshTime}} 小时</text>
-            </view>
-            <view class="task-notification-entry" bindtap="navigateToNotifications">
-              <text class="task-notification-icon">🔔</text>
-              <text
-                wx:if="{{unreadNotificationCount > 0}}"
-                class="task-notification-badge"
-              >{{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}}</text>
-            </view>
-          </view>
+    <!-- 设置列表 -->
+    <view class="settings-group">
+
+      <!-- 手机号管理 -->
+      <view wx:if="{{canUsePaidFeatures && !hasPhone}}" class="settings-cell">
+        <view class="cell-left">
+          <text class="cell-icon">📱</text>
+          <text class="cell-label">绑定手机号</text>
         </view>
-        <view class="period-card" wx:if="{{todaySection}}" catchtap="handleTodaySectionClick">
-          <view class="period-cover">
-            <view class="book-icon-svg"></view>
-            <text class="period-day">Day {{todaySection.dayDisplay}}</text>
-          </view>
-          <view class="period-info-new">
-            <view class="period-title-area">
-              <view class="period-title-new">{{todaySection.title}}</view>
-              <view class="checkin-count-badge">
-                <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}; background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
-                  <image wx:if="{{item.avatarUrl}}" class="mini-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
-                  <text wx:else class="mini-avatar-emoji">{{item.avatarText || '用'}}</text>
-                </view>
-                <text class="checkin-count-text">{{todaySection.checkinCount || 0}}人{{currentPeriodCommunityState === 'enabled' ? '已打卡' : '已学习'}}</text>
-              </view>
-            </view>
-            <view class="checkin-footer">
-              <view class="footer-buttons">
-                <view class="meeting-btn" wx:if="{{todaySection}}" catchtap="handleJoinMeeting">
-                  <text>去晨读</text>
-                  <text class="btn-arrow">→</text>
-                </view>
-                <view class="checkin-btn {{todaySection.isCheckedIn ? 'checked' : ''}}" catchtap="handleCreateCheckin">
-                  <text wx:if="{{currentPeriodCommunityState === 'enabled' && todaySection.isCheckedIn}}">✓ 已打卡</text>
-                  <text wx:elif="{{currentPeriodCommunityState === 'enabled'}}">去打卡</text>
-                  <text wx:else>去学习</text>
-                  <text class="btn-arrow" wx:if="{{currentPeriodCommunityState !== 'enabled' || !todaySection.isCheckedIn}}">→</text>
-                </view>
-              </view>
-            </view>
-          </view>
+        <button
+          class="cell-phone-btn"
+          open-type="getPhoneNumber"
+          bindgetphonenumber="handleGetPhoneNumber"
+        >立即绑定</button>
+      </view>
+      <view wx:elif="{{canUsePaidFeatures}}" class="settings-cell">
+        <view class="cell-left">
+          <text class="cell-icon">📱</text>
+          <text class="cell-label">手机号管理</text>
         </view>
-        <view class="task-empty" wx:else>
-          <text>暂无进行中的课程</text>
+        <view class="cell-right">
+          <text class="cell-value">{{phoneMasked}}</text>
+          <button
+            class="cell-rebind-btn"
+            open-type="getPhoneNumber"
+            bindgetphonenumber="handleGetPhoneNumber"
+          >换绑</button>
         </view>
       </view>
 
-      <view class="checkins-section" wx:if="{{canUsePaidFeatures}}">
-        <view class="section-header">
-          <view class="section-header-left">
-            <view class="section-icon-checkin">📝</view>
-            <text class="section-header-title">我的打卡</text>
-          </view>
+      <view class="settings-cell" bindtap="goToNotifications">
+        <view class="cell-left">
+          <text class="cell-icon">📨</text>
+          <text class="cell-label">消息通知</text>
         </view>
-
-        <scroll-view
-          wx:if="{{recentCheckins.length > 0}}"
-          scroll-x
-          class="checkins-scroll"
-          show-scrollbar="{{false}}"
-          enhanced="true">
-          <view class="checkins-scroll-track">
-            <view
-              wx:for="{{recentCheckins}}"
-              wx:key="id"
-              class="checkin-diary-card"
-              bindtap="handleRecentCheckinTap"
-              data-checkin-id="{{item.id}}"
-              data-section-id="{{item.sectionId}}"
-              data-period-id="{{item.periodId}}">
-              
-              <view class="checkin-diary-card-title">{{item.sectionTitle}}</view>
-
-              <view class="checkin-diary-card-footer">
-                <text class="checkin-diary-card-period">{{item.periodTitle}}</text>
-                <view class="checkin-diary-card-meta">
-                  <text class="checkin-diary-card-date">{{item.dateLabel}}</text>
-                  <view class="checkin-diary-card-like">
-                    <text class="checkin-diary-card-like-icon">♡</text>
-                    <text>{{item.likeCount}}</text>
-                  </view>
-                </view>
-              </view>
-            </view>
-
-            <view class="checkin-diary-more-card" bindtap="navigateToCheckinRecords">
-              <view class="checkin-diary-more-icon">→</view>
-              <text class="checkin-diary-more-title">查看更多</text>
-              <view class="checkin-diary-more-desc">
-                <view>进入我的</view>
-                <view>打卡日记</view>
-              </view>
-            </view>
+        <view class="cell-right">
+          <view wx:if="{{unreadNotificationCount > 0}}" class="cell-badge">
+            {{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}}
           </view>
-        </scroll-view>
-
-        <view wx:else class="checkins-empty">
-          <text class="checkins-empty-text">最近还没有打卡日记</text>
-          <view class="checkins-empty-link" bindtap="navigateToCheckinRecords">
-            <text>去看看我的打卡日记</text>
-            <text class="more-arrow">→</text>
-          </view>
+          <text class="cell-arrow">›</text>
         </view>
       </view>
 
-      <!-- 小凡看见 -->
-      <view class="insights-section" wx:if="{{canUsePaidFeatures}}">
-        <view class="section-header">
-          <view class="section-header-left">
-            <view class="section-icon-sparkle">✨</view>
-            <text class="section-header-title">小凡看见</text>
-          </view>
+      <!-- 消息提醒设置 -->
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToNotificationSettings">
+        <view class="cell-left">
+          <text class="cell-icon">⏰</text>
+          <text class="cell-label">消息提醒设置</text>
         </view>
-        <view class="request-direction-tabs">
-          <view
-            class="request-direction-tab {{insightActiveTab === 'mine' ? 'request-direction-tab-active' : ''}}"
-            bindtap="handleInsightTabTap"
-            data-tab="mine">我的</view>
-          <view
-            class="request-direction-tab {{insightActiveTab === 'others' ? 'request-direction-tab-active' : ''}}"
-            bindtap="handleInsightTabTap"
-            data-tab="others">他人的</view>
-        </view>
-        <view class="insights-list">
-          <view
-            wx:for="{{insightActiveTab === 'mine' ? recentInsights : recentOtherInsights}}"
-            wx:key="id"
-            class="insight-item"
-            style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
-            data-id="{{item.id}}"
-            catchtap="handleInsightClick">
-            <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||'#4a90e2'}}">
-              <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
-              <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
-            </view>
-            <view class="insight-content-preview">
-              <view class="insight-period-tag">{{item.courseTitle}}</view>
-              <block wx:if="{{item.mediaType === 'image' && item.imageUrl}}">
-                <view
-                  class="insight-thumb-small insight-thumb-top"
-                  style="background-image: url('{{item.imageUrl}}');"></view>
-              </block>
-              <block wx:else>
-                <view class="insight-text">{{item.preview}}</view>
-              </block>
-            </view>
-          </view>
-          <view class="insight-empty" wx:if="{{insightActiveTab === 'mine' && recentInsights.length === 0}}">
-            本期暂无小凡看见记录
-          </view>
-          <view class="insight-empty" wx:if="{{insightActiveTab === 'others' && otherInsightsLoading}}">
-            加载中...
-          </view>
-          <view class="insight-empty" wx:if="{{insightActiveTab === 'others' && recentOtherInsights.length === 0 && !otherInsightsLoading}}">
-            暂无他人授权查看
-          </view>
-        </view>
-        <view class="insights-more" catchtap="navigateToInsights">
-          <text class="more-text">查看更多历史</text>
-          <text class="more-arrow">→</text>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
         </view>
       </view>
 
-      <!-- 请求看见 -->
-      <view class="requests-section" wx:if="{{canUsePaidFeatures}}">
-        <view class="section-header">
-          <view class="section-header-left">
-            <view class="section-icon-mailbox">📬</view>
-            <text class="section-header-title">请求看见</text>
-          </view>
+      <!-- 我的打卡日记 -->
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyCheckinRecords">
+        <view class="cell-left">
+          <text class="cell-icon">📔</text>
+          <text class="cell-label">我的打卡日记</text>
         </view>
-        <view class="request-direction-tabs">
-          <view
-            wx:for="{{requestDirectionTabs}}"
-            wx:key="value"
-            class="request-direction-tab {{activeInsightRequestDirection === item.value ? 'request-direction-tab-active' : ''}}"
-            bindtap="handleInsightRequestDirectionTap"
-            data-direction="{{item.value}}">
-            <text>{{item.label}}</text>
-          </view>
-        </view>
-        <view class="requests-content">
-          <view
-            wx:for="{{insightRequests}}"
-            wx:key="id"
-            id="request-{{item.id}}"
-            class="request-item {{highlightRequestId === item.id ? 'request-item-focused' : ''}}"
-            bindtap="handleInsightRequestTap"
-            data-request="{{item}}">
-            <view class="request-item-left">
-              <view class="request-user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
-                <image wx:if="{{item.displayUserAvatarUrl}}" class="request-avatar-image" src="{{item.displayUserAvatarUrl}}" mode="aspectFill" />
-                <text wx:else class="request-avatar-text">{{item.displayUserAvatarText}}</text>
-              </view>
-              <view class="request-info">
-                <view class="request-top-row">
-                  <text class="request-user-role">{{item.displayUserRoleText}}</text>
-                  <text class="request-user-name">{{item.displayUserName}}</text>
-                </view>
-                <text class="request-meta">{{item.requestMeta}}</text>
-                <text class="request-time">{{item.time}}</text>
-              </view>
-            </view>
-            <view class="request-side">
-              <text class="request-status request-status-{{item.statusClass}}">{{item.statusText}}</text>
-              <view class="request-actions" wx:if="{{item.canApprove || item.canReject}}">
-                <view class="request-btn approve-btn" catchtap="handleApproveRequest" data-request="{{item}}">
-                  <text>同意</text>
-                </view>
-                <view class="request-btn reject-btn" catchtap="handleRejectRequest" data-request="{{item}}">
-                  <text>拒绝</text>
-                </view>
-              </view>
-            </view>
-          </view>
-          <view class="requests-empty" wx:if="{{insightRequests.length === 0}}">
-            {{insightRequestEmptyText}}
-          </view>
-        </view>
-        <view class="requests-more" wx:if="{{insightRequestTotal > 3}}" catchtap="navigateToInsightRequests">
-          <text class="more-text">查看更多请求</text>
-          <text class="more-arrow">→</text>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
         </view>
       </view>
+
+      <!-- 编辑资料 -->
+      <view class="settings-cell" bindtap="goToEditProfile">
+        <view class="cell-left">
+          <text class="cell-icon">📝</text>
+          <text class="cell-label">编辑资料</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 分隔线 -->
+    <view class="settings-divider"></view>
+
+    <!-- 协议列表 -->
+    <view class="settings-group">
+      <view class="settings-cell" bindtap="goToPrivacy">
+        <view class="cell-left">
+          <text class="cell-icon">🔒</text>
+          <text class="cell-label">隐私政策</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+      <view class="settings-cell" bindtap="goToAgreement">
+        <view class="cell-left">
+          <text class="cell-icon">📜</text>
+          <text class="cell-label">用户协议</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <view class="logout-wrap">
+      <view class="logout-btn" bindtap="handleLogout">退出登录</view>
     </view>
   </view>
 
-  <!-- 未登录状态 - 应用介绍页 -->
-  <view class="guest-content" wx:if="{{!isLogin && !loading}}">
+  <!-- 未登录状态 -->
+  <view wx:if="{{!isLogin}}" class="guest-content">
     <view class="guest-banner">
       <text class="guest-emoji">🦁</text>
-      <text class="guest-title">凡人共读</text>
-      <text class="guest-subtitle">每日晨读，遇见更好的自己</text>
+      <text class="guest-tip">登录后查看个人信息</text>
     </view>
-
-    <!-- 功能亮点 -->
-    <view class="guest-features">
-      <view class="guest-feature-item">
-        <view class="feature-icon-wrap" style="background: #eef4ff;">
-          <text class="feature-icon">📖</text>
-        </view>
-        <view class="feature-text">
-          <text class="feature-title">每日晨读</text>
-          <text class="feature-desc">精选七个习惯经典章节，每天15分钟，23天养成好习惯</text>
-        </view>
-      </view>
-      <view class="guest-feature-item">
-        <view class="feature-icon-wrap" style="background: #fff4e6;">
-          <text class="feature-icon">📌</text>
-        </view>
-        <view class="feature-text">
-          <text class="feature-title">学习进度</text>
-          <text class="feature-desc">按天完成晨读内容，清晰掌握自己的学习节奏</text>
-        </view>
-      </view>
-      <view class="guest-feature-item">
-        <view class="feature-icon-wrap" style="background: #f0fdf4;">
-          <text class="feature-icon">🧭</text>
-        </view>
-        <view class="feature-text">
-          <text class="feature-title">课程引导</text>
-          <text class="feature-desc">围绕经典章节设置问题与行动练习，帮助理解和应用</text>
-        </view>
-      </view>
-      <view class="guest-feature-item">
-        <view class="feature-icon-wrap" style="background: #fef2f2;">
-          <text class="feature-icon">⏱</text>
-        </view>
-        <view class="feature-text">
-          <text class="feature-title">晨读节奏</text>
-          <text class="feature-desc">跟随课程安排稳步学习，持续积累晨读习惯</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 底部登录提示 -->
-    <view class="guest-bottom">
-      <view class="guest-login-subtle" bindtap="goToLogin">登录查看我的学习数据</view>
-      <view class="guest-tip">
-        <text>点击下方「晨读营」可先</text>
-        <text class="guest-link" bindtap="handleBackHome">浏览课程</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 编辑个人信息模态框 -->
-  <view class="edit-profile-modal" wx:if="{{showEditProfile}}" catchtap="closeEditProfile">
-    <view class="modal-content" catchtap="stopPropagation">
-      <view class="modal-header">
-        <text class="modal-title">编辑个人信息</text>
-        <text class="modal-close" bindtap="closeEditProfile">×</text>
-      </view>
-
-      <!-- 头像 -->
-      <view class="modal-section">
-        <text class="section-label">头像</text>
-        <view class="avatar-picker-panel">
-          <view class="avatar-preview" style="background: {{editForm.avatarColor || '#4a90e2'}}">
-            <image wx:if="{{editForm.avatarUrl}}" class="avatar-preview-image" src="{{editForm.avatarUrl}}" mode="aspectFill" />
-            <text wx:else class="avatar-preview-emoji">{{editForm.avatarText || '用'}}</text>
-          </view>
-          <view class="avatar-picker-info">
-            <text class="avatar-picker-title">使用你的微信头像</text>
-            <text class="avatar-picker-desc">头像仅用于晨读营内展示</text>
-          </view>
-          <button class="avatar-action-button primary" open-type="chooseAvatar" bindchooseavatar="handleChooseWechatAvatar">
-            更换微信头像
-          </button>
-        </view>
-      </view>
-
-      <!-- 昵称输入 -->
-      <view class="modal-section">
-        <text class="section-label">昵称</text>
-        <input
-          class="modal-input"
-          type="text"
-          placeholder="请输入你的昵称"
-          placeholder-class="input-placeholder"
-          value="{{editForm.nickname}}"
-          bindinput="onNicknameInput"
-          maxlength="20"
-        />
-        <text class="input-count">{{editForm.nickname.length}}/20</text>
-      </view>
-
-      <!-- 个人签名输入 -->
-      <view class="modal-section">
-        <text class="section-label">个人签名</text>
-        <textarea
-          class="modal-textarea"
-          placeholder="选填，分享你的座右铭或想法"
-          placeholder-class="input-placeholder"
-          value="{{editForm.signature}}"
-          bindinput="onSignatureInput"
-          maxlength="200"
-          show-confirm-bar="false"
-          fixed="false"
-        ></textarea>
-        <text class="input-count">{{editForm.signature.length}}/200</text>
-      </view>
-
-      <!-- 操作按钮 -->
-      <view class="modal-actions">
-        <view class="btn btn-cancel" bindtap="closeEditProfile">取消</view>
-        <view class="btn btn-submit {{isSavingProfile ? 'loading' : ''}}" bindtap="saveUserProfile">
-          {{isSavingProfile ? '保存中...' : '保存'}}
-        </view>
-      </view>
-    </view>
+    <view class="guest-login-btn" bindtap="goToLogin">立即登录</view>
   </view>
 
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="loading-overlay">
     <view class="loading-spinner"></view>
   </view>
+
 </view>

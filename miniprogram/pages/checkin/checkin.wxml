@@ -9,7 +9,7 @@
   </view>
 
   <!-- 内容区（加回左右内边距） -->
-  <view class="page-body" wx:if="{{accessChecked}}">
+  <view class="page-body" wx:if="{{accessChecked && showPageContent}}">
 
   <!-- 课程标题 -->
   <view class="course-title"><text selectable>{{courseTitle}}</text></view>
@@ -118,7 +118,7 @@
   </view><!-- /page-body -->
 
   <!-- 退出确认弹窗 -->
-  <view class="exit-modal-mask" wx:if="{{accessChecked && showExitModal}}" bindtap="handleModalMaskTap">
+  <view class="exit-modal-mask" wx:if="{{accessChecked && showPageContent && showExitModal}}" bindtap="handleModalMaskTap">
     <view class="exit-modal" catchtap="noop">
       <view class="exit-modal-title">内容未发布</view>
       <view class="exit-modal-desc">您编写的日记还未打卡发布，确定要离开吗？</view>
@@ -131,7 +131,7 @@
   </view>
 
   <!-- 底部按钮 -->
-  <view class="bottom-buttons" wx:if="{{accessChecked}}">
+  <view class="bottom-buttons" wx:if="{{accessChecked && showPageContent}}">
     <button class="btn-cancel" bindtap="handleCancel">取消</button>
     <button class="btn-submit" bindtap="handleSubmit">每日打卡</button>
   </view>

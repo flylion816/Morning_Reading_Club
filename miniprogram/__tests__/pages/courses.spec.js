@@ -1,5 +1,7 @@
 jest.mock('../../services/course.service', () => ({
-  getPeriodCheckins: jest.fn()
+  getPeriodCheckins: jest.fn(),
+  getPeriodSections: jest.fn(),
+  getPeriodDetail: jest.fn()
 }));
 
 jest.mock('../../utils/formatters', () => ({
@@ -48,6 +50,9 @@ describe('courses page', () => {
     };
 
     courseService.getPeriodCheckins.mockReset();
+    courseService.getPeriodSections.mockReset();
+    courseService.getPeriodDetail.mockReset();
+    wx.__storage = {};
   });
 
   afterEach(() => {
@@ -148,5 +153,39 @@ describe('courses page', () => {
     );
     expect(pageInstance.data.allCheckins).toHaveLength(2);
     expect(pageInstance.data.checkinHasMore).toBe(false);
+  });
+
+  test('should decorate sections with local reading completion state', async () => {
+    wx.setStorageSync('reading_completion_records', {
+      section_1: {
+        sectionId: 'section_1',
+        periodId: 'period_1',
+        durationMs: 76000,
+        completedAt: 1760000000000
+      }
+    });
+    courseService.getPeriodSections.mockResolvedValue({
+      list: [
+        { _id: 'section_1', title: '第一天', day: 1 },
+        { _id: 'section_2', title: '第二天', day: 2 }
+      ]
+    });
+    courseService.getPeriodDetail.mockResolvedValue({
+      title: '平衡之道',
+      price: 0,
+      startDate: '2026-05-01T00:00:00.000Z',
+      endDate: '2026-05-21T00:00:00.000Z'
+    });
+
+    pageInstance.setData({
+      periodId: 'period_1',
+      communityAccessState: 'locked'
+    });
+
+    await pageInstance.loadSections.call(pageInstance);
+
+    expect(pageInstance.data.sections[0].readingCompleted).toBe(true);
+    expect(pageInstance.data.sections[0].readingDurationMs).toBe(76000);
+    expect(pageInstance.data.sections[1].readingCompleted).toBe(false);
   });
 });

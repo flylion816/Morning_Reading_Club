@@ -3,6 +3,7 @@ const danmakuService = require('../../services/danmaku.service');
 const env = require('../../config/env');
 const { renderRichTextContent } = require('../../utils/markdown');
 const activityService = require('../../services/activity.service');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 
 // 弹幕泳道数量
 const DANMAKU_LANES = 4;
@@ -15,6 +16,7 @@ const DANMAKU_MAX_VISIBLE = 20;
 const DANMAKU_LANE_COOLDOWN = 7500;
 
 const INSIGHT_POSTER_WIDTH = 750;
+const INSIGHT_INTERACTION_SUBSCRIBE_SCENES = ['insight_liked', 'danmaku_received'];
 
 function getEntityId(entity) {
   if (!entity) return '';
@@ -71,6 +73,7 @@ Page({
   data: {
     insightId: null,
     insight: {},
+    isDetailReady: false,
     showShareModal: false,
     isDev: env.currentEnv === 'dev',
     posterGenerating: false,
@@ -127,7 +130,11 @@ Page({
     // onReady 时内容可能尚未渲染，先做一次粗测；loadInsightDetail 完成后会精确重测
     this._measurePageHeight();
     // 延迟设置哨兵观察器，确保元素已渲染
-    setTimeout(() => this._setupBottomObserver(), 600);
+    setTimeout(() => {
+      if (this.data.isDetailReady) {
+        this._setupBottomObserver();
+      }
+    }, 600);
   },
 
   onUnload() {
@@ -233,7 +240,12 @@ Page({
         ? insight.likes.some(l => String(l.userId || l) === String(currentUserId))
         : false;
 
-      this.setData({ insight, isLiked });
+      this.setData({ insight, isLiked, isDetailReady: true });
+      if (isOwnInsight) {
+        this.topUpInsightInteractionSubscriptions('insight_detail_own_view');
+      }
+      this._measurePageHeight();
+      this._setupBottomObserver();
       // 富文本渲染完后重测页面高度（rich-text 渲染需要一点时间）
       setTimeout(() => this._measurePageHeight(), 400);
     } catch (error) {
@@ -242,12 +254,23 @@ Page({
     }
   },
 
+  topUpInsightInteractionSubscriptions(sourceAction) {
+    subscribeAutoTopUp
+      .maybeAutoTopUpSubscriptions({
+        sourceAction,
+        sourcePage: 'insight-detail',
+        sceneKeys: INSIGHT_INTERACTION_SUBSCRIBE_SCENES,
+        requestMode: 'remembered'
+      })
+      .catch(() => {});
+  },
+
   handleBack() {
     const pages = getCurrentPages();
     if (pages.length > 1) {
       wx.navigateBack({ delta: 1 });
     } else {
-      wx.switchTab({ url: '/pages/index/index' });
+      wx.switchTab({ url: '/pages/periods/periods' });
     }
   },
 
@@ -998,23 +1021,18 @@ Page({
   _showHearts() {
     if (!this._heartsBatchTimers) this._heartsBatchTimers = [];
     const batchId = Date.now();
-    const emojis = ['💖', '💗', '💝', '💓', '💕', '🌸', '💞', '💘'];
-    const count = Math.floor(Math.random() * 4) + 5; // 5-8颗
-    const scatter = [
-      [-30, -22], [28, -26], [-34, 4], [32, -8],
-      [-16, -32], [26, 14], [-24, 20], [36, -32]
-    ];
+    const count = 1;
     const newItems = Array.from({ length: count }, (_, i) => {
       const signX = Math.random() > 0.5 ? 1 : -1;
       const startX = (signX * (Math.random() * 22 + 10)).toFixed(1) + 'vw';
       const startY = (Math.random() * 18 + 28).toFixed(1) + 'vh';
-      const dest = scatter[i % scatter.length];
-      const destX = (dest[0] + (Math.random() * 6 - 3)).toFixed(1) + 'vw';
-      const destY = (dest[1] + (Math.random() * 6 - 3)).toFixed(1) + 'vh';
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.sqrt(Math.random()) * 35;
+      const destX = (Math.cos(angle) * radius).toFixed(1) + 'vw';
+      const destY = (Math.sin(angle) * radius).toFixed(1) + 'vw';
       return {
         id: `${batchId}_${i}`,
         batchId,
-        emoji: emojis[i % emojis.length],
         startX, startY, destX, destY,
         delay: (i * 0.2).toFixed(2)
       };

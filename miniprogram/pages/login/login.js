@@ -47,7 +47,7 @@ Page({
       console.log('⏭️  已登录且非开发环境，跳转到profile页面');
       // 已登录,跳转到首页（profile tab）
       wx.switchTab({
-        url: '/pages/profile/profile'
+        url: '/pages/index/index'
       });
     } else {
       console.log('✅ 停留在登录页面');
@@ -252,7 +252,7 @@ Page({
    */
   navigateToApp() {
     wx.switchTab({
-      url: '/pages/profile/profile'
+      url: '/pages/index/index'
     });
   },
 
@@ -327,7 +327,7 @@ Page({
 
     // 进入首页，无需登录
     wx.switchTab({
-      url: '/pages/index/index'
+      url: '/pages/periods/periods'
     });
   },
 
@@ -336,7 +336,7 @@ Page({
    */
   handleBackHome() {
     wx.switchTab({
-      url: '/pages/index/index'
+      url: '/pages/periods/periods'
     });
   }
 });

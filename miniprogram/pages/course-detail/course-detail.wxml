@@ -1,4 +1,6 @@
 <view class="page-course-detail {{isCheckinDetailMode ? 'page-course-detail-detail' : ''}}">
+  <view wx:if="{{!showPageContent}}" class="course-detail-loading"></view>
+  <block wx:else>
   <block wx:if="{{isCheckinDetailMode}}">
     <view wx:if="{{detailCheckin}}" class="dynamic-detail-card">
       <view class="dynamic-author-row">
@@ -430,6 +432,7 @@
         {{hasUserCheckedIn ? '已打卡' : '去打卡'}}
       </button>
     </view>
+  </block>
   </block>
 
   <view wx:if="{{posterGalleryVisible}}" class="poster-gallery-overlay" bindtap="closePosterGallery">

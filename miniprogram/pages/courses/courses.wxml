@@ -73,14 +73,19 @@
           bindtap="handleSectionClick"
           data-section="{{item}}">
           <!-- 课节标题 -->
-          <view class="section-title">{{item.title}}</view>
+          <view class="section-title-row">
+            <view class="section-title">{{item.title}}</view>
+          </view>
 
           <!-- 时间范围 -->
           <view class="section-time" wx:if="{{item.startTime && item.endTime}}">{{item.startTime.split('T')[0]}} 至 {{item.endTime.split('T')[0]}}</view>
 
           <!-- 底部：人数信息 + 按钮 -->
           <view class="section-footer">
-            <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已打卡' : '已学习'}}</text>
+            <view class="section-status-line">
+              <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已打卡' : '已学习'}}</text>
+              <text wx:if="{{item.readingCompleted}}" class="reading-complete-inline">已晨读 ✓</text>
+            </view>
             <view class="btn-action" catchtap="handleCheckinClick" data-section="{{item}}">
               {{communityAccessState === 'enabled' ? '去打卡' : '去学习'}}
             </view>

@@ -13,6 +13,7 @@
     enhanced="true"
     show-scrollbar="{{false}}"
     scroll-top="{{restoreScrollTop}}"
+    lower-threshold="24"
     bindscroll="handleReaderScroll"
     bindscrolltolower="handleScrollToLower">
     <view class="reader-content reader-font-{{fontSizeLevel}}" style="padding-top: {{topbarHeight}}px;">
@@ -28,6 +29,64 @@
         class="reader-paragraph {{index === currentParagraphIndex ? 'reader-paragraph-active' : ''}}">
         <image wx:if="{{item.type === 'image'}}" src="{{item.src}}" mode="widthFix" class="reader-image" />
         <text wx:else user-select>{{item.text}}</text>
+      </view>
+
+      <view wx:if="{{completionVisible}}" class="reading-completion-card">
+        <view class="completion-kicker">已完成本次晨读</view>
+        <view class="completion-title">{{completionTitle}}</view>
+        <view class="completion-text">
+          本次阅读用时 {{completionDurationText}}。能耐心读到这里，就是今天很扎实的一步。
+        </view>
+        <view wx:if="{{fireworksVisible}}" class="completion-fireworks-ring">
+          <view class="firework firework-1">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+          <view class="firework firework-2">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+          <view class="firework firework-3">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+          <view class="firework firework-4">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+          <view class="firework firework-5">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+          <view class="firework firework-6">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+          <view class="firework firework-7">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+          <view class="firework firework-8">
+            <view class="spark spark-a"></view>
+            <view class="spark spark-b"></view>
+            <view class="spark spark-c"></view>
+            <view class="spark spark-d"></view>
+          </view>
+        </view>
       </view>
 
       <view wx:if="{{paragraphs.length === 0}}" class="reader-empty">

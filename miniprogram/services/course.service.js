@@ -191,6 +191,16 @@ class CourseService {
     return request.get('/sections/today/task');
   }
 
+  /**
+   * 标记当前用户完成某课节的沉浸阅读
+   * @param {string} sectionId 课节ID
+   * @param {Object} data 完成信息
+   * @returns {Promise}
+   */
+  markReadingCompleted(sectionId, data = {}) {
+    return request.post(`/sections/${sectionId}/reading-completion`, data);
+  }
+
   // Stage 3 Test Methods
   /**
    * 获取课程列表（按天次排序）

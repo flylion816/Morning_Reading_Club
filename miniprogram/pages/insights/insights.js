@@ -374,7 +374,7 @@ Page({
       if (!hasPaidEnrollment(enrollmentList)) {
         this.setData({ insights: [], loading: false });
         redirectAfterCommunityDenied(
-          '/pages/profile/profile',
+          '/pages/index/index',
           '完成支付后可查看'
         );
         return;
@@ -540,7 +540,7 @@ Page({
       title: this.data.isOtherUser
         ? `${this.data.userName}的小凡看见`
         : '我的小凡看见 - 凡人共读',
-      path: '/pages/profile/profile'
+      path: '/pages/index/index'
     };
   },
 
@@ -561,6 +561,17 @@ Page({
     insightMeta = {}
   ) {
     try {
+      await subscribeAutoTopUp
+        .maybeAutoTopUpSubscriptions({
+          sourceAction: 'insight_request_sent',
+          sourcePage: 'insights',
+          sceneKeys: ['insight_request_approved'],
+          requestMode: 'prompt'
+        })
+        .catch((subscribeError) => {
+          logger.warn('补充小凡看见通过提醒授权失败:', subscribeError);
+        });
+
       const response = await userService.createInsightRequest(
         this.data.userId,
         periodId,
@@ -574,16 +585,6 @@ Page({
         requestScope: insightId ? 'insight' : 'period',
         requestId
       });
-      subscribeAutoTopUp
-        .maybeAutoTopUpSubscriptions({
-          sourceAction: 'insight_request_sent',
-          sourcePage: 'insights',
-          sceneKeys: ['insight_request_approved'],
-          requestMode: 'prompt'
-        })
-        .catch((subscribeError) => {
-          logger.warn('补充小凡看见通过提醒授权失败:', subscribeError);
-        });
       wx.showToast({ title: '申请已发送', icon: 'success' });
       this.openRequestSharePrompt({
         requestId,
@@ -608,7 +609,7 @@ Page({
       .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
       .join('&');
 
-    return `/pages/profile/profile?${query}`;
+    return `/pages/index/index?${query}`;
   },
 
   openRequestSharePrompt({ requestId, insightId, periodId, insightMeta = {} }) {
