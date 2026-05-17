@@ -1,10 +1,11 @@
 const request = require('../utils/request');
 const logger = require('../utils/logger');
 const constants = require('../config/constants');
+const { tenantStorage } = require('../utils/storage');
 
 class ActivityService {
   track(action, data = {}) {
-    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    const token = tenantStorage.get('token');
     if (!token) {
       return Promise.resolve();
     }

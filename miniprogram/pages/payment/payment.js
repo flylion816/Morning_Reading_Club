@@ -7,6 +7,7 @@ const paymentService = require('../../services/payment.service');
 const courseService = require('../../services/course.service');
 const envConfig = require('../../config/env');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const { tenantStorage } = require('../../utils/storage');
 const {
   getCachedEnrollmentAccess,
   setCachedEnrollmentAccess,
@@ -440,12 +441,12 @@ Page({
       finalAmount
     };
 
-    wx.setStorageSync('lastEnrollment', enrollmentInfo);
+    tenantStorage.set('lastEnrollment', enrollmentInfo);
 
     // 保存到报名列表
-    const enrollments = wx.getStorageSync('enrollments') || [];
+    const enrollments = tenantStorage.get('enrollments') || [];
     enrollments.unshift(enrollmentInfo);
-    wx.setStorageSync('enrollments', enrollments);
+    tenantStorage.set('enrollments', enrollments);
   },
 
   /**

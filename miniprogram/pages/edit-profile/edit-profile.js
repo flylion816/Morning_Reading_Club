@@ -2,6 +2,7 @@ const app = getApp();
 const userService = require('../../services/user.service');
 const activityService = require('../../services/activity.service');
 const constants = require('../../config/constants');
+const { tenantStorage } = require('../../utils/storage');
 const { decorateUserAvatar, getUserAvatarDisplay } = require('../../utils/avatar');
 
 Page({
@@ -122,7 +123,7 @@ Page({
         });
 
         app.globalData.userInfo = updatedUserInfo;
-        wx.setStorageSync(constants.STORAGE_KEYS.USER_INFO, updatedUserInfo);
+        tenantStorage.set('userInfo', updatedUserInfo);
 
         wx.showToast({ title: '保存成功', icon: 'success' });
 

@@ -5,6 +5,7 @@
 
 const request = require('../utils/request');
 const envConfig = require('../config/env');
+const { tenantStorage } = require('../utils/storage');
 
 class UserService {
   /**
@@ -15,7 +16,7 @@ class UserService {
     // Mock模式
     if (envConfig.useMock) {
       return Promise.resolve(
-        wx.getStorageSync('userInfo') || {
+        tenantStorage.get('userInfo') || {
           id: 1,
           nickname: '微信用户',
           avatar: '🦁',
@@ -83,7 +84,7 @@ class UserService {
     }
     // 如果没有传userId，使用当前登录用户的信息
     if (!userId) {
-      const userInfo = wx.getStorageSync('userInfo');
+      const userInfo = tenantStorage.get('userInfo');
       userId = userInfo && userInfo.id ? userInfo.id : 'me';
     }
     return request.get(`/users/${userId}/stats`);
