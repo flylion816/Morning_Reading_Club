@@ -12,7 +12,7 @@ const {
   mockConfirmPayment,
   getPayments
 } = require('../controllers/payment.controller');
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 
@@ -42,16 +42,10 @@ router.post('/:paymentId/confirm', authMiddleware, userTenantContext, confirmPay
 router.post('/:paymentId/cancel', authMiddleware, userTenantContext, cancelPayment);
 
 // 管理员取消支付
-router.post('/:paymentId/admin-cancel', authMiddleware, userTenantContext, adminMiddleware, adminCancelPayment);
+router.post('/:paymentId/admin-cancel', adminAuthMiddleware, adminTenantContext, adminCancelPayment);
 
 // 管理员重置为待支付
-router.post(
-  '/:paymentId/reset-to-pending',
-  authMiddleware,
-  userTenantContext,
-  adminMiddleware,
-  adminResetPaymentToPending
-);
+router.post('/:paymentId/reset-to-pending', adminAuthMiddleware, adminTenantContext, adminResetPaymentToPending);
 
 // 模拟支付确认（用于开发测试）
 router.post('/:paymentId/mock-confirm', authMiddleware, userTenantContext, mockConfirmPayment);

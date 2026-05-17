@@ -663,7 +663,10 @@ exports.wechatCallback = async (req, res) => {
     });
 
     // 查找支付记录（微信回调用 out_trade_no，即我们的 orderNo）
-    const payment = await Payment.findOne({ orderNo: notifyData.out_trade_no });
+    const { withSystemContext } = require('../utils/tenantContext');
+    const payment = await withSystemContext(null, () =>
+      Payment.findOne({ orderNo: notifyData.out_trade_no })
+    );
 
     if (!payment) {
       logger.warn('WeChat callback: payment not found', { out_trade_no: notifyData.out_trade_no });
@@ -680,10 +683,12 @@ exports.wechatCallback = async (req, res) => {
       await payment.confirmPayment(notifyData.transaction_id);
 
       // 更新报名记录
-      await Enrollment.findByIdAndUpdate(payment.enrollmentId, {
-        paymentStatus: 'paid',
-        paidAt: new Date()
-      });
+      await withSystemContext(null, () =>
+        Enrollment.findByIdAndUpdate(payment.enrollmentId, {
+          paymentStatus: 'paid',
+          paidAt: new Date()
+        })
+      );
 
       // 异步同步到 MySQL
       publishSyncEvent({
@@ -698,7 +703,9 @@ exports.wechatCallback = async (req, res) => {
         await payment.populate('periodId', 'name title');
       }
 
-      const enrollment = await Enrollment.findById(payment.enrollmentId);
+      const enrollment = await withSystemContext(null, () =>
+        Enrollment.findById(payment.enrollmentId)
+      );
       if (enrollment) {
         if (typeof enrollment.populate === 'function') {
           await enrollment.populate('periodId', 'name title');

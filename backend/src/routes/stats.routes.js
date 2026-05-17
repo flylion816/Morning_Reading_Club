@@ -6,22 +6,20 @@ const {
   getPaymentStats,
   getCheckinStats
 } = require('../controllers/stats.controller');
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-const { userTenantContext } = require('../middleware/tenantContext');
-
-// 所有 stats 路由都需要登录 + 租户上下文
-router.use(authMiddleware, userTenantContext);
+const { authMiddleware } = require('../middleware/auth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 
 // 获取仪表板统计数据（管理员）
-router.get('/dashboard', adminMiddleware, getDashboardStats);
+router.get('/dashboard', adminAuthMiddleware, adminTenantContext, getDashboardStats);
 
 // 获取报名统计数据（管理员）
-router.get('/enrollments', adminMiddleware, getEnrollmentStats);
+router.get('/enrollments', adminAuthMiddleware, adminTenantContext, getEnrollmentStats);
 
 // 获取支付统计数据（管理员）
-router.get('/payments', adminMiddleware, getPaymentStats);
+router.get('/payments', adminAuthMiddleware, adminTenantContext, getPaymentStats);
 
 // 获取打卡统计数据（用户可访问自己的数据）
-router.get('/checkin', getCheckinStats);
+router.get('/checkin', authMiddleware, userTenantContext, getCheckinStats);
 
 module.exports = router;

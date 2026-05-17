@@ -57,18 +57,20 @@ exports.updateTenant = async (req, res) => {
       return res.status(403).json(errors.forbidden('仅平台管理员可访问'));
     }
     const { tenantId } = req.params;
-    const updates = { ...req.body };
-    delete updates._id;
-    delete updates.slug; // slug 不允许修改（数据隔离键）
+    const { name, description, wxAppIds, wechatLogin, wechatPay, branding } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (wxAppIds !== undefined) updates.wxAppIds = wxAppIds;
+    if (branding !== undefined) updates.branding = branding;
 
-    // Secret 字段空值语义：空字符串 = 不修改
-    if (updates.wechatLogin?.appSecret === '') delete updates['wechatLogin.appSecret'];
-    if (updates.wechatPay?.apiKey === '') delete updates['wechatPay.apiKey'];
-    if (updates.wechatLogin && updates.wechatLogin.appSecret === '') {
-      delete updates.wechatLogin.appSecret;
+    if (wechatLogin !== undefined) {
+      updates.wechatLogin = { ...wechatLogin };
+      if (updates.wechatLogin.appSecret === '') delete updates.wechatLogin.appSecret;
     }
-    if (updates.wechatPay && updates.wechatPay.apiKey === '') {
-      delete updates.wechatPay.apiKey;
+    if (wechatPay !== undefined) {
+      updates.wechatPay = { ...wechatPay };
+      if (updates.wechatPay.apiKey === '') delete updates.wechatPay.apiKey;
     }
 
     const tenant = await withSystemContext(null, () =>

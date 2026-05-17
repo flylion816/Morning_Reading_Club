@@ -11,7 +11,6 @@ const {
   getEnrollments,
   updateEnrollment,
   deleteEnrollment,
-  debugCleanupEnrollments,
   getActivePeriodsForExternal,
   getUsersByPeriodName,
   syncNicknamesFromEnrollments
@@ -39,31 +38,6 @@ router.post('/', authMiddleware, userTenantContext, submitEnrollmentForm);
 router.post('/submit', authMiddleware, userTenantContext, submitEnrollmentForm);
 router.post('/simple', authMiddleware, userTenantContext, enrollPeriod);
 
-// 调试路由（开发环境）
-router.delete('/debug/cleanup/:userId/:keepPeriodId', debugCleanupEnrollments);
-router.get('/debug/enrollments/:userId', async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const Enrollment = require('../models/Enrollment');
-    const enrollments = await Enrollment.find({ userId }).populate('periodId', 'name');
-    res.json({
-      code: 200,
-      data: {
-        total: enrollments.length,
-        enrollments: enrollments.map(e => ({
-          _id: e._id,
-          periodId: e.periodId._id,
-          periodName: e.periodId.name,
-          status: e.status,
-          paymentStatus: e.paymentStatus,
-          createdAt: e.createdAt
-        }))
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ code: 500, message: err.message });
-  }
-});
 
 router.get('/check/:periodId', authMiddleware, userTenantContext, checkEnrollment);
 router.get('/period/:periodId', authMiddleware, userTenantContext, getPeriodMembers);
