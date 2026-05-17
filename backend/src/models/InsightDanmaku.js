@@ -1,7 +1,14 @@
 const mongoose = require('mongoose');
+const tenantPlugin = require('./plugins/tenantPlugin');
 
 const insightDanmakuSchema = new mongoose.Schema(
   {
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
+    },
     insightId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Insight',
@@ -43,5 +50,6 @@ const insightDanmakuSchema = new mongoose.Schema(
 );
 
 insightDanmakuSchema.index({ insightId: 1, createdAt: 1 });
+insightDanmakuSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('InsightDanmaku', insightDanmakuSchema);

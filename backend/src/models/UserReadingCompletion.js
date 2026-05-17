@@ -1,7 +1,14 @@
 const mongoose = require('mongoose');
+const tenantPlugin = require('./plugins/tenantPlugin');
 
 const UserReadingCompletionSchema = new mongoose.Schema(
   {
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -34,11 +41,12 @@ const UserReadingCompletionSchema = new mongoose.Schema(
 );
 
 UserReadingCompletionSchema.index(
-  { userId: 1, sectionId: 1 },
+  { tenantId: 1, userId: 1, sectionId: 1 },
   { unique: true }
 );
 UserReadingCompletionSchema.index({ userId: 1, periodId: 1 });
 UserReadingCompletionSchema.index({ sectionId: 1 });
+UserReadingCompletionSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model(
   'UserReadingCompletion',

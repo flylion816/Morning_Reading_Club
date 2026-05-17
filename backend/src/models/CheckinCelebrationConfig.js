@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const tenantPlugin = require('./plugins/tenantPlugin');
 
 const messageSchema = new mongoose.Schema({
   content: { type: String, required: true, trim: true },
@@ -7,6 +8,12 @@ const messageSchema = new mongoose.Schema({
 }, { _id: true });
 
 const checkinCelebrationConfigSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    required: true,
+    index: true
+  },
   animationStyle: {
     type: String,
     enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'random'],
@@ -19,5 +26,7 @@ const checkinCelebrationConfigSchema = new mongoose.Schema({
   },
   messages: [messageSchema]
 }, { timestamps: true });
+
+checkinCelebrationConfigSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('CheckinCelebrationConfig', checkinCelebrationConfigSchema);
