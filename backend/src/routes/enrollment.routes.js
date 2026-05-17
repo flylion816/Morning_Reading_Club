@@ -17,8 +17,10 @@ const {
   syncNicknamesFromEnrollments
 } = require('../controllers/enrollment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   userTenantContext,
+  adminTenantContext,
   publicTenantContext
 } = require('../middleware/tenantContext');
 
@@ -27,10 +29,10 @@ router.get('/external/active-periods', publicTenantContext, getActivePeriodsForE
 router.get('/external/users-by-period', publicTenantContext, getUsersByPeriodName);
 
 // ===== 管理员路由（必须放在用户路由前面） =====
-router.get('/', authMiddleware, userTenantContext, adminMiddleware, getEnrollments);
-router.post('/sync-nicknames', authMiddleware, userTenantContext, adminMiddleware, syncNicknamesFromEnrollments);
-router.put('/:id', authMiddleware, userTenantContext, adminMiddleware, updateEnrollment);
-router.delete('/:id', authMiddleware, userTenantContext, adminMiddleware, deleteEnrollment);
+router.get('/', adminAuthMiddleware, adminTenantContext, getEnrollments);
+router.post('/sync-nicknames', adminAuthMiddleware, adminTenantContext, syncNicknamesFromEnrollments);
+router.put('/:id', adminAuthMiddleware, adminTenantContext, updateEnrollment);
+router.delete('/:id', adminAuthMiddleware, adminTenantContext, deleteEnrollment);
 
 // ===== 用户路由 =====
 router.post('/', authMiddleware, userTenantContext, submitEnrollmentForm);
@@ -67,6 +69,6 @@ router.get('/check/:periodId', authMiddleware, userTenantContext, checkEnrollmen
 router.get('/period/:periodId', authMiddleware, userTenantContext, getPeriodMembers);
 router.get('/user/:userId?', authMiddleware, userTenantContext, getUserEnrollments);
 router.delete('/:enrollmentId', authMiddleware, userTenantContext, withdrawEnrollment);
-router.put('/:enrollmentId/complete', authMiddleware, userTenantContext, adminMiddleware, completeEnrollment);
+router.put('/:enrollmentId/complete', adminAuthMiddleware, adminTenantContext, completeEnrollment);
 
 module.exports = router;

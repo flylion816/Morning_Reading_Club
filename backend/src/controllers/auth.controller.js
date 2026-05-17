@@ -182,8 +182,8 @@ async function refreshToken(req, res, next) {
       return res.status(401).json(errors.unauthorized(tokenError.message));
     }
 
-    // 查找用户
-    const user = await User.findById(decoded.userId);
+    // 查找用户（refreshToken 是跨租户操作，需要 system context）
+    const user = await withSystemContext(null, () => User.findById(decoded.userId).exec());
 
     if (!user) {
       return res.status(404).json(errors.notFound('用户不存在'));

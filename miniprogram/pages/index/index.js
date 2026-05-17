@@ -18,6 +18,7 @@ const {
   getLastTextChar,
   getUserAvatarDisplay
 } = require('../../utils/avatar');
+const { tenantStorage } = require('../../utils/storage');
 const {
   buildInsightRequestDisplay,
   extractInsightRequests
@@ -247,9 +248,9 @@ Page({
   checkLoginStatus(options = {}) {
     const { refreshUserData = false } = options;
     const app = getApp();
-    const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+    const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
     const storedUserInfo = token
-      ? wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO)
+      ? tenantStorage.get(constants.STORAGE_KEYS.USER_INFO)
       : null;
     const isLogin = !!(token && storedUserInfo);
     const userInfo = isLogin ? storedUserInfo : null;

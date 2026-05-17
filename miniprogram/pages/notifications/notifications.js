@@ -10,6 +10,7 @@ const notificationServiceModule = require('../../services/notification.service')
 const websocketServiceModule = require('../../services/websocket.service');
 const constants = require('../../config/constants');
 const { getLastTextChar, getUserAvatarDisplay } = require('../../utils/avatar');
+const { tenantStorage } = require('../../utils/storage');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 const websocketService = websocketServiceModule.default || websocketServiceModule;
@@ -349,7 +350,7 @@ Page({
 
   async initWebSocket() {
     try {
-      const userInfo = wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO);
+      const userInfo = tenantStorage.get(constants.STORAGE_KEYS.USER_INFO);
       if (!userInfo || !userInfo._id) {
         console.warn('[NotificationsPage] 用户信息不存在，WebSocket 不可用');
         return;

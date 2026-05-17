@@ -133,7 +133,7 @@ describe('Backup Controller', () => {
         })
       };
 
-      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findByIdAndUpdate.returns({ exec: () => Promise.resolve(mockUser) });
 
       await backupController.updateMongodbRecord(req, res);
 
@@ -172,7 +172,7 @@ describe('Backup Controller', () => {
         })
       };
 
-      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findByIdAndUpdate.returns({ exec: () => Promise.resolve(mockUser) });
 
       await backupController.updateMongodbRecord(req, res);
 
@@ -203,7 +203,7 @@ describe('Backup Controller', () => {
         })
       };
 
-      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findByIdAndUpdate.returns({ exec: () => Promise.resolve(mockUser) });
 
       await backupController.updateMongodbRecord(req, res);
 
@@ -269,7 +269,7 @@ describe('Backup Controller', () => {
         data: { nickname: '新昵称' }
       };
 
-      UserStub.findByIdAndUpdate.resolves(null);
+      UserStub.findByIdAndUpdate.returns({ exec: () => Promise.resolve(null) });
 
       await backupController.updateMongodbRecord(req, res);
 
@@ -286,7 +286,7 @@ describe('Backup Controller', () => {
         data: { nickname: '新昵称' }
       };
 
-      UserStub.findByIdAndUpdate.rejects(new Error('Database error'));
+      UserStub.findByIdAndUpdate.returns({ exec: () => Promise.reject(new Error('Database error')) });
 
       await backupController.updateMongodbRecord(req, res);
 
@@ -316,8 +316,8 @@ describe('Backup Controller', () => {
         })
       };
 
-      UserStub.findById.resolves(mockUser);
-      UserStub.findByIdAndDelete.resolves(mockUser);
+      UserStub.findById.returns({ exec: () => Promise.resolve(mockUser) });
+      UserStub.findByIdAndDelete.returns({ exec: () => Promise.resolve(mockUser) });
 
       await backupController.deleteMongodbRecord(req, res);
 
@@ -376,7 +376,7 @@ describe('Backup Controller', () => {
         id: new mongoose.Types.ObjectId().toString()
       };
 
-      UserStub.findById.resolves(null);
+      UserStub.findById.returns({ exec: () => Promise.resolve(null) });
 
       await backupController.deleteMongodbRecord(req, res);
 
@@ -404,8 +404,8 @@ describe('Backup Controller', () => {
         })
       };
 
-      UserStub.findById.resolves(mockUser);
-      UserStub.findByIdAndDelete.resolves(mockUser);
+      UserStub.findById.returns({ exec: () => Promise.resolve(mockUser) });
+      UserStub.findByIdAndDelete.returns({ exec: () => Promise.resolve(mockUser) });
 
       await backupController.deleteMongodbRecord(req, res);
 
@@ -426,7 +426,7 @@ describe('Backup Controller', () => {
         id: 'some-id'
       };
 
-      UserStub.findById.rejects(new Error('Database error'));
+      UserStub.findById.returns({ exec: () => Promise.reject(new Error('Database error')) });
 
       await backupController.deleteMongodbRecord(req, res);
 

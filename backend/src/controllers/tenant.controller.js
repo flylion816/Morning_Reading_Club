@@ -7,7 +7,7 @@ const { withSystemContext } = require('../utils/tenantContext');
  */
 exports.listTenants = async (req, res) => {
   try {
-    if (req.admin.role !== 'platform_superadmin') {
+    if (req.admin.role !== 'platform_superadmin' && req.admin.role !== 'superadmin') {
       return res.status(403).json(errors.forbidden('仅平台管理员可访问'));
     }
     const tenants = await withSystemContext(null, () =>
@@ -24,7 +24,7 @@ exports.listTenants = async (req, res) => {
  */
 exports.createTenant = async (req, res) => {
   try {
-    if (req.admin.role !== 'platform_superadmin') {
+    if (req.admin.role !== 'platform_superadmin' && req.admin.role !== 'superadmin') {
       return res.status(403).json(errors.forbidden('仅平台管理员可访问'));
     }
     const { slug, name, description, wxAppIds, wechatLogin, wechatPay, branding } = req.body;
@@ -53,7 +53,7 @@ exports.createTenant = async (req, res) => {
  */
 exports.updateTenant = async (req, res) => {
   try {
-    if (req.admin.role !== 'platform_superadmin') {
+    if (req.admin.role !== 'platform_superadmin' && req.admin.role !== 'superadmin') {
       return res.status(403).json(errors.forbidden('仅平台管理员可访问'));
     }
     const { tenantId } = req.params;

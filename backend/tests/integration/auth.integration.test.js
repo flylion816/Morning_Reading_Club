@@ -7,10 +7,13 @@ const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const { withSystemContext } = require('../../src/utils/tenantContext');
 
 let app;
 let mongoServer;
 let User;
+let Tenant;
+const TEST_WX_APPID = 'wx199d6d332344ed0a';
 
 describe('Auth Integration - 认证流程', () => {
   before(async function() {
@@ -26,33 +29,39 @@ describe('Auth Integration - 认证流程', () => {
       });
     }
 
-    // 导入 User 模型
     User = require('../../src/models/User');
-
-    // 创建 Express 应用
+    Tenant = require('../../src/models/Tenant');
     app = require('../../src/server');
+
+    // 创建测试租户
+    await withSystemContext(null, async () => {
+      await Tenant.findOneAndUpdate(
+        { slug: 'test-tenant' },
+        { slug: 'test-tenant', name: '测试租户', wxAppIds: [TEST_WX_APPID], status: 'active' },
+        { upsert: true, new: true }
+      );
+    });
   });
 
   after(async function() {
     this.timeout(30000);
     // 仅清空集合，不断开连接（由setup.js管理）
     try {
-      await User.deleteMany({});
+      await withSystemContext(null, async () => { await User.deleteMany({}); });
     } catch (err) {
       console.log('Error clearing users:', err.message);
     }
   });
 
   beforeEach(async () => {
-    // 清空数据库
-    await User.deleteMany({});
+    await withSystemContext(null, async () => { await User.deleteMany({}); });
   });
 
   describe('POST /api/v1/auth/wechat/login', () => {
     it('应该能够使用微信 code 进行登录', async () => {
       const res = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-12345' });
+        .send({ code: 'test-code-12345', wxAppId: TEST_WX_APPID });
 
       expect(res.status).to.equal(200);
       expect(res.body).to.have.property('code', 0);
@@ -66,9 +75,9 @@ describe('Auth Integration - 认证流程', () => {
     it('登录成功后应该在数据库中创建用户', async () => {
       await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-12345' });
+        .send({ code: 'test-code-12345', wxAppId: TEST_WX_APPID });
 
-      const users = await User.find({});
+      const users = await withSystemContext(null, () => User.find({}).exec());
       expect(users).to.have.lengthOf(1);
       expect(users[0]).to.have.property('openid');
     });
@@ -77,14 +86,14 @@ describe('Auth Integration - 认证流程', () => {
       // 第一次登录
       const res1 = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-same' });
+        .send({ code: 'test-code-same', wxAppId: TEST_WX_APPID });
 
       const userId1 = res1.body.data.user._id;
 
       // 第二次登录（相同 code）
       const res2 = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-same' });
+        .send({ code: 'test-code-same', wxAppId: TEST_WX_APPID });
 
       const userId2 = res2.body.data.user._id;
 
@@ -92,7 +101,7 @@ describe('Auth Integration - 认证流程', () => {
       expect(userId1).to.equal(userId2);
 
       // 数据库中应该只有一个用户
-      const users = await User.find({});
+      const users = await withSystemContext(null, () => User.find({}).exec());
       expect(users).to.have.lengthOf(1);
     });
 
@@ -108,7 +117,7 @@ describe('Auth Integration - 认证流程', () => {
     it('响应中的 token 应该是有效的 JWT', async () => {
       const res = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-jwt' });
+        .send({ code: 'test-code-jwt', wxAppId: TEST_WX_APPID });
 
       const token = res.body.data.accessToken;
 
@@ -125,7 +134,7 @@ describe('Auth Integration - 认证流程', () => {
       // 先进行登录获取 refresh token
       const res = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-refresh' });
+        .send({ code: 'test-code-refresh', wxAppId: TEST_WX_APPID });
 
       refreshToken = res.body.data.refreshToken;
       userId = res.body.data.user._id;
@@ -201,7 +210,7 @@ describe('Auth Integration - 认证流程', () => {
     beforeEach(async () => {
       const res = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-protected' });
+        .send({ code: 'test-code-protected', wxAppId: TEST_WX_APPID });
 
       accessToken = res.body.data.accessToken;
       userId = res.body.data.user._id;
@@ -260,7 +269,7 @@ describe('Auth Integration - 认证流程', () => {
       // 1. 用户登录
       const loginRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-complete-flow' });
+        .send({ code: 'test-code-complete-flow', wxAppId: TEST_WX_APPID });
 
       expect(loginRes.status).to.equal(200);
       const { accessToken, refreshToken, user } = loginRes.body.data;
@@ -295,7 +304,7 @@ describe('Auth Integration - 认证流程', () => {
       // 1. 登录
       const loginRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-update-profile' });
+        .send({ code: 'test-code-update-profile', wxAppId: TEST_WX_APPID });
 
       const accessToken = loginRes.body.data.accessToken;
 

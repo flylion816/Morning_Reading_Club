@@ -49,7 +49,9 @@ describe('Upload Controller', () => {
       '../../../src/controllers/upload.controller',
       {
         '../utils/response': responseUtils,
-        '../utils/logger': loggerStub
+        '../utils/logger': loggerStub,
+        '../utils/tenantContext': { getCurrentTenantId: sandbox.stub().returns('test-tenant-id') },
+        '../utils/tenantSlug': { resolveTenantSlug: sandbox.stub().resolves('test-slug') }
       }
     );
   });

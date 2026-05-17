@@ -79,7 +79,7 @@ const insightRequestSchema = new mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
-      required: true,
+      default: null,
       index: true
     },
     // 审计日志：记录所有操作

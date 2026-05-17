@@ -15,8 +15,10 @@ class AuthService {
    * @returns {Promise}
    */
   login(code, userInfo = {}) {
+    const envConfig = require('../config/env');
     return request.post('/auth/wechat/login', {
       code,
+      wxAppId: envConfig.wxAppId,
       ...userInfo
     });
   }

@@ -7,12 +7,15 @@ const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const TEST_WX_APPID = 'wx199d6d332344ed0a';
+const { withSystemContext } = require('../../src/utils/tenantContext');
 
 let app;
 let mongoServer;
 let User;
 let Insight;
 let Period;
+let Tenant;
 let ownsMongoConnection = false;
 
 describe('Insight Integration - 小凡看见业务流程', () => {
@@ -32,8 +35,18 @@ describe('Insight Integration - 小凡看见业务流程', () => {
     User = require('../../src/models/User');
     Insight = require('../../src/models/Insight');
     Period = require('../../src/models/Period');
+    Tenant = require('../../src/models/Tenant');
 
     app = require('../../src/server');
+
+    // 创建测试租户
+    await withSystemContext(null, async () => {
+      await Tenant.findOneAndUpdate(
+        { slug: 'test-tenant' },
+        { slug: 'test-tenant', name: '测试租户', wxAppIds: [TEST_WX_APPID], status: 'active' },
+        { upsert: true, new: true }
+      );
+    });
   });
 
   after(async function() {
@@ -45,9 +58,11 @@ describe('Insight Integration - 小凡看见业务流程', () => {
   });
 
   beforeEach(async () => {
-    await User.deleteMany({});
-    await Insight.deleteMany({});
-    await Period.deleteMany({});
+    await withSystemContext(null, async () => {
+      await User.deleteMany({});
+      await Insight.deleteMany({});
+      await Period.deleteMany({});
+    });
   });
 
   describe('POST /api/v1/insights - 创建小凡看见', () => {
@@ -57,31 +72,29 @@ describe('Insight Integration - 小凡看见业务流程', () => {
     let periodId;
 
     beforeEach(async () => {
-      // 创建创建者
       const creatorRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-creator' });
+        .send({ code: 'test-creator', wxAppId: TEST_WX_APPID });
 
       creatorToken = creatorRes.body.data.accessToken;
       creatorId = creatorRes.body.data.user._id;
 
-      // 创建目标用户
       const targetRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-target' });
+        .send({ code: 'test-target', wxAppId: TEST_WX_APPID });
 
       targetUserId = targetRes.body.data.user._id;
 
-      // 创建期次
-      const period = await Period.create({
-        name: '测试期次',
-        title: '测试期次标题',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'ongoing'
+      await withSystemContext(null, async () => {
+        const period = await Period.create({
+          name: '测试期次',
+          title: '测试期次标题',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ongoing'
+        });
+        periodId = period._id;
       });
-
-      periodId = period._id;
     });
 
     it('应该能够创建小凡看见记录', async () => {
@@ -115,7 +128,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
           content: '测试内容'
         });
 
-      const insights = await Insight.find({ targetUserId });
+      const insights = await withSystemContext(null, () => Insight.find({ targetUserId }).exec());
       expect(insights).to.have.lengthOf(1);
       expect(insights[0].content).to.equal('测试内容');
     });
@@ -179,28 +192,28 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建主用户
       const userRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-query-user' });
+        .send({ code: 'test-query-user', wxAppId: TEST_WX_APPID });
 
       userToken = userRes.body.data.accessToken;
       userId = userRes.body.data.user._id;
 
-      // 创建期次
-      const period = await Period.create({
-        name: '查询测试期次',
-        title: '测试期次',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'ongoing'
+      await withSystemContext(null, async () => {
+        const period = await Period.create({
+          name: '查询测试期次',
+          title: '测试期次',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ongoing'
+        });
+        periodId = period._id;
       });
-
-      periodId = period._id;
 
       // 创建多个小凡看见
       for (let i = 0; i < 5; i++) {
         // 创建不同的创建者
         const creatorRes = await request(app)
           .post('/api/v1/auth/wechat/login')
-          .send({ code: `test-creator-${i}` });
+          .send({ code: `test-creator-${i}`, wxAppId: TEST_WX_APPID });
 
         const creatorToken = creatorRes.body.data.accessToken;
 
@@ -231,11 +244,11 @@ describe('Insight Integration - 小凡看见业务流程', () => {
 
     it('应该能够查询特定用户的小凡看见', async () => {
       const res = await request(app)
-        .get(`/api/v1/insights?targetUserId=${userId}`)
+        .get(`/api/v1/insights/user/${userId}`)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
-      expect(res.body.data).to.be.an('array');
+      expect(res.body.data.list).to.be.an('array');
     });
 
     it('应该支持分页查询', async () => {
@@ -271,7 +284,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建创建者
       const creatorRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-update-creator' });
+        .send({ code: 'test-update-creator', wxAppId: TEST_WX_APPID });
 
       creatorToken = creatorRes.body.data.accessToken;
       const creatorId = creatorRes.body.data.user._id;
@@ -279,20 +292,20 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建目标用户
       const targetRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-update-target' });
+        .send({ code: 'test-update-target', wxAppId: TEST_WX_APPID });
 
       targetUserId = targetRes.body.data.user._id;
 
-      // 创建期次
-      const period = await Period.create({
-        name: '更新测试期次',
-        title: '测试期次',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'ongoing'
+      await withSystemContext(null, async () => {
+        const period = await Period.create({
+          name: '更新测试期次',
+          title: '测试期次',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ongoing'
+        });
+        periodId = period._id;
       });
-
-      periodId = period._id;
 
       // 创建小凡看见
       const res = await request(app)
@@ -323,7 +336,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
     it('其他用户不能更新小凡看见', async () => {
       const otherRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-other-user' });
+        .send({ code: 'test-other-user', wxAppId: TEST_WX_APPID });
 
       const otherToken = otherRes.body.data.accessToken;
 
@@ -346,22 +359,26 @@ describe('Insight Integration - 小凡看见业务流程', () => {
     beforeEach(async () => {
       const creatorRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-delete-creator' });
+        .send({ code: 'test-delete-creator', wxAppId: TEST_WX_APPID });
 
       creatorToken = creatorRes.body.data.accessToken;
 
       const targetRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-delete-target' });
+        .send({ code: 'test-delete-target', wxAppId: TEST_WX_APPID });
 
       targetUserId = targetRes.body.data.user._id;
 
-      const period = await Period.create({
-        name: '删除测试期次',
-        title: '测试期次',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'ongoing'
+      let _deletePeriodId;
+      await withSystemContext(null, async () => {
+        const period = await Period.create({
+          name: '删除测试期次',
+          title: '测试期次',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ongoing'
+        });
+        _deletePeriodId = period._id;
       });
 
       const res = await request(app)
@@ -369,7 +386,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .set('Authorization', `Bearer ${creatorToken}`)
         .send({
           targetUserId,
-          periodId: period._id,
+          periodId: _deletePeriodId,
           type: 'daily', mediaType: 'text',
           content: '待删除'
         });
@@ -390,7 +407,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .delete(`/api/v1/insights/${insightId}`)
         .set('Authorization', `Bearer ${creatorToken}`);
 
-      const deleted = await Insight.findById(insightId);
+      const deleted = await withSystemContext(null, () => Insight.findById(insightId).exec());
       expect(deleted).to.be.null;
     });
   });
@@ -404,34 +421,36 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 创建小凡看见的创建者
       const creatorRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-like-creator' });
+        .send({ code: 'test-like-creator', wxAppId: TEST_WX_APPID });
 
       const creatorToken = creatorRes.body.data.accessToken;
 
       // 创建受众用户
       const userRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-like-user' });
+        .send({ code: 'test-like-user', wxAppId: TEST_WX_APPID });
 
       userToken = userRes.body.data.accessToken;
       userId = userRes.body.data.user._id;
 
-      // 创建期次
-      const period = await Period.create({
-        name: '赞踩测试期次',
-        title: '测试期次',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'ongoing'
+      let _likePeriodId;
+      await withSystemContext(null, async () => {
+        const period = await Period.create({
+          name: '赞踩测试期次',
+          title: '测试期次',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ongoing'
+        });
+        _likePeriodId = period._id;
       });
 
-      // 创建小凡看见
       const res = await request(app)
         .post('/api/v1/insights')
         .set('Authorization', `Bearer ${creatorToken}`)
         .send({
           targetUserId: userId,
-          periodId: period._id,
+          periodId: _likePeriodId,
           type: 'daily', mediaType: 'text',
           content: '可以赞的小凡看见'
         });
@@ -471,26 +490,31 @@ describe('Insight Integration - 小凡看见业务流程', () => {
       // 1. 创建两个用户
       const creatorRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-full-creator' });
+        .send({ code: 'test-full-creator', wxAppId: TEST_WX_APPID });
 
       const creatorToken = creatorRes.body.data.accessToken;
       const creatorId = creatorRes.body.data.user._id;
 
       const targetRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-full-target' });
+        .send({ code: 'test-full-target', wxAppId: TEST_WX_APPID });
 
       const targetToken = targetRes.body.data.accessToken;
       const targetId = targetRes.body.data.user._id;
 
       // 2. 创建期次
-      const period = await Period.create({
-        name: '完整流程期次',
-        title: '测试期次',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: 'ongoing'
+      let _fullPeriodId;
+      await withSystemContext(null, async () => {
+        const period = await Period.create({
+          name: '完整流程期次',
+          title: '测试期次',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ongoing'
+        });
+        _fullPeriodId = period._id;
       });
+      const period = { _id: _fullPeriodId };
 
       // 3. 创建小凡看见
       const createRes = await request(app)
@@ -509,10 +533,10 @@ describe('Insight Integration - 小凡看见业务流程', () => {
 
       // 4. 查询目标用户的小凡看见
       const queryRes = await request(app)
-        .get(`/api/v1/insights?targetUserId=${targetId}`)
+        .get(`/api/v1/insights/user/${targetId}`)
         .set('Authorization', `Bearer ${targetToken}`);
 
-      expect(queryRes.body.data.length).to.be.greaterThan(0);
+      expect(queryRes.body.data.list.length).to.be.greaterThan(0);
 
       // 5. 目标用户对小凡看见点赞
       const likeRes = await request(app)
@@ -541,10 +565,11 @@ describe('Insight Integration - 小凡看见业务流程', () => {
 
       // 8. 验证删除
       const finalQueryRes = await request(app)
-        .get(`/api/v1/insights?targetUserId=${targetId}`)
+        .get(`/api/v1/insights/user/${targetId}`)
         .set('Authorization', `Bearer ${targetToken}`);
 
-      const stillExists = finalQueryRes.body.data.some(i => i._id === insightId);
+      const list = finalQueryRes.body.data?.list || finalQueryRes.body.data || [];
+      const stillExists = list.some(i => i._id === insightId);
       expect(stillExists).to.be.false;
     });
   });

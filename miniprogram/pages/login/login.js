@@ -186,7 +186,8 @@ Page({
       // 调用后端登录API，使用预定义的test code
       const loginData = await authService.login(testUser.code, {
         nickname: testUser.label,
-        gender: 'unknown'
+        gender: 'unknown',
+        wxAppId: envConfig.wxAppId
       });
 
       console.log('测试账户登录成功:', loginData);

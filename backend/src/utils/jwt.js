@@ -37,7 +37,7 @@ function verifyAccessToken(token) {
     if (error.name === 'TokenExpiredError') {
       throw new Error('Token已过期');
     }
-    throw new Error(error.message || 'Token无效');
+    throw new Error('Token无效');
   }
 }
 

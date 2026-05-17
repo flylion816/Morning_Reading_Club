@@ -13,10 +13,16 @@ const {
   getPayments
 } = require('../controllers/payment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-const { userTenantContext } = require('../middleware/tenantContext');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 
 // ===== 微信支付回调（无需认证，controller 内部解析租户，必须在参数化路由之前） =====
 router.post('/wechat/callback', wechatCallback);
+
+// ===== 管理员路由 =====
+
+// 获取所有支付记录列表（管理员）
+router.get('/', adminAuthMiddleware, adminTenantContext, getPayments);
 
 // ===== 用户路由 =====
 

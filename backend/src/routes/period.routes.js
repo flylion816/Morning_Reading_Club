@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware, optionalAuthMiddleware, adminMiddleware } = require('../middleware/auth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   getPeriodList,
   getPeriodListForUser,
@@ -21,6 +22,7 @@ const {
 } = require('../controllers/section.controller');
 const {
   userTenantContext,
+  adminTenantContext,
   publicTenantContext,
   optionalUserOrPublicTenantContext
 } = require('../middleware/tenantContext');
@@ -50,7 +52,7 @@ router.get('/user', authMiddleware, userTenantContext, getPeriodListForUser);
  * @desc    根据当前日期批量同步所有期次的 status 字段（管理员）
  * @access  Admin
  */
-router.post('/sync-status', authMiddleware, userTenantContext, adminMiddleware, syncAllPeriodsStatus);
+router.post('/sync-status', adminAuthMiddleware, adminTenantContext, syncAllPeriodsStatus);
 
 /**
  * @route   GET /api/v1/periods/:periodId
@@ -64,28 +66,28 @@ router.get('/:periodId', publicTenantContext, getPeriodDetail);
  * @desc    创建期次（管理员）
  * @access  Admin
  */
-router.post('/', authMiddleware, userTenantContext, adminMiddleware, createPeriod);
+router.post('/', adminAuthMiddleware, adminTenantContext, createPeriod);
 
 /**
  * @route   PUT /api/v1/periods/:periodId
  * @desc    更新期次（管理员）
  * @access  Admin
  */
-router.put('/:periodId', authMiddleware, userTenantContext, adminMiddleware, updatePeriod);
+router.put('/:periodId', adminAuthMiddleware, adminTenantContext, updatePeriod);
 
 /**
  * @route   DELETE /api/v1/periods/:periodId
  * @desc    删除期次（管理员）
  * @access  Admin
  */
-router.delete('/:periodId', authMiddleware, userTenantContext, adminMiddleware, deletePeriod);
+router.delete('/:periodId', adminAuthMiddleware, adminTenantContext, deletePeriod);
 
 /**
  * @route   POST /api/v1/periods/:id/copy
  * @desc    复制期次（包括其下的所有课节）（管理员）
  * @access  Admin
  */
-router.post('/:id/copy', authMiddleware, userTenantContext, adminMiddleware, copyPeriod);
+router.post('/:id/copy', adminAuthMiddleware, adminTenantContext, copyPeriod);
 
 // ===== 课节相关路由 =====
 
@@ -103,9 +105,8 @@ router.get('/:periodId/sections', publicTenantContext, getSectionsByPeriod);
  */
 router.get(
   '/:periodId/sections/admin/all',
-  authMiddleware,
-  userTenantContext,
-  adminMiddleware,
+  adminAuthMiddleware,
+  adminTenantContext,
   getAllSectionsByPeriod
 );
 
@@ -114,7 +115,7 @@ router.get(
  * @desc    在某期次下创建课节（管理员）
  * @access  Admin
  */
-router.post('/:periodId/sections', authMiddleware, userTenantContext, adminMiddleware, createSection);
+router.post('/:periodId/sections', adminAuthMiddleware, adminTenantContext, createSection);
 
 // ===== 用户相关路由 =====
 

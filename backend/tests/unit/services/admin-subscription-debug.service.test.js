@@ -273,7 +273,7 @@ describe('Admin Subscription Debug Service', () => {
     const result = await service.getSubscriptionDebugUserDetail(userId1.toString());
 
     expect(result.user.nickname).to.equal('用户A');
-    expect(result.sceneStates).to.have.length(6);
+    expect(result.sceneStates).to.have.length(10);
     expect(result.sceneStates.find(scene => scene.scene === 'next_day_study_reminder').scheduledSendDate).to.be.instanceOf(Date);
     expect(result.recentDeliveries).to.have.length(1);
     expect(result.summary.totalAvailableCount).to.equal(1);

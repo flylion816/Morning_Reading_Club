@@ -4,6 +4,7 @@ const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth')
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   userTenantContext,
+  adminTenantContext,
   publicTenantContext,
   optionalUserOrPublicTenantContext
 } = require('../middleware/tenantContext');
@@ -46,21 +47,21 @@ const {
 router.post('/external/create', publicTenantContext, createInsightFromExternal);
 
 // ===== 管理员路由 =====
-router.get('/', adminAuthMiddleware, userTenantContext, getInsights);
-router.get('/admin/:insightId/detail', adminAuthMiddleware, userTenantContext, adminGetInsightDetail);
-router.get('/admin/:insightId/danmaku', adminAuthMiddleware, userTenantContext, adminGetDanmaku);
-router.post('/admin/:insightId/like', adminAuthMiddleware, userTenantContext, adminLikeForUser);
-router.post('/admin/:insightId/danmaku', adminAuthMiddleware, userTenantContext, adminPostDanmakuForUser);
-router.delete('/admin/danmaku/:danmakuId', adminAuthMiddleware, userTenantContext, adminDeleteDanmaku);
-router.put('/admin/:insightId', adminAuthMiddleware, userTenantContext, updateInsight);
-router.post('/manual/create', adminAuthMiddleware, userTenantContext, createInsightManual);
-router.delete('/manual/:insightId', adminAuthMiddleware, userTenantContext, deleteInsightManual);
-router.get('/admin/requests', adminAuthMiddleware, userTenantContext, getInsightRequestsAdmin);
-router.get('/admin/requests/stats', adminAuthMiddleware, userTenantContext, getInsightRequestsStats);
-router.put('/admin/requests/:requestId/approve', adminAuthMiddleware, userTenantContext, adminApproveRequest);
-router.put('/admin/requests/:requestId/reject', adminAuthMiddleware, userTenantContext, adminRejectRequest);
-router.delete('/admin/requests/:requestId', adminAuthMiddleware, userTenantContext, deleteInsightRequest);
-router.post('/admin/requests/batch-approve', adminAuthMiddleware, userTenantContext, batchApproveRequests);
+router.get('/', adminAuthMiddleware, adminTenantContext, getInsights);
+router.get('/admin/:insightId/detail', adminAuthMiddleware, adminTenantContext, adminGetInsightDetail);
+router.get('/admin/:insightId/danmaku', adminAuthMiddleware, adminTenantContext, adminGetDanmaku);
+router.post('/admin/:insightId/like', adminAuthMiddleware, adminTenantContext, adminLikeForUser);
+router.post('/admin/:insightId/danmaku', adminAuthMiddleware, adminTenantContext, adminPostDanmakuForUser);
+router.delete('/admin/danmaku/:danmakuId', adminAuthMiddleware, adminTenantContext, adminDeleteDanmaku);
+router.put('/admin/:insightId', adminAuthMiddleware, adminTenantContext, updateInsight);
+router.post('/manual/create', adminAuthMiddleware, adminTenantContext, createInsightManual);
+router.delete('/manual/:insightId', adminAuthMiddleware, adminTenantContext, deleteInsightManual);
+router.get('/admin/requests', adminAuthMiddleware, adminTenantContext, getInsightRequestsAdmin);
+router.get('/admin/requests/stats', adminAuthMiddleware, adminTenantContext, getInsightRequestsStats);
+router.put('/admin/requests/:requestId/approve', adminAuthMiddleware, adminTenantContext, adminApproveRequest);
+router.put('/admin/requests/:requestId/reject', adminAuthMiddleware, adminTenantContext, adminRejectRequest);
+router.delete('/admin/requests/:requestId', adminAuthMiddleware, adminTenantContext, deleteInsightRequest);
+router.post('/admin/requests/batch-approve', adminAuthMiddleware, adminTenantContext, batchApproveRequests);
 
 // ===== 用户路由 =====
 router.post('/', authMiddleware, userTenantContext, createInsightManual);

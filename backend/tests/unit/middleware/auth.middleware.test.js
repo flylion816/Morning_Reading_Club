@@ -83,7 +83,8 @@ describe('Auth Middleware - 100% Coverage', () => {
       '../utils/jwt': jwtStub,
       '../utils/response': responseStub,
       '../models/User': UserStub,
-      '../utils/logger': loggerStub
+      '../utils/logger': loggerStub,
+      '../utils/tenantContext': { withSystemContext: (tenantId, fn) => fn() }
     });
 
     authMiddleware = auth.authMiddleware;
@@ -284,6 +285,7 @@ describe('Auth Middleware - 100% Coverage', () => {
       const almostExpiredDecoded = {
         userId: testUsers.regularUser.userId,
         role: 'user',
+        tenantId: 'test-tenant-id',
         iat: Math.floor(Date.now() / 1000) - 3000,
         exp: Math.floor(Date.now() / 1000) + 600 // 10 分钟后过期
       };
@@ -348,6 +350,7 @@ describe('Auth Middleware - 100% Coverage', () => {
       const almostExpiredDecoded = {
         userId: testUsers.regularUser.userId,
         role: 'user',
+        tenantId: 'test-tenant-id',
         iat: Math.floor(Date.now() / 1000) - 3000,
         exp: Math.floor(Date.now() / 1000) + 600
       };

@@ -7,6 +7,8 @@ const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const TEST_WX_APPID = 'wx199d6d332344ed0a';
+const { withSystemContext } = require('../../src/utils/tenantContext');
 
 let app;
 let mongoServer;
@@ -40,14 +42,14 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
   });
 
   beforeEach(async () => {
-    await User.deleteMany({});
+    await withSystemContext(null, async () => { await User.deleteMany({}); });
   });
 
   describe('HTTP 状态码', () => {
     it('应该为成功请求返回 2xx 状态码', async () => {
       const res = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-success' });
+        .send({ code: 'test-success', wxAppId: TEST_WX_APPID });
 
       expect(res.status).to.be.within(200, 299);
     });
@@ -71,7 +73,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       // 创建用户A
       const userARes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-user-a' });
+        .send({ code: 'test-user-a', wxAppId: TEST_WX_APPID });
 
       const userAToken = userARes.body.data.accessToken;
       const userAId = userARes.body.data.user._id;
@@ -79,36 +81,37 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       // 创建用户B的打卡
       const userBRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-user-b' });
+        .send({ code: 'test-user-b', wxAppId: TEST_WX_APPID });
 
       const userBToken = userBRes.body.data.accessToken;
       const userBId = userBRes.body.data.user._id;
+      const tenantId = userBRes.body.data.tenant._id;
 
       // 用户B创建打卡
       const Period = require('../../src/models/Period');
       const Section = require('../../src/models/Section');
       const Enrollment = require('../../src/models/Enrollment');
-      const period = await Period.create({
+      const period = await withSystemContext(tenantId, () => Period.create({
         name: '测试',
         title: '测试标题',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'ongoing'
-      });
+      }));
 
-      const section = await Section.create({
+      const section = await withSystemContext(tenantId, () => Section.create({
         periodId: period._id,
         title: '测试课节',
         day: 1,
         content: '测试'
-      });
+      }));
 
-      await Enrollment.create({
+      await withSystemContext(tenantId, () => Enrollment.create({
         userId: userBId,
         periodId: period._id,
         status: 'active',
         paymentStatus: 'paid'
-      });
+      }));
 
       const checkinRes = await request(app)
         .post('/api/v1/checkins')
@@ -134,17 +137,23 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
     });
 
     it('应该为不存在的资源返回 404', async () => {
+      const loginRes = await request(app)
+        .post('/api/v1/auth/wechat/login')
+        .send({ code: 'test-404-check', wxAppId: TEST_WX_APPID });
+      const token = loginRes.body.data.accessToken;
+
       const fakeId = new mongoose.Types.ObjectId();
 
       const res = await request(app)
-        .get(`/api/v1/sections/${fakeId}`);
+        .get(`/api/v1/sections/${fakeId}`)
+        .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).to.equal(404);
     });
 
     it('应该为不存在的端点返回 404', async () => {
       const res = await request(app)
-        .get('/api/v1/nonexistent-endpoint');
+        .get('/api/nonexistent-endpoint');
 
       expect(res.status).to.equal(404);
     });
@@ -262,23 +271,23 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Period = require('../../src/models/Period');
 
       // 创建第一个期次
-      await Period.create({
+      await withSystemContext(null, () => Period.create({
         name: '唯一期次',
         title: '唯一期次标题',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'ongoing'
-      });
+      }));
 
       // 尝试创建同名期次（如果有唯一性约束）
       try {
-        await Period.create({
+        await withSystemContext(null, () => Period.create({
           name: '唯一期次', // 相同的名字
           title: '唯一期次标题',
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           status: 'ongoing'
-        });
+        }));
       } catch (err) {
         // 应该抛出错误或返回 400/409
         expect(err).to.exist;
@@ -291,20 +300,20 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       // 创建用户
       const userRes = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-self-insight' });
+        .send({ code: 'test-self-insight', wxAppId: TEST_WX_APPID });
 
       const userToken = userRes.body.data.accessToken;
       const userId = userRes.body.data.user._id;
 
       // 创建期次
       const Period = require('../../src/models/Period');
-      const period = await Period.create({
+      const period = await withSystemContext(null, () => Period.create({
         name: '测试',
         title: '测试标题',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'ongoing'
-      });
+      }));
 
       // 尝试给自己创建小凡看见
       const res = await request(app)
@@ -329,13 +338,13 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const invalidDate = 'invalid-date';
 
       try {
-        await Period.create({
+        await withSystemContext(null, () => Period.create({
           name: '日期测试',
           title: '日期测试标题',
           startDate: invalidDate,
           endDate: new Date(),
           status: 'ongoing'
-        });
+        }));
       } catch (err) {
         expect(err).to.exist;
       }
@@ -345,24 +354,24 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Period = require('../../src/models/Period');
       const Section = require('../../src/models/Section');
 
-      const period = await Period.create({
+      const period = await withSystemContext(null, () => Period.create({
         name: '测试',
         title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      });
+      }));
 
       // day 应该是数字
       const invalidDay = 'not-a-number';
 
       try {
-        await Section.create({
+        await withSystemContext(null, () => Section.create({
           periodId: period._id,
           title: '测试',
           day: invalidDay,
           order: 1,
           duration: 20
-        });
+        }));
       } catch (err) {
         expect(err).to.exist;
       }
@@ -388,28 +397,28 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Insight = require('../../src/models/Insight');
 
       const User = require('../../src/models/User');
-      const user1 = await User.create({ openid: 'user1' });
-      const user2 = await User.create({ openid: 'user2' });
+      const user1 = await withSystemContext(null, () => User.create({ openid: 'user1' }));
+      const user2 = await withSystemContext(null, () => User.create({ openid: 'user2' }));
 
       const Period = require('../../src/models/Period');
-      const period = await Period.create({
+      const period = await withSystemContext(null, () => Period.create({
         name: '测试',
         title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      });
+      }));
 
       // type 应该是特定的枚举值
       const invalidType = 'invalid-type';
 
       try {
-        await Insight.create({
+        await withSystemContext(null, () => Insight.create({
           creatorId: user1._id,
           targetUserId: user2._id,
           periodId: period._id,
           type: invalidType, // 无效的类型
           content: 'test'
-        });
+        }));
       } catch (err) {
         expect(err).to.exist;
       }
@@ -423,7 +432,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         requests.push(
           request(app)
             .post('/api/v1/auth/wechat/login')
-            .send({ code: `test-concurrent-${i}` })
+            .send({ code: `test-concurrent-${i}`, wxAppId: TEST_WX_APPID })
         );
       }
 
@@ -448,7 +457,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       // 并发创建多个
       const promises = [];
       for (let i = 0; i < 3; i++) {
-        promises.push(Period.create(periodData));
+        promises.push(withSystemContext(null, () => Period.create(periodData)));
       }
 
       const results = await Promise.all(promises);
@@ -464,23 +473,23 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Checkin = require('../../src/models/Checkin');
       const Period = require('../../src/models/Period');
 
-      const user = await User.create({ openid: 'large-data-user' });
+      const user = await withSystemContext(null, () => User.create({ openid: 'large-data-user' }));
 
-      const period = await Period.create({
+      const period = await withSystemContext(null, () => Period.create({
         name: '大数据测试',
         title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 100 * 24 * 60 * 60 * 1000)
-      });
+      }));
 
       // 创建课节
       const Section = require('../../src/models/Section');
-      const section = await Section.create({
+      const section = await withSystemContext(null, () => Section.create({
         periodId: period._id,
         title: '大数据测试课节',
         day: 1,
         content: '测试'
-      });
+      }));
 
       // 创建大量打卡
       const checkins = [];
@@ -494,10 +503,10 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
         });
       }
 
-      await Checkin.insertMany(checkins);
+      await withSystemContext(null, () => Checkin.insertMany(checkins));
 
       // 查询所有打卡
-      const result = await Checkin.find({ userId: user._id });
+      const result = await withSystemContext(null, () => Checkin.find({ userId: user._id }).exec());
 
       expect(result).to.have.lengthOf(100);
     });
@@ -507,29 +516,29 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
       const Section = require('../../src/models/Section');
       const Period = require('../../src/models/Period');
 
-      const period = await Period.create({
+      const period = await withSystemContext(null, () => Period.create({
         name: '边界测试',
         title: '测试期次',
         startDate: new Date(),
         endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-      });
+      }));
 
       // 创建第 1 天和第 365 天的课节
-      const section1 = await Section.create({
+      const section1 = await withSystemContext(null, () => Section.create({
         periodId: period._id,
         title: '第 1 天',
         day: 1,
         order: 1,
         duration: 5
-      });
+      }));
 
-      const section365 = await Section.create({
+      const section365 = await withSystemContext(null, () => Section.create({
         periodId: period._id,
         title: '第 365 天',
         day: 365,
         order: 365,
         duration: 60
-      });
+      }));
 
       expect(section1.day).to.equal(1);
       expect(section365.day).to.equal(365);

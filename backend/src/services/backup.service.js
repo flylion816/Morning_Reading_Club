@@ -89,7 +89,11 @@ async function backupMongoDB() {
 
     const { stderr } = await execAsync(dumpCmd, { timeout: 120000 });
     if (stderr) {
-      logger.warn('mongodump warning/stderr', { output: stderr });
+      // mongodump 将正常进度信息输出到 stderr，只在包含真实错误关键词时才记录警告
+      const hasRealError = /error|fail|exception|panic/i.test(stderr);
+      if (hasRealError) {
+        logger.warn('mongodump warning/stderr', { output: stderr });
+      }
     }
 
     // 从容器复制到宿主机

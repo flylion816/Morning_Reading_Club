@@ -10,6 +10,8 @@ const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const TEST_WX_APPID = 'wx199d6d332344ed0a';
+const { withSystemContext } = require('../../src/utils/tenantContext');
 
 let app;
 let mongoServer;
@@ -17,6 +19,7 @@ let User;
 let Enrollment;
 let Payment;
 let Period;
+let Tenant;
 
 describe('Enrollment → Payment 完整流程集成测试', () => {
   before(async function() {
@@ -37,6 +40,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
     Enrollment = require('../../src/models/Enrollment');
     Payment = require('../../src/models/Payment');
     Period = require('../../src/models/Period');
+    Tenant = require('../../src/models/Tenant');
 
     // 创建 Express 应用
     app = require('../../src/server');
@@ -46,10 +50,12 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
     this.timeout(30000);
     // 仅清空集合，不断开连接（由setup.js管理）
     try {
-      await User.deleteMany({});
-      await Enrollment.deleteMany({});
-      await Payment.deleteMany({});
-      await Period.deleteMany({});
+      await withSystemContext(null, async () => {
+        await User.deleteMany({});
+        await Enrollment.deleteMany({});
+        await Payment.deleteMany({});
+        await Period.deleteMany({});
+      });
     } catch (err) {
       console.log('Error clearing collections:', err.message);
     }
@@ -62,22 +68,27 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
   let authToken;
 
   beforeEach(async () => {
-    // ✅ 清空数据库（仅单条删除）
-    await User.deleteMany({});
-    await Enrollment.deleteMany({});
-    await Payment.deleteMany({});
-    await Period.deleteMany({});
+    await withSystemContext(null, async () => {
+      await User.deleteMany({});
+      await Enrollment.deleteMany({});
+      await Payment.deleteMany({});
+      await Period.deleteMany({});
+    });
 
     // ✅ 创建测试用户
     const userRes = await request(app)
       .post('/api/v1/auth/wechat/login')
-      .send({ code: 'test-code-' + Date.now() });
+      .send({ code: 'test-code-' + Date.now(), wxAppId: TEST_WX_APPID });
 
     testUser = userRes.body.data.user;
     authToken = userRes.body.data.accessToken;
 
+    // 获取租户 ID（用于创建期次时设置正确的 tenantId）
+    const tenant = await withSystemContext(null, () => Tenant.findOne({ wxAppIds: TEST_WX_APPID }));
+    const tenantId = tenant._id;
+
     // ✅ 创建测试期次（价格单位是分，9900分 = 99.00元）
-    testPeriod = await Period.create({
+    testPeriod = await withSystemContext(tenantId, () => Period.create({
       name: '测试期次-' + Date.now(),
       title: '测试期次标题',
       description: '测试期次描述',
@@ -86,7 +97,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       price: 9900, // 99.00元
       status: 'ongoing',
       isPublished: true
-    });
+    }));
 
     // 重置test变量
     testEnrollment = null;
@@ -94,38 +105,20 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
   });
 
   afterEach(async () => {
-    // ✅ 单条删除清理（防止数据污染）
-    if (testEnrollment) {
-      try {
-        await Enrollment.findByIdAndDelete(testEnrollment._id);
-      } catch (err) {
-        // 可能已被删除
+    await withSystemContext(null, async () => {
+      if (testEnrollment) {
+        try { await Enrollment.findByIdAndDelete(testEnrollment._id); } catch (err) {}
       }
-    }
-
-    if (testPayment) {
-      try {
-        await Payment.findByIdAndDelete(testPayment._id);
-      } catch (err) {
-        // 可能已被删除
+      if (testPayment) {
+        try { await Payment.findByIdAndDelete(testPayment._id); } catch (err) {}
       }
-    }
-
-    if (testPeriod) {
-      try {
-        await Period.findByIdAndDelete(testPeriod._id);
-      } catch (err) {
-        // 可能已被删除
+      if (testPeriod) {
+        try { await Period.findByIdAndDelete(testPeriod._id); } catch (err) {}
       }
-    }
-
-    if (testUser) {
-      try {
-        await User.findByIdAndDelete(testUser._id);
-      } catch (err) {
-        // 可能已被删除
+      if (testUser) {
+        try { await User.findByIdAndDelete(testUser._id); } catch (err) {}
       }
-    }
+    });
   });
 
   describe('场景1: 完整报名→支付→数据一致性流程', () => {
@@ -145,7 +138,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       const enrollmentId = testEnrollment._id;
 
       // ===== 步骤2: 验证期次的报名人数增加 =====
-      let updatedPeriod = await Period.findById(testPeriod._id);
+      let updatedPeriod = await withSystemContext(null, () => Period.findById(testPeriod._id).exec());
       expect(updatedPeriod.enrollmentCount).to.equal(1);
 
       // ===== 步骤3: 初始化支付（创建订单） =====
@@ -175,18 +168,18 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       expect(checkRes.body.data).to.have.property('paymentStatus', 'paid');
 
       // ===== 步骤5: 验证数据库一致性 =====
-      const dbEnrollment = await Enrollment.findById(enrollmentId);
+      const dbEnrollment = await withSystemContext(null, () => Enrollment.findById(enrollmentId).exec());
       expect(dbEnrollment).to.exist;
       expect(dbEnrollment.status).to.equal('active');
       expect(dbEnrollment.paymentStatus).to.equal('paid');
 
-      const dbPayment = await Payment.findById(testPayment._id);
+      const dbPayment = await withSystemContext(null, () => Payment.findById(testPayment._id).exec());
       expect(dbPayment).to.exist;
       expect(dbPayment.status).to.equal('completed');
       expect(dbPayment.enrollmentId.toString()).to.equal(enrollmentId.toString());
 
       // ===== 步骤6: 验证期次数据完整性 =====
-      updatedPeriod = await Period.findById(testPeriod._id);
+      updatedPeriod = await withSystemContext(null, () => Period.findById(testPeriod._id).exec());
       expect(updatedPeriod.enrollmentCount).to.equal(1);
     });
   });
@@ -315,7 +308,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       // 创建第二个用户
       const user2Res = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-user2-' + Date.now() });
+        .send({ code: 'test-code-user2-' + Date.now(), wxAppId: TEST_WX_APPID });
 
       const user2 = user2Res.body.data.user;
       const user2Token = user2Res.body.data.accessToken;
@@ -339,16 +332,16 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       const user2Enrollment = enroll2.body.data;
 
       // 验证期次报名人数为2
-      const updatedPeriod = await Period.findById(testPeriod._id);
+      const updatedPeriod = await withSystemContext(null, () => Period.findById(testPeriod._id).exec());
       expect(updatedPeriod.enrollmentCount).to.equal(2);
 
       // 验证两个报名记录都在数据库中
-      const enrollments = await Enrollment.find({ periodId: testPeriod._id });
+      const enrollments = await withSystemContext(null, () => Enrollment.find({ periodId: testPeriod._id }).exec());
       expect(enrollments).to.have.lengthOf(2);
 
       // ✅ 单条清理第二个用户数据
-      await Enrollment.findByIdAndDelete(user2Enrollment._id);
-      await User.findByIdAndDelete(user2._id);
+      await withSystemContext(null, () => Enrollment.findByIdAndDelete(user2Enrollment._id).exec());
+      await withSystemContext(null, () => User.findByIdAndDelete(user2._id).exec());
     });
   });
 

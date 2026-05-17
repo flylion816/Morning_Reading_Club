@@ -14,14 +14,14 @@
 // 📌 注意：小程序可独立配置，不必与根目录 .env.config.js 同步
 //    根目录 .env.config.js 控制后端和管理后台
 //    此文件控制小程序开发工具连接的环境
-const currentEnv = 'prod'; // ← 生产环境 (线上 https://wx.shubai01.com/api/v1)
+const currentEnv = 'dev'; // ← 开发环境 (本地 http://localhost:3000/api/v1)
 
 // 环境配置
 const envConfig = {
   // 开发环境
   dev: {
     apiBaseUrl: 'http://localhost:3000/api/v1',
-    wxAppId: 'wx199d6d332344ed0a',
+    wxAppId: 'wx2b9a3c1d5e4195f8', // 与后台租户记录保持一致
     enableDebug: true,
     enableLog: true,
     useMock: false // 使用真实 API 数据

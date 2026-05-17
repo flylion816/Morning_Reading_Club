@@ -21,6 +21,7 @@ const Notification = require('../models/Notification');
 const { mysqlPool } = require('../config/database');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { withSystemContext } = require('../utils/tenantContext');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const {
@@ -840,7 +841,9 @@ async function updateMongodbRecord(req, res) {
     delete safeData.createdAt;
     delete safeData.updatedAt;
 
-    const updated = await Model.findByIdAndUpdate(id, safeData, { new: true });
+    const updated = await withSystemContext(null, () =>
+      Model.findByIdAndUpdate(id, safeData, { new: true }).exec()
+    );
     if (!updated) {
       return res.status(404).json(errors.notFound('记录不存在'));
     }
@@ -872,12 +875,12 @@ async function deleteMongodbRecord(req, res) {
     if (!Model) {
       return res.status(400).json(errors.badRequest(`无效的集合名: ${table}`));
     }
-    const doc = await Model.findById(id);
+    const doc = await withSystemContext(null, () => Model.findById(id).exec());
     if (!doc) {
       return res.status(404).json(errors.notFound('记录不存在'));
     }
     const docData = doc.toObject();
-    await Model.findByIdAndDelete(id);
+    await withSystemContext(null, () => Model.findByIdAndDelete(id).exec());
     publishSyncEvent({
       type: 'delete',
       collection: table,

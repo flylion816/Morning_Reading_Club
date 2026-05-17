@@ -261,6 +261,7 @@ describe('Admin Controller', () => {
   describe('getAdmins', () => {
     it('应该返回管理员列表', async () => {
       req.query = { page: 1, limit: 10 };
+      req.admin = { role: 'tenant_admin', tenantId: 'tenant-123' };
 
       const mockAdmins = [
         {

@@ -37,8 +37,8 @@ async function importAllDays() {
     console.log('✅ 数据库连接成功\n');
 
     // 查找期次
-    console.log('🔍 查找期次: "平衡之道"');
-    const period = await Period.findOne({ name: '平衡之道' });
+    console.log('🔍 查找期次: "秩序之锚"');
+    const period = await Period.findOne({ name: '秩序之锚' });
     if (!period) {
       console.error('❌ 找不到期次');
       process.exit(1);

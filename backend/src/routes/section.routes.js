@@ -6,8 +6,10 @@ const {
   optionalAuthMiddleware,
   adminMiddleware
 } = require('../middleware/auth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   userTenantContext,
+  adminTenantContext,
   publicTenantContext,
   optionalUserOrPublicTenantContext
 } = require('../middleware/tenantContext');
@@ -54,20 +56,20 @@ router.get('/:sectionId', optionalAuthMiddleware, optionalUserOrPublicTenantCont
  * @desc    创建课程（管理员）
  * @access  Admin
  */
-router.post('/', authMiddleware, userTenantContext, adminMiddleware, createSection);
+router.post('/', adminAuthMiddleware, adminTenantContext, createSection);
 
 /**
  * @route   PUT /api/v1/sections/:sectionId
  * @desc    更新课程（管理员）
  * @access  Admin
  */
-router.put('/:sectionId', authMiddleware, userTenantContext, adminMiddleware, updateSection);
+router.put('/:sectionId', adminAuthMiddleware, adminTenantContext, updateSection);
 
 /**
  * @route   DELETE /api/v1/sections/:sectionId
  * @desc    删除课程（管理员）
  * @access  Admin
  */
-router.delete('/:sectionId', authMiddleware, userTenantContext, adminMiddleware, deleteSection);
+router.delete('/:sectionId', adminAuthMiddleware, adminTenantContext, deleteSection);
 
 module.exports = router;

@@ -393,6 +393,12 @@ create_server_backup() {
 
     if ssh -i "$ssh_key" -o StrictHostKeyChecking=no "$server_user@$server_ip" "$backup_cmd" 2>/dev/null; then
       log_success "服务器备份完成: $(basename "$backup_path")_bak_${timestamp}.tar.gz"
+
+      # 只保留最近5个备份，删除更早的
+      local cleanup_cmd="cd $(dirname "$backup_path") && ls -t $(basename "$backup_path")_bak_*.tar.gz 2>/dev/null | tail -n +6 | xargs sudo rm -f"
+      ssh -i "$ssh_key" -o StrictHostKeyChecking=no "$server_user@$server_ip" "$cleanup_cmd" 2>/dev/null && \
+        log_info "旧备份已清理，保留最近5个" || true
+
       echo "$timestamp"  # 返回时间戳供后续使用
       return 0
     else

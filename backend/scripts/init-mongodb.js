@@ -72,6 +72,7 @@ try {
 }
 
 const mongoose = require('mongoose');
+const fs = require('fs');
 
 // MongoDB 初始化辅助函数：确保管理员用户存在
 async function ensureAdminUser(mongodbUri) {
@@ -125,6 +126,8 @@ const Checkin = require('../src/models/Checkin');
 const Comment = require('../src/models/Comment');
 const Insight = require('../src/models/Insight');
 const Enrollment = require('../src/models/Enrollment');
+const Tenant = require('../src/models/Tenant');
+const { withSystemContext } = require('../src/utils/tenantContext');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db';
 
@@ -143,6 +146,16 @@ async function initMongoDB() {
       retryWrites: false
     });
     console.log('✅ MongoDB 连接成功\n');
+
+    // 查找本地租户
+    const tenant = await withSystemContext(null, () => Tenant.findOne({ slug: 'fanrengongdu' }).lean());
+    if (!tenant) {
+      console.error('❌ 找不到租户 fanrengongdu，请先创建租户');
+      process.exit(1);
+    }
+    console.log(`✅ 使用租户: ${tenant.name} (${tenant._id})\n`);
+
+    await withSystemContext(tenant._id.toString(), async () => {
 
     // 清空数据库
     console.log('🧹 清空现有数据...');
@@ -261,108 +274,49 @@ async function initMongoDB() {
     });
     console.log(`✅ 创建 ${users.length} 个用户\n`);
 
-    // 创建期次
+    // 创建期次（秩序之锚 — 从线上导出的真实数据）
     console.log('📚 创建期次...');
     const mockPeriods = [
       {
-        name: '平衡之道',
+        name: '秩序之锚',
         subtitle: '七个习惯晨读营',
-        title: '平衡之道 - 七个习惯晨读营',
-        description: '21天养成阅读习惯，培养品德成功论思维',
-        icon: '⛰️',
-        coverColor: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-        coverEmoji: '⛰️',
-        startDate: new Date('2025-11-28'),
-        endDate: new Date('2025-12-20'),
+        title: '秩序之锚 - 七个习惯晨读营',
+        description: '温柔地安顿自己，慈悲地建立秩序，清明地看见选择，宁静地看见本质',
+        icon: '♾️',
+        coverColor: '#f4f017',
+        coverEmoji: '📖',
+        startDate: new Date('2026-05-08T16:00:00.000Z'),
+        endDate: new Date('2026-05-30T16:00:00.000Z'),
         totalDays: 23,
-        price: 99,
+        price: 1,
         originalPrice: 199,
         maxEnrollment: 100,
-        currentEnrollment: 35,
+        currentEnrollment: 0,
+        enrollmentCount: 0,
         status: 'ongoing',
         isPublished: true,
-        sortOrder: 1
-      },
-      {
-        name: '勇敢的心',
-        subtitle: '七个习惯晨读营',
-        title: '勇敢的心 - 七个习惯晨读营',
-        description: '21天养成阅读习惯，培养品德成功论思维',
-        icon: '💪',
-        coverColor: 'linear-gradient(135deg, #ff6b6b 0%, #e63946 100%)',
-        coverEmoji: '💪',
-        startDate: new Date('2025-10-11'),
-        endDate: new Date('2025-11-13'),
-        totalDays: 23,
-        price: 99,
-        originalPrice: 199,
-        maxEnrollment: 100,
-        currentEnrollment: 35,
-        status: 'ongoing',
-        isPublished: true,
-        sortOrder: 2
-      },
-      {
-        name: '能量之泉',
-        subtitle: '七个习惯晨读营',
-        title: '能量之泉 - 七个习惯晨读营',
-        description: '探索内在能量，提升自我效能',
-        icon: '🌊',
-        coverColor: 'linear-gradient(135deg, #7ed321 0%, #63b520 100%)',
-        coverEmoji: '🌊',
-        startDate: new Date('2025-08-09'),
-        endDate: new Date('2025-09-12'),
-        totalDays: 23,
-        price: 99,
-        originalPrice: 199,
-        maxEnrollment: 100,
-        currentEnrollment: 28,
-        status: 'completed',
-        isPublished: true,
-        sortOrder: 3
-      },
-      {
-        name: '静心之镜',
-        subtitle: '七个习惯晨读营',
-        title: '静心之镜 - 七个习惯晨读营',
-        description: '深层心灵成长之旅',
-        icon: '🪞',
-        coverColor: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
-        coverEmoji: '🪞',
-        startDate: new Date('2025-06-01'),
-        endDate: new Date('2025-07-04'),
-        totalDays: 23,
-        price: 99,
-        originalPrice: 199,
-        maxEnrollment: 100,
-        currentEnrollment: 42,
-        status: 'completed',
-        isPublished: true,
-        sortOrder: 4
+        sortOrder: 1,
+        meetingId: '616324935',
+        meetingJoinUrl: null
       }
     ];
 
     const periods = await Period.insertMany(mockPeriods);
     console.log(`✅ 创建 ${periods.length} 个期次\n`);
 
-    // 创建课程（为第一个期次创建基础课程框架）
+    // 从 day{N}-content.json 加载真实课程内容（秩序之锚 Day 0-22）
     const period1 = periods[0];
-    console.log(`📖 为期次 "${period1.name}" 创建课程框架...\n`);
+    console.log(`📖 为期次 "${period1.name}" 导入 23 天课程内容...\n`);
 
     const mockSections = [];
-    for (let day = 0; day < 5; day++) {
-      mockSections.push({
-        periodId: period1._id,
-        day: day,
-        title: `第 ${day} 天课程`,
-        subtitle: `Day ${day}`,
-        icon: '📖',
-        description: `这是${period1.name}的第 ${day} 天课程`,
-        content: '<p>课程内容待导入...</p>',
-        isPublished: true,
-        checkinCount: 0,
-        sortOrder: day
-      });
+    for (let day = 0; day <= 22; day++) {
+      const filepath = path.join(__dirname, `day${day}-content.json`);
+      if (fs.existsSync(filepath)) {
+        const courseData = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+        mockSections.push({ periodId: period1._id, day, ...courseData });
+      } else {
+        console.warn(`⚠️  day${day}-content.json 不存在，跳过`);
+      }
     }
 
     const sections = await Section.insertMany(mockSections);
@@ -376,6 +330,8 @@ async function initMongoDB() {
       enrollmentDate: new Date(),
       approvalStatus: 'approved',
       approvalDate: new Date(),
+      paymentStatus: 'paid',
+      paymentAmount: 1,
       source: 'init',
       createdAt: new Date(),
       updatedAt: new Date()
@@ -463,12 +419,14 @@ async function initMongoDB() {
     console.log('🎉 MongoDB 初始化完成！\n');
     console.log('📊 数据统计：');
     console.log(`   - 用户: ${users.length}`);
-    console.log(`   - 期次: ${periods.length}`);
+    console.log(`   - 期次: ${periods.length} (秩序之锚)`);
     console.log(`   - 课程: ${sections.length}`);
     console.log(`   - 报名: 1`);
     console.log(`   - 打卡: ${checkins.length}`);
     console.log(`   - 评论: ${mockComments.length}`);
     console.log(`   - 小凡看见: ${mockInsights.length}\n`);
+
+    }); // end withSystemContext
 
     process.exit(0);
   } catch (error) {

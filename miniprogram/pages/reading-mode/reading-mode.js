@@ -1,5 +1,6 @@
 const courseService = require('../../services/course.service');
 const constants = require('../../config/constants');
+const { tenantStorage } = require('../../utils/storage');
 const { richContentToPlainText, isLikelyHtml } = require('../../utils/markdown');
 const {
   extractId,
@@ -163,7 +164,7 @@ Page({
     try {
       userInfo =
         (typeof getApp === 'function' ? getApp()?.globalData?.userInfo : null) ||
-        wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO) ||
+        tenantStorage.get(constants.STORAGE_KEYS.USER_INFO) ||
         null;
     } catch (error) {
       userInfo = null;

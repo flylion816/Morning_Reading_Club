@@ -89,7 +89,7 @@ const PaymentSchema = new mongoose.Schema(
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
-      required: true,
+      default: null,
       index: true
     }
   },

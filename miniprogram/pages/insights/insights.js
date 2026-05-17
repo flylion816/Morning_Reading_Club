@@ -3,6 +3,7 @@ const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
 const activityService = require('../../services/activity.service');
 const logger = require('../../utils/logger');
+const { tenantStorage } = require('../../utils/storage');
 const { richContentToPlainText } = require('../../utils/markdown');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
@@ -336,7 +337,7 @@ Page({
       const app = getApp();
       const currentUserId = app.globalData.userInfo?._id;
       const constants = require('../../config/constants');
-      const token = wx.getStorageSync(constants.STORAGE_KEYS.TOKEN);
+      const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
 
       logger.debug('=== 加载小凡看见 ===');
       logger.debug('当前用户ID:', currentUserId);
