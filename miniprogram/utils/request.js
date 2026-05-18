@@ -66,6 +66,12 @@ class Request {
 
     const requestUrl = `${this.baseURL}${url}`;
 
+    console.log('[TENANT-REQUEST]', method, url, {
+      wxAppId: envConfig.wxAppId,
+      hasToken: !!requestHeader['Authorization'],
+      tokenPrefix: requestHeader['Authorization'] ? requestHeader['Authorization'].slice(0, 20) + '...' : null
+    });
+
     return new Promise((resolve, reject) => {
       wx.request({
         url: requestUrl,
@@ -359,7 +365,8 @@ class Request {
         name: 'file',
         formData,
         header: {
-          Authorization: token ? `Bearer ${token}` : ''
+          Authorization: token ? `Bearer ${token}` : '',
+          'X-Wx-AppId': envConfig.wxAppId
         },
         success: (res) => {
           const data = JSON.parse(res.data);

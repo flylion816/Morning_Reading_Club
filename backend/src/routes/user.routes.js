@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-const { userTenantContext } = require('../middleware/tenantContext');
+const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 const {
   getCurrentUser,
   updateProfile,
@@ -14,70 +14,33 @@ const {
   getPhoneInfo
 } = require('../controllers/user.controller');
 
-// 所有 user 路由都需要登录 + 租户上下文
-router.use(authMiddleware, userTenantContext);
-
-/**
- * @route   GET /api/v1/users/me
- * @desc    获取当前用户信息
- * @access  Private
- */
-router.get('/me', getCurrentUser);
-
-/**
- * @route   PUT /api/v1/users/profile
- * @desc    更新用户资料
- * @access  Private
- */
-router.put('/profile', updateProfile);
-
-/**
- * @route   POST /api/v1/users/bindPhone
- * @desc    绑定手机号
- * @access  Private
- */
-router.post('/bindPhone', bindPhone);
-
-/**
- * @route   GET /api/v1/users/phone
- * @desc    获取当前用户手机号信息
- * @access  Private
- */
-router.get('/phone', getPhoneInfo);
-
-/**
- * @route   GET /api/v1/users/:userId
- * @desc    获取用户详情（他人主页）
- * @access  Private
- */
-router.get('/:userId', getUserById);
-
-/**
- * @route   GET /api/v1/users/:userId/stats
- * @desc    获取用户统计信息
- * @access  Private
- */
-router.get('/:userId/stats', getUserStats);
+// 小程序用户路由：需要用户登录 + 用户租户上下文
+router.get('/me', authMiddleware, userTenantContext, getCurrentUser);
+router.put('/profile', authMiddleware, userTenantContext, updateProfile);
+router.post('/bindPhone', authMiddleware, userTenantContext, bindPhone);
+router.get('/phone', authMiddleware, userTenantContext, getPhoneInfo);
+router.get('/:userId', authMiddleware, userTenantContext, getUserById);
+router.get('/:userId/stats', authMiddleware, userTenantContext, getUserStats);
 
 /**
  * @route   GET /api/v1/users
  * @desc    获取用户列表（管理员）
  * @access  Admin
  */
-router.get('/', adminMiddleware, getUserList);
+router.get('/', authMiddleware, adminMiddleware, adminTenantContext, getUserList);
 
 /**
  * @route   PUT /api/v1/users/:userId
  * @desc    更新用户信息（管理员）
  * @access  Admin
  */
-router.put('/:userId', adminMiddleware, updateUser);
+router.put('/:userId', authMiddleware, adminMiddleware, adminTenantContext, updateUser);
 
 /**
  * @route   DELETE /api/v1/users/:userId
  * @desc    删除用户（管理员）
  * @access  Admin
  */
-router.delete('/:userId', adminMiddleware, deleteUser);
+router.delete('/:userId', authMiddleware, adminMiddleware, adminTenantContext, deleteUser);
 
 module.exports = router;

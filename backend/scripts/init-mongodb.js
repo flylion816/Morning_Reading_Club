@@ -134,6 +134,11 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mornin
 async function initMongoDB() {
   let connection = null;
 
+  // 解析 --tenant 参数，默认 fanrengongdu
+  const tenantArgIdx = process.argv.indexOf('--tenant');
+  const tenantSlug = tenantArgIdx !== -1 ? process.argv[tenantArgIdx + 1] : 'fanrengongdu';
+  console.log(`🏢 目标租户: ${tenantSlug}\n`);
+
   try {
     // 先检查并创建管理员用户（如果不存在）
     await ensureAdminUser(MONGODB_URI);
@@ -148,9 +153,9 @@ async function initMongoDB() {
     console.log('✅ MongoDB 连接成功\n');
 
     // 查找本地租户
-    const tenant = await withSystemContext(null, () => Tenant.findOne({ slug: 'fanrengongdu' }).lean());
+    const tenant = await withSystemContext(null, () => Tenant.findOne({ slug: tenantSlug }).lean());
     if (!tenant) {
-      console.error('❌ 找不到租户 fanrengongdu，请先创建租户');
+      console.error(`❌ 找不到租户 ${tenantSlug}，请先创建租户`);
       process.exit(1);
     }
     console.log(`✅ 使用租户: ${tenant.name} (${tenant._id})\n`);
@@ -161,13 +166,13 @@ async function initMongoDB() {
     console.log('🧹 清空现有数据...');
     try {
       await Promise.all([
-        User.deleteMany({}),
-        Period.deleteMany({}),
-        Section.deleteMany({}),
-        Checkin.deleteMany({}),
-        Comment.deleteMany({}),
-        Insight.deleteMany({}),
-        Enrollment.deleteMany({})
+        User.deleteMany({ tenantId: tenant._id }),
+        Period.deleteMany({ tenantId: tenant._id }),
+        Section.deleteMany({ tenantId: tenant._id }),
+        Checkin.deleteMany({ tenantId: tenant._id }),
+        Comment.deleteMany({ tenantId: tenant._id }),
+        Insight.deleteMany({ tenantId: tenant._id }),
+        Enrollment.deleteMany({ tenantId: tenant._id })
       ]);
       console.log('✅ 数据已清空\n');
     } catch (err) {

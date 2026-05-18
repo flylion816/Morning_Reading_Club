@@ -3,7 +3,7 @@
     <el-aside class="admin-sidebar">
       <div class="sidebar-header">
         <img src="/logo.png" class="sidebar-logo" alt="logo" />
-        <h2>凡人共读</h2>
+        <h2>{{ tenantStore.displayName }}</h2>
       </div>
 
       <el-menu
@@ -56,16 +56,12 @@
           </el-menu-item>
         </el-menu-item-group>
 
-        <!-- 平台管理区块 -->
-        <el-menu-item-group title="平台管理" v-if="isPlatformSuperAdmin">
+        <!-- 系统管理区块 -->
+        <el-menu-item-group title="系统管理" v-if="isPlatformSuperAdmin">
           <el-menu-item index="/tenants">
             <span>🏢 租户管理</span>
           </el-menu-item>
-        </el-menu-item-group>
-
-        <!-- 系统管理区块 -->
-        <el-menu-item-group title="系统管理">
-          <el-menu-item index="/account-management" v-if="authStore.adminInfo?.role === 'superadmin'">
+          <el-menu-item index="/account-management">
             <span>👤 账号管理</span>
           </el-menu-item>
           <el-menu-item index="/subscription-debug">
@@ -160,6 +156,7 @@
 import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useTenantStore } from '../stores/tenant';
 import { authApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import TenantSwitcher from './TenantSwitcher.vue';
@@ -167,6 +164,7 @@ import TenantSwitcher from './TenantSwitcher.vue';
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const tenantStore = useTenantStore();
 
 const activeMenu = computed(() => route.path);
 
@@ -376,6 +374,12 @@ const goToProfile = () => {
   margin: 4px 0 0;
   color: #777;
   font-size: 13px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .header-user {

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Checkin = require('../models/Checkin');
 const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 const { publishSyncEvent } = require('../services/sync.service');
 const subscribeMessageService = require('../services/subscribe-message.service');
 
@@ -198,6 +199,10 @@ async function getUserList(req, res, next) {
 
     // 默认排除已删除用户；若前端明确指定 status=deleted 则显示
     const query = { status: { $ne: 'deleted' } };
+
+    // 租户隔离：只返回当前租户的用户
+    const tenantId = getCurrentTenantId();
+    if (tenantId) query.tenantId = tenantId;
     if (role) query.role = role;
     if (status) query.status = status;
     if (searchTerm) {

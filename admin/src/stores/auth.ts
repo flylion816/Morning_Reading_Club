@@ -17,6 +17,14 @@ export const useAuthStore = defineStore('auth', () => {
     });
     if (token) {
       adminToken.value = token;
+      const savedInfo = localStorage.getItem('adminInfo');
+      if (savedInfo) {
+        try {
+          adminInfo.value = JSON.parse(savedInfo);
+        } catch {
+          localStorage.removeItem('adminInfo');
+        }
+      }
       logger.info('[Auth Store] token已恢复，isAuthenticated:', !!adminToken.value);
     }
   }
@@ -54,6 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
       });
 
       adminInfo.value = response.admin;
+      localStorage.setItem('adminInfo', JSON.stringify(response.admin));
       logger.debug('[Auth Store] adminInfo已设置');
       logger.debug('========== 登录API返回数据结束 ==========');
 
@@ -78,6 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
       adminToken.value = null;
       adminInfo.value = null;
       localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminInfo');
       logger.info('本地登出状态已清除');
     }
   }

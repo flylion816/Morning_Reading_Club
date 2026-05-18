@@ -1,23 +1,4 @@
-import axios from "axios";
-import type { AxiosRequestConfig } from "axios";
-
-const BASE_URL = "/api/v1/audit-logs";
-
-const withAuth = (config: AxiosRequestConfig = {}): AxiosRequestConfig => {
-  const token = localStorage.getItem("adminToken");
-
-  if (!token) {
-    return config;
-  }
-
-  return {
-    ...config,
-    headers: {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  };
-};
+import apiClient from '../services/api';
 
 export interface AuditLog {
   _id: string;
@@ -71,9 +52,7 @@ export const getAuditLogs = (params: {
   endDate?: string;
   status?: string;
 }): Promise<AuditLogsResponse> => {
-  return axios
-    .get(BASE_URL, withAuth({ params }))
-    .then((res) => res.data.data || res.data);
+  return apiClient.get('/audit-logs', { params });
 };
 
 /**
@@ -84,12 +63,7 @@ export const getAdminLogs = (
   page = 1,
   pageSize = 20,
 ): Promise<AuditLogsResponse> => {
-  return axios
-    .get(
-      `${BASE_URL}/admin/${adminId}`,
-      withAuth({ params: { page, pageSize } }),
-    )
-    .then((res) => res.data.data);
+  return apiClient.get(`/audit-logs/admin/${adminId}`, { params: { page, pageSize } });
 };
 
 /**
@@ -101,21 +75,14 @@ export const getResourceLogs = (
   page = 1,
   pageSize = 20,
 ): Promise<AuditLogsResponse> => {
-  return axios
-    .get(
-      `${BASE_URL}/resource/${resourceType}/${resourceId}`,
-      withAuth({ params: { page, pageSize } }),
-    )
-    .then((res) => res.data.data);
+  return apiClient.get(`/audit-logs/resource/${resourceType}/${resourceId}`, { params: { page, pageSize } });
 };
 
 /**
  * 获取操作统计
  */
 export const getAuditStatistics = (): Promise<AuditStatistics> => {
-  return axios
-    .get(`${BASE_URL}/statistics`, withAuth())
-    .then((res) => res.data.data);
+  return apiClient.get('/audit-logs/statistics');
 };
 
 /**
@@ -129,22 +96,12 @@ export const exportAuditLogs = (params: {
   endDate?: string;
   status?: string;
 }): Promise<Blob> => {
-  return axios
-    .get(
-      `${BASE_URL}/export`,
-      withAuth({
-        params,
-        responseType: "blob",
-      }),
-    )
-    .then((res) => res.data);
+  return apiClient.get('/audit-logs/export', { params, responseType: 'blob' });
 };
 
 /**
  * 清理过期日志
  */
 export const cleanupExpiredLogs = (): Promise<{ deletedCount: number }> => {
-  return axios
-    .post(`${BASE_URL}/cleanup`, undefined, withAuth())
-    .then((res) => res.data.data);
+  return apiClient.post('/audit-logs/cleanup');
 };

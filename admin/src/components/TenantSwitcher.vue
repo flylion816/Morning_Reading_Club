@@ -10,7 +10,7 @@
     >
       <el-option label="所有租户（跨租户视图）" :value="''" />
       <el-option
-        v-for="t in tenants"
+        v-for="t in tenantStore.tenants"
         :key="t._id"
         :label="t.name"
         :value="t._id"
@@ -27,20 +27,26 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import api from '../services/api';
 import { useAuthStore } from '../stores/auth';
+import { useTenantStore } from '../stores/tenant';
 
 const authStore = useAuthStore();
-const tenants = ref<any[]>([]);
-const activeTenantId = ref<string>(localStorage.getItem('admin_active_tenant') || '');
+const tenantStore = useTenantStore();
 const currentTenant = ref<any>(null);
 
 const isPlatformSuperAdmin = computed(() =>
   ['platform_superadmin', 'superadmin'].includes(authStore.adminInfo?.role)
 );
 
+const activeTenantId = computed({
+  get: () => tenantStore.activeTenantId,
+  set: (val) => tenantStore.setActiveTenant(val)
+});
+
 async function loadTenants() {
   if (isPlatformSuperAdmin.value) {
     const res = await api.get('/admin/tenants');
-    tenants.value = res;
+    const list = (res as any)?.list || (res as any)?.data || res || [];
+    tenantStore.setTenants(list);
   } else {
     const res = await api.get('/admin/current-tenant');
     currentTenant.value = res;
@@ -48,11 +54,7 @@ async function loadTenants() {
 }
 
 function handleTenantChange(value: string) {
-  if (value) {
-    localStorage.setItem('admin_active_tenant', value);
-  } else {
-    localStorage.removeItem('admin_active_tenant');
-  }
+  tenantStore.setActiveTenant(value);
   ElMessage.success('已切换租户视图，刷新页面查看数据');
   setTimeout(() => window.location.reload(), 500);
 }

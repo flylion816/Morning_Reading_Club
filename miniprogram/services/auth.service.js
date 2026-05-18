@@ -113,6 +113,10 @@ class AuthService {
         // 开发环境使用固定的mock code（后端会通过MD5哈希生成一致的openid）
         code = 'mock_code_dev';
         logger.debug('开发环境使用mock code:', code);
+      } else if (envConfig.currentEnv === 'superman_dev') {
+        // 超人共读测试环境，固定 code → 固定 openid → 固定测试用户
+        code = 'mock_code_superman_dev';
+        logger.debug('superman_dev 环境使用mock code:', code);
       } else {
         // 生产环境获取真实code
         const loginRes = await this.getWechatCode();

@@ -21,8 +21,13 @@
           stripe
           style="width: 100%"
         >
-          <el-table-column prop="slug" label="Slug" width="120" />
           <el-table-column prop="name" label="名称" width="180" />
+          <el-table-column prop="slug" label="Slug" width="140" />
+          <el-table-column label="租户 ID" width="220">
+            <template #default="{ row }">
+              <span style="font-family: monospace; font-size: 12px; color: #888">{{ row._id }}</span>
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="90">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">
@@ -40,7 +45,7 @@
               {{ formatDate(row.createdAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" fixed="right">
+          <el-table-column label="操作" width="160" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" text size="small" @click="handleEdit(row)">
                 编辑
@@ -102,22 +107,27 @@
           <!-- 小程序配置 -->
           <el-divider content-position="left">小程序配置</el-divider>
           <el-form-item label="AppId 列表">
-            <el-tag
-              v-for="(id, index) in formData.wxAppIds"
-              :key="index"
-              closable
-              style="margin-right: 8px; margin-bottom: 4px"
-              @close="formData.wxAppIds.splice(index, 1)"
-            >
-              {{ id }}
-            </el-tag>
-            <el-input
-              v-model="newWxAppId"
-              size="small"
-              style="width: 200px"
-              placeholder="输入 appId 后回车"
-              @keyup.enter="addWxAppId"
-            />
+            <div style="width: 100%">
+              <div style="margin-bottom: 8px" v-if="formData.wxAppIds.length">
+                <el-tag
+                  v-for="(id, index) in formData.wxAppIds"
+                  :key="index"
+                  closable
+                  style="margin-right: 8px; margin-bottom: 4px"
+                  @close="formData.wxAppIds.splice(index, 1)"
+                >
+                  {{ id }}
+                </el-tag>
+              </div>
+              <div style="display: flex; gap: 8px">
+                <el-input
+                  v-model="newWxAppId"
+                  placeholder="输入 appId 后回车或点击添加"
+                  @keyup.enter="addWxAppId"
+                />
+                <el-button @click="addWxAppId">添加</el-button>
+              </div>
+            </div>
           </el-form-item>
           <el-form-item label="登录 AppId">
             <el-input
@@ -222,7 +232,7 @@ async function loadTenants() {
   loading.value = true;
   try {
     const res = await api.get('/admin/tenants');
-    tenants.value = res;
+    tenants.value = (res as any)?.list || (res as any)?.data || res || [];
   } catch (error) {
     ElMessage.error('加载租户列表失败');
   } finally {

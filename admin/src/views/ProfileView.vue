@@ -98,7 +98,9 @@ const rules = {
 const roleLabel = computed(() => {
   const role = authStore.adminInfo?.role;
   const map: Record<string, string> = {
+    platform_superadmin: '平台超级管理员',
     superadmin: '超级管理员',
+    tenant_admin: '租户管理员',
     admin: '管理员',
     operator: '操作员'
   };
@@ -108,7 +110,9 @@ const roleLabel = computed(() => {
 const roleTagType = computed(() => {
   const role = authStore.adminInfo?.role;
   const map: Record<string, 'danger' | 'warning' | 'info'> = {
+    platform_superadmin: 'danger',
     superadmin: 'danger',
+    tenant_admin: 'warning',
     admin: 'warning',
     operator: 'info'
   };

@@ -214,24 +214,40 @@ function _prefixKey(key) {
   return `${appId}:${key}`;
 }
 
+function _logValueForKey(key, value) {
+  if (/token/i.test(key)) return '[REDACTED]';
+  if (typeof value === 'object') return JSON.stringify(value).slice(0, 80);
+  return value;
+}
+
 const tenantStorage = {
   set(key, value) {
-    wx.setStorageSync(_prefixKey(key), value);
+    const prefixedKey = _prefixKey(key);
+    console.log('[TENANT-STORAGE] set', prefixedKey, _logValueForKey(key, value));
+    wx.setStorageSync(prefixedKey, value);
   },
   get(key) {
     // 迁移兼容：先读带前缀的 key，回退到旧 key（首次升级时迁移旧数据）
-    const val = wx.getStorageSync(_prefixKey(key));
-    if (val !== '' && val !== null && val !== undefined) return val;
+    const prefixedKey = _prefixKey(key);
+    const val = wx.getStorageSync(prefixedKey);
+    if (val !== '' && val !== null && val !== undefined) {
+      console.log('[TENANT-STORAGE] get (hit)', prefixedKey);
+      return val;
+    }
     const legacy = wx.getStorageSync(key);
     if (legacy !== '' && legacy !== null && legacy !== undefined) {
+      console.log('[TENANT-STORAGE] get (migrate legacy)', key, '->', prefixedKey);
       tenantStorage.set(key, legacy);
       wx.removeStorageSync(key);
       return legacy;
     }
+    console.log('[TENANT-STORAGE] get (miss)', prefixedKey);
     return null;
   },
   remove(key) {
-    wx.removeStorageSync(_prefixKey(key));
+    const prefixedKey = _prefixKey(key);
+    console.log('[TENANT-STORAGE] remove', prefixedKey);
+    wx.removeStorageSync(prefixedKey);
     wx.removeStorageSync(key);
   }
 };

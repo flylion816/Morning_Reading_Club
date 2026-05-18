@@ -54,7 +54,9 @@
         </el-input>
         <el-select v-model="filter.role" placeholder="角色" clearable style="width: 150px" @change="loadAdmins">
           <el-option label="全部" value="" />
+          <el-option label="平台超级管理员" value="platform_superadmin" />
           <el-option label="超级管理员" value="superadmin" />
+          <el-option label="租户管理员" value="tenant_admin" />
           <el-option label="管理员" value="admin" />
           <el-option label="操作员" value="operator" />
         </el-select>
@@ -170,7 +172,9 @@
         </el-form-item>
         <el-form-item label="角色" prop="role">
           <el-select v-model="formData.role" style="width: 100%">
+            <el-option label="平台超级管理员" value="platform_superadmin" />
             <el-option label="超级管理员" value="superadmin" />
+            <el-option label="租户管理员" value="tenant_admin" />
             <el-option label="管理员" value="admin" />
             <el-option label="操作员" value="operator" />
           </el-select>
@@ -262,7 +266,9 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const loadingSummary = ref(false);
 const admins = ref<any[]>([]);
-const isSuperadmin = computed(() => authStore.adminInfo?.role === 'superadmin');
+const isSuperadmin = computed(() =>
+  ['platform_superadmin', 'superadmin'].includes(authStore.adminInfo?.role)
+);
 const currentUserId = computed(() => authStore.adminInfo?._id || authStore.adminInfo?.id);
 
 // Summary Stats
@@ -383,7 +389,9 @@ const loadAllForSummary = async () => {
     summary.total = allAdmins.length;
     summary.active = allAdmins.filter((a: any) => a.status === 'active').length;
     summary.inactive = allAdmins.filter((a: any) => a.status === 'inactive').length;
-    summary.superadmins = allAdmins.filter((a: any) => a.role === 'superadmin').length;
+    summary.superadmins = allAdmins.filter((a: any) =>
+      ['platform_superadmin', 'superadmin'].includes(a.role)
+    ).length;
   } catch (error) {
     console.error('Failed to load summary stats', error);
   } finally {
@@ -550,7 +558,9 @@ const formatDate = (dateStr: string) => {
 
 const getRoleName = (role: string) => {
   const map: Record<string, string> = {
+    platform_superadmin: '平台超级管理员',
     superadmin: '超级管理员',
+    tenant_admin: '租户管理员',
     admin: '管理员',
     operator: '操作员'
   };
@@ -559,7 +569,9 @@ const getRoleName = (role: string) => {
 
 const getRoleType = (role: string) => {
   const map: Record<string, 'danger' | 'warning' | 'info'> = {
+    platform_superadmin: 'danger',
     superadmin: 'danger',
+    tenant_admin: 'warning',
     admin: 'warning',
     operator: 'info'
   };

@@ -68,6 +68,7 @@ uploads/
 *.db
 *.sqlite
 *.sqlite3
+backups/
 
 # Claude Code 敏感配置（凭证和本地配置）
 .claude/config/server-credentials.env
