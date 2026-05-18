@@ -10,6 +10,7 @@ const {
   extractId,
   redirectAfterCommunityDenied
 } = require('../../utils/period-access');
+const { tenantStorage } = require('../../utils/storage');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -297,7 +298,8 @@ Page({
     if (!sectionId || !diaryContent) return;
     this.setData({ autoSaveStatus: '保存中...' });
     try {
-      wx.setStorageSync(`checkin_draft_${sectionId}`, { content: diaryContent, visibility, savedAt: Date.now() });
+      const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id || 'guest';
+      tenantStorage.set(`checkin_draft_${userId}_${sectionId}`, { content: diaryContent, visibility, savedAt: Date.now() });
       const now = new Date();
       const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       this.setData({ autoSaveStatus: `已自动保存 ${t}` });
@@ -324,13 +326,17 @@ Page({
   _clearDraft() {
     const { sectionId } = this.data;
     if (!sectionId) return;
-    try { wx.removeStorageSync(`checkin_draft_${sectionId}`); } catch (e) {}
+    try {
+      const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id || 'guest';
+      tenantStorage.remove(`checkin_draft_${userId}_${sectionId}`);
+    } catch (e) {}
   },
 
   // 草稿：恢复
   _restoreDraft(sectionId) {
     try {
-      const draft = wx.getStorageSync(`checkin_draft_${sectionId}`);
+      const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id || 'guest';
+      const draft = tenantStorage.get(`checkin_draft_${userId}_${sectionId}`);
       if (draft && draft.content) {
         this.setData({
           diaryContent: draft.content,
