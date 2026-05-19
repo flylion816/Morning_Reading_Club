@@ -147,6 +147,26 @@ function publishSyncEvent(event) {
 }
 
 // =========================================================================
+// 3a. 从 MySQL 删除单条记录
+// =========================================================================
+async function deleteDocumentFromMySQL(collection, documentId) {
+  const conn = await mysqlPool.getConnection();
+  try {
+    const [result] = await conn.execute(
+      `DELETE FROM ${quoteIdentifier(collection)} WHERE id = ?`,
+      [documentId]
+    );
+    logger.info('Document deleted from MySQL', { collection, documentId, affectedRows: result.affectedRows });
+    return true;
+  } catch (error) {
+    logger.error(`Failed to delete ${collection}/${documentId} from MySQL`, error);
+    return false;
+  } finally {
+    conn.release();
+  }
+}
+
+// =========================================================================
 // 3. 同步单条记录到 MySQL（核心同步逻辑）
 // =========================================================================
 async function syncDocumentToMySQL(collection, documentId, data) {
@@ -274,16 +294,22 @@ function startSyncListener() {
           });
 
           // 同步到 MySQL
-          const success = await syncDocumentToMySQL(
-            event.collection,
-            event.documentId,
-            event.data
-          );
+          let success;
+          if (event.type === 'delete') {
+            success = await deleteDocumentFromMySQL(event.collection, event.documentId);
+          } else {
+            success = await syncDocumentToMySQL(
+              event.collection,
+              event.documentId,
+              event.data
+            );
+          }
 
           if (success) {
             logger.info('Sync completed successfully', {
               collection: event.collection,
-              documentId: event.documentId
+              documentId: event.documentId,
+              type: event.type
             });
           } else {
             // 同步失败，重试（最多 3 次）
@@ -330,6 +356,7 @@ module.exports = {
   initRedisClient,
   publishSyncEvent,
   syncDocumentToMySQL,
+  deleteDocumentFromMySQL,
   transformDocumentForMySQL,
   buildUpsertStatement,
   startSyncListener,

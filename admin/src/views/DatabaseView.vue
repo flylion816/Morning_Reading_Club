@@ -227,7 +227,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="consistency" label="状态" width="140" align="center" show-overflow-tooltip />
+          <el-table-column prop="consistency" label="状态" width="220" align="center" />
           <el-table-column label="详情" width="120" align="center">
             <template #default="{ row }">
               <span v-if="row.totalRecords > 0">

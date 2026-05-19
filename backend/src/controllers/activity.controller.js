@@ -147,7 +147,7 @@ exports.getActivityAnalytics = async (req, res) => {
               lastOccurredAt: { $max: '$lastOccurredAt' }
             }
           },
-          { $sort: { '_id.date': -1, lastOccurredAt: -1 } },
+          { $sort: { '_id.date': -1, totalCount: -1, lastOccurredAt: -1 } },
           { $limit: 500 },
           {
             $lookup: {
