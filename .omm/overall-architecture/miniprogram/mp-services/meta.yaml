@@ -1,0 +1,9 @@
+created: 2026-05-16T23:30:00.594Z
+updated: 2026-05-16T23:30:00.594Z
+update_count: 1
+last_field: description
+kind: nested-class
+title: mp-services
+children: []
+parentPath:
+  - miniprogram

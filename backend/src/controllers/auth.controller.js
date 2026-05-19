@@ -132,6 +132,11 @@ async function wechatLogin(req, res, next) {
       tenantId: tenant._id,
       environment: process.env.NODE_ENV
     });
+    logger.debug('[TENANT-AUTH] token payload tenantId', {
+      userTenantId: user.user.tenantId ? user.user.tenantId.toString() : null,
+      tenantId: tenant._id.toString(),
+      tenantSlug: tenant.slug
+    });
 
     res.json(
       success(

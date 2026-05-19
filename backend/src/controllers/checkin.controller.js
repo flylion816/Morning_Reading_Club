@@ -10,6 +10,7 @@ const {
   ensurePeriodCommunityAccess,
   getCommunityAccessiblePeriodIds
 } = require('../services/community-access.service');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 const {
   buildCourseDetailTargetPage,
   formatNotificationTime
@@ -170,14 +171,15 @@ async function createCheckin(req, res, next) {
       periodId,
       sectionId,
       day,
-      checkinDate: now, // 使用当前精确时间，避免唯一索引冲突
+      checkinDate: now,
       readingTime: readingTime || 0,
       completionRate: completionRate || 100,
       note,
       images: images || [],
       mood,
       points: 10,
-      isPublic: isPublic !== undefined ? isPublic : true
+      isPublic: isPublic !== undefined ? isPublic : true,
+      tenantId: getCurrentTenantId()
     });
 
     // 更新用户统计

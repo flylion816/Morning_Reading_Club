@@ -5,6 +5,7 @@ const Section = require('../models/Section');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const { createNotification } = require('./notification.controller');
@@ -220,7 +221,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       enrollment = await existingEnrollment.save();
       syncEventType = 'update';
     } else {
-      enrollment = await Enrollment.create(enrollmentPayload);
+      enrollment = await Enrollment.create({ ...enrollmentPayload, tenantId: enrollmentPayload.tenantId || getCurrentTenantId() });
     }
 
     // 填充用户和期次信息（重新查询以获取populate后的数据）
@@ -347,7 +348,8 @@ exports.enrollPeriod = async (req, res) => {
       periodId,
       paymentStatus: 'pending',
       paymentAmount: 0,
-      status: 'active'
+      status: 'active',
+      tenantId: getCurrentTenantId()
     });
 
     // 填充用户和期次信息（重新查询以获取populate后的数据）

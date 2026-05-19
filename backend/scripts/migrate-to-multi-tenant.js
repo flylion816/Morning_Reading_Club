@@ -5,8 +5,8 @@
  * 1. 创建初始租户"凡人共读"
  * 2. 给所有业务集合的所有文档加 tenantId
  * 3. 删除旧全局 unique 索引，创建带 tenantId 的新 unique 索引
- * 4. 把现有 superadmin 重写为 tenant_admin（绑定到凡人共读）
- * 5. 创建一个 platform_superadmin 账号（用环境变量提供凭证）
+ * 4. 保留现有 superadmin/platform_superadmin 平台角色，给其他管理员绑定凡人共读
+ * 5. 可选创建一个 platform_superadmin 账号（用环境变量提供凭证）
  *
  * 使用方法：
  *   cd backend
@@ -16,19 +16,20 @@
  *
  * 安全与幂等性：
  * - 步骤 1（创建租户）：通过 slug 去重，重复运行安全
- * - 步骤 2（回填 tenantId）：filter { tenantId: { $exists: false } }，已回填的文档自动跳过
+ * - 步骤 2（回填 tenantId）：只处理 tenantId 缺失或为 null 的文档，已回填的文档自动跳过
  * - 步骤 3（重建索引）：dropIndexByKeyIfExists 在索引不存在时直接返回；createIndex 在索引已存在且参数相同时为幂等操作
  * - 步骤 4（admin 角色迁移）：
- *     第一条 updateMany 以 { role: 'superadmin', tenantId: { $exists: false } } 为条件，
- *     已迁移的 superadmin（tenantId 已存在）不会被重复处理；
- *     第二条 updateMany 以 { tenantId: { $exists: false } } 为条件，已补全的 admin/operator 同样跳过。
- *     脚本中途中断后重跑，两条 updateMany 都只处理"剩余未完成"的记录，不会重复操作。
+ *     superadmin/platform_superadmin 保持平台角色且 tenantId 为空；
+ *     admin/operator/tenant_admin 补 tenantId。脚本中途中断后重跑，只处理剩余未完成记录。
  * - 步骤 5（创建 platform_superadmin）：通过 email 去重，重复运行安全
  * - 全程使用 withSystemContext 绕过租户过滤
  * - 完成后立即修改 platform_superadmin 密码
  */
 
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+const path = require('path');
+const fs = require('fs');
+
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const { withSystemContext } = require('../src/utils/tenantContext');
 const Tenant = require('../src/models/Tenant');
@@ -48,7 +49,10 @@ const COLLECTIONS_TO_MIGRATE = [
   'useractivities',
   'subscribe_message_grants',
   'subscribe_message_deliveries',
-  'auditlogs'
+  'auditlogs',
+  'checkincelebrationconfigs',
+  'insightdanmakus',
+  'userreadingcompletions'
 ];
 
 const UNIQUE_INDEX_MIGRATIONS = [
@@ -109,8 +113,42 @@ const INITIAL_TENANT = {
     appId: process.env.WECHAT_APPID || 'wx2b9a3c1d5e4195f8',
     appSecret: process.env.WECHAT_SECRET || null
   },
+  wechatPay: {
+    mchId: process.env.WECHAT_MCH_ID || null,
+    apiKey: process.env.WECHAT_API_KEY || null,
+    appId: process.env.WECHAT_APPID || 'wx2b9a3c1d5e4195f8',
+    notifyUrl: process.env.WECHAT_NOTIFY_URL || null
+  },
   status: 'active'
 };
+
+function buildTenantConfigUpdate() {
+  const $set = {
+    status: 'active',
+    'wechatLogin.appId': INITIAL_TENANT.wechatLogin.appId,
+    'wechatPay.appId': INITIAL_TENANT.wechatPay.appId
+  };
+
+  if (process.env.WECHAT_SECRET) {
+    $set['wechatLogin.appSecret'] = process.env.WECHAT_SECRET;
+  }
+  if (process.env.WECHAT_MCH_ID) {
+    $set['wechatPay.mchId'] = process.env.WECHAT_MCH_ID;
+  }
+  if (process.env.WECHAT_API_KEY) {
+    $set['wechatPay.apiKey'] = process.env.WECHAT_API_KEY;
+  }
+  if (process.env.WECHAT_NOTIFY_URL) {
+    $set['wechatPay.notifyUrl'] = process.env.WECHAT_NOTIFY_URL;
+  }
+
+  return {
+    $set,
+    $addToSet: {
+      wxAppIds: { $each: INITIAL_TENANT.wxAppIds.filter(Boolean) }
+    }
+  };
+}
 
 function sameKey(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -133,6 +171,99 @@ async function rebuildUniqueIndexes(db) {
   }
 }
 
+function moveUploadsToTenantDir(slug) {
+  const uploadRoot = path.resolve(__dirname, '../uploads');
+  const tenantRoot = path.join(uploadRoot, 'tenants', slug);
+  if (!fs.existsSync(uploadRoot)) {
+    console.log('[migrate] uploads 目录不存在，跳过文件迁移');
+    return;
+  }
+  fs.mkdirSync(tenantRoot, { recursive: true });
+
+  let moved = 0;
+  const entries = fs.readdirSync(uploadRoot, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === 'tenants') continue;
+    const src = path.join(uploadRoot, entry.name);
+    const dest = path.join(tenantRoot, entry.name);
+    if (fs.existsSync(dest)) {
+      console.log(`[migrate] uploads 跳过已存在目标: ${entry.name}`);
+      continue;
+    }
+    copyRecursiveSync(src, dest);
+    fs.rmSync(src, { recursive: true, force: true });
+    moved += 1;
+  }
+  console.log(`[migrate] uploads 文件迁移: ${moved} 个`);
+}
+
+function copyRecursiveSync(src, dest) {
+  const stat = fs.statSync(src);
+  if (stat.isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const child of fs.readdirSync(src)) {
+      copyRecursiveSync(path.join(src, child), path.join(dest, child));
+    }
+    return;
+  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+}
+
+function replaceUploadUrl(value, slug) {
+  if (typeof value === 'string') {
+    return value.replace(/\/uploads\/(?!tenants\/)/g, `/uploads/tenants/${slug}/`);
+  }
+  if (Array.isArray(value)) {
+    return value.map(item => replaceUploadUrl(item, slug));
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value).reduce((next, key) => {
+      next[key] = replaceUploadUrl(value[key], slug);
+      return next;
+    }, {});
+  }
+  return value;
+}
+
+function getByPath(obj, pathStr) {
+  return pathStr.split('.').reduce((cur, key) => (cur ? cur[key] : undefined), obj);
+}
+
+async function rewriteUploadUrls(db, slug) {
+  const targets = [
+    { collection: 'sections', fields: ['content', 'audioUrl', 'videoCover'] },
+    { collection: 'periods', fields: ['description', 'coverColor'] },
+    { collection: 'comments', fields: ['content'] },
+    { collection: 'notifications', fields: ['content', 'data'] },
+    { collection: 'checkins', fields: ['images', 'note'] },
+    { collection: 'insights', fields: ['content', 'summary', 'imageUrls'] }
+  ];
+
+  for (const target of targets) {
+    const col = db.collection(target.collection);
+    const cursor = col.find({});
+    let fixed = 0;
+    while (await cursor.hasNext()) {
+      const doc = await cursor.next();
+      const $set = {};
+      for (const field of target.fields) {
+        const oldValue = getByPath(doc, field);
+        if (oldValue === undefined || oldValue === null) continue;
+        const newValue = replaceUploadUrl(oldValue, slug);
+        if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+          $set[field] = newValue;
+        }
+      }
+      if (Object.keys($set).length > 0) {
+        await col.updateOne({ _id: doc._id }, { $set });
+        fixed += 1;
+      }
+    }
+    console.log(`[migrate] ${target.collection} URL 重写: ${fixed} 条`);
+  }
+}
+
 async function main() {
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) throw new Error('未配置 MONGODB_URI');
@@ -146,6 +277,8 @@ async function main() {
       tenant = await Tenant.create(INITIAL_TENANT);
       console.log(`[migrate] 已创建初始租户: ${tenant.slug} (${tenant._id})`);
     } else {
+      await Tenant.updateOne({ _id: tenant._id }, buildTenantConfigUpdate());
+      tenant = await Tenant.findById(tenant._id);
       console.log(`[migrate] 初始租户已存在: ${tenant.slug} (${tenant._id})`);
     }
 
@@ -153,7 +286,9 @@ async function main() {
     const db = mongoose.connection.db;
     for (const collName of COLLECTIONS_TO_MIGRATE) {
       const col = db.collection(collName);
-      const filter = { tenantId: { $exists: false } };
+      const filter = {
+        $or: [{ tenantId: { $exists: false } }, { tenantId: null }]
+      };
       const count = await col.countDocuments(filter);
       if (count === 0) {
         console.log(`[migrate] ${collName}: 无需回填`);
@@ -166,21 +301,23 @@ async function main() {
     // 3. 重建 unique 索引：必须在 tenantId 回填后执行
     await rebuildUniqueIndexes(db);
 
-    // 4. 现有 admin 重写：
-    //    - superadmin → tenant_admin（权限语义不变，名称统一）
-    //    - admin / operator 保持原 role，只补 tenantId
-    // ⚠️ 必须两步走，避免把 admin/operator 错误升级为 tenant_admin
-    const superadminUpdate = await Admin.updateMany(
-      { role: 'superadmin', tenantId: { $exists: false } },
-      { $set: { tenantId: tenant._id, role: 'tenant_admin' } }
+    // 4. 现有 admin 迁移：
+    //    - superadmin / platform_superadmin 保持平台角色，tenantId 为空
+    //    - admin / operator / tenant_admin 绑定到初始租户
+    const platformAdminUpdate = await Admin.updateMany(
+      { role: { $in: ['superadmin', 'platform_superadmin'] } },
+      { $set: { tenantId: null } }
     );
-    console.log(`[migrate] superadmin → tenant_admin 升级: ${superadminUpdate.modifiedCount} 条`);
+    console.log(`[migrate] 平台管理员保持平台角色: ${platformAdminUpdate.modifiedCount} 条`);
 
-    const otherAdminUpdate = await Admin.updateMany(
-      { tenantId: { $exists: false } },
+    const tenantAdminUpdate = await Admin.updateMany(
+      {
+        role: { $nin: ['superadmin', 'platform_superadmin'] },
+        $or: [{ tenantId: { $exists: false } }, { tenantId: null }]
+      },
       { $set: { tenantId: tenant._id } }
     );
-    console.log(`[migrate] admin/operator 补 tenantId: ${otherAdminUpdate.modifiedCount} 条`);
+    console.log(`[migrate] 租户管理员补 tenantId: ${tenantAdminUpdate.modifiedCount} 条`);
 
     // 5. 创建 platform_superadmin（如果配置了凭证且不存在）
     const platformEmail = process.env.PLATFORM_ADMIN_EMAIL;
@@ -204,6 +341,10 @@ async function main() {
     } else {
       console.log('[migrate] 未配置 PLATFORM_ADMIN_EMAIL/PASSWORD，跳过创建 platform_superadmin');
     }
+
+    // 6. 迁移历史上传文件与富文本 URL（幂等）
+    moveUploadsToTenantDir(tenant.slug);
+    await rewriteUploadUrls(db, tenant.slug);
 
     return { tenantId: tenant._id, slug: tenant.slug };
   });

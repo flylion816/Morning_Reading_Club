@@ -21,6 +21,7 @@ USE morning_reading;
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS users (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   openid VARCHAR(64) NOT NULL COMMENT '微信 openid',
   unionid VARCHAR(64) COMMENT '微信 unionid',
   nickname VARCHAR(50) NOT NULL DEFAULT '微信用户' COMMENT '用户昵称',
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_nickname (nickname),
   INDEX idx_created_at (created_at),
   INDEX idx_status (status),
@@ -53,10 +55,12 @@ CREATE TABLE IF NOT EXISTS users (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS admins (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) COMMENT '租户 ID（superadmin 可为空）',
   name VARCHAR(100) NOT NULL COMMENT '管理员名称',
   email VARCHAR(100) NOT NULL UNIQUE COMMENT '邮箱',
+  password VARCHAR(255) COMMENT '密码哈希',
   avatar VARCHAR(500) COMMENT '头像',
-  role ENUM('superadmin', 'admin', 'operator') DEFAULT 'operator' COMMENT '角色',
+  role ENUM('platform_superadmin', 'tenant_admin', 'superadmin', 'admin', 'operator') DEFAULT 'operator' COMMENT '角色',
   permissions JSON COMMENT '权限列表（JSON数组）',
   status ENUM('active', 'inactive') DEFAULT 'active' COMMENT '状态',
   last_login_at DATETIME COMMENT '最后登录时间',
@@ -64,6 +68,7 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_email (email),
   INDEX idx_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -73,6 +78,7 @@ CREATE TABLE IF NOT EXISTS admins (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS periods (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   name VARCHAR(50) NOT NULL COMMENT '期次名称',
   subtitle VARCHAR(100) COMMENT '副标题',
   title VARCHAR(100) COMMENT '标题',
@@ -98,6 +104,7 @@ CREATE TABLE IF NOT EXISTS periods (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_start_date (start_date),
   INDEX idx_status (status),
   INDEX idx_created_at (created_at)
@@ -108,6 +115,7 @@ CREATE TABLE IF NOT EXISTS periods (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS sections (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   period_id CHAR(24) NOT NULL COMMENT '所属期次 ID',
   day INT NOT NULL COMMENT '第几天',
   title VARCHAR(100) NOT NULL COMMENT '课节标题',
@@ -133,6 +141,7 @@ CREATE TABLE IF NOT EXISTS sections (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
   UNIQUE KEY uq_period_day (period_id, day),
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_period_id (period_id),
   INDEX idx_day (day)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -142,6 +151,7 @@ CREATE TABLE IF NOT EXISTS sections (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS checkins (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   user_id CHAR(24) NOT NULL COMMENT '用户 ID',
   period_id CHAR(24) NOT NULL COMMENT '期次 ID',
   section_id CHAR(24) NOT NULL COMMENT '课节 ID',
@@ -155,11 +165,13 @@ CREATE TABLE IF NOT EXISTS checkins (
   points INT DEFAULT 10 COMMENT '获得积分',
   is_public BOOLEAN DEFAULT TRUE COMMENT '是否公开',
   like_count INT DEFAULT 0 COMMENT '点赞数',
+  likes JSON COMMENT '点赞列表',
   is_featured BOOLEAN DEFAULT FALSE COMMENT '是否精选',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
   UNIQUE KEY uq_user_period_date (user_id, period_id, checkin_date),
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_user_id (user_id),
   INDEX idx_period_id (period_id),
   INDEX idx_checkin_date (checkin_date),
@@ -172,6 +184,7 @@ CREATE TABLE IF NOT EXISTS checkins (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS enrollments (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   user_id CHAR(24) NOT NULL COMMENT '用户 ID',
   period_id CHAR(24) NOT NULL COMMENT '期次 ID',
   enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
@@ -198,6 +211,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
   UNIQUE KEY uq_user_period (user_id, period_id),
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_user_id (user_id),
   INDEX idx_period_id (period_id),
   INDEX idx_status (status)
@@ -208,6 +222,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS payments (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   enrollment_id CHAR(24) NOT NULL COMMENT '报名 ID',
   user_id CHAR(24) NOT NULL COMMENT '用户 ID',
   period_id CHAR(24) NOT NULL COMMENT '期次 ID',
@@ -227,6 +242,7 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_user_id (user_id),
   INDEX idx_period_id (period_id),
   INDEX idx_status (status),
@@ -240,6 +256,7 @@ CREATE TABLE IF NOT EXISTS payments (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS insights (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   user_id CHAR(24) NOT NULL COMMENT '创建者用户 ID',
   target_user_id CHAR(24) COMMENT '被看见的用户 ID',
   checkin_id CHAR(24) COMMENT '关联打卡 ID',
@@ -261,6 +278,7 @@ CREATE TABLE IF NOT EXISTS insights (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_user_id (user_id),
   INDEX idx_period_id (period_id),
   INDEX idx_type (type),
@@ -272,12 +290,14 @@ CREATE TABLE IF NOT EXISTS insights (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS insight_likes (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT '自增 ID',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   insight_id CHAR(24) NOT NULL COMMENT '看见 ID',
   user_id CHAR(24) NOT NULL COMMENT '点赞用户 ID',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_insight_id (insight_id),
   INDEX idx_user_id (user_id),
-  UNIQUE KEY uq_insight_user (insight_id, user_id)
+  UNIQUE KEY uq_tenant_insight_user (tenant_id, insight_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -285,6 +305,7 @@ CREATE TABLE IF NOT EXISTS insight_likes (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS insight_requests (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   from_user_id CHAR(24) NOT NULL COMMENT '申请者用户 ID',
   to_user_id CHAR(24) NOT NULL COMMENT '被申请者用户 ID',
   status ENUM('pending', 'approved', 'rejected', 'revoked') DEFAULT 'pending' COMMENT '申请状态',
@@ -301,6 +322,7 @@ CREATE TABLE IF NOT EXISTS insight_requests (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_insight_id (insight_id),
   INDEX idx_from_user_id (from_user_id),
   INDEX idx_to_user_id (to_user_id),
@@ -312,6 +334,7 @@ CREATE TABLE IF NOT EXISTS insight_requests (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS insight_request_audit_logs (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT '自增 ID',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   request_id CHAR(24) NOT NULL COMMENT '申请 ID',
   action VARCHAR(50) NOT NULL COMMENT '操作（APPROVE/REJECT/REVOKE）',
   actor_id CHAR(24) COMMENT '操作者用户 ID',
@@ -319,6 +342,7 @@ CREATE TABLE IF NOT EXISTS insight_request_audit_logs (
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
   note TEXT COMMENT '备注',
   reason TEXT COMMENT '原因',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_request_id (request_id),
   INDEX idx_timestamp (timestamp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -328,6 +352,7 @@ CREATE TABLE IF NOT EXISTS insight_request_audit_logs (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS comments (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   checkin_id CHAR(24) NOT NULL COMMENT '打卡 ID',
   user_id CHAR(24) NOT NULL COMMENT '评论者用户 ID',
   content VARCHAR(1000) NOT NULL COMMENT '评论内容',
@@ -339,6 +364,7 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_checkin_id (checkin_id),
   INDEX idx_user_id (user_id),
   INDEX idx_created_at (created_at)
@@ -349,11 +375,13 @@ CREATE TABLE IF NOT EXISTS comments (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS comment_replies (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   comment_id CHAR(24) NOT NULL COMMENT '评论 ID',
   user_id CHAR(24) NOT NULL COMMENT '回复者用户 ID',
   content VARCHAR(500) NOT NULL COMMENT '回复内容',
   reply_to_user_id CHAR(24) COMMENT '回复给哪个用户（@某人）',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_comment_id (comment_id),
   INDEX idx_user_id (user_id),
   INDEX idx_created_at (created_at)
@@ -364,8 +392,13 @@ CREATE TABLE IF NOT EXISTS comment_replies (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS notifications (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
+  tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   user_id CHAR(24) NOT NULL COMMENT '接收者用户 ID',
-  type ENUM('request_created', 'request_approved', 'request_rejected', 'permission_revoked', 'admin_approved', 'admin_rejected') NOT NULL COMMENT '通知类型',
+  type ENUM(
+    'request_created', 'request_approved', 'request_rejected', 'permission_revoked',
+    'admin_approved', 'admin_rejected', 'enrollment_result', 'payment_result',
+    'comment_received', 'like_received', 'insight_created', 'insight_liked', 'danmaku_received'
+  ) NOT NULL COMMENT '通知类型',
   title VARCHAR(200) NOT NULL COMMENT '标题',
   content TEXT NOT NULL COMMENT '内容',
   request_id CHAR(24) COMMENT '关联的申请 ID',
@@ -378,6 +411,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   raw_json LONGTEXT COMMENT '原始 MongoDB 文档（JSON）',
+  INDEX idx_tenant_id (tenant_id),
   INDEX idx_user_id (user_id),
   INDEX idx_type (type),
   INDEX idx_is_read (is_read),

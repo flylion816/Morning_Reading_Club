@@ -3,7 +3,7 @@ const { success, errors } = require('../utils/response');
 const { withSystemContext } = require('../utils/tenantContext');
 
 /**
- * 列出所有租户（仅 platform_superadmin）
+ * 列出所有租户（platform_superadmin / superadmin）
  */
 exports.listTenants = async (req, res) => {
   try {
@@ -20,7 +20,7 @@ exports.listTenants = async (req, res) => {
 };
 
 /**
- * 创建租户（仅 platform_superadmin）
+ * 创建租户（platform_superadmin / superadmin）
  */
 exports.createTenant = async (req, res) => {
   try {
@@ -49,7 +49,7 @@ exports.createTenant = async (req, res) => {
 };
 
 /**
- * 更新租户（仅 platform_superadmin）
+ * 更新租户（platform_superadmin / superadmin）
  */
 exports.updateTenant = async (req, res) => {
   try {
@@ -88,7 +88,7 @@ exports.updateTenant = async (req, res) => {
  */
 exports.getCurrentTenant = async (req, res) => {
   try {
-    if (req.admin.role === 'platform_superadmin') {
+    if (req.admin.role === 'platform_superadmin' || req.admin.role === 'superadmin') {
       const activeTenant = req.header('X-Active-Tenant');
       if (!activeTenant) return res.json(success(null));
       const tenant = await withSystemContext(null, () => Tenant.findById(activeTenant).lean());

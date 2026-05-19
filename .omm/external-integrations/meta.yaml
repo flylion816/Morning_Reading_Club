@@ -1,9 +1,9 @@
 created: 2026-05-16T07:56:17.420Z
-updated: 2026-05-16T07:57:01.065Z
-update_count: 7
-last_field: note
-git_commit: d9f867e
-git_branch: main
+updated: 2026-05-16T23:31:09.337Z
+update_count: 10
+last_field: context
+git_commit: "4608368"
+git_branch: feature/multi-tenant
 children:
   - backend-services
   - email-runtime
@@ -13,3 +13,28 @@ children:
   - wechat-login-api
   - wechat-pay-api
   - wechat-token-api
+  - wx-jssdk
+  - wx-login
+  - wx-payment
+  - wx-subscribe
+prev_diagram: >
+  graph LR
+      backend-services["Backend Services\nbackend/src/services/"]
+      wechat-login-api["WeChat Login\napi.weixin.qq.com/sns/jscode2session"]
+      wechat-token-api["WeChat Token and Ticket\napi.weixin.qq.com/cgi-bin/"]
+      wechat-pay-api["WeChat Pay\napi.mch.weixin.qq.com/pay/unifiedorder"]
+      subscribe-api["Subscribe Message API\napi.weixin.qq.com/cgi-bin/message/subscribe/send"]
+      miniprogram-wx["wx Client APIs\nwx.login / wx.requestPayment / wx.requestSubscribeMessage"]
+      socketio-runtime["Socket.IO Runtime\nbackend/src/utils/websocket.js"]
+      email-runtime["Email Runtime\nnodemailer dependency"]
+
+      miniprogram-wx -->|"gets login code and payment/subscription permissions"| backend-services
+      backend-services -->|"exchanges login code for openid"| wechat-login-api
+      backend-services -->|"gets access_token and jsapi_ticket"| wechat-token-api
+      backend-services -->|"creates prepay order and receives callback"| wechat-pay-api
+      backend-services -->|"sends templated reminders and notifications"| subscribe-api
+      backend-services -->|"pushes in-app realtime notifications"| socketio-runtime
+      backend-services -->|"available for mail delivery features"| email-runtime
+
+      classDef external fill:#585b70,stroke:#585b70,color:#cdd6f4
+      class wechat-login-api,wechat-token-api,wechat-pay-api,subscribe-api,miniprogram-wx,socketio-runtime,email-runtime external

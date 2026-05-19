@@ -1,0 +1,14 @@
+graph LR
+    admin-views["Views\nadmin/src/views/"]
+    admin-router["Router\nadmin/src/router/"]
+    admin-stores["Stores\nadmin/src/stores/"]
+    admin-api["API Layer\nadmin/src/api/"]
+    admin-components["Components\nadmin/src/components/"]
+
+    classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+    class admin-views entry
+
+    admin-router -->|"route to"| admin-views
+    admin-views -->|"read/write state"| admin-stores
+    admin-views -->|"render"| admin-components
+    admin-stores -->|"fetch data"| admin-api

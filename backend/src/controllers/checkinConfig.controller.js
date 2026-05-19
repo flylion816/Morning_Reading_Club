@@ -1,5 +1,6 @@
 const CheckinCelebrationConfig = require('../models/CheckinCelebrationConfig');
 const { success, errors } = require('../utils/response');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 
 const ANIMATION_STYLES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'random'];
 const RANDOM_ANIMATION_STYLES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
@@ -43,7 +44,8 @@ async function getOrCreateConfig() {
     config = await CheckinCelebrationConfig.create({
       animationStyle: 'random',
       enabledAnimationStyles: RANDOM_ANIMATION_STYLES,
-      messages: DEFAULT_MESSAGES
+      messages: DEFAULT_MESSAGES,
+      tenantId: getCurrentTenantId()
     });
   } else if (!Array.isArray(config.enabledAnimationStyles) || config.enabledAnimationStyles.length === 0) {
     config.enabledAnimationStyles = RANDOM_ANIMATION_STYLES;

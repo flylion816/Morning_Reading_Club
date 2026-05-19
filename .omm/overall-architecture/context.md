@@ -1,1 +1,1 @@
-The product serves learners in a recurring reading camp. The miniprogram handles learner workflows, the backend owns authentication and data rules, and the admin console supports operational management. MongoDB is the primary application store; MySQL is maintained as a synchronized backup/read copy; Redis supports cache, monitoring, rate limiting, and sync queues.
+项目为多租户 SaaS 重构版本（feature/multi-tenant 分支），支持多个晨读营机构共用同一套后端，通过 tenantId 实现数据隔离。每个租户对应一个微信小程序 AppId。

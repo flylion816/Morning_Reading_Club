@@ -1,0 +1,104 @@
+graph TD
+    classDef actor fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+    classDef system fill:#cba6f7,stroke:#cba6f7,color:#1e1e2e
+    classDef action fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+    classDef notify fill:#fab387,stroke:#fab387,color:#1e1e2e
+    classDef admin fill:#f38ba8,stroke:#f38ba8,color:#1e1e2e
+    classDef onboard fill:#585b70,stroke:#585b70,color:#cdd6f4
+
+    user["学员"]
+    operator["运营者"]
+    system_cron["系统定时任务"]
+
+    class user,operator actor
+    class system_cron system
+
+    subgraph 前置：加入晨读营
+        period["浏览期次\n课程介绍 / 价格 / 名额"]
+        enrollment["提交报名表单\n姓名/城市/读书次数/承诺"]
+        payment["微信支付\n付费期次"]
+        enrolled["✅ 报名成功\n进入学员群体"]
+    end
+
+    subgraph 每日仪式：05:45 唤醒
+        remind["📲 微信订阅消息\n05:45 推送「今日晨读开始」"]
+        enter["进入小程序\n查看今日课节"]
+        section_content["今日课节内容\n冥想词 → 问题 → 音频 → 行动"]
+        reading["晨读\n06:00–06:10"]
+    end
+
+    subgraph 晨读后：打卡
+        checkin["提交打卡\n阅读时长 / 完成率 / 心情 / 笔记 / 图片"]
+        streak["连续打卡 & 积分累计"]
+        ranking["排行榜更新"]
+    end
+
+    subgraph 晨读后：小凡看见下发
+        insight_push["📲 系统下发小凡看见\n运营者预先撰写的点评"]
+        insight_view["学员查看自己的小凡看见"]
+        insight_request["申请查看他人的小凡看见\n需对方审批"]
+        danmaku["发弹幕\n在小凡看见页实时互动"]
+    end
+
+    subgraph 社区广场：互动
+        plaza["打卡广场\n查看他人打卡"]
+        comment["评论 & 点赞\n打卡 / 小凡看见"]
+    end
+
+    subgraph 运营后台：管理
+        admin_insight["撰写小凡看见\n基于学员打卡内容"]
+        admin_comment["对打卡 / 看见发评论"]
+        admin_delete["删除不合适内容"]
+        admin_approve["审批看见申请"]
+    end
+
+    subgraph 通知触达
+        notif_inapp["站内通知\n报名结果 / 支付结果 / 点赞 / 评论 / 看见 / 申请状态"]
+        notif_wx["微信订阅消息\n每日晨读提醒"]
+    end
+
+    %% 报名流程
+    user -->|"发现课程"| period
+    period --> enrollment
+    enrollment -->|"付费期次"| payment
+    payment -->|"支付成功"| enrolled
+    enrollment -->|"免费期次直接"| enrolled
+    enrolled -->|"报名/支付结果"| notif_inapp
+
+    %% 每日仪式
+    system_cron -->|"05:45 触发"| remind
+    remind --> user
+    user -->|"点击通知进入"| enter
+    enter --> section_content
+    section_content --> reading
+
+    %% 打卡
+    reading -->|"晨读完成后"| checkin
+    checkin --> streak
+    streak --> ranking
+
+    %% 小凡看见
+    operator -->|"提前或当天撰写"| admin_insight
+    admin_insight --> insight_push
+    system_cron -->|"晨读结束后下发"| insight_push
+    insight_push -->|"通知学员"| notif_inapp
+    user -->|"查看"| insight_view
+    user -->|"申请他人看见"| insight_request
+    insight_request -->|"申请状态变更通知"| notif_inapp
+    insight_request -->|"审批"| admin_approve
+    user -->|"在看见页"| danmaku
+
+    %% 社区互动
+    user -->|"晨读后逛广场"| plaza
+    plaza --> comment
+    user --> comment
+    comment -->|"评论/点赞通知"| notif_inapp
+
+    %% 运营管理
+    operator --> admin_comment
+    operator --> admin_delete
+    admin_comment -->|"通知被评论学员"| notif_inapp
+
+    %% 通知汇总
+    notif_wx -->|"每日推送"| user
+    notif_inapp --> user

@@ -5,7 +5,12 @@ const logger = require('../utils/logger');
 const AuditHelper = require('../utils/auditHelper');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
+const { withSystemContext } = require('../utils/tenantContext');
 require('dotenv').config();
+
+function isPlatformRole(role) {
+  return role === 'platform_superadmin' || role === 'superadmin';
+}
 
 // 生成 JWT Token
 function generateToken(admin) {
@@ -26,50 +31,39 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 验证邮箱和密码是否提供
     if (!email || !password) {
       return res.status(400).json(errors.badRequest('邮箱和密码不能为空'));
     }
 
-    // 查询管理员（包括密码字段用于验证）
-    const admin = await Admin.findOne({ email }).select('+password');
+    // 登录时尚未建立租户上下文，用 bypass 模式执行所有 DB 操作
+    const result = await withSystemContext(null, async () => {
+      const admin = await Admin.findOne({ email }).select('+password');
 
-    // 验证管理员是否存在
-    if (!admin) {
+      if (!admin) return { error: 'not_found' };
+      if (admin.status !== 'active') return { error: 'disabled' };
+
+      const isPasswordValid = await admin.comparePassword(password);
+      if (!isPasswordValid) return { error: 'wrong_password' };
+
+      admin.lastLoginAt = new Date();
+      admin.loginCount = (admin.loginCount || 0) + 1;
+      await admin.save();
+
+      return { admin };
+    });
+
+    if (result.error === 'not_found' || result.error === 'wrong_password') {
       return res.status(401).json(errors.unauthorized('邮箱或密码错误'));
     }
-
-    // 验证管理员状态
-    if (admin.status !== 'active') {
+    if (result.error === 'disabled') {
       return res.status(403).json(errors.forbidden('账户已被禁用'));
     }
 
-    // 验证密码
-    const isPasswordValid = await admin.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json(errors.unauthorized('邮箱或密码错误'));
-    }
-
-    // 更新最后登录时间和登录次数
-    admin.lastLoginAt = new Date();
-    admin.loginCount = (admin.loginCount || 0) + 1;
-    await admin.save();
-
-    // 生成 Token
+    const { admin } = result;
     const token = generateToken(admin);
-    await AuditHelper.logLogin(req, admin._id, admin.name || admin.email);
+    await AuditHelper.logLogin(req, admin._id, admin.name || admin.email, admin.tenantId || null);
 
-    // 返回成功响应
-    const adminData = admin.toJSON();
-    return res.json(
-      success(
-        {
-          token,
-          admin: adminData
-        },
-        '登录成功'
-      )
-    );
+    return res.json(success({ token, admin: admin.toJSON() }, '登录成功'));
   } catch (error) {
     logger.error('Admin login error', error);
     return res.status(500).json(errors.serverError('登录失败'));
@@ -214,7 +208,7 @@ exports.getAdmins = async (req, res) => {
     if (status) filter.status = status;
 
     // 按租户过滤：普通管理员只能看到自己租户的 admin
-    if (req.admin.role !== 'platform_superadmin') {
+    if (!isPlatformRole(req.admin.role)) {
       filter.tenantId = req.admin.tenantId;
     } else {
       // platform_superadmin 可选按 X-Active-Tenant 过滤
@@ -248,25 +242,28 @@ exports.getAdmins = async (req, res) => {
 exports.createAdmin = async (req, res) => {
   try {
     const { name, email, password, role = 'operator', permissions = [], tenantId } = req.body;
+    const isCreatingPlatformRole = isPlatformRole(role);
+    const isCurrentPlatformRole = isPlatformRole(req.admin.role);
 
     // 验证必填字段
     if (!name || !email || !password) {
       return res.status(400).json(errors.badRequest('姓名、邮箱和密码不能为空'));
     }
 
-    // platform_superadmin 不需要 tenantId，其他角色必须指定
-    if (role !== 'platform_superadmin' && !tenantId) {
+    // platform_superadmin/superadmin 不需要 tenantId，其他角色必须指定或选择 X-Active-Tenant
+    const activeTenant = req.header('X-Active-Tenant');
+    if (!isCreatingPlatformRole && !tenantId && !activeTenant) {
       return res.status(400).json(errors.badRequest('普通管理员必须指定 tenantId'));
     }
 
-    // 只有 platform_superadmin 可以创建 platform_superadmin
-    if (role === 'platform_superadmin' && req.admin.role !== 'platform_superadmin') {
+    // 只有平台级管理员可以创建平台级管理员
+    if (isCreatingPlatformRole && !isCurrentPlatformRole) {
       return res.status(403).json(errors.forbidden('权限不足'));
     }
 
     // 普通租户管理员只能在自己租户内创建账号
-    let effectiveTenantId = tenantId;
-    if (req.admin.role !== 'platform_superadmin') {
+    let effectiveTenantId = tenantId || activeTenant;
+    if (!isCurrentPlatformRole) {
       effectiveTenantId = req.admin.tenantId;
     }
 
@@ -284,7 +281,7 @@ exports.createAdmin = async (req, res) => {
       role,
       permissions,
       status: 'active',
-      tenantId: role === 'platform_superadmin' ? null : effectiveTenantId
+      tenantId: isCreatingPlatformRole ? null : effectiveTenantId
     });
 
     await newAdmin.save();
@@ -328,15 +325,18 @@ exports.updateAdmin = async (req, res) => {
     }
 
     // 只允许超级管理员修改角色
-    if (role && req.admin.role !== 'superadmin') {
+    if (role && !isPlatformRole(req.admin.role)) {
       return res.status(403).json(errors.forbidden('没有权限修改角色'));
     }
 
     // 更新可修改的字段
     if (name) admin.name = name;
-    if (role && req.admin.role === 'superadmin') admin.role = role;
-    if (permissions && req.admin.role === 'superadmin') admin.permissions = permissions;
-    if (status && req.admin.role === 'superadmin') admin.status = status;
+    if (role && isPlatformRole(req.admin.role)) {
+      admin.role = role;
+      if (isPlatformRole(role)) admin.tenantId = null;
+    }
+    if (permissions && isPlatformRole(req.admin.role)) admin.permissions = permissions;
+    if (status && isPlatformRole(req.admin.role)) admin.status = status;
 
     await admin.save();
 

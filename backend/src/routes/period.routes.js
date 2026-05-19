@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware, optionalAuthMiddleware, adminMiddleware } = require('../middleware/auth');
-const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { adminAuthMiddleware, optionalAdminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   getPeriodList,
   getPeriodListForUser,
@@ -24,7 +24,8 @@ const {
   userTenantContext,
   adminTenantContext,
   publicTenantContext,
-  optionalUserOrPublicTenantContext
+  optionalUserOrPublicTenantContext,
+  optionalAdminOrPublicTenantContext
 } = require('../middleware/tenantContext');
 
 /**
@@ -32,7 +33,7 @@ const {
  * @desc    获取期次列表（已登录时返回用户个人数据）
  * @access  Public
  */
-router.get('/', optionalAuthMiddleware, optionalUserOrPublicTenantContext, (req, res, next) => {
+router.get('/', optionalAuthMiddleware, optionalAdminAuthMiddleware, optionalAdminOrPublicTenantContext, (req, res, next) => {
   if (req.user) {
     getPeriodListForUser(req, res, next);
   } else {
@@ -59,7 +60,7 @@ router.post('/sync-status', adminAuthMiddleware, adminTenantContext, syncAllPeri
  * @desc    获取期次详情
  * @access  Public
  */
-router.get('/:periodId', publicTenantContext, getPeriodDetail);
+router.get('/:periodId', optionalAdminAuthMiddleware, optionalAdminOrPublicTenantContext, getPeriodDetail);
 
 /**
  * @route   POST /api/v1/periods
@@ -96,7 +97,7 @@ router.post('/:id/copy', adminAuthMiddleware, adminTenantContext, copyPeriod);
  * @desc    获取某期次的所有课节（用户 - 仅已发布）
  * @access  Public
  */
-router.get('/:periodId/sections', publicTenantContext, getSectionsByPeriod);
+router.get('/:periodId/sections', optionalAdminAuthMiddleware, optionalAdminOrPublicTenantContext, getSectionsByPeriod);
 
 /**
  * @route   GET /api/v1/periods/:periodId/sections/admin/all

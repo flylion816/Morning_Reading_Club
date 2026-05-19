@@ -36,6 +36,13 @@ function adminAuthMiddleware(req, res, next) {
         });
       }
 
+      if (!isAdminTokenPayload(decoded)) {
+        return res.status(403).json({
+          code: 403,
+          message: '需要管理员权限'
+        });
+      }
+
       // 将解析后的 token 信息存储到 req.admin
       req.admin = decoded;
 
@@ -48,6 +55,15 @@ function adminAuthMiddleware(req, res, next) {
       message: '认证失败'
     });
   }
+}
+
+function isAdminTokenPayload(decoded) {
+  return !!(
+    decoded &&
+    decoded.kind !== 'ws' &&
+    decoded.id &&
+    (isPlatformRole(decoded.role) || isTenantAdminRole(decoded.role))
+  );
 }
 
 /**
@@ -122,10 +138,26 @@ function requirePermission(...permissions) {
   };
 }
 
+/**
+ * 可选的管理员认证中间件：有合法 admin token 时解析到 req.admin，否则直接 next
+ */
+function optionalAdminAuthMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return next();
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') return next();
+  jwt.verify(parts[1], process.env.JWT_SECRET || 'your-secret-key', (err, decoded) => {
+    if (!err && isAdminTokenPayload(decoded)) req.admin = decoded;
+    next();
+  });
+}
+
 module.exports = {
   adminAuthMiddleware,
+  optionalAdminAuthMiddleware,
   requireRole,
   requirePermission,
   isPlatformRole,
-  isTenantAdminRole
+  isTenantAdminRole,
+  isAdminTokenPayload
 };

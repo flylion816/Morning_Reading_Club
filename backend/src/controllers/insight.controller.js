@@ -18,6 +18,9 @@ const {
   formatNotificationTime,
   truncateText
 } = require('../utils/notification-links');
+const { getCurrentTenantId } = require('../utils/tenantContext');
+
+const ADMIN_ROLES = ['platform_superadmin', 'superadmin', 'tenant_admin', 'admin', 'operator'];
 
 /**
  * 辅助函数：创建通知并自动添加 WebSocket 管理器
@@ -78,7 +81,7 @@ async function notifyUsers(req, userIds, type, title, content, options = {}) {
 }
 
 async function persistInsight(insightData) {
-  const insight = await Insight.create(insightData);
+  const insight = await Insight.create({ ...insightData, tenantId: insightData.tenantId || getCurrentTenantId() });
 
   publishSyncEvent({
     type: 'create',
@@ -698,7 +701,8 @@ async function generateInsight(req, res, next) {
       content: mockContent,
       summary: mockSummary,
       tags: ['学习反馈', '每日总结', '进步追踪'],
-      status: 'completed'
+      status: 'completed',
+      tenantId: getCurrentTenantId()
     });
 
     // 异步同步到 MySQL
@@ -731,7 +735,7 @@ async function getUserInsights(req, res, next) {
     const isAdminViewer =
       req.user?.role === 'admin' ||
       req.user?.role === 'super_admin' ||
-      ['superadmin', 'admin', 'operator'].includes(req.admin?.role);
+      ADMIN_ROLES.includes(req.admin?.role);
     const isOwnerView = targetUserId === currentUserId || isAdminViewer;
     const {
       approvedInsightIds,
@@ -1116,12 +1120,12 @@ async function updateInsight(req, res, next) {
 
     // 权限检查：允许以下情况编辑
     // 1. 内容创建者可以编辑自己创建的内容
-    // 2. 管理员（任何角色：superadmin、admin、operator）可以编辑任何小凡看见（无论来源）
+    // 2. 管理员可以编辑任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
     const isAdmin =
       userRole === 'admin' ||
       userRole === 'super_admin' ||
-      ['superadmin', 'admin', 'operator'].includes(adminRole);
+      ADMIN_ROLES.includes(adminRole);
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权编辑'));
@@ -1180,12 +1184,12 @@ async function deleteInsightManual(req, res, next) {
 
     // 权限检查：允许以下情况删除
     // 1. 内容创建者可以删除自己创建的内容
-    // 2. 管理员（任何角色：superadmin、admin、operator）可以删除任何小凡看见（无论来源）
+    // 2. 管理员可以删除任何小凡看见（无论来源）
     const isCreator = insight.userId.toString() === userId;
     const isAdmin =
       userRole === 'admin' ||
       userRole === 'super_admin' ||
-      ['superadmin', 'admin', 'operator'].includes(adminRole);
+      ADMIN_ROLES.includes(adminRole);
 
     if (!isCreator && !isAdmin) {
       return res.status(403).json(errors.forbidden('无权删除'));
@@ -1364,7 +1368,7 @@ async function createInsightRequest(req, res, next) {
       createData.requestInsightDay = requestInsightDay;
     }
 
-    const request = await InsightRequest.create(createData);
+    const request = await InsightRequest.create({ ...createData, tenantId: getCurrentTenantId() });
 
     // 异步同步到 MySQL
     publishSyncEvent({
@@ -2511,7 +2515,8 @@ async function postDanmaku(req, res, next) {
       content: content.trim(),
       type,
       scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
-      color
+      color,
+      tenantId: getCurrentTenantId()
     });
 
     // 评论弹幕通知看见主人（点赞弹幕已由 likeInsight 单独通知，避免重复）
@@ -2599,7 +2604,8 @@ async function adminLikeForUser(req, res, next) {
       content: '被你触动到了！❤️',
       type: 'like',
       scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
-      color: '#e8a0b4'
+      color: '#e8a0b4',
+      tenantId: getCurrentTenantId()
     });
 
     const insightOwnerId = insight.targetUserId?.toString?.();
@@ -2634,7 +2640,8 @@ async function adminPostDanmakuForUser(req, res, next) {
       content: content.trim(),
       type: 'comment',
       scrollPercent: Math.max(0, Math.min(100, Number(scrollPercent) || 0)),
-      color
+      color,
+      tenantId: getCurrentTenantId()
     });
 
     const insightOwnerId = insight.targetUserId?.toString?.();

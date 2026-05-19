@@ -77,13 +77,13 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO users (
-            id, openid, unionid, nickname, avatar, avatar_url, signature,
+            id, tenant_id, openid, unionid, nickname, avatar, avatar_url, signature,
             gender, total_checkin_days, current_streak, max_streak,
             total_completed_periods, total_points, level, role, status,
             phone, phone_bind_at, last_login_at, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            openid=VALUES(openid), unionid=VALUES(unionid), nickname=VALUES(nickname),
+            tenant_id=VALUES(tenant_id), openid=VALUES(openid), unionid=VALUES(unionid), nickname=VALUES(nickname),
             avatar=VALUES(avatar), avatar_url=VALUES(avatar_url), signature=VALUES(signature),
             gender=VALUES(gender), total_checkin_days=VALUES(total_checkin_days),
             current_streak=VALUES(current_streak), max_streak=VALUES(max_streak),
@@ -95,6 +95,7 @@ class MysqlBackupService {
 
         const params = [
           user._id.toString(),
+          user.tenantId ? user.tenantId.toString() : null,
           user.openid || null,
           user.unionid || null,
           user.nickname || null,
@@ -139,11 +140,11 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO admins (
-            id, name, email, password, avatar, role, permissions, status,
+            id, tenant_id, name, email, password, avatar, role, permissions, status,
             last_login_at, login_count, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            name=VALUES(name), email=VALUES(email), password=VALUES(password),
+            tenant_id=VALUES(tenant_id), name=VALUES(name), email=VALUES(email), password=VALUES(password),
             avatar=VALUES(avatar), role=VALUES(role), permissions=VALUES(permissions),
             status=VALUES(status), last_login_at=VALUES(last_login_at),
             login_count=VALUES(login_count), updated_at=CURRENT_TIMESTAMP,
@@ -152,6 +153,7 @@ class MysqlBackupService {
 
         const params = [
           admin._id.toString(),
+          admin.tenantId ? admin.tenantId.toString() : null,
           admin.name || null,
           admin.email || null,
           admin.password || null,
@@ -187,14 +189,15 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO periods (
-            id, name, subtitle, title, description, icon, cover_color,
+            id, tenant_id, name, subtitle, title, description, icon, cover_color,
             cover_emoji, start_date, end_date, total_days, price, original_price,
             max_enrollment, current_enrollment, enrollment_count, status,
             is_published, sort_order, checkin_count, total_checkins,
+            meeting_id, meeting_join_url,
             created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            name=VALUES(name), subtitle=VALUES(subtitle), title=VALUES(title),
+            tenant_id=VALUES(tenant_id), name=VALUES(name), subtitle=VALUES(subtitle), title=VALUES(title),
             description=VALUES(description), icon=VALUES(icon),
             cover_color=VALUES(cover_color), cover_emoji=VALUES(cover_emoji),
             start_date=VALUES(start_date), end_date=VALUES(end_date),
@@ -204,11 +207,13 @@ class MysqlBackupService {
             enrollment_count=VALUES(enrollment_count), status=VALUES(status),
             is_published=VALUES(is_published), sort_order=VALUES(sort_order),
             checkin_count=VALUES(checkin_count), total_checkins=VALUES(total_checkins),
+            meeting_id=VALUES(meeting_id), meeting_join_url=VALUES(meeting_join_url),
             updated_at=CURRENT_TIMESTAMP, raw_json=VALUES(raw_json)
         `;
 
         const params = [
           period._id.toString(),
+          period.tenantId ? period.tenantId.toString() : null,
           coerce(period.name),
           coerce(period.subtitle),
           coerce(period.title),
@@ -229,6 +234,8 @@ class MysqlBackupService {
           coerce(period.sortOrder),
           coerce(period.checkinCount, 0),
           coerce(period.totalCheckins, 0),
+          coerce(period.meetingId),
+          coerce(period.meetingJoinUrl),
           period.createdAt,
           period.updatedAt,
           JSON.stringify(period)
@@ -255,13 +262,13 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO sections (
-            id, period_id, day, title, subtitle, icon, meditation, question,
+            id, tenant_id, period_id, day, title, subtitle, icon, meditation, question,
             content, description, reflection, action, learn, extract, say,
             audio_url, video_cover, duration, sort_order, \`order\`,
-            is_published, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            is_published, checkin_count, created_at, updated_at, raw_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            period_id=VALUES(period_id), day=VALUES(day), title=VALUES(title),
+            tenant_id=VALUES(tenant_id), period_id=VALUES(period_id), day=VALUES(day), title=VALUES(title),
             subtitle=VALUES(subtitle), icon=VALUES(icon), meditation=VALUES(meditation),
             question=VALUES(question), content=VALUES(content),
             description=VALUES(description), reflection=VALUES(reflection),
@@ -269,12 +276,13 @@ class MysqlBackupService {
             say=VALUES(say), audio_url=VALUES(audio_url),
             video_cover=VALUES(video_cover), duration=VALUES(duration),
             sort_order=VALUES(sort_order), \`order\`=VALUES(\`order\`),
-            is_published=VALUES(is_published), updated_at=CURRENT_TIMESTAMP,
-            raw_json=VALUES(raw_json)
+            is_published=VALUES(is_published), checkin_count=VALUES(checkin_count),
+            updated_at=CURRENT_TIMESTAMP, raw_json=VALUES(raw_json)
         `;
 
         const params = [
           section._id.toString(),
+          section.tenantId ? section.tenantId.toString() : null,
           coerce(section.periodId?.toString()),
           coerce(section.day),
           coerce(section.title),
@@ -295,6 +303,7 @@ class MysqlBackupService {
           coerce(section.sortOrder),
           coerce(section.order),
           section.isPublished === true ? true : (section.isPublished === false ? false : null),
+          coerce(section.checkinCount, 0),
           section.createdAt,
           section.updatedAt,
           JSON.stringify(section)
@@ -321,24 +330,25 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO checkins (
-            id, user_id, period_id, section_id, day, checkin_date,
+            id, tenant_id, user_id, period_id, section_id, day, checkin_date,
             reading_time, completion_rate, note, images, mood, points,
-            is_public, like_count, is_featured, status,
+            is_public, like_count, likes, is_featured,
             created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            user_id=VALUES(user_id), period_id=VALUES(period_id),
+            tenant_id=VALUES(tenant_id), user_id=VALUES(user_id), period_id=VALUES(period_id),
             section_id=VALUES(section_id), day=VALUES(day),
             checkin_date=VALUES(checkin_date), reading_time=VALUES(reading_time),
             completion_rate=VALUES(completion_rate), note=VALUES(note),
             images=VALUES(images), mood=VALUES(mood), points=VALUES(points),
             is_public=VALUES(is_public), like_count=VALUES(like_count),
-            is_featured=VALUES(is_featured), status=VALUES(status),
+            likes=VALUES(likes), is_featured=VALUES(is_featured),
             updated_at=CURRENT_TIMESTAMP, raw_json=VALUES(raw_json)
         `;
 
         const params = [
           checkin._id.toString(),
+          checkin.tenantId ? checkin.tenantId.toString() : null,
           coerce(checkin.userId?.toString()),
           coerce(checkin.periodId?.toString()),
           coerce(checkin.sectionId?.toString()),
@@ -352,8 +362,8 @@ class MysqlBackupService {
           coerce(checkin.points, 0),
           checkin.isPublic === true ? 1 : (checkin.isPublic === false ? 0 : null),
           coerce(checkin.likeCount, 0),
+          checkin.likes ? JSON.stringify(checkin.likes) : null,
           checkin.isFeatured === true ? 1 : (checkin.isFeatured === false ? 0 : null),
-          coerce(checkin.status),
           checkin.createdAt,
           checkin.updatedAt,
           JSON.stringify(checkin)
@@ -380,14 +390,14 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO enrollments (
-            id, user_id, period_id, enrolled_at, status, payment_status,
+            id, tenant_id, user_id, period_id, enrolled_at, status, payment_status,
             payment_amount, paid_at, completed_at, withdrawn_at,
             name, gender, province, detailed_address, age, referrer,
             has_read_book, read_times, enroll_reason, expectation, commitment,
             created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            user_id=VALUES(user_id), period_id=VALUES(period_id),
+            tenant_id=VALUES(tenant_id), user_id=VALUES(user_id), period_id=VALUES(period_id),
             enrolled_at=VALUES(enrolled_at), status=VALUES(status),
             payment_status=VALUES(payment_status), payment_amount=VALUES(payment_amount),
             paid_at=VALUES(paid_at), completed_at=VALUES(completed_at),
@@ -402,6 +412,7 @@ class MysqlBackupService {
 
         const params = [
           enrollment._id.toString(),
+          enrollment.tenantId ? enrollment.tenantId.toString() : null,
           coerce(enrollment.userId?.toString()),
           coerce(enrollment.periodId?.toString()),
           coerce(enrollment.enrolledAt),
@@ -448,12 +459,12 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO payments (
-            id, enrollment_id, user_id, period_id, amount, payment_method,
+            id, tenant_id, enrollment_id, user_id, period_id, amount, payment_method,
             status, wechat, order_no, reconciled, paid_at, failure_reason,
             notes, reconciled_at, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            enrollment_id=VALUES(enrollment_id), user_id=VALUES(user_id),
+            tenant_id=VALUES(tenant_id), enrollment_id=VALUES(enrollment_id), user_id=VALUES(user_id),
             period_id=VALUES(period_id), amount=VALUES(amount),
             payment_method=VALUES(payment_method), status=VALUES(status),
             wechat=VALUES(wechat), order_no=VALUES(order_no),
@@ -465,6 +476,7 @@ class MysqlBackupService {
 
         const params = [
           payment._id.toString(),
+          payment.tenantId ? payment.tenantId.toString() : null,
           coerce(payment.enrollmentId?.toString()),
           coerce(payment.userId?.toString()),
           coerce(payment.periodId?.toString()),
@@ -504,13 +516,13 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO insights (
-            id, user_id, target_user_id, checkin_id, period_id, period_name, section_id,
+            id, tenant_id, user_id, target_user_id, checkin_id, period_id, period_name, section_id,
             title, day, type, media_type, content, image_url, summary, tags,
             status, source, is_published, likes, like_count,
             created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            user_id=VALUES(user_id), target_user_id=VALUES(target_user_id),
+            tenant_id=VALUES(tenant_id), user_id=VALUES(user_id), target_user_id=VALUES(target_user_id),
             checkin_id=VALUES(checkin_id), period_id=VALUES(period_id),
             period_name=VALUES(period_name), section_id=VALUES(section_id),
             title=VALUES(title), day=VALUES(day), type=VALUES(type),
@@ -524,6 +536,7 @@ class MysqlBackupService {
 
         const params = [
           insight._id.toString(),
+          insight.tenantId ? insight.tenantId.toString() : null,
           coerce(insight.userId?.toString()),
           coerce(insight.targetUserId?.toString()),
           coerce(insight.checkinId?.toString()),
@@ -569,12 +582,12 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO insight_requests (
-            id, from_user_id, to_user_id, status, reason, period_id,
+            id, tenant_id, from_user_id, to_user_id, status, reason, period_id,
             insight_id, request_period_name, request_insight_title, request_insight_day,
             approved_at, rejected_at, revoked_at, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            from_user_id=VALUES(from_user_id), to_user_id=VALUES(to_user_id),
+            tenant_id=VALUES(tenant_id), from_user_id=VALUES(from_user_id), to_user_id=VALUES(to_user_id),
             status=VALUES(status), reason=VALUES(reason), period_id=VALUES(period_id),
             insight_id=VALUES(insight_id), request_period_name=VALUES(request_period_name),
             request_insight_title=VALUES(request_insight_title), request_insight_day=VALUES(request_insight_day),
@@ -585,6 +598,7 @@ class MysqlBackupService {
 
         const params = [
           request._id.toString(),
+          request.tenantId ? request.tenantId.toString() : null,
           coerce(request.fromUserId?.toString()),
           coerce(request.toUserId?.toString()),
           coerce(request.status, 'pending'),
@@ -623,25 +637,29 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO comments (
-            id, user_id, content, reply_to_user_id, checkin_id, reply_count,
+            id, tenant_id, user_id, content, reply_to_user_id, checkin_id, reply_count,
+            like_count, likes, replies,
             created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            user_id=VALUES(user_id), content=VALUES(content),
+            tenant_id=VALUES(tenant_id), user_id=VALUES(user_id), content=VALUES(content),
             reply_to_user_id=VALUES(reply_to_user_id),
             checkin_id=VALUES(checkin_id), reply_count=VALUES(reply_count),
+            like_count=VALUES(like_count), likes=VALUES(likes), replies=VALUES(replies),
             updated_at=CURRENT_TIMESTAMP, raw_json=VALUES(raw_json)
         `;
 
         const params = [
           comment._id.toString(),
-          // userId 可能是 populated User 对象，需提取 _id
+          comment.tenantId ? comment.tenantId.toString() : null,
           coerce(comment.userId?._id?.toString() ?? comment.userId?.toString()),
           coerce(comment.content),
-          // replyToUserId 同上
           coerce(comment.replyToUserId?._id?.toString() ?? comment.replyToUserId?.toString()),
           coerce(comment.checkinId?._id?.toString() ?? comment.checkinId?.toString()),
           coerce(comment.replyCount, 0),
+          coerce(comment.likeCount, 0),
+          comment.likes ? JSON.stringify(comment.likes) : null,
+          comment.replies ? JSON.stringify(comment.replies) : null,
           comment.createdAt,
           comment.updatedAt,
           JSON.stringify(comment)
@@ -668,12 +686,12 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO notifications (
-            id, user_id, type, title, content, request_id, sender_id,
+            id, tenant_id, user_id, type, title, content, request_id, sender_id,
             is_read, read_at, is_archived, archived_at, data,
             created_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            user_id=VALUES(user_id), type=VALUES(type), title=VALUES(title),
+            tenant_id=VALUES(tenant_id), user_id=VALUES(user_id), type=VALUES(type), title=VALUES(title),
             content=VALUES(content), request_id=VALUES(request_id),
             sender_id=VALUES(sender_id), is_read=VALUES(is_read),
             read_at=VALUES(read_at), is_archived=VALUES(is_archived),
@@ -683,6 +701,7 @@ class MysqlBackupService {
 
         const params = [
           notification._id.toString(),
+          notification.tenantId ? notification.tenantId.toString() : null,
           coerce(notification.userId?.toString()),
           coerce(notification.type),
           coerce(notification.title),

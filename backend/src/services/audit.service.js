@@ -1,6 +1,7 @@
 const AuditLog = require('../models/AuditLog');
 const Admin = require('../models/Admin');
 const logger = require('../utils/logger');
+const { withSystemContext, getCurrentTenantId } = require('../utils/tenantContext');
 
 /**
  * 审计日志服务 - 记录所有管理员操作
@@ -28,7 +29,8 @@ class AuditService {
         ipAddress = null,
         userAgent = null,
         status = 'success',
-        errorMessage = null
+        errorMessage = null,
+        tenantId = null
       } = options;
 
       const log = new AuditLog({
@@ -52,10 +54,18 @@ class AuditService {
         userAgent,
         status,
         errorMessage,
-        timestamp: new Date()
+        timestamp: new Date(),
+        tenantId
       });
 
-      await log.save();
+      // 审计日志写入需要租户上下文；若当前请求没有（如登录、token刷新），
+      // 优先用显式 tenantId 建立租户上下文，平台级日志才使用 bypass 模式
+      const currentTenantId = getCurrentTenantId();
+      if (currentTenantId) {
+        await log.save();
+      } else {
+        await withSystemContext(tenantId || null, () => log.save());
+      }
       return log;
     } catch (error) {
       logger.error('创建审计日志失败:', error);

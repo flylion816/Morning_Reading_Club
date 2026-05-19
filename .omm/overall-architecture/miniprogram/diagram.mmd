@@ -1,0 +1,15 @@
+graph LR
+    pages["Pages\nminiprogram/pages/"]
+    mp-services["Services\nminiprogram/services/"]
+    components["Components\nminiprogram/components/"]
+    mp-utils["Utils\nminiprogram/utils/"]
+    mp-config["Config\nminiprogram/config/"]
+
+    classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+    class pages entry
+
+    pages -->|"call API"| mp-services
+    pages -->|"render UI"| components
+    pages -->|"use helpers"| mp-utils
+    mp-services -->|"read env/constants"| mp-config
+    mp-utils -->|"read env/constants"| mp-config

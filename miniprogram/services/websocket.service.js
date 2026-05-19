@@ -67,7 +67,7 @@ class WebSocketService {
 
             // 创建 WebSocket 连接
             this.socket = wx.connectSocket({
-              url: `${socketUrl}?token=${wsToken}`
+              url: `${socketUrl}?wsToken=${encodeURIComponent(wsToken)}`
             });
 
             // 连接成功

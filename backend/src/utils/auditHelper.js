@@ -9,7 +9,8 @@ class AuditHelper {
     const principal = req.admin || req.user || {};
     return {
       id: principal.id || principal._id || principal.userId,
-      name: principal.name || principal.email || '管理员'
+      name: principal.name || principal.email || '管理员',
+      tenantId: principal.tenantId || null
     };
   }
 
@@ -31,7 +32,8 @@ class AuditHelper {
         },
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
-        status: 'success'
+        status: 'success',
+        tenantId: actor.tenantId
       };
 
       await auditService.createLog(log);
@@ -65,7 +67,8 @@ class AuditHelper {
         },
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
-        status: 'success'
+        status: 'success',
+        tenantId: actor.tenantId
       };
 
       await auditService.createLog(log);
@@ -92,7 +95,8 @@ class AuditHelper {
         },
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
-        status: 'success'
+        status: 'success',
+        tenantId: actor.tenantId
       };
 
       await auditService.createLog(log);
@@ -128,7 +132,8 @@ class AuditHelper {
         },
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
-        status: 'success'
+        status: 'success',
+        tenantId: actor.tenantId
       };
 
       await auditService.createLog(log);
@@ -140,7 +145,7 @@ class AuditHelper {
   /**
    * 记录登录操作
    */
-  static async logLogin(req, adminId, adminName) {
+  static async logLogin(req, adminId, adminName, tenantId = null) {
     try {
       const log = {
         adminId,
@@ -150,7 +155,8 @@ class AuditHelper {
         description: '管理员登录',
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
-        status: 'success'
+        status: 'success',
+        tenantId
       };
 
       await auditService.createLog(log);
@@ -173,7 +179,8 @@ class AuditHelper {
         description: '管理员登出',
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
-        status: 'success'
+        status: 'success',
+        tenantId: actor.tenantId
       };
 
       await auditService.createLog(log);
@@ -198,7 +205,8 @@ class AuditHelper {
         ipAddress: this.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: 'failure',
-        errorMessage
+        errorMessage,
+        tenantId: actor.tenantId
       };
 
       await auditService.createLog(log);

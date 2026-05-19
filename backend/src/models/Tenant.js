@@ -33,7 +33,8 @@ const TenantSchema = new mongoose.Schema(
     wechatPay: {
       mchId: { type: String, default: null },
       apiKey: { type: String, default: null, select: false },
-      appId: { type: String, default: null }
+      appId: { type: String, default: null },
+      notifyUrl: { type: String, default: null }
     },
     branding: {
       logo: { type: String, default: null },

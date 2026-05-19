@@ -1,1 +1,2 @@
-The backend has broad operational power: payment changes, enrollment state, notification dispatch, backup/sync, and database management share one API process. Any change in these areas needs targeted validation for authentication, authorization, data consistency, and production-data safety.
+- MySQL 同步依赖 Redis 队列，Redis 不可用时同步功能降级
+- 多租户数据隔离依赖 Mongoose plugin 自动注入，需确保所有 Model 都挂载了该 plugin

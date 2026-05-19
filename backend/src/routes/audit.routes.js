@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const auditController = require('../controllers/audit.controller');
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { adminTenantContext } = require('../middleware/tenantContext');
 
 /**
- * 所有审计日志路由都需要认证
+ * 所有审计日志路由都需要管理员认证 + 租户上下文
  */
-router.use(authMiddleware);
+router.use(adminAuthMiddleware, adminTenantContext);
 
 /**
  * 获取审计日志列表
  * GET /api/v1/audit-logs
- * Query: page, pageSize, adminId, actionType, resourceType, startDate, endDate, status
  */
 router.get('/', auditController.getLogs.bind(auditController));
 
@@ -46,6 +46,6 @@ router.get('/export', auditController.exportLogs.bind(auditController));
  * 清理过期日志（仅超级管理员）
  * POST /api/v1/audit-logs/cleanup
  */
-router.post('/cleanup', adminMiddleware, auditController.cleanupExpiredLogs.bind(auditController));
+router.post('/cleanup', auditController.cleanupExpiredLogs.bind(auditController));
 
 module.exports = router;

@@ -123,7 +123,7 @@ function getSkipReason(taskName, doc, context) {
       if (targetUserId && !context.userIds.has(targetUserId)) {
         return `targetUserId ${targetUserId} missing`;
       }
-      if (periodId && !context.periodIds.has(periodId)) {
+      if (!periodId || !context.periodIds.has(periodId)) {
         return `periodId ${periodId} missing`;
       }
       return null;

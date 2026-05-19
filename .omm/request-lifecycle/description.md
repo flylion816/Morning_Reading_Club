@@ -1,1 +1,1 @@
-End-to-end lifecycle for HTTP requests from the WeChat miniprogram and Vue admin console through the Express backend to data stores, side effects, and normalized responses.
+描述一个 API 请求从客户端到数据库的完整生命周期：客户端携带 JWT token 和 X-Wx-AppId 请求头 → Express 路由 → 认证中间件（JWT 验证）→ 租户上下文中间件（AsyncLocalStorage 注入 tenantId）→ 控制器（检查缓存）→ 服务层 → Mongoose 模型（tenantPlugin 自动注入 tenantId 过滤）→ MongoDB。

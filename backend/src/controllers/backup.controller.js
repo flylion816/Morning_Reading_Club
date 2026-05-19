@@ -61,18 +61,31 @@ function intelligentCompare(mongoVal, mysqlVal) {
     return (mongoVal === 1 && mysqlVal === true) || (mongoVal === 0 && mysqlVal === false);
   }
 
-  // 处理日期时间精度差异（MongoDB 毫秒级，MySQL 秒级）
-  if (mongoVal && mysqlVal && typeof mongoVal === 'string' && typeof mysqlVal === 'string') {
-    const mongoDate = new Date(mongoVal);
-    const mysqlDate = new Date(mysqlVal);
-    if (!Number.isNaN(mongoDate.getTime()) && !Number.isNaN(mysqlDate.getTime())) {
-      // 比较到秒级精度
-      const mongoSecs = Math.floor(mongoDate.getTime() / 1000);
-      const mysqlSecs = Math.floor(mysqlDate.getTime() / 1000);
-      if (mongoSecs === mysqlSecs) {
-        return true;
-      }
+  // 处理日期时间精度差异（MongoDB 毫秒级字符串，MySQL 返回 Date 对象，四舍五入到秒）
+  const mongoDate = mongoVal instanceof Date ? mongoVal : (typeof mongoVal === 'string' ? new Date(mongoVal) : null);
+  const mysqlDate = mysqlVal instanceof Date ? mysqlVal : (typeof mysqlVal === 'string' ? new Date(mysqlVal) : null);
+  if (mongoDate && mysqlDate && !Number.isNaN(mongoDate.getTime()) && !Number.isNaN(mysqlDate.getTime())) {
+    // MySQL DATETIME 四舍五入到秒，允许 ±1 秒误差
+    if (Math.abs(mongoDate.getTime() - mysqlDate.getTime()) <= 1000) {
+      return true;
     }
+    // MySQL DATE 列只存日期，返回当天 00:00:00 本地时间 — 比较本地 YYYY-MM-DD
+    const toLocalDateStr = d => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    if (toLocalDateStr(mongoDate) === toLocalDateStr(mysqlDate)) {
+      return true;
+    }
+  }
+
+  // 处理数字与字符串数字的比较（如 MySQL DECIMAL 返回 "1.00" vs MongoDB number 1）
+  const mongoNum = Number(mongoVal);
+  const mysqlNum = Number(mysqlVal);
+  if (!Number.isNaN(mongoNum) && !Number.isNaN(mysqlNum) && mongoNum === mysqlNum) {
+    return true;
   }
 
   // 普通字符串比较
@@ -161,10 +174,13 @@ async function compareBackup(req, res) {
     const mysqlStats = {};
     const comparison = {};
 
-    // 获取 MongoDB 统计
-    for (const [name, model] of Object.entries(MODELS)) {
-      mongoStats[name] = await model.countDocuments();
-    }
+    // 全量对比需要跨租户读取所有数据，使用 bypass 模式
+    await withSystemContext(null, async () => {
+      // 获取 MongoDB 统计
+      for (const [name, model] of Object.entries(MODELS)) {
+        mongoStats[name] = await model.countDocuments();
+      }
+    });
 
     // 获取 MySQL 统计
     const conn = await mysqlPool.getConnection();
@@ -191,7 +207,6 @@ async function compareBackup(req, res) {
         const mysqlCount = mysqlStats[table] || 0;
 
         if (mongoCount === 0 && mysqlCount === 0) {
-          // 两个库都没有数据，无法计算一致率
           comparison[table] = {
             mongodb: 0,
             mysql: 0,
@@ -207,7 +222,6 @@ async function compareBackup(req, res) {
         }
 
         if (mongoCount !== mysqlCount) {
-          // 记录数不一致
           comparison[table] = {
             mongodb: mongoCount,
             mysql: mysqlCount,
@@ -228,11 +242,13 @@ async function compareBackup(req, res) {
           if (!model) continue;
 
           let mongoData = [];
-          if (table === 'admins') {
-            mongoData = await model.find().select('+password').lean();
-          } else {
-            mongoData = await model.find().lean();
-          }
+          await withSystemContext(null, async () => {
+            if (table === 'admins') {
+              mongoData = await model.find().select('+password').lean();
+            } else {
+              mongoData = await model.find().lean();
+            }
+          });
 
           const [mysqlData] = await conn.query(`SELECT * FROM \`${table}\``);
 
@@ -249,7 +265,8 @@ async function compareBackup(req, res) {
 
             // 统计每条记录的所有字段
             for (const field of Object.keys(mongoRecord)) {
-              if (field === '__v') continue;
+              // _id 已通过 id 匹配；__v 无对应列；updatedAt 由 MySQL ON UPDATE 自动更新
+              if (field === '__v' || field === '_id' || field === 'updatedAt') continue;
 
               const mongoVal = mongoRecord[field];
               const mysqlFieldName = field.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -426,118 +443,131 @@ async function fullSync(req, res, next) {
   try {
     const syncResults = {};
     const skippedResults = {};
+    const skippedDetails = {};
     let totalSynced = 0;
-    const syncContext = await buildSyncReferenceContext();
 
     logger.info('Starting full sync from MongoDB to MySQL');
 
-    // 同步 Users
-    const users = await User.find({});
-    for (const user of users) {
-      await mysqlBackupService.syncUser(user);
-      totalSynced++;
-    }
-    syncResults.users = users.length;
+    // 全量同步需要跨租户读取所有数据，使用 bypass 模式
+    await withSystemContext(null, async () => {
+      const syncContext = await buildSyncReferenceContext();
 
-    // 同步 Admins
-    const admins = await Admin.find({}).select('+password');
-    for (const admin of admins) {
-      await mysqlBackupService.syncAdmin(admin);
-      totalSynced++;
-    }
-    syncResults.admins = admins.length;
+      // 同步 Users
+      const users = await User.find({});
+      for (const user of users) {
+        await mysqlBackupService.syncUser(user);
+        totalSynced++;
+      }
+      syncResults.users = users.length;
 
-    // 同步 Periods
-    const periods = await Period.find({});
-    for (const period of periods) {
-      await mysqlBackupService.syncPeriod(period);
-      totalSynced++;
-    }
-    syncResults.periods = periods.length;
+      // 同步 Admins
+      const admins = await Admin.find({}).select('+password');
+      for (const admin of admins) {
+        await mysqlBackupService.syncAdmin(admin);
+        totalSynced++;
+      }
+      syncResults.admins = admins.length;
 
-    // 同步 Sections
-    const sections = await Section.find({});
-    const sectionBatch = filterDocumentsForMysqlSync('sections', sections, syncContext);
-    for (const section of sectionBatch.syncableDocs) {
-      await mysqlBackupService.syncSection(section);
-      totalSynced++;
-    }
-    syncResults.sections = sectionBatch.syncableDocs.length;
-    skippedResults.sections = sectionBatch.skippedDocs.length;
+      // 同步 Periods
+      const periods = await Period.find({});
+      for (const period of periods) {
+        await mysqlBackupService.syncPeriod(period);
+        totalSynced++;
+      }
+      syncResults.periods = periods.length;
 
-    // 同步 Checkins
-    const checkins = await Checkin.find({});
-    const checkinBatch = filterDocumentsForMysqlSync('checkins', checkins, syncContext);
-    for (const checkin of checkinBatch.syncableDocs) {
-      await mysqlBackupService.syncCheckin(checkin);
-      totalSynced++;
-    }
-    syncResults.checkins = checkinBatch.syncableDocs.length;
-    skippedResults.checkins = checkinBatch.skippedDocs.length;
+      // 同步 Sections
+      const sections = await Section.find({});
+      const sectionBatch = filterDocumentsForMysqlSync('sections', sections, syncContext);
+      for (const section of sectionBatch.syncableDocs) {
+        await mysqlBackupService.syncSection(section);
+        totalSynced++;
+      }
+      syncResults.sections = sectionBatch.syncableDocs.length;
+      skippedResults.sections = sectionBatch.skippedDocs.length;
+      if (sectionBatch.skippedDocs.length) skippedDetails.sections = sectionBatch.skippedDocs;
 
-    // 同步 Enrollments
-    const enrollments = await Enrollment.find({});
-    const enrollmentBatch = filterDocumentsForMysqlSync('enrollments', enrollments, syncContext);
-    for (const enrollment of enrollmentBatch.syncableDocs) {
-      await mysqlBackupService.syncEnrollment(enrollment);
-      totalSynced++;
-    }
-    syncResults.enrollments = enrollmentBatch.syncableDocs.length;
-    skippedResults.enrollments = enrollmentBatch.skippedDocs.length;
+      // 同步 Checkins
+      const checkins = await Checkin.find({});
+      const checkinBatch = filterDocumentsForMysqlSync('checkins', checkins, syncContext);
+      for (const checkin of checkinBatch.syncableDocs) {
+        await mysqlBackupService.syncCheckin(checkin);
+        totalSynced++;
+      }
+      syncResults.checkins = checkinBatch.syncableDocs.length;
+      skippedResults.checkins = checkinBatch.skippedDocs.length;
+      if (checkinBatch.skippedDocs.length) skippedDetails.checkins = checkinBatch.skippedDocs;
 
-    // 同步 Payments
-    const payments = await Payment.find({});
-    const paymentBatch = filterDocumentsForMysqlSync('payments', payments, syncContext);
-    for (const payment of paymentBatch.syncableDocs) {
-      await mysqlBackupService.syncPayment(payment);
-      totalSynced++;
-    }
-    syncResults.payments = paymentBatch.syncableDocs.length;
-    skippedResults.payments = paymentBatch.skippedDocs.length;
+      // 同步 Enrollments
+      const enrollments = await Enrollment.find({});
+      const enrollmentBatch = filterDocumentsForMysqlSync('enrollments', enrollments, syncContext);
+      for (const enrollment of enrollmentBatch.syncableDocs) {
+        await mysqlBackupService.syncEnrollment(enrollment);
+        totalSynced++;
+      }
+      syncResults.enrollments = enrollmentBatch.syncableDocs.length;
+      skippedResults.enrollments = enrollmentBatch.skippedDocs.length;
+      if (enrollmentBatch.skippedDocs.length) skippedDetails.enrollments = enrollmentBatch.skippedDocs;
 
-    // 同步 Insights
-    const insights = await Insight.find({});
-    const insightBatch = filterDocumentsForMysqlSync('insights', insights, syncContext);
-    for (const insight of insightBatch.syncableDocs) {
-      await mysqlBackupService.syncInsight(insight);
-      totalSynced++;
-    }
-    syncResults.insights = insightBatch.syncableDocs.length;
-    skippedResults.insights = insightBatch.skippedDocs.length;
+      // 同步 Payments
+      const payments = await Payment.find({});
+      const paymentBatch = filterDocumentsForMysqlSync('payments', payments, syncContext);
+      for (const payment of paymentBatch.syncableDocs) {
+        await mysqlBackupService.syncPayment(payment);
+        totalSynced++;
+      }
+      syncResults.payments = paymentBatch.syncableDocs.length;
+      skippedResults.payments = paymentBatch.skippedDocs.length;
+      if (paymentBatch.skippedDocs.length) skippedDetails.payments = paymentBatch.skippedDocs;
 
-    // 同步 InsightRequests
-    const requests = await InsightRequest.find({});
-    const requestBatch = filterDocumentsForMysqlSync('insight_requests', requests, syncContext);
-    for (const insightRequest of requestBatch.syncableDocs) {
-      await mysqlBackupService.syncInsightRequest(insightRequest);
-      totalSynced++;
-    }
-    syncResults.insight_requests = requestBatch.syncableDocs.length;
-    skippedResults.insight_requests = requestBatch.skippedDocs.length;
+      // 同步 Insights
+      const insights = await Insight.find({});
+      const insightBatch = filterDocumentsForMysqlSync('insights', insights, syncContext);
+      for (const insight of insightBatch.syncableDocs) {
+        await mysqlBackupService.syncInsight(insight);
+        totalSynced++;
+      }
+      syncResults.insights = insightBatch.syncableDocs.length;
+      skippedResults.insights = insightBatch.skippedDocs.length;
+      if (insightBatch.skippedDocs.length) skippedDetails.insights = insightBatch.skippedDocs;
 
-    // 同步 Comments
-    const comments = await Comment.find({});
-    const commentBatch = filterDocumentsForMysqlSync('comments', comments, syncContext);
-    for (const comment of commentBatch.syncableDocs) {
-      await mysqlBackupService.syncComment(comment);
-      totalSynced++;
-    }
-    syncResults.comments = commentBatch.syncableDocs.length;
-    skippedResults.comments = commentBatch.skippedDocs.length;
+      // 同步 InsightRequests
+      const requests = await InsightRequest.find({});
+      const requestBatch = filterDocumentsForMysqlSync('insight_requests', requests, syncContext);
+      for (const insightRequest of requestBatch.syncableDocs) {
+        await mysqlBackupService.syncInsightRequest(insightRequest);
+        totalSynced++;
+      }
+      syncResults.insight_requests = requestBatch.syncableDocs.length;
+      skippedResults.insight_requests = requestBatch.skippedDocs.length;
+      if (requestBatch.skippedDocs.length) skippedDetails.insight_requests = requestBatch.skippedDocs;
 
-    // 同步 Notifications
-    const notifications = await Notification.find({});
-    const notificationBatch = filterDocumentsForMysqlSync(
-      'notifications',
-      notifications,
-      syncContext
-    );
-    for (const notification of notificationBatch.syncableDocs) {
-      await mysqlBackupService.syncNotification(notification);
-      totalSynced++;
-    }
-    syncResults.notifications = notificationBatch.syncableDocs.length;
-    skippedResults.notifications = notificationBatch.skippedDocs.length;
+      // 同步 Comments
+      const comments = await Comment.find({});
+      const commentBatch = filterDocumentsForMysqlSync('comments', comments, syncContext);
+      for (const comment of commentBatch.syncableDocs) {
+        await mysqlBackupService.syncComment(comment);
+        totalSynced++;
+      }
+      syncResults.comments = commentBatch.syncableDocs.length;
+      skippedResults.comments = commentBatch.skippedDocs.length;
+      if (commentBatch.skippedDocs.length) skippedDetails.comments = commentBatch.skippedDocs;
+
+      // 同步 Notifications
+      const notifications = await Notification.find({});
+      const notificationBatch = filterDocumentsForMysqlSync(
+        'notifications',
+        notifications,
+        syncContext
+      );
+      for (const notification of notificationBatch.syncableDocs) {
+        await mysqlBackupService.syncNotification(notification);
+        totalSynced++;
+      }
+      syncResults.notifications = notificationBatch.syncableDocs.length;
+      skippedResults.notifications = notificationBatch.skippedDocs.length;
+      if (notificationBatch.skippedDocs.length) skippedDetails.notifications = notificationBatch.skippedDocs;
+    });
 
     logger.info('Full sync completed', {
       totalSynced,
@@ -548,6 +578,7 @@ async function fullSync(req, res, next) {
     res.json(success({
       syncResults,
       skippedResults,
+      skippedDetails,
       totalSynced,
       message: '✅ 全量同步完成'
     }, '全量同步结果'));
@@ -766,7 +797,8 @@ async function compareFieldsDetail(req, res) {
 
         // 比对所有字段
         Object.keys(mongoRecord).forEach((field) => {
-          if (field === '__v') return;
+          // _id 已通过 id 匹配；__v 无对应列；updatedAt 由 MySQL ON UPDATE 自动更新
+          if (field === '__v' || field === '_id' || field === 'updatedAt') return;
 
           const mongoValue = mongoRecord[field];
           const mysqlFieldName = field.replace(/([A-Z])/g, '_$1').toLowerCase();

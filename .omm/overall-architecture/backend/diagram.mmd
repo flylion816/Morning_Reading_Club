@@ -1,0 +1,17 @@
+graph LR
+    routes["Routes\nbackend/src/routes/"]
+    middleware["Middleware\nbackend/src/middleware/"]
+    controllers["Controllers\nbackend/src/controllers/"]
+    services["Services\nbackend/src/services/"]
+    models["Models\nbackend/src/models/"]
+    utils["Utils\nbackend/src/utils/"]
+
+    classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+    class routes entry
+
+    routes -->|"apply auth + tenant context"| middleware
+    middleware -->|"forward validated request"| controllers
+    controllers -->|"call business logic"| services
+    services -->|"query/mutate data"| models
+    controllers -->|"use helpers"| utils
+    services -->|"use helpers"| utils

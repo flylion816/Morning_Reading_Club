@@ -5,6 +5,7 @@ const UserReadingCompletion = require('../models/UserReadingCompletion');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 
 const ADMIN_SECTION_LIST_FIELDS =
   '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt';
@@ -52,6 +53,13 @@ async function getSectionsByPeriod(req, res, next) {
   try {
     const { periodId } = req.params;
     const { page = 1, limit = 50, startDay, endDay } = req.query;
+
+    const tenantId = getCurrentTenantId();
+    logger.debug('[TENANT-SECTION] getSectionsByPeriod', {
+      tenantId: tenantId ? tenantId.toString() : null,
+      periodId,
+      userId: req.user?.userId || req.user?._id || null
+    });
 
     // 验证期次存在
     const period = await Period.findById(periodId);
@@ -209,6 +217,13 @@ async function getSectionDetail(req, res, next) {
   try {
     const { sectionId } = req.params;
 
+    const tenantId = getCurrentTenantId();
+    logger.debug('[TENANT-SECTION] getSectionDetail', {
+      tenantId: tenantId ? tenantId.toString() : null,
+      sectionId,
+      userId: req.user?.userId || req.user?._id || null
+    });
+
     const section = await Section.findById(sectionId)
       .populate('periodId', '_id name title')
       .lean();
@@ -275,8 +290,8 @@ async function createSection(req, res, next) {
       audioUrl,
       videoCover,
       duration,
-      sortOrder
-      // isPublished defaults to true from schema
+      sortOrder,
+      tenantId: getCurrentTenantId()
     });
 
     // 异步同步到 MySQL

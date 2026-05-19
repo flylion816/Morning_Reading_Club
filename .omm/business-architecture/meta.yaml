@@ -1,0 +1,67 @@
+created: 2026-05-17T00:06:22.362Z
+updated: 2026-05-17T00:25:41.502Z
+update_count: 4
+last_field: description
+git_commit: "4608368"
+git_branch: feature/multi-tenant
+prev_diagram: |
+  graph TD
+      user["学员\n微信用户"]
+      operator["运营者\n管理后台"]
+
+      subgraph 课程体系
+          period["晨读营期次\n有开始/结束日期、价格、名额"]
+          section["每日课节\n含冥想词、问题、音频、行动"]
+      end
+
+      subgraph 报名与支付
+          enrollment["报名记录\n含姓名/城市/读书次数/承诺"]
+          payment["支付订单\n微信支付，单位：分"]
+      end
+
+      subgraph 学习行为
+          checkin["每日打卡\n阅读时长、完成率、心情、笔记、图片"]
+          ranking["排行榜\n连续打卡天数 / 总积分"]
+          streak["连续打卡 & 积分\n用户成长体系"]
+      end
+
+      subgraph 社区互动
+          insight["小凡看见\n运营者对学员打卡的点评/洞见"]
+          insight_request["看见申请\n学员申请查看他人的小凡看见"]
+          comment["评论 & 点赞\n打卡广场互动"]
+          danmaku["弹幕\n小凡看见的实时弹幕"]
+      end
+
+      subgraph 通知体系
+          notification["站内通知\n报名结果/支付结果/点赞/评论/看见"]
+          subscribe_msg["微信订阅消息\n每日学习提醒推送"]
+      end
+
+      classDef actor fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+      classDef concern fill:#f38ba8,stroke:#f38ba8,color:#1e1e2e
+      class user,operator actor
+
+      user -->|"浏览 & 报名"| period
+      period -->|"包含 23 天"| section
+      user -->|"填写报名表单"| enrollment
+      enrollment -->|"付费期次触发"| payment
+      payment -->|"支付成功后激活"| enrollment
+
+      user -->|"每天完成课节后"| checkin
+      checkin -->|"关联"| section
+      checkin -->|"累计积分 & 连续天数"| streak
+      streak -->|"更新"| ranking
+
+      operator -->|"基于打卡内容撰写"| insight
+      insight -->|"关联"| checkin
+      user -->|"申请查看他人看见"| insight_request
+      insight_request -->|"审批通过后可见"| insight
+
+      user -->|"在打卡广场"| comment
+      user -->|"在小凡看见"| danmaku
+
+      enrollment -->|"报名/支付结果"| notification
+      comment -->|"评论/点赞触发"| notification
+      insight -->|"被看见触发"| notification
+      insight_request -->|"申请状态变更"| notification
+      subscribe_msg -->|"每日 06:00 推送"| user

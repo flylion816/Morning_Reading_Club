@@ -1,0 +1,13 @@
+created: 2026-05-16T23:28:52.639Z
+updated: 2026-05-16T23:29:18.681Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: miniprogram
+children:
+  - components
+  - mp-config
+  - mp-services
+  - mp-utils
+  - pages
+parentPath: []

@@ -1,22 +1,24 @@
 graph LR
-    miniprogram-client["Miniprogram Client\nminiprogram/"]
-    backend-api["Backend API\nbackend/src/"]
-    admin-console["Admin Console\nadmin/src/"]
-    storage-layer["Storage Layer\nMongoDB / MySQL / Redis / uploads"]
-    external-services["External Services\nWeChat / WeChat Pay / Socket.IO"]
-    operations-scripts["Operations Scripts\n.claude/ scripts/ deploy/"]
+    miniprogram["WeChat Miniprogram\nminiprogram/"]
+    admin["Admin Dashboard\nadmin/"]
+    backend["Backend API\nbackend/src/"]
+    mongodb["MongoDB\n(primary store)"]
+    mysql["MySQL\n(sync/backup)"]
+    redis["Redis\n(cache/pubsub)"]
+    wechat-platform["WeChat Platform\n(external)"]
 
-    miniprogram-client -->|"calls JSON APIs and uploads files"| backend-api
-    admin-console -->|"manages content, users, payments, audits"| backend-api
-    backend-api -->|"persists primary app data and read models"| storage-layer
-    backend-api -->|"authenticates, pays, notifies, signs JS SDK"| external-services
-    miniprogram-client -->|"uses wx.login, requestPayment, subscribe messages"| external-services
-    operations-scripts -->|"starts, tests, deploys, and backs up services"| backend-api
-    operations-scripts -->|"checks and backs up production data"| storage-layer
-
-    classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
-    classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
     classDef external fill:#585b70,stroke:#585b70,color:#cdd6f4
-    class miniprogram-client,backend-api,admin-console entry
-    class storage-layer store
-    class external-services external
+    classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+    classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+
+    class wechat-platform external
+    class mongodb,mysql,redis store
+    class miniprogram,admin entry
+
+    miniprogram -->|"HTTPS REST API + WebSocket"| backend
+    admin -->|"HTTPS REST API"| backend
+    backend -->|"read/write"| mongodb
+    backend -->|"sync/backup"| mysql
+    backend -->|"cache/pubsub"| redis
+    backend -->|"OAuth login, subscribe msg"| wechat-platform
+    miniprogram -->|"OAuth login"| wechat-platform

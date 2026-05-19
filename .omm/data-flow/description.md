@@ -1,1 +1,1 @@
-Major data paths for identity, learning content, enrollment/payment, participation, insights, notifications, audit records, and backup/sync data across the application.
+描述数据在系统中的流转路径：用户操作写入 MongoDB（主存储）→ 变更事件触发同步服务 → 通过 Redis 队列异步写入 MySQL（副本）。同时，定时备份服务（02:00 MongoDB / 02:30 MySQL）将数据导出到本地备份文件。

@@ -41,7 +41,7 @@ class WebSocketManager {
         // 兜底从 query 取一次性短期 wsToken（真机 header 不可用时）
         if (!decoded) {
           const parsed = url.parse(req.url, true);
-          const wsToken = parsed.query.wsToken;
+          const wsToken = parsed.query.wsToken || parsed.query.token;
           if (wsToken) decoded = await consumeWsToken(wsToken);
         }
 

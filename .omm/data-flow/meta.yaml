@@ -1,11 +1,12 @@
 created: 2026-05-16T07:54:05.289Z
-updated: 2026-05-16T07:54:52.056Z
-update_count: 7
-last_field: note
-git_commit: d9f867e
-git_branch: main
+updated: 2026-05-16T23:30:35.137Z
+update_count: 10
+last_field: concern
+git_commit: "4608368"
+git_branch: feature/multi-tenant
 children:
   - audit-ops-data
+  - backup-service
   - derived-store
   - enrollment-payment
   - identity-data
@@ -15,3 +16,33 @@ children:
   - participation-data
   - primary-store
   - redis-runtime
+  - sync-service
+prev_diagram: >
+  graph LR
+      identity-data["Identity Data\nUser/Admin tokens and profiles"]
+      learning-content["Learning Content\nPeriods / Sections / reading tasks"]
+      enrollment-payment["Enrollment and Payment\nEnrollment / Payment documents"]
+      participation-data["Participation Data\nCheckins / Comments / Rankings"]
+      insight-data["Insight Data\nInsights / requests / danmaku"]
+      notification-data["Notification Data\nNotifications / subscribe grants / deliveries"]
+      audit-ops-data["Audit and Ops Data\nAuditLog / UserActivity / backups"]
+      primary-store["Primary Store\nMongoDB"]
+      derived-store["Derived Store\nMySQL backup/read copy"]
+      redis-runtime["Runtime Store\nRedis cache / metrics / sync queue"]
+
+      identity-data -->|"authenticates protected user and admin flows"| learning-content
+      learning-content -->|"defines available periods and sections"| enrollment-payment
+      enrollment-payment -->|"unlocks access and membership"| participation-data
+      participation-data -->|"feeds visibility, stats, and ranking"| insight-data
+      insight-data -->|"creates requests, approvals, likes, danmaku"| notification-data
+      notification-data -->|"notifies users and records delivery state"| primary-store
+      audit-ops-data -->|"records admin writes and runtime actions"| primary-store
+      learning-content -->|"stored as documents"| primary-store
+      enrollment-payment -->|"stored as documents and synced"| primary-store
+      participation-data -->|"stored as documents and synced"| primary-store
+      primary-store -->|"transforms documents to relational rows"| derived-store
+      primary-store -->|"publishes sync tasks and metrics"| redis-runtime
+      redis-runtime -->|"drives async MySQL upserts"| derived-store
+
+      classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+      class primary-store,derived-store,redis-runtime store

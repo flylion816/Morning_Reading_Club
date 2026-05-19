@@ -5,6 +5,7 @@ const notificationServiceModule = require('../../services/notification.service')
 const constants = require('../../config/constants');
 const { hasPaidEnrollment, clearEnrollmentCache } = require('../../utils/period-access');
 const { decorateUserAvatar } = require('../../utils/avatar');
+const { tenantStorage } = require('../../utils/storage');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 
@@ -157,9 +158,9 @@ Page({
       confirmColor: '#e74c3c',
       success: (res) => {
         if (!res.confirm) return;
-        wx.removeStorageSync(constants.STORAGE_KEYS.TOKEN);
-        wx.removeStorageSync(constants.STORAGE_KEYS.REFRESH_TOKEN);
-        wx.removeStorageSync(constants.STORAGE_KEYS.USER_INFO);
+        tenantStorage.remove(constants.STORAGE_KEYS.TOKEN);
+        tenantStorage.remove(constants.STORAGE_KEYS.REFRESH_TOKEN);
+        tenantStorage.remove(constants.STORAGE_KEYS.USER_INFO);
         const app = getApp();
         const previousUserKey =
           app.globalData.userInfo?._id || app.globalData.userInfo?.id || '';

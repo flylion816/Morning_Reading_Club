@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const UserActivity = require('../models/UserActivity');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 
 const ACTION_LABELS = {
   app_open: '访问小程序',
@@ -64,7 +65,8 @@ exports.recordActivity = async (req, res) => {
       sectionId: toObjectId(sectionId),
       metadata: metadata && typeof metadata === 'object' ? metadata : {},
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      tenantId: getCurrentTenantId()
     });
 
     res.json(success({ id: activity._id }));

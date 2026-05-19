@@ -1,13 +1,43 @@
 created: 2026-05-16T07:44:22.980Z
-updated: 2026-05-16T07:45:07.938Z
-update_count: 7
-last_field: note
-git_commit: 960129f
-git_branch: main
+updated: 2026-05-16T23:28:45.167Z
+update_count: 12
+last_field: concern
+git_commit: "4608368"
+git_branch: feature/multi-tenant
 children:
+  - admin
   - admin-console
+  - backend
   - backend-api
   - external-services
+  - miniprogram
   - miniprogram-client
+  - mongodb
+  - mysql
   - operations-scripts
+  - redis
   - storage-layer
+  - wechat-platform
+prev_diagram: >
+  graph LR
+      miniprogram-client["Miniprogram Client\nminiprogram/"]
+      backend-api["Backend API\nbackend/src/"]
+      admin-console["Admin Console\nadmin/src/"]
+      storage-layer["Storage Layer\nMongoDB / MySQL / Redis / uploads"]
+      external-services["External Services\nWeChat / WeChat Pay / Socket.IO"]
+      operations-scripts["Operations Scripts\n.claude/ scripts/ deploy/"]
+
+      miniprogram-client -->|"calls JSON APIs and uploads files"| backend-api
+      admin-console -->|"manages content, users, payments, audits"| backend-api
+      backend-api -->|"persists primary app data and read models"| storage-layer
+      backend-api -->|"authenticates, pays, notifies, signs JS SDK"| external-services
+      miniprogram-client -->|"uses wx.login, requestPayment, subscribe messages"| external-services
+      operations-scripts -->|"starts, tests, deploys, and backs up services"| backend-api
+      operations-scripts -->|"checks and backs up production data"| storage-layer
+
+      classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+      classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+      classDef external fill:#585b70,stroke:#585b70,color:#cdd6f4
+      class miniprogram-client,backend-api,admin-console entry
+      class storage-layer store
+      class external-services external

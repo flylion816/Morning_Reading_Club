@@ -6,6 +6,7 @@ const Period = require('../models/Period');
 const SubscribeMessageGrant = require('../models/SubscribeMessageGrant');
 const SubscribeMessageDelivery = require('../models/SubscribeMessageDelivery');
 const logger = require('../utils/logger');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 const {
   getSubscribeSceneConfig,
   getSubscribeSceneList,
@@ -384,7 +385,8 @@ class SubscribeMessageService {
       errorCode,
       errorMessage,
       sourceType,
-      sourceId: sourceId ? String(sourceId) : null
+      sourceId: sourceId ? String(sourceId) : null,
+      tenantId: getCurrentTenantId()
     });
   }
 

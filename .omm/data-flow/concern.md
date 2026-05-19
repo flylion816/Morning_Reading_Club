@@ -1,1 +1,1 @@
-MongoDB-to-MySQL sync transforms populated objects, ObjectIds, dates, booleans, and JSON fields. Schema drift or populated forms can create subtle sync failures, so payment, enrollment, and admin-account changes need sync verification.
+Redis 不可用时同步队列停止，MySQL 数据将落后于 MongoDB。需监控 Redis 健康状态并设置告警。

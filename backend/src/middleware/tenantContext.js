@@ -1,6 +1,7 @@
 const { runWithTenant, withSystemContext } = require('../utils/tenantContext');
 const mongoose = require('mongoose');
 const Tenant = require('../models/Tenant');
+const logger = require('../utils/logger');
 
 /**
  * 用户路由的租户上下文中间件
@@ -13,6 +14,13 @@ function userTenantContext(req, res, next) {
   if (!req.user.tenantId) {
     return res.status(403).json({ code: 403, message: '令牌缺少租户信息，请重新登录' });
   }
+
+  logger.debug('[TENANT-MW] userTenantContext', {
+    tenantId: req.user.tenantId,
+    userId: req.user.userId || req.user._id,
+    path: req.path,
+    method: req.method
+  });
 
   runWithTenant(
     {
@@ -41,7 +49,7 @@ function adminTenantContext(req, res, next) {
 
   const role = req.admin.role;
 
-  if (role === 'platform_superadmin') {
+  if (role === 'platform_superadmin' || role === 'superadmin') {
     const activeTenantHeader = req.header('X-Active-Tenant');
     if (activeTenantHeader && mongoose.Types.ObjectId.isValid(activeTenantHeader)) {
       return runWithTenant(
@@ -91,6 +99,15 @@ async function publicTenantContext(req, res, next) {
     if (!tenant) {
       return res.status(403).json({ code: 403, message: '未识别的小程序 appId' });
     }
+
+    logger.debug('[TENANT-MW] publicTenantContext', {
+      wxAppId,
+      tenantId: tenant._id,
+      tenantSlug: tenant.slug,
+      path: req.path,
+      method: req.method
+    });
+
     runWithTenant(
       {
         tenantId: tenant._id,
@@ -109,10 +126,21 @@ function optionalUserOrPublicTenantContext(req, res, next) {
   return publicTenantContext(req, res, next);
 }
 
+/**
+ * 兼容管理后台和小程序的租户上下文
+ * - 若请求已经过 adminAuthMiddleware（req.admin 存在）：走 adminTenantContext
+ * - 否则：走 publicTenantContext（需要 X-Wx-AppId）
+ */
+function optionalAdminOrPublicTenantContext(req, res, next) {
+  if (req.admin) return adminTenantContext(req, res, next);
+  return publicTenantContext(req, res, next);
+}
+
 module.exports = {
   userTenantContext,
   adminTenantContext,
   withSystemContext,
   publicTenantContext,
-  optionalUserOrPublicTenantContext
+  optionalUserOrPublicTenantContext,
+  optionalAdminOrPublicTenantContext
 };

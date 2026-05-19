@@ -6,12 +6,13 @@ const {
   optionalAuthMiddleware,
   adminMiddleware
 } = require('../middleware/auth');
-const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { adminAuthMiddleware, optionalAdminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   userTenantContext,
   adminTenantContext,
   publicTenantContext,
-  optionalUserOrPublicTenantContext
+  optionalUserOrPublicTenantContext,
+  optionalAdminOrPublicTenantContext
 } = require('../middleware/tenantContext');
 const {
   getSectionsByPeriod,
@@ -35,7 +36,7 @@ router.get('/today/task', authMiddleware, userTenantContext, getTodayTask);
  * @desc    获取期次的课程列表
  * @access  Public / Optional Auth
  */
-router.get('/period/:periodId', optionalAuthMiddleware, optionalUserOrPublicTenantContext, getSectionsByPeriod);
+router.get('/period/:periodId', optionalAuthMiddleware, optionalAdminAuthMiddleware, optionalAdminOrPublicTenantContext, getSectionsByPeriod);
 
 /**
  * @route   POST /api/v1/sections/:sectionId/reading-completion
@@ -49,7 +50,7 @@ router.post('/:sectionId/reading-completion', authMiddleware, userTenantContext,
  * @desc    获取课程详情
  * @access  Public / Optional Auth
  */
-router.get('/:sectionId', optionalAuthMiddleware, optionalUserOrPublicTenantContext, getSectionDetail);
+router.get('/:sectionId', optionalAuthMiddleware, optionalAdminAuthMiddleware, optionalAdminOrPublicTenantContext, getSectionDetail);
 
 /**
  * @route   POST /api/v1/sections

@@ -1,1 +1,1 @@
-External integration map for platform APIs and runtime services outside the project codebase, centered on WeChat login, WeChat JS SDK signing, WeChat Pay, subscription messages, Socket.IO realtime delivery, and email capability.
+描述系统与微信平台的所有集成点：OAuth 登录（小程序 wx.login → 后端 code2session 换取 openid）、订阅消息推送（学习提醒）、JS-SDK（网页授权/分享）、微信支付（小程序端发起 + 后端创建订单和验证回调）。

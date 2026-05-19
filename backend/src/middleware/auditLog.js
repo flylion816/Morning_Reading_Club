@@ -2,6 +2,8 @@ const auditService = require('../services/audit.service');
 const logger = require('../utils/logger');
 const AuditHelper = require('../utils/auditHelper');
 
+const ADMIN_ROLES = ['platform_superadmin', 'superadmin', 'tenant_admin', 'admin', 'operator'];
+
 /**
  * 审计日志中间件 - 自动记录所有API操作
  * 需要在路由之前注册：app.use(auditLogMiddleware)
@@ -78,7 +80,8 @@ const auditLogMiddleware = (req, res, next) => {
         ipAddress: AuditHelper.getClientIp(req),
         userAgent: req.get('user-agent'),
         status: statusCode < 300 ? 'success' : 'failure',
-        errorMessage: statusCode >= 400 ? auditInfo.responseBody?.message || '操作失败' : null
+        errorMessage: statusCode >= 400 ? auditInfo.responseBody?.message || '操作失败' : null,
+        tenantId: actor.tenantId
       };
 
       await auditService.createLog(auditLog);
@@ -252,7 +255,7 @@ function getAuditActor(req) {
   }
 
   const role = principal.role;
-  const isAdmin = ['superadmin', 'admin', 'operator'].includes(role);
+  const isAdmin = ADMIN_ROLES.includes(role);
   const id = principal.id || principal._id || principal.userId;
 
   if (!isAdmin || !id) {
@@ -261,7 +264,8 @@ function getAuditActor(req) {
 
   return {
     id,
-    name: principal.name || principal.email || '管理员'
+    name: principal.name || principal.email || '管理员',
+    tenantId: principal.tenantId || null
   };
 }
 

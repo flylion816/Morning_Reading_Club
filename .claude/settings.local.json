@@ -50,7 +50,12 @@
       "Skill(claude-hud:setup)",
       "Skill(claude-hud:configure)",
       "Bash(xargs -I{} git grep -l \"沉浸\" {} --)",
-      "Bash(bash scripts/deploy-to-server-optimized.sh)"
+      "Bash(bash scripts/deploy-to-server-optimized.sh)",
+      "mcp__plugin_oh-my-claudecode_t__state_write",
+      "Bash(ssh *)",
+      "WebFetch(domain:github.com)",
+      "mcp__plugin_oh-my-claudecode_t__list_omc_skills",
+      "Bash(echo \"后端启动中，PID: $!\")"
     ],
     "deny": [],
     "ask": []

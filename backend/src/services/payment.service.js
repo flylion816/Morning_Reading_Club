@@ -10,6 +10,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const logger = require('../utils/logger');
+const Tenant = require('../models/Tenant');
 
 // 微信支付配置
 const WECHAT_PAY_CONFIG = {
@@ -28,6 +29,35 @@ const WECHAT_PAY_CONFIG = {
   notifyUrl: process.env.WECHAT_NOTIFY_URL || 'https://wx.shubai01.com/api/v1/payments/wechat/callback'
 };
 
+function mergeWechatPayConfig(overrides = {}) {
+  return {
+    ...WECHAT_PAY_CONFIG,
+    appId: overrides.appId || WECHAT_PAY_CONFIG.appId,
+    mchId: overrides.mchId || WECHAT_PAY_CONFIG.mchId,
+    apiKey: overrides.apiKey || WECHAT_PAY_CONFIG.apiKey,
+    apiV3Key: overrides.apiV3Key || WECHAT_PAY_CONFIG.apiV3Key,
+    certPath: overrides.certPath || WECHAT_PAY_CONFIG.certPath,
+    keyPath: overrides.keyPath || WECHAT_PAY_CONFIG.keyPath,
+    notifyUrl: overrides.notifyUrl || WECHAT_PAY_CONFIG.notifyUrl
+  };
+}
+
+async function resolveWechatPayConfig(tenantId) {
+  if (!tenantId) {
+    return mergeWechatPayConfig();
+  }
+
+  const tenant = await Tenant.findById(tenantId)
+    .select('+wechatPay.apiKey wechatPay')
+    .lean();
+
+  if (!tenant) {
+    throw new Error('租户不存在，无法获取微信支付配置');
+  }
+
+  return mergeWechatPayConfig(tenant.wechatPay || {});
+}
+
 /**
  * 调用微信统一下单 API（旧版本 MD5 签名）
  *
@@ -40,22 +70,24 @@ const WECHAT_PAY_CONFIG = {
  */
 async function unifiedOrder(params) {
   try {
+    const payConfig = await resolveWechatPayConfig(params.tenantId);
+
     // 构造请求参数
     const requestData = {
-      appid: WECHAT_PAY_CONFIG.appId,
-      mch_id: WECHAT_PAY_CONFIG.mchId,
+      appid: payConfig.appId,
+      mch_id: payConfig.mchId,
       nonce_str: generateNonceStr(),
       body: params.body || '晨读营课程费用',
       out_trade_no: params.orderId, // 商户订单号
       total_fee: params.amount, // 金额（分）
       spbill_create_ip: '127.0.0.1',
-      notify_url: WECHAT_PAY_CONFIG.notifyUrl,
+      notify_url: payConfig.notifyUrl,
       trade_type: 'JSAPI', // 小程序支付
       openid: params.openid || ''
     };
 
     // 生成签名
-    const sign = generateMD5Sign(requestData, WECHAT_PAY_CONFIG.apiKey);
+    const sign = generateMD5Sign(requestData, payConfig.apiKey);
     requestData.sign = sign;
 
     // 构造 XML 请求体
@@ -112,7 +144,7 @@ async function unifiedOrder(params) {
  * @param {string} params.prepayId 预支付交易会话 ID
  * @returns {string} MD5 签名
  */
-function generatePaymentSignature(params) {
+function generatePaymentSignature(params, payConfig = WECHAT_PAY_CONFIG) {
   // 小程序支付二次签名：字段名必须使用 camelCase（微信官方文档要求）
   const signData = {
     appId: params.appId,
@@ -122,7 +154,7 @@ function generatePaymentSignature(params) {
     timeStamp: params.timeStamp
   };
 
-  return generateMD5Sign(signData, WECHAT_PAY_CONFIG.apiKey);
+  return generateMD5Sign(signData, payConfig.apiKey);
 }
 
 /**
@@ -132,12 +164,12 @@ function generatePaymentSignature(params) {
  * @param {string} prepayId 微信返回的预支付 ID
  * @returns {Object} 前端支付参数
  */
-function generatePaymentParams(prepayId) {
+function generatePaymentParams(prepayId, payConfig = WECHAT_PAY_CONFIG) {
   const timeStamp = Math.floor(Date.now() / 1000).toString();
   const nonceStr = generateNonceStr();
 
   const params = {
-    appid: WECHAT_PAY_CONFIG.appId,
+    appid: payConfig.appId,
     timeStamp,
     nonceStr,
     prepayId,
@@ -146,11 +178,11 @@ function generatePaymentParams(prepayId) {
 
   // 生成签名
   const paySign = generatePaymentSignature({
-    appId: WECHAT_PAY_CONFIG.appId,
+    appId: payConfig.appId,
     timeStamp,
     nonceStr,
     prepayId
-  });
+  }, payConfig);
 
   return {
     timeStamp,
@@ -266,14 +298,14 @@ function escapeXml(str) {
  * @param {Object} params 回调参数
  * @returns {boolean} 签名是否有效
  */
-function verifyNotifySign(params) {
+function verifyNotifySign(params, payConfig = WECHAT_PAY_CONFIG) {
   // 提取签名
   const sign = params.sign;
   const dataForSign = { ...params };
   delete dataForSign.sign;
 
   // 生成签名并对比
-  const calculatedSign = generateMD5Sign(dataForSign, WECHAT_PAY_CONFIG.apiKey);
+  const calculatedSign = generateMD5Sign(dataForSign, payConfig.apiKey);
   return sign === calculatedSign;
 }
 
@@ -284,5 +316,6 @@ module.exports = {
   generateNonceStr,
   verifyNotifySign,
   xmlToObject,
+  resolveWechatPayConfig,
   WECHAT_PAY_CONFIG
 };

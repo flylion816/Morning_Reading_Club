@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 
 /**
  * 支付/订单模型
@@ -137,7 +138,8 @@ PaymentSchema.statics.createOrder = async function (
     amount,
     paymentMethod,
     orderNo,
-    status: 'pending'
+    status: 'pending',
+    tenantId: getCurrentTenantId()
   });
 
   return payment;

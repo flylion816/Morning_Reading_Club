@@ -7,6 +7,7 @@ const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
 const { ensurePeriodCommunityAccess } = require('../services/community-access.service');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 const {
   buildCourseDetailTargetPage,
   formatNotificationTime,
@@ -104,7 +105,8 @@ async function createComment(req, res, next) {
       userId,
       content,
       replyCount: 0,
-      replies: []
+      replies: [],
+      tenantId: getCurrentTenantId()
     });
 
     // 异步备份到MySQL

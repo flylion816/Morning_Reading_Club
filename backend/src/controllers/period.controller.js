@@ -3,6 +3,7 @@ const Checkin = require('../models/Checkin');
 const mongoose = require('mongoose');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
+const { getCurrentTenantId } = require('../utils/tenantContext');
 const {
   calculatePeriodStatus,
   getPeriodStatusText,
@@ -261,7 +262,7 @@ async function createPeriod(req, res, next) {
     const period = await Period.create({
       name,
       subtitle,
-      title: title || name, // 如果没有提供title，使用name作为默认值
+      title: title || name,
       description,
       icon,
       coverColor,
@@ -277,7 +278,8 @@ async function createPeriod(req, res, next) {
       meetingJoinUrl: meetingJoinUrl || null,
       status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
-      currentEnrollment: 0
+      currentEnrollment: 0,
+      tenantId: getCurrentTenantId()
     });
 
     // 异步同步到 MySQL
@@ -428,7 +430,8 @@ async function copyPeriod(req, res, next) {
       meetingJoinUrl: null,
       status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
-      currentEnrollment: 0
+      currentEnrollment: 0,
+      tenantId: getCurrentTenantId()
     });
 
     // 获取源期次的所有课节

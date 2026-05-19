@@ -353,6 +353,15 @@ describe('Audit Helper Utils', () => {
 
       expect(log.status).to.equal('success');
     });
+
+    it('应该保留登录管理员的租户 ID', async () => {
+      await AuditHelper.logLogin(req, 'admin_id', 'Admin Name', 'tenant_123');
+
+      const call = auditServiceStub.createLog.getCall(0);
+      const log = call.args[0];
+
+      expect(log.tenantId).to.equal('tenant_123');
+    });
   });
 
   describe('logLogout 方法', () => {

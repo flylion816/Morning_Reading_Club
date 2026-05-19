@@ -145,7 +145,7 @@ class AuditController {
     try {
       // 检查是否是超级管理员
       const admin = req.admin || req.user;
-      if (admin.role !== 'superadmin') {
+      if (admin.role !== 'superadmin' && admin.role !== 'platform_superadmin') {
         return res.status(403).json(errors.forbidden('只有超级管理员可以清理日志'));
       }
 

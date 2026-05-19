@@ -14,9 +14,9 @@ const router = express.Router();
 router.post('/auth/admin/login', adminController.login);
 router.post('/auth/admin/init', adminController.initSuperAdmin);
 
-// 受保护路由（认证 + 租户上下文）
-router.use(adminAuthMiddleware);
-router.use(adminTenantContext);
+// 受保护路由（认证 + 租户上下文）— 只作用于 /auth/admin/* 和 /admin/* 和 /admins/*
+router.use(['/auth/admin', '/admin', '/admins'], adminAuthMiddleware);
+router.use(['/auth/admin', '/admin', '/admins'], adminTenantContext);
 
 // 管理员个人路由
 router.get('/auth/admin/profile', adminController.getProfile);
@@ -27,7 +27,7 @@ router.post('/auth/admin/change-password', adminController.changePassword);
 router.post('/auth/admin/change-db-access-password', adminController.changeDbAccessPassword);
 router.post('/auth/admin/verify-db-access', adminController.verifyDbAccess);
 
-// 租户管理（仅 platform_superadmin）
+// 租户管理（platform_superadmin / superadmin）
 router.get('/admin/tenants', tenantController.listTenants);
 router.post('/admin/tenants', tenantController.createTenant);
 router.put('/admin/tenants/:tenantId', tenantController.updateTenant);

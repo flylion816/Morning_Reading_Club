@@ -8,6 +8,7 @@ const paymentService = require('../services/payment.service');
 const { createNotification } = require('./notification.controller');
 const subscribeMessageService = require('../services/subscribe-message.service');
 const { formatNotificationTime } = require('../utils/notification-links');
+const { getCurrentTenantId, withSystemContext } = require('../utils/tenantContext');
 
 async function notifyPaymentSuccess(req, { userId, payment, enrollment }) {
   try {
@@ -59,13 +60,15 @@ async function notifyPaymentSuccess(req, { userId, payment, enrollment }) {
 async function attachWechatPaymentParams(payment, userOpenid) {
   let prepayId = payment?.wechat?.prepayId || '';
   let unifiedOrderError = '';
+  const tenantId = payment?.tenantId || getCurrentTenantId();
 
   if (userOpenid) {
     const unifiedOrderResult = await paymentService.unifiedOrder({
       orderId: payment.orderNo,
       amount: payment.amount,
       openid: userOpenid,
-      body: `晨读营课程费用 - 订单${payment.orderNo}`
+      body: `晨读营课程费用 - 订单${payment.orderNo}`,
+      tenantId
     });
 
     if (unifiedOrderResult.success && unifiedOrderResult.prepayId) {
@@ -95,7 +98,8 @@ async function attachWechatPaymentParams(payment, userOpenid) {
     };
   }
 
-  const paymentParams = paymentService.generatePaymentParams(prepayId);
+  const payConfig = await paymentService.resolveWechatPayConfig(tenantId);
+  const paymentParams = paymentService.generatePaymentParams(prepayId, payConfig);
   return {
     success: true,
     paymentParams
@@ -633,17 +637,12 @@ exports.wechatCallback = async (req, res) => {
         return replyFail('empty body');
       }
 
-      const { xmlToObject, verifyNotifySign } = require('../services/payment.service');
+      const { xmlToObject } = require('../services/payment.service');
       notifyData = xmlToObject(xmlBody);
 
       if (notifyData.return_code !== 'SUCCESS') {
         logger.warn('WeChat callback: return_code is not SUCCESS', notifyData);
         return replyFail('return_code not SUCCESS');
-      }
-
-      if (!verifyNotifySign(notifyData)) {
-        logger.warn('WeChat callback: signature verification failed');
-        return replyFail('sign error');
       }
     } else {
       notifyData = {
@@ -663,7 +662,6 @@ exports.wechatCallback = async (req, res) => {
     });
 
     // 查找支付记录（微信回调用 out_trade_no，即我们的 orderNo）
-    const { withSystemContext } = require('../utils/tenantContext');
     const payment = await withSystemContext(null, () =>
       Payment.findOne({ orderNo: notifyData.out_trade_no })
     );
@@ -673,22 +671,33 @@ exports.wechatCallback = async (req, res) => {
       return replyFail('order not found');
     }
 
+    if (isXmlCallback) {
+      const payConfig = await paymentService.resolveWechatPayConfig(payment.tenantId);
+      if (!paymentService.verifyNotifySign(notifyData, payConfig)) {
+        logger.warn('WeChat callback: signature verification failed', {
+          paymentId: payment._id,
+          tenantId: payment.tenantId
+        });
+        return replyFail('sign error');
+      }
+    }
+
     // 防止重复处理
     if (payment.status === 'completed') {
       return replySuccess();
     }
 
     if (notifyData.result_code === 'SUCCESS') {
-      // 支付成功
-      await payment.confirmPayment(notifyData.transaction_id);
+      await withSystemContext(payment.tenantId, async () => {
+        // 支付成功
+        await payment.confirmPayment(notifyData.transaction_id);
 
-      // 更新报名记录
-      await withSystemContext(null, () =>
-        Enrollment.findByIdAndUpdate(payment.enrollmentId, {
+        // 更新报名记录
+        await Enrollment.findByIdAndUpdate(payment.enrollmentId, {
           paymentStatus: 'paid',
           paidAt: new Date()
-        })
-      );
+        });
+      });
 
       // 异步同步到 MySQL
       publishSyncEvent({
@@ -699,21 +708,27 @@ exports.wechatCallback = async (req, res) => {
       });
 
       if (typeof payment.populate === 'function') {
-        await payment.populate('enrollmentId', 'name');
-        await payment.populate('periodId', 'name title');
+        await withSystemContext(payment.tenantId, async () => {
+          await payment.populate('enrollmentId', 'name');
+          await payment.populate('periodId', 'name title');
+        });
       }
 
-      const enrollment = await withSystemContext(null, () =>
+      const enrollment = await withSystemContext(payment.tenantId, () =>
         Enrollment.findById(payment.enrollmentId)
       );
       if (enrollment) {
         if (typeof enrollment.populate === 'function') {
-          await enrollment.populate('periodId', 'name title');
+          await withSystemContext(payment.tenantId, () =>
+            enrollment.populate('periodId', 'name title')
+          );
         }
-        await notifyPaymentSuccess(req, {
-          userId: payment.userId?.toString?.() || payment.userId,
-          payment,
-          enrollment
+        await withSystemContext(payment.tenantId, async () => {
+          await notifyPaymentSuccess(req, {
+            userId: payment.userId?.toString?.() || payment.userId,
+            payment,
+            enrollment
+          });
         });
       }
 
@@ -725,8 +740,10 @@ exports.wechatCallback = async (req, res) => {
 
       return replySuccess();
     } else {
-      // 支付失败
-      await payment.markFailed(notifyData.err_code_des || '微信支付失败');
+      await withSystemContext(payment.tenantId, async () => {
+        // 支付失败
+        await payment.markFailed(notifyData.err_code_des || '微信支付失败');
+      });
 
       publishSyncEvent({
         type: 'update',
