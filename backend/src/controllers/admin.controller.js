@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
@@ -211,9 +212,13 @@ exports.getAdmins = async (req, res) => {
     if (!isPlatformRole(req.admin.role)) {
       filter.tenantId = req.admin.tenantId;
     } else {
-      // platform_superadmin 可选按 X-Active-Tenant 过滤
+      // platform_superadmin/superadmin 可选按 X-Active-Tenant 过滤
       const activeTenant = req.header('X-Active-Tenant');
-      if (activeTenant) filter.tenantId = activeTenant;
+      if (activeTenant && mongoose.Types.ObjectId.isValid(activeTenant)) {
+        // 选了某个租户：只查该租户下的 admin（不含平台级账号）
+        filter.tenantId = new mongoose.Types.ObjectId(activeTenant);
+      }
+      // 未选租户（跨租户视图）：不加过滤，查全部
     }
 
     const skip = (page - 1) * limit;

@@ -21,7 +21,7 @@ const Notification = require('../models/Notification');
 const { mysqlPool } = require('../config/database');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
-const { withSystemContext } = require('../utils/tenantContext');
+const { withSystemContext, getCurrentTenantId, shouldBypassFilter } = require('../utils/tenantContext');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const {
@@ -100,9 +100,17 @@ function intelligentCompare(mongoVal, mysqlVal) {
 async function getMongodbStats(req, res, next) {
   try {
     const stats = {};
+    const bypass = shouldBypassFilter();
+    const tenantId = getCurrentTenantId();
 
     for (const [name, model] of Object.entries(MODELS)) {
-      stats[name] = await model.countDocuments();
+      if (bypass) {
+        await withSystemContext(null, async () => {
+          stats[name] = await model.countDocuments();
+        });
+      } else {
+        stats[name] = await model.countDocuments({ tenantId });
+      }
     }
 
     logger.info('MongoDB statistics fetched', { tables: Object.keys(stats).length });
@@ -120,6 +128,8 @@ async function getMysqlStats(req, res) {
   try {
     let conn;
     const stats = {};
+    const bypass = shouldBypassFilter();
+    const tenantId = getCurrentTenantId();
 
     const tables = [
       'users', 'admins', 'periods', 'sections', 'checkins', 'enrollments',
@@ -133,10 +143,14 @@ async function getMysqlStats(req, res) {
 
       for (const table of tables) {
         try {
-          const [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
+          let result;
+          if (bypass || !tenantId) {
+            [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
+          } else {
+            [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table} WHERE tenant_id = ?`, [tenantId.toString()]);
+          }
           stats[table] = result[0].count;
         } catch (tableError) {
-          // 表不存在或查询失败，记录为 0
           logger.warn(`Table ${table} does not exist or cannot be queried`, tableError.message);
           stats[table] = 0;
         }
@@ -173,14 +187,21 @@ async function compareBackup(req, res) {
     const mongoStats = {};
     const mysqlStats = {};
     const comparison = {};
+    const bypass = shouldBypassFilter();
+    const tenantId = getCurrentTenantId();
 
-    // 全量对比需要跨租户读取所有数据，使用 bypass 模式
-    await withSystemContext(null, async () => {
-      // 获取 MongoDB 统计
+    // 按租户（或全量 bypass）统计 MongoDB
+    if (bypass) {
+      await withSystemContext(null, async () => {
+        for (const [name, model] of Object.entries(MODELS)) {
+          mongoStats[name] = await model.countDocuments();
+        }
+      });
+    } else {
       for (const [name, model] of Object.entries(MODELS)) {
-        mongoStats[name] = await model.countDocuments();
+        mongoStats[name] = await model.countDocuments({ tenantId });
       }
-    });
+    }
 
     // 获取 MySQL 统计
     const conn = await mysqlPool.getConnection();
@@ -189,13 +210,18 @@ async function compareBackup(req, res) {
         'users', 'admins', 'periods', 'sections', 'checkins', 'enrollments',
         'payments', 'insights', 'insight_requests', 'comments', 'notifications'
       ];
+      const tid = tenantId ? tenantId.toString() : null;
 
       for (const table of tables) {
         try {
-          const [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
+          let result;
+          if (bypass || !tid) {
+            [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table}`);
+          } else {
+            [result] = await conn.query(`SELECT COUNT(*) as count FROM ${table} WHERE tenant_id = ?`, [tid]);
+          }
           mysqlStats[table] = result[0].count;
         } catch (tableError) {
-          // 表不存在，记录为 0
           logger.warn(`Table ${table} does not exist or cannot be queried`, tableError.message);
           mysqlStats[table] = 0;
         }
@@ -242,15 +268,28 @@ async function compareBackup(req, res) {
           if (!model) continue;
 
           let mongoData = [];
-          await withSystemContext(null, async () => {
+          if (bypass) {
+            await withSystemContext(null, async () => {
+              if (table === 'admins') {
+                mongoData = await model.find().select('+password').lean();
+              } else {
+                mongoData = await model.find().lean();
+              }
+            });
+          } else {
             if (table === 'admins') {
-              mongoData = await model.find().select('+password').lean();
+              mongoData = await model.find({ tenantId }).select('+password').lean();
             } else {
-              mongoData = await model.find().lean();
+              mongoData = await model.find({ tenantId }).lean();
             }
-          });
+          }
 
-          const [mysqlData] = await conn.query(`SELECT * FROM \`${table}\``);
+          let mysqlData;
+          if (bypass || !tid) {
+            [mysqlData] = await conn.query(`SELECT * FROM \`${table}\``);
+          } else {
+            [mysqlData] = await conn.query(`SELECT * FROM \`${table}\` WHERE tenant_id = ?`, [tid]);
+          }
 
           let totalFields = 0;
           let matchedFields = 0;
@@ -357,11 +396,24 @@ async function getMongodbTableData(req, res, next) {
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const model = MODELS[table];
+    const bypass = shouldBypassFilter();
+    const tenantId = getCurrentTenantId();
+    const filter = bypass ? {} : { tenantId };
 
-    const [data, total] = await Promise.all([
-      model.find({}).skip(skip).limit(parseInt(limit, 10)).lean(),
-      model.countDocuments()
-    ]);
+    let data, total;
+    if (bypass) {
+      await withSystemContext(null, async () => {
+        [data, total] = await Promise.all([
+          model.find(filter).skip(skip).limit(parseInt(limit, 10)).lean(),
+          model.countDocuments(filter)
+        ]);
+      });
+    } else {
+      [data, total] = await Promise.all([
+        model.find(filter).skip(skip).limit(parseInt(limit, 10)).lean(),
+        model.countDocuments(filter)
+      ]);
+    }
 
     res.json(success({
       table,
@@ -397,6 +449,8 @@ async function getMysqlTableData(req, res) {
     }
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const bypass = shouldBypassFilter();
+    const tenantId = getCurrentTenantId();
     const conn = await mysqlPool.getConnection();
 
     try {
@@ -404,16 +458,28 @@ async function getMysqlTableData(req, res) {
       let total = 0;
 
       try {
-        const [queryData] = await conn.query(
-          `SELECT * FROM ${table} LIMIT ? OFFSET ?`,
-          [parseInt(limit, 10), skip]
-        );
-        const [[countResult]] = await conn.query(`SELECT COUNT(*) as total FROM ${table}`);
+        let queryData, countResult;
+        if (bypass || !tenantId) {
+          [queryData] = await conn.query(
+            `SELECT * FROM ${table} LIMIT ? OFFSET ?`,
+            [parseInt(limit, 10), skip]
+          );
+          [[countResult]] = await conn.query(`SELECT COUNT(*) as total FROM ${table}`);
+        } else {
+          const tid = tenantId.toString();
+          [queryData] = await conn.query(
+            `SELECT * FROM ${table} WHERE tenant_id = ? LIMIT ? OFFSET ?`,
+            [tid, parseInt(limit, 10), skip]
+          );
+          [[countResult]] = await conn.query(
+            `SELECT COUNT(*) as total FROM ${table} WHERE tenant_id = ?`,
+            [tid]
+          );
+        }
 
         data = queryData;
         total = countResult.total;
       } catch (tableError) {
-        // 表不存在，返回空数据
         logger.warn(`Table ${table} does not exist or cannot be queried`, tableError.message);
       }
 
@@ -765,17 +831,35 @@ async function compareFieldsDetail(req, res) {
 
     try {
       const model = MODELS[tableName];
+      const bypass = shouldBypassFilter();
+      const tenantId = getCurrentTenantId();
+      const tid = tenantId ? tenantId.toString() : null;
       let mongoData = [];
 
       // 获取 MongoDB 数据
-      if (tableName === 'admins') {
-        mongoData = await model.find().select('+password').lean();
+      if (bypass) {
+        await withSystemContext(null, async () => {
+          if (tableName === 'admins') {
+            mongoData = await model.find().select('+password').lean();
+          } else {
+            mongoData = await model.find().lean();
+          }
+        });
       } else {
-        mongoData = await model.find().lean();
+        if (tableName === 'admins') {
+          mongoData = await model.find({ tenantId }).select('+password').lean();
+        } else {
+          mongoData = await model.find({ tenantId }).lean();
+        }
       }
 
       // 获取 MySQL 数据
-      const [mysqlData] = await conn.query(`SELECT * FROM \`${tableName}\``);
+      let mysqlData;
+      if (bypass || !tid) {
+        [mysqlData] = await conn.query(`SELECT * FROM \`${tableName}\``);
+      } else {
+        [mysqlData] = await conn.query(`SELECT * FROM \`${tableName}\` WHERE tenant_id = ?`, [tid]);
+      }
 
       // 逐条对比
       const details = mongoData.map((mongoRecord) => {

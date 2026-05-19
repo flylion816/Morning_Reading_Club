@@ -179,6 +179,23 @@
             <el-option label="操作员" value="operator" />
           </el-select>
         </el-form-item>
+        <el-form-item
+          v-if="isPlatformSuperAdmin && dialogType === 'create'"
+          label="所属租户"
+          prop="tenantId"
+        >
+          <el-select v-model="formData.tenantId" placeholder="选择租户" style="width: 100%" clearable>
+            <el-option
+              v-for="t in tenantStore.tenants"
+              :key="t._id"
+              :label="t.name"
+              :value="t._id"
+            />
+          </el-select>
+          <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+            不选则使用当前选中租户；platform_superadmin/superadmin 角色无需绑定租户
+          </div>
+        </el-form-item>
         <el-form-item label="状态" prop="status" v-if="dialogType === 'edit'">
           <el-radio-group v-model="formData.status" :disabled="formData._id === currentUserId">
             <el-radio label="active">启用</el-radio>
@@ -254,6 +271,7 @@
 import AdminLayout from '../components/AdminLayout.vue';
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useTenantStore } from '../stores/tenant';
 import { accountApi } from '../services/api';
 import { getLastTextChar } from '../utils/avatar';
 import { ElMessage } from 'element-plus';
@@ -261,11 +279,15 @@ import { Search, Plus } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 
 const authStore = useAuthStore();
+const tenantStore = useTenantStore();
 
 // State
 const loading = ref(false);
 const loadingSummary = ref(false);
 const admins = ref<any[]>([]);
+const isPlatformSuperAdmin = computed(() =>
+  ['platform_superadmin', 'superadmin'].includes(authStore.adminInfo?.role)
+);
 const isSuperadmin = computed(() =>
   ['platform_superadmin', 'superadmin'].includes(authStore.adminInfo?.role)
 );
@@ -305,7 +327,8 @@ const formData = reactive({
   password: '',
   role: 'operator',
   status: 'active',
-  avatar: ''
+  avatar: '',
+  tenantId: ''
 });
 
 const formRules = {
@@ -419,6 +442,7 @@ const openCreateDialog = () => {
   formData.role = 'operator';
   formData.status = 'active';
   formData.avatar = '';
+  formData.tenantId = tenantStore.activeTenantId || '';
   dialogVisible.value = true;
   if (formRef.value) formRef.value.clearValidate();
 };
@@ -445,6 +469,8 @@ const submitForm = async () => {
         if (dialogType.value === 'create') {
           const payload = { ...formData };
           delete payload._id;
+          // 不传 tenantId 时后端会用 X-Active-Tenant；platform/superadmin 角色后端自动置 null
+          if (!payload.tenantId) delete payload.tenantId;
           await accountApi.createAdmin(payload);
           ElMessage.success('账号创建成功');
           dialogVisible.value = false;

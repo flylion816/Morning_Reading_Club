@@ -9,9 +9,11 @@ const express = require('express');
 const router = express.Router();
 const backupController = require('../controllers/backup.controller');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { adminTenantContext } = require('../middleware/tenantContext');
 
-// 所有备份接口都需要管理员权限
+// 所有备份接口都需要管理员权限，并注入租户上下文（superadmin 自动进入 bypass 模式）
 router.use(adminAuthMiddleware);
+router.use(adminTenantContext);
 
 // =========================================================================
 // 统计接口
