@@ -71,10 +71,17 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
   border-radius: 4rpx;
-  box-shadow: 0 2rpx 6rpx rgba(74, 144, 226, 0.3);
   transition: width 0.3s ease;
+}
+
+.progress-fill-active {
+  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
+  box-shadow: 0 2rpx 6rpx rgba(74, 144, 226, 0.3);
+}
+
+.progress-fill-done {
+  background: #cbd5e0;
 }
 
 .course-actions {

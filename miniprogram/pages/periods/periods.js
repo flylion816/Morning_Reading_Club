@@ -155,15 +155,28 @@ Page({
       console.log('📊 [DEBUG] 期次checkedDays:', periods.map(p => p.title + ':' + p.checkedDays));
 
       // 为每个期次计算状态（基于日期而不是数据库status字段）
+      const TOTAL_DAYS = 23;
       periods = periods.map(period => {
         const startDate = period.startDate || period.startTime;
         const endDate = period.endDate || period.endTime;
         const calculatedStatus = calculatePeriodStatus(startDate, endDate);
+        let progress = 0;
+        if (calculatedStatus === 'completed') {
+          progress = 100;
+        } else if (calculatedStatus === 'ongoing') {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const elapsedDays = Math.round((today - start) / (1000 * 60 * 60 * 24)) + 1;
+          progress = Math.min(100, Math.round((elapsedDays / TOTAL_DAYS) * 100));
+        }
         return {
           ...period,
-          dateRange: formatDateRange(startDate, endDate), // 覆盖为 "YYYY-MM-DD 至 YYYY-MM-DD"
+          dateRange: formatDateRange(startDate, endDate),
           calculatedStatus,
-          statusText: this.getCourseStatusText(calculatedStatus)
+          statusText: this.getCourseStatusText(calculatedStatus),
+          progress
         };
       });
 
