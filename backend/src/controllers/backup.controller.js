@@ -69,6 +69,11 @@ function intelligentCompare(mongoVal, mysqlVal) {
     if (Math.abs(mongoDate.getTime() - mysqlDate.getTime()) <= 1000) {
       return true;
     }
+    // 兼容历史数据时区写入错误（差 8 小时整），视为一致
+    const diff = Math.abs(mongoDate.getTime() - mysqlDate.getTime());
+    if (Math.abs(diff - 8 * 60 * 60 * 1000) <= 1000) {
+      return true;
+    }
     // MySQL DATE 列只存日期，返回当天 00:00:00 本地时间 — 比较本地 YYYY-MM-DD
     const toLocalDateStr = d => {
       const y = d.getFullYear();
