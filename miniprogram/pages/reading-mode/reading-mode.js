@@ -127,7 +127,7 @@ Page({
       sectionId: options.id || '',
       periodId: options.periodId || '',
       statusBarHeight,
-      topbarHeight: statusBarHeight + 56,
+      topbarHeight: statusBarHeight + 64,
       completionTitle: this.getCompletionTitle()
     });
 

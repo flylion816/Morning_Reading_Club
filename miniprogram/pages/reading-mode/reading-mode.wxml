@@ -2,9 +2,15 @@
   <view class="reading-topbar" style="padding-top: {{statusBarHeight}}px;">
     <view class="reading-back" bindtap="handleBack">‹</view>
     <view class="reading-title-wrap">
-      <view class="reading-title">{{course.title || '读一读'}}</view>
+      <view class="reading-title-row">
+        <text class="reading-title">{{course.title || '读一读'}}</text><text class="reading-progress">　{{readingProgress}}%</text>
+      </view>
+      <view class="reading-progress-bar-wrap">
+        <view class="reading-progress-bar-track">
+          <view class="reading-progress-bar-fill" style="width: {{readingProgress}}%;"></view>
+        </view>
+      </view>
     </view>
-    <view class="reading-progress">{{readingProgress}}%</view>
   </view>
 
   <scroll-view
