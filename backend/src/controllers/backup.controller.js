@@ -247,25 +247,27 @@ async function compareBackup(req, res) {
           continue;
         }
 
-        if (mongoCount !== mysqlCount) {
-          comparison[table] = {
-            mongodb: mongoCount,
-            mysql: mysqlCount,
-            difference: mongoCount - mysqlCount,
-            recordsMatch: false,
-            totalRecords: mongoCount,
-            matchedRecords: 0,
-            mismatchedRecords: mongoCount,
-            matchPercentage: 0,
-            consistency: '⚠️ 记录数不一致'
-          };
-          continue;
-        }
+        // 无论记录数是否一致，都进行字段级比对
+        const recordsMatch = mongoCount === mysqlCount;
 
-        // 记录数相同，计算字段级一致性
         try {
           const model = MODELS[table];
-          if (!model) continue;
+          if (!model) {
+            if (!recordsMatch) {
+              comparison[table] = {
+                mongodb: mongoCount,
+                mysql: mysqlCount,
+                difference: mongoCount - mysqlCount,
+                recordsMatch: false,
+                totalRecords: mongoCount,
+                matchedRecords: 0,
+                mismatchedRecords: mongoCount,
+                matchPercentage: 0,
+                consistency: '⚠️ 记录数不一致'
+              };
+            }
+            continue;
+          }
 
           let mongoData = [];
           if (bypass) {
@@ -321,24 +323,33 @@ async function compareBackup(req, res) {
           const mismatchedFields = totalFields - matchedFields;
           const matchPercentage = totalFields > 0 ? Math.round((matchedFields / totalFields) * 100) : 0;
 
+          let consistencyLabel;
+          if (!recordsMatch) {
+            consistencyLabel = `⚠️ 记录数不一致，已同步记录 ${matchPercentage}% 一致`;
+          } else if (matchPercentage === 100) {
+            consistencyLabel = '✅ 完全一致';
+          } else {
+            consistencyLabel = `⚠️ ${matchPercentage}% 一致`;
+          }
+
           comparison[table] = {
             mongodb: mongoCount,
             mysql: mysqlCount,
-            difference: 0,
-            recordsMatch: true,
+            difference: mongoCount - mysqlCount,
+            recordsMatch,
             totalRecords: mongoCount,
             matchedRecords: matchedFields,
             mismatchedRecords: mismatchedFields,
             matchPercentage,
-            consistency: matchPercentage === 100 ? '✅ 完全一致' : `⚠️ ${matchPercentage}% 一致`
+            consistency: consistencyLabel
           };
         } catch (fieldError) {
           logger.warn(`Failed to calculate field consistency for ${table}`, fieldError.message);
           comparison[table] = {
             mongodb: mongoCount,
             mysql: mysqlCount,
-            difference: 0,
-            recordsMatch: true,
+            difference: mongoCount - mysqlCount,
+            recordsMatch,
             totalRecords: mongoCount,
             matchedRecords: 0,
             mismatchedRecords: 0,

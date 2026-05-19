@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-const { userTenantContext } = require('../middleware/tenantContext');
+const { authMiddleware } = require('../middleware/auth');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 const activityController = require('../controllers/activity.controller');
 
 router.post('/', authMiddleware, userTenantContext, activityController.recordActivity);
 router.get(
   '/analytics',
-  authMiddleware,
-  userTenantContext,
-  adminMiddleware,
+  adminAuthMiddleware,
+  adminTenantContext,
   activityController.getActivityAnalytics
 );
 
