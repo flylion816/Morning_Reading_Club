@@ -87,17 +87,12 @@ async function getSectionsByPeriod(req, res, next) {
       .lean(); // 列表不返回详细内容
 
     const sectionIds = sections.map(section => section._id);
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
     const checkinCounts = sectionIds.length > 0
       ? await Checkin.aggregate([
           {
             $match: {
               sectionId: { $in: sectionIds },
-              isPublic: true,
-              checkinDate: { $gte: todayStart, $lte: todayEnd }
+              isPublic: true
             }
           },
           {
