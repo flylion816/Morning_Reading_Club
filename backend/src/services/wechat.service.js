@@ -79,7 +79,7 @@ class WechatService {
     let secret = process.env.WECHAT_SECRET;
     if (tenantId) {
       const tenant = await Tenant.findById(tenantId)
-        .select('+wechatLogin.appSecret wechatLogin')
+        .select('+wechatLogin.appSecret')
         .lean();
       secret = tenant?.wechatLogin?.appSecret || process.env.WECHAT_SECRET;
       // 放宽校验：允许 useAppId 在以下任一处出现：

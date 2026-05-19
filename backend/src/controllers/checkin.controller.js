@@ -654,6 +654,11 @@ async function deleteCheckin(req, res, next) {
     user.totalPoints = Math.max(0, user.totalPoints - checkin.points);
     await user.save();
 
+    // 更新课节打卡计数
+    await Section.findByIdAndUpdate(checkin.sectionId, {
+      $inc: { checkinCount: -1 }
+    });
+
     // 异步同步到 MySQL
     publishSyncEvent({
       type: 'delete',

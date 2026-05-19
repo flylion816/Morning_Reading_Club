@@ -7,16 +7,37 @@ const logger = require('../utils/logger');
  * 用户路由的租户上下文中间件
  * 必须在 authMiddleware 之后使用
  */
-function userTenantContext(req, res, next) {
+async function userTenantContext(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ code: 401, message: '未登录' });
   }
-  if (!req.user.tenantId) {
+
+  let tenantId = req.user.tenantId;
+
+  // 老 token 没有 tenantId：从数据库查用户补全（兼容旧小程序客户端）
+  // 用原生 collection 绕过 tenantPlugin，避免 ALS 上下文在中间件链中传播不稳定的问题
+  if (!tenantId && process.env.ENABLE_LEGACY_DEFAULT_TENANT === 'true') {
+    try {
+      const userId = req.user.userId || req.user._id;
+      const col = mongoose.connection.db.collection('users');
+      const user = await col.findOne(
+        { _id: new mongoose.Types.ObjectId(userId) },
+        { projection: { tenantId: 1 } }
+      );
+      if (user && user.tenantId) {
+        tenantId = user.tenantId.toString();
+      }
+    } catch (e) {
+      logger.warn('[TENANT-MW] legacy token tenantId lookup failed', { error: e.message });
+    }
+  }
+
+  if (!tenantId) {
     return res.status(403).json({ code: 403, message: '令牌缺少租户信息，请重新登录' });
   }
 
   logger.debug('[TENANT-MW] userTenantContext', {
-    tenantId: req.user.tenantId,
+    tenantId,
     userId: req.user.userId || req.user._id,
     path: req.path,
     method: req.method
@@ -24,7 +45,7 @@ function userTenantContext(req, res, next) {
 
   runWithTenant(
     {
-      tenantId: new mongoose.Types.ObjectId(req.user.tenantId),
+      tenantId: new mongoose.Types.ObjectId(tenantId),
       bypassTenantFilter: false,
       actor: { type: 'user', id: req.user.userId || req.user._id }
     },

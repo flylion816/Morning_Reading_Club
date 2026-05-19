@@ -87,12 +87,17 @@ async function getSectionsByPeriod(req, res, next) {
       .lean(); // 列表不返回详细内容
 
     const sectionIds = sections.map(section => section._id);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
     const checkinCounts = sectionIds.length > 0
       ? await Checkin.aggregate([
           {
             $match: {
               sectionId: { $in: sectionIds },
-              isPublic: true
+              isPublic: true,
+              checkinDate: { $gte: todayStart, $lte: todayEnd }
             }
           },
           {
@@ -470,12 +475,12 @@ async function getTodayTask(req, res, next) {
             .select('durationMs completedAt')
             .lean();
 
-          // 获取打卡用户的头像列表（最多10个）
+          // 获取今天打卡用户的头像列表（最多10个）
           const sectionCheckins = await Checkin.find({
             sectionId: section._id,
             checkinDate: {
-              $gte: new Date(period.startDate),
-              $lte: new Date(period.endDate)
+              $gte: todayStart,
+              $lte: todayEnd
             }
           })
             .populate('userId', 'avatar avatarUrl nickname')
@@ -487,6 +492,11 @@ async function getTodayTask(req, res, next) {
             avatarUrl: c.userId.avatarUrl,
             nickname: c.userId.nickname
           }));
+
+          const todayCheckinCount = await Checkin.countDocuments({
+            sectionId: section._id,
+            checkinDate: { $gte: todayStart, $lte: todayEnd }
+          });
 
           todayTask = {
             periodId: period._id,
@@ -501,7 +511,7 @@ async function getTodayTask(req, res, next) {
             reflection: section.reflection,
             action: section.action,
             learn: section.learn,
-            checkinCount: section.checkinCount || 0,
+            checkinCount: todayCheckinCount,
             checkinUsers: checkinUsers,
             isCheckedIn: isCheckedIn,
             readingCompleted: !!readingCompletion,

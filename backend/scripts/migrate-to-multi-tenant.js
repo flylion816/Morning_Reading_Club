@@ -232,6 +232,7 @@ function getByPath(obj, pathStr) {
 
 async function rewriteUploadUrls(db, slug) {
   const targets = [
+    { collection: 'users', fields: ['avatar', 'avatarUrl'] },
     { collection: 'sections', fields: ['content', 'audioUrl', 'videoCover'] },
     { collection: 'periods', fields: ['description', 'coverColor'] },
     { collection: 'comments', fields: ['content'] },

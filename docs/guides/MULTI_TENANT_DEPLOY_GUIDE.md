@@ -382,3 +382,70 @@ pm2 restart morning-reading-backend
 - 禁止执行 `DROP DATABASE`、`deleteMany({})`、`db.dropDatabase()`
 - 禁止在未备份时迁移上传文件
 - 禁止未经用户确认执行任何数据库重置操作
+
+---
+
+## 本次上线经验总结（2026-05-19）
+
+### 问题一：老用户 token 缺少 tenantId 导致全量 403
+
+**现象**：后端重启后，线上老小程序所有接口返回 403"令牌缺少租户信息，请重新登录"。
+
+**根因**：`userTenantContext` 中间件检查 `req.user.tenantId`，老 token 是迁移前签发的，JWT payload 里没有 `tenantId` 字段，直接返回 403。本地测试用的是新签发 token，无法复现。
+
+**修复（第一次尝试，有坑）**：`userTenantContext` 在 `ENABLE_LEGACY_DEFAULT_TENANT=true` 时，若 token 无 `tenantId`，用 `withSystemContext(null, () => User.findById(...))` 从数据库查用户补全 `tenantId`。
+
+**修复（最终版）**：上述方案在生产环境仍报 `[tenantPlugin] findOne 缺少 tenantId 上下文`。根因是 `withSystemContext` 通过 `AsyncLocalStorage.run()` 设置 bypass 上下文，但 ALS 上下文在 Express 中间件链的异步边界处传播不稳定，Mongoose pre-hook 执行时拿不到正确的 store。最终改为用原生 MongoDB collection 绕过 tenantPlugin：
+
+```js
+const col = mongoose.connection.db.collection('users');
+const user = await col.findOne(
+  { _id: new mongoose.Types.ObjectId(userId) },
+  { projection: { tenantId: 1 } }
+);
+```
+
+**未来发布脚本注意**：
+- 上线后第一批请求必然来自持有老 token 的用户，`ENABLE_LEGACY_DEFAULT_TENANT=true` 不仅用于 `publicTenantContext`，也必须覆盖 `userTenantContext` 的兼容逻辑。
+- 在 Express 中间件内部（尚未建立租户上下文时）需要查数据库，不要用 `withSystemContext` + Mongoose Model，改用 `mongoose.connection.db.collection(name).findOne(...)` 直接走原生驱动，完全绕过 tenantPlugin。
+
+---
+
+### 问题二：Mongoose select 路径冲突导致微信登录 401
+
+**现象**：小程序登录接口返回 401，错误信息 `Path collision at wechatLogin.appSecret remaining portion appSecret`。
+
+**根因**：`wechat.service.js` 中查询租户时写了 `.select('+wechatLogin.appSecret wechatLogin')`，同时 select 了父路径 `wechatLogin` 和子路径 `+wechatLogin.appSecret`，Mongoose 报路径冲突。本地开发时 `tenantId` 为空走环境变量兜底，没有执行到这行查询，迁移后租户存在才暴露。
+
+**修复**：改为 `.select('+wechatLogin.appSecret')`，父对象其他字段自动包含。
+
+**未来发布脚本注意**：凡是 `select: false` 的嵌套字段，只需 `+path.to.field`，不要同时 select 父路径。
+
+---
+
+### 问题三：用户头像 URL 未重写导致图片 404
+
+**现象**：小程序首页用户头像全部 404，URL 仍是 `/uploads/xxx.jpg`，文件已迁移到 `/uploads/tenants/fanren/xxx.jpg`。
+
+**根因**：`migrate-to-multi-tenant.js` 的 `rewriteUploadUrls` 函数漏掉了 `users` 集合的 `avatar` 和 `avatarUrl` 字段。其他集合（sections、checkins 等）已覆盖，用户头像未覆盖。
+
+**修复**：在迁移脚本 `targets` 数组中补入 `{ collection: 'users', fields: ['avatar', 'avatarUrl'] }`，线上补跑 URL 重写（幂等，已重写的不会重复处理），修复 11 条记录。
+
+**未来发布脚本注意**：
+- 迁移脚本的 `rewriteUploadUrls` 必须覆盖所有含上传文件 URL 的集合和字段，上线前用以下查询验证：
+  ```js
+  db.users.countDocuments({ avatar: /^\/uploads\/(?!tenants\/)/ })
+  db.users.countDocuments({ avatarUrl: /^\/uploads\/(?!tenants\/)/ })
+  ```
+  结果应为 0，否则需补跑重写。
+- 不要用 nginx rewrite 作为多租户场景的长期方案，第二个租户上线后 rewrite 规则无法区分租户。
+
+---
+
+### MySQL 迁移工具问题
+
+**现象**：线上没有 `mysql` CLI，`mysql-tenant-migration.sql` 含 `DELIMITER` 语法，`mysql2` Node 驱动不支持。
+
+**修复**：用 Node 脚本直接执行等效的 `ALTER TABLE` 和 `information_schema` 查询，绕过 `DELIMITER`/`PROCEDURE` 语法。
+
+**未来发布脚本注意**：`mysql-tenant-migration.sql` 应改写为不依赖 `DELIMITER` 的纯 SQL（用 `IF NOT EXISTS` 的 DDL 语法），或提供配套的 Node 执行脚本，避免每次上线都需要临时改写。
