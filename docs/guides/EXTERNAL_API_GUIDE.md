@@ -1,12 +1,12 @@
 # 晨读营外部系统 API 调用指南
 
-本文档为外部系统提供 3 个公开 API 接口，用于查询当前期次、获取期次用户，并为指定用户创建“小凡看见”。
+本文档为外部系统提供 6 个公开 API 接口，用于查询当前期次、获取期次用户、为指定用户创建”小凡看见”，以及上传和同步播客音频。
 
 ---
 
 ## 接口概览
 
-| 接口概览 | 方法 | 端点 | 说明 |
+| 接口名称 | 方法 | 端点 | 说明 |
 | --- | --- | --- | --- |
 | 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 获取当前正在运行的期次列表，以及每个期次当天课程的 `sessionId` |
 | 获取期次用户 | GET | `/api/v1/enrollments/external/users-by-period` | 通过期次 ID 或期次名称获取参与用户列表 |
@@ -45,9 +45,15 @@
 
 **URL**: `https://wx.shubai01.com/api/v1/enrollments/external/active-periods`
 
+### 请求头
+
+| 字段 | 说明 |
+| --- | --- |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+
 ### 请求参数
 
-无。
+无 Query 参数。
 
 ### 成功响应示例
 
@@ -89,7 +95,8 @@
 ### 使用示例
 
 ```bash
-curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/active-periods"
+curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/active-periods" \
+  -H "X-Wx-AppId: wx199d6d332344ed0a"
 ```
 
 ---
@@ -105,6 +112,12 @@ curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/active-periods"
 **HTTP 方法**: `GET`
 
 **URL**: `https://wx.shubai01.com/api/v1/enrollments/external/users-by-period`
+
+### 请求头
+
+| 字段 | 说明 |
+| --- | --- |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
 
 ### 请求参数
 
@@ -166,10 +179,12 @@ curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/active-periods"
 
 ```bash
 # 推荐：通过 periodId 查询
-curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period?periodId=69f9bf45cb1c9ac0600ad556"
+curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period?periodId=69f9bf45cb1c9ac0600ad556" \
+  -H "X-Wx-AppId: wx199d6d332344ed0a"
 
 # 兼容：通过 periodName 查询，curl 自动 URL 编码
 curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period" \
+  -H "X-Wx-AppId: wx199d6d332344ed0a" \
   --data-urlencode "periodName=秩序之锚"
 ```
 
@@ -188,6 +203,13 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 **URL**: `https://wx.shubai01.com/api/v1/insights/external/create`
 
 **Content-Type**: `application/json`
+
+### 请求头
+
+| 字段 | 说明 |
+| --- | --- |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+| `Content-Type` | `application/json` |
 
 ### 请求参数
 
@@ -301,6 +323,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 ```bash
 # 推荐：通过 targetUserId 指定被看见人
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
+  -H "X-Wx-AppId: wx199d6d332344ed0a" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -311,6 +334,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 # 兼容：通过 targetUserName 指定被看见人（昵称须在该期次报名用户内唯一）
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
+  -H "X-Wx-AppId: wx199d6d332344ed0a" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -377,7 +401,7 @@ POST /api/v1/sections/external/upload-podcast
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `file` | File | 是 | 音频文件，支持 m4a / mp3 / aac，最大 200MB |
+| `file` | File | 是 | 音频文件，支持 m4a / mp3 / aac，最大 200MB。推荐使用 mp3 格式，文件尽量压缩到较小体积，否则小程序端加载会较慢 |
 
 **成功响应**
 
@@ -474,6 +498,7 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-05-21 | v1.8 | 所有接口补充 `X-Wx-AppId` 请求头说明及 curl 示例；接口总数更正为 6 个 |
 | 2026-05-20 | v1.7 | 新增播客音频上传接口、播客信息同步接口 |
 | 2026-05-10 | v1.6 | 创建小凡看见接口支持按 `targetUserId + periodId + sessionId` 幂等更新，避免重复生成多条记录 |
 | 2026-05-10 | v1.5 | `targetUserName` 改为按指定期次的有效报名用户匹配，避免全站同名用户误判重复 |
@@ -485,4 +510,4 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 ---
 
-**最后更新**: 2026-05-20
+**最后更新**: 2026-05-21

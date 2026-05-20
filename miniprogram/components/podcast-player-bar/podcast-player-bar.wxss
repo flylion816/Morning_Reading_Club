@@ -18,6 +18,11 @@
   box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.3);
 }
 
+.podcast-bar-elevated {
+  height: 112rpx;
+  padding-bottom: 0;
+}
+
 .podcast-bar-visible {
   transform: translateY(0);
 }
@@ -40,6 +45,20 @@
   justify-content: center;
   flex-shrink: 0;
   margin-right: 20rpx;
+}
+
+.podcast-bar-pause-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5rpx;
+}
+
+.podcast-bar-pause-bar {
+  width: 5rpx;
+  height: 24rpx;
+  background: #fff;
+  border-radius: 3rpx;
 }
 
 .podcast-bar-play-icon {

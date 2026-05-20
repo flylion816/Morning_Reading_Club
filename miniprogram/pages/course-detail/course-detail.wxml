@@ -291,7 +291,11 @@
             <text class="podcast-duration" wx:if="{{course.podcastDuration}}">{{podcastDurationText}}</text>
           </view>
           <view class="podcast-play-btn {{podcastPlaying && podcastSectionId === courseId ? 'playing' : ''}}">
-            <text class="podcast-play-icon">{{podcastPlaying && podcastSectionId === courseId ? '⏸' : '▶'}}</text>
+            <view wx:if="{{podcastPlaying && podcastSectionId === courseId}}" class="podcast-pause-icon">
+              <view class="podcast-pause-bar"></view>
+              <view class="podcast-pause-bar"></view>
+            </view>
+            <text wx:else class="podcast-play-icon">▶</text>
           </view>
         </view>
         <view class="podcast-progress-bar" wx:if="{{podcastPlaying && podcastSectionId === courseId}}">
@@ -544,4 +548,4 @@
     class="long-image-canvas"></canvas>
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar bottom-offset="160" />

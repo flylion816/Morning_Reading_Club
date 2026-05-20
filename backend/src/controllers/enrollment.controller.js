@@ -5,7 +5,8 @@ const Section = require('../models/Section');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
-const { getCurrentTenantId } = require('../utils/tenantContext');
+const { getCurrentTenantId, runWithTenant } = require('../utils/tenantContext');
+const Tenant = require('../models/Tenant');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const { createNotification } = require('./notification.controller');
@@ -917,51 +918,64 @@ function getSectionId(section) {
  */
 exports.getActivePeriodsForExternal = async (req, res, next) => {
   try {
-    const now = new Date();
-    const todayStart = getStartOfDay(now);
-    const todayEnd = getEndOfDay(now);
+    const { tenantName } = req.query;
+    if (!tenantName) {
+      return res.status(400).json({ code: 400, message: '缺少必填参数：tenantName', timestamp: Date.now() });
+    }
 
-    const periods = await Period.find({
-      isPublished: true,
-      startDate: { $lte: todayEnd },
-      endDate: { $gte: todayStart }
-    })
-      .sort({ startDate: -1 })
-      .lean();
+    const tenant = await Tenant.findOne({ name: tenantName, status: 'active' }).select('name wechatLogin').lean();
+    if (!tenant) {
+      return res.status(404).json({ code: 404, message: `租户不存在或未激活：${tenantName}`, timestamp: Date.now() });
+    }
 
-    const periodDays = periods.map(period => ({
-      period,
-      dayIndex: calculatePeriodDayIndex(period, now)
-    }));
+    const wxAppId = tenant.wechatLogin?.appId || null;
 
-    const sectionQuery = periodDays.map(({ period, dayIndex }) => ({
-      periodId: period._id,
-      day: dayIndex,
-      isPublished: true
-    }));
+    const list = await runWithTenant({ tenantId: tenant._id }, async () => {
+      const now = new Date();
+      const todayStart = getStartOfDay(now);
+      const todayEnd = getEndOfDay(now);
 
-    const sections =
-      sectionQuery.length > 0
-        ? await Section.find({ $or: sectionQuery }).select('_id periodId day').lean()
-        : [];
+      const periods = await Period.find({
+        isPublished: true,
+        startDate: { $lte: todayEnd },
+        endDate: { $gte: todayStart }
+      })
+        .sort({ startDate: -1 })
+        .lean();
 
-    const sectionMap = new Map(
-      sections.map(section => [`${section.periodId?.toString?.() || section.periodId}:${section.day}`, section])
-    );
+      const periodDays = periods.map(period => ({
+        period,
+        dayIndex: calculatePeriodDayIndex(period, now)
+      }));
 
-    const list = periodDays.map(({ period, dayIndex }) => {
-      const periodId = period._id?.toString?.() || String(period._id);
-      const section = sectionMap.get(`${periodId}:${dayIndex}`);
+      const sectionQuery = periodDays.map(({ period, dayIndex }) => ({
+        periodId: period._id,
+        day: dayIndex,
+        isPublished: true
+      }));
 
-      return {
-        periodId,
-        periodName: period.name,
-        day: section?.day ?? dayIndex,
-        sessionId: getSectionId(section)
-      };
+      const sections =
+        sectionQuery.length > 0
+          ? await Section.find({ $or: sectionQuery }).select('_id periodId day').lean()
+          : [];
+
+      const sectionMap = new Map(
+        sections.map(section => [`${section.periodId?.toString?.() || section.periodId}:${section.day}`, section])
+      );
+
+      return periodDays.map(({ period, dayIndex }) => {
+        const periodId = period._id?.toString?.() || String(period._id);
+        const section = sectionMap.get(`${periodId}:${dayIndex}`);
+        return {
+          periodId,
+          periodName: period.name,
+          day: section?.day ?? dayIndex,
+          sessionId: getSectionId(section)
+        };
+      });
     });
 
-    res.json(success({ list, total: list.length }, '获取成功'));
+    res.json(success({ wxAppId, list, total: list.length }, '获取成功'));
   } catch (error) {
     logger.error('获取运行中期次失败:', error);
     next(error);

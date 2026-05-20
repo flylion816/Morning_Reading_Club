@@ -1,9 +1,17 @@
 Component({
+  properties: {
+    bottomOffset: {
+      type: Number,
+      value: 0
+    }
+  },
+
   data: {
     active: false,
     playing: false,
     title: '',
-    progress: 0
+    progress: 0,
+    barStyle: ''
   },
 
   lifetimes: {
@@ -23,8 +31,12 @@ Component({
     _syncFromGlobal() {
       const app = getApp();
       const g = app.globalData;
+      const offset = this.properties.bottomOffset || 0;
+      const barStyle = offset > 0
+        ? `bottom: calc(${offset}rpx + env(safe-area-inset-bottom));`
+        : '';
       if (!g.podcastActive) {
-        if (this.data.active) this.setData({ active: false });
+        if (this.data.active) this.setData({ active: false, barStyle });
         return;
       }
       const duration = g.podcastDuration || 0;
@@ -34,7 +46,8 @@ Component({
         active: true,
         playing: !!g.podcastPlaying,
         title: g.podcastTitle || '',
-        progress
+        progress,
+        barStyle
       });
     },
 

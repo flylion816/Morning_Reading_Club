@@ -1556,7 +1556,22 @@ page {
 }
 
 .podcast-play-btn.playing {
-  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  box-shadow: 0 4rpx 16rpx rgba(249, 115, 22, 0.35);
+}
+
+.podcast-pause-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+}
+
+.podcast-pause-bar {
+  width: 6rpx;
+  height: 28rpx;
+  background: #fff;
+  border-radius: 3rpx;
 }
 
 .podcast-play-icon {

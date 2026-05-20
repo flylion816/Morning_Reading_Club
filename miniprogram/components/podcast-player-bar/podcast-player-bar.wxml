@@ -1,7 +1,11 @@
-<view class="podcast-bar {{active ? 'podcast-bar-visible' : ''}}" catchtap="handleBarTap">
+<view class="podcast-bar {{active ? 'podcast-bar-visible' : ''}} {{bottomOffset > 0 ? 'podcast-bar-elevated' : ''}}" style="{{barStyle}}" catchtap="handleBarTap">
   <view class="podcast-bar-left">
     <view class="podcast-bar-play-btn" catchtap="handlePlayPause">
-      <text class="podcast-bar-play-icon">{{playing ? '⏸' : '▶'}}</text>
+      <view wx:if="{{playing}}" class="podcast-bar-pause-icon">
+        <view class="podcast-bar-pause-bar"></view>
+        <view class="podcast-bar-pause-bar"></view>
+      </view>
+      <text wx:else class="podcast-bar-play-icon">▶</text>
     </view>
     <view class="podcast-bar-info">
       <text class="podcast-bar-title">{{title}}</text>

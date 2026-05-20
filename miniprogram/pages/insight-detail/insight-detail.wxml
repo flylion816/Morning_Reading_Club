@@ -168,4 +168,4 @@
   </block>
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar bottom-offset="152" />

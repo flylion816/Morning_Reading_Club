@@ -120,4 +120,4 @@
   </view>
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar bottom-offset="112" />

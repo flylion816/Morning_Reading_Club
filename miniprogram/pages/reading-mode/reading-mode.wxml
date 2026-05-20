@@ -140,4 +140,4 @@
   <view wx:if="{{!contentReady}}" class="reader-init-mask"></view>
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar bottom-offset="120" />
