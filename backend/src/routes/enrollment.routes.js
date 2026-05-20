@@ -24,7 +24,7 @@ const {
 } = require('../middleware/tenantContext');
 
 // ===== 外部公开接口（无需认证，必须在参数化路由之前） =====
-router.get('/external/active-periods', publicTenantContext, getActivePeriodsForExternal);
+router.get('/external/active-periods', getActivePeriodsForExternal);
 router.get('/external/users-by-period', publicTenantContext, getUsersByPeriodName);
 
 // ===== 管理员路由（必须放在用户路由前面） =====

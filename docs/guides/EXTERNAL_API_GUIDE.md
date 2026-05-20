@@ -8,7 +8,7 @@
 
 | 接口名称 | 方法 | 端点 | 说明 |
 | --- | --- | --- | --- |
-| 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 获取当前正在运行的期次列表，以及每个期次当天课程的 `sessionId` |
+| 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 传入租户名称，获取当前正在运行的期次列表及 `wxAppId`，后续接口用此值作为 `X-Wx-AppId` |
 | 获取期次用户 | GET | `/api/v1/enrollments/external/users-by-period` | 通过期次 ID 或期次名称获取参与用户列表 |
 | 创建小凡看见 | POST | `/api/v1/insights/external/create` | 为指定用户创建”小凡看见” |
 | 上传播客音频 | POST | `/api/v1/sections/external/upload-podcast` | 上传音频文件，获取 `podcastUrl` |
@@ -33,11 +33,11 @@
 
 ### 接口说明
 
-查询当前正在运行的期次列表。每个期次返回期次名称、期次 ID、当前课程的 `day`，以及当天课程对应的 `sessionId`。
+查询当前正在运行的期次列表。每个期次返回期次名称、期次 ID、当前课程的 `day`，以及当天课程对应的 `sessionId`。同时返回该租户的 `wxAppId`，后续接口调用时将此值作为 `X-Wx-AppId` 请求头传入。
 
 “运行中”的判断规则：期次已发布，且当前时间在期次 `startDate` 和 `endDate` 之间。
 
-`day` 使用系统课节 day 口径，可直接传给“创建小凡看见”接口；如果当天课程没有查到，`sessionId` 会返回 `null`。
+`day` 使用系统课节 day 口径，可直接传给”创建小凡看见”接口；如果当天课程没有查到，`sessionId` 会返回 `null`。
 
 ### 请求信息
 
@@ -47,13 +47,13 @@
 
 ### 请求头
 
-| 字段 | 说明 |
-| --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+无需请求头。
 
 ### 请求参数
 
-无 Query 参数。
+| 参数 | 类型 | 必填 | 说明 | 示例 |
+| --- | --- | --- | --- | --- |
+| tenantName | string | 是 | 租户名称，精确匹配 | `凡人共读` |
 
 ### 成功响应示例
 
@@ -61,20 +61,21 @@
 
 ```json
 {
-  "code": 0,
-  "message": "获取成功",
-  "data": {
-    "list": [
+  “code”: 0,
+  “message”: “获取成功”,
+  “data”: {
+    “wxAppId”: “wx199d6d332344ed0a”,
+    “list”: [
       {
-        "periodId": "69f9bf45cb1c9ac0600ad556",
-        "periodName": "秩序之锚",
-        "day": 1,
-        "sessionId": "69f9bf45cb1c9ac0600ad55b"
+        “periodId”: “69f9bf45cb1c9ac0600ad556”,
+        “periodName”: “秩序之锚”,
+        “day”: 1,
+        “sessionId”: “69f9bf45cb1c9ac0600ad55b”
       }
     ],
-    "total": 1
+    “total”: 1
   },
-  "timestamp": 1778077219250
+  “timestamp”: 1778077219250
 }
 ```
 
@@ -82,21 +83,43 @@
 
 ```json
 {
-  "code": 0,
-  "message": "获取成功",
-  "data": {
-    "list": [],
-    "total": 0
+  “code”: 0,
+  “message”: “获取成功”,
+  “data”: {
+    “wxAppId”: “wx199d6d332344ed0a”,
+    “list”: [],
+    “total”: 0
   },
-  "timestamp": 1778077219250
+  “timestamp”: 1778077219250
+}
+```
+
+### 错误响应示例
+
+缺少 tenantName：
+
+```json
+{
+  “code”: 400,
+  “message”: “缺少必填参数：tenantName”,
+  “timestamp”: 1778077219250
+}
+```
+
+租户不存在或未激活：
+
+```json
+{
+  “code”: 404,
+  “message”: “租户不存在或未激活：不存在的租户”,
+  “timestamp”: 1778077219250
 }
 ```
 
 ### 使用示例
 
 ```bash
-curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/active-periods" \
-  -H "X-Wx-AppId: wx199d6d332344ed0a"
+curl -X GET “https://wx.shubai01.com/api/v1/enrollments/external/active-periods?tenantName=凡人共读”
 ```
 
 ---
@@ -498,6 +521,7 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-05-21 | v1.9 | 接口 1 改为通过 `tenantName` 参数识别租户，无需 `X-Wx-AppId` 请求头，返回体新增 `wxAppId` 字段 |
 | 2026-05-21 | v1.8 | 所有接口补充 `X-Wx-AppId` 请求头说明及 curl 示例；接口总数更正为 6 个 |
 | 2026-05-20 | v1.7 | 新增播客音频上传接口、播客信息同步接口 |
 | 2026-05-10 | v1.6 | 创建小凡看见接口支持按 `targetUserId + periodId + sessionId` 幂等更新，避免重复生成多条记录 |
