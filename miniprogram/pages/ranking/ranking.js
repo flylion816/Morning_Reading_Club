@@ -24,6 +24,9 @@ Page({
     // 当前用户信息
     currentUser: null,
 
+    // 期次名称
+    periodName: '',
+
     // 参与人数
     participantCount: 0,
 
@@ -88,6 +91,7 @@ Page({
         rankingList: list,
         currentUser,
         participantCount: res.total,
+        periodName: res.periodName || '',
         loading: false
       });
     } catch (error) {
@@ -118,16 +122,6 @@ Page({
   },
 
   /**
-   * 分享
-   */
-  handleShare() {
-    wx.showToast({
-      title: '分享功能待开发',
-      icon: 'none'
-    });
-  },
-
-  /**
    * 点击用户行 - 跳转到他人主页
    */
   handleAvatarClick(e) {
@@ -144,9 +138,15 @@ Page({
    * 页面分享配置
    */
   onShareAppMessage() {
+    const { currentUser, periodName } = this.data;
+    const campName = periodName || '七个习惯晨读营';
+    let title = `${campName}排行榜，快来一起打卡！`;
+    if (currentUser && currentUser.rank) {
+      title = `我在${campName}排第${currentUser.rank}名，已打卡${currentUser.checkinCount}天，来挑战我！`;
+    }
     return {
-      title: '七个习惯晨读营 - 排行榜',
-      path: `/pages/ranking/ranking?periodId=${this.data.periodId}`
+      title,
+      path: `/pages/ranking/ranking?periodId=${this.periodId}`
     };
   }
 });

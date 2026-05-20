@@ -74,10 +74,8 @@
 
   <!-- 底部分享按钮 -->
   <view class="fixed-bottom">
-    <button class="btn-share" bindtap="handleShare">
-      立即分享
-    </button>
+    <button class="btn-share" open-type="share">立即分享</button>
   </view>
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar bottom-offset="152" />

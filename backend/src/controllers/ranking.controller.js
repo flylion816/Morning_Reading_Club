@@ -190,7 +190,8 @@ async function getPeriodRanking(req, res, next) {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
         totalPages: Math.ceil(total / parseInt(limit, 10)),
-        timeRange
+        timeRange,
+        periodName: period.name
       })
     );
   } catch (error) {

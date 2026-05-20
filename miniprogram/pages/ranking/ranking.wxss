@@ -3,7 +3,8 @@
 .page-ranking {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 140rpx;
+  padding-bottom: calc(136rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(136rpx + env(safe-area-inset-bottom));
 }
 
 /* 当前用户信息卡片 */
@@ -201,6 +202,8 @@
   right: 0;
   background: white;
   padding: 24rpx;
+  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
   z-index: 100;
 }
