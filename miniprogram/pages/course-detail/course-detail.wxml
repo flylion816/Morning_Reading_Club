@@ -226,6 +226,10 @@
           <text class="immersive-entry-icon">⊙</text>
           <text>沉浸阅读</text>
         </view>
+        <view class="tts-entry {{ttsState !== 'idle' ? 'tts-entry-active' : ''}}" bindtap="handleTtsPlay">
+          <text class="tts-entry-icon">{{ttsState === 'playing' ? '⏸' : ttsState === 'loading' ? '…' : '♪'}}</text>
+          <text>{{ttsState === 'playing' ? '暂停' : ttsState === 'loading' ? '合成中' : 'AI 朗读'}}</text>
+        </view>
       </view>
       <view class="reading-outer-wrap">
         <view class="reading-content-wrap {{readingContentExpanded ? '' : 'reading-content-collapsed'}}">
@@ -273,6 +277,33 @@
         <text>说一说</text>
       </view>
       <view class="section-content"><text user-select>{{course.say}}</text></view>
+    </view>
+
+    <view id="podcast-section" class="content-section podcast-section" wx:if="{{course.podcastUrl}}">
+      <view class="section-title">
+        <view class="section-icon podcast">播</view>
+        <text>播一播</text>
+      </view>
+      <view class="podcast-player-card" bindtap="handlePodcastPlay">
+        <view class="podcast-player-inner">
+          <view class="podcast-info">
+            <text class="podcast-title">{{course.title}}</text>
+            <text class="podcast-duration" wx:if="{{course.podcastDuration}}">{{podcastDurationText}}</text>
+          </view>
+          <view class="podcast-play-btn {{podcastPlaying && podcastSectionId === courseId ? 'playing' : ''}}">
+            <text class="podcast-play-icon">{{podcastPlaying && podcastSectionId === courseId ? '⏸' : '▶'}}</text>
+          </view>
+        </view>
+        <view class="podcast-progress-bar" wx:if="{{podcastPlaying && podcastSectionId === courseId}}">
+          <view class="podcast-progress-fill" style="width: {{podcastProgress}}%"></view>
+        </view>
+      </view>
+      <view class="podcast-desc-wrap" wx:if="{{course.podcastDescription}}">
+        <view class="podcast-desc {{podcastDescExpanded ? '' : 'podcast-desc-collapsed'}}">
+          <rich-text nodes="{{course.podcastDescriptionHtml}}"></rich-text>
+        </view>
+        <view class="podcast-desc-toggle" bindtap="togglePodcastDesc">{{podcastDescExpanded ? '收起' : '展开简介'}}</view>
+      </view>
     </view>
 
     <view class="comments-section" wx:if="{{communityAccessState === 'enabled'}}">
@@ -512,3 +543,5 @@
     type="2d"
     class="long-image-canvas"></canvas>
 </view>
+
+<podcast-player-bar />

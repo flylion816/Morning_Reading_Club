@@ -73,15 +73,17 @@ function adminTenantContext(req, res, next) {
   if (role === 'platform_superadmin' || role === 'superadmin') {
     const activeTenantHeader = req.header('X-Active-Tenant');
     if (activeTenantHeader && mongoose.Types.ObjectId.isValid(activeTenantHeader)) {
+      req._resolvedTenantId = new mongoose.Types.ObjectId(activeTenantHeader);
       return runWithTenant(
         {
-          tenantId: new mongoose.Types.ObjectId(activeTenantHeader),
+          tenantId: req._resolvedTenantId,
           bypassTenantFilter: false,
           actor: { type: 'admin', id: req.admin.id, role }
         },
         () => next()
       );
     }
+    req._resolvedTenantId = null;
     return runWithTenant(
       {
         tenantId: null,
@@ -95,9 +97,10 @@ function adminTenantContext(req, res, next) {
   if (!req.admin.tenantId) {
     return res.status(403).json({ code: 403, message: '管理员未绑定租户，请联系平台管理员' });
   }
+  req._resolvedTenantId = new mongoose.Types.ObjectId(req.admin.tenantId);
   runWithTenant(
     {
-      tenantId: new mongoose.Types.ObjectId(req.admin.tenantId),
+      tenantId: req._resolvedTenantId,
       bypassTenantFilter: false,
       actor: { type: 'admin', id: req.admin.id, role }
     },
@@ -129,6 +132,7 @@ async function publicTenantContext(req, res, next) {
       method: req.method
     });
 
+    req._resolvedTenantId = tenant._id;
     runWithTenant(
       {
         tenantId: tenant._id,

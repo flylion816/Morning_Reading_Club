@@ -143,7 +143,15 @@ Page({
     readingContentExpanded: false,
     showCheckinShareMenu: false,
     checkinTextShareFilePath: '',
-    checkinTextShareFileName: ''
+    checkinTextShareFileName: '',
+    // 播客
+    podcastPlaying: false,
+    podcastSectionId: '',
+    podcastProgress: 0,
+    podcastDurationText: '',
+    podcastDescExpanded: false,
+    // AI 朗读
+    ttsState: 'idle'  // idle | loading | playing | paused
   },
 
   _hasRevealedContent: false,
@@ -184,6 +192,7 @@ Page({
       checkinTextShareFilePath: '',
       checkinTextShareFileName: ''
     });
+    this._scrollAnchor = options.anchor || '';
 
     this.updateShareMenu(true, !!options.checkinId);
 
@@ -199,6 +208,7 @@ Page({
     if (this.highlightTimer) {
       clearTimeout(this.highlightTimer);
     }
+    this._ttsDestroy();
   },
 
   revealPageContent() {
@@ -206,11 +216,20 @@ Page({
     if (!this.data.showPageContent) {
       this.setData({ showPageContent: true });
     }
+    if (this._scrollAnchor === 'podcast') {
+      setTimeout(() => {
+        wx.nextTick(() => {
+          wx.pageScrollTo({ selector: '#podcast-section', duration: 280, offsetTop: -20 });
+        });
+      }, 400);
+      this._scrollAnchor = '';
+    }
   },
 
   onShow() {
     if (this._skipNextOnShowRefresh) {
       this._skipNextOnShowRefresh = false;
+      this.syncPodcastStateFromGlobal();
       return;
     }
 
@@ -218,6 +237,7 @@ Page({
     if (this.data.courseId && this.data.course) {
       this.loadCourseDetail();
     }
+    this.syncPodcastStateFromGlobal();
   },
 
   onShareAppMessage() {
@@ -1831,6 +1851,20 @@ Page({
       }
     });
 
+    // 播客时长文本
+    if (course.podcastDuration) {
+      this.setData({ podcastDurationText: this.formatPodcastDuration(course.podcastDuration) });
+    }
+
+    // 播客介绍换行处理
+    if (course.podcastDescription) {
+      course.podcastDescriptionHtml = course.podcastDescription
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+    }
+
     return course;
   },
 
@@ -3093,6 +3127,106 @@ Page({
     wx.navigateTo({ url });
   },
 
+  formatPodcastDuration(seconds) {
+    if (!seconds || seconds <= 0) return '';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+  },
+
+  syncPodcastStateFromGlobal() {
+    const app = getApp();
+    const { podcastPlaying, podcastSectionId, podcastCurrentTime, podcastDuration } = app.globalData;
+    const progress = podcastDuration > 0 ? Math.min(100, (podcastCurrentTime / podcastDuration) * 100) : 0;
+    this.setData({
+      podcastPlaying: !!podcastPlaying,
+      podcastSectionId: podcastSectionId || '',
+      podcastProgress: progress
+    });
+  },
+
+  handlePodcastPlay() {
+    const { course, courseId } = this.data;
+    if (!course.podcastUrl) return;
+
+    const app = getApp();
+    const isThisSection = app.globalData.podcastSectionId === courseId;
+
+    if (isThisSection && app.globalData.podcastPlaying) {
+      // 暂停
+      app.globalData.audioContext && app.globalData.audioContext.pause();
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false });
+      return;
+    }
+
+    if (isThisSection && !app.globalData.podcastPlaying) {
+      // 恢复播放
+      app.globalData.audioContext && app.globalData.audioContext.play();
+      app.globalData.podcastPlaying = true;
+      this.setData({ podcastPlaying: true });
+      return;
+    }
+
+    // 新建播放
+    if (app.globalData.audioContext) {
+      app.globalData.audioContext.stop();
+      app.globalData.audioContext.destroy();
+    }
+
+    const ctx = wx.createInnerAudioContext();
+    ctx.src = course.podcastUrl;
+    ctx.autoplay = true;
+
+    ctx.onPlay(() => {
+      app.globalData.podcastPlaying = true;
+      app.globalData.podcastActive = true;
+      app.globalData.podcastSectionId = courseId;
+      app.globalData.podcastTitle = course.title || '';
+      app.globalData.podcastUrl = course.podcastUrl;
+      app.globalData.podcastDuration = course.podcastDuration || 0;
+      this.setData({ podcastPlaying: true, podcastSectionId: courseId });
+    });
+
+    ctx.onPause(() => {
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false });
+    });
+
+    ctx.onStop(() => {
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false, podcastProgress: 0 });
+    });
+
+    ctx.onEnded(() => {
+      app.globalData.podcastPlaying = false;
+      app.globalData.podcastCurrentTime = 0;
+      this.setData({ podcastPlaying: false, podcastProgress: 0 });
+    });
+
+    ctx.onTimeUpdate(() => {
+      const duration = ctx.duration || course.podcastDuration || 0;
+      const current = ctx.currentTime || 0;
+      app.globalData.podcastCurrentTime = current;
+      app.globalData.podcastDuration = duration;
+      const progress = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
+      this.setData({ podcastProgress: progress });
+    });
+
+    ctx.onError((err) => {
+      console.error('播客播放失败:', err);
+      wx.showToast({ title: '播放失败，请重试', icon: 'none' });
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false });
+    });
+
+    app.globalData.audioContext = ctx;
+  },
+
+  togglePodcastDesc() {
+    this.setData({ podcastDescExpanded: !this.data.podcastDescExpanded });
+  },
+
   handleLongImageShare() {
     const {
       detailCheckin,
@@ -3151,5 +3285,106 @@ Page({
           icon: 'none'
         });
       });
+  },
+
+  // ── AI 朗读 ──────────────────────────────────────────
+
+  handleTtsPlay() {
+    const state = this.data.ttsState;
+    if (state === 'loading') return;
+    if (state === 'playing') {
+      this._ttsAudio && this._ttsAudio.pause();
+      this.setData({ ttsState: 'paused' });
+      return;
+    }
+    if (state === 'paused') {
+      this._ttsAudio && this._ttsAudio.play();
+      this.setData({ ttsState: 'playing' });
+      return;
+    }
+    this._ttsStart();
+  },
+
+  _ttsStart() {
+    const content = this.data.course && this.data.course.content;
+    if (!content) {
+      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      return;
+    }
+    const { richContentToPlainText } = require('../../utils/markdown');
+    const plainText = richContentToPlainText(content).replace(/\s+/g, ' ').trim();
+    if (!plainText) {
+      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      return;
+    }
+    this._ttsChunks = this._ttsSplit(plainText, 180);
+    this._ttsChunkIndex = 0;
+    this.setData({ ttsState: 'loading' });
+    this._ttsPlayChunk();
+  },
+
+  _ttsSplit(text, maxLen) {
+    const chunks = [];
+    let start = 0;
+    while (start < text.length) {
+      let end = start + maxLen;
+      if (end < text.length) {
+        const breakAt = text.lastIndexOf('。', end);
+        if (breakAt > start) end = breakAt + 1;
+      }
+      chunks.push(text.slice(start, end));
+      start = end;
+    }
+    return chunks;
+  },
+
+  _ttsPlayChunk() {
+    if (this._ttsChunkIndex >= (this._ttsChunks || []).length) {
+      this.setData({ ttsState: 'idle' });
+      return;
+    }
+    const text = this._ttsChunks[this._ttsChunkIndex];
+    const plugin = requirePlugin('WechatSI');
+    plugin.textToSpeech({
+      lang: 'zh_CN',
+      tts: true,
+      content: text,
+      success: (res) => {
+        if (!res.filename) {
+          wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
+          this.setData({ ttsState: 'idle' });
+          return;
+        }
+        if (!this._ttsAudio) {
+          this._ttsAudio = wx.createInnerAudioContext();
+          this._ttsAudio.onEnded(() => {
+            this._ttsChunkIndex++;
+            this.setData({ ttsState: 'loading' });
+            this._ttsPlayChunk();
+          });
+          this._ttsAudio.onError((err) => {
+            console.error('TTS 播放错误:', err);
+            this.setData({ ttsState: 'idle' });
+          });
+        }
+        this._ttsAudio.src = res.filename;
+        this._ttsAudio.play();
+        this.setData({ ttsState: 'playing' });
+      },
+      fail: (err) => {
+        console.error('TTS 合成失败:', err);
+        wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
+        this.setData({ ttsState: 'idle' });
+      }
+    });
+  },
+
+  _ttsDestroy() {
+    if (this._ttsAudio) {
+      this._ttsAudio.destroy();
+      this._ttsAudio = null;
+    }
+    this._ttsChunks = null;
+    this._ttsChunkIndex = 0;
   }
 });

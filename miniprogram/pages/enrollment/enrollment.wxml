@@ -227,3 +227,5 @@
     </form>
   </view>
 </view>
+
+<podcast-player-bar />

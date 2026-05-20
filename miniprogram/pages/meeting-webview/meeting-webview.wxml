@@ -1,1 +1,3 @@
 <web-view src="{{url}}" bindload="handleLoad" binderror="handleError" />
+
+<podcast-player-bar />

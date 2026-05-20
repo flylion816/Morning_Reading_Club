@@ -22,11 +22,11 @@ function ensureTenantDir(slug) {
   return dir;
 }
 
-// multer 动态 destination：从一开始就写到 tenant 子目录
+// multer 动态 destination：从 req 直接读租户 ID（避免 ALS 在异步文件写入时丢失上下文）
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
-      const tenantId = getCurrentTenantId();
+      const tenantId = req._resolvedTenantId || getCurrentTenantId();
       if (!tenantId) return cb(new Error('缺少租户上下文'));
       const slug = await resolveTenantSlug(tenantId);
       cb(null, ensureTenantDir(slug));
@@ -42,7 +42,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp|pdf|doc|docx|xls|xlsx|mp4|webm/;
+  const allowedTypes = /jpeg|jpg|png|gif|webp|pdf|doc|docx|xls|xlsx|mp4|webm|m4a|mp3|aac/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
   if (mimetype && extname) return cb(null, true);
@@ -52,7 +52,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 }
+  limits: { fileSize: 200 * 1024 * 1024 }
 });
 
 function requireActiveTenantForUpload(req, res, next) {

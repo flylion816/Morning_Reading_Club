@@ -77,6 +77,21 @@ const SectionSchema = new mongoose.Schema(
       maxlength: 500,
       default: null
     },
+    podcastUrl: {
+      type: String,
+      maxlength: 500,
+      default: null
+    },
+    podcastDescription: {
+      type: String,
+      maxlength: 3000,
+      default: null
+    },
+    podcastDuration: {
+      type: Number,
+      default: null,
+      min: 0
+    },
     videoCover: {
       type: String,
       maxlength: 500,

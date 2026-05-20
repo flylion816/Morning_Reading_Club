@@ -102,3 +102,5 @@
     </view>
   </view>
 </view>
+
+<podcast-player-bar />

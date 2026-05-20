@@ -117,3 +117,5 @@
     <text>没有更多通知了</text>
   </view>
 </view>
+
+<podcast-player-bar />

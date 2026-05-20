@@ -247,6 +247,47 @@
               <el-input-number v-model="editingSection.duration" :min="0" :max="600" />
             </el-form-item>
 
+            <div class="section-subtitle">凡人播客</div>
+
+            <el-form-item label="播客音频">
+              <div class="podcast-upload-area">
+                <el-button
+                  :loading="podcastUploading"
+                  @click="triggerPodcastFileInput"
+                >{{ podcastUploading ? '上传中...' : '选择音频文件' }}</el-button>
+                <input
+                  ref="podcastFileInputRef"
+                  type="file"
+                  accept=".m4a,.mp3,.aac"
+                  style="display:none"
+                  @change="handlePodcastFileChange"
+                />
+                <div v-if="editingSection.podcastUrl" class="podcast-file-info">
+                  <span class="podcast-file-name">{{ podcastFileName }}</span>
+                  <el-button type="danger" size="small" text @click="clearPodcastUrl">× 删除</el-button>
+                </div>
+                <div v-if="editingSection.podcastUrl" class="podcast-url-display">
+                  {{ editingSection.podcastUrl }}
+                </div>
+                <el-progress v-if="podcastUploading" :percentage="podcastUploadProgress" style="margin-top:8px" />
+              </div>
+            </el-form-item>
+
+            <el-form-item label="播客时长（秒）">
+              <el-input-number v-model="editingSection.podcastDuration" :min="0" :max="36000" placeholder="上传后自动填入" />
+            </el-form-item>
+
+            <el-form-item label="播客介绍">
+              <el-input
+                v-model="editingSection.podcastDescription"
+                type="textarea"
+                :rows="6"
+                :maxlength="3000"
+                show-word-limit
+                placeholder="输入播客介绍文字（群里发的那段公告）"
+              />
+            </el-form-item>
+
             <el-form-item label="发布状态">
               <el-switch v-model="editingSection.isPublished" />
               <span style="margin-left: 10px; color: #666">
@@ -271,7 +312,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
-import { periodApi } from '../services/api';
+import { periodApi, uploadApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Section } from '../types/api';
 
@@ -292,6 +333,9 @@ interface SectionForm {
   say: string;
   duration: number;
   isPublished: boolean;
+  podcastUrl?: string | null;
+  podcastDescription?: string | null;
+  podcastDuration?: number | null;
 }
 
 type SectionFormSource = Partial<SectionForm> & {
@@ -307,6 +351,55 @@ const saving = ref(false);
 const loadingSectionId = ref<string | null>(null);
 const contentEditorMode = ref<'markdown' | 'richtext'>('markdown');
 const sectionSnapshot = ref('');
+
+const podcastFileInputRef = ref<HTMLInputElement | null>(null);
+const podcastUploading = ref(false);
+const podcastUploadProgress = ref(0);
+const podcastFileName = ref('');
+
+function triggerPodcastFileInput() {
+  podcastFileInputRef.value?.click();
+}
+
+async function handlePodcastFileChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!localStorage.getItem('admin_active_tenant')) {
+    ElMessage.warning('请先在顶部选择具体租户，再上传音频');
+    input.value = '';
+    return;
+  }
+  podcastFileName.value = file.name;
+  podcastUploading.value = true;
+  podcastUploadProgress.value = 0;
+  try {
+    const res = await uploadApi.uploadFile(file);
+    const url = (res as any)?.url || (res as any)?.data?.url || '';
+    editingSection.value.podcastUrl = url;
+    if (url) {
+      const autoSeconds = (res as any)?.duration ? Math.round((res as any).duration) : null;
+      if (autoSeconds) editingSection.value.podcastDuration = autoSeconds;
+    }
+    podcastUploadProgress.value = 100;
+    ElMessage.success('音频上传成功');
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.message || '';
+    if (err?.response?.status === 403) {
+      ElMessage.error('上传失败：请先在顶部选择具体租户');
+    } else {
+      ElMessage.error(`音频上传失败${msg ? '：' + msg : ''}`);
+    }
+  } finally {
+    podcastUploading.value = false;
+    input.value = '';
+  }
+}
+
+function clearPodcastUrl() {
+  editingSection.value.podcastUrl = null;
+  podcastFileName.value = '';
+}
 
 // 编辑弹窗
 const editDialogVisible = ref(false);
@@ -365,6 +458,7 @@ async function handleAddSection() {
     periodId: selectedPeriodId.value || undefined,
     day: sections.value.length,
   });
+  podcastFileName.value = '';
   sectionSnapshot.value = '';
   editDialogVisible.value = true;
   // 等表单组件全部挂载（el-input-number 等会规范化值）后再拍快照
@@ -384,6 +478,7 @@ async function handleEditSection(section: Section) {
     const detail = (await periodApi.getSectionDetail(section._id)) as unknown as Section;
     contentEditorMode.value = detectContentEditorMode(detail.content);
     editingSection.value = normalizeSectionForm(detail);
+    podcastFileName.value = detail.podcastUrl ? detail.podcastUrl.split('/').pop() || '' : '';
     sectionSnapshot.value = '';
     editDialogVisible.value = true;
     // 等所有表单组件挂载并完成值规范化后再拍快照，避免误判为有改动
@@ -545,6 +640,9 @@ function createEmptySectionDraft(overrides: Partial<SectionForm> = {}): SectionF
     say: '',
     duration: 0,
     isPublished: false,
+    podcastUrl: null,
+    podcastDescription: null,
+    podcastDuration: null,
     ...overrides
   };
 }
@@ -571,7 +669,10 @@ function normalizeSectionForm(section: SectionFormSource): SectionForm {
     extract: section.extract,
     say: section.say,
     duration: section.duration,
-    isPublished: section.isPublished
+    isPublished: section.isPublished,
+    podcastUrl: section.podcastUrl ?? null,
+    podcastDescription: section.podcastDescription ?? null,
+    podcastDuration: section.podcastDuration ?? null
   });
 }
 
@@ -593,7 +694,10 @@ function buildSectionPayload(section: SectionForm) {
     extract: normalized.extract,
     say: normalized.say,
     duration: normalized.duration,
-    isPublished: normalized.isPublished
+    isPublished: normalized.isPublished,
+    podcastUrl: normalized.podcastUrl,
+    podcastDescription: normalized.podcastDescription,
+    podcastDuration: normalized.podcastDuration
   };
 }
 
@@ -689,5 +793,44 @@ onBeforeUnmount(() => {
     'Menlo',
     monospace;
   line-height: 1.7;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  margin: 16px 0 12px;
+  padding-left: 8px;
+  border-left: 3px solid #409eff;
+}
+
+.podcast-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.podcast-file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.podcast-file-name {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.podcast-url-display {
+  font-size: 12px;
+  color: #909399;
+  word-break: break-all;
+  background: #f5f7fa;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 </style>

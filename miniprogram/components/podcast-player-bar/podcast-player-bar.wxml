@@ -1,0 +1,16 @@
+<view class="podcast-bar {{active ? 'podcast-bar-visible' : ''}}" catchtap="handleBarTap">
+  <view class="podcast-bar-left">
+    <view class="podcast-bar-play-btn" catchtap="handlePlayPause">
+      <text class="podcast-bar-play-icon">{{playing ? '⏸' : '▶'}}</text>
+    </view>
+    <view class="podcast-bar-info">
+      <text class="podcast-bar-title">{{title}}</text>
+      <view class="podcast-bar-progress-track">
+        <view class="podcast-bar-progress-fill" style="width: {{progress}}%"></view>
+      </view>
+    </view>
+  </view>
+  <view class="podcast-bar-close" catchtap="handleClose">
+    <text class="podcast-bar-close-icon">✕</text>
+  </view>
+</view>

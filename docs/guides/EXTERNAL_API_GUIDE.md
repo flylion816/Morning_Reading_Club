@@ -6,11 +6,15 @@
 
 ## 接口概览
 
-| API | 方法 | 端点 | 说明 |
+| 接口概览 | 方法 | 端点 | 说明 |
 | --- | --- | --- | --- |
 | 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 获取当前正在运行的期次列表，以及每个期次当天课程的 `sessionId` |
 | 获取期次用户 | GET | `/api/v1/enrollments/external/users-by-period` | 通过期次 ID 或期次名称获取参与用户列表 |
-| 创建小凡看见 | POST | `/api/v1/insights/external/create` | 为指定用户创建“小凡看见” |
+| 创建小凡看见 | POST | `/api/v1/insights/external/create` | 为指定用户创建”小凡看见” |
+| 上传播客音频 | POST | `/api/v1/sections/external/upload-podcast` | 上传音频文件，获取 `podcastUrl` |
+| 同步播客信息 | POST | `/api/v1/sections/external/sync-podcast` | 将播客 URL、简介、时长同步到指定课节 |
+
+所有接口均需在请求头中携带 `X-Wx-AppId`，值为小程序的 AppID（即 `wx199d6d332344ed0a`）。后端通过此值自动识别租户，无需传递租户 ID。
 
 示例使用当前最新期次：
 
@@ -352,10 +356,125 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 ---
 
+## 接口五：上传播客音频文件
+
+将音频文件上传到服务器，获取可用于后续同步的 `podcastUrl`。
+
+**接口地址**
+
+```
+POST /api/v1/sections/external/upload-podcast
+```
+
+**请求头**
+
+| 字段 | 说明 |
+| --- | --- |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+| `Content-Type` | `multipart/form-data` |
+
+**请求体（form-data）**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `file` | File | 是 | 音频文件，支持 m4a / mp3 / aac，最大 200MB |
+
+**成功响应**
+
+```json
+{
+  “success”: true,
+  “data”: {
+    “podcastUrl”: “/uploads/tenants/fanren/1716192000000-abc123.m4a”,
+    “filename”: “1716192000000-abc123.m4a”,
+    “size”: 12345678,
+    “uploadedAt”: “2026-05-20T10:00:00.000Z”
+  },
+  “message”: “上传成功”
+}
+```
+
+**curl 示例**
+
+```bash
+curl -X POST https://wx.shubai01.com/api/v1/sections/external/upload-podcast \
+  -H “X-Wx-AppId: wx199d6d332344ed0a” \
+  -F “file=@/path/to/podcast.m4a”
+```
+
+---
+
+## 接口六：同步播客信息到课节
+
+将播客 URL、简介、时长同步到指定课节，并在首次上传时自动推送订阅通知给期次内所有报名用户。
+
+**接口地址**
+
+```
+POST /api/v1/sections/external/sync-podcast
+```
+
+**请求头**
+
+| 字段 | 说明 |
+| --- | --- |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+| `Content-Type` | `application/json` |
+
+**请求体**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `sessionId` | string | 是 | 课节 ID（MongoDB ObjectId） |
+| `podcastUrl` | string | 否 | 音频文件 URL（来自上传接口的 `podcastUrl`） |
+| `podcastDescription` | string | 否 | 播客简介文本，最多 3000 字 |
+| `podcastDuration` | number | 否 | 音频时长（秒） |
+
+至少需要提供 `podcastUrl`、`podcastDescription`、`podcastDuration` 中的一个。
+
+**成功响应**
+
+```json
+{
+  “success”: true,
+  “data”: {
+    “sessionId”: “664a1b2c3d4e5f6a7b8c9d0e”,
+    “podcastUrl”: “/uploads/tenants/fanren/1716192000000-abc123.m4a”,
+    “podcastDuration”: 1234,
+    “updatedAt”: “2026-05-20T10:01:00.000Z”
+  },
+  “message”: “同步成功”
+}
+```
+
+**curl 示例**
+
+```bash
+curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
+  -H “X-Wx-AppId: wx199d6d332344ed0a” \
+  -H “Content-Type: application/json” \
+  -d '{
+    “sessionId”: “664a1b2c3d4e5f6a7b8c9d0e”,
+    “podcastUrl”: “/uploads/tenants/fanren/1716192000000-abc123.m4a”,
+    “podcastDescription”: “今天我们聊聊第一个习惯：积极主动。”,
+    “podcastDuration”: 1234
+  }'
+```
+
+**说明**
+
+- `sessionId` 即课节的 MongoDB `_id`，可通过管理后台课节列表获取。
+- 首次同步（课节原本无 `podcastUrl`，本次传入了 `podcastUrl`）时，系统会自动向该期次所有报名用户推送微信订阅通知”凡人播客上新”。
+- 重复调用不会重复推送通知。
+- 推荐工作流：先调用接口五上传音频获取 `podcastUrl`，再调用接口六同步到课节。
+
+---
+
 ## 更新日志
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-05-20 | v1.7 | 新增播客音频上传接口、播客信息同步接口 |
 | 2026-05-10 | v1.6 | 创建小凡看见接口支持按 `targetUserId + periodId + sessionId` 幂等更新，避免重复生成多条记录 |
 | 2026-05-10 | v1.5 | `targetUserName` 改为按指定期次的有效报名用户匹配，避免全站同名用户误判重复 |
 | 2026-05-10 | v1.4 | 创建小凡看见接口支持 `targetUserName`（与 `targetUserId` 二选一） |
@@ -366,4 +485,4 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 ---
 
-**最后更新**: 2026-05-10
+**最后更新**: 2026-05-20

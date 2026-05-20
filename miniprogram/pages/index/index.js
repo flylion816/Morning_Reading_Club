@@ -173,6 +173,10 @@ Page({
     todaySection: null,
     showMorningReadPrompt: false,
 
+    // 播客播放状态（同步自 globalData）
+    podcastPlaying: false,
+    podcastSectionId: '',
+
     // 统计信息
     stats: {
       current_day: 1,
@@ -233,6 +237,12 @@ Page({
   onShow() {
     console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
     this.checkLoginStatus({ refreshUserData: true });
+    // 同步播客播放状态
+    const app = getApp();
+    this.setData({
+      podcastPlaying: !!app.globalData.podcastPlaying,
+      podcastSectionId: app.globalData.podcastSectionId || ''
+    });
   },
 
   onPullDownRefresh() {
@@ -598,7 +608,9 @@ Page({
           coverEmoji:
             sectionRes.coverEmoji || currentPeriod?.coverEmoji || '🏔️',
           subtitleDisplay: (sectionRes.subtitle || '').replace(/至$/, ''),
-          displayDate
+          displayDate,
+          podcastUrl: sectionRes.podcastUrl || null,
+          podcastDuration: sectionRes.podcastDuration || null
         };
       } else if (!hasValidTask && currentPeriodId) {
         // 降级方案：从期次课节列表取第一个未打卡课节
@@ -630,7 +642,9 @@ Page({
               coverColor: currentPeriod?.coverColor || '#4a90e2',
               coverEmoji: currentPeriod?.coverEmoji || '🏔️',
               subtitleDisplay: (section.subtitle || '').replace(/至$/, ''),
-              displayDate
+              displayDate,
+              podcastUrl: section.podcastUrl || null,
+              podcastDuration: section.podcastDuration || null
             };
           }
         } catch (e) {
@@ -1382,6 +1396,88 @@ Page({
         '/pages/insight-requests/insight-requests?direction=' +
         (this.data.activeInsightRequestDirection || 'received')
     });
+  },
+
+  handleTodayPodcastBtnTap(e) {
+    e.stopPropagation && e.stopPropagation();
+    const { todaySection } = this.data;
+    if (!todaySection) return;
+    const id = todaySection.id || todaySection._id;
+    wx.navigateTo({
+      url: `/pages/course-detail/course-detail?id=${id}&anchor=podcast`
+    });
+  },
+
+  handleTodayPodcastPlay() {
+    const { todaySection } = this.data;
+    if (!todaySection || !todaySection.podcastUrl) return;
+
+    const app = getApp();
+    const sectionId = todaySection.id || todaySection._id;
+    const isThisSection = app.globalData.podcastSectionId === sectionId;
+
+    if (isThisSection && app.globalData.podcastPlaying) {
+      app.globalData.audioContext && app.globalData.audioContext.pause();
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false });
+      return;
+    }
+
+    if (isThisSection && !app.globalData.podcastPlaying) {
+      app.globalData.audioContext && app.globalData.audioContext.play();
+      app.globalData.podcastPlaying = true;
+      this.setData({ podcastPlaying: true });
+      return;
+    }
+
+    if (app.globalData.audioContext) {
+      app.globalData.audioContext.stop();
+      app.globalData.audioContext.destroy();
+    }
+
+    const ctx = wx.createInnerAudioContext();
+    ctx.src = todaySection.podcastUrl;
+    ctx.autoplay = true;
+
+    ctx.onPlay(() => {
+      app.globalData.podcastPlaying = true;
+      app.globalData.podcastActive = true;
+      app.globalData.podcastSectionId = sectionId;
+      app.globalData.podcastTitle = todaySection.title || '';
+      app.globalData.podcastUrl = todaySection.podcastUrl;
+      app.globalData.podcastDuration = todaySection.podcastDuration || 0;
+      this.setData({ podcastPlaying: true, podcastSectionId: sectionId });
+    });
+
+    ctx.onPause(() => {
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false });
+    });
+
+    ctx.onStop(() => {
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false });
+    });
+
+    ctx.onEnded(() => {
+      app.globalData.podcastPlaying = false;
+      app.globalData.podcastCurrentTime = 0;
+      this.setData({ podcastPlaying: false });
+    });
+
+    ctx.onTimeUpdate(() => {
+      app.globalData.podcastCurrentTime = ctx.currentTime || 0;
+      app.globalData.podcastDuration = ctx.duration || todaySection.podcastDuration || 0;
+    });
+
+    ctx.onError((err) => {
+      console.error('播客播放失败:', err);
+      wx.showToast({ title: '播放失败，请重试', icon: 'none' });
+      app.globalData.podcastPlaying = false;
+      this.setData({ podcastPlaying: false });
+    });
+
+    app.globalData.audioContext = ctx;
   },
 
   /**

@@ -115,3 +115,5 @@
 
   <view wx:if="{{loadingMore}}" class="load-more">加载更多中...</view>
 </view>
+
+<podcast-player-bar />

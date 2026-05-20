@@ -7,6 +7,7 @@
 const developmentOrigins = [
   'http://localhost:3000', // 后端本身
   'http://localhost:5173', // Admin Vue (Vite默认端口)
+  'http://localhost:5174', // Admin Vue (Vite备用端口)
   'http://localhost:4173', // Admin Vue (Vite preview端口)
   'http://localhost:8080' // 备用前端端口
 ];

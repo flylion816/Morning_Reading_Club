@@ -78,6 +78,10 @@
                   <text wx:else>去学习</text>
                   <text class="btn-arrow" wx:if="{{currentPeriodCommunityState !== 'enabled' || !todaySection.isCheckedIn}}">→</text>
                 </view>
+                <view class="podcast-btn" wx:if="{{todaySection.podcastUrl}}" catchtap="handleTodayPodcastBtnTap">
+                  <text>去播客</text>
+                  <text class="btn-arrow">→</text>
+                </view>
               </view>
             </view>
           </view>
@@ -419,3 +423,5 @@
     <view class="loading-spinner"></view>
   </view>
 </view>
+
+<podcast-player-bar />

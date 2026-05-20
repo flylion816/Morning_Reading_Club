@@ -143,3 +143,5 @@
   </view>
 
 </view>
+
+<podcast-player-bar />

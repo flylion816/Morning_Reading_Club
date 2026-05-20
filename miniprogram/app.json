@@ -24,7 +24,8 @@
     "pages/privacy-policy/privacy-policy",
     "pages/user-agreement/user-agreement",
     "pages/profile/profile",
-    "pages/edit-profile/edit-profile"
+    "pages/edit-profile/edit-profile",
+    "pages/podcast-player/podcast-player"
   ],
   "window": {
     "navigationBarTitleText": "凡人共读",
@@ -60,7 +61,15 @@
       }
     ]
   },
-  "usingComponents": {},
+  "plugins": {
+    "WechatSI": {
+      "version": "0.3.4",
+      "provider": "wx069ba97219f66d99"
+    }
+  },
+  "usingComponents": {
+    "podcast-player-bar": "/components/podcast-player-bar/podcast-player-bar"
+  },
   "permission": {
     "scope.userLocation": {
       "desc": "你的位置信息将用于小程序位置接口的效果展示"

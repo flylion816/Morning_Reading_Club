@@ -95,6 +95,7 @@ Page({
       { name: '玫瑰', value: '#e8a0b4' }
     ],
     isLiked: false,
+    ttsState: 'idle',  // idle | loading | playing | paused
     showHearts: false,
     heartItems: [],
     scrollPercent: 0,
@@ -144,6 +145,7 @@ Page({
       this._bottomObserver.disconnect();
       this._bottomObserver = null;
     }
+    this._ttsDestroy();
   },
 
   // 用 IntersectionObserver 监测底部哨兵是否进入视口，滚到底时强制设 100%
@@ -1202,5 +1204,106 @@ Page({
         activeDanmaku: this.data.activeDanmaku.filter(d => d.id !== displayId)
       });
     }, (DANMAKU_DURATION + 0.5 + animDelay) * 1000);
+  },
+
+  // ===================== AI 朗读 =====================
+
+  handleTtsPlay() {
+    const state = this.data.ttsState;
+    if (state === 'loading') return;
+    if (state === 'playing') {
+      this._ttsAudio && this._ttsAudio.pause();
+      this.setData({ ttsState: 'paused' });
+      return;
+    }
+    if (state === 'paused') {
+      this._ttsAudio && this._ttsAudio.play();
+      this.setData({ ttsState: 'playing' });
+      return;
+    }
+    this._ttsStart();
+  },
+
+  _ttsStart() {
+    const content = this.data.insight && this.data.insight.content;
+    if (!content) {
+      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      return;
+    }
+    const plainText = this._stripHtmlForCanvas(content).replace(/\s+/g, ' ').trim();
+    if (!plainText) {
+      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      return;
+    }
+    this._ttsChunks = this._ttsSplit(plainText, 180);
+    this._ttsChunkIndex = 0;
+    this.setData({ ttsState: 'loading' });
+    this._ttsPlayChunk();
+  },
+
+  _ttsSplit(text, maxLen) {
+    const chunks = [];
+    let start = 0;
+    while (start < text.length) {
+      let end = start + maxLen;
+      if (end < text.length) {
+        const breakAt = text.lastIndexOf('。', end);
+        if (breakAt > start) end = breakAt + 1;
+      }
+      chunks.push(text.slice(start, end));
+      start = end;
+    }
+    return chunks;
+  },
+
+  _ttsPlayChunk() {
+    if (this._ttsChunkIndex >= (this._ttsChunks || []).length) {
+      this.setData({ ttsState: 'idle' });
+      return;
+    }
+    const text = this._ttsChunks[this._ttsChunkIndex];
+    const plugin = requirePlugin('WechatSI');
+    plugin.textToSpeech({
+      lang: 'zh_CN',
+      tts: true,
+      content: text,
+      success: (res) => {
+        if (!res.filename) {
+          wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
+          this.setData({ ttsState: 'idle' });
+          return;
+        }
+        if (!this._ttsAudio) {
+          this._ttsAudio = wx.createInnerAudioContext();
+          this._ttsAudio.onEnded(() => {
+            this._ttsChunkIndex++;
+            this.setData({ ttsState: 'loading' });
+            this._ttsPlayChunk();
+          });
+          this._ttsAudio.onError((err) => {
+            console.error('TTS 播放错误:', err);
+            this.setData({ ttsState: 'idle' });
+          });
+        }
+        this._ttsAudio.src = res.filename;
+        this._ttsAudio.play();
+        this.setData({ ttsState: 'playing' });
+      },
+      fail: (err) => {
+        console.error('TTS 合成失败:', err);
+        wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
+        this.setData({ ttsState: 'idle' });
+      }
+    });
+  },
+
+  _ttsDestroy() {
+    if (this._ttsAudio) {
+      this._ttsAudio.destroy();
+      this._ttsAudio = null;
+    }
+    this._ttsChunks = null;
+    this._ttsChunkIndex = 0;
+    this.setData({ ttsState: 'idle' });
   }
 });

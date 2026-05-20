@@ -8,6 +8,11 @@ const { tenantStorage } = require('./utils/storage');
 App({
   onLaunch(options) {
     try {
+      wx.cloud.init({
+        env: 'cloudbase-d1gulwh3a82346ea9',
+        traceUser: true
+      });
+
       logger.info('晨读营小程序启动', options);
       logger.debug('当前环境:', envConfig.currentEnv);
 
@@ -235,6 +240,15 @@ App({
     screenWidth: 0,
     platform: '',
     apiBaseUrl: envConfig.apiBaseUrl,
-    env: envConfig
+    env: envConfig,
+    // 播客播放状态
+    podcastActive: false,
+    podcastPlaying: false,
+    podcastTitle: '',
+    podcastUrl: '',
+    podcastDuration: 0,
+    podcastCurrentTime: 0,
+    podcastSectionId: '',
+    audioContext: null
   }
 });

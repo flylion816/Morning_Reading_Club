@@ -265,8 +265,9 @@ class MysqlBackupService {
             id, tenant_id, period_id, day, title, subtitle, icon, meditation, question,
             content, description, reflection, action, learn, extract, say,
             audio_url, video_cover, duration, sort_order, \`order\`,
-            is_published, checkin_count, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            is_published, checkin_count, created_at, updated_at,
+            podcast_url, podcast_description, podcast_duration, raw_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             tenant_id=VALUES(tenant_id), period_id=VALUES(period_id), day=VALUES(day), title=VALUES(title),
             subtitle=VALUES(subtitle), icon=VALUES(icon), meditation=VALUES(meditation),
@@ -277,6 +278,8 @@ class MysqlBackupService {
             video_cover=VALUES(video_cover), duration=VALUES(duration),
             sort_order=VALUES(sort_order), \`order\`=VALUES(\`order\`),
             is_published=VALUES(is_published), checkin_count=VALUES(checkin_count),
+            podcast_url=VALUES(podcast_url), podcast_description=VALUES(podcast_description),
+            podcast_duration=VALUES(podcast_duration),
             updated_at=CURRENT_TIMESTAMP, raw_json=VALUES(raw_json)
         `;
 
@@ -306,6 +309,9 @@ class MysqlBackupService {
           coerce(section.checkinCount, 0),
           section.createdAt,
           section.updatedAt,
+          coerce(section.podcastUrl),
+          coerce(section.podcastDescription),
+          coerce(section.podcastDuration),
           JSON.stringify(section)
         ];
 

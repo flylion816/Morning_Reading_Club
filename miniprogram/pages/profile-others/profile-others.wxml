@@ -49,3 +49,5 @@
     <text>返回</text>
   </view>
 </view>
+
+<podcast-player-bar />

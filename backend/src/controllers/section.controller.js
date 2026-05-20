@@ -6,9 +6,10 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const { getCurrentTenantId } = require('../utils/tenantContext');
+const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
 
 const ADMIN_SECTION_LIST_FIELDS =
-  '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt';
+  '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt podcastUrl podcastDuration';
 
 function getRequestUserId(req) {
   return req.user?.userId || req.user?.id || req.user?._id || '';
@@ -264,7 +265,10 @@ async function createSection(req, res, next) {
       audioUrl,
       videoCover,
       duration,
-      sortOrder
+      sortOrder,
+      podcastUrl,
+      podcastDescription,
+      podcastDuration
     } = req.body;
 
     // 验证期次存在
@@ -291,6 +295,9 @@ async function createSection(req, res, next) {
       videoCover,
       duration,
       sortOrder,
+      podcastUrl,
+      podcastDescription,
+      podcastDuration,
       tenantId: getCurrentTenantId()
     });
 
@@ -538,6 +545,108 @@ async function getTodayTask(req, res, next) {
   }
 }
 
+// 外部接口：上传播客音频文件
+async function uploadPodcast(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json(errors.badRequest('缺少音频文件'));
+    }
+    const { resolveTenantSlug } = require('../utils/tenantSlug');
+    const tenantId = req._resolvedTenantId || getCurrentTenantId();
+    const slug = await resolveTenantSlug(tenantId);
+    const podcastUrl = `/uploads/tenants/${slug}/${req.file.filename}`;
+    res.json(success({
+      podcastUrl,
+      filename: req.file.filename,
+      size: req.file.size,
+      uploadedAt: new Date()
+    }, '上传成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 外部接口：同步播客信息到课节
+async function syncPodcast(req, res, next) {
+  try {
+    const { sessionId, podcastUrl, podcastDescription, podcastDuration } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json(errors.badRequest('缺少必填字段：sessionId'));
+    }
+
+    const hasUpdate = podcastUrl !== undefined || podcastDescription !== undefined || podcastDuration !== undefined;
+    if (!hasUpdate) {
+      return res.status(400).json(errors.badRequest('至少需要提供一个更新字段：podcastUrl / podcastDescription / podcastDuration'));
+    }
+
+    const section = await Section.findById(sessionId);
+    if (!section) {
+      return res.status(404).json(errors.notFound('课节不存在'));
+    }
+
+    const isFirstPodcast = !section.podcastUrl && podcastUrl;
+
+    if (podcastUrl !== undefined) section.podcastUrl = podcastUrl;
+    if (podcastDescription !== undefined) section.podcastDescription = podcastDescription;
+    if (podcastDuration !== undefined) section.podcastDuration = podcastDuration;
+
+    await section.save();
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'sections',
+      documentId: section._id.toString(),
+      data: section.toObject()
+    });
+
+    // 首次上传播客时推送订阅通知给期次内所有报名用户
+    if (isFirstPodcast) {
+      setImmediate(async () => {
+        try {
+          const Enrollment = require('../models/Enrollment');
+          const enrollments = await Enrollment.find({
+            periodId: section.periodId,
+            status: { $in: ['active', 'completed'] }
+          }).select('userId');
+
+          const publishTime = new Date().toLocaleString('zh-CN', {
+            timeZone: 'Asia/Shanghai',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          });
+
+          for (const enrollment of enrollments) {
+            await dispatchNotificationWithSubscribe({
+              recipientUserId: enrollment.userId,
+              notificationType: 'podcast_published',
+              title: '凡人播客上新',
+              content: section.title,
+              subscribeFields: {
+                podcastTitle: section.title,
+                dayInfo: `第${section.day + 1}天`,
+                publishTime
+              },
+              page: `pages/course-detail/course-detail?id=${section._id}`
+            });
+          }
+        } catch (err) {
+          logger.error('[syncPodcast] 推送订阅通知失败', { error: err.message, sectionId: sessionId });
+        }
+      });
+    }
+
+    res.json(success({
+      sessionId: section._id,
+      podcastUrl: section.podcastUrl,
+      podcastDuration: section.podcastDuration,
+      updatedAt: section.updatedAt
+    }, '同步成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getSectionsByPeriod,
   getAllSectionsByPeriod,
@@ -546,5 +655,7 @@ module.exports = {
   createSection,
   updateSection,
   deleteSection,
-  getTodayTask
+  getTodayTask,
+  uploadPodcast,
+  syncPodcast
 };

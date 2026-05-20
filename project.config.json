@@ -117,6 +117,8 @@
     "tabSize": 2
   },
   "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
   "simulatorType": "wechat",
   "simulatorPluginLibVersion": {}
 }

@@ -59,3 +59,5 @@
     <text class="empty-text">{{emptyText}}</text>
   </view>
 </view>
+
+<podcast-player-bar />
