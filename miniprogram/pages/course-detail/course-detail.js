@@ -3175,8 +3175,10 @@ Page({
     }
 
     const ctx = wx.createInnerAudioContext();
-    ctx.src = course.podcastUrl;
-    ctx.autoplay = true;
+    const podcastSrc = course.podcastUrl.startsWith('http')
+      ? course.podcastUrl
+      : 'https://wx.shubai01.com' + course.podcastUrl;
+    ctx.src = podcastSrc;
 
     ctx.onPlay(() => {
       app.globalData.podcastPlaying = true;
@@ -3221,6 +3223,8 @@ Page({
     });
 
     app.globalData.audioContext = ctx;
+    app.globalData.podcastSectionId = courseId;
+    ctx.play();
   },
 
   togglePodcastDesc() {

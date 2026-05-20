@@ -42,10 +42,9 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp|pdf|doc|docx|xls|xlsx|mp4|webm|m4a|mp3|aac/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-  if (mimetype && extname) return cb(null, true);
+  const allowedExts = /jpeg|jpg|png|gif|webp|pdf|doc|docx|xls|xlsx|mp4|webm|m4a|mp3|aac/;
+  const extname = allowedExts.test(path.extname(file.originalname).toLowerCase());
+  if (extname) return cb(null, true);
   cb(new Error('不支持的文件类型'));
 };
 
