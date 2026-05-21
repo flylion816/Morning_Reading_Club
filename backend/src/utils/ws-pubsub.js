@@ -17,7 +17,7 @@ const CHANNEL = 'ws:broadcast';
 function initWsPubSub(wsManager) {
   const url = process.env.REDIS_URL;
   if (!url) {
-    logger.warn('[ws-pubsub] REDIS_URL 未配置，跳过多实例广播');
+    logger.info('[ws-pubsub] REDIS_URL 未配置，跳过多实例广播');
     return;
   }
   const pub = new Redis(url);

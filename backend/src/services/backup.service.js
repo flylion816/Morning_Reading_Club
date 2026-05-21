@@ -382,7 +382,7 @@ async function fullSyncMongoToMySQL() {
         skippedResults[task.name] = skippedDocs.length;
         totalSynced += count;
         if (skippedDocs.length > 0) {
-          logger.warn(`Skipped orphan ${task.name} documents during full sync`, {
+          logger.info(`Skipped orphan ${task.name} documents during full sync`, {
             count: skippedDocs.length,
             sample: skippedDocs.slice(0, 5)
           });

@@ -264,6 +264,12 @@ function doesEnrollmentMatchTargetName(enrollment, targetUserName) {
 
 async function findTargetUserForExternalInsight({ targetUserId, targetUserName, periodId, periodName }) {
   if (targetUserId) {
+    if (!/^[0-9a-fA-F]{24}$/.test(targetUserId)) {
+      return {
+        status: 400,
+        body: errors.badRequest(`targetUserId 格式无效：${targetUserId}`)
+      };
+    }
     const targetUser = await User.findById(targetUserId);
     if (!targetUser) {
       return {
