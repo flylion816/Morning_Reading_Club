@@ -79,7 +79,7 @@ Component({
       app.globalData.podcastTitle = '';
       app.globalData.podcastUrl = '';
       app.globalData.podcastCurrentTime = 0;
-      this.setData({ active: false, playing: false, progress: 0 });
+      this.setData({ active: false, playing: false, progress: 0, barStyle: '' });
     },
 
     handleBarTap() {

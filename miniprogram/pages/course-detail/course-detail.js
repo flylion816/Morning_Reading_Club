@@ -204,9 +204,20 @@ Page({
     this.loadCourseDetail();
   },
 
+  onHide() {
+    if (this._podcastSyncTimer) {
+      clearInterval(this._podcastSyncTimer);
+      this._podcastSyncTimer = null;
+    }
+  },
+
   onUnload() {
     if (this.highlightTimer) {
       clearTimeout(this.highlightTimer);
+    }
+    if (this._podcastSyncTimer) {
+      clearInterval(this._podcastSyncTimer);
+      this._podcastSyncTimer = null;
     }
     this._ttsDestroy();
   },
@@ -227,6 +238,8 @@ Page({
   },
 
   onShow() {
+    this._podcastSyncTimer = setInterval(() => this.syncPodcastStateFromGlobal(), 1000);
+
     if (this._skipNextOnShowRefresh) {
       this._skipNextOnShowRefresh = false;
       this.syncPodcastStateFromGlobal();
@@ -3197,11 +3210,13 @@ Page({
 
     ctx.onStop(() => {
       app.globalData.podcastPlaying = false;
+      app.globalData.podcastActive = false;
       this.setData({ podcastPlaying: false, podcastProgress: 0 });
     });
 
     ctx.onEnded(() => {
       app.globalData.podcastPlaying = false;
+      app.globalData.podcastActive = false;
       app.globalData.podcastCurrentTime = 0;
       this.setData({ podcastPlaying: false, podcastProgress: 0 });
     });
