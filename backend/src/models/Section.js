@@ -77,6 +77,11 @@ const SectionSchema = new mongoose.Schema(
       maxlength: 500,
       default: null
     },
+    lookImage: {
+      type: String,
+      maxlength: 500,
+      default: null
+    },
     podcastUrl: {
       type: String,
       maxlength: 500,

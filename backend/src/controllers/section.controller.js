@@ -267,6 +267,7 @@ async function createSection(req, res, next) {
       videoCover,
       duration,
       sortOrder,
+      lookImage,
       podcastUrl,
       podcastDescription,
       podcastDuration
@@ -296,6 +297,7 @@ async function createSection(req, res, next) {
       videoCover,
       duration,
       sortOrder,
+      lookImage,
       podcastUrl,
       podcastDescription,
       podcastDuration,

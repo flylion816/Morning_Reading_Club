@@ -247,6 +247,22 @@
       </view>
     </view>
 
+    <view class="content-section" wx:if="{{course.lookImageVisible}}">
+      <view class="section-title">
+        <view class="section-icon look">看</view>
+        <text>看一看</text>
+      </view>
+      <view class="look-image-wrap" bindtap="handleLookImagePreview">
+        <image
+          class="look-image"
+          src="{{course.lookImage}}"
+          mode="widthFix"
+          lazy-load="{{true}}"
+        />
+        <view class="look-image-zoom-hint">点击放大</view>
+      </view>
+    </view>
+
     <view class="content-section" wx:if="{{course.reflectionVisible}}">
       <view class="section-title">
         <view class="section-icon think">想</view>

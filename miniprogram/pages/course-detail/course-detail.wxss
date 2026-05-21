@@ -550,6 +550,34 @@ page {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
 }
 
+.section-icon.look {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.look-image-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.look-image {
+  width: 100%;
+  display: block;
+  border-radius: 12rpx;
+}
+
+.look-image-zoom-hint {
+  position: absolute;
+  bottom: 16rpx;
+  right: 16rpx;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+}
+
 .section-content {
   font-size: 32rpx;
   color: #555;
@@ -1480,14 +1508,15 @@ page {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 36rpx;
+  height: 44rpx;
+  margin-top: 14rpx;
 }
 
 .reading-chevron-group {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5rpx;
+  gap: 2rpx;
   transition: transform 0.25s ease;
 }
 

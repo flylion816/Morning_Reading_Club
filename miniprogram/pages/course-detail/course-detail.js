@@ -1864,6 +1864,9 @@ Page({
       }
     });
 
+    // 看一看图片
+    course.lookImageVisible = !!(course.lookImage && course.lookImage.trim());
+
     // 播客时长文本
     if (course.podcastDuration) {
       this.setData({ podcastDurationText: this.formatPodcastDuration(course.podcastDuration) });
@@ -2276,6 +2279,12 @@ Page({
     wx.navigateTo({
       url: `/pages/reading-mode/reading-mode?id=${courseId}&periodId=${periodId || ''}`
     });
+  },
+
+  handleLookImagePreview() {
+    const url = this.data.course && this.data.course.lookImage;
+    if (!url) return;
+    wx.previewImage({ urls: [url], current: url });
   },
 
   handleCheckinDetailTap(e) {

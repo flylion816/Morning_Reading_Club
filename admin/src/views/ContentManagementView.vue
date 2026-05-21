@@ -190,6 +190,26 @@
               />
             </el-form-item>
 
+            <!-- 看一看 -->
+            <el-form-item label="看一看">
+              <div class="look-image-upload-area">
+                <el-button :loading="lookImageUploading" @click="triggerLookImageInput">
+                  {{ lookImageUploading ? '上传中...' : '选择图片' }}
+                </el-button>
+                <input
+                  ref="lookImageInputRef"
+                  type="file"
+                  accept="image/*"
+                  style="display:none"
+                  @change="handleLookImageChange"
+                />
+                <div v-if="editingSection.lookImage" class="look-image-preview">
+                  <img :src="editingSection.lookImage" alt="看一看图片预览" />
+                  <el-button type="danger" size="small" text @click="clearLookImage">× 删除</el-button>
+                </div>
+              </div>
+            </el-form-item>
+
             <!-- 想一想 -->
             <el-form-item label="想一想">
               <el-input
@@ -326,6 +346,7 @@ interface SectionForm {
   meditation: string;
   question: string;
   content: string;
+  lookImage?: string | null;
   reflection: string;
   action: string;
   learn: string;
@@ -356,6 +377,46 @@ const podcastFileInputRef = ref<HTMLInputElement | null>(null);
 const podcastUploading = ref(false);
 const podcastUploadProgress = ref(0);
 const podcastFileName = ref('');
+
+const lookImageInputRef = ref<HTMLInputElement | null>(null);
+const lookImageUploading = ref(false);
+
+function triggerLookImageInput() {
+  lookImageInputRef.value?.click();
+}
+
+async function handleLookImageChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!localStorage.getItem('admin_active_tenant')) {
+    ElMessage.warning('请先在顶部选择具体租户，再上传图片');
+    input.value = '';
+    return;
+  }
+  lookImageUploading.value = true;
+  try {
+    const res = await uploadApi.uploadFile(file);
+    const url = (res as any)?.url || (res as any)?.data?.url || '';
+    editingSection.value.lookImage = url || null;
+    if (url) ElMessage.success('图片上传成功');
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.message || '';
+    if (err?.response?.status === 403) {
+      ElMessage.error('上传失败：请先在顶部选择具体租户');
+    } else {
+      ElMessage.error(`图片上传失败${msg ? '：' + msg : ''}`);
+    }
+  } finally {
+    lookImageUploading.value = false;
+    input.value = '';
+  }
+}
+
+function clearLookImage() {
+  editingSection.value.lookImage = null;
+}
+
 
 function triggerPodcastFileInput() {
   podcastFileInputRef.value?.click();
@@ -633,6 +694,7 @@ function createEmptySectionDraft(overrides: Partial<SectionForm> = {}): SectionF
     meditation: '',
     question: '',
     content: '',
+    lookImage: null,
     reflection: '',
     action: '',
     learn: '',
@@ -663,6 +725,7 @@ function normalizeSectionForm(section: SectionFormSource): SectionForm {
     meditation: section.meditation,
     question: section.question,
     content: section.content,
+    lookImage: section.lookImage ?? null,
     reflection: section.reflection,
     action: section.action,
     learn: section.learn,
@@ -688,6 +751,7 @@ function buildSectionPayload(section: SectionForm) {
     meditation: normalized.meditation,
     question: normalized.question,
     content: normalized.content,
+    lookImage: normalized.lookImage,
     reflection: normalized.reflection,
     action: normalized.action,
     learn: normalized.learn,
@@ -832,5 +896,26 @@ onBeforeUnmount(() => {
   background: #f5f7fa;
   padding: 4px 8px;
   border-radius: 4px;
+}
+
+.look-image-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.look-image-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.look-image-preview img {
+  max-width: 240px;
+  max-height: 200px;
+  border-radius: 6px;
+  object-fit: contain;
+  border: 1px solid #e4e7ed;
 }
 </style>
