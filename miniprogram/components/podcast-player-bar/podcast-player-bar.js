@@ -36,7 +36,7 @@ Component({
         ? `bottom: calc(${offset}rpx + env(safe-area-inset-bottom));`
         : '';
       if (!g.podcastActive) {
-        if (this.data.active) this.setData({ active: false, barStyle });
+        if (this.data.active) this.setData({ active: false, playing: false, progress: 0, barStyle: '' });
         return;
       }
       const duration = g.podcastDuration || 0;
