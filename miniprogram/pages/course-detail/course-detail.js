@@ -8,6 +8,7 @@ const constants = require('../../config/constants');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getPeriodAccess, extractId } = require('../../utils/period-access');
 const { renderRichTextContent } = require('../../utils/markdown');
+const envConfig = require('../../config/env');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -1864,8 +1865,12 @@ Page({
       }
     });
 
-    // 看一看图片
+    // 看一看图片：相对路径补全为完整 URL
     course.lookImageVisible = !!(course.lookImage && course.lookImage.trim());
+    if (course.lookImageVisible && course.lookImage.startsWith('/')) {
+      const base = envConfig.apiBaseUrl.replace('/api/v1', '');
+      course.lookImage = base + course.lookImage;
+    }
 
     // 播客时长文本
     if (course.podcastDuration) {
@@ -2284,7 +2289,7 @@ Page({
   handleLookImagePreview() {
     const url = this.data.course && this.data.course.lookImage;
     if (!url) return;
-    wx.previewImage({ urls: [url], current: url });
+    wx.previewImage({ urls: [url], current: url, showmenu: true });
   },
 
   handleCheckinDetailTap(e) {
