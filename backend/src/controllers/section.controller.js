@@ -7,6 +7,7 @@ const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const Enrollment = require('../models/Enrollment');
 
 const ADMIN_SECTION_LIST_FIELDS =
   '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt podcastUrl podcastDuration';
@@ -318,6 +319,42 @@ async function createSection(req, res, next) {
   }
 }
 
+// 播客首次发布时推送订阅通知给期次内所有报名用户
+async function notifyPodcastPublished(req, section) {
+  try {
+    const enrollments = await Enrollment.find({
+      periodId: section.periodId,
+      status: { $in: ['active', 'completed'] }
+    }).select('userId').lean();
+
+    const publishTime = new Date().toLocaleString('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    for (const enrollment of enrollments) {
+      await dispatchNotificationWithSubscribe(req, {
+        recipientUserId: enrollment.userId,
+        notificationType: 'podcast_published',
+        title: '凡人播客上新',
+        content: section.title,
+        scene: 'podcast_published',
+        targetPage: `pages/course-detail/course-detail?id=${section._id}`,
+        subscribeFields: {
+          podcastTitle: section.title,
+          dayInfo: `第${section.day + 1}天`,
+          publishTime
+        },
+        sourceType: 'section',
+        sourceId: section._id
+      });
+    }
+  } catch (err) {
+    logger.error('[notifyPodcastPublished] 推送失败', { error: err.message, sectionId: section._id });
+  }
+}
+
 // 更新课程（管理员）
 async function updateSection(req, res, next) {
   try {
@@ -329,6 +366,8 @@ async function updateSection(req, res, next) {
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
+
+    const isFirstPodcast = !section.podcastUrl && !!updates.podcastUrl;
 
     // 更新字段
     Object.keys(updates).forEach(key => {
@@ -346,6 +385,10 @@ async function updateSection(req, res, next) {
       documentId: section._id.toString(),
       data: section.toObject()
     });
+
+    if (isFirstPodcast) {
+      setImmediate(() => notifyPodcastPublished(req, section.toObject()));
+    }
 
     res.json(success(section, '课程更新成功'));
   } catch (error) {
@@ -386,8 +429,6 @@ async function deleteSection(req, res, next) {
 // 获取今日任务（根据用户报名的期次动态计算）
 async function getTodayTask(req, res, next) {
   try {
-    const Enrollment = require('../models/Enrollment');
-
     // JWT payload from admin controller uses 'id', from auth uses 'userId'
     const userId = req.user.id || req.user.userId;
 
@@ -457,7 +498,6 @@ async function getTodayTask(req, res, next) {
           const todayEnd = new Date(today);
           todayEnd.setHours(23, 59, 59, 999);
 
-          const Checkin = require('../models/Checkin');
           const existingCheckin = await Checkin.findOne({
             userId,
             sectionId: section._id,
@@ -602,38 +642,7 @@ async function syncPodcast(req, res, next) {
 
     // 首次上传播客时推送订阅通知给期次内所有报名用户
     if (isFirstPodcast) {
-      setImmediate(async () => {
-        try {
-          const Enrollment = require('../models/Enrollment');
-          const enrollments = await Enrollment.find({
-            periodId: section.periodId,
-            status: { $in: ['active', 'completed'] }
-          }).select('userId');
-
-          const publishTime = new Date().toLocaleString('zh-CN', {
-            timeZone: 'Asia/Shanghai',
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit'
-          });
-
-          for (const enrollment of enrollments) {
-            await dispatchNotificationWithSubscribe({
-              recipientUserId: enrollment.userId,
-              notificationType: 'podcast_published',
-              title: '凡人播客上新',
-              content: section.title,
-              subscribeFields: {
-                podcastTitle: section.title,
-                dayInfo: `第${section.day + 1}天`,
-                publishTime
-              },
-              page: `pages/course-detail/course-detail?id=${section._id}`
-            });
-          }
-        } catch (err) {
-          logger.error('[syncPodcast] 推送订阅通知失败', { error: err.message, sectionId: sessionId });
-        }
-      });
+      setImmediate(() => notifyPodcastPublished(req, section.toObject()));
     }
 
     res.json(success({
