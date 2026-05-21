@@ -135,20 +135,20 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
     return { status: 'skipped_missing_period' };
   }
 
-  const enrollment = await resolveLeanResult(Enrollment.findOne({
+  const enrollment = await Enrollment.findOne({
     userId: grant.userId,
     periodId,
     status: { $in: ['active', 'completed'] },
     paymentStatus: { $in: ['paid', 'free'] },
     deleted: { $ne: true }
-  }));
+  }).lean().exec();
 
   if (!enrollment) {
     await clearGrantSchedule(grant._id);
     return { status: 'skipped_ineligible' };
   }
 
-  const period = await resolveLeanResult(Period.findById(periodId));
+  const period = await Period.findById(periodId).lean().exec();
   if (!period) {
     await clearGrantSchedule(grant._id);
     return { status: 'skipped_missing_period' };
@@ -165,14 +165,11 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
     return { status: `skipped_${plan.status}` };
   }
 
-  const section = await Section.findOne({
+  const resolvedSection = await Section.findOne({
     periodId: period._id,
     day: plan.dayIndex,
     isPublished: true
-  })
-    .select('title day')
-    ;
-  const resolvedSection = await resolveLeanResult(section);
+  }).select('title day').lean().exec();
 
   if (!resolvedSection) {
     await clearGrantSchedule(grant._id);
@@ -237,6 +234,7 @@ async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) 
 
   const now = new Date();
   // 第一步：跨租户拿出所有"到期未发送"的 grant，只读 tenantId 和 _id
+  // 注意：必须在回调内调用 .exec() 确保 Query 在 AsyncLocalStorage 上下文内执行
   const allDueIds = await withSystemContext(null, () =>
     SubscribeMessageGrant.find({
       scene: SCENE,
@@ -248,6 +246,7 @@ async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) 
       .select('_id tenantId')
       .sort({ scheduledSendDate: 1, createdAt: 1 })
       .lean()
+      .exec()
   );
 
   // 第二步：按 tenantId 分组
@@ -272,7 +271,8 @@ async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) 
     await withSystemContext(tenantId, async () => {
       const grants = await SubscribeMessageGrant.find({ _id: { $in: ids } })
         .sort({ scheduledSendDate: 1, createdAt: 1 })
-        .lean();
+        .lean()
+        .exec();
 
       for (const grant of grants) {
         try {
