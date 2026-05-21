@@ -68,6 +68,16 @@
               />
             </template>
           </el-table-column>
+          <el-table-column label="招募开放" width="100">
+            <template #default="{ row }">
+              <el-switch
+                v-model="row.enrollmentOpen"
+                :disabled="!row.isPublished"
+                :loading="enrollmentOpeningId === row._id"
+                @change="handleEnrollmentOpenChange(row)"
+              />
+            </template>
+          </el-table-column>
           <el-table-column v-if="MEETING_CONFIG_ENABLED" label="会议" width="80">
             <template #default="{ row }">
               <el-tag v-if="row.meetingId || row.meetingJoinUrl" type="success" size="small">已配置</el-tag>
@@ -222,11 +232,62 @@
               v-model="formData.meetingJoinUrl"
               type="textarea"
               :rows="3"
-              placeholder="可直接粘贴腾讯会议邀请链接，或整段“会议邀请信息”"
+              placeholder="可直接粘贴腾讯会议邀请链接，或整段「会议邀请信息」"
             />
             <div style="font-size: 12px; color: #909399; margin-top: 4px;">
               桌面端会优先用这个链接唤起腾讯会议客户端。支持粘贴完整邀请文本，保存时会自动提取链接。
             </div>
+          </el-form-item>
+
+          <el-divider content-position="left">招募设置</el-divider>
+
+          <el-form-item label="招募开放" prop="enrollmentOpen">
+            <el-switch
+              v-model="formData.enrollmentOpen"
+              :disabled="!formData.isPublished"
+              active-text="开放报名"
+              inactive-text="关闭报名"
+            />
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              开启后普通用户可看到报名入口和邀请好友按钮；需先发布期次才能开启
+            </div>
+          </el-form-item>
+
+          <el-form-item label="分享封面图" prop="coverImage">
+            <div style="display: flex; gap: 8px; align-items: flex-start; width: 100%;">
+              <el-input
+                v-model="formData.coverImage"
+                placeholder="分享卡片封面图 URL（建议 5:4 比例）"
+                clearable
+                style="flex: 1"
+              />
+              <el-upload
+                :show-file-list="false"
+                :before-upload="() => false"
+                accept="image/*"
+                @change="handleCoverImageUpload"
+              >
+                <el-button :loading="coverImageUploading" type="default">
+                  {{ coverImageUploading ? '上传中...' : '上传图片' }}
+                </el-button>
+              </el-upload>
+            </div>
+            <div v-if="formData.coverImage" style="margin-top: 8px;">
+              <img :src="formData.coverImage" style="max-width: 200px; max-height: 120px; border-radius: 4px; border: 1px solid #e4e7ed;" />
+            </div>
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              用于微信分享卡片的封面图，不填则使用默认图片
+            </div>
+          </el-form-item>
+
+          <el-form-item label="分享标题" prop="inviteTitle">
+            <el-input
+              v-model="formData.inviteTitle"
+              placeholder="自定义分享标题，不填则自动生成"
+              maxlength="32"
+              show-word-limit
+              clearable
+            />
           </el-form-item>
         </el-form>
 
@@ -345,7 +406,7 @@
 // @ts-nocheck
 import { ref, reactive, onMounted, watch } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
-import { periodApi } from '../services/api';
+import { periodApi, uploadApi } from '../services/api';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import type { ListResponse, Period } from '../types/api';
 
@@ -355,6 +416,7 @@ const loading = ref(false);
 const submitting = ref(false);
 const syncingStatus = ref(false);
 const publishingId = ref<string | null>(null);
+const enrollmentOpeningId = ref<string | null>(null);
 const periods = ref<Period[]>([]);
 const dialogVisible = ref(false);
 const isEditMode = ref(false);
@@ -364,6 +426,7 @@ const copyDialogVisible = ref(false);
 const copySourceId = ref<string | null>(null);
 const copyFormRef = ref<FormInstance>();
 const copyLoading = ref(false);
+const coverImageUploading = ref(false);
 
 const pagination = ref({
   page: 1,
@@ -377,16 +440,20 @@ const formData = reactive({
   title: '',
   description: '',
   icon: '📚',
-  coverColor: '#4a90e2', // 改为单色而非渐变（颜色选择器支持单色）
+  coverColor: '#4a90e2',
   startDate: null,
   endDate: null,
   totalDays: 23,
-  price: 9900, // 99 元默认价格
+  price: 9900,
   originalPrice: 0,
   maxEnrollment: null,
   sortOrder: 0,
   meetingId: '',
-  meetingJoinUrl: ''
+  meetingJoinUrl: '',
+  isPublished: false,
+  enrollmentOpen: false,
+  coverImage: '',
+  inviteTitle: ''
 });
 
 const copyFormData = reactive({
@@ -512,7 +579,11 @@ function handleEditPeriod(row: Period) {
     maxEnrollment: row.maxEnrollment,
     sortOrder: row.sortOrder,
     meetingId: row.meetingId || '',
-    meetingJoinUrl: row.meetingJoinUrl || ''
+    meetingJoinUrl: row.meetingJoinUrl || '',
+    isPublished: row.isPublished || false,
+    enrollmentOpen: row.enrollmentOpen || false,
+    coverImage: row.coverImage || '',
+    inviteTitle: row.inviteTitle || ''
   });
 
   console.log('[PeriodsView] 表单已初始化，当前 formData.coverColor:', formData.coverColor);
@@ -718,6 +789,19 @@ async function handlePublishChange(row: Period) {
   }
 }
 
+async function handleEnrollmentOpenChange(row: Period) {
+  enrollmentOpeningId.value = row._id;
+  try {
+    await periodApi.updatePeriod(row._id, { enrollmentOpen: row.enrollmentOpen });
+    ElMessage.success(row.enrollmentOpen ? '招募已开放' : '招募已关闭');
+  } catch (err: any) {
+    ElMessage.error(err.message || '操作失败');
+    row.enrollmentOpen = !row.enrollmentOpen;
+  } finally {
+    enrollmentOpeningId.value = null;
+  }
+}
+
 function handleRefresh() {
   loadPeriods();
   ElMessage.success('已刷新');
@@ -750,6 +834,29 @@ async function handleSyncStatus() {
   }
 }
 
+async function handleCoverImageUpload(uploadFile: any) {
+  const file: File = uploadFile.raw;
+  if (!file) return;
+  coverImageUploading.value = true;
+  try {
+    const res = await uploadApi.uploadFile(file) as any;
+    const url = res?.url || res?.data?.url;
+    if (url) {
+      // 相对路径拼上后端 host
+      const backendHost = import.meta.env.VITE_BACKEND_URL ||
+        (import.meta.env.DEV ? 'http://localhost:3000' : 'https://wx.shubai01.com');
+      formData.coverImage = url.startsWith('http') ? url : `${backendHost}${url}`;
+      ElMessage.success('图片上传成功');
+    } else {
+      ElMessage.error('上传失败：未获取到图片地址');
+    }
+  } catch (e: any) {
+    ElMessage.error('图片上传失败');
+  } finally {
+    coverImageUploading.value = false;
+  }
+}
+
 function resetForm() {
   formData.name = '';
   formData.subtitle = '';
@@ -766,6 +873,10 @@ function resetForm() {
   formData.sortOrder = 0;
   formData.meetingId = '';
   formData.meetingJoinUrl = '';
+  formData.isPublished = false;
+  formData.enrollmentOpen = false;
+  formData.coverImage = '';
+  formData.inviteTitle = '';
   formRef.value?.clearValidate();
 }
 

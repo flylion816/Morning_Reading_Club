@@ -143,6 +143,19 @@ const EnrollmentSchema = new mongoose.Schema(
       maxlength: 500
     },
 
+    // 报名时留存的手机号
+    phone: {
+      type: String,
+      trim: true
+    },
+
+    // 邀请人ID（用于裂变统计）
+    inviterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+
     // ✅ 软删除标记
     deleted: {
       type: Boolean,

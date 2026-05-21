@@ -1890,6 +1890,19 @@ Page({
    * 分享
    */
   onShareAppMessage() {
+    const { currentPeriod } = this.data;
+    if (currentPeriod && currentPeriod._id) {
+      const app = getApp();
+      const userId = app.globalData.userInfo && (app.globalData.userInfo._id || app.globalData.userInfo.id);
+      const inviterParam = userId ? `&inviterId=${userId}` : '';
+      const title = currentPeriod.inviteTitle ||
+        `${currentPeriod.name}·${currentPeriod.subtitle || '21天七个习惯晨读营'}，快来加入！`;
+      return {
+        title,
+        path: `/pages/invite/invite?periodId=${currentPeriod._id}${inviterParam}`,
+        imageUrl: currentPeriod.coverImage || '/assets/images/share-default.jpg'
+      };
+    }
     return {
       title: '凡人共读｜每日晨读',
       path: '/pages/index/index?from=share',

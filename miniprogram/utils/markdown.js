@@ -174,7 +174,19 @@ function richContentToPlainText(content) {
 function renderRichTextContent(content) {
   if (!content) return '';
 
-  return isLikelyHtml(content) ? sanitizeHtml(content) : markdownToRichText(content);
+  // 如果内容是纯 HTML（含块级标签），直接 sanitize
+  if (isLikelyHtml(content)) {
+    // 但如果同时含有 Markdown 语法（## / ** 等），说明是混合内容，
+    // 先剥离 HTML 标签转为纯文本再走 Markdown 渲染
+    const hasMarkdownSyntax = /^#{1,6}\s|^\*\*|^\*\s|^-\s|^>\s/m.test(content);
+    if (hasMarkdownSyntax) {
+      const plain = richContentToPlainText(content);
+      return markdownToRichText(plain);
+    }
+    return sanitizeHtml(content);
+  }
+
+  return markdownToRichText(content);
 }
 
 module.exports = {

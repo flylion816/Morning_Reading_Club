@@ -1,0 +1,98 @@
+<view class="invite-page">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 主内容 -->
+  <block wx:elif="{{period}}">
+    <!-- 封面区域 -->
+    <view class="cover-section" style="background: {{period.color || '#4a90e2'}}">
+      <image wx:if="{{period.coverImage}}" class="cover-image" src="{{period.coverImage}}" mode="aspectFill" />
+      <view wx:else class="cover-placeholder">
+        <text class="cover-icon">{{period.icon || '📚'}}</text>
+      </view>
+      <view class="cover-overlay">
+        <text class="brand-name">凡人学堂</text>
+        <text class="period-name">{{period.name}}</text>
+        <text class="period-subtitle">{{period.subtitle || period.title || '21天七个习惯晨读营'}}</text>
+      </view>
+    </view>
+
+    <!-- 期次信息 -->
+    <view class="info-section">
+      <view class="info-item">
+        <text class="info-icon">📅</text>
+        <text class="info-text">{{period.dateRange}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-icon">⏰</text>
+        <text class="info-text">清晨6:00-7:00</text>
+      </view>
+      <view class="info-item">
+        <text class="info-icon">👥</text>
+        <text class="info-text">与同行者在线共读，回归本源</text>
+      </view>
+    </view>
+
+    <!-- 邀请人信息 -->
+    <view wx:if="{{inviter}}" class="inviter-section">
+      <image
+        class="inviter-avatar"
+        src="{{inviter.avatarUrl || ''}}"
+        mode="aspectFill"
+      />
+      <view wx:if="{{!inviter.avatarUrl}}" class="inviter-avatar-emoji">
+        <text>{{inviter.avatar || '🦁'}}</text>
+      </view>
+      <text class="inviter-text">{{inviter.nickname}} 邀请你加入本期晨读营</text>
+    </view>
+
+    <!-- 价格 -->
+    <view wx:if="{{period.price > 0}}" class="price-section">
+      <text class="price-current">¥{{priceYuan}}</text>
+      <text wx:if="{{period.originalPrice > 0}}" class="price-original">¥{{originalPriceYuan}}</text>
+    </view>
+    <view wx:else class="price-section">
+      <text class="price-free">免费参加</text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-section">
+      <!-- 已报名 -->
+      <view wx:if="{{enrollmentStatus === 'enrolled'}}" class="btn-enrolled" bindtap="onEnroll">
+        <text>你已报名，进入营地 →</text>
+      </view>
+      <!-- 已结束 -->
+      <view wx:elif="{{enrollmentStatus === 'ended'}}" class="btn-disabled">
+        <text>本期已结束</text>
+      </view>
+      <!-- 已满 -->
+      <view wx:elif="{{enrollmentStatus === 'full'}}" class="btn-disabled">
+        <text>本期名额已满</text>
+      </view>
+      <!-- 正常报名 -->
+      <view wx:else class="btn-enroll" bindtap="onEnroll">
+        <text>立即报名</text>
+      </view>
+
+      <view
+        wx:if="{{enrollmentStatus === 'ended' || enrollmentStatus === 'full'}}"
+        class="btn-next"
+        bindtap="onViewNextPeriod"
+      >
+        <text>查看其他期次</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 加载失败 -->
+  <view wx:elif="{{!loading}}" class="error-wrap">
+    <text class="error-icon">😕</text>
+    <text class="error-text">活动已结束或链接无效</text>
+    <view class="btn-next" bindtap="onViewNextPeriod">
+      <text>查看其他期次</text>
+    </view>
+  </view>
+</view>

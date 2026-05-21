@@ -47,6 +47,10 @@ Page({
     periodId: null,
     periodName: '',
     periodDate: '',
+    periodStartDate: '',
+    periodCoverImage: '',
+    periodInviteTitle: '',
+    periodSubtitle: '',
     periodPrice: 0,
     periodPriceDisplay: '0.00',
     sections: [],
@@ -138,9 +142,26 @@ Page({
   },
 
   onShareAppMessage() {
+    const { periodId, periodName, periodStartDate, periodCoverImage, periodInviteTitle, periodSubtitle } = this.data;
+    const hasStarted = periodStartDate && new Date() >= new Date(periodStartDate);
+
+    if (!hasStarted) {
+      // 未开始：分享邀请落地页
+      const app = getApp();
+      const userId = app.globalData.userInfo && (app.globalData.userInfo._id || app.globalData.userInfo.id);
+      const inviterParam = userId ? `&inviterId=${userId}` : '';
+      const title = periodInviteTitle || `${periodName}·${periodSubtitle || '21天七个习惯晨读营'}，快来加入！`;
+      return {
+        title,
+        path: `/pages/invite/invite?periodId=${periodId}${inviterParam}`,
+        imageUrl: periodCoverImage || '/assets/images/share-default.jpg'
+      };
+    }
+
+    // 已开始：分享课程列表
     return {
-      title: this.data.periodName || '凡人共读课程',
-      path: `/pages/courses/courses?periodId=${this.data.periodId}`
+      title: periodName || '凡人共读课程',
+      path: `/pages/courses/courses?periodId=${periodId}`
     };
   },
 
@@ -268,7 +289,11 @@ Page({
         ),
         periodDate: currentPeriod
           ? `${formatDate(currentPeriod.startDate)} 至 ${formatDate(currentPeriod.endDate)}`
-          : ''
+          : '',
+        periodStartDate: currentPeriod ? currentPeriod.startDate : '',
+        periodCoverImage: currentPeriod ? currentPeriod.coverImage || '' : '',
+        periodInviteTitle: currentPeriod ? currentPeriod.inviteTitle || '' : '',
+        periodSubtitle: currentPeriod ? currentPeriod.subtitle || '' : ''
       });
 
       if (this.data.communityAccessState === 'enabled') {

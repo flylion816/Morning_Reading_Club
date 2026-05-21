@@ -94,6 +94,7 @@ Page({
       { name: '淡紫', value: '#9b8fc4' },
       { name: '玫瑰', value: '#e8a0b4' }
     ],
+    isOwnInsight: false,
     isLiked: false,
     ttsState: 'idle',  // idle | loading | playing | paused
     showHearts: false,
@@ -127,6 +128,14 @@ Page({
     });
     this.loadInsightDetail();
     this.loadDanmaku();
+  },
+
+  onShow() {
+    // 从编辑页返回时重新加载内容
+    if (this._needsReload && this.data.insightId) {
+      this._needsReload = false;
+      this.loadInsightDetail();
+    }
   },
 
   onReady() {
@@ -244,7 +253,7 @@ Page({
         ? insight.likes.some(l => String(l.userId || l) === String(currentUserId))
         : false;
 
-      this.setData({ insight, isLiked, isDetailReady: true });
+      this.setData({ insight, isLiked, isOwnInsight: !!isOwnInsight, isDetailReady: true });
       if (isOwnInsight) {
         this.topUpInsightInteractionSubscriptions('insight_detail_own_view');
       }
@@ -267,6 +276,13 @@ Page({
         requestMode: 'remembered'
       })
       .catch(() => {});
+  },
+
+  handleEdit() {
+    this._needsReload = true;
+    wx.navigateTo({
+      url: `/pages/insight-edit/insight-edit?id=${this.data.insightId}`
+    });
   },
 
   handleBack() {

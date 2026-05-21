@@ -1,5 +1,6 @@
 const Period = require('../models/Period');
 const Checkin = require('../models/Checkin');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
@@ -42,6 +43,11 @@ async function getPeriodListForUser(req, res, next) {
   try {
     const userId = req.user.userId || req.user._id;
     const userRole = req.user.role;
+    const adminRole = req.admin && req.admin.role;
+    const isAdmin = adminRole === 'admin' || adminRole === 'super_admin' ||
+      adminRole === 'platform_superadmin' || adminRole === 'superadmin' ||
+      adminRole === 'tenant_admin' || adminRole === 'operator' ||
+      userRole === 'admin' || userRole === 'super_admin';
     const { page = 1, limit = 20, status, isPublished } = req.query;
 
     const query = {};
@@ -53,15 +59,12 @@ async function getPeriodListForUser(req, res, next) {
       }
     }
 
-    // 如果用户不是管理员，只返回已发布的期次
-    // 管理员可以看到所有期次用于管理后台
+    // 非管理员只看已发布的期次；管理员可看全部
     if (isPublished !== undefined) {
       query.isPublished = isPublished === 'true';
-    } else if (userRole !== 'admin') {
-      // 非管理员：只显示已发布的期次
+    } else if (!isAdmin) {
       query.isPublished = true;
     }
-    // 管理员：如果未指定 isPublished，返回所有期次
 
     const total = await Period.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
@@ -256,7 +259,9 @@ async function createPeriod(req, res, next) {
       maxEnrollment,
       sortOrder,
       meetingId,
-      meetingJoinUrl
+      meetingJoinUrl,
+      coverImage,
+      inviteTitle
     } = req.body;
 
     const period = await Period.create({
@@ -276,8 +281,11 @@ async function createPeriod(req, res, next) {
       sortOrder,
       meetingId: meetingId || null,
       meetingJoinUrl: meetingJoinUrl || null,
+      coverImage: coverImage || null,
+      inviteTitle: inviteTitle || null,
       status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
+      enrollmentOpen: false,
       currentEnrollment: 0,
       tenantId: getCurrentTenantId()
     });
@@ -410,6 +418,9 @@ async function copyPeriod(req, res, next) {
       return res.status(404).json(errors.notFound('源期次不存在'));
     }
 
+    // 继承源期次的 tenantId（SuperAdmin 在 bypass 模式下 getCurrentTenantId() 返回 null）
+    const tenantId = getCurrentTenantId() || sourcePeriod.tenantId;
+
     // 创建新期次（会议号和邀请链接都设为 null，新期次会议配置不同）
     const newPeriod = await Period.create({
       name,
@@ -431,7 +442,7 @@ async function copyPeriod(req, res, next) {
       status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
       currentEnrollment: 0,
-      tenantId: getCurrentTenantId()
+      tenantId
     });
 
     // 获取源期次的所有课节
@@ -443,13 +454,14 @@ async function copyPeriod(req, res, next) {
     if (sourceSections.length > 0) {
       const newSections = sourceSections.map(section => {
         const sectionObj = section.toObject();
-        delete sectionObj._id; // 删除_id以生成新的
+        delete sectionObj._id;
         delete sectionObj.createdAt;
         delete sectionObj.updatedAt;
         return {
           ...sectionObj,
           periodId: newPeriod._id,
-          checkinCount: 0 // 重置打卡数
+          tenantId,
+          checkinCount: 0
         };
       });
 
@@ -493,10 +505,60 @@ async function syncAllPeriodsStatus(req, res, next) {
   }
 }
 
+// 获取邀请落地页信息（公开接口）
+async function getInviteInfo(req, res, next) {
+  try {
+    const { periodId } = req.params;
+    const { inviterId } = req.query;
+
+    const period = await Period.findById(periodId).select('-__v');
+
+    if (!period) {
+      return res.status(404).json(errors.notFound('期次不存在'));
+    }
+
+    if (!period.isPublished || !period.enrollmentOpen) {
+      return res.status(404).json(errors.notFound('该期次暂未开放报名'));
+    }
+
+    const periodObj = period.toObject({ virtuals: true });
+    const periodData = {
+      ...periodObj,
+      status: calculatePeriodStatus(period),
+      title: period.title || period.name,
+      color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+      icon: period.icon || period.coverEmoji || '📚',
+      startTime: period.startDate ? period.startDate.toISOString() : null,
+      endTime: period.endDate ? period.endDate.toISOString() : null,
+      dateRange: periodObj.dateRange || '',
+      statusText: getStatusText(period),
+      currentEnrollment: period.enrollmentCount || 0
+    };
+
+    let inviter = null;
+    if (inviterId && mongoose.Types.ObjectId.isValid(inviterId)) {
+      const inviterUser = await User.findById(inviterId).select('nickname avatarUrl avatar');
+      if (inviterUser) {
+        inviter = {
+          _id: inviterUser._id,
+          nickname: inviterUser.nickname,
+          avatarUrl: inviterUser.avatarUrl || null,
+          avatar: inviterUser.avatar || '🦁'
+        };
+      }
+    }
+
+    res.json(success({ period: periodData, inviter }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getPeriodList,
   getPeriodListForUser,
   getPeriodDetail,
+  getInviteInfo,
   createPeriod,
   updatePeriod,
   deletePeriod,

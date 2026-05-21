@@ -89,6 +89,20 @@ const PeriodSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    enrollmentOpen: {
+      type: Boolean,
+      default: false
+    },
+    coverImage: {
+      type: String,
+      maxlength: 1000,
+      default: null
+    },
+    inviteTitle: {
+      type: String,
+      maxlength: 100,
+      default: null
+    },
     sortOrder: {
       type: Number,
       default: 0

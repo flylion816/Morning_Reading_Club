@@ -482,9 +482,58 @@ Page({
   },
 
   /**
+   * 阻止事件冒泡（邀请栏点击不触发卡片跳转）
+   */
+  stopPropagation() {},
+
+  /**
+   * 邀请好友按钮点击 - 记录当前期次，触发分享
+   */
+  handleInviteTap(e) {
+    const periodId = e.currentTarget.dataset.periodId;
+    const period = this.data.periods.find(p => p._id === periodId);
+    this._sharePeriod = period || null;
+  },
+
+  /**
+   * 立即报名入口（enrollmentOpen 期次的快捷报名按钮）
+   */
+  handleEnrollEntry(e) {
+    const { periodId, periodName } = e.currentTarget.dataset;
+    const app = getApp();
+    if (!app.globalData.isLogin) {
+      wx.navigateTo({ url: `/pages/period-detail/period-detail?periodId=${periodId}` });
+      return;
+    }
+    const enrollmentInfo = this.data.periodEnrollmentStatus[periodId] || {};
+    if (enrollmentInfo.isEnrolled) {
+      wx.navigateTo({ url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}` });
+    } else {
+      wx.navigateTo({ url: `/pages/enrollment/enrollment?periodId=${periodId}` });
+    }
+  },
+
+  /**
    * 分享
    */
-  onShareAppMessage() {
+  onShareAppMessage(res) {
+    // 通过邀请按钮触发时，使用期次专属分享卡片
+    const period = this._sharePeriod;
+    this._sharePeriod = null;
+
+    if (period && period._id) {
+      const app = getApp();
+      const userId = app.globalData.userInfo && (app.globalData.userInfo._id || app.globalData.userInfo.id);
+      const inviterParam = userId ? `&inviterId=${userId}` : '';
+      const title = period.inviteTitle ||
+        `${period.name}·${period.subtitle || '21天七个习惯晨读营'}，快来加入！`;
+      return {
+        title,
+        path: `/pages/invite/invite?periodId=${period._id}${inviterParam}`,
+        imageUrl: period.coverImage || '/assets/images/share-default.jpg'
+      };
+    }
+
     return {
       title: '凡人共读｜每日晨读',
       path: '/pages/index/index?from=share',

@@ -57,7 +57,11 @@ app.use(
   '/uploads/tenants',
   express.static(path.join(uploadRoot, 'tenants'), {
     fallthrough: false,
-    maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0
+    maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
+    setHeaders(res) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
   })
 );
 

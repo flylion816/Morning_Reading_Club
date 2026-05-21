@@ -66,7 +66,8 @@
       <text class="reading-progress-pct">{{scrollPercent}}%</text>
     </view>
     <view class="action-buttons">
-      <button class="action-btn btn-back" bindtap="handleBack">返回</button>
+      <button wx:if="{{isOwnInsight}}" class="action-btn btn-edit" bindtap="handleEdit">编辑</button>
+      <button wx:else class="action-btn btn-back" bindtap="handleBack">返回</button>
       <button class="action-btn btn-like {{isLiked ? 'liked' : ''}}" bindtap="handleLike">
         <text>{{isLiked ? '❤️' : '♡'}}</text>
         <text>{{isLiked ? '已赞' : '点赞'}}</text>

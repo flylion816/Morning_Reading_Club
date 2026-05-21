@@ -1,0 +1,51 @@
+<view class="page-insight-edit">
+  <view wx:if="{{loading}}" class="loading-state">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:if="{{!loading}}">
+    <view class="header-card">
+      <text class="header-title">{{title}}</text>
+      <text wx:if="{{periodName}}" class="header-period">{{periodName}}</text>
+    </view>
+
+    <view class="editor-wrapper">
+      <!-- 工具栏 -->
+      <view class="toolbar">
+        <view class="tool-btn" bindtap="formatBold">
+          <text class="tool-icon">B</text>
+        </view>
+        <view class="tool-btn" bindtap="formatItalic">
+          <text class="tool-icon tool-italic">I</text>
+        </view>
+        <view class="tool-btn" bindtap="formatHeader">
+          <text class="tool-icon">H</text>
+        </view>
+        <view class="tool-btn" bindtap="undoEdit">
+          <text class="tool-icon">↩</text>
+        </view>
+        <view class="tool-btn" bindtap="redoEdit">
+          <text class="tool-icon">↪</text>
+        </view>
+      </view>
+
+      <editor
+        id="insight-editor"
+        class="rich-editor"
+        placeholder="编辑你的看见内容..."
+        bindinput="onEditorInput"
+        bindready="onEditorReady"
+        show-img-size="{{false}}"
+        show-img-toolbar="{{false}}"
+        show-img-resize="{{false}}"
+      />
+    </view>
+
+    <view class="action-row">
+      <button class="btn btn-cancel" bindtap="handleCancel">取消</button>
+      <button class="btn btn-save {{saving ? 'btn-saving' : ''}}" bindtap="handleSave" disabled="{{saving}}">
+        {{saving ? '保存中...' : '保存'}}
+      </button>
+    </view>
+  </block>
+</view>

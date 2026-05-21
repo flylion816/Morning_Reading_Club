@@ -47,9 +47,37 @@
 .enrollment-header {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
-  padding: 30rpx 30rpx 30rpx 30rpx;
+  padding: 60rpx 30rpx;
   text-align: center;
   margin: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.header-with-image {
+  padding: 0;
+  height: 600rpx;
+}
+
+.header-cover-image {
+  width: 100%;
+  height: 600rpx;
+  display: block;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header-content-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24rpx 30rpx;
+  background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
 }
 
 .header-icon {
@@ -314,6 +342,194 @@ textarea.form-control::placeholder {
 
 .form-control-error {
   border-color: #e74c3c !important;
+}
+
+/* 步骤指示器 */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 40rpx;
+  background: white;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.step-dot {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: #ddd;
+  color: #999;
+  font-size: 22rpx;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.step-item.active .step-dot {
+  background: #4a90e2;
+  color: white;
+}
+
+.step-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.step-item.active .step-label {
+  color: #4a90e2;
+  font-weight: 500;
+}
+
+.step-line {
+  flex: 1;
+  height: 2rpx;
+  background: #ddd;
+  margin: 0 12rpx;
+  margin-bottom: 20rpx;
+  transition: background 0.3s ease;
+}
+
+.step-line.active {
+  background: #4a90e2;
+}
+
+/* 手机号区域 */
+.phone-bound {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16rpx;
+  height: 60rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 8rpx;
+  background: #f9f9f9;
+}
+
+.phone-number {
+  font-size: 24rpx;
+  color: #333;
+}
+
+.phone-change {
+  font-size: 22rpx;
+  color: #4a90e2;
+}
+
+.phone-auth-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.btn-phone-auth {
+  background: linear-gradient(135deg, #07c160 0%, #06ad56 100%);
+  color: white;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0;
+  margin: 0;
+}
+
+.btn-phone-auth::after {
+  border: none;
+}
+
+.phone-manual {
+  margin-top: 0;
+}
+
+/* 步骤操作按钮 */
+.step-actions {
+  display: flex;
+  gap: 20rpx;
+  margin: 40rpx 30rpx 20rpx 30rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+/* 跳过步骤 */
+.skip-step {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  padding: 16rpx 0 30rpx;
+  text-decoration: underline;
+}
+
+/* 确认信息区域 */
+.confirm-section {
+  margin: 30rpx;
+  background: #f9fbff;
+  border: 1rpx solid #d6e8ff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+}
+
+.confirm-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #e0ecff;
+}
+
+.confirm-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #eef4ff;
+}
+
+.confirm-item:last-child {
+  border-bottom: none;
+}
+
+.confirm-label {
+  font-size: 24rpx;
+  color: #666;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+}
+
+.confirm-value {
+  font-size: 24rpx;
+  color: #333;
+  text-align: right;
+  flex: 1;
+}
+
+.confirm-item-price {
+  border-top: 1rpx solid #e0eaff;
+  margin-top: 8rpx;
+  padding-top: 20rpx;
+}
+
+.confirm-price {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #e74c3c;
+}
+
+.confirm-price-free {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #27ae60;
 }
 
 /* 响应式调整 */

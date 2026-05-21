@@ -84,6 +84,7 @@ Page({
     form: {
       periodId: '',
       name: '',
+      phone: '',
       gender: '',
       province: '',
       detailedAddress: '',
@@ -96,6 +97,11 @@ Page({
       commitment: ''
     },
 
+    // 分步表单
+    currentStep: 1, // 1: 基本信息, 2: 了解你, 3: 确认
+    inviterId: '',
+    phoneAuthorized: false, // 是否通过微信授权获取了手机号
+
     // 表单验证错误
     errors: {}
   },
@@ -103,12 +109,30 @@ Page({
   onLoad(options) {
     console.log('报名页面加载，参数:', options);
 
-    // 从参数中获取期次ID
     if (options.periodId) {
       this.setData({ periodId: options.periodId });
     }
 
+    // 来自邀请链接：记录邀请人ID，自动填入推荐人
+    if (options.referrerId) {
+      this.setData({ inviterId: options.referrerId });
+      // 尝试获取邀请人昵称填入 referrer 字段
+      this.loadInviterName(options.referrerId);
+    }
+
     this.loadPeriods();
+  },
+
+  async loadInviterName(inviterId) {
+    try {
+      const request = require('../../utils/request');
+      const res = await request.get(`/users/${inviterId}/public-profile`);
+      if (res && res.nickname) {
+        this.setData({ 'form.referrer': res.nickname });
+      }
+    } catch (e) {
+      // 获取失败不影响主流程
+    }
   },
 
   onReady() {
@@ -183,6 +207,9 @@ Page({
         selectedPeriodIndex: selectedIndex,
         selectedPeriodName: getPeriodName(selectedPeriod),
         periodName: getPeriodName(selectedPeriod),
+        selectedPeriodPrice: selectedPeriod.price ? (selectedPeriod.price / 100).toFixed(2).replace(/\.?0+$/, '') : 0,
+        selectedPeriodPriceFen: selectedPeriod.price || 0,
+        selectedPeriodCoverImage: selectedPeriod.coverImage || '',
         form: {
           ...this.data.form,
           periodId: getPeriodId(selectedPeriod)
@@ -215,6 +242,9 @@ Page({
       selectedPeriodIndex: index,
       selectedPeriodName: getPeriodName(selectedPeriod),
       periodId: getPeriodId(selectedPeriod),
+      selectedPeriodPrice: selectedPeriod.price ? (selectedPeriod.price / 100).toFixed(2).replace(/\.?0+$/, '') : 0,
+      selectedPeriodPriceFen: selectedPeriod.price || 0,
+      selectedPeriodCoverImage: selectedPeriod.coverImage || '',
       form: {
         ...this.data.form,
         periodId: getPeriodId(selectedPeriod)
@@ -444,8 +474,9 @@ Page({
       // 准备提交数据（不发送userId，后端从认证令牌中获取）
       const submitData = {
         ...this.data.form,
-        age: parseInt(this.data.form.age),
-        readTimes: this.data.form.hasReadBook === 'yes' ? parseInt(this.data.form.readTimes) : 0
+        age: parseInt(this.data.form.age) || undefined,
+        readTimes: this.data.form.hasReadBook === 'yes' ? parseInt(this.data.form.readTimes) : 0,
+        inviterId: this.data.inviterId || undefined
       };
 
       console.log('提交报名数据:', submitData);
@@ -526,11 +557,76 @@ Page({
       content: '确定要取消报名吗？',
       success: res => {
         if (res.confirm) {
-          wx.navigateBack({
-            delta: 1
-          });
+          wx.navigateBack({ delta: 1 });
         }
       }
     });
+  },
+
+  // 微信授权获取手机号
+  async onGetPhoneNumber(e) {
+    if (e.detail.code) {
+      try {
+        const request = require('../../utils/request');
+        const res = await request.post('/auth/phone', { code: e.detail.code });
+        if (res && res.phone) {
+          this.setData({ 'form.phone': res.phone, phoneAuthorized: true });
+          wx.showToast({ title: '手机号已获取', icon: 'success' });
+        }
+      } catch (err) {
+        wx.showToast({ title: '获取手机号失败，请手动输入', icon: 'none' });
+      }
+    } else {
+      wx.showToast({ title: '请授权手机号以便联系你', icon: 'none' });
+    }
+  },
+
+  clearPhone() {
+    this.setData({ 'form.phone': '', phoneAuthorized: false });
+  },
+
+  // 分步导航
+  goNextStep() {
+    const { currentStep, form } = this.data;
+    if (currentStep === 1) {
+      // Step1 验证：姓名 + 承诺
+      const errors = {};
+      if (!form.name || !form.name.trim()) errors.name = '请输入姓名';
+      if (!form.commitment) errors.commitment = '请选择是否承诺全程参加';
+      if (Object.keys(errors).length > 0) {
+        this.setData({ errors });
+        wx.showToast({ title: Object.values(errors)[0], icon: 'none' });
+        return;
+      }
+    }
+    this.setData({ currentStep: currentStep + 1, errors: {} });
+  },
+
+  goPrevStep() {
+    const { currentStep } = this.data;
+    if (currentStep > 1) {
+      this.setData({ currentStep: currentStep - 1 });
+    }
+  },
+
+  skipStep2() {
+    this.setData({ currentStep: 3 });
+  },
+
+  onShareAppMessage() {
+    const selectedPeriod = this.getSelectedPeriod();
+    if (selectedPeriod && selectedPeriod._id) {
+      const app = getApp();
+      const userId = app.globalData.userInfo && (app.globalData.userInfo._id || app.globalData.userInfo.id);
+      const inviterParam = userId ? `&inviterId=${userId}` : '';
+      const title = selectedPeriod.inviteTitle ||
+        `${selectedPeriod.name}·${selectedPeriod.subtitle || '21天七个习惯晨读营'}，快来加入！`;
+      return {
+        title,
+        path: `/pages/invite/invite?periodId=${selectedPeriod._id}${inviterParam}`,
+        imageUrl: selectedPeriod.coverImage || '/assets/images/share-default.jpg'
+      };
+    }
+    return { title: '凡人共读｜每日晨读', path: '/pages/index/index?from=share', imageUrl: '/assets/images/share-default.jpg' };
   }
 });

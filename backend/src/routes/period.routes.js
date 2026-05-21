@@ -6,6 +6,7 @@ const {
   getPeriodList,
   getPeriodListForUser,
   getPeriodDetail,
+  getInviteInfo,
   createPeriod,
   updatePeriod,
   deletePeriod,
@@ -54,6 +55,13 @@ router.get('/user', authMiddleware, userTenantContext, getPeriodListForUser);
  * @access  Admin
  */
 router.post('/sync-status', adminAuthMiddleware, adminTenantContext, syncAllPeriodsStatus);
+
+/**
+ * @route   GET /api/v1/periods/:periodId/invite-info
+ * @desc    获取邀请落地页信息（期次信息+邀请人信息）
+ * @access  Public
+ */
+router.get('/:periodId/invite-info', optionalAdminOrPublicTenantContext, getInviteInfo);
 
 /**
  * @route   GET /api/v1/periods/:periodId

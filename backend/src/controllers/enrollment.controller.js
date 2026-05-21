@@ -135,7 +135,9 @@ exports.submitEnrollmentForm = async (req, res) => {
       readTimes,
       enrollReason,
       expectation,
-      commitment
+      commitment,
+      phone,
+      inviterId
     } = req.body;
 
     // 验证必填字段
@@ -185,6 +187,8 @@ exports.submitEnrollmentForm = async (req, res) => {
       enrollReason,
       expectation,
       commitment,
+      phone: phone || undefined,
+      inviterId: inviterId || undefined,
       paymentStatus: 'pending',
       paymentAmount: 0,
       paidAt: null,

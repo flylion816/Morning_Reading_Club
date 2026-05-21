@@ -31,11 +31,19 @@
         <view class="enrollment-label enrolled" wx:if="{{periodEnrollmentStatus[item._id].isEnrolled}}">
           <text class="label-text">✓ 已报名</text>
         </view>
-        <!-- 未报名 -->
-        <view class="enrollment-label not-enrolled" wx:if="{{!periodEnrollmentStatus[item._id].isEnrolled}}">
-          <text class="label-text">未报名</text>
-        </view>
+        <!-- 未报名：有报名入口时显示立即报名按钮，否则显示未报名标签 -->
+        <block wx:if="{{!periodEnrollmentStatus[item._id].isEnrolled}}">
+          <view wx:if="{{item.enrollmentOpen}}" class="enrollment-label enroll-label-inline" catchtap="stopPropagation" data-period-id="{{item._id}}" data-period-name="{{item.name}}" bindtap="handleEnrollEntry">
+            <text class="label-text">→ 去报名</text>
+          </view>
+          <view wx:else class="enrollment-label not-enrolled">
+            <text class="label-text">未报名</text>
+          </view>
+        </block>
       </view>
+
+      <!-- 邀请好友按钮（仅 enrollmentOpen=true 的期次显示） -->
+
     </view>
 
     <!-- 加载中 -->

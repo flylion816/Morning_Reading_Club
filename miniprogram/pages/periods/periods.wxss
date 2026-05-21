@@ -182,8 +182,67 @@
   box-shadow: 0 2rpx 8rpx rgba(76, 175, 80, 0.3);
 }
 
-.enrollment-label.not-enrolled .label-text {
-  background: #e0e0e0;
-  color: #666;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+.enrollment-label.enroll-label-inline .label-text {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  box-shadow: 0 2rpx 8rpx rgba(74, 144, 226, 0.3);
+}
+
+.enrollment-label.enroll-label-inline:active .label-text {
+  opacity: 0.85;
+}
+
+/* 邀请栏 */
+.period-invite-bar {
+  display: flex;
+  gap: 16rpx;
+  padding: 16rpx 20rpx;
+  background: #f9fbff;
+  border-top: 1rpx solid #e8f0fe;
+}
+
+.btn-invite {
+  flex: 1;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #4a90e2;
+  background: white;
+  border: 2rpx solid #4a90e2;
+  border-radius: 32rpx;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+
+.btn-invite::after {
+  border: none;
+}
+
+.btn-invite:active {
+  background: #f0f6ff;
+}
+
+.btn-enroll-entry {
+  flex: 1;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: white;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  border: none;
+  border-radius: 32rpx;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+
+.btn-enroll-entry::after {
+  border: none;
+}
+
+.btn-enroll-entry:active {
+  opacity: 0.9;
 }

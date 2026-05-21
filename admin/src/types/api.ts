@@ -46,6 +46,9 @@ export interface Period {
   currentEnrollment?: number;
   sortOrder?: number;
   isPublished?: boolean;
+  enrollmentOpen?: boolean;
+  coverImage?: string;
+  inviteTitle?: string;
   status?: string;
   createdAt?: string;
   updatedAt?: string;

@@ -234,6 +234,18 @@ page {
   transform: scale(0.98);
 }
 
+.btn-edit {
+  flex: 1;
+  background: #f5f5f5;
+  color: #666;
+  transition: all 0.3s;
+}
+
+.btn-edit:active {
+  background: #e0e0e0;
+  transform: scale(0.98);
+}
+
 .btn-like {
   flex: 1;
   background: #fff7f7;
