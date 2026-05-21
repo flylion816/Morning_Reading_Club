@@ -1,0 +1,4 @@
+{"t":0,"agent":"aeb123b","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"aa88a42","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a891b14","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"7deploy"}

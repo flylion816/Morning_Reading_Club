@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1779062285845,
-  "projectRoot": "/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营-multi-tenant/backend",
+  "lastScanned": 1779285923621,
+  "projectRoot": "/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/backend",
   "techStack": {
     "languages": [
       {
@@ -82,20 +82,34 @@
   },
   "customNotes": [],
   "directoryMap": {
+    "coverage": {
+      "path": "coverage",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1779285923610,
+      "keyFiles": [
+        "base.css",
+        "block-navigation.js",
+        "coverage-final.json",
+        "favicon.png",
+        "index.html"
+      ]
+    },
     "database": {
       "path": "database",
       "purpose": null,
-      "fileCount": 1,
-      "lastAccessed": 1779062285835,
+      "fileCount": 2,
+      "lastAccessed": 1779285923612,
       "keyFiles": [
-        "mysql-schema.sql"
+        "mysql-schema.sql",
+        "mysql-tenant-migration.sql"
       ]
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 1,
-      "lastAccessed": 1779062285835,
+      "lastAccessed": 1779285923612,
       "keyFiles": [
         "query-optimization.md"
       ]
@@ -103,34 +117,34 @@
     "logs": {
       "path": "logs",
       "purpose": null,
-      "fileCount": 8,
-      "lastAccessed": 1779062285837,
+      "fileCount": 84,
+      "lastAccessed": 1779285923612,
       "keyFiles": [
         "alerts.log",
         "combined.log",
-        "debug.log",
-        "debug1.log",
-        "error.log"
+        "combined1.log",
+        "combined10.log",
+        "combined11.log"
       ]
     },
     "scripts": {
       "path": "scripts",
       "purpose": "Build/utility scripts",
-      "fileCount": 43,
-      "lastAccessed": 1779062285837,
+      "fileCount": 47,
+      "lastAccessed": 1779285923613,
       "keyFiles": [
         "check-openid-health.js",
         "clean-mysql-data.js",
+        "cleanup-mysql-orphans.js",
         "cleanup-orphan-documents.js",
-        "daily-log-report.js",
-        "day0-content.json"
+        "daily-log-report.js"
       ]
     },
     "src": {
       "path": "src",
       "purpose": "Source code",
       "fileCount": 2,
-      "lastAccessed": 1779062285837,
+      "lastAccessed": 1779285923613,
       "keyFiles": [
         "app.js",
         "server.js"
@@ -140,7 +154,7 @@
       "path": "tests",
       "purpose": "Test files",
       "fileCount": 2,
-      "lastAccessed": 1779062285837,
+      "lastAccessed": 1779285923613,
       "keyFiles": [
         "load-test.js",
         "setup.js"
@@ -150,14 +164,14 @@
       "path": "uploads",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1779062285837,
+      "lastAccessed": 1779285923614,
       "keyFiles": []
     },
     "src/config": {
       "path": "src/config",
       "purpose": "Configuration files",
       "fileCount": 4,
-      "lastAccessed": 1779062285838,
+      "lastAccessed": 1779285923614,
       "keyFiles": [
         "cors.js",
         "database.js",
@@ -168,7 +182,7 @@
       "path": "src/controllers",
       "purpose": "Controllers",
       "fileCount": 23,
-      "lastAccessed": 1779062285838,
+      "lastAccessed": 1779285923614,
       "keyFiles": [
         "activity.controller.js",
         "admin-subscription.controller.js",
@@ -179,7 +193,7 @@
       "path": "src/middleware",
       "purpose": "Middleware",
       "fileCount": 8,
-      "lastAccessed": 1779062285838,
+      "lastAccessed": 1779285923614,
       "keyFiles": [
         "adminAuth.js",
         "auditLog.js",
@@ -190,7 +204,7 @@
       "path": "src/models",
       "purpose": "Data models",
       "fileCount": 19,
-      "lastAccessed": 1779062285838,
+      "lastAccessed": 1779285923614,
       "keyFiles": [
         "Admin.js",
         "AuditLog.js",
@@ -201,7 +215,7 @@
       "path": "src/routes",
       "purpose": "Route handlers",
       "fileCount": 22,
-      "lastAccessed": 1779062285838,
+      "lastAccessed": 1779285923614,
       "keyFiles": [
         "activity.routes.js",
         "admin.routes.js",
@@ -212,7 +226,7 @@
       "path": "src/services",
       "purpose": "Business logic services",
       "fileCount": 15,
-      "lastAccessed": 1779062285839,
+      "lastAccessed": 1779285923615,
       "keyFiles": [
         "admin-subscription-debug.service.js",
         "audit.service.js",
@@ -223,7 +237,7 @@
       "path": "src/utils",
       "purpose": "Utility functions",
       "fileCount": 19,
-      "lastAccessed": 1779062285839,
+      "lastAccessed": 1779285923615,
       "keyFiles": [
         "alerting.js",
         "auditHelper.js",
@@ -234,7 +248,7 @@
       "path": "tests/fixtures",
       "purpose": "Test fixtures",
       "fileCount": 9,
-      "lastAccessed": 1779062285839,
+      "lastAccessed": 1779285923615,
       "keyFiles": [
         "auth-fixtures.js",
         "checkin-fixtures.js",
@@ -245,7 +259,7 @@
       "path": "tests/helpers",
       "purpose": "Helper functions",
       "fileCount": 3,
-      "lastAccessed": 1779062285839,
+      "lastAccessed": 1779285923615,
       "keyFiles": [
         "safety-check.js",
         "setup.js",
@@ -256,8 +270,8 @@
   "hotPaths": [
     {
       "path": "src/controllers/backup.controller.js",
-      "accessCount": 26,
-      "lastAccessed": 1779066671567,
+      "accessCount": 29,
+      "lastAccessed": 1779190328608,
       "type": "file"
     },
     {
@@ -291,6 +305,12 @@
       "type": "file"
     },
     {
+      "path": "src/middleware/tenantContext.js",
+      "accessCount": 8,
+      "lastAccessed": 1779285530392,
+      "type": "file"
+    },
+    {
       "path": "tests/unit/middleware/auth.middleware.test.js",
       "accessCount": 7,
       "lastAccessed": 1778943805631,
@@ -318,6 +338,12 @@
       "path": "src/routes/enrollment.routes.js",
       "accessCount": 6,
       "lastAccessed": 1779060476815,
+      "type": "file"
+    },
+    {
+      "path": "src/controllers/upload.controller.js",
+      "accessCount": 6,
+      "lastAccessed": 1779269440839,
       "type": "file"
     },
     {
@@ -351,6 +377,12 @@
       "type": "file"
     },
     {
+      "path": "src/routes/upload.routes.js",
+      "accessCount": 4,
+      "lastAccessed": 1779269232742,
+      "type": "file"
+    },
+    {
       "path": "tests/integration/backup.integration.test.js",
       "accessCount": 3,
       "lastAccessed": 1778943720487,
@@ -375,12 +407,6 @@
       "type": "file"
     },
     {
-      "path": "src/middleware/tenantContext.js",
-      "accessCount": 3,
-      "lastAccessed": 1779060488885,
-      "type": "file"
-    },
-    {
       "path": "src/models/User.js",
       "accessCount": 3,
       "lastAccessed": 1779060997396,
@@ -393,6 +419,12 @@
       "type": "file"
     },
     {
+      "path": "src/utils/tenantContext.js",
+      "accessCount": 3,
+      "lastAccessed": 1779271530342,
+      "type": "file"
+    },
+    {
       "path": "src/utils/jwt.js",
       "accessCount": 2,
       "lastAccessed": 1778943656679,
@@ -402,12 +434,6 @@
       "path": "tests/fixtures/middleware-fixtures.js",
       "accessCount": 2,
       "lastAccessed": 1778943689079,
-      "type": "file"
-    },
-    {
-      "path": "src/utils/tenantContext.js",
-      "accessCount": 2,
-      "lastAccessed": 1778943881613,
       "type": "file"
     },
     {
@@ -477,9 +503,9 @@
       "type": "file"
     },
     {
-      "path": "src/controllers/upload.controller.js",
-      "accessCount": 1,
-      "lastAccessed": 1778943647736,
+      "path": "src/routes/ranking.routes.js",
+      "accessCount": 2,
+      "lastAccessed": 1779320162684,
       "type": "file"
     },
     {
@@ -534,18 +560,6 @@
       "path": "src/routes/user.routes.js",
       "accessCount": 1,
       "lastAccessed": 1779060471840,
-      "type": "file"
-    },
-    {
-      "path": "src/routes/ranking.routes.js",
-      "accessCount": 1,
-      "lastAccessed": 1779060471894,
-      "type": "file"
-    },
-    {
-      "path": "src/routes/upload.routes.js",
-      "accessCount": 1,
-      "lastAccessed": 1779060472001,
       "type": "file"
     },
     {
