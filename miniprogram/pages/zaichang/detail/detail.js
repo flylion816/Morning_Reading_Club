@@ -41,6 +41,7 @@ Page({
     if (needRefresh && this._id) {
       wx.removeStorageSync('zaichang_need_refresh');
       this.loadDetail();
+      this._listNeedsRefresh = true;
     }
   },
 
@@ -207,6 +208,12 @@ Page({
 
   onToggleAttendees() {
     this.setData({ showAllAttendees: !this.data.showAllAttendees });
+  },
+
+  onUnload() {
+    if (this._listNeedsRefresh) {
+      wx.setStorageSync('zaichang_need_refresh', true);
+    }
   },
 
   onTapEdit() {

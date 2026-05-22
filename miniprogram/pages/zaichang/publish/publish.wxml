@@ -8,7 +8,7 @@
         data-index="{{index}}"
         bindlongpress="onLongPress"
         bindtouchstart="onTouchStart"
-        bindtouchmove="onTouchMove"
+        catchtouchmove="onTouchMove"
         bindtouchend="onTouchEnd"
       >
         <block wx:if="{{item.type === 'video'}}">

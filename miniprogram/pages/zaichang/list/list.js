@@ -41,54 +41,11 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setActivePage('/pages/zaichang/list/list');
     }
-    // 暂停所有正在播放的视频
-    this._pauseAllVideos();
     const needRefresh = wx.getStorageSync('zaichang_need_refresh');
     if (needRefresh) {
       wx.removeStorageSync('zaichang_need_refresh');
       this.loadList(true);
     }
-  },
-
-  _pauseAllVideos() {
-    const list = this.data.list;
-    list.forEach((item, i) => {
-      if (item._videoPlaying) {
-        wx.createVideoContext(`video-${item._id}`, this).pause();
-        this.setData({ [`list[${i}]._videoPlaying`]: false });
-      }
-    });
-  },
-
-  onTapVideoToggle(e) {
-    const id = e.currentTarget.dataset.id;
-    const list = this.data.list;
-    const idx = list.findIndex(item => item._id === id);
-    if (idx < 0) return;
-    const isPlaying = list[idx]._videoPlaying;
-    const ctx = wx.createVideoContext(`video-${id}`, this);
-    if (isPlaying) {
-      ctx.pause();
-      this.setData({ [`list[${idx}]._videoPlaying`]: false });
-    } else {
-      // 先暂停其他视频
-      list.forEach((item, i) => {
-        if (i !== idx && item._videoPlaying) {
-          wx.createVideoContext(`video-${item._id}`, this).pause();
-          this.setData({ [`list[${i}]._videoPlaying`]: false });
-        }
-      });
-      ctx.play();
-      this.setData({ [`list[${idx}]._videoPlaying`]: true });
-    }
-  },
-
-  onVideoPlay(e) {
-    // video 组件自身触发 play 事件时同步状态
-    const id = e.currentTarget.dataset.id;
-    const list = this.data.list;
-    const idx = list.findIndex(item => item._id === id);
-    if (idx >= 0) this.setData({ [`list[${idx}]._videoPlaying`]: true });
   },
 
   onPullDownRefresh() {
