@@ -16,6 +16,33 @@ function getPeriodName(period) {
   return period.name || period.title || '未命名期次';
 }
 
+function validateRequiredEnrollmentFields(form) {
+  const errors = {};
+
+  if (!form.periodId) errors.periodId = '请选择报名期数';
+  if (!form.name || form.name.trim() === '') errors.name = '请输入姓名';
+  if (!form.gender) errors.gender = '请选择性别';
+  if (!form.province) errors.province = '请选择所在省份';
+  if (!form.age) {
+    errors.age = '请输入年龄';
+  } else if (isNaN(parseInt(form.age, 10)) || parseInt(form.age, 10) <= 10 || parseInt(form.age, 10) > 120) {
+    errors.age = '年龄必须是10岁以上(11-120之间的数字)';
+  }
+  if (!form.hasReadBook) errors.hasReadBook = '请选择是否读过《高效能人士的七个习惯》';
+  if (form.hasReadBook === 'yes') {
+    if (!form.readTimes) {
+      errors.readTimes = '请输入阅读次数';
+    } else if (isNaN(parseInt(form.readTimes, 10)) || parseInt(form.readTimes, 10) < 1) {
+      errors.readTimes = '阅读次数必须是正整数';
+    }
+  }
+  if (!form.enrollReason || form.enrollReason.trim() === '') errors.enrollReason = '请输入参加课程的缘起';
+  if (!form.expectation || form.expectation.trim() === '') errors.expectation = '请输入对课程的期待';
+  if (!form.commitment) errors.commitment = '请选择是否承诺全程参加';
+
+  return errors;
+}
+
 Page({
   data: {
     // 加载状态
@@ -167,6 +194,25 @@ Page({
 
       console.log('获取到期次列表:', periodList);
 
+      const requestedPeriod = this.data.periodId
+        ? periodList.find(p => getPeriodId(p) === this.data.periodId)
+        : null;
+      if (requestedPeriod && requestedPeriod.enrollmentOpen === false) {
+        wx.showToast({
+          title: '该期暂未开放报名',
+          icon: 'none'
+        });
+        this.setData({ loading: false });
+        setTimeout(() => {
+          wx.redirectTo({
+            url: `/pages/period-detail/period-detail?periodId=${getPeriodId(requestedPeriod)}`
+          });
+        }, 800);
+        return;
+      }
+
+      periodList = periodList.filter(item => item.enrollmentOpen !== false);
+
       // ℹ️ 不过滤已完成的期次，让用户看到所有期次
       // 如果期次已完成，将在报名时验证并显示提示
       // periodList = periodList.filter(p => {
@@ -177,7 +223,7 @@ Page({
       if (periodList.length === 0) {
         // 没有可报名的期次，返回首页
         wx.showToast({
-          title: '暂无期次',
+          title: '暂无开放报名期次',
           icon: 'none'
         });
         this.setData({ loading: false });
@@ -394,34 +440,7 @@ Page({
     console.log('========== 开始表单验证 ==========');
     console.log('form 数据:', form);
 
-    // 验证必填字段
-    if (!form.periodId) errors.periodId = '请选择报名期数';
-    if (!form.name || form.name.trim() === '') errors.name = '请输入姓名';
-    if (!form.gender) errors.gender = '请选择性别';
-    if (!form.province) errors.province = '请选择省/市/区(县)';
-    // 详细地址非必填项
-    if (!form.age) {
-      errors.age = '请输入年龄';
-    } else if (isNaN(parseInt(form.age)) || parseInt(form.age) <= 10 || parseInt(form.age) > 120) {
-      errors.age = '年龄必须是10岁以上(11-120之间的数字)';
-    }
-    // 推荐人非必填项
-    if (!form.hasReadBook) errors.hasReadBook = '请选择是否读过此书';
-
-    // 如果读过，则验证读过的次数
-    if (form.hasReadBook === 'yes') {
-      if (!form.readTimes) {
-        errors.readTimes = '请输入阅读次数';
-      } else if (isNaN(parseInt(form.readTimes)) || parseInt(form.readTimes) < 1) {
-        errors.readTimes = '阅读次数必须是正整数';
-      }
-    }
-
-    if (!form.enrollReason || form.enrollReason.trim() === '')
-      errors.enrollReason = '请简述参加课程的原因';
-    if (!form.expectation || form.expectation.trim() === '')
-      errors.expectation = '请简述对课程的期待';
-    if (!form.commitment) errors.commitment = '请选择是否承诺全程参加';
+    Object.assign(errors, validateRequiredEnrollmentFields(form));
 
     console.log('验证错误:', errors);
     console.log('验证结果:', Object.keys(errors).length === 0 ? '✓ 通过' : '✗ 失败');
@@ -463,6 +482,14 @@ Page({
     if (periodStatus === 'completed') {
       wx.showToast({
         title: '该期晨读营已结束，无法报名',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (selectedPeriod.enrollmentOpen === false) {
+      wx.showToast({
+        title: '该期暂未开放报名',
         icon: 'none'
       });
       return;
@@ -598,6 +625,17 @@ Page({
         wx.showToast({ title: Object.values(errors)[0], icon: 'none' });
         return;
       }
+    } else if (currentStep === 2) {
+      const errors = validateRequiredEnrollmentFields(form);
+      delete errors.periodId;
+      delete errors.name;
+      delete errors.commitment;
+
+      if (Object.keys(errors).length > 0) {
+        this.setData({ errors });
+        wx.showToast({ title: Object.values(errors)[0], icon: 'none' });
+        return;
+      }
     }
     this.setData({ currentStep: currentStep + 1, errors: {} });
   },
@@ -607,10 +645,6 @@ Page({
     if (currentStep > 1) {
       this.setData({ currentStep: currentStep - 1 });
     }
-  },
-
-  skipStep2() {
-    this.setData({ currentStep: 3 });
   },
 
   onShareAppMessage() {

@@ -14,7 +14,7 @@
 | 上传播客音频 | POST | `/api/v1/sections/external/upload-podcast` | 上传音频文件，获取 `podcastUrl` |
 | 同步播客信息 | POST | `/api/v1/sections/external/sync-podcast` | 将播客 URL、简介、时长同步到指定课节 |
 
-所有接口均需在请求头中携带 `X-Wx-AppId`，值为小程序的 AppID（即 `wx199d6d332344ed0a`）。后端通过此值自动识别租户，无需传递租户 ID。
+所有接口均需在请求头中携带 `X-Wx-AppId`，值为小程序的 AppID（即 `wx2b9a3c1d5e4195f8`）。后端通过此值自动识别租户，无需传递租户 ID。
 
 示例使用当前最新期次：
 
@@ -64,7 +64,7 @@
   “code”: 0,
   “message”: “获取成功”,
   “data”: {
-    “wxAppId”: “wx199d6d332344ed0a”,
+    “wxAppId”: “wx2b9a3c1d5e4195f8”,
     “list”: [
       {
         “periodId”: “69f9bf45cb1c9ac0600ad556”,
@@ -86,7 +86,7 @@
   “code”: 0,
   “message”: “获取成功”,
   “data”: {
-    “wxAppId”: “wx199d6d332344ed0a”,
+    “wxAppId”: “wx2b9a3c1d5e4195f8”,
     “list”: [],
     “total”: 0
   },
@@ -140,7 +140,7 @@ curl -X GET “https://wx.shubai01.com/api/v1/enrollments/external/active-period
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
 
 ### 请求参数
 
@@ -203,11 +203,11 @@ curl -X GET “https://wx.shubai01.com/api/v1/enrollments/external/active-period
 ```bash
 # 推荐：通过 periodId 查询
 curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period?periodId=69f9bf45cb1c9ac0600ad556" \
-  -H "X-Wx-AppId: wx199d6d332344ed0a"
+  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8"
 
 # 兼容：通过 periodName 查询，curl 自动 URL 编码
 curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period" \
-  -H "X-Wx-AppId: wx199d6d332344ed0a" \
+  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8" \
   --data-urlencode "periodName=秩序之锚"
 ```
 
@@ -231,7 +231,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `application/json` |
 
 ### 请求参数
@@ -346,7 +346,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 ```bash
 # 推荐：通过 targetUserId 指定被看见人
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
-  -H "X-Wx-AppId: wx199d6d332344ed0a" \
+  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -357,7 +357,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 # 兼容：通过 targetUserName 指定被看见人（昵称须在该期次报名用户内唯一）
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
-  -H "X-Wx-AppId: wx199d6d332344ed0a" \
+  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -417,7 +417,7 @@ POST /api/v1/sections/external/upload-podcast
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `multipart/form-data` |
 
 **请求体（form-data）**
@@ -445,7 +445,7 @@ POST /api/v1/sections/external/upload-podcast
 
 ```bash
 curl -X POST https://wx.shubai01.com/api/v1/sections/external/upload-podcast \
-  -H “X-Wx-AppId: wx199d6d332344ed0a” \
+  -H “X-Wx-AppId: wx2b9a3c1d5e4195f8” \
   -F “file=@/path/to/podcast.m4a”
 ```
 
@@ -465,7 +465,7 @@ POST /api/v1/sections/external/sync-podcast
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx199d6d332344ed0a` |
+| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `application/json` |
 
 **请求体**
@@ -498,7 +498,7 @@ POST /api/v1/sections/external/sync-podcast
 
 ```bash
 curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
-  -H “X-Wx-AppId: wx199d6d332344ed0a” \
+  -H “X-Wx-AppId: wx2b9a3c1d5e4195f8” \
   -H “Content-Type: application/json” \
   -d '{
     “sessionId”: “664a1b2c3d4e5f6a7b8c9d0e”,

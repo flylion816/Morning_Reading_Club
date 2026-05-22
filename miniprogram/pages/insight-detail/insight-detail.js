@@ -17,6 +17,7 @@ const DANMAKU_LANE_COOLDOWN = 7500;
 
 const INSIGHT_POSTER_WIDTH = 750;
 const INSIGHT_INTERACTION_SUBSCRIBE_SCENES = ['insight_liked', 'danmaku_received'];
+const ADMIN_ROLES = ['platform_superadmin', 'superadmin', 'tenant_admin', 'admin', 'operator', 'super_admin'];
 
 function getEntityId(entity) {
   if (!entity) return '';
@@ -50,6 +51,10 @@ function resolveInsightOwner(insight = {}, currentUser = {}) {
       (ownerId && currentUserId && String(ownerId) === String(currentUserId) ? currentUserName : '') ||
       '晨读者'
   };
+}
+
+function isAdminUser(user = {}) {
+  return ADMIN_ROLES.includes(user.role) || ADMIN_ROLES.includes(user.adminRole);
 }
 
 function normalizeInsightDetail(rawInsight) {
@@ -101,7 +106,8 @@ Page({
     heartItems: [],
     scrollPercent: 0,
     textShareFilePath: '',
-    textShareFileName: ''
+    textShareFileName: '',
+    canEditInsight: false
   },
 
   // 弹幕引擎内部状态（不需要响应式，放实例属性）
@@ -222,6 +228,12 @@ Page({
       const owner = resolveInsightOwner(insight, currentUser);
       const isOwnInsight =
         currentUserId && owner.id && String(currentUserId) === String(owner.id);
+      const creatorUserId = getEntityId(insight.userId);
+      const canEditInsight =
+        isAdminUser(currentUser) ||
+        (currentUserId &&
+          creatorUserId &&
+          String(currentUserId) === String(creatorUserId));
 
       if (currentUserId) {
         activityService.track(
@@ -253,7 +265,13 @@ Page({
         ? insight.likes.some(l => String(l.userId || l) === String(currentUserId))
         : false;
 
-      this.setData({ insight, isLiked, isOwnInsight: !!isOwnInsight, isDetailReady: true });
+      this.setData({
+        insight,
+        isLiked,
+        isOwnInsight: !!isOwnInsight,
+        canEditInsight: !!canEditInsight,
+        isDetailReady: true
+      });
       if (isOwnInsight) {
         this.topUpInsightInteractionSubscriptions('insight_detail_own_view');
       }

@@ -41,8 +41,10 @@ Page({
         inviter,
         enrollmentStatus,
         loading: false,
-        priceYuan: period.price ? Math.round(period.price / 100) : 0,
-        originalPriceYuan: period.originalPrice ? Math.round(period.originalPrice / 100) : 0
+        priceFen: period.price || 0,
+        priceYuan: period.price ? (period.price / 100).toFixed(2).replace(/\.?0+$/, '') : 0,
+        originalPriceFen: period.originalPrice || 0,
+        originalPriceYuan: period.originalPrice ? (period.originalPrice / 100).toFixed(2).replace(/\.?0+$/, '') : 0
       });
 
       // 检查当前用户是否已报名
@@ -88,9 +90,10 @@ Page({
     if (!period) return {};
     const title = period.inviteTitle ||
       `${period.name}·${period.subtitle || period.title || '21天七个习惯晨读营'}`;
+    const inviterParam = inviterId ? `&inviterId=${inviterId}` : '';
     return {
       title,
-      path: `/pages/invite/invite?periodId=${periodId}&inviterId=${inviterId}`,
+      path: `/pages/invite/invite?periodId=${periodId}${inviterParam}`,
       imageUrl: period.coverImage || '/assets/images/share-default.jpg'
     };
   }

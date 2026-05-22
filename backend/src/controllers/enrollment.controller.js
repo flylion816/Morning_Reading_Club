@@ -172,6 +172,9 @@ exports.submitEnrollmentForm = async (req, res) => {
     if (!period) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
+    if (period.enrollmentOpen === false) {
+      return res.status(403).json(errors.forbidden('该期暂未开放报名'));
+    }
 
     const enrollmentPayload = {
       userId,
@@ -297,6 +300,9 @@ exports.enrollPeriod = async (req, res) => {
     const period = await Period.findById(periodId);
     if (!period) {
       return res.status(404).json(errors.notFound('期次不存在'));
+    }
+    if (period.enrollmentOpen === false) {
+      return res.status(403).json(errors.forbidden('该期暂未开放报名'));
     }
 
     // 检查是否已有同一期次报名记录

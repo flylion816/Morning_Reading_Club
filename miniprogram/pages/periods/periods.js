@@ -413,7 +413,12 @@ Page({
     const paymentStatus = enrollmentInfo.paymentStatus;
     const calculatedStatus = period.calculatedStatus;
 
-    console.log('🔍 判断流程:', { isEnrolled, calculatedStatus, paymentStatus });
+    console.log('🔍 判断流程:', {
+      isEnrolled,
+      calculatedStatus,
+      paymentStatus,
+      enrollmentOpen: period.enrollmentOpen
+    });
 
     // 【情况1】已完成且未报名，进入介绍页查看
     if (calculatedStatus === 'completed' && !isEnrolled) {
@@ -424,14 +429,27 @@ Page({
       return;
     }
 
-    // 【情况2】未报名（且期次未完成），进入报名页面
+    // 【情况2】未报名但招募关闭，进入介绍页查看，不能绕过报名开关
+    if (!isEnrolled && period.enrollmentOpen === false) {
+      console.log('未报名且招募关闭，进入介绍页');
+      wx.showToast({
+        title: '该期暂未开放报名',
+        icon: 'none'
+      });
+      wx.navigateTo({
+        url: `/pages/period-detail/period-detail?periodId=${periodId}`
+      });
+      return;
+    }
+
+    // 【情况3】未报名（且期次未完成、招募开放），进入报名页面
     if (!isEnrolled) {
       console.log('未报名，进入报名页面');
       wx.navigateTo({
         url: `/pages/enrollment/enrollment?periodId=${periodId}`
       });
     }
-    // 【情况3】已报名，进入课程列表
+    // 【情况4】已报名，进入课程列表
     else {
       console.log('已报名，进入课程列表，支付状态:', paymentStatus);
       wx.navigateTo({
@@ -500,6 +518,16 @@ Page({
    */
   handleEnrollEntry(e) {
     const { periodId, periodName } = e.currentTarget.dataset;
+    const period = this.data.periods.find(p => p._id === periodId);
+    if (period && period.enrollmentOpen === false) {
+      wx.showToast({
+        title: '该期暂未开放报名',
+        icon: 'none'
+      });
+      wx.navigateTo({ url: `/pages/period-detail/period-detail?periodId=${periodId}` });
+      return;
+    }
+
     const app = getApp();
     if (!app.globalData.isLogin) {
       wx.navigateTo({ url: `/pages/period-detail/period-detail?periodId=${periodId}` });

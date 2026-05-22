@@ -279,7 +279,6 @@
           <button class="btn btn-secondary" bindtap="goPrevStep">← 上一步</button>
           <button class="btn btn-primary" bindtap="goNextStep">下一步 →</button>
         </view>
-        <view class="skip-step" bindtap="skipStep2">跳过此步骤</view>
       </block>
 
       <!-- Step 3: 确认报名 -->

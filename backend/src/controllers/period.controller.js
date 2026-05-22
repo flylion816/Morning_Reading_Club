@@ -517,8 +517,8 @@ async function getInviteInfo(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
-    if (!period.isPublished || !period.enrollmentOpen) {
-      return res.status(404).json(errors.notFound('该期次暂未开放报名'));
+    if (!period.isPublished) {
+      return res.status(404).json(errors.notFound('期次不存在'));
     }
 
     const periodObj = period.toObject({ virtuals: true });
