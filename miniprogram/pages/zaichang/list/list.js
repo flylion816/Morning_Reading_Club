@@ -98,6 +98,15 @@ Page({
         hasMore: newItems.length >= this.data.pageSize,
         loading: false
       });
+      if (reset && list.length > 0) {
+        const firstImg = (list[0].mediaList || []).find(m => m.type !== 'video');
+        if (firstImg) {
+          wx.downloadFile({
+            url: firstImg.url,
+            success: (r) => { if (r.statusCode === 200) this._shareImagePath = r.tempFilePath; }
+          });
+        }
+      }
       // 异步检测单张图方向
       const baseIndex = reset ? 0 : (this.data.list.length - newItems.length);
       newItems.forEach((item, i) => {
@@ -152,28 +161,18 @@ Page({
   },
 
   onShareAppMessage() {
-    const first = this.data.list[0];
-    const firstMedia = first && (first.mediaList || [])[0];
-    const imageUrl = firstMedia
-      ? (firstMedia.type === 'video' ? firstMedia.thumbUrl : firstMedia.url)
-      : '';
     return {
       title: '在场 · 书友们的聚会印记',
       path: '/pages/zaichang/list/list',
-      imageUrl: imageUrl || '/assets/images/share-default.jpg'
+      imageUrl: this._shareImagePath || ''
     };
   },
 
   onShareTimeline() {
-    const first = this.data.list[0];
-    const firstMedia = first && (first.mediaList || [])[0];
-    const imageUrl = firstMedia
-      ? (firstMedia.type === 'video' ? firstMedia.thumbUrl : firstMedia.url)
-      : '';
     return {
       title: '在场 · 书友们的聚会印记',
       query: '',
-      imageUrl: imageUrl || '/assets/images/share-default.jpg'
+      imageUrl: this._shareImagePath || ''
     };
   }
 });
