@@ -29,7 +29,8 @@ Page({
     activityTypes: DEFAULT_ACTIVITY_TYPES,
     uploading: false,
     justAdded: false,
-    editId: null
+    editId: null,
+    hasVideo: false
   },
 
   async onLoad(options) {
@@ -40,12 +41,13 @@ Page({
       try {
         const res = await imprintService.detail(options.id);
         const imprint = res.imprint || res;
+        const mediaList = imprint.mediaList || [];
         this.setData({
           title: imprint.title || '',
           activityType: imprint.activityType || '',
           location: imprint.location || '',
           description: imprint.description || '',
-          mediaList: imprint.mediaList || [],
+          mediaList,
           attendees: (imprint.attendees || []).map(a => ({
             userId: a.userId || null,
             name: a.name,
@@ -53,6 +55,7 @@ Page({
             avatarUrl: a.avatarUrl || ''
           }))
         });
+        this._syncMediaState(mediaList);
       } catch (e) {
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
@@ -72,29 +75,53 @@ Page({
   },
 
   async onChooseMedia() {
-    const remaining = 9 - this.data.mediaList.length;
-    if (remaining <= 0) return wx.showToast({ title: '最多9个媒体', icon: 'none' });
+    const { mediaList } = this.data;
+    // 已有视频，不允许再添加
+    if (mediaList.some(m => m.type === 'video')) return;
+
+    const hasImages = mediaList.some(m => m.type !== 'video');
+    const remaining = 9 - mediaList.length;
+    if (remaining <= 0) return wx.showToast({ title: '最多9张图片', icon: 'none' });
+
     wx.chooseMedia({
-      count: remaining,
-      mediaType: ['image', 'video'],
+      count: hasImages ? remaining : 1,
+      mediaType: hasImages ? ['image'] : ['image', 'video'],
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
       maxDuration: 60,
       success: async (res) => {
         this.setData({ uploading: true });
+
+        // 如果已有图片，过滤掉视频
         const files = res.tempFiles.filter(f => {
+          if (hasImages && f.fileType === 'video') return false;
+          // 如果本次选了视频，只取第一个且不能混图片
           const isVideo = f.fileType === 'video';
           const limit = isVideo ? 50 * 1024 * 1024 : 2 * 1024 * 1024;
           return f.size <= limit;
         });
-        const skipped = res.tempFiles.length - files.length;
-        if (skipped > 0) wx.showToast({ title: `${skipped}个文件超出大小限制已跳过`, icon: 'none', duration: 2000 });
-        if (files.length === 0) { this.setData({ uploading: false }); return; }
+
+        // 本次选择中如果同时有图片和视频，只保留图片（图片优先）
+        const hasVideoInSelection = files.some(f => f.fileType === 'video');
+        const hasImageInSelection = files.some(f => f.fileType !== 'video');
+        const finalFiles = (hasVideoInSelection && hasImageInSelection)
+          ? files.filter(f => f.fileType !== 'video')
+          : files;
+
+        // 视频只取第一个
+        const processFiles = hasVideoInSelection && !hasImageInSelection
+          ? finalFiles.slice(0, 1)
+          : finalFiles;
+
+        const skipped = res.tempFiles.length - processFiles.length;
+        if (skipped > 0) wx.showToast({ title: `${skipped}个文件已跳过`, icon: 'none', duration: 2000 });
+        if (processFiles.length === 0) { this.setData({ uploading: false }); return; }
+
         const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
         const uploadUrl = `${envConfig.apiBaseUrl}/imprints/upload`;
 
         const results = await Promise.allSettled(
-          files.map(f => new Promise((resolve, reject) => {
+          processFiles.map(f => new Promise((resolve, reject) => {
             const filePath = f.tempFilePath || f.tempVideoPath;
             wx.uploadFile({
               url: uploadUrl,
@@ -118,13 +145,16 @@ Page({
           .map(r => ({ type: r.value.type || 'image', url: r.value.url, thumbUrl: r.value.thumbUrl }));
         const failed = results.filter(r => r.status === 'rejected').length;
 
-        this.setData({
-          mediaList: [...this.data.mediaList, ...uploaded],
-          uploading: false
-        });
+        const newList = [...this.data.mediaList, ...uploaded];
+        this.setData({ mediaList: newList, uploading: false });
+        this._syncMediaState(newList);
         if (failed > 0) wx.showToast({ title: `${failed}个上传失败`, icon: 'none' });
       }
     });
+  },
+
+  _syncMediaState(mediaList) {
+    this.setData({ hasVideo: mediaList.some(m => m.type === 'video') });
   },
 
   onPreviewVideo(e) {
@@ -136,6 +166,7 @@ Page({
     const mediaList = [...this.data.mediaList];
     mediaList.splice(idx, 1);
     this.setData({ mediaList });
+    this._syncMediaState(mediaList);
   },
 
   onSelectType(e) {

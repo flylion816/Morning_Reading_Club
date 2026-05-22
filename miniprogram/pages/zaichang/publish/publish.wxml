@@ -11,9 +11,9 @@
         </block>
         <view class="remove-btn" bindtap="onRemoveImage" data-index="{{index}}">✕</view>
       </view>
-      <view wx:if="{{mediaList.length < 9}}" class="add-media" bindtap="onChooseMedia">
+      <view wx:if="{{mediaList.length < 9 && !hasVideo}}" class="add-media" bindtap="onChooseMedia">
         <text class="add-icon">{{uploading ? '⏳' : '+'}}</text>
-        <text class="add-text">{{uploading ? '上传中' : '图片/视频'}}</text>
+        <text class="add-text">{{uploading ? '上传中' : (mediaList.length > 0 ? '添加图片' : '图片/视频')}}</text>
       </view>
     </view>
   </view>
