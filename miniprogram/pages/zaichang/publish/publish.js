@@ -83,43 +83,47 @@ Page({
 
   async onChooseMedia() {
     const { mediaList } = this.data;
-    // 已有视频，不允许再添加
     if (mediaList.some(m => m.type === 'video')) return;
 
     const hasImages = mediaList.some(m => m.type !== 'video');
     const remaining = 9 - mediaList.length;
     if (remaining <= 0) return wx.showToast({ title: '最多9张图片', icon: 'none' });
 
+    if (hasImages) {
+      // 已有图片，直接选图片
+      this._doChooseMedia(['image'], remaining);
+    } else {
+      // 空状态，先让用户选类型
+      wx.showActionSheet({
+        itemList: ['选择图片（最多9张）', '选择视频（仅1个）'],
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            this._doChooseMedia(['image'], 9);
+          } else {
+            this._doChooseMedia(['video'], 1);
+          }
+        }
+      });
+    }
+  },
+
+  async _doChooseMedia(mediaType, count) {
     wx.chooseMedia({
-      count: hasImages ? remaining : 9,
-      mediaType: hasImages ? ['image'] : ['image', 'video'],
+      count,
+      mediaType,
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
       maxDuration: 60,
       success: async (res) => {
         this.setData({ uploading: true });
 
-        const selectedFiles = res.tempFiles;
-        const hasVideoInSelection = selectedFiles.some(f => f.fileType === 'video');
-        const hasImageInSelection = selectedFiles.some(f => f.fileType !== 'video');
-
-        // 同时选了图片和视频：只保留图片
-        let processFiles = (hasVideoInSelection && hasImageInSelection)
-          ? selectedFiles.filter(f => f.fileType !== 'video')
-          : selectedFiles;
-
-        // 视频只取第一个
-        if (hasVideoInSelection && !hasImageInSelection) {
-          processFiles = processFiles.slice(0, 1);
-        }
-
-        // 过滤超大文件
+        let processFiles = res.tempFiles.slice(0, count);
         processFiles = processFiles.filter(f => {
           const limit = f.fileType === 'video' ? 50 * 1024 * 1024 : 2 * 1024 * 1024;
           return f.size <= limit;
         });
 
-        const skipped = selectedFiles.length - processFiles.length;
+        const skipped = res.tempFiles.length - processFiles.length;
         if (skipped > 0) wx.showToast({ title: `${skipped}个文件已跳过`, icon: 'none', duration: 2000 });
         if (processFiles.length === 0) { this.setData({ uploading: false }); return; }
 

@@ -30,9 +30,23 @@
         <block wx:if="{{item.mediaList && item.mediaList.length > 0}}">
           <block wx:if="{{item.mediaList.length === 1}}">
             <block wx:if="{{item.mediaList[0].type === 'video'}}">
-              <view class="cover-video-wrap" catchtap="onTapMedia" data-item="{{item}}" data-index="0">
-                <video class="cover-video" src="{{item.mediaList[0].url}}" object-fit="cover" controls="{{false}}" show-play-btn="{{false}}" enable-play-gesture="{{false}}" autoplay="{{false}}" muted/>
-                <view class="video-play-badge">▶</view>
+              <view class="cover-video-wrap">
+                <video
+                  id="video-{{item._id}}"
+                  class="cover-video"
+                  src="{{item.mediaList[0].url}}"
+                  object-fit="cover"
+                  controls="{{false}}"
+                  show-play-btn="{{false}}"
+                  enable-play-gesture="{{false}}"
+                  autoplay="{{false}}"
+                  muted="{{false}}"
+                  bindplay="onVideoPlay"
+                  data-id="{{item._id}}"
+                />
+                <view class="video-play-badge" catchtap="onTapVideoToggle" data-id="{{item._id}}">
+                  {{item._videoPlaying ? '⏸' : '▶'}}
+                </view>
               </view>
             </block>
             <block wx:else>
