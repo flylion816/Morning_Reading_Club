@@ -86,7 +86,7 @@ async function list(req, res) {
 
     const [list, total] = await Promise.all([
       Imprint.find(filter)
-        .sort({ happenedAt: -1 })
+        .sort({ updatedAt: -1 })
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .populate('authorId', 'nickname avatarUrl _id')
@@ -519,7 +519,7 @@ async function adminList(req, res) {
 
     const [list, total] = await Promise.all([
       Imprint.find(filter)
-        .sort({ happenedAt: -1 })
+        .sort({ updatedAt: -1 })
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .populate('authorId', 'nickname avatarUrl _id')
