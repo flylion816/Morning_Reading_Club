@@ -78,14 +78,23 @@
           <!-- 封面 -->
           <el-table-column label="封面" width="80">
             <template #default="{ row }">
-              <el-image
-                v-if="row.mediaList && row.mediaList.length"
-                :src="row.mediaList[0].url"
-                fit="cover"
-                style="width: 56px; height: 56px; border-radius: 6px"
-                :preview-src-list="row.mediaList.map((m: any) => m.url)"
-                preview-teleported
-              />
+              <div v-if="row.mediaList && row.mediaList.length">
+                <video
+                  v-if="row.mediaList[0].type === 'video'"
+                  :src="row.mediaList[0].url"
+                  style="width:56px;height:56px;border-radius:6px;object-fit:cover;display:block"
+                  muted
+                  preload="metadata"
+                />
+                <el-image
+                  v-else
+                  :src="row.mediaList[0].url"
+                  fit="cover"
+                  style="width: 56px; height: 56px; border-radius: 6px"
+                  :preview-src-list="row.mediaList.map((m: any) => m.url)"
+                  preview-teleported
+                />
+              </div>
               <div v-else class="no-cover">无图</div>
             </template>
           </el-table-column>
@@ -152,7 +161,7 @@
           <!-- 操作 -->
           <el-table-column label="操作" width="140" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click="openDetail(row)">查看</el-button>
+              <el-button size="small" @click="openDetail(row)">编辑</el-button>
               <el-button
                 size="small"
                 type="danger"
