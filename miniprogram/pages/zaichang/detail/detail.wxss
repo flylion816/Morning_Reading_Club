@@ -87,5 +87,6 @@ page {
 .send-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #ddd; color: #999; font-size: 26rpx; white-space: nowrap; }
 .send-btn.active { background: var(--zc-primary); color: #fff; }
 .edit-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #F5F0E8; color: var(--zc-primary); font-size: 26rpx; white-space: nowrap; border: 2rpx solid var(--zc-primary); }
+.delete-imprint-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #FFF0F0; color: #e74c3c; font-size: 26rpx; white-space: nowrap; border: 2rpx solid #e74c3c; }
 
 .loading-page { display: flex; justify-content: center; align-items: center; height: 60vh; font-size: 28rpx; color: var(--zc-text-secondary); }

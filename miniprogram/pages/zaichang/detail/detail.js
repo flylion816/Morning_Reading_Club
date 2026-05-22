@@ -237,6 +237,25 @@ Page({
     wx.navigateTo({ url: `/pages/zaichang/publish/publish?id=${this._id}` });
   },
 
+  onTapDelete() {
+    wx.showModal({
+      title: '删除印记',
+      content: '确定删除这条印记吗？删除后无法恢复。',
+      confirmColor: '#e74c3c',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await imprintService.remove(this._id);
+          wx.setStorageSync('zaichang_need_refresh', true);
+          wx.showToast({ title: '已删除', icon: 'success' });
+          setTimeout(() => wx.navigateBack(), 1200);
+        } catch (e) {
+          wx.showToast({ title: e.message || '删除失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
   onShareAppMessage() {
     const imprint = this.data.imprint;
     if (!imprint) return { title: '在场 · 书友聚会印记', path: '/pages/zaichang/list/list' };

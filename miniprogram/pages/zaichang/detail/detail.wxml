@@ -125,6 +125,7 @@
       />
       <view class="send-btn {{commentInput ? 'active' : ''}}" bindtap="onSubmitComment">发送</view>
       <view wx:if="{{isAuthor}}" class="edit-btn" bindtap="onTapEdit">编辑</view>
+      <view wx:if="{{isAuthor}}" class="delete-imprint-btn" bindtap="onTapDelete">删除</view>
     </view>
   </view>
 </view>
