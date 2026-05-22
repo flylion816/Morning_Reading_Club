@@ -366,7 +366,15 @@ export const uploadApi = {
 export const imprintApi = {
   getImprints: (params?: any) => apiClient.get('/imprints/admin/list', { params }),
   getImprintDetail: (id: string) => apiClient.get(`/imprints/${id}`),
-  deleteImprint: (id: string) => apiClient.delete(`/imprints/admin/${id}`)
+  updateImprint: (id: string, data: any) => apiClient.put(`/imprints/admin/${id}`, data),
+  deleteImprint: (id: string) => apiClient.delete(`/imprints/admin/${id}`),
+  uploadMedia: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post('/imprints/admin/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } as any);
+  }
 };
 
 export const imprintActivityTypeApi = {

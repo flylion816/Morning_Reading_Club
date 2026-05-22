@@ -149,5 +149,31 @@ Page({
       return;
     }
     wx.navigateTo({ url: '/pages/zaichang/publish/publish' });
+  },
+
+  onShareAppMessage() {
+    const first = this.data.list[0];
+    const firstMedia = first && (first.mediaList || [])[0];
+    const imageUrl = firstMedia
+      ? (firstMedia.type === 'video' ? firstMedia.thumbUrl : firstMedia.url)
+      : '';
+    return {
+      title: '在场 · 书友们的聚会印记',
+      path: '/pages/zaichang/list/list',
+      imageUrl: imageUrl || '/assets/images/share-default.jpg'
+    };
+  },
+
+  onShareTimeline() {
+    const first = this.data.list[0];
+    const firstMedia = first && (first.mediaList || [])[0];
+    const imageUrl = firstMedia
+      ? (firstMedia.type === 'video' ? firstMedia.thumbUrl : firstMedia.url)
+      : '';
+    return {
+      title: '在场 · 书友们的聚会印记',
+      query: '',
+      imageUrl: imageUrl || '/assets/images/share-default.jpg'
+    };
   }
 });

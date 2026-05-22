@@ -196,60 +196,88 @@
         </template>
       </el-dialog>
 
-      <!-- 详情抽屉 -->
+      <!-- 详情/编辑抽屉 -->
       <el-drawer
         v-model="drawerVisible"
-        title="印记详情"
-        size="520px"
+        title="编辑印记"
+        size="560px"
         direction="rtl"
+        @close="onDrawerClose"
       >
-        <div v-if="selected" class="detail-panel">
-          <!-- 图片 -->
-          <div v-if="selected.mediaList?.length" class="detail-images">
-            <el-image
-              v-for="(m, i) in selected.mediaList"
+        <div v-if="editForm" class="detail-panel">
+          <!-- 媒体列表 -->
+          <div class="edit-section-label">图片 / 视频</div>
+          <div class="edit-media-grid">
+            <div
+              v-for="(m, i) in editForm.mediaList"
               :key="i"
-              :src="m.url"
-              fit="cover"
-              class="detail-img"
-              :preview-src-list="selected.mediaList.map((x: any) => x.url)"
-              preview-teleported
-            />
-          </div>
-
-          <el-descriptions :column="1" border size="small" style="margin-top:16px">
-            <el-descriptions-item label="标题">{{ selected.title }}</el-descriptions-item>
-            <el-descriptions-item label="活动类型">{{ typeLabel(selected.activityType) }}</el-descriptions-item>
-            <el-descriptions-item label="活动时间">{{ formatDate(selected.happenedAt) }}</el-descriptions-item>
-            <el-descriptions-item label="地点" v-if="selected.location">{{ selected.location }}</el-descriptions-item>
-            <el-descriptions-item label="描述" v-if="selected.description">{{ selected.description }}</el-descriptions-item>
-            <el-descriptions-item label="发布者">
-              {{ selected.author?.nickname || selected.author?.name || '—' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="在场人数">{{ selected.attendees?.length ?? 0 }}</el-descriptions-item>
-            <el-descriptions-item label="共鸣数">{{ totalReactions(selected) }}</el-descriptions-item>
-          </el-descriptions>
-
-          <!-- 在场人列表 -->
-          <div v-if="selected.attendees?.length" style="margin-top:16px">
-            <div class="section-title">在场人</div>
-            <div class="attendee-list">
-              <el-tag
-                v-for="(a, i) in selected.attendees"
-                :key="i"
+              class="edit-media-item"
+            >
+              <video
+                v-if="m.type === 'video'"
+                :src="m.url"
+                class="edit-media-img"
+                muted
+                preload="metadata"
+              />
+              <el-image
+                v-else
+                :src="m.url"
+                fit="cover"
+                class="edit-media-img"
+                :preview-src-list="editForm.mediaList.filter((x: any) => x.type !== 'video').map((x: any) => x.url)"
+                preview-teleported
+              />
+              <el-button
+                class="edit-media-remove"
+                type="danger"
                 size="small"
-                style="margin: 4px"
-              >
-                {{ a.name || a.nickname || '匿名' }}
-              </el-tag>
+                circle
+                @click="removeMedia(i)"
+              >×</el-button>
             </div>
+            <!-- 上传按钮 -->
+            <label v-if="editForm.mediaList.length < 9 && !editForm.mediaList.some((m: any) => m.type === 'video')" class="edit-media-add">
+              <input type="file" accept="image/*,video/*" style="display:none" @change="onUploadFile" :disabled="uploading" />
+              <span v-if="uploading" class="add-icon">⏳</span>
+              <span v-else class="add-icon">+</span>
+              <span class="add-text">{{ uploading ? '上传中' : '添加' }}</span>
+            </label>
           </div>
 
-          <div style="margin-top:24px; text-align:right">
+          <!-- 文字字段 -->
+          <el-form :model="editForm" label-width="70px" style="margin-top:20px">
+            <el-form-item label="标题">
+              <el-input v-model="editForm.title" maxlength="100" show-word-limit />
+            </el-form-item>
+            <el-form-item label="活动类型">
+              <el-select v-model="editForm.activityType" style="width:100%">
+                <el-option
+                  v-for="t in activityTypes"
+                  :key="t.key"
+                  :label="`${t.emoji} ${t.label}`"
+                  :value="t.key"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="地点">
+              <el-input v-model="editForm.location" maxlength="100" />
+            </el-form-item>
+            <el-form-item label="描述">
+              <el-input v-model="editForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
+            </el-form-item>
+          </el-form>
+
+          <div style="margin-top:24px; display:flex; justify-content:space-between; align-items:center">
             <el-button
               type="danger"
-              @click="handleDelete(selected); drawerVisible = false"
+              plain
+              @click="handleDelete(editForm); drawerVisible = false"
             >删除此印记</el-button>
+            <div style="display:flex; gap:8px">
+              <el-button @click="drawerVisible = false">取消</el-button>
+              <el-button type="primary" :loading="editSaving" @click="saveEdit">保存</el-button>
+            </div>
           </div>
         </div>
       </el-drawer>
@@ -368,7 +396,67 @@ const pageSize = 15;
 const filters = reactive({ activityType: '', keyword: '' });
 
 const drawerVisible = ref(false);
-const selected = ref<any>(null);
+const editForm = ref<any>(null);
+const editSaving = ref(false);
+const uploading = ref(false);
+
+function openDetail(row: any) {
+  editForm.value = {
+    _id: row._id,
+    title: row.title || '',
+    description: row.description || '',
+    activityType: row.activityType || '',
+    location: row.location || '',
+    mediaList: (row.mediaList || []).map((m: any) => ({ ...m }))
+  };
+  drawerVisible.value = true;
+}
+
+function onDrawerClose() {
+  editForm.value = null;
+}
+
+function removeMedia(index: number) {
+  editForm.value.mediaList.splice(index, 1);
+}
+
+async function onUploadFile(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = '';
+  uploading.value = true;
+  try {
+    const res = await imprintApi.uploadMedia(file);
+    const item = res.data || res;
+    editForm.value.mediaList.push({ type: item.type || 'image', url: item.url });
+  } catch {
+    ElMessage.error('上传失败');
+  } finally {
+    uploading.value = false;
+  }
+}
+
+async function saveEdit() {
+  if (!editForm.value.title.trim()) return ElMessage.warning('标题不能为空');
+  editSaving.value = true;
+  try {
+    await imprintApi.updateImprint(editForm.value._id, {
+      title: editForm.value.title.trim(),
+      description: editForm.value.description.trim(),
+      activityType: editForm.value.activityType,
+      location: editForm.value.location.trim(),
+      mediaList: editForm.value.mediaList
+    });
+    ElMessage.success('保存成功');
+    drawerVisible.value = false;
+    loadImprints();
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败');
+  } finally {
+    editSaving.value = false;
+  }
+}
 
 function typeLabel(t: string) {
   return typeMap.value[t] || t || '—';
@@ -419,11 +507,6 @@ function resetFilters() {
   filters.activityType = '';
   filters.keyword = '';
   handleFilterChange();
-}
-
-function openDetail(row: any) {
-  selected.value = row;
-  drawerVisible.value = true;
 }
 
 async function handleDelete(row: any) {
@@ -531,6 +614,72 @@ onMounted(() => {
   font-weight: 600;
   color: #555;
   margin-bottom: 8px;
+}
+
+.edit-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.edit-media-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.edit-media-item {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.edit-media-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+}
+
+.edit-media-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px !important;
+  height: 22px !important;
+  min-height: unset !important;
+  font-size: 14px !important;
+  padding: 0 !important;
+  z-index: 1;
+}
+
+.edit-media-add {
+  width: 90px;
+  height: 90px;
+  border-radius: 6px;
+  border: 2px dashed #ccc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  background: #fafafa;
+}
+
+.edit-media-add .add-icon {
+  font-size: 28px;
+  color: #ccc;
+  line-height: 1;
+}
+
+.edit-media-add .add-text {
+  font-size: 11px;
+  color: #aaa;
 }
 
 .attendee-list {

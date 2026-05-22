@@ -60,7 +60,23 @@ function setResolvedTenantId(req, res, next) {
 
 // 管理后台专用路由（在 router.use(authMiddleware) 之前注册，使用独立的 adminAuthMiddleware）
 router.get('/admin/list', adminAuthMiddleware, adminTenantContext, controller.adminList);
+router.put('/admin/:id', adminAuthMiddleware, adminTenantContext, controller.adminUpdate);
 router.delete('/admin/:id', adminAuthMiddleware, adminTenantContext, controller.adminRemove);
+
+// 管理后台图片/视频上传
+router.post('/admin/upload', adminAuthMiddleware, adminTenantContext, (req, res, next) => {
+  req._resolvedTenantId = getCurrentTenantId();
+  next();
+}, upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json(errors.badRequest('未收到文件'));
+  const baseUrl = process.env.BASE_URL || '';
+  const relativePath = req.file.path.replace(path.join(__dirname, '../../'), '');
+  const fileUrl = `${baseUrl}/${relativePath}`;
+  const videoExts = /mp4|mov|m4v/;
+  const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+  const fileType = videoExts.test(ext) ? 'video' : 'image';
+  res.json(success({ url: fileUrl, thumbUrl: fileUrl, type: fileType }));
+});
 
 // 活动类型标签管理（管理后台）
 router.get('/admin/activity-types', adminAuthMiddleware, adminTenantContext, activityTypeController.adminList);

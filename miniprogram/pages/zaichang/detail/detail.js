@@ -223,5 +223,32 @@ Page({
 
   onTapEdit() {
     wx.navigateTo({ url: `/pages/zaichang/publish/publish?id=${this._id}` });
+  },
+
+  onShareAppMessage() {
+    const imprint = this.data.imprint;
+    if (!imprint) return { title: '在场 · 书友聚会印记', path: '/pages/zaichang/list/list' };
+    const firstMedia = (imprint.mediaList || [])[0];
+    const imageUrl = firstMedia
+      ? (firstMedia.type === 'video' ? firstMedia.thumbUrl : firstMedia.url)
+      : '';
+    return {
+      title: imprint.title || '在场 · 书友聚会印记',
+      path: `/pages/zaichang/detail/detail?id=${this._id}`,
+      imageUrl: imageUrl || '/assets/images/share-default.jpg'
+    };
+  },
+
+  onShareTimeline() {
+    const imprint = this.data.imprint;
+    const firstMedia = (imprint && imprint.mediaList || [])[0];
+    const imageUrl = firstMedia
+      ? (firstMedia.type === 'video' ? firstMedia.thumbUrl : firstMedia.url)
+      : '';
+    return {
+      title: imprint ? imprint.title : '在场 · 书友聚会印记',
+      query: `id=${this._id}`,
+      imageUrl: imageUrl || '/assets/images/share-default.jpg'
+    };
   }
 });

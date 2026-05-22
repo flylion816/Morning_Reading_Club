@@ -540,6 +540,29 @@ async function adminList(req, res) {
   }
 }
 
+async function adminUpdate(req, res) {
+  try {
+    const { id } = req.params;
+    const imprint = await Imprint.findById(id).lean();
+    if (!imprint) return res.status(404).json(errors.notFound('印记不存在'));
+
+    const { title, description, activityType, location, attendees, mediaList } = req.body;
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (activityType !== undefined) updateData.activityType = activityType;
+    if (location !== undefined) updateData.location = location;
+    if (attendees !== undefined) updateData.attendees = attendees;
+    if (mediaList !== undefined) updateData.mediaList = mediaList;
+
+    const updated = await Imprint.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    res.json(success(updated));
+  } catch (err) {
+    logger.error('[imprint.adminUpdate]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
 async function adminRemove(req, res) {
   try {
     const { id } = req.params;
@@ -573,5 +596,6 @@ module.exports = {
   createComment,
   deleteComment,
   adminList,
+  adminUpdate,
   adminRemove
 };
