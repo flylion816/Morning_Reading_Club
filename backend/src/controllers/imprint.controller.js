@@ -1,0 +1,502 @@
+const Imprint = require('../models/Imprint');
+const ImprintReaction = require('../models/ImprintReaction');
+const ImprintComment = require('../models/ImprintComment');
+const ImprintActivityType = require('../models/ImprintActivityType');
+const { success, errors } = require('../utils/response');
+const logger = require('../utils/logger');
+
+const FALLBACK_ACTIVITY_TYPES = ['reading', 'cooking', 'tea', 'walk', 'create', 'other'];
+
+async function isValidActivityType(key) {
+  const count = await ImprintActivityType.countDocuments({ key, isActive: true });
+  if (count > 0) return true;
+  return FALLBACK_ACTIVITY_TYPES.includes(key);
+}
+
+function getUserId(req) {
+  return req.user._id || req.user.userId || req.user.id;
+}
+
+async function list(req, res) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(20, Math.max(1, parseInt(req.query.pageSize, 10) || 10));
+    const { activityType, periodId, startDate, endDate } = req.query;
+
+    const filter = {};
+    if (activityType) filter.activityType = activityType;
+    if (periodId) filter.periodId = periodId;
+    if (startDate || endDate) {
+      filter.happenedAt = {};
+      if (startDate) filter.happenedAt.$gte = new Date(startDate);
+      if (endDate) filter.happenedAt.$lte = new Date(endDate);
+    }
+
+    const [list, total] = await Promise.all([
+      Imprint.find(filter)
+        .sort({ happenedAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .populate('authorId', 'nickname avatarUrl _id')
+        .populate('attendees.userId', 'nickname avatarUrl _id')
+        .lean(),
+      Imprint.countDocuments(filter)
+    ]);
+
+    const userId = getUserId(req);
+    const imprintIds = list.map((i) => i._id);
+    const reactions = await ImprintReaction.find({
+      imprintId: { $in: imprintIds },
+      userId
+    }).lean();
+
+    const myReactions = {};
+    for (const r of reactions) {
+      myReactions[r.imprintId.toString()] = r.type;
+    }
+
+    const normalized = list.map(item => ({
+      ...item,
+      author: item.authorId,
+      authorId: item.authorId?._id,
+      attendees: (item.attendees || []).map(a => ({
+        ...a,
+        avatarUrl: (a.userId && a.userId.avatarUrl) || a.avatarUrl || '',
+        name: a.name || (a.userId && a.userId.nickname) || '',
+        userId: a.userId?._id || a.userId
+      }))
+    }));
+
+    res.json(success({ list: normalized, total, page, pageSize, myReactions }));
+  } catch (err) {
+    logger.error('[imprint.list]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function create(req, res) {
+  try {
+    const { title, activityType, mediaList, description, location, attendees, periodId, happenedAt } = req.body;
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json(errors.badRequest('标题不能为空'));
+    }
+    if (title.length > 30) {
+      return res.status(400).json(errors.badRequest('标题不能超过30字'));
+    }
+    if (!activityType || !(await isValidActivityType(activityType))) {
+      return res.status(400).json(errors.badRequest('活动类型无效'));
+    }
+    if (!Array.isArray(mediaList) || mediaList.length === 0) {
+      return res.status(400).json(errors.badRequest('至少需要一张图片'));
+    }
+
+    const authorId = getUserId(req);
+    const imprint = await Imprint.create({
+      authorId,
+      title: title.trim(),
+      activityType,
+      mediaList,
+      description: description || '',
+      location: location || '',
+      attendees: attendees || [],
+      periodId: periodId || null,
+      happenedAt: happenedAt ? new Date(happenedAt) : new Date()
+    });
+
+    res.status(201).json(success(imprint));
+  } catch (err) {
+    logger.error('[imprint.create]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function detail(req, res) {
+  try {
+    const { id } = req.params;
+    const imprint = await Imprint.findById(id)
+      .populate('authorId', 'nickname avatarUrl _id')
+      .populate('attendees.userId', 'nickname avatarUrl _id')
+      .lean();
+
+    if (!imprint) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
+    const userId = getUserId(req);
+    const myReaction = await ImprintReaction.findOne({ imprintId: id, userId }).lean();
+
+    const normalized = {
+      ...imprint,
+      author: imprint.authorId,
+      authorId: imprint.authorId?._id,
+      attendees: (imprint.attendees || []).map(a => ({
+        ...a,
+        avatarUrl: (a.userId && a.userId.avatarUrl) || a.avatarUrl || '',
+        name: a.name || (a.userId && a.userId.nickname) || '',
+        userId: a.userId?._id || a.userId
+      }))
+    };
+
+    res.json(success({ imprint: normalized, myReaction: myReaction ? myReaction.type : null }));
+  } catch (err) {
+    logger.error('[imprint.detail]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function update(req, res) {
+  try {
+    const { id } = req.params;
+    const imprint = await Imprint.findById(id).lean();
+
+    if (!imprint) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
+    const userId = getUserId(req);
+    if (imprint.authorId.toString() !== userId.toString()) {
+      return res.status(403).json(errors.forbidden('无权修改此印记'));
+    }
+
+    const { title, description, activityType, location, attendees, periodId, mediaList } = req.body;
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (activityType !== undefined) updateData.activityType = activityType;
+    if (location !== undefined) updateData.location = location;
+    if (attendees !== undefined) updateData.attendees = attendees;
+    if (periodId !== undefined) updateData.periodId = periodId;
+    if (mediaList !== undefined) updateData.mediaList = mediaList;
+
+    const updated = await Imprint.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    res.json(success(updated));
+  } catch (err) {
+    logger.error('[imprint.update]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function remove(req, res) {
+  try {
+    const { id } = req.params;
+    const imprint = await Imprint.findById(id).lean();
+
+    if (!imprint) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
+    const userId = getUserId(req);
+    if (imprint.authorId.toString() !== userId.toString()) {
+      return res.status(403).json(errors.forbidden('无权删除此印记'));
+    }
+
+    await Imprint.findByIdAndDelete(id);
+    res.json(success({ message: '删除成功' }));
+  } catch (err) {
+    logger.error('[imprint.remove]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function attend(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = getUserId(req);
+
+    const imprint = await Imprint.findById(id).lean();
+    if (!imprint) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
+    const alreadyAttending = imprint.attendees.some(
+      (a) => a.userId && a.userId.toString() === userId.toString()
+    );
+    if (alreadyAttending) {
+      return res.status(400).json(errors.badRequest('已在场'));
+    }
+
+    const updated = await Imprint.findByIdAndUpdate(
+      id,
+      {
+        $push: {
+          attendees: {
+            userId,
+            name: req.user.nickname || req.user.name || '用户',
+            isRegistered: true,
+            addedBy: 'self'
+          }
+        }
+      },
+      { new: true }
+    ).lean();
+
+    res.json(success(updated));
+  } catch (err) {
+    logger.error('[imprint.attend]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function cancelAttend(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = getUserId(req);
+
+    await Imprint.findByIdAndUpdate(id, {
+      $pull: { attendees: { userId } }
+    });
+
+    res.json(success({ message: '已取消在场' }));
+  } catch (err) {
+    logger.error('[imprint.cancelAttend]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function react(req, res) {
+  try {
+    const { id } = req.params;
+    const { type } = req.body;
+    const userId = getUserId(req);
+
+    if (!['gonming', 'ran', 'xiangqu'].includes(type)) {
+      return res.status(400).json(errors.badRequest('无效的共鸣类型'));
+    }
+
+    const imprint = await Imprint.findById(id).lean();
+    if (!imprint) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
+    const existing = await ImprintReaction.findOne({ imprintId: id, userId });
+    if (!existing) {
+      try {
+        await ImprintReaction.create({ imprintId: id, userId, type });
+        await Imprint.findByIdAndUpdate(id, { $inc: { [`reactionCounts.${type}`]: 1 } });
+      } catch (err) {
+        if (err.code === 11000) {
+          // 并发双击：唯一索引冲突，幂等返回 200
+          return res.json(success({ message: '已共鸣' }));
+        }
+        throw err;
+      }
+    } else if (existing.type === type) {
+      return res.json(success({ message: '已共鸣' })); // 幂等
+    } else {
+      const oldType = existing.type;
+      existing.type = type;
+      await existing.save();
+      await Imprint.findByIdAndUpdate(id, {
+        $inc: { [`reactionCounts.${oldType}`]: -1, [`reactionCounts.${type}`]: 1 }
+      });
+    }
+
+    res.json(success({ message: '共鸣成功' }));
+  } catch (err) {
+    logger.error('[imprint.react]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function cancelReaction(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = getUserId(req);
+
+    const reaction = await ImprintReaction.findOneAndDelete({ imprintId: id, userId });
+    if (reaction) {
+      const imprint = await Imprint.findById(id).lean();
+      if (imprint) {
+        const currentCount = (imprint.reactionCounts && imprint.reactionCounts[reaction.type]) || 0;
+        const newCount = Math.max(0, currentCount - 1);
+        await Imprint.findByIdAndUpdate(id, {
+          $set: { [`reactionCounts.${reaction.type}`]: newCount }
+        });
+      }
+    }
+
+    res.json(success({ message: '已取消共鸣' }));
+  } catch (err) {
+    logger.error('[imprint.cancelReaction]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function listComments(req, res) {
+  try {
+    const { id } = req.params;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize, 10) || 20));
+
+    const [list, total] = await Promise.all([
+      ImprintComment.find({ imprintId: id })
+        .sort({ createdAt: 1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .populate('authorId', 'nickname avatarUrl _id')
+        .populate('replyToUserId', 'nickname _id')
+        .lean(),
+      ImprintComment.countDocuments({ imprintId: id })
+    ]);
+
+    const normalized = list.map(c => ({
+      ...c,
+      author: c.authorId,
+      authorId: c.authorId?._id,
+      replyToUser: c.replyToUserId,
+      replyToUserId: c.replyToUserId?._id
+    }));
+
+    res.json(success({ list: normalized, total, page, pageSize }));
+  } catch (err) {
+    logger.error('[imprint.listComments]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function createComment(req, res) {
+  try {
+    const { id } = req.params;
+    const { content, parentId, replyToUserId } = req.body;
+    const authorId = getUserId(req);
+
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return res.status(400).json(errors.badRequest('评论内容不能为空'));
+    }
+    if (content.length > 500) {
+      return res.status(400).json(errors.badRequest('评论内容不能超过500字'));
+    }
+
+    const imprint = await Imprint.findById(id).lean();
+    if (!imprint) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
+    if (parentId) {
+      const parent = await ImprintComment.findById(parentId).lean();
+      if (!parent) {
+        return res.status(400).json(errors.badRequest('父评论不存在'));
+      }
+    }
+
+    const comment = await ImprintComment.create({
+      imprintId: id,
+      authorId,
+      content: content.trim(),
+      parentId: parentId || null,
+      replyToUserId: replyToUserId || null
+    });
+
+    await Imprint.findByIdAndUpdate(id, { $inc: { commentCount: 1 } });
+
+    res.status(201).json(success(comment));
+  } catch (err) {
+    logger.error('[imprint.createComment]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function deleteComment(req, res) {
+  try {
+    const { id, cid } = req.params;
+    const userId = getUserId(req);
+
+    const comment = await ImprintComment.findById(cid).lean();
+    if (!comment) {
+      return res.status(404).json(errors.notFound('评论不存在'));
+    }
+
+    const imprint = await Imprint.findById(id).lean();
+    const isCommentAuthor = comment.authorId.toString() === userId.toString();
+    const isImprintAuthor = imprint && imprint.authorId.toString() === userId.toString();
+
+    if (!isCommentAuthor && !isImprintAuthor) {
+      return res.status(403).json(errors.forbidden('无权删除此评论'));
+    }
+
+    await ImprintComment.findByIdAndDelete(cid);
+
+    if (imprint) {
+      const newCount = Math.max(0, (imprint.commentCount || 0) - 1);
+      await Imprint.findByIdAndUpdate(id, { $set: { commentCount: newCount } });
+    }
+
+    res.json(success({ message: '删除成功' }));
+  } catch (err) {
+    logger.error('[imprint.deleteComment]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function adminList(req, res) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize, 10) || 15));
+    const { activityType, keyword } = req.query;
+
+    const filter = {};
+    if (activityType) filter.activityType = activityType;
+    if (keyword) {
+      const re = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ title: re }, { description: re }];
+    }
+
+    const [list, total] = await Promise.all([
+      Imprint.find(filter)
+        .sort({ happenedAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .populate('authorId', 'nickname avatarUrl _id')
+        .lean(),
+      Imprint.countDocuments(filter)
+    ]);
+
+    const normalized = list.map(item => ({
+      ...item,
+      author: item.authorId,
+      authorId: item.authorId?._id
+    }));
+
+    res.json(success({ list: normalized, total, page, pageSize }));
+  } catch (err) {
+    logger.error('[imprint.adminList]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+async function adminRemove(req, res) {
+  try {
+    const { id } = req.params;
+    const imprint = await Imprint.findById(id);
+    if (!imprint) return res.status(404).json(errors.notFound('印记不存在'));
+
+    await Promise.all([
+      Imprint.findByIdAndDelete(id),
+      ImprintReaction.deleteMany({ imprintId: id }),
+      ImprintComment.deleteMany({ imprintId: id })
+    ]);
+
+    res.json(success({ message: '删除成功' }));
+  } catch (err) {
+    logger.error('[imprint.adminRemove]', { error: err.message });
+    res.status(500).json(errors.serverError());
+  }
+}
+
+module.exports = {
+  list,
+  create,
+  detail,
+  update,
+  remove,
+  attend,
+  cancelAttend,
+  react,
+  cancelReaction,
+  listComments,
+  createComment,
+  deleteComment,
+  adminList,
+  adminRemove
+};

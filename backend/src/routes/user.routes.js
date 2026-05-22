@@ -20,6 +20,25 @@ router.get('/me', authMiddleware, userTenantContext, getCurrentUser);
 router.put('/profile', authMiddleware, userTenantContext, updateProfile);
 router.post('/bindPhone', authMiddleware, userTenantContext, bindPhone);
 router.get('/phone', authMiddleware, userTenantContext, getPhoneInfo);
+
+// 在场人搜索：普通用户可用，只返回 nickname/avatar（必须在 /:userId 之前注册）
+router.get('/search', authMiddleware, userTenantContext, async (req, res) => {
+  const User = require('../models/User');
+  const { success, errors } = require('../utils/response');
+  try {
+    const q = (req.query.search || req.query.keyword || '').trim();
+    if (!q) return res.json(success({ list: [] }));
+    const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const users = await User.find({ nickname: re })
+      .select('_id nickname avatarUrl')
+      .limit(20)
+      .lean();
+    res.json(success({ list: users }));
+  } catch (err) {
+    res.status(500).json(errors.serverError());
+  }
+});
+
 router.get('/:userId', authMiddleware, userTenantContext, getUserById);
 router.get('/:userId/stats', authMiddleware, userTenantContext, getUserStats);
 

@@ -101,6 +101,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/imprints',
+    name: 'imprints',
+    component: () => import('../views/ImprintsManagementView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/profile',
     name: 'profile',
     component: () => import('../views/ProfileView.vue'),

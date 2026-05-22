@@ -1,0 +1,87 @@
+<view class="publish-page">
+  <view class="section">
+    <view class="media-grid">
+      <view wx:for="{{mediaList}}" wx:key="index" class="media-item">
+        <block wx:if="{{item.type === 'video'}}">
+          <video src="{{item.url}}" class="media-img" object-fit="cover" show-play-btn controls="{{false}}" enable-play-gesture="{{false}}" bindtap="onPreviewVideo" data-url="{{item.url}}"/>
+          <view class="video-badge">▶</view>
+        </block>
+        <block wx:else>
+          <image src="{{item.url}}" mode="aspectFill" class="media-img"/>
+        </block>
+        <view class="remove-btn" bindtap="onRemoveImage" data-index="{{index}}">✕</view>
+      </view>
+      <view wx:if="{{mediaList.length < 9}}" class="add-media" bindtap="onChooseMedia">
+        <text class="add-icon">{{uploading ? '⏳' : '+'}}</text>
+        <text class="add-text">{{uploading ? '上传中' : '图片/视频'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="field-label">标题 <text class="required">*</text></view>
+    <input class="field-input" placeholder="给这次聚会起个名字" placeholder-style="font-size:30rpx;color:#bbb;line-height:80rpx;" maxlength="30" bindinput="onTitleInput" value="{{title}}"/>
+  </view>
+
+  <view class="section">
+    <view class="field-label">活动类型 <text class="required">*</text></view>
+    <view class="type-grid">
+      <view
+        wx:for="{{activityTypes}}"
+        wx:key="key"
+        class="type-item {{activityType === item.key ? 'selected' : ''}}"
+        bindtap="onSelectType"
+        data-key="{{item.key}}"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="field-label">地点</view>
+    <input class="field-input" placeholder="在哪里？（选填）" placeholder-style="font-size:30rpx;color:#bbb;line-height:80rpx;" maxlength="20" bindinput="onLocationInput" value="{{location}}"/>
+  </view>
+
+  <view class="section">
+    <view class="field-label">说点什么</view>
+    <textarea class="field-textarea" placeholder="记录这次聚会的感受...（选填）" placeholder-style="font-size:26rpx;color:#bbb;" maxlength="200" bindinput="onDescInput" value="{{description}}" auto-height/>
+  </view>
+
+  <view class="section">
+    <view class="field-label">在场的人</view>
+    <view class="attendees-list">
+      <view wx:for="{{attendees}}" wx:key="index" class="att-tag">
+        <text>{{item.name}}</text>
+        <text class="att-remove" bindtap="onRemoveAttendee" data-index="{{index}}">✕</text>
+      </view>
+      <view class="add-att-btn" bindtap="onShowAttendeePanel">+ 添加</view>
+    </view>
+  </view>
+
+  <view class="submit-wrap">
+    <view class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="onSubmit">
+      {{submitting ? (editId ? '保存中...' : '发布中...') : (editId ? '保存修改' : '留下印记')}}
+    </view>
+  </view>
+
+  <view wx:if="{{showAttendeePanel}}" class="panel-mask" bindtap="onHideAttendeePanel"/>
+  <view wx:if="{{showAttendeePanel}}" class="attendee-panel">
+    <view class="panel-header">
+      <text class="panel-title">添加在场人</text>
+      <text class="panel-close" bindtap="onHideAttendeePanel">✕</text>
+    </view>
+    <input class="search-input" placeholder="搜索书友昵称" bindinput="onAttendeeSearchInput" value="{{attendeeSearch}}" focus="{{showAttendeePanel}}"/>
+    <view class="search-results">
+      <view wx:for="{{searchResults}}" wx:key="_id" class="search-item" bindtap="onAddAttendee" data-user="{{item}}">
+        <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="search-avatar" mode="aspectFill"/>
+        <view wx:else class="search-avatar-text">{{item.nickname[0]}}</view>
+        <text class="search-name">{{item.nickname}}</text>
+        <text class="search-add">+</text>
+      </view>
+      <view wx:if="{{searchResults.length === 0 && attendeeSearch && !justAdded}}" class="no-result">未找到书友</view>
+    </view>
+    <view class="manual-row">
+      <input class="manual-input" placeholder="手动输入名字（非注册书友）" bindinput="onManualNameInput" value="{{manualName}}"/>
+      <view class="manual-add-btn" bindtap="onAddManualAttendee">添加</view>
+    </view>
+  </view>
+</view>

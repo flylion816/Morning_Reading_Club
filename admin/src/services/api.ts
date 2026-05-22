@@ -362,6 +362,22 @@ export const uploadApi = {
   deleteFile: (filename: string) => apiClient.delete(`/upload/${filename}`)
 };
 
+// 在场印记 API
+export const imprintApi = {
+  getImprints: (params?: any) => apiClient.get('/imprints/admin/list', { params }),
+  getImprintDetail: (id: string) => apiClient.get(`/imprints/${id}`),
+  deleteImprint: (id: string) => apiClient.delete(`/imprints/admin/${id}`)
+};
+
+export const imprintActivityTypeApi = {
+  getTypes: () => apiClient.get('/imprints/admin/activity-types'),
+  createType: (data: any) => apiClient.post('/imprints/admin/activity-types', data),
+  updateType: (id: string, data: any) => apiClient.put(`/imprints/admin/activity-types/${id}`, data),
+  deleteType: (id: string) => apiClient.delete(`/imprints/admin/activity-types/${id}`),
+  reorderTypes: (items: { id: string; sortOrder: number }[]) =>
+    apiClient.put('/imprints/admin/activity-types/reorder', { items })
+};
+
 // 备份管理 API
 export const backupApi = {
   // 统计

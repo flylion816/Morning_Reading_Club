@@ -27,7 +27,10 @@
     "pages/user-agreement/user-agreement",
     "pages/profile/profile",
     "pages/edit-profile/edit-profile",
-    "pages/podcast-player/podcast-player"
+    "pages/podcast-player/podcast-player",
+    "pages/zaichang/list/list",
+    "pages/zaichang/detail/detail",
+    "pages/zaichang/publish/publish"
   ],
   "window": {
     "navigationBarTitleText": "凡人共读",
@@ -38,6 +41,7 @@
     "enablePullDownRefresh": true
   },
   "tabBar": {
+    "custom": true,
     "color": "#999999",
     "selectedColor": "#4a90e2",
     "backgroundColor": "#ffffff",
@@ -54,6 +58,12 @@
         "text": "晨读营",
         "iconPath": "assets/icons/book.png",
         "selectedIconPath": "assets/icons/book-active.png"
+      },
+      {
+        "pagePath": "pages/zaichang/list/list",
+        "text": "在场",
+        "iconPath": "assets/icons/zaichang.png",
+        "selectedIconPath": "assets/icons/zaichang-active.png"
       },
       {
         "pagePath": "pages/profile/profile",

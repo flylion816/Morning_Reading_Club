@@ -1,0 +1,62 @@
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: #ffffff;
+  border-top: 1rpx solid #e5e5e5;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 999;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 0;
+  height: 100rpx;
+  box-sizing: content-box;
+}
+
+.tab-icon {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4rpx;
+}
+
+.tab-img {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.icon-text {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.tab-text {
+  font-size: 20rpx;
+}
+
+/* 未选中：灰色 */
+.text-normal {
+  color: #999999;
+}
+
+/* 选中：默认蓝色（首页、晨读营、我的） */
+.text-default {
+  color: #4a90e2;
+  font-weight: 600;
+}
+
+/* 选中：在场专属绿色 */
+.text-zaichang {
+  color: #2D5A3D;
+  font-weight: 600;
+}

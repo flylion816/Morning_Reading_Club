@@ -232,6 +232,7 @@ App({
   // 全局数据
   globalData: {
     isLogin: false,
+    canUsePaidFeatures: false,
     userInfo: null,
     token: null,
     systemInfo: null,

@@ -44,6 +44,10 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setActivePage('/pages/periods/periods');
+    }
+    wx.hideTabBar({ animation: false });
     if (this._skipNextOnShowRefresh) {
       this._skipNextOnShowRefresh = false;
       return;

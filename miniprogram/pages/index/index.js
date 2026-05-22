@@ -235,6 +235,10 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setActivePage('/pages/index/index');
+    }
+    wx.hideTabBar({ animation: false });
     console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
     this.checkLoginStatus({ refreshUserData: true });
     // 同步播客播放状态
@@ -323,12 +327,8 @@ Page({
     });
   },
 
-  /**
-   * 更新tabBar显示状态
-   * 始终显示tabBar，让用户可以浏览其他页面（符合微信审核规范）
-   */
   updateTabBarVisibility() {
-    wx.showTabBar();
+    // 使用自定义 tabBar，不操作原生 tabBar
   },
 
   captureInsightRequestFocus(options = {}) {
@@ -654,6 +654,11 @@ Page({
 
       const paidFeatureAccessEnabled =
         communityEnabled || hasPaidEnrollment(enrollmentList);
+      getApp().globalData.canUsePaidFeatures = paidFeatureAccessEnabled;
+      // 异步数据加载完后刷新 tabBar，确保在场 tab 按付费状态显示
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setActivePage('/pages/index/index');
+      }
       if (todaySection) {
         todaySection = decorateSectionWithReadingCompletion(todaySection);
       }

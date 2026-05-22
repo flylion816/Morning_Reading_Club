@@ -51,6 +51,9 @@
           <el-menu-item index="/insight-requests">
             <span>📋 查看申请</span>
           </el-menu-item>
+          <el-menu-item index="/imprints">
+            <span>🌿 在场管理</span>
+          </el-menu-item>
           <el-menu-item index="/audit-logs">
             <span>🔍 审计日志</span>
           </el-menu-item>
@@ -188,6 +191,7 @@ const pageTitle = computed(() => {
     '/users': '用户管理',
     '/content': '内容管理',
     '/insights': '小凡看见',
+    '/imprints': '在场管理',
     '/insight-requests': '查看申请',
     '/subscription-debug': '订阅消息排查',
     '/audit-logs': '审计日志',

@@ -1,0 +1,215 @@
+const imprintService = require('../../../services/imprint.service');
+
+const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+Page({
+  data: {
+    imprint: null,
+    comments: [],
+    myReaction: null,
+    iAmAttending: false,
+    isAuthor: false,
+    commentInput: '',
+    replyTo: null,
+    loading: true,
+    commentPage: 1,
+    commentPageSize: 20,
+    commentHasMore: true,
+    submittingComment: false,
+    reactionLabels: REACTION_LABELS,
+    currentUserId: null,
+    showAllAttendees: false
+  },
+
+  onLoad(options) {
+    const app = getApp();
+    const userId = app.globalData.userInfo && app.globalData.userInfo._id;
+    this.setData({ currentUserId: userId });
+    this._id = options.id;
+    this.loadDetail();
+    this.loadComments(true);
+  },
+
+  onShow() {
+    const needRefresh = wx.getStorageSync('zaichang_need_refresh');
+    if (needRefresh && this._id) {
+      wx.removeStorageSync('zaichang_need_refresh');
+      this.loadDetail();
+    }
+  },
+
+  async loadDetail() {
+    try {
+      const res = await imprintService.detail(this._id);
+      const imprint = res.imprint || res;
+      const myReaction = res.myReaction || null;
+      const iAmAttending = !!(imprint.attendees || []).find(
+        a => a.userId && a.userId.toString() === this.data.currentUserId
+      );
+      const isAuthor = !!(imprint.authorId && imprint.authorId.toString() === this.data.currentUserId);
+      this.setData({
+        imprint: { ...imprint, _happenedAtFormatted: formatDate(imprint.happenedAt) },
+        myReaction,
+        iAmAttending,
+        isAuthor,
+        loading: false
+      });
+    } catch (e) {
+      this.setData({ loading: false });
+      wx.showToast({ title: '加载失败', icon: 'none' });
+    }
+  },
+
+  async loadComments(reset) {
+    const page = reset ? 1 : this.data.commentPage;
+    try {
+      const res = await imprintService.listComments(this._id, { page, pageSize: this.data.commentPageSize });
+      const newComments = res.list || res || [];
+      const comments = reset ? newComments : [...this.data.comments, ...newComments];
+      this.setData({
+        comments,
+        commentPage: page + 1,
+        commentHasMore: newComments.length >= this.data.commentPageSize
+      });
+    } catch (e) {}
+  },
+
+  onReachBottom() {
+    if (this.data.commentHasMore) this.loadComments(false);
+  },
+
+  onTapReaction(e) {
+    const type = e.currentTarget.dataset.type;
+    const prev = this.data.myReaction;
+    const imprint = this.data.imprint;
+    if (!imprint) return;
+
+    const counts = { ...imprint.reactionCounts };
+    if (prev === type) {
+      counts[type] = Math.max(0, (counts[type] || 0) - 1);
+      this.setData({ myReaction: null, 'imprint.reactionCounts': counts });
+      imprintService.cancelReaction(this._id).catch(() => {
+        counts[type] = (counts[type] || 0) + 1;
+        this.setData({ myReaction: prev, 'imprint.reactionCounts': counts });
+      });
+    } else {
+      if (prev) counts[prev] = Math.max(0, (counts[prev] || 0) - 1);
+      counts[type] = (counts[type] || 0) + 1;
+      this.setData({ myReaction: type, 'imprint.reactionCounts': counts });
+      imprintService.react(this._id, type).catch(() => {
+        if (prev) counts[prev] = (counts[prev] || 0) + 1;
+        counts[type] = Math.max(0, (counts[type] || 0) - 1);
+        this.setData({ myReaction: prev, 'imprint.reactionCounts': counts });
+      });
+    }
+  },
+
+  async onTapAttend() {
+    const attending = this.data.iAmAttending;
+    try {
+      if (attending) {
+        await imprintService.cancelAttend(this._id);
+        const attendees = (this.data.imprint.attendees || []).filter(
+          a => !a.userId || a.userId.toString() !== this.data.currentUserId
+        );
+        this.setData({ iAmAttending: false, 'imprint.attendees': attendees });
+      } else {
+        await imprintService.attend(this._id);
+        const app = getApp();
+        const user = app.globalData.userInfo || {};
+        const attendees = [...(this.data.imprint.attendees || []), {
+          userId: this.data.currentUserId,
+          name: user.nickname || '我',
+          isRegistered: true,
+          addedBy: 'self',
+          avatarUrl: user.avatarUrl || ''
+        }];
+        this.setData({ iAmAttending: true, 'imprint.attendees': attendees });
+      }
+    } catch (e) {
+      wx.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
+  },
+
+  onTapReply(e) {
+    const { commentId, authorName } = e.currentTarget.dataset;
+    this.setData({ replyTo: { commentId, authorName } });
+    this.selectComponent('#comment-input') && this.selectComponent('#comment-input').focus();
+  },
+
+  onClearReply() {
+    this.setData({ replyTo: null });
+  },
+
+  onCommentInput(e) {
+    this.setData({ commentInput: e.detail.value });
+  },
+
+  async onSubmitComment() {
+    const content = this.data.commentInput.trim();
+    if (!content) return;
+    if (this.data.submittingComment) return;
+    this.setData({ submittingComment: true });
+    try {
+      const data = { content };
+      if (this.data.replyTo) {
+        data.parentId = this.data.replyTo.commentId;
+      }
+      const newComment = await imprintService.createComment(this._id, data);
+      const app = getApp();
+      const user = app.globalData.userInfo || {};
+      const comment = newComment.comment || newComment;
+      comment.author = comment.author || { nickname: user.nickname, avatarUrl: user.avatarUrl, _id: this.data.currentUserId };
+      this.setData({
+        comments: [...this.data.comments, comment],
+        commentInput: '',
+        replyTo: null,
+        'imprint.commentCount': (this.data.imprint.commentCount || 0) + 1
+      });
+    } catch (e) {
+      wx.showToast({ title: '发送失败', icon: 'none' });
+    }
+    this.setData({ submittingComment: false });
+  },
+
+  onDeleteComment(e) {
+    const { commentId } = e.currentTarget.dataset;
+    wx.showModal({
+      title: '删除评论',
+      content: '确定删除这条评论吗？',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await imprintService.deleteComment(this._id, commentId);
+          const comments = this.data.comments.filter(c => c._id !== commentId);
+          this.setData({
+            comments,
+            'imprint.commentCount': Math.max(0, (this.data.imprint.commentCount || 1) - 1)
+          });
+        } catch (e) {
+          wx.showToast({ title: '删除失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  onTapImage(e) {
+    const index = e.currentTarget.dataset.index;
+    const urls = (this.data.imprint.mediaList || []).map(m => m.url);
+    wx.previewImage({ current: urls[index], urls });
+  },
+
+  onToggleAttendees() {
+    this.setData({ showAllAttendees: !this.data.showAllAttendees });
+  },
+
+  onTapEdit() {
+    wx.navigateTo({ url: `/pages/zaichang/publish/publish?id=${this._id}` });
+  }
+});

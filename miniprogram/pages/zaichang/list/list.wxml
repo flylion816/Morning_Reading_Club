@@ -1,0 +1,95 @@
+<view class="page-bg">
+  <scroll-view class="type-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="type-list">
+      <view
+        wx:for="{{typeList}}"
+        wx:key="key"
+        class="type-chip {{activeType === item.key ? 'active' : ''}}"
+        bindtap="onTypeChange"
+        data-type="{{item.key}}"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="list">
+    <block wx:if="{{list.length === 0 && !loading}}">
+      <view class="empty">
+        <text class="empty-icon">🌱</text>
+        <text class="empty-text">还没有印记，来留下第一个吧</text>
+      </view>
+    </block>
+
+    <view
+      wx:for="{{list}}"
+      wx:key="_id"
+      class="imprint-card"
+      bindtap="onTapCard"
+      data-id="{{item._id}}"
+    >
+      <view class="cover">
+        <block wx:if="{{item.mediaList && item.mediaList.length > 0}}">
+          <block wx:if="{{item.mediaList.length === 1}}">
+            <view class="cover-single {{item._coverPortrait ? 'cover-single-portrait' : 'cover-single-landscape'}}" catchtap="onTapImage" data-urls="{{item._imageUrls}}" data-index="0">
+              <block wx:if="{{item.mediaList[0].type === 'video'}}">
+                <image class="cover-single-img" src="{{item.mediaList[0].thumbUrl || item.mediaList[0].url}}" mode="aspectFill" lazy-load/>
+                <view class="video-play-badge">▶</view>
+              </block>
+              <block wx:else>
+                <image class="cover-single-img" src="{{item.mediaList[0].url}}" mode="aspectFill" lazy-load/>
+              </block>
+            </view>
+          </block>
+          <block wx:else>
+            <view class="cover-grid cover-grid-{{item._gridCols}}">
+              <block wx:for="{{item.mediaList}}" wx:for-item="img" wx:key="index" wx:if="{{index < 9}}">
+                <view class="cover-grid-item" catchtap="onTapImage" data-urls="{{item._imageUrls}}" data-index="{{index}}">
+                  <image class="cover-grid-img" src="{{img.thumbUrl || img.url}}" mode="aspectFill" lazy-load/>
+                  <view wx:if="{{img.type === 'video'}}" class="video-play-badge small">▶</view>
+                  <view wx:if="{{index === 8 && item.mediaList.length > 9}}" class="more-overlay">
+                    <text class="more-text">+{{item.mediaList.length - 9}}</text>
+                  </view>
+                </view>
+              </block>
+            </view>
+          </block>
+        </block>
+      </view>
+
+      <view class="info">
+        <text class="title">{{item.title}}</text>
+        <text wx:if="{{item.description}}" class="desc">{{item.description}}</text>
+      </view>
+
+      <view wx:if="{{item.attendees && item.attendees.length > 0}}" class="attendees">
+        <block wx:for="{{item.attendees}}" wx:for-item="att" wx:key="index" wx:if="{{index < 8}}">
+          <view class="avatar-wrap">
+            <image wx:if="{{att.avatarUrl}}" src="{{att.avatarUrl}}" class="avatar" mode="aspectFill"/>
+            <view wx:else class="avatar-text">{{att.name[0]}}</view>
+          </view>
+        </block>
+        <text wx:if="{{item.attendees.length > 8}}" class="attendees-more">+{{item.attendees.length - 8}}</text>
+      </view>
+
+      <view class="footer">
+        <view class="author">
+          <image wx:if="{{item.author && item.author.avatarUrl}}" src="{{item.author.avatarUrl}}" class="author-avatar" mode="aspectFill"/>
+          <view wx:else class="author-avatar-text">{{item.author && item.author.nickname ? item.author.nickname[0] : '?'}}</view>
+          <text class="author-name">{{item.author && item.author.nickname}}</text>
+          <text class="author-meta">{{item._happenedAtFormatted}}{{item.location ? ' · ' + item.location : ''}}</text>
+        </view>
+        <view class="stats">
+          <text class="stat-item">🌱 {{item._totalReactions}}</text>
+          <text class="stat-item">💬 {{item.commentCount}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="loading-tip">加载中...</view>
+    <view wx:if="{{!hasMore && list.length > 0}}" class="no-more">已经到底了</view>
+  </view>
+
+  <view class="fab" bindtap="onTapPublish">
+    <text class="fab-icon">+</text>
+    <text class="fab-text">留下印记</text>
+  </view>
+</view>

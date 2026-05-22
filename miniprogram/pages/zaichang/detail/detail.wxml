@@ -1,0 +1,134 @@
+<view class="detail-page" wx:if="{{!loading && imprint}}">
+  <view class="media-section">
+    <block wx:if="{{imprint.mediaList && imprint.mediaList.length > 0}}">
+      <block wx:for="{{imprint.mediaList}}" wx:key="index">
+        <block wx:if="{{item.type === 'video'}}">
+          <video
+            class="media-single"
+            src="{{item.url}}"
+            controls
+            show-fullscreen-btn
+            object-fit="contain"
+            style="width:100%;display:block;"
+          />
+        </block>
+        <block wx:else>
+          <image
+            class="media-single"
+            src="{{item.url}}"
+            mode="widthFix"
+            lazy-load
+            bindtap="onTapImage"
+            data-index="{{index}}"
+          />
+        </block>
+      </block>
+    </block>
+  </view>
+
+  <view class="main-info">
+    <view class="badge badge-{{imprint.activityType}}">{{reactionLabels[imprint.activityType] || imprint.activityType}}</view>
+    <view class="meta-row">
+      <text class="date">{{imprint._happenedAtFormatted}}</text>
+      <text wx:if="{{imprint.location}}" class="dot"> · </text>
+      <text wx:if="{{imprint.location}}" class="location">{{imprint.location}}</text>
+    </view>
+    <text class="title">{{imprint.title}}</text>
+    <text wx:if="{{imprint.description}}" class="desc">{{imprint.description}}</text>
+  </view>
+
+  <view class="section attendees-section">
+    <view class="section-header">
+      <text class="section-title">在场的人</text>
+      <text wx:if="{{imprint.attendees && imprint.attendees.length > 8}}" class="toggle-btn" bindtap="onToggleAttendees">
+        {{showAllAttendees ? '收起' : '查看全部'}}
+      </text>
+    </view>
+    <view class="attendees-wall">
+      <block wx:for="{{imprint.attendees}}" wx:for-item="att" wx:key="index">
+        <view wx:if="{{showAllAttendees || index < 8}}" class="att-item">
+          <view class="att-avatar-wrap">
+            <image wx:if="{{att.avatarUrl}}" src="{{att.avatarUrl}}" class="att-avatar" mode="aspectFill"/>
+            <view wx:else class="att-avatar-text">{{att.name[0]}}</view>
+          </view>
+          <text class="att-name">{{att.name}}</text>
+        </view>
+      </block>
+    </view>
+    <view class="attend-btn-wrap">
+      <view class="attend-btn {{iAmAttending ? 'attending' : ''}}" bindtap="onTapAttend">
+        <text>{{iAmAttending ? '✓ 我在场' : '+ 我也在场'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section reactions-section">
+    <view class="reaction-list">
+      <view
+        wx:for="{{['gonming','ran','xiangqu']}}"
+        wx:key="*this"
+        class="reaction-btn {{myReaction === item ? 'active-' + item : ''}}"
+        bindtap="onTapReaction"
+        data-type="{{item}}"
+      >
+        <text class="reaction-emoji">{{item === 'gonming' ? '🌱' : item === 'ran' ? '🔥' : '🤗'}}</text>
+        <text class="reaction-label">{{item === 'gonming' ? '共鸣' : item === 'ran' ? '燃' : '想去'}}</text>
+        <text class="reaction-count">{{imprint.reactionCounts[item] || 0}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section comments-section">
+    <text class="section-title">评论 {{imprint.commentCount || 0}}</text>
+    <view class="comment-list">
+      <view wx:for="{{comments}}" wx:key="_id" class="comment-item">
+        <view class="comment-avatar-wrap">
+          <image wx:if="{{item.author && item.author.avatarUrl}}" src="{{item.author.avatarUrl}}" class="comment-avatar" mode="aspectFill"/>
+          <view wx:else class="comment-avatar-text">{{item.author && item.author.nickname ? item.author.nickname[0] : '?'}}</view>
+        </view>
+        <view class="comment-body">
+          <text class="comment-author">{{item.author && item.author.nickname}}</text>
+          <view class="comment-content">
+            <text wx:if="{{item.replyToUser}}" class="reply-to">回复 @{{item.replyToUser.nickname}} </text>
+            <text>{{item.content}}</text>
+          </view>
+          <view class="comment-actions">
+            <text class="comment-time">{{item.createdAt}}</text>
+            <text class="reply-btn" bindtap="onTapReply" data-comment-id="{{item._id}}" data-author-name="{{item.author && item.author.nickname}}">回复</text>
+            <text
+              wx:if="{{item.author && item.author._id === currentUserId || imprint.authorId === currentUserId}}"
+              class="delete-btn"
+              bindtap="onDeleteComment"
+              data-comment-id="{{item._id}}"
+            >删除</text>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{comments.length === 0}}" class="no-comment">还没有评论，来说点什么吧</view>
+    </view>
+  </view>
+
+  <view class="input-bar">
+    <view wx:if="{{replyTo}}" class="reply-hint">
+      <text>回复 @{{replyTo.authorName}}</text>
+      <text class="clear-reply" bindtap="onClearReply">✕</text>
+    </view>
+    <view class="input-row">
+      <input
+        class="comment-input"
+        placeholder="说点什么..."
+        value="{{commentInput}}"
+        bindinput="onCommentInput"
+        confirm-type="send"
+        bindconfirm="onSubmitComment"
+        adjust-position="{{true}}"
+      />
+      <view class="send-btn {{commentInput ? 'active' : ''}}" bindtap="onSubmitComment">发送</view>
+      <view wx:if="{{isAuthor}}" class="edit-btn" bindtap="onTapEdit">编辑</view>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{loading}}" class="loading-page">
+  <text>加载中...</text>
+</view>

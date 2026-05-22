@@ -11,7 +11,6 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { monitoringMiddleware } = require('./middleware/monitoring');
 const auditLogMiddleware = require('./middleware/auditLog');
 
-// 导入路由
 const authRoutes = require('./routes/auth.routes');
 const monitoringRoutes = require('./routes/monitoring.routes');
 const userRoutes = require('./routes/user.routes');
@@ -34,24 +33,22 @@ const meetingRoutes = require('./routes/meeting.routes');
 const activityRoutes = require('./routes/activity.routes');
 const checkinConfigRoutes = require('./routes/checkinConfig.routes');
 const wechatRoutes = require('./routes/wechat.routes');
+const imprintRoutes = require('./routes/imprint.routes');
 
 const app = express();
 
 // 信任 Nginx 反向代理，使 req.ip 返回真实客户端 IP（来自 X-Forwarded-For）
 app.set('trust proxy', 1);
 
-// 中间件
-app.use(helmet()); // 安全头
-app.use(cors(getCorsOptions())); // 跨域（安全配置，只允许指定的源）
-app.use(compression()); // 响应压缩
-// Morgan 日志格式：根据环境选择
+app.use(helmet());
+app.use(cors(getCorsOptions()));
+app.use(compression());
 const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
-app.use(morgan(morganFormat)); // 请求日志
-app.use(express.json({ limit: '10mb' })); // JSON解析，支持富文本编辑器中的图片
-app.use(express.urlencoded({ extended: true, limit: '10mb' })); // URL编码解析
-app.use(express.text({ type: ['text/xml', 'application/xml'] })); // XML解析（微信支付回调）
+app.use(morgan(morganFormat));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.text({ type: ['text/xml', 'application/xml'] }));
 
-// 静态文件服务 - 按租户隔离
 const uploadRoot = path.join(__dirname, '../uploads');
 app.use(
   '/uploads/tenants',
@@ -65,24 +62,19 @@ app.use(
   })
 );
 
-// WebSocket 管理器中间件 - 将 wsManager 附加到请求对象
 app.use((req, res, next) => {
   req.wsManager = app.locals.wsManager;
   next();
 });
 
-// 性能监控中间件 - 在所有路由之前，用于追踪性能指标
 app.use(monitoringMiddleware({ enabled: true }));
 
-// 健康检查路由 - 不需要认证的公开端点
 app.use('/', healthRoutes);
 app.use('/api/v1', healthRoutes);
 app.use('/', meetingRoutes);
 
-// 审计日志中间件 - 记录后续管理员写操作
 app.use(auditLogMiddleware);
 
-// API路由
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', adminRoutes); // Admin routes (auth endpoints are here)
 app.use('/api/v1/users', userRoutes);
@@ -94,20 +86,18 @@ app.use('/api/v1/comments', commentRoutes);
 app.use('/api/v1/enrollments', enrollmentRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/ranking', rankingRoutes);
-app.use('/api/v1/stats', statsRoutes); // 统计数据API
-app.use('/api/v1/audit-logs', auditRoutes); // 审计日志API
-app.use('/api/v1/notifications', notificationRoutes); // 通知API
+app.use('/api/v1/stats', statsRoutes);
+app.use('/api/v1/audit-logs', auditRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/upload', uploadRoutes);
-app.use('/api/v1/monitoring', monitoringRoutes); // 监控API
-app.use('/api/v1/backup', backupRoutes); // 备份管理API
-app.use('/api/v1/activities', activityRoutes); // 用户行为活跃度API
-app.use('/api/v1/checkin-celebration-config', checkinConfigRoutes); // 打卡庆祝配置
-app.use('/api/v1/wechat', wechatRoutes); // 微信网页能力
+app.use('/api/v1/monitoring', monitoringRoutes);
+app.use('/api/v1/backup', backupRoutes);
+app.use('/api/v1/activities', activityRoutes);
+app.use('/api/v1/checkin-celebration-config', checkinConfigRoutes);
+app.use('/api/v1/wechat', wechatRoutes);
+app.use('/api/v1/imprints', imprintRoutes);
 
-// 404处理
 app.use(notFoundHandler);
-
-// 错误处理
 app.use(errorHandler);
 
 module.exports = app;

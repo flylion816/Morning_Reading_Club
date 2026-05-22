@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "在场",
+  "navigationBarBackgroundColor": "#2D5A3D",
+  "navigationBarTextStyle": "white",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}
