@@ -29,22 +29,29 @@
       <view class="cover">
         <block wx:if="{{item.mediaList && item.mediaList.length > 0}}">
           <block wx:if="{{item.mediaList.length === 1}}">
-            <view class="cover-single {{item._coverPortrait ? 'cover-single-portrait' : 'cover-single-landscape'}}" catchtap="onTapImage" data-urls="{{item._imageUrls}}" data-index="0">
-              <block wx:if="{{item.mediaList[0].type === 'video'}}">
-                <image class="cover-single-img" src="{{item.mediaList[0].thumbUrl || item.mediaList[0].url}}" mode="aspectFill" lazy-load/>
+            <block wx:if="{{item.mediaList[0].type === 'video'}}">
+              <view class="cover-video-wrap" catchtap="onTapMedia" data-item="{{item}}" data-index="0">
+                <video class="cover-video" src="{{item.mediaList[0].url}}" object-fit="cover" controls="{{false}}" show-play-btn="{{false}}" enable-play-gesture="{{false}}" autoplay="{{false}}" muted/>
                 <view class="video-play-badge">▶</view>
-              </block>
-              <block wx:else>
+              </view>
+            </block>
+            <block wx:else>
+              <view class="cover-single {{item._coverPortrait ? 'cover-single-portrait' : 'cover-single-landscape'}}" catchtap="onTapMedia" data-item="{{item}}" data-index="0">
                 <image class="cover-single-img" src="{{item.mediaList[0].url}}" mode="aspectFill" lazy-load/>
-              </block>
-            </view>
+              </view>
+            </block>
           </block>
           <block wx:else>
             <view class="cover-grid cover-grid-{{item._gridCols}}">
               <block wx:for="{{item.mediaList}}" wx:for-item="img" wx:key="index" wx:if="{{index < 9}}">
-                <view class="cover-grid-item" catchtap="onTapImage" data-urls="{{item._imageUrls}}" data-index="{{index}}">
-                  <image class="cover-grid-img" src="{{img.thumbUrl || img.url}}" mode="aspectFill" lazy-load/>
-                  <view wx:if="{{img.type === 'video'}}" class="video-play-badge small">▶</view>
+                <view class="cover-grid-item" catchtap="onTapMedia" data-item="{{item}}" data-index="{{index}}">
+                  <block wx:if="{{img.type === 'video'}}">
+                    <video class="cover-grid-img" src="{{img.url}}" object-fit="cover" controls="{{false}}" show-play-btn="{{false}}" enable-play-gesture="{{false}}" autoplay="{{false}}" muted/>
+                    <view class="video-play-badge small">▶</view>
+                  </block>
+                  <block wx:else>
+                    <image class="cover-grid-img" src="{{img.url}}" mode="aspectFill" lazy-load/>
+                  </block>
                   <view wx:if="{{index === 8 && item.mediaList.length > 9}}" class="more-overlay">
                     <text class="more-text">+{{item.mediaList.length - 9}}</text>
                   </view>

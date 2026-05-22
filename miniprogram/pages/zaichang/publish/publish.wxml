@@ -1,7 +1,16 @@
 <view class="publish-page">
   <view class="section">
-    <view class="media-grid">
-      <view wx:for="{{mediaList}}" wx:key="index" class="media-item">
+    <view class="media-grid" id="media-grid">
+      <view
+        wx:for="{{mediaList}}"
+        wx:key="index"
+        class="media-item {{dragIndex === index ? 'dragging' : ''}} {{dropIndex === index && dragIndex !== index ? 'drop-target' : ''}}"
+        data-index="{{index}}"
+        bindlongpress="onLongPress"
+        bindtouchstart="onTouchStart"
+        bindtouchmove="onTouchMove"
+        bindtouchend="onTouchEnd"
+      >
         <block wx:if="{{item.type === 'video'}}">
           <video src="{{item.url}}" class="media-img" object-fit="cover" show-play-btn controls="{{false}}" enable-play-gesture="{{false}}" bindtap="onPreviewVideo" data-url="{{item.url}}"/>
           <view class="video-badge">▶</view>
@@ -9,7 +18,7 @@
         <block wx:else>
           <image src="{{item.url}}" mode="aspectFill" class="media-img"/>
         </block>
-        <view class="remove-btn" bindtap="onRemoveImage" data-index="{{index}}">✕</view>
+        <view class="remove-btn" catchtap="onRemoveImage" data-index="{{index}}">✕</view>
       </view>
       <view wx:if="{{mediaList.length < 9 && !hasVideo}}" class="add-media" bindtap="onChooseMedia">
         <text class="add-icon">{{uploading ? '⏳' : '+'}}</text>

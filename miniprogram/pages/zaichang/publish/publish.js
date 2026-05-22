@@ -30,8 +30,15 @@ Page({
     uploading: false,
     justAdded: false,
     editId: null,
-    hasVideo: false
+    hasVideo: false,
+    dragIndex: -1,
+    dropIndex: -1
   },
+
+  _dragStartIndex: -1,
+  _gridLeft: 0,
+  _gridTop: 0,
+  _itemSize: 216, // 200rpx + 16rpx gap, approximate px
 
   async onLoad(options) {
     this.loadActivityTypes();
@@ -84,7 +91,7 @@ Page({
     if (remaining <= 0) return wx.showToast({ title: '最多9张图片', icon: 'none' });
 
     wx.chooseMedia({
-      count: hasImages ? remaining : 1,
+      count: hasImages ? remaining : 9,
       mediaType: hasImages ? ['image'] : ['image', 'video'],
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
@@ -92,28 +99,27 @@ Page({
       success: async (res) => {
         this.setData({ uploading: true });
 
-        // 如果已有图片，过滤掉视频
-        const files = res.tempFiles.filter(f => {
-          if (hasImages && f.fileType === 'video') return false;
-          // 如果本次选了视频，只取第一个且不能混图片
-          const isVideo = f.fileType === 'video';
-          const limit = isVideo ? 50 * 1024 * 1024 : 2 * 1024 * 1024;
+        const selectedFiles = res.tempFiles;
+        const hasVideoInSelection = selectedFiles.some(f => f.fileType === 'video');
+        const hasImageInSelection = selectedFiles.some(f => f.fileType !== 'video');
+
+        // 同时选了图片和视频：只保留图片
+        let processFiles = (hasVideoInSelection && hasImageInSelection)
+          ? selectedFiles.filter(f => f.fileType !== 'video')
+          : selectedFiles;
+
+        // 视频只取第一个
+        if (hasVideoInSelection && !hasImageInSelection) {
+          processFiles = processFiles.slice(0, 1);
+        }
+
+        // 过滤超大文件
+        processFiles = processFiles.filter(f => {
+          const limit = f.fileType === 'video' ? 50 * 1024 * 1024 : 2 * 1024 * 1024;
           return f.size <= limit;
         });
 
-        // 本次选择中如果同时有图片和视频，只保留图片（图片优先）
-        const hasVideoInSelection = files.some(f => f.fileType === 'video');
-        const hasImageInSelection = files.some(f => f.fileType !== 'video');
-        const finalFiles = (hasVideoInSelection && hasImageInSelection)
-          ? files.filter(f => f.fileType !== 'video')
-          : files;
-
-        // 视频只取第一个
-        const processFiles = hasVideoInSelection && !hasImageInSelection
-          ? finalFiles.slice(0, 1)
-          : finalFiles;
-
-        const skipped = res.tempFiles.length - processFiles.length;
+        const skipped = selectedFiles.length - processFiles.length;
         if (skipped > 0) wx.showToast({ title: `${skipped}个文件已跳过`, icon: 'none', duration: 2000 });
         if (processFiles.length === 0) { this.setData({ uploading: false }); return; }
 
@@ -167,6 +173,55 @@ Page({
     mediaList.splice(idx, 1);
     this.setData({ mediaList });
     this._syncMediaState(mediaList);
+  },
+
+  onLongPress(e) {
+    const index = e.currentTarget.dataset.index;
+    wx.vibrateShort({ type: 'medium' });
+    // 查询网格位置，用于后续 touchmove 计算
+    wx.createSelectorQuery().select('#media-grid').boundingClientRect(rect => {
+      if (rect) {
+        this._gridLeft = rect.left;
+        this._gridTop = rect.top;
+        // 每格宽度 = (网格宽 - 2*gap) / 3，gap=8px
+        this._itemSize = (rect.width - 16) / 3;
+      }
+    }).exec();
+    this._dragStartIndex = index;
+    this.setData({ dragIndex: index, dropIndex: index });
+  },
+
+  onTouchStart(e) {
+    // 仅在长按已触发拖拽时处理
+  },
+
+  onTouchMove(e) {
+    if (this._dragStartIndex < 0) return;
+    const touch = e.touches[0];
+    const x = touch.clientX - this._gridLeft;
+    const y = touch.clientY - this._gridTop;
+    const size = this._itemSize + 8; // item + gap
+    const col = Math.max(0, Math.min(2, Math.floor(x / size)));
+    const row = Math.max(0, Math.floor(y / size));
+    const targetIndex = Math.min(row * 3 + col, this.data.mediaList.length - 1);
+    if (targetIndex !== this.data.dropIndex) {
+      this.setData({ dropIndex: targetIndex });
+    }
+  },
+
+  onTouchEnd() {
+    if (this._dragStartIndex < 0) return;
+    const from = this._dragStartIndex;
+    const to = this.data.dropIndex;
+    this._dragStartIndex = -1;
+    if (from !== to && to >= 0) {
+      const list = [...this.data.mediaList];
+      const item = list.splice(from, 1)[0];
+      list.splice(to, 0, item);
+      this.setData({ mediaList: list, dragIndex: -1, dropIndex: -1 });
+    } else {
+      this.setData({ dragIndex: -1, dropIndex: -1 });
+    }
   },
 
   onSelectType(e) {

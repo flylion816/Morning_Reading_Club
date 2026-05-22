@@ -68,6 +68,8 @@ page {
 .cover-single-portrait { padding-top: 133.33%; }
 .cover-single-landscape { padding-top: 75%; }
 .cover-single-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.cover-video-wrap { width: 100%; height: 420rpx; position: relative; overflow: hidden; border-radius: var(--zc-radius-img); }
+.cover-video { width: 100%; height: 100%; display: block; }
 .cover-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4rpx; }
 .cover-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4rpx; }
 .cover-grid-item { position: relative; width: 100%; padding-top: 100%; overflow: hidden; }

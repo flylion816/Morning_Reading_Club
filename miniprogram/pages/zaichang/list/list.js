@@ -132,9 +132,15 @@ Page({
     wx.navigateTo({ url: `/pages/zaichang/detail/detail?id=${id}` });
   },
 
-  onTapImage(e) {
-    const { urls, index } = e.currentTarget.dataset;
-    wx.previewImage({ current: urls[index], urls });
+  onTapMedia(e) {
+    const { item, index } = e.currentTarget.dataset;
+    const media = item.mediaList[index];
+    if (media && media.type === 'video') {
+      wx.previewMedia({ sources: [{ url: media.url, type: 'video' }] });
+    } else {
+      const imageUrls = (item.mediaList || []).filter(m => m.type !== 'video').map(m => m.url);
+      wx.previewImage({ current: media.url, urls: imageUrls });
+    }
   },
 
   onTapPublish() {
