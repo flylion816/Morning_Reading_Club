@@ -1,4 +1,5 @@
 const imprintService = require('../../../services/imprint.service');
+const { maybeAutoTopUpSubscriptions } = require('../../../utils/subscribe-auto-topup');
 
 const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
 
@@ -103,7 +104,10 @@ Page({
       if (prev) counts[prev] = Math.max(0, (counts[prev] || 0) - 1);
       counts[type] = (counts[type] || 0) + 1;
       this.setData({ myReaction: type, 'imprint.reactionCounts': counts });
-      imprintService.react(this._id, type).catch(() => {
+      maybeAutoTopUpSubscriptions({ sceneKeys: ['like_received'], requestMode: 'prompt' }).catch(() => {});
+      imprintService.react(this._id, type).then(() => {
+        this._listNeedsRefresh = true;
+      }).catch(() => {
         if (prev) counts[prev] = (counts[prev] || 0) + 1;
         counts[type] = Math.max(0, (counts[type] || 0) - 1);
         this.setData({ myReaction: prev, 'imprint.reactionCounts': counts });
@@ -157,6 +161,7 @@ Page({
     if (!content) return;
     if (this.data.submittingComment) return;
     this.setData({ submittingComment: true });
+    maybeAutoTopUpSubscriptions({ sceneKeys: ['comment_received'], requestMode: 'prompt' }).catch(() => {});
     try {
       const data = { content };
       if (this.data.replyTo) {

@@ -4,8 +4,60 @@ const ImprintComment = require('../models/ImprintComment');
 const ImprintActivityType = require('../models/ImprintActivityType');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const { formatNotificationTime, truncateText } = require('../utils/notification-links');
 
 const FALLBACK_ACTIVITY_TYPES = ['reading', 'cooking', 'tea', 'walk', 'create', 'other'];
+
+const REACTION_LABELS = { gonming: '共鸣', ran: '燃', xiangqu: '想去' };
+
+async function notifyReactionReceived(req, { imprintId, imprintTitle, authorId, senderId, senderName, reactionType }) {
+  if (authorId.toString() === senderId.toString()) return;
+  const label = REACTION_LABELS[reactionType] || reactionType;
+  try {
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: authorId,
+      notificationType: 'like_received',
+      title: '有人对你的印记共鸣',
+      content: `${senderName} 对你的印记「${truncateText(imprintTitle, 20)}」点了${label}`,
+      scene: 'like_received',
+      targetPage: `pages/zaichang/detail/detail?id=${imprintId}`,
+      senderId,
+      data: { senderName },
+      subscribeFields: { likeUser: senderName, likeTime: formatNotificationTime() },
+      sourceType: 'imprint',
+      sourceId: imprintId.toString()
+    });
+  } catch (e) {
+    logger.warn('[imprint.notifyReaction]', { message: e.message });
+  }
+}
+
+async function notifyCommentReceived(req, { imprintId, imprintTitle, authorId, senderId, senderName, content }) {
+  if (authorId.toString() === senderId.toString()) return;
+  try {
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: authorId,
+      notificationType: 'comment_received',
+      title: '有人评论了你的印记',
+      content: `${senderName} 评论了你的印记「${truncateText(imprintTitle, 20)}」：${truncateText(content, 30)}`,
+      scene: 'comment_received',
+      targetPage: `pages/zaichang/detail/detail?id=${imprintId}`,
+      senderId,
+      data: { senderName },
+      subscribeFields: {
+        replyUser: senderName,
+        replyTopic: truncateText(imprintTitle, 20),
+        replyContent: truncateText(content, 30),
+        replyTime: formatNotificationTime()
+      },
+      sourceType: 'imprint',
+      sourceId: imprintId.toString()
+    });
+  } catch (e) {
+    logger.warn('[imprint.notifyComment]', { message: e.message });
+  }
+}
 
 async function isValidActivityType(key) {
   const count = await ImprintActivityType.countDocuments({ key, isActive: true });
@@ -270,19 +322,20 @@ async function react(req, res) {
     }
 
     const existing = await ImprintReaction.findOne({ imprintId: id, userId });
+    let isNewReaction = false;
     if (!existing) {
       try {
         await ImprintReaction.create({ imprintId: id, userId, type });
         await Imprint.findByIdAndUpdate(id, { $inc: { [`reactionCounts.${type}`]: 1 } });
+        isNewReaction = true;
       } catch (err) {
         if (err.code === 11000) {
-          // 并发双击：唯一索引冲突，幂等返回 200
           return res.json(success({ message: '已共鸣' }));
         }
         throw err;
       }
     } else if (existing.type === type) {
-      return res.json(success({ message: '已共鸣' })); // 幂等
+      return res.json(success({ message: '已共鸣' }));
     } else {
       const oldType = existing.type;
       existing.type = type;
@@ -293,6 +346,18 @@ async function react(req, res) {
     }
 
     res.json(success({ message: '共鸣成功' }));
+
+    if (isNewReaction) {
+      const senderName = req.user.nickname || req.user.name || '书友';
+      notifyReactionReceived(req, {
+        imprintId: id,
+        imprintTitle: imprint.title,
+        authorId: imprint.authorId,
+        senderId: userId,
+        senderName,
+        reactionType: type
+      });
+    }
   } catch (err) {
     logger.error('[imprint.react]', { error: err.message });
     res.status(500).json(errors.serverError());
@@ -391,6 +456,16 @@ async function createComment(req, res) {
     await Imprint.findByIdAndUpdate(id, { $inc: { commentCount: 1 } });
 
     res.status(201).json(success(comment));
+
+    const senderName = req.user.nickname || req.user.name || '书友';
+    notifyCommentReceived(req, {
+      imprintId: id,
+      imprintTitle: imprint.title,
+      authorId: imprint.authorId,
+      senderId: authorId,
+      senderName,
+      content: content.trim()
+    });
   } catch (err) {
     logger.error('[imprint.createComment]', { error: err.message });
     res.status(500).json(errors.serverError());
