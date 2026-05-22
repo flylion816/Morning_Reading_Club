@@ -50,6 +50,9 @@ async function loadTenants() {
   } else {
     const res = await api.get('/admin/current-tenant');
     currentTenant.value = res;
+    if (res?._id) {
+      tenantStore.setActiveTenant(res._id);
+    }
   }
 }
 
