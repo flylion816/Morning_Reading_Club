@@ -43,7 +43,7 @@
 
     <view wx:if="{{detailCheckin}}" class="dynamic-like-strip">
       <view class="dynamic-like-pill" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
-        <text class="dynamic-like-pill-icon {{detailCheckin.isLiked ? 'liked' : ''}}">{{detailCheckin.isLiked ? '❤️' : '♡'}}</text>
+        <text class="dynamic-like-pill-icon {{detailCheckin.isLiked ? 'liked' : ''}}">{{detailCheckin.isLiked ? '♥' : '♡'}}</text>
         <text class="like-count" wx:if="{{detailCheckin.likeCount}}">({{detailCheckin.likeCount}})</text>
         <view class="like-avatars" wx:if="{{detailCheckin.likeAvatars && detailCheckin.likeAvatars.length > 0}}">
           <block wx:for="{{detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -85,7 +85,7 @@
               <view class="reply-text">{{reply.content}}</view>
               <view class="reply-footer">
                 <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{reply.id}}">
-                  <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '❤️' : '♡'}}</text>
+                  <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '♥' : '♡'}}</text>
                   <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
                   <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
                     <block wx:for="{{reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -137,7 +137,7 @@
                       <view class="nested-reply-text">{{nestedReply.content}}</view>
                       <view class="nested-reply-footer">
                         <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{nestedReply.id}}">
-                          <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '❤️' : '♡'}}</text>
+                          <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '♥' : '♡'}}</text>
                           <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
                           <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
                             <block wx:for="{{nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -169,7 +169,7 @@
       <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-delete" bindtap="handleDeleteCheckin">删除</view>
 
       <view wx:if="{{!detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-like {{detailCheckin.isLiked ? 'dynamic-bottom-liked' : ''}}" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
-        <text>{{detailCheckin.isLiked ? '❤️' : '♡'}}</text>
+        <text>{{detailCheckin.isLiked ? '♥' : '♡'}}</text>
         <text>点赞</text>
       </view>
 
@@ -360,7 +360,7 @@
               data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
             <view class="comment-footer">
               <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">
-                <text class="like-icon {{item.isLiked ? 'liked' : ''}}">{{item.isLiked ? '❤️' : '♡'}}</text>
+                <text class="like-icon {{item.isLiked ? 'liked' : ''}}">{{item.isLiked ? '♥' : '♡'}}</text>
                 <text class="like-count" wx:if="{{item.likeCount}}">({{item.likeCount}})</text>
                 <view class="like-avatars" wx:if="{{item.displayLikeAvatars && item.displayLikeAvatars.length > 0}}">
                   <block wx:for="{{item.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -403,7 +403,7 @@
                     <view class="reply-text"><text user-select>{{reply.content}}</text></view>
                     <view class="reply-footer" style="pointer-events: auto;">
                       <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
-                        <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '❤️' : '♡'}}</text>
+                        <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '♥' : '♡'}}</text>
                         <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
                         <view class="like-avatars" wx:if="{{reply.displayLikeAvatars && reply.displayLikeAvatars.length > 0}}">
                           <block wx:for="{{reply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -444,7 +444,7 @@
                             <view class="nested-reply-text"><text user-select>{{nestedReply.content}}</text></view>
                             <view class="nested-reply-footer" style="pointer-events: auto;">
                               <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{nestedReply.id}}" style="pointer-events: auto;">
-                                <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '❤️' : '♡'}}</text>
+                                <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '♥' : '♡'}}</text>
                                 <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
                                 <view class="like-avatars" wx:if="{{nestedReply.displayLikeAvatars && nestedReply.displayLikeAvatars.length > 0}}">
                                   <block wx:for="{{nestedReply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Section = require('../models/Section');
 const Period = require('../models/Period');
 const Checkin = require('../models/Checkin');
@@ -218,6 +219,10 @@ async function getAllSectionsByPeriod(req, res, next) {
 async function getSectionDetail(req, res, next) {
   try {
     const { sectionId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(sectionId)) {
+      return res.status(404).json(errors.notFound('课程不存在'));
+    }
 
     const tenantId = getCurrentTenantId();
     logger.debug('[TENANT-SECTION] getSectionDetail', {

@@ -25,7 +25,9 @@ const notificationSchema = new mongoose.Schema(
         'like_received', // 收到点赞
         'insight_created', // 被小凡看见
         'insight_liked', // 小凡看见收到点赞
-        'danmaku_received' // 小凡看见收到弹幕
+        'danmaku_received', // 小凡看见收到弹幕
+        'imprint_mentioned', // 被提及在印记里
+        'podcast_published' // 播客发布通知
       ],
       required: true
     },

@@ -89,8 +89,6 @@
 
       <view class="footer">
         <view class="author">
-          <image wx:if="{{item.author && item.author.avatarUrl}}" src="{{item.author.avatarUrl}}" class="author-avatar" mode="aspectFill"/>
-          <view wx:else class="author-avatar-text">{{item.author && item.author.nickname ? item.author.nickname[0] : '?'}}</view>
           <text class="author-name">{{item.author && item.author.nickname}}</text>
           <text class="author-meta">{{item._happenedAtFormatted}}{{item.location ? ' · ' + item.location : ''}}</text>
         </view>

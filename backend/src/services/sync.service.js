@@ -19,8 +19,8 @@ const SYNC_FIELD_EXCLUSIONS = {
   enrollments: new Set(['isPaid', 'isActive']),
   // dbAccessPassword 是管理员的数据库访问密码哈希，MySQL 表中无此列且不应同步
   admins: new Set(['dbAccessPassword']),
-  // 播客字段仅存于 MongoDB，MySQL sections 表无对应列
-  sections: new Set(['podcastUrl', 'podcastDescription', 'podcastDuration'])
+  // 播客字段和 lookImage 仅存于 MongoDB，MySQL sections 表无对应列
+  sections: new Set(['podcastUrl', 'podcastDescription', 'podcastDuration', 'lookImage'])
 };
 
 function normalizeSpecialField(collection, key, value) {

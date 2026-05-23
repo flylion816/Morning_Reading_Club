@@ -59,6 +59,32 @@ async function notifyCommentReceived(req, { imprintId, imprintTitle, authorId, s
   }
 }
 
+async function notifyAttendeeMentioned(req, { imprintId, imprintTitle, recipientUserId, senderId, senderName }) {
+  if (recipientUserId.toString() === senderId.toString()) return;
+  try {
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId,
+      notificationType: 'imprint_mentioned',
+      title: '你被提及在一条印记里',
+      content: `${senderName} 在印记「${truncateText(imprintTitle, 20)}」里提到了你`,
+      scene: 'comment_received',
+      targetPage: `pages/zaichang/detail/detail?id=${imprintId}`,
+      senderId,
+      data: { senderName },
+      subscribeFields: {
+        replyUser: senderName,
+        replyTopic: truncateText(imprintTitle, 20),
+        replyContent: '你在场了这次聚会',
+        replyTime: formatNotificationTime()
+      },
+      sourceType: 'imprint',
+      sourceId: imprintId.toString()
+    });
+  } catch (e) {
+    logger.warn('[imprint.notifyMentioned]', { message: e.message });
+  }
+}
+
 async function isValidActivityType(key) {
   const count = await ImprintActivityType.countDocuments({ key, isActive: true });
   if (count > 0) return true;
@@ -157,6 +183,20 @@ async function create(req, res) {
     });
 
     res.status(201).json(success(imprint));
+
+    const senderName = req.user.nickname || req.user.name || '书友';
+    const registeredAttendees = (attendees || []).filter(
+      a => a.userId && a.userId.toString() !== authorId.toString()
+    );
+    for (const att of registeredAttendees) {
+      notifyAttendeeMentioned(req, {
+        imprintId: imprint._id,
+        imprintTitle: imprint.title,
+        recipientUserId: att.userId,
+        senderId: authorId,
+        senderName
+      });
+    }
   } catch (err) {
     logger.error('[imprint.create]', { error: err.message });
     res.status(500).json(errors.serverError());

@@ -2432,7 +2432,8 @@ Page({
                 isLiked,
                 likeAvatars: replyLikeAvatars,
                 displayLikeAvatars: this.getDisplayLikeAvatars(replyLikeAvatars),
-                parentId: comment._id
+                parentId: comment._id,
+                canDelete: currentUserId && String(reply.userId?._id || reply.userId) === String(currentUserId)
               };
             }
           );
@@ -2469,7 +2470,8 @@ Page({
             isLiked: isCommentLiked,
             likeAvatars: commentLikeAvatars,
             displayLikeAvatars: this.getDisplayLikeAvatars(commentLikeAvatars),
-            replies: formattedNestedReplies
+            replies: formattedNestedReplies,
+            canDelete: currentUserId && String(comment.userId?._id || comment.userId) === String(currentUserId)
           };
         });
 

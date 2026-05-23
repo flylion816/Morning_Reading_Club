@@ -93,7 +93,7 @@
             <text>{{item.content}}</text>
           </view>
           <view class="comment-actions">
-            <text class="comment-time">{{item.createdAt}}</text>
+            <text class="comment-time">{{item._createdAtFormatted || item.createdAt}}</text>
             <text class="reply-btn" bindtap="onTapReply" data-comment-id="{{item._id}}" data-author-name="{{item.author && item.author.nickname}}">回复</text>
             <text
               wx:if="{{item.author && item.author._id === currentUserId || imprint.authorId === currentUserId}}"
