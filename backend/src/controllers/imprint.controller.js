@@ -2,6 +2,7 @@ const Imprint = require('../models/Imprint');
 const ImprintReaction = require('../models/ImprintReaction');
 const ImprintComment = require('../models/ImprintComment');
 const ImprintActivityType = require('../models/ImprintActivityType');
+const User = require('../models/User');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
@@ -308,13 +309,18 @@ async function attend(req, res) {
       return res.status(400).json(errors.badRequest('已在场'));
     }
 
+    // 从数据库实时查 nickname，避免 token 里的用户信息过期导致存入 '用户'
+    const freshUser = await User.findById(userId).select('nickname name').lean();
+    const attendeeName = (freshUser && (freshUser.nickname || freshUser.name))
+      || req.user.nickname || req.user.name || '';
+
     const updated = await Imprint.findByIdAndUpdate(
       id,
       {
         $push: {
           attendees: {
             userId,
-            name: req.user.nickname || req.user.name || '用户',
+            name: attendeeName,
             isRegistered: true,
             addedBy: 'self'
           }

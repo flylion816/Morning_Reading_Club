@@ -47,7 +47,7 @@ Component({
     /**
      * 点击卡片
      */
-    onCardTap(e) {
+    async onCardTap(e) {
       console.log('===== course-card onCardTap 被调用 =====');
       console.log('this.properties.course:', this.properties.course);
       console.log('this.properties.mode:', this.properties.mode);
@@ -55,7 +55,8 @@ Component({
 
       // 使用properties.course确保获取到正确的数据
       const course = this.properties.course;
-      const { mode, enrolled } = this.properties;
+      const { mode } = this.properties;
+      let enrolled = this.properties.enrolled;
       const { isPending } = this.data;
 
       // 期次模式
@@ -74,6 +75,26 @@ Component({
             url: `/pages/period-detail/period-detail?periodId=${course._id}`
           });
           return;
+        }
+
+        // 报名状态未从服务器确认，实时查一次再导航
+        if (!enrolled || !enrolled._confirmed) {
+          wx.showLoading({ title: '加载中...', mask: true });
+          try {
+            const enrollmentService = require('../../services/enrollment.service');
+            const res = await enrollmentService.checkEnrollment(course._id);
+            enrolled = {
+              isEnrolled: res.isEnrolled || false,
+              paymentStatus: res.paymentStatus || null,
+              enrollmentId: res.enrollmentId || null,
+              _confirmed: true
+            };
+          } catch (err) {
+            wx.hideLoading();
+            wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+            return;
+          }
+          wx.hideLoading();
         }
 
         // 已登录：根据报名状态导航

@@ -81,7 +81,7 @@
         <block wx:for="{{item.attendees}}" wx:for-item="att" wx:key="index" wx:if="{{index < 8}}">
           <view class="avatar-wrap">
             <image wx:if="{{att.avatarUrl}}" src="{{att.avatarUrl}}" class="avatar" mode="aspectFill"/>
-            <view wx:else class="avatar-text">{{att.name[0]}}</view>
+            <view wx:else class="avatar-text">{{att.name ? att.name[0] : '?'}}</view>
           </view>
         </block>
         <text wx:if="{{item.attendees.length > 8}}" class="attendees-more">+{{item.attendees.length - 8}}</text>

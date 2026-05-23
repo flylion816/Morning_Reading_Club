@@ -54,7 +54,7 @@ page {
 .search-results { flex: 1; overflow-y: auto; }
 .search-item { display: flex; align-items: center; gap: 16rpx; padding: 16rpx 0; border-bottom: 1rpx solid #F0EDE6; }
 .search-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; }
-.search-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 24rpx; display: flex; align-items: center; justify-content: center; }
+.search-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 24rpx; display: flex; align-items: center; justify-content: center; line-height: 64rpx; text-align: center; }
 .search-name { flex: 1; font-size: 28rpx; color: var(--zc-text); }
 .search-add { font-size: 36rpx; color: var(--zc-primary); padding: 0 8rpx; }
 .no-result { text-align: center; font-size: 26rpx; color: var(--zc-text-secondary); padding: 32rpx 0; }

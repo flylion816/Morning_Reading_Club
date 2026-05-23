@@ -110,14 +110,14 @@ page {
 .attendees { display: flex; align-items: center; padding: 0 24rpx 16rpx; flex-wrap: wrap; gap: 8rpx; }
 .avatar-wrap { width: 56rpx; height: 56rpx; border-radius: 50%; overflow: hidden; border: 2rpx solid #fff; }
 .avatar { width: 100%; height: 100%; }
-.avatar-text { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; }
+.avatar-text { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; line-height: 56rpx; text-align: center; }
 .attendees-more { font-size: 22rpx; color: var(--zc-text-secondary); margin-left: 4rpx; }
 
 /* 底部 */
 .footer { display: flex; align-items: center; justify-content: space-between; padding: 12rpx 24rpx 20rpx; border-top: 1rpx solid #F0EDE6; }
 .author { display: flex; align-items: center; gap: 12rpx; }
 .author-avatar { width: 48rpx; height: 48rpx; border-radius: 50%; }
-.author-avatar-text { width: 48rpx; height: 48rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 20rpx; display: flex; align-items: center; justify-content: center; }
+.author-avatar-text { width: 48rpx; height: 48rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 20rpx; display: flex; align-items: center; justify-content: center; line-height: 48rpx; text-align: center; }
 .author-name { font-size: 24rpx; color: var(--zc-text-secondary); }
 .author-meta { font-size: 22rpx; color: var(--zc-text-secondary); margin-left: 12rpx; }
 .stats { display: flex; gap: 20rpx; }

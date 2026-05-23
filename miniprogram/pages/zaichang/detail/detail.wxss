@@ -46,7 +46,7 @@ page {
 .att-item { display: flex; flex-direction: column; align-items: center; gap: 8rpx; width: 80rpx; }
 .att-avatar-wrap { width: 72rpx; height: 72rpx; border-radius: 50%; overflow: hidden; }
 .att-avatar { width: 100%; height: 100%; }
-.att-avatar-text { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 26rpx; display: flex; align-items: center; justify-content: center; }
+.att-avatar-text { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 26rpx; display: flex; align-items: center; justify-content: center; line-height: 72rpx; text-align: center; }
 .att-name { font-size: 20rpx; color: var(--zc-text-secondary); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 80rpx; }
 .attend-btn-wrap { display: flex; justify-content: center; }
 .attend-btn { padding: 16rpx 48rpx; border-radius: 40rpx; border: 2rpx solid var(--zc-primary); color: var(--zc-primary); font-size: 28rpx; }
@@ -67,7 +67,7 @@ page {
 .comment-item { display: flex; gap: 16rpx; margin-bottom: 28rpx; }
 .comment-avatar-wrap { flex-shrink: 0; }
 .comment-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; }
-.comment-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 24rpx; display: flex; align-items: center; justify-content: center; }
+.comment-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 24rpx; display: flex; align-items: center; justify-content: center; line-height: 64rpx; text-align: center; }
 .comment-body { flex: 1; }
 .comment-author { display: block; font-size: 24rpx; font-weight: 600; color: var(--zc-text); margin-bottom: 6rpx; }
 .comment-content { font-size: 28rpx; color: var(--zc-text); line-height: 1.5; margin-bottom: 8rpx; }
