@@ -854,6 +854,8 @@ page {
 .comment-footer {
   display: flex;
   gap: 32rpx;
+  align-items: center;
+  min-height: 56rpx;
 }
 
 .comment-like,
@@ -983,6 +985,8 @@ page {
 .reply-footer {
   display: flex;
   gap: 32rpx;
+  align-items: center;
+  min-height: 56rpx;
 }
 
 .reply-like,
@@ -1083,6 +1087,8 @@ page {
 .nested-reply-footer {
   display: flex;
   gap: 24rpx;
+  align-items: center;
+  min-height: 56rpx;
 }
 
 .nested-reply-like {
@@ -1199,6 +1205,7 @@ page {
   padding: 10rpx 0;
   color: #6b7280;
   font-size: 26rpx;
+  min-height: 76rpx;
 }
 
 .dynamic-like-pill-icon,

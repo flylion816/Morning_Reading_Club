@@ -2578,6 +2578,37 @@ Page({
     });
   },
 
+  handleDeleteComment(e) {
+    const { commentId } = e.currentTarget.dataset;
+    if (!commentId) return;
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除这条评论吗？',
+      confirmText: '删除',
+      confirmColor: '#e74c3c',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await checkinService.deleteComment(commentId);
+          const comments = (this.data.course?.comments || []).map(item => ({
+            ...item,
+            replies: (item.replies || []).filter(r => String(r.id) !== String(commentId))
+          }));
+          this.setData({ 'course.comments': comments });
+          if (this.data.detailCheckin) {
+            const replies = (this.data.detailCheckin.replies || []).filter(
+              r => String(r.id) !== String(commentId)
+            );
+            this.setData({ 'detailCheckin.replies': replies });
+          }
+          wx.showToast({ title: '已删除', icon: 'success' });
+        } catch (err) {
+          wx.showToast({ title: '删除失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
   handleDeleteCheckin() {
     const { detailCheckin } = this.data;
     if (!detailCheckin) return;

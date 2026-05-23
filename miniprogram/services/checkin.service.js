@@ -141,6 +141,14 @@ class CheckinService {
     return request.delete(`/checkins/${checkinId}`);
   }
 
+  deleteComment(commentId) {
+    return request.delete(`/comments/${commentId}`);
+  }
+
+  deleteReply(commentId, replyId) {
+    return request.delete(`/comments/${commentId}/replies/${replyId}`);
+  }
+
   /**
    * 获取连续打卡天数
    * @returns {Promise}
