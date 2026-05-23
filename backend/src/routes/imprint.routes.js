@@ -85,13 +85,13 @@ router.put('/admin/activity-types/reorder', adminAuthMiddleware, adminTenantCont
 router.put('/admin/activity-types/:id', adminAuthMiddleware, adminTenantContext, activityTypeController.update);
 router.delete('/admin/activity-types/:id', adminAuthMiddleware, adminTenantContext, activityTypeController.remove);
 
+// 活动类型标签（小程序拉取，必须在 /:id 之前注册，否则 activity-types 会被当成 id）
+router.get('/activity-types', authMiddleware, userTenantContext, activityTypeController.list);
+
 // 印记详情：可选认证，未登录可查看
 router.get('/:id', optionalAuthMiddleware, optionalUserOrPublicTenantContext, controller.detail);
 
 router.use(authMiddleware, userTenantContext);
-
-// 活动类型标签（小程序拉取）
-router.get('/activity-types', activityTypeController.list);
 
 // 图片上传（必须在 /:id 路由之前注册）
 router.post('/upload', setResolvedTenantId, upload.single('file'), (req, res) => {

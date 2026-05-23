@@ -663,27 +663,6 @@ Page({
         todaySection = decorateSectionWithReadingCompletion(todaySection);
       }
 
-      // ── Wave 3: 社区数据并行加载 ────────────────────────────────
-      const [recentCheckins, recentInsights, insightRequestGroups] =
-        paidFeatureAccessEnabled
-          ? await Promise.all([
-            this.loadRecentCheckins().catch(() => []),
-            this.loadRecentInsights(currentPeriod).catch(() => []),
-            this.loadInsightRequests(false).catch(() => ({
-              receivedInsightRequests: [],
-              sentInsightRequests: []
-            }))
-          ])
-          : [
-            [],
-            [],
-            { receivedInsightRequests: [], sentInsightRequests: [] }
-          ];
-      const allInsightRequests = this.getInsightRequestListForDirection(
-        insightRequestGroups,
-        this.data.activeInsightRequestDirection
-      );
-
       // 只存展示字段，避免 setData 传输整个 period 对象
       const currentPeriodDisplay = currentPeriod
         ? {
@@ -699,6 +678,7 @@ Page({
         }
         : null;
 
+      // ── Wave 2 完成后立即渲染主内容，消除转圈 ──────────────────
       this.setData(
         {
           userInfo: displayUserInfo,
@@ -713,27 +693,52 @@ Page({
             currentPeriodAccess.communityAccessState || 'locked',
           canUsePaidFeatures: paidFeatureAccessEnabled,
           todaySection: todaySection || null,
-          recentCheckins,
-          recentInsights,
-          receivedInsightRequests:
-            insightRequestGroups.receivedInsightRequests || [],
-          sentInsightRequests: insightRequestGroups.sentInsightRequests || [],
-          allInsightRequests,
-          insightRequests: this.getInsightRequestPreview(allInsightRequests),
-          insightRequestTotal: allInsightRequests.length,
-          insightRequestEmptyText: this.getInsightRequestEmptyText(
-            this.data.activeInsightRequestDirection
-          ),
           hasMeeting: !!todaySection,
           meetingId: currentPeriod?.meetingId || '',
           meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
           loading: false
         },
         () => {
-          this.revealFocusedInsightRequest();
           this.maybeShowMorningReadPrompt();
         }
       );
+
+      // ── Wave 3: 社区数据后台异步填充，不阻塞首屏 ───────────────
+      if (!paidFeatureAccessEnabled) {
+        return;
+      }
+
+      Promise.all([
+        this.loadRecentCheckins().catch(() => []),
+        this.loadRecentInsights(currentPeriod).catch(() => []),
+        this.loadInsightRequests(false).catch(() => ({
+          receivedInsightRequests: [],
+          sentInsightRequests: []
+        }))
+      ]).then(([recentCheckins, recentInsights, insightRequestGroups]) => {
+        const allInsightRequests = this.getInsightRequestListForDirection(
+          insightRequestGroups,
+          this.data.activeInsightRequestDirection
+        );
+        this.setData(
+          {
+            recentCheckins,
+            recentInsights,
+            receivedInsightRequests:
+              insightRequestGroups.receivedInsightRequests || [],
+            sentInsightRequests: insightRequestGroups.sentInsightRequests || [],
+            allInsightRequests,
+            insightRequests: this.getInsightRequestPreview(allInsightRequests),
+            insightRequestTotal: allInsightRequests.length,
+            insightRequestEmptyText: this.getInsightRequestEmptyText(
+              this.data.activeInsightRequestDirection
+            )
+          },
+          () => {
+            this.revealFocusedInsightRequest();
+          }
+        );
+      });
     } catch (error) {
       console.error('加载用户数据失败:', error);
       this.setData({ loading: false });

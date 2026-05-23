@@ -192,12 +192,14 @@ Page({
       });
 
       // 初始化所有期次的默认报名状态（避免 undefined）
+      // _confirmed: false 表示还未从服务器确认，点击时需要等待
       const initialStatusMap = {};
       periods.forEach(period => {
         initialStatusMap[period._id] = {
           isEnrolled: false,
           paymentStatus: null,
-          enrollmentId: null
+          enrollmentId: null,
+          _confirmed: false
         };
       });
 
@@ -293,12 +295,14 @@ Page({
             ? {
                 isEnrolled: true,
                 paymentStatus: existingAccess.paymentStatus || 'paid',
-                enrollmentId: existingAccess.enrollmentId || null
+                enrollmentId: existingAccess.enrollmentId || null,
+                _confirmed: true
               }
             : {
                 isEnrolled: res.isEnrolled || false,
                 paymentStatus: res.paymentStatus || null,
-                enrollmentId: res.enrollmentId || null
+                enrollmentId: res.enrollmentId || null,
+                _confirmed: true
               };
 
           if (optimisticAccess) {
@@ -318,13 +322,15 @@ Page({
             statusMap[period._id] = {
               isEnrolled: true,
               paymentStatus: cachedAccess.paymentStatus || null,
-              enrollmentId: cachedAccess.enrollmentId || null
+              enrollmentId: cachedAccess.enrollmentId || null,
+              _confirmed: true
             };
           } else {
             statusMap[period._id] = {
               isEnrolled: false,
               paymentStatus: null,
-              enrollmentId: null
+              enrollmentId: null,
+              _confirmed: true
             };
           }
         }
@@ -372,7 +378,7 @@ Page({
   /**
    * 点击期次卡片 - 根据报名状态智能导航
    */
-  handlePeriodClick(e) {
+  async handlePeriodClick(e) {
     console.log('====== handlePeriodClick 被调用 ======');
     console.log('e.currentTarget.dataset:', e.currentTarget.dataset);
 
@@ -412,7 +418,29 @@ Page({
       return;
     }
 
-    const enrollmentInfo = this.data.periodEnrollmentStatus[periodId] || {};
+    let enrollmentInfo = this.data.periodEnrollmentStatus[periodId] || {};
+    // 报名状态还未从服务器确认（_confirmed: false），直接发一次 API 再导航，避免快速点击时误判
+    if (!enrollmentInfo._confirmed) {
+      wx.showLoading({ title: '加载中...', mask: true });
+      try {
+        const res = await enrollmentService.checkEnrollment(periodId);
+        enrollmentInfo = {
+          isEnrolled: res.isEnrolled || false,
+          paymentStatus: res.paymentStatus || null,
+          enrollmentId: res.enrollmentId || null,
+          _confirmed: true
+        };
+        // 更新本地状态
+        const newStatus = { ...this.data.periodEnrollmentStatus };
+        newStatus[periodId] = enrollmentInfo;
+        this.setData({ periodEnrollmentStatus: newStatus });
+      } catch (e) {
+        wx.hideLoading();
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+        return;
+      }
+      wx.hideLoading();
+    }
     const isEnrolled = enrollmentInfo.isEnrolled;
     const paymentStatus = enrollmentInfo.paymentStatus;
     const calculatedStatus = period.calculatedStatus;
