@@ -2695,19 +2695,73 @@ async function getSectionInsightsForAdmin(req, res, next) {
     }
 
     const tenantId = getCurrentTenantId();
-    const query = { sectionId };
-    if (tenantId) query.tenantId = tenantId;
+    const matchQuery = { sectionId: require('mongoose').Types.ObjectId.isValid(sectionId) ? new (require('mongoose').Types.ObjectId)(sectionId) : sectionId };
+    if (tenantId) matchQuery.tenantId = tenantId;
 
-    const total = await Insight.countDocuments(query);
-    const insights = await Insight.find(query)
-      .populate('targetUserId', 'nickname avatar avatarUrl')
-      .populate('userId', 'nickname avatar avatarUrl')
-      .sort({ createdAt: -1 })
-      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
-      .limit(parseInt(limit, 10))
-      .select('_id targetUserId userId content imageUrl mediaType type isPublished likeCount createdAt');
+    const total = await Insight.countDocuments(matchQuery);
+
+    const insights = await Insight.aggregate([
+      { $match: matchQuery },
+      {
+        $lookup: {
+          from: 'insightdanmakus',
+          localField: '_id',
+          foreignField: 'insightId',
+          as: '_danmakus'
+        }
+      },
+      {
+        $addFields: {
+          danmakuCount: { $size: '$_danmakus' },
+          engagementScore: { $add: ['$likeCount', { $size: '$_danmakus' }] }
+        }
+      },
+      { $sort: { engagementScore: -1, createdAt: -1 } },
+      { $skip: (parseInt(page, 10) - 1) * parseInt(limit, 10) },
+      { $limit: parseInt(limit, 10) },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'targetUserId',
+          foreignField: '_id',
+          as: '_targetUser'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: '_authorUser'
+        }
+      },
+      {
+        $project: {
+          _danmakus: 0,
+          engagementScore: 0,
+          _authorUser: 0
+        }
+      },
+      {
+        $addFields: {
+          targetUserId: { $arrayElemAt: ['$_targetUser', 0] }
+        }
+      },
+      { $project: { _targetUser: 0 } }
+    ]);
 
     res.json(success({ list: insights, total, page: parseInt(page, 10), limit: parseInt(limit, 10) }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 记录分享，累加 shareCount
+async function recordShare(req, res, next) {
+  try {
+    const { insightId } = req.params;
+    await Insight.findByIdAndUpdate(insightId, { $inc: { shareCount: 1 } });
+    res.json(success(null, '已记录'));
   } catch (error) {
     next(error);
   }
@@ -2746,5 +2800,6 @@ module.exports = {
   adminRejectRequest,
   deleteInsightRequest,
   batchApproveRequests,
-  getSectionInsightsForAdmin
+  getSectionInsightsForAdmin,
+  recordShare
 };

@@ -128,6 +128,12 @@ const InsightSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
+
+    shareCount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',

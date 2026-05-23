@@ -41,7 +41,8 @@ const {
   adminRejectRequest,
   deleteInsightRequest,
   batchApproveRequests,
-  getSectionInsightsForAdmin
+  getSectionInsightsForAdmin,
+  recordShare
 } = require('../controllers/insight.controller');
 
 // ===== 外部公开接口（无需认证） =====
@@ -81,6 +82,7 @@ router.put('/:insightId', authMiddleware, userTenantContext, updateInsight);
 router.delete('/:insightId', authMiddleware, userTenantContext, deleteInsight);
 router.post('/:insightId/like', authMiddleware, userTenantContext, likeInsight);
 router.post('/:insightId/unlike', authMiddleware, userTenantContext, unlikeInsight);
+router.post('/:insightId/share', optionalAuthMiddleware, optionalUserOrPublicTenantContext, recordShare);
 router.get('/:insightId/danmaku', authMiddleware, userTenantContext, getDanmaku);
 router.post('/:insightId/danmaku', authMiddleware, userTenantContext, postDanmaku);
 

@@ -1,0 +1,52 @@
+<view class="page-admin-insights">
+  <!-- 标题栏 -->
+  <view class="page-header">
+    <view class="header-title">{{sectionTitle || '书友小凡看见'}}</view>
+    <view class="header-count" wx:if="{{total > 0}}">共 {{total}} 条</view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{insights.length === 0}}" class="empty-state">
+    <text class="empty-icon">✨</text>
+    <text class="empty-text">暂无小凡看见</text>
+  </view>
+
+  <!-- 列表 -->
+  <scroll-view wx:else scroll-y class="insights-scroll">
+    <view
+      wx:for="{{insights}}"
+      wx:key="id"
+      class="insight-card"
+      bindtap="handleInsightTap"
+      data-insight-id="{{item.insightId}}">
+      <!-- 用户信息 -->
+      <view class="card-user">
+        <view class="user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
+          <image wx:if="{{item.avatarUrl}}" class="avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
+          <text wx:else class="avatar-text">{{item.avatarText}}</text>
+        </view>
+        <view class="user-name">{{item.nickname}}</view>
+        <view class="share-tag {{item.shareCount > 0 ? 'shared' : 'unshared'}}">{{item.shareLabel}}</view>
+      </view>
+      <!-- 内容预览 -->
+      <view wx:if="{{item.mediaType === 'image' && item.imageUrl}}" class="card-image-wrap">
+        <image class="card-image" src="{{item.imageUrl}}" mode="aspectFill" />
+      </view>
+      <view wx:else class="card-preview">{{item.preview}}</view>
+      <!-- 底部 -->
+      <view class="card-footer">
+        <text class="like-count">❤️ {{item.likeCount}}</text>
+        <text class="danmaku-count">💬 {{item.danmakuCount}}</text>
+        <text class="card-arrow">›</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+
+<podcast-player-bar />

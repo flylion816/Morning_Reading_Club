@@ -999,6 +999,9 @@ Page({
    */
   onShareAppMessage() {
     const { insight } = this.data;
+    if (this.data.insightId) {
+      insightService.shareInsight(this.data.insightId).catch(() => {});
+    }
     return {
       title: this.getShareTitle(insight),
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`,
