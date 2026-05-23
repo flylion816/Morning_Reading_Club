@@ -1,5 +1,6 @@
 const imprintService = require('../../../services/imprint.service');
 const { maybeAutoTopUpSubscriptions } = require('../../../utils/subscribe-auto-topup');
+const { requireLogin } = require('../../../utils/require-login');
 
 const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
 
@@ -112,6 +113,7 @@ Page({
   },
 
   onTapReaction(e) {
+    if (!requireLogin('登录后才能表达共鸣')) return;
     const type = e.currentTarget.dataset.type;
     const prev = this.data.myReaction;
     const imprint = this.data.imprint;
@@ -141,6 +143,7 @@ Page({
   },
 
   async onTapAttend() {
+    if (!requireLogin('登录后才能参加活动')) return;
     const attending = this.data.iAmAttending;
     try {
       if (attending) {
@@ -182,6 +185,7 @@ Page({
   },
 
   async onSubmitComment() {
+    if (!requireLogin('登录后才能发评论')) return;
     const content = this.data.commentInput.trim();
     if (!content) return;
     if (this.data.submittingComment) return;

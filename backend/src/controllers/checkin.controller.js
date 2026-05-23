@@ -532,6 +532,7 @@ async function getPeriodCheckins(req, res, next) {
 async function getCheckinDetail(req, res, next) {
   try {
     const { checkinId } = req.params;
+    const requestUserId = getRequestUserId(req);
 
     const checkin = await Checkin.findById(checkinId)
       .populate('userId', 'nickname avatar avatarUrl signature')
@@ -543,12 +544,20 @@ async function getCheckinDetail(req, res, next) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
 
-    const hasCommunityAccess = await ensurePeriodCommunityAccess(
-      res,
-      getRequestUserId(req),
-      checkin.periodId?._id || checkin.periodId
-    );
-    if (!hasCommunityAccess) return;
+    if (requestUserId) {
+      // 已登录：走原有付费权限校验
+      const hasCommunityAccess = await ensurePeriodCommunityAccess(
+        res,
+        requestUserId,
+        checkin.periodId?._id || checkin.periodId
+      );
+      if (!hasCommunityAccess) return;
+    } else {
+      // 未登录：只允许访问公开打卡
+      if (checkin.isPublic === false) {
+        return res.status(403).json(errors.forbidden('该打卡仅登录用户可见'));
+      }
+    }
 
     const checkinObj = checkin.toObject();
 

@@ -9,6 +9,7 @@ const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getPeriodAccess, extractId } = require('../../utils/period-access');
 const { renderRichTextContent } = require('../../utils/markdown');
 const envConfig = require('../../config/env');
+const { requireLogin } = require('../../utils/require-login');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -1976,11 +1977,19 @@ Page({
 
       // 优化：当 periodId 已知时，课程、权限、动态详情并行执行
       const knownPeriodId = this.data.periodId;
+      const app = getApp();
+      const isLogin = app.globalData.isLogin;
       let course, access, focusedCheckinDetail;
+
+      // 未登录时跳过权限检查，直接用 locked 状态，避免 401 崩溃
+      const getAccess = (pid) => isLogin
+        ? getPeriodAccess(pid)
+        : Promise.resolve({ communityAccessState: 'locked', canAccessCommunity: false, paymentStatus: null });
+
       if (knownPeriodId) {
         [course, access, focusedCheckinDetail] = await Promise.all([
           courseService.getCourseDetail(this.data.courseId),
-          getPeriodAccess(knownPeriodId),
+          getAccess(knownPeriodId),
           checkinDetailPromise
         ]);
       } else {
@@ -1988,7 +1997,7 @@ Page({
           courseService.getCourseDetail(this.data.courseId),
           checkinDetailPromise
         ]);
-        access = await getPeriodAccess(extractId(course.periodId));
+        access = await getAccess(extractId(course.periodId));
       }
 
       const periodId = extractId(course.periodId) || knownPeriodId;
@@ -2344,9 +2353,7 @@ Page({
   },
 
   async handleCheckin() {
-    if (this.data.communityAccessState !== 'enabled') {
-      return;
-    }
+    if (!this._requireInteraction('登录后才能打卡')) return;
 
     await this.triggerAutoTopUp('course_detail_checkin');
 
@@ -2360,9 +2367,7 @@ Page({
    * 切换评论展开/收起（延迟加载）
    */
   async toggleComments(e) {
-    if (this.data.communityAccessState !== 'enabled') {
-      return;
-    }
+    if (this.data.communityAccessState !== 'enabled' && !this._requireInteraction('登录后才能查看评论')) return;
 
     this.triggerAutoTopUp('course_detail_expand_comments');
 
@@ -2517,10 +2522,6 @@ Page({
   },
 
   async restoreTargetFocus() {
-    if (this.data.communityAccessState !== 'enabled') {
-      return;
-    }
-
     const { focusCheckinId, focusCommentId, focusReplyId } = this.data;
     if (!focusCheckinId) {
       return;
@@ -2659,9 +2660,7 @@ Page({
    * 点赞打卡记录（顶层列表项是打卡记录，不是评论）
    */
   async handleLikeComment(e) {
-    if (this.data.communityAccessState !== 'enabled') {
-      return;
-    }
+    if (!this._requireInteraction('登录后才能点赞')) return;
 
     this.triggerAutoTopUp('course_detail_like_checkin');
 
@@ -2730,9 +2729,7 @@ Page({
    * 回复评论
    */
   async handleReplyComment(e) {
-    if (this.data.communityAccessState !== 'enabled') {
-      return;
-    }
+    if (!this._requireInteraction('登录后才能回复')) return;
 
     this.triggerAutoTopUp('course_detail_reply_checkin');
 
@@ -2825,8 +2822,7 @@ Page({
    * 点赞评论（回复列表里的项是评论，commentId 是打卡ID，replyId 是评论ID）
    */
   async handleLikeReply(e) {
-    if (this.data.communityAccessState !== 'enabled') {
-      return;
+    if (!this._requireInteraction('登录后才能点赞')) return;
     }
 
     this.triggerAutoTopUp('course_detail_like_reply');
@@ -2945,8 +2941,7 @@ Page({
    *   - userName: 被回复的用户名
    */
   async handleReplyToReply(e) {
-    if (this.data.communityAccessState !== 'enabled') {
-      return;
+    if (!this._requireInteraction('登录后才能回复')) return;
     }
 
     this.triggerAutoTopUp('course_detail_reply_reply');
@@ -3627,6 +3622,15 @@ Page({
         this.setData({ ttsState: 'idle' });
       }
     });
+  },
+
+  // 未登录弹引导弹窗，已登录但未付费静默返回 false
+  _requireInteraction(message) {
+    const app = getApp();
+    if (!app.globalData.isLogin) {
+      return requireLogin(message);
+    }
+    return this.data.communityAccessState === 'enabled';
   },
 
   _ttsDestroy() {

@@ -4,6 +4,7 @@ const env = require('../../config/env');
 const { renderRichTextContent } = require('../../utils/markdown');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const { requireLogin } = require('../../utils/require-login');
 
 // 弹幕泳道数量
 const DANMAKU_LANES = 4;
@@ -1055,6 +1056,7 @@ Page({
   },
 
   async sendDanmaku() {
+    if (!requireLogin('登录后才能发弹幕')) return;
     const { danmakuInput, danmakuColor, insightId } = this.data;
     if (!danmakuInput || !danmakuInput.trim()) return;
 
@@ -1077,6 +1079,7 @@ Page({
   },
 
   async handleLike() {
+    if (!requireLogin('登录后才能点赞')) return;
     const { insightId, isLiked } = this.data;
     try {
       if (isLiked) {

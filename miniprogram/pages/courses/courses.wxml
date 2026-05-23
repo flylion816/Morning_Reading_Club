@@ -86,8 +86,11 @@
               <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已打卡' : '已学习'}}</text>
               <text wx:if="{{item.readingCompleted}}" class="reading-complete-inline">已晨读 ✓</text>
             </view>
-            <view class="btn-action" catchtap="handleCheckinClick" data-section="{{item}}">
-              {{communityAccessState === 'enabled' ? '去打卡' : '去学习'}}
+            <view class="section-btns">
+              <view wx:if="{{isAdmin}}" class="btn-admin-insights" catchtap="handleAdminInsightsClick" data-section="{{item}}">小凡看见</view>
+              <view class="btn-action" catchtap="handleCheckinClick" data-section="{{item}}">
+                {{communityAccessState === 'enabled' ? '去打卡' : '去学习'}}
+              </view>
             </view>
           </view>
         </view>

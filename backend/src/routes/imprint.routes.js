@@ -4,9 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const router = express.Router();
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
-const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
+const { userTenantContext, adminTenantContext, optionalUserOrPublicTenantContext } = require('../middleware/tenantContext');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const { resolveTenantSlug } = require('../utils/tenantSlug');
 const { success, errors } = require('../utils/response');
@@ -85,6 +85,9 @@ router.put('/admin/activity-types/reorder', adminAuthMiddleware, adminTenantCont
 router.put('/admin/activity-types/:id', adminAuthMiddleware, adminTenantContext, activityTypeController.update);
 router.delete('/admin/activity-types/:id', adminAuthMiddleware, adminTenantContext, activityTypeController.remove);
 
+// 印记详情：可选认证，未登录可查看
+router.get('/:id', optionalAuthMiddleware, optionalUserOrPublicTenantContext, controller.detail);
+
 router.use(authMiddleware, userTenantContext);
 
 // 活动类型标签（小程序拉取）
@@ -104,7 +107,6 @@ router.post('/upload', setResolvedTenantId, upload.single('file'), (req, res) =>
 
 router.get('/', controller.list);
 router.post('/', controller.create);
-router.get('/:id', controller.detail);
 router.put('/:id', controller.update);
 router.delete('/:id', controller.remove);
 router.post('/:id/attend', controller.attend);

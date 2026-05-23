@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middleware/auth');
-const { userTenantContext } = require('../middleware/tenantContext');
+const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
+const { userTenantContext, optionalUserOrPublicTenantContext } = require('../middleware/tenantContext');
 const {
   createCheckin,
   getUserCheckins,
@@ -15,84 +15,19 @@ const {
   unlikeCheckin
 } = require('../controllers/checkin.controller');
 
-// 所有 checkin 路由都需要登录 + 租户上下文
-router.use(authMiddleware, userTenantContext);
+// 其余 checkin 路由都需要登录 + 租户上下文
+router.post('/', authMiddleware, userTenantContext, createCheckin);
+router.get('/', authMiddleware, userTenantContext, getCheckins);
+router.get('/user/summary', authMiddleware, userTenantContext, getUserCheckinSummary);
+router.get('/user/:userId/summary', authMiddleware, userTenantContext, getUserCheckinSummary);
+router.get('/user/:userId?', authMiddleware, userTenantContext, getUserCheckins);
+router.get('/period/:periodId', authMiddleware, userTenantContext, getPeriodCheckins);
+router.post('/:checkinId/like', authMiddleware, userTenantContext, likeCheckin);
+router.delete('/:checkinId/like', authMiddleware, userTenantContext, unlikeCheckin);
+router.put('/:checkinId', authMiddleware, userTenantContext, updateCheckin);
+router.delete('/:checkinId', authMiddleware, userTenantContext, deleteCheckin);
 
-/**
- * @route   POST /api/v1/checkins
- * @desc    创建打卡记录
- * @access  Private
- */
-router.post('/', createCheckin);
-
-/**
- * @route   GET /api/v1/checkins
- * @desc    获取打卡列表（支持按periodId过滤）
- * @access  Private
- */
-router.get('/', getCheckins);
-
-/**
- * @route   GET /api/v1/checkins/user/summary
- * @desc    获取当前用户的打卡日记聚合信息
- * @access  Private
- */
-router.get('/user/summary', getUserCheckinSummary);
-
-/**
- * @route   GET /api/v1/checkins/user/:userId/summary
- * @desc    获取指定用户的打卡日记聚合信息
- * @access  Private
- */
-router.get('/user/:userId/summary', getUserCheckinSummary);
-
-/**
- * @route   GET /api/v1/checkins/user/:userId?
- * @desc    获取用户的打卡列表
- * @access  Private
- */
-router.get('/user/:userId?', getUserCheckins);
-
-/**
- * @route   GET /api/v1/checkins/period/:periodId
- * @desc    获取期次的打卡列表（广场）
- * @access  Private
- */
-router.get('/period/:periodId', getPeriodCheckins);
-
-/**
- * @route   POST /api/v1/checkins/:checkinId/like
- * @desc    点赞打卡记录
- * @access  Private
- */
-router.post('/:checkinId/like', likeCheckin);
-
-/**
- * @route   DELETE /api/v1/checkins/:checkinId/like
- * @desc    取消点赞打卡记录
- * @access  Private
- */
-router.delete('/:checkinId/like', unlikeCheckin);
-
-/**
- * @route   GET /api/v1/checkins/:checkinId
- * @desc    获取打卡详情
- * @access  Private
- */
-router.get('/:checkinId', getCheckinDetail);
-
-/**
- * @route   PUT /api/v1/checkins/:checkinId
- * @desc    更新打卡记录
- * @access  Private
- */
-router.put('/:checkinId', updateCheckin);
-
-/**
- * @route   DELETE /api/v1/checkins/:checkinId
- * @desc    删除打卡记录
- * @access  Private
- */
-router.delete('/:checkinId', deleteCheckin);
+// 打卡详情：可选认证，未登录只能看公开打卡（放最后避免拦截具名路由）
+router.get('/:checkinId', optionalAuthMiddleware, optionalUserOrPublicTenantContext, getCheckinDetail);
 
 module.exports = router;

@@ -54,6 +54,14 @@
             </template>
           </el-table-column>
           <el-table-column prop="nickname" label="昵称" width="120" />
+
+          <el-table-column label="角色" width="100">
+            <template #default="{ row }">
+              <el-tag v-if="row.role === 'admin' || row.role === 'super_admin'" type="warning" size="small">
+                管理员
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="phone" label="电话" width="140" />
           <el-table-column prop="signature" label="个人签名" min-width="150">
             <template #default="{ row }">

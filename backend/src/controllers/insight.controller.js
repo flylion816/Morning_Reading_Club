@@ -2683,6 +2683,36 @@ async function adminDeleteDanmaku(req, res, next) {
   }
 }
 
+// 获取某课节所有书友的小凡看见（小程序管理员用）
+async function getSectionInsightsForAdmin(req, res, next) {
+  try {
+    const { sectionId } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+
+    const user = await User.findById(req.user.userId).select('role');
+    if (!user || !['admin', 'super_admin'].includes(user.role)) {
+      return res.status(403).json(errors.forbidden('无权限'));
+    }
+
+    const tenantId = getCurrentTenantId();
+    const query = { sectionId };
+    if (tenantId) query.tenantId = tenantId;
+
+    const total = await Insight.countDocuments(query);
+    const insights = await Insight.find(query)
+      .populate('targetUserId', 'nickname avatar avatarUrl')
+      .populate('userId', 'nickname avatar avatarUrl')
+      .sort({ createdAt: -1 })
+      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
+      .limit(parseInt(limit, 10))
+      .select('_id targetUserId userId content imageUrl mediaType type isPublished likeCount createdAt');
+
+    res.json(success({ list: insights, total, page: parseInt(page, 10), limit: parseInt(limit, 10) }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   generateInsight,
   getUserInsights,
@@ -2715,5 +2745,6 @@ module.exports = {
   adminApproveRequest,
   adminRejectRequest,
   deleteInsightRequest,
-  batchApproveRequests
+  batchApproveRequests,
+  getSectionInsightsForAdmin
 };

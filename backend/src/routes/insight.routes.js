@@ -40,7 +40,8 @@ const {
   adminApproveRequest,
   adminRejectRequest,
   deleteInsightRequest,
-  batchApproveRequests
+  batchApproveRequests,
+  getSectionInsightsForAdmin
 } = require('../controllers/insight.controller');
 
 // ===== 外部公开接口（无需认证） =====
@@ -65,6 +66,7 @@ router.post('/admin/requests/batch-approve', adminAuthMiddleware, adminTenantCon
 
 // ===== 用户路由 =====
 router.post('/', authMiddleware, userTenantContext, createInsightManual);
+router.get('/section/:sectionId', authMiddleware, userTenantContext, getSectionInsightsForAdmin);
 router.post('/generate', authMiddleware, userTenantContext, generateInsight);
 router.post('/requests', authMiddleware, userTenantContext, createInsightRequest);
 router.get('/requests/status/:userId', authMiddleware, userTenantContext, getRequestStatus);

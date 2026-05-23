@@ -69,7 +69,8 @@ Page({
     canAccessCommunity: false, // 是否可访问打卡/社区功能
     communityAccessState: 'locked', // enabled | locked
     headerCollapsed: false, // 滚动时收起头部
-    checkinContentExpanded: {}
+    checkinContentExpanded: {},
+    isAdmin: false // 是否是管理员角色
   },
 
   onLoad(options) {
@@ -91,6 +92,9 @@ Page({
 
       return;
     }
+
+    const userRole = app.globalData.userInfo && app.globalData.userInfo.role;
+    this.setData({ isAdmin: userRole === 'admin' || userRole === 'super_admin' });
 
     if (options.periodId) {
       // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
@@ -492,6 +496,16 @@ Page({
   /**
    * 点击"去打卡"按钮 - 直接跳转到打卡页面
    */
+  handleAdminInsightsClick(e) {
+    const { section } = e.currentTarget.dataset;
+    const sectionId = section && (section.id || section._id);
+    const sectionTitle = section && section.title;
+    if (!sectionId) return;
+    wx.navigateTo({
+      url: `/pages/admin-section-insights/admin-section-insights?sectionId=${sectionId}&sectionTitle=${encodeURIComponent(sectionTitle || '')}`
+    });
+  },
+
   async handleCheckinClick(e) {
     const { section } = e.currentTarget.dataset;
     const sectionId = section && (section.id || section._id);
