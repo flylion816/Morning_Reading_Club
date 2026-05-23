@@ -521,6 +521,39 @@ page {
   line-height: 1;
 }
 
+.podcast-share-entry {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+  margin-left: auto;
+  height: 56rpx;
+  padding: 0 22rpx;
+  border-radius: 28rpx;
+  background: #fff3e0;
+  color: #ea580c;
+  font-size: 24rpx;
+  font-weight: 600;
+  /* 重置 button 默认样式 */
+  border: none;
+  line-height: 56rpx;
+  min-height: unset;
+  box-sizing: border-box;
+}
+
+.podcast-share-entry::after {
+  border: none;
+}
+
+.podcast-share-entry-icon {
+  font-size: 26rpx;
+  line-height: 1;
+}
+
+.section-title-text {
+  flex: 1;
+}
+
 .section-icon {
   width: 56rpx;
   height: 56rpx;

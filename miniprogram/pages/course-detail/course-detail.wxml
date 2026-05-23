@@ -298,7 +298,11 @@
     <view id="podcast-section" class="content-section podcast-section" wx:if="{{course.podcastUrl}}">
       <view class="section-title">
         <view class="section-icon podcast">播</view>
-        <text>播一播</text>
+        <text class="section-title-text">播一播</text>
+        <button class="podcast-share-entry" open-type="share" bindtap="handlePodcastShare">
+          <text class="podcast-share-entry-icon">↗</text>
+          <text>分享好友</text>
+        </button>
       </view>
       <view class="podcast-player-card" bindtap="handlePodcastPlay">
         <view class="podcast-player-inner">

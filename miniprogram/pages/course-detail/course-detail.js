@@ -151,6 +151,8 @@ Page({
     podcastProgress: 0,
     podcastDurationText: '',
     podcastDescExpanded: false,
+    podcastShareMode: false,
+    podcastShareImagePath: '',
     // AI 朗读
     ttsState: 'idle'  // idle | loading | playing | paused
   },
@@ -236,6 +238,15 @@ Page({
       }, 400);
       this._scrollAnchor = '';
     }
+    // 预生成播客分享图片，确保第一次点击就有图
+    const { course } = this.data;
+    if (course && course.podcastUrl && !this.data.podcastShareImagePath) {
+      setTimeout(() => {
+        this._generatePodcastShareImage(course).then((path) => {
+          this.setData({ podcastShareImagePath: path });
+        }).catch(() => {});
+      }, 800);
+    }
   },
 
   onShow() {
@@ -259,8 +270,19 @@ Page({
       course,
       courseId,
       shareCheckinId,
-      canShareCurrentCheckin
+      canShareCurrentCheckin,
+      podcastShareMode,
+      podcastShareImagePath
     } = this.data;
+
+    if (podcastShareMode) {
+      this.setData({ podcastShareMode: false });
+      return {
+        title: `凡人播客：「${course.title || ''}」`,
+        path: `/pages/course-detail/course-detail?id=${courseId}&anchor=podcast`,
+        imageUrl: podcastShareImagePath || ''
+      };
+    }
 
     if (shareCheckinId && canShareCurrentCheckin) {
       return {
@@ -3203,6 +3225,168 @@ Page({
       podcastSectionId: podcastSectionId || '',
       podcastProgress: progress
     });
+  },
+
+  handlePodcastShare() {
+    const { course } = this.data;
+    if (!course) return;
+    // 标记为播客分享模式，onShareAppMessage 会读取此标记
+    this.setData({ podcastShareMode: true });
+    // 后台异步生成图片，缓存供下次使用
+    if (!this.data.podcastShareImagePath) {
+      this._generatePodcastShareImage(course).then((path) => {
+        this.setData({ podcastShareImagePath: path });
+      }).catch(() => {});
+    }
+  },
+
+  _generatePodcastShareImage(course) {
+    return new Promise((resolve, reject) => {
+      const W = 750;
+      const PAD = 40;
+      const dpr = wx.getWindowInfo?.().pixelRatio || 2;
+      const descText = (course.podcastDescription || '').replace(/<[^>]+>/g, '').trim();
+      const fontSize = 28;
+      const lineH = Math.round(fontSize * 1.7);
+      const textW = W - PAD * 2;
+      const sectionTitleH = 80;
+      const playerCardH = 120;
+      const MAX_DESC_LINES = 12;
+
+      const query = wx.createSelectorQuery().in(this);
+      query.select('#longImageCanvas').fields({ node: true, size: true }).exec((res) => {
+        if (!res || !res[0] || !res[0].node) { reject(new Error('no canvas')); return; }
+        const canvas = res[0].node;
+        const ctx = canvas.getContext('2d');
+
+        // 用真实 ctx 计算换行，确定高度
+        ctx.font = `${fontSize}px sans-serif`;
+        const descLines = this._wrapText(ctx, descText, textW, fontSize);
+        const showLines = Math.min(descLines.length, MAX_DESC_LINES);
+        const descBlockH = showLines > 0 ? showLines * lineH + 16 : 0;
+        const H = PAD + sectionTitleH + 24 + playerCardH + (descBlockH > 0 ? 24 + descBlockH : 0) + PAD;
+
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        if (typeof ctx.resetTransform === 'function') ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, W, H);
+
+        // 白色背景
+        this.drawPosterRoundedRect(ctx, 0, 0, W, H, 0, '#ffffff');
+
+        let y = PAD;
+
+        // 标题行：播图标 + "播一播"
+        const iconSize = 56;
+        const iconBg = ctx.createLinearGradient(PAD, y, PAD + iconSize, y + iconSize);
+        iconBg.addColorStop(0, '#f97316');
+        iconBg.addColorStop(1, '#ea580c');
+        this.drawPosterRoundedRect(ctx, PAD, y, iconSize, iconSize, 12, iconBg);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold 28px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('播', PAD + iconSize / 2, y + iconSize / 2);
+
+        ctx.fillStyle = '#333333';
+        ctx.font = `bold 36px sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('播一播', PAD + iconSize + 16, y + iconSize / 2);
+
+        y += sectionTitleH;
+
+        // 播放卡片
+        const cardBg = ctx.createLinearGradient(PAD, y, PAD, y + playerCardH);
+        cardBg.addColorStop(0, '#fff7ed');
+        cardBg.addColorStop(1, '#ffedd5');
+        this.drawPosterRoundedRect(ctx, PAD, y, W - PAD * 2, playerCardH, 20, cardBg);
+
+        const maxTitleW = W - PAD * 2 - 130;
+        ctx.fillStyle = '#1c1917';
+        ctx.font = `bold 30px sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        const titleText = course.title || '';
+        let displayTitle = titleText;
+        if (ctx.measureText(titleText).width > maxTitleW) {
+          let cut = titleText.length;
+          while (cut > 0 && ctx.measureText(titleText.slice(0, cut) + '…').width > maxTitleW) cut--;
+          displayTitle = titleText.slice(0, cut) + '…';
+        }
+        ctx.fillText(displayTitle, PAD + 24, y + playerCardH / 2);
+
+        const btnX = W - PAD - 56;
+        const btnY = y + playerCardH / 2;
+        const btnR = 44;
+        const btnGrad = ctx.createLinearGradient(btnX - btnR, btnY - btnR, btnX + btnR, btnY + btnR);
+        btnGrad.addColorStop(0, '#f97316');
+        btnGrad.addColorStop(1, '#ea580c');
+        ctx.fillStyle = btnGrad;
+        ctx.beginPath();
+        ctx.arc(btnX, btnY, btnR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(btnX - 12, btnY - 18);
+        ctx.lineTo(btnX - 12, btnY + 18);
+        ctx.lineTo(btnX + 18, btnY);
+        ctx.closePath();
+        ctx.fill();
+
+        y += playerCardH;
+
+        // 简介文字
+        if (showLines > 0) {
+          y += 24;
+          ctx.fillStyle = '#374151';
+          ctx.font = `${fontSize}px sans-serif`;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          for (let i = 0; i < showLines; i++) {
+            const isLast = i === showLines - 1 && descLines.length > showLines;
+            const line = isLast ? descLines[i].slice(0, -1) + '…' : descLines[i];
+            ctx.fillText(line, PAD, y);
+            y += lineH;
+          }
+        }
+
+        wx.canvasToTempFilePath({
+          canvas,
+          width: W,
+          height: H,
+          destWidth: W * 2,
+          destHeight: H * 2,
+          fileType: 'png',
+          success: (r) => resolve(r.tempFilePath),
+          fail: reject
+        });
+      });
+    });
+  },
+
+  _wrapText(ctx, text, maxWidth, fontSize) {
+    if (!text) return [];
+    const lines = [];
+    const paragraphs = text.split('\n');
+    for (const para of paragraphs) {
+      if (!para.trim()) { lines.push(''); continue; }
+      let line = '';
+      for (const char of para) {
+        const test = line + char;
+        const w = ctx ? ctx.measureText(test).width : test.length * fontSize;
+        if (w > maxWidth && line) {
+          lines.push(line);
+          line = char;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+    }
+    return lines;
   },
 
   handlePodcastPlay() {
