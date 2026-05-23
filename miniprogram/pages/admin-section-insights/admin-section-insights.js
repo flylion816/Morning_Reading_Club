@@ -20,7 +20,6 @@ Page({
       return;
     }
     this.setData({ sectionId, sectionTitle });
-    wx.setNavigationBarTitle({ title: sectionTitle || '书友小凡看见' });
     this.loadInsights();
   },
 

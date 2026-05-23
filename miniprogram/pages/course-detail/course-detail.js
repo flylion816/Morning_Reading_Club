@@ -279,9 +279,9 @@ Page({
     if (podcastShareMode) {
       this.setData({ podcastShareMode: false });
       return {
-        title: `凡人播客：「${course.title || ''}」`,
+        title: `「${course.title || ''}」`,
         path: `/pages/course-detail/course-detail?id=${courseId}&anchor=podcast`,
-        imageUrl: podcastShareImagePath || ''
+        imageUrl: '/assets/images/fanren-boke.jpg'
       };
     }
 
@@ -2105,7 +2105,6 @@ Page({
       // 组织打卡记录的层级结构
       // 打卡(Checkin)为主层级，评论(Comment)为子层级
       let hasUserCheckedIn = false;
-      const app = getApp();
       const currentUserId =
         app.globalData.userInfo?._id || app.globalData.userInfo?.id;
 
@@ -2823,7 +2822,6 @@ Page({
    */
   async handleLikeReply(e) {
     if (!this._requireInteraction('登录后才能点赞')) return;
-    }
 
     this.triggerAutoTopUp('course_detail_like_reply');
 
@@ -2942,7 +2940,6 @@ Page({
    */
   async handleReplyToReply(e) {
     if (!this._requireInteraction('登录后才能回复')) return;
-    }
 
     this.triggerAutoTopUp('course_detail_reply_reply');
 
@@ -3225,14 +3222,7 @@ Page({
   handlePodcastShare() {
     const { course } = this.data;
     if (!course) return;
-    // 标记为播客分享模式，onShareAppMessage 会读取此标记
     this.setData({ podcastShareMode: true });
-    // 后台异步生成图片，缓存供下次使用
-    if (!this.data.podcastShareImagePath) {
-      this._generatePodcastShareImage(course).then((path) => {
-        this.setData({ podcastShareImagePath: path });
-      }).catch(() => {});
-    }
   },
 
   _generatePodcastShareImage(course) {

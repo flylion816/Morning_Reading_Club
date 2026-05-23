@@ -36,6 +36,12 @@ Page({
       return;
     }
 
+    // 微信头像已是远程 CDN URL，直接使用，无需压缩上传
+    if (this.isRemoteAvatarUrl(avatarUrl)) {
+      this.setData({ avatarUrl });
+      return;
+    }
+
     const normalizedAvatar = await this.compressAvatarImage(avatarUrl);
     this.setData({ avatarUrl: normalizedAvatar });
   },

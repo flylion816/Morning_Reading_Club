@@ -46,7 +46,7 @@ class UserService {
       return Promise.resolve({ avatarUrl: filePath });
     }
 
-    const result = await request.upload('/upload/avatar', filePath);
+    const result = await request.upload('/users/avatar', filePath);
     const avatarUrl = result.avatarUrl || this.toAbsoluteFileUrl(result.url);
     return {
       ...result,
