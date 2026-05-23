@@ -335,6 +335,7 @@ import RichTextEditor from '../components/RichTextEditor.vue';
 import { periodApi, uploadApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Section } from '../types/api';
+import { useAuthStore } from '../stores/auth';
 
 interface SectionForm {
   _id?: string;
@@ -365,6 +366,11 @@ type SectionFormSource = Partial<SectionForm> & {
 };
 
 const selectedPeriodId = ref<string | null>(null);
+const authStore = useAuthStore();
+const isPlatformAdmin = computed(() => {
+  const role = authStore.adminInfo?.role;
+  return role === 'superadmin' || role === 'platform_superadmin';
+});
 const periods = ref<Period[]>([]);
 const currentPeriod = ref<Period | null>(null);
 const sections = ref<Section[]>([]);
@@ -389,7 +395,7 @@ async function handleLookImageChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
-  if (!localStorage.getItem('admin_active_tenant')) {
+  if (isPlatformAdmin.value && !localStorage.getItem('admin_active_tenant')) {
     ElMessage.warning('请先在顶部选择具体租户，再上传图片');
     input.value = '';
     return;
@@ -426,7 +432,7 @@ async function handlePodcastFileChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
-  if (!localStorage.getItem('admin_active_tenant')) {
+  if (isPlatformAdmin.value && !localStorage.getItem('admin_active_tenant')) {
     ElMessage.warning('请先在顶部选择具体租户，再上传音频');
     input.value = '';
     return;
