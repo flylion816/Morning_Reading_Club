@@ -18,8 +18,8 @@ const COMMUNITY_AUTO_TOP_UP_SCENES = [
 ];
 
 const MINI_PROGRAM_CODE_ASSET_PATHS = [
-  '/assets/images/mini-program-code.png',
-  '../../assets/images/mini-program-code.png'
+  '/assets/images/mini-program-code.jpg',
+  '../../assets/images/mini-program-code.jpg'
 ];
 const SECTION_CHECKIN_FETCH_LIMIT = 30;
 const CHECKIN_CONTENT_FOLD_LINE_LIMIT = 6;

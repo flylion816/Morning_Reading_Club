@@ -848,7 +848,13 @@ async function getInsightDetail(req, res, next) {
       insight.status === 'completed' &&
       insight.isPublished === true;
 
+    const isAdminViewer =
+      req.user?.role === 'admin' ||
+      req.user?.role === 'super_admin' ||
+      ADMIN_ROLES.includes(req.admin?.role);
+
     let canView =
+      isAdminViewer ||
       isPublicPublished ||
       (!!currentUserId &&
         (currentUserId === creatorUserId || currentUserId === ownerUserId));

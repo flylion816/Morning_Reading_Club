@@ -7,6 +7,7 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const {
   decorateSectionsWithReadingCompletion
 } = require('../../utils/reading-completion');
+const { isAdminUser } = require('../../utils/auth');
 
 // 相对时间格式化（与课程详情页统一）
 function formatTime(dateStr) {
@@ -93,8 +94,7 @@ Page({
       return;
     }
 
-    const userRole = app.globalData.userInfo && app.globalData.userInfo.role;
-    this.setData({ isAdmin: userRole === 'admin' || userRole === 'super_admin' });
+    this.setData({ isAdmin: isAdminUser(app.globalData.userInfo || {}) });
 
     if (options.periodId) {
       // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数

@@ -408,7 +408,7 @@ describe('course-detail page markdown support', () => {
     expect(snapshot.contentTruncated).toBe(false);
     expect(snapshot.tagLines[0]).toBe('#第20天 统合综效');
     expect(snapshot.statsLine).toBe('获赞 4 · 评论 2');
-    expect(snapshot.miniProgramCodePath).toBe('/assets/images/mini-program-code.png');
+    expect(snapshot.miniProgramCodePath).toBe('/assets/images/mini-program-code.jpg');
   });
 
   test('should keep oversized poster content complete by default', () => {
@@ -463,7 +463,7 @@ describe('course-detail page markdown support', () => {
     });
 
     expect(global.__mockCanvasCreateImage).toHaveBeenCalled();
-    expect(global.__mockCanvasImageSrcs).toContain('/assets/images/mini-program-code.png');
+    expect(global.__mockCanvasImageSrcs).toContain('/assets/images/mini-program-code.jpg');
     expect(global.__mockCanvasContext.drawImage).toHaveBeenCalled();
   });
 

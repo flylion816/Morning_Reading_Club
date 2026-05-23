@@ -11,6 +11,7 @@ const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
 } = require('../../utils/period-access');
+const { isAdminUser } = require('../../utils/auth');
 
 Page({
   data: {
@@ -23,6 +24,7 @@ Page({
     userId: null, // 目标用户ID（如果查看他人，此值为他人的ID）
     userName: '小凡看见', // 显示的标题
     isOtherUser: false, // 是否在查看他人的小凡看见
+    isAdmin: false,
     lockedInsightCount: 0,
     unlockedInsightCount: 0,
     pendingRequestCount: 0,
@@ -79,6 +81,7 @@ Page({
       userId: targetUserId || null,
       userName: targetUserName,
       isOtherUser: !!targetUserId,
+      isAdmin: isAdminUser(app.globalData.userInfo || {}),
       activeTab: initialTab,
       headerEmoji,
       headerAvatarUrl,
@@ -666,7 +669,7 @@ Page({
     } = e.currentTarget.dataset;
     const canAccess = accessible !== false && accessible !== 'false';
 
-    if (!canAccess) {
+    if (!canAccess && !this.data.isAdmin) {
       this.handleLockedInsightClick(periodId, id, requestStatus, {
         title,
         periodName,

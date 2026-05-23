@@ -5,6 +5,7 @@ const { renderRichTextContent } = require('../../utils/markdown');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
+const { isAdminUser } = require('../../utils/auth');
 
 // 弹幕泳道数量
 const DANMAKU_LANES = 4;
@@ -18,7 +19,6 @@ const DANMAKU_LANE_COOLDOWN = 7500;
 
 const INSIGHT_POSTER_WIDTH = 750;
 const INSIGHT_INTERACTION_SUBSCRIBE_SCENES = ['insight_liked', 'danmaku_received'];
-const ADMIN_ROLES = ['platform_superadmin', 'superadmin', 'tenant_admin', 'admin', 'operator', 'super_admin'];
 
 function getEntityId(entity) {
   if (!entity) return '';
@@ -54,9 +54,6 @@ function resolveInsightOwner(insight = {}, currentUser = {}) {
   };
 }
 
-function isAdminUser(user = {}) {
-  return ADMIN_ROLES.includes(user.role) || ADMIN_ROLES.includes(user.adminRole);
-}
 
 function normalizeInsightDetail(rawInsight) {
   if (!rawInsight) return {};
@@ -960,7 +957,7 @@ Page({
                 const img = canvas.createImage();
                 img.onload = () => res(img);
                 img.onerror = rej;
-                img.src = '/assets/images/mini-program-code.png';
+                img.src = '/assets/images/mini-program-code.jpg';
               });
             } catch (e) {
               // continue without image

@@ -12,8 +12,8 @@ const {
 } = require('../../utils/reading-completion');
 
 const MINI_PROGRAM_CODE_ASSET_PATHS = [
-  '/assets/images/mini-program-code.png',
-  '../../assets/images/mini-program-code.png'
+  '/assets/images/mini-program-code.jpg',
+  '../../assets/images/mini-program-code.jpg'
 ];
 
 const FONT_SIZE_LEVELS = ['standard', 'large', 'xlarge'];
