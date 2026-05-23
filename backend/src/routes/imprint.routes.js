@@ -12,6 +12,27 @@ const { resolveTenantSlug } = require('../utils/tenantSlug');
 const { success, errors } = require('../utils/response');
 const controller = require('../controllers/imprint.controller');
 const activityTypeController = require('../controllers/imprintActivityType.controller');
+const Enrollment = require('../models/Enrollment');
+
+async function requirePaidEnrollment(req, res, next) {
+  try {
+    const userId = req.user._id || req.user.userId || req.user.id;
+    const tenantId = getCurrentTenantId();
+    const enrollment = await Enrollment.findOne({
+      userId,
+      tenantId,
+      paymentStatus: { $in: ['paid', 'free'] },
+      status: { $in: ['active', 'completed'] },
+      deleted: { $ne: true }
+    }).lean();
+    if (!enrollment) {
+      return res.status(403).json({ code: 403, message: '完成支付后可使用在场功能' });
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
 
 const uploadRoot = path.join(__dirname, '../../uploads');
 const tenantsRoot = path.join(uploadRoot, 'tenants');
@@ -91,7 +112,7 @@ router.get('/activity-types', authMiddleware, userTenantContext, activityTypeCon
 // 印记详情：可选认证，未登录可查看
 router.get('/:id', optionalAuthMiddleware, optionalUserOrPublicTenantContext, controller.detail);
 
-router.use(authMiddleware, userTenantContext);
+router.use(authMiddleware, userTenantContext, requirePaidEnrollment);
 
 // 图片上传（必须在 /:id 路由之前注册）
 router.post('/upload', setResolvedTenantId, upload.single('file'), (req, res) => {

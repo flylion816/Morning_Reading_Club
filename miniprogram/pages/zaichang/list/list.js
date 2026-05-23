@@ -1,4 +1,6 @@
 const imprintService = require('../../../services/imprint.service');
+const enrollmentService = require('../../../services/enrollment.service');
+const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../../utils/period-access');
 const { tenantStorage } = require('../../../utils/storage');
 const constants = require('../../../config/constants');
 
@@ -29,11 +31,18 @@ Page({
     typeList: DEFAULT_ACTIVITY_TYPES
   },
 
-  onLoad() {
-    if (tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
-      this.loadActivityTypes();
-      this.loadList(true);
+  async onLoad() {
+    if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) return;
+    const userEnrollments = await enrollmentService
+      .getUserEnrollments({ limit: 100 })
+      .catch(() => ({ list: [] }));
+    const enrollmentList = userEnrollments.list || userEnrollments || [];
+    if (!hasPaidEnrollment(enrollmentList)) {
+      redirectAfterCommunityDenied('/pages/index/index', '完成支付后可查看在场');
+      return;
     }
+    this.loadActivityTypes();
+    this.loadList(true);
   },
 
   onShow() {
@@ -152,9 +161,17 @@ Page({
     }
   },
 
-  onTapPublish() {
+  async onTapPublish() {
     if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
       wx.navigateTo({ url: '/pages/login/login' });
+      return;
+    }
+    const userEnrollments = await enrollmentService
+      .getUserEnrollments({ limit: 100 })
+      .catch(() => ({ list: [] }));
+    const enrollmentList = userEnrollments.list || userEnrollments || [];
+    if (!hasPaidEnrollment(enrollmentList)) {
+      wx.showToast({ title: '完成支付后可发布印记', icon: 'none' });
       return;
     }
     wx.navigateTo({ url: '/pages/zaichang/publish/publish' });
