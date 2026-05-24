@@ -289,6 +289,10 @@ function handlePageSizeChange() {
 }
 
 function handleCreate() {
+  if (!localStorage.getItem('admin_active_tenant')) {
+    ElMessage.warning('请先在右上角选择租户后再创建活动');
+    return;
+  }
   isEditMode.value = false;
   currentEditId.value = null;
   resetForm();

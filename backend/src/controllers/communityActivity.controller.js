@@ -280,6 +280,9 @@ exports.adminListActivities = async (req, res) => {
 exports.adminCreateActivity = async (req, res) => {
   try {
     const tenantId = getCurrentTenantId();
+    if (!tenantId) {
+      return res.status(400).json(errors.badRequest('请先在右上角选择租户后再创建活动'));
+    }
     const activity = await CommunityActivity.create({ ...req.body, tenantId });
     res.json(success(activity, '创建成功'));
   } catch (err) {
