@@ -167,5 +167,14 @@ Page({
       data: meetingId,
       success() { wx.showToast({ title: '会议号已复制', icon: 'success' }); }
     });
+  },
+
+  onShareAppMessage() {
+    const { activity, activityId } = this.data;
+    return {
+      title: activity ? activity.title : '活动详情',
+      path: `/pages/community-activity-detail/community-activity-detail?activityId=${activityId}`,
+      imageUrl: activity && activity.posterUrl ? activity.posterUrl : ''
+    };
   }
 });

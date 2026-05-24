@@ -53,28 +53,34 @@
 
     <!-- 底部操作栏 -->
     <view class="bottom-bar">
-      <view
-        wx:if="{{activity.computedStatus === 'cancelled' || activity.computedStatus === 'ended'}}"
-        class="action-btn disabled"
-      >
-        <text>{{activity.computedStatus === 'cancelled' ? '活动已取消' : '活动已结束'}}</text>
+      <view class="bottom-bar-inner">
+        <view
+          wx:if="{{activity.computedStatus === 'cancelled' || activity.computedStatus === 'ended'}}"
+          class="action-btn disabled"
+        >
+          <text>{{activity.computedStatus === 'cancelled' ? '活动已取消' : '活动已结束'}}</text>
+        </view>
+        <block wx:else>
+          <view
+            wx:if="{{!registered}}"
+            class="action-btn primary {{registering ? 'loading' : ''}}"
+            bindtap="handleRegister"
+          >
+            <text>{{registering ? '报名中...' : '立即报名'}}</text>
+          </view>
+          <view
+            wx:else
+            class="action-btn cancel {{registering ? 'loading' : ''}}"
+            bindtap="handleCancelRegister"
+          >
+            <text>{{registering ? '处理中...' : '取消报名'}}</text>
+          </view>
+        </block>
+        <button class="share-btn" open-type="share">
+          <text class="share-icon">↗</text>
+          <text class="share-text">分享</text>
+        </button>
       </view>
-      <block wx:else>
-        <view
-          wx:if="{{!registered}}"
-          class="action-btn primary {{registering ? 'loading' : ''}}"
-          bindtap="handleRegister"
-        >
-          <text>{{registering ? '报名中...' : '立即报名'}}</text>
-        </view>
-        <view
-          wx:else
-          class="action-btn cancel {{registering ? 'loading' : ''}}"
-          bindtap="handleCancelRegister"
-        >
-          <text>{{registering ? '处理中...' : '取消报名'}}</text>
-        </view>
-      </block>
     </view>
   </block>
 </view>

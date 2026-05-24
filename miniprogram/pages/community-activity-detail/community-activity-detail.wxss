@@ -185,7 +185,14 @@
   box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
 }
 
+.bottom-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
 .action-btn {
+  flex: 1;
   text-align: center;
   padding: 28rpx 0;
   border-radius: 16rpx;
@@ -197,3 +204,33 @@
 .action-btn.cancel { background: #f5f5f5; color: #666; }
 .action-btn.disabled { background: #e0e0e0; color: #999; }
 .action-btn.loading { opacity: 0.7; }
+
+.share-btn {
+  width: 120rpx;
+  min-width: 120rpx;
+  height: 88rpx;
+  background: #f0f2ff;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  line-height: 1;
+  gap: 4rpx;
+}
+
+.share-btn::after { border: none; }
+
+.share-icon {
+  font-size: 32rpx;
+  color: #667eea;
+  line-height: 1;
+}
+
+.share-text {
+  font-size: 22rpx;
+  color: #667eea;
+  line-height: 1;
+}

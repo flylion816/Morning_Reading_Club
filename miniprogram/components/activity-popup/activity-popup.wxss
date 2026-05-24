@@ -17,6 +17,25 @@
   width: 600rpx;
   overflow: hidden;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+
+.popup-close-btn {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  width: 56rpx;
+  height: 56rpx;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 28rpx;
+  z-index: 10;
+  line-height: 56rpx;
+  text-align: center;
 }
 
 .popup-cover {
@@ -69,12 +88,12 @@
   line-height: 1;
 }
 
-.popup-btn-close {
-  background: #f5f5f5;
-  color: #999;
+.popup-btn-close-text {
+  background: transparent;
+  color: #bbb;
   border-radius: 16rpx;
   font-size: 26rpx;
-  padding: 20rpx 0;
+  padding: 12rpx 0;
   border: none;
   line-height: 1;
 }

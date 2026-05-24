@@ -1,5 +1,6 @@
 <view class="popup-mask" wx:if="{{show}}" catchtap="handleClose">
   <view class="popup-card" catchtap="stopPropagation">
+    <view class="popup-close-btn" catchtap="handleClose">✕</view>
     <image
       wx:if="{{activity.posterUrl}}"
       class="popup-cover"
@@ -13,7 +14,7 @@
     </view>
     <view class="popup-actions">
       <button class="popup-btn-detail" bindtap="handleViewDetail">查看详情</button>
-      <button class="popup-btn-close" bindtap="handleClose">今天不再提示</button>
+      <button class="popup-btn-close-text" bindtap="handleClose">今天不再提示</button>
     </view>
   </view>
 </view>
