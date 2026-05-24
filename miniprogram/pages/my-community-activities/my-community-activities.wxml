@@ -1,0 +1,41 @@
+<view class="page-my-activities">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{activities.length === 0}}" class="empty-container">
+    <text class="empty-icon">📅</text>
+    <text class="empty-text">还没有报名任何活动</text>
+  </view>
+
+  <!-- 活动列表 -->
+  <view wx:else class="activity-list">
+    <view
+      wx:for="{{activities}}"
+      wx:key="_id"
+      class="activity-item"
+      bindtap="handleGoDetail"
+      data-id="{{item._id}}"
+    >
+      <image
+        wx:if="{{item.posterUrl}}"
+        class="item-poster"
+        src="{{item.posterUrl}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="item-poster-placeholder">
+        <text>📆</text>
+      </view>
+      <view class="item-info">
+        <text class="item-title">{{item.title}}</text>
+        <text class="item-time">{{item.startTimeFormatted}}</text>
+        <view class="item-status status-{{item.statusType}}">
+          <text>{{item.statusLabel}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -31,7 +31,9 @@
     "pages/podcast-player/podcast-player",
     "pages/zaichang/list/list",
     "pages/zaichang/detail/detail",
-    "pages/zaichang/publish/publish"
+    "pages/zaichang/publish/publish",
+    "pages/community-activity-detail/community-activity-detail",
+    "pages/my-community-activities/my-community-activities"
   ],
   "window": {
     "navigationBarTitleText": "凡人共读",

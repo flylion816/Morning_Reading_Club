@@ -1,0 +1,19 @@
+<view class="popup-mask" wx:if="{{show}}" catchtap="handleClose">
+  <view class="popup-card" catchtap="stopPropagation">
+    <image
+      wx:if="{{activity.posterUrl}}"
+      class="popup-cover"
+      src="{{activity.posterUrl}}"
+      mode="widthFix"
+    />
+    <view class="popup-body">
+      <view class="popup-type-tag">{{typeLabel}}</view>
+      <view class="popup-title">{{activity.title}}</view>
+      <view class="popup-time">{{timeText}}</view>
+    </view>
+    <view class="popup-actions">
+      <button class="popup-btn-detail" bindtap="handleViewDetail">查看详情</button>
+      <button class="popup-btn-close" bindtap="handleClose">今天不再提示</button>
+    </view>
+  </view>
+</view>

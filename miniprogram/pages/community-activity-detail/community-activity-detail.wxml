@@ -1,0 +1,80 @@
+<view class="page-activity-detail">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:if="{{!loading && activity}}">
+    <!-- 海报图 -->
+    <image
+      wx:if="{{activity.posterUrl}}"
+      class="poster-image"
+      src="{{activity.posterUrl}}"
+      mode="widthFix"
+    />
+
+    <!-- 基本信息卡片 -->
+    <view class="info-card">
+      <view class="type-tag type-{{activity.type}}">{{typeMap[activity.type] || activity.type}}</view>
+      <text class="activity-title">{{activity.title}}</text>
+      <view class="time-row">
+        <text class="time-label">开始</text>
+        <text class="time-value">{{activity.startTimeFormatted}}</text>
+      </view>
+      <view class="time-row" wx:if="{{activity.endTimeFormatted}}">
+        <text class="time-label">结束</text>
+        <text class="time-value">{{activity.endTimeFormatted}}</text>
+      </view>
+      <view class="count-row">
+        <text class="count-text">已报名 {{activity.registrationCount || 0}} 人</text>
+        <text wx:if="{{activity.maxParticipants > 0}}" class="count-limit"> / 上限 {{activity.maxParticipants}} 人</text>
+      </view>
+    </view>
+
+    <!-- 腾讯会议区域（活动开始前30分钟到结束后显示） -->
+    <view wx:if="{{showMeeting}}" class="meeting-card">
+      <text class="meeting-title">腾讯会议</text>
+      <view wx:if="{{activity.meetingId}}" class="meeting-id-row">
+        <text class="meeting-id-label">会议号：</text>
+        <text class="meeting-id-value">{{activity.meetingId}}</text>
+      </view>
+      <view class="meeting-actions">
+        <view class="meeting-btn primary" bindtap="handleJoinMeeting">加入腾讯会议</view>
+        <view wx:if="{{activity.meetingId}}" class="meeting-btn secondary" bindtap="handleCopyMeetingId">复制会议号</view>
+      </view>
+    </view>
+
+    <!-- 活动描述 -->
+    <view wx:if="{{activity.description}}" class="desc-card">
+      <text class="desc-title">活动介绍</text>
+      <rich-text class="desc-content" nodes="{{activity.description}}" />
+    </view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-bar">
+      <view
+        wx:if="{{activity.computedStatus === 'cancelled' || activity.computedStatus === 'ended'}}"
+        class="action-btn disabled"
+      >
+        <text>{{activity.computedStatus === 'cancelled' ? '活动已取消' : '活动已结束'}}</text>
+      </view>
+      <block wx:else>
+        <view
+          wx:if="{{!registered}}"
+          class="action-btn primary {{registering ? 'loading' : ''}}"
+          bindtap="handleRegister"
+        >
+          <text>{{registering ? '报名中...' : '立即报名'}}</text>
+        </view>
+        <view
+          wx:else
+          class="action-btn cancel {{registering ? 'loading' : ''}}"
+          bindtap="handleCancelRegister"
+        >
+          <text>{{registering ? '处理中...' : '取消报名'}}</text>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>

@@ -179,6 +179,10 @@ Page({
     });
   },
 
+  goToMyActivities() {
+    wx.navigateTo({ url: '/pages/my-community-activities/my-community-activities' });
+  },
+
   goToLogin() {
     wx.navigateTo({ url: '/pages/login/login' });
   }

@@ -51,6 +51,7 @@ const { initRedisClient, startSyncListener } = require('./services/sync.service'
 const backupService = require('./services/backup.service');
 const studyReminderService = require('./services/study-reminder.service');
 const periodStatusService = require('./services/period-status.service');
+const activityReminderService = require('./services/activity-reminder.service');
 
 // 现在 app.js 可以安全加载，NODE_ENV 已经被正确设置
 const app = require('./app');
@@ -188,6 +189,9 @@ async function startServer() {
 
       studyReminderService.startStudyReminderSchedules();
       logger.info('✅ 明日学习提醒定时任务已启动（05:45 首发，06:00 重试）');
+
+      activityReminderService.startActivityReminderSchedule();
+      logger.info('✅ 活动 10 分钟提醒定时任务已启动（每分钟检查一次）');
 
       logger.info('正在初始化数据备份服务...');
       backupService

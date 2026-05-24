@@ -6,6 +6,7 @@ const enrollmentService = require('../../services/enrollment.service');
 const checkinService = require('../../services/checkin.service');
 const notificationServiceModule = require('../../services/notification.service');
 const activityService = require('../../services/activity.service');
+const communityActivityService = require('../../services/communityActivity.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
@@ -217,6 +218,11 @@ Page({
     // 加载状态
     loading: true,
 
+    // 活动弹窗
+    showActivityPopup: false,
+    popupActivity: null,
+    upcomingActivities: [],
+
     // 编辑个人信息相关
     showEditProfile: false,
     isSavingProfile: false,
@@ -323,6 +329,8 @@ Page({
       if (isLogin && refreshUserData) {
         this.loadUserData(true);
         this.loadUnreadNotificationCount();
+        this.loadPopupActivity();
+        this.loadUpcomingActivities();
       }
     });
   },
@@ -500,6 +508,7 @@ Page({
       const displayUserInfo = decorateUserAvatar(userInfo);
       const app = getApp();
       app.globalData.userInfo = displayUserInfo;
+      tenantStorage.set(constants.STORAGE_KEYS.USER_INFO, displayUserInfo);
 
       // 计算当前期次
       const periodsList = periods.list || periods.items || periods || [];
@@ -1894,6 +1903,64 @@ Page({
   formatJoinDate(date) {
     if (!date) return '';
     return '加入于 ' + formatDate(date, 'YYYY-MM-DD');
+  },
+
+  loadPopupActivity() {
+    communityActivityService.getPopup()
+      .then(res => {
+        const activity = res && (res.data || res);
+        if (!activity || !activity._id) return;
+        const key = 'activity_popup_shown';
+        const stored = wx.getStorageSync(key) || {};
+        const today = new Date().toISOString().slice(0, 10);
+        if (stored.activityId === activity._id && stored.date === today) return;
+        this.setData({ showActivityPopup: true, popupActivity: activity });
+      })
+      .catch(() => {});
+  },
+
+  loadUpcomingActivities() {
+    communityActivityService.getList({ pageSize: 2 })
+      .then(res => {
+        const data = res && (res.data || res);
+        const items = (data && (data.list || data.items || (Array.isArray(data) ? data : []))) || [];
+        const formatted = items.slice(0, 2).map(a => {
+          let startTimeText = '';
+          if (a.startTime) {
+            const d = new Date(a.startTime);
+            const mo = d.getMonth() + 1;
+            const day = d.getDate();
+            const h = String(d.getHours()).padStart(2, '0');
+            const m = String(d.getMinutes()).padStart(2, '0');
+            startTimeText = `${mo}月${day}日 ${h}:${m}`;
+          }
+          return { ...a, startTimeText };
+        });
+        this.setData({ upcomingActivities: formatted });
+      })
+      .catch(() => {});
+  },
+
+  handlePopupClose() {
+    const activity = this.data.popupActivity;
+    if (activity && activity._id) {
+      const today = new Date().toISOString().slice(0, 10);
+      wx.setStorageSync('activity_popup_shown', { activityId: activity._id, date: today });
+    }
+    this.setData({ showActivityPopup: false });
+  },
+
+  handlePopupViewDetail() {
+    const activity = this.data.popupActivity;
+    this.handlePopupClose();
+    if (activity && activity._id) {
+      wx.navigateTo({ url: `/pages/community-activity-detail/community-activity-detail?activityId=${activity._id}` });
+    }
+  },
+
+  handleActivityCardTap(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/community-activity-detail/community-activity-detail?activityId=${id}` });
   },
 
   /**

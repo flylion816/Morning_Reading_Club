@@ -209,6 +209,27 @@ const sceneConfigs = {
       publishTime:  'time3'
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_PODCAST_PUBLISHED'
+  },
+  activity_reminder: {
+    scene: 'activity_reminder',
+    title: '活动开始通知',
+    description: '活动开始前10分钟提醒已报名用户',
+    templateId: 'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
+    page: 'pages/community-activity-detail/community-activity-detail',
+    autoTopUpTarget: 1,
+    fieldDefinitions: [
+      { name: 'activityName',    label: '活动名称' },
+      { name: 'activityContent', label: '活动内容' },
+      { name: 'startTime',       label: '开始时间' },
+      { name: 'joinMethod',      label: '参与方式' }
+    ],
+    defaultFieldKeyMap: {
+      activityName:    'thing4',
+      activityContent: 'thing2',
+      startTime:       'date3',
+      joinMethod:      'thing12'
+    },
+    fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_ACTIVITY_REMINDER'
   }
 };
 
