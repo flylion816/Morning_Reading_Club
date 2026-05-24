@@ -225,6 +225,13 @@ import { uploadApi } from '../services/api';
 
 const BASE_URL = '/api/v1/admin/community-activities';
 
+function getHeaders() {
+  const headers: Record<string, string> = getHeaders();
+  const activeTenant = localStorage.getItem('admin_active_tenant');
+  if (activeTenant) headers['X-Active-Tenant'] = activeTenant;
+  return headers;
+}
+
 const loading = ref(false);
 const submitting = ref(false);
 const activities = ref([]);
@@ -271,7 +278,7 @@ async function loadActivities() {
   try {
     const res = await axios.get(BASE_URL, {
       params: { page: pagination.value.page, pageSize: pagination.value.pageSize },
-      headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      headers: getHeaders()
     });
     const data = res.data?.data ?? res.data;
     activities.value = data?.list ?? data?.data ?? (Array.isArray(data) ? data : []);
@@ -333,7 +340,7 @@ async function handleSubmit() {
         popupStartTime: formData.popupStartTime ? new Date(formData.popupStartTime).toISOString() : null,
         popupEndTime: formData.popupEndTime ? new Date(formData.popupEndTime).toISOString() : null
       };
-      const headers = { Authorization: `Bearer ${localStorage.getItem('adminToken')}` };
+      const headers = getHeaders();
       if (isEditMode.value && currentEditId.value) {
         await axios.put(`${BASE_URL}/${currentEditId.value}`, payload, { headers });
         ElMessage.success('活动更新成功');
@@ -359,7 +366,7 @@ function handleDelete(row: any) {
   }).then(async () => {
     try {
       await axios.delete(`${BASE_URL}/${row._id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+        headers: getHeaders()
       });
       ElMessage.success('活动删除成功');
       await loadActivities();
@@ -375,7 +382,7 @@ async function handleViewRegistrations(row: any) {
   registrations.value = [];
   try {
     const res = await axios.get(`${BASE_URL}/${row._id}/registrations`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      headers: getHeaders()
     });
     const data = res.data?.data ?? res.data;
     registrations.value = Array.isArray(data) ? data : (data?.list ?? []);
