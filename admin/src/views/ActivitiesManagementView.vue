@@ -217,20 +217,12 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { ref, reactive, onMounted } from 'vue';
-import axios from 'axios';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
-import { uploadApi } from '../services/api';
+import { apiClient, uploadApi } from '../services/api';
 
-const BASE_URL = '/api/v1/admin/community-activities';
-
-function getHeaders() {
-  const headers: Record<string, string> = getHeaders();
-  const activeTenant = localStorage.getItem('admin_active_tenant');
-  if (activeTenant) headers['X-Active-Tenant'] = activeTenant;
-  return headers;
-}
+const BASE_URL = 'admin/community-activities';
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -276,15 +268,13 @@ onMounted(() => {
 async function loadActivities() {
   loading.value = true;
   try {
-    const res = await axios.get(BASE_URL, {
-      params: { page: pagination.value.page, pageSize: pagination.value.pageSize },
-      headers: getHeaders()
+    const data = await apiClient.get(BASE_URL, {
+      params: { page: pagination.value.page, pageSize: pagination.value.pageSize }
     });
-    const data = res.data?.data ?? res.data;
-    activities.value = data?.list ?? data?.data ?? (Array.isArray(data) ? data : []);
-    pagination.value.total = data?.total ?? data?.pagination?.total ?? 0;
+    activities.value = data?.list ?? (Array.isArray(data) ? data : []);
+    pagination.value.total = data?.total ?? 0;
   } catch (err: any) {
-    ElMessage.error(err?.response?.data?.message || '加载活动列表失败');
+    ElMessage.error(err?.message || '加载活动列表失败');
   } finally {
     loading.value = false;
   }
@@ -340,18 +330,17 @@ async function handleSubmit() {
         popupStartTime: formData.popupStartTime ? new Date(formData.popupStartTime).toISOString() : null,
         popupEndTime: formData.popupEndTime ? new Date(formData.popupEndTime).toISOString() : null
       };
-      const headers = getHeaders();
       if (isEditMode.value && currentEditId.value) {
-        await axios.put(`${BASE_URL}/${currentEditId.value}`, payload, { headers });
+        await apiClient.put(`${BASE_URL}/${currentEditId.value}`, payload);
         ElMessage.success('活动更新成功');
       } else {
-        await axios.post(BASE_URL, payload, { headers });
+        await apiClient.post(BASE_URL, payload);
         ElMessage.success('活动创建成功');
       }
       dialogVisible.value = false;
       await loadActivities();
     } catch (err: any) {
-      ElMessage.error(err?.response?.data?.message || '操作失败');
+      ElMessage.error(err?.message || '操作失败');
     } finally {
       submitting.value = false;
     }
@@ -365,13 +354,11 @@ function handleDelete(row: any) {
     type: 'warning'
   }).then(async () => {
     try {
-      await axios.delete(`${BASE_URL}/${row._id}`, {
-        headers: getHeaders()
-      });
+      await apiClient.delete(`${BASE_URL}/${row._id}`);
       ElMessage.success('活动删除成功');
       await loadActivities();
     } catch (err: any) {
-      ElMessage.error(err?.response?.data?.message || '删除失败');
+      ElMessage.error(err?.message || '删除失败');
     }
   }).catch(() => {});
 }
@@ -381,13 +368,10 @@ async function handleViewRegistrations(row: any) {
   registrationsLoading.value = true;
   registrations.value = [];
   try {
-    const res = await axios.get(`${BASE_URL}/${row._id}/registrations`, {
-      headers: getHeaders()
-    });
-    const data = res.data?.data ?? res.data;
+    const data = await apiClient.get(`${BASE_URL}/${row._id}/registrations`);
     registrations.value = Array.isArray(data) ? data : (data?.list ?? []);
   } catch (err: any) {
-    ElMessage.error(err?.response?.data?.message || '加载报名名单失败');
+    ElMessage.error(err?.message || '加载报名名单失败');
   } finally {
     registrationsLoading.value = false;
   }
