@@ -85,8 +85,28 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="海报图 URL" prop="posterUrl">
-            <el-input v-model="formData.posterUrl" placeholder="海报图片地址" clearable />
+          <el-form-item label="海报图" prop="posterUrl">
+            <div style="display: flex; gap: 8px; align-items: flex-start; width: 100%;">
+              <el-input
+                v-model="formData.posterUrl"
+                placeholder="海报图片地址"
+                clearable
+                style="flex: 1"
+              />
+              <el-upload
+                :show-file-list="false"
+                :before-upload="() => false"
+                accept="image/*"
+                @change="handlePosterUpload"
+              >
+                <el-button :loading="posterUploading" type="default">
+                  {{ posterUploading ? '上传中...' : '上传图片' }}
+                </el-button>
+              </el-upload>
+            </div>
+            <div v-if="formData.posterUrl" style="margin-top: 8px;">
+              <img :src="formData.posterUrl" style="max-width: 200px; max-height: 120px; border-radius: 4px; border: 1px solid #e4e7ed;" />
+            </div>
           </el-form-item>
 
           <el-form-item label="开始时间" prop="startTime">
@@ -201,6 +221,7 @@ import axios from 'axios';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
+import { uploadApi } from '../services/api';
 
 const BASE_URL = '/api/v1/admin/community-activities';
 
@@ -215,6 +236,7 @@ const formRef = ref<FormInstance>();
 const registrationsVisible = ref(false);
 const registrationsLoading = ref(false);
 const registrations = ref([]);
+const posterUploading = ref(false);
 
 const pagination = ref({ page: 1, pageSize: 20, total: 0 });
 
@@ -357,6 +379,28 @@ async function handleViewRegistrations(row: any) {
     ElMessage.error(err?.response?.data?.message || '加载报名名单失败');
   } finally {
     registrationsLoading.value = false;
+  }
+}
+
+async function handlePosterUpload(uploadFile: any) {
+  const file: File = uploadFile.raw;
+  if (!file) return;
+  posterUploading.value = true;
+  try {
+    const res = await uploadApi.uploadFile(file) as any;
+    const url = res?.url || res?.data?.url;
+    if (url) {
+      const backendHost = import.meta.env.VITE_BACKEND_URL ||
+        (import.meta.env.DEV ? 'http://localhost:3000' : 'https://wx.shubai01.com');
+      formData.posterUrl = url.startsWith('http') ? url : `${backendHost}${url}`;
+      ElMessage.success('图片上传成功');
+    } else {
+      ElMessage.error('上传失败：未获取到图片地址');
+    }
+  } catch (e: any) {
+    ElMessage.error('图片上传失败');
+  } finally {
+    posterUploading.value = false;
   }
 }
 
