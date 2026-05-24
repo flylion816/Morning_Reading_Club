@@ -124,12 +124,12 @@ exports.registerActivity = async (req, res) => {
       return res.status(403).json(errors.forbidden('活动未开放报名'));
     }
 
-    if (activity.maxAttendees > 0) {
+    if (activity.maxParticipants > 0) {
       const count = await ActivityRegistration.countDocuments({
         activityId: id,
         status: 'registered'
       });
-      if (count >= activity.maxAttendees) {
+      if (count >= activity.maxParticipants) {
         return res.status(400).json(errors.badRequest('活动名额已满'));
       }
     }

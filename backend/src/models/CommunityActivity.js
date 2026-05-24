@@ -23,7 +23,7 @@ const CommunityActivitySchema = new mongoose.Schema(
     },
 
     // 海报图 URL
-    coverImage: {
+    posterUrl: {
       type: String,
       default: null
     },
@@ -41,7 +41,7 @@ const CommunityActivitySchema = new mongoose.Schema(
 
     endTime: {
       type: Date,
-      required: true
+      default: null
     },
 
     // 腾讯会议号
@@ -57,7 +57,7 @@ const CommunityActivitySchema = new mongoose.Schema(
     },
 
     // 0 = 不限
-    maxAttendees: {
+    maxParticipants: {
       type: Number,
       default: 0,
       min: 0
