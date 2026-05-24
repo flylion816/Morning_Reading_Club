@@ -220,7 +220,7 @@ import { ref, reactive, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
-import { apiClient, uploadApi } from '../services/api';
+import apiClient, { uploadApi } from '../services/api';
 
 const BASE_URL = 'admin/community-activities';
 
