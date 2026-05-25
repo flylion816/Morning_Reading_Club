@@ -8,24 +8,13 @@
     <view class="header-desc">{{headerDesc}}</view>
   </view>
 
-  <!-- Tab 栏：仅在查看自己时显示 -->
-  <view class="insight-tab-bar" wx:if="{{!isOtherUser}}">
-    <view
-      class="insight-tab {{activeTab === 'mine' ? 'insight-tab-active' : ''}}"
-      bindtap="switchTab"
-      data-tab="mine">我的</view>
-    <view
-      class="insight-tab {{activeTab === 'others' ? 'insight-tab-active' : ''}}"
-      bindtap="switchTab"
-      data-tab="others">他人的</view>
-  </view>
-
-  <!-- 搜索框：仅在查看自己时显示 -->
+  <!-- 搜索框：仅在查看自己时显示，放在 tab 上方 -->
   <view class="insight-search-bar" wx:if="{{!isOtherUser}}">
     <view class="insight-search-input-wrap">
       <input
         class="insight-search-input"
-        placeholder="搜索标题、内容..."
+        placeholder="在标题、内容中搜索关键词"
+        placeholder-style="color:#bbb"
         value="{{searchKeyword}}"
         bindinput="onSearchInput"
         bindconfirm="onSearchSubmit"
@@ -37,6 +26,18 @@
         catchtap="onSearchClear">×</view>
     </view>
     <view class="insight-search-btn" catchtap="onSearchSubmit">搜索</view>
+  </view>
+
+  <!-- Tab 栏：仅在查看自己时显示 -->
+  <view class="insight-tab-bar" wx:if="{{!isOtherUser}}">
+    <view
+      class="insight-tab {{activeTab === 'mine' ? 'insight-tab-active' : ''}}"
+      bindtap="switchTab"
+      data-tab="mine">我的</view>
+    <view
+      class="insight-tab {{activeTab === 'others' ? 'insight-tab-active' : ''}}"
+      bindtap="switchTab"
+      data-tab="others">他人的</view>
   </view>
 
   <view class="insights-list">

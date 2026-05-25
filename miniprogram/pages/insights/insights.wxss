@@ -378,7 +378,7 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
 }
 
 .insight-search-input-wrap {
