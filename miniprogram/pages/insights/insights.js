@@ -417,7 +417,12 @@ Page({
         });
       }));
 
-      allRaw.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      allRaw.sort((a, b) => {
+        const dayA = a.day || a.sectionId?.day || -1;
+        const dayB = b.day || b.sectionId?.day || -1;
+        if (dayB !== dayA) return dayB - dayA;
+        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+      });
 
       const app = getApp();
       const periods = app.globalData.periods || [];

@@ -783,11 +783,17 @@ async function getUserInsights(req, res, next) {
       .populate('periodId', 'name title')
       .populate('userId', 'nickname avatar avatarUrl _id')
       .populate('targetUserId', 'nickname avatar avatarUrl _id')
-      .sort({ updatedAt: -1, createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
       .select('-__v')
       .exec();
+
+    insights.sort((a, b) => {
+      const dayA = a.sectionId?.day ?? -1;
+      const dayB = b.sectionId?.day ?? -1;
+      if (dayB !== dayA) return dayB - dayA;
+      return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+    });
 
     const serializedList = insights.map(insight =>
       serializeInsightForViewer(insight, {
@@ -2827,9 +2833,15 @@ async function searchInsights(req, res, next) {
       .populate('periodId', 'name title')
       .populate('userId', 'nickname avatar avatarUrl _id')
       .populate('targetUserId', 'nickname avatar avatarUrl _id')
-      .sort({ updatedAt: -1, createdAt: -1 })
       .limit(limitNum)
       .exec();
+
+    insights.sort((a, b) => {
+      const dayA = a.sectionId?.day ?? -1;
+      const dayB = b.sectionId?.day ?? -1;
+      if (dayB !== dayA) return dayB - dayA;
+      return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+    });
 
     const serializedList = insights.map(insight =>
       serializeInsightForViewer(insight, {
