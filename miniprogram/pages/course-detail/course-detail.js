@@ -120,6 +120,7 @@ Page({
     commentExpanded: {},
     commentLoading: {},
     notificationReminder: '',
+    searchKeyword: '',
     isCheckinDetailMode: false,
     detailCheckin: null,
     posterGenerating: false,
@@ -171,6 +172,7 @@ Page({
       courseId: options.id,
       showPageContent: false,
       periodId: options.periodId || null,
+      searchKeyword: options.keyword ? decodeURIComponent(options.keyword) : '',
       paymentStatus: null,
       canAccessCommunity: false,
       communityAccessState: 'locked',
@@ -228,6 +230,13 @@ Page({
     this._hasRevealedContent = true;
     if (!this.data.showPageContent) {
       this.setData({ showPageContent: true });
+    }
+    // 有搜索关键词时自动展开读一读并滚动到内容区
+    if (this.data.searchKeyword && !this.data.isCheckinDetailMode) {
+      this.setData({ readingContentExpanded: true });
+      setTimeout(() => {
+        wx.pageScrollTo({ selector: '#reading-section', duration: 300, offsetTop: -8 });
+      }, 500);
     }
     if (this._scrollAnchor === 'podcast') {
       setTimeout(() => {
@@ -441,6 +450,17 @@ Page({
    * 清理 HTML，使其与小程序 rich-text 兼容
    * 小程序 rich-text 支持：p、br、strong、em、u、s、span、img、a、li、ol、ul 等标签
    */
+  _highlightKeyword(html, keyword) {
+    if (!html || !keyword) return html;
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(${escaped})`, 'gi');
+    return html.replace(/(<[^>]*>)|([^<]+)/g, (match, tag, text) => {
+      if (tag) return tag;
+      if (!text) return match;
+      return text.replace(re, '<span style="font-weight:bold;background:#fff3b0;color:#b45309">$1</span>');
+    });
+  },
+
   cleanHtmlForRichText(content) {
     if (!content) return '';
 
@@ -739,6 +759,13 @@ Page({
     );
     const id = this.normalizeId(checkin._id || checkin.id);
     const content = checkin.note || checkin.content || '';
+    const kw = this.data.searchKeyword;
+    const contentHtml = kw
+      ? this._highlightKeyword(
+          content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'),
+          kw
+        )
+      : '';
 
     return {
       id,
@@ -763,6 +790,7 @@ Page({
       avatarColor:
         checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
       content,
+      contentHtml,
       canExpandContent: this.shouldFoldCheckinContent(content),
       contentExpanded: !!this.data.checkinContentExpanded[id],
       createTime:
@@ -857,7 +885,7 @@ Page({
       canExpandContent:
         checkin.canExpandContent ||
         this.shouldFoldCheckinContent(checkin.content),
-      contentExpanded: !!this.data.checkinContentExpanded[checkinId]
+      contentExpanded: !!this.data.checkinContentExpanded[checkinId] || !!this.data.searchKeyword
     };
   },
 
@@ -1881,6 +1909,10 @@ Page({
       // 如果是富文本内容（content），清理 HTML
       if (module === 'content' && course[module]) {
         course[module] = this.cleanHtmlForRichText(course[module]);
+        const kw = this.data.searchKeyword;
+        if (kw) {
+          course[module] = this._highlightKeyword(course[module], kw);
+        }
         console.log(
           '✅ 已清理富文本 HTML:',
           course[module].substring(0, 100) + '...'

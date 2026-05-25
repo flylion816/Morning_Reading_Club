@@ -177,6 +177,10 @@ class CheckinService {
   getMultipleCheckins(courseIds) {
     return request.post('/checkins/batch', { courseIds });
   }
+
+  searchCheckins(params = {}) {
+    return request.get('/checkins/search', params);
+  }
 }
 
 module.exports = new CheckinService();

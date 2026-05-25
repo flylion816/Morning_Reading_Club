@@ -1689,3 +1689,31 @@ page {
   font-size: 26rpx;
   color: #f97316;
 }
+
+.search-keyword-bar {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #fffbeb;
+  border: 1rpx solid #fcd34d;
+  border-radius: 8rpx;
+  padding: 12rpx 20rpx;
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+  flex-wrap: wrap;
+}
+
+.search-keyword-label {
+  color: #92400e;
+  font-weight: 500;
+}
+
+.search-keyword-text {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.search-keyword-hint {
+  color: #a16207;
+  font-size: 24rpx;
+}

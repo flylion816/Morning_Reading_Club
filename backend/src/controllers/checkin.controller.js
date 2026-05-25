@@ -1065,12 +1065,62 @@ async function unlikeCheckin(req, res, next) {
   }
 }
 
+// 搜索期次内的打卡（按笔记关键词）
+async function searchCheckins(req, res, next) {
+  try {
+    const { periodId, keyword, limit: limitParam = 50 } = req.query;
+
+    if (!periodId) {
+      return res.status(400).json({ code: 400, message: 'periodId 不能为空' });
+    }
+
+    const trimmedKeyword = (keyword || '').trim();
+    if (!trimmedKeyword) {
+      return res.status(400).json({ code: 400, message: '请输入搜索关键词' });
+    }
+
+    const limit = Math.min(parseInt(limitParam, 10) || 50, 100);
+
+    // 验证期次存在
+    const period = await Period.findById(periodId);
+    if (!period) {
+      return res.json(success({ list: [], total: 0, keyword: trimmedKeyword }));
+    }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      getRequestUserId(req),
+      periodId
+    );
+    if (!hasCommunityAccess) return;
+
+    const query = {
+      periodId,
+      isPublic: true,
+      note: { $regex: trimmedKeyword, $options: 'i' }
+    };
+
+    const checkins = await Checkin.find(query)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('sectionId', 'title day')
+      .populate('likes.userId', 'nickname avatar avatarUrl')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('-__v');
+
+    res.json(success({ list: checkins, total: checkins.length, keyword: trimmedKeyword }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createCheckin,
   getCheckins,
   getUserCheckins,
   getUserCheckinSummary,
   getPeriodCheckins,
+  searchCheckins,
   getCheckinDetail,
   updateCheckin,
   deleteCheckin,

@@ -17,6 +17,7 @@ const {
 const {
   getSectionsByPeriod,
   getSectionDetail,
+  searchSections,
   markReadingCompletion,
   createSection,
   updateSection,
@@ -100,6 +101,13 @@ router.post('/external/sync-podcast', publicTenantContext, syncPodcast);
  * @access  Public / Optional Auth
  */
 router.get('/period/:periodId', optionalAuthMiddleware, optionalAdminAuthMiddleware, optionalAdminOrPublicTenantContext, getSectionsByPeriod);
+
+/**
+ * @route   GET /api/v1/sections/search
+ * @desc    搜索课节正文内容（读一读）
+ * @access  Auth
+ */
+router.get('/search', authMiddleware, userTenantContext, searchSections);
 
 /**
  * @route   POST /api/v1/sections/:sectionId/reading-completion

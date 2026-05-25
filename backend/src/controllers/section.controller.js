@@ -663,10 +663,54 @@ async function syncPodcast(req, res, next) {
   }
 }
 
+async function searchSections(req, res, next) {
+  try {
+    const { periodId, keyword } = req.query;
+    if (!periodId || !keyword || !keyword.trim()) {
+      return res.status(400).json(errors.badRequest('periodId 和 keyword 为必填项'));
+    }
+    const trimmedKeyword = keyword.trim();
+
+    const period = await Period.findById(periodId);
+    if (!period) {
+      return res.status(404).json(errors.notFound('期次不存在'));
+    }
+
+    const sections = await Section.find({
+      periodId,
+      isPublished: true,
+      content: { $regex: trimmedKeyword, $options: 'i' }
+    })
+      .sort({ day: 1, order: 1, sortOrder: 1 })
+      .select('-content -__v')
+      .lean();
+
+    const sectionIds = sections.map(s => s._id);
+    const checkinCounts = sectionIds.length > 0
+      ? await Checkin.aggregate([
+          { $match: { sectionId: { $in: sectionIds }, isPublic: true } },
+          { $group: { _id: '$sectionId', count: { $sum: 1 } } }
+        ])
+      : [];
+    const checkinCountMap = new Map(checkinCounts.map(item => [String(item._id), item.count]));
+    const readingCompletionMap = await getReadingCompletionMap(getRequestUserId(req), sectionIds);
+
+    const list = sections.map(section => ({
+      ...attachReadingCompletion(section, readingCompletionMap),
+      checkinCount: checkinCountMap.get(String(section._id)) || 0
+    }));
+
+    res.json(success({ list, total: list.length, keyword: trimmedKeyword }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getSectionsByPeriod,
   getAllSectionsByPeriod,
   getSectionDetail,
+  searchSections,
   markReadingCompletion,
   createSection,
   updateSection,

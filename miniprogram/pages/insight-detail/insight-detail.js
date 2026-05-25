@@ -551,14 +551,12 @@ Page({
 
   _highlightKeyword(html, keyword) {
     if (!html || !keyword) return html;
-    // 转义关键词里的正则特殊字符
     const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = new RegExp(`(${escaped})`, 'gi');
-    // 只替换标签外的文本节点内容，避免破坏 HTML 属性
-    return html.replace(/>([^<]*)</g, (match, text) => {
+    return html.replace(/(<[^>]*>)|([^<]+)/g, (match, tag, text) => {
+      if (tag) return tag;
       if (!text) return match;
-      const highlighted = text.replace(re, '<span style="font-weight:bold;background:#fff3b0;color:#b45309">$1</span>');
-      return `>${highlighted}<`;
+      return text.replace(re, '<span style="font-weight:bold;background:#fff3b0;color:#b45309">$1</span>');
     });
   },
 

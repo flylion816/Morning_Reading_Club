@@ -33,6 +33,23 @@
     </view>
   </view>
 
+  <!-- 搜索框 -->
+  <view class="course-search-bar" wx:if="{{communityAccessState === 'enabled'}}">
+    <view class="course-search-input-wrap">
+      <input
+        class="course-search-input"
+        placeholder="在标题、内容中搜索关键词"
+        placeholder-style="color:#bbb"
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchSubmit"
+        confirm-type="search"
+      />
+      <view class="course-search-clear" wx:if="{{searchKeyword}}" catchtap="onSearchClear">×</view>
+    </view>
+    <view class="course-search-btn" catchtap="onSearchSubmit">搜索</view>
+  </view>
+
   <!-- Tab切换 -->
   <view class="tabs-container" wx:if="{{communityAccessState === 'enabled'}}">
     <view class="tabs">
@@ -67,7 +84,7 @@
       <!-- 课节列表 -->
       <view class="sections-container">
         <view
-          wx:for="{{sections}}"
+          wx:for="{{isSearchMode ? filteredSections : sections}}"
           wx:key="id"
           class="section-card"
           bindtap="handleSectionClick"
@@ -117,8 +134,14 @@
           <text class="checkins-count" wx:if="{{checkinTotal > 0}}">（{{checkinTotal}} 条）</text>
         </view>
 
+        <!-- 搜索加载状态 -->
+        <view class="empty-state" wx:if="{{searchLoading}}">
+          <text class="empty-state-icon">🔍</text>
+          <text class="empty-state-text">搜索中...</text>
+        </view>
+
         <view class="checkins-list">
-          <view class="checkin-item" wx:for="{{allCheckins}}" wx:key="id" bindtap="handleCheckinItemTap" data-checkin-id="{{item.id}}" data-section-id="{{item.sectionId}}">
+          <view class="checkin-item" wx:for="{{isSearchMode ? searchCheckins : allCheckins}}" wx:key="id" bindtap="handleCheckinItemTap" data-checkin-id="{{item.id}}" data-section-id="{{item.sectionId}}">
             <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
               <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
               <text wx:else class="avatar-text">{{item.avatarText || item.userName}}</text>
@@ -144,17 +167,17 @@
         </view>
 
         <!-- 加载更多 -->
-        <view class="checkin-load-more" wx:if="{{checkinHasMore}}">
+        <view class="checkin-load-more" wx:if="{{checkinHasMore && !isSearchMode}}">
           <button class="checkin-load-more-btn" bindtap="handleLoadMoreCheckins" loading="{{checkinLoadingMore}}">加载更多</button>
         </view>
         <!-- 没有更多 -->
-        <view class="checkin-no-more" wx:if="{{!checkinHasMore && allCheckins.length > 0}}">
+        <view class="checkin-no-more" wx:if="{{!checkinHasMore && allCheckins.length > 0 && !isSearchMode}}">
           <text>没有更多打卡记录了</text>
         </view>
       </view>
 
       <!-- 空状态 -->
-      <view wx:if="{{allCheckins.length === 0}}" class="empty-state">
+      <view wx:if="{{(isSearchMode ? searchCheckins.length === 0 : allCheckins.length === 0)}}" class="empty-state">
         <text class="empty-state-icon">📝</text>
         <text class="empty-state-text">暂无打卡记录</text>
       </view>

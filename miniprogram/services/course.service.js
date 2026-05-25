@@ -51,6 +51,10 @@ class CourseService {
     return request.get(`/sections/period/${periodId}`, params);
   }
 
+  searchSections(periodId, keyword) {
+    return request.get('/sections/search', { periodId, keyword });
+  }
+
   /**
    * 获取期次详情（课程列表页头部）
    * @param {string} periodId 期次ID

@@ -1,5 +1,6 @@
 // 课节列表页 - 显示某一期的每天课程
 const courseService = require('../../services/course.service');
+const checkinService = require('../../services/checkin.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getLastTextChar } = require('../../utils/avatar');
 const { getPeriodAccess } = require('../../utils/period-access');
@@ -71,7 +72,13 @@ Page({
     communityAccessState: 'locked', // enabled | locked
     headerCollapsed: false, // 滚动时收起头部
     checkinContentExpanded: {},
-    isAdmin: false // 是否是管理员角色
+    isAdmin: false, // 是否是管理员角色
+    searchKeyword: '',
+    activeSearchKeyword: '',
+    isSearchMode: false,
+    searchLoading: false,
+    filteredSections: [],
+    searchCheckins: []
   },
 
   onLoad(options) {
@@ -128,6 +135,9 @@ Page({
       this._skipNextOnShowRefresh = false;
       return;
     }
+
+    const app = getApp();
+    this.setData({ isAdmin: isAdminUser(app.globalData.userInfo || {}) });
 
     // 每次显示页面时重新加载打卡记录
     if (this.data.sections.length > 0) {
@@ -202,7 +212,7 @@ Page({
     );
   },
 
-  buildCheckinListItem(checkin = {}) {
+  formatCheckinItem(checkin = {}) {
     const userId = checkin.userId?._id;
     const content = checkin.note || '';
     const id = checkin._id || checkin.id;
@@ -346,7 +356,7 @@ Page({
         (loadMore ? this.data.checkinTotal : checkins.length);
 
       const newItems = checkins.map((checkin) =>
-        this.buildCheckinListItem(checkin)
+        this.formatCheckinItem(checkin)
       );
       const allCheckins = loadMore
         ? [...this.data.allCheckins, ...newItems]
@@ -488,8 +498,10 @@ Page({
     });
 
     // 跳转到课程详情页（学习内容）
+    const kw = this.data.isSearchMode ? (this.data.activeSearchKeyword || '') : '';
+    const kwParam = kw ? `&keyword=${encodeURIComponent(kw)}` : '';
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${sectionId}&periodId=${this.data.periodId}`
+      url: `/pages/course-detail/course-detail?id=${sectionId}&periodId=${this.data.periodId}${kwParam}`
     });
   },
 
@@ -664,6 +676,58 @@ Page({
     wx.navigateTo({ url });
   },
 
+  onSearchInput(e) {
+    this.setData({ searchKeyword: e.detail.value });
+  },
+
+  onSearchClear() {
+    this.setData({
+      searchKeyword: '',
+      activeSearchKeyword: '',
+      isSearchMode: false,
+      filteredSections: [],
+      searchCheckins: []
+    });
+  },
+
+  onSearchSubmit() {
+    const keyword = (this.data.searchKeyword || '').trim();
+    if (!keyword) {
+      this.setData({
+        activeSearchKeyword: '',
+        isSearchMode: false,
+        filteredSections: [],
+        searchCheckins: []
+      });
+      return;
+    }
+    this.setData({ activeSearchKeyword: keyword });
+    this.doSearch(keyword);
+  },
+
+  async doSearch(keyword) {
+    // 1. 后端搜索课节正文（任务 tab）：在 content（读一读）字段中搜索
+    // 2. 后端搜索打卡（动态 tab）
+    this.setData({ searchLoading: true });
+    try {
+      const [sectionRes, checkinRes] = await Promise.all([
+        courseService.searchSections(this.data.periodId, keyword),
+        checkinService.searchCheckins({ periodId: this.data.periodId, keyword, limit: 50 })
+      ]);
+      const rawSections = sectionRes.list || (Array.isArray(sectionRes) ? sectionRes : []);
+      const rawCheckins = checkinRes.list || (Array.isArray(checkinRes) ? checkinRes : []);
+      this.setData({
+        filteredSections: rawSections,
+        searchCheckins: rawCheckins.map(c => this.formatCheckinItem(c)),
+        isSearchMode: true
+      });
+    } catch (err) {
+      wx.showToast({ title: '搜索失败', icon: 'none' });
+    } finally {
+      this.setData({ searchLoading: false });
+    }
+  },
+
   handleCheckinItemTap(e) {
     const { checkinId, sectionId } = e.currentTarget.dataset;
 
@@ -675,8 +739,10 @@ Page({
       return;
     }
 
+    const kw = this.data.isSearchMode ? (this.data.activeSearchKeyword || '') : '';
+    const kwParam = kw ? `&keyword=${encodeURIComponent(kw)}` : '';
     wx.navigateTo({
-      url: `/pages/course-detail/course-detail?id=${sectionId}&checkinId=${checkinId}&periodId=${this.data.periodId}`
+      url: `/pages/course-detail/course-detail?id=${sectionId}&checkinId=${checkinId}&periodId=${this.data.periodId}${kwParam}`
     });
   }
 });
