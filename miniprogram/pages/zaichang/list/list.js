@@ -3,6 +3,7 @@ const enrollmentService = require('../../../services/enrollment.service');
 const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../../utils/period-access');
 const { tenantStorage } = require('../../../utils/storage');
 const constants = require('../../../config/constants');
+const activityService = require('../../../services/activity.service');
 
 const DEFAULT_ACTIVITY_TYPES = [
   { key: 'all', label: '全部' },
@@ -32,7 +33,10 @@ Page({
   },
 
   async onLoad() {
-    if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) return;
+    if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return;
+    }
     const userEnrollments = await enrollmentService
       .getUserEnrollments({ limit: 100 })
       .catch(() => ({ list: [] }));
@@ -41,15 +45,12 @@ Page({
       redirectAfterCommunityDenied('/pages/index/index', '完成支付后可查看在场');
       return;
     }
+    activityService.track('zaichang_list_view');
     this.loadActivityTypes();
     this.loadList(true);
   },
 
   onShow() {
-    wx.hideTabBar({ animation: false });
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setActivePage('/pages/zaichang/list/list');
-    }
     const needRefresh = wx.getStorageSync('zaichang_need_refresh');
     if (needRefresh) {
       wx.removeStorageSync('zaichang_need_refresh');

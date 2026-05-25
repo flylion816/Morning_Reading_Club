@@ -10,7 +10,26 @@ const ACTIONS = [
   'own_insight_view',
   'other_insight_view',
   'meeting_enter',
-  'insight_request_approve'
+  'insight_request_approve',
+  'zaichang_list_view',
+  'zaichang_publish_view',
+  'zaichang_imprint_publish',
+  'zaichang_detail_view',
+  'zaichang_imprint_like',
+  'zaichang_imprint_comment',
+  'index_popup_view',
+  'index_podcast_enter',
+  'checkin_records_view',
+  'course_ai_read',
+  'insight_ai_read',
+  'insight_share',
+  'insight_like',
+  'insight_danmaku',
+  'podcast_play',
+  'podcast_bar_play',
+  'podcast_share',
+  'course_share',
+  'activity_enroll'
 ];
 
 const UserActivitySchema = new mongoose.Schema(

@@ -7,6 +7,7 @@ const checkinService = require('../../services/checkin.service');
 const notificationServiceModule = require('../../services/notification.service');
 const activityService = require('../../services/activity.service');
 const communityActivityService = require('../../services/communityActivity.service');
+const imprintService = require('../../services/imprint.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
@@ -193,6 +194,9 @@ Page({
     // 最近的打卡日记（最多3条）
     recentCheckins: [],
 
+    // 凡人生活（在场印记，最多3条）
+    zaichangImprints: [],
+
     // 小凡看见请求列表
     requestDirectionTabs: [
       { value: 'received', label: '收到的' },
@@ -241,18 +245,17 @@ Page({
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setActivePage('/pages/index/index');
-    }
-    wx.hideTabBar({ animation: false });
-    console.log('🟢🟢🟢 PROFILE.JS ONSHOW CALLED 🟢🟢🟢');
-    this.checkLoginStatus({ refreshUserData: true });
-    // 同步播客播放状态
     const app = getApp();
+    // 同步播客播放状态
     this.setData({
       podcastPlaying: !!app.globalData.podcastPlaying,
       podcastSectionId: app.globalData.podcastSectionId || ''
     });
+    // 30秒内从子页面返回不重复全量刷新
+    const now = Date.now();
+    if (this._lastLoadTime && now - this._lastLoadTime < 30000) return;
+    this._lastLoadTime = now;
+    this.checkLoginStatus({ refreshUserData: true });
   },
 
   onPullDownRefresh() {
@@ -664,10 +667,6 @@ Page({
       const paidFeatureAccessEnabled =
         communityEnabled || hasPaidEnrollment(enrollmentList);
       getApp().globalData.canUsePaidFeatures = paidFeatureAccessEnabled;
-      // 异步数据加载完后刷新 tabBar，确保在场 tab 按付费状态显示
-      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-        this.getTabBar().setActivePage('/pages/index/index');
-      }
       if (todaySection) {
         todaySection = decorateSectionWithReadingCompletion(todaySection);
       }
@@ -723,8 +722,9 @@ Page({
         this.loadInsightRequests(false).catch(() => ({
           receivedInsightRequests: [],
           sentInsightRequests: []
-        }))
-      ]).then(([recentCheckins, recentInsights, insightRequestGroups]) => {
+        })),
+        this.loadZaichangImprints().catch(() => [])
+      ]).then(([recentCheckins, recentInsights, insightRequestGroups, zaichangImprints]) => {
         const allInsightRequests = this.getInsightRequestListForDirection(
           insightRequestGroups,
           this.data.activeInsightRequestDirection
@@ -733,6 +733,7 @@ Page({
           {
             recentCheckins,
             recentInsights,
+            zaichangImprints,
             receivedInsightRequests:
               insightRequestGroups.receivedInsightRequests || [],
             sentInsightRequests: insightRequestGroups.sentInsightRequests || [],
@@ -828,6 +829,27 @@ Page({
         .map(buildRecentCheckinCard);
     } catch (error) {
       console.error('加载最近打卡失败:', error);
+      return [];
+    }
+  },
+
+  async loadZaichangImprints() {
+    try {
+      const res = await imprintService.list({ page: 1, pageSize: 3 });
+      const list = res.list || [];
+      return list.map(item => {
+        const cover = (item.mediaList || []).find(m => m.type !== 'video');
+        const d = item.happenedAt ? new Date(item.happenedAt) : null;
+        const dateStr = d ? `${d.getMonth() + 1}月${d.getDate()}日` : '';
+        return {
+          _id: item._id,
+          title: item.title || '',
+          coverUrl: cover ? cover.url : '',
+          authorName: item.author ? (item.author.nickname || '') : '',
+          dateStr
+        };
+      });
+    } catch (e) {
       return [];
     }
   },
@@ -1422,6 +1444,7 @@ Page({
     const { todaySection } = this.data;
     if (!todaySection) return;
     const id = todaySection.id || todaySection._id;
+    activityService.track('index_podcast_enter', { targetId: id });
     wx.navigateTo({
       url: `/pages/course-detail/course-detail?id=${id}&anchor=podcast`
     });
@@ -1464,6 +1487,7 @@ Page({
       app.globalData.podcastSectionId = sectionId;
       app.globalData.podcastTitle = todaySection.title || '';
       app.globalData.podcastUrl = todaySection.podcastUrl;
+      app.globalData.podcastCoverUrl = todaySection.coverImage || '/assets/images/fanren-boke.jpg';
       app.globalData.podcastDuration = todaySection.podcastDuration || 0;
       this.setData({ podcastPlaying: true, podcastSectionId: sectionId });
     });
@@ -1606,6 +1630,15 @@ Page({
     wx.navigateTo({
       url: '/pages/checkin-records/checkin-records'
     });
+  },
+
+  navigateToZaichang() {
+    wx.navigateTo({ url: '/pages/zaichang/list/list' });
+  },
+
+  onTapZaichangCard(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/zaichang/detail/detail?id=${id}` });
   },
 
   /**
@@ -1952,6 +1985,7 @@ Page({
 
   handlePopupViewDetail() {
     const activity = this.data.popupActivity;
+    activityService.track('index_popup_view', { targetId: activity && activity._id });
     this.handlePopupClose();
     if (activity && activity._id) {
       wx.navigateTo({ url: `/pages/community-activity-detail/community-activity-detail?activityId=${activity._id}` });

@@ -14,7 +14,26 @@ const ACTION_LABELS = {
   own_insight_view: '查看自己的小凡看见',
   other_insight_view: '查看他人的小凡看见',
   meeting_enter: '去晨读',
-  insight_request_approve: '同意请求'
+  insight_request_approve: '同意请求',
+  zaichang_list_view: '进入在场列表',
+  zaichang_publish_view: '进入发布印记页',
+  zaichang_imprint_publish: '发布印记',
+  zaichang_detail_view: '查看印记详情',
+  zaichang_imprint_like: '点赞印记',
+  zaichang_imprint_comment: '评论印记',
+  index_popup_view: '点击首页弹窗',
+  index_podcast_enter: '首页进入播客',
+  checkin_records_view: '查看我的打卡',
+  course_ai_read: '课程 AI 朗读',
+  insight_ai_read: '小凡看见 AI 朗读',
+  insight_share: '分享小凡看见',
+  insight_like: '小凡看见点赞',
+  insight_danmaku: '小凡看见发弹幕',
+  podcast_play: '播客播放',
+  podcast_bar_play: '底部悬浮窗播放播客',
+  podcast_share: '播客分享',
+  course_share: '课程分享',
+  activity_enroll: '活动报名'
 };
 
 function getShanghaiDateKey(date = new Date()) {

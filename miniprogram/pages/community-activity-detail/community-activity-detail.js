@@ -1,4 +1,5 @@
 const communityActivityService = require('../../services/communityActivity.service');
+const activityService = require('../../services/activity.service');
 
 function formatDatetime(val) {
   if (!val) return '';
@@ -42,10 +43,12 @@ Page({
   },
 
   onLoad(options) {
-    if (options.activityId) {
-      this.setData({ activityId: options.activityId });
-      this.loadDetail(options.activityId);
+    if (!options.activityId || options.activityId === 'undefined') {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return;
     }
+    this.setData({ activityId: options.activityId });
+    this.loadDetail(options.activityId);
   },
 
   onShow() {
@@ -119,6 +122,7 @@ Page({
 
       await communityActivityService.register(this.data.activityId, { reminderGranted });
       this.setData({ registered: true });
+      activityService.track('activity_enroll', { targetId: this.data.activityId });
       wx.showToast({ title: '报名成功', icon: 'success' });
       this.loadDetail(this.data.activityId);
     } catch (err) {

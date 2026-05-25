@@ -1,6 +1,7 @@
 const imprintService = require('../../../services/imprint.service');
 const { maybeAutoTopUpSubscriptions } = require('../../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../../utils/require-login');
+const activityService = require('../../../services/activity.service');
 
 const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
 
@@ -40,10 +41,15 @@ Page({
   },
 
   onLoad(options) {
+    if (!options.id || options.id === 'undefined') {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return;
+    }
     const app = getApp();
     const userId = app.globalData.userInfo && app.globalData.userInfo._id;
     this.setData({ currentUserId: userId });
     this._id = options.id;
+    activityService.track('zaichang_detail_view', { targetId: options.id });
     this.loadDetail();
     this.loadComments(true);
   },
@@ -133,6 +139,7 @@ Page({
       this.setData({ myReaction: type, 'imprint.reactionCounts': counts });
       maybeAutoTopUpSubscriptions({ sceneKeys: ['like_received'], requestMode: 'prompt' }).catch(() => {});
       imprintService.react(this._id, type).then(() => {
+        activityService.track('zaichang_imprint_like', { targetId: this._id });
         this._listNeedsRefresh = true;
       }).catch(() => {
         if (prev) counts[prev] = (counts[prev] || 0) + 1;
@@ -208,6 +215,7 @@ Page({
         replyTo: null,
         'imprint.commentCount': (this.data.imprint.commentCount || 0) + 1
       });
+      activityService.track('zaichang_imprint_comment', { targetId: this._id });
     } catch (e) {
       wx.showToast({ title: '发送失败', icon: 'none' });
     }

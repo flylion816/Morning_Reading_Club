@@ -1,6 +1,7 @@
 const imprintService = require('../../../services/imprint.service');
 const request = require('../../../utils/request');
 const envConfig = require('../../../config/env');
+const activityService = require('../../../services/activity.service');
 const { tenantStorage } = require('../../../utils/storage');
 const constants = require('../../../config/constants');
 
@@ -42,6 +43,9 @@ Page({
 
   async onLoad(options) {
     this.loadActivityTypes();
+    if (!options.id) {
+      activityService.track('zaichang_publish_view');
+    }
     if (options.id) {
       this.setData({ editId: options.id });
       wx.setNavigationBarTitle({ title: '编辑印记' });
@@ -310,6 +314,7 @@ Page({
         await imprintService.update(editId, payload);
       } else {
         await imprintService.create(payload);
+        activityService.track('zaichang_imprint_publish');
       }
       wx.hideLoading();
       wx.setStorageSync('zaichang_need_refresh', true);

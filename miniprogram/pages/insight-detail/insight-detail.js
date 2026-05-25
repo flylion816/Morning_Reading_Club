@@ -115,10 +115,8 @@ Page({
   _currentScrollPercent: 0,
 
   onLoad(options) {
-    if (!options.id) {
-      console.error('缺少 insight ID 参数');
-      wx.showToast({ title: '参数错误', icon: 'none' });
-      setTimeout(() => wx.navigateBack(), 1500);
+    if (!options.id || options.id === 'undefined') {
+      wx.redirectTo({ url: '/pages/index/index' });
       return;
     }
     this._danmakuCooldowns = new Map();
@@ -998,6 +996,7 @@ Page({
     const { insight } = this.data;
     if (this.data.insightId) {
       insightService.shareInsight(this.data.insightId).catch(() => {});
+      activityService.track('insight_share', { targetId: this.data.insightId });
     }
     return {
       title: this.getShareTitle(insight),
@@ -1072,6 +1071,7 @@ Page({
       const danmakuList = [...this.data.danmakuList, newItem];
       this.setData({ danmakuList, danmakuInput: '' });
       this._showDanmaku(newItem);
+      activityService.track('insight_danmaku', { targetId: insightId });
       this.closeDanmakuPanel();
     } catch (e) {
       wx.showToast({ title: '发送失败，请重试', icon: 'none' });
@@ -1101,6 +1101,7 @@ Page({
         const insight = { ...this.data.insight, likeCount: (this.data.insight.likeCount || 0) + 1 };
         const danmakuList = [...this.data.danmakuList, likeItem];
         this.setData({ isLiked: true, insight, danmakuList });
+        activityService.track('insight_like', { targetId: insightId });
         // _showDanmaku 内部会因 type==='like' 触发爱心，无需在此额外调用
         this._showDanmaku(likeItem);
       }
@@ -1258,6 +1259,7 @@ Page({
       this.setData({ ttsState: 'playing' });
       return;
     }
+    activityService.track('insight_ai_read', { targetId: this.data.insightId });
     this._ttsStart();
   },
 

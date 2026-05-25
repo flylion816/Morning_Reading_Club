@@ -1,5 +1,6 @@
 const checkinService = require('../../services/checkin.service');
 const enrollmentService = require('../../services/enrollment.service');
+const activityService = require('../../services/activity.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getLastTextChar } = require('../../utils/avatar');
 const {
@@ -158,6 +159,7 @@ Page({
       return;
     }
 
+    activityService.track('checkin_records_view');
     wx.setNavigationBarTitle({ title: '我的打卡日记' });
     this.setData({ periodId: initialPeriodId, accessChecked: true });
     this.syncUserInfo();

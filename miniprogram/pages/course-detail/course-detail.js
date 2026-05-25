@@ -163,10 +163,8 @@ Page({
   onLoad(options) {
     console.log('课程详情页加载，参数:', options);
     this._skipNextOnShowRefresh = true;
-    if (!options.id) {
-      console.error('缺少课程 ID 参数');
-      wx.showToast({ title: '参数错误', icon: 'none' });
-      setTimeout(() => wx.navigateBack(), 1500);
+    if (!options.id || options.id === 'undefined') {
+      wx.redirectTo({ url: '/pages/courses/courses' });
       return;
     }
     this.setData({
@@ -278,6 +276,7 @@ Page({
 
     if (podcastShareMode) {
       this.setData({ podcastShareMode: false });
+      activityService.track('podcast_share', { targetId: courseId });
       return {
         title: `「${course.title || ''}」`,
         path: `/pages/course-detail/course-detail?id=${courseId}&anchor=podcast`,
@@ -292,6 +291,7 @@ Page({
       };
     }
 
+    activityService.track('course_share', { targetId: courseId });
     return {
       title: course.title || '课程详情',
       path: `/pages/course-detail/course-detail?id=${courseId}`
@@ -3415,7 +3415,9 @@ Page({
       app.globalData.podcastSectionId = courseId;
       app.globalData.podcastTitle = course.title || '';
       app.globalData.podcastUrl = course.podcastUrl;
+      app.globalData.podcastCoverUrl = course.coverImage || '/assets/images/fanren-boke.jpg';
       app.globalData.podcastDuration = course.podcastDuration || 0;
+      activityService.track('podcast_play', { targetId: courseId });
       this.setData({ podcastPlaying: true, podcastSectionId: courseId });
     });
 
@@ -3537,6 +3539,7 @@ Page({
       this.setData({ ttsState: 'playing' });
       return;
     }
+    activityService.track('course_ai_read', { targetId: this.data.courseId });
     this._ttsStart();
   },
 
