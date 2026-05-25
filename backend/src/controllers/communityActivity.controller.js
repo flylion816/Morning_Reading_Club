@@ -12,16 +12,17 @@ const { getCurrentTenantId } = require('../utils/tenantContext');
  */
 exports.listActivities = async (req, res) => {
   try {
-    const { type, page = 1, limit = 20 } = req.query;
+    const { type, page = 1, limit = 20, sort } = req.query;
     const tenantId = getCurrentTenantId();
 
     const query = { tenantId, status: 'published' };
     if (type) query.type = type;
 
+    const sortOrder = sort === 'desc' ? { updatedAt: -1 } : { startTime: 1 };
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const [list, total] = await Promise.all([
       CommunityActivity.find(query)
-        .sort({ startTime: 1 })
+        .sort(sortOrder)
         .skip(skip)
         .limit(parseInt(limit, 10))
         .lean(),

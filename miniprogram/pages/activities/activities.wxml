@@ -1,0 +1,60 @@
+<view class="page-activities">
+  <!-- 加载中（首次） -->
+  <view wx:if="{{loading && activities.length === 0}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{!loading && activities.length === 0}}" class="empty-container">
+    <text class="empty-icon">📅</text>
+    <text class="empty-text">暂无活动</text>
+  </view>
+
+  <!-- 活动列表 -->
+  <view wx:else class="activity-list">
+    <view
+      wx:for="{{activities}}"
+      wx:key="_id"
+      class="activity-item"
+      bindtap="handleGoDetail"
+      data-id="{{item._id}}"
+    >
+      <!-- 左侧海报 -->
+      <image
+        wx:if="{{item.posterUrl}}"
+        class="item-poster"
+        src="{{item.posterUrl}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view wx:else class="item-poster-placeholder">
+        <text class="item-poster-emoji">{{item.type === 'witness' ? '🌟' : item.type === 'chat' ? '💬' : '📆'}}</text>
+      </view>
+
+      <!-- 右侧信息 -->
+      <view class="item-info">
+        <view class="item-meta-row">
+          <text class="item-type-tag type-{{item.type}}">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : '活动'}}</text>
+          <view class="item-status status-{{item.statusType}}">
+            <text>{{item.statusLabel}}</text>
+          </view>
+        </view>
+        <text class="item-title">{{item.title}}</text>
+        <text class="item-time">🕐 {{item.startTimeFormatted}}</text>
+        <view wx:if="{{item.location}}" class="item-location">
+          <text>📍 {{item.location}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view wx:if="{{hasMore}}" class="load-more" bindtap="loadMore">
+      <view wx:if="{{loadingMore}}" class="load-more-spinner"></view>
+      <text class="load-more-text">{{loadingMore ? '加载中...' : '加载更多'}}</text>
+    </view>
+    <view wx:elif="{{activities.length > 0}}" class="no-more">
+      <text>— 已经到底了 —</text>
+    </view>
+  </view>
+</view>

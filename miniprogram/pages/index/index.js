@@ -226,6 +226,7 @@ Page({
     showActivityPopup: false,
     popupActivity: null,
     upcomingActivities: [],
+    upcomingActivitiesHasMore: false,
 
     // 编辑个人信息相关
     showEditProfile: false,
@@ -1953,12 +1954,14 @@ Page({
   },
 
   loadUpcomingActivities() {
-    communityActivityService.getList({ pageSize: 2 })
+    communityActivityService.getList({ limit: 4, sort: 'desc' })
       .then(res => {
         const data = res && (res.data || res);
         const items = (data && (data.list || data.items || (Array.isArray(data) ? data : []))) || [];
-        const formatted = items.slice(0, 2).map(a => {
+        const hasMore = items.length > 3;
+        const formatted = items.slice(0, 3).map(a => {
           let startTimeText = '';
+          let startDateText = '';
           if (a.startTime) {
             const d = new Date(a.startTime);
             const mo = d.getMonth() + 1;
@@ -1966,12 +1969,17 @@ Page({
             const h = String(d.getHours()).padStart(2, '0');
             const m = String(d.getMinutes()).padStart(2, '0');
             startTimeText = `${mo}月${day}日 ${h}:${m}`;
+            startDateText = `${mo}月${day}日`;
           }
-          return { ...a, startTimeText };
+          return { ...a, startTimeText, startDateText };
         });
-        this.setData({ upcomingActivities: formatted });
+        this.setData({ upcomingActivities: formatted, upcomingActivitiesHasMore: hasMore });
       })
       .catch(() => {});
+  },
+
+  handleMoreActivities() {
+    wx.navigateTo({ url: '/pages/activities/activities' });
   },
 
   handlePopupClose() {

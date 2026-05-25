@@ -34,6 +34,83 @@
 
     <!-- 内容区域 -->
     <view class="content-area">
+      <!-- 近期活动 -->
+      <view class="activity-section" wx:if="{{upcomingActivities.length > 0 && canUsePaidFeatures}}">
+        <view class="section-header">
+          <view class="section-header-left">
+            <view class="section-icon-calendar">📆</view>
+            <text class="section-header-title">近期活动</text>
+          </view>
+          <view class="section-header-right" bindtap="handleMoreActivities">
+            <text class="more-text">查看更多</text>
+          </view>
+        </view>
+        <view class="activity-cards">
+          <view
+            class="activity-card"
+            wx:for="{{upcomingActivities}}"
+            wx:key="_id"
+            data-id="{{item._id}}"
+            bindtap="handleActivityCardTap"
+          >
+            <text class="activity-card-type">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : '活动'}}</text>
+            <text class="activity-card-title">{{item.title}}</text>
+            <text class="activity-card-time">{{item.startDateText}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 凡人生活 -->
+      <view class="zaichang-section" wx:if="{{canUsePaidFeatures}}">
+        <view class="section-header">
+          <view class="section-header-left">
+            <view class="section-icon-zaichang">🌿</view>
+            <text class="section-header-title">凡人生活</text>
+          </view>
+        </view>
+
+        <scroll-view
+          wx:if="{{zaichangImprints.length > 0}}"
+          scroll-x
+          class="checkins-scroll"
+          show-scrollbar="{{false}}"
+          enhanced="true">
+          <view class="checkins-scroll-track">
+            <view
+              wx:for="{{zaichangImprints}}"
+              wx:key="_id"
+              class="zaichang-card"
+              bindtap="onTapZaichangCard"
+              data-id="{{item._id}}"
+            >
+              <view class="zaichang-card-cover">
+                <image wx:if="{{item.coverUrl}}" class="zaichang-card-img" src="{{item.coverUrl}}" mode="aspectFill" lazy-load/>
+                <view wx:else class="zaichang-card-img-placeholder">🌿</view>
+              </view>
+              <view class="zaichang-card-title">{{item.title}}</view>
+              <view class="zaichang-card-meta">{{item.authorName}}{{item.dateStr ? ' · ' + item.dateStr : ''}}</view>
+            </view>
+
+            <view class="checkin-diary-more-card zaichang-more-card" bindtap="navigateToZaichang">
+              <view class="checkin-diary-more-icon">→</view>
+              <text class="checkin-diary-more-title">进入在场</text>
+              <view class="checkin-diary-more-desc">
+                <view>查看更多</view>
+                <view>聚会印记</view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view wx:else class="checkins-empty">
+          <text class="checkins-empty-text">还没有印记，去留下第一个吧</text>
+          <view class="checkins-empty-link" bindtap="navigateToZaichang">
+            <text>进入在场</text>
+            <text class="more-arrow">→</text>
+          </view>
+        </view>
+      </view>
+
       <!-- 今日任务 -->
       <view class="task-section">
         <view class="section-header">
@@ -97,32 +174,6 @@
         </view>
       </view>
 
-      <!-- 近期活动 -->
-      <view class="activity-section" wx:if="{{upcomingActivities.length > 0}}">
-        <view class="section-header">
-          <view class="section-header-left">
-            <view class="section-icon-calendar">📆</view>
-            <text class="section-header-title">近期活动</text>
-          </view>
-        </view>
-        <view class="activity-cards">
-          <view
-            class="activity-card"
-            wx:for="{{upcomingActivities}}"
-            wx:key="_id"
-            data-id="{{item._id}}"
-            bindtap="handleActivityCardTap"
-          >
-            <view class="activity-card-left">
-              <text class="activity-card-type">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : '活动'}}</text>
-              <text class="activity-card-title">{{item.title}}</text>
-            </view>
-            <view class="activity-card-right">
-              <text class="activity-card-time">{{item.startTimeText}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
 
       <view class="checkins-section" wx:if="{{canUsePaidFeatures}}">
         <view class="section-header">
@@ -235,7 +286,7 @@
           </view>
         </view>
         <view class="insights-more" catchtap="navigateToInsights">
-          <text class="more-text">查看更多历史</text>
+          <text class="more-text">查看更多</text>
           <text class="more-arrow">→</text>
         </view>
       </view>
@@ -297,7 +348,7 @@
           </view>
         </view>
         <view class="requests-more" wx:if="{{insightRequestTotal > 3}}" catchtap="navigateToInsightRequests">
-          <text class="more-text">查看更多请求</text>
+          <text class="more-text">查看更多</text>
           <text class="more-arrow">→</text>
         </view>
       </view>
@@ -457,4 +508,4 @@
   </view>
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar has-tabbar="{{true}}" ignore-safe-area="{{true}}" />

@@ -33,7 +33,8 @@
     "pages/zaichang/detail/detail",
     "pages/zaichang/publish/publish",
     "pages/community-activity-detail/community-activity-detail",
-    "pages/my-community-activities/my-community-activities"
+    "pages/my-community-activities/my-community-activities",
+    "pages/activities/activities"
   ],
   "window": {
     "navigationBarTitleText": "凡人共读",
@@ -44,7 +45,6 @@
     "enablePullDownRefresh": true
   },
   "tabBar": {
-    "custom": true,
     "color": "#999999",
     "selectedColor": "#4a90e2",
     "backgroundColor": "#ffffff",
@@ -61,12 +61,6 @@
         "text": "晨读营",
         "iconPath": "assets/icons/book.png",
         "selectedIconPath": "assets/icons/book-active.png"
-      },
-      {
-        "pagePath": "pages/zaichang/list/list",
-        "text": "在场",
-        "iconPath": "assets/icons/zaichang.png",
-        "selectedIconPath": "assets/icons/zaichang-active.png"
       },
       {
         "pagePath": "pages/profile/profile",
