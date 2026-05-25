@@ -20,9 +20,32 @@
       data-tab="others">他人的</view>
   </view>
 
+  <!-- 搜索框：仅在查看自己时显示 -->
+  <view class="insight-search-bar" wx:if="{{!isOtherUser}}">
+    <view class="insight-search-input-wrap">
+      <input
+        class="insight-search-input"
+        placeholder="搜索标题、内容..."
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchSubmit"
+        confirm-type="search"
+      />
+      <view
+        class="insight-search-clear"
+        wx:if="{{searchKeyword}}"
+        catchtap="onSearchClear">×</view>
+    </view>
+    <view class="insight-search-btn" catchtap="onSearchSubmit">搜索</view>
+  </view>
+
   <view class="insights-list">
+    <view class="empty-state" wx:if="{{searchLoading}}">
+      <text class="empty-icon">🔍</text>
+      <text class="empty-text">搜索中...</text>
+    </view>
     <view
-      wx:for="{{activeTab === 'mine' ? insights : otherInsights}}"
+      wx:for="{{isSearchMode ? (activeTab === 'mine' ? searchResults : otherSearchResults) : (activeTab === 'mine' ? insights : otherInsights)}}"
       wx:key="id"
       class="insight-item {{item.isAccessible ? 'is-unlocked' : 'is-locked'}}"
       bindtap="handleInsightClick"
@@ -69,13 +92,13 @@
       </view>
     </view>
 
-    <view class="empty-state" wx:if="{{activeTab === 'mine' && insights.length === 0 && !loading}}">
+    <view class="empty-state" wx:if="{{activeTab === 'mine' && (isSearchMode ? searchResults.length === 0 : insights.length === 0) && !loading && !searchLoading}}">
       <text class="empty-icon">✨</text>
-      <text class="empty-text">暂无反馈</text>
+      <text class="empty-text">{{isSearchMode ? '未找到相关内容' : '暂无反馈'}}</text>
     </view>
-    <view class="empty-state" wx:if="{{activeTab === 'others' && otherInsights.length === 0 && !otherInsightsLoading}}">
+    <view class="empty-state" wx:if="{{activeTab === 'others' && (isSearchMode ? otherSearchResults.length === 0 : otherInsights.length === 0) && !otherInsightsLoading && !searchLoading}}">
       <text class="empty-icon">👥</text>
-      <text class="empty-text">暂无他人授权查看</text>
+      <text class="empty-text">{{isSearchMode ? '未找到相关内容' : '暂无他人授权查看'}}</text>
     </view>
     <view class="empty-state" wx:if="{{activeTab === 'others' && otherInsightsLoading}}">
       <text class="empty-icon">⏳</text>

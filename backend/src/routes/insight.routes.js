@@ -42,7 +42,8 @@ const {
   deleteInsightRequest,
   batchApproveRequests,
   getSectionInsightsForAdmin,
-  recordShare
+  recordShare,
+  searchInsights
 } = require('../controllers/insight.controller');
 
 // ===== 外部公开接口（无需认证） =====
@@ -76,6 +77,7 @@ router.get('/requests/sent', authMiddleware, userTenantContext, getSentRequests)
 router.post('/requests/:requestId/approve', authMiddleware, userTenantContext, approveInsightRequest);
 router.post('/requests/:requestId/reject', authMiddleware, userTenantContext, rejectInsightRequest);
 router.put('/requests/:requestId/revoke', authMiddleware, userTenantContext, revokeInsightRequest);
+router.get('/search', authMiddleware, userTenantContext, searchInsights);
 router.get('/user/:userId?', authMiddleware, userTenantContext, getUserInsights);
 router.get('/period/:periodId', authMiddleware, userTenantContext, getInsightsForPeriod);
 router.put('/:insightId', authMiddleware, userTenantContext, updateInsight);

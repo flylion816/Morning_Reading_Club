@@ -2762,6 +2762,91 @@ async function getSectionInsightsForAdmin(req, res, next) {
   }
 }
 
+// 搜索小凡看见
+async function searchInsights(req, res, next) {
+  try {
+    const { keyword, userId: queryUserId, limit = 50 } = req.query;
+    const currentUserId = req.user.userId;
+
+    const trimmedKeyword = (keyword || '').trim();
+    if (!trimmedKeyword) {
+      return res.status(400).json(errors.badRequest('请输入搜索关键词'));
+    }
+
+    const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
+    const tenantId = getCurrentTenantId();
+
+    const regex = { $regex: trimmedKeyword, $options: 'i' };
+    const searchCondition = {
+      $or: [{ title: regex }, { content: regex }, { summary: regex }]
+    };
+
+    let query;
+    let isOwnerView;
+    let approvedInsightIds = new Set();
+    let approvedPeriodIds = new Set();
+    let latestInsightRequests = new Map();
+    let latestPeriodRequests = new Map();
+
+    if (queryUserId) {
+      // 搜索他人的 insights
+      const targetUserId = queryUserId;
+      ({
+        approvedInsightIds,
+        approvedPeriodIds,
+        latestInsightRequests,
+        latestPeriodRequests
+      } = await getViewerAccessContext(currentUserId, targetUserId));
+      isOwnerView = false;
+      query = { targetUserId, status: 'completed', tenantId, ...searchCondition };
+    } else {
+      // 搜索自己的 insights
+      isOwnerView = true;
+      query = {
+        $or: [{ userId: currentUserId }, { targetUserId: currentUserId }],
+        status: 'completed',
+        tenantId,
+        ...searchCondition
+      };
+    }
+
+    // 当自己搜索时，$or 条件需要合并
+    if (!queryUserId) {
+      query = {
+        $and: [
+          { $or: [{ userId: currentUserId }, { targetUserId: currentUserId }] },
+          { status: 'completed' },
+          { tenantId },
+          { $or: [{ title: regex }, { content: regex }, { summary: regex }] }
+        ]
+      };
+    }
+
+    const insights = await Insight.find(query)
+      .populate('sectionId', 'title day icon')
+      .populate('periodId', 'name title')
+      .populate('userId', 'nickname avatar avatarUrl _id')
+      .populate('targetUserId', 'nickname avatar avatarUrl _id')
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(limitNum)
+      .exec();
+
+    const serializedList = insights.map(insight =>
+      serializeInsightForViewer(insight, {
+        isOwnerView,
+        allowedPeriodIds: approvedPeriodIds,
+        allowedInsightIds: approvedInsightIds,
+        latestInsightRequests,
+        latestPeriodRequests
+      })
+    );
+
+    res.json(success({ list: serializedList, total: serializedList.length, keyword: trimmedKeyword }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 记录分享，累加 shareCount
 async function recordShare(req, res, next) {
   try {
@@ -2807,5 +2892,6 @@ module.exports = {
   deleteInsightRequest,
   batchApproveRequests,
   getSectionInsightsForAdmin,
-  recordShare
+  recordShare,
+  searchInsights
 };

@@ -77,6 +77,7 @@ Page({
     insightId: null,
     insight: {},
     isDetailReady: false,
+    searchKeyword: '',
     showShareModal: false,
     isDev: env.currentEnv === 'dev',
     posterGenerating: false,
@@ -124,8 +125,10 @@ Page({
     this._pendingDanmakuIds = new Set();
     this._heartsBatchTimers = [];
     const savedDanmaku = wx.getStorageSync('danmakuEnabled');
+    const keyword = options.keyword ? decodeURIComponent(options.keyword) : '';
     this.setData({
       insightId: options.id,
+      searchKeyword: keyword,
       danmakuEnabled: savedDanmaku === false ? false : true
     });
     this.loadInsightDetail();
@@ -254,6 +257,10 @@ Page({
       // 兼容 HTML 和 Markdown 内容。
       if (insight && insight.content) {
         insight.content = renderRichTextContent(insight.content);
+        const kw = this.data.searchKeyword;
+        if (kw) {
+          insight.content = this._highlightKeyword(insight.content, kw);
+        }
       }
 
       // 检测当前用户是否已点赞
@@ -275,6 +282,19 @@ Page({
       this._setupBottomObserver();
       // 富文本渲染完后重测页面高度（rich-text 渲染需要一点时间）
       setTimeout(() => this._measurePageHeight(), 400);
+      // 有搜索关键词时，滚动到内容区
+      if (this.data.searchKeyword) {
+        setTimeout(() => {
+          wx.createSelectorQuery()
+            .select('.content-section')
+            .boundingClientRect(rect => {
+              if (rect && rect.top != null) {
+                wx.pageScrollTo({ scrollTop: rect.top + wx.getWindowInfo().scrollTop - 16, duration: 300 });
+              }
+            })
+            .exec();
+        }, 500);
+      }
     } catch (error) {
       console.error('加载失败:', error);
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -527,6 +547,19 @@ Page({
 
     // 最终降级：提示用户长按
     wx.showToast({ title: '请长按图片选择转发', icon: 'none' });
+  },
+
+  _highlightKeyword(html, keyword) {
+    if (!html || !keyword) return html;
+    // 转义关键词里的正则特殊字符
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(${escaped})`, 'gi');
+    // 只替换标签外的文本节点内容，避免破坏 HTML 属性
+    return html.replace(/>([^<]*)</g, (match, text) => {
+      if (!text) return match;
+      const highlighted = text.replace(re, '<span style="font-weight:bold;background:#fff3b0;color:#b45309">$1</span>');
+      return `>${highlighted}<`;
+    });
   },
 
   _stripHtmlForCanvas(html) {

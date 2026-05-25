@@ -36,7 +36,13 @@ Page({
     headerTitle: '小凡看见', // 头部标题
     headerDesc: '按课程查看个性化反馈', // 头部描述
     showRequestSharePrompt: false,
-    pendingShareRequest: null
+    pendingShareRequest: null,
+    searchKeyword: '',
+    activeSearchKeyword: '',
+    isSearchMode: false,
+    searchLoading: false,
+    searchResults: [],
+    otherSearchResults: []
   },
 
   onLoad(options) {
@@ -254,8 +260,136 @@ Page({
     const tab = e.currentTarget.dataset.tab;
     if (tab === this.data.activeTab) return;
     this.setData({ activeTab: tab });
-    if (tab === 'others' && !this.data.otherInsightsLoaded && !this.data.otherInsightsLoading) {
+
+    if (this.data.activeSearchKeyword) {
+      this.doSearch(this.data.activeSearchKeyword, tab);
+    } else if (tab === 'others' && !this.data.otherInsightsLoaded && !this.data.otherInsightsLoading) {
       this.loadOtherInsights();
+    }
+  },
+
+  formatInsightList(rawList, overrideAvatar) {
+    const app = getApp();
+    const periods = app.globalData.periods || [];
+    const periodMap = {};
+    periods.forEach((p) => { periodMap[p._id] = p.name || p.title; });
+
+    return rawList.map((item) => {
+      let preview = (typeof richContentToPlainText === 'function' ? richContentToPlainText(item.summary || '') : (item.summary || '')).replace(/\s+/g, ' ').trim();
+      const isAccessible = item.isAccessible !== false;
+
+      if (!preview && item.content) {
+        const plainText = (typeof richContentToPlainText === 'function' ? richContentToPlainText(item.content) : item.content).replace(/\s+/g, ' ').trim();
+        preview = plainText.substring(0, 150) + (plainText.length > 150 ? '...' : '');
+      }
+
+      const periodName =
+        item.periodId?.name ||
+        item.periodId?.title ||
+        periodMap[item.periodId?._id || item.periodId] ||
+        '';
+
+      let avatarDisplay;
+      if (overrideAvatar) {
+        avatarDisplay = overrideAvatar;
+      } else {
+        const currentUser = app.globalData.userInfo || {};
+        const targetUserId = this.data.userId;
+        const nickname = targetUserId
+          ? (this.data.userName || '用户')
+          : (currentUser.nickname || currentUser.name || '用户');
+        const avatarUrl = targetUserId
+          ? (this.data.headerAvatarUrl || '')
+          : (currentUser.avatarUrl || '');
+        const uid = targetUserId || currentUser._id || currentUser.id;
+        avatarDisplay = getUserAvatarDisplay(
+          { avatarUrl, nickname },
+          { userId: uid, displayName: nickname }
+        );
+      }
+
+      return {
+        id: item._id || item.id,
+        dayNumber: item.day || item.sectionId?.day || null,
+        courseTitle: item.sectionId?.title || item.title || '学习反馈',
+        periodName: periodName || '七个习惯晨读营',
+        title: item.sectionId?.title || item.title || periodName || '小凡看见',
+        preview: isAccessible
+          ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
+          : this.getLockedPreview(item.requestStatus || 'none'),
+        mediaType: item.mediaType || 'text',
+        imageUrl: isAccessible ? item.imageUrl || null : null,
+        date: item.updatedAt || item.createdAt
+          ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN')
+          : '',
+        periodId: item.periodId?._id || item.periodId || null,
+        isAccessible,
+        requestStatus: item.requestStatus || (isAccessible ? 'approved' : 'none'),
+        requestStatusText: this.getRequestStatusText(item.requestStatus || 'none'),
+        lockedPlaceholder: this.getLockedPlaceholder(item.requestStatus || 'none'),
+        requestScope: item.requestScope || null,
+        requestId: item.requestId || null,
+        targetUserAvatarUrl: avatarDisplay.avatarUrl,
+        targetUserAvatarText: avatarDisplay.avatarText,
+        targetUserAvatarColor: avatarDisplay.avatarColor
+      };
+    });
+  },
+
+  onSearchInput(e) {
+    this.setData({ searchKeyword: e.detail.value });
+  },
+
+  onSearchClear() {
+    this.setData({
+      searchKeyword: '',
+      activeSearchKeyword: '',
+      isSearchMode: false,
+      searchResults: [],
+      otherSearchResults: []
+    });
+  },
+
+  onSearchSubmit() {
+    const keyword = (this.data.searchKeyword || '').trim();
+    if (!keyword) {
+      this.setData({
+        activeSearchKeyword: '',
+        isSearchMode: false,
+        searchResults: [],
+        otherSearchResults: []
+      });
+      return;
+    }
+    this.setData({ activeSearchKeyword: keyword });
+    this.doSearch(keyword, this.data.activeTab);
+  },
+
+  async doSearch(keyword, tab) {
+    this.setData({ searchLoading: true });
+    try {
+      if (tab === 'mine') {
+        const res = await insightService.searchInsights(keyword, { limit: 50 });
+        const rawList = res.list || (Array.isArray(res) ? res : []);
+        const formatted = this.formatInsightList(rawList);
+        this.setData({ searchResults: formatted, isSearchMode: true });
+      } else {
+        // 他人 tab：前端过滤已加载的数据
+        if (!this.data.otherInsightsLoaded) {
+          await this.loadOtherInsights();
+        }
+        const kw = keyword.toLowerCase();
+        const filtered = this.data.otherInsights.filter(item =>
+          (item.title || '').toLowerCase().includes(kw) ||
+          (item.preview || '').toLowerCase().includes(kw) ||
+          (item.periodName || '').toLowerCase().includes(kw)
+        );
+        this.setData({ otherSearchResults: filtered, isSearchMode: true });
+      }
+    } catch (err) {
+      wx.showToast({ title: '搜索失败', icon: 'none' });
+    } finally {
+      this.setData({ searchLoading: false });
     }
   },
 
@@ -682,8 +816,10 @@ Page({
       console.warn('insight id 不存在，跳过导航');
       return;
     }
+    const kw = this.data.isSearchMode ? (this.data.activeSearchKeyword || '') : '';
+    const kwParam = kw ? `&keyword=${encodeURIComponent(kw)}` : '';
     wx.navigateTo({
-      url: `/pages/insight-detail/insight-detail?id=${id}`
+      url: `/pages/insight-detail/insight-detail?id=${id}${kwParam}`
     });
   },
 

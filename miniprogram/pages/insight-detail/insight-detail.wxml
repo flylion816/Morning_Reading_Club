@@ -42,6 +42,12 @@
 
   <!-- 内容区 -->
   <view class="content-section">
+    <!-- 搜索关键词提示条 -->
+    <view wx:if="{{searchKeyword}}" class="search-keyword-bar">
+      <text class="search-keyword-label">搜索：</text>
+      <text class="search-keyword-text">{{searchKeyword}}</text>
+      <text class="search-keyword-hint">已高亮显示匹配内容</text>
+    </view>
     <!-- 图片内容 -->
     <view class="content-image" wx:if="{{insight.imageUrl}}">
       <image src="{{insight.imageUrl}}" mode="widthFix" style="width: 100%; border-radius: 8px;" show-menu-by-longpress="{{true}}" />
