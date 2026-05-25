@@ -75,6 +75,7 @@ const TABLE_DEFINITIONS = {
   users: `
     CREATE TABLE IF NOT EXISTS users (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       openid VARCHAR(100) COMMENT '微信 openid',
       unionid VARCHAR(100) COMMENT '微信 unionid',
       nickname VARCHAR(100) COMMENT '昵称',
@@ -96,6 +97,7 @@ const TABLE_DEFINITIONS = {
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_openid (openid),
       INDEX idx_created_at (created_at),
       INDEX idx_status (status)
@@ -105,11 +107,12 @@ const TABLE_DEFINITIONS = {
   admins: `
     CREATE TABLE IF NOT EXISTS admins (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       name VARCHAR(100) NOT NULL COMMENT '管理员名称',
       email VARCHAR(100) UNIQUE NOT NULL COMMENT '邮箱',
       password VARCHAR(255) NOT NULL COMMENT '密码哈希',
       avatar VARCHAR(500) COMMENT '头像',
-      role VARCHAR(50) DEFAULT 'operator' COMMENT '角色',
+      role ENUM('platform_superadmin','tenant_admin','superadmin','admin','operator') DEFAULT 'operator' COMMENT '角色',
       permissions JSON COMMENT '权限列表',
       status VARCHAR(50) DEFAULT 'active' COMMENT '状态',
       last_login_at TIMESTAMP NULL COMMENT '最后登录时间',
@@ -118,6 +121,7 @@ const TABLE_DEFINITIONS = {
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
       UNIQUE KEY uk_email (email),
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_status (status),
       INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员表';
@@ -126,6 +130,7 @@ const TABLE_DEFINITIONS = {
   periods: `
     CREATE TABLE IF NOT EXISTS periods (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       name VARCHAR(255) NOT NULL COMMENT '期次名称',
       subtitle VARCHAR(255) COMMENT '副标题',
       title VARCHAR(255) COMMENT '标题',
@@ -151,6 +156,7 @@ const TABLE_DEFINITIONS = {
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_status (status),
       INDEX idx_start_date (start_date),
       INDEX idx_created_at (created_at)
@@ -160,6 +166,7 @@ const TABLE_DEFINITIONS = {
   sections: `
     CREATE TABLE IF NOT EXISTS sections (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       period_id CHAR(24) COMMENT '期次 ID',
       day INT COMMENT '天数',
       title VARCHAR(255) COMMENT '标题',
@@ -181,10 +188,13 @@ const TABLE_DEFINITIONS = {
       \`order\` INT COMMENT '顺序',
       is_published BOOLEAN DEFAULT 0 COMMENT '是否发布',
       checkin_count INT DEFAULT 0 COMMENT '打卡数',
+      podcast_url VARCHAR(500) COMMENT '播客音频URL',
+      podcast_description LONGTEXT COMMENT '播客描述',
+      podcast_duration INT COMMENT '播客时长(秒)',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE,
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_period_id (period_id),
       INDEX idx_day (day),
       INDEX idx_created_at (created_at)
@@ -194,6 +204,7 @@ const TABLE_DEFINITIONS = {
   checkins: `
     CREATE TABLE IF NOT EXISTS checkins (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       user_id CHAR(24) COMMENT '用户 ID',
       period_id CHAR(24) COMMENT '期次 ID',
       section_id CHAR(24) COMMENT '章节 ID',
@@ -213,9 +224,7 @@ const TABLE_DEFINITIONS = {
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE,
-      FOREIGN KEY (section_id) REFERENCES sections(id),
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_user_id (user_id),
       INDEX idx_period_id (period_id),
       INDEX idx_day (day),
@@ -226,6 +235,7 @@ const TABLE_DEFINITIONS = {
   enrollments: `
     CREATE TABLE IF NOT EXISTS enrollments (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       user_id CHAR(24) COMMENT '用户 ID',
       period_id CHAR(24) COMMENT '期次 ID',
       enrolled_at TIMESTAMP COMMENT '报名时间',
@@ -245,14 +255,13 @@ const TABLE_DEFINITIONS = {
       read_times INT COMMENT '阅读次数',
       enroll_reason LONGTEXT COMMENT '报名原因',
       expectation LONGTEXT COMMENT '期望',
-      commitment ENUM('yes', 'no') COMMENT '承诺参与',
+      commitment LONGTEXT COMMENT '承诺参与',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
       deleted BOOLEAN DEFAULT 0 COMMENT '是否软删除',
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE,
       UNIQUE KEY uk_user_period (user_id, period_id),
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_status (status),
       INDEX idx_enrolled_at (enrolled_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报名表';
@@ -261,6 +270,7 @@ const TABLE_DEFINITIONS = {
   payments: `
     CREATE TABLE IF NOT EXISTS payments (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       enrollment_id CHAR(24) COMMENT '报名 ID',
       user_id CHAR(24) COMMENT '用户 ID',
       period_id CHAR(24) COMMENT '期次 ID',
@@ -278,8 +288,7 @@ const TABLE_DEFINITIONS = {
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
       is_paid BOOLEAN DEFAULT 0 COMMENT '是否已支付（虚拟字段同步）',
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE,
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_user_id (user_id),
       INDEX idx_status (status),
       INDEX idx_created_at (created_at)
@@ -289,6 +298,7 @@ const TABLE_DEFINITIONS = {
   insights: `
     CREATE TABLE IF NOT EXISTS insights (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       user_id CHAR(24) COMMENT '创建用户 ID',
       target_user_id CHAR(24) COMMENT '目标用户 ID',
       checkin_id CHAR(24) COMMENT '打卡 ID',
@@ -308,12 +318,11 @@ const TABLE_DEFINITIONS = {
       is_published BOOLEAN DEFAULT 0 COMMENT '是否发布',
       likes JSON COMMENT '点赞',
       like_count INT DEFAULT 0 COMMENT '点赞数',
+      share_count INT DEFAULT 0 COMMENT '分享数',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (target_user_id) REFERENCES users(id),
-      FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE,
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_user_id (user_id),
       INDEX idx_target_user_id (target_user_id),
       INDEX idx_is_published (is_published),
@@ -324,13 +333,13 @@ const TABLE_DEFINITIONS = {
   insight_likes: `
     CREATE TABLE IF NOT EXISTS insight_likes (
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       insight_id CHAR(24) COMMENT '小凡看见 ID',
       user_id CHAR(24) COMMENT '点赞用户 ID',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (insight_id) REFERENCES insights(id) ON DELETE CASCADE,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE KEY uk_insight_user (insight_id, user_id),
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_insight_id (insight_id),
       INDEX idx_user_id (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='小凡看见点赞表';
@@ -339,6 +348,7 @@ const TABLE_DEFINITIONS = {
   insight_requests: `
     CREATE TABLE IF NOT EXISTS insight_requests (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       from_user_id CHAR(24) COMMENT '发送用户 ID',
       to_user_id CHAR(24) COMMENT '接收用户 ID',
       status VARCHAR(50) DEFAULT 'pending' COMMENT '状态',
@@ -355,8 +365,7 @@ const TABLE_DEFINITIONS = {
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (to_user_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_insight_id (insight_id),
       INDEX idx_from_user_id (from_user_id),
       INDEX idx_to_user_id (to_user_id),
@@ -367,6 +376,7 @@ const TABLE_DEFINITIONS = {
   insight_request_audit_logs: `
     CREATE TABLE IF NOT EXISTS insight_request_audit_logs (
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       request_id CHAR(24) COMMENT '申请 ID',
       admin_id CHAR(24) COMMENT '管理员 ID',
       action VARCHAR(50) COMMENT '操作',
@@ -375,8 +385,7 @@ const TABLE_DEFINITIONS = {
       remarks TEXT COMMENT '备注',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (request_id) REFERENCES insight_requests(id) ON DELETE CASCADE,
-      FOREIGN KEY (admin_id) REFERENCES admins(id),
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_request_id (request_id),
       INDEX idx_admin_id (admin_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='小凡看见申请审计日志表';
@@ -385,6 +394,7 @@ const TABLE_DEFINITIONS = {
   comments: `
     CREATE TABLE IF NOT EXISTS comments (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       user_id CHAR(24) COMMENT '用户 ID',
       content LONGTEXT COMMENT '评论内容',
       reply_to_user_id CHAR(24) COMMENT '回复用户 ID',
@@ -396,9 +406,7 @@ const TABLE_DEFINITIONS = {
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (reply_to_user_id) REFERENCES users(id),
-      FOREIGN KEY (checkin_id) REFERENCES checkins(id) ON DELETE CASCADE,
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_user_id (user_id),
       INDEX idx_checkin_id (checkin_id),
       INDEX idx_created_at (created_at)
@@ -408,14 +416,14 @@ const TABLE_DEFINITIONS = {
   comment_replies: `
     CREATE TABLE IF NOT EXISTS comment_replies (
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       comment_id CHAR(24) COMMENT '评论 ID',
       user_id CHAR(24) COMMENT '用户 ID',
       content LONGTEXT COMMENT '回复内容',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_comment_id (comment_id),
       INDEX idx_user_id (user_id),
       INDEX idx_created_at (created_at)
@@ -425,6 +433,7 @@ const TABLE_DEFINITIONS = {
   notifications: `
     CREATE TABLE IF NOT EXISTS notifications (
       id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId',
+      tenant_id CHAR(24) COMMENT '租户 ID',
       user_id CHAR(24) COMMENT '用户 ID',
       type VARCHAR(50) COMMENT '通知类型',
       title VARCHAR(255) COMMENT '通知标题',
@@ -439,7 +448,7 @@ const TABLE_DEFINITIONS = {
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_tenant_id (tenant_id),
       INDEX idx_user_id (user_id),
       INDEX idx_is_read (is_read),
       INDEX idx_created_at (created_at)
@@ -447,15 +456,7 @@ const TABLE_DEFINITIONS = {
   `
 };
 
-const SCHEMA_UPGRADES = [
-  {
-    name: 'periods.meeting_join_url',
-    sql: `
-      ALTER TABLE periods
-      ADD COLUMN IF NOT EXISTS meeting_join_url VARCHAR(1000) DEFAULT NULL COMMENT '腾讯会议邀请链接' AFTER meeting_id
-    `
-  }
-];
+const SCHEMA_UPGRADES = [];
 
 async function initMysqlTables() {
   console.log('\n' + '='.repeat(70));
