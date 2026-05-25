@@ -343,7 +343,8 @@ export const uploadApi = {
     return apiClient.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 300000
     });
   },
 
@@ -355,7 +356,8 @@ export const uploadApi = {
     return apiClient.post('/upload/multiple', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 300000
     });
   },
 
