@@ -112,11 +112,9 @@
           <span class="time-text">{{ formatDate(row.createdAt) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="400" fixed="right" v-if="isSuperadmin">
+      <el-table-column label="操作" width="320" fixed="right" v-if="isSuperadmin">
         <template #default="{ row }">
           <el-button type="primary" link size="small" @click="openEditDialog(row)">编辑</el-button>
-          <el-button type="info" link size="small" @click="openBindDialog(row)">绑定</el-button>
-          <el-button type="warning" link size="small" @click="openUnbindDialog(row)">解绑</el-button>
           <el-button type="warning" link size="small" @click="openResetPasswordDialog(row)">重置密码</el-button>
           <el-button type="success" link size="small" @click="openCopyDialog(row)">复制</el-button>
           
@@ -244,92 +242,6 @@
       <template #footer>
         <el-button @click="copyDialogVisible = false">关闭</el-button>
         <el-button type="primary" @click="copyCredentials">复制到剪贴板</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- Bind Mini Program User Dialog -->
-    <el-dialog title="绑定小程序用户" v-model="bindDialogVisible" width="500px" @close="resetBindDialog">
-      <div style="margin-bottom: 12px; color: #606266; font-size: 14px;">
-        将小程序用户绑定为管理员角色，绑定后该用户在小程序中具备管理员权限。
-      </div>
-      <div style="margin-bottom: 8px; font-size: 13px; color: #909399;">当前账号：{{ currentBindAdmin?.name }}</div>
-      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-        <el-input
-          v-model="bindSearch"
-          placeholder="搜索小程序用户昵称..."
-          clearable
-          style="flex: 1"
-          @keyup.enter="searchUsers"
-        />
-        <el-button type="primary" @click="searchUsers" :loading="bindSearching">搜索</el-button>
-      </div>
-      <el-table
-        :data="bindUserResults"
-        v-loading="bindSearching"
-        border
-        style="width: 100%"
-        highlight-current-row
-        @current-change="handleBindUserSelect"
-        max-height="260"
-      >
-        <el-table-column label="头像" width="60" align="center">
-          <template #default="{ row }">
-            <el-avatar :size="32" :src="row.avatarUrl || row.avatar">{{ (row.nickname || '用')[0] }}</el-avatar>
-          </template>
-        </el-table-column>
-        <el-table-column prop="nickname" label="昵称" />
-        <el-table-column label="当前角色" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.role === 'admin' || row.role === 'super_admin'" type="warning" size="small">管理员</el-tag>
-            <span v-else style="color: #ccc; font-size: 12px">普通用户</span>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div v-if="selectedBindUser" style="margin-top: 12px; padding: 10px 14px; background: #f0f9ff; border-radius: 6px; font-size: 13px; color: #0369a1;">
-        已选择：<strong>{{ selectedBindUser.nickname }}</strong>，绑定后将获得管理员角色
-      </div>
-      <template #footer>
-        <el-button @click="bindDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitBind" :loading="binding" :disabled="!selectedBindUser">确认绑定</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- Unbind Mini Program User Dialog -->
-    <el-dialog title="解绑小程序用户" v-model="unbindDialogVisible" width="500px" @close="resetUnbindDialog">
-      <div style="margin-bottom: 12px; color: #606266; font-size: 14px;">
-        以下是已绑定为管理员的小程序用户，选中后点击确认解绑，该用户将恢复为普通用户角色。
-      </div>
-      <div style="margin-bottom: 8px; font-size: 13px; color: #909399;">当前账号：{{ currentUnbindAdmin?.name }}</div>
-      <el-table
-        :data="unbindUserResults"
-        v-loading="unbindSearching"
-        border
-        style="width: 100%"
-        highlight-current-row
-        @current-change="handleUnbindUserSelect"
-        max-height="300"
-      >
-        <el-table-column label="头像" width="60" align="center">
-          <template #default="{ row }">
-            <el-avatar :size="32" :src="row.avatarUrl || row.avatar">{{ (row.nickname || '用')[0] }}</el-avatar>
-          </template>
-        </el-table-column>
-        <el-table-column prop="nickname" label="昵称" />
-        <el-table-column prop="_id" label="用户ID" width="180">
-          <template #default="{ row }">
-            <span style="font-size: 11px; color: #909399;">{{ row._id }}</span>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div v-if="unbindUserResults.length === 0 && !unbindSearching" style="text-align: center; color: #909399; padding: 12px 0; font-size: 13px;">
-        暂无已绑定的管理员用户
-      </div>
-      <div v-if="selectedUnbindUser" style="margin-top: 12px; color: #e6a23c; font-size: 13px;">
-        已选择：<strong>{{ selectedUnbindUser.nickname }}</strong>，解绑后将恢复为普通用户角色
-      </div>
-      <template #footer>
-        <el-button @click="unbindDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="submitUnbind" :loading="unbinding" :disabled="!selectedUnbindUser">确认解绑</el-button>
       </template>
     </el-dialog>
 
@@ -645,111 +557,6 @@ const deleteAdmin = async (row: any) => {
     loadAllForSummary();
   } catch (error: any) {
     ElMessage.error(error.message || '删除失败');
-  }
-};
-
-// Bind Mini Program User
-const bindDialogVisible = ref(false);
-const currentBindAdmin = ref<any>(null);
-const bindSearch = ref('');
-const bindSearching = ref(false);
-const bindUserResults = ref<any[]>([]);
-const selectedBindUser = ref<any>(null);
-const binding = ref(false);
-
-const openBindDialog = (row: any) => {
-  currentBindAdmin.value = row;
-  bindSearch.value = '';
-  bindUserResults.value = [];
-  selectedBindUser.value = null;
-  bindDialogVisible.value = true;
-};
-
-const resetBindDialog = () => {
-  bindSearch.value = '';
-  bindUserResults.value = [];
-  selectedBindUser.value = null;
-};
-
-const searchUsers = async () => {
-  if (!bindSearch.value.trim()) return;
-  try {
-    bindSearching.value = true;
-    const res: any = await userApi.getUsers({ search: bindSearch.value.trim(), limit: 20 });
-    bindUserResults.value = res.list || [];
-  } catch (error: any) {
-    ElMessage.error(error.message || '搜索用户失败');
-  } finally {
-    bindSearching.value = false;
-  }
-};
-
-const handleBindUserSelect = (row: any) => {
-  selectedBindUser.value = row;
-};
-
-const submitBind = async () => {
-  if (!selectedBindUser.value) return;
-  try {
-    binding.value = true;
-    await userApi.updateUser(selectedBindUser.value._id, { role: 'admin' });
-    ElMessage.success(`已将 ${selectedBindUser.value.nickname} 绑定为管理员`);
-    bindDialogVisible.value = false;
-  } catch (error: any) {
-    ElMessage.error(error.message || '绑定失败');
-  } finally {
-    binding.value = false;
-  }
-};
-
-// Unbind Mini Program User
-const unbindDialogVisible = ref(false);
-const currentUnbindAdmin = ref<any>(null);
-const unbindSearch = ref('');
-const unbindSearching = ref(false);
-const unbindUserResults = ref<any[]>([]);
-const selectedUnbindUser = ref<any>(null);
-const unbinding = ref(false);
-
-const openUnbindDialog = async (row: any) => {
-  currentUnbindAdmin.value = row;
-  unbindUserResults.value = [];
-  selectedUnbindUser.value = null;
-  unbindDialogVisible.value = true;
-  try {
-    unbindSearching.value = true;
-    const res: any = await userApi.getUsers({ role: 'admin', limit: 100 });
-    unbindUserResults.value = res.list || [];
-  } catch (error: any) {
-    ElMessage.error(error.message || '加载用户失败');
-  } finally {
-    unbindSearching.value = false;
-  }
-};
-
-const resetUnbindDialog = () => {
-  unbindSearch.value = '';
-  unbindUserResults.value = [];
-  selectedUnbindUser.value = null;
-};
-
-const searchUnbindUsers = async () => {};
-
-const handleUnbindUserSelect = (row: any) => {
-  selectedUnbindUser.value = row;
-};
-
-const submitUnbind = async () => {
-  if (!selectedUnbindUser.value) return;
-  try {
-    unbinding.value = true;
-    await userApi.updateUser(selectedUnbindUser.value._id, { role: 'user' });
-    ElMessage.success(`已将 ${selectedUnbindUser.value.nickname} 解绑，恢复为普通用户`);
-    unbindDialogVisible.value = false;
-  } catch (error: any) {
-    ElMessage.error(error.message || '解绑失败');
-  } finally {
-    unbinding.value = false;
   }
 };
 

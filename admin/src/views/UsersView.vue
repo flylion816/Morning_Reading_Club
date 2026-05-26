@@ -86,7 +86,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="320" fixed="right">
+          <el-table-column label="操作" width="380" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button
@@ -102,6 +102,24 @@
                 </el-button>
                 <el-button type="info" text size="small" @click="viewUserDetails(row)">
                   详情
+                </el-button>
+                <el-button
+                  v-if="row.role !== 'admin' && row.role !== 'super_admin'"
+                  type="warning"
+                  text
+                  size="small"
+                  @click="handleSetAdmin(row)"
+                >
+                  设为管理员
+                </el-button>
+                <el-button
+                  v-else
+                  type="info"
+                  text
+                  size="small"
+                  @click="handleUnsetAdmin(row)"
+                >
+                  取消管理员
                 </el-button>
                 <el-button type="danger" text size="small" @click="handleDeleteUser(row)">
                   删除
@@ -297,6 +315,38 @@ async function handleToggleUserStatus(row: User) {
     .catch(() => {
       // 用户取消
     });
+}
+
+async function handleSetAdmin(row: any) {
+  ElMessageBox.confirm(`确定将「${row.nickname || row._id}」设为管理员吗？`, '设为管理员', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      await userApi.updateUser(row._id, { role: 'admin' });
+      ElMessage.success(`已将 ${row.nickname || row._id} 设为管理员`);
+      await loadUsers();
+    } catch (err: any) {
+      ElMessage.error(err.message || '操作失败');
+    }
+  }).catch(() => {});
+}
+
+async function handleUnsetAdmin(row: any) {
+  ElMessageBox.confirm(`确定取消「${row.nickname || row._id}」的管理员权限吗？`, '取消管理员', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      await userApi.updateUser(row._id, { role: 'user' });
+      ElMessage.success(`已取消 ${row.nickname || row._id} 的管理员权限`);
+      await loadUsers();
+    } catch (err: any) {
+      ElMessage.error(err.message || '操作失败');
+    }
+  }).catch(() => {});
 }
 
 function viewUserDetails(row: User) {
