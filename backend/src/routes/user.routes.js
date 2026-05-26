@@ -100,6 +100,31 @@ router.get('/search', authMiddleware, userTenantContext, async (req, res) => {
 router.get('/:userId', authMiddleware, userTenantContext, getUserById);
 router.get('/:userId/stats', authMiddleware, userTenantContext, getUserStats);
 
+// 管理员用户搜索：按昵称或用户ID搜索，返回头像+昵称+ID（必须在 / 之前注册）
+router.get('/admin/search', adminAuthMiddleware, adminTenantContext, async (req, res) => {
+  const User = require('../models/User');
+  const mongoose = require('mongoose');
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json(success({ list: [] }));
+
+    const conditions = [
+      { nickname: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
+    ];
+    if (mongoose.Types.ObjectId.isValid(q)) {
+      conditions.push({ _id: new mongoose.Types.ObjectId(q) });
+    }
+
+    const users = await User.find({ $or: conditions })
+      .select('_id nickname avatarUrl')
+      .limit(20)
+      .lean();
+    res.json(success({ list: users }));
+  } catch (err) {
+    res.status(500).json(errors.serverError());
+  }
+});
+
 /**
  * @route   GET /api/v1/users
  * @desc    获取用户列表（管理员）

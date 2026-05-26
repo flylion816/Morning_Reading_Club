@@ -66,6 +66,21 @@ async function getPeriodListForUser(req, res, next) {
       query.isPublished = true;
     }
 
+    const normalizedUserId = mongoose.Types.ObjectId.isValid(String(userId))
+      ? new mongoose.Types.ObjectId(String(userId))
+      : userId;
+
+    // 非管理员：过滤可见范围，specific 期次只有在名单内或已报名的用户才能看到
+    if (!isAdmin) {
+      const Enrollment = require('../models/Enrollment');
+      const enrolledPeriodIds = await Enrollment.distinct('periodId', { userId: normalizedUserId });
+      query.$or = [
+        { visibilityType: 'all' },
+        { visibilityType: 'specific', visibleUserIds: normalizedUserId },
+        { visibilityType: 'specific', _id: { $in: enrolledPeriodIds } }
+      ];
+    }
+
     const total = await Period.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const periods = await Period.find(query)
@@ -75,9 +90,6 @@ async function getPeriodListForUser(req, res, next) {
       .select('-__v');
 
     const periodIds = periods.map(period => period._id).filter(Boolean);
-    const normalizedUserId = mongoose.Types.ObjectId.isValid(String(userId))
-      ? new mongoose.Types.ObjectId(String(userId))
-      : userId;
     const checkinStats = periodIds.length
       ? await Checkin.aggregate([
           {
@@ -157,12 +169,23 @@ async function getPeriodList(req, res, next) {
       query.isPublished = true;
     }
 
+    // 管理员可以看到所有期次（包括指定可见的）；未登录用户只能看到全部可见的期次
+    const isAdmin = req.admin && (
+      req.admin.role === 'admin' || req.admin.role === 'super_admin' ||
+      req.admin.role === 'platform_superadmin' || req.admin.role === 'superadmin' ||
+      req.admin.role === 'tenant_admin' || req.admin.role === 'operator'
+    );
+    if (!isAdmin) {
+      query.visibilityType = { $ne: 'specific' };
+    }
+
     const total = await Period.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const periods = await Period.find(query)
       .sort({ endDate: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
+      .populate('visibleUserIds', '_id nickname avatarUrl')
       .select('-__v');
 
     // 转换数据格式以匹配前端期望
@@ -175,20 +198,19 @@ async function getPeriodList(req, res, next) {
       return {
         ...periodObj,
         status: calculatePeriodStatus(period),
-        title: period.title || period.name, // 如果没有title，使用name作为备选
+        title: period.title || period.name,
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-        // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
         coverColor: convertCoverColorForForm(period.coverColor),
         icon: period.icon || period.coverEmoji || '📚',
         startTime: period.startDate ? period.startDate.toISOString() : null,
         endTime: period.endDate ? period.endDate.toISOString() : null,
-        dateRange: periodObj.dateRange || '', // 虚拟字段现在应该被包含了
+        dateRange: periodObj.dateRange || '',
         statusText: getStatusText(period),
-        checkedDays: 0, // 这个值需要从用户的打卡记录中计算
-        progress: 0, // 这个值也需要计算
+        checkedDays: 0,
+        progress: 0,
         isCheckedIn: false,
-        currentEnrollment: period.enrollmentCount || 0 // 报名人数（映射enrollmentCount为currentEnrollment）
-        // price 和 originalPrice 为分单位，不做转换，由前端负责转换为元显示
+        currentEnrollment: period.enrollmentCount || 0,
+        visibleUsers: periodObj.visibleUserIds || []
       };
     });
 
@@ -261,7 +283,9 @@ async function createPeriod(req, res, next) {
       meetingId,
       meetingJoinUrl,
       coverImage,
-      inviteTitle
+      inviteTitle,
+      visibilityType,
+      visibleUserIds
     } = req.body;
 
     const period = await Period.create({
@@ -283,6 +307,8 @@ async function createPeriod(req, res, next) {
       meetingJoinUrl: meetingJoinUrl || null,
       coverImage: coverImage || null,
       inviteTitle: inviteTitle || null,
+      visibilityType: visibilityType || 'all',
+      visibleUserIds: visibilityType === 'specific' ? (visibleUserIds || []) : [],
       status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
       enrollmentOpen: false,
@@ -316,12 +342,19 @@ async function updatePeriod(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
-    // 更新字段
+    // 更新字段（跳过前端虚拟字段 visibleUsers）
     Object.keys(updates).forEach(key => {
-      if (updates[key] !== undefined) {
+      if (updates[key] !== undefined && key !== 'visibleUsers') {
         period[key] = updates[key];
       }
     });
+
+    // 切换为全部可见时清空用户名单
+    if (updates.visibilityType === 'all') {
+      period.visibleUserIds = [];
+    }
+    // 数组字段直接赋值需要手动标记 modified
+    period.markModified('visibleUserIds');
 
     period.status = calculatePeriodStatus(period);
     await period.save();

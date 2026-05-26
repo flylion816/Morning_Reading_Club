@@ -133,6 +133,16 @@ const PeriodSchema = new mongoose.Schema(
       ref: 'Tenant',
       default: null,
       index: true
+    },
+    visibilityType: {
+      type: String,
+      enum: ['all', 'specific'],
+      default: 'all'
+    },
+    visibleUserIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: []
     }
   },
   {

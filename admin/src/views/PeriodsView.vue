@@ -52,6 +52,12 @@
               <span v-if="row.maxEnrollment">/{{ row.maxEnrollment }}</span>
             </template>
           </el-table-column>
+          <el-table-column label="可见范围" width="100">
+            <template #default="{ row }">
+              <el-tag v-if="row.visibilityType === 'specific'" type="warning" size="small">指定用户</el-tag>
+              <span v-else style="color: #909399; font-size: 12px;">全部</span>
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">
@@ -239,6 +245,69 @@
             </div>
           </el-form-item>
 
+          <el-divider content-position="left">可见范围</el-divider>
+
+          <el-form-item label="可见范围" prop="visibilityType">
+            <el-radio-group v-model="formData.visibilityType">
+              <el-radio value="all">全部用户</el-radio>
+              <el-radio value="specific">指定用户</el-radio>
+            </el-radio-group>
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              指定用户模式下，只有名单内的用户才能在期次列表看到此期次；已报名用户始终可见
+            </div>
+          </el-form-item>
+
+          <el-form-item v-if="formData.visibilityType === 'specific'" label="指定用户">
+            <div style="width: 100%">
+              <el-select
+                :model-value="formData.visibleUserIds"
+                multiple
+                filterable
+                remote
+                reserve-keyword
+                placeholder="搜索用户昵称或用户ID"
+                :remote-method="handleUserSearch"
+                :loading="userSearchLoading"
+                style="width: 100%"
+                @change="handleVisibleUserChange"
+              >
+                <el-option
+                  v-for="user in userSearchResults"
+                  :key="user._id"
+                  :value="user._id"
+                  :label="user.nickname"
+                >
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <img
+                      v-if="user.avatarUrl"
+                      :src="user.avatarUrl"
+                      style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"
+                    />
+                    <span v-else style="width: 24px; height: 24px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">👤</span>
+                    <span>{{ user.nickname }}</span>
+                    <span style="color: #909399; font-size: 11px;">{{ user._id }}</span>
+                  </div>
+                </el-option>
+              </el-select>
+              <div v-if="formData.visibleUsers.length > 0" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+                <el-tag
+                  v-for="user in formData.visibleUsers"
+                  :key="user._id"
+                  closable
+                  @close="removeVisibleUser(user._id)"
+                  style="display: flex; align-items: center; gap: 4px;"
+                >
+                  <img
+                    v-if="user.avatarUrl"
+                    :src="user.avatarUrl"
+                    style="width: 16px; height: 16px; border-radius: 50%; object-fit: cover; margin-right: 2px;"
+                  />
+                  {{ user.nickname || user._id }}
+                </el-tag>
+              </div>
+            </div>
+          </el-form-item>
+
           <el-divider content-position="left">招募设置</el-divider>
 
           <el-form-item label="招募开放" prop="enrollmentOpen">
@@ -406,7 +475,7 @@
 // @ts-nocheck
 import { ref, reactive, onMounted, watch } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
-import { periodApi, uploadApi } from '../services/api';
+import { periodApi, uploadApi, userApi } from '../services/api';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import type { ListResponse, Period } from '../types/api';
 
@@ -427,6 +496,8 @@ const copySourceId = ref<string | null>(null);
 const copyFormRef = ref<FormInstance>();
 const copyLoading = ref(false);
 const coverImageUploading = ref(false);
+const userSearchLoading = ref(false);
+const userSearchResults = ref<any[]>([]);
 
 const pagination = ref({
   page: 1,
@@ -453,7 +524,10 @@ const formData = reactive({
   isPublished: false,
   enrollmentOpen: false,
   coverImage: '',
-  inviteTitle: ''
+  inviteTitle: '',
+  visibilityType: 'all',
+  visibleUserIds: [] as string[],
+  visibleUsers: [] as any[]
 });
 
 const copyFormData = reactive({
@@ -583,7 +657,10 @@ function handleEditPeriod(row: Period) {
     isPublished: row.isPublished || false,
     enrollmentOpen: row.enrollmentOpen || false,
     coverImage: row.coverImage || '',
-    inviteTitle: row.inviteTitle || ''
+    inviteTitle: row.inviteTitle || '',
+    visibilityType: row.visibilityType || 'all',
+    visibleUserIds: (row.visibleUsers || []).map((u: any) => u._id || u),
+    visibleUsers: row.visibleUsers || []
   });
 
   console.log('[PeriodsView] 表单已初始化，当前 formData.coverColor:', formData.coverColor);
@@ -624,8 +701,11 @@ async function handleSubmit() {
       const payload = {
         ...formData,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
-        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+        visibilityType: formData.visibilityType,
+        visibleUserIds: formData.visibilityType === 'specific' ? formData.visibleUserIds : []
       };
+      delete (payload as any).visibleUsers;
 
       if (MEETING_CONFIG_ENABLED) {
         payload.meetingId = cleanMeetingId || null;
@@ -877,7 +957,44 @@ function resetForm() {
   formData.enrollmentOpen = false;
   formData.coverImage = '';
   formData.inviteTitle = '';
+  formData.visibilityType = 'all';
+  formData.visibleUserIds = [];
+  formData.visibleUsers = [];
+  userSearchResults.value = [];
   formRef.value?.clearValidate();
+}
+
+let userSearchTimer: ReturnType<typeof setTimeout> | null = null;
+async function handleUserSearch(query: string) {
+  if (!query.trim()) {
+    userSearchResults.value = [];
+    return;
+  }
+  if (userSearchTimer) clearTimeout(userSearchTimer);
+  userSearchTimer = setTimeout(async () => {
+    userSearchLoading.value = true;
+    try {
+      const res = await userApi.adminSearch(query.trim()) as any;
+      userSearchResults.value = res?.list || [];
+    } catch {
+      userSearchResults.value = [];
+    } finally {
+      userSearchLoading.value = false;
+    }
+  }, 300);
+}
+
+function handleVisibleUserChange(selectedIds: string[]) {
+  formData.visibleUserIds = selectedIds;
+  formData.visibleUsers = selectedIds.map(id => {
+    const found = userSearchResults.value.find((u: any) => u._id === id);
+    return found || formData.visibleUsers.find((u: any) => u._id === id) || { _id: id };
+  });
+}
+
+function removeVisibleUser(userId: string) {
+  formData.visibleUserIds = formData.visibleUserIds.filter(id => id !== userId);
+  formData.visibleUsers = formData.visibleUsers.filter((u: any) => u._id !== userId);
 }
 
 function extractMeetingJoinUrl(rawValue: string | null | undefined): string {

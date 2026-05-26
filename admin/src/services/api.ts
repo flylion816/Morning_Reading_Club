@@ -248,7 +248,8 @@ export const userApi = {
   },
   getUserDetail: (id: string) => apiClient.get(`/users/${id}`),
   updateUser: (id: string, data: any) => apiClient.put(`/users/${id}`, data),
-  deleteUser: (id: string) => apiClient.delete(`/users/${id}`)
+  deleteUser: (id: string) => apiClient.delete(`/users/${id}`),
+  adminSearch: (q: string) => apiClient.get('/users/admin/search', { params: { q } })
 };
 
 // 统计 API
