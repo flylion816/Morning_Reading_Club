@@ -248,8 +248,8 @@ exports.registerActivity = async (req, res) => {
           tenantId: tenantId_,
           openid: req.user.openid || ''
         });
-        if (prepayResult && prepayResult.prepay_id) {
-          wxParams = paymentService.generatePaymentParams(prepayResult.prepay_id, payConfig);
+        if (prepayResult && prepayResult.prepayId) {
+          wxParams = paymentService.generatePaymentParams(prepayResult.prepayId, payConfig);
         }
       } catch (wxErr) {
         // 微信支付参数获取失败不阻断流程，前端会处理
