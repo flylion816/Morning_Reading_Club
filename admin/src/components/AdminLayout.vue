@@ -57,6 +57,9 @@
           <el-menu-item index="/activities">
             <span>📆 活动管理</span>
           </el-menu-item>
+          <el-menu-item index="/coupons">
+            <span>🎟️ 优惠券管理</span>
+          </el-menu-item>
           <el-menu-item index="/audit-logs">
             <span>🔍 审计日志</span>
           </el-menu-item>
@@ -196,6 +199,7 @@ const pageTitle = computed(() => {
     '/insights': '小凡看见',
     '/imprints': '在场管理',
     '/activities': '活动管理',
+    '/coupons': '优惠券管理',
     '/insight-requests': '查看申请',
     '/subscription-debug': '订阅消息排查',
     '/audit-logs': '审计日志',
