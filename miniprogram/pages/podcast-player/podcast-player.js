@@ -1,3 +1,8 @@
+const { tenantStorage } = require('../../utils/storage');
+const constants = require('../../config/constants');
+const enrollmentService = require('../../services/enrollment.service');
+const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
+
 Page({
   data: {
     sectionId: '',
@@ -11,7 +16,19 @@ Page({
 
   _syncTimer: null,
 
-  onLoad(options) {
+  async onLoad(options) {
+    if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return;
+    }
+    const userEnrollments = await enrollmentService
+      .getUserEnrollments({ limit: 100 })
+      .catch(() => ({ list: [] }));
+    const enrollmentList = userEnrollments.list || userEnrollments || [];
+    if (!hasPaidEnrollment(enrollmentList)) {
+      redirectAfterCommunityDenied('/pages/index/index', '完成支付后可收听播客');
+      return;
+    }
     const { id } = options;
     if (id) {
       this.setData({ sectionId: id });

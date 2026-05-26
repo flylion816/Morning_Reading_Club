@@ -4,6 +4,8 @@ const envConfig = require('../../../config/env');
 const activityService = require('../../../services/activity.service');
 const { tenantStorage } = require('../../../utils/storage');
 const constants = require('../../../config/constants');
+const enrollmentService = require('../../../services/enrollment.service');
+const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../../utils/period-access');
 
 const DEFAULT_ACTIVITY_TYPES = [
   { key: 'reading', label: '📚 读书会' },
@@ -42,6 +44,18 @@ Page({
   _itemSize: 216, // 200rpx + 16rpx gap, approximate px
 
   async onLoad(options) {
+    if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return;
+    }
+    const userEnrollments = await enrollmentService
+      .getUserEnrollments({ limit: 100 })
+      .catch(() => ({ list: [] }));
+    const enrollmentList = userEnrollments.list || userEnrollments || [];
+    if (!hasPaidEnrollment(enrollmentList)) {
+      redirectAfterCommunityDenied('/pages/index/index', '完成支付后可使用此功能');
+      return;
+    }
     this.loadActivityTypes();
     if (!options.id) {
       activityService.track('zaichang_publish_view');
