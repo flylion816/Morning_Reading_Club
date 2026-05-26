@@ -28,8 +28,16 @@
       <view class="coupon-right">
         <text class="coupon-name">{{item.name}}</text>
         <text class="coupon-valid">有效期：{{item.validFromDisplay}} ~ {{item.validUntilDisplay}}</text>
-        <view class="coupon-status coupon-status--{{item.statusCls}}">
-          <text>{{item.statusLabel}}</text>
+        <view class="coupon-bottom-row">
+          <view class="coupon-status coupon-status--{{item.statusCls}}">
+            <text>{{item.statusLabel}}</text>
+          </view>
+          <view
+            wx:if="{{item.statusCls === 'active'}}"
+            class="coupon-use-btn"
+            bindtap="handleUseCoupon"
+            data-coupon="{{item}}"
+          >去使用</view>
         </view>
       </view>
     </view>

@@ -59,5 +59,16 @@ Page({
 
   onPullDownRefresh() {
     this.loadCoupons().then(() => wx.stopPullDownRefresh());
+  },
+
+  handleUseCoupon(e) {
+    const coupon = e.currentTarget.dataset.coupon;
+    if (coupon.activityId && coupon.activityId._id) {
+      wx.navigateTo({
+        url: `/pages/community-activity-detail/community-activity-detail?activityId=${coupon.activityId._id}`
+      });
+    } else {
+      wx.navigateTo({ url: '/pages/activities/activities' });
+    }
   }
 });

@@ -131,7 +131,18 @@
   color: #999;
 }
 
-.coupon-status--expired {
-  background: #f0f0f0;
-  color: #bbb;
+.coupon-bottom-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4rpx;
+}
+
+.coupon-use-btn {
+  font-size: 24rpx;
+  color: #4a90e2;
+  border: 1rpx solid #4a90e2;
+  border-radius: 20rpx;
+  padding: 4rpx 20rpx;
 }
