@@ -15,10 +15,10 @@ const CommunityActivitySchema = new mongoose.Schema(
       maxlength: 100
     },
 
-    // witness: 见证分享, chat: 交流会, other: 其他
+    // witness: 见证分享, chat: 交流会, cooking: 料理人生, other: 其他
     type: {
       type: String,
-      enum: ['witness', 'chat', 'other'],
+      enum: ['witness', 'chat', 'cooking', 'other'],
       default: 'other'
     },
 

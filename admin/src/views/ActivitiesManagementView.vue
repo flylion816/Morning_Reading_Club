@@ -93,6 +93,7 @@
             <el-select v-model="formData.type" placeholder="选择活动类型" style="width: 100%">
               <el-option label="见证会" value="witness" />
               <el-option label="聊天局" value="chat" />
+              <el-option label="料理人生" value="cooking" />
               <el-option label="其他" value="other" />
             </el-select>
           </el-form-item>
@@ -572,7 +573,7 @@ function removeVisibleUser(userId: string) {
 }
 
 function formatType(type: string): string {
-  const map: Record<string, string> = { witness: '见证会', chat: '聊天局', other: '其他' };
+  const map: Record<string, string> = { witness: '见证会', chat: '聊天局', cooking: '料理人生', other: '其他' };
   return map[type] || type;
 }
 

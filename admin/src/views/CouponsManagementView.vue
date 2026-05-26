@@ -194,9 +194,12 @@
               v-model="formData.userIds"
               multiple
               filterable
-              placeholder="选择发放用户"
-              style="width: 100%"
+              remote
+              reserve-keyword
+              placeholder="搜索用户昵称"
+              :remote-method="handleUserSearch"
               :loading="usersLoading"
+              style="width: 100%"
             >
               <el-option
                 v-for="user in userOptions"
@@ -225,7 +228,7 @@ import { ref, reactive, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { activityCouponService } from '../services/activityCoupon.service';
-import apiClient from '../services/api';
+import apiClient, { userApi } from '../services/api';
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -263,7 +266,6 @@ const formRules = {
 onMounted(() => {
   loadCoupons();
   loadActivityOptions();
-  loadUserOptions();
 });
 
 async function loadCoupons() {
@@ -294,16 +296,24 @@ async function loadActivityOptions() {
   }
 }
 
-async function loadUserOptions() {
-  usersLoading.value = true;
-  try {
-    const data = await apiClient.get('users', { params: { limit: 500 } });
-    userOptions.value = data?.list ?? (Array.isArray(data) ? data : []);
-  } catch {
-    // 静默失败
-  } finally {
-    usersLoading.value = false;
+let userSearchTimer: ReturnType<typeof setTimeout> | null = null;
+async function handleUserSearch(query: string) {
+  if (!query.trim()) {
+    userOptions.value = [];
+    return;
   }
+  if (userSearchTimer) clearTimeout(userSearchTimer);
+  userSearchTimer = setTimeout(async () => {
+    usersLoading.value = true;
+    try {
+      const res = await userApi.adminSearch(query.trim()) as any;
+      userOptions.value = res?.list || [];
+    } catch {
+      userOptions.value = [];
+    } finally {
+      usersLoading.value = false;
+    }
+  }, 300);
 }
 
 function handleFilterChange() {
@@ -341,6 +351,12 @@ function handleEdit(row: any) {
     ? (typeof row.userId === 'object' ? row.userId._id : row.userId)
     : null;
   formData.userIds = uid ? [uid] : [];
+  // 预填 userOptions 以便已选用户名称正常显示
+  if (row.userId && typeof row.userId === 'object') {
+    userOptions.value = [row.userId];
+  } else if (uid) {
+    userOptions.value = [{ _id: uid, nickname: uid }];
+  }
   dialogVisible.value = true;
 }
 

@@ -39,7 +39,7 @@ Page({
     registered: false,
     registering: false,
     showMeeting: false,
-    typeMap: { witness: '见证会', chat: '聊天局', other: '其他' },
+    typeMap: { witness: '见证会', chat: '聊天局', cooking: '料理人生', other: '其他' },
     showPayModal: false,
     paying: false,
     payInfo: {
