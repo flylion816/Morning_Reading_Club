@@ -112,7 +112,7 @@
           <span class="time-text">{{ formatDate(row.createdAt) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="330" fixed="right" v-if="isSuperadmin">
+      <el-table-column label="操作" width="400" fixed="right" v-if="isSuperadmin">
         <template #default="{ row }">
           <el-button type="primary" link size="small" @click="openEditDialog(row)">编辑</el-button>
           <el-button type="info" link size="small" @click="openBindDialog(row)">绑定</el-button>
@@ -297,19 +297,9 @@
     <!-- Unbind Mini Program User Dialog -->
     <el-dialog title="解绑小程序用户" v-model="unbindDialogVisible" width="500px" @close="resetUnbindDialog">
       <div style="margin-bottom: 12px; color: #606266; font-size: 14px;">
-        搜索已绑定为管理员的小程序用户，解绑后该用户将恢复为普通用户角色。
+        以下是已绑定为管理员的小程序用户，选中后点击确认解绑，该用户将恢复为普通用户角色。
       </div>
       <div style="margin-bottom: 8px; font-size: 13px; color: #909399;">当前账号：{{ currentUnbindAdmin?.name }}</div>
-      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-        <el-input
-          v-model="unbindSearch"
-          placeholder="搜索小程序用户昵称..."
-          clearable
-          style="flex: 1"
-          @keyup.enter="searchUnbindUsers"
-        />
-        <el-button type="primary" @click="searchUnbindUsers" :loading="unbindSearching">搜索</el-button>
-      </div>
       <el-table
         :data="unbindUserResults"
         v-loading="unbindSearching"
@@ -317,7 +307,7 @@
         style="width: 100%"
         highlight-current-row
         @current-change="handleUnbindUserSelect"
-        max-height="260"
+        max-height="300"
       >
         <el-table-column label="头像" width="60" align="center">
           <template #default="{ row }">
@@ -325,12 +315,15 @@
           </template>
         </el-table-column>
         <el-table-column prop="nickname" label="昵称" />
-        <el-table-column prop="role" label="当前角色" width="100">
+        <el-table-column prop="_id" label="用户ID" width="180">
           <template #default="{ row }">
-            <el-tag :type="row.role === 'admin' ? 'warning' : 'info'" size="small">{{ row.role }}</el-tag>
+            <span style="font-size: 11px; color: #909399;">{{ row._id }}</span>
           </template>
         </el-table-column>
       </el-table>
+      <div v-if="unbindUserResults.length === 0 && !unbindSearching" style="text-align: center; color: #909399; padding: 12px 0; font-size: 13px;">
+        暂无已绑定的管理员用户
+      </div>
       <div v-if="selectedUnbindUser" style="margin-top: 12px; color: #e6a23c; font-size: 13px;">
         已选择：<strong>{{ selectedUnbindUser.nickname }}</strong>，解绑后将恢复为普通用户角色
       </div>
@@ -718,12 +711,20 @@ const unbindUserResults = ref<any[]>([]);
 const selectedUnbindUser = ref<any>(null);
 const unbinding = ref(false);
 
-const openUnbindDialog = (row: any) => {
+const openUnbindDialog = async (row: any) => {
   currentUnbindAdmin.value = row;
-  unbindSearch.value = '';
   unbindUserResults.value = [];
   selectedUnbindUser.value = null;
   unbindDialogVisible.value = true;
+  try {
+    unbindSearching.value = true;
+    const res: any = await userApi.getUsers({ role: 'admin', limit: 100 });
+    unbindUserResults.value = res.list || [];
+  } catch (error: any) {
+    ElMessage.error(error.message || '加载用户失败');
+  } finally {
+    unbindSearching.value = false;
+  }
 };
 
 const resetUnbindDialog = () => {
@@ -732,18 +733,7 @@ const resetUnbindDialog = () => {
   selectedUnbindUser.value = null;
 };
 
-const searchUnbindUsers = async () => {
-  if (!unbindSearch.value.trim()) return;
-  try {
-    unbindSearching.value = true;
-    const res: any = await userApi.getUsers({ search: unbindSearch.value.trim(), limit: 20 });
-    unbindUserResults.value = res.list || [];
-  } catch (error: any) {
-    ElMessage.error(error.message || '搜索用户失败');
-  } finally {
-    unbindSearching.value = false;
-  }
-};
+const searchUnbindUsers = async () => {};
 
 const handleUnbindUserSelect = (row: any) => {
   selectedUnbindUser.value = row;

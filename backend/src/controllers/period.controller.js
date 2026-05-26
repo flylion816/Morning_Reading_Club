@@ -71,9 +71,11 @@ async function getPeriodListForUser(req, res, next) {
       : userId;
 
     // 所有用户（含管理员）均受可见范围约束，specific 期次只有在名单内或已报名的用户才能看到
+    // visibilityType 不存在（旧数据）视同 'all'
     const Enrollment = require('../models/Enrollment');
     const enrolledPeriodIds = await Enrollment.distinct('periodId', { userId: normalizedUserId });
     query.$or = [
+      { visibilityType: { $exists: false } },
       { visibilityType: 'all' },
       { visibilityType: 'specific', visibleUserIds: normalizedUserId },
       { visibilityType: 'specific', _id: { $in: enrolledPeriodIds } }
@@ -159,20 +161,20 @@ async function getPeriodList(req, res, next) {
       }
     }
 
-    // 公开端点（未登录用户）：只返回已发布的期次
-    if (isPublished !== undefined) {
-      query.isPublished = isPublished === 'true';
-    } else {
-      // 默认只返回已发布的期次给公众
-      query.isPublished = true;
-    }
-
-    // 管理员可以看到所有期次（包括指定可见的）；未登录用户只能看到全部可见的期次
     const isAdmin = req.admin && (
       req.admin.role === 'admin' || req.admin.role === 'super_admin' ||
       req.admin.role === 'platform_superadmin' || req.admin.role === 'superadmin' ||
       req.admin.role === 'tenant_admin' || req.admin.role === 'operator'
     );
+
+    // 管理员默认看全部期次（含未发布）；公开端点默认只看已发布
+    if (isPublished !== undefined) {
+      query.isPublished = isPublished === 'true';
+    } else if (!isAdmin) {
+      query.isPublished = true;
+    }
+
+    // 非管理员只能看全部可见的期次，管理员可看所有（含指定可见）
     if (!isAdmin) {
       query.visibilityType = { $ne: 'specific' };
     }
