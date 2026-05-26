@@ -116,6 +116,7 @@
         <template #default="{ row }">
           <el-button type="primary" link size="small" @click="openEditDialog(row)">编辑</el-button>
           <el-button type="info" link size="small" @click="openBindDialog(row)">绑定</el-button>
+          <el-button type="warning" link size="small" @click="openUnbindDialog(row)">解绑</el-button>
           <el-button type="warning" link size="small" @click="openResetPasswordDialog(row)">重置密码</el-button>
           <el-button type="success" link size="small" @click="openCopyDialog(row)">复制</el-button>
           
@@ -290,6 +291,52 @@
       <template #footer>
         <el-button @click="bindDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitBind" :loading="binding" :disabled="!selectedBindUser">确认绑定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Unbind Mini Program User Dialog -->
+    <el-dialog title="解绑小程序用户" v-model="unbindDialogVisible" width="500px" @close="resetUnbindDialog">
+      <div style="margin-bottom: 12px; color: #606266; font-size: 14px;">
+        搜索已绑定为管理员的小程序用户，解绑后该用户将恢复为普通用户角色。
+      </div>
+      <div style="margin-bottom: 8px; font-size: 13px; color: #909399;">当前账号：{{ currentUnbindAdmin?.name }}</div>
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <el-input
+          v-model="unbindSearch"
+          placeholder="搜索小程序用户昵称..."
+          clearable
+          style="flex: 1"
+          @keyup.enter="searchUnbindUsers"
+        />
+        <el-button type="primary" @click="searchUnbindUsers" :loading="unbindSearching">搜索</el-button>
+      </div>
+      <el-table
+        :data="unbindUserResults"
+        v-loading="unbindSearching"
+        border
+        style="width: 100%"
+        highlight-current-row
+        @current-change="handleUnbindUserSelect"
+        max-height="260"
+      >
+        <el-table-column label="头像" width="60" align="center">
+          <template #default="{ row }">
+            <el-avatar :size="32" :src="row.avatarUrl || row.avatar">{{ (row.nickname || '用')[0] }}</el-avatar>
+          </template>
+        </el-table-column>
+        <el-table-column prop="nickname" label="昵称" />
+        <el-table-column prop="role" label="当前角色" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.role === 'admin' ? 'warning' : 'info'" size="small">{{ row.role }}</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="selectedUnbindUser" style="margin-top: 12px; color: #e6a23c; font-size: 13px;">
+        已选择：<strong>{{ selectedUnbindUser.nickname }}</strong>，解绑后将恢复为普通用户角色
+      </div>
+      <template #footer>
+        <el-button @click="unbindDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="submitUnbind" :loading="unbinding" :disabled="!selectedUnbindUser">确认解绑</el-button>
       </template>
     </el-dialog>
 
@@ -659,6 +706,60 @@ const submitBind = async () => {
     ElMessage.error(error.message || '绑定失败');
   } finally {
     binding.value = false;
+  }
+};
+
+// Unbind Mini Program User
+const unbindDialogVisible = ref(false);
+const currentUnbindAdmin = ref<any>(null);
+const unbindSearch = ref('');
+const unbindSearching = ref(false);
+const unbindUserResults = ref<any[]>([]);
+const selectedUnbindUser = ref<any>(null);
+const unbinding = ref(false);
+
+const openUnbindDialog = (row: any) => {
+  currentUnbindAdmin.value = row;
+  unbindSearch.value = '';
+  unbindUserResults.value = [];
+  selectedUnbindUser.value = null;
+  unbindDialogVisible.value = true;
+};
+
+const resetUnbindDialog = () => {
+  unbindSearch.value = '';
+  unbindUserResults.value = [];
+  selectedUnbindUser.value = null;
+};
+
+const searchUnbindUsers = async () => {
+  if (!unbindSearch.value.trim()) return;
+  try {
+    unbindSearching.value = true;
+    const res: any = await userApi.getUsers({ search: unbindSearch.value.trim(), limit: 20 });
+    unbindUserResults.value = res.list || [];
+  } catch (error: any) {
+    ElMessage.error(error.message || '搜索用户失败');
+  } finally {
+    unbindSearching.value = false;
+  }
+};
+
+const handleUnbindUserSelect = (row: any) => {
+  selectedUnbindUser.value = row;
+};
+
+const submitUnbind = async () => {
+  if (!selectedUnbindUser.value) return;
+  try {
+    unbinding.value = true;
+    await userApi.updateUser(selectedUnbindUser.value._id, { role: 'user' });
+    ElMessage.success(`已将 ${selectedUnbindUser.value.nickname} 解绑，恢复为普通用户`);
+    unbindDialogVisible.value = false;
+  } catch (error: any) {
+    ElMessage.error(error.message || '解绑失败');
+  } finally {
+    unbinding.value = false;
   }
 };
 

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Imprint = require('../models/Imprint');
 const ImprintReaction = require('../models/ImprintReaction');
 const ImprintComment = require('../models/ImprintComment');
@@ -207,6 +208,11 @@ async function create(req, res) {
 async function detail(req, res) {
   try {
     const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
     const imprint = await Imprint.findById(id)
       .populate('authorId', 'nickname avatarUrl _id')
       .populate('attendees.userId', 'nickname avatarUrl _id')
@@ -216,8 +222,10 @@ async function detail(req, res) {
       return res.status(404).json(errors.notFound('印记不存在'));
     }
 
-    const userId = getUserId(req);
-    const myReaction = await ImprintReaction.findOne({ imprintId: id, userId }).lean();
+    const userId = req.user ? getUserId(req) : null;
+    const myReaction = userId
+      ? await ImprintReaction.findOne({ imprintId: id, userId }).lean()
+      : null;
 
     const normalized = {
       ...imprint,

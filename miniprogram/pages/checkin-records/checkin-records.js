@@ -104,12 +104,17 @@ function buildAllPeriodOption(summaryStats = {}) {
   };
 }
 
-function buildRecordItem(item) {
+function buildRecordItem(item, keyword = '') {
   const checkinDate = new Date(item.checkinDate || item.createdAt || Date.now());
   const previewSource = typeof item.note === 'string' ? item.note.trim() : '';
   const preview = previewSource || '这篇打卡还没有填写正文';
   const periodTitle = item.periodId?.title || item.periodId?.name || '';
   const createdAtLabel = `${checkinDate.getFullYear()}-${String(checkinDate.getMonth() + 1).padStart(2, '0')}-${String(checkinDate.getDate()).padStart(2, '0')} ${formatTimeLabel(checkinDate)}`;
+
+  let highlightParts = null;
+  if (keyword && previewSource) {
+    highlightParts = buildHighlightParts(previewSource, keyword);
+  }
 
   return {
     id: item._id,
@@ -123,9 +128,29 @@ function buildRecordItem(item) {
     periodTitle,
     metaLabel: periodTitle ? `${createdAtLabel} · ${periodTitle}` : createdAtLabel,
     preview,
+    highlightParts,
     likeCount: item.likeCount || 0,
     hasDiary: !!previewSource
   };
+}
+
+function buildHighlightParts(text, keyword) {
+  if (!keyword) return null;
+  const re = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, match.index), highlight: false });
+    }
+    parts.push({ text: match[0], highlight: true });
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), highlight: false });
+  }
+  return parts.length > 1 || (parts.length === 1 && parts[0].highlight) ? parts : null;
 }
 
 Page({
@@ -149,7 +174,12 @@ Page({
     loading: true,
     loadingMore: false,
     summaryLoaded: false,
-    accessChecked: false
+    accessChecked: false,
+    searchKeyword: '',
+    activeSearchKeyword: '',
+    isSearchMode: false,
+    searchLoading: false,
+    searchResults: []
   },
 
   async onLoad(options) {
@@ -297,7 +327,7 @@ Page({
 
       const incoming = (response.list || [])
         .filter(item => typeof item.note === 'string' ? item.note.trim().length > 0 : !!item.note)
-        .map(buildRecordItem);
+        .map(item => buildRecordItem(item));
       const mergedRecords = reset ? incoming : this.data.checkinRecords.concat(incoming);
       const total = response.pagination?.total || 0;
       const pages = response.pagination?.pages || 0;
@@ -326,25 +356,27 @@ Page({
 
     const selectedPeriodIndex = this.data.periodOptions.findIndex(item => item.id === periodId);
     const selectedPeriod = this.data.periodOptions[selectedPeriodIndex];
+    const keyword = (this.data.searchKeyword || '').trim();
 
     this.setData({
       periodId,
       selectedPeriodIndex,
       selectedPeriod,
-      selectedPeriodMetaLines: this.buildSelectedPeriodMetaLines(selectedPeriod)
+      selectedPeriodMetaLines: this.buildSelectedPeriodMetaLines(selectedPeriod),
+      isSearchMode: !!keyword,
+      searchResults: keyword ? this.data.searchResults : [],
+      activeSearchKeyword: keyword
     });
 
-    this.loadCheckinRecords({ reset: true }).catch(error => {
-      console.error('切换期次失败:', error);
-      wx.showToast({
-        title: '加载期次失败',
-        icon: 'none'
+    if (keyword) {
+      this.doSearch(keyword);
+    } else {
+      this.loadCheckinRecords({ reset: true }).catch(error => {
+        console.error('切换期次失败:', error);
+        wx.showToast({ title: '加载期次失败', icon: 'none' });
+        this.setData({ loading: false, loadingMore: false });
       });
-      this.setData({
-        loading: false,
-        loadingMore: false
-      });
-    });
+    }
   },
 
   handleSelectedPeriodTap() {
@@ -368,10 +400,10 @@ Page({
       return;
     }
 
-    return this.openCheckinDetail(checkinId, e.currentTarget.dataset.sectionId);
+    return this.openCheckinDetail(checkinId, e.currentTarget.dataset.sectionId, this.data.activeSearchKeyword);
   },
 
-  async openCheckinDetail(checkinId, sectionId = '') {
+  async openCheckinDetail(checkinId, sectionId = '', keyword = '') {
     let targetSectionId = sectionId;
 
     try {
@@ -389,9 +421,11 @@ Page({
         throw new Error('sectionId missing');
       }
 
-      wx.navigateTo({
-        url: `/pages/course-detail/course-detail?id=${targetSectionId}&checkinId=${checkinId}`
-      });
+      let url = `/pages/course-detail/course-detail?id=${targetSectionId}&checkinId=${checkinId}`;
+      if (keyword) {
+        url += `&keyword=${encodeURIComponent(keyword)}`;
+      }
+      wx.navigateTo({ url });
     } catch (error) {
       console.error('打开打卡详情失败:', error);
       wx.showToast({
@@ -420,5 +454,53 @@ Page({
     }
 
     return lines;
+  },
+
+  onSearchInput(e) {
+    this.setData({ searchKeyword: e.detail.value });
+  },
+
+  onSearchClear() {
+    this.setData({
+      searchKeyword: '',
+      activeSearchKeyword: '',
+      isSearchMode: false,
+      searchResults: []
+    });
+  },
+
+  onSearchSubmit() {
+    const keyword = (this.data.searchKeyword || '').trim();
+    if (!keyword) {
+      this.setData({
+        activeSearchKeyword: '',
+        isSearchMode: false,
+        searchResults: []
+      });
+      return;
+    }
+    this.setData({ activeSearchKeyword: keyword });
+    this.doSearch(keyword);
+  },
+
+  async doSearch(keyword) {
+    this.setData({ searchLoading: true });
+    try {
+      const params = { keyword, limit: 50 };
+      const periodId = this.data.periodId;
+      if (periodId && periodId !== 'all') {
+        params.periodId = periodId;
+      }
+      const res = await checkinService.searchMyCheckins(params);
+      const list = (res.list || []).map(item => buildRecordItem(item, keyword));
+      this.setData({
+        searchResults: list,
+        isSearchMode: true
+      });
+    } catch (err) {
+      wx.showToast({ title: '搜索失败', icon: 'none' });
+    } finally {
+      this.setData({ searchLoading: false });
+    }
   }
 });

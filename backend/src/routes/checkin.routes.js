@@ -8,6 +8,7 @@ const {
   getUserCheckinSummary,
   getPeriodCheckins,
   searchCheckins,
+  searchMyCheckins,
   getCheckinDetail,
   updateCheckin,
   deleteCheckin,
@@ -23,6 +24,7 @@ router.get('/user/summary', authMiddleware, userTenantContext, getUserCheckinSum
 router.get('/user/:userId/summary', authMiddleware, userTenantContext, getUserCheckinSummary);
 router.get('/user/:userId?', authMiddleware, userTenantContext, getUserCheckins);
 router.get('/search', authMiddleware, userTenantContext, searchCheckins);
+router.get('/my/search', authMiddleware, userTenantContext, searchMyCheckins);
 router.get('/period/:periodId', authMiddleware, userTenantContext, getPeriodCheckins);
 router.post('/:checkinId/like', authMiddleware, userTenantContext, likeCheckin);
 router.delete('/:checkinId/like', authMiddleware, userTenantContext, unlikeCheckin);

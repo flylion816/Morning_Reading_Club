@@ -1,20 +1,40 @@
-<view class="podcast-bar {{active ? 'podcast-bar-visible' : ''}} {{bottomOffset > 0 ? 'podcast-bar-elevated' : ''}}" style="{{barStyle}}" catchtap="handleBarTap">
-  <view class="podcast-bar-left">
-    <view class="podcast-bar-play-btn" catchtap="handlePlayPause">
-      <view wx:if="{{playing}}" class="podcast-bar-pause-icon">
-        <view class="podcast-bar-pause-bar"></view>
-        <view class="podcast-bar-pause-bar"></view>
-      </view>
-      <text wx:else class="podcast-bar-play-icon">▶</text>
+<view hidden="{{!active}}" class="podcast-bar {{posClass}}" catchtap="handleBarTap">
+  <view class="podcast-bar-body">
+    <view class="podcast-bar-cover-wrap">
+      <image
+        class="podcast-bar-cover {{playing ? 'podcast-bar-cover-spin' : ''}}"
+        src="{{coverUrl || '/assets/images/fanren-boke.jpg'}}"
+        mode="aspectFill"
+      />
     </view>
+
     <view class="podcast-bar-info">
-      <text class="podcast-bar-title">{{title}}</text>
-      <view class="podcast-bar-progress-track">
+      <view class="podcast-bar-title-row">
+        <text class="podcast-bar-title">{{title}}</text>
+        <text class="podcast-bar-time">{{currentTimeText}}</text>
+      </view>
+      <view
+        class="podcast-bar-progress-track"
+        catchtap="handleProgressTap"
+        catchtouchmove="handleProgressDrag"
+        catchtouchstart="handleProgressDragStart"
+      >
         <view class="podcast-bar-progress-fill" style="width: {{progress}}%"></view>
+        <view class="podcast-bar-progress-thumb" style="left: {{progress}}%"></view>
       </view>
     </view>
-  </view>
-  <view class="podcast-bar-close" catchtap="handleClose">
-    <text class="podcast-bar-close-icon">✕</text>
+
+    <view class="podcast-bar-actions">
+      <view class="podcast-bar-play-btn" catchtap="handlePlayPause">
+        <view wx:if="{{playing}}" class="podcast-bar-pause-icon">
+          <view class="podcast-bar-pause-bar"></view>
+          <view class="podcast-bar-pause-bar"></view>
+        </view>
+        <view wx:else class="podcast-bar-play-triangle"></view>
+      </view>
+      <view class="podcast-bar-close-btn" catchtap="handleClose">
+        <text class="podcast-bar-close-x">✕</text>
+      </view>
+    </view>
   </view>
 </view>

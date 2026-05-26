@@ -155,4 +155,4 @@
 
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar has-tabbar="{{true}}" ignore-safe-area="{{true}}" />

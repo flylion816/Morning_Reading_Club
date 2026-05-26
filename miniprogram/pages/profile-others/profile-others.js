@@ -38,6 +38,10 @@ Page({
 
   onLoad(options) {
     const userId = options.userId || options.id;
+    if (!userId || userId === 'undefined') {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return;
+    }
     const periodId = options.periodId || null;
     logger.debug('🔍 profile-others.onLoad - 接收到的参数:', {
       userId,

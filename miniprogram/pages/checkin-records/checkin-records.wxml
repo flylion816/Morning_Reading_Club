@@ -26,6 +26,22 @@
     </view>
   </view>
 
+  <view class="diary-search-bar">
+    <view class="diary-search-input-wrap">
+      <input
+        class="diary-search-input"
+        placeholder="在打卡内容中搜索"
+        placeholder-style="color:#bbb"
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchSubmit"
+        confirm-type="search"
+      />
+      <view class="diary-search-clear" wx:if="{{searchKeyword}}" catchtap="onSearchClear">×</view>
+    </view>
+    <view class="diary-search-btn" catchtap="onSearchSubmit">搜索</view>
+  </view>
+
   <view class="section-block">
     <view class="section-title">打卡记录</view>
     <scroll-view scroll-x class="period-scroll" show-scrollbar="{{false}}" enhanced="true">
@@ -63,9 +79,15 @@
     <text class="selected-period-arrow">›</text>
   </view>
 
-  <view wx:if="{{checkinRecords.length > 0}}" class="records-list">
+  <view wx:if="{{checkinRecords.length > 0 || isSearchMode}}" class="records-list">
+    <view wx:if="{{isSearchMode && searchLoading}}" class="search-loading">搜索中...</view>
+    <view wx:elif="{{isSearchMode && searchResults.length === 0}}" class="empty-state">
+      <text class="empty-state-icon">🔍</text>
+      <text class="empty-state-title">没有找到相关打卡</text>
+      <text class="empty-state-desc">换个关键词试试</text>
+    </view>
     <view
-      wx:for="{{checkinRecords}}"
+      wx:for="{{isSearchMode ? searchResults : checkinRecords}}"
       wx:key="id"
       class="record-row"
       bindtap="handleRecordTap"
@@ -94,7 +116,12 @@
           <text class="record-more">···</text>
         </view>
 
-        <view class="record-content {{item.hasDiary ? '' : 'record-content-empty'}}">{{item.preview}}</view>
+        <view class="record-content {{item.hasDiary ? '' : 'record-content-empty'}}">
+          <block wx:if="{{item.highlightParts}}">
+            <text wx:for="{{item.highlightParts}}" wx:key="index" wx:for-item="part" class="{{part.highlight ? 'highlight-keyword' : ''}}">{{part.text}}</text>
+          </block>
+          <block wx:else>{{item.preview}}</block>
+        </view>
 
         <view class="record-footer">
           <text class="record-meta">{{item.metaLabel}}</text>
@@ -107,7 +134,7 @@
     </view>
   </view>
 
-  <view wx:if="{{!loading && checkinRecords.length === 0}}" class="empty-state">
+  <view wx:if="{{!loading && !isSearchMode && checkinRecords.length === 0}}" class="empty-state">
     <text class="empty-state-icon">📝</text>
     <text class="empty-state-title">还没有打卡日记</text>
     <text class="empty-state-desc">完成晨读打卡后，这里会汇总你的所有记录</text>

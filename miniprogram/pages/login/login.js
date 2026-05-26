@@ -253,6 +253,10 @@ Page({
    * 跳转进入应用
    */
   navigateToApp() {
+    // 清掉首页的 onShow 节流，确保登录后能刷新状态
+    const pages = getCurrentPages();
+    const indexPage = pages.find(p => p.route === 'pages/index/index');
+    if (indexPage) indexPage._lastLoadTime = 0;
     wx.switchTab({
       url: '/pages/index/index'
     });

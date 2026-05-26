@@ -70,16 +70,14 @@ async function getPeriodListForUser(req, res, next) {
       ? new mongoose.Types.ObjectId(String(userId))
       : userId;
 
-    // 非管理员：过滤可见范围，specific 期次只有在名单内或已报名的用户才能看到
-    if (!isAdmin) {
-      const Enrollment = require('../models/Enrollment');
-      const enrolledPeriodIds = await Enrollment.distinct('periodId', { userId: normalizedUserId });
-      query.$or = [
-        { visibilityType: 'all' },
-        { visibilityType: 'specific', visibleUserIds: normalizedUserId },
-        { visibilityType: 'specific', _id: { $in: enrolledPeriodIds } }
-      ];
-    }
+    // 所有用户（含管理员）均受可见范围约束，specific 期次只有在名单内或已报名的用户才能看到
+    const Enrollment = require('../models/Enrollment');
+    const enrolledPeriodIds = await Enrollment.distinct('periodId', { userId: normalizedUserId });
+    query.$or = [
+      { visibilityType: 'all' },
+      { visibilityType: 'specific', visibleUserIds: normalizedUserId },
+      { visibilityType: 'specific', _id: { $in: enrolledPeriodIds } }
+    ];
 
     const total = await Period.countDocuments(query);
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);

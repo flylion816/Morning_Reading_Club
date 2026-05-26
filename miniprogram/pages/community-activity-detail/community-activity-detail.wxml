@@ -6,14 +6,6 @@
   </view>
 
   <block wx:if="{{!loading && activity}}">
-    <!-- 海报图 -->
-    <image
-      wx:if="{{activity.posterUrl}}"
-      class="poster-image"
-      src="{{activity.posterUrl}}"
-      mode="widthFix"
-    />
-
     <!-- 基本信息卡片 -->
     <view class="info-card">
       <view class="type-tag type-{{activity.type}}">{{typeMap[activity.type] || activity.type}}</view>
@@ -44,6 +36,14 @@
         <view wx:if="{{activity.meetingId}}" class="meeting-btn secondary" bindtap="handleCopyMeetingId">复制会议号</view>
       </view>
     </view>
+
+    <!-- 海报图 -->
+    <image
+      wx:if="{{activity.posterUrl}}"
+      class="poster-image"
+      src="{{activity.posterUrl}}"
+      mode="widthFix"
+    />
 
     <!-- 活动描述 -->
     <view wx:if="{{activity.description}}" class="desc-card">

@@ -28,6 +28,22 @@ const InsightRequest = require('../src/models/InsightRequest');
 const Checkin = require('../src/models/Checkin');
 const Comment = require('../src/models/Comment');
 const AuditLog = require('../src/models/AuditLog');
+const Enrollment = require('../src/models/Enrollment');
+const Payment = require('../src/models/Payment');
+const Notification = require('../src/models/Notification');
+const Imprint = require('../src/models/Imprint');
+const ImprintReaction = require('../src/models/ImprintReaction');
+const ImprintComment = require('../src/models/ImprintComment');
+const ImprintActivityType = require('../src/models/ImprintActivityType');
+const CommunityActivity = require('../src/models/CommunityActivity');
+const ActivityRegistration = require('../src/models/ActivityRegistration');
+const SubscribeMessageGrant = require('../src/models/SubscribeMessageGrant');
+const SubscribeMessageDelivery = require('../src/models/SubscribeMessageDelivery');
+const UserActivity = require('../src/models/UserActivity');
+const UserReadingCompletion = require('../src/models/UserReadingCompletion');
+const CheckinCelebrationConfig = require('../src/models/CheckinCelebrationConfig');
+const Tenant = require('../src/models/Tenant');
+const InsightDanmaku = require('../src/models/InsightDanmaku');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db';
 
@@ -50,7 +66,13 @@ async function createIndexes() {
     console.log('✅ MongoDB 连接成功\n');
 
     console.log('📇 创建索引...');
-    const models = [AdminUser, User, Period, Section, Insight, InsightRequest, Checkin, Comment, AuditLog];
+    const models = [
+      AdminUser, User, Period, Section, Insight, InsightRequest, Checkin, Comment, AuditLog,
+      Enrollment, Payment, Notification, Imprint, ImprintReaction, ImprintComment,
+      ImprintActivityType, CommunityActivity, ActivityRegistration,
+      SubscribeMessageGrant, SubscribeMessageDelivery, UserActivity,
+      UserReadingCompletion, CheckinCelebrationConfig, Tenant, InsightDanmaku
+    ];
     let totalIndexCount = 0;
 
     for (const model of models) {

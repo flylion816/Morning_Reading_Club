@@ -31,10 +31,6 @@ Page({
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setActivePage('/pages/profile/profile');
-    }
-    wx.hideTabBar({ animation: false });
     if (this._redirectingFromLegacyShare) {
       return;
     }

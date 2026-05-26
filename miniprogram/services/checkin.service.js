@@ -181,6 +181,10 @@ class CheckinService {
   searchCheckins(params = {}) {
     return request.get('/checkins/search', params);
   }
+
+  searchMyCheckins(params = {}) {
+    return request.get('/checkins/my/search', params);
+  }
 }
 
 module.exports = new CheckinService();

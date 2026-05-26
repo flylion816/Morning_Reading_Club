@@ -148,7 +148,7 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
     return { status: 'skipped_ineligible' };
   }
 
-  const period = await Period.findById(periodId).lean().exec();
+  const period = await Period.findById(periodId).select('name title startDate endDate').lean().exec();
   if (!period) {
     await clearGrantSchedule(grant._id);
     return { status: 'skipped_missing_period' };

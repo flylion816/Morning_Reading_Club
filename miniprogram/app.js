@@ -184,6 +184,7 @@ App({
       this.globalData.statusBarHeight = windowInfo.statusBarHeight || 0;
       this.globalData.screenHeight = windowInfo.screenHeight || 0;
       this.globalData.screenWidth = windowInfo.screenWidth || 0;
+      this.globalData.safeAreaBottom = windowInfo.safeArea ? (windowInfo.screenHeight - windowInfo.safeArea.bottom) : 0;
       this.globalData.platform = deviceInfo.platform || '';
 
       if (envConfig.enableDebug) {
@@ -247,6 +248,7 @@ App({
     podcastPlaying: false,
     podcastTitle: '',
     podcastUrl: '',
+    podcastCoverUrl: '',
     podcastDuration: 0,
     podcastCurrentTime: 0,
     podcastSectionId: '',

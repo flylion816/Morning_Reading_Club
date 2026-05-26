@@ -289,22 +289,35 @@
                   </div>
                 </el-option>
               </el-select>
-              <div v-if="formData.visibleUsers.length > 0" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
-                <el-tag
-                  v-for="user in formData.visibleUsers"
-                  :key="user._id"
-                  closable
-                  @close="removeVisibleUser(user._id)"
-                  style="display: flex; align-items: center; gap: 4px;"
-                >
-                  <img
-                    v-if="user.avatarUrl"
-                    :src="user.avatarUrl"
-                    style="width: 16px; height: 16px; border-radius: 50%; object-fit: cover; margin-right: 2px;"
-                  />
-                  {{ user.nickname || user._id }}
-                </el-tag>
-              </div>
+              <el-table
+                v-if="formData.visibleUsers.length > 0"
+                :data="formData.visibleUsers"
+                size="small"
+                style="margin-top: 10px; width: 100%"
+                border
+              >
+                <el-table-column label="头像" width="60">
+                  <template #default="{ row }">
+                    <img
+                      v-if="row.avatarUrl"
+                      :src="row.avatarUrl"
+                      style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"
+                    />
+                    <span v-else style="width: 32px; height: 32px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">👤</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="nickname" label="昵称" min-width="100" />
+                <el-table-column prop="_id" label="用户ID" min-width="180">
+                  <template #default="{ row }">
+                    <span style="font-size: 11px; color: #909399; font-family: monospace;">{{ row._id }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="70">
+                  <template #default="{ row }">
+                    <el-button type="danger" text size="small" @click="removeVisibleUser(row._id)">移除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
             </div>
           </el-form-item>
 
@@ -458,6 +471,71 @@
               style="width: 100%"
             />
           </el-form-item>
+
+          <el-divider content-position="left">可见范围</el-divider>
+
+          <el-form-item label="可见范围">
+            <el-radio-group v-model="copyFormData.visibilityType">
+              <el-radio value="all">全部用户</el-radio>
+              <el-radio value="specific">指定用户</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item v-if="copyFormData.visibilityType === 'specific'" label="指定用户">
+            <div style="width: 100%">
+              <el-select
+                :model-value="copyFormData.visibleUserIds"
+                multiple
+                filterable
+                remote
+                reserve-keyword
+                placeholder="搜索用户昵称或用户ID"
+                :remote-method="handleUserSearch"
+                :loading="userSearchLoading"
+                style="width: 100%"
+                @change="handleCopyVisibleUserChange"
+              >
+                <el-option
+                  v-for="user in userSearchResults"
+                  :key="user._id"
+                  :value="user._id"
+                  :label="user.nickname"
+                >
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <img v-if="user.avatarUrl" :src="user.avatarUrl" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;" />
+                    <span v-else style="width: 24px; height: 24px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">👤</span>
+                    <span>{{ user.nickname }}</span>
+                    <span style="color: #909399; font-size: 11px;">{{ user._id }}</span>
+                  </div>
+                </el-option>
+              </el-select>
+              <el-table
+                v-if="copyFormData.visibleUsers.length > 0"
+                :data="copyFormData.visibleUsers"
+                size="small"
+                style="margin-top: 10px; width: 100%"
+                border
+              >
+                <el-table-column label="头像" width="60">
+                  <template #default="{ row }">
+                    <img v-if="row.avatarUrl" :src="row.avatarUrl" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+                    <span v-else style="width: 32px; height: 32px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">👤</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="nickname" label="昵称" min-width="100" />
+                <el-table-column prop="_id" label="用户ID" min-width="180">
+                  <template #default="{ row }">
+                    <span style="font-size: 11px; color: #909399; font-family: monospace;">{{ row._id }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="70">
+                  <template #default="{ row }">
+                    <el-button type="danger" text size="small" @click="removeCopyVisibleUser(row._id)">移除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-form-item>
         </el-form>
 
         <template #footer>
@@ -543,7 +621,10 @@ const copyFormData = reactive({
   price: 9900,
   originalPrice: 0,
   maxEnrollment: null,
-  sortOrder: 0
+  sortOrder: 0,
+  visibilityType: 'all',
+  visibleUserIds: [] as string[],
+  visibleUsers: [] as any[]
 });
 
 const formRules = {
@@ -786,7 +867,10 @@ function handleCopyPeriod(row: Period) {
     price: row.price,
     originalPrice: row.originalPrice,
     maxEnrollment: row.maxEnrollment,
-    sortOrder: row.sortOrder
+    sortOrder: row.sortOrder,
+    visibilityType: row.visibilityType || 'all',
+    visibleUserIds: (row.visibleUsers || []).map((u: any) => u._id || u),
+    visibleUsers: row.visibleUsers || []
   });
   copyDialogVisible.value = true;
 }
@@ -802,8 +886,11 @@ async function submitCopyPeriod() {
       const payload = {
         ...copyFormData,
         startDate: copyFormData.startDate ? new Date(copyFormData.startDate).toISOString() : null,
-        endDate: copyFormData.endDate ? new Date(copyFormData.endDate).toISOString() : null
+        endDate: copyFormData.endDate ? new Date(copyFormData.endDate).toISOString() : null,
+        visibilityType: copyFormData.visibilityType,
+        visibleUserIds: copyFormData.visibilityType === 'specific' ? copyFormData.visibleUserIds : []
       };
+      delete (payload as any).visibleUsers;
 
       const response = await periodApi.copyPeriod(copySourceId.value!, payload);
       const copiedCount = response?.copiedSectionCount || 0;
@@ -833,6 +920,9 @@ function resetCopyForm() {
   copyFormData.originalPrice = 0;
   copyFormData.maxEnrollment = null;
   copyFormData.sortOrder = 0;
+  copyFormData.visibilityType = 'all';
+  copyFormData.visibleUserIds = [];
+  copyFormData.visibleUsers = [];
   copyFormRef.value?.clearValidate();
 }
 
@@ -962,6 +1052,19 @@ function resetForm() {
   formData.visibleUsers = [];
   userSearchResults.value = [];
   formRef.value?.clearValidate();
+}
+
+function handleCopyVisibleUserChange(selectedIds: string[]) {
+  copyFormData.visibleUserIds = selectedIds;
+  copyFormData.visibleUsers = selectedIds.map(id => {
+    const found = userSearchResults.value.find((u: any) => u._id === id);
+    return found || copyFormData.visibleUsers.find((u: any) => u._id === id) || { _id: id };
+  });
+}
+
+function removeCopyVisibleUser(userId: string) {
+  copyFormData.visibleUserIds = copyFormData.visibleUserIds.filter(id => id !== userId);
+  copyFormData.visibleUsers = copyFormData.visibleUsers.filter((u: any) => u._id !== userId);
 }
 
 let userSearchTimer: ReturnType<typeof setTimeout> | null = null;

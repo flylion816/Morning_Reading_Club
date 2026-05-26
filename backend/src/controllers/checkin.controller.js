@@ -1114,6 +1114,48 @@ async function searchCheckins(req, res, next) {
   }
 }
 
+async function searchMyCheckins(req, res, next) {
+  try {
+    const { periodId, keyword, limit: limitParam = 50 } = req.query;
+    const userId = getRequestUserId(req);
+
+    const trimmedKeyword = (keyword || '').trim();
+    if (!trimmedKeyword) {
+      return res.status(400).json({ code: 400, message: '请输入搜索关键词' });
+    }
+
+    const limit = Math.min(parseInt(limitParam, 10) || 50, 100);
+
+    const query = {
+      userId,
+      note: { $regex: trimmedKeyword, $options: 'i' }
+    };
+
+    if (periodId) {
+      const hasCommunityAccess = await ensurePeriodCommunityAccess(res, userId, periodId);
+      if (!hasCommunityAccess) return;
+      query.periodId = periodId;
+    } else {
+      const accessiblePeriodIds = await getCommunityAccessiblePeriodIds(userId);
+      if (accessiblePeriodIds.length === 0) {
+        return res.json(success({ list: [], total: 0, keyword: trimmedKeyword }));
+      }
+      query.periodId = { $in: accessiblePeriodIds };
+    }
+
+    const checkins = await Checkin.find(query)
+      .populate('sectionId', 'title day')
+      .populate('periodId', 'name title')
+      .sort({ checkinDate: -1 })
+      .limit(limit)
+      .select('-__v');
+
+    res.json(success({ list: checkins, total: checkins.length, keyword: trimmedKeyword }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createCheckin,
   getCheckins,
@@ -1121,6 +1163,7 @@ module.exports = {
   getUserCheckinSummary,
   getPeriodCheckins,
   searchCheckins,
+  searchMyCheckins,
   getCheckinDetail,
   updateCheckin,
   deleteCheckin,

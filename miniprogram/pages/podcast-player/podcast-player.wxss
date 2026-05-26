@@ -117,9 +117,26 @@ page {
   box-shadow: 0 8rpx 32rpx rgba(249, 115, 22, 0.45);
 }
 
-.player-btn-icon {
-  font-size: 48rpx;
-  color: #fff;
+.player-pause-icon {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.player-pause-bar {
+  width: 8rpx;
+  height: 40rpx;
+  background: #fff;
+  border-radius: 4rpx;
+}
+
+.player-play-triangle {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 22rpx 0 22rpx 38rpx;
+  border-color: transparent transparent transparent #fff;
+  margin-left: 6rpx;
 }
 
 .player-desc-area {

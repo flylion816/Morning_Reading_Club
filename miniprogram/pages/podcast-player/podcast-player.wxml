@@ -22,7 +22,11 @@
 
   <view class="player-controls">
     <view class="player-btn player-btn-main" bindtap="handlePlayPause">
-      <text class="player-btn-icon">{{playing ? '⏸' : '▶'}}</text>
+      <view wx:if="{{playing}}" class="player-pause-icon">
+        <view class="player-pause-bar"></view>
+        <view class="player-pause-bar"></view>
+      </view>
+      <view wx:else class="player-play-triangle"></view>
     </view>
   </view>
 
