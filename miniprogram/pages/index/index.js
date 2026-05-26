@@ -880,11 +880,12 @@ Page({
         return [];
       }
 
-      // 按创建时间倒序排列（最新的在前）
+      // 按天数倒序，同天按 updatedAt 倒序（与 insights 列表页一致）
       insights.sort((a, b) => {
-        const timeA = new Date(a.createdAt || 0).getTime();
-        const timeB = new Date(b.createdAt || 0).getTime();
-        return timeB - timeA;
+        const dayA = a.day || a.sectionId?.day || -1;
+        const dayB = b.day || b.sectionId?.day || -1;
+        if (dayB !== dayA) return dayB - dayA;
+        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
       });
 
       // 格式化数据
@@ -973,7 +974,12 @@ Page({
         });
       }));
 
-      allInsights.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      allInsights.sort((a, b) => {
+        const dayA = a.day || a.sectionId?.day || -1;
+        const dayB = b.day || b.sectionId?.day || -1;
+        if (dayB !== dayA) return dayB - dayA;
+        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+      });
 
       const formatted = allInsights.slice(0, 2).map(item => {
         let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();

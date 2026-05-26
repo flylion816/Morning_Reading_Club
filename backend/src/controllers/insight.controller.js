@@ -783,6 +783,7 @@ async function getUserInsights(req, res, next) {
       .populate('periodId', 'name title')
       .populate('userId', 'nickname avatar avatarUrl _id')
       .populate('targetUserId', 'nickname avatar avatarUrl _id')
+      .sort({ updatedAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
       .select('-__v')
