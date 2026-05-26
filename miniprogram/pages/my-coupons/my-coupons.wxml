@@ -1,0 +1,37 @@
+<view class="page-my-coupons">
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view wx:elif="{{coupons.length === 0}}" class="empty-container">
+    <text class="empty-icon">🎫</text>
+    <text class="empty-text">暂无优惠券</text>
+  </view>
+
+  <view wx:else class="coupon-list">
+    <view
+      wx:for="{{coupons}}"
+      wx:key="_id"
+      class="coupon-card {{item.statusCls !== 'active' ? 'coupon-card--dim' : ''}}"
+    >
+      <!-- 左侧金额/折扣 -->
+      <view class="coupon-left">
+        <text class="coupon-discount">{{item.discountDisplay}}</text>
+        <text class="coupon-activity">{{item.activityTitle}}</text>
+      </view>
+
+      <!-- 分隔虚线 -->
+      <view class="coupon-divider"></view>
+
+      <!-- 右侧信息 -->
+      <view class="coupon-right">
+        <text class="coupon-name">{{item.name}}</text>
+        <text class="coupon-valid">有效期：{{item.validFromDisplay}} ~ {{item.validUntilDisplay}}</text>
+        <view class="coupon-status coupon-status--{{item.statusCls}}">
+          <text>{{item.statusLabel}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -74,10 +74,21 @@
       </view>
 
       <!-- 我的活动 -->
-      <view class="settings-cell" bindtap="goToMyActivities">
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyActivities">
         <view class="cell-left">
           <text class="cell-icon">📅</text>
           <text class="cell-label">我的活动</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+
+      <!-- 我的优惠券 -->
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyCoupons">
+        <view class="cell-left">
+          <text class="cell-icon">🎫</text>
+          <text class="cell-label">我的优惠券</text>
         </view>
         <view class="cell-right">
           <text class="cell-arrow">›</text>

@@ -179,6 +179,10 @@ Page({
     wx.navigateTo({ url: '/pages/my-community-activities/my-community-activities' });
   },
 
+  goToMyCoupons() {
+    wx.navigateTo({ url: '/pages/my-coupons/my-coupons' });
+  },
+
   goToLogin() {
     wx.navigateTo({ url: '/pages/login/login' });
   }

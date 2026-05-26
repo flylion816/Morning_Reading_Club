@@ -34,7 +34,8 @@
     "pages/zaichang/publish/publish",
     "pages/community-activity-detail/community-activity-detail",
     "pages/my-community-activities/my-community-activities",
-    "pages/activities/activities"
+    "pages/activities/activities",
+    "pages/my-coupons/my-coupons"
   ],
   "window": {
     "navigationBarTitleText": "凡人共读",

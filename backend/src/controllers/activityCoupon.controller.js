@@ -144,34 +144,50 @@ exports.adminDelete = async (req, res) => {
 
 /**
  * GET /api/v1/activity-coupons/my
- * 查询当前用户可用优惠券（status=active，在有效期内，匹配 activityId 或通用券）
+ * 查询当前用户的所有优惠券（用于"我的优惠券"页面）
+ * 可选 ?forActivity=activityId 时只返回可用于该活动的 active 券
  */
 exports.getMyCoupons = async (req, res) => {
   try {
     const { userId } = req.user;
-    const { activityId } = req.query;
+    const { activityId, forActivity } = req.query;
     const tenantId = getCurrentTenantId();
     const now = new Date();
 
-    const query = {
-      tenantId,
-      userId,
-      status: 'active',
-      validFrom: { $lte: now },
-      validUntil: { $gte: now }
-    };
-
-    // 匹配指定活动的券或通用券（activityId=null）
-    if (activityId) {
-      query.$or = [{ activityId }, { activityId: null }];
+    // forActivity 模式：报名时筛选可用券（保持原有逻辑）
+    if (forActivity || activityId) {
+      const targetActivity = forActivity || activityId;
+      const query = {
+        tenantId,
+        userId,
+        status: 'active',
+        validFrom: { $lte: now },
+        validUntil: { $gte: now },
+        $or: [{ activityId: targetActivity }, { activityId: null }]
+      };
+      const list = await ActivityCoupon.find(query)
+        .populate('activityId', 'title')
+        .sort({ createdAt: -1 })
+        .lean();
+      return res.json(success(list));
     }
 
-    const list = await ActivityCoupon.find(query)
+    // 默认：返回用户所有券，前端展示用
+    const list = await ActivityCoupon.find({ tenantId, userId })
       .populate('activityId', 'title')
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json(success(list));
+    // 补充计算状态：过期但 status 仍为 active 的券标记为 expired
+    const enriched = list.map(c => {
+      let displayStatus = c.status;
+      if (c.status === 'active' && c.validUntil && new Date(c.validUntil) < now) {
+        displayStatus = 'expired';
+      }
+      return { ...c, displayStatus };
+    });
+
+    res.json(success(enriched));
   } catch (err) {
     logger.error('activityCoupon.getMyCoupons failed', err);
     res.status(500).json(errors.serverError(err.message));
