@@ -112,8 +112,12 @@ function getSkipReason(taskName, doc, context) {
       if (periodId && !context.periodIds.has(periodId)) {
         return `periodId ${periodId} missing`;
       }
-      if (enrollmentId && !context.enrollmentIds.has(enrollmentId)) {
-        return `enrollmentId ${enrollmentId} missing`;
+      // 只有 enrollment 类型才校验（registrationId 类型的活动支付跳过此校验）
+      {
+        const registrationId = toIdString(doc.registrationId);
+        if (!registrationId && enrollmentId && !context.enrollmentIds.has(enrollmentId)) {
+          return `enrollmentId ${enrollmentId} missing`;
+        }
       }
       return null;
     case 'insights':

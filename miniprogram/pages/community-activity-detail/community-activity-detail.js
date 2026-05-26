@@ -39,7 +39,20 @@ Page({
     registered: false,
     registering: false,
     showMeeting: false,
-    typeMap: { witness: '见证会', chat: '聊天局', other: '其他' }
+    typeMap: { witness: '见证会', chat: '聊天局', other: '其他' },
+    showPayModal: false,
+    paying: false,
+    payInfo: {
+      registrationId: '',
+      paymentId: '',
+      originalPrice: 0,
+      originalPriceDisplay: '',
+      coupon: null,
+      finalPrice: 0,
+      finalPriceDisplay: '',
+      discountDisplay: '',
+      wxParams: null
+    }
   },
 
   onLoad(options) {
@@ -63,14 +76,19 @@ Page({
       const res = await communityActivityService.getDetail(activityId);
       const activity = res.data || res;
       const showMeeting = shouldShowMeeting(activity);
+      // 付费活动 pending 状态：isRegistered 为 false，显示"继续支付"
+      const isPendingPayment = activity.isPaid &&
+        activity.userRegistration &&
+        activity.userRegistration.paymentStatus === 'pending';
       this.setData({
         activity: {
           ...activity,
           startTimeFormatted: formatDatetime(activity.startTime),
           endTimeFormatted: formatDatetime(activity.endTime),
-          computedStatus: getActivityStatus(activity)
+          computedStatus: getActivityStatus(activity),
+          priceDisplay: activity.isPaid ? (activity.price / 100).toFixed(2) : '0.00'
         },
-        registered: activity.isRegistered || false,
+        registered: isPendingPayment ? false : (activity.isRegistered || false),
         showMeeting,
         loading: false
       });
@@ -120,11 +138,48 @@ Page({
         });
       });
 
-      await communityActivityService.register(this.data.activityId, { reminderGranted });
-      this.setData({ registered: true });
-      activityService.track('activity_enroll', { targetId: this.data.activityId });
-      wx.showToast({ title: '报名成功', icon: 'success' });
-      this.loadDetail(this.data.activityId);
+      const regRes = await communityActivityService.register(this.data.activityId, { reminderGranted });
+      const regData = regRes.data || regRes;
+
+      if (regData.paymentId) {
+        // 付费活动：展示支付弹窗
+        const originalPrice = regData.originalPrice || 0;
+        const finalPrice = regData.finalPrice || 0;
+        const coupon = regData.coupon || null;
+        const discountAmount = originalPrice - finalPrice;
+        const discountDisplay = discountAmount > 0
+          ? `-¥${(discountAmount / 100).toFixed(2)}`
+          : '';
+        // 提取微信支付参数
+        const wxParams = regData.timeStamp ? {
+          timeStamp: regData.timeStamp,
+          nonceStr: regData.nonceStr,
+          package: regData.package,
+          signType: regData.signType,
+          paySign: regData.paySign
+        } : null;
+        this.setData({
+          showPayModal: true,
+          payInfo: {
+            registrationId: regData.registrationId || '',
+            paymentId: regData.paymentId,
+            originalPrice,
+            originalPriceDisplay: (originalPrice / 100).toFixed(2),
+            coupon,
+            finalPrice,
+            finalPriceDisplay: (finalPrice / 100).toFixed(2),
+            discountDisplay,
+            wxParams
+          }
+        });
+        activityService.track('activity_enroll', { targetId: this.data.activityId });
+      } else {
+        // 免费活动：原有逻辑
+        this.setData({ registered: true });
+        activityService.track('activity_enroll', { targetId: this.data.activityId });
+        wx.showToast({ title: '报名成功', icon: 'success' });
+        this.loadDetail(this.data.activityId);
+      }
     } catch (err) {
       console.error('报名失败:', err);
       wx.showToast({ title: err.message || '报名失败，请重试', icon: 'none' });
@@ -132,6 +187,74 @@ Page({
       this.setData({ registering: false });
     }
   },
+
+  // 用户点击弹窗"立即支付"
+  async handlePayConfirm() {
+    const { payInfo } = this.data;
+    if (!payInfo.wxParams || !payInfo.wxParams.timeStamp) {
+      wx.showToast({ title: '获取支付参数失败，请重试', icon: 'none' });
+      return;
+    }
+    this.setData({ paying: true });
+    try {
+      const payResult = await new Promise((resolve, reject) => {
+        wx.requestPayment({
+          ...payInfo.wxParams,
+          success: resolve,
+          fail: (err) => {
+            if (err.errMsg && err.errMsg.includes('cancel')) {
+              wx.showToast({ title: '已取消支付', icon: 'none' });
+              resolve(null); // 取消不算失败
+            } else {
+              reject(new Error(err.errMsg || '支付失败'));
+            }
+          }
+        });
+      });
+      if (payResult !== null) {
+        // 支付成功（非取消）
+        await this.confirmActivityPayment(payInfo.paymentId);
+        this.setData({ showPayModal: false });
+        wx.showToast({ title: '报名成功', icon: 'success' });
+        this.loadDetail(this.data.activityId);
+      }
+    } catch (err) {
+      wx.showToast({ title: err.message || '支付失败，请重试', icon: 'none' });
+    } finally {
+      this.setData({ paying: false });
+    }
+  },
+
+  // 关闭支付弹窗（取消）
+  handlePayCancel() {
+    this.setData({ showPayModal: false });
+  },
+
+  // 通知后端确认支付
+  async confirmActivityPayment(paymentId) {
+    const paymentService = require('../../services/payment.service');
+    try {
+      await paymentService.confirmPayment(paymentId, { transactionId: '' });
+    } catch (err) {
+      console.warn('确认活动支付失败，但微信支付已成功:', err);
+    }
+  },
+
+  // 继续支付（pending 状态）
+  async handleContinuePay() {
+    const { activity } = this.data;
+    if (!activity || !activity.userRegistration) return;
+    const { paymentId } = activity.userRegistration;
+    if (!paymentId) {
+      wx.showToast({ title: '支付信息缺失，请重新报名', icon: 'none' });
+      return;
+    }
+    // 重新发起报名流程以获取最新支付参数
+    this.handleRegister();
+  },
+
+  // 阻止事件冒泡
+  noop() {},
 
   async handleCancelRegister() {
     wx.showModal({

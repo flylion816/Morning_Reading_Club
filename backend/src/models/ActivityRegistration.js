@@ -38,6 +38,33 @@ const ActivityRegistrationSchema = new mongoose.Schema(
     reminderGranted: {
       type: Boolean,
       default: false
+    },
+
+    // 支付状态：free=免费活动, pending=待支付, paid=已支付
+    paymentStatus: {
+      type: String,
+      enum: ['free', 'pending', 'paid'],
+      default: 'free'
+    },
+
+    // 关联支付记录
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Payment',
+      default: null
+    },
+
+    // 使用的优惠券
+    couponId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ActivityCoupon',
+      default: null
+    },
+
+    // 实际支付金额（单位：分）
+    paidAmount: {
+      type: Number,
+      default: 0
     }
   },
   {

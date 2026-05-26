@@ -114,7 +114,13 @@ exports.initiatePayment = async (req, res) => {
   try {
     const userId = req.user.userId;
     // amount 单位为"分"（100分 = 1元），默认 9900分 = 99元
-    const { enrollmentId, paymentMethod = 'wechat', amount = 9900 } = req.body;
+    const { enrollmentId, registrationId, paymentMethod = 'wechat', amount = 9900 } = req.body;
+
+    if (registrationId) {
+      // 活动支付路径：直接返回，由 communityActivity.controller 的 registerActivity 处理
+      // initiatePayment 不处理活动支付，活动支付在报名时一并创建
+      return res.status(400).json(errors.badRequest('活动支付请通过报名接口发起'));
+    }
 
     // 验证报名记录是否存在
     const enrollment = await Enrollment.findOne({
@@ -193,6 +199,7 @@ exports.initiatePayment = async (req, res) => {
     // 创建新的支付订单
     payment = await Payment.createOrder(
       enrollmentId,
+      'enrollment',
       userId,
       enrollment.periodId,
       resolvedAmount,
@@ -303,14 +310,35 @@ exports.confirmPayment = async (req, res) => {
     await payment.confirmPayment(transactionId);
 
     // 更新报名记录的支付状态
-    const enrollment = await Enrollment.findByIdAndUpdate(
-      payment.enrollmentId,
-      {
-        paymentStatus: 'paid',
-        paidAt: new Date()
-      },
-      { new: true }
-    );
+    let enrollment = null;
+    if (payment.registrationId) {
+      // 活动支付：更新 ActivityRegistration
+      const ActivityRegistration = require('../models/ActivityRegistration');
+      const ActivityCoupon = require('../models/ActivityCoupon');
+      const reg = await ActivityRegistration.findByIdAndUpdate(
+        payment.registrationId,
+        { paymentStatus: 'paid', paidAmount: payment.amount, paymentId: payment._id },
+        { new: true }
+      );
+      // 标记优惠券已使用
+      if (reg && reg.couponId) {
+        await ActivityCoupon.findByIdAndUpdate(reg.couponId, {
+          status: 'used',
+          usedAt: new Date(),
+          usedByRegistrationId: payment.registrationId
+        });
+      }
+    } else if (payment.enrollmentId) {
+      // 期次报名支付：原有逻辑
+      enrollment = await Enrollment.findByIdAndUpdate(
+        payment.enrollmentId,
+        {
+          paymentStatus: 'paid',
+          paidAt: new Date()
+        },
+        { new: true }
+      );
+    }
 
     // 异步同步到 MySQL
     publishSyncEvent({
@@ -495,6 +523,37 @@ exports.adminResetPaymentToPending = async (req, res) => {
       return res.status(404).json(errors.notFound('支付记录不存在'));
     }
 
+    if (payment.registrationId) {
+      // 活动支付重置
+      const ActivityRegistration = require('../models/ActivityRegistration');
+      const ActivityCoupon = require('../models/ActivityCoupon');
+      const reg = await ActivityRegistration.findById(payment.registrationId);
+      if (reg) {
+        // 撤销优惠券使用
+        if (reg.couponId) {
+          await ActivityCoupon.findByIdAndUpdate(reg.couponId, {
+            status: 'active',
+            usedAt: null,
+            usedByRegistrationId: null
+          });
+        }
+        reg.paymentStatus = 'pending';
+        await reg.save();
+      }
+      // 取消所有相关 Payment
+      const relatedPayments = await Payment.find({
+        registrationId: payment.registrationId,
+        status: { $in: ['pending', 'processing', 'completed'] }
+      });
+      for (const item of relatedPayments) {
+        item.status = 'cancelled';
+        item.failureReason = `管理员重置为待支付: ${operator}`;
+        await item.save();
+      }
+      return res.json(success({ paymentId: payment._id, registrationId: payment.registrationId }, '已重置为待支付'));
+    }
+
+    // 以下是原有 enrollment 逻辑
     const enrollment = await Enrollment.findById(payment.enrollmentId);
     if (!enrollment) {
       return res.status(404).json(errors.notFound('报名记录不存在'));
@@ -693,10 +752,27 @@ exports.wechatCallback = async (req, res) => {
         await payment.confirmPayment(notifyData.transaction_id);
 
         // 更新报名记录
-        await Enrollment.findByIdAndUpdate(payment.enrollmentId, {
-          paymentStatus: 'paid',
-          paidAt: new Date()
-        });
+        if (payment.registrationId) {
+          const ActivityRegistration = require('../models/ActivityRegistration');
+          const ActivityCoupon = require('../models/ActivityCoupon');
+          const reg = await ActivityRegistration.findByIdAndUpdate(
+            payment.registrationId,
+            { paymentStatus: 'paid', paidAmount: payment.amount, paymentId: payment._id },
+            { new: true }
+          );
+          if (reg && reg.couponId) {
+            await ActivityCoupon.findByIdAndUpdate(reg.couponId, {
+              status: 'used',
+              usedAt: new Date(),
+              usedByRegistrationId: payment.registrationId
+            });
+          }
+        } else if (payment.enrollmentId) {
+          await Enrollment.findByIdAndUpdate(payment.enrollmentId, {
+            paymentStatus: 'paid',
+            paidAt: new Date()
+          });
+        }
       });
 
       // 异步同步到 MySQL
@@ -714,9 +790,12 @@ exports.wechatCallback = async (req, res) => {
         });
       }
 
-      const enrollment = await withSystemContext(payment.tenantId, () =>
-        Enrollment.findById(payment.enrollmentId)
-      );
+      let enrollment = null;
+      if (payment.enrollmentId) {
+        enrollment = await withSystemContext(payment.tenantId, () =>
+          Enrollment.findById(payment.enrollmentId)
+        );
+      }
       if (enrollment) {
         if (typeof enrollment.populate === 'function') {
           await withSystemContext(payment.tenantId, () =>

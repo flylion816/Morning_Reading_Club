@@ -34,6 +34,18 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="价格" width="100">
+            <template #default="{ row }">
+              <span v-if="row.isPaid">¥{{ (row.price / 100).toFixed(2) }}</span>
+              <el-tag v-else type="success" size="small">免费</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="可见范围" width="100">
+            <template #default="{ row }">
+              <el-tag v-if="row.visibilityType === 'specific'" type="warning" size="small">指定用户</el-tag>
+              <span v-else style="color: #909399; font-size: 12px;">全部</span>
+            </template>
+          </el-table-column>
           <el-table-column label="报名人数" width="100">
             <template #default="{ row }">
               {{ row.registrationCount ?? 0 }}
@@ -139,6 +151,94 @@
             <el-input v-model="formData.meetingJoinUrl" placeholder="腾讯会议邀请链接" clearable />
           </el-form-item>
 
+          <el-form-item label="是否付费" prop="isPaid">
+            <el-switch v-model="formData.isPaid" active-text="付费" inactive-text="免费" />
+          </el-form-item>
+          <el-form-item v-if="formData.isPaid" label="活动价格" prop="priceYuan">
+            <el-input-number
+              v-model="formData.priceYuan"
+              :min="0"
+              :precision="2"
+              :step="1"
+              style="width: 200px"
+            />
+            <span style="margin-left: 8px; color: #909399;">元</span>
+          </el-form-item>
+
+          <el-form-item label="可见范围" prop="visibilityType">
+            <el-radio-group v-model="formData.visibilityType">
+              <el-radio value="all">全部用户</el-radio>
+              <el-radio value="specific">指定用户</el-radio>
+            </el-radio-group>
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              指定用户模式下，只有名单内的用户才能看到此活动
+            </div>
+          </el-form-item>
+
+          <el-form-item v-if="formData.visibilityType === 'specific'" label="指定用户">
+            <div style="width: 100%">
+              <el-select
+                :model-value="formData.visibleUserIds"
+                multiple
+                filterable
+                remote
+                reserve-keyword
+                placeholder="搜索用户昵称或用户ID"
+                :remote-method="handleUserSearch"
+                :loading="userSearchLoading"
+                style="width: 100%"
+                @change="handleVisibleUserChange"
+              >
+                <el-option
+                  v-for="user in userSearchResults"
+                  :key="user._id"
+                  :value="user._id"
+                  :label="user.nickname"
+                >
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <img
+                      v-if="user.avatarUrl"
+                      :src="user.avatarUrl"
+                      style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"
+                    />
+                    <span v-else style="width: 24px; height: 24px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">👤</span>
+                    <span>{{ user.nickname }}</span>
+                    <span style="color: #909399; font-size: 11px;">{{ user._id }}</span>
+                  </div>
+                </el-option>
+              </el-select>
+              <el-table
+                v-if="formData.visibleUsers.length > 0"
+                :data="formData.visibleUsers"
+                size="small"
+                style="margin-top: 10px; width: 100%"
+                border
+              >
+                <el-table-column label="头像" width="60">
+                  <template #default="{ row }">
+                    <img
+                      v-if="row.avatarUrl"
+                      :src="row.avatarUrl"
+                      style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"
+                    />
+                    <span v-else style="width: 32px; height: 32px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">👤</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="nickname" label="昵称" min-width="100" />
+                <el-table-column prop="_id" label="用户ID" min-width="180">
+                  <template #default="{ row }">
+                    <span style="font-size: 11px; color: #909399; font-family: monospace;">{{ row._id }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="70">
+                  <template #default="{ row }">
+                    <el-button type="danger" text size="small" @click="removeVisibleUser(row._id)">移除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-form-item>
+
           <el-form-item label="人数上限" prop="maxParticipants">
             <el-input-number
               v-model="formData.maxParticipants"
@@ -220,7 +320,7 @@ import { ref, reactive, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
-import apiClient, { uploadApi } from '../services/api';
+import apiClient, { uploadApi, userApi } from '../services/api';
 
 const BASE_URL = 'admin/community-activities';
 
@@ -236,6 +336,8 @@ const registrationsVisible = ref(false);
 const registrationsLoading = ref(false);
 const registrations = ref([]);
 const posterUploading = ref(false);
+const userSearchLoading = ref(false);
+const userSearchResults = ref<any[]>([]);
 
 const pagination = ref({ page: 1, pageSize: 20, total: 0 });
 
@@ -248,11 +350,16 @@ const formData = reactive({
   description: '',
   meetingId: '',
   meetingJoinUrl: '',
+  isPaid: false,
+  priceYuan: 0,
   maxParticipants: 0,
   showPopup: false,
   popupStartTime: null,
   popupEndTime: null,
-  status: 'draft'
+  status: 'draft',
+  visibilityType: 'all',
+  visibleUserIds: [] as string[],
+  visibleUsers: [] as any[]
 });
 
 const formRules = {
@@ -312,7 +419,12 @@ function handleEdit(row: any) {
     showPopup: row.showPopup ?? false,
     popupStartTime: row.popupStartTime ? new Date(row.popupStartTime) : null,
     popupEndTime: row.popupEndTime ? new Date(row.popupEndTime) : null,
-    status: row.status ?? 'draft'
+    status: row.status ?? 'draft',
+    isPaid: row.isPaid || false,
+    priceYuan: row.price ? row.price / 100 : 0,
+    visibilityType: row.visibilityType || 'all',
+    visibleUserIds: (row.visibleUsers || []).map((u: any) => u._id || u),
+    visibleUsers: row.visibleUsers || []
   });
   dialogVisible.value = true;
 }
@@ -328,7 +440,11 @@ async function handleSubmit() {
         startTime: formData.startTime ? new Date(formData.startTime).toISOString() : null,
         endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
         popupStartTime: formData.popupStartTime ? new Date(formData.popupStartTime).toISOString() : null,
-        popupEndTime: formData.popupEndTime ? new Date(formData.popupEndTime).toISOString() : null
+        popupEndTime: formData.popupEndTime ? new Date(formData.popupEndTime).toISOString() : null,
+        isPaid: formData.isPaid,
+        price: formData.isPaid ? Math.round(formData.priceYuan * 100) : 0,
+        visibilityType: formData.visibilityType,
+        visibleUserIds: formData.visibilityType === 'specific' ? formData.visibleUserIds : []
       };
       if (isEditMode.value && currentEditId.value) {
         await apiClient.put(`${BASE_URL}/${currentEditId.value}`, payload);
@@ -408,12 +524,51 @@ function resetForm() {
   formData.description = '';
   formData.meetingId = '';
   formData.meetingJoinUrl = '';
+  formData.isPaid = false;
+  formData.priceYuan = 0;
   formData.maxParticipants = 0;
   formData.showPopup = false;
   formData.popupStartTime = null;
   formData.popupEndTime = null;
   formData.status = 'draft';
+  formData.visibilityType = 'all';
+  formData.visibleUserIds = [];
+  formData.visibleUsers = [];
+  userSearchResults.value = [];
   formRef.value?.clearValidate();
+}
+
+let userSearchTimer: ReturnType<typeof setTimeout> | null = null;
+async function handleUserSearch(query: string) {
+  if (!query.trim()) {
+    userSearchResults.value = [];
+    return;
+  }
+  if (userSearchTimer) clearTimeout(userSearchTimer);
+  userSearchTimer = setTimeout(async () => {
+    userSearchLoading.value = true;
+    try {
+      const res = await userApi.adminSearch(query.trim()) as any;
+      userSearchResults.value = res?.list || [];
+    } catch {
+      userSearchResults.value = [];
+    } finally {
+      userSearchLoading.value = false;
+    }
+  }, 300);
+}
+
+function handleVisibleUserChange(selectedIds: string[]) {
+  formData.visibleUserIds = selectedIds;
+  formData.visibleUsers = selectedIds.map(id => {
+    const found = userSearchResults.value.find((u: any) => u._id === id);
+    return found || formData.visibleUsers.find((u: any) => u._id === id) || { _id: id };
+  });
+}
+
+function removeVisibleUser(userId: string) {
+  formData.visibleUserIds = formData.visibleUserIds.filter(id => id !== userId);
+  formData.visibleUsers = formData.visibleUsers.filter((u: any) => u._id !== userId);
 }
 
 function formatType(type: string): string {

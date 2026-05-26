@@ -1,5 +1,8 @@
 const CommunityActivity = require('../models/CommunityActivity');
 const ActivityRegistration = require('../models/ActivityRegistration');
+const Payment = require('../models/Payment');
+const ActivityCoupon = require('../models/ActivityCoupon');
+const paymentService = require('../services/payment.service');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
@@ -17,6 +20,17 @@ exports.listActivities = async (req, res) => {
 
     const query = { tenantId, status: 'published' };
     if (type) query.type = type;
+
+    // 可见范围过滤：specific 模式只返回当前用户在名单内的活动
+    const userId = req.user?.userId;
+    if (userId) {
+      query.$or = [
+        { visibilityType: 'all' },
+        { visibilityType: 'specific', visibleUserIds: userId }
+      ];
+    } else {
+      query.visibilityType = 'all';
+    }
 
     const sortOrder = sort === 'desc' ? { updatedAt: -1 } : { startTime: 1 };
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
@@ -84,22 +98,48 @@ exports.getActivity = async (req, res) => {
       return res.status(404).json(errors.notFound('活动不存在'));
     }
 
+    // 可见范围检查
+    if (activity.visibilityType === 'specific') {
+      const userId = req.user?.userId;
+      const inList = userId && activity.visibleUserIds?.some(uid => uid.toString() === userId.toString());
+      if (!inList) {
+        return res.status(404).json(errors.notFound('活动不存在'));
+      }
+    }
+
     const registrationCount = await ActivityRegistration.countDocuments({
       activityId: id,
       status: 'registered'
     });
 
     let isRegistered = false;
+    let userRegistration = null;
     if (req.user) {
       const reg = await ActivityRegistration.findOne({
         activityId: id,
         userId: req.user.userId,
-        status: 'registered'
+        status: 'registered',
+        $or: [{ paymentStatus: 'free' }, { paymentStatus: 'paid' }]
       }).lean();
       isRegistered = !!reg;
+
+      // 如果有 pending 的报名，也返回（用于"继续支付"）
+      if (!reg) {
+        const pendingReg = await ActivityRegistration.findOne({
+          activityId: id,
+          userId: req.user.userId,
+          status: 'registered',
+          paymentStatus: 'pending'
+        }).lean();
+        if (pendingReg) {
+          userRegistration = { paymentStatus: 'pending', paymentId: pendingReg.paymentId };
+        }
+      } else {
+        userRegistration = { paymentStatus: reg.paymentStatus };
+      }
     }
 
-    res.json(success({ ...activity, registrationCount, isRegistered }));
+    res.json(success({ ...activity, registrationCount, isRegistered, userRegistration }));
   } catch (err) {
     logger.error('getActivity failed', err);
     res.status(500).json(errors.serverError(err.message));
@@ -134,6 +174,104 @@ exports.registerActivity = async (req, res) => {
         return res.status(400).json(errors.badRequest('活动名额已满'));
       }
     }
+
+    // 付费活动处理
+    if (activity.isPaid && activity.price > 0) {
+      // 查用户可用优惠券
+      const now = new Date();
+      const coupon = await ActivityCoupon.findOne({
+        tenantId,
+        userId,
+        status: 'active',
+        validFrom: { $lte: now },
+        validUntil: { $gte: now },
+        $or: [{ activityId: id }, { activityId: null }]
+      }).lean();
+
+      // 计算实付金额
+      let finalPrice = activity.price;
+      if (coupon) {
+        if (coupon.discountType === 'fixed') {
+          finalPrice = Math.max(activity.price - coupon.discountValue, 0);
+        } else {
+          finalPrice = Math.round(activity.price * coupon.discountValue / 100);
+        }
+      }
+
+      // 创建或复用 ActivityRegistration（paymentStatus=pending）
+      let registration = await ActivityRegistration.findOne({ activityId: id, userId });
+      if (registration) {
+        if (registration.paymentStatus === 'paid') {
+          return res.status(400).json(errors.badRequest('您已报名该活动'));
+        }
+        // 复用 pending 记录，更新优惠券
+        registration.couponId = coupon ? coupon._id : null;
+        registration.reminderGranted = reminderGranted;
+        await registration.save();
+      } else {
+        registration = await ActivityRegistration.create({
+          tenantId, activityId: id, userId, reminderGranted,
+          paymentStatus: 'pending',
+          couponId: coupon ? coupon._id : null
+        });
+      }
+
+      // 取消旧的 pending Payment（如有）
+      await Payment.updateMany(
+        { registrationId: registration._id, status: { $in: ['pending', 'processing'] } },
+        { status: 'cancelled', failureReason: '重新发起支付' }
+      );
+
+      // 创建新 Payment
+      const payment = await Payment.createOrder(
+        registration._id,
+        'activity_registration',
+        userId,
+        null,
+        finalPrice,
+        'wechat'
+      );
+
+      // 更新 registration 关联 paymentId
+      registration.paymentId = payment._id;
+      await registration.save();
+
+      // 尝试获取微信支付参数
+      const tenantId_ = tenantId;
+      let wxParams = {};
+      try {
+        const payConfig = await paymentService.resolveWechatPayConfig(tenantId_);
+        const prepayResult = await paymentService.unifiedOrder({
+          orderId: payment.orderNo,
+          amount: finalPrice,
+          body: `活动报名-${activity.title}`,
+          tenantId: tenantId_,
+          openid: req.user.openid || ''
+        });
+        if (prepayResult && prepayResult.prepay_id) {
+          wxParams = paymentService.generatePaymentParams(prepayResult.prepay_id, payConfig);
+        }
+      } catch (wxErr) {
+        // 微信支付参数获取失败不阻断流程，前端会处理
+        logger.warn('获取微信支付参数失败', { paymentId: payment._id, error: wxErr.message });
+      }
+
+      return res.json(success({
+        registrationId: registration._id,
+        paymentId: payment._id,
+        orderNo: payment.orderNo,
+        originalPrice: activity.price,
+        coupon: coupon ? {
+          id: coupon._id,
+          name: coupon.name,
+          discountType: coupon.discountType,
+          discountValue: coupon.discountValue
+        } : null,
+        finalPrice,
+        ...wxParams
+      }, '请完成支付以完成报名'));
+    }
+    // 以下是原有免费活动逻辑
 
     const existing = await ActivityRegistration.findOne({ activityId: id, userId });
     if (existing) {
@@ -252,6 +390,7 @@ exports.adminListActivities = async (req, res) => {
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     const [list, total] = await Promise.all([
       CommunityActivity.find(query)
+        .populate('visibleUserIds', '_id nickname avatarUrl')
         .sort({ startTime: -1 })
         .skip(skip)
         .limit(parseInt(limit, 10))
@@ -259,9 +398,14 @@ exports.adminListActivities = async (req, res) => {
       CommunityActivity.countDocuments(query)
     ]);
 
+    const mappedList = list.map(a => ({
+      ...a,
+      visibleUsers: a.visibleUserIds || []
+    }));
+
     res.json(
       success({
-        list,
+        list: mappedList,
         total,
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),

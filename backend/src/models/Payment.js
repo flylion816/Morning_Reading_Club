@@ -11,7 +11,8 @@ const PaymentSchema = new mongoose.Schema(
     enrollmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Enrollment',
-      required: true,
+      required: false,
+      default: null,
       index: true
     },
 
@@ -23,11 +24,12 @@ const PaymentSchema = new mongoose.Schema(
       index: true
     },
 
-    // 期次ID
+    // 期次ID（期次报名支付时必填，活动支付时为 null）
     periodId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Period',
-      required: true,
+      required: false,
+      default: null,
       index: true
     },
 
@@ -92,6 +94,14 @@ const PaymentSchema = new mongoose.Schema(
       ref: 'Tenant',
       default: null,
       index: true
+    },
+
+    // 关联的活动报名ID（活动支付时使用）
+    registrationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ActivityRegistration',
+      default: null,
+      index: true
     }
   },
   {
@@ -122,8 +132,12 @@ PaymentSchema.virtual('isProcessing').get(function () {
 });
 
 // 静态方法：创建订单
+// sourceType: 'enrollment' | 'activity_registration'
+// 原有调用签名 createOrder(enrollmentId, userId, periodId, amount, paymentMethod) 已废弃，
+// 请使用新签名 createOrder(sourceId, sourceType, userId, periodId, amount, paymentMethod)
 PaymentSchema.statics.createOrder = async function (
-  enrollmentId,
+  sourceId,
+  sourceType,
   userId,
   periodId,
   amount,
@@ -131,18 +145,24 @@ PaymentSchema.statics.createOrder = async function (
 ) {
   const orderNo = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const payment = await this.create({
-    enrollmentId,
+  const doc = {
     userId,
-    periodId,
     amount,
     paymentMethod,
     orderNo,
     status: 'pending',
     tenantId: getCurrentTenantId()
-  });
+  };
 
-  return payment;
+  if (sourceType === 'enrollment') {
+    doc.enrollmentId = sourceId;
+    doc.periodId = periodId;
+  } else {
+    // activity_registration
+    doc.registrationId = sourceId;
+  }
+
+  return this.create(doc);
 };
 
 // 静态方法：获取用户的支付记录

@@ -223,7 +223,8 @@ CREATE TABLE IF NOT EXISTS enrollments (
 CREATE TABLE IF NOT EXISTS payments (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
   tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
-  enrollment_id CHAR(24) NOT NULL COMMENT '报名 ID',
+  enrollment_id CHAR(24) NULL COMMENT '报名 ID',
+  registration_id CHAR(24) NULL COMMENT '活动报名 ID（活动支付）',
   user_id CHAR(24) NOT NULL COMMENT '用户 ID',
   period_id CHAR(24) NOT NULL COMMENT '期次 ID',
   amount DECIMAL(10, 2) NOT NULL COMMENT '金额',

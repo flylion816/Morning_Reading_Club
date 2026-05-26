@@ -35,6 +35,7 @@ const checkinConfigRoutes = require('./routes/checkinConfig.routes');
 const wechatRoutes = require('./routes/wechat.routes');
 const imprintRoutes = require('./routes/imprint.routes');
 const { router: communityActivityRoutes, adminRouter: communityActivityAdminRoutes } = require('./routes/communityActivity.routes');
+const { adminRouter: activityCouponAdminRoutes, userRouter: activityCouponUserRoutes } = require('./routes/activityCoupon.routes');
 
 const app = express();
 
@@ -99,6 +100,8 @@ app.use('/api/v1/wechat', wechatRoutes);
 app.use('/api/v1/imprints', imprintRoutes);
 app.use('/api/v1/community-activities', communityActivityRoutes);
 app.use('/api/v1/admin/community-activities', communityActivityAdminRoutes);
+app.use('/api/v1/activity-coupons', activityCouponUserRoutes);
+app.use('/api/v1/admin/activity-coupons', activityCouponAdminRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

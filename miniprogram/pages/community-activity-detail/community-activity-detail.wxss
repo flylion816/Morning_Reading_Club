@@ -234,3 +234,126 @@
   color: #667eea;
   line-height: 1;
 }
+
+/* 支付确认弹窗 */
+.pay-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pay-modal {
+  background: #fff;
+  border-radius: 24rpx;
+  width: 600rpx;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.pay-modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #222;
+  text-align: center;
+  margin-bottom: 12rpx;
+}
+
+.pay-modal-activity {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.pay-modal-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+}
+
+.pay-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.pay-value {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.coupon-row {
+  align-items: flex-start;
+}
+
+.pay-coupon-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.pay-discount {
+  font-size: 28rpx;
+  color: #e53935;
+}
+
+.pay-coupon-name {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.pay-modal-divider {
+  height: 1rpx;
+  background: #f0f0f0;
+  margin: 8rpx 0;
+}
+
+.final-row {
+  padding: 20rpx 0;
+}
+
+.pay-final {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #e53935;
+}
+
+.pay-modal-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+
+.pay-btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+}
+
+.pay-btn.cancel {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.pay-btn.confirm {
+  background: #07c160;
+  color: #fff;
+}
+
+.pay-btn.loading {
+  opacity: 0.6;
+}

@@ -35,7 +35,10 @@ const {
  * @access  Public
  */
 router.get('/', optionalAuthMiddleware, optionalAdminAuthMiddleware, optionalAdminOrPublicTenantContext, (req, res, next) => {
-  if (req.user) {
+  if (req.admin) {
+    // 管理员请求：不过滤可见范围，返回全部期次
+    getPeriodList(req, res, next);
+  } else if (req.user) {
     getPeriodListForUser(req, res, next);
   } else {
     getPeriodList(req, res, next);

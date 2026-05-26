@@ -120,7 +120,7 @@
           class="request-share-primary"
           open-type="share"
           data-share-type="insightRequest">
-          转发给好友
+          转给{{pendingShareRequest.toUserName}}
         </button>
       </view>
     </view>

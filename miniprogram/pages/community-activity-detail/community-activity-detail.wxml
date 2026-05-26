@@ -61,8 +61,25 @@
           <text>{{activity.computedStatus === 'cancelled' ? '活动已取消' : '活动已结束'}}</text>
         </view>
         <block wx:else>
+          <!-- 付费未报名 -->
           <view
-            wx:if="{{!registered}}"
+            wx:if="{{!registered && activity.isPaid && activity.computedStatus === 'upcoming'}}"
+            class="action-btn primary {{registering ? 'loading' : ''}}"
+            bindtap="handleRegister"
+          >
+            <text>{{registering ? '处理中...' : '立即报名 ¥' + activity.priceDisplay}}</text>
+          </view>
+          <!-- 付费待支付（pending） -->
+          <view
+            wx:elif="{{!registered && activity.isPaid && activity.userRegistration.paymentStatus === 'pending'}}"
+            class="action-btn primary"
+            bindtap="handleContinuePay"
+          >
+            <text>继续支付 ¥{{activity.priceDisplay}}</text>
+          </view>
+          <!-- 免费未报名 -->
+          <view
+            wx:elif="{{!registered}}"
             class="action-btn primary {{registering ? 'loading' : ''}}"
             bindtap="handleRegister"
           >
@@ -83,4 +100,34 @@
       </view>
     </view>
   </block>
+
+  <!-- 支付确认弹窗 -->
+  <view wx:if="{{showPayModal}}" class="pay-modal-mask" bindtap="handlePayCancel">
+    <view class="pay-modal" catchtap="noop">
+      <view class="pay-modal-title">确认报名</view>
+      <view class="pay-modal-activity">{{activity.title}}</view>
+      <view class="pay-modal-row">
+        <text class="pay-label">原价</text>
+        <text class="pay-value">¥{{payInfo.originalPriceDisplay}}</text>
+      </view>
+      <view wx:if="{{payInfo.coupon}}" class="pay-modal-row coupon-row">
+        <text class="pay-label">优惠券</text>
+        <view class="pay-coupon-right">
+          <text class="pay-discount">{{payInfo.discountDisplay}}</text>
+          <text class="pay-coupon-name">{{payInfo.coupon.name}}</text>
+        </view>
+      </view>
+      <view class="pay-modal-divider"></view>
+      <view class="pay-modal-row final-row">
+        <text class="pay-label">实付</text>
+        <text class="pay-final">¥{{payInfo.finalPriceDisplay}}</text>
+      </view>
+      <view class="pay-modal-actions">
+        <view class="pay-btn cancel" bindtap="handlePayCancel">取消</view>
+        <view class="pay-btn confirm {{paying ? 'loading' : ''}}" bindtap="handlePayConfirm">
+          <text>{{paying ? '支付中...' : '立即支付'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </view>

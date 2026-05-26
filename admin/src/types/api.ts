@@ -156,6 +156,7 @@ export interface Payment {
   userName?: string;
   periodId?: string | Period;
   enrollmentId?: string;
+  registrationId?: string;
   orderNo?: string;
   amount?: number;
   paymentMethod?: string;
@@ -164,6 +165,38 @@ export interface Payment {
   successTime?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/**
+ * 社区活动对象（简化版，用于优惠券关联）
+ */
+export interface CommunityActivity {
+  _id: string;
+  title?: string;
+  type?: string;
+  isPaid?: boolean;
+  price?: number;
+  status?: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+/**
+ * 活动优惠券对象
+ */
+export interface ActivityCoupon {
+  _id: string;
+  name: string;
+  activityId?: string | CommunityActivity;
+  discountType: 'fixed' | 'percent';
+  discountValue: number;
+  validFrom: string;
+  validUntil: string;
+  userId: string | User;
+  status: 'active' | 'used' | 'expired';
+  usedAt?: string;
+  usedByRegistrationId?: string;
+  createdAt?: string;
 }
 
 /**

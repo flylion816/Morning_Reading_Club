@@ -91,7 +91,35 @@ const CommunityActivitySchema = new mongoose.Schema(
     reminderSent: {
       type: Boolean,
       default: false
-    }
+    },
+
+    // 是否付费活动
+    isPaid: {
+      type: Boolean,
+      default: false
+    },
+
+    // 活动价格（单位：分）
+    price: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+
+    // 可见范围：all=全部用户，specific=指定用户
+    visibilityType: {
+      type: String,
+      enum: ['all', 'specific'],
+      default: 'all'
+    },
+
+    // 指定可见用户列表（visibilityType=specific 时生效）
+    visibleUserIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ]
   },
   {
     timestamps: true,

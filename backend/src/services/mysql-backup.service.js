@@ -465,12 +465,12 @@ class MysqlBackupService {
       try {
         const sql = `
           INSERT INTO payments (
-            id, tenant_id, enrollment_id, user_id, period_id, amount, payment_method,
+            id, tenant_id, enrollment_id, registration_id, user_id, period_id, amount, payment_method,
             status, wechat, order_no, reconciled, paid_at, failure_reason,
             notes, reconciled_at, created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            tenant_id=VALUES(tenant_id), enrollment_id=VALUES(enrollment_id), user_id=VALUES(user_id),
+            tenant_id=VALUES(tenant_id), enrollment_id=VALUES(enrollment_id), registration_id=VALUES(registration_id), user_id=VALUES(user_id),
             period_id=VALUES(period_id), amount=VALUES(amount),
             payment_method=VALUES(payment_method), status=VALUES(status),
             wechat=VALUES(wechat), order_no=VALUES(order_no),
@@ -484,6 +484,7 @@ class MysqlBackupService {
           payment._id.toString(),
           payment.tenantId ? payment.tenantId.toString() : null,
           coerce(payment.enrollmentId?.toString()),
+          coerce(payment.registrationId?.toString()),
           coerce(payment.userId?.toString()),
           coerce(payment.periodId?.toString()),
           coerce(payment.amount),
