@@ -25,11 +25,11 @@ exports.listActivities = async (req, res) => {
     const userId = req.user?.userId;
     if (userId) {
       query.$or = [
-        { visibilityType: 'all' },
+        { visibilityType: { $ne: 'specific' } },
         { visibilityType: 'specific', visibleUserIds: userId }
       ];
     } else {
-      query.visibilityType = 'all';
+      query.visibilityType = { $ne: 'specific' };
     }
 
     const sortOrder = sort === 'desc' ? { updatedAt: -1 } : { startTime: 1 };
