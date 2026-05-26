@@ -1,4 +1,4 @@
-<view class="publish-page">
+<view class="publish-page" wx:if="{{!checking}}">
   <view class="section">
     <view class="media-grid" id="media-grid">
       <view

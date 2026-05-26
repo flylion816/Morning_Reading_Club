@@ -1,4 +1,4 @@
-<view class="podcast-player-page">
+<view class="podcast-player-page" wx:if="{{!checking}}">
   <view class="player-cover-area">
     <view class="player-cover-art">
       <text class="player-cover-emoji">🎙</text>

@@ -48,7 +48,7 @@ async function resolveWechatPayConfig(tenantId) {
   }
 
   const tenant = await Tenant.findById(tenantId)
-    .select('+wechatPay.apiKey wechatPay')
+    .select('+wechatPay.apiKey')
     .lean();
 
   if (!tenant) {

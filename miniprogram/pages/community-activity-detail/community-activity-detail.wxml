@@ -61,21 +61,21 @@
           <text>{{activity.computedStatus === 'cancelled' ? '活动已取消' : '活动已结束'}}</text>
         </view>
         <block wx:else>
-          <!-- 付费未报名 -->
+          <!-- 付费待支付（pending），优先于立即报名 -->
           <view
-            wx:if="{{!registered && activity.isPaid && activity.computedStatus === 'upcoming'}}"
-            class="action-btn primary {{registering ? 'loading' : ''}}"
-            bindtap="handleRegister"
-          >
-            <text>{{registering ? '处理中...' : '立即报名 ¥' + activity.priceDisplay}}</text>
-          </view>
-          <!-- 付费待支付（pending） -->
-          <view
-            wx:elif="{{!registered && activity.isPaid && activity.userRegistration.paymentStatus === 'pending'}}"
+            wx:if="{{!registered && activity.isPaid && activity.userRegistration.paymentStatus === 'pending'}}"
             class="action-btn primary"
             bindtap="handleContinuePay"
           >
             <text>继续支付 ¥{{activity.priceDisplay}}</text>
+          </view>
+          <!-- 付费未报名 -->
+          <view
+            wx:elif="{{!registered && activity.isPaid && activity.computedStatus === 'upcoming'}}"
+            class="action-btn primary {{registering ? 'loading' : ''}}"
+            bindtap="handleRegister"
+          >
+            <text>{{registering ? '处理中...' : '立即报名 ¥' + activity.priceDisplay}}</text>
           </view>
           <!-- 免费未报名 -->
           <view

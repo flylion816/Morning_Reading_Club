@@ -5,6 +5,7 @@ const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils
 
 Page({
   data: {
+    checking: true,
     sectionId: '',
     title: '',
     description: '',
@@ -29,6 +30,7 @@ Page({
       redirectAfterCommunityDenied('/pages/index/index', '完成支付后可收听播客');
       return;
     }
+    this.setData({ checking: false });
     const { id } = options;
     if (id) {
       this.setData({ sectionId: id });

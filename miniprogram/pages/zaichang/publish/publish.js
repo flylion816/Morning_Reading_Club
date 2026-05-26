@@ -18,6 +18,7 @@ const DEFAULT_ACTIVITY_TYPES = [
 
 Page({
   data: {
+    checking: true,
     mediaList: [],
     title: '',
     activityType: '',
@@ -56,6 +57,7 @@ Page({
       redirectAfterCommunityDenied('/pages/index/index', '完成支付后可使用此功能');
       return;
     }
+    this.setData({ checking: false });
     this.loadActivityTypes();
     if (!options.id) {
       activityService.track('zaichang_publish_view');

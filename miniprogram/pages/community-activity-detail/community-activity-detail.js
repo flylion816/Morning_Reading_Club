@@ -70,6 +70,13 @@ Page({
     }
   },
 
+  async onPullDownRefresh() {
+    if (this.data.activityId) {
+      await this.loadDetail(this.data.activityId);
+    }
+    wx.stopPullDownRefresh();
+  },
+
   async loadDetail(activityId) {
     this.setData({ loading: true });
     try {
