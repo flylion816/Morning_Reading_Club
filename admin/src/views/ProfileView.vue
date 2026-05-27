@@ -14,9 +14,22 @@
         <el-row :gutter="24" class="profile-body">
           <el-col :xs="24" :md="8" class="avatar-panel">
             <div class="avatar-preview">
-              <el-avatar :src="form.avatar" :size="120" class="profile-avatar">
-                {{ avatarFallback }}
-              </el-avatar>
+              <div class="avatar-upload-wrap" @click="triggerAvatarUpload">
+                <el-avatar :src="form.avatar" :size="120" class="profile-avatar">
+                  {{ avatarFallback }}
+                </el-avatar>
+                <div class="avatar-upload-mask">
+                  <span v-if="uploading">上传中...</span>
+                  <span v-else>点击更换</span>
+                </div>
+              </div>
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleAvatarFileChange"
+              />
               <div class="avatar-meta">
                 <div class="avatar-name">{{ form.name || '未设置姓名' }}</div>
                 <div class="avatar-email">{{ authStore.adminInfo?.email }}</div>
@@ -47,18 +60,8 @@
                 <el-input :model-value="roleLabel" disabled />
               </el-form-item>
 
-              <el-form-item label="头像URL">
-                <el-input
-                  v-model="form.avatar"
-                  placeholder="请输入头像URL，可留空使用默认头像"
-                  clearable
-                />
-              </el-form-item>
-
-              <el-form-item label="预览说明">
-                <div class="hint-text">
-                  如果头像地址有效，会立即在右上角和列表中显示；如果留空，则使用默认头像图标。
-                </div>
+              <el-form-item label="头像">
+                <div class="hint-text">点击左侧头像可上传图片，支持 JPG / PNG，建议正方形。</div>
               </el-form-item>
 
               <el-form-item>
@@ -80,11 +83,13 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
 import { useAuthStore } from '../stores/auth';
-import { authApi } from '../services/api';
+import { authApi, uploadApi } from '../services/api';
 
 const authStore = useAuthStore();
 const formRef = ref<any>(null);
+const fileInputRef = ref<HTMLInputElement>();
 const saving = ref(false);
+const uploading = ref(false);
 
 const form = reactive({
   name: '',
@@ -123,6 +128,27 @@ const avatarFallback = computed(() => {
   return form.name ? form.name.charAt(0) : 'U';
 });
 
+const triggerAvatarUpload = () => {
+  fileInputRef.value?.click();
+};
+
+const handleAvatarFileChange = async (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  uploading.value = true;
+  try {
+    const res: any = await uploadApi.uploadFile(file);
+    form.avatar = res.url || res.fileUrl || res;
+    ElMessage.success('头像上传成功，点击保存修改生效');
+  } catch (err: any) {
+    ElMessage.error(err?.message || '上传失败，请重试');
+  } finally {
+    uploading.value = false;
+    // reset so same file can be re-selected
+    if (fileInputRef.value) fileInputRef.value.value = '';
+  }
+};
+
 const syncForm = () => {
   form.name = authStore.adminInfo?.name || '';
   form.avatar = authStore.adminInfo?.avatar || '';
@@ -148,10 +174,12 @@ const saveProfile = async () => {
         avatar: form.avatar.trim() || null
       });
 
-      authStore.adminInfo = {
+      const updated = {
         ...(authStore.adminInfo || {}),
         ...response
       };
+      authStore.adminInfo = updated;
+      localStorage.setItem('adminInfo', JSON.stringify(updated));
       syncForm();
       ElMessage.success('个人资料已更新');
     } catch (error: any) {
@@ -246,6 +274,34 @@ onMounted(() => {
 
 .profile-form {
   max-width: 680px;
+}
+
+.avatar-upload-wrap {
+  position: relative;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.avatar-upload-wrap:hover .avatar-upload-mask {
+  opacity: 1;
+}
+
+.avatar-upload-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 50%;
 }
 
 .hint-text {

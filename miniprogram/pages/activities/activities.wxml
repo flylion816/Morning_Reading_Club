@@ -35,7 +35,7 @@
       <!-- 右侧信息 -->
       <view class="item-info">
         <view class="item-meta-row">
-          <text class="item-type-tag type-{{item.type}}">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : '活动'}}</text>
+          <text class="item-type-tag type-{{item.type}}">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : item.type === 'cooking' ? '料理人生' : '活动'}}</text>
           <view class="item-status status-{{item.statusType}}">
             <text>{{item.statusLabel}}</text>
           </view>

@@ -115,7 +115,7 @@ router.get('/admin/search', adminAuthMiddleware, adminTenantContext, async (req,
       conditions.push({ _id: new mongoose.Types.ObjectId(q) });
     }
 
-    const users = await User.find({ $or: conditions })
+    const users = await User.find({ $or: conditions, status: { $ne: 'deleted' } })
       .select('_id nickname avatarUrl')
       .limit(20)
       .lean();

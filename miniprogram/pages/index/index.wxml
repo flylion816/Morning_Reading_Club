@@ -53,7 +53,7 @@
             data-id="{{item._id}}"
             bindtap="handleActivityCardTap"
           >
-            <text class="activity-card-type">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : '活动'}}</text>
+            <text class="activity-card-type">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : item.type === 'cooking' ? '料理人生' : '活动'}}</text>
             <text class="activity-card-title">{{item.title}}</text>
             <text class="activity-card-time">{{item.startDateText}}</text>
           </view>

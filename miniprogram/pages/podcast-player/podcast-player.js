@@ -8,6 +8,7 @@ Page({
     checking: true,
     sectionId: '',
     title: '',
+    subtitle: '',
     description: '',
     playing: false,
     progress: 0,
@@ -18,6 +19,12 @@ Page({
   _syncTimer: null,
 
   async onLoad(options) {
+    const app = getApp();
+    // 只允许从 app 内部跳转（有全局音频上下文）进入，否则直接回首页
+    if (!app.globalData.audioContext && !app.globalData.podcastUrl) {
+      wx.redirectTo({ url: '/pages/index/index' });
+      return;
+    }
     if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
       wx.redirectTo({ url: '/pages/index/index' });
       return;

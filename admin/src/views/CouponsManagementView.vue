@@ -81,7 +81,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="160" fixed="right">
+          <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button
@@ -91,6 +91,12 @@
                   :disabled="row.status !== 'active'"
                   @click="handleEdit(row)"
                 >编辑</el-button>
+                <el-button
+                  type="success"
+                  text
+                  size="small"
+                  @click="handleCopy(row)"
+                >复制</el-button>
                 <el-button
                   type="danger"
                   text
@@ -191,6 +197,7 @@
 
           <el-form-item label="发放用户" prop="userIds">
             <el-select
+              ref="userSelectRef"
               v-model="formData.userIds"
               multiple
               filterable
@@ -200,13 +207,22 @@
               :remote-method="handleUserSearch"
               :loading="usersLoading"
               style="width: 100%"
+              @change="handleUserSelectChange"
             >
               <el-option
                 v-for="user in userOptions"
                 :key="user._id"
                 :label="user.nickname || user._id"
                 :value="user._id"
-              />
+              >
+                <div class="user-option">
+                  <el-avatar :src="user.avatarUrl" :size="28" class="user-option-avatar">
+                    {{ (user.nickname || '?').charAt(0) }}
+                  </el-avatar>
+                  <span class="user-option-name">{{ user.nickname || '未知' }}</span>
+                  <span class="user-option-id">{{ user._id }}</span>
+                </div>
+              </el-option>
             </el-select>
           </el-form-item>
         </el-form>
@@ -240,6 +256,7 @@ const dialogVisible = ref(false);
 const isEditMode = ref(false);
 const currentEditId = ref<string | null>(null);
 const formRef = ref<FormInstance>();
+const userSelectRef = ref<any>();
 
 const filterActivityId = ref('');
 const filterStatus = ref('');
@@ -316,6 +333,14 @@ async function handleUserSearch(query: string) {
   }, 300);
 }
 
+function handleUserSelectChange() {
+  // Clear the search input text after a user is selected
+  if (userSelectRef.value) {
+    userSelectRef.value.query = '';
+    userSelectRef.value.inputValue = '';
+  }
+}
+
 function handleFilterChange() {
   pagination.value.page = 1;
   loadCoupons();
@@ -330,6 +355,26 @@ function handleCreate() {
   isEditMode.value = false;
   currentEditId.value = null;
   resetForm();
+  dialogVisible.value = true;
+}
+
+function handleCopy(row: any) {
+  isEditMode.value = false;
+  currentEditId.value = null;
+  resetForm();
+  formData.name = row.name ?? '';
+  formData.activityId = row.activityId
+    ? (typeof row.activityId === 'object' ? row.activityId._id : row.activityId)
+    : null;
+  formData.discountType = row.discountType ?? 'fixed';
+  formData.discountValueInput = row.discountType === 'fixed'
+    ? (row.discountValue / 100)
+    : row.discountValue;
+  formData.validRange = row.validFrom && row.validUntil
+    ? [row.validFrom.substring(0, 10), row.validUntil.substring(0, 10)]
+    : null;
+  formData.userIds = [];
+  userOptions.value = [];
   dialogVisible.value = true;
 }
 
@@ -483,5 +528,31 @@ function formatDate(val: string): string {
   gap: 8px;
   flex-wrap: nowrap;
   align-items: center;
+}
+
+.user-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.user-option-avatar {
+  flex-shrink: 0;
+  background: #dbeafe;
+  color: #3b82f6;
+  font-size: 12px;
+}
+
+.user-option-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.user-option-id {
+  font-size: 11px;
+  color: #9ca3af;
+  font-family: monospace;
+  margin-left: auto;
 }
 </style>

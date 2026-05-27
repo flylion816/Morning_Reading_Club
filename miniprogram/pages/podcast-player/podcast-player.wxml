@@ -5,7 +5,7 @@
     </view>
     <view class="player-title-area">
       <text class="player-title">{{title}}</text>
-      <text class="player-subtitle">凡人播客</text>
+      <text class="player-subtitle">{{subtitle}}</text>
     </view>
   </view>
 
