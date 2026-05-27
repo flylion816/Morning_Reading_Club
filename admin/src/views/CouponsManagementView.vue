@@ -359,7 +359,7 @@ function handleScopeChange() {
   formRef.value?.clearValidate('userIds');
 }
 
-
+function handleUserSelectChange() {
   // Clear the search input text after a user is selected
   if (userSelectRef.value) {
     userSelectRef.value.query = '';
