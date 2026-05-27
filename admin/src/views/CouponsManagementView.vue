@@ -71,7 +71,8 @@
           </el-table-column>
           <el-table-column label="发放用户" min-width="120">
             <template #default="{ row }">
-              {{ getUserName(row.userId) }}
+              <el-tag v-if="row.scope === 'global'" type="warning" size="small">全平台通用</el-tag>
+              <span v-else>{{ getUserName(row.userId) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="100">
@@ -195,7 +196,14 @@
             />
           </el-form-item>
 
-          <el-form-item label="发放用户" prop="userIds">
+          <el-form-item label="发放范围" prop="scope">
+            <el-radio-group v-model="formData.scope" @change="handleScopeChange">
+              <el-radio value="personal">指定用户</el-radio>
+              <el-radio value="global">全平台通用</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item v-if="formData.scope === 'personal'" label="发放用户" prop="userIds">
             <el-select
               ref="userSelectRef"
               v-model="formData.userIds"
@@ -269,6 +277,7 @@ const formData = reactive({
   discountType: 'fixed' as 'fixed' | 'percent',
   discountValueInput: 0,
   validRange: null as [string, string] | null,
+  scope: 'personal' as 'personal' | 'global',
   userIds: [] as string[]
 });
 
@@ -277,7 +286,16 @@ const formRules = {
   discountType: [{ required: true, message: '请选择折扣类型', trigger: 'change' }],
   discountValueInput: [{ required: true, message: '请输入折扣值', trigger: 'blur' }],
   validRange: [{ required: true, message: '请选择有效期', trigger: 'change' }],
-  userIds: [{ required: true, type: 'array', min: 1, message: '请选择至少一个用户', trigger: 'change' }]
+  userIds: [{
+    validator: (_rule: any, value: string[], callback: any) => {
+      if (formData.scope === 'personal' && (!value || value.length === 0)) {
+        callback(new Error('请选择至少一个用户'));
+      } else {
+        callback();
+      }
+    },
+    trigger: 'change'
+  }]
 };
 
 onMounted(() => {
@@ -333,7 +351,15 @@ async function handleUserSearch(query: string) {
   }, 300);
 }
 
-function handleUserSelectChange() {
+function handleScopeChange() {
+  if (formData.scope === 'global') {
+    formData.userIds = [];
+    userOptions.value = [];
+  }
+  formRef.value?.clearValidate('userIds');
+}
+
+
   // Clear the search input text after a user is selected
   if (userSelectRef.value) {
     userSelectRef.value.query = '';
@@ -392,6 +418,7 @@ function handleEdit(row: any) {
   formData.validRange = row.validFrom && row.validUntil
     ? [row.validFrom.substring(0, 10), row.validUntil.substring(0, 10)]
     : null;
+  formData.scope = row.scope || 'personal';
   const uid = row.userId
     ? (typeof row.userId === 'object' ? row.userId._id : row.userId)
     : null;
@@ -421,7 +448,8 @@ async function handleSubmit() {
         discountValue,
         validFrom: formData.validRange ? formData.validRange[0] : '',
         validUntil: formData.validRange ? formData.validRange[1] : '',
-        userIds: formData.userIds
+        scope: formData.scope,
+        userIds: formData.scope === 'personal' ? formData.userIds : []
       };
       if (isEditMode.value && currentEditId.value) {
         await activityCouponService.update(currentEditId.value, payload);
@@ -462,6 +490,7 @@ function resetForm() {
   formData.discountType = 'fixed';
   formData.discountValueInput = 0;
   formData.validRange = null;
+  formData.scope = 'personal';
   formData.userIds = [];
   formRef.value?.clearValidate();
 }

@@ -177,16 +177,24 @@ exports.registerActivity = async (req, res) => {
 
     // 付费活动处理
     if (activity.isPaid && activity.price > 0) {
-      // 查用户可用优惠券
+      // 查用户可用优惠券（个人券优先，其次全平台券）
       const now = new Date();
-      const coupon = await ActivityCoupon.findOne({
+      const baseCondition = {
         tenantId,
-        userId,
         status: 'active',
         validFrom: { $lte: now },
         validUntil: { $gte: now },
         $or: [{ activityId: id }, { activityId: null }]
-      }).lean();
+      };
+      const coupon = await ActivityCoupon.findOne({
+        ...baseCondition,
+        $or: [
+          { scope: 'personal', userId },
+          { scope: 'global' },
+          // 兼容旧数据（无 scope 字段的个人券）
+          { scope: { $exists: false }, userId }
+        ]
+      }).sort({ scope: 1 }).lean(); // personal < global，个人券优先
 
       // 计算实付金额
       let finalPrice = activity.price;

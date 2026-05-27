@@ -50,11 +50,19 @@ const ActivityCouponSchema = new mongoose.Schema(
       required: true
     },
 
-    // 归属用户
+    // 归属用户（global 券不绑定用户，此字段为 null）
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
+      index: true
+    },
+
+    // 券范围：personal=个人券（绑定 userId），global=全平台通用券
+    scope: {
+      type: String,
+      enum: ['personal', 'global'],
+      default: 'personal',
       index: true
     },
 
