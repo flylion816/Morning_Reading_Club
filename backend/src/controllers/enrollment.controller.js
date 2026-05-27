@@ -646,6 +646,7 @@ exports.getEnrollments = async (req, res) => {
       periodId,
       approvalStatus,
       paymentStatus,
+      search,
       sortBy = 'enrolledAt',
       sortOrder = -1
     } = req.query;
@@ -658,6 +659,7 @@ exports.getEnrollments = async (req, res) => {
     if (approvalStatus) query.approvalStatus = approvalStatus;
     if (paymentStatus) query.paymentStatus = paymentStatus;
     if (periodId) query.periodId = periodId;
+    if (search) query.name = { $regex: search, $options: 'i' };
 
     // 分页和排序
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);

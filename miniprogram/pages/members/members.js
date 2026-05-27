@@ -75,7 +75,7 @@ Page({
 
       this.setData({
         members: reset ? members : [...this.data.members, ...members],
-        totalMembers: reset ? members.length : this.data.members.length + members.length,
+        totalMembers: res.total || res.pagination?.total || members.length,
         loading: false
       });
     } catch (error) {

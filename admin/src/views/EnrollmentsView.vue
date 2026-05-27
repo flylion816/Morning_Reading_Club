@@ -265,6 +265,7 @@ async function loadEnrollments() {
       page: pagination.value.page,
       limit: pagination.value.limit
     };
+    if (filters.value.search) params.search = filters.value.search;
     if (filters.value.paymentStatus) params.paymentStatus = filters.value.paymentStatus;
     if (filters.value.periodId) params.periodId = filters.value.periodId;
 
