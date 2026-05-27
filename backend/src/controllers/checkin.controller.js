@@ -17,7 +17,7 @@ const {
 } = require('../utils/notification-links');
 
 function getRequestUserId(req) {
-  return req.user.id || req.user.userId || req.user._id;
+  return req.user?.id || req.user?.userId || req.user?._id;
 }
 
 function isNonEmptyNote(note) {

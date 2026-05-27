@@ -721,8 +721,10 @@ exports.wechatCallback = async (req, res) => {
     });
 
     // 查找支付记录（微信回调用 out_trade_no，即我们的 orderNo）
+    // 注意：必须调用 .exec() 让 Promise 在 withSystemContext 的 AsyncLocalStorage 上下文内创建，
+    // 否则 Mongoose Query 的 pre-hook 会在 processTicksAndRejections 中执行，此时上下文已丢失。
     const payment = await withSystemContext(null, () =>
-      Payment.findOne({ orderNo: notifyData.out_trade_no })
+      Payment.findOne({ orderNo: notifyData.out_trade_no }).exec()
     );
 
     if (!payment) {
