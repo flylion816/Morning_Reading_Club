@@ -84,8 +84,21 @@
               data-id="{{item._id}}"
             >
               <view class="zaichang-card-cover">
-                <image wx:if="{{item.coverUrl}}" class="zaichang-card-img" src="{{item.coverUrl}}" mode="aspectFill" lazy-load/>
+                <video
+                  wx:if="{{item.coverUrl && item.coverType === 'video'}}"
+                  class="zaichang-card-img zaichang-card-video"
+                  src="{{item.coverUrl}}"
+                  object-fit="cover"
+                  controls="{{false}}"
+                  show-play-btn="{{false}}"
+                  show-center-play-btn="{{false}}"
+                  enable-play-gesture="{{false}}"
+                  autoplay="{{false}}"
+                  muted
+                />
+                <image wx:elif="{{item.coverUrl}}" class="zaichang-card-img" src="{{item.coverUrl}}" mode="aspectFill" lazy-load/>
                 <view wx:else class="zaichang-card-img-placeholder">🌿</view>
+                <view wx:if="{{item.coverUrl && item.coverType === 'video'}}" class="zaichang-card-video-badge">▶</view>
               </view>
               <view class="zaichang-card-title">{{item.title}}</view>
               <view class="zaichang-card-meta">{{item.authorName}}{{item.dateStr ? ' · ' + item.dateStr : ''}}</view>

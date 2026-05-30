@@ -839,12 +839,13 @@ Page({
       const res = await imprintService.list({ page: 1, pageSize: 3 });
       const list = res.list || [];
       return list.map(item => {
-        const cover = (item.mediaList || []).find(m => m.type !== 'video');
+        const cover = (item.mediaList || [])[0];
         const d = item.happenedAt ? new Date(item.happenedAt) : null;
         const dateStr = d ? `${d.getMonth() + 1}月${d.getDate()}日` : '';
         return {
           _id: item._id,
           title: item.title || '',
+          coverType: cover ? (cover.type || 'image') : '',
           coverUrl: cover ? cover.url : '',
           authorName: item.author ? (item.author.nickname || '') : '',
           dateStr
