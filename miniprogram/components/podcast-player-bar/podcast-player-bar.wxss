@@ -149,6 +149,19 @@
   border-radius: 3rpx;
 }
 
+.podcast-bar-loading-ring {
+  width: 22rpx;
+  height: 22rpx;
+  border: 3rpx solid rgba(26, 26, 26, 0.25);
+  border-top-color: #1a1a1a;
+  border-radius: 50%;
+  animation: bar-spin 0.8s linear infinite;
+}
+
+@keyframes bar-spin {
+  to { transform: rotate(360deg); }
+}
+
 .podcast-bar-play-triangle {
   width: 0;
   height: 0;

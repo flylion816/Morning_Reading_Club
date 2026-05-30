@@ -61,19 +61,30 @@ page {
 
 .player-progress-track {
   position: relative;
+  height: 36rpx;
+  margin-bottom: 6rpx;
+}
+
+.player-progress-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
   height: 8rpx;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 4rpx;
-  margin-bottom: 16rpx;
+  transform: translateY(-50%);
 }
 
 .player-progress-fill {
   position: absolute;
   left: 0;
-  top: 0;
-  height: 100%;
+  top: 50%;
+  height: 8rpx;
   background: #f97316;
   border-radius: 4rpx;
+  transform: translateY(-50%);
   transition: width 0.5s linear;
 }
 
@@ -140,16 +151,30 @@ page {
 }
 
 .player-desc-area {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 20rpx;
-  padding: 28rpx;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 16rpx;
+  padding: 28rpx 30rpx;
 }
 
 .player-desc-title {
+  position: relative;
+  padding-left: 18rpx;
   font-size: 26rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.72);
   margin-bottom: 16rpx;
+}
+
+.player-desc-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7rpx;
+  width: 6rpx;
+  height: 24rpx;
+  border-radius: 3rpx;
+  background: #f97316;
 }
 
 .player-desc-content {

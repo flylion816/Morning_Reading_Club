@@ -10,7 +10,13 @@
   </view>
 
   <view class="player-progress-area">
-    <view class="player-progress-track" bindtap="handleSeek">
+    <view
+      class="player-progress-track"
+      catchtap="handleSeek"
+      catchtouchstart="handleSeekDragStart"
+      catchtouchmove="handleSeekDrag"
+      catchtouchend="handleSeekDragEnd"
+    >
       <view class="player-progress-fill" style="width: {{progress}}%"></view>
       <view class="player-progress-thumb" style="left: {{progress}}%"></view>
     </view>
@@ -31,7 +37,7 @@
   </view>
 
   <view class="player-desc-area" wx:if="{{description}}">
-    <view class="player-desc-title">简介</view>
+    <view class="player-desc-title">音频简介</view>
     <view class="player-desc-content">
       <text user-select>{{description}}</text>
     </view>

@@ -325,8 +325,9 @@
             <text class="podcast-title">{{course.title}}</text>
             <text class="podcast-duration" wx:if="{{course.podcastDuration}}">{{podcastDurationText}}</text>
           </view>
-          <view class="podcast-play-btn {{podcastPlaying && podcastSectionId === courseId ? 'playing' : ''}}">
-            <view wx:if="{{podcastPlaying && podcastSectionId === courseId}}" class="podcast-pause-icon">
+          <view class="podcast-play-btn {{(podcastPlaying || podcastLoading) && podcastSectionId === courseId ? 'playing' : ''}}">
+            <view wx:if="{{podcastLoading && podcastSectionId === courseId}}" class="podcast-loading-ring"></view>
+            <view wx:elif="{{podcastPlaying && podcastSectionId === courseId}}" class="podcast-pause-icon">
               <view class="podcast-pause-bar"></view>
               <view class="podcast-pause-bar"></view>
             </view>
@@ -338,6 +339,7 @@
         </view>
       </view>
       <view class="podcast-desc-wrap" wx:if="{{course.podcastDescription}}">
+        <view class="podcast-desc-heading">音频简介</view>
         <view class="podcast-desc {{podcastDescExpanded ? '' : 'podcast-desc-collapsed'}}">
           <rich-text nodes="{{course.podcastDescriptionHtml}}"></rich-text>
         </view>
@@ -349,7 +351,7 @@
       <view class="comments-header">
         <view class="comments-icon">✅</view>
         <text class="comments-title">每日打卡</text>
-        <text class="comments-count" wx:if="{{course.comments.length}}">（{{course.comments.length}} 条）</text>
+        <text class="comments-count" wx:if="{{course.comments && course.comments.length}}">（{{course.comments.length}} 条）</text>
       </view>
 
       <view class="comments-list">

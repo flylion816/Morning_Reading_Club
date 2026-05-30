@@ -1,4 +1,7 @@
-<view hidden="{{!active}}" class="podcast-bar {{posClass}}" catchtap="handleBarTap">
+<view
+  hidden="{{!active}}"
+  class="podcast-bar {{hasTabbar ? 'podcast-bar-tabbar' : ''}} {{!hasTabbar && bottomOffset > 0 ? 'podcast-bar-elevated' : ''}} {{!hasTabbar && !(bottomOffset > 0) ? 'podcast-bar-default' : ''}}"
+  catchtap="handleBarTap">
   <view class="podcast-bar-body">
     <view class="podcast-bar-cover-wrap">
       <image
@@ -26,7 +29,8 @@
 
     <view class="podcast-bar-actions">
       <view class="podcast-bar-play-btn" catchtap="handlePlayPause">
-        <view wx:if="{{playing}}" class="podcast-bar-pause-icon">
+        <view wx:if="{{loading}}" class="podcast-bar-loading-ring"></view>
+        <view wx:elif="{{playing}}" class="podcast-bar-pause-icon">
           <view class="podcast-bar-pause-bar"></view>
           <view class="podcast-bar-pause-bar"></view>
         </view>

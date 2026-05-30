@@ -1,4 +1,5 @@
 const activityService = require('../../services/activity.service');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 
 Component({
   properties: {
@@ -15,48 +16,71 @@ Component({
   data: {
     active: false,
     playing: false,
+    loading: false,
     title: '',
     coverUrl: '',
     progress: 0,
-    currentTimeText: '0:00',
-    posClass: 'podcast-bar-default'
-  },
-
-  observers: {
-    'hasTabbar, bottomOffset': function(hasTabbar, bottomOffset) {
-      const posClass = hasTabbar ? 'podcast-bar-tabbar' : (bottomOffset > 0 ? 'podcast-bar-elevated' : 'podcast-bar-default');
-      console.log('[podcast-bar] observer hasTabbar:', hasTabbar, 'bottomOffset:', bottomOffset, '→ posClass:', posClass);
-      this.setData({ posClass });
-    }
+    currentTimeText: '0:00'
   },
 
   lifetimes: {
     attached() {
-      this._syncTimer = setInterval(() => this._syncFromGlobal(), 1000);
-      this._syncFromGlobal();
+      this._ready = false;
+      this._visible = false;
+    },
+    ready() {
+      this._ready = true;
+      const afterRender = wx.nextTick || ((fn) => setTimeout(fn, 0));
+      afterRender(() => {
+        if (!this._ready || !this._visible) return;
+        this._syncFromGlobal();
+        this._startSyncTimer();
+      });
     },
     detached() {
-      if (this._syncTimer) {
-        clearInterval(this._syncTimer);
-        this._syncTimer = null;
-      }
+      this._ready = false;
+      this._visible = false;
+      this._stopSyncTimer();
     }
   },
 
   pageLifetimes: {
     show() {
-      this._syncFromGlobal();
+      this._visible = true;
+      if (!this._ready) return;
+      const afterRender = wx.nextTick || ((fn) => setTimeout(fn, 0));
+      afterRender(() => {
+        if (!this._visible) return;
+        this._syncFromGlobal();
+        this._startSyncTimer();
+      });
+    },
+    hide() {
+      this._visible = false;
+      this._stopSyncTimer();
     }
   },
 
   methods: {
+    _startSyncTimer() {
+      if (this._syncTimer) return;
+      this._syncTimer = setInterval(() => this._syncFromGlobal(), 1000);
+    },
+
+    _stopSyncTimer() {
+      if (!this._syncTimer) return;
+      clearInterval(this._syncTimer);
+      this._syncTimer = null;
+    },
+
     _syncFromGlobal() {
+      if (!this._ready || !this._visible) return;
       const app = getApp();
       const g = app.globalData;
       // 严格校验：必须有 audioContext 且 podcastActive 且有 url
       if (!g.podcastActive || !g.podcastUrl || !g.audioContext) {
         if (this.data.active) {
-          this.setData({ active: false, playing: false, progress: 0, currentTimeText: '0:00' });
+          this.setData({ active: false, playing: false, loading: false, progress: 0, currentTimeText: '0:00' });
         }
         return;
       }
@@ -66,6 +90,7 @@ Component({
       this.setData({
         active: true,
         playing: !!g.podcastPlaying,
+        loading: !!g.podcastLoading,
         title: g.podcastTitle || '',
         coverUrl: g.podcastCoverUrl || '/assets/images/fanren-boke.jpg',
         progress,
@@ -126,6 +151,12 @@ Component({
         app.globalData.podcastPlaying = true;
         this.setData({ playing: true });
         activityService.track('podcast_bar_play');
+        subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+          sourceAction: 'podcast_bar_play',
+          sourcePage: 'podcast-bar',
+          sceneKeys: ['podcast_published'],
+          requestMode: 'any'
+        });
       }
     },
 
@@ -140,6 +171,7 @@ Component({
       app.globalData.podcastPlaying = false;
       app.globalData.podcastSectionId = '';
       app.globalData.podcastTitle = '';
+      app.globalData.podcastDescription = '';
       app.globalData.podcastUrl = '';
       app.globalData.podcastCoverUrl = '';
       app.globalData.podcastCurrentTime = 0;

@@ -2,6 +2,7 @@ const { tenantStorage } = require('../../utils/storage');
 const constants = require('../../config/constants');
 const enrollmentService = require('../../services/enrollment.service');
 const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../utils/period-access');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 
 Page({
   data: {
@@ -72,6 +73,7 @@ Page({
     const progress = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
     this.setData({
       title: g.podcastTitle || this.data.title,
+      description: g.podcastDescription || this.data.description,
       playing: !!g.podcastPlaying,
       progress,
       currentTimeText: this._formatTime(current),
@@ -98,20 +100,54 @@ Page({
       ctx.play();
       app.globalData.podcastPlaying = true;
       this.setData({ playing: true });
+      subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+        sourceAction: 'podcast_player_play',
+        sourcePage: 'podcast-player',
+        sceneKeys: ['podcast_published'],
+        requestMode: 'any'
+      });
     }
   },
 
   handleSeek(e) {
+    const x = this._getSeekClientX(e);
+    if (x === null) return;
+    this._seekByClientX(x);
+  },
+
+  handleSeekDragStart(e) {
+    const x = this._getSeekClientX(e);
+    if (x !== null) this._seekByClientX(x);
+  },
+
+  handleSeekDrag(e) {
+    const x = this._getSeekClientX(e);
+    if (x !== null) this._seekByClientX(x);
+  },
+
+  handleSeekDragEnd(e) {
+    const x = this._getSeekClientX(e);
+    if (x !== null) this._seekByClientX(x);
+  },
+
+  _getSeekClientX(e) {
+    if (e.touches && e.touches[0]) return e.touches[0].clientX;
+    if (e.changedTouches && e.changedTouches[0]) return e.changedTouches[0].clientX;
+    if (e.detail && e.detail.x !== undefined) return e.detail.x;
+    if (e.x !== undefined) return e.x;
+    return null;
+  },
+
+  _seekByClientX(clientX) {
     const app = getApp();
     const ctx = app.globalData.audioContext;
     const duration = app.globalData.podcastDuration || 0;
     if (!ctx || !duration) return;
 
-    const { x } = e.touches ? e.touches[0] : e;
     const query = wx.createSelectorQuery().in(this);
     query.select('.player-progress-track').boundingClientRect((rect) => {
       if (!rect) return;
-      const ratio = Math.min(1, Math.max(0, (x - rect.left) / rect.width));
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
       const seekTime = ratio * duration;
       ctx.seek(seekTime);
       app.globalData.podcastCurrentTime = seekTime;

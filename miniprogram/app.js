@@ -246,7 +246,9 @@ App({
     // 播客播放状态
     podcastActive: false,
     podcastPlaying: false,
+    podcastLoading: false,
     podcastTitle: '',
+    podcastDescription: '',
     podcastUrl: '',
     podcastCoverUrl: '',
     podcastDuration: 0,

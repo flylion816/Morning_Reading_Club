@@ -104,6 +104,15 @@ const AUTO_TOP_UP_POLICIES = {
     target: 50,
     requiresPeriodId: false,
     scheduledSendText: ''
+  },
+  podcast_published: {
+    scene: 'podcast_published',
+    title: '凡人播客上新',
+    description: '播客发布时第一时间提醒收听',
+    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    target: 50,
+    requiresPeriodId: false,
+    scheduledSendText: ''
   }
 };
 

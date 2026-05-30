@@ -109,7 +109,7 @@ Page({
     courseId: null,
     periodId: null,
     paymentStatus: null,
-    course: {},
+    course: { comments: [] },
     calendar: [],
     checkedDays: 0,
     loading: true,
@@ -149,6 +149,7 @@ Page({
     checkinTextShareFileName: '',
     // 播客
     podcastPlaying: false,
+    podcastLoading: false,
     podcastSectionId: '',
     podcastProgress: 0,
     podcastDurationText: '',
@@ -164,12 +165,29 @@ Page({
   onLoad(options) {
     console.log('课程详情页加载，参数:', options);
     this._skipNextOnShowRefresh = true;
+    this._hasRevealedContent = false;
     if (!options.id || options.id === 'undefined') {
       wx.redirectTo({ url: '/pages/courses/courses' });
       return;
     }
+    this._pendingLoadOptions = options;
+    this._scrollAnchor = options.anchor || '';
+    this.updateShareMenu(true, !!options.checkinId);
+    if (options.checkinId) {
+      wx.setNavigationBarTitle({
+        title: '打卡详情'
+      });
+    }
+  },
+
+  onReady() {
+    const options = this._pendingLoadOptions;
+    if (!options) return;
+    this._pendingLoadOptions = null;
+
     this.setData({
       courseId: options.id,
+      course: { comments: [] },
       showPageContent: false,
       periodId: options.periodId || null,
       searchKeyword: options.keyword ? decodeURIComponent(options.keyword) : '',
@@ -196,19 +214,11 @@ Page({
       checkinTextShareFilePath: '',
       checkinTextShareFileName: ''
     });
-    this._scrollAnchor = options.anchor || '';
-
-    this.updateShareMenu(true, !!options.checkinId);
-
-    if (options.checkinId) {
-      wx.setNavigationBarTitle({
-        title: '打卡详情'
-      });
-    }
     this.loadCourseDetail();
   },
 
   onHide() {
+    this._isPageVisible = false;
     if (this._podcastSyncTimer) {
       clearInterval(this._podcastSyncTimer);
       this._podcastSyncTimer = null;
@@ -216,6 +226,8 @@ Page({
   },
 
   onUnload() {
+    this._isPageVisible = false;
+    this._isPageAlive = false;
     if (this.highlightTimer) {
       clearTimeout(this.highlightTimer);
     }
@@ -258,6 +270,12 @@ Page({
   },
 
   onShow() {
+    this._isPageAlive = true;
+    this._isPageVisible = true;
+    if (this._podcastSyncTimer) {
+      clearInterval(this._podcastSyncTimer);
+      this._podcastSyncTimer = null;
+    }
     this._podcastSyncTimer = setInterval(() => this.syncPodcastStateFromGlobal(), 1000);
 
     if (this._skipNextOnShowRefresh) {
@@ -271,6 +289,11 @@ Page({
       this.loadCourseDetail();
     }
     this.syncPodcastStateFromGlobal();
+  },
+
+  setPodcastUiData(data) {
+    if (!this._isPageVisible || this._isPageAlive === false) return;
+    this.setData(data);
   },
 
   onShareAppMessage() {
@@ -1927,11 +1950,6 @@ Page({
       course.lookImage = base + course.lookImage;
     }
 
-    // 播客时长文本
-    if (course.podcastDuration) {
-      this.setData({ podcastDurationText: this.formatPodcastDuration(course.podcastDuration) });
-    }
-
     // 播客介绍换行处理
     if (course.podcastDescription) {
       course.podcastDescriptionHtml = course.podcastDescription
@@ -1976,7 +1994,9 @@ Page({
         course: courseForDetail,
         calendar,
         checkedDays,
-        loading: false
+        loading: false,
+        showPageContent: true,
+        podcastDurationText: course.podcastDuration ? this.formatPodcastDuration(course.podcastDuration) : ''
       },
       async () => {
         this.revealPageContent();
@@ -2096,7 +2116,9 @@ Page({
           course,
           calendar,
           checkedDays,
-          loading: false
+          loading: false,
+          showPageContent: true,
+          podcastDurationText: course.podcastDuration ? this.formatPodcastDuration(course.podcastDuration) : ''
         });
         this.revealPageContent();
         return;
@@ -2150,9 +2172,6 @@ Page({
         return this.buildCheckinItem(checkin);
       });
 
-      // 保存当前用户是否已打卡的状态
-      this.setData({ hasUserCheckedIn });
-
       // 评论改为延迟加载：用户点击"查看评论"时才加载，避免串行 N 次 API 请求
       course.comments = checkinWithComments;
       this.syncShareCheckinMeta(checkinWithComments);
@@ -2170,9 +2189,11 @@ Page({
           calendar,
           checkedDays,
           loading: false,
+          showPageContent: true,
           checkinPage: 1,
           checkinHasMore,
-          checkinLoadingMore: false
+          checkinLoadingMore: false,
+          podcastDurationText: course.podcastDuration ? this.formatPodcastDuration(course.podcastDuration) : ''
         },
         () => {
           this.revealPageContent();
@@ -3244,7 +3265,7 @@ Page({
     const app = getApp();
     const { podcastPlaying, podcastSectionId, podcastCurrentTime, podcastDuration } = app.globalData;
     const progress = podcastDuration > 0 ? Math.min(100, (podcastCurrentTime / podcastDuration) * 100) : 0;
-    this.setData({
+    this.setPodcastUiData({
       podcastPlaying: !!podcastPlaying,
       podcastSectionId: podcastSectionId || '',
       podcastProgress: progress
@@ -3417,7 +3438,7 @@ Page({
       // 暂停
       app.globalData.audioContext && app.globalData.audioContext.pause();
       app.globalData.podcastPlaying = false;
-      this.setData({ podcastPlaying: false });
+      this.setPodcastUiData({ podcastPlaying: false });
       return;
     }
 
@@ -3425,7 +3446,7 @@ Page({
       // 恢复播放
       app.globalData.audioContext && app.globalData.audioContext.play();
       app.globalData.podcastPlaying = true;
-      this.setData({ podcastPlaying: true });
+      this.setPodcastUiData({ podcastPlaying: true });
       return;
     }
 
@@ -3441,34 +3462,43 @@ Page({
       : 'https://wx.shubai01.com' + course.podcastUrl;
     ctx.src = podcastSrc;
 
+    // 立即显示播客栏，不等 onPlay 回调，避免缓冲期间无反馈
+    app.globalData.podcastActive = true;
+    app.globalData.podcastLoading = true;
+    app.globalData.podcastSectionId = courseId;
+    app.globalData.podcastTitle = course.title || '';
+    app.globalData.podcastDescription = (course.podcastDescription || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    app.globalData.podcastUrl = course.podcastUrl;
+    app.globalData.podcastCoverUrl = course.coverImage || '/assets/images/fanren-boke.jpg';
+    app.globalData.podcastDuration = course.podcastDuration || 0;
+    this.setPodcastUiData({ podcastSectionId: courseId, podcastLoading: true });
+
     ctx.onPlay(() => {
       app.globalData.podcastPlaying = true;
-      app.globalData.podcastActive = true;
-      app.globalData.podcastSectionId = courseId;
-      app.globalData.podcastTitle = course.title || '';
-      app.globalData.podcastUrl = course.podcastUrl;
-      app.globalData.podcastCoverUrl = course.coverImage || '/assets/images/fanren-boke.jpg';
-      app.globalData.podcastDuration = course.podcastDuration || 0;
+      app.globalData.podcastLoading = false;
       activityService.track('podcast_play', { targetId: courseId });
-      this.setData({ podcastPlaying: true, podcastSectionId: courseId });
+      this.setPodcastUiData({ podcastPlaying: true, podcastLoading: false });
     });
 
     ctx.onPause(() => {
       app.globalData.podcastPlaying = false;
-      this.setData({ podcastPlaying: false });
+      this.setPodcastUiData({ podcastPlaying: false });
     });
 
     ctx.onStop(() => {
       app.globalData.podcastPlaying = false;
       app.globalData.podcastActive = false;
-      this.setData({ podcastPlaying: false, podcastProgress: 0 });
+      this.setPodcastUiData({ podcastPlaying: false, podcastProgress: 0 });
     });
 
     ctx.onEnded(() => {
       app.globalData.podcastPlaying = false;
       app.globalData.podcastActive = false;
       app.globalData.podcastCurrentTime = 0;
-      this.setData({ podcastPlaying: false, podcastProgress: 0 });
+      this.setPodcastUiData({ podcastPlaying: false, podcastProgress: 0 });
     });
 
     ctx.onTimeUpdate(() => {
@@ -3477,14 +3507,16 @@ Page({
       app.globalData.podcastCurrentTime = current;
       app.globalData.podcastDuration = duration;
       const progress = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
-      this.setData({ podcastProgress: progress });
+      this.setPodcastUiData({ podcastProgress: progress });
     });
 
     ctx.onError((err) => {
       console.error('播客播放失败:', err);
       wx.showToast({ title: '播放失败，请重试', icon: 'none' });
       app.globalData.podcastPlaying = false;
-      this.setData({ podcastPlaying: false });
+      app.globalData.podcastLoading = false;
+      app.globalData.podcastActive = false;
+      this.setPodcastUiData({ podcastPlaying: false, podcastLoading: false });
     });
 
     app.globalData.audioContext = ctx;
