@@ -23,6 +23,9 @@ jest.mock('../../utils/period-access', () => ({
   hasPaidEnrollment: jest.fn(() => true)
 }));
 
+const fs = require('fs');
+const path = require('path');
+
 describe('profile page', () => {
   let pageConfig;
   let pageInstance;
@@ -141,5 +144,29 @@ describe('profile page', () => {
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/completion-reports/completion-reports'
     });
+  });
+
+  test('should not navigate to completion reports without paid access', () => {
+    pageInstance.setData({ canUsePaidFeatures: false });
+
+    pageInstance.goToCompletionReports.call(pageInstance);
+
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '完成支付后可查看实录报告',
+      icon: 'none'
+    });
+    expect(wx.navigateTo).not.toHaveBeenCalledWith({
+      url: '/pages/completion-reports/completion-reports'
+    });
+  });
+
+  test('should hide completion reports entry without paid access', () => {
+    const wxml = fs.readFileSync(
+      path.join(__dirname, '../../pages/profile/profile.wxml'),
+      'utf8'
+    );
+
+    expect(wxml).toContain('我的实录报告');
+    expect(wxml).toContain('wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToCompletionReports"');
   });
 });

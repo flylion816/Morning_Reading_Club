@@ -78,6 +78,9 @@ describe('Section Controller', () => {
         '../models/Checkin': CheckinStub,
         '../models/UserReadingCompletion': UserReadingCompletionStub,
         '../utils/response': responseUtils,
+        '../utils/tenantSlug': {
+          resolveTenantSlug: sandbox.stub().resolves('test-slug')
+        },
         '../services/sync.service': {
           publishSyncEvent: publishSyncEventStub
         }
@@ -340,8 +343,43 @@ describe('Section Controller', () => {
 
       expect(PeriodStub.findById.called).to.be.true;
       expect(SectionStub.create.called).to.be.true;
+      expect(SectionStub.create.getCall(0).args[0]).to.include({
+        title: '新课节',
+        content: '课程内容',
+        duration: 30
+      });
       expect(res.status.calledWith(201)).to.be.true;
       expect(res.json.called).to.be.true;
+    });
+
+    it('应该创建带结营视频的新课节', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      const closingVideo = {
+        url: '/uploads/tenants/default/closing.mp4',
+        coverUrl: '/uploads/tenants/default/closing-cover.jpg',
+        originalName: '结营视频.mp4'
+      };
+      req.body = {
+        periodId,
+        day: 12,
+        title: '结营词',
+        closingVideo
+      };
+
+      const mockPeriod = { _id: periodId, name: '期次' };
+      const mockSection = {
+        _id: new mongoose.Types.ObjectId(),
+        ...req.body,
+        toObject: sandbox.stub().returnsThis()
+      };
+
+      PeriodStub.findById.resolves(mockPeriod);
+      SectionStub.create.resolves(mockSection);
+
+      await sectionController.createSection(req, res, next);
+
+      expect(SectionStub.create.getCall(0).args[0].closingVideo).to.deep.equal(closingVideo);
+      expect(res.status.calledWith(201)).to.be.true;
     });
 
     it('应该返回404当期次不存在', async () => {
@@ -381,6 +419,32 @@ describe('Section Controller', () => {
       expect(res.json.called).to.be.true;
     });
 
+    it('应该更新结营视频字段', async () => {
+      const sectionId = new mongoose.Types.ObjectId();
+      req.params = { sectionId };
+      req.body = {
+        closingVideo: {
+          url: '/uploads/tenants/default/new-closing.mp4',
+          coverUrl: '/uploads/tenants/default/new-closing-cover.jpg'
+        }
+      };
+
+      const mockSection = {
+        _id: sectionId,
+        title: '结营词',
+        closingVideo: null,
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returnsThis()
+      };
+      SectionStub.findById.resolves(mockSection);
+
+      await sectionController.updateSection(req, res, next);
+
+      expect(mockSection.closingVideo).to.deep.equal(req.body.closingVideo);
+      expect(mockSection.save.called).to.be.true;
+      expect(res.json.called).to.be.true;
+    });
+
     it('应该返回404当课节不存在', async () => {
       const sectionId = new mongoose.Types.ObjectId();
       req.params = { sectionId };
@@ -391,6 +455,38 @@ describe('Section Controller', () => {
       await sectionController.updateSection(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
+    });
+  });
+
+  describe('uploadClosingVideo', () => {
+    it('应该上传结营视频并返回元数据', async () => {
+      req._resolvedTenantId = new mongoose.Types.ObjectId().toString();
+      req.file = {
+        filename: 'video_123.mp4',
+        originalname: '结营视频.mp4',
+        mimetype: 'video/mp4',
+        size: 2048
+      };
+
+      await sectionController.uploadClosingVideo(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.include({
+        url: '/uploads/tenants/test-slug/video_123.mp4',
+        fileName: 'video_123.mp4',
+        originalName: '结营视频.mp4',
+        mimeType: 'video/mp4',
+        size: 2048
+      });
+    });
+
+    it('缺少视频文件时应该返回400', async () => {
+      req.file = null;
+
+      await sectionController.uploadClosingVideo(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
     });
   });
 

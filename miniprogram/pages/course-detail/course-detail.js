@@ -156,6 +156,7 @@ Page({
     podcastDescExpanded: false,
     podcastShareMode: false,
     podcastShareImagePath: '',
+    closingVideoShareMode: false,
     // AI 朗读
     ttsState: 'idle'  // idle | loading | playing | paused
   },
@@ -212,7 +213,8 @@ Page({
       checkinContentExpanded: {},
       showCheckinShareMenu: false,
       checkinTextShareFilePath: '',
-      checkinTextShareFileName: ''
+      checkinTextShareFileName: '',
+      closingVideoShareMode: false
     });
     this.loadCourseDetail();
   },
@@ -254,6 +256,14 @@ Page({
       setTimeout(() => {
         wx.nextTick(() => {
           wx.pageScrollTo({ selector: '#podcast-section', duration: 280, offsetTop: -20 });
+        });
+      }, 400);
+      this._scrollAnchor = '';
+    }
+    if (this._scrollAnchor === 'closingVideo') {
+      setTimeout(() => {
+        wx.nextTick(() => {
+          wx.pageScrollTo({ selector: '#closing-video-section', duration: 280, offsetTop: -20 });
         });
       }, 400);
       this._scrollAnchor = '';
@@ -303,7 +313,8 @@ Page({
       shareCheckinId,
       canShareCurrentCheckin,
       podcastShareMode,
-      podcastShareImagePath
+      podcastShareImagePath,
+      closingVideoShareMode
     } = this.data;
 
     if (podcastShareMode) {
@@ -316,6 +327,16 @@ Page({
       };
     }
 
+    if (closingVideoShareMode) {
+      this.setData({ closingVideoShareMode: false });
+      activityService.track('closing_video_share', { targetId: courseId });
+      return {
+        title: `结营视频｜${course.title || '结营词'}`,
+        path: `/pages/course-detail/course-detail?id=${courseId}&anchor=closingVideo`,
+        imageUrl: course.closingVideoCoverUrl || '/assets/images/share-default.jpg'
+      };
+    }
+
     if (shareCheckinId && canShareCurrentCheckin) {
       return {
         title: this.getCheckinShareTitle(),
@@ -324,10 +345,14 @@ Page({
     }
 
     activityService.track('course_share', { targetId: courseId });
-    return {
+    const shareConfig = {
       title: course.title || '课程详情',
       path: `/pages/course-detail/course-detail?id=${courseId}`
     };
+    if (course.closingVideoCoverUrl) {
+      shareConfig.imageUrl = course.closingVideoCoverUrl;
+    }
+    return shareConfig;
   },
 
   onShareTimeline() {
@@ -345,10 +370,14 @@ Page({
       };
     }
 
-    return {
+    const timelineConfig = {
       title: course.title || '课程详情',
       query: `id=${courseId}`
     };
+    if (course.closingVideoCoverUrl) {
+      timelineConfig.imageUrl = course.closingVideoCoverUrl;
+    }
+    return timelineConfig;
   },
 
   getCheckinShareTitle() {
@@ -1950,6 +1979,21 @@ Page({
       course.lookImage = base + course.lookImage;
     }
 
+    const base = envConfig.apiBaseUrl.replace('/api/v1', '');
+    const closingVideo = course.closingVideo || {};
+    const videoUrl = closingVideo.url || course.closingVideoUrl || '';
+    const coverUrl = closingVideo.coverUrl || course.closingVideoCoverUrl || '';
+    course.closingVideoVisible = !!videoUrl;
+    course.closingVideoUrl = videoUrl && videoUrl.startsWith('/') ? base + videoUrl : videoUrl;
+    course.closingVideoCoverUrl = coverUrl && coverUrl.startsWith('/') ? base + coverUrl : coverUrl;
+    if (course.closingVideoVisible) {
+      course.closingVideo = {
+        ...closingVideo,
+        url: course.closingVideoUrl,
+        coverUrl: course.closingVideoCoverUrl
+      };
+    }
+
     // 播客介绍换行处理
     if (course.podcastDescription) {
       course.podcastDescriptionHtml = course.podcastDescription
@@ -3276,6 +3320,12 @@ Page({
     const { course } = this.data;
     if (!course) return;
     this.setData({ podcastShareMode: true });
+  },
+
+  handleClosingVideoShare() {
+    const { course } = this.data;
+    if (!course?.closingVideoVisible) return;
+    this.setData({ closingVideoShareMode: true });
   },
 
   _generatePodcastShareImage(course) {

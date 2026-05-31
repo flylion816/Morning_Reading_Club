@@ -48,4 +48,14 @@ describe('completion report service', () => {
     );
     expect(detail.hasReport).toBe(false);
   });
+
+  test('should prefer uploaded original file name for display', () => {
+    const report = completionReportService.normalizeReport({
+      fileName: '1780186600966-member-report.pdf',
+      originalName: '第12期-小狐狸分享实录.pdf',
+      hasReport: true
+    });
+
+    expect(report.fileName).toBe('第12期-小狐狸分享实录.pdf');
+  });
 });

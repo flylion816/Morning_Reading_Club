@@ -521,7 +521,8 @@ page {
   line-height: 1;
 }
 
-.podcast-share-entry {
+.podcast-share-entry,
+.closing-video-share-entry {
   display: flex;
   align-items: center;
   gap: 8rpx;
@@ -545,7 +546,17 @@ page {
   border: none;
 }
 
-.podcast-share-entry-icon {
+.closing-video-share-entry {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.closing-video-share-entry::after {
+  border: none;
+}
+
+.podcast-share-entry-icon,
+.closing-video-share-entry-icon {
   font-size: 26rpx;
   line-height: 1;
 }
@@ -581,6 +592,10 @@ page {
 
 .section-icon.podcast {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.section-icon.closing-video {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
 }
 
 .section-icon.look {
@@ -1572,6 +1587,20 @@ page {
   border-right: 3rpx solid #4a90e2;
   border-bottom: 3rpx solid #4a90e2;
   transform: rotate(45deg);
+}
+
+/* 结营视频 */
+.closing-video-section {
+  overflow: hidden;
+}
+
+.closing-video-player {
+  width: 100%;
+  height: 388rpx;
+  display: block;
+  border-radius: 18rpx;
+  overflow: hidden;
+  background: #111827;
 }
 
 /* 播一播 */

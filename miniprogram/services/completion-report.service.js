@@ -70,6 +70,12 @@ function normalizeReport(item = {}) {
   const fileUrl = item.fileUrl || completionReport.fileUrl || '';
   const fileSize = item.fileSize || completionReport.fileSize || 0;
   const uploadedAt = item.uploadedAt || completionReport.uploadedAt || '';
+  const displayFileName =
+    item.originalName ||
+    completionReport.originalName ||
+    item.fileName ||
+    completionReport.fileName ||
+    '';
 
   return {
     ...item,
@@ -88,11 +94,7 @@ function normalizeReport(item = {}) {
     hasReport: item.hasReport === true,
     fileUrl,
     fullFileUrl: buildFileUrl(fileUrl),
-    fileName:
-      item.fileName ||
-      completionReport.fileName ||
-      completionReport.originalName ||
-      '',
+    fileName: displayFileName,
     fileSize,
     fileSizeText: formatFileSize(fileSize),
     uploadedAt,

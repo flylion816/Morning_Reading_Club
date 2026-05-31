@@ -324,6 +324,20 @@ export interface Section {
   learn?: string;
   extract?: string;
   say?: string;
+  lookImage?: string;
+  podcastUrl?: string;
+  podcastDescription?: string;
+  podcastDuration?: number;
+  closingVideo?: {
+    url?: string | null;
+    coverUrl?: string | null;
+    originalName?: string | null;
+    fileName?: string | null;
+    mimeType?: string | null;
+    size?: number | null;
+    duration?: number | null;
+    uploadedAt?: string | null;
+  } | null;
   duration?: number;
   sortOrder?: number;
   order?: number;

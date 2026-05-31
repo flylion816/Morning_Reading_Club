@@ -108,4 +108,8 @@ describe('completion report detail page', () => {
       icon: 'none'
     });
   });
+
+  test('should not expose copy link action', () => {
+    expect(pageConfig.handleCopyLink).toBeUndefined();
+  });
 });

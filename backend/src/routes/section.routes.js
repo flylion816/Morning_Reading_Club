@@ -24,6 +24,7 @@ const {
   deleteSection,
   getTodayTask,
   uploadPodcast,
+  uploadClosingVideo,
   syncPodcast
 } = require('../controllers/section.controller');
 
@@ -46,7 +47,7 @@ function ensureTenantDir(slug) {
 const podcastStorage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
-      const tenantId = getCurrentTenantId();
+      const tenantId = req._resolvedTenantId || getCurrentTenantId();
       if (!tenantId) return cb(new Error('缺少租户上下文'));
       const slug = await resolveTenantSlug(tenantId);
       cb(null, ensureTenantDir(slug));
@@ -74,6 +75,32 @@ const podcastUpload = multer({
   limits: { fileSize: 200 * 1024 * 1024 }
 });
 
+const closingVideoFileFilter = (req, file, cb) => {
+  const allowedTypes = /mp4|mov|m4v|webm/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = /^video\//i.test(file.mimetype || '');
+  if (extname && mimetype) return cb(null, true);
+  cb(new Error('仅支持视频文件（mp4/mov/m4v/webm）'));
+};
+
+const closingVideoUpload = multer({
+  storage: podcastStorage,
+  fileFilter: closingVideoFileFilter,
+  limits: { fileSize: 200 * 1024 * 1024 }
+});
+
+function requireActiveTenantForSectionUpload(req, res, next) {
+  const tenantId = req._resolvedTenantId || getCurrentTenantId();
+  if (!tenantId) {
+    return res.status(403).json({
+      success: false,
+      message: '上传前必须选择具体租户（platform_superadmin 需设置 X-Active-Tenant）'
+    });
+  }
+  req._resolvedTenantId = tenantId;
+  next();
+}
+
 /**
  * @route   GET /api/v1/sections/today/task
  * @desc    获取今日任务（根据当前日期动态计算）
@@ -94,6 +121,20 @@ router.post('/external/upload-podcast', publicTenantContext, podcastUpload.singl
  * @access  Public (外部系统调用)
  */
 router.post('/external/sync-podcast', publicTenantContext, syncPodcast);
+
+/**
+ * @route   POST /api/v1/sections/admin/upload-closing-video
+ * @desc    管理后台：上传结营视频文件
+ * @access  Admin
+ */
+router.post(
+  '/admin/upload-closing-video',
+  adminAuthMiddleware,
+  adminTenantContext,
+  requireActiveTenantForSectionUpload,
+  closingVideoUpload.single('file'),
+  uploadClosingVideo
+);
 
 /**
  * @route   GET /api/v1/sections/period/:periodId

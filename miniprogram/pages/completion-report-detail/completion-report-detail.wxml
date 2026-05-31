@@ -40,7 +40,6 @@
         {{downloading ? '获取 PDF 中...' : '查看 PDF'}}
       </view>
       <view class="secondary-action" bindtap="handleShareFile">分享到微信</view>
-      <view class="link-action" bindtap="handleCopyLink">复制链接</view>
     </view>
   </view>
 </view>

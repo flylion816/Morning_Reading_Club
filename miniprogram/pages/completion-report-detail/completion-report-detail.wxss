@@ -97,8 +97,7 @@
 }
 
 .primary-action,
-.secondary-action,
-.link-action {
+.secondary-action {
   height: 92rpx;
   border-radius: 12rpx;
   display: flex;
@@ -120,11 +119,6 @@
 .secondary-action {
   color: #047857;
   background: #ecfdf5;
-}
-
-.link-action {
-  color: #4a90e2;
-  background: #ffffff;
 }
 
 .state-block {

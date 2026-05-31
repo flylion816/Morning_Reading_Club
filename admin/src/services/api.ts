@@ -359,6 +359,17 @@ export const uploadApi = {
     });
   },
 
+  uploadClosingVideo: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post('/sections/admin/upload-closing-video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 300000
+    });
+  },
+
   uploadMultiple: (files: File[]) => {
     const formData = new FormData();
     files.forEach((file) => {

@@ -166,21 +166,6 @@ Page({
     }
   },
 
-  handleCopyLink() {
-    const fileUrl = this.data.report?.fullFileUrl || '';
-    if (!fileUrl) {
-      wx.showToast({ title: '暂无可复制链接', icon: 'none' });
-      return;
-    }
-
-    wx.setClipboardData({
-      data: fileUrl,
-      success: () => {
-        wx.showToast({ title: '链接已复制', icon: 'success' });
-      }
-    });
-  },
-
   handleRetry() {
     this.loadReport();
   }

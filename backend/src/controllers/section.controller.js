@@ -11,7 +11,7 @@ const { dispatchNotificationWithSubscribe } = require('../services/user-notifica
 const Enrollment = require('../models/Enrollment');
 
 const ADMIN_SECTION_LIST_FIELDS =
-  '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt podcastUrl podcastDuration';
+  '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt podcastUrl podcastDuration closingVideo';
 
 function getRequestUserId(req) {
   return req.user?.userId || req.user?.id || req.user?._id || '';
@@ -270,6 +270,7 @@ async function createSection(req, res, next) {
       say,
       audioUrl,
       videoCover,
+      closingVideo,
       duration,
       sortOrder,
       lookImage,
@@ -300,6 +301,7 @@ async function createSection(req, res, next) {
       say,
       audioUrl,
       videoCover,
+      closingVideo,
       duration,
       sortOrder,
       lookImage,
@@ -349,9 +351,10 @@ async function notifyPodcastPublished(req, section) {
         scene: 'podcast_published',
         targetPage: `pages/course-detail/course-detail?id=${section._id}`,
         subscribeFields: {
-          podcastTitle: section.title,
-          dayInfo: `第${section.day + 1}天`,
-          publishTime
+          replyUser:    '凡人播客',
+          replyTopic:   `第${section.day + 1}天`,
+          replyContent: section.title,
+          replyTime:    publishTime
         },
         sourceType: 'section',
         sourceId: section._id
@@ -613,6 +616,31 @@ async function uploadPodcast(req, res, next) {
   }
 }
 
+// 管理后台：上传结营视频文件
+async function uploadClosingVideo(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json(errors.badRequest('缺少视频文件'));
+    }
+
+    const { resolveTenantSlug } = require('../utils/tenantSlug');
+    const tenantId = req._resolvedTenantId || getCurrentTenantId();
+    const slug = await resolveTenantSlug(tenantId);
+    const videoUrl = `/uploads/tenants/${slug}/${req.file.filename}`;
+
+    res.json(success({
+      url: videoUrl,
+      fileName: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      uploadedAt: new Date()
+    }, '上传成功'));
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 外部接口：同步播客信息到课节
 async function syncPodcast(req, res, next) {
   try {
@@ -717,5 +745,6 @@ module.exports = {
   deleteSection,
   getTodayTask,
   uploadPodcast,
+  uploadClosingVideo,
   syncPodcast
 };

@@ -263,6 +263,11 @@ describe('API Service', () => {
       expect(typeof uploadApi.uploadMultiple).toBe('function');
     });
 
+    it('应该导出 uploadClosingVideo 方法', () => {
+      expect(uploadApi.uploadClosingVideo).toBeDefined();
+      expect(typeof uploadApi.uploadClosingVideo).toBe('function');
+    });
+
     it('应该导出 deleteFile 方法', () => {
       expect(uploadApi.deleteFile).toBeDefined();
       expect(typeof uploadApi.deleteFile).toBe('function');

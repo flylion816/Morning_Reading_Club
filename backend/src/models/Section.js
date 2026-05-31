@@ -102,6 +102,47 @@ const SectionSchema = new mongoose.Schema(
       maxlength: 500,
       default: null
     },
+    closingVideo: {
+      url: {
+        type: String,
+        maxlength: 500,
+        default: null
+      },
+      coverUrl: {
+        type: String,
+        maxlength: 500,
+        default: null
+      },
+      originalName: {
+        type: String,
+        maxlength: 255,
+        default: null
+      },
+      fileName: {
+        type: String,
+        maxlength: 255,
+        default: null
+      },
+      mimeType: {
+        type: String,
+        maxlength: 100,
+        default: null
+      },
+      size: {
+        type: Number,
+        default: null,
+        min: 0
+      },
+      duration: {
+        type: Number,
+        default: null,
+        min: 0
+      },
+      uploadedAt: {
+        type: Date,
+        default: null
+      }
+    },
     duration: {
       type: Number,
       default: null,

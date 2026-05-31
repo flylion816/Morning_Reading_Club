@@ -10,7 +10,11 @@ jest.mock('../../services/activity.service', () => ({
 }));
 jest.mock('../../services/subscribe-message.service', () => ({}));
 jest.mock('../../utils/subscribe-auto-topup', () => ({}));
-jest.mock('../../config/constants', () => ({}));
+jest.mock('../../config/constants', () => ({
+  STORAGE_KEYS: {
+    TOKEN: 'token'
+  }
+}));
 jest.mock('../../utils/period-access', () => ({
   getPeriodAccess: jest.fn(),
   extractId: jest.fn()
@@ -155,6 +159,69 @@ describe('course-detail page markdown support', () => {
     expect(shareConfig.path).toBe('/pages/course-detail/course-detail?id=section_123&checkinId=checkin_456');
   });
 
+  test('should normalize closing video urls for display', () => {
+    const course = pageInstance.processCourseModules({
+      meditation: '',
+      question: '',
+      content: '',
+      reflection: '',
+      action: '',
+      learn: '',
+      extract: '',
+      say: '',
+      closingVideo: {
+        url: '/uploads/tenants/default/closing.mp4',
+        coverUrl: '/uploads/tenants/default/closing-cover.jpg'
+      }
+    });
+
+    expect(course.closingVideoVisible).toBe(true);
+    expect(course.closingVideoUrl).toContain('/uploads/tenants/default/closing.mp4');
+    expect(course.closingVideoCoverUrl).toContain('/uploads/tenants/default/closing-cover.jpg');
+    expect(course.closingVideo.url).toBe(course.closingVideoUrl);
+    expect(course.closingVideo.coverUrl).toBe(course.closingVideoCoverUrl);
+  });
+
+  test('should use closing video cover for normal course share', () => {
+    pageInstance.setData({
+      courseId: 'section_123',
+      course: {
+        title: '结营词',
+        closingVideoCoverUrl: 'https://example.com/closing-cover.jpg'
+      },
+      shareCheckinId: ''
+    });
+
+    const shareConfig = pageInstance.onShareAppMessage.call(pageInstance);
+
+    expect(shareConfig).toMatchObject({
+      title: '结营词',
+      path: '/pages/course-detail/course-detail?id=section_123',
+      imageUrl: 'https://example.com/closing-cover.jpg'
+    });
+  });
+
+  test('should share closing video with video anchor and cover', () => {
+    pageInstance.setData({
+      courseId: 'section_123',
+      course: {
+        title: '结营词',
+        closingVideoVisible: true,
+        closingVideoCoverUrl: 'https://example.com/closing-cover.jpg'
+      }
+    });
+
+    pageInstance.handleClosingVideoShare.call(pageInstance);
+    const shareConfig = pageInstance.onShareAppMessage.call(pageInstance);
+
+    expect(shareConfig).toMatchObject({
+      title: '结营视频｜结营词',
+      path: '/pages/course-detail/course-detail?id=section_123&anchor=closingVideo',
+      imageUrl: 'https://example.com/closing-cover.jpg'
+    });
+    expect(pageInstance.data.closingVideoShareMode).toBe(false);
+  });
+
   test('should prepare checkin txt file before showing share menu and forward it on tap', async () => {
     let writtenFile = null;
     global.wx.env = { USER_DATA_PATH: '/mock-user-data' };
@@ -232,6 +299,7 @@ describe('course-detail page markdown support', () => {
       id: 'section_123',
       checkinId: 'checkin_456'
     });
+    pageInstance.onReady.call(pageInstance);
 
     expect(pageInstance.data.isCheckinDetailMode).toBe(true);
     expect(pageInstance.data.shareCheckinId).toBe('checkin_456');
@@ -639,6 +707,7 @@ describe('course-detail page markdown support', () => {
       });
     });
     pageInstance.triggerAutoTopUp = jest.fn();
+    pageInstance._requireInteraction = jest.fn(() => true);
     pageInstance.setData({
       communityAccessState: 'enabled',
       course: {
@@ -664,7 +733,7 @@ describe('course-detail page markdown support', () => {
 
     expect(pageInstance.data.course.comments[0].replies[0]).toMatchObject({
       userName: '小狐狸',
-      avatarText: '小',
+      avatarText: '狸',
       avatarUrl: '',
       avatarColor: getAvatarColorByUserId('user_fox')
     });

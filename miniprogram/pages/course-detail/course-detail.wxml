@@ -310,6 +310,26 @@
       <view class="section-content"><text user-select>{{course.say}}</text></view>
     </view>
 
+    <view id="closing-video-section" class="content-section closing-video-section" wx:if="{{course.closingVideoVisible}}">
+      <view class="section-title">
+        <view class="section-icon closing-video">影</view>
+        <text class="section-title-text">结营视频</text>
+        <button class="closing-video-share-entry" open-type="share" bindtap="handleClosingVideoShare">
+          <text class="closing-video-share-entry-icon">↗</text>
+          <text>分享好友</text>
+        </button>
+      </view>
+      <video
+        class="closing-video-player"
+        src="{{course.closingVideoUrl}}"
+        poster="{{course.closingVideoCoverUrl}}"
+        controls
+        show-center-play-btn
+        show-play-btn
+        object-fit="contain"
+      />
+    </view>
+
     <view id="podcast-section" class="content-section podcast-section" wx:if="{{course.podcastUrl}}">
       <view class="section-title">
         <view class="section-icon podcast">播</view>

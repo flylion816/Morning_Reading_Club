@@ -267,6 +267,43 @@
               <el-input-number v-model="editingSection.duration" :min="0" :max="600" />
             </el-form-item>
 
+            <div class="section-subtitle">结营视频</div>
+
+            <el-form-item label="视频文件">
+              <div class="closing-video-upload-area">
+                <el-button
+                  :loading="closingVideoUploading"
+                  @click="triggerClosingVideoInput"
+                >{{ closingVideoUploading ? '上传中...' : '选择视频文件' }}</el-button>
+                <input
+                  ref="closingVideoInputRef"
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm,video/*"
+                  style="display:none"
+                  @change="handleClosingVideoChange"
+                />
+                <div v-if="editingSection.closingVideo?.url" class="closing-video-file-info">
+                  <span class="closing-video-file-name">{{ closingVideoFileName }}</span>
+                  <el-button type="danger" size="small" text @click="clearClosingVideo">× 删除</el-button>
+                </div>
+                <video
+                  v-if="editingSection.closingVideo?.url"
+                  class="closing-video-preview"
+                  :src="editingSection.closingVideo.url"
+                  :poster="editingSection.closingVideo.coverUrl || undefined"
+                  controls
+                />
+                <div v-if="editingSection.closingVideo?.coverUrl" class="closing-video-cover">
+                  <span>首帧封面</span>
+                  <img :src="editingSection.closingVideo.coverUrl" alt="结营视频首帧封面" />
+                </div>
+                <div v-if="editingSection.closingVideo?.url" class="podcast-url-display">
+                  {{ editingSection.closingVideo.url }}
+                </div>
+                <el-progress v-if="closingVideoUploading" :percentage="closingVideoUploadProgress" style="margin-top:8px" />
+              </div>
+            </el-form-item>
+
             <div class="section-subtitle">凡人播客</div>
 
             <el-form-item label="播客音频">
@@ -358,6 +395,16 @@ interface SectionForm {
   podcastUrl?: string | null;
   podcastDescription?: string | null;
   podcastDuration?: number | null;
+  closingVideo?: {
+    url?: string | null;
+    coverUrl?: string | null;
+    originalName?: string | null;
+    fileName?: string | null;
+    mimeType?: string | null;
+    size?: number | null;
+    duration?: number | null;
+    uploadedAt?: string | null;
+  } | null;
 }
 
 type SectionFormSource = Partial<SectionForm> & {
@@ -383,6 +430,11 @@ const podcastFileInputRef = ref<HTMLInputElement | null>(null);
 const podcastUploading = ref(false);
 const podcastUploadProgress = ref(0);
 const podcastFileName = ref('');
+
+const closingVideoInputRef = ref<HTMLInputElement | null>(null);
+const closingVideoUploading = ref(false);
+const closingVideoUploadProgress = ref(0);
+const closingVideoFileName = ref('');
 
 const lookImageInputRef = ref<HTMLInputElement | null>(null);
 const lookImageUploading = ref(false);
@@ -468,6 +520,138 @@ function clearPodcastUrl() {
   podcastFileName.value = '';
 }
 
+function triggerClosingVideoInput() {
+  closingVideoInputRef.value?.click();
+}
+
+function isVideoFile(file: File) {
+  return file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(file.name);
+}
+
+function formatUploadFileSize(size?: number | null) {
+  const bytes = Number(size || 0);
+  if (!bytes) return '';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))}KB`;
+  return `${(bytes / 1024 / 1024).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)}MB`;
+}
+
+function getVideoMetadata(file: File): Promise<{ duration: number; coverFile: File | null }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.src = url;
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      video.removeAttribute('src');
+      video.load();
+    };
+
+    const finish = (duration = 0, coverFile: File | null = null) => {
+      cleanup();
+      resolve({ duration, coverFile });
+    };
+
+    video.onerror = () => finish(0, null);
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? Math.round(video.duration) : 0;
+      video.currentTime = Math.min(0.1, Math.max(0, duration - 0.1));
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 1280;
+          canvas.height = video.videoHeight || 720;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            finish(duration, null);
+            return;
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              finish(duration, null);
+              return;
+            }
+            const baseName = file.name.replace(/\.[^.]+$/, '');
+            finish(duration, new File([blob], `${baseName}-cover.jpg`, { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.86);
+        } catch {
+          finish(duration, null);
+        }
+      };
+    };
+  });
+}
+
+async function handleClosingVideoChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!isVideoFile(file)) {
+    ElMessage.warning('仅支持视频文件');
+    input.value = '';
+    return;
+  }
+  if (isPlatformAdmin.value && !localStorage.getItem('admin_active_tenant')) {
+    ElMessage.warning('请先在顶部选择具体租户，再上传视频');
+    input.value = '';
+    return;
+  }
+
+  closingVideoUploading.value = true;
+  closingVideoUploadProgress.value = 0;
+  closingVideoFileName.value = file.name;
+
+  try {
+    const metadataPromise = getVideoMetadata(file);
+    const videoRes = await uploadApi.uploadClosingVideo(file);
+    closingVideoUploadProgress.value = 60;
+
+    const videoData = (videoRes as any)?.data || videoRes || {};
+    const metadata = await metadataPromise;
+    let coverUrl = '';
+    if (metadata.coverFile) {
+      try {
+        const coverRes = await uploadApi.uploadFile(metadata.coverFile);
+        coverUrl = (coverRes as any)?.url || (coverRes as any)?.data?.url || '';
+      } catch {
+        ElMessage.warning('视频已上传，首帧封面生成失败，将使用默认分享封面');
+      }
+    }
+
+    editingSection.value.closingVideo = {
+      url: videoData.url || '',
+      coverUrl: coverUrl || null,
+      originalName: videoData.originalName || file.name,
+      fileName: videoData.fileName || videoData.filename || '',
+      mimeType: videoData.mimeType || videoData.mimetype || file.type,
+      size: videoData.size || file.size,
+      duration: metadata.duration || null,
+      uploadedAt: videoData.uploadedAt || new Date().toISOString()
+    };
+    closingVideoUploadProgress.value = 100;
+    ElMessage.success(`视频上传成功${formatUploadFileSize(file.size) ? '（' + formatUploadFileSize(file.size) + '）' : ''}`);
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.message || '';
+    if (err?.response?.status === 403) {
+      ElMessage.error('上传失败：请先在顶部选择具体租户');
+    } else {
+      ElMessage.error(`视频上传失败${msg ? '：' + msg : ''}`);
+    }
+  } finally {
+    closingVideoUploading.value = false;
+    input.value = '';
+  }
+}
+
+function clearClosingVideo() {
+  editingSection.value.closingVideo = null;
+  closingVideoFileName.value = '';
+}
+
 // 编辑弹窗
 const editDialogVisible = ref(false);
 const isNewSection = ref(false);
@@ -526,6 +710,7 @@ async function handleAddSection() {
     day: sections.value.length,
   });
   podcastFileName.value = '';
+  closingVideoFileName.value = '';
   sectionSnapshot.value = '';
   editDialogVisible.value = true;
   // 等表单组件全部挂载（el-input-number 等会规范化值）后再拍快照
@@ -546,6 +731,10 @@ async function handleEditSection(section: Section) {
     contentEditorMode.value = detectContentEditorMode(detail.content);
     editingSection.value = normalizeSectionForm(detail);
     podcastFileName.value = detail.podcastUrl ? detail.podcastUrl.split('/').pop() || '' : '';
+    closingVideoFileName.value =
+      detail.closingVideo?.originalName ||
+      detail.closingVideo?.fileName ||
+      (detail.closingVideo?.url ? detail.closingVideo.url.split('/').pop() || '' : '');
     sectionSnapshot.value = '';
     editDialogVisible.value = true;
     // 等所有表单组件挂载并完成值规范化后再拍快照，避免误判为有改动
@@ -642,6 +831,8 @@ async function handleDeleteSection(section: any) {
 function resetForm() {
   contentEditorMode.value = 'markdown';
   editingSection.value = createEmptySectionDraft();
+  podcastFileName.value = '';
+  closingVideoFileName.value = '';
   sectionSnapshot.value = '';
 }
 
@@ -711,6 +902,7 @@ function createEmptySectionDraft(overrides: Partial<SectionForm> = {}): SectionF
     podcastUrl: null,
     podcastDescription: null,
     podcastDuration: null,
+    closingVideo: null,
     ...overrides
   };
 }
@@ -741,7 +933,8 @@ function normalizeSectionForm(section: SectionFormSource): SectionForm {
     isPublished: section.isPublished,
     podcastUrl: section.podcastUrl ?? null,
     podcastDescription: section.podcastDescription ?? null,
-    podcastDuration: section.podcastDuration ?? null
+    podcastDuration: section.podcastDuration ?? null,
+    closingVideo: section.closingVideo ?? null
   });
 }
 
@@ -767,7 +960,8 @@ function buildSectionPayload(section: SectionForm) {
     isPublished: normalized.isPublished,
     podcastUrl: normalized.podcastUrl,
     podcastDescription: normalized.podcastDescription,
-    podcastDuration: normalized.podcastDuration
+    podcastDuration: normalized.podcastDuration,
+    closingVideo: normalized.closingVideo
   };
 }
 
@@ -880,7 +1074,8 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.podcast-file-info {
+.podcast-file-info,
+.closing-video-file-info {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -888,7 +1083,8 @@ onBeforeUnmount(() => {
   color: #606266;
 }
 
-.podcast-file-name {
+.podcast-file-name,
+.closing-video-file-name {
   max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -922,6 +1118,35 @@ onBeforeUnmount(() => {
   max-height: 200px;
   border-radius: 6px;
   object-fit: contain;
+  border: 1px solid #e4e7ed;
+}
+
+.closing-video-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.closing-video-preview {
+  width: 360px;
+  max-width: 100%;
+  border-radius: 6px;
+  background: #000;
+}
+
+.closing-video-cover {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: #606266;
+}
+
+.closing-video-cover img {
+  width: 160px;
+  max-height: 100px;
+  border-radius: 6px;
+  object-fit: cover;
   border: 1px solid #e4e7ed;
 }
 </style>
