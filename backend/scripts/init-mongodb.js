@@ -127,6 +127,9 @@ const Comment = require('../src/models/Comment');
 const Insight = require('../src/models/Insight');
 const Enrollment = require('../src/models/Enrollment');
 const Tenant = require('../src/models/Tenant');
+const ImprintActivityType = require('../src/models/ImprintActivityType');
+const CheckinCelebrationConfig = require('../src/models/CheckinCelebrationConfig');
+const CommunityActivity = require('../src/models/CommunityActivity');
 const { withSystemContext } = require('../src/utils/tenantContext');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db';
@@ -172,7 +175,10 @@ async function initMongoDB() {
         Checkin.deleteMany({ tenantId: tenant._id }),
         Comment.deleteMany({ tenantId: tenant._id }),
         Insight.deleteMany({ tenantId: tenant._id }),
-        Enrollment.deleteMany({ tenantId: tenant._id })
+        Enrollment.deleteMany({ tenantId: tenant._id }),
+        ImprintActivityType.deleteMany({ tenantId: tenant._id }),
+        CheckinCelebrationConfig.deleteMany({ tenantId: tenant._id }),
+        CommunityActivity.deleteMany({ tenantId: tenant._id })
       ]);
       console.log('✅ 数据已清空\n');
     } catch (err) {
@@ -420,6 +426,35 @@ async function initMongoDB() {
       console.log(`✅ 创建 ${insights.length} 个小凡看见\n`);
     }
 
+    // 创建打卡活动类型
+    console.log('🏷️  创建打卡活动类型...');
+    const mockActivityTypes = [
+      { key: 'reading',   label: '阅读',   emoji: '📖', sortOrder: 1 },
+      { key: 'exercise',  label: '运动',   emoji: '🏃', sortOrder: 2 },
+      { key: 'meditation',label: '冥想',   emoji: '🧘', sortOrder: 3 },
+      { key: 'writing',   label: '写作',   emoji: '✍️', sortOrder: 4 },
+      { key: 'learning',  label: '学习',   emoji: '📚', sortOrder: 5 },
+      { key: 'gratitude', label: '感恩',   emoji: '🙏', sortOrder: 6 },
+      { key: 'other',     label: '其他',   emoji: '✨', sortOrder: 7 }
+    ];
+    const activityTypes = await ImprintActivityType.insertMany(mockActivityTypes);
+    console.log(`✅ 创建 ${activityTypes.length} 个活动类型\n`);
+
+    // 创建打卡庆祝配置
+    console.log('🎉 创建打卡庆祝配置...');
+    await CheckinCelebrationConfig.create({
+      animationStyle: 'random',
+      enabledAnimationStyles: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+      messages: [
+        { content: '坚持就是胜利！继续加油！', category: '励志' },
+        { content: '每一次打卡都是对自己的承诺！', category: '励志' },
+        { content: '你今天的努力，是明天的基础！', category: '励志' },
+        { content: '习惯的力量，正在悄悄改变你！', category: '励志' },
+        { content: '打卡第一步，改变从今天开始！', category: '励志' }
+      ]
+    });
+    console.log('✅ 创建打卡庆祝配置\n');
+
     // 最终统计
     console.log('🎉 MongoDB 初始化完成！\n');
     console.log('📊 数据统计：');
@@ -429,7 +464,9 @@ async function initMongoDB() {
     console.log(`   - 报名: 1`);
     console.log(`   - 打卡: ${checkins.length}`);
     console.log(`   - 评论: ${mockComments.length}`);
-    console.log(`   - 小凡看见: ${mockInsights.length}\n`);
+    console.log(`   - 小凡看见: ${mockInsights.length}`);
+    console.log(`   - 活动类型: ${activityTypes.length}`);
+    console.log(`   - 打卡庆祝配置: 1\n`);
 
     }); // end withSystemContext
 
