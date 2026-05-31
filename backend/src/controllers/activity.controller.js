@@ -32,6 +32,7 @@ const ACTION_LABELS = {
   podcast_play: '播客播放',
   podcast_bar_play: '底部悬浮窗播放播客',
   podcast_share: '播客分享',
+  closing_video_share: '结营视频分享',
   course_share: '课程分享',
   activity_enroll: '活动报名'
 };

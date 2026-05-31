@@ -157,6 +157,7 @@ Page({
     podcastShareMode: false,
     podcastShareImagePath: '',
     closingVideoShareMode: false,
+    closingVideoShareImagePath: '',
     // AI 朗读
     ttsState: 'idle'  // idle | loading | playing | paused
   },
@@ -314,7 +315,8 @@ Page({
       canShareCurrentCheckin,
       podcastShareMode,
       podcastShareImagePath,
-      closingVideoShareMode
+      closingVideoShareMode,
+      closingVideoShareImagePath
     } = this.data;
 
     if (podcastShareMode) {
@@ -333,7 +335,7 @@ Page({
       return {
         title: `结营视频｜${course.title || '结营词'}`,
         path: `/pages/course-detail/course-detail?id=${courseId}&anchor=closingVideo`,
-        imageUrl: course.closingVideoCoverUrl || '/assets/images/share-default.jpg'
+        imageUrl: closingVideoShareImagePath || course.closingVideoCoverUrl || '/assets/images/share-default.jpg'
       };
     }
 
@@ -2165,6 +2167,7 @@ Page({
           podcastDurationText: course.podcastDuration ? this.formatPodcastDuration(course.podcastDuration) : ''
         });
         this.revealPageContent();
+        this.prepareClosingVideoShareImage(course);
         return;
       }
 
@@ -2243,6 +2246,7 @@ Page({
           this.revealPageContent();
           this.loadNotificationReminder();
           this.restoreTargetFocus();
+          this.prepareClosingVideoShareImage(course);
         }
       );
 
@@ -3326,6 +3330,111 @@ Page({
     const { course } = this.data;
     if (!course?.closingVideoVisible) return;
     this.setData({ closingVideoShareMode: true });
+    this.prepareClosingVideoShareImage(course);
+  },
+
+  async prepareClosingVideoShareImage(course = this.data.course) {
+    if (!course?.closingVideoVisible || !course.closingVideoCoverUrl) return;
+    if (
+      this.data.closingVideoShareImagePath &&
+      this._closingVideoShareImageSource === course.closingVideoCoverUrl
+    ) {
+      return;
+    }
+
+    this._closingVideoShareImageSource = course.closingVideoCoverUrl;
+
+    try {
+      const imagePath = await this.generateClosingVideoShareImage(course);
+      if (this._closingVideoShareImageSource !== course.closingVideoCoverUrl) {
+        return;
+      }
+      this.setData({ closingVideoShareImagePath: imagePath });
+    } catch (error) {
+      console.warn('生成结营视频分享图失败，回退原封面:', error);
+      this.setData({ closingVideoShareImagePath: '' });
+    }
+  },
+
+  async generateClosingVideoShareImage(course) {
+    const target = await this.getPosterCanvasNode();
+    const canvas = target.node;
+    const ctx = canvas.getContext('2d');
+    const W = 500;
+    const H = 400;
+    const dpr = Math.min(wx.getWindowInfo?.().pixelRatio || 2, 2);
+    const coverImage = await this.loadPosterImage(canvas, [course.closingVideoCoverUrl]);
+
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    if (typeof ctx.resetTransform === 'function') {
+      ctx.resetTransform();
+    } else if (typeof ctx.setTransform === 'function') {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.fillStyle = '#f6f7fb';
+    ctx.fillRect(0, 0, W, H);
+    this.drawImageCover(ctx, coverImage, 0, 0, W, H);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.fillRect(0, 0, W, H);
+    this.drawImageContain(ctx, coverImage, 0, 0, W, H);
+
+    return new Promise((resolve, reject) => {
+      wx.canvasToTempFilePath({
+        canvas,
+        width: W,
+        height: H,
+        destWidth: W * dpr,
+        destHeight: H * dpr,
+        fileType: 'jpg',
+        quality: 0.92,
+        success: (res) => resolve(res.tempFilePath),
+        fail: reject
+      });
+    });
+  },
+
+  drawImageCover(ctx, image, x, y, width, height) {
+    const imageWidth = image.width || image.naturalWidth || width;
+    const imageHeight = image.height || image.naturalHeight || height;
+    const imageRatio = imageWidth / imageHeight;
+    const boxRatio = width / height;
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = imageWidth;
+    let sourceHeight = imageHeight;
+
+    if (imageRatio > boxRatio) {
+      sourceWidth = imageHeight * boxRatio;
+      sourceX = (imageWidth - sourceWidth) / 2;
+    } else {
+      sourceHeight = imageWidth / boxRatio;
+      sourceY = (imageHeight - sourceHeight) / 2;
+    }
+
+    ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+  },
+
+  drawImageContain(ctx, image, x, y, width, height) {
+    const imageWidth = image.width || image.naturalWidth || width;
+    const imageHeight = image.height || image.naturalHeight || height;
+    const imageRatio = imageWidth / imageHeight;
+    const boxRatio = width / height;
+    let drawWidth = width;
+    let drawHeight = height;
+
+    if (imageRatio > boxRatio) {
+      drawHeight = width / imageRatio;
+    } else {
+      drawWidth = height * imageRatio;
+    }
+
+    const drawX = x + (width - drawWidth) / 2;
+    const drawY = y + (height - drawHeight) / 2;
+    ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
   },
 
   _generatePodcastShareImage(course) {

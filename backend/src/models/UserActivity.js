@@ -28,6 +28,7 @@ const ACTIONS = [
   'podcast_play',
   'podcast_bar_play',
   'podcast_share',
+  'closing_video_share',
   'course_share',
   'activity_enroll'
 ];
