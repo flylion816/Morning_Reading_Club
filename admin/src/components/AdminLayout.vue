@@ -51,6 +51,9 @@
           <el-menu-item index="/insight-requests">
             <span>📋 查看申请</span>
           </el-menu-item>
+          <el-menu-item index="/completion-reports">
+            <span>📄 实录报告</span>
+          </el-menu-item>
           <el-menu-item index="/imprints">
             <span>🌿 在场管理</span>
           </el-menu-item>
@@ -201,6 +204,7 @@ const pageTitle = computed(() => {
     '/activities': '活动管理',
     '/coupons': '优惠券管理',
     '/insight-requests': '查看申请',
+    '/completion-reports': '实录报告',
     '/subscription-debug': '订阅消息排查',
     '/audit-logs': '审计日志',
     '/database': '数据库管理',

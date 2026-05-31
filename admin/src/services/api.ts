@@ -196,6 +196,16 @@ export const enrollmentApi = {
     apiClient.post('/enrollments/sync-nicknames')
 };
 
+// 结营实录报告 API
+export const completionReportApi = {
+  getReports: (params?: any) =>
+    apiClient.get('/enrollments/reports', { params }),
+  bindReport: (enrollmentId: string, data: any) =>
+    apiClient.put(`/enrollments/${enrollmentId}/completion-report`, data),
+  clearReport: (enrollmentId: string) =>
+    apiClient.delete(`/enrollments/${enrollmentId}/completion-report`)
+};
+
 // 支付 API
 export const paymentApi = {
   getPayments: (params?: any) => apiClient.get('/payments', { params }),

@@ -38,6 +38,14 @@ jest.mock('../../services/activity.service.js', () => ({
   track: jest.fn(() => Promise.resolve())
 }));
 
+jest.mock('../../services/imprint.service.js', () => ({
+  list: jest.fn()
+}));
+
+jest.mock('../../services/completion-report.service', () => ({
+  getMyReports: jest.fn()
+}));
+
 jest.mock('../../config/constants.js', () => ({
   STORAGE_KEYS: {
     TOKEN: 'token',
@@ -93,6 +101,8 @@ let enrollmentService;
 let periodAccess;
 let insightService;
 let activityService;
+let completionReportService;
+let imprintService;
 
 describe('index page', () => {
   beforeEach(() => {
@@ -127,6 +137,8 @@ describe('index page', () => {
     periodAccess = require('../../utils/period-access.js');
     insightService = require('../../services/insight.service.js');
     activityService = require('../../services/activity.service.js');
+    completionReportService = require('../../services/completion-report.service');
+    imprintService = require('../../services/imprint.service.js');
     require('../../pages/index/index.js');
 
     pageInstance = {
@@ -159,6 +171,10 @@ describe('index page', () => {
     insightService.getInsightsList.mockReset();
     insightService.getReceivedRequests.mockReset();
     activityService.track.mockClear();
+    completionReportService.getMyReports.mockReset();
+    completionReportService.getMyReports.mockResolvedValue({ list: [] });
+    imprintService.list.mockReset();
+    imprintService.list.mockResolvedValue({ list: [] });
   });
 
   afterEach(() => {
@@ -266,6 +282,47 @@ describe('index page', () => {
       url: '/pages/course-detail/course-detail?id=section_1&checkinId=checkin_1'
     });
     expect(checkinService.getCheckinDetail).not.toHaveBeenCalled();
+  });
+
+  test('should load current period report shortcut only when report exists', async () => {
+    completionReportService.getMyReports.mockResolvedValue({
+      list: [
+        {
+          periodId: 'period_1',
+          hasReport: true,
+          reportTitle: '小狐狸分享实录'
+        },
+        {
+          periodId: 'period_2',
+          hasReport: false
+        }
+      ]
+    });
+
+    await pageInstance.loadCurrentPeriodReport.call(pageInstance, 'period_1');
+
+    expect(completionReportService.getMyReports).toHaveBeenCalled();
+    expect(pageInstance.data.currentPeriodReport).toMatchObject({
+      periodId: 'period_1',
+      hasReport: true
+    });
+  });
+
+  test('should navigate to completion report detail from today task shortcut', () => {
+    pageInstance.setData({
+      currentPeriodReport: {
+        periodId: 'period_1',
+        hasReport: true
+      }
+    });
+
+    pageInstance.handleTodayReportBtnTap.call(pageInstance, {
+      stopPropagation: jest.fn()
+    });
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/completion-report-detail/completion-report-detail?periodId=period_1'
+    });
   });
 
   test('should fetch checkin detail when recent card is missing sectionId', async () => {
@@ -606,6 +663,8 @@ describe('index page', () => {
     insightService.getReceivedRequests.mockResolvedValue([]);
 
     await pageInstance.loadUserData.call(pageInstance, true);
+    await new Promise(resolve => setImmediate(resolve));
+
     expect(pageInstance.data.currentPeriodCommunityState).toBe('locked');
     expect(pageInstance.data.canUsePaidFeatures).toBe(true);
     expect(checkinService.getUserCheckinsWithStats).toHaveBeenCalled();

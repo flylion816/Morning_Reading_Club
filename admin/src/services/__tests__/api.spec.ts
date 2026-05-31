@@ -15,6 +15,7 @@ import {
   userApi,
   statsApi,
   insightApi,
+  completionReportApi,
   uploadApi,
   backupApi,
 } from '../api';
@@ -54,6 +55,11 @@ describe('API Service', () => {
     it('应该导出 insightApi 对象', () => {
       expect(insightApi).toBeDefined();
       expect(typeof insightApi).toBe('object');
+    });
+
+    it('应该导出 completionReportApi 对象', () => {
+      expect(completionReportApi).toBeDefined();
+      expect(typeof completionReportApi).toBe('object');
     });
 
     it('应该导出 uploadApi 对象', () => {
@@ -260,6 +266,23 @@ describe('API Service', () => {
     it('应该导出 deleteFile 方法', () => {
       expect(uploadApi.deleteFile).toBeDefined();
       expect(typeof uploadApi.deleteFile).toBe('function');
+    });
+  });
+
+  describe('Completion Report API 方法', () => {
+    it('应该导出 getReports 方法', () => {
+      expect(completionReportApi.getReports).toBeDefined();
+      expect(typeof completionReportApi.getReports).toBe('function');
+    });
+
+    it('应该导出 bindReport 方法', () => {
+      expect(completionReportApi.bindReport).toBeDefined();
+      expect(typeof completionReportApi.bindReport).toBe('function');
+    });
+
+    it('应该导出 clearReport 方法', () => {
+      expect(completionReportApi.clearReport).toBeDefined();
+      expect(typeof completionReportApi.clearReport).toBe('function');
     });
   });
 

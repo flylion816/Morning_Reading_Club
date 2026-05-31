@@ -178,6 +178,10 @@
                   <text>去播客</text>
                   <text class="btn-arrow">→</text>
                 </view>
+                <view class="report-btn" wx:if="{{currentPeriodReport && currentPeriodReport.hasReport}}" catchtap="handleTodayReportBtnTap">
+                  <text>看实录</text>
+                  <text class="btn-arrow">→</text>
+                </view>
               </view>
             </view>
           </view>

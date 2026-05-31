@@ -22,9 +22,11 @@ describe('Enrollment Controller', () => {
   let loggerStub;
   let mysqlBackupServiceStub;
   let syncServiceStub;
+  let tenantId;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
+    tenantId = new mongoose.Types.ObjectId();
 
     req = {
       body: {},
@@ -48,12 +50,14 @@ describe('Enrollment Controller', () => {
       countDocuments: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
+      findOneAndUpdate: sandbox.stub(),
       getUserEnrollments: sandbox.stub(),
       getPeriodMembers: sandbox.stub()
     };
 
     UserStub = {
-      findById: sandbox.stub()
+      findById: sandbox.stub(),
+      find: sandbox.stub()
     };
 
     PeriodStub = {
@@ -103,6 +107,10 @@ describe('Enrollment Controller', () => {
         '../models/Section': SectionStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
+        '../utils/tenantContext': {
+          getCurrentTenantId: sandbox.stub().returns(tenantId),
+          runWithTenant: (ctx, fn) => fn()
+        },
         '../services/mysql-backup.service': mysqlBackupServiceStub,
         '../services/sync.service': syncServiceStub
       }
@@ -316,6 +324,255 @@ describe('Enrollment Controller', () => {
       const response = res.json.getCall(0).args[0];
       expect(response.data.list).to.be.empty;
       expect(response.data.total).to.equal(0);
+    });
+  });
+
+  describe('completion reports - 实录报告接口', () => {
+    it('管理员应该可以用 .pdf 文件地址兜底绑定实录报告', async () => {
+      const enrollmentId = new mongoose.Types.ObjectId();
+      const userId = fixtures.testUsers.normalUser._id;
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      const adminId = new mongoose.Types.ObjectId();
+      const savedEnrollment = {
+        _id: enrollmentId,
+        tenantId,
+        userId: {
+          _id: userId,
+          nickname: '狮子',
+          avatarUrl: ''
+        },
+        periodId: {
+          _id: periodId,
+          name: '第 12 期'
+        },
+        name: '张三',
+        phone: '13500000000',
+        status: 'active',
+        paymentStatus: 'paid',
+        enrolledAt: new Date('2026-05-01T00:00:00.000Z'),
+        completionReport: {
+          fileUrl: '/uploads/tenants/default/report.pdf',
+          fileName: 'report.pdf',
+          originalName: 'report.bin',
+          fileSize: 1024,
+          mimeType: 'application/octet-stream',
+          uploadedAt: new Date('2026-05-30T10:00:00.000Z'),
+          uploadedBy: adminId
+        },
+        toObject() {
+          return {
+            _id: this._id,
+            tenantId: this.tenantId,
+            userId: this.userId,
+            periodId: this.periodId,
+            name: this.name,
+            phone: this.phone,
+            status: this.status,
+            paymentStatus: this.paymentStatus,
+            enrolledAt: this.enrolledAt,
+            completionReport: this.completionReport
+          };
+        }
+      };
+      const updateQuery = {
+        populate: sandbox.stub()
+      };
+      updateQuery.populate.onFirstCall().returns(updateQuery);
+      updateQuery.populate.onSecondCall().resolves(savedEnrollment);
+
+      req.admin = { id: adminId.toString() };
+      req.params = { id: enrollmentId.toString() };
+      req.body = {
+        fileUrl: '/uploads/tenants/default/report.pdf',
+        fileName: 'report.pdf',
+        originalName: 'report.bin',
+        fileSize: 1024,
+        mimeType: 'application/octet-stream'
+      };
+      EnrollmentStub.findOneAndUpdate.returns(updateQuery);
+
+      await enrollmentController.updateCompletionReport(req, res, next);
+
+      expect(EnrollmentStub.findOneAndUpdate.calledOnce).to.be.true;
+      const [filter, update] = EnrollmentStub.findOneAndUpdate.getCall(0).args;
+      expect(filter).to.include({ tenantId });
+      expect(update.$set.completionReport.fileUrl).to.equal('/uploads/tenants/default/report.pdf');
+      expect(update.$set.completionReport.uploadedBy.toString()).to.equal(adminId.toString());
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.hasReport).to.equal(true);
+      expect(response.data.reportTitle).to.equal('狮子分享实录');
+      expect(syncServiceStub.publishSyncEvent.calledOnce).to.be.true;
+    });
+
+    it('管理员绑定实录报告时应该拒绝非 PDF', async () => {
+      req.admin = { id: new mongoose.Types.ObjectId().toString() };
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      req.body = {
+        fileUrl: '/uploads/tenants/default/report.txt',
+        fileName: 'report.txt',
+        mimeType: 'text/plain'
+      };
+
+      await enrollmentController.updateCompletionReport(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(res.json.getCall(0).args[0].message).to.include('PDF');
+      expect(EnrollmentStub.findOneAndUpdate.called).to.be.false;
+    });
+
+    it('用户实录报告列表应该返回当前用户 paid/free active/completed 报名，未上传也返回 hasReport=false', async () => {
+      const userId = fixtures.testUsers.normalUser._id;
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      req.user = { userId: userId.toString() };
+
+      const enrollment = {
+        _id: new mongoose.Types.ObjectId(),
+        userId: {
+          _id: userId,
+          nickname: ''
+        },
+        periodId: {
+          _id: periodId,
+          name: '第 12 期'
+        },
+        name: '张三',
+        status: 'completed',
+        paymentStatus: 'free',
+        completionReport: null
+      };
+      const listQuery = {
+        populate: sandbox.stub(),
+        sort: sandbox.stub()
+      };
+      listQuery.populate.onFirstCall().returns(listQuery);
+      listQuery.populate.onSecondCall().returns(listQuery);
+      listQuery.sort.returns({ lean: sandbox.stub().resolves([enrollment]) });
+      EnrollmentStub.find.returns(listQuery);
+
+      await enrollmentController.getMyCompletionReports(req, res, next);
+
+      const query = EnrollmentStub.find.getCall(0).args[0];
+      expect(query).to.include({ tenantId, userId: userId.toString() });
+      expect(query.status.$in).to.deep.equal(['active', 'completed']);
+      expect(query.paymentStatus.$in).to.deep.equal(['paid', 'free']);
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.total).to.equal(1);
+      expect(response.data.list[0].hasReport).to.equal(false);
+      expect(response.data.list[0].reportTitle).to.equal('张三分享实录');
+    });
+
+    it('用户详情接口对不存在、不属于本人或未支付报名返回 404', async () => {
+      req.user = { userId: fixtures.testUsers.normalUser._id.toString() };
+      req.params = { periodId: new mongoose.Types.ObjectId().toString() };
+      const detailQuery = {
+        populate: sandbox.stub()
+      };
+      detailQuery.populate.onFirstCall().returns(detailQuery);
+      detailQuery.populate.onSecondCall().returns({ lean: sandbox.stub().resolves(null) });
+      EnrollmentStub.findOne.returns(detailQuery);
+
+      await enrollmentController.getMyCompletionReportByPeriod(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.getCall(0).args[0].message).to.include('暂无权限');
+    });
+
+    it('管理员应该可以清空已绑定的实录报告', async () => {
+      const enrollmentId = new mongoose.Types.ObjectId();
+      const savedEnrollment = {
+        _id: enrollmentId,
+        tenantId,
+        userId: {
+          _id: fixtures.testUsers.normalUser._id,
+          nickname: '狮子',
+          avatarUrl: ''
+        },
+        periodId: {
+          _id: fixtures.testPeriods.ongoingPeriod._id,
+          name: '第 12 期'
+        },
+        name: '张三',
+        phone: '13500000000',
+        status: 'active',
+        paymentStatus: 'paid',
+        completionReport: null,
+        toObject() {
+          return {
+            _id: this._id,
+            tenantId: this.tenantId,
+            userId: this.userId,
+            periodId: this.periodId,
+            name: this.name,
+            phone: this.phone,
+            status: this.status,
+            paymentStatus: this.paymentStatus,
+            completionReport: this.completionReport
+          };
+        }
+      };
+      const updateQuery = {
+        populate: sandbox.stub()
+      };
+      updateQuery.populate.onFirstCall().returns(updateQuery);
+      updateQuery.populate.onSecondCall().resolves(savedEnrollment);
+
+      req.params = { id: enrollmentId.toString() };
+      EnrollmentStub.findOneAndUpdate.returns(updateQuery);
+
+      await enrollmentController.deleteCompletionReport(req, res, next);
+
+      expect(EnrollmentStub.findOneAndUpdate.calledOnce).to.be.true;
+      const [filter, update] = EnrollmentStub.findOneAndUpdate.getCall(0).args;
+      expect(filter).to.include({ tenantId });
+      expect(update).to.deep.equal({ $unset: { completionReport: '' } });
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.hasReport).to.equal(false);
+      expect(response.data.reportTitle).to.equal('狮子分享实录');
+    });
+
+    it('用户详情接口成功时应该返回 PDF 文件地址', async () => {
+      const userId = fixtures.testUsers.normalUser._id;
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      req.user = { userId: userId.toString() };
+      req.params = { periodId: periodId.toString() };
+      const enrollment = {
+        _id: new mongoose.Types.ObjectId(),
+        userId: {
+          _id: userId,
+          nickname: '狮子'
+        },
+        periodId: {
+          _id: periodId,
+          name: '第 12 期'
+        },
+        name: '张三',
+        status: 'active',
+        paymentStatus: 'paid',
+        completionReport: {
+          fileUrl: '/uploads/tenants/default/report.pdf',
+          fileName: 'report.pdf',
+          originalName: '狮子分享实录.pdf',
+          fileSize: 2048,
+          mimeType: 'application/pdf',
+          uploadedAt: new Date('2026-05-30T10:00:00.000Z')
+        }
+      };
+      const detailQuery = {
+        populate: sandbox.stub()
+      };
+      detailQuery.populate.onFirstCall().returns(detailQuery);
+      detailQuery.populate.onSecondCall().returns({ lean: sandbox.stub().resolves(enrollment) });
+      EnrollmentStub.findOne.returns(detailQuery);
+
+      await enrollmentController.getMyCompletionReportByPeriod(req, res, next);
+
+      const query = EnrollmentStub.findOne.getCall(0).args[0];
+      expect(query).to.include({ tenantId, userId: userId.toString() });
+      expect(query.periodId.toString()).to.equal(periodId.toString());
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.hasReport).to.equal(true);
+      expect(response.data.fileUrl).to.equal('/uploads/tenants/default/report.pdf');
+      expect(response.data.reportTitle).to.equal('狮子分享实录');
     });
   });
 

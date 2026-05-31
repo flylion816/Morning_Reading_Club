@@ -1,0 +1,40 @@
+<view class="page-reports">
+  <view wx:if="{{loading}}" class="state-block">
+    <text class="state-title">加载中...</text>
+  </view>
+
+  <view wx:elif="{{error}}" class="state-block">
+    <text class="state-title">{{error}}</text>
+    <view class="state-action" bindtap="handleRetry">重试</view>
+  </view>
+
+  <view wx:elif="{{empty}}" class="state-block">
+    <text class="state-icon">📄</text>
+    <text class="state-title">暂无实录报告</text>
+  </view>
+
+  <view wx:else class="report-list">
+    <view
+      wx:for="{{reports}}"
+      wx:key="periodId"
+      class="report-card"
+      bindtap="handleReportTap"
+      data-period-id="{{item.periodId}}"
+    >
+      <view class="report-card-main">
+        <view class="report-card-title">{{item.periodName}}</view>
+        <view class="report-card-subtitle">{{item.reportTitle}}</view>
+        <view wx:if="{{item.hasReport}}" class="report-card-meta">
+          <text>{{item.fileSizeText || 'PDF 文件'}}</text>
+          <text wx:if="{{item.uploadedAtText}}"> · {{item.uploadedAtText}}</text>
+        </view>
+        <view wx:else class="report-card-meta pending">报告整理中</view>
+      </view>
+      <view class="report-card-status {{item.hasReport ? 'ready' : 'pending'}}">
+        {{item.hasReport ? '已上传' : '整理中'}}
+      </view>
+    </view>
+  </view>
+</view>
+
+<podcast-player-bar />

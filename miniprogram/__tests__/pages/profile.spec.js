@@ -132,4 +132,14 @@ describe('profile page', () => {
       url: '/pages/checkin-records/checkin-records'
     });
   });
+
+  test('should navigate to completion reports with paid access', () => {
+    pageInstance.setData({ canUsePaidFeatures: true });
+
+    pageInstance.goToCompletionReports.call(pageInstance);
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/completion-reports/completion-reports'
+    });
+  });
 });

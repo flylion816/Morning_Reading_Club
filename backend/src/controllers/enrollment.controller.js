@@ -64,6 +64,107 @@ function isDefaultNickname(nickname) {
   return DEFAULT_NICKNAMES.includes(nickname.trim());
 }
 
+function isPdfReport(file = {}) {
+  const mimeType = (file.mimeType || '').toLowerCase();
+  if (mimeType === 'application/pdf') return true;
+
+  return [file.fileName, file.originalName, file.fileUrl]
+    .filter(Boolean)
+    .some(value => String(value).trim().toLowerCase().endsWith('.pdf'));
+}
+
+function buildReportTitle(enrollment = {}) {
+  const nickname = enrollment.userId?.nickname;
+  const displayName = [nickname, enrollment.name, '成员']
+    .find(value => typeof value === 'string' && value.trim());
+
+  return `${displayName.trim()}分享实录`;
+}
+
+function hasCompletionReport(enrollment = {}) {
+  return !!(enrollment.completionReport && enrollment.completionReport.fileUrl);
+}
+
+function formatCompletionReport(report = {}, { includeFileUrl = true } = {}) {
+  if (!report || !report.fileUrl) return null;
+
+  const result = {
+    fileName: report.fileName || '',
+    originalName: report.originalName || '',
+    fileSize: report.fileSize || 0,
+    mimeType: report.mimeType || '',
+    uploadedAt: report.uploadedAt || null
+  };
+
+  if (includeFileUrl) {
+    result.fileUrl = report.fileUrl;
+  }
+
+  return result;
+}
+
+function getRequiredTenantId(res) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    res.status(400).json(errors.badRequest('请先选择租户'));
+    return null;
+  }
+
+  return tenantId;
+}
+
+function toObjectId(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return new mongoose.Types.ObjectId(id);
+}
+
+function formatAdminReportEnrollment(enrollment) {
+  const period = enrollment.periodId || {};
+  const user = enrollment.userId || {};
+  const hasReport = hasCompletionReport(enrollment);
+
+  return {
+    _id: enrollment._id,
+    period: {
+      _id: period._id || enrollment.periodId,
+      name: period.name || period.title || ''
+    },
+    user: user && user._id ? {
+      _id: user._id,
+      nickname: user.nickname || '',
+      avatarUrl: user.avatarUrl || user.avatar || ''
+    } : null,
+    name: enrollment.name || '',
+    phone: enrollment.phone || '',
+    paymentStatus: enrollment.paymentStatus,
+    status: enrollment.status,
+    enrolledAt: enrollment.enrolledAt,
+    reportTitle: buildReportTitle(enrollment),
+    hasReport,
+    completionReport: formatCompletionReport(enrollment.completionReport)
+  };
+}
+
+function formatUserReportEnrollment(enrollment, { includeFileUrl = false } = {}) {
+  const period = enrollment.periodId || {};
+  const hasReport = hasCompletionReport(enrollment);
+  const report = formatCompletionReport(enrollment.completionReport, { includeFileUrl });
+
+  return {
+    enrollmentId: enrollment._id,
+    periodId: period._id || enrollment.periodId,
+    periodName: period.name || period.title || '',
+    reportTitle: buildReportTitle(enrollment),
+    hasReport,
+    fileName: report?.fileName || '',
+    originalName: report?.originalName || '',
+    fileSize: report?.fileSize || 0,
+    mimeType: report?.mimeType || '',
+    uploadedAt: report?.uploadedAt || null,
+    fileUrl: includeFileUrl ? (report?.fileUrl || '') : undefined
+  };
+}
+
 /**
  * 在报名成功后，将报名表单中的姓名同步到用户昵称
  * 仅在用户当前昵称为默认值（如"微信用户"）时执行
@@ -630,6 +731,267 @@ exports.completeEnrollment = async (req, res) => {
   } catch (error) {
     logger.error('Completion failed', error);
     res.status(500).json(errors.serverError(`完成失败: ${error.message}`));
+  }
+};
+
+/**
+ * 获取管理员实录报告列表
+ * GET /api/v1/enrollments/reports
+ */
+exports.getCompletionReportEnrollments = async (req, res) => {
+  try {
+    const tenantId = getRequiredTenantId(res);
+    if (!tenantId) return;
+
+    const {
+      page = 1,
+      limit = 20,
+      periodId,
+      search,
+      onlyMissing
+    } = req.query;
+
+    const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const query = {
+      tenantId,
+      deleted: { $ne: true }
+    };
+
+    if (periodId) {
+      const periodObjectId = toObjectId(periodId);
+      if (!periodObjectId) {
+        return res.status(400).json(errors.badRequest('periodId 格式不正确'));
+      }
+      query.periodId = periodObjectId;
+    }
+
+    if (onlyMissing === 'true' || onlyMissing === true) {
+      query.$or = [
+        { completionReport: { $exists: false } },
+        { 'completionReport.fileUrl': { $exists: false } },
+        { 'completionReport.fileUrl': '' },
+        { 'completionReport.fileUrl': null }
+      ];
+    }
+
+    if (search && search.trim()) {
+      const keyword = search.trim();
+      const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const matchedUsers = await User.find({ tenantId, nickname: regex }).select('_id').lean();
+      const searchConditions = [
+        { name: regex },
+        { phone: regex }
+      ];
+
+      if (matchedUsers.length > 0) {
+        searchConditions.push({ userId: { $in: matchedUsers.map(user => user._id) } });
+      }
+
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: searchConditions }];
+        delete query.$or;
+      } else {
+        query.$or = searchConditions;
+      }
+    }
+
+    const [list, total] = await Promise.all([
+      Enrollment.find(query)
+        .populate('userId', 'nickname avatar avatarUrl')
+        .populate('periodId', 'name title')
+        .sort({ enrolledAt: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(parsedLimit)
+        .lean(),
+      Enrollment.countDocuments(query)
+    ]);
+
+    res.json(success({
+      list: list.map(formatAdminReportEnrollment),
+      total,
+      page: parsedPage,
+      limit: parsedLimit,
+      totalPages: Math.ceil(total / parsedLimit)
+    }));
+  } catch (error) {
+    logger.error('Get completion report enrollments failed', error);
+    res.status(500).json(errors.serverError(`获取实录报告列表失败: ${error.message}`));
+  }
+};
+
+/**
+ * 管理员绑定或替换报名实录报告
+ * PUT /api/v1/enrollments/:id/completion-report
+ */
+exports.updateCompletionReport = async (req, res) => {
+  try {
+    const tenantId = getRequiredTenantId(res);
+    if (!tenantId) return;
+
+    const enrollmentId = toObjectId(req.params.id);
+    if (!enrollmentId) {
+      return res.status(400).json(errors.badRequest('报名记录 ID 格式不正确'));
+    }
+
+    const { fileUrl, fileName, originalName, fileSize, mimeType } = req.body || {};
+    if (!fileUrl) {
+      return res.status(400).json(errors.badRequest('缺少报告文件地址'));
+    }
+    if (!isPdfReport({ fileUrl, fileName, originalName, mimeType })) {
+      return res.status(400).json(errors.badRequest('实录报告只支持 PDF 文件'));
+    }
+
+    const uploadedBy = req.admin?.id && mongoose.Types.ObjectId.isValid(req.admin.id)
+      ? new mongoose.Types.ObjectId(req.admin.id)
+      : undefined;
+
+    const completionReport = {
+      fileUrl,
+      fileName: fileName || originalName || fileUrl.split('/').pop(),
+      originalName: originalName || fileName || '',
+      fileSize: Number(fileSize) || 0,
+      mimeType: mimeType || 'application/pdf',
+      uploadedAt: new Date(),
+      uploadedBy
+    };
+
+    const enrollment = await Enrollment.findOneAndUpdate(
+      { _id: enrollmentId, tenantId, deleted: { $ne: true } },
+      { $set: { completionReport } },
+      { new: true }
+    )
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('periodId', 'name title');
+
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollment.toObject()
+    });
+
+    res.json(success(formatAdminReportEnrollment(enrollment.toObject()), '实录报告已保存'));
+  } catch (error) {
+    logger.error('Update completion report failed', error, { enrollmentId: req.params.id });
+    res.status(500).json(errors.serverError(`保存实录报告失败: ${error.message}`));
+  }
+};
+
+/**
+ * 管理员清空报名实录报告
+ * DELETE /api/v1/enrollments/:id/completion-report
+ */
+exports.deleteCompletionReport = async (req, res) => {
+  try {
+    const tenantId = getRequiredTenantId(res);
+    if (!tenantId) return;
+
+    const enrollmentId = toObjectId(req.params.id);
+    if (!enrollmentId) {
+      return res.status(400).json(errors.badRequest('报名记录 ID 格式不正确'));
+    }
+
+    const enrollment = await Enrollment.findOneAndUpdate(
+      { _id: enrollmentId, tenantId, deleted: { $ne: true } },
+      { $unset: { completionReport: '' } },
+      { new: true }
+    )
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('periodId', 'name title');
+
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+
+    publishSyncEvent({
+      type: 'update',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollment.toObject()
+    });
+
+    res.json(success(formatAdminReportEnrollment(enrollment.toObject()), '实录报告已清空'));
+  } catch (error) {
+    logger.error('Delete completion report failed', error, { enrollmentId: req.params.id });
+    res.status(500).json(errors.serverError(`清空实录报告失败: ${error.message}`));
+  }
+};
+
+/**
+ * 当前用户实录报告列表
+ * GET /api/v1/enrollments/my-completion-reports
+ */
+exports.getMyCompletionReports = async (req, res) => {
+  try {
+    const tenantId = getCurrentTenantId();
+    const userId = req.user?.userId || req.user?._id;
+
+    const enrollments = await Enrollment.find({
+      tenantId,
+      userId,
+      deleted: { $ne: true },
+      status: { $in: ['active', 'completed'] },
+      paymentStatus: { $in: ['paid', 'free'] }
+    })
+      .populate('userId', 'nickname')
+      .populate('periodId', 'name title startDate endDate')
+      .sort({ enrolledAt: -1, createdAt: -1 })
+      .lean();
+
+    res.json(success({
+      list: enrollments.map(enrollment => formatUserReportEnrollment(enrollment)),
+      total: enrollments.length
+    }));
+  } catch (error) {
+    logger.error('Get my completion reports failed', error, { userId: req.user?.userId });
+    res.status(500).json(errors.serverError(`获取我的实录报告失败: ${error.message}`));
+  }
+};
+
+/**
+ * 当前用户某期次实录报告详情
+ * GET /api/v1/enrollments/my-completion-reports/:periodId
+ */
+exports.getMyCompletionReportByPeriod = async (req, res) => {
+  try {
+    const tenantId = getCurrentTenantId();
+    const userId = req.user?.userId || req.user?._id;
+    const periodObjectId = toObjectId(req.params.periodId);
+
+    if (!periodObjectId) {
+      return res.status(400).json(errors.badRequest('periodId 格式不正确'));
+    }
+
+    const enrollment = await Enrollment.findOne({
+      tenantId,
+      userId,
+      periodId: periodObjectId,
+      deleted: { $ne: true },
+      status: { $in: ['active', 'completed'] },
+      paymentStatus: { $in: ['paid', 'free'] }
+    })
+      .populate('userId', 'nickname')
+      .populate('periodId', 'name title startDate endDate')
+      .lean();
+
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('实录报告不存在或暂无权限'));
+    }
+
+    res.json(success(formatUserReportEnrollment(enrollment, { includeFileUrl: true })));
+  } catch (error) {
+    logger.error('Get my completion report detail failed', error, {
+      userId: req.user?.userId,
+      periodId: req.params.periodId
+    });
+    res.status(500).json(errors.serverError(`获取实录报告详情失败: ${error.message}`));
   }
 };
 

@@ -8,6 +8,11 @@ const {
   checkEnrollment,
   withdrawEnrollment,
   completeEnrollment,
+  getCompletionReportEnrollments,
+  updateCompletionReport,
+  deleteCompletionReport,
+  getMyCompletionReports,
+  getMyCompletionReportByPeriod,
   getEnrollments,
   updateEnrollment,
   deleteEnrollment,
@@ -28,6 +33,9 @@ router.get('/external/active-periods', getActivePeriodsForExternal);
 router.get('/external/users-by-period', publicTenantContext, getUsersByPeriodName);
 
 // ===== 管理员路由（必须放在用户路由前面） =====
+router.get('/reports', adminAuthMiddleware, adminTenantContext, getCompletionReportEnrollments);
+router.put('/:id/completion-report', adminAuthMiddleware, adminTenantContext, updateCompletionReport);
+router.delete('/:id/completion-report', adminAuthMiddleware, adminTenantContext, deleteCompletionReport);
 router.get('/', adminAuthMiddleware, adminTenantContext, getEnrollments);
 router.post('/sync-nicknames', adminAuthMiddleware, adminTenantContext, syncNicknamesFromEnrollments);
 router.put('/:id', adminAuthMiddleware, adminTenantContext, updateEnrollment);
@@ -39,6 +47,8 @@ router.post('/submit', authMiddleware, userTenantContext, submitEnrollmentForm);
 router.post('/simple', authMiddleware, userTenantContext, enrollPeriod);
 
 
+router.get('/my-completion-reports', authMiddleware, userTenantContext, getMyCompletionReports);
+router.get('/my-completion-reports/:periodId', authMiddleware, userTenantContext, getMyCompletionReportByPeriod);
 router.get('/check/:periodId', authMiddleware, userTenantContext, checkEnrollment);
 router.get('/period/:periodId', authMiddleware, userTenantContext, getPeriodMembers);
 router.get('/user/:userId?', authMiddleware, userTenantContext, getUserEnrollments);

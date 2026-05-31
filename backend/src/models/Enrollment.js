@@ -149,6 +149,41 @@ const EnrollmentSchema = new mongoose.Schema(
       trim: true
     },
 
+    // 结营分享实录 PDF 元数据
+    completionReport: {
+      fileUrl: {
+        type: String,
+        trim: true
+      },
+      fileName: {
+        type: String,
+        trim: true
+      },
+      originalName: {
+        type: String,
+        trim: true
+      },
+      fileSize: {
+        type: Number,
+        min: 0
+      },
+      mimeType: {
+        type: String,
+        trim: true
+      },
+      uploadedAt: {
+        type: Date
+      },
+      uploadedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Admin'
+      },
+      title: {
+        type: String,
+        trim: true
+      }
+    },
+
     // 邀请人ID（用于裂变统计）
     inviterId: {
       type: mongoose.Schema.Types.ObjectId,

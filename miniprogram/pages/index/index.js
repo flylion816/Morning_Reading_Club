@@ -8,6 +8,7 @@ const notificationServiceModule = require('../../services/notification.service')
 const activityService = require('../../services/activity.service');
 const communityActivityService = require('../../services/communityActivity.service');
 const imprintService = require('../../services/imprint.service');
+const completionReportService = require('../../services/completion-report.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
@@ -20,6 +21,7 @@ const {
   getLastTextChar,
   getUserAvatarDisplay
 } = require('../../utils/avatar');
+const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { tenantStorage } = require('../../utils/storage');
 const {
   buildInsightRequestDisplay,
@@ -173,6 +175,7 @@ Page({
 
     // 今日课节
     todaySection: null,
+    currentPeriodReport: null,
     showMorningReadPrompt: false,
 
     // 播客播放状态（同步自 globalData）
@@ -246,17 +249,35 @@ Page({
   },
 
   onShow() {
+    this._isPageAlive = true;
+    this._isPageVisible = true;
     const app = getApp();
     // 同步播客播放状态
     this.setData({
       podcastPlaying: !!app.globalData.podcastPlaying,
       podcastSectionId: app.globalData.podcastSectionId || ''
     });
-    // 30秒内从子页面返回不重复全量刷新
+    // 登录状态每次都检查；全量数据刷新 30 秒内只做一次
     const now = Date.now();
-    if (this._lastLoadTime && now - this._lastLoadTime < 30000) return;
-    this._lastLoadTime = now;
-    this.checkLoginStatus({ refreshUserData: true });
+    const shouldRefreshData = !this._lastLoadTime || now - this._lastLoadTime >= 30000;
+    if (shouldRefreshData) {
+      this._lastLoadTime = now;
+    }
+    this.checkLoginStatus({ refreshUserData: shouldRefreshData });
+  },
+
+  onHide() {
+    this._isPageVisible = false;
+  },
+
+  onUnload() {
+    this._isPageVisible = false;
+    this._isPageAlive = false;
+  },
+
+  setPodcastUiData(data) {
+    if (!this._isPageVisible || this._isPageAlive === false) return;
+    this.setData(data);
   },
 
   onPullDownRefresh() {
@@ -309,6 +330,7 @@ Page({
         currentPeriodCommunityState: 'locked',
         canUsePaidFeatures: false,
         todaySection: null,
+        currentPeriodReport: null,
         showMorningReadPrompt: false,
         recentCheckins: [],
         recentInsights: [],
@@ -667,6 +689,9 @@ Page({
 
       const paidFeatureAccessEnabled =
         communityEnabled || hasPaidEnrollment(enrollmentList);
+      const canLoadReportShortcut =
+        communityEnabled ||
+        ['paid', 'free'].includes(currentPeriodAccess.paymentStatus || '');
       getApp().globalData.canUsePaidFeatures = paidFeatureAccessEnabled;
       if (todaySection) {
         todaySection = decorateSectionWithReadingCompletion(todaySection);
@@ -709,6 +734,11 @@ Page({
         },
         () => {
           this.maybeShowMorningReadPrompt();
+          if (canLoadReportShortcut) {
+            this.loadCurrentPeriodReport(currentPeriodId);
+          } else {
+            this.setData({ currentPeriodReport: null });
+          }
         }
       );
 
@@ -785,6 +815,38 @@ Page({
     }
 
     this.setData({ showMorningReadPrompt: true });
+  },
+
+  async loadCurrentPeriodReport(periodId) {
+    if (!periodId || !this.data.canUsePaidFeatures) {
+      this.setData({ currentPeriodReport: null });
+      return;
+    }
+
+    const requestKey = String(periodId);
+    this._reportShortcutRequestKey = requestKey;
+
+    try {
+      const res = await completionReportService.getMyReports();
+      if (this._reportShortcutRequestKey !== requestKey) {
+        return;
+      }
+
+      const reports = Array.isArray(res?.list) ? res.list : [];
+      const report = reports.find((item) => {
+        const itemPeriodId = item.periodId?._id || item.periodId?.id || item.periodId;
+        return String(itemPeriodId || '') === requestKey && item.hasReport === true;
+      });
+
+      this.setData({
+        currentPeriodReport: report || null
+      });
+    } catch (error) {
+      console.error('加载实录报告入口失败:', error);
+      if (this._reportShortcutRequestKey === requestKey) {
+        this.setData({ currentPeriodReport: null });
+      }
+    }
   },
 
   markMorningReadPromptHandled() {
@@ -1215,9 +1277,16 @@ Page({
    * 跳转到登录页（包含隐私协议）
    */
   goToLogin() {
-    wx.navigateTo({
-      url: '/pages/login/login'
-    });
+    const navigate = () => {
+      wx.navigateTo({
+        url: '/pages/login/login'
+      });
+    };
+    if (wx.nextTick) {
+      wx.nextTick(navigate);
+    } else {
+      setTimeout(navigate, 0);
+    }
   },
 
   /**
@@ -1453,8 +1522,32 @@ Page({
     if (!todaySection) return;
     const id = todaySection.id || todaySection._id;
     activityService.track('index_podcast_enter', { targetId: id });
+    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+      sourceAction: 'index_podcast_btn_tap',
+      sourcePage: 'index',
+      sceneKeys: ['podcast_published'],
+      requestMode: 'any'
+    });
     wx.navigateTo({
       url: `/pages/course-detail/course-detail?id=${id}&anchor=podcast`
+    });
+  },
+
+  handleTodayReportBtnTap(e) {
+    e.stopPropagation && e.stopPropagation();
+    const periodId =
+      this.data.currentPeriodReport?.periodId ||
+      this.data.todaySection?.periodId ||
+      this.data.currentPeriod?._id ||
+      this.data.currentPeriod?.id;
+
+    if (!periodId) {
+      wx.showToast({ title: '期次信息不存在', icon: 'none' });
+      return;
+    }
+
+    wx.navigateTo({
+      url: `/pages/completion-report-detail/completion-report-detail?periodId=${periodId}`
     });
   },
 
@@ -1469,14 +1562,21 @@ Page({
     if (isThisSection && app.globalData.podcastPlaying) {
       app.globalData.audioContext && app.globalData.audioContext.pause();
       app.globalData.podcastPlaying = false;
-      this.setData({ podcastPlaying: false });
+      this.setPodcastUiData({ podcastPlaying: false });
       return;
     }
+
+    subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
+      sourceAction: 'index_podcast_play',
+      sourcePage: 'index',
+      sceneKeys: ['podcast_published'],
+      requestMode: 'any'
+    });
 
     if (isThisSection && !app.globalData.podcastPlaying) {
       app.globalData.audioContext && app.globalData.audioContext.play();
       app.globalData.podcastPlaying = true;
-      this.setData({ podcastPlaying: true });
+      this.setPodcastUiData({ podcastPlaying: true });
       return;
     }
 
@@ -1497,23 +1597,23 @@ Page({
       app.globalData.podcastUrl = todaySection.podcastUrl;
       app.globalData.podcastCoverUrl = todaySection.coverImage || '/assets/images/fanren-boke.jpg';
       app.globalData.podcastDuration = todaySection.podcastDuration || 0;
-      this.setData({ podcastPlaying: true, podcastSectionId: sectionId });
+      this.setPodcastUiData({ podcastPlaying: true, podcastSectionId: sectionId });
     });
 
     ctx.onPause(() => {
       app.globalData.podcastPlaying = false;
-      this.setData({ podcastPlaying: false });
+      this.setPodcastUiData({ podcastPlaying: false });
     });
 
     ctx.onStop(() => {
       app.globalData.podcastPlaying = false;
-      this.setData({ podcastPlaying: false });
+      this.setPodcastUiData({ podcastPlaying: false });
     });
 
     ctx.onEnded(() => {
       app.globalData.podcastPlaying = false;
       app.globalData.podcastCurrentTime = 0;
-      this.setData({ podcastPlaying: false });
+      this.setPodcastUiData({ podcastPlaying: false });
     });
 
     ctx.onTimeUpdate(() => {
@@ -1525,7 +1625,7 @@ Page({
       console.error('播客播放失败:', err);
       wx.showToast({ title: '播放失败，请重试', icon: 'none' });
       app.globalData.podcastPlaying = false;
-      this.setData({ podcastPlaying: false });
+      this.setPodcastUiData({ podcastPlaying: false });
     });
 
     app.globalData.audioContext = ctx;

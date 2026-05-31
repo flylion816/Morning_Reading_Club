@@ -1,0 +1,48 @@
+<view class="page-report-detail">
+  <view wx:if="{{loading}}" class="state-block">
+    <text class="state-title">加载中...</text>
+  </view>
+
+  <view wx:elif="{{error}}" class="state-block">
+    <text class="state-title">{{error}}</text>
+    <view class="state-action" bindtap="handleRetry">重试</view>
+  </view>
+
+  <view wx:elif="{{report}}" class="detail-content">
+    <view class="report-hero">
+      <view class="report-icon">📄</view>
+      <view class="report-title">{{report.reportTitle}}</view>
+      <view class="report-period">{{report.periodName}}</view>
+    </view>
+
+    <view wx:if="{{report.hasReport}}" class="info-group">
+      <view class="info-row">
+        <text class="info-label">文件</text>
+        <text class="info-value">{{report.fileName || 'PDF 文件'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">大小</text>
+        <text class="info-value">{{report.fileSizeText || '-'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">上传时间</text>
+        <text class="info-value">{{report.uploadedAtText || '-'}}</text>
+      </view>
+    </view>
+
+    <view wx:else class="pending-box">
+      <text class="pending-title">报告整理中</text>
+      <text class="pending-desc">完成整理后，这里会开放 PDF 查看和分享。</text>
+    </view>
+
+    <view wx:if="{{report.hasReport}}" class="action-group">
+      <view class="primary-action {{downloading ? 'disabled' : ''}}" bindtap="handleOpenPdf">
+        {{downloading ? '获取 PDF 中...' : '查看 PDF'}}
+      </view>
+      <view class="secondary-action" bindtap="handleShareFile">分享到微信</view>
+      <view class="link-action" bindtap="handleCopyLink">复制链接</view>
+    </view>
+  </view>
+</view>
+
+<podcast-player-bar />

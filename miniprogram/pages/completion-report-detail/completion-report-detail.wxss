@@ -1,0 +1,151 @@
+.page-report-detail {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.report-hero {
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 40rpx 32rpx;
+  text-align: center;
+}
+
+.report-icon {
+  font-size: 76rpx;
+  margin-bottom: 18rpx;
+}
+
+.report-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.report-period {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.info-group {
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 8rpx 28rpx;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 28rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  flex-shrink: 0;
+  font-size: 28rpx;
+  color: #6b7280;
+}
+
+.info-value {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 28rpx;
+  color: #1f2937;
+  word-break: break-all;
+}
+
+.pending-box {
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 48rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.pending-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #9a6a00;
+}
+
+.pending-desc {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.primary-action,
+.secondary-action,
+.link-action {
+  height: 92rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.primary-action {
+  color: #ffffff;
+  background: #4a90e2;
+}
+
+.primary-action.disabled {
+  opacity: 0.7;
+}
+
+.secondary-action {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.link-action {
+  color: #4a90e2;
+  background: #ffffff;
+}
+
+.state-block {
+  min-height: 520rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+}
+
+.state-title {
+  font-size: 30rpx;
+  color: #4b5563;
+}
+
+.state-action {
+  margin-top: 8rpx;
+  padding: 18rpx 44rpx;
+  border-radius: 44rpx;
+  background: #4a90e2;
+  color: #ffffff;
+  font-size: 28rpx;
+}

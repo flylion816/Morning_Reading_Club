@@ -139,6 +139,14 @@ Page({
     wx.navigateTo({ url: '/pages/checkin-records/checkin-records' });
   },
 
+  goToCompletionReports() {
+    if (!this.data.canUsePaidFeatures) {
+      wx.showToast({ title: '完成支付后可查看实录报告', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/completion-reports/completion-reports' });
+  },
+
   goToEditProfile() {
     wx.navigateTo({ url: '/pages/edit-profile/edit-profile' });
   },

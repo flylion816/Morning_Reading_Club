@@ -9,6 +9,8 @@
     "pages/checkin/checkin",
     "pages/ranking/ranking",
     "pages/checkin-records/checkin-records",
+    "pages/completion-reports/completion-reports",
+    "pages/completion-report-detail/completion-report-detail",
     "pages/members/members",
     "pages/insights/insights",
     "pages/insight-requests/insight-requests",

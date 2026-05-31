@@ -26,6 +26,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
         { path: '/', name: 'dashboard', component: { template: '<div>Dashboard</div>' } },
         { path: '/users', name: 'users', component: { template: '<div>Users</div>' } },
         { path: '/analytics', name: 'analytics', component: { template: '<div>Analytics</div>' } },
+        { path: '/completion-reports', name: 'completionReports', component: { template: '<div>CompletionReports</div>' } },
         { path: '/database', name: 'database', component: { template: '<div>Database</div>' } }
       ]
     });
@@ -80,6 +81,21 @@ describe('AdminLayout - 管理后台布局组件', () => {
       });
 
       expect(wrapper.vm.pageTitle).toBe('数据分析：过去发生了什么、为什么');
+    });
+
+    it('[Title-4] /completion-reports 路由的页面标题应该是"实录报告"', async () => {
+      await router.push('/completion-reports');
+      await router.isReady();
+
+      const wrapper = mount(AdminLayout, {
+        global: {
+          plugins: [pinia, router],
+          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
+                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
+        }
+      });
+
+      expect(wrapper.vm.pageTitle).toBe('实录报告');
     });
   });
 

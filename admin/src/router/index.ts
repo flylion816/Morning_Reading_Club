@@ -65,6 +65,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/completion-reports',
+    name: 'completionReports',
+    component: () => import('../views/CompletionReportsManagementView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/analytics',
     name: 'analytics',
     component: () => import('../views/AnalyticsView.vue'),
