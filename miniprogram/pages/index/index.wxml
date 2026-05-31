@@ -23,7 +23,16 @@
               <view class="user-period-tag" wx:if="{{currentPeriod}}">{{currentPeriod.name || currentPeriod.title}}</view>
             </view>
           </view>
-          <text class="user-streak">晨读打卡第 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
+          <view class="banner-streak-actions">
+            <text class="user-streak">累计打卡 <text class="streak-number">{{userStats.totalCheckinDays || 0}}</text> 天</text>
+            <view class="task-notification-entry banner-notification-entry" bindtap="navigateToNotifications">
+              <text class="task-notification-icon banner-notification-icon">🔔</text>
+              <text
+                wx:if="{{unreadNotificationCount > 0}}"
+                class="task-notification-badge banner-notification-badge"
+              >{{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}}</text>
+            </view>
+          </view>
         </view>
         <view class="banner-bubble">
           <text class="bubble-text" wx:if="{{hasValidSignature}}">{{userInfo.signature}}</text>
@@ -135,13 +144,6 @@
             <view class="refresh-timer" wx:if="{{refreshTime}}">
               <text class="timer-icon">⏱</text>
               <text class="timer-text">刷新 {{refreshTime}} 小时</text>
-            </view>
-            <view class="task-notification-entry" bindtap="navigateToNotifications">
-              <text class="task-notification-icon">🔔</text>
-              <text
-                wx:if="{{unreadNotificationCount > 0}}"
-                class="task-notification-badge"
-              >{{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}}</text>
             </view>
           </view>
         </view>

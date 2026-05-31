@@ -231,6 +231,15 @@
   width: 100%;
 }
 
+.banner-streak-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12rpx;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
 /* 用户信息显示（昵称和本期） */
 .user-info-display {
   z-index: 2;
@@ -238,6 +247,8 @@
   display: flex;
   flex-direction: column;
   gap: 8rpx;
+  flex: 1;
+  min-width: 0;
 }
 
 .user-name-and-period {
@@ -877,6 +888,35 @@
   justify-content: center;
   line-height: 30rpx;
   box-shadow: 0 4rpx 12rpx rgba(255, 90, 95, 0.28);
+}
+
+.banner-notification-entry {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1rpx solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8rpx);
+  flex-shrink: 0;
+}
+
+.banner-notification-entry:active {
+  transform: scale(0.96);
+}
+
+.banner-notification-icon {
+  font-size: 24rpx;
+}
+
+.banner-notification-badge {
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 6rpx;
+  font-size: 17rpx;
+  line-height: 28rpx;
+  border: 2rpx solid #4a90e2;
 }
 
 .section-period-name {
