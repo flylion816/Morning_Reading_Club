@@ -38,6 +38,11 @@ jest.mock('../../services/activity.service.js', () => ({
   track: jest.fn(() => Promise.resolve())
 }));
 
+jest.mock('../../services/communityActivity.service', () => ({
+  getPopup: jest.fn(),
+  getList: jest.fn()
+}));
+
 jest.mock('../../services/imprint.service.js', () => ({
   list: jest.fn()
 }));
@@ -101,6 +106,7 @@ let enrollmentService;
 let periodAccess;
 let insightService;
 let activityService;
+let communityActivityService;
 let completionReportService;
 let imprintService;
 
@@ -137,6 +143,7 @@ describe('index page', () => {
     periodAccess = require('../../utils/period-access.js');
     insightService = require('../../services/insight.service.js');
     activityService = require('../../services/activity.service.js');
+    communityActivityService = require('../../services/communityActivity.service');
     completionReportService = require('../../services/completion-report.service');
     imprintService = require('../../services/imprint.service.js');
     require('../../pages/index/index.js');
@@ -171,6 +178,8 @@ describe('index page', () => {
     insightService.getInsightsList.mockReset();
     insightService.getReceivedRequests.mockReset();
     activityService.track.mockClear();
+    communityActivityService.getPopup.mockReset();
+    communityActivityService.getList.mockReset();
     completionReportService.getMyReports.mockReset();
     completionReportService.getMyReports.mockResolvedValue({ list: [] });
     imprintService.list.mockReset();
@@ -266,6 +275,30 @@ describe('index page', () => {
       likeCount: 2
     });
     expect(cards[2].id).toBe('checkin_3');
+  });
+
+  test('should show only two upcoming activities on home page', async () => {
+    communityActivityService.getList.mockResolvedValue({
+      list: [
+        { _id: 'activity_1', title: '活动一', type: 'chat', startTime: '2026-05-31T12:00:00.000Z' },
+        { _id: 'activity_2', title: '活动二', type: 'cooking', startTime: '2026-05-30T12:00:00.000Z' },
+        { _id: 'activity_3', title: '活动三', type: 'witness', startTime: '2026-05-29T12:00:00.000Z' }
+      ]
+    });
+
+    await pageInstance.loadUpcomingActivities.call(pageInstance);
+    await Promise.resolve();
+
+    expect(communityActivityService.getList).toHaveBeenCalledWith({
+      limit: 3,
+      sort: 'desc'
+    });
+    expect(pageInstance.data.upcomingActivities).toHaveLength(2);
+    expect(pageInstance.data.upcomingActivities.map(item => item._id)).toEqual([
+      'activity_1',
+      'activity_2'
+    ]);
+    expect(pageInstance.data.upcomingActivitiesHasMore).toBe(true);
   });
 
   test('should open checkin detail directly when sectionId exists', async () => {

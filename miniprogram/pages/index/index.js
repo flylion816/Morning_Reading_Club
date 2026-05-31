@@ -34,6 +34,7 @@ const notificationService =
 const MORNING_READ_PROMPT_KEY = 'morning_read_prompt_date';
 const MORNING_READ_PROMPT_START_MINUTE = 5 * 60 + 50;
 const MORNING_READ_PROMPT_END_MINUTE = 6 * 60 + 15;
+const UPCOMING_ACTIVITIES_DISPLAY_LIMIT = 2;
 
 const TASK_CARD_LAYOUT_RPX = {
   screenWidth: 750,
@@ -2061,12 +2062,15 @@ Page({
   },
 
   loadUpcomingActivities() {
-    communityActivityService.getList({ limit: 4, sort: 'desc' })
+    communityActivityService.getList({
+      limit: UPCOMING_ACTIVITIES_DISPLAY_LIMIT + 1,
+      sort: 'desc'
+    })
       .then(res => {
         const data = res && (res.data || res);
         const items = (data && (data.list || data.items || (Array.isArray(data) ? data : []))) || [];
-        const hasMore = items.length > 3;
-        const formatted = items.slice(0, 3).map(a => {
+        const hasMore = items.length > UPCOMING_ACTIVITIES_DISPLAY_LIMIT;
+        const formatted = items.slice(0, UPCOMING_ACTIVITIES_DISPLAY_LIMIT).map(a => {
           let startTimeText = '';
           let startDateText = '';
           if (a.startTime) {
