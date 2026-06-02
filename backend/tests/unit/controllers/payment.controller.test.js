@@ -75,6 +75,8 @@ describe('Payment Controller', () => {
         success: true,
         prepayId: 'mock_prepay_id'
       }),
+      resolveWechatPayConfig: sandbox.stub().resolves({}),
+      verifyNotifySign: sandbox.stub().returns(true),
       generatePaymentParams: sandbox.stub().returns({
         timeStamp: '1234567890',
         nonceStr: 'nonce_str',
@@ -121,6 +123,10 @@ describe('Payment Controller', () => {
         '../services/subscribe-message.service': subscribeMessageServiceStub,
         '../utils/notification-links': {
           formatNotificationTime: sandbox.stub().returns('2026-03-29 12:00')
+        },
+        '../utils/tenantContext': {
+          getCurrentTenantId: sandbox.stub().returns('tenant_1'),
+          withSystemContext: async (tenantId, fn) => fn()
         }
       }
     );
@@ -281,6 +287,7 @@ describe('Payment Controller', () => {
 
       expect(PaymentStub.createOrder.calledWith(
         fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        'enrollment',
         fixtures.testUsers.regularUser._id.toString(),
         fixtures.testEnrollments.pendingPaymentEnrollment.periodId,
         1,
@@ -325,6 +332,7 @@ describe('Payment Controller', () => {
       expect(stalePayment.markCancelled.calledOnce).to.equal(true);
       expect(PaymentStub.createOrder.calledWith(
         fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        'enrollment',
         fixtures.testUsers.regularUser._id.toString(),
         fixtures.testEnrollments.pendingPaymentEnrollment.periodId,
         1,
@@ -916,7 +924,7 @@ describe('Payment Controller', () => {
         paymentMethod: 'wechat'
       };
 
-      PaymentStub.findOne.resolves(mockPayment);
+      PaymentStub.findOne.returns({ exec: sandbox.stub().resolves(mockPayment) });
 
       await paymentController.mockConfirmPayment(req, res, next);
 
@@ -944,7 +952,7 @@ describe('Payment Controller', () => {
         populate: sandbox.stub().returnsThis()
       };
 
-      PaymentStub.findOne.resolves(mockPayment);
+      PaymentStub.findOne.returns({ exec: sandbox.stub().resolves(mockPayment) });
       EnrollmentStub.findById.resolves(mockEnrollment);
       EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
 
@@ -965,7 +973,7 @@ describe('Payment Controller', () => {
         toObject: sandbox.stub().returns({})
       };
 
-      PaymentStub.findOne.resolves(mockPayment);
+      PaymentStub.findOne.returns({ exec: sandbox.stub().resolves(mockPayment) });
 
       await paymentController.wechatCallback(req, res, next);
 
@@ -976,7 +984,7 @@ describe('Payment Controller', () => {
     it('应该返回404当订单不存在', async () => {
       req.body = fixtures.wechatCallbackRequests.nonExistentOrderCallback;
 
-      PaymentStub.findOne.resolves(null);
+      PaymentStub.findOne.returns({ exec: sandbox.stub().resolves(null) });
 
       await paymentController.wechatCallback(req, res, next);
 

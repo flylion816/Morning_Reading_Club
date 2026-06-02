@@ -39,7 +39,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     // 生成 admin token
     adminToken = jwt.sign(
-      { adminId: adminUser._id.toString(), role: 'platform_superadmin' },
+      { id: adminUser._id.toString(), role: 'platform_superadmin' },
       process.env.JWT_SECRET || 'dev-secret-key-12345678',
       { expiresIn: '7d' }
     );

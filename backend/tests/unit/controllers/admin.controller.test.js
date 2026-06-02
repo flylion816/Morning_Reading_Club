@@ -22,7 +22,11 @@ describe('Admin Controller', () => {
       body: {},
       params: {},
       query: {},
-      user: {}
+      user: {},
+      admin: {
+        role: 'platform_superadmin'
+      },
+      header: sandbox.stub().returns(null)
     };
 
     res = {

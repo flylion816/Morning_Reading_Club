@@ -281,7 +281,10 @@ describe('Authentication Service Tests', () => {
         gender: 1
       });
 
-      expect(global.wx.setStorageSync).toHaveBeenCalledWith('token', accessToken);
+      expect(global.wx.setStorageSync).toHaveBeenCalledWith(
+        expect.stringMatching(/:token$/),
+        accessToken
+      );
     });
 
     test('should save refreshToken to storage', async () => {
@@ -306,7 +309,10 @@ describe('Authentication Service Tests', () => {
         gender: 1
       });
 
-      expect(global.wx.setStorageSync).toHaveBeenCalledWith('refreshToken', refreshToken);
+      expect(global.wx.setStorageSync).toHaveBeenCalledWith(
+        expect.stringMatching(/:refreshToken$/),
+        refreshToken
+      );
     });
 
     test('should not save token if login fails', async () => {
@@ -331,7 +337,7 @@ describe('Authentication Service Tests', () => {
       }
 
       const tokenCalls = global.wx.setStorageSync.mock.calls.filter(
-        call => call[0] === 'token'
+        call => call[0] === 'token' || /:token$/.test(call[0])
       );
       expect(tokenCalls.length).toBe(0);
     });
@@ -360,10 +366,13 @@ describe('Authentication Service Tests', () => {
         gender: 1
       });
 
-      expect(global.wx.setStorageSync).toHaveBeenCalledWith('userInfo', expect.objectContaining({
-        _id: mockUser._id,
-        nickname: '晨读营用户'
-      }));
+      expect(global.wx.setStorageSync).toHaveBeenCalledWith(
+        expect.stringMatching(/:userInfo$/),
+        expect.objectContaining({
+          _id: mockUser._id,
+          nickname: '晨读营用户'
+        })
+      );
     });
 
     test('should include all required fields in saved user info', async () => {
@@ -394,7 +403,7 @@ describe('Authentication Service Tests', () => {
       });
 
       const userInfoCall = global.wx.setStorageSync.mock.calls.find(
-        call => call[0] === 'userInfo'
+        call => call[0] === 'userInfo' || /:userInfo$/.test(call[0])
       );
       expect(userInfoCall).toBeDefined();
       expect(userInfoCall[1]).toHaveProperty('_id');

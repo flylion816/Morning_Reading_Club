@@ -67,8 +67,8 @@ async function cleanupMongoMemoryServer() {
   }
 }
 
-// Initialize on load
-initializeMongoMemoryServer();
+// Initialize on load and expose the promise so programmatic runners can await it.
+const setupPromise = initializeMongoMemoryServer();
 
 // Cleanup on process exit
 process.on('exit', () => {
@@ -78,6 +78,7 @@ process.on('exit', () => {
 // Export for use in tests if needed
 module.exports = {
   mongoServer,
+  setupPromise,
   initializeMongoMemoryServer,
   cleanupMongoMemoryServer
 };

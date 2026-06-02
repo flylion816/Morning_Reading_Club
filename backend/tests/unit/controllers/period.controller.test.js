@@ -54,7 +54,8 @@ describe('Period Controller', () => {
     };
 
     EnrollmentStub = {
-      countDocuments: sandbox.stub()
+      countDocuments: sandbox.stub(),
+      distinct: sandbox.stub().resolves([])
     };
 
     publishSyncEventStub = sandbox.stub();
@@ -111,6 +112,7 @@ describe('Period Controller', () => {
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves(mockPeriods)
       });
 
@@ -129,6 +131,7 @@ describe('Period Controller', () => {
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves([])
       });
 
@@ -147,6 +150,7 @@ describe('Period Controller', () => {
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves([])
       });
 
@@ -192,6 +196,7 @@ describe('Period Controller', () => {
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves([mockPeriod])
       });
       CheckinStub.aggregate.resolves([]);
@@ -246,6 +251,7 @@ describe('Period Controller', () => {
         sort: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves(mockPeriods)
       });
       CheckinStub.aggregate.resolves([
@@ -335,6 +341,8 @@ describe('Period Controller', () => {
         _id: periodId,
         name: '原名称',
         status: 'not_started',
+        visibleUserIds: [],
+        markModified: sandbox.stub(),
         save: sandbox.stub().resolves(),
         toObject: sandbox.stub().returnsThis()
       };

@@ -556,7 +556,7 @@ describe('Section Controller', () => {
       expect(responseData.data.list).to.deep.equal(mockSections);
       expect(
         select.calledWith(
-          '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt'
+          '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt podcastUrl podcastDuration closingVideo'
         )
       ).to.be.true;
     });

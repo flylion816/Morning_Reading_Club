@@ -96,7 +96,8 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       endDate: new Date(Date.now() + 86400000 * 23), // 23天后结束
       price: 9900, // 99.00元
       status: 'ongoing',
-      isPublished: true
+      isPublished: true,
+      enrollmentOpen: true
     }));
 
     // 重置test变量

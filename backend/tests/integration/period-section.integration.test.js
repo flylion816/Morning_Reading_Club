@@ -124,6 +124,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该能够查询所有期次', async () => {
       const res = await request(app)
         .get('/api/v1/periods')
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
@@ -134,6 +135,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该能够按状态筛选期次', async () => {
       const res = await request(app)
         .get('/api/v1/periods?status=active')
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
@@ -144,6 +146,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该支持分页查询', async () => {
       const res = await request(app)
         .get('/api/v1/periods?page=1&limit=2')
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
@@ -154,6 +157,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该按开始日期排序', async () => {
       const res = await request(app)
         .get('/api/v1/periods')
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       const dates = res.body.data.map(p => new Date(p.endDate));
@@ -205,6 +209,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该能够查询期次的所有课节', async () => {
       const res = await request(app)
         .get(`/api/v1/sections/period/${periodId}`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
@@ -215,6 +220,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('课节应该按顺序排列', async () => {
       const res = await request(app)
         .get(`/api/v1/sections/period/${periodId}`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       const orders = res.body.data.map(s => s.order);
@@ -224,6 +230,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该包含正确的课节信息', async () => {
       const res = await request(app)
         .get(`/api/v1/sections/period/${periodId}`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       const section = res.body.data[0];
@@ -236,6 +243,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该支持按日期范围查询', async () => {
       const res = await request(app)
         .get(`/api/v1/sections/period/${periodId}?startDay=1&endDay=2`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
@@ -294,6 +302,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('应该能够获取课节的完整信息', async () => {
       const res = await request(app)
         .get(`/api/v1/sections/${sectionId}`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(200);
@@ -306,6 +315,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
     it('课节应该包含关联的期次信息', async () => {
       const res = await request(app)
         .get(`/api/v1/sections/${sectionId}`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.body.data).to.have.property('periodId');
@@ -316,6 +326,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
 
       const res = await request(app)
         .get(`/api/v1/sections/${fakeId}`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.status).to.equal(404);

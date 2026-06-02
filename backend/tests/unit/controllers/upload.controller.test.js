@@ -37,6 +37,7 @@ describe('Upload Controller', () => {
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
+        serverError: (msg) => ({ code: 500, message: msg }),
         internalServerError: (msg) => ({ code: 500, message: msg })
       }
     };
@@ -45,9 +46,16 @@ describe('Upload Controller', () => {
       error: sandbox.stub()
     };
 
+    const fsStub = {
+      existsSync: sandbox.stub().returns(true),
+      realpathSync: sandbox.stub().callsFake(filePath => filePath),
+      unlinkSync: sandbox.stub()
+    };
+
     uploadController = proxyquire(
       '../../../src/controllers/upload.controller',
       {
+        fs: fsStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
         '../utils/tenantContext': { getCurrentTenantId: sandbox.stub().returns('test-tenant-id') },
@@ -125,7 +133,7 @@ describe('Upload Controller', () => {
 
   describe('deleteFile', () => {
     it('应该删除文件', async () => {
-      req.body = { filename: 'image_123456.jpg' };
+      req.params = { filename: 'image_123456.jpg' };
 
       await uploadController.deleteFile(req, res, next);
 

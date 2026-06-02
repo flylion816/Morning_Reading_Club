@@ -146,6 +146,7 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
       const res = await request(app)
         .get(`/api/v1/sections/${fakeId}`)
+        .set('X-Wx-AppId', TEST_WX_APPID)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).to.equal(404);

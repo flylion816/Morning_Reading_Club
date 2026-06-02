@@ -19,6 +19,7 @@ describe('Enrollment Controller', () => {
   let UserStub;
   let PeriodStub;
   let SectionStub;
+  let TenantStub;
   let loggerStub;
   let mysqlBackupServiceStub;
   let syncServiceStub;
@@ -71,6 +72,19 @@ describe('Enrollment Controller', () => {
       find: sandbox.stub()
     };
 
+    TenantStub = {
+      findOne: sandbox.stub().returns({
+        select: sandbox.stub().returns({
+          lean: sandbox.stub().resolves({
+            _id: tenantId,
+            name: '凡人共读',
+            wechatLogin: { appId: 'wx-test' },
+            status: 'active'
+          })
+        })
+      })
+    };
+
     loggerStub = {
       info: sandbox.stub(),
       warn: sandbox.stub(),
@@ -105,6 +119,7 @@ describe('Enrollment Controller', () => {
         '../models/User': UserStub,
         '../models/Period': PeriodStub,
         '../models/Section': SectionStub,
+        '../models/Tenant': TenantStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
         '../utils/tenantContext': {
@@ -579,6 +594,7 @@ describe('Enrollment Controller', () => {
   describe('外部期次接口', () => {
     it('应该返回当前运行中的期次及当天 sessionId', async () => {
       const clock = sandbox.useFakeTimers(new Date('2026-05-11T02:00:00.000Z'));
+      req.query = { tenantName: '凡人共读' };
       const periodId = fixtures.testPeriods.ongoingPeriod._id;
       const sectionId = new mongoose.Types.ObjectId();
       const period = {
@@ -644,6 +660,7 @@ describe('Enrollment Controller', () => {
 
     it('应该在期次最后一个自然日仍返回运行中期次', async () => {
       const clock = sandbox.useFakeTimers(new Date('2026-05-31T12:00:00.000Z'));
+      req.query = { tenantName: '凡人共读' };
       const periodId = fixtures.testPeriods.ongoingPeriod._id;
       const period = {
         _id: periodId,
