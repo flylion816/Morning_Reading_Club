@@ -55,7 +55,8 @@
       "Bash(ssh *)",
       "WebFetch(domain:github.com)",
       "mcp__plugin_oh-my-claudecode_t__list_omc_skills",
-      "Bash(echo \"后端启动中，PID: $!\")"
+      "Bash(echo \"后端启动中，PID: $!\")",
+      "Bash(env)"
     ],
     "deny": [],
     "ask": []

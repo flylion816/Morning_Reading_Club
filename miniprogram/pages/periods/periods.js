@@ -35,12 +35,18 @@ Page({
   },
 
   onLoad(options) {
-    console.log('===== 首页onLoad开始 =====');
-    console.log('首页加载', options);
+    console.log('===== 期次列表onLoad开始 =====');
+    console.log('期次列表加载', options);
     this._skipNextOnShowRefresh = true;
+    this._pendingInitialLoad = true;
+    console.log('===== 期次列表onLoad结束 =====');
+  },
+
+  onReady() {
+    if (!this._pendingInitialLoad) return;
+    this._pendingInitialLoad = false;
     this.checkLoginStatus();
     this.loadPeriods();
-    console.log('===== 首页onLoad结束 =====');
   },
 
   onShow() {
@@ -49,7 +55,7 @@ Page({
       return;
     }
 
-    console.log('📱 首页onShow被触发');
+    console.log('📱 期次列表onShow被触发');
     const wasLoggedIn = this.data.isLogin;
     this.checkLoginStatus();
 

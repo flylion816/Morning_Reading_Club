@@ -84,6 +84,7 @@ Page({
   onLoad(options) {
     console.log('课节列表页加载', options);
     this._skipNextOnShowRefresh = true;
+    this._pendingLoadOptions = options;
 
     // 检查登录状态
     const app = getApp();
@@ -101,33 +102,41 @@ Page({
       return;
     }
 
-    this.setData({ isAdmin: isAdminUser(app.globalData.userInfo || {}) });
-
-    if (options.periodId) {
-      // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
-      this.setData({
-        periodId: options.periodId,
-        paymentPending: false,
-        paymentStatus: null,
-        paymentEnrollmentId: '',
-        canAccessCommunity: false,
-        communityAccessState: 'locked',
-        currentTab: 'tasks',
-        allCheckins: [],
-        checkinPage: 1,
-        checkinHasMore: false,
-        checkinLoadingMore: false,
-        checkinTotal: 0,
-        checkinContentExpanded: {}
-      });
-      this.loadSections();
-      this.checkPaymentStatus();
-    } else {
+    if (!options.periodId) {
       wx.showToast({
         title: '参数错误',
         icon: 'none'
       });
     }
+  },
+
+  onReady() {
+    const options = this._pendingLoadOptions;
+    if (!options || !options.periodId) return;
+    this._pendingLoadOptions = null;
+
+    const app = getApp();
+    if (!app.globalData.isLogin) return;
+
+    // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
+    this.setData({
+      isAdmin: isAdminUser(app.globalData.userInfo || {}),
+      periodId: options.periodId,
+      paymentPending: false,
+      paymentStatus: null,
+      paymentEnrollmentId: '',
+      canAccessCommunity: false,
+      communityAccessState: 'locked',
+      currentTab: 'tasks',
+      allCheckins: [],
+      checkinPage: 1,
+      checkinHasMore: false,
+      checkinLoadingMore: false,
+      checkinTotal: 0,
+      checkinContentExpanded: {}
+    });
+    this.loadSections();
+    this.checkPaymentStatus();
   },
 
   onShow() {

@@ -33,6 +33,12 @@ Page({
   onLoad(options) {
     console.log('🔴🔴🔴 LOGIN.JS PAGE LOADED 🔴🔴🔴', options);
     console.log('登录页面加载', options);
+    this._pendingLoadOptions = options || {};
+  },
+
+  onReady() {
+    const options = this._pendingLoadOptions || {};
+    this._pendingLoadOptions = null;
     console.log('✅ 开发环境检查 isDev:', this.data.isDev);
     console.log('✅ 当前环境:', envConfig.currentEnv);
     console.log('✅ 测试用户列表:', this.data.testUsers);

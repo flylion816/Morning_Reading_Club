@@ -208,6 +208,7 @@ const storageInstance = new Storage();
 
 // 多租户隔离存储：所有 key 带 wxAppId 前缀
 const envConfig = require('../config/env');
+const ENABLE_TENANT_STORAGE_LOG = false;
 
 function _prefixKey(key) {
   const appId = envConfig.wxAppId || 'default';
@@ -223,7 +224,9 @@ function _logValueForKey(key, value) {
 const tenantStorage = {
   set(key, value) {
     const prefixedKey = _prefixKey(key);
-    console.log('[TENANT-STORAGE] set', prefixedKey, _logValueForKey(key, value));
+    if (ENABLE_TENANT_STORAGE_LOG) {
+      console.log('[TENANT-STORAGE] set', prefixedKey, _logValueForKey(key, value));
+    }
     wx.setStorageSync(prefixedKey, value);
   },
   get(key) {
@@ -231,7 +234,9 @@ const tenantStorage = {
     const prefixedKey = _prefixKey(key);
     const val = wx.getStorageSync(prefixedKey);
     if (val !== '' && val !== null && val !== undefined) {
-      console.log('[TENANT-STORAGE] get (hit)', prefixedKey);
+      if (ENABLE_TENANT_STORAGE_LOG) {
+        console.log('[TENANT-STORAGE] get (hit)', prefixedKey);
+      }
       return val;
     }
     const legacy = wx.getStorageSync(key);
@@ -241,12 +246,16 @@ const tenantStorage = {
       wx.removeStorageSync(key);
       return legacy;
     }
-    console.log('[TENANT-STORAGE] get (miss)', prefixedKey);
+    if (ENABLE_TENANT_STORAGE_LOG) {
+      console.log('[TENANT-STORAGE] get (miss)', prefixedKey);
+    }
     return null;
   },
   remove(key) {
     const prefixedKey = _prefixKey(key);
-    console.log('[TENANT-STORAGE] remove', prefixedKey);
+    if (ENABLE_TENANT_STORAGE_LOG) {
+      console.log('[TENANT-STORAGE] remove', prefixedKey);
+    }
     wx.removeStorageSync(prefixedKey);
     wx.removeStorageSync(key);
   }

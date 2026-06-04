@@ -278,6 +278,13 @@ Page({
         }).catch(() => {});
       }, 800);
     }
+    if (course && course.closingVideoCoverUrl && !this.data.closingVideoShareImagePath) {
+      setTimeout(() => {
+        this._generateClosingVideoShareImage(course).then((path) => {
+          this.setData({ closingVideoShareImagePath: path });
+        }).catch(() => {});
+      }, 1000);
+    }
   },
 
   onShow() {
@@ -2167,7 +2174,6 @@ Page({
           podcastDurationText: course.podcastDuration ? this.formatPodcastDuration(course.podcastDuration) : ''
         });
         this.revealPageContent();
-        this.prepareClosingVideoShareImage(course);
         return;
       }
 
@@ -2246,7 +2252,6 @@ Page({
           this.revealPageContent();
           this.loadNotificationReminder();
           this.restoreTargetFocus();
-          this.prepareClosingVideoShareImage(course);
         }
       );
 
@@ -3330,111 +3335,6 @@ Page({
     const { course } = this.data;
     if (!course?.closingVideoVisible) return;
     this.setData({ closingVideoShareMode: true });
-    this.prepareClosingVideoShareImage(course);
-  },
-
-  async prepareClosingVideoShareImage(course = this.data.course) {
-    if (!course?.closingVideoVisible || !course.closingVideoCoverUrl) return;
-    if (
-      this.data.closingVideoShareImagePath &&
-      this._closingVideoShareImageSource === course.closingVideoCoverUrl
-    ) {
-      return;
-    }
-
-    this._closingVideoShareImageSource = course.closingVideoCoverUrl;
-
-    try {
-      const imagePath = await this.generateClosingVideoShareImage(course);
-      if (this._closingVideoShareImageSource !== course.closingVideoCoverUrl) {
-        return;
-      }
-      this.setData({ closingVideoShareImagePath: imagePath });
-    } catch (error) {
-      console.warn('生成结营视频分享图失败，回退原封面:', error);
-      this.setData({ closingVideoShareImagePath: '' });
-    }
-  },
-
-  async generateClosingVideoShareImage(course) {
-    const target = await this.getPosterCanvasNode();
-    const canvas = target.node;
-    const ctx = canvas.getContext('2d');
-    const W = 500;
-    const H = 400;
-    const dpr = Math.min(wx.getWindowInfo?.().pixelRatio || 2, 2);
-    const coverImage = await this.loadPosterImage(canvas, [course.closingVideoCoverUrl]);
-
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    if (typeof ctx.resetTransform === 'function') {
-      ctx.resetTransform();
-    } else if (typeof ctx.setTransform === 'function') {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-    }
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, W, H);
-
-    ctx.fillStyle = '#f6f7fb';
-    ctx.fillRect(0, 0, W, H);
-    this.drawImageCover(ctx, coverImage, 0, 0, W, H);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-    ctx.fillRect(0, 0, W, H);
-    this.drawImageContain(ctx, coverImage, 0, 0, W, H);
-
-    return new Promise((resolve, reject) => {
-      wx.canvasToTempFilePath({
-        canvas,
-        width: W,
-        height: H,
-        destWidth: W * dpr,
-        destHeight: H * dpr,
-        fileType: 'jpg',
-        quality: 0.92,
-        success: (res) => resolve(res.tempFilePath),
-        fail: reject
-      });
-    });
-  },
-
-  drawImageCover(ctx, image, x, y, width, height) {
-    const imageWidth = image.width || image.naturalWidth || width;
-    const imageHeight = image.height || image.naturalHeight || height;
-    const imageRatio = imageWidth / imageHeight;
-    const boxRatio = width / height;
-    let sourceX = 0;
-    let sourceY = 0;
-    let sourceWidth = imageWidth;
-    let sourceHeight = imageHeight;
-
-    if (imageRatio > boxRatio) {
-      sourceWidth = imageHeight * boxRatio;
-      sourceX = (imageWidth - sourceWidth) / 2;
-    } else {
-      sourceHeight = imageWidth / boxRatio;
-      sourceY = (imageHeight - sourceHeight) / 2;
-    }
-
-    ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
-  },
-
-  drawImageContain(ctx, image, x, y, width, height) {
-    const imageWidth = image.width || image.naturalWidth || width;
-    const imageHeight = image.height || image.naturalHeight || height;
-    const imageRatio = imageWidth / imageHeight;
-    const boxRatio = width / height;
-    let drawWidth = width;
-    let drawHeight = height;
-
-    if (imageRatio > boxRatio) {
-      drawHeight = width / imageRatio;
-    } else {
-      drawWidth = height * imageRatio;
-    }
-
-    const drawX = x + (width - drawWidth) / 2;
-    const drawY = y + (height - drawHeight) / 2;
-    ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
   },
 
   _generatePodcastShareImage(course) {
@@ -3560,6 +3460,72 @@ Page({
           success: (r) => resolve(r.tempFilePath),
           fail: reject
         });
+      });
+    });
+  },
+
+  _generateClosingVideoShareImage(course) {
+    return new Promise((resolve, reject) => {
+      const W = 1000;
+      const H = 800;
+      const PAD = 40;
+      const dpr = wx.getWindowInfo?.().pixelRatio || 2;
+      const coverUrl = course.closingVideoCoverUrl;
+
+      if (!coverUrl) {
+        reject(new Error('missing closing video cover'));
+        return;
+      }
+
+      const query = wx.createSelectorQuery().in(this);
+      query.select('#longImageCanvas').fields({ node: true, size: true }).exec(async (res) => {
+        try {
+          if (!res || !res[0] || !res[0].node) {
+            throw new Error('no canvas');
+          }
+
+          const canvas = res[0].node;
+          const ctx = canvas.getContext('2d');
+          const coverImage = await this.loadPosterImage(canvas, [coverUrl]);
+
+          canvas.width = W * dpr;
+          canvas.height = H * dpr;
+          if (typeof ctx.resetTransform === 'function') ctx.resetTransform();
+          ctx.scale(dpr, dpr);
+          ctx.clearRect(0, 0, W, H);
+
+          this.drawPosterRoundedRect(ctx, 0, 0, W, H, 0, '#f8fafc');
+
+          const frameX = PAD;
+          const frameY = PAD;
+          const frameW = W - PAD * 2;
+          const frameH = H - PAD * 2;
+          this.drawPosterRoundedRect(ctx, frameX, frameY, frameW, frameH, 28, '#ffffff');
+
+          const imgW = coverImage.width || frameW;
+          const imgH = coverImage.height || frameH;
+          const scale = Math.min(frameW / imgW, frameH / imgH);
+          const drawW = imgW * scale;
+          const drawH = imgH * scale;
+          const drawX = frameX + (frameW - drawW) / 2;
+          const drawY = frameY + (frameH - drawH) / 2;
+
+          ctx.drawImage(coverImage, drawX, drawY, drawW, drawH);
+
+          wx.canvasToTempFilePath({
+            canvas,
+            width: W,
+            height: H,
+            destWidth: W,
+            destHeight: H,
+            fileType: 'jpg',
+            quality: 0.92,
+            success: (r) => resolve(r.tempFilePath),
+            fail: reject
+          });
+        } catch (error) {
+          reject(error);
+        }
       });
     });
   },

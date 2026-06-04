@@ -8,6 +8,8 @@ const constants = require('../config/constants');
 const logger = require('./logger');
 const { tenantStorage } = require('./storage');
 
+const ENABLE_TENANT_REQUEST_LOG = false;
+
 class Request {
   constructor() {
     this.baseURL = envConfig.apiBaseUrl;
@@ -66,11 +68,12 @@ class Request {
 
     const requestUrl = `${this.baseURL}${url}`;
 
-    console.log('[TENANT-REQUEST]', method, url, {
-      wxAppId: envConfig.wxAppId,
-      hasToken: !!requestHeader['Authorization'],
-      tokenPrefix: requestHeader['Authorization'] ? requestHeader['Authorization'].slice(0, 20) + '...' : null
-    });
+    if (ENABLE_TENANT_REQUEST_LOG) {
+      logger.debug('[TENANT-REQUEST]', method, url, {
+        wxAppId: envConfig.wxAppId,
+        hasToken: !!requestHeader['Authorization']
+      });
+    }
 
     return new Promise((resolve, reject) => {
       wx.request({

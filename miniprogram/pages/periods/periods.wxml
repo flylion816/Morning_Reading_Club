@@ -1,5 +1,5 @@
 <!--期次列表页面-->
-<view class="page-index">
+<view class="page-periods">
   <!-- 顶部横幅 -->
   <view class="home-banner">
     <view class="banner-text-container">

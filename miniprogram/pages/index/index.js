@@ -244,8 +244,6 @@ Page({
   },
 
   onLoad(options) {
-    console.log('🟢🟢🟢 PROFILE.JS ONLOAD CALLED 🟢🟢🟢', options);
-    console.log('个人中心加载', options);
     this.captureInsightRequestFocus(options);
   },
 
@@ -282,7 +280,6 @@ Page({
   },
 
   onPullDownRefresh() {
-    console.log('下拉刷新');
     this.loadUserData().then(() => {
       wx.stopPullDownRefresh();
     });
@@ -305,12 +302,10 @@ Page({
     );
 
     if (isLogin) {
-      console.log('🔄 onShow: 更新 globalData');
       app.globalData.isLogin = true;
       app.globalData.userInfo = userInfo;
       app.globalData.token = token;
     } else {
-      console.log('⚠️ onShow: 未登录，显示访客视图');
       app.globalData.isLogin = false;
       app.globalData.userInfo = null;
       app.globalData.token = null;
@@ -1636,8 +1631,6 @@ Page({
    * 点击今日课节卡片
    */
   handleTodaySectionClick() {
-    console.log('🚨🚨🚨 handleTodaySectionClick 被触发 🚨🚨🚨');
-
     const { todaySection } = this.data;
     const sectionId = todaySection && (todaySection.id || todaySection._id);
 
@@ -1757,11 +1750,8 @@ Page({
     if (!this.ensurePaidFeatureAccess('完成支付后可查看反馈')) {
       return;
     }
-    console.log('🚨🚨🚨 handleInsightClick 被触发 🚨🚨🚨');
-    console.log('Event:', e);
 
     const { id } = e.currentTarget.dataset;
-    console.log('Insight ID:', id);
 
     if (!id) {
       console.error('❌ ID不存在');
@@ -1775,11 +1765,9 @@ Page({
     });
 
     const url = `/pages/insight-detail/insight-detail?id=${id}`;
-    console.log('🚀 准备跳转:', url);
 
     wx.navigateTo({
       url: url,
-      success: () => console.log('✅ 跳转成功'),
       fail: (err) => console.error('❌ 跳转失败:', err)
     });
   },
@@ -1791,7 +1779,6 @@ Page({
     if (!this.ensurePaidFeatureAccess('完成支付后可查看反馈')) {
       return;
     }
-    console.log('🚨🚨🚨 navigateToInsights 被触发 🚨🚨🚨');
 
     wx.showToast({
       title: '正在跳转列表...',
@@ -1800,11 +1787,9 @@ Page({
 
     const tab = this.data.insightActiveTab || 'mine';
     const url = `/pages/insights/insights?tab=${tab}`;
-    console.log('🚀 准备跳转:', url);
 
     wx.navigateTo({
       url: url,
-      success: () => console.log('✅ 跳转成功'),
       fail: (err) => console.error('❌ 跳转失败:', err)
     });
   },
@@ -1813,8 +1798,6 @@ Page({
    * 去打卡 - 跳转到打卡页面（或显示已打卡提示）
    */
   handleCreateCheckin() {
-    console.log('⚠️⚠️⚠️ handleCreateCheckin 被触发! ⚠️⚠️⚠️');
-
     const { currentPeriod, todaySection, currentPeriodCommunityState } =
       this.data;
 

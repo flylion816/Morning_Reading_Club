@@ -50,14 +50,10 @@ const envConfig = {
     apiBaseUrl: 'https://wx.shubai01.com/api/v1',
     wxAppId: 'wx2b9a3c1d5e4195f8',
     enableDebug: false,
-    enableLog: true, // ✅ 启用日志便于调试
+    enableLog: false,
     useMock: false
   }
 };
-
-// 调试输出（开发环境用）
-console.log('[ENV DEBUG] currentEnv:', currentEnv);
-console.log('[ENV DEBUG] apiBaseUrl:', envConfig[currentEnv].apiBaseUrl);
 
 // 导出当前环境配置
 module.exports = {

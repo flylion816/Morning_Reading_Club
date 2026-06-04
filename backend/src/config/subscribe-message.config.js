@@ -195,18 +195,20 @@ const sceneConfigs = {
     scene: 'podcast_published',
     title: '凡人播客上新',
     description: '当天课程的凡人播客上传后通知报名用户收听',
-    templateId: '',
+    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
     page: 'pages/course-detail/course-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
-      { name: 'podcastTitle', label: '播客标题' },
-      { name: 'dayInfo',      label: '课程信息' },
-      { name: 'publishTime',  label: '发布时间' }
+      { name: 'replyUser',    label: '作者' },
+      { name: 'replyTopic',   label: '课程信息' },
+      { name: 'replyContent', label: '播客标题' },
+      { name: 'replyTime',    label: '发布时间' }
     ],
     defaultFieldKeyMap: {
-      podcastTitle: 'thing1',
-      dayInfo:      'thing2',
-      publishTime:  'time3'
+      replyUser:    'thing6',
+      replyTopic:   'thing14',
+      replyContent: 'thing12',
+      replyTime:    'time8'
     },
     fieldKeyMapEnv: 'WECHAT_SUBSCRIBE_FIELD_KEYS_PODCAST_PUBLISHED'
   },
