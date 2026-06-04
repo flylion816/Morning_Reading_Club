@@ -10,6 +10,20 @@ const subscribeMessageService = require('../services/subscribe-message.service')
 const { formatNotificationTime } = require('../utils/notification-links');
 const { getCurrentTenantId, withSystemContext } = require('../utils/tenantContext');
 
+async function updatePersonalCouponUsage(ActivityCoupon, couponId, update) {
+  if (!couponId) return;
+  await ActivityCoupon.findOneAndUpdate(
+    {
+      _id: couponId,
+      $or: [
+        { scope: 'personal' },
+        { scope: { $exists: false } }
+      ]
+    },
+    update
+  );
+}
+
 async function notifyPaymentSuccess(req, { userId, payment, enrollment }) {
   try {
     const periodName =
@@ -322,7 +336,7 @@ exports.confirmPayment = async (req, res) => {
       );
       // 标记优惠券已使用
       if (reg && reg.couponId) {
-        await ActivityCoupon.findByIdAndUpdate(reg.couponId, {
+        await updatePersonalCouponUsage(ActivityCoupon, reg.couponId, {
           status: 'used',
           usedAt: new Date(),
           usedByRegistrationId: payment.registrationId
@@ -531,7 +545,7 @@ exports.adminResetPaymentToPending = async (req, res) => {
       if (reg) {
         // 撤销优惠券使用
         if (reg.couponId) {
-          await ActivityCoupon.findByIdAndUpdate(reg.couponId, {
+          await updatePersonalCouponUsage(ActivityCoupon, reg.couponId, {
             status: 'active',
             usedAt: null,
             usedByRegistrationId: null
@@ -763,7 +777,7 @@ exports.wechatCallback = async (req, res) => {
             { new: true }
           );
           if (reg && reg.couponId) {
-            await ActivityCoupon.findByIdAndUpdate(reg.couponId, {
+            await updatePersonalCouponUsage(ActivityCoupon, reg.couponId, {
               status: 'used',
               usedAt: new Date(),
               usedByRegistrationId: payment.registrationId

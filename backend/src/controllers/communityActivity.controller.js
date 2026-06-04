@@ -181,20 +181,23 @@ exports.registerActivity = async (req, res) => {
       const now = new Date();
       const baseCondition = {
         tenantId,
-        status: 'active',
         validFrom: { $lte: now },
-        validUntil: { $gte: now },
-        $or: [{ activityId: id }, { activityId: null }]
+        validUntil: { $gte: now }
       };
       const coupon = await ActivityCoupon.findOne({
         ...baseCondition,
-        $or: [
-          { scope: 'personal', userId },
-          { scope: 'global' },
-          // 兼容旧数据（无 scope 字段的个人券）
-          { scope: { $exists: false }, userId }
+        $and: [
+          { $or: [{ activityId: id }, { activityId: null }] },
+          {
+            $or: [
+              { scope: 'personal', userId, status: 'active' },
+              { scope: 'global', status: { $ne: 'expired' } },
+              // 兼容旧数据（无 scope 字段的个人券）
+              { scope: { $exists: false }, userId, status: 'active' }
+            ]
+          }
         ]
-      }).sort({ scope: 1 }).lean(); // personal < global，个人券优先
+      }).sort({ scope: -1, createdAt: -1 }).lean(); // personal 优先，其次 global
 
       // 计算实付金额
       let finalPrice = activity.price;

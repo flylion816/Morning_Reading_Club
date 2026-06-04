@@ -77,8 +77,8 @@
           </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
-              <el-tag :type="getStatusTagType(row.status)" size="small">
-                {{ formatStatus(row.status) }}
+              <el-tag :type="getStatusTagType(getCouponStatus(row))" size="small">
+                {{ formatStatus(getCouponStatus(row)) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -89,7 +89,7 @@
                   type="primary"
                   text
                   size="small"
-                  :disabled="row.status !== 'active'"
+                  :disabled="getCouponStatus(row) !== 'active'"
                   @click="handleEdit(row)"
                 >编辑</el-button>
                 <el-button
@@ -102,7 +102,7 @@
                   type="danger"
                   text
                   size="small"
-                  :disabled="row.status !== 'active'"
+                  :disabled="getCouponStatus(row) !== 'active'"
                   @click="handleDelete(row)"
                 >删除</el-button>
               </div>
@@ -507,6 +507,10 @@ function getUserName(userId: any): string {
   if (typeof userId === 'object') return userId.nickname || userId._id;
   const found = userOptions.value.find((u: any) => u._id === userId);
   return found?.nickname || userId;
+}
+
+function getCouponStatus(row: any): string {
+  return row.displayStatus || row.status;
 }
 
 function formatStatus(status: string): string {

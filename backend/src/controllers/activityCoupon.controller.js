@@ -3,6 +3,16 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 
+function getDisplayStatus(coupon, now = new Date()) {
+  if (coupon.validUntil && new Date(coupon.validUntil) < now) {
+    return 'expired';
+  }
+  if (coupon.scope === 'global' && coupon.status !== 'expired') {
+    return 'active';
+  }
+  return coupon.status;
+}
+
 // ===== 管理端 =====
 
 /**
@@ -17,11 +27,28 @@ exports.adminList = async (req, res) => {
     const query = { tenantId };
     if (activityId) query.activityId = activityId;
     if (userId) query.userId = userId;
-    if (status) query.status = status;
+    if (status === 'active') {
+      query.$or = [
+        { status: 'active' },
+        {
+          scope: 'global',
+          status: { $ne: 'expired' },
+          validUntil: { $gte: new Date() }
+        }
+      ];
+    } else if (status === 'used') {
+      query.status = 'used';
+      query.$or = [
+        { scope: 'personal' },
+        { scope: { $exists: false } }
+      ];
+    } else if (status) {
+      query.status = status;
+    }
     if (scope) query.scope = scope;
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-    const [list, total] = await Promise.all([
+    const [rawList, total] = await Promise.all([
       ActivityCoupon.find(query)
         .populate('userId', 'nickname avatar avatarUrl')
         .populate('activityId', 'title')
@@ -31,6 +58,11 @@ exports.adminList = async (req, res) => {
         .lean(),
       ActivityCoupon.countDocuments(query)
     ]);
+    const now = new Date();
+    const list = rawList.map(coupon => ({
+      ...coupon,
+      displayStatus: getDisplayStatus(coupon, now)
+    }));
 
     res.json(
       success({
@@ -96,8 +128,8 @@ exports.adminUpdate = async (req, res) => {
     if (!coupon) {
       return res.status(404).json(errors.notFound('优惠券不存在'));
     }
-    if (coupon.status !== 'active') {
-      return res.status(400).json(errors.badRequest('仅 active 状态的优惠券可编辑'));
+    if (getDisplayStatus(coupon) !== 'active') {
+      return res.status(400).json(errors.badRequest('仅可用状态的优惠券可编辑'));
     }
 
     const allowedFields = ['name', 'discountType', 'discountValue', 'validFrom', 'validUntil', 'activityId'];
@@ -145,8 +177,8 @@ exports.adminDelete = async (req, res) => {
     if (!coupon) {
       return res.status(404).json(errors.notFound('优惠券不存在'));
     }
-    if (coupon.status !== 'active') {
-      return res.status(400).json(errors.badRequest('仅 active 状态的优惠券可删除'));
+    if (getDisplayStatus(coupon) !== 'active') {
+      return res.status(400).json(errors.badRequest('仅可用状态的优惠券可删除'));
     }
 
     await coupon.deleteOne();
@@ -176,23 +208,26 @@ exports.getMyCoupons = async (req, res) => {
       const targetActivity = forActivity || activityId;
       const baseCondition = {
         tenantId,
-        status: 'active',
         validFrom: { $lte: now },
-        validUntil: { $gte: now },
-        $or: [{ activityId: targetActivity }, { activityId: null }]
+        validUntil: { $gte: now }
       };
       const list = await ActivityCoupon.find({
         ...baseCondition,
-        $or: [
-          { scope: 'personal', userId },
-          { scope: 'global' },
-          { scope: { $exists: false }, userId }
+        $and: [
+          { $or: [{ activityId: targetActivity }, { activityId: null }] },
+          {
+            $or: [
+              { scope: 'personal', userId, status: 'active' },
+              { scope: 'global', status: { $ne: 'expired' } },
+              { scope: { $exists: false }, userId, status: 'active' }
+            ]
+          }
         ]
       })
         .populate('activityId', 'title')
-        .sort({ createdAt: -1 })
+        .sort({ scope: -1, createdAt: -1 })
         .lean();
-      return res.json(success(list));
+      return res.json(success(list.map(c => ({ ...c, displayStatus: getDisplayStatus(c, now) }))));
     }
 
     // 默认：返回用户个人券 + 全平台券
@@ -208,14 +243,8 @@ exports.getMyCoupons = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // 补充计算状态：过期但 status 仍为 active 的券标记为 expired
-    const enriched = list.map(c => {
-      let displayStatus = c.status;
-      if (c.status === 'active' && c.validUntil && new Date(c.validUntil) < now) {
-        displayStatus = 'expired';
-      }
-      return { ...c, displayStatus };
-    });
+    // 补充计算状态：全平台券不因某个用户使用而整体失效，过期优先。
+    const enriched = list.map(c => ({ ...c, displayStatus: getDisplayStatus(c, now) }));
 
     res.json(success(enriched));
   } catch (err) {

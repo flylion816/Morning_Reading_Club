@@ -193,7 +193,9 @@ export interface ActivityCoupon {
   validFrom: string;
   validUntil: string;
   userId: string | User;
+  scope?: 'personal' | 'global';
   status: 'active' | 'used' | 'expired';
+  displayStatus?: 'active' | 'used' | 'expired';
   usedAt?: string;
   usedByRegistrationId?: string;
   createdAt?: string;
