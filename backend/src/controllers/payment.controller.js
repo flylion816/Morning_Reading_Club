@@ -228,8 +228,11 @@ exports.initiatePayment = async (req, res) => {
       data: payment.toObject()
     });
 
-    // 对于模拟支付，直接返回成功
+    // 对于模拟支付，仅限非生产环境
     if (paymentMethod === 'mock') {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(400).json(errors.badRequest('生产环境不支持模拟支付'));
+      }
       await payment.confirmPayment();
 
       // 更新报名记录的支付状态

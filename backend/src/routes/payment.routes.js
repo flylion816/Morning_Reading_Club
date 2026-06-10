@@ -47,7 +47,9 @@ router.post('/:paymentId/admin-cancel', adminAuthMiddleware, adminTenantContext,
 // 管理员重置为待支付
 router.post('/:paymentId/reset-to-pending', adminAuthMiddleware, adminTenantContext, adminResetPaymentToPending);
 
-// 模拟支付确认（用于开发测试）
-router.post('/:paymentId/mock-confirm', authMiddleware, userTenantContext, mockConfirmPayment);
+// 模拟支付确认（仅限开发/测试环境）
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/:paymentId/mock-confirm', authMiddleware, userTenantContext, mockConfirmPayment);
+}
 
 module.exports = router;
