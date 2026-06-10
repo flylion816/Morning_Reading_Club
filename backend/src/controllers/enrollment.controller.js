@@ -1208,47 +1208,6 @@ exports.syncNicknamesFromEnrollments = async (req, res) => {
   }
 };
 
-/**
- * 调试：删除用户的所有报名记录（除了指定的期次）
- * DELETE /api/v1/enrollments/debug/cleanup/:userId/:keepPeriodId
- */
-exports.debugCleanupEnrollments = async (req, res) => {
-  try {
-    const { userId, keepPeriodId } = req.params;
-
-    logger.info('Debug cleanup enrollments started', { userId, keepPeriodId });
-
-    // 查询所有报名记录
-    const allEnrollments = await Enrollment.find({ userId });
-    logger.info('Found enrollments to cleanup', {
-      userId,
-      totalCount: allEnrollments.length
-    });
-
-    // 删除除了 keepPeriodId 之外的所有报名
-    const deleteResult = await Enrollment.deleteMany({
-      userId,
-      periodId: { $ne: keepPeriodId }
-    });
-
-    logger.info('Cleanup completed', {
-      userId,
-      deletedCount: deleteResult.deletedCount,
-      keptPeriodId: keepPeriodId
-    });
-
-    res.json(
-      success({
-        deleted: deleteResult.deletedCount,
-        message: `已删除 ${deleteResult.deletedCount} 条报名记录，仅保留期次 ${keepPeriodId} 的报名`
-      })
-    );
-  } catch (error) {
-    logger.error('Cleanup failed', error);
-    res.status(500).json(errors.serverError(`清理失败: ${error.message}`));
-  }
-};
-
 function getStartOfDay(date) {
   const result = new Date(date);
   result.setHours(0, 0, 0, 0);
