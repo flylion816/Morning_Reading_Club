@@ -182,10 +182,10 @@ async function createCheckin(req, res, next) {
       tenantId: getCurrentTenantId()
     });
 
-    // 更新用户统计
-    const user = await User.findById(userId);
-    user.totalCheckinDays += 1;
-    user.totalPoints += 10;
+    // 原子更新累计统计，防止并发打卡时数值被覆盖
+    await User.findByIdAndUpdate(userId, {
+      $inc: { totalCheckinDays: 1, totalPoints: 10 }
+    });
 
     // 计算连续打卡天数：检查前一天是否打卡
     const yesterday = new Date(checkinDateNormalized);
@@ -202,15 +202,17 @@ async function createCheckin(req, res, next) {
       }
     });
 
-    // 如果昨天有打卡，连续天数 +1；否则重置为 1
-    if (yesterdayCheckin) {
-      user.currentStreak += 1;
-    } else {
-      user.currentStreak = 1;
-    }
+    // 读取最新用户数据计算 streak（$inc 已更新，这里只需要 streak 字段）
+    const user = await User.findById(userId).select('currentStreak maxStreak');
 
-    user.maxStreak = Math.max(user.maxStreak, user.currentStreak);
-    await user.save();
+    // 如果昨天有打卡，连续天数 +1；否则重置为 1
+    const newStreak = yesterdayCheckin ? (user.currentStreak || 0) + 1 : 1;
+    const newMaxStreak = Math.max(user.maxStreak || 0, newStreak);
+
+    await User.findByIdAndUpdate(userId, {
+      currentStreak: newStreak,
+      maxStreak: newMaxStreak
+    });
 
     // 更新课节的打卡人数统计
     logger.debug('Updating Section.checkinCount', {

@@ -165,7 +165,10 @@ describe('Checkin Controller', () => {
 
       SectionStub.findById.withArgs(sectionId).resolves(mockSection);
       SectionStub.findById.withArgs(mockSection._id).resolves(mockSection);
-      UserStub.findById.resolves(mockUser);
+      // findByIdAndUpdate 用于原子 $inc 和 streak 更新
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      // findById 后接 .select() 链式调用，返回精简的 streak 数据
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
       CheckinStub.findOne.resolves(null);
       CheckinStub.create.resolves(mockCheckin);
 
@@ -285,13 +288,17 @@ describe('Checkin Controller', () => {
       };
 
       SectionStub.findById.resolves(mockSection);
-      UserStub.findById.resolves(mockUser);
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
       CheckinStub.findOne.resolves(mockYesterdayCheckin);
       CheckinStub.create.resolves(mockCheckin);
 
       await checkinController.createCheckin(req, res, next);
 
-      expect(mockUser.currentStreak).to.equal(6);
+      // 验证 streak 更新调用（findByIdAndUpdate 第二次用于更新 currentStreak）
+      const streakCall = UserStub.findByIdAndUpdate.getCall(1);
+      expect(streakCall).to.not.be.null;
+      expect(streakCall.args[1].currentStreak).to.equal(6);
     });
 
     it('应该增加totalCheckinDays和totalPoints', async () => {
@@ -329,14 +336,18 @@ describe('Checkin Controller', () => {
       };
 
       SectionStub.findById.resolves(mockSection);
-      UserStub.findById.resolves(mockUser);
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
       CheckinStub.findOne.resolves(null);
       CheckinStub.create.resolves(mockCheckin);
 
       await checkinController.createCheckin(req, res, next);
 
-      expect(mockUser.totalCheckinDays).to.equal(11);
-      expect(mockUser.totalPoints).to.equal(110);
+      // 验证原子 $inc 调用
+      const incCall = UserStub.findByIdAndUpdate.getCall(0);
+      expect(incCall).to.not.be.null;
+      expect(incCall.args[1].$inc.totalCheckinDays).to.equal(1);
+      expect(incCall.args[1].$inc.totalPoints).to.equal(10);
     });
   });
 
@@ -1268,7 +1279,8 @@ describe('Checkin Controller', () => {
       };
 
       SectionStub.findById.resolves(mockSection);
-      UserStub.findById.resolves(mockUser);
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
       CheckinStub.findOne.resolves(null);
       CheckinStub.create.resolves(mockCheckin);
 
@@ -1313,14 +1325,17 @@ describe('Checkin Controller', () => {
       };
 
       SectionStub.findById.resolves(mockSection);
-      UserStub.findById.resolves(mockUser);
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
       CheckinStub.findOne.resolves(null); // 前一天无打卡
       CheckinStub.create.resolves(mockCheckin);
 
       await checkinController.createCheckin(req, res, next);
 
-      // currentStreak 应该重置为 1
-      expect(mockUser.currentStreak).to.equal(1);
+      // currentStreak 应该重置为 1（通过 findByIdAndUpdate 第二次调用）
+      const streakCall = UserStub.findByIdAndUpdate.getCall(1);
+      expect(streakCall).to.not.be.null;
+      expect(streakCall.args[1].currentStreak).to.equal(1);
     });
 
     it('TC-CHECKIN-013: 应该保持maxStreak为较大值', async () => {
@@ -1358,14 +1373,17 @@ describe('Checkin Controller', () => {
       };
 
       SectionStub.findById.resolves(mockSection);
-      UserStub.findById.resolves(mockUser);
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
       CheckinStub.findOne.resolves({});
       CheckinStub.create.resolves(mockCheckin);
 
       await checkinController.createCheckin(req, res, next);
 
-      // maxStreak 应该保持原值（6 < 20）
-      expect(mockUser.maxStreak).to.equal(20);
+      // maxStreak 应该保持原值（currentStreak=6 < maxStreak=20），验证 findByIdAndUpdate 调用
+      const streakCall = UserStub.findByIdAndUpdate.getCall(1);
+      expect(streakCall).to.not.be.null;
+      expect(streakCall.args[1].maxStreak).to.equal(20); // max(20, 6) = 20
     });
 
     it('TC-CHECKIN-014: 应该发布同步事件', async () => {
@@ -1406,7 +1424,8 @@ describe('Checkin Controller', () => {
       };
 
       SectionStub.findById.resolves(mockSection);
-      UserStub.findById.resolves(mockUser);
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
       CheckinStub.findOne.resolves(null);
       CheckinStub.create.resolves(mockCheckin);
 
