@@ -9,53 +9,49 @@
 ## Critical（安全 / 数据完整性）
 
 ### C1 — IDOR：任意用户可读他人支付记录
-- **状态：** `[ ]`
+- **状态：** `[x]` 已完成 — commit `ad8a682`
 - **文件：** `backend/src/controllers/payment.controller.js:634`、`enrollment.controller.js:554`、`checkin.controller.js:316`
 - **路由：** `GET /api/v1/payments/user/:userId`、`GET /api/v1/enrollments/user/:userId`、`GET /api/v1/checkins/user/:userId`
 - **问题：** `const userId = req.params.userId || req.user.userId` 允许调用方传入任意 userId，无 owner 校验。
 - **修复方案：** 非管理员路由强制使用 `req.user.userId`，忽略 path param 中的 userId（或校验 param === current user）。
 - **测试重点：** 用 userA token 请求 userB 的数据，期望 403。
-- **Commit：** —
+- **Commit：** `ad8a682`（同时包含 M7）
 
 ---
 
 ### C2 — Mock 支付在生产环境可用
-- **状态：** `[ ]`
+- **状态：** `[x]` 已完成 — commit `65b57f6`
 - **文件：** `backend/src/routes/payment.routes.js:51`、`backend/src/controllers/payment.controller.js:131`
 - **问题：** `POST /:paymentId/mock-confirm` 路由和 `paymentMethod: 'mock'` 无 `NODE_ENV !== 'production'` 守卫，生产环境攻击者可免费激活报名。
 - **修复方案：** 路由注册和 initiatePayment 中的 mock 分支都加 `process.env.NODE_ENV !== 'production'` 判断，生产环境返回 400。
-- **测试重点：** 模拟 NODE_ENV=production 时调用 mock-confirm，期望 400。
-- **Commit：** —
+- **Commit：** `65b57f6`
 
 ---
 
 ### C3 — 支付确认竞态条件（双重确认）
-- **状态：** `[ ]`
+- **状态：** `[x]` 已完成 — commit `1b0c610`
 - **文件：** `backend/src/controllers/payment.controller.js:319-326`
 - **问题：** `confirmPayment` 先 findById 再判断状态，两个并发请求都能通过检查，导致报名重复激活/双重发通知。
-- **修复方案：** 改用原子操作 `Payment.findOneAndUpdate({ _id, status: { $in: ['pending','processing'] } }, { $set: { status: 'processing' } }, { new: true })`，拿不到说明已处理。
-- **测试重点：** 并发两次调用 confirmPayment，期望只有一次成功，报名状态只更新一次。
-- **Commit：** —
+- **修复方案：** 改用原子操作 `Payment.findOneAndUpdate({ _id, userId, status: { $in: ['pending','processing'] } }, { $set: { status: 'processing' } }, { new: true })`。
+- **Commit：** `1b0c610`
 
 ---
 
 ### C4 — console.log 将 PII / DB 完整结果输出到生产日志
-- **状态：** `[ ]`
+- **状态：** `[x]` 已完成 — commit `cba6e99`
 - **文件：** `backend/src/controllers/enrollment.controller.js:557-572`
 - **问题：** `console.log('req.user:', req.user)` 把 openid、tenantId、role 和完整查询结果打印到 stdout，生产日志可见敏感信息。
 - **修复方案：** 删除该段全部 console.log 调试输出。
-- **测试重点：** 调用接口后检查日志无 openid 输出。
-- **Commit：** —
+- **Commit：** `cba6e99`
 
 ---
 
 ### C5 — 危险的 debugCleanupEnrollments 函数
-- **状态：** `[ ]`
+- **状态：** `[x]` 已完成 — commit `55250be`
 - **文件：** `backend/src/controllers/enrollment.controller.js:1224-1258`
 - **问题：** 函数体直接 `deleteMany` 指定用户的所有报名记录，虽未注册路由，但存在被误连线的风险。
-- **修复方案：** 直接删除该函数，或移入带有明显警告注释的独立 debug 文件并确保不注册路由。
-- **测试重点：** 确认 enrollment.routes.js 中无 debugCleanup 路由条目。
-- **Commit：** —
+- **修复方案：** 直接删除该函数。
+- **Commit：** `55250be`
 
 ---
 
@@ -156,9 +152,8 @@
 - **说明：** 若后续有计划收集真实数据则先移除假数据字段；若字段已废弃则后端也应忽略。
 
 ### M7 — getUserCheckins IDOR（同 C1 模式）
-- **状态：** `[ ]`
+- **状态：** `[x]` 已完成 — commit `ad8a682`（与 C1 一并修复）
 - **文件：** `backend/src/controllers/checkin.controller.js:316`
-- **说明：** 与 C1 一并修复。
 
 ### M8 — Payment 回调按 orderNo 单查，命中复合索引效率低
 - **状态：** `[ ]`
