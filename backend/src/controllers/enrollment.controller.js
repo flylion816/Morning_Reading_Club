@@ -554,21 +554,12 @@ exports.getUserEnrollments = async (req, res) => {
     const userId = req.params.userId || req.user.userId;
     const { page = 1, limit = 20, status } = req.query;
 
-    console.log('🔍 [getUserEnrollments] 调试信息:');
-    console.log('  - req.params.userId:', req.params.userId);
-    console.log('  - req.user:', req.user);
-    console.log('  - 最终使用的 userId:', userId);
-    console.log('  - 传入的 status:', status);
-
     // 获取报名列表
     const result = await Enrollment.getUserEnrollments(userId, {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
       status
     });
-
-    console.log('  - 查询结果列表长度:', result.list.length);
-    console.log('  - 完整结果:', result);
 
     // 转换数据格式
     const enrollments = result.list.map(enrollment => ({
