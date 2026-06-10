@@ -309,17 +309,19 @@ exports.confirmPayment = async (req, res) => {
     const { paymentId } = req.params;
     const { transactionId } = req.body;
 
-    // 查找支付记录
-    const payment = await Payment.findOne({
-      _id: paymentId,
-      userId
-    });
+    // 原子操作：仅当状态为 pending/processing 时才抢占，防止并发双重确认
+    const payment = await Payment.findOneAndUpdate(
+      { _id: paymentId, userId, status: { $in: ['pending', 'processing'] } },
+      { $set: { status: 'processing' } },
+      { new: true }
+    );
 
     if (!payment) {
-      return res.status(404).json(errors.notFound('支付记录不存在'));
-    }
-
-    if (payment.status === 'completed') {
+      // 再查一次以区分"不存在"和"已完成"
+      const existing = await Payment.findOne({ _id: paymentId, userId });
+      if (!existing) {
+        return res.status(404).json(errors.notFound('支付记录不存在'));
+      }
       return res.status(400).json(errors.badRequest('支付已确认'));
     }
 

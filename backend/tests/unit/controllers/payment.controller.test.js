@@ -47,6 +47,7 @@ describe('Payment Controller', () => {
       findById: sandbox.stub(),
       find: sandbox.stub(),
       findOne: sandbox.stub(),
+      findOneAndUpdate: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
       countDocuments: sandbox.stub(),
       // Static methods
@@ -457,7 +458,7 @@ describe('Payment Controller', () => {
         paymentStatus: 'paid'
       };
 
-      PaymentStub.findOne.resolves(mockPayment);
+      PaymentStub.findOneAndUpdate.resolves(mockPayment);
       EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
 
       await paymentController.confirmPayment(req, res, next);
@@ -481,6 +482,8 @@ describe('Payment Controller', () => {
         status: 'completed'
       };
 
+      // findOneAndUpdate 返回 null 表示抢占失败（已处理过），findOne 返回已完成的记录
+      PaymentStub.findOneAndUpdate.resolves(null);
       PaymentStub.findOne.resolves(mockPayment);
 
       await paymentController.confirmPayment(req, res, next);
@@ -496,6 +499,8 @@ describe('Payment Controller', () => {
       req.params = { paymentId: new mongoose.Types.ObjectId() };
       req.body = { transactionId: 'txn_123456' };
 
+      // findOneAndUpdate 和 findOne 都返回 null 表示记录不存在
+      PaymentStub.findOneAndUpdate.resolves(null);
       PaymentStub.findOne.resolves(null);
 
       await paymentController.confirmPayment(req, res, next);
