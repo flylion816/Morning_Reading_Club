@@ -634,7 +634,8 @@ exports.adminResetPaymentToPending = async (req, res) => {
  */
 exports.getUserPayments = async (req, res) => {
   try {
-    const userId = req.params.userId || req.user.userId;
+    // 强制使用当前登录用户，防止 IDOR 越权读取他人支付记录
+    const userId = req.user.userId;
     const { page = 1, limit = 20, status } = req.query;
 
     // 获取支付记录

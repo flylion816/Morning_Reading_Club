@@ -551,7 +551,8 @@ exports.getPeriodMembers = async (req, res) => {
  */
 exports.getUserEnrollments = async (req, res) => {
   try {
-    const userId = req.params.userId || req.user.userId;
+    // 强制使用当前登录用户，防止 IDOR 越权读取他人报名记录
+    const userId = req.user.userId;
     const { page = 1, limit = 20, status } = req.query;
 
     // 获取报名列表

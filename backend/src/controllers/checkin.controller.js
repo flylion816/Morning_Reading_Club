@@ -313,7 +313,8 @@ async function getCheckins(req, res, next) {
 async function getUserCheckins(req, res, next) {
   try {
     const { page = 1, limit = 20, periodId, year, month } = req.query;
-    const userId = req.params.userId || req.user.userId;
+    // 强制使用当前登录用户，防止 IDOR 越权读取他人打卡记录
+    const userId = req.user.userId;
     const requestUserId = getRequestUserId(req);
 
     const query = { userId };
