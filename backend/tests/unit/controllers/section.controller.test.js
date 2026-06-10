@@ -92,6 +92,40 @@ describe('Section Controller', () => {
     sandbox.restore();
   });
 
+  function createPersistedSection(overrides = {}) {
+    const doc = {
+      _id: new mongoose.Types.ObjectId(),
+      title: '课节',
+      periodId: new mongoose.Types.ObjectId(),
+      day: 1,
+      save: sandbox.stub().resolves(),
+      ...overrides
+    };
+    doc.toObject = sandbox.stub().callsFake(() => ({
+      _id: doc._id,
+      periodId: doc.periodId,
+      day: doc.day,
+      title: doc.title
+    }));
+    return doc;
+  }
+
+  function createPersistedPeriod(overrides = {}) {
+    const doc = {
+      _id: new mongoose.Types.ObjectId(),
+      name: '期次',
+      totalDays: 23,
+      save: sandbox.stub().resolves(),
+      ...overrides
+    };
+    doc.toObject = sandbox.stub().callsFake(() => ({
+      _id: doc._id,
+      name: doc.name,
+      totalDays: doc.totalDays
+    }));
+    return doc;
+  }
+
   describe('getSectionsByPeriod', () => {
     it('应该返回期次的所有课节', async () => {
       const periodId = new mongoose.Types.ObjectId();
@@ -319,6 +353,12 @@ describe('Section Controller', () => {
   });
 
   describe('createSection (Admin)', () => {
+    beforeEach(() => {
+      SectionStub.find.returns({
+        sort: sandbox.stub().resolves([])
+      });
+    });
+
     it('应该创建新课节', async () => {
       const periodId = new mongoose.Types.ObjectId();
       req.body = {
@@ -380,6 +420,43 @@ describe('Section Controller', () => {
 
       expect(SectionStub.create.getCall(0).args[0].closingVideo).to.deep.equal(closingVideo);
       expect(res.status.calledWith(201)).to.be.true;
+    });
+
+    it('新增指定天数时应该把原有当天及后续课节顺延一天', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.body = {
+        periodId,
+        day: 7,
+        title: '插入课节'
+      };
+
+      const mockPeriod = createPersistedPeriod({ _id: periodId, totalDays: 23 });
+      const day8Section = createPersistedSection({ periodId, day: 8, title: '原第8天' });
+      const day7Section = createPersistedSection({ periodId, day: 7, title: '原第7天' });
+      const sort = sandbox.stub().resolves([day8Section, day7Section]);
+      const mockSection = {
+        _id: new mongoose.Types.ObjectId(),
+        ...req.body,
+        toObject: sandbox.stub().returnsThis()
+      };
+
+      PeriodStub.findById.resolves(mockPeriod);
+      SectionStub.find.returns({ sort });
+      SectionStub.create.resolves(mockSection);
+
+      await sectionController.createSection(req, res, next);
+
+      expect(sort.calledWith({ day: -1, createdAt: -1 })).to.be.true;
+      expect(day8Section.day).to.equal(9);
+      expect(day7Section.day).to.equal(8);
+      expect(day8Section.save.calledBefore(day7Section.save)).to.be.true;
+      expect(SectionStub.create.getCall(0).args[0].day).to.equal(7);
+      expect(mockPeriod.totalDays).to.equal(24);
+      expect(mockPeriod.save.calledOnce).to.be.true;
+      expect(res.status.calledWith(201)).to.be.true;
+      expect(res.json.getCall(0).args[0].message).to.equal(
+        '课程创建成功，已顺延 2 个后续课节'
+      );
     });
 
     it('应该返回404当期次不存在', async () => {
@@ -509,6 +586,40 @@ describe('Section Controller', () => {
       expect(SectionStub.findById.called).to.be.true;
       expect(SectionStub.findByIdAndDelete.called).to.be.true;
       expect(res.json.called).to.be.true;
+    });
+
+    it('删除课节后应该把后续课节前移一天', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      const sectionId = new mongoose.Types.ObjectId();
+      req.params = { sectionId };
+
+      const deletedSection = createPersistedSection({
+        _id: sectionId,
+        periodId,
+        day: 7,
+        title: '要删除的课节'
+      });
+      const day8Section = createPersistedSection({ periodId, day: 8, title: '原第8天' });
+      const day9Section = createPersistedSection({ periodId, day: 9, title: '原第9天' });
+      const mockPeriod = createPersistedPeriod({ _id: periodId, totalDays: 24 });
+      const sort = sandbox.stub().resolves([day8Section, day9Section]);
+
+      SectionStub.findById.resolves(deletedSection);
+      SectionStub.findByIdAndDelete.resolves(deletedSection);
+      SectionStub.find.returns({ sort });
+      PeriodStub.findById.resolves(mockPeriod);
+
+      await sectionController.deleteSection(req, res, next);
+
+      expect(sort.calledWith({ day: 1, createdAt: 1 })).to.be.true;
+      expect(day8Section.day).to.equal(7);
+      expect(day9Section.day).to.equal(8);
+      expect(day8Section.save.calledBefore(day9Section.save)).to.be.true;
+      expect(mockPeriod.totalDays).to.equal(23);
+      expect(mockPeriod.save.calledOnce).to.be.true;
+      expect(res.json.getCall(0).args[0].message).to.equal(
+        '课程删除成功，已前移 2 个后续课节'
+      );
     });
 
     it('应该返回404当课节不存在', async () => {

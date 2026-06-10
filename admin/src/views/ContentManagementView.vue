@@ -767,7 +767,7 @@ async function saveSection() {
 
     if (isNewSection.value) {
       await periodApi.createSection(selectedPeriodId.value, payload);
-      ElMessage.success('课节创建成功');
+      ElMessage.success('课节创建成功，后续课节已自动顺延');
     } else {
       if (!editingSection.value._id) {
         throw new Error('missing section id');
@@ -818,7 +818,7 @@ async function handleDeleteSection(section: any) {
     });
 
     await periodApi.deleteSection(section._id);
-    ElMessage.success('删除成功');
+    ElMessage.success('删除成功，后续课节已自动前移');
     await loadSections();
   } catch (err: any) {
     if (err.message !== 'cancel') {

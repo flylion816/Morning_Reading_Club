@@ -51,6 +51,83 @@ function attachReadingCompletion(section, completionMap) {
   };
 }
 
+function normalizeSectionDay(day) {
+  const parsed = Number(day);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return null;
+  }
+  return parsed;
+}
+
+function toSyncPayload(document) {
+  return document?.toObject ? document.toObject() : document;
+}
+
+function publishSectionUpdate(section) {
+  publishSyncEvent({
+    type: 'update',
+    collection: 'sections',
+    documentId: section._id.toString(),
+    data: toSyncPayload(section)
+  });
+}
+
+function publishPeriodUpdate(period) {
+  if (!period?._id) return;
+
+  publishSyncEvent({
+    type: 'update',
+    collection: 'periods',
+    documentId: period._id.toString(),
+    data: toSyncPayload(period)
+  });
+}
+
+async function shiftSectionsForInsert(periodId, insertDay) {
+  const sectionsToShift = await Section.find({
+    periodId,
+    day: { $gte: insertDay }
+  }).sort({ day: -1, createdAt: -1 });
+
+  for (const section of sectionsToShift) {
+    section.day += 1;
+    await section.save();
+    publishSectionUpdate(section);
+  }
+
+  return sectionsToShift.length;
+}
+
+async function shiftSectionsAfterDelete(periodId, deletedDay) {
+  const sectionsToShift = await Section.find({
+    periodId,
+    day: { $gt: deletedDay }
+  }).sort({ day: 1, createdAt: 1 });
+
+  for (const section of sectionsToShift) {
+    section.day -= 1;
+    await section.save();
+    publishSectionUpdate(section);
+  }
+
+  return sectionsToShift.length;
+}
+
+async function adjustPeriodTotalDays(period, delta, minimumTotalDays = 1) {
+  if (!period) return null;
+
+  const currentTotalDays = Number(period.totalDays) || 0;
+  const nextTotalDays = Math.max(currentTotalDays + delta, minimumTotalDays, 1);
+  period.totalDays = nextTotalDays;
+
+  if (typeof period.save === 'function') {
+    await period.save();
+    publishPeriodUpdate(period);
+  }
+
+  return period;
+}
+
 // 获取期次的课程列表（用户端 - 仅已发布）
 async function getSectionsByPeriod(req, res, next) {
   try {
@@ -255,7 +332,6 @@ async function getSectionDetail(req, res, next) {
 async function createSection(req, res, next) {
   try {
     const {
-      periodId,
       day,
       title,
       subtitle,
@@ -278,6 +354,20 @@ async function createSection(req, res, next) {
       podcastDescription,
       podcastDuration
     } = req.body;
+    const periodId = req.body.periodId || req.params.periodId;
+    const normalizedDay = normalizeSectionDay(day);
+
+    if (!periodId) {
+      return res.status(400).json(errors.badRequest('缺少期次ID'));
+    }
+
+    if (normalizedDay === null) {
+      return res.status(400).json(errors.badRequest('第几天必须是非负整数'));
+    }
+
+    if (!title || !String(title).trim()) {
+      return res.status(400).json(errors.badRequest('课程标题不能为空'));
+    }
 
     // 验证期次存在
     const period = await Period.findById(periodId);
@@ -285,9 +375,11 @@ async function createSection(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
+    const shiftedCount = await shiftSectionsForInsert(periodId, normalizedDay);
+
     const section = await Section.create({
       periodId,
-      day,
+      day: normalizedDay,
       title,
       subtitle,
       icon,
@@ -311,6 +403,8 @@ async function createSection(req, res, next) {
       tenantId: getCurrentTenantId()
     });
 
+    await adjustPeriodTotalDays(period, 1, normalizedDay + 1);
+
     // 异步同步到 MySQL
     publishSyncEvent({
       type: 'create',
@@ -319,7 +413,10 @@ async function createSection(req, res, next) {
       data: section.toObject()
     });
 
-    res.status(201).json(success(section, '课程创建成功'));
+    const message = shiftedCount > 0
+      ? `课程创建成功，已顺延 ${shiftedCount} 个后续课节`
+      : '课程创建成功';
+    res.status(201).json(success(section, message));
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json(errors.badRequest('该期次的第' + req.body.day + '天课程已存在'));
@@ -419,10 +516,12 @@ async function deleteSection(req, res, next) {
 
     // 保存课程信息用于同步
     const sectionData = section.toObject();
+    const sectionPeriodId = section.periodId;
+    const deletedDay = normalizeSectionDay(section.day);
 
     await Section.findByIdAndDelete(sectionId);
 
-    // 异步同步到 MySQL
+    // 先同步删除，再同步后续课节前移，避免下游唯一 day 约束出现中间冲突
     publishSyncEvent({
       type: 'delete',
       collection: 'sections',
@@ -430,7 +529,17 @@ async function deleteSection(req, res, next) {
       data: sectionData
     });
 
-    res.json(success(null, '课程删除成功'));
+    let shiftedCount = 0;
+    if (sectionPeriodId && deletedDay !== null) {
+      shiftedCount = await shiftSectionsAfterDelete(sectionPeriodId, deletedDay);
+      const period = await Period.findById(sectionPeriodId);
+      await adjustPeriodTotalDays(period, -1);
+    }
+
+    const message = shiftedCount > 0
+      ? `课程删除成功，已前移 ${shiftedCount} 个后续课节`
+      : '课程删除成功';
+    res.json(success(null, message));
   } catch (error) {
     next(error);
   }
