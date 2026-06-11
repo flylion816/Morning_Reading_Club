@@ -1053,13 +1053,15 @@ exports.getEnrollments = async (req, res) => {
 exports.updateEnrollment = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
 
-    // 不允许修改的字段（不包括 approvalStatus，因为批量审批需要通过这个API来修改状态）
-    const protectedFields = ['userId', 'periodId', 'enrolledAt'];
-    protectedFields.forEach(field => {
-      delete updateData[field];
-    });
+    // 白名单：只允许管理员修改以下字段，防止绕过业务流程直接篡改其他数据
+    const ALLOWED_FIELDS = ['paymentStatus', 'paymentMethod', 'deleted', 'approvalStatus'];
+    const updateData = {};
+    for (const field of ALLOWED_FIELDS) {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    }
 
     const enrollment = await Enrollment.findByIdAndUpdate(id, updateData, { new: true })
       .populate('userId', 'nickname avatar avatarUrl')

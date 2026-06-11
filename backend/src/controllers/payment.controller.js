@@ -707,31 +707,24 @@ exports.wechatCallback = async (req, res) => {
   };
 
   try {
-    let notifyData;
+    // 微信正式回调只发 XML body，非 XML 请求一律拒绝（防止无签名的 JSON 请求绕过验证）
+    if (!isXmlCallback) {
+      logger.warn('WeChat callback: non-XML body rejected');
+      return sendJson(400, errors.badRequest('invalid callback format'));
+    }
 
-    if (isXmlCallback) {
-      const xmlBody = req.body;
-      if (!xmlBody) {
-        logger.warn('WeChat callback: empty body');
-        return replyFail('empty body');
-      }
+    const xmlBody = req.body;
+    if (!xmlBody) {
+      logger.warn('WeChat callback: empty body');
+      return replyFail('empty body');
+    }
 
-      const { xmlToObject } = require('../services/payment.service');
-      notifyData = xmlToObject(xmlBody);
+    const { xmlToObject } = require('../services/payment.service');
+    const notifyData = xmlToObject(xmlBody);
 
-      if (notifyData.return_code !== 'SUCCESS') {
-        logger.warn('WeChat callback: return_code is not SUCCESS', notifyData);
-        return replyFail('return_code not SUCCESS');
-      }
-    } else {
-      notifyData = {
-        out_trade_no: req.body?.out_trade_no || req.body?.order_no || '',
-        transaction_id: req.body?.transaction_id || null,
-        result_code: req.body?.result_code || req.body?.status || 'FAIL',
-        return_code: req.body?.return_code || 'SUCCESS',
-        total_fee: req.body?.total_fee || null,
-        err_code_des: req.body?.err_code_des || null
-      };
+    if (notifyData.return_code !== 'SUCCESS') {
+      logger.warn('WeChat callback: return_code is not SUCCESS', notifyData);
+      return replyFail('return_code not SUCCESS');
     }
 
     logger.info('WeChat callback received', {

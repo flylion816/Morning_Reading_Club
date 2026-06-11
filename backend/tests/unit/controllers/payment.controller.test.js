@@ -84,6 +84,21 @@ describe('Payment Controller', () => {
         package: 'prepay_id=mock_prepay_id',
         signType: 'MD5',
         paySign: 'mock_sign'
+      }),
+      // 简单 XML 解析，从 CDATA 标签中提取字段值
+      xmlToObject: sandbox.stub().callsFake((xml) => {
+        const extract = (tag) => {
+          const m = xml.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([^\\]]+)\\]\\]></${tag}>`));
+          return m ? m[1] : '';
+        };
+        return {
+          return_code: extract('return_code'),
+          result_code: extract('result_code'),
+          out_trade_no: extract('out_trade_no'),
+          transaction_id: extract('transaction_id') || null,
+          err_code_des: extract('err_code_des') || null,
+          total_fee: extract('total_fee') || null
+        };
       })
     };
 

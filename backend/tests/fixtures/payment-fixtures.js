@@ -335,26 +335,14 @@ const confirmPaymentRequests = {
  * 支付回调请求体（微信）
  */
 const wechatCallbackRequests = {
-  // 支付成功
-  successCallback: {
-    order_no: testPayments.pendingPayment.orderNo,
-    transaction_id: 'wx_txn_success_123',
-    status: 'SUCCESS'
-  },
+  // 支付成功（XML 字符串，模拟真实微信回调）
+  successCallback: `<xml><return_code><![CDATA[SUCCESS]]></return_code><result_code><![CDATA[SUCCESS]]></result_code><out_trade_no><![CDATA[${testPayments.pendingPayment.orderNo}]]></out_trade_no><transaction_id><![CDATA[wx_txn_success_123]]></transaction_id></xml>`,
 
-  // 支付失败
-  failureCallback: {
-    order_no: testPayments.processingPayment.orderNo,
-    transaction_id: null,
-    status: 'FAILED'
-  },
+  // 支付失败（XML 字符串）
+  failureCallback: `<xml><return_code><![CDATA[SUCCESS]]></return_code><result_code><![CDATA[FAIL]]></result_code><out_trade_no><![CDATA[${testPayments.processingPayment.orderNo}]]></out_trade_no><err_code_des><![CDATA[支付失败]]></err_code_des></xml>`,
 
-  // 不存在的订单
-  nonExistentOrderCallback: {
-    order_no: `ORDER_${Date.now()}_nonexistent`,
-    transaction_id: null,
-    status: 'SUCCESS'
-  }
+  // 不存在的订单（XML 字符串）
+  nonExistentOrderCallback: `<xml><return_code><![CDATA[SUCCESS]]></return_code><result_code><![CDATA[SUCCESS]]></result_code><out_trade_no><![CDATA[ORDER_${Date.now()}_nonexistent]]></out_trade_no></xml>`
 };
 
 /**
