@@ -837,9 +837,8 @@ describe('Checkin Controller', () => {
         limit: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves(mockCheckins)
       });
-      CheckinStub.find.onSecondCall().returns({
-        select: sandbox.stub().resolves(mockCheckins)
-      });
+      CheckinStub.aggregate.resolves([{ totalPoints: 100 }]);
+      CheckinStub.distinct.resolves([]);
 
       await checkinController.getAdminCheckins(req, res, next);
 
@@ -861,9 +860,8 @@ describe('Checkin Controller', () => {
         limit: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves([])
       });
-      CheckinStub.find.onSecondCall().returns({
-        select: sandbox.stub().resolves([])
-      });
+      CheckinStub.aggregate.resolves([]);
+      CheckinStub.distinct.resolves([]);
 
       await checkinController.getAdminCheckins(req, res, next);
 
@@ -2756,9 +2754,8 @@ describe('Checkin Controller', () => {
         limit: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves([])
       });
-      CheckinStub.find.onSecondCall().returns({
-        select: sandbox.stub().resolves([])
-      });
+      CheckinStub.aggregate.resolves([{ totalPoints: 0 }]);
+      CheckinStub.distinct.resolves([]);
 
       await checkinController.getAdminCheckins(req, res, next);
 
@@ -2783,9 +2780,8 @@ describe('Checkin Controller', () => {
         limit: sandbox.stub().returnsThis(),
         select: sandbox.stub().resolves(mockCheckins)
       });
-      CheckinStub.find.onSecondCall().returns({
-        select: sandbox.stub().resolves(mockCheckins)
-      });
+      CheckinStub.aggregate.resolves([{ totalPoints: 200 }]);
+      CheckinStub.distinct.resolves([]);
 
       await checkinController.getAdminCheckins(req, res, next);
 

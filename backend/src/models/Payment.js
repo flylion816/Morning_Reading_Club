@@ -119,6 +119,7 @@ PaymentSchema.index({ createdAt: -1 }); // 按创建时间排序
 PaymentSchema.index({ paidAt: -1 }); // 按支付时间排序
 PaymentSchema.index({ reconciled: 1, createdAt: -1 }); // 核销状态查询
 PaymentSchema.index({ tenantId: 1, orderNo: 1 }, { unique: true });
+PaymentSchema.index({ orderNo: 1 }); // 微信回调按 orderNo 单独查询
 PaymentSchema.index({ tenantId: 1, createdAt: -1 });
 
 // 虚拟字段：是否已支付

@@ -778,11 +778,15 @@ async function getAdminCheckins(req, res, next) {
       }
     });
 
-    const [allCheckins, uniqueUsers] = await Promise.all([
-      Checkin.find(query).select('points'),
+    // 用 aggregate 替代全量 find + reduce，避免把所有记录 load 进内存
+    const [statsResult, uniqueUsers] = await Promise.all([
+      Checkin.aggregate([
+        { $match: query },
+        { $group: { _id: null, totalPoints: { $sum: '$points' } } }
+      ]),
       Checkin.distinct('userId', query)
     ]);
-    const totalPoints = allCheckins.reduce((sum, c) => sum + (c.points || 0), 0);
+    const totalPoints = statsResult[0]?.totalPoints ?? 0;
 
     res.json(
       success({

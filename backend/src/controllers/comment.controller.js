@@ -85,6 +85,14 @@ async function createComment(req, res, next) {
     const { checkinId, content } = req.body;
     const userId = getRequestUserId(req);
 
+    // 校验评论内容
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return res.status(400).json(errors.badRequest('评论内容不能为空'));
+    }
+    if (content.length > 500) {
+      return res.status(400).json(errors.badRequest('评论内容不能超过500字'));
+    }
+
     // 验证打卡存在
     const checkin = await loadCheckinWithRelations(checkinId);
     if (!checkin) {
