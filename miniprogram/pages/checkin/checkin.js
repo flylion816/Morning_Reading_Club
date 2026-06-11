@@ -115,6 +115,9 @@ Page({
     if (options.checkinId) {
       this.setData({ checkinId: options.checkinId, isEditMode: true });
       wx.setNavigationBarTitle({ title: '编辑打卡' });
+    } else {
+      // 记录进入页面的时间，提交时用于计算阅读时长
+      this._readingStartTime = Date.now();
     }
 
     // 兼容多种参数形式：courseId、id、sectionId
@@ -581,20 +584,20 @@ Page({
       }
 
       // 构造后端需要的打卡数据
+      // readingTime：从进入页面到提交的时长（分钟），最少 1 分钟，最多 120 分钟
+      const elapsedMinutes = this._readingStartTime
+        ? Math.min(120, Math.max(1, Math.round((Date.now() - this._readingStartTime) / 1000 / 60)))
+        : 1;
       const submitData = {
-        sectionId: this.data.sectionId || this.data.courseId, // sectionId 和 courseId 在这里应该是一样的
-        periodId: periodId, // 从课节或全局数据获取
-        day: this.data.sectionDay || 1, // 课节的day值（表示第几节课）
-        readingTime: Math.floor(Math.random() * 30) + 10, // 模拟阅读时间 10-40 分钟
-        completionRate: 88, // 模拟完成度
+        sectionId: this.data.sectionId || this.data.courseId,
+        periodId: periodId,
+        day: this.data.sectionDay || 1,
+        readingTime: elapsedMinutes,
+        completionRate: 100, // 提交即视为完成
         note: diaryContent,
         isPublic: this.data.visibility === 'all',
         mood: 'happy'
       };
-
-      console.log('计算的day值:', submitData.day);
-
-      console.log('提交打卡数据:', submitData);
 
       const result = await checkinService.submitCheckin(submitData);
       activityService.track('checkin_submit', {
