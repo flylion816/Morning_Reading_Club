@@ -114,8 +114,8 @@
 }
 
 .form-group:first-of-type {
-  margin-top: 30rpx;
-  padding-top: 30rpx;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
 }
 
 .form-group:last-of-type {

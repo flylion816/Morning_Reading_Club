@@ -659,6 +659,8 @@ Page({
       this.setData({ isDirty: false, diaryContent: '' });
 
       wx.hideLoading();
+      getApp().globalData.checkinListDirty = true;
+      console.log('[打卡成功] 已设置 checkinListDirty=true，首页将刷新');
       this.showCheckinCelebration();
     } catch (error) {
       wx.hideLoading();

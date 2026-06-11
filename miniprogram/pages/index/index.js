@@ -256,6 +256,15 @@ Page({
       podcastPlaying: !!app.globalData.podcastPlaying,
       podcastSectionId: app.globalData.podcastSectionId || ''
     });
+    // 打卡新增或删除时强制刷新"我的打卡"列表（跳过节流）
+    if (app.globalData.checkinListDirty) {
+      console.log('[首页 onShow] 检测到 checkinListDirty，强制刷新我的打卡');
+      app.globalData.checkinListDirty = false;
+      this.loadRecentCheckins().then(recentCheckins => {
+        this.setData({ recentCheckins });
+        console.log('[首页 onShow] 我的打卡已刷新，条数:', recentCheckins.length);
+      }).catch(() => {});
+    }
     // 登录状态每次都检查；全量数据刷新 30 秒内只做一次
     const now = Date.now();
     const shouldRefreshData = !this._lastLoadTime || now - this._lastLoadTime >= 30000;

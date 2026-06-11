@@ -85,6 +85,7 @@
     <textarea
       class="diary-textarea"
       placeholder="请输入日记内容..."
+      placeholder-style="padding: 12rpx 0; font-size: 28rpx; line-height: 1.6; color: #999;"
       value="{{diaryContent}}"
       bindinput="handleInput"
       maxlength="{{maxDiaryLength}}"

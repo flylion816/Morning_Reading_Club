@@ -337,7 +337,12 @@ exports.confirmPayment = async (req, res) => {
         return res.status(409).json(errors.conflict('支付正在确认中，请稍后查询结果'));
       }
       if (existing.status === 'completed') {
-        return res.status(400).json(errors.badRequest('支付已确认'));
+        // webhook 先到已确认，前端再调属幂等成功，直接返 200
+        let existingEnrollment = null;
+        if (existing.enrollmentId) {
+          existingEnrollment = await Enrollment.findById(existing.enrollmentId);
+        }
+        return res.json(success({ payment: existing, enrollment: existingEnrollment }, '支付已确认'));
       }
       return res.status(400).json(errors.badRequest('当前支付状态不允许确认'));
     }

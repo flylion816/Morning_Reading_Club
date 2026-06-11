@@ -2752,6 +2752,8 @@ Page({
           await checkinService.deleteCheckin(detailCheckin.id);
           wx.hideLoading();
           wx.showToast({ title: '删除成功', icon: 'success' });
+          getApp().globalData.checkinListDirty = true;
+          console.log('[删除打卡] 成功，已设置 checkinListDirty=true，1.5s 后返回');
           setTimeout(() => wx.navigateBack(), 1500);
         } catch (error) {
           wx.hideLoading();
