@@ -296,9 +296,11 @@ Page({
   _saveDraft() {
     const { sectionId, diaryContent, visibility } = this.data;
     if (!sectionId || !diaryContent) return;
+    const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id;
+    // userId 未就绪时不保存，避免草稿 key 回退到 guest 导致多用户共享
+    if (!userId) return;
     this.setData({ autoSaveStatus: '保存中...' });
     try {
-      const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id || 'guest';
       tenantStorage.set(`checkin_draft_${userId}_${sectionId}`, { content: diaryContent, visibility, savedAt: Date.now() });
       const now = new Date();
       const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -326,16 +328,18 @@ Page({
   _clearDraft() {
     const { sectionId } = this.data;
     if (!sectionId) return;
+    const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id;
+    if (!userId) return;
     try {
-      const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id || 'guest';
       tenantStorage.remove(`checkin_draft_${userId}_${sectionId}`);
     } catch (e) {}
   },
 
   // 草稿：恢复
   _restoreDraft(sectionId) {
+    const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id;
+    if (!userId) return;
     try {
-      const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id || 'guest';
       const draft = tenantStorage.get(`checkin_draft_${userId}_${sectionId}`);
       if (draft && draft.content) {
         this.setData({
