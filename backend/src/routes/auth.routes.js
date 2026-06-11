@@ -1,7 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
-const { wechatLogin, refreshToken, logout } = require('../controllers/auth.controller');
+const { wechatLogin, refreshToken, logout, getPhoneNumber } = require('../controllers/auth.controller');
 const { authMiddleware } = require('../middleware/auth');
 const { userTenantContext } = require('../middleware/tenantContext');
 const { generateWsToken, WS_TOKEN_TTL_SECONDS } = require('../utils/jwt');
@@ -27,6 +27,13 @@ router.post('/refresh', refreshToken);
  * @access  Private
  */
 router.post('/logout', authMiddleware, logout);
+
+/**
+ * @route   POST /api/v1/auth/phone
+ * @desc    微信授权获取手机号（button open-type=getPhoneNumber 的 code 换手机号）
+ * @access  Private（需登录，防止匿名消耗微信接口配额）
+ */
+router.post('/phone', authMiddleware, userTenantContext, getPhoneNumber);
 
 /**
  * @route   POST /api/v1/auth/ws-token

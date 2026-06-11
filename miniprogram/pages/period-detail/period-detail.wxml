@@ -64,8 +64,9 @@
 
     <!-- 底部报名按钮 -->
     <view class="bottom-bar">
-      <view class="enroll-btn {{period.calculatedStatus === 'completed' ? 'disabled' : ''}}" bindtap="handleEnroll">
+      <view class="enroll-btn {{period.calculatedStatus === 'completed' || period.enrollmentClosed ? 'disabled' : ''}}" bindtap="handleEnroll">
         <text wx:if="{{period.calculatedStatus === 'completed'}}">该期已结束</text>
+        <text wx:elif="{{period.enrollmentClosed}}">暂未开放报名</text>
         <text wx:elif="{{period.calculatedStatus === 'ongoing'}}">立即报名</text>
         <text wx:else>我要报名</text>
       </view>

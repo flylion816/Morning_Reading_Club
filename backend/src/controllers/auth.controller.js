@@ -227,8 +227,56 @@ async function logout(req, res, next) {
   }
 }
 
+// 调用微信手机号快速验证接口（新版 API，code 由 button open-type 授权产生，单次有效）
+async function requestWechatPhoneNumber(code) {
+  const axios = require('axios');
+  const subscribeMessageService = require('../services/subscribe-message.service');
+
+  const accessToken = await subscribeMessageService.getAccessToken();
+  const response = await axios.post(
+    `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${accessToken}`,
+    { code },
+    { timeout: 5000 }
+  );
+  return response.data || {};
+}
+
+// 微信授权获取手机号
+async function getPhoneNumber(req, res, next) {
+  try {
+    const { code } = req.body;
+
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json(errors.badRequest('缺少手机号授权 code'));
+    }
+
+    let data = await requestWechatPhoneNumber(code);
+
+    // access_token 失效时清缓存重试一次（code 未被消费，可安全重试）
+    if (data.errcode === 40001 || data.errcode === 42001) {
+      const subscribeMessageService = require('../services/subscribe-message.service');
+      subscribeMessageService.clearAccessTokenCache();
+      data = await requestWechatPhoneNumber(code);
+    }
+
+    if (data.errcode !== 0 || !data.phone_info || !data.phone_info.purePhoneNumber) {
+      logger.warn('WeChat getuserphonenumber failed', {
+        errcode: data.errcode,
+        errmsg: data.errmsg
+      });
+      return res.status(400).json(errors.badRequest('手机号获取失败，请手动输入'));
+    }
+
+    res.json(success({ phone: data.phone_info.purePhoneNumber }, '手机号获取成功'));
+  } catch (error) {
+    logger.error('Get phone number failed', error);
+    res.status(500).json(errors.serverError('手机号获取失败，请稍后重试'));
+  }
+}
+
 module.exports = {
   wechatLogin,
   refreshToken,
-  logout
+  logout,
+  getPhoneNumber
 };

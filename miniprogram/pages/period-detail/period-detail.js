@@ -89,6 +89,8 @@ Page({
           ...period,
           dateRange: formatDateRange(startDate, endDate),
           calculatedStatus,
+          // 仅显式 false 视为未开放，兼容无此字段的历史期次
+          enrollmentClosed: period.enrollmentOpen === false,
           priceDisplay: formatAmountInYuan(period.price || 0)
         },
         statusText: statusMap[calculatedStatus] || ''
@@ -113,6 +115,17 @@ Page({
     const app = getApp();
     const isLogin = app.globalData.isLogin;
     const periodId = this.data.periodId;
+    const period = this.data.period || {};
+
+    if (period.calculatedStatus === 'completed') {
+      wx.showToast({ title: '该期晨读营已结束', icon: 'none' });
+      return;
+    }
+
+    if (period.enrollmentClosed) {
+      wx.showToast({ title: '该期暂未开放报名，敬请期待', icon: 'none' });
+      return;
+    }
 
     if (!isLogin) {
       // 未登录：弹窗提示，引导登录

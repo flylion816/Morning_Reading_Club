@@ -433,4 +433,83 @@ describe('Auth Controller - 100% Coverage', () => {
       expect(res.json.getCall(0).args[0]).to.deep.equal(responseData);
     });
   });
+
+  // =====================================================
+  // TC-AUTH-009: 微信授权获取手机号（真实调用 controller）
+  // =====================================================
+  describe('getPhoneNumber - TC-AUTH-009: 微信授权获取手机号', () => {
+    const authController = require('../../../src/controllers/auth.controller');
+    const axios = require('axios');
+    const subscribeMessageService = require('../../../src/services/subscribe-message.service');
+
+    beforeEach(() => {
+      sandbox.stub(subscribeMessageService, 'getAccessToken').resolves('mock_access_token');
+      sandbox.stub(subscribeMessageService, 'clearAccessTokenCache');
+    });
+
+    it('应该返回400当缺少 code', async () => {
+      const axiosPost = sandbox.stub(axios, 'post');
+      req.body = {};
+
+      await authController.getPhoneNumber(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(axiosPost.called).to.be.false;
+    });
+
+    it('应该成功换取手机号', async () => {
+      const axiosPost = sandbox.stub(axios, 'post').resolves({
+        data: { errcode: 0, phone_info: { purePhoneNumber: '13512343520' } }
+      });
+      req.body = { code: 'phone_auth_code' };
+
+      await authController.getPhoneNumber(req, res, next);
+
+      expect(axiosPost.calledOnce).to.be.true;
+      const [url, body] = axiosPost.getCall(0).args;
+      expect(url).to.include('getuserphonenumber?access_token=mock_access_token');
+      expect(body).to.deep.equal({ code: 'phone_auth_code' });
+
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.phone).to.equal('13512343520');
+    });
+
+    it('应该返回400当微信返回业务错误码', async () => {
+      sandbox.stub(axios, 'post').resolves({
+        data: { errcode: 40029, errmsg: 'invalid code' }
+      });
+      req.body = { code: 'bad_code' };
+
+      await authController.getPhoneNumber(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('手机号获取失败');
+    });
+
+    it('应该在 access_token 失效时清缓存并重试一次', async () => {
+      const axiosPost = sandbox.stub(axios, 'post');
+      axiosPost.onFirstCall().resolves({ data: { errcode: 40001, errmsg: 'invalid credential' } });
+      axiosPost.onSecondCall().resolves({
+        data: { errcode: 0, phone_info: { purePhoneNumber: '13512343520' } }
+      });
+      req.body = { code: 'phone_auth_code' };
+
+      await authController.getPhoneNumber(req, res, next);
+
+      expect(subscribeMessageService.clearAccessTokenCache.calledOnce).to.be.true;
+      expect(axiosPost.calledTwice).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.phone).to.equal('13512343520');
+    });
+
+    it('应该返回500当微信接口请求异常', async () => {
+      sandbox.stub(axios, 'post').rejects(new Error('network error'));
+      req.body = { code: 'phone_auth_code' };
+
+      await authController.getPhoneNumber(req, res, next);
+
+      expect(res.status.calledWith(500)).to.be.true;
+    });
+  });
 });
