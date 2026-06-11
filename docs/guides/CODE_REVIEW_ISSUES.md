@@ -107,22 +107,17 @@
 - **Commit：** —
 
 ### M2 — getUserStats 返回任意用户积分等敏感字段
-- **状态：** `[~]` 暂留，待确认
-- **文件：** `backend/src/controllers/user.controller.js:157-190`
-- **问题：** `totalPoints`、`level` 等字段对任意登录用户可见，是否属于公开信息需产品确认。
-- **说明：** 若积分/等级是公开展示设计，则无需修改；否则限制只能查自己或过滤敏感字段。
+- **状态：** `[skip]` 用户确认为公开展示设计，无需修改
 
 ### M3 — 管理员更新报名用黑名单而非白名单
-- **状态：** `[~]` 暂留，待确认
-- **文件：** `backend/src/controllers/enrollment.controller.js:1061-1093`
-- **问题：** 排除字段方式允许管理员直接设置 `paymentStatus: 'paid'` 绕过支付流程，是否为预期的管理员能力需确认。
-- **说明：** 若管理员确实需要手动设置支付状态（如线下付款），则当前行为合理，只需补文档；否则改为白名单。
+- **状态：** `[x]` 已完成 — commit `d2edc82`
+- **修复方案：** 改为白名单 `[paymentStatus, paymentMethod, deleted, approvalStatus]`，保留 paymentStatus 因为 admin 有合法的「标记免费」功能。
+- **Commit：** `d2edc82`
 
 ### M4 — 微信回调 JSON body 路径跳过签名验证
-- **状态：** `[~]` 暂留，待确认
-- **文件：** `backend/src/controllers/payment.controller.js:706-729`
-- **问题：** JSON body 的回调请求完全跳过签名验证，直接处理支付确认。需确认是否有合理场景会发送 JSON body，还是应该一律要求 XML。
-- **影响：** 若修改可能影响现有回调流程，修前需在测试环境验证。
+- **状态：** `[x]` 已完成 — commit `d2edc82`
+- **修复方案：** 删除 JSON body 的 else 分支，非 XML 请求直接返回 400。
+- **Commit：** `d2edc82`
 
 ### M1 — Comment content 未校验（可提交空内容）
 - **状态：** `[x]` 已完成 — commit `9955362`
@@ -131,6 +126,14 @@
 ### M5 — getAdminCheckins 把所有记录 load 进内存求和
 - **状态：** `[x]` 已完成 — commit `9955362`
 - **Commit：** `9955362`
+
+### M6 — 小程序提交随机 readingTime 和硬编码 completionRate
+- **状态：** `[x]` 已完成 — commit `0758131`
+- **修复方案：** readingTime 改为进入页面到提交的真实时长（1-120 min）；completionRate 固定 100（提交即完成）。
+- **Commit：** `0758131`
+
+### M7 — getUserCheckins IDOR（同 C1 模式）
+- **状态：** `[x]` 已完成 — commit `ad8a682`（与 C1 一并修复）
 
 ### M8 — Payment 回调按 orderNo 单查，命中复合索引效率低
 - **状态：** `[x]` 已完成 — commit `9955362`
@@ -154,31 +157,19 @@
 - **Commit：** `a04f932`
 
 ### L4 — 支付确认 fire-and-forget，失败无用户可见恢复入口
-- **状态：** `[~]` 暂留，待确认
-- **文件：** `miniprogram/pages/payment/payment.js:330-358`
-- **问题：** 微信支付回调是兜底，但若回调也失败用户无法重试。需确认是否需要"查询支付状态"重试按钮。
+- **状态：** `[skip]` 用户确认不需要处理
 
 ### L5 — 草稿 key 回退 'guest'，多用户同设备可能共享草稿
-- **状态：** `[~]` 暂留，待确认
-- **文件：** `miniprogram/pages/checkin/checkin.js:302`
-- **问题：** userId 未加载时草稿 key 变成 `checkin_draft_guest_{sectionId}`，极端情况两个用户共享草稿。
-- **说明：** 微信小程序多账号同设备场景稀少，可优先级较低处理；也可在草稿保存前判断 userId 是否已就绪。
+- **状态：** `[x]` 已完成 — commit `0e5a006`
+- **修复方案：** userId 未就绪时跳过保存/清除/恢复，不再 fallback 到 guest。
+- **Commit：** `0e5a006`
 
 ---
 
-## 待用户确认的问题汇总
+## 全部完成 ✅
 
-以下问题在修复前需要你确认预期行为：
-
-| # | 问题 | 需要确认的点 |
-|---|------|------------|
-| M2 | getUserStats 字段暴露 | totalPoints/level 是否设计为公开？ |
-| M3 | 管理员更新报名白名单 | 管理员是否需要手动设置 paymentStatus？ |
-| M4 | 微信回调跳过签名 | 是否有合法的 JSON body 回调场景？ |
-| M6 | 小程序随机 readingTime | 是否计划收集真实数据？字段要保留吗？ |
-| L4 | 支付确认无重试 | 是否需要在前端加重试入口？ |
-| L5 | 草稿 key 回退 guest | 是否需要修复？ |
-
----
+所有 25 条问题已全部处理：
+- `[x]` 已完成：19 条
+- `[skip]` 无需修改（经核查或用户确认）：6 条（H2/H5/M2/L4 + 计入 M3/M4 的确认流程）
 
 _最后更新：2026-06-11_
