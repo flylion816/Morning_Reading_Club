@@ -383,6 +383,20 @@ async function cancelAttend(req, res) {
     const { id } = req.params;
     const userId = getUserId(req);
 
+    // 先确认印记存在
+    const imprint = await Imprint.findById(id).lean();
+    if (!imprint) {
+      return res.status(404).json(errors.notFound('印记不存在'));
+    }
+
+    // 只能取消自己的在场记录，防止越权移除他人
+    const isAttendee = (imprint.attendees || []).some(
+      a => a.userId && a.userId.toString() === userId.toString()
+    );
+    if (!isAttendee) {
+      return res.status(403).json(errors.forbidden('你不在此印记的在场列表中'));
+    }
+
     await Imprint.findByIdAndUpdate(id, {
       $pull: { attendees: { userId } }
     });
