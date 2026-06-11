@@ -1,0 +1,326 @@
+import react from '@vitejs/plugin-react';
+import fs from 'node:fs';
+import path from 'node:path';
+import { defineConfig } from 'vite';
+
+const providerDefaults = {
+  openai_responses: {
+    label: 'OpenAI Responses',
+    baseUrl: '',
+    model: 'gpt-4.1-mini',
+  },
+  xiaomi_mimo: {
+    label: '小米 MiMo Token Plan',
+    baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
+    model: 'mimo-v2.5-pro',
+  },
+  openai_compatible: {
+    label: 'OpenAI 兼容接口',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4.1-mini',
+  },
+} as const;
+
+type AIProvider = keyof typeof providerDefaults;
+type LocalSettings = {
+  provider?: AIProvider;
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+};
+
+type PromptImage = {
+  dataUrl?: string;
+  fileName?: string;
+};
+
+type PromptPayload = {
+  instructions: string;
+  input: string;
+  schema: { schema: unknown };
+  images?: PromptImage[];
+};
+
+function localSettingsPath() {
+  return path.join(process.cwd(), '.local', 'settings.json');
+}
+
+function normalizeProvider(provider: unknown): AIProvider {
+  return typeof provider === 'string' && provider in providerDefaults ? (provider as AIProvider) : 'openai_responses';
+}
+
+function defaultSettings(): Required<LocalSettings> {
+  const provider = normalizeProvider(process.env.OBSERVER_AI_PROVIDER || process.env.AI_PROVIDER);
+  return {
+    provider,
+    apiKey: process.env.XIAOMI_API_KEY || process.env.MIMO_API_KEY || process.env.OPENAI_API_KEY || process.env.AI_API_KEY || '',
+    baseUrl: providerDefaults[provider].baseUrl,
+    model:
+      process.env.XIAOMI_MODEL ||
+      process.env.MIMO_MODEL ||
+      process.env.OPENAI_MODEL ||
+      process.env.AI_MODEL ||
+      providerDefaults[provider].model,
+  };
+}
+
+function normalizeSettings(settings: LocalSettings): Required<LocalSettings> {
+  const provider = normalizeProvider(settings.provider);
+  return {
+    provider,
+    apiKey: typeof settings.apiKey === 'string' ? settings.apiKey : '',
+    baseUrl: provider === 'openai_responses' ? '' : String(settings.baseUrl || providerDefaults[provider].baseUrl).trim(),
+    model: String(settings.model || providerDefaults[provider].model).trim(),
+  };
+}
+
+function readSettings() {
+  const fallback = defaultSettings();
+  try {
+    const raw = JSON.parse(fs.readFileSync(localSettingsPath(), 'utf8')) as LocalSettings;
+    return normalizeSettings({ ...fallback, ...raw });
+  } catch {
+    return normalizeSettings(fallback);
+  }
+}
+
+function writeSettings(settings: LocalSettings & { apiKey?: string }) {
+  const current = readSettings();
+  const provider = normalizeProvider(settings.provider || current.provider);
+  const next = normalizeSettings({
+    provider,
+    apiKey: settings.apiKey === '__KEEP__' ? current.apiKey : String(settings.apiKey || '').trim(),
+    baseUrl: provider === 'openai_responses' ? '' : String(settings.baseUrl || providerDefaults[provider].baseUrl).trim(),
+    model: String(settings.model || providerDefaults[provider].model).trim(),
+  });
+  fs.mkdirSync(path.dirname(localSettingsPath()), { recursive: true });
+  fs.writeFileSync(localSettingsPath(), JSON.stringify(next, null, 2));
+  return publicSettings(next);
+}
+
+function publicSettings(settings: Required<LocalSettings>) {
+  return {
+    provider: settings.provider,
+    apiKey: settings.apiKey ? '********' : '',
+    hasApiKey: Boolean(settings.apiKey),
+    baseUrl: settings.baseUrl,
+    model: settings.model,
+  };
+}
+
+function readBody(req: { on: (event: string, listener: (chunk?: Buffer) => void) => void }) {
+  return new Promise<unknown>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => {
+      if (chunk) {
+        chunks.push(chunk);
+      }
+    });
+    req.on('end', () => {
+      const raw = Buffer.concat(chunks).toString('utf8');
+      if (!raw) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(raw));
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function sendJson(res: { statusCode: number; setHeader: (key: string, value: string) => void; end: (body: string) => void }, status: number, payload: unknown) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(payload));
+}
+
+function parseJsonText(text: string) {
+  const cleaned = String(text || '')
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    }
+    throw new Error('模型返回的内容不是可解析的 JSON。');
+  }
+}
+
+function chatCompletionsUrl(baseUrl: string) {
+  const normalized = String(baseUrl || '').trim().replace(/\/+$/, '');
+  if (!normalized) {
+    throw new Error('请填写 OpenAI 兼容接口的 Base URL。');
+  }
+  return normalized.endsWith('/chat/completions') ? normalized : `${normalized}/chat/completions`;
+}
+
+function normalizeMessageContent(content: unknown) {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => {
+        if (item && typeof item === 'object' && 'text' in item) {
+          return String(item.text || '');
+        }
+        if (item && typeof item === 'object' && 'content' in item) {
+          return String(item.content || '');
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+  return '';
+}
+
+function buildUserContent(promptPayload: PromptPayload) {
+  const images = (promptPayload.images || []).filter((image) => image.dataUrl);
+  const text = `${promptPayload.input}\n\n请严格按下面 JSON Schema 输出：\n${JSON.stringify(promptPayload.schema.schema, null, 2)}`;
+  if (images.length === 0) {
+    return text;
+  }
+
+  return [
+    { type: 'text', text },
+    ...images.map((image) => ({
+      type: 'image_url',
+      image_url: {
+        url: image.dataUrl,
+        detail: 'high',
+      },
+    })),
+  ];
+}
+
+async function createChatCompletion(promptPayload: PromptPayload) {
+  const settings = readSettings();
+  if (!settings.apiKey) {
+    throw new Error(`请先在设置里填写 ${providerDefaults[settings.provider].label} API Key。`);
+  }
+
+  const body: Record<string, unknown> = {
+    model: settings.model,
+    messages: [
+      {
+        role: 'system',
+        content: `${promptPayload.instructions}\n\n你必须只输出一个 JSON 对象，不要输出 Markdown，不要解释。`,
+      },
+      {
+        role: 'user',
+        content: buildUserContent(promptPayload),
+      },
+    ],
+    temperature: 0.4,
+    response_format: { type: 'json_object' },
+  };
+
+  if (settings.provider === 'xiaomi_mimo') {
+    body.max_completion_tokens = 2200;
+  } else {
+    body.max_tokens = 2200;
+  }
+
+  const headers =
+    settings.provider === 'xiaomi_mimo'
+      ? { 'api-key': settings.apiKey, 'Content-Type': 'application/json' }
+      : { Authorization: `Bearer ${settings.apiKey}`, 'Content-Type': 'application/json' };
+
+  async function post(payload: Record<string, unknown>) {
+    const response = await fetch(chatCompletionsUrl(settings.baseUrl), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    const responsePayload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message =
+        responsePayload && typeof responsePayload === 'object' && 'error' in responsePayload
+          ? (responsePayload.error as { message?: string })?.message
+          : undefined;
+      throw new Error(message || `${providerDefaults[settings.provider].label} 请求失败。`);
+    }
+    return responsePayload as { choices?: Array<{ message?: { content?: unknown } }> };
+  }
+
+  let payload;
+  try {
+    payload = await post(body);
+  } catch (error) {
+    if (!String(error instanceof Error ? error.message : error).toLowerCase().includes('response_format')) {
+      throw error;
+    }
+    const retryBody = { ...body };
+    delete retryBody.response_format;
+    payload = await post(retryBody);
+  }
+
+  const text = normalizeMessageContent(payload.choices?.[0]?.message?.content);
+  if (!text) {
+    throw new Error(`${providerDefaults[settings.provider].label} 没有返回可解析文本。`);
+  }
+  return parseJsonText(text);
+}
+
+export default defineConfig({
+  plugins: [
+    react(),
+    {
+      name: 'observer-local-api',
+      configureServer(server) {
+        server.middlewares.use('/api/settings', async (req, res) => {
+          try {
+            if (req.method === 'GET') {
+              sendJson(res, 200, publicSettings(readSettings()));
+              return;
+            }
+            if (req.method === 'POST') {
+              sendJson(res, 200, writeSettings((await readBody(req)) as LocalSettings));
+              return;
+            }
+            sendJson(res, 405, { error: 'Method Not Allowed' });
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : '设置接口失败。' });
+          }
+        });
+
+        server.middlewares.use('/api/analyzeSpeaker', async (req, res) => {
+          try {
+            sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : 'AI 请求失败。' });
+          }
+        });
+
+        server.middlewares.use('/api/summarizeSession', async (req, res) => {
+          try {
+            sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : 'AI 请求失败。' });
+          }
+        });
+      },
+    },
+  ],
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
+});

@@ -1,0 +1,230 @@
+{
+  "nodes": [
+    {
+      "id": "data_flow_diagram",
+      "label": "Data Flow Diagram",
+      "type": "document",
+      "source_file": ".omm/data-flow/meta.yaml",
+      "summary": "Top-level architecture diagram grouping models by product capability to show data flow across MongoDB, MySQL, and Redis stores."
+    },
+    {
+      "id": "primary_store",
+      "label": "Primary Store (MongoDB)",
+      "type": "component",
+      "source_file": ".omm/data-flow/context.md",
+      "summary": "MongoDB is the authoritative store for all live application data."
+    },
+    {
+      "id": "derived_store",
+      "label": "Derived Store (MySQL)",
+      "type": "component",
+      "source_file": ".omm/data-flow/derived-store/description.md",
+      "summary": "MySQL derived store used for synchronized copies, comparisons, backups, and recovery workflows with data transformed from MongoDB."
+    },
+    {
+      "id": "redis_runtime",
+      "label": "Runtime Store (Redis)",
+      "type": "component",
+      "source_file": ".omm/data-flow/redis-runtime/description.md",
+      "summary": "Redis runtime data includes cache entries, monitoring samples, rate-limit counters, alert throttles, and MongoDB-to-MySQL sync queue tasks."
+    },
+    {
+      "id": "sync_service",
+      "label": "Sync Service",
+      "type": "process",
+      "source_file": ".omm/data-flow/sync-service/description.md",
+      "summary": "MongoDB-to-MySQL sync service that listens for MongoDB change events, serializes them into a Redis queue, and has a consumer write to MySQL."
+    },
+    {
+      "id": "backup_service",
+      "label": "Backup Service",
+      "type": "process",
+      "source_file": ".omm/data-flow/backup-service/description.md",
+      "summary": "Scheduled backup service that runs daily: MongoDB at 02:00, MySQL at 02:30, and cleans expired backup files at 03:00."
+    },
+    {
+      "id": "identity_data",
+      "label": "Identity Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/meta.yaml",
+      "summary": "User and admin tokens and profiles used to authenticate protected flows."
+    },
+    {
+      "id": "learning_content",
+      "label": "Learning Content",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/learning-content/description.md",
+      "summary": "Period and Section documents plus reading task metadata exposed to public browsing, enrolled users, and admin content-management screens."
+    },
+    {
+      "id": "enrollment_payment",
+      "label": "Enrollment and Payment",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/enrollment-payment/description.md",
+      "summary": "Enrollment and Payment models covering access checks, payment initiation, confirmation, cancellation, WeChat callback handling, and membership status updates."
+    },
+    {
+      "id": "participation_data",
+      "label": "Participation Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/meta.yaml",
+      "summary": "Checkins, comments, and rankings that feed visibility, stats, and ranking features."
+    },
+    {
+      "id": "insight_data",
+      "label": "Insight Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/insight-data/description.md",
+      "summary": "Manual or generated insight documents, insight request workflows, approvals/rejections/revocation, likes, admin edits, and danmaku records."
+    },
+    {
+      "id": "notification_data",
+      "label": "Notification Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/meta.yaml",
+      "summary": "Notifications, subscribe grants, and deliveries that notify users and record delivery state."
+    },
+    {
+      "id": "audit_ops_data",
+      "label": "Audit and Ops Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/audit-ops-data/description.md",
+      "summary": "Admin write audit logs, user activity records, monitoring metrics, alert throttle keys, backup metadata, database comparison output, and deployment helper artifacts."
+    }
+  ],
+  "edges": [
+    {
+      "source": "identity_data",
+      "target": "learning_content",
+      "relation": "authenticates protected user and admin flows for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "learning_content",
+      "target": "enrollment_payment",
+      "relation": "defines available periods and sections for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "enrollment_payment",
+      "target": "participation_data",
+      "relation": "unlocks access and membership enabling",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "participation_data",
+      "target": "insight_data",
+      "relation": "feeds visibility, stats, and ranking into",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "insight_data",
+      "target": "notification_data",
+      "relation": "creates requests, approvals, likes, and danmaku triggering",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "notification_data",
+      "target": "primary_store",
+      "relation": "notifies users and records delivery state in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "audit_ops_data",
+      "target": "primary_store",
+      "relation": "records admin writes and runtime actions in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "learning_content",
+      "target": "primary_store",
+      "relation": "stored as documents in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "enrollment_payment",
+      "target": "primary_store",
+      "relation": "stored as documents and synced to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "participation_data",
+      "target": "primary_store",
+      "relation": "stored as documents and synced to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "primary_store",
+      "target": "derived_store",
+      "relation": "transforms documents to relational rows in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "primary_store",
+      "target": "redis_runtime",
+      "relation": "publishes sync tasks and metrics to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "redis_runtime",
+      "target": "derived_store",
+      "relation": "drives async MySQL upserts into",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "sync_service",
+      "target": "primary_store",
+      "relation": "listens for change events from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "sync_service",
+      "target": "redis_runtime",
+      "relation": "pushes serialized change events into queue in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "sync_service",
+      "target": "derived_store",
+      "relation": "consumes queue and writes upserts to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backup_service",
+      "target": "primary_store",
+      "relation": "backs up daily at 02:00",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backup_service",
+      "target": "derived_store",
+      "relation": "backs up daily at 02:30",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "redis_runtime",
+      "target": "sync_service",
+      "relation": "provides sync queue consumed by",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "data_flow_diagram",
+      "target": "primary_store",
+      "relation": "documents architecture of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_flow_diagram",
+      "target": "derived_store",
+      "relation": "documents architecture of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_flow_diagram",
+      "target": "redis_runtime",
+      "relation": "documents architecture of",
+      "confidence": "EXTRACTED"
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,467 @@
+{
+  "nodes": [
+    {
+      "id": "data_flow_insight_data",
+      "label": "Insight Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/insight-data/meta.yaml",
+      "summary": "Data category for '小凡看见' feedback content in the system."
+    },
+    {
+      "id": "data_flow_identity_data",
+      "label": "Identity Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/identity-data/meta.yaml",
+      "summary": "WeChat openid/session-derived users, JWT tokens, admin accounts, and local token state."
+    },
+    {
+      "id": "data_flow_notification_data",
+      "label": "Notification Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/notification-data/meta.yaml",
+      "summary": "In-app notifications, subscribe-message grants, delivery records, and WebSocket push state."
+    },
+    {
+      "id": "data_flow_participation_data",
+      "label": "Participation Data",
+      "type": "data_model",
+      "source_file": ".omm/data-flow/participation-data/meta.yaml",
+      "summary": "Check-ins, comments, replies, likes, reading completions, and user activity records."
+    },
+    {
+      "id": "data_flow_primary_store",
+      "label": "Primary Store (MongoDB)",
+      "type": "component",
+      "source_file": ".omm/data-flow/primary-store/meta.yaml",
+      "summary": "MongoDB primary application store accessed through Mongoose models; production disconnects are fatal."
+    },
+    {
+      "id": "miniprogram_assets",
+      "label": "Miniprogram Assets",
+      "type": "component",
+      "source_file": "miniprogram/assets/README.md",
+      "summary": "Static assets directory for the WeChat miniprogram including images and icons."
+    },
+    {
+      "id": "miniprogram_tabbar_icons",
+      "label": "TabBar Icons",
+      "type": "component",
+      "source_file": "miniprogram/assets/icons/README.md",
+      "summary": "SVG/PNG TabBar icons for home and user tabs; must be converted to PNG for WeChat miniprogram use."
+    },
+    {
+      "id": "openspec_project",
+      "label": "OpenSpec Project Context",
+      "type": "document",
+      "source_file": "openspec/project.md",
+      "summary": "Project conventions, tech stack, domain context, and constraints for the 凡人共读 morning reading camp system."
+    },
+    {
+      "id": "openspec_agents",
+      "label": "OpenSpec AGENTS Guide",
+      "type": "document",
+      "source_file": "openspec/AGENTS.md",
+      "summary": "Three-stage spec-driven development workflow: create proposals, implement changes, archive completed changes."
+    },
+    {
+      "id": "openspec_change_immersive_share",
+      "label": "Change: Add Immersive Reading Share",
+      "type": "document",
+      "source_file": "openspec/changes/add-immersive-reading-share/proposal.md",
+      "summary": "Proposal to add full-screen immersive reading mode and '分享此刻' poster generation for course reading module."
+    },
+    {
+      "id": "openspec_change_immersive_share_tasks",
+      "label": "Tasks: Add Immersive Reading Share",
+      "type": "document",
+      "source_file": "openspec/changes/add-immersive-reading-share/tasks.md",
+      "summary": "Implementation checklist for immersive reading share: page route, entry point, content loading, poster generation."
+    },
+    {
+      "id": "openspec_change_immersive_share_spec",
+      "label": "Spec: Immersive Reading Mode (Share)",
+      "type": "document",
+      "source_file": "openspec/changes/add-immersive-reading-share/specs/immersive-reading/spec.md",
+      "summary": "Requirements for immersive reading mode and '分享此刻' poster with period, lesson, excerpt, and miniprogram code."
+    },
+    {
+      "id": "openspec_change_reading_celebration",
+      "label": "Change: Add Reading Completion Celebration",
+      "type": "document",
+      "source_file": "openspec/changes/add-reading-completion-celebration/proposal.md",
+      "summary": "Proposal to add non-blocking completion celebration after user finishes immersive reading, with server state tracking."
+    },
+    {
+      "id": "openspec_change_reading_celebration_tasks",
+      "label": "Tasks: Add Reading Completion Celebration",
+      "type": "document",
+      "source_file": "openspec/changes/add-reading-completion-celebration/tasks.md",
+      "summary": "Implementation checklist for reading completion celebration including session state, inline prompt, fireworks, and server sync."
+    },
+    {
+      "id": "openspec_change_reading_celebration_design",
+      "label": "Design: Reading Completion Celebration",
+      "type": "document",
+      "source_file": "openspec/changes/add-reading-completion-celebration/design.md",
+      "summary": "Technical design for reading completion: local session detection, server state via userId+sectionId, inline prompt, fireworks."
+    },
+    {
+      "id": "openspec_change_reading_celebration_spec",
+      "label": "Spec: Immersive Reading Completion (Celebration)",
+      "type": "document",
+      "source_file": "openspec/changes/add-reading-completion-celebration/specs/immersive-reading/spec.md",
+      "summary": "Requirements for valid reading completion detection, non-blocking encouragement prompt, fireworks effect, and server state."
+    },
+    {
+      "id": "openspec_change_sent_insight_status",
+      "label": "Change: Add Sent Insight Request Status",
+      "type": "document",
+      "source_file": "openspec/changes/add-sent-insight-request-status/tasks.md",
+      "summary": "Change to add '我发起的' tab to insight request page showing sent request statuses with segmented switching."
+    },
+    {
+      "id": "openspec_change_sent_insight_status_design",
+      "label": "Design: Sent Insight Request Status",
+      "type": "document",
+      "source_file": "openspec/changes/add-sent-insight-request-status/design.md",
+      "summary": "Design for showing sent InsightRequest statuses with segmented tabs, read-only view, and status label colors."
+    },
+    {
+      "id": "capability_immersive_reading",
+      "label": "Immersive Reading Capability",
+      "type": "concept",
+      "source_file": "openspec/changes/add-immersive-reading-share/specs/immersive-reading/spec.md",
+      "summary": "Full-screen focused reading mode for course '读一读' module with poster sharing and completion tracking."
+    },
+    {
+      "id": "model_user_reading_completion",
+      "label": "UserReadingCompletion Model",
+      "type": "data_model",
+      "source_file": "openspec/changes/add-reading-completion-celebration/proposal.md",
+      "summary": "Server-side model storing userId+sectionId reading completion with timestamp and duration, unique per user-section pair."
+    },
+    {
+      "id": "model_insight_request",
+      "label": "InsightRequest Model",
+      "type": "data_model",
+      "source_file": "openspec/changes/add-sent-insight-request-status/design.md",
+      "summary": "Model for '小凡看见' requests with pending/approved/rejected/revoked states, supporting both sent and received views."
+    },
+    {
+      "id": "api_reading_completion",
+      "label": "Reading Completion API",
+      "type": "api",
+      "source_file": "openspec/changes/add-reading-completion-celebration/proposal.md",
+      "summary": "Protected endpoint to report and retrieve reading completion status per userId+sectionId."
+    },
+    {
+      "id": "api_sent_insight_requests",
+      "label": "GET /insights/requests/sent",
+      "type": "api",
+      "source_file": "openspec/changes/add-sent-insight-request-status/design.md",
+      "summary": "Existing backend endpoint returning insight requests sent by the current user."
+    },
+    {
+      "id": "page_reading_mode",
+      "label": "Reading Mode Page",
+      "type": "component",
+      "source_file": "openspec/changes/add-immersive-reading-share/proposal.md",
+      "summary": "WeChat miniprogram page providing immersive full-screen reading with paragraph tracking and sharing."
+    },
+    {
+      "id": "page_insight_requests",
+      "label": "Insight Requests Page",
+      "type": "component",
+      "source_file": "openspec/changes/add-sent-insight-request-status/design.md",
+      "summary": "Miniprogram page showing received and sent insight requests with segmented tab switching."
+    },
+    {
+      "id": "page_home_today_task",
+      "label": "Home Today Task Entry",
+      "type": "component",
+      "source_file": "openspec/changes/add-reading-completion-celebration/design.md",
+      "summary": "Home page today's task section showing '去晨读'/'已晨读' entry based on reading completion state."
+    },
+    {
+      "id": "page_course_list",
+      "label": "Period Course List Page",
+      "type": "component",
+      "source_file": "openspec/changes/add-reading-completion-celebration/design.md",
+      "summary": "Period course list showing per-day completion markers for reading and check-in status."
+    },
+    {
+      "id": "service_insight",
+      "label": "insightService",
+      "type": "component",
+      "source_file": "openspec/changes/add-sent-insight-request-status/design.md",
+      "summary": "Frontend service providing getReceivedRequests() and getSentRequests() for insight request data."
+    },
+    {
+      "id": "util_reading_completion",
+      "label": "reading-completion.js Utility",
+      "type": "component",
+      "source_file": "openspec/changes/add-reading-completion-celebration/proposal.md",
+      "summary": "Miniprogram utility for local reading completion state management and server sync fallback."
+    },
+    {
+      "id": "process_openspec_workflow",
+      "label": "OpenSpec Three-Stage Workflow",
+      "type": "process",
+      "source_file": "openspec/AGENTS.md",
+      "summary": "Spec-driven development process: Stage 1 create proposal, Stage 2 implement, Stage 3 archive after deployment."
+    },
+    {
+      "id": "domain_period",
+      "label": "Period (学习期次)",
+      "type": "concept",
+      "source_file": "openspec/project.md",
+      "summary": "A learning cycle/cohort in the morning reading camp system."
+    },
+    {
+      "id": "domain_section",
+      "label": "Section (课节)",
+      "type": "concept",
+      "source_file": "openspec/project.md",
+      "summary": "A single day's lesson within a Period."
+    },
+    {
+      "id": "domain_checkin",
+      "label": "Checkin (打卡)",
+      "type": "concept",
+      "source_file": "openspec/project.md",
+      "summary": "User check-in record for a Section, distinct from reading completion."
+    },
+    {
+      "id": "domain_insight",
+      "label": "Insight (小凡看见)",
+      "type": "concept",
+      "source_file": "openspec/project.md",
+      "summary": "Personalized feedback content for users in the morning reading camp."
+    }
+  ],
+  "edges": [
+    {
+      "source": "data_flow_identity_data",
+      "target": "data_flow_primary_store",
+      "relation": "stored in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "data_flow_notification_data",
+      "target": "data_flow_primary_store",
+      "relation": "stored in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "data_flow_participation_data",
+      "target": "data_flow_primary_store",
+      "relation": "stored in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "data_flow_insight_data",
+      "target": "data_flow_primary_store",
+      "relation": "stored in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_tabbar_icons",
+      "target": "miniprogram_assets",
+      "relation": "contained in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_immersive_share",
+      "target": "capability_immersive_reading",
+      "relation": "proposes changes to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_immersive_share_spec",
+      "target": "capability_immersive_reading",
+      "relation": "defines requirements for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_immersive_share_tasks",
+      "target": "openspec_change_immersive_share",
+      "relation": "implements",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration",
+      "target": "capability_immersive_reading",
+      "relation": "extends with completion celebration",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration_spec",
+      "target": "capability_immersive_reading",
+      "relation": "adds requirements to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration_design",
+      "target": "openspec_change_reading_celebration",
+      "relation": "provides technical design for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration_tasks",
+      "target": "openspec_change_reading_celebration",
+      "relation": "implements",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration",
+      "target": "model_user_reading_completion",
+      "relation": "introduces",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration",
+      "target": "api_reading_completion",
+      "relation": "introduces",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration",
+      "target": "page_reading_mode",
+      "relation": "modifies",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration",
+      "target": "page_home_today_task",
+      "relation": "modifies",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration",
+      "target": "page_course_list",
+      "relation": "modifies",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_reading_celebration",
+      "target": "util_reading_completion",
+      "relation": "introduces",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_user_reading_completion",
+      "target": "data_flow_primary_store",
+      "relation": "stored in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "model_user_reading_completion",
+      "target": "domain_section",
+      "relation": "references",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_sent_insight_status",
+      "target": "page_insight_requests",
+      "relation": "modifies",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_sent_insight_status_design",
+      "target": "openspec_change_sent_insight_status",
+      "relation": "provides design for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_sent_insight_status",
+      "target": "model_insight_request",
+      "relation": "uses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_change_sent_insight_status",
+      "target": "api_sent_insight_requests",
+      "relation": "consumes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "service_insight",
+      "target": "api_sent_insight_requests",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "page_insight_requests",
+      "target": "service_insight",
+      "relation": "uses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_insight_request",
+      "target": "domain_insight",
+      "relation": "represents request for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_flow_participation_data",
+      "target": "domain_checkin",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_flow_insight_data",
+      "target": "domain_insight",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "domain_section",
+      "target": "domain_period",
+      "relation": "belongs to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "domain_checkin",
+      "target": "domain_section",
+      "relation": "records completion of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "page_reading_mode",
+      "target": "capability_immersive_reading",
+      "relation": "implements",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_agents",
+      "target": "process_openspec_workflow",
+      "relation": "documents",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "openspec_project",
+      "target": "openspec_agents",
+      "relation": "provides project context for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "util_reading_completion",
+      "target": "api_reading_completion",
+      "relation": "syncs with",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "page_home_today_task",
+      "target": "api_reading_completion",
+      "relation": "reads completion state from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "page_course_list",
+      "target": "api_reading_completion",
+      "relation": "reads completion state from",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

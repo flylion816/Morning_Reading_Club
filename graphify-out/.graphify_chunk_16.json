@@ -1,0 +1,238 @@
+{
+  "nodes": [
+    {
+      "id": "mongoose_models",
+      "label": "Mongoose Models",
+      "type": "component",
+      "source_file": ".omm/storage/mongoose-models/description.md",
+      "summary": "Mongoose model layer under backend/src/models/ defining document schemas, indexes, ObjectId relations, and model helper methods for business entities."
+    },
+    {
+      "id": "sync_service",
+      "label": "Sync Service",
+      "type": "component",
+      "source_file": ".omm/storage/sync-service/description.md",
+      "summary": "MongoDB-to-MySQL sync service in backend/src/services/sync.service.js that publishes events to Redis, consumes queued tasks, transforms documents, and performs upserts with retry."
+    },
+    {
+      "id": "redis_manager",
+      "label": "Redis Manager",
+      "type": "component",
+      "source_file": ".omm/storage/redis-manager/description.md",
+      "summary": "Redis runtime manager in backend/src/utils/redis.js wrapping connection, key operations, expiry, sorted-set ops, counters, status reporting, and fallback memory cache."
+    },
+    {
+      "id": "route_page_map",
+      "label": "Route-Page Map",
+      "type": "document",
+      "source_file": ".omm/route-page-map/description.md",
+      "summary": "Navigation map for WeChat miniprogram page groups and Vue admin console routes, showing how user journeys and admin screens connect to backend route families."
+    },
+    {
+      "id": "auth_entry",
+      "label": "Auth Entry Pages",
+      "type": "component",
+      "source_file": ".omm/route-page-map/auth-entry/description.md",
+      "summary": "Authentication and monetization entry pages (login, enrollment, payment) coordinating WeChat login, token storage, enrollment submission, order creation, and payment confirmation."
+    },
+    {
+      "id": "notification_profile",
+      "label": "Notification & Profile Pages",
+      "type": "component",
+      "source_file": ".omm/route-page-map/notification-profile/description.md",
+      "summary": "Notification and profile pages managing user identity, avatars, preferences, notification read/archive state, and subscription permissions."
+    },
+    {
+      "id": "backend_routes",
+      "label": "Backend Routes",
+      "type": "component",
+      "source_file": ".omm/route-page-map/backend-routes/description.md",
+      "summary": "Backend route family collection under backend/src/routes/ serving miniprogram and admin API with public, user-authenticated, admin-authenticated, and external callback endpoints."
+    },
+    {
+      "id": "learning_workflows",
+      "label": "Learning Workflow Pages",
+      "type": "component",
+      "source_file": ".omm/route-page-map/learning-workflows/description.md",
+      "summary": "Member learning workflow pages (checkin, checkin-records, ranking, members, share) relying on enrollment access, task data, check-in, comment, and ranking APIs."
+    },
+    {
+      "id": "admin_router",
+      "label": "Admin Router",
+      "type": "component",
+      "source_file": ".omm/route-page-map/admin-router/description.md",
+      "summary": "Admin Vue Router in admin/src/router/index.ts defining /login and protected routes for dashboard, enrollments, payments, periods, users, content, check-ins, insights, analytics, audit logs, and more."
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "type": "data_model",
+      "source_file": ".omm/storage/sync-service/description.md",
+      "summary": "Primary document database used by the backend, source of truth for sync service."
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL",
+      "type": "data_model",
+      "source_file": ".omm/storage/sync-service/description.md",
+      "summary": "Relational database target for the MongoDB-to-MySQL sync service."
+    },
+    {
+      "id": "redis",
+      "label": "Redis",
+      "type": "data_model",
+      "source_file": ".omm/storage/redis-manager/description.md",
+      "summary": "In-memory data store used for caching, queuing sync tasks, sorted sets, and counters."
+    },
+    {
+      "id": "miniprogram_app_json",
+      "label": "miniprogram/app.json",
+      "type": "document",
+      "source_file": ".omm/route-page-map/note.md",
+      "summary": "Authoritative complete miniprogram page list; route-page-map groups are derived from it."
+    },
+    {
+      "id": "wechat_miniprogram",
+      "label": "WeChat Miniprogram",
+      "type": "component",
+      "source_file": ".omm/route-page-map/context.md",
+      "summary": "WeChat miniprogram with tabBar entries for home, reading camps, and profile; handles auth redirects and unauthenticated user flows."
+    },
+    {
+      "id": "admin_console",
+      "label": "Admin Console",
+      "type": "component",
+      "source_file": ".omm/route-page-map/context.md",
+      "summary": "Vue admin console using Vue Router with auth guards for every operational view except login."
+    }
+  ],
+  "edges": [
+    {
+      "source": "sync_service",
+      "target": "mongodb",
+      "relation": "reads documents from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "sync_service",
+      "target": "mysql",
+      "relation": "upserts transformed data into",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "sync_service",
+      "target": "redis",
+      "relation": "publishes events to and consumes tasks from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "redis_manager",
+      "target": "redis",
+      "relation": "manages connection and operations for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mongoose_models",
+      "target": "mongodb",
+      "relation": "defines schemas and indexes for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "sync_service",
+      "target": "redis_manager",
+      "relation": "uses for queue operations",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "route_page_map",
+      "target": "auth_entry",
+      "relation": "contains child group",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route_page_map",
+      "target": "notification_profile",
+      "relation": "contains child group",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route_page_map",
+      "target": "backend_routes",
+      "relation": "contains child group",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route_page_map",
+      "target": "learning_workflows",
+      "relation": "contains child group",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route_page_map",
+      "target": "admin_router",
+      "relation": "contains child group",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route_page_map",
+      "target": "miniprogram_app_json",
+      "relation": "is derived from and must stay aligned with",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_miniprogram",
+      "target": "auth_entry",
+      "relation": "hosts pages in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_miniprogram",
+      "target": "learning_workflows",
+      "relation": "hosts pages in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_miniprogram",
+      "target": "notification_profile",
+      "relation": "hosts pages in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_console",
+      "target": "admin_router",
+      "relation": "uses for route definitions and auth guards",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "auth_entry",
+      "target": "backend_routes",
+      "relation": "calls for login, enrollment, and payment endpoints",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "learning_workflows",
+      "target": "backend_routes",
+      "relation": "calls for check-in, ranking, and task APIs",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "notification_profile",
+      "target": "backend_routes",
+      "relation": "calls for notification and profile APIs",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin_router",
+      "target": "backend_routes",
+      "relation": "calls admin-authenticated endpoints in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend_routes",
+      "target": "mongoose_models",
+      "relation": "queries and mutates data through",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

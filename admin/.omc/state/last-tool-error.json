@@ -1,0 +1,7 @@
+{
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/docs/architecture/MULTI_TENANT_REFACTOR_DESIGN.md\"}",
+  "error": "File content (34636 tokens) exceeds maximum allowed tokens (25000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
+  "timestamp": "2026-05-17T13:13:25.177Z",
+  "retry_count": 1
+}

@@ -1,0 +1,365 @@
+{
+  "nodes": [
+    {
+      "id": "change_add_sent_insight_request_status",
+      "label": "变更：增加我发起的请求看见状态展示",
+      "type": "document",
+      "source_file": "openspec/changes/add-sent-insight-request-status/proposal.md",
+      "summary": "在小程序请求看见体验中增加我发起的视图，展示发起申请的状态（等待中/已同意/已拒绝）"
+    },
+    {
+      "id": "spec_insight_requests_sent_status",
+      "label": "Spec: insight-requests（发起状态视图）",
+      "type": "document",
+      "source_file": "openspec/changes/add-sent-insight-request-status/specs/insight-requests/spec.md",
+      "summary": "定义我发起的请求状态视图、请求方向切换和移动端请求卡片的需求规格"
+    },
+    {
+      "id": "change_add_insight_approval_service_notice",
+      "label": "变更：同意小凡看见申请后发送订阅通知",
+      "type": "document",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/proposal.md",
+      "summary": "在接收方同意小凡看见申请后，通过微信订阅消息体系通知发起方并支持直达内容页"
+    },
+    {
+      "id": "design_insight_approval_service_notice",
+      "label": "设计：订阅通知直达小凡看见详情",
+      "type": "document",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "描述订阅通知的数据配置、授权时机、跳转策略和发送时机的技术设计"
+    },
+    {
+      "id": "tasks_insight_approval_service_notice",
+      "label": "Tasks: add-insight-approval-service-notice",
+      "type": "document",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/tasks.md",
+      "summary": "订阅通知变更的实施任务清单，涵盖规格确认、基础设施、同意链路和测试验证"
+    },
+    {
+      "id": "spec_insight_requests_approval_notice",
+      "label": "Spec: insight-requests（审批订阅通知）",
+      "type": "document",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/specs/insight-requests/spec.md",
+      "summary": "定义同意申请后订阅通知发起方、申请通过提醒授权和通知直达目标一致性的需求规格"
+    },
+    {
+      "id": "feature_sent_insight_request_view",
+      "label": "我发起的请求视图",
+      "type": "component",
+      "source_file": "openspec/changes/add-sent-insight-request-status/proposal.md",
+      "summary": "小程序中展示用户自己发起的小凡看见申请及其状态的视图"
+    },
+    {
+      "id": "feature_request_direction_switch",
+      "label": "请求方向切换",
+      "type": "component",
+      "source_file": "openspec/changes/add-sent-insight-request-status/specs/insight-requests/spec.md",
+      "summary": "在收到请求和发起请求之间切换的分段控件"
+    },
+    {
+      "id": "api_get_sent_requests",
+      "label": "GET /api/v1/insights/requests/sent",
+      "type": "api",
+      "source_file": "openspec/changes/add-sent-insight-request-status/proposal.md",
+      "summary": "获取当前用户发起的小凡看见申请列表的后端接口"
+    },
+    {
+      "id": "scene_insight_request_approved",
+      "label": "订阅消息 scene: insight_request_approved",
+      "type": "concept",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/proposal.md",
+      "summary": "小凡看见申请被同意后向发起方发送的微信订阅消息场景标识"
+    },
+    {
+      "id": "process_approve_insight_request",
+      "label": "approveInsightRequest 流程",
+      "type": "process",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "同意小凡看见申请的后端处理流程，包含状态更新、站内通知和订阅消息发送"
+    },
+    {
+      "id": "model_subscribe_message_grant",
+      "label": "SubscribeMessageGrant",
+      "type": "data_model",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "记录用户对各订阅消息 scene 的授权库存的数据模型"
+    },
+    {
+      "id": "model_subscribe_message_delivery",
+      "label": "SubscribeMessageDelivery",
+      "type": "data_model",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "记录订阅消息发送、跳过和失败状态的投递日志数据模型"
+    },
+    {
+      "id": "util_dispatch_notification_with_subscribe",
+      "label": "dispatchNotificationWithSubscribe",
+      "type": "component",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "同时创建站内通知并触发订阅消息发送的工具函数"
+    },
+    {
+      "id": "util_subscribe_auto_topup",
+      "label": "subscribe-auto-topup / maybeAutoTopUpSubscriptions",
+      "type": "component",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "前端自动补充订阅授权的工具，在用户操作后请求对应 scene 的授权"
+    },
+    {
+      "id": "page_insight_detail",
+      "label": "pages/insight-detail/insight-detail",
+      "type": "component",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "小凡看见详情页，订阅通知点击后的直达目标页面"
+    },
+    {
+      "id": "page_insights_list",
+      "label": "pages/insights/insights（他人列表）",
+      "type": "component",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "他人小凡看见列表页，无具体 insightId 时的降级跳转目标"
+    },
+    {
+      "id": "config_subscribe_message",
+      "label": "subscribe-message.config.js",
+      "type": "component",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/proposal.md",
+      "summary": "后端订阅消息配置文件，定义各 scene 的模板 ID 和字段映射"
+    },
+    {
+      "id": "notification_request_approved_inapp",
+      "label": "站内通知: request_approved",
+      "type": "concept",
+      "source_file": "openspec/changes/add-insight-approval-service-notice/design.md",
+      "summary": "小凡看见申请被同意时创建的站内通知，与订阅消息并存"
+    },
+    {
+      "id": "insight_request_status_pending",
+      "label": "申请状态: pending（等待中）",
+      "type": "concept",
+      "source_file": "openspec/changes/add-sent-insight-request-status/specs/insight-requests/spec.md",
+      "summary": "发起请求处于等待对方处理状态，展示为等待中"
+    },
+    {
+      "id": "insight_request_status_approved",
+      "label": "申请状态: approved（已同意）",
+      "type": "concept",
+      "source_file": "openspec/changes/add-sent-insight-request-status/specs/insight-requests/spec.md",
+      "summary": "发起请求已被对方同意，展示为已同意并可跳转目标内容"
+    },
+    {
+      "id": "insight_request_status_rejected",
+      "label": "申请状态: rejected（已拒绝）",
+      "type": "concept",
+      "source_file": "openspec/changes/add-sent-insight-request-status/specs/insight-requests/spec.md",
+      "summary": "发起请求已被对方拒绝，展示为已拒绝且不展示审批操作"
+    }
+  ],
+  "edges": [
+    {
+      "source": "change_add_sent_insight_request_status",
+      "target": "spec_insight_requests_sent_status",
+      "relation": "defines requirements in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "change_add_sent_insight_request_status",
+      "target": "feature_sent_insight_request_view",
+      "relation": "introduces",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "change_add_sent_insight_request_status",
+      "target": "api_get_sent_requests",
+      "relation": "reuses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_sent_status",
+      "target": "feature_sent_insight_request_view",
+      "relation": "specifies behavior of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_sent_status",
+      "target": "feature_request_direction_switch",
+      "relation": "specifies behavior of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_sent_status",
+      "target": "insight_request_status_pending",
+      "relation": "defines display rule for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_sent_status",
+      "target": "insight_request_status_approved",
+      "relation": "defines display rule for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_sent_status",
+      "target": "insight_request_status_rejected",
+      "relation": "defines display rule for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "feature_sent_insight_request_view",
+      "target": "api_get_sent_requests",
+      "relation": "fetches data from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "change_add_insight_approval_service_notice",
+      "target": "spec_insight_requests_approval_notice",
+      "relation": "defines requirements in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "change_add_insight_approval_service_notice",
+      "target": "design_insight_approval_service_notice",
+      "relation": "is detailed by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "change_add_insight_approval_service_notice",
+      "target": "tasks_insight_approval_service_notice",
+      "relation": "is implemented via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "change_add_insight_approval_service_notice",
+      "target": "scene_insight_request_approved",
+      "relation": "introduces",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "design_insight_approval_service_notice",
+      "target": "scene_insight_request_approved",
+      "relation": "configures",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "design_insight_approval_service_notice",
+      "target": "process_approve_insight_request",
+      "relation": "describes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "design_insight_approval_service_notice",
+      "target": "model_subscribe_message_grant",
+      "relation": "reuses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "design_insight_approval_service_notice",
+      "target": "model_subscribe_message_delivery",
+      "relation": "reuses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "design_insight_approval_service_notice",
+      "target": "util_dispatch_notification_with_subscribe",
+      "relation": "uses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "design_insight_approval_service_notice",
+      "target": "page_insight_detail",
+      "relation": "targets as primary jump destination",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "design_insight_approval_service_notice",
+      "target": "page_insights_list",
+      "relation": "targets as fallback jump destination",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "process_approve_insight_request",
+      "target": "scene_insight_request_approved",
+      "relation": "triggers sending of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "process_approve_insight_request",
+      "target": "notification_request_approved_inapp",
+      "relation": "creates",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "process_approve_insight_request",
+      "target": "util_dispatch_notification_with_subscribe",
+      "relation": "invokes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "util_subscribe_auto_topup",
+      "target": "scene_insight_request_approved",
+      "relation": "requests authorization for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "scene_insight_request_approved",
+      "target": "model_subscribe_message_grant",
+      "relation": "authorization tracked in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "scene_insight_request_approved",
+      "target": "model_subscribe_message_delivery",
+      "relation": "delivery logged in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "scene_insight_request_approved",
+      "target": "config_subscribe_message",
+      "relation": "configured in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "notification_request_approved_inapp",
+      "target": "page_insight_detail",
+      "relation": "links to same target as",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "tasks_insight_approval_service_notice",
+      "target": "config_subscribe_message",
+      "relation": "requires update to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "tasks_insight_approval_service_notice",
+      "target": "util_subscribe_auto_topup",
+      "relation": "requires update to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "insight_request_status_approved",
+      "target": "page_insight_detail",
+      "relation": "can navigate to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_approval_notice",
+      "target": "scene_insight_request_approved",
+      "relation": "specifies behavior of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_approval_notice",
+      "target": "model_subscribe_message_grant",
+      "relation": "requires use of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "spec_insight_requests_approval_notice",
+      "target": "model_subscribe_message_delivery",
+      "relation": "requires use of",
+      "confidence": "EXTRACTED"
+    }
+  ],
+  "hyperedges": []
+}

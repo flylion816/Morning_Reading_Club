@@ -1,0 +1,161 @@
+{
+  "nodes": [
+    {
+      "id": "img_annotated_05_payments",
+      "label": "支付管理页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-05-payments.png",
+      "summary": "管理后台支付管理页面，展示用户支付记录列表，包含支付状态、金额、时间等信息及相关操作入口。"
+    },
+    {
+      "id": "img_annotated_09b_insights_view_unmasked",
+      "label": "洞见详情页（未遮罩）",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-09b-insights-view-unmasked.png",
+      "summary": "管理后台洞见详情查看页面（未遮罩版本），展示用户提交的完整洞见内容及管理员编辑操作界面。"
+    },
+    {
+      "id": "img_annotated_03_registrations",
+      "label": "报名管理页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-03-registrations.png",
+      "summary": "管理后台报名管理页面，展示各期次用户报名记录列表，支持查看报名状态、用户信息及审核操作。"
+    },
+    {
+      "id": "img_annotated_09a_insights_list",
+      "label": "洞见列表页",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-09a-insights-list.png",
+      "summary": "管理后台洞见列表页面，展示所有用户提交的洞见条目，支持按期次筛选、查看和管理洞见内容。"
+    },
+    {
+      "id": "img_annotated_02_analytics",
+      "label": "数据统计页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-02-analytics.png",
+      "summary": "管理后台数据统计页面，展示晨读营运营核心指标，包括用户数、报名数、签到率等汇总数据图表。"
+    },
+    {
+      "id": "img_annotated_08b_checkins_celebration",
+      "label": "签到庆祝页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-08b-checkins-celebration.png",
+      "summary": "管理后台签到管理中的庆祝/里程碑页面，展示用户连续签到成就或特殊签到节点的庆祝提示界面。"
+    },
+    {
+      "id": "img_annotated_13_subscription",
+      "label": "订阅管理页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-13-subscription.png",
+      "summary": "管理后台订阅管理页面，展示用户订阅状态、订阅计划及续费信息的管理界面。"
+    },
+    {
+      "id": "img_annotated_10_applications",
+      "label": "申请管理页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-10-applications.png",
+      "summary": "管理后台申请管理页面，展示用户提交的各类申请记录（如入营申请），支持审核通过或拒绝操作。"
+    },
+    {
+      "id": "img_annotated_12_accounts",
+      "label": "账号管理页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-12-accounts.png",
+      "summary": "管理后台账号管理页面，展示管理员账号列表及权限配置，支持新增、编辑和停用管理员账号。"
+    },
+    {
+      "id": "img_annotated_04_users",
+      "label": "用户管理页面",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-04-users.png",
+      "summary": "管理后台用户管理页面，展示所有注册用户列表，包含用户基本信息、状态及相关管理操作入口。"
+    }
+  ],
+  "edges": [
+    {
+      "source": "img_annotated_05_payments",
+      "target": "img_annotated_03_registrations",
+      "relation": "payment records linked to registration entries",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_05_payments",
+      "target": "img_annotated_04_users",
+      "relation": "payment records belong to users",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_05_payments",
+      "target": "img_annotated_13_subscription",
+      "relation": "payments relate to subscription management",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_03_registrations",
+      "target": "img_annotated_04_users",
+      "relation": "registrations are submitted by users",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "img_annotated_03_registrations",
+      "target": "img_annotated_10_applications",
+      "relation": "registrations processed alongside applications",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_09a_insights_list",
+      "target": "img_annotated_09b_insights_view_unmasked",
+      "relation": "list view navigates to detail view",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "img_annotated_09a_insights_list",
+      "target": "img_annotated_04_users",
+      "relation": "insights are authored by users",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_08b_checkins_celebration",
+      "target": "img_annotated_04_users",
+      "relation": "check-in milestones belong to users",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_08b_checkins_celebration",
+      "target": "img_annotated_02_analytics",
+      "relation": "check-in data contributes to analytics metrics",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_02_analytics",
+      "target": "img_annotated_03_registrations",
+      "relation": "analytics aggregates registration statistics",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_02_analytics",
+      "target": "img_annotated_04_users",
+      "relation": "analytics aggregates user statistics",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_12_accounts",
+      "target": "img_annotated_04_users",
+      "relation": "admin accounts manage user records",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_10_applications",
+      "target": "img_annotated_04_users",
+      "relation": "applications are submitted by users",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_13_subscription",
+      "target": "img_annotated_04_users",
+      "relation": "subscriptions are associated with users",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

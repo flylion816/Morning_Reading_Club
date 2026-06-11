@@ -1,0 +1,11 @@
+node_modules/
+captures/
+dist/
+swift-audio-probe/.build/
+.local/
+*.pcm
+*.wav
+*.log
+.env
+.env.*
+!.env.example

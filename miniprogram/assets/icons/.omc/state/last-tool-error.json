@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd \\\"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营\\\" && git show HEAD:miniprogram/assets/icons/zaichang-active.png > miniprogram/assets/icons/zaichang-active.png && echo \\\"restor...",
+  "error": "Exit code 128\nfatal: path 'miniprogram/assets/icons/zaichang-active.png' exists on disk, but not in 'HEAD'",
+  "timestamp": "2026-05-22T13:20:42.140Z",
+  "retry_count": 1
+}

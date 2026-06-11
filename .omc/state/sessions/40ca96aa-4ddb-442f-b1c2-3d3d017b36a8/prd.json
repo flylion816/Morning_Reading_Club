@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "task": "实现「在场」功能 MVP P0",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "后端 Model：Imprint / ImprintReaction / ImprintComment",
+      "passes": true,
+      "acceptanceCriteria": [
+        "backend/src/models/Imprint.js 存在，包含 tenantPlugin、activityType 枚举(reading|cooking|tea|walk|create|other)、attendees 嵌套数组、reactionCounts 默认值",
+        "backend/src/models/ImprintReaction.js 存在，包含 tenantPlugin、唯一索引 {imprintId:1, userId:1}",
+        "backend/src/models/ImprintComment.js 存在，包含 tenantPlugin、parentId 可为 null",
+        "node -e \"require('./backend/src/models/Imprint')\" 无报错",
+        "node -e \"require('./backend/src/models/ImprintReaction')\" 无报错",
+        "node -e \"require('./backend/src/models/ImprintComment')\" 无报错"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "后端 Controller + Routes（12个接口）",
+      "passes": true,
+      "acceptanceCriteria": [
+        "backend/src/controllers/imprint.controller.js 存在，包含 list/create/detail/update/remove/attend/cancelAttend/react/cancelReaction/listComments/createComment/deleteComment 方法",
+        "backend/src/routes/imprint.routes.js 存在，所有路由挂载 authMiddleware + userTenantContext",
+        "backend/src/app.js 已注册 /api/v1/imprints 路由",
+        "react 方法捕获 MongoDB error code 11000 并回滚 $inc reactionCounts",
+        "cancelReaction 在 ImprintReaction 不存在时返回 200（幂等）",
+        "deleteComment 权限：评论作者 OR 印记作者均可删除，其他人返回 403"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "图片上传接口 POST /api/v1/imprints/upload",
+      "passes": true,
+      "acceptanceCriteria": [
+        "POST /api/v1/imprints/upload 路由存在于 imprint.routes.js，注册在 /:id 路由之前",
+        "中间件使用 authMiddleware（非 adminAuthMiddleware）",
+        "在 userTenantContext 后、multer 前显式设置 req._resolvedTenantId = getCurrentTenantId()",
+        "fileFilter 仅允许 jpeg|jpg|png|webp，单文件 ≤ 10MB",
+        "返回格式 { success: true, data: { url, thumbUrl } }，thumbUrl === url（MVP）"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "小程序列表页 pages/zaichang/list",
+      "passes": true,
+      "acceptanceCriteria": [
+        "miniprogram/pages/zaichang/list/list.js 存在，包含 loadList/onReachBottom/onPullDownRefresh/onTypeChange/onTapCard/onTapPublish 方法",
+        "miniprogram/pages/zaichang/list/list.wxml 存在，包含筛选 chip 横向滚动、印记卡片、封面拼图（cover-1/2/3/4/5plus class）、悬浮发布按钮",
+        "miniprogram/pages/zaichang/list/list.wxss 存在，包含 --zc-bg/#F5F0E8 等色彩变量、封面拼图 CSS",
+        "miniprogram/pages/zaichang/list/list.json 存在，navigationBarTitleText 为「在场」，enablePullDownRefresh: true"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "小程序详情页 pages/zaichang/detail",
+      "passes": true,
+      "acceptanceCriteria": [
+        "miniprogram/pages/zaichang/detail/detail.js 存在，包含 onLoad/onTapReaction/onTapAttend/onTapReply/onSubmitComment/onDeleteComment/onReachBottom 方法",
+        "miniprogram/pages/zaichang/detail/detail.wxml 存在，包含图片 swiper、在场人头像墙、「我也在场」按钮、三个共鸣按钮、评论区、底部固定输入框",
+        "detail.js 中 onTapReaction 实现乐观更新（先更新 UI，失败时回滚）",
+        "detail.js 中判断 iAmAttending 通过检查 attendees 中是否有当前用户 userId"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "小程序发布页 pages/zaichang/publish",
+      "passes": true,
+      "acceptanceCriteria": [
+        "miniprogram/pages/zaichang/publish/publish.js 存在，包含 onChooseImage/onRemoveImage/onSelectType/onSearchAttendee/onAddAttendee/onAddManualAttendee/onRemoveAttendee/onSubmit 方法",
+        "publish.js 图片上传使用 wx.uploadFile 并行上传（Promise.allSettled），非串行",
+        "publish.js onSubmit 校验：mediaList ≥ 1、title 非空、activityType 非空，缺失时提示不发请求",
+        "发布成功后通过 wx.setStorageSync('zaichang_need_refresh', true) 标记，列表页 onShow 检查并刷新"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "自定义 tabBar（只有在场 Tab 用绿色）",
+      "passes": true,
+      "acceptanceCriteria": [
+        "miniprogram/custom-tab-bar/ 目录存在，包含 index.js/index.wxml/index.wxss/index.json",
+        "自定义 tabBar 中「在场」Tab 选中色为 #2D5A3D，其他 Tab 选中色保持 #4a90e2",
+        "miniprogram/app.json tabBar 包含 custom: true，list 中包含 pages/zaichang/list/list",
+        "miniprogram/app.json pages 数组包含 zaichang/list/list、zaichang/detail/detail、zaichang/publish/publish"
+      ]
+    }
+  ]
+}

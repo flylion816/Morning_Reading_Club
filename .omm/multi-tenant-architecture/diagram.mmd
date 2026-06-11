@@ -1,0 +1,102 @@
+---
+title: 晨读营多租户 SaaS 架构
+---
+graph TB
+    subgraph Tenants["租户层（各自独立）"]
+        direction LR
+        subgraph T1["租户 A：凡人共读"]
+            MP1["📱 小程序\nappId: wx_fanren"]
+            Admin1["🖥️ 管理后台\ntenant_admin"]
+        end
+        subgraph T2["租户 B：超人读书会"]
+            MP2["📱 小程序\nappId: wx_chaoren"]
+            Admin2["🖥️ 管理后台\ntenant_admin"]
+        end
+        SuperAdmin["👑 平台运营者\nplatform_superadmin\n可切换 X-Active-Tenant"]
+    end
+
+    subgraph Gateway["请求入口层"]
+        Nginx["Nginx 反向代理\n+ WebSocket Upgrade"]
+    end
+
+    subgraph Backend["Express.js 后端（单一部署）"]
+        direction TB
+        subgraph Auth["① 身份认证"]
+            WxLogin["POST /auth/wechat/login\n用 appId 反查 Tenant\n生成 JWT {userId, tenantId, role}"]
+            AdminLogin["POST /auth/admin/login\n生成 JWT {adminId, tenantId, role}"]
+        end
+
+        subgraph Middleware["② 中间件链（每个请求）"]
+            AuthMW["authMiddleware\n解 JWT → req.user"]
+            TenantMW["tenantContextMiddleware\n写入 AsyncLocalStorage\n• 普通用户：JWT.tenantId\n• tenant_admin：JWT.tenantId\n• platform_superadmin：X-Active-Tenant header\n  或 bypassTenantFilter=true"]
+        end
+
+        subgraph Controllers["③ 业务 Controller"]
+            C1["UserController"]
+            C2["PeriodController"]
+            C3["CheckinController"]
+            C4["PaymentController"]
+            C5["...其他 Controller"]
+        end
+
+        subgraph Plugin["④ Mongoose Plugin（自动注入）"]
+            P1["query 前：自动追加\n{ tenantId: ALS.get() }\n无上下文 → 直接报错\nfail-closed"]
+            P2["save 前：自动填充\ndoc.tenantId = ALS.get()"]
+        end
+
+        subgraph Cron["⑤ 定时任务（无 HTTP 请求）"]
+            Cron1["period-status cron\nwithSystemContext(tenantId, fn)\n按租户逐个执行"]
+            Cron2["study-reminder cron\n同上"]
+        end
+    end
+
+    subgraph Cache["缓存 & 限流层"]
+        Redis["Redis\ncache key = tenantId:path:query\nrate limit key = tenantId:ip\nWebSocket 跨实例广播"]
+    end
+
+    subgraph DB["数据库层（共享，逻辑隔离）"]
+        direction LR
+        subgraph TenantColl["Tenant 集合（全局）"]
+            TC["slug / name\nwxAppIds[]\nwechatLogin.secret\nwechatPay.mchId..."]
+        end
+        subgraph BizColl["业务集合（每条记录带 tenantId）"]
+            BC1["users\n{tenantId, openid, ...}\n唯一索引: {tenantId, openid}"]
+            BC2["periods / sections\n{tenantId, ...}"]
+            BC3["checkins / enrollments\npayments / insights\ncomments / notifications\n{tenantId, ...}"]
+        end
+        subgraph AdminColl["Admin 集合"]
+            AC["admins\n{tenantId, email, role}\nplatform_superadmin: tenantId=null"]
+        end
+    end
+
+    %% 请求流
+    MP1 -->|"HTTP/WS"| Nginx
+    MP2 -->|"HTTP/WS"| Nginx
+    Admin1 -->|"HTTP"| Nginx
+    Admin2 -->|"HTTP"| Nginx
+    SuperAdmin -->|"HTTP + X-Active-Tenant"| Nginx
+
+    Nginx --> WxLogin
+    Nginx --> AdminLogin
+    Nginx --> AuthMW
+
+    WxLogin -->|"appId → Tenant 集合"| TenantColl
+    WxLogin -->|"返回 JWT"| Nginx
+
+    AuthMW --> TenantMW
+    TenantMW --> Controllers
+
+    Controllers --> P1
+    Controllers --> P2
+    P1 -->|"自动过滤"| BizColl
+    P2 -->|"自动填充"| BizColl
+
+    Controllers <-->|"tenantId:key"| Redis
+    Cron1 --> P1
+    Cron2 --> P1
+
+    style Tenants fill:#e8f4fd,stroke:#2196F3
+    style Backend fill:#f3e5f5,stroke:#9C27B0
+    style DB fill:#e8f5e9,stroke:#4CAF50
+    style Cache fill:#fff3e0,stroke:#FF9800
+    style Plugin fill:#fce4ec,stroke:#E91E63

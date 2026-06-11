@@ -1,0 +1,193 @@
+{
+  "nodes": [
+    {
+      "id": "miniprogram_components",
+      "label": "Miniprogram Components",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram/components/meta.yaml",
+      "summary": "Reusable UI components within the WeChat miniprogram, nested under the miniprogram module."
+    },
+    {
+      "id": "miniprogram_mp_services",
+      "label": "Miniprogram MP Services",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram/mp-services/meta.yaml",
+      "summary": "Service layer in the miniprogram that encapsulates all backend API calls, handling token injection and X-Wx-AppId tenant identification."
+    },
+    {
+      "id": "miniprogram_pages",
+      "label": "Miniprogram Pages",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram/pages/meta.yaml",
+      "summary": "Page layer of the miniprogram containing 25 pages including home, course list/detail, check-in, insights, ranking, payment, enrollment, and profile."
+    },
+    {
+      "id": "miniprogram_mp_utils",
+      "label": "Miniprogram MP Utils",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram/mp-utils/meta.yaml",
+      "summary": "Utility functions for the miniprogram including logging, multi-tenant local storage (tenantStorage), formatting, and image processing."
+    },
+    {
+      "id": "wechat_platform",
+      "label": "WeChat Open Platform",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/wechat-platform/meta.yaml",
+      "summary": "External WeChat Open Platform providing OAuth login (code2session), subscription message push, and JS-SDK capabilities per tenant AppId."
+    },
+    {
+      "id": "backend_api",
+      "label": "Backend API",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/meta.yaml",
+      "summary": "Express backend under backend/src/ that loads environment config, starts HTTP and Socket.IO, connects databases, mounts middleware and API routes, and runs production schedules."
+    },
+    {
+      "id": "backend_middleware",
+      "label": "Backend Middleware",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/middleware/meta.yaml",
+      "summary": "Middleware layer covering authentication, role checks, audit logging, cache behavior, error handling, monitoring metrics, and rate limiting."
+    },
+    {
+      "id": "backend_config",
+      "label": "Backend Config",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/config/meta.yaml",
+      "summary": "Backend configuration defining database connections for MongoDB and MySQL, CORS policy, subscription-message templates, and sync configuration."
+    },
+    {
+      "id": "backend_models",
+      "label": "Backend Models",
+      "type": "data_model",
+      "source_file": ".omm/overall-architecture/backend-api/models/meta.yaml",
+      "summary": "Mongoose model definitions for Admin, User, Period, Section, Enrollment, Payment, Checkin, Comment, Insight, InsightRequest, Notification, and other document families."
+    },
+    {
+      "id": "backend_utilities",
+      "label": "Backend Utilities",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/utilities/meta.yaml",
+      "summary": "Utility modules providing JWT helpers, logging, Redis access with memory fallback, Socket.IO user maps, response helpers, config validation, and alerting."
+    },
+    {
+      "id": "backend_server_runtime",
+      "label": "Backend Server Runtime",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/server-runtime/meta.yaml",
+      "summary": "Backend process entry in backend/src/server.js that loads env files, validates config, connects Redis/MongoDB/MySQL, starts Express and Socket.IO, and runs scheduled jobs."
+    },
+    {
+      "id": "backend_controllers",
+      "label": "Backend Controllers",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/controllers/description.md",
+      "summary": "Controller modules implementing route handlers, validating request context, calling models and services, and coordinating user-facing and admin-facing workflows."
+    }
+  ],
+  "edges": [
+    {
+      "source": "miniprogram_components",
+      "target": "miniprogram_pages",
+      "relation": "used by",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_pages",
+      "target": "miniprogram_mp_services",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_mp_services",
+      "target": "backend_api",
+      "relation": "sends API requests to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_mp_services",
+      "target": "wechat_platform",
+      "relation": "integrates with for OAuth login",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_pages",
+      "target": "miniprogram_mp_utils",
+      "relation": "uses utilities from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_mp_utils",
+      "target": "miniprogram_mp_services",
+      "relation": "supports with tenant storage",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend_api",
+      "target": "backend_middleware",
+      "relation": "mounts",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api",
+      "target": "backend_config",
+      "relation": "loads configuration from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api",
+      "target": "backend_models",
+      "relation": "defines data models in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api",
+      "target": "backend_utilities",
+      "relation": "uses utilities from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api",
+      "target": "backend_server_runtime",
+      "relation": "is started by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api",
+      "target": "backend_controllers",
+      "relation": "routes requests to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_controllers",
+      "target": "backend_models",
+      "relation": "queries and updates",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_middleware",
+      "target": "backend_utilities",
+      "relation": "uses JWT and logging utilities from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend_server_runtime",
+      "target": "backend_config",
+      "relation": "validates and loads",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_platform",
+      "target": "backend_api",
+      "relation": "delivers subscription messages via",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_mp_services",
+      "target": "miniprogram_mp_utils",
+      "relation": "uses tenant storage from",
+      "confidence": "EXTRACTED"
+    }
+  ],
+  "hyperedges": []
+}

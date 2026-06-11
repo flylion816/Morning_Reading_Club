@@ -1,0 +1,955 @@
+{
+  "nodes": [
+    {
+      "id": "mock_helpers_lib",
+      "label": "Mock Helpers Library",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Reusable mock helper functions for unit tests, providing 10 factory functions for Mongoose query chains and common mock patterns."
+    },
+    {
+      "id": "mock_helpers_test",
+      "label": "mock-helpers.test.js",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.test.js",
+      "summary": "Comprehensive test file with 43 passing tests covering all mock helper functions."
+    },
+    {
+      "id": "helpers_readme",
+      "label": "Mock Helpers README",
+      "type": "document",
+      "source_file": "backend/tests/unit/helpers/README.md",
+      "summary": "Complete API reference for the mock helpers library with usage examples and best practices."
+    },
+    {
+      "id": "helpers_summary",
+      "label": "Mock Helpers SUMMARY",
+      "type": "document",
+      "source_file": "backend/tests/unit/helpers/SUMMARY.md",
+      "summary": "Project overview of the mock helpers library, covering all 5 created files and code reduction metrics."
+    },
+    {
+      "id": "helpers_index",
+      "label": "Mock Helpers INDEX",
+      "type": "document",
+      "source_file": "backend/tests/unit/helpers/INDEX.md",
+      "summary": "Navigation index for the mock helpers library documentation."
+    },
+    {
+      "id": "helpers_integration_guide",
+      "label": "Mock Helpers Integration Guide",
+      "type": "document",
+      "source_file": "backend/tests/unit/helpers/INTEGRATION_GUIDE.md",
+      "summary": "Step-by-step migration guide for refactoring existing controller tests to use mock helpers."
+    },
+    {
+      "id": "helpers_quick_start",
+      "label": "Mock Helpers Quick Start",
+      "type": "document",
+      "source_file": "backend/tests/unit/helpers/QUICK_START.md",
+      "summary": "2-minute getting started guide for the mock helpers library."
+    },
+    {
+      "id": "setup_find_chain",
+      "label": "setupFindChain()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function to mock Model.find() with chainable methods including populate, sort, skip, limit, lean, exec."
+    },
+    {
+      "id": "setup_find_by_id_chain",
+      "label": "setupFindByIdChain()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function to mock Model.findById() with chaining support."
+    },
+    {
+      "id": "setup_find_one_chain",
+      "label": "setupFindOneChain()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function to mock Model.findOne() for conditional queries."
+    },
+    {
+      "id": "setup_populate_chain",
+      "label": "setupPopulateChain()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function supporting multiple .populate() calls."
+    },
+    {
+      "id": "setup_aggregate_chain",
+      "label": "setupAggregateChain()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function to mock MongoDB aggregation pipelines with all pipeline stages."
+    },
+    {
+      "id": "setup_count_chain",
+      "label": "setupCountChain()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function to mock Model.countDocuments()."
+    },
+    {
+      "id": "create_mock_response",
+      "label": "createMockResponse()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function creating a complete HTTP response mock for Express handlers."
+    },
+    {
+      "id": "create_mock_notification_service",
+      "label": "createMockNotificationService()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function creating a notification service mock with all common notification methods."
+    },
+    {
+      "id": "create_mock_publish_sync_event",
+      "label": "createMockPublishSyncEvent()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function creating a sync event publisher mock."
+    },
+    {
+      "id": "create_mock_logger",
+      "label": "createMockLogger()",
+      "type": "component",
+      "source_file": "backend/tests/unit/helpers/mock-helpers.js",
+      "summary": "Factory function creating a logger mock with debug, info, warn, error levels."
+    },
+    {
+      "id": "query_optimization_guide",
+      "label": "Query Optimization Guide",
+      "type": "document",
+      "source_file": "backend/docs/query-optimization.md",
+      "summary": "Best practices for optimizing MongoDB queries including field projection, lean(), pagination, index usage, and common pitfalls."
+    },
+    {
+      "id": "privacy_policy",
+      "label": "Privacy Policy",
+      "type": "document",
+      "source_file": "docs/privacy-policy.md",
+      "summary": "Privacy policy for the 晨读营 mini-program describing data collection, usage, and protection practices."
+    },
+    {
+      "id": "terms_of_service",
+      "label": "Terms of Service",
+      "type": "document",
+      "source_file": "docs/terms-of-service.md",
+      "summary": "User service agreement for the 晨读营 mini-program covering account creation, service scope, and user responsibilities."
+    },
+    {
+      "id": "system_arch_v3",
+      "label": "System Architecture v3.0",
+      "type": "document",
+      "source_file": "docs/backend/07-系统架构设计v3.0.md",
+      "summary": "Historical system architecture document describing the overall backend architecture including Nginx, Node.js/Express, MongoDB/Redis, and Tencent Cloud COS."
+    },
+    {
+      "id": "business_flow_v3",
+      "label": "Business Flow Design v3.0",
+      "type": "document",
+      "source_file": "docs/backend/05-业务流程设计v3.0.md",
+      "summary": "Historical business flow document describing core flows including WeChat login, checkin, and insight processes."
+    },
+    {
+      "id": "backend_guide_v3",
+      "label": "Backend Development Guide v3.0",
+      "type": "document",
+      "source_file": "docs/backend/00-总纲-后端开发指南v3.0.md",
+      "summary": "Historical backend development guide serving as the master index for the v3.0 documentation set."
+    },
+    {
+      "id": "prd_v3",
+      "label": "PRD v3.0",
+      "type": "document",
+      "source_file": "docs/backend/01-PRD-产品需求文档v3.0.md",
+      "summary": "Historical product requirements document v3.0 for the 七个习惯晨读营 mini-program."
+    },
+    {
+      "id": "prd_v4",
+      "label": "PRD v4.0",
+      "type": "document",
+      "source_file": "docs/backend/01-PRD-产品需求文档v4.0.md",
+      "summary": "Historical product requirements document v4.0 with expanded module list including notifications, payment, and admin backend."
+    },
+    {
+      "id": "prd_current",
+      "label": "PRD 代码同步版 (2026-05-12)",
+      "type": "document",
+      "source_file": "docs/backend/PRD-代码同步版-2026-05-12.md",
+      "summary": "Current authoritative PRD synchronized with actual codebase as of 2026-05-12, covering all three system components."
+    },
+    {
+      "id": "data_model_v3",
+      "label": "Data Model Design v3.0",
+      "type": "document",
+      "source_file": "docs/backend/02-数据模型设计v3.0-part1.md",
+      "summary": "Historical data model design v3.0 defining 10+ entities including User, Period, Section, Checkin, Comment, Insight, InsightRequest, Enrollment."
+    },
+    {
+      "id": "db_design_v3",
+      "label": "Database Design v3.0",
+      "type": "document",
+      "source_file": "docs/backend/03-数据库设计v3.0.md",
+      "summary": "Historical database design providing both MySQL and MongoDB schema definitions."
+    },
+    {
+      "id": "data_model_current",
+      "label": "Data Model 代码同步版 (2026-05-12)",
+      "type": "document",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "Current authoritative data model synchronized with Mongoose models, listing all 12 models with fields, indexes, and relationships."
+    },
+    {
+      "id": "api_design_v3",
+      "label": "API Design v3.0",
+      "type": "document",
+      "source_file": "docs/backend/04-API接口设计v3.0-part1.md",
+      "summary": "Historical API design document v3.0 defining RESTful conventions, request/response formats, and authentication."
+    },
+    {
+      "id": "api_design_v4_postman",
+      "label": "API Design v4.0 Postman",
+      "type": "document",
+      "source_file": "docs/backend/04-API接口设计v4.0-Postman.md",
+      "summary": "Historical Postman test documentation for API v4.0 with environment variables and test user setup."
+    },
+    {
+      "id": "api_index_current",
+      "label": "API 接口索引 代码同步版 (2026-05-12)",
+      "type": "document",
+      "source_file": "docs/backend/API-接口索引-代码同步版-2026-05-12.md",
+      "summary": "Current authoritative API index synchronized with backend routes, listing all endpoints with auth requirements."
+    },
+    {
+      "id": "model_user",
+      "label": "User Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB User model with openid, nickname, avatar, role, status, and learning statistics fields."
+    },
+    {
+      "id": "model_admin",
+      "label": "Admin Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Admin model with username, email, password, role, permissions, and status fields."
+    },
+    {
+      "id": "model_period",
+      "label": "Period Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Period model representing a learning camp cycle with title, dates, price, status, and enrollment stats."
+    },
+    {
+      "id": "model_section",
+      "label": "Section Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Section model representing a daily learning task within a Period, with periodId+day unique constraint."
+    },
+    {
+      "id": "model_enrollment",
+      "label": "Enrollment Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Enrollment model recording user registration for a Period, with userId+periodId unique constraint."
+    },
+    {
+      "id": "model_payment",
+      "label": "Payment Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Payment model linking Enrollment, User, and Period with amount, method, status, and transactionId."
+    },
+    {
+      "id": "model_checkin",
+      "label": "Checkin Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Checkin model for daily user check-ins with userId+sectionId unique constraint, likes, and public flag."
+    },
+    {
+      "id": "model_comment",
+      "label": "Comment Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Comment model for checkin comments with nested replies array, likes, and likeCount."
+    },
+    {
+      "id": "model_insight",
+      "label": "Insight Model (小凡看见)",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Insight model for AI-generated feedback on user checkins, supporting daily/weekly/monthly/insight types."
+    },
+    {
+      "id": "model_insight_request",
+      "label": "InsightRequest Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB InsightRequest model tracking requests to view another user's insights with approval workflow."
+    },
+    {
+      "id": "model_notification",
+      "label": "Notification Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB Notification model for real-time and persistent notifications with read/archive status."
+    },
+    {
+      "id": "model_user_activity",
+      "label": "UserActivity Model",
+      "type": "data_model",
+      "source_file": "docs/backend/DATA-MODEL-代码同步版-2026-05-12.md",
+      "summary": "MongoDB UserActivity model for tracking user actions with action type, target, and period context."
+    },
+    {
+      "id": "api_auth",
+      "label": "Auth API Endpoints",
+      "type": "api",
+      "source_file": "docs/backend/API-接口索引-代码同步版-2026-05-12.md",
+      "summary": "Authentication endpoints for WeChat login, token refresh, admin login, and password management."
+    },
+    {
+      "id": "api_users",
+      "label": "Users API Endpoints",
+      "type": "api",
+      "source_file": "docs/backend/API-接口索引-代码同步版-2026-05-12.md",
+      "summary": "User management endpoints for profile, phone binding, stats, and admin user management."
+    },
+    {
+      "id": "api_periods_sections",
+      "label": "Periods & Sections API Endpoints",
+      "type": "api",
+      "source_file": "docs/backend/API-接口索引-代码同步版-2026-05-12.md",
+      "summary": "Period and section CRUD endpoints with public/user/admin access levels."
+    },
+    {
+      "id": "nginx_proxy",
+      "label": "Nginx Reverse Proxy",
+      "type": "component",
+      "source_file": "docs/backend/07-系统架构设计v3.0.md",
+      "summary": "Nginx serves as reverse proxy and load balancer for both mini-program and admin backend traffic."
+    },
+    {
+      "id": "nodejs_express",
+      "label": "Node.js + Express Backend",
+      "type": "component",
+      "source_file": "docs/backend/07-系统架构设计v3.0.md",
+      "summary": "Application server layer built with Node.js and Express, containing auth, user, period, checkin, comment, and AI modules."
+    },
+    {
+      "id": "mongodb_db",
+      "label": "MongoDB Database",
+      "type": "component",
+      "source_file": "docs/backend/07-系统架构设计v3.0.md",
+      "summary": "Primary database using MongoDB for flexible document storage of all application data."
+    },
+    {
+      "id": "redis_cache",
+      "label": "Redis Cache",
+      "type": "component",
+      "source_file": "docs/backend/07-系统架构设计v3.0.md",
+      "summary": "Redis used for caching to improve performance."
+    },
+    {
+      "id": "tencent_cos",
+      "label": "Tencent Cloud COS",
+      "type": "component",
+      "source_file": "docs/backend/07-系统架构设计v3.0.md",
+      "summary": "Tencent Cloud Object Storage for file uploads (images, videos, audio)."
+    },
+    {
+      "id": "wechat_api",
+      "label": "WeChat API",
+      "type": "component",
+      "source_file": "docs/backend/07-系统架构设计v3.0.md",
+      "summary": "WeChat API integration for login (code2Session), payment, and subscribe messages."
+    },
+    {
+      "id": "hifi_demo",
+      "label": "Hi-Fi Demo v3.0",
+      "type": "document",
+      "source_file": "docs/frontend/Hi_Fi_Demo_v3.0_10301800.html",
+      "summary": "High-fidelity frontend demo HTML file for the mini-program UI."
+    },
+    {
+      "id": "admin_guide_html",
+      "label": "Admin Guide HTML",
+      "type": "document",
+      "source_file": "docs/admin-guide/fanren-reading-admin-guide.html",
+      "summary": "Admin guide HTML document for the 凡人共读 reading admin backend."
+    },
+    {
+      "id": "wechat_login_flow",
+      "label": "WeChat Login Flow",
+      "type": "process",
+      "source_file": "docs/backend/05-业务流程设计v3.0.md",
+      "summary": "WeChat login process: mini-program calls wx.login(), sends code to backend, backend calls code2Session, creates/updates user, returns JWT."
+    },
+    {
+      "id": "checkin_flow",
+      "label": "Checkin Flow",
+      "type": "process",
+      "source_file": "docs/backend/PRD-代码同步版-2026-05-12.md",
+      "summary": "Daily checkin process where enrolled users submit checkins per section with userId+sectionId uniqueness constraint."
+    },
+    {
+      "id": "enrollment_payment_flow",
+      "label": "Enrollment & Payment Flow",
+      "type": "process",
+      "source_file": "docs/backend/PRD-代码同步版-2026-05-12.md",
+      "summary": "Enrollment generates an Enrollment record; Payment links to Enrollment/User/Period; both statuses gate learning access."
+    },
+    {
+      "id": "insight_request_flow",
+      "label": "Insight Request Flow",
+      "type": "process",
+      "source_file": "docs/backend/PRD-代码同步版-2026-05-12.md",
+      "summary": "Users can request to view another user's insights; InsightRequest tracks apply/approve/reject/withdraw lifecycle."
+    },
+    {
+      "id": "mocha_chai_sinon",
+      "label": "Mocha + Chai + Sinon",
+      "type": "tool",
+      "source_file": "backend/tests/unit/helpers/SUMMARY.md",
+      "summary": "Testing stack: Mocha as test runner, Chai for assertions, Sinon for stubs and spies."
+    }
+  ],
+  "edges": [
+    {
+      "source": "mock_helpers_lib",
+      "target": "setup_find_chain",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "setup_find_by_id_chain",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "setup_find_one_chain",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "setup_populate_chain",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "setup_aggregate_chain",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "setup_count_chain",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "create_mock_response",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "create_mock_notification_service",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "create_mock_publish_sync_event",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "create_mock_logger",
+      "relation": "exports",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_test",
+      "target": "mock_helpers_lib",
+      "relation": "tests",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mock_helpers_lib",
+      "target": "mocha_chai_sinon",
+      "relation": "uses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "helpers_summary",
+      "target": "mock_helpers_lib",
+      "relation": "documents",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "helpers_readme",
+      "target": "mock_helpers_lib",
+      "relation": "provides API reference for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "helpers_integration_guide",
+      "target": "mock_helpers_lib",
+      "relation": "guides migration to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "helpers_quick_start",
+      "target": "mock_helpers_lib",
+      "relation": "introduces",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "helpers_index",
+      "target": "helpers_readme",
+      "relation": "links to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "helpers_index",
+      "target": "helpers_integration_guide",
+      "relation": "links to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "helpers_index",
+      "target": "helpers_quick_start",
+      "relation": "links to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "query_optimization_guide",
+      "target": "mongodb_db",
+      "relation": "provides optimization guidance for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "query_optimization_guide",
+      "target": "model_enrollment",
+      "relation": "provides query examples for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "query_optimization_guide",
+      "target": "model_checkin",
+      "relation": "provides query examples for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "query_optimization_guide",
+      "target": "model_payment",
+      "relation": "provides query examples for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "prd_v3",
+      "target": "prd_current",
+      "relation": "superseded by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "prd_v4",
+      "target": "prd_current",
+      "relation": "superseded by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_v3",
+      "target": "data_model_current",
+      "relation": "superseded by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "db_design_v3",
+      "target": "data_model_current",
+      "relation": "superseded by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "api_design_v3",
+      "target": "api_index_current",
+      "relation": "superseded by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "api_design_v4_postman",
+      "target": "api_index_current",
+      "relation": "superseded by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "system_arch_v3",
+      "target": "prd_current",
+      "relation": "superseded by (architecture section)",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "business_flow_v3",
+      "target": "prd_current",
+      "relation": "superseded by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_guide_v3",
+      "target": "prd_current",
+      "relation": "superseded by",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_user",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_admin",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_period",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_section",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_enrollment",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_payment",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_checkin",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_comment",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_insight",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_insight_request",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_notification",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "data_model_current",
+      "target": "model_user_activity",
+      "relation": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_user",
+      "target": "model_enrollment",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_user",
+      "target": "model_payment",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_user",
+      "target": "model_checkin",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_user",
+      "target": "model_comment",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_user",
+      "target": "model_insight",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_user",
+      "target": "model_notification",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_period",
+      "target": "model_section",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_period",
+      "target": "model_enrollment",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_period",
+      "target": "model_payment",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_period",
+      "target": "model_checkin",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_period",
+      "target": "model_insight",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_section",
+      "target": "model_checkin",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_checkin",
+      "target": "model_comment",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_checkin",
+      "target": "model_insight",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_insight",
+      "target": "model_insight_request",
+      "relation": "has many",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "model_enrollment",
+      "target": "model_payment",
+      "relation": "linked to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "api_index_current",
+      "target": "api_auth",
+      "relation": "indexes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "api_index_current",
+      "target": "api_users",
+      "relation": "indexes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "api_index_current",
+      "target": "api_periods_sections",
+      "relation": "indexes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "api_auth",
+      "target": "wechat_login_flow",
+      "relation": "implements",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "api_auth",
+      "target": "model_user",
+      "relation": "creates/updates",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "api_auth",
+      "target": "model_admin",
+      "relation": "authenticates",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "api_users",
+      "target": "model_user",
+      "relation": "manages",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "api_periods_sections",
+      "target": "model_period",
+      "relation": "manages",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "api_periods_sections",
+      "target": "model_section",
+      "relation": "manages",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "nginx_proxy",
+      "target": "nodejs_express",
+      "relation": "proxies to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "nodejs_express",
+      "target": "mongodb_db",
+      "relation": "persists data to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "nodejs_express",
+      "target": "redis_cache",
+      "relation": "caches via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "nodejs_express",
+      "target": "tencent_cos",
+      "relation": "stores files in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "nodejs_express",
+      "target": "wechat_api",
+      "relation": "integrates with",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_login_flow",
+      "target": "model_user",
+      "relation": "creates or updates",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_login_flow",
+      "target": "wechat_api",
+      "relation": "calls code2Session on",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "checkin_flow",
+      "target": "model_checkin",
+      "relation": "creates",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "checkin_flow",
+      "target": "model_enrollment",
+      "relation": "requires active",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "enrollment_payment_flow",
+      "target": "model_enrollment",
+      "relation": "creates",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "enrollment_payment_flow",
+      "target": "model_payment",
+      "relation": "creates",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "insight_request_flow",
+      "target": "model_insight_request",
+      "relation": "manages",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "insight_request_flow",
+      "target": "model_insight",
+      "relation": "grants access to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "prd_current",
+      "target": "wechat_login_flow",
+      "relation": "describes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "prd_current",
+      "target": "checkin_flow",
+      "relation": "describes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "prd_current",
+      "target": "enrollment_payment_flow",
+      "relation": "describes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "prd_current",
+      "target": "insight_request_flow",
+      "relation": "describes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "privacy_policy",
+      "target": "model_user",
+      "relation": "governs data collection for",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "terms_of_service",
+      "target": "model_user",
+      "relation": "governs account usage for",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

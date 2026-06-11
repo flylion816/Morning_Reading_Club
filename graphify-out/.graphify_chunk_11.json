@@ -1,0 +1,205 @@
+{
+  "nodes": [
+    {
+      "id": "backend_models",
+      "label": "Backend Models",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend/models/meta.yaml",
+      "summary": "Mongoose data models layer within the backend, child of the backend component."
+    },
+    {
+      "id": "backend_controllers",
+      "label": "Backend Controllers",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend/controllers/description.md",
+      "summary": "HTTP request/response handler layer with 23 controllers covering user, auth, period, section, checkin, insight, payment, enrollment, notification, ranking, admin, audit, backup, wechat, and tenant domains."
+    },
+    {
+      "id": "backend_routes",
+      "label": "Backend Routes",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend/routes/description.md",
+      "summary": "Express routing layer defining all API endpoints (auth, user, period, section, checkin, insight, payment, enrollment, notification, ranking, admin, audit, backup, wechat, etc.) with auth and tenant middleware."
+    },
+    {
+      "id": "backend_services",
+      "label": "Backend Services",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend/services/description.md",
+      "summary": "Business logic layer encapsulating payment, backup, sync, subscribe messages, study reminders, period status, community access, WeChat API calls, and cron jobs."
+    },
+    {
+      "id": "external_services",
+      "label": "External Services",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/external-services/description.md",
+      "summary": "External service boundary for WeChat platform APIs, WeChat Pay, Socket.IO clients, browser clients, and email/notification dependencies reached from backend/src/services/ and miniprogram wx APIs."
+    },
+    {
+      "id": "ext_wechat_pay",
+      "label": "WeChat Pay",
+      "type": "api",
+      "source_file": ".omm/overall-architecture/external-services/wechat-pay/description.md",
+      "summary": "WeChat Pay unified-order and callback boundary used by payment.service.js and payment.controller.js to create prepay parameters and accept payment callbacks."
+    },
+    {
+      "id": "ext_subscribe_messages",
+      "label": "Subscribe Messages",
+      "type": "api",
+      "source_file": ".omm/overall-architecture/external-services/subscribe-messages/description.md",
+      "summary": "WeChat subscribe-message delivery API used by subscribe-message.service.js and reminder schedules, tracking grants and delivery attempts in MongoDB."
+    },
+    {
+      "id": "ext_wechat_login",
+      "label": "WeChat Login",
+      "type": "api",
+      "source_file": ".omm/overall-architecture/external-services/wechat-login/description.md",
+      "summary": "WeChat login endpoint used by wechat.service.js to exchange wx.login codes for openid, session_key, and unionid; mocked in dev/test environments."
+    },
+    {
+      "id": "ext_socket_clients",
+      "label": "Socket Clients",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/external-services/socket-clients/description.md",
+      "summary": "Realtime client boundary for Socket.IO/WebSocket updates; backend maps user IDs to socket connections in websocket.js, miniprogram manages client-side connect/reconnect/dispatch."
+    },
+    {
+      "id": "ext_wechat_jssdk",
+      "label": "WeChat JSSDK",
+      "type": "api",
+      "source_file": ".omm/overall-architecture/external-services/wechat-jssdk/description.md",
+      "summary": "WeChat access-token and JSAPI-ticket endpoints used by wechat-jssdk.service.js to create signatures for webview or H5 WeChat features."
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "type": "data_model",
+      "source_file": ".omm/overall-architecture/mongodb/description.md",
+      "summary": "Primary database storing all business data (users, periods, checkins, insights, payments) with multi-tenant isolation via tenantId field injected by Mongoose plugin."
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL",
+      "type": "data_model",
+      "source_file": ".omm/overall-architecture/mysql/description.md",
+      "summary": "Auxiliary database for data sync and backup, receiving async data from MongoDB via Redis queue to support analytics and cross-system integration."
+    }
+  ],
+  "edges": [
+    {
+      "source": "backend_routes",
+      "target": "backend_controllers",
+      "relation": "delegates requests to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_controllers",
+      "target": "backend_services",
+      "relation": "invokes business logic in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend_services",
+      "target": "backend_models",
+      "relation": "reads and writes data via",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend_models",
+      "target": "mongodb",
+      "relation": "persists data to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "ext_wechat_pay",
+      "relation": "calls for payment processing",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_controllers",
+      "target": "ext_wechat_pay",
+      "relation": "handles callbacks from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "ext_subscribe_messages",
+      "relation": "sends templated messages via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "ext_subscribe_messages",
+      "target": "mongodb",
+      "relation": "tracks grants and delivery attempts in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "ext_wechat_login",
+      "relation": "exchanges login codes via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "ext_wechat_jssdk",
+      "relation": "fetches access-token and JSAPI-ticket from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "ext_socket_clients",
+      "relation": "pushes realtime updates to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_services",
+      "target": "ext_wechat_pay",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_services",
+      "target": "ext_subscribe_messages",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_services",
+      "target": "ext_wechat_login",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_services",
+      "target": "ext_socket_clients",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_services",
+      "target": "ext_wechat_jssdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "mysql",
+      "relation": "syncs data to asynchronously via Redis queue",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mongodb",
+      "target": "mysql",
+      "relation": "is source for async sync to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_routes",
+      "target": "backend_services",
+      "relation": "mounts middleware and routes to",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

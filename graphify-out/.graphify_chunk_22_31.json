@@ -1,0 +1,161 @@
+{
+  "nodes": [
+    {
+      "id": "img_logo_png",
+      "label": "Admin Logo (PNG)",
+      "type": "concept",
+      "source_file": "admin/public/logo.png",
+      "summary": "The Vue.js framework logo in PNG format used as the public-facing icon for the admin web application."
+    },
+    {
+      "id": "img_logo_svg",
+      "label": "Admin Logo (SVG)",
+      "type": "concept",
+      "source_file": "admin/src/assets/logo.svg",
+      "summary": "The Vue.js framework logo in SVG vector format (green and dark-grey chevron/diamond shape) embedded as an asset in the admin frontend source."
+    },
+    {
+      "id": "img_annotated_01_dashboard",
+      "label": "Admin Dashboard Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-01-dashboard.png",
+      "summary": "Annotated screenshot of the admin console main dashboard page showing key statistics and navigation overview for the 晨读营 (Morning Reading Camp) management system."
+    },
+    {
+      "id": "img_annotated_08_checkins",
+      "label": "Check-ins Management Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-08-checkins.png",
+      "summary": "Annotated screenshot of the admin check-ins management page showing the list of user daily check-in submissions with filtering and status controls."
+    },
+    {
+      "id": "img_annotated_09_insights",
+      "label": "Insights Management Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-09-insights.png",
+      "summary": "Annotated screenshot of the admin insights (洞见) management page where administrators can review, edit, and publish user-submitted reading insights."
+    },
+    {
+      "id": "img_annotated_08a_checkins_records",
+      "label": "Check-in Records Detail Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-08a-checkins-records.png",
+      "summary": "Annotated screenshot showing the detailed check-in records view with individual user check-in entries, timestamps, and content within a specific period."
+    },
+    {
+      "id": "img_annotated_07_contents",
+      "label": "Contents Management Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-07-contents.png",
+      "summary": "Annotated screenshot of the admin contents management page for managing daily reading content items (音频、文章等) within course sections."
+    },
+    {
+      "id": "img_annotated_14_database",
+      "label": "Database Management Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-14-database.png",
+      "summary": "Annotated screenshot of the admin database management page providing direct data inspection and maintenance tools for the MongoDB collections."
+    },
+    {
+      "id": "img_annotated_06_sections",
+      "label": "Sections Management Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-06-sections.png",
+      "summary": "Annotated screenshot of the admin sections management page for organizing course sections (章节) within a period, including ordering and visibility controls."
+    },
+    {
+      "id": "img_annotated_11_audit",
+      "label": "Audit Log Screenshot",
+      "type": "document",
+      "source_file": "docs/admin-guide-assets/annotated-11-audit.png",
+      "summary": "Annotated screenshot of the admin audit log page displaying a chronological record of administrative actions and system events for accountability tracking."
+    }
+  ],
+  "edges": [
+    {
+      "source": "img_logo_png",
+      "target": "img_logo_svg",
+      "relation": "is raster version of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "img_annotated_01_dashboard",
+      "target": "img_annotated_08_checkins",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_01_dashboard",
+      "target": "img_annotated_09_insights",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_01_dashboard",
+      "target": "img_annotated_07_contents",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_01_dashboard",
+      "target": "img_annotated_06_sections",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_01_dashboard",
+      "target": "img_annotated_14_database",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_01_dashboard",
+      "target": "img_annotated_11_audit",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_08_checkins",
+      "target": "img_annotated_08a_checkins_records",
+      "relation": "drills down to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "img_annotated_06_sections",
+      "target": "img_annotated_07_contents",
+      "relation": "contains",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_07_contents",
+      "target": "img_annotated_08_checkins",
+      "relation": "generates check-ins for",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_08_checkins",
+      "target": "img_annotated_09_insights",
+      "relation": "related to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_annotated_11_audit",
+      "target": "img_annotated_14_database",
+      "relation": "records changes to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_logo_png",
+      "target": "img_annotated_01_dashboard",
+      "relation": "displayed in header of",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_logo_svg",
+      "target": "img_annotated_01_dashboard",
+      "relation": "displayed in header of",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

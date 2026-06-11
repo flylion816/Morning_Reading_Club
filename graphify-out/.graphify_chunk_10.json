@@ -1,0 +1,199 @@
+{
+  "nodes": [
+    {
+      "id": "redis",
+      "label": "Redis",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/redis/meta.yaml",
+      "summary": "Redis缓存服务，作为后端工具层的依赖组件使用。"
+    },
+    {
+      "id": "admin",
+      "label": "Admin 管理后台",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin/description.md",
+      "summary": "Vue 3 + Vite 管理后台，供运营人员管理期次、用户、报名、支付、内容审核、数据统计等，支持超级管理员跨租户操作。"
+    },
+    {
+      "id": "admin-components",
+      "label": "Admin Components",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin/admin-components/description.md",
+      "summary": "可复用 UI 组件，包含表格、表单、弹窗、图表等通用组件，供各视图页面复用。"
+    },
+    {
+      "id": "admin-stores",
+      "label": "Admin Stores (Pinia)",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin/admin-stores/description.md",
+      "summary": "Pinia 状态管理，管理用户认证状态、当前租户、全局 UI 状态等。"
+    },
+    {
+      "id": "admin-router",
+      "label": "Admin Router",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin/admin-router/description.md",
+      "summary": "Vue Router 路由配置，定义管理后台所有页面路由，包含路由守卫（登录态检查）和权限控制。"
+    },
+    {
+      "id": "admin-views",
+      "label": "Admin Views",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin/admin-views/description.md",
+      "summary": "管理后台页面层，包含 Dashboard、用户管理、期次管理、报名管理、支付管理、内容管理、审计日志、数据统计、租户管理等 20 个视图。"
+    },
+    {
+      "id": "admin-api",
+      "label": "Admin API Layer",
+      "type": "api",
+      "source_file": ".omm/overall-architecture/admin/admin-api/description.md",
+      "summary": "基于 axios 的 API 请求封装层，统一处理认证 token 注入、X-Active-Tenant 请求头、错误处理和响应格式化。"
+    },
+    {
+      "id": "operations-scripts",
+      "label": "Operations Scripts",
+      "type": "tool",
+      "source_file": ".omm/overall-architecture/operations-scripts/description.md",
+      "summary": "项目运维辅助脚本，包含启动本地服务、运行测试、搜索历史 bug、检查部署、备份数据库、发布到生产等功能，不包含数据库初始化/重置脚本。"
+    },
+    {
+      "id": "backend",
+      "label": "Backend 后端",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend/description.md",
+      "summary": "Node.js + Express 后端，提供 REST API 和 WebSocket，通过 AsyncLocalStorage 实现请求级租户上下文，Mongoose plugin 自动注入 tenantId 过滤。"
+    },
+    {
+      "id": "backend-middleware",
+      "label": "Backend Middleware",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend/middleware/description.md",
+      "summary": "中间件层，包含 JWT 认证、管理员认证、租户上下文注入、响应缓存、限流、统一错误处理、请求监控、操作审计等。"
+    },
+    {
+      "id": "backend-utils",
+      "label": "Backend Utils",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend/utils/description.md",
+      "summary": "工具层，提供 JWT 签发/验证、Redis 客户端、WebSocket 管理器、日志、缓存 key 生成、租户上下文（AsyncLocalStorage）、配置校验、告警、监控规则等横切关注点工具。"
+    },
+    {
+      "id": "backend-models",
+      "label": "Backend Models (Mongoose)",
+      "type": "data_model",
+      "source_file": ".omm/overall-architecture/backend/models/description.md",
+      "summary": "Mongoose 数据模型层，定义 User、Tenant、Period、Section、Checkin、Enrollment、Payment、Insight、Comment、Notification、AuditLog 等 15+ 个集合 Schema，所有模型通过 tenantPlugin 自动注入 tenantId。"
+    }
+  ],
+  "edges": [
+    {
+      "source": "admin",
+      "target": "admin-components",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin",
+      "target": "admin-stores",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin",
+      "target": "admin-router",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin",
+      "target": "admin-views",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin",
+      "target": "admin-api",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin-views",
+      "target": "admin-components",
+      "relation": "reuses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin-views",
+      "target": "admin-stores",
+      "relation": "reads state from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin-router",
+      "target": "admin-views",
+      "relation": "routes to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin-router",
+      "target": "admin-stores",
+      "relation": "checks auth state via",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin-api",
+      "target": "backend",
+      "relation": "calls REST API of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin-api",
+      "target": "admin-stores",
+      "relation": "reads auth token from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend",
+      "target": "backend-middleware",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend",
+      "target": "backend-utils",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend",
+      "target": "backend-models",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend-utils",
+      "target": "redis",
+      "relation": "uses Redis client from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend-middleware",
+      "target": "backend-utils",
+      "relation": "uses JWT utilities from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend-middleware",
+      "target": "backend-models",
+      "relation": "injects tenantId into queries via",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "operations-scripts",
+      "target": "backend",
+      "relation": "starts and tests",
+      "confidence": "EXTRACTED"
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,337 @@
+{
+  "nodes": [
+    {
+      "id": "admin_router",
+      "label": "Admin Router",
+      "type": "component",
+      "source_file": ".omm/route-page-map/admin-router/meta.yaml",
+      "summary": "Vue Router configuration for the admin panel, grouping all admin-side routes."
+    },
+    {
+      "id": "miniprogram_tabs",
+      "label": "Miniprogram Tab Pages",
+      "type": "component",
+      "source_file": ".omm/route-page-map/miniprogram-tabs/description.md",
+      "summary": "Main tabBar entries in miniprogram/app.json: index, periods, and profile pages with startup routing logic."
+    },
+    {
+      "id": "insight_workflows",
+      "label": "Insight Workflow Pages",
+      "type": "component",
+      "source_file": ".omm/route-page-map/insight-workflows/description.md",
+      "summary": "Pages for displaying and managing 小凡看见 content, insight requests, approvals, danmaku, likes, and user profile context."
+    },
+    {
+      "id": "public_browse",
+      "label": "Public Browse Pages",
+      "type": "component",
+      "source_file": ".omm/route-page-map/public-browse/description.md",
+      "summary": "Public and semi-public learning browse pages including periods, courses, reading-mode, and legal pages accessible before or around authentication."
+    },
+    {
+      "id": "admin_management",
+      "label": "Admin Management Views",
+      "type": "component",
+      "source_file": ".omm/route-page-map/admin-management/description.md",
+      "summary": "Admin views for dashboard metrics, enrollments, payments, periods, users, and content management via admin API and backend routes."
+    },
+    {
+      "id": "admin_ops",
+      "label": "Admin Operational Views",
+      "type": "component",
+      "source_file": ".omm/route-page-map/admin-ops/description.md",
+      "summary": "Admin screens for check-ins, insights, analytics, audit logs, database comparison, subscription debugging, and account management requiring careful auth."
+    },
+    {
+      "id": "external_integrations",
+      "label": "External Integrations",
+      "type": "concept",
+      "source_file": ".omm/external-integrations/description.md",
+      "summary": "All integration points with the WeChat platform: OAuth login, subscribe messages, JS-SDK, and WeChat Pay."
+    },
+    {
+      "id": "socketio_runtime",
+      "label": "Socket.IO Runtime",
+      "type": "component",
+      "source_file": ".omm/external-integrations/socketio-runtime/description.md",
+      "summary": "Realtime runtime in backend/src/server.js and backend/src/utils/websocket.js that tracks user-to-socket mappings for targeted and broadcast notifications."
+    },
+    {
+      "id": "subscribe_api",
+      "label": "WeChat Subscribe Message API",
+      "type": "api",
+      "source_file": ".omm/external-integrations/subscribe-api/description.md",
+      "summary": "WeChat subscribe-message send endpoint used by subscribe-message.service.js to deliver scene-specific templated reminders with grant tracking."
+    },
+    {
+      "id": "backend_services",
+      "label": "Backend Services",
+      "type": "component",
+      "source_file": ".omm/external-integrations/meta.yaml",
+      "summary": "Core backend service layer in backend/src/services/ that orchestrates all external WeChat and internal integrations."
+    },
+    {
+      "id": "wechat_login_api",
+      "label": "WeChat Login API",
+      "type": "api",
+      "source_file": ".omm/external-integrations/meta.yaml",
+      "summary": "api.weixin.qq.com/sns/jscode2session endpoint used to exchange miniprogram login codes for openid."
+    },
+    {
+      "id": "wechat_token_api",
+      "label": "WeChat Token and Ticket API",
+      "type": "api",
+      "source_file": ".omm/external-integrations/meta.yaml",
+      "summary": "api.weixin.qq.com/cgi-bin/ endpoints for obtaining access_token and jsapi_ticket."
+    },
+    {
+      "id": "wechat_pay_api",
+      "label": "WeChat Pay API",
+      "type": "api",
+      "source_file": ".omm/external-integrations/meta.yaml",
+      "summary": "api.mch.weixin.qq.com/pay/unifiedorder endpoint for creating prepay orders and receiving payment callbacks."
+    },
+    {
+      "id": "miniprogram_wx_client",
+      "label": "wx Client APIs",
+      "type": "component",
+      "source_file": ".omm/external-integrations/meta.yaml",
+      "summary": "Miniprogram-side wx APIs (wx.login, wx.requestPayment, wx.requestSubscribeMessage) that obtain login codes and permissions."
+    },
+    {
+      "id": "email_runtime",
+      "label": "Email Runtime",
+      "type": "component",
+      "source_file": ".omm/external-integrations/meta.yaml",
+      "summary": "Nodemailer-based email delivery runtime available for mail delivery features in the backend."
+    },
+    {
+      "id": "admin_api_ts",
+      "label": "admin/src/services/api.ts",
+      "type": "component",
+      "source_file": ".omm/route-page-map/admin-management/description.md",
+      "summary": "Admin frontend API service layer that admin management views call to reach backend /api/v1 routes."
+    },
+    {
+      "id": "app_json",
+      "label": "miniprogram/app.json",
+      "type": "document",
+      "source_file": ".omm/route-page-map/miniprogram-tabs/description.md",
+      "summary": "Miniprogram app configuration file that defines the tabBar entries and page routes."
+    },
+    {
+      "id": "app_js",
+      "label": "miniprogram/app.js",
+      "type": "component",
+      "source_file": ".omm/route-page-map/miniprogram-tabs/description.md",
+      "summary": "Miniprogram startup script that chooses routing based on environment, login state, and external launch path."
+    },
+    {
+      "id": "subscribe_message_service",
+      "label": "subscribe-message.service.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/subscribe-api/description.md",
+      "summary": "Backend service that builds scene-specific template data, respects grant counts, records delivery attempts, and supports reminder scheduling."
+    },
+    {
+      "id": "websocket_util",
+      "label": "backend/src/utils/websocket.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/socketio-runtime/description.md",
+      "summary": "Utility module managing user-to-socket mappings and exposing push methods for controllers and services."
+    },
+    {
+      "id": "server_js",
+      "label": "backend/src/server.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/socketio-runtime/description.md",
+      "summary": "Backend server entry point where the Socket.IO realtime runtime is created and initialized."
+    },
+    {
+      "id": "tenant_model",
+      "label": "Tenant Model",
+      "type": "data_model",
+      "source_file": ".omm/external-integrations/context.md",
+      "summary": "MongoDB model storing per-tenant WeChat configuration (appId, appSecret, mchId) for multi-tenant WeChat API calls."
+    },
+    {
+      "id": "wechat_service",
+      "label": "wechat.service.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/context.md",
+      "summary": "Backend service that dynamically reads tenant WeChat config when calling WeChat APIs."
+    },
+    {
+      "id": "payment_service",
+      "label": "payment.service.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/context.md",
+      "summary": "Backend service that dynamically reads tenant payment config when calling WeChat Pay APIs."
+    }
+  ],
+  "edges": [
+    {
+      "source": "miniprogram_wx_client",
+      "target": "backend_services",
+      "relation": "sends login code and payment/subscription permissions to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "wechat_login_api",
+      "relation": "exchanges login code for openid via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "wechat_token_api",
+      "relation": "obtains access_token and jsapi_ticket from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "wechat_pay_api",
+      "relation": "creates prepay order and receives callback via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "subscribe_api",
+      "relation": "sends templated reminders and notifications via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "socketio_runtime",
+      "relation": "pushes in-app realtime notifications via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "email_runtime",
+      "relation": "delivers mail via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "socketio_runtime",
+      "target": "server_js",
+      "relation": "is created in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "socketio_runtime",
+      "target": "websocket_util",
+      "relation": "is managed by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "subscribe_message_service",
+      "target": "subscribe_api",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_management",
+      "target": "admin_api_ts",
+      "relation": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_router",
+      "target": "admin_management",
+      "relation": "routes to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin_router",
+      "target": "admin_ops",
+      "relation": "routes to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "app_json",
+      "target": "miniprogram_tabs",
+      "relation": "configures tabBar entries for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "app_js",
+      "target": "miniprogram_tabs",
+      "relation": "performs startup routing among",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_tabs",
+      "target": "public_browse",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_tabs",
+      "target": "insight_workflows",
+      "relation": "navigates to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "wechat_service",
+      "target": "tenant_model",
+      "relation": "reads WeChat config from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "payment_service",
+      "target": "tenant_model",
+      "relation": "reads payment config from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_service",
+      "target": "wechat_login_api",
+      "relation": "calls",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "payment_service",
+      "target": "wechat_pay_api",
+      "relation": "calls",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "external_integrations",
+      "target": "wechat_login_api",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_integrations",
+      "target": "subscribe_api",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_integrations",
+      "target": "wechat_pay_api",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_integrations",
+      "target": "socketio_runtime",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_integrations",
+      "target": "email_runtime",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "external_integrations",
+      "target": "miniprogram_wx_client",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,187 @@
+{
+  "nodes": [
+    {
+      "id": "storage_mongodb",
+      "label": "MongoDB",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/storage-layer/mongodb/meta.yaml",
+      "summary": "Primary document store in the storage layer, child of storage-layer."
+    },
+    {
+      "id": "storage_mysql",
+      "label": "MySQL",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/storage-layer/mysql/description.md",
+      "summary": "Secondary relational store reached via mysql2; receives transformed MongoDB documents through sync services and participates in backup, comparison, and recovery workflows."
+    },
+    {
+      "id": "miniprogram_client",
+      "label": "Miniprogram Client",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram-client/description.md",
+      "summary": "Native WeChat miniprogram under miniprogram/ containing app startup, pages, components, service wrappers, request/token handling, environment config, and local utilities."
+    },
+    {
+      "id": "miniprogram_client_app_entry",
+      "label": "App Entry",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram-client/app-entry/description.md",
+      "summary": "Bootstrap files app.js and app.json defining page registration, tab bar, startup navigation, login-state restoration, system info capture, and lifecycle tracking."
+    },
+    {
+      "id": "miniprogram_client_components",
+      "label": "Miniprogram Client Components",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram-client/components/description.md",
+      "summary": "Reusable miniprogram components under miniprogram/components/ including course cards and notification badges, providing shared UI without a separate frontend framework."
+    },
+    {
+      "id": "miniprogram_client_config_utils",
+      "label": "Config & Utils",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram-client/config-utils/description.md",
+      "summary": "Configuration and utilities under miniprogram/config/ and miniprogram/utils/ covering environment API endpoints, constants, storage helpers, formatting, markdown, avatar, and subscription helpers."
+    },
+    {
+      "id": "miniprogram_client_pages",
+      "label": "Pages",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram-client/pages/description.md",
+      "summary": "Page implementations covering public browsing, login, enrollment, payment, reading, check-in, ranking, member profiles, notifications, insights, sharing, legal pages, and profile editing."
+    },
+    {
+      "id": "miniprogram_client_request_client",
+      "label": "Request Client",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram-client/request-client/description.md",
+      "summary": "Shared HTTP/upload wrapper in miniprogram/utils/request.js handling auth tokens, response normalization, token refresh with request queue, and get/post/put/delete/patch/upload helpers."
+    },
+    {
+      "id": "miniprogram_client_services",
+      "label": "Services",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram-client/services/description.md",
+      "summary": "Domain service wrappers under miniprogram/services/ grouping backend API calls for auth, periods, enrollment, payment, check-in, comments, ranking, notifications, insights, and WebSocket updates."
+    },
+    {
+      "id": "miniprogram",
+      "label": "Miniprogram",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram/description.md",
+      "summary": "WeChat miniprogram user client built with native framework and WeUI, supporting login, course browsing, check-in, insights, leaderboard, notifications, payment, and multi-tenant via X-Wx-AppId header."
+    },
+    {
+      "id": "miniprogram_mp_config",
+      "label": "MP Config",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram/mp-config/description.md",
+      "summary": "Configuration layer containing environment config (dev/prod API addresses) and constant definitions (storage keys, business constants)."
+    },
+    {
+      "id": "miniprogram_components",
+      "label": "Miniprogram Components",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/miniprogram/components/description.md",
+      "summary": "Reusable UI components based on WeUI including navigation bar, check-in cards, insight cards, bullet comments, and loading states."
+    }
+  ],
+  "edges": [
+    {
+      "source": "storage_mysql",
+      "target": "storage_mongodb",
+      "relation": "receives transformed documents from via sync services",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client",
+      "target": "miniprogram_client_app_entry",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client",
+      "target": "miniprogram_client_components",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client",
+      "target": "miniprogram_client_config_utils",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client",
+      "target": "miniprogram_client_pages",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client",
+      "target": "miniprogram_client_request_client",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client",
+      "target": "miniprogram_client_services",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client_pages",
+      "target": "miniprogram_client_services",
+      "relation": "calls backend APIs through",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_client_services",
+      "target": "miniprogram_client_request_client",
+      "relation": "uses for HTTP requests",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_client_pages",
+      "target": "miniprogram_client_components",
+      "relation": "uses reusable UI from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_client_app_entry",
+      "target": "miniprogram_client_config_utils",
+      "relation": "uses environment config from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram",
+      "target": "miniprogram_mp_config",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram",
+      "target": "miniprogram_components",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_client",
+      "target": "miniprogram",
+      "relation": "is architectural view of",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_mp_config",
+      "target": "miniprogram_client_config_utils",
+      "relation": "overlaps with / corresponds to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_components",
+      "target": "miniprogram_client_components",
+      "relation": "overlaps with / corresponds to",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

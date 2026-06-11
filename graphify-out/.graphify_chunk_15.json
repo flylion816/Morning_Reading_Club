@@ -1,0 +1,194 @@
+{
+  "nodes": [
+    {
+      "id": "backend_api_controllers",
+      "label": "Controllers",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/controllers/meta.yaml",
+      "summary": "Controller layer nested within the backend-api, handling request/response logic."
+    },
+    {
+      "id": "backend_api_routes",
+      "label": "Routes",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/routes/description.md",
+      "summary": "Route modules under backend/src/routes/ defining all API endpoints including auth, users, periods, check-ins, payments, and more."
+    },
+    {
+      "id": "backend_api_express_app",
+      "label": "Express App",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/express-app/description.md",
+      "summary": "Express composition root in backend/src/app.js configuring middleware, routes, WebSocket, monitoring, and error handling."
+    },
+    {
+      "id": "backend_api_services",
+      "label": "Services",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/backend-api/services/description.md",
+      "summary": "Service modules under backend/src/services/ isolating WeChat calls, payments, sync, backups, notifications, and scheduling."
+    },
+    {
+      "id": "storage_layer",
+      "label": "Storage Layer",
+      "type": "component",
+      "source_file": ".omm/storage/description.md",
+      "summary": "Storage topology covering MongoDB, MySQL, Redis, upload files, sync queues, and backup jobs."
+    },
+    {
+      "id": "storage_mongodb",
+      "label": "MongoDB",
+      "type": "component",
+      "source_file": ".omm/storage/mongodb/description.md",
+      "summary": "Primary MongoDB database configured by MONGODB_URI, required for normal backend operation with lifecycle protection."
+    },
+    {
+      "id": "storage_mysql_pool",
+      "label": "MySQL Pool",
+      "type": "component",
+      "source_file": ".omm/storage/mysql-pool/description.md",
+      "summary": "MySQL connection pool configured from MYSQL_* env vars, used by sync, backup, comparison, and recovery code."
+    },
+    {
+      "id": "storage_backup_service",
+      "label": "Backup Service",
+      "type": "component",
+      "source_file": ".omm/storage/backup-service/description.md",
+      "summary": "Backup service in backend/src/services/backup.service.js that exports MongoDB and MySQL snapshots and runs scheduled production jobs."
+    },
+    {
+      "id": "storage_upload_files",
+      "label": "Upload Files",
+      "type": "component",
+      "source_file": ".omm/storage/upload-files/description.md",
+      "summary": "Uploaded files stored under backend/uploads/ and served statically by Express for admin content and avatar uploads."
+    },
+    {
+      "id": "storage_context",
+      "label": "Storage Context",
+      "type": "document",
+      "source_file": ".omm/storage/context.md",
+      "summary": "Describes storage perspective focusing on operational topology rather than product data lifecycle."
+    },
+    {
+      "id": "storage_constraint",
+      "label": "Storage Constraints",
+      "type": "document",
+      "source_file": ".omm/storage/constraint.md",
+      "summary": "Backup commands allowed; initialization, clearing, or resetting database data requires explicit user confirmation."
+    },
+    {
+      "id": "storage_concern",
+      "label": "Storage Concerns",
+      "type": "document",
+      "source_file": ".omm/storage/concern.md",
+      "summary": "Redis fallback prevents cache failures from breaking requests, but MongoDB disconnects in production are fatal by design."
+    },
+    {
+      "id": "storage_todo",
+      "label": "Storage Todo",
+      "type": "document",
+      "source_file": ".omm/storage/todo.md",
+      "summary": "Reminder to add details when new storage systems, backup locations, sync tables, or Redis queue names are introduced."
+    }
+  ],
+  "edges": [
+    {
+      "source": "backend_api_express_app",
+      "target": "backend_api_routes",
+      "relation": "mounts and registers",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api_routes",
+      "target": "backend_api_controllers",
+      "relation": "delegates requests to",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend_api_controllers",
+      "target": "backend_api_services",
+      "relation": "calls business logic in",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "backend_api_services",
+      "target": "storage_mongodb",
+      "relation": "reads and writes data to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api_services",
+      "target": "storage_mysql_pool",
+      "relation": "synchronizes data via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api_services",
+      "target": "storage_backup_service",
+      "relation": "includes backup operations in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_api_express_app",
+      "target": "storage_upload_files",
+      "relation": "serves statically from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_backup_service",
+      "target": "storage_mongodb",
+      "relation": "exports snapshots from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_backup_service",
+      "target": "storage_mysql_pool",
+      "relation": "exports snapshots from",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_layer",
+      "target": "storage_mongodb",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_layer",
+      "target": "storage_mysql_pool",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_layer",
+      "target": "storage_backup_service",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_layer",
+      "target": "storage_upload_files",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_concern",
+      "target": "storage_mongodb",
+      "relation": "documents fatal behavior of",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_constraint",
+      "target": "storage_mongodb",
+      "relation": "governs safety rules for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_constraint",
+      "target": "storage_mysql_pool",
+      "relation": "governs safety rules for",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

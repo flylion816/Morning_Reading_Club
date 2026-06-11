@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd \\\"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/miniprogram\\\" && du -sh __tests__/* 2>/dev/null | sort -rh && echo \\\"\\\" && cat project.config.json 2>/dev/null | python3 -c \\\"i...",
+  "error": "Exit code 1\n188K\t__tests__/services\n100K\t__tests__/utils\n 96K\t__tests__/pages\n 12K\t__tests__/mocks\n 12K\t__tests__/framework.spec.js\n8.0K\t__tests__/setup.js\n8.0K\t__tests__/fixtures.js\n\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import json,sys; d=json.load(sys.stdin); print(json.dumps(d.get('packOptions',{}), indent=2, ensure_ascii=False))\n                       ~~~~~~~~~^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Vers...",
+  "timestamp": "2026-05-23T22:58:11.812Z",
+  "retry_count": 1
+}

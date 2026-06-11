@@ -1,0 +1,274 @@
+{
+  "nodes": [
+    {
+      "id": "img_share_insight_jpg",
+      "label": "Share Insight Image",
+      "type": "document",
+      "source_file": "miniprogram/assets/images/share-insight.jpg",
+      "summary": "Default share card image used when sharing an insight/洞见 to WeChat friends or moments."
+    },
+    {
+      "id": "img_zaichang_lan_png",
+      "label": "Zaichang Blue Badge",
+      "type": "concept",
+      "source_file": "miniprogram/assets/images/zaichang-lan.png",
+      "summary": "Blue variant of the '在场' (present/attendance) badge icon used to indicate active attendance status."
+    },
+    {
+      "id": "img_share_default_jpg",
+      "label": "Share Default Image",
+      "type": "document",
+      "source_file": "miniprogram/assets/images/share-default.jpg",
+      "summary": "Generic fallback share card image used when no specific share image is available."
+    },
+    {
+      "id": "img_zaichang_hui_png",
+      "label": "Zaichang Grey Badge",
+      "type": "concept",
+      "source_file": "miniprogram/assets/images/zaichang-hui.png",
+      "summary": "Grey/inactive variant of the '在场' (present/attendance) badge icon used to indicate inactive or unavailable attendance status."
+    },
+    {
+      "id": "img_heart_jpg",
+      "label": "Heart Image (JPG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/images/heart.jpg",
+      "summary": "Heart/like icon in JPG format used for expressing appreciation or liking content in the mini-program."
+    },
+    {
+      "id": "img_heart_png",
+      "label": "Heart Image (PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/images/heart.png",
+      "summary": "Heart/like icon in PNG format (with transparency) used for expressing appreciation or liking content in the mini-program."
+    },
+    {
+      "id": "img_mini_program_code_png",
+      "label": "Mini Program QR Code",
+      "type": "document",
+      "source_file": "miniprogram/assets/images/mini-program-code.png",
+      "summary": "WeChat mini-program QR code image used for sharing or promoting the morning reading camp mini-program."
+    },
+    {
+      "id": "icon_home_active_png",
+      "label": "Home Tab Icon (Active, PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/home-active.png",
+      "summary": "Active/selected state of the home tab bar icon in PNG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_user_svg",
+      "label": "User Tab Icon (SVG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/user.svg",
+      "summary": "Inactive/default state of the user/profile tab bar icon in SVG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_book_png",
+      "label": "Book Tab Icon (PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/book.png",
+      "summary": "Inactive/default state of the book/reading tab bar icon in PNG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_home_svg",
+      "label": "Home Tab Icon (SVG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/home.svg",
+      "summary": "Inactive/default state of the home tab bar icon in SVG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_book_active_svg",
+      "label": "Book Tab Icon (Active, SVG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/book-active.svg",
+      "summary": "Active/selected state of the book/reading tab bar icon in SVG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_user_active_svg",
+      "label": "User Tab Icon (Active, SVG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/user-active.svg",
+      "summary": "Active/selected state of the user/profile tab bar icon in SVG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_my_active_png",
+      "label": "My Tab Icon (Active, PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/my-active.png",
+      "summary": "Active/selected state of the 'my' personal profile tab bar icon in PNG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_user_active_png",
+      "label": "User Tab Icon (Active, PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/user-active.png",
+      "summary": "Active/selected state of the user/profile tab bar icon in PNG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_book_active_png",
+      "label": "Book Tab Icon (Active, PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/book-active.png",
+      "summary": "Active/selected state of the book/reading tab bar icon in PNG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_home_png",
+      "label": "Home Tab Icon (PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/home.png",
+      "summary": "Inactive/default state of the home tab bar icon in PNG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_book_svg",
+      "label": "Book Tab Icon (SVG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/book.svg",
+      "summary": "Inactive/default state of the book/reading tab bar icon in SVG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_user_png",
+      "label": "User Tab Icon (PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/user.png",
+      "summary": "Inactive/default state of the user/profile tab bar icon in PNG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_home_active_svg",
+      "label": "Home Tab Icon (Active, SVG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/home-active.svg",
+      "summary": "Active/selected state of the home tab bar icon in SVG format for the mini-program bottom navigation."
+    },
+    {
+      "id": "icon_my_png",
+      "label": "My Tab Icon (PNG)",
+      "type": "concept",
+      "source_file": "miniprogram/assets/icons/my.png",
+      "summary": "Inactive/default state of the 'my' personal profile tab bar icon in PNG format for the mini-program bottom navigation."
+    }
+  ],
+  "edges": [
+    {
+      "source": "icon_home_png",
+      "target": "icon_home_active_png",
+      "relation": "has active state",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "icon_home_svg",
+      "target": "icon_home_active_svg",
+      "relation": "has active state",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "icon_home_png",
+      "target": "icon_home_svg",
+      "relation": "same icon different format",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "icon_home_active_png",
+      "target": "icon_home_active_svg",
+      "relation": "same icon different format",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "icon_book_png",
+      "target": "icon_book_active_png",
+      "relation": "has active state",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "icon_book_svg",
+      "target": "icon_book_active_svg",
+      "relation": "has active state",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "icon_book_png",
+      "target": "icon_book_svg",
+      "relation": "same icon different format",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "icon_book_active_png",
+      "target": "icon_book_active_svg",
+      "relation": "same icon different format",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "icon_user_png",
+      "target": "icon_user_active_png",
+      "relation": "has active state",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "icon_user_svg",
+      "target": "icon_user_active_svg",
+      "relation": "has active state",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "icon_user_png",
+      "target": "icon_user_svg",
+      "relation": "same icon different format",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "icon_user_active_png",
+      "target": "icon_user_active_svg",
+      "relation": "same icon different format",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "icon_my_png",
+      "target": "icon_my_active_png",
+      "relation": "has active state",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "icon_user_active_png",
+      "target": "icon_my_active_png",
+      "relation": "likely same tab icon variant",
+      "confidence": "AMBIGUOUS"
+    },
+    {
+      "source": "icon_user_png",
+      "target": "icon_my_png",
+      "relation": "likely same tab icon variant",
+      "confidence": "AMBIGUOUS"
+    },
+    {
+      "source": "img_zaichang_lan_png",
+      "target": "img_zaichang_hui_png",
+      "relation": "active/inactive state pair",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "img_heart_jpg",
+      "target": "img_heart_png",
+      "relation": "same asset different format",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_share_insight_jpg",
+      "target": "img_share_default_jpg",
+      "relation": "shares sharing feature context",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_share_insight_jpg",
+      "target": "img_mini_program_code_png",
+      "relation": "used together in share flow",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "img_share_default_jpg",
+      "target": "img_mini_program_code_png",
+      "relation": "used together in share flow",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

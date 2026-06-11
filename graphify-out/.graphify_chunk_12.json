@@ -1,0 +1,217 @@
+{
+  "nodes": [
+    {
+      "id": "mysql",
+      "label": "MySQL",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/mysql/meta.yaml",
+      "summary": "MySQL database maintained through sync and backup services as part of the storage layer."
+    },
+    {
+      "id": "admin_console",
+      "label": "Admin Console",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin-console/description.md",
+      "summary": "Vue 3 admin console under admin/src/ providing authenticated operational screens for dashboard, enrollments, payments, periods, users, content, check-ins, insights, analytics, audit logs, and more."
+    },
+    {
+      "id": "admin_stores",
+      "label": "Admin Stores",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin-console/stores/description.md",
+      "summary": "Pinia stores under admin/src/stores/ keeping admin auth state, user/period state, UI state, and counters."
+    },
+    {
+      "id": "admin_components",
+      "label": "Admin Components",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin-console/components/description.md",
+      "summary": "Shared Vue components under admin/src/components/ including admin layout shell, rich text editor, and icon components."
+    },
+    {
+      "id": "admin_api_client",
+      "label": "Admin API Client",
+      "type": "api",
+      "source_file": ".omm/overall-architecture/admin-console/api-client/description.md",
+      "summary": "Admin HTTP layer in admin/src/services/api.ts using Axios with Bearer token auth, response envelope unwrapping, and domain API groupings."
+    },
+    {
+      "id": "admin_utils_types",
+      "label": "Admin Utils & Types",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin-console/utils-types/description.md",
+      "summary": "Utility and TypeScript type modules under admin/src/utils/ and admin/src/types/ providing logging, avatar helpers, export helpers, and API type definitions."
+    },
+    {
+      "id": "admin_app_shell",
+      "label": "Admin App Shell",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin-console/app-shell/description.md",
+      "summary": "Admin application shell in admin/src/main.ts and App.vue bootstrapping Vue, global styles, router, Pinia, and Element Plus UI."
+    },
+    {
+      "id": "admin_views",
+      "label": "Admin Views",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin-console/views/description.md",
+      "summary": "View components under admin/src/views/ implementing operational pages for dashboard, enrollments, payments, periods, users, content, check-ins, insights, analytics, audit logs, and more."
+    },
+    {
+      "id": "admin_router",
+      "label": "Admin Router",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/admin-console/router/description.md",
+      "summary": "Vue Router configuration in admin/src/router/ defining login and protected admin routes with token restoration and auth redirect."
+    },
+    {
+      "id": "storage_layer",
+      "label": "Storage Layer",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/storage-layer/description.md",
+      "summary": "Persistence and runtime storage used by the backend, comprising MongoDB, MySQL, Redis, and file uploads."
+    },
+    {
+      "id": "redis",
+      "label": "Redis",
+      "type": "component",
+      "source_file": ".omm/overall-architecture/storage-layer/redis/description.md",
+      "summary": "Redis runtime store used by backend for cache, rate limiting, monitoring metrics, alert throttling, and sync queues, with in-memory fallback."
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "type": "data_model",
+      "source_file": ".omm/overall-architecture/storage-layer/mongodb/description.md",
+      "summary": "Primary document database accessed through Mongoose models storing users, admins, periods, enrollments, payments, check-ins, insights, notifications, and audit logs."
+    }
+  ],
+  "edges": [
+    {
+      "source": "admin_console",
+      "target": "admin_stores",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_console",
+      "target": "admin_components",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_console",
+      "target": "admin_api_client",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_console",
+      "target": "admin_utils_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_console",
+      "target": "admin_app_shell",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_console",
+      "target": "admin_views",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_console",
+      "target": "admin_router",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_app_shell",
+      "target": "admin_router",
+      "relation": "bootstraps",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_app_shell",
+      "target": "admin_stores",
+      "relation": "bootstraps",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_router",
+      "target": "admin_views",
+      "relation": "routes to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "admin_views",
+      "target": "admin_api_client",
+      "relation": "uses",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin_views",
+      "target": "admin_stores",
+      "relation": "uses",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin_views",
+      "target": "admin_components",
+      "relation": "uses",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin_views",
+      "target": "admin_utils_types",
+      "relation": "uses",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "admin_api_client",
+      "target": "admin_utils_types",
+      "relation": "uses types from",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "storage_layer",
+      "target": "mongodb",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_layer",
+      "target": "mysql",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "storage_layer",
+      "target": "redis",
+      "relation": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mongodb",
+      "target": "storage_layer",
+      "relation": "is primary source of truth in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "redis",
+      "target": "storage_layer",
+      "relation": "provides runtime cache for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mysql",
+      "target": "mongodb",
+      "relation": "synced from",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

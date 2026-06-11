@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"curl -s \\\"http://localhost:3000/api/v1/periods/\\\" -H \\\"X-Wx-AppId: wx2b9a3c1d5e4195f8\\\" 2>/dev/null | python3 -c \\\"import sys,json; d=json.load(sys.stdin); items=d.get('data',{}).get('list...",
-  "error": "Exit code 1",
-  "timestamp": "2026-05-20T23:35:25.708Z",
+  "tool_input_preview": "{\"command\":\"ssh -o ConnectTimeout=5 root@wx.shubai01.com \\\"cd /var/www/morning-reading-club/backend && node -e \\\\\\\"require('./src/models/ImprintActivityType')\\\\\\\" 2>&1 | head -20\\\" 2>&1\",\"timeout\":150...",
+  "error": "Exit code 255\nPermission denied, please try again.\r\nPermission denied, please try again.\r\nroot@wx.shubai01.com: Permission denied (publickey,password).",
+  "timestamp": "2026-05-22T14:16:02.464Z",
   "retry_count": 1
 }

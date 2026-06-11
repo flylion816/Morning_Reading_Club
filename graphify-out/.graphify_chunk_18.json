@@ -1,0 +1,291 @@
+{
+  "nodes": [
+    {
+      "id": "email_runtime",
+      "label": "Email Runtime",
+      "type": "component",
+      "source_file": ".omm/external-integrations/email-runtime/description.md",
+      "summary": "Email capability via nodemailer backend dependency, available for notification or operational delivery features."
+    },
+    {
+      "id": "wx_login",
+      "label": "wx-login (WeChat OAuth)",
+      "type": "api",
+      "source_file": ".omm/external-integrations/wx-login/description.md",
+      "summary": "WeChat OAuth login interface (code2session): miniprogram calls wx.login() to get a temporary code, backend exchanges it for openid and session_key, then issues a JWT token."
+    },
+    {
+      "id": "wechat_token_api",
+      "label": "WeChat Token API",
+      "type": "api",
+      "source_file": ".omm/external-integrations/wechat-token-api/description.md",
+      "summary": "WeChat access_token and JSAPI ticket APIs used by wechat-jssdk.service.js to sign URLs for WeChat web capabilities."
+    },
+    {
+      "id": "wechat_pay_api",
+      "label": "WeChat Pay API",
+      "type": "api",
+      "source_file": ".omm/external-integrations/wechat-pay-api/description.md",
+      "summary": "WeChat Pay unified-order API and callback flow; payment.service.js builds XML requests and MD5 signatures, routes accept callbacks and update Payment and Enrollment state."
+    },
+    {
+      "id": "wx_subscribe",
+      "label": "wx-subscribe (Subscription Message)",
+      "type": "api",
+      "source_file": ".omm/external-integrations/wx-subscribe/description.md",
+      "summary": "WeChat subscription message push interface; study-reminder.service.js calls it daily at 05:45/06:00 to push study reminders to subscribed users."
+    },
+    {
+      "id": "backend_services",
+      "label": "Backend Services",
+      "type": "component",
+      "source_file": ".omm/external-integrations/backend-services/description.md",
+      "summary": "Integration-owning backend service modules under backend/src/services/ wrapping WeChat login, JSSDK, payment, subscription messages, and other outbound effects."
+    },
+    {
+      "id": "wechat_login_api",
+      "label": "WeChat Login API (code2session)",
+      "type": "api",
+      "source_file": ".omm/external-integrations/wechat-login-api/description.md",
+      "summary": "WeChat login API used in production to exchange a temporary wx.login code for openid and session_key; wechat.service.js maps error codes to user-facing failures."
+    },
+    {
+      "id": "wx_payment",
+      "label": "wx-payment (WeChat Payment)",
+      "type": "component",
+      "source_file": ".omm/external-integrations/wx-payment/description.md",
+      "summary": "WeChat payment flow: payment.service.js creates orders and returns pre-pay parameters, miniprogram calls wx.requestPayment(), WeChat callbacks backend to verify signature and update order status."
+    },
+    {
+      "id": "wx_jssdk",
+      "label": "WeChat JS-SDK",
+      "type": "api",
+      "source_file": ".omm/external-integrations/wx-jssdk/description.md",
+      "summary": "WeChat JS-SDK for web authorization and sharing; backend wechat-jssdk.service.js generates signature tickets, frontend uses it to configure share cards and other WeChat native capabilities."
+    },
+    {
+      "id": "miniprogram_wx",
+      "label": "Miniprogram WeChat Client APIs",
+      "type": "component",
+      "source_file": ".omm/external-integrations/miniprogram-wx/description.md",
+      "summary": "WeChat client APIs invoked from the miniprogram runtime including wx.login, wx.request, wx.uploadFile, wx.requestPayment, wx.requestSubscribeMessage, wx.connectSocket, storage, navigation, and system APIs."
+    },
+    {
+      "id": "multi_tenant_architecture",
+      "label": "Multi-Tenant Architecture",
+      "type": "concept",
+      "source_file": ".omm/multi-tenant-architecture/description.md",
+      "summary": "Multi-tenant SaaS architecture with shared MongoDB database, tenant isolation via tenantId field, AsyncLocalStorage context propagation, and Mongoose plugin auto-injection of tenant filters."
+    },
+    {
+      "id": "wechat_jssdk_service",
+      "label": "wechat-jssdk.service.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/wechat-token-api/description.md",
+      "summary": "Backend service that retrieves WeChat access_token and JSAPI ticket, then signs URLs for WeChat web capabilities."
+    },
+    {
+      "id": "payment_service",
+      "label": "payment.service.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/wechat-pay-api/description.md",
+      "summary": "Backend service that builds WeChat Pay XML requests and MD5 signatures, creates payment orders, and handles callback verification."
+    },
+    {
+      "id": "wechat_service",
+      "label": "wechat.service.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/wechat-login-api/description.md",
+      "summary": "Backend service that exchanges wx.login code for openid/session_key and maps WeChat error codes to user-facing login failures."
+    },
+    {
+      "id": "study_reminder_service",
+      "label": "study-reminder.service.js",
+      "type": "component",
+      "source_file": ".omm/external-integrations/wx-subscribe/description.md",
+      "summary": "Backend service that sends daily study reminder notifications via WeChat subscription messages at 05:45 and 06:00."
+    },
+    {
+      "id": "async_local_storage",
+      "label": "AsyncLocalStorage (ALS)",
+      "type": "concept",
+      "source_file": ".omm/multi-tenant-architecture/context.md",
+      "summary": "Node.js AsyncLocalStorage used to propagate tenantId context through the request lifecycle without manual parameter passing."
+    },
+    {
+      "id": "mongoose_tenant_plugin",
+      "label": "Mongoose Tenant Plugin",
+      "type": "component",
+      "source_file": ".omm/multi-tenant-architecture/context.md",
+      "summary": "Mongoose plugin that automatically reads tenantId from AsyncLocalStorage and injects it as a filter condition on all queries."
+    },
+    {
+      "id": "tenant_model",
+      "label": "Tenant Collection",
+      "type": "data_model",
+      "source_file": ".omm/multi-tenant-architecture/context.md",
+      "summary": "MongoDB collection mapping wxAppId to tenantId, used during login to resolve which tenant a miniprogram belongs to."
+    },
+    {
+      "id": "jwt_token",
+      "label": "JWT Token",
+      "type": "concept",
+      "source_file": ".omm/multi-tenant-architecture/context.md",
+      "summary": "JWT issued after WeChat login, carrying tenantId so subsequent requests can identify the tenant context."
+    },
+    {
+      "id": "nodemailer",
+      "label": "Nodemailer",
+      "type": "tool",
+      "source_file": ".omm/external-integrations/email-runtime/description.md",
+      "summary": "Node.js email library used as the backend email dependency for notification or operational delivery."
+    }
+  ],
+  "edges": [
+    {
+      "source": "miniprogram_wx",
+      "target": "wx_login",
+      "relation": "calls wx.login() to initiate",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wx_login",
+      "target": "wechat_login_api",
+      "relation": "exchanges code via",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_login_api",
+      "target": "wechat_service",
+      "relation": "is implemented by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_service",
+      "target": "jwt_token",
+      "relation": "generates after successful login",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "jwt_token",
+      "target": "multi_tenant_architecture",
+      "relation": "carries tenantId for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_wx",
+      "target": "wx_payment",
+      "relation": "calls wx.requestPayment() for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wx_payment",
+      "target": "wechat_pay_api",
+      "relation": "uses",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_pay_api",
+      "target": "payment_service",
+      "relation": "is implemented by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "miniprogram_wx",
+      "target": "wx_subscribe",
+      "relation": "calls wx.requestSubscribeMessage() for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wx_subscribe",
+      "target": "study_reminder_service",
+      "relation": "is triggered by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_token_api",
+      "target": "wechat_jssdk_service",
+      "relation": "is consumed by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wechat_jssdk_service",
+      "target": "wx_jssdk",
+      "relation": "generates signatures for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "wechat_service",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "wechat_jssdk_service",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "payment_service",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "backend_services",
+      "target": "study_reminder_service",
+      "relation": "includes",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "email_runtime",
+      "target": "nodemailer",
+      "relation": "is powered by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "multi_tenant_architecture",
+      "target": "async_local_storage",
+      "relation": "uses for context propagation",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "async_local_storage",
+      "target": "mongoose_tenant_plugin",
+      "relation": "provides tenantId to",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "mongoose_tenant_plugin",
+      "target": "tenant_model",
+      "relation": "filters queries against",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "miniprogram_wx",
+      "target": "multi_tenant_architecture",
+      "relation": "identifies tenant via wxAppId in",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "tenant_model",
+      "target": "multi_tenant_architecture",
+      "relation": "maps wxAppId to tenantId for",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "wx_login",
+      "target": "multi_tenant_architecture",
+      "relation": "resolves tenant context during",
+      "confidence": "INFERRED"
+    },
+    {
+      "source": "email_runtime",
+      "target": "backend_services",
+      "relation": "is available as notification channel within",
+      "confidence": "INFERRED"
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,572 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1778986636687,
+  "projectRoot": "/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/backend",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=14.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "express",
+        "version": "4.18.2",
+        "category": "backend"
+      },
+      {
+        "name": "jest",
+        "version": "30.2.0",
+        "category": "testing"
+      },
+      {
+        "name": "mocha",
+        "version": "10.8.2",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 14.0.0"
+  },
+  "build": {
+    "buildCommand": "pkill -f \"vite\\|vue-tsc\" 2>/dev/null; sleep 1\ncd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npm run dev > /tmp/admin.log 2>&1 &\necho \"Started\"",
+    "testCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/backend\" && npm test 2>&1 | grep -E \"passing|failing\"",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "start": "node src/server.js",
+      "dev": "nodemon src/server.js",
+      "init:dev": "NODE_ENV=development node scripts/init-all.js",
+      "init:prod": "NODE_ENV=production node scripts/init-production.js",
+      "init:indexes": "node scripts/init-indexes.js",
+      "init:mongodb": "NODE_ENV=development node scripts/init-mongodb.js",
+      "init:mysql": "node scripts/init-mysql.js",
+      "check:openid": "node scripts/check-openid-health.js",
+      "report:daily": "node scripts/daily-log-report.js",
+      "report:diagnose": "node scripts/diagnose-daily-report.js",
+      "lint": "eslint 'src/**/*.js'",
+      "lint:tests": "eslint 'tests/**/*.js'",
+      "test": "NODE_ENV=test mocha 'tests/**/*.test.js'",
+      "test:unit": "NODE_ENV=test mocha 'tests/unit/**/*.test.js'",
+      "test:integration": "NODE_ENV=test mocha 'tests/integration/**/*.test.js'",
+      "test:coverage": "NODE_ENV=test nyc npm run test",
+      "test:watch": "NODE_ENV=test mocha 'tests/**/*.test.js' --watch",
+      "test:load": "node tests/load-test.js",
+      "coverage:report": "nyc report --reporter=html && open coverage/index.html"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": "CommonJS",
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts",
+      "src",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "coverage": {
+      "path": "coverage",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1778986636676,
+      "keyFiles": [
+        "base.css",
+        "block-navigation.js",
+        "coverage-final.json",
+        "favicon.png",
+        "index.html"
+      ]
+    },
+    "database": {
+      "path": "database",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1778986636677,
+      "keyFiles": [
+        "mysql-schema.sql"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1778986636678,
+      "keyFiles": [
+        "query-optimization.md"
+      ]
+    },
+    "logs": {
+      "path": "logs",
+      "purpose": null,
+      "fileCount": 83,
+      "lastAccessed": 1778986636679,
+      "keyFiles": [
+        "alerts.log",
+        "combined.log",
+        "combined1.log",
+        "combined10.log",
+        "combined11.log"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 43,
+      "lastAccessed": 1778986636679,
+      "keyFiles": [
+        "check-openid-health.js",
+        "clean-mysql-data.js",
+        "cleanup-orphan-documents.js",
+        "daily-log-report.js",
+        "day0-content.json"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 2,
+      "lastAccessed": 1778986636679,
+      "keyFiles": [
+        "app.js",
+        "server.js"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 2,
+      "lastAccessed": 1778986636679,
+      "keyFiles": [
+        "load-test.js",
+        "setup.js"
+      ]
+    },
+    "uploads": {
+      "path": "uploads",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778986636679,
+      "keyFiles": []
+    },
+    "src/config": {
+      "path": "src/config",
+      "purpose": "Configuration files",
+      "fileCount": 4,
+      "lastAccessed": 1778986636680,
+      "keyFiles": [
+        "cors.js",
+        "database.js",
+        "subscribe-message.config.js"
+      ]
+    },
+    "src/controllers": {
+      "path": "src/controllers",
+      "purpose": "Controllers",
+      "fileCount": 23,
+      "lastAccessed": 1778986636680,
+      "keyFiles": [
+        "activity.controller.js",
+        "admin-subscription.controller.js",
+        "admin.controller.js"
+      ]
+    },
+    "src/middleware": {
+      "path": "src/middleware",
+      "purpose": "Middleware",
+      "fileCount": 8,
+      "lastAccessed": 1778986636680,
+      "keyFiles": [
+        "adminAuth.js",
+        "auditLog.js",
+        "auth.js"
+      ]
+    },
+    "src/models": {
+      "path": "src/models",
+      "purpose": "Data models",
+      "fileCount": 19,
+      "lastAccessed": 1778986636680,
+      "keyFiles": [
+        "Admin.js",
+        "AuditLog.js",
+        "Checkin.js"
+      ]
+    },
+    "src/routes": {
+      "path": "src/routes",
+      "purpose": "Route handlers",
+      "fileCount": 23,
+      "lastAccessed": 1778986636680,
+      "keyFiles": [
+        "activity.routes.js",
+        "admin.routes.js",
+        "audit.routes.js"
+      ]
+    },
+    "src/services": {
+      "path": "src/services",
+      "purpose": "Business logic services",
+      "fileCount": 15,
+      "lastAccessed": 1778986636680,
+      "keyFiles": [
+        "admin-subscription-debug.service.js",
+        "audit.service.js",
+        "backup.service.js"
+      ]
+    },
+    "src/utils": {
+      "path": "src/utils",
+      "purpose": "Utility functions",
+      "fileCount": 14,
+      "lastAccessed": 1778986636680,
+      "keyFiles": [
+        "alerting.js",
+        "auditHelper.js",
+        "cache-helper.js"
+      ]
+    },
+    "tests/fixtures": {
+      "path": "tests/fixtures",
+      "purpose": "Test fixtures",
+      "fileCount": 9,
+      "lastAccessed": 1778986636681,
+      "keyFiles": [
+        "auth-fixtures.js",
+        "checkin-fixtures.js",
+        "enrollment-fixtures.js"
+      ]
+    },
+    "tests/helpers": {
+      "path": "tests/helpers",
+      "purpose": "Helper functions",
+      "fileCount": 3,
+      "lastAccessed": 1778986636681,
+      "keyFiles": [
+        "safety-check.js",
+        "setup.js",
+        "test-utils.js"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "tests/integration/period-section.integration.test.js",
+      "accessCount": 25,
+      "lastAccessed": 1779027766922,
+      "type": "file"
+    },
+    {
+      "path": "tests/integration/error-handling.integration.test.js",
+      "accessCount": 22,
+      "lastAccessed": 1779024800444,
+      "type": "file"
+    },
+    {
+      "path": "tests/integration/backup.integration.test.js",
+      "accessCount": 18,
+      "lastAccessed": 1779024561316,
+      "type": "file"
+    },
+    {
+      "path": "tests/integration/insight.integration.test.js",
+      "accessCount": 17,
+      "lastAccessed": 1779024778923,
+      "type": "file"
+    },
+    {
+      "path": "tests/integration/enrollment-payment-flow.test.js",
+      "accessCount": 16,
+      "lastAccessed": 1779024985972,
+      "type": "file"
+    },
+    {
+      "path": "tests/integration/auth.integration.test.js",
+      "accessCount": 15,
+      "lastAccessed": 1779025025727,
+      "type": "file"
+    },
+    {
+      "path": "src/controllers/admin.controller.js",
+      "accessCount": 13,
+      "lastAccessed": 1779027301953,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/insight-fixtures.js",
+      "accessCount": 12,
+      "lastAccessed": 1779004910471,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/tenantContext.js",
+      "accessCount": 12,
+      "lastAccessed": 1779024857372,
+      "type": "file"
+    },
+    {
+      "path": "src/routes/admin.routes.js",
+      "accessCount": 12,
+      "lastAccessed": 1779026010708,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/controllers/payment.controller.test.js",
+      "accessCount": 12,
+      "lastAccessed": 1779026775562,
+      "type": "file"
+    },
+    {
+      "path": "src/controllers/enrollment.controller.js",
+      "accessCount": 9,
+      "lastAccessed": 1779026373820,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/payment-fixtures.js",
+      "accessCount": 8,
+      "lastAccessed": 1779005387210,
+      "type": "file"
+    },
+    {
+      "path": "src/controllers/insight.controller.js",
+      "accessCount": 7,
+      "lastAccessed": 1778996926663,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/checkin-fixtures.js",
+      "accessCount": 7,
+      "lastAccessed": 1779005120879,
+      "type": "file"
+    },
+    {
+      "path": "tests/helpers/setup.js",
+      "accessCount": 7,
+      "lastAccessed": 1779024224474,
+      "type": "file"
+    },
+    {
+      "path": "src/middleware/adminAuth.js",
+      "accessCount": 7,
+      "lastAccessed": 1779026107270,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/services/admin-subscription-debug.service.test.js",
+      "accessCount": 6,
+      "lastAccessed": 1779027092313,
+      "type": "file"
+    },
+    {
+      "path": "src/models/Admin.js",
+      "accessCount": 6,
+      "lastAccessed": 1779027291218,
+      "type": "file"
+    },
+    {
+      "path": "src/controllers/notification.controller.js",
+      "accessCount": 5,
+      "lastAccessed": 1779003879293,
+      "type": "file"
+    },
+    {
+      "path": "tests/helpers/test-utils.js",
+      "accessCount": 5,
+      "lastAccessed": 1779004728305,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/enrollment-fixtures.js",
+      "accessCount": 5,
+      "lastAccessed": 1779004982846,
+      "type": "file"
+    },
+    {
+      "path": "tests/integration/insight-request-flow.integration.test.js",
+      "accessCount": 5,
+      "lastAccessed": 1779006042813,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/auth-fixtures.js",
+      "accessCount": 4,
+      "lastAccessed": 1779005211248,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/middleware-fixtures.js",
+      "accessCount": 4,
+      "lastAccessed": 1779005397929,
+      "type": "file"
+    },
+    {
+      "path": "src/middleware/tenantContext.js",
+      "accessCount": 4,
+      "lastAccessed": 1779025467231,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/controllers/insight.controller.test.js",
+      "accessCount": 3,
+      "lastAccessed": 1779004698822,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/users.js",
+      "accessCount": 3,
+      "lastAccessed": 1779004766980,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/index.js",
+      "accessCount": 3,
+      "lastAccessed": 1779004771269,
+      "type": "file"
+    },
+    {
+      "path": "tests/fixtures/user-fixtures.js",
+      "accessCount": 3,
+      "lastAccessed": 1779005015504,
+      "type": "file"
+    },
+    {
+      "path": "tests/integration/checkin.integration.test.js",
+      "accessCount": 3,
+      "lastAccessed": 1779005563099,
+      "type": "file"
+    },
+    {
+      "path": "src/app.js",
+      "accessCount": 3,
+      "lastAccessed": 1779006335220,
+      "type": "file"
+    },
+    {
+      "path": "src/middleware/auth.js",
+      "accessCount": 3,
+      "lastAccessed": 1779025466785,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/jwt.js",
+      "accessCount": 3,
+      "lastAccessed": 1779026031085,
+      "type": "file"
+    },
+    {
+      "path": "scripts/migrate-add-tenant-id.js",
+      "accessCount": 2,
+      "lastAccessed": 1778989809570,
+      "type": "file"
+    },
+    {
+      "path": "src/models/CheckinCelebrationConfig.js",
+      "accessCount": 2,
+      "lastAccessed": 1779023996994,
+      "type": "file"
+    },
+    {
+      "path": "src/routes/tenant.routes.js",
+      "accessCount": 2,
+      "lastAccessed": 1779025494740,
+      "type": "file"
+    },
+    {
+      "path": "scripts/init-mongodb.js",
+      "accessCount": 1,
+      "lastAccessed": 1778990828939,
+      "type": "file"
+    },
+    {
+      "path": "scripts/init-23-days.js",
+      "accessCount": 1,
+      "lastAccessed": 1778990850840,
+      "type": "file"
+    },
+    {
+      "path": "scripts/init-periods-only.js",
+      "accessCount": 1,
+      "lastAccessed": 1778990912412,
+      "type": "file"
+    },
+    {
+      "path": "src/models/Enrollment.js",
+      "accessCount": 1,
+      "lastAccessed": 1778994344435,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/services/user.service.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004353195,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/controllers/notification.controller.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004353300,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/controllers/checkin.controller.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004358846,
+      "type": "file"
+    },
+    {
+      "path": "src/models/Checkin.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004372068,
+      "type": "file"
+    },
+    {
+      "path": "src/models/Notification.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004376570,
+      "type": "file"
+    },
+    {
+      "path": "src/models/Insight.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004376623,
+      "type": "file"
+    },
+    {
+      "path": "tests/setup.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004396173,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/services/enrollment.service.test.js",
+      "accessCount": 1,
+      "lastAccessed": 1779004412804,
+      "type": "file"
+    },
+    {
+      "path": "src/routes/section.routes.js",
+      "accessCount": 1,
+      "lastAccessed": 1779006285746,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

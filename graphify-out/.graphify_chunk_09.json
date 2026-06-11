@@ -1,0 +1,670 @@
+{
+  "nodes": [
+    {
+      "id": "domain_services_description",
+      "label": "Domain Services Layer",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/domain-services/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "domain_services_meta",
+      "label": "Domain Services Meta",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/domain-services/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-16T07:51:29.747Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "edge_middleware_description",
+      "label": "Edge Middleware Layer",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/edge-middleware/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "edge_middleware_meta",
+      "label": "Edge Middleware Meta",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/edge-middleware/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-16T07:51:07.739Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tenant_mw_description",
+      "label": "Tenant Context Middleware",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/tenant-mw/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tenant_mw_meta",
+      "label": "Tenant Middleware Meta",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/tenant-mw/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-16T23:30:44.626Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "auth_mw_description",
+      "label": "Auth Middleware (JWT)",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/auth-mw/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "auth_mw_meta",
+      "label": "Auth Middleware Meta",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/auth-mw/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-16T23:30:42.203Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "data_access_description",
+      "label": "Data Access Layer",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/data-access/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "data_access_meta",
+      "label": "Data Access Meta",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/data-access/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-16T07:51:37.276Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "side_effects_description",
+      "label": "Side Effects Layer",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/side-effects/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "side_effects_meta",
+      "label": "Side Effects Meta",
+      "file_type": "document",
+      "source_file": ".omm/request-lifecycle/side-effects/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-16T07:53:48.457Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "business_architecture_description",
+      "label": "Business Architecture Overview",
+      "file_type": "document",
+      "source_file": ".omm/business-architecture/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "business_architecture_meta",
+      "label": "Business Architecture Meta",
+      "file_type": "document",
+      "source_file": ".omm/business-architecture/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-17T00:06:22.362Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_context",
+      "label": "Overall Architecture Context (Multi-Tenant SaaS)",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/context.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_note",
+      "label": "Overall Architecture Scan Note",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/note.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_todo",
+      "label": "Overall Architecture Maintenance TODO",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/todo.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_description",
+      "label": "Overall Architecture Description",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_constraint",
+      "label": "Overall Architecture Constraints",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/constraint.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_concern",
+      "label": "Overall Architecture Concerns",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/concern.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_meta",
+      "label": "Overall Architecture Meta",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/meta.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-16T07:44:22.980Z",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overall_architecture_redis_description",
+      "label": "Redis Component Description",
+      "file_type": "document",
+      "source_file": ".omm/overall-architecture/redis/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_jwt_auth",
+      "label": "JWT Authentication",
+      "file_type": "concept",
+      "source_file": ".omm/request-lifecycle/auth-mw/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_tenant_isolation",
+      "label": "Tenant Data Isolation via AsyncLocalStorage",
+      "file_type": "concept",
+      "source_file": ".omm/request-lifecycle/tenant-mw/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_mongoose_models",
+      "label": "Mongoose Models (Data Access)",
+      "file_type": "concept",
+      "source_file": ".omm/request-lifecycle/data-access/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_redis_cache",
+      "label": "Redis Cache and Pub/Sub",
+      "file_type": "concept",
+      "source_file": ".omm/overall-architecture/redis/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_wechat_services",
+      "label": "WeChat Platform Services",
+      "file_type": "concept",
+      "source_file": ".omm/request-lifecycle/domain-services/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_multi_tenant_saas",
+      "label": "Multi-Tenant SaaS Architecture",
+      "file_type": "concept",
+      "source_file": ".omm/overall-architecture/context.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_business_flow",
+      "label": "Daily Business Flow (Morning Reading Camp)",
+      "file_type": "concept",
+      "source_file": ".omm/business-architecture/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_socketio_notifications",
+      "label": "Socket.IO Real-time Notifications",
+      "file_type": "concept",
+      "source_file": ".omm/request-lifecycle/side-effects/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_mysql_sync",
+      "label": "MongoDB to MySQL Sync",
+      "file_type": "concept",
+      "source_file": ".omm/request-lifecycle/side-effects/description.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "domain_services_description",
+      "target": "domain_services_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/domain-services/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "edge_middleware_description",
+      "target": "edge_middleware_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/edge-middleware/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tenant_mw_description",
+      "target": "tenant_mw_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/tenant-mw/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "auth_mw_description",
+      "target": "auth_mw_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/auth-mw/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "data_access_description",
+      "target": "data_access_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/data-access/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "side_effects_description",
+      "target": "side_effects_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/side-effects/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "business_architecture_description",
+      "target": "business_architecture_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/business-architecture/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overall_architecture_description",
+      "target": "overall_architecture_meta",
+      "relation": "described_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overall_architecture_context",
+      "target": "concept_multi_tenant_saas",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/context.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "auth_mw_description",
+      "target": "concept_jwt_auth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/auth-mw/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tenant_mw_description",
+      "target": "concept_tenant_isolation",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/tenant-mw/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "data_access_description",
+      "target": "concept_mongoose_models",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/data-access/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overall_architecture_redis_description",
+      "target": "concept_redis_cache",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/redis/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "domain_services_description",
+      "target": "concept_wechat_services",
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/domain-services/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "business_architecture_description",
+      "target": "concept_business_flow",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/business-architecture/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "side_effects_description",
+      "target": "concept_socketio_notifications",
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/side-effects/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "side_effects_description",
+      "target": "concept_mysql_sync",
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/side-effects/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "side_effects_description",
+      "target": "concept_redis_cache",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/request-lifecycle/side-effects/description.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "concept_mysql_sync",
+      "target": "concept_redis_cache",
+      "relation": "depends_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/concern.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overall_architecture_constraint",
+      "target": "concept_tenant_isolation",
+      "relation": "enforces",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/constraint.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overall_architecture_constraint",
+      "target": "concept_jwt_auth",
+      "relation": "enforces",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/constraint.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "edge_middleware_description",
+      "target": "auth_mw_description",
+      "relation": "contains",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".omm/request-lifecycle/edge-middleware/description.md",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "edge_middleware_description",
+      "target": "tenant_mw_description",
+      "relation": "contains",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".omm/request-lifecycle/edge-middleware/description.md",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "overall_architecture_description",
+      "target": "overall_architecture_context",
+      "relation": "elaborated_by",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".omm/overall-architecture/description.md",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "overall_architecture_description",
+      "target": "overall_architecture_constraint",
+      "relation": "governed_by",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".omm/overall-architecture/constraint.md",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "overall_architecture_description",
+      "target": "overall_architecture_concern",
+      "relation": "has_concern",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".omm/overall-architecture/concern.md",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "overall_architecture_meta",
+      "target": "overall_architecture_redis_description",
+      "relation": "has_child",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/meta.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "concept_multi_tenant_saas",
+      "target": "concept_tenant_isolation",
+      "relation": "requires",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/context.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "domain_services_description",
+      "target": "side_effects_description",
+      "relation": "triggers",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".omm/request-lifecycle/domain-services/description.md",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "domain_services_description",
+      "target": "data_access_description",
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".omm/request-lifecycle/domain-services/description.md",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "overall_architecture_todo",
+      "target": "overall_architecture_description",
+      "relation": "maintenance_note_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/todo.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overall_architecture_note",
+      "target": "overall_architecture_description",
+      "relation": "annotation_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".omm/overall-architecture/note.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

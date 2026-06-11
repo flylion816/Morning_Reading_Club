@@ -1,0 +1,30 @@
+{
+  "name": "meeting-assistant-p0",
+  "version": "0.0.1",
+  "private": true,
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "electron": "electron .",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "asr:tencent": "node asr/tencent-realtime-asr.mjs",
+    "asr:dry-run": "node asr/tencent-realtime-asr.mjs --dry-run --file captures/microphone-16000-mono-s16le.pcm"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "electron": "^39.2.7",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
+  }
+}
