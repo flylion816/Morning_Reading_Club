@@ -58,56 +58,42 @@
 ## High（逻辑 Bug / 数据错误）
 
 ### H1 — 用户统计积分竞态（非原子增量）
-- **状态：** `[ ]`
-- **文件：** `backend/src/controllers/checkin.controller.js:185-213`
-- **问题：** `findById` 读取用户后多个 await 再 `save`，并发打卡会覆盖彼此的修改，丢失积分/天数。
-- **修复方案：** 改用 `User.findByIdAndUpdate(userId, { $inc: { totalCheckinDays: 1, totalPoints: 10 } })`，streak 逻辑若复杂可用乐观锁。
-- **测试重点：** 模拟快速连续两次打卡，验证 totalCheckinDays 正确累加。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `2f13138`
+- **文件：** `backend/src/controllers/checkin.controller.js`
+- **修复方案（A）：** totalCheckinDays/totalPoints 用 `$inc` 原子操作；streak 逻辑保留但改为单独 findByIdAndUpdate，不与 $inc 字段混用。
+- **Commit：** `2f13138`
 
 ### H2 — #7 同一天可多次打卡（需求变更，不修代码）
 - **状态：** `[skip]`
-- **说明：** 用户确认该行为符合新需求，Checkin.js 的唯一索引注释与实际行为不一致，已将需求文档更新为"允许同一天多次打卡"。唯一索引注释可视情况修改以避免误导。
+- **说明：** 用户确认该行为符合新需求。唯一索引注释与实际行为不一致，可视情况修改以避免误导。
 
 ### H3 — N+1 查询：批量昵称同步
-- **状态：** `[ ]`
-- **文件：** `backend/src/controllers/enrollment.controller.js:1158-1195`
-- **问题：** 每个用户单独 `findOne + findByIdAndUpdate`，大量用户时串行 N 次 DB 调用。
-- **修复方案：** 单次 `Enrollment.find({ userId: { $in: [...] } })` + Map，再用 `User.bulkWrite` 批量更新。
-- **测试重点：** 功能正确性不变，查看慢查询日志或在测试中 spy DB 调用次数。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `528bc9f`
+- **文件：** `backend/src/controllers/enrollment.controller.js`
+- **修复方案：** aggregate + Map + bulkWrite，DB 调用从 O(N) 降至 O(1)。
+- **Commit：** `528bc9f`
 
 ### H4 — 排名分页 total 跑了两遍全量 aggregate
-- **状态：** `[ ]`
-- **文件：** `backend/src/controllers/ranking.controller.js:116-120`
-- **问题：** count 用的是完整聚合管道副本，等于重跑一次排名计算。
-- **修复方案：** 在聚合末尾加 `$facet` 同时取数据和 count，或在已有结果集上取 `.length`（若数据量可接受）。
-- **测试重点：** 排名结果和分页 total 正确。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `87c3ff8`
+- **文件：** `backend/src/controllers/ranking.controller.js`
+- **修复方案：** 改用 `$facet`，三个分支（data/totalCount/allRanked）一次执行完成。
+- **Commit：** `87c3ff8`
 
 ### H5 — enrollmentCount 在管理员删除/完成报名时未递减
-- **状态：** `[ ]`
-- **文件：** `backend/src/controllers/enrollment.controller.js:1112`（deleteEnrollment）、`:703`（completeEnrollment）
-- **问题：** 两处操作未同步 `Period.enrollmentCount -= 1`，导致计数持续虚高。
-- **修复方案：** 在 deleteEnrollment 和 completeEnrollment 中加 `Period.findByIdAndUpdate(periodId, { $inc: { enrollmentCount: -1 } })`（仅当原状态不是已退出时）。
-- **测试重点：** 删除报名后查 period.enrollmentCount 正确递减。
-- **Commit：** —
+- **状态：** `[skip]` 经核查无需修改
+- **说明：** `deleteEnrollment` 已有 `$inc: { enrollmentCount: -1 }`；`completeEnrollment` 语义是"完成学习"不是退出，不应递减，原逻辑正确。
 
 ### H6 — Imprint update 跳过 create 时的字段校验
-- **状态：** `[ ]`
-- **文件：** `backend/src/controllers/imprint.controller.js:263-279`
-- **问题：** update 无 title 长度、activityType 合法性、mediaList 非空等校验。
-- **修复方案：** 提取公共校验函数，在 create 和 update 中复用。
-- **测试重点：** 尝试 update 为空 title / 非法 activityType，期望 400。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `eae02d4`
+- **文件：** `backend/src/controllers/imprint.controller.js`
+- **修复方案：** 提取 `validateImprintFields()` 公共函数，update 和 adminUpdate 复用。
+- **Commit：** `eae02d4`
 
 ### H7 — cancelAttend 无 owner 校验，任意用户可移除他人
-- **状态：** `[ ]`
-- **文件：** `backend/src/controllers/imprint.controller.js:348-361`
-- **问题：** 任意登录用户可对任意 imprint 调用 cancelAttend 移除任意 attendee，且对不存在的 imprint 返回 200。
-- **修复方案：** 先 `findById` 检查存在性，再校验 `attendees.userId === currentUserId`（只能移除自己）。
-- **测试重点：** userA 尝试从 userB 的 imprint 移除 userC，期望 403。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `9953f0f`
+- **文件：** `backend/src/controllers/imprint.controller.js`
+- **修复方案：** 加 findById 存在性检查 + attendees 归属校验，非列表成员返回 403。
+- **Commit：** `9953f0f`
 
 ---
 
@@ -138,54 +124,34 @@
 - **问题：** JSON body 的回调请求完全跳过签名验证，直接处理支付确认。需确认是否有合理场景会发送 JSON body，还是应该一律要求 XML。
 - **影响：** 若修改可能影响现有回调流程，修前需在测试环境验证。
 
+### M1 — Comment content 未校验（可提交空内容）
+- **状态：** `[x]` 已完成 — commit `9955362`
+- **Commit：** `9955362`
+
 ### M5 — getAdminCheckins 把所有记录 load 进内存求和
-- **状态：** `[ ]`
-- **文件：** `backend/src/controllers/checkin.controller.js:778-782`
-- **问题：** `Checkin.find(query).select('points')` 全量加载后 reduce，数据量大时内存压力高。
-- **修复方案：** 改用 `Checkin.aggregate([{ $match: query }, { $group: { _id: null, totalPoints: { $sum: '$points' }, count: { $sum: 1 } } }])`。
-- **Commit：** —
-
-### M6 — 小程序提交随机 readingTime 和硬编码 completionRate
-- **状态：** `[~]` 暂留，待确认
-- **文件：** `miniprogram/pages/checkin/checkin.js:584-587`
-- **问题：** `readingTime: Math.random() * 30 + 10`、`completionRate: 88` 存入 DB，统计数据无意义。
-- **说明：** 若后续有计划收集真实数据则先移除假数据字段；若字段已废弃则后端也应忽略。
-
-### M7 — getUserCheckins IDOR（同 C1 模式）
-- **状态：** `[x]` 已完成 — commit `ad8a682`（与 C1 一并修复）
-- **文件：** `backend/src/controllers/checkin.controller.js:316`
+- **状态：** `[x]` 已完成 — commit `9955362`
+- **Commit：** `9955362`
 
 ### M8 — Payment 回调按 orderNo 单查，命中复合索引效率低
-- **状态：** `[ ]`
-- **文件：** `backend/src/models/Payment.js:121`、`backend/src/controllers/payment.controller.js:741`
-- **问题：** 回调查询 `{ orderNo }` 无法利用 `(tenantId, orderNo)` 复合索引，全表扫描。
-- **修复方案：** 在 Payment 模型上增加 `{ orderNo: 1 }` 单独索引。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `9955362`
+- **Commit：** `9955362`
 
 ---
 
 ## Low（Schema / UX / 隐私）
 
 ### L1 — User.status 枚举不包含 'inactive'
-- **状态：** `[ ]`
-- **文件：** `backend/src/models/User.js:79`、`backend/src/controllers/user.controller.js:252`
-- **问题：** 枚举是 `['active','banned','deleted']`，但代码写入 `'inactive'`，Mongoose strict 模式下静默失败。
-- **修复方案：** 枚举加入 `'inactive'`，或将写入改为 `'banned'`（确认语义后选一）。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `a04f932`
+- **修复方案：** isActive=false 路径改写 `'banned'`（与前端对齐），枚举不再写入非法值。
+- **Commit：** `a04f932`
 
 ### L2 — Enrollment 缺少复合索引影响 getMyCompletionReports
-- **状态：** `[ ]`
-- **文件：** `backend/src/models/Enrollment.js`
-- **问题：** 查询 `{ tenantId, userId, deleted, status, paymentStatus }` 无对应索引。
-- **修复方案：** 加 `{ tenantId: 1, userId: 1, paymentStatus: 1, status: 1 }` 索引。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `a04f932`
+- **Commit：** `a04f932`
 
 ### L3 — Payment.orderNo 无 required 约束
-- **状态：** `[ ]`
-- **文件：** `backend/src/models/Payment.js:79`
-- **问题：** orderNo 可为空，与业务逻辑矛盾。
-- **修复方案：** 加 `required: true`。
-- **Commit：** —
+- **状态：** `[x]` 已完成 — commit `a04f932`
+- **Commit：** `a04f932`
 
 ### L4 — 支付确认 fire-and-forget，失败无用户可见恢复入口
 - **状态：** `[~]` 暂留，待确认
@@ -215,4 +181,4 @@
 
 ---
 
-_最后更新：2026-06-10_
+_最后更新：2026-06-11_
