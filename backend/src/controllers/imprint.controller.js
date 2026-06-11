@@ -13,6 +13,42 @@ const FALLBACK_ACTIVITY_TYPES = ['reading', 'cooking', 'tea', 'walk', 'create', 
 
 const REACTION_LABELS = { gonming: '共鸣', ran: '燃', xiangqu: '想去' };
 
+/**
+ * 校验 imprint 字段（create 和 update 共用）
+ * 只校验传入的字段（update 时未传的字段不校验）
+ * @returns {{ valid: true } | { valid: false, message: string }}
+ */
+async function validateImprintFields({ title, activityType, mediaList }, isCreate = false) {
+  if (title !== undefined) {
+    if (typeof title !== 'string' || title.trim().length === 0) {
+      return { valid: false, message: '标题不能为空' };
+    }
+    if (title.length > 30) {
+      return { valid: false, message: '标题不能超过30字' };
+    }
+  } else if (isCreate) {
+    return { valid: false, message: '标题不能为空' };
+  }
+
+  if (activityType !== undefined) {
+    if (!(await isValidActivityType(activityType))) {
+      return { valid: false, message: '活动类型无效' };
+    }
+  } else if (isCreate) {
+    return { valid: false, message: '活动类型无效' };
+  }
+
+  if (mediaList !== undefined) {
+    if (!Array.isArray(mediaList) || mediaList.length === 0) {
+      return { valid: false, message: '至少需要一张图片' };
+    }
+  } else if (isCreate) {
+    return { valid: false, message: '至少需要一张图片' };
+  }
+
+  return { valid: true };
+}
+
 async function notifyReactionReceived(req, { imprintId, imprintTitle, authorId, senderId, senderName, reactionType }) {
   if (authorId.toString() === senderId.toString()) return;
   const label = REACTION_LABELS[reactionType] || reactionType;
@@ -158,17 +194,9 @@ async function create(req, res) {
   try {
     const { title, activityType, mediaList, description, location, attendees, periodId, happenedAt } = req.body;
 
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return res.status(400).json(errors.badRequest('标题不能为空'));
-    }
-    if (title.length > 30) {
-      return res.status(400).json(errors.badRequest('标题不能超过30字'));
-    }
-    if (!activityType || !(await isValidActivityType(activityType))) {
-      return res.status(400).json(errors.badRequest('活动类型无效'));
-    }
-    if (!Array.isArray(mediaList) || mediaList.length === 0) {
-      return res.status(400).json(errors.badRequest('至少需要一张图片'));
+    const validation = await validateImprintFields({ title, activityType, mediaList }, true);
+    if (!validation.valid) {
+      return res.status(400).json(errors.badRequest(validation.message));
     }
 
     const authorId = getUserId(req);
@@ -261,8 +289,14 @@ async function update(req, res) {
     }
 
     const { title, description, activityType, location, attendees, periodId, mediaList } = req.body;
+
+    const validation = await validateImprintFields({ title, activityType, mediaList }, false);
+    if (!validation.valid) {
+      return res.status(400).json(errors.badRequest(validation.message));
+    }
+
     const updateData = {};
-    if (title !== undefined) updateData.title = title;
+    if (title !== undefined) updateData.title = title.trim();
     if (description !== undefined) updateData.description = description;
     if (activityType !== undefined) updateData.activityType = activityType;
     if (location !== undefined) updateData.location = location;
@@ -601,8 +635,14 @@ async function adminUpdate(req, res) {
     if (!imprint) return res.status(404).json(errors.notFound('印记不存在'));
 
     const { title, description, activityType, location, attendees, mediaList } = req.body;
+
+    const validation = await validateImprintFields({ title, activityType, mediaList }, false);
+    if (!validation.valid) {
+      return res.status(400).json(errors.badRequest(validation.message));
+    }
+
     const updateData = {};
-    if (title !== undefined) updateData.title = title;
+    if (title !== undefined) updateData.title = title.trim();
     if (description !== undefined) updateData.description = description;
     if (activityType !== undefined) updateData.activityType = activityType;
     if (location !== undefined) updateData.location = location;
