@@ -78,7 +78,8 @@ const PaymentSchema = new mongoose.Schema(
 
     // 订单号（用于对账）
     orderNo: {
-      type: String
+      type: String,
+      required: true
     },
 
     // 是否已核销（对账）

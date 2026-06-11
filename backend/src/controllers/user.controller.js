@@ -249,7 +249,8 @@ async function updateUser(req, res, next) {
 
     // 只允许管理员修改这些字段
     if (isActive !== undefined) {
-      user.status = isActive ? 'active' : 'inactive';
+      // isActive=false 对应 banned 状态，与前端 UsersView 的 status 路径保持一致
+      user.status = isActive ? 'active' : 'banned';
     }
     if (status !== undefined) {
       user.status = status;

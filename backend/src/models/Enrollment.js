@@ -220,6 +220,7 @@ EnrollmentSchema.index({ status: 1, createdAt: -1 }); // 报名状态查询
 EnrollmentSchema.index({ createdAt: -1 }); // 按创建时间排序
 EnrollmentSchema.index({ enrolledAt: -1 }); // 按报名时间排序
 EnrollmentSchema.index({ tenantId: 1, createdAt: -1 });
+EnrollmentSchema.index({ tenantId: 1, userId: 1, paymentStatus: 1, status: 1 }); // getMyCompletionReports 查询
 
 // 虚拟字段：是否已支付
 EnrollmentSchema.virtual('isPaid').get(function () {
