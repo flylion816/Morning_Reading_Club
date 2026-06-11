@@ -768,7 +768,9 @@ exports.wechatCallback = async (req, res) => {
     }
 
     if (isXmlCallback) {
-      const payConfig = await paymentService.resolveWechatPayConfig(payment.tenantId);
+      const payConfig = await withSystemContext(payment.tenantId, () =>
+        paymentService.resolveWechatPayConfig(payment.tenantId)
+      );
       if (!paymentService.verifyNotifySign(notifyData, payConfig)) {
         logger.warn('WeChat callback: signature verification failed', {
           paymentId: payment._id,
