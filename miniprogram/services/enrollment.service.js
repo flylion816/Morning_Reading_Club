@@ -68,22 +68,14 @@ module.exports = {
   },
 
   /**
-   * 获取指定用户的报名列表
+   * 获取指定用户的参与期数（公开统计，仅计数，不含报名详情）
    * @param {string} userId - 用户ID
-   * @param {Object} options - 选项
-   * @returns {Promise}
+   * @returns {Promise<{count: number}>}
    */
-  getUserEnrollmentsByUserId(userId, options = {}) {
-    const { page = 1, limit = 100, status } = options;
-    const data = { page, limit };
-    if (status) {
-      data.status = status;
-    }
-
+  getUserParticipationCount(userId) {
     return request.request({
-      url: `/enrollments/user/${userId}`,
-      method: 'GET',
-      data
+      url: `/enrollments/user/${userId}/participation-count`,
+      method: 'GET'
     });
   },
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react';
 import { createDefaultSession, themes } from './data';
 import { getObserverAPI } from './observerApi';
 import { buildSessionPrompt, buildSpeakerPrompt, createLocalSpeakerInsight, createLocalWholeSummary } from './prompts';
@@ -102,6 +102,10 @@ function readFileAsDataUrl(file: File) {
 
 async function createImageSnippet(file: File): Promise<ContentSnippet> {
   const originalDataUrl = await readFileAsDataUrl(file);
+  return createImageSnippetFromDataUrl(originalDataUrl, file.name, file.type);
+}
+
+async function createImageSnippetFromDataUrl(originalDataUrl: string, fileName = '截图.png', mimeType = 'image/png'): Promise<ContentSnippet> {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
@@ -121,16 +125,17 @@ async function createImageSnippet(file: File): Promise<ContentSnippet> {
     throw new Error('图片处理失败。');
   }
   context.drawImage(image, 0, 0, width, height);
-  const dataUrl = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.86);
+  const outputType = mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
+  const dataUrl = canvas.toDataURL(outputType, 0.86);
 
   return {
     id: crypto.randomUUID(),
     sourceType: 'image_upload',
-    text: `已上传图片：${file.name}。请先识别图片中的会议转写、字幕、聊天或截图文字，再结合本期主题分析。`,
+    text: `已上传图片：${fileName}。请先识别图片中的会议转写、字幕、聊天或截图文字，再结合本期主题分析。`,
     createdAt: new Date().toISOString(),
     imageDataUrl: dataUrl,
-    mimeType: dataUrl.slice(5, dataUrl.indexOf(';')) || file.type || 'image/jpeg',
-    fileName: file.name,
+    mimeType: dataUrl.slice(5, dataUrl.indexOf(';')) || outputType,
+    fileName,
   };
 }
 
@@ -217,8 +222,78 @@ export default function App() {
   }
 
   async function pasteFromClipboard() {
+    const clipboardImage = await getObserverAPI().readClipboardImage().catch(() => null);
+    if (clipboardImage?.imageDataUrl) {
+      await appendImageSnippets([
+        await createImageSnippetFromDataUrl(clipboardImage.imageDataUrl, clipboardImage.fileName || '剪贴板截图.png'),
+      ], '已从剪贴板截图加入');
+      return;
+    }
+
     const text = await getObserverAPI().readClipboardText();
     appendSnippet(text, 'clipboard');
+  }
+
+  async function pasteImageFromClipboard() {
+    const clipboardImage = await getObserverAPI().readClipboardImage().catch(() => null);
+    if (!clipboardImage?.imageDataUrl) {
+      setNotice('剪贴板里没有截图。也可以点进输入框后直接 Cmd+V。');
+      return;
+    }
+    await appendImageSnippets([
+      await createImageSnippetFromDataUrl(clipboardImage.imageDataUrl, clipboardImage.fileName || '剪贴板截图.png'),
+    ], '已从剪贴板截图加入');
+  }
+
+  function handleDraftPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith('image/'));
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    void (async () => {
+      const snippets = await Promise.all(files.map((file) => createImageSnippet(file)));
+      await appendImageSnippets(snippets, '已从粘贴截图加入');
+    })();
+  }
+
+  async function appendImageSnippets(snippets: ContentSnippet[], successPrefix = '已上传') {
+    if (!currentSpeaker || snippets.length === 0) {
+      return;
+    }
+
+    setBusy('image');
+    try {
+      const ocrSnippets = await Promise.all(
+        snippets.map(async (snippet) => {
+          try {
+            const result = await getObserverAPI().ocrImage(snippet.imageDataUrl || '', snippet.fileName);
+            const ocrText = result.text.trim();
+            if (ocrText) {
+              return {
+                ...snippet,
+                sourceType: 'ocr_text' as SourceType,
+                text: `图片 OCR 识别结果（${snippet.fileName || '截图'}）：\n${ocrText}`,
+              };
+            }
+          } catch {
+            return snippet;
+          }
+          return snippet;
+        })
+      );
+      updateSpeaker(currentSpeaker.id, (speaker) => ({
+        ...speaker,
+        status: speaker.status === 'empty' ? 'captured' : speaker.status,
+        snippets: [...speaker.snippets, ...ocrSnippets],
+      }));
+      setNotice(`${successPrefix} ${snippets.length} 张图片到 ${currentSpeaker.name}。`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '图片处理失败。');
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function uploadImages(files: FileList | null) {
@@ -235,12 +310,7 @@ export default function App() {
     setBusy('image');
     try {
       const snippets = await Promise.all(imageFiles.map((file) => createImageSnippet(file)));
-      updateSpeaker(currentSpeaker.id, (speaker) => ({
-        ...speaker,
-        status: speaker.status === 'empty' ? 'captured' : speaker.status,
-        snippets: [...speaker.snippets, ...snippets],
-      }));
-      setNotice(`已上传 ${imageFiles.length} 张图片到 ${currentSpeaker.name}。`);
+      await appendImageSnippets(snippets, '已上传');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : '图片上传失败。');
     } finally {
@@ -636,6 +706,9 @@ export default function App() {
                 <button className="plain-button" disabled={busy === 'image'} onClick={() => imageInputRef.current?.click()}>
                   {busy === 'image' ? '上传中...' : '上传图片'}
                 </button>
+                <button className="plain-button" disabled={busy === 'image'} onClick={() => void pasteImageFromClipboard()}>
+                  粘贴截图
+                </button>
                 <button className="plain-button" onClick={() => appendSnippet(draftText, sourceType)}>
                   加入当前发言人
                 </button>
@@ -644,7 +717,8 @@ export default function App() {
             <textarea
               value={draftText}
               onChange={(event) => setDraftText(event.target.value)}
-              placeholder="粘贴腾讯会议转写、截图 OCR 后文本，或你的现场速记..."
+              onPaste={handleDraftPaste}
+              placeholder="粘贴腾讯会议转写、截图，或你的现场速记..."
             />
           </div>
 

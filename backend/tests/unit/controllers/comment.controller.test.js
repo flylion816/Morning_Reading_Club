@@ -141,6 +141,27 @@ describe('Comment Controller', () => {
       expect(res.status.calledWith(403)).to.be.true;
       expect(CommentStub.create.called).to.be.false;
     });
+
+    // M1 回归：评论内容校验
+    it('应该返回400当评论内容为空白', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      req.body = { checkinId: new mongoose.Types.ObjectId(), content: '   ' };
+
+      await commentController.createComment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(CommentStub.create.called).to.be.false;
+    });
+
+    it('应该返回400当评论内容超过500字', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      req.body = { checkinId: new mongoose.Types.ObjectId(), content: '字'.repeat(501) };
+
+      await commentController.createComment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(CommentStub.create.called).to.be.false;
+    });
   });
 
   describe('getComments', () => {

@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"sed -n 195,260p backend/src/controllers/payment.controller.js; echo ====; sed -n 300,380p backend/src/controllers/payment.controller.js\",\"description\":\"Read initiatePayment and confirmPaym...",
+  "error": "Exit code 1\n        }\n      }\n\n      return res.json(\n        success(responseData)\n      );\n    }\n\n    // 检查是否已完成支付\n    const completedPayment = await Payment.findOne({\n      enrollmentId,\n      status: 'completed'\n    });\n\n    if (completedPayment) {\n      return res.status(400).json(errors.badRequest('该报名已完成支付'));\n    }\n\n    // 创建新的支付订单\n    payment = await Payment.createOrder(\n      enrollmentId,\n      'enrollment',\n      userId,\n      enrollment.periodId,\n      resolvedAmount,\n      paymentM...",
+  "timestamp": "2026-06-11T01:37:32.908Z",
+  "retry_count": 1
+}

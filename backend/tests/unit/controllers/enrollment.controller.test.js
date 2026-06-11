@@ -342,6 +342,78 @@ describe('Enrollment Controller', () => {
     });
   });
 
+  describe('getUserParticipationCount - 他人参与期数（公开计数）', () => {
+    it('应该返回 active/completed 且未删除的报名计数', async () => {
+      const targetUserId = new mongoose.Types.ObjectId().toString();
+      req.params = { userId: targetUserId };
+      EnrollmentStub.countDocuments.resolves(3);
+
+      await enrollmentController.getUserParticipationCount(req, res, next);
+
+      expect(EnrollmentStub.countDocuments.calledOnce).to.be.true;
+      const query = EnrollmentStub.countDocuments.getCall(0).args[0];
+      expect(query.userId).to.equal(targetUserId);
+      expect(query.status).to.deep.equal({ $in: ['active', 'completed'] });
+      expect(query.deleted).to.deep.equal({ $ne: true });
+
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.count).to.equal(3);
+    });
+
+    it('应该返回400当 userId 不是合法 ObjectId', async () => {
+      req.params = { userId: 'not-an-object-id' };
+
+      await enrollmentController.getUserParticipationCount(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(EnrollmentStub.countDocuments.called).to.be.false;
+    });
+  });
+
+  describe('updateEnrollment - 管理员更新报名（白名单+校验）', () => {
+    it('应该只更新白名单字段并开启 runValidators', async () => {
+      const enrollmentId = new mongoose.Types.ObjectId().toString();
+      req.params = { id: enrollmentId };
+      req.body = {
+        paymentStatus: 'paid',
+        userId: 'hack-user',
+        periodId: 'hack-period',
+        enrolledAt: '2020-01-01',
+        notAllowed: 'value'
+      };
+
+      const mockEnrollment = { _id: enrollmentId, paymentStatus: 'paid' };
+      EnrollmentStub.findByIdAndUpdate.returns({
+        populate: sandbox.stub().returns({
+          populate: sandbox.stub().resolves(mockEnrollment)
+        })
+      });
+      EnrollmentStub.findById.returns({ lean: sandbox.stub().resolves(mockEnrollment) });
+
+      await enrollmentController.updateEnrollment(req, res, next);
+
+      const [, updateData, options] = EnrollmentStub.findByIdAndUpdate.getCall(0).args;
+      expect(updateData).to.deep.equal({ paymentStatus: 'paid' });
+      expect(options).to.deep.include({ new: true, runValidators: true });
+      expect(res.json.called).to.be.true;
+    });
+
+    it('应该返回400当字段校验失败（ValidationError）', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      req.body = { paymentStatus: 'not-a-valid-status' };
+
+      const validationError = new Error('`not-a-valid-status` is not a valid enum value');
+      validationError.name = 'ValidationError';
+      EnrollmentStub.findByIdAndUpdate.throws(validationError);
+
+      await enrollmentController.updateEnrollment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('字段校验失败');
+    });
+  });
+
   describe('completion reports - 实录报告接口', () => {
     it('管理员应该可以用 .pdf 文件地址兜底绑定实录报告', async () => {
       const enrollmentId = new mongoose.Types.ObjectId();

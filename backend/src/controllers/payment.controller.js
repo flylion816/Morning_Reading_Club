@@ -136,6 +136,11 @@ exports.initiatePayment = async (req, res) => {
       return res.status(400).json(errors.badRequest('活动支付请通过报名接口发起'));
     }
 
+    // 生产环境禁止 mock 支付，必须在创建订单前拦截，避免留下孤儿 pending 记录
+    if (paymentMethod === 'mock' && process.env.NODE_ENV === 'production') {
+      return res.status(400).json(errors.badRequest('生产环境不支持模拟支付'));
+    }
+
     // 验证报名记录是否存在
     const enrollment = await Enrollment.findOne({
       _id: enrollmentId,
@@ -228,11 +233,8 @@ exports.initiatePayment = async (req, res) => {
       data: payment.toObject()
     });
 
-    // 对于模拟支付，仅限非生产环境
+    // 对于模拟支付，直接确认（生产环境已在入口拦截）
     if (paymentMethod === 'mock') {
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(400).json(errors.badRequest('生产环境不支持模拟支付'));
-      }
       await payment.confirmPayment();
 
       // 更新报名记录的支付状态
@@ -309,20 +311,35 @@ exports.confirmPayment = async (req, res) => {
     const { paymentId } = req.params;
     const { transactionId } = req.body;
 
-    // 原子操作：仅当状态为 pending/processing 时才抢占，防止并发双重确认
+    // 原子抢占：仅从 pending 抢占，防止并发双重确认；
+    // processing 超过 5 分钟视为上次确认中断，允许重新抢占（timestamps 会在抢占时刷新 updatedAt）
+    const PROCESSING_STALE_MS = 5 * 60 * 1000;
     const payment = await Payment.findOneAndUpdate(
-      { _id: paymentId, userId, status: { $in: ['pending', 'processing'] } },
+      {
+        _id: paymentId,
+        userId,
+        $or: [
+          { status: 'pending' },
+          { status: 'processing', updatedAt: { $lt: new Date(Date.now() - PROCESSING_STALE_MS) } }
+        ]
+      },
       { $set: { status: 'processing' } },
       { new: true }
     );
 
     if (!payment) {
-      // 再查一次以区分"不存在"和"已完成"
+      // 再查一次以区分"不存在"、"确认中"和"已完成"
       const existing = await Payment.findOne({ _id: paymentId, userId });
       if (!existing) {
         return res.status(404).json(errors.notFound('支付记录不存在'));
       }
-      return res.status(400).json(errors.badRequest('支付已确认'));
+      if (existing.status === 'processing') {
+        return res.status(409).json(errors.conflict('支付正在确认中，请稍后查询结果'));
+      }
+      if (existing.status === 'completed') {
+        return res.status(400).json(errors.badRequest('支付已确认'));
+      }
+      return res.status(400).json(errors.badRequest('当前支付状态不允许确认'));
     }
 
     // 确认支付

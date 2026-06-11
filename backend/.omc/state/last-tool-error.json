@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ssh -o ConnectTimeout=5 root@wx.shubai01.com \\\"cd /var/www/morning-reading-club/backend && node -e \\\\\\\"require('./src/models/ImprintActivityType')\\\\\\\" 2>&1 | head -20\\\" 2>&1\",\"timeout\":150...",
-  "error": "Exit code 255\nPermission denied, please try again.\r\nPermission denied, please try again.\r\nroot@wx.shubai01.com: Permission denied (publickey,password).",
-  "timestamp": "2026-05-22T14:16:02.464Z",
+  "tool_input_preview": "{\"command\":\"cd backend && grep -n -A10 '\\\"scripts\\\"' package.json | head -15; grep -n -A15 '\\\"jest\\\"' package.json | head -20; ls jest.config* tests/setup* 2>/dev/null\",\"description\":\"Check test scrip...",
+  "error": "Exit code 1\n(eval):cd:1: no such file or directory: backend\n68:    \"jest\": \"^30.2.0\",\n69-    \"mocha\": \"^10.8.2\",\n70-    \"mongodb-memory-server\": \"^9.5.0\",\n71-    \"newman\": \"^6.2.1\",\n72-    \"nock\": \"^14.0.10\",\n73-    \"nodemon\": \"^3.0.2\",\n74-    \"nyc\": \"^15.1.0\",\n75-    \"prettier\": \"^3.7.4\",\n76-    \"proxyquire\": \"^2.1.3\",\n77-    \"sinon\": \"^17.0.1\",\n78-    \"supertest\": \"^6.3.4\"\n79-  }\n80-}\n(eval):1: no matches found: jest.config*",
+  "timestamp": "2026-06-11T01:40:43.227Z",
   "retry_count": 1
 }

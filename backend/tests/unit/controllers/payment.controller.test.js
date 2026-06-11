@@ -115,6 +115,7 @@ describe('Payment Controller', () => {
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
+        conflict: (msg) => ({ code: 409, message: msg }),
         serverError: (msg) => ({ code: 500, message: msg })
       }
     };
@@ -448,6 +449,31 @@ describe('Payment Controller', () => {
 
       expect(res.status.calledWith(404)).to.be.true;
     });
+
+    // C2 回归：生产环境 mock 支付必须在创建订单前拦截
+    it('生产环境应拒绝 mock 支付且不创建订单', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+        req.body = {
+          enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+          paymentMethod: 'mock',
+          amount: 9900
+        };
+
+        await paymentController.initiatePayment(req, res, next);
+
+        expect(res.status.calledWith(400)).to.be.true;
+        const response = res.json.getCall(0).args[0];
+        expect(response.message).to.include('生产环境不支持模拟支付');
+        // 守卫必须在任何数据库写入之前生效
+        expect(PaymentStub.createOrder.called).to.be.false;
+        expect(syncServiceStub.publishSyncEvent.called).to.be.false;
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
   });
 
   // ============ confirmPayment 测试 ============
@@ -521,6 +547,63 @@ describe('Payment Controller', () => {
       await paymentController.confirmPayment(req, res, next);
 
       expect(res.status.calledWith(404)).to.be.true;
+    });
+
+    // C3 回归：抢占条件必须排除新鲜的 processing，否则并发请求可双重确认
+    it('抢占条件应只允许 pending 或超时的 processing', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+      req.body = { transactionId: 'txn_123456' };
+
+      const mockPayment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        status: 'processing',
+        confirmPayment: sandbox.stub().resolves(),
+        populate: sandbox.stub().returnsThis(),
+        toObject: sandbox.stub().returns({})
+      };
+      PaymentStub.findOneAndUpdate.resolves(mockPayment);
+      EnrollmentStub.findByIdAndUpdate.resolves({ _id: 'e1', paymentStatus: 'paid' });
+
+      await paymentController.confirmPayment(req, res, next);
+
+      const filter = PaymentStub.findOneAndUpdate.getCall(0).args[0];
+      expect(filter.$or).to.be.an('array').with.lengthOf(2);
+      expect(filter.$or[0]).to.deep.equal({ status: 'pending' });
+      expect(filter.$or[1].status).to.equal('processing');
+      expect(filter.$or[1].updatedAt.$lt).to.be.an.instanceOf(Date);
+    });
+
+    it('应该返回409当支付正在确认中（processing 未超时）', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+      req.body = { transactionId: 'txn_123456' };
+
+      PaymentStub.findOneAndUpdate.resolves(null);
+      PaymentStub.findOne.resolves({ status: 'processing' });
+
+      await paymentController.confirmPayment(req, res, next);
+
+      expect(res.status.calledWith(409)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('正在确认中');
+    });
+
+    it('应该返回400当支付状态为已取消等不可确认状态', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+      req.body = { transactionId: 'txn_123456' };
+
+      PaymentStub.findOneAndUpdate.resolves(null);
+      PaymentStub.findOne.resolves({ status: 'cancelled' });
+
+      await paymentController.confirmPayment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      const response = res.json.getCall(0).args[0];
+      expect(response.message).to.include('不允许确认');
     });
   });
 

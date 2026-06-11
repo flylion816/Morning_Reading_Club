@@ -57,7 +57,8 @@
       "mcp__plugin_oh-my-claudecode_t__list_omc_skills",
       "Bash(echo \"后端启动中，PID: $!\")",
       "Bash(env)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(echo \"---exit: $?\")"
     ],
     "deny": [],
     "ask": []

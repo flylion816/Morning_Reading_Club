@@ -595,6 +595,31 @@ exports.getUserEnrollments = async (req, res) => {
 };
 
 /**
+ * 获取指定用户的参与期数（公开统计，仅返回计数，不含报名详情等 PII）
+ * GET /api/v1/enrollments/user/:userId/participation-count
+ */
+exports.getUserParticipationCount = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json(errors.badRequest('用户ID无效'));
+    }
+
+    const count = await Enrollment.countDocuments({
+      userId,
+      status: { $in: ['active', 'completed'] },
+      deleted: { $ne: true }
+    });
+
+    res.json(success({ count }));
+  } catch (error) {
+    logger.error('Get user participation count failed', error);
+    res.status(500).json(errors.serverError('获取参与期数失败'));
+  }
+};
+
+/**
  * 检查用户是否已报名
  * GET /api/v1/enrollments/check/:periodId
  */
@@ -1063,7 +1088,7 @@ exports.updateEnrollment = async (req, res) => {
       }
     }
 
-    const enrollment = await Enrollment.findByIdAndUpdate(id, updateData, { new: true })
+    const enrollment = await Enrollment.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('periodId', 'name');
 
@@ -1082,6 +1107,9 @@ exports.updateEnrollment = async (req, res) => {
 
     res.json(success(enrollment, '更新成功'));
   } catch (error) {
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json(errors.badRequest(`字段校验失败: ${error.message}`));
+    }
     logger.error('Update failed', error);
     res.status(500).json(errors.serverError(`更新失败: ${error.message}`));
   }

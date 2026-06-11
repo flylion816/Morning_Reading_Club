@@ -35,7 +35,7 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": "npm test",
+    "testCommand": "pwd; grep -n -A12 '\"scripts\"' package.json; ls jest.config.js tests/setup.js tests/jest.setup.js 2>/dev/null; ls tests/",
     "lintCommand": "npm run lint",
     "devCommand": "npm run dev",
     "scripts": {

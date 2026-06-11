@@ -205,14 +205,17 @@ async function createCheckin(req, res, next) {
     // 读取最新用户数据计算 streak（$inc 已更新，这里只需要 streak 字段）
     const user = await User.findById(userId).select('currentStreak maxStreak');
 
-    // 如果昨天有打卡，连续天数 +1；否则重置为 1
-    const newStreak = yesterdayCheckin ? (user.currentStreak || 0) + 1 : 1;
-    const newMaxStreak = Math.max(user.maxStreak || 0, newStreak);
+    // 用户可能在打卡过程中被删除，跳过 streak 更新避免崩溃
+    if (user) {
+      // 如果昨天有打卡，连续天数 +1；否则重置为 1
+      const newStreak = yesterdayCheckin ? (user.currentStreak || 0) + 1 : 1;
+      const newMaxStreak = Math.max(user.maxStreak || 0, newStreak);
 
-    await User.findByIdAndUpdate(userId, {
-      currentStreak: newStreak,
-      maxStreak: newMaxStreak
-    });
+      await User.findByIdAndUpdate(userId, {
+        currentStreak: newStreak,
+        maxStreak: newMaxStreak
+      });
+    }
 
     // 更新课节的打卡人数统计
     logger.debug('Updating Section.checkinCount', {

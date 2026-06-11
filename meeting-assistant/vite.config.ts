@@ -1,7 +1,12 @@
 import react from '@vitejs/plugin-react';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { defineConfig } from 'vite';
+
+const execFileAsync = promisify(execFile);
 
 const providerDefaults = {
   openai_responses: {
@@ -138,6 +143,35 @@ function sendJson(res: { statusCode: number; setHeader: (key: string, value: str
   res.end(JSON.stringify(payload));
 }
 
+function decodeDataUrl(dataUrl: string) {
+  const match = /^data:([^;]+);base64,(.+)$/s.exec(dataUrl || '');
+  if (!match) {
+    throw new Error('图片数据格式不正确。');
+  }
+  const mimeType = match[1];
+  const extension = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+  return {
+    buffer: Buffer.from(match[2], 'base64'),
+    extension,
+  };
+}
+
+async function recognizeImageText(imageDataUrl: string) {
+  const { buffer, extension } = decodeDataUrl(imageDataUrl);
+  const tempPath = path.join(os.tmpdir(), `meeting-assistant-ocr-${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`);
+  fs.writeFileSync(tempPath, buffer);
+  try {
+    const scriptPath = path.join(process.cwd(), 'scripts', 'ocr-image.swift');
+    const { stdout } = await execFileAsync('/usr/bin/swift', [scriptPath, tempPath], {
+      timeout: 20000,
+      maxBuffer: 1024 * 1024,
+    });
+    return stdout.trim();
+  } finally {
+    fs.rmSync(tempPath, { force: true });
+  }
+}
+
 function parseJsonText(text: string) {
   const cleaned = String(text || '')
     .trim()
@@ -187,8 +221,8 @@ function normalizeMessageContent(content: unknown) {
   return '';
 }
 
-function buildUserContent(promptPayload: PromptPayload) {
-  const images = (promptPayload.images || []).filter((image) => image.dataUrl);
+function buildUserContent(promptPayload: PromptPayload, includeImages: boolean) {
+  const images = includeImages ? (promptPayload.images || []).filter((image) => image.dataUrl) : [];
   const text = `${promptPayload.input}\n\n请严格按下面 JSON Schema 输出：\n${JSON.stringify(promptPayload.schema.schema, null, 2)}`;
   if (images.length === 0) {
     return text;
@@ -221,7 +255,7 @@ async function createChatCompletion(promptPayload: PromptPayload) {
       },
       {
         role: 'user',
-        content: buildUserContent(promptPayload),
+        content: buildUserContent(promptPayload, settings.provider !== 'xiaomi_mimo'),
       },
     ],
     temperature: 0.4,
@@ -294,6 +328,15 @@ export default defineConfig({
             sendJson(res, 405, { error: 'Method Not Allowed' });
           } catch (error) {
             sendJson(res, 500, { error: error instanceof Error ? error.message : '设置接口失败。' });
+          }
+        });
+
+        server.middlewares.use('/api/ocrImage', async (req, res) => {
+          try {
+            const body = (await readBody(req)) as { imageDataUrl?: string };
+            sendJson(res, 200, { text: await recognizeImageText(body.imageDataUrl || '') });
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : '图片 OCR 失败。' });
           }
         });
 

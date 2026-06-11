@@ -1,9 +1,13 @@
 const { app, BrowserWindow, clipboard, globalShortcut, ipcMain } = require('electron');
+const { execFile } = require('node:child_process');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const { promisify } = require('node:util');
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
+const execFileAsync = promisify(execFile);
 
 function settingsPath() {
   return path.join(app.getPath('userData'), 'settings.json');
@@ -159,6 +163,35 @@ function getPayloadError(payload, fallback) {
   return payload?.error?.message || payload?.message || payload?.detail || fallback;
 }
 
+function decodeDataUrl(dataUrl) {
+  const match = /^data:([^;]+);base64,(.+)$/s.exec(dataUrl || '');
+  if (!match) {
+    throw new Error('图片数据格式不正确。');
+  }
+  const mimeType = match[1];
+  const extension = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+  return {
+    buffer: Buffer.from(match[2], 'base64'),
+    extension,
+  };
+}
+
+async function recognizeImageText(imageDataUrl) {
+  const { buffer, extension } = decodeDataUrl(imageDataUrl);
+  const tempPath = path.join(os.tmpdir(), `meeting-assistant-ocr-${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`);
+  fs.writeFileSync(tempPath, buffer);
+  try {
+    const scriptPath = path.join(__dirname, '../scripts/ocr-image.swift');
+    const { stdout } = await execFileAsync('/usr/bin/swift', [scriptPath, tempPath], {
+      timeout: 20000,
+      maxBuffer: 1024 * 1024,
+    });
+    return stdout.trim();
+  } finally {
+    fs.rmSync(tempPath, { force: true });
+  }
+}
+
 async function createOpenAIResponsesResult({ instructions, input, schema, images = [] }, settings) {
   const apiKey = settings.apiKey;
   const model = settings.model || PROVIDER_DEFAULTS.openai_responses.model;
@@ -272,7 +305,7 @@ async function createChatCompletionsResult({ instructions, input, schema, images
     throw new Error(`请先在设置里填写 ${PROVIDER_DEFAULTS[settings.provider].label} API Key，或使用本地演练稿。`);
   }
 
-  const promptImages = images.filter((image) => image.dataUrl);
+  const promptImages = settings.provider === 'xiaomi_mimo' ? [] : images.filter((image) => image.dataUrl);
   const userText = `${input}\n\n请严格按下面 JSON Schema 输出：\n${JSON.stringify(schema.schema, null, 2)}`;
   const userContent =
     promptImages.length === 0
@@ -368,6 +401,16 @@ function createWindow() {
 
 app.whenReady().then(() => {
   ipcMain.handle('clipboard:readText', () => clipboard.readText());
+  ipcMain.handle('clipboard:readImage', () => {
+    const image = clipboard.readImage();
+    if (image.isEmpty()) {
+      return null;
+    }
+    return {
+      imageDataUrl: image.toDataURL(),
+      fileName: `剪贴板截图-${new Date().toLocaleTimeString('zh-CN')}.png`,
+    };
+  });
   ipcMain.handle('clipboard:writeText', (_, text) => {
     clipboard.writeText(text || '');
     return true;
@@ -376,6 +419,7 @@ app.whenReady().then(() => {
     return publicSettings(readSettings());
   });
   ipcMain.handle('settings:save', (_, settings) => writeSettings(settings));
+  ipcMain.handle('ocr:image', async (_, payload) => ({ text: await recognizeImageText(payload?.imageDataUrl || '') }));
   ipcMain.handle('openai:analyzeSpeaker', (_, payload) => createAIResponse(payload));
   ipcMain.handle('openai:summarizeSession', (_, payload) => createAIResponse(payload));
 

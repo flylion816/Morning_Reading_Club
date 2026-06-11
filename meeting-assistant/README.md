@@ -23,7 +23,7 @@ The MVP supports:
 - seven-habits theme selection.
 - multiple speaker cards.
 - multiple pasted snippets per speaker.
-- image upload snippets for screenshots or meeting transcript captures.
+- image upload and direct clipboard screenshot paste for meeting transcript captures.
 - clipboard paste into the current speaker.
 - global `Cmd+Shift+V` clipboard paste in the Electron desktop app.
 - single-speaker structured insight and response output.

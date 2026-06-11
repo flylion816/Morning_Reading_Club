@@ -25,7 +25,7 @@
   },
   "build": {
     "buildCommand": "npm run build",
-    "testCommand": "npm test",
+    "testCommand": "cd backend && npx jest tests/unit/controllers/payment.controller.test.js tests/unit/controllers/checkin.controller.test.js tests/unit/controllers/ranking.controller.test.js 2>&1 | tail -15",
     "lintCommand": "npm run lint",
     "devCommand": "npm run dev",
     "scripts": {
@@ -363,15 +363,15 @@
       "type": "file"
     },
     {
-      "path": "miniprogram/services/auth.service.js",
-      "accessCount": 17,
-      "lastAccessed": 1779589544765,
+      "path": "backend/src/models/Payment.js",
+      "accessCount": 19,
+      "lastAccessed": 1781142510305,
       "type": "file"
     },
     {
-      "path": "backend/src/models/Payment.js",
+      "path": "miniprogram/services/auth.service.js",
       "accessCount": 17,
-      "lastAccessed": 1779765404174,
+      "lastAccessed": 1779589544765,
       "type": "file"
     },
     {

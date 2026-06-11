@@ -159,6 +159,101 @@ describe('Imprint Controller', () => {
     });
   });
 
+  describe('update', () => {
+    // H6 回归：update 复用 create 的字段校验
+    function stubExistingImprint(authorId) {
+      ImprintStub.findById.returns({
+        lean: sandbox.stub().resolves({
+          _id: new mongoose.Types.ObjectId(),
+          title: '旧标题',
+          authorId
+        })
+      });
+    }
+
+    it('应该返回400当标题被改为空白', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      req.body = { title: '   ' };
+      stubExistingImprint(req.user._id);
+
+      await controller.update(req, res);
+
+      expect(res.status.calledWith(400)).to.equal(true);
+      expect(ImprintStub.findByIdAndUpdate.called).to.equal(false);
+    });
+
+    it('应该返回400当标题超过30字', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      req.body = { title: '字'.repeat(31) };
+      stubExistingImprint(req.user._id);
+
+      await controller.update(req, res);
+
+      expect(res.status.calledWith(400)).to.equal(true);
+      expect(ImprintStub.findByIdAndUpdate.called).to.equal(false);
+    });
+
+    it('应该返回400当活动类型无效', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      req.body = { activityType: 'invalid_type' };
+      stubExistingImprint(req.user._id);
+      ImprintActivityTypeStub.countDocuments.resolves(0);
+
+      await controller.update(req, res);
+
+      expect(res.status.calledWith(400)).to.equal(true);
+      expect(ImprintStub.findByIdAndUpdate.called).to.equal(false);
+    });
+  });
+
+  describe('cancelAttend', () => {
+    // H7 回归：取消在场需要存在性检查和 owner 校验
+    it('应该返回404当印记不存在', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      ImprintStub.findById.returns({ lean: sandbox.stub().resolves(null) });
+
+      await controller.cancelAttend(req, res);
+
+      expect(res.status.calledWith(404)).to.equal(true);
+      expect(ImprintStub.findByIdAndUpdate.called).to.equal(false);
+    });
+
+    it('应该返回403当自己不在在场列表中', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      ImprintStub.findById.returns({
+        lean: sandbox.stub().resolves({
+          _id: new mongoose.Types.ObjectId(),
+          attendees: [{ userId: new mongoose.Types.ObjectId() }]
+        })
+      });
+
+      await controller.cancelAttend(req, res);
+
+      expect(res.status.calledWith(403)).to.equal(true);
+      expect(ImprintStub.findByIdAndUpdate.called).to.equal(false);
+    });
+
+    it('应该成功移除自己的在场记录', async () => {
+      const imprintId = new mongoose.Types.ObjectId().toString();
+      req.params = { id: imprintId };
+      ImprintStub.findById.returns({
+        lean: sandbox.stub().resolves({
+          _id: imprintId,
+          attendees: [{ userId: req.user._id }]
+        })
+      });
+      ImprintStub.findByIdAndUpdate.resolves({});
+
+      await controller.cancelAttend(req, res);
+
+      expect(ImprintStub.findByIdAndUpdate.calledOnce).to.equal(true);
+      const [calledId, update] = ImprintStub.findByIdAndUpdate.getCall(0).args;
+      expect(calledId).to.equal(imprintId);
+      expect(update.$pull.attendees.userId.toString()).to.equal(req.user._id.toString());
+      expect(res.json.called).to.equal(true);
+    });
+  });
+
   describe('react', () => {
     it('首次共鸣时创建记录、增加计数并通知作者', async () => {
       const imprintId = new mongoose.Types.ObjectId();

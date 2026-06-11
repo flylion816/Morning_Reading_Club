@@ -77,9 +77,13 @@ const PaymentSchema = new mongoose.Schema(
     notes: String,
 
     // 订单号（用于对账）
+    // required 仅对新文档生效：存量记录可能缺 orderNo，
+    // 全量 required 会让 confirmPayment/markFailed 等 save() 操作抛 ValidationError
     orderNo: {
       type: String,
-      required: true
+      required: function () {
+        return this.isNew;
+      }
     },
 
     // 是否已核销（对账）

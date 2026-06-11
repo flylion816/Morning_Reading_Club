@@ -95,9 +95,11 @@ export type AppSettings = {
 
 export type ObserverAPI = {
   readClipboardText: () => Promise<string>;
+  readClipboardImage: () => Promise<{ imageDataUrl: string; fileName?: string } | null>;
   writeClipboardText: (text: string) => Promise<boolean>;
   loadSettings: () => Promise<AppSettings>;
   saveSettings: (settings: { provider: AIProvider; apiKey: string; baseUrl: string; model: string }) => Promise<AppSettings>;
+  ocrImage: (imageDataUrl: string, fileName?: string) => Promise<{ text: string }>;
   analyzeSpeaker: (payload: unknown) => Promise<SpeakerInsight>;
   summarizeSession: (payload: unknown) => Promise<WholeSessionSummary>;
   onGlobalPaste: (callback: () => void) => () => void;

@@ -23,19 +23,6 @@ Page({
     return avatarUrl;
   },
 
-  countParticipatingEnrollments(enrollmentResponse) {
-    const list = Array.isArray(enrollmentResponse?.list)
-      ? enrollmentResponse.list
-      : Array.isArray(enrollmentResponse)
-        ? enrollmentResponse
-        : [];
-
-    return list.filter(item =>
-      ['active', 'completed'].includes(item.status) &&
-      item.deleted !== true
-    ).length;
-  },
-
   onLoad(options) {
     const userId = options.userId || options.id;
     if (!userId || userId === 'undefined') {
@@ -64,18 +51,18 @@ Page({
     try {
       logger.debug('加载用户资料，ID:', this.data.userId);
 
-      const [userInfo, enrollmentResponse] = await Promise.all([
+      const [userInfo, participationResponse] = await Promise.all([
         userService.getUserById(this.data.userId),
         enrollmentService
-          .getUserEnrollmentsByUserId(this.data.userId, { limit: 100 })
+          .getUserParticipationCount(this.data.userId)
           .catch(error => {
-            logger.warn('加载他人报名列表失败，使用用户资料中的统计值:', error);
+            logger.warn('加载他人参与期数失败，使用用户资料中的统计值:', error);
             return null;
           })
       ]);
       const participatingPeriodCount =
-        enrollmentResponse
-          ? this.countParticipatingEnrollments(enrollmentResponse)
+        typeof participationResponse?.count === 'number'
+          ? participationResponse.count
           : userInfo.totalCompletedPeriods || 0;
 
       logger.debug('用户信息:', userInfo);

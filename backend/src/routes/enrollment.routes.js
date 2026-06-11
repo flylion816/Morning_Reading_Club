@@ -5,6 +5,7 @@ const {
   enrollPeriod,
   getPeriodMembers,
   getUserEnrollments,
+  getUserParticipationCount,
   checkEnrollment,
   withdrawEnrollment,
   completeEnrollment,
@@ -51,6 +52,7 @@ router.get('/my-completion-reports', authMiddleware, userTenantContext, getMyCom
 router.get('/my-completion-reports/:periodId', authMiddleware, userTenantContext, getMyCompletionReportByPeriod);
 router.get('/check/:periodId', authMiddleware, userTenantContext, checkEnrollment);
 router.get('/period/:periodId', authMiddleware, userTenantContext, getPeriodMembers);
+router.get('/user/:userId/participation-count', authMiddleware, userTenantContext, getUserParticipationCount);
 router.get('/user/:userId?', authMiddleware, userTenantContext, getUserEnrollments);
 router.delete('/:enrollmentId', authMiddleware, userTenantContext, withdrawEnrollment);
 router.put('/:enrollmentId/complete', adminAuthMiddleware, adminTenantContext, completeEnrollment);
