@@ -112,11 +112,11 @@ describe('Ranking Controller', () => {
       ];
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
       UserStub.findById.withArgs(userId).returns({
         select: sandbox.stub().resolves({
           _id: userId,
@@ -181,11 +181,11 @@ describe('Ranking Controller', () => {
       ];
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -203,11 +203,7 @@ describe('Ranking Controller', () => {
 
       const mockPeriod = { _id: periodId };
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves([])
-        .onSecondCall()
-        .resolves([]);
+      CheckinStub.aggregate.resolves([{ data: [], totalCount: [{ count: 0 }], allRanked: [] }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -222,11 +218,7 @@ describe('Ranking Controller', () => {
 
       const mockPeriod = { _id: periodId };
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves([])
-        .onSecondCall()
-        .resolves([]);
+      CheckinStub.aggregate.resolves([{ data: [], totalCount: [{ count: 0 }], allRanked: [] }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -241,11 +233,7 @@ describe('Ranking Controller', () => {
 
       const mockPeriod = { _id: periodId };
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves([])
-        .onSecondCall()
-        .resolves([]);
+      CheckinStub.aggregate.resolves([{ data: [], totalCount: [{ count: 0 }], allRanked: [] }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -260,11 +248,7 @@ describe('Ranking Controller', () => {
 
       const mockPeriod = { _id: periodId };
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves([])
-        .onSecondCall()
-        .resolves([]);
+      CheckinStub.aggregate.resolves([{ data: [], totalCount: [{ count: 0 }], allRanked: [] }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -298,11 +282,11 @@ describe('Ranking Controller', () => {
       }));
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -319,11 +303,7 @@ describe('Ranking Controller', () => {
 
       const mockPeriod = { _id: periodId };
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves([])
-        .onSecondCall()
-        .resolves([]);
+      CheckinStub.aggregate.resolves([{ data: [], totalCount: [{ count: 0 }], allRanked: [] }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -355,11 +335,11 @@ describe('Ranking Controller', () => {
       }));
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -375,11 +355,7 @@ describe('Ranking Controller', () => {
 
       const mockPeriod = { _id: periodId };
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves([])
-        .onSecondCall()
-        .resolves([]);
+      CheckinStub.aggregate.resolves([{ data: [], totalCount: [{ count: 0 }], allRanked: [] }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -420,11 +396,11 @@ describe('Ranking Controller', () => {
       ];
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -487,11 +463,11 @@ describe('Ranking Controller', () => {
       ];
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -530,11 +506,11 @@ describe('Ranking Controller', () => {
       ];
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
       UserStub.findById.withArgs(userId).returns({
         select: sandbox.stub().resolves({
           _id: userId,
@@ -573,11 +549,11 @@ describe('Ranking Controller', () => {
       ];
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
 
       await rankingController.getPeriodRanking(req, res, next);
 
@@ -626,11 +602,11 @@ describe('Ranking Controller', () => {
       ];
 
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(mockCountResult)
-        .onSecondCall()
-        .resolves(mockRankings);
+      CheckinStub.aggregate.resolves([{
+        data: mockRankings,
+        totalCount: [{ count: mockCountResult.length }],
+        allRanked: mockCountResult.map(r => ({ _id: r._id, checkinCount: r.checkinCount }))
+      }]);
       // 修复：select 方法应该返回拒绝的 promise，而不是直接 rejects
       UserStub.findById.returns({
         select: sandbox.stub().rejects(new Error('User query failed'))
@@ -680,11 +656,7 @@ describe('Ranking Controller', () => {
 
       const mockPeriod = { _id: periodId };
       PeriodStub.findById.resolves(mockPeriod);
-      CheckinStub.aggregate
-        .onFirstCall()
-        .resolves(null)
-        .onSecondCall()
-        .resolves([]);
+      CheckinStub.aggregate.resolves(null);
 
       let errorOccurred = false;
       try {

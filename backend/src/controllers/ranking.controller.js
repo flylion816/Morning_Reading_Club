@@ -112,33 +112,37 @@ async function getPeriodRanking(req, res, next) {
       }
     });
 
-    // 获取总数
-    const countPipeline = [...pipeline];
-    const countResult = await Checkin.aggregate(countPipeline);
-    const total = countResult.length;
-
-    // 分页
-    pipeline.push(
-      { $skip: (parseInt(page, 10) - 1) * parseInt(limit, 10) },
-      { $limit: parseInt(limit, 10) }
-    );
-
-    // 填充用户信息
-    pipeline.push({
-      $lookup: {
-        from: 'users',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'userInfo'
+    // 用 $facet 同时取分页数据、总数、当前用户排名，避免重复执行全量聚合
+    const facetPipeline = [
+      ...pipeline,
+      {
+        $facet: {
+          data: [
+            { $skip: (parseInt(page, 10) - 1) * parseInt(limit, 10) },
+            { $limit: parseInt(limit, 10) },
+            {
+              $lookup: {
+                from: 'users',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'userInfo'
+              }
+            },
+            { $unwind: '$userInfo' }
+          ],
+          totalCount: [{ $count: 'count' }],
+          // 全量排序结果用于计算当前用户排名（只取 _id 和 checkinCount，节省传输）
+          allRanked: [
+            { $project: { _id: 1, checkinCount: 1 } }
+          ]
+        }
       }
-    });
+    ];
 
-    pipeline.push({
-      $unwind: '$userInfo'
-    });
-
-    // 执行聚合查询
-    const rankings = await Checkin.aggregate(pipeline);
+    const [facetResult] = await Checkin.aggregate(facetPipeline);
+    const rankings = facetResult.data;
+    const total = facetResult.totalCount[0]?.count ?? 0;
+    const allRanked = facetResult.allRanked ?? [];
 
     // 转换数据格式，添加排名和前端需要的字段
     const list = rankings.map((item, index) => ({
@@ -152,7 +156,7 @@ async function getPeriodRanking(req, res, next) {
     }));
 
     // 获取当前用户的排名和打卡次数
-    const currentUserIndex = countResult.findIndex(
+    const currentUserIndex = allRanked.findIndex(
       item => String(item._id) === String(userId)
     );
 
@@ -162,7 +166,7 @@ async function getPeriodRanking(req, res, next) {
       : null;
 
     if (currentUserIndex !== -1 && currentUserInfo) {
-      const currentUserData = countResult[currentUserIndex];
+      const currentUserData = allRanked[currentUserIndex];
       currentUser = {
         rank: currentUserIndex + 1,
         userId,
