@@ -1143,45 +1143,74 @@ exports.syncNicknamesFromEnrollments = async (req, res) => {
 
     const candidateUsers = await User.find(defaultNicknameQuery).select('_id nickname').lean();
 
-    let updatedCount = 0;
-    let skippedNoName = 0;
+    if (candidateUsers.length === 0) {
+      return res.json(success({ candidateCount: 0, updatedCount: 0, skippedNoName: 0, updates: [] }, '无需同步'));
+    }
+
+    const candidateIds = candidateUsers.map(u => u._id);
+
+    // 批量查找每个候选用户最新一条有名称的报名记录
+    const enrollmentDocs = await Enrollment.aggregate([
+      {
+        $match: {
+          userId: { $in: candidateIds },
+          deleted: { $ne: true },
+          name: { $exists: true, $nin: [null, ''] }
+        }
+      },
+      { $sort: { enrolledAt: -1 } },
+      {
+        $group: {
+          _id: '$userId',
+          name: { $first: '$name' }
+        }
+      }
+    ]);
+
+    // 建立 userId → name 的 Map
+    const nameMap = new Map(
+      enrollmentDocs
+        .filter(e => e.name && e.name.trim())
+        .map(e => [e._id.toString(), e.name.trim()])
+    );
+
+    // 构建 bulkWrite 操作列表
+    const userMap = new Map(candidateUsers.map(u => [u._id.toString(), u]));
+    const bulkOps = [];
     const updates = [];
+    let skippedNoName = 0;
 
     for (const user of candidateUsers) {
-      const enrollment = await Enrollment.findOne({
-        userId: user._id,
-        deleted: { $ne: true },
-        name: { $exists: true, $nin: [null, ''] }
-      })
-        .sort({ enrolledAt: -1 })
-        .select('name')
-        .lean();
-
-      if (!enrollment || !enrollment.name || !enrollment.name.trim()) {
+      const newNickname = nameMap.get(user._id.toString());
+      if (!newNickname) {
         skippedNoName += 1;
         continue;
       }
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: user._id },
+          update: { $set: { nickname: newNickname } }
+        }
+      });
+      updates.push({
+        userId: user._id.toString(),
+        oldNickname: user.nickname || '',
+        newNickname
+      });
+    }
 
-      const newNickname = enrollment.name.trim();
-      const result = await User.findByIdAndUpdate(
-        user._id,
-        { nickname: newNickname },
-        { new: true }
-      );
+    let updatedCount = 0;
+    if (bulkOps.length > 0) {
+      const bulkResult = await User.bulkWrite(bulkOps);
+      updatedCount = bulkResult.modifiedCount;
 
-      if (result) {
-        updatedCount += 1;
-        updates.push({
-          userId: user._id.toString(),
-          oldNickname: user.nickname || '',
-          newNickname
-        });
-
+      // 异步同步到 MySQL（逐条，但已脱离 DB 查询循环）
+      for (const upd of updates) {
         publishSyncEvent({
           type: 'update',
           collection: 'users',
-          documentId: result._id.toString(),
-          data: result.toObject()
+          documentId: upd.userId,
+          data: { _id: upd.userId, nickname: upd.newNickname }
         });
       }
     }
