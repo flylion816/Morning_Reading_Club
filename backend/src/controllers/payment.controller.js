@@ -832,7 +832,7 @@ exports.wechatCallback = async (req, res) => {
       let enrollment = null;
       if (payment.enrollmentId) {
         enrollment = await withSystemContext(payment.tenantId, () =>
-          Enrollment.findById(payment.enrollmentId)
+          Enrollment.findById(payment.enrollmentId).exec()
         );
       }
       if (enrollment) {
