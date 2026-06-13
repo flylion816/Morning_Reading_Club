@@ -60,10 +60,10 @@ async function getPeriodListForUser(req, res, next) {
     }
 
     // 非管理员只看已发布的期次；管理员可看全部
-    if (isPublished !== undefined) {
-      query.isPublished = isPublished === 'true';
-    } else if (!isAdmin) {
+    if (!isAdmin) {
       query.isPublished = true;
+    } else if (isPublished !== undefined) {
+      query.isPublished = isPublished === 'true';
     }
 
     const normalizedUserId = mongoose.Types.ObjectId.isValid(String(userId))
