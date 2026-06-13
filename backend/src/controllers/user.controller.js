@@ -203,7 +203,11 @@ async function getUserList(req, res, next) {
     // 租户隔离：只返回当前租户的用户
     const tenantId = getCurrentTenantId();
     if (tenantId) query.tenantId = tenantId;
-    if (role) query.role = role;
+    if (role === 'admin') {
+      query.role = { $in: ['admin', 'super_admin'] };
+    } else if (role) {
+      query.role = role;
+    }
     if (status) query.status = status;
     if (searchTerm) {
       query.$or = [

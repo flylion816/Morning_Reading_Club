@@ -20,6 +20,18 @@
             </template>
           </el-input>
 
+          <el-select
+            v-model="filters.role"
+            placeholder="角色筛选"
+            clearable
+            style="width: 140px"
+            @change="handleSearch"
+          >
+            <el-option label="全部角色" value="" />
+            <el-option label="管理员" value="admin" />
+            <el-option label="超级管理员" value="super_admin" />
+          </el-select>
+
           <el-button type="primary" style="margin-left: auto" @click="handleSearch">
             搜索
           </el-button>
@@ -240,7 +252,8 @@ const users = ref<User[]>([]);
 const selectedUser = ref<any>(null);
 
 const filters = ref({
-  search: ''
+  search: '',
+  role: ''
 });
 
 const pagination = ref({
@@ -273,6 +286,10 @@ async function loadUsers() {
 
     if (filters.value.search) {
       params.search = filters.value.search;
+    }
+
+    if (filters.value.role) {
+      params.role = filters.value.role;
     }
 
     const response = (await userApi.getUsers(params)) as unknown as ListResponse<User>;
