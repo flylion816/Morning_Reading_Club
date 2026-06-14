@@ -13,6 +13,32 @@ const {
 } = require('../../utils/period-access');
 const { isAdminUser } = require('../../utils/auth');
 
+function getTimeValue(value) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getInsightPeriodSortTime(insight) {
+  const period = insight?.periodId || {};
+  return getTimeValue(period.endDate || period.startDate);
+}
+
+function getInsightDaySortValue(insight) {
+  const day = insight?.sectionId?.day ?? insight?.day ?? 0;
+  return Number(day) || 0;
+}
+
+function compareInsightsByPeriodAndDayDesc(a, b) {
+  const periodDiff = getInsightPeriodSortTime(b) - getInsightPeriodSortTime(a);
+  if (periodDiff !== 0) return periodDiff;
+
+  const dayDiff = getInsightDaySortValue(b) - getInsightDaySortValue(a);
+  if (dayDiff !== 0) return dayDiff;
+
+  return getTimeValue(b.updatedAt || b.createdAt) - getTimeValue(a.updatedAt || a.createdAt);
+}
+
 Page({
   data: {
     insights: [],
@@ -417,12 +443,7 @@ Page({
         });
       }));
 
-      allRaw.sort((a, b) => {
-        const dayA = a.day || a.sectionId?.day || -1;
-        const dayB = b.day || b.sectionId?.day || -1;
-        if (dayB !== dayA) return dayB - dayA;
-        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
-      });
+      allRaw.sort(compareInsightsByPeriodAndDayDesc);
 
       const app = getApp();
       const periods = app.globalData.periods || [];
@@ -477,7 +498,8 @@ Page({
 
       // 获取当前登录用户信息
       const app = getApp();
-      const currentUserId = app.globalData.userInfo?._id;
+      const currentUserId =
+        app.globalData.userInfo?._id || app.globalData.userInfo?.id;
       const constants = require('../../config/constants');
       const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
 

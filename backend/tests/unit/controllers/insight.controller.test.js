@@ -1810,6 +1810,69 @@ describe('Insight Controller - 102+ 完整测试', () => {
       const response = res.json.firstCall.args[0];
       expect(response.data.list).to.have.lengthOf(2);
     });
+
+    it('TC-AUTH-016: 自己的小凡看见按期次倒序、同期期内按 day 倒序', async () => {
+      const userId = fixtures.testUsers.user1._id.toString();
+      req.user = { userId };
+      req.params = { userId };
+      req.query = { page: 1, limit: 20 };
+
+      const oldPeriod = {
+        _id: new mongoose.Types.ObjectId(),
+        name: '旧期次',
+        startDate: new Date('2026-04-01'),
+        endDate: new Date('2026-04-23')
+      };
+      const newPeriod = {
+        _id: new mongoose.Types.ObjectId(),
+        name: '新期次',
+        startDate: new Date('2026-05-01'),
+        endDate: new Date('2026-05-23')
+      };
+      const olderPeriodDay22 = {
+        _id: 'old-day-22',
+        userId,
+        periodId: oldPeriod,
+        sectionId: { day: 22, title: '旧期次结营词' },
+        status: 'completed',
+        content: 'old day 22',
+        updatedAt: new Date('2026-06-01')
+      };
+      const newerPeriodDay1 = {
+        _id: 'new-day-1',
+        userId,
+        periodId: newPeriod,
+        sectionId: { day: 1, title: '新期次第一天' },
+        status: 'completed',
+        content: 'new day 1',
+        updatedAt: new Date('2026-05-01')
+      };
+      const newerPeriodDay18 = {
+        _id: 'new-day-18',
+        userId,
+        periodId: newPeriod,
+        sectionId: { day: 18, title: '新期次第十八天' },
+        status: 'completed',
+        content: 'new day 18',
+        updatedAt: new Date('2026-05-18')
+      };
+
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([
+          olderPeriodDay22,
+          newerPeriodDay1,
+          newerPeriodDay18
+        ])
+      });
+      InsightStub.countDocuments.resolves(3);
+
+      await insightController.getUserInsights(req, res, next);
+
+      const ids = res.json.firstCall.args[0].data.list.map(item => item._id);
+      expect(ids).to.deep.equal(['new-day-18', 'new-day-1', 'old-day-22']);
+    });
   });
 
   // ========================================

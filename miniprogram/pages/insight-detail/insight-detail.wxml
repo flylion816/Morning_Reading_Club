@@ -109,7 +109,7 @@
           bindinput="onDanmakuInput"
           placeholder="写下你划到的段落带给你的感悟"
           placeholder-style="font-size:28rpx;line-height:48rpx;color:#bbb;"
-          maxlength="60"
+          maxlength="240"
           auto-height
           show-confirm-bar="{{false}}"
         />
@@ -124,7 +124,7 @@
           ></view>
         </view>
         <view class="send-row">
-          <text class="char-count">{{danmakuInput.length}}/60</text>
+          <text class="char-count">{{danmakuInputLength}}/60</text>
           <button
             class="send-btn"
             bindtap="sendDanmaku"

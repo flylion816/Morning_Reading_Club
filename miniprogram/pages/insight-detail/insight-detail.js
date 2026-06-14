@@ -6,6 +6,11 @@ const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
 const { isAdminUser } = require('../../utils/auth');
+const {
+  normalizeDanmakuContent,
+  countDanmakuChars,
+  truncateDanmakuContent
+} = require('../../utils/danmaku');
 
 // 弹幕泳道数量
 const DANMAKU_LANES = 4;
@@ -90,6 +95,7 @@ Page({
     danmakuList: [],
     activeDanmaku: [],
     danmakuInput: '',
+    danmakuInputLength: 0,
     danmakuColor: '#4a90e2',
     danmakuColors: [
       { name: '晨蓝', value: '#4a90e2' },
@@ -1078,7 +1084,11 @@ Page({
   },
 
   onDanmakuInput(e) {
-    this.setData({ danmakuInput: e.detail.value });
+    const value = truncateDanmakuContent(e.detail.value || '');
+    this.setData({
+      danmakuInput: value,
+      danmakuInputLength: countDanmakuChars(value)
+    });
   },
 
   selectColor(e) {
@@ -1100,7 +1110,7 @@ Page({
 
       const newItem = result.data || result;
       const danmakuList = [...this.data.danmakuList, newItem];
-      this.setData({ danmakuList, danmakuInput: '' });
+      this.setData({ danmakuList, danmakuInput: '', danmakuInputLength: 0 });
       this._showDanmaku(newItem);
       activityService.track('insight_danmaku', { targetId: insightId });
       this.closeDanmakuPanel();
@@ -1255,7 +1265,7 @@ Page({
       activeDanmaku: [...this.data.activeDanmaku, {
         id: displayId,
         nickname: item.userNickname || '',
-        msg: item.content,
+        msg: normalizeDanmakuContent(item.content),
         lane,
         color: item.color || '#4a90e2',
         duration: DANMAKU_DURATION,

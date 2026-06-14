@@ -5,7 +5,7 @@ const { tenantStorage } = require('../utils/storage');
 
 class ActivityService {
   track(action, data = {}) {
-    const token = tenantStorage.get('token');
+    const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
     if (!token) {
       return Promise.resolve();
     }
@@ -21,7 +21,7 @@ class ActivityService {
           sectionId: data.sectionId || null,
           metadata: data.metadata || {}
         },
-        { showLoading: false }
+        { showLoading: false, suppressAuthError: true }
       )
       .catch((error) => {
         logger.warn('用户行为上报失败:', { action, error });

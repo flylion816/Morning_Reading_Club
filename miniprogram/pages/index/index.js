@@ -99,6 +99,32 @@ function formatRecentCheckinDate(dateString) {
   return `${month}.${day}`;
 }
 
+function getTimeValue(value) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getInsightPeriodSortTime(insight) {
+  const period = insight?.periodId || {};
+  return getTimeValue(period.endDate || period.startDate);
+}
+
+function getInsightDaySortValue(insight) {
+  const day = insight?.sectionId?.day ?? insight?.day ?? 0;
+  return Number(day) || 0;
+}
+
+function compareInsightsByPeriodAndDayDesc(a, b) {
+  const periodDiff = getInsightPeriodSortTime(b) - getInsightPeriodSortTime(a);
+  if (periodDiff !== 0) return periodDiff;
+
+  const dayDiff = getInsightDaySortValue(b) - getInsightDaySortValue(a);
+  if (dayDiff !== 0) return dayDiff;
+
+  return getTimeValue(b.updatedAt || b.createdAt) - getTimeValue(a.updatedAt || a.createdAt);
+}
+
 function buildRecentCheckinCard(item) {
   const previewSource = richContentToPlainText(item.note || item.content || '')
     .replace(/\s+/g, ' ')
@@ -932,7 +958,7 @@ Page({
     try {
       const insightService = require('../../services/insight.service');
 
-      const res = await insightService.getInsightsList({ limit: 10 });
+      const res = await insightService.getInsightsList({ limit: 100 });
 
       // request.js 会自动提取 data.data，所以这里 res 应该是 { list: [...], pagination: {...} }
       let insights = [];
@@ -948,18 +974,12 @@ Page({
         return [];
       }
 
-      // 按天数倒序，同天按 updatedAt 倒序（与 insights 列表页一致）
-      insights.sort((a, b) => {
-        const dayA = a.day || a.sectionId?.day || -1;
-        const dayB = b.day || b.sectionId?.day || -1;
-        if (dayB !== dayA) return dayB - dayA;
-        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
-      });
+      insights.sort(compareInsightsByPeriodAndDayDesc);
 
       // 格式化数据
       const { getInsightTypeConfig, getAvatarColorByUserId } = require('../../utils/formatters');
       const currentUser = getApp().globalData.userInfo || {};
-      const currentUserId = currentUser._id || '';
+      const currentUserId = currentUser._id || currentUser.id || '';
       const currentNickname = currentUser.nickname || currentUser.name || '用户';
       const currentAvatar = getUserAvatarDisplay(currentUser, {
         userId: currentUserId,
@@ -1042,12 +1062,7 @@ Page({
         });
       }));
 
-      allInsights.sort((a, b) => {
-        const dayA = a.day || a.sectionId?.day || -1;
-        const dayB = b.day || b.sectionId?.day || -1;
-        if (dayB !== dayA) return dayB - dayA;
-        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
-      });
+      allInsights.sort(compareInsightsByPeriodAndDayDesc);
 
       const formatted = allInsights.slice(0, 2).map(item => {
         let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();

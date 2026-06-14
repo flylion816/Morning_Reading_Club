@@ -21,6 +21,42 @@ const {
 const { getCurrentTenantId } = require('../utils/tenantContext');
 
 const ADMIN_ROLES = ['platform_superadmin', 'superadmin', 'tenant_admin', 'admin', 'operator'];
+const MAX_DANMAKU_CONTENT_LENGTH = 60;
+
+function countUnicodeChars(value) {
+  const content = String(value || '');
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter('zh-Hans', { granularity: 'grapheme' });
+    return Array.from(segmenter.segment(content)).length;
+  }
+  return Array.from(content).length;
+}
+
+function getTimeValue(value) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getInsightPeriodSortTime(insight) {
+  const period = insight?.periodId || {};
+  return getTimeValue(period.endDate || period.startDate);
+}
+
+function getInsightDaySortValue(insight) {
+  const day = insight?.sectionId?.day ?? insight?.day ?? 0;
+  return Number(day) || 0;
+}
+
+function compareInsightsByPeriodAndDayDesc(a, b) {
+  const periodDiff = getInsightPeriodSortTime(b) - getInsightPeriodSortTime(a);
+  if (periodDiff !== 0) return periodDiff;
+
+  const dayDiff = getInsightDaySortValue(b) - getInsightDaySortValue(a);
+  if (dayDiff !== 0) return dayDiff;
+
+  return getTimeValue(b.updatedAt || b.createdAt) - getTimeValue(a.updatedAt || a.createdAt);
+}
 
 /**
  * 辅助函数：创建通知并自动添加 WebSocket 管理器
@@ -780,23 +816,19 @@ async function getUserInsights(req, res, next) {
     const total = await Insight.countDocuments(query);
     const insights = await Insight.find(query)
       .populate('sectionId', 'title day icon')
-      .populate('periodId', 'name title')
+      .populate('periodId', 'name title startDate endDate')
       .populate('userId', 'nickname avatar avatarUrl _id')
       .populate('targetUserId', 'nickname avatar avatarUrl _id')
-      .sort({ updatedAt: -1 })
-      .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
-      .limit(parseInt(limit, 10))
       .select('-__v')
       .exec();
 
-    insights.sort((a, b) => {
-      const dayA = a.sectionId?.day ?? -1;
-      const dayB = b.sectionId?.day ?? -1;
-      if (dayB !== dayA) return dayB - dayA;
-      return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
-    });
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const pagedInsights = insights
+      .sort(compareInsightsByPeriodAndDayDesc)
+      .slice((pageNumber - 1) * limitNumber, pageNumber * limitNumber);
 
-    const serializedList = insights.map(insight =>
+    const serializedList = pagedInsights.map(insight =>
       serializeInsightForViewer(insight, {
         isOwnerView,
         allowedPeriodIds: approvedPeriodIds,
@@ -816,10 +848,10 @@ async function getUserInsights(req, res, next) {
           allowedInsightIds: [...approvedInsightIds]
         },
         pagination: {
-          page: parseInt(page, 10),
-          limit: parseInt(limit, 10),
+          page: pageNumber,
+          limit: limitNumber,
           total,
-          pages: Math.ceil(total / parseInt(limit, 10))
+          pages: Math.ceil(total / limitNumber)
         }
       })
     );
@@ -2515,7 +2547,7 @@ async function postDanmaku(req, res, next) {
     if (!content || !content.trim()) {
       return res.status(400).json(errors.badRequest('弹幕内容不能为空'));
     }
-    if (content.length > 60) {
+    if (countUnicodeChars(content) > MAX_DANMAKU_CONTENT_LENGTH) {
       return res.status(400).json(errors.badRequest('弹幕内容不能超过60字'));
     }
 

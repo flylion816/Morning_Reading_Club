@@ -182,7 +182,10 @@ class Request {
 
     if (!refreshToken) {
       // 没有refreshToken，直接处理认证错误
-      this.handleAuthError();
+      this.handleAuthError({
+        silent: !!originalOptions.suppressAuthError,
+        redirect: !originalOptions.suppressAuthError
+      });
       reject(new Error('Token已过期，需要重新登录'));
       return;
     }
@@ -225,7 +228,10 @@ class Request {
       .catch((refreshError) => {
         // Token刷新失败
         logger.error('❌ Token刷新失败:', refreshError);
-        this.handleAuthError();
+        this.handleAuthError({
+          silent: !!originalOptions.suppressAuthError,
+          redirect: !originalOptions.suppressAuthError
+        });
 
         // 拒绝所有队列中的请求
         this.requestQueue.forEach(({ reject: qReject }) => {
@@ -243,12 +249,16 @@ class Request {
   /**
    * 处理认证错误
    */
-  handleAuthError() {
-    wx.showToast({
-      title: '登录已过期,请重新登录',
-      icon: 'none',
-      duration: 2000
-    });
+  handleAuthError(options = {}) {
+    const { silent = false, redirect = true } = options;
+
+    if (!silent) {
+      wx.showToast({
+        title: '登录已过期,请重新登录',
+        icon: 'none',
+        duration: 2000
+      });
+    }
 
     // 清除本地存储
     tenantStorage.remove(constants.STORAGE_KEYS.TOKEN);
@@ -263,12 +273,14 @@ class Request {
       app.globalData.token = null;
     }
 
-    // 延迟跳转到登录页
-    setTimeout(() => {
-      wx.reLaunch({
-        url: '/pages/login/login'
-      });
-    }, 2000);
+    if (redirect) {
+      // 延迟跳转到登录页
+      setTimeout(() => {
+        wx.reLaunch({
+          url: '/pages/login/login'
+        });
+      }, 2000);
+    }
   }
 
   /**

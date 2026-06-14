@@ -483,4 +483,44 @@ describe('Request Service', () => {
       expect(loadingCall.title).toBe('正在加载中...');
     });
   });
+
+  describe('[REQ-9] 静默认证错误', () => {
+    test('should clear auth state without toast or redirect when suppressAuthError is enabled', async () => {
+      wx.setStorageSync(
+        constants.STORAGE_KEYS.TOKEN,
+        JSON.stringify({ value: 'expired_token', timestamp: Date.now(), expire: null })
+      );
+      wx.setStorageSync(
+        constants.STORAGE_KEYS.USER_INFO,
+        JSON.stringify({ value: { _id: 'user_1' }, timestamp: Date.now(), expire: null })
+      );
+      global.getApp = jest.fn(() => ({
+        globalData: {
+          isLogin: true,
+          userInfo: { _id: 'user_1' },
+          token: 'expired_token'
+        }
+      }));
+
+      global.wx.request.mockImplementation((options) => {
+        setTimeout(() => {
+          if (options.success) {
+            options.success({
+              statusCode: 401,
+              data: { message: 'Unauthorized' }
+            });
+          }
+        }, 10);
+      });
+
+      await expect(
+        request.post('/activities', { action: 'app_open' }, { suppressAuthError: true })
+      ).rejects.toThrow('Token已过期');
+
+      expect(global.wx.showToast).not.toHaveBeenCalled();
+      expect(global.wx.reLaunch).not.toHaveBeenCalled();
+      expect(wx.getStorageSync(constants.STORAGE_KEYS.TOKEN)).toBeNull();
+      expect(wx.getStorageSync(constants.STORAGE_KEYS.USER_INFO)).toBeNull();
+    });
+  });
 });

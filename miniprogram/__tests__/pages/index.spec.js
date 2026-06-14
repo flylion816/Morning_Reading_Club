@@ -701,7 +701,7 @@ describe('index page', () => {
     expect(pageInstance.data.currentPeriodCommunityState).toBe('locked');
     expect(pageInstance.data.canUsePaidFeatures).toBe(true);
     expect(checkinService.getUserCheckinsWithStats).toHaveBeenCalled();
-    expect(insightService.getInsightsList).toHaveBeenCalledWith({ limit: 10 });
+    expect(insightService.getInsightsList).toHaveBeenCalledWith({ limit: 100 });
     expect(pageInstance.data.recentCheckins).toHaveLength(1);
   });
 });

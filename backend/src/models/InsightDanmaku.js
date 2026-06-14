@@ -1,6 +1,15 @@
 const mongoose = require('mongoose');
 const tenantPlugin = require('./plugins/tenantPlugin');
 
+function countUnicodeChars(value) {
+  const content = String(value || '');
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter('zh-Hans', { granularity: 'grapheme' });
+    return Array.from(segmenter.segment(content)).length;
+  }
+  return Array.from(content).length;
+}
+
 const insightDanmakuSchema = new mongoose.Schema(
   {
     tenantId: {
@@ -28,7 +37,12 @@ const insightDanmakuSchema = new mongoose.Schema(
     content: {
       type: String,
       required: true,
-      maxlength: 60
+      validate: {
+        validator(value) {
+          return countUnicodeChars(value) <= 60;
+        },
+        message: '弹幕内容不能超过60字'
+      }
     },
     type: {
       type: String,
