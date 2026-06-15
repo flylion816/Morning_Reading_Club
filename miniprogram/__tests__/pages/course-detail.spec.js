@@ -703,7 +703,7 @@ describe('course-detail page markdown support', () => {
     wx.showModal.mockImplementation(({ success }) => {
       success({
         confirm: true,
-        content: '哈哈哈'
+        content: '哈哈哈[偷笑]'
       });
     });
     pageInstance.triggerAutoTopUp = jest.fn();
@@ -731,8 +731,13 @@ describe('course-detail page markdown support', () => {
     await Promise.resolve();
     await Promise.resolve();
 
+    expect(commentService.createComment).toHaveBeenCalledWith({
+      checkinId: 'checkin_1',
+      content: '哈哈哈🤭'
+    });
     expect(pageInstance.data.course.comments[0].replies[0]).toMatchObject({
       userName: '小狐狸',
+      content: '哈哈哈🤭',
       avatarText: '狸',
       avatarUrl: '',
       avatarColor: getAvatarColorByUserId('user_fox')
@@ -742,6 +747,7 @@ describe('course-detail page markdown support', () => {
   test('should use stable avatar color rule for checkin author and comments', () => {
     const checkinItem = pageInstance.buildCheckinItem.call(pageInstance, {
       _id: 'checkin_1',
+      content: '今天很开心[庆祝]',
       userId: {
         _id: 'user_fox',
         nickname: '小狐狸',
@@ -750,5 +756,6 @@ describe('course-detail page markdown support', () => {
     });
 
     expect(checkinItem.avatarColor).toBe(getAvatarColorByUserId('user_fox'));
+    expect(checkinItem.content).toBe('今天很开心🎉');
   });
 });

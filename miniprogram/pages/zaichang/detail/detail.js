@@ -2,6 +2,7 @@ const imprintService = require('../../../services/imprint.service');
 const { maybeAutoTopUpSubscriptions } = require('../../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../../utils/require-login');
 const activityService = require('../../../services/activity.service');
+const { normalizeDanmakuContent } = require('../../../utils/danmaku');
 
 const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
 
@@ -19,6 +20,14 @@ function formatDateTime(dateStr) {
   const hh = String(d.getHours()).padStart(2, '0');
   const min = String(d.getMinutes()).padStart(2, '0');
   return `${mm}-${dd} ${hh}:${min}`;
+}
+
+function formatComment(comment) {
+  return {
+    ...comment,
+    content: normalizeDanmakuContent(comment.content || ''),
+    _createdAtFormatted: formatDateTime(comment.createdAt)
+  };
 }
 
 Page({
@@ -101,10 +110,7 @@ Page({
     const page = reset ? 1 : this.data.commentPage;
     try {
       const res = await imprintService.listComments(this._id, { page, pageSize: this.data.commentPageSize });
-      const newComments = (res.list || res || []).map(c => ({
-        ...c,
-        _createdAtFormatted: formatDateTime(c.createdAt)
-      }));
+      const newComments = (res.list || res || []).map(formatComment);
       const comments = reset ? newComments : [...this.data.comments, ...newComments];
       this.setData({
         comments,
@@ -188,12 +194,12 @@ Page({
   },
 
   onCommentInput(e) {
-    this.setData({ commentInput: e.detail.value });
+    this.setData({ commentInput: normalizeDanmakuContent(e.detail.value || '') });
   },
 
   async onSubmitComment() {
     if (!requireLogin('登录后才能发评论')) return;
-    const content = this.data.commentInput.trim();
+    const content = normalizeDanmakuContent(this.data.commentInput || '').trim();
     if (!content) return;
     if (this.data.submittingComment) return;
     this.setData({ submittingComment: true });
@@ -206,7 +212,7 @@ Page({
       const newComment = await imprintService.createComment(this._id, data);
       const app = getApp();
       const user = app.globalData.userInfo || {};
-      const comment = newComment.comment || newComment;
+      const comment = formatComment(newComment.comment || newComment);
       comment.author = comment.author || { nickname: user.nickname, avatarUrl: user.avatarUrl, _id: this.data.currentUserId };
       comment._createdAtFormatted = formatDateTime(comment.createdAt || new Date().toISOString());
       this.setData({

@@ -20,8 +20,11 @@ function sanitizeHtml(html) {
     .trim();
 }
 
-function renderInlineMarkdown(text) {
+const INSIGHT_SHARE_TITLE_PATTERN = /在凡人晨读营?中的分享$/;
+
+function renderInlineMarkdown(text, options = {}) {
   let rendered = escapeHtml(text);
+  const strongStyle = options.strongStyle ? ` style="${options.strongStyle}"` : '';
 
   rendered = rendered.replace(
     /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g,
@@ -32,8 +35,8 @@ function renderInlineMarkdown(text) {
     '<a href="$2" style="color:#357abd;text-decoration:underline;">$1</a>'
   );
   rendered = rendered.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  rendered = rendered.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  rendered = rendered.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  rendered = rendered.replace(/\*\*([^*]+)\*\*/g, `<strong${strongStyle}>$1</strong>`);
+  rendered = rendered.replace(/__([^_]+)__/g, `<strong${strongStyle}>$1</strong>`);
   rendered = rendered.replace(/(^|[^*])\*([^*\n]+)\*(?=[^*]|$)/g, '$1<em>$2</em>');
   rendered = rendered.replace(/(^|[^_])_([^_\n]+)_(?=[^_]|$)/g, '$1<em>$2</em>');
 
@@ -45,18 +48,49 @@ function paragraphNode(content, extraStyle = '') {
   return `<p style="${style}">${content}</p>`;
 }
 
-function flushParagraph(paragraphLines, blocks) {
+function getInsightTitleType(text) {
+  const normalized = String(text || '')
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/\*\*/g, '')
+    .replace(/__/g, '')
+    .trim();
+
+  if (normalized === '小凡看见') return 'xiaofan';
+  if (INSIGHT_SHARE_TITLE_PATTERN.test(normalized)) return 'share';
+  return '';
+}
+
+function insightTitleNode(type, title) {
+  if (type === 'share') {
+    return [
+      '<p style="margin:0 0 28px;padding-left:12px;border-left:4px solid #4a90e2;line-height:1.35;font-size:22px;font-weight:900;color:#1f2937;">',
+      renderInlineMarkdown(title),
+      '</p>'
+    ].join('');
+  }
+
+  return [
+    '<div style="height:1px;background:#e8edf3;margin:34px 0 22px;"></div>',
+    '<p style="margin:0 0 24px;padding-left:12px;border-left:4px solid #4a90e2;line-height:1.35;font-size:22px;font-weight:900;color:#2f7ed8;">',
+    renderInlineMarkdown(title),
+    '</p>'
+  ].join('');
+}
+
+function flushParagraph(paragraphLines, blocks, options = {}) {
   if (!paragraphLines.length) return;
-  const joined = paragraphLines.map(renderInlineMarkdown).join('<br/>');
+  const joined = paragraphLines
+    .map(line => renderInlineMarkdown(line, options.inlineOptions))
+    .join('<br/>');
   blocks.push(paragraphNode(joined));
   paragraphLines.length = 0;
 }
 
-function flushList(listType, listItems, blocks) {
+function flushList(listType, listItems, blocks, options = {}) {
   if (!listType || !listItems.length) return;
 
   const items = listItems
-    .map(item => `<li style="margin:0 0 10px;">${renderInlineMarkdown(item)}</li>`)
+    .map(item => `<li style="margin:0 0 10px;">${renderInlineMarkdown(item, options.inlineOptions)}</li>`)
     .join('');
   blocks.push(
     `<${listType} style="margin:0 0 16px 1.4em;padding:0;line-height:1.8;">${items}</${listType}>`
@@ -65,7 +99,7 @@ function flushList(listType, listItems, blocks) {
   listItems.length = 0;
 }
 
-function markdownToRichText(markdown) {
+function markdownToRichText(markdown, options = {}) {
   const lines = String(markdown || '')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
@@ -74,42 +108,67 @@ function markdownToRichText(markdown) {
   const paragraphLines = [];
   const listItems = [];
   let listType = null;
+  let insightSection = '';
+
+  const getInlineOptions = () => {
+    if (options.insightMode && insightSection === 'xiaofan') {
+      return {
+        strongStyle: 'color:#168c91;font-weight:800;'
+      };
+    }
+    return undefined;
+  };
 
   for (const line of lines) {
     const trimmed = line.trim();
 
     if (!trimmed) {
-      flushParagraph(paragraphLines, blocks);
-      flushList(listType, listItems, blocks);
+      flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
       listType = null;
       continue;
     }
 
+    if (options.insightMode) {
+      const titleType = getInsightTitleType(trimmed);
+      if (titleType) {
+        flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
+        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+        listType = null;
+        insightSection = titleType;
+        blocks.push(insightTitleNode(titleType, trimmed.replace(/^#{1,6}\s+/, '')));
+        continue;
+      }
+    }
+
     const headingMatch = trimmed.match(/^#{1,6}\s+(.+)$/);
     if (headingMatch) {
-      flushParagraph(paragraphLines, blocks);
-      flushList(listType, listItems, blocks);
+      flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
       listType = null;
-      blocks.push(paragraphNode(`<strong>${renderInlineMarkdown(headingMatch[1])}</strong>`));
+      blocks.push(paragraphNode(`<strong>${renderInlineMarkdown(headingMatch[1], getInlineOptions())}</strong>`));
       continue;
     }
 
     const quoteMatch = trimmed.match(/^>\s+(.+)$/);
     if (quoteMatch) {
-      flushParagraph(paragraphLines, blocks);
-      flushList(listType, listItems, blocks);
+      flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
       listType = null;
       blocks.push(
-        paragraphNode(renderInlineMarkdown(quoteMatch[1]), 'padding-left:12px;border-left:3px solid #d6e4ff;color:#5b6b8c;')
+        paragraphNode(
+          renderInlineMarkdown(quoteMatch[1], getInlineOptions()),
+          'padding-left:12px;border-left:3px solid #d6e4ff;color:#5b6b8c;'
+        )
       );
       continue;
     }
 
     const unorderedMatch = trimmed.match(/^[-*+]\s+(.+)$/);
     if (unorderedMatch) {
-      flushParagraph(paragraphLines, blocks);
+      flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
       if (listType && listType !== 'ul') {
-        flushList(listType, listItems, blocks);
+        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
         listType = null;
       }
       listType = 'ul';
@@ -119,9 +178,9 @@ function markdownToRichText(markdown) {
 
     const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
     if (orderedMatch) {
-      flushParagraph(paragraphLines, blocks);
+      flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
       if (listType && listType !== 'ol') {
-        flushList(listType, listItems, blocks);
+        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
         listType = null;
       }
       listType = 'ol';
@@ -130,15 +189,15 @@ function markdownToRichText(markdown) {
     }
 
     if (listType) {
-      flushList(listType, listItems, blocks);
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
       listType = null;
     }
 
     paragraphLines.push(trimmed);
   }
 
-  flushParagraph(paragraphLines, blocks);
-  flushList(listType, listItems, blocks);
+  flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
+  flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
 
   return blocks.join('');
 }
@@ -189,8 +248,23 @@ function renderRichTextContent(content) {
   return markdownToRichText(content);
 }
 
+function renderInsightRichTextContent(content) {
+  if (!content) return '';
+
+  if (isLikelyHtml(content)) {
+    const plain = richContentToPlainText(content);
+    if (getInsightTitleType(plain) || /小凡看见/.test(plain)) {
+      return markdownToRichText(plain, { insightMode: true });
+    }
+    return sanitizeHtml(content);
+  }
+
+  return markdownToRichText(content, { insightMode: true });
+}
+
 module.exports = {
   isLikelyHtml,
   renderRichTextContent,
+  renderInsightRichTextContent,
   richContentToPlainText
 };

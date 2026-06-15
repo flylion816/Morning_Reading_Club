@@ -1,7 +1,7 @@
 const insightService = require('../../services/insight.service');
 const danmakuService = require('../../services/danmaku.service');
 const env = require('../../config/env');
-const { renderRichTextContent } = require('../../utils/markdown');
+const { renderInsightRichTextContent } = require('../../utils/markdown');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
@@ -262,7 +262,7 @@ Page({
 
       // 兼容 HTML 和 Markdown 内容。
       if (insight && insight.content) {
-        insight.content = renderRichTextContent(insight.content);
+        insight.content = renderInsightRichTextContent(insight.content);
         const kw = this.data.searchKeyword;
         if (kw) {
           insight.content = this._highlightKeyword(insight.content, kw);
@@ -1084,7 +1084,7 @@ Page({
   },
 
   onDanmakuInput(e) {
-    const value = truncateDanmakuContent(e.detail.value || '');
+    const value = truncateDanmakuContent(normalizeDanmakuContent(e.detail.value || ''));
     this.setData({
       danmakuInput: value,
       danmakuInputLength: countDanmakuChars(value)
@@ -1098,11 +1098,12 @@ Page({
   async sendDanmaku() {
     if (!requireLogin('登录后才能发弹幕')) return;
     const { danmakuInput, danmakuColor, insightId } = this.data;
-    if (!danmakuInput || !danmakuInput.trim()) return;
+    const content = normalizeDanmakuContent(danmakuInput || '').trim();
+    if (!content) return;
 
     try {
       const result = await danmakuService.postDanmaku(insightId, {
-        content: danmakuInput.trim(),
+        content,
         type: 'comment',
         scrollPercent: this._currentScrollPercent,
         color: danmakuColor

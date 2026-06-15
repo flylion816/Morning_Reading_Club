@@ -1,5 +1,6 @@
 const {
   renderRichTextContent,
+  renderInsightRichTextContent,
   richContentToPlainText,
   isLikelyHtml
 } = require('../../utils/markdown');
@@ -45,5 +46,28 @@ describe('markdown utils', () => {
   test('should detect html-like strings', () => {
     expect(isLikelyHtml('<p>hello</p>')).toBe(true);
     expect(isLikelyHtml('**hello**')).toBe(false);
+  });
+
+  test('should render insight sections with visual hierarchy', () => {
+    const content = [
+      '### 筷筷在凡人晨读中的分享',
+      '',
+      '这是一段原文分享。',
+      '',
+      '## 小凡看见',
+      '',
+      '我看到了你的**真实与勇敢**。'
+    ].join('\n');
+
+    const rendered = renderInsightRichTextContent(content);
+
+    expect(rendered).toContain('font-size:22px');
+    expect(rendered).toContain('border-left:4px solid #4a90e2');
+    expect(rendered).toContain('筷筷在凡人晨读中的分享');
+    expect(rendered).toContain('background:#e8edf3');
+    expect(rendered).toContain('margin:34px 0 22px');
+    expect(rendered).toContain('font-size:22px');
+    expect(rendered).toContain('color:#2f7ed8');
+    expect(rendered).toContain('<strong style="color:#168c91;font-weight:800;">真实与勇敢</strong>');
   });
 });

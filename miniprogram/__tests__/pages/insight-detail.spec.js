@@ -1,6 +1,12 @@
 jest.mock('../../services/insight.service', () => ({}));
+jest.mock('../../services/danmaku.service', () => ({
+  postDanmaku: jest.fn()
+}));
 jest.mock('../../services/activity.service', () => ({
   track: jest.fn(() => Promise.resolve())
+}));
+jest.mock('../../utils/require-login', () => ({
+  requireLogin: jest.fn(() => true)
 }));
 jest.mock('../../config/env', () => ({
   currentEnv: 'test'
@@ -9,6 +15,7 @@ jest.mock('../../config/env', () => ({
 describe('insight-detail poster rendering', () => {
   let pageConfig;
   let pageInstance;
+  let danmakuService;
 
   beforeEach(() => {
     jest.resetModules();
@@ -25,6 +32,14 @@ describe('insight-detail poster rendering', () => {
         }
       }
     }));
+
+    danmakuService = require('../../services/danmaku.service');
+    danmakuService.postDanmaku.mockReset();
+    danmakuService.postDanmaku.mockResolvedValue({
+      _id: 'danmaku_1',
+      content: '笑死🤦',
+      type: 'comment'
+    });
 
     require('../../pages/insight-detail/insight-detail');
     pageInstance = {
@@ -188,5 +203,22 @@ describe('insight-detail poster rendering', () => {
       title: '当前微信版本不支持txt转发',
       icon: 'none'
     });
+  });
+
+  test('should normalize WeChat emoji tokens before sending danmaku', async () => {
+    pageInstance.setData({
+      insightId: 'insight_1',
+      danmakuColor: '#4a90e2'
+    });
+
+    pageInstance.onDanmakuInput.call(pageInstance, {
+      detail: { value: '笑死[捂脸]' }
+    });
+    await pageInstance.sendDanmaku.call(pageInstance);
+
+    expect(danmakuService.postDanmaku).toHaveBeenCalledWith('insight_1', expect.objectContaining({
+      content: '笑死🤦'
+    }));
+    expect(pageInstance.data.danmakuInput).toBe('');
   });
 });

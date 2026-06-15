@@ -10,6 +10,7 @@ const { getPeriodAccess, extractId } = require('../../utils/period-access');
 const { renderRichTextContent } = require('../../utils/markdown');
 const envConfig = require('../../config/env');
 const { requireLogin } = require('../../utils/require-login');
+const { normalizeDanmakuContent } = require('../../utils/danmaku');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -819,7 +820,7 @@ Page({
       userInfo._id || userInfo.id || checkin.userId || userName
     );
     const id = this.normalizeId(checkin._id || checkin.id);
-    const content = checkin.note || checkin.content || '';
+    const content = normalizeDanmakuContent(checkin.note || checkin.content || '');
     const kw = this.data.searchKeyword;
     const contentHtml = kw
       ? this._highlightKeyword(
@@ -2556,7 +2557,7 @@ Page({
                     reply.userId?.nickname ||
                     '匿名用户'
                 ),
-                content: reply.content || '',
+                content: normalizeDanmakuContent(reply.content || ''),
                 createTime: reply.createdAt
                   ? this.formatTime(reply.createdAt)
                   : '刚刚',
@@ -2594,7 +2595,7 @@ Page({
                 comment.userId?.nickname ||
                 '匿名用户'
             ),
-            content: comment.content || '',
+            content: normalizeDanmakuContent(comment.content || ''),
             createTime: comment.createdAt
               ? this.formatTime(comment.createdAt)
               : '刚刚',
@@ -2854,7 +2855,8 @@ Page({
       editable: true,
       placeholderText: '请输入回复内容...',
       success: async (res) => {
-        if (res.confirm && res.content && res.content.trim()) {
+        const replyContent = normalizeDanmakuContent(res.content || '').trim();
+        if (res.confirm && replyContent) {
           try {
             // 直接创建评论（关联到打卡记录）
             const app = getApp();
@@ -2864,7 +2866,7 @@ Page({
 
             const replyData = await commentService.createComment({
               checkinId: id,
-              content: res.content.trim()
+              content: replyContent
             });
             activityService.track('comment_create', {
               targetType: 'checkin',
@@ -2891,7 +2893,7 @@ Page({
                   currentUser?.nickname ||
                   '我'
               ),
-              content: res.content.trim(),
+              content: replyContent,
               createTime: '刚刚',
               likeCount: 0,
               isLiked: false
@@ -3088,7 +3090,8 @@ Page({
       editable: true,
       placeholderText: '请输入回复内容...',
       success: async (res) => {
-        if (res.confirm && res.content && res.content.trim()) {
+        const replyContent = normalizeDanmakuContent(res.content || '').trim();
+        if (res.confirm && replyContent) {
           try {
             const app = getApp();
             const currentUser = app.globalData.userInfo;
@@ -3097,7 +3100,7 @@ Page({
               '📝 提交回复: commentId=' +
                 commentId +
                 ', content=' +
-                res.content.trim().substring(0, 20)
+                replyContent.substring(0, 20)
             );
 
             // 调用API保存回复到这条评论
@@ -3105,7 +3108,7 @@ Page({
             const updatedComment = await commentService.replyComment(
               commentId,
               {
-                content: res.content.trim(),
+                content: replyContent,
                 replyToUserId: replyId // 标记回复的是哪个用户
               }
             );
@@ -3168,7 +3171,7 @@ Page({
                               reply.userId?.nickname ||
                               '匿名用户'
                           ),
-                          content: reply.content || '',
+                          content: normalizeDanmakuContent(reply.content || ''),
                           createTime: reply.createdAt
                             ? this.formatTime(reply.createdAt)
                             : '刚刚',
