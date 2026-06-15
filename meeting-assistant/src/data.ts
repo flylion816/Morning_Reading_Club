@@ -1,6 +1,7 @@
 import type { ObserverSession, Story, Theme } from './types';
+import { resilienceTreeCourses } from './courseContent';
 
-export const themes: Theme[] = [
+const sevenHabitSeeds: Theme[] = [
   {
     id: 'proactive',
     name: '积极主动',
@@ -51,6 +52,14 @@ export const themes: Theme[] = [
     commonMistakes: ['把更新讲成自律打卡', '忽视休息和修复', '只补技能不照顾生命状态'],
   },
 ];
+
+export const themes: Theme[] = resilienceTreeCourses.map((course, index) => {
+  const seed = sevenHabitSeeds[index % sevenHabitSeeds.length];
+  return {
+    ...seed,
+    ...course,
+  };
+});
 
 export const defaultStories: Story[] = [
   {
@@ -113,11 +122,11 @@ export const defaultStories: Story[] = [
 
 const now = () => new Date().toISOString();
 
-export function createDefaultSession(): ObserverSession {
+export function createDefaultSession(themeId = 'day-01'): ObserverSession {
   return {
     id: crypto.randomUUID(),
-    title: '下一期晨读营观察',
-    themeId: 'proactive',
+    title: '韧性之树晨读营·观察者视角',
+    themeId,
     observerStance: '经历过破产、债务、银行起诉和重新站起来；回应要真诚、克制、口语化，不说教，不压过对方的经验。',
     stories: defaultStories,
     speakers: ['发言人 A', '发言人 B', '发言人 C', '发言人 D'].map((name) => ({
@@ -126,6 +135,8 @@ export function createDefaultSession(): ObserverSession {
       status: 'empty',
       snippets: [],
     })),
+    summaryOutputCount: 0,
+    finalSpeechDraft: '',
     updatedAt: now(),
   };
 }

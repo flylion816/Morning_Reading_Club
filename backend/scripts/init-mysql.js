@@ -155,6 +155,7 @@ const TABLE_DEFINITIONS = {
       meeting_join_url VARCHAR(1000) DEFAULT NULL COMMENT '腾讯会议邀请链接',
       invite_title VARCHAR(255) DEFAULT NULL COMMENT '邀约标题',
       visibility_type ENUM('all', 'specific') DEFAULT 'all' COMMENT '可见范围类型',
+      visible_user_ids JSON DEFAULT NULL COMMENT '可见用户ID列表',
       created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
       updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
       raw_json LONGTEXT COMMENT 'MongoDB 原始文档 JSON',

@@ -6,10 +6,29 @@ export type AIProvider = 'openai_responses' | 'xiaomi_mimo' | 'openai_compatible
 
 export type GeneratedBy = AIProvider | 'openai' | 'local';
 
+export type KnowledgeType = 'core_experience' | 'morning_speech' | 'response_style' | 'quote';
+
+export type SummaryTemplateType = 'resonance' | 'structure' | 'hybrid';
+
+export type SummaryTemplateMode = 'auto' | SummaryTemplateType;
+
+export type SummaryVersion = {
+  id: string;
+  label: string;
+  source: 'generated' | 'refined';
+  templateMode: SummaryTemplateType;
+  summary: WholeSessionSummary;
+  requirement?: string;
+  createdAt: string;
+  collapsed?: boolean;
+};
+
 export type Theme = {
   id: string;
   name: string;
   core: string;
+  day?: number;
+  content?: string;
   observationQuestions: string[];
   commonMistakes: string[];
 };
@@ -23,6 +42,24 @@ export type Story = {
   avoidDetails: string[];
 };
 
+export type KnowledgeEntry = {
+  id: string;
+  title: string;
+  type: KnowledgeType;
+  tags: string[];
+  sourceTitle?: string;
+  sourceDate?: string;
+  relatedCourses?: string[];
+  applicableScenes: string;
+  summary: string;
+  originalExcerpt: string;
+  reusableLines: string[];
+  speakingBoundary: string;
+  avoidDetails: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ContentSnippet = {
   id: string;
   sourceType: SourceType;
@@ -34,6 +71,7 @@ export type ContentSnippet = {
 };
 
 export type SpeakerInsight = {
+  suggestedSpeakerName?: string;
   strongestPoint: string;
   underlyingPattern: string;
   themeConnection: string;
@@ -41,7 +79,6 @@ export type SpeakerInsight = {
   seenNeed: string;
   suggestedObserverStory: string;
   storyUseBoundary: string;
-  twentySecondResponse: string;
   oneMinuteResponse: string;
   deepResponse: string;
   powerfulQuestion: string;
@@ -60,15 +97,33 @@ export type SpeakerCard = {
 };
 
 export type WholeSessionSummary = {
+  templateDecision?: {
+    template: SummaryTemplateType;
+    templateName: string;
+    reason: string;
+    sceneSignals: string[];
+  };
+  courseTheme: string;
   commonTheme: string;
   speakerLessons: Array<{
     speakerName: string;
     lesson: string;
     themeConnection: string;
   }>;
-  unifiedResponseAngle: string;
-  finalSummary: string;
+  keyResponse: string;
+  structuredSections?: Array<{
+    key: string;
+    title: string;
+    body: string;
+  }>;
+  sharingSections?: Array<{
+    title: string;
+    body: string;
+  }>;
+  unifiedResponseAngle?: string;
+  finalSummary?: string;
   goldenSentences: string[];
+  oneSentenceSummaries?: string[];
   closingSentence: string;
   missingSpeakers: string[];
   generatedBy?: GeneratedBy;
@@ -82,6 +137,13 @@ export type ObserverSession = {
   speakers: SpeakerCard[];
   stories: Story[];
   summary?: WholeSessionSummary;
+  summaryVersions?: SummaryVersion[];
+  summaryOutputCount?: number;
+  summaryKnowledgeIds?: string[];
+  refinedSummary?: WholeSessionSummary;
+  refinedSummaryRequirement?: string;
+  excludedSummaryKnowledgeIds?: string[];
+  finalSpeechDraft?: string;
   updatedAt: string;
 };
 
@@ -100,7 +162,9 @@ export type ObserverAPI = {
   loadSettings: () => Promise<AppSettings>;
   saveSettings: (settings: { provider: AIProvider; apiKey: string; baseUrl: string; model: string }) => Promise<AppSettings>;
   ocrImage: (imageDataUrl: string, fileName?: string) => Promise<{ text: string }>;
+  extractDocumentText: (payload: { fileName: string; dataUrl: string }) => Promise<{ text: string }>;
   analyzeSpeaker: (payload: unknown) => Promise<SpeakerInsight>;
   summarizeSession: (payload: unknown) => Promise<WholeSessionSummary>;
+  extractKnowledge: (payload: unknown) => Promise<{ entries: KnowledgeEntry[] }>;
   onGlobalPaste: (callback: () => void) => () => void;
 };

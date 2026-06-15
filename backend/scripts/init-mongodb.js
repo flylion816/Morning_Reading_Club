@@ -285,29 +285,32 @@ async function initMongoDB() {
     });
     console.log(`✅ 创建 ${users.length} 个用户\n`);
 
-    // 创建期次（秩序之锚 — 从线上导出的真实数据）
+    // 创建期次（韧性之树 — 从线上导出的真实数据）
     console.log('📚 创建期次...');
     const mockPeriods = [
       {
-        name: '秩序之锚',
+        name: '韧性之树',
         subtitle: '七个习惯晨读营',
-        title: '秩序之锚 - 七个习惯晨读营',
+        title: '韧性之树 - 七个习惯晨读营',
         description: '温柔地安顿自己，慈悲地建立秩序，清明地看见选择，宁静地看见本质',
-        icon: '♾️',
-        coverColor: '#f4f017',
+        icon: '🦾',
+        coverColor: '#17f4cf',
         coverEmoji: '📖',
-        startDate: new Date('2026-05-08T16:00:00.000Z'),
-        endDate: new Date('2026-05-30T16:00:00.000Z'),
+        startDate: new Date('2026-06-12T16:00:00.000Z'),
+        endDate: new Date('2026-07-04T16:00:00.000Z'),
         totalDays: 23,
         price: 1,
         originalPrice: 199,
         maxEnrollment: 100,
         currentEnrollment: 0,
         enrollmentCount: 0,
-        status: 'ongoing',
+        status: 'not_started',
         isPublished: true,
+        enrollmentOpen: true,
+        coverImage: '',
+        inviteTitle: '',
         sortOrder: 1,
-        meetingId: '616324935',
+        meetingId: null,
         meetingJoinUrl: null
       }
     ];
@@ -315,7 +318,7 @@ async function initMongoDB() {
     const periods = await Period.insertMany(mockPeriods);
     console.log(`✅ 创建 ${periods.length} 个期次\n`);
 
-    // 从 day{N}-content.json 加载真实课程内容（秩序之锚 Day 0-22）
+    // 从 day{N}-content.json 加载真实课程内容（韧性之树 Day 0-22）
     const period1 = periods[0];
     console.log(`📖 为期次 "${period1.name}" 导入 23 天课程内容...\n`);
 
@@ -459,7 +462,7 @@ async function initMongoDB() {
     console.log('🎉 MongoDB 初始化完成！\n');
     console.log('📊 数据统计：');
     console.log(`   - 用户: ${users.length}`);
-    console.log(`   - 期次: ${periods.length} (秩序之锚)`);
+    console.log(`   - 期次: ${periods.length} (韧性之树)`);
     console.log(`   - 课程: ${sections.length}`);
     console.log(`   - 报名: 1`);
     console.log(`   - 打卡: ${checkins.length}`);

@@ -53,6 +53,11 @@ const browserAPI: ObserverAPI = {
       method: 'POST',
       body: JSON.stringify({ imageDataUrl, fileName }),
     }),
+  extractDocumentText: (payload) =>
+    requestJson('/api/extractDocumentText', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   analyzeSpeaker: (payload) =>
     requestJson('/api/analyzeSpeaker', {
       method: 'POST',
@@ -60,6 +65,11 @@ const browserAPI: ObserverAPI = {
     }),
   summarizeSession: (payload) =>
     requestJson('/api/summarizeSession', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  extractKnowledge: (payload) =>
+    requestJson('/api/extractKnowledge', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),

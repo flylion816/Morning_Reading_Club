@@ -1,5 +1,4 @@
 {
-  "day": 22,
   "title": "结营词",
   "subtitle": "",
   "icon": "🌱",
@@ -13,6 +12,10 @@
   "extract": "",
   "say": "",
   "audioUrl": null,
+  "lookImage": null,
+  "podcastUrl": null,
+  "podcastDescription": null,
+  "podcastDuration": null,
   "videoCover": null,
   "duration": 23,
   "sortOrder": 0,

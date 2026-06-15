@@ -8,6 +8,7 @@ const { promisify } = require('node:util');
 const isDev = !app.isPackaged;
 let mainWindow = null;
 const execFileAsync = promisify(execFile);
+const AI_REQUEST_TIMEOUT_MS = 90000;
 
 function settingsPath() {
   return path.join(app.getPath('userData'), 'settings.json');
@@ -176,6 +177,40 @@ function decodeDataUrl(dataUrl) {
   };
 }
 
+async function extractDocumentText(fileName, dataUrl) {
+  const { buffer } = decodeDataUrl(dataUrl);
+  const extension = path.extname(fileName || '').toLowerCase();
+  if (extension !== '.docx') {
+    return buffer.toString('utf8');
+  }
+
+  const tempPath = path.join(os.tmpdir(), `meeting-assistant-doc-${Date.now()}-${Math.random().toString(16).slice(2)}.docx`);
+  fs.writeFileSync(tempPath, buffer);
+  try {
+    const script = [
+      'import sys, zipfile, xml.etree.ElementTree as ET',
+      'path=sys.argv[1]',
+      'with zipfile.ZipFile(path) as z:',
+      '    xml=z.read("word/document.xml")',
+      'root=ET.fromstring(xml)',
+      'ns={"w":"http://schemas.openxmlformats.org/wordprocessingml/2006/main"}',
+      'paras=[]',
+      'for p in root.findall(".//w:p", ns):',
+      '    texts=[t.text or "" for t in p.findall(".//w:t", ns)]',
+      '    line="".join(texts).strip()',
+      '    if line: paras.append(line)',
+      'print("\\n".join(paras))',
+    ].join('\n');
+    const { stdout } = await execFileAsync('/usr/bin/python3', ['-c', script, tempPath], {
+      timeout: 20000,
+      maxBuffer: 3 * 1024 * 1024,
+    });
+    return stdout.trim();
+  } finally {
+    fs.rmSync(tempPath, { force: true });
+  }
+}
+
 async function recognizeImageText(imageDataUrl) {
   const { buffer, extension } = decodeDataUrl(imageDataUrl);
   const tempPath = path.join(os.tmpdir(), `meeting-assistant-ocr-${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`);
@@ -225,21 +260,29 @@ async function createOpenAIResponsesResult({ instructions, input, schema, images
         strict: true,
       },
     },
-    max_output_tokens: 2200,
+    max_output_tokens: 6000,
   };
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+  let payload;
+  try {
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(getPayloadError(payload, 'OpenAI 请求失败。'));
+    payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(getPayloadError(payload, 'OpenAI 请求失败。'));
+    }
+  } finally {
+    clearTimeout(timer);
   }
 
   const text = extractOutputText(payload);
@@ -284,20 +327,27 @@ function normalizeMessageContent(content) {
 }
 
 async function postChatCompletions(settings, body) {
-  const response = await fetch(chatCompletionsUrl(settings.baseUrl), {
-    method: 'POST',
-    headers: {
-      ...chatAuthHeaders(settings),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(chatCompletionsUrl(settings.baseUrl), {
+      method: 'POST',
+      headers: {
+        ...chatAuthHeaders(settings),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(getPayloadError(payload, `${PROVIDER_DEFAULTS[settings.provider].label} 请求失败。`));
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(getPayloadError(payload, `${PROVIDER_DEFAULTS[settings.provider].label} 请求失败。`));
+    }
+    return payload;
+  } finally {
+    clearTimeout(timer);
   }
-  return payload;
 }
 
 async function createChatCompletionsResult({ instructions, input, schema, images = [] }, settings) {
@@ -338,9 +388,9 @@ async function createChatCompletionsResult({ instructions, input, schema, images
   };
 
   if (settings.provider === 'xiaomi_mimo') {
-    body.max_completion_tokens = 2200;
+    body.max_completion_tokens = 6000;
   } else {
-    body.max_tokens = 2200;
+    body.max_tokens = 6000;
   }
 
   let payload;
@@ -376,7 +426,7 @@ function createWindow() {
     height: 860,
     minWidth: 1120,
     minHeight: 720,
-    title: '晨读观察台',
+    title: '韧性之树晨读营·观察者视角',
     backgroundColor: '#f7f5f0',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -420,8 +470,12 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('settings:save', (_, settings) => writeSettings(settings));
   ipcMain.handle('ocr:image', async (_, payload) => ({ text: await recognizeImageText(payload?.imageDataUrl || '') }));
+  ipcMain.handle('document:extractText', async (_, payload) => ({
+    text: await extractDocumentText(payload?.fileName || '', payload?.dataUrl || ''),
+  }));
   ipcMain.handle('openai:analyzeSpeaker', (_, payload) => createAIResponse(payload));
   ipcMain.handle('openai:summarizeSession', (_, payload) => createAIResponse(payload));
+  ipcMain.handle('openai:extractKnowledge', (_, payload) => createAIResponse(payload));
 
   createWindow();
   globalShortcut.register('CommandOrControl+Shift+V', () => {

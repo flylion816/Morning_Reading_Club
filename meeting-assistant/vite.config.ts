@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { defineConfig } from 'vite';
 
 const execFileAsync = promisify(execFile);
+const AI_REQUEST_TIMEOUT_MS = 90000;
 
 const providerDefaults = {
   openai_responses: {
@@ -156,6 +157,40 @@ function decodeDataUrl(dataUrl: string) {
   };
 }
 
+async function extractDocumentText(fileName: string, dataUrl: string) {
+  const { buffer } = decodeDataUrl(dataUrl);
+  const extension = path.extname(fileName || '').toLowerCase();
+  if (extension !== '.docx') {
+    return buffer.toString('utf8');
+  }
+
+  const tempPath = path.join(os.tmpdir(), `meeting-assistant-doc-${Date.now()}-${Math.random().toString(16).slice(2)}.docx`);
+  fs.writeFileSync(tempPath, buffer);
+  try {
+    const script = [
+      'import sys, zipfile, re, xml.etree.ElementTree as ET',
+      'path=sys.argv[1]',
+      'with zipfile.ZipFile(path) as z:',
+      '    xml=z.read("word/document.xml")',
+      'root=ET.fromstring(xml)',
+      'ns={"w":"http://schemas.openxmlformats.org/wordprocessingml/2006/main"}',
+      'paras=[]',
+      'for p in root.findall(".//w:p", ns):',
+      '    texts=[t.text or "" for t in p.findall(".//w:t", ns)]',
+      '    line="".join(texts).strip()',
+      '    if line: paras.append(line)',
+      'print("\\n".join(paras))',
+    ].join('\n');
+    const { stdout } = await execFileAsync('/usr/bin/python3', ['-c', script, tempPath], {
+      timeout: 20000,
+      maxBuffer: 3 * 1024 * 1024,
+    });
+    return stdout.trim();
+  } finally {
+    fs.rmSync(tempPath, { force: true });
+  }
+}
+
 async function recognizeImageText(imageDataUrl: string) {
   const { buffer, extension } = decodeDataUrl(imageDataUrl);
   const tempPath = path.join(os.tmpdir(), `meeting-assistant-ocr-${Date.now()}-${Math.random().toString(16).slice(2)}.${extension}`);
@@ -263,9 +298,9 @@ async function createChatCompletion(promptPayload: PromptPayload) {
   };
 
   if (settings.provider === 'xiaomi_mimo') {
-    body.max_completion_tokens = 2200;
+    body.max_completion_tokens = 6000;
   } else {
-    body.max_tokens = 2200;
+    body.max_tokens = 6000;
   }
 
   const headers =
@@ -274,20 +309,27 @@ async function createChatCompletion(promptPayload: PromptPayload) {
       : { Authorization: `Bearer ${settings.apiKey}`, 'Content-Type': 'application/json' };
 
   async function post(payload: Record<string, unknown>) {
-    const response = await fetch(chatCompletionsUrl(settings.baseUrl), {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-    const responsePayload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message =
-        responsePayload && typeof responsePayload === 'object' && 'error' in responsePayload
-          ? (responsePayload.error as { message?: string })?.message
-          : undefined;
-      throw new Error(message || `${providerDefaults[settings.provider].label} 请求失败。`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(chatCompletionsUrl(settings.baseUrl), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      const responsePayload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message =
+          responsePayload && typeof responsePayload === 'object' && 'error' in responsePayload
+            ? (responsePayload.error as { message?: string })?.message
+            : undefined;
+        throw new Error(message || `${providerDefaults[settings.provider].label} 请求失败。`);
+      }
+      return responsePayload as { choices?: Array<{ message?: { content?: unknown } }> };
+    } finally {
+      clearTimeout(timer);
     }
-    return responsePayload as { choices?: Array<{ message?: { content?: unknown } }> };
   }
 
   let payload;
@@ -340,6 +382,15 @@ export default defineConfig({
           }
         });
 
+        server.middlewares.use('/api/extractDocumentText', async (req, res) => {
+          try {
+            const body = (await readBody(req)) as { fileName?: string; dataUrl?: string };
+            sendJson(res, 200, { text: await extractDocumentText(body.fileName || '', body.dataUrl || '') });
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : '文档提取失败。' });
+          }
+        });
+
         server.middlewares.use('/api/analyzeSpeaker', async (req, res) => {
           try {
             sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
@@ -353,6 +404,14 @@ export default defineConfig({
             sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
           } catch (error) {
             sendJson(res, 500, { error: error instanceof Error ? error.message : 'AI 请求失败。' });
+          }
+        });
+
+        server.middlewares.use('/api/extractKnowledge', async (req, res) => {
+          try {
+            sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : '知识提炼失败。' });
           }
         });
       },

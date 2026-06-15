@@ -18,6 +18,7 @@ require('dotenv').config({ path: envFile });
 const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/morning_reading_db';
 const Section = require('../src/models/Section');
 const Period = require('../src/models/Period');
+const { withSystemContext } = require('../src/utils/tenantContext');
 
 const SCRIPTS_DIR = __dirname;
 
@@ -37,8 +38,8 @@ async function importAllDays() {
     console.log('✅ 数据库连接成功\n');
 
     // 查找期次
-    console.log('🔍 查找期次: "秩序之锚"');
-    const period = await Period.findOne({ name: '秩序之锚' });
+    console.log('🔍 查找期次: "韧性之树"');
+    const period = await withSystemContext(null, () => Period.findOne({ name: '韧性之树' }).exec());
     if (!period) {
       console.error('❌ 找不到期次');
       process.exit(1);
@@ -70,21 +71,23 @@ async function importAllDays() {
 
         // 使用 upsert 确保不重复
         // 按 periodId + day 作为 upsert 条件
-        const updated = await Section.findOneAndUpdate(
-          {
-            periodId: period._id,
-            day: day
-          },
-          {
-            periodId: period._id,
-            day: day,
-            ...courseData
-          },
-          {
-            upsert: true,
-            new: true,
-            runValidators: false
-          }
+        const updated = await withSystemContext(period.tenantId, () =>
+          Section.findOneAndUpdate(
+            {
+              periodId: period._id,
+              day: day
+            },
+            {
+              periodId: period._id,
+              day: day,
+              ...courseData
+            },
+            {
+              upsert: true,
+              new: true,
+              runValidators: false
+            }
+          ).exec()
         );
 
         // 统计内容长度
@@ -105,8 +108,8 @@ async function importAllDays() {
     }
 
     console.log('\n========================================');
-    console.log(`✅ 成功: ${successCount}/21`);
-    console.log(`❌ 失败: ${failCount}/21`);
+    console.log(`✅ 成功: ${successCount}/23`);
+    console.log(`❌ 失败: ${failCount}/23`);
     console.log('========================================\n');
 
     if (successCount === 23) {
