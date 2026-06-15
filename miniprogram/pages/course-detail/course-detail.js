@@ -11,6 +11,11 @@ const { renderRichTextContent } = require('../../utils/markdown');
 const envConfig = require('../../config/env');
 const { requireLogin } = require('../../utils/require-login');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
+const {
+  createPodcastAudioContext,
+  setPodcastAudioSource,
+  stopPodcastAudio
+} = require('../../utils/podcast-audio');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -3582,25 +3587,28 @@ Page({
 
     // 新建播放
     if (app.globalData.audioContext) {
-      app.globalData.audioContext.stop();
-      app.globalData.audioContext.destroy();
+      stopPodcastAudio(app.globalData.audioContext);
     }
 
-    const ctx = wx.createInnerAudioContext();
     const podcastSrc = course.podcastUrl.startsWith('http')
       ? course.podcastUrl
       : 'https://wx.shubai01.com' + course.podcastUrl;
-    ctx.src = podcastSrc;
+    const podcastDescription = (course.podcastDescription || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    const ctx = createPodcastAudioContext({
+      title: course.title || '凡人播客',
+      description: podcastDescription,
+      coverUrl: course.coverImage || ''
+    });
 
     // 立即显示播客栏，不等 onPlay 回调，避免缓冲期间无反馈
     app.globalData.podcastActive = true;
     app.globalData.podcastLoading = true;
     app.globalData.podcastSectionId = courseId;
     app.globalData.podcastTitle = course.title || '';
-    app.globalData.podcastDescription = (course.podcastDescription || '')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<[^>]+>/g, '')
-      .trim();
+    app.globalData.podcastDescription = podcastDescription;
     app.globalData.podcastUrl = course.podcastUrl;
     app.globalData.podcastCoverUrl = course.coverImage || '/assets/images/fanren-boke.jpg';
     app.globalData.podcastDuration = course.podcastDuration || 0;
@@ -3651,7 +3659,7 @@ Page({
 
     app.globalData.audioContext = ctx;
     app.globalData.podcastSectionId = courseId;
-    ctx.play();
+    setPodcastAudioSource(ctx, podcastSrc);
   },
 
   togglePodcastDesc() {

@@ -47,6 +47,7 @@
     "backgroundTextStyle": "light",
     "enablePullDownRefresh": true
   },
+  "requiredBackgroundModes": ["audio"],
   "tabBar": {
     "color": "#999999",
     "selectedColor": "#4a90e2",

@@ -1,5 +1,6 @@
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
+const { stopPodcastAudio } = require('../../utils/podcast-audio');
 
 Component({
   properties: {
@@ -163,8 +164,7 @@ Component({
     handleClose() {
       const app = getApp();
       if (app.globalData.audioContext) {
-        app.globalData.audioContext.stop();
-        app.globalData.audioContext.destroy();
+        stopPodcastAudio(app.globalData.audioContext);
         app.globalData.audioContext = null;
       }
       app.globalData.podcastActive = false;

@@ -27,6 +27,11 @@ const {
   buildInsightRequestDisplay,
   extractInsightRequests
 } = require('../../utils/insight-request-display');
+const {
+  createPodcastAudioContext,
+  setPodcastAudioSource,
+  stopPodcastAudio
+} = require('../../utils/podcast-audio');
 
 const notificationService =
   notificationServiceModule.default || notificationServiceModule;
@@ -1601,13 +1606,13 @@ Page({
     }
 
     if (app.globalData.audioContext) {
-      app.globalData.audioContext.stop();
-      app.globalData.audioContext.destroy();
+      stopPodcastAudio(app.globalData.audioContext);
     }
 
-    const ctx = wx.createInnerAudioContext();
-    ctx.src = todaySection.podcastUrl;
-    ctx.autoplay = true;
+    const ctx = createPodcastAudioContext({
+      title: todaySection.title || '凡人播客',
+      coverUrl: todaySection.coverImage || ''
+    });
 
     ctx.onPlay(() => {
       app.globalData.podcastPlaying = true;
@@ -1649,6 +1654,7 @@ Page({
     });
 
     app.globalData.audioContext = ctx;
+    setPodcastAudioSource(ctx, todaySection.podcastUrl);
   },
 
   /**
