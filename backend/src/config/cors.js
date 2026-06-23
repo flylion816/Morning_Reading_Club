@@ -64,7 +64,7 @@ const getCorsOptions = () => {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        callback(null, false);
       }
     },
     credentials: true, // 允许发送凭证（Cookie, Authorization Headers）

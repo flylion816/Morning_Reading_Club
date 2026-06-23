@@ -490,6 +490,11 @@ async function copyPeriod(req, res, next) {
         delete sectionObj._id;
         delete sectionObj.createdAt;
         delete sectionObj.updatedAt;
+        // 播一播内容是每期现场生成的，不随期次复制
+        delete sectionObj.podcastUrl;
+        delete sectionObj.podcastDescription;
+        delete sectionObj.podcastDuration;
+        delete sectionObj.audioUrl;
         return {
           ...sectionObj,
           periodId: newPeriod._id,
