@@ -42,6 +42,10 @@ export type Story = {
   avoidDetails: string[];
 };
 
+export type DailyObservationMaterial = {
+  content: string;
+};
+
 export type KnowledgeEntry = {
   id: string;
   title: string;
@@ -66,8 +70,32 @@ export type ContentSnippet = {
   text: string;
   createdAt: string;
   imageDataUrl?: string;
+  ocrImageDataUrl?: string;
   mimeType?: string;
   fileName?: string;
+};
+
+export type TranscriptLine = {
+  speakerName: string;
+  time: string;
+  text: string;
+};
+
+export type TranscriptOrganizeResult = {
+  entries: TranscriptLine[];
+  transcriptText?: string;
+};
+
+export type TranscriptWorkspace = {
+  ocrSnippets: Array<{
+    id: string;
+    text: string;
+    createdAt: string;
+    fileName?: string;
+  }>;
+  transcriptText: string;
+  organizedOcrSnippetIds?: string[];
+  updatedAt?: string;
 };
 
 export type SpeakerInsight = {
@@ -87,11 +115,18 @@ export type SpeakerInsight = {
   generatedBy?: GeneratedBy;
 };
 
+export type PolishedSpeakerContent = {
+  polishedContent: string;
+  generatedBy?: GeneratedBy;
+};
+
 export type SpeakerCard = {
   id: string;
   name: string;
   status: SpeakerStatus;
   snippets: ContentSnippet[];
+  polishedContent?: string;
+  polishedAt?: string;
   insight?: SpeakerInsight;
   actualResponse?: string;
 };
@@ -134,6 +169,8 @@ export type ObserverSession = {
   title: string;
   themeId: string;
   observerStance: string;
+  dailyObservation: DailyObservationMaterial;
+  transcriptWorkspace: TranscriptWorkspace;
   speakers: SpeakerCard[];
   stories: Story[];
   summary?: WholeSessionSummary;
@@ -163,6 +200,8 @@ export type ObserverAPI = {
   saveSettings: (settings: { provider: AIProvider; apiKey: string; baseUrl: string; model: string }) => Promise<AppSettings>;
   ocrImage: (imageDataUrl: string, fileName?: string) => Promise<{ text: string }>;
   extractDocumentText: (payload: { fileName: string; dataUrl: string }) => Promise<{ text: string }>;
+  polishSpeakerContent: (payload: unknown) => Promise<PolishedSpeakerContent>;
+  organizeTranscript: (payload: unknown) => Promise<TranscriptOrganizeResult>;
   analyzeSpeaker: (payload: unknown) => Promise<SpeakerInsight>;
   summarizeSession: (payload: unknown) => Promise<WholeSessionSummary>;
   extractKnowledge: (payload: unknown) => Promise<{ entries: KnowledgeEntry[] }>;

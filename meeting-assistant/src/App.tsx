@@ -1,11 +1,32 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react';
-import { createDefaultSession, themes } from './data';
+import { createDefaultSession, createEmptyDailyObservation, createEmptyTranscriptWorkspace, themes } from './data';
 import { getObserverAPI } from './observerApi';
-import { buildKnowledgePrompt, buildSessionPrompt, buildSpeakerPrompt, createLocalSpeakerInsight, createLocalWholeSummary, inferLocalSummaryTemplate } from './prompts';
+import {
+  buildTranscriptEncouragementPrompt,
+  buildTranscriptObservationPrompt,
+  buildTranscriptOrganizePrompt,
+  buildKnowledgePrompt,
+  buildSessionPrompt,
+  buildSpeakerContentPolishPrompt,
+  buildSpeakerPrompt,
+  cleanSourceText,
+  createLocalPolishedSpeakerContent,
+  createLocalSpeakerInsight,
+  createLocalTranscriptEncouragementSummary,
+  createLocalTranscriptObservationSummary,
+  createLocalTranscriptOrganizeResult,
+  createLocalWholeSummary,
+  formatTranscriptEntries,
+  inferLocalSummaryTemplate,
+  normalizeTranscriptEntries,
+  parseTranscriptEntries,
+  speakerSourceText,
+} from './prompts';
 import type {
   AIProvider,
   AppSettings,
   ContentSnippet,
+  DailyObservationMaterial,
   KnowledgeEntry,
   KnowledgeType,
   ObserverSession,
@@ -15,6 +36,9 @@ import type {
   SummaryTemplateMode,
   SummaryTemplateType,
   SummaryVersion,
+  Theme,
+  TranscriptLine,
+  TranscriptWorkspace,
   WholeSessionSummary,
 } from './types';
 
@@ -25,6 +49,9 @@ const KNOWLEDGE_KEY = 'morning-observer-knowledge-v1';
 const PINNED_KNOWLEDGE_KEY = 'morning-observer-pinned-knowledge-v1';
 const KNOWLEDGE_BATCH_SIZE = 2;
 const KNOWLEDGE_CHUNK_TIMEOUT_MS = 90000;
+const DISPLAY_IMAGE_MAX_SIDE = 1200;
+const OCR_IMAGE_MAX_SIDE = 3200;
+const OCR_ORIGINAL_MAX_BYTES = 8 * 1024 * 1024;
 
 const sourceLabels: Record<SourceType, string> = {
   manual_paste: '手动',
@@ -35,10 +62,12 @@ const sourceLabels: Record<SourceType, string> = {
   image_upload: '图片',
 };
 
+type NoticeType = 'info' | 'error';
+
 const statusLabels: Record<SpeakerCard['status'], string> = {
   empty: '待粘贴',
   captured: '已采集',
-  analyzed: '已分析',
+  analyzed: '已观察',
   response_ready: '回应已备',
   responded: '已回应',
 };
@@ -65,6 +94,20 @@ const summaryTemplateNames: Record<SummaryTemplateType, string> = {
 
 const summaryTemplateTypes: SummaryTemplateType[] = ['resonance', 'structure', 'hybrid'];
 
+type LegacyDailyObservationMaterial = Partial<DailyObservationMaterial> & {
+  courseUnderstanding?: string;
+  personalCases?: string;
+  responseDirection?: string;
+  boundaries?: string;
+};
+
+const legacyDailyObservationFields: Array<{ key: keyof LegacyDailyObservationMaterial; label: string }> = [
+  { key: 'courseUnderstanding', label: '我对今天课程的理解' },
+  { key: 'personalCases', label: '我想带入的个人经历/案例' },
+  { key: 'responseDirection', label: '这次特别想回应的方向' },
+  { key: 'boundaries', label: '表达边界提醒' },
+];
+
 type KnowledgeDraftSource = {
   id: string;
   title: string;
@@ -80,40 +123,129 @@ function resolveSummaryTemplate(summary: WholeSessionSummary | undefined, fallba
   return isSummaryTemplateType(summary?.templateDecision?.template) ? summary.templateDecision.template : fallback;
 }
 
+function normalizeWholeSessionSummary(value?: Partial<WholeSessionSummary>): WholeSessionSummary | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const template = resolveSummaryTemplate(value as WholeSessionSummary, 'hybrid');
+  const templateDecision = value.templateDecision
+    ? {
+        template,
+        templateName: value.templateDecision.templateName || summaryTemplateNames[template],
+        reason: value.templateDecision.reason || '',
+        sceneSignals: Array.isArray(value.templateDecision.sceneSignals) ? value.templateDecision.sceneSignals.filter(Boolean) : [],
+      }
+    : undefined;
+
+  return {
+    ...value,
+    templateDecision,
+    courseTheme: value.courseTheme || '',
+    commonTheme: value.commonTheme || '',
+    speakerLessons: Array.isArray(value.speakerLessons) ? value.speakerLessons : [],
+    keyResponse: value.keyResponse || '',
+    structuredSections: Array.isArray(value.structuredSections) ? value.structuredSections : undefined,
+    sharingSections: Array.isArray(value.sharingSections) ? value.sharingSections : undefined,
+    goldenSentences: Array.isArray(value.goldenSentences) ? value.goldenSentences : [],
+    oneSentenceSummaries: Array.isArray(value.oneSentenceSummaries) ? value.oneSentenceSummaries : [],
+    closingSentence: value.closingSentence || '',
+    missingSpeakers: Array.isArray(value.missingSpeakers) ? value.missingSpeakers : [],
+  };
+}
+
+function normalizeDailyObservation(value?: LegacyDailyObservationMaterial): DailyObservationMaterial {
+  const fallback = createEmptyDailyObservation();
+  const directContent = value?.content?.trim();
+  if (directContent) {
+    return { content: directContent };
+  }
+  const legacyContent = legacyDailyObservationFields
+    .map((field) => {
+      const body = value?.[field.key]?.trim();
+      return body ? `${field.label}\n${body}` : '';
+    })
+    .filter(Boolean)
+    .join('\n\n');
+  return {
+    content: legacyContent || fallback.content,
+  };
+}
+
+function normalizeTranscriptWorkspace(value?: Partial<TranscriptWorkspace>): TranscriptWorkspace {
+  const fallback = createEmptyTranscriptWorkspace();
+  const ocrSnippets = Array.isArray(value?.ocrSnippets)
+    ? value.ocrSnippets
+        .map((snippet) => ({
+          id: snippet.id || crypto.randomUUID(),
+          text: String(snippet.text || '').trim(),
+          createdAt: snippet.createdAt || new Date().toISOString(),
+          fileName: snippet.fileName || '',
+        }))
+        .filter((snippet) => snippet.text)
+    : [];
+  const ocrIdSet = new Set(ocrSnippets.map((snippet) => snippet.id));
+  const legacyOrganizedIds =
+    value && !Array.isArray(value.organizedOcrSnippetIds) && typeof value.transcriptText === 'string' && value.transcriptText.trim()
+      ? ocrSnippets.map((snippet) => snippet.id)
+      : fallback.organizedOcrSnippetIds;
+  return {
+    ...fallback,
+    ...value,
+    ocrSnippets,
+    transcriptText: typeof value?.transcriptText === 'string' ? value.transcriptText : fallback.transcriptText,
+    organizedOcrSnippetIds: Array.isArray(value?.organizedOcrSnippetIds) ? value.organizedOcrSnippetIds.filter((id) => ocrIdSet.has(id)) : legacyOrganizedIds,
+    updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt : undefined,
+  };
+}
+
+function dailyObservationToText(value?: LegacyDailyObservationMaterial) {
+  return normalizeDailyObservation(value).content.trim();
+}
+
+function hasDailyObservation(value?: LegacyDailyObservationMaterial) {
+  return Boolean(dailyObservationToText(value).trim());
+}
+
 function normalizeSummaryVersions(session: ObserverSession): SummaryVersion[] | undefined {
   if (Array.isArray(session.summaryVersions) && session.summaryVersions.length > 0) {
     return session.summaryVersions
       .filter((version) => version?.summary)
-      .map((version, index) => ({
-        ...version,
-        id: version.id || crypto.randomUUID(),
-        label: version.label || `全场观察 ${index + 1}`,
-        source: version.source || 'generated',
-        templateMode: resolveSummaryTemplate(version.summary, version.templateMode || 'hybrid'),
-        createdAt: version.createdAt || new Date().toISOString(),
-      }));
+      .map((version, index) => {
+        const summary = normalizeWholeSessionSummary(version.summary) || version.summary;
+        return {
+          ...version,
+          id: version.id || crypto.randomUUID(),
+          label: version.label || `全场观察 ${index + 1}`,
+          source: version.source || 'generated',
+          templateMode: resolveSummaryTemplate(summary, version.templateMode || 'hybrid'),
+          summary,
+          createdAt: version.createdAt || new Date().toISOString(),
+        };
+      });
   }
 
   const versions: SummaryVersion[] = [];
-  if (session.summary) {
-    const template = resolveSummaryTemplate(session.summary);
+  const summary = normalizeWholeSessionSummary(session.summary);
+  if (summary) {
+    const template = resolveSummaryTemplate(summary);
     versions.push({
       id: crypto.randomUUID(),
       label: `历史全场观察 · ${summaryTemplateNames[template]}`,
       source: 'generated',
       templateMode: template,
-      summary: session.summary,
+      summary,
       createdAt: session.updatedAt || new Date().toISOString(),
     });
   }
-  if (session.refinedSummary) {
-    const template = resolveSummaryTemplate(session.refinedSummary, versions[0]?.templateMode || 'hybrid');
+  const refinedSummary = normalizeWholeSessionSummary(session.refinedSummary);
+  if (refinedSummary) {
+    const template = resolveSummaryTemplate(refinedSummary, versions[0]?.templateMode || 'hybrid');
     versions.push({
       id: crypto.randomUUID(),
       label: `历史优化版 · ${summaryTemplateNames[template]}`,
       source: 'refined',
       templateMode: template,
-      summary: session.refinedSummary,
+      summary: refinedSummary,
       requirement: session.refinedSummaryRequirement,
       createdAt: session.updatedAt || new Date().toISOString(),
     });
@@ -150,7 +282,7 @@ function createSummaryVersion(params: {
     label: params.label,
     source: params.source,
     templateMode: params.templateMode,
-    summary: params.summary,
+    summary: normalizeWholeSessionSummary(params.summary) || params.summary,
     requirement: params.requirement,
     collapsed: params.collapsed,
     createdAt: new Date().toISOString(),
@@ -235,10 +367,14 @@ function normalizeSession(session: ObserverSession, themeId = session.themeId): 
   const summaryVersions = normalizeSummaryVersions(session);
   const speakers =
     Array.isArray(session.speakers) && session.speakers.length > 0
-      ? session.speakers.map((speaker) => ({
-          ...speaker,
-          name: normalizeRecognizedSpeakerName(speaker.name),
-        }))
+      ? mergeDuplicateSpeakersByName(
+          session.speakers.map((speaker) => ({
+            ...speaker,
+            name: normalizeSpeakerDisplayName(speaker.name),
+            polishedContent: typeof speaker.polishedContent === 'string' ? speaker.polishedContent : '',
+            polishedAt: typeof speaker.polishedAt === 'string' ? speaker.polishedAt : undefined,
+          }))
+        ).speakers
       : fallback.speakers;
 
   return {
@@ -257,6 +393,8 @@ function normalizeSession(session: ObserverSession, themeId = session.themeId): 
     refinedSummary: [...(summaryVersions || [])].reverse().find((version) => version.source === 'refined')?.summary || session.refinedSummary,
     refinedSummaryRequirement: [...(summaryVersions || [])].reverse().find((version) => version.source === 'refined')?.requirement || session.refinedSummaryRequirement || '',
     finalSpeechDraft: session.finalSpeechDraft || '',
+    dailyObservation: normalizeDailyObservation(session.dailyObservation),
+    transcriptWorkspace: normalizeTranscriptWorkspace(session.transcriptWorkspace),
     title: session.title === '下一期晨读营观察' ? '韧性之树晨读营·观察者视角' : session.title,
     themeId: safeThemeId,
     updatedAt: session.updatedAt || fallback.updatedAt,
@@ -276,10 +414,7 @@ function compactSessionForStorage(session: ObserverSession): ObserverSession {
     ...session,
     speakers: session.speakers.map((speaker) => ({
       ...speaker,
-      snippets: speaker.snippets.map((snippet) => {
-        const { imageDataUrl: _imageDataUrl, ...rest } = snippet;
-        return rest;
-      }),
+      snippets: speaker.snippets.map(stripTransientOcrImage),
     })),
   };
 }
@@ -584,6 +719,129 @@ function compactText(text: string, max = 92) {
   return trimmed.length > max ? `${trimmed.slice(0, max)}...` : trimmed;
 }
 
+function compactTailText(text: string, max = 420) {
+  const normalized = text
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+  return normalized.length > max ? `...${normalized.slice(-max)}` : normalized;
+}
+
+function formatOcrTextByTime(text: string) {
+  const source = cleanSourceText(text)
+    .replace(/\s+/g, ' ')
+    .replace(/\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*/g, '\n$1 ')
+    .replace(/\n+/g, '\n')
+    .trim();
+  const rawLines = source.split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = rawLines.map((line) => {
+    const timeFirst = line.match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$/);
+    if (timeFirst) {
+      return `${timeFirst[1]} ${timeFirst[2].replace(/\s+/g, ' ').trim()}`;
+    }
+    const speakerBeforeTime = line.match(/^(.{1,32}?)\s+(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$/);
+    if (speakerBeforeTime) {
+      const speaker = speakerBeforeTime[1].replace(/^[.。…\s]+/, '').trim();
+      const body = speakerBeforeTime[3].replace(/\s+/g, ' ').trim();
+      return speaker ? `${speakerBeforeTime[2]} ${speaker}：${body}` : `${speakerBeforeTime[2]} ${body}`;
+    }
+    return line;
+  });
+  return lines.join('\n');
+}
+
+function compactOcrPreviewText(text: string, max = 420) {
+  const formatted = formatOcrTextByTime(text);
+  if (formatted.length <= max) {
+    return formatted;
+  }
+  const tail = formatted.slice(-max);
+  const firstLineBreak = tail.indexOf('\n');
+  return `...\n${firstLineBreak >= 0 ? tail.slice(firstLineBreak + 1) : tail}`;
+}
+
+function compactTranscriptContextForIncremental(text: string, maxLines = 60, maxChars = 16000) {
+  const entries = parseTranscriptEntries(text);
+  const formatted = formatTranscriptEntries(entries.slice(-maxLines));
+  return formatted.length > maxChars ? formatted.slice(-maxChars) : formatted;
+}
+
+function normalizeTranscriptComparableText(text: string) {
+  return cleanSourceText(text)
+    .replace(/[的地得]/g, '的')
+    .replace(/\s+/g, '')
+    .replace(/[，。！？、；;：:,.!?'"“”‘’（）()[\]【】《》<>《》\-—_]/g, '')
+    .toLowerCase();
+}
+
+function normalizeTranscriptComparableSpeaker(name: string) {
+  return String(name || '')
+    .replace(/\s+/g, '')
+    .replace(/[·•.,，。:：;；'"“”‘’()（）【】\[\]{}《》<>_\-—–｜|/\\]/g, '')
+    .toLowerCase();
+}
+
+function isTranscriptEntryCovered(candidate: TranscriptLine, transcriptEntries: TranscriptLine[]) {
+  const candidateText = normalizeTranscriptComparableText(candidate.text);
+  const candidateSpeaker = normalizeTranscriptComparableSpeaker(candidate.speakerName);
+  if (!candidate.time || !candidateText) {
+    return true;
+  }
+  return transcriptEntries.some((entry) => {
+    if (entry.time !== candidate.time) {
+      return false;
+    }
+    const entrySpeaker = normalizeTranscriptComparableSpeaker(entry.speakerName);
+    const speakerMatches =
+      !candidateSpeaker ||
+      !entrySpeaker ||
+      candidateSpeaker === entrySpeaker ||
+      candidateSpeaker.includes(entrySpeaker) ||
+      entrySpeaker.includes(candidateSpeaker);
+    if (!speakerMatches) {
+      return false;
+    }
+    const entryText = normalizeTranscriptComparableText(entry.text);
+    if (!entryText) {
+      return false;
+    }
+    const shorterLength = Math.min(candidateText.length, entryText.length);
+    if (candidateText === entryText) {
+      return true;
+    }
+    return shorterLength >= 10 && (candidateText.includes(entryText) || entryText.includes(candidateText));
+  });
+}
+
+function getOcrSnippetTranscriptEntries(snippetText: string, contextText = '') {
+  const formattedText = formatOcrTextByTime(snippetText);
+  return normalizeTranscriptEntries(parseTranscriptEntries(formattedText), [], [contextText, formattedText].filter(Boolean).join('\n'));
+}
+
+function getTranscriptCoverage(workspace: TranscriptWorkspace) {
+  const transcriptEntries = normalizeTranscriptEntries(parseTranscriptEntries(workspace.transcriptText), [], workspace.transcriptText);
+  const coveredIds = new Set<string>();
+  const missingIds = new Set<string>();
+  workspace.ocrSnippets.forEach((snippet) => {
+    const snippetEntries = getOcrSnippetTranscriptEntries(snippet.text, workspace.transcriptText);
+    if (snippetEntries.length > 0 && snippetEntries.every((entry) => isTranscriptEntryCovered(entry, transcriptEntries))) {
+      coveredIds.add(snippet.id);
+    } else {
+      missingIds.add(snippet.id);
+    }
+  });
+  return { coveredIds, missingIds };
+}
+
+function countEffectiveChars(text: string) {
+  return String(text || '').replace(/\s/g, '').length;
+}
+
+function TextCount({ value }: { value: string }) {
+  return <small className="text-count">{countEffectiveChars(value)} 字</small>;
+}
+
 function getSummaryStructuredSections(summary: WholeSessionSummary) {
   return summary.structuredSections && summary.structuredSections.length > 0
     ? summary.structuredSections
@@ -783,6 +1041,62 @@ function readFileAsText(file: File) {
   });
 }
 
+function estimateDataUrlBytes(dataUrl: string) {
+  const base64 = dataUrl.split(',')[1] || '';
+  return Math.ceil((base64.length * 3) / 4);
+}
+
+function imageDataUrlMimeType(dataUrl: string, fallback = 'image/png') {
+  return dataUrl.slice(5, dataUrl.indexOf(';')) || fallback;
+}
+
+function renderImageDataUrl(image: HTMLImageElement, maxSide: number, outputType: 'image/jpeg' | 'image/png', quality?: number) {
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('图片处理失败。');
+  }
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+  if (outputType === 'image/jpeg') {
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, width, height);
+  }
+  context.drawImage(image, 0, 0, width, height);
+  return outputType === 'image/jpeg' ? canvas.toDataURL(outputType, quality) : canvas.toDataURL(outputType);
+}
+
+function createOcrImageDataUrl(image: HTMLImageElement, originalDataUrl: string) {
+  const maxOriginalSide = Math.max(image.width, image.height);
+  if (maxOriginalSide <= OCR_IMAGE_MAX_SIDE && estimateDataUrlBytes(originalDataUrl) <= OCR_ORIGINAL_MAX_BYTES) {
+    return originalDataUrl;
+  }
+
+  const pngDataUrl = renderImageDataUrl(image, OCR_IMAGE_MAX_SIDE, 'image/png');
+  if (estimateDataUrlBytes(pngDataUrl) <= OCR_ORIGINAL_MAX_BYTES) {
+    return pngDataUrl;
+  }
+  return renderImageDataUrl(image, OCR_IMAGE_MAX_SIDE, 'image/jpeg', 0.94);
+}
+
+function getSnippetOcrImageDataUrl(snippet: ContentSnippet) {
+  return snippet.ocrImageDataUrl || snippet.imageDataUrl || '';
+}
+
+function stripTransientOcrImage(snippet: ContentSnippet): ContentSnippet {
+  if (!snippet.ocrImageDataUrl) {
+    return snippet;
+  }
+  const storedSnippet = { ...snippet };
+  delete storedSnippet.ocrImageDataUrl;
+  return storedSnippet;
+}
+
 async function createImageSnippet(file: File): Promise<ContentSnippet> {
   const originalDataUrl = await readFileAsDataUrl(file);
   return createImageSnippetFromDataUrl(originalDataUrl, file.name, file.type);
@@ -796,28 +1110,18 @@ async function createImageSnippetFromDataUrl(originalDataUrl: string, fileName =
     img.src = originalDataUrl;
   });
 
-  const maxSide = 1600;
-  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext('2d');
-  if (!context) {
-    throw new Error('图片处理失败。');
-  }
-  context.drawImage(image, 0, 0, width, height);
-  const outputType = mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
-  const dataUrl = canvas.toDataURL(outputType, 0.86);
+  const outputType = 'image/jpeg';
+  const dataUrl = renderImageDataUrl(image, DISPLAY_IMAGE_MAX_SIDE, outputType, 0.78);
+  const ocrImageDataUrl = createOcrImageDataUrl(image, originalDataUrl);
 
   return {
     id: crypto.randomUUID(),
     sourceType: 'image_upload',
-    text: `已上传图片：${fileName}。请先识别图片中的会议转写、字幕、聊天或截图文字，再结合当天课程分析。`,
+    text: '',
     createdAt: new Date().toISOString(),
     imageDataUrl: dataUrl,
-    mimeType: dataUrl.slice(5, dataUrl.indexOf(';')) || outputType,
+    ocrImageDataUrl,
+    mimeType: imageDataUrlMimeType(dataUrl, mimeType || outputType),
     fileName,
   };
 }
@@ -830,17 +1134,396 @@ function isDefaultSpeakerName(name: string) {
   return /^发言人\s*([A-Z]|\d+)$/i.test(name.trim());
 }
 
+function shouldAutoRenameSpeaker(name: string) {
+  return /^发言人/i.test(name.trim());
+}
+
 function normalizeRecognizedSpeakerName(name: string) {
   if (isDefaultSpeakerName(name)) {
     return name.trim();
   }
-  const trimmed = name.trim().replace(/^发言人[:：\s]*/, '');
-  return trimmed;
+  const trimmed = name
+    .trim()
+    .replace(/^(?:发言人|分享人|讲者|姓名|内容导引员)[-—:：\s]*/, '')
+    .replace(/[，。；;:：].*$/, '')
+    .trim();
+  const parts = trimmed.split(/[-—–｜|]/).map((part) => part.trim()).filter(Boolean);
+  return parts[parts.length - 1] || trimmed;
+}
+
+function normalizeNamedRoleSpeakerName(name: string) {
+  const compact = name
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/[，。；;:：]+$/g, '');
+  const match = compact.match(/^(主持人|主持|助教|导引员|带读人)[-—–｜|:：]?([\u4e00-\u9fa5A-Za-z]{1,12})$/);
+  if (!match) {
+    return '';
+  }
+  const role = match[1] === '主持' ? '主持人' : match[1];
+  const personName = match[2].replace(/^(老师|同学|书友)$/, '');
+  if (!personName || personName === role || /^(大家|各位|今天|现在|接下来)$/.test(personName)) {
+    return '';
+  }
+  return `${role}-${personName}`;
+}
+
+function normalizeSpeakerDisplayName(name: string) {
+  const roleName = normalizeNamedRoleSpeakerName(name);
+  if (roleName) {
+    return roleName;
+  }
+  const normalized = normalizeRecognizedSpeakerName(name).replace(/\s+/g, '');
+  const alias = normalizeSpeakerOcrAlias(normalized);
+  if (alias === '汪汪' && /^[汪注江]{2,3}$/.test(normalized)) {
+    return '汪汪';
+  }
+  if (alias === '历瑞男' && /^[厉歷历][端瑞]男$/.test(normalized)) {
+    return '历瑞男';
+  }
+  return normalized || normalizeRecognizedSpeakerName(name);
+}
+
+function normalizeSpeakerNameCandidate(value: string) {
+  const normalized = normalizeSpeakerDisplayName(value);
+  if (!normalized || shouldAutoRenameSpeaker(normalized)) {
+    return '';
+  }
+  if (normalized.length < 2 || normalized.length > 12) {
+    return '';
+  }
+  if (/^(图片|截图|OCR|腾讯会议|会议转写|转写|来源|内容|上午|下午|今天|昨天|第四天|第三天|第二天|第一天)$/.test(normalized)) {
+    return '';
+  }
+  return normalized;
 }
 
 function detectSpeakerName(text: string) {
-  const match = text.match(/(?:发言人|分享人|讲者|姓名|内容导引员)[-—:：\s]*([\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z]{1,12})/);
-  return match ? normalizeRecognizedSpeakerName(match[1]) : '';
+  const cleaned = cleanSourceText(text);
+  const labelled = cleaned.match(/(?:发言人|分享人|讲者|姓名|内容导引员)[-—:：\s]*([^\n，。；;:：]{2,18})/);
+  if (labelled) {
+    const candidate = normalizeSpeakerNameCandidate(labelled[1]);
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  for (const line of cleaned.split('\n').map((item) => item.trim()).filter(Boolean)) {
+    const timestampLine = line.match(/^(.{2,22}?)\s+\d{1,2}:\d{2}(?::\d{2})?\b/);
+    if (timestampLine) {
+      const candidate = normalizeSpeakerNameCandidate(timestampLine[1]);
+      if (candidate) {
+        return candidate;
+      }
+    }
+  }
+
+  return '';
+}
+
+function detectSpeakerNameFromSnippets(snippets: ContentSnippet[]) {
+  return snippets.map((snippet) => detectSpeakerName(snippet.text)).find(Boolean) || '';
+}
+
+function resolveAutoSpeakerName(currentName: string, suggestedName: string | undefined, snippets: ContentSnippet[]) {
+  if (!shouldAutoRenameSpeaker(currentName)) {
+    return normalizeSpeakerDisplayName(currentName);
+  }
+  const suggested = suggestedName ? normalizeSpeakerNameCandidate(suggestedName) : '';
+  const detected = detectSpeakerNameFromSnippets(snippets);
+  return normalizeSpeakerDisplayName(suggested || detected || currentName);
+}
+
+function snippetDisplayText(snippet: ContentSnippet) {
+  const text = cleanSourceText(snippet.text);
+  if (text) {
+    return text;
+  }
+  return snippet.imageDataUrl || snippet.fileName ? '图片未识别出文字。请换更清晰的截图，或手动粘贴腾讯会议转写文字。' : '';
+}
+
+function renderInlineMarkdown(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+function courseReadingContentText(theme: Theme) {
+  return [`# ${theme.name}`, String(theme.content || theme.core || '').trim()].filter(Boolean).join('\n\n');
+}
+
+function CourseContentView({ theme, onCopyReading }: { theme: Theme; onCopyReading: () => void }) {
+  const lines = String(theme.content || theme.core || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const blocks: Array<{ type: 'heading' | 'paragraph' | 'image'; text: string } | { type: 'list'; items: Array<{ number: number; body: string }> }> = [];
+  let listItems: Array<{ number: number; body: string }> = [];
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      blocks.push({ type: 'list', items: listItems });
+      listItems = [];
+    }
+  };
+
+  lines.forEach((line, index) => {
+    const numbered = line.match(/^(\d+)[.．]\s*(.+)$/);
+    if (numbered) {
+      listItems.push({
+        number: Number(numbered[1]),
+        body: numbered[2],
+      });
+      return;
+    }
+
+    flushList();
+    if (line === '[图片]') {
+      blocks.push({ type: 'image', text: line });
+      return;
+    }
+    const isHeading = index < 2 || /^第[一二三四五六七八九十\d]+[天课节篇]|.+[:：]$/.test(line);
+    blocks.push({ type: isHeading ? 'heading' : 'paragraph', text: line });
+  });
+  flushList();
+
+  return (
+    <>
+      <div className="course-content-main">
+        <div className="course-content-title-row">
+          <h2>{theme.name}</h2>
+          <button className="plain-button" onClick={onCopyReading} type="button">
+            复制课程晨读内容
+          </button>
+        </div>
+        <div className="course-content-body">
+          {blocks.map((block, index) => {
+            if (block.type === 'list') {
+              return (
+                <ol key={`list-${index}`} className="course-numbered-list">
+                  {block.items.map((item) => (
+                    <li key={`${item.number}-${item.body}`}>
+                      <span className="course-list-number">{item.number}.</span>
+                      <span>{renderInlineMarkdown(item.body)}</span>
+                    </li>
+                  ))}
+                </ol>
+              );
+            }
+            if (block.type === 'image') {
+              return (
+                <div key={`image-${index}`} className="course-image-placeholder">
+                  图片
+                </div>
+              );
+            }
+            if (block.type === 'heading') {
+              return <h3 key={`heading-${index}`}>{renderInlineMarkdown(block.text)}</h3>;
+            }
+            return <p key={`paragraph-${index}`}>{renderInlineMarkdown(block.text)}</p>;
+          })}
+        </div>
+      </div>
+      <div className="course-questions">
+        <h3>观察问题</h3>
+        <ul>
+          {theme.observationQuestions.map((question) => (
+            <li key={question}>{question}</li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+}
+
+function isHostTranscriptSpeaker(name: string) {
+  const normalized = normalizeSpeakerDisplayName(name);
+  return /^(主持人|主持|助教|导引员|带读人|系统消息|系统)$/i.test(normalized);
+}
+
+function normalizeTextForCompare(value: string) {
+  return value
+    .replace(/\d{1,2}:\d{2}(?::\d{2})?/g, '')
+    .replace(/\s+/g, '')
+    .replace(/[，。！？、；;：:,.!?'"“”‘’（）()[\]【】《》\-—_]/g, '')
+    .toLowerCase();
+}
+
+function hasMaterialTranscriptIncrease(oldText: string, newText: string) {
+  const oldNormalized = normalizeTextForCompare(oldText);
+  const newNormalized = normalizeTextForCompare(newText);
+  if (!newNormalized) {
+    return false;
+  }
+  if (!oldNormalized) {
+    return true;
+  }
+  if (oldNormalized.includes(newNormalized)) {
+    return false;
+  }
+  if (newNormalized.length > oldNormalized.length + 24) {
+    return true;
+  }
+  const oldLines = new Set(
+    oldText
+      .split('\n')
+      .map(normalizeTextForCompare)
+      .filter((line) => line.length > 6)
+  );
+  const addedLength = newText
+    .split('\n')
+    .map(normalizeTextForCompare)
+    .filter((line) => line.length > 6 && !oldLines.has(line))
+    .join('').length;
+  return addedLength > 24;
+}
+
+function createTranscriptSpeakerContent(entries: TranscriptLine[]) {
+  return entries.map((entry) => `${entry.time} ${entry.speakerName}：${entry.text}`).join('\n').trim();
+}
+
+function normalizeSpeakerOcrAlias(name: string) {
+  const charMap: Record<string, string> = {
+    注: '汪',
+    江: '汪',
+    汪: '汪',
+    端: '瑞',
+    瑞: '瑞',
+    厉: '历',
+    歷: '历',
+  };
+  return Array.from(normalizeRecognizedSpeakerName(name).replace(/\s+/g, '').toLowerCase())
+    .map((char) => charMap[char] || char)
+    .join('');
+}
+
+function speakerMergeKey(name: string) {
+  if (isDefaultSpeakerName(name)) {
+    return '';
+  }
+  const key = normalizeSpeakerOcrAlias(normalizeSpeakerDisplayName(name));
+  return /^(发言人|分享人|讲者|未知|[.．…]+)$/.test(key) ? '' : key;
+}
+
+function speakerStatusRank(status: SpeakerCard['status']) {
+  const ranks: Record<SpeakerCard['status'], number> = {
+    empty: 0,
+    captured: 1,
+    analyzed: 2,
+    response_ready: 3,
+    responded: 4,
+  };
+  return ranks[status] ?? 0;
+}
+
+function mergeSpeakerSnippets(base: ContentSnippet[], incoming: ContentSnippet[]) {
+  const seen = new Set<string>();
+  return [...base, ...incoming].filter((snippet) => {
+    const key = [snippet.sourceType, snippet.fileName || '', cleanSourceText(snippet.text)].join('|').replace(/\s+/g, '');
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function preferLongerSpeakerText(base = '', incoming = '') {
+  return countEffectiveChars(incoming) > countEffectiveChars(base) ? incoming : base;
+}
+
+function mergeSpeakerCards(base: SpeakerCard, incoming: SpeakerCard): SpeakerCard {
+  const baseStatusRank = speakerStatusRank(base.status);
+  const incomingStatusRank = speakerStatusRank(incoming.status);
+  const pickName = () => {
+    const score = (name: string) => {
+      let value = normalizeRecognizedSpeakerName(name).length;
+      if (!shouldAutoRenameSpeaker(name)) value += 20;
+      if (/[-—–｜|]/.test(name)) value += 8;
+      if (/[汪瑞]/.test(name)) value += 4;
+      if (/[注江端]/.test(name)) value -= 5;
+      return value;
+    };
+    return score(incoming.name) > score(base.name) ? incoming.name : base.name;
+  };
+  return {
+    ...base,
+    name: normalizeSpeakerDisplayName(pickName()),
+    status: incomingStatusRank > baseStatusRank ? incoming.status : base.status,
+    snippets: mergeSpeakerSnippets(base.snippets, incoming.snippets),
+    polishedContent: preferLongerSpeakerText(base.polishedContent, incoming.polishedContent) || undefined,
+    polishedAt:
+      incoming.polishedAt && (!base.polishedAt || new Date(incoming.polishedAt).getTime() > new Date(base.polishedAt).getTime())
+        ? incoming.polishedAt
+        : base.polishedAt,
+    insight: base.insight || incoming.insight,
+    actualResponse: base.actualResponse || incoming.actualResponse,
+  };
+}
+
+function mergeDuplicateSpeakersByName(speakers: SpeakerCard[]) {
+  const merged: SpeakerCard[] = [];
+  const keyToIndex = new Map<string, number>();
+  const idMap = new Map<string, string>();
+  let mergedCount = 0;
+
+  speakers.forEach((speaker) => {
+    const normalizedSpeaker = {
+      ...speaker,
+      name: normalizeSpeakerDisplayName(speaker.name),
+    };
+    const key = speakerMergeKey(normalizedSpeaker.name);
+    if (!key) {
+      merged.push(normalizedSpeaker);
+      return;
+    }
+
+    const existingIndex = keyToIndex.get(key);
+    if (existingIndex === undefined) {
+      keyToIndex.set(key, merged.length);
+      merged.push(normalizedSpeaker);
+      return;
+    }
+
+    const target = merged[existingIndex];
+    merged[existingIndex] = mergeSpeakerCards(target, normalizedSpeaker);
+    idMap.set(normalizedSpeaker.id, target.id);
+    mergedCount += 1;
+  });
+
+  return { speakers: merged, idMap, mergedCount };
+}
+
+function groupTranscriptBySpeaker(transcriptText: string, knownSpeakerNames: string[] = []) {
+  const groups = new Map<string, { speakerName: string; entries: TranscriptLine[] }>();
+  normalizeTranscriptEntries(parseTranscriptEntries(transcriptText), knownSpeakerNames, transcriptText).forEach((entry) => {
+    const speakerName = normalizeSpeakerNameCandidate(entry.speakerName) || normalizeSpeakerDisplayName(entry.speakerName);
+    if (!speakerName || isHostTranscriptSpeaker(speakerName)) {
+      return;
+    }
+    const key = speakerMergeKey(speakerName) || speakerName;
+    const existing = groups.get(key);
+    if (existing) {
+      const displayName = normalizeSpeakerDisplayName(mergeSpeakerCards(
+        { id: 'existing', name: existing.speakerName, status: 'empty', snippets: [] },
+        { id: 'incoming', name: speakerName, status: 'empty', snippets: [] }
+      ).name);
+      groups.set(key, {
+        speakerName: displayName,
+        entries: [...existing.entries, { ...entry, speakerName: displayName }],
+      });
+      return;
+    }
+    groups.set(key, { speakerName, entries: [{ ...entry, speakerName }] });
+  });
+  return Array.from(groups.values()).map((group) => ({
+    speakerName: group.speakerName,
+    entries: group.entries.map((entry) => ({ ...entry, speakerName: group.speakerName })),
+    content: createTranscriptSpeakerContent(group.entries.map((entry) => ({ ...entry, speakerName: group.speakerName }))),
+  }));
 }
 
 export default function App() {
@@ -849,7 +1532,12 @@ export default function App() {
   const [draftText, setDraftText] = useState('');
   const [sourceType, setSourceType] = useState<SourceType>('clipboard');
   const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState('');
+  const [analyzingSpeakerIds, setAnalyzingSpeakerIds] = useState<string[]>([]);
+  const [polishingSpeakerIds, setPolishingSpeakerIds] = useState<string[]>([]);
+  const [notice, setNoticeValue] = useState('');
+  const [noticeVersion, setNoticeVersion] = useState(0);
+  const [noticePersistent, setNoticePersistent] = useState(false);
+  const [noticeType, setNoticeType] = useState<NoticeType>('info');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<AppSettings>({
     provider: 'openai_responses',
@@ -866,6 +1554,12 @@ export default function App() {
   const [courseChangeOpen, setCourseChangeOpen] = useState(false);
   const [courseChangeTarget, setCourseChangeTarget] = useState(session.themeId);
   const [collectionCollapsed, setCollectionCollapsed] = useState(false);
+  const [dailyObservationCollapsed, setDailyObservationCollapsed] = useState(false);
+  const [transcriptCollapsed, setTranscriptCollapsed] = useState(false);
+  const [transcriptOcrCollapsed, setTranscriptOcrCollapsed] = useState(false);
+  const suppressNextOcrToggleClick = useRef(false);
+  const [transcriptAssigning, setTranscriptAssigning] = useState(false);
+  const [transcriptOrganizeForce, setTranscriptOrganizeForce] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntry[]>(() => loadKnowledgeEntries());
   const [selectedKnowledgeId, setSelectedKnowledgeId] = useState('');
@@ -878,9 +1572,32 @@ export default function App() {
   const [summaryKnowledgeIds, setSummaryKnowledgeIds] = useState<string[]>([]);
   const [summaryRequirement, setSummaryRequirement] = useState('');
   const [summaryTemplateMode, setSummaryTemplateMode] = useState<SummaryTemplateMode>('auto');
+  const [pendingAutoAnalyzeIds, setPendingAutoAnalyzeIds] = useState<string[]>([]);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const transcriptImageInputRef = useRef<HTMLInputElement | null>(null);
   const knowledgeFileRef = useRef<HTMLInputElement | null>(null);
   const knowledgeCancelRef = useRef(false);
+  const autoAnalyzeRunningRef = useRef(false);
+
+  function isErrorNotice(message: string) {
+    return /(失败|报错|错误|无法|请求失败|HTTP\s*\d{3})/i.test(message);
+  }
+
+  function isAbortOrTimeoutMessage(message: string) {
+    return /(aborted|abort|timed?\s*out|timeout|超时|中断)/i.test(message);
+  }
+
+  function showNotice(message: string, options: { persistent?: boolean; type?: NoticeType } = {}) {
+    const error = options.type === 'error' || isErrorNotice(message);
+    setNoticeValue(message);
+    setNoticeType(options.type || (error ? 'error' : 'info'));
+    setNoticePersistent(Boolean(message) && (options.persistent ?? error));
+    setNoticeVersion((version) => version + 1);
+  }
+
+  function setNotice(message: string) {
+    showNotice(message);
+  }
 
   const currentSpeaker = getCurrentSpeaker(session, selectedSpeakerId);
   const selectedTheme = useMemo(() => themes.find((theme) => theme.id === session.themeId) || themes[0], [session.themeId]);
@@ -896,19 +1613,32 @@ export default function App() {
       .sort((a, b) => b.count - a.count || a.source.localeCompare(b.source, 'zh-CN'));
   }, [knowledgeEntries]);
   const analyzedCount = session.speakers.filter((speaker) => speaker.insight).length;
-  const capturedCount = session.speakers.filter((speaker) => speaker.snippets.length > 0).length;
-  const currentSpeakerText = currentSpeaker?.snippets.map((snippet) => snippet.text).join('\n') || '';
+  const capturedCount = session.speakers.filter((speaker) => speaker.snippets.length > 0 || Boolean(speaker.polishedContent?.trim())).length;
+  const currentSpeakerAnalyzing = currentSpeaker ? analyzingSpeakerIds.includes(currentSpeaker.id) : false;
+  const dailyObservationText = dailyObservationToText(session.dailyObservation);
+  const dailyObservationFilled = hasDailyObservation(session.dailyObservation);
+  const currentSpeakerPolishing = currentSpeaker ? polishingSpeakerIds.includes(currentSpeaker.id) : false;
+  const currentSpeakerText = currentSpeaker ? speakerSourceText(currentSpeaker) : '';
+  const transcriptWorkspace = normalizeTranscriptWorkspace(session.transcriptWorkspace);
+  const transcriptEntryCount = useMemo(() => normalizeTranscriptEntries(parseTranscriptEntries(transcriptWorkspace.transcriptText), [], transcriptWorkspace.transcriptText).length, [transcriptWorkspace.transcriptText]);
+  const transcriptCoverage = useMemo(() => getTranscriptCoverage(transcriptWorkspace), [transcriptWorkspace.ocrSnippets, transcriptWorkspace.transcriptText]);
+  const pendingTranscriptOcrCount = useMemo(() => {
+    return transcriptWorkspace.ocrSnippets.filter((snippet) => !transcriptCoverage.coveredIds.has(snippet.id)).length;
+  }, [transcriptWorkspace.ocrSnippets, transcriptCoverage]);
   const currentSpeakerKnowledgePreview = useMemo(
-    () => (currentSpeakerText.trim() ? selectKnowledgeForRun(knowledgeEntries, currentSpeakerText, selectedTheme.name, pinnedKnowledgeIds, 8) : []),
-    [currentSpeakerText, knowledgeEntries, pinnedKnowledgeIds, selectedTheme.name]
+    () => {
+      const text = [currentSpeakerText, dailyObservationText].filter(Boolean).join('\n');
+      return text.trim() ? selectKnowledgeForRun(knowledgeEntries, text, selectedTheme.name, pinnedKnowledgeIds, 8) : [];
+    },
+    [currentSpeakerText, dailyObservationText, knowledgeEntries, pinnedKnowledgeIds, selectedTheme.name]
   );
   const currentSpeakerUsedKnowledge = useMemo(
     () => (currentSpeaker ? (speakerKnowledgeUse[currentSpeaker.id] || []).map((id) => knowledgeEntries.find((entry) => entry.id === id)).filter((entry): entry is KnowledgeEntry => Boolean(entry)) : []),
     [currentSpeaker, knowledgeEntries, speakerKnowledgeUse]
   );
   const sessionTextForKnowledge = useMemo(
-    () => session.speakers.flatMap((speaker) => speaker.snippets.map((snippet) => snippet.text)).join('\n'),
-    [session.speakers]
+    () => [session.speakers.map((speaker) => speakerSourceText(speaker)).join('\n'), transcriptWorkspace.transcriptText, dailyObservationText].filter(Boolean).join('\n'),
+    [dailyObservationText, session.speakers, transcriptWorkspace.transcriptText]
   );
   const excludedSummaryKnowledgeIds = session.excludedSummaryKnowledgeIds || [];
   const activeSummaryKnowledgeIds = session.summaryKnowledgeIds || summaryKnowledgeIds;
@@ -925,6 +1655,14 @@ export default function App() {
   const predictedSummaryTemplate = useMemo(() => inferLocalSummaryTemplate(session, 'auto'), [session]);
   const predictedSummaryTemplateName = summaryTemplateNames[predictedSummaryTemplate];
   const summaryOutputButtonLabel = getSummaryOutputButtonLabel(session.summaryOutputCount || 0);
+
+  useEffect(() => {
+    if (!notice || noticePersistent) {
+      return;
+    }
+    const timer = window.setTimeout(() => showNotice(''), 2000);
+    return () => window.clearTimeout(timer);
+  }, [notice, noticePersistent, noticeVersion]);
 
   useEffect(() => {
     safeSetStorage(STORAGE_KEY, JSON.stringify(compactSessionForStorage(session)));
@@ -954,6 +1692,25 @@ export default function App() {
   }, [selectedSpeakerId, session.speakers]);
 
   useEffect(() => {
+    const result = mergeDuplicateSpeakersByName(session.speakers);
+    const changed =
+      result.mergedCount > 0 ||
+      result.speakers.length !== session.speakers.length ||
+      result.speakers.some((speaker, index) => speaker.name !== session.speakers[index]?.name);
+    if (!changed) {
+      return;
+    }
+    updateSession((current) => ({
+      ...current,
+      speakers: result.speakers,
+    }));
+    const nextSelectedId = result.idMap.get(selectedSpeakerId);
+    if (nextSelectedId) {
+      setSelectedSpeakerId(nextSelectedId);
+    }
+  }, [selectedSpeakerId, session.speakers]);
+
+  useEffect(() => {
     getObserverAPI().loadSettings().then((loaded) => {
       setSettings(loaded);
       setProviderInput(loaded.provider || 'openai_responses');
@@ -968,6 +1725,24 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    if (autoAnalyzeRunningRef.current || pendingAutoAnalyzeIds.length === 0) {
+      return;
+    }
+    const nextId = pendingAutoAnalyzeIds[0];
+    const target = session.speakers.find((speaker) => speaker.id === nextId);
+    if (!target) {
+      setPendingAutoAnalyzeIds((current) => current.filter((id) => id !== nextId));
+      return;
+    }
+
+    autoAnalyzeRunningRef.current = true;
+    void analyzeSpeaker(nextId).finally(() => {
+      autoAnalyzeRunningRef.current = false;
+      setPendingAutoAnalyzeIds((current) => current.filter((id) => id !== nextId));
+    });
+  }, [pendingAutoAnalyzeIds, session.speakers]);
+
   function updateSession(updater: (current: ObserverSession) => ObserverSession) {
     setSession((current) => ({ ...updater(current), updatedAt: new Date().toISOString() }));
   }
@@ -977,6 +1752,524 @@ export default function App() {
       ...current,
       speakers: current.speakers.map((speaker) => (speaker.id === speakerId ? updater(speaker) : speaker)),
     }));
+  }
+
+  function updateDailyObservationContent(value: string) {
+    updateSession((current) => ({
+      ...current,
+      dailyObservation: {
+        content: value,
+      },
+    }));
+  }
+
+  function clearDailyObservation() {
+    if (!dailyObservationFilled || window.confirm('确认清空我的当日观察素材吗？')) {
+      updateSession((current) => ({
+        ...current,
+        dailyObservation: createEmptyDailyObservation(),
+      }));
+      showNotice('已清空我的当日观察素材。');
+    }
+  }
+
+  function updateTranscriptWorkspace(updater: (workspace: TranscriptWorkspace) => TranscriptWorkspace) {
+    updateSession((current) => ({
+      ...current,
+      transcriptWorkspace: {
+        ...updater(normalizeTranscriptWorkspace(current.transcriptWorkspace)),
+        updatedAt: new Date().toISOString(),
+      },
+    }));
+  }
+
+  function updateTranscriptText(value: string) {
+    updateTranscriptWorkspace((workspace) => ({
+      ...workspace,
+      transcriptText: value,
+    }));
+  }
+
+  function clearTranscriptWorkspace() {
+    const hasContent = transcriptWorkspace.ocrSnippets.length > 0 || transcriptWorkspace.transcriptText.trim();
+    if (!hasContent || window.confirm('确认清空整场截图脚本和已采集 OCR 吗？不会删除下面发言人卡片。')) {
+      updateSession((current) => ({
+        ...current,
+        transcriptWorkspace: createEmptyTranscriptWorkspace(),
+      }));
+      if (transcriptImageInputRef.current) {
+        transcriptImageInputRef.current.value = '';
+      }
+      showNotice('已清空整场截图脚本。');
+    }
+  }
+
+  function deleteTranscriptOcrSnippet(snippetId: string) {
+    updateTranscriptWorkspace((workspace) => ({
+      ...workspace,
+      ocrSnippets: workspace.ocrSnippets.filter((snippet) => snippet.id !== snippetId),
+      organizedOcrSnippetIds: (workspace.organizedOcrSnippetIds || []).filter((id) => id !== snippetId),
+    }));
+    showNotice('已删除这段 OCR 原文。');
+  }
+
+  async function appendTranscriptImages(snippets: ContentSnippet[], successPrefix = '已采集') {
+    if (snippets.length === 0) {
+      return;
+    }
+
+    setBusy('transcript-image');
+    try {
+      const createdAt = new Date().toISOString();
+      const ocrSnippets = await Promise.all(
+        snippets.map(async (snippet) => {
+          try {
+            const result = await getObserverAPI().ocrImage(getSnippetOcrImageDataUrl(snippet), snippet.fileName);
+            const text = cleanSourceText(result.text || '');
+            if (!text) {
+              return null;
+            }
+            return {
+              id: crypto.randomUUID(),
+              text,
+              createdAt,
+              fileName: snippet.fileName || '截图.png',
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const validSnippets = ocrSnippets.filter(Boolean) as TranscriptWorkspace['ocrSnippets'];
+      if (validSnippets.length === 0) {
+        showNotice('截图已读取，但没有识别出可用文字。我已优先使用高清图识别；如果仍失败，可以换更清晰截图，或手动粘贴到脚本文本框。');
+        return;
+      }
+      updateTranscriptWorkspace((workspace) => ({
+        ...workspace,
+        ocrSnippets: [...workspace.ocrSnippets, ...validSnippets],
+      }));
+      showNotice(`${successPrefix} ${snippets.length} 张截图，其中 ${validSnippets.length} 张识别到文字。点击“梳理”会合并去重排序。`);
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : '整场截图 OCR 失败。');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function pasteTranscriptScreenshot() {
+    const clipboardImage = await getObserverAPI().readClipboardImage().catch(() => null);
+    if (!clipboardImage?.imageDataUrl) {
+      showNotice('剪贴板里没有截图。');
+      return;
+    }
+    const snippet = await createImageSnippetFromDataUrl(clipboardImage.imageDataUrl, clipboardImage.fileName || '整场截图.png');
+    await appendTranscriptImages([snippet], '粘贴成功，已采集');
+  }
+
+  async function uploadTranscriptScreenshots(files: FileList | null) {
+    if (!files || files.length === 0) {
+      return;
+    }
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      showNotice('请选择图片文件。');
+      return;
+    }
+    try {
+      const snippets = await Promise.all(imageFiles.map((file) => createImageSnippet(file)));
+      await appendTranscriptImages(snippets, '已上传并采集');
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : '整场截图上传失败。');
+    } finally {
+      if (transcriptImageInputRef.current) {
+        transcriptImageInputRef.current.value = '';
+      }
+    }
+  }
+
+  function toggleTranscriptOcrPreview() {
+    setTranscriptOcrCollapsed((collapsed) => !collapsed);
+  }
+
+  function handleTranscriptPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith('image/'));
+    if (files.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    void (async () => {
+      const snippets = await Promise.all(files.map((file) => createImageSnippet(file)));
+      await appendTranscriptImages(snippets, '粘贴成功，已采集');
+    })();
+  }
+
+  async function organizeTranscriptWorkspace(force = false) {
+    const originalWorkspace = normalizeTranscriptWorkspace(session.transcriptWorkspace);
+    const originalCoverage = getTranscriptCoverage(originalWorkspace);
+    const pendingOcrSnippets = force ? originalWorkspace.ocrSnippets : originalWorkspace.ocrSnippets.filter((snippet) => !originalCoverage.coveredIds.has(snippet.id));
+    const incrementalTranscriptContext = compactTranscriptContextForIncremental(originalWorkspace.transcriptText);
+    const workspace = force
+      ? { ...originalWorkspace, transcriptText: '' }
+      : { ...originalWorkspace, transcriptText: incrementalTranscriptContext, ocrSnippets: pendingOcrSnippets };
+    if (!originalWorkspace.transcriptText.trim() && originalWorkspace.ocrSnippets.length === 0) {
+      showNotice('先粘贴或上传几张整场聊天截图，或手动粘贴脚本文字。');
+      return;
+    }
+    if (force && !window.confirm('强制梳理会清空当前“整场脚本文本”，只基于已采集 OCR 重新梳理；不会删除截图/OCR 原文。确认继续吗？')) {
+      return;
+    }
+
+    setTranscriptOrganizeForce(force);
+    setBusy('transcript-organize');
+    setNotice('');
+    try {
+      const knownSpeakerNames = session.speakers
+        .map((speaker) => speaker.name)
+        .filter((name) => !shouldAutoRenameSpeaker(name) && !isDefaultSpeakerName(name));
+      if (!force && pendingOcrSnippets.length === 0) {
+        const entries = normalizeTranscriptEntries(parseTranscriptEntries(originalWorkspace.transcriptText), knownSpeakerNames, originalWorkspace.transcriptText);
+        const allOcrText = originalWorkspace.ocrSnippets.map((snippet) => formatOcrTextByTime(snippet.text)).join('\n');
+        const recoveredEntries = normalizeTranscriptEntries(
+          [...parseTranscriptEntries(originalWorkspace.transcriptText), ...parseTranscriptEntries(allOcrText)],
+          knownSpeakerNames,
+          [originalWorkspace.transcriptText, allOcrText].filter(Boolean).join('\n')
+        );
+        const nextEntries = recoveredEntries.length > entries.length ? recoveredEntries : entries;
+        const transcriptText = formatTranscriptEntries(nextEntries);
+        updateTranscriptWorkspace((current) => ({
+          ...current,
+          transcriptText,
+          organizedOcrSnippetIds: Array.from(getTranscriptCoverage({ ...current, transcriptText }).coveredIds),
+        }));
+        showNotice(
+          recoveredEntries.length > entries.length
+            ? `没有新增 OCR，但已从历史 OCR 里补回 ${recoveredEntries.length - entries.length} 条，当前脚本 ${nextEntries.length} 条。`
+            : `没有新增 OCR，已快速去重整理现有脚本 ${nextEntries.length} 条。`
+        );
+        return;
+      }
+      if (!force) {
+        const pendingOcrText = pendingOcrSnippets.map((snippet) => formatOcrTextByTime(snippet.text)).join('\n');
+        const pendingEntries = parseTranscriptEntries(pendingOcrText);
+        const entries = normalizeTranscriptEntries(
+          [...parseTranscriptEntries(originalWorkspace.transcriptText), ...pendingEntries],
+          knownSpeakerNames,
+          [originalWorkspace.transcriptText, pendingOcrText].filter(Boolean).join('\n')
+        );
+        const transcriptText = formatTranscriptEntries(entries);
+        updateTranscriptWorkspace((current) => ({
+          ...current,
+          transcriptText,
+          organizedOcrSnippetIds: Array.from(getTranscriptCoverage({ ...current, transcriptText }).coveredIds),
+        }));
+        showNotice(`已本地增量梳理 ${pendingOcrSnippets.length} 段新增 OCR，当前脚本 ${entries.length} 条。`);
+        return;
+      }
+      const result = settings.hasApiKey
+        ? await getObserverAPI().organizeTranscript(buildTranscriptOrganizePrompt(workspace, knownSpeakerNames))
+        : createLocalTranscriptOrganizeResult(workspace, knownSpeakerNames);
+      const contextText = [
+        force ? '' : originalWorkspace.transcriptText,
+        workspace.ocrSnippets.map((snippet) => snippet.text).join('\n'),
+        result.transcriptText || '',
+        result.entries?.map((entry) => entry.text).join('\n') || '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const localPendingEntries = parseTranscriptEntries(workspace.ocrSnippets.map((snippet) => formatOcrTextByTime(snippet.text)).join('\n'));
+      const resultEntries = [
+        ...(result.entries?.length ? result.entries : parseTranscriptEntries(result.transcriptText || workspace.transcriptText)),
+        ...localPendingEntries,
+      ];
+      const entries = normalizeTranscriptEntries(
+        [...(force ? [] : parseTranscriptEntries(originalWorkspace.transcriptText)), ...resultEntries],
+        knownSpeakerNames,
+        contextText
+      );
+      const transcriptText = formatTranscriptEntries(entries);
+      updateTranscriptWorkspace((current) => ({
+        ...current,
+        transcriptText,
+        organizedOcrSnippetIds: Array.from(getTranscriptCoverage({ ...current, transcriptText }).coveredIds),
+      }));
+      showNotice(
+        settings.hasApiKey
+          ? `${force ? '已强制梳理' : `已增量梳理 ${pendingOcrSnippets.length} 段新增 OCR，共整理`} ${entries.length} 条发言脚本，并完成去重排序。`
+          : `已用本地规则${force ? '强制梳理' : `增量梳理 ${pendingOcrSnippets.length} 段新增 OCR，整理`} ${entries.length} 条脚本；设置 API Key 后可更好修正 OCR。`
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      const knownSpeakerNames = session.speakers
+        .map((speaker) => speaker.name)
+        .filter((name) => !shouldAutoRenameSpeaker(name) && !isDefaultSpeakerName(name));
+      const fallback = createLocalTranscriptOrganizeResult(workspace, knownSpeakerNames);
+      const localPendingEntries = parseTranscriptEntries(workspace.ocrSnippets.map((snippet) => formatOcrTextByTime(snippet.text)).join('\n'));
+      const fallbackEntries = [
+        ...(force ? [] : parseTranscriptEntries(originalWorkspace.transcriptText)),
+        ...(fallback.entries?.length ? fallback.entries : parseTranscriptEntries(fallback.transcriptText || workspace.transcriptText)),
+        ...localPendingEntries,
+      ];
+      const fallbackTranscriptText = formatTranscriptEntries(normalizeTranscriptEntries(fallbackEntries, knownSpeakerNames, originalWorkspace.transcriptText));
+      updateTranscriptWorkspace((current) => ({
+        ...current,
+        transcriptText: fallbackTranscriptText,
+        organizedOcrSnippetIds: Array.from(getTranscriptCoverage({ ...current, transcriptText: fallbackTranscriptText }).coveredIds),
+      }));
+      if (isAbortOrTimeoutMessage(errorMessage)) {
+        showNotice(`AI ${force ? '强制梳理' : '梳理'}超时，已用本地规则完成梳理。截图较多时可以继续使用当前结果，或分批补充后再梳理。`);
+      } else {
+        showNotice(`AI ${force ? '强制梳理' : '梳理'}失败，已用本地规则梳理：${errorMessage}`, {
+          type: 'error',
+          persistent: true,
+        });
+      }
+    } finally {
+      setBusy(null);
+      setTranscriptOrganizeForce(false);
+    }
+  }
+
+  function upsertTranscriptSnippet(snippets: ContentSnippet[], content: string) {
+    const existing = snippets.find((snippet) => snippet.sourceType === 'meeting_transcript' && snippet.fileName === '整场脚本归人');
+    if (existing) {
+      return snippets.map((snippet) =>
+        snippet.id === existing.id
+          ? {
+              ...snippet,
+              text: content,
+              createdAt: new Date().toISOString(),
+            }
+          : snippet
+      );
+    }
+    return [
+      ...snippets,
+      {
+        ...createSnippet(content, 'meeting_transcript'),
+        fileName: '整场脚本归人',
+      },
+    ];
+  }
+
+  async function assignTranscriptToSpeakers(force = false) {
+    if (transcriptAssigning) {
+      return;
+    }
+    if (
+      force &&
+      !window.confirm('强制归人会清空当前书友卡片和已有单人观察，并按当前整场脚本文本重新生成。确认继续吗？')
+    ) {
+      return;
+    }
+    const knownSpeakerNames = session.speakers
+      .map((speaker) => speaker.name)
+      .filter((name) => !shouldAutoRenameSpeaker(name) && !isDefaultSpeakerName(name));
+    const grouped = groupTranscriptBySpeaker(transcriptWorkspace.transcriptText, knownSpeakerNames);
+    if (grouped.length === 0) {
+      showNotice('还没有能归人的脚本。先点击“梳理”，或把脚本按“时间 姓名：内容”的格式放进文本框。');
+      return;
+    }
+
+    setTranscriptAssigning(true);
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+
+    try {
+      if (force) {
+        const generatedAt = new Date().toISOString();
+        const generatedSpeakers: SpeakerCard[] = grouped.map((group) => ({
+          id: crypto.randomUUID(),
+          name: normalizeSpeakerDisplayName(group.speakerName),
+          status: 'captured',
+          snippets: upsertTranscriptSnippet([], group.content),
+          polishedContent: group.content,
+          polishedAt: generatedAt,
+        }));
+        const forceMergeResult = mergeDuplicateSpeakersByName(generatedSpeakers);
+        const speakers = forceMergeResult.speakers;
+        const speakerIds = speakers.map((speaker) => speaker.id);
+
+        updateSession((current) => ({
+          ...current,
+          speakers,
+        }));
+        setSelectedSpeakerId(speakerIds[0] || '');
+        setPendingAutoAnalyzeIds(speakerIds);
+        showNotice(`已强制归人 ${speakers.length} 位书友，已清空旧卡片并将全部重新观察。${forceMergeResult.mergedCount > 0 ? `已合并 ${forceMergeResult.mergedCount} 个同名发言人。` : ''}`);
+        return;
+      }
+
+      const changedSpeakerIds: string[] = [];
+      let firstChangedOrCreatedId = '';
+      const mergedResult = mergeDuplicateSpeakersByName(session.speakers);
+      const speakers = [...mergedResult.speakers];
+      const usedSpeakerIds = new Set<string>();
+
+      grouped.forEach((group) => {
+        const displayName = normalizeSpeakerDisplayName(group.speakerName);
+        const nameKey = speakerMergeKey(displayName) || displayName;
+        let index = speakers.findIndex((speaker) => (speakerMergeKey(speaker.name) || normalizeSpeakerDisplayName(speaker.name)) === nameKey);
+        if (index < 0) {
+          index = speakers.findIndex((speaker) => shouldAutoRenameSpeaker(speaker.name) && !speakerSourceText(speaker).trim() && !usedSpeakerIds.has(speaker.id));
+        }
+        const existingSpeaker =
+          index >= 0
+            ? speakers[index]
+            : {
+                id: crypto.randomUUID(),
+                name: displayName,
+                status: 'empty' as SpeakerCard['status'],
+                snippets: [],
+              };
+
+        const nextName = (speakerMergeKey(existingSpeaker.name) || normalizeSpeakerDisplayName(existingSpeaker.name)) === nameKey ? normalizeSpeakerDisplayName(existingSpeaker.name) : displayName;
+        const nextSnippets = upsertTranscriptSnippet(existingSpeaker.snippets, group.content);
+        const hasIncrease = hasMaterialTranscriptIncrease(existingSpeaker.polishedContent || speakerSourceText(existingSpeaker), group.content);
+        const nextSpeaker: SpeakerCard = {
+          ...existingSpeaker,
+          name: normalizeSpeakerDisplayName(nextName),
+          status: hasIncrease ? 'captured' : existingSpeaker.status === 'empty' ? 'captured' : existingSpeaker.status,
+          snippets: nextSnippets,
+          polishedContent: group.content,
+          polishedAt: new Date().toISOString(),
+          insight: hasIncrease ? undefined : existingSpeaker.insight,
+        };
+
+        if (index >= 0) {
+          speakers[index] = nextSpeaker;
+        } else {
+          speakers.push(nextSpeaker);
+        }
+        usedSpeakerIds.add(nextSpeaker.id);
+        if (hasIncrease) {
+          changedSpeakerIds.push(nextSpeaker.id);
+          firstChangedOrCreatedId ||= nextSpeaker.id;
+        }
+      });
+
+      const finalMergeResult = mergeDuplicateSpeakersByName(speakers);
+      const finalIdMap = new Map([...Array.from(mergedResult.idMap.entries()), ...Array.from(finalMergeResult.idMap.entries())]);
+      const finalSpeakers = finalMergeResult.speakers;
+      const finalChangedSpeakerIds = Array.from(new Set(changedSpeakerIds.map((id) => finalIdMap.get(id) || id))).filter((id) => finalSpeakers.some((speaker) => speaker.id === id));
+      const finalFirstChangedOrCreatedId = firstChangedOrCreatedId ? finalIdMap.get(firstChangedOrCreatedId) || firstChangedOrCreatedId : '';
+
+      updateSession((current) => {
+        return {
+          ...current,
+          speakers: finalSpeakers,
+        };
+      });
+
+      const nextSelectedSpeakerId = finalIdMap.get(selectedSpeakerId) || selectedSpeakerId;
+      if (finalFirstChangedOrCreatedId) {
+        setSelectedSpeakerId(finalFirstChangedOrCreatedId);
+      } else if (nextSelectedSpeakerId !== selectedSpeakerId) {
+        setSelectedSpeakerId(nextSelectedSpeakerId);
+      }
+      const totalMergedCount = mergedResult.mergedCount + finalMergeResult.mergedCount;
+      if (finalChangedSpeakerIds.length > 0) {
+        setPendingAutoAnalyzeIds((current) => Array.from(new Set([...current, ...finalChangedSpeakerIds])));
+        showNotice(
+          `已归人 ${grouped.length} 位书友，其中 ${finalChangedSpeakerIds.length} 位有新增内容，将自动观察。${
+            totalMergedCount > 0 ? `已合并 ${totalMergedCount} 个同名发言人。` : ''
+          }`
+        );
+      } else {
+        showNotice(
+          `已归人 ${grouped.length} 位书友，没有发现需要重新观察的新增内容。${
+            totalMergedCount > 0 ? `已合并 ${totalMergedCount} 个同名发言人。` : ''
+          }`
+        );
+      }
+    } finally {
+      window.setTimeout(() => setTranscriptAssigning(false), 120);
+    }
+  }
+
+  async function tryTranscriptSummary() {
+    const workspace = normalizeTranscriptWorkspace(session.transcriptWorkspace);
+    if (!workspace.transcriptText.trim()) {
+      showNotice('先点击“梳理”，生成整场发言脚本后再融合成分享稿。');
+      return;
+    }
+
+    setBusy('transcript-summary');
+    setNotice('');
+    try {
+      const knowledgeText = [workspace.transcriptText, dailyObservationText].filter(Boolean).join('\n');
+      const relevantKnowledge = selectKnowledgeForRun(knowledgeEntries, knowledgeText, selectedTheme.name, pinnedKnowledgeIds, 12, session.excludedSummaryKnowledgeIds || []);
+      const relevantKnowledgeIds = relevantKnowledge.map((entry) => entry.id);
+      const summary = settings.hasApiKey
+        ? await getObserverAPI().summarizeSession(buildTranscriptObservationPrompt(session, selectedTheme, relevantKnowledge))
+        : createLocalTranscriptObservationSummary(session, selectedTheme);
+      summary.generatedBy = settings.hasApiKey ? settings.provider : 'local';
+      const index = summaryVersions.filter((version) => version.label.startsWith('融合分享稿')).length + 1;
+      const version = createSummaryVersion({
+        label: `融合分享稿 ${index} · 主线稿`,
+        source: 'refined',
+        templateMode: resolveSummaryTemplate(summary, 'hybrid'),
+        summary,
+        requirement: '基于整场截图脚本、我的当日观察素材和当天课程，先判断全场主线，再融合成完整观察者分享稿',
+      });
+      setSummaryKnowledgeIds(relevantKnowledgeIds);
+      updateSession((current) =>
+        syncSessionSummaries(
+          {
+            ...current,
+            summaryKnowledgeIds: relevantKnowledgeIds,
+          },
+          [...getSessionSummaryVersions(current), version]
+        )
+      );
+      showNotice(settings.hasApiKey ? '已新增一版融合分享稿。' : '已新增一版本地融合分享稿；设置 API Key 后可获得真实 AI 输出。');
+    } catch (error) {
+      setNotice(`融合分享稿失败：${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createWholeSessionEncouragement() {
+    const workspace = normalizeTranscriptWorkspace(session.transcriptWorkspace);
+    if (!workspace.transcriptText.trim()) {
+      showNotice('先点击“梳理”，生成整场发言脚本后再输出全场鼓励。');
+      return;
+    }
+
+    setBusy('transcript-encouragement');
+    setNotice('');
+    try {
+      const knowledgeText = [workspace.transcriptText, dailyObservationText].filter(Boolean).join('\n');
+      const relevantKnowledge = selectKnowledgeForRun(knowledgeEntries, knowledgeText, selectedTheme.name, pinnedKnowledgeIds, 8, session.excludedSummaryKnowledgeIds || []);
+      const relevantKnowledgeIds = relevantKnowledge.map((entry) => entry.id);
+      const summary = settings.hasApiKey
+        ? await getObserverAPI().summarizeSession(buildTranscriptEncouragementPrompt(session, selectedTheme, relevantKnowledge))
+        : createLocalTranscriptEncouragementSummary(session, selectedTheme);
+      summary.generatedBy = settings.hasApiKey ? settings.provider : 'local';
+      const index = summaryVersions.filter((version) => version.label.startsWith('全场鼓励')).length + 1;
+      const version = createSummaryVersion({
+        label: `全场鼓励 ${index} · 五种模式 + 金句`,
+        source: 'refined',
+        templateMode: resolveSummaryTemplate(summary, 'resonance'),
+        summary,
+        requirement: '基于整场截图脚本，按整体场域、个人转变、课程连接、温柔发言、由内而外五种模式输出全场鼓励，并增加大家的金句与洞察',
+      });
+      setSummaryKnowledgeIds(relevantKnowledgeIds);
+      updateSession((current) =>
+        syncSessionSummaries(
+          {
+            ...current,
+            summaryKnowledgeIds: relevantKnowledgeIds,
+          },
+          [...getSessionSummaryVersions(current), version]
+        )
+      );
+      showNotice(settings.hasApiKey ? '已新增一版全场鼓励，并包含大家的金句与洞察。' : '已新增一版本地全场鼓励，并包含大家的金句与洞察；设置 API Key 后可获得真实 AI 输出。');
+    } catch (error) {
+      setNotice(`全场鼓励失败：${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setBusy(null);
+    }
   }
 
   function switchCourse(themeId: string) {
@@ -1007,7 +2300,7 @@ export default function App() {
       `确认把当前这场观察从「${fromTheme.name}」更换到「${toTheme.name}」吗？`,
       '',
       '会保留：发言人、内容片段、我的实际回应。',
-      hasGeneratedContent ? '会清空：旧课程下生成的单人洞察、现场回应、全场观察。' : '当前还没有 AI 分析，可以直接更换。',
+      hasGeneratedContent ? '会清空：旧课程下生成的单人观察、现场回应、全场观察。' : '当前还没有 AI 观察，可以直接更换。',
     ].join('\n');
 
     if (!window.confirm(message)) {
@@ -1037,11 +2330,11 @@ export default function App() {
     }));
     safeSetStorage(ACTIVE_COURSE_KEY, toTheme.id);
     setCourseChangeOpen(false);
-    setNotice(`已更换为「${toTheme.name}」，请重新分析发言人。`);
+    setNotice(`已更换为「${toTheme.name}」，请重新观察书友分享。`);
   }
 
   function clearCurrentCourse() {
-    if (!window.confirm('确认清空当前课程下的所有发言人、内容片段、单人分析、全场观察和本场必用案例吗？')) {
+    if (!window.confirm('确认清空当前课程下的所有发言人、内容片段、单人观察、全场观察、当日观察素材和本场必用案例吗？')) {
       return;
     }
     const nextSession = createSessionForTheme(session.themeId, session);
@@ -1059,7 +2352,7 @@ export default function App() {
     setNotice('已清空当天内容。');
   }
 
-  function appendSnippet(text: string, snippetSource: SourceType) {
+  function appendSnippet(text: string, snippetSource: SourceType, successMessage?: string) {
     const trimmed = text.trim();
     if (!trimmed || !currentSpeaker) {
       return;
@@ -1068,12 +2361,14 @@ export default function App() {
     const snippet = createSnippet(trimmed, snippetSource);
     updateSpeaker(currentSpeaker.id, (speaker) => ({
       ...speaker,
-      name: isDefaultSpeakerName(speaker.name) ? detectSpeakerName(trimmed) || speaker.name : speaker.name,
+      name: resolveAutoSpeakerName(speaker.name, undefined, [...speaker.snippets, snippet]),
       status: speaker.status === 'empty' ? 'captured' : speaker.status,
       snippets: [...speaker.snippets, snippet],
+      polishedContent: undefined,
+      polishedAt: undefined,
     }));
     setDraftText('');
-    setNotice(`已加入 ${currentSpeaker.name}`);
+    showNotice(successMessage || `已加入 ${currentSpeaker.name}`);
   }
 
   async function pasteFromClipboard() {
@@ -1081,23 +2376,27 @@ export default function App() {
     if (clipboardImage?.imageDataUrl) {
       await appendImageSnippets([
         await createImageSnippetFromDataUrl(clipboardImage.imageDataUrl, clipboardImage.fileName || '剪贴板截图.png'),
-      ], '已从剪贴板截图加入');
+      ], '粘贴成功，已将剪贴板截图加入');
       return;
     }
 
     const text = await getObserverAPI().readClipboardText();
-    appendSnippet(text, 'clipboard');
+    if (!text.trim()) {
+      showNotice('剪贴板里没有可粘贴的文字或截图。');
+      return;
+    }
+    appendSnippet(text, 'clipboard', `粘贴成功，已将剪贴板文字加入 ${currentSpeaker?.name || '当前发言人'}。`);
   }
 
   async function pasteImageFromClipboard() {
     const clipboardImage = await getObserverAPI().readClipboardImage().catch(() => null);
     if (!clipboardImage?.imageDataUrl) {
-      setNotice('剪贴板里没有截图。也可以点进输入框后直接 Cmd+V。');
+      showNotice('剪贴板里没有截图。也可以点进输入框后直接 Cmd+V。');
       return;
     }
     await appendImageSnippets([
       await createImageSnippetFromDataUrl(clipboardImage.imageDataUrl, clipboardImage.fileName || '剪贴板截图.png'),
-    ], '已从剪贴板截图加入');
+    ], '粘贴截图成功，已加入');
   }
 
   function handleDraftPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
@@ -1109,7 +2408,7 @@ export default function App() {
     event.preventDefault();
     void (async () => {
       const snippets = await Promise.all(files.map((file) => createImageSnippet(file)));
-      await appendImageSnippets(snippets, '已从粘贴截图加入');
+      await appendImageSnippets(snippets, '粘贴成功，已加入');
     })();
   }
 
@@ -1123,13 +2422,13 @@ export default function App() {
       const ocrSnippets = await Promise.all(
         snippets.map(async (snippet) => {
           try {
-            const result = await getObserverAPI().ocrImage(snippet.imageDataUrl || '', snippet.fileName);
+            const result = await getObserverAPI().ocrImage(getSnippetOcrImageDataUrl(snippet), snippet.fileName);
             const ocrText = result.text.trim();
             if (ocrText) {
               return {
                 ...snippet,
                 sourceType: 'ocr_text' as SourceType,
-                text: `图片 OCR 识别结果（${snippet.fileName || '截图'}）：\n${ocrText}`,
+                text: ocrText,
               };
             }
           } catch {
@@ -1138,20 +2437,72 @@ export default function App() {
           return snippet;
         })
       );
+      const storedOcrSnippets = ocrSnippets.map(stripTransientOcrImage);
       updateSpeaker(currentSpeaker.id, (speaker) => ({
         ...speaker,
-        name: isDefaultSpeakerName(speaker.name)
-          ? ocrSnippets.map((snippet) => detectSpeakerName(snippet.text)).find(Boolean) || speaker.name
-          : speaker.name,
+        name: resolveAutoSpeakerName(speaker.name, undefined, [...speaker.snippets, ...storedOcrSnippets]),
         status: speaker.status === 'empty' ? 'captured' : speaker.status,
-        snippets: [...speaker.snippets, ...ocrSnippets],
+        snippets: [...speaker.snippets, ...storedOcrSnippets],
+        polishedContent: undefined,
+        polishedAt: undefined,
       }));
-      setNotice(`${successPrefix} ${snippets.length} 张图片到 ${currentSpeaker.name}。`);
+      const recognizedCount = storedOcrSnippets.filter((snippet) => cleanSourceText(snippet.text)).length;
+      const missedCount = snippets.length - recognizedCount;
+      showNotice(
+        missedCount > 0
+          ? `${successPrefix} ${snippets.length} 张图片到 ${currentSpeaker.name}，其中 ${recognizedCount} 张识别到文字，${missedCount} 张未识别到。`
+          : `${successPrefix} ${snippets.length} 张图片到 ${currentSpeaker.name}，已识别文字。`
+      );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : '图片处理失败。');
+      showNotice(error instanceof Error ? error.message : '图片处理失败。');
     } finally {
       setBusy(null);
     }
+  }
+
+  async function fillMissingOcrForSpeaker(speaker: SpeakerCard) {
+    let changed = false;
+    let failedCount = 0;
+    const snippets = await Promise.all(
+      speaker.snippets.map(async (snippet) => {
+        const ocrImageDataUrl = getSnippetOcrImageDataUrl(snippet);
+        if (cleanSourceText(snippet.text) || !ocrImageDataUrl) {
+          return stripTransientOcrImage(snippet);
+        }
+        try {
+          const result = await getObserverAPI().ocrImage(ocrImageDataUrl, snippet.fileName);
+          const ocrText = result.text.trim();
+          if (!ocrText) {
+            failedCount += 1;
+            return stripTransientOcrImage(snippet);
+          }
+          changed = true;
+          return stripTransientOcrImage({
+            ...snippet,
+            sourceType: 'ocr_text' as SourceType,
+            text: ocrText,
+          });
+        } catch {
+          failedCount += 1;
+          return stripTransientOcrImage(snippet);
+        }
+      })
+    );
+
+    const nextSpeaker = {
+      ...speaker,
+      snippets,
+    };
+
+    if (changed) {
+      updateSpeaker(speaker.id, (current) => ({
+        ...current,
+        name: resolveAutoSpeakerName(current.name, undefined, snippets),
+        snippets: current.snippets.map((snippet) => snippets.find((item) => item.id === snippet.id) || snippet),
+      }));
+    }
+
+    return { speaker: nextSpeaker, changed, failedCount };
   }
 
   async function uploadImages(files: FileList | null) {
@@ -1239,6 +2590,8 @@ export default function App() {
       return {
         ...speaker,
         snippets,
+        polishedContent: undefined,
+        polishedAt: undefined,
         status: snippets.length === 0 ? 'empty' : speaker.status,
       };
     });
@@ -1270,6 +2623,25 @@ export default function App() {
     }
     await getObserverAPI().writeClipboardText(text);
     setNotice(`已复制：${label}`);
+  }
+
+  async function copyImageDataUrl(imageDataUrl: string, label: string) {
+    try {
+      const response = await fetch(imageDataUrl);
+      const blob = await response.blob();
+      if (!navigator.clipboard || !('write' in navigator.clipboard) || typeof ClipboardItem === 'undefined') {
+        setNotice('当前浏览器不支持直接复制图片。可以右键图片复制，或重新粘贴原截图测试。');
+        return;
+      }
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type || 'image/jpeg']: blob,
+        }),
+      ]);
+      setNotice(`已复制图片：${label}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? `复制图片失败：${error.message}` : '复制图片失败，可以右键图片复制。');
+    }
   }
 
   function toggleSummaryVersion(versionId: string) {
@@ -1354,47 +2726,156 @@ export default function App() {
     setNotice(`已从本场全场观察素材中移除${target ? `：${target.title}` : ''}。重新输出全场观察后生效。`);
   }
 
-  async function analyzeSpeaker() {
-    if (!currentSpeaker || currentSpeaker.snippets.length === 0) {
-      setNotice('先给当前发言人粘贴内容。');
+  function setSpeakerAnalyzing(speakerId: string, analyzing: boolean) {
+    setAnalyzingSpeakerIds((current) => {
+      if (analyzing) {
+        return current.includes(speakerId) ? current : [...current, speakerId];
+      }
+      return current.filter((id) => id !== speakerId);
+    });
+  }
+
+  function setSpeakerPolishing(speakerId: string, polishing: boolean) {
+    setPolishingSpeakerIds((current) => {
+      if (polishing) {
+        return current.includes(speakerId) ? current : [...current, speakerId];
+      }
+      return current.filter((id) => id !== speakerId);
+    });
+  }
+
+  function updatePolishedContent(value: string) {
+    if (!currentSpeaker) {
+      return;
+    }
+    updateSpeaker(currentSpeaker.id, (speaker) => ({
+      ...speaker,
+      polishedContent: value,
+      polishedAt: value.trim() ? new Date().toISOString() : undefined,
+    }));
+  }
+
+  async function polishSpeakerContent(speakerId = currentSpeaker?.id || '') {
+    const targetSpeaker = session.speakers.find((speaker) => speaker.id === speakerId);
+    if (!targetSpeaker || targetSpeaker.snippets.length === 0) {
+      showNotice('先给当前发言人粘贴或上传内容。');
+      return;
+    }
+    if (polishingSpeakerIds.includes(targetSpeaker.id)) {
       return;
     }
 
-    setBusy('analyze');
+    setSpeakerPolishing(targetSpeaker.id, true);
     setNotice('');
+    let speakerForFallback = targetSpeaker;
     try {
-      let insight: SpeakerInsight;
-      const speakerText = currentSpeaker.snippets.map((snippet) => snippet.text).join('\n');
-      const relevantKnowledge = selectKnowledgeForRun(knowledgeEntries, speakerText, selectedTheme.name, pinnedKnowledgeIds, 8);
-      setSpeakerKnowledgeUse((current) => ({ ...current, [currentSpeaker.id]: relevantKnowledge.map((entry) => entry.id) }));
-      if (settings.hasApiKey) {
-        const payload = buildSpeakerPrompt(session, selectedTheme, currentSpeaker, relevantKnowledge);
-        insight = await getObserverAPI().analyzeSpeaker(payload);
-        insight.generatedBy = settings.provider;
-      } else {
-        insight = createLocalSpeakerInsight(currentSpeaker, selectedTheme);
+      const ocrResult = await fillMissingOcrForSpeaker(targetSpeaker);
+      const sourceSpeaker = ocrResult.speaker;
+      speakerForFallback = sourceSpeaker;
+      const sourceText = sourceSpeaker.snippets.map((snippet) => cleanSourceText(snippet.text)).filter(Boolean).join('\n');
+      if (!sourceText.trim()) {
+        showNotice(`${targetSpeaker.name} 还没有可整理的 OCR 或转写文字。请换更清晰截图，或手动粘贴文字。`);
+        return;
       }
 
-      updateSpeaker(currentSpeaker.id, (speaker) => ({
+      const result = settings.hasApiKey
+        ? await getObserverAPI().polishSpeakerContent(buildSpeakerContentPolishPrompt(sourceSpeaker))
+        : createLocalPolishedSpeakerContent(sourceSpeaker);
+      const polishedContent = result.polishedContent?.trim() || createLocalPolishedSpeakerContent(sourceSpeaker).polishedContent;
+
+      updateSpeaker(targetSpeaker.id, (speaker) => ({
         ...speaker,
-        name:
-          isDefaultSpeakerName(speaker.name) && insight.suggestedSpeakerName
-            ? normalizeRecognizedSpeakerName(insight.suggestedSpeakerName) || speaker.name
-            : speaker.name,
+        name: resolveAutoSpeakerName(speaker.name, undefined, sourceSpeaker.snippets),
+        snippets: speaker.snippets.map((snippet) => sourceSpeaker.snippets.find((item) => item.id === snippet.id) || snippet),
+        polishedContent,
+        polishedAt: new Date().toISOString(),
+      }));
+      showNotice(settings.hasApiKey ? `已整理 ${targetSpeaker.name} 的发言内容。` : `已拼接 ${targetSpeaker.name} 的发言内容；设置 API Key 后可自动顺稿。`);
+    } catch (error) {
+      const fallback = createLocalPolishedSpeakerContent(speakerForFallback);
+      updateSpeaker(targetSpeaker.id, (speaker) => ({
+        ...speaker,
+        polishedContent: fallback.polishedContent,
+        polishedAt: new Date().toISOString(),
+      }));
+      showNotice(`AI 整理失败，已用本地拼接稿代替：${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setSpeakerPolishing(targetSpeaker.id, false);
+    }
+  }
+
+  async function analyzeSpeaker(speakerId = currentSpeaker?.id || '') {
+    const targetSpeaker = session.speakers.find((speaker) => speaker.id === speakerId);
+    if (!targetSpeaker || (targetSpeaker.snippets.length === 0 && !targetSpeaker.polishedContent?.trim())) {
+      setNotice('先给当前发言人粘贴内容。');
+      return;
+    }
+    if (analyzingSpeakerIds.includes(targetSpeaker.id)) {
+      return;
+    }
+
+    setSpeakerAnalyzing(targetSpeaker.id, true);
+    setNotice('');
+    const sessionSnapshot = session;
+    const themeSnapshot = selectedTheme;
+    const settingsSnapshot = settings;
+    let analysisSpeakerForFallback = targetSpeaker;
+    try {
+      let insight: SpeakerInsight;
+      const ocrResult = await fillMissingOcrForSpeaker(targetSpeaker);
+      const analysisSpeaker = ocrResult.speaker;
+      analysisSpeakerForFallback = analysisSpeaker;
+      const speakerText = speakerSourceText(analysisSpeaker);
+      const hasText = Boolean(speakerText.trim());
+      const hasAnalyzableImage = settingsSnapshot.provider !== 'xiaomi_mimo' && analysisSpeaker.snippets.some((snippet) => snippet.imageDataUrl);
+      if (!hasText && !hasAnalyzableImage) {
+        setNotice(
+          settingsSnapshot.provider === 'xiaomi_mimo'
+            ? `${targetSpeaker.name} 的截图没有 OCR 出可分析文字。MiMo 当前不能直接看图，请换更清晰截图，或粘贴腾讯会议转写文字。`
+            : `${targetSpeaker.name} 的内容里没有可分析文字，图片数据也不可用。请重新粘贴截图或转写文字。`
+        );
+        return;
+      }
+      const speakerKnowledgeText = [speakerText, dailyObservationToText(sessionSnapshot.dailyObservation)].filter(Boolean).join('\n');
+      const relevantKnowledge = selectKnowledgeForRun(knowledgeEntries, speakerKnowledgeText, themeSnapshot.name, pinnedKnowledgeIds, 8);
+      setSpeakerKnowledgeUse((current) => ({ ...current, [targetSpeaker.id]: relevantKnowledge.map((entry) => entry.id) }));
+      if (settingsSnapshot.hasApiKey) {
+        const promptSpeaker =
+          settingsSnapshot.provider === 'xiaomi_mimo'
+            ? {
+                ...analysisSpeaker,
+                snippets: analysisSpeaker.snippets.filter((snippet) => cleanSourceText(snippet.text)),
+              }
+            : analysisSpeaker;
+        const sessionForPrompt = {
+          ...sessionSnapshot,
+          speakers: sessionSnapshot.speakers.map((speaker) => (speaker.id === promptSpeaker.id ? promptSpeaker : speaker)),
+        };
+        const payload = buildSpeakerPrompt(sessionForPrompt, themeSnapshot, promptSpeaker, relevantKnowledge);
+        insight = await getObserverAPI().analyzeSpeaker(payload);
+        insight.generatedBy = settingsSnapshot.provider;
+      } else {
+        insight = createLocalSpeakerInsight(analysisSpeaker, themeSnapshot, sessionSnapshot);
+      }
+
+      updateSpeaker(targetSpeaker.id, (speaker) => ({
+        ...speaker,
+        name: resolveAutoSpeakerName(speaker.name, insight.suggestedSpeakerName, analysisSpeaker.snippets),
         insight,
         status: 'response_ready',
       }));
-      setNotice(settings.hasApiKey ? '已生成 AI 单人洞察。' : '已生成本地演练稿；设置 API Key 后可获得真实 AI 分析。');
+      setNotice(settingsSnapshot.hasApiKey ? `已生成 ${targetSpeaker.name} 的 AI 单人观察。` : `已生成 ${targetSpeaker.name} 的本地演练稿；设置 API Key 后可获得真实 AI 观察。`);
     } catch (error) {
-      const fallback = createLocalSpeakerInsight(currentSpeaker, selectedTheme);
-      updateSpeaker(currentSpeaker.id, (speaker) => ({
+      const fallback = createLocalSpeakerInsight(analysisSpeakerForFallback, themeSnapshot, sessionSnapshot);
+      updateSpeaker(targetSpeaker.id, (speaker) => ({
         ...speaker,
+        name: resolveAutoSpeakerName(speaker.name, fallback.suggestedSpeakerName, analysisSpeakerForFallback.snippets),
         insight: fallback,
         status: 'response_ready',
       }));
-      setNotice(`AI 请求失败，已用本地演练稿代替：${error instanceof Error ? error.message : '未知错误'}`);
+      setNotice(`${targetSpeaker.name} 的 AI 请求失败，已用本地演练稿代替：${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
-      setBusy(null);
+      setSpeakerAnalyzing(targetSpeaker.id, false);
     }
   }
 
@@ -1422,7 +2903,13 @@ export default function App() {
   async function summarizeSession() {
     setBusy('summary');
     setNotice('');
-    const sessionText = session.speakers.flatMap((speaker) => speaker.snippets.map((snippet) => snippet.text)).join('\n');
+    const sessionText = [
+      session.speakers.map((speaker) => speakerSourceText(speaker)).join('\n'),
+      transcriptWorkspace.transcriptText,
+      dailyObservationText,
+    ]
+      .filter(Boolean)
+      .join('\n');
     const relevantKnowledge = selectKnowledgeForRun(knowledgeEntries, sessionText, selectedTheme.name, pinnedKnowledgeIds, 12, session.excludedSummaryKnowledgeIds || []);
     const relevantKnowledgeIds = relevantKnowledge.map((entry) => entry.id);
     const orderedTemplates = getOrderedSummaryTemplates(summaryTemplateMode, predictedSummaryTemplate);
@@ -1506,7 +2993,13 @@ export default function App() {
     setBusy('summary-refine');
     setNotice('');
     try {
-      const sessionText = session.speakers.flatMap((speaker) => speaker.snippets.map((snippet) => snippet.text)).join('\n');
+      const sessionText = [
+        session.speakers.map((speaker) => speakerSourceText(speaker)).join('\n'),
+        transcriptWorkspace.transcriptText,
+        dailyObservationText,
+      ]
+        .filter(Boolean)
+        .join('\n');
       const relevantKnowledge = selectKnowledgeForRun(knowledgeEntries, sessionText, selectedTheme.name, pinnedKnowledgeIds, 12, session.excludedSummaryKnowledgeIds || []);
       const relevantKnowledgeIds = relevantKnowledge.map((entry) => entry.id);
       const fallbackTemplate =
@@ -1602,7 +3095,7 @@ export default function App() {
       lines.push(`### 共同主题`);
       lines.push(item.commonTheme);
       lines.push('');
-      lines.push('### 每人课题');
+      lines.push('### 每人的问题线索');
       lines.push('');
       item.speakerLessons.forEach((lesson) => {
         lines.push(`- **${lesson.speakerName}**：${lesson.lesson}（${lesson.themeConnection}）`);
@@ -1641,7 +3134,11 @@ export default function App() {
       `- 观察者立场：${session.observerStance}`,
       `- 更新时间：${new Date(session.updatedAt).toLocaleString('zh-CN')}`,
       '',
-      '## 发言人复盘',
+      '## 我的当日观察素材',
+      '',
+      dailyObservationText || '未填写',
+      '',
+      '## 书友复盘',
       '',
     ];
 
@@ -1658,18 +3155,25 @@ export default function App() {
         speaker.snippets.forEach((snippet, index) => {
           lines.push(`**片段 ${index + 1}（${sourceLabels[snippet.sourceType]}，${nowLabel(snippet.createdAt)}）**`);
           lines.push('');
-          lines.push(snippet.text);
+          lines.push(cleanSourceText(snippet.text));
           lines.push('');
         });
       }
 
+      if (speaker.polishedContent?.trim()) {
+        lines.push('#### 整理后的发言内容');
+        lines.push('');
+        lines.push(speaker.polishedContent.trim());
+        lines.push('');
+      }
+
       if (speaker.insight) {
-        lines.push('#### AI 抓点');
+        lines.push('#### AI 观察');
         lines.push('');
         lines.push(`- 最值得抓的点：${speaker.insight.strongestPoint}`);
         lines.push(`- 背后的本质：${speaker.insight.underlyingPattern}`);
         lines.push(`- 课程连接：${speaker.insight.themeConnection}`);
-        lines.push(`- 卡点分类：${speaker.insight.stuckType}`);
+        lines.push(`- 看到的问题：${speaker.insight.stuckType}`);
         lines.push(`- 需要被看见：${speaker.insight.seenNeed}`);
         lines.push(`- 适合关联经历：${speaker.insight.suggestedObserverStory}`);
         lines.push('');
@@ -2040,7 +3544,7 @@ export default function App() {
               onChange={(event) => updateSession((current) => ({ ...current, title: event.target.value }))}
             />
             <span className="session-meta">
-              已采集 {capturedCount}/{session.speakers.length} · 已分析 {analyzedCount}/{session.speakers.length}
+              已采集 {capturedCount}/{session.speakers.length} · 已观察 {analyzedCount}/{session.speakers.length}
             </span>
           </div>
 
@@ -2090,7 +3594,17 @@ export default function App() {
       <section className={`collection-panel ${collectionCollapsed ? 'collapsed' : ''}`}>
         <div className="panel-heading split collection-heading">
           <div>
-            <h2>书友分享内容</h2>
+            <div className="collection-title-row">
+              <h2>书友分享内容</h2>
+              <button className="paste-title-button" onClick={pasteFromClipboard} title="粘贴剪贴板" aria-label="粘贴剪贴板" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 4.75h6a2 2 0 0 1 2 2V8h1.25A1.75 1.75 0 0 1 20 9.75v9.5A1.75 1.75 0 0 1 18.25 21H5.75A1.75 1.75 0 0 1 4 19.25v-9.5A1.75 1.75 0 0 1 5.75 8H7V6.75a2 2 0 0 1 2-2Z" />
+                  <path d="M9 8h6V6.75a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0-.5.5V8Z" />
+                  <path d="M8 12h8M8 15.5h6" />
+                </svg>
+                <span>粘贴</span>
+              </button>
+            </div>
             <p>
               已采集 {capturedCount}/{session.speakers.length} · 已观察 {analyzedCount}/{session.speakers.length}
               {currentSpeaker ? ` · 当前：${currentSpeaker.name}` : ''}
@@ -2105,20 +3619,164 @@ export default function App() {
           <>
             {courseOpen ? (
               <section className="course-panel">
-                <div>
-                  <h2>{selectedTheme.name}</h2>
-                  <p>{selectedTheme.content || selectedTheme.core}</p>
-                </div>
-                <div>
-                  <h3>观察问题</h3>
-                  <ul>
-                    {selectedTheme.observationQuestions.map((question) => (
-                      <li key={question}>{question}</li>
-                    ))}
-                  </ul>
-                </div>
+                <button className="plain-button course-collapse-button" onClick={() => setCourseOpen(false)} type="button">
+                  收起
+                </button>
+                <CourseContentView theme={selectedTheme} onCopyReading={() => void copyText(courseReadingContentText(selectedTheme), '课程晨读内容')} />
               </section>
             ) : null}
+
+            <section className={`daily-observation-panel ${dailyObservationCollapsed ? 'collapsed' : ''}`}>
+              <div className="panel-heading split daily-observation-heading">
+                <div>
+                  <h2>我的当日观察素材</h2>
+                  <p>把你准备单独分享的一整段放这里。生成书友观察和全场观察时，会作为你的个人表达素材来融合。</p>
+                </div>
+                <div className="daily-observation-actions">
+                  <span>{dailyObservationFilled ? '已填写' : '未填写'}</span>
+                  <button className="plain-button" onClick={() => setDailyObservationCollapsed((collapsed) => !collapsed)} type="button">
+                    {dailyObservationCollapsed ? '展开' : '收起'}
+                  </button>
+                  <button className="plain-button danger-button" onClick={clearDailyObservation} type="button">
+                    清空
+                  </button>
+                </div>
+              </div>
+              {dailyObservationCollapsed ? null : (
+                <label className="daily-observation-field daily-observation-field-full">
+                  <div className="textarea-label-row">
+                    <span>我的完整分享素材</span>
+                    <TextCount value={session.dailyObservation.content} />
+                  </div>
+                  <textarea
+                    value={session.dailyObservation.content}
+                    onChange={(event) => updateDailyObservationContent(event.target.value)}
+                    placeholder="可以直接粘贴你准备单独分享的一整段内容，例如：今天这节课让我想到什么、我经历破产/债务/重建时的真实感受、我想对大家说的话、哪些部分不想展开。后续输出会结合书友分享和当天课程，只抽取真正相关的部分来融合，不会整段硬塞。"
+                  />
+                </label>
+              )}
+            </section>
+
+            <section className={`transcript-panel ${transcriptCollapsed ? 'collapsed' : ''}`}>
+              <div className="panel-heading split transcript-heading">
+                <div>
+                  <h2>整场截图脚本</h2>
+                  <p>连续粘贴聊天截图，梳理成带时间、姓名和内容的完整脚本；再归人到下面的发言人卡片。</p>
+                </div>
+                <div className="transcript-actions">
+                  <input
+                    ref={transcriptImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(event) => void uploadTranscriptScreenshots(event.target.files)}
+                  />
+                  <button className="plain-button" disabled={busy === 'transcript-image'} onClick={() => void pasteTranscriptScreenshot()} type="button">
+                    {busy === 'transcript-image' ? '识别中...' : '粘贴截图'}
+                  </button>
+                  <button className="plain-button" disabled={busy === 'transcript-image'} onClick={() => transcriptImageInputRef.current?.click()} type="button">
+                    上传截图
+                  </button>
+                  <div className="transcript-text-summary" aria-label="整场脚本文本字数">
+                    <span>整场脚本文本</span>
+                    <TextCount value={transcriptWorkspace.transcriptText} />
+                  </div>
+                  <button className="plain-button" onClick={() => setTranscriptCollapsed((collapsed) => !collapsed)} type="button">
+                    {transcriptCollapsed ? '展开' : '收起'}
+                  </button>
+                  <button className="plain-button danger-button" onClick={clearTranscriptWorkspace} type="button">
+                    清空
+                  </button>
+                </div>
+              </div>
+              <div className="transcript-meta">
+                <span>已采集 OCR {transcriptWorkspace.ocrSnippets.length} 段</span>
+                <span>待梳理 OCR {pendingTranscriptOcrCount} 段</span>
+                <span>已整理脚本 {transcriptEntryCount} 条</span>
+                {transcriptWorkspace.updatedAt ? <span>更新于 {nowLabel(transcriptWorkspace.updatedAt)}</span> : null}
+              </div>
+              {transcriptCollapsed ? null : (
+                <>
+                  {transcriptWorkspace.ocrSnippets.length > 0 ? (
+                    <div className={`transcript-ocr-preview ${transcriptOcrCollapsed ? 'collapsed' : ''}`}>
+                      <div className="transcript-ocr-preview-head">
+                        <strong>已识别 OCR 原文</strong>
+                        <div className="transcript-ocr-head-actions">
+                          <small>按采集顺序显示，默认预览每段末尾</small>
+                          <button
+                            aria-controls="transcript-ocr-list"
+                            aria-expanded={!transcriptOcrCollapsed}
+                            className="plain-button"
+                            onPointerDown={(event) => {
+                              if (event.pointerType !== 'touch') {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                suppressNextOcrToggleClick.current = true;
+                                toggleTranscriptOcrPreview();
+                              }
+                            }}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              if (suppressNextOcrToggleClick.current) {
+                                suppressNextOcrToggleClick.current = false;
+                                return;
+                              }
+                              toggleTranscriptOcrPreview();
+                            }}
+                            type="button"
+                          >
+                            {transcriptOcrCollapsed ? '展开' : '收起'}
+                          </button>
+                        </div>
+                      </div>
+                      <div id="transcript-ocr-list" className="transcript-ocr-list" hidden={transcriptOcrCollapsed}>
+                        {transcriptWorkspace.ocrSnippets.map((snippet, index) => (
+                          <article key={snippet.id} className="transcript-ocr-item">
+                            <div className="transcript-ocr-meta">
+                              <span>#{index + 1}</span>
+                              {snippet.fileName ? <span>{snippet.fileName}</span> : null}
+                              <span>{nowLabel(snippet.createdAt)}</span>
+                              <TextCount value={snippet.text} />
+                              <button className="plain-button" onClick={() => void copyText(formatOcrTextByTime(snippet.text), '整场截图 OCR 原文')} type="button">
+                                复制 OCR
+                              </button>
+                              <button className="plain-button danger-button" onClick={() => deleteTranscriptOcrSnippet(snippet.id)} type="button">
+                                删除
+                              </button>
+                            </div>
+                            <pre>{compactOcrPreviewText(snippet.text)}</pre>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="transcript-workflow-row">
+                    <div className="transcript-workflow-actions">
+                      <button className="primary-button" disabled={busy === 'transcript-organize'} onClick={() => void organizeTranscriptWorkspace()} type="button">
+                        {busy === 'transcript-organize' && !transcriptOrganizeForce ? '梳理中...' : '梳理'}
+                      </button>
+                      <button className="plain-button danger-button" disabled={busy === 'transcript-organize' || transcriptWorkspace.ocrSnippets.length === 0} onClick={() => void organizeTranscriptWorkspace(true)} type="button">
+                        {busy === 'transcript-organize' && transcriptOrganizeForce ? '强制梳理中...' : '强制梳理'}
+                      </button>
+                      <button className="primary-button" disabled={!transcriptWorkspace.transcriptText.trim() || transcriptAssigning} onClick={() => void assignTranscriptToSpeakers()} type="button">
+                        {transcriptAssigning ? '归人中...' : '归人'}
+                      </button>
+                      <button className="plain-button danger-button" disabled={!transcriptWorkspace.transcriptText.trim() || transcriptAssigning} onClick={() => void assignTranscriptToSpeakers(true)} type="button">
+                        {transcriptAssigning ? '处理中...' : '强制归人'}
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    className="transcript-textarea"
+                    value={transcriptWorkspace.transcriptText}
+                    onChange={(event) => updateTranscriptText(event.target.value)}
+                    onPaste={handleTranscriptPaste}
+                    placeholder="脚本格式示例：07:29:13 狮子：好，我今天的一句话是... 也可以在这里直接粘贴已整理好的整场转写。"
+                  />
+                </>
+              )}
+            </section>
 
             <section className="workspace">
               <aside className="speaker-list" aria-label="发言人列表">
@@ -2130,29 +3788,34 @@ export default function App() {
                 </div>
 
                 <div className="speaker-items">
-                  {session.speakers.map((speaker, index) => (
-                    <div
-                      key={speaker.id}
-                      className={`speaker-item ${speaker.id === currentSpeaker?.id ? 'active' : ''}`}
-                    >
-                      <button className="speaker-select" onClick={() => setSelectedSpeakerId(speaker.id)}>
-                        <span className="speaker-name">{speaker.name}</span>
-                        <span className={`status-badge status-${speaker.status}`}>{statusLabels[speaker.status]}</span>
-                        <span className="speaker-stats">{speaker.snippets.length} 段内容</span>
-                      </button>
-                      <div className="speaker-order">
-                        <button title="上移" disabled={index === 0} onClick={() => moveSpeaker(speaker.id, -1)}>
-                          ↑
+                  {session.speakers.map((speaker, index) => {
+                    const speakerAnalyzing = analyzingSpeakerIds.includes(speaker.id);
+                    return (
+                      <div
+                        key={speaker.id}
+                        className={`speaker-item ${speaker.id === currentSpeaker?.id ? 'active' : ''}`}
+                      >
+                        <button className="speaker-select" onClick={() => setSelectedSpeakerId(speaker.id)}>
+                          <span className="speaker-name">{speaker.name}</span>
+                          <span className={`status-badge ${speakerAnalyzing ? 'status-analyzing' : `status-${speaker.status}`}`}>
+                            {speakerAnalyzing ? '观察中' : statusLabels[speaker.status]}
+                          </span>
+                          <span className="speaker-stats">{speaker.snippets.length} 段内容</span>
                         </button>
-                        <button title="下移" disabled={index === session.speakers.length - 1} onClick={() => moveSpeaker(speaker.id, 1)}>
-                          ↓
-                        </button>
-                        <button title="删除发言人" disabled={session.speakers.length <= 1} onClick={() => deleteSpeaker(speaker.id)}>
-                          ×
-                        </button>
+                        <div className="speaker-order">
+                          <button title="上移" disabled={index === 0} onClick={() => moveSpeaker(speaker.id, -1)}>
+                            ↑
+                          </button>
+                          <button title="下移" disabled={index === session.speakers.length - 1} onClick={() => moveSpeaker(speaker.id, 1)}>
+                            ↓
+                          </button>
+                          <button title="删除发言人" disabled={session.speakers.length <= 1} onClick={() => deleteSpeaker(speaker.id)}>
+                            ×
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </aside>
 
@@ -2168,7 +3831,7 @@ export default function App() {
                         onChange={(event) => currentSpeaker && renameSpeaker(currentSpeaker.id, event.target.value)}
                       />
                     </label>
-                    <p>可以多次粘贴，系统会按此人的全部内容做分析。桌面版可用 Cmd+Shift+V 直接加入当前发言人。</p>
+                    <p>可以多次粘贴，系统会按此人的全部内容做观察。桌面版可用 Cmd+Shift+V 直接加入当前发言人。</p>
                   </div>
                   <button className="primary-button" onClick={pasteFromClipboard}>
                     粘贴剪贴板
@@ -2206,6 +3869,10 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                  <div className="textarea-label-row paste-textarea-head">
+                    <span>当前输入</span>
+                    <TextCount value={draftText} />
+                  </div>
                   <textarea
                     value={draftText}
                     onChange={(event) => setDraftText(event.target.value)}
@@ -2214,11 +3881,37 @@ export default function App() {
                   />
                 </div>
 
+                <section className="polished-content-box">
+                  <div className="subheading">
+                    <div>
+                      <div className="textarea-label-row heading-count-row">
+                        <h3>整理后的发言内容</h3>
+                        <TextCount value={currentSpeaker?.polishedContent || ''} />
+                      </div>
+                      <p>一键拼接当前发言人的全部 OCR / 转写片段，并顺成一段可观察的原始发言。</p>
+                    </div>
+                    <div className="polished-actions">
+                      <button className="plain-button" disabled={!currentSpeaker || currentSpeaker.snippets.length === 0 || currentSpeakerPolishing} onClick={() => void polishSpeakerContent(currentSpeaker?.id)}>
+                        {currentSpeakerPolishing ? '整理中...' : '整理发言内容'}
+                      </button>
+                      <button className="plain-button" disabled={!currentSpeaker?.polishedContent?.trim()} onClick={() => currentSpeaker?.polishedContent && void copyText(currentSpeaker.polishedContent, '整理后的发言内容')}>
+                        复制
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={currentSpeaker?.polishedContent || ''}
+                    onChange={(event) => updatePolishedContent(event.target.value)}
+                    placeholder="点击“整理发言内容”后，会把这个人的所有 OCR / 转写片段拼接并顺成一段。你也可以在这里手动修改；后续观察书友分享和全场观察会优先使用这段内容。"
+                  />
+                  {currentSpeaker?.polishedAt ? <p className="polished-meta">上次整理：{nowLabel(currentSpeaker.polishedAt)}</p> : null}
+                </section>
+
                 <div className="snippet-list">
                   <div className="subheading">
                     <h3>内容片段</h3>
-                    <button className="analysis-button" disabled={busy === 'analyze'} onClick={analyzeSpeaker}>
-                      {busy === 'analyze' ? '观察中...' : '观察书友分享'}
+                    <button className="analysis-button" disabled={currentSpeakerAnalyzing} onClick={() => void analyzeSpeaker(currentSpeaker?.id)}>
+                      {currentSpeakerAnalyzing ? '观察中...' : '观察书友分享'}
                     </button>
                   </div>
 
@@ -2240,8 +3933,17 @@ export default function App() {
                           <span>{nowLabel(snippet.createdAt)}</span>
                           <button onClick={() => deleteSnippet(snippet.id)}>删除</button>
                         </div>
-                        {snippet.imageDataUrl ? <img className="snippet-image" src={snippet.imageDataUrl} alt={snippet.fileName || '上传图片'} /> : null}
-                        <p>{compactText(snippet.text, 260)}</p>
+                        {snippet.imageDataUrl ? (
+                          <div className="snippet-image-box">
+                            <img className="snippet-image" src={snippet.imageDataUrl} alt={snippet.fileName || '上传图片'} />
+                            <button className="plain-button" onClick={() => void copyImageDataUrl(snippet.imageDataUrl || '', snippet.fileName || 'OCR 截图')} type="button">
+                              复制图片
+                            </button>
+                          </div>
+                        ) : snippet.sourceType === 'ocr_text' || snippet.sourceType === 'image_upload' ? (
+                          <div className="snippet-image-missing">这条旧 OCR 片段没有保存原图；后续新粘贴或上传的截图会在这里显示。</div>
+                        ) : null}
+                        <p>{compactText(snippetDisplayText(snippet), 260)}</p>
                       </article>
                     ))
                   )}
@@ -2264,7 +3966,10 @@ export default function App() {
 
                 {currentSpeaker?.insight ? (
                   <section className="actual-response">
-                    <h3>我的实际回应</h3>
+                    <div className="textarea-label-row heading-count-row">
+                      <h3>我的实际回应</h3>
+                      <TextCount value={currentSpeaker.actualResponse || ''} />
+                    </div>
                     <textarea
                       value={currentSpeaker.actualResponse || ''}
                       onChange={(event) => updateActualResponse(event.target.value)}
@@ -2317,6 +4022,12 @@ export default function App() {
               <button className="primary-button" disabled={busy === 'summary' || busy === 'summary-refine'} onClick={summarizeSession}>
                 {busy === 'summary' ? '输出中...' : summaryOutputButtonLabel}
               </button>
+              <button className="plain-button" disabled={busy === 'transcript-summary' || !transcriptWorkspace.transcriptText.trim()} onClick={() => void tryTranscriptSummary()} type="button">
+                {busy === 'transcript-summary' ? '融合中...' : '融合成分享稿'}
+              </button>
+              <button className="plain-button" disabled={busy === 'transcript-encouragement' || !transcriptWorkspace.transcriptText.trim()} onClick={() => void createWholeSessionEncouragement()} type="button">
+                {busy === 'transcript-encouragement' ? '鼓励中...' : '全场鼓励'}
+              </button>
             </div>
           </div>
         </div>
@@ -2326,11 +4037,17 @@ export default function App() {
             <h3>我的优化要求</h3>
             <p>可以写基于哪一版调整；每次点击都会新增一版。</p>
           </div>
-          <textarea
-            value={summaryRequirement}
-            onChange={(event) => setSummaryRequirement(event.target.value)}
-            placeholder="例如：基于共振型改得更像我自己；多结合破产经历但不要比较苦难；重点回应张敏；减少概念，增加现场口播感。"
-          />
+          <div className="textarea-with-count">
+            <div className="textarea-label-row">
+              <span>优化要求内容</span>
+              <TextCount value={summaryRequirement} />
+            </div>
+            <textarea
+              value={summaryRequirement}
+              onChange={(event) => setSummaryRequirement(event.target.value)}
+              placeholder="例如：基于共振型改得更像我自己；多结合破产经历但不要比较苦难；重点回应张敏；减少概念，增加现场口播感。"
+            />
+          </div>
           <button className="primary-button" disabled={busy === 'summary' || busy === 'summary-refine' || summaryVersions.length === 0} onClick={refineSessionSummary}>
             {busy === 'summary-refine' ? '优化中...' : '新增优化版'}
           </button>
@@ -2374,7 +4091,16 @@ export default function App() {
         />
       </section>
 
-      {notice ? <div className="notice">{notice}</div> : null}
+      {notice ? (
+        <div className={`notice ${noticeType === 'error' ? 'notice-error' : ''}`}>
+          <span>{notice}</span>
+          {noticePersistent ? (
+            <button className="notice-close" onClick={() => showNotice('')} type="button" aria-label="关闭提示">
+              关闭
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {knowledgeOpen ? (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
@@ -2396,6 +4122,10 @@ export default function App() {
                   onChange={(event) => setKnowledgeDraftTitle(event.target.value)}
                   placeholder="素材标题，例如：第 8 天关于破产后的重新开始"
                 />
+                <div className="textarea-label-row">
+                  <span>待提炼素材正文</span>
+                  <TextCount value={knowledgeDraftText} />
+                </div>
                 <textarea
                   value={knowledgeDraftText}
                   onChange={(event) => {
@@ -2552,7 +4282,10 @@ export default function App() {
                     </label>
 
                     <label className="field">
-                      <span>适合场景</span>
+                      <div className="textarea-label-row">
+                        <span>适合场景</span>
+                        <TextCount value={selectedKnowledge.applicableScenes} />
+                      </div>
                       <textarea
                         value={selectedKnowledge.applicableScenes}
                         onChange={(event) => updateKnowledgeField(selectedKnowledge.id, 'applicableScenes', event.target.value)}
@@ -2560,7 +4293,10 @@ export default function App() {
                     </label>
 
                     <label className="field">
-                      <span>内容摘要</span>
+                      <div className="textarea-label-row">
+                        <span>内容摘要</span>
+                        <TextCount value={selectedKnowledge.summary} />
+                      </div>
                       <textarea
                         value={selectedKnowledge.summary}
                         onChange={(event) => updateKnowledgeField(selectedKnowledge.id, 'summary', event.target.value)}
@@ -2568,7 +4304,10 @@ export default function App() {
                     </label>
 
                     <label className="field">
-                      <span>可引用原话</span>
+                      <div className="textarea-label-row">
+                        <span>可引用原话</span>
+                        <TextCount value={selectedKnowledge.originalExcerpt} />
+                      </div>
                       <textarea
                         value={selectedKnowledge.originalExcerpt}
                         onChange={(event) => updateKnowledgeField(selectedKnowledge.id, 'originalExcerpt', event.target.value)}
@@ -2576,7 +4315,10 @@ export default function App() {
                     </label>
 
                     <label className="field">
-                      <span>可复用句子</span>
+                      <div className="textarea-label-row">
+                        <span>可复用句子</span>
+                        <TextCount value={selectedKnowledge.reusableLines.join('\n')} />
+                      </div>
                       <textarea
                         value={selectedKnowledge.reusableLines.join('\n')}
                         onChange={(event) => updateKnowledgeField(selectedKnowledge.id, 'reusableLines', splitListText(event.target.value))}
@@ -2584,7 +4326,10 @@ export default function App() {
                     </label>
 
                     <label className="field">
-                      <span>讲述边界</span>
+                      <div className="textarea-label-row">
+                        <span>讲述边界</span>
+                        <TextCount value={selectedKnowledge.speakingBoundary} />
+                      </div>
                       <textarea
                         value={selectedKnowledge.speakingBoundary}
                         onChange={(event) => updateKnowledgeField(selectedKnowledge.id, 'speakingBoundary', event.target.value)}
@@ -2715,7 +4460,7 @@ export default function App() {
             <div className="panel-heading split">
               <div>
                 <h2>更换本场课程</h2>
-                <p>用于选错课程时迁移当前这场观察。原始内容保留，旧课程生成的分析会清空。</p>
+                <p>用于选错课程时迁移当前这场观察。原始内容保留，旧课程生成的观察会清空。</p>
               </div>
               <button className="plain-button" onClick={() => setCourseChangeOpen(false)}>
                 关闭
@@ -2760,7 +4505,7 @@ function InsightView({ insight, onCopy }: { insight: SpeakerInsight; onCopy: (te
       <KeyValue title="最值得抓的点" body={insight.strongestPoint} />
       <KeyValue title="背后的本质" body={insight.underlyingPattern} />
       <KeyValue title="课程连接" body={insight.themeConnection} />
-      <KeyValue title="卡点分类" body={insight.stuckType} />
+      <KeyValue title="看到的问题" body={insight.stuckType} />
       <KeyValue title="需要被看见" body={insight.seenNeed} />
       <KeyValue title="适合关联的经历" body={`${insight.suggestedObserverStory}\n${insight.storyUseBoundary}`} />
 
@@ -2898,6 +4643,10 @@ function FinalSpeechEditor({
           引用
         </button>
       </div>
+      <div className="textarea-label-row final-editor-count-row">
+        <span>最终发言正文</span>
+        <TextCount value={htmlToPlainText(value || '')} />
+      </div>
       <div
         ref={editorRef}
         className="final-speech-editor"
@@ -2980,12 +4729,12 @@ function SummaryView({
           <KeyValue title="共同主题" body={summary.commonTheme} onCopy={onCopy} onAppendSectionToFinal={onAppendSectionToFinal} />
           <div className="summary-lessons">
             <div className="summary-section-head">
-              <h3>每人课题</h3>
+              <h3>每人的问题线索</h3>
               <SectionActionButtons
-                title="每人课题"
+                title="每人的问题线索"
                 body={
                   summary.speakerLessons.length === 0
-                    ? '还没有已分析的发言人。'
+                    ? '还没有已观察的发言人。'
                     : summary.speakerLessons.map((item) => `${item.speakerName}：${item.lesson}`).join('\n')
                 }
                 onCopy={onCopy}
@@ -2993,7 +4742,7 @@ function SummaryView({
               />
             </div>
             {summary.speakerLessons.length === 0 ? (
-              <p>还没有已分析的发言人。</p>
+              <p>还没有已观察的发言人。</p>
             ) : (
               summary.speakerLessons.map((item) => (
                 <p key={item.speakerName}>
@@ -3041,7 +4790,7 @@ function SummaryView({
           ))}
         </div>
       ) : null}
-      {summary.missingSpeakers.length > 0 ? <div className="missing-warning">未分析：{summary.missingSpeakers.join('、')}</div> : null}
+      {summary.missingSpeakers.length > 0 ? <div className="missing-warning">未观察：{summary.missingSpeakers.join('、')}</div> : null}
     </div>
   );
 }

@@ -37,8 +37,8 @@ const notificationService =
   notificationServiceModule.default || notificationServiceModule;
 
 const MORNING_READ_PROMPT_KEY = 'morning_read_prompt_date';
-const MORNING_READ_PROMPT_START_MINUTE = 5 * 60 + 50;
-const MORNING_READ_PROMPT_END_MINUTE = 6 * 60 + 15;
+const MORNING_READ_PROMPT_START_MINUTE = 5 * 60 + 55;
+const MORNING_READ_PROMPT_END_MINUTE = 6 * 60 + 25;
 const UPCOMING_ACTIVITIES_DISPLAY_LIMIT = 2;
 
 const TASK_CARD_LAYOUT_RPX = {

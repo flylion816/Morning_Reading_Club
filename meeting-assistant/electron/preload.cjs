@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('observerAPI', {
   saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
   ocrImage: (imageDataUrl, fileName) => ipcRenderer.invoke('ocr:image', { imageDataUrl, fileName }),
   extractDocumentText: (payload) => ipcRenderer.invoke('document:extractText', payload),
+  polishSpeakerContent: (payload) => ipcRenderer.invoke('openai:polishSpeakerContent', payload),
+  organizeTranscript: (payload) => ipcRenderer.invoke('openai:organizeTranscript', payload),
   analyzeSpeaker: (payload) => ipcRenderer.invoke('openai:analyzeSpeaker', payload),
   summarizeSession: (payload) => ipcRenderer.invoke('openai:summarizeSession', payload),
   extractKnowledge: (payload) => ipcRenderer.invoke('openai:extractKnowledge', payload),

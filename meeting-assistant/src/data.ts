@@ -1,4 +1,4 @@
-import type { ObserverSession, Story, Theme } from './types';
+import type { DailyObservationMaterial, ObserverSession, Story, Theme, TranscriptWorkspace } from './types';
 import { resilienceTreeCourses } from './courseContent';
 
 const sevenHabitSeeds: Theme[] = [
@@ -122,12 +122,28 @@ export const defaultStories: Story[] = [
 
 const now = () => new Date().toISOString();
 
+export function createEmptyDailyObservation(): DailyObservationMaterial {
+  return {
+    content: '',
+  };
+}
+
+export function createEmptyTranscriptWorkspace(): TranscriptWorkspace {
+  return {
+    ocrSnippets: [],
+    transcriptText: '',
+    organizedOcrSnippetIds: [],
+  };
+}
+
 export function createDefaultSession(themeId = 'day-01'): ObserverSession {
   return {
     id: crypto.randomUUID(),
     title: '韧性之树晨读营·观察者视角',
     themeId,
     observerStance: '经历过破产、债务、银行起诉和重新站起来；回应要真诚、克制、口语化，不说教，不压过对方的经验。',
+    dailyObservation: createEmptyDailyObservation(),
+    transcriptWorkspace: createEmptyTranscriptWorkspace(),
     stories: defaultStories,
     speakers: ['发言人 A', '发言人 B', '发言人 C', '发言人 D'].map((name) => ({
       id: crypto.randomUUID(),

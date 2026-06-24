@@ -8,9 +8,18 @@ async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
       ...(options?.headers || {}),
     },
   });
-  const payload = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  const payload = responseText
+    ? (() => {
+        try {
+          return JSON.parse(responseText);
+        } catch {
+          return { error: responseText };
+        }
+      })()
+    : {};
   if (!response.ok) {
-    throw new Error(payload.error || '本地接口请求失败。');
+    throw new Error(payload.error || responseText || `本地接口请求失败（HTTP ${response.status}）。`);
   }
   return payload as T;
 }
@@ -55,6 +64,16 @@ const browserAPI: ObserverAPI = {
     }),
   extractDocumentText: (payload) =>
     requestJson('/api/extractDocumentText', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  polishSpeakerContent: (payload) =>
+    requestJson('/api/polishSpeakerContent', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  organizeTranscript: (payload) =>
+    requestJson('/api/organizeTranscript', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),

@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { defineConfig } from 'vite';
 
 const execFileAsync = promisify(execFile);
-const AI_REQUEST_TIMEOUT_MS = 90000;
+const DEFAULT_AI_REQUEST_TIMEOUT_MS = 120000;
 
 const providerDefaults = {
   openai_responses: {
@@ -43,7 +43,7 @@ type PromptImage = {
 type PromptPayload = {
   instructions: string;
   input: string;
-  schema: { schema: unknown };
+  schema: { name?: string; schema: unknown };
   images?: PromptImage[];
 };
 
@@ -207,24 +207,127 @@ async function recognizeImageText(imageDataUrl: string) {
   }
 }
 
-function parseJsonText(text: string) {
-  const cleaned = String(text || '')
+function cleanJsonText(text: string) {
+  return String(text || '')
     .trim()
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
+}
+
+function extractJsonCandidate(text: string, preferFullTail = false) {
+  const objectStart = text.indexOf('{');
+  const arrayStart = text.indexOf('[');
+  const starts = [objectStart, arrayStart].filter((index) => index >= 0);
+  if (starts.length === 0) {
+    return text;
+  }
+  const start = Math.min(...starts);
+  if (preferFullTail) {
+    return text.slice(start).trim();
+  }
+  const end = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
+  return end > start ? text.slice(start, end + 1).trim() : text.slice(start).trim();
+}
+
+function closeUnbalancedJson(text: string) {
+  const stack: string[] = [];
+  let inString = false;
+  let escaped = false;
+
+  for (const char of text) {
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+    } else if (char === '{') {
+      stack.push('}');
+    } else if (char === '[') {
+      stack.push(']');
+    } else if ((char === '}' || char === ']') && stack[stack.length - 1] === char) {
+      stack.pop();
+    }
+  }
+
+  const suffix = `${inString ? '"' : ''}${stack.reverse().join('')}`;
+  return suffix ? `${text}${suffix}` : text;
+}
+
+function repairJsonText(text: string) {
+  let repaired = text
+    .replace(/\u0000/g, '')
+    .replace(/,\s*([}\]])/g, '$1')
+    .replace(/}\s*(?={\s*")/g, '},{')
+    .replace(/]\s*(?={\s*")/g, '],{')
+    .replace(
+      /("(?:\\.|[^"\\])*"|[}\]]|-?\d+(?:\.\d+)?|true|false|null)\s+(?=("(?:\\.|[^"\\])*"\s*:)|[\{\[]|"(?:\\.|[^"\\])*")/g,
+      '$1,'
+    );
+  repaired = closeUnbalancedJson(repaired);
+  return repaired.replace(/,\s*([}\]])/g, '$1');
+}
+
+function parseJsonText(text: string) {
+  const cleaned = cleanJsonText(text);
+  const candidates = [
+    cleaned,
+    extractJsonCandidate(cleaned),
+    extractJsonCandidate(cleaned, true),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      try {
+        return JSON.parse(repairJsonText(candidate));
+      } catch {
+        // Try the next candidate shape.
+      }
+    }
+  }
 
   try {
-    return JSON.parse(cleaned);
-  } catch {
-    const start = cleaned.indexOf('{');
-    const end = cleaned.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      return JSON.parse(cleaned.slice(start, end + 1));
-    }
-    throw new Error('模型返回的内容不是可解析的 JSON。');
+    return JSON.parse(repairJsonText(cleaned));
+  } catch (error) {
+    throw new Error(error instanceof Error ? `模型返回的 JSON 无法修复：${error.message}` : '模型返回的内容不是可解析的 JSON。');
   }
+}
+
+function outputTokenLimit(schemaName?: string) {
+  if (schemaName === 'transcript_organize') {
+    return 12000;
+  }
+  if (schemaName === 'whole_session_summary') {
+    return 10000;
+  }
+  if (schemaName === 'knowledge_entries') {
+    return 8000;
+  }
+  return 6000;
+}
+
+function requestTimeoutMs(schemaName?: string) {
+  if (schemaName === 'transcript_organize') {
+    return 240000;
+  }
+  if (schemaName === 'whole_session_summary') {
+    return 240000;
+  }
+  if (schemaName === 'knowledge_entries') {
+    return 180000;
+  }
+  return DEFAULT_AI_REQUEST_TIMEOUT_MS;
 }
 
 function chatCompletionsUrl(baseUrl: string) {
@@ -297,10 +400,11 @@ async function createChatCompletion(promptPayload: PromptPayload) {
     response_format: { type: 'json_object' },
   };
 
+  const maxTokens = outputTokenLimit(promptPayload.schema.name);
   if (settings.provider === 'xiaomi_mimo') {
-    body.max_completion_tokens = 6000;
+    body.max_completion_tokens = maxTokens;
   } else {
-    body.max_tokens = 6000;
+    body.max_tokens = maxTokens;
   }
 
   const headers =
@@ -308,9 +412,9 @@ async function createChatCompletion(promptPayload: PromptPayload) {
       ? { 'api-key': settings.apiKey, 'Content-Type': 'application/json' }
       : { Authorization: `Bearer ${settings.apiKey}`, 'Content-Type': 'application/json' };
 
-  async function post(payload: Record<string, unknown>) {
+  async function post(payload: Record<string, unknown>, timeoutMs: number) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(chatCompletionsUrl(settings.baseUrl), {
         method: 'POST',
@@ -333,15 +437,16 @@ async function createChatCompletion(promptPayload: PromptPayload) {
   }
 
   let payload;
+  const timeoutMs = requestTimeoutMs(promptPayload.schema.name);
   try {
-    payload = await post(body);
+    payload = await post(body, timeoutMs);
   } catch (error) {
     if (!String(error instanceof Error ? error.message : error).toLowerCase().includes('response_format')) {
       throw error;
     }
     const retryBody = { ...body };
     delete retryBody.response_format;
-    payload = await post(retryBody);
+    payload = await post(retryBody, timeoutMs);
   }
 
   const text = normalizeMessageContent(payload.choices?.[0]?.message?.content);
@@ -396,6 +501,22 @@ export default defineConfig({
             sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
           } catch (error) {
             sendJson(res, 500, { error: error instanceof Error ? error.message : 'AI 请求失败。' });
+          }
+        });
+
+        server.middlewares.use('/api/polishSpeakerContent', async (req, res) => {
+          try {
+            sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : '发言内容整理失败。' });
+          }
+        });
+
+        server.middlewares.use('/api/organizeTranscript', async (req, res) => {
+          try {
+            sendJson(res, 200, await createChatCompletion((await readBody(req)) as PromptPayload));
+          } catch (error) {
+            sendJson(res, 500, { error: error instanceof Error ? error.message : '整场脚本梳理失败。' });
           }
         });
 

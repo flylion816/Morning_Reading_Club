@@ -8,7 +8,7 @@ const { promisify } = require('node:util');
 const isDev = !app.isPackaged;
 let mainWindow = null;
 const execFileAsync = promisify(execFile);
-const AI_REQUEST_TIMEOUT_MS = 90000;
+const DEFAULT_AI_REQUEST_TIMEOUT_MS = 120000;
 
 function settingsPath() {
   return path.join(app.getPath('userData'), 'settings.json');
@@ -140,24 +140,123 @@ function extractOutputText(response) {
   return chunks.join('\n');
 }
 
-function parseJsonText(text) {
-  const cleaned = String(text || '')
+function cleanJsonText(text) {
+  return String(text || '')
     .trim()
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
+}
+
+function extractJsonCandidate(text, preferFullTail = false) {
+  const objectStart = text.indexOf('{');
+  const arrayStart = text.indexOf('[');
+  const starts = [objectStart, arrayStart].filter((index) => index >= 0);
+  if (starts.length === 0) {
+    return text;
+  }
+  const start = Math.min(...starts);
+  if (preferFullTail) {
+    return text.slice(start).trim();
+  }
+  const end = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
+  return end > start ? text.slice(start, end + 1).trim() : text.slice(start).trim();
+}
+
+function closeUnbalancedJson(text) {
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+
+  for (const char of text) {
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+    } else if (char === '{') {
+      stack.push('}');
+    } else if (char === '[') {
+      stack.push(']');
+    } else if ((char === '}' || char === ']') && stack[stack.length - 1] === char) {
+      stack.pop();
+    }
+  }
+
+  const suffix = `${inString ? '"' : ''}${stack.reverse().join('')}`;
+  return suffix ? `${text}${suffix}` : text;
+}
+
+function repairJsonText(text) {
+  let repaired = text
+    .replace(/\u0000/g, '')
+    .replace(/,\s*([}\]])/g, '$1')
+    .replace(/}\s*(?={\s*")/g, '},{')
+    .replace(/]\s*(?={\s*")/g, '],{')
+    .replace(
+      /("(?:\\.|[^"\\])*"|[}\]]|-?\d+(?:\.\d+)?|true|false|null)\s+(?=("(?:\\.|[^"\\])*"\s*:)|[\{\[]|"(?:\\.|[^"\\])*")/g,
+      '$1,'
+    );
+  repaired = closeUnbalancedJson(repaired);
+  return repaired.replace(/,\s*([}\]])/g, '$1');
+}
+
+function parseJsonText(text) {
+  const cleaned = cleanJsonText(text);
+  const candidates = [cleaned, extractJsonCandidate(cleaned), extractJsonCandidate(cleaned, true)];
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      try {
+        return JSON.parse(repairJsonText(candidate));
+      } catch {
+        // Try the next candidate shape.
+      }
+    }
+  }
 
   try {
-    return JSON.parse(cleaned);
-  } catch {
-    const start = cleaned.indexOf('{');
-    const end = cleaned.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      return JSON.parse(cleaned.slice(start, end + 1));
-    }
-    throw new Error('模型返回的内容不是可解析的 JSON。');
+    return JSON.parse(repairJsonText(cleaned));
+  } catch (error) {
+    throw new Error(`模型返回的 JSON 无法修复：${error.message}`);
   }
+}
+
+function outputTokenLimit(schemaName) {
+  if (schemaName === 'transcript_organize') {
+    return 12000;
+  }
+  if (schemaName === 'whole_session_summary') {
+    return 10000;
+  }
+  if (schemaName === 'knowledge_entries') {
+    return 8000;
+  }
+  return 6000;
+}
+
+function requestTimeoutMs(schemaName) {
+  if (schemaName === 'transcript_organize') {
+    return 240000;
+  }
+  if (schemaName === 'whole_session_summary') {
+    return 240000;
+  }
+  if (schemaName === 'knowledge_entries') {
+    return 180000;
+  }
+  return DEFAULT_AI_REQUEST_TIMEOUT_MS;
 }
 
 function getPayloadError(payload, fallback) {
@@ -260,11 +359,11 @@ async function createOpenAIResponsesResult({ instructions, input, schema, images
         strict: true,
       },
     },
-    max_output_tokens: 6000,
+    max_output_tokens: outputTokenLimit(schema?.name),
   };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), requestTimeoutMs(schema?.name));
   let payload;
   try {
     const response = await fetch('https://api.openai.com/v1/responses', {
@@ -326,9 +425,9 @@ function normalizeMessageContent(content) {
   return '';
 }
 
-async function postChatCompletions(settings, body) {
+async function postChatCompletions(settings, body, timeoutMs = DEFAULT_AI_REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(chatCompletionsUrl(settings.baseUrl), {
       method: 'POST',
@@ -387,22 +486,24 @@ async function createChatCompletionsResult({ instructions, input, schema, images
     response_format: { type: 'json_object' },
   };
 
+  const maxTokens = outputTokenLimit(schema?.name);
   if (settings.provider === 'xiaomi_mimo') {
-    body.max_completion_tokens = 6000;
+    body.max_completion_tokens = maxTokens;
   } else {
-    body.max_tokens = 6000;
+    body.max_tokens = maxTokens;
   }
 
   let payload;
+  const timeoutMs = requestTimeoutMs(schema?.name);
   try {
-    payload = await postChatCompletions(settings, body);
+    payload = await postChatCompletions(settings, body, timeoutMs);
   } catch (error) {
     if (!String(error.message || '').toLowerCase().includes('response_format')) {
       throw error;
     }
     const retryBody = { ...body };
     delete retryBody.response_format;
-    payload = await postChatCompletions(settings, retryBody);
+    payload = await postChatCompletions(settings, retryBody, timeoutMs);
   }
 
   const text = normalizeMessageContent(payload?.choices?.[0]?.message?.content);
@@ -473,6 +574,8 @@ app.whenReady().then(() => {
   ipcMain.handle('document:extractText', async (_, payload) => ({
     text: await extractDocumentText(payload?.fileName || '', payload?.dataUrl || ''),
   }));
+  ipcMain.handle('openai:polishSpeakerContent', (_, payload) => createAIResponse(payload));
+  ipcMain.handle('openai:organizeTranscript', (_, payload) => createAIResponse(payload));
   ipcMain.handle('openai:analyzeSpeaker', (_, payload) => createAIResponse(payload));
   ipcMain.handle('openai:summarizeSession', (_, payload) => createAIResponse(payload));
   ipcMain.handle('openai:extractKnowledge', (_, payload) => createAIResponse(payload));
