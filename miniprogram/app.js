@@ -1,5 +1,6 @@
 // 晨读营小程序 - 应用入口
 const envConfig = require('./config/env');
+const currentTenant = require('./config/current-tenant');
 const constants = require('./config/constants');
 const logger = require('./utils/logger');
 const activityService = require('./services/activity.service');
@@ -8,10 +9,12 @@ const { tenantStorage } = require('./utils/storage');
 App({
   onLaunch(options) {
     try {
-      wx.cloud.init({
-        env: 'cloudbase-d1gulwh3a82346ea9',
-        traceUser: true
-      });
+      if (wx.cloud && currentTenant.cloudEnv) {
+        wx.cloud.init({
+          env: currentTenant.cloudEnv,
+          traceUser: true
+        });
+      }
 
       logger.info('晨读营小程序启动', options);
       logger.debug('当前环境:', envConfig.currentEnv);

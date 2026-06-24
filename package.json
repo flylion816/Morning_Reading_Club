@@ -19,7 +19,10 @@
     "test:all": "jest --coverage",
     "convert-icons": "node scripts/convert-icons.js",
     "openspec:list": "OPENSPEC_TELEMETRY=0 openspec list",
-    "openspec:validate": "OPENSPEC_TELEMETRY=0 openspec validate --changes --strict"
+    "openspec:validate": "OPENSPEC_TELEMETRY=0 openspec validate --changes --strict",
+    "tenant:apply": "node miniprogram/scripts/apply-tenant.js",
+    "tenant:reset": "node miniprogram/scripts/apply-tenant.js fanren",
+    "tenant:upload": "node miniprogram/scripts/upload-tenant.js"
   },
   "repository": {
     "type": "git",

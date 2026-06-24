@@ -4,6 +4,7 @@
  */
 
 const envConfig = require('../config/env');
+const currentTenant = require('../config/current-tenant');
 const constants = require('../config/constants');
 const logger = require('./logger');
 const { tenantStorage } = require('./storage');
@@ -12,7 +13,7 @@ const ENABLE_TENANT_REQUEST_LOG = false;
 
 class Request {
   constructor() {
-    this.baseURL = envConfig.apiBaseUrl;
+    this.baseURL = currentTenant.apiBaseUrl || envConfig.apiBaseUrl;
     this.timeout = constants.REQUEST_TIMEOUT;
     this.header = {
       'Content-Type': 'application/json'
@@ -49,7 +50,7 @@ class Request {
     const requestHeader = {
       ...this.header,
       ...header,
-      'X-Wx-AppId': envConfig.wxAppId
+      'X-Wx-AppId': currentTenant.wxAppId
     };
 
     // 公开端点不需要token（避免旧token干扰）
@@ -70,7 +71,7 @@ class Request {
 
     if (ENABLE_TENANT_REQUEST_LOG) {
       logger.debug('[TENANT-REQUEST]', method, url, {
-        wxAppId: envConfig.wxAppId,
+        wxAppId: currentTenant.wxAppId,
         hasToken: !!requestHeader['Authorization']
       });
     }
@@ -381,7 +382,7 @@ class Request {
         formData,
         header: {
           Authorization: token ? `Bearer ${token}` : '',
-          'X-Wx-AppId': envConfig.wxAppId
+          'X-Wx-AppId': currentTenant.wxAppId
         },
         success: (res) => {
           const data = JSON.parse(res.data);

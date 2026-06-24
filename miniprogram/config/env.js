@@ -1,36 +1,21 @@
 /**
  * 环境配置文件 - 小程序版
  *
- * 📌 同步说明：此配置与根目录 .env.config.js 保持同步
- * 当修改根目录 .env.config.js 的 currentEnv 时，也请更新这里的 currentEnv 值
+ * 职责：仅配置「连哪个后端、是否调试」（环境维度）
+ * wxAppId 等租户信息由 config/current-tenant.js 提供（租户维度），两者正交。
  *
- * 步骤：
- * 1. 编辑根目录 .env.config.js，修改 currentEnv 值
- * 2. 编辑此文件，修改下面的 currentEnv 值为相同值
- * 3. 重启小程序开发工具
+ * 切换环境：修改下面的 currentEnv 值并重启开发者工具
+ * 切换租户：npm run tenant:apply -- <slug>
  */
 
-// 当前环境 ('dev' | 'test' | 'prod' | 'superman_dev')
-// 📌 注意：小程序可独立配置，不必与根目录 .env.config.js 同步
-//    根目录 .env.config.js 控制后端和管理后台
-//    此文件控制小程序开发工具连接的环境
-const currentEnv = 'prod'; // ← 生产发布前必须为 prod
+// 当前环境 ('dev' | 'test' | 'prod')
+// 📌 生产发布前必须为 prod
+const currentEnv = 'prod';
 
-// 环境配置
 const envConfig = {
-  // 开发环境（凡人共读）
+  // 开发环境（连本地后端）
   dev: {
     apiBaseUrl: 'http://localhost:3000/api/v1',
-    wxAppId: 'wx2b9a3c1d5e4195f8', // 与后台租户记录保持一致
-    enableDebug: true,
-    enableLog: true,
-    useMock: false // 使用真实 API 数据
-  },
-
-  // 超人共读本地测试环境（需在管理后台把 superman 租户的 AppId 改为此值）
-  superman_dev: {
-    apiBaseUrl: 'http://localhost:3000/api/v1',
-    wxAppId: 'wx1111111111111111', // 超人共读专用测试 AppId，需与管理后台一致
     enableDebug: true,
     enableLog: true,
     useMock: false
@@ -39,7 +24,6 @@ const envConfig = {
   // 测试环境
   test: {
     apiBaseUrl: 'https://wx.shubai01.com/api/v1',
-    wxAppId: 'wx199d6d332344ed0a',
     enableDebug: true,
     enableLog: true,
     useMock: false
@@ -48,14 +32,12 @@ const envConfig = {
   // 生产环境
   prod: {
     apiBaseUrl: 'https://wx.shubai01.com/api/v1',
-    wxAppId: 'wx2b9a3c1d5e4195f8',
     enableDebug: false,
     enableLog: false,
     useMock: false
   }
 };
 
-// 导出当前环境配置
 module.exports = {
   ...envConfig[currentEnv],
   currentEnv

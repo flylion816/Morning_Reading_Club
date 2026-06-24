@@ -206,12 +206,12 @@ class Storage {
 // 导出单例
 const storageInstance = new Storage();
 
-// 多租户隔离存储：所有 key 带 wxAppId 前缀
-const envConfig = require('../config/env');
+// 多租户隔离存储：所有 key 带 wxAppId 前缀（唯一真相源：current-tenant.js）
+const currentTenant = require('../config/current-tenant');
 const ENABLE_TENANT_STORAGE_LOG = false;
 
 function _prefixKey(key) {
-  const appId = envConfig.wxAppId || 'default';
+  const appId = currentTenant.wxAppId || 'default';
   return `${appId}:${key}`;
 }
 

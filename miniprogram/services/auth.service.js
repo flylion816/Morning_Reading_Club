@@ -15,10 +15,10 @@ class AuthService {
    * @returns {Promise}
    */
   login(code, userInfo = {}) {
-    const envConfig = require('../config/env');
+    const currentTenant = require('../config/current-tenant');
     return request.post('/auth/wechat/login', {
       code,
-      wxAppId: envConfig.wxAppId,
+      wxAppId: currentTenant.wxAppId,
       ...userInfo
     });
   }
@@ -107,18 +107,15 @@ class AuthService {
       // 1. 获取微信授权码
       // 开发环境：使用mock code；生产环境：获取真实微信code
       const envConfig = require('../config/env');
+      const currentTenant = require('../config/current-tenant');
       let code;
 
       if (envConfig.currentEnv === 'dev') {
         // 开发环境使用固定的mock code（后端会通过MD5哈希生成一致的openid）
         code = 'mock_code_dev';
         logger.debug('开发环境使用mock code:', code);
-      } else if (envConfig.currentEnv === 'superman_dev') {
-        // 超人共读测试环境，固定 code → 固定 openid → 固定测试用户
-        code = 'mock_code_superman_dev';
-        logger.debug('superman_dev 环境使用mock code:', code);
       } else {
-        // 生产环境获取真实code
+        // 生产/测试环境获取真实code
         const loginRes = await this.getWechatCode();
         code = loginRes.code;
       }
@@ -126,6 +123,7 @@ class AuthService {
       console.log('===== 微信登录调试 =====');
       console.log('微信返回的 code:', code);
       console.log('当前环境:', envConfig.currentEnv);
+      console.log('当前租户:', currentTenant.slug);
       console.log('========================');
 
       // 2. 调用后端登录接口
@@ -134,7 +132,7 @@ class AuthService {
         nickname: userInfo.nickName,
         avatar_url: userInfo.avatarUrl,
         gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown',
-        wxAppId: envConfig.wxAppId
+        wxAppId: currentTenant.wxAppId
       });
 
       logger.info('登录结果', {

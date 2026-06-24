@@ -1,4 +1,5 @@
 const subscribeMessageService = require('../services/subscribe-message.service');
+const currentTenant = require('../config/current-tenant');
 
 const MAX_SUBSCRIBE_SCENES_PER_REQUEST = 5;
 const SETTINGS_CACHE_TTL_MS = 15000;
@@ -14,12 +15,14 @@ function resetAutoTopUpState() {
   inFlightPromise = null;
 }
 
+const _t = currentTenant.subscribeTemplates || {};
+
 const AUTO_TOP_UP_POLICIES = {
   enrollment_result: {
     scene: 'enrollment_result',
     title: '报名结果',
     description: '报名成功后提醒用户进入晨读营',
-    templateId: 'Qzn9auOyMjCKUaHrfekzK0XMaQ64nO0mfdikQNXjbdo',
+    templateId: _t.enrollment_result || '',
     target: 1,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -28,7 +31,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'payment_result',
     title: '付款结果',
     description: '支付完成后提醒用户进入晨读营',
-    templateId: 'UCzIuWtUYbc_ucf05GEOqglXK1HJHzwtN50e1NkmhCI',
+    templateId: _t.payment_result || '',
     target: 1,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -37,7 +40,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'comment_received',
     title: '收到评论',
     description: '有人评论或回复时提醒查看',
-    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
+    templateId: _t.comment_received || '',
     target: 50,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -46,7 +49,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'like_received',
     title: '收到点赞',
     description: '有人点赞打卡或评论时提醒查看',
-    templateId: '7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek',
+    templateId: _t.like_received || '',
     target: 50,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -55,7 +58,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'danmaku_received',
     title: '小凡看见弹幕',
     description: '有人在你的小凡看见发表弹幕时提醒查看',
-    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
+    templateId: _t.danmaku_received || '',
     target: 50,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -64,7 +67,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'insight_liked',
     title: '小凡看见点赞',
     description: '有人给你的小凡看见点赞时提醒查看',
-    templateId: '7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek',
+    templateId: _t.insight_liked || '',
     target: 50,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -73,7 +76,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'insight_request_created',
     title: '申请小凡看见',
     description: '有人请求查看你的小凡看见时提醒处理',
-    templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
+    templateId: _t.insight_request_created || '',
     target: 1,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -82,7 +85,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'insight_request_approved',
     title: '小凡看见申请通过',
     description: '你发起的小凡看见查看申请被同意时提醒查看',
-    templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
+    templateId: _t.insight_request_approved || '',
     target: 1,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -91,7 +94,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'next_day_study_reminder',
     title: '明日开课通知',
     description: '次日早上 5:45 发送晨读营开课通知',
-    templateId: 'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
+    templateId: _t.next_day_study_reminder || '',
     target: 1,
     requiresPeriodId: true,
     scheduledSendText: '每天 05:45 自动发送'
@@ -100,7 +103,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'insight_created',
     title: '小凡看见发布',
     description: '小凡发布专属看见内容时第一时间提醒查看',
-    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    templateId: _t.insight_created || '',
     target: 50,
     requiresPeriodId: false,
     scheduledSendText: ''
@@ -109,7 +112,7 @@ const AUTO_TOP_UP_POLICIES = {
     scene: 'podcast_published',
     title: '凡人播客上新',
     description: '播客发布时第一时间提醒收听',
-    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    templateId: _t.podcast_published || '',
     target: 50,
     requiresPeriodId: false,
     scheduledSendText: ''

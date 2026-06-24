@@ -1,0 +1,5 @@
+/* ⚠️ 由 apply-tenant.js 生成，勿手改。租户: fanren */
+page {
+  --theme-primary: #4a90e2;
+  --theme-on-primary: #ffffff;
+}
