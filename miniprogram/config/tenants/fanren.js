@@ -20,7 +20,8 @@ module.exports = {
     insight_request_approved:  '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
     next_day_study_reminder:   'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
     insight_created:           '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
-    podcast_published:         '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M'
+    podcast_published:         '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    activity_reminder:         'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA'
   },
 
   // —— 视觉身份 ——

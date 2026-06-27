@@ -36,6 +36,10 @@ const TenantSchema = new mongoose.Schema(
       appId: { type: String, default: null },
       notifyUrl: { type: String, default: null }
     },
+    subscribeTemplates: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
     branding: {
       logo: { type: String, default: null },
       primaryColor: { type: String, default: '#4a90e2' },

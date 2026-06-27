@@ -4,7 +4,7 @@ const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
 const SubscribeMessageGrant = require('../models/SubscribeMessageGrant');
 const SubscribeMessageDelivery = require('../models/SubscribeMessageDelivery');
-const { getSubscribeSceneList } = require('../config/subscribe-message.config');
+const { resolveSubscribeSceneList } = require('../config/subscribe-message.config');
 const { buildNextDayStudyReminderPlan } = require('../utils/study-reminder.utils');
 
 function escapeRegExp(value) {
@@ -361,8 +361,9 @@ function pickCurrentEnrollment(enrollments = [], periodId = null) {
   return sorted[0];
 }
 
-function buildSceneDefinitions() {
-  return getSubscribeSceneList().map(sceneConfig => ({
+async function buildSceneDefinitions() {
+  const sceneConfigs = await resolveSubscribeSceneList();
+  return sceneConfigs.map(sceneConfig => ({
     scene: sceneConfig.scene,
     title: sceneConfig.title,
     description: sceneConfig.description,
@@ -386,10 +387,17 @@ function getCurrentPeriodId(grants = [], enrollments = [], periodIdFilter = null
   return grantPeriod || null;
 }
 
-function buildUserRow(user, grants = [], enrollments = [], periodsMap = new Map(), deliveries = [], periodIdFilter = null) {
+function buildUserRow(
+  user,
+  grants = [],
+  enrollments = [],
+  periodsMap = new Map(),
+  deliveries = [],
+  periodIdFilter = null,
+  sceneConfigs = []
+) {
   const currentPeriodId = getCurrentPeriodId(grants, enrollments, periodIdFilter);
   const currentPeriod = buildCurrentPeriod(enrollments, periodsMap, periodIdFilter, currentPeriodId);
-  const sceneConfigs = getSubscribeSceneList();
   const grantMap = new Map(grants.map(grant => [grant.scene, grant]));
   const currentEnrollment = pickCurrentEnrollment(enrollments, periodIdFilter);
   const reminderPlan = buildNextDayStudyReminderPlan({
@@ -525,6 +533,7 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
   const periodId = params.periodId ? String(params.periodId) : '';
   const status = normalizeStatusFilter(params.status);
   const onlyAnomalies = toBoolean(params.onlyAnomalies);
+  const sceneDefinitions = await buildSceneDefinitions();
 
   const userIds = new Set();
   const searchUserIds = new Set();
@@ -617,7 +626,7 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
         hasNext: false,
         hasPrev: false
       },
-      sceneDefinitions: buildSceneDefinitions()
+      sceneDefinitions
     };
   }
 
@@ -715,7 +724,8 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
         userEnrollments,
         new Map(periods.map(period => [toObjectIdString(period._id), period])),
         userDeliveries,
-        periodId || null
+        periodId || null,
+        sceneDefinitions
       );
       return row;
     })
@@ -788,7 +798,7 @@ async function buildSubscriptionDebugDataset(params = {}, { deliveryLimit = 20 }
       hasNext: page * limit < total,
       hasPrev: page > 1
     },
-    sceneDefinitions: buildSceneDefinitions()
+    sceneDefinitions
   };
 }
 
@@ -854,7 +864,7 @@ async function getSubscriptionDebugUserDetail(userId, params = {}) {
     currentPeriodId
   );
   const grantMap = new Map((grants || []).map(grant => [grant.scene, grant]));
-  const sceneDefinitions = buildSceneDefinitions();
+  const sceneDefinitions = await buildSceneDefinitions();
   const sceneStates = sceneDefinitions.map(sceneConfig =>
     getSceneState(sceneConfig, grantMap.get(sceneConfig.scene) || null, currentPeriodId)
   );

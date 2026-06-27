@@ -6,10 +6,10 @@ const Period = require('../models/Period');
 const SubscribeMessageGrant = require('../models/SubscribeMessageGrant');
 const SubscribeMessageDelivery = require('../models/SubscribeMessageDelivery');
 const logger = require('../utils/logger');
-const { getCurrentTenantId } = require('../utils/tenantContext');
+const { getCurrentTenantId, withSystemContext } = require('../utils/tenantContext');
 const {
-  getSubscribeSceneConfig,
-  getSubscribeSceneList,
+  resolveSubscribeSceneConfig,
+  resolveSubscribeSceneList,
   normalizeMiniProgramPage
 } = require('../config/subscribe-message.config');
 const {
@@ -125,8 +125,7 @@ function buildGrantQuery({ userId, scene, templateId }) {
 
 class SubscribeMessageService {
   constructor() {
-    this.accessToken = null;
-    this.accessTokenExpiresAt = 0;
+    this.accessTokenCache = new Map();
   }
 
   resolveFieldKeyMap(sceneConfig) {
@@ -189,10 +188,12 @@ class SubscribeMessageService {
 
   async getUserSubscriptionStates(userId) {
     const grants = (await resolveLeanResult(SubscribeMessageGrant.find({ userId }))) || [];
-    const grantMap = new Map(grants.map(item => [item.scene, item]));
 
-    const scenes = getSubscribeSceneList().map(sceneConfig => {
-      const grant = grantMap.get(sceneConfig.scene);
+    const sceneConfigs = await resolveSubscribeSceneList();
+    const scenes = sceneConfigs.map(sceneConfig => {
+      const grant = grants.find(item =>
+        item.scene === sceneConfig.scene && item.templateId === sceneConfig.templateId
+      );
       const autoTopUpTarget = getSceneAutoTopUpTarget(sceneConfig);
       const availableCount = grant?.availableCount || 0;
       return {
@@ -233,8 +234,8 @@ class SubscribeMessageService {
     const now = new Date();
 
     for (const grant of grants) {
-      const sceneConfig = getSubscribeSceneConfig(grant.scene);
-      if (!sceneConfig || grant.templateId !== sceneConfig.templateId) {
+      const sceneConfig = await resolveSubscribeSceneConfig(grant.scene);
+      if (!sceneConfig || !sceneConfig.templateId || grant.templateId !== sceneConfig.templateId) {
         continue;
       }
 
@@ -425,16 +426,53 @@ class SubscribeMessageService {
     });
   }
 
-  async getAccessToken() {
-    if (Date.now() < this.accessTokenExpiresAt && this.accessToken) {
-      return this.accessToken;
+  async resolveWechatAccessTokenCredential(tenantId = getCurrentTenantId()) {
+    if (!tenantId) {
+      return {
+        cacheKey: process.env.WECHAT_APPID || '__default__',
+        appid: process.env.WECHAT_APPID,
+        secret: process.env.WECHAT_SECRET
+      };
     }
 
-    const appid = process.env.WECHAT_APPID;
-    const secret = process.env.WECHAT_SECRET;
+    const Tenant = require('../models/Tenant');
+    const tenant = await withSystemContext(null, () =>
+      Tenant.findById(tenantId)
+        .select('slug wxAppIds wechatLogin.appId +wechatLogin.appSecret')
+        .lean()
+    );
+
+    if (!tenant) {
+      return {
+        cacheKey: String(tenantId),
+        appid: null,
+        secret: null
+      };
+    }
+
+    const appid = tenant?.wechatLogin?.appId
+      || (Array.isArray(tenant?.wxAppIds) ? tenant.wxAppIds[0] : null)
+      || process.env.WECHAT_APPID;
+    const secret = tenant?.wechatLogin?.appSecret
+      || (appid === process.env.WECHAT_APPID ? process.env.WECHAT_SECRET : null);
+
+    return {
+      cacheKey: appid || String(tenantId),
+      appid,
+      secret
+    };
+  }
+
+  async getAccessToken(options = {}) {
+    const { appid, secret, cacheKey } = await this.resolveWechatAccessTokenCredential(options.tenantId);
+    const cached = this.accessTokenCache.get(cacheKey);
+
+    if (cached && Date.now() < cached.expiresAt && cached.value) {
+      return cached.value;
+    }
 
     if (!appid || !secret) {
-      throw new Error('未配置 WECHAT_APPID 或 WECHAT_SECRET');
+      throw new Error('租户未配置微信 access_token 凭证');
     }
 
     const response = await axios.get('https://api.weixin.qq.com/cgi-bin/token', {
@@ -450,15 +488,20 @@ class SubscribeMessageService {
       throw new Error(response.data.errmsg || `微信 access_token 获取失败: ${response.data.errcode}`);
     }
 
-    this.accessToken = response.data.access_token;
-    this.accessTokenExpiresAt = Date.now() + Math.max((response.data.expires_in - 120) * 1000, 60000);
+    this.accessTokenCache.set(cacheKey, {
+      value: response.data.access_token,
+      expiresAt: Date.now() + Math.max((response.data.expires_in - 120) * 1000, 60000)
+    });
 
-    return this.accessToken;
+    return response.data.access_token;
   }
 
-  clearAccessTokenCache() {
-    this.accessToken = null;
-    this.accessTokenExpiresAt = 0;
+  clearAccessTokenCache(options = {}) {
+    if (options.tenantId || options.cacheKey || options.appid) {
+      this.accessTokenCache.delete(String(options.cacheKey || options.appid || options.tenantId));
+      return;
+    }
+    this.accessTokenCache.clear();
   }
 
   async sendSceneMessage({
@@ -470,12 +513,27 @@ class SubscribeMessageService {
     sourceId = null,
     consumeOnSuccess = false
   }) {
-    const sceneConfig = getSubscribeSceneConfig(scene);
+    const sceneConfig = await resolveSubscribeSceneConfig(scene);
     if (!sceneConfig) {
       return null;
     }
 
     const targetPage = normalizeMiniProgramPage(page || sceneConfig.page);
+
+    if (!sceneConfig.templateId) {
+      return this.createDeliveryLog({
+        userId: recipientUserId,
+        scene,
+        templateId: '',
+        status: 'skipped_missing_config',
+        targetPage,
+        payload: { fields },
+        errorMessage: '租户未配置订阅消息模板 ID',
+        sourceType,
+        sourceId
+      });
+    }
+
     const fieldKeyMap = this.resolveFieldKeyMap(sceneConfig);
 
     if (!fieldKeyMap) {

@@ -18,8 +18,8 @@ class AuthService {
     const currentTenant = require('../config/current-tenant');
     return request.post('/auth/wechat/login', {
       code,
-      wxAppId: currentTenant.wxAppId,
-      ...userInfo
+      ...userInfo,
+      wxAppId: currentTenant.wxAppId
     });
   }
 
@@ -131,8 +131,7 @@ class AuthService {
       const loginData = await this.login(code, {
         nickname: userInfo.nickName,
         avatar_url: userInfo.avatarUrl,
-        gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown',
-        wxAppId: currentTenant.wxAppId
+        gender: userInfo.gender === 1 ? 'male' : userInfo.gender === 2 ? 'female' : 'unknown'
       });
 
       logger.info('登录结果', {

@@ -16,6 +16,7 @@ const authService = require('../../services/auth.service');
 const request = require('../../utils/request');
 const { createMockUser } = require('../fixtures');
 const constants = require('../../config/constants');
+const currentTenant = require('../../config/current-tenant');
 
 // Mock the request module
 jest.mock('../../utils/request');
@@ -111,6 +112,28 @@ describe('Authentication Service Tests', () => {
   });
 
   describe('[AUTH-2] 登录成功应返回 token 和用户信息', () => {
+    test('should always send the current tenant wxAppId even if caller passes another value', async () => {
+      request.post.mockResolvedValue({
+        accessToken: 'token_123',
+        refreshToken: 'refresh_123',
+        user: createMockUser()
+      });
+
+      await authService.login('test_code', {
+        nickname: '开发测试用户',
+        wxAppId: undefined
+      });
+
+      expect(request.post).toHaveBeenCalledWith(
+        '/auth/wechat/login',
+        expect.objectContaining({
+          code: 'test_code',
+          nickname: '开发测试用户',
+          wxAppId: currentTenant.wxAppId
+        })
+      );
+    });
+
     test('should return login data with accessToken and user info', async () => {
       const mockLoginResponse = {
         accessToken: 'test_access_token_123',

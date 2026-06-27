@@ -624,7 +624,7 @@ describe('User Controller - 100% Coverage', () => {
       expect(UserStub.find.called).to.be.true;
       const query = UserStub.find.getCall(0).args[0];
       expect(query).to.have.property('role');
-      expect(query.role).to.equal('admin');
+      expect(query.role).to.deep.equal({ $in: ['admin', 'super_admin'] });
     });
 
     it('应该支持按 status 过滤', async () => {

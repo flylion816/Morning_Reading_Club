@@ -511,8 +511,8 @@ describe('Payment Controller', () => {
       expect(res.json.called).to.be.true;
     });
 
-    // TC-PAYMENT-007: 支付已确认不能再确认
-    it('应该返回400当支付已确认', async () => {
+    // TC-PAYMENT-007: 支付已确认时前端重复确认应幂等成功
+    it('应该返回200当支付已确认', async () => {
       req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
       req.params = { paymentId: fixtures.testPayments.completedPayment._id };
       req.body = { transactionId: 'txn_123456' };
@@ -529,8 +529,9 @@ describe('Payment Controller', () => {
 
       await paymentController.confirmPayment(req, res, next);
 
-      expect(res.status.calledWith(400)).to.be.true;
+      expect(res.status.called).to.be.false;
       const response = res.json.getCall(0).args[0];
+      expect(response.code).to.equal(200);
       expect(response.message).to.include('支付已确认');
     });
 
@@ -1056,7 +1057,7 @@ describe('Payment Controller', () => {
       };
 
       PaymentStub.findOne.returns({ exec: sandbox.stub().resolves(mockPayment) });
-      EnrollmentStub.findById.resolves(mockEnrollment);
+      EnrollmentStub.findById.returns({ exec: sandbox.stub().resolves(mockEnrollment) });
       EnrollmentStub.findByIdAndUpdate.resolves(mockEnrollment);
 
       await paymentController.wechatCallback(req, res, next);

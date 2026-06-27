@@ -20,7 +20,8 @@ module.exports = {
     insight_request_approved:  '',
     next_day_study_reminder:   '',
     insight_created:           '',
-    podcast_published:         ''
+    podcast_published:         '',
+    activity_reminder:         ''
   },
 
   // —— 视觉身份 ——

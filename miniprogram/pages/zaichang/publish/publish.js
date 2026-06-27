@@ -1,6 +1,7 @@
 const imprintService = require('../../../services/imprint.service');
 const request = require('../../../utils/request');
 const envConfig = require('../../../config/env');
+const currentTenant = require('../../../config/current-tenant');
 const activityService = require('../../../services/activity.service');
 const { tenantStorage } = require('../../../utils/storage');
 const constants = require('../../../config/constants');
@@ -157,7 +158,7 @@ Page({
               url: uploadUrl,
               filePath,
               name: 'file',
-              header: { Authorization: `Bearer ${token}`, 'X-Wx-AppId': envConfig.wxAppId },
+              header: { Authorization: `Bearer ${token}`, 'X-Wx-AppId': currentTenant.wxAppId },
               success: (r) => {
                 try {
                   const data = JSON.parse(r.data);

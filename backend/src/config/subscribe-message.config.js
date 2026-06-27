@@ -1,9 +1,15 @@
+const { getCurrentTenantId, withSystemContext } = require('../utils/tenantContext');
+const {
+  FANREN_SUBSCRIBE_TEMPLATES,
+  getConfiguredSubscribeTemplates
+} = require('./subscribe-templates.config');
+
 const sceneConfigs = {
   enrollment_result: {
     scene: 'enrollment_result',
     title: '报名结果',
     description: '报名成功后提醒用户进入晨读营',
-    templateId: 'Qzn9auOyMjCKUaHrfekzK0XMaQ64nO0mfdikQNXjbdo',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.enrollment_result,
     page: 'pages/periods/periods',
     autoTopUpTarget: 1,
     fieldDefinitions: [
@@ -22,7 +28,7 @@ const sceneConfigs = {
     scene: 'payment_result',
     title: '付款结果',
     description: '支付完成后提醒用户进入晨读营',
-    templateId: 'UCzIuWtUYbc_ucf05GEOqglXK1HJHzwtN50e1NkmhCI',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.payment_result,
     page: 'pages/periods/periods',
     autoTopUpTarget: 1,
     fieldDefinitions: [
@@ -39,7 +45,7 @@ const sceneConfigs = {
     scene: 'comment_received',
     title: '收到评论',
     description: '有人评论或回复时提醒查看',
-    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.comment_received,
     page: 'pages/course-detail/course-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
@@ -60,7 +66,7 @@ const sceneConfigs = {
     scene: 'like_received',
     title: '收到点赞',
     description: '有人点赞打卡或评论时提醒查看',
-    templateId: '7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.like_received,
     page: 'pages/course-detail/course-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
@@ -77,7 +83,7 @@ const sceneConfigs = {
     scene: 'danmaku_received',
     title: '小凡看见弹幕',
     description: '有人在你的小凡看见发表弹幕时提醒查看',
-    templateId: 'oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.danmaku_received,
     page: 'pages/insight-detail/insight-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
@@ -98,7 +104,7 @@ const sceneConfigs = {
     scene: 'insight_liked',
     title: '小凡看见点赞',
     description: '有人给你的小凡看见点赞时提醒查看',
-    templateId: '7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.insight_liked,
     page: 'pages/insight-detail/insight-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
@@ -115,7 +121,7 @@ const sceneConfigs = {
     scene: 'insight_request_created',
     title: '申请小凡看见',
     description: '有人请求查看你的小凡看见时提醒处理',
-    templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.insight_request_created,
     page: 'pages/index/index',
     autoTopUpTarget: 1,
     fieldDefinitions: [
@@ -134,7 +140,7 @@ const sceneConfigs = {
     scene: 'insight_request_approved',
     title: '小凡看见申请通过',
     description: '你发起的小凡看见查看申请被同意时提醒查看',
-    templateId: '6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.insight_request_approved,
     page: 'pages/insight-detail/insight-detail',
     autoTopUpTarget: 1,
     fieldDefinitions: [
@@ -153,7 +159,7 @@ const sceneConfigs = {
     scene: 'insight_created',
     title: '小凡看见通知',
     description: '外部系统创建小凡看见时通知被看见的用户',
-    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.insight_created,
     page: 'pages/insight-detail/insight-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
@@ -174,7 +180,7 @@ const sceneConfigs = {
     scene: 'next_day_study_reminder',
     title: '明日开课通知',
     description: '次日 05:45 发送晨读营开课通知',
-    templateId: 'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.next_day_study_reminder,
     page: 'pages/periods/periods',
     autoTopUpTarget: 1,
     fieldDefinitions: [
@@ -195,7 +201,7 @@ const sceneConfigs = {
     scene: 'podcast_published',
     title: '凡人播客上新',
     description: '当天课程的凡人播客上传后通知报名用户收听',
-    templateId: '7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.podcast_published,
     page: 'pages/course-detail/course-detail',
     autoTopUpTarget: 50,
     fieldDefinitions: [
@@ -216,7 +222,7 @@ const sceneConfigs = {
     scene: 'activity_reminder',
     title: '活动开始通知',
     description: '活动开始前10分钟提醒已报名用户',
-    templateId: 'aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA',
+    templateId: FANREN_SUBSCRIBE_TEMPLATES.activity_reminder,
     page: 'pages/community-activity-detail/community-activity-detail',
     autoTopUpTarget: 1,
     fieldDefinitions: [
@@ -243,6 +249,58 @@ function getSubscribeSceneList() {
   return Object.values(sceneConfigs);
 }
 
+function cloneSceneConfig(sceneConfig, templateId) {
+  if (!sceneConfig) {
+    return null;
+  }
+
+  return {
+    ...sceneConfig,
+    fieldDefinitions: sceneConfig.fieldDefinitions.map(field => ({ ...field })),
+    defaultFieldKeyMap: { ...sceneConfig.defaultFieldKeyMap },
+    templateId: templateId || ''
+  };
+}
+
+async function getTenantSubscribeTemplates(tenantId = getCurrentTenantId()) {
+  if (!tenantId) {
+    return getConfiguredSubscribeTemplates();
+  }
+
+  const Tenant = require('../models/Tenant');
+  const tenant = await withSystemContext(null, () =>
+    Tenant.findById(tenantId)
+      .select('slug wxAppIds wechatLogin.appId subscribeTemplates')
+      .lean()
+  );
+
+  if (!tenant) {
+    return {};
+  }
+
+  return {
+    ...getConfiguredSubscribeTemplates(tenant),
+    ...(tenant?.subscribeTemplates || {})
+  };
+}
+
+async function resolveSubscribeSceneConfig(scene, tenantId = getCurrentTenantId()) {
+  const sceneConfig = getSubscribeSceneConfig(scene);
+  if (!sceneConfig) {
+    return null;
+  }
+
+  const templates = await getTenantSubscribeTemplates(tenantId);
+  return cloneSceneConfig(sceneConfig, templates[sceneConfig.scene]);
+}
+
+async function resolveSubscribeSceneList(tenantId = getCurrentTenantId()) {
+  const templates = await getTenantSubscribeTemplates(tenantId);
+  return getSubscribeSceneList().map(sceneConfig =>
+    cloneSceneConfig(sceneConfig, templates[sceneConfig.scene])
+  );
+}
+
 function normalizeMiniProgramPage(page = '') {
   return String(page || '').replace(/^\/+/, '');
 }
@@ -251,5 +309,8 @@ module.exports = {
   SUBSCRIBE_MESSAGE_SCENES: sceneConfigs,
   getSubscribeSceneConfig,
   getSubscribeSceneList,
+  getTenantSubscribeTemplates,
+  resolveSubscribeSceneConfig,
+  resolveSubscribeSceneList,
   normalizeMiniProgramPage
 };

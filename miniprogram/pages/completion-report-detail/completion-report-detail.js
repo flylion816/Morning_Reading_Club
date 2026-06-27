@@ -1,6 +1,7 @@
 const completionReportService = require('../../services/completion-report.service');
 const constants = require('../../config/constants');
 const envConfig = require('../../config/env');
+const currentTenant = require('../../config/current-tenant');
 const { tenantStorage } = require('../../utils/storage');
 
 function callWxApi(apiName, options) {
@@ -21,7 +22,7 @@ function callWxApi(apiName, options) {
 
 function buildDownloadHeader() {
   const header = {
-    'X-Wx-AppId': envConfig.wxAppId
+    'X-Wx-AppId': currentTenant.wxAppId
   };
   const token = tenantStorage.get(constants.STORAGE_KEYS.TOKEN);
   if (token) {

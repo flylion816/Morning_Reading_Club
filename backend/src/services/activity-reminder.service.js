@@ -3,7 +3,7 @@ const CommunityActivity = require('../models/CommunityActivity');
 const ActivityRegistration = require('../models/ActivityRegistration');
 const subscribeMessageService = require('./subscribe-message.service');
 const logger = require('../utils/logger');
-const { getSubscribeSceneConfig } = require('../config/subscribe-message.config');
+const { resolveSubscribeSceneConfig } = require('../config/subscribe-message.config');
 const { withSystemContext } = require('../utils/tenantContext');
 
 const SCENE = 'activity_reminder';
@@ -17,12 +17,6 @@ function formatStartTime(date) {
 }
 
 async function sendActivityReminders() {
-  const sceneConfig = getSubscribeSceneConfig(SCENE);
-  if (!sceneConfig) {
-    logger.warn('activity_reminder scene config missing, skipping');
-    return;
-  }
-
   const now = new Date();
   const windowStart = new Date(now.getTime() + 9 * 60 * 1000);
   const windowEnd = new Date(now.getTime() + 11 * 60 * 1000);
@@ -49,6 +43,13 @@ async function sendActivityReminders() {
     const tenantId = activity.tenantId ? activity.tenantId.toString() : null;
 
     await withSystemContext(tenantId, async () => {
+      const sceneConfig = await resolveSubscribeSceneConfig(SCENE);
+      if (!sceneConfig || !sceneConfig.templateId) {
+        logger.warn('activity_reminder scene config missing, skipping tenant', { tenantId });
+        summary.skipped += 1;
+        return;
+      }
+
       const registrations = await ActivityRegistration.find({
         activityId: activity._id,
         status: 'registered',

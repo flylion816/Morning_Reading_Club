@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const { setupFindChain } = require('../helpers/mock-helpers');
 const { buildNextDayStudyReminderPlan } = require('../../../src/utils/study-reminder.utils');
 const { getSubscribeSceneConfig } = require('../../../src/config/subscribe-message.config');
+const { withSystemContext } = require('../../../src/utils/tenantContext');
 
 describe('Subscribe Message Service', () => {
   let sandbox;
@@ -15,6 +16,8 @@ describe('Subscribe Message Service', () => {
   let SectionStub;
   let SubscribeMessageGrantStub;
   let SubscribeMessageDeliveryStub;
+  let TenantStub;
+  let subscribeMessageConfig;
   let loggerStub;
   let axiosStub;
 
@@ -48,6 +51,17 @@ describe('Subscribe Message Service', () => {
       create: sandbox.stub().resolves({})
     };
 
+    TenantStub = {
+      findById: sandbox.stub()
+    };
+
+    subscribeMessageConfig = proxyquire(
+      '../../../src/config/subscribe-message.config',
+      {
+        '../models/Tenant': TenantStub
+      }
+    );
+
     loggerStub = {
       info: sandbox.stub(),
       warn: sandbox.stub(),
@@ -68,6 +82,8 @@ describe('Subscribe Message Service', () => {
         '../models/Section': SectionStub,
         '../models/SubscribeMessageGrant': SubscribeMessageGrantStub,
         '../models/SubscribeMessageDelivery': SubscribeMessageDeliveryStub,
+        '../models/Tenant': TenantStub,
+        '../config/subscribe-message.config': subscribeMessageConfig,
         '../utils/logger': loggerStub,
         axios: axiosStub
       }
@@ -77,6 +93,15 @@ describe('Subscribe Message Service', () => {
   afterEach(() => {
     sandbox.restore();
   });
+
+  function setupTenantFindById(tenant) {
+    TenantStub.findById.callsFake(() => {
+      const chain = {};
+      chain.select = sandbox.stub().returns(chain);
+      chain.lean = sandbox.stub().resolves(tenant);
+      return chain;
+    });
+  }
 
   it('should cap comment grants at target 50', async () => {
     const userId = new mongoose.Types.ObjectId();
@@ -98,6 +123,69 @@ describe('Subscribe Message Service', () => {
     expect(update.$set.autoTopUpTarget).to.equal(50);
     expect(update.$set.availableCount).to.equal(50);
   });
+
+  it('should accept tenant-specific template grants', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const tenantId = new mongoose.Types.ObjectId();
+    const tenantTemplateId = 'TENANT_COMMENT_TEMPLATE';
+
+    setupTenantFindById({
+      _id: tenantId,
+      slug: 'tenant-a',
+      wxAppIds: ['wx1111111111111111'],
+      wechatLogin: { appId: 'wx1111111111111111' },
+      subscribeTemplates: {
+        comment_received: tenantTemplateId
+      }
+    });
+    SubscribeMessageGrantStub.findOne.resolves({ availableCount: 0 });
+    SubscribeMessageGrantStub.findOneAndUpdate.resolves({ availableCount: 1 });
+    SubscribeMessageGrantStub.find.returns(setupFindChain(sandbox, []));
+
+    await withSystemContext(tenantId, () =>
+      subscribeMessageService.recordUserGrantResults(userId, [
+        {
+          scene: 'comment_received',
+          templateId: tenantTemplateId,
+          result: 'accept'
+        }
+      ])
+    );
+
+    expect(SubscribeMessageGrantStub.findOneAndUpdate.calledOnce).to.be.true;
+    const query = SubscribeMessageGrantStub.findOneAndUpdate.firstCall.args[0];
+    const update = SubscribeMessageGrantStub.findOneAndUpdate.firstCall.args[1];
+    expect(query.templateId).to.equal(tenantTemplateId);
+    expect(update.$set.templateId).to.equal(tenantTemplateId);
+  });
+
+  it('should not fallback to default template when tenant config is missing', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const tenantId = new mongoose.Types.ObjectId();
+    const defaultSceneConfig = getSubscribeSceneConfig('comment_received');
+
+    setupTenantFindById(null);
+    SubscribeMessageGrantStub.find.returns(setupFindChain(sandbox, []));
+
+    await withSystemContext(tenantId, () =>
+      subscribeMessageService.recordUserGrantResults(userId, [
+        {
+          scene: 'comment_received',
+          templateId: defaultSceneConfig.templateId,
+          result: 'accept'
+        }
+      ])
+    );
+
+    expect(SubscribeMessageGrantStub.findOneAndUpdate.called).to.be.false;
+
+    const state = await withSystemContext(tenantId, () =>
+      subscribeMessageService.getUserSubscriptionStates(userId)
+    );
+    const commentScene = state.scenes.find(item => item.scene === 'comment_received');
+    expect(commentScene.templateId).to.equal('');
+  });
+
 
   it('should schedule next day reminder once and keep it within period', async () => {
     const userId = new mongoose.Types.ObjectId();
@@ -196,8 +284,10 @@ describe('Subscribe Message Service', () => {
 
   it('should expose auto top up target and scheduled send date in states', async () => {
     const userId = new mongoose.Types.ObjectId();
+    const sceneConfig = getSubscribeSceneConfig('next_day_study_reminder');
     const grant = {
       scene: 'next_day_study_reminder',
+      templateId: sceneConfig.templateId,
       availableCount: 1,
       scheduledSendDate: new Date('2026-03-30T05:45:00+08:00'),
       scheduledSendDateKey: '2026-03-30',
@@ -219,6 +309,38 @@ describe('Subscribe Message Service', () => {
     expect(nextDayScene.scheduledSendDate).to.deep.equal(grant.scheduledSendDate);
     expect(nextDayScene.periodId).to.equal('period_1');
     expect(nextDayScene.sourceAction).to.equal('course_detail_click');
+  });
+
+  it('should ignore grants from a different template when building states', async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const tenantId = new mongoose.Types.ObjectId();
+    const tenantTemplateId = 'TENANT_COMMENT_TEMPLATE';
+
+    setupTenantFindById({
+      _id: tenantId,
+      slug: 'tenant-state',
+      wxAppIds: ['wx4444444444444444'],
+      wechatLogin: { appId: 'wx4444444444444444' },
+      subscribeTemplates: {
+        comment_received: tenantTemplateId
+      }
+    });
+    SubscribeMessageGrantStub.find.returns(setupFindChain(sandbox, [
+      {
+        scene: 'comment_received',
+        templateId: getSubscribeSceneConfig('comment_received').templateId,
+        availableCount: 9,
+        lastResult: 'accept'
+      }
+    ]));
+
+    const result = await withSystemContext(tenantId, () =>
+      subscribeMessageService.getUserSubscriptionStates(userId)
+    );
+
+    const commentScene = result.scenes.find(item => item.scene === 'comment_received');
+    expect(commentScene.templateId).to.equal(tenantTemplateId);
+    expect(commentScene.availableCount).to.equal(0);
   });
 
   it('should expose insight request approved scene in subscription states', async () => {
@@ -319,6 +441,120 @@ describe('Subscribe Message Service', () => {
       scene: 'insight_request_approved',
       status: 'mocked'
     });
+  });
+
+  it('should send with tenant-specific template and credential', async () => {
+    const tenantId = new mongoose.Types.ObjectId();
+    const recipientUserId = new mongoose.Types.ObjectId();
+    const grantId = new mongoose.Types.ObjectId();
+    const tenantTemplateId = 'TENANT_LIKE_TEMPLATE';
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    setupTenantFindById({
+      _id: tenantId,
+      slug: 'tenant-like',
+      wxAppIds: ['wx2222222222222222'],
+      wechatLogin: {
+        appId: 'wx2222222222222222',
+        appSecret: 'tenant-secret'
+      },
+      subscribeTemplates: {
+        like_received: tenantTemplateId
+      }
+    });
+    UserStub.findById.returns(setupFindChain(sandbox, {
+      _id: recipientUserId,
+      openid: 'openid-tenant',
+      nickname: '租户用户'
+    }));
+    SubscribeMessageGrantStub.findOneAndUpdate.resolves({
+      _id: grantId,
+      availableCount: 1
+    });
+    axiosStub.get.resolves({
+      data: {
+        access_token: 'tenant-access-token',
+        expires_in: 7200
+      }
+    });
+    axiosStub.post.resolves({
+      data: {
+        errcode: 0,
+        errmsg: 'ok'
+      }
+    });
+
+    process.env.NODE_ENV = 'production';
+    try {
+      await withSystemContext(tenantId, () =>
+        subscribeMessageService.sendSceneMessage({
+          scene: 'like_received',
+          recipientUserId,
+          fields: {
+            likeUser: '点赞人',
+            likeTime: '2026-03-31 07:00'
+          },
+          sourceType: 'checkin_like',
+          sourceId: 'checkin-tenant'
+        })
+      );
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    expect(axiosStub.get.calledOnce).to.be.true;
+    expect(axiosStub.get.firstCall.args[1].params).to.include({
+      appid: 'wx2222222222222222',
+      secret: 'tenant-secret'
+    });
+    expect(axiosStub.post.calledOnce).to.be.true;
+    expect(axiosStub.post.firstCall.args[1].template_id).to.equal(tenantTemplateId);
+    expect(SubscribeMessageDeliveryStub.create.firstCall.args[0]).to.include({
+      templateId: tenantTemplateId,
+      status: 'sent'
+    });
+  });
+
+  it('should not fallback to default secret for another tenant appId', async () => {
+    const tenantId = new mongoose.Types.ObjectId();
+    const originalWechatAppId = process.env.WECHAT_APPID;
+    const originalWechatSecret = process.env.WECHAT_SECRET;
+
+    setupTenantFindById({
+      _id: tenantId,
+      slug: 'tenant-missing-secret',
+      wxAppIds: ['wx3333333333333333'],
+      wechatLogin: {
+        appId: 'wx3333333333333333'
+      },
+      subscribeTemplates: {}
+    });
+
+    process.env.WECHAT_APPID = 'wx2b9a3c1d5e4195f8';
+    process.env.WECHAT_SECRET = 'default-secret';
+    try {
+      await withSystemContext(tenantId, async () => {
+        try {
+          await subscribeMessageService.getAccessToken();
+          throw new Error('expected getAccessToken to fail');
+        } catch (error) {
+          expect(error.message).to.equal('租户未配置微信 access_token 凭证');
+        }
+      });
+    } finally {
+      if (originalWechatAppId === undefined) {
+        delete process.env.WECHAT_APPID;
+      } else {
+        process.env.WECHAT_APPID = originalWechatAppId;
+      }
+      if (originalWechatSecret === undefined) {
+        delete process.env.WECHAT_SECRET;
+      } else {
+        process.env.WECHAT_SECRET = originalWechatSecret;
+      }
+    }
+
+    expect(axiosStub.get.called).to.be.false;
   });
 
   it('should restore inventory when WeChat returns 43101 for non-consuming scenes', async () => {

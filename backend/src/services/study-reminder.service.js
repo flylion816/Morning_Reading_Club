@@ -11,7 +11,7 @@ const {
   getShanghaiDateKey,
   getShanghaiDateTime
 } = require('../utils/study-reminder.utils');
-const { getSubscribeSceneConfig } = require('../config/subscribe-message.config');
+const { resolveSubscribeSceneConfig } = require('../config/subscribe-message.config');
 const { withSystemContext } = require('../utils/tenantContext');
 
 const SCENE = 'next_day_study_reminder';
@@ -124,8 +124,8 @@ function buildReminderFields({ period, section, sendDate }) {
 }
 
 async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
-  const sceneConfig = getSubscribeSceneConfig(SCENE);
-  if (!sceneConfig) {
+  const sceneConfig = await resolveSubscribeSceneConfig(SCENE);
+  if (!sceneConfig || !sceneConfig.templateId) {
     return { status: 'skipped_missing_config' };
   }
 
@@ -222,23 +222,12 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
 }
 
 async function sendDueNextDayStudyReminders({ attemptType = 'scheduled' } = {}) {
-  const sceneConfig = getSubscribeSceneConfig(SCENE);
-  if (!sceneConfig) {
-    return {
-      total: 0,
-      sent: 0,
-      failed: 0,
-      skipped: 0
-    };
-  }
-
   const now = new Date();
   // 第一步：跨租户拿出所有"到期未发送"的 grant，只读 tenantId 和 _id
   // 注意：必须在回调内调用 .exec() 确保 Query 在 AsyncLocalStorage 上下文内执行
   const allDueIds = await withSystemContext(null, () =>
     SubscribeMessageGrant.find({
       scene: SCENE,
-      templateId: sceneConfig.templateId,
       availableCount: { $gt: 0 },
       scheduledSendDate: { $lte: now },
       $or: [{ retryAt: null }, { retryAt: { $lte: now } }]

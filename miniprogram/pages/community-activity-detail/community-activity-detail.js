@@ -1,5 +1,6 @@
 const communityActivityService = require('../../services/communityActivity.service');
 const activityService = require('../../services/activity.service');
+const currentTenant = require('../../config/current-tenant');
 
 function formatDatetime(val) {
   if (!val) return '';
@@ -134,18 +135,30 @@ Page({
     this.setData({ registering: true });
     try {
       let reminderGranted = false;
-      await new Promise((resolve) => {
-        wx.requestSubscribeMessage({
-          tmplIds: ['activity_reminder'],
-          success(subRes) {
-            reminderGranted = subRes['activity_reminder'] === 'accept';
-            resolve();
-          },
-          fail() { resolve(); }
+      let reminderGrant = null;
+      const activityReminderTemplateId = currentTenant.subscribeTemplates?.activity_reminder || '';
+      if (activityReminderTemplateId) {
+        await new Promise((resolve) => {
+          wx.requestSubscribeMessage({
+            tmplIds: [activityReminderTemplateId],
+            success(subRes) {
+              reminderGranted = subRes[activityReminderTemplateId] === 'accept';
+              reminderGrant = {
+                scene: 'activity_reminder',
+                templateId: activityReminderTemplateId,
+                result: subRes[activityReminderTemplateId] || 'error'
+              };
+              resolve();
+            },
+            fail() { resolve(); }
+          });
         });
-      });
+      }
 
-      const regRes = await communityActivityService.register(this.data.activityId, { reminderGranted });
+      const regRes = await communityActivityService.register(this.data.activityId, {
+        reminderGranted,
+        reminderGrant
+      });
       const regData = regRes.data || regRes;
 
       if (regData.paymentId) {

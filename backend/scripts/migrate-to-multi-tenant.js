@@ -34,6 +34,7 @@ const mongoose = require('mongoose');
 const { withSystemContext } = require('../src/utils/tenantContext');
 const Tenant = require('../src/models/Tenant');
 const Admin = require('../src/models/Admin');
+const { FANREN_SUBSCRIBE_TEMPLATES } = require('../src/config/subscribe-templates.config');
 
 const COLLECTIONS_TO_MIGRATE = [
   'users',
@@ -119,6 +120,7 @@ const INITIAL_TENANT = {
     appId: process.env.WECHAT_APPID || 'wx2b9a3c1d5e4195f8',
     notifyUrl: process.env.WECHAT_NOTIFY_URL || null
   },
+  subscribeTemplates: FANREN_SUBSCRIBE_TEMPLATES,
   status: 'active'
 };
 
@@ -126,7 +128,8 @@ function buildTenantConfigUpdate() {
   const $set = {
     status: 'active',
     'wechatLogin.appId': INITIAL_TENANT.wechatLogin.appId,
-    'wechatPay.appId': INITIAL_TENANT.wechatPay.appId
+    'wechatPay.appId': INITIAL_TENANT.wechatPay.appId,
+    subscribeTemplates: FANREN_SUBSCRIBE_TEMPLATES
   };
 
   if (process.env.WECHAT_SECRET) {

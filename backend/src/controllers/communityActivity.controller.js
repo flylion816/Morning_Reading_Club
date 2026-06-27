@@ -3,9 +3,36 @@ const ActivityRegistration = require('../models/ActivityRegistration');
 const Payment = require('../models/Payment');
 const ActivityCoupon = require('../models/ActivityCoupon');
 const paymentService = require('../services/payment.service');
+const subscribeMessageService = require('../services/subscribe-message.service');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
+
+async function recordActivityReminderGrant(userId, activityId, grantPayload = null) {
+  if (!grantPayload || grantPayload.scene !== 'activity_reminder' || grantPayload.result !== 'accept') {
+    return;
+  }
+
+  try {
+    await subscribeMessageService.recordUserGrantResults(userId, [
+      {
+        scene: 'activity_reminder',
+        templateId: grantPayload.templateId,
+        result: 'accept',
+        context: {
+          activityId: String(activityId),
+          sourceAction: 'community_activity_register'
+        }
+      }
+    ]);
+  } catch (error) {
+    logger.warn('记录活动订阅授权失败，不阻断报名', {
+      userId,
+      activityId,
+      error: error.message
+    });
+  }
+}
 
 // ===== 用户端 =====
 
@@ -154,7 +181,7 @@ exports.registerActivity = async (req, res) => {
   try {
     const { id } = req.params;
     const { userId } = req.user;
-    const { reminderGranted = false } = req.body;
+    const { reminderGranted = false, reminderGrant = null } = req.body;
     const tenantId = getCurrentTenantId();
 
     const activity = await CommunityActivity.findOne({ _id: id, tenantId }).lean();
@@ -246,17 +273,17 @@ exports.registerActivity = async (req, res) => {
       // 更新 registration 关联 paymentId
       registration.paymentId = payment._id;
       await registration.save();
+      await recordActivityReminderGrant(userId, id, reminderGrant);
 
       // 尝试获取微信支付参数
-      const tenantId_ = tenantId;
       let wxParams = {};
       try {
-        const payConfig = await paymentService.resolveWechatPayConfig(tenantId_);
+        const payConfig = await paymentService.resolveWechatPayConfig(tenantId);
         const prepayResult = await paymentService.unifiedOrder({
           orderId: payment.orderNo,
           amount: finalPrice,
           body: `活动报名-${activity.title}`,
-          tenantId: tenantId_,
+          tenantId,
           openid: req.user.openid || ''
         });
         if (prepayResult && prepayResult.prepayId) {
@@ -293,6 +320,7 @@ exports.registerActivity = async (req, res) => {
       existing.reminderGranted = reminderGranted;
       existing.registeredAt = new Date();
       await existing.save();
+      await recordActivityReminderGrant(userId, id, reminderGrant);
       return res.json(success(existing, '报名成功'));
     }
 
@@ -302,6 +330,7 @@ exports.registerActivity = async (req, res) => {
       userId,
       reminderGranted
     });
+    await recordActivityReminderGrant(userId, id, reminderGrant);
 
     res.json(success(registration, '报名成功'));
   } catch (err) {

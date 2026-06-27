@@ -27,7 +27,7 @@ exports.createTenant = async (req, res) => {
     if (req.admin.role !== 'platform_superadmin' && req.admin.role !== 'superadmin') {
       return res.status(403).json(errors.forbidden('仅平台管理员可访问'));
     }
-    const { slug, name, description, wxAppIds, wechatLogin, wechatPay, branding } = req.body;
+    const { slug, name, description, wxAppIds, wechatLogin, wechatPay, subscribeTemplates, branding } = req.body;
     if (!slug || !name) {
       return res.status(400).json(errors.badRequest('slug 和 name 必填'));
     }
@@ -39,6 +39,7 @@ exports.createTenant = async (req, res) => {
         wxAppIds: wxAppIds || [],
         wechatLogin: wechatLogin || {},
         wechatPay: wechatPay || {},
+        subscribeTemplates: subscribeTemplates || {},
         branding: branding || {}
       })
     );
@@ -57,11 +58,12 @@ exports.updateTenant = async (req, res) => {
       return res.status(403).json(errors.forbidden('仅平台管理员可访问'));
     }
     const { tenantId } = req.params;
-    const { name, description, wxAppIds, wechatLogin, wechatPay, branding } = req.body;
+    const { name, description, wxAppIds, wechatLogin, wechatPay, subscribeTemplates, branding } = req.body;
     const updates = {};
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
     if (wxAppIds !== undefined) updates.wxAppIds = wxAppIds;
+    if (subscribeTemplates !== undefined) updates.subscribeTemplates = subscribeTemplates || {};
     if (branding !== undefined) updates.branding = branding;
 
     if (wechatLogin !== undefined) {
