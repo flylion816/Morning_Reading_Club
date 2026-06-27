@@ -27,7 +27,7 @@ module.exports = {
   // —— 视觉身份 ——
   primaryColor: '#e84118',
   logo: '/assets/tenants/chaoren/logo.png',
-  shareCover: '/assets/tenants/chaoren/share-cover.jpg',
+  shareCover: '/assets/images/share-default.jpg',
   navBar: {
     title: '超人读书会',
     bgColor: '#e84118',

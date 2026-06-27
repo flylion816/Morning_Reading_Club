@@ -222,14 +222,13 @@
               <view class="checkin-diary-card-preview">{{item.preview}}</view>
 
               <view class="checkin-diary-card-footer">
-                <text class="checkin-diary-card-period">{{item.periodTitle}}</text>
                 <view class="checkin-diary-card-meta">
-                  <text wx:if="{{item.imageCount}}" class="checkin-diary-card-image-count">{{item.imageCount}}图</text>
                   <text class="checkin-diary-card-date">{{item.dateLabel}}</text>
                   <view class="checkin-diary-card-like">
                     <text class="checkin-diary-card-like-icon">♡</text>
                     <text>{{item.likeCount}}</text>
                   </view>
+                  <text wx:if="{{item.periodTitle}}" class="checkin-diary-card-period-badge">{{item.periodTitle}}</text>
                 </view>
               </view>
             </view>

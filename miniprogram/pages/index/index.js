@@ -148,6 +148,11 @@ function truncateText(text = '', maxLength = RECENT_CHECKIN_PREVIEW_MAX_LENGTH) 
   return `${normalized.slice(0, maxLength)}...`;
 }
 
+function getShortPeriodTitle(title = '') {
+  const normalized = String(title || '').trim();
+  return normalized.split(/\s*[-－—]\s*/)[0] || normalized;
+}
+
 function buildRecentCheckinCard(item) {
   const previewSource = richContentToPlainText(item.note || item.content || '')
     .replace(/\s+/g, ' ')
@@ -160,12 +165,14 @@ function buildRecentCheckinCard(item) {
     item.periodId && typeof item.periodId === 'object' ? item.periodId : {};
   const sectionInfo =
     item.sectionId && typeof item.sectionId === 'object' ? item.sectionId : {};
+  const periodTitle = periodInfo.title || periodInfo.name || '我的打卡';
 
   return {
     id: item._id || item.id,
     sectionId: sectionInfo._id || sectionInfo.id || item.sectionId || '',
     periodId: periodInfo._id || periodInfo.id || item.periodId || '',
-    periodTitle: periodInfo.title || periodInfo.name || '我的打卡',
+    periodFullTitle: periodTitle,
+    periodTitle: getShortPeriodTitle(periodTitle),
     sectionTitle: sectionInfo.title || '打卡日记',
     preview,
     imageCount,

@@ -35,12 +35,60 @@
         "type": "folder"
       },
       {
-        "value": "miniprogram/__tests__",
+        "value": "scripts",
         "type": "folder"
       },
       {
         "value": "__tests__",
         "type": "folder"
+      },
+      {
+        "value": "e2e",
+        "type": "folder"
+      },
+      {
+        "value": ".omc",
+        "type": "folder"
+      },
+      {
+        "value": "assets/icons/.omc",
+        "type": "folder"
+      },
+      {
+        "value": "assets/tenants/chaoren",
+        "type": "folder"
+      },
+      {
+        "value": "assets/tenants/fanren/share-cover.jpg",
+        "type": "file"
+      },
+      {
+        "value": "miniprogram/scripts",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram/__tests__",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram/e2e",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram/.omc",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram/assets/icons/.omc",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram/assets/tenants/chaoren",
+        "type": "folder"
+      },
+      {
+        "value": "miniprogram/assets/tenants/fanren/share-cover.jpg",
+        "type": "file"
       }
     ],
     "include": []

@@ -43,16 +43,19 @@
         data-checkin-id="{{detailCheckin.id}}">{{detailCheckin.contentExpanded ? '收起' : '展开更多'}}</view>
 
       <view wx:if="{{detailCheckin.images && detailCheckin.images.length > 0}}" class="checkin-images checkin-images-detail">
-        <image
+        <view
           wx:for="{{detailCheckin.images}}"
           wx:key="*this"
           wx:for-item="imageUrl"
-          class="checkin-image checkin-image-detail"
-          src="{{imageUrl}}"
-          mode="aspectFill"
+          class="checkin-image-frame checkin-image-frame-detail"
           catchtap="handleCheckinImagePreview"
           data-url="{{imageUrl}}"
-          data-checkin-id="{{detailCheckin.id}}" />
+          data-checkin-id="{{detailCheckin.id}}">
+          <image
+            class="checkin-image checkin-image-detail"
+            src="{{imageUrl}}"
+            mode="aspectFill" />
+        </view>
       </view>
 
       <view wx:if="{{detailCheckin.hashTag}}" class="dynamic-hashtag">{{detailCheckin.hashTag}}</view>
@@ -413,16 +416,19 @@
               catchtap="toggleCheckinContent"
               data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
             <view wx:if="{{item.images && item.images.length > 0}}" class="checkin-images checkin-images-feed">
-              <image
+              <view
                 wx:for="{{item.images}}"
                 wx:key="*this"
                 wx:for-item="imageUrl"
-                class="checkin-image checkin-image-feed"
-                src="{{imageUrl}}"
-                mode="aspectFill"
+                class="checkin-image-frame checkin-image-frame-feed"
                 catchtap="handleCheckinImagePreview"
                 data-url="{{imageUrl}}"
-                data-checkin-id="{{item.id}}" />
+                data-checkin-id="{{item.id}}">
+                <image
+                  class="checkin-image checkin-image-feed"
+                  src="{{imageUrl}}"
+                  mode="aspectFill" />
+              </view>
             </view>
             <view class="comment-footer">
               <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">

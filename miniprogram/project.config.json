@@ -1,0 +1,38 @@
+{
+  "packOptions": {
+    "ignore": [
+      {
+        "value": "scripts",
+        "type": "folder"
+      },
+      {
+        "value": "__tests__",
+        "type": "folder"
+      },
+      {
+        "value": "e2e",
+        "type": "folder"
+      },
+      {
+        "value": ".omc",
+        "type": "folder"
+      },
+      {
+        "value": "assets/icons/.omc",
+        "type": "folder"
+      },
+      {
+        "value": "assets/tenants/chaoren",
+        "type": "folder"
+      },
+      {
+        "value": "assets/tenants/fanren/share-cover.jpg",
+        "type": "file"
+      }
+    ],
+    "include": []
+  },
+  "setting": {
+    "minifyWXML": true
+  }
+}

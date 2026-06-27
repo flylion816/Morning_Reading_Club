@@ -22,7 +22,7 @@ module.exports = {
   },
   "primaryColor": "#4a90e2",
   "logo": "/assets/tenants/fanren/logo.png",
-  "shareCover": "/assets/tenants/fanren/share-cover.jpg",
+  "shareCover": "/assets/images/share-default.jpg",
   "navBar": {
     "title": "凡人共读",
     "bgColor": "#4a90e2",

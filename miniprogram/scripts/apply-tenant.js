@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // 用法: node scripts/apply-tenant.js <slug>
 // 切换当前构建租户：生成 current-tenant.js / theme.wxss，外科式改写 app.json / project.config.json
 const fs = require('fs');
@@ -31,6 +30,63 @@ if (errors.length) {
   console.error(`❌ 租户 [${slug}] 配置校验失败:`);
   errors.forEach(e => console.error(`   - ${e}`));
   process.exit(1);
+}
+
+function isManagedIgnoreEntry(item, entries) {
+  if (!item || !item.value || !item.type) {
+    return false;
+  }
+  if (entries.some(entry => entry.value === item.value && entry.type === item.type)) {
+    return true;
+  }
+  return /^(miniprogram\/)?assets\/tenants\/[^/]+$/.test(item.value) ||
+    /^(miniprogram\/)?assets\/tenants\/[^/]+\/share-cover\.jpg$/.test(item.value);
+}
+
+function upsertIgnoreEntries(projectConfig, entries) {
+  projectConfig.packOptions = projectConfig.packOptions || {};
+  const ignore = Array.isArray(projectConfig.packOptions.ignore)
+    ? projectConfig.packOptions.ignore
+    : [];
+  const nextIgnore = ignore.filter(item => !isManagedIgnoreEntry(item, entries));
+
+  entries.forEach(entry => {
+    nextIgnore.push(entry);
+  });
+
+  projectConfig.packOptions.ignore = nextIgnore;
+  projectConfig.packOptions.include = Array.isArray(projectConfig.packOptions.include)
+    ? projectConfig.packOptions.include
+    : [];
+}
+
+function buildIgnoreEntries(prefix = '') {
+  const tenantAssetRoot = path.join(ROOT, 'assets', 'tenants');
+  const tenantDirs = fs.existsSync(tenantAssetRoot)
+    ? fs.readdirSync(tenantAssetRoot, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name)
+    : [];
+  const entries = [
+    { value: `${prefix}scripts`, type: 'folder' },
+    { value: `${prefix}__tests__`, type: 'folder' },
+    { value: `${prefix}e2e`, type: 'folder' },
+    { value: `${prefix}.omc`, type: 'folder' },
+    { value: `${prefix}assets/icons/.omc`, type: 'folder' }
+  ];
+
+  tenantDirs
+    .filter(tenantSlug => tenantSlug !== slug)
+    .forEach(tenantSlug => {
+      entries.push({ value: `${prefix}assets/tenants/${tenantSlug}`, type: 'folder' });
+    });
+
+  const currentTenantShareCover = `/assets/tenants/${slug}/share-cover.jpg`;
+  if (cfg.shareCover !== currentTenantShareCover) {
+    entries.push({ value: `${prefix}assets/tenants/${slug}/share-cover.jpg`, type: 'file' });
+  }
+
+  return entries;
 }
 
 // 2) 校验 TabBar 图标素材存在（必须本地文件）
@@ -96,7 +152,7 @@ appJson.tabBar.list.forEach((item, i) => {
 
 fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + '\n');
 
-// 6) 改写 project.config.json(+private) 的 appid
+// 6) 改写 project.config.json(+private) 的 appid，并维护上传忽略规则
 for (const name of ['project.config.json', 'project.private.config.json']) {
   const p = path.join(REPO, name);
   if (!fs.existsSync(p)) continue;
@@ -108,7 +164,24 @@ for (const name of ['project.config.json', 'project.private.config.json']) {
     continue;
   }
   j.appid = cfg.wxAppId;
+  if (name === 'project.config.json') {
+    upsertIgnoreEntries(j, [
+      ...buildIgnoreEntries(),
+      ...buildIgnoreEntries('miniprogram/')
+    ]);
+  }
   fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+}
+
+const miniProjectConfigPath = path.join(ROOT, 'project.config.json');
+if (fs.existsSync(miniProjectConfigPath)) {
+  try {
+    const miniProjectConfig = JSON.parse(fs.readFileSync(miniProjectConfigPath, 'utf8'));
+    upsertIgnoreEntries(miniProjectConfig, buildIgnoreEntries());
+    fs.writeFileSync(miniProjectConfigPath, JSON.stringify(miniProjectConfig, null, 2) + '\n');
+  } catch (e) {
+    console.warn(`⚠️ 解析 miniprogram/project.config.json 失败，跳过: ${e.message}`);
+  }
 }
 
 // 7) 打印摘要供人工确认

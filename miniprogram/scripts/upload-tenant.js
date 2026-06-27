@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * 多租户上传脚本
  * 用法: node miniprogram/scripts/upload-tenant.js <slug> [version] [desc]
