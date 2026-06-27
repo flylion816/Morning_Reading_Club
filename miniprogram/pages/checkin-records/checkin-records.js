@@ -129,6 +129,7 @@ function buildRecordItem(item, keyword = '') {
     metaLabel: periodTitle ? `${createdAtLabel} · ${periodTitle}` : createdAtLabel,
     preview,
     highlightParts,
+    imageCount: Array.isArray(item.images) ? item.images.filter(Boolean).length : 0,
     likeCount: item.likeCount || 0,
     hasDiary: !!previewSource
   };

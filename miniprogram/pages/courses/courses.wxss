@@ -443,6 +443,19 @@
   overflow: hidden;
 }
 
+.checkin-image-count {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 12rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  background: #eef5ff;
+  color: #4a72b2;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
 .checkin-content-toggle {
   display: inline-flex;
   align-items: center;

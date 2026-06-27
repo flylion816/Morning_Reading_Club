@@ -19,6 +19,7 @@ const COMMUNITY_AUTO_TOP_UP_SCENES = [
 ];
 
 const MAX_DIARY_LENGTH = 3000;
+const MAX_CHECKIN_IMAGE_COUNT = 9;
 
 function getErrorMessage(error) {
   return (
@@ -54,6 +55,9 @@ Page({
     // 日记内容
     diaryContent: '',
     maxDiaryLength: MAX_DIARY_LENGTH,
+    checkinImages: [],
+    maxImageCount: MAX_CHECKIN_IMAGE_COUNT,
+    uploadingImage: false,
 
     // 可见范围
     visibility: 'all', // 'all' 或 'admin'
@@ -179,6 +183,7 @@ Page({
         if (existing) {
           this.setData({
             diaryContent: existing.note || existing.content || '',
+            checkinImages: this.normalizeImageList(existing.images),
             visibility: existing.isPublic === false ? 'admin' : 'all',
             isDirty: false
           });
@@ -295,16 +300,167 @@ Page({
     this.setData({ visibility: value });
   },
 
+  normalizeImageList(images) {
+    if (!Array.isArray(images)) return [];
+    return images
+      .filter((url) => typeof url === 'string' && url.trim())
+      .map((url) => url.trim())
+      .slice(0, MAX_CHECKIN_IMAGE_COUNT);
+  },
+
+  async handleChooseImages() {
+    if (this.data.uploadingImage) return;
+
+    const remaining = MAX_CHECKIN_IMAGE_COUNT - this.data.checkinImages.length;
+    if (remaining <= 0) {
+      wx.showToast({
+        title: `最多上传${MAX_CHECKIN_IMAGE_COUNT}张图片`,
+        icon: 'none'
+      });
+      return;
+    }
+
+    const chooseOptions = {
+      count: remaining,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed']
+    };
+
+    const chooseResult = await new Promise((resolve, reject) => {
+      if (wx.chooseMedia) {
+        wx.chooseMedia({
+          ...chooseOptions,
+          success: resolve,
+          fail: reject
+        });
+        return;
+      }
+
+      wx.chooseImage({
+        count: remaining,
+        sourceType: chooseOptions.sourceType,
+        sizeType: chooseOptions.sizeType,
+        success: (res) => {
+          resolve({
+            tempFiles: (res.tempFilePaths || []).map((tempFilePath, index) => ({
+              tempFilePath,
+              size: res.tempFiles?.[index]?.size || 0
+            }))
+          });
+        },
+        fail: reject
+      });
+    }).catch((error) => {
+      const message = getErrorMessage(error);
+      if (!message.includes('cancel')) {
+        wx.showToast({ title: '选择图片失败', icon: 'none' });
+      }
+      return null;
+    });
+
+    if (!chooseResult) return;
+
+    const selectedFiles = (chooseResult.tempFiles || [])
+      .slice(0, remaining)
+      .map((file) => ({
+        path: file.tempFilePath || file.path,
+        size: file.size || 0
+      }))
+      .filter((file) => file.path);
+
+    if (selectedFiles.length === 0) return;
+
+    const validFiles = selectedFiles.filter((file) => !file.size || file.size <= 10 * 1024 * 1024);
+    const skippedCount = selectedFiles.length - validFiles.length;
+    if (skippedCount > 0) {
+      wx.showToast({
+        title: `${skippedCount}张图片超过10MB已跳过`,
+        icon: 'none'
+      });
+    }
+
+    if (validFiles.length === 0) return;
+
+    this.setData({ uploadingImage: true });
+    wx.showLoading({ title: '上传图片...' });
+
+    try {
+      const uploadResults = await Promise.allSettled(
+        validFiles.map((file) => checkinService.uploadCheckinImage(file.path))
+      );
+
+      const uploadedUrls = uploadResults
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => result.value?.url || result.value)
+        .filter((url) => typeof url === 'string' && url.trim());
+      const failedCount = uploadResults.filter((result) => result.status === 'rejected').length;
+
+      const nextImages = this.normalizeImageList([
+        ...this.data.checkinImages,
+        ...uploadedUrls
+      ]);
+
+      this.setData({
+        checkinImages: nextImages,
+        isDirty: nextImages.length !== this.data.checkinImages.length || this.data.isDirty
+      });
+
+      if (uploadedUrls.length > 0) {
+        this._enableLeaveGuard();
+        this._saveDraft();
+      }
+
+      if (failedCount > 0) {
+        wx.showToast({ title: `${failedCount}张图片上传失败`, icon: 'none' });
+      }
+    } finally {
+      this.setData({ uploadingImage: false });
+      wx.hideLoading();
+    }
+  },
+
+  handleRemoveImage(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (Number.isNaN(index)) return;
+
+    const nextImages = [...this.data.checkinImages];
+    nextImages.splice(index, 1);
+
+    this.setData({
+      checkinImages: nextImages,
+      isDirty: true
+    });
+    this._enableLeaveGuard();
+    this._saveDraft();
+  },
+
+  handlePreviewImage(e) {
+    const current = e.currentTarget.dataset.url;
+    const urls = this.data.checkinImages || [];
+    if (!current || urls.length === 0) return;
+
+    wx.previewImage({
+      current,
+      urls
+    });
+  },
+
   // 草稿：保存
   _saveDraft() {
-    const { sectionId, diaryContent, visibility } = this.data;
-    if (!sectionId || !diaryContent) return;
+    const { sectionId, diaryContent, visibility, checkinImages } = this.data;
+    if (!sectionId || (!diaryContent && checkinImages.length === 0)) return;
     const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id;
     // userId 未就绪时不保存，避免草稿 key 回退到 guest 导致多用户共享
     if (!userId) return;
     this.setData({ autoSaveStatus: '保存中...' });
     try {
-      tenantStorage.set(`checkin_draft_${userId}_${sectionId}`, { content: diaryContent, visibility, savedAt: Date.now() });
+      tenantStorage.set(`checkin_draft_${userId}_${sectionId}`, {
+        content: diaryContent,
+        images: this.normalizeImageList(checkinImages),
+        visibility,
+        savedAt: Date.now()
+      });
       const now = new Date();
       const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       this.setData({ autoSaveStatus: `已自动保存 ${t}` });
@@ -344,9 +500,10 @@ Page({
     if (!userId) return;
     try {
       const draft = tenantStorage.get(`checkin_draft_${userId}_${sectionId}`);
-      if (draft && draft.content) {
+      if (draft && (draft.content || (Array.isArray(draft.images) && draft.images.length > 0))) {
         this.setData({
           diaryContent: draft.content,
+          checkinImages: this.normalizeImageList(draft.images),
           visibility: draft.visibility || 'all',
           isDirty: true,
           autoSaveStatus: '已恢复草稿'
@@ -483,10 +640,11 @@ Page({
     }
 
     const diaryContent = (this.data.diaryContent || '').trim();
+    const checkinImages = this.normalizeImageList(this.data.checkinImages);
 
-    if (!diaryContent) {
+    if (!diaryContent && checkinImages.length === 0) {
       wx.showToast({
-        title: '请输入打卡内容',
+        title: '请输入内容或上传图片',
         icon: 'none'
       });
       return;
@@ -507,6 +665,7 @@ Page({
       if (this.data.isEditMode && this.data.checkinId) {
         await checkinService.updateCheckin(this.data.checkinId, {
           note: diaryContent,
+          images: checkinImages,
           isPublic: this.data.visibility === 'all'
         });
         this._disableLeaveGuard();
@@ -595,6 +754,7 @@ Page({
         readingTime: elapsedMinutes,
         completionRate: 100, // 提交即视为完成
         note: diaryContent,
+        images: checkinImages,
         isPublic: this.data.visibility === 'all',
         mood: 'happy'
       };
@@ -628,6 +788,7 @@ Page({
         avatarText: getLastTextChar(currentUser.nickname || '我', '我'),
         avatarColor: '#4a90e2',
         content: diaryContent,
+        images: checkinImages,
         likeCount: 0,
         createTime: '刚刚',
         isLiked: false,
@@ -656,7 +817,7 @@ Page({
       }
       this._disableLeaveGuard();
       this._clearDraft();
-      this.setData({ isDirty: false, diaryContent: '' });
+      this.setData({ isDirty: false, diaryContent: '', checkinImages: [] });
 
       wx.hideLoading();
       getApp().globalData.checkinListDirty = true;

@@ -42,6 +42,19 @@
         bindtap="toggleCheckinContent"
         data-checkin-id="{{detailCheckin.id}}">{{detailCheckin.contentExpanded ? '收起' : '展开更多'}}</view>
 
+      <view wx:if="{{detailCheckin.images && detailCheckin.images.length > 0}}" class="checkin-images checkin-images-detail">
+        <image
+          wx:for="{{detailCheckin.images}}"
+          wx:key="*this"
+          wx:for-item="imageUrl"
+          class="checkin-image checkin-image-detail"
+          src="{{imageUrl}}"
+          mode="aspectFill"
+          catchtap="handleCheckinImagePreview"
+          data-url="{{imageUrl}}"
+          data-checkin-id="{{detailCheckin.id}}" />
+      </view>
+
       <view wx:if="{{detailCheckin.hashTag}}" class="dynamic-hashtag">{{detailCheckin.hashTag}}</view>
 
       <view wx:if="{{detailCheckin.periodChip}}" class="dynamic-period-chip">{{detailCheckin.periodChip}}</view>
@@ -399,6 +412,18 @@
               class="checkin-content-toggle"
               catchtap="toggleCheckinContent"
               data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
+            <view wx:if="{{item.images && item.images.length > 0}}" class="checkin-images checkin-images-feed">
+              <image
+                wx:for="{{item.images}}"
+                wx:key="*this"
+                wx:for-item="imageUrl"
+                class="checkin-image checkin-image-feed"
+                src="{{imageUrl}}"
+                mode="aspectFill"
+                catchtap="handleCheckinImagePreview"
+                data-url="{{imageUrl}}"
+                data-checkin-id="{{item.id}}" />
+            </view>
             <view class="comment-footer">
               <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">
                 <text class="like-icon {{item.isLiked ? 'liked' : ''}}">{{item.isLiked ? '♥' : '♡'}}</text>

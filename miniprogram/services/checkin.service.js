@@ -133,6 +133,15 @@ class CheckinService {
   }
 
   /**
+   * 上传打卡图片
+   * @param {string} filePath 本地临时文件路径
+   * @returns {Promise<{url: string}>}
+   */
+  uploadCheckinImage(filePath) {
+    return request.upload('/checkins/images', filePath);
+  }
+
+  /**
    * 删除打卡
    * @param {number} checkinId 打卡ID
    * @returns {Promise}

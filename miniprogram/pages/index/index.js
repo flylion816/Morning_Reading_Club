@@ -40,6 +40,7 @@ const MORNING_READ_PROMPT_KEY = 'morning_read_prompt_date';
 const MORNING_READ_PROMPT_START_MINUTE = 5 * 60 + 55;
 const MORNING_READ_PROMPT_END_MINUTE = 6 * 60 + 25;
 const UPCOMING_ACTIVITIES_DISPLAY_LIMIT = 2;
+const RECENT_CHECKIN_PREVIEW_MAX_LENGTH = 20;
 
 const TASK_CARD_LAYOUT_RPX = {
   screenWidth: 750,
@@ -130,11 +131,31 @@ function compareInsightsByPeriodAndDayDesc(a, b) {
   return getTimeValue(b.updatedAt || b.createdAt) - getTimeValue(a.updatedAt || a.createdAt);
 }
 
+function buildInsightCourseDisplay(item = {}) {
+  const section = item.sectionId && typeof item.sectionId === 'object' ? item.sectionId : {};
+  const day = section.day || item.day || '';
+  const title = section.title || item.title || '学习反馈';
+
+  return {
+    dayLabel: day ? `第${day}天` : '',
+    title
+  };
+}
+
+function truncateText(text = '', maxLength = RECENT_CHECKIN_PREVIEW_MAX_LENGTH) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength)}...`;
+}
+
 function buildRecentCheckinCard(item) {
   const previewSource = richContentToPlainText(item.note || item.content || '')
     .replace(/\s+/g, ' ')
     .trim();
-  const preview = previewSource || '这篇打卡还没有填写正文';
+  const imageCount = Array.isArray(item.images) ? item.images.filter(Boolean).length : 0;
+  const preview = truncateText(
+    previewSource || (imageCount > 0 ? `分享了${imageCount}张图片` : '这篇打卡还没有填写正文')
+  );
   const periodInfo =
     item.periodId && typeof item.periodId === 'object' ? item.periodId : {};
   const sectionInfo =
@@ -147,6 +168,7 @@ function buildRecentCheckinCard(item) {
     periodTitle: periodInfo.title || periodInfo.name || '我的打卡',
     sectionTitle: sectionInfo.title || '打卡日记',
     preview,
+    imageCount,
     likeCount: item.likeCount || 0,
     dayLabel: sectionInfo.day ? `第${sectionInfo.day}天` : '',
     dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
@@ -303,6 +325,11 @@ Page({
       this._lastLoadTime = now;
     }
     this.checkLoginStatus({ refreshUserData: shouldRefreshData });
+
+    // 通知页可能只改变未读数；首页数据刷新有 30 秒节流，但铃铛数字需要每次返回首页都同步。
+    if (!shouldRefreshData && this.data.isLogin) {
+      this.loadUnreadNotificationCount();
+    }
   },
 
   onHide() {
@@ -922,7 +949,8 @@ Page({
           const text = richContentToPlainText(
             item.note || item.content || ''
           ).trim();
-          return text.length > 0;
+          const imageCount = Array.isArray(item.images) ? item.images.filter(Boolean).length : 0;
+          return text.length > 0 || imageCount > 0;
         })
         .slice(0, 3)
         .map(buildRecentCheckinCard);
@@ -1007,12 +1035,14 @@ Page({
         }
 
         const typeConfig = getInsightTypeConfig(item.type);
+        const courseDisplay = buildInsightCourseDisplay(item);
 
         return {
           id: item._id || item.id,
           day: `第${item.day}天`,
           title: item.sectionId?.title || '学习反馈',
-          courseTitle: item.sectionId?.title || item.title || '学习反馈',
+          courseTitle: courseDisplay.title,
+          courseDayLabel: courseDisplay.dayLabel,
           preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
           mediaType: item.mediaType || 'text',
           imageUrl: item.imageUrl || null,
@@ -1076,6 +1106,7 @@ Page({
           preview = plain.substring(0, 150) + (plain.length > 150 ? '...' : '');
         }
         const typeConfig = getInsightTypeConfig(item.type);
+        const courseDisplay = buildInsightCourseDisplay(item);
         const nickname = item._targetNickname;
         const targetAvatar = getUserAvatarDisplay(
           { avatarUrl: item._targetAvatarUrl, nickname },
@@ -1083,7 +1114,8 @@ Page({
         );
         return {
           id: item._id || item.id,
-          courseTitle: item.sectionId?.title || item.title || '学习反馈',
+          courseTitle: courseDisplay.title,
+          courseDayLabel: courseDisplay.dayLabel,
           preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
           mediaType: item.mediaType || 'text',
           imageUrl: item.imageUrl || null,

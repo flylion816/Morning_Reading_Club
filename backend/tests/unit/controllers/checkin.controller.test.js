@@ -29,6 +29,7 @@ describe('Checkin Controller', () => {
   let SectionStub;
   let PeriodStub;
   let communityAccessServiceStub;
+  let tenantSlugStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -101,6 +102,9 @@ describe('Checkin Controller', () => {
         fixtures.testPeriods.activeOngoing._id
       ])
     };
+    tenantSlugStub = {
+      resolveTenantSlug: sandbox.stub().resolves('fanren')
+    };
 
     checkinController = proxyquire(
       '../../../src/controllers/checkin.controller',
@@ -112,7 +116,8 @@ describe('Checkin Controller', () => {
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
         '../services/sync.service': syncServiceStub,
-        '../services/community-access.service': communityAccessServiceStub
+        '../services/community-access.service': communityAccessServiceStub,
+        '../utils/tenantSlug': tenantSlugStub
       }
     );
   });
@@ -135,6 +140,7 @@ describe('Checkin Controller', () => {
         readingTime: 30,
         completionRate: 100,
         note: '很有收获',
+        images: [' /uploads/tenants/fanren/checkins/a.jpg '],
         mood: '😊'
       };
 
@@ -175,6 +181,9 @@ describe('Checkin Controller', () => {
       await checkinController.createCheckin(req, res, next);
 
       expect(CheckinStub.create.called).to.be.true;
+      expect(CheckinStub.create.getCall(0).args[0].images).to.deep.equal([
+        '/uploads/tenants/fanren/checkins/a.jpg'
+      ]);
       expect(UserStub.findById.called).to.be.true;
       expect(res.status.called).to.be.true;
     });
@@ -348,6 +357,33 @@ describe('Checkin Controller', () => {
       expect(incCall).to.not.be.null;
       expect(incCall.args[1].$inc.totalCheckinDays).to.equal(1);
       expect(incCall.args[1].$inc.totalPoints).to.equal(10);
+    });
+  });
+
+  describe('uploadCheckinImage', () => {
+    it('应该返回租户隔离的打卡图片地址', async () => {
+      req._resolvedTenantId = new mongoose.Types.ObjectId();
+      req.file = {
+        filename: 'checkin-image.jpg',
+        size: 1234,
+        mimetype: 'image/jpeg'
+      };
+
+      await checkinController.uploadCheckinImage(req, res, next);
+
+      expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.url).to.equal('/uploads/tenants/fanren/checkins/checkin-image.jpg');
+      expect(responseData.data.mimetype).to.equal('image/jpeg');
+    });
+
+    it('应该拒绝缺少文件的上传请求', async () => {
+      req.file = null;
+
+      await checkinController.uploadCheckinImage(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(res.json.getCall(0).args[0].message).to.equal('请选择要上传的图片');
     });
   });
 
@@ -2349,6 +2385,31 @@ describe('Checkin Controller', () => {
       await checkinController.updateCheckin(req, res, next);
 
       expect(mockCheckin.images[0]).to.equal('https://example.com/new.jpg');
+    });
+
+    it('TC-CHECKIN-045b: 应该拒绝超过9张图片的更新', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const checkinId = new mongoose.Types.ObjectId();
+
+      req.user = { userId };
+      req.params = { checkinId };
+      req.body = {
+        images: Array.from({ length: 10 }, (_, index) => `https://example.com/${index}.jpg`)
+      };
+
+      const mockCheckin = {
+        _id: checkinId,
+        userId,
+        images: [],
+        save: sandbox.stub().resolves()
+      };
+
+      CheckinStub.findById.resolves(mockCheckin);
+
+      await checkinController.updateCheckin(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(mockCheckin.save.called).to.be.false;
     });
 
     it('TC-CHECKIN-046: 应该接受所有有效的mood值', async () => {

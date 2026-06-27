@@ -348,6 +348,23 @@
   color: #8c97a8;
 }
 
+.record-meta-group {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.record-image-count {
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  background: #eef5ff;
+  color: #4a72b2;
+  font-size: 20rpx;
+  line-height: 1.4;
+}
+
 .record-like {
   display: flex;
   align-items: center;

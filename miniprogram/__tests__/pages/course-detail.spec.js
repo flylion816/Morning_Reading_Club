@@ -349,6 +349,10 @@ describe('course-detail page markdown support', () => {
             replies: [
               { id: 'comment_1', content: '写得真好' }
             ],
+            images: [
+              '/uploads/tenants/fanren/checkins/a.jpg',
+              '/uploads/tenants/fanren/checkins/b.jpg'
+            ],
             sectionTitle: '统合综效',
             sectionDay: 20,
             checkinDate: '2025-07-04T07:09:53.000Z'
@@ -366,7 +370,11 @@ describe('course-detail page markdown support', () => {
       metaLine: '第20天打卡 | 第20个任务',
       hashTag: '#第20天 统合综效',
       periodChip: '心流之境',
-      commentCount: 1
+      commentCount: 1,
+      images: [
+        '/uploads/tenants/fanren/checkins/a.jpg',
+        '/uploads/tenants/fanren/checkins/b.jpg'
+      ]
     });
     expect(pageInstance.data.detailCheckin.dateLabel).toBe('2025-07-04 15:09:53');
   });
@@ -748,6 +756,7 @@ describe('course-detail page markdown support', () => {
     const checkinItem = pageInstance.buildCheckinItem.call(pageInstance, {
       _id: 'checkin_1',
       content: '今天很开心[庆祝]',
+      images: ['/uploads/tenants/fanren/checkins/a.jpg'],
       userId: {
         _id: 'user_fox',
         nickname: '小狐狸',
@@ -757,5 +766,41 @@ describe('course-detail page markdown support', () => {
 
     expect(checkinItem.avatarColor).toBe(getAvatarColorByUserId('user_fox'));
     expect(checkinItem.content).toBe('今天很开心🎉');
+    expect(checkinItem.images).toEqual(['/uploads/tenants/fanren/checkins/a.jpg']);
+    expect(checkinItem.imageCount).toBe(1);
+  });
+
+  test('should preview all images from selected checkin', () => {
+    pageInstance.setData({
+      course: {
+        comments: [
+          {
+            id: 'checkin_1',
+            images: [
+              '/uploads/tenants/fanren/checkins/a.jpg',
+              '/uploads/tenants/fanren/checkins/b.jpg'
+            ]
+          }
+        ]
+      }
+    });
+
+    pageInstance.handleCheckinImagePreview.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          checkinId: 'checkin_1',
+          url: '/uploads/tenants/fanren/checkins/b.jpg'
+        }
+      }
+    });
+
+    expect(wx.previewImage).toHaveBeenCalledWith({
+      current: '/uploads/tenants/fanren/checkins/b.jpg',
+      urls: [
+        '/uploads/tenants/fanren/checkins/a.jpg',
+        '/uploads/tenants/fanren/checkins/b.jpg'
+      ],
+      showmenu: true
+    });
   });
 });

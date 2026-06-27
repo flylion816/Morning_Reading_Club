@@ -258,6 +258,88 @@
   color: #999;
 }
 
+.checkin-image-section {
+  margin-bottom: 28rpx;
+}
+
+.checkin-image-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
+}
+
+.checkin-image-title {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.checkin-image-count {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.checkin-image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+}
+
+.checkin-image-tile,
+.checkin-image-add {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background: #f4f7fb;
+}
+
+.checkin-image-thumb {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.checkin-image-remove {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 30rpx;
+  line-height: 42rpx;
+  text-align: center;
+}
+
+.checkin-image-add {
+  border: 1rpx dashed #bdd4ef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #4a90e2;
+  box-sizing: border-box;
+}
+
+.checkin-image-add-disabled {
+  opacity: 0.6;
+}
+
+.checkin-image-add-icon {
+  font-size: 52rpx;
+  line-height: 1;
+  margin-bottom: 8rpx;
+}
+
+.checkin-image-add-text {
+  font-size: 24rpx;
+}
+
 /* 退出确认弹窗 */
 .exit-modal-mask {
   position: fixed;

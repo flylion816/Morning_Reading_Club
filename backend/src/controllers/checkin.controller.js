@@ -15,6 +15,7 @@ const {
   buildCourseDetailTargetPage,
   formatNotificationTime
 } = require('../utils/notification-links');
+const { resolveTenantSlug } = require('../utils/tenantSlug');
 
 function getRequestUserId(req) {
   return req.user?.id || req.user?.userId || req.user?._id;
@@ -25,6 +26,35 @@ function isNonEmptyNote(note) {
 }
 
 const MAX_CHECKIN_NOTE_LENGTH = 3000;
+const MAX_CHECKIN_IMAGE_COUNT = 9;
+
+function normalizeCheckinImages(images) {
+  if (images === undefined || images === null) {
+    return { value: [] };
+  }
+
+  if (!Array.isArray(images)) {
+    return { error: '图片数据格式不正确' };
+  }
+
+  const normalized = [];
+  for (const imageUrl of images) {
+    if (typeof imageUrl !== 'string') {
+      return { error: '图片地址必须是字符串' };
+    }
+
+    const trimmed = imageUrl.trim();
+    if (trimmed) {
+      normalized.push(trimmed);
+    }
+  }
+
+  if (normalized.length > MAX_CHECKIN_IMAGE_COUNT) {
+    return { error: `最多只能上传${MAX_CHECKIN_IMAGE_COUNT}张图片` };
+  }
+
+  return { value: normalized };
+}
 
 function buildEmptyUserCheckinPayload(page = 1, limit = 20) {
   return {
@@ -155,6 +185,11 @@ async function createCheckin(req, res, next) {
         .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
     }
 
+    const normalizedImages = normalizeCheckinImages(images);
+    if (normalizedImages.error) {
+      return res.status(400).json(errors.badRequest(normalizedImages.error));
+    }
+
     const hasCommunityAccess = await ensurePeriodCommunityAccess(res, userId, periodId);
     if (!hasCommunityAccess) {
       return;
@@ -175,7 +210,7 @@ async function createCheckin(req, res, next) {
       readingTime: readingTime || 0,
       completionRate: completionRate || 100,
       note,
-      images: images || [],
+      images: normalizedImages.value,
       mood,
       points: 10,
       isPublic: isPublic !== undefined ? isPublic : true,
@@ -260,6 +295,30 @@ async function createCheckin(req, res, next) {
     if (error.code === 11000) {
       return res.status(400).json(errors.badRequest('今日已打卡'));
     }
+    next(error);
+  }
+}
+
+// 上传打卡图片
+async function uploadCheckinImage(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json(errors.badRequest('请选择要上传的图片'));
+    }
+
+    const tenantId = req._resolvedTenantId || req.user?.tenantId || getCurrentTenantId();
+    const slug = req._checkinUploadTenantSlug || (tenantId ? await resolveTenantSlug(tenantId) : '');
+    if (!slug) {
+      return res.status(400).json(errors.badRequest('缺少租户上下文'));
+    }
+
+    res.json(success({
+      url: `/uploads/tenants/${slug}/checkins/${req.file.filename}`,
+      filename: req.file.filename,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    }, '图片上传成功'));
+  } catch (error) {
     next(error);
   }
 }
@@ -617,9 +676,17 @@ async function updateCheckin(req, res, next) {
         .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
     }
 
+    let normalizedImages;
+    if (images !== undefined) {
+      normalizedImages = normalizeCheckinImages(images);
+      if (normalizedImages.error) {
+        return res.status(400).json(errors.badRequest(normalizedImages.error));
+      }
+    }
+
     // 更新允许的字段
     if (note !== undefined) checkin.note = note;
-    if (images !== undefined) checkin.images = images;
+    if (images !== undefined) checkin.images = normalizedImages.value;
     if (readingTime !== undefined) checkin.readingTime = readingTime;
     if (mood !== undefined) checkin.mood = mood;
     if (isPublic !== undefined) checkin.isPublic = isPublic;
@@ -1174,6 +1241,7 @@ module.exports = {
   getPeriodCheckins,
   searchCheckins,
   searchMyCheckins,
+  uploadCheckinImage,
   getCheckinDetail,
   updateCheckin,
   deleteCheckin,

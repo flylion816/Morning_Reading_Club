@@ -899,6 +899,36 @@ page {
   font-weight: 500;
 }
 
+.checkin-images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10rpx;
+}
+
+.checkin-images-feed {
+  margin: 4rpx 0 14rpx;
+}
+
+.checkin-images-detail {
+  margin-top: 24rpx;
+}
+
+.checkin-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12rpx;
+  background: #edf2f7;
+  display: block;
+}
+
+.checkin-image-detail {
+  border-radius: 16rpx;
+}
+
+.checkin-image-feed {
+  border-radius: 10rpx;
+}
+
 .comment-footer {
   display: flex;
   gap: 32rpx;

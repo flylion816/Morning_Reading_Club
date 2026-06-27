@@ -98,6 +98,38 @@ describe('courses page', () => {
     expect(pageInstance.data.allCheckins[0].contentExpanded).toBe(true);
   });
 
+  test('should keep image-only checkins visible with image count summary', async () => {
+    courseService.getPeriodCheckins.mockResolvedValue({
+      list: [
+        {
+          _id: 'checkin_image',
+          userId: {
+            _id: 'user_1',
+            nickname: '狮子'
+          },
+          sectionId: {
+            _id: 'section_1',
+            title: '觉察日记',
+            day: 1
+          },
+          note: '',
+          images: [
+            '/uploads/tenants/fanren/checkins/a.jpg',
+            '/uploads/tenants/fanren/checkins/b.jpg'
+          ],
+          createdAt: '2025-07-06T03:57:21.000Z'
+        }
+      ]
+    });
+
+    pageInstance.setData({ periodId: 'period_1' });
+
+    await pageInstance.loadAllCheckins.call(pageInstance);
+
+    expect(pageInstance.data.allCheckins[0].content).toBe('分享了2张图片');
+    expect(pageInstance.data.allCheckins[0].imageCount).toBe(2);
+  });
+
   test('should preserve checkin pagination state for load more', async () => {
     courseService.getPeriodCheckins
       .mockResolvedValueOnce({

@@ -223,7 +223,8 @@ Page({
 
   formatCheckinItem(checkin = {}) {
     const userId = checkin.userId?._id;
-    const content = checkin.note || '';
+    const imageCount = Array.isArray(checkin.images) ? checkin.images.filter(Boolean).length : 0;
+    const content = checkin.note || (imageCount > 0 ? `分享了${imageCount}张图片` : '');
     const id = checkin._id || checkin.id;
 
     return {
@@ -238,6 +239,7 @@ Page({
       sectionTitle: checkin.sectionId?.title || '未知课程',
       sectionDay: checkin.sectionId?.day || 0,
       content,
+      imageCount,
       canExpandContent: this.shouldFoldCheckinContent(content),
       contentExpanded: !!this.data.checkinContentExpanded[id],
       readingTime: checkin.readingTime,

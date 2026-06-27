@@ -124,7 +124,10 @@
         </view>
 
         <view class="record-footer">
-          <text class="record-meta">{{item.metaLabel}}</text>
+          <view class="record-meta-group">
+            <text class="record-meta">{{item.metaLabel}}</text>
+            <text wx:if="{{item.imageCount}}" class="record-image-count">{{item.imageCount}}张图片</text>
+          </view>
           <view class="record-like">
             <text class="record-like-icon">♡</text>
             <text class="record-like-count">{{item.likeCount}}</text>

@@ -109,6 +109,7 @@ let activityService;
 let communityActivityService;
 let completionReportService;
 let imprintService;
+let notificationService;
 
 describe('index page', () => {
   beforeEach(() => {
@@ -143,6 +144,7 @@ describe('index page', () => {
     periodAccess = require('../../utils/period-access.js');
     insightService = require('../../services/insight.service.js');
     activityService = require('../../services/activity.service.js');
+    notificationService = require('../../services/notification.service.js');
     communityActivityService = require('../../services/communityActivity.service');
     completionReportService = require('../../services/completion-report.service');
     imprintService = require('../../services/imprint.service.js');
@@ -178,6 +180,8 @@ describe('index page', () => {
     insightService.getInsightsList.mockReset();
     insightService.getReceivedRequests.mockReset();
     activityService.track.mockClear();
+    notificationService.getUnreadCount.mockReset();
+    notificationService.getUnreadCount.mockResolvedValue({ unreadCount: 0 });
     communityActivityService.getPopup.mockReset();
     communityActivityService.getList.mockReset();
     completionReportService.getMyReports.mockReset();
@@ -197,7 +201,7 @@ describe('index page', () => {
         {
           _id: 'checkin_1',
           createdAt: '2026-03-29T13:11:00.000Z',
-          note: '第一篇打卡',
+          note: '中心是因，人生是果。因缘果报，随缘消旧业，切莫造新殃。',
           likeCount: 2,
           sectionId: {
             _id: 'section_1',
@@ -231,7 +235,8 @@ describe('index page', () => {
         {
           _id: 'checkin_3',
           createdAt: '2026-03-27T13:11:00.000Z',
-          note: '第三篇打卡',
+          note: '',
+          images: ['/uploads/tenants/fanren/checkins/a.jpg', '/uploads/tenants/fanren/checkins/b.jpg'],
           likeCount: 0,
           sectionId: {
             _id: 'section_3',
@@ -272,9 +277,12 @@ describe('index page', () => {
       periodTitle: '内在之光',
       sectionTitle: '第一天 品德成功论',
       dayLabel: '第1天',
+      preview: '中心是因，人生是果。因缘果报，随缘消旧业...',
       likeCount: 2
     });
     expect(cards[2].id).toBe('checkin_3');
+    expect(cards[2].preview).toBe('分享了2张图片');
+    expect(cards[2].imageCount).toBe(2);
   });
 
   test('should show only two upcoming activities on home page', async () => {
@@ -397,6 +405,27 @@ describe('index page', () => {
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/notifications/notifications'
     });
+  });
+
+  test('should refresh unread notification count when returning to home within data throttle window', async () => {
+    pageInstance._lastLoadTime = Date.now();
+    const { tenantStorage } = require('../../utils/storage');
+    tenantStorage.set('token', 'token_1');
+    tenantStorage.set('userInfo', {
+      _id: 'user_123',
+      nickname: '小狐狸'
+    });
+    pageInstance.setData({
+      isLogin: true,
+      unreadNotificationCount: 6
+    });
+    notificationService.getUnreadCount.mockResolvedValue({ unreadCount: 0 });
+
+    pageInstance.onShow.call(pageInstance);
+    await Promise.resolve();
+
+    expect(notificationService.getUnreadCount).toHaveBeenCalled();
+    expect(pageInstance.data.unreadNotificationCount).toBe(0);
   });
 
   test('should open immersive reading from the morning reading button', () => {

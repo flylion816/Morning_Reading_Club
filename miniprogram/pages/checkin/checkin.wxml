@@ -96,6 +96,41 @@
       <text class="char-count">{{diaryContent.length}}/{{maxDiaryLength}}</text>
     </view>
 
+    <view class="checkin-image-section">
+      <view class="checkin-image-header">
+        <text class="checkin-image-title">图片</text>
+        <text class="checkin-image-count">{{checkinImages.length}}/{{maxImageCount}}</text>
+      </view>
+      <view class="checkin-image-grid">
+        <view
+          wx:for="{{checkinImages}}"
+          wx:key="*this"
+          class="checkin-image-tile"
+        >
+          <image
+            class="checkin-image-thumb"
+            src="{{item}}"
+            mode="aspectFill"
+            bindtap="handlePreviewImage"
+            data-url="{{item}}"
+          />
+          <view
+            class="checkin-image-remove"
+            catchtap="handleRemoveImage"
+            data-index="{{index}}"
+          >×</view>
+        </view>
+        <view
+          wx:if="{{checkinImages.length < maxImageCount}}"
+          class="checkin-image-add {{uploadingImage ? 'checkin-image-add-disabled' : ''}}"
+          bindtap="handleChooseImages"
+        >
+          <text class="checkin-image-add-icon">+</text>
+          <text class="checkin-image-add-text">{{uploadingImage ? '上传中' : '添加图片'}}</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 可见范围 -->
     <view class="visibility-section">
       <text class="visibility-label">打卡可见范围</text>

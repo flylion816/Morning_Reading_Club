@@ -34,6 +34,7 @@ const POSTER_MIN_HEIGHT = 900;
 const POSTER_LONG_IMAGE_HEIGHT = 2600;
 const POSTER_FALLBACK_MAX_HEIGHT = 2400;
 const GENERIC_AVATAR_NAMES = new Set(['用户', '匿名用户', '匿名', 'user', 'member']);
+const MAX_CHECKIN_IMAGE_COUNT = 9;
 
 const POSTER_STYLE_PRESETS = [
   {
@@ -108,6 +109,14 @@ function normalizeCheckinListResponse(response) {
   }
 
   return [];
+}
+
+function normalizeCheckinImages(images) {
+  if (!Array.isArray(images)) return [];
+  return images
+    .filter((url) => typeof url === 'string' && url.trim())
+    .map((url) => url.trim())
+    .slice(0, MAX_CHECKIN_IMAGE_COUNT);
 }
 
 Page({
@@ -826,6 +835,7 @@ Page({
     );
     const id = this.normalizeId(checkin._id || checkin.id);
     const content = normalizeDanmakuContent(checkin.note || checkin.content || '');
+    const images = normalizeCheckinImages(checkin.images);
     const kw = this.data.searchKeyword;
     const contentHtml = kw
       ? this._highlightKeyword(
@@ -858,6 +868,8 @@ Page({
         checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
       content,
       contentHtml,
+      images,
+      imageCount: images.length,
       canExpandContent: this.shouldFoldCheckinContent(content),
       contentExpanded: !!this.data.checkinContentExpanded[id],
       createTime:
@@ -942,6 +954,7 @@ Page({
 
     return {
       ...checkin,
+      images: normalizeCheckinImages(checkin.images),
       metaLine: metaParts.join(' | '),
       hashTag,
       periodChip: periodTitle || sectionTitle,
@@ -2432,6 +2445,32 @@ Page({
     const url = this.data.course && this.data.course.lookImage;
     if (!url) return;
     wx.previewImage({ urls: [url], current: url, showmenu: true });
+  },
+
+  handleCheckinImagePreview(e) {
+    const { url, checkinId } = e.currentTarget.dataset || {};
+    if (!url) return;
+
+    let urls = [];
+    if (
+      this.data.detailCheckin &&
+      String(this.data.detailCheckin.id || this.data.detailCheckin._id) === String(checkinId)
+    ) {
+      urls = normalizeCheckinImages(this.data.detailCheckin.images);
+    }
+
+    if (urls.length === 0) {
+      const targetCheckin = (this.data.course?.comments || []).find(
+        (item) => String(item.id || item._id) === String(checkinId)
+      );
+      urls = normalizeCheckinImages(targetCheckin?.images);
+    }
+
+    wx.previewImage({
+      current: url,
+      urls: urls.length > 0 ? urls : [url],
+      showmenu: true
+    });
   },
 
   handleCheckinDetailTap(e) {

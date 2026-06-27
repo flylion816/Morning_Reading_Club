@@ -385,8 +385,16 @@ class Request {
           'X-Wx-AppId': currentTenant.wxAppId
         },
         success: (res) => {
-          const data = JSON.parse(res.data);
-          if (res.statusCode === 200 && data.code === 0) {
+          let data;
+          try {
+            data = JSON.parse(res.data);
+          } catch (error) {
+            this.showError('上传响应异常');
+            reject(error);
+            return;
+          }
+
+          if (res.statusCode >= 200 && res.statusCode < 300 && (data.code === 0 || data.code === 200 || data.success)) {
             resolve(data.data);
           } else {
             this.showError(data.message || '上传失败');

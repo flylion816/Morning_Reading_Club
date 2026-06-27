@@ -182,6 +182,10 @@ describe('checkin-records page', () => {
           _id: 'checkin_1',
           checkinDate: '2025-07-06T03:57:21.000Z',
           note: '这是第一篇打卡日记',
+          images: [
+            '/uploads/tenants/fanren/checkins/a.jpg',
+            '/uploads/tenants/fanren/checkins/b.jpg'
+          ],
           likeCount: 6,
           sectionId: {
             _id: 'section_1',
@@ -204,6 +208,7 @@ describe('checkin-records page', () => {
     expect(pageInstance.data.checkinRecords).toHaveLength(1);
     expect(pageInstance.data.checkinRecords[0].courseTitle).toBe('觉察日记');
     expect(pageInstance.data.checkinRecords[0].metaLabel).toContain('平衡之道');
+    expect(pageInstance.data.checkinRecords[0].imageCount).toBe(2);
     expect(pageInstance.data.hasMore).toBe(false);
   });
 

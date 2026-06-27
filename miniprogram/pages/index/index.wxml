@@ -219,10 +219,12 @@
               data-period-id="{{item.periodId}}">
 
               <view class="checkin-diary-card-title">{{item.sectionTitle}}</view>
+              <view class="checkin-diary-card-preview">{{item.preview}}</view>
 
               <view class="checkin-diary-card-footer">
                 <text class="checkin-diary-card-period">{{item.periodTitle}}</text>
                 <view class="checkin-diary-card-meta">
+                  <text wx:if="{{item.imageCount}}" class="checkin-diary-card-image-count">{{item.imageCount}}图</text>
                   <text class="checkin-diary-card-date">{{item.dateLabel}}</text>
                   <view class="checkin-diary-card-like">
                     <text class="checkin-diary-card-like-icon">♡</text>
@@ -283,7 +285,10 @@
               <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
             </view>
             <view class="insight-content-preview">
-              <view class="insight-period-tag">{{item.courseTitle}}</view>
+              <view class="insight-title-row">
+                <text wx:if="{{item.courseDayLabel}}" class="insight-day-chip">{{item.courseDayLabel}}</text>
+                <text class="insight-period-tag">{{item.courseTitle}}</text>
+              </view>
               <block wx:if="{{item.mediaType === 'image' && item.imageUrl}}">
                 <view
                   class="insight-thumb-small insight-thumb-top"
