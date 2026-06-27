@@ -301,11 +301,7 @@ Page({
   },
 
   normalizeImageList(images) {
-    if (!Array.isArray(images)) return [];
-    return images
-      .filter((url) => typeof url === 'string' && url.trim())
-      .map((url) => url.trim())
-      .slice(0, MAX_CHECKIN_IMAGE_COUNT);
+    return checkinService.normalizeCheckinImages(images, MAX_CHECKIN_IMAGE_COUNT);
   },
 
   async handleChooseImages() {

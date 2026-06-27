@@ -5,7 +5,32 @@
 
 const request = require('../utils/request');
 const envConfig = require('../config/env');
+const currentTenant = require('../config/current-tenant');
 const logger = require('../utils/logger');
+
+const apiBaseUrl = currentTenant.apiBaseUrl || envConfig.apiBaseUrl || '';
+const staticBaseUrl = apiBaseUrl.replace(/\/api\/v\d+\/?$/, '').replace(/\/$/, '');
+
+function normalizeCheckinImageUrl(url) {
+  if (typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (/^(https?:)?\/\//i.test(trimmed) || /^wxfile:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/uploads/') && staticBaseUrl) {
+    return `${staticBaseUrl}${trimmed}`;
+  }
+  return trimmed;
+}
+
+function normalizeCheckinImages(images, maxCount = 9) {
+  if (!Array.isArray(images)) return [];
+  return images
+    .map(normalizeCheckinImageUrl)
+    .filter(Boolean)
+    .slice(0, maxCount);
+}
 
 class CheckinService {
   /**
@@ -138,7 +163,10 @@ class CheckinService {
    * @returns {Promise<{url: string}>}
    */
   uploadCheckinImage(filePath) {
-    return request.upload('/checkins/images', filePath);
+    return request.upload('/checkins/images', filePath).then((result) => ({
+      ...result,
+      url: normalizeCheckinImageUrl(result?.url || result?.path || result)
+    }));
   }
 
   /**
@@ -197,3 +225,5 @@ class CheckinService {
 }
 
 module.exports = new CheckinService();
+module.exports.normalizeCheckinImageUrl = normalizeCheckinImageUrl;
+module.exports.normalizeCheckinImages = normalizeCheckinImages;

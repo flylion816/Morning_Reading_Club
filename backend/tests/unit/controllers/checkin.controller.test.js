@@ -368,12 +368,15 @@ describe('Checkin Controller', () => {
         size: 1234,
         mimetype: 'image/jpeg'
       };
+      req.protocol = 'https';
+      req.get = sandbox.stub().withArgs('host').returns('wx.shubai01.com');
 
       await checkinController.uploadCheckinImage(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data.url).to.equal('/uploads/tenants/fanren/checkins/checkin-image.jpg');
+      expect(responseData.data.url).to.equal('https://wx.shubai01.com/uploads/tenants/fanren/checkins/checkin-image.jpg');
+      expect(responseData.data.path).to.equal('/uploads/tenants/fanren/checkins/checkin-image.jpg');
       expect(responseData.data.mimetype).to.equal('image/jpeg');
     });
 

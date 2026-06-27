@@ -2,7 +2,17 @@ jest.mock('../../services/checkin.service', () => ({
   submitCheckin: jest.fn(),
   updateCheckin: jest.fn(),
   getCheckinDetail: jest.fn(),
-  uploadCheckinImage: jest.fn()
+  uploadCheckinImage: jest.fn(),
+  normalizeCheckinImages: jest.fn((images = [], maxCount = 9) =>
+    (Array.isArray(images) ? images : [])
+      .filter(Boolean)
+      .map((url) =>
+        typeof url === 'string' && url.startsWith('/uploads/')
+          ? `https://wx.shubai01.com${url}`
+          : url
+      )
+      .slice(0, maxCount)
+  )
 }));
 
 jest.mock('../../services/course.service', () => ({
@@ -155,7 +165,7 @@ describe('checkin page', () => {
     await pageInstance.handleChooseImages.call(pageInstance);
     expect(checkinService.uploadCheckinImage).toHaveBeenCalledWith('wxfile://image-a.jpg');
     expect(pageInstance.data.checkinImages).toEqual([
-      '/uploads/tenants/fanren/checkins/image-a.jpg'
+      'https://wx.shubai01.com/uploads/tenants/fanren/checkins/image-a.jpg'
     ]);
 
     await pageInstance.handleSubmit.call(pageInstance);
@@ -163,7 +173,7 @@ describe('checkin page', () => {
     expect(checkinService.submitCheckin).toHaveBeenCalledWith(
       expect.objectContaining({
         note: '今天的打卡',
-        images: ['/uploads/tenants/fanren/checkins/image-a.jpg']
+        images: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/image-a.jpg']
       })
     );
   });
@@ -177,7 +187,7 @@ describe('checkin page', () => {
       periodId: 'period_1',
       sectionDay: 1,
       diaryContent: '',
-      checkinImages: ['/uploads/tenants/fanren/checkins/image-only.jpg']
+      checkinImages: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/image-only.jpg']
     });
     pageInstance.showCheckinCelebration = jest.fn();
 
@@ -190,7 +200,7 @@ describe('checkin page', () => {
     expect(checkinService.submitCheckin).toHaveBeenCalledWith(
       expect.objectContaining({
         note: '',
-        images: ['/uploads/tenants/fanren/checkins/image-only.jpg']
+        images: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/image-only.jpg']
       })
     );
   });
@@ -210,13 +220,13 @@ describe('checkin page', () => {
     });
 
     expect(pageInstance.data.checkinImages).toEqual([
-      '/uploads/tenants/fanren/checkins/old.jpg'
+      'https://wx.shubai01.com/uploads/tenants/fanren/checkins/old.jpg'
     ]);
     expect(pageInstance.data.visibility).toBe('admin');
 
     pageInstance.setData({
       diaryContent: '新内容',
-      checkinImages: ['/uploads/tenants/fanren/checkins/new.jpg']
+      checkinImages: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/new.jpg']
     });
 
     const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation((callback) => {
@@ -228,7 +238,7 @@ describe('checkin page', () => {
 
     expect(checkinService.updateCheckin).toHaveBeenCalledWith('checkin_1', {
       note: '新内容',
-      images: ['/uploads/tenants/fanren/checkins/new.jpg'],
+      images: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/new.jpg'],
       isPublic: false
     });
   });

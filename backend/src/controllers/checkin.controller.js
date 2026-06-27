@@ -28,6 +28,17 @@ function isNonEmptyNote(note) {
 const MAX_CHECKIN_NOTE_LENGTH = 3000;
 const MAX_CHECKIN_IMAGE_COUNT = 9;
 
+function getPublicBaseUrl(req) {
+  const configured = process.env.API_BASE_URL || '';
+  if (configured) {
+    return configured.replace(/\/$/, '');
+  }
+
+  const protocol = req.protocol || 'https';
+  const host = req.get?.('host') || '';
+  return host ? `${protocol}://${host}` : '';
+}
+
 function normalizeCheckinImages(images) {
   if (images === undefined || images === null) {
     return { value: [] };
@@ -312,8 +323,12 @@ async function uploadCheckinImage(req, res, next) {
       return res.status(400).json(errors.badRequest('缺少租户上下文'));
     }
 
+    const relativeUrl = `/uploads/tenants/${slug}/checkins/${req.file.filename}`;
+    const publicBaseUrl = getPublicBaseUrl(req);
+
     res.json(success({
-      url: `/uploads/tenants/${slug}/checkins/${req.file.filename}`,
+      url: publicBaseUrl ? `${publicBaseUrl}${relativeUrl}` : relativeUrl,
+      path: relativeUrl,
       filename: req.file.filename,
       size: req.file.size,
       mimetype: req.file.mimetype

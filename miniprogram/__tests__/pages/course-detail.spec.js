@@ -1,6 +1,16 @@
 jest.mock('../../services/course.service', () => ({}));
 jest.mock('../../services/checkin.service', () => ({
-  getCheckinDetail: jest.fn()
+  getCheckinDetail: jest.fn(),
+  normalizeCheckinImages: jest.fn((images = [], maxCount = 9) =>
+    (Array.isArray(images) ? images : [])
+      .filter(Boolean)
+      .map((url) =>
+        typeof url === 'string' && url.startsWith('/uploads/')
+          ? `https://wx.shubai01.com${url}`
+          : url
+      )
+      .slice(0, maxCount)
+  )
 }));
 jest.mock('../../services/comment.service', () => ({
   createComment: jest.fn()
@@ -350,8 +360,8 @@ describe('course-detail page markdown support', () => {
               { id: 'comment_1', content: '写得真好' }
             ],
             images: [
-              '/uploads/tenants/fanren/checkins/a.jpg',
-              '/uploads/tenants/fanren/checkins/b.jpg'
+              'https://wx.shubai01.com/uploads/tenants/fanren/checkins/a.jpg',
+              'https://wx.shubai01.com/uploads/tenants/fanren/checkins/b.jpg'
             ],
             sectionTitle: '统合综效',
             sectionDay: 20,
@@ -372,8 +382,8 @@ describe('course-detail page markdown support', () => {
       periodChip: '心流之境',
       commentCount: 1,
       images: [
-        '/uploads/tenants/fanren/checkins/a.jpg',
-        '/uploads/tenants/fanren/checkins/b.jpg'
+        'https://wx.shubai01.com/uploads/tenants/fanren/checkins/a.jpg',
+        'https://wx.shubai01.com/uploads/tenants/fanren/checkins/b.jpg'
       ]
     });
     expect(pageInstance.data.detailCheckin.dateLabel).toBe('2025-07-04 15:09:53');
@@ -756,7 +766,7 @@ describe('course-detail page markdown support', () => {
     const checkinItem = pageInstance.buildCheckinItem.call(pageInstance, {
       _id: 'checkin_1',
       content: '今天很开心[庆祝]',
-      images: ['/uploads/tenants/fanren/checkins/a.jpg'],
+      images: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/a.jpg'],
       userId: {
         _id: 'user_fox',
         nickname: '小狐狸',
@@ -766,7 +776,7 @@ describe('course-detail page markdown support', () => {
 
     expect(checkinItem.avatarColor).toBe(getAvatarColorByUserId('user_fox'));
     expect(checkinItem.content).toBe('今天很开心🎉');
-    expect(checkinItem.images).toEqual(['/uploads/tenants/fanren/checkins/a.jpg']);
+    expect(checkinItem.images).toEqual(['https://wx.shubai01.com/uploads/tenants/fanren/checkins/a.jpg']);
     expect(checkinItem.imageCount).toBe(1);
   });
 
@@ -777,8 +787,8 @@ describe('course-detail page markdown support', () => {
           {
             id: 'checkin_1',
             images: [
-              '/uploads/tenants/fanren/checkins/a.jpg',
-              '/uploads/tenants/fanren/checkins/b.jpg'
+              'https://wx.shubai01.com/uploads/tenants/fanren/checkins/a.jpg',
+              'https://wx.shubai01.com/uploads/tenants/fanren/checkins/b.jpg'
             ]
           }
         ]
@@ -789,16 +799,16 @@ describe('course-detail page markdown support', () => {
       currentTarget: {
         dataset: {
           checkinId: 'checkin_1',
-          url: '/uploads/tenants/fanren/checkins/b.jpg'
+          url: 'https://wx.shubai01.com/uploads/tenants/fanren/checkins/b.jpg'
         }
       }
     });
 
     expect(wx.previewImage).toHaveBeenCalledWith({
-      current: '/uploads/tenants/fanren/checkins/b.jpg',
+      current: 'https://wx.shubai01.com/uploads/tenants/fanren/checkins/b.jpg',
       urls: [
-        '/uploads/tenants/fanren/checkins/a.jpg',
-        '/uploads/tenants/fanren/checkins/b.jpg'
+        'https://wx.shubai01.com/uploads/tenants/fanren/checkins/a.jpg',
+        'https://wx.shubai01.com/uploads/tenants/fanren/checkins/b.jpg'
       ],
       showmenu: true
     });
