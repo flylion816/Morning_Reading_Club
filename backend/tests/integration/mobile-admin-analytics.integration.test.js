@@ -182,6 +182,10 @@ describe('Mobile Admin Analytics Integration', () => {
     expect(res.body.data.filters.periodId).to.equal(period._id.toString());
     expect(res.body.data.trend.find(row => row.date === '2026-06-02').app_open).to.equal(1);
     expect(res.body.data.trend.find(row => row.date === '2026-06-02').activeUserCount).to.equal(1);
+    expect(res.body.data.detailsPagination.page).to.equal(1);
+    expect(res.body.data.detailsPagination.pageSize).to.equal(20);
+    expect(res.body.data.detailsPagination.total).to.equal(1);
+    expect(res.body.data.detailsPagination.hasMore).to.equal(false);
     expect(res.body.data.details[0].phone).to.equal('15000998787');
     expect(res.body.data.details[0].totalCount).to.equal(5);
     const actionLabels = res.body.data.details[0].actions.map(item => item.label);

@@ -184,13 +184,18 @@ describe('Mobile Admin Analytics Controller', () => {
         .onThirdCall()
         .resolves([
           {
-            date: '2026-06-01',
-            userId,
-            nickname: '狮子',
-            phone: '13564053520',
-            actions: [{ action: 'app_open', count: 41 }],
-            totalCount: 41,
-            lastOccurredAt: new Date('2026-06-01T04:22:07.000Z')
+            rows: [
+              {
+                date: '2026-06-01',
+                userId,
+                nickname: '狮子',
+                phone: '13564053520',
+                actions: [{ action: 'app_open', count: 41 }],
+                totalCount: 41,
+                lastOccurredAt: new Date('2026-06-01T04:22:07.000Z')
+              }
+            ],
+            total: [{ count: 41 }]
           }
         ])
         .onCall(3)
@@ -217,8 +222,54 @@ describe('Mobile Admin Analytics Controller', () => {
       expect(body.data.trend[0].zaichang_activity).to.equal(5);
       expect(body.data.trend[0].podcast_activity).to.equal(3);
       expect(body.data.trend[0].share_activity).to.equal(4);
+      expect(body.data.detailsPagination.page).to.equal(1);
+      expect(body.data.detailsPagination.pageSize).to.equal(20);
+      expect(body.data.detailsPagination.total).to.equal(41);
+      expect(body.data.detailsPagination.hasMore).to.equal(true);
       expect(body.data.details[0].phone).to.equal('13564053520');
       expect(body.data.details[0].actions[0].label).to.equal('访问小程序');
+
+      const detailPipeline = UserActivityStub.aggregate.getCall(2).args[0];
+      const facetStage = detailPipeline.find((stage) => stage.$facet);
+      expect(facetStage.$facet.rows[0]).to.deep.equal({ $skip: 0 });
+      expect(facetStage.$facet.rows[1]).to.deep.equal({ $limit: 20 });
+    });
+
+    it('applies requested detail pagination with max page size cap', async () => {
+      req.query.page = '3';
+      req.query.pageSize = '200';
+      UserActivityStub.aggregate
+        .onFirstCall()
+        .resolves([])
+        .onSecondCall()
+        .resolves([])
+        .onThirdCall()
+        .resolves([{ rows: [], total: [{ count: 125 }] }])
+        .onCall(3)
+        .resolves([])
+        .onCall(4)
+        .resolves([])
+        .onCall(5)
+        .resolves([])
+        .onCall(6)
+        .resolves([])
+        .onCall(7)
+        .resolves([])
+        .onCall(8)
+        .resolves([]);
+
+      await controller.getActivityAnalytics(req, res);
+
+      const body = res.json.getCall(0).args[0];
+      expect(body.data.detailsPagination.page).to.equal(3);
+      expect(body.data.detailsPagination.pageSize).to.equal(50);
+      expect(body.data.detailsPagination.totalPages).to.equal(3);
+      expect(body.data.detailsPagination.hasMore).to.equal(false);
+
+      const detailPipeline = UserActivityStub.aggregate.getCall(2).args[0];
+      const facetStage = detailPipeline.find((stage) => stage.$facet);
+      expect(facetStage.$facet.rows[0]).to.deep.equal({ $skip: 100 });
+      expect(facetStage.$facet.rows[1]).to.deep.equal({ $limit: 50 });
     });
 
     it('uses enrolled user cohort for global actions when period filter is selected', async () => {
@@ -244,18 +295,23 @@ describe('Mobile Admin Analytics Controller', () => {
         .onThirdCall()
         .resolves([
           {
-            date: '2026-06-01',
-            userId,
-            nickname: '狮子',
-            phone: '13564053520',
-            actions: [
-              { action: 'app_open', count: 64 },
-              { action: 'podcast_bar_play', count: 1 },
-              { action: 'zaichang_list_view', count: 5 },
-              { action: 'activity_enroll', count: 1 }
+            rows: [
+              {
+                date: '2026-06-01',
+                userId,
+                nickname: '狮子',
+                phone: '13564053520',
+                actions: [
+                  { action: 'app_open', count: 64 },
+                  { action: 'podcast_bar_play', count: 1 },
+                  { action: 'zaichang_list_view', count: 5 },
+                  { action: 'activity_enroll', count: 1 }
+                ],
+                totalCount: 71,
+                lastOccurredAt: new Date('2026-06-01T07:42:24.000Z')
+              }
             ],
-            totalCount: 71,
-            lastOccurredAt: new Date('2026-06-01T07:42:24.000Z')
+            total: [{ count: 1 }]
           }
         ])
         .onCall(3)

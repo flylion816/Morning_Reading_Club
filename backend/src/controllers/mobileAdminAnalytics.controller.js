@@ -14,6 +14,8 @@ const {
 } = require('../constants/userActivity');
 
 const ADMIN_ROLES = ['admin', 'super_admin'];
+const DEFAULT_DETAIL_PAGE_SIZE = 20;
+const MAX_DETAIL_PAGE_SIZE = 50;
 
 function getShanghaiDateKey(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000)
@@ -48,6 +50,21 @@ function parseDateRange(query = {}) {
   }
 
   return { startKey, endKey, start, end };
+}
+
+function parseDetailPagination(query = {}) {
+  const pageValue = Number.parseInt(query.page, 10);
+  const pageSizeValue = Number.parseInt(query.pageSize || query.limit, 10);
+  const page = Number.isFinite(pageValue) && pageValue > 0 ? pageValue : 1;
+  const pageSize = Number.isFinite(pageSizeValue) && pageSizeValue > 0
+    ? Math.min(pageSizeValue, MAX_DETAIL_PAGE_SIZE)
+    : DEFAULT_DETAIL_PAGE_SIZE;
+
+  return {
+    page,
+    pageSize,
+    skip: (page - 1) * pageSize
+  };
 }
 
 function buildDateRows(startKey, endKey, base = {}) {
@@ -535,6 +552,7 @@ function diffSummary(today, yesterday) {
 async function getActivityAnalytics(req, res) {
   try {
     const { startKey, endKey, start, end } = parseDateRange(req.query);
+    const { page, pageSize, skip } = parseDetailPagination(req.query);
     const periodObjectId = await resolvePeriod(req.query.periodId);
     const periodUserIds = await getPeriodScopedUserIds(periodObjectId, start, end);
     const rangeMatch = buildActivityMatch({
@@ -602,28 +620,45 @@ async function getActivityAnalytics(req, res) {
             lastOccurredAt: { $max: '$lastOccurredAt' }
           }
         },
-        { $sort: { '_id.date': -1, totalCount: -1, lastOccurredAt: -1 } },
-        { $limit: 500 },
         {
-          $lookup: {
-            from: 'users',
-            localField: '_id.userId',
-            foreignField: '_id',
-            as: 'user'
+          $sort: {
+            '_id.date': -1,
+            totalCount: -1,
+            lastOccurredAt: -1,
+            '_id.userId': 1
           }
         },
-        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
         {
-          $project: {
-            _id: 0,
-            date: '$_id.date',
-            userId: '$_id.userId',
-            nickname: { $ifNull: ['$user.nickname', '未知用户'] },
-            phone: '$user.phone',
-            avatarUrl: '$user.avatarUrl',
-            actions: 1,
-            totalCount: 1,
-            lastOccurredAt: 1
+          $facet: {
+            rows: [
+              { $skip: skip },
+              { $limit: pageSize },
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: '_id.userId',
+                  foreignField: '_id',
+                  as: 'user'
+                }
+              },
+              { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+              {
+                $project: {
+                  _id: 0,
+                  date: '$_id.date',
+                  userId: '$_id.userId',
+                  nickname: { $ifNull: ['$user.nickname', '未知用户'] },
+                  phone: '$user.phone',
+                  avatarUrl: '$user.avatarUrl',
+                  actions: 1,
+                  totalCount: 1,
+                  lastOccurredAt: 1
+                }
+              }
+            ],
+            total: [
+              { $count: 'count' }
+            ]
           }
         }
       ])
@@ -662,6 +697,10 @@ async function getActivityAnalytics(req, res) {
       aggregateActivitySummary(todayMatch),
       aggregateActivitySummary(yesterdayMatch)
     ]);
+    const detailResult = detailRows[0] || {};
+    const detailPageRows = detailResult.rows || [];
+    const detailTotal = detailResult.total?.[0]?.count || 0;
+    const totalPages = Math.ceil(detailTotal / pageSize);
 
     res.json(
       success({
@@ -678,7 +717,14 @@ async function getActivityAnalytics(req, res) {
         actionLabels: ACTION_LABELS,
         dailySummaryGroups: DAILY_SUMMARY_GROUPS,
         trend,
-        details: detailRows.map((row) => ({
+        detailsPagination: {
+          page,
+          pageSize,
+          total: detailTotal,
+          totalPages,
+          hasMore: page < totalPages
+        },
+        details: detailPageRows.map((row) => ({
           ...row,
           userId: row.userId ? row.userId.toString() : '',
           actions: row.actions.map((action) => ({

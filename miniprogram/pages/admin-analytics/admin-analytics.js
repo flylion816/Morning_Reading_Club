@@ -6,6 +6,7 @@ const DATE_PRESETS = [
   { key: '7d', label: '近7天', days: 6 },
   { key: '30d', label: '近30天', days: 29 }
 ];
+const DETAIL_PAGE_SIZE = 20;
 
 const enrollmentSeries = [
   { key: 'enrollmentCount', name: '报名', color: '#4f73d9' },
@@ -201,10 +202,38 @@ function normalizeOverview(data = {}) {
   };
 }
 
-function normalizeActivity(data = {}) {
+function normalizeDetailRows(details = [], offset = 0) {
+  return details.map((item, index) => ({
+    ...item,
+    rowKey: `${item.date || ''}-${item.userId || offset + index}`,
+    lastOccurredAtText: formatDateTime(item.lastOccurredAt)
+  }));
+}
+
+function normalizeDetailsPagination(pagination = {}, detailCount = 0) {
+  const page = Number(pagination.page) || 1;
+  const pageSize = Number(pagination.pageSize) || DETAIL_PAGE_SIZE;
+  const total = Number(pagination.total) || detailCount;
+  const totalPages = Number(pagination.totalPages) || Math.ceil(total / pageSize);
+
+  return {
+    page,
+    pageSize,
+    total,
+    totalPages,
+    hasMore: Boolean(pagination.hasMore)
+  };
+}
+
+function normalizeActivity(data = {}, options = {}) {
   const trend = data.trend || [];
   const todayKey = getShanghaiDateKey(new Date());
   const todayTrend = trend.find((item) => item.date === todayKey) || trend[trend.length - 1] || {};
+  const detailOffset = options.append ? (options.existingDetails || []).length : 0;
+  const nextDetails = normalizeDetailRows(data.details || [], detailOffset);
+  const details = options.append
+    ? (options.existingDetails || []).concat(nextDetails)
+    : nextDetails;
   return {
     summary: data.summary || {
       today: {},
@@ -214,11 +243,8 @@ function normalizeActivity(data = {}) {
     trend,
     todayMetricChart: buildSingleDayMetricChart(todayTrend, todayActivitySeries),
     trendChart: buildNativeBarChart(trend, activitySeries),
-    details: (data.details || []).map((item, index) => ({
-      ...item,
-      rowKey: `${item.date || ''}-${item.userId || index}`,
-      lastOccurredAtText: formatDateTime(item.lastOccurredAt)
-    }))
+    detailsPagination: normalizeDetailsPagination(data.detailsPagination, details.length),
+    details
   };
 }
 
@@ -262,7 +288,9 @@ Page({
     enrollmentSeries,
     paymentSeries,
     activitySeries,
-    todayActivitySeries
+    todayActivitySeries,
+    detailPageSize: DETAIL_PAGE_SIZE,
+    loadingMoreDetails: false
   },
 
   onLoad() {
@@ -287,8 +315,16 @@ Page({
     };
   },
 
+  buildActivityParams(page = 1) {
+    return {
+      ...this.buildParams(),
+      page,
+      pageSize: this.data.detailPageSize || DETAIL_PAGE_SIZE
+    };
+  },
+
   async loadAll() {
-    this.setData({ loading: true, errorMessage: '' });
+    this.setData({ loading: true, loadingMoreDetails: false, errorMessage: '' });
     try {
       const periodRes = await adminAnalyticsService.getPeriods();
       const periodList = [{ id: '', name: '全部期次' }].concat(
@@ -308,7 +344,7 @@ Page({
       const params = this.buildParams();
       const [overviewRes, activityRes] = await Promise.all([
         adminAnalyticsService.getOverview(params),
-        adminAnalyticsService.getActivity(params)
+        adminAnalyticsService.getActivity(this.buildActivityParams(1))
       ]);
       const activity = normalizeActivity(activityRes);
       this.setData({
@@ -330,12 +366,12 @@ Page({
   },
 
   async reloadDataOnly() {
-    this.setData({ loading: true, errorMessage: '' });
+    this.setData({ loading: true, loadingMoreDetails: false, errorMessage: '' });
     try {
       const params = this.buildParams();
       const [overviewRes, activityRes] = await Promise.all([
         adminAnalyticsService.getOverview(params),
-        adminAnalyticsService.getActivity(params)
+        adminAnalyticsService.getActivity(this.buildActivityParams(1))
       ]);
       const activity = normalizeActivity(activityRes);
       this.setData({
@@ -347,8 +383,32 @@ Page({
     } catch (error) {
       this.setData({
         loading: false,
+        loadingMoreDetails: false,
         errorMessage: '数据加载失败，请稍后重试'
       });
+    }
+  },
+
+  async handleLoadMoreDetails() {
+    const pagination = this.data.activity.detailsPagination || {};
+    if (this.data.loading || this.data.loadingMoreDetails || !pagination.hasMore) return;
+
+    this.setData({ loadingMoreDetails: true });
+    try {
+      const nextPage = (Number(pagination.page) || 1) + 1;
+      const activityRes = await adminAnalyticsService.getActivity(this.buildActivityParams(nextPage));
+      const activity = normalizeActivity(activityRes, {
+        append: true,
+        existingDetails: this.data.activity.details
+      });
+      this.setData({
+        activity,
+        activityCards: buildActivityCards(activity.summary),
+        loadingMoreDetails: false
+      });
+    } catch (error) {
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      this.setData({ loadingMoreDetails: false });
     }
   },
 

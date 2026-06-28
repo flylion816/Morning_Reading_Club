@@ -269,6 +269,19 @@
             <text>{{item.lastOccurredAtText}}</text>
           </view>
         </view>
+        <view wx:if="{{activity.details.length > 0}}" class="detail-pagination">
+          <text class="detail-pagination-text">
+            已显示 {{activity.details.length}} / {{activity.detailsPagination.total}}
+          </text>
+          <button
+            wx:if="{{activity.detailsPagination.hasMore}}"
+            class="load-more-btn"
+            loading="{{loadingMoreDetails}}"
+            disabled="{{loadingMoreDetails}}"
+            bindtap="handleLoadMoreDetails"
+          >{{loadingMoreDetails ? '加载中...' : '加载更多'}}</button>
+          <text wx:else class="detail-pagination-done">已全部加载</text>
+        </view>
       </view>
     </view>
   </block>

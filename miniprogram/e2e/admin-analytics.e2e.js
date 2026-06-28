@@ -10,14 +10,29 @@
 
 const automator = require('miniprogram-automator');
 const { spawn } = require('child_process');
+const net = require('net');
 const WebSocket = require('ws');
 const path = require('path');
 
 const DEVTOOLS_CLI = '/Applications/wechatwebdevtools.app/Contents/MacOS/cli';
 const PROJECT_PATH = path.resolve(__dirname, '../../');
-const AUTO_PORT = 9433;
 
 jest.setTimeout(90000);
+
+async function getAvailablePort(startPort = 9433) {
+  for (let port = startPort; port < startPort + 100; port += 1) {
+    const available = await new Promise((resolve) => {
+      const server = net.createServer();
+      server.once('error', () => resolve(false));
+      server.once('listening', () => {
+        server.close(() => resolve(true));
+      });
+      server.listen(port, '127.0.0.1');
+    });
+    if (available) return port;
+  }
+  throw new Error('No available automation port found');
+}
 
 async function waitForDevToolsReady(port, timeout = 50000) {
   const deadline = Date.now() + timeout;
@@ -64,17 +79,26 @@ async function waitForSelector(miniProgram, selector, timeout = 10000) {
 describe('管理员数据分析页自动化', () => {
   let miniProgram;
   let cliProcess;
+  let autoPort;
+  let cliOutput = '';
 
   beforeAll(async () => {
+    autoPort = await getAvailablePort();
     cliProcess = spawn(DEVTOOLS_CLI, [
       'auto',
       '--project', PROJECT_PATH,
-      '--auto-port', String(AUTO_PORT)
-    ], { stdio: 'ignore' });
+      '--auto-port', String(autoPort)
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+    cliProcess.stdout.on('data', data => { cliOutput += data.toString(); });
+    cliProcess.stderr.on('data', data => { cliOutput += data.toString(); });
 
-    await waitForDevToolsReady(AUTO_PORT);
+    try {
+      await waitForDevToolsReady(autoPort);
+    } catch (error) {
+      throw new Error(`${error.message}\nDevTools output:\n${cliOutput}`);
+    }
     miniProgram = await automator.connect({
-      wsEndpoint: `ws://127.0.0.1:${AUTO_PORT}`
+      wsEndpoint: `ws://127.0.0.1:${autoPort}`
     });
   });
 

@@ -75,6 +75,13 @@ describe('admin analytics page', () => {
           insight_interaction: 2
         }
       ],
+      detailsPagination: {
+        page: 1,
+        pageSize: 20,
+        total: 21,
+        totalPages: 2,
+        hasMore: true
+      },
       details: [{
         date: '2026-06-28',
         userId: 'user_1',
@@ -109,6 +116,10 @@ describe('admin analytics page', () => {
       endDate: expect.any(String)
     }));
     expect(service.getActivity).toHaveBeenCalled();
+    expect(service.getActivity).toHaveBeenCalledWith(expect.objectContaining({
+      page: 1,
+      pageSize: 20
+    }));
     expect(pageInstance.data.periodNames).toEqual(['全部期次', '第八期']);
     expect(pageInstance.data.selectedPeriodName).toBe('全部期次');
     expect(pageInstance.data.overview.summary.totalRevenueText).toBe('¥302.48');
@@ -124,7 +135,53 @@ describe('admin analytics page', () => {
       '活跃', '访问', '晨读', '看自己', '课程', '看他人', '在场', '分享', '播客', '打卡', 'AI朗读', '互动', '活动'
     ]);
     expect(pageInstance.data.activity.details[0].phone).toBe('13564053520');
+    expect(pageInstance.data.activity.detailsPagination.hasMore).toBe(true);
+    expect(pageInstance.data.activity.detailsPagination.total).toBe(21);
     expect(pageInstance.data.activityCards[0].deltaText).toBe('较昨日+11');
+  });
+
+  test('loads more activity details by page', async () => {
+    await pageInstance.loadAll.call(pageInstance);
+
+    service.getActivity.mockResolvedValueOnce({
+      summary: {
+        today: { appOpenUsers: 19, checkinUsers: 2, insightViewUsers: 18, activeUsers: 20 },
+        yesterday: { appOpenUsers: 8, checkinUsers: 1, insightViewUsers: 7, activeUsers: 9 },
+        delta: { appOpenUsers: 11, checkinUsers: 1, insightViewUsers: 11, activeUsers: 11 }
+      },
+      trend: [{
+        date: '2026-06-28',
+        activeUserCount: 20,
+        app_open: 19
+      }],
+      detailsPagination: {
+        page: 2,
+        pageSize: 20,
+        total: 21,
+        totalPages: 2,
+        hasMore: false
+      },
+      details: [{
+        date: '2026-06-28',
+        userId: 'user_2',
+        nickname: '第二页用户',
+        phone: '15000111111',
+        actions: [{ action: 'course_view', label: '查看课程', count: 3 }],
+        totalCount: 3,
+        lastOccurredAt: '2026-06-28T05:22:07.000Z'
+      }]
+    });
+
+    await pageInstance.handleLoadMoreDetails.call(pageInstance);
+
+    expect(service.getActivity).toHaveBeenLastCalledWith(expect.objectContaining({
+      page: 2,
+      pageSize: 20
+    }));
+    expect(pageInstance.data.activity.details).toHaveLength(2);
+    expect(pageInstance.data.activity.details[1].nickname).toBe('第二页用户');
+    expect(pageInstance.data.activity.detailsPagination.hasMore).toBe(false);
+    expect(pageInstance.data.loadingMoreDetails).toBe(false);
   });
 
   test('reloads with selected period filter', async () => {
@@ -137,7 +194,9 @@ describe('admin analytics page', () => {
       periodId: 'period_1'
     }));
     expect(service.getActivity).toHaveBeenLastCalledWith(expect.objectContaining({
-      periodId: 'period_1'
+      periodId: 'period_1',
+      page: 1,
+      pageSize: 20
     }));
   });
 
