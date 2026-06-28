@@ -64,11 +64,16 @@ function formatChartDate(value) {
 
 function buildNativeBarChart(rows = [], series = [], options = {}) {
   const chartRows = Array.isArray(rows) ? rows : [];
+  const displayRows = options.sortByDateDesc === false
+    ? chartRows
+    : chartRows.slice().sort((left, right) =>
+      String(right.date || '').localeCompare(String(left.date || ''))
+    );
   const chartSeries = Array.isArray(series) ? series : [];
   const formatter = options.valueFormatter || formatChartNumber;
   const values = [];
 
-  chartRows.forEach((row) => {
+  displayRows.forEach((row) => {
     chartSeries.forEach((item) => {
       values.push(Number(row[item.key]) || 0);
     });
@@ -79,10 +84,10 @@ function buildNativeBarChart(rows = [], series = [], options = {}) {
   const barWidth = chartSeries.length > 4 ? 8 : chartSeries.length > 2 ? 10 : 12;
 
   return {
-    empty: chartRows.length === 0 || chartSeries.length === 0,
-    width: Math.max(560, chartRows.length * columnWidth),
+    empty: displayRows.length === 0 || chartSeries.length === 0,
+    width: Math.max(560, displayRows.length * columnWidth),
     maxLabel: formatter(maxValue),
-    rows: chartRows.map((row, index) => ({
+    rows: displayRows.map((row, index) => ({
       rowKey: `${row.date || 'row'}-${index}`,
       label: formatChartDate(row.date),
       width: columnWidth,

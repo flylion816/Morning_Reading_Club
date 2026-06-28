@@ -17,6 +17,7 @@ describe('Mobile Admin Analytics Integration', () => {
   let period;
   let adminUser;
   let normalUser;
+  let outsideUser;
 
   async function clearData() {
     await withSystemContext(null, async () => {
@@ -48,6 +49,15 @@ describe('Mobile Admin Analytics Integration', () => {
         openid: 'normal-openid',
         nickname: '普通用户',
         phone: '15000998787',
+        role: 'user',
+        status: 'active'
+      })
+    );
+    outsideUser = await withSystemContext(tenantId, () =>
+      User.create({
+        openid: 'outside-openid',
+        nickname: '未报名用户',
+        phone: '15000111111',
         role: 'user',
         status: 'active'
       })
@@ -94,7 +104,7 @@ describe('Mobile Admin Analytics Integration', () => {
         action: 'app_open',
         actionDate: '2026-06-02',
         occurredAt: new Date('2026-06-02T08:00:00+08:00'),
-        periodId: period._id
+        periodId: null
       });
       await UserActivity.create({
         userId: normalUser._id,
@@ -102,6 +112,13 @@ describe('Mobile Admin Analytics Integration', () => {
         actionDate: '2026-06-02',
         occurredAt: new Date('2026-06-02T08:05:00+08:00'),
         periodId: period._id
+      });
+      await UserActivity.create({
+        userId: outsideUser._id,
+        action: 'app_open',
+        actionDate: '2026-06-02',
+        occurredAt: new Date('2026-06-02T08:10:00+08:00'),
+        periodId: null
       });
     });
 
@@ -143,6 +160,7 @@ describe('Mobile Admin Analytics Integration', () => {
     expect(res.status).to.equal(200);
     expect(res.body.data.filters.periodId).to.equal(period._id.toString());
     expect(res.body.data.trend.find(row => row.date === '2026-06-02').app_open).to.equal(1);
+    expect(res.body.data.trend.find(row => row.date === '2026-06-02').activeUserCount).to.equal(1);
     expect(res.body.data.details[0].phone).to.equal('15000998787');
   });
 

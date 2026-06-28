@@ -41,7 +41,10 @@ describe('admin analytics page', () => {
         yesterday: { appOpenUsers: 8, checkinUsers: 1, insightViewUsers: 7, activeUsers: 9 },
         delta: { appOpenUsers: 11, checkinUsers: 1, insightViewUsers: 11, activeUsers: 11 }
       },
-      trend: [{ date: '2026-06-28', app_open: 19, checkin_submit: 2 }],
+      trend: [
+        { date: '2026-06-27', app_open: 8, checkin_submit: 1 },
+        { date: '2026-06-28', app_open: 19, checkin_submit: 2 }
+      ],
       details: [{
         date: '2026-06-28',
         userId: 'user_1',
@@ -82,6 +85,7 @@ describe('admin analytics page', () => {
     expect(pageInstance.data.overview.enrollmentChart.empty).toBe(false);
     expect(pageInstance.data.overview.paymentChart.rows[0].values[0].height).toBeGreaterThan(0);
     expect(pageInstance.data.activity.trendChart.empty).toBe(false);
+    expect(pageInstance.data.activity.trendChart.rows[0].label).toBe('06-28');
     expect(pageInstance.data.activity.details[0].phone).toBe('13564053520');
     expect(pageInstance.data.activityCards[0].deltaText).toBe('较昨日+11');
   });

@@ -51,6 +51,8 @@ const TREND_ACTIONS = [
   'meeting_enter'
 ];
 
+const GLOBAL_COHORT_ACTIONS = ['app_open'];
+
 function getShanghaiDateKey(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000)
     .toISOString()
@@ -118,6 +120,45 @@ async function resolvePeriod(periodId) {
     throw error;
   }
   return objectId;
+}
+
+async function getPeriodCohortUserIds(periodObjectId) {
+  if (!periodObjectId) return [];
+
+  const rows = await Enrollment.aggregate([
+    {
+      $match: {
+        periodId: periodObjectId,
+        deleted: { $ne: true },
+        status: { $ne: 'withdrawn' }
+      }
+    },
+    { $group: { _id: '$userId' } }
+  ]);
+
+  return rows.map((row) => row._id).filter(Boolean);
+}
+
+function buildActivityMatch({ periodObjectId, periodUserIds = [], start, end, dateKey }) {
+  const dateMatch = dateKey
+    ? { actionDate: dateKey }
+    : { occurredAt: { $gte: start, $lte: end } };
+
+  if (!periodObjectId) return dateMatch;
+
+  return {
+    ...dateMatch,
+    $or: [
+      {
+        action: { $in: GLOBAL_COHORT_ACTIONS },
+        userId: { $in: periodUserIds }
+      },
+      {
+        action: { $nin: GLOBAL_COHORT_ACTIONS },
+        periodId: periodObjectId
+      }
+    ]
+  };
 }
 
 function handleControllerError(res, error, logMessage) {
@@ -440,10 +481,10 @@ async function getOverviewAnalytics(req, res) {
   }
 }
 
-async function aggregateActivitySummary(baseMatch, dateKey) {
+async function aggregateActivitySummary(dateMatch) {
   const [rows, activeRows, insightRows] = await Promise.all([
     UserActivity.aggregate([
-      { $match: { ...baseMatch, actionDate: dateKey } },
+      { $match: dateMatch },
       {
         $group: {
           _id: '$action',
@@ -459,7 +500,7 @@ async function aggregateActivitySummary(baseMatch, dateKey) {
       }
     ]),
     UserActivity.aggregate([
-      { $match: { ...baseMatch, actionDate: dateKey } },
+      { $match: dateMatch },
       {
         $group: {
           _id: null,
@@ -471,8 +512,7 @@ async function aggregateActivitySummary(baseMatch, dateKey) {
     UserActivity.aggregate([
       {
         $match: {
-          ...baseMatch,
-          actionDate: dateKey,
+          ...dateMatch,
           action: { $in: ['own_insight_view', 'other_insight_view'] }
         }
       },
@@ -512,14 +552,13 @@ async function getActivityAnalytics(req, res) {
   try {
     const { startKey, endKey, start, end } = parseDateRange(req.query);
     const periodObjectId = await resolvePeriod(req.query.periodId);
-    const rangeMatch = {
-      occurredAt: { $gte: start, $lte: end }
-    };
-    const baseMatch = {};
-    if (periodObjectId) {
-      rangeMatch.periodId = periodObjectId;
-      baseMatch.periodId = periodObjectId;
-    }
+    const periodUserIds = await getPeriodCohortUserIds(periodObjectId);
+    const rangeMatch = buildActivityMatch({
+      periodObjectId,
+      periodUserIds,
+      start,
+      end
+    });
 
     const [dailyActionUsers, dailyActiveUsers, detailRows] = await Promise.all([
       UserActivity.aggregate([
@@ -634,9 +673,11 @@ async function getActivityAnalytics(req, res) {
 
     const todayKey = getShanghaiDateKey(new Date());
     const yesterdayKey = addDays(todayKey, -1);
+    const todayMatch = buildActivityMatch({ periodObjectId, periodUserIds, dateKey: todayKey });
+    const yesterdayMatch = buildActivityMatch({ periodObjectId, periodUserIds, dateKey: yesterdayKey });
     const [today, yesterday] = await Promise.all([
-      aggregateActivitySummary(baseMatch, todayKey),
-      aggregateActivitySummary(baseMatch, yesterdayKey)
+      aggregateActivitySummary(todayMatch),
+      aggregateActivitySummary(yesterdayMatch)
     ]);
 
     res.json(
