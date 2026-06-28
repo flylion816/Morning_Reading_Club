@@ -17,6 +17,7 @@
     "pages/insight-detail/insight-detail",
     "pages/insight-edit/insight-edit",
     "pages/admin-section-insights/admin-section-insights",
+    "pages/admin-workbench/admin-workbench",
     "pages/admin-analytics/admin-analytics",
     "pages/profile-others/profile-others",
     "pages/notification-settings/notification-settings",

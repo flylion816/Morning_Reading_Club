@@ -1,0 +1,183 @@
+<view class="page-admin-workbench">
+  <view class="tabs">
+    <view
+      class="tab {{activeTab === 'users' ? 'active' : ''}}"
+      data-tab="users"
+      bindtap="handleTabTap"
+    >用户查询</view>
+    <view
+      class="tab {{activeTab === 'activities' ? 'active' : ''}}"
+      data-tab="activities"
+      bindtap="handleTabTap"
+    >活动报名</view>
+  </view>
+
+  <view wx:if="{{activeTab === 'users'}}" class="content">
+    <view class="search-row">
+      <input
+        class="search-input"
+        value="{{userKeyword}}"
+        placeholder="昵称 / 手机号 / 报名姓名"
+        confirm-type="search"
+        bindinput="handleUserKeywordInput"
+        bindconfirm="handleUserSearch"
+      />
+      <button class="search-btn" bindtap="handleUserSearch" loading="{{userLoading}}">搜索</button>
+    </view>
+
+    <view wx:if="{{userLoading}}" class="state-box">查询中...</view>
+    <view wx:elif="{{users.length === 0}}" class="state-box">输入关键词查询用户</view>
+    <view wx:else class="user-list">
+      <view
+        wx:for="{{users}}"
+        wx:key="userId"
+        class="user-card {{selectedUser && selectedUser.userId === item.userId ? 'selected' : ''}}"
+        data-id="{{item.userId}}"
+        bindtap="handleUserTap"
+      >
+        <view class="avatar">{{item.avatarText}}</view>
+        <view class="user-main">
+          <view class="row">
+            <text class="name">{{item.displayName}}</text>
+            <text class="meta">{{item.phoneText}}</text>
+          </view>
+          <view class="row sub">
+            <text>报名 {{item.summary.enrollmentCount || 0}}</text>
+            <text>已支付 {{item.summary.paidEnrollmentCount || 0}}</text>
+            <text>活动 {{item.summary.activityRegistrationCount || 0}}</text>
+          </view>
+          <text class="latest">{{item.latestEnrollmentText}}</text>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+      <view wx:if="{{userPagination.hasMore}}" class="load-more" bindtap="handleLoadMoreUsers">
+        {{loadingMoreUsers ? '加载中...' : '加载更多'}}
+      </view>
+    </view>
+
+    <view wx:if="{{selectedUser || userDetailLoading}}" class="detail-panel">
+      <view class="section-title">用户详情</view>
+      <view wx:if="{{userDetailLoading}}" class="state-box compact">加载中...</view>
+      <block wx:elif="{{selectedUserDetail}}">
+        <view class="profile-box">
+          <view>
+            <text class="profile-name">{{selectedUserDetail.user.displayName}}</text>
+            <text class="profile-meta">{{selectedUserDetail.user.phoneText}} · 打卡 {{selectedUserDetail.user.totalCheckinDays || 0}} 天</text>
+          </view>
+          <text class="status-pill">{{selectedUserDetail.user.status}}</text>
+        </view>
+
+        <view class="sub-title">报名与支付</view>
+        <view wx:if="{{selectedUserDetail.enrollments.length === 0}}" class="state-box compact">暂无报名</view>
+        <view wx:for="{{selectedUserDetail.enrollments}}" wx:key="enrollmentId" class="info-card">
+          <view class="row">
+            <text class="card-title">{{item.periodName}}</text>
+            <text class="amount">{{item.paymentAmountText}}</text>
+          </view>
+          <view class="chip-row">
+            <text class="chip">{{item.statusText}}</text>
+            <text class="chip blue">{{item.paymentStatusText}}</text>
+            <text class="chip">{{item.orderStatusText}}</text>
+          </view>
+          <view class="row foot">
+            <text>报名 {{item.enrolledAtText}}</text>
+            <text wx:if="{{item.paidAtText}}">支付 {{item.paidAtText}}</text>
+          </view>
+        </view>
+
+        <view class="sub-title">活动报名</view>
+        <view wx:if="{{selectedUserDetail.activityRegistrations.length === 0}}" class="state-box compact">暂无活动报名</view>
+        <view wx:for="{{selectedUserDetail.activityRegistrations}}" wx:key="registrationId" class="info-card">
+          <view class="row">
+            <text class="card-title">{{item.activity ? item.activity.title : '活动已删除'}}</text>
+            <text class="amount">{{item.paidAmountText}}</text>
+          </view>
+          <view class="chip-row">
+            <text class="chip">{{item.statusText}}</text>
+            <text class="chip blue">{{item.paymentStatusText}}</text>
+            <text class="chip">{{item.orderStatusText}}</text>
+          </view>
+          <view class="row foot">
+            <text>报名 {{item.registeredAtText}}</text>
+            <text wx:if="{{item.activity}}">{{item.activity.timeText}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'activities'}}" class="content">
+    <view class="search-row">
+      <input
+        class="search-input"
+        value="{{activityKeyword}}"
+        placeholder="活动名称"
+        confirm-type="search"
+        bindinput="handleActivityKeywordInput"
+        bindconfirm="handleActivitySearch"
+      />
+      <button class="search-btn" bindtap="handleActivitySearch" loading="{{activityLoading}}">搜索</button>
+    </view>
+
+    <view wx:if="{{activityLoading}}" class="state-box">加载中...</view>
+    <view wx:elif="{{activities.length === 0}}" class="state-box">暂无活动</view>
+    <view wx:else class="activity-list">
+      <view
+        wx:for="{{activities}}"
+        wx:key="activityId"
+        class="activity-card {{selectedActivity && selectedActivity.activityId === item.activityId ? 'selected' : ''}}"
+        data-id="{{item.activityId}}"
+        bindtap="handleActivityTap"
+      >
+        <view class="row">
+          <text class="card-title">{{item.title}}</text>
+          <text class="status-pill">{{item.statusText}}</text>
+        </view>
+        <view class="row sub">
+          <text>{{item.timeText}}</text>
+          <text>{{item.priceText}}</text>
+        </view>
+        <view class="chip-row">
+          <text class="chip">报名 {{item.registrationCount}}</text>
+          <text class="chip blue">已支付 {{item.paidCount}}</text>
+          <text class="chip">待支付 {{item.pendingCount}}</text>
+        </view>
+      </view>
+      <view wx:if="{{activityPagination.hasMore}}" class="load-more" bindtap="handleLoadMoreActivities">
+        {{loadingMoreActivities ? '加载中...' : '加载更多活动'}}
+      </view>
+    </view>
+
+    <view wx:if="{{selectedActivity || registrationLoading}}" class="detail-panel">
+      <view class="section-title">报名名单</view>
+      <view wx:if="{{selectedActivity}}" class="panel-meta">
+        {{selectedActivity.title}} · 共 {{registrationPagination.total || 0}} 人
+      </view>
+      <view wx:if="{{registrationLoading}}" class="state-box compact">加载中...</view>
+      <view wx:elif="{{registrations.length === 0}}" class="state-box compact">暂无报名</view>
+      <view wx:else class="registration-list">
+        <view wx:for="{{registrations}}" wx:key="registrationId" class="info-card">
+          <view class="row">
+            <text class="card-title">{{item.user.displayName}}</text>
+            <text class="amount">{{item.paidAmountText}}</text>
+          </view>
+          <text class="meta-line">{{item.user.phoneText}}</text>
+          <view class="chip-row">
+            <text class="chip">{{item.statusText}}</text>
+            <text class="chip blue">{{item.paymentStatusText}}</text>
+            <text class="chip">{{item.orderStatusText}}</text>
+          </view>
+          <view class="row foot">
+            <text>报名 {{item.registeredAtText}}</text>
+            <text>{{item.reminderGranted ? '已授权提醒' : '未授权提醒'}}</text>
+          </view>
+        </view>
+        <view wx:if="{{registrationPagination.hasMore}}" class="load-more" bindtap="handleLoadMoreRegistrations">
+          {{loadingMoreRegistrations ? '加载中...' : '加载更多名单'}}
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<podcast-player-bar />

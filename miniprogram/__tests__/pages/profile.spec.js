@@ -131,6 +131,22 @@ describe('profile page', () => {
     });
   });
 
+  test('should navigate to admin workbench for admin user', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      nickname: '管理员',
+      phone: '13812345678',
+      role: 'admin'
+    });
+
+    await pageInstance._loadUserData.call(pageInstance);
+    pageInstance.goToAdminWorkbench.call(pageInstance);
+
+    expect(pageInstance.data.isAdmin).toBe(true);
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/admin-workbench/admin-workbench'
+    });
+  });
+
   test('should keep admin analytics hidden for normal user', async () => {
     await pageInstance._loadUserData.call(pageInstance);
 
@@ -191,5 +207,30 @@ describe('profile page', () => {
 
     expect(wxml).toContain('我的实录报告');
     expect(wxml).toContain('wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToCompletionReports"');
+  });
+
+  test('should keep profile menu grouped in expected order', () => {
+    const wxml = fs.readFileSync(
+      path.join(__dirname, '../../pages/profile/profile.wxml'),
+      'utf8'
+    );
+    const expectedOrder = [
+      '手机号管理',
+      '编辑资料',
+      '消息通知',
+      '消息提醒设置',
+      '我的活动',
+      '我的打卡日记',
+      '我的实录报告',
+      '我的优惠券',
+      '管理工作台',
+      '数据分析',
+      '隐私政策',
+      '用户协议'
+    ];
+    const positions = expectedOrder.map(label => wxml.indexOf(label));
+
+    expect(positions.every(index => index >= 0)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
 });

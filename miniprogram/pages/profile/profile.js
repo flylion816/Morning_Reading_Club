@@ -194,6 +194,10 @@ Page({
     wx.navigateTo({ url: '/pages/my-coupons/my-coupons' });
   },
 
+  goToAdminWorkbench() {
+    wx.navigateTo({ url: '/pages/admin-workbench/admin-workbench' });
+  },
+
   goToAdminAnalytics() {
     wx.navigateTo({ url: '/pages/admin-analytics/admin-analytics' });
   },
