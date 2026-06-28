@@ -126,13 +126,8 @@ Page({
     activityLoading: false,
     activities: [],
     activityPagination: { page: 1, pageSize: PAGE_SIZE, total: 0, hasMore: false },
-    selectedActivity: null,
-    registrations: [],
-    registrationPagination: { page: 1, pageSize: PAGE_SIZE, total: 0, hasMore: false },
-    registrationLoading: false,
     loadingMoreUsers: false,
-    loadingMoreActivities: false,
-    loadingMoreRegistrations: false
+    loadingMoreActivities: false
   },
 
   onLoad() {
@@ -264,43 +259,11 @@ Page({
     this.loadActivities((Number(pagination.page) || 1) + 1, true);
   },
 
-  async handleActivityTap(e) {
+  handleActivityTap(e) {
     const activityId = e.currentTarget.dataset.id;
     if (!activityId) return;
-    const selectedActivity = this.data.activities.find((item) => item.activityId === activityId) || null;
-    this.setData({
-      selectedActivity,
-      registrations: [],
-      registrationPagination: { page: 1, pageSize: PAGE_SIZE, total: 0, hasMore: false }
+    wx.navigateTo({
+      url: `/pages/admin-activity-registrations/admin-activity-registrations?activityId=${activityId}`
     });
-    await this.loadRegistrations(activityId, 1, false);
-  },
-
-  async loadRegistrations(activityId, page = 1, append = false) {
-    this.setData(append ? { loadingMoreRegistrations: true } : { registrationLoading: true });
-    try {
-      const res = await adminWorkbenchService.getActivityRegistrations(activityId, {
-        page,
-        pageSize: PAGE_SIZE
-      });
-      const nextRows = (res.list || []).map(decorateRegistration);
-      this.setData({
-        selectedActivity: res.activity ? decorateActivity(res.activity) : this.data.selectedActivity,
-        registrations: append ? this.data.registrations.concat(nextRows) : nextRows,
-        registrationPagination: res.pagination || { page, pageSize: PAGE_SIZE, total: nextRows.length, hasMore: false },
-        registrationLoading: false,
-        loadingMoreRegistrations: false
-      });
-    } catch (error) {
-      wx.showToast({ title: '报名名单加载失败', icon: 'none' });
-      this.setData({ registrationLoading: false, loadingMoreRegistrations: false });
-    }
-  },
-
-  handleLoadMoreRegistrations() {
-    const pagination = this.data.registrationPagination || {};
-    const activityId = this.data.selectedActivity && this.data.selectedActivity.activityId;
-    if (!activityId || !pagination.hasMore || this.data.loadingMoreRegistrations || this.data.registrationLoading) return;
-    this.loadRegistrations(activityId, (Number(pagination.page) || 1) + 1, true);
   }
 });

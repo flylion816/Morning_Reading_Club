@@ -18,6 +18,7 @@
     "pages/insight-edit/insight-edit",
     "pages/admin-section-insights/admin-section-insights",
     "pages/admin-workbench/admin-workbench",
+    "pages/admin-activity-registrations/admin-activity-registrations",
     "pages/admin-analytics/admin-analytics",
     "pages/profile-others/profile-others",
     "pages/notification-settings/notification-settings",

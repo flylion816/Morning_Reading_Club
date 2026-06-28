@@ -132,6 +132,20 @@ function formatRegistration(registration = {}) {
   };
 }
 
+function attachUserRegistrationStats(registration, enrollmentCountMap = new Map()) {
+  const formatted = formatRegistration(registration);
+  const { userId } = formatted.user;
+  return {
+    ...formatted,
+    user: {
+      ...formatted.user,
+      summary: {
+        enrollmentCount: enrollmentCountMap.get(userId) || 0
+      }
+    }
+  };
+}
+
 function handleError(res, error, message) {
   if (error.statusCode === 400) return res.status(400).json(errors.badRequest(error.message));
   if (error.statusCode === 403) return res.status(403).json(errors.forbidden(error.message));
@@ -423,7 +437,7 @@ async function getActivityRegistrations(req, res) {
       query.userId = { $in: matchedUsers.map((user) => user._id) };
     }
 
-    const [total, registrations] = await Promise.all([
+    const [total, registrations, countRows] = await Promise.all([
       ActivityRegistration.countDocuments(query),
       ActivityRegistration.find(query)
         .populate('userId', '_id nickname avatar avatarUrl phone role status totalCheckinDays currentStreak createdAt lastLoginAt')
@@ -431,12 +445,53 @@ async function getActivityRegistrations(req, res) {
         .sort({ registeredAt: -1, createdAt: -1 })
         .skip(skip)
         .limit(pageSize)
-        .lean()
+        .lean(),
+      ActivityRegistration.aggregate([
+        { $match: { tenantId, activityId: activityObjectId, status: 'registered' } },
+        {
+          $group: {
+            _id: '$activityId',
+            registrationCount: { $sum: 1 },
+            paidCount: {
+              $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, 1, 0] }
+            },
+            pendingCount: {
+              $sum: { $cond: [{ $eq: ['$paymentStatus', 'pending'] }, 1, 0] }
+            }
+          }
+        }
+      ])
     ]);
+    const counts = countRows[0] || {};
+    const userIds = registrations
+      .map((registration) => registration.userId && registration.userId._id)
+      .filter(Boolean);
+    const enrollmentRows = userIds.length === 0
+      ? []
+      : await Enrollment.aggregate([
+        {
+          $match: {
+            userId: { $in: userIds },
+            deleted: { $ne: true }
+          }
+        },
+        {
+          $group: {
+            _id: '$userId',
+            enrollmentCount: { $sum: 1 }
+          }
+        }
+      ]);
+    const enrollmentCountMap = new Map(
+      enrollmentRows.map((row) => [row._id.toString(), row.enrollmentCount || 0])
+    );
 
     return res.json(success({
-      activity: formatActivity(activity),
-      list: registrations.map(formatRegistration),
+      activity: formatActivity(activity, counts),
+      list: registrations.map((registration) => attachUserRegistrationStats(
+        registration,
+        enrollmentCountMap
+      )),
       pagination: buildPagination({ page, pageSize, total })
     }));
   } catch (error) {

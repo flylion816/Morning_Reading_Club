@@ -25,9 +25,9 @@ The system SHALL allow a mobile administrator to view a selected user's period e
 - **THEN** the system shows the user's enrollments with period name, enrollment status, payment status, amount, and latest order state
 
 ### Requirement: Activity Registration Lookup
-The system SHALL allow a mobile administrator to view community activities and each activity's registration list.
+The system SHALL allow a mobile administrator to view community activities and open each activity's registration list in a dedicated mobile page.
 
 #### Scenario: Administrator opens activity registrations
 - **GIVEN** a mobile administrator selected an activity
 - **WHEN** the registration list loads
-- **THEN** the system shows registered users, registration status, payment status, paid amount, and latest payment state
+- **THEN** the system shows registered users with avatar, period enrollment count, total check-in count, registration status, payment status, paid amount, and latest payment state

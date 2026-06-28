@@ -50,6 +50,7 @@ describe('Mobile Admin Workbench Integration', () => {
       User.create({
         openid: 'normal-workbench-openid',
         nickname: '狮子学员',
+        avatarUrl: 'https://example.com/lion-avatar.jpg',
         phone: '15000998787',
         role: 'user',
         status: 'active',
@@ -170,7 +171,12 @@ describe('Mobile Admin Workbench Integration', () => {
 
     expect(registrationRes.status).to.equal(200);
     expect(registrationRes.body.data.activity.title).to.equal('线下共读会');
+    expect(registrationRes.body.data.activity.registrationCount).to.equal(1);
+    expect(registrationRes.body.data.activity.paidCount).to.equal(1);
     expect(registrationRes.body.data.list[0].user.nickname).to.equal('狮子学员');
+    expect(registrationRes.body.data.list[0].user.avatarUrl).to.equal('https://example.com/lion-avatar.jpg');
+    expect(registrationRes.body.data.list[0].user.totalCheckinDays).to.equal(9);
+    expect(registrationRes.body.data.list[0].user.summary.enrollmentCount).to.equal(1);
     expect(registrationRes.body.data.list[0].payment.status).to.equal('completed');
   });
 

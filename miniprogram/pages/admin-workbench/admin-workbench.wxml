@@ -125,7 +125,7 @@
       <view
         wx:for="{{activities}}"
         wx:key="activityId"
-        class="activity-card {{selectedActivity && selectedActivity.activityId === item.activityId ? 'selected' : ''}}"
+        class="activity-card"
         data-id="{{item.activityId}}"
         bindtap="handleActivityTap"
       >
@@ -142,39 +142,10 @@
           <text class="chip blue">已支付 {{item.paidCount}}</text>
           <text class="chip">待支付 {{item.pendingCount}}</text>
         </view>
+        <text class="card-link">查看报名名单</text>
       </view>
       <view wx:if="{{activityPagination.hasMore}}" class="load-more" bindtap="handleLoadMoreActivities">
         {{loadingMoreActivities ? '加载中...' : '加载更多活动'}}
-      </view>
-    </view>
-
-    <view wx:if="{{selectedActivity || registrationLoading}}" class="detail-panel">
-      <view class="section-title">报名名单</view>
-      <view wx:if="{{selectedActivity}}" class="panel-meta">
-        {{selectedActivity.title}} · 共 {{registrationPagination.total || 0}} 人
-      </view>
-      <view wx:if="{{registrationLoading}}" class="state-box compact">加载中...</view>
-      <view wx:elif="{{registrations.length === 0}}" class="state-box compact">暂无报名</view>
-      <view wx:else class="registration-list">
-        <view wx:for="{{registrations}}" wx:key="registrationId" class="info-card">
-          <view class="row">
-            <text class="card-title">{{item.user.displayName}}</text>
-            <text class="amount">{{item.paidAmountText}}</text>
-          </view>
-          <text class="meta-line">{{item.user.phoneText}}</text>
-          <view class="chip-row">
-            <text class="chip">{{item.statusText}}</text>
-            <text class="chip blue">{{item.paymentStatusText}}</text>
-            <text class="chip">{{item.orderStatusText}}</text>
-          </view>
-          <view class="row foot">
-            <text>报名 {{item.registeredAtText}}</text>
-            <text>{{item.reminderGranted ? '已授权提醒' : '未授权提醒'}}</text>
-          </view>
-        </view>
-        <view wx:if="{{registrationPagination.hasMore}}" class="load-more" bindtap="handleLoadMoreRegistrations">
-          {{loadingMoreRegistrations ? '加载中...' : '加载更多名单'}}
-        </view>
       </view>
     </view>
   </view>

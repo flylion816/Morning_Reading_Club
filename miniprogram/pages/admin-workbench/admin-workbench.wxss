@@ -114,8 +114,7 @@
   border: 2rpx solid transparent;
 }
 
-.user-card.selected,
-.activity-card.selected {
+.user-card.selected {
   border-color: #93c5fd;
 }
 
@@ -272,4 +271,12 @@
   color: #2563eb;
   text-align: center;
   font-size: 26rpx;
+}
+
+.card-link {
+  display: block;
+  margin-top: 14rpx;
+  color: #2563eb;
+  font-size: 24rpx;
+  font-weight: 600;
 }

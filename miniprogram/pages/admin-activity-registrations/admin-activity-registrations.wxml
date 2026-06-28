@@ -1,0 +1,79 @@
+<view class="page-activity-registrations">
+  <view wx:if="{{activity}}" class="activity-summary">
+    <view class="summary-head">
+      <text class="activity-title">{{activity.title}}</text>
+      <text class="status-pill">{{activity.statusText}}</text>
+    </view>
+    <view class="summary-row">
+      <text>{{activity.timeText}}</text>
+      <text>{{activity.priceText}}</text>
+    </view>
+    <view class="summary-stats">
+      <text>报名 {{pagination.total || activity.registrationCount || 0}}</text>
+      <text>已支付 {{activity.paidCount || 0}}</text>
+      <text>待支付 {{activity.pendingCount || 0}}</text>
+    </view>
+  </view>
+
+  <view class="search-row">
+    <input
+      class="search-input"
+      value="{{keyword}}"
+      placeholder="昵称 / 手机号"
+      confirm-type="search"
+      bindinput="handleKeywordInput"
+      bindconfirm="handleSearch"
+    />
+    <button class="search-btn" bindtap="handleSearch" loading="{{loading}}">搜索</button>
+  </view>
+
+  <view wx:if="{{loading}}" class="state-box">加载中...</view>
+  <view wx:elif="{{registrations.length === 0}}" class="state-box">暂无报名</view>
+  <view wx:else class="registration-list">
+    <view wx:for="{{registrations}}" wx:key="registrationId" class="registration-card">
+      <view class="user-line">
+        <view class="avatar" style="background: {{item.user.avatarUrl ? '#eef2f7' : '#eff6ff'}}">
+          <image wx:if="{{item.user.avatarUrl}}" class="avatar-image" src="{{item.user.avatarUrl}}" mode="aspectFill" />
+          <text wx:else class="avatar-text">{{item.user.avatarText}}</text>
+        </view>
+        <view class="user-main">
+          <view class="name-row">
+            <text class="user-name">{{item.user.displayName}}</text>
+            <text class="amount">{{item.paidAmountText}}</text>
+          </view>
+          <text class="phone">{{item.user.phoneText}}</text>
+        </view>
+      </view>
+
+      <view class="metric-row">
+        <view class="metric">
+          <text class="metric-value">{{item.user.enrollmentCount}}</text>
+          <text class="metric-label">参加期数</text>
+        </view>
+        <view class="metric">
+          <text class="metric-value">{{item.user.checkinCount}}</text>
+          <text class="metric-label">累计打卡</text>
+        </view>
+        <view class="metric">
+          <text class="metric-value">{{item.reminderGranted ? '已授权' : '未授权'}}</text>
+          <text class="metric-label">提醒</text>
+        </view>
+      </view>
+
+      <view class="chip-row">
+        <text class="chip">{{item.statusText}}</text>
+        <text class="chip blue">{{item.paymentStatusText}}</text>
+        <text class="chip">{{item.orderStatusText}}</text>
+      </view>
+      <view class="foot-row">
+        <text>报名 {{item.registeredAtText}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{pagination.hasMore}}" class="load-more" bindtap="handleLoadMore">
+      {{loadingMore ? '加载中...' : '加载更多名单'}}
+    </view>
+  </view>
+</view>
+
+<podcast-player-bar />

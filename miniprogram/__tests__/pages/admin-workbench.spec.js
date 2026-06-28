@@ -12,6 +12,7 @@ describe('admin workbench page', () => {
 
   beforeEach(() => {
     jest.resetModules();
+    wx.navigateTo.mockClear();
     pageConfig = null;
     global.Page = jest.fn((config) => {
       pageConfig = config;
@@ -139,17 +140,15 @@ describe('admin workbench page', () => {
     expect(pageInstance.data.selectedUserDetail.enrollments[0].paymentAmountText).toBe('¥99.00');
   });
 
-  test('loads registrations after selecting activity', async () => {
+  test('navigates to registration page after selecting activity', async () => {
     await pageInstance.loadActivities.call(pageInstance);
-    await pageInstance.handleActivityTap.call(pageInstance, {
+    pageInstance.handleActivityTap.call(pageInstance, {
       currentTarget: { dataset: { id: 'activity_1' } }
     });
 
-    expect(service.getActivityRegistrations).toHaveBeenCalledWith('activity_1', {
-      page: 1,
-      pageSize: 20
+    expect(service.getActivityRegistrations).not.toHaveBeenCalled();
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/admin-activity-registrations/admin-activity-registrations?activityId=activity_1'
     });
-    expect(pageInstance.data.registrations[0].user.displayName).toBe('狮子学员');
-    expect(pageInstance.data.registrations[0].paymentStatusText).toBe('已支付');
   });
 });
