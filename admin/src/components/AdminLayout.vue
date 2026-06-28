@@ -63,6 +63,9 @@
           <el-menu-item index="/coupons">
             <span>🎟️ 优惠券管理</span>
           </el-menu-item>
+          <el-menu-item index="/home-config">
+            <span>🏠 首页配置</span>
+          </el-menu-item>
           <el-menu-item index="/audit-logs">
             <span>🔍 审计日志</span>
           </el-menu-item>
@@ -203,6 +206,7 @@ const pageTitle = computed(() => {
     '/imprints': '在场管理',
     '/activities': '活动管理',
     '/coupons': '优惠券管理',
+    '/home-config': '首页配置',
     '/insight-requests': '查看申请',
     '/completion-reports': '实录报告',
     '/subscription-debug': '订阅消息排查',

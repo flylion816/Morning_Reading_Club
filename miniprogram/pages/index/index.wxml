@@ -43,8 +43,9 @@
 
     <!-- 内容区域 -->
     <view class="content-area">
+      <block wx:for="{{homeSections}}" wx:key="key">
       <!-- 近期活动 -->
-      <view class="activity-section" wx:if="{{upcomingActivities.length > 0 && canUsePaidFeatures}}">
+      <view class="activity-section" wx:if="{{item.key === 'recentActivities' && upcomingActivities.length > 0 && canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-calendar">📆</view>
@@ -70,11 +71,14 @@
       </view>
 
       <!-- 凡人生活 -->
-      <view class="zaichang-section" wx:if="{{canUsePaidFeatures}}">
+      <view class="zaichang-section" wx:if="{{item.key === 'zaichang' && canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-zaichang">🌿</view>
             <text class="section-header-title">凡人生活</text>
+          </view>
+          <view class="section-header-right" bindtap="navigateToZaichangPublish">
+            <text class="more-text zaichang-publish-text">留下印记</text>
           </view>
         </view>
 
@@ -134,7 +138,7 @@
       </view>
 
       <!-- 今日任务 -->
-      <view class="task-section">
+      <view class="task-section" wx:if="{{item.key === 'todayTask'}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-clipboard">📋</view>
@@ -194,7 +198,7 @@
       </view>
 
 
-      <view class="checkins-section" wx:if="{{canUsePaidFeatures}}">
+      <view class="checkins-section" wx:if="{{item.key === 'myCheckins' && canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-checkin">📝</view>
@@ -254,7 +258,7 @@
       </view>
 
       <!-- 小凡看见 -->
-      <view class="insights-section" wx:if="{{canUsePaidFeatures}}">
+      <view class="insights-section" wx:if="{{item.key === 'xiaofanInsights' && canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-sparkle">✨</view>
@@ -315,7 +319,7 @@
       </view>
 
       <!-- 请求看见 -->
-      <view class="requests-section" wx:if="{{canUsePaidFeatures}}">
+      <view class="requests-section" wx:if="{{item.key === 'insightRequests' && canUsePaidFeatures}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="section-icon-mailbox">📬</view>
@@ -375,6 +379,7 @@
           <text class="more-arrow">→</text>
         </view>
       </view>
+      </block>
     </view>
   </view>
 

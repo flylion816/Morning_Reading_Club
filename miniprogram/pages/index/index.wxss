@@ -632,7 +632,7 @@
 }
 
 .checkin-diary-card {
-  width: 270rpx;
+  width: 240rpx;
   height: 224rpx;
   flex-shrink: 0;
   border-radius: 20rpx;
@@ -2376,8 +2376,12 @@ button.avatar-action-button::after {
   font-size: 26rpx;
 }
 
+.zaichang-publish-text {
+  color: #2f6b45;
+}
+
 .zaichang-card {
-  width: 200rpx;
+  width: 240rpx;
   height: 260rpx;
   flex-shrink: 0;
   border-radius: 20rpx;
@@ -2391,7 +2395,7 @@ button.avatar-action-button::after {
 }
 
 .zaichang-card-cover {
-  width: 200rpx;
+  width: 240rpx;
   height: 160rpx;
   border-radius: 16rpx 16rpx 0 0;
   overflow: hidden;

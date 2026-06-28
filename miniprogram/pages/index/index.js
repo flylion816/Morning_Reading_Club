@@ -8,6 +8,7 @@ const notificationServiceModule = require('../../services/notification.service')
 const activityService = require('../../services/activity.service');
 const communityActivityService = require('../../services/communityActivity.service');
 const imprintService = require('../../services/imprint.service');
+const homeConfigService = require('../../services/home-config.service');
 const completionReportService = require('../../services/completion-report.service');
 const constants = require('../../config/constants');
 const { formatNumber, formatDate } = require('../../utils/formatters');
@@ -41,6 +42,37 @@ const MORNING_READ_PROMPT_START_MINUTE = 5 * 60 + 55;
 const MORNING_READ_PROMPT_END_MINUTE = 6 * 60 + 25;
 const UPCOMING_ACTIVITIES_DISPLAY_LIMIT = 2;
 const RECENT_CHECKIN_PREVIEW_MAX_LENGTH = 20;
+const HOME_SECTION_KEYS = [
+  'recentActivities',
+  'todayTask',
+  'zaichang',
+  'myCheckins',
+  'xiaofanInsights',
+  'insightRequests'
+];
+const HOME_SECTION_LABELS = {
+  recentActivities: '近期活动',
+  todayTask: '今日任务',
+  zaichang: '凡人生活',
+  myCheckins: '我的打卡',
+  xiaofanInsights: '小凡看见',
+  insightRequests: '请求看见'
+};
+
+function normalizeHomeSectionOrder(order) {
+  const source = Array.isArray(order) ? order : [];
+  const valid = source.filter((key) => HOME_SECTION_KEYS.includes(key));
+  const unique = [...new Set(valid)];
+  const missing = HOME_SECTION_KEYS.filter((key) => !unique.includes(key));
+  return [...unique, ...missing];
+}
+
+function buildHomeSectionItems(order) {
+  return normalizeHomeSectionOrder(order).map((key) => ({
+    key,
+    label: HOME_SECTION_LABELS[key]
+  }));
+}
 
 const TASK_CARD_LAYOUT_RPX = {
   screenWidth: 750,
@@ -291,6 +323,7 @@ Page({
     popupActivity: null,
     upcomingActivities: [],
     upcomingActivitiesHasMore: false,
+    homeSections: buildHomeSectionItems(HOME_SECTION_KEYS),
 
     // 编辑个人信息相关
     showEditProfile: false,
@@ -590,7 +623,7 @@ Page({
 
     try {
       // ── Wave 1: 所有独立请求并行 ──────────────────────────────
-      const [userInfo, stats, periods, userEnrollments, taskRes] =
+      const [userInfo, stats, periods, userEnrollments, taskRes, homeConfig] =
         await Promise.all([
           userService.getUserProfile(),
           userService.getUserStats(),
@@ -598,7 +631,8 @@ Page({
           enrollmentService
             .getUserEnrollments({ limit: 100 })
             .catch(() => ({ list: [] })),
-          courseService.getTodayTask().catch(() => null)
+          courseService.getTodayTask().catch(() => null),
+          homeConfigService.getConfig().catch(() => null)
         ]);
 
       const displayUserInfo = decorateUserAvatar(userInfo);
@@ -796,6 +830,7 @@ Page({
           currentPeriodCommunityState:
             currentPeriodAccess.communityAccessState || 'locked',
           canUsePaidFeatures: paidFeatureAccessEnabled,
+          homeSections: buildHomeSectionItems(homeConfig?.sections),
           todaySection: todaySection || null,
           hasMeeting: !!todaySection,
           meetingId: currentPeriod?.meetingId || '',
@@ -1805,6 +1840,14 @@ Page({
 
   navigateToZaichang() {
     wx.navigateTo({ url: '/pages/zaichang/list/list' });
+  },
+
+  navigateToZaichangPublish() {
+    if (!this.ensurePaidFeatureAccess('完成支付后可发布印记')) {
+      return;
+    }
+
+    wx.navigateTo({ url: '/pages/zaichang/publish/publish' });
   },
 
   onTapZaichangCard(e) {

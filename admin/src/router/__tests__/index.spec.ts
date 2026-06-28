@@ -37,7 +37,7 @@ describe('Router - 管理后台路由', () => {
 
   // ============ 路由配置 (4 个) ============
   describe('路由配置', () => {
-    it('[Route-1] 应该包含 13 个主要路由', () => {
+    it('[Route-1] 应该包含 14 个主要路由', () => {
       const routes: RouteRecordRaw[] = [
         { path: '/login', name: 'login', meta: { requiresAuth: false } },
         { path: '/', name: 'dashboard', meta: { requiresAuth: true } },
@@ -51,10 +51,11 @@ describe('Router - 管理后台路由', () => {
         { path: '/insight-requests', name: 'insightRequests', meta: { requiresAuth: true } },
         { path: '/analytics', name: 'analytics', meta: { requiresAuth: true } },
         { path: '/audit-logs', name: 'auditLogs', meta: { requiresAuth: true } },
-        { path: '/database', name: 'database', meta: { requiresAuth: true } }
+        { path: '/database', name: 'database', meta: { requiresAuth: true } },
+        { path: '/home-config', name: 'homeConfig', meta: { requiresAuth: true } }
       ];
 
-      expect(routes.length).toBe(13);
+      expect(routes.length).toBe(14);
     });
 
     it('[Route-2] 登录路由不需要认证', () => {
@@ -252,7 +253,8 @@ describe('Router - 管理后台路由', () => {
         { path: '/checkins', meta: { requiresAuth: true } },
         { path: '/insights', meta: { requiresAuth: true } },
         { path: '/audit-logs', meta: { requiresAuth: true } },
-        { path: '/database', meta: { requiresAuth: true } }
+        { path: '/database', meta: { requiresAuth: true } },
+        { path: '/home-config', meta: { requiresAuth: true } }
       ];
 
       protectedRoutes.forEach(route => {

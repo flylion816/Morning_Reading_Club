@@ -27,6 +27,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
         { path: '/users', name: 'users', component: { template: '<div>Users</div>' } },
         { path: '/analytics', name: 'analytics', component: { template: '<div>Analytics</div>' } },
         { path: '/completion-reports', name: 'completionReports', component: { template: '<div>CompletionReports</div>' } },
+        { path: '/home-config', name: 'homeConfig', component: { template: '<div>HomeConfig</div>' } },
         { path: '/database', name: 'database', component: { template: '<div>Database</div>' } }
       ]
     });
@@ -96,6 +97,21 @@ describe('AdminLayout - 管理后台布局组件', () => {
       });
 
       expect(wrapper.vm.pageTitle).toBe('实录报告');
+    });
+
+    it('[Title-5] /home-config 路由的页面标题应该是"首页配置"', async () => {
+      await router.push('/home-config');
+      await router.isReady();
+
+      const wrapper = mount(AdminLayout, {
+        global: {
+          plugins: [pinia, router],
+          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
+                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
+        }
+      });
+
+      expect(wrapper.vm.pageTitle).toBe('首页配置');
     });
   });
 

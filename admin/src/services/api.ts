@@ -454,6 +454,12 @@ export const imprintActivityTypeApi = {
     apiClient.put('/imprints/admin/activity-types/reorder', { items })
 };
 
+export const homeConfigApi = {
+  getConfig: () => apiClient.get('/home-config/admin'),
+  updateConfig: (sections: string[]) =>
+    apiClient.put('/home-config/admin', { sections })
+};
+
 // 备份管理 API
 export const backupApi = {
   // 统计

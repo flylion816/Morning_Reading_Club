@@ -102,7 +102,9 @@ class Request {
             errMsg: err.errMsg,
             error: err
           });
-          this.handleError(err);
+          if (!options.suppressError) {
+            this.handleError(err);
+          }
           reject(err);
         }
       });
@@ -126,7 +128,9 @@ class Request {
         resolve(data.data || data);
       } else {
         // 业务错误
-        this.showError(data.message || '请求失败');
+        if (!originalOptions.suppressError) {
+          this.showError(data.message || '请求失败');
+        }
         reject(data);
       }
     }
@@ -144,7 +148,9 @@ class Request {
           url: originalOptions.url,
           message: data.message
         });
-        this.showError(data.message || '请求失败，请重试');
+        if (!originalOptions.suppressError) {
+          this.showError(data.message || '请求失败，请重试');
+        }
         reject(data);
       } else {
         // 受保护端点的401表示token过期，尝试刷新
@@ -153,22 +159,30 @@ class Request {
     }
     // 403 禁止访问
     else if (statusCode === 403) {
-      this.showError('没有权限访问');
+      if (!originalOptions.suppressError) {
+        this.showError('没有权限访问');
+      }
       reject(res);
     }
     // 404 未找到
     else if (statusCode === 404) {
-      this.showError('请求的资源不存在');
+      if (!originalOptions.suppressError) {
+        this.showError('请求的资源不存在');
+      }
       reject(res);
     }
     // 500 服务器错误
     else if (statusCode >= 500) {
-      this.showError('服务器错误,请稍后重试');
+      if (!originalOptions.suppressError) {
+        this.showError('服务器错误,请稍后重试');
+      }
       reject(res);
     }
     // 其他错误
     else {
-      this.showError(data.message || '请求失败');
+      if (!originalOptions.suppressError) {
+        this.showError(data.message || '请求失败');
+      }
       reject(res);
     }
   }
