@@ -157,12 +157,14 @@
               </view>
               <!-- 打卡内容 -->
               <view class="checkin-content {{item.canExpandContent && !item.contentExpanded ? 'checkin-content-clamped' : ''}}">{{item.content}}</view>
-              <view wx:if="{{item.imageCount}}" class="checkin-image-count">{{item.imageCount}}张图片</view>
-              <view
-                wx:if="{{item.canExpandContent}}"
-                class="checkin-content-toggle"
-                catchtap="toggleCheckinContent"
-                data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
+              <view wx:if="{{item.canExpandContent || item.imageCount}}" class="checkin-content-footer">
+                <view
+                  wx:if="{{item.canExpandContent}}"
+                  class="checkin-content-toggle"
+                  catchtap="toggleCheckinContent"
+                  data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
+                <view wx:if="{{item.imageCount}}" class="checkin-image-count">{{item.imageCount}}张图片</view>
+              </view>
             </view>
           </view>
         </view>

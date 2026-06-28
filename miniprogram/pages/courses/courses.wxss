@@ -443,11 +443,18 @@
   overflow: hidden;
 }
 
+.checkin-content-footer {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
 .checkin-image-count {
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  margin-top: 12rpx;
   padding: 4rpx 14rpx;
   border-radius: 999rpx;
   background: #eef5ff;
@@ -459,7 +466,6 @@
 .checkin-content-toggle {
   display: inline-flex;
   align-items: center;
-  margin-top: 12rpx;
   font-size: 24rpx;
   color: #4a90e2;
   font-weight: 500;
