@@ -833,12 +833,15 @@ Page({
     const content = normalizeDanmakuContent(checkin.note || checkin.content || '');
     const images = normalizeCheckinImages(checkin.images);
     const kw = this.data.searchKeyword;
+    const richContentHtml = checkin.contentHtml
+      ? this.cleanHtmlForRichText(checkin.contentHtml)
+      : '';
     const contentHtml = kw
       ? this._highlightKeyword(
           content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'),
           kw
         )
-      : '';
+      : richContentHtml;
 
     return {
       id,
@@ -864,6 +867,7 @@ Page({
         checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
       content,
       contentHtml,
+      hasRichContent: !!richContentHtml,
       images,
       imageCount: images.length,
       canExpandContent: this.shouldFoldCheckinContent(content),

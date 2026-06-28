@@ -780,6 +780,37 @@ describe('course-detail page markdown support', () => {
     expect(checkinItem.imageCount).toBe(1);
   });
 
+  test('should preserve rich text html for checkin display', () => {
+    const checkinItem = pageInstance.buildCheckinItem.call(pageInstance, {
+      _id: 'checkin_rich',
+      note: '要事第一：把注意力交还给生命主轴',
+      contentHtml: '<p><strong>要事第一</strong>：<span style="color:#4a90e2">把注意力交还给生命主轴</span></p>',
+      userId: {
+        _id: 'user_fox',
+        nickname: '小狐狸',
+        avatarUrl: ''
+      }
+    });
+
+    expect(checkinItem.content).toBe('要事第一：把注意力交还给生命主轴');
+    expect(checkinItem.contentHtml).toContain('<strong>要事第一</strong>');
+    expect(checkinItem.contentHtml).toContain('color:#4a90e2');
+    expect(checkinItem.hasRichContent).toBe(true);
+  });
+
+  test('should use plain text highlight instead of rich html in checkin search mode', () => {
+    pageInstance.setData({ searchKeyword: '注意力' });
+
+    const checkinItem = pageInstance.buildCheckinItem.call(pageInstance, {
+      _id: 'checkin_search',
+      note: '要事第一：把注意力交还给生命主轴',
+      contentHtml: '<p><strong>要事第一</strong>：<span style="color:#4a90e2">把注意力交还给生命主轴</span></p>'
+    });
+
+    expect(checkinItem.contentHtml).toContain('background:#fff3b0');
+    expect(checkinItem.contentHtml).not.toContain('color:#4a90e2');
+  });
+
   test('should preview all images from selected checkin', () => {
     pageInstance.setData({
       course: {

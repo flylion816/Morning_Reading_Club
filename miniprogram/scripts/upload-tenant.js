@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawnSync } = require('child_process');
 
-const USAGE = '用法: node scripts/upload-tenant.js <slug> [version] [desc] [--sync] [--file tenant.json] [--mongo-uri mongodb://...]';
+const USAGE = '用法: node scripts/upload-tenant.js <slug> [version] [desc] [--sync] [--api-base-url https://wx.shubai01.com/api/v1] [--email admin@example.com] [--password xxx] [--token jwt] [--file tenant.json] [--mongo-uri mongodb://...]';
 
 function createCliError(message, exitCode = 1, extraLines = []) {
   const error = new Error(message);
@@ -48,6 +48,22 @@ function parseArgs(argv = process.argv) {
       if (!args[i + 1]) throw createCliError('--mongo-uri 需要提供 MongoDB 连接串');
       options.mongoUri = args[i + 1];
       i += 1;
+    } else if (arg === '--api-base-url') {
+      if (!args[i + 1]) throw createCliError('--api-base-url 需要提供后端 API 地址');
+      options.apiBaseUrl = args[i + 1];
+      i += 1;
+    } else if (arg === '--token') {
+      if (!args[i + 1]) throw createCliError('--token 需要提供管理员 JWT');
+      options.token = args[i + 1];
+      i += 1;
+    } else if (arg === '--email') {
+      if (!args[i + 1]) throw createCliError('--email 需要提供管理员邮箱');
+      options.email = args[i + 1];
+      i += 1;
+    } else if (arg === '--password') {
+      if (!args[i + 1]) throw createCliError('--password 需要提供管理员密码');
+      options.password = args[i + 1];
+      i += 1;
     } else if (arg.startsWith('--')) {
       throw createCliError(`未知参数: ${arg}`);
     } else {
@@ -82,6 +98,10 @@ async function uploadTenant(slug, options = {}) {
     const syncArgs = [path.join(__dirname, 'sync-tenant-config.js'), slug];
     if (options.file) syncArgs.push('--file', options.file);
     if (options.mongoUri) syncArgs.push('--mongo-uri', options.mongoUri);
+    if (options.apiBaseUrl) syncArgs.push('--api-base-url', options.apiBaseUrl);
+    if (options.token) syncArgs.push('--token', options.token);
+    if (options.email) syncArgs.push('--email', options.email);
+    if (options.password) syncArgs.push('--password', options.password);
     consoleImpl.log(`\n同步租户配置: ${slug}`);
     const syncResult = spawnSyncImpl(execPath, syncArgs, { stdio: 'inherit' });
     if (syncResult.status !== 0) {

@@ -46,9 +46,9 @@
     />
 
     <!-- 活动描述 -->
-    <view wx:if="{{activity.description}}" class="desc-card">
+    <view wx:if="{{activity.descriptionHtml}}" class="desc-card">
       <text class="desc-title">活动介绍</text>
-      <rich-text class="desc-content" nodes="{{activity.description}}" />
+      <rich-text class="desc-content" nodes="{{activity.descriptionHtml}}" />
     </view>
 
     <!-- 底部操作栏 -->

@@ -226,7 +226,7 @@
                   <text class="checkin-diary-card-date">{{item.dateLabel}}</text>
                   <view class="checkin-diary-card-like">
                     <text class="checkin-diary-card-like-icon">♡</text>
-                    <text>{{item.likeCount}}</text>
+                    <text class="checkin-diary-card-like-count">{{item.likeCount}}</text>
                   </view>
                   <text wx:if="{{item.periodTitle}}" class="checkin-diary-card-period-badge">{{item.periodTitle}}</text>
                 </view>

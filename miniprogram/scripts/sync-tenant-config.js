@@ -4,16 +4,20 @@
  * 用法:
  *   node miniprogram/scripts/sync-tenant-config.js <slug>
  *   node miniprogram/scripts/sync-tenant-config.js <slug> --file tenant.json
+ *   node miniprogram/scripts/sync-tenant-config.js <slug> --api-base-url https://wx.shubai01.com/api/v1 --email admin@example.com --password xxx
  */
 
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 const path = require('path');
 const { createRequire } = require('module');
 
 const ROOT = path.resolve(__dirname, '..');
 const REPO = path.resolve(ROOT, '..');
 const DEFAULT_SHARE_COVER = '/assets/images/share-default.jpg';
-const USAGE = '用法: node miniprogram/scripts/sync-tenant-config.js <slug> [--file tenant.json] [--mongo-uri mongodb://...] [--out path]';
+const DEFAULT_API_BASE_URL = 'https://wx.shubai01.com/api/v1';
+const USAGE = '用法: node miniprogram/scripts/sync-tenant-config.js <slug> [--api-base-url https://wx.shubai01.com/api/v1] [--email admin@example.com] [--password xxx] [--token jwt] [--file tenant.json] [--mongo-uri mongodb://...] [--out path]';
 const { validateTenant } = require(path.join(ROOT, 'config/tenants/_schema.js'));
 const REQUIRED_TAB_ICONS = [
   'tab-home.png',
@@ -45,6 +49,22 @@ function parseArgs(argv = process.argv) {
     } else if (arg === '--mongo-uri') {
       if (!args[i + 1]) throw createCliError('--mongo-uri 需要提供 MongoDB 连接串');
       options.mongoUri = args[i + 1];
+      i += 1;
+    } else if (arg === '--api-base-url') {
+      if (!args[i + 1]) throw createCliError('--api-base-url 需要提供后端 API 地址');
+      options.apiBaseUrl = args[i + 1];
+      i += 1;
+    } else if (arg === '--token') {
+      if (!args[i + 1]) throw createCliError('--token 需要提供管理员 JWT');
+      options.token = args[i + 1];
+      i += 1;
+    } else if (arg === '--email') {
+      if (!args[i + 1]) throw createCliError('--email 需要提供管理员邮箱');
+      options.email = args[i + 1];
+      i += 1;
+    } else if (arg === '--password') {
+      if (!args[i + 1]) throw createCliError('--password 需要提供管理员密码');
+      options.password = args[i + 1];
       i += 1;
     } else if (arg === '--out') {
       if (!args[i + 1]) throw createCliError('--out 需要提供输出路径');
@@ -80,6 +100,108 @@ function loadTenantFromFile(filePath) {
     throw createCliError(`租户 JSON 文件不存在: ${resolved}`);
   }
   return normalizeTenantPayload(JSON.parse(fs.readFileSync(resolved, 'utf8')));
+}
+
+function joinUrl(baseUrl, pathname) {
+  return `${String(baseUrl).replace(/\/+$/, '')}/${String(pathname).replace(/^\/+/, '')}`;
+}
+
+function requestJson(method, url, options = {}) {
+  const body = options.body ? JSON.stringify(options.body) : null;
+  const parsedUrl = new URL(url);
+  const client = parsedUrl.protocol === 'http:' ? http : https;
+  const headers = {
+    Accept: 'application/json',
+    ...(options.headers || {})
+  };
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+    headers['Content-Length'] = Buffer.byteLength(body);
+  }
+
+  return new Promise((resolve, reject) => {
+    const req = client.request(parsedUrl, { method, headers }, res => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch (error) {
+          reject(createCliError(`后端 API 返回的不是 JSON: ${text.slice(0, 200)}`));
+          return;
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const message = data?.message || data?.error || text || `HTTP ${res.statusCode}`;
+          reject(createCliError(`后端 API 请求失败 (${res.statusCode}): ${message}`));
+          return;
+        }
+        resolve(data);
+      });
+    });
+    req.on('error', error => reject(createCliError(`后端 API 请求失败: ${error.message}`)));
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function extractSuccessData(response) {
+  if (response && typeof response === 'object' && 'code' in response) {
+    if (response.code !== 0 && response.code !== 200) {
+      throw createCliError(response.message || `后端 API 返回错误 code=${response.code}`);
+    }
+    return response.data;
+  }
+  return response;
+}
+
+async function getAdminToken(apiBaseUrl, options = {}) {
+  const token = options.token || process.env.TENANT_SYNC_ADMIN_TOKEN || process.env.ADMIN_TOKEN;
+  if (token) return token;
+
+  const email = options.email || process.env.TENANT_SYNC_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
+  const password = options.password || process.env.TENANT_SYNC_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw createCliError('缺少管理员登录信息：请提供 --token，或提供 --email/--password，或设置 TENANT_SYNC_ADMIN_EMAIL/TENANT_SYNC_ADMIN_PASSWORD');
+  }
+
+  const request = options.requestJson || requestJson;
+  const response = await request('POST', joinUrl(apiBaseUrl, '/auth/admin/login'), {
+    body: { email, password }
+  });
+  const data = extractSuccessData(response);
+  const loginToken = data?.token;
+  if (!loginToken) {
+    throw createCliError('管理员登录成功但响应中没有 token');
+  }
+  return loginToken;
+}
+
+async function loadTenantFromApi(slug, options = {}) {
+  const apiBaseUrl = options.apiBaseUrl ||
+    process.env.TENANT_SYNC_API_BASE_URL ||
+    process.env.ADMIN_API_BASE_URL ||
+    process.env.VITE_API_URL ||
+    DEFAULT_API_BASE_URL;
+  const token = await getAdminToken(apiBaseUrl, options);
+  const request = options.requestJson || requestJson;
+  const response = await request('GET', joinUrl(apiBaseUrl, '/admin/tenants'), {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = extractSuccessData(response);
+  const tenants = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.tenants)
+      ? data.tenants
+      : Array.isArray(data?.list)
+        ? data.list
+        : [];
+  const tenant = tenants.find(item => item.slug === slug);
+  if (!tenant) {
+    throw createCliError(`后端 API 中找不到租户: ${slug}`);
+  }
+  return tenant;
 }
 
 function loadEnvFile(filePath) {
@@ -211,7 +333,9 @@ async function syncTenantConfig(slug, options = {}) {
 
   const tenant = options.file
     ? loadTenantFromFile(options.file)
-    : await loadTenantFromMongo(slug, options.mongoUri);
+    : options.mongoUri
+      ? await loadTenantFromMongo(slug, options.mongoUri)
+      : await loadTenantFromApi(slug, options);
   if (!tenant) {
     throw createCliError('无法读取租户配置');
   }
@@ -253,6 +377,7 @@ if (require.main === module) {
 module.exports = {
   parseArgs,
   buildMiniTenantConfig,
+  loadTenantFromApi,
   syncTenantConfig,
   runCli
 };

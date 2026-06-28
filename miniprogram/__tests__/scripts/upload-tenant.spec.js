@@ -58,6 +58,28 @@ describe('upload-tenant script', () => {
         desc: 'desc'
       }
     });
+    expect(parseArgs([
+      'node',
+      'script',
+      '--sync',
+      'fanren',
+      '--api-base-url',
+      'https://wx.shubai01.com/api/v1',
+      '--email',
+      'admin@example.com',
+      '--password',
+      'secret'
+    ])).toEqual({
+      slug: 'fanren',
+      options: {
+        sync: true,
+        apiBaseUrl: 'https://wx.shubai01.com/api/v1',
+        email: 'admin@example.com',
+        password: 'secret',
+        version: undefined,
+        desc: undefined
+      }
+    });
   });
 
   test('applies tenant config before creating the CI project and uploading', async () => {
@@ -136,14 +158,28 @@ describe('upload-tenant script', () => {
       console: consoleMock,
       execPath: '/usr/local/bin/node',
       version: '1.2.3',
-      desc: 'tenant upload test'
+      desc: 'tenant upload test',
+      apiBaseUrl: 'https://wx.shubai01.com/api/v1',
+      email: 'admin@example.com',
+      password: 'secret'
     });
 
     expect(order).toEqual(['sync', 'apply', 'project', 'upload']);
     expect(spawnSync).toHaveBeenNthCalledWith(
       1,
       '/usr/local/bin/node',
-      [expect.stringContaining(path.join('scripts', 'sync-tenant-config.js')), 'chaoren', '--file', 'tenant.json'],
+      [
+        expect.stringContaining(path.join('scripts', 'sync-tenant-config.js')),
+        'chaoren',
+        '--file',
+        'tenant.json',
+        '--api-base-url',
+        'https://wx.shubai01.com/api/v1',
+        '--email',
+        'admin@example.com',
+        '--password',
+        'secret'
+      ],
       { stdio: 'inherit' }
     );
     expect(spawnSync).toHaveBeenNthCalledWith(

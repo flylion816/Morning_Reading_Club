@@ -31,6 +31,89 @@ function getErrorMessage(error) {
   );
 }
 
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function plainTextToRichTextHtml(text = '') {
+  const paragraphs = String(text || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  return paragraphs
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+}
+
+function normalizeRichTextHtml(html = '', plainText = '') {
+  const value = String(html || '').trim();
+  if (!plainText || !String(plainText).trim()) return '';
+  if (!value || value === '<p><br></p>') {
+    return plainTextToRichTextHtml(plainText);
+  }
+  return value;
+}
+
+function normalizeEditorColorValue(value) {
+  if (!value) return value;
+
+  const color = String(value).trim().toLowerCase();
+  const shortHexMatch = color.match(/^#([0-9a-f]{3})$/i);
+  if (shortHexMatch) {
+    return `#${shortHexMatch[1].split('').map((char) => char + char).join('')}`;
+  }
+
+  const rgbMatch = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (rgbMatch) {
+    return `#${rgbMatch
+      .slice(1, 4)
+      .map((part) => Math.max(0, Math.min(255, Number(part)))
+        .toString(16)
+        .padStart(2, '0'))
+      .join('')}`;
+  }
+
+  return color;
+}
+
+function normalizeEditorFormats(formats = {}) {
+  const normalized = { ...formats };
+  if (normalized.color) {
+    normalized.color = normalizeEditorColorValue(normalized.color);
+  }
+  return normalized;
+}
+
+function hasRichTextFormatting(html = '') {
+  const value = String(html || '');
+  return /<\s*(strong|b|em|i|u|s|h[1-6]|ul|ol|li|blockquote)\b/i.test(value) ||
+    /<[^>]+\sstyle\s*=/i.test(value);
+}
+
+function stripHtmlToText(html = '') {
+  return String(html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 Page({
   data: {
     statusBarHeight: 20,
@@ -54,7 +137,17 @@ Page({
 
     // 日记内容
     diaryContent: '',
+    diaryContentHtml: '',
     maxDiaryLength: MAX_DIARY_LENGTH,
+    editorFormats: {},
+    editorColorOptions: [
+      { value: '#333333' },
+      { value: '#4a90e2' },
+      { value: '#168c91' },
+      { value: '#d97706' },
+      { value: '#dc2626' }
+    ],
+    showRichTextPreview: false,
     checkinImages: [],
     maxImageCount: MAX_CHECKIN_IMAGE_COUNT,
     uploadingImage: false,
@@ -181,8 +274,11 @@ Page({
       try {
         const existing = await checkinService.getCheckinDetail(options.checkinId);
         if (existing) {
+          const diaryContent = existing.note || existing.content || '';
           this.setData({
-            diaryContent: existing.note || existing.content || '',
+            diaryContent,
+            diaryContentHtml: normalizeRichTextHtml(existing.contentHtml, diaryContent),
+            showRichTextPreview: hasRichTextFormatting(existing.contentHtml),
             checkinImages: this.normalizeImageList(existing.images),
             visibility: existing.isPublic === false ? 'admin' : 'all',
             isDirty: false
@@ -284,14 +380,166 @@ Page({
   // 输入日记内容
   handleInput(e) {
     const diaryContent = (e.detail.value || '').slice(0, MAX_DIARY_LENGTH);
+    const diaryContentHtml = normalizeRichTextHtml('', diaryContent);
     const wasClean = !this.data.isDirty;
-    this.setData({ diaryContent, isDirty: true });
+    this.setData({
+      diaryContent,
+      diaryContentHtml,
+      showRichTextPreview: false,
+      isDirty: true
+    });
 
     // 第一次输入时启用离开拦截（兜底左上角返回）
     if (wasClean) this._enableLeaveGuard();
 
     if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
     this._autoSaveTimer = setTimeout(() => this._saveDraft(), 2000);
+  },
+
+  handleRichTextInput(e) {
+    const detail = e.detail || {};
+    const text = String(detail.text || stripHtmlToText(detail.html || '') || '').replace(/\n$/, '');
+    const html = normalizeRichTextHtml(detail.html, text);
+    const wasClean = !this.data.isDirty;
+
+    this.setData({
+      diaryContent: text,
+      diaryContentHtml: html,
+      showRichTextPreview: hasRichTextFormatting(html),
+      isDirty: true
+    });
+
+    if ((detail.text || '').length > MAX_DIARY_LENGTH) {
+      wx.showToast({
+        title: `打卡内容不能超过${MAX_DIARY_LENGTH}字`,
+        icon: 'none'
+      });
+    }
+
+    if (wasClean) this._enableLeaveGuard();
+
+    if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+    this._autoSaveTimer = setTimeout(() => this._saveDraft(), 2000);
+  },
+
+  handleEditorReady() {
+    wx.createSelectorQuery()
+      .in(this)
+      .select('#checkin-rich-editor')
+      .context((res) => {
+        this._editorCtx = res && res.context;
+        this._setEditorContent(this.data.diaryContentHtml);
+      })
+      .exec();
+  },
+
+  _setEditorContent(html) {
+    if (!this._editorCtx || !html) return;
+
+    this._settingEditorContent = true;
+    this._editorCtx.setContents({
+      html,
+      success: () => {
+        this._settingEditorContent = false;
+      },
+      fail: () => {
+        this._settingEditorContent = false;
+        const text = stripHtmlToText(html);
+        if (text) {
+          this._editorCtx.insertText({ text });
+        }
+      }
+    });
+  },
+
+  handleEditorInput(e) {
+    if (this._settingEditorContent) return;
+    this.handleRichTextInput(e);
+  },
+
+  handleEditorStatusChange(e) {
+    this.setData({
+      editorFormats: normalizeEditorFormats((e && e.detail) || {})
+    });
+  },
+
+  _applyEditorSnapshot(res = {}, options = {}) {
+    const text = String(res.text || stripHtmlToText(res.html || '') || '').replace(/\n$/, '');
+    const html = normalizeRichTextHtml(res.html, text);
+    if (!text && !html && options.ignoreEmpty) return null;
+
+    const update = {
+      diaryContent: text,
+      diaryContentHtml: html,
+      showRichTextPreview: hasRichTextFormatting(html)
+    };
+    if (options.markDirty) {
+      update.isDirty = true;
+    }
+    this.setData(update);
+
+    return { text, html };
+  },
+
+  _getEditorSnapshot() {
+    if (!this._editorCtx || !this._editorCtx.getContents) {
+      return Promise.resolve(null);
+    }
+
+    return new Promise((resolve) => {
+      this._editorCtx.getContents({
+        success: (res) => resolve(this._applyEditorSnapshot(res)),
+        fail: () => resolve(null)
+      });
+    });
+  },
+
+  handleEditorFormat(e) {
+    if (!this._editorCtx) return;
+    const { name, value } = e.currentTarget.dataset || {};
+    if (!name) return;
+
+    const currentValue = name === 'color'
+      ? normalizeEditorColorValue(this.data.editorFormats[name])
+      : this.data.editorFormats[name];
+    const nextValue = name === 'color' ? normalizeEditorColorValue(value) : value;
+    if (value) {
+      this._editorCtx.format(name, currentValue === nextValue ? false : nextValue);
+      this._refreshEditorAfterFormat();
+      return;
+    }
+
+    this._editorCtx.format(name, !currentValue);
+    this._refreshEditorAfterFormat();
+  },
+
+  handleEditorUndo() {
+    if (this._editorCtx) this._editorCtx.undo();
+  },
+
+  handleEditorRedo() {
+    if (this._editorCtx) this._editorCtx.redo();
+  },
+
+  _refreshEditorAfterFormat() {
+    if (!this._editorCtx || !this._editorCtx.getContents) return;
+
+    if (this._formatRefreshTimer) clearTimeout(this._formatRefreshTimer);
+    this._formatRefreshTimer = setTimeout(() => {
+      this._formatRefreshTimer = null;
+      this._editorCtx.getContents({
+        success: (res) => {
+          const wasClean = !this.data.isDirty;
+          const snapshot = this._applyEditorSnapshot(res, { markDirty: true, ignoreEmpty: true });
+          if (!snapshot) return;
+
+          if (wasClean) this._enableLeaveGuard();
+
+          if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+          this._autoSaveTimer = setTimeout(() => this._saveDraft(), 2000);
+        }
+      });
+    }, 120);
   },
 
   // 选择可见范围
@@ -444,7 +692,7 @@ Page({
 
   // 草稿：保存
   _saveDraft() {
-    const { sectionId, diaryContent, visibility, checkinImages } = this.data;
+    const { sectionId, diaryContent, diaryContentHtml, visibility, checkinImages } = this.data;
     if (!sectionId || (!diaryContent && checkinImages.length === 0)) return;
     const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id;
     // userId 未就绪时不保存，避免草稿 key 回退到 guest 导致多用户共享
@@ -453,6 +701,7 @@ Page({
     try {
       tenantStorage.set(`checkin_draft_${userId}_${sectionId}`, {
         content: diaryContent,
+        contentHtml: normalizeRichTextHtml(diaryContentHtml, diaryContent),
         images: this.normalizeImageList(checkinImages),
         visibility,
         savedAt: Date.now()
@@ -497,8 +746,12 @@ Page({
     try {
       const draft = tenantStorage.get(`checkin_draft_${userId}_${sectionId}`);
       if (draft && (draft.content || (Array.isArray(draft.images) && draft.images.length > 0))) {
+        const diaryContent = draft.content || '';
+        const diaryContentHtml = normalizeRichTextHtml(draft.contentHtml, diaryContent);
         this.setData({
-          diaryContent: draft.content,
+          diaryContent,
+          diaryContentHtml,
+          showRichTextPreview: hasRichTextFormatting(diaryContentHtml),
           checkinImages: this.normalizeImageList(draft.images),
           visibility: draft.visibility || 'all',
           isDirty: true,
@@ -622,6 +875,7 @@ Page({
     if (this._pageRevealTimer) clearTimeout(this._pageRevealTimer);
     if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
     if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+    if (this._formatRefreshTimer) clearTimeout(this._formatRefreshTimer);
     this._disableLeaveGuard();
   },
 
@@ -634,6 +888,8 @@ Page({
       });
       return;
     }
+
+    await this._getEditorSnapshot();
 
     const diaryContent = (this.data.diaryContent || '').trim();
     const checkinImages = this.normalizeImageList(this.data.checkinImages);
@@ -661,6 +917,7 @@ Page({
       if (this.data.isEditMode && this.data.checkinId) {
         await checkinService.updateCheckin(this.data.checkinId, {
           note: diaryContent,
+          contentHtml: normalizeRichTextHtml(this.data.diaryContentHtml, diaryContent),
           images: checkinImages,
           isPublic: this.data.visibility === 'all'
         });
@@ -750,6 +1007,7 @@ Page({
         readingTime: elapsedMinutes,
         completionRate: 100, // 提交即视为完成
         note: diaryContent,
+        contentHtml: normalizeRichTextHtml(this.data.diaryContentHtml, diaryContent),
         images: checkinImages,
         isPublic: this.data.visibility === 'all',
         mood: 'happy'
@@ -784,6 +1042,7 @@ Page({
         avatarText: getLastTextChar(currentUser.nickname || '我', '我'),
         avatarColor: '#4a90e2',
         content: diaryContent,
+        contentHtml: normalizeRichTextHtml(this.data.diaryContentHtml, diaryContent),
         images: checkinImages,
         likeCount: 0,
         createTime: '刚刚',
@@ -813,7 +1072,10 @@ Page({
       }
       this._disableLeaveGuard();
       this._clearDraft();
-      this.setData({ isDirty: false, diaryContent: '', checkinImages: [] });
+      if (this._editorCtx) {
+        this._editorCtx.clear();
+      }
+      this.setData({ isDirty: false, diaryContent: '', diaryContentHtml: '', showRichTextPreview: false, checkinImages: [] });
 
       wx.hideLoading();
       getApp().globalData.checkinListDirty = true;

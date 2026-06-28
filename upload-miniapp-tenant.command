@@ -5,12 +5,15 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR"
 
 echo "Mini Program tenant upload"
-echo "This will sync tenant config, apply the tenant, and upload via miniprogram-ci."
+echo "This will read tenant config from the backend Admin API, apply the tenant, and upload via miniprogram-ci."
 echo
 
 slug="${1:-}"
 version="${2:-}"
 desc="${3:-}"
+api_base_url="${TENANT_SYNC_API_BASE_URL:-https://wx.shubai01.com/api/v1}"
+admin_email="${TENANT_SYNC_ADMIN_EMAIL:-}"
+admin_password="${TENANT_SYNC_ADMIN_PASSWORD:-}"
 
 if [[ -z "$slug" ]]; then
   printf "Tenant slug: "
@@ -32,6 +35,30 @@ if [[ -z "$desc" ]]; then
   read -r desc
 fi
 
+printf "Admin API base URL [%s]: " "$api_base_url"
+read -r input_api_base_url
+if [[ -n "$input_api_base_url" ]]; then
+  api_base_url="$input_api_base_url"
+fi
+
+if [[ -z "$admin_email" ]]; then
+  printf "Admin email: "
+  read -r admin_email
+fi
+
+if [[ -z "$admin_password" ]]; then
+  printf "Admin password: "
+  stty -echo
+  read -r admin_password
+  stty echo
+  echo
+fi
+
+if [[ -z "$admin_email" || -z "$admin_password" ]]; then
+  echo "Missing admin email or password."
+  exit 1
+fi
+
 args=("$slug")
 if [[ -n "$version" ]]; then
   args+=("$version")
@@ -47,7 +74,7 @@ fi
 echo
 echo "Running: npm run tenant:push -- ${args[*]}"
 echo
-npm run tenant:push -- "${args[@]}"
+npm run tenant:push -- "${args[@]}" --api-base-url "$api_base_url" --email "$admin_email" --password "$admin_password"
 
 echo
 echo "Done. Press Enter to close."

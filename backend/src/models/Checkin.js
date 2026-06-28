@@ -42,6 +42,11 @@ const CheckinSchema = new mongoose.Schema(
       maxlength: 3000,
       default: null
     },
+    contentHtml: {
+      type: String,
+      maxlength: 20000,
+      default: null
+    },
     images: {
       type: [String],
       default: []

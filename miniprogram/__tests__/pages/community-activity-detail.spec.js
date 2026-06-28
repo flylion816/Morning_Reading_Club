@@ -120,4 +120,26 @@ describe('community activity detail page', () => {
       reminderGrant: null
     });
   });
+
+  test('renders activity description dividers like rich text content', async () => {
+    communityActivityService.getDetail.mockResolvedValue({
+      data: {
+        _id: 'activity_1',
+        title: '晨光之约',
+        description: '<p>第一段</p><p>---</p><p>第二段</p>',
+        startTime: '2026-07-10T10:00:00.000Z',
+        endTime: '2026-07-10T12:00:00.000Z',
+        status: 'published',
+        isRegistered: false,
+        isPaid: false,
+        registrationCount: 0
+      }
+    });
+
+    await pageInstance.loadDetail.call(pageInstance, 'activity_1');
+
+    expect(pageInstance.data.activity.descriptionHtml).toContain('width:72px');
+    expect(pageInstance.data.activity.descriptionHtml).toContain('background:#d8e0ea');
+    expect(pageInstance.data.activity.descriptionHtml).not.toContain('>---<');
+  });
 });

@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>新开一个晨读营小程序操作指南</title>
+  <meta name="description" content="为新的品牌或机构开通独立晨读营微信小程序前端的操作指南。">
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --paper: #ffffff;
+      --ink: #1d2939;
+      --muted: #667085;
+      --line: #d9e2ec;
+      --brand: #176b87;
+      --brand-deep: #0b3447;
+      --brand-soft: #e8f6f8;
+      --accent: #d96c3a;
+      --accent-soft: #fff2ea;
+      --green: #17825c;
+      --shadow: 0 18px 46px rgba(16, 24, 40, .08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(23, 107, 135, .10), rgba(244, 247, 251, 0) 320px),
+        var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      line-height: 1.72;
+    }
+    a { color: inherit; }
+    .page {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 26px 18px 28px;
+      color: #eaf7fb;
+      background: linear-gradient(180deg, #082c3a 0%, #0b3447 55%, #102f3c 100%);
+      border-right: 1px solid rgba(255, 255, 255, .08);
+    }
+    .side-kicker {
+      display: inline-flex;
+      align-items: center;
+      height: 26px;
+      padding: 0 10px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 999px;
+      color: #a8e1ed;
+      background: rgba(255, 255, 255, .07);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .sidebar h2 {
+      margin: 14px 4px 8px;
+      color: #fff;
+      font-size: 25px;
+      line-height: 1.22;
+      letter-spacing: 0;
+    }
+    .sidebar p {
+      margin: 0 4px 18px;
+      color: #b8d8e1;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .nav-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 22px 4px 10px;
+      color: #9ccdd9;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    .nav-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, .14);
+    }
+    .nav-link {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 9px;
+      align-items: center;
+      margin: 4px 0;
+      padding: 9px 9px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: #eefbff;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .nav-link:hover, .nav-sub a:hover {
+      background: rgba(255, 255, 255, .09);
+      border-color: rgba(255, 255, 255, .15);
+    }
+    .nav-link span {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border-radius: 8px;
+      color: #a8e1ed;
+      background: rgba(168, 225, 237, .12);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .nav-link strong { font-weight: 750; }
+    .nav-sub {
+      margin: -1px 0 8px 48px;
+      display: grid;
+      gap: 2px;
+    }
+    .nav-sub a {
+      padding: 4px 8px;
+      border-radius: 7px;
+      color: #b8d8e1;
+      text-decoration: none;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .nav-note {
+      margin: 20px 4px 0;
+      padding: 12px;
+      border: 1px solid rgba(255, 191, 89, .28);
+      border-radius: 8px;
+      color: #ffe1a8;
+      background: rgba(255, 191, 89, .08);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    main {
+      width: min(100%, 1120px);
+      padding: 36px 42px 72px;
+    }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 42px;
+      border: 1px solid rgba(23, 107, 135, .18);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #eef8fa 100%);
+      box-shadow: var(--shadow);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto auto;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle at 80% 20%, rgba(217, 108, 58, .14), transparent 62%);
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; z-index: 1; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      color: var(--brand-deep);
+      background: var(--brand-soft);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    h1 {
+      margin: 0 0 14px;
+      color: var(--brand-deep);
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+    .lead {
+      max-width: 780px;
+      margin: 0;
+      color: #415466;
+      font-size: 18px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 22px 0 0;
+    }
+    .meta-card {
+      min-height: 104px;
+      padding: 16px;
+      border: 1px solid rgba(23, 107, 135, .15);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .72);
+    }
+    .meta-card b {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--brand-deep);
+      font-size: 14px;
+    }
+    .meta-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .flow-card {
+      margin: 22px 0;
+      padding: 22px 24px;
+      border: 1px solid rgba(23, 107, 135, .16);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+    .flow-card h2 {
+      margin: 0 0 14px;
+      color: var(--brand-deep);
+      font-size: 21px;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 10px;
+      align-items: stretch;
+    }
+    .flow-step {
+      position: relative;
+      display: grid;
+      align-content: start;
+      min-height: 118px;
+      padding: 14px 12px;
+      border-radius: 8px;
+      color: var(--brand-deep);
+      background: var(--brand-soft);
+      border: 1px solid rgba(23, 107, 135, .14);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .flow-step::before {
+      content: attr(data-step);
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 9px;
+      border-radius: 7px;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .content {
+      display: grid;
+      gap: 22px;
+    }
+    .guide-section {
+      scroll-margin-top: 24px;
+      padding: 30px 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: 0 10px 28px rgba(16, 24, 40, .05);
+    }
+    .guide-section h2 {
+      margin: 0 0 18px;
+      padding-bottom: 12px;
+      color: var(--brand-deep);
+      border-bottom: 1px solid var(--line);
+      font-size: 28px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    .guide-section h3 {
+      margin: 24px 0 10px;
+      color: var(--brand);
+      font-size: 20px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+    .guide-section h4 {
+      margin: 18px 0 8px;
+      color: #344054;
+      font-size: 16px;
+    }
+    .guide-section p {
+      margin: 10px 0;
+      color: #344054;
+    }
+    .guide-section > p:first-child { margin-top: 0; }
+    .guide-section ul, .guide-section ol {
+      margin: 10px 0 18px;
+      padding-left: 22px;
+    }
+    .guide-section li { margin: 5px 0; }
+    .guide-section strong { color: #111827; }
+    code {
+      padding: 2px 6px;
+      border: 1px solid #d7dde5;
+      border-radius: 6px;
+      color: #9a3412;
+      background: #fff7ed;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .92em;
+    }
+    pre {
+      position: relative;
+      margin: 14px 0 20px;
+      padding: 42px 16px 16px;
+      overflow: auto;
+      border-radius: 8px;
+      border: 1px solid #223442;
+      color: #eef7ff;
+      background: #0f2533;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+    }
+    pre code {
+      display: block;
+      padding: 0;
+      border: 0;
+      color: inherit;
+      background: transparent;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre;
+    }
+    .code-lang {
+      position: absolute;
+      top: 11px;
+      left: 14px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      color: #b8d8e1;
+      background: rgba(255, 255, 255, .08);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .table-wrap {
+      margin: 14px 0 22px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    table {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--brand-deep);
+      background: #eef7fa;
+      font-weight: 800;
+    }
+    tr:last-child td { border-bottom: 0; }
+    hr {
+      height: 1px;
+      margin: 26px 0;
+      border: 0;
+      background: var(--line);
+    }
+    .task-item {
+      list-style: none;
+      margin-left: -24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+    }
+    .checkbox {
+      flex: 0 0 18px;
+      width: 18px;
+      height: 18px;
+      margin-top: 5px;
+      border: 2px solid #98a2b3;
+      border-radius: 5px;
+      background: #fff;
+    }
+    .guide-section:nth-of-type(3n + 1) { border-top: 4px solid var(--brand); }
+    .guide-section:nth-of-type(3n + 2) { border-top: 4px solid var(--accent); }
+    .guide-section:nth-of-type(3n + 3) { border-top: 4px solid var(--green); }
+    .print-note {
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 1100px) {
+      .page { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+      }
+      .nav-sub { display: none; }
+      main {
+        width: 100%;
+        padding: 24px 18px 52px;
+      }
+      .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      .hero, .guide-section, .flow-card { padding: 22px 18px; }
+      .meta-grid { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .sidebar h2 { font-size: 22px; }
+      .guide-section h2 { font-size: 23px; }
+      table { min-width: 560px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { display: block; }
+      .sidebar { display: none; }
+      main { width: 100%; padding: 0; }
+      .hero, .flow-card, .guide-section {
+        box-shadow: none;
+        border-color: #cfd8e3;
+      }
+      .hero, .flow-card { break-inside: avoid; }
+      .guide-section { break-inside: auto; page-break-inside: auto; }
+      .guide-section h2, .guide-section h3 { break-after: avoid; page-break-after: avoid; }
+      .table-wrap, pre { break-inside: avoid; page-break-inside: avoid; }
+      .guide-section { margin-top: 14px; }
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar">
+      <span class="side-kicker">Tenant Onboarding</span>
+      <h2>新开一个晨读营小程序操作指南</h2>
+      <p>面向业务方、运营、中台管理员和技术发布人员的一页式开通指南。</p>
+      <div class="nav-title">目录</div>
+      <nav aria-label="页面目录">
+        <a href="#一、整体说明" class="nav-link"><span>01</span><strong>一、整体说明</strong></a>
+<a href="#二、业务方需要准备的资料" class="nav-link"><span>02</span><strong>二、业务方需要准备的资料</strong></a><div class="nav-sub"><a href="#1-微信小程序主体">1. 微信小程序主体</a><a href="#2-微信支付资料">2. 微信支付资料</a><a href="#3-品牌素材">3. 品牌素材</a><a href="#4-订阅消息模板">4. 订阅消息模板</a></div>
+<a href="#三、微信公众平台需要配置" class="nav-link"><span>03</span><strong>三、微信公众平台需要配置</strong></a><div class="nav-sub"><a href="#1-服务器域名">1. 服务器域名</a><a href="#2-插件授权">2. 插件授权</a><a href="#3-代码上传密钥">3. 代码上传密钥</a></div>
+<a href="#四、晨读营中台需要做的事" class="nav-link"><span>04</span><strong>四、晨读营中台需要做的事</strong></a><div class="nav-sub"><a href="#1-新建租户">1. 新建租户</a><a href="#2-创建租户管理员">2. 创建租户管理员</a><a href="#3-配置业务内容">3. 配置业务内容</a></div>
+<a href="#五、技术侧需要做的事" class="nav-link"><span>05</span><strong>五、技术侧需要做的事</strong></a><div class="nav-sub"><a href="#1-放置租户素材">1. 放置租户素材</a><a href="#2-放置上传密钥">2. 放置上传密钥</a><a href="#3-一键同步并上传">3. 一键同步并上传</a><a href="#4-上传后检查">4. 上传后检查</a><a href="#5-提交审核和发布">5. 提交审核和发布</a></div>
+<a href="#六、验收清单" class="nav-link"><span>06</span><strong>六、验收清单</strong></a>
+<a href="#七、常见问题" class="nav-link"><span>07</span><strong>七、常见问题</strong></a><div class="nav-sub"><a href="#1-后台保存后为什么还要本地运行脚本">1. 后台保存后为什么还要本地运行脚本？</a><a href="#2-本地是否需要连接服务器-mongodb">2. 本地是否需要连接服务器 MongoDB？</a><a href="#3-为什么不能只在中台点一下就发布">3. 为什么不能只在中台点一下就发布？</a><a href="#4-上传命令等同于微信开发者工具的上传吗">4. 上传命令等同于微信开发者工具的“上传”吗？</a><a href="#5-哪些改动不需要重新上传小程序">5. 哪些改动不需要重新上传小程序？</a></div>
+      </nav>
+      <div class="nav-note">提示：本页面由 Markdown 指南生成，适合浏览器阅读，也可以直接打印成 PDF。</div>
+    </aside>
+    <main>
+      <header class="hero">
+        <div class="hero-inner">
+          <span class="eyebrow">晨读营多租户小程序开通流程</span>
+          <h1>新开一个晨读营小程序操作指南</h1>
+          <p class="lead">为新的品牌或机构开通独立微信小程序前端，同时继续使用晨读营统一中台和后端能力。页面按业务准备、中台配置、技术上传、验收发布的实际顺序组织。</p>
+          <div class="meta-grid">
+            <div class="meta-card"><b>适用对象</b><span>业务方、运营同学、晨读营中台管理员、技术发布人员</span></div>
+            <div class="meta-card"><b>适用场景</b><span>新增一个独立 appId 的品牌/机构小程序前端</span></div>
+            <div class="meta-card"><b>核心原则</b><span>同一套代码按租户配置生成并上传，不复制新仓库</span></div>
+          </div>
+        </div>
+      </header>
+      <section class="flow-card" aria-label="最终发布链路">
+        <h2>最终发布链路</h2>
+        <div class="flow">
+          <div class="flow-step" data-step="01">业务方准备微信小程序资料</div>
+          <div class="flow-step" data-step="02">晨读营中台创建租户并录入配置</div>
+          <div class="flow-step" data-step="03">技术侧放置租户素材</div>
+          <div class="flow-step" data-step="04">本地一键同步配置并上传开发版</div>
+          <div class="flow-step" data-step="05">微信后台提交审核</div>
+          <div class="flow-step" data-step="06">审核通过后发布</div>
+        </div>
+        <p class="print-note">源文件：docs/guides/NEW_MINIPROGRAM_TENANT_ONBOARDING.md</p>
+      </section>
+      <article class="content">
+        <section class="guide-section" id="一、整体说明">
+<h2>一、整体说明</h2>
+<p>新开一个前端晨读营，本质上是新增一个“租户小程序壳”：</p>
+<ul>
+<li>业务方拥有一个独立微信小程序 appId。</li>
+<li>小程序品牌名、颜色、Logo、Tab 图标、订阅消息模板、支付配置可以独立配置。</li>
+<li>后端仍使用晨读营统一中台，通过租户配置隔离用户、报名、打卡、支付、内容等数据。</li>
+<li>小程序代码不复制新仓库，由同一套代码按租户配置生成并上传。</li>
+</ul>
+<p>最终发布链路：</p>
+<pre><span class="code-lang">text</span><code>业务方准备微信小程序资料
+→ 晨读营中台创建租户并录入配置
+→ 技术侧放置租户素材
+→ 本地一键同步配置并上传小程序开发版
+→ 微信后台提交审核
+→ 审核通过后发布</code></pre>
+<hr>
+</section>
+<section class="guide-section" id="二、业务方需要准备的资料">
+<h2>二、业务方需要准备的资料</h2>
+<h3 id="1-微信小程序主体">1. 微信小程序主体</h3>
+<p>业务方需要先在微信公众平台完成：</p>
+<ul>
+<li>注册新的微信小程序。</li>
+<li>完成主体认证。</li>
+<li>完成 ICP 备案。</li>
+<li>配置服务类目，类目需与实际业务一致。</li>
+<li>配置用户隐私保护指引。</li>
+</ul>
+<p>需要提供给晨读营中台的信息：</p>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>说明</th></tr></thead><tbody><tr><td>小程序名称</td><td>例如：凡人共读、某某晨读营</td></tr><tr><td>appId</td><td>形如 <code>wx2b9a3c1d5e4195f8</code></td></tr><tr><td>AppSecret</td><td>微信登录用，敏感信息，单独安全发送</td></tr><tr><td>小程序管理员微信</td><td>用于体验、审核、问题确认</td></tr></tbody></table></div>
+<h3 id="2-微信支付资料">2. 微信支付资料</h3>
+<p>如果新小程序需要收费报名，业务方需要准备：</p>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>说明</th></tr></thead><tbody><tr><td>微信支付商户号 mchId</td><td>绑定到该小程序</td></tr><tr><td>支付 API Key / API v3 Key</td><td>按当前支付配置要求提供</td></tr><tr><td>商户证书</td><td>如支付流程需要证书，由技术侧确认格式</td></tr><tr><td>支付回调授权</td><td>确认商户平台允许当前后端回调域名</td></tr></tbody></table></div>
+<p>如果暂时不启用支付，可以先不配置支付信息。</p>
+<h3 id="3-品牌素材">3. 品牌素材</h3>
+<p>业务方需要提供：</p>
+<div class="table-wrap"><table><thead><tr><th>素材</th><th>要求</th></tr></thead><tbody><tr><td>Logo</td><td>建议 PNG，正方形，清晰透明背景优先</td></tr><tr><td>小程序头像</td><td>按微信公众平台要求上传</td></tr><tr><td>分享封面</td><td>建议 JPG/PNG，适合微信分享卡片</td></tr><tr><td>主色调</td><td>十六进制颜色，例如 <code>#4a90e2</code></td></tr><tr><td>Tab 图标</td><td>首页、晨读营、我的，每个都要普通态和选中态</td></tr></tbody></table></div>
+<p>Tab 图标共 6 个：</p>
+<pre><span class="code-lang">text</span><code>tab-home.png
+tab-home-active.png
+tab-book.png
+tab-book-active.png
+tab-my.png
+tab-my-active.png</code></pre>
+<h3 id="4-订阅消息模板">4. 订阅消息模板</h3>
+<p>业务方需要在微信公众平台申请订阅消息模板，并提供模板 ID。</p>
+<p>常用场景包括：</p>
+<ul>
+<li>报名结果通知</li>
+<li>支付结果通知</li>
+<li>评论通知</li>
+<li>点赞通知</li>
+<li>次日学习提醒</li>
+<li>活动提醒</li>
+</ul>
+<p>中台中以 JSON 方式保存，例如：</p>
+<pre><span class="code-lang">json</span><code>{
+  &quot;enrollment_result&quot;: &quot;模板ID&quot;,
+  &quot;payment_result&quot;: &quot;模板ID&quot;,
+  &quot;next_day_study_reminder&quot;: &quot;模板ID&quot;
+}</code></pre>
+<hr>
+</section>
+<section class="guide-section" id="三、微信公众平台需要配置">
+<h2>三、微信公众平台需要配置</h2>
+<p>业务方或小程序管理员需要在微信公众平台配置：</p>
+<h3 id="1-服务器域名">1. 服务器域名</h3>
+<p>需要把晨读营线上域名加入合法域名：</p>
+<pre><span class="code-lang">text</span><code>https://wx.shubai01.com</code></pre>
+<p>常见配置项：</p>
+<ul>
+<li>request 合法域名</li>
+<li>uploadFile 合法域名</li>
+<li>downloadFile 合法域名</li>
+<li>socket 合法域名，如果该小程序启用实时能力</li>
+</ul>
+<h3 id="2-插件授权">2. 插件授权</h3>
+<p>如果小程序使用了微信插件，例如语音、识别或其它能力，需要在新 appId 下重新授权。插件授权是按 appId 生效的，不会自动继承旧小程序。</p>
+<h3 id="3-代码上传密钥">3. 代码上传密钥</h3>
+<p>需要在微信公众平台生成“代码上传密钥”，交给技术侧放到本地：</p>
+<pre><span class="code-lang">text</span><code>miniprogram/keys/&lt;slug&gt;.key.pem</code></pre>
+<p>示例：</p>
+<pre><span class="code-lang">text</span><code>miniprogram/keys/fanren.key.pem
+miniprogram/keys/chaoren.key.pem</code></pre>
+<p>密钥文件不能提交到 Git。</p>
+<hr>
+</section>
+<section class="guide-section" id="四、晨读营中台需要做的事">
+<h2>四、晨读营中台需要做的事</h2>
+<h3 id="1-新建租户">1. 新建租户</h3>
+<p>登录晨读营管理后台：</p>
+<pre><span class="code-lang">text</span><code>https://wx.shubai01.com/admin/tenants</code></pre>
+<p>点击“新建租户”，填写：</p>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>示例</th><th>说明</th></tr></thead><tbody><tr><td>Slug</td><td><code>fanren</code></td><td>租户短标识，只能小写字母/数字/下划线/连字符，创建后不要修改</td></tr><tr><td>名称</td><td>凡人共读</td><td>后台显示名称</td></tr><tr><td>AppId 列表</td><td><code>wx...</code></td><td>新小程序 appId</td></tr><tr><td>登录 AppId</td><td><code>wx...</code></td><td>通常与 AppId 列表一致</td></tr><tr><td>登录 Secret</td><td>AppSecret</td><td>微信登录用</td></tr><tr><td>支付 AppId</td><td><code>wx...</code></td><td>启用支付时填写</td></tr><tr><td>商户号</td><td>mchId</td><td>启用支付时填写</td></tr><tr><td>支付密钥</td><td>API Key</td><td>启用支付时填写</td></tr><tr><td>云环境 ID</td><td>可选</td><td>如启用云开发则填写</td></tr><tr><td>品牌名</td><td>凡人共读</td><td>小程序内展示</td></tr><tr><td>主色调</td><td><code>#4a90e2</code></td><td>小程序主题色</td></tr><tr><td>Logo URL</td><td>可留空</td><td>留空默认使用本地租户素材</td></tr><tr><td>分享图 URL</td><td>可留空</td><td>留空使用默认分享图</td></tr><tr><td>主体名称</td><td>可选</td><td>协议页主体名称</td></tr><tr><td>联系邮箱</td><td>可选</td><td>协议页或客服联系邮箱</td></tr><tr><td>模板 JSON</td><td>订阅消息模板 ID</td><td>按场景键配置</td></tr></tbody></table></div>
+<p>保存后，配置已经进入线上后端数据库。</p>
+<h3 id="2-创建租户管理员">2. 创建租户管理员</h3>
+<p>在账号管理中创建该租户的管理员账号：</p>
+<ul>
+<li>角色选择 <code>tenant_admin</code>。</li>
+<li>绑定到新租户。</li>
+<li>交付给对应业务方或运营负责人。</li>
+</ul>
+<h3 id="3-配置业务内容">3. 配置业务内容</h3>
+<p>新租户创建后，中台需要继续配置：</p>
+<ul>
+<li>期次</li>
+<li>课程内容</li>
+<li>报名信息</li>
+<li>支付价格</li>
+<li>优惠券或活动</li>
+<li>打卡配置</li>
+<li>活动配置</li>
+<li>订阅消息触达策略</li>
+</ul>
+<p>这些配置属于业务运营配置，不需要重新发布小程序代码，除非涉及品牌壳、appId、Tab 图标等构建期配置。</p>
+<hr>
+</section>
+<section class="guide-section" id="五、技术侧需要做的事">
+<h2>五、技术侧需要做的事</h2>
+<h3 id="1-放置租户素材">1. 放置租户素材</h3>
+<p>在代码仓库中新增目录：</p>
+<pre><span class="code-lang">text</span><code>miniprogram/assets/tenants/&lt;slug&gt;/</code></pre>
+<p>至少放入：</p>
+<pre><span class="code-lang">text</span><code>logo.png
+share-cover.jpg
+tab-home.png
+tab-home-active.png
+tab-book.png
+tab-book-active.png
+tab-my.png
+tab-my-active.png</code></pre>
+<h3 id="2-放置上传密钥">2. 放置上传密钥</h3>
+<p>把微信公众平台生成的代码上传密钥放到：</p>
+<pre><span class="code-lang">text</span><code>miniprogram/keys/&lt;slug&gt;.key.pem</code></pre>
+<p>例如：</p>
+<pre><span class="code-lang">text</span><code>miniprogram/keys/fanren.key.pem</code></pre>
+<h3 id="3-一键同步并上传">3. 一键同步并上传</h3>
+<p>推荐使用交互脚本：</p>
+<pre><span class="code-lang">bash</span><code>./upload-miniapp-tenant.command &lt;slug&gt;</code></pre>
+<p>示例：</p>
+<pre><span class="code-lang">bash</span><code>./upload-miniapp-tenant.command fanren</code></pre>
+<p>脚本会提示输入：</p>
+<ul>
+<li>版本号，可留空</li>
+<li>上传说明，可留空</li>
+<li>Admin API 地址，默认 <code>https://wx.shubai01.com/api/v1</code></li>
+<li>管理后台邮箱</li>
+<li>管理后台密码</li>
+</ul>
+<p>脚本会自动完成：</p>
+<pre><span class="code-lang">text</span><code>读取线上中台租户配置
+→ 生成 miniprogram/config/tenants/&lt;slug&gt;.js
+→ 切换小程序 appId、主题色、Tab 图标
+→ 通过 miniprogram-ci 上传开发版</code></pre>
+<p>也可以使用命令行：</p>
+<pre><span class="code-lang">bash</span><code>npm run tenant:push -- &lt;slug&gt;</code></pre>
+<p>如果不用交互脚本，需要提供后台登录信息：</p>
+<pre><span class="code-lang">bash</span><code>npm run tenant:push -- &lt;slug&gt; --email &lt;后台邮箱&gt; --password &lt;后台密码&gt;</code></pre>
+<p>不建议长期使用带密码的命令行，因为密码可能留在 shell 历史中。</p>
+<h3 id="4-上传后检查">4. 上传后检查</h3>
+<p>上传完成后，在微信公众平台检查：</p>
+<ul>
+<li>开发版 appId 是否正确。</li>
+<li>版本号和上传说明是否正确。</li>
+<li>小程序名称、Logo、主色调是否正确。</li>
+<li>Tab 图标是否正确。</li>
+<li>登录是否进入对应租户。</li>
+<li>报名、支付、订阅消息是否使用对应租户配置。</li>
+</ul>
+<h3 id="5-提交审核和发布">5. 提交审核和发布</h3>
+<p><code>tenant:push</code> 只负责上传开发版，后续仍需人工在微信公众平台完成：</p>
+<ol>
+<li>设为体验版并测试。</li>
+<li>提交微信审核。</li>
+<li>审核通过后发布。</li>
+</ol>
+<hr>
+</section>
+<section class="guide-section" id="六、验收清单">
+<h2>六、验收清单</h2>
+<p>业务方验收：</p>
+<ul>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>小程序名称、头像、简介正确。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>首页品牌展示正确。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>登录成功后进入对应新租户。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>课程、期次、报名内容正确。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>支付流程可用，如启用支付。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>订阅消息能正常触发，如已配置模板。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>分享卡片标题和图片正确。</li>
+</ul>
+<p>中台验收：</p>
+<ul>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>租户 <code>slug</code> 唯一且不可修改。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span><code>wxAppIds</code> 和登录 AppId 与微信公众平台一致。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>AppSecret 已保存。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>支付配置已保存，或明确暂不启用支付。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>订阅模板 JSON 格式正确。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>已创建租户管理员。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>已配置首期业务内容。</li>
+</ul>
+<p>技术验收：</p>
+<ul>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span><code>miniprogram/assets/tenants/&lt;slug&gt;/</code> 素材齐全。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span><code>miniprogram/keys/&lt;slug&gt;.key.pem</code> 已放置且未提交。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span><code>./upload-miniapp-tenant.command &lt;slug&gt;</code> 上传成功。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>微信后台开发版 appId 正确。</li>
+<li class="task-item"><span class="checkbox" aria-hidden="true"></span>开发者工具或体验版测试通过。</li>
+</ul>
+<hr>
+</section>
+<section class="guide-section" id="七、常见问题">
+<h2>七、常见问题</h2>
+<h3 id="1-后台保存后为什么还要本地运行脚本">1. 后台保存后为什么还要本地运行脚本？</h3>
+<p>因为微信小程序的 appId、Tab 图标、主题等属于构建期配置。后台保存的是线上租户数据，本地脚本负责在上传前读取这些数据并生成小程序构建文件。</p>
+<h3 id="2-本地是否需要连接服务器-mongodb">2. 本地是否需要连接服务器 MongoDB？</h3>
+<p>不需要。正常流程通过线上后端 Admin API 读取租户配置。</p>
+<h3 id="3-为什么不能只在中台点一下就发布">3. 为什么不能只在中台点一下就发布？</h3>
+<p>微信小程序代码上传需要本地代码包、上传密钥和微信 CI 工具。中台负责保存租户配置，代码上传由本地脚本完成。</p>
+<h3 id="4-上传命令等同于微信开发者工具的上传吗">4. 上传命令等同于微信开发者工具的“上传”吗？</h3>
+<p>基本等同。<code>tenant:push</code> 在上传前额外做了两件事：</p>
+<ul>
+<li>从线上中台同步租户配置。</li>
+<li>校验并切换本地小程序构建配置。</li>
+</ul>
+<p>但提交审核和发布仍需在微信公众平台人工操作。</p>
+<h3 id="5-哪些改动不需要重新上传小程序">5. 哪些改动不需要重新上传小程序？</h3>
+<p>一般业务内容不需要重新上传，例如：</p>
+<ul>
+<li>新增期次</li>
+<li>修改课程内容</li>
+<li>修改报名价格</li>
+<li>调整活动</li>
+<li>修改打卡配置</li>
+</ul>
+<p>涉及小程序壳的改动通常需要重新上传，例如：</p>
+<ul>
+<li>appId</li>
+<li>品牌名</li>
+<li>主色调</li>
+<li>Logo</li>
+<li>Tab 图标</li>
+<li>分享封面</li>
+<li>订阅消息模板键变更</li>
+</ul>
+</section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

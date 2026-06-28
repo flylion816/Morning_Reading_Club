@@ -27,6 +27,47 @@ function isNonEmptyNote(note) {
 
 const MAX_CHECKIN_NOTE_LENGTH = 3000;
 const MAX_CHECKIN_IMAGE_COUNT = 9;
+const MAX_CHECKIN_HTML_LENGTH = 20000;
+const ALLOWED_CHECKIN_HTML_TAGS = new Set([
+  'p',
+  'br',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'u',
+  's',
+  'span',
+  'div',
+  'blockquote',
+  'ul',
+  'ol',
+  'li',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'a'
+]);
+const ALLOWED_CHECKIN_STYLE_PROPS = new Set([
+  'color',
+  'background-color',
+  'font-weight',
+  'font-style',
+  'text-decoration',
+  'text-align',
+  'line-height',
+  'margin',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+  'padding',
+  'padding-left',
+  'border-left'
+]);
 
 function getPublicBaseUrl(req) {
   const configured = process.env.API_BASE_URL || '';
@@ -89,6 +130,121 @@ function buildEmptyUserCheckinPayload(page = 1, limit = 20) {
 
 function isNoteTooLong(note) {
   return typeof note === 'string' && note.length > MAX_CHECKIN_NOTE_LENGTH;
+}
+
+function decodeHtmlEntities(text = '') {
+  return String(text)
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function escapeHtmlAttribute(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function richTextHtmlToPlainText(html = '') {
+  return decodeHtmlEntities(
+    String(html || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+  )
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function sanitizeCheckinStyle(style = '') {
+  return String(style || '')
+    .split(';')
+    .map((rule) => rule.trim())
+    .filter(Boolean)
+    .map((rule) => {
+      const separatorIndex = rule.indexOf(':');
+      if (separatorIndex === -1) return '';
+
+      const prop = rule.slice(0, separatorIndex).trim().toLowerCase();
+      const value = rule.slice(separatorIndex + 1).trim();
+      if (!ALLOWED_CHECKIN_STYLE_PROPS.has(prop)) return '';
+      if (/expression\s*\(|url\s*\(|javascript:/i.test(value)) return '';
+
+      return `${prop}:${value}`;
+    })
+    .filter(Boolean)
+    .join(';');
+}
+
+function sanitizeCheckinHtml(contentHtml) {
+  if (contentHtml === undefined || contentHtml === null) {
+    return { value: null };
+  }
+
+  if (typeof contentHtml !== 'string') {
+    return { error: '富文本内容格式不正确' };
+  }
+
+  if (contentHtml.length > MAX_CHECKIN_HTML_LENGTH) {
+    return { error: `富文本内容不能超过${MAX_CHECKIN_HTML_LENGTH}字` };
+  }
+
+  let sanitized = contentHtml
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<\?[\s\S]*?\?>/g, '')
+    .replace(/<!doctype[\s\S]*?>/gi, '');
+
+  sanitized = sanitized.replace(/<\/?([a-zA-Z][\w:-]*)([^>]*)>/g, (match, tagName, rawAttrs = '') => {
+    const lowerTagName = tagName.toLowerCase();
+    const isClosingTag = /^<\//.test(match);
+
+    if (!ALLOWED_CHECKIN_HTML_TAGS.has(lowerTagName)) {
+      return '';
+    }
+
+    if (isClosingTag) {
+      return `</${lowerTagName}>`;
+    }
+
+    const attrs = [];
+    const attrPattern = /([a-zA-Z_:][\w:.-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
+    let attrMatch;
+    while ((attrMatch = attrPattern.exec(rawAttrs)) !== null) {
+      const attrName = attrMatch[1].toLowerCase();
+      const attrValue = attrMatch[3] ?? attrMatch[4] ?? attrMatch[5] ?? '';
+
+      if (attrName.startsWith('on')) continue;
+
+      if (attrName === 'style') {
+        const safeStyle = sanitizeCheckinStyle(attrValue);
+        if (safeStyle) {
+          attrs.push(`style="${escapeHtmlAttribute(safeStyle)}"`);
+        }
+        continue;
+      }
+
+      if (lowerTagName === 'a' && attrName === 'href') {
+        const trimmedHref = String(attrValue).trim();
+        if (/^(https?:\/\/|\/|#)/i.test(trimmedHref)) {
+          attrs.push(`href="${escapeHtmlAttribute(trimmedHref)}"`);
+        }
+      }
+    }
+
+    const suffix = lowerTagName === 'br' ? ' /' : '';
+    return `<${lowerTagName}${attrs.length ? ` ${attrs.join(' ')}` : ''}${suffix}>`;
+  });
+
+  return { value: sanitized.trim() || null };
 }
 
 function buildPeriodSummaryItem(checkin) {
@@ -178,8 +334,10 @@ function buildUserDiarySummary(checkins = []) {
 // 创建打卡记录
 async function createCheckin(req, res, next) {
   try {
-    const { periodId, sectionId, day, readingTime, completionRate, note, images, mood, isPublic } =
+    const { periodId, sectionId, day, readingTime, completionRate, note, contentHtml, images, mood, isPublic } =
       req.body;
+    const normalizedNote =
+      note === undefined && contentHtml ? richTextHtmlToPlainText(contentHtml) : note;
 
     // JWT payload from admin controller uses 'id', from auth uses 'userId'
     const userId = getRequestUserId(req);
@@ -190,10 +348,15 @@ async function createCheckin(req, res, next) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
 
-    if (isNoteTooLong(note)) {
+    if (isNoteTooLong(normalizedNote)) {
       return res
         .status(400)
         .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
+    }
+
+    const sanitizedContentHtml = sanitizeCheckinHtml(contentHtml);
+    if (sanitizedContentHtml.error) {
+      return res.status(400).json(errors.badRequest(sanitizedContentHtml.error));
     }
 
     const normalizedImages = normalizeCheckinImages(images);
@@ -220,7 +383,8 @@ async function createCheckin(req, res, next) {
       checkinDate: now,
       readingTime: readingTime || 0,
       completionRate: completionRate || 100,
-      note,
+      note: normalizedNote,
+      contentHtml: sanitizedContentHtml.value,
       images: normalizedImages.value,
       mood,
       points: 10,
@@ -672,7 +836,11 @@ async function updateCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
     const userId = req.user.userId;
-    const { note, images, readingTime, mood, isPublic, completionRate } = req.body;
+    const { note, contentHtml, images, readingTime, mood, isPublic, completionRate } = req.body;
+    const normalizedNote =
+      note === undefined && contentHtml !== undefined
+        ? richTextHtmlToPlainText(contentHtml)
+        : note;
 
     const checkin = await Checkin.findById(checkinId);
 
@@ -685,10 +853,18 @@ async function updateCheckin(req, res, next) {
       return res.status(403).json(errors.forbidden('无权更新'));
     }
 
-    if (isNoteTooLong(note)) {
+    if (isNoteTooLong(normalizedNote)) {
       return res
         .status(400)
         .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
+    }
+
+    let sanitizedContentHtml;
+    if (contentHtml !== undefined) {
+      sanitizedContentHtml = sanitizeCheckinHtml(contentHtml);
+      if (sanitizedContentHtml.error) {
+        return res.status(400).json(errors.badRequest(sanitizedContentHtml.error));
+      }
     }
 
     let normalizedImages;
@@ -700,7 +876,8 @@ async function updateCheckin(req, res, next) {
     }
 
     // 更新允许的字段
-    if (note !== undefined) checkin.note = note;
+    if (normalizedNote !== undefined) checkin.note = normalizedNote;
+    if (contentHtml !== undefined) checkin.contentHtml = sanitizedContentHtml.value;
     if (images !== undefined) checkin.images = normalizedImages.value;
     if (readingTime !== undefined) checkin.readingTime = readingTime;
     if (mood !== undefined) checkin.mood = mood;
@@ -899,14 +1076,33 @@ async function getAdminCheckins(req, res, next) {
 async function updateAdminCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
-    const { note, isPublic } = req.body;
+    const { note, contentHtml, isPublic } = req.body;
+    const normalizedNote =
+      note === undefined && contentHtml !== undefined
+        ? richTextHtmlToPlainText(contentHtml)
+        : note;
 
     const checkin = await Checkin.findById(checkinId);
     if (!checkin) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
 
-    if (note !== undefined) checkin.note = note;
+    if (isNoteTooLong(normalizedNote)) {
+      return res
+        .status(400)
+        .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
+    }
+
+    let sanitizedContentHtml;
+    if (contentHtml !== undefined) {
+      sanitizedContentHtml = sanitizeCheckinHtml(contentHtml);
+      if (sanitizedContentHtml.error) {
+        return res.status(400).json(errors.badRequest(sanitizedContentHtml.error));
+      }
+    }
+
+    if (normalizedNote !== undefined) checkin.note = normalizedNote;
+    if (contentHtml !== undefined) checkin.contentHtml = sanitizedContentHtml.value;
     if (isPublic !== undefined) checkin.isPublic = isPublic;
 
     await checkin.save();

@@ -3514,9 +3514,9 @@ module.exports = storage;
 1. **微信公众平台**：注册新小程序，获得新 appId 和 AppSecret，配置合法域名、隐私指引、插件授权、订阅消息模板和代码上传密钥。
 2. **管理后台**：用 `platform_superadmin` 登录 → 租户管理 → 新建租户 → 填写 `slug`、`name`、`wxAppIds`、`wechatLogin`、`wechatPay`、`cloudEnv`、`branding`、`subscribeTemplates` 等配置。
 3. **本地素材**：放置 `miniprogram/assets/tenants/<slug>/` 素材，至少包含 `logo.png` 和 6 个 TabBar 图标；原生 TabBar 图标必须是本地文件。
-4. **生成前端租户配置**：运行 `npm run tenant:sync -- <slug>`，从后端 `Tenant` 记录生成 `miniprogram/config/tenants/<slug>.js`。
+4. **生成前端租户配置**：运行 `npm run tenant:sync -- <slug> --email <admin> --password <password>`，通过后端 Admin API 读取线上 `Tenant` 记录，生成 `miniprogram/config/tenants/<slug>.js`；不需要本地直连服务器 MongoDB。
 5. **切换与验证**：运行 `npm run tenant:apply -- <slug>`，在微信开发者工具验证登录、支付、订阅消息、主色、TabBar、协议页主体名。
-6. **上传开发版**：运行 `npm run tenant:sync-upload -- <slug> [version] [desc]`，等价于开发者工具“上传”，但会先同步后端租户配置并校验构建配置。
+6. **上传开发版**：运行 `./upload-miniapp-tenant.command <slug>` 或 `npm run tenant:push -- <slug> [version] [desc] --email <admin> --password <password>`，等价于开发者工具“上传”，但会先同步后端租户配置并校验构建配置。
 7. **创建租户管理员**：在账号管理页创建 `tenant_admin` 角色账号，绑定到新租户。
 8. **微信审核**：在微信后台提交审核并发布；审核/发布仍需人工操作，无法由 CI 完全自动化。
 9. **完成**：发布通过后，新小程序登录会按 appId 自动落到对应租户。

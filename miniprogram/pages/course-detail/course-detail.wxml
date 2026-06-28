@@ -69,7 +69,11 @@
     <view wx:if="{{detailCheckin}}" class="dynamic-like-strip">
       <view class="dynamic-like-pill" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
         <text class="dynamic-like-pill-icon {{detailCheckin.isLiked ? 'liked' : ''}}">{{detailCheckin.isLiked ? '♥' : '♡'}}</text>
-        <text class="like-count" wx:if="{{detailCheckin.likeCount}}">({{detailCheckin.likeCount}})</text>
+        <view class="like-count" wx:if="{{detailCheckin.likeCount}}">
+          <text class="like-count-bracket">（</text>
+          <text class="like-count-number">{{detailCheckin.likeCount}}</text>
+          <text class="like-count-bracket">）</text>
+        </view>
         <view class="like-avatars" wx:if="{{detailCheckin.likeAvatars && detailCheckin.likeAvatars.length > 0}}">
           <block wx:for="{{detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
             <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
@@ -111,7 +115,11 @@
               <view class="reply-footer">
                 <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{reply.id}}">
                   <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '♥' : '♡'}}</text>
-                  <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
+                  <view class="like-count" wx:if="{{reply.likeCount}}">
+                    <text class="like-count-bracket">（</text>
+                    <text class="like-count-number">{{reply.likeCount}}</text>
+                    <text class="like-count-bracket">）</text>
+                  </view>
                   <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
                     <block wx:for="{{reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
                       <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
@@ -163,7 +171,11 @@
                       <view class="nested-reply-footer">
                         <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{nestedReply.id}}">
                           <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '♥' : '♡'}}</text>
-                          <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
+                          <view class="like-count" wx:if="{{nestedReply.likeCount}}">
+                            <text class="like-count-bracket">（</text>
+                            <text class="like-count-number">{{nestedReply.likeCount}}</text>
+                            <text class="like-count-bracket">）</text>
+                          </view>
                           <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
                             <block wx:for="{{nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
                               <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
@@ -409,7 +421,10 @@
               <text class="comment-user" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
               <text class="comment-time">{{item.createTime}}</text>
             </view>
-            <view class="comment-text {{item.canExpandContent && !item.contentExpanded ? 'comment-text-clamped' : ''}}"><text user-select>{{item.content}}</text></view>
+            <view class="comment-text {{item.canExpandContent && !item.contentExpanded ? 'comment-text-clamped' : ''}}">
+              <rich-text wx:if="{{item.contentHtml}}" nodes="{{item.contentHtml}}" user-select></rich-text>
+              <text wx:else user-select>{{item.content}}</text>
+            </view>
             <view
               wx:if="{{item.canExpandContent}}"
               class="checkin-content-toggle"
@@ -433,7 +448,11 @@
             <view class="comment-footer">
               <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">
                 <text class="like-icon {{item.isLiked ? 'liked' : ''}}">{{item.isLiked ? '♥' : '♡'}}</text>
-                <text class="like-count" wx:if="{{item.likeCount}}">({{item.likeCount}})</text>
+                <view class="like-count" wx:if="{{item.likeCount}}">
+                  <text class="like-count-bracket">（</text>
+                  <text class="like-count-number">{{item.likeCount}}</text>
+                  <text class="like-count-bracket">）</text>
+                </view>
                 <view class="like-avatars" wx:if="{{item.displayLikeAvatars && item.displayLikeAvatars.length > 0}}">
                   <block wx:for="{{item.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
                     <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
@@ -476,7 +495,11 @@
                     <view class="reply-footer" style="pointer-events: auto;">
                       <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
                         <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '♥' : '♡'}}</text>
-                        <text class="like-count" wx:if="{{reply.likeCount}}">({{reply.likeCount}})</text>
+                        <view class="like-count" wx:if="{{reply.likeCount}}">
+                          <text class="like-count-bracket">（</text>
+                          <text class="like-count-number">{{reply.likeCount}}</text>
+                          <text class="like-count-bracket">）</text>
+                        </view>
                         <view class="like-avatars" wx:if="{{reply.displayLikeAvatars && reply.displayLikeAvatars.length > 0}}">
                           <block wx:for="{{reply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
                             <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
@@ -517,7 +540,11 @@
                             <view class="nested-reply-footer" style="pointer-events: auto;">
                               <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{nestedReply.id}}" style="pointer-events: auto;">
                                 <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '♥' : '♡'}}</text>
-                                <text class="like-count" wx:if="{{nestedReply.likeCount}}">({{nestedReply.likeCount}})</text>
+                                <view class="like-count" wx:if="{{nestedReply.likeCount}}">
+                                  <text class="like-count-bracket">（</text>
+                                  <text class="like-count-number">{{nestedReply.likeCount}}</text>
+                                  <text class="like-count-bracket">）</text>
+                                </view>
                                 <view class="like-avatars" wx:if="{{nestedReply.displayLikeAvatars && nestedReply.displayLikeAvatars.length > 0}}">
                                   <block wx:for="{{nestedReply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
                                     <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />

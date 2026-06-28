@@ -33,6 +33,18 @@ describe('markdown utils', () => {
     expect(rendered).not.toContain('&lt;p&gt;');
   });
 
+  test('should render html divider paragraphs as subtle separators', () => {
+    const content = '<p>第一段</p><p><span>---</span></p><p>第二段</p>';
+
+    const rendered = renderRichTextContent(content);
+
+    expect(rendered).toContain('<p>第一段</p>');
+    expect(rendered).toContain('<p>第二段</p>');
+    expect(rendered).not.toContain('>---<');
+    expect(rendered).toContain('width:72px');
+    expect(rendered).toContain('background:#d8e0ea');
+  });
+
   test('should strip markdown syntax when building plain text', () => {
     const content = '看到你的 **专注** 与 *柔软*。\n\n- 第一条\n- 第二条';
     const plainText = richContentToPlainText(content);

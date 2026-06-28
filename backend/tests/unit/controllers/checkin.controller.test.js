@@ -230,6 +230,58 @@ describe('Checkin Controller', () => {
       expect(communityAccessServiceStub.ensurePeriodCommunityAccess.called).to.be.false;
     });
 
+    it('应该清洗并保存富文本打卡内容', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      const sectionId = new mongoose.Types.ObjectId();
+
+      req.user = { userId };
+      req.body = {
+        periodId,
+        sectionId,
+        day: 1,
+        note: '要事第一',
+        contentHtml: '<p onclick="evil()"><strong>要事第一</strong><script>alert(1)</script><span style="color:#4a90e2;background-image:url(javascript:evil)">重点</span></p>'
+      };
+
+      const mockSection = {
+        _id: sectionId,
+        checkinCount: 0,
+        save: sandbox.stub().resolves()
+      };
+
+      const mockUser = {
+        _id: userId,
+        currentStreak: 0,
+        maxStreak: 0
+      };
+
+      const mockCheckin = {
+        _id: new mongoose.Types.ObjectId(),
+        userId,
+        periodId,
+        sectionId,
+        points: 10,
+        checkinDate: new Date(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      SectionStub.findById.resolves(mockSection);
+      UserStub.findByIdAndUpdate.resolves(mockUser);
+      UserStub.findById.returns({ select: sandbox.stub().resolves(mockUser) });
+      CheckinStub.findOne.resolves(null);
+      CheckinStub.create.resolves(mockCheckin);
+
+      await checkinController.createCheckin(req, res, next);
+
+      const createPayload = CheckinStub.create.getCall(0).args[0];
+      expect(createPayload.contentHtml).to.contain('<strong>要事第一</strong>');
+      expect(createPayload.contentHtml).to.contain('style="color:#4a90e2"');
+      expect(createPayload.contentHtml).to.not.contain('onclick');
+      expect(createPayload.contentHtml).to.not.contain('script');
+      expect(createPayload.contentHtml).to.not.contain('background-image');
+    });
+
     it('应该在未支付时拒绝创建打卡', async () => {
       const userId = new mongoose.Types.ObjectId();
       const periodId = new mongoose.Types.ObjectId();
@@ -1073,6 +1125,35 @@ describe('Checkin Controller', () => {
 
       expect(res.status.calledWith(400)).to.be.true;
       expect(mockCheckin.save.called).to.be.false;
+    });
+
+    it('应该更新富文本内容并派生纯文本 note', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const checkinId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { checkinId: checkinId.toString() };
+      req.body = {
+        contentHtml: '<p><strong>要事第一</strong><span onclick="evil()" style="color:#4a90e2">重点</span></p>'
+      };
+
+      const mockCheckin = {
+        _id: checkinId,
+        userId: { toString: () => userId },
+        note: '旧内容',
+        contentHtml: '<p>旧内容</p>',
+        save: sandbox.stub().resolves(),
+        toObject: sandbox.stub().returns({})
+      };
+
+      CheckinStub.findById.resolves(mockCheckin);
+
+      await checkinController.updateCheckin(req, res, next);
+
+      expect(mockCheckin.note).to.equal('要事第一重点');
+      expect(mockCheckin.contentHtml).to.contain('<strong>要事第一</strong>');
+      expect(mockCheckin.contentHtml).to.contain('style="color:#4a90e2"');
+      expect(mockCheckin.contentHtml).to.not.contain('onclick');
+      expect(mockCheckin.save.called).to.be.true;
     });
   });
 

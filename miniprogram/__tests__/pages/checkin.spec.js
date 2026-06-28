@@ -173,9 +173,103 @@ describe('checkin page', () => {
     expect(checkinService.submitCheckin).toHaveBeenCalledWith(
       expect.objectContaining({
         note: '今天的打卡',
+        contentHtml: '<p>今天的打卡</p>',
         images: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/image-a.jpg']
       })
     );
+  });
+
+  test('should submit rich text html with plain text note', async () => {
+    checkinService.submitCheckin.mockResolvedValue({ _id: 'checkin_rich' });
+    pageInstance.setData({
+      accessChecked: true,
+      courseId: 'section_1',
+      sectionId: 'section_1',
+      periodId: 'period_1',
+      sectionDay: 2
+    });
+    pageInstance.showCheckinCelebration = jest.fn();
+
+    pageInstance.handleRichTextInput.call(pageInstance, {
+      detail: {
+        text: '要事第一：把注意力交还给生命主轴',
+        html: '<p><strong>要事第一</strong>：<span style="color:#4a90e2">把注意力交还给生命主轴</span></p>'
+      }
+    });
+
+    expect(pageInstance.data.showRichTextPreview).toBe(true);
+
+    await pageInstance.handleSubmit.call(pageInstance);
+
+    expect(checkinService.submitCheckin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        note: '要事第一：把注意力交还给生命主轴',
+        contentHtml: '<p><strong>要事第一</strong>：<span style="color:#4a90e2">把注意力交还给生命主轴</span></p>'
+      })
+    );
+  });
+
+  test('should format editor color with hex value and sync preview without resetting editor contents', () => {
+    jest.useFakeTimers();
+    const format = jest.fn();
+    const getContents = jest.fn(options => {
+      options.success({
+        text: '红色重点\n',
+        html: '<p><span style="color:#dc2626">红色重点</span></p>'
+      });
+    });
+    const setContents = jest.fn();
+    pageInstance._editorCtx = {
+      format,
+      getContents,
+      setContents
+    };
+    pageInstance.setData({
+      editorFormats: {
+        color: 'rgb(220, 38, 38)'
+      },
+      isDirty: false
+    });
+
+    pageInstance.handleEditorStatusChange.call(pageInstance, {
+      detail: {
+        color: 'rgb(220, 38, 38)'
+      }
+    });
+
+    expect(pageInstance.data.editorFormats.color).toBe('#dc2626');
+
+    pageInstance.handleEditorFormat.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          name: 'color',
+          value: '#dc2626'
+        }
+      }
+    });
+
+    expect(format).toHaveBeenCalledWith('color', false);
+
+    pageInstance.handleEditorFormat.call(pageInstance, {
+      currentTarget: {
+        dataset: {
+          name: 'color',
+          value: '#4a90e2'
+        }
+      }
+    });
+
+    expect(format).toHaveBeenLastCalledWith('color', '#4a90e2');
+
+    jest.advanceTimersByTime(120);
+
+    expect(getContents).toHaveBeenCalled();
+    expect(setContents).not.toHaveBeenCalled();
+    expect(pageInstance.data.diaryContent).toBe('红色重点');
+    expect(pageInstance.data.diaryContentHtml).toBe('<p><span style="color:#dc2626">红色重点</span></p>');
+    expect(pageInstance.data.showRichTextPreview).toBe(true);
+
+    jest.useRealTimers();
   });
 
   test('should allow image-only checkin submit', async () => {
@@ -200,6 +294,7 @@ describe('checkin page', () => {
     expect(checkinService.submitCheckin).toHaveBeenCalledWith(
       expect.objectContaining({
         note: '',
+        contentHtml: '',
         images: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/image-only.jpg']
       })
     );
@@ -208,6 +303,7 @@ describe('checkin page', () => {
   test('should load and update images in edit mode', async () => {
     checkinService.getCheckinDetail.mockResolvedValue({
       note: '旧内容',
+      contentHtml: '<p><strong>旧内容</strong></p>',
       images: ['/uploads/tenants/fanren/checkins/old.jpg'],
       isPublic: false
     });
@@ -222,10 +318,12 @@ describe('checkin page', () => {
     expect(pageInstance.data.checkinImages).toEqual([
       'https://wx.shubai01.com/uploads/tenants/fanren/checkins/old.jpg'
     ]);
+    expect(pageInstance.data.diaryContentHtml).toBe('<p><strong>旧内容</strong></p>');
     expect(pageInstance.data.visibility).toBe('admin');
 
     pageInstance.setData({
       diaryContent: '新内容',
+      diaryContentHtml: '<p><em>新内容</em></p>',
       checkinImages: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/new.jpg']
     });
 
@@ -238,6 +336,7 @@ describe('checkin page', () => {
 
     expect(checkinService.updateCheckin).toHaveBeenCalledWith('checkin_1', {
       note: '新内容',
+      contentHtml: '<p><em>新内容</em></p>',
       images: ['https://wx.shubai01.com/uploads/tenants/fanren/checkins/new.jpg'],
       isPublic: false
     });

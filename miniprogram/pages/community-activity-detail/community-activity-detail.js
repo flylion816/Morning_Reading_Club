@@ -1,6 +1,7 @@
 const communityActivityService = require('../../services/communityActivity.service');
 const activityService = require('../../services/activity.service');
 const currentTenant = require('../../config/current-tenant');
+const { renderRichTextContent } = require('../../utils/markdown');
 
 function formatDatetime(val) {
   if (!val) return '';
@@ -91,6 +92,7 @@ Page({
       this.setData({
         activity: {
           ...activity,
+          descriptionHtml: renderRichTextContent(activity.description),
           startTimeFormatted: formatDatetime(activity.startTime),
           endTimeFormatted: formatDatetime(activity.endTime),
           computedStatus: getActivityStatus(activity),

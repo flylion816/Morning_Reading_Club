@@ -672,11 +672,10 @@
 
 .checkin-diary-card-footer {
   margin-top: auto;
-  min-height: 32rpx;
+  min-height: 34rpx;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12rpx;
   overflow: hidden;
 }
 
@@ -684,6 +683,8 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
+  height: 34rpx;
+  line-height: 34rpx;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
@@ -692,16 +693,21 @@
 .checkin-diary-card-date {
   font-size: 20rpx;
   color: #94a3b8;
+  line-height: 34rpx;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .checkin-diary-card-period-badge {
   margin-left: auto;
-  padding: 2rpx 8rpx;
+  height: 30rpx;
+  box-sizing: border-box;
+  padding: 0 8rpx;
   border-radius: 999rpx;
   background: #eef5ff;
   color: #4a72b2;
   font-size: 18rpx;
-  line-height: 1.4;
+  line-height: 30rpx;
   max-width: 88rpx;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -712,12 +718,21 @@
   display: flex;
   align-items: center;
   gap: 6rpx;
+  height: 34rpx;
   font-size: 20rpx;
+  line-height: 34rpx;
   color: #f43f5e;
+  flex-shrink: 0;
 }
 
 .checkin-diary-card-like-icon {
   font-size: 22rpx;
+  line-height: 34rpx;
+}
+
+.checkin-diary-card-like-count {
+  line-height: 34rpx;
+  font-variant-numeric: tabular-nums;
 }
 
 .checkin-diary-more-card {

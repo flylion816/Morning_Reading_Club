@@ -85,6 +85,8 @@ morning-reading-deploy_*.tar.gz
 # 本地代理/工具运行状态，不提交会话缓存
 .omc/state/
 .omc/sessions/
+miniprogram/.omc/state/
+miniprogram/.omc/sessions/
 backend/.omc/state/
 
 # 架构扫描缓存输出

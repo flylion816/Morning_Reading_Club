@@ -52,6 +52,13 @@ function dividerNode() {
   return '<div style="width:72px;height:2px;background:#d8e0ea;border-radius:999px;margin:30px auto 28px;"></div>';
 }
 
+function renderHtmlDividers(html) {
+  return String(html).replace(
+    /<(p|div)(?:\s[^>]*)?>\s*(?:<(?:span|strong|em|b|i|u)(?:\s[^>]*)?>\s*)*(?:-{3,}|\*{3,}|_{3,})\s*(?:<\/(?:span|strong|em|b|i|u)>\s*)*<\/\1>/gi,
+    dividerNode()
+  );
+}
+
 function getInsightTitleType(text) {
   const normalized = String(text || '')
     .replace(/^#{1,6}\s+/, '')
@@ -254,7 +261,7 @@ function renderRichTextContent(content) {
       const plain = richContentToPlainText(content);
       return markdownToRichText(plain);
     }
-    return sanitizeHtml(content);
+    return renderHtmlDividers(sanitizeHtml(content));
   }
 
   return markdownToRichText(content);
@@ -268,7 +275,7 @@ function renderInsightRichTextContent(content) {
     if (getInsightTitleType(plain) || /小凡看见/.test(plain)) {
       return markdownToRichText(plain, { insightMode: true });
     }
-    return sanitizeHtml(content);
+    return renderHtmlDividers(sanitizeHtml(content));
   }
 
   return markdownToRichText(content, { insightMode: true });

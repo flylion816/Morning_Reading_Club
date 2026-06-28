@@ -885,6 +885,42 @@ page {
   letter-spacing: 1px;
 }
 
+.comment-text rich-text,
+.dynamic-detail-content rich-text {
+  display: block;
+  font-size: inherit;
+  color: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+.comment-text /deep/ p,
+.dynamic-detail-content /deep/ p {
+  margin: 0 0 18rpx;
+  line-height: inherit;
+}
+
+.comment-text /deep/ ul,
+.comment-text /deep/ ol,
+.dynamic-detail-content /deep/ ul,
+.dynamic-detail-content /deep/ ol {
+  margin: 12rpx 0 18rpx 1.3em;
+  padding: 0;
+}
+
+.comment-text /deep/ li,
+.dynamic-detail-content /deep/ li {
+  margin: 8rpx 0;
+  line-height: inherit;
+}
+
+.comment-text /deep/ strong,
+.comment-text /deep/ b,
+.dynamic-detail-content /deep/ strong,
+.dynamic-detail-content /deep/ b {
+  font-weight: 700;
+}
+
 .comment-text-clamped {
   max-height: 396rpx;
   overflow: hidden;
@@ -969,7 +1005,24 @@ page {
 }
 
 .like-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 22rpx;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.like-count-bracket,
+.like-count-number {
+  display: inline-block;
+  line-height: 1;
+}
+
+.like-count-number {
+  min-width: 12rpx;
+  text-align: center;
+  padding: 0 2rpx;
 }
 
 /* 查看评论按钮 */

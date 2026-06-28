@@ -231,12 +231,101 @@
   margin-bottom: 24rpx;
 }
 
-.diary-textarea {
+.rich-editor-wrap {
   width: 100%;
-  min-height: 300rpx;
-  padding: 12rpx 0;  /* ✅ 调整顶部和底部边距使光标对齐 */
+  border: 2rpx solid #edf1f6;
+  border-radius: 12rpx;
+  background: #fff;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.editor-toolbar {
+  border-bottom: 1rpx solid #edf1f6;
+  background: #fbfcfe;
+}
+
+.toolbar-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.toolbar-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 14rpx 16rpx;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-btn {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 8rpx;
+  background: #f2f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #2f3b4a;
+}
+
+.tool-btn-active,
+.tool-btn:active {
+  background: #e8f4fd;
+  color: #2f7ed8;
+}
+
+.tool-icon {
+  font-size: 26rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.tool-bold {
+  font-weight: 900;
+}
+
+.tool-italic {
+  font-style: italic;
+}
+
+.tool-underline {
+  text-decoration: underline;
+}
+
+.tool-heading {
   font-size: 28rpx;
-  line-height: 1.6;
+}
+
+.toolbar-divider {
+  width: 1rpx;
+  height: 36rpx;
+  background: #e4eaf2;
+  margin: 0 4rpx;
+  flex-shrink: 0;
+}
+
+.color-swatch {
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 50%;
+  border: 4rpx solid #fff;
+  box-shadow: 0 0 0 1rpx #d7e0eb;
+  flex-shrink: 0;
+}
+
+.color-swatch-active {
+  box-shadow: 0 0 0 4rpx #b8d9fb;
+}
+
+.rich-editor {
+  min-height: 360rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
+  font-size: 30rpx;
+  line-height: 1.8;
   color: #333;
 }
 
@@ -256,6 +345,36 @@
 .char-count {
   font-size: 24rpx;
   color: #999;
+}
+
+.rich-preview {
+  margin-bottom: 28rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 12rpx;
+  background: #fbfcfe;
+  border: 1rpx solid #e7edf5;
+  box-sizing: border-box;
+}
+
+.rich-preview-title {
+  margin-bottom: 14rpx;
+  font-size: 24rpx;
+  color: #7a8796;
+  font-weight: 600;
+}
+
+.rich-preview-content {
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: #333;
+  word-break: break-word;
+}
+
+.rich-preview-content rich-text {
+  display: block;
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: #333;
 }
 
 .checkin-image-section {

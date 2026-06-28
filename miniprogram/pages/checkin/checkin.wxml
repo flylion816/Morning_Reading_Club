@@ -82,18 +82,72 @@
 
   <!-- 日记输入区域 -->
   <view class="diary-input-section">
-    <textarea
-      class="diary-textarea"
-      placeholder="请输入日记内容..."
-      placeholder-style="padding: 12rpx 0; font-size: 28rpx; line-height: 1.6; color: #999;"
-      value="{{diaryContent}}"
-      bindinput="handleInput"
-      maxlength="{{maxDiaryLength}}"
-      auto-height
-    />
+    <view class="rich-editor-wrap">
+      <view class="editor-toolbar">
+        <scroll-view scroll-x class="toolbar-scroll" show-scrollbar="{{false}}" enhanced="{{true}}">
+          <view class="toolbar-inner">
+            <view class="tool-btn {{editorFormats.bold ? 'tool-btn-active' : ''}}" data-name="bold" catchtouchend="handleEditorFormat">
+              <text class="tool-icon tool-bold">B</text>
+            </view>
+            <view class="tool-btn {{editorFormats.italic ? 'tool-btn-active' : ''}}" data-name="italic" catchtouchend="handleEditorFormat">
+              <text class="tool-icon tool-italic">I</text>
+            </view>
+            <view class="tool-btn {{editorFormats.underline ? 'tool-btn-active' : ''}}" data-name="underline" catchtouchend="handleEditorFormat">
+              <text class="tool-icon tool-underline">U</text>
+            </view>
+            <view class="toolbar-divider"></view>
+            <view class="tool-btn {{editorFormats.headerType === 'h2' ? 'tool-btn-active' : ''}}" data-name="headerType" data-value="h2" catchtouchend="handleEditorFormat">
+              <text class="tool-icon tool-heading">H</text>
+            </view>
+            <view class="tool-btn {{editorFormats.list === 'ordered' ? 'tool-btn-active' : ''}}" data-name="list" data-value="ordered" catchtouchend="handleEditorFormat">
+              <text class="tool-icon">1.</text>
+            </view>
+            <view class="tool-btn {{editorFormats.list === 'bullet' ? 'tool-btn-active' : ''}}" data-name="list" data-value="bullet" catchtouchend="handleEditorFormat">
+              <text class="tool-icon">•</text>
+            </view>
+            <view class="toolbar-divider"></view>
+            <view
+              wx:for="{{editorColorOptions}}"
+              wx:key="value"
+              class="color-swatch {{editorFormats.color === item.value ? 'color-swatch-active' : ''}}"
+              style="background: {{item.value}}"
+              data-name="color"
+              data-value="{{item.value}}"
+              catchtouchend="handleEditorFormat"
+            ></view>
+            <view class="toolbar-divider"></view>
+            <view class="tool-btn" catchtouchend="handleEditorUndo">
+              <text class="tool-icon">↶</text>
+            </view>
+            <view class="tool-btn" catchtouchend="handleEditorRedo">
+              <text class="tool-icon">↷</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <editor
+        id="checkin-rich-editor"
+        class="rich-editor"
+        placeholder="请输入日记内容..."
+        bindready="handleEditorReady"
+        bindinput="handleEditorInput"
+        bindstatuschange="handleEditorStatusChange"
+        show-img-size="{{false}}"
+        show-img-toolbar="{{false}}"
+        show-img-resize="{{false}}"
+      />
+    </view>
     <view class="char-count-row">
       <text class="auto-save-status">{{autoSaveStatus}}</text>
       <text class="char-count">{{diaryContent.length}}/{{maxDiaryLength}}</text>
+    </view>
+
+    <view class="rich-preview" wx:if="{{showRichTextPreview && diaryContentHtml}}">
+      <view class="rich-preview-title">发布效果</view>
+      <view class="rich-preview-content">
+        <rich-text nodes="{{diaryContentHtml}}" user-select></rich-text>
+      </view>
     </view>
 
     <view class="checkin-image-section">

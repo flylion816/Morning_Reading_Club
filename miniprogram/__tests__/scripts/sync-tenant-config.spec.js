@@ -4,6 +4,7 @@ const path = require('path');
 
 const {
   buildMiniTenantConfig,
+  loadTenantFromApi,
   parseArgs,
   syncTenantConfig
 } = require('../../scripts/sync-tenant-config');
@@ -36,13 +37,85 @@ describe('sync-tenant-config script', () => {
   };
 
   test('parses slug and options in any order', () => {
-    expect(parseArgs(['node', 'script', '--file', 'tenant.json', 'fanren', '--out', 'out.js'])).toEqual({
+    expect(parseArgs([
+      'node',
+      'script',
+      '--file',
+      'tenant.json',
+      'fanren',
+      '--out',
+      'out.js',
+      '--api-base-url',
+      'https://wx.shubai01.com/api/v1',
+      '--email',
+      'admin@example.com',
+      '--password',
+      'secret'
+    ])).toEqual({
       slug: 'fanren',
       options: {
         file: 'tenant.json',
-        out: 'out.js'
+        out: 'out.js',
+        apiBaseUrl: 'https://wx.shubai01.com/api/v1',
+        email: 'admin@example.com',
+        password: 'secret'
       }
     });
+  });
+
+  test('loads backend tenant config through Admin API', async () => {
+    const requestJson = jest.fn()
+      .mockResolvedValueOnce({
+        code: 0,
+        data: { token: 'admin-token' }
+      })
+      .mockResolvedValueOnce({
+        code: 0,
+        data: [
+          { slug: 'other', name: 'Other' },
+          tenantPayload
+        ]
+      });
+
+    const tenant = await loadTenantFromApi('fanren', {
+      apiBaseUrl: 'https://wx.shubai01.com/api/v1',
+      email: 'admin@example.com',
+      password: 'secret',
+      requestJson
+    });
+
+    expect(tenant).toBe(tenantPayload);
+    expect(requestJson).toHaveBeenNthCalledWith(
+      1,
+      'POST',
+      'https://wx.shubai01.com/api/v1/auth/admin/login',
+      { body: { email: 'admin@example.com', password: 'secret' } }
+    );
+    expect(requestJson).toHaveBeenNthCalledWith(
+      2,
+      'GET',
+      'https://wx.shubai01.com/api/v1/admin/tenants',
+      { headers: { Authorization: 'Bearer admin-token' } }
+    );
+  });
+
+  test('syncs generated config from Admin API by default', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tenant-sync-'));
+    const outPath = path.join(tempDir, 'fanren.js');
+    const requestJson = jest.fn()
+      .mockResolvedValueOnce({ code: 0, data: { token: 'admin-token' } })
+      .mockResolvedValueOnce({ code: 0, data: [tenantPayload] });
+
+    const result = await syncTenantConfig('fanren', {
+      apiBaseUrl: 'https://wx.shubai01.com/api/v1',
+      email: 'admin@example.com',
+      password: 'secret',
+      requestJson,
+      out: outPath
+    });
+
+    expect(result.outPath).toBe(outPath);
+    expect(require(outPath).wxAppId).toBe('wx2b9a3c1d5e4195f8');
   });
 
   test('builds mini program tenant config from backend tenant payload', () => {
