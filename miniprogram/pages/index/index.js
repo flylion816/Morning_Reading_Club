@@ -8,9 +8,9 @@ const notificationServiceModule = require('../../services/notification.service')
 const activityService = require('../../services/activity.service');
 const communityActivityService = require('../../services/communityActivity.service');
 const imprintService = require('../../services/imprint.service');
-const homeConfigService = require('../../services/home-config.service');
 const completionReportService = require('../../services/completion-report.service');
 const constants = require('../../config/constants');
+const request = require('../../utils/request');
 const { formatNumber, formatDate } = require('../../utils/formatters');
 const { richContentToPlainText } = require('../../utils/markdown');
 const { getPeriodAccess, hasPaidEnrollment } = require('../../utils/period-access');
@@ -72,6 +72,14 @@ function buildHomeSectionItems(order) {
     key,
     label: HOME_SECTION_LABELS[key]
   }));
+}
+
+function loadHomeConfig() {
+  return request.get('/home-config', {}, {
+    showLoading: false,
+    suppressAuthError: true,
+    suppressError: true
+  });
 }
 
 const TASK_CARD_LAYOUT_RPX = {
@@ -632,7 +640,7 @@ Page({
             .getUserEnrollments({ limit: 100 })
             .catch(() => ({ list: [] })),
           courseService.getTodayTask().catch(() => null),
-          homeConfigService.getConfig().catch(() => null)
+          loadHomeConfig().catch(() => null)
         ]);
 
       const displayUserInfo = decorateUserAvatar(userInfo);
