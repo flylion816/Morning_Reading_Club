@@ -6,6 +6,7 @@ const constants = require('../../config/constants');
 const { hasPaidEnrollment, clearEnrollmentCache } = require('../../utils/period-access');
 const { decorateUserAvatar } = require('../../utils/avatar');
 const { tenantStorage } = require('../../utils/storage');
+const { isAdminUser } = require('../../utils/auth');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 
@@ -19,6 +20,7 @@ Page({
     phoneMasked: '',
     hasPhone: false,
     canUsePaidFeatures: false,
+    isAdmin: false,
     unreadNotificationCount: 0,
     loading: false
   },
@@ -72,7 +74,8 @@ Page({
         stats: stats || { totalCheckinDays: 0 },
         hasPhone,
         phoneMasked,
-        canUsePaidFeatures
+        canUsePaidFeatures,
+        isAdmin: isAdminUser(userInfo)
       });
     } catch (err) {
       console.error('加载用户数据失败', err);
@@ -189,6 +192,10 @@ Page({
 
   goToMyCoupons() {
     wx.navigateTo({ url: '/pages/my-coupons/my-coupons' });
+  },
+
+  goToAdminAnalytics() {
+    wx.navigateTo({ url: '/pages/admin-analytics/admin-analytics' });
   },
 
   goToLogin() {

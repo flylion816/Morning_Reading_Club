@@ -239,6 +239,7 @@ global.wx = {
   }),
   showLoading: jest.fn(),
   hideLoading: jest.fn(),
+  stopPullDownRefresh: jest.fn(),
   showActionSheet: jest.fn((options) => {
     if (options.success) {
       options.success({ tapIndex: 0 });

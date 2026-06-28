@@ -1,0 +1,123 @@
+jest.mock('../../services/adminAnalytics.service', () => ({
+  getPeriods: jest.fn(),
+  getOverview: jest.fn(),
+  getActivity: jest.fn()
+}));
+
+describe('admin analytics page', () => {
+  let pageConfig;
+  let pageInstance;
+  let service;
+
+  beforeEach(() => {
+    jest.resetModules();
+    pageConfig = null;
+    global.Page = jest.fn((config) => {
+      pageConfig = config;
+      return config;
+    });
+
+    service = require('../../services/adminAnalytics.service');
+    service.getPeriods.mockResolvedValue({
+      list: [{ id: 'period_1', name: '第八期' }]
+    });
+    service.getOverview.mockResolvedValue({
+      summary: {
+        totalUsers: 177,
+        totalEnrollments: 65,
+        paidEnrollments: 51,
+        enrollmentRevenue: 30000,
+        activityRevenue: 248,
+        totalRevenue: 30248,
+        conversionRate: 78.5
+      },
+      enrollmentTrend: [{ date: '2026-06-28', enrollmentCount: 2, paidEnrollmentCount: 1 }],
+      paymentTrend: [{ date: '2026-06-28', totalAmount: 30248, enrollmentAmount: 30000, activityAmount: 248 }],
+      periodPopularity: [{ periodId: 'period_1', periodName: '第八期', enrollmentCount: 65, paidEnrollmentCount: 51 }]
+    });
+    service.getActivity.mockResolvedValue({
+      summary: {
+        today: { appOpenUsers: 19, checkinUsers: 2, insightViewUsers: 18, activeUsers: 20 },
+        yesterday: { appOpenUsers: 8, checkinUsers: 1, insightViewUsers: 7, activeUsers: 9 },
+        delta: { appOpenUsers: 11, checkinUsers: 1, insightViewUsers: 11, activeUsers: 11 }
+      },
+      trend: [{ date: '2026-06-28', app_open: 19, checkin_submit: 2 }],
+      details: [{
+        date: '2026-06-28',
+        userId: 'user_1',
+        nickname: '狮子',
+        phone: '13564053520',
+        actions: [{ action: 'app_open', label: '访问小程序', count: 41 }],
+        totalCount: 41,
+        lastOccurredAt: '2026-06-28T04:22:07.000Z'
+      }]
+    });
+
+    require('../../pages/admin-analytics/admin-analytics');
+    pageInstance = {
+      ...pageConfig,
+      data: JSON.parse(JSON.stringify(pageConfig.data)),
+      setData(update) {
+        this.data = { ...this.data, ...update };
+      }
+    };
+  });
+
+  afterEach(() => {
+    delete global.Page;
+  });
+
+  test('loads periods, overview and activity data', async () => {
+    await pageInstance.loadAll.call(pageInstance);
+
+    expect(service.getPeriods).toHaveBeenCalled();
+    expect(service.getOverview).toHaveBeenCalledWith(expect.objectContaining({
+      startDate: expect.any(String),
+      endDate: expect.any(String)
+    }));
+    expect(service.getActivity).toHaveBeenCalled();
+    expect(pageInstance.data.periodNames).toEqual(['全部期次', '第八期']);
+    expect(pageInstance.data.selectedPeriodName).toBe('全部期次');
+    expect(pageInstance.data.overview.summary.totalRevenueText).toBe('¥302.48');
+    expect(pageInstance.data.overview.enrollmentChart.empty).toBe(false);
+    expect(pageInstance.data.overview.paymentChart.rows[0].values[0].height).toBeGreaterThan(0);
+    expect(pageInstance.data.activity.trendChart.empty).toBe(false);
+    expect(pageInstance.data.activity.details[0].phone).toBe('13564053520');
+    expect(pageInstance.data.activityCards[0].deltaText).toBe('较昨日+11');
+  });
+
+  test('reloads with selected period filter', async () => {
+    await pageInstance.loadAll.call(pageInstance);
+    await pageInstance.handlePeriodChange.call(pageInstance, { detail: { value: 1 } });
+
+    expect(pageInstance.data.periodIndex).toBe(1);
+    expect(pageInstance.data.selectedPeriodName).toBe('第八期');
+    expect(service.getOverview).toHaveBeenLastCalledWith(expect.objectContaining({
+      periodId: 'period_1'
+    }));
+    expect(service.getActivity).toHaveBeenLastCalledWith(expect.objectContaining({
+      periodId: 'period_1'
+    }));
+  });
+
+  test('reloads with custom date range', async () => {
+    await pageInstance.loadAll.call(pageInstance);
+    await pageInstance.handleStartDateChange.call(pageInstance, { detail: { value: '2026-06-10' } });
+    await pageInstance.handleEndDateChange.call(pageInstance, { detail: { value: '2026-06-20' } });
+
+    expect(pageInstance.data.activePreset).toBe('custom');
+    expect(service.getOverview).toHaveBeenLastCalledWith(expect.objectContaining({
+      startDate: '2026-06-10',
+      endDate: '2026-06-20'
+    }));
+  });
+
+  test('shows no permission state when loading fails with permission error', async () => {
+    service.getOverview.mockRejectedValueOnce({ statusCode: 403, message: '需要管理员权限' });
+
+    await pageInstance.loadAll.call(pageInstance);
+
+    expect(pageInstance.data.loading).toBe(false);
+    expect(pageInstance.data.errorMessage).toBe('当前账号没有数据分析权限');
+  });
+});

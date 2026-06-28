@@ -1,0 +1,251 @@
+<view class="page-admin-analytics">
+  <view class="filter-panel">
+    <view class="tabs">
+      <view
+        class="tab {{activeTab === 'overview' ? 'active' : ''}}"
+        data-tab="overview"
+        bindtap="handleTabTap"
+      >业务概览</view>
+      <view
+        class="tab {{activeTab === 'activity' ? 'active' : ''}}"
+        data-tab="activity"
+        bindtap="handleTabTap"
+      >活跃度</view>
+    </view>
+
+    <view class="preset-row">
+      <view
+        wx:for="{{datePresets}}"
+        wx:key="key"
+        class="preset {{activePreset === item.key ? 'active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="handlePresetTap"
+      >{{item.label}}</view>
+    </view>
+
+    <view class="date-range-row">
+      <picker mode="date" value="{{customStartDate}}" bindchange="handleStartDateChange">
+        <view class="date-field">
+          <text class="date-label">开始</text>
+          <text>{{customStartDate}}</text>
+        </view>
+      </picker>
+      <picker mode="date" value="{{customEndDate}}" bindchange="handleEndDateChange">
+        <view class="date-field">
+          <text class="date-label">结束</text>
+          <text>{{customEndDate}}</text>
+        </view>
+      </picker>
+    </view>
+
+    <picker mode="selector" range="{{periodNames}}" value="{{periodIndex}}" bindchange="handlePeriodChange">
+      <view class="period-select">
+        <text>{{selectedPeriodName || '全部期次'}}</text>
+        <text class="select-arrow">›</text>
+      </view>
+    </picker>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view wx:elif="{{errorMessage}}" class="empty-state">
+    <text class="empty-icon">⚠️</text>
+    <text class="empty-text">{{errorMessage}}</text>
+    <view class="retry-btn" bindtap="loadAll">重试</view>
+  </view>
+
+  <block wx:else>
+    <view wx:if="{{activeTab === 'overview'}}" class="content">
+      <view class="summary-grid">
+        <view class="metric-card">
+          <text class="metric-value">{{overview.summary.totalUsersText}}</text>
+          <text class="metric-label">当前总用户</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{overview.summary.totalEnrollments}}</text>
+          <text class="metric-label">范围报名</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{overview.summary.paidEnrollments}}</text>
+          <text class="metric-label">已支付报名</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-value">{{overview.summary.conversionRate}}%</text>
+          <text class="metric-label">支付转化率</text>
+        </view>
+      </view>
+
+      <view class="revenue-card">
+        <view class="section-title">收入结构</view>
+        <view class="revenue-total">{{overview.summary.totalRevenueText}}</view>
+        <view class="revenue-row">
+          <text>晨读营报名</text>
+          <text>{{overview.summary.enrollmentRevenueText}}</text>
+        </view>
+        <view class="revenue-row">
+          <text>活动支付</text>
+          <text>{{overview.summary.activityRevenueText}}</text>
+        </view>
+      </view>
+
+      <view class="chart-card">
+        <view class="section-title">报名趋势</view>
+        <view wx:if="{{!overview.enrollmentChart.empty}}" class="chart-meta">峰值 {{overview.enrollmentChart.maxLabel}}</view>
+        <view wx:if="{{overview.enrollmentChart.empty}}" class="small-empty">暂无趋势数据</view>
+        <scroll-view wx:else scroll-x class="chart-scroll">
+          <view class="bar-chart" style="width: {{overview.enrollmentChart.width}}rpx">
+            <view class="chart-bars">
+              <view
+                wx:for="{{overview.enrollmentChart.rows}}"
+                wx:for-item="row"
+                wx:key="rowKey"
+                class="chart-column"
+                style="width: {{row.width}}rpx"
+              >
+                <view class="bar-stack">
+                  <view
+                    wx:for="{{row.values}}"
+                    wx:for-item="bar"
+                    wx:key="key"
+                    class="bar-item"
+                    style="height: {{bar.height}}rpx; width: {{bar.barWidth}}rpx; background: {{bar.color}}"
+                  ></view>
+                </view>
+                <text class="bar-label">{{row.label}}</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="legend-row">
+          <text class="legend-dot blue"></text><text>报名</text>
+          <text class="legend-dot green"></text><text>已支付</text>
+        </view>
+      </view>
+
+      <view class="chart-card">
+        <view class="section-title">支付趋势</view>
+        <view wx:if="{{!overview.paymentChart.empty}}" class="chart-meta">峰值 {{overview.paymentChart.maxLabel}}</view>
+        <view wx:if="{{overview.paymentChart.empty}}" class="small-empty">暂无趋势数据</view>
+        <scroll-view wx:else scroll-x class="chart-scroll">
+          <view class="bar-chart" style="width: {{overview.paymentChart.width}}rpx">
+            <view class="chart-bars">
+              <view
+                wx:for="{{overview.paymentChart.rows}}"
+                wx:for-item="row"
+                wx:key="rowKey"
+                class="chart-column"
+                style="width: {{row.width}}rpx"
+              >
+                <view class="bar-stack">
+                  <view
+                    wx:for="{{row.values}}"
+                    wx:for-item="bar"
+                    wx:key="key"
+                    class="bar-item"
+                    style="height: {{bar.height}}rpx; width: {{bar.barWidth}}rpx; background: {{bar.color}}"
+                  ></view>
+                </view>
+                <text class="bar-label">{{row.label}}</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="legend-row">
+          <text class="legend-dot blue"></text><text>总收入</text>
+          <text class="legend-dot amber"></text><text>活动</text>
+          <text class="legend-dot green"></text><text>报名</text>
+        </view>
+      </view>
+
+      <view class="list-card">
+        <view class="section-title">期次热度</view>
+        <view wx:if="{{overview.periodPopularity.length === 0}}" class="small-empty">暂无数据</view>
+        <view wx:for="{{overview.periodPopularity}}" wx:key="periodId" class="rank-row">
+          <view class="rank-info">
+            <text class="rank-name">{{item.periodName}}</text>
+            <text class="rank-sub">支付 {{item.paidEnrollmentCount}} / 报名 {{item.enrollmentCount}}</text>
+          </view>
+          <text class="rank-value">{{item.enrollmentCount}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{activeTab === 'activity'}}" class="content">
+      <view class="activity-summary">
+        <view wx:for="{{activityCards}}" wx:key="key" class="activity-card">
+          <text class="metric-value">{{item.value}}</text>
+          <text class="metric-label">{{item.label}}</text>
+          <text class="delta {{item.deltaClass}}">{{item.deltaText}}</text>
+        </view>
+      </view>
+
+      <view class="chart-card">
+        <view class="section-title">关键行为活跃人数趋势</view>
+        <view wx:if="{{!activity.trendChart.empty}}" class="chart-meta">峰值 {{activity.trendChart.maxLabel}}</view>
+        <view wx:if="{{activity.trendChart.empty}}" class="small-empty">暂无趋势数据</view>
+        <scroll-view wx:else scroll-x class="chart-scroll">
+          <view class="bar-chart activity-chart" style="width: {{activity.trendChart.width}}rpx">
+            <view class="chart-bars activity-bars">
+              <view
+                wx:for="{{activity.trendChart.rows}}"
+                wx:for-item="row"
+                wx:key="rowKey"
+                class="chart-column"
+                style="width: {{row.width}}rpx"
+              >
+                <view class="bar-stack activity-stack">
+                  <view
+                    wx:for="{{row.values}}"
+                    wx:for-item="bar"
+                    wx:key="key"
+                    class="bar-item"
+                    style="height: {{bar.height}}rpx; width: {{bar.barWidth}}rpx; background: {{bar.color}}"
+                  ></view>
+                </view>
+                <text class="bar-label">{{row.label}}</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="legend-row wrap">
+          <block wx:for="{{activitySeries}}" wx:key="key">
+            <text class="legend-line" style="background: {{item.color}}"></text><text>{{item.name}}</text>
+          </block>
+        </view>
+      </view>
+
+      <view class="list-card">
+        <view class="section-title">用户行为明细</view>
+        <view wx:if="{{activity.details.length === 0}}" class="small-empty">暂无行为数据</view>
+        <view wx:for="{{activity.details}}" wx:key="rowKey" class="detail-card">
+          <view class="detail-head">
+            <view>
+              <text class="detail-name">{{item.nickname}}</text>
+              <text class="detail-phone">{{item.phone || '未绑定手机号'}}</text>
+            </view>
+            <view class="detail-count">
+              <text>{{item.totalCount}}</text>
+              <text>次</text>
+            </view>
+          </view>
+          <view class="action-chip-row">
+            <text
+              wx:for="{{item.actions}}"
+              wx:key="action"
+              class="action-chip"
+            >{{item.label}} {{item.count}}</text>
+          </view>
+          <view class="detail-foot">
+            <text>{{item.date}}</text>
+            <text>{{item.lastOccurredAtText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>
+
+<podcast-player-bar />

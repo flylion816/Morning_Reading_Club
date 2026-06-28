@@ -62,6 +62,17 @@
         </view>
       </view>
 
+      <!-- 管理员数据分析 -->
+      <view wx:if="{{isAdmin}}" class="settings-cell" bindtap="goToAdminAnalytics">
+        <view class="cell-left">
+          <text class="cell-icon">📈</text>
+          <text class="cell-label">数据分析</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+
       <!-- 消息提醒设置 -->
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToNotificationSettings">
         <view class="cell-left">

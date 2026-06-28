@@ -59,7 +59,8 @@ describe('profile page', () => {
 
     userService.getUserProfile.mockResolvedValue({
       nickname: '小狐狸',
-      phone: '13812345678'
+      phone: '13812345678',
+      role: 'user'
     });
     userService.getUserStats.mockResolvedValue({
       totalCheckinDays: 12
@@ -112,6 +113,28 @@ describe('profile page', () => {
     expect(wx.navigateTo).toHaveBeenCalledWith({
       url: '/pages/notifications/notifications'
     });
+  });
+
+  test('should expose admin analytics entry for admin user', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      nickname: '管理员',
+      phone: '13812345678',
+      role: 'admin'
+    });
+
+    await pageInstance._loadUserData.call(pageInstance);
+    pageInstance.goToAdminAnalytics.call(pageInstance);
+
+    expect(pageInstance.data.isAdmin).toBe(true);
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/admin-analytics/admin-analytics'
+    });
+  });
+
+  test('should keep admin analytics hidden for normal user', async () => {
+    await pageInstance._loadUserData.call(pageInstance);
+
+    expect(pageInstance.data.isAdmin).toBe(false);
   });
 
   test('should redirect legacy share entry to home page', () => {
