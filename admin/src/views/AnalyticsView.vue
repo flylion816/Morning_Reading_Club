@@ -273,6 +273,36 @@
                 label="同意请求"
                 width="100"
               />
+              <el-table-column
+                prop="zaichang_activity"
+                label="在场"
+                width="90"
+              />
+              <el-table-column
+                prop="podcast_activity"
+                label="播客"
+                width="90"
+              />
+              <el-table-column
+                prop="ai_read_activity"
+                label="AI朗读"
+                width="90"
+              />
+              <el-table-column
+                prop="share_activity"
+                label="分享"
+                width="90"
+              />
+              <el-table-column
+                prop="activity_enroll"
+                label="活动报名"
+                width="100"
+              />
+              <el-table-column
+                prop="insight_interaction"
+                label="小凡互动"
+                width="100"
+              />
             </el-table>
           </el-card>
 
@@ -569,7 +599,13 @@ const initActivityChart = (rows: any[]) => {
     { key: 'own_insight_view', name: '看自己小凡' },
     { key: 'other_insight_view', name: '看他人小凡' },
     { key: 'course_view', name: '查看课程' },
-    { key: 'meeting_enter', name: '去晨读' }
+    { key: 'meeting_enter', name: '去晨读' },
+    { key: 'zaichang_activity', name: '在场' },
+    { key: 'podcast_activity', name: '播客' },
+    { key: 'ai_read_activity', name: 'AI朗读' },
+    { key: 'share_activity', name: '分享' },
+    { key: 'activity_enroll', name: '活动报名' },
+    { key: 'insight_interaction', name: '小凡互动' }
   ];
 
   activityChart.setOption({

@@ -183,6 +183,32 @@
       </view>
 
       <view class="chart-card">
+        <view class="section-title">当日关键行为</view>
+        <view wx:if="{{!activity.todayMetricChart.empty}}" class="chart-meta">
+          {{activity.todayMetricChart.date}} · 峰值 {{activity.todayMetricChart.maxLabel}}
+        </view>
+        <view wx:if="{{activity.todayMetricChart.empty}}" class="small-empty">暂无今日数据</view>
+        <view wx:else class="today-chart">
+          <view class="today-rank-list">
+            <view
+              wx:for="{{activity.todayMetricChart.bars}}"
+              wx:key="key"
+              class="today-rank-row"
+            >
+              <text class="today-rank-label">{{item.label}}</text>
+              <view class="today-rank-track">
+                <view
+                  class="today-rank-fill"
+                  style="width: {{item.widthPercent}}%; background: {{item.color}}"
+                ></view>
+              </view>
+              <text class="today-rank-value">{{item.valueLabel}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="chart-card">
         <view class="section-title">关键行为活跃人数趋势</view>
         <view wx:if="{{!activity.trendChart.empty}}" class="chart-meta">峰值 {{activity.trendChart.maxLabel}}</view>
         <view wx:if="{{activity.trendChart.empty}}" class="small-empty">暂无趋势数据</view>

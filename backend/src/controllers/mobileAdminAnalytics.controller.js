@@ -6,52 +6,14 @@ const User = require('../models/User');
 const UserActivity = require('../models/UserActivity');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
+const {
+  ACTION_LABELS,
+  TREND_ACTIONS,
+  DAILY_SUMMARY_GROUPS,
+  COHORT_SCOPED_ACTIONS
+} = require('../constants/userActivity');
 
 const ADMIN_ROLES = ['admin', 'super_admin'];
-
-const ACTION_LABELS = {
-  app_open: '访问小程序',
-  profile_update: '编辑个人资料',
-  course_view: '查看课程',
-  checkin_submit: '打卡',
-  comment_create: '评论',
-  like_create: '点赞',
-  own_insight_view: '查看自己的小凡看见',
-  other_insight_view: '查看他人的小凡看见',
-  meeting_enter: '去晨读',
-  insight_request_approve: '同意请求',
-  zaichang_list_view: '进入在场列表',
-  zaichang_publish_view: '进入发布印记页',
-  zaichang_imprint_publish: '发布印记',
-  zaichang_detail_view: '查看印记详情',
-  zaichang_imprint_like: '点赞印记',
-  zaichang_imprint_comment: '评论印记',
-  index_popup_view: '点击首页弹窗',
-  index_podcast_enter: '首页进入播客',
-  checkin_records_view: '查看我的打卡',
-  course_ai_read: '课程 AI 朗读',
-  insight_ai_read: '小凡看见 AI 朗读',
-  insight_share: '分享小凡看见',
-  insight_like: '小凡看见点赞',
-  insight_danmaku: '小凡看见发弹幕',
-  podcast_play: '播客播放',
-  podcast_bar_play: '底部悬浮窗播放播客',
-  podcast_share: '播客分享',
-  closing_video_share: '结营视频分享',
-  course_share: '课程分享',
-  activity_enroll: '活动报名'
-};
-
-const TREND_ACTIONS = [
-  'app_open',
-  'checkin_submit',
-  'own_insight_view',
-  'other_insight_view',
-  'course_view',
-  'meeting_enter'
-];
-
-const GLOBAL_COHORT_ACTIONS = ['app_open'];
 
 function getShanghaiDateKey(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000)
@@ -122,21 +84,36 @@ async function resolvePeriod(periodId) {
   return objectId;
 }
 
-async function getPeriodCohortUserIds(periodObjectId) {
+async function getPeriodScopedUserIds(periodObjectId, start, end) {
   if (!periodObjectId) return [];
 
-  const rows = await Enrollment.aggregate([
-    {
-      $match: {
-        periodId: periodObjectId,
-        deleted: { $ne: true },
-        status: { $ne: 'withdrawn' }
-      }
-    },
-    { $group: { _id: '$userId' } }
+  const [enrollmentRows, activityUserIds] = await Promise.all([
+    Enrollment.aggregate([
+      {
+        $match: {
+          periodId: periodObjectId,
+          deleted: { $ne: true },
+          status: { $ne: 'withdrawn' }
+        }
+      },
+      { $group: { _id: '$userId' } }
+    ]),
+    UserActivity.distinct('userId', {
+      periodId: periodObjectId,
+      occurredAt: { $gte: start, $lte: end }
+    })
   ]);
 
-  return rows.map((row) => row._id).filter(Boolean);
+  const userMap = new Map();
+  enrollmentRows
+    .map((row) => row._id)
+    .concat(activityUserIds)
+    .filter(Boolean)
+    .forEach((id) => {
+      userMap.set(id.toString(), id);
+    });
+
+  return Array.from(userMap.values());
 }
 
 function buildActivityMatch({ periodObjectId, periodUserIds = [], start, end, dateKey }) {
@@ -149,16 +126,23 @@ function buildActivityMatch({ periodObjectId, periodUserIds = [], start, end, da
   return {
     ...dateMatch,
     $or: [
-      {
-        action: { $in: GLOBAL_COHORT_ACTIONS },
-        userId: { $in: periodUserIds }
-      },
-      {
-        action: { $nin: GLOBAL_COHORT_ACTIONS },
-        periodId: periodObjectId
-      }
+      { periodId: periodObjectId },
+      { action: { $in: COHORT_SCOPED_ACTIONS }, userId: { $in: periodUserIds } }
     ]
   };
+}
+
+function addDailySummaryGroups(row) {
+  return DAILY_SUMMARY_GROUPS.reduce(
+    (result, group) => ({
+      ...result,
+      [group.key]: group.actions.reduce(
+        (sum, action) => sum + (Number(row[action]) || 0),
+        0
+      )
+    }),
+    { ...row }
+  );
 }
 
 function handleControllerError(res, error, logMessage) {
@@ -552,7 +536,7 @@ async function getActivityAnalytics(req, res) {
   try {
     const { startKey, endKey, start, end } = parseDateRange(req.query);
     const periodObjectId = await resolvePeriod(req.query.periodId);
-    const periodUserIds = await getPeriodCohortUserIds(periodObjectId);
+    const periodUserIds = await getPeriodScopedUserIds(periodObjectId, start, end);
     const rangeMatch = buildActivityMatch({
       periodObjectId,
       periodUserIds,
@@ -657,18 +641,17 @@ async function getActivityAnalytics(req, res) {
         date: item.date,
         activeUserCount: 0
       };
-      if (TREND_ACTIONS.includes(item.action)) {
-        row[item.action] = item.userCount || 0;
-      }
+      row[item.action] = item.userCount || 0;
       trendMap.set(item.date, row);
     });
 
-    const emptyTrendBase = TREND_ACTIONS.reduce(
+    const dailyActionKeys = TREND_ACTIONS.concat(DAILY_SUMMARY_GROUPS.map((group) => group.key));
+    const emptyTrendBase = dailyActionKeys.reduce(
       (acc, action) => ({ ...acc, [action]: 0 }),
       { activeUserCount: 0 }
     );
     const trend = buildDateRows(startKey, endKey, emptyTrendBase).map(
-      (row) => ({ ...row, ...(trendMap.get(row.date) || {}) })
+      (row) => addDailySummaryGroups({ ...row, ...(trendMap.get(row.date) || {}) })
     );
 
     const todayKey = getShanghaiDateKey(new Date());
@@ -693,6 +676,7 @@ async function getActivityAnalytics(req, res) {
           delta: diffSummary(today, yesterday)
         },
         actionLabels: ACTION_LABELS,
+        dailySummaryGroups: DAILY_SUMMARY_GROUPS,
         trend,
         details: detailRows.map((row) => ({
           ...row,
@@ -716,6 +700,8 @@ module.exports = {
   getActivityAnalytics,
   ACTION_LABELS,
   TREND_ACTIONS,
+  DAILY_SUMMARY_GROUPS,
+  COHORT_SCOPED_ACTIONS,
   parseDateRange,
   getShanghaiDateKey
 };

@@ -42,8 +42,38 @@ describe('admin analytics page', () => {
         delta: { appOpenUsers: 11, checkinUsers: 1, insightViewUsers: 11, activeUsers: 11 }
       },
       trend: [
-        { date: '2026-06-27', app_open: 8, checkin_submit: 1 },
-        { date: '2026-06-28', app_open: 19, checkin_submit: 2 }
+        {
+          date: '2026-06-27',
+          activeUserCount: 9,
+          app_open: 8,
+          course_view: 7,
+          checkin_submit: 1,
+          own_insight_view: 7,
+          other_insight_view: 4,
+          meeting_enter: 5,
+          zaichang_activity: 4,
+          podcast_activity: 3,
+          ai_read_activity: 2,
+          share_activity: 1,
+          activity_enroll: 0,
+          insight_interaction: 1
+        },
+        {
+          date: '2026-06-28',
+          activeUserCount: 20,
+          app_open: 19,
+          course_view: 9,
+          checkin_submit: 2,
+          own_insight_view: 14,
+          other_insight_view: 9,
+          meeting_enter: 15,
+          zaichang_activity: 5,
+          podcast_activity: 3,
+          ai_read_activity: 2,
+          share_activity: 4,
+          activity_enroll: 1,
+          insight_interaction: 2
+        }
       ],
       details: [{
         date: '2026-06-28',
@@ -86,6 +116,13 @@ describe('admin analytics page', () => {
     expect(pageInstance.data.overview.paymentChart.rows[0].values[0].height).toBeGreaterThan(0);
     expect(pageInstance.data.activity.trendChart.empty).toBe(false);
     expect(pageInstance.data.activity.trendChart.rows[0].label).toBe('06-28');
+    expect(pageInstance.data.activity.todayMetricChart.date).toBe('2026-06-28');
+    expect(pageInstance.data.activity.todayMetricChart.bars.map((bar) => bar.value)).toEqual([
+      20, 19, 15, 14, 9, 9, 5, 4, 3, 2, 2, 2, 1
+    ]);
+    expect(pageInstance.data.activity.todayMetricChart.bars.map((bar) => bar.label)).toEqual([
+      '活跃', '访问', '晨读', '看自己', '课程', '看他人', '在场', '分享', '播客', '打卡', 'AI朗读', '互动', '活动'
+    ]);
     expect(pageInstance.data.activity.details[0].phone).toBe('13564053520');
     expect(pageInstance.data.activityCards[0].deltaText).toBe('较昨日+11');
   });

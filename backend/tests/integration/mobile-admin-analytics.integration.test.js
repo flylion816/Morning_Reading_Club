@@ -114,6 +114,27 @@ describe('Mobile Admin Analytics Integration', () => {
         periodId: period._id
       });
       await UserActivity.create({
+        userId: normalUser._id,
+        action: 'podcast_bar_play',
+        actionDate: '2026-06-02',
+        occurredAt: new Date('2026-06-02T08:06:00+08:00'),
+        periodId: null
+      });
+      await UserActivity.create({
+        userId: normalUser._id,
+        action: 'zaichang_list_view',
+        actionDate: '2026-06-02',
+        occurredAt: new Date('2026-06-02T08:07:00+08:00'),
+        periodId: null
+      });
+      await UserActivity.create({
+        userId: normalUser._id,
+        action: 'activity_enroll',
+        actionDate: '2026-06-02',
+        occurredAt: new Date('2026-06-02T08:08:00+08:00'),
+        periodId: null
+      });
+      await UserActivity.create({
         userId: outsideUser._id,
         action: 'app_open',
         actionDate: '2026-06-02',
@@ -162,6 +183,13 @@ describe('Mobile Admin Analytics Integration', () => {
     expect(res.body.data.trend.find(row => row.date === '2026-06-02').app_open).to.equal(1);
     expect(res.body.data.trend.find(row => row.date === '2026-06-02').activeUserCount).to.equal(1);
     expect(res.body.data.details[0].phone).to.equal('15000998787');
+    expect(res.body.data.details[0].totalCount).to.equal(5);
+    const actionLabels = res.body.data.details[0].actions.map(item => item.label);
+    expect(actionLabels).to.include('访问小程序');
+    expect(actionLabels).to.include('查看自己的小凡看见');
+    expect(actionLabels).to.include('底部悬浮窗播放播客');
+    expect(actionLabels).to.include('进入在场列表');
+    expect(actionLabels).to.include('活动报名');
   });
 
   it('rejects normal mini program users', async () => {

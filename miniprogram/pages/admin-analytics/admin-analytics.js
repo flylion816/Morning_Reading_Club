@@ -27,6 +27,22 @@ const activitySeries = [
   { key: 'meeting_enter', name: '晨读', color: '#2fa36b' }
 ];
 
+const todayActivitySeries = [
+  { key: 'activeUserCount', name: '活跃', color: '#6b7280' },
+  { key: 'app_open', name: '访问', color: '#4f73d9' },
+  { key: 'course_view', name: '课程', color: '#67bde0' },
+  { key: 'checkin_submit', name: '打卡', color: '#86c56f' },
+  { key: 'own_insight_view', name: '看自己', color: '#f6b63f' },
+  { key: 'other_insight_view', name: '看他人', color: '#f15f5f' },
+  { key: 'meeting_enter', name: '晨读', color: '#2fa36b' },
+  { key: 'zaichang_activity', name: '在场', color: '#8b5cf6' },
+  { key: 'podcast_activity', name: '播客', color: '#0ea5e9' },
+  { key: 'ai_read_activity', name: 'AI朗读', color: '#14b8a6' },
+  { key: 'share_activity', name: '分享', color: '#f97316' },
+  { key: 'activity_enroll', name: '活动', color: '#ec4899' },
+  { key: 'insight_interaction', name: '互动', color: '#64748b' }
+];
+
 function getShanghaiDateKey(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000)
     .toISOString()
@@ -105,6 +121,34 @@ function buildNativeBarChart(rows = [], series = [], options = {}) {
   };
 }
 
+function buildSingleDayMetricChart(row = {}, series = []) {
+  const chartSeries = Array.isArray(series) ? series : [];
+  const barItems = chartSeries
+    .map((item, index) => ({
+      ...item,
+      order: index,
+      value: Number(row[item.key]) || 0
+    }))
+    .filter((item) => item.value > 0)
+    .sort((left, right) => right.value - left.value || left.order - right.order);
+  const values = barItems.map((item) => item.value);
+  const maxValue = Math.max(1, ...values);
+
+  return {
+    empty: !row || !row.date || barItems.length === 0,
+    date: row.date || '',
+    maxLabel: formatChartNumber(maxValue),
+    bars: barItems.map((item) => ({
+      key: item.key,
+      label: item.name,
+      color: item.color || '#4a90e2',
+      value: item.value,
+      valueLabel: formatChartNumber(item.value),
+      widthPercent: Math.max(6, Math.round((item.value / maxValue) * 100))
+    }))
+  };
+}
+
 function formatDateTime(value) {
   if (!value) return '-';
   const date = new Date(value);
@@ -159,6 +203,8 @@ function normalizeOverview(data = {}) {
 
 function normalizeActivity(data = {}) {
   const trend = data.trend || [];
+  const todayKey = getShanghaiDateKey(new Date());
+  const todayTrend = trend.find((item) => item.date === todayKey) || trend[trend.length - 1] || {};
   return {
     summary: data.summary || {
       today: {},
@@ -166,6 +212,7 @@ function normalizeActivity(data = {}) {
       delta: {}
     },
     trend,
+    todayMetricChart: buildSingleDayMetricChart(todayTrend, todayActivitySeries),
     trendChart: buildNativeBarChart(trend, activitySeries),
     details: (data.details || []).map((item, index) => ({
       ...item,
@@ -214,7 +261,8 @@ Page({
     activityCards: buildActivityCards(),
     enrollmentSeries,
     paymentSeries,
-    activitySeries
+    activitySeries,
+    todayActivitySeries
   },
 
   onLoad() {

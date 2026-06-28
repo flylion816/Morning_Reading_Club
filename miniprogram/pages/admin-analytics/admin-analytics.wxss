@@ -286,6 +286,62 @@
   white-space: nowrap;
 }
 
+.today-chart {
+  width: 100%;
+}
+
+.today-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding-top: 8rpx;
+}
+
+.today-rank-row {
+  height: 36rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.today-rank-label {
+  width: 84rpx;
+  flex-shrink: 0;
+  font-size: 22rpx;
+  line-height: 32rpx;
+  color: #667085;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.today-rank-track {
+  flex: 1;
+  min-width: 0;
+  height: 20rpx;
+  border-radius: 999rpx;
+  background: #eef2f7;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.today-rank-fill {
+  height: 100%;
+  min-width: 12rpx;
+  border-radius: 999rpx;
+}
+
+.today-rank-value {
+  width: 54rpx;
+  flex-shrink: 0;
+  font-size: 22rpx;
+  line-height: 32rpx;
+  font-weight: 600;
+  color: #344054;
+  text-align: left;
+  white-space: nowrap;
+}
+
 .small-empty {
   padding: 28rpx 0;
   text-align: center;

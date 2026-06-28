@@ -3,39 +3,10 @@ const UserActivity = require('../models/UserActivity');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
-
-const ACTION_LABELS = {
-  app_open: '访问小程序',
-  profile_update: '编辑个人资料',
-  course_view: '查看课程',
-  checkin_submit: '打卡',
-  comment_create: '评论',
-  like_create: '点赞',
-  own_insight_view: '查看自己的小凡看见',
-  other_insight_view: '查看他人的小凡看见',
-  meeting_enter: '去晨读',
-  insight_request_approve: '同意请求',
-  zaichang_list_view: '进入在场列表',
-  zaichang_publish_view: '进入发布印记页',
-  zaichang_imprint_publish: '发布印记',
-  zaichang_detail_view: '查看印记详情',
-  zaichang_imprint_like: '点赞印记',
-  zaichang_imprint_comment: '评论印记',
-  index_popup_view: '点击首页弹窗',
-  index_podcast_enter: '首页进入播客',
-  checkin_records_view: '查看我的打卡',
-  course_ai_read: '课程 AI 朗读',
-  insight_ai_read: '小凡看见 AI 朗读',
-  insight_share: '分享小凡看见',
-  insight_like: '小凡看见点赞',
-  insight_danmaku: '小凡看见发弹幕',
-  podcast_play: '播客播放',
-  podcast_bar_play: '底部悬浮窗播放播客',
-  podcast_share: '播客分享',
-  closing_video_share: '结营视频分享',
-  course_share: '课程分享',
-  activity_enroll: '活动报名'
-};
+const {
+  ACTION_LABELS,
+  DAILY_SUMMARY_GROUPS
+} = require('../constants/userActivity');
 
 function getShanghaiDateKey(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000)
@@ -62,6 +33,19 @@ function toObjectId(value) {
     return null;
   }
   return new mongoose.Types.ObjectId(value);
+}
+
+function addDailySummaryGroups(row) {
+  return DAILY_SUMMARY_GROUPS.reduce(
+    (result, group) => ({
+      ...result,
+      [group.key]: group.actions.reduce(
+        (sum, action) => sum + (Number(row[action]) || 0),
+        0
+      )
+    }),
+    { ...row }
+  );
 }
 
 exports.recordActivity = async (req, res) => {
@@ -221,9 +205,9 @@ exports.getActivityAnalytics = async (req, res) => {
       dayCursor.setDate(dayCursor.getDate() + 1);
     }
 
-    const daily = Array.from(dailyMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    const daily = Array.from(dailyMap.values())
+      .map(addDailySummaryGroups)
+      .sort((a, b) => a.date.localeCompare(b.date));
     const todayKey = getShanghaiDateKey(new Date());
     const today = daily.find((item) => item.date === todayKey) || {};
     const insightViewUsers = new Set();
@@ -245,6 +229,7 @@ exports.getActivityAnalytics = async (req, res) => {
     res.json(
       success({
         actionLabels: ACTION_LABELS,
+        dailySummaryGroups: DAILY_SUMMARY_GROUPS,
         summary: {
           totalActiveUsers: totalActiveUsers.length,
           todayAppOpenUsers: today.app_open || 0,
