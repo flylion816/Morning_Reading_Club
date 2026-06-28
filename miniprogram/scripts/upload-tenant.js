@@ -1,9 +1,10 @@
 /**
  * 多租户上传脚本
- * 用法: node miniprogram/scripts/upload-tenant.js <slug> [version] [desc]
+ * 用法: node miniprogram/scripts/upload-tenant.js <slug> [version] [desc] [--sync]
  *   或: npm run tenant:upload -- <slug>
+ *   或: npm run tenant:sync-upload -- <slug>
  *
- * 依赖: miniprogram-ci（需先 npm install -g miniprogram-ci 或在 devDependencies 中安装）
+ * 依赖: miniprogram-ci（需先在项目依赖中安装）
  * 私钥: 放在 miniprogram/keys/<slug>.key.pem（不入 git）
  */
 
@@ -11,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawnSync } = require('child_process');
 
-const USAGE = '用法: node scripts/upload-tenant.js <slug> [version] [desc]';
+const USAGE = '用法: node scripts/upload-tenant.js <slug> [version] [desc] [--sync] [--file tenant.json] [--mongo-uri mongodb://...]';
 
 function createCliError(message, exitCode = 1, extraLines = []) {
   const error = new Error(message);
@@ -26,8 +27,43 @@ function loadMiniProgramCi(ci) {
   try {
     return require('miniprogram-ci');
   } catch (e) {
-    throw createCliError('miniprogram-ci 未安装，请运行: npm install -g miniprogram-ci');
+    throw createCliError('miniprogram-ci 未安装，请运行: npm install --save-dev miniprogram-ci');
   }
+}
+
+function parseArgs(argv = process.argv) {
+  const args = argv.slice(2);
+  const options = {};
+  const positionals = [];
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--sync') {
+      options.sync = true;
+    } else if (arg === '--file') {
+      if (!args[i + 1]) throw createCliError('--file 需要提供 JSON 文件路径');
+      options.file = args[i + 1];
+      i += 1;
+    } else if (arg === '--mongo-uri') {
+      if (!args[i + 1]) throw createCliError('--mongo-uri 需要提供 MongoDB 连接串');
+      options.mongoUri = args[i + 1];
+      i += 1;
+    } else if (arg.startsWith('--')) {
+      throw createCliError(`未知参数: ${arg}`);
+    } else {
+      positionals.push(arg);
+    }
+  }
+
+  const slug = positionals.shift();
+  return {
+    slug,
+    options: {
+      ...options,
+      version: positionals[0],
+      desc: positionals[1]
+    }
+  };
 }
 
 async function uploadTenant(slug, options = {}) {
@@ -42,10 +78,22 @@ async function uploadTenant(slug, options = {}) {
   const now = options.now || new Date();
 
   const tenantConfigPath = path.join(__dirname, '../config/tenants', `${slug}.js`);
-  if (!fsImpl.existsSync(tenantConfigPath)) {
-    throw createCliError(`租户配置不存在: ${tenantConfigPath}`);
+  if (options.sync) {
+    const syncArgs = [path.join(__dirname, 'sync-tenant-config.js'), slug];
+    if (options.file) syncArgs.push('--file', options.file);
+    if (options.mongoUri) syncArgs.push('--mongo-uri', options.mongoUri);
+    consoleImpl.log(`\n同步租户配置: ${slug}`);
+    const syncResult = spawnSyncImpl(execPath, syncArgs, { stdio: 'inherit' });
+    if (syncResult.status !== 0) {
+      throw createCliError(`租户配置同步失败，退出码: ${syncResult.status || 1}`, syncResult.status || 1);
+    }
   }
 
+  if (!fsImpl.existsSync(tenantConfigPath)) {
+    throw createCliError(`租户配置不存在: ${tenantConfigPath}。请先运行 tenant:sync 或使用 --sync`);
+  }
+
+  delete require.cache[require.resolve(tenantConfigPath)];
   const tenant = require(tenantConfigPath);
   const version = options.version || `1.0.0-${now.toISOString().slice(0, 10)}`;
   const desc = options.desc || `${tenant.brandName} 自动上传 ${now.toLocaleString('zh-CN')}`;
@@ -101,10 +149,8 @@ async function uploadTenant(slug, options = {}) {
 
 async function runCli(argv = process.argv) {
   try {
-    await uploadTenant(argv[2], {
-      version: argv[3],
-      desc: argv[4]
-    });
+    const { slug, options } = parseArgs(argv);
+    await uploadTenant(slug, options);
   } catch (err) {
     if (err.isCliError) {
       console.error(err.message);
@@ -122,6 +168,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  parseArgs,
   uploadTenant,
   runCli
 };

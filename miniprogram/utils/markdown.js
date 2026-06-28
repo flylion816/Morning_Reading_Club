@@ -48,6 +48,10 @@ function paragraphNode(content, extraStyle = '') {
   return `<p style="${style}">${content}</p>`;
 }
 
+function dividerNode() {
+  return '<div style="width:72px;height:2px;background:#d8e0ea;border-radius:999px;margin:30px auto 28px;"></div>';
+}
+
 function getInsightTitleType(text) {
   const normalized = String(text || '')
     .replace(/^#{1,6}\s+/, '')
@@ -126,6 +130,14 @@ function markdownToRichText(markdown, options = {}) {
       flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
       flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
       listType = null;
+      continue;
+    }
+
+    if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+      listType = null;
+      blocks.push(dividerNode());
       continue;
     }
 

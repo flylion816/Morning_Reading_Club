@@ -43,6 +43,16 @@ describe('markdown utils', () => {
     expect(plainText).not.toContain('**');
   });
 
+  test('should render standalone markdown dividers as subtle separators', () => {
+    const content = ['第一段', '', '---', '', '第二段'].join('\n');
+
+    const rendered = renderInsightRichTextContent(content);
+
+    expect(rendered).not.toContain('>---<');
+    expect(rendered).toContain('width:72px');
+    expect(rendered).toContain('background:#d8e0ea');
+  });
+
   test('should detect html-like strings', () => {
     expect(isLikelyHtml('<p>hello</p>')).toBe(true);
     expect(isLikelyHtml('**hello**')).toBe(false);

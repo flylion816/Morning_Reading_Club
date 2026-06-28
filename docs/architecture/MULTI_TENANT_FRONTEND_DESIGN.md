@@ -226,8 +226,9 @@ miniprogram/
     icons/                # 保留：非租户相关的通用图标（不再被覆盖）
   theme.wxss              # ← apply 生成（CSS 变量），被 app.wxss @import，入库(fanren默认态)
   scripts/
+    sync-tenant-config.js  # 从后端 Tenant 记录生成 config/tenants/<slug>.js
     apply-tenant.js       # 注入脚本
-    upload-tenant.js      # miniprogram-ci 上传
+    upload-tenant.js      # 可选同步后 apply + miniprogram-ci 上传
 ```
 
 **关键点**：
@@ -244,13 +245,13 @@ miniprogram/
 | `theme.wxss` | 生成（入库 fanren 态） | 提交前 `tenant:reset` 还原 fanren |
 | `app.json` | 半生成（入库 fanren 态） | 提交前 `tenant:reset` 还原 fanren |
 | `project.config.json`(+private) | 半生成（入库 fanren 态） | 提交前 `tenant:reset` 还原 fanren |
-| `config/tenants/*.js` | 源 | 入库，所有租户定义的唯一真相 |
+| `config/tenants/*.js` | 构建源 | 可由后端 Tenant 记录生成；入库保留已上线租户定义 |
 | `assets/tenants/<slug>/*` | 源 | 入库，各租户素材并存 |
 
 **约束手段**（建议 1+3 叠加）：
 1. `package.json` 加 `tenant:reset` = `apply fanren`；发版/提交前手动跑。
 2. pre-commit hook 检测上述生成文件是否处于非 fanren 态，是则拒绝提交并提示先 reset。
-3. CI 上传脚本结束时自动 `apply fanren`，保证本地回到默认态（已在 §8 `upload-tenant.js` 实现）。
+3. CI 上传脚本会先按 slug `apply` 当前租户；提交前仍需 `tenant:reset` 保证回到默认态。
 
 > **为什么不 gitignore 生成物**：`tenant.js`→`require('./current-tenant')`、`app.wxss`→`@import './theme.wxss'` 硬依赖这些文件；gitignore 会让新克隆缺文件而编译失败。**为什么不把 app.json 模板化全 gitignore**：它含 `pages`（30+ 页）等大量共享内容，gitignore 会丢版本管理。两者折中一致：committed + 保持 fanren 默认 + 提交前 reset。
 
@@ -572,67 +573,22 @@ const wxAppId = tenant.wxAppId;                           // 仅来自租户
 
 ## 8. 发布流程（多租户上传矩阵）
 
-推荐引入 **miniprogram-ci**（微信官方 CI 上传库），实现「切租户 + 上传」一条命令。
-
-`scripts/upload-tenant.js` 骨架：
-
-```js
-#!/usr/bin/env node
-// 用法: node scripts/upload-tenant.js <slug> [version] [desc]
-const path = require('path');
-const ci = require('miniprogram-ci');
-const { execFileSync } = require('child_process');
-
-const slug = process.argv[2];
-const version = process.argv[3] || require('../package.json').version;
-const desc = process.argv[4] || `release ${slug} ${new Date().toISOString()}`;
-if (!slug) { console.error('用法: upload-tenant.js <slug> [version] [desc]'); process.exit(1); }
-
-// 1) 先切租户（复用 apply，保证 appId/素材/主题一致）
-execFileSync('node', [path.join(__dirname, 'apply-tenant.js'), slug], { stdio: 'inherit' });
-
-const cfg = require(path.join('..', 'config/tenants', `${slug}.js`));
-
-(async () => {
-  // 2) 密钥按租户隔离存放（勿入库；路径用环境变量或约定目录）
-  const privateKeyPath = process.env.MP_CI_KEY_DIR
-    ? path.join(process.env.MP_CI_KEY_DIR, `private.${cfg.wxAppId}.key`)
-    : path.join(__dirname, '..', '..', '.ci-keys', `private.${cfg.wxAppId}.key`);
-
-  const project = new ci.Project({
-    appid: cfg.wxAppId,
-    type: 'miniProgram',
-    projectPath: path.resolve(__dirname, '..'),   // miniprogram/
-    privateKeyPath,
-    ignores: ['node_modules/**/*']
-  });
-
-  const result = await ci.upload({
-    project,
-    version,
-    desc,
-    setting: { es6: true, minify: true },
-    robot: 1
-  });
-  console.log(`✅ 已上传 ${cfg.brandName}(${slug}) appId=${cfg.wxAppId} v${version}`);
-  console.log(result);
-
-  // 3) 上传后还原默认态，避免本地停留在该租户
-  execFileSync('node', [path.join(__dirname, 'apply-tenant.js'), 'fanren'], { stdio: 'inherit' });
-})().catch(e => { console.error('❌ 上传失败:', e); process.exit(1); });
-```
+项目使用微信官方 **miniprogram-ci** 实现「同步后端租户配置 + 切租户 + 上传」一条命令。`sync-tenant-config.js` 只读后端 `Tenant` 记录，不会初始化或重置数据库。
 
 发布：
 
 ```bash
-npm run tenant:upload -- chaoren 1.4.0 "修复打卡提醒"   # 单租户
+npm run tenant:sync -- chaoren                         # 只从后端生成 config/tenants/chaoren.js
+npm run tenant:apply -- chaoren                        # 只切换并验证本地构建配置
+npm run tenant:upload -- chaoren 1.4.0 "修复打卡提醒"  # 使用已有前端租户配置上传
+npm run tenant:sync-upload -- chaoren 1.4.0 "修复打卡提醒" # 同步后端配置 + 切换 + 上传
 # 全租户：脚本循环 config/tenants/*.js 依次 upload（CI 矩阵）
 ```
 
-- 每个 appId 在微信后台生成「小程序代码上传密钥」+ 配置 IP 白名单；密钥按 appId 命名存放于**仓库外**目录（`.ci-keys/` 已 gitignore 或用 `MP_CI_KEY_DIR`），**严禁入库**。
+- 每个 appId 在微信后台生成「小程序代码上传密钥」+ 配置 IP 白名单；密钥存放在 `miniprogram/keys/<slug>.key.pem`，**严禁入库**。
 - 版本号 / 审核各租户独立；脚本统一传 `version` + `desc`，`robot` 区分上传机器人。
 - `ci.upload` 仅上传到「开发版」，仍需到各自微信后台**提交审核 / 发布**（审核无法自动化）。
-- 上传脚本结束自动 `apply fanren`，落实 §6.1 的「回默认态」约束。
+- `tenant:sync-upload` 等价于开发者工具右上角“上传”的自动化版本，但上传前多做一次后端配置同步和本地构建配置校验。
 
 ---
 
@@ -648,16 +604,15 @@ npm run tenant:upload -- chaoren 1.4.0 "修复打卡提醒"   # 单租户
 - [ ] 后台添加并授权所需插件（WechatSI 等）
 - [ ] 生成代码上传密钥（用于 CI）
 
-**B. 后端**
-- [ ] 新建 `Tenant` 记录：`slug`/`name`/`wxAppIds`/`wechatLogin`/`wechatPay`/`branding`
-- [ ] 配置该租户订阅消息模板 ID（与前端一致）
+**B. 后端租户侧**
+- [ ] 在租户管理页新建 `Tenant` 记录：`slug`/`name`/`wxAppIds`/`wechatLogin`/`wechatPay`/`cloudEnv`/`branding`/`subscribeTemplates`
+- [ ] 放置 `assets/tenants/<slug>/` 素材（Logo / Tab 图标 / 分享封面）；原生 TabBar 图标仍必须是本地文件，不能只配网络 URL
+- [ ] `npm run tenant:sync -- <slug>` 生成 `config/tenants/<slug>.js`
 
-**C. 前端**
-- [ ] 新建 `config/tenants/<slug>.js`
-- [ ] 放置 `assets/tenants/<slug>/` 素材（Logo / Tab 图标 / 分享封面）
-- [ ] `npm run tenant:apply -- <slug>` 并在开发者工具自测
+**C. 切换、验证与上传**
+- [ ] 本地验证：`npm run tenant:apply -- <slug>` 并在开发者工具自测
 - [ ] 验证：登录、支付、订阅消息、主色、TabBar、协议页主体名
-- [ ] `npm run tenant:upload -- <slug>` 上传 → 微信后台提交审核
+- [ ] 自动上传：`npm run tenant:sync-upload -- <slug> [version] [desc]` → 微信后台提交审核
 
 ---
 

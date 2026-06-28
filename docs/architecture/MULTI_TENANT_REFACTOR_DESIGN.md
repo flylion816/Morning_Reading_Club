@@ -3511,18 +3511,15 @@ module.exports = storage;
 
 新增"超人读书会"的操作流程：
 
-1. **微信公众平台**：注册新小程序，获得新 appId（例如 `wx_chaoren_xxx`）
-2. **复制小程序代码**：`cp -r miniprogram miniprogram-chaoren`（仅用于独立打包，**不修改业务代码**）
-3. **修改两个配置文件**：
-   - `miniprogram-chaoren/config/env.js`：把 prod 环境的 `wxAppId` 改为新 appId
-   - `miniprogram-chaoren/config/tenant.js`：改 `brandName`、`primaryColor`、`logo`、`contactEmail`、`legalEntity`
-4. **替换品牌资源**：
-   - `miniprogram-chaoren/assets/icons/book.png`（小程序内 logo）
-   - 微信公众平台后台上传新的小程序图标
-5. **管理后台**：用 `platform_superadmin` 登录 → 租户管理 → 新建租户 → 填写 slug、name、wxAppIds（填入新 appId）
-6. **创建租户管理员**：在租户管理页创建一个 `tenant_admin` 角色的账号，绑定到新租户
-7. **微信审核**：把新小程序提交微信审核（独立审核，无法绕过）
-8. **完成**：审核通过后，新小程序登录会自动落到新租户
+1. **微信公众平台**：注册新小程序，获得新 appId 和 AppSecret，配置合法域名、隐私指引、插件授权、订阅消息模板和代码上传密钥。
+2. **管理后台**：用 `platform_superadmin` 登录 → 租户管理 → 新建租户 → 填写 `slug`、`name`、`wxAppIds`、`wechatLogin`、`wechatPay`、`cloudEnv`、`branding`、`subscribeTemplates` 等配置。
+3. **本地素材**：放置 `miniprogram/assets/tenants/<slug>/` 素材，至少包含 `logo.png` 和 6 个 TabBar 图标；原生 TabBar 图标必须是本地文件。
+4. **生成前端租户配置**：运行 `npm run tenant:sync -- <slug>`，从后端 `Tenant` 记录生成 `miniprogram/config/tenants/<slug>.js`。
+5. **切换与验证**：运行 `npm run tenant:apply -- <slug>`，在微信开发者工具验证登录、支付、订阅消息、主色、TabBar、协议页主体名。
+6. **上传开发版**：运行 `npm run tenant:sync-upload -- <slug> [version] [desc]`，等价于开发者工具“上传”，但会先同步后端租户配置并校验构建配置。
+7. **创建租户管理员**：在账号管理页创建 `tenant_admin` 角色账号，绑定到新租户。
+8. **微信审核**：在微信后台提交审核并发布；审核/发布仍需人工操作，无法由 CI 完全自动化。
+9. **完成**：发布通过后，新小程序登录会按 appId 自动落到对应租户。
 
 ---
 

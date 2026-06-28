@@ -36,15 +36,25 @@ const TenantSchema = new mongoose.Schema(
       appId: { type: String, default: null },
       notifyUrl: { type: String, default: null }
     },
+    cloudEnv: { type: String, default: null },
     subscribeTemplates: {
       type: mongoose.Schema.Types.Mixed,
       default: {}
     },
     branding: {
       logo: { type: String, default: null },
+      shareCover: { type: String, default: null },
       primaryColor: { type: String, default: '#4a90e2' },
-      brandName: { type: String, default: null }
+      brandName: { type: String, default: null },
+      navBarBgColor: { type: String, default: null },
+      navBarTextStyle: { type: String, enum: ['white', 'black', null], default: null },
+      tabBarColor: { type: String, default: null },
+      tabBarSelectedColor: { type: String, default: null },
+      tabBarBackgroundColor: { type: String, default: null }
     },
+    legalEntity: { type: String, default: null },
+    contactEmail: { type: String, default: null },
+    apiBaseUrl: { type: String, default: null },
     status: {
       type: String,
       enum: ['active', 'suspended', 'archived'],

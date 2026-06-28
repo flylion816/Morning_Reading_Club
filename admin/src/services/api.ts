@@ -182,6 +182,50 @@ export const accountApi = {
     apiClient.patch(`/admins/${id}/status`, { status })
 };
 
+// 租户 API
+export const tenantApi = {
+  getTenants: async (params?: any) => {
+    const result: any = await apiClient.get('/admin/tenants', { params });
+    const tenants = Array.isArray(result?.list)
+      ? result.list
+      : Array.isArray(result)
+        ? result
+        : result?.tenants || [];
+    return {
+      data: {
+        data: {
+          tenants,
+          total: result?.total || tenants.length
+        },
+        tenants,
+        total: result?.total || tenants.length
+      }
+    };
+  },
+  getSummary: async () => {
+    const result: any = await apiClient.get('/admin/tenants');
+    const tenants = Array.isArray(result?.list)
+      ? result.list
+      : Array.isArray(result)
+        ? result
+        : result?.tenants || [];
+    const summary = {
+      total: tenants.length,
+      active: tenants.filter((tenant: any) => tenant.status === 'active').length,
+      inactive: tenants.filter((tenant: any) => tenant.status !== 'active').length
+    };
+    return {
+      data: {
+        data: summary,
+        ...summary
+      }
+    };
+  },
+  createTenant: (data: any) => apiClient.post('/admin/tenants', data),
+  updateTenant: (id: string, data: any) => apiClient.put(`/admin/tenants/${id}`, data),
+  updateStatus: (id: string, status: string) => apiClient.put(`/admin/tenants/${id}`, { status })
+};
+
 // 报名 API
 export const enrollmentApi = {
   getEnrollments: (params?: any) => apiClient.get('/enrollments', { params }),

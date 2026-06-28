@@ -143,6 +143,18 @@
               placeholder="留空则不修改"
             />
           </el-form-item>
+          <el-form-item label="云环境 ID">
+            <el-input
+              v-model="formData.cloudEnv"
+              placeholder="CloudBase 环境 ID，可选"
+            />
+          </el-form-item>
+          <el-form-item label="API 覆盖地址">
+            <el-input
+              v-model="formData.apiBaseUrl"
+              placeholder="留空则按小程序环境配置"
+            />
+          </el-form-item>
 
           <!-- 微信支付配置 -->
           <el-divider content-position="left">微信支付配置（可选）</el-divider>
@@ -181,7 +193,54 @@
           <el-form-item label="Logo URL">
             <el-input
               v-model="formData.branding.logo"
-              placeholder="logo 图片地址"
+              placeholder="留空则使用 /assets/tenants/<slug>/logo.png"
+            />
+          </el-form-item>
+          <el-form-item label="分享图 URL">
+            <el-input
+              v-model="formData.branding.shareCover"
+              placeholder="留空则使用默认分享图，可填 /assets/tenants/<slug>/share-cover.jpg"
+            />
+          </el-form-item>
+          <el-form-item label="导航栏颜色">
+            <el-color-picker v-model="formData.branding.navBarBgColor" />
+          </el-form-item>
+          <el-form-item label="导航栏文字">
+            <el-select v-model="formData.branding.navBarTextStyle" style="width: 100%">
+              <el-option label="白色" value="white" />
+              <el-option label="黑色" value="black" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="Tab 默认色">
+            <el-color-picker v-model="formData.branding.tabBarColor" />
+          </el-form-item>
+          <el-form-item label="Tab 选中色">
+            <el-color-picker v-model="formData.branding.tabBarSelectedColor" />
+          </el-form-item>
+          <el-form-item label="Tab 背景色">
+            <el-color-picker v-model="formData.branding.tabBarBackgroundColor" />
+          </el-form-item>
+          <el-form-item label="主体名称">
+            <el-input
+              v-model="formData.legalEntity"
+              placeholder="协议页主体名称，留空则用品牌团队"
+            />
+          </el-form-item>
+          <el-form-item label="联系邮箱">
+            <el-input
+              v-model="formData.contactEmail"
+              placeholder="support@example.com，可选"
+            />
+          </el-form-item>
+
+          <!-- 订阅消息 -->
+          <el-divider content-position="left">订阅消息模板</el-divider>
+          <el-form-item label="模板 JSON">
+            <el-input
+              v-model="formData.subscribeTemplatesText"
+              type="textarea"
+              :rows="8"
+              placeholder='{"enrollment_result":"模板ID"}'
             />
           </el-form-item>
         </el-form>
@@ -218,9 +277,24 @@ const formData = reactive({
   description: '',
   status: 'active',
   wxAppIds: [] as string[],
+  cloudEnv: '',
+  legalEntity: '',
+  contactEmail: '',
+  apiBaseUrl: '',
+  subscribeTemplatesText: '',
   wechatLogin: { appId: '', appSecret: '' },
   wechatPay: { appId: '', mchId: '', apiKey: '' },
-  branding: { brandName: '', primaryColor: '#4a90e2', logo: '' }
+  branding: {
+    brandName: '',
+    primaryColor: '#4a90e2',
+    logo: '',
+    shareCover: '',
+    navBarBgColor: '#4a90e2',
+    navBarTextStyle: 'white',
+    tabBarColor: '#999999',
+    tabBarSelectedColor: '#4a90e2',
+    tabBarBackgroundColor: '#ffffff'
+  }
 });
 
 const formRules = {
@@ -246,9 +320,24 @@ function resetForm() {
   formData.description = '';
   formData.status = 'active';
   formData.wxAppIds = [];
+  formData.cloudEnv = '';
+  formData.legalEntity = '';
+  formData.contactEmail = '';
+  formData.apiBaseUrl = '';
+  formData.subscribeTemplatesText = '';
   formData.wechatLogin = { appId: '', appSecret: '' };
   formData.wechatPay = { appId: '', mchId: '', apiKey: '' };
-  formData.branding = { brandName: '', primaryColor: '#4a90e2', logo: '' };
+  formData.branding = {
+    brandName: '',
+    primaryColor: '#4a90e2',
+    logo: '',
+    shareCover: '',
+    navBarBgColor: '#4a90e2',
+    navBarTextStyle: 'white',
+    tabBarColor: '#999999',
+    tabBarSelectedColor: '#4a90e2',
+    tabBarBackgroundColor: '#ffffff'
+  };
   newWxAppId.value = '';
 }
 
@@ -267,6 +356,11 @@ function handleEdit(row: any) {
   formData.description = row.description || '';
   formData.status = row.status || 'active';
   formData.wxAppIds = [...(row.wxAppIds || [])];
+  formData.cloudEnv = row.cloudEnv || '';
+  formData.legalEntity = row.legalEntity || '';
+  formData.contactEmail = row.contactEmail || '';
+  formData.apiBaseUrl = row.apiBaseUrl || '';
+  formData.subscribeTemplatesText = JSON.stringify(row.subscribeTemplates || {}, null, 2);
   formData.wechatLogin = {
     appId: row.wechatLogin?.appId || '',
     appSecret: ''
@@ -279,7 +373,13 @@ function handleEdit(row: any) {
   formData.branding = {
     brandName: row.branding?.brandName || '',
     primaryColor: row.branding?.primaryColor || '#4a90e2',
-    logo: row.branding?.logo || ''
+    logo: row.branding?.logo || '',
+    shareCover: row.branding?.shareCover || '',
+    navBarBgColor: row.branding?.navBarBgColor || row.branding?.primaryColor || '#4a90e2',
+    navBarTextStyle: row.branding?.navBarTextStyle || 'white',
+    tabBarColor: row.branding?.tabBarColor || '#999999',
+    tabBarSelectedColor: row.branding?.tabBarSelectedColor || row.branding?.primaryColor || '#4a90e2',
+    tabBarBackgroundColor: row.branding?.tabBarBackgroundColor || '#ffffff'
   };
   dialogVisible.value = true;
 }
@@ -299,6 +399,16 @@ async function handleSave() {
     return;
   }
 
+  let subscribeTemplates = {};
+  try {
+    subscribeTemplates = formData.subscribeTemplatesText.trim()
+      ? JSON.parse(formData.subscribeTemplatesText)
+      : {};
+  } catch {
+    ElMessage.error('订阅消息模板 JSON 格式错误');
+    return;
+  }
+
   saving.value = true;
   try {
     const payload: any = {
@@ -306,6 +416,11 @@ async function handleSave() {
       description: formData.description,
       status: formData.status,
       wxAppIds: formData.wxAppIds,
+      cloudEnv: formData.cloudEnv,
+      legalEntity: formData.legalEntity,
+      contactEmail: formData.contactEmail,
+      apiBaseUrl: formData.apiBaseUrl,
+      subscribeTemplates,
       wechatLogin: { ...formData.wechatLogin },
       wechatPay: { ...formData.wechatPay },
       branding: { ...formData.branding }

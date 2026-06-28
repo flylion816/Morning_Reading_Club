@@ -2355,10 +2355,6 @@ button.avatar-action-button::after {
 
 /* 凡人生活区块 */
 .section-icon-zaichang {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 12rpx;
-  background: #e8f5ec;
   display: flex;
   align-items: center;
   justify-content: center;
