@@ -15,4 +15,4 @@
 ## 3. Verification
 - [x] 3.1 Run backend controller/integration tests.
 - [x] 3.2 Run mini program Jest tests and syntax checks.
-- [ ] 3.3 Deploy backend with the project 7deploy workflow if server code changed.
+- [x] 3.3 Deploy backend with the project 7deploy workflow if server code changed.
