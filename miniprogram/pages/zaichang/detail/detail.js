@@ -3,6 +3,7 @@ const { maybeAutoTopUpSubscriptions } = require('../../../utils/subscribe-auto-t
 const { requireLogin } = require('../../../utils/require-login');
 const activityService = require('../../../services/activity.service');
 const { normalizeDanmakuContent } = require('../../../utils/danmaku');
+const { createContainedShareCover } = require('../../../utils/share-cover');
 
 const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
 
@@ -88,22 +89,63 @@ Page({
         isAuthor,
         loading: false
       });
-      this._prefetchShareImage(imprint);
+      this.prepareShareCover(this.getFirstShareImageUrl(imprint));
     } catch (e) {
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },
 
-  _prefetchShareImage(imprint) {
-    const firstMedia = (imprint.mediaList || [])[0];
-    if (!firstMedia || firstMedia.type === 'video') return;
-    wx.downloadFile({
-      url: firstMedia.url,
-      success: (res) => {
-        if (res.statusCode === 200) this._shareImagePath = res.tempFilePath;
-      }
-    });
+  getFirstShareImageUrl(imprint = this.data.imprint) {
+    const firstMedia = (imprint?.mediaList || []).find(
+      media => media.type !== 'video' && media.url
+    );
+    return firstMedia?.url || '';
+  },
+
+  getShareImageUrl() {
+    const sourceUrl = this.getFirstShareImageUrl();
+    if (!sourceUrl) {
+      return '';
+    }
+    if (this._shareImagePath && this._shareImageSourceUrl === sourceUrl) {
+      return this._shareImagePath;
+    }
+    return sourceUrl;
+  },
+
+  prepareShareCover(sourceUrl = this.getFirstShareImageUrl()) {
+    if (!sourceUrl) {
+      return Promise.resolve('');
+    }
+    if (this._shareImagePath && this._shareImageSourceUrl === sourceUrl) {
+      return Promise.resolve(this._shareImagePath);
+    }
+    if (this._shareCoverPromise && this._shareImageSourceUrl === sourceUrl) {
+      return this._shareCoverPromise;
+    }
+
+    this._shareImageSourceUrl = sourceUrl;
+    this._shareCoverPromise = createContainedShareCover(this, sourceUrl, {
+      selector: '#shareCoverCanvas'
+    })
+      .then((filePath) => {
+        if (this._shareImageSourceUrl === sourceUrl) {
+          this._shareImagePath = filePath;
+        }
+        return filePath;
+      })
+      .catch((error) => {
+        console.warn('生成在场详情分享封面失败，使用原图分享:', error);
+        return sourceUrl;
+      })
+      .finally(() => {
+        if (this._shareImageSourceUrl === sourceUrl) {
+          this._shareCoverPromise = null;
+        }
+      });
+
+    return this._shareCoverPromise;
   },
 
   async loadComments(reset) {
@@ -291,21 +333,29 @@ Page({
   onShareAppMessage() {
     const imprint = this.data.imprint;
     if (!imprint) return { title: '在场 · 书友聚会印记', path: '/pages/zaichang/list/list' };
-    const imageUrl = this._shareImagePath || '';
-    return {
+    const shareConfig = {
       title: imprint.title || '在场 · 书友聚会印记',
       path: `/pages/zaichang/detail/detail?id=${this._id}`,
-      imageUrl
+      imageUrl: this.getShareImageUrl()
     };
+    const sourceUrl = this.getFirstShareImageUrl(imprint);
+    if (sourceUrl) {
+      shareConfig.promise = this.prepareShareCover(sourceUrl)
+        .then((imageUrl) => ({
+          ...shareConfig,
+          imageUrl: imageUrl || shareConfig.imageUrl
+        }))
+        .catch(() => shareConfig);
+    }
+    return shareConfig;
   },
 
   onShareTimeline() {
     const imprint = this.data.imprint;
-    const imageUrl = this._shareImagePath || '';
     return {
       title: imprint ? imprint.title : '在场 · 书友聚会印记',
       query: `id=${this._id}`,
-      imageUrl
+      imageUrl: this.getShareImageUrl()
     };
   }
 });

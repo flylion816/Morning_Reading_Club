@@ -337,15 +337,16 @@ class MysqlBackupService {
         const sql = `
           INSERT INTO checkins (
             id, tenant_id, user_id, period_id, section_id, day, checkin_date,
-            reading_time, completion_rate, note, images, mood, points,
+            reading_time, completion_rate, note, content_html, images, mood, points,
             is_public, like_count, likes, is_featured,
             created_at, updated_at, raw_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             tenant_id=VALUES(tenant_id), user_id=VALUES(user_id), period_id=VALUES(period_id),
             section_id=VALUES(section_id), day=VALUES(day),
             checkin_date=VALUES(checkin_date), reading_time=VALUES(reading_time),
             completion_rate=VALUES(completion_rate), note=VALUES(note),
+            content_html=VALUES(content_html),
             images=VALUES(images), mood=VALUES(mood), points=VALUES(points),
             is_public=VALUES(is_public), like_count=VALUES(like_count),
             likes=VALUES(likes), is_featured=VALUES(is_featured),
@@ -363,6 +364,7 @@ class MysqlBackupService {
           coerce(checkin.readingTime),
           coerce(checkin.completionRate),
           coerce(checkin.note),
+          coerce(checkin.contentHtml),
           checkin.images ? JSON.stringify(checkin.images) : null,
           coerce(checkin.mood),
           coerce(checkin.points, 0),

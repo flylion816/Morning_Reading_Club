@@ -4,6 +4,7 @@ const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../../ut
 const { tenantStorage } = require('../../../utils/storage');
 const constants = require('../../../config/constants');
 const activityService = require('../../../services/activity.service');
+const { createContainedShareCover } = require('../../../utils/share-cover');
 
 const DEFAULT_ACTIVITY_TYPES = [
   { key: 'all', label: '全部' },
@@ -109,13 +110,7 @@ Page({
         loading: false
       });
       if (reset && list.length > 0) {
-        const firstImg = (list[0].mediaList || []).find(m => m.type !== 'video');
-        if (firstImg) {
-          wx.downloadFile({
-            url: firstImg.url,
-            success: (r) => { if (r.statusCode === 200) this._shareImagePath = r.tempFilePath; }
-          });
-        }
+        this.prepareShareCover(this.getFirstShareImageUrl(list));
       }
       // 异步检测单张图方向
       const baseIndex = reset ? 0 : (this.data.list.length - newItems.length);
@@ -137,6 +132,61 @@ Page({
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
     if (callback) callback();
+  },
+
+  getFirstShareImageUrl(list = this.data.list) {
+    for (const item of list || []) {
+      const firstImg = (item.mediaList || []).find(m => m.type !== 'video' && m.url);
+      if (firstImg) {
+        return firstImg.url;
+      }
+    }
+    return '';
+  },
+
+  getShareImageUrl() {
+    const sourceUrl = this.getFirstShareImageUrl();
+    if (!sourceUrl) {
+      return '';
+    }
+    if (this._shareImagePath && this._shareImageSourceUrl === sourceUrl) {
+      return this._shareImagePath;
+    }
+    return sourceUrl;
+  },
+
+  prepareShareCover(sourceUrl = this.getFirstShareImageUrl()) {
+    if (!sourceUrl) {
+      return Promise.resolve('');
+    }
+    if (this._shareImagePath && this._shareImageSourceUrl === sourceUrl) {
+      return Promise.resolve(this._shareImagePath);
+    }
+    if (this._shareCoverPromise && this._shareImageSourceUrl === sourceUrl) {
+      return this._shareCoverPromise;
+    }
+
+    this._shareImageSourceUrl = sourceUrl;
+    this._shareCoverPromise = createContainedShareCover(this, sourceUrl, {
+      selector: '#shareCoverCanvas'
+    })
+      .then((filePath) => {
+        if (this._shareImageSourceUrl === sourceUrl) {
+          this._shareImagePath = filePath;
+        }
+        return filePath;
+      })
+      .catch((error) => {
+        console.warn('生成在场列表分享封面失败，使用原图分享:', error);
+        return sourceUrl;
+      })
+      .finally(() => {
+        if (this._shareImageSourceUrl === sourceUrl) {
+          this._shareCoverPromise = null;
+        }
+      });
+
+    return this._shareCoverPromise;
   },
 
   onTypeChange(e) {
@@ -179,18 +229,28 @@ Page({
   },
 
   onShareAppMessage() {
-    return {
+    const shareConfig = {
       title: '在场 · 书友们的聚会印记',
       path: '/pages/zaichang/list/list',
-      imageUrl: this._shareImagePath || ''
+      imageUrl: this.getShareImageUrl()
     };
+    const sourceUrl = this.getFirstShareImageUrl();
+    if (sourceUrl) {
+      shareConfig.promise = this.prepareShareCover(sourceUrl)
+        .then((imageUrl) => ({
+          ...shareConfig,
+          imageUrl: imageUrl || shareConfig.imageUrl
+        }))
+        .catch(() => shareConfig);
+    }
+    return shareConfig;
   },
 
   onShareTimeline() {
     return {
       title: '在场 · 书友们的聚会印记',
       query: '',
-      imageUrl: this._shareImagePath || ''
+      imageUrl: this.getShareImageUrl()
     };
   }
 });

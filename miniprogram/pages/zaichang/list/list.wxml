@@ -107,4 +107,9 @@
     <text class="fab-icon">+</text>
     <text class="fab-text">留下印记</text>
   </view>
+  <canvas
+    id="shareCoverCanvas"
+    canvas-id="shareCoverCanvas"
+    type="2d"
+    class="share-cover-canvas"></canvas>
 </view>

@@ -7,6 +7,7 @@
  * 使用方式：
  *   node daily-log-report.js                    # 正常运行
  *   node daily-log-report.js --test             # 测试模式（不发邮件，输出到控制台）
+ *   node daily-log-report.js --no-email         # 写正式报告但不发送邮件
  *   node daily-log-report.js --hours 48         # 分析过去48小时
  *
  * Cron配置（每天17:00北京时间）：
@@ -60,8 +61,17 @@ const CONFIG = {
 
 const args = process.argv.slice(2);
 const isTestMode = args.includes('--test');
+const noEmail = args.includes('--no-email');
 const hoursIdx = args.indexOf('--hours');
-const hoursBack = hoursIdx !== -1 ? parseInt(args[hoursIdx + 1], 10) : 24;
+function parseHoursBack(value) {
+  if (value === undefined) return 24;
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`无效的 --hours 参数: ${value}`);
+  }
+  return parsed;
+}
+const hoursBack = parseHoursBack(hoursIdx !== -1 ? args[hoursIdx + 1] : undefined);
 const cutoffTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
 // ============================================================
@@ -892,13 +902,24 @@ function buildReportSummary(report) {
   };
 }
 
-function writeReportArtifacts(reportSummary, html) {
+function writeReportArtifacts(reportSummary, html, options = {}) {
   const outputDir = resolveOutputDir();
   const datePart = new Date(reportSummary.timeRange.to).toISOString().slice(0, 10);
-  const htmlLatest = path.join(outputDir, CONFIG.reportFiles.latestHtml);
-  const jsonLatest = path.join(outputDir, CONFIG.reportFiles.latestJson);
-  const htmlArchive = path.join(outputDir, `daily-report-${datePart}.html`);
-  const jsonArchive = path.join(outputDir, `daily-report-${datePart}.json`);
+  const timePart = new Date(reportSummary.timeRange.to).toISOString().slice(11, 16).replace(':', '');
+  const prefix = options.testMode ? 'daily-report-test' : 'daily-report';
+  const htmlLatest = path.join(
+    outputDir,
+    options.testMode ? 'daily-report-test-latest.html' : CONFIG.reportFiles.latestHtml
+  );
+  const jsonLatest = path.join(
+    outputDir,
+    options.testMode ? 'daily-report-test-latest.json' : CONFIG.reportFiles.latestJson
+  );
+  const archiveName = options.testMode
+    ? `${prefix}-${datePart}-${timePart}`
+    : `${prefix}-${datePart}`;
+  const htmlArchive = path.join(outputDir, `${archiveName}.html`);
+  const jsonArchive = path.join(outputDir, `${archiveName}.json`);
 
   fs.writeFileSync(htmlLatest, html);
   fs.writeFileSync(jsonLatest, JSON.stringify(reportSummary, null, 2));
@@ -1028,7 +1049,7 @@ async function main() {
 
   const html = generateHTML(report);
   const reportSummary = buildReportSummary(report);
-  const artifacts = writeReportArtifacts(reportSummary, html);
+  const artifacts = writeReportArtifacts(reportSummary, html, { testMode: isTestMode });
 
   const totalErrors = errorGroups.reduce((s, g) => s + g.count, 0);
   const totalExceptions = exceptionGroups.reduce((s, g) => s + g.count, 0);
@@ -1041,8 +1062,8 @@ async function main() {
   const subject = `${statusEmoji} 晨读营日志巡检 ${dateStr} | 错误${totalErrors} 告警${warnGroups.reduce((s, g) => s + g.count, 0)}`;
 
   // 6. 发送或输出
-  if (isTestMode) {
-    console.log(`\n📧 [测试模式] 邮件主题: ${subject}`);
+  if (isTestMode || noEmail) {
+    console.log(`\n📧 [${isTestMode ? '测试模式' : '不发邮件模式'}] 邮件主题: ${subject}`);
     console.log(`   邮件 HTML 长度: ${html.length} 字符`);
     console.log(`   HTML 已保存到: ${artifacts.htmlLatest}`);
     console.log(`   JSON 已保存到: ${artifacts.jsonLatest}`);

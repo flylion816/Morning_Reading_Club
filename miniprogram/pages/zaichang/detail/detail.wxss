@@ -90,3 +90,13 @@ page {
 .delete-imprint-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #FFF0F0; color: #e74c3c; font-size: 26rpx; white-space: nowrap; border: 2rpx solid #e74c3c; }
 
 .loading-page { display: flex; justify-content: center; align-items: center; height: 60vh; font-size: 28rpx; color: var(--zc-text-secondary); }
+
+.share-cover-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 500px;
+  height: 400px;
+  opacity: 0;
+  pointer-events: none;
+}

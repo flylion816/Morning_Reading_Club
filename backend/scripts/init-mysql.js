@@ -217,6 +217,7 @@ const TABLE_DEFINITIONS = {
       reading_time INT COMMENT '阅读时间',
       completion_rate INT COMMENT '完成率',
       note LONGTEXT COMMENT '笔记',
+      content_html LONGTEXT COMMENT '富文本打卡内容 HTML',
       images JSON COMMENT '图片列表',
       mood VARCHAR(50) COMMENT '心情',
       points INT DEFAULT 0 COMMENT '积分',

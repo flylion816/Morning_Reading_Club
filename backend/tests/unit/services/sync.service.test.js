@@ -63,6 +63,20 @@ describe('Sync Service', () => {
       });
     });
 
+    it('should preserve checkin rich text HTML for MySQL sync', () => {
+      const transformed = transformDocumentForMySQL('checkins', {
+        _id: { toString: () => 'checkin123' },
+        note: '要事第一',
+        contentHtml: '<p><strong>要事第一</strong></p>'
+      });
+
+      expect(transformed).to.include({
+        id: 'checkin123',
+        note: '要事第一',
+        content_html: '<p><strong>要事第一</strong></p>'
+      });
+    });
+
     it('should normalize enrollment yes/no fields before syncing to MySQL', () => {
       const transformed = transformDocumentForMySQL('enrollments', {
         _id: { toString: () => 'enrollment123' },

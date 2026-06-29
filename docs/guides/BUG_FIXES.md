@@ -4443,6 +4443,51 @@ const filtered = insightsList;
 
 ---
 
+### 33. 巡检日志提示 MySQL 备份表缺少 content_html
+
+**问题现象**：
+
+- 每日巡检报告出现 `Failed to sync checkins/... to MySQL Unknown column 'content_html' in 'field list'`
+- 随后可能出现 `Sync failed after 3 retries, giving up`
+- 部分评论同步可能报 `comments` 外键失败，因为对应 `checkins` 记录没有先写入 MySQL 备份表
+
+**根本原因**：
+
+MongoDB `Checkin` 已支持富文本字段 `contentHtml`，通用同步服务会把 camelCase 转成 MySQL 的 `content_html`。但线上 MySQL 备份表是旧结构，没有该列，导致 checkins UPSERT 失败。
+
+**解决方案**：
+
+1. 先备份相关 MySQL 表，不能重建或初始化数据库。
+2. 只补列：
+
+```sql
+ALTER TABLE checkins
+  ADD COLUMN content_html LONGTEXT NULL COMMENT '富文本打卡内容 HTML' AFTER note;
+```
+
+3. 回放失败的 `checkins` 和连锁失败的 `comments` 同步记录。
+4. 更新代码侧 schema 和备份同步 SQL，避免下次部署或初始化定义继续缺列。
+
+**经验教训**：
+
+- ✅ `CREATE TABLE IF NOT EXISTS` 不会修复已有表结构，新增 Mongo 字段进入同步链路时必须补 MySQL 迁移。
+- ✅ 巡检测试用 `daily-log-report.js --test` 时不能覆盖正式 `daily-report-latest.*` 或归档文件，应写入 `daily-report-test-*`。
+- ✅ 短窗口巡检需要支持小数小时，例如 `--hours 0.15`，否则容易被解析成 0 小时。
+- ⚠️ 不要为修复备份表结构执行 `init-mysql.js`、`init-mongodb.js` 或任何数据库初始化/清空脚本。
+
+**修改文件**：
+
+- `backend/database/mysql-schema.sql`
+- `backend/scripts/init-mysql.js`
+- `backend/src/services/mysql-backup.service.js`
+- `backend/scripts/daily-log-report.js`
+- `backend/scripts/diagnose-daily-report.js`
+- `backend/tests/unit/services/sync.service.test.js`
+
+**线上处理记录**：2026-06-29 已备份 `checkins/comments`，补充 `checkins.content_html`，并回放失败同步记录。
+
+---
+
 **最后更新**: 2025-11-29 (修复小程序无法显示分配insights的问题 - 完成小凡看见visibility fix)
 **维护者**: Claude Code
 **项目状态**: 小凡看见编辑保存功能修复完成 + 所有字段正确同步 ✅

@@ -133,3 +133,9 @@
 <view wx:if="{{loading}}" class="loading-page">
   <text>加载中...</text>
 </view>
+
+<canvas
+  id="shareCoverCanvas"
+  canvas-id="shareCoverCanvas"
+  type="2d"
+  class="share-cover-canvas"></canvas>

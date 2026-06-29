@@ -148,3 +148,13 @@ page {
 }
 .fab-icon { font-size: 36rpx; font-weight: 300; line-height: 1; }
 .fab-text { font-size: 28rpx; font-weight: 500; }
+
+.share-cover-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 500px;
+  height: 400px;
+  opacity: 0;
+  pointer-events: none;
+}

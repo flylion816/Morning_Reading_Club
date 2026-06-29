@@ -11,6 +11,7 @@ const { renderRichTextContent } = require('../../utils/markdown');
 const envConfig = require('../../config/env');
 const { requireLogin } = require('../../utils/require-login');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
+const { createContainedShareCover } = require('../../utils/share-cover');
 const {
   createPodcastAudioContext,
   setPodcastAudioSource,
@@ -158,6 +159,9 @@ Page({
     showCheckinShareMenu: false,
     checkinTextShareFilePath: '',
     checkinTextShareFileName: '',
+    checkinShareCoverFilePath: '',
+    checkinShareCoverSourceUrl: '',
+    checkinShareCoverReady: false,
     // 播客
     podcastPlaying: false,
     podcastLoading: false,
@@ -226,6 +230,9 @@ Page({
       showCheckinShareMenu: false,
       checkinTextShareFilePath: '',
       checkinTextShareFileName: '',
+      checkinShareCoverFilePath: '',
+      checkinShareCoverSourceUrl: '',
+      checkinShareCoverReady: false,
       closingVideoShareMode: false
     });
     this.loadCourseDetail();
@@ -358,10 +365,23 @@ Page({
     }
 
     if (shareCheckinId && canShareCurrentCheckin) {
-      return {
+      const shareConfig = {
         title: this.getCheckinShareTitle(),
         path: `/pages/course-detail/course-detail?id=${courseId}&checkinId=${shareCheckinId}`
       };
+      const checkinShareImageUrl = this.getCheckinShareImageUrl();
+      if (checkinShareImageUrl) {
+        shareConfig.imageUrl = checkinShareImageUrl;
+      }
+      if (this.getCheckinFirstImageUrl(shareCheckinId)) {
+        shareConfig.promise = this.prepareCheckinShareCover(shareCheckinId)
+          .then((imageUrl) => ({
+            ...shareConfig,
+            imageUrl: imageUrl || shareConfig.imageUrl
+          }))
+          .catch(() => shareConfig);
+      }
+      return shareConfig;
     }
 
     activityService.track('course_share', { targetId: courseId });
@@ -384,10 +404,15 @@ Page({
     } = this.data;
 
     if (shareCheckinId && canShareCurrentCheckin) {
-      return {
+      const timelineConfig = {
         title: this.getCheckinShareTitle(),
         query: `id=${courseId}&checkinId=${shareCheckinId}`
       };
+      const checkinShareImageUrl = this.getCheckinShareImageUrl();
+      if (checkinShareImageUrl) {
+        timelineConfig.imageUrl = checkinShareImageUrl;
+      }
+      return timelineConfig;
     }
 
     const timelineConfig = {
@@ -406,6 +431,114 @@ Page({
     return userName
       ? `${userName}的打卡日记`
       : course.title || '动态详情';
+  },
+
+  getCheckinFirstImageUrl(checkinId = this.data.shareCheckinId) {
+    if (!checkinId) {
+      return '';
+    }
+
+    const { detailCheckin, course } = this.data;
+    const candidates = [];
+
+    if (
+      detailCheckin &&
+      String(detailCheckin.id || detailCheckin._id) === String(checkinId)
+    ) {
+      candidates.push(detailCheckin);
+    }
+
+    const targetCheckin = (course?.comments || []).find(
+      (item) => String(item.id || item._id) === String(checkinId)
+    );
+    if (targetCheckin) {
+      candidates.push(targetCheckin);
+    }
+
+    for (const checkin of candidates) {
+      const images = normalizeCheckinImages(checkin.images);
+      if (images.length > 0) {
+        return images[0];
+      }
+    }
+
+    return '';
+  },
+
+  getCheckinShareImageUrl(checkinId = this.data.shareCheckinId) {
+    const sourceUrl = this.getCheckinFirstImageUrl(checkinId);
+    if (!sourceUrl) {
+      return '';
+    }
+
+    if (
+      this.data.checkinShareCoverFilePath &&
+      this.data.checkinShareCoverSourceUrl === sourceUrl &&
+      this.data.checkinShareCoverReady
+    ) {
+      return this.data.checkinShareCoverFilePath;
+    }
+
+    return sourceUrl;
+  },
+
+  async generateCheckinShareCover(sourceUrl) {
+    return createContainedShareCover(this, sourceUrl, {
+      selector: '#checkinShareCoverCanvas'
+    });
+  },
+
+  async prepareCheckinShareCover(checkinId = this.data.shareCheckinId) {
+    const sourceUrl = this.getCheckinFirstImageUrl(checkinId);
+    if (!sourceUrl) {
+      return '';
+    }
+
+    if (
+      this.data.checkinShareCoverFilePath &&
+      this.data.checkinShareCoverSourceUrl === sourceUrl &&
+      this.data.checkinShareCoverReady
+    ) {
+      return this.data.checkinShareCoverFilePath;
+    }
+
+    if (
+      this._checkinShareCoverPromise &&
+      this._checkinShareCoverSourceUrl === sourceUrl
+    ) {
+      return this._checkinShareCoverPromise;
+    }
+
+    this._checkinShareCoverSourceUrl = sourceUrl;
+    this._checkinShareCoverPromise = this.generateCheckinShareCover(sourceUrl)
+      .then((filePath) => {
+        if (this._checkinShareCoverSourceUrl === sourceUrl) {
+          this.setData({
+            checkinShareCoverFilePath: filePath,
+            checkinShareCoverSourceUrl: sourceUrl,
+            checkinShareCoverReady: true
+          });
+        }
+        return filePath;
+      })
+      .catch((error) => {
+        console.warn('生成打卡分享封面失败，使用原图分享:', error);
+        if (this._checkinShareCoverSourceUrl === sourceUrl) {
+          this.setData({
+            checkinShareCoverFilePath: '',
+            checkinShareCoverSourceUrl: sourceUrl,
+            checkinShareCoverReady: false
+          });
+        }
+        return sourceUrl;
+      })
+      .finally(() => {
+        if (this._checkinShareCoverSourceUrl === sourceUrl) {
+          this._checkinShareCoverPromise = null;
+        }
+      });
+
+    return this._checkinShareCoverPromise;
   },
 
   buildCheckinTextShareContent(checkin = this.data.detailCheckin) {
@@ -437,7 +570,8 @@ Page({
     return `${fileName}.txt`;
   },
 
-  prepareCheckinTextShareFile() {
+  prepareCheckinTextShareFile(options = {}) {
+    const showLoading = options.showLoading !== false;
     const content = this.buildCheckinTextShareContent();
 
     if (!content.trim()) {
@@ -455,7 +589,9 @@ Page({
 
     const fileName = this.getCheckinTextShareFileName();
     const filePath = `${userDataPath}/${fileName}`;
-    wx.showLoading?.({ title: '生成文本...', mask: true });
+    if (showLoading) {
+      wx.showLoading?.({ title: '生成文本...', mask: true });
+    }
 
     return new Promise(resolve => {
       fileSystemManager.writeFile({
@@ -463,7 +599,9 @@ Page({
         data: content,
         encoding: 'utf8',
         success: () => {
-          wx.hideLoading?.();
+          if (showLoading) {
+            wx.hideLoading?.();
+          }
           this.setData({
             checkinTextShareFilePath: filePath,
             checkinTextShareFileName: fileName
@@ -471,7 +609,9 @@ Page({
           resolve(true);
         },
         fail: error => {
-          wx.hideLoading?.();
+          if (showLoading) {
+            wx.hideLoading?.();
+          }
           console.error('打卡文本文件生成失败:', error);
           this.setData({ checkinTextShareFilePath: '', checkinTextShareFileName: '' });
           resolve(false);
@@ -481,8 +621,16 @@ Page({
   },
 
   async openCheckinShareMenu() {
-    await this.prepareCheckinTextShareFile();
-    this.setData({ showCheckinShareMenu: true });
+    wx.showLoading?.({ title: '准备分享...', mask: true });
+    try {
+      await Promise.all([
+        this.prepareCheckinTextShareFile({ showLoading: false }),
+        this.prepareCheckinShareCover()
+      ]);
+      this.setData({ showCheckinShareMenu: true });
+    } finally {
+      wx.hideLoading?.();
+    }
   },
 
   closeCheckinShareMenu() {
@@ -991,6 +1139,10 @@ Page({
     this.setData({
       detailCheckin,
       canShareCurrentCheckin: !!detailCheckin.canShare
+    }, () => {
+      if (detailCheckin.canShare && detailCheckin.imageCount > 0) {
+        this.prepareCheckinShareCover(checkinId);
+      }
     });
     this.updateShareMenu(!!detailCheckin.canShare);
   },

@@ -213,13 +213,24 @@ function resolveOutputDir() {
   return fallbackDir;
 }
 
-function writeArtifacts(html, diagnosis, reportSummary) {
+function writeArtifacts(html, diagnosis, reportSummary, options = {}) {
   const outputDir = resolveOutputDir();
   const datePart = new Date(reportSummary.timeRange.to).toISOString().slice(0, 10);
-  const htmlLatest = path.join(outputDir, CONFIG.outputFiles.latestHtml);
-  const jsonLatest = path.join(outputDir, CONFIG.outputFiles.latestJson);
-  const htmlArchive = path.join(outputDir, `daily-diagnosis-${datePart}.html`);
-  const jsonArchive = path.join(outputDir, `daily-diagnosis-${datePart}.json`);
+  const timePart = new Date(reportSummary.timeRange.to).toISOString().slice(11, 16).replace(':', '');
+  const prefix = options.testMode ? 'daily-diagnosis-test' : 'daily-diagnosis';
+  const htmlLatest = path.join(
+    outputDir,
+    options.testMode ? 'daily-diagnosis-test-latest.html' : CONFIG.outputFiles.latestHtml
+  );
+  const jsonLatest = path.join(
+    outputDir,
+    options.testMode ? 'daily-diagnosis-test-latest.json' : CONFIG.outputFiles.latestJson
+  );
+  const archiveName = options.testMode
+    ? `${prefix}-${datePart}-${timePart}`
+    : `${prefix}-${datePart}`;
+  const htmlArchive = path.join(outputDir, `${archiveName}.html`);
+  const jsonArchive = path.join(outputDir, `${archiveName}.json`);
   const payload = {
     diagnosis,
     reportSummary,
@@ -242,7 +253,7 @@ async function main() {
   const diagnosis = buildDiagnosis(reportSummary);
   const html = generateHTML(reportSummary, diagnosis);
   const subject = buildSubject(reportSummary, diagnosis);
-  const artifacts = writeArtifacts(html, diagnosis, reportSummary);
+  const artifacts = writeArtifacts(html, diagnosis, reportSummary, { testMode: isTestMode });
 
   console.log(`📄 诊断结果已写入: ${artifacts.htmlLatest}`);
   console.log(`📄 诊断摘要已写入: ${artifacts.jsonLatest}`);

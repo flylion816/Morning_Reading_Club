@@ -661,6 +661,11 @@
     canvas-id="longImageCanvas"
     type="2d"
     class="long-image-canvas"></canvas>
+  <canvas
+    id="checkinShareCoverCanvas"
+    canvas-id="checkinShareCoverCanvas"
+    type="2d"
+    class="checkin-share-cover-canvas"></canvas>
 </view>
 
 <podcast-player-bar bottom-offset="160" />

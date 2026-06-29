@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS checkins (
   reading_time INT DEFAULT 0 COMMENT '阅读时长（分钟）',
   completion_rate INT DEFAULT 0 COMMENT '完成度（0-100）',
   note TEXT COMMENT '打卡笔记',
+  content_html LONGTEXT COMMENT '富文本打卡内容 HTML',
   images JSON COMMENT '图片 URL 数组',
   mood ENUM('happy', 'calm', 'thoughtful', 'inspired', 'other') COMMENT '心情',
   points INT DEFAULT 10 COMMENT '获得积分',
