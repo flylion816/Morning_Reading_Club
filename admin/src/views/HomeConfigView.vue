@@ -171,17 +171,27 @@ function moveSection(index: number, direction: number) {
   sections.value = next;
 }
 
-function toggleSection(key: string) {
+async function toggleSection(key: string) {
+  const target = sections.value.find((item) => item.key === key);
+  if (!target) return;
+  const nextHidden = !target.hidden;
   sections.value = sections.value.map((item) =>
-    item.key === key ? { ...item, hidden: !item.hidden } : item
+    item.key === key ? { ...item, hidden: nextHidden } : item
   );
+
+  try {
+    await saveConfig({ silent: true });
+    ElMessage.success(nextHidden ? '板块已隐藏' : '板块已显示');
+  } catch {
+    await loadConfig();
+  }
 }
 
 function resetDefault() {
   sections.value = buildItems(DEFAULT_SECTIONS);
 }
 
-async function saveConfig() {
+async function saveConfig(options: { silent?: boolean } = {}) {
   saving.value = true;
   try {
     await homeConfigApi.updateConfig(
@@ -190,10 +200,13 @@ async function saveConfig() {
         hidden: item.hidden
       }))
     );
-    ElMessage.success('首页配置已保存');
+    if (!options.silent) {
+      ElMessage.success('首页配置已保存');
+    }
     await loadConfig();
   } catch (error: any) {
     ElMessage.error(error?.message || '保存首页配置失败');
+    throw error;
   } finally {
     saving.value = false;
   }

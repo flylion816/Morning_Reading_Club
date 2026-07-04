@@ -12,4 +12,10 @@ describe('HomeConfigView', () => {
     expect(source).toContain('toggleSection(row.key)');
     expect(source).toContain('hidden: item.hidden');
   });
+
+  it('saves immediately after a section visibility toggle', () => {
+    expect(source).toContain('async function toggleSection');
+    expect(source).toContain('await saveConfig({ silent: true })');
+    expect(source).toContain("ElMessage.success(nextHidden ? '板块已隐藏' : '板块已显示')");
+  });
 });
