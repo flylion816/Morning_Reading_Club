@@ -1,26 +1,37 @@
 <view class="popup-mask" wx:if="{{show}}" catchtap="handleClose">
   <view class="popup-card" catchtap="stopPropagation">
-    <!-- 海报图 -->
-    <view class="popup-poster-wrap">
+    <view wx:if="{{activity.posterUrl}}" class="popup-poster-wrap">
       <image
-        wx:if="{{activity.posterUrl}}"
         class="popup-cover"
         src="{{activity.posterUrl}}"
         mode="aspectFill"
       />
-      <view wx:else class="popup-cover-placeholder" />
+      <view class="popup-poster-shade"></view>
       <view class="popup-close-btn" catchtap="handleClose">✕</view>
       <view class="popup-type-tag">{{typeLabel}}</view>
     </view>
-    <!-- 内容 -->
-    <view class="popup-body">
-      <view class="popup-title">{{activity.title}}</view>
-      <view class="popup-time">🗓 {{timeText}}</view>
+
+    <view wx:else class="popup-compact-head">
+      <view class="popup-head-line"></view>
+      <view class="popup-type-tag popup-type-tag-plain">{{typeLabel}}</view>
+      <view class="popup-close-btn popup-close-btn-plain" catchtap="handleClose">✕</view>
     </view>
-    <!-- 操作 -->
+
+    <view class="popup-body">
+      <view class="popup-kicker">
+        <view class="popup-kicker-dot"></view>
+        <text>近期活动</text>
+      </view>
+      <view class="popup-title">{{activity.title}}</view>
+      <view class="popup-time">
+        <text class="popup-time-label">时间</text>
+        <text>{{timeText}}</text>
+      </view>
+    </view>
+
     <view class="popup-actions">
       <view class="popup-btn-close-text" catchtap="handleClose">今日不再提示</view>
-      <view class="popup-btn-detail" catchtap="handleViewDetail">查看活动详情 →</view>
+      <view class="popup-btn-detail" catchtap="handleViewDetail">查看活动详情</view>
     </view>
   </view>
 </view>

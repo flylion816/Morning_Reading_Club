@@ -59,11 +59,11 @@
         "type": "folder"
       },
       {
-        "value": "assets/tenants/fanren",
+        "value": "assets/tenants/starry",
         "type": "folder"
       },
       {
-        "value": "assets/tenants/starry/share-cover.jpg",
+        "value": "assets/tenants/fanren/share-cover.jpg",
         "type": "file"
       },
       {
@@ -91,11 +91,11 @@
         "type": "folder"
       },
       {
-        "value": "miniprogram/assets/tenants/fanren",
+        "value": "miniprogram/assets/tenants/starry",
         "type": "folder"
       },
       {
-        "value": "miniprogram/assets/tenants/starry/share-cover.jpg",
+        "value": "miniprogram/assets/tenants/fanren/share-cover.jpg",
         "type": "file"
       }
     ],
@@ -145,7 +145,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.11.1",
-  "appid": "wx9cd59e2c89880289",
+  "appid": "wx2b9a3c1d5e4195f8",
   "projectname": "morning-reading-miniapp",
   "isGameTourist": false,
   "condition": {

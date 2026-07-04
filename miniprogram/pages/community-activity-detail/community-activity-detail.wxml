@@ -41,9 +41,7 @@
     <view wx:if="{{activity.userRegistration && submittedAnswers.length > 0}}" class="my-registration-card">
       <view class="my-registration-head">
         <text class="my-registration-title">我的报名信息</text>
-        <text class="my-registration-status">
-          {{activity.userRegistration.paymentStatus === 'pending' ? '待支付' : '已提交'}}
-        </text>
+        <view class="my-registration-status">{{activity.userRegistration.paymentStatus === 'pending' ? '待支付' : '已提交'}}</view>
       </view>
       <view class="answer-list">
         <view wx:for="{{submittedAnswers}}" wx:key="fieldId" class="answer-row">

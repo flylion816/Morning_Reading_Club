@@ -44,18 +44,24 @@
 }
 
 .type-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 6rpx 20rpx;
   border-radius: 20rpx;
   font-size: 24rpx;
+  line-height: 1.2;
   margin-bottom: 16rpx;
   background: var(--theme-primary-tint);
   color: var(--theme-primary);
 }
 
-.type-tag.type-witness { background: #fce8e8; color: #e53935; }
-.type-tag.type-chat { background: #e8f5e9; color: #43a047; }
-.type-tag.type-other { background: #f3e5f5; color: #8e24aa; }
+.type-tag.type-witness,
+.type-tag.type-chat,
+.type-tag.type-other {
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
+}
 
 .activity-title {
   display: block;
@@ -178,11 +184,20 @@
 }
 
 .my-registration-status {
-  padding: 6rpx 16rpx;
+  width: 96rpx;
+  height: 52rpx;
+  padding: 0;
   border-radius: 999rpx;
   background: var(--theme-primary-tint);
   color: var(--theme-primary);
+  display: block;
+  box-sizing: border-box;
+  flex-shrink: 0;
   font-size: 22rpx;
+  font-weight: 600;
+  line-height: 52rpx;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .answer-list {

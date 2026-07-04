@@ -24,6 +24,7 @@
     "tenant:apply": "node miniprogram/scripts/apply-tenant.js",
     "tenant:push": "node miniprogram/scripts/upload-tenant.js --sync",
     "tenant:reset": "node miniprogram/scripts/apply-tenant.js fanren",
+    "tenant:switch": "node miniprogram/scripts/switch-tenant.js",
     "tenant:sync": "node miniprogram/scripts/sync-tenant-config.js",
     "tenant:sync-upload": "node miniprogram/scripts/upload-tenant.js --sync",
     "tenant:upload": "node miniprogram/scripts/upload-tenant.js"
