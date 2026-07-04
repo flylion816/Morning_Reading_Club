@@ -9,6 +9,7 @@ const {
   decorateSectionsWithReadingCompletion
 } = require('../../utils/reading-completion');
 const { isAdminUser } = require('../../utils/auth');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 // 相对时间格式化（与课程详情页统一）
 function formatTime(dateStr) {
@@ -78,7 +79,8 @@ Page({
     isSearchMode: false,
     searchLoading: false,
     filteredSections: [],
-    searchCheckins: []
+    searchCheckins: [],
+    themePrimaryColor: THEME_PRIMARY
   },
 
   onLoad(options) {

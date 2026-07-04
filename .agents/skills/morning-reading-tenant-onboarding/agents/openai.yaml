@@ -1,0 +1,6 @@
+interface:
+  display_name: "晨读营新租户开通"
+  short_description: "引导并执行晨读营新租户完整开通流程。"
+  default_prompt: "帮我按晨读营新租户开通流程，收集资料、配置小程序、上传开发版并完成验证。"
+policy:
+  allow_implicit_invocation: true

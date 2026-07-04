@@ -1,3 +1,5 @@
+const { THEME_PRIMARY } = require('./theme');
+
 function isLikelyHtml(content) {
   return typeof content === 'string' && /<\/?[a-z][\s\S]*>/i.test(content);
 }
@@ -32,7 +34,7 @@ function renderInlineMarkdown(text, options = {}) {
   );
   rendered = rendered.replace(
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2" style="color:#357abd;text-decoration:underline;">$1</a>'
+    `<a href="$2" style="color:${THEME_PRIMARY};text-decoration:underline;">$1</a>`
   );
   rendered = rendered.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   rendered = rendered.replace(/\*\*([^*]+)\*\*/g, `<strong${strongStyle}>$1</strong>`);
@@ -74,7 +76,7 @@ function getInsightTitleType(text) {
 function insightTitleNode(type, title) {
   if (type === 'share') {
     return [
-      '<p style="margin:0 0 28px;padding-left:12px;border-left:4px solid #4a90e2;line-height:1.35;font-size:22px;font-weight:900;color:#1f2937;">',
+      `<p style="margin:0 0 28px;padding-left:12px;border-left:4px solid ${THEME_PRIMARY};line-height:1.35;font-size:22px;font-weight:900;color:#1f2937;">`,
       renderInlineMarkdown(title),
       '</p>'
     ].join('');
@@ -82,7 +84,7 @@ function insightTitleNode(type, title) {
 
   return [
     '<div style="height:1px;background:#e8edf3;margin:34px 0 22px;"></div>',
-    '<p style="margin:0 0 24px;padding-left:12px;border-left:4px solid #4a90e2;line-height:1.35;font-size:22px;font-weight:900;color:#2f7ed8;">',
+    `<p style="margin:0 0 24px;padding-left:12px;border-left:4px solid ${THEME_PRIMARY};line-height:1.35;font-size:22px;font-weight:900;color:${THEME_PRIMARY};">`,
     renderInlineMarkdown(title),
     '</p>'
   ].join('');

@@ -3,6 +3,7 @@ const enrollmentService = require('../../services/enrollment.service');
 const activityService = require('../../services/activity.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getLastTextChar } = require('../../utils/avatar');
+const { THEME_PRIMARY } = require('../../utils/theme');
 const {
   getPeriodAccess,
   hasPaidEnrollment,
@@ -67,7 +68,7 @@ function buildPeriodOption(period) {
     displayTitle: truncateCardTitle(title),
     subtitle: `共发布${period.diaryCount || 0}篇日记`,
     icon: period.coverEmoji || period.icon || '📚',
-    color: period.coverColor || period.color || '#4a90e2',
+    color: period.coverColor || period.color || THEME_PRIMARY,
     diaryCount: period.diaryCount || 0,
     checkedDays: period.checkedDays || 0,
     likeCount: period.likeCount || 0,
@@ -90,7 +91,7 @@ function buildAllPeriodOption(summaryStats = {}) {
     displayTitle: title,
     subtitle: `共发布${summaryStats.diaryCount || 0}篇日记`,
     icon: '🗂️',
-    color: '#4a90e2',
+    color: THEME_PRIMARY,
     diaryCount: summaryStats.diaryCount || 0,
     checkedDays: summaryStats.totalCheckins || 0,
     likeCount: summaryStats.likeCount || 0,
@@ -159,7 +160,7 @@ Page({
     userInfo: {
       userName: '用户',
       avatarUrl: '',
-      avatarColor: '#4a90e2',
+      avatarColor: THEME_PRIMARY,
       avatarText: 'U'
     },
     stats: buildDefaultStats(),

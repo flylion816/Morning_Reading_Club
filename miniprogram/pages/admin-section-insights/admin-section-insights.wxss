@@ -36,7 +36,7 @@
   width: 60rpx;
   height: 60rpx;
   border: 4rpx solid #e5e7eb;
-  border-top-color: #4a90e2;
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

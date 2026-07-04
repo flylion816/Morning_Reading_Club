@@ -8,7 +8,7 @@
 
 /* 顶部横幅 */
 .home-banner {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   padding: 60rpx 32rpx;
   position: relative;
   display: flex;
@@ -61,7 +61,7 @@
 .user-signature {
   padding: 12rpx;
   background: #f9fafb;
-  border-left: 4rpx solid #4a90e2;
+  border-left: 4rpx solid var(--theme-primary);
   border-radius: 8rpx;
 }
 
@@ -92,8 +92,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid rgba(74, 144, 226, 0.2);
-  border-top-color: #4a90e2;
+  border: 4rpx solid var(--theme-primary-alpha-20);
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -183,9 +183,9 @@
 }
 
 .enrollment-label.enroll-label-inline .label-text {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
-  box-shadow: 0 2rpx 8rpx rgba(74, 144, 226, 0.3);
+  box-shadow: 0 2rpx 8rpx var(--theme-primary-shadow);
 }
 
 .enrollment-label.enroll-label-inline:active .label-text {
@@ -197,8 +197,8 @@
   display: flex;
   gap: 16rpx;
   padding: 16rpx 20rpx;
-  background: #f9fbff;
-  border-top: 1rpx solid #e8f0fe;
+  background: var(--theme-primary-tint);
+  border-top: 1rpx solid var(--theme-primary-tint);
 }
 
 .btn-invite {
@@ -207,9 +207,9 @@
   line-height: 64rpx;
   font-size: 24rpx;
   font-weight: 500;
-  color: #4a90e2;
+  color: var(--theme-primary);
   background: white;
-  border: 2rpx solid #4a90e2;
+  border: 2rpx solid var(--theme-primary);
   border-radius: 32rpx;
   padding: 0;
   margin: 0;
@@ -221,7 +221,7 @@
 }
 
 .btn-invite:active {
-  background: #f0f6ff;
+  background: var(--theme-primary-tint);
 }
 
 .btn-enroll-entry {
@@ -231,7 +231,7 @@
   font-size: 24rpx;
   font-weight: 500;
   color: white;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   border: none;
   border-radius: 32rpx;
   padding: 0;

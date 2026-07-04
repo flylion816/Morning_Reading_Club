@@ -73,10 +73,12 @@ describe('Enrollment Controller', () => {
     };
 
     TenantStub = {
+      find: sandbox.stub(),
       findOne: sandbox.stub().returns({
         select: sandbox.stub().returns({
           lean: sandbox.stub().resolves({
             _id: tenantId,
+            slug: 'fanren',
             name: '凡人共读',
             wechatLogin: { appId: 'wx-test' },
             status: 'active'
@@ -666,7 +668,7 @@ describe('Enrollment Controller', () => {
   describe('外部期次接口', () => {
     it('应该返回当前运行中的期次及当天 sessionId', async () => {
       const clock = sandbox.useFakeTimers(new Date('2026-05-11T02:00:00.000Z'));
-      req.query = { tenantName: '凡人共读' };
+      req.query = {};
       const periodId = fixtures.testPeriods.ongoingPeriod._id;
       const sectionId = new mongoose.Types.ObjectId();
       const period = {
@@ -676,14 +678,51 @@ describe('Enrollment Controller', () => {
         endDate: new Date('2026-05-31T00:00:00.000Z'),
         totalDays: 23
       };
+      const starryTenantId = new mongoose.Types.ObjectId();
+      const starryPeriodId = new mongoose.Types.ObjectId();
+      TenantStub.find.returns({
+        select: sandbox.stub().returns({
+          sort: sandbox.stub().returns({
+            lean: sandbox.stub().resolves([
+              {
+                _id: tenantId,
+                slug: 'fanren',
+                name: '凡人共读',
+                wechatLogin: { appId: 'wx2b9a3c1d5e4195f8' },
+                status: 'active'
+              },
+              {
+                _id: starryTenantId,
+                slug: 'starry',
+                name: '若星生活家',
+                wechatLogin: { appId: 'wx9cd59e2c89880289' },
+                status: 'active'
+              }
+            ])
+          })
+        })
+      });
 
-      PeriodStub.find.returns({
+      PeriodStub.find.onFirstCall().returns({
         sort: sandbox.stub().returns({
           lean: sandbox.stub().resolves([period])
         })
       });
+      PeriodStub.find.onSecondCall().returns({
+        sort: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([
+            {
+              _id: starryPeriodId,
+              name: '平衡之道',
+              startDate: new Date('2026-05-11T00:00:00.000Z'),
+              endDate: new Date('2026-05-31T00:00:00.000Z'),
+              totalDays: 23
+            }
+          ])
+        })
+      });
 
-      SectionStub.find.returns({
+      SectionStub.find.onFirstCall().returns({
         select: sandbox.stub().returns({
           lean: sandbox.stub().resolves([
             {
@@ -694,14 +733,27 @@ describe('Enrollment Controller', () => {
           ])
         })
       });
+      SectionStub.find.onSecondCall().returns({
+        select: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([])
+        })
+      });
 
       await enrollmentController.getActivePeriodsForExternal(req, res, next);
 
       expect(res.json.calledOnce).to.be.true;
       const response = res.json.getCall(0).args[0];
       expect(response.code).to.equal(200);
-      expect(response.data.total).to.equal(1);
-      expect(response.data.list).to.deep.equal([
+      expect(response.data.totalTenants).to.equal(2);
+      expect(response.data.totalPeriods).to.equal(2);
+      expect(response.data.tenants).to.have.length(2);
+      expect(response.data.tenants[0]).to.include({
+        tenantSlug: 'fanren',
+        tenantName: '凡人共读',
+        wxAppId: 'wx2b9a3c1d5e4195f8',
+        total: 1
+      });
+      expect(response.data.tenants[0].list).to.deep.equal([
         {
           periodId: periodId.toString(),
           periodName: '内在之光',
@@ -709,6 +761,12 @@ describe('Enrollment Controller', () => {
           sessionId: sectionId.toString()
         }
       ]);
+      expect(response.data.tenants[1]).to.include({
+        tenantSlug: 'starry',
+        tenantName: '若星生活家',
+        wxAppId: 'wx9cd59e2c89880289',
+        total: 1
+      });
       const periodQuery = PeriodStub.find.getCall(0).args[0];
       expect(periodQuery.startDate.$lte.getFullYear()).to.equal(2026);
       expect(periodQuery.startDate.$lte.getMonth()).to.equal(4);
@@ -727,6 +785,65 @@ describe('Enrollment Controller', () => {
       const sectionQuery = SectionStub.find.getCall(0).args[0].$or[0];
       expect(sectionQuery.day).to.equal(2);
       expect(next.called).to.be.false;
+      clock.restore();
+    });
+
+    it('应该支持通过 tenantSlug 查询当前运行中的期次', async () => {
+      const clock = sandbox.useFakeTimers(new Date('2026-05-11T02:00:00.000Z'));
+      req.query = { tenantSlug: 'fanren' };
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      const sectionId = new mongoose.Types.ObjectId();
+      const period = {
+        _id: periodId,
+        name: '内在之光',
+        startDate: new Date('2026-05-09T00:00:00.000Z'),
+        endDate: new Date('2026-05-31T00:00:00.000Z'),
+        totalDays: 23
+      };
+      TenantStub.findOne.returns({
+        select: sandbox.stub().returns({
+          lean: sandbox.stub().resolves({
+            _id: tenantId,
+            slug: 'fanren',
+            name: '凡人共读',
+            wechatLogin: { appId: 'wx2b9a3c1d5e4195f8' },
+            status: 'active'
+          })
+        })
+      });
+      PeriodStub.find.returns({
+        sort: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([period])
+        })
+      });
+      SectionStub.find.returns({
+        select: sandbox.stub().returns({
+          lean: sandbox.stub().resolves([
+            { _id: sectionId, periodId, day: 2 }
+          ])
+        })
+      });
+
+      await enrollmentController.getActivePeriodsForExternal(req, res, next);
+
+      const tenantQuery = TenantStub.findOne.getCall(0).args[0];
+      expect(tenantQuery).to.deep.equal({ slug: 'fanren', status: 'active' });
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.totalTenants).to.equal(1);
+      expect(response.data.totalPeriods).to.equal(1);
+      expect(response.data.tenants).to.have.length(1);
+      expect(response.data.tenants[0]).to.include({
+        tenantSlug: 'fanren',
+        tenantName: '凡人共读',
+        wxAppId: 'wx2b9a3c1d5e4195f8',
+        total: 1
+      });
+      expect(response.data.tenants[0].list[0]).to.include({
+        periodId: periodId.toString(),
+        periodName: '内在之光',
+        day: 2,
+        sessionId: sectionId.toString()
+      });
       clock.restore();
     });
 
@@ -774,7 +891,7 @@ describe('Enrollment Controller', () => {
       const sectionQuery = SectionStub.find.getCall(0).args[0].$or[0];
       expect(sectionQuery.day).to.equal(22);
       const response = res.json.getCall(0).args[0];
-      expect(response.data.list[0]).to.include({
+      expect(response.data.tenants[0].list[0]).to.include({
         periodId: periodId.toString(),
         periodName: '内在之光',
         day: 22,

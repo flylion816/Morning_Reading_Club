@@ -24,7 +24,7 @@ page {
 }
 
 .header-card {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   padding: 32rpx 24rpx;
   flex-shrink: 0;
@@ -133,7 +133,7 @@ page {
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
 }
 

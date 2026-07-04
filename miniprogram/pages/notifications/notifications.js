@@ -11,6 +11,7 @@ const websocketServiceModule = require('../../services/websocket.service');
 const constants = require('../../config/constants');
 const { getLastTextChar, getUserAvatarDisplay } = require('../../utils/avatar');
 const { tenantStorage } = require('../../utils/storage');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 const websocketService = websocketServiceModule.default || websocketServiceModule;
@@ -34,7 +35,8 @@ Page({
     loading: false,
     error: null,
     useWebSocket: false,
-    wsUnsubscribe: null
+    wsUnsubscribe: null,
+    themePrimaryColor: THEME_PRIMARY
   },
 
   onLoad() {

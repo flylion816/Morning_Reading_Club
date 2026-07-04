@@ -218,6 +218,10 @@ function getScenePolicy(sceneKey) {
   return AUTO_TOP_UP_POLICIES[sceneKey] || null;
 }
 
+function hasTemplateId(scene = {}) {
+  return !!String(scene.templateId || '').trim();
+}
+
 function getSceneAutoTopUpTarget(scene = {}) {
   const policy = getScenePolicy(scene.scene);
   const explicitTarget = normalizeCount(scene.autoTopUpTarget);
@@ -293,6 +297,10 @@ function buildEligibleScenes(scenes = [], options = {}) {
       return false;
     }
 
+    if (!hasTemplateId(scene)) {
+      return false;
+    }
+
     if (policy.requiresPeriodId && !periodId) {
       return false;
     }
@@ -316,6 +324,7 @@ function buildPromptableScenes(options = {}) {
   return targetSceneKeys
     .map(sceneKey => getScenePolicy(sceneKey))
     .filter(Boolean)
+    .filter(hasTemplateId)
     .filter(scene => !scene.requiresPeriodId || !!periodId)
     .map(scene =>
       mergeSceneMetadata({
@@ -390,7 +399,9 @@ function buildErrorGrantPayloads(requestScenes = [], options = {}, periodId = nu
 }
 
 async function requestSceneSubscriptions(requestScenes = [], options = {}) {
-  if (!Array.isArray(requestScenes) || !requestScenes.length) {
+  const validRequestScenes = (Array.isArray(requestScenes) ? requestScenes : []).filter(hasTemplateId);
+
+  if (!validRequestScenes.length) {
     return {
       grants: [],
       fallbackTriggered: false
@@ -400,22 +411,22 @@ async function requestSceneSubscriptions(requestScenes = [], options = {}) {
   const periodId = options.periodId || null;
 
   try {
-    const batchResult = await requestSubscribeMessage(requestScenes.map(scene => scene.templateId));
+    const batchResult = await requestSubscribeMessage(validRequestScenes.map(scene => scene.templateId));
     return {
-      grants: buildGrantPayloads(requestScenes, batchResult, options, periodId),
+      grants: buildGrantPayloads(validRequestScenes, batchResult, options, periodId),
       fallbackTriggered: false
     };
   } catch (batchError) {
-    if (!isInvalidTemplateRequestError(batchError) || requestScenes.length === 1) {
+    if (!isInvalidTemplateRequestError(batchError) || validRequestScenes.length === 1) {
       return {
-        grants: buildErrorGrantPayloads(requestScenes, options, periodId),
+        grants: buildErrorGrantPayloads(validRequestScenes, options, periodId),
         fallbackTriggered: false,
         error: batchError
       };
     }
 
     const grants = [];
-    for (const scene of requestScenes) {
+    for (const scene of validRequestScenes) {
       try {
         const singleResult = await requestSubscribeMessage([scene.templateId]);
         grants.push(...buildGrantPayloads([scene], singleResult, options, periodId));

@@ -19,7 +19,7 @@
 .card-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #4a90e2;
+  color: var(--theme-primary);
   margin-bottom: 24rpx;
   text-align: center;
 }
@@ -39,7 +39,7 @@
 
 .share-btn {
   width: 90%;
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: white;
   border: none;
   border-radius: 48rpx;

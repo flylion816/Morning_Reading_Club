@@ -1,4 +1,5 @@
 const adminAnalyticsService = require('../../services/adminAnalytics.service');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 const DATE_PRESETS = [
   { key: 'today', label: '今日', days: 0 },
@@ -112,7 +113,7 @@ function buildNativeBarChart(rows = [], series = [], options = {}) {
         const value = Number(row[item.key]) || 0;
         return {
           key: item.key,
-          color: item.color || '#4a90e2',
+          color: item.color || THEME_PRIMARY,
           valueLabel: formatter(value),
           height: value <= 0 ? 0 : Math.max(8, Math.round((value / maxValue) * 156)),
           barWidth
@@ -142,7 +143,7 @@ function buildSingleDayMetricChart(row = {}, series = []) {
     bars: barItems.map((item) => ({
       key: item.key,
       label: item.name,
-      color: item.color || '#4a90e2',
+      color: item.color || THEME_PRIMARY,
       value: item.value,
       valueLabel: formatChartNumber(item.value),
       widthPercent: Math.max(6, Math.round((item.value / maxValue) * 100))

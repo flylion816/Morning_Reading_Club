@@ -18,8 +18,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid rgba(74, 144, 226, 0.2);
-  border-top-color: #4a90e2;
+  border: 4rpx solid var(--theme-primary-alpha-20);
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -138,7 +138,7 @@
   color: #333;
   margin-bottom: 20rpx;
   padding-left: 16rpx;
-  border-left: 6rpx solid #4a90e2;
+  border-left: 6rpx solid var(--theme-primary);
 }
 
 .section-content {
@@ -172,8 +172,8 @@
   height: 48rpx;
   line-height: 48rpx;
   text-align: center;
-  background: #e8f0fe;
-  color: #4a90e2;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
   border-radius: 8rpx;
   font-size: 22rpx;
   font-weight: 600;
@@ -226,7 +226,7 @@
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   font-size: 32rpx;
   font-weight: 600;

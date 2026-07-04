@@ -41,7 +41,7 @@
 
 /* 头部区域 */
 .page-header {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   padding: 20rpx 32rpx;
   max-height: 200rpx;
@@ -132,7 +132,7 @@
 }
 
 .tab-item.active {
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: bold;
 }
 
@@ -141,7 +141,7 @@
   bottom: 0;
   width: 60rpx;
   height: 6rpx;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   border-radius: 3rpx;
 }
 
@@ -170,7 +170,7 @@
 }
 
 .makeup-count {
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: bold;
   font-size: 32rpx;
 }
@@ -186,7 +186,7 @@
   border-radius: 16rpx;
   padding: 32rpx;
   margin-bottom: 24rpx;
-  border-left: 8rpx solid #4a90e2;
+  border-left: 8rpx solid var(--theme-primary);
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
@@ -242,7 +242,7 @@
 }
 
 .btn-action {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   border-radius: 32rpx;
   padding: 12rpx 32rpx;
@@ -283,8 +283,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid rgba(74, 144, 226, 0.2);
-  border-top-color: #4a90e2;
+  border: 4rpx solid var(--theme-primary-alpha-20);
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -416,8 +416,8 @@
 
 .section-tag {
   font-size: 22rpx;
-  color: #4a90e2;
-  background: #e8f4fd;
+  color: var(--theme-primary);
+  background: var(--theme-primary-tint);
   padding: 4rpx 12rpx;
   border-radius: 8rpx;
   flex-shrink: 0;
@@ -457,8 +457,8 @@
   width: fit-content;
   padding: 4rpx 14rpx;
   border-radius: 999rpx;
-  background: #eef5ff;
-  color: #4a72b2;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
   font-size: 22rpx;
   line-height: 1.4;
 }
@@ -467,7 +467,7 @@
   display: inline-flex;
   align-items: center;
   font-size: 24rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 500;
 }
 
@@ -479,8 +479,8 @@
 
 .checkin-load-more-btn {
   font-size: 28rpx;
-  color: #4a90e2;
-  background: #f0f6ff;
+  color: var(--theme-primary);
+  background: var(--theme-primary-tint);
   border: none;
   border-radius: 40rpx;
   padding: 16rpx 64rpx;
@@ -541,7 +541,7 @@
 }
 
 .course-search-btn {
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: #fff;
   font-size: 26rpx;
   font-weight: 600;

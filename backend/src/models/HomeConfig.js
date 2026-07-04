@@ -13,6 +13,10 @@ const homeConfigSchema = new mongoose.Schema(
     sections: {
       type: [String],
       default: HOME_SECTION_KEYS
+    },
+    hiddenSections: {
+      type: [String],
+      default: []
     }
   },
   { timestamps: true }

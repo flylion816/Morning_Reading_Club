@@ -5,6 +5,7 @@ const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { renderRichTextContent } = require('../../utils/markdown');
 const { getLastTextChar } = require('../../utils/avatar');
+const { THEME_PRIMARY } = require('../../utils/theme');
 const {
   getPeriodAccess,
   extractId,
@@ -142,7 +143,7 @@ Page({
     editorFormats: {},
     editorColorOptions: [
       { value: '#333333' },
-      { value: '#4a90e2' },
+      { value: THEME_PRIMARY },
       { value: '#168c91' },
       { value: '#d97706' },
       { value: '#dc2626' }
@@ -454,6 +455,16 @@ Page({
 
   handleEditorInput(e) {
     if (this._settingEditorContent) return;
+    if (this._ignoreEditorInputAfterSubmit) {
+      this._disableLeaveGuard();
+      this.setData({
+        isDirty: false,
+        diaryContent: '',
+        diaryContentHtml: '',
+        showRichTextPreview: false
+      });
+      return;
+    }
     this.handleRichTextInput(e);
   },
 
@@ -1040,7 +1051,7 @@ Page({
         userName: currentUser.nickname || '我',
         avatarUrl: currentUser.avatarUrl || '',
         avatarText: getLastTextChar(currentUser.nickname || '我', '我'),
-        avatarColor: '#4a90e2',
+        avatarColor: THEME_PRIMARY,
         content: diaryContent,
         contentHtml: normalizeRichTextHtml(this.data.diaryContentHtml, diaryContent),
         images: checkinImages,
@@ -1070,6 +1081,7 @@ Page({
         clearTimeout(this._autoSaveTimer);
         this._autoSaveTimer = null;
       }
+      this._ignoreEditorInputAfterSubmit = true;
       this._disableLeaveGuard();
       this._clearDraft();
       if (this._editorCtx) {

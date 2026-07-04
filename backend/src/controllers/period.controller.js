@@ -17,15 +17,18 @@ function getStatusText(period) {
   return getPeriodStatusText(calculatePeriodStatus(period));
 }
 
-// 将 coverColor 转换为前端可识别的格式（hex 或 rgb，不支持渐变）
+// 将 coverColor 转换为前端编辑表单可识别的格式（hex），展示端应优先使用 color 原值。
 function convertCoverColorForForm(coverColor) {
   if (!coverColor) {
     return '#4a90e2'; // 默认蓝色
   }
 
-  // 如果是渐变格式，提取第一个颜色
-  if (coverColor.includes('linear-gradient') || coverColor.includes('rgb')) {
-    // 对于渐变，返回默认蓝色（表示这是旧数据）
+  if (coverColor.includes('linear-gradient')) {
+    const match = coverColor.match(/#[0-9a-fA-F]{6}/);
+    return match ? match[0] : '#4a90e2';
+  }
+
+  if (coverColor.includes('rgb')) {
     return '#4a90e2';
   }
 

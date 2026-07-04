@@ -5,7 +5,7 @@
 }
 
 .insights-header {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   padding: 32rpx;
   border-radius: 16rpx;
@@ -66,9 +66,9 @@
 }
 
 .insight-tab-active {
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 600;
-  border-bottom-color: #4a90e2;
+  border-bottom-color: var(--theme-primary);
 }
 
 .insights-list {
@@ -81,7 +81,7 @@
   background: white;
   border-radius: 16rpx;
   padding: 20rpx;
-  border-left: 8rpx solid #4a90e2;
+  border-left: 8rpx solid var(--theme-primary);
   min-height: 188rpx;
   box-sizing: border-box;
   display: flex;
@@ -142,7 +142,7 @@
 
 .insight-day {
   font-size: 22rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 500;
 }
 
@@ -191,8 +191,8 @@
   margin-bottom: 12rpx;
   border-radius: 12rpx;
   background:
-    linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.01) 100%);
-  border: 1rpx dashed rgba(74, 144, 226, 0.18);
+    linear-gradient(135deg, var(--theme-primary-alpha-05) 0%, var(--theme-primary-alpha-01) 100%);
+  border: 1rpx dashed var(--theme-primary-alpha-18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -416,7 +416,7 @@
 }
 
 .insight-search-btn {
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: #fff;
   font-size: 26rpx;
   font-weight: 600;

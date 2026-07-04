@@ -1295,6 +1295,61 @@ function getSectionId(section) {
   return section._id?.toString?.() || String(section._id);
 }
 
+async function buildActivePeriodsForTenant(tenant) {
+  const now = new Date();
+  const todayStart = getStartOfDay(now);
+  const todayEnd = getEndOfDay(now);
+
+  const list = await runWithTenant({ tenantId: tenant._id }, async () => {
+    const periods = await Period.find({
+      isPublished: true,
+      startDate: { $lte: todayEnd },
+      endDate: { $gte: todayStart }
+    })
+      .sort({ startDate: -1 })
+      .lean();
+
+    const periodDays = periods.map(period => ({
+      period,
+      dayIndex: calculatePeriodDayIndex(period, now)
+    }));
+
+    const sectionQuery = periodDays.map(({ period, dayIndex }) => ({
+      periodId: period._id,
+      day: dayIndex,
+      isPublished: true
+    }));
+
+    const sections =
+      sectionQuery.length > 0
+        ? await Section.find({ $or: sectionQuery }).select('_id periodId day').lean()
+        : [];
+
+    const sectionMap = new Map(
+      sections.map(section => [`${section.periodId?.toString?.() || section.periodId}:${section.day}`, section])
+    );
+
+    return periodDays.map(({ period, dayIndex }) => {
+      const periodId = period._id?.toString?.() || String(period._id);
+      const section = sectionMap.get(`${periodId}:${dayIndex}`);
+      return {
+        periodId,
+        periodName: period.name,
+        day: section?.day ?? dayIndex,
+        sessionId: getSectionId(section)
+      };
+    });
+  });
+
+  return {
+    tenantSlug: tenant.slug || null,
+    tenantName: tenant.name || null,
+    wxAppId: tenant.wechatLogin?.appId || null,
+    list,
+    total: list.length
+  };
+}
+
 /**
  * 外部接口：获取当前运行中的期次列表
  * @route   GET /api/v1/enrollments/external/active-periods
@@ -1303,63 +1358,35 @@ function getSectionId(section) {
 exports.getActivePeriodsForExternal = async (req, res, next) => {
   try {
     const { tenantName } = req.query;
-    if (!tenantName) {
-      return res.status(400).json({ code: 400, message: '缺少必填参数：tenantName', timestamp: Date.now() });
-    }
+    const tenantSlug = req.query.tenantSlug ? String(req.query.tenantSlug).trim().toLowerCase() : null;
 
-    const tenant = await Tenant.findOne({ name: tenantName, status: 'active' }).select('name wechatLogin').lean();
-    if (!tenant) {
-      return res.status(404).json({ code: 404, message: `租户不存在或未激活：${tenantName}`, timestamp: Date.now() });
-    }
-
-    const wxAppId = tenant.wechatLogin?.appId || null;
-
-    const list = await runWithTenant({ tenantId: tenant._id }, async () => {
-      const now = new Date();
-      const todayStart = getStartOfDay(now);
-      const todayEnd = getEndOfDay(now);
-
-      const periods = await Period.find({
-        isPublished: true,
-        startDate: { $lte: todayEnd },
-        endDate: { $gte: todayStart }
-      })
-        .sort({ startDate: -1 })
+    let tenants;
+    if (tenantSlug || tenantName) {
+      const tenantQuery = tenantSlug
+        ? { slug: tenantSlug, status: 'active' }
+        : { name: tenantName, status: 'active' };
+      const tenant = await Tenant.findOne(tenantQuery).select('slug name wechatLogin').lean();
+      if (!tenant) {
+        return res.status(404).json({ code: 404, message: `租户不存在或未激活：${tenantSlug || tenantName}`, timestamp: Date.now() });
+      }
+      tenants = [tenant];
+    } else {
+      tenants = await Tenant.find({ status: 'active' })
+        .select('slug name wechatLogin')
+        .sort({ slug: 1 })
         .lean();
+    }
 
-      const periodDays = periods.map(period => ({
-        period,
-        dayIndex: calculatePeriodDayIndex(period, now)
-      }));
+    const tenantResults = [];
+    for (const tenant of tenants) {
+      tenantResults.push(await buildActivePeriodsForTenant(tenant));
+    }
 
-      const sectionQuery = periodDays.map(({ period, dayIndex }) => ({
-        periodId: period._id,
-        day: dayIndex,
-        isPublished: true
-      }));
-
-      const sections =
-        sectionQuery.length > 0
-          ? await Section.find({ $or: sectionQuery }).select('_id periodId day').lean()
-          : [];
-
-      const sectionMap = new Map(
-        sections.map(section => [`${section.periodId?.toString?.() || section.periodId}:${section.day}`, section])
-      );
-
-      return periodDays.map(({ period, dayIndex }) => {
-        const periodId = period._id?.toString?.() || String(period._id);
-        const section = sectionMap.get(`${periodId}:${dayIndex}`);
-        return {
-          periodId,
-          periodName: period.name,
-          day: section?.day ?? dayIndex,
-          sessionId: getSectionId(section)
-        };
-      });
-    });
-
-    res.json(success({ wxAppId, list, total: list.length }, '获取成功'));
+    res.json(success({
+      tenants: tenantResults,
+      totalTenants: tenantResults.length,
+      totalPeriods: tenantResults.reduce((sum, tenant) => sum + tenant.total, 0)
+    }, '获取成功'));
   } catch (error) {
     logger.error('获取运行中期次失败:', error);
     next(error);

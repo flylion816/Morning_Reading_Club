@@ -89,6 +89,87 @@ function buildIgnoreEntries(prefix = '') {
   return entries;
 }
 
+function clampColorChannel(value) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function hexToRgb(hex) {
+  const normalized = String(hex || '').replace('#', '');
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
+function rgbToHex({ r, g, b }) {
+  return `#${[r, g, b].map(channel => clampColorChannel(channel).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function mixColor(hex, targetHex, weight) {
+  const source = hexToRgb(hex);
+  const target = hexToRgb(targetHex);
+  return rgbToHex({
+    r: source.r + (target.r - source.r) * weight,
+    g: source.g + (target.g - source.g) * weight,
+    b: source.b + (target.b - source.b) * weight
+  });
+}
+
+function hexToRgba(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function buildThemeTokens(primaryColor) {
+  return {
+    primary: primaryColor,
+    primaryDark: mixColor(primaryColor, '#000000', 0.18),
+    primaryLight: mixColor(primaryColor, '#ffffff', 0.18),
+    primaryTint: mixColor(primaryColor, '#ffffff', 0.9),
+    primaryAlpha01: hexToRgba(primaryColor, 0.01),
+    primaryAlpha05: hexToRgba(primaryColor, 0.05),
+    primaryAlpha08: hexToRgba(primaryColor, 0.08),
+    primaryAlpha12: hexToRgba(primaryColor, 0.12),
+    primaryAlpha15: hexToRgba(primaryColor, 0.15),
+    primaryAlpha16: hexToRgba(primaryColor, 0.16),
+    primaryAlpha18: hexToRgba(primaryColor, 0.18),
+    primaryAlpha20: hexToRgba(primaryColor, 0.2),
+    primaryAlpha22: hexToRgba(primaryColor, 0.22),
+    primaryAlpha24: hexToRgba(primaryColor, 0.24),
+    primaryAlpha26: hexToRgba(primaryColor, 0.26),
+    primaryAlpha28: hexToRgba(primaryColor, 0.28),
+    primaryAlpha30: hexToRgba(primaryColor, 0.3),
+    primaryAlpha40: hexToRgba(primaryColor, 0.4),
+    primaryAlpha55: hexToRgba(primaryColor, 0.55),
+    primarySoft: hexToRgba(primaryColor, 0.14),
+    primaryShadow: hexToRgba(primaryColor, 0.3),
+    onPrimary: '#ffffff'
+  };
+}
+
+function applyPageNavBarConfig(pages, navBar) {
+  pages.forEach(pagePath => {
+    const pageJsonPath = path.join(ROOT, `${pagePath}.json`);
+    if (!fs.existsSync(pageJsonPath)) return;
+
+    let pageJson;
+    try {
+      pageJson = JSON.parse(fs.readFileSync(pageJsonPath, 'utf8'));
+    } catch (e) {
+      console.warn(`⚠️ 解析 ${pagePath}.json 失败，跳过页面导航栏同步: ${e.message}`);
+      return;
+    }
+
+    if (pageJson.navigationStyle === 'custom') return;
+    if (!pageJson.navigationBarBackgroundColor && !pageJson.navigationBarTextStyle) return;
+
+    pageJson.navigationBarBackgroundColor = navBar.bgColor;
+    pageJson.navigationBarTextStyle = navBar.textStyle;
+    fs.writeFileSync(pageJsonPath, JSON.stringify(pageJson, null, 2) + '\n');
+  });
+}
+
 // 2) 校验 TabBar 图标素材存在（必须本地文件）
 const tabIconFiles = [
   'tab-home.png', 'tab-home-active.png',
@@ -113,9 +194,10 @@ fs.writeFileSync(
 
 // 4) 生成 theme.wxss（CSS 变量；wxss 无法 require JS，必须生成文件）
 const themePath = path.join(ROOT, 'theme.wxss');
+const themeTokens = buildThemeTokens(cfg.primaryColor);
 fs.writeFileSync(
   themePath,
-  `/* ⚠️ 由 apply-tenant.js 生成，勿手改。租户: ${slug} */\npage {\n  --theme-primary: ${cfg.primaryColor};\n  --theme-on-primary: #ffffff;\n}\n`
+  `/* ⚠️ 由 apply-tenant.js 生成，勿手改。租户: ${slug} */\npage {\n  --theme-primary: ${themeTokens.primary};\n  --theme-primary-dark: ${themeTokens.primaryDark};\n  --theme-primary-light: ${themeTokens.primaryLight};\n  --theme-primary-tint: ${themeTokens.primaryTint};\n  --theme-primary-soft: ${themeTokens.primarySoft};\n  --theme-primary-shadow: ${themeTokens.primaryShadow};\n  --theme-primary-alpha-01: ${themeTokens.primaryAlpha01};\n  --theme-primary-alpha-05: ${themeTokens.primaryAlpha05};\n  --theme-primary-alpha-08: ${themeTokens.primaryAlpha08};\n  --theme-primary-alpha-12: ${themeTokens.primaryAlpha12};\n  --theme-primary-alpha-15: ${themeTokens.primaryAlpha15};\n  --theme-primary-alpha-16: ${themeTokens.primaryAlpha16};\n  --theme-primary-alpha-18: ${themeTokens.primaryAlpha18};\n  --theme-primary-alpha-20: ${themeTokens.primaryAlpha20};\n  --theme-primary-alpha-22: ${themeTokens.primaryAlpha22};\n  --theme-primary-alpha-24: ${themeTokens.primaryAlpha24};\n  --theme-primary-alpha-26: ${themeTokens.primaryAlpha26};\n  --theme-primary-alpha-28: ${themeTokens.primaryAlpha28};\n  --theme-primary-alpha-30: ${themeTokens.primaryAlpha30};\n  --theme-primary-alpha-40: ${themeTokens.primaryAlpha40};\n  --theme-primary-alpha-55: ${themeTokens.primaryAlpha55};\n  --theme-on-primary: ${themeTokens.onPrimary};\n}\n`
 );
 
 // 5) 外科式改写 app.json（仅改租户字段，完整 pages 列表等内容保留不动）
@@ -151,6 +233,9 @@ appJson.tabBar.list.forEach((item, i) => {
 });
 
 fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + '\n');
+
+// 页面级 JSON 会覆盖 app.json 的导航栏颜色，构建租户时一并同步。
+applyPageNavBarConfig(appJson.pages || [], cfg.navBar);
 
 // 6) 改写 project.config.json(+private) 的 appid，并维护上传忽略规则
 for (const name of ['project.config.json', 'project.private.config.json']) {

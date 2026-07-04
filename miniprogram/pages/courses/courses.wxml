@@ -142,7 +142,7 @@
 
         <view class="checkins-list">
           <view class="checkin-item" wx:for="{{isSearchMode ? searchCheckins : allCheckins}}" wx:key="id" bindtap="handleCheckinItemTap" data-checkin-id="{{item.id}}" data-section-id="{{item.sectionId}}">
-            <view class="checkin-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
+            <view class="checkin-avatar" style="background: {{item.avatarColor || themePrimaryColor}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
               <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
               <text wx:else class="avatar-text">{{item.avatarText || item.userName}}</text>
             </view>

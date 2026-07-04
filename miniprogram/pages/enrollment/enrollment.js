@@ -3,6 +3,7 @@ const enrollmentService = require('../../services/enrollment.service');
 const { calculatePeriodStatus } = require('../../utils/formatters');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { markEnrollmentCacheDirty } = require('../../utils/period-access');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 const SUBSCRIBE_SCENES = ['enrollment_result'];
 
@@ -48,6 +49,7 @@ Page({
     // 加载状态
     loading: true,
     submitting: false,
+    themePrimaryColor: THEME_PRIMARY,
 
     // 期次信息
     periodId: '',

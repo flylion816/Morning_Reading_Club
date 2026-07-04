@@ -1,6 +1,24 @@
 // 期次介绍页（公开页面，不需要登录）
 const courseService = require('../../services/course.service');
 const { formatDateRange, calculatePeriodStatus } = require('../../utils/formatters');
+const { DEFAULT_PRIMARY_COLOR, THEME_PRIMARY } = require('../../utils/theme');
+
+const LEGACY_FANREN_BLUE = DEFAULT_PRIMARY_COLOR;
+
+function isLegacyBrandBlue(value) {
+  return String(value || '').trim().toLowerCase() === LEGACY_FANREN_BLUE;
+}
+
+function normalizePeriodTheme(period = {}) {
+  const displayColor = period.color || period.coverColor || THEME_PRIMARY;
+  const safeDisplayColor = isLegacyBrandBlue(displayColor) ? THEME_PRIMARY : displayColor;
+
+  return {
+    ...period,
+    displayColor: safeDisplayColor,
+    coverColor: isLegacyBrandBlue(period.coverColor) ? safeDisplayColor : period.coverColor
+  };
+}
 
 function normalizeAmountInCents(value, fallback = 0) {
   const parsed = Number(value);
@@ -86,7 +104,7 @@ Page({
 
       this.setData({
         period: {
-          ...period,
+          ...normalizePeriodTheme(period),
           dateRange: formatDateRange(startDate, endDate),
           calculatedStatus,
           // 仅显式 false 视为未开放，兼容无此字段的历史期次

@@ -1,6 +1,6 @@
 # 晨读营外部系统 API 调用指南
 
-本文档为外部系统提供 6 个公开 API 接口，用于查询当前期次、获取期次用户、为指定用户创建”小凡看见”，以及上传和同步播客音频。
+本文档为外部系统提供 6 个公开 API 接口，用于查询当前期次、获取期次用户、为指定用户创建“小凡看见”，以及上传和同步播客音频。
 
 ---
 
@@ -8,13 +8,29 @@
 
 | 接口名称 | 方法 | 端点 | 说明 |
 | --- | --- | --- | --- |
-| 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 传入租户名称，获取当前正在运行的期次列表及 `wxAppId`，后续接口用此值作为 `X-Wx-AppId` |
+| 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 获取所有租户或指定租户当前正在运行的期次列表 |
 | 获取期次用户 | GET | `/api/v1/enrollments/external/users-by-period` | 通过期次 ID 或期次名称获取参与用户列表 |
-| 创建小凡看见 | POST | `/api/v1/insights/external/create` | 为指定用户创建”小凡看见” |
+| 创建小凡看见 | POST | `/api/v1/insights/external/create` | 为指定用户创建“小凡看见” |
 | 上传播客音频 | POST | `/api/v1/sections/external/upload-podcast` | 上传音频文件，获取 `podcastUrl` |
 | 同步播客信息 | POST | `/api/v1/sections/external/sync-podcast` | 将播客 URL、简介、时长同步到指定课节 |
 
-所有接口均需在请求头中携带 `X-Wx-AppId`，值为小程序的 AppID（即 `wx2b9a3c1d5e4195f8`）。后端通过此值自动识别租户，无需传递租户 ID。
+## 租户标识
+
+外部接口需要明确租户。新接入系统推荐使用稳定的租户 slug，而不是微信小程序 AppID。
+
+| 方式 | 推荐度 | 用法 | 说明 |
+| --- | --- | --- | --- |
+| `X-Tenant-Slug` 请求头 | 推荐 | `X-Tenant-Slug: fanren` | 稳定、可读，和管理后台租户 slug 一致 |
+| `tenantSlug` 查询参数 | 可选，仅 API #1 | `?tenantSlug=fanren` | 用于筛选单个租户的运行中期次 |
+| `X-Wx-AppId` 请求头 | 兼容旧调用 | `X-Wx-AppId: wx2b9a3c1d5e4195f8` | 继续支持，但新接入不推荐 |
+| `tenantName` 查询参数 | 兼容旧调用，仅 API #1 | `?tenantName=凡人共读` | 中文展示名可能变化，新接入不推荐 |
+
+规则：
+
+- API #1 不传 `tenantSlug` 时返回所有活跃租户及各自运行中的期次；传 `tenantSlug` 时返回同样结构，但只包含这个租户。
+- API #2、#3、#5、#6 推荐在请求头传 `X-Tenant-Slug`。
+- 如果同时传 `X-Tenant-Slug` 和 `X-Wx-AppId`，两者必须指向同一租户；否则接口会返回错误，避免数据写入错误租户。
+- 常用示例：凡人共读租户 `fanren`；若星生活家租户 `starry`。
 
 示例使用当前最新期次：
 
@@ -33,11 +49,13 @@
 
 ### 接口说明
 
-查询当前正在运行的期次列表。每个期次返回期次名称、期次 ID、当前课程的 `day`，以及当天课程对应的 `sessionId`。同时返回该租户的 `wxAppId`，后续接口调用时将此值作为 `X-Wx-AppId` 请求头传入。
+查询当前正在运行的期次列表。默认返回所有活跃租户，每个租户下包含当前运行中的期次。传入 `tenantSlug` 时，只返回该租户，但响应结构保持一致。
+
+每个期次返回期次名称、期次 ID、当前课程的 `day`，以及当天课程对应的 `sessionId`。每个租户分组会返回 `tenantSlug`、`tenantName` 和 `wxAppId`；后续接口推荐使用分组里的 `tenantSlug` 作为 `X-Tenant-Slug` 请求头。
 
 “运行中”的判断规则：期次已发布，且当前时间在期次 `startDate` 和 `endDate` 之间。
 
-`day` 使用系统课节 day 口径，可直接传给”创建小凡看见”接口；如果当天课程没有查到，`sessionId` 会返回 `null`。
+`day` 使用系统课节 day 口径，可直接传给“创建小凡看见”接口；如果当天课程没有查到，`sessionId` 会返回 `null`。
 
 ### 请求信息
 
@@ -53,7 +71,8 @@
 
 | 参数 | 类型 | 必填 | 说明 | 示例 |
 | --- | --- | --- | --- | --- |
-| tenantName | string | 是 | 租户名称，精确匹配 | `凡人共读` |
+| tenantSlug | string | 否 | 租户 slug；不传时返回所有活跃租户 | `fanren` |
+| tenantName | string | 兼容 | 租户中文名称，兼容旧调用；未传 `tenantSlug` 时使用 | `凡人共读` |
 
 ### 成功响应示例
 
@@ -61,65 +80,93 @@
 
 ```json
 {
-  “code”: 0,
-  “message”: “获取成功”,
-  “data”: {
-    “wxAppId”: “wx2b9a3c1d5e4195f8”,
-    “list”: [
+  "code": 0,
+  "message": "获取成功",
+  "data": {
+    "tenants": [
       {
-        “periodId”: “69f9bf45cb1c9ac0600ad556”,
-        “periodName”: “秩序之锚”,
-        “day”: 1,
-        “sessionId”: “69f9bf45cb1c9ac0600ad55b”
+        "tenantSlug": "fanren",
+        "tenantName": "凡人共读",
+        "wxAppId": "wx2b9a3c1d5e4195f8",
+        "list": [
+          {
+            "periodId": "69f9bf45cb1c9ac0600ad556",
+            "periodName": "秩序之锚",
+            "day": 1,
+            "sessionId": "69f9bf45cb1c9ac0600ad55b"
+          }
+        ],
+        "total": 1
+      },
+      {
+        "tenantSlug": "starry",
+        "tenantName": "若星生活家",
+        "wxAppId": "wx9cd59e2c89880289",
+        "list": [
+          {
+            "periodId": "6a470e52827accc90bd89b2c",
+            "periodName": "平衡之道",
+            "day": 1,
+            "sessionId": "6a470e52827accc90bd89b41"
+          }
+        ],
+        "total": 1
       }
     ],
-    “total”: 1
+    "totalTenants": 2,
+    "totalPeriods": 2
   },
-  “timestamp”: 1778077219250
+  "timestamp": 1778077219250
 }
 ```
 
-如果当前没有运行中的期次，返回空列表：
+如果某个租户当前没有运行中的期次，该租户仍会返回，`list` 为空：
 
 ```json
 {
-  “code”: 0,
-  “message”: “获取成功”,
-  “data”: {
-    “wxAppId”: “wx2b9a3c1d5e4195f8”,
-    “list”: [],
-    “total”: 0
+  "code": 0,
+  "message": "获取成功",
+  "data": {
+    "tenants": [
+      {
+        "tenantSlug": "fanren",
+        "tenantName": "凡人共读",
+        "wxAppId": "wx2b9a3c1d5e4195f8",
+        "list": [],
+        "total": 0
+      }
+    ],
+    "totalTenants": 1,
+    "totalPeriods": 0
   },
-  “timestamp”: 1778077219250
+  "timestamp": 1778077219250
 }
 ```
 
 ### 错误响应示例
 
-缺少 tenantName：
-
-```json
-{
-  “code”: 400,
-  “message”: “缺少必填参数：tenantName”,
-  “timestamp”: 1778077219250
-}
-```
-
 租户不存在或未激活：
 
 ```json
 {
-  “code”: 404,
-  “message”: “租户不存在或未激活：不存在的租户”,
-  “timestamp”: 1778077219250
+  "code": 404,
+  "message": "租户不存在或未激活：unknown",
+  "timestamp": 1778077219250
 }
 ```
 
 ### 使用示例
 
 ```bash
-curl -X GET “https://wx.shubai01.com/api/v1/enrollments/external/active-periods?tenantName=凡人共读”
+# 推荐：不传 tenantSlug，获取所有活跃租户今天运行中的期次
+curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/active-periods"
+
+# 筛选：只查询某个租户
+curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/active-periods?tenantSlug=fanren"
+
+# 兼容：通过 tenantName 查询，curl 自动 URL 编码
+curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/active-periods" \
+  --data-urlencode "tenantName=凡人共读"
 ```
 
 ---
@@ -140,7 +187,8 @@ curl -X GET “https://wx.shubai01.com/api/v1/enrollments/external/active-period
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
+| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
+| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
 
 ### 请求参数
 
@@ -203,11 +251,11 @@ curl -X GET “https://wx.shubai01.com/api/v1/enrollments/external/active-period
 ```bash
 # 推荐：通过 periodId 查询
 curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period?periodId=69f9bf45cb1c9ac0600ad556" \
-  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8"
+  -H "X-Tenant-Slug: fanren"
 
 # 兼容：通过 periodName 查询，curl 自动 URL 编码
 curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period" \
-  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8" \
+  -H "X-Tenant-Slug: fanren" \
   --data-urlencode "periodName=秩序之锚"
 ```
 
@@ -231,7 +279,8 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
+| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
+| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `application/json` |
 
 ### 请求参数
@@ -346,7 +395,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 ```bash
 # 推荐：通过 targetUserId 指定被看见人
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
-  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8" \
+  -H "X-Tenant-Slug: fanren" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -357,7 +406,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 # 兼容：通过 targetUserName 指定被看见人（昵称须在该期次报名用户内唯一）
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
-  -H "X-Wx-AppId: wx2b9a3c1d5e4195f8" \
+  -H "X-Tenant-Slug: fanren" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -372,8 +421,8 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 ## 安全建议
 
 1. 这些接口当前为公开接口，不要在请求中传递敏感信息。
-2. 外部系统应优先保存并使用 `periodId` 和 `sessionId`，避免中文名称变化导致匹配失败。
-3. 期次名称作为查询条件时需要 URL 编码。
+2. 外部系统应从 API #1 返回的 `data.tenants[]` 中读取 `tenantSlug`、`periodId` 和 `sessionId`，后续调用用 `X-Tenant-Slug` 指定租户。
+3. 期次名称和租户中文名称作为查询条件时需要 URL 编码。
 4. 调用方应始终检查响应中的 `code` 和 `message`。
 5. 建议设置 5 秒左右的请求超时。
 
@@ -383,7 +432,7 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 ### Q1: 如何知道当前应该传哪个 periodId 和 sessionId？
 
-先调用“查询运行中期次列表”接口，读取返回列表里的 `periodId`、`day` 和 `sessionId`。
+先调用“查询运行中期次列表”接口。默认不传 `tenantSlug`，读取 `data.tenants[]`，每个租户分组里都有 `tenantSlug`，分组的 `list[]` 里有 `periodId`、`day` 和 `sessionId`。
 
 ### Q2: 获取用户列表时 periodId 和 periodName 同时传了怎么办？
 
@@ -393,13 +442,17 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 可以。系统会根据 `periodId/periodName + day` 查找对应课节，并自动绑定到该课节。
 
-### Q4: 为什么创建小凡看见时提示”用户未报名期次”？
+### Q4: 为什么创建小凡看见时提示“用户未报名期次”？
 
-说明 `targetUserId` 对应用户没有报名该期次。请先调用”获取期次用户列表”确认用户在该期次中。
+说明 `targetUserId` 对应用户没有报名该期次。请先调用“获取期次用户列表”确认用户在该期次中。
 
-### Q5: 传 `targetUserName` 时提示”昵称对应多个用户”怎么办？
+### Q5: 传 `targetUserName` 时提示“昵称对应多个用户”怎么办？
 
-当前期次报名用户里仍存在同名用户，无法通过昵称唯一确定目标。请先调用”获取期次用户列表”获取用户的 `userId`，改用 `targetUserId` 传入。
+当前期次报名用户里仍存在同名用户，无法通过昵称唯一确定目标。请先调用“获取期次用户列表”获取用户的 `userId`，改用 `targetUserId` 传入。
+
+### Q6: `X-Tenant-Slug` 和 `X-Wx-AppId` 可以同时传吗？
+
+可以，但两者必须指向同一个租户。新接入建议只传 `X-Tenant-Slug`。
 
 ---
 
@@ -417,7 +470,8 @@ POST /api/v1/sections/external/upload-podcast
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
+| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
+| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `multipart/form-data` |
 
 **请求体（form-data）**
@@ -430,14 +484,14 @@ POST /api/v1/sections/external/upload-podcast
 
 ```json
 {
-  “success”: true,
-  “data”: {
-    “podcastUrl”: “/uploads/tenants/fanren/1716192000000-abc123.m4a”,
-    “filename”: “1716192000000-abc123.m4a”,
-    “size”: 12345678,
-    “uploadedAt”: “2026-05-20T10:00:00.000Z”
+  "success": true,
+  "data": {
+    "podcastUrl": "/uploads/tenants/fanren/1716192000000-abc123.m4a",
+    "filename": "1716192000000-abc123.m4a",
+    "size": 12345678,
+    "uploadedAt": "2026-05-20T10:00:00.000Z"
   },
-  “message”: “上传成功”
+  "message": "上传成功"
 }
 ```
 
@@ -445,8 +499,8 @@ POST /api/v1/sections/external/upload-podcast
 
 ```bash
 curl -X POST https://wx.shubai01.com/api/v1/sections/external/upload-podcast \
-  -H “X-Wx-AppId: wx2b9a3c1d5e4195f8” \
-  -F “file=@/path/to/podcast.m4a”
+  -H "X-Tenant-Slug: fanren" \
+  -F "file=@/path/to/podcast.m4a"
 ```
 
 ---
@@ -465,7 +519,8 @@ POST /api/v1/sections/external/sync-podcast
 
 | 字段 | 说明 |
 | --- | --- |
-| `X-Wx-AppId` | 小程序 AppID（必填），值为 `wx2b9a3c1d5e4195f8` |
+| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
+| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `application/json` |
 
 **请求体**
@@ -483,14 +538,14 @@ POST /api/v1/sections/external/sync-podcast
 
 ```json
 {
-  “success”: true,
-  “data”: {
-    “sessionId”: “664a1b2c3d4e5f6a7b8c9d0e”,
-    “podcastUrl”: “/uploads/tenants/fanren/1716192000000-abc123.m4a”,
-    “podcastDuration”: 1234,
-    “updatedAt”: “2026-05-20T10:01:00.000Z”
+  "success": true,
+  "data": {
+    "sessionId": "664a1b2c3d4e5f6a7b8c9d0e",
+    "podcastUrl": "/uploads/tenants/fanren/1716192000000-abc123.m4a",
+    "podcastDuration": 1234,
+    "updatedAt": "2026-05-20T10:01:00.000Z"
   },
-  “message”: “同步成功”
+  "message": "同步成功"
 }
 ```
 
@@ -498,20 +553,20 @@ POST /api/v1/sections/external/sync-podcast
 
 ```bash
 curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
-  -H “X-Wx-AppId: wx2b9a3c1d5e4195f8” \
-  -H “Content-Type: application/json” \
+  -H "X-Tenant-Slug: fanren" \
+  -H "Content-Type: application/json" \
   -d '{
-    “sessionId”: “664a1b2c3d4e5f6a7b8c9d0e”,
-    “podcastUrl”: “/uploads/tenants/fanren/1716192000000-abc123.m4a”,
-    “podcastDescription”: “今天我们聊聊第一个习惯：积极主动。”,
-    “podcastDuration”: 1234
+    "sessionId": "664a1b2c3d4e5f6a7b8c9d0e",
+    "podcastUrl": "/uploads/tenants/fanren/1716192000000-abc123.m4a",
+    "podcastDescription": "今天我们聊聊第一个习惯：积极主动。",
+    "podcastDuration": 1234
   }'
 ```
 
 **说明**
 
 - `sessionId` 即课节的 MongoDB `_id`，可通过管理后台课节列表获取。
-- 首次同步（课节原本无 `podcastUrl`，本次传入了 `podcastUrl`）时，系统会自动向该期次所有报名用户推送微信订阅通知”凡人播客上新”。
+- 首次同步（课节原本无 `podcastUrl`，本次传入了 `podcastUrl`）时，系统会自动向该期次所有报名用户推送微信订阅通知“凡人播客上新”。
 - 重复调用不会重复推送通知。
 - 推荐工作流：先调用接口五上传音频获取 `podcastUrl`，再调用接口六同步到课节。
 
@@ -521,6 +576,7 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-07-04 | v2.0 | 外部接口新增 `X-Tenant-Slug` / `tenantSlug` 作为推荐租户标识，保留 `X-Wx-AppId` / `tenantName` 兼容 |
 | 2026-05-21 | v1.9 | 接口 1 改为通过 `tenantName` 参数识别租户，无需 `X-Wx-AppId` 请求头，返回体新增 `wxAppId` 字段 |
 | 2026-05-21 | v1.8 | 所有接口补充 `X-Wx-AppId` 请求头说明及 curl 示例；接口总数更正为 6 个 |
 | 2026-05-20 | v1.7 | 新增播客音频上传接口、播客信息同步接口 |
@@ -534,4 +590,4 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 ---
 
-**最后更新**: 2026-05-21
+**最后更新**: 2026-07-04

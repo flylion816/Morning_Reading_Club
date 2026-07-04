@@ -20,7 +20,7 @@
   width: 60rpx;
   height: 60rpx;
   border: 4rpx solid #f3f3f3;
-  border-top: 4rpx solid #4a90e2;
+  border-top: 4rpx solid var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
@@ -45,7 +45,7 @@
 
 /* 页面头部 */
 .enrollment-header {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   padding: 60rpx 30rpx;
   text-align: center;
@@ -155,8 +155,8 @@
 }
 
 .form-control:focus {
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2rpx rgba(74, 144, 226, 0.15);
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 2rpx var(--theme-primary-alpha-15);
 }
 
 .form-control::placeholder {
@@ -198,12 +198,12 @@ picker {
 }
 
 .picker-control:active {
-  border-color: #4a90e2;
-  background: #f9fbff;
+  border-color: var(--theme-primary);
+  background: var(--theme-primary-tint);
 }
 
 .picker-icon {
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-size: 32rpx;
   font-weight: bold;
 }
@@ -240,8 +240,8 @@ picker {
 }
 
 .radio-item:active {
-  background: #f9fbff;
-  border-color: #4a90e2;
+  background: var(--theme-primary-tint);
+  border-color: var(--theme-primary);
 }
 
 .radio-item radio {
@@ -306,7 +306,7 @@ textarea.form-control::placeholder {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
 }
 
@@ -376,7 +376,7 @@ textarea.form-control::placeholder {
 }
 
 .step-item.active .step-dot {
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: white;
 }
 
@@ -386,7 +386,7 @@ textarea.form-control::placeholder {
 }
 
 .step-item.active .step-label {
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 500;
 }
 
@@ -400,7 +400,7 @@ textarea.form-control::placeholder {
 }
 
 .step-line.active {
-  background: #4a90e2;
+  background: var(--theme-primary);
 }
 
 /* 手机号区域 */
@@ -422,7 +422,7 @@ textarea.form-control::placeholder {
 
 .phone-change {
   font-size: 22rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
 }
 
 .phone-auth-wrap {
@@ -473,7 +473,7 @@ textarea.form-control::placeholder {
 /* 确认信息区域 */
 .confirm-section {
   margin: 30rpx;
-  background: #f9fbff;
+  background: var(--theme-primary-tint);
   border: 1rpx solid #d6e8ff;
   border-radius: 12rpx;
   padding: 24rpx;
@@ -493,7 +493,7 @@ textarea.form-control::placeholder {
   justify-content: space-between;
   align-items: flex-start;
   padding: 12rpx 0;
-  border-bottom: 1rpx solid #eef4ff;
+  border-bottom: 1rpx solid var(--theme-primary-tint);
 }
 
 .confirm-item:last-child {

@@ -33,8 +33,15 @@
             </template>
           </el-table-column>
           <el-table-column label="Key" prop="key" width="180" />
-          <el-table-column label="操作" width="180" align="center">
-            <template #default="{ $index }">
+          <el-table-column label="状态" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.hidden ? 'info' : 'success'" effect="light">
+                {{ row.hidden ? '已隐藏' : '显示中' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="250" align="center">
+            <template #default="{ row, $index }">
               <el-button
                 size="small"
                 :disabled="$index === 0 || loading || saving"
@@ -45,6 +52,13 @@
                 :disabled="$index === sections.length - 1 || loading || saving"
                 @click="moveSection($index, 1)"
               >下移</el-button>
+              <el-button
+                size="small"
+                :type="row.hidden ? 'primary' : 'warning'"
+                plain
+                :disabled="loading || saving"
+                @click="toggleSection(row.key)"
+              >{{ row.hidden ? '显示' : '隐藏' }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -81,6 +95,7 @@ type SectionItem = {
   key: string;
   label: string;
   icon: string;
+  hidden: boolean;
 };
 
 const loading = ref(false);
@@ -89,24 +104,55 @@ const sections = ref<SectionItem[]>([]);
 
 function normalizeOrder(order?: string[]) {
   const source = Array.isArray(order) ? order : [];
-  const unique = [...new Set(source.filter((key) => DEFAULT_SECTIONS.includes(key)))];
+  const unique = [
+    ...new Set(
+      source
+        .map((item: any) => (typeof item === 'string' ? item : item?.key))
+        .filter((key) => DEFAULT_SECTIONS.includes(key))
+    )
+  ];
   const missing = DEFAULT_SECTIONS.filter((key) => !unique.includes(key));
   return [...unique, ...missing];
 }
 
-function buildItems(order?: string[]) {
-  return normalizeOrder(order).map((key) => ({
-    key,
-    label: SECTION_META[key].label,
-    icon: SECTION_META[key].icon
-  }));
+function getHiddenSections(config?: any) {
+  const hiddenFromItems = Array.isArray(config?.items)
+    ? config.items
+        .filter((item: any) => item?.hidden === true)
+        .map((item: any) => item.key)
+    : [];
+  const hiddenFromSections = Array.isArray(config?.sections)
+    ? config.sections
+        .filter((item: any) => item && typeof item === 'object' && item.hidden === true)
+        .map((item: any) => item.key)
+    : [];
+  const hiddenFromList = Array.isArray(config?.hiddenSections)
+    ? config.hiddenSections
+    : [];
+  return new Set(
+    [...hiddenFromItems, ...hiddenFromSections, ...hiddenFromList].filter((key) =>
+      DEFAULT_SECTIONS.includes(key)
+    )
+  );
+}
+
+function buildItems(order?: any[], hiddenSections = new Set<string>()) {
+  return normalizeOrder(order).map((key) => {
+    const meta = SECTION_META[key] || { label: key, icon: '📌' };
+    return {
+      key,
+      label: meta.label,
+      icon: meta.icon,
+      hidden: hiddenSections.has(key)
+    };
+  });
 }
 
 async function loadConfig() {
   loading.value = true;
   try {
     const res: any = await homeConfigApi.getConfig();
-    sections.value = buildItems(res?.sections);
+    sections.value = buildItems(res?.sections, getHiddenSections(res));
   } catch (error: any) {
     sections.value = buildItems(DEFAULT_SECTIONS);
     ElMessage.error(error?.message || '加载首页配置失败');
@@ -120,8 +166,15 @@ function moveSection(index: number, direction: number) {
   if (nextIndex < 0 || nextIndex >= sections.value.length) return;
   const next = [...sections.value];
   const [item] = next.splice(index, 1);
+  if (!item) return;
   next.splice(nextIndex, 0, item);
   sections.value = next;
+}
+
+function toggleSection(key: string) {
+  sections.value = sections.value.map((item) =>
+    item.key === key ? { ...item, hidden: !item.hidden } : item
+  );
 }
 
 function resetDefault() {
@@ -131,7 +184,12 @@ function resetDefault() {
 async function saveConfig() {
   saving.value = true;
   try {
-    await homeConfigApi.updateConfig(sections.value.map((item) => item.key));
+    await homeConfigApi.updateConfig(
+      sections.value.map((item) => ({
+        key: item.key,
+        hidden: item.hidden
+      }))
+    );
     ElMessage.success('首页配置已保存');
     await loadConfig();
   } catch (error: any) {

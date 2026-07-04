@@ -1,6 +1,6 @@
 <view class="page-insights">
   <view class="insights-header">
-    <view class="header-avatar" style="background: {{headerAvatarColor || '#4a90e2'}}">
+    <view class="header-avatar" style="background: {{headerAvatarColor || themePrimaryColor}}">
       <image wx:if="{{headerAvatarUrl}}" class="header-avatar-image" src="{{headerAvatarUrl}}" mode="aspectFill" />
       <text wx:else class="header-emoji">{{headerAvatarText || '用'}}</text>
     </view>
@@ -58,7 +58,7 @@
       data-period-name="{{item.periodName}}"
       data-day-number="{{item.dayNumber}}">
       <view class="insight-header">
-        <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||'#4a90e2'}}">
+        <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||themePrimaryColor}}">
           <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
           <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
         </view>

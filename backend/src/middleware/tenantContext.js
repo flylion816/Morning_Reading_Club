@@ -109,20 +109,42 @@ function adminTenantContext(req, res, next) {
 }
 
 /**
- * 公开路由的租户上下文：从 X-Wx-AppId 请求头解析
- * 用于未登录的小程序请求（如课程列表）
+ * 公开路由的租户上下文：优先从 X-Tenant-Slug 请求头解析，兼容 X-Wx-AppId
+ * 用于未登录的小程序请求（如课程列表）和外部系统公开接口。
  */
 async function publicTenantContext(req, res, next) {
   try {
-    const wxAppId = req.header('X-Wx-AppId')
-      || (process.env.ENABLE_LEGACY_DEFAULT_TENANT === 'true' ? process.env.WECHAT_APPID : null);
-    if (!wxAppId) {
-      return res.status(400).json({ code: 400, message: '缺少 X-Wx-AppId 请求头' });
+    const rawTenantSlug = req.header('X-Tenant-Slug');
+    const tenantSlug = rawTenantSlug ? String(rawTenantSlug).trim().toLowerCase() : null;
+    const explicitWxAppId = req.header('X-Wx-AppId');
+    const wxAppId = explicitWxAppId
+      || (!tenantSlug && process.env.ENABLE_LEGACY_DEFAULT_TENANT === 'true' ? process.env.WECHAT_APPID : null);
+
+    if (!tenantSlug && !wxAppId) {
+      return res.status(400).json({ code: 400, message: '缺少租户标识：X-Tenant-Slug 或 X-Wx-AppId 请求头' });
     }
-    const tenant = await Tenant.findByWxAppId(wxAppId);
-    if (!tenant) {
+
+    const tenantBySlug = tenantSlug
+      ? await Tenant.findOne({ slug: tenantSlug, status: 'active' }).lean()
+      : null;
+    if (tenantSlug && !tenantBySlug) {
+      return res.status(403).json({ code: 403, message: '未识别的租户 slug' });
+    }
+
+    const tenantByWxAppId = wxAppId ? await Tenant.findByWxAppId(wxAppId) : null;
+    if (wxAppId && !tenantByWxAppId) {
       return res.status(403).json({ code: 403, message: '未识别的小程序 appId' });
     }
+
+    if (
+      tenantBySlug &&
+      tenantByWxAppId &&
+      tenantBySlug._id.toString() !== tenantByWxAppId._id.toString()
+    ) {
+      return res.status(400).json({ code: 400, message: 'X-Tenant-Slug 与 X-Wx-AppId 指向不同租户' });
+    }
+
+    const tenant = tenantBySlug || tenantByWxAppId;
 
     logger.debug('[TENANT-MW] publicTenantContext', {
       wxAppId,
@@ -154,7 +176,7 @@ function optionalUserOrPublicTenantContext(req, res, next) {
 /**
  * 兼容管理后台和小程序的租户上下文
  * - 若请求已经过 adminAuthMiddleware（req.admin 存在）：走 adminTenantContext
- * - 否则：走 publicTenantContext（需要 X-Wx-AppId）
+ * - 否则：走 publicTenantContext（需要 X-Tenant-Slug 或 X-Wx-AppId）
  */
 function optionalAdminOrPublicTenantContext(req, res, next) {
   if (req.admin) return adminTenantContext(req, res, next);

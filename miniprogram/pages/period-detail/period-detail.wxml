@@ -8,7 +8,7 @@
 
   <view wx:if="{{!loading && period}}" class="detail-content">
     <!-- 顶部横幅 -->
-    <view class="detail-banner" style="background: {{period.coverColor || '#4a90e2'}}">
+    <view class="detail-banner" style="background: {{period.displayColor}}">
       <text class="banner-emoji">{{period.coverEmoji || '📚'}}</text>
       <text class="banner-title">{{period.name || period.title}}</text>
       <text class="banner-subtitle">{{period.subtitle || ''}}</text>

@@ -31,7 +31,7 @@
 
 .notification-reminder-link {
   flex-shrink: 0;
-  color: #357abd;
+  color: var(--theme-primary-dark);
   font-size: 22rpx;
   font-weight: 600;
 }
@@ -104,7 +104,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.16);
+  box-shadow: 0 6rpx 16rpx var(--theme-primary-alpha-16);
   overflow: hidden;
 }
 
@@ -161,7 +161,7 @@
 
 .request-status-pending {
   background: #eef4ff;
-  color: #4a90e2;
+  color: var(--theme-primary);
 }
 
 .request-status-approved {
@@ -227,7 +227,7 @@
 }
 
 .approve-btn {
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: #ffffff;
 }
 

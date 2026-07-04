@@ -97,7 +97,7 @@
         <text class="section-title">弹幕显示</text>
         <view class="panel-toggle-row">
           <text class="section-desc">{{danmakuEnabled ? '已开启' : '已关闭'}}</text>
-          <switch checked="{{danmakuEnabled}}" bindchange="toggleDanmaku" color="#4a90e2" />
+          <switch checked="{{danmakuEnabled}}" bindchange="toggleDanmaku" color="{{themePrimaryColor}}" />
         </view>
       </view>
 

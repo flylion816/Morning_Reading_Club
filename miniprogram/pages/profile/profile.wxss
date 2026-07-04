@@ -70,7 +70,7 @@
 }
 
 .streak-num {
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 600;
 }
 
@@ -157,7 +157,7 @@
 .cell-phone-btn,
 .cell-rebind-btn {
   font-size: 26rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   background: transparent;
   border: none;
   padding: 0;
@@ -216,7 +216,7 @@
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: #ffffff;
   border-radius: 44rpx;
   font-size: 30rpx;
@@ -241,7 +241,7 @@
   width: 60rpx;
   height: 60rpx;
   border: 4rpx solid #e0e0e0;
-  border-top-color: #4a90e2;
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

@@ -109,7 +109,7 @@
 
 .primary-action {
   color: #ffffff;
-  background: #4a90e2;
+  background: var(--theme-primary);
 }
 
 .primary-action.disabled {
@@ -139,7 +139,7 @@
   margin-top: 8rpx;
   padding: 18rpx 44rpx;
   border-radius: 44rpx;
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: #ffffff;
   font-size: 28rpx;
 }

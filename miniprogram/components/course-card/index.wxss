@@ -9,7 +9,7 @@
 }
 
 .course-card.pending {
-  background: linear-gradient(135deg, #f0f5ff 0%, #e8f4ff 100%);
+  background: linear-gradient(135deg, var(--theme-primary-tint) 0%, #f8fbff 100%);
 }
 
 /* 左侧缩略图 */
@@ -17,7 +17,7 @@
   width: 120rpx;
   height: 150rpx;
   flex-shrink: 0;
-  /* background 通过 inline style 动态设置 */
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   border-radius: 12rpx;
   display: flex;
   align-items: center;
@@ -76,8 +76,8 @@
 }
 
 .progress-fill-active {
-  background: linear-gradient(90deg, #4a90e2 0%, #357abd 100%);
-  box-shadow: 0 2rpx 6rpx rgba(74, 144, 226, 0.3);
+  background: linear-gradient(90deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  box-shadow: 0 2rpx 6rpx var(--theme-primary-shadow);
 }
 
 .progress-fill-done {
@@ -104,7 +104,12 @@
   flex: none;
   text-align: right;
   font-weight: 500;
-  color: #4a90e2;
+  color: #8c8c8c;
+}
+
+.status-text.status-not_started,
+.status-text.status-ongoing {
+  color: var(--theme-primary);
 }
 
 .action-btn {
@@ -118,14 +123,14 @@
 }
 
 .action-btn.primary {
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: #ffffff;
 }
 
 .action-btn.secondary {
   background: transparent;
-  color: #4a90e2;
-  border: 2rpx solid #4a90e2;
+  color: var(--theme-primary);
+  border: 2rpx solid var(--theme-primary);
 }
 
 .action-btn.secondary::after {

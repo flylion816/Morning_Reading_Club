@@ -1,6 +1,6 @@
 <view class="course-card {{isPending ? 'pending' : ''}}" catchtap="onCardTap">
   <!-- 左侧缩略图 -->
-  <view class="course-thumb" style="background: {{course.color || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)'}}">
+  <view class="course-thumb" style="{{course.color ? 'background: ' + course.color : ''}}">
     <text class="thumb-icon">{{course.icon || '📚'}}</text>
   </view>
 
@@ -17,7 +17,7 @@
 
       <!-- 期次模式：只显示状态文本 -->
       <view wx:if="{{mode === 'period'}}" class="course-actions period-mode">
-        <text class="status-text status-right">{{course.statusText}}</text>
+        <text class="status-text status-right status-{{course.calculatedStatus}}">{{course.statusText}}</text>
       </view>
 
       <!-- 课节模式：显示状态文本+按钮 -->

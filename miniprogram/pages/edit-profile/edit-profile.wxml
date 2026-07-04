@@ -4,7 +4,7 @@
   <view class="section">
     <view class="section-title">头像</view>
     <view class="avatar-picker-panel">
-      <view class="avatar-preview" style="background: {{avatarColor || '#4a90e2'}}">
+      <view class="avatar-preview" style="background: {{avatarColor || themePrimaryColor}}">
         <image wx:if="{{avatarUrl}}" class="avatar-preview-image" src="{{avatarUrl}}" mode="aspectFill" />
         <text wx:else class="avatar-preview-emoji">{{avatarText || '用'}}</text>
       </view>

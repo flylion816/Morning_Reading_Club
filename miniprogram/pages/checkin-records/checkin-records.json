@@ -1,7 +1,7 @@
 {
   "navigationBarTitleText": "学习记录",
-  "navigationBarBackgroundColor": "#f7fbff",
-  "navigationBarTextStyle": "black",
+  "navigationBarBackgroundColor": "#448426",
+  "navigationBarTextStyle": "white",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark"
 }

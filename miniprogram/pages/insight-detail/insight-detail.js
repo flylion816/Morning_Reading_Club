@@ -6,6 +6,7 @@ const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
 const { isAdminUser } = require('../../utils/auth');
+const { THEME_PRIMARY } = require('../../utils/theme');
 const {
   normalizeDanmakuContent,
   countDanmakuChars,
@@ -96,9 +97,10 @@ Page({
     activeDanmaku: [],
     danmakuInput: '',
     danmakuInputLength: 0,
-    danmakuColor: '#4a90e2',
+    themePrimaryColor: THEME_PRIMARY,
+    danmakuColor: THEME_PRIMARY,
     danmakuColors: [
-      { name: '晨蓝', value: '#4a90e2' },
+      { name: '主题', value: THEME_PRIMARY },
       { name: '暖金', value: '#e6a23c' },
       { name: '草绿', value: '#52c41a' },
       { name: '淡紫', value: '#9b8fc4' },
@@ -1268,7 +1270,7 @@ Page({
         nickname: item.userNickname || '',
         msg: normalizeDanmakuContent(item.content),
         lane,
-        color: item.color || '#4a90e2',
+        color: item.color || THEME_PRIMARY,
         duration: DANMAKU_DURATION,
         animDelay
       }]

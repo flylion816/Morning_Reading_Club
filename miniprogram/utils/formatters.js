@@ -5,6 +5,8 @@
 
 const logger = require('./logger');
 
+const { THEME_PRIMARY } = require('./theme');
+
 /**
  * 格式化日期
  * @param {Date|string|number} date 日期对象、日期字符串或时间戳
@@ -250,7 +252,7 @@ function parseQuery(query) {
  */
 function getAvatarColorByUserId(userId) {
   const colors = [
-    '#4a90e2', // 蓝色
+    THEME_PRIMARY,
     '#7ed321', // 绿色
     '#f5a623', // 橙色
     '#bd10e0', // 紫色
@@ -287,9 +289,9 @@ function getInsightTypeConfig(type) {
     daily: {
       icon: '📝',
       label: '每日反馈',
-      color: '#4a90e2', // 蓝色
-      bgColor: '#f0f5ff', // 浅蓝色背景
-      borderColor: '#4a90e2' // 蓝色边框
+      color: THEME_PRIMARY,
+      bgColor: '#f0f5ff',
+      borderColor: THEME_PRIMARY
     },
     weekly: {
       icon: '📊',
@@ -308,9 +310,9 @@ function getInsightTypeConfig(type) {
     insight: {
       icon: '✨',
       label: '小凡看见',
-      color: '#4a90e2', // 蓝色
-      bgColor: '#f0f5ff', // 浅蓝色背景
-      borderColor: '#4a90e2' // 蓝色边框
+      color: THEME_PRIMARY,
+      bgColor: '#f0f5ff',
+      borderColor: THEME_PRIMARY
     }
   };
 

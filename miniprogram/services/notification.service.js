@@ -4,6 +4,7 @@
  */
 
 const request = require('../utils/request');
+const { THEME_PRIMARY } = require('../utils/theme');
 
 class NotificationService {
   /**
@@ -124,13 +125,13 @@ class NotificationService {
       permission_revoked: '#E64340',
       admin_approved: '#07C160',
       admin_rejected: '#FA5151',
-      enrollment_result: '#4A90E2',
+      enrollment_result: THEME_PRIMARY,
       payment_result: '#1F9D55',
-      comment_received: '#4A90E2',
+      comment_received: THEME_PRIMARY,
       like_received: '#E25555',
       insight_created: '#7B5EA7',
       insight_liked: '#E25555',
-      danmaku_received: '#4A90E2'
+      danmaku_received: THEME_PRIMARY
     };
     return colors[type] || '#999';
   }

@@ -733,4 +733,70 @@ describe('index page', () => {
     expect(insightService.getInsightsList).toHaveBeenCalledWith({ limit: 100 });
     expect(pageInstance.data.recentCheckins).toHaveLength(1);
   });
+
+  test('should omit hidden home sections from configured homepage order', async () => {
+    wx.request.mockImplementationOnce((options) => {
+      options.success({
+        statusCode: 200,
+        data: {
+          code: 0,
+          data: {
+            sections: [
+              { key: 'recentActivities', hidden: false },
+              { key: 'todayTask', hidden: true },
+              'zaichang',
+              { key: 'myCheckins', hidden: true },
+              'xiaofanInsights',
+              'insightRequests'
+            ]
+          }
+        }
+      });
+    });
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '小狐狸',
+      signature: '呼噜呼噜'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 5 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_current',
+          title: '秩序之锚',
+          name: '秩序之锚',
+          startDate: '2026-05-01T00:00:00.000Z',
+          endDate: '2026-05-31T00:00:00.000Z'
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [
+        {
+          _id: 'enrollment_current',
+          periodId: 'period_current',
+          status: 'active',
+          paymentStatus: 'paid'
+        }
+      ]
+    });
+    courseService.getTodayTask.mockResolvedValue(null);
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: true,
+      communityAccessState: 'enabled',
+      paymentStatus: 'paid'
+    });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [] });
+    insightService.getInsightsList.mockResolvedValue({ list: [] });
+    insightService.getReceivedRequests.mockResolvedValue([]);
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+
+    expect(pageInstance.data.homeSections.map(item => item.key)).toEqual([
+      'recentActivities',
+      'zaichang',
+      'xiaofanInsights',
+      'insightRequests'
+    ]);
+  });
 });

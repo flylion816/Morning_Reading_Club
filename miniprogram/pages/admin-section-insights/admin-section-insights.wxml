@@ -27,7 +27,7 @@
       data-insight-id="{{item.insightId}}">
       <!-- 用户信息 -->
       <view class="card-user">
-        <view class="user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}">
+        <view class="user-avatar" style="background: {{item.avatarColor || themePrimaryColor}}">
           <image wx:if="{{item.avatarUrl}}" class="avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
           <text wx:else class="avatar-text">{{item.avatarText}}</text>
         </view>

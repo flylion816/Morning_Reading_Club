@@ -59,6 +59,66 @@ describe('HomeConfig Controller', () => {
     expect(payload.data.items[0].label).to.equal('近期活动');
   });
 
+  it('公开端点过滤隐藏板块', async () => {
+    const config = {
+      sections: [
+        'recentActivities',
+        'todayTask',
+        'zaichang',
+        'myCheckins',
+        'xiaofanInsights',
+        'insightRequests'
+      ],
+      hiddenSections: ['zaichang', 'myCheckins'],
+      save: sandbox.stub().resolves()
+    };
+    HomeConfigStub.findOne.resolves(config);
+
+    await controller.getPublicHomeConfig(req, res);
+
+    const payload = res.json.getCall(0).args[0];
+    expect(payload.data.sections).to.deep.equal([
+      'recentActivities',
+      'todayTask',
+      'xiaofanInsights',
+      'insightRequests'
+    ]);
+    expect(payload.data.items.map((item) => item.key)).to.deep.equal([
+      'recentActivities',
+      'todayTask',
+      'xiaofanInsights',
+      'insightRequests'
+    ]);
+  });
+
+  it('管理端读取保留隐藏板块和隐藏状态', async () => {
+    const config = {
+      sections: [
+        'recentActivities',
+        'todayTask',
+        'zaichang',
+        'myCheckins',
+        'xiaofanInsights',
+        'insightRequests'
+      ],
+      hiddenSections: ['zaichang'],
+      save: sandbox.stub().resolves()
+    };
+    HomeConfigStub.findOne.resolves(config);
+
+    await controller.getAdminHomeConfig(req, res);
+
+    const payload = res.json.getCall(0).args[0];
+    expect(payload.data.sections).to.deep.equal(config.sections);
+    expect(payload.data.hiddenSections).to.deep.equal(['zaichang']);
+    expect(payload.data.items.find((item) => item.key === 'zaichang')).to.include({
+      hidden: true
+    });
+    expect(payload.data.items.find((item) => item.key === 'todayTask')).to.include({
+      hidden: false
+    });
+  });
+
   it('管理端拒绝未选择租户的读取', async () => {
     req._resolvedTenantId = null;
 
@@ -80,6 +140,7 @@ describe('HomeConfig Controller', () => {
   it('管理端保存有效顺序', async () => {
     const config = {
       sections: [],
+      hiddenSections: [],
       save: sandbox.stub().resolves()
     };
     const sections = [
@@ -100,5 +161,40 @@ describe('HomeConfig Controller', () => {
     const payload = res.json.getCall(0).args[0];
     expect(payload.message).to.equal('保存成功');
     expect(payload.data.sections).to.deep.equal(sections);
+  });
+
+  it('管理端保存板块隐藏状态', async () => {
+    const config = {
+      sections: [],
+      hiddenSections: [],
+      save: sandbox.stub().resolves()
+    };
+    req.body.sections = [
+      { key: 'todayTask', hidden: true },
+      { key: 'recentActivities', hidden: false },
+      { key: 'zaichang', hidden: false },
+      { key: 'myCheckins', hidden: true },
+      { key: 'xiaofanInsights', hidden: false },
+      { key: 'insightRequests', hidden: false }
+    ];
+    HomeConfigStub.findOne.resolves(config);
+
+    await controller.updateAdminHomeConfig(req, res);
+
+    expect(config.sections).to.deep.equal([
+      'todayTask',
+      'recentActivities',
+      'zaichang',
+      'myCheckins',
+      'xiaofanInsights',
+      'insightRequests'
+    ]);
+    expect(config.hiddenSections).to.deep.equal(['todayTask', 'myCheckins']);
+    expect(config.save.called).to.equal(true);
+    const payload = res.json.getCall(0).args[0];
+    expect(payload.data.hiddenSections).to.deep.equal(['todayTask', 'myCheckins']);
+    expect(payload.data.items.find((item) => item.key === 'todayTask')).to.include({
+      hidden: true
+    });
   });
 });

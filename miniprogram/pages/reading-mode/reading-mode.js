@@ -1,6 +1,8 @@
 const courseService = require('../../services/course.service');
+const currentTenant = require('../../config/current-tenant');
 const constants = require('../../config/constants');
 const { tenantStorage } = require('../../utils/storage');
+const { THEME_PRIMARY } = require('../../utils/theme');
 const { richContentToPlainText, isLikelyHtml } = require('../../utils/markdown');
 const {
   extractId,
@@ -19,6 +21,7 @@ const MINI_PROGRAM_CODE_ASSET_PATHS = [
 const FONT_SIZE_LEVELS = ['standard', 'large', 'xlarge'];
 const MIN_COMPLETION_DURATION_MS = 60 * 1000;
 const FINAL_PARAGRAPH_DWELL_MS = 5 * 1000;
+const THEME_PRIMARY_DARK = currentTenant.primaryDarkColor || THEME_PRIMARY;
 
 function isTruthyRouteValue(value) {
   return value === true || value === 'true' || value === '1' || value === 1;
@@ -1048,11 +1051,11 @@ Page({
     const tagH = rpx(48);
     const tagW = Math.min(rpx(260), Math.max(rpx(152), ctx.measureText(periodTag).width + tagInsetX * 2));
     this.drawRoundedRect(ctx, pageX - tagInsetX, topPadding, tagW, tagH, tagH / 2, '#eef5ff');
-    ctx.fillStyle = '#357abd';
+    ctx.fillStyle = THEME_PRIMARY_DARK;
     ctx.fillText(periodTag, pageX, topPadding + rpx(32));
 
     this.drawRoundedRect(ctx, W - pageX - rpx(120), topPadding, rpx(120), tagH, tagH / 2, '#ffffff');
-    ctx.fillStyle = '#4a90e2';
+    ctx.fillStyle = THEME_PRIMARY;
     ctx.font = `bold ${rpx(24)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(`${this.data.readingProgress || 0}%`, W - pageX - rpx(60), topPadding + rpx(32));
@@ -1164,7 +1167,7 @@ Page({
           paragraphMetrics.markerWidth,
           markerH,
           paragraphMetrics.markerWidth / 2,
-          '#4a90e2'
+          THEME_PRIMARY
         );
         ctx.fillStyle = '#1f2937';
         ctx.font = `bold ${paragraphMetrics.fontSize}px sans-serif`;

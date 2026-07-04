@@ -7,6 +7,7 @@ const { tenantStorage } = require('../../utils/storage');
 const { richContentToPlainText } = require('../../utils/markdown');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
+const { THEME_PRIMARY } = require('../../utils/theme');
 const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
@@ -58,7 +59,8 @@ Page({
     headerEmoji: '🦁', // 头部emoji
     headerAvatarUrl: '',
     headerAvatarText: '用',
-    headerAvatarColor: '#4a90e2',
+    headerAvatarColor: THEME_PRIMARY,
+    themePrimaryColor: THEME_PRIMARY,
     headerTitle: '小凡看见', // 头部标题
     headerDesc: '按课程查看个性化反馈', // 头部描述
     showRequestSharePrompt: false,

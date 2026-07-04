@@ -10,7 +10,7 @@
   <view class="user-content" wx:if="{{isLogin}}">
     <!-- 顶部横幅 -->
     <view class="home-banner">
-      <view class="user-avatar-container" style="background: {{userInfo.avatarColor || '#4a90e2'}}" bindtap="openEditProfile">
+      <view class="user-avatar-container" style="background: {{userInfo.avatarColor || themePrimaryColor}}" bindtap="openEditProfile">
         <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
         <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
         <view class="avatar-edit-badge">✏️</view>
@@ -160,7 +160,7 @@
             <view class="period-title-area">
               <view class="period-title-new">{{todaySection.title}}</view>
               <view class="checkin-count-badge">
-                <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}; background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
+                <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}; background: {{item.avatarColor || themePrimaryColor}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
                   <image wx:if="{{item.avatarUrl}}" class="mini-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
                   <text wx:else class="mini-avatar-emoji">{{item.avatarText || '用'}}</text>
                 </view>
@@ -283,7 +283,7 @@
             style="border-left-color: {{item.typeConfig.color}};background-color: {{item.typeConfig.bgColor}}"
             data-id="{{item.id}}"
             catchtap="handleInsightClick">
-            <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||'#4a90e2'}}">
+            <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||themePrimaryColor}}">
               <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
               <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
             </view>
@@ -345,7 +345,7 @@
             bindtap="handleInsightRequestTap"
             data-request="{{item}}">
             <view class="request-item-left">
-              <view class="request-user-avatar" style="background: {{item.avatarColor || '#4a90e2'}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
+              <view class="request-user-avatar" style="background: {{item.avatarColor || themePrimaryColor}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
                 <image wx:if="{{item.displayUserAvatarUrl}}" class="request-avatar-image" src="{{item.displayUserAvatarUrl}}" mode="aspectFill" />
                 <text wx:else class="request-avatar-text">{{item.displayUserAvatarText}}</text>
               </view>
@@ -453,7 +453,7 @@
       <view class="modal-section">
         <text class="section-label">头像</text>
         <view class="avatar-picker-panel">
-          <view class="avatar-preview" style="background: {{editForm.avatarColor || '#4a90e2'}}">
+          <view class="avatar-preview" style="background: {{editForm.avatarColor || themePrimaryColor}}">
             <image wx:if="{{editForm.avatarUrl}}" class="avatar-preview-image" src="{{editForm.avatarUrl}}" mode="aspectFill" />
             <text wx:else class="avatar-preview-emoji">{{editForm.avatarText || '用'}}</text>
           </view>

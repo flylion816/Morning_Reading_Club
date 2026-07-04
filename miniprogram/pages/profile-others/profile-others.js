@@ -2,13 +2,15 @@ const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
 const logger = require('../../utils/logger');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 Page({
   data: {
     userId: null,
     periodId: null,
     userInfo: {},
-    stats: {}
+    stats: {},
+    themePrimaryColor: THEME_PRIMARY
   },
 
   normalizeAvatarUrl(avatarUrl) {

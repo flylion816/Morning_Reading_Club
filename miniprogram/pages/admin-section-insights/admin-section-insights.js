@@ -2,6 +2,7 @@ const request = require('../../utils/request');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getLastTextChar } = require('../../utils/avatar');
 const { richContentToPlainText } = require('../../utils/markdown');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 Page({
   data: {
@@ -9,7 +10,8 @@ Page({
     sectionTitle: '',
     insights: [],
     loading: true,
-    total: 0
+    total: 0,
+    themePrimaryColor: THEME_PRIMARY
   },
 
   onLoad(options) {

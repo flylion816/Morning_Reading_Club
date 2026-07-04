@@ -7,6 +7,7 @@ const { hasPaidEnrollment, clearEnrollmentCache } = require('../../utils/period-
 const { decorateUserAvatar } = require('../../utils/avatar');
 const { tenantStorage } = require('../../utils/storage');
 const { isAdminUser } = require('../../utils/auth');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 
@@ -22,7 +23,8 @@ Page({
     canUsePaidFeatures: false,
     isAdmin: false,
     unreadNotificationCount: 0,
-    loading: false
+    loading: false,
+    themePrimaryColor: THEME_PRIMARY
   },
 
   onLoad(options = {}) {

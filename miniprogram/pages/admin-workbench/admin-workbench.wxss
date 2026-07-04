@@ -27,7 +27,7 @@
 }
 
 .tab.active {
-  background: #2563eb;
+  background: var(--theme-primary);
   color: #ffffff;
   font-weight: 600;
 }
@@ -59,7 +59,7 @@
   height: 68rpx;
   line-height: 68rpx;
   border-radius: 10rpx;
-  background: #2563eb;
+  background: var(--theme-primary);
   color: #ffffff;
   font-size: 26rpx;
   padding: 0;
@@ -115,15 +115,15 @@
 }
 
 .user-card.selected {
-  border-color: #93c5fd;
+  border-color: var(--theme-primary-alpha-40);
 }
 
 .avatar {
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -230,8 +230,8 @@
   flex-shrink: 0;
   padding: 6rpx 14rpx;
   border-radius: 999rpx;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
   font-size: 22rpx;
 }
 
@@ -252,13 +252,13 @@
 }
 
 .chip.blue {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
 }
 
 .amount {
   flex-shrink: 0;
-  color: #2563eb;
+  color: var(--theme-primary);
   font-size: 28rpx;
   font-weight: 700;
 }
@@ -268,7 +268,7 @@
   padding: 22rpx 0;
   border-radius: 10rpx;
   background: #ffffff;
-  color: #2563eb;
+  color: var(--theme-primary);
   text-align: center;
   font-size: 26rpx;
 }
@@ -276,7 +276,7 @@
 .card-link {
   display: block;
   margin-top: 14rpx;
-  color: #2563eb;
+  color: var(--theme-primary);
   font-size: 24rpx;
   font-weight: 600;
 }

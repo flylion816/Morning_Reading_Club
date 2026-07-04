@@ -4,6 +4,7 @@ const activityService = require('../../services/activity.service');
 const constants = require('../../config/constants');
 const { tenantStorage } = require('../../utils/storage');
 const { decorateUserAvatar, getUserAvatarDisplay } = require('../../utils/avatar');
+const { THEME_PRIMARY } = require('../../utils/theme');
 
 Page({
   data: {
@@ -11,9 +12,10 @@ Page({
     avatar: '🦁',
     avatarUrl: '',
     avatarText: '用',
-    avatarColor: '#4a90e2',
+    avatarColor: THEME_PRIMARY,
     signature: '',
-    saving: false
+    saving: false,
+    themePrimaryColor: THEME_PRIMARY
   },
 
   onLoad() {

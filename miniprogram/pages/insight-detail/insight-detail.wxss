@@ -27,7 +27,7 @@ page {
 
 /* 顶部标题卡片 */
 .detail-header {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   padding: 32rpx 24rpx;
   border-radius: 16rpx;
@@ -105,7 +105,7 @@ page {
 .section-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #4a90e2;
+  color: var(--theme-primary);
   margin-bottom: 32rpx;
 }
 
@@ -184,14 +184,14 @@ page {
 
 .reading-progress-fill {
   height: 100%;
-  background: #4a90e2;
+  background: var(--theme-primary);
   border-radius: 4rpx;
 }
 
 .reading-progress-pct {
   font-size: 22rpx;
   font-weight: 600;
-  color: #4a90e2;
+  color: var(--theme-primary);
   min-width: 60rpx;
   text-align: right;
   flex-shrink: 0;
@@ -266,7 +266,7 @@ page {
 
 .btn-share {
   flex: 1;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   font-weight: bold;
 }
@@ -338,7 +338,7 @@ page {
 
 .poster-btn {
   flex: 1;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   border: none;
   border-radius: 48rpx;
@@ -353,7 +353,7 @@ page {
 
 .poster-btn-outline {
   background: white;
-  color: #4a90e2;
+  color: var(--theme-primary);
   border: 1rpx solid #c9dff8;
   font-weight: 500;
 }
@@ -421,7 +421,7 @@ page {
   text-align: center;
   font-size: 26rpx;
   font-weight: 600;
-  color: #4a90e2;
+  color: var(--theme-primary);
   background: #fff;
   border-bottom: 1rpx solid #eef3f8;
   box-sizing: border-box;

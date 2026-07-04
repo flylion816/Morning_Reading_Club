@@ -6,7 +6,7 @@
 
 /* 自定义导航栏 */
 .custom-nav {
-  background: #4a90e2;
+  background: var(--theme-primary);
   display: flex;
   align-items: center;
   height: auto;
@@ -81,7 +81,7 @@
   width: 48rpx;
   height: 48rpx;
   border-radius: 12rpx;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -118,7 +118,7 @@
   padding: 16rpx;
   margin-bottom: 24rpx;
   font-size: 26rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   cursor: pointer;
 }
 
@@ -207,7 +207,7 @@
 
 /* 富文本链接样式 */
 .section-content /deep/ a {
-  color: #4a90e2;
+  color: var(--theme-primary);
   text-decoration: underline;
 }
 
@@ -273,8 +273,8 @@
 
 .tool-btn-active,
 .tool-btn:active {
-  background: #e8f4fd;
-  color: #2f7ed8;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
 }
 
 .tool-icon {
@@ -317,7 +317,7 @@
 }
 
 .color-swatch-active {
-  box-shadow: 0 0 0 4rpx #b8d9fb;
+  box-shadow: 0 0 0 4rpx var(--theme-primary-alpha-40);
 }
 
 .rich-editor {
@@ -436,12 +436,12 @@
 }
 
 .checkin-image-add {
-  border: 1rpx dashed #bdd4ef;
+  border: 1rpx dashed var(--theme-primary-alpha-30);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #4a90e2;
+  color: var(--theme-primary);
   box-sizing: border-box;
 }
 
@@ -513,7 +513,7 @@
 }
 
 .exit-btn-publish {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   font-weight: bold;
 }
@@ -557,9 +557,9 @@
 }
 
 .visibility-option.active {
-  color: #4a90e2;
-  background: #e8f4fd;
-  border-color: #4a90e2;
+  color: var(--theme-primary);
+  background: var(--theme-primary-tint);
+  border-color: var(--theme-primary);
 }
 
 /* 底部按钮 */
@@ -593,7 +593,7 @@
 
 .btn-submit {
   flex: 2;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   border: none;
   border-radius: 36rpx;
@@ -655,7 +655,7 @@
 }
 .cel-card-b {
   background: white;
-  box-shadow: 0 16rpx 64rpx rgba(74,144,226,0.2);
+  box-shadow: 0 16rpx 64rpx var(--theme-primary-alpha-20);
   animation: card-drop 0.5s cubic-bezier(.34,1.56,.64,1) 0.3s both;
 }
 .cel-card-d {
@@ -812,7 +812,7 @@
   border-radius: 8rpx;
   opacity: 0;
 }
-.cel-pg1 { background: rgba(74,144,226,0.3);  animation: page-fly1 0.8s ease-out 0.1s both; }
+.cel-pg1 { background: var(--theme-primary-alpha-30);  animation: page-fly1 0.8s ease-out 0.1s both; }
 .cel-pg2 { background: rgba(255,107,53,0.25); animation: page-fly2 0.9s ease-out 0.2s both; }
 .cel-pg3 { background: rgba(78,205,196,0.3);  animation: page-fly3 0.7s ease-out 0.05s both; }
 .cel-pg4 { background: rgba(255,215,0,0.35);  animation: page-fly4 0.85s ease-out 0.15s both; }
@@ -856,13 +856,13 @@
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4a90e2, #357abd);
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 32rpx;
   animation: icon-pop 0.5s cubic-bezier(.34,1.56,.64,1) 0.3s both;
-  box-shadow: 0 8rpx 32rpx rgba(74,144,226,0.4);
+  box-shadow: 0 8rpx 32rpx var(--theme-primary-alpha-40);
 }
 @keyframes icon-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .cel-check-c { font-size: 60rpx; color: white; font-weight: bold; }
@@ -880,14 +880,14 @@
   width: 12rpx; height: 12rpx; border-radius: 50%;
   animation: dot-bounce 0.6s ease infinite alternate;
 }
-.d1 { background: #4a90e2; animation-delay: 0s; }
+.d1 { background: var(--theme-primary); animation-delay: 0s; }
 .d2 { background: #FFD700; animation-delay: 0.15s; }
 .d3 { background: #4ECDC4; animation-delay: 0.3s; }
 @keyframes dot-bounce { from { transform: translateY(0); } to { transform: translateY(-10rpx); } }
 
 /* Style C 关闭按钮 */
 .cel-close-btn {
-  background: linear-gradient(135deg, #4a90e2, #357abd);
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
   color: white;
   border-radius: 48rpx;
   padding: 28rpx 80rpx;

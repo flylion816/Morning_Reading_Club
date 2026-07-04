@@ -300,6 +300,38 @@ describe('checkin page', () => {
     );
   });
 
+  test('should keep leave guard disabled when editor emits clear input after successful submit', async () => {
+    checkinService.submitCheckin.mockResolvedValue({ _id: 'checkin_success' });
+    pageInstance.setData({
+      accessChecked: true,
+      courseId: 'section_1',
+      sectionId: 'section_1',
+      periodId: 'period_1',
+      sectionDay: 1,
+      diaryContent: '已完成打卡',
+      diaryContentHtml: '<p>已完成打卡</p>',
+      isDirty: true
+    });
+    pageInstance._editorCtx = {
+      clear: jest.fn()
+    };
+    pageInstance.showCheckinCelebration = jest.fn();
+
+    await pageInstance.handleSubmit.call(pageInstance);
+    pageInstance.handleEditorInput.call(pageInstance, {
+      detail: {
+        text: '\n',
+        html: '<p><br></p>'
+      }
+    });
+
+    expect(pageInstance.data.isDirty).toBe(false);
+    expect(wx.disableAlertBeforeUnload).toHaveBeenCalled();
+    expect(wx.enableAlertBeforeUnload).not.toHaveBeenCalledWith({
+      message: '日记内容尚未发布，确定要离开？'
+    });
+  });
+
   test('should load and update images in edit mode', async () => {
     checkinService.getCheckinDetail.mockResolvedValue({
       note: '旧内容',

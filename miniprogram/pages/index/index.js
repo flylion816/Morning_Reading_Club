@@ -24,6 +24,7 @@ const {
 } = require('../../utils/avatar');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { tenantStorage } = require('../../utils/storage');
+const { THEME_PRIMARY } = require('../../utils/theme');
 const {
   buildInsightRequestDisplay,
   extractInsightRequests
@@ -58,17 +59,38 @@ const HOME_SECTION_LABELS = {
   xiaofanInsights: '小凡看见',
   insightRequests: '请求看见'
 };
-
-function normalizeHomeSectionOrder(order) {
+function normalizeHomeSectionOrder(order, options = {}) {
+  const appendMissing = options.appendMissing !== false;
   const source = Array.isArray(order) ? order : [];
-  const valid = source.filter((key) => HOME_SECTION_KEYS.includes(key));
+  const valid = source
+    .map((item) => (typeof item === 'string' ? item : item?.key))
+    .filter((key) => HOME_SECTION_KEYS.includes(key));
   const unique = [...new Set(valid)];
+  if (!appendMissing) {
+    return unique;
+  }
   const missing = HOME_SECTION_KEYS.filter((key) => !unique.includes(key));
   return [...unique, ...missing];
 }
 
-function buildHomeSectionItems(order) {
-  return normalizeHomeSectionOrder(order).map((key) => ({
+function getHiddenHomeSections(order) {
+  if (!Array.isArray(order)) {
+    return new Set();
+  }
+  return new Set(
+    order
+      .filter((item) => item && typeof item === 'object' && item.hidden === true)
+      .map((item) => item.key)
+      .filter((key) => HOME_SECTION_KEYS.includes(key))
+  );
+}
+
+function buildHomeSectionItems(order, options = {}) {
+  const hiddenSections = getHiddenHomeSections(order);
+  const appendMissing = options.appendMissing !== false && hiddenSections.size === 0;
+  return normalizeHomeSectionOrder(order, { appendMissing })
+    .filter((key) => !hiddenSections.has(key))
+    .map((key) => ({
     key,
     label: HOME_SECTION_LABELS[key]
   }));
@@ -220,7 +242,7 @@ function buildRecentCheckinCard(item) {
     dayLabel: sectionInfo.day ? `第${sectionInfo.day}天` : '',
     dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
     icon: periodInfo.coverEmoji || periodInfo.icon || '📘',
-    color: periodInfo.coverColor || periodInfo.color || '#4a90e2'
+    color: periodInfo.coverColor || periodInfo.color || THEME_PRIMARY
   };
 }
 
@@ -336,6 +358,7 @@ Page({
     // 编辑个人信息相关
     showEditProfile: false,
     isSavingProfile: false,
+    themePrimaryColor: THEME_PRIMARY,
     editForm: {
       avatar: '🦁',
       avatarUrl: '',
@@ -751,7 +774,7 @@ Page({
           readingDurationMs:
             taskRes.readingDurationMs || sectionRes.readingDurationMs || 0,
           coverColor:
-            sectionRes.coverColor || currentPeriod?.coverColor || '#4a90e2',
+            sectionRes.coverColor || currentPeriod?.coverColor || THEME_PRIMARY,
           coverEmoji:
             sectionRes.coverEmoji || currentPeriod?.coverEmoji || '🏔️',
           subtitleDisplay: (sectionRes.subtitle || '').replace(/至$/, ''),
@@ -786,7 +809,7 @@ Page({
               readingCompleted: !!section.readingCompleted,
               readingCompletedAt: section.readingCompletedAt || null,
               readingDurationMs: section.readingDurationMs || 0,
-              coverColor: currentPeriod?.coverColor || '#4a90e2',
+              coverColor: currentPeriod?.coverColor || THEME_PRIMARY,
               coverEmoji: currentPeriod?.coverEmoji || '🏔️',
               subtitleDisplay: (section.subtitle || '').replace(/至$/, ''),
               displayDate,
@@ -838,7 +861,9 @@ Page({
           currentPeriodCommunityState:
             currentPeriodAccess.communityAccessState || 'locked',
           canUsePaidFeatures: paidFeatureAccessEnabled,
-          homeSections: buildHomeSectionItems(homeConfig?.sections),
+          homeSections: buildHomeSectionItems(homeConfig?.sections, {
+            appendMissing: !homeConfig?.sections
+          }),
           todaySection: todaySection || null,
           hasMeeting: !!todaySection,
           meetingId: currentPeriod?.meetingId || '',

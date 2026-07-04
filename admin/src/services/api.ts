@@ -456,8 +456,10 @@ export const imprintActivityTypeApi = {
 
 export const homeConfigApi = {
   getConfig: () => apiClient.get('/home-config/admin'),
-  updateConfig: (sections: string[]) =>
-    apiClient.put('/home-config/admin', { sections })
+  updateConfig: (
+    sections: Array<string | { key: string; hidden?: boolean }>,
+    hiddenSections?: string[]
+  ) => apiClient.put('/home-config/admin', { sections, hiddenSections })
 };
 
 // 备份管理 API

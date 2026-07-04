@@ -84,6 +84,42 @@ describe('subscribe-auto-topup helper', () => {
     ]);
   });
 
+  test('buildEligibleScenes should ignore scenes without templateId', () => {
+    const scenes = [
+      {
+        scene: 'comment_received',
+        templateId: '',
+        availableCount: 0
+      },
+      {
+        scene: 'like_received',
+        templateId: AUTO_TOP_UP_POLICIES.like_received.templateId,
+        availableCount: 0
+      }
+    ];
+
+    const eligibleScenes = buildEligibleScenes(scenes, {
+      sceneKeys: ['comment_received', 'like_received']
+    });
+
+    expect(eligibleScenes.map(item => item.scene)).toEqual(['like_received']);
+  });
+
+  test('requestSceneSubscriptions should skip empty templateId without calling wx API', async () => {
+    const result = await requestSceneSubscriptions([
+      {
+        scene: 'comment_received',
+        templateId: ''
+      }
+    ]);
+
+    expect(result).toEqual({
+      grants: [],
+      fallbackTriggered: false
+    });
+    expect(global.wx.requestSubscribeMessage).not.toHaveBeenCalled();
+  });
+
   test('buildEligibleScenes should include delivery-blocked scenes for reauthorization', () => {
     const scenes = [
       {

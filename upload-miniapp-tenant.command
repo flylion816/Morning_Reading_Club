@@ -74,7 +74,10 @@ fi
 echo
 echo "Running: npm run tenant:push -- ${args[*]}"
 echo
-npm run tenant:push -- "${args[@]}" --api-base-url "$api_base_url" --email "$admin_email" --password "$admin_password"
+TENANT_SYNC_API_BASE_URL="$api_base_url" \
+TENANT_SYNC_ADMIN_EMAIL="$admin_email" \
+TENANT_SYNC_ADMIN_PASSWORD="$admin_password" \
+  npm run tenant:push -- "${args[@]}"
 
 echo
 echo "Done. Press Enter to close."

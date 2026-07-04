@@ -131,7 +131,12 @@ class WechatService {
       };
     } catch (error) {
       // 如果已经是业务错误（来自 Tenant 校验或微信 API 错误处理），直接抛出
-      if (error.message.includes('不属于租户') || error.message.includes('未配置微信登录凭证')) {
+      if (
+        error.wechatError
+        || error.code
+        || error.message.includes('不属于租户')
+        || error.message.includes('未配置微信登录凭证')
+      ) {
         throw error;
       }
 
@@ -242,6 +247,7 @@ class WechatService {
       40002: 'AppID不存在',
       40028: 'AppID无效',
       40029: 'code无效或已过期，请重新登录',
+      40125: 'AppSecret错误或不属于当前小程序',
       40163: 'code已被使用，请重新登录',
       45011: '请求过于频繁，请稍后再试',
       45087: '服务暂时不可用，请稍后再试',

@@ -7,7 +7,7 @@
 
 .page-login {
   min-height: 100vh;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -194,8 +194,8 @@
 }
 
 .checkbox-item.checked {
-  background: #4a90e2;
-  border-color: #4a90e2;
+  background: var(--theme-primary);
+  border-color: var(--theme-primary);
 }
 
 .checkbox-tick {
@@ -229,7 +229,7 @@
 }
 
 .agreement-link {
-  color: #4a90e2;
+  color: var(--theme-primary);
   margin: 0 6rpx;
   font-weight: 500;
   text-decoration: underline;
@@ -239,13 +239,13 @@
 .login-agree-btn {
   width: 100%;
   padding: 24rpx;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   border-radius: 16rpx;
   font-size: 28rpx;
   font-weight: 600;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.3);
+  box-shadow: 0 8rpx 24rpx var(--theme-primary-shadow);
   transition: all 0.3s;
   margin-top: 24rpx;
 }
@@ -256,7 +256,7 @@
 
 .login-agree-btn:active {
   transform: scale(0.98);
-  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
+  box-shadow: 0 4rpx 12rpx var(--theme-primary-shadow);
 }
 
 .login-agree-btn.disabled {
@@ -270,8 +270,8 @@
   width: 100%;
   padding: 20rpx;
   background: transparent;
-  color: #4a90e2;
-  border: 2rpx solid #4a90e2;
+  color: var(--theme-primary);
+  border: 2rpx solid var(--theme-primary);
   border-radius: 16rpx;
   font-size: 26rpx;
   font-weight: 500;
@@ -284,7 +284,7 @@
 }
 
 .login-skip-btn:active {
-  background: #f0f4ff;
+  background: var(--theme-primary-tint);
   transform: scale(0.98);
 }
 
@@ -394,13 +394,13 @@
 /* 调试信息显示 */
 .debug-info {
   width: 100%;
-  background: #f0f7ff;
-  border: 1rpx solid #b3d8ff;
+  background: var(--theme-primary-tint);
+  border: 1rpx solid var(--theme-primary-alpha-24);
   border-radius: 12rpx;
   padding: 16rpx;
   margin-top: 16rpx;
   font-size: 18rpx;
-  color: #0050b3;
+  color: var(--theme-primary);
 }
 
 .debug-title {
@@ -414,7 +414,7 @@
   line-height: 1.4;
   word-break: break-all;
   font-family: monospace;
-  color: #0050b3;
+  color: var(--theme-primary);
   margin-bottom: 4rpx;
 }
 
@@ -470,13 +470,13 @@
 .bind-btn {
   width: 100%;
   padding: 24rpx;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   border-radius: 16rpx;
   font-size: 28rpx;
   font-weight: 600;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.3);
+  box-shadow: 0 8rpx 24rpx var(--theme-primary-shadow);
   margin-bottom: 24rpx;
 }
 
@@ -486,7 +486,7 @@
 
 .bind-btn:active {
   transform: scale(0.98);
-  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
+  box-shadow: 0 4rpx 12rpx var(--theme-primary-shadow);
 }
 
 .skip-btn {

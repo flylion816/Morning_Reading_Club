@@ -8,7 +8,7 @@
   <!-- 主内容 -->
   <block wx:elif="{{period}}">
     <!-- 封面区域 -->
-    <view class="cover-section" style="background: {{period.color || '#4a90e2'}}">
+    <view class="cover-section" style="background: {{period.color || themePrimaryColor}}">
       <image wx:if="{{period.coverImage}}" class="cover-image" src="{{period.coverImage}}" mode="aspectFill" />
       <view wx:else class="cover-placeholder">
         <text class="cover-icon">{{period.icon || '📚'}}</text>

@@ -53,7 +53,7 @@
           bindtap="handlePeriodSelect"
           data-period-id="{{item.id}}"
         >
-          <view class="period-card-icon" style="background: {{item.id === periodId ? item.color : '#eef3ff'}}">
+          <view class="period-card-icon" style="background: {{item.id === periodId ? item.color : 'var(--theme-primary-tint)'}}">
             <text class="period-card-icon-text">{{item.icon}}</text>
           </view>
           <view class="period-card-copy">

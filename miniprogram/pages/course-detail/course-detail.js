@@ -12,6 +12,7 @@ const envConfig = require('../../config/env');
 const { requireLogin } = require('../../utils/require-login');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
+const { THEME_PRIMARY } = require('../../utils/theme');
 const {
   createPodcastAudioContext,
   setPodcastAudioSource,
@@ -148,6 +149,7 @@ Page({
     shareCheckinId: '',
     shareCheckinUserName: '',
     canShareCurrentCheckin: true,
+    themePrimaryColor: THEME_PRIMARY,
     checkinContentExpanded: {},
     highlightCheckinId: '',
     highlightCommentId: '',

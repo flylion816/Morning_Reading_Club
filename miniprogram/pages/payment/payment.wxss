@@ -20,7 +20,7 @@
   width: 60rpx;
   height: 60rpx;
   border: 4rpx solid #f3f3f3;
-  border-top: 4rpx solid #4a90e2;
+  border-top: 4rpx solid var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
@@ -44,7 +44,7 @@
 
 /* 页面头部 */
 .payment-header {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
   padding: 40rpx 30rpx;
   text-align: center;
@@ -154,14 +154,14 @@
 
 .price-total {
   font-size: 36rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: bold;
 }
 
 /* 支付说明 */
 .payment-tips {
   padding: 16rpx 20rpx;
-  background: #f0f5ff;
+  background: var(--theme-primary-tint);
   border-radius: 8rpx;
   margin-top: 16rpx;
   display: flex;
@@ -177,7 +177,7 @@
 
 .tip-text {
   font-size: 24rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   line-height: 1.6;
 }
 
@@ -207,8 +207,8 @@
 }
 
 .method-item.active {
-  border-color: #4a90e2;
-  background: #f0f5ff;
+  border-color: var(--theme-primary);
+  background: var(--theme-primary-tint);
 }
 
 .method-left {
@@ -268,8 +268,8 @@
 }
 
 .method-check.checked {
-  border-color: #4a90e2;
-  background: #4a90e2;
+  border-color: var(--theme-primary);
+  background: var(--theme-primary);
   position: relative;
 }
 
@@ -314,7 +314,7 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
 }
 
@@ -425,7 +425,7 @@
 }
 
 .modal-actions .btn-primary {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
 }
 

@@ -8,7 +8,7 @@
 /* 登录容器 - 未登录状态 */
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -131,7 +131,7 @@
 }
 
 .agreement-link {
-  color: #4a90e2;
+  color: var(--theme-primary);
   margin: 0 4rpx;
 }
 
@@ -154,7 +154,7 @@
 
 /* 顶部横幅 */
 .home-banner {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   padding: 40rpx 32rpx;
   position: relative;
   display: flex;
@@ -189,7 +189,7 @@
   right: 0;
   width: 48rpx;
   height: 48rpx;
-  background: #4a90e2;
+  background: var(--theme-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -374,8 +374,8 @@
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #4a90e2 0%, #6366f1 100%);
-  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.3);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  box-shadow: 0 8rpx 24rpx var(--theme-primary-shadow);
   gap: 4rpx;
 }
 
@@ -593,21 +593,21 @@
 .progress-bar-wrapper {
   flex: 1;
   height: 8rpx;
-  background: rgba(74, 144, 226, 0.2);
+  background: var(--theme-primary-soft);
   border-radius: 4rpx;
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   border-radius: 4rpx;
   transition: width 0.3s;
 }
 
 .progress-status {
   font-size: 22rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -704,8 +704,8 @@
   box-sizing: border-box;
   padding: 0 8rpx;
   border-radius: 999rpx;
-  background: #eef5ff;
-  color: #4a72b2;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
   font-size: 18rpx;
   line-height: 30rpx;
   max-width: 88rpx;
@@ -793,7 +793,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-size: 24rpx;
   font-weight: 500;
 }
@@ -953,7 +953,7 @@
   padding: 0 6rpx;
   font-size: 17rpx;
   line-height: 28rpx;
-  border: 2rpx solid #4a90e2;
+  border: 2rpx solid var(--theme-primary);
 }
 
 .section-period-name {
@@ -1052,7 +1052,7 @@
 
 .insight-day {
   font-size: 24rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: bold;
   white-space: nowrap;
 }
@@ -1070,7 +1070,7 @@
 .insight-title {
   font-size: 26rpx;
   font-weight: bold;
-  color: #4a90e2;
+  color: var(--theme-primary);
   line-height: 1.4;
 }
 
@@ -1085,8 +1085,8 @@
   flex-shrink: 0;
   padding: 3rpx 10rpx;
   border-radius: 999rpx;
-  background: #edf5ff;
-  color: #4a90e2;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
   font-size: 19rpx;
   font-weight: 600;
   line-height: 1.4;
@@ -1096,7 +1096,7 @@
   flex: 1;
   min-width: 0;
   font-size: 24rpx;
-  color: #2f6fb7;
+  color: var(--theme-primary);
   font-weight: 600;
   line-height: 1.35;
   overflow: hidden;
@@ -1146,13 +1146,13 @@
 
 .more-text {
   font-size: 22rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 500;
 }
 
 .more-arrow {
   font-size: 24rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
 }
 
 /* 请求列表 */
@@ -1202,13 +1202,13 @@
 }
 
 .request-item:active {
-  background: #eef4ff;
+  background: var(--theme-primary-tint);
   transform: scale(0.99);
 }
 
 .request-item-focused {
-  background: #eef4ff;
-  box-shadow: 0 18rpx 42rpx rgba(74, 144, 226, 0.24);
+  background: var(--theme-primary-tint);
+  box-shadow: 0 18rpx 42rpx var(--theme-primary-alpha-24);
   animation: requestFocusPulse 1.2s ease-in-out 2;
 }
 
@@ -1242,7 +1242,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.16);
+  box-shadow: 0 6rpx 16rpx var(--theme-primary-alpha-16);
   overflow: hidden;
 }
 
@@ -1299,8 +1299,8 @@
 }
 
 .request-status-pending {
-  background: #eef4ff;
-  color: #4a90e2;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
 }
 
 .request-status-approved {
@@ -1366,13 +1366,13 @@
 }
 
 .approve-btn {
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: white;
 }
 
 .approve-btn:active {
   transform: scale(0.95);
-  background: #357abd;
+  background: var(--theme-primary-dark);
 }
 
 .reject-btn {
@@ -1549,8 +1549,8 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid rgba(74, 144, 226, 0.2);
-  border-top-color: #4a90e2;
+  border: 4rpx solid var(--theme-primary-alpha-20);
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1675,7 +1675,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.18);
+  box-shadow: 0 8rpx 24rpx var(--theme-primary-alpha-18);
   overflow: hidden;
 }
 
@@ -1739,8 +1739,8 @@ button.avatar-action-button::after {
 
 .avatar-action-button.primary {
   color: #ffffff;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  box-shadow: 0 8rpx 18rpx rgba(74, 144, 226, 0.22);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  box-shadow: 0 8rpx 18rpx var(--theme-primary-alpha-22);
 }
 
 /* 昵称输入 */
@@ -1762,7 +1762,7 @@ button.avatar-action-button::after {
 }
 
 .modal-input:focus {
-  border-color: #4a90e2;
+  border-color: var(--theme-primary);
 }
 
 .input-placeholder {
@@ -1807,7 +1807,7 @@ button.avatar-action-button::after {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   color: white;
 }
 
@@ -1850,7 +1850,7 @@ button.avatar-action-button::after {
 
 .progress-percent {
   font-size: 26rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 700;
 }
 
@@ -1864,7 +1864,7 @@ button.avatar-action-button::after {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4a90e2 0%, #6366f1 100%);
+  background: linear-gradient(90deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   border-radius: 6rpx;
   transition: width 0.3s ease;
 }
@@ -1872,7 +1872,7 @@ button.avatar-action-button::after {
 .progress-bar-thumb {
   width: 16rpx;
   height: 16rpx;
-  background: #4a90e2;
+  background: var(--theme-primary);
   border: 2rpx solid white;
   border-radius: 50%;
   position: absolute;
@@ -2018,7 +2018,7 @@ button.avatar-action-button::after {
 .checkin-btn {
   padding: 0 20rpx;
   height: 50rpx;
-  background: #4a90e2;
+  background: var(--theme-primary);
   color: white;
   border-radius: 32rpx;
   font-size: 22rpx;
@@ -2027,7 +2027,7 @@ button.avatar-action-button::after {
   align-items: center;
   justify-content: center;
   gap: 4rpx;
-  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
+  box-shadow: 0 4rpx 12rpx var(--theme-primary-shadow);
   margin: 0;
   position: static;
   line-height: 50rpx;
@@ -2107,7 +2107,7 @@ button.avatar-action-button::after {
 }
 
 .modal-textarea:focus {
-  border-color: #4a90e2;
+  border-color: var(--theme-primary);
 }
 
 /* ===== 未登录介绍页 ===== */
@@ -2118,7 +2118,7 @@ button.avatar-action-button::after {
 }
 
 .guest-banner {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
   padding: 60rpx 32rpx 50rpx;
   display: flex;
   flex-direction: column;
@@ -2205,15 +2205,15 @@ button.avatar-action-button::after {
 
 .guest-login-subtle {
   font-size: 28rpx;
-  color: #4a90e2;
+  color: var(--theme-primary);
   font-weight: 500;
   padding: 20rpx 48rpx;
-  border: 2rpx solid #4a90e2;
+  border: 2rpx solid var(--theme-primary);
   border-radius: 40rpx;
 }
 
 .guest-login-subtle:active {
-  background: #f0f6ff;
+  background: var(--theme-primary-tint);
 }
 
 .guest-tip {
@@ -2222,7 +2222,7 @@ button.avatar-action-button::after {
 }
 
 .guest-link {
-  color: #4a90e2;
+  color: var(--theme-primary);
   margin: 0 4rpx;
 }
 
@@ -2336,8 +2336,8 @@ button.avatar-action-button::after {
 
 .activity-card-type {
   display: inline-block;
-  background: #e8f0fe;
-  color: #4a6cf7;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
   font-size: 22rpx;
   padding: 4rpx 14rpx;
   border-radius: 20rpx;
