@@ -20,6 +20,7 @@ const ImprintSchema = new mongoose.Schema({
   title: { type: String, required: true, maxlength: 30 },
   description: { type: String, maxlength: 200, default: '' },
   activityType: { type: String, required: true },
+  activityTypes: { type: [String], default: [] },
   location: { type: String, maxlength: 20, default: '' },
   mediaList: { type: [MediaSchema], default: [] },
   attendees: { type: [AttendeeSchema], default: [] },
@@ -35,6 +36,7 @@ const ImprintSchema = new mongoose.Schema({
 
 ImprintSchema.index({ tenantId: 1, happenedAt: -1 });
 ImprintSchema.index({ tenantId: 1, activityType: 1, happenedAt: -1 });
+ImprintSchema.index({ tenantId: 1, activityTypes: 1, happenedAt: -1 });
 ImprintSchema.index({ tenantId: 1, periodId: 1, happenedAt: -1 });
 ImprintSchema.index({ authorId: 1 });
 

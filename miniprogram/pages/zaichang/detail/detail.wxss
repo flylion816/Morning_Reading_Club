@@ -20,7 +20,8 @@ page {
 .media-more-text { color: #fff; font-size: 32rpx; font-weight: bold; }
 
 /* 徽章 */
-.badge { display: inline-block; padding: 6rpx 18rpx; border-radius: 20rpx; font-size: 22rpx; color: #fff; margin: 16rpx 0; }
+.badge-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 16rpx 0; }
+.badge { display: inline-block; padding: 6rpx 18rpx; border-radius: 20rpx; font-size: 22rpx; color: #fff; }
 .badge-reading { background: #2D5A3D; }
 .badge-cooking { background: #C4873A; }
 .badge-tea { background: #8B6355; }

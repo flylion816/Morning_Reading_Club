@@ -18,7 +18,47 @@ const REACTION_LABELS = { gonming: '共鸣', ran: '燃', xiangqu: '想去' };
  * 只校验传入的字段（update 时未传的字段不校验）
  * @returns {{ valid: true } | { valid: false, message: string }}
  */
-async function validateImprintFields({ title, activityType, mediaList }, isCreate = false) {
+function dedupeActivityTypes(types) {
+  const seen = new Set();
+  const normalized = [];
+  for (const type of types) {
+    const key = typeof type === 'string' ? type.trim() : '';
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      normalized.push(key);
+    }
+  }
+  return normalized;
+}
+
+function normalizeActivityTypesInput({ activityType, activityTypes }, isCreate = false) {
+  if (activityTypes !== undefined) {
+    if (!Array.isArray(activityTypes)) {
+      return { valid: false, message: '活动类型无效' };
+    }
+    const normalized = dedupeActivityTypes(activityTypes);
+    if (normalized.length === 0) {
+      return { valid: false, message: '活动类型无效' };
+    }
+    return { valid: true, activityTypes: normalized };
+  }
+
+  if (activityType !== undefined) {
+    const normalized = dedupeActivityTypes([activityType]);
+    if (normalized.length === 0) {
+      return { valid: false, message: '活动类型无效' };
+    }
+    return { valid: true, activityTypes: normalized };
+  }
+
+  if (isCreate) {
+    return { valid: false, message: '活动类型无效' };
+  }
+
+  return { valid: true, activityTypes: undefined };
+}
+
+async function validateImprintFields({ title, activityType, activityTypes, mediaList }, isCreate = false) {
   if (title !== undefined) {
     if (typeof title !== 'string' || title.trim().length === 0) {
       return { valid: false, message: '标题不能为空' };
@@ -30,12 +70,14 @@ async function validateImprintFields({ title, activityType, mediaList }, isCreat
     return { valid: false, message: '标题不能为空' };
   }
 
-  if (activityType !== undefined) {
-    if (!(await isValidActivityType(activityType))) {
+  const typeResult = normalizeActivityTypesInput({ activityType, activityTypes }, isCreate);
+  if (!typeResult.valid) {
+    return typeResult;
+  }
+  if (typeResult.activityTypes !== undefined) {
+    if (!(await areValidActivityTypes(typeResult.activityTypes))) {
       return { valid: false, message: '活动类型无效' };
     }
-  } else if (isCreate) {
-    return { valid: false, message: '活动类型无效' };
   }
 
   if (mediaList !== undefined) {
@@ -46,7 +88,7 @@ async function validateImprintFields({ title, activityType, mediaList }, isCreat
     return { valid: false, message: '至少需要一张图片' };
   }
 
-  return { valid: true };
+  return { valid: true, activityTypes: typeResult.activityTypes };
 }
 
 async function notifyReactionReceived(req, { imprintId, imprintTitle, authorId, senderId, senderName, reactionType }) {
@@ -129,8 +171,40 @@ async function isValidActivityType(key) {
   return FALLBACK_ACTIVITY_TYPES.includes(key);
 }
 
+async function areValidActivityTypes(keys) {
+  for (const key of keys) {
+    if (!(await isValidActivityType(key))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function getUserId(req) {
   return req.user._id || req.user.userId || req.user.id;
+}
+
+function getStoredActivityTypes(imprint) {
+  const types = Array.isArray(imprint.activityTypes) && imprint.activityTypes.length > 0
+    ? imprint.activityTypes
+    : [imprint.activityType];
+  return dedupeActivityTypes(types);
+}
+
+function withActivityTypeFilter(filter, activityType) {
+  if (!activityType) return filter;
+  return {
+    ...filter,
+    $and: [
+      ...(filter.$and || []),
+      {
+        $or: [
+          { activityTypes: activityType },
+          { activityType }
+        ]
+      }
+    ]
+  };
 }
 
 async function list(req, res) {
@@ -139,8 +213,7 @@ async function list(req, res) {
     const pageSize = Math.min(20, Math.max(1, parseInt(req.query.pageSize, 10) || 10));
     const { activityType, periodId, startDate, endDate } = req.query;
 
-    const filter = {};
-    if (activityType) filter.activityType = activityType;
+    const filter = withActivityTypeFilter({}, activityType);
     if (periodId) filter.periodId = periodId;
     if (startDate || endDate) {
       filter.happenedAt = {};
@@ -173,6 +246,8 @@ async function list(req, res) {
 
     const normalized = list.map(item => ({
       ...item,
+      activityType: item.activityType || getStoredActivityTypes(item)[0],
+      activityTypes: getStoredActivityTypes(item),
       author: item.authorId,
       authorId: item.authorId?._id,
       attendees: (item.attendees || []).map(a => ({
@@ -192,18 +267,20 @@ async function list(req, res) {
 
 async function create(req, res) {
   try {
-    const { title, activityType, mediaList, description, location, attendees, periodId, happenedAt } = req.body;
+    const { title, activityType, activityTypes, mediaList, description, location, attendees, periodId, happenedAt } = req.body;
 
-    const validation = await validateImprintFields({ title, activityType, mediaList }, true);
+    const validation = await validateImprintFields({ title, activityType, activityTypes, mediaList }, true);
     if (!validation.valid) {
       return res.status(400).json(errors.badRequest(validation.message));
     }
 
     const authorId = getUserId(req);
+    const selectedActivityTypes = validation.activityTypes;
     const imprint = await Imprint.create({
       authorId,
       title: title.trim(),
-      activityType,
+      activityType: selectedActivityTypes[0],
+      activityTypes: selectedActivityTypes,
       mediaList,
       description: description || '',
       location: location || '',
@@ -257,6 +334,8 @@ async function detail(req, res) {
 
     const normalized = {
       ...imprint,
+      activityType: imprint.activityType || getStoredActivityTypes(imprint)[0],
+      activityTypes: getStoredActivityTypes(imprint),
       author: imprint.authorId,
       authorId: imprint.authorId?._id,
       attendees: (imprint.attendees || []).map(a => ({
@@ -288,9 +367,9 @@ async function update(req, res) {
       return res.status(403).json(errors.forbidden('无权修改此印记'));
     }
 
-    const { title, description, activityType, location, attendees, periodId, mediaList } = req.body;
+    const { title, description, activityType, activityTypes, location, attendees, periodId, mediaList } = req.body;
 
-    const validation = await validateImprintFields({ title, activityType, mediaList }, false);
+    const validation = await validateImprintFields({ title, activityType, activityTypes, mediaList }, false);
     if (!validation.valid) {
       return res.status(400).json(errors.badRequest(validation.message));
     }
@@ -298,7 +377,10 @@ async function update(req, res) {
     const updateData = {};
     if (title !== undefined) updateData.title = title.trim();
     if (description !== undefined) updateData.description = description;
-    if (activityType !== undefined) updateData.activityType = activityType;
+    if (validation.activityTypes !== undefined) {
+      updateData.activityType = validation.activityTypes[0];
+      updateData.activityTypes = validation.activityTypes;
+    }
     if (location !== undefined) updateData.location = location;
     if (attendees !== undefined) updateData.attendees = attendees;
     if (periodId !== undefined) updateData.periodId = periodId;
@@ -612,11 +694,11 @@ async function adminList(req, res) {
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize, 10) || 15));
     const { activityType, keyword } = req.query;
 
-    const filter = {};
-    if (activityType) filter.activityType = activityType;
+    const filter = withActivityTypeFilter({}, activityType);
     if (keyword) {
       const re = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      filter.$or = [{ title: re }, { description: re }];
+      if (!filter.$and) filter.$and = [];
+      filter.$and.push({ $or: [{ title: re }, { description: re }] });
     }
 
     const [list, total] = await Promise.all([
@@ -631,6 +713,8 @@ async function adminList(req, res) {
 
     const normalized = list.map(item => ({
       ...item,
+      activityType: item.activityType || getStoredActivityTypes(item)[0],
+      activityTypes: getStoredActivityTypes(item),
       author: item.authorId,
       authorId: item.authorId?._id
     }));
@@ -648,9 +732,9 @@ async function adminUpdate(req, res) {
     const imprint = await Imprint.findById(id).lean();
     if (!imprint) return res.status(404).json(errors.notFound('印记不存在'));
 
-    const { title, description, activityType, location, attendees, mediaList } = req.body;
+    const { title, description, activityType, activityTypes, location, attendees, mediaList } = req.body;
 
-    const validation = await validateImprintFields({ title, activityType, mediaList }, false);
+    const validation = await validateImprintFields({ title, activityType, activityTypes, mediaList }, false);
     if (!validation.valid) {
       return res.status(400).json(errors.badRequest(validation.message));
     }
@@ -658,7 +742,10 @@ async function adminUpdate(req, res) {
     const updateData = {};
     if (title !== undefined) updateData.title = title.trim();
     if (description !== undefined) updateData.description = description;
-    if (activityType !== undefined) updateData.activityType = activityType;
+    if (validation.activityTypes !== undefined) {
+      updateData.activityType = validation.activityTypes[0];
+      updateData.activityTypes = validation.activityTypes;
+    }
     if (location !== undefined) updateData.location = location;
     if (attendees !== undefined) updateData.attendees = attendees;
     if (mediaList !== undefined) updateData.mediaList = mediaList;

@@ -108,11 +108,19 @@
           </el-table-column>
 
           <!-- 活动类型 -->
-          <el-table-column label="类型" width="110">
+          <el-table-column label="类型" width="160">
             <template #default="{ row }">
-              <el-tag :color="typeColor(row.activityType)" effect="light" size="small">
-                {{ typeLabel(row.activityType) }}
-              </el-tag>
+              <div class="type-tags">
+                <el-tag
+                  v-for="type in normalizedActivityTypes(row)"
+                  :key="type"
+                  :color="typeColor(type)"
+                  effect="light"
+                  size="small"
+                >
+                  {{ typeLabel(type) }}
+                </el-tag>
+              </div>
             </template>
           </el-table-column>
 
@@ -260,7 +268,7 @@
               <el-input v-model="editForm.title" maxlength="100" show-word-limit />
             </el-form-item>
             <el-form-item label="活动类型">
-              <el-select v-model="editForm.activityType" style="width:100%">
+              <el-select v-model="editForm.activityTypes" multiple style="width:100%">
                 <el-option
                   v-for="t in activityTypes"
                   :key="t.key"
@@ -410,11 +418,13 @@ const editSaving = ref(false);
 const uploading = ref(false);
 
 function openDetail(row: any) {
+  const activityTypes = normalizedActivityTypes(row);
   editForm.value = {
     _id: row._id,
     title: row.title || '',
     description: row.description || '',
-    activityType: row.activityType || '',
+    activityType: activityTypes[0] || '',
+    activityTypes,
     location: row.location || '',
     mediaList: (row.mediaList || []).map((m: any) => ({ ...m }))
   };
@@ -448,12 +458,14 @@ async function onUploadFile(e: Event) {
 
 async function saveEdit() {
   if (!editForm.value.title.trim()) return ElMessage.warning('标题不能为空');
+  if (!editForm.value.activityTypes.length) return ElMessage.warning('请选择活动类型');
   editSaving.value = true;
   try {
     await imprintApi.updateImprint(editForm.value._id, {
       title: editForm.value.title.trim(),
       description: editForm.value.description.trim(),
-      activityType: editForm.value.activityType,
+      activityType: editForm.value.activityTypes[0],
+      activityTypes: editForm.value.activityTypes,
       location: editForm.value.location.trim(),
       mediaList: editForm.value.mediaList
     });
@@ -473,6 +485,13 @@ function typeLabel(t: string) {
 
 function typeColor(_t: string) {
   return '#f5f5f5';
+}
+
+function normalizedActivityTypes(row: any): string[] {
+  const raw = Array.isArray(row.activityTypes) && row.activityTypes.length > 0
+    ? row.activityTypes
+    : [row.activityType];
+  return Array.from(new Set(raw.filter((type: any) => typeof type === 'string' && type.trim())));
 }
 
 function totalReactions(row: any) {
@@ -585,6 +604,12 @@ onMounted(() => {
 .reaction-counts {
   font-size: 13px;
   color: #666;
+}
+
+.type-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .no-cover {

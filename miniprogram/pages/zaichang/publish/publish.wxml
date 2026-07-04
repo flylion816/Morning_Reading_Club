@@ -38,7 +38,7 @@
       <view
         wx:for="{{activityTypes}}"
         wx:key="key"
-        class="type-item {{activityType === item.key ? 'selected' : ''}}"
+        class="type-item {{item.selected ? 'selected' : ''}}"
         bindtap="onSelectType"
         data-key="{{item.key}}"
       >{{item.label}}</view>

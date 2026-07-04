@@ -163,4 +163,66 @@ describe('zaichang publish page', () => {
     expect(wx.showToast).toHaveBeenLastCalledWith({ title: '请选择活动类型', icon: 'none' });
     expect(imprintService.create).not.toHaveBeenCalled();
   });
+
+  test('onSelectType toggles multiple activity types', () => {
+    pageInstance.onSelectType({ currentTarget: { dataset: { key: 'cooking' } } });
+    pageInstance.onSelectType({ currentTarget: { dataset: { key: 'tea' } } });
+
+    expect(pageInstance.data.selectedActivityTypes).toEqual(['cooking', 'tea']);
+    expect(pageInstance.data.activityType).toBe('cooking');
+    expect(pageInstance.data.activityTypes.find(item => item.key === 'cooking').selected).toBe(true);
+    expect(pageInstance.data.activityTypes.find(item => item.key === 'tea').selected).toBe(true);
+
+    pageInstance.onSelectType({ currentTarget: { dataset: { key: 'cooking' } } });
+
+    expect(pageInstance.data.selectedActivityTypes).toEqual(['tea']);
+    expect(pageInstance.data.activityType).toBe('tea');
+  });
+
+  test('onSubmit sends activityTypes and legacy activityType', async () => {
+    jest.useFakeTimers();
+    imprintService.create.mockResolvedValue({});
+    pageInstance.setData({
+      mediaList: [{ type: 'image', url: 'https://example.com/a.jpg' }],
+      title: '做饭喝茶',
+      description: '一起做饭',
+      location: '厨房',
+      selectedActivityTypes: ['cooking', 'tea'],
+      activityType: 'cooking'
+    });
+
+    await pageInstance.onSubmit();
+
+    expect(imprintService.create).toHaveBeenCalledWith(expect.objectContaining({
+      title: '做饭喝茶',
+      activityType: 'cooking',
+      activityTypes: ['cooking', 'tea'],
+      description: '一起做饭',
+      location: '厨房'
+    }));
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  test('onLoad maps historical single activityType to selectedActivityTypes while editing', async () => {
+    storage.tenantStorage.get.mockReturnValue('token_1');
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [{ status: 'active', paymentStatus: 'paid' }]
+    });
+    periodAccess.hasPaidEnrollment.mockReturnValue(true);
+    imprintService.detail.mockResolvedValue({
+      imprint: {
+        title: '下午茶',
+        activityType: 'tea',
+        mediaList: [{ type: 'image', url: 'https://example.com/a.jpg' }],
+        attendees: []
+      }
+    });
+
+    await pageInstance.onLoad({ id: 'imprint_1' });
+
+    expect(pageInstance.data.activityType).toBe('tea');
+    expect(pageInstance.data.selectedActivityTypes).toEqual(['tea']);
+    expect(pageInstance.data.activityTypes.find(item => item.key === 'tea').selected).toBe(true);
+  });
 });

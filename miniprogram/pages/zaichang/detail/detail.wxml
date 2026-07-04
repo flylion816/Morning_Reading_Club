@@ -27,7 +27,13 @@
   </view>
 
   <view class="main-info">
-    <view class="badge badge-{{imprint.activityType}}">{{reactionLabels[imprint.activityType] || imprint.activityType}}</view>
+    <view class="badge-row">
+      <view
+        wx:for="{{imprint._activityTypeLabels}}"
+        wx:key="key"
+        class="badge badge-{{item.key}}"
+      >{{item.label}}</view>
+    </view>
     <view class="meta-row">
       <text class="date">{{imprint._happenedAtFormatted}}</text>
       <text wx:if="{{imprint.location}}" class="dot"> · </text>

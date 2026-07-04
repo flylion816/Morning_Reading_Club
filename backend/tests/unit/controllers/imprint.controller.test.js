@@ -119,6 +119,39 @@ describe('Imprint Controller', () => {
       expect(payload.data.myReactions[imprintId.toString()]).to.equal('gonming');
       expect(payload.data.list[0].author.nickname).to.equal('作者');
     });
+
+    it('按活动类型筛选时兼容单选字段和多选字段', async () => {
+      req.query = { activityType: 'tea' };
+      const imprintId = new mongoose.Types.ObjectId();
+      const list = [{
+        _id: imprintId,
+        title: '下午茶',
+        activityType: 'cooking',
+        activityTypes: ['cooking', 'tea'],
+        authorId: { _id: new mongoose.Types.ObjectId(), nickname: '作者', avatarUrl: '' },
+        attendees: []
+      }];
+
+      ImprintStub.find.returns({
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        populate: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves(list)
+      });
+      ImprintStub.countDocuments.resolves(1);
+      ImprintReactionStub.find.returns({ lean: sandbox.stub().resolves([]) });
+
+      await controller.list(req, res);
+
+      const filter = ImprintStub.find.getCall(0).args[0];
+      expect(filter.$and[0].$or).to.deep.equal([
+        { activityTypes: 'tea' },
+        { activityType: 'tea' }
+      ]);
+      const payload = res.json.getCall(0).args[0];
+      expect(payload.data.list[0].activityTypes).to.deep.equal(['cooking', 'tea']);
+    });
   });
 
   describe('create', () => {
@@ -156,6 +189,23 @@ describe('Imprint Controller', () => {
       const notification = dispatchNotificationWithSubscribeStub.getCall(0).args[1];
       expect(notification.recipientUserId.toString()).to.equal(attendeeId.toString());
       expect(notification.targetPage).to.equal(`pages/zaichang/detail/detail?id=${imprintId}`);
+    });
+
+    it('支持创建多活动类型印记并保留旧 activityType 字段', async () => {
+      req.body = {
+        title: '做饭喝茶',
+        activityTypes: ['cooking', 'tea'],
+        mediaList: [{ type: 'image', url: 'https://example.com/a.jpg' }]
+      };
+      ImprintActivityTypeStub.countDocuments.resolves(1);
+      ImprintStub.create.resolves({ _id: new mongoose.Types.ObjectId(), title: '做饭喝茶' });
+
+      await controller.create(req, res);
+
+      expect(res.status.calledWith(201)).to.equal(true);
+      const created = ImprintStub.create.getCall(0).args[0];
+      expect(created.activityType).to.equal('cooking');
+      expect(created.activityTypes).to.deep.equal(['cooking', 'tea']);
     });
   });
 
@@ -203,6 +253,21 @@ describe('Imprint Controller', () => {
 
       expect(res.status.calledWith(400)).to.equal(true);
       expect(ImprintStub.findByIdAndUpdate.called).to.equal(false);
+    });
+
+    it('更新多活动类型时去重并同步旧 activityType 字段', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      req.body = { activityTypes: ['tea', 'cooking', 'tea'] };
+      stubExistingImprint(req.user._id);
+      ImprintActivityTypeStub.countDocuments.resolves(1);
+      ImprintStub.findByIdAndUpdate.resolves({});
+
+      await controller.update(req, res);
+
+      expect(ImprintStub.findByIdAndUpdate.calledOnce).to.equal(true);
+      const update = ImprintStub.findByIdAndUpdate.getCall(0).args[1];
+      expect(update.activityType).to.equal('tea');
+      expect(update.activityTypes).to.deep.equal(['tea', 'cooking']);
     });
   });
 

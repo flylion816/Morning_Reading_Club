@@ -17,12 +17,35 @@ const DEFAULT_ACTIVITY_TYPES = [
   { key: 'other', label: '✨ 其他' }
 ];
 
+function dedupeActivityTypes(types) {
+  const seen = new Set();
+  const normalized = [];
+  (types || []).forEach(type => {
+    if (typeof type !== 'string') return;
+    const key = type.trim();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      normalized.push(key);
+    }
+  });
+  return normalized;
+}
+
+function normalizeImprintActivityTypes(imprint) {
+  return dedupeActivityTypes(
+    Array.isArray(imprint.activityTypes) && imprint.activityTypes.length > 0
+      ? imprint.activityTypes
+      : [imprint.activityType]
+  );
+}
+
 Page({
   data: {
     checking: true,
     mediaList: [],
     title: '',
     activityType: '',
+    selectedActivityTypes: [],
     location: '',
     description: '',
     attendees: [],
@@ -31,7 +54,7 @@ Page({
     attendeeSearch: '',
     searchResults: [],
     manualName: '',
-    activityTypes: DEFAULT_ACTIVITY_TYPES,
+    activityTypes: DEFAULT_ACTIVITY_TYPES.map(item => ({ ...item, selected: false })),
     uploading: false,
     justAdded: false,
     editId: null,
@@ -44,6 +67,23 @@ Page({
   _gridLeft: 0,
   _gridTop: 0,
   _itemSize: 216, // 200rpx + 16rpx gap, approximate px
+
+  _formatActivityTypeOptions(types, selectedActivityTypes = this.data.selectedActivityTypes) {
+    const selectedSet = new Set(selectedActivityTypes);
+    return types.map(item => ({
+      ...item,
+      selected: selectedSet.has(item.key)
+    }));
+  },
+
+  _setSelectedActivityTypes(types) {
+    const selectedActivityTypes = dedupeActivityTypes(types);
+    this.setData({
+      selectedActivityTypes,
+      activityType: selectedActivityTypes[0] || '',
+      activityTypes: this._formatActivityTypeOptions(this.data.activityTypes, selectedActivityTypes)
+    });
+  },
 
   async onLoad(options) {
     if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
@@ -70,9 +110,12 @@ Page({
         const res = await imprintService.detail(options.id);
         const imprint = res.imprint || res;
         const mediaList = imprint.mediaList || [];
+        const selectedActivityTypes = normalizeImprintActivityTypes(imprint);
         this.setData({
           title: imprint.title || '',
-          activityType: imprint.activityType || '',
+          activityType: selectedActivityTypes[0] || '',
+          selectedActivityTypes,
+          activityTypes: this._formatActivityTypeOptions(this.data.activityTypes, selectedActivityTypes),
           location: imprint.location || '',
           description: imprint.description || '',
           mediaList,
@@ -95,7 +138,11 @@ Page({
       const res = await imprintService.getActivityTypes();
       const types = Array.isArray(res) ? res : (res.list || res.data || []);
       if (types.length > 0) {
-        this.setData({ activityTypes: types.map(t => ({ key: t.key, label: `${t.emoji} ${t.label}` })) });
+        this.setData({
+          activityTypes: this._formatActivityTypeOptions(
+            types.map(t => ({ key: t.key, label: `${t.emoji} ${t.label}` }))
+          )
+        });
       }
     } catch (e) {
       // 降级使用默认列表
@@ -250,7 +297,15 @@ Page({
   },
 
   onSelectType(e) {
-    this.setData({ activityType: e.currentTarget.dataset.key });
+    const key = e.currentTarget.dataset.key;
+    const selected = [...this.data.selectedActivityTypes];
+    const index = selected.indexOf(key);
+    if (index >= 0) {
+      selected.splice(index, 1);
+    } else {
+      selected.push(key);
+    }
+    this._setSelectedActivityTypes(selected);
   },
 
   onTitleInput(e) { this.setData({ title: e.detail.value }); },
@@ -310,10 +365,10 @@ Page({
   },
 
   async onSubmit() {
-    const { mediaList, title, activityType, editId } = this.data;
+    const { mediaList, title, selectedActivityTypes, editId } = this.data;
     if (mediaList.length === 0) return wx.showToast({ title: '请至少选一张图片', icon: 'none' });
     if (!title.trim()) return wx.showToast({ title: '请填写标题', icon: 'none' });
-    if (!activityType) return wx.showToast({ title: '请选择活动类型', icon: 'none' });
+    if (selectedActivityTypes.length === 0) return wx.showToast({ title: '请选择活动类型', icon: 'none' });
     if (this.data.submitting) return;
 
     this.setData({ submitting: true });
@@ -322,7 +377,8 @@ Page({
       const payload = {
         title: title.trim(),
         description: this.data.description.trim(),
-        activityType,
+        activityType: selectedActivityTypes[0],
+        activityTypes: selectedActivityTypes,
         location: this.data.location.trim(),
         mediaList,
         attendees: this.data.attendees.map(a => ({ userId: a.userId || undefined, name: a.name, isRegistered: a.isRegistered }))

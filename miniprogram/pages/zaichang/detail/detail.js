@@ -6,6 +6,14 @@ const { normalizeDanmakuContent } = require('../../../utils/danmaku');
 const { createContainedShareCover } = require('../../../utils/share-cover');
 
 const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
+const ACTIVITY_TYPE_LABELS = {
+  reading: '📚 读书会',
+  cooking: '🍳 做饭',
+  tea: '☕ 喝茶',
+  walk: '🚶 散步',
+  create: '🎨 创作',
+  other: '✨ 其他'
+};
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -28,6 +36,38 @@ function formatComment(comment) {
     ...comment,
     content: normalizeDanmakuContent(comment.content || ''),
     _createdAtFormatted: formatDateTime(comment.createdAt)
+  };
+}
+
+function dedupeActivityTypes(types) {
+  const seen = new Set();
+  const normalized = [];
+  (types || []).forEach(type => {
+    if (typeof type !== 'string') return;
+    const key = type.trim();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      normalized.push(key);
+    }
+  });
+  return normalized;
+}
+
+function normalizeImprint(imprint) {
+  const activityTypes = dedupeActivityTypes(
+    Array.isArray(imprint.activityTypes) && imprint.activityTypes.length > 0
+      ? imprint.activityTypes
+      : [imprint.activityType]
+  );
+  return {
+    ...imprint,
+    activityType: imprint.activityType || activityTypes[0] || '',
+    activityTypes,
+    _activityTypeLabels: activityTypes.map(type => ({
+      key: type,
+      label: ACTIVITY_TYPE_LABELS[type] || type
+    })),
+    _happenedAtFormatted: formatDate(imprint.happenedAt)
   };
 }
 
@@ -83,7 +123,7 @@ Page({
       );
       const isAuthor = !!(imprint.authorId && imprint.authorId.toString() === this.data.currentUserId);
       this.setData({
-        imprint: { ...imprint, _happenedAtFormatted: formatDate(imprint.happenedAt) },
+        imprint: normalizeImprint(imprint),
         myReaction,
         iAmAttending,
         isAuthor,
