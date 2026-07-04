@@ -98,7 +98,8 @@ describe('Community Activity Controller', () => {
       status: 'published',
       maxParticipants: 0,
       isPaid: false,
-      price: 0
+      price: 0,
+      registrationForm: { enabled: false, fields: [] }
     }));
     ActivityRegistrationStub.findOne.resolves(null);
     ActivityRegistrationStub.create.resolves({
@@ -130,6 +131,87 @@ describe('Community Activity Controller', () => {
       ]);
       expect(res.json.calledOnce).to.be.true;
       expect(res.json.firstCall.args[0].code).to.equal(200);
+    });
+
+    it('stores normalized form answers for free activity registrations', async () => {
+      CommunityActivityStub.findOne.returns(setupFindChain(sandbox, {
+        _id: 'activity_1',
+        tenantId: 'tenant_1',
+        title: '线下聚会',
+        status: 'published',
+        maxParticipants: 0,
+        isPaid: false,
+        price: 0,
+        registrationForm: {
+          enabled: true,
+          fields: [
+            {
+              fieldId: 'city',
+              label: '所在城市',
+              type: 'single_select',
+              required: true,
+              includeInStats: true,
+              options: [
+                { optionId: 'sh', label: '上海' },
+                { optionId: 'hz', label: '杭州' }
+              ],
+              sortOrder: 0
+            }
+          ]
+        }
+      }));
+      req.body.formAnswers = { city: 'sh' };
+      ActivityRegistrationStub.findOne.resolves(null);
+      ActivityRegistrationStub.create.resolves({
+        _id: 'registration_1',
+        formAnswers: [{ fieldId: 'city', valueText: '上海' }]
+      });
+
+      await controller.registerActivity(req, res);
+
+      expect(ActivityRegistrationStub.create.calledOnce).to.equal(true);
+      const payload = ActivityRegistrationStub.create.firstCall.args[0];
+      expect(payload.formSnapshot.enabled).to.equal(true);
+      expect(payload.formAnswers[0]).to.deep.include({
+        fieldId: 'city',
+        label: '所在城市',
+        type: 'single_select',
+        value: 'sh',
+        valueText: '上海'
+      });
+      expect(res.json.firstCall.args[0].message).to.equal('报名成功');
+    });
+
+    it('returns 400 and does not create registration when required answer is missing', async () => {
+      CommunityActivityStub.findOne.returns(setupFindChain(sandbox, {
+        _id: 'activity_1',
+        tenantId: 'tenant_1',
+        title: '线下聚会',
+        status: 'published',
+        maxParticipants: 0,
+        isPaid: false,
+        price: 0,
+        registrationForm: {
+          enabled: true,
+          fields: [
+            {
+              fieldId: 'city',
+              label: '所在城市',
+              type: 'text',
+              required: true,
+              options: [],
+              sortOrder: 0
+            }
+          ]
+        }
+      }));
+      req.body.formAnswers = {};
+
+      await controller.registerActivity(req, res);
+
+      expect(res.status.calledWith(400)).to.equal(true);
+      expect(res.json.firstCall.args[0].message).to.equal('请填写所在城市');
+      expect(ActivityRegistrationStub.create.called).to.equal(false);
     });
 
     it('does not block registration when recording activity reminder grant fails', async () => {

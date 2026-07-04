@@ -21,9 +21,18 @@ function getDisplayStatus(activity) {
   return { label: '即将开始', type: 'upcoming' };
 }
 
+function decorateAnswers(answers = []) {
+  return answers.map(answer => ({
+    ...answer,
+    displayValue: answer.valueText || '-'
+  }));
+}
+
 Page({
   data: {
     activities: [],
+    selectedActivity: null,
+    showRegistrationDetail: false,
     loading: true
   },
 
@@ -46,7 +55,12 @@ Page({
           ...item,
           startTimeFormatted: formatDatetime(item.startTime),
           statusLabel: ds.label,
-          statusType: ds.type
+          statusType: ds.type,
+          formAnswers: decorateAnswers(item.formAnswers || []),
+          formSubmitted: !!item.formSubmitted,
+          registrationStatusText: item.paymentStatus === 'pending'
+            ? '待支付'
+            : (item.formSubmitted ? '报名信息已提交' : '已报名')
         };
       });
       this.setData({ activities, loading: false });
@@ -60,5 +74,24 @@ Page({
   handleGoDetail(e) {
     const activityId = e.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/community-activity-detail/community-activity-detail?activityId=${activityId}` });
-  }
+  },
+
+  handleShowRegistrationDetail(e) {
+    const registrationId = e.currentTarget.dataset.registrationId;
+    const selected = this.data.activities.find(item => item.registrationId === registrationId);
+    if (!selected) return;
+    this.setData({
+      selectedActivity: selected,
+      showRegistrationDetail: true
+    });
+  },
+
+  handleCloseRegistrationDetail() {
+    this.setData({
+      selectedActivity: null,
+      showRegistrationDetail: false
+    });
+  },
+
+  noop() {}
 });

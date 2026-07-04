@@ -1,5 +1,61 @@
 const mongoose = require('mongoose');
 
+const RegistrationFormOptionSchema = new mongoose.Schema(
+  {
+    optionId: {
+      type: String,
+      required: true
+    },
+    label: {
+      type: String,
+      required: true,
+      maxlength: 40
+    }
+  },
+  { _id: false }
+);
+
+const RegistrationFormFieldSchema = new mongoose.Schema(
+  {
+    fieldId: {
+      type: String,
+      required: true
+    },
+    label: {
+      type: String,
+      required: true,
+      maxlength: 40
+    },
+    type: {
+      type: String,
+      enum: ['text', 'textarea', 'number', 'phone', 'single_select', 'multi_select', 'date', 'boolean'],
+      required: true
+    },
+    required: {
+      type: Boolean,
+      default: false
+    },
+    placeholder: {
+      type: String,
+      default: '',
+      maxlength: 80
+    },
+    options: {
+      type: [RegistrationFormOptionSchema],
+      default: []
+    },
+    includeInStats: {
+      type: Boolean,
+      default: false
+    },
+    sortOrder: {
+      type: Number,
+      default: 0
+    }
+  },
+  { _id: false }
+);
+
 const CommunityActivitySchema = new mongoose.Schema(
   {
     tenantId: {
@@ -104,6 +160,18 @@ const CommunityActivitySchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0
+    },
+
+    // 自定义报名表单配置
+    registrationForm: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      fields: {
+        type: [RegistrationFormFieldSchema],
+        default: []
+      }
     },
 
     // 可见范围：all=全部用户，specific=指定用户

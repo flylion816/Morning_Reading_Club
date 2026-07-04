@@ -1,5 +1,83 @@
 const mongoose = require('mongoose');
 
+const RegistrationFormOptionSnapshotSchema = new mongoose.Schema(
+  {
+    optionId: {
+      type: String,
+      required: true
+    },
+    label: {
+      type: String,
+      required: true
+    }
+  },
+  { _id: false }
+);
+
+const RegistrationFormFieldSnapshotSchema = new mongoose.Schema(
+  {
+    fieldId: {
+      type: String,
+      required: true
+    },
+    label: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      required: true
+    },
+    required: {
+      type: Boolean,
+      default: false
+    },
+    placeholder: {
+      type: String,
+      default: ''
+    },
+    options: {
+      type: [RegistrationFormOptionSnapshotSchema],
+      default: []
+    },
+    includeInStats: {
+      type: Boolean,
+      default: false
+    },
+    sortOrder: {
+      type: Number,
+      default: 0
+    }
+  },
+  { _id: false }
+);
+
+const RegistrationFormAnswerSchema = new mongoose.Schema(
+  {
+    fieldId: {
+      type: String,
+      required: true
+    },
+    label: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      required: true
+    },
+    value: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
+    valueText: {
+      type: String,
+      default: ''
+    }
+  },
+  { _id: false }
+);
+
 const ActivityRegistrationSchema = new mongoose.Schema(
   {
     tenantId: {
@@ -65,6 +143,24 @@ const ActivityRegistrationSchema = new mongoose.Schema(
     paidAmount: {
       type: Number,
       default: 0
+    },
+
+    // 报名时的表单快照，避免活动表单后续修改影响历史报名展示
+    formSnapshot: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      fields: {
+        type: [RegistrationFormFieldSnapshotSchema],
+        default: []
+      }
+    },
+
+    // 用户提交的报名表单答案
+    formAnswers: {
+      type: [RegistrationFormAnswerSchema],
+      default: []
     }
   },
   {

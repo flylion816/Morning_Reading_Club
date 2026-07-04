@@ -71,6 +71,10 @@ function decorateUser(user = {}) {
 
 function decorateRegistration(item = {}) {
   const payment = item.payment || {};
+  const formAnswers = (item.formAnswers || []).map(answer => ({
+    ...answer,
+    displayValue: answer.valueText || '-'
+  }));
   return {
     ...item,
     user: decorateUser(item.user || {}),
@@ -78,8 +82,22 @@ function decorateRegistration(item = {}) {
     paidAmountText: formatMoney(item.paidAmount || payment.amount),
     statusText: statusText(item.status, registrationStatusMap),
     paymentStatusText: statusText(item.paymentStatus, paymentStatusMap),
-    orderStatusText: payment.status ? statusText(payment.status, orderStatusMap) : '无订单'
+    orderStatusText: payment.status ? statusText(payment.status, orderStatusMap) : '无订单',
+    formAnswers,
+    answerChips: formAnswers.slice(0, 3).map(answer => `${answer.label} ${answer.displayValue}`),
+    formSubmitted: formAnswers.length > 0
   };
+}
+
+function registrationMatchesFilter(registration, filter) {
+  if (!filter || !filter.fieldId) return true;
+  const answer = (registration.formAnswers || []).find(item => item.fieldId === filter.fieldId);
+  if (!answer) return false;
+  if (Array.isArray(answer.value)) return answer.value.includes(filter.optionId);
+  if (filter.optionId === 'true' || filter.optionId === 'false') {
+    return String(!!answer.value) === filter.optionId;
+  }
+  return String(answer.value) === String(filter.optionId);
 }
 
 Page({
@@ -88,6 +106,13 @@ Page({
     keyword: '',
     activity: null,
     registrations: [],
+    visibleRegistrations: [],
+    formStats: [],
+    activeTab: 'list',
+    selectedRegistration: null,
+    showRegistrationDetail: false,
+    statsFilter: null,
+    statsFilterText: '',
     pagination: { page: 1, pageSize: PAGE_SIZE, total: 0, hasMore: false },
     loading: false,
     loadingMore: false
@@ -127,9 +152,12 @@ Page({
         pageSize: PAGE_SIZE
       });
       const nextRows = (res.list || []).map(decorateRegistration);
+      const registrations = append ? this.data.registrations.concat(nextRows) : nextRows;
       this.setData({
         activity: res.activity ? decorateActivity(res.activity) : this.data.activity,
-        registrations: append ? this.data.registrations.concat(nextRows) : nextRows,
+        registrations,
+        visibleRegistrations: this.filterVisibleRegistrations(registrations, this.data.statsFilter),
+        formStats: res.formStats || this.data.formStats || [],
         pagination: res.pagination || { page, pageSize: PAGE_SIZE, total: nextRows.length, hasMore: false },
         loading: false,
         loadingMore: false
@@ -144,5 +172,51 @@ Page({
     const pagination = this.data.pagination || {};
     if (!pagination.hasMore || this.data.loading || this.data.loadingMore) return;
     return this.loadRegistrations((Number(pagination.page) || 1) + 1, true);
+  },
+
+  filterVisibleRegistrations(registrations, filter) {
+    return (registrations || []).filter(item => registrationMatchesFilter(item, filter));
+  },
+
+  handleTabChange(e) {
+    this.setData({ activeTab: e.currentTarget.dataset.tab || 'list' });
+  },
+
+  handleCardTap(e) {
+    const id = e.currentTarget.dataset.id;
+    const selected = this.data.registrations.find(item => item.registrationId === id);
+    if (!selected) return;
+    this.setData({
+      selectedRegistration: selected,
+      showRegistrationDetail: true
+    });
+  },
+
+  handleCloseDetail() {
+    this.setData({
+      selectedRegistration: null,
+      showRegistrationDetail: false
+    });
+  },
+
+  noop() {},
+
+  handleFilterByStat(e) {
+    const { fieldId, optionId, label } = e.currentTarget.dataset;
+    const filter = { fieldId, optionId };
+    this.setData({
+      statsFilter: filter,
+      statsFilterText: label || '',
+      activeTab: 'list',
+      visibleRegistrations: this.filterVisibleRegistrations(this.data.registrations, filter)
+    });
+  },
+
+  clearStatsFilter() {
+    this.setData({
+      statsFilter: null,
+      statsFilterText: '',
+      visibleRegistrations: this.data.registrations
+    });
   }
 });

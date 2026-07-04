@@ -16,7 +16,14 @@
       <!-- 活动列表 -->
       <el-card>
         <el-table v-loading="loading" :data="activities" stripe style="width: 100%">
-          <el-table-column prop="title" label="标题" min-width="200" />
+          <el-table-column label="标题" min-width="220">
+            <template #default="{ row }">
+              <div class="title-cell">
+                <span>{{ row.title }}</span>
+                <el-tag v-if="row.registrationForm?.enabled" size="small" type="warning">表单</el-tag>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column label="类型" width="100">
             <template #default="{ row }">
               {{ formatType(row.type) }}
@@ -166,6 +173,60 @@
             <span style="margin-left: 8px; color: #909399;">元</span>
           </el-form-item>
 
+          <el-form-item label="报名表单">
+            <div class="registration-form-panel">
+              <div class="registration-form-head">
+                <div>
+                  <div class="form-section-title">收集报名信息</div>
+                  <div class="form-section-desc">用户报名时按这里配置的字段填写，答案会保存在报名名单里。</div>
+                </div>
+                <el-switch
+                  v-model="formData.registrationForm.enabled"
+                  active-text="开启"
+                  inactive-text="关闭"
+                  @change="handleRegistrationFormToggle"
+                />
+              </div>
+
+              <template v-if="formData.registrationForm.enabled">
+                <div class="form-toolbar">
+                  <el-button type="primary" size="small" @click="handleAddFormField">添加字段</el-button>
+                  <el-button size="small" @click="formPreviewVisible = true">预览表单</el-button>
+                </div>
+
+                <div v-if="formData.registrationForm.fields.length === 0" class="empty-form-tip">
+                  还没有字段，请先添加字段。
+                </div>
+                <div v-else class="field-list">
+                  <div
+                    v-for="(field, index) in sortedRegistrationFields"
+                    :key="field.fieldId"
+                    class="field-row"
+                  >
+                    <span class="field-order">{{ index + 1 }}</span>
+                    <div class="field-main">
+                      <div class="field-title-row">
+                        <span class="field-label">{{ field.label }}</span>
+                        <el-tag size="small">{{ formatFieldType(field.type) }}</el-tag>
+                        <el-tag v-if="field.required" type="danger" size="small">必填</el-tag>
+                        <el-tag v-if="field.includeInStats" type="success" size="small">统计</el-tag>
+                      </div>
+                      <div v-if="field.options?.length" class="field-options">
+                        {{ field.options.map(option => option.label).join(' / ') }}
+                      </div>
+                    </div>
+                    <div class="field-actions">
+                      <el-button text size="small" :disabled="index === 0" @click="moveFormField(index, -1)">上移</el-button>
+                      <el-button text size="small" :disabled="index === formData.registrationForm.fields.length - 1" @click="moveFormField(index, 1)">下移</el-button>
+                      <el-button text type="primary" size="small" @click="handleEditFormField(field)">编辑</el-button>
+                      <el-button text type="danger" size="small" @click="removeFormField(field.fieldId)">删除</el-button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </el-form-item>
+
           <el-form-item label="可见范围" prop="visibilityType">
             <el-radio-group v-model="formData.visibilityType">
               <el-radio value="all">全部用户</el-radio>
@@ -290,23 +351,147 @@
         </template>
       </el-dialog>
 
+      <!-- 字段编辑弹窗 -->
+      <el-dialog v-model="fieldDialogVisible" :title="editingFieldId ? '编辑字段' : '添加字段'" width="520px">
+        <el-form label-width="90px">
+          <el-form-item label="字段名称">
+            <el-input v-model="fieldForm.label" maxlength="40" placeholder="例如：所在城市" show-word-limit />
+          </el-form-item>
+          <el-form-item label="字段类型">
+            <el-select v-model="fieldForm.type" style="width: 100%" @change="handleFieldTypeChange">
+              <el-option label="单行文本" value="text" />
+              <el-option label="多行文本" value="textarea" />
+              <el-option label="数字" value="number" />
+              <el-option label="手机号" value="phone" />
+              <el-option label="单选" value="single_select" />
+              <el-option label="多选" value="multi_select" />
+              <el-option label="日期" value="date" />
+              <el-option label="是/否" value="boolean" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="提示文案">
+            <el-input v-model="fieldForm.placeholder" maxlength="80" placeholder="填写时显示的提示" show-word-limit />
+          </el-form-item>
+          <el-form-item label="设置">
+            <div class="field-setting-row">
+              <el-checkbox v-model="fieldForm.required">必填</el-checkbox>
+              <el-checkbox
+                v-if="canFieldTypeStats(fieldForm.type)"
+                v-model="fieldForm.includeInStats"
+              >
+                纳入统计
+              </el-checkbox>
+            </div>
+          </el-form-item>
+          <el-form-item v-if="isSelectField(fieldForm.type)" label="选项">
+            <div class="option-editor">
+              <div v-for="(option, index) in fieldForm.options" :key="option.optionId" class="option-row">
+                <el-input v-model="option.label" maxlength="40" placeholder="选项名称" />
+                <el-button text :disabled="index === 0" @click="moveOption(index, -1)">上移</el-button>
+                <el-button text :disabled="index === fieldForm.options.length - 1" @click="moveOption(index, 1)">下移</el-button>
+                <el-button text type="danger" @click="removeOption(option.optionId)">删除</el-button>
+              </div>
+              <el-button size="small" @click="addOption">添加选项</el-button>
+            </div>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="fieldDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveFormField">保存字段</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 表单预览弹窗 -->
+      <el-dialog v-model="formPreviewVisible" title="表单预览" width="520px">
+        <div v-if="sortedRegistrationFields.length === 0" class="empty-form-tip">暂无字段</div>
+        <div v-else class="form-preview-list">
+          <div v-for="field in sortedRegistrationFields" :key="field.fieldId" class="preview-field">
+            <div class="preview-label">
+              {{ field.label }}
+              <span v-if="field.required" class="required-mark">*</span>
+            </div>
+            <div class="preview-control">{{ getPreviewText(field) }}</div>
+          </div>
+        </div>
+      </el-dialog>
+
       <!-- 报名名单弹窗 -->
-      <el-dialog v-model="registrationsVisible" title="报名名单" width="600px">
-        <el-table v-loading="registrationsLoading" :data="registrations" stripe style="width: 100%">
-          <el-table-column label="头像" width="70">
-            <template #default="{ row }">
-              <el-avatar :src="row.user?.avatar" :size="36">
-                <span style="font-size: 18px">👤</span>
-              </el-avatar>
-            </template>
-          </el-table-column>
-          <el-table-column label="昵称" prop="user.nickname" min-width="120" />
-          <el-table-column label="报名时间" width="180">
-            <template #default="{ row }">
-              {{ formatDatetime(row.createdAt) }}
-            </template>
-          </el-table-column>
-        </el-table>
+      <el-dialog v-model="registrationsVisible" title="报名名单" width="960px">
+        <el-tabs v-model="registrationsTab">
+          <el-tab-pane label="名单" name="list">
+            <el-table
+              v-loading="registrationsLoading"
+              :data="registrations"
+              stripe
+              style="width: 100%"
+              @row-click="handleSelectRegistration"
+            >
+              <el-table-column label="头像" width="70">
+                <template #default="{ row }">
+                  <el-avatar :src="row.userId?.avatarUrl || row.userId?.avatar" :size="36">
+                    <span style="font-size: 18px">👤</span>
+                  </el-avatar>
+                </template>
+              </el-table-column>
+              <el-table-column label="昵称" min-width="120">
+                <template #default="{ row }">
+                  {{ row.userId?.nickname || row.user?.nickname || '微信用户' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="报名信息" min-width="240">
+                <template #default="{ row }">
+                  <div v-if="row.formAnswers?.length" class="answer-chip-list">
+                    <el-tag
+                      v-for="answer in row.formAnswers.slice(0, 3)"
+                      :key="answer.fieldId"
+                      size="small"
+                      type="info"
+                    >
+                      {{ answer.label }}：{{ answer.valueText || '-' }}
+                    </el-tag>
+                    <el-tag v-if="row.formAnswers.length > 3" size="small" type="info">
+                      +{{ row.formAnswers.length - 3 }}
+                    </el-tag>
+                  </div>
+                  <span v-else class="muted-text">未填写</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="支付" width="100">
+                <template #default="{ row }">
+                  {{ formatRegistrationPayment(row) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="报名时间" width="180">
+                <template #default="{ row }">
+                  {{ formatDatetime(row.registeredAt || row.createdAt) }}
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <div v-if="selectedRegistration" class="registration-detail-panel">
+              <div class="detail-title">报名详情：{{ selectedRegistration.userId?.nickname || '微信用户' }}</div>
+              <div v-if="selectedRegistration.formAnswers?.length" class="detail-answer-list">
+                <div v-for="answer in selectedRegistration.formAnswers" :key="answer.fieldId" class="detail-answer-row">
+                  <span>{{ answer.label }}</span>
+                  <strong>{{ answer.valueText || '-' }}</strong>
+                </div>
+              </div>
+              <div v-else class="muted-text">未填写报名表单</div>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="统计" name="stats">
+            <div v-if="formStats.length === 0" class="empty-form-tip">暂无可统计字段</div>
+            <div v-else class="stats-list">
+              <div v-for="field in formStats" :key="field.fieldId" class="stats-card">
+                <div class="stats-title">{{ field.label }}</div>
+                <div v-for="option in field.options" :key="option.optionId" class="stats-row">
+                  <span>{{ option.label }}</span>
+                  <strong>{{ option.count }} 人</strong>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
         <template #footer>
           <el-button @click="registrationsVisible = false">关闭</el-button>
         </template>
@@ -317,7 +502,7 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
@@ -336,11 +521,28 @@ const formRef = ref<FormInstance>();
 const registrationsVisible = ref(false);
 const registrationsLoading = ref(false);
 const registrations = ref([]);
+const registrationsTab = ref('list');
+const formStats = ref<any[]>([]);
+const selectedRegistration = ref<any | null>(null);
 const posterUploading = ref(false);
 const userSearchLoading = ref(false);
 const userSearchResults = ref<any[]>([]);
+const fieldDialogVisible = ref(false);
+const formPreviewVisible = ref(false);
+const editingFieldId = ref<string | null>(null);
 
 const pagination = ref({ page: 1, pageSize: 20, total: 0 });
+
+const fieldForm = reactive({
+  fieldId: '',
+  label: '',
+  type: 'text',
+  required: false,
+  placeholder: '',
+  includeInStats: false,
+  options: [] as any[],
+  sortOrder: 0
+});
 
 const formData = reactive({
   title: '',
@@ -360,7 +562,11 @@ const formData = reactive({
   status: 'draft',
   visibilityType: 'all',
   visibleUserIds: [] as string[],
-  visibleUsers: [] as any[]
+  visibleUsers: [] as any[],
+  registrationForm: {
+    enabled: false,
+    fields: [] as any[]
+  }
 });
 
 const formRules = {
@@ -372,6 +578,87 @@ const formRules = {
 onMounted(() => {
   loadActivities();
 });
+
+const sortedRegistrationFields = computed(() => {
+  return [...(formData.registrationForm.fields || [])].sort((a: any, b: any) => {
+    return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+  });
+});
+
+function createLocalId(prefix: string) {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function cloneRegistrationForm(form: any = {}) {
+  const enabled = !!form.enabled;
+  const fields = Array.isArray(form.fields) ? form.fields : [];
+  return {
+    enabled,
+    fields: fields.map((field: any, index: number) => ({
+      fieldId: field.fieldId || createLocalId('f'),
+      label: field.label || '',
+      type: field.type || 'text',
+      required: !!field.required,
+      placeholder: field.placeholder || '',
+      includeInStats: canFieldTypeStats(field.type) ? !!field.includeInStats : false,
+      options: Array.isArray(field.options)
+        ? field.options.map((option: any) => ({
+          optionId: option.optionId || createLocalId('o'),
+          label: option.label || ''
+        }))
+        : [],
+      sortOrder: Number.isFinite(Number(field.sortOrder)) ? Number(field.sortOrder) : index
+    })).sort((a: any, b: any) => a.sortOrder - b.sortOrder).map((field: any, index: number) => ({
+      ...field,
+      sortOrder: index
+    }))
+  };
+}
+
+function buildRegistrationFormPayload() {
+  const fields = sortedRegistrationFields.value.map((field: any, index: number) => ({
+    fieldId: field.fieldId,
+    label: String(field.label || '').trim(),
+    type: field.type,
+    required: !!field.required,
+    placeholder: String(field.placeholder || '').trim(),
+    includeInStats: canFieldTypeStats(field.type) ? !!field.includeInStats : false,
+    options: isSelectField(field.type)
+      ? (field.options || []).map((option: any) => ({
+        optionId: option.optionId,
+        label: String(option.label || '').trim()
+      }))
+      : [],
+    sortOrder: index
+  }));
+  return {
+    enabled: !!formData.registrationForm.enabled,
+    fields: formData.registrationForm.enabled ? fields : []
+  };
+}
+
+function validateRegistrationFormBeforeSubmit() {
+  if (!formData.registrationForm.enabled) return true;
+  const form = buildRegistrationFormPayload();
+  if (form.fields.length === 0) {
+    ElMessage.warning('请至少添加一个报名表单字段');
+    return false;
+  }
+  const invalidField = form.fields.find((field: any) => !field.label);
+  if (invalidField) {
+    ElMessage.warning('报名表单字段名称不能为空');
+    return false;
+  }
+  const invalidSelect = form.fields.find((field: any) => (
+    isSelectField(field.type) &&
+    (!field.options.length || field.options.some((option: any) => !option.label))
+  ));
+  if (invalidSelect) {
+    ElMessage.warning('单选或多选字段需要填写完整选项');
+    return false;
+  }
+  return true;
+}
 
 async function loadActivities() {
   loading.value = true;
@@ -425,7 +712,8 @@ function handleEdit(row: any) {
     priceYuan: row.price ? row.price / 100 : 0,
     visibilityType: row.visibilityType || 'all',
     visibleUserIds: (row.visibleUsers || []).map((u: any) => u._id || u),
-    visibleUsers: row.visibleUsers || []
+    visibleUsers: row.visibleUsers || [],
+    registrationForm: cloneRegistrationForm(row.registrationForm)
   });
   dialogVisible.value = true;
 }
@@ -434,6 +722,7 @@ async function handleSubmit() {
   if (!formRef.value) return;
   await formRef.value.validate(async (valid) => {
     if (!valid) return;
+    if (!validateRegistrationFormBeforeSubmit()) return;
     submitting.value = true;
     try {
       const payload = {
@@ -445,7 +734,8 @@ async function handleSubmit() {
         isPaid: formData.isPaid,
         price: formData.isPaid ? Math.round(formData.priceYuan * 100) : 0,
         visibilityType: formData.visibilityType,
-        visibleUserIds: formData.visibilityType === 'specific' ? formData.visibleUserIds : []
+        visibleUserIds: formData.visibilityType === 'specific' ? formData.visibleUserIds : [],
+        registrationForm: buildRegistrationFormPayload()
       };
       if (isEditMode.value && currentEditId.value) {
         await apiClient.put(`${BASE_URL}/${currentEditId.value}`, payload);
@@ -484,9 +774,13 @@ async function handleViewRegistrations(row: any) {
   registrationsVisible.value = true;
   registrationsLoading.value = true;
   registrations.value = [];
+  formStats.value = [];
+  selectedRegistration.value = null;
+  registrationsTab.value = 'list';
   try {
     const data = await apiClient.get(`${BASE_URL}/${row._id}/registrations`);
     registrations.value = Array.isArray(data) ? data : (data?.list ?? []);
+    formStats.value = data?.formStats || [];
   } catch (err: any) {
     ElMessage.error(err?.message || '加载报名名单失败');
   } finally {
@@ -535,6 +829,7 @@ function resetForm() {
   formData.visibilityType = 'all';
   formData.visibleUserIds = [];
   formData.visibleUsers = [];
+  formData.registrationForm = { enabled: false, fields: [] };
   userSearchResults.value = [];
   formRef.value?.clearValidate();
 }
@@ -570,6 +865,181 @@ function handleVisibleUserChange(selectedIds: string[]) {
 function removeVisibleUser(userId: string) {
   formData.visibleUserIds = formData.visibleUserIds.filter(id => id !== userId);
   formData.visibleUsers = formData.visibleUsers.filter((u: any) => u._id !== userId);
+}
+
+function isSelectField(type: string): boolean {
+  return ['single_select', 'multi_select'].includes(type);
+}
+
+function canFieldTypeStats(type: string): boolean {
+  return ['single_select', 'multi_select', 'boolean'].includes(type);
+}
+
+function formatFieldType(type: string): string {
+  const map: Record<string, string> = {
+    text: '单行文本',
+    textarea: '多行文本',
+    number: '数字',
+    phone: '手机号',
+    single_select: '单选',
+    multi_select: '多选',
+    date: '日期',
+    boolean: '是/否'
+  };
+  return map[type] || type;
+}
+
+function handleRegistrationFormToggle(enabled: boolean) {
+  if (enabled && formData.registrationForm.fields.length === 0) {
+    handleAddFormField();
+  }
+}
+
+function resetFieldForm(field?: any) {
+  Object.assign(fieldForm, {
+    fieldId: field?.fieldId || createLocalId('f'),
+    label: field?.label || '',
+    type: field?.type || 'text',
+    required: !!field?.required,
+    placeholder: field?.placeholder || '',
+    includeInStats: canFieldTypeStats(field?.type || 'text') ? !!field?.includeInStats : false,
+    options: Array.isArray(field?.options)
+      ? field.options.map((option: any) => ({
+        optionId: option.optionId || createLocalId('o'),
+        label: option.label || ''
+      }))
+      : [],
+    sortOrder: Number.isFinite(Number(field?.sortOrder)) ? Number(field.sortOrder) : formData.registrationForm.fields.length
+  });
+  if (isSelectField(fieldForm.type) && fieldForm.options.length === 0) {
+    fieldForm.options = [
+      { optionId: createLocalId('o'), label: '选项一' },
+      { optionId: createLocalId('o'), label: '选项二' }
+    ];
+  }
+}
+
+function handleAddFormField() {
+  editingFieldId.value = null;
+  resetFieldForm();
+  fieldDialogVisible.value = true;
+}
+
+function handleEditFormField(field: any) {
+  editingFieldId.value = field.fieldId;
+  resetFieldForm(field);
+  fieldDialogVisible.value = true;
+}
+
+function handleFieldTypeChange(type: string) {
+  if (isSelectField(type)) {
+    if (fieldForm.options.length === 0) {
+      fieldForm.options = [
+        { optionId: createLocalId('o'), label: '选项一' },
+        { optionId: createLocalId('o'), label: '选项二' }
+      ];
+    }
+  } else {
+    fieldForm.options = [];
+  }
+  if (!canFieldTypeStats(type)) {
+    fieldForm.includeInStats = false;
+  }
+}
+
+function addOption() {
+  fieldForm.options.push({ optionId: createLocalId('o'), label: '' });
+}
+
+function removeOption(optionId: string) {
+  fieldForm.options = fieldForm.options.filter((option: any) => option.optionId !== optionId);
+}
+
+function moveOption(index: number, direction: number) {
+  const nextIndex = index + direction;
+  if (nextIndex < 0 || nextIndex >= fieldForm.options.length) return;
+  const options = [...fieldForm.options];
+  [options[index], options[nextIndex]] = [options[nextIndex], options[index]];
+  fieldForm.options = options;
+}
+
+function saveFormField() {
+  const label = String(fieldForm.label || '').trim();
+  if (!label) {
+    ElMessage.warning('字段名称不能为空');
+    return;
+  }
+  if (isSelectField(fieldForm.type)) {
+    const validOptions = fieldForm.options
+      .map((option: any) => ({ ...option, label: String(option.label || '').trim() }))
+      .filter((option: any) => option.label);
+    if (validOptions.length === 0) {
+      ElMessage.warning('请至少填写一个选项');
+      return;
+    }
+    fieldForm.options = validOptions;
+  }
+  const field = {
+    fieldId: fieldForm.fieldId,
+    label,
+    type: fieldForm.type,
+    required: !!fieldForm.required,
+    placeholder: String(fieldForm.placeholder || '').trim(),
+    includeInStats: canFieldTypeStats(fieldForm.type) ? !!fieldForm.includeInStats : false,
+    options: isSelectField(fieldForm.type) ? [...fieldForm.options] : [],
+    sortOrder: fieldForm.sortOrder
+  };
+  if (editingFieldId.value) {
+    formData.registrationForm.fields = formData.registrationForm.fields.map((item: any) => (
+      item.fieldId === editingFieldId.value ? field : item
+    ));
+  } else {
+    formData.registrationForm.fields.push(field);
+  }
+  formData.registrationForm.fields = sortedRegistrationFields.value.map((item: any, index: number) => ({
+    ...item,
+    sortOrder: index
+  }));
+  fieldDialogVisible.value = false;
+}
+
+function removeFormField(fieldId: string) {
+  formData.registrationForm.fields = formData.registrationForm.fields
+    .filter((field: any) => field.fieldId !== fieldId)
+    .map((field: any, index: number) => ({ ...field, sortOrder: index }));
+}
+
+function moveFormField(index: number, direction: number) {
+  const fields = sortedRegistrationFields.value.slice();
+  const nextIndex = index + direction;
+  if (nextIndex < 0 || nextIndex >= fields.length) return;
+  [fields[index], fields[nextIndex]] = [fields[nextIndex], fields[index]];
+  formData.registrationForm.fields = fields.map((field: any, order: number) => ({
+    ...field,
+    sortOrder: order
+  }));
+}
+
+function getPreviewText(field: any): string {
+  if (field.placeholder) return field.placeholder;
+  if (isSelectField(field.type) && field.options?.length) {
+    return field.options.map((option: any) => option.label).join(' / ');
+  }
+  if (field.type === 'boolean') return '是 / 否';
+  return `请输入${field.label}`;
+}
+
+function formatRegistrationPayment(row: any): string {
+  const map: Record<string, string> = {
+    free: '免费',
+    pending: '待支付',
+    paid: '已支付'
+  };
+  return map[row.paymentStatus] || row.paymentStatus || '-';
+}
+
+function handleSelectRegistration(row: any) {
+  selectedRegistration.value = row;
 }
 
 function formatType(type: string): string {
@@ -618,5 +1088,170 @@ function formatDatetime(val: string | null): string {
   gap: 8px;
   flex-wrap: nowrap;
   align-items: center;
+}
+
+.title-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.registration-form-panel {
+  width: 100%;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+.registration-form-head,
+.field-row,
+.option-row,
+.stats-row,
+.detail-answer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.form-section-desc,
+.muted-text {
+  color: #909399;
+  font-size: 12px;
+}
+
+.form-toolbar {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.empty-form-tip {
+  margin-top: 12px;
+  padding: 18px;
+  color: #909399;
+  background: #f8fafc;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.field-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-row {
+  padding: 10px;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.field-order {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  border-radius: 50%;
+  background: #eef2f7;
+  color: #606266;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.field-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-title-row,
+.answer-chip-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.field-label {
+  color: #303133;
+  font-weight: 600;
+}
+
+.field-options {
+  margin-top: 4px;
+  color: #909399;
+  font-size: 12px;
+}
+
+.field-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.field-setting-row,
+.option-editor,
+.form-preview-list,
+.stats-list,
+.detail-answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.option-row .el-input {
+  flex: 1;
+}
+
+.preview-field,
+.stats-card,
+.registration-detail-panel {
+  padding: 12px;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.preview-label,
+.stats-title,
+.detail-title {
+  color: #303133;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.required-mark {
+  color: #f56c6c;
+}
+
+.preview-control {
+  color: #909399;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.registration-detail-panel {
+  margin-top: 14px;
+}
+
+.detail-answer-row,
+.stats-row {
+  padding: 8px 0;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.detail-answer-row:last-child,
+.stats-row:last-child {
+  border-bottom: 0;
 }
 </style>

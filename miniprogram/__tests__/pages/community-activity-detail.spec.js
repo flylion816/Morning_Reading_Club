@@ -39,6 +39,7 @@ describe('community activity detail page', () => {
     }));
     jest.doMock('../../services/communityActivity.service', () => ({
       getDetail: jest.fn(),
+      cancelRegister: jest.fn(),
       register: jest.fn()
     }));
     jest.doMock('../../services/activity.service', () => ({
@@ -81,11 +82,51 @@ describe('community activity detail page', () => {
         scene: 'activity_reminder',
         templateId: 'TENANT_ACTIVITY_REMINDER_TEMPLATE',
         result: 'accept'
-      }
+      },
+      formAnswers: {}
     });
     expect(pageInstance.data.registered).toBe(true);
     expect(activityService.track).toHaveBeenCalledWith('activity_enroll', {
       targetId: 'activity_1'
+    });
+  });
+
+  test('opens configured registration form and submits answers', async () => {
+    pageInstance.setData({
+      activity: {
+        _id: 'activity_1',
+        title: '晨光之约',
+        isPaid: false,
+        priceDisplay: '0.00',
+        registrationForm: {
+          enabled: true,
+          fields: [{
+            fieldId: 'city',
+            label: '所在城市',
+            type: 'single_select',
+            required: true,
+            options: [{ optionId: 'sh', label: '上海' }]
+          }]
+        }
+      }
+    });
+
+    await pageInstance.handleRegister.call(pageInstance);
+
+    expect(pageInstance.data.showFormModal).toBe(true);
+    pageInstance.handleSingleSelect.call(pageInstance, {
+      currentTarget: { dataset: { fieldId: 'city', optionId: 'sh' } }
+    });
+    await pageInstance.handleFormSubmit.call(pageInstance);
+
+    expect(communityActivityService.register).toHaveBeenCalledWith('activity_1', {
+      reminderGranted: true,
+      reminderGrant: {
+        scene: 'activity_reminder',
+        templateId: 'TENANT_ACTIVITY_REMINDER_TEMPLATE',
+        result: 'accept'
+      },
+      formAnswers: { city: 'sh' }
     });
   });
 
@@ -117,7 +158,8 @@ describe('community activity detail page', () => {
     expect(wx.requestSubscribeMessage).not.toHaveBeenCalled();
     expect(communityActivityService.register).toHaveBeenCalledWith('activity_1', {
       reminderGranted: false,
-      reminderGrant: null
+      reminderGrant: null,
+      formAnswers: {}
     });
   });
 

@@ -32,8 +32,39 @@
       <view class="item-info">
         <text class="item-title">{{item.title}}</text>
         <text class="item-time">{{item.startTimeFormatted}}</text>
-        <view class="item-status status-{{item.statusType}}">
-          <text>{{item.statusLabel}}</text>
+        <view class="item-status-row">
+          <view class="item-status status-{{item.statusType}}">
+            <text>{{item.statusLabel}}</text>
+          </view>
+          <text class="registration-status">{{item.registrationStatusText}}</text>
+        </view>
+        <view
+          wx:if="{{item.formSubmitted}}"
+          class="detail-link"
+          data-registration-id="{{item.registrationId}}"
+          catchtap="handleShowRegistrationDetail"
+        >
+          查看报名信息
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showRegistrationDetail}}" class="detail-mask" bindtap="handleCloseRegistrationDetail">
+    <view class="detail-sheet" catchtap="noop">
+      <view class="detail-head">
+        <text class="detail-title">{{selectedActivity.title}}</text>
+        <text class="detail-close" bindtap="handleCloseRegistrationDetail">关闭</text>
+      </view>
+      <view class="detail-meta">
+        <text>{{selectedActivity.registrationStatusText}}</text>
+        <text>报名 {{selectedActivity.startTimeFormatted}}</text>
+      </view>
+      <view class="detail-section-title">报名信息</view>
+      <view class="detail-answer-list">
+        <view wx:for="{{selectedActivity.formAnswers}}" wx:key="fieldId" class="detail-answer-row">
+          <text class="detail-answer-label">{{item.label}}</text>
+          <text class="detail-answer-value">{{item.displayValue}}</text>
         </view>
       </view>
     </view>

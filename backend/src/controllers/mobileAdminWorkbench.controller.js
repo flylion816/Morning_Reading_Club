@@ -7,6 +7,10 @@ const ActivityRegistration = require('../models/ActivityRegistration');
 const { success, errors } = require('../utils/response');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const logger = require('../utils/logger');
+const {
+  getPublicRegistrationForm,
+  buildFormStats
+} = require('../utils/activityRegistrationForm');
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
@@ -103,6 +107,7 @@ function formatEnrollment(enrollment = {}, latestPayment = null) {
 }
 
 function formatActivity(activity = {}, counts = {}) {
+  const registrationForm = getPublicRegistrationForm(activity.registrationForm);
   return {
     activityId: activity._id ? activity._id.toString() : '',
     title: activity.title || '未命名活动',
@@ -112,6 +117,8 @@ function formatActivity(activity = {}, counts = {}) {
     endTime: activity.endTime || null,
     isPaid: !!activity.isPaid,
     price: activity.price || 0,
+    registrationForm,
+    hasRegistrationForm: registrationForm.enabled,
     registrationCount: counts.registrationCount || 0,
     paidCount: counts.paidCount || 0,
     pendingCount: counts.pendingCount || 0
@@ -127,6 +134,8 @@ function formatRegistration(registration = {}) {
     paymentStatus: registration.paymentStatus || '',
     paidAmount: registration.paidAmount || 0,
     reminderGranted: !!registration.reminderGranted,
+    formAnswers: Array.isArray(registration.formAnswers) ? registration.formAnswers : [],
+    formSubmitted: Array.isArray(registration.formAnswers) && registration.formAnswers.length > 0,
     user: formatUser(user),
     payment: formatPayment(registration.paymentId)
   };
@@ -324,7 +333,7 @@ async function getUserDetail(req, res) {
         .sort({ createdAt: -1 })
         .lean(),
       ActivityRegistration.find({ tenantId, userId: userObjectId })
-        .populate('activityId', 'title type startTime endTime status isPaid price')
+        .populate('activityId', 'title type startTime endTime status isPaid price registrationForm')
         .populate('paymentId', 'orderNo amount status paymentMethod paidAt wechat.successTime createdAt')
         .sort({ registeredAt: -1, createdAt: -1 })
         .limit(20)
@@ -361,7 +370,7 @@ async function listActivities(req, res) {
     const [total, activities] = await Promise.all([
       CommunityActivity.countDocuments(query),
       CommunityActivity.find(query)
-        .select('_id title type status startTime endTime isPaid price')
+        .select('_id title type status startTime endTime isPaid price registrationForm')
         .sort({ startTime: -1, createdAt: -1 })
         .skip(skip)
         .limit(pageSize)
@@ -414,7 +423,7 @@ async function getActivityRegistrations(req, res) {
     const paymentStatus = String(req.query.paymentStatus || '').trim();
 
     const activity = await CommunityActivity.findOne({ _id: activityObjectId, tenantId })
-      .select('_id title type status startTime endTime isPaid price')
+      .select('_id title type status startTime endTime isPaid price registrationForm')
       .lean();
     if (!activity) {
       const error = new Error('活动不存在或无权限访问');
@@ -437,7 +446,7 @@ async function getActivityRegistrations(req, res) {
       query.userId = { $in: matchedUsers.map((user) => user._id) };
     }
 
-    const [total, registrations, countRows] = await Promise.all([
+    const [total, registrations, countRows, statsRows] = await Promise.all([
       ActivityRegistration.countDocuments(query),
       ActivityRegistration.find(query)
         .populate('userId', '_id nickname avatar avatarUrl phone role status totalCheckinDays currentStreak createdAt lastLoginAt')
@@ -460,7 +469,10 @@ async function getActivityRegistrations(req, res) {
             }
           }
         }
-      ])
+      ]),
+      ActivityRegistration.find({ tenantId, activityId: activityObjectId, status: 'registered' })
+        .select('_id formAnswers')
+        .lean()
     ]);
     const counts = countRows[0] || {};
     const userIds = registrations
@@ -492,6 +504,7 @@ async function getActivityRegistrations(req, res) {
         registration,
         enrollmentCountMap
       )),
+      formStats: buildFormStats(activity.registrationForm, statsRows),
       pagination: buildPagination({ page, pageSize, total })
     }));
   } catch (error) {

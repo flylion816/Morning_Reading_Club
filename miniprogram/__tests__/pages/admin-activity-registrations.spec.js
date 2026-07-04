@@ -44,6 +44,30 @@ describe('admin activity registrations page', () => {
           summary: { enrollmentCount: 3 }
         },
         payment: { status: 'completed', amount: 1200 }
+      }, {
+        registrationId: 'reg_2',
+        status: 'registered',
+        paymentStatus: 'free',
+        paidAmount: 0,
+        reminderGranted: false,
+        registeredAt: '2026-06-27T03:00:00.000Z',
+        formAnswers: [{ fieldId: 'city', label: '城市', value: 'hz', valueText: '杭州' }],
+        user: {
+          userId: 'user_2',
+          nickname: '小白',
+          phoneMasked: '139****0000',
+          totalCheckinDays: 2,
+          summary: { enrollmentCount: 1 }
+        },
+        payment: null
+      }],
+      formStats: [{
+        fieldId: 'city',
+        label: '城市',
+        options: [
+          { optionId: 'sh', label: '上海', count: 1, registrationIds: ['reg_1'] },
+          { optionId: 'hz', label: '杭州', count: 1, registrationIds: ['reg_2'] }
+        ]
       }],
       pagination: { page: 1, pageSize: 20, total: 2, totalPages: 2, hasMore: true }
     });
@@ -76,6 +100,7 @@ describe('admin activity registrations page', () => {
     expect(pageInstance.data.registrations[0].user.enrollmentCount).toBe(3);
     expect(pageInstance.data.registrations[0].user.checkinCount).toBe(9);
     expect(pageInstance.data.registrations[0].paymentStatusText).toBe('已支付');
+    expect(pageInstance.data.formStats[0].label).toBe('城市');
   });
 
   test('searches and loads more registrations', async () => {
@@ -125,7 +150,28 @@ describe('admin activity registrations page', () => {
       page: 2,
       pageSize: 20
     });
-    expect(pageInstance.data.registrations).toHaveLength(2);
-    expect(pageInstance.data.registrations[1].user.displayName).toBe('小白');
+    expect(pageInstance.data.registrations).toHaveLength(3);
+    expect(pageInstance.data.registrations[2].user.displayName).toBe('小白');
+  });
+
+  test('filters registrations from stats and opens detail', async () => {
+    await pageInstance.onLoad.call(pageInstance, { activityId: 'activity_1' });
+
+    pageInstance.handleFilterByStat.call(pageInstance, {
+      currentTarget: {
+        dataset: { fieldId: 'city', optionId: 'hz', label: '城市：杭州' }
+      }
+    });
+
+    expect(pageInstance.data.activeTab).toBe('list');
+    expect(pageInstance.data.visibleRegistrations).toHaveLength(1);
+    expect(pageInstance.data.visibleRegistrations[0].registrationId).toBe('reg_2');
+
+    pageInstance.handleCardTap.call(pageInstance, {
+      currentTarget: { dataset: { id: 'reg_2' } }
+    });
+
+    expect(pageInstance.data.showRegistrationDetail).toBe(true);
+    expect(pageInstance.data.selectedRegistration.formAnswers[0].displayValue).toBe('杭州');
   });
 });

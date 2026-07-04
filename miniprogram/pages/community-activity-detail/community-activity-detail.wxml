@@ -37,6 +37,22 @@
       </view>
     </view>
 
+    <!-- 我的报名信息 -->
+    <view wx:if="{{activity.userRegistration && submittedAnswers.length > 0}}" class="my-registration-card">
+      <view class="my-registration-head">
+        <text class="my-registration-title">我的报名信息</text>
+        <text class="my-registration-status">
+          {{activity.userRegistration.paymentStatus === 'pending' ? '待支付' : '已提交'}}
+        </text>
+      </view>
+      <view class="answer-list">
+        <view wx:for="{{submittedAnswers}}" wx:key="fieldId" class="answer-row">
+          <text class="answer-label">{{item.label}}</text>
+          <text class="answer-value">{{item.displayValue}}</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 海报图 -->
     <image
       wx:if="{{activity.posterUrl}}"
@@ -100,6 +116,91 @@
       </view>
     </view>
   </block>
+
+  <!-- 报名表单弹窗 -->
+  <view wx:if="{{showFormModal}}" class="form-modal-mask" bindtap="handleFormCancel">
+    <view class="form-modal" catchtap="noop">
+      <view class="form-modal-title">填写报名信息</view>
+      <scroll-view class="form-fields" scroll-y>
+        <view wx:for="{{registrationFormFields}}" wx:key="fieldId" class="form-field">
+          <view class="form-label">
+            <text>{{item.label}}</text>
+            <text wx:if="{{item.required}}" class="form-required">*</text>
+          </view>
+          <input
+            wx:if="{{item.type === 'text' || item.type === 'phone' || item.type === 'number'}}"
+            class="form-input"
+            type="{{item.type === 'number' ? 'digit' : item.type === 'phone' ? 'number' : 'text'}}"
+            value="{{item.value}}"
+            placeholder="{{item.placeholder || '请输入'}}"
+            data-field-id="{{item.fieldId}}"
+            bindinput="handleFormInput"
+          />
+          <picker
+            wx:elif="{{item.type === 'date'}}"
+            mode="date"
+            value="{{item.value}}"
+            data-field-id="{{item.fieldId}}"
+            bindchange="handleFormInput"
+          >
+            <view class="form-picker {{item.value ? '' : 'placeholder'}}">
+              {{item.value || item.placeholder || '请选择日期'}}
+            </view>
+          </picker>
+          <textarea
+            wx:elif="{{item.type === 'textarea'}}"
+            class="form-textarea"
+            value="{{item.value}}"
+            placeholder="{{item.placeholder || '请输入'}}"
+            data-field-id="{{item.fieldId}}"
+            bindinput="handleFormInput"
+          />
+          <view wx:elif="{{item.type === 'single_select'}}" class="option-list">
+            <view
+              wx:for="{{item.options}}"
+              wx:for-item="option"
+              wx:key="optionId"
+              class="option-item {{option.checked ? 'selected' : ''}}"
+              data-field-id="{{item.fieldId}}"
+              data-option-id="{{option.optionId}}"
+              bindtap="handleSingleSelect"
+            >
+              <text>{{option.label}}</text>
+              <text wx:if="{{option.checked}}" class="option-check">✓</text>
+            </view>
+          </view>
+          <view wx:elif="{{item.type === 'multi_select'}}" class="option-list">
+            <view
+              wx:for="{{item.options}}"
+              wx:for-item="option"
+              wx:key="optionId"
+              class="option-item {{option.checked ? 'selected' : ''}}"
+              data-field-id="{{item.fieldId}}"
+              data-option-id="{{option.optionId}}"
+              bindtap="handleMultiSelect"
+            >
+              <text>{{option.label}}</text>
+              <text wx:if="{{option.checked}}" class="option-check">✓</text>
+            </view>
+          </view>
+          <view wx:elif="{{item.type === 'boolean'}}" class="switch-row">
+            <text>{{item.placeholder || '是否确认'}}</text>
+            <switch
+              checked="{{item.value}}"
+              data-field-id="{{item.fieldId}}"
+              bindchange="handleBooleanChange"
+            />
+          </view>
+        </view>
+      </scroll-view>
+      <view class="form-modal-actions">
+        <view class="form-btn cancel" bindtap="handleFormCancel">取消</view>
+        <view class="form-btn confirm {{formSubmitting ? 'loading' : ''}}" bindtap="handleFormSubmit">
+          <text>{{activity.isPaid ? '提交并支付 ¥' + activity.priceDisplay : '提交报名'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 
   <!-- 支付确认弹窗 -->
   <view wx:if="{{showPayModal}}" class="pay-modal-mask" bindtap="handlePayCancel">

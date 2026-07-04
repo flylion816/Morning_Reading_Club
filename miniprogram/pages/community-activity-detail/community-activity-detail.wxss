@@ -153,6 +153,64 @@
   color: #333;
 }
 
+.my-registration-card {
+  background: #fff;
+  margin: 0 20rpx 20rpx;
+  border-radius: 16rpx;
+  padding: 28rpx 32rpx;
+}
+
+.my-registration-head,
+.answer-row,
+.switch-row,
+.option-item,
+.form-modal-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.my-registration-title {
+  color: #222;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.my-registration-status {
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
+  font-size: 22rpx;
+}
+
+.answer-list {
+  margin-top: 18rpx;
+}
+
+.answer-row {
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f0f2f5;
+  gap: 24rpx;
+}
+
+.answer-row:last-child {
+  border-bottom: 0;
+}
+
+.answer-label {
+  color: #667085;
+  font-size: 26rpx;
+}
+
+.answer-value {
+  color: #1f2937;
+  font-size: 26rpx;
+  font-weight: 500;
+  text-align: right;
+}
+
 .desc-card {
   background: #fff;
   margin: 0 20rpx 20rpx;
@@ -233,6 +291,151 @@
   font-size: 22rpx;
   color: var(--theme-primary);
   line-height: 1;
+}
+
+/* 报名表单弹窗 */
+.form-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+}
+
+.form-modal {
+  width: 100%;
+  max-height: 82vh;
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 32rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.form-modal-title {
+  color: #1f2937;
+  font-size: 34rpx;
+  font-weight: 700;
+  margin-bottom: 24rpx;
+}
+
+.form-fields {
+  max-height: 58vh;
+}
+
+.form-field {
+  margin-bottom: 24rpx;
+}
+
+.form-label {
+  color: #344054;
+  font-size: 27rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.form-required {
+  color: #e53935;
+  margin-left: 4rpx;
+}
+
+.form-input,
+.form-picker,
+.form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  color: #1f2937;
+  font-size: 28rpx;
+  padding: 0 20rpx;
+}
+
+.form-input {
+  height: 78rpx;
+}
+
+.form-picker {
+  height: 78rpx;
+  line-height: 78rpx;
+}
+
+.form-picker.placeholder {
+  color: #98a2b3;
+}
+
+.form-textarea {
+  min-height: 150rpx;
+  padding-top: 18rpx;
+}
+
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.option-item {
+  min-height: 72rpx;
+  padding: 0 20rpx;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  color: #344054;
+  font-size: 27rpx;
+  box-sizing: border-box;
+}
+
+.option-item.selected {
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary);
+}
+
+.option-check {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.switch-row {
+  min-height: 78rpx;
+  padding: 0 20rpx;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  color: #344054;
+  font-size: 27rpx;
+}
+
+.form-modal-actions {
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.form-btn {
+  flex: 1;
+  height: 84rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.form-btn.cancel {
+  background: #f2f4f7;
+  color: #667085;
+}
+
+.form-btn.confirm {
+  background: var(--theme-primary);
+  color: #fff;
+}
+
+.form-btn.loading {
+  opacity: 0.65;
 }
 
 /* 支付确认弹窗 */

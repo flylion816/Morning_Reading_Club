@@ -7,6 +7,12 @@ const subscribeMessageService = require('../services/subscribe-message.service')
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
+const {
+  normalizeRegistrationFormConfig,
+  getPublicRegistrationForm,
+  normalizeFormAnswers,
+  buildFormStats
+} = require('../utils/activityRegistrationForm');
 
 async function recordActivityReminderGrant(userId, activityId, grantPayload = null) {
   if (!grantPayload || grantPayload.scene !== 'activity_reminder' || grantPayload.result !== 'accept') {
@@ -32,6 +38,18 @@ async function recordActivityReminderGrant(userId, activityId, grantPayload = nu
       error: error.message
     });
   }
+}
+
+function prepareActivityPayload(body = {}) {
+  const payload = { ...body };
+  if (Object.prototype.hasOwnProperty.call(payload, 'registrationForm')) {
+    payload.registrationForm = normalizeRegistrationFormConfig(payload.registrationForm || {});
+  }
+  return payload;
+}
+
+function formatRegistrationAnswers(registration = null) {
+  return Array.isArray(registration?.formAnswers) ? registration.formAnswers : [];
 }
 
 // ===== 用户端 =====
@@ -159,14 +177,32 @@ exports.getActivity = async (req, res) => {
           paymentStatus: 'pending'
         }).lean();
         if (pendingReg) {
-          userRegistration = { paymentStatus: 'pending', paymentId: pendingReg.paymentId };
+          userRegistration = {
+            registrationId: pendingReg._id,
+            paymentStatus: 'pending',
+            paymentId: pendingReg.paymentId,
+            formAnswers: formatRegistrationAnswers(pendingReg),
+            formSubmitted: (pendingReg.formAnswers || []).length > 0
+          };
         }
       } else {
-        userRegistration = { paymentStatus: reg.paymentStatus };
+        userRegistration = {
+          registrationId: reg._id,
+          paymentStatus: reg.paymentStatus,
+          paymentId: reg.paymentId,
+          formAnswers: formatRegistrationAnswers(reg),
+          formSubmitted: (reg.formAnswers || []).length > 0
+        };
       }
     }
 
-    res.json(success({ ...activity, registrationCount, isRegistered, userRegistration }));
+    res.json(success({
+      ...activity,
+      registrationForm: getPublicRegistrationForm(activity.registrationForm),
+      registrationCount,
+      isRegistered,
+      userRegistration
+    }));
   } catch (err) {
     logger.error('getActivity failed', err);
     res.status(500).json(errors.serverError(err.message));
@@ -181,7 +217,7 @@ exports.registerActivity = async (req, res) => {
   try {
     const { id } = req.params;
     const { userId } = req.user;
-    const { reminderGranted = false, reminderGrant = null } = req.body;
+    const { reminderGranted = false, reminderGrant = null, formAnswers = {} } = req.body;
     const tenantId = getCurrentTenantId();
 
     const activity = await CommunityActivity.findOne({ _id: id, tenantId }).lean();
@@ -201,6 +237,8 @@ exports.registerActivity = async (req, res) => {
         return res.status(400).json(errors.badRequest('活动名额已满'));
       }
     }
+
+    const normalizedForm = normalizeFormAnswers(activity.registrationForm, formAnswers);
 
     // 付费活动处理
     if (activity.isPaid && activity.price > 0) {
@@ -243,14 +281,20 @@ exports.registerActivity = async (req, res) => {
           return res.status(400).json(errors.badRequest('您已报名该活动'));
         }
         // 复用 pending 记录，更新优惠券
+        registration.status = 'registered';
+        registration.registeredAt = new Date();
         registration.couponId = coupon ? coupon._id : null;
         registration.reminderGranted = reminderGranted;
+        registration.formSnapshot = normalizedForm.formSnapshot;
+        registration.formAnswers = normalizedForm.formAnswers;
         await registration.save();
       } else {
         registration = await ActivityRegistration.create({
           tenantId, activityId: id, userId, reminderGranted,
           paymentStatus: 'pending',
-          couponId: coupon ? coupon._id : null
+          couponId: coupon ? coupon._id : null,
+          formSnapshot: normalizedForm.formSnapshot,
+          formAnswers: normalizedForm.formAnswers
         });
       }
 
@@ -319,6 +363,8 @@ exports.registerActivity = async (req, res) => {
       existing.status = 'registered';
       existing.reminderGranted = reminderGranted;
       existing.registeredAt = new Date();
+      existing.formSnapshot = normalizedForm.formSnapshot;
+      existing.formAnswers = normalizedForm.formAnswers;
       await existing.save();
       await recordActivityReminderGrant(userId, id, reminderGrant);
       return res.json(success(existing, '报名成功'));
@@ -328,7 +374,9 @@ exports.registerActivity = async (req, res) => {
       tenantId,
       activityId: id,
       userId,
-      reminderGranted
+      reminderGranted,
+      formSnapshot: normalizedForm.formSnapshot,
+      formAnswers: normalizedForm.formAnswers
     });
     await recordActivityReminderGrant(userId, id, reminderGrant);
 
@@ -336,6 +384,9 @@ exports.registerActivity = async (req, res) => {
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json(errors.badRequest('您已报名该活动'));
+    }
+    if (err.statusCode === 400) {
+      return res.status(400).json(errors.badRequest(err.message));
     }
     logger.error('registerActivity failed', err);
     res.status(500).json(errors.serverError(err.message));
@@ -379,9 +430,10 @@ exports.myActivities = async (req, res) => {
   try {
     const { userId } = req.user;
     const { page = 1, limit = 20 } = req.query;
+    const tenantId = getCurrentTenantId();
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-    const query = { userId, status: 'registered' };
+    const query = { tenantId, userId, status: 'registered' };
 
     const [registrations, total] = await Promise.all([
       ActivityRegistration.find(query)
@@ -395,7 +447,16 @@ exports.myActivities = async (req, res) => {
 
     const list = registrations
       .filter(r => r.activityId)
-      .map(r => ({ ...r.activityId, registeredAt: r.registeredAt, registrationId: r._id }));
+      .map(r => ({
+        ...r.activityId,
+        registeredAt: r.registeredAt,
+        registrationId: r._id,
+        registrationStatus: r.status,
+        paymentStatus: r.paymentStatus,
+        paidAmount: r.paidAmount,
+        formAnswers: formatRegistrationAnswers(r),
+        formSubmitted: (r.formAnswers || []).length > 0
+      }));
 
     res.json(
       success({
@@ -468,9 +529,13 @@ exports.adminCreateActivity = async (req, res) => {
     if (!tenantId) {
       return res.status(400).json(errors.badRequest('请先在右上角选择租户后再创建活动'));
     }
-    const activity = await CommunityActivity.create({ ...req.body, tenantId });
+    const payload = prepareActivityPayload(req.body);
+    const activity = await CommunityActivity.create({ ...payload, tenantId });
     res.json(success(activity, '创建成功'));
   } catch (err) {
+    if (err.statusCode === 400) {
+      return res.status(400).json(errors.badRequest(err.message));
+    }
     logger.error('adminCreateActivity failed', err);
     res.status(500).json(errors.serverError(err.message));
   }
@@ -487,7 +552,7 @@ exports.adminUpdateActivity = async (req, res) => {
 
     const activity = await CommunityActivity.findOneAndUpdate(
       { _id: id, tenantId },
-      req.body,
+      prepareActivityPayload(req.body),
       { new: true, runValidators: true }
     );
 
@@ -497,6 +562,9 @@ exports.adminUpdateActivity = async (req, res) => {
 
     res.json(success(activity, '更新成功'));
   } catch (err) {
+    if (err.statusCode === 400) {
+      return res.status(400).json(errors.badRequest(err.message));
+    }
     logger.error('adminUpdateActivity failed', err);
     res.status(500).json(errors.serverError(err.message));
   }
@@ -544,21 +612,25 @@ exports.adminGetRegistrations = async (req, res) => {
     }
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-    const query = { activityId: id, status: 'registered' };
+    const query = { tenantId, activityId: id, status: 'registered' };
 
-    const [list, total] = await Promise.all([
+    const [list, total, allRegistrations] = await Promise.all([
       ActivityRegistration.find(query)
         .populate('userId', 'nickname avatar avatarUrl')
         .sort({ registeredAt: 1 })
         .skip(skip)
         .limit(parseInt(limit, 10))
         .lean(),
-      ActivityRegistration.countDocuments(query)
+      ActivityRegistration.countDocuments(query),
+      ActivityRegistration.find(query)
+        .select('_id formAnswers')
+        .lean()
     ]);
 
     res.json(
       success({
         list,
+        formStats: buildFormStats(activity.registrationForm, allRegistrations),
         total,
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),

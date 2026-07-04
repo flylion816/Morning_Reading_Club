@@ -33,6 +33,29 @@ function shouldShowMeeting(activity) {
   return now >= start - 30 * 60 * 1000 && now <= end;
 }
 
+function buildFormFieldState(field, savedAnswers = []) {
+  const saved = savedAnswers.find(answer => answer.fieldId === field.fieldId);
+  const value = saved ? saved.value : (field.type === 'multi_select' ? [] : '');
+  return {
+    ...field,
+    value,
+    valueText: saved ? saved.valueText : '',
+    options: (field.options || []).map(option => ({
+      ...option,
+      checked: Array.isArray(value)
+        ? value.includes(option.optionId)
+        : value === option.optionId
+    }))
+  };
+}
+
+function decorateAnswers(answers = []) {
+  return answers.map(answer => ({
+    ...answer,
+    displayValue: answer.valueText || '-'
+  }));
+}
+
 Page({
   data: {
     activityId: '',
@@ -43,6 +66,11 @@ Page({
     showMeeting: false,
     typeMap: { witness: '见证会', chat: '聊天局', cooking: '料理人生', other: '其他' },
     showPayModal: false,
+    showFormModal: false,
+    formSubmitting: false,
+    registrationFormFields: [],
+    formAnswers: {},
+    submittedAnswers: [],
     paying: false,
     payInfo: {
       registrationId: '',
@@ -98,6 +126,7 @@ Page({
           computedStatus: getActivityStatus(activity),
           priceDisplay: activity.isPaid ? (activity.price / 100).toFixed(2) : '0.00'
         },
+        submittedAnswers: decorateAnswers(activity.userRegistration?.formAnswers || []),
         registered: isPendingPayment ? false : (activity.isRegistered || false),
         showMeeting,
         loading: false
@@ -134,7 +163,27 @@ Page({
       return;
     }
 
-    this.setData({ registering: true });
+    const activity = this.data.activity || {};
+    if (activity.registrationForm && activity.registrationForm.enabled) {
+      const savedAnswers = activity.userRegistration?.formAnswers || [];
+      const fields = (activity.registrationForm.fields || []).map(field => buildFormFieldState(field, savedAnswers));
+      const answers = {};
+      fields.forEach(field => {
+        answers[field.fieldId] = field.value;
+      });
+      this.setData({
+        registrationFormFields: fields,
+        formAnswers: answers,
+        showFormModal: true
+      });
+      return;
+    }
+
+    return this.submitRegistration({});
+  },
+
+  async submitRegistration(formAnswers = {}) {
+    this.setData({ registering: true, formSubmitting: true });
     try {
       let reminderGranted = false;
       let reminderGrant = null;
@@ -159,7 +208,8 @@ Page({
 
       const regRes = await communityActivityService.register(this.data.activityId, {
         reminderGranted,
-        reminderGrant
+        reminderGrant,
+        formAnswers
       });
       const regData = regRes.data || regRes;
 
@@ -206,8 +256,87 @@ Page({
       console.error('报名失败:', err);
       wx.showToast({ title: err.message || '报名失败，请重试', icon: 'none' });
     } finally {
-      this.setData({ registering: false });
+      this.setData({ registering: false, formSubmitting: false });
     }
+  },
+
+  handleFormInput(e) {
+    const { fieldId } = e.currentTarget.dataset;
+    const value = e.detail.value;
+    this.updateFormAnswer(fieldId, value);
+  },
+
+  handleBooleanChange(e) {
+    const { fieldId } = e.currentTarget.dataset;
+    this.updateFormAnswer(fieldId, !!e.detail.value);
+  },
+
+  handleSingleSelect(e) {
+    const { fieldId, optionId } = e.currentTarget.dataset;
+    this.updateFormAnswer(fieldId, optionId);
+  },
+
+  handleMultiSelect(e) {
+    const { fieldId, optionId } = e.currentTarget.dataset;
+    const current = this.data.formAnswers[fieldId] || [];
+    const next = current.includes(optionId)
+      ? current.filter(item => item !== optionId)
+      : current.concat(optionId);
+    this.updateFormAnswer(fieldId, next);
+  },
+
+  updateFormAnswer(fieldId, value) {
+    const formAnswers = {
+      ...this.data.formAnswers,
+      [fieldId]: value
+    };
+    const fields = this.data.registrationFormFields.map(field => {
+      if (field.fieldId !== fieldId) return field;
+      return {
+        ...field,
+        value,
+        options: (field.options || []).map(option => ({
+          ...option,
+          checked: Array.isArray(value)
+            ? value.includes(option.optionId)
+            : value === option.optionId
+        }))
+      };
+    });
+    this.setData({ formAnswers, registrationFormFields: fields });
+  },
+
+  validateRegistrationForm() {
+    const fields = this.data.registrationFormFields || [];
+    for (const field of fields) {
+      const value = this.data.formAnswers[field.fieldId];
+      const empty = field.type === 'multi_select'
+        ? !Array.isArray(value) || value.length === 0
+        : value === undefined || value === null || String(value).trim() === '';
+      if (field.required && empty) {
+        wx.showToast({ title: `请填写${field.label}`, icon: 'none' });
+        return false;
+      }
+      if (field.type === 'phone' && value && !/^1\d{10}$/.test(String(value).trim())) {
+        wx.showToast({ title: `${field.label}格式不正确`, icon: 'none' });
+        return false;
+      }
+    }
+    return true;
+  },
+
+  async handleFormSubmit() {
+    if (!this.validateRegistrationForm()) return;
+    const answers = {};
+    (this.data.registrationFormFields || []).forEach(field => {
+      answers[field.fieldId] = this.data.formAnswers[field.fieldId];
+    });
+    this.setData({ showFormModal: false });
+    await this.submitRegistration(answers);
+  },
+
+  handleFormCancel() {
+    this.setData({ showFormModal: false });
   },
 
   // 用户点击弹窗"立即支付"

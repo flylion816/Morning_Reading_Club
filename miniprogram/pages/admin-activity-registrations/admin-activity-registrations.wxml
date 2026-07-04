@@ -27,10 +27,26 @@
     <button class="search-btn" bindtap="handleSearch" loading="{{loading}}">搜索</button>
   </view>
 
+  <view class="tab-row">
+    <view class="tab-item {{activeTab === 'list' ? 'active' : ''}}" data-tab="list" bindtap="handleTabChange">名单</view>
+    <view class="tab-item {{activeTab === 'stats' ? 'active' : ''}}" data-tab="stats" bindtap="handleTabChange">统计</view>
+  </view>
+
   <view wx:if="{{loading}}" class="state-box">加载中...</view>
-  <view wx:elif="{{registrations.length === 0}}" class="state-box">暂无报名</view>
-  <view wx:else class="registration-list">
-    <view wx:for="{{registrations}}" wx:key="registrationId" class="registration-card">
+  <view wx:elif="{{activeTab === 'list' && registrations.length === 0}}" class="state-box">暂无报名</view>
+  <view wx:elif="{{activeTab === 'list'}}" class="registration-list">
+    <view wx:if="{{statsFilterText}}" class="filter-bar">
+      <text>筛选：{{statsFilterText}}</text>
+      <text class="filter-clear" bindtap="clearStatsFilter">清除</text>
+    </view>
+    <view wx:if="{{visibleRegistrations.length === 0}}" class="state-box">暂无匹配报名</view>
+    <view
+      wx:for="{{visibleRegistrations}}"
+      wx:key="registrationId"
+      class="registration-card"
+      data-id="{{item.registrationId}}"
+      bindtap="handleCardTap"
+    >
       <view class="user-line">
         <view class="avatar" style="background: {{item.user.avatarUrl ? '#eef2f7' : '#eff6ff'}}">
           <image wx:if="{{item.user.avatarUrl}}" class="avatar-image" src="{{item.user.avatarUrl}}" mode="aspectFill" />
@@ -65,6 +81,9 @@
         <text class="chip blue">{{item.paymentStatusText}}</text>
         <text class="chip">{{item.orderStatusText}}</text>
       </view>
+      <view wx:if="{{item.answerChips.length > 0}}" class="answer-chip-row">
+        <text wx:for="{{item.answerChips}}" wx:key="*this" class="answer-chip">{{item}}</text>
+      </view>
       <view class="foot-row">
         <text>报名 {{item.registeredAtText}}</text>
       </view>
@@ -72,6 +91,51 @@
 
     <view wx:if="{{pagination.hasMore}}" class="load-more" bindtap="handleLoadMore">
       {{loadingMore ? '加载中...' : '加载更多名单'}}
+    </view>
+  </view>
+
+  <view wx:elif="{{activeTab === 'stats'}}" class="stats-list">
+    <view wx:if="{{formStats.length === 0}}" class="state-box">暂无可统计字段</view>
+    <view wx:for="{{formStats}}" wx:key="fieldId" class="stats-card">
+      <view class="stats-title">{{item.label}}</view>
+      <view
+        wx:for="{{item.options}}"
+        wx:for-item="option"
+        wx:key="optionId"
+        class="stats-option"
+        data-field-id="{{item.fieldId}}"
+        data-option-id="{{option.optionId}}"
+        data-label="{{item.label}}：{{option.label}}"
+        bindtap="handleFilterByStat"
+      >
+        <text>{{option.label}}</text>
+        <view class="stats-right">
+          <text>{{option.count}} 人</text>
+          <text class="stats-link">看名单</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showRegistrationDetail}}" class="detail-mask" bindtap="handleCloseDetail">
+    <view class="detail-sheet" catchtap="noop">
+      <view class="detail-head">
+        <text class="detail-title">{{selectedRegistration.user.displayName}}</text>
+        <text class="detail-close" bindtap="handleCloseDetail">关闭</text>
+      </view>
+      <view class="detail-meta">
+        <text>{{selectedRegistration.paymentStatusText}}</text>
+        <text>{{selectedRegistration.paidAmountText}}</text>
+        <text>报名 {{selectedRegistration.registeredAtText}}</text>
+      </view>
+      <view class="detail-section-title">报名信息</view>
+      <view wx:if="{{selectedRegistration.formAnswers.length === 0}}" class="state-box small">未填写报名表单</view>
+      <view wx:else class="detail-answer-list">
+        <view wx:for="{{selectedRegistration.formAnswers}}" wx:key="fieldId" class="detail-answer-row">
+          <text class="detail-answer-label">{{item.label}}</text>
+          <text class="detail-answer-value">{{item.displayValue}}</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>
