@@ -297,6 +297,7 @@ function buildMiniTenantConfig(tenant, slug) {
     },
     legalEntity: tenant.legalEntity || `${brandName} 团队`,
     contactEmail: tenant.contactEmail || null,
+    wechatSIPlugin: Boolean(tenant.features?.wechatSIPlugin || tenant.plugins?.wechatSIPlugin),
     apiBaseUrl: tenant.apiBaseUrl || null
   };
 }

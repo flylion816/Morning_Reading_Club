@@ -35,5 +35,6 @@ module.exports = {
   },
   "legalEntity": "若星生活家 团队",
   "contactEmail": "308965039@qq.com",
+  "wechatSIPlugin": false,
   "apiBaseUrl": null
 };

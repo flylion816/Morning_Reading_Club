@@ -170,6 +170,38 @@ function applyPageNavBarConfig(pages, navBar) {
   });
 }
 
+function applyWechatSIPlugin(appJson, enabled) {
+  appJson.plugins = appJson.plugins || {};
+  if (enabled) {
+    appJson.plugins.WechatSI = {
+      version: '0.3.4',
+      provider: 'wx069ba97219f66d99'
+    };
+  } else {
+    delete appJson.plugins.WechatSI;
+    if (Object.keys(appJson.plugins).length === 0) {
+      delete appJson.plugins;
+    }
+  }
+
+  const orderedAppJson = {};
+  let pluginsInserted = false;
+  Object.keys(appJson).forEach(key => {
+    if (key === 'plugins') return;
+    if (key === 'usingComponents' && appJson.plugins) {
+      orderedAppJson.plugins = appJson.plugins;
+      pluginsInserted = true;
+    }
+    orderedAppJson[key] = appJson[key];
+  });
+  if (appJson.plugins && !pluginsInserted) {
+    orderedAppJson.plugins = appJson.plugins;
+  }
+
+  Object.keys(appJson).forEach(key => delete appJson[key]);
+  Object.assign(appJson, orderedAppJson);
+}
+
 // 2) 校验 TabBar 图标素材存在（必须本地文件）
 const tabIconFiles = [
   'tab-home.png', 'tab-home-active.png',
@@ -231,6 +263,8 @@ appJson.tabBar.list.forEach((item, i) => {
     item.selectedIconPath = `${iconDirNorm}/${tabMap[i][1]}.png`;
   }
 });
+
+applyWechatSIPlugin(appJson, cfg.wechatSIPlugin === true);
 
 fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + '\n');
 

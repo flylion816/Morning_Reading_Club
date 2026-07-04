@@ -12,7 +12,7 @@ const envConfig = require('../../config/env');
 const { requireLogin } = require('../../utils/require-login');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
-const { THEME_PRIMARY } = require('../../utils/theme');
+const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
 const {
   createPodcastAudioContext,
   setPodcastAudioSource,
@@ -176,6 +176,7 @@ Page({
     closingVideoShareMode: false,
     closingVideoShareImagePath: '',
     // AI 朗读
+    ttsAvailable: WECHAT_SI_PLUGIN_ENABLED,
     ttsState: 'idle'  // idle | loading | playing | paused
   },
 
@@ -3939,6 +3940,11 @@ Page({
   },
 
   _ttsStart() {
+    if (!WECHAT_SI_PLUGIN_ENABLED) {
+      wx.showToast({ title: 'AI 朗读暂未开通', icon: 'none' });
+      this.setData({ ttsState: 'idle' });
+      return;
+    }
     const content = this.data.course && this.data.course.content;
     if (!content) {
       wx.showToast({ title: '暂无可朗读内容', icon: 'none' });

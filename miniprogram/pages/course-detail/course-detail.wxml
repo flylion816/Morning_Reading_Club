@@ -263,7 +263,7 @@
           <text class="immersive-entry-icon">⊙</text>
           <text>沉浸阅读</text>
         </view>
-        <view class="tts-entry {{ttsState !== 'idle' ? 'tts-entry-active' : ''}}" bindtap="handleTtsPlay">
+        <view wx:if="{{ttsAvailable}}" class="tts-entry {{ttsState !== 'idle' ? 'tts-entry-active' : ''}}" bindtap="handleTtsPlay">
           <text class="tts-entry-icon">{{ttsState === 'playing' ? '⏸' : ttsState === 'loading' ? '…' : '♪'}}</text>
           <text>{{ttsState === 'playing' ? '暂停' : ttsState === 'loading' ? '合成中' : 'AI 朗读'}}</text>
         </view>

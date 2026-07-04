@@ -43,6 +43,7 @@ module.exports = {
   // —— 文案/主体 ——
   legalEntity: '凡人共读 团队',
   contactEmail: 'support@fanren.club',
+  wechatSIPlugin: true,
 
   // 为 null 时由 env.js 按环境给默认值
   apiBaseUrl: null

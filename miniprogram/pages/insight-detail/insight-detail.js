@@ -6,7 +6,7 @@ const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
 const { isAdminUser } = require('../../utils/auth');
-const { THEME_PRIMARY } = require('../../utils/theme');
+const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
 const {
   normalizeDanmakuContent,
   countDanmakuChars,
@@ -108,6 +108,7 @@ Page({
     ],
     isOwnInsight: false,
     isLiked: false,
+    ttsAvailable: WECHAT_SI_PLUGIN_ENABLED,
     ttsState: 'idle',  // idle | loading | playing | paused
     showHearts: false,
     heartItems: [],
@@ -1308,6 +1309,11 @@ Page({
   },
 
   _ttsStart() {
+    if (!WECHAT_SI_PLUGIN_ENABLED) {
+      wx.showToast({ title: 'AI 朗读暂未开通', icon: 'none' });
+      this.setData({ ttsState: 'idle' });
+      return;
+    }
     const content = this.data.insight && this.data.insight.content;
     if (!content) {
       wx.showToast({ title: '暂无可朗读内容', icon: 'none' });

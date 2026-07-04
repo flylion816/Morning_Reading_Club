@@ -33,6 +33,9 @@ describe('sync-tenant-config script', () => {
     },
     legalEntity: '凡人共读主体',
     contactEmail: 'support@example.com',
+    features: {
+      wechatSIPlugin: true
+    },
     apiBaseUrl: 'https://example.com/api/v1'
   };
 
@@ -132,6 +135,7 @@ describe('sync-tenant-config script', () => {
       shareCover: '/assets/tenants/fanren/share-cover.jpg',
       legalEntity: '凡人共读主体',
       contactEmail: 'support@example.com',
+      wechatSIPlugin: true,
       apiBaseUrl: 'https://example.com/api/v1'
     }));
     expect(config.navBar).toEqual({
@@ -147,6 +151,13 @@ describe('sync-tenant-config script', () => {
     });
     expect(config.subscribeTemplates.enrollment_result).toBe('ENROLL_TPL');
     expect(config.subscribeTemplates.payment_result).toBe('');
+  });
+
+  test('wechatSIPlugin 缺省时生成为 false，避免新租户未授权插件时阻塞编译', () => {
+    const { features: _features, plugins: _plugins, ...payloadWithoutPlugin } = tenantPayload;
+    const config = buildMiniTenantConfig(payloadWithoutPlugin, 'fanren');
+
+    expect(config.wechatSIPlugin).toBe(false);
   });
 
   test('writes generated config from backend JSON file', async () => {

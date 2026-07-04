@@ -12,6 +12,7 @@ const RULES = {
   legalEntity:  { required: true,  validate: v => typeof v === 'string' && v.length > 0 },
   contactEmail: { required: false, validate: v => v == null || /@/.test(v) },
   subscribeTemplates: { required: true, validate: v => v !== null && typeof v === 'object' },
+  wechatSIPlugin: { required: false, validate: v => v == null || typeof v === 'boolean' },
   apiBaseUrl:   { required: false }
 };
 

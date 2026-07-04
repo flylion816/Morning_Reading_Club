@@ -24,6 +24,7 @@ const VALID_CONFIG = {
   tabBar: { color: '#999', selectedColor: '#4a90e2', backgroundColor: '#fff', iconsDir: '/assets/tenants/fanren' },
   legalEntity: '凡人共读 团队',
   contactEmail: 'support@fanren.club',
+  wechatSIPlugin: true,
   subscribeTemplates: { enrollment_result: 'TPL_001' },
   apiBaseUrl: null
 };
@@ -86,6 +87,17 @@ describe('[MT-1] _schema.js 配置校验', () => {
   test('contactEmail 为 null 不报错（可选字段）', () => {
     const errors = validateTenant({ ...VALID_CONFIG, contactEmail: null });
     expect(errors.filter(e => e.includes('contactEmail'))).toHaveLength(0);
+  });
+
+  test('wechatSIPlugin 为布尔值或缺省不报错，非布尔值报错', () => {
+    expect(validateTenant({ ...VALID_CONFIG, wechatSIPlugin: true })).toEqual([]);
+    expect(validateTenant({ ...VALID_CONFIG, wechatSIPlugin: false })).toEqual([]);
+
+    const { wechatSIPlugin: _omit, ...withoutPluginConfig } = VALID_CONFIG;
+    expect(validateTenant(withoutPluginConfig)).toEqual([]);
+
+    const errors = validateTenant({ ...VALID_CONFIG, wechatSIPlugin: 'true' });
+    expect(errors.some(e => e.includes('wechatSIPlugin'))).toBe(true);
   });
 
   test('多个字段同时非法时返回多条错误', () => {

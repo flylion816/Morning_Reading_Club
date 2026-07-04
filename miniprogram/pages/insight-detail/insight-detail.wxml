@@ -33,7 +33,7 @@
         <text class="day-title-text">{{insight.title}}</text>
         <text wx:if="{{insight.periodName}}" class="day-period">{{insight.periodName}}</text>
       </view>
-      <view class="insight-tts-entry {{ttsState !== 'idle' ? 'insight-tts-entry-active' : ''}}" bindtap="handleTtsPlay">
+      <view wx:if="{{ttsAvailable}}" class="insight-tts-entry {{ttsState !== 'idle' ? 'insight-tts-entry-active' : ''}}" bindtap="handleTtsPlay">
         <text class="insight-tts-icon">{{ttsState === 'playing' ? '⏸' : ttsState === 'loading' ? '…' : '♪'}}</text>
         <text>{{ttsState === 'playing' ? '暂停' : ttsState === 'loading' ? '合成中' : 'AI 朗读'}}</text>
       </view>

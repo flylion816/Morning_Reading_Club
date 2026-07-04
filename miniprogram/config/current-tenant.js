@@ -36,5 +36,6 @@ module.exports = {
   },
   "legalEntity": "凡人共读 团队",
   "contactEmail": "support@fanren.club",
+  "wechatSIPlugin": true,
   "apiBaseUrl": null
 };
