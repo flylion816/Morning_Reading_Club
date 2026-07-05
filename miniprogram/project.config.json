@@ -26,11 +26,11 @@
         "type": "folder"
       },
       {
-        "value": "assets/tenants/starry",
+        "value": "assets/tenants/fanren",
         "type": "folder"
       },
       {
-        "value": "assets/tenants/fanren/share-cover.jpg",
+        "value": "assets/tenants/starry/share-cover.jpg",
         "type": "file"
       }
     ],

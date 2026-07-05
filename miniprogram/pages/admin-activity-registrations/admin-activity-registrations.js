@@ -91,6 +91,9 @@ function decorateRegistration(item = {}) {
 
 function registrationMatchesFilter(registration, filter) {
   if (!filter || !filter.fieldId) return true;
+  if (Array.isArray(filter.registrationIds)) {
+    return filter.registrationIds.includes(registration.registrationId);
+  }
   const answer = (registration.formAnswers || []).find(item => item.fieldId === filter.fieldId);
   if (!answer) return false;
   if (Array.isArray(answer.value)) return answer.value.includes(filter.optionId);
@@ -202,8 +205,12 @@ Page({
   noop() {},
 
   handleFilterByStat(e) {
-    const { fieldId, optionId, label } = e.currentTarget.dataset;
-    const filter = { fieldId, optionId };
+    const { fieldId, optionId, label, registrationIds } = e.currentTarget.dataset;
+    const filter = {
+      fieldId,
+      optionId,
+      registrationIds: Array.isArray(registrationIds) ? registrationIds : null
+    };
     this.setData({
       statsFilter: filter,
       statsFilterText: label || '',

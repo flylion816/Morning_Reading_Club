@@ -12,6 +12,11 @@ const {
   getReadingCompletion,
   markReadingCompleted
 } = require('../../utils/reading-completion');
+const {
+  getBrandName,
+  getBrandSlogan,
+  getBrandedTitle
+} = require('../../utils/brand');
 
 const MINI_PROGRAM_CODE_ASSET_PATHS = [
   '/assets/images/mini-program-code.jpg',
@@ -119,7 +124,8 @@ Page({
     completionDurationText: '',
     completionTitle: '你这一课，已经认真读完了！',
     completionPreviouslySaved: false,
-    fireworksVisible: false
+    fireworksVisible: false,
+    brandName: getBrandName()
   },
 
   onLoad(options) {
@@ -916,7 +922,9 @@ Page({
     const paragraphMetrics = this.getPosterParagraphMetrics(W);
     const pageX = rpx(48);
     const contentW = W - pageX * 2;
-    const periodName = this.data.periodName || '凡人共读';
+    const brandName = getBrandName();
+    const brandSlogan = getBrandSlogan();
+    const periodName = this.data.periodName || brandName;
     const title = this.data.course.title || '读一读';
     const posterItems = this.appendCompletionPosterItem(
       await this.getVisibleParagraphSlice()
@@ -1046,7 +1054,7 @@ Page({
     ctx.fillRect(0, 0, W, H);
 
     ctx.font = `bold ${rpx(24)}px sans-serif`;
-    const periodTag = this.wrapCanvasText(ctx, periodName, rpx(220), 1)[0] || '凡人共读';
+    const periodTag = this.wrapCanvasText(ctx, periodName, rpx(220), 1)[0] || brandName;
     const tagInsetX = rpx(18);
     const tagH = rpx(48);
     const tagW = Math.min(rpx(260), Math.max(rpx(152), ctx.measureText(periodTag).width + tagInsetX * 2));
@@ -1200,10 +1208,10 @@ Page({
 
     ctx.fillStyle = '#1f2937';
     ctx.font = `bold ${rpx(34)}px sans-serif`;
-    ctx.fillText('凡人共读', pageX, leftTitleY);
+    ctx.fillText(brandName, pageX, leftTitleY);
     ctx.fillStyle = '#8b94a5';
     ctx.font = `${rpx(24)}px sans-serif`;
-    ctx.fillText('一个早起、读书、谈心的地方', pageX, leftTitleY + rpx(40));
+    ctx.fillText(brandSlogan, pageX, leftTitleY + rpx(40));
     ctx.fillStyle = '#b0bac6';
     ctx.font = `${rpx(22)}px sans-serif`;
     ctx.fillText(`${this.getPosterDateLabel()} · 沉浸阅读`, pageX, leftTitleY + rpx(74));
@@ -1310,7 +1318,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: `${this.data.course.title || '读一读'} - 凡人共读`,
+      title: getBrandedTitle(this.data.course.title || '读一读'),
       path: `/pages/reading-mode/reading-mode?id=${this.data.sectionId}&periodId=${this.data.periodId}`,
       imageUrl: '/assets/images/share-default.jpg'
     };

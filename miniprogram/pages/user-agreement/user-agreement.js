@@ -1,6 +1,10 @@
 // 用户协议页面
+const { getBrandName } = require('../../utils/brand');
+
 Page({
-  data: {},
+  data: {
+    brandName: getBrandName()
+  },
 
   onLoad() {
     console.log('用户协议页面加载');

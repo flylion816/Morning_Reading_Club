@@ -623,7 +623,7 @@ exports.adminGetRegistrations = async (req, res) => {
         .lean(),
       ActivityRegistration.countDocuments(query),
       ActivityRegistration.find(query)
-        .select('_id formAnswers')
+        .select('_id formSnapshot formAnswers')
         .lean()
     ]);
 

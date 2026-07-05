@@ -2,6 +2,7 @@ const request = require('../../utils/request');
 const enrollmentService = require('../../services/enrollment.service');
 const { calculatePeriodStatus } = require('../../utils/formatters');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getBrandName } = require('../../utils/brand');
 
 Page({
   data: {
@@ -11,6 +12,7 @@ Page({
     enrollmentStatus: null, // null | 'enrolled' | 'full' | 'ended'
     periodId: '',
     inviterId: '',
+    brandName: getBrandName(),
     themePrimaryColor: THEME_PRIMARY
   },
 

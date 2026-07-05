@@ -115,6 +115,7 @@ describe('admin workbench page', () => {
   test('loads activities on page load', async () => {
     await pageInstance.onLoad.call(pageInstance);
 
+    expect(pageInstance.data.activeTab).toBe('activities');
     expect(service.getActivities).toHaveBeenCalledWith({
       q: '',
       page: 1,

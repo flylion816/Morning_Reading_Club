@@ -269,56 +269,165 @@ function normalizeFormAnswers(registrationForm = {}, submittedAnswers = {}) {
   };
 }
 
-function getAnswerValue(registration, fieldId) {
-  const answer = (registration.formAnswers || []).find((item) => item.fieldId === fieldId);
-  return answer ? answer.value : undefined;
+function getAnswer(registration, fieldId) {
+  return (registration.formAnswers || []).find((item) => item.fieldId === fieldId);
+}
+
+function getRegistrationId(registration) {
+  return registration._id
+    ? registration._id.toString()
+    : (registration.registrationId || '').toString();
 }
 
 function addStatCount(option, registrationId) {
-  option.count += 1;
-  option.registrationIds.push(registrationId);
+  return {
+    ...option,
+    count: option.count + 1,
+    registrationIds: option.registrationIds.concat(registrationId)
+  };
+}
+
+function normalizeStatText(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+function getOptionLabel(field, optionId) {
+  const option = (field.options || []).find((item) => item.optionId === optionId);
+  return option ? option.label : '';
+}
+
+function dedupeStatEntries(entries) {
+  const seen = new Set();
+  return entries.filter((entry) => {
+    if (!entry.optionId || seen.has(entry.optionId)) return false;
+    seen.add(entry.optionId);
+    return true;
+  });
+}
+
+function buildSelectableStatEntry(field, rawValue, fallbackLabel = '') {
+  const optionId = normalizeStatText(rawValue) || normalizeStatText(fallbackLabel);
+  if (!optionId) return null;
+  return {
+    optionId,
+    label: getOptionLabel(field, optionId) || normalizeStatText(fallbackLabel) || optionId,
+    value: rawValue
+  };
+}
+
+function getStatEntries(answer, field) {
+  if (!answer) return [];
+
+  const type = field.type || answer.type;
+  const { value } = answer;
+  const valueText = normalizeStatText(answer.valueText);
+
+  if (type === 'multi_select') {
+    if (Array.isArray(value)) {
+      return dedupeStatEntries(value
+        .map((optionId) => buildSelectableStatEntry(field, optionId))
+        .filter(Boolean));
+    }
+    if (!valueText) return [];
+    return [{ optionId: valueText, label: valueText, value: valueText }];
+  }
+
+  if (type === 'single_select') {
+    const entry = buildSelectableStatEntry(field, value, valueText);
+    return entry ? [entry] : [];
+  }
+
+  if (type === 'boolean') {
+    if (value === true || value === 'true' || value === 1 || value === '1') {
+      return [{ optionId: 'true', label: '是', value: true }];
+    }
+    if (value === false || value === 'false' || value === 0 || value === '0') {
+      return [{ optionId: 'false', label: '否', value: false }];
+    }
+    if (valueText === '是') return [{ optionId: 'true', label: '是', value: true }];
+    if (valueText === '否') return [{ optionId: 'false', label: '否', value: false }];
+    if (!valueText) return [];
+    return [{ optionId: valueText, label: valueText, value: valueText }];
+  }
+
+  const label = valueText || normalizeStatText(value);
+  if (!label) return [];
+  return [{ optionId: label, label, value: value ?? label }];
+}
+
+function collectStatFields(publicForm = {}, registrations = []) {
+  const fieldMap = new Map();
+  const fields = [];
+
+  const addField = (field = {}, fallbackOrder = 0) => {
+    const fieldId = normalizeStatText(field.fieldId);
+    if (!fieldId) return;
+
+    const existing = fieldMap.get(fieldId);
+    if (existing) {
+      if (!existing.label && field.label) existing.label = field.label;
+      if ((!existing.options || existing.options.length === 0) && Array.isArray(field.options)) {
+        existing.options = field.options;
+      }
+      return;
+    }
+
+    const statField = {
+      fieldId,
+      label: normalizeStatText(field.label) || fieldId,
+      type: field.type || 'text',
+      options: Array.isArray(field.options) ? field.options : [],
+      sortOrder: Number.isFinite(Number(field.sortOrder)) ? Number(field.sortOrder) : fallbackOrder
+    };
+    fieldMap.set(fieldId, statField);
+    fields.push(statField);
+  };
+
+  (publicForm.fields || []).forEach((field, index) => addField(field, index));
+  registrations.forEach((registration) => {
+    const snapshotFields = registration.formSnapshot && Array.isArray(registration.formSnapshot.fields)
+      ? registration.formSnapshot.fields
+      : [];
+    snapshotFields.forEach((field) => addField(field, fields.length));
+    (registration.formAnswers || []).forEach((answer) => addField(answer, fields.length));
+  });
+
+  return fields.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 function buildFormStats(registrationForm = {}, registrations = []) {
   const publicForm = getPublicRegistrationForm(registrationForm);
-  if (!publicForm.enabled) return [];
+  const fields = collectStatFields(publicForm, registrations);
 
-  return publicForm.fields
-    .filter((field) => field.includeInStats && STAT_FIELD_TYPES.includes(field.type))
+  return fields
     .map((field) => {
-      const options = field.type === 'boolean'
-        ? [
-          { optionId: 'true', label: '是', count: 0, registrationIds: [] },
-          { optionId: 'false', label: '否', count: 0, registrationIds: [] }
-        ]
-        : (field.options || []).map((option) => ({
-          optionId: option.optionId,
-          label: option.label,
-          count: 0,
-          registrationIds: []
-        }));
-      const optionMap = new Map(options.map((option) => [option.optionId, option]));
+      const optionMap = new Map();
       let totalAnswered = 0;
 
       registrations.forEach((registration) => {
-        const registrationId = registration._id
-          ? registration._id.toString()
-          : (registration.registrationId || '').toString();
-        const value = getAnswerValue(registration, field.fieldId);
-        if (value === undefined || value === null || value === '') return;
+        const registrationId = getRegistrationId(registration);
+        if (!registrationId) return;
+
+        const entries = getStatEntries(getAnswer(registration, field.fieldId), field);
+        if (entries.length === 0) return;
+
         totalAnswered += 1;
-
-        if (field.type === 'multi_select' && Array.isArray(value)) {
-          value.forEach((optionId) => {
-            const option = optionMap.get(optionId);
-            if (option) addStatCount(option, registrationId);
-          });
-          return;
-        }
-
-        const optionId = field.type === 'boolean' ? String(!!value) : String(value);
-        const option = optionMap.get(optionId);
-        if (option) addStatCount(option, registrationId);
+        entries.forEach((entry) => {
+          if (!optionMap.has(entry.optionId)) {
+            optionMap.set(entry.optionId, {
+              optionId: entry.optionId,
+              label: entry.label,
+              value: entry.value,
+              count: 0,
+              registrationIds: []
+            });
+          }
+          optionMap.set(
+            entry.optionId,
+            addStatCount(optionMap.get(entry.optionId), registrationId)
+          );
+        });
       });
 
       return {
@@ -326,9 +435,10 @@ function buildFormStats(registrationForm = {}, registrations = []) {
         label: field.label,
         type: field.type,
         totalAnswered,
-        options
+        options: Array.from(optionMap.values())
       };
-    });
+    })
+    .filter((field) => field.options.length > 0);
 }
 
 module.exports = {

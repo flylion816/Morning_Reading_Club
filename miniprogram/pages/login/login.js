@@ -4,6 +4,11 @@ const userService = require('../../services/user.service');
 const envConfig = require('../../config/env');
 const logger = require('../../utils/logger');
 const { tenantStorage } = require('../../utils/storage');
+const {
+  getBrandName,
+  getBrandSlogan,
+  getCourseName
+} = require('../../utils/brand');
 
 const DEFAULT_WECHAT_USER_INFO = {
   nickName: '微信用户',
@@ -20,6 +25,9 @@ Page({
     debugInfo: '', // 调试信息（用于线上问题诊断）
     showDebugInfo: envConfig.currentEnv !== 'prod', // 是否显示调试信息（生产环境隐藏）
     apiBase: envConfig.apiBaseUrl, // API 地址（用于调试）
+    brandName: getBrandName(),
+    brandSlogan: getBrandSlogan(),
+    courseName: getCourseName(),
     testUsers: [
       { code: 'test_user_atai', label: '阿泰', openid: 'mock_user_001' },
       { code: 'test_user_liming', label: '狮子', openid: 'mock_user_002' },

@@ -9,6 +9,7 @@ const {
   isFreshOptimisticEnrollmentAccess,
   isPaidStatus
 } = require('../../utils/period-access');
+const { getBrandName, getDefaultShareTitle } = require('../../utils/brand');
 
 const ENROLLMENT_CHECK_CONCURRENCY = 2;
 
@@ -31,7 +32,8 @@ Page({
 
     // Banner文本
     bannerText: '☀️ 天天开心！',
-    bannerSubtext: '在晨光中,遇见更好的自己'
+    bannerSubtext: '在晨光中,遇见更好的自己',
+    brandName: getBrandName()
   },
 
   onLoad(options) {
@@ -45,6 +47,7 @@ Page({
   onReady() {
     if (!this._pendingInitialLoad) return;
     this._pendingInitialLoad = false;
+    wx.setNavigationBarTitle({ title: getBrandName() });
     this.checkLoginStatus();
     this.loadPeriods();
   },
@@ -597,7 +600,7 @@ Page({
     }
 
     return {
-      title: '凡人共读｜每日晨读',
+      title: getDefaultShareTitle(),
       path: '/pages/index/index?from=share',
       imageUrl: '/assets/images/share-default.jpg'
     };
@@ -608,7 +611,7 @@ Page({
    */
   onShareTimeline() {
     return {
-      title: '凡人共读｜每日晨读',
+      title: getDefaultShareTitle(),
       query: '',
       imageUrl: '/assets/images/share-default.jpg'
     };

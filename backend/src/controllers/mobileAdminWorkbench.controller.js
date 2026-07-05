@@ -471,7 +471,7 @@ async function getActivityRegistrations(req, res) {
         }
       ]),
       ActivityRegistration.find({ tenantId, activityId: activityObjectId, status: 'registered' })
-        .select('_id formAnswers')
+        .select('_id formSnapshot formAnswers')
         .lean()
     ]);
     const counts = countRows[0] || {};

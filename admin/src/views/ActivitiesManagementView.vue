@@ -209,7 +209,6 @@
                         <span class="field-label">{{ field.label }}</span>
                         <el-tag size="small">{{ formatFieldType(field.type) }}</el-tag>
                         <el-tag v-if="field.required" type="danger" size="small">必填</el-tag>
-                        <el-tag v-if="field.includeInStats" type="success" size="small">统计</el-tag>
                       </div>
                       <div v-if="field.options?.length" class="field-options">
                         {{ field.options.map(option => option.label).join(' / ') }}
@@ -375,12 +374,6 @@
           <el-form-item label="设置">
             <div class="field-setting-row">
               <el-checkbox v-model="fieldForm.required">必填</el-checkbox>
-              <el-checkbox
-                v-if="canFieldTypeStats(fieldForm.type)"
-                v-model="fieldForm.includeInStats"
-              >
-                纳入统计
-              </el-checkbox>
             </div>
           </el-form-item>
           <el-form-item v-if="isSelectField(fieldForm.type)" label="选项">
@@ -480,7 +473,7 @@
             </div>
           </el-tab-pane>
           <el-tab-pane label="统计" name="stats">
-            <div v-if="formStats.length === 0" class="empty-form-tip">暂无可统计字段</div>
+            <div v-if="formStats.length === 0" class="empty-form-tip">暂无统计数据</div>
             <div v-else class="stats-list">
               <div v-for="field in formStats" :key="field.fieldId" class="stats-card">
                 <div class="stats-title">{{ field.label }}</div>

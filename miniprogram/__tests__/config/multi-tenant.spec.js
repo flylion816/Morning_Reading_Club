@@ -214,6 +214,38 @@ describe('[MT-2] subscribe-auto-topup: templateId 来自 currentTenant', () => {
 });
 
 // ─────────────────────────────────────────────────────────
+// MT-2B: brand helper 文案来自 currentTenant
+// ─────────────────────────────────────────────────────────
+describe('[MT-2B] brand helper: 品牌文案来自 currentTenant', () => {
+  test('默认分享标题和品牌名跟随当前租户', () => {
+    let brand;
+    jest.isolateModules(() => {
+      jest.doMock('../../config/current-tenant', () => ({
+        brandName: '若星生活家',
+        navBar: { title: '若星生活家' }
+      }));
+      brand = require('../../utils/brand');
+    });
+
+    expect(brand.getBrandName()).toBe('若星生活家');
+    expect(brand.getDefaultShareTitle()).toBe('若星生活家｜每日晨读');
+    expect(brand.getBrandedTitle('平衡之道')).toBe('平衡之道 - 若星生活家');
+  });
+
+  test('缺少 brandName 时使用 navBar.title 兜底', () => {
+    let brand;
+    jest.isolateModules(() => {
+      jest.doMock('../../config/current-tenant', () => ({
+        navBar: { title: '凡人共读' }
+      }));
+      brand = require('../../utils/brand');
+    });
+
+    expect(brand.getBrandName()).toBe('凡人共读');
+  });
+});
+
+// ─────────────────────────────────────────────────────────
 // MT-3: tenantStorage key 前缀
 // ─────────────────────────────────────────────────────────
 describe('[MT-3] tenantStorage: key 前缀来自 currentTenant.wxAppId', () => {

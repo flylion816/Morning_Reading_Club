@@ -270,6 +270,7 @@ fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + '\n');
 
 // 页面级 JSON 会覆盖 app.json 的导航栏颜色，构建租户时一并同步。
 applyPageNavBarConfig(appJson.pages || [], cfg.navBar);
+applyPageNavBarConfig(['pages/periods/periods'], cfg.navBar);
 
 // 6) 改写 project.config.json(+private) 的 appid，并维护上传忽略规则
 for (const name of ['project.config.json', 'project.private.config.json']) {

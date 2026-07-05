@@ -7,6 +7,7 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
 const { isAdminUser } = require('../../utils/auth');
 const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
+const { getBrandName } = require('../../utils/brand');
 const {
   normalizeDanmakuContent,
   countDanmakuChars,
@@ -355,7 +356,7 @@ Page({
   getShareTitle(insight = {}) {
     const app = getApp();
     const owner = resolveInsightOwner(insight, app?.globalData?.userInfo || {});
-    return `${insight.title || '凡人共读'} - 致${owner.name}`;
+    return `${insight.title || getBrandName()} - 致${owner.name}`;
   },
 
   buildTextShareContent(insight = {}) {
@@ -369,7 +370,7 @@ Page({
       '',
       body,
       '',
-      'By 小凡@凡人学堂',
+      `By 小凡@${getBrandName()}`,
       'AI生成，注意甄别！'
     ].filter((line, index, lines) => line || lines[index - 1] !== '').join('\n');
   },
@@ -869,7 +870,7 @@ Page({
             const BOLD_FONT = `bold ${CONTENT_FONT}px sans-serif`;
 
             const rawTitle = insight.title || '小凡看见';
-            const periodName = insight.periodName || '凡人共读';
+            const periodName = insight.periodName || getBrandName();
             const htmlParagraphs = this._parseHtmlToParagraphs(insight.content || '');
             const PARA_GAP = Math.floor(CONTENT_LINE_H * 0.75);
 
@@ -1013,7 +1014,7 @@ Page({
             const brandY = footerTop + 84;
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 28px sans-serif';
-            ctx.fillText('By 小凡@凡人学堂', PADDING, brandY);
+            ctx.fillText(`By 小凡@${getBrandName()}`, PADDING, brandY);
 
             ctx.fillStyle = '#9ca3af';
             ctx.font = '24px sans-serif';

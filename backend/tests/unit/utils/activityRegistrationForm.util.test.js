@@ -83,27 +83,30 @@ describe('activityRegistrationForm util', () => {
     expect(() => normalizeFormAnswers(form, { city: 'sh', stale: 'x' })).to.throw('报名表单字段已更新');
   });
 
-  it('builds stats for selectable and boolean fields', () => {
+  it('builds stats from submitted values for every answered field', () => {
     const form = getPublicRegistrationForm(formInput);
     const stats = buildFormStats(form, [
       {
         _id: 'reg_1',
         formAnswers: [
-          { fieldId: 'city', value: 'sh' },
-          { fieldId: 'friends', value: true }
+          { fieldId: 'city', type: 'single_select', value: 'sh', valueText: '上海' },
+          { fieldId: 'friends', type: 'boolean', value: true, valueText: '是' },
+          { fieldId: 'note', type: 'textarea', value: '靠窗座位', valueText: '靠窗座位' }
         ]
       },
       {
         _id: 'reg_2',
         formAnswers: [
-          { fieldId: 'city', value: 'hz' },
-          { fieldId: 'friends', value: false }
+          { fieldId: 'city', type: 'single_select', value: 'hz', valueText: '杭州' },
+          { fieldId: 'friends', type: 'boolean', value: false, valueText: '否' },
+          { fieldId: 'note', type: 'textarea', value: '靠窗座位', valueText: '靠窗座位' }
         ]
       }
     ]);
 
-    expect(stats).to.have.length(2);
+    expect(stats).to.have.length(3);
     expect(stats[0].options.find((option) => option.optionId === 'sh').count).to.equal(1);
     expect(stats[1].options.find((option) => option.optionId === 'true').registrationIds).to.deep.equal(['reg_1']);
+    expect(stats[2].options.find((option) => option.label === '靠窗座位').count).to.equal(2);
   });
 });

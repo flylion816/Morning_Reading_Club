@@ -16,6 +16,7 @@ describe('Study Reminder Service', () => {
   let PeriodStub;
   let SectionStub;
   let SubscribeMessageGrantStub;
+  let TenantStub;
   let subscribeMessageServiceStub;
   let loggerStub;
 
@@ -39,6 +40,10 @@ describe('Study Reminder Service', () => {
       findByIdAndUpdate: sandbox.stub().resolves({})
     };
 
+    TenantStub = {
+      findById: sandbox.stub()
+    };
+
     subscribeMessageServiceStub = {
       sendSceneMessage: sandbox.stub()
     };
@@ -56,12 +61,19 @@ describe('Study Reminder Service', () => {
         '../models/Period': PeriodStub,
         '../models/Section': SectionStub,
         '../models/SubscribeMessageGrant': SubscribeMessageGrantStub,
+        '../models/Tenant': TenantStub,
         './subscribe-message.service': subscribeMessageServiceStub,
         '../utils/logger': loggerStub,
         'node-cron': {
           schedule: sandbox.stub()
         },
-        '../config/subscribe-message.config': require('../../../src/config/subscribe-message.config')
+        '../config/subscribe-message.config': {
+          resolveSubscribeSceneConfig: sandbox.stub().resolves({
+            scene: 'next_day_study_reminder',
+            templateId: 'TPL_NEXT_DAY',
+            page: 'pages/periods/periods'
+          })
+        }
       }
     );
   });
@@ -119,6 +131,7 @@ describe('Study Reminder Service', () => {
       _id: new mongoose.Types.ObjectId(),
       userId,
       periodId: periodId.toString(),
+      tenantId: new mongoose.Types.ObjectId(),
       availableCount: 1,
       scheduledSendDate: sendDate,
       scheduledSendDateKey: scheduledPlan.sendDateKey,
@@ -149,6 +162,10 @@ describe('Study Reminder Service', () => {
     EnrollmentStub.findOne.returns(setupFindChain(sandbox, enrollment));
     PeriodStub.findById.returns(setupFindChain(sandbox, period));
     SectionStub.findOne.returns(setupFindChain(sandbox, section));
+    TenantStub.findById.returns(setupFindChain(sandbox, {
+      name: '若星生活家',
+      branding: { brandName: '若星生活家' }
+    }));
     subscribeMessageServiceStub.sendSceneMessage.resolves({ status: 'sent' });
 
     const summary = await studyReminderService.sendDueNextDayStudyReminders();
@@ -156,10 +173,10 @@ describe('Study Reminder Service', () => {
     expect(summary.sent).to.equal(1);
     expect(subscribeMessageServiceStub.sendSceneMessage.calledOnce).to.be.true;
     const sendArgs = subscribeMessageServiceStub.sendSceneMessage.firstCall.args[0];
-    expect(sendArgs.fields.activityName).to.equal('凡人共读晨读营');
+    expect(sendArgs.fields.activityName).to.equal('若星生活家晨读营');
     expect(sendArgs.fields.activityContent).to.equal('第十八天 晨读任务');
     expect(sendArgs.fields.startTime).to.include('06:00');
-    expect(sendArgs.fields.joinMethod).to.equal('进入凡人共读小程序去学习');
+    expect(sendArgs.fields.joinMethod).to.equal('进入若星生活家小程序去学习');
     expect(SubscribeMessageGrantStub.findByIdAndUpdate.called).to.be.true;
     const update = SubscribeMessageGrantStub.findByIdAndUpdate.firstCall.args[1];
     expect(update.$set.availableCount).to.equal(0);

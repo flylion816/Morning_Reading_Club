@@ -387,7 +387,7 @@
   <view class="guest-content" wx:if="{{!isLogin && !loading}}">
     <view class="guest-banner">
       <text class="guest-emoji">🦁</text>
-      <text class="guest-title">凡人共读</text>
+      <text class="guest-title">{{brandName}}</text>
       <text class="guest-subtitle">每日晨读，遇见更好的自己</text>
     </view>
 

@@ -3,6 +3,7 @@ const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
 const Section = require('../models/Section');
 const SubscribeMessageGrant = require('../models/SubscribeMessageGrant');
+const Tenant = require('../models/Tenant');
 const subscribeMessageService = require('./subscribe-message.service');
 const logger = require('../utils/logger');
 const {
@@ -17,6 +18,7 @@ const { withSystemContext } = require('../utils/tenantContext');
 const SCENE = 'next_day_study_reminder';
 const CRON_OPTIONS = { timezone: 'Asia/Shanghai' };
 const NON_RETRYABLE_ERROR_CODES = new Set([40003, 40037, 43101, 47003]);
+const DEFAULT_TENANT_NAME = '晨读营';
 
 async function resolveLeanResult(queryOrValue) {
   if (!queryOrValue) {
@@ -101,25 +103,45 @@ async function pauseGrantScheduleForReauthorization(grantId, extra = {}) {
   );
 }
 
-function buildReminderActivityName(period = {}) {
-  const rawName = String(period?.name || period?.title || '凡人共读').trim();
+async function resolveTenantDisplayName(tenantId) {
+  if (!tenantId) {
+    return DEFAULT_TENANT_NAME;
+  }
+
+  try {
+    const tenant = await withSystemContext(null, () =>
+      Tenant.findById(tenantId).select('name branding.brandName').lean().exec()
+    );
+    return String(tenant?.branding?.brandName || tenant?.name || DEFAULT_TENANT_NAME).trim() || DEFAULT_TENANT_NAME;
+  } catch (error) {
+    logger.warn('学习提醒租户名称解析失败，使用默认名称', {
+      tenantId: tenantId?.toString?.() || tenantId,
+      error: error.message
+    });
+    return DEFAULT_TENANT_NAME;
+  }
+}
+
+function buildReminderActivityName(period = {}, tenantName = DEFAULT_TENANT_NAME) {
+  const rawName = String(period?.name || period?.title || tenantName || DEFAULT_TENANT_NAME).trim();
   if (!rawName) {
-    return '凡人共读晨读营';
+    return `${DEFAULT_TENANT_NAME}晨读营`;
   }
 
   return rawName.includes('晨读营') ? rawName : `${rawName}晨读营`;
 }
 
-function buildReminderFields({ period, section, sendDate }) {
+function buildReminderFields({ period, section, sendDate, tenantName = DEFAULT_TENANT_NAME }) {
   const dayIndex = Number(section?.day || 0);
   const sectionTitle = String(section?.title || '').trim();
   const displayStartTime = getShanghaiDateTime(getShanghaiDateKey(sendDate), 6, 0, 0);
+  const safeTenantName = String(tenantName || DEFAULT_TENANT_NAME).trim() || DEFAULT_TENANT_NAME;
 
   return {
-    activityName: buildReminderActivityName(period),
+    activityName: buildReminderActivityName(period, safeTenantName),
     activityContent: sectionTitle || `第${dayIndex + 1}天 晨读任务`,
     startTime: formatShanghaiDateTimeLabel(displayStartTime || sendDate),
-    joinMethod: '进入凡人共读小程序去学习'
+    joinMethod: `进入${safeTenantName}小程序去学习`
   };
 }
 
@@ -175,11 +197,12 @@ async function sendOneReminder(grant, { attemptType = 'scheduled' } = {}) {
     await clearGrantSchedule(grant._id);
     return { status: 'skipped_missing_section' };
   }
+  const tenantName = await resolveTenantDisplayName(grant.tenantId || enrollment.tenantId || period.tenantId);
 
   const delivery = await subscribeMessageService.sendSceneMessage({
     scene: SCENE,
     recipientUserId: grant.userId,
-    fields: buildReminderFields({ period, section: resolvedSection, sendDate: plan.sendDate }),
+    fields: buildReminderFields({ period, section: resolvedSection, sendDate: plan.sendDate, tenantName }),
     page: sceneConfig.page,
     sourceType: 'study_reminder',
     sourceId: `${grant.userId}:${periodId}:${plan.sendDateKey}`,

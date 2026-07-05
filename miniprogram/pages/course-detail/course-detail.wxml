@@ -347,15 +347,39 @@
           <text>分享好友</text>
         </button>
       </view>
-      <video
-        class="closing-video-player"
-        src="{{course.closingVideoUrl}}"
-        poster="{{course.closingVideoCoverUrl}}"
-        controls
-        show-center-play-btn
-        show-play-btn
-        object-fit="contain"
-      />
+      <view class="closing-video-shell">
+        <video
+          wx:if="{{closingVideoActivated}}"
+          id="closing-video-player"
+          class="closing-video-player"
+          src="{{course.closingVideoUrl}}"
+          poster="{{course.closingVideoCoverUrl}}"
+          controls
+          autoplay
+          show-center-play-btn
+          show-play-btn
+          object-fit="contain"
+          binderror="handleClosingVideoError"
+        />
+        <view wx:else class="closing-video-cover" bindtap="handleClosingVideoPlay">
+          <image
+            wx:if="{{course.closingVideoCoverUrl}}"
+            class="closing-video-cover-image"
+            src="{{course.closingVideoCoverUrl}}"
+            mode="aspectFill"
+            bindload="handleClosingVideoCoverLoad"
+            binderror="handleClosingVideoCoverError"
+          />
+          <view wx:else class="closing-video-cover-placeholder"></view>
+          <view class="closing-video-cover-shade"></view>
+          <view class="closing-video-cover-play">
+            <view class="closing-video-cover-play-triangle"></view>
+          </view>
+          <text wx:if="{{course.closingVideoDurationText}}" class="closing-video-cover-duration">
+            {{course.closingVideoDurationText}}
+          </text>
+        </view>
+      </view>
     </view>
 
     <view id="podcast-section" class="content-section podcast-section" wx:if="{{course.podcastUrl}}">

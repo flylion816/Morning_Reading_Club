@@ -188,7 +188,7 @@
             <el-option
               v-for="t in tenantStore.tenants"
               :key="t._id"
-              :label="t.name"
+              :label="tenantStore.getTenantDisplayName(t)"
               :value="t._id"
             />
           </el-select>
@@ -367,7 +367,8 @@ const copyPassword = ref('');
 const copyCredentialText = computed(() => {
   if (!currentCopyAdmin.value) return '';
   const pwd = copyPassword.value || '{密码}';
-  return `凡人共读管理员登录地址：https://wx.shubai01.com/admin/login\n凡人共读管理员登录名：${currentCopyAdmin.value.email}\n凡人共读管理员登录密码：${pwd}`;
+  const tenantName = tenantStore.displayName || '管理后台';
+  return `${tenantName}管理员登录地址：https://wx.shubai01.com/admin/login\n${tenantName}管理员登录名：${currentCopyAdmin.value.email}\n${tenantName}管理员登录密码：${pwd}`;
 });
 
 // Lifecycle

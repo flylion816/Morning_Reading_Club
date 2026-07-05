@@ -24,7 +24,7 @@
     bindscrolltolower="handleScrollToLower">
     <view class="reader-content reader-font-{{fontSizeLevel}}" style="padding-top: {{topbarHeight}}px;">
       <view class="reader-meta">
-        <view class="reader-period">{{periodName || '凡人共读'}}</view>
+        <view class="reader-period">{{periodName || brandName}}</view>
         <view class="reader-heading">每天晨读内容</view>
       </view>
 

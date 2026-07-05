@@ -13,6 +13,7 @@ const { requireLogin } = require('../../utils/require-login');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
 const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
+const { getBrandName } = require('../../utils/brand');
 const {
   createPodcastAudioContext,
   setPodcastAudioSource,
@@ -175,6 +176,7 @@ Page({
     podcastShareImagePath: '',
     closingVideoShareMode: false,
     closingVideoShareImagePath: '',
+    closingVideoActivated: false,
     // AI 朗读
     ttsAvailable: WECHAT_SI_PLUGIN_ENABLED,
     ttsState: 'idle'  // idle | loading | playing | paused
@@ -236,7 +238,8 @@ Page({
       checkinShareCoverFilePath: '',
       checkinShareCoverSourceUrl: '',
       checkinShareCoverReady: false,
-      closingVideoShareMode: false
+      closingVideoShareMode: false,
+      closingVideoActivated: false
     });
     this.loadCourseDetail();
   },
@@ -555,7 +558,7 @@ Page({
       '',
       checkin?.content || '',
       '',
-      'By 凡人共读'
+      `By ${getBrandName()}`
     ];
 
     return lines
@@ -565,11 +568,12 @@ Page({
   },
 
   getCheckinTextShareFileName() {
-    const displayName = `凡人共读：${this.getCheckinShareTitle()}`;
+    const brandName = getBrandName();
+    const displayName = `${brandName}：${this.getCheckinShareTitle()}`;
     const fileName = String(displayName)
       .replace(/[\\/:*?"<>|]/g, ' ')
       .replace(/\s+/g, '')
-      .slice(0, 48) || '凡人共读';
+      .slice(0, 48) || brandName;
     return `${fileName}.txt`;
   },
 
@@ -1814,7 +1818,7 @@ Page({
     const footerTextY = footerTop + 30;
     ctx.fillStyle = '#607089';
     ctx.font = '24px sans-serif';
-    ctx.fillText('凡人共读 · 动态详情长图', footerTextX, footerTextY);
+    ctx.fillText(`${getBrandName()} · 动态详情长图`, footerTextX, footerTextY);
     ctx.fillStyle = '#8b94a5';
     ctx.font = '22px sans-serif';
     ctx.fillText(
@@ -2169,12 +2173,20 @@ Page({
     course.closingVideoVisible = !!videoUrl;
     course.closingVideoUrl = videoUrl && videoUrl.startsWith('/') ? base + videoUrl : videoUrl;
     course.closingVideoCoverUrl = coverUrl && coverUrl.startsWith('/') ? base + coverUrl : coverUrl;
+    course.closingVideoDurationText = closingVideo.duration
+      ? this.formatPodcastDuration(closingVideo.duration)
+      : '';
     if (course.closingVideoVisible) {
       course.closingVideo = {
         ...closingVideo,
         url: course.closingVideoUrl,
         coverUrl: course.closingVideoCoverUrl
       };
+      console.log('结营视频资源:', {
+        url: course.closingVideoUrl,
+        coverUrl: course.closingVideoCoverUrl,
+        duration: closingVideo.duration || null
+      });
     }
 
     // 播客介绍换行处理
@@ -3539,6 +3551,46 @@ Page({
     const { course } = this.data;
     if (!course?.closingVideoVisible) return;
     this.setData({ closingVideoShareMode: true });
+  },
+
+  handleClosingVideoPlay() {
+    const { course } = this.data;
+    if (!course?.closingVideoUrl) return;
+    this.setData({ closingVideoActivated: true }, () => {
+      wx.nextTick(() => {
+        const videoContext = wx.createVideoContext && wx.createVideoContext('closing-video-player', this);
+        if (videoContext && typeof videoContext.play === 'function') {
+          videoContext.play();
+        }
+      });
+    });
+  },
+
+  handleClosingVideoCoverLoad(event) {
+    console.log('结营视频封面加载成功:', {
+      coverUrl: this.data.course?.closingVideoCoverUrl || '',
+      detail: event?.detail || null
+    });
+  },
+
+  handleClosingVideoCoverError(event) {
+    console.warn('结营视频封面加载失败:', {
+      coverUrl: this.data.course?.closingVideoCoverUrl || '',
+      detail: event?.detail || null
+    });
+  },
+
+  handleClosingVideoError(event) {
+    console.warn('结营视频加载失败:', {
+      detail: event?.detail || null,
+      url: this.data.course?.closingVideoUrl || '',
+      coverUrl: this.data.course?.closingVideoCoverUrl || ''
+    });
+    this.setData({ closingVideoActivated: false });
+    wx.showToast({
+      title: '视频加载失败，请稍后再试',
+      icon: 'none'
+    });
   },
 
   _generatePodcastShareImage(course) {

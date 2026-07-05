@@ -34,6 +34,10 @@ const {
   setPodcastAudioSource,
   stopPodcastAudio
 } = require('../../utils/podcast-audio');
+const {
+  getBrandName,
+  getDefaultShareTitle
+} = require('../../utils/brand');
 
 const notificationService =
   notificationServiceModule.default || notificationServiceModule;
@@ -359,6 +363,7 @@ Page({
     showEditProfile: false,
     isSavingProfile: false,
     themePrimaryColor: THEME_PRIMARY,
+    brandName: getBrandName(),
     editForm: {
       avatar: '🦁',
       avatarUrl: '',
@@ -2262,7 +2267,7 @@ Page({
       };
     }
     return {
-      title: '凡人共读｜每日晨读',
+      title: getDefaultShareTitle(),
       path: '/pages/index/index?from=share',
       imageUrl: '/assets/images/share-default.jpg'
     };
@@ -2273,7 +2278,7 @@ Page({
    */
   onShareTimeline() {
     return {
-      title: '凡人共读｜每日晨读',
+      title: getDefaultShareTitle(),
       query: '',
       imageUrl: '/assets/images/share-default.jpg'
     };

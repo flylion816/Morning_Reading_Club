@@ -2,6 +2,7 @@
 const courseService = require('../../services/course.service');
 const { formatDateRange, calculatePeriodStatus } = require('../../utils/formatters');
 const { DEFAULT_PRIMARY_COLOR, THEME_PRIMARY } = require('../../utils/theme');
+const { getBrandName, getBrandedTitle } = require('../../utils/brand');
 
 const LEGACY_FANREN_BLUE = DEFAULT_PRIMARY_COLOR;
 
@@ -175,7 +176,7 @@ Page({
   onShareAppMessage() {
     const period = this.data.period;
     return {
-      title: period ? `${period.name || period.title} - 凡人共读` : '凡人共读',
+      title: period ? getBrandedTitle(period.name || period.title) : getBrandName(),
       path: `/pages/period-detail/period-detail?periodId=${this.data.periodId}`,
       imageUrl: '/assets/images/share-default.jpg'
     };

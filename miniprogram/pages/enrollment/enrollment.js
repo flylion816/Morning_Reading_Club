@@ -4,6 +4,7 @@ const { calculatePeriodStatus } = require('../../utils/formatters');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { markEnrollmentCacheDirty } = require('../../utils/period-access');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getDefaultShareTitle } = require('../../utils/brand');
 
 const SUBSCRIBE_SCENES = ['enrollment_result'];
 
@@ -663,6 +664,6 @@ Page({
         imageUrl: selectedPeriod.coverImage || '/assets/images/share-default.jpg'
       };
     }
-    return { title: '凡人共读｜每日晨读', path: '/pages/index/index?from=share', imageUrl: '/assets/images/share-default.jpg' };
+    return { title: getDefaultShareTitle(), path: '/pages/index/index?from=share', imageUrl: '/assets/images/share-default.jpg' };
   }
 });

@@ -114,7 +114,7 @@ function decorateRegistration(item = {}) {
 
 Page({
   data: {
-    activeTab: 'users',
+    activeTab: 'activities',
     userKeyword: '',
     userLoading: false,
     users: [],

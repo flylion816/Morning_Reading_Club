@@ -1,15 +1,15 @@
 <view class="page-admin-workbench">
   <view class="tabs">
     <view
-      class="tab {{activeTab === 'users' ? 'active' : ''}}"
-      data-tab="users"
-      bindtap="handleTabTap"
-    >用户查询</view>
-    <view
       class="tab {{activeTab === 'activities' ? 'active' : ''}}"
       data-tab="activities"
       bindtap="handleTabTap"
     >活动报名</view>
+    <view
+      class="tab {{activeTab === 'users' ? 'active' : ''}}"
+      data-tab="users"
+      bindtap="handleTabTap"
+    >用户查询</view>
   </view>
 
   <view wx:if="{{activeTab === 'users'}}" class="content">

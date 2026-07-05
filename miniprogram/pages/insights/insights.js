@@ -8,6 +8,7 @@ const { richContentToPlainText } = require('../../utils/markdown');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getBrandName } = require('../../utils/brand');
 const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
@@ -706,7 +707,7 @@ Page({
     return {
       title: this.data.isOtherUser
         ? `${this.data.userName}的小凡看见`
-        : '我的小凡看见 - 凡人共读',
+        : `我的小凡看见 - ${getBrandName()}`,
       path: '/pages/index/index'
     };
   },
@@ -715,7 +716,7 @@ Page({
     return {
       title: this.data.isOtherUser
         ? `${this.data.userName}的小凡看见`
-        : '我的小凡看见 - 凡人共读'
+        : `我的小凡看见 - ${getBrandName()}`
     };
   },
 

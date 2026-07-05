@@ -12,13 +12,13 @@
       <el-option
         v-for="t in tenantStore.tenants"
         :key="t._id"
-        :label="t.name"
+        :label="tenantStore.getTenantDisplayName(t)"
         :value="t._id"
       />
     </el-select>
   </div>
   <div v-else-if="currentTenant" class="tenant-display">
-    {{ currentTenant.name }}
+    {{ tenantStore.getTenantDisplayName(currentTenant) }}
   </div>
 </template>
 

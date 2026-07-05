@@ -68,6 +68,12 @@ describe('admin activity registrations page', () => {
           { optionId: 'sh', label: '上海', count: 1, registrationIds: ['reg_1'] },
           { optionId: 'hz', label: '杭州', count: 1, registrationIds: ['reg_2'] }
         ]
+      }, {
+        fieldId: 'note',
+        label: '备注',
+        options: [
+          { optionId: '靠窗座位', label: '靠窗座位', count: 1, registrationIds: ['reg_2'] }
+        ]
       }],
       pagination: { page: 1, pageSize: 20, total: 2, totalPages: 2, hasMore: true }
     });
@@ -159,7 +165,12 @@ describe('admin activity registrations page', () => {
 
     pageInstance.handleFilterByStat.call(pageInstance, {
       currentTarget: {
-        dataset: { fieldId: 'city', optionId: 'hz', label: '城市：杭州' }
+        dataset: {
+          fieldId: 'note',
+          optionId: '靠窗座位',
+          registrationIds: ['reg_2'],
+          label: '备注：靠窗座位'
+        }
       }
     });
 

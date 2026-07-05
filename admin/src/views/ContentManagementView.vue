@@ -284,6 +284,11 @@
                 />
                 <div v-if="editingSection.closingVideo?.url" class="closing-video-file-info">
                   <span class="closing-video-file-name">{{ closingVideoFileName }}</span>
+                  <el-button
+                    size="small"
+                    :loading="closingVideoCoverRegenerating"
+                    @click="handleRegenerateClosingVideoCover"
+                  >{{ closingVideoCoverRegenerating ? '生成中...' : '重生成封面' }}</el-button>
                   <el-button type="danger" size="small" text @click="clearClosingVideo">× 删除</el-button>
                 </div>
                 <video
@@ -435,6 +440,7 @@ const closingVideoInputRef = ref<HTMLInputElement | null>(null);
 const closingVideoUploading = ref(false);
 const closingVideoUploadProgress = ref(0);
 const closingVideoFileName = ref('');
+const closingVideoCoverRegenerating = ref(false);
 
 const lookImageInputRef = ref<HTMLInputElement | null>(null);
 const lookImageUploading = ref(false);
@@ -535,55 +541,171 @@ function formatUploadFileSize(size?: number | null) {
   return `${(bytes / 1024 / 1024).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)}MB`;
 }
 
+function getVideoCoverCandidateTimes(duration = 0) {
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
+  const maxTime = safeDuration ? Math.max(0.1, safeDuration - 0.1) : 12;
+  const preferredTimes = [0.1, 0.5, 1, 2, 3, 5, 8, 12];
+  const proportionalTimes = safeDuration
+    ? [safeDuration * 0.15, safeDuration * 0.3]
+    : [];
+  const times = [...preferredTimes, ...proportionalTimes]
+    .map((time) => Math.min(time, maxTime))
+    .filter((time) => time >= 0.05)
+    .map((time) => Number(time.toFixed(2)));
+
+  return Array.from(new Set(times));
+}
+
+function waitForVideoEvent(video: HTMLVideoElement, eventName: string, timeout = 5000) {
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      video.removeEventListener(eventName, handleEvent);
+      video.removeEventListener('error', handleError);
+      window.clearTimeout(timer);
+    };
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const handleEvent = () => finish(resolve);
+    const handleError = () => finish(() => reject(new Error('video load error')));
+    const timer = window.setTimeout(() => {
+      finish(() => reject(new Error(`video ${eventName} timeout`)));
+    }, timeout);
+
+    video.addEventListener(eventName, handleEvent);
+    video.addEventListener('error', handleError);
+  });
+}
+
+async function seekVideoTo(video: HTMLVideoElement, time: number) {
+  if (Math.abs(video.currentTime - time) < 0.05 && video.readyState >= 2) return;
+
+  const seeked = waitForVideoEvent(video, 'seeked');
+  video.currentTime = time;
+  await seeked;
+
+  if (video.readyState < 2) {
+    await waitForVideoEvent(video, 'loadeddata', 3000).catch(() => undefined);
+  }
+}
+
+function isFrameLikelyBlack(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const imageData = ctx.getImageData(0, 0, width, height).data;
+  let visiblePixels = 0;
+  let lumaTotal = 0;
+  const pixelCount = Math.max(1, width * height);
+
+  for (let index = 0; index < imageData.length; index += 4) {
+    const luma = imageData[index] * 0.2126 + imageData[index + 1] * 0.7152 + imageData[index + 2] * 0.0722;
+    lumaTotal += luma;
+    if (luma > 35) visiblePixels += 1;
+  }
+
+  const averageLuma = lumaTotal / pixelCount;
+  const visiblePixelRatio = visiblePixels / pixelCount;
+
+  return averageLuma < 18 && visiblePixelRatio < 0.04;
+}
+
+function createCoverFileFromVideo(video: HTMLVideoElement, fileName: string): Promise<File | null> {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 720;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.resolve(null);
+
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        resolve(null);
+        return;
+      }
+
+      const baseName = fileName.replace(/\.[^.]+$/, '') || 'closing-video';
+      resolve(new File([blob], `${baseName}-cover.jpg`, { type: 'image/jpeg' }));
+    }, 'image/jpeg', 0.86);
+  });
+}
+
+async function captureVideoCover(video: HTMLVideoElement, fileName: string, duration: number) {
+  const analysisCanvas = document.createElement('canvas');
+  analysisCanvas.width = 160;
+  analysisCanvas.height = 90;
+  const analysisCtx = analysisCanvas.getContext('2d');
+  if (!analysisCtx) return null;
+
+  let fallbackCoverFile: File | null = null;
+  const candidateTimes = getVideoCoverCandidateTimes(duration);
+
+  for (const time of candidateTimes) {
+    await seekVideoTo(video, time);
+    analysisCtx.drawImage(video, 0, 0, analysisCanvas.width, analysisCanvas.height);
+    const coverFile = await createCoverFileFromVideo(video, fileName);
+    if (!coverFile) continue;
+    if (!fallbackCoverFile) fallbackCoverFile = coverFile;
+    if (!isFrameLikelyBlack(analysisCtx, analysisCanvas.width, analysisCanvas.height)) {
+      return coverFile;
+    }
+  }
+
+  return fallbackCoverFile;
+}
+
+async function getVideoMetadataFromSource(src: string, fileName: string): Promise<{ duration: number; coverFile: File | null }> {
+  const video = document.createElement('video');
+  video.crossOrigin = 'anonymous';
+  video.preload = 'auto';
+  video.muted = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', 'true');
+  video.src = src;
+
+  const cleanup = () => {
+    video.removeAttribute('src');
+    video.load();
+  };
+
+  try {
+    video.load();
+    await waitForVideoEvent(video, 'loadedmetadata');
+    const duration = Number.isFinite(video.duration) ? Math.round(video.duration) : 0;
+    const coverFile = await captureVideoCover(video, fileName, video.duration);
+    return { duration, coverFile };
+  } catch {
+    return { duration: 0, coverFile: null };
+  } finally {
+    cleanup();
+  }
+}
+
 function getVideoMetadata(file: File): Promise<{ duration: number; coverFile: File | null }> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
-    const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.muted = true;
-    video.playsInline = true;
-    video.src = url;
-
-    const cleanup = () => {
-      URL.revokeObjectURL(url);
-      video.removeAttribute('src');
-      video.load();
-    };
-
-    const finish = (duration = 0, coverFile: File | null = null) => {
-      cleanup();
-      resolve({ duration, coverFile });
-    };
-
-    video.onerror = () => finish(0, null);
-    video.onloadedmetadata = () => {
-      const duration = Number.isFinite(video.duration) ? Math.round(video.duration) : 0;
-      video.currentTime = Math.min(0.1, Math.max(0, duration - 0.1));
-      video.onseeked = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth || 1280;
-          canvas.height = video.videoHeight || 720;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            finish(duration, null);
-            return;
-          }
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              finish(duration, null);
-              return;
-            }
-            const baseName = file.name.replace(/\.[^.]+$/, '');
-            finish(duration, new File([blob], `${baseName}-cover.jpg`, { type: 'image/jpeg' }));
-          }, 'image/jpeg', 0.86);
-        } catch {
-          finish(duration, null);
-        }
-      };
-    };
+    getVideoMetadataFromSource(url, file.name)
+      .then(resolve)
+      .finally(() => URL.revokeObjectURL(url));
   });
+}
+
+function resolveClosingVideoSourceUrl(url?: string | null) {
+  if (!url) return '';
+  if (/^(https?:|blob:|data:)/i.test(url)) return url;
+  const backendHost =
+    import.meta.env.VITE_BACKEND_URL ||
+    (import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/api\/v1\/?$/, '') : '') ||
+    (import.meta.env.DEV ? 'http://localhost:3000' : '');
+  if (backendHost && url.startsWith('/')) return `${backendHost}${url}`;
+  return url;
+}
+
+function getUploadedFileUrl(response: any) {
+  return response?.url || response?.data?.url || '';
 }
 
 async function handleClosingVideoChange(event: Event) {
@@ -616,7 +738,7 @@ async function handleClosingVideoChange(event: Event) {
     if (metadata.coverFile) {
       try {
         const coverRes = await uploadApi.uploadFile(metadata.coverFile);
-        coverUrl = (coverRes as any)?.url || (coverRes as any)?.data?.url || '';
+        coverUrl = getUploadedFileUrl(coverRes);
       } catch {
         ElMessage.warning('视频已上传，首帧封面生成失败，将使用默认分享封面');
       }
@@ -650,6 +772,48 @@ async function handleClosingVideoChange(event: Event) {
 function clearClosingVideo() {
   editingSection.value.closingVideo = null;
   closingVideoFileName.value = '';
+}
+
+async function handleRegenerateClosingVideoCover() {
+  const closingVideo = editingSection.value.closingVideo;
+  if (!closingVideo?.url) return;
+  if (isPlatformAdmin.value && !localStorage.getItem('admin_active_tenant')) {
+    ElMessage.warning('请先在顶部选择具体租户，再重生成封面');
+    return;
+  }
+
+  closingVideoCoverRegenerating.value = true;
+  try {
+    const fileName =
+      closingVideo.originalName ||
+      closingVideo.fileName ||
+      closingVideoFileName.value ||
+      'closing-video.mp4';
+    const metadata = await getVideoMetadataFromSource(resolveClosingVideoSourceUrl(closingVideo.url), fileName);
+    if (!metadata.coverFile) {
+      ElMessage.warning('封面生成失败，请重新上传视频后再试');
+      return;
+    }
+
+    const coverRes = await uploadApi.uploadFile(metadata.coverFile);
+    const coverUrl = getUploadedFileUrl(coverRes);
+    if (!coverUrl) {
+      ElMessage.warning('封面上传失败，请重新生成');
+      return;
+    }
+
+    editingSection.value.closingVideo = {
+      ...closingVideo,
+      coverUrl,
+      duration: metadata.duration || closingVideo.duration || null
+    };
+    ElMessage.success('封面已重新生成，请保存课节');
+  } catch (err) {
+    console.error('Failed to regenerate closing video cover:', err);
+    ElMessage.error('封面生成失败');
+  } finally {
+    closingVideoCoverRegenerating.value = false;
+  }
 }
 
 // 编辑弹窗

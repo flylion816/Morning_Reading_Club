@@ -60,7 +60,7 @@ describe('course-detail page markdown support', () => {
     pageInstance = {
       ...pageConfig,
       data: JSON.parse(JSON.stringify(pageConfig.data)),
-      setData(update) {
+      setData(update, callback) {
         const nextData = { ...this.data };
         Object.entries(update).forEach(([key, value]) => {
           if (!key.includes('.')) {
@@ -80,6 +80,9 @@ describe('course-detail page markdown support', () => {
           });
         });
         this.data = nextData;
+        if (typeof callback === 'function') {
+          callback();
+        }
       }
     };
 
@@ -112,6 +115,8 @@ describe('course-detail page markdown support', () => {
     delete global.wx.getFileSystemManager;
     delete global.wx.shareFileMessage;
     delete global.wx.setClipboardData;
+    delete global.wx.createVideoContext;
+    delete global.wx.nextTick;
   });
 
   test('should render markdown course content into rich-text html', () => {
@@ -181,15 +186,67 @@ describe('course-detail page markdown support', () => {
       say: '',
       closingVideo: {
         url: '/uploads/tenants/default/closing.mp4',
-        coverUrl: '/uploads/tenants/default/closing-cover.jpg'
+        coverUrl: '/uploads/tenants/default/closing-cover.jpg',
+        duration: 291
       }
     });
 
     expect(course.closingVideoVisible).toBe(true);
     expect(course.closingVideoUrl).toContain('/uploads/tenants/default/closing.mp4');
     expect(course.closingVideoCoverUrl).toContain('/uploads/tenants/default/closing-cover.jpg');
+    expect(course.closingVideoDurationText).toBe('4:51');
     expect(course.closingVideo.url).toBe(course.closingVideoUrl);
     expect(course.closingVideo.coverUrl).toBe(course.closingVideoCoverUrl);
+  });
+
+  test('should activate closing video only after cover tap', () => {
+    wx.createVideoContext = jest.fn(() => ({
+      play: jest.fn()
+    }));
+    wx.nextTick = jest.fn(callback => callback());
+    pageInstance.setData({
+      closingVideoActivated: false,
+      course: {
+        closingVideoUrl: 'https://example.com/closing.mp4',
+        closingVideoCoverUrl: 'https://example.com/closing-cover.jpg'
+      }
+    });
+
+    pageInstance.handleClosingVideoPlay.call(pageInstance);
+
+    expect(pageInstance.data.closingVideoActivated).toBe(true);
+    expect(wx.createVideoContext).toHaveBeenCalledWith('closing-video-player', pageInstance);
+  });
+
+  test('should restore closing video cover when video load fails', () => {
+    pageInstance.setData({
+      closingVideoActivated: true,
+      course: {
+        closingVideoUrl: 'https://example.com/closing.mp4',
+        closingVideoCoverUrl: 'https://example.com/closing-cover.jpg'
+      }
+    });
+
+    pageInstance.handleClosingVideoError.call(pageInstance, { detail: { errMsg: 'fail' } });
+
+    expect(pageInstance.data.closingVideoActivated).toBe(false);
+    expect(wx.showToast).toHaveBeenCalledWith({
+      title: '视频加载失败，请稍后再试',
+      icon: 'none'
+    });
+  });
+
+  test('should expose closing video cover load diagnostics', () => {
+    pageInstance.setData({
+      course: {
+        closingVideoCoverUrl: 'https://example.com/closing-cover.jpg'
+      }
+    });
+
+    expect(() => {
+      pageInstance.handleClosingVideoCoverLoad.call(pageInstance, { detail: { width: 854, height: 480 } });
+      pageInstance.handleClosingVideoCoverError.call(pageInstance, { detail: { errMsg: 'fail' } });
+    }).not.toThrow();
   });
 
   test('should use closing video cover for normal course share', () => {
@@ -261,18 +318,18 @@ describe('course-detail page markdown support', () => {
 
     await pageInstance.openCheckinShareMenu.call(pageInstance);
 
-    expect(writtenFile.filePath).toBe('/mock-user-data/凡人共读：狮子的打卡日记.txt');
+    expect(writtenFile.filePath).toBe('/mock-user-data/若星生活家：狮子的打卡日记.txt');
     expect(writtenFile.encoding).toBe('utf8');
     expect(writtenFile.data).toContain('狮子的打卡日记');
     expect(writtenFile.data).toContain('哈哈哈哈笑死我了！');
     expect(pageInstance.data.showCheckinShareMenu).toBe(true);
-    expect(pageInstance.data.checkinTextShareFilePath).toBe('/mock-user-data/凡人共读：狮子的打卡日记.txt');
+    expect(pageInstance.data.checkinTextShareFilePath).toBe('/mock-user-data/若星生活家：狮子的打卡日记.txt');
 
     pageInstance.handleCheckinTextShare.call(pageInstance);
 
     expect(global.wx.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({
-      filePath: '/mock-user-data/凡人共读：狮子的打卡日记.txt',
-      fileName: '凡人共读：狮子的打卡日记.txt'
+      filePath: '/mock-user-data/若星生活家：狮子的打卡日记.txt',
+      fileName: '若星生活家：狮子的打卡日记.txt'
     }));
     expect(global.wx.setClipboardData).not.toHaveBeenCalled();
   });
@@ -287,8 +344,8 @@ describe('course-detail page markdown support', () => {
         userName: '狮子',
         content: '哈哈哈哈笑死我了！'
       },
-      checkinTextShareFilePath: '/mock-user-data/凡人共读：狮子的打卡日记.txt',
-      checkinTextShareFileName: '凡人共读：狮子的打卡日记.txt',
+      checkinTextShareFilePath: '/mock-user-data/若星生活家：狮子的打卡日记.txt',
+      checkinTextShareFileName: '若星生活家：狮子的打卡日记.txt',
       showCheckinShareMenu: true
     });
 

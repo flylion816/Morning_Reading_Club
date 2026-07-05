@@ -1,3 +1,5 @@
+const { getBrandName } = require('./brand');
+
 function stopPodcastAudio(ctx) {
   if (!ctx) return;
   if (typeof ctx.stop === 'function') {
@@ -36,7 +38,7 @@ function createPodcastAudioContext({ title = '凡人播客', description = '', c
   if (useBackgroundAudio) {
     ctx.title = title || '凡人播客';
     ctx.epname = title || '凡人播客';
-    ctx.singer = '凡人共读';
+    ctx.singer = getBrandName();
     if (coverUrl && /^https?:\/\//.test(coverUrl)) {
       ctx.coverImgUrl = coverUrl;
     }

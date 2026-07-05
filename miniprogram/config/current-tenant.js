@@ -1,41 +1,41 @@
 // ⚠️ 由 scripts/apply-tenant.js 自动生成，勿手改。提交前运行 npm run tenant:reset 还原 fanren 默认态
-// 源: config/tenants/fanren.js
+// 源: config/tenants/starry.js
 module.exports = {
-  "slug": "fanren",
-  "brandName": "凡人共读",
-  "wxAppId": "wx2b9a3c1d5e4195f8",
-  "cloudEnv": "cloudbase-d1gulwh3a82346ea9",
-  "wechatPayMchId": null,
+  "slug": "starry",
+  "brandName": "若星生活家",
+  "wxAppId": "wx9cd59e2c89880289",
+  "cloudEnv": null,
+  "wechatPayMchId": "1707814410",
   "subscribeTemplates": {
-    "enrollment_result": "Qzn9auOyMjCKUaHrfekzK0XMaQ64nO0mfdikQNXjbdo",
-    "payment_result": "UCzIuWtUYbc_ucf05GEOqglXK1HJHzwtN50e1NkmhCI",
-    "comment_received": "oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs",
-    "like_received": "7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek",
-    "danmaku_received": "oMN_lu5vxoBlqcqiTxNDDq_kx9M4ENLUlfruD2rPZbs",
-    "insight_liked": "7bzStHl6spoC8Vh_DHDXvAebxF5htrNLlfiAoDjp9Ek",
-    "insight_request_created": "6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A",
-    "insight_request_approved": "6M4Cb5qrZa5xF3uuJLvw4UPvRuMzAef_N0biZgx7j6A",
-    "next_day_study_reminder": "aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA",
-    "insight_created": "7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M",
-    "podcast_published": "7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M",
-    "activity_reminder": "aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA"
+    "enrollment_result": "zT9hN6i7m9NBv5xEWgxUdS7cu0MsJHVQteV3EYpMUeE",
+    "payment_result": "DpzkHzJWp7uA6IRtkscp23cw8ay2NnroP7hz8v-P4E8",
+    "comment_received": "UnTm9p8Q_YGJtcin1PvuGUBA3qlcxXP7nYiM2CmjrUU",
+    "like_received": "q_0_QCfKvds8ZXMxLcTsFtJYoW2pHL5V_5-LIrb7I6s",
+    "danmaku_received": "UnTm9p8Q_YGJtcin1PvuGUBA3qlcxXP7nYiM2CmjrUU",
+    "insight_liked": "q_0_QCfKvds8ZXMxLcTsFtJYoW2pHL5V_5-LIrb7I6s",
+    "insight_request_created": "corZC20wZhyA_ouVSu65ORud4a6YQAKw_LHSpd2SL9w",
+    "insight_request_approved": "corZC20wZhyA_ouVSu65ORud4a6YQAKw_LHSpd2SL9w",
+    "next_day_study_reminder": "shZCZaWJZlKiFYvnWbV7IuqAvUefrND7pn7eXBLME3A",
+    "insight_created": "MGPg88ZnA0CB9aOt2iX5JACxjib_YzUtHPxjlcpxw8E",
+    "podcast_published": "MGPg88ZnA0CB9aOt2iX5JACxjib_YzUtHPxjlcpxw8E",
+    "activity_reminder": "shZCZaWJZlKiFYvnWbV7IuqAvUefrND7pn7eXBLME3A"
   },
-  "primaryColor": "#4a90e2",
-  "logo": "/assets/tenants/fanren/logo.png",
+  "primaryColor": "#448426",
+  "logo": "/assets/tenants/starry/logo.png",
   "shareCover": "/assets/images/share-default.jpg",
   "navBar": {
-    "title": "凡人共读",
-    "bgColor": "#4a90e2",
+    "title": "若星生活家",
+    "bgColor": "#448426",
     "textStyle": "white"
   },
   "tabBar": {
     "color": "#999999",
-    "selectedColor": "#4a90e2",
+    "selectedColor": "#448426",
     "backgroundColor": "#ffffff",
-    "iconsDir": "/assets/tenants/fanren"
+    "iconsDir": "/assets/tenants/starry"
   },
-  "legalEntity": "凡人共读 团队",
-  "contactEmail": "support@fanren.club",
-  "wechatSIPlugin": true,
+  "legalEntity": "若星生活家 团队",
+  "contactEmail": "308965039@qq.com",
+  "wechatSIPlugin": false,
   "apiBaseUrl": null
 };

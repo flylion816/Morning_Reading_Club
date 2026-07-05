@@ -10,6 +10,7 @@ const {
 } = require('../../utils/reading-completion');
 const { isAdminUser } = require('../../utils/auth');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getBrandName } = require('../../utils/brand');
 
 // 相对时间格式化（与课程详情页统一）
 function formatTime(dateStr) {
@@ -185,14 +186,14 @@ Page({
 
     // 已开始：分享课程列表
     return {
-      title: periodName || '凡人共读课程',
+      title: periodName || `${getBrandName()}课程`,
       path: `/pages/courses/courses?periodId=${periodId}`
     };
   },
 
   onShareTimeline() {
     return {
-      title: this.data.periodName || '凡人共读课程',
+      title: this.data.periodName || `${getBrandName()}课程`,
       query: `periodId=${this.data.periodId}`
     };
   },

@@ -14,7 +14,7 @@
         <text class="cover-icon">{{period.icon || '📚'}}</text>
       </view>
       <view class="cover-overlay">
-        <text class="brand-name">凡人学堂</text>
+        <text class="brand-name">{{brandName}}</text>
         <text class="period-name">{{period.name}}</text>
         <text class="period-subtitle">{{period.subtitle || period.title || '21天七个习惯晨读营'}}</text>
       </view>
