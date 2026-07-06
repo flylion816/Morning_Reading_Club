@@ -463,7 +463,7 @@
       <!-- 详情弹窗 -->
       <el-dialog v-model="detailDialogVisible" title="打卡详情" width="700px">
         <div v-if="selectedCheckin" class="checkin-detail">
-            <el-descriptions :column="1" border class="detail-descriptions">
+          <el-descriptions :column="1" border label-width="132px" class="detail-descriptions">
             <el-descriptions-item label="用户">
               <div v-if="selectedCheckin.userId && typeof selectedCheckin.userId === 'object'">
                 <div>{{ selectedCheckin.userId.nickname }}</div>

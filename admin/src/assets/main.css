@@ -123,9 +123,15 @@ a:hover {
     0 0 0 3px var(--admin-primary-alpha-12) !important;
 }
 
-.el-descriptions.is-bordered .el-descriptions__label {
-  width: var(--admin-description-label-width, 132px);
-  min-width: var(--admin-description-label-width, 132px);
+.el-descriptions.is-bordered .el-descriptions__table col:first-child {
+  width: var(--admin-description-label-width, 132px) !important;
+  min-width: var(--admin-description-label-width, 132px) !important;
+}
+
+.el-descriptions.is-bordered .el-descriptions__label,
+.el-descriptions.is-bordered .el-descriptions__cell.el-descriptions__label {
+  width: var(--admin-description-label-width, 132px) !important;
+  min-width: var(--admin-description-label-width, 132px) !important;
   color: var(--admin-ink-soft);
   white-space: normal;
   word-break: keep-all;
