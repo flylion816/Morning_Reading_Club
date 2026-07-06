@@ -29,6 +29,8 @@ Page({
     },
     loading: true,
     refreshing: false,
+    navigatingPeriodId: '',
+    skeletonItems: [1, 2, 3],
 
     // Banner文本
     bannerText: '☀️ 天天开心！',
@@ -40,16 +42,10 @@ Page({
     console.log('===== 期次列表onLoad开始 =====');
     console.log('期次列表加载', options);
     this._skipNextOnShowRefresh = true;
-    this._pendingInitialLoad = true;
-    console.log('===== 期次列表onLoad结束 =====');
-  },
-
-  onReady() {
-    if (!this._pendingInitialLoad) return;
-    this._pendingInitialLoad = false;
     wx.setNavigationBarTitle({ title: getBrandName() });
     this.checkLoginStatus();
     this.loadPeriods();
+    console.log('===== 期次列表onLoad结束 =====');
   },
 
   onShow() {
@@ -154,6 +150,11 @@ Page({
    * 加载期次列表（含自动重试，解决隔天首次打开超时问题）
    */
   async loadPeriods(retryCount = 0) {
+    if (this._loadingPeriods && retryCount === 0) {
+      return;
+    }
+
+    this._loadingPeriods = true;
     this.setData({ loading: true });
 
     try {
@@ -238,6 +239,8 @@ Page({
         title: '加载失败,请重试',
         icon: 'none'
       });
+    } finally {
+      this._loadingPeriods = false;
     }
   },
 
@@ -398,6 +401,25 @@ Page({
       return;
     }
 
+    if (this.data.navigatingPeriodId) {
+      return;
+    }
+
+    const resetNavigationLock = () => {
+      if (this.data.navigatingPeriodId) {
+        this.setData({ navigatingPeriodId: '' });
+      }
+    };
+
+    const navigateTo = (url) => {
+      wx.navigateTo({
+        url,
+        complete: resetNavigationLock
+      });
+    };
+
+    this.setData({ navigatingPeriodId: periodId });
+
     // ⭐ 强制检查登录状态：使用 app.globalData 和 this.data 双重检查
     const app = getApp();
     const isLogin = app.globalData.isLogin || this.data.isLogin;
@@ -410,9 +432,7 @@ Page({
     // 未登录：进入期次介绍页（公开页面，让用户先浏览内容）
     if (!isLogin) {
       console.log('📖 未登录，进入期次介绍页');
-      wx.navigateTo({
-        url: `/pages/period-detail/period-detail?periodId=${periodId}`
-      });
+      navigateTo(`/pages/period-detail/period-detail?periodId=${periodId}`);
       return;
     }
 
@@ -420,6 +440,7 @@ Page({
     const period = this.data.periods.find(p => p._id === periodId);
     if (!period) {
       console.error('找不到期次信息');
+      resetNavigationLock();
       return;
     }
 
@@ -441,6 +462,7 @@ Page({
         this.setData({ periodEnrollmentStatus: newStatus });
       } catch (e) {
         wx.hideLoading();
+        resetNavigationLock();
         wx.showToast({ title: '网络异常，请重试', icon: 'none' });
         return;
       }
@@ -460,9 +482,7 @@ Page({
     // 【情况1】已完成且未报名，进入介绍页查看
     if (calculatedStatus === 'completed' && !isEnrolled) {
       console.log('已完成且未报名，进入介绍页');
-      wx.navigateTo({
-        url: `/pages/period-detail/period-detail?periodId=${periodId}`
-      });
+      navigateTo(`/pages/period-detail/period-detail?periodId=${periodId}`);
       return;
     }
 
@@ -473,25 +493,19 @@ Page({
         title: '该期暂未开放报名',
         icon: 'none'
       });
-      wx.navigateTo({
-        url: `/pages/period-detail/period-detail?periodId=${periodId}`
-      });
+      navigateTo(`/pages/period-detail/period-detail?periodId=${periodId}`);
       return;
     }
 
     // 【情况3】未报名（且期次未完成、招募开放），进入报名页面
     if (!isEnrolled) {
       console.log('未报名，进入报名页面');
-      wx.navigateTo({
-        url: `/pages/enrollment/enrollment?periodId=${periodId}`
-      });
+      navigateTo(`/pages/enrollment/enrollment?periodId=${periodId}`);
     }
     // 【情况4】已报名，进入课程列表
     else {
       console.log('已报名，进入课程列表，支付状态:', paymentStatus);
-      wx.navigateTo({
-        url: `/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`
-      });
+      navigateTo(`/pages/courses/courses?periodId=${periodId}&name=${periodName || ''}`);
     }
   },
 

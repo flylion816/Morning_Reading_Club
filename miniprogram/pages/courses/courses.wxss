@@ -2,7 +2,7 @@
 
 .page-courses {
   height: 100vh;
-  background: #f5f5f5;
+  background: var(--app-page-bg);
   display: flex;
   flex-direction: column;
 }
@@ -75,9 +75,10 @@
 /* 功能按钮区（紧凑横排） */
 .action-buttons {
   display: flex;
-  justify-content: space-around;
-  background: white;
-  padding: 16rpx 24rpx;
+  align-items: stretch;
+  gap: 14rpx;
+  background: var(--app-paper);
+  padding: 20rpx 24rpx 18rpx;
   margin-bottom: 0;
   max-height: 200rpx;
   overflow: hidden;
@@ -91,19 +92,59 @@
 }
 
 .action-btn {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8rpx;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 10rpx 8rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.46);
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.action-btn-hover {
+  opacity: 0.86;
+  transform: translateY(1rpx);
+  background: var(--theme-primary-tint);
+}
+
+.btn-icon-mark {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .btn-icon {
-  font-size: 36rpx;
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.btn-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
 }
 
 .btn-text {
-  font-size: 26rpx;
-  color: #333;
+  font-size: 25rpx;
+  color: var(--app-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-subtext {
+  margin-top: 2rpx;
+  font-size: 20rpx;
+  color: var(--app-text-muted);
+  white-space: nowrap;
 }
 
 /* Tab切换区域 */
@@ -153,7 +194,7 @@
 
 .section-wrapper {
   padding-bottom: 40rpx;
-  background: #f5f5f5;
+  background: var(--app-page-bg);
 }
 
 /* 补打卡信息 */

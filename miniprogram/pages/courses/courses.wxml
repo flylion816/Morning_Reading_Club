@@ -17,19 +17,34 @@
     <text class="payment-banner-arrow">›</text>
   </view>
 
-  <!-- 功能按钮区（紧凑横排 + 滚动时收起） -->
+  <!-- 共修入口（滚动时收起） -->
   <view class="action-buttons {{headerCollapsed ? 'collapsed' : ''}}" wx:if="{{communityAccessState === 'enabled'}}">
-    <view class="action-btn" bindtap="handleRanking">
-      <text class="btn-icon">🏆</text>
-      <text class="btn-text">排行榜</text>
+    <view class="action-btn" hover-class="action-btn-hover" bindtap="handleRanking">
+      <view class="btn-icon-mark">
+        <text class="btn-icon">🏆</text>
+      </view>
+      <view class="btn-copy">
+        <text class="btn-text">排行榜</text>
+        <text class="btn-subtext">精进榜</text>
+      </view>
     </view>
-    <view class="action-btn" bindtap="handleCheckinRecords">
-      <text class="btn-icon">📅</text>
-      <text class="btn-text">打卡记录</text>
+    <view class="action-btn" hover-class="action-btn-hover" bindtap="handleCheckinRecords">
+      <view class="btn-icon-mark">
+        <text class="btn-icon">📅</text>
+      </view>
+      <view class="btn-copy">
+        <text class="btn-text">打卡记录</text>
+        <text class="btn-subtext">每日留痕</text>
+      </view>
     </view>
-    <view class="action-btn" bindtap="handleMembers">
-      <text class="btn-icon">👥</text>
-      <text class="btn-text">成员</text>
+    <view class="action-btn" hover-class="action-btn-hover" bindtap="handleMembers">
+      <view class="btn-icon-mark">
+        <text class="btn-icon">👥</text>
+      </view>
+      <view class="btn-copy">
+        <text class="btn-text">同修</text>
+        <text class="btn-subtext">成员名录</text>
+      </view>
     </view>
   </view>
 
@@ -113,10 +128,7 @@
         </view>
 
         <!-- 加载中 -->
-        <view wx:if="{{loading && sections.length === 0}}" class="loading-container">
-          <view class="loading-spinner"></view>
-          <text class="loading-text">加载中...</text>
-        </view>
+        <reading-loader wx:if="{{loading && sections.length === 0}}" text="正在整理今日晨读..." />
 
         <!-- 空状态 -->
         <view wx:if="{{!loading && sections.length === 0}}" class="empty-state">

@@ -6,6 +6,7 @@
 
     <!-- 用户信息卡 -->
     <view class="user-card">
+      <view class="user-card-glow"></view>
       <view class="user-card-left">
         <view class="user-avatar-wrap" style="background: {{userInfo.avatarColor || themePrimaryColor}}">
           <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
@@ -14,8 +15,11 @@
         <view class="user-info">
           <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>
           <text class="user-phone">{{hasPhone ? phoneMasked : '未绑定手机号'}}</text>
-          <text class="user-streak">累计打卡 <text class="streak-num">{{stats.totalCheckinDays || 0}}</text> 天</text>
         </view>
+      </view>
+      <view class="user-stat-pill">
+        <text class="stat-pill-number">{{stats.totalCheckinDays || 0}}</text>
+        <text class="stat-pill-label">累计打卡</text>
       </view>
     </view>
 

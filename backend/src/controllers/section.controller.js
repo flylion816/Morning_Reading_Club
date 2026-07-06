@@ -9,6 +9,12 @@ const { publishSyncEvent } = require('../services/sync.service');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
 const Enrollment = require('../models/Enrollment');
+const {
+  diffShanghaiDays,
+  getPeriodDateKeys,
+  getShanghaiDateKey,
+  isDateKeyWithinRange
+} = require('../utils/study-reminder.utils');
 
 const ADMIN_SECTION_LIST_FIELDS =
   '_id periodId day title subtitle icon duration sortOrder order isPublished checkinCount createdAt updatedAt podcastUrl podcastDuration closingVideo';
@@ -566,8 +572,10 @@ async function getTodayTask(req, res, next) {
       return res.json(success(null, '暂无任务'));
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // 设置为今天00:00:00
+    const now = new Date();
+    const todayKey = getShanghaiDateKey(now);
+    const todayStart = new Date(`${todayKey}T00:00:00+08:00`);
+    const todayEnd = new Date(`${todayKey}T23:59:59.999+08:00`);
 
     let todayTask = null;
 
@@ -585,19 +593,28 @@ async function getTodayTask(req, res, next) {
         continue;
       }
 
-      // 计算从期次开始日期到今天经过了多少天
-      const periodStartDate = new Date(period.startDate);
-      periodStartDate.setHours(0, 0, 0, 0);
+      const { startKey, endKey } = getPeriodDateKeys(period);
+      const currentDay = diffShanghaiDays(startKey, todayKey);
 
-      const daysDiff = Math.floor((today - periodStartDate) / (1000 * 60 * 60 * 24));
+      if (!isDateKeyWithinRange(todayKey, startKey, endKey) || currentDay === null) {
+        logger.debug('Period not active today', {
+          periodId: period._id,
+          todayKey,
+          startKey,
+          endKey,
+          currentDay
+        });
+        continue;
+      }
 
       // 如果今天在期次范围内，计算应该学习的day
-      if (daysDiff >= 0 && daysDiff < period.totalDays) {
+      if (currentDay >= 0 && currentDay < period.totalDays) {
         // 通常day从0开始，所以第一天是day 0
-        const currentDay = daysDiff;
         logger.debug('Period is active today', {
           periodId: period._id,
-          daysDiff,
+          todayKey,
+          startKey,
+          endKey,
           currentDay,
           totalDays: period.totalDays
         });
@@ -613,10 +630,6 @@ async function getTodayTask(req, res, next) {
           logger.debug('Today task section found', { sectionId: section._id });
 
           // 检查用户是否已经为今天的这个课节打过卡
-          const todayStart = new Date(today);
-          const todayEnd = new Date(today);
-          todayEnd.setHours(23, 59, 59, 999);
-
           const existingCheckin = await Checkin.findOne({
             userId,
             sectionId: section._id,
@@ -684,9 +697,12 @@ async function getTodayTask(req, res, next) {
           break;
         }
       } else {
-        logger.debug('Period not active today', {
+        logger.debug('Period day is outside totalDays', {
           periodId: period._id,
-          daysDiff,
+          todayKey,
+          startKey,
+          endKey,
+          currentDay,
           totalDays: period.totalDays
         });
       }

@@ -191,6 +191,7 @@ describe('index page', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     delete global.Page;
     delete global.getApp;
   });
@@ -595,8 +596,8 @@ describe('index page', () => {
           _id: 'period_current',
           title: '秩序之锚',
           name: '秩序之锚',
-          startDate: '2026-05-01T00:00:00.000Z',
-          endDate: '2026-05-31T00:00:00.000Z',
+          startDate: '2000-01-01T00:00:00.000Z',
+          endDate: '2099-12-31T00:00:00.000Z',
           coverColor: '#4a90e2',
           coverEmoji: '∞'
         }
@@ -732,6 +733,243 @@ describe('index page', () => {
     expect(checkinService.getUserCheckinsWithStats).toHaveBeenCalled();
     expect(insightService.getInsightsList).toHaveBeenCalledWith({ limit: 100 });
     expect(pageInstance.data.recentCheckins).toHaveLength(1);
+  });
+
+  test('should fallback to closing section after the current period has ended', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '小狐狸',
+      signature: '结营复盘'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 21 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_resilience',
+          title: '韧性之树',
+          name: '韧性之树',
+          startDate: '2000-01-01T00:00:00.000Z',
+          endDate: '2000-01-21T00:00:00.000Z',
+          totalDays: 21,
+          coverColor: '#4a90e2',
+          coverEmoji: '🌳'
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [
+        {
+          _id: 'enrollment_resilience',
+          periodId: 'period_resilience',
+          status: 'completed',
+          paymentStatus: 'paid'
+        }
+      ]
+    });
+    courseService.getTodayTask.mockResolvedValue(null);
+    courseService.getPeriodSections.mockResolvedValue({
+      list: [
+        {
+          _id: 'section_day_1',
+          id: 'section_day_1',
+          day: 1,
+          title: '第一天 品德成功论',
+          isCheckedIn: false
+        },
+        {
+          _id: 'section_day_21',
+          id: 'section_day_21',
+          day: 21,
+          title: '结营词',
+          isCheckedIn: true
+        }
+      ]
+    });
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: true,
+      communityAccessState: 'enabled',
+      paymentStatus: 'paid'
+    });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [] });
+    insightService.getInsightsList.mockResolvedValue({ list: [] });
+    insightService.getReceivedRequests.mockResolvedValue([]);
+    completionReportService.getMyReports.mockResolvedValue({
+      list: [
+        {
+          periodId: 'period_resilience',
+          hasReport: true,
+          reportTitle: '韧性之树结营实录'
+        }
+      ]
+    });
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(pageInstance.data.todaySection).toMatchObject({
+      _id: 'section_day_21',
+      day: 21,
+      title: '结营词',
+      canShowReportShortcut: true
+    });
+    expect(pageInstance.data.currentPeriodReport).toMatchObject({
+      periodId: 'period_resilience',
+      hasReport: true
+    });
+  });
+
+  test('should ignore stale first-day today task after the period has ended', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '小狐狸',
+      signature: '结营复盘'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 21 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_resilience',
+          title: '韧性之树',
+          name: '韧性之树',
+          startDate: '2000-01-01T00:00:00.000Z',
+          endDate: '2000-01-21T00:00:00.000Z',
+          totalDays: 21
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [
+        {
+          _id: 'enrollment_resilience',
+          periodId: 'period_resilience',
+          status: 'completed',
+          paymentStatus: 'paid'
+        }
+      ]
+    });
+    courseService.getTodayTask.mockResolvedValue({
+      sectionId: 'section_day_1',
+      periodId: 'period_resilience',
+      periodTitle: '韧性之树',
+      day: 1,
+      checkinCount: 5,
+      checkinUsers: [],
+      isCheckedIn: false
+    });
+    courseService.getSectionDetail.mockResolvedValue({
+      _id: 'section_day_1',
+      title: '第一天 品德成功论'
+    });
+    courseService.getPeriodSections.mockResolvedValue({
+      list: [
+        {
+          _id: 'section_day_1',
+          id: 'section_day_1',
+          day: 1,
+          title: '第一天 品德成功论',
+          isCheckedIn: false
+        },
+        {
+          _id: 'section_day_21',
+          id: 'section_day_21',
+          day: 21,
+          title: '结营词',
+          isCheckedIn: true
+        }
+      ]
+    });
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: true,
+      communityAccessState: 'enabled',
+      paymentStatus: 'paid'
+    });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [] });
+    insightService.getInsightsList.mockResolvedValue({ list: [] });
+    insightService.getReceivedRequests.mockResolvedValue([]);
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+
+    expect(courseService.getSectionDetail).not.toHaveBeenCalled();
+    expect(pageInstance.data.todaySection).toMatchObject({
+      _id: 'section_day_21',
+      day: 21,
+      title: '结营词'
+    });
+  });
+
+  test('should hide completion report shortcut before the final period day', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '小狐狸',
+      signature: '今日精进'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 1 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_active',
+          title: '韧性之树',
+          name: '韧性之树',
+          startDate: '2000-01-01T00:00:00.000Z',
+          endDate: '2099-12-31T00:00:00.000Z',
+          totalDays: 21
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [
+        {
+          _id: 'enrollment_active',
+          periodId: 'period_active',
+          status: 'active',
+          paymentStatus: 'paid'
+        }
+      ]
+    });
+    courseService.getTodayTask.mockResolvedValue({
+      sectionId: 'section_day_1',
+      periodId: 'period_active',
+      periodTitle: '韧性之树',
+      day: 1,
+      checkinCount: 5,
+      checkinUsers: [],
+      isCheckedIn: false
+    });
+    courseService.getSectionDetail.mockResolvedValue({
+      _id: 'section_day_1',
+      id: 'section_day_1',
+      day: 1,
+      title: '第一天 品德成功论'
+    });
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: true,
+      communityAccessState: 'enabled',
+      paymentStatus: 'paid'
+    });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [] });
+    insightService.getInsightsList.mockResolvedValue({ list: [] });
+    insightService.getReceivedRequests.mockResolvedValue([]);
+    completionReportService.getMyReports.mockResolvedValue({
+      list: [
+        {
+          periodId: 'period_active',
+          hasReport: true,
+          reportTitle: '提前上传的实录'
+        }
+      ]
+    });
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(pageInstance.data.todaySection).toMatchObject({
+      _id: 'section_day_1',
+      day: 1,
+      canShowReportShortcut: false
+    });
+    expect(completionReportService.getMyReports).not.toHaveBeenCalled();
+    expect(pageInstance.data.currentPeriodReport).toBe(null);
   });
 
   test('should omit hidden home sections from configured homepage order', async () => {

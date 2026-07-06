@@ -17,6 +17,7 @@ describe('Section Controller', () => {
   let PeriodStub;
   let CheckinStub;
   let UserReadingCompletionStub;
+  let EnrollmentStub;
   let publishSyncEventStub;
 
   beforeEach(() => {
@@ -39,6 +40,7 @@ describe('Section Controller', () => {
     SectionStub = {
       findById: sandbox.stub(),
       find: sandbox.stub(),
+      findOne: sandbox.stub(),
       countDocuments: sandbox.stub(),
       create: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
@@ -50,13 +52,20 @@ describe('Section Controller', () => {
     };
 
     CheckinStub = {
-      aggregate: sandbox.stub()
+      aggregate: sandbox.stub(),
+      findOne: sandbox.stub(),
+      find: sandbox.stub(),
+      countDocuments: sandbox.stub()
     };
 
     UserReadingCompletionStub = {
       find: sandbox.stub(),
       findOneAndUpdate: sandbox.stub(),
       findOne: sandbox.stub()
+    };
+
+    EnrollmentStub = {
+      find: sandbox.stub()
     };
 
     publishSyncEventStub = sandbox.stub();
@@ -77,6 +86,7 @@ describe('Section Controller', () => {
         '../models/Period': PeriodStub,
         '../models/Checkin': CheckinStub,
         '../models/UserReadingCompletion': UserReadingCompletionStub,
+        '../models/Enrollment': EnrollmentStub,
         '../utils/response': responseUtils,
         '../utils/tenantSlug': {
           resolveTenantSlug: sandbox.stub().resolves('test-slug')
@@ -675,28 +685,98 @@ describe('Section Controller', () => {
 
   describe('getTodayTask', () => {
     it('应该返回今日任务', async () => {
+      sandbox.useFakeTimers(new Date('2026-07-07T08:00:00.000Z'));
+      const userId = new mongoose.Types.ObjectId().toString();
+      const periodId = new mongoose.Types.ObjectId();
+      const sectionId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+
+      const mockEnrollments = [{
+        _id: new mongoose.Types.ObjectId(),
+        userId,
+        status: 'active',
+        periodId: {
+          _id: periodId,
+          name: '期次',
+          title: '期次标题',
+          startDate: new Date('2026-07-05T16:00:00.000Z'),
+          endDate: new Date('2026-07-27T15:59:59.999Z'),
+          totalDays: 23
+        }
+      }];
+      const mockSection = {
+        _id: sectionId,
+        title: '第一天 品德成功论',
+        day: 1,
+        icon: '📖',
+        meditation: '',
+        question: '',
+        reflection: '',
+        action: '',
+        learn: ''
+      };
+
+      EnrollmentStub.find.returns({
+        populate: sandbox.stub().resolves(mockEnrollments)
+      });
+      SectionStub.findOne.returns({
+        select: sandbox.stub().resolves(mockSection)
+      });
+      CheckinStub.findOne.resolves(null);
+      UserReadingCompletionStub.findOne.returns({
+        select: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves(null)
+      });
+      CheckinStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().resolves([])
+      });
+      CheckinStub.countDocuments.resolves(5);
+
+      await sectionController.getTodayTask(req, res, next);
+
+      expect(next.called).to.equal(false);
+      expect(SectionStub.findOne.calledWithMatch({
+        periodId,
+        day: 1,
+        isPublished: true
+      })).to.equal(true);
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.sectionId).to.equal(sectionId);
+      expect(responseData.data.day).to.equal(1);
+      expect(responseData.data.checkinCount).to.equal(5);
+    });
+
+    it('期次结束后不应该返回第一天任务', async () => {
+      sandbox.useFakeTimers(new Date('2026-07-06T08:00:00.000Z'));
       const userId = new mongoose.Types.ObjectId().toString();
       req.user = { userId };
 
-      // 需要Mock Enrollment模型
-      const mockEnrollments = [
-        {
+      const mockEnrollments = [{
+        _id: new mongoose.Types.ObjectId(),
+        userId,
+        status: 'completed',
+        periodId: {
           _id: new mongoose.Types.ObjectId(),
-          userId,
-          status: 'active',
-          periodId: {
-            _id: new mongoose.Types.ObjectId(),
-            name: '期次',
-            startDate: new Date(Date.now() - 86400000),
-            endDate: new Date(Date.now() + 86400000 * 10),
-            totalDays: 21
-          }
+          name: '韧性之树',
+          title: '韧性之树',
+          startDate: new Date('2026-06-12T16:00:00.000Z'),
+          endDate: new Date('2026-07-04T16:00:00.000Z'),
+          totalDays: 23
         }
-      ];
+      }];
 
-      // 这个测试需要依赖注入，暂时跳过复杂的Mock设置
-      // 实际的测试会在集成测试中验证
-      expect(true).to.be.true;
+      EnrollmentStub.find.returns({
+        populate: sandbox.stub().resolves(mockEnrollments)
+      });
+
+      await sectionController.getTodayTask(req, res, next);
+
+      expect(next.called).to.equal(false);
+      expect(SectionStub.findOne.called).to.equal(false);
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.equal(null);
+      expect(responseData.message).to.equal('暂无今日任务');
     });
   });
 });

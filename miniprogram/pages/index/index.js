@@ -257,6 +257,74 @@ function getLocalDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function getDateAtDayBoundary(value, endOfDay = false) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  return date;
+}
+
+function isPeriodEnded(period = {}, todayDate = new Date()) {
+  const endDate = getDateAtDayBoundary(period.endDate || period.endTime, true);
+  if (!endDate) return false;
+  return todayDate > endDate;
+}
+
+function getSectionDay(section = {}) {
+  const day = Number(section.day);
+  return Number.isFinite(day) ? day : null;
+}
+
+function getPeriodTotalDays(period = {}) {
+  const totalDays = Number(period.totalDays);
+  return Number.isFinite(totalDays) && totalDays > 0 ? totalDays : null;
+}
+
+function isClosingSection(section = {}) {
+  const title = String(section.title || section.name || '').trim();
+  const hasClosingVideo = !!(
+    section.closingVideo?.url ||
+    section.closingVideoUrl ||
+    section.closingVideoVisible
+  );
+  return hasClosingVideo || /结营|结课|结业|闭营|总结|复盘/.test(title);
+}
+
+function isLastPeriodDay(section = {}, period = {}) {
+  const day = getSectionDay(section);
+  const totalDays = getPeriodTotalDays(period);
+  if (day === null || totalDays === null) return false;
+
+  return day === totalDays;
+}
+
+function shouldShowReportShortcut(section = {}, period = {}, options = {}) {
+  return (
+    options.forceFinal === true ||
+    isClosingSection(section) ||
+    isLastPeriodDay(section, period)
+  );
+}
+
+function selectFallbackTodaySection(sections = [], options = {}) {
+  const candidates = (Array.isArray(sections) ? sections : [])
+    .filter((section) => {
+      const day = getSectionDay(section);
+      return day !== null && day > 0;
+    })
+    .sort((a, b) => getSectionDay(a) - getSectionDay(b));
+
+  if (candidates.length === 0) return null;
+
+  if (options.periodEnded) {
+    const closingSection = [...candidates].reverse().find(isClosingSection);
+    return closingSection || candidates[candidates.length - 1];
+  }
+
+  return candidates.find((section) => !section.isCheckedIn) || candidates[0];
+}
+
 function isMorningReadPromptTime(date = new Date()) {
   const minuteOfDay = date.getHours() * 60 + date.getMinutes();
   return (
@@ -720,10 +788,12 @@ Page({
       }
 
       const currentPeriodId = currentPeriod?._id || currentPeriod?.id || null;
+      const taskPeriodEnded = isPeriodEnded(currentPeriod, todayDate);
+      const shouldUseTodayTask = hasValidTask && !taskPeriodEnded;
 
       // ── Wave 2: 依赖 Wave1 的两个请求并行 ──────────────────────
       const [sectionRes, currentPeriodAccess] = await Promise.all([
-        hasValidTask
+        shouldUseTodayTask
           ? courseService.getSectionDetail(taskRes.sectionId)
           : Promise.resolve(null),
         currentPeriodId
@@ -743,8 +813,13 @@ Page({
       const d = new Date();
       const displayDate = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 全天`;
       const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
+      const periodEnded = isPeriodEnded(currentPeriod, todayDate);
 
-      if (hasValidTask && sectionRes) {
+      if (shouldUseTodayTask && sectionRes) {
+        const sectionForShortcut = {
+          ...sectionRes,
+          day: sectionRes.day ?? taskRes.day
+        };
         const checkinUsers = (taskRes.checkinUsers || [])
           .slice(0, TASK_CARD_LAYOUT_RPX.maxBackendAvatars)
           .map((user) => ({
@@ -785,18 +860,22 @@ Page({
           subtitleDisplay: (sectionRes.subtitle || '').replace(/至$/, ''),
           displayDate,
           podcastUrl: sectionRes.podcastUrl || null,
-          podcastDuration: sectionRes.podcastDuration || null
+          podcastDuration: sectionRes.podcastDuration || null,
+          canShowReportShortcut: shouldShowReportShortcut(
+            sectionForShortcut,
+            currentPeriod
+          )
         };
-      } else if (!hasValidTask && currentPeriodId) {
-        // 降级方案：从期次课节列表取第一个未打卡课节
+      } else if (!shouldUseTodayTask && currentPeriodId) {
+        // 降级方案：进行中期次找未打卡课节；已结束期次固定到结营/最后一天。
         try {
           const sectionsRes =
             await courseService.getPeriodSections(currentPeriodId);
           const sections =
             sectionsRes.list || sectionsRes.items || sectionsRes || [];
-          const section =
-            sections.filter((s) => s.day > 0).find((s) => !s.isCheckedIn) ||
-            sections.filter((s) => s.day > 0)[0];
+          const section = selectFallbackTodaySection(sections, {
+            periodEnded
+          });
           if (section) {
             todaySection = {
               _id: section._id,
@@ -819,7 +898,12 @@ Page({
               subtitleDisplay: (section.subtitle || '').replace(/至$/, ''),
               displayDate,
               podcastUrl: section.podcastUrl || null,
-              podcastDuration: section.podcastDuration || null
+              podcastDuration: section.podcastDuration || null,
+              canShowReportShortcut: shouldShowReportShortcut(
+                section,
+                currentPeriod,
+                { forceFinal: periodEnded }
+              )
             };
           }
         } catch (e) {
@@ -830,8 +914,11 @@ Page({
       const paidFeatureAccessEnabled =
         communityEnabled || hasPaidEnrollment(enrollmentList);
       const canLoadReportShortcut =
-        communityEnabled ||
-        ['paid', 'free'].includes(currentPeriodAccess.paymentStatus || '');
+        !!todaySection?.canShowReportShortcut &&
+        (
+          communityEnabled ||
+          ['paid', 'free'].includes(currentPeriodAccess.paymentStatus || '')
+        );
       getApp().globalData.canUsePaidFeatures = paidFeatureAccessEnabled;
       if (todaySection) {
         todaySection = decorateSectionWithReadingCompletion(todaySection);

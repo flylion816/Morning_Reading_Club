@@ -1,0 +1,24 @@
+<view class="reading-loader">
+  <view class="reading-book">
+    <view class="book-spine"></view>
+    <view class="book-page book-page-left">
+      <view class="page-line page-line-long"></view>
+      <view class="page-line page-line-short"></view>
+    </view>
+    <view class="book-page book-page-right">
+      <view class="page-line page-line-long"></view>
+      <view class="page-line page-line-mid"></view>
+      <view class="page-line page-line-short"></view>
+    </view>
+    <view class="book-page book-page-flip">
+      <view class="page-line page-line-long"></view>
+      <view class="page-line page-line-short"></view>
+    </view>
+  </view>
+  <text class="reading-loader-text">{{text}}</text>
+  <view class="reading-dots">
+    <view class="reading-dot"></view>
+    <view class="reading-dot reading-dot-two"></view>
+    <view class="reading-dot reading-dot-three"></view>
+  </view>
+</view>

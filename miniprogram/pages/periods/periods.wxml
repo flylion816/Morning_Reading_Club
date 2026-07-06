@@ -3,17 +3,28 @@
   <!-- 顶部横幅 -->
   <view class="home-banner">
     <view class="banner-text-container">
-      <text class="banner-text">☀️ 天天开心！</text>
-      <text class="banner-subtext">在晨光中,遇见更好的自己</text>
+      <text class="banner-eyebrow">{{brandName}}</text>
+      <text class="banner-text">晨读营</text>
+      <text class="banner-subtext">按期次跟读，把每天的 15 分钟留下来</text>
     </view>
+    <view class="banner-orbit banner-orbit-large"></view>
+    <view class="banner-orbit banner-orbit-small"></view>
   </view>
 
   <!-- 期次列表 -->
   <view class="periods-container">
+    <view class="periods-heading">
+      <view>
+        <text class="periods-heading-title">全部期次</text>
+        <text class="periods-heading-subtitle">{{isLogin ? '按自己的节奏，回到正在跟读的一期' : '选择一期了解课程安排'}}</text>
+      </view>
+      <text class="periods-heading-count" wx:if="{{periods.length > 0}}">共 {{periods.length}} 期</text>
+    </view>
+
     <view
       wx:for="{{periods}}"
       wx:key="_id"
-      class="period-wrapper"
+      class="period-wrapper {{navigatingPeriodId === item._id ? 'period-wrapper-loading' : ''}}"
       data-period-id="{{item._id}}"
       data-period-name="{{item.name}}"
       bindtap="handlePeriodClick"
@@ -48,8 +59,15 @@
 
     <!-- 加载中 -->
     <view wx:if="{{loading && periods.length === 0}}" class="loading-container">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">加载中...</text>
+      <view class="period-skeleton" wx:for="{{skeletonItems}}" wx:key="*this">
+        <view class="period-skeleton-thumb"></view>
+        <view class="period-skeleton-body">
+          <view class="period-skeleton-line period-skeleton-title"></view>
+          <view class="period-skeleton-line period-skeleton-meta"></view>
+          <view class="period-skeleton-progress"></view>
+        </view>
+      </view>
+      <text class="loading-text">正在整理期次...</text>
     </view>
 
     <!-- 空状态 -->

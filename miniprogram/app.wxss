@@ -5,11 +5,26 @@
 
 /* 全局样式重置 */
 page {
-  background-color: #f5f5f5;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+  --app-page-bg: #f3f6ef;
+  --app-page-bg-deep: #e9efe7;
+  --app-paper: #fffefa;
+  --app-paper-muted: #f7f6ed;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f8faf4;
+  --app-text: #172019;
+  --app-text-soft: #526055;
+  --app-text-muted: #8a948b;
+  --app-border: rgba(49, 72, 56, 0.1);
+  --app-rule: rgba(49, 72, 56, 0.14);
+  --app-shadow: 0 14rpx 34rpx rgba(37, 60, 43, 0.07);
+  --app-shadow-soft: 0 8rpx 20rpx rgba(37, 60, 43, 0.04);
+  --app-inner-line: inset 0 1rpx 0 rgba(255, 255, 255, 0.74);
+  background-color: var(--app-page-bg);
+  font-family: 'PingFang SC', 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 28rpx;
-  color: #2c3e50;
+  color: var(--app-text);
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
 }
 
 view {

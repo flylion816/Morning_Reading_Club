@@ -207,6 +207,9 @@ global.wx = {
     if (options.success) {
       options.success();
     }
+    if (options.complete) {
+      options.complete();
+    }
   }),
 
   navigateBack: jest.fn((options) => {

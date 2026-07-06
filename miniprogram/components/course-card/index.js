@@ -29,7 +29,8 @@ Component({
   },
 
   data: {
-    isPending: false
+    isPending: false,
+    navigating: false
   },
 
   methods: {
@@ -48,6 +49,8 @@ Component({
      * 点击卡片
      */
     async onCardTap(e) {
+      if (this.data.navigating) return;
+
       console.log('===== course-card onCardTap 被调用 =====');
       console.log('this.properties.course:', this.properties.course);
       console.log('this.properties.mode:', this.properties.mode);
@@ -61,6 +64,7 @@ Component({
 
       // 期次模式
       if (mode === 'period') {
+        this.setData({ navigating: true });
         console.log('📌 期次模式点击');
 
         const app = getApp();
@@ -72,7 +76,8 @@ Component({
         if (!isLogin) {
           console.log('📖 未登录，进入期次介绍页');
           wx.navigateTo({
-            url: `/pages/period-detail/period-detail?periodId=${course._id}`
+            url: `/pages/period-detail/period-detail?periodId=${course._id}`,
+            complete: () => this.setData({ navigating: false })
           });
           return;
         }
@@ -91,6 +96,7 @@ Component({
             };
           } catch (err) {
             wx.hideLoading();
+            this.setData({ navigating: false });
             wx.showToast({ title: '网络异常，请重试', icon: 'none' });
             return;
           }
@@ -108,13 +114,15 @@ Component({
           if (calculatedStatus === 'completed') {
             // 已结束未报名 → 进入介绍页查看
             wx.navigateTo({
-              url: `/pages/period-detail/period-detail?periodId=${course._id}`
+              url: `/pages/period-detail/period-detail?periodId=${course._id}`,
+              complete: () => this.setData({ navigating: false })
             });
           } else {
             // 未报名 → 导航到报名页面
             console.log('✅ 已登录，导航到报名页面');
             wx.navigateTo({
-              url: `/pages/enrollment/enrollment?periodId=${course._id}`
+              url: `/pages/enrollment/enrollment?periodId=${course._id}`,
+              complete: () => this.setData({ navigating: false })
             });
           }
           return;
@@ -123,7 +131,8 @@ Component({
         // 已报名 → 导航到课程列表
         console.log('✅ 已报名，导航到课程列表，支付状态:', paymentStatus);
         wx.navigateTo({
-          url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`
+          url: `/pages/courses/courses?periodId=${course._id}&periodName=${course.name}`,
+          complete: () => this.setData({ navigating: false })
         });
         return;
       }

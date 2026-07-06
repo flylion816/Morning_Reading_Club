@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "课程列表",
   "enablePullDownRefresh": false,
-  "usingComponents": {}
+  "usingComponents": {
+    "reading-loader": "/components/reading-loader/reading-loader"
+  }
 }
