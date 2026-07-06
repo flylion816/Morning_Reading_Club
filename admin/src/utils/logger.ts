@@ -10,7 +10,8 @@
  */
 
 const isDev = import.meta.env.DEV;
-const ENABLE_LOG = isDev || import.meta.env.VITE_DEBUG_LOG === 'true';
+const ENABLE_VERBOSE_LOG = isDev || import.meta.env.VITE_DEBUG_LOG === 'true';
+const ENABLE_WARN_LOG = ENABLE_VERBOSE_LOG || import.meta.env.VITE_WARN_LOG === 'true';
 
 interface LoggerOptions {
   prefix?: string;
@@ -22,7 +23,7 @@ const logger = {
    * 普通日志
    */
   log(message: string, data?: any, options?: LoggerOptions) {
-    if (ENABLE_LOG) {
+    if (ENABLE_VERBOSE_LOG) {
       const prefix = options?.prefix || '[LOG]';
       const color = options?.color || 'color: #0066cc';
       console.log(`%c${prefix}`, color, message, data);
@@ -33,7 +34,7 @@ const logger = {
    * 信息日志
    */
   info(message: string, data?: any, options?: LoggerOptions) {
-    if (ENABLE_LOG) {
+    if (ENABLE_VERBOSE_LOG) {
       const prefix = options?.prefix || '[INFO]';
       const color = options?.color || 'color: #0066cc';
       console.log(`%c${prefix}`, color, message, data);
@@ -44,7 +45,7 @@ const logger = {
    * 警告日志
    */
   warn(message: string, data?: any, options?: LoggerOptions) {
-    if (ENABLE_LOG) {
+    if (ENABLE_WARN_LOG) {
       const prefix = options?.prefix || '[WARN]';
       const color = options?.color || 'color: #ff9900';
       console.warn(`%c${prefix}`, color, message, data);
@@ -64,7 +65,7 @@ const logger = {
    * 调试日志（仅在开发环境输出）
    */
   debug(message: string, data?: any, options?: LoggerOptions) {
-    if (ENABLE_LOG) {
+    if (ENABLE_VERBOSE_LOG) {
       const prefix = options?.prefix || '[DEBUG]';
       const color = options?.color || 'color: #00cc00';
       console.log(`%c${prefix}`, color, message, data);
@@ -75,13 +76,13 @@ const logger = {
    * 性能日志
    */
   time(label: string) {
-    if (ENABLE_LOG) {
+    if (ENABLE_VERBOSE_LOG) {
       console.time(label);
     }
   },
 
   timeEnd(label: string) {
-    if (ENABLE_LOG) {
+    if (ENABLE_VERBOSE_LOG) {
       console.timeEnd(label);
     }
   },
@@ -90,7 +91,7 @@ const logger = {
    * 表格输出
    */
   table(data: any) {
-    if (ENABLE_LOG && console.table) {
+    if (ENABLE_VERBOSE_LOG && console.table) {
       console.table(data);
     }
   },
@@ -99,13 +100,13 @@ const logger = {
    * 分组日志
    */
   group(label: string) {
-    if (ENABLE_LOG && console.group) {
+    if (ENABLE_VERBOSE_LOG && console.group) {
       console.group(label);
     }
   },
 
   groupEnd() {
-    if (ENABLE_LOG && console.groupEnd) {
+    if (ENABLE_VERBOSE_LOG && console.groupEnd) {
       console.groupEnd();
     }
   },
@@ -114,7 +115,7 @@ const logger = {
    * 清空控制台
    */
   clear() {
-    if (ENABLE_LOG && console.clear) {
+    if (ENABLE_VERBOSE_LOG && console.clear) {
       console.clear();
     }
   },
@@ -124,7 +125,8 @@ const logger = {
    */
   getStatus() {
     return {
-      enabled: ENABLE_LOG,
+      enabled: ENABLE_VERBOSE_LOG,
+      warnEnabled: ENABLE_WARN_LOG,
       isDev: isDev,
       environment: isDev ? 'development' : 'production'
     };

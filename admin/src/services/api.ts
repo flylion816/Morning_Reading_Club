@@ -50,10 +50,6 @@ axiosClient.interceptors.request.use(
       logger.debug('[API Request] Authorization header已设置:', {
         token: `Bearer ${token.substring(0, 20)}...`
       });
-      console.log(
-        '[API Interceptor] Authorization 请求头已添加:',
-        authHeader.substring(0, 30) + '...'
-      );
 
       // 多租户：platform_superadmin 切换租户时附带
       const activeTenant = localStorage.getItem('admin_active_tenant');
@@ -62,7 +58,6 @@ axiosClient.interceptors.request.use(
       }
     } else {
       logger.warn('[API Request] ⚠️ 没有token，不会附加Authorization header');
-      console.warn('[API Interceptor] 警告：没有 token');
     }
     return config;
   },
@@ -79,7 +74,6 @@ axiosClient.interceptors.response.use(
       status: response.status
     });
     logger.debug('[API Response] response.data:', response.data);
-    console.log('[API Interceptor] 原始 response.data:', response.data);
 
     // 后端返回格式：{code, message, data: {...}, pagination: {...}, timestamp: ...}
     if (response.data && typeof response.data === 'object') {
@@ -90,13 +84,8 @@ axiosClient.interceptors.response.use(
         'data' in response.data
       ) {
         logger.debug('[API Response] 标准格式，转换为兼容结构');
-        console.log(
-          '[API Interceptor] 检测到标准格式 {code, message, data, ...}'
-        );
 
         const data = response.data.data;
-        console.log('[API Interceptor] 返回的 data:', data);
-        console.log('[API Interceptor] pagination:', response.data.pagination);
 
         // 关键：返回兼容格式
         // 如果 data 是数组，返回 {list: [...], ...pagination}
@@ -107,7 +96,6 @@ axiosClient.interceptors.response.use(
             data: data, // 同时支持 data 字段
             ...response.data.pagination // 展开 pagination 字段
           };
-          console.log('[API Interceptor] 返回兼容格式:', result);
           return result;
         }
 
@@ -116,11 +104,9 @@ axiosClient.interceptors.response.use(
       }
       // 否则直接返回响应数据
       logger.debug('[API Response] 非标准格式，返回 response.data');
-      console.log('[API Interceptor] 非标准格式，返回整个 response.data');
       return response.data;
     }
     logger.debug('[API Response] 返回 response.data');
-    console.log('[API Interceptor] 返回 response.data (非对象)');
     return response.data;
   },
   (error) => {

@@ -1,11 +1,12 @@
 <template>
   <div v-if="isPlatformSuperAdmin" class="tenant-switcher">
+    <span class="switcher-label">租户</span>
     <el-select
       v-model="activeTenantId"
       placeholder="所有租户"
       clearable
       size="small"
-      style="width: 180px"
+      class="tenant-select"
       @change="handleTenantChange"
     >
       <el-option label="所有租户（跨租户视图）" :value="''" />
@@ -18,6 +19,7 @@
     </el-select>
   </div>
   <div v-else-if="currentTenant" class="tenant-display">
+    <span class="switcher-label">租户</span>
     {{ tenantStore.getTenantDisplayName(currentTenant) }}
   </div>
 </template>
@@ -68,10 +70,36 @@ onMounted(loadTenants);
 <style scoped>
 .tenant-switcher,
 .tenant-display {
-  margin-right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 3px 4px 3px 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
 }
+
+.tenant-select {
+  width: 176px;
+}
+
+.tenant-switcher :deep(.el-select__wrapper) {
+  min-height: 28px;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+.switcher-label {
+  color: var(--admin-ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .tenant-display {
-  color: #888;
+  color: var(--admin-ink-soft);
   font-size: 13px;
+  font-weight: 500;
+  padding-right: 10px;
 }
 </style>

@@ -16,6 +16,26 @@ describe('AdminLayout - 管理后台布局组件', () => {
   let router: any;
   let pinia: any;
 
+  const mountLayout = () => mount(AdminLayout, {
+    global: {
+      plugins: [pinia, router],
+      stubs: [
+        'el-container',
+        'el-aside',
+        'el-menu',
+        'el-menu-item-group',
+        'el-menu-item',
+        'el-main',
+        'el-header',
+        'el-button',
+        'el-avatar',
+        'el-dialog',
+        'el-input',
+        'el-icon'
+      ]
+    }
+  });
+
   beforeEach(() => {
     pinia = createPinia();
     setActivePinia(pinia);
@@ -43,13 +63,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       await router.push('/');
       await router.isReady();
 
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       expect(wrapper.vm.pageTitle).toBe('仪表板：现在要做什么');
     });
@@ -58,13 +72,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       await router.push('/users');
       await router.isReady();
 
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       expect(wrapper.vm.pageTitle).toBe('用户管理');
     });
@@ -73,13 +81,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       await router.push('/analytics');
       await router.isReady();
 
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       expect(wrapper.vm.pageTitle).toBe('数据分析：过去发生了什么、为什么');
     });
@@ -88,13 +90,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       await router.push('/completion-reports');
       await router.isReady();
 
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       expect(wrapper.vm.pageTitle).toBe('实录报告');
     });
@@ -103,13 +99,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       await router.push('/home-config');
       await router.isReady();
 
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       expect(wrapper.vm.pageTitle).toBe('首页配置');
     });
@@ -122,13 +112,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       const adminData = createMockAdmin({ name: '张三' });
       authStore.adminInfo = adminData;
 
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       // 验证 authStore 中的值正确
       const store = useAuthStore();
@@ -139,13 +123,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       const authStore = useAuthStore();
       authStore.adminInfo = createMockAdmin({ name: '李四', avatar: 'https://example.com/avatar.jpg' });
 
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       // 验证组件已接受 authStore（通过检查是否成功挂载）
       expect(wrapper.exists()).toBe(true);
@@ -157,13 +135,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
   // ============ 菜单导航 (2 个) ============
   describe('菜单导航', () => {
     it('[Menu-1] 应该提供菜单选择处理函数', async () => {
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       // 验证 handleMenuSelect 方法存在并可被调用
       expect(typeof wrapper.vm.handleMenuSelect).toBe('function');
@@ -175,13 +147,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
     });
 
     it('[Menu-2] 数据库菜单项选中时应该打开二次验证对话框', async () => {
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       // 模拟菜单选择事件
       expect(wrapper.vm.dbAccessVisible).toBe(false);
@@ -194,13 +160,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
   // ============ 数据库访问验证 (2 个) ============
   describe('数据库访问验证', () => {
     it('[DB-1] 初始状态应该不显示数据库访问对话框', async () => {
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       expect(wrapper.vm.dbAccessVisible).toBe(false);
       expect(wrapper.vm.dbAccessPassword).toBe('');
@@ -208,13 +168,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
     });
 
     it('[DB-2] 非数据库菜单项应该直接导航，不显示验证对话框', async () => {
-      const wrapper = mount(AdminLayout, {
-        global: {
-          plugins: [pinia, router],
-          stubs: ['el-container', 'el-aside', 'el-menu', 'el-menu-item-group', 'el-menu-item',
-                  'el-main', 'el-header', 'el-button', 'el-avatar', 'el-dialog', 'el-input']
-        }
-      });
+      const wrapper = mountLayout();
 
       const routerPushSpy = vi.spyOn(router, 'push');
       await wrapper.vm.handleMenuSelect('/users');

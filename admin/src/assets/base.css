@@ -1,58 +1,63 @@
-/* color palette from <https://github.com/vuejs/theme> */
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
+  --admin-primary: #5b7f4a;
+  --admin-primary-dark: #46643a;
+  --admin-primary-soft: #edf4e9;
+  --admin-primary-muted: rgba(91, 127, 74, 0.13);
+  --admin-primary-shadow: rgba(91, 127, 74, 0.24);
+  --admin-ink: #1f2a24;
+  --admin-ink-soft: #546158;
+  --admin-ink-muted: #7c887e;
+  --admin-sidebar: #203126;
+  --admin-sidebar-deep: #17241d;
+  --admin-page: #f4f2ec;
+  --admin-surface: rgba(255, 255, 255, 0.94);
+  --admin-surface-strong: #ffffff;
+  --admin-border: rgba(63, 78, 64, 0.12);
+  --admin-border-strong: rgba(63, 78, 64, 0.2);
+  --admin-warning: #b7791f;
+  --admin-success: #4f7a45;
+  --admin-danger: #b94c43;
+  --admin-radius-sm: 8px;
+  --admin-radius-md: 12px;
+  --admin-radius-lg: 16px;
+  --admin-shadow-sm: 0 10px 24px rgba(46, 57, 43, 0.08);
+  --admin-shadow-md: 0 18px 42px rgba(46, 57, 43, 0.12);
+  --admin-font:
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans CJK SC",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  --admin-font-number:
+    "DIN Alternate",
+    "SFMono-Regular",
+    "Roboto Mono",
+    "Menlo",
+    monospace;
 
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
-
-  --vt-c-indigo: #2c3e50;
-
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
-
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
-}
-
-/* semantic color variables for this project */
-:root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
-
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
-
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
-
-  --section-gap: 160px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
-
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
-
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
-  }
+  --el-color-primary: var(--admin-primary);
+  --el-color-primary-light-3: #789a65;
+  --el-color-primary-light-5: #9bb48d;
+  --el-color-primary-light-7: #c4d5bc;
+  --el-color-primary-light-8: #d9e5d3;
+  --el-color-primary-light-9: var(--admin-primary-soft);
+  --el-color-primary-dark-2: var(--admin-primary-dark);
+  --el-border-radius-base: var(--admin-radius-sm);
+  --el-border-color: var(--admin-border);
+  --el-border-color-light: rgba(63, 78, 64, 0.1);
+  --el-fill-color-light: rgba(244, 242, 236, 0.72);
+  --el-text-color-primary: var(--admin-ink);
+  --el-text-color-regular: var(--admin-ink-soft);
+  --el-text-color-secondary: var(--admin-ink-muted);
 }
 
 html {
   height: 100%;
   width: 100%;
+  scroll-behavior: smooth;
 }
 
 *,
@@ -60,34 +65,30 @@ html {
 *::after {
   box-sizing: border-box;
   margin: 0;
-  font-weight: normal;
   padding: 0;
 }
 
 body {
   height: 100%;
   width: 100%;
-  color: var(--color-text);
-  background: var(--color-background);
-  transition:
-    color 0.5s,
-    background-color 0.5s;
+  color: var(--admin-ink);
+  background: var(--admin-page);
   line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
+  font-family: var(--admin-font);
   font-size: 15px;
+  font-variant-numeric: tabular-nums;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
 }

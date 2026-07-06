@@ -2,8 +2,13 @@
   <el-container class="admin-layout">
     <el-aside class="admin-sidebar">
       <div class="sidebar-header">
-        <img src="/logo.png" class="sidebar-logo" alt="logo" />
-        <h2>{{ tenantStore.displayName }}</h2>
+        <div class="brand-mark">
+          <img src="/logo.png" class="sidebar-logo" alt="晨读营管理后台" />
+        </div>
+        <div class="brand-copy">
+          <h2>{{ tenantStore.displayName }}</h2>
+          <p>晨读营运营台</p>
+        </div>
       </div>
 
       <el-menu
@@ -11,79 +16,20 @@
         class="sidebar-menu"
         @select="handleMenuSelect"
       >
-        <!-- 数据看板区块 -->
-        <el-menu-item-group title="数据看板">
-          <el-menu-item index="/">
-            <span>📊 仪表板</span>
-          </el-menu-item>
-          <el-menu-item index="/analytics">
-            <span>📈 数据分析</span>
-          </el-menu-item>
-        </el-menu-item-group>
-
-        <!-- 业务管理区块 -->
-        <el-menu-item-group title="业务管理">
-          <el-menu-item index="/enrollments">
-            <span>📝 报名管理</span>
-          </el-menu-item>
-          <el-menu-item index="/users">
-            <span>👥 用户管理</span>
-          </el-menu-item>
-          <el-menu-item index="/payments">
-            <span>💳 支付记录</span>
-          </el-menu-item>
-          <el-menu-item index="/periods">
-            <span>📅 期次管理</span>
-          </el-menu-item>
-          <el-menu-item index="/content">
-            <span>✍️ 内容管理</span>
-          </el-menu-item>
-        </el-menu-item-group>
-
-        <!-- 内容管理区块 -->
-        <el-menu-item-group title="内容管理">
-          <el-menu-item index="/checkins">
-            <span>📍 每日打卡</span>
-          </el-menu-item>
-          <el-menu-item index="/insights">
-            <span>👀 小凡看见</span>
-          </el-menu-item>
-          <el-menu-item index="/insight-requests">
-            <span>📋 查看申请</span>
-          </el-menu-item>
-          <el-menu-item index="/completion-reports">
-            <span>📄 实录报告</span>
-          </el-menu-item>
-          <el-menu-item index="/imprints">
-            <span>🌿 在场管理</span>
-          </el-menu-item>
-          <el-menu-item index="/activities">
-            <span>📆 活动管理</span>
-          </el-menu-item>
-          <el-menu-item index="/coupons">
-            <span>🎟️ 优惠券管理</span>
-          </el-menu-item>
-          <el-menu-item index="/home-config">
-            <span>🏠 首页配置</span>
-          </el-menu-item>
-          <el-menu-item index="/audit-logs">
-            <span>🔍 审计日志</span>
-          </el-menu-item>
-        </el-menu-item-group>
-
-        <!-- 系统管理区块 -->
-        <el-menu-item-group title="系统管理" v-if="isPlatformSuperAdmin">
-          <el-menu-item index="/tenants">
-            <span>🏢 租户管理</span>
-          </el-menu-item>
-          <el-menu-item index="/account-management">
-            <span>👤 账号管理</span>
-          </el-menu-item>
-          <el-menu-item index="/subscription-debug">
-            <span>🔔 订阅消息排查</span>
-          </el-menu-item>
-          <el-menu-item index="/database">
-            <span>🗄️ 数据库管理</span>
+        <el-menu-item-group
+          v-for="group in visibleMenuGroups"
+          :key="group.title"
+          :title="group.title"
+        >
+          <el-menu-item
+            v-for="item in group.items"
+            :key="item.index"
+            :index="item.index"
+          >
+            <el-icon class="nav-icon">
+              <component :is="item.icon" />
+            </el-icon>
+            <span>{{ item.label }}</span>
           </el-menu-item>
         </el-menu-item-group>
       </el-menu>
@@ -92,10 +38,11 @@
         <el-button
           type="danger"
           text
-          style="width: 100%; justify-content: flex-start"
+          class="logout-button"
           @click="handleLogout"
         >
-          <span>🚪 退出登录</span>
+          <el-icon><SwitchButton /></el-icon>
+          <span>退出登录</span>
         </el-button>
       </div>
     </el-aside>
@@ -110,18 +57,19 @@
           <div class="header-right">
             <TenantSwitcher />
             <div class="header-user">
-            <button class="profile-entry" type="button" @click="goToProfile">
-              <el-avatar
-                :src="authStore.adminInfo?.avatar"
-                shape="circle"
-                :size="36"
-                :fallback="true"
-              >
-                <span style="font-size: 20px">👨‍💼</span>
-              </el-avatar>
-              <span class="user-name">{{ authStore.adminInfo?.name }}</span>
-            </button>
-          </div>
+              <button class="profile-entry" type="button" @click="goToProfile">
+                <el-avatar
+                  :src="authStore.adminInfo?.avatar"
+                  shape="square"
+                  :size="36"
+                  :fallback="true"
+                  class="profile-avatar"
+                >
+                  <el-icon><UserFilled /></el-icon>
+                </el-avatar>
+                <span class="user-name">{{ authStore.adminInfo?.name || '管理员' }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </el-header>
@@ -140,9 +88,10 @@
       :close-on-press-escape="false"
     >
       <div class="db-access-form">
-        <p class="warning-text">
-          ⚠️ 您正在访问敏感的数据库管理功能，请输入验证密码
-        </p>
+        <div class="warning-text">
+          <el-icon><Warning /></el-icon>
+          <span>数据库管理涉及敏感数据，请输入验证密码。</span>
+        </div>
         <el-input
           v-model="dbAccessPassword"
           type="password"
@@ -175,6 +124,32 @@ import { useTenantStore } from '../stores/tenant';
 import { authApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import TenantSwitcher from './TenantSwitcher.vue';
+import {
+  Bell,
+  Calendar,
+  Checked,
+  Collection,
+  Connection,
+  CreditCard,
+  DataAnalysis,
+  DataBoard,
+  Document,
+  EditPen,
+  Finished,
+  HomeFilled,
+  Location,
+  Management,
+  OfficeBuilding,
+  Reading,
+  Search,
+  SwitchButton,
+  Tickets,
+  TrendCharts,
+  User,
+  UserFilled,
+  View,
+  Warning
+} from '@element-plus/icons-vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -192,6 +167,54 @@ const dbAccessPassword = ref('');
 const dbAccessError = ref('');
 const dbAccessVerifying = ref(false);
 const pendingRoute = ref<string | null>(null);
+
+const menuGroups = [
+  {
+    title: '数据看板',
+    items: [
+      { index: '/', label: '仪表板', icon: DataBoard },
+      { index: '/analytics', label: '数据分析', icon: TrendCharts }
+    ]
+  },
+  {
+    title: '业务管理',
+    items: [
+      { index: '/enrollments', label: '报名管理', icon: EditPen },
+      { index: '/users', label: '用户管理', icon: User },
+      { index: '/payments', label: '支付记录', icon: CreditCard },
+      { index: '/periods', label: '期次管理', icon: Calendar },
+      { index: '/content', label: '内容管理', icon: Reading }
+    ]
+  },
+  {
+    title: '内容管理',
+    items: [
+      { index: '/checkins', label: '每日打卡', icon: Location },
+      { index: '/insights', label: '小凡看见', icon: View },
+      { index: '/insight-requests', label: '查看申请', icon: Document },
+      { index: '/completion-reports', label: '实录报告', icon: Collection },
+      { index: '/imprints', label: '在场管理', icon: Finished },
+      { index: '/activities', label: '活动管理', icon: Checked },
+      { index: '/coupons', label: '优惠券管理', icon: Tickets },
+      { index: '/home-config', label: '首页配置', icon: HomeFilled },
+      { index: '/audit-logs', label: '审计日志', icon: Search }
+    ]
+  },
+  {
+    title: '系统管理',
+    platformOnly: true,
+    items: [
+      { index: '/tenants', label: '租户管理', icon: OfficeBuilding },
+      { index: '/account-management', label: '账号管理', icon: Management },
+      { index: '/subscription-debug', label: '订阅消息排查', icon: Bell },
+      { index: '/database', label: '数据库管理', icon: Connection }
+    ]
+  }
+];
+
+const visibleMenuGroups = computed(() =>
+  menuGroups.filter((group) => !group.platformOnly || isPlatformSuperAdmin.value)
+);
 
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
@@ -283,83 +306,159 @@ const goToProfile = () => {
 
 <style scoped>
 .admin-layout {
-  height: 100vh;
+  height: 100dvh;
   display: flex;
+  color: var(--admin-ink);
+  background:
+    radial-gradient(circle at top left, rgba(91, 127, 74, 0.08), transparent 34rem),
+    var(--admin-page);
 }
 
 .admin-sidebar {
-  width: 240px;
-  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+  width: 252px;
+  background:
+    radial-gradient(circle at 26px 28px, rgba(255, 255, 255, 0.13), transparent 7rem),
+    linear-gradient(180deg, var(--admin-sidebar) 0%, var(--admin-sidebar-deep) 100%);
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 12px 0 34px rgba(31, 42, 36, 0.16);
+  position: relative;
+  z-index: 2;
 }
 
 .sidebar-header {
-  padding: 24px 16px;
+  padding: 24px 18px 20px;
   color: white;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .sidebar-logo {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
-  flex-shrink: 0;
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+.brand-copy {
+  min-width: 0;
 }
 
 .sidebar-header h2 {
   margin: 0;
-  font-size: 20px;
+  color: #f6f3e9;
+  font-size: 18px;
   font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-copy p {
+  margin: 3px 0 0;
+  color: rgba(246, 243, 233, 0.58);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .sidebar-menu {
   flex: 1;
   background: transparent;
   border-right: none;
+  padding: 12px 10px;
+  overflow-y: auto;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
 }
 
 .sidebar-menu :deep(.el-menu-item) {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(246, 243, 233, 0.72);
   background-color: transparent;
-  height: 48px;
-  line-height: 48px;
+  height: 40px;
+  line-height: 40px;
+  margin: 2px 0;
+  padding: 0 12px !important;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.nav-icon {
+  width: 18px;
+  margin-right: 10px;
+  color: rgba(246, 243, 233, 0.58);
+  transition: color 0.18s ease;
 }
 
 .sidebar-menu :deep(.el-menu-item:hover) {
-  color: white;
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fffaf0;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  transform: translateX(2px);
+}
+
+.sidebar-menu :deep(.el-menu-item:hover .nav-icon) {
+  color: #fffaf0;
 }
 
 .sidebar-menu :deep(.el-menu-item.is-active) {
-  background-color: #667eea !important;
-  color: white;
-  border-right: 4px solid #667eea;
+  color: #fffaf0;
+  background: rgba(237, 244, 233, 0.15) !important;
+  box-shadow: inset 3px 0 0 #d5c68a;
 }
 
-/* Customize Element Plus menu item group title styling */
+.sidebar-menu :deep(.el-menu-item.is-active .nav-icon) {
+  color: #d5c68a;
+}
+
 .sidebar-menu :deep(.el-menu-item-group__title) {
-  color: rgba(255, 255, 255, 0.5) !important;
-  font-size: 12px;
+  color: rgba(246, 243, 233, 0.42) !important;
+  font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 12px 16px 8px !important;
+  letter-spacing: 0.08em;
+  padding: 16px 12px 7px !important;
   background-color: transparent !important;
 }
 
 .sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px 16px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
 }
 
-.sidebar-footer :deep(.el-button) {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+.logout-button {
+  width: 100%;
+  justify-content: flex-start;
+  color: rgba(246, 243, 233, 0.72) !important;
+  padding: 9px 10px !important;
+  border-radius: 10px !important;
+}
+
+.logout-button:hover {
+  color: #fffaf0 !important;
+  background: rgba(185, 76, 67, 0.16) !important;
 }
 
 .admin-main {
@@ -369,31 +468,38 @@ const goToProfile = () => {
 }
 
 .admin-header {
-  background: white;
-  border-bottom: 1px solid #f0f0f0;
+  background: rgba(255, 255, 255, 0.83);
+  border-bottom: 1px solid var(--admin-border);
   padding: 0;
-  height: 64px;
+  height: 72px;
+  backdrop-filter: blur(18px);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .header-content {
   height: 100%;
-  padding: 0 24px;
+  padding: 0 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
 }
 
 .header-title h3 {
   margin: 0;
-  font-size: 18px;
-  color: #333;
+  color: var(--admin-ink);
+  font-size: 20px;
   font-weight: 600;
+  line-height: 1.25;
 }
 
 .header-title p {
   margin: 4px 0 0;
-  color: #777;
+  color: var(--admin-ink-muted);
   font-size: 13px;
+  line-height: 1.4;
 }
 
 .header-right {
@@ -411,44 +517,70 @@ const goToProfile = () => {
 .profile-entry {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  border: none;
-  background: transparent;
-  padding: 0;
+  gap: 10px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.54);
+  padding: 4px 9px 4px 4px;
   margin: 0;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
+  border-radius: 12px;
+  color: var(--admin-ink-soft);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.profile-entry:hover {
+  background: #fff;
+  border-color: var(--admin-border);
+  transform: translateY(-1px);
 }
 
 .profile-entry:focus-visible {
-  outline: 2px solid var(--el-color-primary);
+  outline: 2px solid rgba(91, 127, 74, 0.42);
   outline-offset: 2px;
-  border-radius: 6px;
+}
+
+.profile-avatar {
+  border-radius: 10px !important;
+  background: var(--admin-primary-soft) !important;
+  color: var(--admin-primary-dark) !important;
 }
 
 .user-name {
-  color: #666;
+  color: var(--admin-ink-soft);
   font-size: 14px;
+  font-weight: 500;
 }
 
 .admin-content {
   flex: 1;
-  background: #f5f7fa;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.32) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+    var(--admin-page);
+  background-size: 42px 42px;
   overflow: auto;
+  padding: 0;
 }
 
-/* 数据库访问验证样式 */
 .db-access-form {
   padding: 16px 0;
 }
 
 .db-access-form .warning-text {
-  margin: 0 0 16px 0;
-  color: #f56c6c;
+  margin: 0 0 16px;
+  color: var(--admin-danger);
   font-size: 13px;
   line-height: 1.6;
   font-weight: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(185, 76, 67, 0.08);
+  border: 1px solid rgba(185, 76, 67, 0.14);
+  border-radius: 10px;
 }
 
 .db-access-form :deep(.el-input) {
@@ -456,12 +588,51 @@ const goToProfile = () => {
 }
 
 .error-text {
-  color: #f56c6c;
+  color: var(--admin-danger);
   font-size: 12px;
   margin-top: 8px;
-  padding: 8px 8px;
-  background: #fef0f0;
-  border-radius: 4px;
-  border-left: 3px solid #f56c6c;
+  padding: 8px 10px;
+  background: rgba(185, 76, 67, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid var(--admin-danger);
+}
+
+@media (max-width: 1180px) {
+  .admin-sidebar {
+    width: 228px;
+  }
+
+  .header-content {
+    padding: 0 20px;
+  }
+}
+
+@media (max-width: 860px) {
+  .admin-layout {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    min-height: auto;
+  }
+
+  .sidebar-menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 360px;
+  }
+
+  .admin-header {
+    height: auto;
+  }
+
+  .header-content {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
 }
 </style>
