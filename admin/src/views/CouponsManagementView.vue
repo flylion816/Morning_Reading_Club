@@ -572,8 +572,8 @@ function formatDate(val: string): string {
 
 .user-option-avatar {
   flex-shrink: 0;
-  background: #dbeafe;
-  color: #3b82f6;
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary-dark);
   font-size: 12px;
 }
 

@@ -118,7 +118,7 @@
                     <div class="cel-title-c-web">打卡成功</div>
                     <div class="cel-msg-web msg-c-web">{{ previewMessage }}</div>
                     <div class="cel-dots-web">
-                      <span class="dot-web" style="background:#4a90e2;animation-delay:0s"></span>
+                      <span class="dot-web primary-dot" style="animation-delay:0s"></span>
                       <span class="dot-web" style="background:#FFD700;animation-delay:0.15s"></span>
                       <span class="dot-web" style="background:#4ECDC4;animation-delay:0.3s"></span>
                     </div>
@@ -463,7 +463,7 @@
       <!-- 详情弹窗 -->
       <el-dialog v-model="detailDialogVisible" title="打卡详情" width="700px">
         <div v-if="selectedCheckin" class="checkin-detail">
-          <el-descriptions :column="1" border>
+            <el-descriptions :column="1" border class="detail-descriptions">
             <el-descriptions-item label="用户">
               <div v-if="selectedCheckin.userId && typeof selectedCheckin.userId === 'object'">
                 <div>{{ selectedCheckin.userId.nickname }}</div>
@@ -962,7 +962,7 @@ onMounted(() => {
       .stat-value {
         font-size: 32px;
         font-weight: bold;
-        color: #409eff;
+        color: var(--admin-primary);
         margin: 10px 0;
       }
 
@@ -1084,8 +1084,8 @@ onMounted(() => {
         cursor: pointer;
         transition: all 0.2s;
 
-        &:hover { border-color: #4a90e2; }
-        &.active { border-color: #4a90e2; background: #eff6ff; }
+        &:hover { border-color: var(--admin-primary); }
+        &.active { border-color: var(--admin-primary); background: var(--admin-primary-soft); }
 
         .style-icon { font-size: 32px; margin-bottom: 8px; }
         .style-label { font-weight: bold; color: #1f2937; margin-bottom: 4px; }
@@ -1162,7 +1162,7 @@ onMounted(() => {
 
 .phone-nav-back {
   font-size: 22px;
-  color: #4a90e2;
+  color: var(--admin-primary);
   line-height: 1;
 }
 
@@ -1371,7 +1371,7 @@ onMounted(() => {
 
 .cel-icon-c-web {
   width: 48px; height: 48px;
-  background: linear-gradient(135deg, #4a90e2, #764ba2);
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep));
   border-radius: 50%;
   margin: 0 auto 10px;
   font-size: 22px; color: #fff; font-weight: bold;
@@ -1395,6 +1395,10 @@ onMounted(() => {
   animation: dot-pulse-w 1.2s ease-in-out infinite;
 }
 
+.primary-dot {
+  background: var(--admin-primary);
+}
+
 @keyframes dot-pulse-w {
   0%, 100% { transform: scale(1); opacity: 0.6; }
   50%      { transform: scale(1.4); opacity: 1; }
@@ -1403,7 +1407,7 @@ onMounted(() => {
 .cel-close-btn-web {
   display: inline-block;
   margin-top: 10px;
-  background: linear-gradient(135deg, #4a90e2, #764ba2);
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep));
   color: #fff;
   border-radius: 18px;
   padding: 7px 18px;
@@ -1601,7 +1605,7 @@ onMounted(() => {
 .cf-web-3 { left: 24%; background: #facc15; animation-delay: 0.07s; }
 .cf-web-4 { left: 34%; background: #22c55e; animation-delay: 0.24s; }
 .cf-web-5 { left: 43%; background: #14b8a6; animation-delay: 0.12s; }
-.cf-web-6 { left: 51%; background: #3b82f6; animation-delay: 0.28s; }
+.cf-web-6 { left: 51%; background: var(--admin-primary); animation-delay: 0.28s; }
 .cf-web-7 { left: 60%; background: #6366f1; animation-delay: 0.06s; }
 .cf-web-8 { left: 68%; background: #a855f7; animation-delay: 0.2s; }
 .cf-web-9 { left: 76%; background: #ec4899; animation-delay: 0.1s; }

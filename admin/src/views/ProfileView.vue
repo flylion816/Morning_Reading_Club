@@ -246,8 +246,8 @@ onMounted(() => {
 }
 
 .profile-avatar {
-  background: #dbeafe;
-  color: #3b82f6;
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary-dark);
   font-size: 36px;
   font-weight: 600;
 }

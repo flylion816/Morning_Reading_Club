@@ -511,7 +511,7 @@ function getPaymentAvatarColor(row: Payment): string {
 
 .stat-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(91, 127, 74, 0.26);
+  border-color: var(--admin-primary-alpha-24);
   box-shadow: var(--admin-shadow-md);
 }
 
@@ -622,7 +622,7 @@ function getPaymentAvatarColor(row: Payment): string {
 }
 
 .todo-item:hover {
-  border-color: rgba(91, 127, 74, 0.24);
+  border-color: var(--admin-primary-alpha-24);
   background: var(--admin-primary-soft);
   transform: translateY(-2px);
 }

@@ -49,9 +49,11 @@ async function loadTenants() {
     const res = await api.get('/admin/tenants');
     const list = (res as any)?.list || (res as any)?.data || res || [];
     tenantStore.setTenants(list);
+    tenantStore.applyActiveTenantTheme();
   } else {
     const res = await api.get('/admin/current-tenant');
     currentTenant.value = res;
+    tenantStore.setCurrentTenant(res);
     if (res?._id) {
       tenantStore.setActiveTenant(res._id);
     }
@@ -60,8 +62,8 @@ async function loadTenants() {
 
 function handleTenantChange(value: string) {
   tenantStore.setActiveTenant(value);
-  ElMessage.success('已切换租户视图，刷新页面查看数据');
-  setTimeout(() => window.location.reload(), 500);
+  ElMessage.success(value ? '已切换租户视图' : '已切换到跨租户视图');
+  window.dispatchEvent(new CustomEvent('admin:tenant-changed', { detail: { tenantId: value } }));
 }
 
 onMounted(loadTenants);

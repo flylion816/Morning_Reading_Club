@@ -1229,7 +1229,7 @@ onBeforeUnmount(() => {
   color: #606266;
   margin: 16px 0 12px;
   padding-left: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--admin-primary);
 }
 
 .podcast-upload-area {

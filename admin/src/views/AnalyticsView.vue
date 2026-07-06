@@ -355,8 +355,10 @@ import { ElMessage } from 'element-plus';
 import * as echarts from 'echarts';
 import AdminLayout from '@/components/AdminLayout.vue';
 import { analyticsApi, statsApi } from '../services/api';
+import { useTenantStore } from '../stores/tenant';
 
 // 数据
+const tenantStore = useTenantStore();
 const activeTab = ref('overview');
 const dateRange = ref<[Date, Date] | null>(null);
 const analytics = ref({
@@ -416,6 +418,17 @@ const refreshData = async () => {
   ElMessage.success('数据已刷新');
 };
 
+const getThemeRgba = (alpha: number) => {
+  const hex = String(tenantStore.activePrimaryColor || '#5b7f4a').replace('#', '');
+  const normalized = hex.length === 3
+    ? hex.split('').map(char => char + char).join('')
+    : hex;
+  const r = parseInt(normalized.slice(0, 2), 16) || 91;
+  const g = parseInt(normalized.slice(2, 4), 16) || 127;
+  const b = parseInt(normalized.slice(4, 6), 16) || 74;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 // 导出数据
 const exportData = () => {
   const headers = [
@@ -472,8 +485,8 @@ const initEnrollmentChart = (data: any) => {
         data: counts,
         type: 'line',
         smooth: true,
-        itemStyle: { color: '#4a90e2' },
-        areaStyle: { color: 'rgba(74, 144, 226, 0.2)' }
+        itemStyle: { color: tenantStore.activePrimaryColor },
+        areaStyle: { color: getThemeRgba(0.16) }
       }
     ]
   };
@@ -844,7 +857,7 @@ onMounted(async () => {
 .metric-value {
   font-size: 28px;
   font-weight: 700;
-  color: #333;
+  color: var(--admin-primary);
   margin-bottom: 8px;
 }
 

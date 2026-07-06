@@ -6,7 +6,9 @@
         <el-card class="stat-card">
           <template #header>
             <div class="stat-header">
-              <span class="stat-icon total">📊</span>
+              <span class="stat-icon total">
+                <el-icon><DataBoard /></el-icon>
+              </span>
               <span>总操作数</span>
             </div>
           </template>
@@ -14,10 +16,12 @@
           <div class="stat-trend">今日: {{ stats?.today || 0 }}</div>
         </el-card>
 
-        <el-card class="stat-card">
+        <el-card class="stat-card danger-card">
           <template #header>
             <div class="stat-header">
-              <span class="stat-icon failed">❌</span>
+              <span class="stat-icon failed">
+                <el-icon><CircleCloseFilled /></el-icon>
+              </span>
               <span>失败操作</span>
             </div>
           </template>
@@ -28,7 +32,9 @@
         <el-card class="stat-card">
           <template #header>
             <div class="stat-header">
-              <span class="stat-icon actions">🔄</span>
+              <span class="stat-icon actions">
+                <el-icon><RefreshRight /></el-icon>
+              </span>
               <span>主要操作类型</span>
             </div>
           </template>
@@ -43,7 +49,9 @@
         <el-card class="stat-card">
           <template #header>
             <div class="stat-header">
-              <span class="stat-icon admins">👤</span>
+              <span class="stat-icon admins">
+                <el-icon><UserFilled /></el-icon>
+              </span>
               <span>活跃管理员</span>
             </div>
           </template>
@@ -113,9 +121,18 @@
             style="width: 280px"
           />
 
-          <el-button type="primary" @click="handleSearch">🔍 查询</el-button>
-          <el-button @click="handleReset">↻ 重置</el-button>
-          <el-button @click="handleExport">📥 导出</el-button>
+          <el-button type="primary" @click="handleSearch">
+            <el-icon><Search /></el-icon>
+            查询
+          </el-button>
+          <el-button @click="handleReset">
+            <el-icon><RefreshRight /></el-icon>
+            重置
+          </el-button>
+          <el-button @click="handleExport">
+            <el-icon><Download /></el-icon>
+            导出
+          </el-button>
         </div>
       </el-card>
 
@@ -123,7 +140,7 @@
       <el-card class="table-card">
         <template #header>
           <div class="card-header">
-            <span>📋 审计日志列表</span>
+            <span>审计日志列表</span>
             <el-pagination
               v-model:current-page="pagination.page"
               v-model:page-size="pagination.pageSize"
@@ -282,6 +299,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import {
+  CircleCloseFilled,
+  DataBoard,
+  Download,
+  RefreshRight,
+  Search,
+  UserFilled
+} from '@element-plus/icons-vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import * as auditApi from '../api/audit';
 import type { AuditLog, AuditStatistics } from '../api/audit';
@@ -528,14 +553,36 @@ initPage().catch(error => {
 }
 
 .stat-icon {
-  font-size: 20px;
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--admin-primary);
+  background: var(--admin-primary-soft);
+}
+
+.stat-icon.failed {
+  color: var(--admin-danger);
+  background: rgba(185, 76, 67, 0.1);
+}
+
+.stat-icon.actions,
+.stat-icon.admins {
+  color: var(--admin-primary-dark);
+  background: var(--admin-primary-soft);
 }
 
 .stat-value {
   font-size: 32px;
   font-weight: 600;
-  color: #303133;
+  color: var(--admin-primary);
   margin: 16px 0 8px 0;
+}
+
+.danger-card .stat-value {
+  color: var(--admin-danger);
 }
 
 .stat-trend {
@@ -558,7 +605,7 @@ initPage().catch(error => {
 
 .count {
   font-weight: 600;
-  color: #4a90e2;
+  color: var(--admin-primary);
 }
 
 .filter-card {

@@ -152,26 +152,114 @@ const handleLogin = async () => {
 
 <style scoped>
 .login-page {
+  --admin-primary: #5b7f4a;
+  --admin-primary-dark: #46643a;
+  --admin-primary-deep: #263a2d;
+  --admin-primary-light: #789a65;
+  --admin-primary-soft: #edf4e9;
+  --admin-primary-tint: #d9e5d3;
+  --admin-primary-shadow: rgba(91, 127, 74, 0.24);
+  --admin-ink: #1f2a24;
+  --admin-ink-soft: #546158;
+  --admin-ink-muted: #7c887e;
+  --el-color-primary: #5b7f4a;
+  --el-color-primary-light-3: #789a65;
+  --el-color-primary-light-5: #9bb48d;
+  --el-color-primary-light-7: #c4d5bc;
+  --el-color-primary-light-8: #d9e5d3;
+  --el-color-primary-light-9: #edf4e9;
+  --el-color-primary-dark-2: #46643a;
   min-height: 100dvh;
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(320px, 560px) minmax(320px, 500px);
+  align-content: center;
+  justify-content: center;
+  gap: 0;
+  padding: clamp(22px, 4vw, 58px);
   background:
-    radial-gradient(circle at 18% 20%, rgba(91, 127, 74, 0.14), transparent 24rem),
-    linear-gradient(135deg, #f5f2e9 0%, #ebe7dc 100%);
+    radial-gradient(circle at 18% 16%, rgba(213, 198, 138, 0.22), transparent 26rem),
+    radial-gradient(circle at 88% 82%, rgba(91, 127, 74, 0.12), transparent 24rem),
+    linear-gradient(135deg, #eee7d8 0%, #dcd3bf 100%);
+  overflow: hidden;
+}
+
+.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image:
+    linear-gradient(rgba(77, 62, 38, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77, 62, 38, 0.04) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.login-page::after {
+  content: "";
+  position: absolute;
+  top: clamp(22px, 4vw, 58px);
+  bottom: clamp(22px, 4vw, 58px);
+  left: 50%;
+  width: 28px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 4;
+  background:
+    linear-gradient(90deg, rgba(75, 55, 28, 0.2), rgba(255, 255, 255, 0.12) 44%, rgba(75, 55, 28, 0.18)),
+    linear-gradient(180deg, transparent, rgba(75, 55, 28, 0.15), transparent);
+  filter: blur(0.2px);
 }
 
 .login-left {
-  flex: 1;
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 24% 22%, rgba(213, 198, 138, 0.28), transparent 16rem),
-    linear-gradient(145deg, #203126 0%, #17241d 100%);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  padding: 72px clamp(40px, 7vw, 92px);
-  color: #fffaf0;
+  min-height: min(760px, calc(100dvh - 88px));
+  padding: clamp(44px, 6vw, 78px);
+  color: var(--admin-ink);
+  background:
+    radial-gradient(circle at 22% 20%, rgba(255, 255, 255, 0.82), transparent 17rem),
+    linear-gradient(90deg, rgba(82, 58, 30, 0.05), transparent 11%),
+    linear-gradient(135deg, #fffaf0 0%, #f6efdD 100%);
+  border: 1px solid rgba(91, 74, 42, 0.14);
+  border-right: 0;
+  border-radius: 28px 0 0 28px;
+  box-shadow:
+    -18px 26px 56px rgba(54, 42, 26, 0.2),
+    inset -18px 0 28px rgba(75, 55, 28, 0.08);
+  z-index: 2;
+}
+
+.login-left::before,
+.login-right::before {
+  content: "";
+  position: absolute;
+  inset: 22px 28px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 31px,
+      rgba(91, 74, 42, 0.07) 32px
+    );
+  opacity: 0.34;
+}
+
+.login-left::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  background: linear-gradient(90deg, transparent, rgba(65, 47, 25, 0.12));
+  pointer-events: none;
 }
 
 .login-brand {
@@ -183,7 +271,7 @@ const handleLogin = async () => {
 
 .brand-kicker {
   margin-bottom: 18px;
-  color: rgba(255, 250, 240, 0.56);
+  color: var(--admin-primary-dark);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -196,12 +284,13 @@ const handleLogin = async () => {
   font-size: clamp(40px, 5vw, 64px);
   font-weight: 600;
   line-height: 1.08;
+  color: var(--admin-primary-deep);
   text-wrap: balance;
 }
 
 .login-brand p {
   margin: 18px 0 0;
-  color: rgba(255, 250, 240, 0.82);
+  color: var(--admin-ink-soft);
   font-size: 18px;
   font-weight: 500;
 }
@@ -209,32 +298,32 @@ const handleLogin = async () => {
 .brand-tagline {
   max-width: 30em;
   margin-top: 18px;
-  color: rgba(255, 250, 240, 0.62);
+  color: var(--admin-ink-muted);
   font-size: 14px;
   line-height: 1.8;
 }
 
 .ambient-book {
   position: absolute;
-  right: clamp(28px, 7vw, 110px);
-  bottom: clamp(42px, 8vw, 120px);
-  width: 220px;
-  height: 132px;
-  opacity: 0.18;
-  transform: rotate(-8deg);
+  right: clamp(24px, 5vw, 82px);
+  bottom: clamp(28px, 6vw, 90px);
+  width: 240px;
+  height: 144px;
+  opacity: 0.16;
+  transform: rotate(-7deg);
 }
 
 .ambient-book span {
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(255, 250, 240, 0.42);
+  border: 1px solid rgba(70, 100, 58, 0.42);
   border-radius: 16px 24px 24px 16px;
   transform-origin: left center;
 }
 
 .ambient-book span:last-child {
   transform: rotateY(24deg) translateX(24px);
-  border-left-color: rgba(213, 198, 138, 0.8);
+  border-left-color: rgba(91, 127, 74, 0.7);
 }
 
 .login-features {
@@ -253,8 +342,8 @@ const handleLogin = async () => {
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 250, 240, 0.86);
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--admin-ink-soft);
   font-size: 14px;
   transition:
     transform 0.2s ease,
@@ -262,12 +351,12 @@ const handleLogin = async () => {
 }
 
 .feature-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.66);
   transform: translateX(4px);
 }
 
 .feature-icon {
-  color: #d5c68a;
+  color: var(--admin-primary);
   font-size: 18px;
 }
 
@@ -276,23 +365,48 @@ const handleLogin = async () => {
 }
 
 .login-right {
-  flex: 1;
+  position: relative;
+  min-height: min(760px, calc(100dvh - 88px));
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 44px 24px;
+  padding: clamp(44px, 6vw, 78px) clamp(28px, 5vw, 64px);
+  background:
+    radial-gradient(circle at 82% 18%, rgba(213, 198, 138, 0.18), transparent 14rem),
+    linear-gradient(270deg, rgba(82, 58, 30, 0.05), transparent 12%),
+    linear-gradient(135deg, #fffdf7 0%, #f8f0df 100%);
+  border: 1px solid rgba(91, 74, 42, 0.14);
+  border-left: 0;
+  border-radius: 0 28px 28px 0;
+  box-shadow:
+    18px 26px 56px rgba(54, 42, 26, 0.2),
+    inset 18px 0 28px rgba(75, 55, 28, 0.08);
+  z-index: 2;
+}
+
+.login-right::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  background: linear-gradient(270deg, transparent, rgba(65, 47, 25, 0.1));
+  pointer-events: none;
 }
 
 .login-form-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 420px;
-  padding: 48px 40px;
-  border: 1px solid rgba(63, 78, 64, 0.12);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 24px 60px rgba(46, 57, 43, 0.12);
-  backdrop-filter: blur(18px);
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .login-header {
@@ -330,6 +444,11 @@ const handleLogin = async () => {
 
 .login-form :deep(.el-form-item__label) {
   display: none;
+}
+
+.login-form :deep(.el-input__wrapper) {
+  min-height: 46px;
+  background: rgba(255, 255, 255, 0.74);
 }
 
 .login-btn {
@@ -386,6 +505,8 @@ const handleLogin = async () => {
 }
 
 .login-footer {
+  position: relative;
+  z-index: 1;
   margin-top: 32px;
   color: var(--admin-ink-muted);
   font-size: 13px;
@@ -398,13 +519,25 @@ const handleLogin = async () => {
 
 @media (max-width: 1024px) {
   .login-page {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 720px);
+  }
+
+  .login-page::after {
+    display: none;
   }
 
   .login-left {
     min-height: 280px;
     justify-content: flex-start;
     padding: 40px 24px;
+    border-radius: 24px 24px 0 0;
+    border-right: 1px solid rgba(91, 74, 42, 0.14);
+    border-bottom: 0;
+  }
+
+  .login-left::after,
+  .login-right::after {
+    display: none;
   }
 
   .login-brand {
@@ -417,10 +550,14 @@ const handleLogin = async () => {
 
   .login-right {
     padding: 40px 20px 20px;
+    min-height: auto;
+    border-radius: 0 0 24px 24px;
+    border-left: 1px solid rgba(91, 74, 42, 0.14);
+    border-top: 0;
   }
 
   .login-form-wrapper {
-    padding: 40px 30px;
+    padding: 20px 10px;
   }
 
   .ambient-book {

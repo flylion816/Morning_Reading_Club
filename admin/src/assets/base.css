@@ -1,9 +1,17 @@
 :root {
   --admin-primary: #5b7f4a;
   --admin-primary-dark: #46643a;
+  --admin-primary-deep: #32472b;
+  --admin-primary-light: #789a65;
   --admin-primary-soft: #edf4e9;
+  --admin-primary-tint: #d9e5d3;
   --admin-primary-muted: rgba(91, 127, 74, 0.13);
   --admin-primary-shadow: rgba(91, 127, 74, 0.24);
+  --admin-primary-alpha-08: rgba(91, 127, 74, 0.08);
+  --admin-primary-alpha-12: rgba(91, 127, 74, 0.12);
+  --admin-primary-alpha-16: rgba(91, 127, 74, 0.16);
+  --admin-primary-alpha-24: rgba(91, 127, 74, 0.24);
+  --admin-primary-alpha-40: rgba(91, 127, 74, 0.4);
   --admin-ink: #1f2a24;
   --admin-ink-soft: #546158;
   --admin-ink-muted: #7c887e;
@@ -39,10 +47,10 @@
     monospace;
 
   --el-color-primary: var(--admin-primary);
-  --el-color-primary-light-3: #789a65;
+  --el-color-primary-light-3: var(--admin-primary-light);
   --el-color-primary-light-5: #9bb48d;
   --el-color-primary-light-7: #c4d5bc;
-  --el-color-primary-light-8: #d9e5d3;
+  --el-color-primary-light-8: var(--admin-primary-tint);
   --el-color-primary-light-9: var(--admin-primary-soft);
   --el-color-primary-dark-2: var(--admin-primary-dark);
   --el-border-radius-base: var(--admin-radius-sm);

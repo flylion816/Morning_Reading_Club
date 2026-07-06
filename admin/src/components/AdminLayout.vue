@@ -12,8 +12,10 @@
       </div>
 
       <el-menu
+        ref="sidebarMenuRef"
         :default-active="activeMenu"
         class="sidebar-menu"
+        @scroll.passive="persistSidebarScroll"
         @select="handleMenuSelect"
       >
         <el-menu-item-group
@@ -117,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useTenantStore } from '../stores/tenant';
@@ -155,6 +157,8 @@ const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 const tenantStore = useTenantStore();
+const sidebarMenuRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
+const SIDEBAR_SCROLL_KEY = 'admin_sidebar_scroll_top';
 
 const activeMenu = computed(() => route.path);
 
@@ -252,7 +256,38 @@ const pageSubtitle = computed(() => {
   return subtitles[route.path] || '';
 });
 
+const getSidebarMenuElement = () => {
+  const target = sidebarMenuRef.value as any;
+  return (target?.$el || target) as HTMLElement | null;
+};
+
+const persistSidebarScroll = () => {
+  const element = getSidebarMenuElement();
+  if (!element) return;
+  sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(element.scrollTop));
+};
+
+const scrollActiveMenuIntoView = async () => {
+  await nextTick();
+  const element = getSidebarMenuElement();
+  const activeItem = element?.querySelector('.el-menu-item.is-active') as HTMLElement | null;
+  activeItem?.scrollIntoView({ block: 'nearest' });
+};
+
+const restoreSidebarScroll = async () => {
+  await nextTick();
+  const element = getSidebarMenuElement();
+  if (!element) return;
+
+  const savedTop = Number(sessionStorage.getItem(SIDEBAR_SCROLL_KEY) || 0);
+  if (Number.isFinite(savedTop) && savedTop > 0) {
+    element.scrollTop = savedTop;
+  }
+  await scrollActiveMenuIntoView();
+};
+
 const handleMenuSelect = (index: string) => {
+  persistSidebarScroll();
   // 数据库管理需要二次验证
   if (index === '/database') {
     pendingRoute.value = index;
@@ -274,6 +309,7 @@ const confirmDbAccess = async () => {
     dbAccessVisible.value = false;
     dbAccessPassword.value = '';
     if (pendingRoute.value) {
+      persistSidebarScroll();
       router.push(pendingRoute.value);
     }
   } catch (error: any) {
@@ -302,6 +338,22 @@ const handleLogout = () => {
 const goToProfile = () => {
   router.push('/profile');
 };
+
+onMounted(() => {
+  tenantStore.applyActiveTenantTheme();
+  restoreSidebarScroll();
+});
+
+onBeforeUnmount(() => {
+  persistSidebarScroll();
+});
+
+watch(
+  () => route.path,
+  () => {
+    restoreSidebarScroll();
+  }
+);
 </script>
 
 <style scoped>
@@ -310,7 +362,7 @@ const goToProfile = () => {
   display: flex;
   color: var(--admin-ink);
   background:
-    radial-gradient(circle at top left, rgba(91, 127, 74, 0.08), transparent 34rem),
+    radial-gradient(circle at top left, var(--admin-primary-alpha-08), transparent 34rem),
     var(--admin-page);
 }
 
@@ -426,12 +478,12 @@ const goToProfile = () => {
 
 .sidebar-menu :deep(.el-menu-item.is-active) {
   color: #fffaf0;
-  background: rgba(237, 244, 233, 0.15) !important;
-  box-shadow: inset 3px 0 0 #d5c68a;
+  background: rgba(255, 255, 255, 0.13) !important;
+  box-shadow: inset 3px 0 0 var(--admin-primary-light);
 }
 
 .sidebar-menu :deep(.el-menu-item.is-active .nav-icon) {
-  color: #d5c68a;
+  color: var(--admin-primary-light);
 }
 
 .sidebar-menu :deep(.el-menu-item-group__title) {
@@ -537,7 +589,7 @@ const goToProfile = () => {
 }
 
 .profile-entry:focus-visible {
-  outline: 2px solid rgba(91, 127, 74, 0.42);
+  outline: 2px solid var(--admin-primary-alpha-40);
   outline-offset: 2px;
 }
 

@@ -181,7 +181,7 @@
                 :show-text="false"
                 style="flex:1"
                 :stroke-width="6"
-                color="#4a90e2"
+                :color="tenantStore.activePrimaryColor"
               />
               <span class="scroll-position-pct">{{ opScrollPercent }}%</span>
             </div>
@@ -264,7 +264,7 @@
                     >
                       {{ getInsightUserAvatarText(row) }}
                     </div>
-                    <div class="danmaku-color-dot" :style="{ background: row.color || '#4a90e2' }"></div>
+                    <div class="danmaku-color-dot" :style="{ background: row.color || tenantStore.activePrimaryColor }"></div>
                     <span class="danmaku-nickname">{{ row.userNickname || '匿名' }}</span>
                   </div>
                   <el-tag v-if="row.type === 'like'" size="small" type="danger" style="margin-top:2px">❤️ 点赞</el-tag>
@@ -486,6 +486,7 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { insightApi, periodApi, userApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Insight, User } from '../types/api';
+import { useTenantStore } from '../stores/tenant';
 import {
   getAvatarColorByUserId,
   getLastTextChar,
@@ -493,6 +494,7 @@ import {
 } from '../utils/avatar';
 
 // 数据
+const tenantStore = useTenantStore();
 const selectedPeriodId = ref<string>('');
 const periods = ref<Period[]>([]);
 const insights = ref<Insight[]>([]);
@@ -1258,7 +1260,7 @@ function getTypeColor(type: string) {
 .scroll-position-pct {
   font-size: 12px;
   font-weight: 600;
-  color: #4a90e2;
+  color: var(--admin-primary);
   min-width: 32px;
   text-align: right;
 }
@@ -1318,7 +1320,7 @@ function getTypeColor(type: string) {
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
-  color: #4a90e2;
+  color: #fff;
   flex-shrink: 0;
 }
 .danmaku-top {

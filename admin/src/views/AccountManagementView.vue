@@ -639,19 +639,19 @@ const getAvatarText = (name: string) => {
 .stat-value {
   font-size: 28px;
   font-weight: bold;
-  color: #303133;
+  color: var(--admin-primary);
 }
 
 .stat-value.active {
-  color: #67c23a;
+  color: var(--admin-success);
 }
 
 .stat-value.inactive {
-  color: #f56c6c;
+  color: var(--admin-danger);
 }
 
 .stat-value.superadmin {
-  color: #e6a23c;
+  color: var(--admin-warning);
 }
 
 .filter-actions-bar {
@@ -685,8 +685,8 @@ const getAvatarText = (name: string) => {
 
 .admin-avatar {
   flex: 0 0 40px;
-  background: #dbeafe;
-  color: #3b82f6;
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary-dark);
   font-weight: 600;
   font-size: 15px;
 }

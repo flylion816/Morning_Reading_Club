@@ -297,7 +297,7 @@
 
       <!-- 详情对话框 -->
       <el-dialog v-model="dialogDetail.visible" title="申请详情" width="50%">
-        <el-form :model="dialogDetail.request" label-width="100px">
+        <el-form :model="dialogDetail.request" label-width="132px" class="detail-form">
           <el-form-item label="申请者">
             <span>{{
               typeof dialogDetail.request?.fromUserId === 'object'
@@ -940,20 +940,20 @@ onMounted(() => {
 .stat-value {
   font-size: 32px;
   font-weight: bold;
-  color: #409eff;
+  color: var(--admin-primary);
   margin: 10px 0;
 }
 
 .stat-value.pending {
-  color: #e6a23c;
+  color: var(--admin-warning);
 }
 
 .stat-value.approved {
-  color: #67c23a;
+  color: var(--admin-success);
 }
 
 .stat-value.rejected {
-  color: #f56c6c;
+  color: var(--admin-danger);
 }
 
 .stat-label {

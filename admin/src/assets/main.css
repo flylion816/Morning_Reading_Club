@@ -19,11 +19,11 @@ a:hover {
 
 ::selection {
   color: var(--admin-ink);
-  background: rgba(196, 213, 188, 0.72);
+  background: var(--admin-primary-tint);
 }
 
 :focus-visible {
-  outline: 2px solid rgba(91, 127, 74, 0.46);
+  outline: 2px solid var(--admin-primary-alpha-40);
   outline-offset: 2px;
 }
 
@@ -67,7 +67,7 @@ a:hover {
 
 .el-table {
   --el-table-header-bg-color: rgba(244, 242, 236, 0.82);
-  --el-table-row-hover-bg-color: rgba(237, 244, 233, 0.78);
+  --el-table-row-hover-bg-color: var(--admin-primary-soft);
   color: var(--admin-ink-soft) !important;
   border-radius: var(--admin-radius-sm);
 }
@@ -77,6 +77,17 @@ a:hover {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.el-table th.el-table__cell .cell,
+.el-table td.el-table__cell .cell {
+  word-break: keep-all;
+}
+
+.el-table th.el-table__cell .cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .el-table td.el-table__cell {
@@ -109,7 +120,21 @@ a:hover {
 .el-textarea__inner:focus {
   box-shadow:
     0 0 0 1px var(--admin-primary) inset,
-    0 0 0 3px rgba(91, 127, 74, 0.12) !important;
+    0 0 0 3px var(--admin-primary-alpha-12) !important;
+}
+
+.el-descriptions.is-bordered .el-descriptions__label {
+  width: var(--admin-description-label-width, 132px);
+  min-width: var(--admin-description-label-width, 132px);
+  color: var(--admin-ink-soft);
+  white-space: normal;
+  word-break: keep-all;
+  line-height: 1.45;
+}
+
+.el-descriptions.is-bordered .el-descriptions__content {
+  color: var(--admin-ink);
+  word-break: break-word;
 }
 
 .el-dialog {

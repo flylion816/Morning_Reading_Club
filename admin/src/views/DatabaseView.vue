@@ -929,11 +929,11 @@ defineExpose({ initPage });
 
 .stat strong {
   font-size: 16px;
-  color: #409eff;
+  color: var(--admin-primary);
 }
 
 .mongodb-card :deep(.el-card__header) {
-  border-bottom: 2px solid #409eff;
+  border-bottom: 2px solid var(--admin-primary);
 }
 
 .mysql-card :deep(.el-card__header) {
