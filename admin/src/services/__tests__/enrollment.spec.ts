@@ -45,4 +45,12 @@ describe('Enrollment API', () => {
     const result = enrollmentApi.updateEnrollment('enrollment-001', { status: 'confirmed' });
     expect(result).toBeInstanceOf(Promise);
   });
+
+  it('应该导出 getFormStatistics 方法，并传递期次参数', () => {
+    const result = enrollmentApi.getFormStatistics({ periodId: 'period-001' });
+    expect(result).toBeInstanceOf(Promise);
+    expect(apiClient.get).toHaveBeenCalledWith('/enrollments/form-statistics', {
+      params: { periodId: 'period-001' }
+    });
+  });
 });

@@ -48,6 +48,7 @@ describe('Enrollment Controller', () => {
       findOne: sandbox.stub(),
       findById: sandbox.stub(),
       find: sandbox.stub(),
+      aggregate: sandbox.stub(),
       countDocuments: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
@@ -369,6 +370,88 @@ describe('Enrollment Controller', () => {
 
       expect(res.status.calledWith(400)).to.be.true;
       expect(EnrollmentStub.countDocuments.called).to.be.false;
+    });
+  });
+
+  describe('getEnrollmentFormStatistics - 管理员报名信息统计', () => {
+    it('应该按期次返回报名表维度统计、文本分析和明细', async () => {
+      const periodId = new mongoose.Types.ObjectId();
+      req.query = { periodId: periodId.toString() };
+
+      const rows = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: { _id: new mongoose.Types.ObjectId(), nickname: '小凡', avatarUrl: '' },
+          periodId: { _id: periodId, name: '丰盛之流' },
+          name: '张三',
+          gender: 'male',
+          province: '上海',
+          age: 32,
+          hasReadBook: 'yes',
+          readTimes: 2,
+          commitment: 'yes',
+          referrer: '老王',
+          enrollReason: '希望提升自律和家庭沟通能力',
+          expectation: '期待建立稳定晨读节奏',
+          paymentStatus: 'paid',
+          enrolledAt: new Date('2026-07-01T00:00:00.000Z')
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          userId: { _id: new mongoose.Types.ObjectId(), nickname: '小狮', avatarUrl: '' },
+          periodId: { _id: periodId, name: '丰盛之流' },
+          name: '李四',
+          gender: 'female',
+          province: '浙江',
+          age: 45,
+          hasReadBook: 'no',
+          readTimes: 0,
+          commitment: 'yes',
+          referrer: '',
+          enrollReason: '想改善亲子关系',
+          expectation: '期待被看见并持续打卡',
+          paymentStatus: 'pending',
+          enrolledAt: new Date('2026-07-02T00:00:00.000Z')
+        }
+      ];
+
+      const query = {
+        populate: sandbox.stub(),
+        sort: sandbox.stub()
+      };
+      query.populate.onFirstCall().returns(query);
+      query.populate.onSecondCall().returns(query);
+      query.sort.returns({ lean: sandbox.stub().resolves(rows) });
+      EnrollmentStub.find.returns(query);
+
+      await enrollmentController.getEnrollmentFormStatistics(req, res, next);
+
+      const filter = EnrollmentStub.find.getCall(0).args[0];
+      expect(filter).to.include({ tenantId });
+      expect(filter.periodId.toString()).to.equal(periodId.toString());
+      expect(filter.deleted).to.deep.equal({ $ne: true });
+
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.summary.total).to.equal(2);
+      expect(response.data.gender.items.find(item => item.key === 'male').count).to.equal(1);
+      expect(response.data.gender.items.find(item => item.key === 'female').names).to.deep.equal(['李四']);
+      expect(response.data.ageGroups.items.find(item => item.key === '30-39').count).to.equal(1);
+      expect(response.data.provinces.items.find(item => item.key === '上海').names).to.deep.equal(['张三']);
+      expect(response.data.textAnalysis.enrollReason.keywords[0]).to.have.keys(['word', 'count']);
+      expect(response.data.details[0]).to.include({
+        name: '张三',
+        genderLabel: '男',
+        province: '上海'
+      });
+    });
+
+    it('应该在 periodId 无效时返回400且不查询报名', async () => {
+      req.query = { periodId: 'bad-period-id' };
+
+      await enrollmentController.getEnrollmentFormStatistics(req, res, next);
+
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(EnrollmentStub.find.called).to.be.false;
     });
   });
 

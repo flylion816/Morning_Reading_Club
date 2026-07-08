@@ -15,6 +15,7 @@ const {
   getMyCompletionReports,
   getMyCompletionReportByPeriod,
   getEnrollments,
+  getEnrollmentFormStatistics,
   updateEnrollment,
   deleteEnrollment,
   getActivePeriodsForExternal,
@@ -35,6 +36,7 @@ router.get('/external/users-by-period', publicTenantContext, getUsersByPeriodNam
 
 // ===== 管理员路由（必须放在用户路由前面） =====
 router.get('/reports', adminAuthMiddleware, adminTenantContext, getCompletionReportEnrollments);
+router.get('/form-statistics', adminAuthMiddleware, adminTenantContext, getEnrollmentFormStatistics);
 router.put('/:id/completion-report', adminAuthMiddleware, adminTenantContext, updateCompletionReport);
 router.delete('/:id/completion-report', adminAuthMiddleware, adminTenantContext, deleteCompletionReport);
 router.get('/', adminAuthMiddleware, adminTenantContext, getEnrollments);

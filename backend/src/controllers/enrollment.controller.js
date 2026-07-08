@@ -118,6 +118,210 @@ function toObjectId(id) {
   return new mongoose.Types.ObjectId(id);
 }
 
+const GENDER_LABELS = {
+  male: '男',
+  female: '女',
+  prefer_not_to_say: '不想透露',
+  unknown: '未填写'
+};
+
+const YES_NO_LABELS = {
+  yes: '是',
+  no: '否',
+  unknown: '未填写'
+};
+
+const PAYMENT_STATUS_LABELS = {
+  pending: '待支付',
+  paid: '已支付',
+  refunded: '已退款',
+  free: '免费',
+  unknown: '未填写'
+};
+
+const AGE_GROUPS = [
+  { key: '18-', label: '18岁以下', min: 0, max: 17 },
+  { key: '18-29', label: '18-29岁', min: 18, max: 29 },
+  { key: '30-39', label: '30-39岁', min: 30, max: 39 },
+  { key: '40-49', label: '40-49岁', min: 40, max: 49 },
+  { key: '50-59', label: '50-59岁', min: 50, max: 59 },
+  { key: '60+', label: '60岁及以上', min: 60, max: Infinity }
+];
+
+const TEXT_STOP_WORDS = new Set([
+  '一个', '一些', '以及', '自己', '希望', '期待', '参加', '课程', '晨读', '晨读营',
+  '高效能', '人士', '七个', '习惯', '可以', '能够', '通过', '学习', '提升', '因为',
+  '所以', '这个', '那个', '进行', '一起', '更多', '更好', '想要', '希望能'
+]);
+
+function getLabel(map, value) {
+  return map[value] || map.unknown || value || '未填写';
+}
+
+function getDisplayName(enrollment = {}) {
+  return [enrollment.name, enrollment.userId?.nickname, '未命名']
+    .find(value => typeof value === 'string' && value.trim())
+    .trim();
+}
+
+function getAgeGroup(ageValue) {
+  const age = Number(ageValue);
+  if (!Number.isFinite(age)) {
+    return { key: 'unknown', label: '未填写' };
+  }
+
+  return AGE_GROUPS.find(group => age >= group.min && age <= group.max) ||
+    { key: 'unknown', label: '未填写' };
+}
+
+function makeDistribution(enrollments, { field, labelMap, valueGetter }) {
+  const buckets = new Map();
+
+  enrollments.forEach(enrollment => {
+    const value = valueGetter ? valueGetter(enrollment) : enrollment[field];
+    const key = value?.key || value || 'unknown';
+    const label = value?.label || (labelMap ? getLabel(labelMap, key) : key);
+    const bucket = buckets.get(key) || {
+      key,
+      label,
+      count: 0,
+      percent: 0,
+      names: []
+    };
+
+    bucket.count += 1;
+    bucket.names.push(getDisplayName(enrollment));
+    buckets.set(key, bucket);
+  });
+
+  const total = enrollments.length || 1;
+  return {
+    total: enrollments.length,
+    items: Array.from(buckets.values())
+      .map(item => ({
+        ...item,
+        percent: Number(((item.count / total) * 100).toFixed(1))
+      }))
+      .sort((left, right) => right.count - left.count || String(left.label).localeCompare(String(right.label), 'zh-CN'))
+  };
+}
+
+function normalizeText(text) {
+  return String(text || '')
+    .replace(/[，。！？、；：,.!?;:"“”'‘’（）()【】[\]{}<>《》\s]+/g, ' ')
+    .trim();
+}
+
+function extractKeywords(texts) {
+  const counts = new Map();
+  texts.forEach(text => {
+    const normalized = normalizeText(text);
+    if (!normalized) return;
+
+    normalized.split(/\s+/).forEach(token => {
+      const words = token.match(/[\u4e00-\u9fa5]{2,}|[a-zA-Z]{3,}/g) || [];
+      words.forEach(word => {
+        if (TEXT_STOP_WORDS.has(word)) return;
+        counts.set(word, (counts.get(word) || 0) + 1);
+      });
+    });
+  });
+
+  return Array.from(counts.entries())
+    .map(([word, count]) => ({ word, count }))
+    .sort((left, right) => right.count - left.count || left.word.localeCompare(right.word, 'zh-CN'))
+    .slice(0, 20);
+}
+
+function buildTextAnalysis(enrollments, field) {
+  const samples = enrollments
+    .filter(enrollment => enrollment[field] && String(enrollment[field]).trim())
+    .map(enrollment => ({
+      name: getDisplayName(enrollment),
+      text: String(enrollment[field]).trim(),
+      enrolledAt: enrollment.enrolledAt || enrollment.createdAt || null
+    }))
+    .slice(0, 12);
+
+  return {
+    filledCount: samples.length,
+    keywords: extractKeywords(enrollments.map(enrollment => enrollment[field])),
+    samples
+  };
+}
+
+function formatEnrollmentFormDetail(enrollment = {}) {
+  const period = enrollment.periodId || {};
+  const user = enrollment.userId || {};
+  const ageGroup = getAgeGroup(enrollment.age);
+
+  return {
+    _id: enrollment._id,
+    user: user && user._id ? {
+      _id: user._id,
+      nickname: user.nickname || '',
+      avatarUrl: user.avatarUrl || user.avatar || ''
+    } : null,
+    period: {
+      _id: period._id || enrollment.periodId,
+      name: period.name || period.title || ''
+    },
+    name: enrollment.name || '',
+    phone: enrollment.phone || '',
+    gender: enrollment.gender || '',
+    genderLabel: getLabel(GENDER_LABELS, enrollment.gender || 'unknown'),
+    province: enrollment.province || '',
+    detailedAddress: enrollment.detailedAddress || '',
+    age: enrollment.age || null,
+    ageGroup: ageGroup.label,
+    hasReadBook: enrollment.hasReadBook || '',
+    hasReadBookLabel: getLabel(YES_NO_LABELS, enrollment.hasReadBook || 'unknown'),
+    readTimes: enrollment.readTimes || 0,
+    commitment: enrollment.commitment || '',
+    commitmentLabel: getLabel(YES_NO_LABELS, enrollment.commitment || 'unknown'),
+    referrer: enrollment.referrer || '',
+    enrollReason: enrollment.enrollReason || '',
+    expectation: enrollment.expectation || '',
+    paymentStatus: enrollment.paymentStatus || '',
+    paymentStatusLabel: getLabel(PAYMENT_STATUS_LABELS, enrollment.paymentStatus || 'unknown'),
+    status: enrollment.status || '',
+    enrolledAt: enrollment.enrolledAt || enrollment.createdAt || null
+  };
+}
+
+function buildEnrollmentFormStatistics(enrollments) {
+  const total = enrollments.length;
+  const paidLikeCount = enrollments.filter(item => ['paid', 'free'].includes(item.paymentStatus)).length;
+  const withPhoneCount = enrollments.filter(item => item.phone && String(item.phone).trim()).length;
+  const withReferrerCount = enrollments.filter(item => item.referrer && String(item.referrer).trim()).length;
+  const ages = enrollments
+    .map(item => Number(item.age))
+    .filter(age => Number.isFinite(age));
+
+  return {
+    summary: {
+      total,
+      paidLikeCount,
+      pendingCount: enrollments.filter(item => item.paymentStatus === 'pending').length,
+      withPhoneCount,
+      withReferrerCount,
+      averageAge: ages.length ? Number((ages.reduce((sum, age) => sum + age, 0) / ages.length).toFixed(1)) : null
+    },
+    gender: makeDistribution(enrollments, { field: 'gender', labelMap: GENDER_LABELS }),
+    ageGroups: makeDistribution(enrollments, { valueGetter: enrollment => getAgeGroup(enrollment.age) }),
+    provinces: makeDistribution(enrollments, { valueGetter: enrollment => enrollment.province || '未填写' }),
+    hasReadBook: makeDistribution(enrollments, { field: 'hasReadBook', labelMap: YES_NO_LABELS }),
+    commitment: makeDistribution(enrollments, { field: 'commitment', labelMap: YES_NO_LABELS }),
+    paymentStatus: makeDistribution(enrollments, { field: 'paymentStatus', labelMap: PAYMENT_STATUS_LABELS }),
+    referrers: makeDistribution(enrollments, { valueGetter: enrollment => enrollment.referrer || '无推荐人' }),
+    textAnalysis: {
+      enrollReason: buildTextAnalysis(enrollments, 'enrollReason'),
+      expectation: buildTextAnalysis(enrollments, 'expectation')
+    },
+    details: enrollments.map(formatEnrollmentFormDetail)
+  };
+}
+
 function formatAdminReportEnrollment(enrollment) {
   const period = enrollment.periodId || {};
   const user = enrollment.userId || {};
@@ -1068,6 +1272,47 @@ exports.getEnrollments = async (req, res) => {
   } catch (error) {
     logger.error('Get enrollment list failed', error);
     res.status(500).json(errors.serverError(`获取报名列表失败: ${error.message}`));
+  }
+};
+
+/**
+ * 管理员报名信息统计
+ * GET /api/v1/enrollments/form-statistics?periodId=xxx
+ */
+exports.getEnrollmentFormStatistics = async (req, res) => {
+  try {
+    const tenantId = getRequiredTenantId(res);
+    if (!tenantId) return;
+
+    const { periodId } = req.query;
+    const query = {
+      tenantId,
+      deleted: { $ne: true }
+    };
+
+    if (periodId) {
+      const periodObjectId = toObjectId(periodId);
+      if (!periodObjectId) {
+        return res.status(400).json(errors.badRequest('periodId 格式不正确'));
+      }
+      query.periodId = periodObjectId;
+    }
+
+    const enrollments = await Enrollment.find(query)
+      .populate('userId', 'nickname avatar avatarUrl')
+      .populate('periodId', 'name title')
+      .sort({ enrolledAt: -1, createdAt: -1 })
+      .lean();
+
+    res.json(success({
+      filters: {
+        periodId: periodId || ''
+      },
+      ...buildEnrollmentFormStatistics(enrollments)
+    }));
+  } catch (error) {
+    logger.error('Get enrollment form statistics failed', error);
+    res.status(500).json(errors.serverError(`获取报名信息统计失败: ${error.message}`));
   }
 };
 

@@ -60,8 +60,10 @@
         </div>
       </el-card>
 
-      <!-- 报名列表 -->
-      <el-card>
+      <el-tabs v-model="activeTab" class="enrollment-tabs" @tab-change="handleTabChange">
+        <el-tab-pane label="报名管理" name="list">
+          <!-- 报名列表 -->
+          <el-card>
         <template #header>
           <div class="card-header">
             <span style="font-weight: 600">报名管理</span>
@@ -156,6 +158,184 @@
           />
         </div>
       </el-card>
+        </el-tab-pane>
+
+        <el-tab-pane label="报名信息统计" name="statistics">
+          <el-card class="statistics-card">
+            <template #header>
+              <div class="card-header">
+                <span style="font-weight: 600">报名信息统计</span>
+                <el-tag v-if="statisticsData.summary">样本: {{ statisticsData.summary.total || 0 }}</el-tag>
+              </div>
+            </template>
+
+            <div class="statistics-toolbar">
+              <el-select
+                v-model="statisticsFilters.periodId"
+                placeholder="选择期次后查看统计"
+                filterable
+                style="width: 280px"
+                @change="loadFormStatistics"
+              >
+                <el-option
+                  v-for="period in periodOptions"
+                  :key="period._id"
+                  :label="period.name || period.title"
+                  :value="period._id"
+                />
+              </el-select>
+              <el-button
+                type="primary"
+                :loading="statisticsLoading"
+                :disabled="!statisticsFilters.periodId"
+                @click="loadFormStatistics"
+              >
+                刷新统计
+              </el-button>
+            </div>
+
+            <el-empty
+              v-if="!statisticsFilters.periodId"
+              description="请选择一个期次查看报名信息统计"
+              :image-size="96"
+            />
+
+            <div v-else v-loading="statisticsLoading" class="statistics-content">
+              <div class="metric-grid">
+                <div class="metric-item">
+                  <span class="metric-label">报名总数</span>
+                  <strong>{{ statisticsData.summary?.total || 0 }}</strong>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">已支付/免费</span>
+                  <strong>{{ statisticsData.summary?.paidLikeCount || 0 }}</strong>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">平均年龄</span>
+                  <strong>{{ statisticsData.summary?.averageAge || '-' }}</strong>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">有推荐人</span>
+                  <strong>{{ statisticsData.summary?.withReferrerCount || 0 }}</strong>
+                </div>
+              </div>
+
+              <div class="analysis-grid">
+                <div class="analysis-panel">
+                  <h3>性别分布</h3>
+                  <div v-for="item in statisticsData.gender?.items || []" :key="item.key" class="distribution-row">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.count }}人</strong>
+                    <small>{{ item.names.join('、') || '-' }}</small>
+                  </div>
+                </div>
+                <div class="analysis-panel">
+                  <h3>年龄分布</h3>
+                  <div v-for="item in statisticsData.ageGroups?.items || []" :key="item.key" class="distribution-row">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.count }}人</strong>
+                    <small>{{ item.names.join('、') || '-' }}</small>
+                  </div>
+                </div>
+                <div class="analysis-panel">
+                  <h3>地区分布</h3>
+                  <div v-for="item in statisticsData.provinces?.items || []" :key="item.key" class="distribution-row">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.count }}人</strong>
+                    <small>{{ item.names.join('、') || '-' }}</small>
+                  </div>
+                </div>
+                <div class="analysis-panel">
+                  <h3>阅读经历</h3>
+                  <div v-for="item in statisticsData.hasReadBook?.items || []" :key="item.key" class="distribution-row">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.count }}人</strong>
+                    <small>{{ item.names.join('、') || '-' }}</small>
+                  </div>
+                </div>
+                <div class="analysis-panel">
+                  <h3>承诺全程</h3>
+                  <div v-for="item in statisticsData.commitment?.items || []" :key="item.key" class="distribution-row">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.count }}人</strong>
+                    <small>{{ item.names.join('、') || '-' }}</small>
+                  </div>
+                </div>
+                <div class="analysis-panel">
+                  <h3>支付状态</h3>
+                  <div v-for="item in statisticsData.paymentStatus?.items || []" :key="item.key" class="distribution-row">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.count }}人</strong>
+                    <small>{{ item.names.join('、') || '-' }}</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-analysis-grid">
+                <div class="analysis-panel text-panel">
+                  <h3>缘起分析</h3>
+                  <div class="keyword-list">
+                    <el-tag
+                      v-for="item in statisticsData.textAnalysis?.enrollReason?.keywords || []"
+                      :key="item.word"
+                      size="small"
+                      effect="plain"
+                    >
+                      {{ item.word }} {{ item.count }}
+                    </el-tag>
+                  </div>
+                  <div class="sample-list">
+                    <p v-for="item in statisticsData.textAnalysis?.enrollReason?.samples || []" :key="item.name + item.text">
+                      <strong>{{ item.name }}：</strong>{{ item.text }}
+                    </p>
+                  </div>
+                </div>
+                <div class="analysis-panel text-panel">
+                  <h3>期待分析</h3>
+                  <div class="keyword-list">
+                    <el-tag
+                      v-for="item in statisticsData.textAnalysis?.expectation?.keywords || []"
+                      :key="item.word"
+                      size="small"
+                      effect="plain"
+                    >
+                      {{ item.word }} {{ item.count }}
+                    </el-tag>
+                  </div>
+                  <div class="sample-list">
+                    <p v-for="item in statisticsData.textAnalysis?.expectation?.samples || []" :key="item.name + item.text">
+                      <strong>{{ item.name }}：</strong>{{ item.text }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="details-section">
+                <div class="section-title">报名填写明细</div>
+                <el-table :data="statisticsData.details || []" border stripe style="width: 100%">
+                  <el-table-column label="姓名" prop="name" width="100" fixed />
+                  <el-table-column label="昵称" width="100">
+                    <template #default="{ row }">{{ row.user?.nickname || '-' }}</template>
+                  </el-table-column>
+                  <el-table-column label="性别" prop="genderLabel" width="90" />
+                  <el-table-column label="年龄" prop="age" width="80" />
+                  <el-table-column label="地区" prop="province" width="100" />
+                  <el-table-column label="读过" prop="hasReadBookLabel" width="90" />
+                  <el-table-column label="遍数" prop="readTimes" width="80" />
+                  <el-table-column label="承诺" prop="commitmentLabel" width="90" />
+                  <el-table-column label="推荐人" prop="referrer" width="120" show-overflow-tooltip />
+                  <el-table-column label="缘起" prop="enrollReason" min-width="220" show-overflow-tooltip />
+                  <el-table-column label="期待" prop="expectation" min-width="220" show-overflow-tooltip />
+                  <el-table-column label="支付" prop="paymentStatusLabel" width="100" />
+                  <el-table-column label="报名时间" width="150">
+                    <template #default="{ row }">{{ formatDate(row.enrolledAt) }}</template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+          </el-card>
+        </el-tab-pane>
+      </el-tabs>
 
       <!-- 详情对话框 -->
       <el-dialog v-model="dialogs.detailVisible" title="报名详情" width="600px" @close="resetForm">
@@ -204,7 +384,7 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { enrollmentApi, periodApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -217,6 +397,8 @@ import {
 
 const loading = ref(false);
 const syncingNicknames = ref(false);
+const activeTab = ref('list');
+const statisticsLoading = ref(false);
 
 const filters = ref({
   search: '',
@@ -225,6 +407,24 @@ const filters = ref({
 });
 
 const periodOptions = ref<any[]>([]);
+const statisticsFilters = ref({
+  periodId: ''
+});
+const statisticsData = ref<any>({
+  summary: null,
+  gender: { items: [] },
+  ageGroups: { items: [] },
+  provinces: { items: [] },
+  hasReadBook: { items: [] },
+  commitment: { items: [] },
+  paymentStatus: { items: [] },
+  referrers: { items: [] },
+  textAnalysis: {
+    enrollReason: { keywords: [], samples: [] },
+    expectation: { keywords: [], samples: [] }
+  },
+  details: []
+});
 
 const pagination = ref({
   page: 1,
@@ -285,6 +485,36 @@ async function loadEnrollments() {
 function handleSearch() {
   pagination.value.page = 1;
   loadEnrollments();
+}
+
+function handleTabChange(tabName: string) {
+  if (tabName !== 'statistics') return;
+  if (!statisticsFilters.value.periodId && filters.value.periodId) {
+    statisticsFilters.value.periodId = filters.value.periodId;
+  }
+  if (statisticsFilters.value.periodId) {
+    loadFormStatistics();
+  }
+}
+
+async function loadFormStatistics() {
+  if (!statisticsFilters.value.periodId) return;
+
+  statisticsLoading.value = true;
+  try {
+    const response: any = await enrollmentApi.getFormStatistics({
+      periodId: statisticsFilters.value.periodId
+    });
+    statisticsData.value = {
+      ...statisticsData.value,
+      ...response
+    };
+  } catch (err) {
+    ElMessage.error('加载报名信息统计失败');
+    console.error(err);
+  } finally {
+    statisticsLoading.value = false;
+  }
 }
 
 async function handleSyncNicknames() {
@@ -530,6 +760,132 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
   margin-top: 20px;
 }
 
+.enrollment-tabs {
+  --el-tabs-header-height: 44px;
+}
+
+.statistics-card {
+  min-height: 520px;
+}
+
+.statistics-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.statistics-content {
+  min-height: 360px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.metric-label {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.metric-item strong {
+  color: #1f2937;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.analysis-grid,
+.text-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.text-analysis-grid {
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+}
+
+.analysis-panel {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.analysis-panel h3 {
+  margin: 0 0 12px;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.distribution-row {
+  display: grid;
+  grid-template-columns: 76px 56px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 0;
+  border-top: 1px solid #f1f5f9;
+  color: #374151;
+  font-size: 13px;
+}
+
+.distribution-row:first-of-type {
+  border-top: 0;
+}
+
+.distribution-row small {
+  color: #6b7280;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.keyword-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 28px;
+  margin-bottom: 12px;
+}
+
+.sample-list {
+  max-height: 240px;
+  overflow: auto;
+}
+
+.sample-list p {
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid #f1f5f9;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.details-section {
+  margin-top: 20px;
+}
+
+.section-title {
+  margin-bottom: 12px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -542,6 +898,17 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
 }
 
 @media (max-width: 768px) {
+  .filter-panel,
+  .statistics-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .metric-grid,
+  .analysis-grid,
+  .text-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
   .batch-operation-bar {
     flex-direction: column;
     gap: 12px;
