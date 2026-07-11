@@ -13,4 +13,4 @@
 - [x] 3.1 Run targeted layout and tenant tests.
 - [x] 3.2 Run the full admin test suite and production build.
 - [x] 3.3 Capture and compare representative routes with the login reference.
-- [ ] 3.4 Commit intended changes, push main, deploy production, and verify the live admin URL.
+- [x] 3.4 Commit intended changes, push main, deploy production, and verify the live admin URL.
