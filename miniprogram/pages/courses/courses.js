@@ -10,7 +10,7 @@ const {
 } = require('../../utils/reading-completion');
 const { isAdminUser } = require('../../utils/auth');
 const { THEME_PRIMARY } = require('../../utils/theme');
-const { getBrandName } = require('../../utils/brand');
+const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
 
 // 相对时间格式化（与课程详情页统一）
 function formatTime(dateStr) {
@@ -180,7 +180,7 @@ Page({
       return {
         title,
         path: `/pages/invite/invite?periodId=${periodId}${inviterParam}`,
-        imageUrl: periodCoverImage || '/assets/images/share-default.jpg'
+        imageUrl: periodCoverImage || getDefaultShareImage()
       };
     }
 

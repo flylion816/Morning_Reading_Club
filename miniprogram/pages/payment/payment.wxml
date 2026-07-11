@@ -55,17 +55,24 @@
 
     <!-- 支付方式选择 -->
     <view class="payment-methods">
-      <text class="methods-title">选择支付方式</text>
+      <view class="methods-heading">
+        <text class="methods-title">支付方式</text>
+        <text class="methods-caption">将拉起微信官方收银台完成付款</text>
+      </view>
 
-      <!-- 微信支付 -->
-      <view class="method-item {{paymentMethod === 'wechat' ? 'active' : ''}}"
+      <view class="method-item method-item-wechat {{paymentMethod === 'wechat' ? 'active' : ''}}"
             catchtap="selectPaymentMethod"
             data-method="wechat">
         <view class="method-left">
-          <view class="method-icon wechat">💚</view>
+          <view class="method-icon wechat">
+            <image class="method-icon-image" src="/assets/icons/wechat-pay.svg" mode="aspectFit" />
+          </view>
           <view class="method-info">
-            <text class="method-name">微信支付</text>
-            <text class="method-desc">微信钱包、银行卡、零钱</text>
+            <view class="method-name-row">
+              <text class="method-name">微信支付</text>
+              <text class="method-tag">官方</text>
+            </view>
+            <text class="method-desc">微信钱包 / 银行卡 / 零钱</text>
           </view>
         </view>
         <view class="method-check {{paymentMethod === 'wechat' ? 'checked' : ''}}"></view>
@@ -73,14 +80,14 @@
 
       <!-- 模拟支付（仅开发测试环境显示） -->
       <view wx:if="{{isDevelopment}}"
-            class="method-item {{paymentMethod === 'mock' ? 'active' : ''}}"
+            class="method-item method-item-mock {{paymentMethod === 'mock' ? 'active' : ''}}"
             catchtap="selectPaymentMethod"
             data-method="mock">
         <view class="method-left">
-          <view class="method-icon mock">🧪</view>
+          <view class="method-dev-badge">DEV</view>
           <view class="method-info">
             <text class="method-name">模拟支付（测试用）</text>
-            <text class="method-desc">仅用于开发测试，点击即支付</text>
+            <text class="method-desc">仅开发调试使用，不影响真实支付流程</text>
           </view>
         </view>
         <view class="method-check {{paymentMethod === 'mock' ? 'checked' : ''}}"></view>
@@ -94,7 +101,7 @@
               catchtap="handlePayment"
               disabled="{{!paymentMethod || paying}}"
               loading="{{paying}}">
-        {{paying ? '支付中...' : '确认支付 ¥' + finalAmountDisplay}}
+        {{paying ? '支付中...' : '立即支付 ¥' + finalAmountDisplay}}
       </button>
     </view>
 

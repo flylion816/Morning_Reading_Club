@@ -36,7 +36,8 @@ const {
 } = require('../../utils/podcast-audio');
 const {
   getBrandName,
-  getDefaultShareTitle
+  getDefaultShareTitle,
+  getDefaultShareImage
 } = require('../../utils/brand');
 
 const notificationService =
@@ -266,9 +267,18 @@ function getDateAtDayBoundary(value, endOfDay = false) {
 }
 
 function isPeriodEnded(period = {}, todayDate = new Date()) {
-  const endDate = getDateAtDayBoundary(period.endDate || period.endTime, true);
+  const targetPeriod = period || {};
+  const endDate = getDateAtDayBoundary(targetPeriod.endDate || targetPeriod.endTime, true);
   if (!endDate) return false;
   return todayDate > endDate;
+}
+
+function isPeriodActiveToday(period = {}, todayDate = new Date()) {
+  const targetPeriod = period || {};
+  const startDate = getDateAtDayBoundary(targetPeriod.startDate || targetPeriod.startTime);
+  const endDate = getDateAtDayBoundary(targetPeriod.endDate || targetPeriod.endTime, true);
+  if (!startDate || !endDate) return false;
+  return todayDate >= startDate && todayDate <= endDate;
 }
 
 function getSectionDay(section = {}) {
@@ -325,6 +335,51 @@ function selectFallbackTodaySection(sections = [], options = {}) {
   return candidates.find((section) => !section.isCheckedIn) || candidates[0];
 }
 
+function buildTodayTaskEmptyState(period = null, options = {}) {
+  if (options.noEnrollment) {
+    return {
+      type: 'no-enrollment',
+      icon: '+',
+      coverLabel: '未加入',
+      title: '还没有加入晨读营',
+      description: '加入一期晨读营后，这里会显示每天的晨读与打卡任务。',
+      periodId: '',
+      primaryAction: { text: '选择晨读营', type: 'periods' },
+      secondaryActions: []
+    };
+  }
+
+  if (period && options.periodEnded) {
+    const periodId = period._id || period.id || '';
+    const periodTitle = period.title || period.name || '本期晨读营';
+    return {
+      type: 'period-ended',
+      icon: '✓',
+      coverLabel: '已结营',
+      title: `${periodTitle}已结营`,
+      description: '本期晨读已完成，新营期开启后会更新今日任务。',
+      periodId,
+      primaryAction: options.hasReport
+        ? { text: '查看结营实录', type: 'report' }
+        : null,
+      secondaryActions: [
+        { text: '回看课程', type: 'courses' }
+      ]
+    };
+  }
+
+  return {
+    type: 'no-active-period',
+    icon: '☀',
+    coverLabel: '待开启',
+    title: '暂无今日任务',
+    description: '当前没有进行中的晨读营，新一期开放后会更新。',
+    periodId: '',
+    primaryAction: { text: '看看全部期次', type: 'periods' },
+    secondaryActions: []
+  };
+}
+
 function isMorningReadPromptTime(date = new Date()) {
   const minuteOfDay = date.getHours() * 60 + date.getMinutes();
   return (
@@ -370,6 +425,7 @@ Page({
 
     // 今日课节
     todaySection: null,
+    todayTaskEmptyState: null,
     currentPeriodReport: null,
     showMorningReadPrompt: false,
 
@@ -537,6 +593,7 @@ Page({
         currentPeriodCommunityState: 'locked',
         canUsePaidFeatures: false,
         todaySection: null,
+        todayTaskEmptyState: null,
         currentPeriodReport: null,
         showMorningReadPrompt: false,
         recentCheckins: [],
@@ -750,6 +807,7 @@ Page({
       const enrolledPeriodIds = enrollmentList
         .filter((e) => e.status === 'active' || e.status === 'completed')
         .map((e) => e.periodId?._id || e.periodId);
+      const hasEnrollment = enrolledPeriodIds.length > 0;
       const enrolledPeriods = periodsList.filter((p) =>
         enrolledPeriodIds.includes(p._id)
       );
@@ -759,11 +817,7 @@ Page({
       todayDate.setHours(0, 0, 0, 0);
 
       for (const period of enrolledPeriods) {
-        const startDate = new Date(period.startDate || period.startTime || 0);
-        const endDate = new Date(period.endDate || period.endTime || 0);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-        if (todayDate >= startDate && todayDate <= endDate) {
+        if (isPeriodActiveToday(period, todayDate)) {
           currentPeriod = period;
           break;
         }
@@ -784,12 +838,20 @@ Page({
         const foundPeriod = periodsList.find(
           (p) => p._id === taskRes.periodId || p.id === taskRes.periodId
         );
-        if (foundPeriod) currentPeriod = foundPeriod;
+        if (foundPeriod && isPeriodActiveToday(foundPeriod, todayDate)) {
+          currentPeriod = foundPeriod;
+        }
       }
 
       const currentPeriodId = currentPeriod?._id || currentPeriod?.id || null;
-      const taskPeriodEnded = isPeriodEnded(currentPeriod, todayDate);
-      const shouldUseTodayTask = hasValidTask && !taskPeriodEnded;
+      const currentPeriodActiveToday = isPeriodActiveToday(currentPeriod, todayDate);
+      const periodEnded = isPeriodEnded(currentPeriod, todayDate);
+      const taskMatchesCurrentPeriod =
+        hasValidTask &&
+        (!taskRes.periodId ||
+          String(taskRes.periodId) === String(currentPeriodId || ''));
+      const shouldUseTodayTask =
+        hasValidTask && currentPeriodActiveToday && taskMatchesCurrentPeriod;
 
       // ── Wave 2: 依赖 Wave1 的两个请求并行 ──────────────────────
       const [sectionRes, currentPeriodAccess] = await Promise.all([
@@ -813,7 +875,7 @@ Page({
       const d = new Date();
       const displayDate = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} 全天`;
       const communityEnabled = currentPeriodAccess.canAccessCommunity === true;
-      const periodEnded = isPeriodEnded(currentPeriod, todayDate);
+      let todayTaskEmptyState = null;
 
       if (shouldUseTodayTask && sectionRes) {
         const sectionForShortcut = {
@@ -866,8 +928,8 @@ Page({
             currentPeriod
           )
         };
-      } else if (!shouldUseTodayTask && currentPeriodId) {
-        // 降级方案：进行中期次找未打卡课节；已结束期次固定到结营/最后一天。
+      } else if (currentPeriodActiveToday && currentPeriodId) {
+        // 仅进行中的期次允许兜底找未打卡课节；已结束期次不再伪装成今日任务。
         try {
           const sectionsRes =
             await courseService.getPeriodSections(currentPeriodId);
@@ -911,10 +973,24 @@ Page({
         }
       }
 
+      if (!todaySection) {
+        todayTaskEmptyState = buildTodayTaskEmptyState(currentPeriod, {
+          periodEnded,
+          noEnrollment: !hasEnrollment
+        });
+      }
+
       const paidFeatureAccessEnabled =
         communityEnabled || hasPaidEnrollment(enrollmentList);
       const canLoadReportShortcut =
         !!todaySection?.canShowReportShortcut &&
+        (
+          communityEnabled ||
+          ['paid', 'free'].includes(currentPeriodAccess.paymentStatus || '')
+        );
+      const canLoadEndedPeriodReport =
+        !!todayTaskEmptyState &&
+        todayTaskEmptyState.type === 'period-ended' &&
         (
           communityEnabled ||
           ['paid', 'free'].includes(currentPeriodAccess.paymentStatus || '')
@@ -957,6 +1033,7 @@ Page({
             appendMissing: !homeConfig?.sections
           }),
           todaySection: todaySection || null,
+          todayTaskEmptyState: todayTaskEmptyState || null,
           hasMeeting: !!todaySection,
           meetingId: currentPeriod?.meetingId || '',
           meetingJoinUrl: currentPeriod?.meetingJoinUrl || '',
@@ -966,6 +1043,10 @@ Page({
           this.maybeShowMorningReadPrompt();
           if (canLoadReportShortcut) {
             this.loadCurrentPeriodReport(currentPeriodId);
+          } else if (canLoadEndedPeriodReport) {
+            this.loadCurrentPeriodReport(currentPeriodId, {
+              updateEmptyState: true
+            });
           } else {
             this.setData({ currentPeriodReport: null });
           }
@@ -1047,7 +1128,7 @@ Page({
     this.setData({ showMorningReadPrompt: true });
   },
 
-  async loadCurrentPeriodReport(periodId) {
+  async loadCurrentPeriodReport(periodId, options = {}) {
     if (!periodId || !this.data.canUsePaidFeatures) {
       this.setData({ currentPeriodReport: null });
       return;
@@ -1068,9 +1149,21 @@ Page({
         return String(itemPeriodId || '') === requestKey && item.hasReport === true;
       });
 
-      this.setData({
+      const nextData = {
         currentPeriodReport: report || null
-      });
+      };
+
+      if (options.updateEmptyState && this.data.todayTaskEmptyState?.periodId === requestKey) {
+        nextData.todayTaskEmptyState = buildTodayTaskEmptyState(
+          this.data.currentPeriod,
+          {
+            periodEnded: this.data.todayTaskEmptyState.type === 'period-ended',
+            hasReport: !!report
+          }
+        );
+      }
+
+      this.setData(nextData);
     } catch (error) {
       console.error('加载实录报告入口失败:', error);
       if (this._reportShortcutRequestKey === requestKey) {
@@ -1775,6 +1868,43 @@ Page({
     });
   },
 
+  handleTodayTaskEmptyAction(e) {
+    e.stopPropagation && e.stopPropagation();
+    const action = e.currentTarget.dataset.action;
+    const periodId =
+      this.data.todayTaskEmptyState?.periodId ||
+      this.data.currentPeriod?._id ||
+      this.data.currentPeriod?.id ||
+      '';
+
+    if (action === 'report') {
+      this.handleTodayReportBtnTap(e);
+      return;
+    }
+
+    if (action === 'courses') {
+      if (!periodId) {
+        wx.showToast({ title: '期次信息不存在', icon: 'none' });
+        return;
+      }
+      wx.navigateTo({
+        url: `/pages/courses/courses?periodId=${periodId}`
+      });
+      return;
+    }
+
+    if (action === 'checkins') {
+      this.navigateToCheckinRecords();
+      return;
+    }
+
+    if (action === 'periods') {
+      wx.switchTab({
+        url: '/pages/periods/periods'
+      });
+    }
+  },
+
   handleTodayPodcastPlay() {
     const { todaySection } = this.data;
     if (!todaySection || !todaySection.podcastUrl) return;
@@ -2341,6 +2471,7 @@ Page({
    */
   onShareAppMessage() {
     const { currentPeriod } = this.data;
+    const defaultShareImage = getDefaultShareImage();
     if (currentPeriod && currentPeriod._id) {
       const app = getApp();
       const userId = app.globalData.userInfo && (app.globalData.userInfo._id || app.globalData.userInfo.id);
@@ -2350,13 +2481,13 @@ Page({
       return {
         title,
         path: `/pages/invite/invite?periodId=${currentPeriod._id}${inviterParam}`,
-        imageUrl: currentPeriod.coverImage || '/assets/images/share-default.jpg'
+        imageUrl: currentPeriod.coverImage || defaultShareImage
       };
     }
     return {
       title: getDefaultShareTitle(),
       path: '/pages/index/index?from=share',
-      imageUrl: '/assets/images/share-default.jpg'
+      imageUrl: defaultShareImage
     };
   },
 
@@ -2367,7 +2498,7 @@ Page({
     return {
       title: getDefaultShareTitle(),
       query: '',
-      imageUrl: '/assets/images/share-default.jpg'
+      imageUrl: getDefaultShareImage()
     };
   },
 

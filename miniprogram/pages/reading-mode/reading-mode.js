@@ -15,7 +15,8 @@ const {
 const {
   getBrandName,
   getBrandSlogan,
-  getBrandedTitle
+  getBrandedTitle,
+  getDefaultShareImage
 } = require('../../utils/brand');
 
 const MINI_PROGRAM_CODE_ASSET_PATHS = [
@@ -1320,7 +1321,7 @@ Page({
     return {
       title: getBrandedTitle(this.data.course.title || '读一读'),
       path: `/pages/reading-mode/reading-mode?id=${this.data.sectionId}&periodId=${this.data.periodId}`,
-      imageUrl: '/assets/images/share-default.jpg'
+      imageUrl: getDefaultShareImage()
     };
   }
 });

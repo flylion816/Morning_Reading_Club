@@ -192,8 +192,40 @@
             </view>
           </view>
         </view>
+        <view class="period-card today-task-empty-card" wx:elif="{{todayTaskEmptyState}}">
+          <view class="period-cover today-task-empty-cover">
+            <view class="today-task-empty-mark">{{todayTaskEmptyState.icon}}</view>
+            <text class="period-day">{{todayTaskEmptyState.coverLabel}}</text>
+          </view>
+          <view class="period-info-new today-task-empty-info">
+            <view class="period-title-area today-task-empty-title-area">
+              <view class="period-title-new today-task-empty-title">{{todayTaskEmptyState.title}}</view>
+              <view class="checkin-count-badge today-task-empty-desc">{{todayTaskEmptyState.description}}</view>
+            </view>
+            <view class="checkin-footer today-task-empty-footer">
+              <view class="footer-buttons today-task-empty-actions">
+                <view
+                  wx:if="{{todayTaskEmptyState.primaryAction}}"
+                  class="meeting-btn today-task-empty-primary-btn"
+                  catchtap="handleTodayTaskEmptyAction"
+                  data-action="{{todayTaskEmptyState.primaryAction.type}}">
+                  <text>{{todayTaskEmptyState.primaryAction.text}}</text>
+                  <text class="btn-arrow">→</text>
+                </view>
+                <view
+                  wx:for="{{todayTaskEmptyState.secondaryActions}}"
+                  wx:key="type"
+                  class="checkin-btn today-task-empty-secondary-btn"
+                  catchtap="handleTodayTaskEmptyAction"
+                  data-action="{{item.type}}">
+                  <text>{{item.text}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
         <view class="task-empty" wx:else>
-          <text>暂无进行中的课程</text>
+          <text>暂无今日任务</text>
         </view>
       </view>
 

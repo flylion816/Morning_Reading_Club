@@ -21,7 +21,7 @@ module.exports = {
   },
   "primaryColor": "#448426",
   "logo": "/assets/tenants/starry/logo.png",
-  "shareCover": "/assets/images/share-default.jpg",
+  "shareCover": "/assets/tenants/starry/share-cover.jpg",
   "navBar": {
     "title": "若星生活家",
     "bgColor": "#448426",

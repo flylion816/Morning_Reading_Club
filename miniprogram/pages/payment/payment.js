@@ -115,6 +115,7 @@ Page({
       'enrollmentData.periodTitle': periodTitle || '晨读营课程',
       'enrollmentData.startDate': startDate || '2025-11-10',
       'enrollmentData.endDate': endDate || '2025-12-02',
+      paymentMethod: 'wechat',
       loading: false
     });
     this.updateAmountDisplay(finalAmount);

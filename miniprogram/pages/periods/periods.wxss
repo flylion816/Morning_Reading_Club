@@ -13,19 +13,19 @@
   background:
     radial-gradient(circle at 76% 4%, rgba(255,255,255,0.22) 0, rgba(255,255,255,0) 230rpx),
     linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  padding: 64rpx 36rpx 96rpx;
+  padding: 56rpx 36rpx 56rpx;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  min-height: 230rpx;
+  min-height: 196rpx;
   overflow: hidden;
 }
 
 .banner-text-container {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 10rpx;
   align-items: flex-start;
   text-align: left;
   position: relative;

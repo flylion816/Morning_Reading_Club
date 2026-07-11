@@ -4,7 +4,7 @@ const { calculatePeriodStatus } = require('../../utils/formatters');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { markEnrollmentCacheDirty } = require('../../utils/period-access');
 const { THEME_PRIMARY } = require('../../utils/theme');
-const { getDefaultShareTitle } = require('../../utils/brand');
+const { getDefaultShareTitle, getDefaultShareImage } = require('../../utils/brand');
 
 const SUBSCRIBE_SCENES = ['enrollment_result'];
 
@@ -16,6 +16,11 @@ function getPeriodId(period) {
 function getPeriodName(period) {
   if (!period || typeof period !== 'object') return '';
   return period.name || period.title || '未命名期次';
+}
+
+function getPeriodIcon(period) {
+  if (!period || typeof period !== 'object') return '📚';
+  return period.icon || period.coverEmoji || '📚';
 }
 
 function validateRequiredEnrollmentFields(form) {
@@ -58,6 +63,7 @@ Page({
     periodList: [],
     selectedPeriodIndex: 0,
     selectedPeriodName: '',
+    selectedPeriodIcon: '📚',
 
     // 选项数据
     genderOptions: [
@@ -255,6 +261,7 @@ Page({
         periodList,
         selectedPeriodIndex: selectedIndex,
         selectedPeriodName: getPeriodName(selectedPeriod),
+        selectedPeriodIcon: getPeriodIcon(selectedPeriod),
         periodName: getPeriodName(selectedPeriod),
         selectedPeriodPrice: selectedPeriod.price ? (selectedPeriod.price / 100).toFixed(2).replace(/\.?0+$/, '') : 0,
         selectedPeriodPriceFen: selectedPeriod.price || 0,
@@ -290,6 +297,8 @@ Page({
     this.setData({
       selectedPeriodIndex: index,
       selectedPeriodName: getPeriodName(selectedPeriod),
+      selectedPeriodIcon: getPeriodIcon(selectedPeriod),
+      periodName: getPeriodName(selectedPeriod),
       periodId: getPeriodId(selectedPeriod),
       selectedPeriodPrice: selectedPeriod.price ? (selectedPeriod.price / 100).toFixed(2).replace(/\.?0+$/, '') : 0,
       selectedPeriodPriceFen: selectedPeriod.price || 0,
@@ -661,9 +670,9 @@ Page({
       return {
         title,
         path: `/pages/invite/invite?periodId=${selectedPeriod._id}${inviterParam}`,
-        imageUrl: selectedPeriod.coverImage || '/assets/images/share-default.jpg'
+        imageUrl: selectedPeriod.coverImage || getDefaultShareImage()
       };
     }
-    return { title: getDefaultShareTitle(), path: '/pages/index/index?from=share', imageUrl: '/assets/images/share-default.jpg' };
+    return { title: getDefaultShareTitle(), path: '/pages/index/index?from=share', imageUrl: getDefaultShareImage() };
   }
 });

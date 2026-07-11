@@ -9,7 +9,7 @@ const {
   isFreshOptimisticEnrollmentAccess,
   isPaidStatus
 } = require('../../utils/period-access');
-const { getBrandName, getDefaultShareTitle } = require('../../utils/brand');
+const { getBrandName, getDefaultShareTitle, getDefaultShareImage } = require('../../utils/brand');
 
 const ENROLLMENT_CHECK_CONCURRENCY = 2;
 
@@ -609,14 +609,14 @@ Page({
       return {
         title,
         path: `/pages/invite/invite?periodId=${period._id}${inviterParam}`,
-        imageUrl: period.coverImage || '/assets/images/share-default.jpg'
+        imageUrl: period.coverImage || getDefaultShareImage()
       };
     }
 
     return {
       title: getDefaultShareTitle(),
       path: '/pages/index/index?from=share',
-      imageUrl: '/assets/images/share-default.jpg'
+      imageUrl: getDefaultShareImage()
     };
   },
 
@@ -627,7 +627,7 @@ Page({
     return {
       title: getDefaultShareTitle(),
       query: '',
-      imageUrl: '/assets/images/share-default.jpg'
+      imageUrl: getDefaultShareImage()
     };
   }
 });

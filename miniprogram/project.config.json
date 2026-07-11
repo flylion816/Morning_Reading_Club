@@ -26,12 +26,8 @@
         "type": "folder"
       },
       {
-        "value": "assets/tenants/starry",
+        "value": "assets/tenants/fanren",
         "type": "folder"
-      },
-      {
-        "value": "assets/tenants/fanren/share-cover.jpg",
-        "type": "file"
       }
     ],
     "include": []

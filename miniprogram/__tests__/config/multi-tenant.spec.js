@@ -222,6 +222,7 @@ describe('[MT-2B] brand helper: 品牌文案来自 currentTenant', () => {
     jest.isolateModules(() => {
       jest.doMock('../../config/current-tenant', () => ({
         brandName: '若星生活家',
+        shareCover: '/assets/tenants/starry/share-cover.jpg',
         navBar: { title: '若星生活家' }
       }));
       brand = require('../../utils/brand');
@@ -229,6 +230,7 @@ describe('[MT-2B] brand helper: 品牌文案来自 currentTenant', () => {
 
     expect(brand.getBrandName()).toBe('若星生活家');
     expect(brand.getDefaultShareTitle()).toBe('若星生活家｜每日晨读');
+    expect(brand.getDefaultShareImage()).toBe('/assets/tenants/starry/share-cover.jpg');
     expect(brand.getBrandedTitle('平衡之道')).toBe('平衡之道 - 若星生活家');
   });
 
@@ -242,6 +244,7 @@ describe('[MT-2B] brand helper: 品牌文案来自 currentTenant', () => {
     });
 
     expect(brand.getBrandName()).toBe('凡人共读');
+    expect(brand.getDefaultShareImage()).toBe('/assets/images/share-default.jpg');
   });
 });
 

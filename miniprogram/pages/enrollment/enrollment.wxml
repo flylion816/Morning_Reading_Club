@@ -12,7 +12,7 @@
     <view class="enrollment-header {{selectedPeriodCoverImage ? 'header-with-image' : ''}}">
       <image wx:if="{{selectedPeriodCoverImage}}" src="{{selectedPeriodCoverImage}}" class="header-cover-image" mode="aspectFill" />
       <view wx:if="{{!selectedPeriodCoverImage}}" class="header-content">
-        <view class="header-icon">📚</view>
+        <view class="header-icon">{{selectedPeriodIcon}}</view>
         <view class="header-title">{{periodName}}</view>
         <view class="header-subtitle">填写报名信息</view>
       </view>

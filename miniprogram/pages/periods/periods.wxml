@@ -3,9 +3,8 @@
   <!-- 顶部横幅 -->
   <view class="home-banner">
     <view class="banner-text-container">
-      <text class="banner-eyebrow">{{brandName}}</text>
       <text class="banner-text">晨读营</text>
-      <text class="banner-subtext">按期次跟读，把每天的 15 分钟留下来</text>
+      <text class="banner-subtext">每天 15 分钟，把晨读留在生活里</text>
     </view>
     <view class="banner-orbit banner-orbit-large"></view>
     <view class="banner-orbit banner-orbit-small"></view>

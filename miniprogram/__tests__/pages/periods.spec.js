@@ -25,7 +25,8 @@ jest.mock('../../utils/period-access', () => ({
 
 jest.mock('../../utils/brand', () => ({
   getBrandName: jest.fn(() => '若星生活家'),
-  getDefaultShareTitle: jest.fn(() => '若星生活家')
+  getDefaultShareTitle: jest.fn(() => '若星生活家'),
+  getDefaultShareImage: jest.fn(() => '/assets/tenants/starry/share-cover.jpg')
 }));
 
 describe('periods page', () => {

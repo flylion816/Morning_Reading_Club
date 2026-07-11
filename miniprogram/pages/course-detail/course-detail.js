@@ -13,7 +13,7 @@ const { requireLogin } = require('../../utils/require-login');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
 const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
-const { getBrandName } = require('../../utils/brand');
+const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
 const {
   createPodcastAudioContext,
   setPodcastAudioSource,
@@ -366,7 +366,7 @@ Page({
       return {
         title: `结营视频｜${course.title || '结营词'}`,
         path: `/pages/course-detail/course-detail?id=${courseId}&anchor=closingVideo`,
-        imageUrl: closingVideoShareImagePath || course.closingVideoCoverUrl || '/assets/images/share-default.jpg'
+        imageUrl: closingVideoShareImagePath || course.closingVideoCoverUrl || getDefaultShareImage()
       };
     }
 

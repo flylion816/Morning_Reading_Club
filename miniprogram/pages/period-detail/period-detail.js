@@ -2,7 +2,7 @@
 const courseService = require('../../services/course.service');
 const { formatDateRange, calculatePeriodStatus } = require('../../utils/formatters');
 const { DEFAULT_PRIMARY_COLOR, THEME_PRIMARY } = require('../../utils/theme');
-const { getBrandName, getBrandedTitle } = require('../../utils/brand');
+const { getBrandName, getBrandedTitle, getDefaultShareImage } = require('../../utils/brand');
 
 const LEGACY_FANREN_BLUE = DEFAULT_PRIMARY_COLOR;
 
@@ -178,7 +178,7 @@ Page({
     return {
       title: period ? getBrandedTitle(period.name || period.title) : getBrandName(),
       path: `/pages/period-detail/period-detail?periodId=${this.data.periodId}`,
-      imageUrl: '/assets/images/share-default.jpg'
+      imageUrl: getDefaultShareImage()
     };
   }
 });

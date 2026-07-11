@@ -367,6 +367,100 @@ describe('index page', () => {
     });
   });
 
+  test('should navigate from ended-period task empty actions', () => {
+    pageInstance.setData({
+      currentPeriod: {
+        _id: 'period_resilience'
+      },
+      todayTaskEmptyState: {
+        type: 'period-ended',
+        periodId: 'period_resilience'
+      }
+    });
+
+    pageInstance.handleTodayTaskEmptyAction.call(pageInstance, {
+      stopPropagation: jest.fn(),
+      currentTarget: {
+        dataset: {
+          action: 'courses'
+        }
+      }
+    });
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/courses/courses?periodId=period_resilience'
+    });
+  });
+
+  test('should navigate to all periods from task empty action', () => {
+    wx.switchTab = jest.fn();
+    pageInstance.setData({
+      todayTaskEmptyState: {
+        type: 'no-enrollment'
+      }
+    });
+
+    pageInstance.handleTodayTaskEmptyAction.call(pageInstance, {
+      stopPropagation: jest.fn(),
+      currentTarget: {
+        dataset: {
+          action: 'periods'
+        }
+      }
+    });
+
+    expect(wx.switchTab).toHaveBeenCalledWith({
+      url: '/pages/periods/periods'
+    });
+  });
+
+  test('should show join-period empty state for a user without enrollments', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '小狐狸',
+      signature: '初来乍到'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 0 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_active',
+          title: '韧性之树',
+          name: '韧性之树',
+          startDate: '2000-01-01T00:00:00.000Z',
+          endDate: '2099-12-31T00:00:00.000Z',
+          totalDays: 21
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({ list: [] });
+    courseService.getTodayTask.mockResolvedValue(null);
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: false,
+      communityAccessState: 'locked',
+      paymentStatus: null
+    });
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(courseService.getSectionDetail).not.toHaveBeenCalled();
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    expect(pageInstance.data.currentPeriod).toBe(null);
+    expect(pageInstance.data.todaySection).toBe(null);
+    expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
+      type: 'no-enrollment',
+      coverLabel: '未加入',
+      title: '还没有加入晨读营',
+      description: '加入一期晨读营后，这里会显示每天的晨读与打卡任务。',
+      primaryAction: {
+        text: '选择晨读营',
+        type: 'periods'
+      },
+      secondaryActions: []
+    });
+  });
+
   test('should fetch checkin detail when recent card is missing sectionId', async () => {
     checkinService.getCheckinDetail.mockResolvedValue({
       _id: 'checkin_2',
@@ -735,7 +829,7 @@ describe('index page', () => {
     expect(pageInstance.data.recentCheckins).toHaveLength(1);
   });
 
-  test('should fallback to closing section after the current period has ended', async () => {
+  test('should show ended-period empty state after the current period has ended', async () => {
     userService.getUserProfile.mockResolvedValue({
       _id: 'user_123',
       nickname: '小狐狸',
@@ -806,11 +900,19 @@ describe('index page', () => {
     await pageInstance.loadUserData.call(pageInstance, true);
     await new Promise(resolve => setImmediate(resolve));
 
-    expect(pageInstance.data.todaySection).toMatchObject({
-      _id: 'section_day_21',
-      day: 21,
-      title: '结营词',
-      canShowReportShortcut: true
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    expect(pageInstance.data.todaySection).toBe(null);
+    expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
+      type: 'period-ended',
+      title: '韧性之树已结营',
+      periodId: 'period_resilience',
+      primaryAction: {
+        text: '查看结营实录',
+        type: 'report'
+      },
+      secondaryActions: [
+        { text: '回看课程', type: 'courses' }
+      ]
     });
     expect(pageInstance.data.currentPeriodReport).toMatchObject({
       periodId: 'period_resilience',
@@ -888,12 +990,16 @@ describe('index page', () => {
     insightService.getReceivedRequests.mockResolvedValue([]);
 
     await pageInstance.loadUserData.call(pageInstance, true);
+    await new Promise(resolve => setImmediate(resolve));
 
     expect(courseService.getSectionDetail).not.toHaveBeenCalled();
-    expect(pageInstance.data.todaySection).toMatchObject({
-      _id: 'section_day_21',
-      day: 21,
-      title: '结营词'
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    expect(pageInstance.data.todaySection).toBe(null);
+    expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
+      type: 'period-ended',
+      title: '韧性之树已结营',
+      periodId: 'period_resilience',
+      primaryAction: null
     });
   });
 

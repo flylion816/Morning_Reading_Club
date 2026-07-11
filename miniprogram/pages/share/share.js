@@ -1,4 +1,4 @@
-const { getBrandName, getDefaultShareTitle } = require('../../utils/brand');
+const { getBrandName, getDefaultShareTitle, getDefaultShareImage } = require('../../utils/brand');
 
 Page({
   data: {
@@ -15,7 +15,7 @@ Page({
     return {
       title: getDefaultShareTitle(),
       path: '/pages/index/index?from=share',
-      imageUrl: '/assets/images/share-default.jpg'
+      imageUrl: getDefaultShareImage()
     };
   }
 });

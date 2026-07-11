@@ -4,6 +4,7 @@ const DEFAULT_BRAND_NAME = '晨读营';
 const DEFAULT_COURSE_NAME = '《高效能人士的七个习惯》';
 const DEFAULT_SLOGAN = '一个早起、读书、谈心的地方';
 const DEFAULT_SHARE_TOPIC = '每日晨读';
+const DEFAULT_SHARE_IMAGE = '/assets/images/share-default.jpg';
 
 function getBrandName() {
   return String(currentTenant.brandName || currentTenant.navBar?.title || DEFAULT_BRAND_NAME).trim() || DEFAULT_BRAND_NAME;
@@ -22,6 +23,10 @@ function getDefaultShareTitle(topic = DEFAULT_SHARE_TOPIC) {
   return `${getBrandName()}｜${safeTopic}`;
 }
 
+function getDefaultShareImage() {
+  return String(currentTenant.shareCover || '').trim() || DEFAULT_SHARE_IMAGE;
+}
+
 function getBrandedTitle(title, separator = ' - ') {
   const safeTitle = String(title || '').trim();
   return safeTitle ? `${safeTitle}${separator}${getBrandName()}` : getBrandName();
@@ -32,9 +37,11 @@ module.exports = {
   DEFAULT_COURSE_NAME,
   DEFAULT_SLOGAN,
   DEFAULT_SHARE_TOPIC,
+  DEFAULT_SHARE_IMAGE,
   getBrandName,
   getCourseName,
   getBrandSlogan,
   getDefaultShareTitle,
+  getDefaultShareImage,
   getBrandedTitle
 };
