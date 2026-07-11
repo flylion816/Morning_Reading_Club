@@ -1,0 +1,6 @@
+interface:
+  display_name: "更新管理员指南"
+  short_description: "按租户品牌刷新管理员指南内容、截图与移动端体验检查。"
+  default_prompt: "使用 $refresh-admin-guide 更新 fanren 和 starry 的管理员指南，并完成截图、脱敏和响应式验证。"
+policy:
+  allow_implicit_invocation: true
