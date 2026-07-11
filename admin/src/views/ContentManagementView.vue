@@ -1181,7 +1181,7 @@ onBeforeUnmount(() => {
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--admin-ink);
   padding-bottom: 12px;
   border-bottom: 1px solid #ebeef5;
   margin-bottom: 16px;

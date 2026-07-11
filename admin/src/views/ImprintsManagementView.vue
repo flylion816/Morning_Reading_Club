@@ -585,7 +585,7 @@ onMounted(() => {
 .cell-title {
   font-weight: 500;
   font-size: 14px;
-  color: #333;
+  color: var(--admin-ink);
 }
 
 .cell-desc {

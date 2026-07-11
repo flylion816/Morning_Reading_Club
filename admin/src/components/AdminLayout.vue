@@ -6,8 +6,9 @@
           <img src="/logo.png" class="sidebar-logo" alt="晨读营管理后台" />
         </div>
         <div class="brand-copy">
+          <span class="brand-eyebrow">Morning Reading</span>
           <h2>{{ tenantStore.displayName }}</h2>
-          <p>晨读营运营台</p>
+          <p>晨读营运营手册</p>
         </div>
       </div>
 
@@ -53,6 +54,10 @@
       <el-header class="admin-header">
         <div class="header-content">
           <div class="header-title">
+            <div class="chapter-kicker">
+              <span>{{ pageNumber }}</span>
+              {{ pageSection }}
+            </div>
             <h3>{{ pageTitle }}</h3>
             <p v-if="pageSubtitle">{{ pageSubtitle }}</p>
           </div>
@@ -77,7 +82,11 @@
       </el-header>
 
       <el-main class="admin-content">
-        <slot />
+        <div class="reading-workspace">
+          <div class="workspace-paper">
+            <slot />
+          </div>
+        </div>
       </el-main>
     </el-container>
 
@@ -256,6 +265,22 @@ const pageSubtitle = computed(() => {
   return subtitles[route.path] || '';
 });
 
+const currentMenuEntry = computed(() => {
+  for (const group of visibleMenuGroups.value) {
+    const itemIndex = group.items.findIndex(item => item.index === route.path);
+    if (itemIndex >= 0) return { group, itemIndex };
+  }
+  return null;
+});
+
+const pageSection = computed(() => currentMenuEntry.value?.group.title || '管理后台');
+
+const pageNumber = computed(() => {
+  const visibleItems = visibleMenuGroups.value.flatMap(group => group.items);
+  const itemIndex = visibleItems.findIndex(item => item.index === route.path);
+  return String(itemIndex >= 0 ? itemIndex + 1 : 1).padStart(2, '0');
+});
+
 const getSidebarMenuElement = () => {
   const target = sidebarMenuRef.value as any;
   return (target?.$el || target) as HTMLElement | null;
@@ -360,10 +385,13 @@ watch(
 .admin-layout {
   height: 100dvh;
   display: flex;
+  padding: 14px;
   color: var(--admin-ink);
   background:
-    radial-gradient(circle at top left, var(--admin-primary-alpha-08), transparent 34rem),
-    var(--admin-page);
+    linear-gradient(var(--admin-canvas-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--admin-canvas-line) 1px, transparent 1px),
+    var(--admin-canvas);
+  background-size: 36px 36px;
 }
 
 .admin-sidebar {
@@ -376,6 +404,8 @@ watch(
   box-shadow: 12px 0 34px rgba(31, 42, 36, 0.16);
   position: relative;
   z-index: 2;
+  border-radius: var(--admin-radius-md) 0 0 var(--admin-radius-md);
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -390,7 +420,7 @@ watch(
 .brand-mark {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: var(--admin-radius-md);
   background: rgba(255, 255, 255, 0.08);
   display: grid;
   place-items: center;
@@ -408,6 +438,16 @@ watch(
   min-width: 0;
 }
 
+.brand-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: rgba(246, 243, 233, 0.46);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .sidebar-header h2 {
   margin: 0;
   color: #f6f3e9;
@@ -420,7 +460,7 @@ watch(
 }
 
 .brand-copy p {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: rgba(246, 243, 233, 0.58);
   font-size: 12px;
   font-weight: 500;
@@ -450,7 +490,7 @@ watch(
   line-height: 40px;
   margin: 2px 0;
   padding: 0 12px !important;
-  border-radius: 10px;
+  border-radius: var(--admin-radius-md);
   font-size: 14px;
   font-weight: 500;
   transition:
@@ -505,7 +545,7 @@ watch(
   justify-content: flex-start;
   color: rgba(246, 243, 233, 0.72) !important;
   padding: 9px 10px !important;
-  border-radius: 10px !important;
+  border-radius: var(--admin-radius-md) !important;
 }
 
 .logout-button:hover {
@@ -517,14 +557,23 @@ watch(
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-paper-border);
+  border-left: 0;
+  border-radius: 0 var(--admin-radius-md) var(--admin-radius-md) 0;
+  background: var(--admin-paper);
+  box-shadow:
+    18px 24px 48px rgba(55, 45, 31, 0.16),
+    inset 18px 0 28px rgba(75, 55, 28, 0.055);
 }
 
 .admin-header {
-  background: rgba(255, 255, 255, 0.83);
-  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-paper-header);
+  border-bottom: 1px solid var(--admin-paper-divider);
   padding: 0;
   height: 72px;
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -545,6 +594,24 @@ watch(
   font-size: 20px;
   font-weight: 600;
   line-height: 1.25;
+}
+
+.chapter-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--admin-primary-dark);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.chapter-kicker span {
+  min-width: 25px;
+  color: var(--admin-primary);
+  font-family: var(--admin-font-number);
+  font-size: 10px;
 }
 
 .header-title p {
@@ -574,7 +641,7 @@ watch(
   background: rgba(255, 255, 255, 0.54);
   padding: 4px 9px 4px 4px;
   margin: 0;
-  border-radius: 12px;
+  border-radius: var(--admin-radius-md);
   color: var(--admin-ink-soft);
   transition:
     background-color 0.18s ease,
@@ -594,7 +661,7 @@ watch(
 }
 
 .profile-avatar {
-  border-radius: 10px !important;
+  border-radius: var(--admin-radius-md) !important;
   background: var(--admin-primary-soft) !important;
   color: var(--admin-primary-dark) !important;
 }
@@ -607,13 +674,27 @@ watch(
 
 .admin-content {
   flex: 1;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.32) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
-    var(--admin-page);
-  background-size: 42px 42px;
+  background: var(--admin-paper);
   overflow: auto;
   padding: 0;
+}
+
+.reading-workspace {
+  min-height: 100%;
+  padding: 24px 28px 40px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 35px,
+      var(--admin-paper-rule) 36px
+    );
+}
+
+.workspace-paper {
+  width: min(100%, 1560px);
+  min-height: calc(100dvh - 152px);
+  margin: 0 auto;
 }
 
 .db-access-form {
@@ -657,6 +738,10 @@ watch(
   .header-content {
     padding: 0 20px;
   }
+
+  .reading-workspace {
+    padding-inline: 20px;
+  }
 }
 
 @media (max-width: 860px) {
@@ -664,27 +749,123 @@ watch(
     display: block;
     height: auto;
     min-height: 100dvh;
+    padding: 0;
   }
 
   .admin-sidebar {
     width: 100%;
-    min-height: auto;
+    height: 78px;
+    min-height: 78px;
+    display: grid;
+    grid-template-columns: minmax(190px, auto) minmax(0, 1fr) 52px;
+    align-items: stretch;
+    border-radius: 0;
+    box-shadow: 0 10px 28px rgba(31, 42, 36, 0.14);
+  }
+
+  .sidebar-header {
+    padding: 12px 16px;
+    border-right: 1px solid rgba(255, 255, 255, 0.09);
+    border-bottom: 0;
   }
 
   .sidebar-menu {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-height: none;
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+  }
+
+  .sidebar-menu :deep(.el-menu-item-group),
+  .sidebar-menu :deep(.el-menu-item-group > ul) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sidebar-menu :deep(.el-menu-item-group__title) {
+    display: none;
+  }
+
+  .sidebar-menu :deep(.el-menu-item) {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  .sidebar-footer {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-height: 360px;
+    place-items: center;
+    padding: 8px;
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.09);
+  }
+
+  .logout-button {
+    width: 36px;
+    min-height: 36px;
+    justify-content: center;
+    padding: 0 !important;
+  }
+
+  .logout-button span {
+    display: none;
   }
 
   .admin-header {
     height: auto;
   }
 
+  .admin-main {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   .header-content {
     align-items: flex-start;
     flex-direction: column;
     padding: 16px;
+  }
+
+  .header-right {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .reading-workspace {
+    padding: 18px 14px 32px;
+  }
+
+  .workspace-paper {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-sidebar {
+    grid-template-columns: 82px minmax(0, 1fr) 48px;
+  }
+
+  .sidebar-header {
+    justify-content: center;
+    padding-inline: 12px;
+  }
+
+  .brand-copy {
+    display: none;
+  }
+
+  .header-title h3 {
+    font-size: 18px;
+  }
+
+  .user-name {
+    display: none;
   }
 }
 </style>

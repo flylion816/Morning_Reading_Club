@@ -19,20 +19,21 @@ describe('AdminLayout - 管理后台布局组件', () => {
   const mountLayout = () => mount(AdminLayout, {
     global: {
       plugins: [pinia, router],
-      stubs: [
-        'el-container',
-        'el-aside',
-        'el-menu',
-        'el-menu-item-group',
-        'el-menu-item',
-        'el-main',
-        'el-header',
-        'el-button',
-        'el-avatar',
-        'el-dialog',
-        'el-input',
-        'el-icon'
-      ]
+      stubs: {
+        'el-container': { template: '<div><slot /></div>' },
+        'el-aside': { template: '<aside><slot /></aside>' },
+        'el-menu': { template: '<nav><slot /></nav>' },
+        'el-menu-item-group': { template: '<section><slot /></section>' },
+        'el-menu-item': { template: '<a><slot /></a>' },
+        'el-main': { template: '<main><slot /></main>' },
+        'el-header': { template: '<header><slot /></header>' },
+        'el-button': { template: '<button><slot /></button>' },
+        'el-avatar': { template: '<span><slot /></span>' },
+        'el-dialog': { template: '<div><slot /></div>' },
+        'el-input': true,
+        'el-icon': { template: '<i><slot /></i>' },
+        TenantSwitcher: true
+      }
     }
   });
 
@@ -59,6 +60,17 @@ describe('AdminLayout - 管理后台布局组件', () => {
 
   // ============ 页面标题计算 (3 个) ============
   describe('页面标题计算', () => {
+    it('[Frame-1] 应该使用晨读会工作台框架并显示章节眉题', async () => {
+      await router.push('/analytics');
+      await router.isReady();
+
+      const wrapper = mountLayout();
+
+      expect(wrapper.find('.reading-workspace').exists()).toBe(true);
+      expect(wrapper.find('.workspace-paper').exists()).toBe(true);
+      expect(wrapper.find('.chapter-kicker').text()).toContain('数据看板');
+    });
+
     it('[Title-1] 默认路由的页面标题应该是"仪表板：现在要做什么"', async () => {
       await router.push('/');
       await router.isReady();

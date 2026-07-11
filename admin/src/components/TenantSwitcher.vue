@@ -78,7 +78,7 @@ onMounted(loadTenants);
   min-height: 36px;
   padding: 3px 4px 3px 10px;
   border: 1px solid var(--admin-border);
-  border-radius: 12px;
+  border-radius: var(--admin-radius-md);
   background: rgba(255, 255, 255, 0.62);
 }
 

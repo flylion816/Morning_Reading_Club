@@ -470,7 +470,7 @@ function getPaymentAvatarColor(row: Payment): string {
   color: var(--admin-danger);
   background: rgba(185, 76, 67, 0.08);
   border: 1px solid rgba(185, 76, 67, 0.16);
-  border-radius: 12px;
+  border-radius: var(--admin-radius-md);
   font-size: 13px;
   font-weight: 500;
 }
@@ -488,7 +488,7 @@ function getPaymentAvatarColor(row: Payment): string {
   display: block;
   text-align: left;
   border: 1px solid var(--admin-border);
-  border-radius: 16px;
+  border-radius: var(--admin-radius-md);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(250, 249, 244, 0.92)),
     var(--admin-surface);
@@ -531,7 +531,7 @@ function getPaymentAvatarColor(row: Payment): string {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--admin-radius-md);
   color: var(--admin-primary-dark);
   background: var(--admin-primary-soft);
 }
@@ -611,7 +611,7 @@ function getPaymentAvatarColor(row: Payment): string {
   text-align: left;
   padding: 18px;
   border: 1px solid var(--admin-border);
-  border-radius: 12px;
+  border-radius: var(--admin-radius-md);
   background: rgba(255, 255, 255, 0.62);
   color: inherit;
   cursor: pointer;

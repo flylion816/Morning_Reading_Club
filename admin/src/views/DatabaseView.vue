@@ -924,7 +924,7 @@ defineExpose({ initPage });
 
 .stat {
   font-size: 14px;
-  color: #333;
+  color: var(--admin-ink);
 }
 
 .stat strong {

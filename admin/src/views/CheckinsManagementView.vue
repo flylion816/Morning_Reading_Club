@@ -980,7 +980,7 @@ onMounted(() => {
 
     .card-title {
       font-weight: bold;
-      color: #333;
+      color: var(--admin-ink);
     }
   }
 
@@ -1033,7 +1033,7 @@ onMounted(() => {
     .user-info {
       .user-name {
         font-weight: 500;
-        color: #333;
+        color: var(--admin-ink);
       }
 
       .user-id {
@@ -1055,7 +1055,7 @@ onMounted(() => {
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.6;
-      color: #333;
+      color: var(--admin-ink);
     }
   }
 
@@ -1143,7 +1143,7 @@ onMounted(() => {
   justify-content: space-between;
   padding: 0 16px;
   font-size: 10px;
-  color: #333;
+  color: var(--admin-ink);
   border-bottom: 1px solid #e0e0e0;
 }
 

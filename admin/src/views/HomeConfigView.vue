@@ -244,8 +244,8 @@ onMounted(loadConfig);
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: #eef4ff;
-  color: #3b6ed6;
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary-dark);
   font-weight: 600;
 }
 
@@ -254,7 +254,7 @@ onMounted(loadConfig);
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  color: #333;
+  color: var(--admin-ink);
 }
 
 .section-icon {
