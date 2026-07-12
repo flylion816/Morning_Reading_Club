@@ -438,6 +438,10 @@ describe('Enrollment Controller', () => {
       expect(response.data.ageGroups.items.find(item => item.key === '30-39').count).to.equal(1);
       expect(response.data.provinces.items.find(item => item.key === '上海').names).to.deep.equal(['张三']);
       expect(response.data.textAnalysis.enrollReason.keywords[0]).to.have.keys(['word', 'count']);
+      expect(response.data.textAnalysis.enrollReason.keywords.map(item => item.word))
+        .to.include.members(['自律', '家庭', '沟通']);
+      expect(response.data.textAnalysis.enrollReason.keywords.map(item => item.word))
+        .to.not.include('希望提升自律和家庭沟通能力');
       expect(response.data.details[0]).to.include({
         name: '张三',
         genderLabel: '男',
@@ -452,6 +456,28 @@ describe('Enrollment Controller', () => {
 
       expect(res.status.calledWith(400)).to.be.true;
       expect(EnrollmentStub.find.called).to.be.false;
+    });
+
+    it('应该返回实际填写人数而不是被截断的样本数', async () => {
+      const rows = Array.from({ length: 13 }, (_, index) => ({
+        _id: new mongoose.Types.ObjectId(),
+        name: `学员${index + 1}`,
+        enrollReason: `报名缘起${index + 1}`
+      }));
+      const query = {
+        populate: sandbox.stub(),
+        sort: sandbox.stub()
+      };
+      query.populate.onFirstCall().returns(query);
+      query.populate.onSecondCall().returns(query);
+      query.sort.returns({ lean: sandbox.stub().resolves(rows) });
+      EnrollmentStub.find.returns(query);
+
+      await enrollmentController.getEnrollmentFormStatistics(req, res, next);
+
+      const response = res.json.getCall(0).args[0];
+      expect(response.data.textAnalysis.enrollReason.samples).to.have.length(12);
+      expect(response.data.textAnalysis.enrollReason.filledCount).to.equal(13);
     });
   });
 

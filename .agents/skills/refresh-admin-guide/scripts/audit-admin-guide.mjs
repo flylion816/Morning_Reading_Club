@@ -57,6 +57,7 @@ const hardcodedVersions = [...guide.matchAll(/[?&]v=([0-9]{8}-[0-9]{4})/g)].map(
 assert.ok(hardcodedVersions.length > 0, 'guide must version hardcoded social-preview images');
 assert.ok(hardcodedVersions.every((version) => version === assetVersion[1]), 'hardcoded image versions must match assetVersion');
 assert.match(guide, /document\.documentElement\.dataset\.tenant\s*=\s*imageSlug/, 'theme slug must follow the validated screenshot slug');
+assert.doesNotMatch(guide, /params\.get\(['"]brand(?:Name)?['"]\)/, 'brand name must derive only from the validated tenant slug');
 assert.match(guide, /class="mobile-section-nav"/, 'mobile section navigation is missing');
 assert.match(guide, /@media\(max-width:900px\)[\s\S]*?\.nav-group\{display:none\}/, 'desktop navigation must collapse on mobile');
 assert.match(guide, /@media\(max-width:900px\)[\s\S]*?\.shot\{[^}]*min-width:760px/, 'mobile screenshots must remain readable in a scroll frame');

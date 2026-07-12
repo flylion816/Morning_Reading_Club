@@ -12,6 +12,8 @@ jest.mock('../../config/env', () => ({
   currentEnv: 'test'
 }));
 
+const currentTenant = require('../../config/current-tenant');
+
 describe('insight-detail poster rendering', () => {
   let pageConfig;
   let pageInstance;
@@ -135,7 +137,7 @@ describe('insight-detail poster rendering', () => {
     expect(content).toContain('秩序之锚');
     expect(content).toContain('第一段重点');
     expect(content).toContain('第二段&符号');
-    expect(content).toContain('By 小凡@凡人学堂');
+    expect(content).toContain(`By 小凡@${currentTenant.brandName}`);
   });
 
   test('should sanitize txt share file names', () => {

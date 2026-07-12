@@ -24,4 +24,11 @@ describe('EnrollmentsView', () => {
     expect(source).toContain('期待分析');
     expect(source).toContain('报名填写明细');
   });
+
+  it('guards statistics results against stale period requests', () => {
+    expect(source).toContain('const requestedPeriodId = statisticsFilters.value.periodId');
+    expect(source).toContain('const requestId = ++statisticsRequestId');
+    expect(source).toContain('requestId !== statisticsRequestId');
+    expect(source).toContain('requestedPeriodId !== statisticsFilters.value.periodId');
+  });
 });

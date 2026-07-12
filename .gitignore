@@ -26,6 +26,7 @@ miniprogram/miniprogram_npm/
 # 临时文件
 .tmp/
 .temp/
+tmp/
 
 # IDE 配置
 .vscode/

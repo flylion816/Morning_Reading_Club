@@ -4,6 +4,7 @@ const {
   richContentToPlainText,
   isLikelyHtml
 } = require('../../utils/markdown');
+const currentTenant = require('../../config/current-tenant');
 
 describe('markdown utils', () => {
   test('should render markdown to rich-text friendly html', () => {
@@ -84,12 +85,12 @@ describe('markdown utils', () => {
     const rendered = renderInsightRichTextContent(content);
 
     expect(rendered).toContain('font-size:22px');
-    expect(rendered).toContain('border-left:4px solid #4a90e2');
+    expect(rendered).toContain(`border-left:4px solid ${currentTenant.primaryColor}`);
     expect(rendered).toContain('筷筷在凡人晨读中的分享');
     expect(rendered).toContain('background:#e8edf3');
     expect(rendered).toContain('margin:34px 0 22px');
     expect(rendered).toContain('font-size:22px');
-    expect(rendered).toContain('color:#2f7ed8');
+    expect(rendered).toContain(`color:${currentTenant.primaryColor}`);
     expect(rendered).toContain('<strong style="color:#168c91;font-weight:800;">真实与勇敢</strong>');
   });
 });

@@ -12,6 +12,8 @@
  */
 
 const { validateTenant } = require('../../config/tenants/_schema');
+const committedTenant = require('../../config/current-tenant');
+const committedProjectConfig = require('../../../project.config.json');
 
 const VALID_CONFIG = {
   slug: 'fanren',
@@ -28,6 +30,14 @@ const VALID_CONFIG = {
   subscribeTemplates: { enrollment_result: 'TPL_001' },
   apiBaseUrl: null
 };
+
+describe('[MT-0] 仓库默认租户构建态', () => {
+  test('提交到仓库的默认配置保持为 fanren', () => {
+    expect(committedTenant.slug).toBe('fanren');
+    expect(committedTenant.wxAppId).toBe(VALID_CONFIG.wxAppId);
+    expect(committedProjectConfig.appid).toBe(VALID_CONFIG.wxAppId);
+  });
+});
 
 // ─────────────────────────────────────────────────────────
 // MT-1: 校验逻辑

@@ -59,7 +59,7 @@
         "type": "folder"
       },
       {
-        "value": "assets/tenants/fanren",
+        "value": "assets/tenants/starry",
         "type": "folder"
       },
       {
@@ -87,7 +87,7 @@
         "type": "folder"
       },
       {
-        "value": "miniprogram/assets/tenants/fanren",
+        "value": "miniprogram/assets/tenants/starry",
         "type": "folder"
       }
     ],
@@ -137,7 +137,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.11.1",
-  "appid": "wx9cd59e2c89880289",
+  "appid": "wx2b9a3c1d5e4195f8",
   "projectname": "morning-reading-miniapp",
   "isGameTourist": false,
   "condition": {

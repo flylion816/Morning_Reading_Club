@@ -154,6 +154,11 @@ const TEXT_STOP_WORDS = new Set([
   '所以', '这个', '那个', '进行', '一起', '更多', '更好', '想要', '希望能'
 ]);
 
+const CHINESE_WORD_SEGMENTER =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter('zh-Hans', { granularity: 'word' })
+    : null;
+
 function getLabel(map, value) {
   return map[value] || map.unknown || value || '未填写';
 }
@@ -219,7 +224,12 @@ function extractKeywords(texts) {
     if (!normalized) return;
 
     normalized.split(/\s+/).forEach(token => {
-      const words = token.match(/[\u4e00-\u9fa5]{2,}|[a-zA-Z]{3,}/g) || [];
+      const words = CHINESE_WORD_SEGMENTER
+        ? Array.from(CHINESE_WORD_SEGMENTER.segment(token))
+          .filter(part => part.isWordLike)
+          .map(part => part.segment)
+          .filter(word => /^[\u4e00-\u9fa5]{2,}$/.test(word) || /^[a-zA-Z]{3,}$/.test(word))
+        : (token.match(/[\u4e00-\u9fa5]{2,}|[a-zA-Z]{3,}/g) || []);
       words.forEach(word => {
         if (TEXT_STOP_WORDS.has(word)) return;
         counts.set(word, (counts.get(word) || 0) + 1);
@@ -234,19 +244,18 @@ function extractKeywords(texts) {
 }
 
 function buildTextAnalysis(enrollments, field) {
-  const samples = enrollments
+  const filledEnrollments = enrollments
     .filter(enrollment => enrollment[field] && String(enrollment[field]).trim())
     .map(enrollment => ({
       name: getDisplayName(enrollment),
       text: String(enrollment[field]).trim(),
       enrolledAt: enrollment.enrolledAt || enrollment.createdAt || null
-    }))
-    .slice(0, 12);
+    }));
 
   return {
-    filledCount: samples.length,
+    filledCount: filledEnrollments.length,
     keywords: extractKeywords(enrollments.map(enrollment => enrollment[field])),
-    samples
+    samples: filledEnrollments.slice(0, 12)
   };
 }
 

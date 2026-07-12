@@ -30,6 +30,8 @@ jest.mock('../../utils/period-access', () => ({
   extractId: jest.fn()
 }));
 
+const currentTenant = require('../../config/current-tenant');
+
 describe('course-detail page markdown support', () => {
   let pageConfig;
   let pageInstance;
@@ -318,18 +320,19 @@ describe('course-detail page markdown support', () => {
 
     await pageInstance.openCheckinShareMenu.call(pageInstance);
 
-    expect(writtenFile.filePath).toBe('/mock-user-data/若星生活家：狮子的打卡日记.txt');
+    const expectedFilePath = `/mock-user-data/${currentTenant.brandName}：狮子的打卡日记.txt`;
+    expect(writtenFile.filePath).toBe(expectedFilePath);
     expect(writtenFile.encoding).toBe('utf8');
     expect(writtenFile.data).toContain('狮子的打卡日记');
     expect(writtenFile.data).toContain('哈哈哈哈笑死我了！');
     expect(pageInstance.data.showCheckinShareMenu).toBe(true);
-    expect(pageInstance.data.checkinTextShareFilePath).toBe('/mock-user-data/若星生活家：狮子的打卡日记.txt');
+    expect(pageInstance.data.checkinTextShareFilePath).toBe(expectedFilePath);
 
     pageInstance.handleCheckinTextShare.call(pageInstance);
 
     expect(global.wx.shareFileMessage).toHaveBeenCalledWith(expect.objectContaining({
-      filePath: '/mock-user-data/若星生活家：狮子的打卡日记.txt',
-      fileName: '若星生活家：狮子的打卡日记.txt'
+      filePath: expectedFilePath,
+      fileName: `${currentTenant.brandName}：狮子的打卡日记.txt`
     }));
     expect(global.wx.setClipboardData).not.toHaveBeenCalled();
   });

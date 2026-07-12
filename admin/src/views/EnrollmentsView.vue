@@ -399,6 +399,7 @@ const loading = ref(false);
 const syncingNicknames = ref(false);
 const activeTab = ref('list');
 const statisticsLoading = ref(false);
+let statisticsRequestId = 0;
 
 const filters = ref({
   search: '',
@@ -410,21 +411,26 @@ const periodOptions = ref<any[]>([]);
 const statisticsFilters = ref({
   periodId: ''
 });
-const statisticsData = ref<any>({
-  summary: null,
-  gender: { items: [] },
-  ageGroups: { items: [] },
-  provinces: { items: [] },
-  hasReadBook: { items: [] },
-  commitment: { items: [] },
-  paymentStatus: { items: [] },
-  referrers: { items: [] },
-  textAnalysis: {
-    enrollReason: { keywords: [], samples: [] },
-    expectation: { keywords: [], samples: [] }
-  },
-  details: []
-});
+
+function createEmptyStatisticsData() {
+  return {
+    summary: null,
+    gender: { items: [] },
+    ageGroups: { items: [] },
+    provinces: { items: [] },
+    hasReadBook: { items: [] },
+    commitment: { items: [] },
+    paymentStatus: { items: [] },
+    referrers: { items: [] },
+    textAnalysis: {
+      enrollReason: { keywords: [], samples: [] },
+      expectation: { keywords: [], samples: [] }
+    },
+    details: []
+  };
+}
+
+const statisticsData = ref<any>(createEmptyStatisticsData());
 
 const pagination = ref({
   page: 1,
@@ -498,22 +504,39 @@ function handleTabChange(tabName: string) {
 }
 
 async function loadFormStatistics() {
-  if (!statisticsFilters.value.periodId) return;
+  const requestedPeriodId = statisticsFilters.value.periodId;
+  if (!requestedPeriodId) return;
 
+  const requestId = ++statisticsRequestId;
   statisticsLoading.value = true;
+  statisticsData.value = createEmptyStatisticsData();
   try {
     const response: any = await enrollmentApi.getFormStatistics({
-      periodId: statisticsFilters.value.periodId
+      periodId: requestedPeriodId
     });
+
+    if (
+      requestId !== statisticsRequestId ||
+      requestedPeriodId !== statisticsFilters.value.periodId
+    ) return;
+
     statisticsData.value = {
-      ...statisticsData.value,
+      ...createEmptyStatisticsData(),
       ...response
     };
   } catch (err) {
+    if (
+      requestId !== statisticsRequestId ||
+      requestedPeriodId !== statisticsFilters.value.periodId
+    ) return;
+
+    statisticsData.value = createEmptyStatisticsData();
     ElMessage.error('加载报名信息统计失败');
     console.error(err);
   } finally {
-    statisticsLoading.value = false;
+    if (requestId === statisticsRequestId) {
+      statisticsLoading.value = false;
+    }
   }
 }
 

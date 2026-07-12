@@ -97,11 +97,12 @@ At both `390x844` and `320x568`, verify:
 
 ```bash
 node --test tests/admin-guide-theme-responsive.test.mjs
+node --test tests/admin-guide-browser.test.mjs
 node .agents/skills/refresh-admin-guide/scripts/audit-admin-guide.mjs
 git diff --check
 ```
 
-Do not report completion until all three pass and both tenant URLs have been visually checked at desktop and both mobile viewports. Report modified files and preview URLs, then wait for user confirmation before any Git or deployment action.
+Do not report completion until all four pass and both tenant URLs have been visually checked at desktop and both mobile viewports. Report modified files and preview URLs, then wait for user confirmation before any Git or deployment action.
 
 ## Audit Limits
 

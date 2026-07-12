@@ -304,12 +304,11 @@ html[data-tenant="starry"]{--accent:#448426;--accent-soft:#ecf5e7;--accent-text:
     starry: '若星生活家'
   };
   var params = new URLSearchParams(window.location.search || '');
-  var requestedBrand = (params.get('brandName') || params.get('brand') || '').trim();
   var requestedSlug = (params.get('slug') || params.get('tenantSlug') || params.get('tenant') || '').trim().toLowerCase();
   var imageSlug = tenantBrandMap[requestedSlug] ? requestedSlug : 'fanren';
   document.documentElement.dataset.tenant = imageSlug;
   var assetVersion = '20260711-1558';
-  var brandName = requestedBrand || tenantBrandMap[imageSlug] || '高效能人士的七个习惯';
+  var brandName = tenantBrandMap[imageSlug];
   var pageTitle = brandName + '管理员操作指南';
 
   document.title = pageTitle;
