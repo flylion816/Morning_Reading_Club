@@ -102,11 +102,13 @@ function flushParagraph(paragraphLines, blocks, options = {}) {
 function flushList(listType, listItems, blocks, options = {}) {
   if (!listType || !listItems.length) return;
 
+  const listStart = Number.isInteger(options.listStart) ? ` start=\"${options.listStart}\"` : '';
+
   const items = listItems
     .map(item => `<li style="margin:0 0 10px;">${renderInlineMarkdown(item, options.inlineOptions)}</li>`)
     .join('');
   blocks.push(
-    `<${listType} style="margin:0 0 16px 1.4em;padding:0;line-height:1.8;">${items}</${listType}>`
+    `<${listType}${listStart} style="margin:0 0 16px 1.4em;padding:0;line-height:1.8;">${items}</${listType}>`
   );
 
   listItems.length = 0;
@@ -121,6 +123,7 @@ function markdownToRichText(markdown, options = {}) {
   const paragraphLines = [];
   const listItems = [];
   let listType = null;
+  let listStart = null;
   let insightSection = '';
 
   const getInlineOptions = () => {
@@ -137,15 +140,17 @@ function markdownToRichText(markdown, options = {}) {
 
     if (!trimmed) {
       flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
-      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
       listType = null;
+      listStart = null;
       continue;
     }
 
     if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
       flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
-      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
       listType = null;
+      listStart = null;
       blocks.push(dividerNode());
       continue;
     }
@@ -154,8 +159,9 @@ function markdownToRichText(markdown, options = {}) {
       const titleType = getInsightTitleType(trimmed);
       if (titleType) {
         flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
-        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
         listType = null;
+        listStart = null;
         insightSection = titleType;
         blocks.push(insightTitleNode(titleType, trimmed.replace(/^#{1,6}\s+/, '')));
         continue;
@@ -165,8 +171,9 @@ function markdownToRichText(markdown, options = {}) {
     const headingMatch = trimmed.match(/^#{1,6}\s+(.+)$/);
     if (headingMatch) {
       flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
-      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
       listType = null;
+      listStart = null;
       blocks.push(paragraphNode(`<strong>${renderInlineMarkdown(headingMatch[1], getInlineOptions())}</strong>`));
       continue;
     }
@@ -174,8 +181,9 @@ function markdownToRichText(markdown, options = {}) {
     const quoteMatch = trimmed.match(/^>\s+(.+)$/);
     if (quoteMatch) {
       flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
-      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
       listType = null;
+      listStart = null;
       blocks.push(
         paragraphNode(
           renderInlineMarkdown(quoteMatch[1], getInlineOptions()),
@@ -189,36 +197,40 @@ function markdownToRichText(markdown, options = {}) {
     if (unorderedMatch) {
       flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
       if (listType && listType !== 'ul') {
-        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
         listType = null;
+        listStart = null;
       }
       listType = 'ul';
       listItems.push(unorderedMatch[1]);
       continue;
     }
 
-    const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+    const orderedMatch = trimmed.match(/^(\d+)[.、]\s*(.+)$/);
     if (orderedMatch) {
       flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
       if (listType && listType !== 'ol') {
-        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+        flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
         listType = null;
+        listStart = null;
       }
       listType = 'ol';
-      listItems.push(orderedMatch[1]);
+      if (listStart === null) listStart = Number(orderedMatch[1]);
+      listItems.push(orderedMatch[2]);
       continue;
     }
 
     if (listType) {
-      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+      flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
       listType = null;
+      listStart = null;
     }
 
     paragraphLines.push(trimmed);
   }
 
   flushParagraph(paragraphLines, blocks, { inlineOptions: getInlineOptions() });
-  flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions() });
+  flushList(listType, listItems, blocks, { inlineOptions: getInlineOptions(), listStart });
 
   return blocks.join('');
 }

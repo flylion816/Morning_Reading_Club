@@ -71,6 +71,27 @@ describe('markdown utils', () => {
     expect(isLikelyHtml('**hello**')).toBe(false);
   });
 
+  test('should preserve explicit ordered item numbers across explanatory paragraphs', () => {
+    const content = [
+      '1、第一条',
+      '',
+      '第一条的解释。',
+      '',
+      '2、第二条',
+      '',
+      '第二条的解释。',
+      '',
+      '3、第三条'
+    ].join('\n');
+
+    const rendered = renderInsightRichTextContent(content);
+
+    expect(rendered).toContain('<ol start="1"');
+    expect(rendered).toContain('<ol start="2"');
+    expect(rendered).toContain('<ol start="3"');
+    expect(rendered.match(/<ol /g)).toHaveLength(3);
+  });
+
   test('should render insight sections with visual hierarchy', () => {
     const content = [
       '### 筷筷在凡人晨读中的分享',

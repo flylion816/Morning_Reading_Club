@@ -4022,6 +4022,8 @@ Page({
     }
     this._ttsChunks = this._ttsSplit(plainText, 180);
     this._ttsChunkIndex = 0;
+    this._ttsAudioFiles = [];
+    this._ttsPending = new Map();
     this.setData({ ttsState: 'loading' });
     this._ttsPlayChunk();
   },
@@ -4041,45 +4043,69 @@ Page({
     return chunks;
   },
 
-  _ttsPlayChunk() {
-    if (this._ttsChunkIndex >= (this._ttsChunks || []).length) {
-      this.setData({ ttsState: 'idle' });
-      return;
-    }
-    const text = this._ttsChunks[this._ttsChunkIndex];
+  _ttsPrepareChunk(index) {
+    if (index >= (this._ttsChunks || []).length) return;
+    if (this._ttsAudioFiles[index] || this._ttsPending.has(index)) return;
+
     const plugin = requirePlugin('WechatSI');
-    plugin.textToSpeech({
-      lang: 'zh_CN',
-      tts: true,
-      content: text,
-      success: (res) => {
-        if (!res.filename) {
-          wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
-          this.setData({ ttsState: 'idle' });
-          return;
-        }
-        if (!this._ttsAudio) {
-          this._ttsAudio = wx.createInnerAudioContext();
-          this._ttsAudio.onEnded(() => {
-            this._ttsChunkIndex++;
-            this.setData({ ttsState: 'loading' });
-            this._ttsPlayChunk();
-          });
-          this._ttsAudio.onError((err) => {
-            console.error('TTS 播放错误:', err);
-            this.setData({ ttsState: 'idle' });
-          });
-        }
-        this._ttsAudio.src = res.filename;
-        this._ttsAudio.play();
-        this.setData({ ttsState: 'playing' });
-      },
-      fail: (err) => {
-        console.error('TTS 合成失败:', err);
+    const text = this._ttsChunks[index];
+    const pending = new Promise((resolve, reject) => {
+      plugin.textToSpeech({
+        lang: 'zh_CN',
+        tts: true,
+        content: text,
+        success: (res) => {
+          if (!res.filename) {
+            reject(new Error('TTS 返回音频地址为空'));
+            return;
+          }
+          this._ttsAudioFiles[index] = res.filename;
+          resolve(res.filename);
+        },
+        fail: reject
+      });
+    });
+    this._ttsPending.set(index, pending);
+    pending.catch((err) => {
+      console.error('TTS 合成失败:', err);
+      if (index === this._ttsChunkIndex) {
         wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
         this.setData({ ttsState: 'idle' });
       }
     });
+  },
+
+  _ttsPlayChunk() {
+    const index = this._ttsChunkIndex;
+    if (index >= (this._ttsChunks || []).length) {
+      this.setData({ ttsState: 'idle' });
+      return;
+    }
+
+    // 当前片段播放时提前合成下一片段，避免 onEnded 后才请求 TTS 造成明显空白。
+    this._ttsPrepareChunk(index);
+    this._ttsPrepareChunk(index + 1);
+    const audioReady = this._ttsAudioFiles[index]
+      ? Promise.resolve(this._ttsAudioFiles[index])
+      : this._ttsPending.get(index);
+
+    audioReady.then((filename) => {
+      if (index !== this._ttsChunkIndex) return;
+      if (!this._ttsAudio) {
+        this._ttsAudio = wx.createInnerAudioContext();
+        this._ttsAudio.onEnded(() => {
+          this._ttsChunkIndex++;
+          this._ttsPlayChunk();
+        });
+        this._ttsAudio.onError((err) => {
+          console.error('TTS 播放错误:', err);
+          this.setData({ ttsState: 'idle' });
+        });
+      }
+      this._ttsAudio.src = filename;
+      this._ttsAudio.play();
+      this.setData({ ttsState: 'playing' });
+    }).catch(() => {});
   },
 
   // 未登录弹引导弹窗，已登录但未付费静默返回 false
@@ -4098,5 +4124,7 @@ Page({
     }
     this._ttsChunks = null;
     this._ttsChunkIndex = 0;
+    this._ttsAudioFiles = [];
+    this._ttsPending = new Map();
   }
 });

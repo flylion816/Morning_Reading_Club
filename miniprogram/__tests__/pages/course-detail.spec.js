@@ -926,4 +926,30 @@ describe('course-detail page markdown support', () => {
       showmenu: true
     });
   });
+
+  test('prefetches the next TTS chunk while the current chunk is playing', async () => {
+    const audio = {
+      onEnded: jest.fn(),
+      onError: jest.fn(),
+      play: jest.fn(),
+      pause: jest.fn(),
+      destroy: jest.fn(),
+      src: ''
+    };
+    const textToSpeech = jest.fn(({ content, success }) => {
+      success({ filename: `audio-${content.slice(0, 1)}.mp3` });
+    });
+    wx.createInnerAudioContext = jest.fn(() => audio);
+    global.requirePlugin = jest.fn(() => ({ textToSpeech }));
+
+    pageInstance._ttsChunks = ['第一段。', '第二段。'];
+    pageInstance._ttsChunkIndex = 0;
+    pageInstance._ttsAudioFiles = [];
+    pageInstance._ttsPending = new Map();
+    pageInstance._ttsPlayChunk();
+
+    await Promise.resolve();
+    expect(textToSpeech).toHaveBeenCalledTimes(2);
+  });
+
 });
