@@ -1,3 +1,4 @@
+const { profileValues, isProfileUnchanged, profileError } = require('../../utils/profile-edit');
 const app = getApp();
 const userService = require('../../services/user.service');
 const activityService = require('../../services/activity.service');
@@ -9,7 +10,8 @@ const { THEME_PRIMARY } = require('../../utils/theme');
 Page({
   data: {
     nickname: '',
-    originalNickname: '',
+    nicknameError: '',
+    profileSaveHint: '',
     avatar: '🦁',
     avatarUrl: '',
     avatarText: '用',
@@ -24,7 +26,9 @@ Page({
     const avatarDisplay = getUserAvatarDisplay(userInfo);
     this.setData({
       nickname: userInfo.nickname || userInfo.name || '',
-      originalNickname: userInfo.nickname || userInfo.name || '',
+      originalProfile: profileValues(userInfo),
+      nicknameError: '',
+      profileSaveHint: '',
       avatar: userInfo.avatar || '🦁',
       avatarUrl: userInfo.avatarUrl || '',
       avatarText: userInfo.avatarText || avatarDisplay.avatarText,
@@ -89,6 +93,8 @@ Page({
     });
     this.setData({
       nickname,
+      nicknameError: '',
+      profileSaveHint: '',
       avatarText: avatarDisplay.avatarText,
       avatarColor: avatarDisplay.avatarColor
     });
@@ -109,12 +115,13 @@ Page({
     }
 
     const normalizedNickname = nickname.trim();
-    if (normalizedNickname === this.data.originalNickname.trim()) {
-      wx.showToast({ title: '当前昵称未发生变化', icon: 'none' });
+    if (isProfileUnchanged(this.data, this.data.originalProfile)) {
+      wx.showToast({ title: '个人信息未修改，无需保存', icon: 'none' });
+      wx.navigateBack({ delta: 1 });
       return;
     }
 
-    this.setData({ saving: true });
+    this.setData({ saving: true, nicknameError: '', profileSaveHint: '' });
 
     try {
       const savedAvatarUrl = await this.prepareAvatarUrlForSave(avatarUrl);
@@ -144,17 +151,21 @@ Page({
         wx.showToast({ title: '保存成功', icon: 'success' });
 
         setTimeout(() => {
-          wx.navigateBack();
+          wx.navigateBack({ delta: 1 });
         }, 800);
       } else {
         wx.showToast({ title: '保存失败，请重试', icon: 'none' });
       }
     } catch (error) {
-      console.error('保存用户信息失败:', error);
-      const message = error && error.code === 409
-        ? (error.message || '该昵称已被使用，请修改后再保存')
-        : '保存失败，请重试';
-      wx.showToast({ title: message, icon: 'none' });
+      const failure = profileError(error);
+      if (failure.conflict) {
+        this.setData({
+          nicknameError: failure.message,
+          profileSaveHint: `修改未保存，当前昵称仍为「${(this.data.originalProfile || profileValues(app.globalData.userInfo)).nickname}」`
+        });
+      } else {
+        wx.showToast({ title: failure.message, icon: 'none' });
+      }
     } finally {
       this.setData({ saving: false });
     }

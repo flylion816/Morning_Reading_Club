@@ -276,17 +276,46 @@ describe('User Controller - 100% Coverage', () => {
     it('修改自己的原昵称时应允许保存', async () => {
       const userId = fixtures.testUsers.normalUser._id;
       req.user = { userId };
-      req.body = { nickname: '原昵称' };
+      req.body = { nickname: '原昵称', signature: '新签名' };
       const saveSpy = sandbox.stub().resolves();
       const mockUser = { ...fixtures.testUsers.normalUser, nickname: '原昵称', save: saveSpy, toObject: sandbox.stub().returns(fixtures.testUsers.normalUser) };
       UserStub.findById.resolves(mockUser);
-      UserStub.findOne.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves(null) }) });
+      UserStub.findOne.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves({ _id: 'legacy-duplicate' }) }) });
 
       await userController.updateProfile(req, res, next);
 
+      expect(UserStub.findOne.called).to.be.false;
+      expect(mockUser.signature).to.equal('新签名');
       expect(saveSpy.called).to.be.true;
       expect(res.json.called).to.be.true;
     });
+
+    it('新昵称查询限定当前租户、排除本人并去除首尾空格', async () => {
+      const tenantId = new mongoose.Types.ObjectId();
+      const userId = fixtures.testUsers.normalUser._id;
+      req.user = { userId };
+      req.body = { nickname: '  新名字  ' };
+      const user = { ...fixtures.testUsers.normalUser, save: sandbox.stub().resolves(), toObject: () => ({}) };
+      UserStub.findById.resolves(user);
+      const { runWithTenant } = require('../../../src/utils/tenantContext');
+      await runWithTenant({ tenantId }, () => userController.updateProfile(req, res, next));
+      expect(UserStub.findOne.firstCall.args[0]).to.deep.equal({ tenantId, nickname: '新名字', _id: { $ne: userId } });
+      expect(user.nickname).to.equal('新名字');
+      expect(user.save.calledOnce).to.be.true;
+    });
+
+    for (const nickname of ['', '   ', null, { $ne: '' }]) {
+      it(`拒绝无效昵称 ${JSON.stringify(nickname)} 且不写数据`, async () => {
+        req.user = { userId: fixtures.testUsers.normalUser._id };
+        req.body = { nickname };
+        const user = { ...fixtures.testUsers.normalUser, save: sandbox.stub() };
+        UserStub.findById.resolves(user);
+        await userController.updateProfile(req, res, next);
+        expect(res.status.calledWith(400)).to.be.true;
+        expect(user.save.called).to.be.false;
+        expect(UserStub.findOne.called).to.be.false;
+      });
+    }
 
     it('应该只更新提供的字段', async () => {
       // Given

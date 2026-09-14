@@ -1,6 +1,7 @@
 jest.mock('../../services/user.service.js', () => ({
   getUserProfile: jest.fn(),
-  getUserStats: jest.fn()
+  getUserStats: jest.fn(),
+  updateUserProfile: jest.fn()
 }));
 
 jest.mock('../../services/auth.service.js', () => ({
@@ -1223,4 +1224,57 @@ describe('index page', () => {
       'insightRequests'
     ]);
   });
+  describe('首页昵称编辑真实流程', () => {
+    beforeEach(() => {
+      pageInstance.data.userInfo = { _id: 'user_123', nickname: '狮子', avatar: '🦁', avatarUrl: '', signature: '原签名' };
+      pageInstance.openEditProfile();
+      pageInstance.prepareAvatarUrlForSave = jest.fn(async url => url);
+      pageInstance.loadUserData = jest.fn();
+      userService.updateUserProfile.mockReset();
+    });
+
+    test('重名失败保留原资料，改回原名不再发请求', async () => {
+      pageInstance.data.editForm.nickname = '林娜';
+      userService.updateUserProfile.mockRejectedValue({ code: 409, message: '该昵称已被使用，请修改后再保存' });
+      await pageInstance.saveUserProfile();
+      expect(pageInstance.data.nicknameError).toBe('该昵称已被使用，请修改后再保存');
+      expect(pageInstance.data.profileSaveHint).toContain('狮子');
+      expect(pageInstance.data.showEditProfile).toBe(true);
+      expect(pageInstance.data.userInfo.nickname).toBe('狮子');
+      expect(pageInstance.data.editForm.nickname).toBe('林娜');
+      pageInstance.onNicknameInput({ detail: { value: '狮子' } });
+      expect(pageInstance.data.nicknameError).toBe('');
+      // 本测试的 setData mock 不处理点路径，显式同步输入。
+      pageInstance.data.editForm.nickname = '狮子';
+      await pageInstance.saveUserProfile();
+      expect(userService.updateUserProfile).toHaveBeenCalledTimes(1);
+      expect(wx.showToast).toHaveBeenLastCalledWith(expect.objectContaining({ title: '个人信息未修改，无需保存' }));
+      expect(pageInstance.data.showEditProfile).toBe(false);
+    });
+
+    test.each(['signature', 'avatarUrl'])('原昵称不变时仍保存 %s 修改', async field => {
+      pageInstance.data.editForm[field] = '新的内容';
+      userService.updateUserProfile.mockResolvedValue({ _id: 'user_123', nickname: '狮子' });
+      await pageInstance.saveUserProfile();
+      expect(userService.updateUserProfile).toHaveBeenCalledWith(expect.objectContaining({ nickname: '狮子', [field]: '新的内容' }));
+      expect(pageInstance.data.showEditProfile).toBe(false);
+    });
+
+    test('真实 HTTP 错误结构也保留 message', async () => {
+      pageInstance.data.editForm.nickname = '林娜';
+      userService.updateUserProfile.mockRejectedValue({ statusCode: 409, data: { code: 409, message: '昵称被占用' } });
+      await pageInstance.saveUserProfile();
+      expect(pageInstance.data.nicknameError).toBe('昵称被占用');
+    });
+
+    test('网络错误不标记为昵称冲突', async () => {
+      pageInstance.data.editForm.nickname = '新名字';
+      userService.updateUserProfile.mockRejectedValue({ errMsg: 'request:fail' });
+      await pageInstance.saveUserProfile();
+      expect(pageInstance.data.nicknameError).toBe('');
+      expect(pageInstance.data.showEditProfile).toBe(true);
+      expect(wx.showToast).toHaveBeenLastCalledWith(expect.objectContaining({ title: '保存失败，请稍后重试' }));
+    });
+  });
+
 });

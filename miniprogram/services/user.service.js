@@ -33,7 +33,8 @@ class UserService {
    * @returns {Promise}
    */
   updateUserProfile(data) {
-    return request.put('/users/profile', data);
+    // 由编辑界面统一展示业务错误，避免通用 Toast 覆盖昵称字段提示。
+    return request.put('/users/profile', data, { suppressError: true });
   }
 
   /**

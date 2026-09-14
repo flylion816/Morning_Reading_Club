@@ -32,13 +32,14 @@ describe('edit-profile page', () => {
   });
 
   test('saving the unchanged nickname shows no-change feedback without calling the API', async () => {
+    pageInstance.onLoad();
     pageInstance.data.nickname = '旧昵称';
 
     await pageInstance.handleSave();
 
     expect(userService.updateUserProfile).not.toHaveBeenCalled();
     expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({
-      title: '当前昵称未发生变化',
+      title: '个人信息未修改，无需保存',
       icon: 'none'
     }));
   });
@@ -48,8 +49,19 @@ describe('edit-profile page', () => {
 
     await pageInstance.handleSave();
 
-    expect(wx.showToast).toHaveBeenCalledWith({ title: '该昵称已被使用，请修改后再保存', icon: 'none' });
+    expect(pageInstance.data.nicknameError).toBe('该昵称已被使用，请修改后再保存');
     expect(pageInstance.data.saving).toBe(false);
     expect(wx.navigateBack).not.toHaveBeenCalled();
   });
+  test.each(['signature', 'avatarUrl'])('原昵称不变仍可保存 %s', async field => {
+    jest.useFakeTimers();
+    pageInstance.onLoad();
+    pageInstance.data[field] = field === 'avatarUrl' ? 'https://example.com/new.png' : '新签名';
+    userService.updateUserProfile.mockResolvedValue({ _id: 'user-1', nickname: '旧昵称' });
+    await pageInstance.handleSave();
+    expect(userService.updateUserProfile).toHaveBeenCalled();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
 });

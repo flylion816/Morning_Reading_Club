@@ -144,7 +144,8 @@ describe('User Service Tests', () => {
 
       expect(request.put).toHaveBeenCalledWith(
         '/users/profile',
-        expect.objectContaining({ nickname: newNickname })
+        expect.objectContaining({ nickname: newNickname }),
+        { suppressError: true }
       );
       expect(result.nickname).toBe(newNickname);
     });
@@ -200,7 +201,8 @@ describe('User Service Tests', () => {
 
       expect(request.put).toHaveBeenCalledWith(
         '/users/profile',
-        expect.objectContaining({ avatar: newAvatarUrl })
+        expect.objectContaining({ avatar: newAvatarUrl }),
+        { suppressError: true }
       );
       expect(result.avatar).toBe(newAvatarUrl);
     });

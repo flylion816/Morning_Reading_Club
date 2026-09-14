@@ -36,6 +36,8 @@
         maxlength="20"
       />
       <text class="char-count">{{nickname.length}}/20</text>
+      <view wx:if="{{nicknameError}}" class="nickname-error">{{nicknameError}}</view>
+      <view wx:if="{{profileSaveHint}}" class="profile-save-hint">{{profileSaveHint}}</view>
     </view>
   </view>
 

@@ -2681,3 +2681,6 @@ button.avatar-action-button::after {
 .zaichang-more-card {
   height: 260rpx;
 }
+
+.nickname-error { color: #c23b32; font-size: 26rpx; line-height: 1.5; margin-top: 12rpx; }
+.profile-save-hint { color: #666; font-size: 24rpx; line-height: 1.5; margin-top: 6rpx; }

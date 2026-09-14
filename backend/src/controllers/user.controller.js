@@ -74,17 +74,23 @@ async function updateProfile(req, res, next) {
 
     // 昵称必须在当前租户内唯一，修改本人原昵称时除外。
     if (nickname !== undefined) {
-      const normalizedNickname = typeof nickname === 'string' ? nickname.trim() : nickname;
-      const nicknameQuery = {
-        nickname: normalizedNickname,
-        _id: { $ne: user._id }
-      };
-      const tenantId = getCurrentTenantId();
-      if (tenantId) nicknameQuery.tenantId = tenantId;
+      if (typeof nickname !== 'string' || !nickname.trim() || nickname.trim().length > 50) {
+        return res.status(400).json(errors.badRequest('昵称不能为空且不能超过50个字符'));
+      }
+      const normalizedNickname = nickname.trim();
+      // 已有昵称不变时允许继续使用，避免历史同名影响头像/签名保存。
+      if (normalizedNickname !== String(user.nickname || '').trim()) {
+        const nicknameQuery = {
+          nickname: normalizedNickname,
+          _id: { $ne: user._id }
+        };
+        const tenantId = getCurrentTenantId();
+        if (tenantId) nicknameQuery.tenantId = tenantId;
 
-      const duplicateUser = await User.findOne(nicknameQuery).select('_id').lean();
-      if (duplicateUser) {
-        return res.status(409).json(errors.conflict('该昵称已被使用，请修改后再保存'));
+        const duplicateUser = await User.findOne(nicknameQuery).select('_id').lean();
+        if (duplicateUser) {
+          return res.status(409).json(errors.conflict('该昵称已被使用，请修改后再保存'));
+        }
       }
       user.nickname = normalizedNickname;
     }

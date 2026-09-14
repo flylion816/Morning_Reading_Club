@@ -512,6 +512,8 @@
           maxlength="20"
         />
         <text class="input-count">{{editForm.nickname.length}}/20</text>
+      <view wx:if="{{nicknameError}}" class="nickname-error">{{nicknameError}}</view>
+      <view wx:if="{{profileSaveHint}}" class="profile-save-hint">{{profileSaveHint}}</view>
       </view>
 
       <!-- 个人签名输入 -->

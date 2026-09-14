@@ -1,3 +1,4 @@
+const { profileValues, isProfileUnchanged, profileError } = require('../../utils/profile-edit');
 // 首页页面
 const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
@@ -497,6 +498,8 @@ Page({
 
     // 编辑个人信息相关
     showEditProfile: false,
+    nicknameError: '',
+    profileSaveHint: '',
     isSavingProfile: false,
     themePrimaryColor: THEME_PRIMARY,
     brandName: getBrandName(),
@@ -2544,6 +2547,9 @@ Page({
 
     this.setData({
       showEditProfile: true,
+      originalProfile: profileValues(userInfo),
+      nicknameError: '',
+      profileSaveHint: '',
       editForm: {
         avatar: userInfo.avatar || '🦁',
         avatarUrl: userInfo.avatarUrl || '',
@@ -2642,6 +2648,8 @@ Page({
       userId: this.data.userInfo?._id || this.data.userInfo?.id
     });
     this.setData({
+      nicknameError: '',
+      profileSaveHint: '',
       'editForm.nickname': value,
       'editForm.avatarText': avatarDisplay.avatarText,
       'editForm.avatarColor': avatarDisplay.avatarColor
@@ -2682,6 +2690,7 @@ Page({
    */
   async saveUserProfile() {
     const { editForm, userInfo } = this.data;
+    if (this.data.isSavingProfile) return;
 
     if (!editForm.nickname.trim()) {
       wx.showToast({
@@ -2707,7 +2716,12 @@ Page({
       return;
     }
 
-    this.setData({ isSavingProfile: true });
+    if (isProfileUnchanged(editForm, this.data.originalProfile)) {
+      this.setData({ showEditProfile: false, nicknameError: '', profileSaveHint: '' });
+      wx.showToast({ title: '个人信息未修改，无需保存', icon: 'none' });
+      return;
+    }
+    this.setData({ isSavingProfile: true, nicknameError: '', profileSaveHint: '' });
 
     try {
       const app = getApp();
@@ -2717,7 +2731,7 @@ Page({
       const response = await userService.updateUserProfile({
         avatar: editForm.avatar,
         avatarUrl: savedAvatarUrl,
-        nickname: editForm.nickname,
+        nickname: editForm.nickname.trim(),
         signature: editForm.signature || null
       });
 
@@ -2734,7 +2748,7 @@ Page({
           avatar: editForm.avatar,
           avatarUrl:
             response.avatarUrl !== undefined ? response.avatarUrl : savedAvatarUrl,
-          nickname: editForm.nickname,
+          nickname: editForm.nickname.trim(),
           signature: editForm.signature || null
         });
 
@@ -2769,11 +2783,15 @@ Page({
         });
       }
     } catch (error) {
-      console.error('保存用户信息失败:', error);
-      wx.showToast({
-        title: '保存失败，请重试',
-        icon: 'none'
-      });
+      const failure = profileError(error);
+      if (failure.conflict) {
+        this.setData({
+          nicknameError: failure.message,
+          profileSaveHint: `修改未保存，当前昵称仍为「${this.data.originalProfile.nickname}」`
+        });
+      } else {
+        wx.showToast({ title: failure.message, icon: 'none' });
+      }
     } finally {
       this.setData({ isSavingProfile: false });
     }
