@@ -143,7 +143,10 @@ Page({
       }
     } catch (error) {
       console.error('保存用户信息失败:', error);
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      const message = error && error.code === 409
+        ? (error.message || '该昵称已被使用，请修改后再保存')
+        : '保存失败，请重试';
+      wx.showToast({ title: message, icon: 'none' });
     } finally {
       this.setData({ saving: false });
     }

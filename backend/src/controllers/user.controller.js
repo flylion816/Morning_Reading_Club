@@ -72,8 +72,22 @@ async function updateProfile(req, res, next) {
       return res.status(404).json(errors.notFound('用户不存在'));
     }
 
-    // 更新字段
-    if (nickname !== undefined) user.nickname = nickname;
+    // 昵称必须在当前租户内唯一，修改本人原昵称时除外。
+    if (nickname !== undefined) {
+      const normalizedNickname = typeof nickname === 'string' ? nickname.trim() : nickname;
+      const nicknameQuery = {
+        nickname: normalizedNickname,
+        _id: { $ne: user._id }
+      };
+      const tenantId = getCurrentTenantId();
+      if (tenantId) nicknameQuery.tenantId = tenantId;
+
+      const duplicateUser = await User.findOne(nicknameQuery).select('_id').lean();
+      if (duplicateUser) {
+        return res.status(409).json(errors.conflict('该昵称已被使用，请修改后再保存'));
+      }
+      user.nickname = normalizedNickname;
+    }
     if (avatar !== undefined) user.avatar = avatar;
     if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
     if (signature !== undefined) user.signature = signature;

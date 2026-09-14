@@ -56,9 +56,11 @@ describe('User Controller - 100% Coverage', () => {
     // Mock User 模型
     UserStub = {
       findById: sandbox.stub(),
+      findOne: sandbox.stub(),
       find: sandbox.stub(),
       countDocuments: sandbox.stub()
     };
+    UserStub.findOne.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves(null) }) });
 
     // Mock Checkin 模型
     CheckinStub = {
@@ -80,7 +82,8 @@ describe('User Controller - 100% Coverage', () => {
         badRequest: (msg) => ({ code: 400, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
         forbidden: (msg) => ({ code: 403, message: msg }),
-        serverError: (msg) => ({ code: 500, message: msg })
+        serverError: (msg) => ({ code: 500, message: msg }),
+        conflict: (msg) => ({ code: 409, message: msg })
       }
     };
 
@@ -252,6 +255,37 @@ describe('User Controller - 100% Coverage', () => {
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.code).to.equal(200);
       expect(responseData.message).to.include('资料更新成功');
+    });
+
+    it('昵称与其他用户重复时应返回409且不保存', async () => {
+      const userId = fixtures.testUsers.normalUser._id;
+      req.user = { userId };
+      req.body = { nickname: '已存在昵称' };
+      const saveSpy = sandbox.stub().resolves();
+      const mockUser = { ...fixtures.testUsers.normalUser, save: saveSpy };
+      UserStub.findById.resolves(mockUser);
+      UserStub.findOne.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves({ _id: new mongoose.Types.ObjectId() }) }) });
+
+      await userController.updateProfile(req, res, next);
+
+      expect(res.status.calledWith(409)).to.be.true;
+      expect(res.json.calledWithMatch({ code: 409, message: '该昵称已被使用，请修改后再保存' })).to.be.true;
+      expect(saveSpy.called).to.be.false;
+    });
+
+    it('修改自己的原昵称时应允许保存', async () => {
+      const userId = fixtures.testUsers.normalUser._id;
+      req.user = { userId };
+      req.body = { nickname: '原昵称' };
+      const saveSpy = sandbox.stub().resolves();
+      const mockUser = { ...fixtures.testUsers.normalUser, nickname: '原昵称', save: saveSpy, toObject: sandbox.stub().returns(fixtures.testUsers.normalUser) };
+      UserStub.findById.resolves(mockUser);
+      UserStub.findOne.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves(null) }) });
+
+      await userController.updateProfile(req, res, next);
+
+      expect(saveSpy.called).to.be.true;
+      expect(res.json.called).to.be.true;
     });
 
     it('应该只更新提供的字段', async () => {
