@@ -157,6 +157,13 @@ class Request {
         this.handleTokenRefresh(resolve, reject, originalOptions);
       }
     }
+    // 409 业务冲突（例如昵称重复）：把后端业务错误体直接交给调用方。
+    else if (statusCode === 409) {
+      if (!originalOptions.suppressError) {
+        this.showError(data.message || '请求冲突，请修改后重试');
+      }
+      reject(data);
+    }
     // 403 禁止访问
     else if (statusCode === 403) {
       if (!originalOptions.suppressError) {

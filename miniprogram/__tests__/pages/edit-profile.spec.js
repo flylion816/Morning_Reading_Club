@@ -26,9 +26,21 @@ describe('edit-profile page', () => {
     require('../../pages/edit-profile/edit-profile');
     pageInstance = {
       ...pageConfig,
-      data: { ...pageConfig.data, nickname: '重复昵称', avatar: '🦁', avatarUrl: '', signature: '', saving: false },
+      data: { ...pageConfig.data, originalNickname: '旧昵称', nickname: '重复昵称', avatar: '🦁', avatarUrl: '', signature: '', saving: false },
       setData(update) { this.data = { ...this.data, ...update }; }
     };
+  });
+
+  test('saving the unchanged nickname shows no-change feedback without calling the API', async () => {
+    pageInstance.data.nickname = '旧昵称';
+
+    await pageInstance.handleSave();
+
+    expect(userService.updateUserProfile).not.toHaveBeenCalled();
+    expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: '当前昵称未发生变化',
+      icon: 'none'
+    }));
   });
 
   test('duplicate nickname keeps editor open and asks user to change it', async () => {

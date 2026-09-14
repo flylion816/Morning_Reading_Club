@@ -9,6 +9,7 @@ const { THEME_PRIMARY } = require('../../utils/theme');
 Page({
   data: {
     nickname: '',
+    originalNickname: '',
     avatar: '🦁',
     avatarUrl: '',
     avatarText: '用',
@@ -23,6 +24,7 @@ Page({
     const avatarDisplay = getUserAvatarDisplay(userInfo);
     this.setData({
       nickname: userInfo.nickname || userInfo.name || '',
+      originalNickname: userInfo.nickname || userInfo.name || '',
       avatar: userInfo.avatar || '🦁',
       avatarUrl: userInfo.avatarUrl || '',
       avatarText: userInfo.avatarText || avatarDisplay.avatarText,
@@ -106,6 +108,12 @@ Page({
       return;
     }
 
+    const normalizedNickname = nickname.trim();
+    if (normalizedNickname === this.data.originalNickname.trim()) {
+      wx.showToast({ title: '当前昵称未发生变化', icon: 'none' });
+      return;
+    }
+
     this.setData({ saving: true });
 
     try {
@@ -113,7 +121,7 @@ Page({
       const response = await userService.updateUserProfile({
         avatar,
         avatarUrl: savedAvatarUrl,
-        nickname: nickname.trim(),
+        nickname: normalizedNickname,
         signature: signature || null
       });
 
@@ -126,7 +134,7 @@ Page({
           ...app.globalData.userInfo,
           avatar,
           avatarUrl: response.avatarUrl !== undefined ? response.avatarUrl : savedAvatarUrl,
-          nickname: nickname.trim(),
+          nickname: normalizedNickname,
           signature: signature || null
         });
 

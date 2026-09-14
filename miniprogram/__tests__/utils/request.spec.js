@@ -111,6 +111,19 @@ describe('Request Service', () => {
       );
     });
 
+    test('should reject 409 with the business error body', async () => {
+      const errorBody = { code: 409, message: '该昵称已被使用，请修改后再保存' };
+      global.wx.request.mockImplementation((options) => {
+        options.success({ statusCode: 409, data: errorBody });
+      });
+
+      await expect(request.put('/users/profile', { nickname: '狮子' })).rejects.toEqual(errorBody);
+      expect(global.wx.showToast).toHaveBeenCalledWith(expect.objectContaining({
+        title: errorBody.message,
+        icon: 'none'
+      }));
+    });
+
     test('should reject on 404 Not Found', async () => {
       global.wx.request.mockImplementation((options) => {
         setTimeout(() => {
