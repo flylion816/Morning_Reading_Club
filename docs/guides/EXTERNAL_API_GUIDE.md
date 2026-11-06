@@ -1,29 +1,68 @@
 # 晨读营外部系统 API 调用指南
 
-本文档为外部系统提供 6 个公开 API 接口，用于查询当前期次、获取期次用户、为指定用户创建“小凡看见”，以及上传和同步播客音频。
+本文档为外部系统提供 5 个公开 API 接口，用于查询当前期次、获取期次用户、为指定用户创建“小凡看见”，以及上传和同步播客音频。
+
+---
+
+## 对接方安全改造清单
+
+「查询运行中期次」可以继续匿名调用；其余接口不能只传租户标识，必须增加 HMAC 请求签名。调用方需要向晨读营平台申请 `keyId + secret`，并把 secret 保存到自己的密钥管理系统中。
+
+### 每个签名请求必须增加的请求头
+
+| 请求头                    | 是否必填   | 说明                                                           |
+| ------------------------- | ---------- | -------------------------------------------------------------- |
+| `X-Tenant-Slug`           | 必填，推荐 | 租户标识，例如 `fanren`；只用于选择租户，不作为身份凭证        |
+| `X-Integration-Key-Id`    | 必填       | 平台发放的 Key ID，例如 `n8n-fanren`                           |
+| `X-Integration-Timestamp` | 必填       | Unix 秒级时间戳；与服务器时间相差不能超过 300 秒               |
+| `X-Integration-Nonce`     | 必填       | 每次请求重新生成的 16–128 位随机串；10 分钟内同一 Key 不能重复 |
+| `X-Integration-Signature` | 必填       | 使用 secret 计算出的 HMAC-SHA256 十六进制签名                  |
+
+不要把 `secret` 放在 URL、查询参数、请求体、日志或聊天记录里。接口 #2、#3、#5、#6 返回 `401` 时，先按下文「常见 401 原因」排查。
+
+### 接口与权限对照
+
+| 接口         | 需要的 Key 权限 | 说明                           |
+| ------------ | --------------- | ------------------------------ |
+| 获取期次用户 | `roster:read`   | 小凡看见生成流程通常需要此权限 |
+| 创建小凡看见 | `insight:write` | 小凡看见生成流程必须此权限     |
+| 上传播客音频 | `podcast:write` | 只有播客自动化需要申请         |
+| 同步播客信息 | `podcast:write` | 只有播客自动化需要申请         |
+
+如果同一个自动化既要获取用户、又要创建小凡看见，平台可发放一把同时包含 `roster:read,insight:write` 的 Key；不需要播客权限就不要申请。
+
+### 对接完成标准
+
+1. 已安全保存 `keyId` 和 `secret`，未写入代码、工作流导出文件或日志。
+2. 每次请求都能重新生成 timestamp、nonce 和 signature；重试请求也重新生成，不能复用旧签名。
+3. GET 签名路径包含实际查询串，JSON POST 使用同一份序列化后的请求体字符串参与签名和发送。
+4. 通过下文「验算数据」验证签名实现。
+5. 在测试或灰度流程中分别验证：无签名 `401`、错误签名 `401`、正确签名业务成功。
 
 ---
 
 ## 接口概览
 
-| 接口名称 | 方法 | 端点 | 鉴权（见「接口签名」） | 说明 |
-| --- | --- | --- | --- | --- |
-| 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 无需签名 | 获取所有租户或指定租户当前正在运行的期次列表 |
-| 获取期次用户 | GET | `/api/v1/enrollments/external/users-by-period` | 签名，`roster:read` | 通过期次 ID 或期次名称获取参与用户列表 |
-| 创建小凡看见 | POST | `/api/v1/insights/external/create` | 签名，`insight:write` | 为指定用户创建“小凡看见” |
-| 上传播客音频 | POST | `/api/v1/sections/external/upload-podcast` | 签名，`podcast:write` | 上传音频文件，获取 `podcastUrl` |
-| 同步播客信息 | POST | `/api/v1/sections/external/sync-podcast` | 签名，`podcast:write` | 将播客 URL、简介、时长同步到指定课节 |
+| 接口名称       | 方法 | 端点                                           | 鉴权（见「接口签名」） | 说明                                         |
+| -------------- | ---- | ---------------------------------------------- | ---------------------- | -------------------------------------------- |
+| 查询运行中期次 | GET  | `/api/v1/enrollments/external/active-periods`  | 无需签名               | 获取所有租户或指定租户当前正在运行的期次列表 |
+| 获取期次用户   | GET  | `/api/v1/enrollments/external/users-by-period` | 签名，`roster:read`    | 通过期次 ID 或期次名称获取参与用户列表       |
+| 创建小凡看见   | POST | `/api/v1/insights/external/create`             | 签名，`insight:write`  | 为指定用户创建“小凡看见”                     |
+| 上传播客音频   | POST | `/api/v1/sections/external/upload-podcast`     | 签名，`podcast:write`  | 上传音频文件，获取 `podcastUrl`              |
+| 同步播客信息   | POST | `/api/v1/sections/external/sync-podcast`       | 签名，`podcast:write`  | 将播客 URL、简介、时长同步到指定课节         |
+
+接口编号沿用历史外部文档；#4 为旧版预留编号，当前没有对应接口，不代表文档遗漏。
 
 ## 租户标识
 
 外部接口需要明确租户。新接入系统推荐使用稳定的租户 slug，而不是微信小程序 AppID。
 
-| 方式 | 推荐度 | 用法 | 说明 |
-| --- | --- | --- | --- |
-| `X-Tenant-Slug` 请求头 | 推荐 | `X-Tenant-Slug: fanren` | 稳定、可读，和管理后台租户 slug 一致 |
-| `tenantSlug` 查询参数 | 可选，仅 API #1 | `?tenantSlug=fanren` | 用于筛选单个租户的运行中期次 |
-| `X-Wx-AppId` 请求头 | 兼容旧调用 | `X-Wx-AppId: wx2b9a3c1d5e4195f8` | 继续支持，但新接入不推荐 |
-| `tenantName` 查询参数 | 兼容旧调用，仅 API #1 | `?tenantName=凡人共读` | 中文展示名可能变化，新接入不推荐 |
+| 方式                   | 推荐度                | 用法                             | 说明                                 |
+| ---------------------- | --------------------- | -------------------------------- | ------------------------------------ |
+| `X-Tenant-Slug` 请求头 | 推荐                  | `X-Tenant-Slug: fanren`          | 稳定、可读，和管理后台租户 slug 一致 |
+| `tenantSlug` 查询参数  | 可选，仅 API #1       | `?tenantSlug=fanren`             | 用于筛选单个租户的运行中期次         |
+| `X-Wx-AppId` 请求头    | 兼容旧调用            | `X-Wx-AppId: wx2b9a3c1d5e4195f8` | 继续支持，但新接入不推荐             |
+| `tenantName` 查询参数  | 兼容旧调用，仅 API #1 | `?tenantName=凡人共读`           | 中文展示名可能变化，新接入不推荐     |
 
 规则：
 
@@ -34,12 +73,12 @@
 
 示例使用当前最新期次：
 
-| 字段 | 示例值 |
-| --- | --- |
-| periodName | `秩序之锚` |
-| periodId | `69f9bf45cb1c9ac0600ad556` |
-| day | `1` |
-| sessionId | `69f9bf45cb1c9ac0600ad55b` |
+| 字段       | 示例值                     |
+| ---------- | -------------------------- |
+| periodName | `秩序之锚`                 |
+| periodId   | `69f9bf45cb1c9ac0600ad556` |
+| day        | `1`                        |
+| sessionId  | `69f9bf45cb1c9ac0600ad55b` |
 
 说明：本文档中的 `sessionId` 即课节 ID，对应数据库里的 Section `_id`。
 
@@ -62,13 +101,13 @@ cd /var/www/morning-reading && NODE_ENV=production node backend/scripts/provisio
 
 ### 请求头
 
-| 字段 | 说明 |
-| --- | --- |
-| `X-Tenant-Slug` | 租户 slug，必须是这把 key 所属的租户 |
-| `X-Integration-Key-Id` | 发放的 `keyId` |
-| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒 |
-| `X-Integration-Nonce` | 16–128 位随机串（字母、数字、`_`、`-`），10 分钟内同一 key 不可重复 |
-| `X-Integration-Signature` | 64 位十六进制 HMAC-SHA256 签名 |
+| 字段                      | 说明                                                                |
+| ------------------------- | ------------------------------------------------------------------- |
+| `X-Tenant-Slug`           | 租户 slug，必须是这把 key 所属的租户                                |
+| `X-Integration-Key-Id`    | 发放的 `keyId`                                                      |
+| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒                     |
+| `X-Integration-Nonce`     | 16–128 位随机串（字母、数字、`_`、`-`），10 分钟内同一 key 不可重复 |
+| `X-Integration-Signature` | 64 位十六进制 HMAC-SHA256 签名                                      |
 
 ### 签名算法
 
@@ -82,33 +121,64 @@ cd /var/www/morning-reading && NODE_ENV=production node backend/scripts/provisio
 - **JSON POST**（接口三、六）：请求体为 `JSON.stringify(请求体对象)`，必须与实际发送的 JSON 字节完全一致（建议先 stringify 一次，签名和发送都用这同一个字符串）
 - **multipart 上传**（接口五）：请求体一段固定为 `{}`
 
+### 通用签名伪代码
+
+```text
+timestamp = 当前 Unix 秒级时间戳
+nonce = 至少 16 位随机串
+canonical_body =
+  GET 请求 -> "{}"
+  JSON POST -> JSON.stringify(请求体对象)
+  multipart 上传 -> "{}"
+
+message = [
+  HTTP 方法大写,
+  请求路径 + 实际查询串,
+  timestamp,
+  nonce,
+  canonical_body
+].join("\n")
+
+signature = HEX(HMAC-SHA256(secret, message))
+```
+
+随后把 `timestamp`、`nonce`、`signature` 分别放入 `X-Integration-Timestamp`、`X-Integration-Nonce`、`X-Integration-Signature`。域名和 `https://` 不参与签名，签名路径必须以 `/api/` 开头。
+
 ### n8n 示例（Code 节点，放在 HTTP Request 节点前）
 
 ```js
 // 需要 n8n 允许 crypto：环境变量 NODE_FUNCTION_ALLOW_BUILTIN=crypto
-const crypto = require('crypto');
-const KEY_ID = $env.MORNING_KEY_ID;        // 或从 Credentials 读取
+const crypto = require("crypto");
+const KEY_ID = $env.MORNING_KEY_ID; // 或从 Credentials 读取
 const SECRET = $env.MORNING_KEY_SECRET;
 
-const method = 'POST';
-const path = '/api/v1/insights/external/create';
-const bodyObj = $json.body;                // 你要发送的请求体
-const bodyStr = JSON.stringify(bodyObj);   // 签名和发送都用这个字符串
+const method = "POST";
+const path = "/api/v1/insights/external/create";
+const bodyObj = $json.body; // 你要发送的请求体
+const bodyStr = JSON.stringify(bodyObj); // 签名和发送都用这个字符串
 
 const ts = Math.floor(Date.now() / 1000).toString();
-const nonce = crypto.randomBytes(16).toString('hex');
-const signature = crypto.createHmac('sha256', SECRET)
-  .update([method, path, ts, nonce, bodyStr].join('\n'))
-  .digest('hex');
+const nonce = crypto.randomBytes(16).toString("hex");
+const signature = crypto
+  .createHmac("sha256", SECRET)
+  .update([method, path, ts, nonce, bodyStr].join("\n"))
+  .digest("hex");
 
-return [{ json: { bodyStr, headers: {
-  'X-Tenant-Slug': 'fanren',
-  'X-Integration-Key-Id': KEY_ID,
-  'X-Integration-Timestamp': ts,
-  'X-Integration-Nonce': nonce,
-  'X-Integration-Signature': signature,
-  'Content-Type': 'application/json'
-} } }];
+return [
+  {
+    json: {
+      bodyStr,
+      headers: {
+        "X-Tenant-Slug": "fanren",
+        "X-Integration-Key-Id": KEY_ID,
+        "X-Integration-Timestamp": ts,
+        "X-Integration-Nonce": nonce,
+        "X-Integration-Signature": signature,
+        "Content-Type": "application/json",
+      },
+    },
+  },
+];
 ```
 
 HTTP Request 节点：请求头用上面的 `headers`，Body 选「Raw / JSON 字符串」并填 `{{$json.bodyStr}}`（不要让 n8n 重新序列化对象，否则字节可能不一致）。
@@ -117,22 +187,22 @@ HTTP Request 节点：请求头用上面的 `headers`，Body 选「Raw / JSON �
 
 用于核对你的实现是否正确（`secret` 仅为示例）：
 
-| 项 | 值 |
-| --- | --- |
-| secret | `demo-secret-only-for-test-vector` |
-| 方法 / 路径 | `GET` `/api/v1/enrollments/external/users-by-period?periodId=6a0ef7b092fbece80a01a24e` |
-| Timestamp / Nonce | `1761379200` / `abcdef0123456789abcdef` |
-| 请求体 | `{}` |
-| 期望签名 | `4e1070b80f71204984d5c9b987ae6e27f1ac062c87c6dd1254a7b44ac07a973b` |
+| 项                | 值                                                                                     |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| secret            | `demo-secret-only-for-test-vector`                                                     |
+| 方法 / 路径       | `GET` `/api/v1/enrollments/external/users-by-period?periodId=6a0ef7b092fbece80a01a24e` |
+| Timestamp / Nonce | `1761379200` / `abcdef0123456789abcdef`                                                |
+| 请求体            | `{}`                                                                                   |
+| 期望签名          | `4e1070b80f71204984d5c9b987ae6e27f1ac062c87c6dd1254a7b44ac07a973b`                     |
 
 ### 常见 401 原因
 
-| 返回信息 | 原因 |
-| --- | --- |
-| 外部集成认证无效 | 缺少请求头、keyId 不存在/已停用、key 不属于该租户或没有对应权限 |
-| 外部集成请求已过期 | 时间戳与服务器相差超过 300 秒 |
-| 外部集成签名无效 | 签名原文不一致，最常见是路径少了查询串、或请求体字节与签名时不同 |
-| 外部集成请求已使用 | nonce 重复（重试时必须重新生成 nonce 和签名） |
+| 返回信息           | 原因                                                             |
+| ------------------ | ---------------------------------------------------------------- |
+| 外部集成认证无效   | 缺少请求头、keyId 不存在/已停用、key 不属于该租户或没有对应权限  |
+| 外部集成请求已过期 | 时间戳与服务器相差超过 300 秒                                    |
+| 外部集成签名无效   | 签名原文不一致，最常见是路径少了查询串、或请求体字节与签名时不同 |
+| 外部集成请求已使用 | nonce 重复（重试时必须重新生成 nonce 和签名）                    |
 
 ---
 
@@ -160,9 +230,9 @@ HTTP Request 节点：请求头用上面的 `headers`，Body 选「Raw / JSON �
 
 ### 请求参数
 
-| 参数 | 类型 | 必填 | 说明 | 示例 |
-| --- | --- | --- | --- | --- |
-| tenantSlug | string | 否 | 租户 slug；不传时返回所有活跃租户 | `fanren` |
+| 参数       | 类型   | 必填 | 说明                                               | 示例       |
+| ---------- | ------ | ---- | -------------------------------------------------- | ---------- |
+| tenantSlug | string | 否   | 租户 slug；不传时返回所有活跃租户                  | `fanren`   |
 | tenantName | string | 兼容 | 租户中文名称，兼容旧调用；未传 `tenantSlug` 时使用 | `凡人共读` |
 
 ### 成功响应示例
@@ -276,18 +346,18 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/active-pe
 
 ### 请求头
 
-| 字段 | 说明 |
-| --- | --- |
-| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
-| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
-| `X-Integration-Key-Id` 等 4 个签名头 | 必填，见「接口签名」 |
+| 字段                                 | 说明                                                  |
+| ------------------------------------ | ----------------------------------------------------- |
+| `X-Tenant-Slug`                      | 租户 slug（推荐），例如 `fanren`                      |
+| `X-Wx-AppId`                         | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
+| `X-Integration-Key-Id` 等 4 个签名头 | 必填，见「接口签名」                                  |
 
 ### 请求参数
 
-| 参数 | 类型 | 必填 | 说明 | 示例 |
-| --- | --- | --- | --- | --- |
-| periodId | string | 二选一 | 期次 ID，推荐优先传；和 `periodName` 同时传时优先使用 | `69f9bf45cb1c9ac0600ad556` |
-| periodName | string | 二选一 | 期次名称，需要 URL 编码 | `秩序之锚` |
+| 参数       | 类型   | 必填   | 说明                                                  | 示例                       |
+| ---------- | ------ | ------ | ----------------------------------------------------- | -------------------------- |
+| periodId   | string | 二选一 | 期次 ID，推荐优先传；和 `periodName` 同时传时优先使用 | `69f9bf45cb1c9ac0600ad556` |
+| periodName | string | 二选一 | 期次名称，需要 URL 编码                               | `秩序之锚`                 |
 
 ### 成功响应示例
 
@@ -343,11 +413,19 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/active-pe
 ```bash
 # 推荐：通过 periodId 查询
 curl -X GET "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period?periodId=69f9bf45cb1c9ac0600ad556" \
-  -H "X-Tenant-Slug: fanren"
+  -H "X-Tenant-Slug: fanren" \
+  -H "X-Integration-Key-Id: $KEY_ID" \
+  -H "X-Integration-Timestamp: $TS" \
+  -H "X-Integration-Nonce: $NONCE" \
+  -H "X-Integration-Signature: $SIG"
 
 # 兼容：通过 periodName 查询，curl 自动 URL 编码
 curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-period" \
   -H "X-Tenant-Slug: fanren" \
+  -H "X-Integration-Key-Id: $KEY_ID" \
+  -H "X-Integration-Timestamp: $TS" \
+  -H "X-Integration-Nonce: $NONCE" \
+  -H "X-Integration-Signature: $SIG" \
   --data-urlencode "periodName=秩序之锚"
 ```
 
@@ -369,25 +447,25 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 
 ### 请求头
 
-| 字段 | 说明 |
-| --- | --- |
-| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
-| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
-| `Content-Type` | `application/json` |
-| `X-Integration-Key-Id` 等 4 个签名头 | 必填，见「接口签名」 |
+| 字段                                 | 说明                                                  |
+| ------------------------------------ | ----------------------------------------------------- |
+| `X-Tenant-Slug`                      | 租户 slug（推荐），例如 `fanren`                      |
+| `X-Wx-AppId`                         | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
+| `Content-Type`                       | `application/json`                                    |
+| `X-Integration-Key-Id` 等 4 个签名头 | 必填，见「接口签名」                                  |
 
 ### 请求参数
 
-| 参数 | 类型 | 必填 | 说明 | 示例 |
-| --- | --- | --- | --- | --- |
-| periodId | string | 二选一 | 期次 ID，推荐优先传 | `69f9bf45cb1c9ac0600ad556` |
-| periodName | string | 二选一 | 期次名称，兼容旧调用方式 | `秩序之锚` |
-| sessionId | string | 二选一 | 课节 ID，推荐优先传 | `69f9bf45cb1c9ac0600ad55b` |
-| day | number | 二选一 | 第几天课程；仅在未传 `sessionId` 时使用 | `1` |
-| targetUserId | string | 二选一 | 被看见人的用户 ID，推荐优先传 | `692fe16a962d558224f4133f` |
-| targetUserName | string | 二选一 | 被看见人的昵称；服务端会在指定期次的有效报名用户中匹配，若该期次内仍不唯一则报错，建议改用 `targetUserId` | `狮子` |
-| content | string | 二选一 | 小凡看见文字内容 | `我看见你今天很认真地完成了晨读。` |
-| imageUrl | string | 二选一 | 小凡看见图片地址 | `https://example.com/image.jpg` |
+| 参数           | 类型   | 必填   | 说明                                                                                                      | 示例                               |
+| -------------- | ------ | ------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| periodId       | string | 二选一 | 期次 ID，推荐优先传                                                                                       | `69f9bf45cb1c9ac0600ad556`         |
+| periodName     | string | 二选一 | 期次名称，兼容旧调用方式                                                                                  | `秩序之锚`                         |
+| sessionId      | string | 二选一 | 课节 ID，推荐优先传                                                                                       | `69f9bf45cb1c9ac0600ad55b`         |
+| day            | number | 二选一 | 第几天课程；仅在未传 `sessionId` 时使用                                                                   | `1`                                |
+| targetUserId   | string | 二选一 | 被看见人的用户 ID，推荐优先传                                                                             | `692fe16a962d558224f4133f`         |
+| targetUserName | string | 二选一 | 被看见人的昵称；服务端会在指定期次的有效报名用户中匹配，若该期次内仍不唯一则报错，建议改用 `targetUserId` | `狮子`                             |
+| content        | string | 二选一 | 小凡看见文字内容                                                                                          | `我看见你今天很认真地完成了晨读。` |
+| imageUrl       | string | 二选一 | 小凡看见图片地址                                                                                          | `https://example.com/image.jpg`    |
 
 规则：
 
@@ -489,6 +567,10 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 # 推荐：通过 targetUserId 指定被看见人
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "X-Tenant-Slug: fanren" \
+  -H "X-Integration-Key-Id: $KEY_ID" \
+  -H "X-Integration-Timestamp: $TS" \
+  -H "X-Integration-Nonce: $NONCE" \
+  -H "X-Integration-Signature: $SIG" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -500,6 +582,10 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 # 兼容：通过 targetUserName 指定被看见人（昵称须在该期次报名用户内唯一）
 curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
   -H "X-Tenant-Slug: fanren" \
+  -H "X-Integration-Key-Id: $KEY_ID" \
+  -H "X-Integration-Timestamp: $TS" \
+  -H "X-Integration-Nonce: $NONCE" \
+  -H "X-Integration-Signature: $SIG" \
   -H "Content-Type: application/json" \
   -d '{
     "periodId": "69f9bf45cb1c9ac0600ad556",
@@ -567,21 +653,21 @@ POST /api/v1/sections/external/upload-podcast
 
 **请求头**
 
-| 字段 | 说明 |
-| --- | --- |
-| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
-| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
-| `Content-Type` | `multipart/form-data` |
-| `X-Integration-Key-Id` | 外部集成 Key ID（需含 `podcast:write` 权限，由平台用 `backend/scripts/provision-external-integration-key.js` 发放） |
-| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒 |
-| `X-Integration-Nonce` | 16–128 位随机串（字母数字 `_-`），10 分钟内不可重复 |
-| `X-Integration-Signature` | HMAC-SHA256 十六进制签名，见下方「播客接口签名」 |
+| 字段                      | 说明                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `X-Tenant-Slug`           | 租户 slug（推荐），例如 `fanren`                                                                                    |
+| `X-Wx-AppId`              | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8`                                                               |
+| `Content-Type`            | `multipart/form-data`                                                                                               |
+| `X-Integration-Key-Id`    | 外部集成 Key ID（需含 `podcast:write` 权限，由平台用 `backend/scripts/provision-external-integration-key.js` 发放） |
+| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒                                                                     |
+| `X-Integration-Nonce`     | 16–128 位随机串（字母数字 `_-`），10 分钟内不可重复                                                                 |
+| `X-Integration-Signature` | HMAC-SHA256 十六进制签名，见上文「接口签名」                                                                        |
 
 **请求体（form-data）**
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `file` | File | 是 | 音频文件，支持 m4a / mp3 / aac，最大 200MB。推荐使用 mp3 格式，文件尽量压缩到较小体积，否则小程序端加载会较慢 |
+| 字段   | 类型 | 必填 | 说明                                                                                                          |
+| ------ | ---- | ---- | ------------------------------------------------------------------------------------------------------------- |
+| `file` | File | 是   | 音频文件，支持 m4a / mp3 / aac，最大 200MB。推荐使用 mp3 格式，文件尽量压缩到较小体积，否则小程序端加载会较慢 |
 
 **成功响应**
 
@@ -622,24 +708,24 @@ POST /api/v1/sections/external/sync-podcast
 
 **请求头**
 
-| 字段 | 说明 |
-| --- | --- |
-| `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
-| `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
-| `Content-Type` | `application/json` |
-| `X-Integration-Key-Id` | 外部集成 Key ID（需含 `podcast:write` 权限，由平台用 `backend/scripts/provision-external-integration-key.js` 发放） |
-| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒 |
-| `X-Integration-Nonce` | 16–128 位随机串（字母数字 `_-`），10 分钟内不可重复 |
-| `X-Integration-Signature` | HMAC-SHA256 十六进制签名，见下方「播客接口签名」 |
+| 字段                      | 说明                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `X-Tenant-Slug`           | 租户 slug（推荐），例如 `fanren`                                                                                    |
+| `X-Wx-AppId`              | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8`                                                               |
+| `Content-Type`            | `application/json`                                                                                                  |
+| `X-Integration-Key-Id`    | 外部集成 Key ID（需含 `podcast:write` 权限，由平台用 `backend/scripts/provision-external-integration-key.js` 发放） |
+| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒                                                                     |
+| `X-Integration-Nonce`     | 16–128 位随机串（字母数字 `_-`），10 分钟内不可重复                                                                 |
+| `X-Integration-Signature` | HMAC-SHA256 十六进制签名，见上文「接口签名」                                                                        |
 
 **请求体**
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `sessionId` | string | 是 | 课节 ID（MongoDB ObjectId） |
-| `podcastUrl` | string | 否 | 音频文件 URL（来自上传接口的 `podcastUrl`） |
-| `podcastDescription` | string | 否 | 播客简介文本，最多 3000 字 |
-| `podcastDuration` | number | 否 | 音频时长（秒） |
+| 字段                 | 类型   | 必填 | 说明                                        |
+| -------------------- | ------ | ---- | ------------------------------------------- |
+| `sessionId`          | string | 是   | 课节 ID（MongoDB ObjectId）                 |
+| `podcastUrl`         | string | 否   | 音频文件 URL（来自上传接口的 `podcastUrl`） |
+| `podcastDescription` | string | 否   | 播客简介文本，最多 3000 字                  |
+| `podcastDuration`    | number | 否   | 音频时长（秒）                              |
 
 至少需要提供 `podcastUrl`、`podcastDescription`、`podcastDuration` 中的一个。
 
@@ -685,21 +771,22 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 ## 更新日志
 
-| 日期 | 版本 | 更新内容 |
-| --- | --- | --- |
+| 日期       | 版本 | 更新内容                                                                                                                                                        |
+| ---------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-06 | v2.2 | 新增对接方安全改造清单、接口权限对照、通用签名伪代码和对接完成标准；补齐小凡看见相关接口示例中的签名请求头                                                      |
 | 2026-10-25 | v2.1 | 获取期次用户、创建小凡看见、播客上传/同步接口改为必须 HMAC 签名（`roster:read` / `insight:write` / `podcast:write`），匿名调用返回 401；新增 n8n 示例和验算数据 |
-| 2026-07-04 | v2.0 | 外部接口新增 `X-Tenant-Slug` / `tenantSlug` 作为推荐租户标识，保留 `X-Wx-AppId` / `tenantName` 兼容 |
-| 2026-05-21 | v1.9 | 接口 1 改为通过 `tenantName` 参数识别租户，无需 `X-Wx-AppId` 请求头，返回体新增 `wxAppId` 字段 |
-| 2026-05-21 | v1.8 | 所有接口补充 `X-Wx-AppId` 请求头说明及 curl 示例；接口总数更正为 6 个 |
-| 2026-05-20 | v1.7 | 新增播客音频上传接口、播客信息同步接口 |
-| 2026-05-10 | v1.6 | 创建小凡看见接口支持按 `targetUserId + periodId + sessionId` 幂等更新，避免重复生成多条记录 |
-| 2026-05-10 | v1.5 | `targetUserName` 改为按指定期次的有效报名用户匹配，避免全站同名用户误判重复 |
-| 2026-05-10 | v1.4 | 创建小凡看见接口支持 `targetUserName`（与 `targetUserId` 二选一） |
-| 2026-05-06 | v1.3 | 新增运行中期次查询接口；期次用户接口支持 `periodId` 或 `periodName`；示例更新为最新期次和第 1 天 `sessionId` |
-| 2026-03-31 | v1.2 | 收紧外部创建参数：`periodId/periodName` 二选一、`sessionId/day` 二选一；移除 `title` 请求字段；文档统一仅保留 `sessionId` 写法 |
-| 2026-03-27 | v1.1 | 新增 `periodName` 和 `title` 字段 |
-| 2025-12-07 | v1.0 | 初始版本 |
+| 2026-07-04 | v2.0 | 外部接口新增 `X-Tenant-Slug` / `tenantSlug` 作为推荐租户标识，保留 `X-Wx-AppId` / `tenantName` 兼容                                                             |
+| 2026-05-21 | v1.9 | 接口 1 改为通过 `tenantName` 参数识别租户，无需 `X-Wx-AppId` 请求头，返回体新增 `wxAppId` 字段                                                                  |
+| 2026-05-21 | v1.8 | 所有接口补充 `X-Wx-AppId` 请求头说明及 curl 示例；接口总数按当时文档记为 6 个                                                                                   |
+| 2026-05-20 | v1.7 | 新增播客音频上传接口、播客信息同步接口                                                                                                                          |
+| 2026-05-10 | v1.6 | 创建小凡看见接口支持按 `targetUserId + periodId + sessionId` 幂等更新，避免重复生成多条记录                                                                     |
+| 2026-05-10 | v1.5 | `targetUserName` 改为按指定期次的有效报名用户匹配，避免全站同名用户误判重复                                                                                     |
+| 2026-05-10 | v1.4 | 创建小凡看见接口支持 `targetUserName`（与 `targetUserId` 二选一）                                                                                               |
+| 2026-05-06 | v1.3 | 新增运行中期次查询接口；期次用户接口支持 `periodId` 或 `periodName`；示例更新为最新期次和第 1 天 `sessionId`                                                    |
+| 2026-03-31 | v1.2 | 收紧外部创建参数：`periodId/periodName` 二选一、`sessionId/day` 二选一；移除 `title` 请求字段；文档统一仅保留 `sessionId` 写法                                  |
+| 2026-03-27 | v1.1 | 新增 `periodName` 和 `title` 字段                                                                                                                               |
+| 2025-12-07 | v1.0 | 初始版本                                                                                                                                                        |
 
 ---
 
-**最后更新**: 2026-10-25
+**最后更新**: 2026-11-06

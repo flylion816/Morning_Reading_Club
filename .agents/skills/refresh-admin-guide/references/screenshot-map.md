@@ -13,6 +13,7 @@
 | `annotated-06-sections.png` | `/periods` | 打开一个期次的复制操作或复制对话框 | 非公开运营备注、识别个人的数据 |
 | `annotated-06b-course-templates.png` | `/course-templates` | 展示模板列表及编辑、预览、复制、停用入口 | 非公开模板名称和配置 |
 | `annotated-06c-template-preview.png` | `/course-templates` | 编辑示例模板，展示模块配置和手机模拟预览 | 非公开配置；仅用示例内容 |
+| `annotated-06d-enrollment-templates.png` | `/enrollment-templates` | 展示报名模板列表、内置模板和编辑/预览/复制/停用入口 | 非公开模板名称、字段配置和期次使用量 |
 | `annotated-07-contents.png` | `/content` | 展示内容列表、筛选和编辑入口 | 非公开内容、作者或账号信息 |
 | `annotated-08a-checkins-records.png` | `/checkins` | 保持在打卡记录页签，展示搜索和记录列表 | 姓名、头像、打卡文本、账号标识 |
 | `annotated-08b-checkins-celebration.png` | `/checkins` | 切到庆祝动画/阅读完成配置页签 | 上传文件中的私人信息、内部备注 |

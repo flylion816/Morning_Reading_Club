@@ -33,7 +33,7 @@ test('keeps screenshots readable inside mobile scroll frames', () => {
   const shots = guide.match(/<img class="shot"/g) || [];
   const frames = guide.match(/class="shot-frame"/g) || [];
 
-  assert.equal(shots.length, 21);
+  assert.equal(shots.length, 22);
   assert.equal(frames.length, shots.length);
   assert.match(guide, /@media\(max-width:900px\)[\s\S]*?\.shot\{[^}]*min-width:760px/);
 });
