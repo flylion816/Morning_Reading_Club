@@ -43,6 +43,7 @@ class MysqlBackupService {
       [String(document._id), String(document.tenantId), JSON.stringify(document), document.createdAt || null, document.updatedAt || null]);
     } finally { conn.release(); }
   }
+
   /**
    * 通用同步函数 - 对所有类型的文档适用
    * @param {string} tableName - MySQL 表名
