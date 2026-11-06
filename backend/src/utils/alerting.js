@@ -161,7 +161,7 @@ class AlertingEngine {
 
       // 如果是CRITICAL级别，可以在这里添加额外的处理（如发送邮件、钉钉通知等）
       if (alert.severity === 'CRITICAL') {
-        logger.error('🚨 CRITICAL告警: ' + alert.message);
+        logger.error(`🚨 CRITICAL告警: ${  alert.message}`);
         // TODO: 添加邮件通知、钉钉通知等
       }
     } catch (error) {

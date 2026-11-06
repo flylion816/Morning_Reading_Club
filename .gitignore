@@ -18,6 +18,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
+!admin/package-lock.json
+!backend/package-lock.json
 
 # 编译产物
 miniprogram_npm/
@@ -40,10 +42,16 @@ tmp/
 # 环境变量文件（包含敏感信息，不要提交）
 .env.local
 .env.*.local
-.env.production        # 服务器生产环境配置（由 scripts/generate-env-production.js 生成）
-.env.docker           # Docker 环境配置（由 scripts/generate-env-production.js 生成）
+# 注意：git 不支持行内注释，注释必须单独一行
+# 服务器生产环境配置 / Docker 环境配置（由 scripts/generate-env-production.js 生成）
+.env.production
+.env.docker
 backend/.env.production
-.env.prod            # 本地生产环境配置（临时）
+backend/.env.docker
+# 本地生产环境配置（临时）
+.env.prod
+# 历史 env 备份（含生产密钥）
+.backup/
 
 # 测试覆盖率
 coverage/
@@ -92,3 +100,6 @@ backend/.omc/state/
 
 # 架构扫描缓存输出
 graphify-out/cache/
+
+# 本地启动脚本运行目录（进程号、样式回退备份等）
+.local-run/

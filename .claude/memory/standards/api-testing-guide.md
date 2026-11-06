@@ -119,7 +119,7 @@ CURRENT_USER_ID="$TOKEN_USER_ID"  # 从Token解析
 # 获取Token
 TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@morningreading.com","password":"admin123456"}' \
+  -d '{"email":"admin@morningreading.com","password":"<从密钥管理服务读取>"}' \
   | grep -o '"token":"[^"]*' | cut -d'"' -f4)
 
 # 测试单个接口

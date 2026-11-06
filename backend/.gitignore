@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Environment variables
 .env
@@ -28,3 +27,7 @@ coverage/
 # Build
 dist/
 build/
+
+# 本地 env 备份
+.env.bak.*
+.env.local.bak.*

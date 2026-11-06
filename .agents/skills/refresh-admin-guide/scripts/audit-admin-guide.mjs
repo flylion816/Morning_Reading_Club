@@ -20,6 +20,8 @@ const expectedShots = [
   'annotated-04-users.png',
   'annotated-05-payments.png',
   'annotated-06-sections.png',
+  'annotated-06b-course-templates.png',
+  'annotated-06c-template-preview.png',
   'annotated-07-contents.png',
   'annotated-08a-checkins-records.png',
   'annotated-08b-checkins-celebration.png',

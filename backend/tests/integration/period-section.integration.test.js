@@ -341,7 +341,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       await withSystemContext(null, async () => {
         const tenant = await Tenant.create({
           name: '测试租户',
-          slug: 'test-tenant-' + Date.now(),
+          slug: `test-tenant-${  Date.now()}`,
           wxAppIds: [TEST_WX_APPID]
         });
         adminTenantId = tenant._id;
@@ -357,12 +357,13 @@ describe('Period & Section Integration - 期次和课节管理', () => {
 
       const res = await request(app)
         .post('/api/v1/auth/admin/login')
+        .set('Origin', 'http://localhost:5173')
         .send({
           email: 'admin@test.com',
           password: 'admin123456'
         });
 
-      adminToken = res.body.data.token;
+      adminToken = res.body.data.accessToken;
     });
 
     describe('POST /api/v1/admin/periods - 创建期次', () => {
@@ -596,7 +597,7 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       await withSystemContext(null, async () => {
         const tenant = await Tenant.create({
           name: '流程测试租户',
-          slug: 'flow-test-tenant-' + Date.now(),
+          slug: `flow-test-tenant-${  Date.now()}`,
           wxAppIds: [TEST_WX_APPID]
         });
         flowTenantId = tenant._id;
@@ -613,12 +614,13 @@ describe('Period & Section Integration - 期次和课节管理', () => {
       // 2. 管理员登录
       const loginRes = await request(app)
         .post('/api/v1/auth/admin/login')
+        .set('Origin', 'http://localhost:5173')
         .send({
           email: 'admin@workflow.com',
           password: 'admin123456'
         });
 
-      const adminToken = loginRes.body.data.token;
+      const adminToken = loginRes.body.data.accessToken;
 
       // 3. 创建期次
       const createPeriodRes = await request(app)

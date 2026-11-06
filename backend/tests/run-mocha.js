@@ -1,9 +1,15 @@
-#!/usr/bin/env node
-
 const path = require('path');
 const fs = require('fs');
-const glob = require('glob');
-const Mocha = require('mocha');
+const mochaModule = require('mocha');
+
+const Mocha = mochaModule.Mocha || mochaModule.default || mochaModule;
+const dotenv = require('dotenv');
+
+// Unit-only runs skip the global memory-server hook but must still use the
+// explicit non-production test keys instead of inherited workstation values.
+if (process.env.NODE_ENV === 'test') {
+  dotenv.config({ path: path.resolve(__dirname, '../.env.test'), override: true });
+}
 
 const DEFAULT_PATTERN = 'tests/**/*.test.js';
 const MOCHA_CONFIG_PATH = path.resolve(process.cwd(), '.mocharc.json');
@@ -70,9 +76,16 @@ function resolveFiles(patterns) {
   const files = new Set();
 
   for (const pattern of patterns) {
-    const matches = glob.hasMagic(pattern)
-      ? glob.sync(pattern, { nodir: true })
-      : [pattern];
+    let matches = [pattern];
+    if (pattern.includes('*')) {
+      const testsRoot = path.resolve(process.cwd(), 'tests');
+      const walk = directory => fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+        const entryPath = path.join(directory, entry.name);
+        return entry.isDirectory() ? walk(entryPath) : [entryPath];
+      });
+      const expression = globToRegExp(pattern);
+      matches = walk(testsRoot).filter(file => expression.test(path.relative(process.cwd(), file)));
+    }
 
     for (const match of matches) {
       files.add(path.resolve(process.cwd(), match));
@@ -80,6 +93,29 @@ function resolveFiles(patterns) {
   }
 
   return Array.from(files).sort();
+}
+
+function globToRegExp(pattern) {
+  let source = '^';
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index];
+    if (character === '*') {
+      if (pattern.slice(index, index + 3) === '**/') {
+        source += '(?:.*/)?';
+        index += 2;
+      } else if (pattern.slice(index, index + 2) === '**') {
+        source += '.*';
+        index += 1;
+      } else {
+        source += '[^/]*';
+      }
+    } else if (character === '?') {
+      source += '[^/]';
+    } else {
+      source += character.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+    }
+  }
+  return new RegExp(`${source}$`, 'i');
 }
 
 function camelCase(option) {
@@ -176,6 +212,8 @@ async function main() {
   const requiredModules = [];
   if (process.env.SKIP_MOCHA_REQUIRE !== '1') {
     for (const requiredFile of config.require || []) {
+      // Mocha configuration supplies trusted local setup files at runtime.
+      // eslint-disable-next-line import/no-dynamic-require
       const requiredModule = require(path.resolve(process.cwd(), requiredFile));
       requiredModules.push(requiredModule);
       if (requiredModule && requiredModule.setupPromise) {
@@ -198,6 +236,14 @@ async function main() {
     timeout: Number(process.env.MOCHA_TIMEOUT || config.timeout || 10000),
     ...mochaOptions
   });
+
+  // Each test gets fresh synthetic rate-limit state; production middleware is
+  // still exercised, including 429 and Redis-outage behavior within a test.
+  if (process.env.NODE_ENV === 'test') {
+    mocha.suite.beforeEach('isolate synthetic rate-limit buckets', () => {
+      require('../src/middleware/ratelimit').resetTestRateLimitBuckets();
+    });
+  }
 
   for (const file of files) {
     mocha.addFile(file);

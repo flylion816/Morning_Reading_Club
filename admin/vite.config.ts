@@ -3,7 +3,6 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
-import vueDevTools from 'vite-plugin-vue-devtools';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -12,7 +11,7 @@ export default defineConfig({
   // 生产环境：base = '/admin/'（线上 https://wx.shubai01.com/admin/）
   base: process.env.NODE_ENV === 'production' ? '/admin/' : '/',
 
-  plugins: [vue(), vueJsx(), vueDevTools()],
+  plugins: [vue(), vueJsx()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -27,6 +26,7 @@ export default defineConfig({
       // 开发环境：http://localhost:5173/api/v1 → http://localhost:3000/api/v1
       // 可通过 VITE_API_PROXY_TARGET 环境变量配置目标服务器
       // 例：VITE_API_PROXY_TARGET=http://192.168.102.60:3000
+      '/uploads': { target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000', changeOrigin: true },
       '/api/v1': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000',
         changeOrigin: true,

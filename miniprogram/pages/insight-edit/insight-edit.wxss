@@ -1,5 +1,5 @@
 page {
-  background: #f5f5f5;
+  background: var(--app-surface-muted);
   height: 100%;
 }
 
@@ -7,7 +7,7 @@ page {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background: var(--app-page-bg);
   box-sizing: border-box;
 }
 
@@ -20,7 +20,7 @@ page {
 
 .loading-text {
   font-size: 28rpx;
-  color: #999;
+  color: var(--app-text-muted);
 }
 
 .header-card {
@@ -59,7 +59,7 @@ page {
   flex-direction: row;
   gap: 12rpx;
   padding: 16rpx 24rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--app-border);
   flex-shrink: 0;
 }
 
@@ -80,7 +80,7 @@ page {
 .tool-icon {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--app-text);
   line-height: 1;
 }
 
@@ -93,7 +93,7 @@ page {
   padding: 24rpx 32rpx;
   font-size: 30rpx;
   line-height: 1.8;
-  color: #333;
+  color: var(--app-text);
   overflow-y: auto;
 }
 
@@ -104,7 +104,7 @@ page {
   padding: 24rpx;
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
   background: white;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid var(--app-border);
   flex-shrink: 0;
 }
 
@@ -124,8 +124,8 @@ page {
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
 }
 
 .btn-cancel:active {

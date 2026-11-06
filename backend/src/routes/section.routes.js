@@ -1,17 +1,19 @@
 const express = require('express');
 
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const multer = require('multer');
 const {
   authMiddleware,
-  optionalAuthMiddleware,
-  adminMiddleware
+  optionalAuthMiddleware
 } = require('../middleware/auth');
 const { adminAuthMiddleware, optionalAdminAuthMiddleware } = require('../middleware/adminAuth');
 const {
   userTenantContext,
   adminTenantContext,
   publicTenantContext,
-  optionalUserOrPublicTenantContext,
   optionalAdminOrPublicTenantContext
 } = require('../middleware/tenantContext');
 const {
@@ -28,12 +30,10 @@ const {
   syncPodcast
 } = require('../controllers/section.controller');
 
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const multer = require('multer');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const { resolveTenantSlug } = require('../utils/tenantSlug');
+const { externalIntegrationAuth } = require('../middleware/externalIntegrationAuth');
+const { externalIntegrationRateLimit } = require('../middleware/ratelimit');
 
 const uploadRoot = path.join(__dirname, '../../uploads');
 const tenantsRoot = path.join(uploadRoot, 'tenants');
@@ -47,7 +47,7 @@ function ensureTenantDir(slug) {
 const podcastStorage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
-      const tenantId = req._resolvedTenantId || getCurrentTenantId();
+      const tenantId = req.resolvedTenantId || getCurrentTenantId();
       if (!tenantId) return cb(new Error('缺少租户上下文'));
       const slug = await resolveTenantSlug(tenantId);
       cb(null, ensureTenantDir(slug));
@@ -63,7 +63,7 @@ const podcastStorage = multer.diskStorage({
 });
 
 const podcastFileFilter = (req, file, cb) => {
-  const allowedTypes = /m4a|mp3|aac|mp4|webm/;
+  const allowedTypes = /^\.(m4a|mp3|aac|mp4|webm)$/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   if (extname) return cb(null, true);
   cb(new Error('仅支持音频文件（m4a/mp3/aac）'));
@@ -76,7 +76,7 @@ const podcastUpload = multer({
 });
 
 const closingVideoFileFilter = (req, file, cb) => {
-  const allowedTypes = /mp4|mov|m4v|webm/;
+  const allowedTypes = /^\.(mp4|mov|m4v|webm)$/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = /^video\//i.test(file.mimetype || '');
   if (extname && mimetype) return cb(null, true);
@@ -90,14 +90,14 @@ const closingVideoUpload = multer({
 });
 
 function requireActiveTenantForSectionUpload(req, res, next) {
-  const tenantId = req._resolvedTenantId || getCurrentTenantId();
+  const tenantId = req.resolvedTenantId || getCurrentTenantId();
   if (!tenantId) {
     return res.status(403).json({
       success: false,
       message: '上传前必须选择具体租户（platform_superadmin 需设置 X-Active-Tenant）'
     });
   }
-  req._resolvedTenantId = tenantId;
+  req.resolvedTenantId = tenantId;
   next();
 }
 
@@ -111,16 +111,30 @@ router.get('/today/task', authMiddleware, userTenantContext, getTodayTask);
 /**
  * @route   POST /api/v1/sections/external/upload-podcast
  * @desc    外部接口：上传播客音频文件
- * @access  Public (外部系统调用)
+ * @access  External (HMAC 签名，scope: podcast:write)
  */
-router.post('/external/upload-podcast', publicTenantContext, podcastUpload.single('file'), uploadPodcast);
+// 签名在 multer 之前校验：未授权请求不会落盘。multipart 请求签名时 body 按 {} 计算。
+router.post(
+  '/external/upload-podcast',
+  publicTenantContext,
+  externalIntegrationRateLimit,
+  externalIntegrationAuth('podcast:write'),
+  podcastUpload.single('file'),
+  uploadPodcast
+);
 
 /**
  * @route   POST /api/v1/sections/external/sync-podcast
  * @desc    外部接口：同步播客信息到课节
- * @access  Public (外部系统调用)
+ * @access  External (HMAC 签名，scope: podcast:write)
  */
-router.post('/external/sync-podcast', publicTenantContext, syncPodcast);
+router.post(
+  '/external/sync-podcast',
+  publicTenantContext,
+  externalIntegrationRateLimit,
+  externalIntegrationAuth('podcast:write'),
+  syncPodcast
+);
 
 /**
  * @route   POST /api/v1/sections/admin/upload-closing-video
@@ -146,9 +160,15 @@ router.get('/period/:periodId', optionalAuthMiddleware, optionalAdminAuthMiddlew
 /**
  * @route   GET /api/v1/sections/search
  * @desc    搜索课节正文内容（读一读）
- * @access  Auth
+ * @access  Public / Optional Auth
  */
-router.get('/search', authMiddleware, userTenantContext, searchSections);
+router.get(
+  '/search',
+  optionalAuthMiddleware,
+  optionalAdminAuthMiddleware,
+  optionalAdminOrPublicTenantContext,
+  searchSections
+);
 
 /**
  * @route   POST /api/v1/sections/:sectionId/reading-completion

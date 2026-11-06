@@ -1309,6 +1309,29 @@ describe('Enrollment Controller', () => {
   });
 
   describe('submitEnrollmentForm - TC-ENROLL-008：完整报名表单', () => {
+    it('简洁模板的免费报名只需姓名和手机号并标记为free', async () => {
+      const userId = fixtures.testUsers.normalUser._id;
+      const periodId = fixtures.testPeriods.ongoingPeriod._id;
+      const enrollmentId = new mongoose.Types.ObjectId();
+      req.user = { userId: userId.toString() };
+      req.body = { periodId: periodId.toString(), name: '简洁用户', phone: '13800138000' };
+      PeriodStub.findById.resolves({ ...fixtures.testPeriods.ongoingPeriod, price: 0, enrollmentTemplateSnapshot: {
+        templateId: 'simple', name: '简洁报名', revision: 1,
+        fields: [
+          { key: 'name', label: '姓名', required: true },
+          { key: 'phone', label: '手机号', required: true }
+        ]
+      } });
+      EnrollmentStub.findOne.resolves(null);
+      const created = { _id: enrollmentId, paymentStatus: 'free', paymentAmount: 0, toObject: sandbox.stub().returns({}) };
+      EnrollmentStub.create.resolves(created);
+      EnrollmentStub.findById.returns({ populate: sandbox.stub().returnsThis(), execPopulate: sandbox.stub().resolves(created) });
+      PeriodStub.findByIdAndUpdate.resolves({});
+      await enrollmentController.submitEnrollmentForm(req, res, next);
+      expect(EnrollmentStub.create.firstCall.args[0]).to.include({ name: '简洁用户', phone: '13800138000', paymentStatus: 'free', paymentAmount: 0 });
+      expect(res.json.calledOnce).to.equal(true);
+    });
+
     // TC-ENROLL-008: 提交完整的报名表单（201）
     it('应该提交完整的报名表单并创建待支付记录', async () => {
       const userId = fixtures.testUsers.normalUser._id;

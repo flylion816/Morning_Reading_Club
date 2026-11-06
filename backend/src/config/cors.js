@@ -53,8 +53,7 @@ const getAllowedOrigins = () => {
  * CORS 中间件配置
  * @returns {Object} Express CORS 中间件配置对象
  */
-const getCorsOptions = () => {
-  return {
+const getCorsOptions = () => ({
     origin: (origin, callback) => {
       // 每次请求时动态获取白名单（而不是在启动时缓存）
       // 这确保了当环境变量被重新加载时，CORS 配置也会自动更新
@@ -69,11 +68,24 @@ const getCorsOptions = () => {
     },
     credentials: true, // 允许发送凭证（Cookie, Authorization Headers）
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'X-Active-Tenant',
+      'X-Admin-Maintenance-Proof',
+      'X-Destructive-Confirmation',
+      'X-Tenant-Slug',
+      'X-Wx-AppId',
+      'X-Course-Template-Version',
+      'X-Integration-Key-Id',
+      'X-Integration-Timestamp',
+      'X-Integration-Nonce',
+      'X-Integration-Signature'
+    ],
     exposedHeaders: ['X-Total-Count', 'X-Total-Pages', 'X-Current-Page'],
     maxAge: 3600 // 预检请求的缓存时间（秒）
-  };
-};
+  });
 
 /**
  * Socket.IO CORS 配置

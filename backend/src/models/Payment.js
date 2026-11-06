@@ -81,7 +81,7 @@ const PaymentSchema = new mongoose.Schema(
     // 全量 required 会让 confirmPayment/markFailed 等 save() 操作抛 ValidationError
     orderNo: {
       type: String,
-      required: function () {
+      required () {
         return this.isNew;
       }
     },
@@ -196,8 +196,8 @@ PaymentSchema.statics.getUserPayments = async function (userId, options = {}) {
   return {
     list,
     total,
-    page: parseInt(page),
-    limit: parseInt(limit),
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
     totalPages: Math.ceil(total / limit)
   };
 };
@@ -238,6 +238,7 @@ PaymentSchema.methods.startProcessing = function () {
 
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 PaymentSchema.plugin(tenantPlugin);
 
 const Payment = mongoose.model('Payment', PaymentSchema);

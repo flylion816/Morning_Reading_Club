@@ -42,8 +42,8 @@
     "runtime": "Node.js 20.19.0||22.12.0"
   },
   "build": {
-    "buildCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npx vue-tsc --noEmit 2>&1 | tail -5",
-    "testCommand": "npm test",
+    "buildCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npx vitest run 2>&1 | grep -E \"Tests |Test Files\"; npx vue-tsc --build 2>&1 | grep -c \"error TS\"; npx vite build --outDir /private/tmp/claude-501/p2/admin-dist 2>&1 | tail -3",
+    "testCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npx vitest run 2>&1 | grep -E \"Tests |Test Files\"; npx vue-tsc --build 2>&1 | grep -c \"error TS\"; npx vite build --outDir /private/tmp/claude-501/p2/admin-dist 2>&1 | tail -3",
     "lintCommand": null,
     "devCommand": "npm run dev",
     "scripts": {
@@ -180,6 +180,25 @@
       ]
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "src/utils/__tests__/renderInsightMarkdown.spec.ts",
+      "accessCount": 2,
+      "lastAccessed": 1792891082346,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/renderInsightMarkdown.ts",
+      "accessCount": 2,
+      "lastAccessed": 1792891281861,
+      "type": "file"
+    },
+    {
+      "path": "src/router/__tests__/platform-guard.spec.ts",
+      "accessCount": 1,
+      "lastAccessed": 1792902399734,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }

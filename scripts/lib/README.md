@@ -162,7 +162,7 @@ wait_for_mongodb "localhost" "27017" "30"        # 等待 MongoDB 就绪
 wait_for_mysql "localhost" "3306" "30"          # 等待 MySQL 就绪
 wait_for_redis "localhost" "6379" "30"          # 等待 Redis 就绪
 
-verify_mongodb_connection "mongodb://admin:pass@localhost:27017/admin"
+verify_mongodb_connection "mongodb://admin:CHANGE_ME@localhost:27017/admin"
 verify_mysql_connection -h localhost -u root -p password database_name
 ```
 

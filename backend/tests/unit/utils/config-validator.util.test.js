@@ -218,6 +218,29 @@ describe('Config Validator Utils', () => {
 
       expect(hasSecretExposed).to.be.false;
     });
+
+    it('应在生产配置校验日志中隐藏数据库和缓存密码', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.PORT = '3000';
+      process.env.MONGODB_URI = 'mongodb://localhost/test';
+      process.env.MYSQL_PASSWORD = 'MYSQL_SENTINEL_012345678901234567';
+      process.env.REDIS_PASSWORD = 'REDIS_SENTINEL_012345678901234567';
+      process.env.JWT_SECRET = 'user_signing_key_012345678901234567890';
+      process.env.JWT_REFRESH_SECRET = 'refresh_signing_key_012345678901234567';
+      process.env.JWT_WS_SECRET = 'websocket_signing_key_01234567890123456';
+      process.env.JWT_ADMIN_SECRET = 'admin_signing_key_012345678901234567890';
+      process.env.JWT_ADMIN_REFRESH_SECRET = 'admin_refresh_signing_key_01234567890123456';
+      loggerStub.info.resetHistory();
+      loggerStub.error.resetHistory();
+
+      configValidator.validateConfig();
+
+      const emitted = JSON.stringify([...loggerStub.info.getCalls(), ...loggerStub.error.getCalls()].map(call => call.args));
+      expect(emitted).not.to.include(process.env.MYSQL_PASSWORD);
+      expect(emitted).not.to.include(process.env.REDIS_PASSWORD);
+      expect(emitted).to.include('MYSQL_PASSWORD');
+      expect(emitted).to.include('REDIS_PASSWORD');
+    });
   });
 
   describe('getValidatedConfig 函数', () => {
@@ -259,7 +282,7 @@ describe('Config Validator Utils', () => {
     it('应该包含 db 配置', () => {
       process.env.NODE_ENV = 'development';
       process.env.PORT = '3000';
-      process.env.MONGODB_URI = 'mongodb://user:pass@cluster.mongodb.net/test';
+      process.env.MONGODB_URI = 'mongodb://user:CHANGE_ME@cluster.mongodb.net/test';
       process.env.JWT_SECRET = 'secret';
       process.env.JWT_REFRESH_SECRET = 'refresh';
       process.env.MYSQL_HOST = 'mysql.example.com';
@@ -410,13 +433,13 @@ describe('Config Validator Utils', () => {
     it('应该处理包含特殊字符的 URL', () => {
       process.env.NODE_ENV = 'development';
       process.env.PORT = '3000';
-      process.env.MONGODB_URI = 'mongodb+srv://user:p@ssw0rd!@cluster.mongodb.net/test?retryWrites=true';
+      process.env.MONGODB_URI = 'mongodb+srv://user:test-password@cluster.mongodb.net/test?retryWrites=true';
       process.env.JWT_SECRET = 'secret';
       process.env.JWT_REFRESH_SECRET = 'refresh';
 
       const config = configValidator.getValidatedConfig();
 
-      expect(config.db.mongodbUri).to.include('user:p@ssw0rd!@cluster');
+      expect(config.db.mongodbUri).to.include('user:test-password@cluster');
     });
 
     it('应该处理数字作为字符串的 PORT', () => {
@@ -478,6 +501,28 @@ describe('Config Validator Utils', () => {
       process.env.JWT_REFRESH_SECRET = 'refresh';
 
       configValidator.validateConfig();
+    });
+  });
+  describe('本地开发放宽服务凭据', () => {
+    const strongKeys = () => ({
+      JWT_SECRET: 'a'.repeat(40), JWT_REFRESH_SECRET: 'b'.repeat(40), JWT_WS_SECRET: 'c'.repeat(40),
+      JWT_ADMIN_SECRET: 'd'.repeat(40), JWT_ADMIN_REFRESH_SECRET: 'e'.repeat(40)
+    });
+    // 返回 true 表示校验失败（调用了 process.exit）
+    function run(env) {
+      ['MYSQL_PASSWORD', 'REDIS_PASSWORD', 'WECHAT_SECRET', 'WECHAT_API_KEY', 'WECHAT_API_V3_KEY'].forEach(k => delete process.env[k]);
+      Object.assign(process.env, { PORT: '3000', MONGODB_URI: 'mongodb://127.0.0.1/x', ...strongKeys(), ...env });
+      configValidator.validateConfig();
+      return process.exit.called;
+    }
+    it('development 下 Redis 无密码、MySQL 弱密码不阻止启动', () => {
+      expect(run({ NODE_ENV: 'development', MYSQL_PASSWORD: 'short', WECHAT_API_KEY: 'your-key' })).to.equal(false);
+    });
+    it('production 下同样的配置仍然拦截', () => {
+      expect(run({ NODE_ENV: 'production', MYSQL_PASSWORD: 'short' })).to.equal(true);
+    });
+    it('development 下弱 JWT 签名密钥仍然拦截', () => {
+      expect(run({ NODE_ENV: 'development', JWT_SECRET: 'dev-secret-key-12345678' })).to.equal(true);
     });
   });
 });

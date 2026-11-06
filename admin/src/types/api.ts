@@ -28,6 +28,12 @@ export interface DetailResponse<T> {
  * 期次对象
  */
 export interface Period {
+  courseTemplateSnapshot?: import('./course-template').CourseTemplateSnapshot;
+  courseTemplateLocked?: boolean;
+  enrollmentTemplateId?: string;
+  enrollmentTemplateSnapshot?: import('./enrollment-template').EnrollmentTemplate;
+  enrollmentTemplateLocked?: boolean;
+  readingAccessMode?: 'open' | 'enrolled';
   _id: string;
   name?: string;
   subtitle?: string;

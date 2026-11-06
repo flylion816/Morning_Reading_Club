@@ -41,38 +41,42 @@ async function syncAllPeriodsStatus({ now = new Date(), emitSyncEvent = true } =
       byTenant.get(key).push(period);
     }
 
-    let updatedCount = 0;
     const updates = [];
+    let updatedCount = 0;
 
     for (const [tenantIdStr, tenantPeriods] of byTenant) {
       const tenantId = tenantIdStr === '__no_tenant__' ? null : tenantIdStr;
-      await withSystemContext(tenantId, async () => {
-        for (const period of tenantPeriods) {
+      for (const period of tenantPeriods) {
+        const update = await withSystemContext(tenantId, async () => {
           const expectedStatus = calculatePeriodStatus(period, now);
           if (period.status !== expectedStatus) {
             const oldStatus = period.status;
             period.status = expectedStatus;
             await period.save();
-            updatedCount += 1;
-            updates.push({
+            return {
               tenantId: tenantIdStr,
               periodId: period._id.toString(),
               periodName: period.name,
               oldStatus,
               newStatus: expectedStatus
-            });
+            };
+          }
+          return null;
+        });
 
-            if (emitSyncEvent) {
-              publishSyncEvent({
-                type: 'update',
-                collection: 'periods',
-                documentId: period._id.toString(),
-                data: period.toObject()
-              });
-            }
+        if (update) {
+          updatedCount += 1;
+          updates.push(update);
+          if (emitSyncEvent) {
+            publishSyncEvent({
+              type: 'update',
+              collection: 'periods',
+              documentId: period._id.toString(),
+              data: period.toObject()
+            });
           }
         }
-      });
+      }
     }
 
     return {

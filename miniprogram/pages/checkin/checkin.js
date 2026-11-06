@@ -1,5 +1,7 @@
+const { buildCourseModules } = require('../../utils/course-modules');
 const checkinService = require('../../services/checkin.service');
 const courseService = require('../../services/course.service');
+const enrollmentService = require('../../services/enrollment.service');
 const checkinConfigService = require('../../services/checkinConfig.service');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
@@ -125,8 +127,17 @@ Page({
     isEditMode: false,
     courseTitle: '',
     courseDate: '',
+    selectingCourse: false,
+    selectionLoading: false,
+    selectionError: '',
+    selectablePeriods: [],
+    selectableSections: [],
+    selectedPeriodIndex: 0,
+    selectedSectionIndex: 0,
 
     // 五大学习模块内容
+    courseModules: [],
+    previewModule: null,
     meditation: '',
     question: '',
     content: '',
@@ -207,6 +218,12 @@ Page({
       this.setData({ statusBarHeight: statusBarHeight || 20 });
     } catch (e) {
       this.setData({ statusBarHeight: 20 });
+    }
+
+    if (options.select === '1' && !options.checkinId) {
+      this.setData({ selectingCourse: true });
+      await this.loadCheckinChoices(options.periodId || '', options.sectionId || '');
+      return;
     }
 
     // 编辑模式：从打卡详情页进入
@@ -297,6 +314,101 @@ Page({
     this.loadCelebrationConfig();
   },
 
+  async loadCheckinChoices(preferredPeriodId = '', preferredSectionId = '') {
+    this.setData({ selectionLoading: true, selectionError: '', selectableSections: [] });
+    try {
+      const all = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const response = await enrollmentService.getUserEnrollments({ page, limit: 100 });
+        const list = Array.isArray(response) ? response : (response?.list || response?.data || []);
+        all.push(...(Array.isArray(list) ? list : []));
+        totalPages = Number(response?.totalPages) || 1;
+        page += 1;
+      } while (page <= totalPages);
+      const seen = new Set();
+      const periods = all.filter(enrollment => {
+        const id = extractId(enrollment.periodId);
+        if (!id || seen.has(id) || !['active', 'completed'].includes(enrollment.status) ||
+            !['paid', 'free'].includes(enrollment.paymentStatus)) return false;
+        seen.add(id);
+        return true;
+      }).map(enrollment => ({
+        id: extractId(enrollment.periodId),
+        name: enrollment.periodTitle || enrollment.periodId?.name || enrollment.periodId?.title || '未命名期次'
+      }));
+      const preferredIndex = periods.findIndex(period => period.id === preferredPeriodId);
+      const selectedPeriodIndex = preferredIndex >= 0 ? preferredIndex : 0;
+      this.setData({ selectablePeriods: periods, selectedPeriodIndex });
+      if (periods.length) {
+        await this.loadCheckinSections(periods[selectedPeriodIndex].id, preferredIndex >= 0 ? preferredSectionId : '');
+      } else {
+        this.setData({ selectionLoading: false });
+      }
+    } catch (error) {
+      this.setData({ selectionLoading: false, selectionError: '期次加载失败，请重试' });
+    }
+  },
+
+  async loadCheckinSections(periodId, preferredSectionId = '') {
+    const requestId = (this._checkinChoiceRequestId || 0) + 1;
+    this._checkinChoiceRequestId = requestId;
+    this.setData({ selectionLoading: true, selectionError: '', selectableSections: [] });
+    try {
+      const response = await courseService.getPeriodSections(periodId, { limit: 365 });
+      if (requestId !== this._checkinChoiceRequestId) return;
+      const list = Array.isArray(response) ? response : (response?.list || response?.items || []);
+      const sections = (Array.isArray(list) ? list : [])
+        .filter(section => extractId(section._id || section.id))
+        .map(section => ({
+          id: extractId(section._id || section.id),
+          name: `第${Number(section.day) || 0}天 · ${section.title || '未命名课程'}`
+        }));
+      const preferredIndex = sections.findIndex(section => section.id === preferredSectionId);
+      this.setData({
+        selectableSections: sections,
+        selectedSectionIndex: preferredIndex >= 0 ? preferredIndex : 0,
+        selectionLoading: false
+      });
+    } catch (error) {
+      if (requestId !== this._checkinChoiceRequestId) return;
+      this.setData({ selectionLoading: false, selectionError: '课程加载失败，请重试' });
+    }
+  },
+
+  handleCheckinPeriodChange(e) {
+    const index = Number(e.detail.value);
+    const period = this.data.selectablePeriods[index];
+    if (!period) return;
+    this.setData({ selectedPeriodIndex: index, selectedSectionIndex: 0 });
+    this.loadCheckinSections(period.id);
+  },
+
+  handleCheckinSectionChange(e) {
+    const index = Number(e.detail.value);
+    if (this.data.selectableSections[index]) this.setData({ selectedSectionIndex: index });
+  },
+
+  retryCheckinChoices() {
+    const period = this.data.selectablePeriods[this.data.selectedPeriodIndex];
+    if (period) return this.loadCheckinSections(period.id);
+    return this.loadCheckinChoices();
+  },
+
+  startSelectedCheckin() {
+    if (this.data.selectionLoading) return;
+    const period = this.data.selectablePeriods[this.data.selectedPeriodIndex];
+    const section = this.data.selectableSections[this.data.selectedSectionIndex];
+    if (!period || !section) {
+      wx.showToast({ title: '请选择可打卡的期次和课程', icon: 'none' });
+      return;
+    }
+    wx.redirectTo({
+      url: `/pages/checkin/checkin?periodId=${encodeURIComponent(period.id)}&sectionId=${encodeURIComponent(section.id)}`
+    });
+  },
+
   revealPageContent() {
     if (this._pageRevealTimer) {
       clearTimeout(this._pageRevealTimer);
@@ -320,7 +432,10 @@ Page({
         courseDate = `${course.startDate} 至 ${course.endDate}`;
       }
 
+      const courseModules = buildCourseModules(course, this.cleanHtmlForRichText(course.content || ''), require('../../config/env').apiBaseUrl.replace('/api/v1', ''));
       this.setData({
+        courseModules,
+        previewModule: courseModules[0] || null,
         courseTitle: course.title || '',
         courseDate: courseDate,
         meditation: course.meditation || '',

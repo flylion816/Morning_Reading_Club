@@ -36,7 +36,7 @@ python -m playwright install chromium
 cat > tests/.env.test << 'EOF'
 # 管理后台凭证
 ADMIN_EMAIL=admin@morningreading.com
-ADMIN_PASSWORD=admin123456
+ADMIN_PASSWORD=<从密钥管理服务读取>
 
 # 小程序开发工具地址（默认 9222 端口）
 MINIPROGRAM_DEVTOOLS_URL=http://127.0.0.1:9222
@@ -57,7 +57,7 @@ source tests/.env.test
 python tests/e2e/admin-ui.py
 
 # 指定凭证
-ADMIN_EMAIL=your_email@example.com ADMIN_PASSWORD=your_password python tests/e2e/admin-ui.py
+ADMIN_EMAIL=your_email@example.com ADMIN_PASSWORD=<从密钥管理服务读取> python tests/e2e/admin-ui.py
 ```
 
 **预期输出：**
@@ -307,7 +307,7 @@ MINIPROGRAM_DEVTOOLS_URL=http://127.0.0.1:9222 python tests/e2e/miniprogram-ui.p
 **解决方案：**
 ```bash
 # 1. 检查邮箱和密码是否正确
-ADMIN_EMAIL=your_email@example.com ADMIN_PASSWORD=your_password python tests/e2e/admin-ui.py
+ADMIN_EMAIL=your_email@example.com ADMIN_PASSWORD=<从密钥管理服务读取> python tests/e2e/admin-ui.py
 
 # 2. 检查网络连接
 curl https://wx.shubai01.com/api/v1/health
@@ -371,7 +371,7 @@ jobs:
       - name: Run Admin UI Tests
         env:
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_PASSWORD: <从密钥管理服务读取> secrets.ADMIN_PASSWORD }}
         run: python tests/e2e/admin-ui.py
 
       - name: Upload Screenshots

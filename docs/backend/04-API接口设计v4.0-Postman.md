@@ -69,7 +69,7 @@ Authorization: Bearer {{access_token}}
 | 字段 | 值 | 说明 |
 |------|---|------|
 | 邮箱 | `admin@morningreading.com` | 超级管理员邮箱 |
-| 密码 | `Km7$Px2Qw9` | 线上环境密码 |
+| 密码 | `REDACTED_SECRET_FROM_ENV` | 线上环境密码 |
 
 #### 示例请求
 
@@ -79,7 +79,7 @@ Content-Type: application/json
 
 {
   "email": "admin@morningreading.com",
-  "password": "Km7$Px2Qw9"
+  "password": "REDACTED_SECRET_FROM_ENV"
 }
 ```
 
@@ -230,9 +230,9 @@ Authorization: Bearer {{admin_token}}
 
 | 数据库 | 连接信息 |
 |--------|---------|
-| MongoDB | `mongodb://admin:ProdMongodbSecure123@127.0.0.1:27017/morning_reading?authSource=admin` |
-| MySQL | `host=localhost, port=13306, user=root, password=L55PWzePtXYPNkn7, db=morning_reading` |
-| Redis | `localhost:26379, password=Redis@Prod@User0816!` |
+| MongoDB | `mongodb://admin:CHANGE_ME@127.0.0.1:27017/morning_reading?authSource=admin` |
+| MySQL | `host=localhost, port=13306, user=root, password=REDACTED_SECRET_FROM_ENV, db=morning_reading` |
+| Redis | `localhost:26379, password=<从密钥管理服务读取>` |
 
 ### 线上微信小程序配置
 
@@ -1112,10 +1112,9 @@ if (pm.response.code === 200) {
 
 > 🆕 整个管理员认证体系为新增
 
-#### 14.2 初始化超级管理员
+#### 14.2 初始化超级管理员（历史接口，已下线）
 
-- **POST** `/api/v1/auth/admin/init`
-- **鉴权**: 无
+> 当前版本不提供公开 HTTP 初始化接口。首个平台管理员应使用 `backend/scripts/init-superadmin.js` 受控创建；已有账号不会被覆盖。请勿删除 `admins` 集合来“重置”管理员。
 
 #### 14.3 获取管理员资料
 

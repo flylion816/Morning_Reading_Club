@@ -48,6 +48,7 @@ describe('Payment Controller', () => {
       find: sandbox.stub(),
       findOne: sandbox.stub(),
       findOneAndUpdate: sandbox.stub(),
+      updateOne: sandbox.stub().resolves({ modifiedCount: 1 }),
       findByIdAndUpdate: sandbox.stub(),
       countDocuments: sandbox.stub(),
       // Static methods
@@ -76,7 +77,17 @@ describe('Payment Controller', () => {
         success: true,
         prepayId: 'mock_prepay_id'
       }),
-      resolveWechatPayConfig: sandbox.stub().resolves({}),
+      resolveWechatPayConfig: sandbox.stub().resolves({ appId: 'test-app-id', mchId: 'test-merchant-id', apiKey: 'test-api-key' }),
+      queryOrder: sandbox.stub().callsFake(async orderNo => ({
+        verified: true,
+        providerState: 'SUCCESS',
+        appId: 'test-app-id',
+        merchantId: 'test-merchant-id',
+        orderNo,
+        transactionId: 'provider-verified-transaction',
+        amount: 9900,
+        currency: 'CNY'
+      })),
       verifyNotifySign: sandbox.stub().returns(true),
       generatePaymentParams: sandbox.stub().returns({
         timeStamp: '1234567890',
@@ -94,10 +105,14 @@ describe('Payment Controller', () => {
         return {
           return_code: extract('return_code'),
           result_code: extract('result_code'),
+          appid: extract('appid'),
+          mch_id: extract('mch_id'),
           out_trade_no: extract('out_trade_no'),
           transaction_id: extract('transaction_id') || null,
           err_code_des: extract('err_code_des') || null,
-          total_fee: extract('total_fee') || null
+          total_fee: extract('total_fee') || null,
+          fee_type: extract('fee_type') || 'CNY',
+          sign: extract('sign') || 'A'.repeat(32)
         };
       })
     };
@@ -487,7 +502,11 @@ describe('Payment Controller', () => {
       const mockPayment = {
         _id: fixtures.testPayments.pendingPayment._id,
         userId: fixtures.testUsers.regularUser._id.toString(),
+        tenantId: fixtures.testPayments.pendingPayment.tenantId,
         enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        orderNo: fixtures.testPayments.pendingPayment.orderNo,
+        amount: fixtures.testPayments.pendingPayment.amount,
+        paymentMethod: 'wechat',
         status: 'pending',
         confirmPayment: sandbox.stub().resolves(),
         populate: sandbox.stub().returnsThis(),
@@ -504,11 +523,67 @@ describe('Payment Controller', () => {
 
       await paymentController.confirmPayment(req, res, next);
 
-      expect(mockPayment.confirmPayment.called).to.be.true;
+      expect(paymentServiceStub.queryOrder.calledOnce).to.be.true;
+      expect(PaymentStub.findOneAndUpdate.callCount).to.equal(2);
+      expect(PaymentStub.findOneAndUpdate.getCall(1).args[1].$set['wechat.transactionId'])
+        .to.equal('provider-verified-transaction');
       expect(EnrollmentStub.findByIdAndUpdate.called).to.be.true;
       expect(notificationControllerStub.createNotification.calledOnce).to.be.true;
       expect(subscribeMessageServiceStub.sendSceneMessage.calledOnce).to.be.true;
       expect(res.json.called).to.be.true;
+    });
+
+    it('provider amount mismatch leaves the order pending and never updates enrollment', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+      const payment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        tenantId: fixtures.testPayments.pendingPayment.tenantId,
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        orderNo: fixtures.testPayments.pendingPayment.orderNo,
+        amount: 9900,
+        paymentMethod: 'wechat',
+        status: 'pending'
+      };
+      PaymentStub.findOneAndUpdate.resolves(payment);
+      paymentServiceStub.queryOrder.resolves({
+        verified: true, providerState: 'SUCCESS', appId: 'test-app-id', merchantId: 'test-merchant-id',
+        orderNo: payment.orderNo, transactionId: 'provider-transaction', amount: 1, currency: 'CNY'
+      });
+
+      await paymentController.confirmPayment(req, res, next);
+
+      expect(res.status.calledWith(409)).to.equal(true);
+      expect(PaymentStub.updateOne.calledOnce).to.equal(true);
+      expect(PaymentStub.updateOne.firstCall.args[1].$set.status).to.equal('pending');
+      expect(PaymentStub.findOneAndUpdate.callCount).to.equal(1);
+      expect(EnrollmentStub.findByIdAndUpdate.called).to.equal(false);
+    });
+
+    it('provider timeout returns 503, resets processing to pending and does not settle', async () => {
+      req.user = { userId: fixtures.testUsers.regularUser._id.toString() };
+      req.params = { paymentId: fixtures.testPayments.pendingPayment._id };
+      const payment = {
+        _id: fixtures.testPayments.pendingPayment._id,
+        userId: fixtures.testUsers.regularUser._id.toString(),
+        tenantId: fixtures.testPayments.pendingPayment.tenantId,
+        enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        orderNo: fixtures.testPayments.pendingPayment.orderNo,
+        amount: 9900,
+        paymentMethod: 'wechat',
+        status: 'pending'
+      };
+      PaymentStub.findOneAndUpdate.resolves(payment);
+      paymentServiceStub.queryOrder.rejects(Object.assign(new Error('provider timeout'), { name: 'ETIMEDOUT' }));
+
+      await paymentController.confirmPayment(req, res, next);
+
+      expect(res.status.calledWith(503)).to.equal(true);
+      expect(PaymentStub.updateOne.calledOnce).to.equal(true);
+      expect(PaymentStub.updateOne.firstCall.args[1].$set.status).to.equal('pending');
+      expect(PaymentStub.findOneAndUpdate.callCount).to.equal(1);
+      expect(EnrollmentStub.findByIdAndUpdate.called).to.equal(false);
     });
 
     // TC-PAYMENT-007: 支付已确认时前端重复确认应幂等成功
@@ -559,7 +634,11 @@ describe('Payment Controller', () => {
       const mockPayment = {
         _id: fixtures.testPayments.pendingPayment._id,
         userId: fixtures.testUsers.regularUser._id.toString(),
+        tenantId: fixtures.testPayments.pendingPayment.tenantId,
         enrollmentId: fixtures.testEnrollments.pendingPaymentEnrollment._id,
+        orderNo: fixtures.testPayments.pendingPayment.orderNo,
+        amount: fixtures.testPayments.pendingPayment.amount,
+        paymentMethod: 'wechat',
         status: 'processing',
         confirmPayment: sandbox.stub().resolves(),
         populate: sandbox.stub().returnsThis(),

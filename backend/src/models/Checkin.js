@@ -115,6 +115,7 @@ CheckinSchema.index({ mood: 1 }); // 心情筛选
 CheckinSchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 CheckinSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Checkin', CheckinSchema);

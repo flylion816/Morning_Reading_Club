@@ -51,7 +51,7 @@ const auditLogMiddleware = (req, res, next) => {
         return;
       }
 
-      const method = req.method;
+      const {method} = req;
       const path = getRequestPath(req);
       const auditInfo = res.auditInfo || {};
       const statusCode = auditInfo.statusCode || res.statusCode;
@@ -143,7 +143,7 @@ function extractActionInfo(method, path, body) {
   let actionType = 'UPDATE';
   let resourceType = 'system';
   let resourceId = null;
-  let resourceName = null;
+  const resourceName = null;
   let description = null;
   let changes = null;
 
@@ -254,7 +254,7 @@ function getAuditActor(req) {
     return null;
   }
 
-  const role = principal.role;
+  const {role} = principal;
   const isAdmin = ADMIN_ROLES.includes(role);
   const id = principal.id || principal._id || principal.userId;
 

@@ -34,7 +34,7 @@ page {
 .meta-row { display: flex; align-items: center; margin-bottom: 12rpx; }
 .date, .dot, .location { font-size: 24rpx; color: var(--zc-text-secondary); }
 .title { display: block; font-size: 36rpx; font-weight: 700; color: var(--zc-text); margin-bottom: 12rpx; line-height: 1.4; }
-.desc { display: block; font-size: 28rpx; color: #555; line-height: 1.6; }
+.desc { display: block; font-size: 28rpx; color: var(--app-text-soft); line-height: 1.6; }
 
 /* 通用 section */
 .section { background: #fff; margin-bottom: 16rpx; padding: 24rpx; }
@@ -80,12 +80,12 @@ page {
 .no-comment { text-align: center; font-size: 26rpx; color: var(--zc-text-secondary); padding: 40rpx 0; }
 
 /* 底部输入框 */
-.input-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1rpx solid #eee; padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); z-index: 100; }
+.input-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1rpx solid var(--app-border); padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); z-index: 100; }
 .reply-hint { display: flex; justify-content: space-between; align-items: center; font-size: 24rpx; color: var(--zc-primary); margin-bottom: 12rpx; }
 .clear-reply { color: var(--zc-text-secondary); padding: 0 8rpx; }
 .input-row { display: flex; gap: 16rpx; align-items: center; }
 .comment-input { flex: 1; background: #F5F0E8; border-radius: 40rpx; padding: 16rpx 24rpx; font-size: 28rpx; }
-.send-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #ddd; color: #999; font-size: 26rpx; white-space: nowrap; }
+.send-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #ddd; color: var(--app-text-muted); font-size: 26rpx; white-space: nowrap; }
 .send-btn.active { background: var(--zc-primary); color: #fff; }
 .edit-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #F5F0E8; color: var(--zc-primary); font-size: 26rpx; white-space: nowrap; border: 2rpx solid var(--zc-primary); }
 .delete-imprint-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #FFF0F0; color: #e74c3c; font-size: 26rpx; white-space: nowrap; border: 2rpx solid #e74c3c; }

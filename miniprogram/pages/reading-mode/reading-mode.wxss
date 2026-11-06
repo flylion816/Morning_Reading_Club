@@ -55,7 +55,7 @@
   font-size: 30rpx;
   line-height: 1.35;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text);
 }
 
 .reading-progress {
@@ -149,7 +149,7 @@
 }
 
 .reader-paragraph-active {
-  color: #1f2937;
+  color: var(--app-text);
   font-weight: 700;
   opacity: 1;
 }
@@ -170,7 +170,7 @@
 .reader-empty {
   padding: 160rpx 0;
   text-align: center;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   font-size: 28rpx;
 }
 
@@ -201,7 +201,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4b5563;
+  color: var(--app-text-soft);
   font-size: 26rpx;
   font-weight: 700;
   background: #f4f6f8;
@@ -253,7 +253,7 @@
 }
 
 .poster-panel-title {
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 32rpx;
   font-weight: 800;
 }
@@ -311,7 +311,7 @@
 
 .poster-btn-plain {
   background: #f4f6f8;
-  color: #4b5563;
+  color: var(--app-text-soft);
 }
 
 .poster-btn-ghost {
@@ -359,7 +359,7 @@
 
 .completion-title {
   margin-top: 18rpx;
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 32rpx;
   line-height: 1.45;
   font-weight: 800;

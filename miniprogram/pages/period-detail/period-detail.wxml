@@ -1,75 +1,104 @@
-<!--期次介绍页 - 公开页面，无需登录-->
+<!-- 期次详情：公开阅读与报名后阅读共用同一入口 -->
 <view class="page-period-detail">
-  <!-- 加载中 -->
   <view wx:if="{{loading}}" class="loading-container">
     <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+    <text class="loading-text">正在加载课程信息</text>
   </view>
 
   <view wx:if="{{!loading && period}}" class="detail-content">
-    <!-- 顶部横幅 -->
-    <view class="detail-banner" style="background: {{period.displayColor}}">
-      <text class="banner-emoji">{{period.coverEmoji || '📚'}}</text>
-      <text class="banner-title">{{period.name || period.title}}</text>
-      <text class="banner-subtitle">{{period.subtitle || ''}}</text>
-      <view class="banner-status {{period.calculatedStatus}}">
-        <text>{{statusText}}</text>
+    <view class="detail-hero" style="background: {{period.displayColor}}">
+      <text class="hero-kicker">凡人共读 · 课程期次</text>
+      <view class="hero-title-row">
+        <text class="hero-emoji">{{period.coverEmoji || period.icon || '📚'}}</text>
+        <view class="hero-title-wrap">
+          <text class="hero-title">{{period.name || period.title}}</text>
+          <text class="hero-subtitle">{{period.subtitle || '一起完成这一段学习旅程'}}</text>
+        </view>
+      </view>
+      <view class="hero-meta">
+        <text class="hero-status">{{period.statusText}}</text>
+        <text class="hero-access">{{period.readingModeText}}</text>
       </view>
     </view>
 
-    <!-- 期次信息 -->
-    <view class="info-card">
-      <view class="info-row">
-        <text class="info-label">时间</text>
-        <text class="info-value">{{period.dateRange}}</text>
+    <view class="overview-card">
+      <view class="overview-item overview-item-wide">
+        <text class="overview-label">学习时间</text>
+        <text class="overview-value">{{period.dateRange}}</text>
       </view>
-      <view class="info-row">
-        <text class="info-label">天数</text>
-        <text class="info-value">{{period.totalDays || sections.length}}天</text>
+      <view class="overview-item">
+        <text class="overview-label">课程天数</text>
+        <text class="overview-value">{{period.totalDays || sections.length || 0}} 天</text>
       </view>
-      <view class="info-row">
-        <text class="info-label">已报名</text>
-        <text class="info-value">{{period.currentEnrollment || 0}}人</text>
+      <view class="overview-item">
+        <text class="overview-label">课程费用</text>
+        <text class="overview-value overview-price">{{period.feeText}}</text>
       </view>
-      <view class="info-row" wx:if="{{period.price}}">
-        <text class="info-label">费用</text>
-        <text class="info-value price">¥{{period.priceDisplay}}</text>
-      </view>
-    </view>
-
-    <!-- 课程简介 -->
-    <view class="section-block" wx:if="{{period.description}}">
-      <view class="section-title">课程简介</view>
-      <view class="section-content">
-        <text class="description-text">{{period.description}}</text>
+      <view class="overview-item">
+        <text class="overview-label">已加入</text>
+        <text class="overview-value">{{period.currentEnrollment || 0}} 人</text>
       </view>
     </view>
 
-    <!-- 课程大纲 -->
-    <view class="section-block">
-      <view class="section-title">课程大纲</view>
+    <view wx:if="{{period.description}}" class="content-card intro-card">
+      <view class="card-heading">
+        <text class="card-kicker">ABOUT</text>
+        <text class="card-title">课程简介</text>
+      </view>
+      <text class="description-text">{{period.description}}</text>
+    </view>
+
+    <view class="content-card outline-card">
+      <view class="card-heading card-heading-between">
+        <view>
+          <text class="card-kicker">LEARNING PATH</text>
+          <text class="card-title">课程大纲</text>
+        </view>
+        <text class="outline-count">{{sections.length || period.totalDays || 0}} 天</text>
+      </view>
       <view class="outline-list">
         <view wx:for="{{sections}}" wx:key="_id" class="outline-item">
-          <view class="outline-day">Day {{item.day}}</view>
-          <view class="outline-info">
-            <text class="outline-title">{{item.title}}</text>
-            <text class="outline-subtitle" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
+          <view class="outline-day">
+            <text class="outline-day-label">DAY</text>
+            <text class="outline-day-number">{{item.day}}</text>
           </view>
+          <view class="outline-copy">
+            <text class="outline-title">{{item.title || '当天课程'}}</text>
+            <text wx:if="{{item.subtitle}}" class="outline-subtitle">{{item.subtitle}}</text>
+          </view>
+          <text class="outline-arrow">›</text>
         </view>
         <view wx:if="{{sections.length === 0}}" class="outline-empty">
-          <text>课程内容准备中...</text>
+          <text class="outline-empty-mark">○</text>
+          <text>课程内容准备中</text>
         </view>
       </view>
     </view>
 
-    <!-- 底部报名按钮 -->
-    <view class="bottom-bar">
-      <view class="enroll-btn {{period.calculatedStatus === 'completed' || period.enrollmentClosed ? 'disabled' : ''}}" bindtap="handleEnroll">
-        <text wx:if="{{period.calculatedStatus === 'completed'}}">该期已结束</text>
-        <text wx:elif="{{period.enrollmentClosed}}">暂未开放报名</text>
-        <text wx:elif="{{period.calculatedStatus === 'ongoing'}}">立即报名</text>
-        <text wx:else>我要报名</text>
-      </view>
+    <view wx:if="{{accessError}}" class="access-note">{{accessError}}</view>
+    <view wx:if="{{period.publicReading && period.allowEnrollment && !access.isEnrolled}}" class="optional-enroll" bindtap="handleOptionalEnroll">
+      <text>想要打卡和参与互动？</text>
+      <text class="optional-enroll-link">先免费报名 ›</text>
+    </view>
+  </view>
+
+  <view wx:if="{{!loading && period}}" class="bottom-bar">
+    <view class="bottom-copy">
+      <text class="bottom-kicker" wx:if="{{period.publicReading}}">公开内容，可直接阅读</text>
+      <text class="bottom-kicker" wx:elif="{{access.isEnrolled && access.paymentStatus === 'pending'}}">报名资料已提交</text>
+      <text class="bottom-kicker" wx:else>加入后开始学习</text>
+      <text class="bottom-hint" wx:if="{{accessLoading}}">正在确认你的报名状态</text>
+      <text class="bottom-hint" wx:elif="{{period.publicReading}}">报名后可参与打卡和课程互动</text>
+      <text class="bottom-hint" wx:elif="{{period.isFree}}">免费报名，提交姓名和手机号即可</text>
+      <text class="bottom-hint" wx:if="{{!period.isFree}}">报名费用：{{period.feeText}}</text>
+    </view>
+    <view class="primary-button" bindtap="handlePrimaryAction">
+      <text wx:if="{{period.publicReading && !access.isEnrolled}}">开始学习</text>
+      <text wx:elif="{{period.publicReading && access.isEnrolled}}">继续学习</text>
+      <text wx:elif="{{access.isEnrolled && access.paymentStatus === 'pending'}}">继续支付</text>
+      <text wx:elif="{{period.calculatedStatus === 'completed'}}">该期已结束</text>
+      <text wx:elif="{{period.isFree}}">免费报名</text>
+      <text wx:else>报名学习</text>
     </view>
   </view>
 </view>

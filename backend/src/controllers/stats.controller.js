@@ -485,7 +485,7 @@ exports.getCheckinStats = async (req, res) => {
 exports.getCheckinStats = async (req, res) => {
   try {
     const { periodId } = req.query;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 构建查询条件
     const query = { userId };

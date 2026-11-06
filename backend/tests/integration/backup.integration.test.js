@@ -9,7 +9,8 @@
 const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
+const { generateAdminMaintenanceToken } = require('../../src/utils/jwt');
+const { createAdminSession } = require('../../src/services/admin-session.service');
 const { withSystemContext } = require('../../src/utils/tenantContext');
 
 let app;
@@ -18,6 +19,8 @@ let Admin;
 let Period;
 let adminUser;
 let adminToken;
+let maintenanceToken;
+let tenantId;
 
 describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
   before(async function() {
@@ -29,20 +32,21 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     app = require('../../src/server');
 
+    const Tenant = require('../../src/models/Tenant');
+    const tenant = await Tenant.create({ slug: 'backup-security-test', name: 'Backup Test', status: 'active' });
+    tenantId = tenant._id;
+
     // 创建管理员用户（用于认证）
     adminUser = await withSystemContext(null, () => Admin.create({
       email: 'backup-test@admin.com',
       password: 'test-password-123',
       name: '备份测试管理员',
-      role: 'admin'
+      role: 'platform_superadmin'
     }));
 
-    // 生成 admin token
-    adminToken = jwt.sign(
-      { id: adminUser._id.toString(), role: 'platform_superadmin' },
-      process.env.JWT_SECRET || 'dev-secret-key-12345678',
-      { expiresIn: '7d' }
-    );
+    const session = await createAdminSession(adminUser);
+    adminToken = session.accessToken;
+    maintenanceToken = generateAdminMaintenanceToken(adminUser, session.sessionId);
   });
 
   after(async function() {
@@ -72,6 +76,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
   describe('PUT /api/v1/backup/mongodb/record', () => {
     it('应该成功更新 MongoDB 记录', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-001',
         nickname: '原始昵称',
         avatar: '🦁',
@@ -81,6 +86,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .put('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .send({
           table: 'users',
           id: testUser._id.toString(),
@@ -102,6 +109,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     it('应该防止修改 _id 字段', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-002',
         nickname: '测试用户',
         avatar: '🦁'
@@ -112,6 +120,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .put('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .send({
           table: 'users',
           id: testUser._id.toString(),
@@ -130,6 +140,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     it('应该返回 401 当无有效的 token', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-003',
         nickname: '测试用户'
       }));
@@ -149,6 +160,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .put('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .send({
           table: 'users'
         });
@@ -161,6 +174,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .put('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .send({
           table: 'invalid_collection',
           id: new mongoose.Types.ObjectId().toString(),
@@ -177,6 +192,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .put('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .send({
           table: 'users',
           id: nonExistentId.toString(),
@@ -189,6 +206,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     it('应该支持更新不同集合的记录', async () => {
       const testPeriod = await withSystemContext(null, () => Period.create({
+        tenantId,
         name: '原始期次名称',
         description: '期次描述',
         status: 'not_started',
@@ -199,6 +217,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .put('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .send({
           table: 'periods',
           id: testPeriod._id.toString(),
@@ -222,6 +242,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
   describe('DELETE /api/v1/backup/mongodb/record', () => {
     it('应该成功删除 MongoDB 记录', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-delete-001',
         nickname: '待删除用户',
         avatar: '🦁'
@@ -230,6 +251,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .delete('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .query({
           table: 'users',
           id: testUser._id.toString()
@@ -245,6 +268,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     it('应该返回 401 当无有效的 token', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-delete-002',
         nickname: '待删除用户'
       }));
@@ -266,6 +290,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .delete('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .query({
           table: 'users'
         });
@@ -278,6 +304,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .delete('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .query({
           table: 'invalid_collection',
           id: new mongoose.Types.ObjectId().toString()
@@ -293,6 +321,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .delete('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .query({
           table: 'users',
           id: nonExistentId.toString()
@@ -304,6 +334,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     it('应该支持删除不同集合的记录', async () => {
       const testPeriod = await withSystemContext(null, () => Period.create({
+        tenantId,
         name: '待删除期次',
         description: '期次描述',
         status: 'not_started',
@@ -314,6 +345,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .delete('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .query({
           table: 'periods',
           id: testPeriod._id.toString()
@@ -327,6 +360,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     it('应该在删除前保存完整的文档数据用于同步', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-delete-003',
         nickname: '待删除用户',
         avatar: '🦁',
@@ -336,6 +370,8 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
       const res = await request(app)
         .delete('/api/v1/backup/mongodb/record')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Active-Tenant', tenantId.toString())
+        .set('X-Admin-Maintenance-Proof', maintenanceToken)
         .query({
           table: 'users',
           id: testUser._id.toString()
@@ -356,6 +392,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
   describe('Admin 权限检查', () => {
     it('非管理员不能访问更新 API', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-004',
         nickname: '测试用户'
       }));
@@ -374,6 +411,7 @@ describe('Backup Integration - MongoDB 记录 CRUD 操作', () => {
 
     it('非管理员不能访问删除 API', async () => {
       const testUser = await withSystemContext(null, () => User.create({
+        tenantId,
         openid: 'test-user-005',
         nickname: '测试用户'
       }));

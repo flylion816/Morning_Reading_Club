@@ -3,9 +3,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
-const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { adminAuthMiddleware, requireRole } = require('../middleware/adminAuth');
 const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const { resolveTenantSlug } = require('../utils/tenantSlug');
@@ -19,7 +20,8 @@ const {
   updateUser,
   deleteUser,
   bindPhone,
-  getPhoneInfo
+  getPhoneInfo,
+  USER_ROLE_MANAGER_ROLES
 } = require('../controllers/user.controller');
 
 const uploadRoot = path.join(__dirname, '../../uploads');
@@ -35,7 +37,7 @@ function ensureTenantDir(slug) {
 const avatarStorage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
-      const tenantId = req._resolvedTenantId;
+      const tenantId = req.resolvedTenantId;
       if (!tenantId) return cb(new Error('缺少租户上下文'));
       const slug = await resolveTenantSlug(tenantId);
       cb(null, ensureTenantDir(slug));
@@ -51,7 +53,7 @@ const avatarStorage = multer.diskStorage({
 });
 
 const avatarFileFilter = (req, file, cb) => {
-  if (/jpeg|jpg|png|webp/i.test(path.extname(file.originalname).toLowerCase().replace('.', ''))) {
+  if (/^(jpeg|jpg|png|webp)$/i.test(path.extname(file.originalname).toLowerCase().replace('.', ''))) {
     return cb(null, true);
   }
   cb(new Error('仅支持 jpeg/jpg/png/webp 格式'));
@@ -60,7 +62,7 @@ const avatarFileFilter = (req, file, cb) => {
 const avatarUpload = multer({ storage: avatarStorage, fileFilter: avatarFileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
 function setResolvedTenantId(req, res, next) {
-  req._resolvedTenantId = getCurrentTenantId();
+  req.resolvedTenantId = getCurrentTenantId();
   next();
 }
 
@@ -142,8 +144,14 @@ router.put('/:userId', adminAuthMiddleware, adminTenantContext, updateUser);
 /**
  * @route   DELETE /api/v1/users/:userId
  * @desc    删除用户（管理员）
- * @access  Admin
+ * @access  Admin（operator 不可）
  */
-router.delete('/:userId', adminAuthMiddleware, adminTenantContext, deleteUser);
+router.delete(
+  '/:userId',
+  adminAuthMiddleware,
+  adminTenantContext,
+  requireRole(...USER_ROLE_MANAGER_ROLES),
+  deleteUser
+);
 
 module.exports = router;

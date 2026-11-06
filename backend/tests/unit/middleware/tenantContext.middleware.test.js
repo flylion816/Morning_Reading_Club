@@ -11,6 +11,7 @@ describe('Tenant Context Middleware', () => {
   let TenantStub;
   let runWithTenantStub;
   let publicTenantContext;
+  let adminTenantContext;
   let fanrenTenant;
   let starryTenant;
 
@@ -63,7 +64,7 @@ describe('Tenant Context Middleware', () => {
 
     runWithTenantStub = sandbox.stub().callsFake((ctx, fn) => fn());
 
-    ({ publicTenantContext } = proxyquire('../../../src/middleware/tenantContext', {
+    ({ publicTenantContext, adminTenantContext } = proxyquire('../../../src/middleware/tenantContext', {
       '../models/Tenant': TenantStub,
       '../utils/tenantContext': {
         runWithTenant: runWithTenantStub,
@@ -86,7 +87,7 @@ describe('Tenant Context Middleware', () => {
     await publicTenantContext(req, res, next);
 
     expect(next.calledOnce).to.equal(true);
-    expect(req._resolvedTenantId.toString()).to.equal(fanrenTenant._id.toString());
+    expect(req.resolvedTenantId.toString()).to.equal(fanrenTenant._id.toString());
     expect(runWithTenantStub.getCall(0).args[0].tenantId.toString()).to.equal(fanrenTenant._id.toString());
     expect(TenantStub.findByWxAppId.called).to.equal(false);
   });
@@ -97,7 +98,7 @@ describe('Tenant Context Middleware', () => {
     await publicTenantContext(req, res, next);
 
     expect(next.calledOnce).to.equal(true);
-    expect(req._resolvedTenantId.toString()).to.equal(fanrenTenant._id.toString());
+    expect(req.resolvedTenantId.toString()).to.equal(fanrenTenant._id.toString());
     expect(TenantStub.findByWxAppId.calledWith('wx2b9a3c1d5e4195f8')).to.equal(true);
   });
 
@@ -111,5 +112,33 @@ describe('Tenant Context Middleware', () => {
     expect(res.json.getCall(0).args[0].message).to.equal('X-Tenant-Slug 与 X-Wx-AppId 指向不同租户');
     expect(next.called).to.equal(false);
     expect(runWithTenantStub.called).to.equal(false);
+  });
+
+  it('should resolve a platform admin tenant from a legacy slug header', async () => {
+    req._headers['x-active-tenant'] = 'fanren';
+    req.admin = {
+      role: 'platform_superadmin',
+      id: 'admin-1'
+    };
+
+    await adminTenantContext(req, res, next);
+
+    expect(next.calledOnce).to.equal(true);
+    expect(req.resolvedTenantId.toString()).to.equal(fanrenTenant._id.toString());
+    expect(runWithTenantStub.lastCall.args[0].bypassTenantFilter).to.equal(false);
+  });
+
+  it('should use a platform admin default tenant when the header is absent', async () => {
+    req.admin = {
+      role: 'platform_superadmin',
+      id: 'admin-1',
+      tenantId: starryTenant._id
+    };
+
+    await adminTenantContext(req, res, next);
+
+    expect(next.calledOnce).to.equal(true);
+    expect(req.resolvedTenantId.toString()).to.equal(starryTenant._id.toString());
+    expect(runWithTenantStub.lastCall.args[0].bypassTenantFilter).to.equal(false);
   });
 });

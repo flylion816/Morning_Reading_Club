@@ -27,7 +27,7 @@ const envConfig = {
     // 后端配置
     backend: {
       // 本地开发环境：使用 localhost MongoDB（开发级别密码）
-      mongodbUri: 'mongodb://127.0.0.1:27017/morning_reading_db',
+      mongodbUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/morning_reading_db',
       nodeEnv: 'development',
       port: 3000,
     },
@@ -36,15 +36,15 @@ const envConfig = {
       host: '127.0.0.1',
       port: 3306,
       user: 'morning_user',
-      password: 'morning123',
+      password: process.env.MYSQL_PASSWORD || '',
       database: 'morning_reading',
-      rootPassword: 'root-password',
+      rootPassword: process.env.MYSQL_ROOT_PASSWORD || '',
     },
     // Redis 配置（本地开发环境）
     redis: {
       host: '127.0.0.1',
       port: 6379,
-      password: '',
+      password: process.env.REDIS_PASSWORD || '',
       db: 0,
     },
     // 小程序配置
@@ -62,15 +62,15 @@ const envConfig = {
     // 管理员账户配置（开发环境）
     adminUser: {
       email: 'admin@morningreading.com',
-      defaultPassword: 'admin123456',
-      dbAccessPassword: 'admin123456',
+      defaultPassword: '',
+      dbAccessPassword: '',
     },
   },
   prod: {
     // 后端配置
     backend: {
       // 线上环境：Docker 容器中的 MongoDB（避免 URI 中包含特殊字符，使用简化密码）
-      mongodbUri: 'mongodb://admin:ProdMongodbSecure123@127.0.0.1:27017/morning_reading?authSource=admin',
+      mongodbUri: process.env.MONGODB_URI || '',
       nodeEnv: 'production',
       port: 3000,
     },
@@ -78,16 +78,16 @@ const envConfig = {
     mysql: {
       host: 'localhost',
       port: 3306,  // Docker 映射端口（统一为 3306）
-      user: 'root',
-      password: 'Prod_Root@Secure123!',
+      user: process.env.MYSQL_USER || '',
+      password: process.env.MYSQL_PASSWORD || '',
       database: 'morning_reading',
-      rootPassword: 'Prod_Root@Secure123!',
+      rootPassword: process.env.MYSQL_ROOT_PASSWORD || '',
     },
     // Redis 配置（线上 Docker 环境）
     redis: {
       host: 'localhost',
       port: 26379,
-      password: 'Redis@Prod@User0816!',
+      password: process.env.REDIS_PASSWORD || '',
       db: 0,
     },
     // 小程序配置
@@ -105,8 +105,8 @@ const envConfig = {
     // 管理员账户配置（生产环境 - 使用强密码）
     adminUser: {
       email: 'admin@morningreading.com',
-      defaultPassword: 'Km7$Px2Qw9',
-      dbAccessPassword: 'Jb3#Rl8Tn5',
+      defaultPassword: '',
+      dbAccessPassword: '',
     },
   },
 };

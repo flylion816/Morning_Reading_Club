@@ -336,7 +336,7 @@ const confirmPaymentRequests = {
  */
 const wechatCallbackRequests = {
   // 支付成功（XML 字符串，模拟真实微信回调）
-  successCallback: `<xml><return_code><![CDATA[SUCCESS]]></return_code><result_code><![CDATA[SUCCESS]]></result_code><out_trade_no><![CDATA[${testPayments.pendingPayment.orderNo}]]></out_trade_no><transaction_id><![CDATA[wx_txn_success_123]]></transaction_id></xml>`,
+  successCallback: `<xml><return_code><![CDATA[SUCCESS]]></return_code><result_code><![CDATA[SUCCESS]]></result_code><appid><![CDATA[test-app-id]]></appid><mch_id><![CDATA[test-merchant-id]]></mch_id><out_trade_no><![CDATA[${testPayments.pendingPayment.orderNo}]]></out_trade_no><transaction_id><![CDATA[wx_txn_success_123]]></transaction_id><total_fee><![CDATA[9900]]></total_fee><fee_type><![CDATA[CNY]]></fee_type><sign><![CDATA[AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA]]></sign></xml>`,
 
   // 支付失败（XML 字符串）
   failureCallback: `<xml><return_code><![CDATA[SUCCESS]]></return_code><result_code><![CDATA[FAIL]]></result_code><out_trade_no><![CDATA[${testPayments.processingPayment.orderNo}]]></out_trade_no><err_code_des><![CDATA[支付失败]]></err_code_des></xml>`,

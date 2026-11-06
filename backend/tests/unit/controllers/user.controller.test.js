@@ -146,6 +146,54 @@ describe('User Controller - 100% Coverage', () => {
       expect(responseData.data).to.have.property('totalCheckinDays');
     });
 
+    it('operator 不能修改用户角色', async () => {
+      req.params = { userId: fixtures.testUsers.normalUser._id.toString() };
+      req.admin = { role: 'operator' };
+      req.body = { role: 'admin' };
+
+      await userController.updateUser(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+      expect(UserStub.findById.called).to.be.false;
+    });
+
+    it('只有平台管理员能授予 super_admin', async () => {
+      req.params = { userId: fixtures.testUsers.normalUser._id.toString() };
+      req.admin = { role: 'tenant_admin' };
+      req.body = { role: 'super_admin' };
+
+      await userController.updateUser(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+    });
+
+    it('拒绝非法角色和状态值', async () => {
+      req.params = { userId: fixtures.testUsers.normalUser._id.toString() };
+      req.admin = { role: 'platform_superadmin' };
+      req.body = { role: 'root' };
+      await userController.updateUser(req, res, next);
+      expect(res.status.calledWith(400)).to.be.true;
+
+      res.status.resetHistory();
+      req.body = { status: 'inactive' };
+      await userController.updateUser(req, res, next);
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(UserStub.findById.called).to.be.false;
+    });
+
+    it('operator 仍可封禁用户', async () => {
+      req.params = { userId: fixtures.testUsers.normalUser._id.toString() };
+      req.admin = { role: 'operator' };
+      req.body = { status: 'banned' };
+      const user = { ...fixtures.testUsers.normalUser, save: sandbox.stub().resolves() };
+      UserStub.findById.resolves(user);
+
+      await userController.updateUser(req, res, next);
+
+      expect(user.status).to.equal('banned');
+      expect(user.save.called).to.be.true;
+    });
+
     it('应该返回404当用户不存在', async () => {
       // Given
       req.user = { userId: new mongoose.Types.ObjectId() };
@@ -690,6 +738,40 @@ describe('User Controller - 100% Coverage', () => {
       expect(query.role).to.deep.equal({ $in: ['admin', 'super_admin'] });
     });
 
+    it('应该支持按最近登录时间排序并拒绝未允许的排序字段', async () => {
+      // Given
+      req.query = { page: 1, limit: 20, sortBy: 'password', sortOrder: 'descending' };
+      UserStub.countDocuments.resolves(1);
+      const sortStub = sandbox.stub().returnsThis();
+      UserStub.find.returns({
+        sort: sortStub,
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves([fixtures.testUsers.normalUser])
+      });
+
+      // When
+      await userController.getUserList(req, res, next);
+
+      // Then
+      expect(sortStub.calledWith({ createdAt: -1 })).to.be.true;
+
+      // Given
+      req.query = { page: 1, limit: 20, sortBy: 'lastLoginAt', sortOrder: 'ascending' };
+      UserStub.find.returns({
+        sort: sortStub,
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().resolves([fixtures.testUsers.normalUser])
+      });
+
+      // When
+      await userController.getUserList(req, res, next);
+
+      // Then
+      expect(sortStub.calledWith({ lastLoginAt: 1 })).to.be.true;
+    });
+
     it('应该支持按 status 过滤', async () => {
       // Given
       req.query = { status: 'active' };
@@ -792,11 +874,11 @@ describe('User Controller - 100% Coverage', () => {
       // Given
       const userId = fixtures.testUsers.normalUser._id;
       req.params = { userId: userId.toString() };
-      req.body = { status: 'inactive' };
+      req.body = { status: 'banned' };
       const mockUser = { ...fixtures.testUsers.normalUser };
       const updatedUser = {
         ...mockUser,
-        status: 'inactive',
+        status: 'banned',
         save: sandbox.stub().resolves()
       };
       UserStub.findById.resolves(updatedUser);
@@ -819,7 +901,7 @@ describe('User Controller - 100% Coverage', () => {
       const mockUser = { ...fixtures.testUsers.normalUser };
       const updatedUser = {
         ...mockUser,
-        status: 'inactive',
+        status: 'banned',
         save: sandbox.stub().resolves()
       };
       UserStub.findById.resolves(updatedUser);
@@ -835,6 +917,7 @@ describe('User Controller - 100% Coverage', () => {
       // Given
       const userId = fixtures.testUsers.normalUser._id;
       req.params = { userId: userId.toString() };
+      req.admin = { role: 'tenant_admin' };
       req.body = { role: 'admin' };
       const mockUser = { ...fixtures.testUsers.normalUser };
       const updatedUser = {
@@ -854,7 +937,7 @@ describe('User Controller - 100% Coverage', () => {
     it('应该返回404当用户不存在', async () => {
       // Given
       req.params = { userId: new mongoose.Types.ObjectId().toString() };
-      req.body = { status: 'inactive' };
+      req.body = { status: 'banned' };
       UserStub.findById.resolves(null);
 
       // When
@@ -869,7 +952,7 @@ describe('User Controller - 100% Coverage', () => {
     it('应该在数据库错误时调用 next', async () => {
       // Given
       req.params = { userId: new mongoose.Types.ObjectId().toString() };
-      req.body = { status: 'inactive' };
+      req.body = { status: 'banned' };
       const dbError = new Error('Save failed');
       UserStub.findById.rejects(dbError);
 

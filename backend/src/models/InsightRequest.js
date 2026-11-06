@@ -144,6 +144,7 @@ insightRequestSchema.index({ updatedAt: -1 });
 insightRequestSchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 insightRequestSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('InsightRequest', insightRequestSchema);

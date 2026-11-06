@@ -47,7 +47,7 @@ npm run build
 ## Demo 账号
 
 - 邮箱: `admin@morningreading.com`
-- 密码: `admin123456`
+- 密码: `<从密钥管理服务读取>`
 
 > ⚠️ 生产环境中必须更改默认密码
 

@@ -1,5 +1,5 @@
-const { runWithTenant, withSystemContext } = require('../utils/tenantContext');
 const mongoose = require('mongoose');
+const { runWithTenant, withSystemContext } = require('../utils/tenantContext');
 const Tenant = require('../models/Tenant');
 const logger = require('../utils/logger');
 
@@ -12,7 +12,7 @@ async function userTenantContext(req, res, next) {
     return res.status(401).json({ code: 401, message: '未登录' });
   }
 
-  let tenantId = req.user.tenantId;
+  let {tenantId} = req.user;
 
   // 老 token 没有 tenantId：从数据库查用户补全（兼容旧小程序客户端）
   // 用原生 collection 绕过 tenantPlugin，避免 ALS 上下文在中间件链中传播不稳定的问题
@@ -63,49 +63,71 @@ async function userTenantContext(req, res, next) {
  *   - 若请求头 X-Active-Tenant 存在且合法：作用于该租户
  *   - 否则：bypassTenantFilter = true（看全平台）
  */
-function adminTenantContext(req, res, next) {
+async function adminTenantContext(req, res, next) {
   if (!req.admin) {
     return res.status(401).json({ code: 401, message: '未登录' });
   }
 
-  const role = req.admin.role;
-
-  if (role === 'platform_superadmin' || role === 'superadmin') {
+  try {
+    const { role } = req.admin;
+    const isPlatformAdmin = role === 'platform_superadmin' || role === 'superadmin';
     const activeTenantHeader = req.header('X-Active-Tenant');
+    let activeTenantId = null;
+
     if (activeTenantHeader && mongoose.Types.ObjectId.isValid(activeTenantHeader)) {
-      req._resolvedTenantId = new mongoose.Types.ObjectId(activeTenantHeader);
+      activeTenantId = new mongoose.Types.ObjectId(activeTenantHeader);
+    } else if (activeTenantHeader) {
+      // Accept a legacy tenant slug in case an older admin bundle persisted
+      // the slug instead of the MongoDB ObjectId.
+      const tenant = await Tenant.findOne({
+        slug: String(activeTenantHeader).trim().toLowerCase(),
+        status: 'active'
+      }).lean();
+      if (tenant?._id) activeTenantId = tenant._id;
+    } else if (isPlatformAdmin && req.admin.tenantId && mongoose.Types.ObjectId.isValid(req.admin.tenantId)) {
+      // Some platform accounts are also bound to a default tenant.
+      activeTenantId = new mongoose.Types.ObjectId(req.admin.tenantId);
+    }
+
+    if (isPlatformAdmin && activeTenantId) {
+      req.resolvedTenantId = activeTenantId;
       return runWithTenant(
         {
-          tenantId: req._resolvedTenantId,
+          tenantId: activeTenantId,
           bypassTenantFilter: false,
           actor: { type: 'admin', id: req.admin.id, role }
         },
         () => next()
       );
     }
-    req._resolvedTenantId = null;
+
+    if (isPlatformAdmin) {
+      req.resolvedTenantId = null;
+      return runWithTenant(
+        {
+          tenantId: null,
+          bypassTenantFilter: true,
+          actor: { type: 'admin', id: req.admin.id, role }
+        },
+        () => next()
+      );
+    }
+
+    if (!req.admin.tenantId) {
+      return res.status(403).json({ code: 403, message: '管理员未绑定租户，请联系平台管理员' });
+    }
+    req.resolvedTenantId = new mongoose.Types.ObjectId(req.admin.tenantId);
     return runWithTenant(
       {
-        tenantId: null,
-        bypassTenantFilter: true,
+        tenantId: req.resolvedTenantId,
+        bypassTenantFilter: false,
         actor: { type: 'admin', id: req.admin.id, role }
       },
       () => next()
     );
+  } catch (error) {
+    return next(error);
   }
-
-  if (!req.admin.tenantId) {
-    return res.status(403).json({ code: 403, message: '管理员未绑定租户，请联系平台管理员' });
-  }
-  req._resolvedTenantId = new mongoose.Types.ObjectId(req.admin.tenantId);
-  runWithTenant(
-    {
-      tenantId: req._resolvedTenantId,
-      bypassTenantFilter: false,
-      actor: { type: 'admin', id: req.admin.id, role }
-    },
-    () => next()
-  );
 }
 
 /**
@@ -154,7 +176,7 @@ async function publicTenantContext(req, res, next) {
       method: req.method
     });
 
-    req._resolvedTenantId = tenant._id;
+    req.resolvedTenantId = tenant._id;
     runWithTenant(
       {
         tenantId: tenant._id,
@@ -180,6 +202,13 @@ function optionalUserOrPublicTenantContext(req, res, next) {
  */
 function optionalAdminOrPublicTenantContext(req, res, next) {
   if (req.admin) return adminTenantContext(req, res, next);
+  // An expired admin session must trigger the dashboard's 401 refresh flow
+  // instead of being mistaken for an anonymous request missing tenant headers.
+  const hasPublicTenant = req.header('X-Tenant-Slug') || req.header('X-Wx-AppId');
+  if (!req.user && (req.header('X-Active-Tenant') || !hasPublicTenant) &&
+      /^Bearer\s+\S+/i.test(req.header('Authorization') || '')) {
+    return res.status(401).json({ code: 401, message: '管理员会话已失效，请重新登录' });
+  }
   return publicTenantContext(req, res, next);
 }
 

@@ -16,11 +16,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 数据库密码（来自 .env.production）
-MONGODB_PASSWORD="p62CWhV0Kd1Unq"
-MYSQL_ROOT_PASSWORD="Root@Prod@User0816!"
-MYSQL_APP_PASSWORD="Morning@Prod@User0816!"
-REDIS_PASSWORD="Redis@Prod@User0816!"
+# Credentials must be injected by the operator or a secret manager.
+: "${MONGODB_PASSWORD:?MONGODB_PASSWORD must be set}"
+: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}"
+: "${MYSQL_APP_PASSWORD:?MYSQL_APP_PASSWORD must be set}"
+: "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}"
 
 # 打印带颜色的消息
 print_info() {
@@ -273,7 +273,7 @@ echo ""
 echo -e "${GREEN}服务器环境已完全准备就绪！${NC}"
 echo ""
 echo -e "${BLUE}关键信息：${NC}"
-echo "  • MongoDB:  mongodb://admin:***@127.0.0.1:27017/admin"
+echo "  • MongoDB:  mongodb://admin:<password-hidden>@127.0.0.1:27017/admin"
 echo "  • MySQL:    morning_user@127.0.0.1:3306/morning_reading"
 echo "  • Redis:    127.0.0.1:6379"
 echo ""
@@ -291,8 +291,8 @@ echo "     mysql -u morning_user -p -e 'SELECT 1'"
 echo "     redis-cli -a PASSWD ping"
 echo ""
 echo -e "${YELLOW}密码提醒：${NC}"
-echo "  • MongoDB:  ${MONGODB_PASSWORD}"
-echo "  • MySQL:    ${MYSQL_APP_PASSWORD}"
-echo "  • Redis:    ${REDIS_PASSWORD}"
+echo "  • MongoDB:  configured from injected secret"
+echo "  • MySQL:    configured from injected secret"
+echo "  • Redis:    configured from injected secret"
 echo ""
 echo -e "${BLUE}════════════════════════════════════════════════════════${NC}"

@@ -217,8 +217,7 @@ function sanitizeCheckinHtml(contentHtml) {
 
     const attrs = [];
     const attrPattern = /([a-zA-Z_:][\w:.-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
-    let attrMatch;
-    while ((attrMatch = attrPattern.exec(rawAttrs)) !== null) {
+    for (const attrMatch of rawAttrs.matchAll(attrPattern)) {
       const attrName = attrMatch[1].toLowerCase();
       const attrValue = attrMatch[3] ?? attrMatch[4] ?? attrMatch[5] ?? '';
 
@@ -481,8 +480,8 @@ async function uploadCheckinImage(req, res, next) {
       return res.status(400).json(errors.badRequest('请选择要上传的图片'));
     }
 
-    const tenantId = req._resolvedTenantId || req.user?.tenantId || getCurrentTenantId();
-    const slug = req._checkinUploadTenantSlug || (tenantId ? await resolveTenantSlug(tenantId) : '');
+    const tenantId = req.resolvedTenantId || req.user?.tenantId || getCurrentTenantId();
+    const slug = req.checkinUploadTenantSlug || (tenantId ? await resolveTenantSlug(tenantId) : '');
     if (!slug) {
       return res.status(400).json(errors.badRequest('缺少租户上下文'));
     }
@@ -557,7 +556,7 @@ async function getUserCheckins(req, res, next) {
   try {
     const { page = 1, limit = 20, periodId, year, month } = req.query;
     // 强制使用当前登录用户，防止 IDOR 越权读取他人打卡记录
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const requestUserId = getRequestUserId(req);
 
     const query = { userId };
@@ -582,7 +581,7 @@ async function getUserCheckins(req, res, next) {
       .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ checkinDate: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
     // 计算统计数据
@@ -609,7 +608,7 @@ async function getUserCheckins(req, res, next) {
       let consecutive = 0;
 
       // 从最新打卡日期开始计算
-      let expectedDate = new Date(sortedCheckins[0].checkinDate);
+      const expectedDate = new Date(sortedCheckins[0].checkinDate);
       expectedDate.setHours(0, 0, 0, 0);
 
       for (const checkin of sortedCheckins) {
@@ -629,8 +628,8 @@ async function getUserCheckins(req, res, next) {
     // 如果提供了year和month，计算日历数据
     let calendar = null;
     if (year && month) {
-      const targetYear = parseInt(year);
-      const targetMonth = parseInt(month);
+      const targetYear = parseInt(year, 10);
+      const targetMonth = parseInt(month, 10);
 
       // 获取指定月份的所有打卡日期
       const monthStart = new Date(targetYear, targetMonth - 1, 1);
@@ -660,8 +659,8 @@ async function getUserCheckins(req, res, next) {
         stats,
         calendar,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           total,
           pages: Math.ceil(total / limit)
         }
@@ -833,7 +832,7 @@ async function getCheckinDetail(req, res, next) {
 async function updateCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { note, contentHtml, images, readingTime, mood, isPublic, completionRate } = req.body;
     const normalizedNote =
       note === undefined && contentHtml !== undefined
@@ -902,7 +901,7 @@ async function updateCheckin(req, res, next) {
 async function deleteCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     const checkin = await Checkin.findById(checkinId);
 
@@ -995,8 +994,8 @@ async function getAdminCheckins(req, res, next) {
           success({
             list: [],
             pagination: {
-              page: parseInt(page),
-              limit: parseInt(limit),
+              page: parseInt(page, 10),
+              limit: parseInt(limit, 10),
               total: 0,
               pages: 0
             },
@@ -1022,7 +1021,7 @@ async function getAdminCheckins(req, res, next) {
       .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ checkinDate: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .select('-__v');
 
     // 计算统计信息
@@ -1052,8 +1051,8 @@ async function getAdminCheckins(req, res, next) {
       success({
         list: checkins,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           total,
           pages: Math.ceil(total / limit)
         },

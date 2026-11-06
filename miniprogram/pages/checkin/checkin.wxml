@@ -4,8 +4,33 @@
     <view class="nav-back" bindtap="handleCancel">
       <view class="nav-back-arrow"></view>
     </view>
-    <text class="nav-title">{{accessChecked ? '每日打卡' : '学习内容'}}</text>
+    <text class="nav-title">{{selectingCourse ? '写打卡' : (accessChecked ? '每日打卡' : '学习内容')}}</text>
     <view class="nav-placeholder"></view>
+  </view>
+
+  <view class="choice-page" wx:if="{{selectingCourse}}">
+    <view class="choice-heading">
+      <text class="choice-kicker">开始记录</text>
+      <text class="choice-title">选择要打卡的课程</text>
+      <text class="choice-description">默认选中当前期次和今日课程，也可以选择其他已报名的课程。</text>
+    </view>
+    <view class="choice-card" wx:if="{{selectablePeriods.length}}">
+      <text class="choice-label">期次</text>
+      <picker range="{{selectablePeriods}}" range-key="name" value="{{selectedPeriodIndex}}" bindchange="handleCheckinPeriodChange" disabled="{{selectionLoading}}">
+        <view class="choice-picker"><text>{{selectablePeriods[selectedPeriodIndex].name}}</text><text class="choice-chevron">⌄</text></view>
+      </picker>
+      <text class="choice-label choice-course-label">课程</text>
+      <picker wx:if="{{selectableSections.length}}" range="{{selectableSections}}" range-key="name" value="{{selectedSectionIndex}}" bindchange="handleCheckinSectionChange" disabled="{{selectionLoading}}">
+        <view class="choice-picker"><text>{{selectableSections[selectedSectionIndex].name}}</text><text class="choice-chevron">⌄</text></view>
+      </picker>
+      <view wx:else class="choice-placeholder">{{selectionLoading ? '正在加载课程…' : '该期暂无可打卡课程'}}</view>
+    </view>
+    <view wx:if="{{selectionError}}" class="choice-message">
+      <text>{{selectionError}}</text><button class="choice-retry" bindtap="retryCheckinChoices">重试</button>
+    </view>
+    <view wx:elif="{{selectionLoading && !selectablePeriods.length}}" class="choice-message">正在加载期次…</view>
+    <view wx:elif="{{!selectionLoading && !selectablePeriods.length}}" class="choice-message">还没有可打卡的期次，完成报名后即可开始。</view>
+    <button class="choice-submit" disabled="{{selectionLoading || !!selectionError || !selectableSections.length}}" bindtap="startSelectedCheckin">开始打卡</button>
   </view>
 
   <!-- 内容区（加回左右内边距） -->
@@ -15,68 +40,24 @@
   <view class="course-title"><text selectable>{{courseTitle}}</text></view>
   <view class="course-date"><text selectable>{{courseDate}}</text></view>
 
-  <!-- 五大学习模块 -->
   <view class="content-preview" wx:if="{{!expanded}}">
-    <view class="section-preview">
-      <view class="section-icon">静</view>
-      <text class="section-name">静一静</text>
-    </view>
-    <view class="section-content"><text selectable>{{meditation}}</text></view>
+    <block wx:if="{{previewModule}}">
+      <view class="section-preview"><text class="section-name">{{previewModule.name}}</text></view>
+      <image wx:if="{{previewModule.type === 'image'}}" class="course-module-image" src="{{previewModule.value}}" mode="widthFix" />
+      <rich-text wx:elif="{{previewModule.type === 'body'}}" nodes="{{previewModule.value}}" />
+      <view wx:else class="section-content"><text selectable>{{previewModule.value}}</text></view>
+    </block>
+    <text wx:else>课程内容待补充</text>
   </view>
-
-  <!-- 展开按钮 -->
-  <view class="expand-btn" bindtap="toggleExpand">
-    <text>{{expanded ? '收起' : '展开所有'}}</text>
-    <text class="arrow">{{expanded ? '▲' : '▼'}}</text>
+  <view wx:if="{{courseModules.length}}" class="expand-btn" bindtap="toggleExpand">
+    <text>{{expanded ? '收起' : '展开所有'}}</text><text class="arrow">{{expanded ? '▲' : '▼'}}</text>
   </view>
-
-  <!-- 展开后的完整内容 -->
   <view class="full-content" wx:if="{{expanded}}">
-    <!-- 静一静 -->
-    <view class="content-section" wx:if="{{meditation}}">
-      <view class="section-title">
-        <view class="section-icon">静</view>
-        <text>静一静</text>
-      </view>
-      <view class="section-content"><text selectable>{{meditation}}</text></view>
-    </view>
-
-    <!-- 问一问 -->
-    <view class="content-section" wx:if="{{question}}">
-      <view class="section-title">
-        <view class="section-icon">问</view>
-        <text>问一问</text>
-      </view>
-      <view class="section-content"><text selectable>{{question}}</text></view>
-    </view>
-
-    <!-- 读一读 -->
-    <view class="content-section" wx:if="{{content}}">
-      <view class="section-title">
-        <view class="section-icon">读</view>
-        <text>读一读</text>
-      </view>
-      <view class="section-content">
-        <rich-text nodes="{{content}}"></rich-text>
-      </view>
-    </view>
-
-    <!-- 想一想 -->
-    <view class="content-section" wx:if="{{reflection}}">
-      <view class="section-title">
-        <view class="section-icon">想</view>
-        <text>想一想</text>
-      </view>
-      <view class="section-content"><text selectable>{{reflection}}</text></view>
-    </view>
-
-    <!-- 记一记 -->
-    <view class="content-section" wx:if="{{action}}">
-      <view class="section-title">
-        <view class="section-icon">记</view>
-        <text>记一记 / 摘一摘 / 说一说</text>
-      </view>
-      <view class="section-content"><text selectable>{{action}}</text></view>
+    <view wx:for="{{courseModules}}" wx:key="id" class="content-section">
+      <view class="section-title"><text>{{item.name}}</text></view>
+      <image wx:if="{{item.type === 'image'}}" class="course-module-image" src="{{item.value}}" mode="widthFix" />
+      <rich-text wx:elif="{{item.type === 'body'}}" nodes="{{item.value}}" />
+      <view wx:else class="section-content"><text selectable>{{item.value}}</text></view>
     </view>
   </view>
 

@@ -36,11 +36,11 @@
               :current-page="currentPage"
               :page-size="pageSize"
               :total="total"
+              style="margin-left: auto"
               @current-change="
                 currentPage = $event;
                 loadInsights();
               "
-              style="margin-left: auto"
             />
           </div>
         </template>
@@ -166,6 +166,7 @@
               <div v-if="viewingInsight.imageUrl" class="view-image">
                 <img :src="viewingInsight.imageUrl" alt="内容图片" />
               </div>
+              <!-- eslint-disable-next-line vue/no-v-html -- renderInsightMarkdown sanitizes output before rendering. -->
               <div
                 v-if="viewingInsight.content"
                 class="view-body"
@@ -471,7 +472,7 @@
 
         <template #footer>
           <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveInsight" :loading="saving">保存</el-button>
+          <el-button type="primary" :loading="saving" @click="saveInsight">保存</el-button>
         </template>
       </el-dialog>
     </div>
@@ -480,13 +481,14 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { insightApi, periodApi, userApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Insight, User } from '../types/api';
 import { useTenantStore } from '../stores/tenant';
+import { renderInsightMarkdown } from '../utils/renderInsightMarkdown';
 import {
   getAvatarColorByUserId,
   getLastTextChar,
@@ -754,30 +756,7 @@ async function adminDeleteDanmaku(danmaku: any) {
   }
 }
 
-async function adminCancelLike(danmaku: any) {
-  return adminDeleteDanmaku(danmaku);
-}
-
-function renderMarkdown(text: string): string {
-  if (!text) return '';
-  // Already HTML
-  if (/<\/?[a-z][\s\S]*>/i.test(text)) return text;
-  const escaped = (s: string) => s
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const inline = (s: string) => escaped(s)
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
-    .replace(/(^|[^*])\*([^*\n]+)\*(?=[^*]|$)/g, '$1<em>$2</em>');
-  return text.split(/\n{2,}/).map(para => {
-    const t = para.trim();
-    if (!t) return '';
-    if (/^#{1,3}\s/.test(t)) {
-      const level = t.match(/^(#{1,3})/)?.[1].length || 2;
-      return `<h${level} style="margin:0 0 10px;font-size:${level===1?18:level===2?16:14}px">${inline(t.replace(/^#+\s*/, ''))}</h${level}>`;
-    }
-    return `<p style="margin:0 0 14px;line-height:1.8">${inline(t).replace(/\n/g, '<br>')}</p>`;
-  }).join('');
-}
+const renderMarkdown = renderInsightMarkdown;
 
 // 新增
 function handleAddInsight() {
@@ -1118,7 +1097,7 @@ function getTypeColor(type: string) {
 }
 
 .text-preview {
-  color: #666;
+  color: var(--admin-ink-soft);
   font-size: 14px;
 }
 
@@ -1131,14 +1110,14 @@ function getTypeColor(type: string) {
   font-weight: 600;
   color: var(--admin-ink);
   padding-bottom: 12px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--admin-border);
   margin-bottom: 16px;
 }
 
 .image-preview-box {
   margin-top: 10px;
   padding: 10px;
-  background: #f5f5f5;
+  background: var(--admin-page);
   border-radius: 4px;
   max-width: 300px;
 }
@@ -1173,7 +1152,7 @@ function getTypeColor(type: string) {
 .view-loading {
   text-align: center;
   padding: 40px 0;
-  color: #999;
+  color: var(--admin-ink-muted);
 }
 .view-layout {
   display: flex;
@@ -1191,7 +1170,7 @@ function getTypeColor(type: string) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-left: 1px solid #ebeef5;
+  border-left: 1px solid var(--admin-border);
   padding-left: 20px;
   overflow: hidden;
 }
@@ -1210,7 +1189,7 @@ function getTypeColor(type: string) {
   flex-wrap: wrap;
 }
 .view-meta-owner {
-  color: #666;
+  color: var(--admin-ink-soft);
   font-size: 13px;
 }
 .view-scroll-area {
@@ -1232,7 +1211,7 @@ function getTypeColor(type: string) {
 .view-body {
   font-size: 14px;
   line-height: 1.8;
-  color: #374151;
+  color: var(--admin-ink-soft);
 }
 .view-body :deep(p) { margin: 0 0 14px; }
 .view-body :deep(h1),
@@ -1240,7 +1219,7 @@ function getTypeColor(type: string) {
 .view-body :deep(h3) { margin: 0 0 10px; font-weight: 700; }
 .view-body :deep(strong) { font-weight: 700; color: #111; }
 .view-ops {
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--admin-border);
   padding-top: 12px;
   margin-top: 12px;
   flex-shrink: 0;
@@ -1284,7 +1263,7 @@ function getTypeColor(type: string) {
 }
 .view-section-count {
   font-weight: normal;
-  color: #999;
+  color: var(--admin-ink-muted);
   font-size: 13px;
   margin-left: 6px;
 }
@@ -1337,7 +1316,7 @@ function getTypeColor(type: string) {
 .danmaku-nickname {
   font-weight: 500;
   font-size: 12px;
-  color: #374151;
+  color: var(--admin-ink-soft);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

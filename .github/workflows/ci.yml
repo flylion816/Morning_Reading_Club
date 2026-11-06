@@ -12,6 +12,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Scan tracked files for secrets
+        run: node scripts/secret-scan.js
+
   # ========================================
   # Job 1: 代码 Lint 检查（并行）
   # ========================================
@@ -41,6 +51,9 @@ jobs:
       - name: Install dependencies
         working-directory: ./${{ matrix.module }}
         run: npm ci
+      - name: Audit dependencies
+        working-directory: ./${{ matrix.module }}
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Run ESLint
         working-directory: ./${{ matrix.module }}
@@ -76,6 +89,9 @@ jobs:
       - name: Install dependencies
         working-directory: ./${{ matrix.module }}
         run: npm ci
+      - name: Audit dependencies
+        working-directory: ./${{ matrix.module }}
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Run unit tests
         working-directory: ./${{ matrix.module }}
@@ -137,6 +153,9 @@ jobs:
       - name: Install dependencies
         working-directory: ./backend
         run: npm ci
+      - name: Audit dependencies
+        working-directory: ./backend
+        run: npm audit --omit=dev --audit-level=low
 
       - name: Wait for MongoDB
         run: |
@@ -174,10 +193,16 @@ jobs:
       - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
+      - name: Audit dependencies
+        working-directory: ./backend
+        run: npm audit --omit=dev --audit-level=low
 
       - name: Install admin dependencies
         working-directory: ./admin
         run: npm ci
+      - name: Audit dependencies
+        working-directory: ./admin
+        run: npm audit --omit=dev --audit-level=low
 
       - name: Start backend server
         working-directory: ./backend
@@ -293,6 +318,9 @@ jobs:
       - name: Install admin dependencies
         working-directory: ./admin
         run: npm ci
+      - name: Audit dependencies
+        working-directory: ./admin
+        run: npm audit --omit=dev --audit-level=low
 
       - name: Type check
         working-directory: ./admin

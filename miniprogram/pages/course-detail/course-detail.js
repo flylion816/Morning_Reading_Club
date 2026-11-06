@@ -1,3 +1,4 @@
+const { buildCourseModules, applyCourseTemplateExtensions } = require('../../utils/course-modules');
 const courseService = require('../../services/course.service');
 const checkinService = require('../../services/checkin.service');
 const commentService = require('../../services/comment.service');
@@ -2128,6 +2129,11 @@ Page({
   /**
    * 处理课程数据，添加模块可见性标志
    */
+  handleCourseModuleImage(event) {
+    const url = event.currentTarget.dataset.url;
+    if (url) wx.previewImage({ current: url, urls: [url] });
+  },
+
   processCourseModules(course) {
     const modules = [
       'meditation',
@@ -2158,6 +2164,10 @@ Page({
         );
       }
     });
+
+    course.customTemplate = !!course.courseTemplateSnapshot && course.courseTemplateSnapshot.templateId !== 'seven-habits';
+    applyCourseTemplateExtensions(course);
+    course.dynamicModules = buildCourseModules(course, course.content, envConfig.apiBaseUrl.replace('/api/v1', ''));
 
     // 看一看图片：相对路径补全为完整 URL
     course.lookImageVisible = !!(course.lookImage && course.lookImage.trim());

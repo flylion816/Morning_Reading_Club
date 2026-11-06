@@ -21,7 +21,8 @@ function isActiveEnrollment(enrollment) {
 
 function hasPaidEnrollment(enrollmentList = []) {
   return enrollmentList.some(enrollment => {
-    return isActiveEnrollment(enrollment) && isPaidStatus(enrollment.paymentStatus || null);
+    return isActiveEnrollment(enrollment) &&
+      ['paid', 'free'].includes(enrollment.paymentStatus || null);
   });
 }
 
@@ -43,7 +44,7 @@ function buildPeriodAccess({
   syncPending = false,
   syncPendingExpiresAt = null
 } = {}) {
-  const canAccessCommunity = !!isEnrolled && isPaidStatus(paymentStatus);
+  const canAccessCommunity = !!isEnrolled && (isPaidStatus(paymentStatus) || paymentStatus === 'free');
   const communityAccessState = canAccessCommunity ? 'enabled' : 'locked';
   const normalizedSyncPending = !!syncPending && canAccessCommunity;
 

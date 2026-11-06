@@ -190,7 +190,7 @@ const mysql = require('mysql2/promise');
     host: process.env.MYSQL_HOST || 'localhost',
     port: Number(process.env.MYSQL_PORT || 3306),
     user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
+    password: <从密钥管理服务读取>
     database: process.env.MYSQL_DATABASE || 'morning_reading',
     multipleStatements: true
   });

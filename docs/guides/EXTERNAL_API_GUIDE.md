@@ -6,13 +6,13 @@
 
 ## 接口概览
 
-| 接口名称 | 方法 | 端点 | 说明 |
-| --- | --- | --- | --- |
-| 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 获取所有租户或指定租户当前正在运行的期次列表 |
-| 获取期次用户 | GET | `/api/v1/enrollments/external/users-by-period` | 通过期次 ID 或期次名称获取参与用户列表 |
-| 创建小凡看见 | POST | `/api/v1/insights/external/create` | 为指定用户创建“小凡看见” |
-| 上传播客音频 | POST | `/api/v1/sections/external/upload-podcast` | 上传音频文件，获取 `podcastUrl` |
-| 同步播客信息 | POST | `/api/v1/sections/external/sync-podcast` | 将播客 URL、简介、时长同步到指定课节 |
+| 接口名称 | 方法 | 端点 | 鉴权（见「接口签名」） | 说明 |
+| --- | --- | --- | --- | --- |
+| 查询运行中期次 | GET | `/api/v1/enrollments/external/active-periods` | 无需签名 | 获取所有租户或指定租户当前正在运行的期次列表 |
+| 获取期次用户 | GET | `/api/v1/enrollments/external/users-by-period` | 签名，`roster:read` | 通过期次 ID 或期次名称获取参与用户列表 |
+| 创建小凡看见 | POST | `/api/v1/insights/external/create` | 签名，`insight:write` | 为指定用户创建“小凡看见” |
+| 上传播客音频 | POST | `/api/v1/sections/external/upload-podcast` | 签名，`podcast:write` | 上传音频文件，获取 `podcastUrl` |
+| 同步播客信息 | POST | `/api/v1/sections/external/sync-podcast` | 签名，`podcast:write` | 将播客 URL、简介、时长同步到指定课节 |
 
 ## 租户标识
 
@@ -42,6 +42,97 @@
 | sessionId | `69f9bf45cb1c9ac0600ad55b` |
 
 说明：本文档中的 `sessionId` 即课节 ID，对应数据库里的 Section `_id`。
+
+---
+
+## 接口签名（接口二、三、五、六必需）
+
+自新版后端上线起，除「查询运行中期次」外，外部接口都必须带 HMAC 签名，未签名或签名错误返回 `401`。
+`X-Tenant-Slug` / `X-Wx-AppId` 只用来选择租户，**不是身份凭证**。
+
+### 获取 Key
+
+由晨读营平台在服务器上为每个调用方单独发放（一个租户一把 key，可按需授予多个权限）：
+
+```bash
+cd /var/www/morning-reading && NODE_ENV=production node backend/scripts/provision-external-integration-key.js fanren n8n-fanren roster:read,insight:write --write-one-key
+```
+
+命令只输出一次 `keyId` 和 `secret`，请直接交给调用方保存在其密钥管理里（如 n8n Credentials），不要写进日志或聊天记录。
+
+### 请求头
+
+| 字段 | 说明 |
+| --- | --- |
+| `X-Tenant-Slug` | 租户 slug，必须是这把 key 所属的租户 |
+| `X-Integration-Key-Id` | 发放的 `keyId` |
+| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒 |
+| `X-Integration-Nonce` | 16–128 位随机串（字母、数字、`_`、`-`），10 分钟内同一 key 不可重复 |
+| `X-Integration-Signature` | 64 位十六进制 HMAC-SHA256 签名 |
+
+### 签名算法
+
+签名原文是用换行符 `\n` 连接的 5 段，用 `secret` 做 HMAC-SHA256，输出十六进制：
+
+```
+<HTTP 方法大写>\n<请求路径，含 ? 后的查询串>\n<Timestamp>\n<Nonce>\n<请求体>
+```
+
+- **GET 请求**（接口二）：请求体一段固定为 `{}`；路径必须带上实际发送的查询串，如 `/api/v1/enrollments/external/users-by-period?periodId=xxx`（中文参数按实际 URL 编码后的样子参与签名）
+- **JSON POST**（接口三、六）：请求体为 `JSON.stringify(请求体对象)`，必须与实际发送的 JSON 字节完全一致（建议先 stringify 一次，签名和发送都用这同一个字符串）
+- **multipart 上传**（接口五）：请求体一段固定为 `{}`
+
+### n8n 示例（Code 节点，放在 HTTP Request 节点前）
+
+```js
+// 需要 n8n 允许 crypto：环境变量 NODE_FUNCTION_ALLOW_BUILTIN=crypto
+const crypto = require('crypto');
+const KEY_ID = $env.MORNING_KEY_ID;        // 或从 Credentials 读取
+const SECRET = $env.MORNING_KEY_SECRET;
+
+const method = 'POST';
+const path = '/api/v1/insights/external/create';
+const bodyObj = $json.body;                // 你要发送的请求体
+const bodyStr = JSON.stringify(bodyObj);   // 签名和发送都用这个字符串
+
+const ts = Math.floor(Date.now() / 1000).toString();
+const nonce = crypto.randomBytes(16).toString('hex');
+const signature = crypto.createHmac('sha256', SECRET)
+  .update([method, path, ts, nonce, bodyStr].join('\n'))
+  .digest('hex');
+
+return [{ json: { bodyStr, headers: {
+  'X-Tenant-Slug': 'fanren',
+  'X-Integration-Key-Id': KEY_ID,
+  'X-Integration-Timestamp': ts,
+  'X-Integration-Nonce': nonce,
+  'X-Integration-Signature': signature,
+  'Content-Type': 'application/json'
+} } }];
+```
+
+HTTP Request 节点：请求头用上面的 `headers`，Body 选「Raw / JSON 字符串」并填 `{{$json.bodyStr}}`（不要让 n8n 重新序列化对象，否则字节可能不一致）。
+
+### 验算数据
+
+用于核对你的实现是否正确（`secret` 仅为示例）：
+
+| 项 | 值 |
+| --- | --- |
+| secret | `demo-secret-only-for-test-vector` |
+| 方法 / 路径 | `GET` `/api/v1/enrollments/external/users-by-period?periodId=6a0ef7b092fbece80a01a24e` |
+| Timestamp / Nonce | `1761379200` / `abcdef0123456789abcdef` |
+| 请求体 | `{}` |
+| 期望签名 | `4e1070b80f71204984d5c9b987ae6e27f1ac062c87c6dd1254a7b44ac07a973b` |
+
+### 常见 401 原因
+
+| 返回信息 | 原因 |
+| --- | --- |
+| 外部集成认证无效 | 缺少请求头、keyId 不存在/已停用、key 不属于该租户或没有对应权限 |
+| 外部集成请求已过期 | 时间戳与服务器相差超过 300 秒 |
+| 外部集成签名无效 | 签名原文不一致，最常见是路径少了查询串、或请求体字节与签名时不同 |
+| 外部集成请求已使用 | nonce 重复（重试时必须重新生成 nonce 和签名） |
 
 ---
 
@@ -189,6 +280,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/active-pe
 | --- | --- |
 | `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
 | `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
+| `X-Integration-Key-Id` 等 4 个签名头 | 必填，见「接口签名」 |
 
 ### 请求参数
 
@@ -282,6 +374,7 @@ curl -X GET --get "https://wx.shubai01.com/api/v1/enrollments/external/users-by-
 | `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
 | `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `application/json` |
+| `X-Integration-Key-Id` 等 4 个签名头 | 必填，见「接口签名」 |
 
 ### 请求参数
 
@@ -456,6 +549,12 @@ curl -X POST https://wx.shubai01.com/api/v1/insights/external/create \
 
 ---
 
+## 播客接口
+
+接口五、六同样需要签名（权限 `podcast:write`），算法见上文「接口签名」。
+
+---
+
 ## 接口五：上传播客音频文件
 
 将音频文件上传到服务器，获取可用于后续同步的 `podcastUrl`。
@@ -473,6 +572,10 @@ POST /api/v1/sections/external/upload-podcast
 | `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
 | `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `multipart/form-data` |
+| `X-Integration-Key-Id` | 外部集成 Key ID（需含 `podcast:write` 权限，由平台用 `backend/scripts/provision-external-integration-key.js` 发放） |
+| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒 |
+| `X-Integration-Nonce` | 16–128 位随机串（字母数字 `_-`），10 分钟内不可重复 |
+| `X-Integration-Signature` | HMAC-SHA256 十六进制签名，见下方「播客接口签名」 |
 
 **请求体（form-data）**
 
@@ -500,6 +603,8 @@ POST /api/v1/sections/external/upload-podcast
 ```bash
 curl -X POST https://wx.shubai01.com/api/v1/sections/external/upload-podcast \
   -H "X-Tenant-Slug: fanren" \
+  -H "X-Integration-Key-Id: $KEY_ID" -H "X-Integration-Timestamp: $TS" \
+  -H "X-Integration-Nonce: $NONCE" -H "X-Integration-Signature: $SIG" \
   -F "file=@/path/to/podcast.m4a"
 ```
 
@@ -522,6 +627,10 @@ POST /api/v1/sections/external/sync-podcast
 | `X-Tenant-Slug` | 租户 slug（推荐），例如 `fanren` |
 | `X-Wx-AppId` | 小程序 AppID（兼容旧调用），例如 `wx2b9a3c1d5e4195f8` |
 | `Content-Type` | `application/json` |
+| `X-Integration-Key-Id` | 外部集成 Key ID（需含 `podcast:write` 权限，由平台用 `backend/scripts/provision-external-integration-key.js` 发放） |
+| `X-Integration-Timestamp` | 当前 Unix 秒级时间戳，与服务器相差不超过 300 秒 |
+| `X-Integration-Nonce` | 16–128 位随机串（字母数字 `_-`），10 分钟内不可重复 |
+| `X-Integration-Signature` | HMAC-SHA256 十六进制签名，见下方「播客接口签名」 |
 
 **请求体**
 
@@ -554,6 +663,8 @@ POST /api/v1/sections/external/sync-podcast
 ```bash
 curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
   -H "X-Tenant-Slug: fanren" \
+  -H "X-Integration-Key-Id: $KEY_ID" -H "X-Integration-Timestamp: $TS" \
+  -H "X-Integration-Nonce: $NONCE" -H "X-Integration-Signature: $SIG" \
   -H "Content-Type: application/json" \
   -d '{
     "sessionId": "664a1b2c3d4e5f6a7b8c9d0e",
@@ -576,6 +687,7 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 | 日期 | 版本 | 更新内容 |
 | --- | --- | --- |
+| 2026-10-25 | v2.1 | 获取期次用户、创建小凡看见、播客上传/同步接口改为必须 HMAC 签名（`roster:read` / `insight:write` / `podcast:write`），匿名调用返回 401；新增 n8n 示例和验算数据 |
 | 2026-07-04 | v2.0 | 外部接口新增 `X-Tenant-Slug` / `tenantSlug` 作为推荐租户标识，保留 `X-Wx-AppId` / `tenantName` 兼容 |
 | 2026-05-21 | v1.9 | 接口 1 改为通过 `tenantName` 参数识别租户，无需 `X-Wx-AppId` 请求头，返回体新增 `wxAppId` 字段 |
 | 2026-05-21 | v1.8 | 所有接口补充 `X-Wx-AppId` 请求头说明及 curl 示例；接口总数更正为 6 个 |
@@ -590,4 +702,4 @@ curl -X POST https://wx.shubai01.com/api/v1/sections/external/sync-podcast \
 
 ---
 
-**最后更新**: 2026-07-04
+**最后更新**: 2026-10-25

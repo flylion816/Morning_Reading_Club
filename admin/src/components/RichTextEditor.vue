@@ -17,6 +17,8 @@ import Quill from 'quill';
 import 'quill/dist/quill.core.css';
 import 'quill/dist/quill.snow.css';
 import { ElMessage } from 'element-plus';
+import { uploadApi } from '../services/api';
+import { sanitizeEditorHtml } from '../utils/sanitizeEditorHtml';
 
 // 将字号格式配置为 inline style（font-size:16px），而非 class（ql-size-large）
 // 必须在任何 Quill 实例创建前执行，否则已有实例不会受影响
@@ -34,7 +36,7 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: string): void;
+  (_event: 'update:modelValue', _value: string): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -69,22 +71,9 @@ const handleImageSelect = async (e: Event) => {
   }
 
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch('/api/v1/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`上传失败: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    // Use the shared authenticated client so the in-memory access token and
+    // refresh-cookie retry flow are both applied to editor image uploads.
+    const data = await uploadApi.uploadFile(file);
     const imageUrl = data.data?.url || data.url;
 
     if (!imageUrl) {
@@ -138,25 +127,26 @@ onMounted(() => {
     }
   });
 
-  const toolbar = quill.getModule('toolbar') as { addHandler: (name: string, handler: () => void) => void };
+  const toolbar = quill.getModule('toolbar') as { addHandler: (_name: string, _handler: () => void) => void };
   toolbar.addHandler('image', () => {
     fileInput.value?.click();
   });
 
   if (props.modelValue) {
-    quill.root.innerHTML = props.modelValue;
+    quill.root.innerHTML = sanitizeEditorHtml(props.modelValue);
   }
 
   quill.on('text-change', (_delta: any, _old: any, source: string) => {
     if (source !== 'user') return;
-    const html = quill!.root.innerHTML;
+    const html = sanitizeEditorHtml(quill!.root.innerHTML);
     emit('update:modelValue', html === '<p><br></p>' ? '' : html);
   });
 });
 
 watch(() => props.modelValue, (newVal) => {
-  if (quill && quill.root.innerHTML !== newVal) {
-    quill.root.innerHTML = newVal || '';
+  const safeValue = sanitizeEditorHtml(newVal);
+  if (quill && quill.root.innerHTML !== safeValue) {
+    quill.root.innerHTML = safeValue;
   }
 });
 
@@ -225,7 +215,7 @@ defineExpose({
 :deep(.ql-toolbar) {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
-  border-color: #dcdfe6;
+  border-color: var(--admin-border);
 }
 
 :deep(.ql-toolbar.ql-snow) {

@@ -8,6 +8,7 @@ import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import RichTextEditor from '../RichTextEditor.vue';
 import { ElMessage } from 'element-plus';
+import { uploadApi } from '../../services/api';
 
 vi.mock('element-plus', () => ({
   ElMessage: {
@@ -80,6 +81,21 @@ describe('RichTextEditor - 富文本编辑器', () => {
 
     // Quill 的 text-change 事件不由原生 input 触发；这里验证组件仍暴露真实编辑区域。
     expect(wrapper.find('.ql-editor').html()).toContain('新内容');
+  });
+
+  it('图片上传通过共享认证 API 客户端发送，不读取 localStorage bearer token', async () => {
+    const upload = vi.spyOn(uploadApi, 'uploadFile').mockResolvedValue({ url: '/uploads/editor-image.png' } as any);
+    const wrapper = mount(RichTextEditor, { props: { modelValue: '' } });
+    const input = document.createElement('input');
+    const file = new File(['image'], 'image.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    const event = new Event('change', { bubbles: true });
+    Object.defineProperty(event, 'target', { value: input });
+
+    await (wrapper.vm as any).handleImageSelect(event);
+
+    expect(upload).toHaveBeenCalledWith(file);
+    upload.mockRestore();
   });
 
   it('非图片文件应该显示错误信息', async () => {

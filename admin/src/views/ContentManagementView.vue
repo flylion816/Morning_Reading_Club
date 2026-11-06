@@ -75,41 +75,57 @@
       <!-- 编辑课节弹窗 -->
       <el-dialog
         v-model="editDialogVisible"
+        class="lesson-editor-dialog"
         :title="isNewSection ? '新增课节' : '编辑课节'"
-        width="900px"
+        width="min(960px, calc(100vw - 32px))"
+        top="3vh"
+        append-to-body
         :close-on-click-modal="false"
         :close-on-press-escape="false"
         :before-close="handleDialogBeforeClose"
         @close="resetForm"
       >
+        <template #header>
+          <div class="lesson-dialog-heading">
+            <div class="lesson-heading-copy">
+              <span class="lesson-period-name">{{ currentPeriod?.name || '课程内容' }}</span>
+              <h2>{{ isNewSection ? '新增课节' : '编辑课节' }}</h2>
+              <p>完善基本信息，填写本节课的学习内容。</p>
+            </div>
+            <span v-if="currentPeriod?.courseTemplateSnapshot?.name" class="lesson-template-name">{{ currentPeriod.courseTemplateSnapshot.name }}</span>
+          </div>
+        </template>
         <el-form
           :model="editingSection"
-          label-width="120px"
-          style="max-height: 600px; overflow-y: auto"
+          label-position="top"
+          class="lesson-editor-form"
         >
           <!-- 基本信息 -->
           <div class="form-section">
-            <div class="section-title">基本信息</div>
+            <div class="section-title"><span class="lesson-section-index">01</span>基本信息</div>
 
-            <el-form-item label="第几天">
+            <div class="lesson-basic-grid">
+            <el-form-item class="lesson-day-field" label="第几天">
               <el-input-number v-model="editingSection.day" :min="0" :max="30" />
             </el-form-item>
 
-            <el-form-item label="课程标题">
+            <el-form-item class="lesson-title-field" label="课程标题" required>
               <el-input v-model="editingSection.title" placeholder="请输入课程标题" />
             </el-form-item>
 
-            <el-form-item label="副标题">
+            <el-form-item class="lesson-subtitle-field" label="副标题">
               <el-input v-model="editingSection.subtitle" placeholder="可选" />
             </el-form-item>
 
-            <el-form-item label="图标">
+            <el-form-item class="lesson-icon-field" label="图标">
               <el-input v-model="editingSection.icon" placeholder="🎯" maxlength="10" />
             </el-form-item>
+            </div>
           </div>
 
           <!-- 5个学习模块 -->
-          <div class="form-section">
+          <CourseModulesForm v-if="customTemplate" v-model="editingSection.courseModuleValues" :snapshot="customTemplate" />
+          <div v-else class="form-section">
             <div class="section-title">学习模块</div>
 
             <!-- 静一静 -->
@@ -131,7 +147,7 @@
                 type="textarea"
                 placeholder="思考问题"
                 :rows="3"
-                maxlength="500"
+                maxlength="200"
                 show-word-limit
               />
             </el-form-item>
@@ -260,13 +276,14 @@
           </div>
 
           <!-- 扩展信息 -->
-          <div class="form-section">
+          <div v-if="templateExtensions.duration || templateExtensions.closingVideo || templateExtensions.podcast" class="form-section">
             <div class="section-title">扩展信息</div>
 
-            <el-form-item label="时长（分钟）">
+            <el-form-item v-if="templateExtensions.duration" label="时长（分钟）">
               <el-input-number v-model="editingSection.duration" :min="0" :max="600" />
             </el-form-item>
 
+            <div v-if="templateExtensions.closingVideo">
             <div class="section-subtitle">结营视频</div>
 
             <el-form-item label="视频文件">
@@ -308,7 +325,9 @@
                 <el-progress v-if="closingVideoUploading" :percentage="closingVideoUploadProgress" style="margin-top:8px" />
               </div>
             </el-form-item>
+            </div>
 
+            <div v-if="templateExtensions.podcast">
             <div class="section-subtitle">凡人播客</div>
 
             <el-form-item label="播客音频">
@@ -349,19 +368,30 @@
                 placeholder="输入播客介绍文字（群里发的那段公告）"
               />
             </el-form-item>
+            </div>
+          </div>
 
-            <el-form-item label="发布状态">
+          <div class="form-section">
+            <el-form-item class="lesson-publication-field" label="发布状态">
+              <div class="lesson-publication-control">
               <el-switch v-model="editingSection.isPublished" />
-              <span style="margin-left: 10px; color: #666">
+              <span class="lesson-publication-status">
                 {{ editingSection.isPublished ? '已发布' : '草稿' }}
               </span>
+              <span class="lesson-publication-hint">{{ editingSection.isPublished ? '内容确认后，点击保存生效。' : '先保存为草稿，完善后再发布。' }}</span>
+              </div>
             </el-form-item>
           </div>
         </el-form>
 
         <template #footer>
+          <div class="lesson-dialog-footer">
+          <span class="lesson-save-hint">修改将在保存后生效</span>
+          <div class="lesson-footer-actions">
           <el-button @click="requestCloseDialog">取消</el-button>
           <el-button type="primary" :loading="saving" @click="saveSection">保存</el-button>
+          </div>
+          </div>
         </template>
       </el-dialog>
     </div>
@@ -375,11 +405,13 @@ import { onBeforeRouteLeave } from 'vue-router';
 import AdminLayout from '../components/AdminLayout.vue';
 import RichTextEditor from '../components/RichTextEditor.vue';
 import { periodApi, uploadApi } from '../services/api';
+import CourseModulesForm from '../components/CourseModulesForm.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Section } from '../types/api';
 import { useAuthStore } from '../stores/auth';
 
 interface SectionForm {
+  courseModuleValues?: Record<string, string>;
   _id?: string;
   periodId?: string;
   day: number;
@@ -425,6 +457,15 @@ const isPlatformAdmin = computed(() => {
 });
 const periods = ref<Period[]>([]);
 const currentPeriod = ref<Period | null>(null);
+const customTemplate = computed(() => {
+  const snapshot = currentPeriod.value?.courseTemplateSnapshot;
+  return snapshot?.templateId && snapshot.templateId !== 'seven-habits' ? snapshot : null;
+});
+const templateExtensions = computed(() => ({
+  duration: currentPeriod.value?.courseTemplateSnapshot?.extensions?.duration !== false,
+  closingVideo: currentPeriod.value?.courseTemplateSnapshot?.extensions?.closingVideo !== false,
+  podcast: currentPeriod.value?.courseTemplateSnapshot?.extensions?.podcast !== false
+}));
 const sections = ref<Section[]>([]);
 const saving = ref(false);
 const loadingSectionId = ref<string | null>(null);
@@ -849,6 +890,7 @@ async function loadPeriods() {
 // 加载课节列表
 async function loadSections() {
   if (!selectedPeriodId.value) return;
+  const requestedPeriodId = selectedPeriodId.value;
 
   try {
     const [period, response] = (await Promise.all([
@@ -856,6 +898,7 @@ async function loadSections() {
       periodApi.getAllSections(selectedPeriodId.value, { limit: 100 })
     ])) as unknown as [Period, ListResponse<Section>];
 
+    if (selectedPeriodId.value !== requestedPeriodId) return;
     currentPeriod.value = period;
     sections.value = response.list || response || [];
   } catch (err: any) {
@@ -1047,6 +1090,7 @@ async function handleDialogBeforeClose(done: () => void) {
 
 function createEmptySectionDraft(overrides: Partial<SectionForm> = {}): SectionForm {
   return {
+    courseModuleValues: {},
     periodId: selectedPeriodId.value || undefined,
     day: 0,
     title: '',
@@ -1078,6 +1122,7 @@ function normalizeSectionForm(section: SectionFormSource): SectionForm {
       : section.periodId?._id || selectedPeriodId.value || undefined;
 
   return createEmptySectionDraft({
+    courseModuleValues: { ...(section.courseModuleValues || {}) },
     _id: section._id,
     periodId,
     day: section.day,
@@ -1107,6 +1152,7 @@ function buildSectionPayload(section: SectionForm) {
 
   return {
     periodId: normalized.periodId,
+    ...(customTemplate.value ? { courseModuleValues: normalized.courseModuleValues || {} } : {}),
     day: normalized.day,
     title: normalized.title,
     subtitle: normalized.subtitle,
@@ -1158,6 +1204,65 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+:global(.lesson-editor-dialog) {
+  --el-dialog-padding-primary: 0px;
+  display: flex;
+  flex-direction: column;
+  max-height: 94dvh;
+  padding: 0;
+  overflow: hidden;
+}
+:global(.lesson-editor-dialog .el-dialog__header) { padding: 20px 28px 18px !important; margin-right: 0; flex-shrink: 0; }
+:global(.lesson-editor-dialog .el-dialog__headerbtn) { top: 14px; right: 14px; }
+:global(.lesson-editor-dialog .el-dialog__body) { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0; }
+:global(.lesson-editor-dialog .el-dialog__footer) { padding: 14px 28px !important; flex-shrink: 0; background: var(--admin-paper, #fffdf8); }
+.lesson-dialog-heading { display: flex; gap: 18px; justify-content: space-between; align-items: center; padding-right: 28px; }
+.lesson-heading-copy { min-width: 0; }
+.lesson-period-name { color: var(--admin-ink-muted); font-size: 12px; }
+.lesson-heading-copy h2 { color: var(--admin-ink); font-size: 22px; line-height: 1.35; letter-spacing: -0.4px; margin: 4px 0 6px; font-weight: 600; }
+.lesson-heading-copy p { margin: 0; color: var(--admin-ink-muted); font-size: 12px; line-height: 1.6; }
+.lesson-template-name { flex-shrink: 0; max-width: 180px; color: var(--admin-primary-dark); background: var(--admin-primary-alpha-08); padding: 6px 12px; border-radius: 5px; font-size: 12px; overflow-wrap: anywhere; }
+.lesson-editor-form > .form-section { padding: 20px 28px; margin: 0; border-bottom: 1px solid var(--admin-paper-divider, #eceee7); }
+.lesson-editor-form > .form-section:last-child { border-bottom: 0; }
+.lesson-editor-form :deep(.el-form-item) { margin-bottom: 18px; }
+.lesson-editor-form :deep(.el-form-item:last-child) { margin-bottom: 0; }
+.lesson-editor-form :deep(.el-form-item__label) { font-size: 13px; font-weight: 500; color: var(--admin-ink-soft); margin-bottom: 8px; height: auto; line-height: 1.5; width: 100%; }
+.lesson-editor-form :deep(.el-input__wrapper) { min-height: 38px; }
+.lesson-editor-form :deep(.el-textarea__inner) { line-height: 1.75; padding: 12px 14px 22px; }
+.lesson-editor-form .section-title { display: flex; gap: 10px; align-items: center; border: 0; padding: 0; margin: 0 0 18px; font-size: 15px; }
+.lesson-section-index { color: var(--admin-primary); font-size: 11px; font-variant-numeric: tabular-nums; }
+.lesson-basic-grid { display: grid; grid-template-columns: 140px minmax(0, 1fr) minmax(0, 1fr) 100px; gap: 18px 18px; }
+.lesson-basic-grid :deep(.el-form-item) { margin: 0; min-width: 0; }
+.lesson-day-field { grid-column: 1; }
+.lesson-title-field { grid-column: 2 / -1; }
+.lesson-subtitle-field { grid-column: 1 / 4; }
+.lesson-icon-field { grid-column: 4; }
+.lesson-basic-grid :deep(.el-input-number) { width: 100%; }
+.lesson-icon-field :deep(.el-input__inner) { text-align: center; font-size: 18px; }
+.lesson-publication-control { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lesson-publication-status { color: var(--admin-ink); font-weight: 500; }
+.lesson-publication-hint, .lesson-save-hint { color: var(--admin-ink-muted); font-size: 12px; }
+.lesson-publication-hint { margin-left: 8px; }
+.lesson-dialog-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.lesson-footer-actions { display: flex; gap: 10px; }
+.lesson-footer-actions .el-button + .el-button { margin-left: 0; }
+.lesson-footer-actions .el-button { min-width: 80px; }
+@media (max-width: 640px) {
+  :global(.lesson-editor-dialog .el-dialog__header), :global(.lesson-editor-dialog .el-dialog__footer) { padding: 16px 18px !important; }
+  .lesson-editor-form > .form-section { padding: 18px; }
+  .lesson-heading-copy h2 { font-size: 20px; }
+  .lesson-dialog-heading { gap: 10px; }
+  .lesson-template-name { max-width: 110px; font-size: 11px; padding: 5px 8px; }
+  .lesson-basic-grid { grid-template-columns: minmax(0, 1fr) 88px; gap: 16px; }
+  .lesson-day-field { grid-column: 1; grid-row: 1; }
+  .lesson-icon-field { grid-column: 2; grid-row: 1; }
+  .lesson-title-field { grid-column: 1 / -1; grid-row: 2; }
+  .lesson-subtitle-field { grid-column: 1 / -1; grid-row: 3; }
+  .lesson-save-hint { display: none; }
+  .lesson-dialog-footer { justify-content: flex-end; }
+  .lesson-publication-hint { margin-left: 0; flex-basis: 100%; }
+}
+
 .content-management-container {
   padding: 24px;
 }
@@ -1183,7 +1288,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: var(--admin-ink);
   padding-bottom: 12px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--admin-border);
   margin-bottom: 16px;
 }
 
@@ -1226,7 +1331,7 @@ onBeforeUnmount(() => {
 .section-subtitle {
   font-size: 13px;
   font-weight: 600;
-  color: #606266;
+  color: var(--admin-ink-soft);
   margin: 16px 0 12px;
   padding-left: 8px;
   border-left: 3px solid var(--admin-primary);
@@ -1244,7 +1349,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #606266;
+  color: var(--admin-ink-soft);
 }
 
 .podcast-file-name,
@@ -1257,9 +1362,9 @@ onBeforeUnmount(() => {
 
 .podcast-url-display {
   font-size: 12px;
-  color: #909399;
+  color: var(--admin-ink-muted);
   word-break: break-all;
-  background: #f5f7fa;
+  background: var(--admin-page);
   padding: 4px 8px;
   border-radius: 4px;
 }
@@ -1282,7 +1387,7 @@ onBeforeUnmount(() => {
   max-height: 200px;
   border-radius: 6px;
   object-fit: contain;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--admin-border);
 }
 
 .closing-video-upload-area {
@@ -1303,7 +1408,7 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   gap: 10px;
   font-size: 12px;
-  color: #606266;
+  color: var(--admin-ink-soft);
 }
 
 .closing-video-cover img {
@@ -1311,6 +1416,6 @@ onBeforeUnmount(() => {
   max-height: 100px;
   border-radius: 6px;
   object-fit: cover;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--admin-border);
 }
 </style>

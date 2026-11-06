@@ -118,6 +118,7 @@ auditLogSchema.index({ tenantId: 1, createdAt: -1 });
 auditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 2592000 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 auditLogSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

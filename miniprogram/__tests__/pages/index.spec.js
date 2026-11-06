@@ -201,6 +201,18 @@ describe('index page', () => {
     imprintService.list.mockResolvedValue({ list: [] });
   });
 
+  test('opens new checkin selection with the current period and today lesson', () => {
+    pageInstance.setData({
+      canUsePaidFeatures: true,
+      currentPeriod: { _id: 'period_1' },
+      todaySection: { _id: 'section_1' }
+    });
+    pageInstance.navigateToNewCheckin.call(pageInstance);
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/checkin/checkin?select=1&periodId=period_1&sectionId=section_1'
+    });
+  });
+
   afterEach(() => {
     jest.useRealTimers();
     delete global.Page;

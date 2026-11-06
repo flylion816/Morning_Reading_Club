@@ -11,6 +11,11 @@ const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const { createNotification } = require('./notification.controller');
 const subscribeMessageService = require('../services/subscribe-message.service');
+const {
+  legacyEnrollmentTemplate,
+  builtInTemplate,
+  validateEnrollmentAnswers
+} = require('../services/enrollment-template.service');
 
 async function notifyEnrollmentSuccess(req, { userId, period }) {
   try {
@@ -437,48 +442,10 @@ exports.submitEnrollmentForm = async (req, res) => {
 
     // 从认证token中获取userId（token payload中的字段名是userId）
     const { userId } = req.user;
-    const {
-      periodId,
-      name,
-      gender,
-      province,
-      detailedAddress,
-      age,
-      referrer,
-      hasReadBook,
-      readTimes,
-      enrollReason,
-      expectation,
-      commitment,
-      phone,
-      inviterId
-    } = req.body;
-
-    // 验证必填字段
-    // 详细地址(detailedAddress)和推荐人(referrer)为选填字段
-    if (
-      !periodId ||
-      !name ||
-      !gender ||
-      !province ||
-      !age ||
-      !hasReadBook ||
-      !enrollReason ||
-      !expectation ||
-      !commitment
-    ) {
-      const missingFields = [];
-      if (!periodId) missingFields.push('periodId');
-      if (!name) missingFields.push('name');
-      if (!gender) missingFields.push('gender');
-      if (!province) missingFields.push('province');
-      if (!age) missingFields.push('age');
-      if (!hasReadBook) missingFields.push('hasReadBook');
-      if (!enrollReason) missingFields.push('enrollReason');
-      if (!expectation) missingFields.push('expectation');
-      if (!commitment) missingFields.push('commitment');
-      logger.warn('Missing required enrollment fields', { missingFields, userId });
-      return res.status(400).json(errors.badRequest(`缺少必填字段: ${missingFields.join(', ')}`));
+    const { periodId, inviterId } = req.body;
+    if (!periodId) return res.status(400).json(errors.badRequest('缺少必填字段: periodId'));
+    if (!String(req.body.name || '').trim()) {
+      return res.status(400).json(errors.badRequest('缺少必填字段: name'));
     }
 
     // 验证期次是否存在
@@ -490,24 +457,26 @@ exports.submitEnrollmentForm = async (req, res) => {
       return res.status(403).json(errors.forbidden('该期暂未开放报名'));
     }
 
+    const templateSnapshot = period.enrollmentTemplateSnapshot || legacyEnrollmentTemplate();
+    const answerResult = validateEnrollmentAnswers(templateSnapshot, req.body);
+    if (answerResult.error) {
+      return res.status(400).json(errors.badRequest(answerResult.error));
+    }
+    const answers = answerResult.values;
+    const amount = Math.max(0, Number(period.price) || 0);
+    const paymentStatus = amount > 0 ? 'pending' : 'free';
+
     const enrollmentPayload = {
       userId,
       periodId,
-      name,
-      gender,
-      province,
-      detailedAddress,
-      age: parseInt(age, 10),
-      referrer,
-      hasReadBook,
-      readTimes: hasReadBook === 'yes' ? parseInt(readTimes, 10) : 0,
-      enrollReason,
-      expectation,
-      commitment,
-      phone: phone || undefined,
+      ...answers,
+      phone: answers.phone || undefined,
       inviterId: inviterId || undefined,
-      paymentStatus: 'pending',
-      paymentAmount: 0,
+      enrollmentTemplateId: templateSnapshot.templateId,
+      enrollmentTemplateSnapshot: templateSnapshot,
+      enrollmentAnswers: answers,
+      paymentStatus,
+      paymentAmount: amount,
       paidAt: null,
       completedAt: null,
       withdrawnAt: null,
@@ -555,6 +524,12 @@ exports.submitEnrollmentForm = async (req, res) => {
     await Period.findByIdAndUpdate(periodId, {
       $inc: { enrollmentCount: 1 }
     });
+    if (typeof Period.findOneAndUpdate === 'function') {
+      await Period.findOneAndUpdate(
+        { _id: periodId, enrollmentTemplateLocked: { $ne: true } },
+        { $set: { enrollmentTemplateLocked: true } }
+      );
+    }
 
     // 异步备份到 MySQL（使用原始未populate的文档以避免数据库关系问题）
     mysqlBackupService.syncEnrollment(enrollment).catch(err =>
@@ -577,7 +552,7 @@ exports.submitEnrollmentForm = async (req, res) => {
       data: enrollment.toObject()
     });
 
-    await syncNicknameFromEnrollmentName({ userId, enrollmentName: name });
+    await syncNicknameFromEnrollmentName({ userId, enrollmentName: answers.name });
 
     await notifyEnrollmentSuccess(req, {
       userId,
@@ -619,6 +594,10 @@ exports.enrollPeriod = async (req, res) => {
       return res.status(403).json(errors.forbidden('该期暂未开放报名'));
     }
 
+    const amount = Math.max(0, Number(period.price) || 0);
+    const paymentStatus = amount > 0 ? 'pending' : 'free';
+    const enrollmentTemplateSnapshot = builtInTemplate('simple');
+
     // 检查是否已有同一期次报名记录
     const existingEnrollment = await Enrollment.findOne({
       userId,
@@ -633,8 +612,11 @@ exports.enrollPeriod = async (req, res) => {
       existingEnrollment.set({
         userId,
         periodId,
-        paymentStatus: 'pending',
-        paymentAmount: 0,
+        paymentStatus,
+        paymentAmount: amount,
+        enrollmentTemplateId: enrollmentTemplateSnapshot.templateId,
+        enrollmentTemplateSnapshot,
+        enrollmentAnswers: {},
         paidAt: null,
         completedAt: null,
         withdrawnAt: null,
@@ -671,8 +653,11 @@ exports.enrollPeriod = async (req, res) => {
     const enrollment = await Enrollment.create({
       userId,
       periodId,
-      paymentStatus: 'pending',
-      paymentAmount: 0,
+      paymentStatus,
+      paymentAmount: amount,
+      enrollmentTemplateId: enrollmentTemplateSnapshot.templateId,
+      enrollmentTemplateSnapshot,
+      enrollmentAnswers: {},
       status: 'active',
       tenantId: getCurrentTenantId()
     });
@@ -765,7 +750,7 @@ exports.getPeriodMembers = async (req, res) => {
 exports.getUserEnrollments = async (req, res) => {
   try {
     // 强制使用当前登录用户，防止 IDOR 越权读取他人报名记录
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { page = 1, limit = 20, status } = req.query;
 
     // 获取报名列表

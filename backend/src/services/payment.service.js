@@ -30,16 +30,30 @@ const WECHAT_PAY_CONFIG = {
 };
 
 function mergeWechatPayConfig(overrides = {}) {
-  return {
-    ...WECHAT_PAY_CONFIG,
-    appId: overrides.appId || WECHAT_PAY_CONFIG.appId,
-    mchId: overrides.mchId || WECHAT_PAY_CONFIG.mchId,
-    apiKey: overrides.apiKey || WECHAT_PAY_CONFIG.apiKey,
-    apiV3Key: overrides.apiV3Key || WECHAT_PAY_CONFIG.apiV3Key,
-    certPath: overrides.certPath || WECHAT_PAY_CONFIG.certPath,
-    keyPath: overrides.keyPath || WECHAT_PAY_CONFIG.keyPath,
-    notifyUrl: overrides.notifyUrl || WECHAT_PAY_CONFIG.notifyUrl
+  const production = process.env.NODE_ENV === 'production';
+  const platformDefaults = production ? {
+    appId: process.env.WECHAT_APPID || null,
+    mchId: process.env.WECHAT_MCH_ID || null,
+    apiKey: process.env.WECHAT_API_KEY || null,
+    apiV3Key: process.env.WECHAT_API_V3_KEY || null,
+    certPath: process.env.WECHAT_CERT_PATH || '',
+    keyPath: process.env.WECHAT_KEY_PATH || '',
+    notifyUrl: process.env.WECHAT_NOTIFY_URL || null
+  } : WECHAT_PAY_CONFIG;
+  const config = {
+    ...platformDefaults,
+    appId: overrides.appId || platformDefaults.appId,
+    mchId: overrides.mchId || platformDefaults.mchId,
+    apiKey: overrides.apiKey || platformDefaults.apiKey,
+    apiV3Key: overrides.apiV3Key || platformDefaults.apiV3Key,
+    certPath: overrides.certPath || platformDefaults.certPath,
+    keyPath: overrides.keyPath || platformDefaults.keyPath,
+    notifyUrl: overrides.notifyUrl || platformDefaults.notifyUrl
   };
+  if (production && (!config.appId || !config.mchId || !config.apiKey)) {
+    throw new Error('Production WeChat Pay AppID, merchant ID, and API key must come from configured tenant or environment secrets');
+  }
+  return config;
 }
 
 async function resolveWechatPayConfig(tenantId) {
@@ -112,7 +126,7 @@ async function unifiedOrder(params) {
         prepayId: result.prepay_id,
         nonce_str: result.nonce_str
       };
-    } else {
+    }
       logger.warn('WeChat unifiedOrder API failed', {
         return_code: result.return_code,
         result_code: result.result_code,
@@ -123,13 +137,54 @@ async function unifiedOrder(params) {
         success: false,
         error: result.err_code_des || 'WeChat API error'
       };
-    }
+
   } catch (error) {
     logger.error('WeChat unifiedOrder API error', error);
     return {
       success: false,
       error: error.message
     };
+  }
+}
+
+/** Verify V2 merchant order state server-side; caller input is never payment evidence. */
+async function queryOrder(outTradeNo, tenantId) {
+  if (!outTradeNo) throw new Error('Missing merchant order number');
+  const payConfig = await resolveWechatPayConfig(tenantId);
+  const requestData = {
+    appid: payConfig.appId,
+    mch_id: payConfig.mchId,
+    out_trade_no: outTradeNo,
+    nonce_str: generateNonceStr()
+  };
+  requestData.sign = generateMD5Sign(requestData, payConfig.apiKey);
+
+  try {
+    const response = await axios.post(
+      'https://api.mch.weixin.qq.com/pay/orderquery',
+      objectToXml(requestData),
+      { headers: { 'Content-Type': 'text/xml' }, timeout: 10000 }
+    );
+    const result = xmlToObject(response.data);
+    if (!verifyNotifySign(result, payConfig)) {
+      return { verified: false, reason: 'provider_signature_invalid' };
+    }
+    if (result.return_code !== 'SUCCESS' || result.result_code !== 'SUCCESS') {
+      return { verified: false, providerState: result.trade_state || result.err_code || 'UNKNOWN' };
+    }
+    return {
+      verified: true,
+      appId: result.appid,
+      merchantId: result.mch_id,
+      orderNo: result.out_trade_no,
+      transactionId: result.transaction_id,
+      amount: Number(result.total_fee),
+      currency: result.fee_type || 'CNY',
+      providerState: result.trade_state
+    };
+  } catch (error) {
+    logger.warn('WeChat order query failed', { name: error.name, code: error.code });
+    throw new Error('Payment provider could not verify the order');
   }
 }
 
@@ -300,22 +355,27 @@ function escapeXml(str) {
  */
 function verifyNotifySign(params, payConfig = WECHAT_PAY_CONFIG) {
   // 提取签名
-  const sign = params.sign;
+  const {sign} = params;
   const dataForSign = { ...params };
   delete dataForSign.sign;
 
   // 生成签名并对比
   const calculatedSign = generateMD5Sign(dataForSign, payConfig.apiKey);
-  return sign === calculatedSign;
+  if (typeof sign !== 'string' || !/^[A-F0-9]{32}$/i.test(sign)) return false;
+  const submitted = Buffer.from(sign.toUpperCase());
+  const calculated = Buffer.from(calculatedSign.toUpperCase());
+  return submitted.length === calculated.length && crypto.timingSafeEqual(submitted, calculated);
 }
 
 module.exports = {
   unifiedOrder,
+  queryOrder,
   generatePaymentSignature,
   generatePaymentParams,
   generateNonceStr,
   verifyNotifySign,
   xmlToObject,
   resolveWechatPayConfig,
+  mergeWechatPayConfig,
   WECHAT_PAY_CONFIG
 };

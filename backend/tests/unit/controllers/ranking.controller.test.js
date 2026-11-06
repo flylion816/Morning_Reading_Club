@@ -81,7 +81,7 @@ describe('Ranking Controller', () => {
   describe('getPeriodRanking - 基础功能', () => {
     it('应该返回期次打卡排行榜', async () => {
       const periodId = new mongoose.Types.ObjectId();
-      const userId = req.user.userId;
+      const {userId} = req.user;
       req.params = { periodId };
 
       const mockPeriod = {
@@ -260,7 +260,7 @@ describe('Ranking Controller', () => {
   describe('getPeriodRanking - 分页', () => {
     it('应该支持第2页查询', async () => {
       const periodId = new mongoose.Types.ObjectId();
-      const userId = req.user.userId;
+      const {userId} = req.user;
       req.params = { periodId };
       req.query = { page: 2, limit: 10 };
 
@@ -370,7 +370,7 @@ describe('Ranking Controller', () => {
 
     it('应该处理currentUser为null的情况（用户无打卡记录）', async () => {
       const periodId = new mongoose.Types.ObjectId();
-      const userId = req.user.userId;
+      const {userId} = req.user;
       const otherUserId = new mongoose.Types.ObjectId().toString();
       req.params = { periodId };
 
@@ -479,7 +479,7 @@ describe('Ranking Controller', () => {
 
     it('应该在currentUser中显示正确的排名', async () => {
       const periodId = new mongoose.Types.ObjectId();
-      const userId = req.user.userId;
+      const {userId} = req.user;
       req.params = { periodId };
 
       const mockPeriod = { _id: periodId };
@@ -583,7 +583,7 @@ describe('Ranking Controller', () => {
 
     it('应该在User查询失败时捕获错误', async () => {
       const periodId = new mongoose.Types.ObjectId();
-      const userId = req.user.userId;
+      const {userId} = req.user;
       req.params = { periodId };
 
       const mockPeriod = { _id: periodId };

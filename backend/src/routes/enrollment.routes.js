@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const {
   submitEnrollmentForm,
@@ -24,6 +25,8 @@ const {
 } = require('../controllers/enrollment.controller');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { externalIntegrationAuth } = require('../middleware/externalIntegrationAuth');
+const { externalIntegrationRateLimit } = require('../middleware/ratelimit');
 const {
   userTenantContext,
   adminTenantContext,
@@ -32,7 +35,13 @@ const {
 
 // ===== 外部公开接口（无需认证，必须在参数化路由之前） =====
 router.get('/external/active-periods', getActivePeriodsForExternal);
-router.get('/external/users-by-period', publicTenantContext, getUsersByPeriodName);
+router.get(
+  '/external/users-by-period',
+  publicTenantContext,
+  externalIntegrationRateLimit,
+  externalIntegrationAuth('roster:read'),
+  getUsersByPeriodName
+);
 
 // ===== 管理员路由（必须放在用户路由前面） =====
 router.get('/reports', adminAuthMiddleware, adminTenantContext, getCompletionReportEnrollments);

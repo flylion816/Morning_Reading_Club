@@ -31,11 +31,15 @@ async function authMiddleware(req, res, next) {
     if (remainingTime < thirtyMinutes && remainingTime > 0 && decoded.tenantId) {
       // Token剩余时间<30分钟且有 tenantId，生成新Token并添加到响应头
       // 老 token 没有 tenantId 时跳过续期，让后续 userTenantContext 返回 403
+      let inactiveStatus = null;
       try {
         const user = await withSystemContext(decoded.tenantId, () =>
           User.findById(decoded.userId || decoded._id).exec()
         );
-        if (user) {
+        if (user && user.status && user.status !== 'active') {
+          // 被封禁/删除的用户不再续期，否则可以靠自动续期无限保持登录
+          inactiveStatus = user.status;
+        } else if (user) {
           const newTokens = generateTokens(user);
 
           // 添加新Token到响应头，前端自动更新
@@ -52,6 +56,11 @@ async function authMiddleware(req, res, next) {
         logger.error('Token自动续期失败', renewError, {
           userId: decoded.userId || decoded._id
         });
+      }
+      if (inactiveStatus) {
+        return res.status(403).json(
+          errors.forbidden(inactiveStatus === 'deleted' ? '用户已被删除' : '用户已被禁用')
+        );
       }
     }
 
@@ -85,7 +94,7 @@ function adminMiddleware(req, res, next) {
     return res.status(401).json(errors.unauthorized('未登录'));
   }
 
-  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+  if (!['admin', 'super_admin', 'superadmin'].includes(req.user.role)) {
     return res.status(403).json(errors.forbidden('需要管理员权限'));
   }
 

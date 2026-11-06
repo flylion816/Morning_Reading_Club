@@ -662,7 +662,8 @@ async function deleteComment(req, res) {
     const userId = getUserId(req);
 
     const comment = await ImprintComment.findById(cid).lean();
-    if (!comment) {
+    // 评论必须属于 URL 中的印记，否则印记作者可借自己的印记 ID 删除别人印记下的评论
+    if (!comment || String(comment.imprintId) !== String(id)) {
       return res.status(404).json(errors.notFound('评论不存在'));
     }
 

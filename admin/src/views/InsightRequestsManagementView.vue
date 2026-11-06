@@ -101,15 +101,15 @@
             <div class="header-actions">
               <el-button
                 type="success"
-                @click="batchApprove"
                 :disabled="selectedRequests.length === 0"
+                @click="batchApprove"
               >
                 批量同意 ({{ selectedRequests.length }})
               </el-button>
               <el-button
                 type="danger"
-                @click="batchReject"
                 :disabled="selectedRequests.length === 0"
+                @click="batchReject"
               >
                 批量拒绝 ({{ selectedRequests.length }})
               </el-button>
@@ -132,9 +132,9 @@
         <el-table
           :data="requests"
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
-          @selection-change="handleSelectionChange"
           stripe
           style="width: 100%"
+          @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="50" />
           <el-table-column prop="fromUserId.nickname" label="申请者" width="120" />
@@ -148,7 +148,7 @@
             <template #default="{ row }">
               <div class="request-target-cell">
                 <div class="request-target-main">{{ getRequestCourseSummary(row) || '-' }}</div>
-                <div class="request-target-sub" v-if="getRequestScopeLabel(row)">
+                <div v-if="getRequestScopeLabel(row)" class="request-target-sub">
                   {{ getRequestScopeLabel(row) }}
                 </div>
               </div>
@@ -263,7 +263,7 @@
         </el-form>
         <template #footer>
           <el-button @click="dialogApprove.visible = false">取消</el-button>
-          <el-button type="primary" @click="submitApprove" :loading="dialogApprove.loading">
+          <el-button type="primary" :loading="dialogApprove.loading" @click="submitApprove">
             确认同意
           </el-button>
         </template>
@@ -289,7 +289,7 @@
         </el-form>
         <template #footer>
           <el-button @click="dialogReject.visible = false">取消</el-button>
-          <el-button type="primary" @click="submitReject" :loading="dialogReject.loading">
+          <el-button type="primary" :loading="dialogReject.loading" @click="submitReject">
             确认拒绝
           </el-button>
         </template>
@@ -707,17 +707,6 @@ const handleDeleteRequest = (row: InsightRequest) => {
     .catch(() => {});
 };
 
-// 打开批量授权对话框
-const openBatchApproveDialog = () => {
-  if (selectedRequests.value.length === 0) {
-    ElMessage.warning('请先选择要授权的申请');
-    return;
-  }
-
-  dialogBatchApprove.value.visible = true;
-  dialogBatchApprove.value.form.periodId = '';
-};
-
 // 批量同意
 const batchApprove = () => {
   if (selectedRequests.value.length === 0) {
@@ -934,7 +923,7 @@ onMounted(() => {
 .stat-header {
   font-weight: 600;
   font-size: 14px;
-  color: #666;
+  color: var(--admin-ink-soft);
 }
 
 .stat-value {
@@ -958,7 +947,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 12px;
-  color: #999;
+  color: var(--admin-ink-muted);
 }
 
 .card-header {
@@ -1029,12 +1018,12 @@ onMounted(() => {
 }
 
 .request-target-main {
-  color: #303133;
+  color: var(--admin-ink);
   line-height: 1.4;
 }
 
 .request-target-sub {
-  color: #909399;
+  color: var(--admin-ink-muted);
   font-size: 12px;
 }
 
@@ -1045,7 +1034,7 @@ onMounted(() => {
 
 .audit-log-item {
   padding: 10px;
-  background: #f5f7fa;
+  background: var(--admin-page);
   border-radius: 4px;
 }
 
@@ -1057,6 +1046,6 @@ onMounted(() => {
 .audit-log-item p {
   margin: 3px 0;
   font-size: 12px;
-  color: #666;
+  color: var(--admin-ink-soft);
 }
 </style>

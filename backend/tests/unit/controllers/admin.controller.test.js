@@ -14,6 +14,8 @@ describe('Admin Controller', () => {
   let res;
   let next;
   let AdminStub;
+  let jwtStub;
+  let adminSessionServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -22,6 +24,7 @@ describe('Admin Controller', () => {
       body: {},
       params: {},
       query: {},
+      headers: {},
       user: {},
       admin: {
         role: 'platform_superadmin'
@@ -31,7 +34,9 @@ describe('Admin Controller', () => {
 
     res = {
       status: sandbox.stub().returnsThis(),
-      json: sandbox.stub().returnsThis()
+      json: sandbox.stub().returnsThis(),
+      cookie: sandbox.stub().returnsThis(),
+      clearCookie: sandbox.stub().returnsThis()
     };
 
     next = sandbox.stub();
@@ -45,9 +50,33 @@ describe('Admin Controller', () => {
       countDocuments: sandbox.stub()
     };
 
-    const jwtStub = {
+    jwtStub = {
       generateTokens: sandbox.stub(),
-      verifyRefreshToken: sandbox.stub()
+      verifyRefreshToken: sandbox.stub(),
+      verifyAdminRefreshToken: sandbox.stub(),
+      generateAdminMaintenanceToken: sandbox.stub().returns('maintenance-token')
+    };
+
+    adminSessionServiceStub = {
+      createAdminSession: sandbox.stub().resolves({
+        sessionId: 'session-1',
+        accessToken: 'admin-access-token',
+        refreshToken: 'admin-refresh-token'
+      }),
+      rotateAdminSession: sandbox.stub().resolves({
+        sessionId: 'session-1',
+        accessToken: 'rotated-access-token',
+        refreshToken: 'rotated-refresh-token'
+      }),
+      revokeAdminSession: sandbox.stub().resolves(),
+      digestJti: sandbox.stub().callsFake(value => `digest:${value}`),
+      getRefreshCookie: sandbox.stub().callsFake(request => {
+        const raw = request.headers?.cookie || '';
+        const pair = raw.split(';').map(item => item.trim()).find(item => item.startsWith('adminRefreshToken='));
+        return pair ? decodeURIComponent(pair.slice('adminRefreshToken='.length)) : null;
+      }),
+      setRefreshCookie: sandbox.stub().callsFake((response, token) => response.cookie('adminRefreshToken', token)),
+      clearRefreshCookie: sandbox.stub().callsFake(response => response.clearCookie('adminRefreshToken'))
     };
 
     const responseUtils = {
@@ -66,6 +95,7 @@ describe('Admin Controller', () => {
     };
 
     const auditHelperStub = {
+      logLogin: sandbox.stub().resolves(),
       logAction: sandbox.stub().resolves(),
       compareChanges: sandbox.stub().returns({
         name: { before: '旧姓名', after: '新姓名' }
@@ -87,6 +117,7 @@ describe('Admin Controller', () => {
       {
         '../models/Admin': AdminStub,
         '../utils/jwt': jwtStub,
+        '../services/admin-session.service': adminSessionServiceStub,
         '../utils/response': responseUtils,
         '../services/mysql-backup.service': mysqlBackupServiceStub,
         '../utils/auditHelper': auditHelperStub,
@@ -115,7 +146,7 @@ describe('Admin Controller', () => {
         loginCount: 0,
         comparePassword: sandbox.stub().resolves(true),
         save: sandbox.stub().resolves(),
-        toJSON: function() {
+        toJSON() {
           return {
             _id: this._id,
             email: this.email,
@@ -132,6 +163,9 @@ describe('Admin Controller', () => {
       await adminController.login(req, res, next);
 
       expect(res.json.called).to.be.true;
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data).to.have.property('accessToken', 'admin-access-token');
+      expect(responseData.data).to.have.property('token', 'admin-access-token');
     });
 
     it('应该返回400当缺少email或password', async () => {
@@ -148,6 +182,18 @@ describe('Admin Controller', () => {
       await adminController.logout(req, res, next);
 
       expect(res.json.called).to.be.true;
+    });
+
+    it('会话撤销依赖失败时不应伪装成成功登出', async () => {
+      req.headers.cookie = 'adminRefreshToken=valid-refresh-token';
+      jwtStub.verifyAdminRefreshToken.returns({ sub: 'admin-1', sid: 'session-1', jti: 'jti-1' });
+      adminSessionServiceStub.revokeAdminSession.rejects(Object.assign(new Error('database unavailable'), { name: 'MongoNetworkError' }));
+
+      await adminController.logout(req, res, next);
+
+      expect(res.status.calledWith(503)).to.equal(true);
+      expect(res.clearCookie.called).to.equal(false);
+      expect(res.json.getCall(0).args[0].message).to.include('注销');
     });
   });
 
@@ -302,12 +348,6 @@ describe('Admin Controller', () => {
         role: 'operator'
       };
 
-      const mockNewAdmin = {
-        _id: new mongoose.Types.ObjectId(),
-        ...req.body,
-        status: 'active'
-      };
-
       AdminStub.findOne.resolves(null);
 
       await adminController.createAdmin(req, res, next);
@@ -336,32 +376,63 @@ describe('Admin Controller', () => {
   });
 
   describe('refreshToken', () => {
-    it('应该刷新Token', async () => {
+    it('应该刷新Token并轮换HttpOnly refresh cookie', async () => {
       const adminId = new mongoose.Types.ObjectId();
-      req.admin = { id: adminId };
+      req.headers.cookie = 'adminRefreshToken=refresh-token';
 
       const mockAdmin = {
         _id: adminId,
         email: 'admin@test.com',
         role: 'super_admin',
-        status: 'active'
+        status: 'active',
+        sessionVersion: 0,
+        toJSON: sandbox.stub().returns({ _id: adminId, email: 'admin@test.com', role: 'super_admin' })
       };
-
-      AdminStub.findById.resolves(mockAdmin);
+      AdminStub.findById.returns({
+        select: sandbox.stub().resolves(mockAdmin)
+      });
+      jwtStub.verifyAdminRefreshToken.returns({
+        sub: adminId.toString(),
+        sid: 'session-1',
+        jti: 'jti-1',
+        sessionVersion: 0
+      });
 
       await adminController.refreshToken(req, res, next);
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data).to.have.property('accessToken');
+      expect(responseData.data).to.have.property('accessToken', 'rotated-access-token');
+      expect(responseData.data).to.have.property('token', 'rotated-access-token');
+      expect(res.cookie.calledWith('adminRefreshToken', 'rotated-refresh-token')).to.be.true;
     });
 
-    it('应该返回401当没有授权', async () => {
-      req.admin = null;
+    it('应该返回401当没有refresh cookie', async () => {
+      await adminController.refreshToken(req, res, next);
+
+      expect(res.status.calledWith(401)).to.be.true;
+      expect(res.clearCookie.called).to.be.true;
+    });
+
+    it('刷新竞争失败时不应撤销已经成功轮换的会话', async () => {
+      const adminId = new mongoose.Types.ObjectId();
+      req.headers.cookie = 'adminRefreshToken=stale-refresh-token';
+      AdminStub.findById.returns({
+        select: sandbox.stub().resolves({
+          _id: adminId,
+          status: 'active',
+          sessionVersion: 0,
+          toJSON: sandbox.stub().returns({ _id: adminId })
+        })
+      });
+      jwtStub.verifyAdminRefreshToken.returns({ sub: adminId.toString(), sid: 'session-1', jti: 'old-jti', sessionVersion: 0 });
+      adminSessionServiceStub.rotateAdminSession.resolves(null);
 
       await adminController.refreshToken(req, res, next);
 
       expect(res.status.calledWith(401)).to.be.true;
+      expect(adminSessionServiceStub.revokeAdminSession.called).to.equal(false);
+      expect(adminSessionServiceStub.clearRefreshCookie.called).to.equal(false);
     });
   });
 });

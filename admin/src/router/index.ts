@@ -1,9 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import logger from '../utils/logger';
+
+const PLATFORM_ROLES = ['platform_superadmin', 'superadmin'];
 
 const routes: RouteRecordRaw[] = [
+  { path: '/course-templates', name: 'courseTemplates', component: () => import('../views/CourseTemplatesView.vue'), meta: { requiresAuth: true } },
+  { path: '/enrollment-templates', name: 'enrollmentTemplates', component: () => import('../views/EnrollmentTemplatesView.vue'), meta: { requiresAuth: true } },
   {
     path: '/login',
     name: 'login',
@@ -86,25 +89,25 @@ const routes: RouteRecordRaw[] = [
     path: '/database',
     name: 'database',
     component: () => import('../views/DatabaseView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, platformOnly: true }
   },
   {
     path: '/subscription-debug',
     name: 'subscriptionDebug',
     component: () => import('../views/SubscriptionDebugView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, platformOnly: true }
   },
   {
     path: '/account-management',
     name: 'accountManagement',
     component: () => import('../views/AccountManagementView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, platformOnly: true }
   },
   {
     path: '/tenants',
     name: 'tenants',
     component: () => import('../views/TenantsView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, platformOnly: true }
   },
   {
     path: '/imprints',
@@ -143,34 +146,20 @@ const router = createRouter({
   routes
 });
 
-// Global route guard for authentication
-router.beforeEach((to, from, next) => {
+// Restore the HttpOnly refresh-cookie session before evaluating protected routes.
+router.beforeEach(async to => {
   const authStore = useAuthStore();
-
-  // 重新检查token（确保从localStorage同步）
-  authStore.initToken();
+  await authStore.initToken();
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    // 需要认证但未认证，重定向到登录
-    if (to.name !== 'login') {
-      next({ name: 'login' });
-    } else {
-      next();
-    }
-  } else if (to.meta.requiresAuth && authStore.isAuthenticated && !authStore.adminInfo) {
-    // 已认证但缺失用户信息（例如页面刷新），重新获取
-    authStore.getProfile().then(() => {
-      next();
-    }).catch(() => {
-      authStore.logout();
-      next({ name: 'login' });
-    });
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
-    // 已登录时访问登录页，重定向到首页
-    next({ name: 'dashboard' });
-  } else {
-    next();
+    return { name: 'login' };
   }
+  if (to.name === 'login' && authStore.isAuthenticated) return { name: 'dashboard' };
+  // 系统管理页面只对平台管理员开放（后端同样会拦截，这里避免租户管理员打开后看到报错页）
+  if (to.meta.platformOnly && !PLATFORM_ROLES.includes(authStore.adminInfo?.role)) {
+    return { name: 'dashboard' };
+  }
+  return true;
 });
 
 export default router;

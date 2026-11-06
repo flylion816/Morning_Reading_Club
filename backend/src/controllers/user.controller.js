@@ -15,10 +15,16 @@ function buildParticipatingEnrollmentQuery(userId) {
   };
 }
 
+const USER_ROLES = ['user', 'admin', 'super_admin'];
+const USER_STATUSES = ['active', 'banned', 'deleted'];
+const PLATFORM_ADMIN_ROLES = ['platform_superadmin', 'superadmin'];
+// 可以修改小程序用户角色、删除用户的后台角色（不含 operator）
+const USER_ROLE_MANAGER_ROLES = [...PLATFORM_ADMIN_ROLES, 'tenant_admin', 'admin'];
+
 // 获取当前用户信息
 async function getCurrentUser(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const user = await User.findById(userId);
 
     if (!user) {
@@ -212,7 +218,7 @@ async function getUserStats(req, res, next) {
 // 获取用户列表（管理员）
 async function getUserList(req, res, next) {
   try {
-    const { page = 1, limit = 20, role, status, search, keyword } = req.query;
+    const { page = 1, limit = 20, role, status, search, keyword, sortBy, sortOrder } = req.query;
 
     // 支持 search 和 keyword 两个参数名（search 用于前端搜索框，keyword 用于兼容）
     const searchTerm = search || keyword;
@@ -237,9 +243,13 @@ async function getUserList(req, res, next) {
       ];
     }
 
+    const allowedSortFields = new Set(['createdAt', 'lastLoginAt']);
+    const sortField = allowedSortFields.has(sortBy) ? sortBy : 'createdAt';
+    const sortDirection = sortOrder === 'ascending' || sortOrder === 'asc' || sortOrder === '1' ? 1 : -1;
+
     const total = await User.countDocuments(query);
     const users = await User.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ [sortField]: sortDirection })
       .skip((page - 1) * limit)
       .limit(parseInt(limit, 10))
       .select('-__v');
@@ -265,6 +275,23 @@ async function updateUser(req, res, next) {
   try {
     const { userId } = req.params;
     const { isActive, status, role } = req.body;
+
+    if (status !== undefined && !USER_STATUSES.includes(status)) {
+      return res.status(400).json(errors.badRequest('无效的用户状态'));
+    }
+    if (role !== undefined) {
+      if (!USER_ROLES.includes(role)) {
+        return res.status(400).json(errors.badRequest('无效的用户角色'));
+      }
+      // 授予小程序管理员身份属于提权操作，operator 不允许；super_admin 仅平台管理员可授予。
+      const adminRole = req.admin?.role;
+      const canGrantRole = role === 'super_admin'
+        ? PLATFORM_ADMIN_ROLES.includes(adminRole)
+        : USER_ROLE_MANAGER_ROLES.includes(adminRole);
+      if (!canGrantRole) {
+        return res.status(403).json(errors.forbidden('当前账号无权修改用户角色'));
+      }
+    }
 
     const user = await User.findById(userId);
     if (!user) {
@@ -336,7 +363,7 @@ async function bindPhone(req, res, next) {
     try {
       accessToken = await subscribeMessageService.getAccessToken();
     } catch (err) {
-      return res.status(502).json(errors.serverError('获取微信 access_token 失败: ' + err.message));
+      return res.status(502).json(errors.serverError(`获取微信 access_token 失败: ${  err.message}`));
     }
 
     // 调用微信接口获取手机号
@@ -404,6 +431,7 @@ async function getPhoneInfo(req, res, next) {
 }
 
 module.exports = {
+  USER_ROLE_MANAGER_ROLES,
   getCurrentUser,
   updateProfile,
   getUserById,

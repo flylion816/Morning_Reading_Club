@@ -4,7 +4,6 @@
  * 多租户隔离：房间命名 tenant:${tenantId}:user:${userId}
  */
 
-const url = require('url');
 const { WebSocket } = require('ws');
 const { verifyAccessToken, consumeWsToken } = require('./jwt');
 const { runWithTenant } = require('./tenantContext');
@@ -20,11 +19,11 @@ class WebSocketManager {
     // ws → { tenantId, userId }
     this.socketUsers = new WeakMap();
 
-    this._installAuthAndConnection();
-    this._installHeartbeat();
+    this.installAuthAndConnection();
+    this.installHeartbeat();
   }
 
-  _installAuthAndConnection() {
+  installAuthAndConnection() {
     if (!this.wss) return;
 
     this.wss.on('connection', async (ws, req) => {
@@ -32,7 +31,7 @@ class WebSocketManager {
         let decoded = null;
 
         // 优先从 Authorization header 取 access token（开发者工具 / 部分真机）
-        const headerAuth = req.headers['authorization'] || '';
+        const headerAuth = req.headers.authorization || '';
         const headerToken = headerAuth.replace(/^Bearer /, '');
         if (headerToken) {
           decoded = verifyAccessToken(headerToken);
@@ -40,8 +39,8 @@ class WebSocketManager {
 
         // 兜底从 query 取一次性短期 wsToken（真机 header 不可用时）
         if (!decoded) {
-          const parsed = url.parse(req.url, true);
-          const wsToken = parsed.query.wsToken || parsed.query.token;
+          const parsed = new URL(req.url, 'ws://localhost');
+          const wsToken = parsed.searchParams.get('wsToken') || parsed.searchParams.get('token');
           if (wsToken) decoded = await consumeWsToken(wsToken);
         }
 
@@ -63,10 +62,10 @@ class WebSocketManager {
         ws.on('pong', () => { ws.isAlive = true; });
 
         logger.info('WebSocket 连接建立', { tenantId, userId });
-        this._send(ws, { type: 'user:joined', status: 'success', userId });
+        this.sendSocketPayload(ws, { type: 'user:joined', status: 'success', userId });
 
-        ws.on('message', (raw) => this._handleMessage(ws, raw));
-        ws.on('close', () => this._handleClose(ws));
+        ws.on('message', (raw) => this.handleSocketMessage(ws, raw));
+        ws.on('close', () => this.handleSocketClose(ws));
         ws.on('error', (err) => logger.error('WebSocket 错误', err, { tenantId, userId }));
       } catch (err) {
         logger.warn('WebSocket 握手失败', { reason: err.message });
@@ -75,17 +74,17 @@ class WebSocketManager {
     });
   }
 
-  _send(ws, payload) {
+  sendSocketPayload(ws, payload) {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(payload));
     }
   }
 
-  _handleMessage(ws, raw) {
+  handleSocketMessage(ws, raw) {
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch (_) { return; }
     const type = msg.type || msg.event;
-    if (type === 'ping') return this._send(ws, { type: 'pong' });
+    if (type === 'ping') return this.sendSocketPayload(ws, { type: 'pong' });
 
     const ctx = this.socketUsers.get(ws);
     if (!ctx) return;
@@ -100,11 +99,11 @@ class WebSocketManager {
       )
     ).catch((error) => {
       logger.error('WebSocket 业务事件失败', error, { ...ctx, type });
-      this._send(ws, { type: 'error', message: '处理失败' });
+      this.sendSocketPayload(ws, { type: 'error', message: '处理失败' });
     });
   }
 
-  _handleClose(ws) {
+  handleSocketClose(ws) {
     const ctx = this.socketUsers.get(ws);
     if (!ctx) return;
     const userKey = `${ctx.tenantId}:${ctx.userId}`;
@@ -122,10 +121,10 @@ class WebSocketManager {
     logger.info('WebSocket 连接断开', { tenantId: ctx.tenantId, userId: ctx.userId });
   }
 
-  _installHeartbeat() {
+  installHeartbeat() {
     if (!this.wss) return;
 
-    this._heartbeatInterval = setInterval(() => {
+    this.heartbeatTimer = setInterval(() => {
       this.wss.clients.forEach((ws) => {
         if (ws.isAlive === false) {
           logger.warn('WebSocket 心跳超时，强制断开', this.socketUsers.get(ws) || {});
@@ -136,7 +135,7 @@ class WebSocketManager {
       });
     }, 30000);
 
-    this.wss.on('close', () => clearInterval(this._heartbeatInterval));
+    this.wss.on('close', () => clearInterval(this.heartbeatTimer));
   }
 
   // === 推送方法（带 tenantId） ===
@@ -146,9 +145,9 @@ class WebSocketManager {
     const data = { ...notification, timestamp: new Date().toISOString() };
     const payload = { type: 'notification:new', ...data };
     let sent = 0;
-    if (set) set.forEach((ws) => { this._send(ws, payload); sent += 1; });
+    if (set) set.forEach((ws) => { this.sendSocketPayload(ws, payload); sent += 1; });
 
-    this._publishToOtherInstances('user', { tenantId, userId, notification: data });
+    this.publishToOtherInstances('user', { tenantId, userId, notification: data });
     return sent;
   }
 
@@ -157,9 +156,9 @@ class WebSocketManager {
     const data = { ...notification, timestamp: new Date().toISOString() };
     const payload = { type: 'notification:tenant', ...data };
     let sent = 0;
-    if (set) set.forEach((ws) => { this._send(ws, payload); sent += 1; });
+    if (set) set.forEach((ws) => { this.sendSocketPayload(ws, payload); sent += 1; });
 
-    this._publishToOtherInstances('tenant', { tenantId, notification: data });
+    this.publishToOtherInstances('tenant', { tenantId, notification: data });
     return sent;
   }
 
@@ -195,10 +194,11 @@ class WebSocketManager {
   }
 
   // 多实例广播 hook（由 ws-pubsub.js 注入）
-  _publishToOtherInstances(_kind, _payload) {
+  publishToOtherInstances() {
     // 默认空实现，由 ws-pubsub.js 在启动时通过 wsManager.setPubSub(...) 注入
   }
-  setPubSub(pubsub) { this._publishToOtherInstances = pubsub; }
+
+  setPubSub(pubsub) { this.publishToOtherInstances = pubsub; }
 }
 
 module.exports = WebSocketManager;

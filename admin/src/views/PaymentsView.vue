@@ -69,11 +69,11 @@
       <!-- 支付列表 -->
       <el-card style="margin-top: 20px">
         <el-table
+          v-loading="loading"
           :data="payments"
           stripe
           style="width: 100%"
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
-          v-loading="loading"
         >
           <el-table-column type="expand">
             <template #default="{ row }">
@@ -99,10 +99,10 @@
                   <el-descriptions-item label="报名ID">
                     {{ row.enrollmentId }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="交易ID" v-if="row.transactionId">
+                  <el-descriptions-item v-if="row.transactionId" label="交易ID">
                     {{ row.transactionId }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="完成时间" v-if="row.successTime">
+                  <el-descriptions-item v-if="row.successTime" label="完成时间">
                     {{ formatDate(row.successTime) }}
                   </el-descriptions-item>
                   <el-descriptions-item label="创建时间">
@@ -226,13 +226,13 @@
           <el-descriptions-item label="报名ID">
             {{ selectedPayment.enrollmentId }}
           </el-descriptions-item>
-          <el-descriptions-item label="交易ID" v-if="selectedPayment.transactionId">
+          <el-descriptions-item v-if="selectedPayment.transactionId" label="交易ID">
             {{ selectedPayment.transactionId }}
           </el-descriptions-item>
           <el-descriptions-item label="创建时间">
             {{ formatDate(selectedPayment.createdAt) }}
           </el-descriptions-item>
-          <el-descriptions-item label="完成时间" v-if="selectedPayment.successTime">
+          <el-descriptions-item v-if="selectedPayment.successTime" label="完成时间">
             {{ formatDate(selectedPayment.successTime) }}
           </el-descriptions-item>
         </el-descriptions>
@@ -478,7 +478,7 @@ function getPaymentAvatarColor(row: any): string {
 
 .expand-content {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--admin-page);
 }
 
 .action-buttons {

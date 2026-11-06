@@ -6,14 +6,25 @@
  */
 
 const express = require('express');
+
 const router = express.Router();
 const backupController = require('../controllers/backup.controller');
-const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const {
+  adminAuthMiddleware,
+  requireRole,
+  adminMaintenanceMiddleware,
+  requireActiveMaintenanceTenant,
+  requireTypedRestoreConfirmation
+} = require('../middleware/adminAuth');
 const { adminTenantContext } = require('../middleware/tenantContext');
+const { adminMaintenanceRateLimit } = require('../middleware/ratelimit');
 
 // 所有备份接口都需要管理员权限，并注入租户上下文（superadmin 自动进入 bypass 模式）
 router.use(adminAuthMiddleware);
 router.use(adminTenantContext);
+router.use(requireRole('platform_superadmin', 'superadmin'));
+router.use(adminMaintenanceMiddleware);
+router.use(adminMaintenanceRateLimit);
 
 // =========================================================================
 // 统计接口
@@ -83,7 +94,7 @@ router.post('/sync/delta', backupController.deltaSync);
  * 全量恢复：从 MySQL 恢复所有数据到 MongoDB
  * POST /api/v1/backup/recover/full
  */
-router.post('/recover/full', backupController.recoverMysqlToMongo);
+router.post('/recover/full', requireTypedRestoreConfirmation, backupController.recoverMysqlToMongo);
 
 // =========================================================================
 // MongoDB 单条记录 CRUD 接口
@@ -93,12 +104,12 @@ router.post('/recover/full', backupController.recoverMysqlToMongo);
  * 更新 MongoDB 单条记录
  * PUT /api/v1/backup/mongodb/record
  */
-router.put('/mongodb/record', backupController.updateMongodbRecord);
+router.put('/mongodb/record', requireActiveMaintenanceTenant, backupController.updateMongodbRecord);
 
 /**
  * 删除 MongoDB 单条记录
  * DELETE /api/v1/backup/mongodb/record
  */
-router.delete('/mongodb/record', backupController.deleteMongodbRecord);
+router.delete('/mongodb/record', requireActiveMaintenanceTenant, backupController.deleteMongodbRecord);
 
 module.exports = router;

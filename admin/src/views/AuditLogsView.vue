@@ -587,7 +587,7 @@ initPage().catch(error => {
 
 .stat-trend {
   font-size: 12px;
-  color: #909399;
+  color: var(--admin-ink-muted);
 }
 
 .stat-value-list {
@@ -654,12 +654,12 @@ initPage().catch(error => {
 
 .label {
   font-weight: 600;
-  color: #606266;
+  color: var(--admin-ink-soft);
   min-width: 100px;
 }
 
 code {
-  background: #f5f7fa;
+  background: var(--admin-page);
   padding: 2px 6px;
   border-radius: 3px;
   color: #e83e8c;
@@ -677,7 +677,7 @@ code {
 .change-item {
   display: flex;
   gap: 8px;
-  background: #f5f7fa;
+  background: var(--admin-page);
   padding: 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -685,13 +685,13 @@ code {
 
 .field-name {
   font-weight: 600;
-  color: #606266;
+  color: var(--admin-ink-soft);
   min-width: 100px;
 }
 
 .change-value {
   flex: 1;
   word-break: break-all;
-  color: #303133;
+  color: var(--admin-ink);
 }
 </style>

@@ -2,7 +2,7 @@
 
 .page-members {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--app-page-bg);
 }
 
 /* 成员统计头部 */
@@ -78,12 +78,12 @@
 .member-name {
   font-size: 28rpx;
   font-weight: 500;
-  color: #333;
+  color: var(--app-text);
 }
 
 .member-join-date {
   font-size: 24rpx;
-  color: #999;
+  color: var(--app-text-muted);
 }
 
 /* 空状态 */
@@ -103,5 +103,5 @@
 
 .empty-state-text {
   font-size: 28rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
 }

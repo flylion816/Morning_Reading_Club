@@ -746,7 +746,7 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
   margin-top: 16px;
   padding: 12px 16px;
   background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   animation: slideDown 0.3s ease-out;
@@ -754,7 +754,7 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
 
 .selected-count {
   font-weight: 600;
-  color: #303133;
+  color: var(--admin-ink);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -814,18 +814,18 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: var(--admin-page);
+  border: 1px solid var(--admin-border);
   border-radius: 6px;
 }
 
 .metric-label {
-  color: #6b7280;
+  color: var(--admin-ink-soft);
   font-size: 13px;
 }
 
 .metric-item strong {
-  color: #1f2937;
+  color: var(--admin-ink);
   font-size: 24px;
   line-height: 1;
 }
@@ -844,14 +844,14 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
 
 .analysis-panel {
   padding: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--admin-border);
   border-radius: 6px;
   background: #fff;
 }
 
 .analysis-panel h3 {
   margin: 0 0 12px;
-  color: #1f2937;
+  color: var(--admin-ink);
   font-size: 15px;
   font-weight: 600;
 }
@@ -863,7 +863,7 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
   align-items: start;
   padding: 8px 0;
   border-top: 1px solid #f1f5f9;
-  color: #374151;
+  color: var(--admin-ink-soft);
   font-size: 13px;
 }
 
@@ -872,7 +872,7 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
 }
 
 .distribution-row small {
-  color: #6b7280;
+  color: var(--admin-ink-soft);
   line-height: 1.5;
   word-break: break-word;
 }
@@ -894,7 +894,7 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
   margin: 0;
   padding: 8px 0;
   border-top: 1px solid #f1f5f9;
-  color: #374151;
+  color: var(--admin-ink-soft);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -905,7 +905,7 @@ function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
 
 .section-title {
   margin-bottom: 12px;
-  color: #1f2937;
+  color: var(--admin-ink);
   font-weight: 600;
 }
 

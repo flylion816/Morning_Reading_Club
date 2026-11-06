@@ -47,16 +47,12 @@ describe('community-access.service', () => {
     expect(res.status.called).to.equal(false);
   });
 
-  it('should deny free enrollments from community features', async () => {
+  it('should allow free enrollments to access community features', async () => {
     mockEnrollment({ paymentStatus: 'free', status: 'active' });
 
     const result = await service.ensurePeriodCommunityAccess(res, 'user_1', 'period_1');
 
-    expect(result).to.equal(false);
-    expect(res.status.calledWith(403)).to.equal(true);
-    expect(res.json.getCall(0).args[0]).to.deep.include({
-      code: 403,
-      message: service.COMMUNITY_ACCESS_DENIED_MESSAGE
-    });
+    expect(result).to.equal(true);
+    expect(res.status.called).to.equal(false);
   });
 });

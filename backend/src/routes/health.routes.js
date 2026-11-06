@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.get('/health', (req, res) => {
  * 详细状态检查端点 - 用于监控和诊断
  * GET /api/v1/status
  */
-router.get('/status', (req, res) => {
+router.get('/status', adminAuthMiddleware, (req, res) => {
   try {
     const mongoState = {
       0: 'disconnected',

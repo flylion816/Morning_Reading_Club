@@ -127,7 +127,7 @@ async function runTest(testConfig) {
 
       // 添加 token（如果可用）
       if (adminToken) {
-        options.headers['Authorization'] = `Bearer ${adminToken}`;
+        options.headers.Authorization = `Bearer ${adminToken}`;
       }
 
       if (testConfig.body) {
@@ -286,7 +286,7 @@ async function runAllTests() {
     console.log('   ✅ 无异常延迟，延迟分布均匀');
   }
 
-  console.log('\n' + '═'.repeat(50) + '\n');
+  console.log(`\n${  '═'.repeat(50)  }\n`);
   console.log('📝 建议:\n');
 
   if (allResults.some(r => r.avg > 500)) {

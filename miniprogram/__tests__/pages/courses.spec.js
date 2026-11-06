@@ -220,4 +220,33 @@ describe('courses page', () => {
     expect(pageInstance.data.sections[0].readingDurationMs).toBe(76000);
     expect(pageInstance.data.sections[1].readingCompleted).toBe(false);
   });
+
+  test('should load a public period for an anonymous reader without redirecting', async () => {
+    global.getApp.mockReturnValue({
+      globalData: {
+        isLogin: false,
+        userInfo: null
+      }
+    });
+    courseService.getPeriodSections.mockResolvedValue({
+      list: [{ _id: 'section_public', title: '公开课节', day: 1 }]
+    });
+    courseService.getPeriodDetail.mockResolvedValue({
+      name: '公开阅读期次',
+      readingAccess: 'open',
+      startDate: '2026-11-01T00:00:00.000Z',
+      endDate: '2026-11-07T00:00:00.000Z'
+    });
+
+    pageInstance.onLoad.call(pageInstance, { periodId: 'period_public' });
+    pageInstance.onReady.call(pageInstance);
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(wx.navigateBack).not.toHaveBeenCalled();
+    expect(courseService.getPeriodSections).toHaveBeenCalledWith('period_public');
+    expect(pageInstance.data.sections).toEqual([
+      expect.objectContaining({ _id: 'section_public', title: '公开课节' })
+    ]);
+  });
 });

@@ -22,7 +22,7 @@ describe('Router - 管理后台路由', () => {
 
     // Mock localStorage
     global.localStorage = {
-      getItem: vi.fn((key: string) => null),
+      getItem: vi.fn((_key: string) => null),
       setItem: vi.fn(),
       removeItem: vi.fn(),
       clear: vi.fn(),

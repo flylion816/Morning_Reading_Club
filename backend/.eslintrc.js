@@ -17,7 +17,7 @@ module.exports = {
     'no-console': 'off',
     'no-underscore-dangle': ['error', { allow: ['_id', '_bsontype'] }],
     'consistent-return': 'off',
-    'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
     'node/no-unsupported-features/es-syntax': 'off',
     'import/extensions': 'off',
     'node/no-missing-import': 'off',
@@ -64,7 +64,7 @@ module.exports = {
         'no-promise-executor-return': 'warn',
         'no-return-await': 'warn',
         'prefer-object-spread': 'warn',
-        'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
+        'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none' }]
       }
     }
   ]

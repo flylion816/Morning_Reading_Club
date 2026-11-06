@@ -8,6 +8,7 @@
               <div class="card-title">个人账号设置</div>
               <div class="card-subtitle">修改头像和姓名，保存后会同步到后台右上角和审计记录。</div>
             </div>
+            <el-button text aria-label="关闭个人账号设置" @click="router.push('/')">× 关闭</el-button>
           </div>
         </template>
 
@@ -80,12 +81,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
 import { useAuthStore } from '../stores/auth';
 import { authApi, uploadApi } from '../services/api';
 
 const authStore = useAuthStore();
+const router = useRouter();
 const formRef = ref<any>(null);
 const fileInputRef = ref<HTMLInputElement>();
 const saving = ref(false);
@@ -214,12 +217,12 @@ onMounted(() => {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--admin-ink);
 }
 
 .card-subtitle {
   margin-top: 6px;
-  color: #6b7280;
+  color: var(--admin-ink-soft);
   font-size: 13px;
 }
 
@@ -259,12 +262,12 @@ onMounted(() => {
 .avatar-name {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--admin-ink);
 }
 
 .avatar-email {
   margin-top: 6px;
-  color: #6b7280;
+  color: var(--admin-ink-soft);
   font-size: 13px;
 }
 
@@ -305,7 +308,7 @@ onMounted(() => {
 }
 
 .hint-text {
-  color: #6b7280;
+  color: var(--admin-ink-soft);
   font-size: 13px;
   line-height: 1.7;
 }

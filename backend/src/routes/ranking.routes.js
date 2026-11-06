@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const { getPeriodRanking } = require('../controllers/ranking.controller');
 const { authMiddleware } = require('../middleware/auth');

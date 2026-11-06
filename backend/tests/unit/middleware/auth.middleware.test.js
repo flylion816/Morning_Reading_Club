@@ -318,6 +318,24 @@ describe('Auth Middleware - 100% Coverage', () => {
       expect(res.setHeader.calledWithMatch('X-New-Refresh-Token')).to.be.true;
     });
 
+    it('TC-AUTH-MW-019B: 被封禁用户在续期窗口内不续期并返回403', async () => {
+      req.headers.authorization = authorizationHeaders.validBearer();
+      jwtStub.verifyAccessToken.returns({
+        userId: testUsers.regularUser.userId,
+        role: 'user',
+        tenantId: 'test-tenant-id',
+        iat: Math.floor(Date.now() / 1000) - 3000,
+        exp: Math.floor(Date.now() / 1000) + 600
+      });
+      UserStub.findById.returns({ exec: sandbox.stub().resolves({ _id: 'u1', status: 'banned' }) });
+
+      await authMiddleware(req, res, next);
+
+      expect(next.called).to.be.false;
+      expect(jwtStub.generateTokens.called).to.be.false;
+      expect(res.status.calledWith(403)).to.be.true;
+    });
+
     it('TC-AUTH-MW-019A: 应该在租户上下文内执行续期用户查询', async () => {
       req.headers.authorization = authorizationHeaders.validBearer();
       jwtStub.verifyAccessToken.returns({

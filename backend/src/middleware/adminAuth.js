@@ -1,155 +1,165 @@
-const jwt = require('jsonwebtoken');
+const Admin = require('../models/Admin');
+const AdminSession = require('../models/AdminSession');
+const { verifyAdminAccessToken, verifyAdminMaintenanceToken } = require('../utils/jwt');
 const logger = require('../utils/logger');
 
-/**
- * 管理员身份验证中间件
- * 验证请求中的 JWT Token
- */
-function adminAuthMiddleware(req, res, next) {
-  try {
-    // 从 Authorization header 中获取 token
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({
-        code: 401,
-        message: '未提供认证令牌'
-      });
-    }
-
-    // 提取 Bearer token
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return res.status(401).json({
-        code: 401,
-        message: '无效的认证令牌格式'
-      });
-    }
-
-    const token = parts[1];
-
-    // 验证 token
-    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, decoded) => {
-      if (err) {
-        return res.status(401).json({
-          code: 401,
-          message: '令牌已过期或无效'
-        });
-      }
-
-      if (!isAdminTokenPayload(decoded)) {
-        return res.status(403).json({
-          code: 403,
-          message: '需要管理员权限'
-        });
-      }
-
-      // 将解析后的 token 信息存储到 req.admin
-      req.admin = decoded;
-
-      next();
-    });
-  } catch (error) {
-    logger.error('Auth middleware error:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '认证失败'
-    });
-  }
+function bearerToken(req) {
+  const authHeader = req.headers?.authorization;
+  if (!authHeader) return null;
+  const parts = authHeader.split(' ');
+  return parts.length === 2 && parts[0] === 'Bearer' ? parts[1] : null;
 }
 
 function isAdminTokenPayload(decoded) {
   return !!(
-    decoded &&
-    decoded.kind !== 'ws' &&
-    decoded.id &&
+    decoded && decoded.iss === 'morning-reading' && decoded.aud === 'admin-api' &&
+    decoded.tokenType === 'admin_access' && decoded.sub && decoded.sid &&
+    decoded.sessionVersion >= 0 &&
     (isPlatformRole(decoded.role) || isTenantAdminRole(decoded.role))
   );
 }
 
-/**
- * 角色检查中间件
- * 检查用户是否具有特定角色
- */
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!req.admin) {
-      return res.status(401).json({
-        code: 401,
-        message: '未授权'
-      });
-    }
+async function loadCurrentAdmin(decoded) {
+  if (!isAdminTokenPayload(decoded)) return null;
 
-    if (!roles.includes(req.admin.role)) {
-      return res.status(403).json({
-        code: 403,
-        message: '权限不足'
-      });
-    }
+  const [admin, session] = await Promise.all([
+    Admin.findById(decoded.sub)
+      .select('name email role permissions status tenantId +sessionVersion')
+      .lean()
+      .exec(),
+    AdminSession.findOne({
+      sessionId: decoded.sid,
+      adminId: decoded.sub,
+      sessionVersion: decoded.sessionVersion,
+      revokedAt: null,
+      expiresAt: { $gt: new Date() }
+    }).lean().exec()
+  ]);
 
-    next();
+  if (!admin || !session || admin.status !== 'active') return null;
+  if ((admin.sessionVersion || 0) !== decoded.sessionVersion) return null;
+  if (admin.role !== decoded.role) return null;
+  const currentTenantId = admin.tenantId ? admin.tenantId.toString() : null;
+  if (currentTenantId !== (decoded.tenantId || null)) return null;
+
+  return {
+    ...decoded,
+    id: admin._id.toString(),
+    sub: admin._id.toString(),
+    name: admin.name,
+    email: admin.email,
+    role: admin.role,
+    permissions: admin.permissions || [],
+    tenantId: currentTenantId,
+    sessionId: session.sessionId,
+    sessionVersion: admin.sessionVersion || 0
   };
 }
 
-/**
- * 是否为平台级角色（platform_superadmin 或迁移期兼容的 superadmin）
- */
+async function resolveAdmin(req) {
+  const token = bearerToken(req);
+  if (!token) return null;
+  const decoded = verifyAdminAccessToken(token);
+  return loadCurrentAdmin(decoded);
+}
+
+async function adminAuthMiddleware(req, res, next) {
+  try {
+    const admin = await resolveAdmin(req);
+    if (!admin) {
+      return res.status(401).json({ code: 401, message: '管理员会话无效或已失效' });
+    }
+    req.admin = admin;
+    return next();
+  } catch (error) {
+    if (error.name !== 'JsonWebTokenError' && error.name !== 'TokenExpiredError' && error.name !== 'CastError') {
+      logger.error('Admin auth lookup failed', { name: error.name });
+      return res.status(503).json({ code: 503, message: '暂时无法验证管理员会话' });
+    }
+    return res.status(401).json({ code: 401, message: '令牌已过期或无效' });
+  }
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.admin) {
+      return res.status(401).json({ code: 401, message: '未授权' });
+    }
+    if (!roles.includes(req.admin.role)) {
+      return res.status(403).json({ code: 403, message: '权限不足' });
+    }
+    return next();
+  };
+}
+
 function isPlatformRole(role) {
   return role === 'platform_superadmin' || role === 'superadmin';
 }
 
-/**
- * 是否为租户级管理员角色
- */
 function isTenantAdminRole(role) {
   return role === 'tenant_admin' || role === 'admin' || role === 'operator';
 }
 
-/**
- * 权限检查中间件
- * 检查用户是否具有特定权限
- * platform_superadmin 和 tenant_admin 拥有所有权限
- */
 function requirePermission(...permissions) {
   return (req, res, next) => {
-    if (!req.admin) {
-      return res.status(401).json({
-        code: 401,
-        message: '未授权'
-      });
-    }
+    if (!req.admin) return res.status(401).json({ code: 401, message: '未授权' });
+    if (isPlatformRole(req.admin.role)) return next();
 
-    // platform_superadmin（和迁移期兼容的 superadmin）和 tenant_admin 拥有所有权限
-    if (isPlatformRole(req.admin.role) || req.admin.role === 'tenant_admin') {
-      return next();
-    }
-
-    const hasPermission = permissions.some(permission =>
-      req.admin.permissions?.includes(permission)
-    );
-
-    if (!hasPermission) {
-      return res.status(403).json({
-        code: 403,
-        message: '权限不足'
-      });
-    }
-
-    next();
+    const hasPermission = permissions.some(permission => req.admin.permissions?.includes(permission));
+    if (!hasPermission) return res.status(403).json({ code: 403, message: '权限不足' });
+    return next();
   };
 }
 
-/**
- * 可选的管理员认证中间件：有合法 admin token 时解析到 req.admin，否则直接 next
- */
-function optionalAdminAuthMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return next();
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') return next();
-  jwt.verify(parts[1], process.env.JWT_SECRET || 'your-secret-key', (err, decoded) => {
-    if (!err && isAdminTokenPayload(decoded)) req.admin = decoded;
-    next();
-  });
+async function optionalAdminAuthMiddleware(req, res, next) {
+  if (!bearerToken(req)) return next();
+  try {
+    const admin = await resolveAdmin(req);
+    if (admin) req.admin = admin;
+  } catch (error) {
+    // Optional access never turns an invalid/expired token into an administrator identity.
+  }
+  return next();
+}
+
+function adminMaintenanceMiddleware(req, res, next) {
+  try {
+    const rawProof = req.get('x-admin-maintenance-proof');
+    if (!rawProof || !req.admin) {
+      return res.status(403).json({ code: 403, message: '请先完成数据库维护二次验证' });
+    }
+    const proof = verifyAdminMaintenanceToken(rawProof);
+    const tenantId = req.admin.tenantId || null;
+    if (
+      proof.sub !== req.admin.id ||
+      proof.sid !== req.admin.sessionId ||
+      proof.sessionVersion !== req.admin.sessionVersion ||
+      proof.role !== req.admin.role ||
+      (proof.tenantId || null) !== tenantId
+    ) {
+      return res.status(403).json({ code: 403, message: '数据库维护授权已失效，请重新验证' });
+    }
+    return next();
+  } catch (_) {
+    return res.status(403).json({ code: 403, message: '数据库维护授权已过期，请重新验证' });
+  }
+}
+
+function requireActiveMaintenanceTenant(req, res, next) {
+  if (!req.admin || !isPlatformRole(req.admin.role)) {
+    return res.status(403).json({ code: 403, message: '需要平台维护权限' });
+  }
+  if (!req.resolvedTenantId) {
+    return res.status(400).json({ code: 400, message: '修改或删除记录前必须选择一个租户' });
+  }
+  return next();
+}
+
+function requireTypedRestoreConfirmation(req, res, next) {
+  if (req.get('x-destructive-confirmation') !== 'RESTORE ALL DATA') {
+    return res.status(400).json({ code: 400, message: '恢复前必须提交确认短语 RESTORE ALL DATA' });
+  }
+  return next();
 }
 
 module.exports = {
@@ -159,5 +169,9 @@ module.exports = {
   requirePermission,
   isPlatformRole,
   isTenantAdminRole,
-  isAdminTokenPayload
+  isAdminTokenPayload,
+  loadCurrentAdmin,
+  adminMaintenanceMiddleware,
+  requireActiveMaintenanceTenant,
+  requireTypedRestoreConfirmation
 };

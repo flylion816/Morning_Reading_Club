@@ -231,6 +231,7 @@
       <view class="notification-reminder-link" bindtap="navigateToNotificationSettings">去补充</view>
     </view>
 
+    <block wx:if="{{!course.customTemplate}}">
     <view class="content-section" wx:if="{{course.meditationVisible}}">
       <view class="section-title">
         <view class="section-icon calm">静</view>
@@ -337,6 +338,29 @@
       </view>
       <view class="section-content"><text user-select>{{course.say}}</text></view>
     </view>
+
+    </block>
+    <block wx:else>
+      <view wx:for="{{course.dynamicModules}}" wx:key="id" class="content-section" id="{{item.type === 'body' ? 'reading-section' : ''}}">
+        <view class="section-title">
+          <view class="section-icon read">{{index + 1}}</view><text>{{item.name}}</text>
+          <block wx:if="{{item.type === 'body'}}">
+            <view class="immersive-entry" bindtap="handleImmersiveReading"><text>沉浸阅读</text></view>
+            <view wx:if="{{ttsAvailable}}" class="tts-entry" bindtap="handleTtsPlay"><text>{{ttsState === 'playing' ? '暂停' : ttsState === 'loading' ? '合成中' : 'AI 朗读'}}</text></view>
+          </block>
+        </view>
+        <image wx:if="{{item.type === 'image'}}" class="course-module-image" src="{{item.value}}" mode="widthFix" lazy-load="{{true}}" data-url="{{item.value}}" bindtap="handleCourseModuleImage" />
+        <block wx:elif="{{item.type === 'body'}}">
+          <view class="reading-outer-wrap"><view class="reading-content-wrap {{readingContentExpanded ? '' : 'reading-content-collapsed'}}">
+            <view class="section-content"><rich-text nodes="{{item.value}}" /></view>
+            <view wx:if="{{!readingContentExpanded}}" class="reading-fade-mask" bindtap="toggleReadingContent" />
+          </view></view>
+          <view class="reading-toggle-row" bindtap="toggleReadingContent"><text>{{readingContentExpanded ? '收起正文' : '展开正文'}}</text></view>
+        </block>
+        <view wx:else class="section-content"><text user-select>{{item.value}}</text></view>
+      </view>
+      <view wx:if="{{!course.dynamicModules.length}}" class="section-content">课程内容待补充</view>
+    </block>
 
     <view id="closing-video-section" class="content-section closing-video-section" wx:if="{{course.closingVideoVisible}}">
       <view class="section-title">

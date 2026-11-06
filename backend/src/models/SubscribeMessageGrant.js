@@ -149,6 +149,7 @@ subscribeMessageGrantSchema.index({
 subscribeMessageGrantSchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require("./plugins/tenantPlugin");
+
 subscribeMessageGrantSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model(

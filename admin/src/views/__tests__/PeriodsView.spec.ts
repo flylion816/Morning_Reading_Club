@@ -10,4 +10,11 @@ describe('PeriodsView', () => {
     expect(source).toContain('background-color: var(--admin-surface-strong, var(--el-bg-color, #fff)) !important;');
     expect(source).toContain('tr.el-table__row--striped > td.el-table-fixed-column--right');
   });
+
+  it('includes reading access and enrollment template controls', () => {
+    expect(source).toContain('无需报名即可阅读');
+    expect(source).toContain('报名后阅读');
+    expect(source).toContain('EnrollmentTemplatePicker');
+    expect(source).toContain('报名后阅读的期次请选择报名模板');
+  });
 });

@@ -48,6 +48,7 @@ describe('Section Controller', () => {
     };
 
     PeriodStub = {
+      findOneAndUpdate: sandbox.stub().resolves({}),
       findById: sandbox.stub()
     };
 
@@ -547,7 +548,7 @@ describe('Section Controller', () => {
 
   describe('uploadClosingVideo', () => {
     it('应该上传结营视频并返回元数据', async () => {
-      req._resolvedTenantId = new mongoose.Types.ObjectId().toString();
+      req.resolvedTenantId = new mongoose.Types.ObjectId().toString();
       req.file = {
         filename: 'video_123.mp4',
         originalname: '结营视频.mp4',

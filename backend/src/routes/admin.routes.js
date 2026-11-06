@@ -7,12 +7,19 @@ const sectionController = require('../controllers/section.controller');
 const tenantController = require('../controllers/tenant.controller');
 const { adminAuthMiddleware, requireRole } = require('../middleware/adminAuth');
 const { adminTenantContext } = require('../middleware/tenantContext');
+const requireAdminOrigin = require('../middleware/requireAdminOrigin');
+const {
+  adminLoginIpRateLimit,
+  adminLoginIdentityRateLimit,
+  adminRefreshIpRateLimit
+} = require('../middleware/ratelimit');
 
 const router = express.Router();
 
-// 公开路由（不需要认证）
-router.post('/auth/admin/login', adminController.login);
-router.post('/auth/admin/init', adminController.initSuperAdmin);
+// Cookie-backed login, refresh, and logout require a same-origin administrator page.
+router.post('/auth/admin/login', requireAdminOrigin, adminLoginIpRateLimit, adminLoginIdentityRateLimit, adminController.login);
+router.post('/auth/admin/refresh-token', requireAdminOrigin, adminRefreshIpRateLimit, adminController.refreshToken);
+router.post('/auth/admin/logout', requireAdminOrigin, adminController.logout);
 
 // 受保护路由（认证 + 租户上下文）— 只作用于 /auth/admin/* 和 /admin/* 和 /admins/*
 router.use(['/auth/admin', '/admin', '/admins'], adminAuthMiddleware);
@@ -21,11 +28,17 @@ router.use(['/auth/admin', '/admin', '/admins'], adminTenantContext);
 // 管理员个人路由
 router.get('/auth/admin/profile', adminController.getProfile);
 router.put('/auth/admin/profile', adminController.updateProfile);
-router.post('/auth/admin/logout', adminController.logout);
-router.post('/auth/admin/refresh-token', adminController.refreshToken);
 router.post('/auth/admin/change-password', adminController.changePassword);
-router.post('/auth/admin/change-db-access-password', adminController.changeDbAccessPassword);
-router.post('/auth/admin/verify-db-access', adminController.verifyDbAccess);
+router.post(
+  '/auth/admin/change-db-access-password',
+  requireRole('platform_superadmin', 'superadmin'),
+  adminController.changeDbAccessPassword
+);
+router.post(
+  '/auth/admin/verify-db-access',
+  requireRole('platform_superadmin', 'superadmin'),
+  adminController.verifyDbAccess
+);
 
 // 租户管理（platform_superadmin / superadmin）
 router.get('/admin/tenants', tenantController.listTenants);

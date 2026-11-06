@@ -107,6 +107,7 @@ const UserSchema = new mongoose.Schema(
 // 索引
 UserSchema.index({ nickname: 1 });
 UserSchema.index({ createdAt: 1 });
+UserSchema.index({ lastLoginAt: -1 });
 UserSchema.index({ phone: 1 }, { sparse: true });
 UserSchema.index({ tenantId: 1, openid: 1 }, { unique: true });
 UserSchema.index({ tenantId: 1, createdAt: -1 });
@@ -127,6 +128,7 @@ UserSchema.set('toJSON', {
 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 UserSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('User', UserSchema);

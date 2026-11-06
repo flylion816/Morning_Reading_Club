@@ -50,6 +50,16 @@ const PeriodSchema = new mongoose.Schema(
       default: 23,
       min: 1
     },
+    courseTemplateSnapshot: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    courseTemplateLocked: { type: Boolean, default: undefined },
+    readingAccess: {
+      type: String,
+      enum: ['open', 'enrolled'],
+      default: undefined
+    },
+    enrollmentTemplateId: { type: String, default: undefined },
+    enrollmentTemplateSnapshot: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    enrollmentTemplateLocked: { type: Boolean, default: undefined },
     // 价格统一使用"分"作为单位（100分 = 1元）
     // 所有涉及金额的字段都遵循这个约定
     price: {
@@ -175,6 +185,7 @@ PeriodSchema.virtual('dateRange').get(function () {
 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 PeriodSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Period', PeriodSchema);

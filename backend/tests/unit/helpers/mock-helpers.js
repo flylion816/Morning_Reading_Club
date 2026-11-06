@@ -39,7 +39,7 @@ function setupFindChain(sandbox, resolveValue) {
     lean: sandbox.stub().returnsThis(),
     exec: sandbox.stub().resolves(resolveValue),
     // Support promise-like behavior for async/await
-    then: function(onFulfilled, onRejected) {
+    then(onFulfilled, onRejected) {
       return this.exec().then(onFulfilled, onRejected);
     }
   };
@@ -69,7 +69,7 @@ function setupFindByIdChain(sandbox, resolveValue) {
     lean: sandbox.stub().returnsThis(),
     exec: sandbox.stub().resolves(resolveValue),
     // Support promise-like behavior
-    then: function(onFulfilled, onRejected) {
+    then(onFulfilled, onRejected) {
       return this.exec().then(onFulfilled, onRejected);
     }
   };
@@ -110,7 +110,7 @@ function setupPopulateChain(sandbox, populateFields, resolveValue) {
     select: sandbox.stub().returnsThis(),
     lean: sandbox.stub().returnsThis(),
     exec: sandbox.stub().resolves(resolveValue),
-    then: function(onFulfilled, onRejected) {
+    then(onFulfilled, onRejected) {
       return this.exec().then(onFulfilled, onRejected);
     }
   };
@@ -155,7 +155,7 @@ function setupAggregateChain(sandbox, pipelineStages, resolveValue) {
     facet: sandbox.stub().returnsThis(),
     exec: sandbox.stub().resolves(resolveValue),
     // Support promise-like behavior
-    then: function(onFulfilled, onRejected) {
+    then(onFulfilled, onRejected) {
       return this.exec().then(onFulfilled, onRejected);
     }
   };
@@ -299,7 +299,7 @@ function setupFindOneChain(sandbox, resolveValue) {
     select: sandbox.stub().returnsThis(),
     lean: sandbox.stub().returnsThis(),
     exec: sandbox.stub().resolves(resolveValue),
-    then: function(onFulfilled, onRejected) {
+    then(onFulfilled, onRejected) {
       return this.exec().then(onFulfilled, onRejected);
     }
   };
@@ -325,7 +325,7 @@ function setupFindOneChain(sandbox, resolveValue) {
 function setupCountChain(sandbox, resolveValue) {
   const chainableStub = {
     exec: sandbox.stub().resolves(resolveValue),
-    then: function(onFulfilled, onRejected) {
+    then(onFulfilled, onRejected) {
       return this.exec().then(onFulfilled, onRejected);
     }
   };

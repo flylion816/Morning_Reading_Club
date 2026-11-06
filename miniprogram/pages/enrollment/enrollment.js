@@ -5,6 +5,12 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { markEnrollmentCacheDirty } = require('../../utils/period-access');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { getDefaultShareTitle, getDefaultShareImage } = require('../../utils/brand');
+const {
+  normalizeEnrollmentTemplate,
+  buildEnrollmentPayload,
+  validateEnrollmentForm: validateByTemplate,
+  getEnrollmentPrice
+} = require('../../utils/enrollment-template');
 
 const SUBSCRIBE_SCENES = ['enrollment_result'];
 
@@ -21,6 +27,34 @@ function getPeriodName(period) {
 function getPeriodIcon(period) {
   if (!period || typeof period !== 'object') return '📚';
   return period.icon || period.coverEmoji || '📚';
+}
+
+function buildFieldVisibility(template = {}) {
+  return (template.fields || []).reduce((result, field) => {
+    result[field.id] = true;
+    return result;
+  }, {});
+}
+
+function buildFieldLabels(template = {}) {
+  const labels = {
+    name: '姓名',
+    phone: '手机号',
+    gender: '性别',
+    province: '所在地区',
+    detailedAddress: '详细地址',
+    age: '年龄',
+    referrer: '推荐人',
+    hasReadBook: '是否读过相关书籍',
+    readTimes: '阅读次数',
+    enrollReason: '参加课程的缘起',
+    expectation: '对课程的期待',
+    commitment: '参与承诺'
+  };
+  (template.fields || []).forEach(field => {
+    if (field.id && field.label) labels[field.id] = field.label;
+  });
+  return labels;
 }
 
 function validateRequiredEnrollmentFields(form) {
@@ -64,6 +98,12 @@ Page({
     selectedPeriodIndex: 0,
     selectedPeriodName: '',
     selectedPeriodIcon: '📚',
+    enrollmentTemplate: { mode: 'full', isSimple: false, name: '七个习惯完整版', fields: [] },
+    fieldVisibility: {},
+    fieldLabels: {},
+    isSimpleForm: false,
+    enrollmentFeeText: '免费',
+    enrollmentAmountInCents: 0,
 
     // 选项数据
     genderOptions: [
@@ -257,6 +297,8 @@ Page({
         throw new Error('未找到有效的报名期次');
       }
 
+      const enrollmentTemplate = normalizeEnrollmentTemplate(selectedPeriod);
+      const enrollmentPrice = getEnrollmentPrice(selectedPeriod);
       this.setData({
         periodList,
         selectedPeriodIndex: selectedIndex,
@@ -264,8 +306,13 @@ Page({
         selectedPeriodIcon: getPeriodIcon(selectedPeriod),
         periodName: getPeriodName(selectedPeriod),
         selectedPeriodPrice: selectedPeriod.price ? (selectedPeriod.price / 100).toFixed(2).replace(/\.?0+$/, '') : 0,
-        selectedPeriodPriceFen: selectedPeriod.price || 0,
-        selectedPeriodCoverImage: selectedPeriod.coverImage || '',
+        selectedPeriodPriceFen: enrollmentPrice.amountInCents,
+        enrollmentTemplate,
+        isSimpleForm: enrollmentTemplate.isSimple,
+        fieldVisibility: buildFieldVisibility(enrollmentTemplate),
+        fieldLabels: buildFieldLabels(enrollmentTemplate),
+        enrollmentFeeText: enrollmentPrice.display,
+        enrollmentAmountInCents: enrollmentPrice.amountInCents,
         form: {
           ...this.data.form,
           periodId: getPeriodId(selectedPeriod)
@@ -302,7 +349,12 @@ Page({
       periodId: getPeriodId(selectedPeriod),
       selectedPeriodPrice: selectedPeriod.price ? (selectedPeriod.price / 100).toFixed(2).replace(/\.?0+$/, '') : 0,
       selectedPeriodPriceFen: selectedPeriod.price || 0,
-      selectedPeriodCoverImage: selectedPeriod.coverImage || '',
+      enrollmentTemplate: normalizeEnrollmentTemplate(selectedPeriod),
+      isSimpleForm: normalizeEnrollmentTemplate(selectedPeriod).isSimple,
+      fieldVisibility: buildFieldVisibility(normalizeEnrollmentTemplate(selectedPeriod)),
+      fieldLabels: buildFieldLabels(normalizeEnrollmentTemplate(selectedPeriod)),
+      enrollmentFeeText: getEnrollmentPrice(selectedPeriod).display,
+      enrollmentAmountInCents: getEnrollmentPrice(selectedPeriod).amountInCents,
       form: {
         ...this.data.form,
         periodId: getPeriodId(selectedPeriod)
@@ -447,12 +499,10 @@ Page({
    */
   validateForm() {
     const { form } = this.data;
-    const errors = {};
+    const errors = validateByTemplate(form, this.data.enrollmentTemplate);
 
     console.log('========== 开始表单验证 ==========');
     console.log('form 数据:', form);
-
-    Object.assign(errors, validateRequiredEnrollmentFields(form));
 
     console.log('验证错误:', errors);
     console.log('验证结果:', Object.keys(errors).length === 0 ? '✓ 通过' : '✗ 失败');
@@ -511,26 +561,17 @@ Page({
 
     try {
       // 准备提交数据（不发送userId，后端从认证令牌中获取）
-      const submitData = {
-        ...this.data.form,
-        age: parseInt(this.data.form.age) || undefined,
-        readTimes: this.data.form.hasReadBook === 'yes' ? parseInt(this.data.form.readTimes) : 0,
-        inviterId: this.data.inviterId || undefined
-      };
+      const submitData = buildEnrollmentPayload(
+        this.data.form,
+        selectedPeriod,
+        this.data.enrollmentTemplate,
+        this.data.inviterId
+      );
 
       console.log('提交报名数据:', submitData);
       console.log('检查必填字段：');
       console.log('- periodId:', submitData.periodId, '✓');
       console.log('- name:', submitData.name, '✓');
-      console.log('- gender:', submitData.gender, '✓');
-      console.log('- province:', submitData.province, '✓');
-      console.log('- detailedAddress:', submitData.detailedAddress, '✓');
-      console.log('- age:', submitData.age, '✓');
-      console.log('- referrer:', submitData.referrer, '✓');
-      console.log('- hasReadBook:', submitData.hasReadBook, '✓');
-      console.log('- enrollReason:', submitData.enrollReason, '✓');
-      console.log('- expectation:', submitData.expectation, '✓');
-      console.log('- commitment:', submitData.commitment, '✓');
 
       await subscribeAutoTopUp.maybeAutoTopUpSubscriptions({
         sourceAction: 'enrollment_submit',
@@ -546,25 +587,18 @@ Page({
       console.log('报名成功，响应:', res);
       markEnrollmentCacheDirty(getPeriodId(selectedPeriod));
 
-      wx.showToast({
-        title: '报名成功，进入课程',
-        icon: 'success',
-        duration: 1500
-      });
-
-      // 延迟1.5秒后导航到课程列表
-      setTimeout(() => {
+      const enrollment = res?.enrollment || res?.data || res || {};
+      const paymentStatus = enrollment.paymentStatus || res?.paymentStatus || (this.data.enrollmentAmountInCents === 0 ? 'free' : 'pending');
+      const enrollmentId = enrollment._id || enrollment.id || enrollment.enrollmentId || res?.enrollmentId || '';
+      if (this.data.enrollmentAmountInCents > 0 && paymentStatus !== 'paid') {
+        if (!enrollmentId) throw new Error('报名已提交，但缺少支付所需的报名编号');
         wx.navigateTo({
-          url: `/pages/courses/courses?periodId=${getPeriodId(selectedPeriod)}&name=${getPeriodName(selectedPeriod)}`,
-          fail: err => {
-            console.error('导航到课程列表失败:', err);
-            wx.showToast({
-              title: '导航失败，请重试',
-              icon: 'none'
-            });
-          }
+          url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${getPeriodId(selectedPeriod)}&periodTitle=${encodeURIComponent(getPeriodName(selectedPeriod))}&amount=${this.data.enrollmentAmountInCents}`
         });
-      }, 1500);
+        return;
+      }
+      wx.showToast({ title: '免费报名成功', icon: 'success', duration: 1200 });
+      setTimeout(() => this.navigateToCourses(selectedPeriod), 1200);
     } catch (error) {
       console.error('报名失败:', error);
 
@@ -585,6 +619,16 @@ Page({
     } finally {
       this.setData({ submitting: false });
     }
+  },
+
+  navigateToCourses(period) {
+    wx.navigateTo({
+      url: `/pages/courses/courses?periodId=${getPeriodId(period)}&name=${encodeURIComponent(getPeriodName(period))}`,
+      fail: err => {
+        console.error('导航到课程列表失败:', err);
+        wx.showToast({ title: '导航失败，请重试', icon: 'none' });
+      }
+    });
   },
 
   /**
@@ -627,6 +671,9 @@ Page({
   // 分步导航
   goNextStep() {
     const { currentStep, form } = this.data;
+    if (this.data.isSimpleForm) {
+      return;
+    }
     if (currentStep === 1) {
       // Step1 验证：姓名 + 承诺
       const errors = {};

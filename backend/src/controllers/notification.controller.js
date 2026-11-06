@@ -70,7 +70,7 @@ function decorateNotificationForResponse(notification) {
  */
 async function getUserNotifications(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { page = 1, limit = 20, isRead } = req.query;
     const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
     const parsedLimit = Math.max(parseInt(limit, 10) || 20, 1);
@@ -129,7 +129,7 @@ async function getUserNotifications(req, res, next) {
  */
 async function getUnreadCount(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     const unreadCount = await Notification.countDocuments({
       userId,
@@ -156,7 +156,7 @@ async function getUnreadCount(req, res, next) {
 async function markNotificationAsRead(req, res, next) {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 查找通知
     const notification = await Notification.findById(notificationId);
@@ -194,7 +194,7 @@ async function markNotificationAsRead(req, res, next) {
  */
 async function markAllAsRead(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 更新所有未读通知
     const result = await Notification.updateMany(
@@ -226,7 +226,7 @@ async function markAllAsRead(req, res, next) {
 async function deleteNotification(req, res, next) {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 查找通知
     const notification = await Notification.findById(notificationId);
@@ -265,7 +265,7 @@ async function deleteNotification(req, res, next) {
  */
 async function deleteAllNotifications(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 先查询所有要删除的通知
     const notifications = await Notification.find({ userId });
@@ -300,7 +300,7 @@ async function deleteAllNotifications(req, res, next) {
  */
 async function getSubscriptionSettings(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const settings = await subscribeMessageService.getUserSubscriptionStates(
       userId,
       {
@@ -319,7 +319,7 @@ async function getSubscriptionSettings(req, res, next) {
  */
 async function saveSubscriptionGrants(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { grants = [] } = req.body || {};
 
     if (!Array.isArray(grants)) {
@@ -561,7 +561,7 @@ async function createNotifications(
 async function archiveNotification(req, res, next) {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 查找通知
     const notification = await Notification.findById(notificationId);
@@ -599,7 +599,7 @@ async function archiveNotification(req, res, next) {
  */
 async function getArchivedNotifications(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { page = 1, limit = 20 } = req.query;
 
     // 计算分页
@@ -620,7 +620,7 @@ async function getArchivedNotifications(req, res, next) {
       .populate("requestId", "status fromUserId toUserId")
       .sort({ archivedAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     res.json(
       success(
@@ -628,8 +628,8 @@ async function getArchivedNotifications(req, res, next) {
           notifications,
           pagination: {
             total,
-            page: parseInt(page),
-            limit: parseInt(limit),
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
             totalPages: Math.ceil(total / limit),
           },
         },
@@ -646,7 +646,7 @@ async function getArchivedNotifications(req, res, next) {
  */
 async function archiveAllNotifications(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 更新所有未归档的通知
     const result = await Notification.updateMany(
@@ -678,7 +678,7 @@ async function archiveAllNotifications(req, res, next) {
 async function unarchiveNotification(req, res, next) {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 查找通知
     const notification = await Notification.findById(notificationId);

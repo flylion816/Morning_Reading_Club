@@ -807,7 +807,7 @@ onMounted(async () => {
 <style scoped>
 .analytics-container {
   padding: 24px;
-  background-color: #f5f7fa;
+  background-color: var(--admin-page);
   min-height: 100vh;
 }
 
@@ -863,7 +863,7 @@ onMounted(async () => {
 
 .metric-label {
   font-size: 14px;
-  color: #666;
+  color: var(--admin-ink-soft);
   margin-bottom: 8px;
 }
 
@@ -889,7 +889,7 @@ onMounted(async () => {
 
 .metric-trend .trend.neutral {
   background-color: #f4f4f5;
-  color: #606266;
+  color: var(--admin-ink-soft);
 }
 
 .metric-icon {

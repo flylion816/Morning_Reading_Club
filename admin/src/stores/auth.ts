@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { authApi } from '../services/api';
+import { authApi, setAdminAccessToken, setAdminMaintenanceProof } from '../services/api';
 import logger from '../utils/logger';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -8,67 +8,81 @@ export const useAuthStore = defineStore('auth', () => {
   const adminInfo = ref<any>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const initialized = ref(false);
+  let initialization: Promise<boolean> | null = null;
 
-  // 初始化时从 localStorage 恢复 token
-  function initToken() {
-    const token = localStorage.getItem('adminToken');
-    logger.debug('[Auth Store] initToken() 执行，localStorage中的token:', {
-      value: token ? '有值' : '无值'
-    });
-    if (token) {
-      adminToken.value = token;
-      const savedInfo = localStorage.getItem('adminInfo');
-      if (savedInfo) {
-        try {
-          adminInfo.value = JSON.parse(savedInfo);
-        } catch {
-          localStorage.removeItem('adminInfo');
-        }
-      }
-      logger.info('[Auth Store] token已恢复，isAuthenticated:', !!adminToken.value);
+  const isAuthenticated = computed(() => Boolean(adminToken.value));
+
+  function clearLegacyStorage() {
+    try {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminInfo');
+    } catch (_) {
+      // Web Storage may be unavailable in private or embedded browsing contexts.
     }
   }
 
-  const isAuthenticated = computed(() => {
-    const result = !!adminToken.value;
-    logger.debug('[Auth Store] isAuthenticated computed, result:', result);
-    return result;
-  });
+  function clearSession() {
+    adminToken.value = null;
+    adminInfo.value = null;
+    setAdminAccessToken(null);
+    setAdminMaintenanceProof(null);
+    clearLegacyStorage();
+  }
+
+  async function initToken(): Promise<boolean> {
+    if (initialized.value) return isAuthenticated.value;
+    // Tests and the login action may already have installed a fresh in-memory session.
+    if (adminToken.value) {
+      initialized.value = true;
+      setAdminAccessToken(adminToken.value);
+      return true;
+    }
+    if (!initialization) {
+      initialization = (async () => {
+        try {
+          // The refresh credential is HttpOnly; initialization validates it with the server.
+          const session: any = await authApi.refresh();
+          if (!session?.accessToken || !session?.admin) {
+            clearSession();
+            return false;
+          }
+          adminToken.value = session.accessToken;
+          adminInfo.value = session.admin;
+          setAdminAccessToken(session.accessToken);
+          clearLegacyStorage();
+          return true;
+        } catch (err) {
+          logger.warn('管理员会话恢复失败');
+          clearSession();
+          return false;
+        } finally {
+          initialized.value = true;
+          initialization = null;
+        }
+      })();
+    }
+    return initialization;
+  }
 
   async function login(email: string, password: string) {
-    logger.info('[Auth Store] login() 开始，email:', email);
     loading.value = true;
     error.value = null;
+    initialized.value = true;
+    setAdminAccessToken(null);
+    setAdminMaintenanceProof(null);
 
     try {
-      const response = await authApi.login(email, password);
-      logger.debug('========== 登录API返回数据开始 ==========');
-      logger.debug('[Auth Store] 登录API返回:', response);
-      logger.debug('[Auth Store] response.token:', { value: response.token ? '有值' : '无值' });
-      if (response.token) {
-        logger.debug('[Auth Store] token值:', response.token.substring(0, 50) + '...');
+      const response: any = await authApi.login(email, password);
+      if (!response?.accessToken || !response?.admin) {
+        throw new Error('登录响应缺少有效会话');
       }
-
-      adminToken.value = response.token;
-      logger.debug('[Auth Store] token已设置到 adminToken.value');
-      logger.debug('[Auth Store] 现在 adminToken.value:', {
-        value: adminToken.value ? '有值' : '无值'
-      });
-
-      localStorage.setItem('adminToken', response.token);
-      logger.debug('[Auth Store] localStorage已保存');
-      logger.debug('[Auth Store] 验证 localStorage:', {
-        value: localStorage.getItem('adminToken') ? '确实有值' : '无值'
-      });
-
+      adminToken.value = response.accessToken;
       adminInfo.value = response.admin;
-      localStorage.setItem('adminInfo', JSON.stringify(response.admin));
-      logger.debug('[Auth Store] adminInfo已设置');
-      logger.debug('========== 登录API返回数据结束 ==========');
-
+      setAdminAccessToken(response.accessToken);
       return true;
     } catch (err: any) {
-      logger.error('[Auth Store] 登录失败:', err);
+      clearSession();
       error.value = err.message || '登录失败';
       return false;
     } finally {
@@ -76,26 +90,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function logout() {
+  async function logout(): Promise<boolean> {
     try {
       await authApi.logout();
-      logger.info('登出API成功');
+      clearSession();
+      initialized.value = true;
+      return true;
     } catch (err) {
-      logger.error('登出API失败:', err);
-      // 即使登出API失败，也继续清除本地状态
-    } finally {
-      adminToken.value = null;
-      adminInfo.value = null;
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminInfo');
-      logger.info('本地登出状态已清除');
+      logger.warn('管理员登出请求失败');
+      return false;
     }
   }
 
   async function getProfile() {
     loading.value = true;
     error.value = null;
-
     try {
       const response = await authApi.getProfile();
       adminInfo.value = response;
@@ -117,6 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
     adminInfo,
     loading,
     error,
+    initialized,
     isAuthenticated,
     initToken,
     login,

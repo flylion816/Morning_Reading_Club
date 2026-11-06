@@ -51,6 +51,10 @@ const EnrollmentSchema = new mongoose.Schema(
       min: 0
     },
 
+    enrollmentTemplateId: { type: String, default: undefined },
+    enrollmentTemplateSnapshot: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    enrollmentAnswers: { type: mongoose.Schema.Types.Mixed, default: undefined },
+
     // 支付时间
     paidAt: {
       type: Date
@@ -265,8 +269,8 @@ EnrollmentSchema.statics.getPeriodMembers = async function (periodId, options = 
   return {
     list: filteredList,
     total,
-    page: parseInt(page),
-    limit: parseInt(limit),
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
     totalPages: Math.ceil(total / limit)
   };
 };
@@ -295,8 +299,8 @@ EnrollmentSchema.statics.getUserEnrollments = async function (userId, options = 
   return {
     list,
     total,
-    page: parseInt(page),
-    limit: parseInt(limit),
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
     totalPages: Math.ceil(total / limit)
   };
 };
@@ -336,6 +340,7 @@ EnrollmentSchema.methods.confirmPayment = function (amount) {
 };
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 EnrollmentSchema.plugin(tenantPlugin);
 
 const Enrollment = mongoose.model('Enrollment', EnrollmentSchema);

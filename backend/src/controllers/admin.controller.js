@@ -1,4 +1,3 @@
-const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
 const { success, errors } = require('../utils/response');
@@ -7,24 +6,19 @@ const AuditHelper = require('../utils/auditHelper');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const { withSystemContext } = require('../utils/tenantContext');
+const { verifyAdminRefreshToken, generateAdminMaintenanceToken } = require('../utils/jwt');
+const {
+  createAdminSession,
+  rotateAdminSession,
+  revokeAdminSession,
+  getRefreshCookie,
+  setRefreshCookie,
+  clearRefreshCookie
+} = require('../services/admin-session.service');
 require('dotenv').config();
 
 function isPlatformRole(role) {
   return role === 'platform_superadmin' || role === 'superadmin';
-}
-
-// 生成 JWT Token
-function generateToken(admin) {
-  return jwt.sign(
-    {
-      id: admin._id,
-      email: admin.email,
-      role: admin.role,
-      tenantId: admin.tenantId ? admin.tenantId.toString() : null
-    },
-    process.env.JWT_SECRET || 'dev-secret-key-12345678',
-    { expiresIn: process.env.JWT_EXPIRES_IN || '2h' }
-  );
 }
 
 // 管理员登录
@@ -61,10 +55,16 @@ exports.login = async (req, res) => {
     }
 
     const { admin } = result;
-    const token = generateToken(admin);
+    const session = await createAdminSession(admin);
+    setRefreshCookie(res, session.refreshToken);
     await AuditHelper.logLogin(req, admin._id, admin.name || admin.email, admin.tenantId || null);
 
-    return res.json(success({ token, admin: admin.toJSON() }, '登录成功'));
+    // `token` keeps the previously deployed admin bundle usable during a rollout.
+    return res.json(success({
+      accessToken: session.accessToken,
+      token: session.accessToken,
+      admin: admin.toJSON()
+    }, '登录成功'));
   } catch (error) {
     logger.error('Admin login error', error);
     return res.status(500).json(errors.serverError('登录失败'));
@@ -163,8 +163,38 @@ exports.updateProfile = async (req, res) => {
 // 管理员登出
 exports.logout = async (req, res) => {
   try {
-    // 在客户端删除 token，这里只需返回成功消息
-    await AuditHelper.logLogout(req);
+    const refreshToken = getRefreshCookie(req);
+    if (refreshToken) {
+      let decoded;
+      try {
+        decoded = verifyAdminRefreshToken(refreshToken);
+      } catch (_) {
+        // An already invalid session can still be cleared locally.
+        decoded = null;
+      }
+      if (decoded) {
+        try {
+          await revokeAdminSession(decoded.sid, decoded.sub);
+        } catch (error) {
+          logger.error('Admin logout session revoke failed', { name: error.name });
+          return res.status(503).json(errors.serverError('暂时无法完成管理员会话注销，请稍后重试'));
+        }
+        if (!req.admin) {
+          const currentAdmin = await Admin.findById(decoded.sub).select('name email role tenantId').lean().exec();
+          if (currentAdmin) {
+            req.admin = {
+              id: currentAdmin._id.toString(),
+              name: currentAdmin.name,
+              email: currentAdmin.email,
+              role: currentAdmin.role,
+              tenantId: currentAdmin.tenantId || null
+            };
+          }
+        }
+      }
+    }
+    clearRefreshCookie(res);
+    if (req.admin?.id) await AuditHelper.logLogout(req);
     return res.json(success(null, '已登出'));
   } catch (error) {
     logger.error('Admin logout error', error);
@@ -175,27 +205,55 @@ exports.logout = async (req, res) => {
 // 刷新 Token
 exports.refreshToken = async (req, res) => {
   try {
-    // req.admin 由 adminAuthMiddleware 设置
-    if (!req.admin || !req.admin.id) {
-      return res.status(401).json(errors.unauthorized('未授权访问'));
+    const refreshToken = getRefreshCookie(req);
+    if (!refreshToken) {
+      clearRefreshCookie(res);
+      return res.status(401).json(errors.unauthorized('管理员会话不存在'));
     }
 
-    const admin = await Admin.findById(req.admin.id);
-
-    if (!admin) {
-      return res.status(404).json(errors.notFound('管理员不存在'));
+    let decoded;
+    try {
+      decoded = verifyAdminRefreshToken(refreshToken);
+    } catch (_) {
+      clearRefreshCookie(res);
+      return res.status(401).json(errors.unauthorized('管理员会话已过期或无效'));
     }
 
-    if (admin.status !== 'active') {
-      return res.status(403).json(errors.forbidden('账户已被禁用'));
+    if (!decoded.sub || !decoded.sid || !decoded.jti) {
+      clearRefreshCookie(res);
+      return res.status(401).json(errors.unauthorized('管理员会话已过期或无效'));
     }
 
-    const accessToken = generateToken(admin);
+    const admin = await Admin.findById(decoded.sub).select('+sessionVersion');
+    if (!admin || admin.status !== 'active' || (admin.sessionVersion || 0) !== decoded.sessionVersion) {
+      await revokeAdminSession(decoded.sid, decoded.sub);
+      clearRefreshCookie(res);
+      return res.status(401).json(errors.unauthorized('管理员会话已失效'));
+    }
 
-    return res.json(success({ accessToken }, 'Token 已刷新'));
+    const rotated = await rotateAdminSession(admin, decoded);
+    if (!rotated) {
+      // A compare-and-swap miss means another request already rotated this
+      // refresh token. Do not revoke the whole session or invalidate the
+      // access token issued to the winning request.
+      // Keep the cookie written by the winning request; a stale response may
+      // arrive after it and must not erase the rotated refresh credential.
+      return res.status(401).json(errors.unauthorized('管理员会话已被刷新，请重试'));
+    }
+
+    setRefreshCookie(res, rotated.refreshToken);
+    return res.json(success({
+      accessToken: rotated.accessToken,
+      token: rotated.accessToken,
+      admin: admin.toJSON()
+    }, 'Token 已刷新'));
   } catch (error) {
-    logger.error('Refresh token error', error);
-    return res.status(500).json(errors.serverError('Token 刷新失败'));
+    logger.error('Refresh token error', { name: error.name });
+    if (error.name === 'CastError' || error.name === 'JsonWebTokenError') {
+      clearRefreshCookie(res);
+      return res.status(401).json(errors.unauthorized('管理员会话已过期或无效'));
+    }
+    return res.status(503).json(errors.serverError('暂时无法验证管理员会话'));
   }
 };
 
@@ -452,38 +510,6 @@ exports.deleteAdmin = async (req, res) => {
 };
 
 // 初始化超级管理员（仅在第一次运行时使用）
-exports.initSuperAdmin = async (req, res) => {
-  try {
-    // 检查是否已存在管理员
-    const existingAdmin = await Admin.findOne();
-
-    if (existingAdmin) {
-      return res.status(400).json(errors.badRequest('已存在管理员，无需初始化'));
-    }
-
-    const superAdmin = new Admin({
-      name: 'SuperAdmin',
-      email: 'admin@morningreading.com',
-      password: process.env.ADMIN_DEFAULT_PASSWORD || 'admin123456',
-      dbAccessPassword: process.env.ADMIN_DB_ACCESS_PASSWORD || 'admin123456',
-      role: 'superadmin',
-      status: 'active'
-    });
-
-    await superAdmin.save();
-
-    return res.json(
-      success({
-        email: superAdmin.email,
-        message: '超级管理员已创建'
-      })
-    );
-  } catch (error) {
-    logger.error('Init super admin error', error);
-    return res.status(500).json(errors.serverError('初始化超级管理员失败'));
-  }
-};
-
 // 验证数据库访问密码
 exports.verifyDbAccess = async (req, res) => {
   try {
@@ -504,7 +530,8 @@ exports.verifyDbAccess = async (req, res) => {
       return res.status(401).json(errors.unauthorized('密码错误'));
     }
 
-    return res.json(success({ verified: true }, '验证成功'));
+    const maintenanceToken = generateAdminMaintenanceToken(admin, req.admin.sessionId);
+    return res.json(success({ verified: true, maintenanceToken, expiresIn: 300 }, '验证成功'));
   } catch (error) {
     logger.error('Verify db access error', error);
     return res.status(500).json(errors.serverError('验证失败'));

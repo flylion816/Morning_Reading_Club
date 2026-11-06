@@ -104,11 +104,11 @@
         </template>
 
         <el-table
+          v-loading="loading"
           :data="rows"
           stripe
           style="width: 100%"
           :default-sort="{ prop: 'lastRequestedAt', order: 'descending' }"
-          v-loading="loading"
         >
           <el-table-column label="用户" min-width="240" fixed="left">
             <template #default="{ row }">
@@ -422,7 +422,7 @@ function normalizeScene(rawScene: any, meta: (typeof sceneColumns)[number]): Sub
   const retryAt = rawScene?.retryAt || null;
   const backendStatus = rawScene?.status || '';
 
-  let statusLabel = '待补量';
+  let statusLabel: string;
   let statusType: 'success' | 'warning' | 'danger' | 'info' = 'warning';
 
   if (typeof rawScene?.statusLabel === 'string' && rawScene.statusLabel) {
@@ -656,7 +656,7 @@ function getSceneMeta(row: SubscriptionGrantRow, sceneName: string) {
     };
   }
 
-  let subText = '';
+  let subText: string;
   if (scene.scene === 'next_day_study_reminder' && scene.scheduledSendDate) {
     subText = `计划 ${formatDateTime(scene.scheduledSendDate)}`;
   } else if (scene.lastAcceptedAt) {
@@ -775,20 +775,20 @@ function formatLongText(value?: string | null) {
 
 .stat-title {
   font-size: 14px;
-  color: #64748b;
+  color: var(--admin-ink-soft);
 }
 
 .stat-value {
   margin-top: 10px;
   font-size: 28px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--admin-ink);
 }
 
 .stat-desc {
   margin-top: 6px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--admin-ink-muted);
 }
 
 .table-card {
@@ -804,7 +804,7 @@ function formatLongText(value?: string | null) {
 
 .table-hint {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--admin-ink-muted);
 }
 
 .user-cell {
@@ -815,18 +815,18 @@ function formatLongText(value?: string | null) {
 
 .user-name {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--admin-ink);
 }
 
 .user-meta {
   font-size: 12px;
-  color: #64748b;
+  color: var(--admin-ink-soft);
 }
 
 .count-main {
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--admin-ink);
 }
 
 .scene-cell {
@@ -838,12 +838,12 @@ function formatLongText(value?: string | null) {
 .scene-count {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--admin-ink);
 }
 
 .scene-subtext {
   font-size: 12px;
-  color: #64748b;
+  color: var(--admin-ink-soft);
 }
 
 .pagination {
@@ -867,7 +867,7 @@ function formatLongText(value?: string | null) {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--admin-ink);
   margin-bottom: 12px;
 }
 
@@ -892,12 +892,12 @@ function formatLongText(value?: string | null) {
 .detail-scene-title {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--admin-ink);
 }
 
 .detail-scene-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--admin-ink-soft);
   margin-top: 4px;
 }
 
@@ -909,7 +909,7 @@ function formatLongText(value?: string | null) {
 }
 
 .detail-scene-count {
-  background: #f8fafc;
+  background: var(--admin-page);
   border-radius: 8px;
   padding: 10px;
 }
@@ -917,7 +917,7 @@ function formatLongText(value?: string | null) {
 .detail-scene-count .label {
   display: block;
   font-size: 12px;
-  color: #64748b;
+  color: var(--admin-ink-soft);
 }
 
 .detail-scene-count .value {
@@ -925,7 +925,7 @@ function formatLongText(value?: string | null) {
   margin-top: 4px;
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--admin-ink);
 }
 
 .detail-scene-meta {
@@ -933,7 +933,7 @@ function formatLongText(value?: string | null) {
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--admin-ink-soft);
   line-height: 1.5;
 }
 </style>

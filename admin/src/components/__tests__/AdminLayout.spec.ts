@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import AdminLayout from '../AdminLayout.vue';
@@ -124,7 +124,7 @@ describe('AdminLayout - 管理后台布局组件', () => {
       const adminData = createMockAdmin({ name: '张三' });
       authStore.adminInfo = adminData;
 
-      const wrapper = mountLayout();
+      mountLayout();
 
       // 验证 authStore 中的值正确
       const store = useAuthStore();

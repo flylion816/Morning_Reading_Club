@@ -347,4 +347,36 @@ describe('Imprint Controller', () => {
       expect(dispatchNotificationWithSubscribeStub.calledOnce).to.equal(true);
     });
   });
+
+  describe('deleteComment', () => {
+    it('印记作者不能用自己的印记 ID 删除其他印记下的评论', async () => {
+      const myImprintId = new mongoose.Types.ObjectId();
+      const otherImprintId = new mongoose.Types.ObjectId();
+      req.params = { id: myImprintId.toString(), cid: 'c1' };
+      ImprintCommentStub.findById.returns({
+        lean: sandbox.stub().resolves({ _id: 'c1', imprintId: otherImprintId, authorId: new mongoose.Types.ObjectId() })
+      });
+      ImprintStub.findById.returns({ lean: sandbox.stub().resolves({ _id: myImprintId, authorId: req.user._id }) });
+
+      await controller.deleteComment(req, res);
+
+      expect(res.status.calledWith(404)).to.equal(true);
+      expect(ImprintCommentStub.findByIdAndDelete.called).to.equal(false);
+    });
+
+    it('印记作者可以删除自己印记下的评论', async () => {
+      const imprintId = new mongoose.Types.ObjectId();
+      req.params = { id: imprintId.toString(), cid: 'c1' };
+      ImprintCommentStub.findById.returns({
+        lean: sandbox.stub().resolves({ _id: 'c1', imprintId, authorId: new mongoose.Types.ObjectId() })
+      });
+      ImprintStub.findById.returns({ lean: sandbox.stub().resolves({ _id: imprintId, authorId: req.user._id, commentCount: 2 }) });
+      ImprintCommentStub.findByIdAndDelete.resolves();
+      ImprintStub.findByIdAndUpdate.resolves();
+
+      await controller.deleteComment(req, res);
+
+      expect(ImprintCommentStub.findByIdAndDelete.calledWith('c1')).to.equal(true);
+    });
+  });
 });

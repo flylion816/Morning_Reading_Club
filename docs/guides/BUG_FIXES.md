@@ -2288,10 +2288,10 @@ setTimeout(() => {
 
 ```bash
 # ❌ 错误方式（失败）
-MONGODB_URL="mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin" node ...
+MONGODB_URL="mongodb://admin:CHANGE_ME@localhost:27017/morning_reading?authSource=admin" node ...
 
 # ✅ 正确方式（成功）
-export MONGODB_URL='mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin'
+export MONGODB_URL='mongodb://admin:CHANGE_ME@localhost:27017/morning_reading?authSource=admin'
 node ...
 ```
 
@@ -3630,7 +3630,7 @@ router.delete('/:id', authMiddleware, adminMiddleware, deleteEnrollment);
 ```bash
 # 方式1: 使用默认配置（平衡之道Day 0）
 cd backend
-export MONGODB_URL='mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin'
+export MONGODB_URL='mongodb://admin:CHANGE_ME@localhost:27017/morning_reading?authSource=admin'
 node scripts/init-course-content.js
 
 # 方式2: 指定期次和日期

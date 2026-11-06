@@ -601,7 +601,7 @@ const bulkRequests = Array.from({ length: 30 }, (_, i) => {
     fromUserId: testUsers.user1._id,
     toUserId: testUsers.user2._id,
     periodId: testPeriods.activeOngoing._id,
-    status: status,
+    status,
     reason: `申请 #${i + 1}`,
     createdAt: new Date(Date.now() - i * 3600000),
     updatedAt: new Date(Date.now() - i * 3600000)

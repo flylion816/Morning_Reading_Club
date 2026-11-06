@@ -1,6 +1,6 @@
 /**
  * MongoDB ↔ MySQL 实时同步服务（基于 Redis List）
- * 
+ *
  * 职责：
  * - 使用 Redis List 作为消息队列
  * - 异步处理同步任务
@@ -11,6 +11,7 @@
 const redis = require('redis');
 const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
+const { ensureCourseTemplateTable } = require('./course-template-backup');
 
 let redisClient = null;
 
@@ -19,8 +20,9 @@ const SYNC_FIELD_EXCLUSIONS = {
   enrollments: new Set(['isPaid', 'isActive']),
   // dbAccessPassword 是管理员的数据库访问密码哈希，MySQL 表中无此列且不应同步
   admins: new Set(['dbAccessPassword']),
-  // 播客字段和 lookImage 仅存于 MongoDB，MySQL sections 表无对应列
-  sections: new Set(['podcastUrl', 'podcastDescription', 'podcastDuration', 'lookImage'])
+  // 没有独立 MySQL 列的课程扩展字段由 raw_json 完整保存。
+  sections: new Set(['podcastUrl', 'podcastDescription', 'podcastDuration', 'lookImage', 'courseModuleValues', 'courseTemplateSnapshot']),
+  periods: new Set(['courseTemplateSnapshot', 'courseTemplateLocked'])
 };
 
 function normalizeSpecialField(collection, key, value) {
@@ -95,11 +97,11 @@ async function initRedisClient() {
     if (pong === 'PONG') {
       logger.info('Redis ping successful');
       return true;
-    } else {
+    }
       logger.error('Redis ping failed');
       redisClient = null;
       return false;
-    }
+
   } catch (error) {
     logger.error('Failed to initialize Redis client', error);
     redisClient = null;
@@ -177,6 +179,7 @@ async function syncDocumentToMySQL(collection, documentId, data) {
 
     try {
       // 将 MongoDB 文档字段映射到 MySQL
+      if (collection === 'course_templates') await ensureCourseTemplateTable(conn);
       const mysqlData = transformDocumentForMySQL(collection, data);
 
       // DEBUG: 输出转换后的数据
@@ -214,6 +217,13 @@ async function syncDocumentToMySQL(collection, documentId, data) {
 // 4. 将 MongoDB 文档转换为 MySQL 格式
 // =========================================================================
 function transformDocumentForMySQL(collection, doc) {
+  if (collection === 'course_templates') {
+    return {
+      id: String(doc._id), tenant_id: String(doc.tenantId), raw_json: JSON.stringify(doc),
+      created_at: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
+      updated_at: doc.updatedAt ? new Date(doc.updatedAt).toISOString().slice(0, 19).replace('T', ' ') : null
+    };
+  }
   const result = {
     id: doc._id.toString() // MongoDB ObjectId → 字符串
   };
@@ -258,6 +268,7 @@ function transformDocumentForMySQL(collection, doc) {
     }
   }
 
+  if (collection === 'periods' || collection === 'sections') result.raw_json = JSON.stringify(doc);
   return result;
 }
 

@@ -188,7 +188,7 @@ Prompts:
 - Version: user-facing dev version in WeChat MP, e.g. `0.01`.
 - Upload description: e.g. `初始化版本`.
 - Admin API base URL: press Enter for `https://wx.shubai01.com/api/v1` unless using local/test backend.
-- Admin email/password: backend admin/superadmin credentials.
+- Admin email/password: <从密钥管理服务读取> admin/superadmin credentials.
 
 Common upload errors:
 

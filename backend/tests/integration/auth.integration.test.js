@@ -306,7 +306,7 @@ describe('Auth Integration - 认证流程', () => {
         .post('/api/v1/auth/wechat/login')
         .send({ code: 'test-code-update-profile', wxAppId: TEST_WX_APPID });
 
-      const accessToken = loginRes.body.data.accessToken;
+      const {accessToken} = loginRes.body.data;
 
       // 2. 更新个人信息
       const updateRes = await request(app)

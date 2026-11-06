@@ -77,6 +77,7 @@ subscribeMessageDeliverySchema.index({ sourceType: 1, sourceId: 1 });
 subscribeMessageDeliverySchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 subscribeMessageDeliverySchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('SubscribeMessageDelivery', subscribeMessageDeliverySchema);

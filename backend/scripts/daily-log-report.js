@@ -599,7 +599,7 @@ function getSystemStatus() {
       `cd /var/www/morning-reading && node -e "
         const mysql = require('./backend/node_modules/mysql2/promise');
         (async () => {
-          const conn = await mysql.createConnection({ host:'localhost', port:3306, user:'root', password:'Prod_Root@Secure123!', database:'morning_reading' });
+          const conn = await mysql.createConnection({ host:'localhost', port:3306, user:'root', password: process.env.MYSQL_ROOT_PASSWORD, database:'morning_reading' });
           const [recent] = await conn.query('SELECT MAX(updated_at) as last_sync FROM users');
           console.log(JSON.stringify({ lastSync: recent[0].last_sync }));
           await conn.end();

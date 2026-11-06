@@ -2118,6 +2118,15 @@ Page({
     });
   },
 
+  navigateToNewCheckin() {
+    if (!this.ensurePaidFeatureAccess('完成报名后可打卡')) return;
+    const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    const sectionId = this.data.todaySection?._id || this.data.todaySection?.id || '';
+    wx.navigateTo({
+      url: `/pages/checkin/checkin?select=1&periodId=${encodeURIComponent(periodId)}&sectionId=${encodeURIComponent(sectionId)}`
+    });
+  },
+
   navigateToZaichang() {
     wx.navigateTo({ url: '/pages/zaichang/list/list' });
   },

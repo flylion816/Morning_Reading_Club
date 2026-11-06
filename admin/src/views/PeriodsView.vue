@@ -1,28 +1,18 @@
 <template>
   <AdminLayout>
     <div class="periods-container">
-      <!-- 操作栏 -->
-      <el-card style="margin-bottom: 20px">
+      <div class="period-page-heading">
+        <div><span class="period-eyebrow">课程运营</span><h2>期次安排</h2><p>把课程时间、内容模板和报名安排放在一起管理。</p></div>
         <div class="action-bar">
-          <el-button type="primary" @click="handleCreatePeriod">
-            <span style="margin-right: 4px">➕</span>新建期次
-          </el-button>
-          <el-button style="margin-left: 12px" @click="handleRefresh">
-            <span style="margin-right: 4px">🔄</span>刷新
-          </el-button>
-          <el-button
-            type="success"
-            style="margin-left: 12px"
-            :loading="syncingStatus"
-            @click="handleSyncStatus"
-          >
-            <span style="margin-right: 4px">⏱️</span>更新期次状态
-          </el-button>
+          <el-button @click="handleRefresh">刷新</el-button>
+          <el-button :loading="syncingStatus" @click="handleSyncStatus">更新期次状态</el-button>
+          <el-button type="primary" @click="handleCreatePeriod">＋新建期次</el-button>
         </div>
-      </el-card>
+      </div>
 
       <!-- 期次列表 -->
-      <el-card>
+      <el-card class="period-list-card" shadow="never">
+        <template #header><div class="period-list-heading"><strong>期次列表</strong><span>共 {{ pagination.total }} 个期次</span></div></template>
         <el-table
           v-loading="loading"
           :data="periods"
@@ -30,59 +20,29 @@
           style="width: 100%"
           :default-sort="{ prop: 'endDate', order: 'descending' }"
         >
-          <el-table-column prop="name" label="期次名称" width="100" />
-          <el-table-column prop="title" label="标题" min-width="240" />
-          <el-table-column label="时间范围" width="240">
-            <template #default="{ row }">
-              {{ formatDateRange(row.startDate, row.endDate) }}
-            </template>
+          <el-table-column label="期次 / 课程" min-width="260" fixed="left">
+            <template #default="{ row }"><div class="period-identity">
+              <div class="period-name-line"><strong>{{ row.name }}</strong><el-tag :type="getStatusType(row.status)" size="small">{{ formatStatus(row.status) }}</el-tag></div>
+              <span v-if="row.title && row.title !== row.name" class="period-row-description" :title="row.title">{{ row.title }}</span>
+            </div></template>
           </el-table-column>
-          <el-table-column label="时长" width="80">
-            <template #default="{ row }"> {{ row.totalDays }} 天 </template>
+          <el-table-column label="课程时间" width="205">
+            <template #default="{ row }"><div class="period-cell-stack"><span>{{ formatDateRange(row.startDate, row.endDate) }}</span><small>{{ row.totalDays }} 天课程</small></div></template>
           </el-table-column>
-          <el-table-column label="价格" width="100">
-            <template #default="{ row }">
-              <span v-if="row.price > 0">¥{{ (row.price / 100).toFixed(2) }}</span>
-              <span v-else>免费</span>
-            </template>
+          <el-table-column label="费用 / 报名" width="145">
+            <template #default="{ row }"><div class="period-cell-stack"><strong class="period-price">{{ row.price > 0 ? '¥' + (row.price / 100).toFixed(2) : '免费' }}</strong><small>{{ row.currentEnrollment || 0 }} 人报名<span v-if="row.maxEnrollment"> / {{ row.maxEnrollment }} 名额</span></small></div></template>
           </el-table-column>
-          <el-table-column label="报名人数" width="100">
-            <template #default="{ row }">
-              {{ row.currentEnrollment }}
-              <span v-if="row.maxEnrollment">/{{ row.maxEnrollment }}</span>
-            </template>
+          <el-table-column label="学习门槛" width="145">
+            <template #default="{ row }"><div class="period-cell-stack"><span>{{ row.readingAccessMode === 'open' ? '公开阅读' : '报名后阅读' }}</span><small>{{ row.enrollmentTemplateSnapshot?.name || (row.price > 0 ? '付费报名' : '免费报名') }}</small></div></template>
           </el-table-column>
           <el-table-column label="可见范围" width="100">
-            <template #default="{ row }">
-              <el-tag v-if="row.visibilityType === 'specific'" type="warning" size="small">指定用户</el-tag>
-              <span v-else style="color: #909399; font-size: 12px;">全部</span>
-            </template>
+            <template #default="{ row }"><el-tag v-if="row.visibilityType === 'specific'" type="warning" size="small">指定用户</el-tag><span v-else class="period-row-description">全部用户</span></template>
           </el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">
-                {{ formatStatus(row.status) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="发布状态" width="100">
-            <template #default="{ row }">
-              <el-switch
-                v-model="row.isPublished"
-                :loading="publishingId === row._id"
-                @change="handlePublishChange(row)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column label="招募开放" width="100">
-            <template #default="{ row }">
-              <el-switch
-                v-model="row.enrollmentOpen"
-                :disabled="!row.isPublished"
-                :loading="enrollmentOpeningId === row._id"
-                @change="handleEnrollmentOpenChange(row)"
-              />
-            </template>
+          <el-table-column label="发布与招募" width="190">
+            <template #default="{ row }"><div class="period-switches">
+              <label><el-switch v-model="row.isPublished" size="small" :loading="publishingId === row._id" :aria-label="row.name + '发布状态'" @change="handlePublishChange(row)" /><span>{{ row.isPublished ? '已发布' : '草稿' }}</span></label>
+              <label><el-switch v-model="row.enrollmentOpen" size="small" :disabled="!row.isPublished" :loading="enrollmentOpeningId === row._id" :aria-label="row.name + '招募开放'" @change="handleEnrollmentOpenChange(row)" /><span>{{ row.enrollmentOpen ? '报名开放' : '报名关闭' }}</span></label>
+            </div></template>
           </el-table-column>
           <el-table-column v-if="MEETING_CONFIG_ENABLED" label="会议" width="80">
             <template #default="{ row }">
@@ -90,7 +50,7 @@
               <span v-else style="color: #c0c4cc; font-size: 12px;">-</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="260" fixed="right">
+          <el-table-column label="操作" width="170" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" text size="small" @click="handleEditPeriod(row)">
@@ -125,23 +85,26 @@
       <el-dialog
         v-model="dialogVisible"
         :title="isEditMode ? '编辑期次' : '新建期次'"
-        width="700px"
+        class="period-editor-dialog"
+        width="min(980px, calc(100vw - 32px))"
+        top="3vh"
+        append-to-body
+        @open="resetPeriodDialogScroll"
         @close="resetForm"
       >
-        <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px">
-          <el-form-item label="期次名称" prop="name">
+        <template #header><div class="period-dialog-heading"><span class="period-eyebrow">课程运营</span><div class="period-dialog-title-row"><h2>{{ isEditMode ? '编辑期次' : '新建期次' }}</h2><el-button text class="period-template-shortcut" @click="scrollToEnrollmentTemplate">{{ enrollmentTemplateLocked ? '查看报名模板' : '选择报名模板' }} ↓</el-button></div><p>按分组完善设置，确认后保存。</p></div></template>
+        <el-form ref="formRef" :model="formData" :rules="formRules" label-position="top" class="period-editor-form">
+          <section class="period-form-section"><h3><span>01</span>基本信息</h3><div class="period-form-grid">
+            <el-form-item label="期次名称" prop="name">
             <el-input v-model="formData.name" placeholder="例：第一期" clearable />
           </el-form-item>
-
-          <el-form-item label="副标题" prop="subtitle">
+            <el-form-item label="副标题" prop="subtitle">
             <el-input v-model="formData.subtitle" placeholder="可选的副标题" clearable />
           </el-form-item>
-
-          <el-form-item label="标题" prop="title">
+            <el-form-item class="period-form-wide" label="标题" prop="title">
             <el-input v-model="formData.title" placeholder="期次的完整标题" clearable />
           </el-form-item>
-
-          <el-form-item label="描述" prop="description">
+            <el-form-item class="period-form-wide" label="描述" prop="description">
             <el-input
               v-model="formData.description"
               type="textarea"
@@ -149,8 +112,26 @@
               :rows="3"
             />
           </el-form-item>
-
-          <el-form-item label="起始日期" prop="startDate">
+          </div></section>
+          <section class="period-form-section"><h3><span>02</span>模板配置</h3><div class="period-form-grid">
+            <el-form-item class="period-form-wide" label="课程模板" prop="courseTemplateId">
+            <CourseTemplatePicker v-if="dialogVisible" v-model="formData.courseTemplateId" :disabled="templateLocked" :current-name="templateName" />
+          </el-form-item>
+            <el-form-item id="period-enrollment-template" tabindex="-1" class="period-form-wide" label="报名模板" prop="enrollmentTemplateId">
+              <EnrollmentTemplatePicker v-if="dialogVisible" v-model="formData.enrollmentTemplateId" :disabled="enrollmentTemplateLocked" :current-name="enrollmentTemplateName" />
+              <div class="form-help">选择学员报名时填写的资料：简洁报名、七个习惯完整版，或自己的模板。</div>
+            </el-form-item>
+          </div></section>
+          <section class="period-form-section"><h3><span>03</span>学习门槛</h3><div class="period-form-grid">
+            <el-form-item class="period-form-wide" label="谁可以开始学习" prop="readingAccessMode">
+              <div class="choice-grid">
+                <button type="button" class="choice-card" :class="{ selected: formData.readingAccessMode === 'open' }" @click="formData.readingAccessMode = 'open'"><strong>无需报名即可阅读</strong><span>已发布且在可见范围内的课程，用户可直接开始学习。</span></button>
+                <button type="button" class="choice-card" :class="{ selected: formData.readingAccessMode === 'enrolled' }" @click="formData.readingAccessMode = 'enrolled'"><strong>报名后阅读</strong><span>先完成报名；付费期次还需支付成功后才能学习。</span></button>
+              </div>
+            </el-form-item>
+          </div></section>
+          <section class="period-form-section"><h3><span>04</span>时间与名额</h3><div class="period-form-grid">
+            <el-form-item label="起始日期" prop="startDate">
             <el-date-picker
               v-model="formData.startDate"
               type="date"
@@ -158,8 +139,7 @@
               style="width: 100%"
             />
           </el-form-item>
-
-          <el-form-item label="结束日期" prop="endDate">
+            <el-form-item label="结束日期" prop="endDate">
             <el-date-picker
               v-model="formData.endDate"
               type="date"
@@ -167,20 +147,10 @@
               style="width: 100%"
             />
           </el-form-item>
-
-          <el-form-item label="课程天数" prop="totalDays">
+            <el-form-item label="课程天数" prop="totalDays">
             <el-input-number v-model="formData.totalDays" :min="1" :max="365" style="width: 100%" />
           </el-form-item>
-
-          <el-form-item label="价格（分）" prop="price">
-            <el-input-number v-model="formData.price" :min="0" style="width: 100%" />
-          </el-form-item>
-
-          <el-form-item label="原价（分）" prop="originalPrice">
-            <el-input-number v-model="formData.originalPrice" :min="0" style="width: 100%" />
-          </el-form-item>
-
-          <el-form-item label="最大报名数" prop="maxEnrollment">
+            <el-form-item label="最大报名数" prop="maxEnrollment">
             <el-input-number
               v-model="formData.maxEnrollment"
               :min="0"
@@ -188,22 +158,30 @@
               style="width: 100%"
             />
           </el-form-item>
-
-          <el-form-item label="排序" prop="sortOrder">
+          </div></section>
+          <section class="period-form-section"><h3><span>05</span>费用与展示</h3><div class="period-form-grid">
+            <el-form-item label="报名费用（分）" prop="price">
+            <el-input-number v-model="formData.price" :min="0" style="width: 100%" />
+            <div class="price-note"><span :class="formData.price > 0 ? 'paid' : 'free'">{{ formData.price > 0 ? `付费报名 · ¥${(formData.price / 100).toFixed(2)}` : '免费报名 · 不创建支付订单' }}</span><small>手机端只读显示，学员不能自行填写金额。</small></div>
+          </el-form-item>
+            <el-form-item label="原价（分）" prop="originalPrice">
+            <el-input-number v-model="formData.originalPrice" :min="0" style="width: 100%" />
+          </el-form-item>
+            <el-form-item label="排序" prop="sortOrder">
             <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
           </el-form-item>
-
-          <el-form-item label="图标" prop="icon">
+            <el-form-item label="图标" prop="icon">
             <el-input
               v-model="formData.icon"
               placeholder="输入 Emoji 或图标字符"
               style="width: 100%"
             />
           </el-form-item>
-
-          <el-form-item label="覆盖颜色" prop="coverColor">
+            <el-form-item label="覆盖颜色" prop="coverColor">
             <el-color-picker
               :model-value="formData.coverColor"
+              format="hex"
+              style="width: 100%"
               @update:model-value="(val) => {
                 console.log('🎨 [PeriodsView] 颜色选择器值更新:', {
                   传入的值: val,
@@ -211,8 +189,6 @@
                 });
                 formData.coverColor = val;
               }"
-              format="hex"
-              style="width: 100%"
               @change="(val) => {
                 console.log('🎨 [PeriodsView] 颜色选择器 @change 事件:', {
                   事件发出的值: val,
@@ -221,33 +197,9 @@
               }"
             />
           </el-form-item>
-
-          <el-form-item v-if="MEETING_CONFIG_ENABLED" label="腾讯会议号" prop="meetingId">
-            <el-input
-              v-model="formData.meetingId"
-              placeholder="例：416 7154 0953"
-              clearable
-            />
-            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
-              手机端继续使用会议号跳转腾讯会议小程序
-            </div>
-          </el-form-item>
-
-          <el-form-item v-if="MEETING_CONFIG_ENABLED" label="邀请链接" prop="meetingJoinUrl">
-            <el-input
-              v-model="formData.meetingJoinUrl"
-              type="textarea"
-              :rows="3"
-              placeholder="可直接粘贴腾讯会议邀请链接，或整段「会议邀请信息」"
-            />
-            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
-              桌面端会优先用这个链接唤起腾讯会议客户端。支持粘贴完整邀请文本，保存时会自动提取链接。
-            </div>
-          </el-form-item>
-
-          <el-divider content-position="left">可见范围</el-divider>
-
-          <el-form-item label="可见范围" prop="visibilityType">
+          </div></section>
+          <section class="period-form-section"><h3><span>06</span>可见范围</h3><div class="period-form-grid">
+            <el-form-item class="period-form-wide" label="可见范围" prop="visibilityType">
             <el-radio-group v-model="formData.visibilityType">
               <el-radio value="all">全部用户</el-radio>
               <el-radio value="specific">指定用户</el-radio>
@@ -256,8 +208,7 @@
               指定用户模式下，只有名单内的用户才能在期次列表看到此期次；已报名用户始终可见
             </div>
           </el-form-item>
-
-          <el-form-item v-if="formData.visibilityType === 'specific'" label="指定用户">
+            <el-form-item class="period-form-wide" v-if="formData.visibilityType === 'specific'" label="指定用户">
             <div style="width: 100%">
               <el-select
                 :model-value="formData.visibleUserIds"
@@ -320,10 +271,10 @@
               </el-table>
             </div>
           </el-form-item>
-
-          <el-divider content-position="left">招募设置</el-divider>
-
-          <el-form-item label="招募开放" prop="enrollmentOpen">
+          </div></section>
+          <section class="period-form-section"><h3><span>07</span>招募与分享</h3><div class="period-form-grid">
+            <div class="period-enrollment-reminder period-form-wide"><span>报名资料由上方“模板配置”里的报名模板决定。</span><el-button text @click="scrollToEnrollmentTemplate">去配置报名资料 ↑</el-button></div>
+            <el-form-item class="period-form-wide" label="招募开放" prop="enrollmentOpen">
             <el-switch
               v-model="formData.enrollmentOpen"
               :disabled="!formData.isPublished"
@@ -334,8 +285,7 @@
               开启后普通用户可看到报名入口和邀请好友按钮；需先发布期次才能开启
             </div>
           </el-form-item>
-
-          <el-form-item label="分享封面图" prop="coverImage">
+            <el-form-item class="period-form-wide" label="分享封面图" prop="coverImage">
             <div style="display: flex; gap: 8px; align-items: flex-start; width: 100%;">
               <el-input
                 v-model="formData.coverImage"
@@ -361,8 +311,7 @@
               用于微信分享卡片的封面图，不填则使用默认图片
             </div>
           </el-form-item>
-
-          <el-form-item label="分享标题" prop="inviteTitle">
+            <el-form-item class="period-form-wide" label="分享标题" prop="inviteTitle">
             <el-input
               v-model="formData.inviteTitle"
               placeholder="自定义分享标题，不填则自动生成"
@@ -371,13 +320,39 @@
               clearable
             />
           </el-form-item>
+          </div></section>
+          <section class="period-form-section" v-if="MEETING_CONFIG_ENABLED"><h3><span>08</span>会议安排</h3><div class="period-form-grid">
+            <el-form-item class="period-form-wide" v-if="MEETING_CONFIG_ENABLED" label="腾讯会议号" prop="meetingId">
+            <el-input
+              v-model="formData.meetingId"
+              placeholder="例：416 7154 0953"
+              clearable
+            />
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              手机端继续使用会议号跳转腾讯会议小程序
+            </div>
+          </el-form-item>
+            <el-form-item class="period-form-wide" v-if="MEETING_CONFIG_ENABLED" label="邀请链接" prop="meetingJoinUrl">
+            <el-input
+              v-model="formData.meetingJoinUrl"
+              type="textarea"
+              :rows="3"
+              placeholder="可直接粘贴腾讯会议邀请链接，或整段「会议邀请信息」"
+            />
+            <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+              桌面端会优先用这个链接唤起腾讯会议客户端。支持粘贴完整邀请文本，保存时会自动提取链接。
+            </div>
+          </el-form-item>
+          </div></section>
         </el-form>
 
         <template #footer>
+          <div class="period-dialog-footer"><span>修改将在保存后生效</span><div>
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" :loading="submitting" @click="handleSubmit">
             {{ isEditMode ? '更新' : '创建' }}
           </el-button>
+          </div></div>
         </template>
       </el-dialog>
 
@@ -385,13 +360,16 @@
       <el-dialog
         v-model="copyDialogVisible"
         title="复制期次"
-        width="700px"
+        class="period-copy-dialog"
+        width="min(780px, calc(100vw - 32px))"
+        top="3vh"
+        append-to-body
         @close="resetCopyForm"
       >
         <el-alert type="info" :closable="false" style="margin-bottom: 20px">
           注意：保存后将同时复制该期次下的所有课程内容
         </el-alert>
-        <el-form ref="copyFormRef" :model="copyFormData" :rules="formRules" label-width="120px">
+        <el-form ref="copyFormRef" :model="copyFormData" :rules="formRules" label-position="top" class="period-copy-form">
           <el-form-item label="期次名称" prop="name">
             <el-input v-model="copyFormData.name" placeholder="例：第一期" clearable />
           </el-form-item>
@@ -551,13 +529,27 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch, nextTick } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import CourseTemplatePicker from '../components/CourseTemplatePicker.vue';
+import EnrollmentTemplatePicker from '../components/EnrollmentTemplatePicker.vue';
 import { periodApi, uploadApi, userApi } from '../services/api';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
-import type { ListResponse, Period } from '../types/api';
+import type { Period } from '../types/api';
 
 const MEETING_CONFIG_ENABLED = false;
+
+async function resetPeriodDialogScroll() {
+  await nextTick();
+  const body = document.querySelector('.period-editor-dialog .el-dialog__body');
+  if (body) body.scrollTop = 0;
+}
+
+function scrollToEnrollmentTemplate() {
+  const field = document.getElementById('period-enrollment-template');
+  field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  field?.focus({ preventScroll: true });
+}
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -567,6 +559,10 @@ const enrollmentOpeningId = ref<string | null>(null);
 const periods = ref<Period[]>([]);
 const dialogVisible = ref(false);
 const isEditMode = ref(false);
+const templateLocked = ref(false);
+const templateName = ref('');
+const enrollmentTemplateLocked = ref(false);
+const enrollmentTemplateName = ref('');
 const currentEditId = ref<string | null>(null);
 const formRef = ref<FormInstance>();
 const copyDialogVisible = ref(false);
@@ -584,6 +580,9 @@ const pagination = ref({
 });
 
 const formData = reactive({
+  courseTemplateId: 'seven-habits',
+  enrollmentTemplateId: '',
+  readingAccessMode: 'enrolled',
   name: '',
   subtitle: '',
   title: '',
@@ -622,6 +621,8 @@ const copyFormData = reactive({
   originalPrice: 0,
   maxEnrollment: null,
   sortOrder: 0,
+  enrollmentTemplateId: '',
+  readingAccessMode: 'enrolled',
   visibilityType: 'all',
   visibleUserIds: [] as string[],
   visibleUsers: [] as any[]
@@ -702,13 +703,21 @@ function handlePageSizeChange() {
 }
 
 function handleCreatePeriod() {
+  templateLocked.value = false;
+  templateName.value = '';
+  enrollmentTemplateLocked.value = false;
+  enrollmentTemplateName.value = '';
   isEditMode.value = false;
   currentEditId.value = null;
   resetForm();
   dialogVisible.value = true;
 }
 
-function handleEditPeriod(row: Period) {
+async function handleEditPeriod(row: Period) {
+  templateLocked.value = true;
+  templateName.value = row.courseTemplateSnapshot?.name || '七个习惯晨读营';
+  enrollmentTemplateLocked.value = !!row.enrollmentTemplateLocked;
+  enrollmentTemplateName.value = row.enrollmentTemplateSnapshot?.name || '';
   console.log('📝 [PeriodsView] 开始编辑期次:');
   console.log('[PeriodsView] 从列表中取出的数据:', {
     id: row._id,
@@ -720,6 +729,9 @@ function handleEditPeriod(row: Period) {
   isEditMode.value = true;
   currentEditId.value = row._id;
   Object.assign(formData, {
+    courseTemplateId: row.courseTemplateSnapshot?.templateId || 'seven-habits',
+    enrollmentTemplateId: row.enrollmentTemplateId || row.enrollmentTemplateSnapshot?.templateId || row.enrollmentTemplateSnapshot?._id || '',
+    readingAccessMode: row.readingAccessMode || 'enrolled',
     name: row.name,
     subtitle: row.subtitle,
     title: row.title,
@@ -746,6 +758,10 @@ function handleEditPeriod(row: Period) {
 
   console.log('[PeriodsView] 表单已初始化，当前 formData.coverColor:', formData.coverColor);
   dialogVisible.value = true;
+  try {
+    const result = await periodApi.getAllSections(row._id, { limit: 1 });
+    templateLocked.value = !!row.courseTemplateLocked || !!(result.list?.length || result.data?.list?.length);
+  } catch { templateLocked.value = true; }
 }
 
 async function handleSubmit() {
@@ -753,6 +769,10 @@ async function handleSubmit() {
 
   await formRef.value.validate(async valid => {
     if (!valid) return;
+    if (formData.readingAccessMode === 'enrolled' && !formData.enrollmentTemplateId) {
+      ElMessage.warning('报名后阅读的期次请选择报名模板');
+      return;
+    }
 
     submitting.value = true;
     try {
@@ -868,6 +888,8 @@ function handleCopyPeriod(row: Period) {
     originalPrice: row.originalPrice,
     maxEnrollment: row.maxEnrollment,
     sortOrder: row.sortOrder,
+    enrollmentTemplateId: row.enrollmentTemplateId || row.enrollmentTemplateSnapshot?._id || '',
+    readingAccessMode: row.readingAccessMode || 'enrolled',
     visibilityType: row.visibilityType || 'all',
     visibleUserIds: (row.visibleUsers || []).map((u: any) => u._id || u),
     visibleUsers: row.visibleUsers || []
@@ -920,6 +942,8 @@ function resetCopyForm() {
   copyFormData.originalPrice = 0;
   copyFormData.maxEnrollment = null;
   copyFormData.sortOrder = 0;
+  copyFormData.enrollmentTemplateId = '';
+  copyFormData.readingAccessMode = 'enrolled';
   copyFormData.visibilityType = 'all';
   copyFormData.visibleUserIds = [];
   copyFormData.visibleUsers = [];
@@ -1028,6 +1052,9 @@ async function handleCoverImageUpload(uploadFile: any) {
 }
 
 function resetForm() {
+  formData.courseTemplateId = 'seven-habits';
+  formData.enrollmentTemplateId = '';
+  formData.readingAccessMode = 'enrolled';
   formData.name = '';
   formData.subtitle = '';
   formData.title = '';
@@ -1142,6 +1169,72 @@ function getStatusType(status: string): string {
 </script>
 
 <style scoped>
+:global(.period-editor-dialog), :global(.period-copy-dialog) { --el-dialog-padding-primary: 0px; padding: 0; display: flex; flex-direction: column; max-height: 94dvh; overflow: hidden; }
+:global(.period-editor-dialog .el-dialog__header), :global(.period-copy-dialog .el-dialog__header) { padding: 22px 28px 18px !important; margin-right: 0; flex-shrink: 0; }
+:global(.period-editor-dialog .el-dialog__headerbtn), :global(.period-copy-dialog .el-dialog__headerbtn) { top: 14px; right: 14px; }
+:global(.period-editor-dialog .el-dialog__body), :global(.period-copy-dialog .el-dialog__body) { padding: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+:global(.period-editor-dialog .el-dialog__footer), :global(.period-copy-dialog .el-dialog__footer) { padding: 16px 28px !important; background: var(--admin-paper, #fffdf8); flex-shrink: 0; }
+.period-page-heading { display: flex; gap: 22px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.period-eyebrow { font-size: 11px; color: var(--admin-primary); letter-spacing: .1em; }
+.period-page-heading h2 { margin: 6px 0 8px; font-size: 27px; font-weight: 600; letter-spacing: -.5px; color: var(--admin-ink); }
+.period-page-heading p, .period-dialog-heading p { margin: 0; font-size: 12px; line-height: 1.7; color: var(--admin-ink-muted); }
+.period-list-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.period-list-heading strong { font-size: 14px; font-weight: 600; }
+.period-list-heading > span { font-size: 12px; color: var(--admin-ink-muted); }
+.period-list-card :deep(.el-card__body) { padding: 0; }
+.period-list-card :deep(.el-table__cell) { padding: 15px 0; }
+.period-identity { display: flex; flex-direction: column; gap: 7px; padding: 2px 0; }
+.period-name-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.period-name-line strong { font-size: 14px; font-weight: 600; color: var(--admin-ink); }
+.period-row-description { font-size: 12px; color: var(--admin-ink-muted); line-height: 1.6; overflow-wrap: anywhere; }
+.period-cell-stack { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.period-cell-stack small { font-size: 11px; color: var(--admin-ink-muted); }
+.period-price { font-size: 14px; color: var(--admin-primary-dark); font-weight: 600; }
+.choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; }
+.choice-card { appearance: none; border: 1px solid var(--admin-paper-border, #dfe6db); border-radius: 12px; background: var(--admin-paper, #fffdf8); color: var(--admin-ink, #243329); padding: 15px; text-align: left; cursor: pointer; transition: .2s ease; }
+.choice-card:hover, .choice-card.selected { border-color: var(--admin-primary, #5b7f4a); background: var(--admin-primary-soft, #eef3eb); box-shadow: 0 6px 16px var(--admin-primary-alpha-08, rgba(91,127,74,.08)); }
+.choice-card strong, .choice-card span { display: block; }.choice-card strong { font-size: 13px; margin-bottom: 6px; }.choice-card span { color: var(--admin-ink-muted, #788478); font-size: 11px; line-height: 1.6; }.form-help, .price-note { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; color: var(--admin-ink-muted, #788478); font-size: 11px; line-height: 1.6; }.price-note { flex-direction: column; gap: 2px; }.price-note .paid { color: var(--admin-primary-dark, #536f4b); font-weight: 600; }.price-note .free { color: #6d8065; font-weight: 600; }
+.period-switches { display: flex; flex-direction: column; gap: 5px; }
+.period-switches label { display: flex; gap: 9px; align-items: center; font-size: 11px; color: var(--admin-ink-soft); }
+.period-dialog-heading { padding-right: 36px; }
+.period-dialog-title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.period-template-shortcut { color: var(--admin-primary); font-size: 12px; flex-shrink: 0; }
+.period-enrollment-reminder { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--admin-ink-muted); font-size: 12px; }
+.period-enrollment-reminder .el-button { color: var(--admin-primary); font-size: 12px; }
+.period-dialog-heading h2 { font-size: 22px; font-weight: 600; letter-spacing: -.4px; line-height: 1.4; margin: 5px 0 6px; }
+.period-form-section { padding: 22px 28px; border-bottom: 1px solid var(--admin-paper-divider, #e9ece4); }
+.period-form-section:last-child { border-bottom: 0; }
+.period-form-section h3 { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--admin-ink); margin: 0 0 18px; }
+.period-form-section h3 span { color: var(--admin-primary); font-size: 11px; font-variant-numeric: tabular-nums; }
+.period-form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.period-form-wide { grid-column: 1 / -1; }
+.period-editor-form :deep(.el-form-item) { margin-bottom: 0; min-width: 0; }
+.period-editor-form :deep(.el-form-item__label), .period-copy-form :deep(.el-form-item__label) { height: auto; line-height: 1.6; font-size: 12px; margin-bottom: 8px; font-weight: 500; }
+.period-editor-form :deep(.el-form-item__content) { gap: 4px; }
+.period-editor-form :deep(.el-input__wrapper), .period-copy-form :deep(.el-input__wrapper) { min-height: 38px; }
+.period-editor-form :deep(.el-input-number), .period-copy-form :deep(.el-input-number) { width: 100%; }
+.period-editor-form :deep(.el-color-picker) { width: 42px !important; }
+.period-editor-form :deep(.el-color-picker__trigger) { width: 38px; height: 38px; }
+.period-dialog-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.period-dialog-footer > span { color: var(--admin-ink-muted); font-size: 12px; }
+.period-copy-form { padding: 4px 28px 24px; }
+.period-copy-dialog :deep(.el-alert) { width: calc(100% - 56px); margin: 20px 28px 12px !important; }
+@media (max-width: 800px) {
+  .period-page-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .action-bar { gap: 8px; flex-wrap: wrap; }
+  .action-bar .el-button + .el-button { margin-left: 0; }
+  .periods-container { padding: 12px; }
+}
+@media (max-width: 540px) {
+  .period-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .choice-grid { grid-template-columns: 1fr; }
+  .period-form-wide { grid-column: 1; }
+  .period-form-section { padding: 20px 18px; }
+  :global(.period-editor-dialog .el-dialog__header), :global(.period-copy-dialog .el-dialog__header), :global(.period-editor-dialog .el-dialog__footer), :global(.period-copy-dialog .el-dialog__footer) { padding: 16px 18px !important; }
+  .period-dialog-footer > span { display: none; }
+  .period-dialog-footer { justify-content: flex-end; }
+}
+
 .periods-container {
   padding: 24px;
 }
@@ -1155,6 +1248,7 @@ function getStatusType(status: string): string {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+  padding: 0 20px 20px;
 }
 
 /* 统一表格行高 */

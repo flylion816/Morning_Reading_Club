@@ -150,7 +150,7 @@
 /* Tab切换区域 */
 .tabs-container {
   background: white;
-  border-bottom: 2rpx solid #f0f0f0;
+  border-bottom: 2rpx solid var(--app-border);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -169,7 +169,7 @@
   padding: 24rpx 0;
   position: relative;
   font-size: 28rpx;
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .tab-item.active {
@@ -203,11 +203,11 @@
   padding: 32rpx;
   margin-bottom: 24rpx;
   font-size: 28rpx;
-  color: #333;
+  color: var(--app-text);
 }
 
 .makeup-text {
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .makeup-count {
@@ -243,7 +243,7 @@
   min-width: 0;
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--app-text);
   line-height: 1.45;
 }
 
@@ -264,7 +264,7 @@
 
 .section-time {
   font-size: 24rpx;
-  color: #999;
+  color: var(--app-text-muted);
   margin-bottom: 24rpx;
   line-height: 1.5;
 }
@@ -279,7 +279,7 @@
 
 .checkin-info {
   font-size: 26rpx;
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .btn-action {
@@ -339,7 +339,7 @@
 .loading-text {
   margin-top: 24rpx;
   font-size: 26rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
 }
 
 /* 空状态 */
@@ -359,7 +359,7 @@
 
 .empty-state-text {
   font-size: 28rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
 }
 
 
@@ -378,12 +378,12 @@
 .checkins-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--app-text);
 }
 
 .checkins-count {
   font-size: 24rpx;
-  color: #999;
+  color: var(--app-text-muted);
   margin-left: 8rpx;
 }
 
@@ -446,12 +446,12 @@
 .checkin-user {
   font-size: 28rpx;
   font-weight: 500;
-  color: #333;
+  color: var(--app-text);
 }
 
 .checkin-time {
   font-size: 22rpx;
-  color: #999;
+  color: var(--app-text-muted);
   flex-shrink: 0;
 }
 
@@ -466,14 +466,14 @@
 
 .checkin-section-title {
   font-size: 24rpx;
-  color: #666;
+  color: var(--app-text-soft);
   margin-bottom: 12rpx;
   line-height: 1.5;
 }
 
 .checkin-content {
   font-size: 26rpx;
-  color: #555;
+  color: var(--app-text-soft);
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
@@ -562,7 +562,7 @@
 .course-search-input {
   flex: 1;
   font-size: 26rpx;
-  color: #333;
+  color: var(--app-text);
   height: 72rpx;
   line-height: 72rpx;
 }

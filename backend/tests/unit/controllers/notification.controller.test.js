@@ -187,7 +187,7 @@ describe('Notification Controller', () => {
         userId,  // 使用字符串形式的 userId
         title: '通知',
         isRead: false,
-        toString: function() { return this.userId; },  // 提供 toString 方法
+        toString() { return this.userId; },  // 提供 toString 方法
         toObject: sandbox.stub().returns({
           _id: notificationId,
           userId,
@@ -206,7 +206,7 @@ describe('Notification Controller', () => {
     });
 
     it('应该返回403当删除他人的通知', async () => {
-      const userId = req.user.userId;
+      const {userId} = req.user;
       const otherUserId = new mongoose.Types.ObjectId().toString();
       const notificationId = new mongoose.Types.ObjectId();
       req.params = { notificationId };
@@ -238,7 +238,7 @@ describe('Notification Controller', () => {
 
   describe('deleteAllNotifications', () => {
     it('应该删除所有通知', async () => {
-      const userId = req.user.userId;
+      const {userId} = req.user;
 
       const mockNotifications = [
         {
@@ -279,7 +279,7 @@ describe('Notification Controller', () => {
         isArchived: false,
         archivedAt: null,
         save: sandbox.stub().resolves(),
-        toString: function() { return this.userId; },
+        toString() { return this.userId; },
         toObject: sandbox.stub().returnsThis()
       };
 
@@ -305,7 +305,7 @@ describe('Notification Controller', () => {
 
   describe('getArchivedNotifications', () => {
     it('应该返回已归档的通知列表', async () => {
-      const userId = req.user.userId;
+      const {userId} = req.user;
       req.query = { page: 1, limit: 20 };
 
       const mockArchivedNotifications = [

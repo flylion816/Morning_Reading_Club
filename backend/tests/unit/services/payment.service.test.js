@@ -389,10 +389,10 @@ describe('Payment Service', () => {
     // 服务层测试24: 敏感信息处理
     it('应该不在日志中记录完整的交易ID', async () => {
       const payment = fixtures.testPayments.completedPayment;
-      const transactionId = payment.wechat.transactionId;
+      const {transactionId} = payment.wechat;
 
       // 验证交易ID不被完全记录
-      const maskedId = transactionId.substring(0, 3) + '***' + transactionId.substring(transactionId.length - 3);
+      const maskedId = `${transactionId.substring(0, 3)  }***${  transactionId.substring(transactionId.length - 3)}`;
 
       expect(maskedId).to.not.equal(transactionId);
     });
@@ -409,7 +409,7 @@ describe('Payment Service', () => {
 
     // 服务层测试26: 通过订单号查询支付
     it('应该能通过订单号快速查询支付', async () => {
-      const orderNo = fixtures.testPayments.pendingPayment.orderNo;
+      const {orderNo} = fixtures.testPayments.pendingPayment;
 
       Payment.findOne.withArgs({ orderNo }).resolves(fixtures.testPayments.pendingPayment);
 

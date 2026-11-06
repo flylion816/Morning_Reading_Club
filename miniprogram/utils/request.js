@@ -13,7 +13,6 @@ const ENABLE_TENANT_REQUEST_LOG = false;
 
 class Request {
   constructor() {
-    this.baseURL = currentTenant.apiBaseUrl || envConfig.apiBaseUrl;
     this.timeout = constants.REQUEST_TIMEOUT;
     this.header = {
       'Content-Type': 'application/json'
@@ -21,6 +20,12 @@ class Request {
     // Token 刷新管理
     this.isRefreshing = false; // 防止并发刷新
     this.requestQueue = []; // 等待刷新完成的请求队列
+  }
+
+  getBaseURL() {
+    // env.js can be switched by the local startup script while the mini-program
+    // process retains modules. Resolve it per request instead of caching prod.
+    return currentTenant.apiBaseUrl || envConfig.apiBaseUrl;
   }
 
   /**
@@ -50,7 +55,8 @@ class Request {
     const requestHeader = {
       ...this.header,
       ...header,
-      'X-Wx-AppId': currentTenant.wxAppId
+      'X-Wx-AppId': currentTenant.wxAppId,
+      'X-Course-Template-Version': '1'
     };
 
     // 公开端点不需要token（避免旧token干扰）
@@ -67,7 +73,7 @@ class Request {
       }
     }
 
-    const requestUrl = `${this.baseURL}${url}`;
+    const requestUrl = `${this.getBaseURL()}${url}`;
 
     if (ENABLE_TENANT_REQUEST_LOG) {
       logger.debug('[TENANT-REQUEST]', method, url, {
@@ -164,34 +170,67 @@ class Request {
       }
       reject(data);
     }
-    // 403 禁止访问
+    // 403 禁止访问：账号被禁用/令牌失效需要重新登录，其余展示后端给出的原因
     else if (statusCode === 403) {
-      if (!originalOptions.suppressError) {
-        this.showError('没有权限访问');
+      const message = (data && data.message) || '没有权限访问';
+      // 登录接口本身被拒（如账号已禁用）时由登录页展示原因，不再跳回登录页
+      const isAuthEndpoint = ['/auth/wechat/login', '/auth/refresh'].some((endpoint) =>
+        originalOptions.url.includes(endpoint)
+      );
+      if (!isAuthEndpoint && this.requiresRelogin(message)) {
+        this.handleAuthError({ silent: true });
+        this.showError(message);
+      } else if (!originalOptions.suppressError) {
+        this.showError(message);
       }
-      reject(res);
+      reject(this.buildHttpError(res, message));
     }
     // 404 未找到
     else if (statusCode === 404) {
+      const message = (data && data.message) || '请求的资源不存在';
       if (!originalOptions.suppressError) {
-        this.showError('请求的资源不存在');
+        this.showError(message);
       }
-      reject(res);
+      reject(this.buildHttpError(res, message));
     }
-    // 500 服务器错误
+    // 500 服务器错误（不透出服务端内部信息）
     else if (statusCode >= 500) {
+      const message = '服务器错误,请稍后重试';
       if (!originalOptions.suppressError) {
-        this.showError('服务器错误,请稍后重试');
+        this.showError(message);
       }
-      reject(res);
+      reject(this.buildHttpError(res, message));
     }
     // 其他错误
     else {
+      const message = (data && data.message) || '请求失败';
       if (!originalOptions.suppressError) {
-        this.showError(data.message || '请求失败');
+        this.showError(message);
       }
-      reject(res);
+      reject(this.buildHttpError(res, message));
     }
+  }
+
+  /**
+   * HTTP 错误对象：保留原 wx 响应字段（statusCode/data/header），
+   * 并补上 message/code，页面可直接用 err.message 拿到后端原因。
+   */
+  buildHttpError(res, message) {
+    const data = (res && res.data) || {};
+    return {
+      ...res,
+      code: data.code !== undefined ? data.code : res.statusCode,
+      message
+    };
+  }
+
+  /**
+   * 这些 403 表示当前登录态已不可用，需要清除并重新登录
+   */
+  requiresRelogin(message) {
+    return ['重新登录', '用户已被禁用', '用户已被删除'].some((keyword) =>
+      String(message || '').includes(keyword)
+    );
   }
 
   /**
@@ -397,7 +436,7 @@ class Request {
 
     return new Promise((resolve, reject) => {
       wx.uploadFile({
-        url: `${this.baseURL}${url}`,
+        url: `${this.getBaseURL()}${url}`,
         filePath,
         name: 'file',
         formData,

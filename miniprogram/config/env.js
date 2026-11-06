@@ -10,7 +10,7 @@
 
 // 当前环境 ('dev' | 'test' | 'prod')
 // 📌 生产发布前必须为 prod
-const currentEnv = 'prod';
+const currentEnv = 'prod'; // 生产发布配置
 
 const envConfig = {
   // 开发环境（连本地后端）

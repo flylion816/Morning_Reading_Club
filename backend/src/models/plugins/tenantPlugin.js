@@ -150,7 +150,7 @@ function tenantPlugin(schema) {
     }
   });
 
-  schema.pre('insertMany', function (next, docs) {
+  schema.pre('insertMany', (next, docs) => {
     try {
       if (shouldBypassFilter()) return next();
       const tenantId = requireTenant('insertMany');

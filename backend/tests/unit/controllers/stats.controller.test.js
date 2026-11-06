@@ -222,7 +222,7 @@ describe('Stats Controller', () => {
 
   describe('getCheckinStats', () => {
     it('应该返回用户打卡统计数据', async () => {
-      const userId = req.user.userId;
+      const {userId} = req.user;
       const periodId = new mongoose.Types.ObjectId().toString();
       req.query = { periodId };
 

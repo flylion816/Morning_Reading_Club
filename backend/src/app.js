@@ -15,6 +15,8 @@ const authRoutes = require('./routes/auth.routes');
 const monitoringRoutes = require('./routes/monitoring.routes');
 const userRoutes = require('./routes/user.routes');
 const periodRoutes = require('./routes/period.routes');
+const courseTemplateRoutes = require('./routes/course-template.routes');
+const enrollmentTemplateRoutes = require('./routes/enrollment-template.routes');
 const sectionRoutes = require('./routes/section.routes');
 const checkinRoutes = require('./routes/checkin.routes');
 const insightRoutes = require('./routes/insight.routes');
@@ -48,8 +50,23 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors(getCorsOptions()));
 app.use(compression());
-const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
-app.use(morgan(morganFormat));
+morgan.token('safe-url', req => String(req.originalUrl || '/').split('?')[0]);
+morgan.token('safe-referrer-origin', req => {
+  try { return new URL(req.get('referer')).origin; } catch (_) { return '-'; }
+});
+morgan.token('safe-user-agent', req => String(req.get('user-agent') || '-')
+  .replace(/[\r\n\u2028\u2029]/g, ' ')
+  .split('')
+  .filter(character => {
+    const code = character.charCodeAt(0);
+    return code >= 0x20 && code !== 0x7f;
+  })
+  .join('')
+  .slice(0, 240));
+const safeMorganFormat = process.env.NODE_ENV === 'production'
+  ? ':remote-addr :remote-user [:date[iso]] ":method :safe-url HTTP/:http-version" :status :res[content-length] ":safe-referrer-origin" ":safe-user-agent"'
+  : 'dev';
+app.use(morgan(safeMorganFormat));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.text({ type: ['text/xml', 'application/xml'] }));
@@ -84,6 +101,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', adminRoutes); // Admin routes (auth endpoints are here)
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/periods', periodRoutes);
+app.use('/api/v1/course-templates', courseTemplateRoutes);
+app.use('/api/v1/enrollment-templates', enrollmentTemplateRoutes);
 app.use('/api/v1/sections', sectionRoutes);
 app.use('/api/v1/checkins', checkinRoutes);
 app.use('/api/v1/insights', insightRoutes);

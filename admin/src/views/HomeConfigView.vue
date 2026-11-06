@@ -6,7 +6,7 @@
           <div class="card-header">
             <span>首页板块顺序</span>
             <div class="header-actions">
-              <el-button @click="resetDefault" :disabled="loading || saving">恢复默认</el-button>
+              <el-button :disabled="loading || saving" @click="resetDefault">恢复默认</el-button>
               <el-button type="primary" :loading="saving" @click="saveConfig">保存</el-button>
             </div>
           </div>

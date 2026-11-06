@@ -29,7 +29,7 @@
       </template>
     </el-dialog>
 
-    <div class="database-view" v-if="verified">
+    <div v-if="verified" class="database-view">
       <!-- 页面标题 -->
       <div class="header">
         <h1>🗄️ 数据库管理</h1>
@@ -362,11 +362,12 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
 import { authApi, backupApi } from '../services/api';
+import { buildMaintenanceRecordPatch } from '../utils/maintenanceRecordPatch';
 
 // 二次认证状态
 const router = useRouter();
@@ -380,12 +381,10 @@ const authForm = ref({
 // MongoDB 集合列表
 const mongoTables = [
   'users',
-  'admins',
   'periods',
   'sections',
   'checkins',
   'enrollments',
-  'payments',
   'insights',
   'insight_requests',
   'comments',
@@ -395,12 +394,10 @@ const mongoTables = [
 // MySQL 表列表
 const mysqlTables = [
   'users',
-  'admins',
   'periods',
   'sections',
   'checkins',
   'enrollments',
-  'payments',
   'insights',
   'insight_likes',
   'insight_requests',
@@ -441,6 +438,7 @@ const viewDialogVisible = ref(false);
 const editDialogVisible = ref(false);
 const viewRecord = ref<any>(null);
 const editRecord = ref<any>(null);
+const editOriginalRecord = ref<any>(null);
 const savingRecord = ref(false);
 const READONLY_FIELDS = ['_id', '__v', 'createdAt', 'updatedAt'];
 
@@ -490,9 +488,21 @@ function handleCancelAuth() {
   });
 }
 
+function handleMaintenanceProofExpired() {
+  verified.value = false;
+  showAuthDialog.value = true;
+  authForm.value.password = '';
+  ElMessage.warning('数据库维护授权已过期，请重新验证');
+}
+
 onMounted(() => {
   // 页面加载时，自动显示认证对话框
   showAuthDialog.value = true;
+  window.addEventListener('admin-maintenance-expired', handleMaintenanceProofExpired);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('admin-maintenance-expired', handleMaintenanceProofExpired);
 });
 
 // 加载 MongoDB 统计信息
@@ -710,18 +720,21 @@ async function handleFullSync() {
 // 全量恢复
 async function handleFullRecover() {
   try {
-    await ElMessageBox.confirm(
-      '此操作将从 MySQL 恢复所有数据到 MongoDB，覆盖现有 MongoDB 数据。是否继续？',
-      '警告',
+    const { value: confirmation } = await ElMessageBox.prompt(
+      '此操作会覆盖 MongoDB 中的多表数据。请输入 RESTORE ALL DATA 确认。',
+      '全量恢复需要二次确认',
       {
         confirmButtonText: '继续恢复',
         cancelButtonText: '取消',
+        inputPlaceholder: 'RESTORE ALL DATA',
+        inputPattern: /^RESTORE ALL DATA$/,
+        inputErrorMessage: '请输入 RESTORE ALL DATA',
         type: 'warning'
       }
     );
 
     recovering.value = true;
-    const response = await backupApi.recoverFull();
+    const response = await backupApi.recoverFull(confirmation);
 
     if (response?.recoverResults && response?.totalRecovered) {
       const recoverResults = response.recoverResults;
@@ -787,6 +800,7 @@ function handleViewRecord(row: any) {
 function handleEditRecord(row: any) {
   // 深拷贝，避免直接修改表格数据
   editRecord.value = JSON.parse(JSON.stringify(row));
+  editOriginalRecord.value = JSON.parse(JSON.stringify(row));
   editDialogVisible.value = true;
 }
 
@@ -810,10 +824,19 @@ async function handleDeleteRecord(row: any) {
 async function handleSaveRecord() {
   savingRecord.value = true;
   try {
+    const changes = buildMaintenanceRecordPatch(
+      editRecord.value || {},
+      editOriginalRecord.value || {},
+      READONLY_FIELDS
+    );
+    if (Object.keys(changes).length === 0) {
+      ElMessage.info('没有检测到字段变化');
+      return;
+    }
     await backupApi.updateMongodbRecord(
       selectedMongoTable.value,
       editRecord.value._id,
-      editRecord.value
+      changes
     );
     ElMessage.success('保存成功，已异步同步到 MySQL');
     editDialogVisible.value = false;
@@ -880,7 +903,7 @@ defineExpose({ initPage });
 }
 
 .subtitle {
-  color: #666;
+  color: var(--admin-ink-soft);
   font-size: 14px;
 }
 
@@ -943,14 +966,14 @@ defineExpose({ initPage });
 .empty-tip {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--admin-ink-muted);
   font-size: 14px;
 }
 
 .loading-tip {
   text-align: center;
   padding: 40px 20px;
-  color: #666;
+  color: var(--admin-ink-soft);
   font-size: 14px;
 }
 
@@ -966,14 +989,14 @@ defineExpose({ initPage });
 }
 
 .auth-tip {
-  color: #606266;
+  color: var(--admin-ink-soft);
   font-size: 13px;
   margin-bottom: 20px;
   line-height: 1.6;
 }
 
 .readonly-text {
-  color: #999;
+  color: var(--admin-ink-muted);
   font-style: italic;
 }
 </style>

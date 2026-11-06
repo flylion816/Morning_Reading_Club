@@ -17,7 +17,12 @@ jest.mock('../../services/checkin.service', () => ({
 
 jest.mock('../../services/course.service', () => ({
   getCourseDetail: jest.fn(),
-  getPeriods: jest.fn()
+  getPeriods: jest.fn(),
+  getPeriodSections: jest.fn()
+}));
+
+jest.mock('../../services/enrollment.service', () => ({
+  getUserEnrollments: jest.fn()
 }));
 
 jest.mock('../../services/activity.service', () => ({
@@ -43,6 +48,7 @@ describe('checkin page', () => {
   let pageInstance;
   let checkinService;
   let courseService;
+  let enrollmentService;
   let periodAccess;
 
   beforeEach(() => {
@@ -68,6 +74,7 @@ describe('checkin page', () => {
 
     checkinService = require('../../services/checkin.service');
     courseService = require('../../services/course.service');
+    enrollmentService = require('../../services/enrollment.service');
     periodAccess = require('../../utils/period-access');
     require('../../pages/checkin/checkin');
 
@@ -87,6 +94,8 @@ describe('checkin page', () => {
     checkinService.getCheckinDetail.mockReset();
     checkinService.uploadCheckinImage.mockReset();
     courseService.getCourseDetail.mockReset();
+    courseService.getPeriodSections.mockReset();
+    enrollmentService.getUserEnrollments.mockReset();
     periodAccess.getPeriodAccess.mockClear();
     periodAccess.redirectAfterCommunityDenied.mockClear();
     courseService.getCourseDetail.mockResolvedValue({
@@ -98,6 +107,7 @@ describe('checkin page', () => {
     wx.showLoading.mockClear();
     wx.hideLoading.mockClear();
     wx.navigateBack.mockClear();
+    wx.redirectTo.mockClear();
     wx.previewImage.mockClear();
     wx.chooseMedia = jest.fn();
     wx.enableAlertBeforeUnload = jest.fn();
@@ -110,6 +120,56 @@ describe('checkin page', () => {
     if (pageInstance?._pageRevealTimer) clearTimeout(pageInstance._pageRevealTimer);
     delete global.Page;
     delete global.getApp;
+  });
+
+  test('defaults to the current period and lesson and can switch to another enrolled period', async () => {
+    enrollmentService.getUserEnrollments.mockResolvedValue({ list: [
+      { periodId: 'other', periodTitle: '另一课程', status: 'active', paymentStatus: 'paid' },
+      { periodId: 'current', periodTitle: '当前期次', status: 'active', paymentStatus: 'free' },
+      { periodId: 'pending', periodTitle: '未支付', status: 'active', paymentStatus: 'pending' }
+    ], totalPages: 1 });
+    courseService.getPeriodSections.mockImplementation(async id => id === 'current'
+      ? [{ _id: 'day0', day: 0, title: '序课' }, { _id: 'today', day: 1, title: '今日课程' }]
+      : [{ _id: 'other1', day: 1, title: '另一课' }, { _id: 'other2', day: 2, title: '第二课' }]);
+
+    await pageInstance.onLoad.call(pageInstance, { select: '1', periodId: 'current', sectionId: 'today' });
+    expect(pageInstance.data.selectablePeriods.map(item => item.id)).toEqual(['other', 'current']);
+    expect(pageInstance.data.selectedPeriodIndex).toBe(1);
+    expect(pageInstance.data.selectableSections[pageInstance.data.selectedSectionIndex].id).toBe('today');
+    pageInstance.handleCheckinPeriodChange.call(pageInstance, { detail: { value: '0' } });
+    await new Promise(resolve => setImmediate(resolve));
+    pageInstance.handleCheckinSectionChange.call(pageInstance, { detail: { value: '1' } });
+    pageInstance.startSelectedCheckin.call(pageInstance);
+    expect(wx.redirectTo).toHaveBeenCalledWith({
+      url: '/pages/checkin/checkin?periodId=other&sectionId=other2'
+    });
+  });
+
+  test('shows an empty state when there is no eligible enrollment', async () => {
+    enrollmentService.getUserEnrollments.mockResolvedValue({ list: [
+      { periodId: 'pending', status: 'active', paymentStatus: 'pending' }
+    ] });
+    await pageInstance.onLoad.call(pageInstance, { select: '1' });
+    expect(pageInstance.data.selectablePeriods).toEqual([]);
+    expect(pageInstance.data.selectionLoading).toBe(false);
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    pageInstance.startSelectedCheckin.call(pageInstance);
+    expect(wx.redirectTo).not.toHaveBeenCalled();
+  });
+
+  test('clears old lessons and reports an error when switching periods fails', async () => {
+    enrollmentService.getUserEnrollments.mockResolvedValue({ list: [
+      { periodId: 'first', status: 'active', paymentStatus: 'paid' },
+      { periodId: 'second', status: 'active', paymentStatus: 'paid' }
+    ] });
+    courseService.getPeriodSections.mockResolvedValueOnce([{ _id: 'lesson', title: '课程', day: 1 }])
+      .mockRejectedValueOnce(new Error('network error'));
+    await pageInstance.onLoad.call(pageInstance, { select: '1' });
+    pageInstance.handleCheckinPeriodChange.call(pageInstance, { detail: { value: '1' } });
+    await new Promise(resolve => setImmediate(resolve));
+    expect(pageInstance.data.selectableSections).toEqual([]);
+    expect(pageInstance.data.selectionError).toBe('课程加载失败，请重试');
+    expect(wx.redirectTo).not.toHaveBeenCalled();
   });
 
   test('should clamp diary input to 3000 characters', () => {

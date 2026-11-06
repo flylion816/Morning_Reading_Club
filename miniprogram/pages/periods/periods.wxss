@@ -95,19 +95,19 @@
 .user-card-nickname {
   font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-text);
 }
 
 .user-signature {
   padding: 12rpx;
-  background: #f9fafb;
+  background: var(--app-surface-muted);
   border-left: 4rpx solid var(--theme-primary);
   border-radius: 8rpx;
 }
 
 .signature-text {
   font-size: 24rpx;
-  color: #666;
+  color: var(--app-text-soft);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -274,7 +274,7 @@
   text-align: center;
   padding: 40rpx 0;
   font-size: 26rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
 }
 
 .no-more {
@@ -304,7 +304,7 @@
 
 .empty-state-text {
   font-size: 28rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
 }
 
 /* 期次包装器 - 可点击 */

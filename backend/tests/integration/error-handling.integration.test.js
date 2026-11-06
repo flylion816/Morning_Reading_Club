@@ -7,6 +7,7 @@ const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+
 const TEST_WX_APPID = 'wx199d6d332344ed0a';
 const { withSystemContext } = require('../../src/utils/tenantContext');
 
@@ -30,7 +31,16 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
     }
 
     User = require('../../src/models/User');
+    const Tenant = require('../../src/models/Tenant');
     app = require('../../src/server');
+
+    await withSystemContext(null, async () => {
+      await Tenant.findOneAndUpdate(
+        { slug: 'test-tenant' },
+        { slug: 'test-tenant', name: '测试租户', wxAppIds: [TEST_WX_APPID], status: 'active' },
+        { upsert: true, new: true }
+      );
+    });
   });
 
   after(async function() {
@@ -305,6 +315,8 @@ describe('Error Handling Integration - 错误处理和数据验证', () => {
 
       const userToken = userRes.body.data.accessToken;
       const userId = userRes.body.data.user._id;
+      // 小程序侧创建小凡看见只开放给小程序管理员，先提权才能测到"给自己"校验
+      await withSystemContext(null, () => User.updateOne({ _id: userId }, { $set: { role: 'admin' } }).exec());
 
       // 创建期次
       const Period = require('../../src/models/Period');

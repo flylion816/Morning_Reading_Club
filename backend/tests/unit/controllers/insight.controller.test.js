@@ -1798,7 +1798,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
         lean: sandbox.stub().returnsThis(),
         exec: sandbox.stub().resolves(mockInsights),
         // Make the chain directly awaitable (Thenable pattern)
-        then: function(onFulfilled, onRejected) {
+        then(onFulfilled, onRejected) {
           return Promise.resolve(mockInsights).then(onFulfilled, onRejected);
         }
       };

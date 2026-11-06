@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const ctrl = require('../controllers/communityActivity.controller');
 const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');

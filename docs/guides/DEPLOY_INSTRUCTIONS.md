@@ -27,15 +27,15 @@
 
 ### 密码速查表
 
-**⚠️ 所有密码来自 `.env.config.js`，不应手工编辑。参考第二部分《环境配置管理》了解如何修改密码。**
+**⚠️ 所有密码来自外部密钥管理或部署环境注入，不应手工编辑。参考第二部分《环境配置管理》了解如何修改密码。**
 
 | 服务               | 用户    | 密码                    | 说明                          |
 | ------------------ | ------- | ---------------------- | ----------------------------- |
-| **MongoDB**        | admin   | ProdMongodbSecure123   | 从 .env.config.js → prod      |
-| **MySQL root**     | root    | L55PWzePtXYPNkn7       | 从 .env.config.js → prod      |
-| **MySQL app**      | root    | L55PWzePtXYPNkn7       | Docker 中使用 root 用户       |
-| **Redis**          | —       | Redis@Prod@User0816!   | 从 .env.config.js → prod      |
-| **管理员登录**     | admin@morningreading.com | admin123456      | 初始化脚本自动创建           |
+| **MongoDB**        | admin   | REDACTED_SECRET_FROM_ENV   | 从密钥管理服务或部署环境注入      |
+| **MySQL root**     | root    | REDACTED_SECRET_FROM_ENV       | 从密钥管理服务或部署环境注入      |
+| **MySQL app**      | root    | REDACTED_SECRET_FROM_ENV       | Docker 中使用 root 用户       |
+| **Redis**          | —       | <从密钥管理服务读取>   | 从密钥管理服务或部署环境注入      |
+| **管理员登录**     | admin@morningreading.com | <从密钥管理服务读取>      | 初始化脚本自动创建           |
 
 ### 服务器信息
 
@@ -559,7 +559,7 @@ curl -X POST https://wx.shubai01.com/api/v1/auth/admin/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@morningreading.com",
-    "password": "Km7$Px2Qw9"
+    "password": "REDACTED_SECRET_FROM_ENV"
   }'
 
 # 期望返回登录成功和 token
@@ -597,7 +597,7 @@ bash scripts/setup-prod-server.sh
 
 ```bash
 # 检查 MongoDB 连接
-mongosh -u admin -p p62CWhV0Kd1Unq --eval "db.runCommand({ping:1})"
+mongosh -u admin -p <MONGODB_PASSWORD_FROM_SECRET_MANAGER> --eval "db.runCommand({ping:1})"
 
 # 检查后端日志
 pm2 logs morning-reading-backend
@@ -804,9 +804,9 @@ ssh ubuntu@118.25.145.179 "pm2 logs morning-reading-backend --lines 20"
 
 | 用途                    | 密码                   |
 | ----------------------- | ---------------------- |
-| MongoDB 用户 admin      | p62CWhV0Kd1Unq         |
-| MySQL 用户 morning_user | Morning@Prod@User0816! |
-| Redis                   | Redis@Prod@User0816!   |
+| MongoDB 用户 admin      | <MONGODB_PASSWORD_FROM_SECRET_MANAGER>         |
+| MySQL 用户 morning_user | <MYSQL_PASSWORD_FROM_SECRET_MANAGER> |
+| Redis                   | <从密钥管理服务读取>   |
 
 ### 更新密码
 
@@ -838,8 +838,8 @@ ssh ubuntu@118.25.145.179 "pm2 logs morning-reading-backend --lines 20"
 
 1. ✅ 检查 MongoDB 连接
 2. ✅ 备份 .env.production
-3. ✅ 更新管理员密码：Km7$Px2Qw9
-4. ✅ 更新数据库访问密码：Jb3#Rl8Tn5
+3. ✅ 更新管理员密码：REDACTED_SECRET_FROM_ENV
+4. ✅ 更新数据库访问密码：REDACTED_SECRET_FROM_ENV
 5. ✅ 验证配置
 
 ### 验证密码
@@ -852,7 +852,7 @@ curl -X POST https://wx.shubai01.com/api/v1/auth/admin/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@morningreading.com",
-    "password": "Km7$Px2Qw9"
+    "password": "REDACTED_SECRET_FROM_ENV"
   }'
 
 # 应该返回登录成功
@@ -867,7 +867,7 @@ TOKEN="从上面复制"
 curl -X POST https://wx.shubai01.com/api/v1/auth/admin/verify-db-access \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"password": "Jb3#Rl8Tn5"}'
+  -d '{"password": "REDACTED_SECRET_FROM_ENV"}'
 
 # 应该返回验证成功
 # {"code":0,"message":"验证成功","data":{"verified":true}}
@@ -1039,7 +1039,7 @@ docker logs morning-reading-mongodb-prod
 docker restart morning-reading-mongodb-prod
 
 # 测试连接
-mongosh -u admin -p p62CWhV0Kd1Unq --eval "db.runCommand({ping:1})"
+mongosh -u admin -p <MONGODB_PASSWORD_FROM_SECRET_MANAGER> --eval "db.runCommand({ping:1})"
 ```
 
 #### MySQL 连接失败
@@ -1056,7 +1056,7 @@ docker restart morning-reading-mysql-prod
 
 # 测试连接
 docker exec morning-reading-mysql-prod mysql -u morning_user \
-  -pMorning@Prod@User0816! -e "SELECT 1"
+  -p<MYSQL_PASSWORD_FROM_SECRET_MANAGER> -e "SELECT 1"
 ```
 
 #### Redis 连接失败
@@ -1069,7 +1069,7 @@ docker ps | grep redis
 docker restart morning-reading-redis-prod
 
 # 测试连接
-redis-cli -a Redis@Prod@User0816! ping
+redis-cli -a <从密钥管理服务读取> ping
 ```
 
 ### 问题 3：管理后台页面空白
@@ -1184,13 +1184,13 @@ docker ps | grep morning-reading
 
 ```javascript
 // MongoDB
-mongodb://admin:p62CWhV0Kd1Unq@127.0.0.1:27017/morning_reading
+mongodb://admin:CHANGE_ME@127.0.0.1:27017/morning_reading
 
 // MySQL
-mysql://morning_user:Morning@Prod@User0816!@127.0.0.1:3306/morning_reading
+mysql://morning_user:CHANGE_ME@127.0.0.1:3306/morning_reading
 
 // Redis
-redis://:Redis@Prod@User0816!@127.0.0.1:6379
+redis://:<从密钥管理服务读取>@127.0.0.1:6379
 ```
 
 ---

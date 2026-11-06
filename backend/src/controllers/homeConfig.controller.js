@@ -97,7 +97,7 @@ const getPublicHomeConfig = async (req, res) => {
 
 const getAdminHomeConfig = async (req, res) => {
   try {
-    if (!req._resolvedTenantId) {
+    if (!req.resolvedTenantId) {
       return res.status(400).json(errors.badRequest('请先选择租户'));
     }
     const config = await getOrCreateHomeConfig();
@@ -109,7 +109,7 @@ const getAdminHomeConfig = async (req, res) => {
 
 const updateAdminHomeConfig = async (req, res) => {
   try {
-    if (!req._resolvedTenantId) {
+    if (!req.resolvedTenantId) {
       return res.status(400).json(errors.badRequest('请先选择租户'));
     }
     const { sections } = req.body;

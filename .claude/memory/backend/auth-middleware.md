@@ -111,11 +111,11 @@ if (req.user) {
 
 ## 问题32：管理后台初始化密码不一致 (2025-12-01)
 
-**问题现象**：管理后台登录页面提示使用邮箱 `admin@morningreading.com` 和密码 `admin123456`，但登录时返回"邮箱或密码错误"
+**问题现象**：管理后台登录页面提示使用邮箱 `admin@morningreading.com` 和密码 `<从密钥管理服务读取>`，但登录时返回"邮箱或密码错误"
 
 **根本原因**：初始化超级管理员时使用的密码与文档/页面提示不一致
 
-- 页面提示：`admin123456`
+- 页面提示：`<从密钥管理服务读取>`
 - 初始化代码：`password123`
 - 两个密码不匹配导致登录失败
 
@@ -137,7 +137,7 @@ const superAdmin = new Admin({
 const superAdmin = new Admin({
   name: 'SuperAdmin',
   email: 'admin@morningreading.com',
-  password: 'admin123456', // 与文档/UI提示一致
+  password: '<从密钥管理服务读取>', // 与文档/UI提示一致
   role: 'superadmin',
   status: 'active'
 });
@@ -147,13 +147,14 @@ const superAdmin = new Admin({
 
 ```bash
 # 1. 重新初始化管理员（如果已有旧的）
-#    删除数据库中的 admins 集合，或者调用：
-#    POST /api/v1/admin/auth/admin/init
+#    不要删除 admins 集合，也不要调用已下线的公开初始化接口。
+#    首个平台管理员使用受控脚本 backend/scripts/init-superadmin.js；
+#    脚本检测到指定账号已存在时不会覆盖。
 
 # 2. 使用正确的凭证登录
 curl -X POST http://localhost:3000/api/v1/admin/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@morningreading.com","password":"admin123456"}'
+  -d '{"email":"admin@morningreading.com","password":"<从密钥管理服务读取>"}'
 
 # 3. 应该返回 200 状态码和有效的 token
 ```
@@ -171,8 +172,9 @@ curl -X POST http://localhost:3000/api/v1/admin/auth/admin/login \
 **防止再次发生**：
 
 ```javascript
-// 更好的做法：从环境变量读取
-const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123456';
+// 使用受控环境变量；缺少时立即失败，不使用硬编码默认密码。
+const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD;
+if (!defaultPassword) throw new Error('ADMIN_DEFAULT_PASSWORD is required');
 
 const superAdmin = new Admin({
   name: 'SuperAdmin',

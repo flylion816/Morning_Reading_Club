@@ -29,6 +29,7 @@ const ADMIN_ROLES = [
   'operator'
 ];
 const MAX_DANMAKU_CONTENT_LENGTH = 60;
+const MAX_MANUAL_INSIGHT_CONTENT_LENGTH = 50000;
 
 function countUnicodeChars(value) {
   const content = String(value || '');
@@ -689,7 +690,7 @@ function serializeInsightForViewer(insight, options = {}) {
 async function generateInsight(req, res, next) {
   try {
     const { checkinId } = req.body;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 验证打卡存在
     const checkin = await Checkin.findById(checkinId).populate('sectionId', 'title day');
@@ -812,12 +813,12 @@ async function getUserInsights(req, res, next) {
       // 查看自己的insights
       const orConditions = [
         { userId: targetUserId, ...baseQuery }, // 自己创建的
-        { targetUserId: targetUserId, ...baseQuery } // 分配给自己的
+        { targetUserId, ...baseQuery } // 分配给自己的
       ];
       query = { $or: orConditions };
     } else {
       // 查看他人的insights（只返回分配给他人的）
-      query = { targetUserId: targetUserId, ...baseQuery };
+      query = { targetUserId, ...baseQuery };
     }
 
     const total = await Insight.countDocuments(query);
@@ -973,7 +974,7 @@ async function getInsightDetail(req, res, next) {
 async function deleteInsight(req, res, next) {
   try {
     const { insightId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     const insight = await Insight.findById(insightId);
 
@@ -1066,6 +1067,10 @@ async function createInsightManual(req, res, next) {
     // 验证必填字段
     if (!periodId || !type || !mediaType || (!content && !imageUrl)) {
       return res.status(400).json(errors.badRequest('缺少必填字段'));
+    }
+
+    if (content && (typeof content !== 'string' || content.length > MAX_MANUAL_INSIGHT_CONTENT_LENGTH)) {
+      return res.status(400).json(errors.badRequest('内容过长'));
     }
 
     // 验证 mediaType
@@ -1330,7 +1335,7 @@ async function createInsightRequest(req, res, next) {
     }
 
     let finalPeriodId = periodId;
-    let finalInsightId = insightId || null;
+    const finalInsightId = insightId || null;
     let requestPeriodName = '';
     let requestInsightTitle = '';
     let requestInsightDay = null;
@@ -1502,7 +1507,7 @@ async function createInsightRequest(req, res, next) {
 // 获取收到的查看申请列表
 async function getReceivedRequests(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { status } = req.query;
 
     // 构建查询条件
@@ -1534,7 +1539,7 @@ async function getReceivedRequests(req, res, next) {
 // 获取发起的查看申请列表
 async function getSentRequests(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { status } = req.query;
 
     // 构建查询条件
@@ -1566,7 +1571,7 @@ async function getSentRequests(req, res, next) {
 // 检查与某个用户的小凡看见查看申请状态
 async function getRequestStatus(req, res, next) {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const targetUserId = req.params.userId;
 
     const allRequests = await InsightRequest.find({
@@ -1627,8 +1632,8 @@ async function getRequestStatus(req, res, next) {
 // 同意查看申请
 async function approveInsightRequest(req, res, next) {
   try {
-    const requestId = req.params.requestId;
-    const userId = req.user.userId;
+    const {requestId} = req.params;
+    const {userId} = req.user;
     let { periodId } = req.body;
 
     // 查找申请
@@ -1738,8 +1743,8 @@ async function approveInsightRequest(req, res, next) {
 // 拒绝查看申请
 async function rejectInsightRequest(req, res, next) {
   try {
-    const requestId = req.params.requestId;
-    const userId = req.user.userId;
+    const {requestId} = req.params;
+    const {userId} = req.user;
 
     // 查找申请
     const request = await InsightRequest.findById(requestId);
@@ -1940,7 +1945,7 @@ async function getInsightRequestsStats(req, res, next) {
 // 管理员同意申请
 async function adminApproveRequest(req, res, next) {
   try {
-    const requestId = req.params.requestId;
+    const {requestId} = req.params;
     const adminId = req.admin.id;
     const { periodId, adminNote } = req.body;
 
@@ -2026,7 +2031,7 @@ async function adminApproveRequest(req, res, next) {
 // 管理员拒绝申请
 async function adminRejectRequest(req, res, next) {
   try {
-    const requestId = req.params.requestId;
+    const {requestId} = req.params;
     const adminId = req.admin.id;
     const { adminNote } = req.body;
 
@@ -2099,8 +2104,8 @@ async function adminRejectRequest(req, res, next) {
 // 用户撤销已批准的权限
 async function revokeInsightRequest(req, res, next) {
   try {
-    const requestId = req.params.requestId;
-    const userId = req.user.userId;
+    const {requestId} = req.params;
+    const {userId} = req.user;
 
     // 查找申请
     const request = await InsightRequest.findById(requestId);
@@ -2180,7 +2185,7 @@ async function revokeInsightRequest(req, res, next) {
 // 管理员删除申请
 async function deleteInsightRequest(req, res, next) {
   try {
-    const requestId = req.params.requestId;
+    const {requestId} = req.params;
     const adminId = req.admin?.id || req.user?.userId;
     const { adminNote } = req.body;
 
@@ -2508,7 +2513,7 @@ async function likeInsight(req, res, next) {
   try {
     const { insightId } = req.params;
     const { action = 'like' } = req.body;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 验证小凡看见存在
     const insight = await Insight.findById(insightId);
@@ -2562,7 +2567,7 @@ async function likeInsight(req, res, next) {
 async function unlikeInsight(req, res, next) {
   try {
     const { insightId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
 
     // 验证小凡看见存在
     const insight = await Insight.findById(insightId);
@@ -2591,7 +2596,7 @@ async function unlikeInsight(req, res, next) {
 async function postDanmaku(req, res, next) {
   try {
     const { insightId } = req.params;
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { content, type = 'comment', scrollPercent = 0, color = '#4a90e2' } = req.body;
 
     if (!content || !content.trim()) {

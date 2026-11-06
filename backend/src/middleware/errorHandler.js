@@ -6,7 +6,7 @@ function errorHandler(err, req, res, next) {
   logger.error('Error:', {
     message: err.message,
     stack: err.stack,
-    url: req.url,
+    url: String(req.path || req.url || '/').split('?')[0],
     method: req.method
   });
 

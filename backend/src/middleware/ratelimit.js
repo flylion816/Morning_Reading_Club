@@ -1,7 +1,18 @@
+const crypto = require('crypto');
 const redisManager = require('../utils/redis');
 const { errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
+
+const testOnlyRateLimitBuckets = new Map();
+const ATOMIC_RATE_LIMIT_SCRIPT = [
+  'redis.call("ZREMRANGEBYSCORE", KEYS[1], 0, ARGV[1])',
+  'local count = redis.call("ZCARD", KEYS[1])',
+  'if count >= tonumber(ARGV[4]) then return {0, count} end',
+  'redis.call("ZADD", KEYS[1], ARGV[2], ARGV[3])',
+  'redis.call("EXPIRE", KEYS[1], tonumber(ARGV[5]))',
+  'return {1, count}'
+].join('\n');
 
 /**
  * API限流中间件
@@ -15,7 +26,8 @@ function rateLimitMiddleware(options = {}) {
     windowMs = 60000,
     maxRequests = 100,
     keyGenerator = null,
-    enabled = true
+    enabled = true,
+    failClosed = false
   } = options;
 
   return async (req, res, next) => {
@@ -31,12 +43,32 @@ function rateLimitMiddleware(options = {}) {
       const now = Date.now();
       const windowStart = now - windowMs;
 
-      await redisManager.zRemRangeByScore(key, 0, windowStart);
-      const requestCount = await redisManager.zCard(key);
+      let requestCount;
+      let requestAllowed = true;
+      if (failClosed && process.env.NODE_ENV === 'test' && (!redisManager.isConnected || !redisManager.client)) {
+        const recent = (testOnlyRateLimitBuckets.get(key) || []).filter(timestamp => timestamp > windowStart);
+        requestCount = recent.length;
+        requestAllowed = requestCount < maxRequests;
+        if (requestAllowed) recent.push(now);
+        testOnlyRateLimitBuckets.set(key, recent);
+      } else if (failClosed) {
+        if (!redisManager.isConnected || !redisManager.client) {
+          return res.status(503).json(errors.serverError('当前无法验证请求频率，请稍后重试'));
+        }
+        const result = await redisManager.client.eval(ATOMIC_RATE_LIMIT_SCRIPT, {
+          keys: [key],
+          arguments: [String(windowStart), String(now), `${now}-${crypto.randomUUID()}`, String(maxRequests), String(Math.ceil(windowMs / 1000))]
+        });
+        requestAllowed = Number(result[0]) === 1;
+        requestCount = Number(result[1]);
+      } else {
+        await redisManager.zRemRangeByScore(key, 0, windowStart);
+        requestCount = await redisManager.zCard(key);
+      }
 
-      if (requestCount >= maxRequests) {
+      if (!requestAllowed || requestCount >= maxRequests) {
         logger.warn('请求频率超限', {
-          key,
+          keyHash: crypto.createHash('sha256').update(key).digest('hex').slice(0, 12),
           current: requestCount,
           limit: maxRequests,
           userId: req.user?._id,
@@ -50,9 +82,13 @@ function rateLimitMiddleware(options = {}) {
         );
       }
 
-      const requestId = `${now}-${Math.random()}`;
-      await redisManager.zAdd(key, now, requestId);
-      await redisManager.expire(key, Math.ceil(windowMs / 1000));
+      if (!failClosed || !(process.env.NODE_ENV === 'test' && (!redisManager.isConnected || !redisManager.client))) {
+        if (!failClosed) {
+          const requestId = `${now}-${crypto.randomUUID()}`;
+          await redisManager.zAdd(key, now, requestId);
+          await redisManager.expire(key, Math.ceil(windowMs / 1000));
+        }
+      }
 
       res.set('X-RateLimit-Limit', String(maxRequests));
       res.set('X-RateLimit-Remaining', String(Math.max(0, maxRequests - requestCount - 1)));
@@ -60,7 +96,10 @@ function rateLimitMiddleware(options = {}) {
 
       next();
     } catch (error) {
-      logger.error('限流检查失败', error, { message: error.message });
+      logger.error('限流检查失败', { name: error.name, failClosed });
+      if (failClosed) {
+        return res.status(503).json(errors.serverError('当前无法验证请求频率，请稍后重试'));
+      }
       next();
     }
   };
@@ -103,7 +142,8 @@ const authIpRateLimit = rateLimitMiddleware({
   windowMs: 300000,
   maxRequests: 20,
   keyGenerator: (req) => `ratelimit:auth:ip:${req.ip}`,
-  enabled: true
+  enabled: true,
+  failClosed: true
 });
 
 // 认证端点第二层：wxAppId + IP 细粒度
@@ -117,18 +157,79 @@ const authRateLimit = rateLimitMiddleware({
       || 'unknown';
     return `ratelimit:auth:${wxAppId}:${req.ip}`;
   },
-  enabled: true
+  enabled: true,
+  failClosed: true
+});
+
+const adminLoginIpRateLimit = rateLimitMiddleware({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 20,
+  keyGenerator: req => `ratelimit:admin-login:ip:${req.ip}`,
+  failClosed: true
+});
+
+const adminLoginIdentityRateLimit = rateLimitMiddleware({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 8,
+  keyGenerator: req => {
+    const normalizedEmail = String(req.body?.email || '').trim().toLowerCase();
+    const identityHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex').slice(0, 24);
+    return `ratelimit:admin-login:identity:${req.ip}:${identityHash}`;
+  },
+  failClosed: true
+});
+
+const adminRefreshIpRateLimit = rateLimitMiddleware({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 30,
+  keyGenerator: req => `ratelimit:admin-refresh:ip:${req.ip}`,
+  failClosed: true
+});
+
+const adminMaintenanceRateLimit = rateLimitMiddleware({
+  windowMs: 60 * 1000,
+  maxRequests: 120,
+  keyGenerator: req => `ratelimit:admin-maintenance:${req.admin?.id || 'unknown'}:${req.ip}`,
+  failClosed: true
+});
+
+const adminUploadRateLimit = rateLimitMiddleware({
+  windowMs: 60 * 1000,
+  maxRequests: 20,
+  keyGenerator: req => `ratelimit:admin-upload:${req.admin?.id || 'unknown'}:${req.ip}`,
+  failClosed: true
+});
+
+const externalIntegrationRateLimit = rateLimitMiddleware({
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+  keyGenerator: req => {
+    const tenantId = getCurrentTenantId() || 'unresolved';
+    const keyId = String(req.get('x-integration-key-id') || 'unresolved').slice(0, 80);
+    return `ratelimit:external:${tenantId}:${keyId}:${req.ip}`;
+  },
+  failClosed: true
 });
 
 // 向后兼容：保留旧的全局/用户/认证限流名
 const globalRateLimit = tenantGlobalRateLimit;
 
 module.exports = {
+  resetTestRateLimitBuckets() {
+    if (process.env.NODE_ENV !== 'test' && !process.env.MOCHA_TEST) throw new Error('Rate-limit reset is test-only');
+    testOnlyRateLimitBuckets.clear();
+  },
   rateLimitMiddleware,
   globalRateLimit,
   tenantGlobalRateLimit,
   platformGlobalRateLimit,
   userRateLimit,
   authIpRateLimit,
-  authRateLimit
+  authRateLimit,
+  adminLoginIpRateLimit,
+  adminLoginIdentityRateLimit,
+  adminRefreshIpRateLimit,
+  adminMaintenanceRateLimit,
+  adminUploadRateLimit,
+  externalIntegrationRateLimit
 };

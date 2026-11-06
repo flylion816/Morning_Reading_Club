@@ -55,7 +55,7 @@
 mongosh mongodb://localhost:27017
 
 # 或使用 MongoDB Atlas 连接串
-mongosh "mongodb+srv://username:password@cluster.mongodb.net/morning_reading"
+mongosh "mongodb+srv://username:CHANGE_ME@cluster.mongodb.net/morning_reading"
 ```
 
 ### 2. 创建数据库和集合

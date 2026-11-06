@@ -1149,7 +1149,7 @@ const { adminTenantContext } = require('../middleware/tenantContext');
 
 // 公开路由（不需要 auth）
 router.post('/auth/admin/login', adminController.login);
-router.post('/auth/admin/init', adminController.initSuperAdmin);
+// 已下线：不再注册公开管理员初始化路由；首个平台管理员由受控离线脚本创建。
 
 // 受保护路由（认证 + 租户上下文）
 router.use(adminAuthMiddleware);
@@ -3598,7 +3598,7 @@ for (const name of collections) {
  * 使用方法：
  *   cd backend
  *   PLATFORM_ADMIN_EMAIL=root@platform.local \
- *   PLATFORM_ADMIN_PASSWORD=ChangeMeNow123 \
+ *   PLATFORM_ADMIN_PASSWORD=<从密钥管理服务读取> \
  *   node scripts/migrate-to-multi-tenant.js
  *
  * 安全与幂等性：
@@ -3771,14 +3771,14 @@ async function main() {
 
     // 5. 创建 platform_superadmin（如果配置了凭证且不存在）
     const platformEmail = process.env.PLATFORM_ADMIN_EMAIL;
-    const platformPassword = process.env.PLATFORM_ADMIN_PASSWORD;
+    const platformPassword = <从密钥管理服务读取>
     if (platformEmail && platformPassword) {
       const exists = await Admin.findOne({ email: platformEmail });
       if (!exists) {
         await Admin.create({
           name: 'Platform Root',
           email: platformEmail,
-          password: platformPassword,
+          password: <从密钥管理服务读取>
           role: 'platform_superadmin',
           tenantId: null,
           status: 'active'

@@ -93,9 +93,7 @@ describe('Auth Service - 100% Coverage', () => {
       },
 
       // TC-SERV-AUTH-002: 既有用户返回
-      findUserByOpenid: async (openid) => {
-        return await UserStub.findOne({ openid });
-      },
+      findUserByOpenid: async (openid) => await UserStub.findOne({ openid }),
 
       // TC-SERV-AUTH-003: 验证授权码
       validateAuthorizationCode: async (code) => {
@@ -244,7 +242,7 @@ describe('Auth Service - 100% Coverage', () => {
   describe('findUserByOpenid - TC-SERV-AUTH-002: 既有用户查询', () => {
     it('应该返回既有用户', async () => {
       // Given
-      const openid = fixtures.testUsers.existingUser.openid;
+      const {openid} = fixtures.testUsers.existingUser;
       UserStub.findOne.resolves(fixtures.testUsers.existingUser);
 
       // When

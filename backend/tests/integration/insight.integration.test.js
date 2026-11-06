@@ -7,6 +7,7 @@ const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+
 const TEST_WX_APPID = 'wx199d6d332344ed0a';
 const { withSystemContext } = require('../../src/utils/tenantContext');
 
@@ -17,6 +18,11 @@ let Insight;
 let Period;
 let Tenant;
 let ownsMongoConnection = false;
+
+// 小程序侧创建小凡看见只开放给小程序管理员（User.role=admin）
+async function promoteToMobileAdmin(userId) {
+  await withSystemContext(null, () => User.updateOne({ _id: userId }, { $set: { role: 'admin' } }).exec());
+}
 
 describe('Insight Integration - 小凡看见业务流程', () => {
   before(async function() {
@@ -77,6 +83,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({ code: 'test-creator', wxAppId: TEST_WX_APPID });
 
       creatorToken = creatorRes.body.data.accessToken;
+
+      await promoteToMobileAdmin(creatorRes.body.data.user._id);
       creatorId = creatorRes.body.data.user._id;
 
       const targetRes = await request(app)
@@ -95,6 +103,21 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         });
         periodId = period._id;
       });
+    });
+
+    it('普通用户不能给他人创建小凡看见', async () => {
+      const plainRes = await request(app)
+        .post('/api/v1/auth/wechat/login')
+        .send({ code: 'test-plain-user', wxAppId: TEST_WX_APPID });
+
+      const res = await request(app)
+        .post('/api/v1/insights')
+        .set('Authorization', `Bearer ${plainRes.body.data.accessToken}`)
+        .send({ targetUserId, periodId, type: 'insight', mediaType: 'text', content: '刷屏' });
+
+      expect(res.status).to.equal(403);
+      const count = await withSystemContext(null, () => Insight.countDocuments({}).exec());
+      expect(count).to.equal(0);
     });
 
     it('应该能够创建小凡看见记录', async () => {
@@ -186,7 +209,7 @@ describe('Insight Integration - 小凡看见业务流程', () => {
     let userToken;
     let userId;
     let periodId;
-    let insightIds = [];
+    const insightIds = [];
 
     beforeEach(async () => {
       // 创建主用户
@@ -208,14 +231,20 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         periodId = period._id;
       });
 
+      const mainUser = await withSystemContext(null, async () => await User.findById(userId).lean().exec());
+
       // 创建多个小凡看见
       for (let i = 0; i < 5; i++) {
         // 创建不同的创建者
-        const creatorRes = await request(app)
-          .post('/api/v1/auth/wechat/login')
-          .send({ code: `test-creator-${i}`, wxAppId: TEST_WX_APPID });
-
-        const creatorToken = creatorRes.body.data.accessToken;
+        // Query fixtures do not need repeated login requests (which correctly
+        // hit the five-login limit within this single test).
+        const creator = await withSystemContext(null, () => User.create({
+          openid: `query-fixture-creator-${i}`,
+          nickname: `Creator ${i}`,
+          role: 'admin',
+          tenantId: mainUser.tenantId
+        }));
+        const creatorToken = require('../../src/utils/jwt').generateTokens(creator).accessToken;
 
         const res = await request(app)
           .post('/api/v1/insights')
@@ -287,6 +316,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({ code: 'test-update-creator', wxAppId: TEST_WX_APPID });
 
       creatorToken = creatorRes.body.data.accessToken;
+
+      await promoteToMobileAdmin(creatorRes.body.data.user._id);
       const creatorId = creatorRes.body.data.user._id;
 
       // 创建目标用户
@@ -363,6 +394,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
 
       creatorToken = creatorRes.body.data.accessToken;
 
+      await promoteToMobileAdmin(creatorRes.body.data.user._id);
+
       const targetRes = await request(app)
         .post('/api/v1/auth/wechat/login')
         .send({ code: 'test-delete-target', wxAppId: TEST_WX_APPID });
@@ -424,6 +457,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({ code: 'test-like-creator', wxAppId: TEST_WX_APPID });
 
       const creatorToken = creatorRes.body.data.accessToken;
+
+      await promoteToMobileAdmin(creatorRes.body.data.user._id);
 
       // 创建受众用户
       const userRes = await request(app)
@@ -493,6 +528,8 @@ describe('Insight Integration - 小凡看见业务流程', () => {
         .send({ code: 'test-full-creator', wxAppId: TEST_WX_APPID });
 
       const creatorToken = creatorRes.body.data.accessToken;
+
+      await promoteToMobileAdmin(creatorRes.body.data.user._id);
       const creatorId = creatorRes.body.data.user._id;
 
       const targetRes = await request(app)

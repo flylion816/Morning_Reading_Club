@@ -396,7 +396,7 @@ describe('Enrollment Service', () => {
       Enrollment.findOne.onSecondCall().resolves(fixtures.enrollmentRecords.unpaidEnrollment);
 
       // 首次查询
-      let firstResult = await Enrollment.findOne({
+      const firstResult = await Enrollment.findOne({
         userId,
         periodId,
         status: { $in: ['active', 'completed'] }
@@ -405,7 +405,7 @@ describe('Enrollment Service', () => {
       expect(firstResult).to.be.null;
 
       // 再次查询（模拟并发的另一请求已创建）
-      let secondResult = await Enrollment.findOne({
+      const secondResult = await Enrollment.findOne({
         userId,
         periodId,
         status: { $in: ['active', 'completed'] }

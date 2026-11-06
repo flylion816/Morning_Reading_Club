@@ -53,7 +53,7 @@ Redis ElastiCache → 按量付费
 
 ```bash
 MYSQL_HOST=prod-db-host.example.com    # ❌ 占位符
-MYSQL_PASSWORD=CHANGE_THIS_PASSWORD    # ❌ 占位符
+MYSQL_PASSWORD=<从密钥管理服务读取>    # ❌ 占位符
 ```
 
 **推荐值（阿里云 RDS）**：
@@ -62,7 +62,7 @@ MYSQL_PASSWORD=CHANGE_THIS_PASSWORD    # ❌ 占位符
 MYSQL_HOST=rm-abc123xyz.mysql.rds.aliyuncs.com
 MYSQL_PORT=3306
 MYSQL_USER=morning_user
-MYSQL_PASSWORD=YourSecure@Pass123!456  # 至少16字符，包含大小写+符号+数字
+MYSQL_PASSWORD=<从密钥管理服务读取>  # 至少16字符，包含大小写+符号+数字
 MYSQL_DATABASE=morning_reading
 ```
 
@@ -72,7 +72,7 @@ MYSQL_DATABASE=morning_reading
 
 ```bash
 REDIS_HOST=prod-redis-host.example.com    # ❌ 占位符
-REDIS_PASSWORD=CHANGE_THIS_PASSWORD       # ❌ 占位符
+REDIS_PASSWORD=<从密钥管理服务读取>       # ❌ 占位符
 ```
 
 **推荐值（阿里云 ElastiCache）**：
@@ -80,7 +80,7 @@ REDIS_PASSWORD=CHANGE_THIS_PASSWORD       # ❌ 占位符
 ```bash
 REDIS_HOST=r-abc123xyz.redis.rds.aliyuncs.com
 REDIS_PORT=6379
-REDIS_PASSWORD=YourSecureRedisPass!123  # 强密码
+REDIS_PASSWORD=<从密钥管理服务读取>  # 强密码
 ```
 
 ### 3. MongoDB 配置
@@ -88,14 +88,14 @@ REDIS_PASSWORD=YourSecureRedisPass!123  # 强密码
 **当前值**（使用本地）：
 
 ```bash
-MONGODB_URI=mongodb://admin:p62CWhV0Kd1Unq@127.0.0.1:27017/morning_reading
+MONGODB_URI=mongodb://admin:CHANGE_ME@127.0.0.1:27017/morning_reading
 ```
 
 **推荐改为 MongoDB Atlas**（免费 0.5GB）：
 
 ```bash
 # 申请地址：https://www.mongodb.com/cloud/atlas
-MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/morning_reading?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:CHANGE_ME@cluster0.xxxxx.mongodb.net/morning_reading?retryWrites=true&w=majority
 ```
 
 ---
@@ -125,11 +125,11 @@ MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/morning_r
 
 ```bash
 # .env.prod (不提交到 Git，.gitignore 包含此文件)
-MYSQL_PASSWORD=YourSecure@Pass123!456
-REDIS_PASSWORD=YourSecureRedisPass!123
-JWT_SECRET=0f405b99aefbbb7e304e0a82b2ca9db14d0cb4ed02fdecbb57192e6c330a0a06
-JWT_REFRESH_SECRET=8ffd042c189499bf2c4af4fcb89d983d6b65ee050ca6e99a5a387d0443eed52c
-WECHAT_SECRET=36b3d2538c006e63971ba4a83905eb8b
+MYSQL_PASSWORD=<从密钥管理服务读取>
+REDIS_PASSWORD=<从密钥管理服务读取>
+JWT_SECRET=REDACTED_SECRET_FROM_ENV
+JWT_REFRESH_SECRET=REDACTED_SECRET_FROM_ENV
+WECHAT_SECRET=<从密钥管理服务读取>
 
 # 启动
 docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
@@ -271,7 +271,7 @@ openssl rand -base64 16  # 生成随机密码
 
 ```bash
 # MongoDB
-mongodump --uri "mongodb+srv://user:pass@cluster.mongodb.net/morning_reading" --out /backup
+mongodump --uri "mongodb+srv://user:CHANGE_ME@cluster.mongodb.net/morning_reading" --out /backup
 
 # MySQL
 mysqldump -h host -u user -p morning_reading > backup.sql

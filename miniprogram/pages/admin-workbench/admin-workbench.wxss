@@ -22,7 +22,7 @@
   text-align: center;
   border-radius: 10rpx;
   background: #eef3f8;
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 26rpx;
 }
 
@@ -50,7 +50,7 @@
   background: #ffffff;
   padding: 0 20rpx;
   font-size: 26rpx;
-  color: #1f2937;
+  color: var(--app-text);
   box-sizing: border-box;
 }
 
@@ -73,7 +73,7 @@
   padding: 44rpx 20rpx;
   border-radius: 10rpx;
   background: #ffffff;
-  color: #98a2b3;
+  color: var(--app-text-muted);
   font-size: 26rpx;
   text-align: center;
 }
@@ -147,14 +147,14 @@
 .row.sub,
 .foot {
   margin-top: 10rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 22rpx;
 }
 
 .name,
 .card-title,
 .profile-name {
-  color: #1f2937;
+  color: var(--app-text);
   font-weight: 600;
 }
 
@@ -181,7 +181,7 @@
 .meta-line,
 .profile-meta,
 .panel-meta {
-  color: #98a2b3;
+  color: var(--app-text-muted);
   font-size: 22rpx;
 }
 
@@ -206,7 +206,7 @@
 .section-title {
   font-size: 30rpx;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text);
   margin-bottom: 16rpx;
 }
 
@@ -214,7 +214,7 @@
   margin: 24rpx 0 12rpx;
   font-size: 26rpx;
   font-weight: 600;
-  color: #344054;
+  color: var(--app-text-soft);
 }
 
 .profile-box {
@@ -223,7 +223,7 @@
   align-items: center;
   padding: 20rpx;
   box-shadow: none;
-  background: #f8fafc;
+  background: var(--app-surface-muted);
 }
 
 .status-pill {
@@ -246,7 +246,7 @@
   padding: 6rpx 12rpx;
   border-radius: 8rpx;
   background: #f1f5f9;
-  color: #475467;
+  color: var(--app-text-soft);
   font-size: 22rpx;
   line-height: 30rpx;
 }

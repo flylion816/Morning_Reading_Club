@@ -1,7 +1,11 @@
 const express = require('express');
+
 const router = express.Router();
+const { requireMobileAdmin } = require('../controllers/mobileAdminAnalytics.controller');
 const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { externalIntegrationAuth } = require('../middleware/externalIntegrationAuth');
+const { externalIntegrationRateLimit } = require('../middleware/ratelimit');
 const {
   userTenantContext,
   adminTenantContext,
@@ -47,8 +51,14 @@ const {
   searchInsights
 } = require('../controllers/insight.controller');
 
-// ===== 外部公开接口（无需认证） =====
-router.post('/external/create', publicTenantContext, createInsightFromExternal);
+// Tenant headers select scope; a signed integration identity authorizes the write.
+router.post(
+  '/external/create',
+  publicTenantContext,
+  externalIntegrationRateLimit,
+  externalIntegrationAuth('insight:write'),
+  createInsightFromExternal
+);
 
 // ===== 管理员路由 =====
 router.get('/', adminAuthMiddleware, adminTenantContext, getInsights);
@@ -68,7 +78,8 @@ router.delete('/admin/requests/:requestId', adminAuthMiddleware, adminTenantCont
 router.post('/admin/requests/batch-approve', adminAuthMiddleware, adminTenantContext, batchApproveRequests);
 
 // ===== 用户路由 =====
-router.post('/', authMiddleware, userTenantContext, createInsightManual);
+// 小程序侧手动创建小凡看见（会通知被看见人），只开放给小程序管理员
+router.post('/', authMiddleware, userTenantContext, requireMobileAdmin, createInsightManual);
 router.get('/section/:sectionId', authMiddleware, userTenantContext, getSectionInsightsForAdmin);
 router.post('/generate', authMiddleware, userTenantContext, generateInsight);
 router.post('/requests', authMiddleware, userTenantContext, createInsightRequest);

@@ -218,6 +218,16 @@ describe('Error Handler Middleware', () => {
       expect(logData).to.have.property('method', 'POST');
     });
 
+    it('should omit query-string credentials from error logs', () => {
+      req.url = '/api/test?token=synthetic-token&password=synthetic-password';
+      req.path = '/api/test';
+      errorHandler(new Error('failure'), req, res, next);
+      const serialized = JSON.stringify(loggerStub.error.firstCall.args);
+      expect(serialized).not.to.include('synthetic-token');
+      expect(serialized).not.to.include('synthetic-password');
+      expect(loggerStub.error.firstCall.args[1].url).to.equal('/api/test');
+    });
+
     it('应该记录error名称', () => {
       const error = new Error('Test error');
       error.name = 'CustomError';

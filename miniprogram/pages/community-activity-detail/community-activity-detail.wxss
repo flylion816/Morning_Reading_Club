@@ -15,7 +15,7 @@
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 4rpx solid #e0e0e0;
+  border: 4rpx solid var(--app-border);
   border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -28,7 +28,7 @@
 .loading-text {
   margin-top: 20rpx;
   font-size: 28rpx;
-  color: #999;
+  color: var(--app-text-muted);
 }
 
 .poster-image {
@@ -67,7 +67,7 @@
   display: block;
   font-size: 36rpx;
   font-weight: 600;
-  color: #222;
+  color: var(--app-text);
   margin-bottom: 24rpx;
   line-height: 1.4;
 }
@@ -80,7 +80,7 @@
 
 .time-label {
   font-size: 26rpx;
-  color: #999;
+  color: var(--app-text-muted);
   width: 60rpx;
 }
 
@@ -95,12 +95,12 @@
 
 .count-text {
   font-size: 26rpx;
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .count-limit {
   font-size: 26rpx;
-  color: #999;
+  color: var(--app-text-muted);
 }
 
 .meeting-card {
@@ -127,12 +127,12 @@
 
 .meeting-id-label {
   font-size: 26rpx;
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .meeting-id-value {
   font-size: 28rpx;
-  color: #333;
+  color: var(--app-text);
   font-weight: 500;
 }
 
@@ -155,8 +155,8 @@
 }
 
 .meeting-btn.secondary {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--app-surface-muted);
+  color: var(--app-text);
 }
 
 .my-registration-card {
@@ -178,7 +178,7 @@
 }
 
 .my-registration-title {
-  color: #222;
+  color: var(--app-text);
   font-size: 30rpx;
   font-weight: 600;
 }
@@ -215,12 +215,12 @@
 }
 
 .answer-label {
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 26rpx;
 }
 
 .answer-value {
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 26rpx;
   font-weight: 500;
   text-align: right;
@@ -237,13 +237,13 @@
   display: block;
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-text);
   margin-bottom: 20rpx;
 }
 
 .desc-content {
   font-size: 28rpx;
-  color: #555;
+  color: var(--app-text-soft);
   line-height: 1.7;
 }
 
@@ -274,8 +274,8 @@
 }
 
 .action-btn.primary { background: var(--theme-primary); color: #fff; }
-.action-btn.cancel { background: #f5f5f5; color: #666; }
-.action-btn.disabled { background: #e0e0e0; color: #999; }
+.action-btn.cancel { background: var(--app-surface-muted); color: var(--app-text-soft); }
+.action-btn.disabled { background: #e0e0e0; color: var(--app-text-muted); }
 .action-btn.loading { opacity: 0.7; }
 
 .share-btn {
@@ -332,7 +332,7 @@
 }
 
 .form-modal-title {
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 34rpx;
   font-weight: 700;
   margin-bottom: 24rpx;
@@ -347,7 +347,7 @@
 }
 
 .form-label {
-  color: #344054;
+  color: var(--app-text-soft);
   font-size: 27rpx;
   font-weight: 600;
   margin-bottom: 12rpx;
@@ -364,8 +364,8 @@
   width: 100%;
   box-sizing: border-box;
   border-radius: 12rpx;
-  background: #f8fafc;
-  color: #1f2937;
+  background: var(--app-surface-muted);
+  color: var(--app-text);
   font-size: 28rpx;
   padding: 0 20rpx;
 }
@@ -380,7 +380,7 @@
 }
 
 .form-picker.placeholder {
-  color: #98a2b3;
+  color: var(--app-text-muted);
 }
 
 .form-textarea {
@@ -398,8 +398,8 @@
   min-height: 72rpx;
   padding: 0 20rpx;
   border-radius: 12rpx;
-  background: #f8fafc;
-  color: #344054;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
   font-size: 27rpx;
   box-sizing: border-box;
 }
@@ -418,8 +418,8 @@
   min-height: 78rpx;
   padding: 0 20rpx;
   border-radius: 12rpx;
-  background: #f8fafc;
-  color: #344054;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
   font-size: 27rpx;
 }
 
@@ -441,7 +441,7 @@
 
 .form-btn.cancel {
   background: #f2f4f7;
-  color: #667085;
+  color: var(--app-text-soft);
 }
 
 .form-btn.confirm {
@@ -478,14 +478,14 @@
 .pay-modal-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #222;
+  color: var(--app-text);
   text-align: center;
   margin-bottom: 12rpx;
 }
 
 .pay-modal-activity {
   font-size: 26rpx;
-  color: #999;
+  color: var(--app-text-muted);
   text-align: center;
   margin-bottom: 32rpx;
 }
@@ -500,12 +500,12 @@
 
 .pay-label {
   font-size: 28rpx;
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .pay-value {
   font-size: 28rpx;
-  color: #333;
+  color: var(--app-text);
 }
 
 .coupon-row {
@@ -525,13 +525,13 @@
 
 .pay-coupon-name {
   font-size: 22rpx;
-  color: #999;
+  color: var(--app-text-muted);
   margin-top: 4rpx;
 }
 
 .pay-modal-divider {
   height: 1rpx;
-  background: #f0f0f0;
+  background: var(--app-surface-muted);
   margin: 8rpx 0;
 }
 
@@ -563,8 +563,8 @@
 }
 
 .pay-btn.cancel {
-  background: #f0f0f0;
-  color: #666;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
 }
 
 .pay-btn.confirm {

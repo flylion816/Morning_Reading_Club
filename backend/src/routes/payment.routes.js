@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const {
   initiatePayment,
@@ -13,7 +14,7 @@ const {
   getPayments
 } = require('../controllers/payment.controller');
 const { authMiddleware } = require('../middleware/auth');
-const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { adminAuthMiddleware, requireRole } = require('../middleware/adminAuth');
 const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 
 // ===== 微信支付回调（无需认证，controller 内部解析租户，必须在参数化路由之前） =====
@@ -45,7 +46,14 @@ router.post('/:paymentId/cancel', authMiddleware, userTenantContext, cancelPayme
 router.post('/:paymentId/admin-cancel', adminAuthMiddleware, adminTenantContext, adminCancelPayment);
 
 // 管理员重置为待支付
-router.post('/:paymentId/reset-to-pending', adminAuthMiddleware, adminTenantContext, adminResetPaymentToPending);
+// 把已支付订单改回待支付会撤销用户的报名权益，operator 不可执行
+router.post(
+  '/:paymentId/reset-to-pending',
+  adminAuthMiddleware,
+  adminTenantContext,
+  requireRole('platform_superadmin', 'superadmin', 'tenant_admin', 'admin'),
+  adminResetPaymentToPending
+);
 
 // 模拟支付确认（仅限开发/测试环境）
 if (process.env.NODE_ENV !== 'production') {

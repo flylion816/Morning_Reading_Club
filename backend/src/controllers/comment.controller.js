@@ -18,6 +18,9 @@ function getRequestUserId(req) {
   return req.user.userId || req.user.id || req.user._id;
 }
 
+// 小程序管理员可删除任意评论/回复
+const COMMENT_ADMIN_ROLES = ['admin', 'super_admin'];
+
 async function loadCheckinWithRelations(checkinId) {
   const checkin = await Checkin.findById(checkinId);
   if (checkin && typeof checkin.populate === 'function') {
@@ -340,7 +343,7 @@ async function deleteComment(req, res, next) {
     }
 
     // 只能删除自己的评论
-    if (comment.userId.toString() !== userId && req.user.role !== 'admin') {
+    if (comment.userId.toString() !== userId && !COMMENT_ADMIN_ROLES.includes(req.user.role)) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 
@@ -382,7 +385,7 @@ async function deleteReply(req, res, next) {
     }
 
     // 只能删除自己的回复
-    if (reply.userId.toString() !== userId && req.user.role !== 'admin') {
+    if (reply.userId.toString() !== userId && !COMMENT_ADMIN_ROLES.includes(req.user.role)) {
       return res.status(403).json(errors.forbidden('无权删除'));
     }
 

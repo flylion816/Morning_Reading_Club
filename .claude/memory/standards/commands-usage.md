@@ -244,7 +244,7 @@
 # 逐个手写curl命令
 curl -X POST http://localhost:3000/api/v1/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@morningreading.com","password":"admin123456"}'
+  -d '{"email":"admin@morningreading.com","password":"<从密钥管理服务读取>"}'
 
 # 复制token，再测试其他端点
 # ... 重复多次

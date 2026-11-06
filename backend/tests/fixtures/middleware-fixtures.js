@@ -69,18 +69,16 @@ const authorizationHeaders = {
 /**
  * Request Mock 对象
  */
-const createMockRequest = (options = {}) => {
-  return {
+const createMockRequest = (options = {}) => ({
     headers: options.headers || {},
     user: options.user || null,
     body: options.body || {},
     params: options.params || {},
     query: options.query || {},
-    get: function(headerName) {
+    get(headerName) {
       return this.headers[headerName.toLowerCase()];
     }
-  };
-};
+  });
 
 /**
  * Response Mock 对象
@@ -91,22 +89,22 @@ const createMockResponse = () => {
     _headers: {},
     _jsonData: null,
 
-    status: function(code) {
+    status(code) {
       this.statusCode = code;
       return this;
     },
 
-    json: function(data) {
+    json(data) {
       this._jsonData = data;
       return this;
     },
 
-    setHeader: function(name, value) {
+    setHeader(name, value) {
       this._headers[name] = value;
       return this;
     },
 
-    getHeader: function(name) {
+    getHeader(name) {
       return this._headers[name];
     }
   };
@@ -323,14 +321,14 @@ const tokenReplayData = {
  * 边界值测试数据
  */
 const boundaryValues = {
-  veryLongToken: 'Bearer ' + 'a'.repeat(100000),
+  veryLongToken: `Bearer ${  'a'.repeat(100000)}`,
   emptyToken: 'Bearer ',
   nullToken: null,
   undefinedToken: undefined,
   spacesOnlyToken: 'Bearer    ',
   tokenWithNewlines: 'Bearer token\nwith\nnewlines',
   tokenWithTabs: 'Bearer token\twith\ttabs',
-  binaryToken: 'Bearer ' + Buffer.from('binary data').toString('base64'),
+  binaryToken: `Bearer ${  Buffer.from('binary data').toString('base64')}`,
   unicodeToken: 'Bearer 中文token😀',
   sqlInjectionToken: "Bearer '; DROP TABLE users; --",
   mongoInjectionToken: "Bearer {\"$ne\": null}"

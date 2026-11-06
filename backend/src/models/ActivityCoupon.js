@@ -97,6 +97,7 @@ ActivityCouponSchema.index({ tenantId: 1, userId: 1, status: 1 });
 ActivityCouponSchema.index({ tenantId: 1, activityId: 1, status: 1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 ActivityCouponSchema.plugin(tenantPlugin);
 
 const ActivityCoupon = mongoose.model('ActivityCoupon', ActivityCouponSchema);

@@ -689,7 +689,7 @@ const API_BASE_URL =
 
 ```
 AppID: wx1234567890abcdef  （记录这个！）
-AppSecret: 1234567890abcdef1234567890abcdef  （保密！）
+AppSecret: <从微信开发者平台/密钥管理服务读取>  （保密！）
 ```
 
 #### 8.4 在后端配置AppID
@@ -698,7 +698,7 @@ AppSecret: 1234567890abcdef1234567890abcdef  （保密！）
 
 ```
 WECHAT_APPID=wx1234567890abcdef
-WECHAT_SECRET=1234567890abcdef1234567890abcdef
+WECHAT_SECRET=<REDACTED_SECRET_FROM_ENV>
 ```
 
 重启后端服务：
@@ -843,7 +843,7 @@ sudo vi /usr/local/bin/backup-mongodb.sh
 
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-mongodump --uri="mongodb://admin:password@host:27017/morning_reading" \
+mongodump --uri="mongodb://admin:CHANGE_ME@host:27017/morning_reading" \
   --out=/backups/mongo_$DATE
 
 # 设置定时备份（每天凌晨2点）

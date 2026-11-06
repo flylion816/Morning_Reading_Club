@@ -9,6 +9,8 @@ const { publishSyncEvent } = require('../services/sync.service');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
 const Enrollment = require('../models/Enrollment');
+const { isCustomTemplate, validateModuleValues, moduleContent, supportsCourseTemplate, refreshUnlockedPeriodTemplateSnapshot } = require('../services/course-template.service');
+const { ensurePeriodReadAccess, ensurePeriodInteractionAccess } = require('../services/period-access.service');
 const {
   diffShanghaiDays,
   getPeriodDateKeys,
@@ -104,6 +106,10 @@ async function shiftSectionsForInsert(periodId, insertDay) {
   return sectionsToShift.length;
 }
 
+async function periodHasSections(periodId) {
+  return typeof Section.exists === 'function' ? Section.exists({ periodId }) : false;
+}
+
 async function shiftSectionsAfterDelete(periodId, deletedDay) {
   const sectionsToShift = await Section.find({
     periodId,
@@ -153,7 +159,15 @@ async function getSectionsByPeriod(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
+    await refreshUnlockedPeriodTemplateSnapshot(period, await periodHasSections(period._id));
+
+    const access = await ensurePeriodReadAccess(req, res, period);
+    if (!access || !access.canRead) return;
+
     const query = { periodId, isPublished: true };
+    if (!supportsCourseTemplate(req, period.courseTemplateSnapshot)) {
+      return res.status(403).json(errors.forbidden('请更新小程序后查看此课程（关闭小程序后重新打开）'));
+    }
 
     // 支持日期范围查询
     if (startDay !== undefined && endDay !== undefined) {
@@ -169,7 +183,7 @@ async function getSectionsByPeriod(req, res, next) {
       .sort({ day: 1, order: 1, sortOrder: 1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
-      .select('-content -__v')
+      .select('-content -courseModuleValues -courseTemplateSnapshot -__v')
       .lean(); // 列表不返回详细内容
 
     const sectionIds = sections.map(section => section._id);
@@ -220,9 +234,22 @@ async function markReadingCompletion(req, res, next) {
         ? clientCompletedAt
         : new Date();
 
-    const section = await Section.findById(sectionId).select('periodId');
+    const section = await Section.findById(sectionId).select('periodId content courseTemplateSnapshot');
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));
+    }
+
+    if (isCustomTemplate(section.courseTemplateSnapshot) && !section.content) {
+      return res.status(400).json(errors.badRequest('此课节没有正文，无需标记阅读完成'));
+    }
+    if (!supportsCourseTemplate(req, section.courseTemplateSnapshot)) {
+      return res.status(403).json(errors.forbidden('请更新小程序后查看此课程（关闭小程序后重新打开）'));
+    }
+
+    const period = await Period.findById(section.periodId);
+    if (period?.readingAccess === 'enrolled') {
+      const access = await ensurePeriodInteractionAccess(req, res, period._id);
+      if (!access) return;
     }
 
     const completion = await UserReadingCompletion.findOneAndUpdate(
@@ -315,18 +342,27 @@ async function getSectionDetail(req, res, next) {
     });
 
     const section = await Section.findById(sectionId)
-      .populate('periodId', '_id name title')
+      .populate('periodId', '_id name title isPublished visibilityType visibleUserIds readingAccess')
       .lean();
 
     if (!section) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
 
+    if (!req.admin && section.periodId?.readingAccess && section.periodId?.isPublished === false) {
+      return res.status(403).json(errors.forbidden('课程尚未发布'));
+    }
+    const access = await ensurePeriodReadAccess(req, res, section.periodId);
+    if (!access || !access.canRead) return;
+
     const readingCompletionMap = await getReadingCompletionMap(
       getRequestUserId(req),
       [section._id]
     );
 
+    if (!supportsCourseTemplate(req, section.courseTemplateSnapshot)) {
+      return res.status(403).json(errors.forbidden('请更新小程序后查看此课程（关闭小程序后重新打开）'));
+    }
     // 返回课程详情（无论是否发布，因为可能是管理员查询）
     res.json(success(attachReadingCompletion(section, readingCompletionMap)));
   } catch (error) {
@@ -381,6 +417,24 @@ async function createSection(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
+    const access = await ensurePeriodReadAccess(req, res, period);
+    if (!access || !access.canRead) return;
+
+    await refreshUnlockedPeriodTemplateSnapshot(period, await periodHasSections(period._id));
+
+    const customTemplate = isCustomTemplate(period.courseTemplateSnapshot);
+    const courseModuleValues = customTemplate ? (req.body.courseModuleValues === undefined ? {} : req.body.courseModuleValues) : undefined;
+    if (customTemplate) {
+      const invalid = validateModuleValues(period.courseTemplateSnapshot, courseModuleValues);
+      if (invalid) return res.status(400).json(errors.badRequest(invalid));
+    }
+    {
+      const locked = await Period.findOneAndUpdate({
+        _id: period._id,
+        courseTemplateSnapshot: period.courseTemplateSnapshot || { $exists: false }
+      }, { $set: { courseTemplateLocked: true } }, { new: true });
+      if (!locked) return res.status(409).json(errors.conflict('课程模板已变化，请刷新后重试'));
+    }
     const shiftedCount = await shiftSectionsForInsert(periodId, normalizedDay);
 
     const section = await Section.create({
@@ -391,7 +445,8 @@ async function createSection(req, res, next) {
       icon,
       meditation,
       question,
-      content,
+      content: customTemplate ? moduleContent(period.courseTemplateSnapshot, courseModuleValues) : content,
+      ...(customTemplate ? { courseTemplateSnapshot: period.courseTemplateSnapshot, courseModuleValues } : {}),
       reflection,
       action,
       learn,
@@ -425,7 +480,7 @@ async function createSection(req, res, next) {
     res.status(201).json(success(section, message));
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json(errors.badRequest('该期次的第' + req.body.day + '天课程已存在'));
+      return res.status(400).json(errors.badRequest(`该期次的第${  req.body.day  }天课程已存在`));
     }
     next(error);
   }
@@ -480,14 +535,25 @@ async function updateSection(req, res, next) {
       return res.status(404).json(errors.notFound('课程不存在'));
     }
 
+    if (updates.periodId !== undefined && String(updates.periodId) !== String(section.periodId)) {
+      return res.status(400).json(errors.badRequest('不能修改课节所属期次'));
+    }
+    if (isCustomTemplate(section.courseTemplateSnapshot)) {
+      const values = updates.courseModuleValues === undefined ? section.courseModuleValues || {} : updates.courseModuleValues;
+      const invalid = validateModuleValues(section.courseTemplateSnapshot, values);
+      if (invalid) return res.status(400).json(errors.badRequest(invalid));
+      updates.content = moduleContent(section.courseTemplateSnapshot, values);
+    }
+
     const isFirstPodcast = !section.podcastUrl && !!updates.podcastUrl;
 
     // 更新字段
     Object.keys(updates).forEach(key => {
-      if (updates[key] !== undefined) {
+      if (updates[key] !== undefined && !['courseTemplateSnapshot', 'tenantId', '_id', 'periodId', 'createdAt', 'updatedAt', '__v'].includes(key)) {
         section[key] = updates[key];
       }
     });
+    if (updates.courseModuleValues !== undefined) section.markModified('courseModuleValues');
 
     await section.save();
 
@@ -678,16 +744,16 @@ async function getTodayTask(req, res, next) {
             periodTitle: period.title,
             sectionId: section._id,
             day: section.day,
-            title: section.title,
+            title: supportsCourseTemplate(req, section.courseTemplateSnapshot) ? section.title : '请更新小程序后学习此课程',
             icon: section.icon,
-            meditation: section.meditation,
-            question: section.question,
-            reflection: section.reflection,
-            action: section.action,
-            learn: section.learn,
+            meditation: isCustomTemplate(section.courseTemplateSnapshot) ? '' : section.meditation,
+            question: isCustomTemplate(section.courseTemplateSnapshot) ? '' : section.question,
+            reflection: isCustomTemplate(section.courseTemplateSnapshot) ? '' : section.reflection,
+            action: isCustomTemplate(section.courseTemplateSnapshot) ? '' : section.action,
+            learn: isCustomTemplate(section.courseTemplateSnapshot) ? '' : section.learn,
             checkinCount: todayCheckinCount,
-            checkinUsers: checkinUsers,
-            isCheckedIn: isCheckedIn,
+            checkinUsers,
+            isCheckedIn,
             readingCompleted: !!readingCompletion,
             readingCompletedAt: readingCompletion?.completedAt || null,
             readingDurationMs: readingCompletion?.durationMs || 0
@@ -727,7 +793,7 @@ async function uploadPodcast(req, res, next) {
       return res.status(400).json(errors.badRequest('缺少音频文件'));
     }
     const { resolveTenantSlug } = require('../utils/tenantSlug');
-    const tenantId = req._resolvedTenantId || getCurrentTenantId();
+    const tenantId = req.resolvedTenantId || getCurrentTenantId();
     const slug = await resolveTenantSlug(tenantId);
     const podcastUrl = `/uploads/tenants/${slug}/${req.file.filename}`;
     res.json(success({
@@ -749,7 +815,7 @@ async function uploadClosingVideo(req, res, next) {
     }
 
     const { resolveTenantSlug } = require('../utils/tenantSlug');
-    const tenantId = req._resolvedTenantId || getCurrentTenantId();
+    const tenantId = req.resolvedTenantId || getCurrentTenantId();
     const slug = await resolveTenantSlug(tenantId);
     const videoUrl = `/uploads/tenants/${slug}/${req.file.filename}`;
 
@@ -829,13 +895,18 @@ async function searchSections(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
+    const access = await ensurePeriodReadAccess(req, res, period);
+    if (!access || !access.canRead) return;
+
+    if (!supportsCourseTemplate(req, period.courseTemplateSnapshot)) return res.status(403).json(errors.forbidden('请更新小程序后查看此课程（关闭小程序后重新打开）'));
+
     const sections = await Section.find({
       periodId,
       isPublished: true,
       content: { $regex: trimmedKeyword, $options: 'i' }
     })
       .sort({ day: 1, order: 1, sortOrder: 1 })
-      .select('-content -__v')
+      .select('-content -courseModuleValues -courseTemplateSnapshot -__v')
       .lean();
 
     const sectionIds = sections.map(s => s._id);

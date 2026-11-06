@@ -36,10 +36,10 @@ function initWsPubSub(wsManager) {
 
     if (msg.kind === 'user') {
       const set = wsManager.userSockets.get(`${msg.tenantId}:${msg.userId}`);
-      if (set) set.forEach((ws) => wsManager._send(ws, { type: 'notification:new', ...msg.notification }));
+      if (set) set.forEach((ws) => wsManager.sendSocketPayload(ws, { type: 'notification:new', ...msg.notification }));
     } else if (msg.kind === 'tenant') {
       const set = wsManager.tenantRooms.get(`tenant:${msg.tenantId}`);
-      if (set) set.forEach((ws) => wsManager._send(ws, { type: 'notification:tenant', ...msg.notification }));
+      if (set) set.forEach((ws) => wsManager.sendSocketPayload(ws, { type: 'notification:tenant', ...msg.notification }));
     }
   });
 

@@ -85,7 +85,7 @@
 
 .card-desc {
   font-size: 26rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   text-align: center;
   margin-bottom: 60rpx;
 }
@@ -125,11 +125,11 @@
   flex-wrap: wrap;
   justify-content: center;
   font-size: 22rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
 }
 
 .agreement-text {
-  color: #9ca3af;
+  color: var(--app-text-muted);
 }
 
 .agreement-link {
@@ -463,7 +463,7 @@
 .period-title {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--app-text);
   margin-bottom: 8rpx;
   line-height: 1.3;
 }
@@ -490,7 +490,7 @@
 
 .checkin-count-text {
   font-size: 24rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   font-weight: 400;
   line-height: 38rpx;
   flex-shrink: 0;
@@ -551,7 +551,7 @@
 
 .meta-subtitle {
   font-size: 22rpx;
-  color: #999;
+  color: var(--app-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -590,7 +590,7 @@
 
 .calendar-text {
   font-size: 14rpx;
-  color: #4b5563;
+  color: var(--app-text-soft);
   font-weight: 800;
   margin-top: 3rpx;
   line-height: 1;
@@ -602,21 +602,21 @@
 
 .meta-date-text {
   font-size: 24rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   font-weight: 400;
   line-height: 1;
 }
 
 .meta-date {
   font-size: 26rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   font-weight: 400;
   line-height: 1;
 }
 
 .meta-days {
   font-size: 22rpx;
-  color: #999;
+  color: var(--app-text-muted);
 }
 
 .period-progress {
@@ -650,7 +650,7 @@
 .task-empty {
   text-align: center;
   padding: 60rpx 32rpx;
-  color: #999;
+  color: var(--app-text-muted);
   font-size: 26rpx;
 }
 
@@ -809,7 +809,7 @@
 
 .checkin-diary-card-date {
   font-size: 20rpx;
-  color: #94a3b8;
+  color: var(--app-text-muted);
   line-height: 34rpx;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -866,7 +866,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: #64748b;
+  color: var(--app-text-soft);
   white-space: normal;
   transition: transform 0.18s ease, background 0.18s ease;
 }
@@ -899,7 +899,7 @@
   margin-top: 8rpx;
   font-size: 20rpx;
   line-height: 1.3;
-  color: #94a3b8;
+  color: var(--app-text-muted);
 }
 
 .checkins-empty {
@@ -930,7 +930,7 @@
 /* 今日日期范围显示 */
 .today-date-range {
   font-size: 20rpx;
-  color: #999;
+  color: var(--app-text-muted);
   padding: 0;
   margin: 4rpx 0 8rpx 0;
   text-align: left;
@@ -982,6 +982,25 @@
   align-items: center;
   gap: 8rpx;
 }
+
+.checkin-create-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  width: 62rpx;
+  height: 62rpx;
+  padding: 0;
+  color: var(--theme-primary);
+  background: var(--theme-primary-tint);
+  border: 0;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.checkin-create-button::after { border: 0; }
+.checkin-create-button:active { opacity: .7; }
+.checkin-create-icon { color: var(--theme-primary); font-size: 38rpx; font-weight: 500; line-height: 1; }
 
 .section-header-right {
   display: flex;
@@ -1115,10 +1134,10 @@
 
 .section-period-name {
   font-size: 22rpx;
-  color: #999;
+  color: var(--app-text-muted);
   font-weight: 400;
   padding: 4rpx 12rpx;
-  background: #f5f5f5;
+  background: var(--app-surface-muted);
   border-radius: 8rpx;
   white-space: nowrap;
 }
@@ -1289,7 +1308,7 @@
 
 .insight-text {
   font-size: 24rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   line-height: 1.6;
   min-height: 76rpx;
   overflow: hidden;
@@ -1303,7 +1322,7 @@
   text-align: center;
   padding: 40rpx 0;
   font-size: 26rpx;
-  color: #999;
+  color: var(--app-text-muted);
 }
 
 .insights-more {
@@ -1349,7 +1368,7 @@
   align-items: center;
   justify-content: center;
   font-size: 23rpx;
-  color: #64748b;
+  color: var(--app-text-soft);
   font-weight: 500;
 }
 
@@ -1452,7 +1471,7 @@
 .request-user-role {
   flex-shrink: 0;
   font-size: 20rpx;
-  color: #94a3b8;
+  color: var(--app-text-muted);
 }
 
 .request-user-name {
@@ -1490,8 +1509,8 @@
 }
 
 .request-status-revoked {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
 }
 
 .request-meta {
@@ -1553,7 +1572,7 @@
 
 .reject-btn {
   background: #eef2f7;
-  color: #6b7280;
+  color: var(--app-text-soft);
 }
 
 .reject-btn:active {
@@ -1565,7 +1584,7 @@
   text-align: center;
   padding: 40rpx 0;
   font-size: 26rpx;
-  color: #999999;
+  color: var(--app-text-muted);
 }
 
 .requests-more {
@@ -1647,7 +1666,7 @@
 .morning-read-title {
   font-size: 36rpx;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text);
   text-align: center;
   line-height: 1.3;
 }
@@ -1655,7 +1674,7 @@
 .morning-read-desc {
   margin-top: 14rpx;
   font-size: 28rpx;
-  color: #6b7280;
+  color: var(--app-text-soft);
   text-align: center;
   line-height: 1.65;
   display: flex;
@@ -1683,8 +1702,8 @@
 
 .morning-read-btn-cancel {
   flex: 1;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--app-text-soft);
+  background: var(--app-surface-muted);
 }
 
 .morning-read-btn-primary {
@@ -1804,25 +1823,25 @@
   align-items: center;
   margin-bottom: 28rpx;
   padding-bottom: 20rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--app-border);
 }
 
 .modal-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--app-text);
 }
 
 .modal-close {
   font-size: 48rpx;
-  color: #999;
+  color: var(--app-text-muted);
   line-height: 1;
   cursor: pointer;
   transition: color 0.3s;
 }
 
 .modal-close:active {
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .modal-section {
@@ -1833,7 +1852,7 @@
   display: block;
   font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-text);
   margin-bottom: 16rpx;
 }
 
@@ -1885,13 +1904,13 @@
 .avatar-picker-title {
   font-size: 28rpx;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text);
   line-height: 1.3;
 }
 
 .avatar-picker-desc {
   font-size: 23rpx;
-  color: #6b7280;
+  color: var(--app-text-soft);
   line-height: 1.4;
 }
 
@@ -1929,10 +1948,10 @@ button.avatar-action-button::after {
 .modal-input {
   width: 100%;
   padding: 18rpx 24rpx;
-  border: 1rpx solid #e5e7eb;
+  border: 1rpx solid var(--app-border);
   border-radius: 16rpx;
   font-size: 28rpx;
-  color: #333;
+  color: var(--app-text);
   box-sizing: border-box;
   transition: border-color 0.3s;
   min-height: 76rpx;
@@ -1957,7 +1976,7 @@ button.avatar-action-button::after {
   display: block;
   text-align: right;
   font-size: 22rpx;
-  color: #999;
+  color: var(--app-text-muted);
   margin-top: 8rpx;
 }
 
@@ -1980,8 +1999,8 @@ button.avatar-action-button::after {
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
 }
 
 .btn-cancel:active {
@@ -2026,7 +2045,7 @@ button.avatar-action-button::after {
 
 .progress-label {
   font-size: 26rpx;
-  color: #4b5563;
+  color: var(--app-text-soft);
   font-weight: 500;
 }
 
@@ -2039,7 +2058,7 @@ button.avatar-action-button::after {
 .progress-bar-wrapper {
   width: 100%;
   height: 12rpx;
-  background: #f3f4f6;
+  background: var(--app-surface-muted);
   border-radius: 6rpx;
   position: relative;
 }
@@ -2122,13 +2141,13 @@ button.avatar-action-button::after {
   width: 48rpx;
   height: 48rpx;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: var(--app-surface-muted);
   border: 2rpx solid white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   margin-left: -12rpx;
 }
 
@@ -2144,7 +2163,7 @@ button.avatar-action-button::after {
   width: auto;
   padding: 0 12rpx;
   border-radius: 24rpx;
-  background: #f9fafb;
+  background: var(--app-surface-muted);
   z-index: 0;
 }
 
@@ -2281,10 +2300,10 @@ button.avatar-action-button::after {
   width: 100%;
   min-height: 100rpx;
   padding: 16rpx 24rpx;
-  border: 1rpx solid #e0e0e0;
+  border: 1rpx solid var(--app-border);
   border-radius: 12rpx;
   font-size: 28rpx;
-  color: #333;
+  color: var(--app-text);
   box-sizing: border-box;
   transition: border-color 0.3s;
   line-height: 1.8;
@@ -2408,7 +2427,7 @@ button.avatar-action-button::after {
 
 .guest-tip {
   font-size: 24rpx;
-  color: #999;
+  color: var(--app-text-muted);
 }
 
 .guest-link {
@@ -2683,4 +2702,4 @@ button.avatar-action-button::after {
 }
 
 .nickname-error { color: #c23b32; font-size: 26rpx; line-height: 1.5; margin-top: 12rpx; }
-.profile-save-hint { color: #666; font-size: 24rpx; line-height: 1.5; margin-top: 6rpx; }
+.profile-save-hint { color: var(--app-text-soft); font-size: 24rpx; line-height: 1.5; margin-top: 6rpx; }

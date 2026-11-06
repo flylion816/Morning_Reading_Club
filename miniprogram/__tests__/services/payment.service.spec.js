@@ -182,7 +182,8 @@ describe('Payment Service Tests (Stage 4)', () => {
 
       expect(request.post).toHaveBeenCalledWith(
         `/payments/${paymentId}/confirm`,
-        expect.any(Object)
+        expect.any(Object),
+        { suppressError: true }
       );
       expect(result.status).toBe('completed');
     });

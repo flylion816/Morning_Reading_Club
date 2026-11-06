@@ -135,9 +135,9 @@
   ```
   NODE_ENV=production
   PORT=3000
-  MONGODB_URI=mongodb://user:password@host:27017/morning_reading
-  JWT_SECRET=0f405b99aefbbb7e304e0a82b2ca9db14d0cb4ed02fdecbb57192e6c330a0a06 ✅
-  JWT_REFRESH_SECRET=8ffd042c189499bf2c4af4fcb89d983d6b65ee050ca6e99a5a387d0443eed52c ✅
+  MONGODB_URI=mongodb://user:CHANGE_ME@host:27017/morning_reading
+  JWT_SECRET=REDACTED_SECRET_FROM_ENV ✅
+  JWT_REFRESH_SECRET=REDACTED_SECRET_FROM_ENV ✅
   API_BASE_URL=https://api.yourdomain.com
   WECHAT_APPID=<微信小程序的 AppID>
   WECHAT_APPSECRET=<微信小程序的 AppSecret>

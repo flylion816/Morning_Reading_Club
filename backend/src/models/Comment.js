@@ -109,6 +109,7 @@ CommentSchema.index({ userId: 1 });
 CommentSchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 CommentSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Comment', CommentSchema);

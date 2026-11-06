@@ -9,15 +9,21 @@
   <!-- 页面内容 -->
   <view wx:if="{{!loading}}" class="enrollment-container">
     <!-- 页面头部 -->
-    <view class="enrollment-header {{selectedPeriodCoverImage ? 'header-with-image' : ''}}">
-      <image wx:if="{{selectedPeriodCoverImage}}" src="{{selectedPeriodCoverImage}}" class="header-cover-image" mode="aspectFill" />
-      <view wx:if="{{!selectedPeriodCoverImage}}" class="header-content">
-        <view class="header-icon">{{selectedPeriodIcon}}</view>
-        <view class="header-title">{{periodName}}</view>
-        <view class="header-subtitle">填写报名信息</view>
+    <view class="enrollment-header">
+      <view class="header-content">
+        <view class="header-topline"><text>COURSE SIGN-UP</text><text>{{isSimpleForm ? '01' : '03'}} STEPS</text></view>
+        <view class="header-main">
+          <view class="header-icon">{{selectedPeriodIcon}}</view>
+          <view class="header-copy">
+            <view class="header-title">{{periodName}}</view>
+            <view class="header-subtitle">{{enrollmentTemplate.name}} · {{enrollmentFeeText}}</view>
+          </view>
+        </view>
+        <view class="header-meta"><text>留下信息，开始你的学习</text><text>{{selectedPeriodName}}</text></view>
       </view>
     </view>
 
+    <block wx:if="{{!isSimpleForm}}">
     <!-- 步骤指示器 -->
     <view class="step-indicator">
       <view class="step-item {{currentStep >= 1 ? 'active' : ''}}">
@@ -35,9 +41,34 @@
         <text class="step-label">确认</text>
       </view>
     </view>
+    </block>
 
     <!-- 表单容器 -->
     <form class="enrollment-form" bindsubmit="handleSubmit">
+      <block wx:if="{{isSimpleForm}}">
+        <view class="simple-form-intro">
+          <view class="simple-form-kicker-row"><text class="simple-form-kicker">QUICK SIGN-UP</text><text class="template-mark">{{enrollmentTemplate.name}}</text></view>
+          <text class="simple-form-title">两项信息，马上开始</text>
+          <text class="simple-form-description">我们只收集本期课程需要的资料，报名费用由期次统一设置。</text>
+        </view>
+        <view wx:if="{{fieldVisibility.name}}" class="form-group">
+          <view class="form-label"><text class="required">*</text><text>{{fieldLabels.name}}</text></view>
+          <input type="text" class="form-control {{errors.name ? 'form-control-error' : ''}}" placeholder="请输入您的姓名" value="{{form.name}}" bindinput="handleInput" data-field="name" />
+          <text wx:if="{{errors.name}}" class="form-error">{{errors.name}}</text>
+        </view>
+        <view class="form-group">
+          <view class="form-label"><text class="required">*</text><text>{{fieldLabels.phone}}</text></view>
+          <view wx:if="{{phoneAuthorized}}" class="phone-bound"><text class="phone-number">{{form.phone}}</text><text class="phone-change" bindtap="clearPhone">重新授权</text></view>
+          <view wx:else class="phone-auth-wrap">
+            <button class="btn-phone-auth" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">一键获取手机号</button>
+            <input type="number" class="form-control phone-manual" placeholder="或手动输入手机号" value="{{form.phone}}" bindinput="handleInput" data-field="phone" maxlength="11" />
+          </view>
+          <text wx:if="{{errors.phone}}" class="form-error">{{errors.phone}}</text>
+        </view>
+        <view class="simple-fee-row"><view><text class="fee-label">本期费用</text><text class="fee-note">提交后即可进入课程</text></view><text class="simple-fee-value">{{enrollmentFeeText}}</text></view>
+        <view class="step-actions simple-form-actions"><button class="btn btn-secondary" bindtap="handleCancel">取消</button><button class="btn btn-primary" formType="submit" loading="{{submitting}}">{{submitting ? '提交中...' : (enrollmentAmountInCents > 0 ? '提交并支付' : '确认免费报名')}}</button></view>
+      </block>
+      <block wx:else>
 
       <!-- Step 1: 基本信息 -->
       <block wx:if="{{currentStep === 1}}">
@@ -60,7 +91,7 @@
         <view class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>姓名</text>
+            <text>{{fieldLabels.name}}</text>
           </view>
           <input
             type="text"
@@ -77,7 +108,7 @@
         <!-- 手机号 -->
         <view class="form-group">
           <view class="form-label">
-            <text>手机号</text>
+            <text>{{fieldLabels.phone}}</text>
           </view>
           <view wx:if="{{phoneAuthorized}}" class="phone-bound">
             <text class="phone-number">{{form.phone}}</text>
@@ -102,10 +133,10 @@
         </view>
 
         <!-- 承诺全程 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.commitment}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>每期晨读营持续23天，每天早上6:00-7:00，您是否承诺全程参加？</text>
+            <text>{{fieldLabels.commitment}}</text>
           </view>
           <radio-group bindchange="handleRadioChange" data-field="commitment">
             <view class="radio-group">
@@ -127,10 +158,10 @@
       <!-- Step 2: 了解你（选填） -->
       <block wx:elif="{{currentStep === 2}}">
         <!-- 性别 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.gender}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>性别</text>
+            <text>{{fieldLabels.gender}}</text>
           </view>
           <radio-group bindchange="handleRadioChange" data-field="gender">
             <view class="radio-group">
@@ -144,10 +175,10 @@
         </view>
 
         <!-- 地址 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.province || fieldVisibility.detailedAddress}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>地址</text>
+            <text>{{fieldLabels.province || fieldLabels.detailedAddress}}</text>
           </view>
           <view class="address-group">
             <picker bindchange="handleProvinceChange" value="{{selectedProvinceIndex}}" range="{{provinceList}}">
@@ -170,10 +201,10 @@
         </view>
 
         <!-- 年龄 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.age}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>年龄</text>
+            <text>{{fieldLabels.age}}</text>
           </view>
           <input
             type="number"
@@ -189,10 +220,10 @@
         </view>
 
         <!-- 是否读过 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.hasReadBook}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>您是否读过《高效能人士的七个习惯》</text>
+            <text>{{fieldLabels.hasReadBook}}</text>
           </view>
           <radio-group bindchange="handleRadioChange" data-field="hasReadBook">
             <view class="radio-group">
@@ -206,10 +237,10 @@
         </view>
 
         <!-- 读过几遍 -->
-        <view wx:if="{{form.hasReadBook === 'yes'}}" class="form-group">
+        <view wx:if="{{fieldVisibility.readTimes && form.hasReadBook === 'yes'}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>您读过几遍</text>
+            <text>{{fieldLabels.readTimes}}</text>
           </view>
           <input
             type="number"
@@ -225,10 +256,10 @@
         </view>
 
         <!-- 参加课程的缘起 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.enrollReason}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>您参加课程的缘起</text>
+            <text>{{fieldLabels.enrollReason}}</text>
           </view>
           <textarea
             class="form-control textarea {{errors.enrollReason ? 'form-control-error' : ''}}"
@@ -243,10 +274,10 @@
         </view>
 
         <!-- 对课程的期待 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.expectation}}" class="form-group">
           <view class="form-label">
             <text class="required">*</text>
-            <text>您对课程的期待</text>
+            <text>{{fieldLabels.expectation}}</text>
           </view>
           <textarea
             class="form-control textarea {{errors.expectation ? 'form-control-error' : ''}}"
@@ -261,9 +292,9 @@
         </view>
 
         <!-- 推荐人 -->
-        <view class="form-group">
+        <view wx:if="{{fieldVisibility.referrer}}" class="form-group">
           <view class="form-label">
-            <text>您的推荐人</text>
+            <text>{{fieldLabels.referrer}}</text>
           </view>
           <input
             type="text"
@@ -321,8 +352,9 @@
         </view>
       </block>
 
+      </block>
     </form>
   </view>
 </view>
 
-<podcast-player-bar />
+<podcast-player-bar bottom-offset="128" />

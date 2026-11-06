@@ -9,55 +9,69 @@ const API_BASE_URL =
   (import.meta.env.DEV ? '/api/v1' : 'https://wx.shubai01.com/api/v1');
 
 type DataApiClient = {
-  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
-  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
-  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
-  patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
-  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  get<T = any>(_url: string, _config?: AxiosRequestConfig): Promise<T>;
+  post<T = any>(_url: string, _data?: any, _config?: AxiosRequestConfig): Promise<T>;
+  put<T = any>(_url: string, _data?: any, _config?: AxiosRequestConfig): Promise<T>;
+  patch<T = any>(_url: string, _data?: any, _config?: AxiosRequestConfig): Promise<T>;
+  delete<T = any>(_url: string, _config?: AxiosRequestConfig): Promise<T>;
 };
 
 // 创建 axios 实例。响应拦截器会返回 response.data，因此业务层使用 DataApiClient 类型。
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// 设置默认的 Authorization 请求头获取器
-axiosClient.defaults.headers.common['Authorization'] = '';
+// Administrator access tokens live only in memory. The browser receives the
+// rotating refresh credential as a Secure, HttpOnly cookie.
+let adminAccessToken: string | null = null;
+let maintenanceProof: string | null = null;
+let refreshPromise: Promise<any | null> | null = null;
+
+export function setAdminAccessToken(token: string | null) {
+  adminAccessToken = token;
+  if (token) axiosClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+  else delete axiosClient.defaults.headers.common.Authorization;
+}
+
+export function setAdminMaintenanceProof(token: string | null) {
+  maintenanceProof = token;
+}
+
+function refreshAdminSession(): Promise<any | null> {
+  if (!refreshPromise) {
+    refreshPromise = axios.post(`${API_BASE_URL}/auth/admin/refresh-token`, {}, {
+      withCredentials: true,
+      headers: { 'Content-Type': 'application/json' }
+    }).then(response => {
+      const data = response.data?.data || response.data;
+      if (!data?.accessToken) return null;
+      setAdminAccessToken(data.accessToken);
+      return data;
+    }).catch(() => null).finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
 
 // 请求拦截器 - 添加认证令牌
 axiosClient.interceptors.request.use(
   (config) => {
-    let token: string | null = null;
-    try {
-      token = localStorage.getItem('adminToken');
-    } catch (err) {
-      logger.warn('[API Request] ⚠️ 无法访问 localStorage:', err);
+    if (adminAccessToken) config.headers.Authorization = `Bearer ${adminAccessToken}`;
+    if (config.url?.startsWith('/backup/') && maintenanceProof) {
+      config.headers['X-Admin-Maintenance-Proof'] = maintenanceProof;
     }
-    logger.debug('[API Request] URL:', { url: config.url });
-    logger.debug('[API Request] localStorage.adminToken:', {
-      value: token ? '有值' : '无值'
-    });
-    if (token) {
-      // 使用 defaults 方式设置全局 Authorization 请求头
-      const authHeader = `Bearer ${token}`;
-      axiosClient.defaults.headers.common['Authorization'] = authHeader;
-      // 同时也设置到当前请求的 config 中
-      (config.headers as any)['Authorization'] = authHeader;
-      logger.debug('[API Request] Authorization header已设置:', {
-        token: `Bearer ${token.substring(0, 20)}...`
-      });
 
-      // 多租户：platform_superadmin 切换租户时附带
+    try {
       const activeTenant = localStorage.getItem('admin_active_tenant');
-      if (activeTenant) {
-        (config.headers as any)['X-Active-Tenant'] = activeTenant;
-      }
-    } else {
-      logger.warn('[API Request] ⚠️ 没有token，不会附加Authorization header');
+      if (activeTenant) config.headers['X-Active-Tenant'] = activeTenant;
+    } catch (_) {
+      // Storage availability is not an authorization signal.
     }
     return config;
   },
@@ -73,7 +87,6 @@ axiosClient.interceptors.response.use(
       url: response.config.url,
       status: response.status
     });
-    logger.debug('[API Response] response.data:', response.data);
 
     // 后端返回格式：{code, message, data: {...}, pagination: {...}, timestamp: ...}
     if (response.data && typeof response.data === 'object') {
@@ -114,20 +127,32 @@ axiosClient.interceptors.response.use(
       url: error.config?.url,
       status: error.response?.status
     });
-    logger.debug('[API Response] 错误详情:', error.response?.data);
-    if (error.response?.status === 401) {
-      logger.warn(
-        '[API Response] ❌ 401 Unauthorized，清除token并重定向到登录页'
-      );
-      // 清除过期的令牌并重定向到登录页
-      try {
-        localStorage.removeItem('adminToken');
-      } catch (err) {
-        logger.warn('[API Response] ⚠️ 无法清除 localStorage:', err);
-      }
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
+    const url = error.config?.url || '';
+    const responseMessage = error.response?.data?.message || '';
+    if (error.response?.status === 403 && url.startsWith('/backup/') && /二次验证|授权已过期|授权已失效/u.test(responseMessage)) {
+      setAdminMaintenanceProof(null);
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('admin-maintenance-expired'));
+    }
+    const isSessionEndpoint = url.includes('/auth/admin/login') || url.includes('/auth/admin/refresh-token');
+    if (error.response?.status === 401 && !isSessionEndpoint && !(error.config as any)?._adminRefreshRetry) {
+      (error.config as any)._adminRefreshRetry = true;
+      return refreshAdminSession().then(session => {
+        if (session?.accessToken && error.config) {
+          error.config.headers.Authorization = `Bearer ${session.accessToken}`;
+          return axiosClient.request(error.config);
+        }
+        setAdminAccessToken(null);
+        setAdminMaintenanceProof(null);
+        try { localStorage.removeItem('adminInfo'); } catch (_) { /* ignore */ }
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        return Promise.reject(error.response?.data || error);
+      });
+    }
+    if (error.response?.status === 401 && !isSessionEndpoint) {
+      setAdminAccessToken(null);
+      setAdminMaintenanceProof(null);
+      try { localStorage.removeItem('adminInfo'); } catch (_) { /* ignore */ }
+      if (typeof window !== 'undefined') window.location.href = '/login';
     }
     // 返回更详细的错误信息
     const errorData = error.response?.data;
@@ -147,12 +172,16 @@ const apiClient = axiosClient as unknown as DataApiClient;
 export const authApi = {
   login: (email: string, password: string) =>
     apiClient.post('/auth/admin/login', { email, password }),
+  refresh: () => refreshAdminSession(),
   logout: () => apiClient.post('/auth/admin/logout'),
   getProfile: () => apiClient.get('/auth/admin/profile'),
   updateProfile: (data: { name: string; avatar?: string | null }) =>
     apiClient.put('/auth/admin/profile', data),
-  verifyDbAccess: (password: string) =>
-    apiClient.post('/auth/admin/verify-db-access', { password })
+  verifyDbAccess: async (password: string) => {
+    const result: any = await apiClient.post('/auth/admin/verify-db-access', { password });
+    if (result?.maintenanceToken) setAdminMaintenanceProof(result.maintenanceToken);
+    return result;
+  }
 };
 
 // 账号管理 API
@@ -252,6 +281,18 @@ export const paymentApi = {
 };
 
 // 期次 API
+export const courseTemplateApi = {
+  list: () => apiClient.get('/course-templates'),
+  create: (data: any) => apiClient.post('/course-templates', data),
+  update: (id: string, data: any) => apiClient.put(`/course-templates/${id}`, data)
+};
+
+export const enrollmentTemplateApi = {
+  list: () => apiClient.get('/enrollment-templates'),
+  create: (data: any) => apiClient.post('/enrollment-templates', data),
+  update: (id: string, data: any) => apiClient.put(`/enrollment-templates/${id}`, data)
+};
+
 export const periodApi = {
   getPeriods: (params?: any) => apiClient.get('/periods', { params }),
   getPeriodDetail: (id: string) => apiClient.get(`/periods/${id}`),
@@ -472,7 +513,9 @@ export const backupApi = {
   deltaSync: () => apiClient.post('/backup/sync/delta'),
 
   // 恢复
-  recoverFull: () => apiClient.post('/backup/recover/full'),
+  recoverFull: (confirmation: string) => apiClient.post('/backup/recover/full', {}, {
+    headers: { 'X-Destructive-Confirmation': confirmation }
+  }),
 
   // MongoDB 单条记录 CRUD
   updateMongodbRecord: (table: string, id: string, data: any) =>

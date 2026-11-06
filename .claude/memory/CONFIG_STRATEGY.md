@@ -22,7 +22,7 @@ const currentEnv = 'dev'; // 'dev' | 'prod'
 const envConfig = {
   dev: {
     backend: {
-      mongodbUri: 'mongodb://admin:admin123@localhost:27017/morning_reading_db?authSource=admin',
+      mongodbUri: 'mongodb://admin:CHANGE_ME@localhost:27017/morning_reading_db?authSource=admin',
       nodeEnv: 'development',
       port: 3000,
     },
@@ -31,7 +31,7 @@ const envConfig = {
   },
   prod: {
     backend: {
-      mongodbUri: 'mongodb://mongodb:cephaEsLMPkNAemf@127.0.0.1:27017/morning_reading?authSource=admin',
+      mongodbUri: 'mongodb://mongodb:CHANGE_ME@127.0.0.1:27017/morning_reading?authSource=admin',
       nodeEnv: 'production',
       port: 3000,
     },
@@ -54,8 +54,8 @@ const envConfig = {
 # 这两个值由 .env.config.js 通过 backend/src/server.js 提供
 
 # JWT 密钥（开发用默认值）
-JWT_SECRET=dev-secret-key-12345678
-JWT_REFRESH_SECRET=dev-refresh-secret-key-87654321
+JWT_SECRET=<本地注入的随机密钥>
+JWT_REFRESH_SECRET=<本地注入的随机密钥>
 JWT_EXPIRES_IN=2h
 JWT_REFRESH_EXPIRES_IN=30d
 
@@ -63,7 +63,7 @@ JWT_REFRESH_EXPIRES_IN=30d
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=morning_user
-MYSQL_PASSWORD=morning123
+MYSQL_PASSWORD=<从密钥管理服务读取>
 MYSQL_DATABASE=morning_reading
 
 # Redis 配置（开发环境默认）
@@ -71,11 +71,11 @@ REDIS_ENABLED=true
 REDIS_HOST=localhost
 REDIS_PORT=26379
 REDIS_PASSWORD=
-REDIS_DB=0
+<从密钥管理服务读取>
 
 # 微信配置（开发用 Mock）
 WECHAT_APPID=wx199d6d332344ed0a
-WECHAT_SECRET=mock-secret-for-local-dev
+WECHAT_SECRET=<本地注入的测试密钥>
 
 # 日志级别
 LOG_LEVEL=debug
@@ -84,8 +84,8 @@ LOG_LEVEL=debug
 API_BASE_URL=http://localhost:3000
 
 # Admin 管理员密码（仅开发环境）
-ADMIN_DEFAULT_PASSWORD=admin123456
-ADMIN_DB_ACCESS_PASSWORD=admin123456
+ADMIN_DEFAULT_PASSWORD=<从密钥管理服务读取>
+ADMIN_DB_ACCESS_PASSWORD=<从密钥管理服务读取>
 ```
 
 **部署时**：服务器使用不同的密钥值覆盖这些变量（见下文）

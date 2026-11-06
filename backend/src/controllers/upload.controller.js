@@ -12,7 +12,7 @@ module.exports = {
   uploadFile: async (req, res) => {
     try {
       if (!req.file) return res.status(400).json(errors.badRequest('未找到上传的文件'));
-      const tenantId = req._resolvedTenantId || getCurrentTenantId();
+      const tenantId = req.resolvedTenantId || getCurrentTenantId();
       const slug = await resolveTenantSlug(tenantId);
       res.json(success({
         filename: req.file.filename,
@@ -32,7 +32,7 @@ module.exports = {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json(errors.badRequest('未找到上传的文件'));
       }
-      const tenantId = req._resolvedTenantId || getCurrentTenantId();
+      const tenantId = req.resolvedTenantId || getCurrentTenantId();
       const slug = await resolveTenantSlug(tenantId);
       const uploadedFiles = req.files.map(file => ({
         filename: file.filename,
@@ -54,7 +54,7 @@ module.exports = {
       if (filename.includes('..') || filename.includes('/')) {
         return res.status(400).json(errors.badRequest('无效的文件名'));
       }
-      const tenantId = req._resolvedTenantId || getCurrentTenantId();
+      const tenantId = req.resolvedTenantId || getCurrentTenantId();
       const slug = await resolveTenantSlug(tenantId);
       const tenantDir = path.join(tenantsRoot, slug);
       const filePath = path.join(tenantDir, filename);

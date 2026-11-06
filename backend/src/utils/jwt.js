@@ -4,60 +4,74 @@ const redisManager = require('./redis');
 require('dotenv').config();
 
 const WS_TOKEN_TTL_SECONDS = 30;
+const ADMIN_ACCESS_TTL = process.env.JWT_ADMIN_EXPIRES_IN || '15m';
+const ADMIN_REFRESH_TTL_SECONDS = Number(process.env.JWT_ADMIN_REFRESH_TTL_SECONDS || 7 * 24 * 60 * 60);
+const TOKEN_ISSUER = 'morning-reading';
 
-// 生成Access Token
+function signingKey(name) {
+  const key = process.env[name];
+  if (typeof key !== 'string' || key.length < 32) {
+    throw new Error(`Missing or weak signing key: ${name}`);
+  }
+  return key;
+}
+
+function sign(payload, keyName, audience, type, expiresIn) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new TypeError('Token payload must be an object');
+  }
+  return jwt.sign(
+    { ...payload, tokenType: type },
+    signingKey(keyName),
+    { algorithm: 'HS256', issuer: TOKEN_ISSUER, audience, expiresIn }
+  );
+}
+
+function verify(token, keyName, audience, type) {
+  const decoded = jwt.verify(token, signingKey(keyName), {
+    algorithms: ['HS256'],
+    issuer: TOKEN_ISSUER,
+    audience
+  });
+  if (decoded.tokenType !== type) throw new Error('Token purpose is invalid');
+  return decoded;
+}
+
 function generateAccessToken(payload) {
-  return jwt.sign(payload, process.env.JWT_SECRET || 'dev-secret-key-12345678', {
-    expiresIn: process.env.JWT_EXPIRES_IN || '2h'
-  });
+  return sign(payload, 'JWT_SECRET', 'mini-program-api', 'user_access', process.env.JWT_EXPIRES_IN || '2h');
 }
 
-// 生成Refresh Token
 function generateRefreshToken(payload) {
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key-87654321', {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
-  });
+  return sign(
+    payload,
+    'JWT_REFRESH_SECRET',
+    'mini-program-refresh',
+    'user_refresh',
+    process.env.JWT_REFRESH_EXPIRES_IN || '30d'
+  );
 }
 
-/**
- * 验证普通 access token（用于业务请求）
- * 与 verifyWsToken 的区别：
- *   - verifyAccessToken：接受普通登录 token，拒绝 ws 专用 token（kind === 'ws'）
- *   - verifyWsToken：只接受 ws 专用 token（kind === 'ws'），拒绝普通 token
- */
 function verifyAccessToken(token) {
   try {
-    const secret = process.env.JWT_SECRET || 'dev-secret-key-12345678';
-    const decoded = jwt.verify(token, secret);
-    // access token 不应有 kind 字段，或 kind !== 'ws'
-    // 防止有人用短期 wsToken 代替 access token 发起业务请求
-    if (decoded.kind === 'ws') throw new Error('不能用 wsToken 作为 access token');
-    return decoded;
+    return verify(token, 'JWT_SECRET', 'mini-program-api', 'user_access');
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      throw new Error('Token已过期');
-    }
+    if (error.name === 'TokenExpiredError') throw new Error('Token已过期');
     throw new Error('Token无效');
   }
 }
 
-// 验证Refresh Token
 function verifyRefreshToken(token) {
   try {
-    const secret = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key-87654321';
-    return jwt.verify(token, secret);
+    return verify(token, 'JWT_REFRESH_SECRET', 'mini-program-refresh', 'user_refresh');
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      throw new Error('Refresh Token已过期');
-    }
+    if (error.name === 'TokenExpiredError') throw new Error('Refresh Token已过期');
     throw new Error('Refresh Token无效');
   }
 }
 
-// 生成Token对
 function generateTokens(user) {
   const payload = {
-    userId: user.id || user._id,
+    userId: (user.id || user._id).toString(),
     openid: user.openid,
     role: user.role || 'user',
     tenantId: user.tenantId ? user.tenantId.toString() : null
@@ -73,40 +87,85 @@ function generateTokens(user) {
   };
 }
 
-/**
- * 生成短期 wsToken（30s TTL，一次性消费，仅用于 WebSocket 握手）
- * kind='ws' 标记防止被误用为 access token
- */
-function generateWsToken(user) {
-  const jti = crypto.randomUUID
-    ? crypto.randomUUID()
-    : crypto.randomBytes(16).toString('hex');
-  return jwt.sign(
+function generateAdminAccessToken(admin, sessionId) {
+  return sign(
     {
-      userId: user.id || user._id,
-      tenantId: user.tenantId ? user.tenantId.toString() : null,
-      kind: 'ws',
-      jti
+      sub: admin._id.toString(),
+      sid: sessionId,
+      role: admin.role,
+      tenantId: admin.tenantId ? admin.tenantId.toString() : null,
+      sessionVersion: admin.sessionVersion || 0
     },
-    process.env.JWT_WS_SECRET || process.env.JWT_SECRET || 'dev-secret-key-12345678',
-    { expiresIn: WS_TOKEN_TTL_SECONDS }
+    'JWT_ADMIN_SECRET',
+    'admin-api',
+    'admin_access',
+    ADMIN_ACCESS_TTL
   );
 }
 
-/**
- * 验证 wsToken：只接受 kind === 'ws' 的 token
- */
-function verifyWsToken(token) {
-  const secret = process.env.JWT_WS_SECRET || process.env.JWT_SECRET || 'dev-secret-key-12345678';
-  const decoded = jwt.verify(token, secret);
-  if (decoded.kind !== 'ws') throw new Error('非 ws token');
-  return decoded;
+function generateAdminRefreshToken(admin, sessionId, jti) {
+  return sign(
+    {
+      sub: admin._id.toString(),
+      sid: sessionId,
+      jti,
+      sessionVersion: admin.sessionVersion || 0
+    },
+    'JWT_ADMIN_REFRESH_SECRET',
+    'admin-refresh',
+    'admin_refresh',
+    ADMIN_REFRESH_TTL_SECONDS
+  );
 }
 
-/**
- * 消费 wsToken：verify + Redis 一次性消费（setNxEx）
- * 同一个 jti 只能消费一次，防止重放
- */
+function verifyAdminAccessToken(token) {
+  return verify(token, 'JWT_ADMIN_SECRET', 'admin-api', 'admin_access');
+}
+
+function verifyAdminRefreshToken(token) {
+  return verify(token, 'JWT_ADMIN_REFRESH_SECRET', 'admin-refresh', 'admin_refresh');
+}
+
+function generateAdminMaintenanceToken(admin, sessionId) {
+  return sign(
+    {
+      sub: admin._id.toString(),
+      sid: sessionId,
+      role: admin.role,
+      tenantId: admin.tenantId ? admin.tenantId.toString() : null,
+      sessionVersion: admin.sessionVersion || 0
+    },
+    'JWT_ADMIN_SECRET',
+    'admin-maintenance',
+    'admin_step_up',
+    '5m'
+  );
+}
+
+function verifyAdminMaintenanceToken(token) {
+  return verify(token, 'JWT_ADMIN_SECRET', 'admin-maintenance', 'admin_step_up');
+}
+
+/** Generate a short-lived, one-use WebSocket token for an authenticated user. */
+function generateWsToken(user) {
+  const jti = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+  return sign(
+    {
+      userId: (user.id || user._id).toString(),
+      tenantId: user.tenantId ? user.tenantId.toString() : null,
+      jti
+    },
+    'JWT_WS_SECRET',
+    'websocket',
+    'ws_access',
+    WS_TOKEN_TTL_SECONDS
+  );
+}
+
+function verifyWsToken(token) {
+  return verify(token, 'JWT_WS_SECRET', 'websocket', 'ws_access');
+}
+
 async function consumeWsToken(token) {
   const decoded = verifyWsToken(token);
   if (!decoded.jti) throw new Error('ws token 缺少 jti');
@@ -123,8 +182,16 @@ module.exports = {
   verifyAccessToken,
   verifyRefreshToken,
   generateTokens,
+  generateAdminAccessToken,
+  generateAdminRefreshToken,
+  verifyAdminAccessToken,
+  verifyAdminRefreshToken,
+  generateAdminMaintenanceToken,
+  verifyAdminMaintenanceToken,
+  ADMIN_ACCESS_TTL,
+  ADMIN_REFRESH_TTL_SECONDS,
+  WS_TOKEN_TTL_SECONDS,
   generateWsToken,
   verifyWsToken,
-  consumeWsToken,
-  WS_TOKEN_TTL_SECONDS
+  consumeWsToken
 };

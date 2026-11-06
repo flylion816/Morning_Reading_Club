@@ -20,6 +20,8 @@ const currentTenant = require('../../config/current-tenant');
 
 // Mock the request module
 jest.mock('../../utils/request');
+// Exercise the WeChat login path regardless of the active local developer tenant.
+jest.mock('../../config/env', () => ({ currentEnv: 'test', useMock: false }));
 
 describe('Authentication Service Tests', () => {
   beforeEach(() => {

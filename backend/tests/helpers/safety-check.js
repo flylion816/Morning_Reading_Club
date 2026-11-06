@@ -10,28 +10,28 @@ module.exports = {
    * @throws {Error} 如果环境不安全
    */
   checkTestEnvironment() {
-    const NODE_ENV = process.env.NODE_ENV;
-    const MONGODB_URI = process.env.MONGODB_URI;
+    const {NODE_ENV} = process.env;
+    const {MONGODB_URI} = process.env;
 
     // ❌ 禁止在生产环境运行测试
     if (NODE_ENV === 'production') {
       throw new Error(
-        '🚫 [CRITICAL] 单元测试禁止在生产环境运行！\n' +
-        '原因：测试会删除数据库中的所有数据。\n' +
-        '解决方案：\n' +
-        '  1. 设置 NODE_ENV=test\n' +
-        '  2. 加载 .env.test 文件\n' +
-        '  3. 使用内存数据库（MongoMemoryServer）\n' +
-        '当前 NODE_ENV: ' + NODE_ENV
+        `🚫 [CRITICAL] 单元测试禁止在生产环境运行！\n` +
+        `原因：测试会删除数据库中的所有数据。\n` +
+        `解决方案：\n` +
+        `  1. 设置 NODE_ENV=test\n` +
+        `  2. 加载 .env.test 文件\n` +
+        `  3. 使用内存数据库（MongoMemoryServer）\n` +
+        `当前 NODE_ENV: ${  NODE_ENV}`
       );
     }
 
     // ⚠️ 警告：检查是否试图连接到真实数据库
     if (NODE_ENV === 'development' && MONGODB_URI && MONGODB_URI.includes('morning_reading_db')) {
       console.warn(
-        '⚠️  [WARNING] 单元测试在开发环境运行，正在连接到真实数据库！\n' +
-        '检查：当前 MONGODB_URI = ' + MONGODB_URI + '\n' +
-        '建议：如果不是有意，请设置 NODE_ENV=test'
+        `⚠️  [WARNING] 单元测试在开发环境运行，正在连接到真实数据库！\n` +
+        `检查：当前 MONGODB_URI = ${  MONGODB_URI  }\n` +
+        `建议：如果不是有意，请设置 NODE_ENV=test`
       );
     }
 
@@ -40,7 +40,7 @@ module.exports = {
       if (!MONGODB_URI || MONGODB_URI === '') {
         console.log('✅ [SAFE] 测试环境配置正确：使用内存数据库（MongoMemoryServer）');
       } else {
-        console.log('ℹ️  [INFO] 测试环境运行中。MONGODB_URI: ' + MONGODB_URI);
+        console.log(`ℹ️  [INFO] 测试环境运行中。MONGODB_URI: ${  MONGODB_URI}`);
       }
     }
   },
@@ -50,7 +50,7 @@ module.exports = {
    * @param {string} context - 调用上下文（模型名称）
    */
   warnDeleteMany(context) {
-    const NODE_ENV = process.env.NODE_ENV;
+    const {NODE_ENV} = process.env;
     if (NODE_ENV !== 'test' && NODE_ENV !== 'development') {
       throw new Error(
         `❌ [CRITICAL] 尝试在 ${NODE_ENV} 环境中执行 deleteMany！\n` +

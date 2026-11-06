@@ -89,20 +89,14 @@ Page({
     this._skipNextOnShowRefresh = true;
     this._pendingLoadOptions = options;
 
-    // 检查登录状态
     const app = getApp();
+    // 公开阅读期次允许访客查看课程列表；只有报名、打卡和互动才需要登录。
     if (!app.globalData.isLogin) {
-      wx.showToast({
-        title: '请先完成首页登录',
-        icon: 'none'
+      this.setData({
+        isAdmin: false,
+        communityAccessState: 'locked',
+        canAccessCommunity: false
       });
-
-      // 延迟返回首页
-      setTimeout(() => {
-        wx.navigateBack();
-      }, 1500);
-
-      return;
     }
 
     if (!options.periodId) {
@@ -119,7 +113,7 @@ Page({
     this._pendingLoadOptions = null;
 
     const app = getApp();
-    if (!app.globalData.isLogin) return;
+    const isLoggedIn = !!app.globalData.isLogin;
 
     // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
     this.setData({
@@ -139,7 +133,9 @@ Page({
       checkinContentExpanded: {}
     });
     this.loadSections();
-    this.checkPaymentStatus();
+    if (isLoggedIn) {
+      this.checkPaymentStatus();
+    }
   },
 
   onShow() {
@@ -149,6 +145,7 @@ Page({
     }
 
     const app = getApp();
+    const isLoggedIn = !!app.globalData.isLogin;
     this.setData({ isAdmin: isAdminUser(app.globalData.userInfo || {}) });
 
     // 每次显示页面时重新加载打卡记录
@@ -162,7 +159,7 @@ Page({
       this.loadAllCheckins();
     }
     // 刷新支付状态（从支付页返回后可能已支付）
-    if (this.data.periodId) {
+    if (isLoggedIn && this.data.periodId) {
       this.checkPaymentStatus();
     }
   },

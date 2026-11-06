@@ -321,7 +321,7 @@ describe('Insight Controller - 单条授权与请求流', () => {
     await controller.getUserInsights(req, res, next);
 
     expect(res.json.calledOnce).to.equal(true);
-    const list = res.json.firstCall.args[0].data.list;
+    const {list} = res.json.firstCall.args[0].data;
     const accessible = list.find(item => item._id.toString() === insightAId.toString());
     const locked = list.find(item => item._id.toString() === insightBId.toString());
 
@@ -383,7 +383,7 @@ describe('Insight Controller - 单条授权与请求流', () => {
     await controller.getUserInsights(req, res, next);
 
     expect(res.json.calledOnce).to.equal(true);
-    const list = res.json.firstCall.args[0].data.list;
+    const {list} = res.json.firstCall.args[0].data;
     const pending = list.find(item => item._id.toString() === insightAId.toString());
     const untouched = list.find(item => item._id.toString() === insightBId.toString());
 

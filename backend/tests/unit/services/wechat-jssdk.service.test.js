@@ -31,7 +31,7 @@ describe('Wechat JSSDK Service', () => {
   });
 
   afterEach(() => {
-    service.__resetCache();
+    service.resetCacheForTests();
     sandbox.restore();
     process.env = { ...processEnvBackup };
   });

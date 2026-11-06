@@ -16,7 +16,7 @@
           <el-table-column label="标签名" prop="label" />
           <el-table-column label="Key" prop="key" width="120" />
           <el-table-column label="排序" width="120" align="center">
-            <template #default="{ row, $index }">
+            <template #default="{ $index }">
               <el-button size="small" :disabled="$index === 0" @click="moveType($index, -1)">↑</el-button>
               <el-button size="small" :disabled="$index === activityTypes.length - 1" @click="moveType($index, 1)">↓</el-button>
             </template>
@@ -255,7 +255,7 @@
             </div>
             <!-- 上传按钮 -->
             <label v-if="editForm.mediaList.length < 9 && !editForm.mediaList.some((m: any) => m.type === 'video')" class="edit-media-add">
-              <input type="file" accept="image/*,video/*" style="display:none" @change="onUploadFile" :disabled="uploading" />
+              <input type="file" accept="image/*,video/*" style="display:none" :disabled="uploading" @change="onUploadFile" />
               <span v-if="uploading" class="add-icon">⏳</span>
               <span v-else class="add-icon">+</span>
               <span class="add-text">{{ uploading ? '上传中' : '添加' }}</span>
@@ -578,7 +578,7 @@ onMounted(() => {
 
 .total-hint {
   margin-left: auto;
-  color: #999;
+  color: var(--admin-ink-muted);
   font-size: 13px;
 }
 
@@ -590,7 +590,7 @@ onMounted(() => {
 
 .cell-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--admin-ink-muted);
   margin-top: 2px;
 }
 
@@ -603,7 +603,7 @@ onMounted(() => {
 
 .reaction-counts {
   font-size: 13px;
-  color: #666;
+  color: var(--admin-ink-soft);
 }
 
 .type-tags {
@@ -702,7 +702,7 @@ onMounted(() => {
   justify-content: center;
   gap: 4px;
   cursor: pointer;
-  background: #fafafa;
+  background: var(--admin-page);
 }
 
 .edit-media-add .add-icon {

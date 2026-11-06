@@ -11,6 +11,7 @@
  */
 
 const request = require('../../utils/request');
+const envConfig = require('../../config/env');
 const constants = require('../../config/constants');
 
 describe('Request Service', () => {
@@ -79,6 +80,23 @@ describe('Request Service', () => {
       expect(callArgs.url).toContain('/api/test');
     });
 
+    test('uses the current environment base URL instead of a cached value', async () => {
+      const originalBaseURL = envConfig.apiBaseUrl;
+      global.wx.request.mockImplementation(options => {
+        options.success({ statusCode: 200, data: { code: 200, data: {} } });
+      });
+
+      envConfig.apiBaseUrl = 'http://127.0.0.1:3000/api/v1';
+      try {
+        await request.get('/auth/wechat/login');
+      } finally {
+        envConfig.apiBaseUrl = originalBaseURL;
+      }
+
+      expect(global.wx.request.mock.calls[0][0].url)
+        .toBe('http://127.0.0.1:3000/api/v1/auth/wechat/login');
+    });
+
     test('should handle 201 Created response', async () => {
       global.wx.request.mockImplementation((options) => {
         setTimeout(() => {
@@ -139,6 +157,53 @@ describe('Request Service', () => {
       await expect(request.get('/api/notfound')).rejects.toEqual(
         expect.objectContaining({ statusCode: 404 })
       );
+    });
+
+    test('404/403 错误带上后端原因，且保留 statusCode 和 data', async () => {
+      global.wx.request.mockImplementation((options) => {
+        setTimeout(() => options.success({ statusCode: 403, data: { code: 403, message: '活动名额已满' } }), 10);
+      });
+
+      const err = await request.get('/api/forbidden').catch(e => e);
+      expect(err.statusCode).toBe(403);
+      expect(err.message).toBe('活动名额已满');
+      expect(err.data.message).toBe('活动名额已满');
+      expect(global.wx.showToast).toHaveBeenCalledWith(expect.objectContaining({ title: '活动名额已满' }));
+    });
+
+    test('账号被禁用的 403 会清除登录态', async () => {
+      global.wx.__storage = {};
+      global.wx.request.mockImplementation((options) => {
+        setTimeout(() => options.success({ statusCode: 403, data: { code: 403, message: '用户已被禁用' } }), 10);
+      });
+      const spy = jest.spyOn(request, 'handleAuthError').mockImplementation(() => {});
+
+      await request.get('/api/me').catch(() => {});
+
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    test('登录接口返回账号禁用时只提示原因，不跳回登录页', async () => {
+      global.wx.request.mockImplementation((options) => {
+        setTimeout(() => options.success({ statusCode: 403, data: { code: 403, message: '用户已被禁用' } }), 10);
+      });
+      const spy = jest.spyOn(request, 'handleAuthError').mockImplementation(() => {});
+
+      const err = await request.post('/auth/wechat/login', { code: 'x' }).catch(e => e);
+
+      expect(spy).not.toHaveBeenCalled();
+      expect(err.message).toBe('用户已被禁用');
+      spy.mockRestore();
+    });
+
+    test('500 错误不向页面透出服务端内部信息', async () => {
+      global.wx.request.mockImplementation((options) => {
+        setTimeout(() => options.success({ statusCode: 500, data: { message: 'MongoServerError: E11000 ...' } }), 10);
+      });
+
+      const err = await request.get('/api/error').catch(e => e);
+      expect(err.message).toBe('服务器错误,请稍后重试');
     });
 
     test('should reject on 500 Server Error', async () => {

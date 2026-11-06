@@ -126,7 +126,7 @@ async function attachWechatPaymentParams(payment, userOpenid) {
  */
 exports.initiatePayment = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     // amount 单位为"分"（100分 = 1元），默认 9900分 = 99元
     const { enrollmentId, registrationId, paymentMethod = 'wechat', amount = 9900 } = req.body;
 
@@ -297,7 +297,7 @@ exports.initiatePayment = async (req, res) => {
     );
   } catch (error) {
     logger.error('Payment initiation failed', error);
-    res.status(500).json(errors.serverError('初始化支付失败: ' + error.message));
+    res.status(500).json(errors.serverError(`初始化支付失败: ${  error.message}`));
   }
 };
 
@@ -307,14 +307,13 @@ exports.initiatePayment = async (req, res) => {
  */
 exports.confirmPayment = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { paymentId } = req.params;
-    const { transactionId } = req.body;
 
     // 原子抢占：仅从 pending 抢占，防止并发双重确认；
     // processing 超过 5 分钟视为上次确认中断，允许重新抢占（timestamps 会在抢占时刷新 updatedAt）
     const PROCESSING_STALE_MS = 5 * 60 * 1000;
-    const payment = await Payment.findOneAndUpdate(
+    let payment = await Payment.findOneAndUpdate(
       {
         _id: paymentId,
         userId,
@@ -347,8 +346,59 @@ exports.confirmPayment = async (req, res) => {
       return res.status(400).json(errors.badRequest('当前支付状态不允许确认'));
     }
 
-    // 确认支付
-    await payment.confirmPayment(transactionId);
+    // Ignore the client transaction ID. Only provider evidence can settle a paid order.
+    let providerTransactionId = null;
+    if (Number(payment.amount) > 0) {
+      if (payment.paymentMethod !== 'wechat') {
+        await Payment.updateOne({ _id: payment._id, userId, status: 'processing' }, { $set: { status: 'pending' } });
+        return res.status(503).json(errors.serverError('该支付方式暂不支持自动核验'));
+      }
+
+      let verification;
+      let payConfig;
+      try {
+        payConfig = await paymentService.resolveWechatPayConfig(payment.tenantId);
+        verification = await paymentService.queryOrder(payment.orderNo, payment.tenantId);
+      } catch (verificationError) {
+        await Payment.updateOne({ _id: payment._id, userId, status: 'processing' }, { $set: { status: 'pending' } });
+        logger.warn('Payment provider verification unavailable', { paymentId: payment._id, name: verificationError.name });
+        return res.status(503).json(errors.serverError('暂时无法核验支付状态，请稍后查询'));
+      }
+
+      const providerMatches = verification?.verified === true &&
+        verification.providerState === 'SUCCESS' &&
+        verification.orderNo === payment.orderNo &&
+        verification.appId === payConfig.appId &&
+        verification.merchantId === payConfig.mchId &&
+        verification.amount === Number(payment.amount) &&
+        verification.currency === 'CNY' &&
+        Boolean(verification.transactionId);
+      if (!providerMatches) {
+        await Payment.updateOne({ _id: payment._id, userId, status: 'processing' }, { $set: { status: 'pending' } });
+        logger.warn('Payment provider verification did not match the stored order', { paymentId: payment._id });
+        return res.status(409).json(errors.conflict('支付平台尚未确认该订单，请稍后查询'));
+      }
+      providerTransactionId = verification.transactionId;
+    }
+
+    const settledFields = { status: 'completed', paidAt: new Date() };
+    if (providerTransactionId) {
+      settledFields['wechat.transactionId'] = providerTransactionId;
+      settledFields['wechat.successTime'] = new Date();
+    }
+    const settled = await Payment.findOneAndUpdate(
+      { _id: payment._id, userId, status: 'processing' },
+      { $set: settledFields },
+      { new: true }
+    );
+    if (!settled) {
+      const current = await Payment.findOne({ _id: payment._id, userId });
+      if (current?.status === 'completed') {
+        return res.json(success({ payment: current, enrollment: null }, '支付已确认'));
+      }
+      return res.status(409).json(errors.conflict('支付状态已变化，请查询最新状态'));
+    }
+    payment = settled;
 
     // 更新报名记录的支付状态
     let enrollment = null;
@@ -415,7 +465,7 @@ exports.confirmPayment = async (req, res) => {
     );
   } catch (error) {
     logger.error('Payment confirmation failed', error);
-    res.status(500).json(errors.serverError('确认支付失败: ' + error.message));
+    res.status(500).json(errors.serverError(`确认支付失败: ${  error.message}`));
   }
 };
 
@@ -425,7 +475,7 @@ exports.confirmPayment = async (req, res) => {
  */
 exports.getPaymentStatus = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { paymentId } = req.params;
 
     // 查找支付记录
@@ -455,7 +505,7 @@ exports.getPaymentStatus = async (req, res) => {
     );
   } catch (error) {
     logger.error('Payment status query failed', error);
-    res.status(500).json(errors.serverError('查询支付状态失败: ' + error.message));
+    res.status(500).json(errors.serverError(`查询支付状态失败: ${  error.message}`));
   }
 };
 
@@ -465,7 +515,7 @@ exports.getPaymentStatus = async (req, res) => {
  */
 exports.cancelPayment = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { paymentId } = req.params;
 
     // 查找支付记录
@@ -504,7 +554,7 @@ exports.cancelPayment = async (req, res) => {
     );
   } catch (error) {
     logger.error('Payment cancellation failed', error);
-    res.status(500).json(errors.serverError('取消支付失败: ' + error.message));
+    res.status(500).json(errors.serverError(`取消支付失败: ${  error.message}`));
   }
 };
 
@@ -515,7 +565,7 @@ exports.cancelPayment = async (req, res) => {
 exports.adminCancelPayment = async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const operator = req.user?.email || req.user?.id || 'admin';
+    const operator = req.admin?.email || req.admin?.id || 'admin';
 
     const payment = await Payment.findById(paymentId);
     if (!payment) {
@@ -546,7 +596,7 @@ exports.adminCancelPayment = async (req, res) => {
     );
   } catch (error) {
     logger.error('Admin payment cancellation failed', error);
-    res.status(500).json(errors.serverError('管理员取消支付失败: ' + error.message));
+    res.status(500).json(errors.serverError(`管理员取消支付失败: ${  error.message}`));
   }
 };
 
@@ -557,7 +607,7 @@ exports.adminCancelPayment = async (req, res) => {
 exports.adminResetPaymentToPending = async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const operator = req.user?.email || req.user?.id || 'admin';
+    const operator = req.admin?.email || req.admin?.id || 'admin';
 
     const payment = await Payment.findById(paymentId);
     if (!payment) {
@@ -648,7 +698,7 @@ exports.adminResetPaymentToPending = async (req, res) => {
     );
   } catch (error) {
     logger.error('Admin reset payment to pending failed', error);
-    res.status(500).json(errors.serverError('重置为待支付失败: ' + error.message));
+    res.status(500).json(errors.serverError(`重置为待支付失败: ${  error.message}`));
   }
 };
 
@@ -659,13 +709,13 @@ exports.adminResetPaymentToPending = async (req, res) => {
 exports.getUserPayments = async (req, res) => {
   try {
     // 强制使用当前登录用户，防止 IDOR 越权读取他人支付记录
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { page = 1, limit = 20, status } = req.query;
 
     // 获取支付记录
     const result = await Payment.getUserPayments(userId, {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
       status
     });
 
@@ -694,7 +744,7 @@ exports.getUserPayments = async (req, res) => {
     );
   } catch (error) {
     logger.error('Get payment record failed', error);
-    res.status(500).json(errors.serverError('获取支付记录失败: ' + error.message));
+    res.status(500).json(errors.serverError(`获取支付记录失败: ${  error.message}`));
   }
 };
 
@@ -778,6 +828,22 @@ exports.wechatCallback = async (req, res) => {
         });
         return replyFail('sign error');
       }
+      if (notifyData.result_code === 'SUCCESS') {
+        const callbackMatchesStoredPayment =
+          notifyData.appid === payConfig.appId &&
+          notifyData.mch_id === payConfig.mchId &&
+          notifyData.out_trade_no === payment.orderNo &&
+          Number(notifyData.total_fee) === Number(payment.amount) &&
+          (notifyData.fee_type || 'CNY') === 'CNY' &&
+          Boolean(notifyData.transaction_id);
+        if (!callbackMatchesStoredPayment) {
+          logger.warn('WeChat callback did not match the stored payment', {
+            paymentId: payment._id,
+            tenantId: payment.tenantId
+          });
+          return replyFail('payment detail mismatch');
+        }
+      }
     }
 
     // 防止重复处理
@@ -857,7 +923,7 @@ exports.wechatCallback = async (req, res) => {
       });
 
       return replySuccess();
-    } else {
+    }
       await withSystemContext(payment.tenantId, async () => {
         // 支付失败
         await payment.markFailed(notifyData.err_code_des || '微信支付失败');
@@ -871,7 +937,7 @@ exports.wechatCallback = async (req, res) => {
       });
 
       return replySuccess(); // 即使支付失败，也要告诉微信我们已处理
-    }
+
   } catch (error) {
     logger.error('WeChat callback handling failed', error);
     return replyFail(error.message);
@@ -884,7 +950,7 @@ exports.wechatCallback = async (req, res) => {
  */
 exports.mockConfirmPayment = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const {userId} = req.user;
     const { paymentId } = req.params;
 
     // 查找支付记录
@@ -931,7 +997,7 @@ exports.mockConfirmPayment = async (req, res) => {
     }
 
     await notifyPaymentSuccess(req, {
-      userId: userId,
+      userId,
       payment,
       enrollment
     });
@@ -947,7 +1013,7 @@ exports.mockConfirmPayment = async (req, res) => {
     );
   } catch (error) {
     logger.error('Mock payment failed', error);
-    res.status(500).json(errors.serverError('模拟支付失败: ' + error.message));
+    res.status(500).json(errors.serverError(`模拟支付失败: ${  error.message}`));
   }
 };
 
@@ -973,7 +1039,7 @@ exports.getPayments = async (req, res) => {
     const payments = await Payment.find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .populate('userId', 'nickname avatar avatarUrl')
       .populate('enrollmentId', 'name')
       .populate('periodId', 'name')
@@ -993,14 +1059,14 @@ exports.getPayments = async (req, res) => {
         list: paymentList,
         total,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           pages: Math.ceil(total / limit)
         }
       })
     );
   } catch (error) {
     logger.error('Get payment list failed', error);
-    res.status(500).json(errors.serverError('获取支付列表失败: ' + error.message));
+    res.status(500).json(errors.serverError(`获取支付列表失败: ${  error.message}`));
   }
 };

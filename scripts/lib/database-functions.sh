@@ -239,7 +239,7 @@ verify_redis_connection() {
 }
 
 # 验证 MongoDB 连接
-# 用法：verify_mongodb_connection mongodb://admin:password@localhost:27017/admin
+# 用法：verify_mongodb_connection mongodb://admin:CHANGE_ME@localhost:27017/admin
 verify_mongodb_connection() {
   local uri="$1"
 
@@ -514,10 +514,10 @@ clear_mongodb_database() {
     return 1
   fi
 
-  local uri="mongodb://$admin_user:$admin_password@$host:27017/$database"
+  local uri="mongodb://$host:27017/$database"
 
   log_info "连接到数据库: $uri (密码已隐藏)"
-  if mongosh "$uri" --eval "db.dropDatabase()" --quiet 2>/dev/null; then
+  if mongosh "$uri" --username "$admin_user" --password "$admin_password" --authenticationDatabase admin --eval "db.dropDatabase()" --quiet 2>/dev/null; then
     log_success "数据库已清空"
     return 0
   else

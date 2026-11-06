@@ -579,12 +579,12 @@ function formatDate(val: string): string {
 
 .user-option-name {
   font-weight: 500;
-  color: #111827;
+  color: var(--admin-ink);
 }
 
 .user-option-id {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--admin-ink-muted);
   font-family: monospace;
   margin-left: auto;
 }

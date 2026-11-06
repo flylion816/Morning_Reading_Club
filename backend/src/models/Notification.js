@@ -133,6 +133,7 @@ notificationSchema.index({ archivedAt: -1 });
 notificationSchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 notificationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Notification', notificationSchema);

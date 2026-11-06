@@ -2,7 +2,7 @@
   <AdminLayout>
     <div class="account-management">
     <!-- Top Summary Cards -->
-    <el-row :gutter="20" class="summary-cards" v-loading="loadingSummary">
+    <el-row v-loading="loadingSummary" :gutter="20" class="summary-cards">
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
@@ -68,14 +68,14 @@
         <el-button type="primary" @click="loadAdmins">搜索</el-button>
       </div>
       <div class="actions">
-        <el-button type="success" @click="openCreateDialog" v-if="isSuperadmin">
+        <el-button v-if="isSuperadmin" type="success" @click="openCreateDialog">
           <el-icon><Plus /></el-icon> 新建账号
         </el-button>
       </div>
     </div>
 
     <!-- Data Table -->
-    <el-table :data="admins" v-loading="loading" border style="width: 100%" class="admin-table">
+    <el-table v-loading="loading" :data="admins" border style="width: 100%" class="admin-table">
       <el-table-column label="账号信息" min-width="250">
         <template #default="{ row }">
           <div class="user-info">
@@ -83,7 +83,7 @@
               <span class="admin-avatar-fallback">{{ getAvatarText(row.name) }}</span>
             </el-avatar>
             <div class="user-details">
-              <div class="user-name">{{ row.name }} <el-tag size="small" type="info" v-if="row._id === currentUserId">当前账号</el-tag></div>
+              <div class="user-name">{{ row.name }} <el-tag v-if="row._id === currentUserId" size="small" type="info">当前账号</el-tag></div>
               <div class="user-email">{{ row.email }}</div>
             </div>
           </div>
@@ -112,7 +112,7 @@
           <span class="time-text">{{ formatDate(row.createdAt) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="320" fixed="right" v-if="isSuperadmin">
+      <el-table-column v-if="isSuperadmin" label="操作" width="320" fixed="right">
         <template #default="{ row }">
           <el-button type="primary" link size="small" @click="openEditDialog(row)">编辑</el-button>
           <el-button type="warning" link size="small" @click="openResetPasswordDialog(row)">重置密码</el-button>
@@ -159,15 +159,15 @@
     </div>
 
     <!-- Create/Edit Dialog -->
-    <el-dialog :title="dialogType === 'create' ? '新建账号' : '编辑账号'" v-model="dialogVisible" width="500px">
-      <el-form :model="formData" :rules="formRules" ref="formRef" label-width="100px">
+    <el-dialog v-model="dialogVisible" :title="dialogType === 'create' ? '新建账号' : '编辑账号'" width="500px">
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
         <el-form-item label="姓名" prop="name">
           <el-input v-model="formData.name" placeholder="请输入姓名" />
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="formData.email" placeholder="请输入邮箱 (作为登录名)" :disabled="dialogType === 'edit'" />
         </el-form-item>
-        <el-form-item label="初始密码" prop="password" v-if="dialogType === 'create'">
+        <el-form-item v-if="dialogType === 'create'" label="初始密码" prop="password">
           <el-input v-model="formData.password" placeholder="请输入初始密码 (不少于6位)" show-password />
         </el-form-item>
         <el-form-item label="角色" prop="role">
@@ -196,7 +196,7 @@
             不选则使用当前选中租户；platform_superadmin/superadmin 角色无需绑定租户
           </div>
         </el-form-item>
-        <el-form-item label="状态" prop="status" v-if="dialogType === 'edit'">
+        <el-form-item v-if="dialogType === 'edit'" label="状态" prop="status">
           <el-radio-group v-model="formData.status" :disabled="formData._id === currentUserId">
             <el-radio label="active">启用</el-radio>
             <el-radio label="inactive">禁用</el-radio>
@@ -209,13 +209,13 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm" :loading="submitting">确定</el-button>
+          <el-button type="primary" :loading="submitting" @click="submitForm">确定</el-button>
         </span>
       </template>
     </el-dialog>
 
     <!-- Copy Credentials Dialog -->
-    <el-dialog title="复制登录信息" v-model="copyDialogVisible" width="480px">
+    <el-dialog v-model="copyDialogVisible" title="复制登录信息" width="480px">
       <el-alert
         v-if="copyPassword"
         title="账号创建成功！请复制下方登录信息并发送给该管理员。"
@@ -246,8 +246,8 @@
     </el-dialog>
 
     <!-- Reset Password Dialog -->
-    <el-dialog title="重置密码" v-model="resetDialogVisible" width="400px">
-      <el-form :model="resetData" :rules="resetRules" ref="resetFormRef" label-width="100px">
+    <el-dialog v-model="resetDialogVisible" title="重置密码" width="400px">
+      <el-form ref="resetFormRef" :model="resetData" :rules="resetRules" label-width="100px">
         <el-form-item label="账号">
           <div class="readonly-text">{{ currentResetAdmin?.name }} ({{ currentResetAdmin?.email }})</div>
         </el-form-item>
@@ -258,7 +258,7 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="resetDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitResetPassword" :loading="resetting">确定</el-button>
+          <el-button type="primary" :loading="resetting" @click="submitResetPassword">确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -272,7 +272,7 @@ import AdminLayout from '../components/AdminLayout.vue';
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useTenantStore } from '../stores/tenant';
-import { accountApi, userApi } from '../services/api';
+import { accountApi } from '../services/api';
 import { getLastTextChar } from '../utils/avatar';
 import { ElMessage } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
@@ -631,7 +631,7 @@ const getAvatarText = (name: string) => {
 }
 
 .stat-label {
-  color: #909399;
+  color: var(--admin-ink-muted);
   font-size: 14px;
   margin-bottom: 8px;
 }
@@ -713,7 +713,7 @@ const getAvatarText = (name: string) => {
 
 .user-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--admin-ink);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -721,13 +721,13 @@ const getAvatarText = (name: string) => {
 
 .user-email {
   font-size: 13px;
-  color: #909399;
+  color: var(--admin-ink-muted);
   margin-top: 4px;
 }
 
 .time-text {
   font-size: 13px;
-  color: #606266;
+  color: var(--admin-ink-soft);
 }
 
 .pagination-container {
@@ -738,7 +738,7 @@ const getAvatarText = (name: string) => {
 
 .readonly-text {
   font-weight: 500;
-  color: #303133;
+  color: var(--admin-ink);
   line-height: 32px;
 }
 </style>

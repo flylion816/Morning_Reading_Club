@@ -26,7 +26,7 @@
   line-height: 62rpx;
   text-align: center;
   font-size: 28rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   border-radius: 10rpx;
 }
 
@@ -51,7 +51,7 @@
   border: 1rpx solid #d7dee8;
   border-radius: 10rpx;
   font-size: 24rpx;
-  color: #475467;
+  color: var(--app-text-soft);
   background: #ffffff;
 }
 
@@ -77,12 +77,12 @@
   justify-content: space-between;
   padding: 0 16rpx;
   background: #ffffff;
-  color: #344054;
+  color: var(--app-text-soft);
   font-size: 24rpx;
 }
 
 .date-label {
-  color: #98a2b3;
+  color: var(--app-text-muted);
 }
 
 .period-select {
@@ -95,12 +95,12 @@
   justify-content: space-between;
   padding: 0 20rpx;
   font-size: 26rpx;
-  color: #344054;
+  color: var(--app-text-soft);
   background: #ffffff;
 }
 
 .select-arrow {
-  color: #98a2b3;
+  color: var(--app-text-muted);
   font-size: 34rpx;
 }
 
@@ -137,21 +137,21 @@
   font-size: 40rpx;
   line-height: 48rpx;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text);
 }
 
 .metric-label {
   display: block;
   margin-top: 10rpx;
   font-size: 24rpx;
-  color: #667085;
+  color: var(--app-text-soft);
 }
 
 .delta {
   display: inline-block;
   margin-top: 10rpx;
   font-size: 22rpx;
-  color: #667085;
+  color: var(--app-text-soft);
 }
 
 .delta.up { color: #16a34a; }
@@ -167,14 +167,14 @@
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--app-text);
   margin-bottom: 20rpx;
 }
 
 .revenue-total {
   font-size: 48rpx;
   font-weight: 700;
-  color: #111827;
+  color: var(--app-text);
   margin-bottom: 20rpx;
 }
 
@@ -189,7 +189,7 @@
 .revenue-row {
   height: 52rpx;
   font-size: 26rpx;
-  color: #475467;
+  color: var(--app-text-soft);
 }
 
 .legend-row {
@@ -198,7 +198,7 @@
   gap: 10rpx;
   margin-top: 12rpx;
   font-size: 22rpx;
-  color: #667085;
+  color: var(--app-text-soft);
 }
 
 .legend-row.wrap {
@@ -232,7 +232,7 @@
 .chart-meta {
   margin: -8rpx 0 12rpx;
   font-size: 22rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
 }
 
 .bar-chart {
@@ -266,7 +266,7 @@
   align-items: flex-end;
   justify-content: center;
   gap: 5rpx;
-  border-bottom: 1rpx solid #e5e7eb;
+  border-bottom: 1rpx solid var(--app-border);
 }
 
 .activity-stack {
@@ -309,7 +309,7 @@
   flex-shrink: 0;
   font-size: 22rpx;
   line-height: 32rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   text-align: right;
   white-space: nowrap;
 }
@@ -337,7 +337,7 @@
   font-size: 22rpx;
   line-height: 32rpx;
   font-weight: 600;
-  color: #344054;
+  color: var(--app-text-soft);
   text-align: left;
   white-space: nowrap;
 }
@@ -346,7 +346,7 @@
   padding: 28rpx 0;
   text-align: center;
   font-size: 26rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
 }
 
 .rank-row {
@@ -362,7 +362,7 @@
 .rank-name {
   display: block;
   font-size: 28rpx;
-  color: #1f2937;
+  color: var(--app-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -372,7 +372,7 @@
   display: block;
   margin-top: 6rpx;
   font-size: 22rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
 }
 
 .rank-value {
@@ -397,14 +397,14 @@
   display: block;
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--app-text);
 }
 
 .detail-phone {
   display: block;
   margin-top: 6rpx;
   font-size: 24rpx;
-  color: #667085;
+  color: var(--app-text-soft);
 }
 
 .detail-count {
@@ -438,7 +438,7 @@
 .detail-foot {
   margin-top: 16rpx;
   font-size: 22rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
 }
 
 .detail-pagination {
@@ -453,7 +453,7 @@
 .detail-pagination-text,
 .detail-pagination-done {
   font-size: 24rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
 }
 
 .load-more-btn {
@@ -472,8 +472,8 @@
 }
 
 .load-more-btn[disabled] {
-  color: #98a2b3;
-  background: #f3f4f6;
+  color: var(--app-text-muted);
+  background: var(--app-surface-muted);
 }
 
 .loading-wrap,
@@ -488,7 +488,7 @@
 .loading-spinner {
   width: 56rpx;
   height: 56rpx;
-  border: 5rpx solid #e5e7eb;
+  border: 5rpx solid var(--app-border);
   border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -502,7 +502,7 @@
 .empty-text {
   margin-top: 20rpx;
   font-size: 26rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   text-align: center;
 }
 

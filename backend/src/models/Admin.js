@@ -44,6 +44,11 @@ const adminSchema = new mongoose.Schema(
       enum: ['active', 'inactive'],
       default: 'active'
     },
+    // Incremented when authority or a password changes so every worker can revoke old JWTs.
+    sessionVersion: {
+      type: Number,
+      default: 0
+    },
     lastLoginAt: {
       type: Date,
       default: null
@@ -81,6 +86,20 @@ adminSchema.pre('save', async function (next) {
   }
 });
 
+adminSchema.pre('save', function revokeSessionsForSecurityChanges(next) {
+  if (!this.isNew && [
+    'password',
+    'dbAccessPassword',
+    'role',
+    'permissions',
+    'status',
+    'tenantId'
+  ].some(field => this.isModified(field))) {
+    this.sessionVersion = (this.sessionVersion || 0) + 1;
+  }
+  next();
+});
+
 // 比较密码方法
 adminSchema.methods.comparePassword = async function (password) {
   return bcrypt.compare(password, this.password);
@@ -101,5 +120,6 @@ adminSchema.methods.toJSON = function () {
 // 创建索引
 adminSchema.index({ status: 1 });
 adminSchema.index({ createdAt: -1 });
+adminSchema.index({ sessionVersion: 1 });
 
 module.exports = mongoose.model('Admin', adminSchema);

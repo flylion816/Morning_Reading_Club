@@ -1,6 +1,6 @@
 .page-share {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--app-page-bg);
   padding: 40rpx 24rpx;
   display: flex;
   flex-direction: column;
@@ -27,13 +27,13 @@
 .card-content {
   font-size: 28rpx;
   line-height: 2;
-  color: #333;
+  color: var(--app-text);
   margin-bottom: 32rpx;
 }
 
 .card-author {
   font-size: 24rpx;
-  color: #999;
+  color: var(--app-text-muted);
   text-align: right;
 }
 

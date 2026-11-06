@@ -38,7 +38,7 @@
   overflow: hidden;
   flex-shrink: 0;
   margin-right: 16rpx;
-  background: #f0f0f0;
+  background: var(--app-surface-muted);
 }
 
 .podcast-bar-cover {
@@ -83,7 +83,7 @@
 
 .podcast-bar-time {
   font-size: 20rpx;
-  color: #999;
+  color: var(--app-text-muted);
   flex-shrink: 0;
   margin-left: 10rpx;
   white-space: nowrap;

@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+
 const router = express.Router();
 const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/adminAuth');
@@ -47,8 +48,8 @@ function ensureTenantDir(slug) {
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
-      // 关键：使用 req._resolvedTenantId（在中间件中显式设置），防止 ALS 在异步回调中丢失
-      const tenantId = req._resolvedTenantId;
+      // 关键：使用 req.resolvedTenantId（在中间件中显式设置），防止 ALS 在异步回调中丢失
+      const tenantId = req.resolvedTenantId;
       if (!tenantId) return cb(new Error('缺少租户上下文'));
       const slug = await resolveTenantSlug(tenantId);
       cb(null, ensureTenantDir(slug));
@@ -64,8 +65,8 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const imageExts = /jpeg|jpg|png|webp/;
-  const videoExts = /mp4|mov|m4v/;
+  const imageExts = /^(jpeg|jpg|png|webp)$/;
+  const videoExts = /^(mp4|mov|m4v)$/;
   const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
   if (imageExts.test(ext) || videoExts.test(ext)) return cb(null, true);
   cb(new Error('仅支持 jpeg/jpg/png/webp/mp4/mov 格式'));
@@ -73,9 +74,9 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 1024 } });
 
-// 在 userTenantContext 后显式设置 req._resolvedTenantId，防止 multer 异步回调中 ALS 丢失
+// 在 userTenantContext 后显式设置 req.resolvedTenantId，防止 multer 异步回调中 ALS 丢失
 function setResolvedTenantId(req, res, next) {
-  req._resolvedTenantId = getCurrentTenantId();
+  req.resolvedTenantId = getCurrentTenantId();
   next();
 }
 
@@ -86,14 +87,14 @@ router.delete('/admin/:id', adminAuthMiddleware, adminTenantContext, controller.
 
 // 管理后台图片/视频上传
 router.post('/admin/upload', adminAuthMiddleware, adminTenantContext, (req, res, next) => {
-  req._resolvedTenantId = getCurrentTenantId();
+  req.resolvedTenantId = getCurrentTenantId();
   next();
 }, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json(errors.badRequest('未收到文件'));
   const baseUrl = process.env.BASE_URL || '';
   const relativePath = req.file.path.replace(path.join(__dirname, '../../'), '');
   const fileUrl = `${baseUrl}/${relativePath}`;
-  const videoExts = /mp4|mov|m4v/;
+  const videoExts = /^(mp4|mov|m4v)$/;
   const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
   const fileType = videoExts.test(ext) ? 'video' : 'image';
   res.json(success({ url: fileUrl, thumbUrl: fileUrl, type: fileType }));
@@ -120,7 +121,7 @@ router.post('/upload', setResolvedTenantId, upload.single('file'), (req, res) =>
   const baseUrl = process.env.BASE_URL || '';
   const relativePath = req.file.path.replace(path.join(__dirname, '../../'), '');
   const fileUrl = `${baseUrl}/${relativePath}`;
-  const videoExts = /mp4|mov|m4v/;
+  const videoExts = /^(mp4|mov|m4v)$/;
   const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
   const fileType = videoExts.test(ext) ? 'video' : 'image';
   res.json(success({ url: fileUrl, thumbUrl: fileUrl, type: fileType }));

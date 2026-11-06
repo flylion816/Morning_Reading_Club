@@ -377,7 +377,7 @@ describe('Auth Controller - 100% Coverage', () => {
     it('应该隐藏敏感信息在日志中', async () => {
       // Given: 完整的 code
       const fullCode = fixtures.wechatData.validCode;
-      const truncatedCode = fullCode.substring(0, 4) + '***';
+      const truncatedCode = `${fullCode.substring(0, 4)  }***`;
 
       // When: 记录日志时应该截断 code
       const logMessage = `微信认证失败，code: ${truncatedCode}`;

@@ -108,7 +108,7 @@
           <el-divider content-position="left">小程序配置</el-divider>
           <el-form-item label="AppId 列表">
             <div style="width: 100%">
-              <div style="margin-bottom: 8px" v-if="formData.wxAppIds.length">
+              <div v-if="formData.wxAppIds.length" style="margin-bottom: 8px">
                 <el-tag
                   v-for="(id, index) in formData.wxAppIds"
                   :key="index"
@@ -399,7 +399,7 @@ async function handleSave() {
     return;
   }
 
-  let subscribeTemplates = {};
+  let subscribeTemplates: Record<string, any>;
   try {
     subscribeTemplates = formData.subscribeTemplatesText.trim()
       ? JSON.parse(formData.subscribeTemplatesText)

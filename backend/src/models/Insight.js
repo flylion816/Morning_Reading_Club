@@ -157,6 +157,7 @@ InsightSchema.index({ status: 1 });
 InsightSchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 InsightSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Insight', InsightSchema);

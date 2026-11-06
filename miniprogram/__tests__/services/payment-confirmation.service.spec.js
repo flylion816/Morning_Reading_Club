@@ -19,6 +19,6 @@ describe('community activity payment confirmation service', () => {
 
     expect(request.post).toHaveBeenCalledWith('/payments/payment_1/confirm', {
       transactionId: ''
-    });
+    }, { suppressError: true });
   });
 });

@@ -1,184 +1,214 @@
-/* 报名页面样式 */
+/* Enrollment page: calm, compact and template-led. */
 
 .page-enrollment {
-  background: white;
   min-height: 100vh;
-  padding: 0;
+  background: #f3f7f4;
+  color: var(--app-text, #20312a);
 }
 
-/* 加载中 */
 .loading {
   display: flex;
+  min-height: 100vh;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: #f5f5f5;
+  background: #f3f7f4;
+  color: var(--app-text-soft, #718078);
 }
 
 .loading-spinner {
-  width: 60rpx;
-  height: 60rpx;
-  border: 4rpx solid #f3f3f3;
-  border-top: 4rpx solid var(--theme-primary);
+  width: 58rpx;
+  height: 58rpx;
+  margin-bottom: 20rpx;
+  border: 4rpx solid #dce8df;
+  border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 20rpx;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.loading text {
-  font-size: 28rpx;
-  color: #666;
-}
-
-/* 页面容器 */
 .enrollment-container {
-  padding: 0;
-  padding-bottom: 100rpx;
-  background: white;
+  min-height: 100vh;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 90% 25%, rgba(99, 155, 120, .10), transparent 34%),
+    #f3f7f4;
 }
 
-/* 页面头部 */
 .enrollment-header {
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  color: white;
-  padding: 60rpx 30rpx;
-  text-align: center;
-  margin: 0;
   position: relative;
+  min-height: 350rpx;
   overflow: hidden;
+  padding: 42rpx 34rpx 72rpx;
+  color: #fff;
+  background-color: var(--theme-primary);
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, .04), rgba(0, 0, 0, .08));
+  border-radius: 0 0 42rpx 42rpx;
 }
-
-.header-with-image {
-  padding: 0;
-  height: 600rpx;
-}
-
-.header-cover-image {
-  width: 100%;
-  height: 600rpx;
-  display: block;
-}
-
 .header-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  position: relative;
+  z-index: 2;
+  max-width: 680rpx;
+  margin: 0 auto;
 }
 
-.header-content-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 24rpx 30rpx;
-  background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
+.header-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 54rpx;
+  color: rgba(255, 255, 255, .70);
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
 }
 
 .header-icon {
-  font-size: 80rpx;
-  margin-bottom: 20rpx;
+  display: flex;
+  width: 86rpx;
+  height: 86rpx;
+  flex: 0 0 86rpx;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, .16);
+  border: 1rpx solid rgba(255, 255, 255, .24);
+  border-radius: 26rpx;
+  box-shadow: 0 16rpx 32rpx rgba(14, 40, 50, .18);
+  font-size: 48rpx;
+}
+
+.header-copy {
+  min-width: 0;
 }
 
 .header-title {
-  font-size: 36rpx;
-  font-weight: bold;
-  margin-bottom: 10rpx;
+  overflow: hidden;
+  max-width: 560rpx;
+  margin-bottom: 12rpx;
+  color: #fff;
+  font-size: 42rpx;
+  font-weight: 700;
+  letter-spacing: -1rpx;
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-subtitle {
+  overflow: hidden;
+  color: rgba(255, 255, 255, .78);
   font-size: 24rpx;
-  opacity: 0.9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* 表单 */
+.header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 58rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, .18);
+  color: rgba(255, 255, 255, .68);
+  font-size: 22rpx;
+}
+
+.header-meta text:last-child {
+  max-width: 52%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .enrollment-form {
-  background: white;
-  padding: 0 30rpx 30rpx 30rpx;
-  margin: 0;
-  border-radius: 0;
-  box-shadow: none;
+  position: relative;
+  z-index: 3;
+  margin: -38rpx 24rpx 0;
+  padding: 0 0 28rpx;
 }
 
-/* 表单组 */
 .form-group {
-  margin-bottom: 30rpx;
-  margin-top: 0;
-  margin-left: 30rpx;
-  margin-right: 30rpx;
+  margin: 18rpx 0 0;
+  padding: 26rpx 26rpx 28rpx;
+  background: rgba(255, 255, 255, .96);
+  border: 1rpx solid #e2ebe5;
+  border-radius: 24rpx;
+  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
 }
 
 .form-group:first-of-type {
-  margin-top: 16rpx;
-  padding-top: 16rpx;
+  margin-top: 18rpx;
+  padding-top: 26rpx;
 }
 
-.form-group:last-of-type {
-  margin-bottom: 20rpx;
-}
-
-/* 表单标签 */
 .form-label {
-  font-size: 26rpx;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 12rpx;
   display: flex;
   align-items: center;
+  margin-bottom: 14rpx;
+  color: #24352d;
+  font-size: 26rpx;
+  font-weight: 650;
+  line-height: 1.4;
 }
 
 .required {
-  color: #ff6b6b;
   margin-right: 6rpx;
-  font-weight: bold;
+  color: #d76b58;
+  font-weight: 700;
 }
 
-/* 表单控制 - 基础样式 */
 .form-control {
   display: block;
   width: 100%;
-  padding: 0 30rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-  color: #333;
-  background: white;
+  min-height: 88rpx;
   box-sizing: border-box;
-  transition: all 0.3s ease;
-  line-height: 60rpx;
-  height: 60rpx;
+  padding: 0 24rpx;
+  color: #24352d;
+  background: #f9fbf9;
+  border: 2rpx solid #dfe9e2;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  line-height: 88rpx;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 
 .form-control:focus {
+  background: #fff;
   border-color: var(--theme-primary);
-  box-shadow: 0 0 0 2rpx var(--theme-primary-alpha-15);
+  box-shadow: 0 0 0 6rpx var(--theme-primary-alpha-15, rgba(74, 144, 226, .13));
 }
 
 .form-control::placeholder {
-  color: #999;
+  color: #a0aea6;
 }
 
-/* input 元素特殊处理 - 垂直居中 */
 input.form-control {
-  height: 60rpx !important;
   width: 100% !important;
-  padding: 0 16rpx !important;
-  line-height: 60rpx !important;
+  height: 88rpx !important;
+  padding: 0 24rpx !important;
   box-sizing: border-box !important;
+  line-height: 88rpx !important;
 }
 
-/* 统一 placeholder 样式，防止焦点时上移 */
-input.form-control::placeholder {
-  color: #999;
-  opacity: 1;
+textarea.form-control {
+  width: 100% !important;
+  min-height: 190rpx !important;
+  max-height: 360rpx !important;
+  padding: 22rpx 24rpx !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  line-height: 1.6 !important;
 }
 
-/* Picker 控制 */
 picker {
   display: block;
   width: 100%;
@@ -186,363 +216,376 @@ picker {
 
 .picker-control {
   display: flex;
-  justify-content: space-between;
+  height: 88rpx;
   align-items: center;
-  height: 60rpx;
-  padding: 16rpx 16rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 8rpx;
-  background: white;
-  box-sizing: border-box;
-  transition: all 0.3s ease;
-}
-
-.picker-control:active {
-  border-color: var(--theme-primary);
-  background: var(--theme-primary-tint);
+  justify-content: space-between;
+  padding: 0 24rpx;
+  line-height: 1.4;
 }
 
 .picker-icon {
   color: var(--theme-primary);
-  font-size: 32rpx;
-  font-weight: bold;
+  font-size: 34rpx;
+  font-weight: 700;
 }
 
-/* 地址组 */
 .address-group {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
-.address-group .form-control {
-  width: 100%;
-}
-
-/* 单选按钮组 */
 .radio-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
 }
 
 .radio-item {
   display: flex;
-  align-items: center;
-  padding: 12rpx 16rpx;
-  min-height: 44rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 8rpx;
-  background: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  min-height: 78rpx;
   box-sizing: border-box;
+  align-items: center;
+  padding: 0 18rpx;
+  color: #3c4e45;
+  background: #f9fbf9;
+  border: 2rpx solid #e0eae3;
+  border-radius: 16rpx;
+  font-size: 25rpx;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
 }
 
 .radio-item:active {
   background: var(--theme-primary-tint);
   border-color: var(--theme-primary);
+  transform: scale(.98);
 }
 
 .radio-item radio {
-  margin-right: 12rpx;
-  transform: scale(0.6);
+  margin-right: 10rpx;
+  transform: scale(.72);
 }
 
-.radio-item text {
-  font-size: 24rpx;
-  color: #333;
-  line-height: 1.4;
-}
-
-/* 文本域 */
-textarea.form-control {
-  font-family: inherit !important;
-  font-size: 24rpx !important;
-  line-height: 1.6 !important;
-  min-height: 180rpx !important;
-  max-height: 350rpx !important;
-  width: 100% !important;
-  padding: 16rpx 16rpx !important;
-  resize: vertical !important;
-  box-sizing: border-box !important;
-}
-
-/* textarea placeholder 样式统一 */
-textarea.form-control::placeholder {
-  color: #999;
-  opacity: 1;
-}
-
-/* 文字计数 */
 .text-count {
-  font-size: 22rpx;
-  color: #999;
-  text-align: right;
   margin-top: 8rpx;
-}
-
-/* 提交按钮 */
-.form-actions {
-  display: flex;
-  gap: 12rpx;
-  margin-top: 30rpx;
-  margin-left: 30rpx;
-  margin-right: 30rpx;
-  padding: 20rpx 0;
-  border-top: 1rpx solid #e8e8e8;
-}
-
-.btn {
-  flex: 1;
-  padding: 16rpx 20rpx;
-  border: none;
-  border-radius: 8rpx;
-  font-size: 28rpx;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  color: white;
-}
-
-.btn-primary:active {
-  opacity: 0.9;
-  transform: scale(0.98);
-}
-
-.btn-secondary {
-  background: #f5f5f5;
-  color: #333;
-  border: 1rpx solid #e8e8e8;
-}
-
-.btn-secondary:active {
-  background: #efefef;
-  border-color: #d8d8d8;
-}
-
-/* 错误提示（如果需要） */
-.error-message {
-  font-size: 22rpx;
-  color: #ff6b6b;
-  margin-top: 6rpx;
+  color: #94a199;
+  font-size: 21rpx;
+  text-align: right;
 }
 
 .form-error {
   display: block;
+  margin-top: 10rpx;
+  color: #c34f43;
   font-size: 22rpx;
-  color: #e74c3c;
-  margin-top: 8rpx;
+  line-height: 1.4;
 }
 
 .form-control-error {
-  border-color: #e74c3c !important;
+  border-color: #d76b58 !important;
+  box-shadow: 0 0 0 5rpx rgba(215, 107, 88, .10) !important;
 }
 
-/* 步骤指示器 */
-.step-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24rpx 40rpx;
-  background: white;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.step-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.step-dot {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 50%;
-  background: #ddd;
-  color: #999;
-  font-size: 22rpx;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.step-item.active .step-dot {
-  background: var(--theme-primary);
-  color: white;
-}
-
-.step-label {
-  font-size: 20rpx;
-  color: #999;
-}
-
-.step-item.active .step-label {
-  color: var(--theme-primary);
-  font-weight: 500;
-}
-
-.step-line {
-  flex: 1;
-  height: 2rpx;
-  background: #ddd;
-  margin: 0 12rpx;
-  margin-bottom: 20rpx;
-  transition: background 0.3s ease;
-}
-
-.step-line.active {
-  background: var(--theme-primary);
-}
-
-/* 手机号区域 */
 .phone-bound {
   display: flex;
+  height: 88rpx;
+  box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16rpx;
-  height: 60rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 8rpx;
-  background: #f9f9f9;
+  padding: 0 24rpx;
+  background: #f9fbf9;
+  border: 2rpx solid #dfe9e2;
+  border-radius: 16rpx;
 }
 
 .phone-number {
-  font-size: 24rpx;
-  color: #333;
+  color: #24352d;
+  font-size: 26rpx;
+  letter-spacing: 1rpx;
 }
 
 .phone-change {
-  font-size: 22rpx;
   color: var(--theme-primary);
+  font-size: 23rpx;
 }
 
 .phone-auth-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
 .btn-phone-auth {
-  background: linear-gradient(135deg, #07c160 0%, #06ad56 100%);
-  color: white;
-  border: none;
-  border-radius: 8rpx;
-  font-size: 26rpx;
-  font-weight: 500;
-  height: 72rpx;
-  line-height: 72rpx;
-  padding: 0;
+  height: 82rpx;
   margin: 0;
+  padding: 0;
+  color: #fff;
+  background: #2fa36b;
+  border: 0;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  font-weight: 650;
+  line-height: 82rpx;
 }
 
 .btn-phone-auth::after {
   border: none;
 }
 
-.phone-manual {
-  margin-top: 0;
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 18rpx;
+  padding: 22rpx 24rpx;
+  background: rgba(255, 255, 255, .96);
+  border: 1rpx solid #e2ebe5;
+  border-radius: 22rpx;
+  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
 }
 
-/* 步骤操作按钮 */
+.step-item {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9rpx;
+  color: #9aa79f;
+  font-size: 22rpx;
+}
+
+.step-dot {
+  display: flex;
+  width: 42rpx;
+  height: 42rpx;
+  align-items: center;
+  justify-content: center;
+  color: #8d9c92;
+  background: #edf2ee;
+  border-radius: 14rpx;
+  font-size: 21rpx;
+  font-weight: 700;
+}
+
+.step-item.active {
+  color: var(--theme-primary-dark);
+  font-weight: 650;
+}
+
+.step-item.active .step-dot {
+  color: #fff;
+  background: var(--theme-primary);
+  box-shadow: 0 7rpx 14rpx rgba(74, 144, 226, .22);
+}
+
+.step-line {
+  height: 2rpx;
+  flex: 1;
+  margin: 0 12rpx;
+  background: #e0e9e2;
+}
+
+.step-line.active {
+  background: var(--theme-primary);
+}
+
 .step-actions {
   display: flex;
-  gap: 20rpx;
-  margin: 40rpx 30rpx 20rpx 30rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid #f0f0f0;
+  gap: 14rpx;
+  margin: 24rpx 0 0;
+  padding-top: 22rpx;
+  border-top: 1rpx solid #dfe9e2;
 }
 
-/* 跳过步骤 */
-.skip-step {
-  text-align: center;
-  font-size: 24rpx;
-  color: #999;
-  padding: 16rpx 0 30rpx;
-  text-decoration: underline;
+.btn {
+  display: flex;
+  min-height: 88rpx;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 22rpx;
+  border: 0;
+  border-radius: 17rpx;
+  font-size: 27rpx;
+  font-weight: 650;
+  line-height: 1.2;
+  transition: transform .18s ease, opacity .18s ease, background .18s ease;
 }
 
-/* 确认信息区域 */
+.btn:active {
+  opacity: .88;
+  transform: translateY(2rpx) scale(.985);
+}
+
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
+  box-shadow: 0 12rpx 22rpx rgba(74, 144, 226, .20);
+}
+
+.btn-secondary {
+  color: #506057;
+  background: #fff;
+  border: 2rpx solid #dfe9e2;
+}
+
 .confirm-section {
-  margin: 30rpx;
-  background: var(--theme-primary-tint);
-  border: 1rpx solid #d6e8ff;
-  border-radius: 12rpx;
-  padding: 24rpx;
+  margin: 18rpx 0 0;
+  padding: 28rpx;
+  background: #fff;
+  border: 1rpx solid #e2ebe5;
+  border-radius: 24rpx;
+  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
 }
 
 .confirm-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 20rpx;
-  padding-bottom: 16rpx;
-  border-bottom: 1rpx solid #e0ecff;
+  margin-bottom: 18rpx;
+  padding-bottom: 18rpx;
+  color: #24352d;
+  border-bottom: 1rpx solid #e2ebe5;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
 .confirm-item {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  padding: 12rpx 0;
-  border-bottom: 1rpx solid var(--theme-primary-tint);
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #edf2ee;
 }
 
 .confirm-item:last-child {
-  border-bottom: none;
+  border-bottom: 0;
 }
 
 .confirm-label {
-  font-size: 24rpx;
-  color: #666;
-  flex-shrink: 0;
-  margin-right: 20rpx;
+  flex: 0 0 auto;
+  color: #87958c;
+  font-size: 23rpx;
 }
 
 .confirm-value {
-  font-size: 24rpx;
-  color: #333;
-  text-align: right;
   flex: 1;
+  color: #26372e;
+  font-size: 24rpx;
+  text-align: right;
 }
 
 .confirm-item-price {
-  border-top: 1rpx solid #e0eaff;
-  margin-top: 8rpx;
-  padding-top: 20rpx;
+  margin-top: 10rpx;
+  padding-top: 22rpx;
+  border-top: 1rpx solid #dfe9e2;
 }
 
-.confirm-price {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #e74c3c;
-}
-
+.confirm-price,
 .confirm-price-free {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #27ae60;
+  font-size: 34rpx;
+  font-weight: 750;
 }
 
-/* 响应式调整 */
+.confirm-price { color: var(--theme-primary-dark); }
+.confirm-price-free { color: #2f9360; }
+
+.simple-form-intro {
+  margin: 0 0 20rpx;
+  padding: 30rpx 28rpx 32rpx;
+  background: #fff;
+  border: 1rpx solid #e2ebe5;
+  border-radius: 26rpx;
+  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
+}
+
+.simple-form-kicker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.simple-form-kicker {
+  color: var(--theme-primary);
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+}
+
+.template-mark {
+  max-width: 48%;
+  overflow: hidden;
+  padding: 7rpx 12rpx;
+  color: var(--theme-primary-dark);
+  background: var(--theme-primary-tint);
+  border-radius: 8rpx;
+  font-size: 21rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simple-form-title {
+  display: block;
+  margin-top: 18rpx;
+  color: #20312a;
+  font-size: 38rpx;
+  font-weight: 750;
+  letter-spacing: -1rpx;
+  line-height: 1.25;
+}
+
+.simple-form-description {
+  display: block;
+  margin-top: 12rpx;
+  color: #85938a;
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.simple-fee-row {
+  display: flex;
+  min-height: 94rpx;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20rpx;
+  padding: 20rpx 26rpx;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1rpx solid #e2ebe5;
+  border-radius: 22rpx;
+}
+
+.fee-label,
+.fee-note {
+  display: block;
+}
+
+.fee-label {
+  color: #34473d;
+  font-size: 25rpx;
+  font-weight: 650;
+}
+
+.fee-note {
+  margin-top: 6rpx;
+  color: #95a199;
+  font-size: 20rpx;
+}
+
+.simple-fee-value {
+  color: var(--theme-primary-dark);
+  font-size: 34rpx;
+  font-weight: 750;
+}
+
+.simple-form-actions {
+  margin-top: 18rpx;
+}
+
 @media (max-width: 360px) {
-  .enrollment-form {
-    padding: 0 32rpx 24rpx 32rpx;
-  }
-
-  .form-group {
-    margin-bottom: 24rpx;
-  }
-
-  .header-title {
-    font-size: 32rpx;
-  }
+  .enrollment-header { padding-right: 24rpx; padding-left: 24rpx; }
+  .enrollment-form { margin-right: 16rpx; margin-left: 16rpx; }
+  .header-title { font-size: 36rpx; }
+  .step-item { gap: 5rpx; font-size: 20rpx; }
+  .step-line { margin-right: 6rpx; margin-left: 6rpx; }
+  .btn { padding-right: 12rpx; padding-left: 12rpx; font-size: 25rpx; }
 }

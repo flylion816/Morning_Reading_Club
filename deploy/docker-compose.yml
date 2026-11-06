@@ -23,13 +23,13 @@ services:
 
     # 环境变量
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin123}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?MONGO_USER must be set}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD must be set}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-morning_reading}
 
     # 端口映射
     ports:
-      - '${MONGO_PORT:-27017}:27017'
+      - '127.0.0.1:${MONGO_PORT:-27017}:27017'
 
     # 数据卷（数据持久化）
     volumes:
@@ -76,17 +76,23 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${BACKEND_PORT:-3000}
-      MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/${MONGO_DATABASE:-morning_reading}?authSource=admin
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-refresh-secret-key-change-in-production}
+      MONGODB_URI: mongodb://${MONGO_USER:?MONGO_USER must be set}:${MONGO_PASSWORD:?MONGO_PASSWORD must be set}@mongodb:27017/${MONGO_DATABASE:-morning_reading}?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set}
+      JWT_WS_SECRET: ${JWT_WS_SECRET:?JWT_WS_SECRET must be set}
+      JWT_ADMIN_SECRET: ${JWT_ADMIN_SECRET:?JWT_ADMIN_SECRET must be set}
+      JWT_ADMIN_REFRESH_SECRET: ${JWT_ADMIN_REFRESH_SECRET:?JWT_ADMIN_REFRESH_SECRET must be set}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       WECHAT_APPID: ${WECHAT_APPID:-wx199d6d332344ed0a}
-      WECHAT_SECRET: ${WECHAT_SECRET:-}
+      WECHAT_SECRET: ${WECHAT_SECRET:?WECHAT_SECRET must be set}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      SERVER_BIND_HOST: ${SERVER_BIND_HOST:-0.0.0.0}
 
     # 端口映射
     ports:
-      - '${BACKEND_PORT:-3000}:3000'
+      - '127.0.0.1:${BACKEND_PORT:-3000}:3000'
 
     # 数据卷
     volumes:
@@ -134,7 +140,7 @@ services:
 
     # 端口映射
     ports:
-      - '${ADMIN_PORT:-5173}:5173'
+      - '127.0.0.1:${ADMIN_PORT:-5173}:5173'
 
     # 环境变量
     environment:

@@ -13,7 +13,7 @@ describe('HomeConfig Controller', () => {
     sandbox = sinon.createSandbox();
     req = {
       body: {},
-      _resolvedTenantId: 'tenant-1'
+      resolvedTenantId: 'tenant-1'
     };
     res = {
       status: sandbox.stub().returnsThis(),
@@ -120,7 +120,7 @@ describe('HomeConfig Controller', () => {
   });
 
   it('管理端拒绝未选择租户的读取', async () => {
-    req._resolvedTenantId = null;
+    req.resolvedTenantId = null;
 
     await controller.getAdminHomeConfig(req, res);
 

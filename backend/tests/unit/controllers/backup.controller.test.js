@@ -27,7 +27,8 @@ describe('Backup Controller', () => {
     req = {
       body: {},
       params: {},
-      query: {}
+      query: {},
+      resolvedTenantId: new mongoose.Types.ObjectId()
     };
 
     res = {
@@ -37,6 +38,7 @@ describe('Backup Controller', () => {
 
     // Mock MongoDB 模型
     UserStub = {
+      find: sandbox.stub(),
       findById: sandbox.stub(),
       findByIdAndUpdate: sandbox.stub(),
       findByIdAndDelete: sandbox.stub(),
@@ -65,6 +67,7 @@ describe('Backup Controller', () => {
       success: (data, message) => ({ code: 200, message, data }),
       errors: {
         badRequest: (msg) => ({ code: 400, message: msg }),
+        forbidden: (msg) => ({ code: 403, message: msg }),
         notFound: (msg) => ({ code: 404, message: msg }),
         serverError: (msg) => ({ code: 500, message: msg })
       }
@@ -292,6 +295,36 @@ describe('Backup Controller', () => {
 
       expect(res.status.calledWith(500)).to.be.true;
     });
+
+    it('应在数据库写入之前拒绝通过通用接口修改管理员和安全字段', async () => {
+      const dangerousUpdates = [
+        { table: 'admins', data: { role: 'platform_superadmin' } },
+        { table: 'users', data: { role: 'admin' } },
+        { table: 'users', data: { tenantId: new mongoose.Types.ObjectId().toString() } },
+        { table: 'users', data: { $set: { nickname: 'operator injection' } } },
+        { table: 'users', data: { 'profile.role': 'admin' } },
+        { table: 'users', data: { a: { b: { c: { d: { e: { f: { $set: { nickname: 'deep operator' } } } } } } } } }
+      ];
+      for (const testCase of dangerousUpdates) {
+        const response = { status: sandbox.stub().returnsThis(), json: sandbox.stub().returnsThis() };
+        await backupController.updateMongodbRecord({
+          body: { ...testCase, id: new mongoose.Types.ObjectId().toString() },
+          resolvedTenantId: new mongoose.Types.ObjectId()
+        }, response);
+        expect(response.status.calledWith(403)).to.equal(true);
+      }
+      expect(AdminStub.findByIdAndUpdate.called).to.equal(false);
+      expect(UserStub.findByIdAndUpdate.called).to.equal(false);
+      expect(publishSyncEventStub.called).to.equal(false);
+    });
+
+    it('应拒绝没有具体租户上下文的记录修改', async () => {
+      req.resolvedTenantId = null;
+      req.body = { table: 'users', id: new mongoose.Types.ObjectId().toString(), data: { nickname: '测试' } };
+      await backupController.updateMongodbRecord(req, res);
+      expect(res.status.calledWith(400)).to.equal(true);
+      expect(UserStub.findByIdAndUpdate.called).to.equal(false);
+    });
   });
 
   // =========================================================================
@@ -333,6 +366,16 @@ describe('Backup Controller', () => {
       expect(syncEventArg.type).to.equal('delete');
       expect(syncEventArg.collection).to.equal('users');
       expect(syncEventArg.documentId).to.equal(userId.toString());
+    });
+
+    it('应禁止通过通用记录接口读取或删除管理员/支付记录', async () => {
+      for (const table of ['admins', 'payments']) {
+        const response = { status: sandbox.stub().returnsThis(), json: sandbox.stub().returnsThis() };
+        await backupController.deleteMongodbRecord({ query: { table, id: new mongoose.Types.ObjectId().toString() } }, response);
+        expect(response.status.calledWith(403)).to.equal(true);
+      }
+      expect(AdminStub.findById.called).to.equal(false);
+      expect(AdminStub.findByIdAndDelete.called).to.equal(false);
     });
 
     it('应该返回 400 当缺少 table 参数', async () => {
@@ -431,6 +474,17 @@ describe('Backup Controller', () => {
       await backupController.deleteMongodbRecord(req, res);
 
       expect(res.status.calledWith(500)).to.be.true;
+    });
+  });
+
+  describe('bounded table read', () => {
+    it('rejects zero, negative, invalid and excessive page sizes before running a query', async () => {
+      for (const limit of ['0', '-1', '101', 'invalid']) {
+        const response = { status: sandbox.stub().returnsThis(), json: sandbox.stub().returnsThis() };
+        await backupController.getMongodbTableData({ query: { table: 'users', page: '1', limit } }, response, sandbox.stub());
+        expect(response.status.calledWith(400)).to.equal(true);
+      }
+      expect(UserStub.find.called).to.equal(false);
     });
   });
 });

@@ -10,6 +10,7 @@
 const User = require('../models/User');
 const Admin = require('../models/Admin');
 const Period = require('../models/Period');
+const CourseTemplate = require('../models/CourseTemplate');
 const Section = require('../models/Section');
 const Checkin = require('../models/Checkin');
 const Enrollment = require('../models/Enrollment');
@@ -33,7 +34,8 @@ const {
 const MODELS = {
   users: User,
   admins: Admin,
-  periods: Period,
+  course_templates: CourseTemplate,
+      periods: Period,
   sections: Section,
   checkins: Checkin,
   enrollments: Enrollment,
@@ -43,6 +45,45 @@ const MODELS = {
   comments: Comment,
   notifications: Notification
 };
+
+const MAX_DATABASE_PAGE_SIZE = 100;
+const MAX_FIELD_COMPARE_RECORDS = 1000;
+const SENSITIVE_FIELD_NAME = /(password|secret|token|api.?key|private.?key|credential|raw_json|sessionversion|refreshjti)/i;
+const FORBIDDEN_GENERIC_TABLES = new Set(['admins', 'payments', 'course_templates']);
+const FORBIDDEN_GENERIC_FIELDS = new Set([
+  'role', 'permissions', 'tenantid', 'status', 'password', 'dbaccesspassword',
+  'sessionversion', 'wechat', 'paymentstatus', 'paidamount', 'reconciled',
+  'coursetemplatesnapshot', 'coursetemplatelocked', 'coursemodulevalues'
+]);
+
+function boundedPagination(query) {
+  const page = Number(query.page === undefined ? 1 : query.page);
+  const limit = Number(query.limit === undefined ? 20 : query.limit);
+  if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > MAX_DATABASE_PAGE_SIZE) {
+    return null;
+  }
+  return { page, limit, skip: (page - 1) * limit };
+}
+
+function scrubSensitiveFields(value) {
+  if (Array.isArray(value)) return value.map(scrubSensitiveFields);
+  if (!value || typeof value !== 'object' || value instanceof Date || Buffer.isBuffer(value) || value._bsontype) return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !SENSITIVE_FIELD_NAME.test(key))
+    .map(([key, child]) => [key, scrubSensitiveFields(child)]));
+}
+
+function hasUnsafeUpdateField(value, depth = 0) {
+  if (depth > 5) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).some(([key, child]) => {
+    const normalized = key.toLowerCase();
+    if (key.startsWith('$') || key.includes('.') || SENSITIVE_FIELD_NAME.test(key) || FORBIDDEN_GENERIC_FIELDS.has(normalized)) {
+      return true;
+    }
+    return child && typeof child === 'object' && hasUnsafeUpdateField(child, depth + 1);
+  });
+}
 
 // =========================================================================
 // 智能字段比较函数（用于处理布尔值、日期等特殊类型）
@@ -137,7 +178,7 @@ async function getMysqlStats(req, res) {
     const tenantId = getCurrentTenantId();
 
     const tables = [
-      'users', 'admins', 'periods', 'sections', 'checkins', 'enrollments',
+      'users', 'admins', 'course_templates', 'periods', 'sections', 'checkins', 'enrollments',
       'payments', 'insights', 'insight_likes', 'insight_requests',
       'insight_request_audit_logs', 'comments', 'comment_replies', 'notifications'
     ];
@@ -212,7 +253,7 @@ async function compareBackup(req, res) {
     const conn = await mysqlPool.getConnection();
     try {
       const tables = [
-        'users', 'admins', 'periods', 'sections', 'checkins', 'enrollments',
+        'users', 'admins', 'course_templates', 'periods', 'sections', 'checkins', 'enrollments',
         'payments', 'insights', 'insight_requests', 'comments', 'notifications'
       ];
       const tid = tenantId ? tenantId.toString() : null;
@@ -255,6 +296,35 @@ async function compareBackup(req, res) {
         // 无论记录数是否一致，都进行字段级比对
         const recordsMatch = mongoCount === mysqlCount;
 
+        if (table === 'admins') {
+          comparison[table] = {
+            mongodb: mongoCount,
+            mysql: mysqlCount,
+            difference: mongoCount - mysqlCount,
+            recordsMatch,
+            totalRecords: mongoCount,
+            matchedRecords: 0,
+            mismatchedRecords: 0,
+            matchPercentage: 0,
+            consistency: '敏感账号字段不通过通用接口进行逐字段对比'
+          };
+          continue;
+        }
+        if (mongoCount > MAX_FIELD_COMPARE_RECORDS || mysqlCount > MAX_FIELD_COMPARE_RECORDS) {
+          comparison[table] = {
+            mongodb: mongoCount,
+            mysql: mysqlCount,
+            difference: mongoCount - mysqlCount,
+            recordsMatch,
+            totalRecords: mongoCount,
+            matchedRecords: 0,
+            mismatchedRecords: 0,
+            matchPercentage: 0,
+            consistency: `超过在线对比上限 ${MAX_FIELD_COMPARE_RECORDS}，请使用受控离线审计`
+          };
+          continue;
+        }
+
         try {
           const model = MODELS[table];
           if (!model) {
@@ -277,18 +347,10 @@ async function compareBackup(req, res) {
           let mongoData = [];
           if (bypass) {
             await withSystemContext(null, async () => {
-              if (table === 'admins') {
-                mongoData = await model.find().select('+password').lean();
-              } else {
-                mongoData = await model.find().lean();
-              }
+              mongoData = await model.find().select('-raw_json').lean();
             });
           } else {
-            if (table === 'admins') {
-              mongoData = await model.find({ tenantId }).select('+password').lean();
-            } else {
-              mongoData = await model.find({ tenantId }).lean();
-            }
+            mongoData = await model.find({ tenantId }).select('-raw_json').lean();
           }
 
           let mysqlData;
@@ -410,35 +472,42 @@ async function getMongodbTableData(req, res, next) {
       return res.status(400).json(errors.badRequest(`无效的表名: ${table}`));
     }
 
-    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    if (FORBIDDEN_GENERIC_TABLES.has(table)) {
+      return res.status(403).json(errors.forbidden('该集合只能通过专用管理接口查看'));
+    }
+    const paging = boundedPagination({ page, limit });
+    if (!paging) return res.status(400).json(errors.badRequest(`limit 必须为 1 到 ${MAX_DATABASE_PAGE_SIZE} 的正整数`));
+
+    const { skip } = paging;
     const model = MODELS[table];
     const bypass = shouldBypassFilter();
     const tenantId = getCurrentTenantId();
     const filter = bypass ? {} : { tenantId };
 
-    let data, total;
+    let data;
+    let total;
     if (bypass) {
       await withSystemContext(null, async () => {
         [data, total] = await Promise.all([
-          model.find(filter).skip(skip).limit(parseInt(limit, 10)).lean(),
+          model.find(filter).skip(skip).limit(paging.limit).select('-raw_json').lean(),
           model.countDocuments(filter)
         ]);
       });
     } else {
       [data, total] = await Promise.all([
-        model.find(filter).skip(skip).limit(parseInt(limit, 10)).lean(),
+        model.find(filter).skip(skip).limit(paging.limit).select('-raw_json').lean(),
         model.countDocuments(filter)
       ]);
     }
 
     res.json(success({
       table,
-      data,
+      data: scrubSensitiveFields(data),
       pagination: {
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
+        page: paging.page,
+        limit: paging.limit,
         total,
-        pages: Math.ceil(total / parseInt(limit, 10))
+        pages: Math.ceil(total / paging.limit)
       }
     }, `✅ MongoDB 表 ${table} 数据`));
   } catch (error) {
@@ -455,7 +524,7 @@ async function getMysqlTableData(req, res) {
     const { table, page = 1, limit = 20 } = req.query;
 
     const validTables = [
-      'users', 'admins', 'periods', 'sections', 'checkins', 'enrollments',
+      'users', 'admins', 'course_templates', 'periods', 'sections', 'checkins', 'enrollments',
       'payments', 'insights', 'insight_likes', 'insight_requests',
       'insight_request_audit_logs', 'comments', 'comment_replies', 'notifications'
     ];
@@ -464,7 +533,13 @@ async function getMysqlTableData(req, res) {
       return res.status(400).json(errors.badRequest(`无效的表名: ${table}`));
     }
 
-    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    if (FORBIDDEN_GENERIC_TABLES.has(table)) {
+      return res.status(403).json(errors.forbidden('该集合只能通过专用管理接口查看'));
+    }
+    const paging = boundedPagination({ page, limit });
+    if (!paging) return res.status(400).json(errors.badRequest(`limit 必须为 1 到 ${MAX_DATABASE_PAGE_SIZE} 的正整数`));
+
+    const { skip } = paging;
     const bypass = shouldBypassFilter();
     const tenantId = getCurrentTenantId();
     const conn = await mysqlPool.getConnection();
@@ -474,18 +549,19 @@ async function getMysqlTableData(req, res) {
       let total = 0;
 
       try {
-        let queryData, countResult;
+        let queryData;
+        let countResult;
         if (bypass || !tenantId) {
           [queryData] = await conn.query(
             `SELECT * FROM ${table} LIMIT ? OFFSET ?`,
-            [parseInt(limit, 10), skip]
+            [paging.limit, skip]
           );
           [[countResult]] = await conn.query(`SELECT COUNT(*) as total FROM ${table}`);
         } else {
           const tid = tenantId.toString();
           [queryData] = await conn.query(
             `SELECT * FROM ${table} WHERE tenant_id = ? LIMIT ? OFFSET ?`,
-            [tid, parseInt(limit, 10), skip]
+            [tid, paging.limit, skip]
           );
           [[countResult]] = await conn.query(
             `SELECT COUNT(*) as total FROM ${table} WHERE tenant_id = ?`,
@@ -501,10 +577,10 @@ async function getMysqlTableData(req, res) {
 
       res.json(success({
         table,
-        data,
+        data: scrubSensitiveFields(data),
         pagination: {
-          page: parseInt(page, 10),
-          limit: parseInt(limit, 10),
+          page: paging.page,
+          limit: paging.limit,
           total,
           pages: total > 0 ? Math.ceil(total / parseInt(limit, 10)) : 0
         }
@@ -549,6 +625,9 @@ async function fullSync(req, res, next) {
         totalSynced++;
       }
       syncResults.admins = admins.length;
+
+      // 同步课程模板
+      for (const template of await CourseTemplate.find({})) await mysqlBackupService.syncCourseTemplate(template);
 
       // 同步 Periods
       const periods = await Period.find({});
@@ -684,6 +763,7 @@ async function deltaSync(req, res, next) {
     // 获取 MySQL 中所有的 ID
     const mysqlIds = {};
     const tables = [
+      { name: 'course_templates', mongoModel: CourseTemplate, mongoField: '_id' },
       { name: 'users', mongoModel: User, mongoField: '_id' },
       { name: 'admins', mongoModel: Admin, mongoField: '_id' },
       { name: 'checkins', mongoModel: Checkin, mongoField: '_id' },
@@ -753,6 +833,7 @@ async function recoverMysqlToMongo(req, res) {
     const tableModelMapping = {
       users: User,
       admins: Admin,
+      course_templates: CourseTemplate,
       periods: Period,
       sections: Section,
       checkins: Checkin,
@@ -842,6 +923,9 @@ async function compareFieldsDetail(req, res) {
     if (!MODELS[tableName]) {
       return res.status(400).json(errors.badRequest('表名无效'));
     }
+    if (FORBIDDEN_GENERIC_TABLES.has(tableName)) {
+      return res.status(403).json(errors.forbidden('账号和支付记录不能通过通用对比接口读取'));
+    }
 
     const conn = await mysqlPool.getConnection();
 
@@ -852,21 +936,33 @@ async function compareFieldsDetail(req, res) {
       const tid = tenantId ? tenantId.toString() : null;
       let mongoData = [];
 
+      const mongoFilter = bypass ? {} : { tenantId };
+      let mongoCount;
+      if (bypass) {
+        await withSystemContext(null, async () => {
+          mongoCount = await model.countDocuments(mongoFilter);
+        });
+      } else {
+        mongoCount = await model.countDocuments(mongoFilter);
+      }
+      const tableNameIsSafe = /^[A-Za-z_][A-Za-z0-9_]*$/.test(tableName);
+      if (!tableNameIsSafe) return res.status(400).json(errors.badRequest('表名无效'));
+      const countSql = bypass || !tid
+        ? `SELECT COUNT(*) AS total FROM \`${tableName}\``
+        : `SELECT COUNT(*) AS total FROM \`${tableName}\` WHERE tenant_id = ?`;
+      const [mysqlCountRows] = await conn.query(countSql, bypass || !tid ? [] : [tid]);
+      const mysqlCount = Number(mysqlCountRows[0]?.total || 0);
+      if (mongoCount > MAX_FIELD_COMPARE_RECORDS || mysqlCount > MAX_FIELD_COMPARE_RECORDS) {
+        return res.status(413).json(errors.badRequest(`字段对比一次最多支持 ${MAX_FIELD_COMPARE_RECORDS} 条记录，请缩小到单个租户或使用受控的离线审计工具`));
+      }
+
       // 获取 MongoDB 数据
       if (bypass) {
         await withSystemContext(null, async () => {
-          if (tableName === 'admins') {
-            mongoData = await model.find().select('+password').lean();
-          } else {
-            mongoData = await model.find().lean();
-          }
+          mongoData = await model.find().select('-raw_json').lean();
         });
       } else {
-        if (tableName === 'admins') {
-          mongoData = await model.find({ tenantId }).select('+password').lean();
-        } else {
-          mongoData = await model.find({ tenantId }).lean();
-        }
+        mongoData = await model.find({ tenantId }).select('-raw_json').lean();
       }
 
       // 获取 MySQL 数据
@@ -965,6 +1061,17 @@ async function updateMongodbRecord(req, res) {
     if (!Model) {
       return res.status(400).json(errors.badRequest(`无效的集合名: ${table}`));
     }
+    if (FORBIDDEN_GENERIC_TABLES.has(table) || hasUnsafeUpdateField(data)) {
+      return res.status(403).json(errors.forbidden('不允许通过通用维护接口修改该集合或安全字段'));
+    }
+    // Tenant context uses the project-wide internal request property.
+    // eslint-disable-next-line no-underscore-dangle
+    if (!req.resolvedTenantId) {
+      return res.status(400).json(errors.badRequest('修改记录前必须选择一个租户'));
+    }
+    if (typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length === 0 || Object.keys(data).length > 50) {
+      return res.status(400).json(errors.badRequest('更新内容必须是 1 到 50 个字段的对象'));
+    }
     // 防止修改 _id/__v/createdAt/updatedAt（这些字段从 data 中移除）
     const safeData = { ...data };
     delete safeData._id;
@@ -973,19 +1080,21 @@ async function updateMongodbRecord(req, res) {
     delete safeData.createdAt;
     delete safeData.updatedAt;
 
-    const updated = await withSystemContext(null, () =>
-      Model.findByIdAndUpdate(id, safeData, { new: true }).exec()
+    // eslint-disable-next-line no-underscore-dangle
+    const updated = await withSystemContext(req.resolvedTenantId, () =>
+      Model.findByIdAndUpdate(id, safeData, { new: true, runValidators: true }).exec()
     );
     if (!updated) {
       return res.status(404).json(errors.notFound('记录不存在'));
     }
+    const safeUpdated = scrubSensitiveFields(updated.toObject());
     publishSyncEvent({
       type: 'update',
       collection: table,
       documentId: id,
-      data: updated.toObject()
+      data: safeUpdated
     });
-    return res.json(success(updated.toObject(), '记录已更新'));
+    return res.json(success(safeUpdated, '记录已更新'));
   } catch (error) {
     logger.error('updateMongodbRecord error', error);
     return res.status(500).json(errors.serverError('更新失败'));
@@ -1007,12 +1116,22 @@ async function deleteMongodbRecord(req, res) {
     if (!Model) {
       return res.status(400).json(errors.badRequest(`无效的集合名: ${table}`));
     }
-    const doc = await withSystemContext(null, () => Model.findById(id).exec());
+    if (FORBIDDEN_GENERIC_TABLES.has(table)) {
+      return res.status(403).json(errors.forbidden('该集合不能通过通用维护接口删除'));
+    }
+    // Tenant context uses the project-wide internal request property.
+    // eslint-disable-next-line no-underscore-dangle
+    if (!req.resolvedTenantId) {
+      return res.status(400).json(errors.badRequest('删除记录前必须选择一个租户'));
+    }
+    // eslint-disable-next-line no-underscore-dangle
+    const doc = await withSystemContext(req.resolvedTenantId, () => Model.findById(id).exec());
     if (!doc) {
       return res.status(404).json(errors.notFound('记录不存在'));
     }
-    const docData = doc.toObject();
-    await withSystemContext(null, () => Model.findByIdAndDelete(id).exec());
+    const docData = scrubSensitiveFields(doc.toObject());
+    // eslint-disable-next-line no-underscore-dangle
+    await withSystemContext(req.resolvedTenantId, () => Model.findByIdAndDelete(id).exec());
     publishSyncEvent({
       type: 'delete',
       collection: table,

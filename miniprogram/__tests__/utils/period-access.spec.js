@@ -73,7 +73,7 @@ describe('Period Access Utility', () => {
     );
   });
 
-  test('不应将 free 报名识别为已支付社交权限', async () => {
+  test('免费报名可以参与期次互动，但不标记为付费', async () => {
     enrollmentService.checkEnrollment.mockResolvedValue({
       isEnrolled: true,
       paymentStatus: 'free',
@@ -92,15 +92,15 @@ describe('Period Access Utility', () => {
           paymentStatus: 'free'
         }
       ])
-    ).toBe(false);
+    ).toBe(true);
     expect(result).toEqual(
       expect.objectContaining({
         periodId: 'period_free',
         isEnrolled: true,
         paymentStatus: 'free',
-        paymentPending: true,
-        canAccessCommunity: false,
-        communityAccessState: 'locked'
+        paymentPending: false,
+        canAccessCommunity: true,
+        communityAccessState: 'enabled'
       })
     );
   });

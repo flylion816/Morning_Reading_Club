@@ -414,7 +414,7 @@ describe('Checkin Controller', () => {
 
   describe('uploadCheckinImage', () => {
     it('应该返回租户隔离的打卡图片地址', async () => {
-      req._resolvedTenantId = new mongoose.Types.ObjectId();
+      req.resolvedTenantId = new mongoose.Types.ObjectId();
       req.file = {
         filename: 'checkin-image.jpg',
         size: 1234,
@@ -427,7 +427,7 @@ describe('Checkin Controller', () => {
 
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
-      expect(responseData.data.url).to.equal('https://wx.shubai01.com/uploads/tenants/fanren/checkins/checkin-image.jpg');
+      expect(responseData.data.url).to.equal(`${process.env.API_BASE_URL}/uploads/tenants/fanren/checkins/checkin-image.jpg`);
       expect(responseData.data.path).to.equal('/uploads/tenants/fanren/checkins/checkin-image.jpg');
       expect(responseData.data.mimetype).to.equal('image/jpeg');
     });

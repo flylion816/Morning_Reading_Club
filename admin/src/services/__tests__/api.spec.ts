@@ -18,6 +18,7 @@ import {
   completionReportApi,
   uploadApi,
   backupApi,
+  enrollmentTemplateApi,
 } from '../api';
 
 describe('API Service', () => {
@@ -168,6 +169,14 @@ describe('API Service', () => {
     it('应该导出 deletePeriod 方法', () => {
       expect(periodApi.deletePeriod).toBeDefined();
       expect(typeof periodApi.deletePeriod).toBe('function');
+    });
+  });
+
+  describe('Enrollment template API methods', () => {
+    it('exports list/create/update methods', () => {
+      expect(typeof enrollmentTemplateApi.list).toBe('function');
+      expect(typeof enrollmentTemplateApi.create).toBe('function');
+      expect(typeof enrollmentTemplateApi.update).toBe('function');
     });
   });
 

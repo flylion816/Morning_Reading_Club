@@ -236,6 +236,9 @@
             <view class="section-icon-checkin">📝</view>
             <text class="section-header-title">我的打卡</text>
           </view>
+          <button class="checkin-create-button" bindtap="navigateToNewCheckin" aria-label="新建打卡">
+            <text class="checkin-create-icon">＋</text>
+          </button>
         </view>
 
         <scroll-view

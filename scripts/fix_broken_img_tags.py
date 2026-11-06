@@ -9,8 +9,9 @@ import re
 import json
 import urllib.request
 import urllib.error
+import os
 
-BASE_URL = "https://wx.shubai01.com"
+BASE_URL = os.environ.get("ADMIN_API_BASE_URL", "http://127.0.0.1:3000").rstrip("/")
 
 # 第一批只修第二天，确认后再改其他
 SECTION_IDS = {
@@ -36,7 +37,7 @@ BROKEN_PATTERN = re.compile(
 
 def api(path, method="GET", data=None, token=None):
     url = BASE_URL + "/api/v1" + path
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "Origin": BASE_URL}
     if token:
         headers["Authorization"] = f"Bearer {token}"
     if data is not None:
@@ -46,7 +47,8 @@ def api(path, method="GET", data=None, token=None):
         req = urllib.request.Request(url, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
+            payload = json.loads(resp.read())
+            return payload
     except urllib.error.HTTPError as e:
         body = e.read()
         try:
@@ -105,13 +107,16 @@ def main():
 
     # 登录
     email = "admin@morningreading.com"
-    password = "Km7$Px2Qw9shizi"
+    password = os.environ.get("ADMIN_PASSWORD")
+    if not password:
+        print("请通过 ADMIN_PASSWORD 环境变量提供管理员密码", file=sys.stderr)
+        sys.exit(1)
     print("登录中...")
     resp = api("/auth/admin/login", method="POST", data={"email": email, "password": password})
-    if not resp or "data" not in resp or "token" not in resp.get("data", {}):
-        print(f"登录失败: {resp}")
+    if not resp or "data" not in resp or "accessToken" not in resp.get("data", {}):
+        print(f"登录失败: {resp.get('message', '请求失败') if isinstance(resp, dict) else '请求失败'}")
         sys.exit(1)
-    token = resp["data"]["token"]
+    token = resp["data"]["accessToken"]
     print(f"✅ 登录成功")
 
     results = {}

@@ -2,7 +2,18 @@ const path = require("path");
 const mongoose = require("mongoose");
 
 // ⚠️ 重要：最早加载环境配置，在任何模块 require 之前
-// 首先尝试加载根目录的统一环境配置（.env.config.js 是权威来源）
+// Secrets come from the runtime environment file; tracked .env.config.js contains defaults only.
+const dotenv = require("dotenv");
+
+const envFileName = process.env.NODE_ENV === "production"
+  ? "../.env.production"
+  : (process.env.NODE_ENV === "test" ? "../.env.test" : "../.env");
+dotenv.config({ path: path.resolve(__dirname, envFileName) });
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
+}
+
+// Load non-secret environment defaults only after the runtime secrets are available.
 try {
   const envConfigPath = path.resolve(__dirname, "../../.env.config.js");
   // eslint-disable-next-line global-require, import/no-dynamic-require
@@ -13,25 +24,15 @@ try {
   if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = envConfig.config.backend.nodeEnv;
   }
-  process.env.MONGODB_URI =
-    process.env.MONGODB_URI || envConfig.config.backend.mongodbUri;
+  if (!process.env.MONGODB_URI && process.env.NODE_ENV !== "production") {
+    process.env.MONGODB_URI = envConfig.config.backend.mongodbUri;
+  }
 } catch (error) {
   // 如果没有 .env.config.js，使用默认值
   if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = "development";
   }
 }
-
-// 根据 NODE_ENV 加载相应的环境文件
-const envFile =
-  process.env.NODE_ENV === "production"
-    ? path.resolve(__dirname, "../.env.production")
-    : path.resolve(__dirname, "../.env");
-
-require("dotenv").config({ path: envFile });
-
-// 再加载 .env.local（本地开发/测试覆盖）
-require("dotenv").config({ path: path.resolve(__dirname, "../.env.local") });
 
 // 日志输出当前的 MYSQL_PORT 值（用于调试）
 const logger_temp = console;
@@ -149,7 +150,8 @@ async function startServer() {
     }
 
     // 启动HTTP服务器（先启动，不等待 Redis）
-    const server = app.listen(PORT, () => {
+    const listenHost = process.env.SERVER_BIND_HOST || (process.env.NODE_ENV === 'production' ? '127.0.0.1' : undefined);
+    const server = app.listen(PORT, listenHost, () => {
       logger.info("服务器已启动", {
         url: `http://localhost:${PORT}`,
         apiBaseUrl: `http://localhost:${PORT}/api/v1`,

@@ -9,9 +9,9 @@ const mongoose = require('mongoose');
  * 微信授权相关
  */
 const wechatData = {
-  validCode: 'test_code_' + Date.now(),
-  validOpenid: 'test_openid_' + Date.now(),
-  invalidCode: 'invalid_code_' + Date.now(),
+  validCode: `test_code_${  Date.now()}`,
+  validOpenid: `test_openid_${  Date.now()}`,
+  invalidCode: `invalid_code_${  Date.now()}`,
   mockOpenid: 'mock_openid_001',
   anotherOpenid: 'mock_openid_002'
 };

@@ -320,7 +320,7 @@ async function sendOneReminder(
   }
 
   const workingGrant = claimed.grant;
-  const claimToken = claimed.claimToken;
+  const {claimToken} = claimed;
 
   try {
     const periodId =

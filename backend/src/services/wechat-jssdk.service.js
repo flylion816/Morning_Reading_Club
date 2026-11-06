@@ -143,7 +143,7 @@ async function createJssdkSignature(rawUrl) {
   };
 }
 
-function __resetCache() {
+function resetCacheForTests() {
   accessTokenCache = null;
   jsapiTicketCache = null;
 }
@@ -151,5 +151,5 @@ function __resetCache() {
 module.exports = {
   createJssdkSignature,
   validateShareUrl,
-  __resetCache
+  resetCacheForTests
 };

@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import { createPinia, setActivePinia } from 'pinia';
 import { useAuthStore } from '../stores/auth';
-import { createMockAdmin, createMockUser } from '../tests/fixtures';
+import { createMockAdmin } from '../tests/fixtures';
 
 describe('Integration Tests - 管理后台集成测试', () => {
   let pinia: any;

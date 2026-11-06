@@ -142,7 +142,6 @@ import {
   Collection,
   Connection,
   CreditCard,
-  DataAnalysis,
   DataBoard,
   Document,
   EditPen,
@@ -196,7 +195,9 @@ const menuGroups = [
       { index: '/users', label: '用户管理', icon: User },
       { index: '/payments', label: '支付记录', icon: CreditCard },
       { index: '/periods', label: '期次管理', icon: Calendar },
-      { index: '/content', label: '内容管理', icon: Reading }
+      { index: '/course-templates', label: '课程模板', icon: Collection },
+      { index: '/enrollment-templates', label: '报名模板', icon: Tickets },
+      { index: '/content', label: '课程内容', icon: Reading }
     ]
   },
   {
@@ -236,8 +237,10 @@ const pageTitle = computed(() => {
     '/enrollments': '报名管理',
     '/payments': '支付记录',
     '/periods': '期次管理',
+    '/course-templates': '课程模板',
+    '/enrollment-templates': '报名模板',
     '/users': '用户管理',
-    '/content': '内容管理',
+    '/content': '课程内容',
     '/insights': '小凡看见',
     '/imprints': '在场管理',
     '/activities': '活动管理',
@@ -351,12 +354,16 @@ const handleLogout = () => {
     type: 'warning'
   })
     .then(async () => {
-      await authStore.logout();
+      const loggedOut = await authStore.logout();
+      if (!loggedOut) {
+        ElMessage.error('暂时无法撤销服务端会话，请检查网络后重试');
+        return;
+      }
       ElMessage.success('已退出登录');
       router.push('/login');
     })
-    .catch(() => {
-      // 取消退出
+    .catch(error => {
+      if (error !== 'cancel' && error !== 'close') ElMessage.error('登出失败，请重试');
     });
 };
 

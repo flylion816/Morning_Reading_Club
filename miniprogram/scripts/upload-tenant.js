@@ -87,6 +87,14 @@ async function uploadTenant(slug, options = {}) {
     throw createCliError(USAGE);
   }
 
+  // 防止把连接本地后端（dev/test）的包上传到微信后台
+  const currentEnv = options.currentEnv || require('../config/env.js').currentEnv;
+  if (currentEnv !== 'prod') {
+    throw createCliError(
+      `miniprogram/config/env.js 当前为 '${currentEnv}'，上传前必须改为 'prod'（否则线上版本会请求本地后端）`
+    );
+  }
+
   const fsImpl = options.fs || fs;
   const spawnSyncImpl = options.spawnSync || spawnSync;
   const consoleImpl = options.console || console;
@@ -143,7 +151,8 @@ async function uploadTenant(slug, options = {}) {
     type: 'miniProgram',
     projectPath: path.join(__dirname, '../..'),
     privateKeyPath: keyPath,
-    ignores: ['node_modules/**/*']
+    // 上传密钥绝不能被打进小程序代码包
+    ignores: ['node_modules/**/*', 'miniprogram/keys/**/*', '**/*.pem']
   });
 
   const result = await ci.upload({

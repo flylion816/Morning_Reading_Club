@@ -3,6 +3,10 @@
   "packOptions": {
     "ignore": [
       {
+        "value": "miniprogram/keys",
+        "type": "folder"
+      },
+      {
         "value": ".eslintrc.js",
         "type": "file"
       },

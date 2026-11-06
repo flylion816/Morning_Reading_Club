@@ -154,7 +154,7 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
   }
 
   function populateInsightDoc(doc, populateSteps) {
-    let result = attachInsightMethods(clone(doc));
+    const result = attachInsightMethods(clone(doc));
 
     populateSteps.forEach(step => {
       if (typeof step === 'string') {
@@ -186,7 +186,7 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
   }
 
   function populateRequestDoc(doc, populateSteps) {
-    let result = attachRequestMethods(clone(doc));
+    const result = attachRequestMethods(clone(doc));
 
     populateSteps.forEach(step => {
       const path = typeof step === 'string' ? step : step.path;
@@ -209,7 +209,7 @@ describe('Insight Request Flow Integration - 单条授权回归', () => {
           return;
         }
 
-        let populatedInsight = selectFields(clone(insight), select);
+        const populatedInsight = selectFields(clone(insight), select);
         if (typeof step === 'object' && Array.isArray(step.populate)) {
           step.populate.forEach(nested => {
             if (nested.path === 'periodId') {

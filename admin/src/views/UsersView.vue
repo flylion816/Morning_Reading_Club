@@ -41,11 +41,12 @@
       <!-- 用户列表 -->
       <el-card>
         <el-table
+          v-loading="loading"
           :data="users"
           stripe
           style="width: 100%"
           :default-sort="{ prop: 'createdAt', order: 'descending' }"
-          v-loading="loading"
+          @sort-change="handleSortChange"
         >
           <el-table-column prop="_id" label="用户ID" width="200">
             <template #default="{ row }">
@@ -77,7 +78,7 @@
           <el-table-column prop="phone" label="电话" width="140" />
           <el-table-column prop="signature" label="个人签名" min-width="150">
             <template #default="{ row }">
-              <el-tooltip :content="row.signature" placement="top" v-if="row.signature">
+              <el-tooltip v-if="row.signature" :content="row.signature" placement="top">
                 <div class="cell-ellipsis">{{ row.signature }}</div>
               </el-tooltip>
               <span v-else style="color: #ccc">-</span>
@@ -92,9 +93,15 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="注册时间" width="180">
+          <el-table-column prop="createdAt" label="注册时间" width="180" sortable="custom">
             <template #default="{ row }">
               {{ formatDate(row.createdAt) }}
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="lastLoginAt" label="最近登录时间" width="180" sortable="custom">
+            <template #default="{ row }">
+              {{ row.lastLoginAt ? formatDate(row.lastLoginAt) : '-' }}
             </template>
           </el-table-column>
 
@@ -225,7 +232,7 @@
         <template #footer>
           <div style="flex: auto">
             <el-button @click="editDialog.visible = false">取消</el-button>
-            <el-button type="primary" @click="handleSaveEdit" :loading="editDialog.saving">
+            <el-button type="primary" :loading="editDialog.saving" @click="handleSaveEdit">
               保存
             </el-button>
           </div>
@@ -262,6 +269,11 @@ const pagination = ref({
   total: 0
 });
 
+const sort = ref({
+  sortBy: 'createdAt',
+  sortOrder: 'descending'
+});
+
 const detailsDialog = ref({
   visible: false
 });
@@ -281,7 +293,9 @@ async function loadUsers() {
   try {
     const params: Record<string, any> = {
       page: pagination.value.page,
-      limit: pagination.value.pageSize
+      limit: pagination.value.pageSize,
+      sortBy: sort.value.sortBy,
+      sortOrder: sort.value.sortOrder
     };
 
     if (filters.value.search) {
@@ -308,6 +322,16 @@ function handleSearch() {
 }
 
 function handlePageSizeChange() {
+  pagination.value.page = 1;
+  loadUsers();
+}
+
+function handleSortChange({ prop, order }: { prop?: string; order?: 'ascending' | 'descending' | null }) {
+  if (!order) return;
+  sort.value = {
+    sortBy: prop || 'createdAt',
+    sortOrder: order
+  };
   pagination.value.page = 1;
   loadUsers();
 }

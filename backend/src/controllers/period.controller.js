@@ -1,10 +1,15 @@
+const mongoose = require('mongoose');
 const Period = require('../models/Period');
 const Checkin = require('../models/Checkin');
 const User = require('../models/User');
-const mongoose = require('mongoose');
+const Section = require('../models/Section');
 const { success, errors } = require('../utils/response');
 const { publishSyncEvent } = require('../services/sync.service');
 const { getCurrentTenantId } = require('../utils/tenantContext');
+const { resolveCourseTemplate, defaultCourseTemplate, snapshotCourseTemplate, refreshUnlockedPeriodTemplateSnapshot } = require('../services/course-template.service');
+const EnrollmentTemplate = require('../models/EnrollmentTemplate');
+const { resolveEnrollmentTemplate } = require('../services/enrollment-template.service');
+const { getPeriodAccessState } = require('../services/period-access.service');
 const {
   calculatePeriodStatus,
   getPeriodStatusText,
@@ -242,6 +247,14 @@ async function getPeriodDetail(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
+    const refreshed = await refreshUnlockedPeriodTemplateSnapshot(
+      period,
+      typeof Section.exists === 'function' ? await Section.exists({ periodId: period._id }) : false
+    );
+    if (refreshed) {
+      publishSyncEvent({ type: 'update', collection: 'periods', documentId: period._id.toString(), data: period.toObject() });
+    }
+
     // 返回转换后的数据，与列表 API 格式一致
     const periodObj = period.toObject ? period.toObject({ virtuals: true }) : period;
 
@@ -256,7 +269,8 @@ async function getPeriodDetail(req, res, next) {
       startTime: period.startDate ? period.startDate.toISOString() : null,
       endTime: period.endDate ? period.endDate.toISOString() : null,
       dateRange: periodObj.dateRange || '',
-      statusText: getStatusText(period)
+      statusText: getStatusText(period),
+      access: await getPeriodAccessState(period, req.user?.userId || req.user?.id || req.user?._id, { isAdmin: Boolean(req.admin) })
     };
 
     res.json(success(transformedPeriod));
@@ -268,6 +282,10 @@ async function getPeriodDetail(req, res, next) {
 // 创建期次（管理员）
 async function createPeriod(req, res, next) {
   try {
+    const tenantId = getCurrentTenantId();
+    const courseTemplateSnapshot = await resolveCourseTemplate(req.body.courseTemplateId, tenantId);
+    const enrollmentTemplateId = req.body.enrollmentTemplateId || (req.body.enrollmentOpen ? 'full' : undefined);
+    const enrollmentTemplateSnapshot = await resolveEnrollmentTemplate(enrollmentTemplateId, tenantId, EnrollmentTemplate);
     const {
       name,
       subtitle,
@@ -288,10 +306,18 @@ async function createPeriod(req, res, next) {
       coverImage,
       inviteTitle,
       visibilityType,
-      visibleUserIds
+      visibleUserIds,
+      readingAccess,
+      enrollmentOpen
     } = req.body;
 
     const period = await Period.create({
+      courseTemplateSnapshot,
+      ...(enrollmentTemplateSnapshot ? {
+        enrollmentTemplateId: enrollmentTemplateSnapshot.templateId,
+        enrollmentTemplateSnapshot
+      } : {}),
+      ...(readingAccess ? { readingAccess } : {}),
       name,
       subtitle,
       title: title || name,
@@ -314,9 +340,9 @@ async function createPeriod(req, res, next) {
       visibleUserIds: visibilityType === 'specific' ? (visibleUserIds || []) : [],
       status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
-      enrollmentOpen: false,
+      enrollmentOpen: enrollmentOpen === true,
       currentEnrollment: 0,
-      tenantId: getCurrentTenantId()
+      tenantId
     });
 
     // 异步同步到 MySQL
@@ -345,9 +371,40 @@ async function updatePeriod(req, res, next) {
       return res.status(404).json(errors.notFound('期次不存在'));
     }
 
+    if (updates.courseTemplateId !== undefined && updates.courseTemplateId !== (period.courseTemplateSnapshot?.templateId || 'seven-habits')) {
+      const Section = require('../models/Section');
+      if (period.courseTemplateLocked || await Section.exists({ periodId: period._id })) {
+        return res.status(409).json(errors.conflict('该期次已有课节，不能更换课程模板'));
+      }
+      const snapshot = await resolveCourseTemplate(updates.courseTemplateId, period.tenantId);
+      const changed = await Period.findOneAndUpdate({
+        _id: period._id,
+        courseTemplateLocked: { $ne: true },
+        updatedAt: period.updatedAt
+      }, { $set: { courseTemplateSnapshot: snapshot } }, { new: true });
+      if (!changed) return res.status(409).json(errors.conflict('期次内容已变化，请刷新后重试'));
+      period.courseTemplateSnapshot = snapshot;
+      period.updatedAt = changed.updatedAt;
+    }
+
+    if (updates.enrollmentTemplateId !== undefined) {
+      if (period.enrollmentTemplateLocked || period.enrollmentCount > 0) {
+        return res.status(409).json(errors.conflict('该期次已有报名，不能更换报名模板'));
+      }
+      const snapshot = await resolveEnrollmentTemplate(updates.enrollmentTemplateId, period.tenantId, EnrollmentTemplate);
+      period.enrollmentTemplateId = snapshot?.templateId;
+      period.enrollmentTemplateSnapshot = snapshot;
+      period.markModified('enrollmentTemplateSnapshot');
+    } else if (updates.enrollmentOpen === true && !period.enrollmentTemplateSnapshot) {
+      const snapshot = await resolveEnrollmentTemplate('full', period.tenantId, EnrollmentTemplate);
+      period.enrollmentTemplateId = snapshot.templateId;
+      period.enrollmentTemplateSnapshot = snapshot;
+      period.markModified('enrollmentTemplateSnapshot');
+    }
+
     // 更新字段（跳过前端虚拟字段 visibleUsers）
     Object.keys(updates).forEach(key => {
-      if (updates[key] !== undefined && key !== 'visibleUsers') {
+      if (updates[key] !== undefined && !['visibleUsers', 'courseTemplateId', 'courseTemplateSnapshot', 'courseTemplateLocked', 'enrollmentTemplateId', 'enrollmentTemplateSnapshot', 'enrollmentTemplateLocked', 'tenantId', '_id', 'createdAt', 'updatedAt', '__v'].includes(key)) {
         period[key] = updates[key];
       }
     });
@@ -459,6 +516,13 @@ async function copyPeriod(req, res, next) {
 
     // 创建新期次（会议号和邀请链接都设为 null，新期次会议配置不同）
     const newPeriod = await Period.create({
+      courseTemplateSnapshot: sourcePeriod.courseTemplateSnapshot || snapshotCourseTemplate(defaultCourseTemplate()),
+      courseTemplateLocked: sourcePeriod.courseTemplateLocked || false,
+      ...(sourcePeriod.enrollmentTemplateSnapshot ? {
+        enrollmentTemplateId: sourcePeriod.enrollmentTemplateId,
+        enrollmentTemplateSnapshot: sourcePeriod.enrollmentTemplateSnapshot
+      } : {}),
+      ...(sourcePeriod.readingAccess ? { readingAccess: sourcePeriod.readingAccess } : {}),
       name,
       subtitle,
       title: title || name,
@@ -477,6 +541,7 @@ async function copyPeriod(req, res, next) {
       meetingJoinUrl: null,
       status: calculatePeriodStatus({ startDate, endDate }),
       isPublished: false,
+      enrollmentOpen: false,
       currentEnrollment: 0,
       tenantId
     });
@@ -507,7 +572,10 @@ async function copyPeriod(req, res, next) {
         };
       });
 
-      await Section.insertMany(newSections);
+      const inserted = await Section.insertMany(newSections);
+      for (const section of inserted) {
+        publishSyncEvent({ type: 'create', collection: 'sections', documentId: section._id.toString(), data: section.toObject() });
+      }
       copiedSectionCount = newSections.length;
     }
 

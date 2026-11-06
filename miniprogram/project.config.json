@@ -2,6 +2,10 @@
   "packOptions": {
     "ignore": [
       {
+        "value": "keys",
+        "type": "folder"
+      },
+      {
         "value": "scripts",
         "type": "folder"
       },

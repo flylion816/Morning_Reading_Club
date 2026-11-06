@@ -32,7 +32,7 @@
 .activity-title {
   flex: 1;
   min-width: 0;
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 30rpx;
   font-weight: 700;
   line-height: 40rpx;
@@ -49,7 +49,7 @@
 
 .summary-row {
   margin-top: 12rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 24rpx;
 }
 
@@ -69,7 +69,7 @@
   padding: 8rpx 14rpx;
   border-radius: 8rpx;
   background: #f1f5f9;
-  color: #475467;
+  color: var(--app-text-soft);
   font-size: 22rpx;
 }
 
@@ -87,7 +87,7 @@
   background: #ffffff;
   padding: 0 20rpx;
   font-size: 26rpx;
-  color: #1f2937;
+  color: var(--app-text);
   box-sizing: border-box;
 }
 
@@ -120,7 +120,7 @@
   height: 56rpx;
   line-height: 56rpx;
   border-radius: 10rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 26rpx;
   text-align: center;
 }
@@ -133,7 +133,7 @@
 
 .state-box {
   padding: 44rpx 20rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
   font-size: 26rpx;
   text-align: center;
 }
@@ -157,7 +157,7 @@
   padding: 16rpx 20rpx;
   border-radius: 10rpx;
   background: #ffffff;
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 24rpx;
 }
 
@@ -206,7 +206,7 @@
 
 .user-name {
   min-width: 0;
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 30rpx;
   font-weight: 700;
   overflow: hidden;
@@ -224,7 +224,7 @@
 .phone {
   display: block;
   margin-top: 8rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
   font-size: 22rpx;
 }
 
@@ -237,13 +237,13 @@
   min-width: 150rpx;
   padding: 14rpx 10rpx;
   border-radius: 10rpx;
-  background: #f8fafc;
+  background: var(--app-surface-muted);
   text-align: center;
 }
 
 .metric-value {
   display: block;
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 28rpx;
   font-weight: 700;
   line-height: 36rpx;
@@ -252,7 +252,7 @@
 .metric-label {
   display: block;
   margin-top: 4rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 20rpx;
   line-height: 28rpx;
 }
@@ -281,7 +281,7 @@
   padding: 6rpx 12rpx;
   border-radius: 8rpx;
   background: #f1f5f9;
-  color: #475467;
+  color: var(--app-text-soft);
   font-size: 22rpx;
   line-height: 30rpx;
 }
@@ -293,7 +293,7 @@
 
 .foot-row {
   margin-top: 14rpx;
-  color: #98a2b3;
+  color: var(--app-text-muted);
   font-size: 22rpx;
 }
 
@@ -319,7 +319,7 @@
 }
 
 .stats-title {
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 28rpx;
   font-weight: 700;
   margin-bottom: 12rpx;
@@ -339,12 +339,12 @@
 .stats-option {
   min-height: 62rpx;
   border-top: 1rpx solid #eef2f7;
-  color: #344054;
+  color: var(--app-text-soft);
   font-size: 25rpx;
 }
 
 .stats-right {
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 24rpx;
 }
 
@@ -375,7 +375,7 @@
 }
 
 .detail-title {
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 32rpx;
   font-weight: 700;
 }
@@ -389,13 +389,13 @@
   justify-content: flex-start;
   flex-wrap: wrap;
   margin-top: 14rpx;
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 23rpx;
 }
 
 .detail-section-title {
   margin-top: 24rpx;
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 28rpx;
   font-weight: 700;
 }
@@ -410,12 +410,12 @@
 }
 
 .detail-answer-label {
-  color: #667085;
+  color: var(--app-text-soft);
   font-size: 25rpx;
 }
 
 .detail-answer-value {
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 25rpx;
   font-weight: 600;
   text-align: right;

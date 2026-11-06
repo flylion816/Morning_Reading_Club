@@ -82,10 +82,17 @@ describe('upload-tenant script', () => {
     });
   });
 
+  test('refuses to upload when env.js is not prod', async () => {
+    const spawnSync = jest.fn();
+    await expect(uploadTenant('chaoren', { currentEnv: 'dev', spawnSync })).rejects.toThrow("必须改为 'prod'");
+    expect(spawnSync).not.toHaveBeenCalled();
+  });
+
   test('applies tenant config before creating the CI project and uploading', async () => {
     const tenant = require('../../config/tenants/chaoren');
 
     await uploadTenant('chaoren', {
+      currentEnv: 'prod',
       fs: fsMock,
       spawnSync,
       ci: {
@@ -125,6 +132,7 @@ describe('upload-tenant script', () => {
     });
 
     await expect(uploadTenant('chaoren', {
+      currentEnv: 'prod',
       fs: fsMock,
       spawnSync,
       ci: {
@@ -147,6 +155,7 @@ describe('upload-tenant script', () => {
 
   test('syncs tenant config before applying and uploading when --sync is enabled', async () => {
     await uploadTenant('chaoren', {
+      currentEnv: 'prod',
       sync: true,
       file: 'tenant.json',
       fs: fsMock,
@@ -200,6 +209,7 @@ describe('upload-tenant script', () => {
     });
 
     await uploadTenant('chaoren', {
+      currentEnv: 'prod',
       sync: true,
       file: 'tenant.json',
       fs: fsMock,

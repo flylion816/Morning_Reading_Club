@@ -69,13 +69,13 @@ npm run dev
 主机: localhost
 端口: 27017
 用户: admin
-密码: Mongodb@Local123!
+密码: <MONGODB_PASSWORD_FROM_ENV>
 数据库: morning_reading
 ```
 
 **连接字符串：**
 ```
-mongodb://admin:Mongodb@Local123!@localhost:27017/morning_reading?authSource=admin
+mongodb://admin:CHANGE_ME@localhost:27017/morning_reading?authSource=admin
 ```
 
 ### MySQL
@@ -84,14 +84,14 @@ mongodb://admin:Mongodb@Local123!@localhost:27017/morning_reading?authSource=adm
 主机: localhost
 端口: 3306
 用户: morning_user
-密码: Morning@User123!
-根用户密码: Root@Local123!
+密码: REDACTED_SECRET_FROM_ENV
+根用户密码: <MYSQL_ROOT_PASSWORD_FROM_ENV>
 数据库: morning_reading
 ```
 
 **连接字符串：**
 ```
-mysql://morning_user:Morning@User123!@localhost:3306/morning_reading
+mysql://morning_user:CHANGE_ME@localhost:3306/morning_reading
 ```
 
 ### Redis
@@ -99,13 +99,13 @@ mysql://morning_user:Morning@User123!@localhost:3306/morning_reading
 ```
 主机: localhost
 端口: 6379
-密码: Redis@Local123!
+密码: REDACTED_SECRET_FROM_ENV
 数据库: 0
 ```
 
 **连接命令：**
 ```bash
-redis-cli -h localhost -p 6379 -a Redis@Local123!
+redis-cli -h localhost -p 6379 -a REDACTED_SECRET_FROM_ENV
 ```
 
 ---
@@ -117,7 +117,7 @@ redis-cli -h localhost -p 6379 -a Redis@Local123!
 ```
 URL: http://localhost:5173
 邮箱: admin@morningreading.com
-密码: admin123456
+密码: <从密钥管理服务读取>
 ```
 
 ### API 认证
@@ -133,7 +133,7 @@ Authorization: Bearer <access_token>
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@morningreading.com","password":"admin123456"}'
+  -d '{"email":"admin@morningreading.com","password":"<从密钥管理服务读取>"}'
 ```
 
 ---
@@ -144,10 +144,10 @@ curl -X POST http://localhost:3000/api/v1/auth/admin/login \
 
 ```bash
 # 使用 mongosh
-mongosh mongodb://admin:Mongodb@Local123!@localhost:27017/morning_reading
+mongosh mongodb://admin:CHANGE_ME@localhost:27017/morning_reading
 
 # 或使用 MongoDB Compass
-# 连接字符串: mongodb://admin:Mongodb@Local123!@localhost:27017/morning_reading?authSource=admin
+# 连接字符串: mongodb://admin:CHANGE_ME@localhost:27017/morning_reading?authSource=admin
 ```
 
 ### MySQL 命令行连接
@@ -155,21 +155,21 @@ mongosh mongodb://admin:Mongodb@Local123!@localhost:27017/morning_reading
 ```bash
 # 以普通用户连接
 mysql -h localhost -u morning_user -p morning_reading
-# 密码: Morning@User123!
+# 密码: REDACTED_SECRET_FROM_ENV
 
 # 以 root 连接
 mysql -h localhost -u root -p
-# 密码: Root@Local123!
+# 密码: <MYSQL_ROOT_PASSWORD_FROM_ENV>
 ```
 
 ### Redis CLI 连接
 
 ```bash
 # 使用 redis-cli
-redis-cli -h localhost -p 6379 -a Redis@Local123!
+redis-cli -h localhost -p 6379 -a REDACTED_SECRET_FROM_ENV
 
 # 或在容器内
-docker exec -it morning-reading-redis redis-cli -a Redis@Local123!
+docker exec -it morning-reading-redis redis-cli -a REDACTED_SECRET_FROM_ENV
 ```
 
 ---

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { wechatLogin, refreshToken, logout, getPhoneNumber } = require('../controllers/auth.controller');
 const { authMiddleware } = require('../middleware/auth');
+const { authIpRateLimit, authRateLimit } = require('../middleware/ratelimit');
 const { userTenantContext } = require('../middleware/tenantContext');
 const { generateWsToken, WS_TOKEN_TTL_SECONDS } = require('../utils/jwt');
 const { getCurrentTenantId } = require('../utils/tenantContext');
@@ -12,14 +13,14 @@ const { getCurrentTenantId } = require('../utils/tenantContext');
  * @desc    微信登录（Mock版）
  * @access  Public
  */
-router.post('/wechat/login', wechatLogin);
+router.post('/wechat/login', authIpRateLimit, authRateLimit, wechatLogin);
 
 /**
  * @route   POST /api/v1/auth/refresh
  * @desc    刷新访问令牌
  * @access  Public
  */
-router.post('/refresh', refreshToken);
+router.post('/refresh', authIpRateLimit, refreshToken);
 
 /**
  * @route   POST /api/v1/auth/logout

@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+
 const router = express.Router();
 const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const { userTenantContext, optionalUserOrPublicTenantContext } = require('../middleware/tenantContext');
@@ -37,11 +38,11 @@ function ensureDir(dir) {
 const imageStorage = multer.diskStorage({
   destination: async (req, file, cb) => {
     try {
-      const tenantId = req._resolvedTenantId || req.user?.tenantId || getCurrentTenantId();
+      const tenantId = req.resolvedTenantId || req.user?.tenantId || getCurrentTenantId();
       if (!tenantId) return cb(new Error('缺少租户上下文'));
       const slug = await resolveTenantSlug(tenantId);
-      req._resolvedTenantId = tenantId;
-      req._checkinUploadTenantSlug = slug;
+      req.resolvedTenantId = tenantId;
+      req.checkinUploadTenantSlug = slug;
       cb(null, ensureDir(path.join(tenantsRoot, slug, 'checkins')));
     } catch (error) {
       cb(error);

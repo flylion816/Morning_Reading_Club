@@ -2,7 +2,7 @@
   <AdminLayout>
     <div class="tenant-management">
       <!-- 统计卡片 -->
-      <el-row :gutter="20" class="summary-cards" v-loading="loadingSummary">
+      <el-row v-loading="loadingSummary" :gutter="20" class="summary-cards">
         <el-col :span="8">
           <el-card shadow="hover" class="stat-card">
             <div class="stat-content">
@@ -57,7 +57,7 @@
       </div>
 
       <!-- 数据表格 -->
-      <el-table :data="tenants" v-loading="loading" border style="width: 100%" class="tenant-table">
+      <el-table v-loading="loading" :data="tenants" border style="width: 100%" class="tenant-table">
         <el-table-column label="租户名称" min-width="180">
           <template #default="{ row }">
             <div class="tenant-info">
@@ -129,7 +129,7 @@
       width="560px"
       :close-on-click-modal="false"
     >
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="110px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
         <el-form-item label="租户名称" prop="name">
           <el-input v-model="form.name" placeholder="如：凡人共读" maxlength="50" show-word-limit />
         </el-form-item>
@@ -335,14 +335,14 @@ onMounted(() => {
 
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: var(--admin-ink-muted);
   margin-bottom: 8px;
 }
 
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #303133;
+  color: var(--admin-ink);
 }
 
 .stat-value.active { color: #67c23a; }
@@ -370,30 +370,30 @@ onMounted(() => {
 
 .tenant-name {
   font-weight: 600;
-  color: #303133;
+  color: var(--admin-ink);
 }
 
 .tenant-slug {
   font-size: 12px;
-  color: #909399;
+  color: var(--admin-ink-muted);
 }
 
 .tenant-id {
   font-size: 12px;
-  color: #606266;
+  color: var(--admin-ink-soft);
   font-family: monospace;
 }
 
 .appid-tag { margin-bottom: 4px; }
 
 .empty-text {
-  color: #c0c4cc;
+  color: var(--admin-ink-muted);
   font-size: 13px;
 }
 
 .description-text {
   font-size: 13px;
-  color: #606266;
+  color: var(--admin-ink-soft);
 }
 
 .pagination-bar {
@@ -416,7 +416,7 @@ onMounted(() => {
 
 .form-tip {
   font-size: 12px;
-  color: #909399;
+  color: var(--admin-ink-muted);
   margin-top: 4px;
 }
 </style>

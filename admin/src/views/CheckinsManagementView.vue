@@ -362,16 +362,16 @@
               :current-page="currentPage"
               :page-size="pageSize"
               :total="total"
+              style="margin-left: auto"
               @current-change="
                 currentPage = $event;
                 loadCheckins();
               "
-              style="margin-left: auto"
             />
           </div>
         </template>
 
-        <el-table :data="checkins" stripe style="width: 100%" v-loading="loading">
+        <el-table v-loading="loading" :data="checkins" stripe style="width: 100%">
           <!-- 用户 -->
           <el-table-column label="用户" width="150">
             <template #default="{ row }">
@@ -525,7 +525,7 @@
               {{ selectedCheckin.likeCount || 0 }}
             </el-descriptions-item>
 
-            <el-descriptions-item label="日记内容" v-if="selectedCheckin.note">
+            <el-descriptions-item v-if="selectedCheckin.note" label="日记内容">
               <div class="note-content">
                 {{ selectedCheckin.note }}
               </div>
@@ -787,12 +787,6 @@ const getMoodLabel = (mood: string) => {
     other: '🤷 其他'
   };
   return labels[mood] || mood;
-};
-
-const getProgressColor = (percentage: number) => {
-  if (percentage >= 90) return '#85ce61';
-  if (percentage >= 70) return '#e6a23c';
-  return '#f56c6c';
 };
 
 const handleSearch = () => {

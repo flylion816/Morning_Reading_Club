@@ -120,7 +120,7 @@ syncDocumentToMySQL() 同步到 MySQL
 ```bash
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=          # 可选
+REDIS_PASSWORD=          <从密钥管理服务读取> 可选
 REDIS_DB=0
 ```
 

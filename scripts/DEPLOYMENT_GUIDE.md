@@ -453,7 +453,7 @@ module.exports = {
     backend: {
       nodeEnv: 'production',
       port: 3000,
-      mongodbUri: 'mongodb://admin:password@localhost:27017/morning_reading?authSource=admin',
+      mongodbUri: 'mongodb://admin:CHANGE_ME@localhost:27017/morning_reading?authSource=admin',
       mysqlHost: 'localhost',
       mysqlUser: 'morning_user',
       mysqlPassword: 'your_password',

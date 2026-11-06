@@ -24,7 +24,7 @@ async function getCommunityAccessiblePeriodIds(userId) {
   const enrollments = await Enrollment.find({
     userId,
     status: { $in: ['active', 'completed'] },
-    paymentStatus: 'paid',
+    paymentStatus: { $in: ['paid', 'free'] },
     deleted: { $ne: true }
   })
     .select('periodId')
@@ -35,7 +35,7 @@ async function getCommunityAccessiblePeriodIds(userId) {
 
 async function ensurePeriodCommunityAccess(res, userId, periodId) {
   const enrollment = await findCommunityEnrollment(userId, periodId);
-  const hasCommunityAccess = !!enrollment && enrollment.paymentStatus === 'paid';
+  const hasCommunityAccess = !!enrollment && ['paid', 'free'].includes(enrollment.paymentStatus);
 
   if (hasCommunityAccess) {
     return true;

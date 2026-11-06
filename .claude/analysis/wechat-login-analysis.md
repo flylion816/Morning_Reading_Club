@@ -509,7 +509,7 @@ curl -v "https://api.weixin.qq.com/sns/jscode2session?appid=wx...&secret=...&js_
 | 配置项 | 值 | 位置 | 说明 |
 |--------|-----|------|------|
 | **APPID** | `wx2b9a3c1d5e4195f8` | env.js (prod) + .env.production | 微信官方注册的小程序ID |
-| **WECHAT_SECRET** | `36b3d2538c006e63971ba4a83905eb8b` | .env.production | ⚠️ 敏感信息，不能泄露 |
+| **WECHAT_SECRET** | `<从微信开发者平台/密钥管理服务读取>` | .env.production | ⚠️ 敏感信息，不能泄露 |
 | **API 地址** | `https://wx.shubai01.com/api/v1` | env.js (prod) | 后端服务器地址 |
 | **NODE_ENV** | `production` | .env.production | 后端环境标识 |
 | **登录 API** | `POST /api/v1/auth/wechat/login` | 后端路由 | 小程序调用此 API |

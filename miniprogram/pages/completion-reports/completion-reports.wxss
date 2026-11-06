@@ -1,6 +1,6 @@
 .page-reports {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--app-page-bg);
   padding: 24rpx;
   box-sizing: border-box;
 }
@@ -30,13 +30,13 @@
 .report-card-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text);
   margin-bottom: 10rpx;
 }
 
 .report-card-subtitle {
   font-size: 28rpx;
-  color: #4b5563;
+  color: var(--app-text-soft);
   margin-bottom: 12rpx;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -45,7 +45,7 @@
 
 .report-card-meta {
   font-size: 24rpx;
-  color: #6b7280;
+  color: var(--app-text-soft);
 }
 
 .report-card-meta.pending {
@@ -77,7 +77,7 @@
   align-items: center;
   justify-content: center;
   gap: 20rpx;
-  color: #6b7280;
+  color: var(--app-text-soft);
 }
 
 .state-icon {
@@ -86,7 +86,7 @@
 
 .state-title {
   font-size: 30rpx;
-  color: #4b5563;
+  color: var(--app-text-soft);
 }
 
 .state-action {

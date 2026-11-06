@@ -47,6 +47,8 @@ const SectionSchema = new mongoose.Schema(
       maxlength: 500,
       default: null
     },
+    courseTemplateSnapshot: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    courseModuleValues: { type: mongoose.Schema.Types.Mixed, default: undefined },
     reflection: {
       type: String,
       maxlength: 500,
@@ -187,6 +189,7 @@ SectionSchema.index({ tenantId: 1, periodId: 1, day: 1 }, { unique: true });
 SectionSchema.index({ tenantId: 1, createdAt: -1 });
 
 const tenantPlugin = require('./plugins/tenantPlugin');
+
 SectionSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Section', SectionSchema);

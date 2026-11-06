@@ -1,217 +1,103 @@
-/**
- * Auth Store 单元测试
- * 覆盖所有 state、getters、actions 相关场景
- * 共 12 个测试用例
- */
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useAuthStore } from '@/stores/auth';
-import { createMockAdmin, createMockNormalAdmin } from '@/tests/fixtures';
+import { authApi, setAdminAccessToken, setAdminMaintenanceProof } from '@/services/api';
+import { createMockAdmin } from '@/tests/fixtures';
 import { createMockLocalStorage } from '@/tests/helpers/mock-helpers';
 
-describe('AuthStore - useAuthStore()', () => {
+describe('AuthStore - HttpOnly refresh session', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    // Mock localStorage
-    const mockStorage = createMockLocalStorage();
-    global.localStorage = mockStorage as any;
+    global.localStorage = createMockLocalStorage() as any;
+    setAdminAccessToken(null);
+    setAdminMaintenanceProof(null);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-    vi.restoreAllMocks();
+  afterEach(() => vi.restoreAllMocks());
+
+  it('starts signed out without writing an access token to Web Storage', () => {
+    const store = useAuthStore();
+    expect(store.adminToken).toBeNull();
+    expect(store.adminInfo).toBeNull();
+    expect(store.isAuthenticated).toBe(false);
+    expect(localStorage.getItem('adminToken')).toBeNull();
   });
 
-  // ============ State 测试 (3 个) ============
-  describe('State Initialization', () => {
-    it('[State-1] 应该初始化为未认证状态', () => {
-      const store = useAuthStore();
-      expect(store.adminToken).toBeNull();
-      expect(store.adminInfo).toBeNull();
-      expect(store.loading).toBe(false);
-      expect(store.error).toBeNull();
-    });
+  it('restores the session by refreshing through the HttpOnly cookie, ignoring an old localStorage token', async () => {
+    localStorage.setItem('adminToken', 'stale-readable-token');
+    const admin = createMockAdmin();
+    vi.spyOn(authApi, 'refresh').mockResolvedValue({ accessToken: 'short-lived-access', admin });
+    const store = useAuthStore();
 
-    it('[State-2] 应该正确维护 adminToken 状态', () => {
-      const store = useAuthStore();
-      expect(store.adminToken).toBeNull();
-
-      store.adminToken = 'test-token-12345';
-      expect(store.adminToken).toBe('test-token-12345');
-
-      store.adminToken = null;
-      expect(store.adminToken).toBeNull();
-    });
-
-    it('[State-3] 应该正确维护 adminInfo 和 error 状态', () => {
-      const store = useAuthStore();
-      const admin = createMockAdmin();
-
-      store.adminInfo = admin;
-      expect(store.adminInfo).toEqual(admin);
-
-      store.error = '登录失败';
-      expect(store.error).toBe('登录失败');
-
-      store.adminInfo = null;
-      store.error = null;
-      expect(store.adminInfo).toBeNull();
-      expect(store.error).toBeNull();
-    });
+    await expect(store.initToken()).resolves.toBe(true);
+    expect(store.adminToken).toBe('short-lived-access');
+    expect(store.adminInfo).toEqual(admin);
+    expect(localStorage.getItem('adminToken')).toBeNull();
   });
 
-  // ============ Getters 测试 (3 个) ============
-  describe('Getters', () => {
-    it('[Getter-1] isAuthenticated 应该正确反映认证状态', () => {
-      const store = useAuthStore();
-      expect(store.isAuthenticated).toBe(false);
+  it('fails signed out when refresh-cookie validation fails', async () => {
+    vi.spyOn(authApi, 'refresh').mockResolvedValue(null);
+    const store = useAuthStore();
+    localStorage.setItem('adminToken', 'stale-token');
 
-      store.adminToken = 'valid-token';
-      expect(store.isAuthenticated).toBe(true);
-
-      store.adminToken = null;
-      expect(store.isAuthenticated).toBe(false);
-    });
-
-    it('[Getter-2] isAuthenticated 不应该被直接赋值', () => {
-      const store = useAuthStore();
-      store.adminToken = 'token';
-      expect(store.isAuthenticated).toBe(true);
-
-      // 尝试直接赋值应该不生效（getter 是只读的）
-      (store.isAuthenticated as any) = false;
-      expect(store.isAuthenticated).toBe(true);
-    });
-
-    it('[Getter-3] isAuthenticated 计算状态依赖于 adminToken', () => {
-      const store = useAuthStore();
-      const tokens = ['token-1', 'token-2', 'a'.repeat(500)];
-
-      tokens.forEach(token => {
-        store.adminToken = token;
-        expect(store.isAuthenticated).toBe(true);
-      });
-
-      store.adminToken = '';
-      expect(store.isAuthenticated).toBe(false);
-    });
+    await expect(store.initToken()).resolves.toBe(false);
+    expect(store.isAuthenticated).toBe(false);
+    expect(localStorage.getItem('adminToken')).toBeNull();
   });
 
-  // ============ Actions 测试 (3 个) ============
-  describe('Actions - initToken', () => {
-    it('[Action-1] initToken() 应该从 localStorage 恢复 token', () => {
-      global.localStorage.setItem('adminToken', 'restored-token-123');
-      const store = useAuthStore();
+  it('keeps the access token in memory after login and stores no bearer token', async () => {
+    const admin = createMockAdmin();
+    vi.spyOn(authApi, 'login').mockResolvedValue({ accessToken: 'new-access', admin } as any);
+    const store = useAuthStore();
 
-      store.initToken();
-
-      expect(store.adminToken).toBe('restored-token-123');
-      expect(store.isAuthenticated).toBe(true);
-    });
-
-    it('[Action-2] initToken() 当 localStorage 为空时应该不设置 token', () => {
-      const store = useAuthStore();
-      global.localStorage.clear();
-
-      store.initToken();
-
-      expect(store.adminToken).toBeNull();
-      expect(store.isAuthenticated).toBe(false);
-    });
-
-    it('[Action-3] logout() 应该清除所有认证信息', async () => {
-      const store = useAuthStore();
-      const admin = createMockAdmin();
-
-      // 设置初始状态
-      store.adminToken = 'test-token';
-      store.adminInfo = admin;
-      global.localStorage.setItem('adminToken', 'test-token');
-
-      // Mock authApi.logout - 使用 vi.mocked 替代
-      vi.mock('@/services/api', () => ({
-        authApi: {
-          logout: vi.fn(async () => ({})),
-          login: vi.fn(),
-          getProfile: vi.fn()
-        }
-      }));
-
-      await store.logout();
-
-      expect(store.adminToken).toBeNull();
-      expect(store.adminInfo).toBeNull();
-      expect(global.localStorage.getItem('adminToken')).toBeNull();
-    });
+    await expect(store.login('admin@example.com', 'test-only-password')).resolves.toBe(true);
+    expect(store.adminToken).toBe('new-access');
+    expect(store.adminInfo).toEqual(admin);
+    expect(localStorage.getItem('adminToken')).toBeNull();
+    expect(localStorage.getItem('adminInfo')).toBeNull();
   });
 
-  // ============ Actions 测试 - clearError (1 个) ============
-  describe('Actions - clearError', () => {
-    it('[Action-4] clearError() 应该清除错误信息', () => {
-      const store = useAuthStore();
-      store.error = '登录失败';
-
-      store.clearError();
-
-      expect(store.error).toBeNull();
-    });
-
-    it('[Action-5] clearError() 当 error 为 null 时应该保持为 null', () => {
-      const store = useAuthStore();
-      expect(store.error).toBeNull();
-
-      store.clearError();
-
-      expect(store.error).toBeNull();
-    });
+  it('rejects a malformed login response and remains signed out', async () => {
+    vi.spyOn(authApi, 'login').mockResolvedValue({ token: 'legacy-token' } as any);
+    const store = useAuthStore();
+    await expect(store.login('admin@example.com', 'test-only-password')).resolves.toBe(false);
+    expect(store.isAuthenticated).toBe(false);
+    expect(store.error).toContain('有效会话');
   });
 
-  // ============ 状态管理测试 (2 个) ============
-  describe('State Management', () => {
-    it('[StateManagement-1] 可以同时更新多个状态字段', () => {
-      const store = useAuthStore();
-      const admin = createMockAdmin();
-      const token = 'new-token';
+  it('revokes the server session and clears access and maintenance proofs on logout', async () => {
+    const store = useAuthStore();
+    const admin = createMockAdmin();
+    store.adminToken = 'short-lived-access';
+    store.adminInfo = admin;
+    setAdminAccessToken('short-lived-access');
+    setAdminMaintenanceProof('short-lived-maintenance-proof');
+    const logout = vi.spyOn(authApi, 'logout').mockResolvedValue({} as any);
 
-      store.adminToken = token;
-      store.adminInfo = admin;
-      store.loading = true;
-      store.error = null;
-
-      expect(store.adminToken).toBe(token);
-      expect(store.adminInfo).toEqual(admin);
-      expect(store.loading).toBe(true);
-      expect(store.error).toBeNull();
-      expect(store.isAuthenticated).toBe(true);
-    });
-
-    it('[StateManagement-2] logout 清除认证令牌和信息', async () => {
-      const store = useAuthStore();
-      store.adminToken = 'token';
-      store.adminInfo = createMockAdmin();
-      global.localStorage.setItem('adminToken', 'token');
-
-      // logout 会调用 API（可能会抛出错误），但无论如何都会清除本地状态
-      await store.logout();
-
-      expect(store.adminToken).toBeNull();
-      expect(store.adminInfo).toBeNull();
-      // localStorage 也应该被清除
-      expect(global.localStorage.getItem('adminToken')).toBeNull();
-    });
+    await store.logout();
+    expect(logout).toHaveBeenCalledOnce();
+    expect(store.isAuthenticated).toBe(false);
+    expect(store.adminInfo).toBeNull();
+    expect(localStorage.getItem('adminToken')).toBeNull();
   });
 
-  // ============ localStorage 集成测试 (1 个) ============
-  describe('localStorage Integration', () => {
-    it('[LocalStorage-1] initToken 从 localStorage 恢复令牌', () => {
-      global.localStorage.setItem('adminToken', 'persisted-token');
-      const store = useAuthStore();
+  it('keeps the active client session if the server could not revoke it', async () => {
+    const store = useAuthStore();
+    store.adminToken = 'short-lived-access';
+    store.adminInfo = createMockAdmin();
+    vi.spyOn(authApi, 'logout').mockRejectedValue(new Error('offline'));
 
-      store.initToken();
+    await expect(store.logout()).resolves.toBe(false);
+    expect(store.isAuthenticated).toBe(true);
+    expect(store.adminInfo).not.toBeNull();
+  });
 
-      expect(store.adminToken).toBe('persisted-token');
-      expect(store.isAuthenticated).toBe(true);
-    });
+  it('returns the verified current profile and updates the in-memory admin info', async () => {
+    const store = useAuthStore();
+    const admin = createMockAdmin();
+    vi.spyOn(authApi, 'getProfile').mockResolvedValue(admin as any);
+    await expect(store.getProfile()).resolves.toEqual(admin);
+    expect(store.adminInfo).toEqual(admin);
+    expect(store.loading).toBe(false);
   });
 });

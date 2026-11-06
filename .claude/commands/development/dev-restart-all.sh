@@ -1,18 +1,5 @@
 #!/bin/bash
-# 快速重启所有服务
-# 直接调用 dev-start-all.sh（内部包含完整的清理逻辑）
-
-# 颜色定义
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-echo -e "${BLUE}════════════════════════════════════════════${NC}"
-echo -e "${BLUE}🔄 快速重启所有服务${NC}"
-echo -e "${BLUE}════════════════════════════════════════════${NC}"
-echo -e "${YELLOW}(会自动清理旧进程，然后启动所有服务)${NC}"
-echo ""
-
-# 获取脚本位置并执行 dev-start-all.sh
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-"$SCRIPT_DIR/dev-start-all.sh"
+# 重启（重新运行会自动停掉上次启动的服务） —— 已合并到项目根目录的 start-all-local.sh。
+# 旧版本用 pkill / kill -9 按名字和端口强杀进程，会误伤其他项目，已废弃。
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+exec bash "$ROOT/start-all-local.sh"  "$@"

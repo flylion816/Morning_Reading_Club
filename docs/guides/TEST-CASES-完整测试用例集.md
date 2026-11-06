@@ -1882,12 +1882,12 @@ UI 观察:
 
 ### TC-ADMIN-001: 管理员登录 - 正常流程
 
-**前置条件**: 管理员账户已创建 (邮箱: admin@morningreading.com, 密码: admin123456)
+**前置条件**: 管理员账户已创建 (邮箱: admin@morningreading.com, 密码: <从密钥管理服务读取>)
 
 **测试步骤**:
 1. 访问 `https://wx.shubai01.com/admin`
 2. 输入邮箱: admin@morningreading.com
-3. 输入密码: admin123456
+3. 输入密码: <从密钥管理服务读取>
 4. 点击"登录"按钮
 5. 等待重定向
 
@@ -4989,7 +4989,7 @@ SELECT * FROM periods WHERE name LIKE '%领导力%'
 - ✅ MongoDB 初始化成功（创建用户、期次、课程、报名、打卡、评论、小凡看见）
 - ✅ MySQL 表结构初始化成功（14 张表）
 - ✅ 数据库索引创建成功（44 个索引）
-- ✅ 超级管理员初始化成功
+- ✅ init:dev 调用受控管理员创建脚本；仅在账号不存在时创建超级管理员
 - ✅ 课程内容导入成功（23 天课程）
 
 ---

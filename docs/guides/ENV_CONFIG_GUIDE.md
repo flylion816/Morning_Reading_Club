@@ -96,7 +96,7 @@ cd admin && npm run dev
 ```javascript
 dev: {
   backend: {
-    mongodbUri: 'mongodb://admin:admin123@localhost:27017/morning_reading?authSource=admin',
+    mongodbUri: 'mongodb://admin:CHANGE_ME@localhost:27017/morning_reading?authSource=admin',
     nodeEnv: 'development',
     port: 3000,
   },
@@ -125,7 +125,7 @@ dev: {
 ```javascript
 prod: {
   backend: {
-    mongodbUri: 'mongodb://admin:admin123@db.example.com:27017/morning_reading_prod?authSource=admin',
+    mongodbUri: 'mongodb://admin:CHANGE_ME@db.example.com:27017/morning_reading_prod?authSource=admin',
     nodeEnv: 'production',
     port: 3000,
   },
@@ -216,7 +216,7 @@ const envConfig = {
   staging: {
     backend: {
       mongodbUri:
-        'mongodb://admin:password@staging-db.example.com:27017/morning_reading_staging?authSource=admin',
+        'mongodb://admin:CHANGE_ME@staging-db.example.com:27017/morning_reading_staging?authSource=admin',
       nodeEnv: 'staging',
       port: 3000
     },
@@ -259,7 +259,7 @@ const envConfig = {
 ```javascript
 prod: {
   backend: {
-    mongodbUri: 'mongodb://admin:new_password@new_host:27017/morning_reading_prod?authSource=admin',
+    mongodbUri: 'mongodb://admin:CHANGE_ME@new_host:27017/morning_reading_prod?authSource=admin',
     // ...
   },
 }

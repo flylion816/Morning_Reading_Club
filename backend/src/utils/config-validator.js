@@ -11,8 +11,13 @@ const REQUIRED_ENV = {
   NODE_ENV: 'development|production|staging',
   PORT: 'number',
   MONGODB_URI: 'mongodb-uri',
-  JWT_SECRET: 'string',
-  JWT_REFRESH_SECRET: 'string'
+  MYSQL_PASSWORD: 'service-secret',
+  REDIS_PASSWORD: 'service-secret',
+  JWT_SECRET: 'signing-key',
+  JWT_REFRESH_SECRET: 'signing-key',
+  JWT_WS_SECRET: 'signing-key',
+  JWT_ADMIN_SECRET: 'signing-key',
+  JWT_ADMIN_REFRESH_SECRET: 'signing-key'
 };
 
 // 可选的环境变量（带默认值）
@@ -39,6 +44,12 @@ function validateEnvValue(key, value, expectedType) {
       return /^mongodb(\+srv)?:\/\/.+/.test(value);
     case 'development|production|staging':
       return ['development', 'production', 'staging', 'test'].includes(value);
+    case 'signing-key':
+      return typeof value === 'string' && value.length >= 32 &&
+        !/^(your-|dev-|test-|password|change_me|replace_me)/i.test(value);
+    case 'service-secret':
+      return typeof value === 'string' && value.length >= 20 &&
+        !/^(your-|dev-|test-|password|change_me|replace_me)/i.test(value);
     case 'string':
       return typeof value === 'string' && value.length > 0;
     default:
@@ -53,22 +64,31 @@ function validateConfig() {
   // 在测试模式下跳过验证，使用默认值
   if (process.env.NODE_ENV === 'test') {
     logger.debug('跳过环境变量验证 (测试模式)');
-    // 为测试模式设置必要的默认值
+    // Tests load explicit fixture keys from backend/.env.test before requiring app code.
     process.env.PORT = process.env.PORT || '3000';
     process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost/test';
-    process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-12345678';
-    process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key-87654321';
     return true;
   }
 
   // Keep console output for config validation as it's startup-critical
-  logger.info('\n' + chalk.cyan.bold('═══════════════════════════════════════════'));
+  logger.info(`\n${  chalk.cyan.bold('═══════════════════════════════════════════')}`);
   logger.info(chalk.cyan.bold('   环境配置验证'));
   logger.info(chalk.cyan.bold('═══════════════════════════════════════════\n'));
 
   let hasErrors = false;
   let checkedCount = 0;
   let successCount = 0;
+  // 本地开发常用无密码的 Redis / 简单 MySQL 密码、无真实支付密钥；这些服务凭据只在
+  // development 下降级为警告。JWT 签名密钥在任何环境都严格校验。
+  const relaxServiceSecrets = process.env.NODE_ENV === 'development';
+  const reportServiceSecretProblem = (key, message) => {
+    if (relaxServiceSecrets) {
+      logger.info(`  ${chalk.yellow('⚠')} ${chalk.yellow(key)}: ${message}（仅本地开发放行，生产环境会拦截）`);
+      logger.warn(`Environment validation relaxed for development: ${key} ${message}`);
+      return;
+    }
+    hasErrors = true;
+  };
 
   // 检查必需的环境变量
   logger.info(chalk.yellow.bold('📋 必需的环境变量:'));
@@ -76,7 +96,10 @@ function validateConfig() {
     const value = process.env[key];
     checkedCount++;
 
-    if (!value) {
+    if (expectedType === 'service-secret' && relaxServiceSecrets && !validateEnvValue(key, value, expectedType)) {
+      reportServiceSecretProblem(key, value ? '强度不足' : '未设置');
+      successCount++;
+    } else if (!value) {
       logger.info(`  ${chalk.red('✗')} ${chalk.red(key)}: 未设置`);
       logger.error(`Environment validation failed: ${key} is not set`);
       hasErrors = true;
@@ -86,9 +109,27 @@ function validateConfig() {
       hasErrors = true;
     } else {
       // 隐藏敏感信息
-      const displayValue = key.includes('SECRET') ? '●●●●●●●●' : value;
+      const displayValue = /(PASSWORD|SECRET|TOKEN|API[_-]?KEY|PRIVATE[_-]?KEY|CREDENTIAL)/i.test(key)
+        ? '●●●●●●●●'
+        : value;
       logger.info(`  ${chalk.green('✓')} ${chalk.green(key)}: ${displayValue}`);
       successCount++;
+    }
+  });
+
+  const signingKeyNames = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'JWT_WS_SECRET', 'JWT_ADMIN_SECRET', 'JWT_ADMIN_REFRESH_SECRET'];
+  const presentSigningKeyValues = signingKeyNames.map(name => process.env[name]).filter(Boolean);
+  if (new Set(presentSigningKeyValues).size !== presentSigningKeyValues.length) {
+    logger.error('Environment validation failed: JWT signing keys must be unique');
+    hasErrors = true;
+  }
+  ['MYSQL_PASSWORD', 'REDIS_PASSWORD', 'WECHAT_SECRET', 'WECHAT_API_KEY', 'WECHAT_API_V3_KEY'].forEach(key => {
+    const value = process.env[key];
+    if (value && /^(your-|dev-|test-|password|change_me|replace_me)/i.test(value)) {
+      if (!relaxServiceSecrets) {
+        logger.error(`Environment validation failed: ${key} uses a placeholder or test-only value`);
+      }
+      reportServiceSecretProblem(key, '使用了占位值');
     }
   });
 
@@ -108,7 +149,7 @@ function validateConfig() {
     }
   });
 
-  logger.info('\n' + chalk.cyan.bold('═══════════════════════════════════════════\n'));
+  logger.info(`\n${  chalk.cyan.bold('═══════════════════════════════════════════\n')}`);
 
   if (hasErrors) {
     logger.info(chalk.red.bold('❌ 配置验证失败!'));
@@ -140,7 +181,7 @@ function getValidatedConfig() {
         host: process.env.MYSQL_HOST || 'localhost',
         port: parseInt(process.env.MYSQL_PORT, 10) || 3306,
         user: process.env.MYSQL_USER || 'morning_user',
-        password: process.env.MYSQL_PASSWORD || 'morning123',
+        password: process.env.MYSQL_PASSWORD || '',
         database: process.env.MYSQL_DATABASE || 'morning_reading'
       },
       redis: {

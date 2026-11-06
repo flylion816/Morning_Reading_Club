@@ -75,7 +75,7 @@
 
 .card-desc {
   font-size: 26rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   text-align: center;
   margin-bottom: 60rpx;
 }
@@ -113,7 +113,7 @@
 .dev-quick-login {
   margin-top: 40rpx;
   padding-top: 40rpx;
-  border-top: 2rpx solid #e5e7eb;
+  border-top: 2rpx solid var(--app-border);
 }
 
 .dev-label {
@@ -132,8 +132,8 @@
 
 .test-user-btn {
   padding: 14rpx 12rpx;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
   border-radius: 12rpx;
   font-size: 24rpx;
   font-weight: 500;
@@ -158,9 +158,9 @@
 .agreement-section {
   margin-top: 40rpx;
   padding: 32rpx 24rpx;
-  background: #f9fafb;
+  background: var(--app-surface-muted);
   border-radius: 12rpx;
-  border: 1rpx solid #e5e7eb;
+  border: 1rpx solid var(--app-border);
   min-height: 100rpx;
 }
 
@@ -207,13 +207,13 @@
 
 .agreement-consent-text {
   margin-left: 8rpx;
-  color: #6b7280;
+  color: var(--app-text-soft);
   font-size: 26rpx;
   line-height: 1.6;
 }
 
 .agreement-text {
-  color: #6b7280;
+  color: var(--app-text-soft);
   font-size: 26rpx;
   line-height: 1.6;
 }
@@ -222,7 +222,7 @@
   display: flex;
   flex-wrap: wrap;
   font-size: 24rpx;
-  color: #6b7280;
+  color: var(--app-text-soft);
   margin-left: 52rpx;
   margin-bottom: 4rpx;
   line-height: 1.6;
@@ -290,7 +290,7 @@
 
 .login-skip-btn:disabled {
   opacity: 0.6;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   border-color: #9ca3af;
 }
 
@@ -385,7 +385,7 @@
 
 .error-details {
   font-size: 20rpx;
-  color: #666;
+  color: var(--app-text-soft);
   line-height: 1.6;
   word-break: break-all;
   font-family: monospace;
@@ -461,7 +461,7 @@
 
 .modal-desc {
   font-size: 26rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   text-align: center;
   margin-bottom: 48rpx;
   line-height: 1.6;
@@ -491,12 +491,12 @@
 
 .skip-btn {
   font-size: 26rpx;
-  color: #9ca3af;
+  color: var(--app-text-muted);
   padding: 16rpx 40rpx;
 }
 
 .skip-btn:active {
-  color: #6b7280;
+  color: var(--app-text-soft);
 }
 
 /* shake 动画 */

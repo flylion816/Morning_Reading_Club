@@ -3,7 +3,7 @@
  * 验证所有 mock 辅助函数的正确性
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   createMockResponse,
   createMockApiSuccess,

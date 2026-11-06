@@ -38,26 +38,18 @@ else
 fi
 echo ""
 
-# 删除旧管理员（通过 MongoDB）
-echo "4️⃣ 删除旧管理员账户..."
-docker exec morning-reading-mongodb-prod mongosh --quiet \
-  --authenticationDatabase admin \
-  -u admin -p ProdMongodbSecure123 \
-  morning_reading << 'MONGO'
-db.admins.deleteMany({});
-console.log("✓ 旧管理员已删除");
-MONGO
-echo ""
-
-# 调用初始化 API
-echo "5️⃣ 初始化新管理员（使用新密码）..."
-curl -s -X POST http://localhost:3000/api/v1/auth/admin/init \
-  -H "Content-Type: application/json" | jq '.'
+# 通过受控脚本更新指定管理员，不删除现有账号。
+: "${ADMIN_EMAIL:?ADMIN_EMAIL must be set}"
+: "${ADMIN_NEW_PASSWORD:?ADMIN_NEW_PASSWORD must be set}"
+export NODE_ENV=production
+export ADMIN_EMAIL ADMIN_NEW_PASSWORD
+if [ -n "${ADMIN_DB_ACCESS_PASSWORD:-}" ]; then
+  export ADMIN_DB_ACCESS_PASSWORD
+fi
+node /var/www/morning-reading/backend/scripts/reset-admin-password.js \
+  "$ADMIN_EMAIL"
 echo ""
 
 echo "✅ 管理员密码重置完成！"
 echo ""
-echo "新登录凭证："
-echo "  📧 邮箱：admin@morningreading.com"
-echo "  🔑 密码：Km7\$Px2Qw9"
-echo "  🔐 二次验证：Jb3#Rl8Tn5"
+echo "新登录凭证已通过环境变量处理，不在终端重复打印。"

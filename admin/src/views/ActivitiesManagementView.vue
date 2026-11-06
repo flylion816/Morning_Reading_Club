@@ -1092,7 +1092,7 @@ function formatDatetime(val: string | null): string {
 
 .registration-form-panel {
   width: 100%;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--admin-border);
   border-radius: 6px;
   padding: 14px;
   box-sizing: border-box;
@@ -1112,12 +1112,12 @@ function formatDatetime(val: string | null): string {
 .form-section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--admin-ink);
 }
 
 .form-section-desc,
 .muted-text {
-  color: #909399;
+  color: var(--admin-ink-muted);
   font-size: 12px;
 }
 
@@ -1130,8 +1130,8 @@ function formatDatetime(val: string | null): string {
 .empty-form-tip {
   margin-top: 12px;
   padding: 18px;
-  color: #909399;
-  background: #f8fafc;
+  color: var(--admin-ink-muted);
+  background: var(--admin-page);
   border-radius: 6px;
   text-align: center;
 }
@@ -1146,7 +1146,7 @@ function formatDatetime(val: string | null): string {
 .field-row {
   padding: 10px;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--admin-page);
 }
 
 .field-order {
@@ -1155,7 +1155,7 @@ function formatDatetime(val: string | null): string {
   line-height: 24px;
   border-radius: 50%;
   background: #eef2f7;
-  color: #606266;
+  color: var(--admin-ink-soft);
   text-align: center;
   flex-shrink: 0;
 }
@@ -1174,13 +1174,13 @@ function formatDatetime(val: string | null): string {
 }
 
 .field-label {
-  color: #303133;
+  color: var(--admin-ink);
   font-weight: 600;
 }
 
 .field-options {
   margin-top: 4px;
-  color: #909399;
+  color: var(--admin-ink-muted);
   font-size: 12px;
 }
 
@@ -1210,13 +1210,13 @@ function formatDatetime(val: string | null): string {
 .registration-detail-panel {
   padding: 12px;
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--admin-page);
 }
 
 .preview-label,
 .stats-title,
 .detail-title {
-  color: #303133;
+  color: var(--admin-ink);
   font-weight: 600;
   margin-bottom: 8px;
 }
@@ -1226,8 +1226,8 @@ function formatDatetime(val: string | null): string {
 }
 
 .preview-control {
-  color: #909399;
-  border: 1px solid #dcdfe6;
+  color: var(--admin-ink-muted);
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
   padding: 8px 10px;
   background: #fff;
@@ -1240,7 +1240,7 @@ function formatDatetime(val: string | null): string {
 .detail-answer-row,
 .stats-row {
   padding: 8px 0;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--admin-border);
 }
 
 .detail-answer-row:last-child,

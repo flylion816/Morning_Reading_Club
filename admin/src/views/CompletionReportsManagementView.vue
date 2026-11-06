@@ -530,7 +530,7 @@ function getAbsoluteFileUrl(fileUrl?: string) {
 }
 
 .member-name {
-  color: #303133;
+  color: var(--admin-ink);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -539,7 +539,7 @@ function getAbsoluteFileUrl(fileUrl?: string) {
 
 .member-sub {
   margin-top: 2px;
-  color: #909399;
+  color: var(--admin-ink-muted);
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;

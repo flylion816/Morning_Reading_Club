@@ -5,8 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { writeFile } from 'node:fs/promises';
 import {
   exportToCSV,
+  exportToExcel,
   exportToJSON,
   generateExportData,
   generateStatisticsReport,
@@ -14,7 +16,35 @@ import {
 } from '../exportUtils';
 
 describe('Export Utils - 数据导出工具', () => {
-  let createElementSpy: any;
+  it('builds a valid XLSX archive with escaped text cells and no formulas', async () => {
+    let downloaded: Blob | null = null;
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockImplementation(blob => {
+      downloaded = blob;
+      return 'blob:review-test';
+    });
+    const { unzipSync, strFromU8 } = await import('fflate');
+
+    await exportToExcel('review', ['名称', '表达式'], [['A&B', '=HYPERLINK("https://example.test")']], {
+      sheetName: '查看申请列表',
+      headerBackgroundColor: 'FF112233',
+      headerTextColor: 'FFFFFFFF'
+    });
+
+    expect(downloaded).not.toBeNull();
+    const archive = unzipSync(new Uint8Array(await downloaded!.arrayBuffer()));
+    const sheet = strFromU8(archive['xl/worksheets/sheet1.xml']);
+    expect(sheet).toContain('A&amp;B');
+    expect(sheet).toContain('=HYPERLINK');
+    expect(sheet).not.toContain('<f>');
+    expect(sheet).toContain('state="frozen"');
+    const workbook = strFromU8(archive['xl/workbook.xml']);
+    expect(workbook).toContain('查看申请列表');
+    const styles = strFromU8(archive['xl/styles.xml']);
+    expect(styles).toContain('FF112233');
+    if (process.env.REVIEW_XLSX_OUTPUT) await writeFile(process.env.REVIEW_XLSX_OUTPUT, Buffer.from(await downloaded!.arrayBuffer()));
+    createUrl.mockRestore();
+  });
+
   let appendChildSpy: any;
   let removeChildSpy: any;
   let revokeObjectURLSpy: any;
@@ -22,7 +52,7 @@ describe('Export Utils - 数据导出工具', () => {
 
   beforeEach(() => {
     // Mock DOM 方法
-    createElementSpy = vi.spyOn(document, 'createElement');
+    vi.spyOn(document, 'createElement');
     appendChildSpy = vi.spyOn(document.body, 'appendChild');
     removeChildSpy = vi.spyOn(document.body, 'removeChild');
     revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL');

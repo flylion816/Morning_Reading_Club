@@ -24,45 +24,48 @@ bash stop-all-local.sh
 
 #### 1. `start-all-local.sh` ⭐ 推荐
 
-**用途**：本地开发环境一键启动
-**启动的服务**：
-- 后端 API（Node.js）→ `http://localhost:3000`
-- 管理后台（Vue3 + Vite）→ `http://localhost:5173`
-- MongoDB（本地数据库）
-- Redis（缓存服务）
+**用途**：本地开发环境一键启动（2026-10-25 重写）
+
+**会做的事**：
+1. 检查 Node，缺依赖时自动 `npm install`
+2. MongoDB / Redis 没运行时用 brew 启动
+3. 检查 `backend/.env.local`：缺少的签名密钥自动生成（只写本机文件）；检查数据库里是否有租户数据（**为空只提示，绝不初始化**）
+4. 启动后端 → `http://localhost:3000`
+5. 启动管理后台 → `http://localhost:5174`（被占用时自动顺延到 5175…）
+6. 显示小程序当前连的是本地还是线上
 
 **使用方式**：
 ```bash
-bash start-all-local.sh
+bash start-all-local.sh              # 后端 + 管理后台
+bash start-all-local.sh --mini-dev   # 同时把小程序切到本地后端（env.js → 'dev'）
+bash start-all-local.sh --no-admin   # 只启动后端
+ADMIN_PORT=5180 bash start-all-local.sh
 ```
+
+改了后端代码后，**重新运行一次即可重启**（会先停掉上次启动的服务）。
 
 **日志查看**：
 ```bash
-# 后端日志
-tail -f /tmp/backend.log
-
-# 管理后台日志
-tail -f /tmp/admin.log
+tail -f logs/local/backend.log
+tail -f logs/local/admin.log
 ```
 
-**注意事项**：
-- 需要本地已安装 MongoDB 和 Redis
-- Homebrew 安装：`brew install mongodb-community redis`
+**安全约定**：只启停本脚本自己启动的进程（记录在 `.local-run/`），不会影响其他项目的 node / vite，也不会停止共用的 MongoDB / Redis。
 
 ---
 
 #### 2. `stop-all-local.sh` ⭐ 推荐
 
-**用途**：本地开发环境一键停止
-**停止的服务**：后端、管理后台、Redis
+**用途**：停止 `start-all-local.sh` 启动的后端和管理后台
 
-**使用方式**：
 ```bash
-bash stop-all-local.sh
+bash stop-all-local.sh               # 停止服务
+bash stop-all-local.sh --mini-prod   # 同时把小程序 env.js 改回 'prod'（上传前必做）
 ```
 
-**注意事项**：
-- 默认不停止 MongoDB（可手动停止：`brew services stop mongodb-community`）
+> 小程序上传脚本（`npm run tenant:upload`）在 env.js 不是 `'prod'` 时会直接拒绝上传。
+>
+> `.claude/commands/development/dev-*.sh` 旧脚本已改为调用以上两个脚本。
 
 ---
 
@@ -195,7 +198,7 @@ bash scripts/fix-mocha-tests.sh
 bash start-all-local.sh
 
 # 2. 打开微信开发工具，加载 miniprogram/ 目录
-# 3. 浏览器访问管理后台：http://localhost:5173
+# 3. 浏览器访问管理后台：http://localhost:5174
 ```
 
 ### 部署到生产

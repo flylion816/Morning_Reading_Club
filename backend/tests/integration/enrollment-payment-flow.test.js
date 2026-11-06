@@ -10,6 +10,7 @@ const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+
 const TEST_WX_APPID = 'wx199d6d332344ed0a';
 const { withSystemContext } = require('../../src/utils/tenantContext');
 
@@ -78,7 +79,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
     // ✅ 创建测试用户
     const userRes = await request(app)
       .post('/api/v1/auth/wechat/login')
-      .send({ code: 'test-code-' + Date.now(), wxAppId: TEST_WX_APPID });
+      .send({ code: `test-code-${  Date.now()}`, wxAppId: TEST_WX_APPID });
 
     testUser = userRes.body.data.user;
     authToken = userRes.body.data.accessToken;
@@ -89,7 +90,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
 
     // ✅ 创建测试期次（价格单位是分，9900分 = 99.00元）
     testPeriod = await withSystemContext(tenantId, () => Period.create({
-      name: '测试期次-' + Date.now(),
+      name: `测试期次-${  Date.now()}`,
       title: '测试期次标题',
       description: '测试期次描述',
       startDate: new Date(),
@@ -108,16 +109,24 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
   afterEach(async () => {
     await withSystemContext(null, async () => {
       if (testEnrollment) {
-        try { await Enrollment.findByIdAndDelete(testEnrollment._id); } catch (err) {}
+        try { await Enrollment.findByIdAndDelete(testEnrollment._id); } catch (err) {
+          // Cleanup is best-effort; the memory server disappears after the run.
+        }
       }
       if (testPayment) {
-        try { await Payment.findByIdAndDelete(testPayment._id); } catch (err) {}
+        try { await Payment.findByIdAndDelete(testPayment._id); } catch (err) {
+          // Cleanup is best-effort; the memory server disappears after the run.
+        }
       }
       if (testPeriod) {
-        try { await Period.findByIdAndDelete(testPeriod._id); } catch (err) {}
+        try { await Period.findByIdAndDelete(testPeriod._id); } catch (err) {
+          // Cleanup is best-effort; the memory server disappears after the run.
+        }
       }
       if (testUser) {
-        try { await User.findByIdAndDelete(testUser._id); } catch (err) {}
+        try { await User.findByIdAndDelete(testUser._id); } catch (err) {
+          // Cleanup is best-effort; the memory server disappears after the run.
+        }
       }
     });
   });
@@ -147,7 +156,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
         .post('/api/v1/payments')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          enrollmentId: enrollmentId,
+          enrollmentId,
           paymentMethod: 'mock', // 使用模拟支付
           amount: 9900 // 99.00元
         });
@@ -201,7 +210,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
         .post('/api/v1/payments')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          enrollmentId: enrollmentId,
+          enrollmentId,
           paymentMethod: 'mock',
           amount: 9900
         });
@@ -221,7 +230,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
         .post('/api/v1/payments')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          enrollmentId: enrollmentId,
+          enrollmentId,
           paymentMethod: 'mock',
           amount: 9900
         });
@@ -246,7 +255,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
         .post('/api/v1/payments')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          enrollmentId: enrollmentId,
+          enrollmentId,
           paymentMethod: 'wechat',
           amount: 9900
         });
@@ -260,7 +269,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
         .post('/api/v1/payments')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          enrollmentId: enrollmentId,
+          enrollmentId,
           paymentMethod: 'wechat',
           amount: 9900
         });
@@ -309,7 +318,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
       // 创建第二个用户
       const user2Res = await request(app)
         .post('/api/v1/auth/wechat/login')
-        .send({ code: 'test-code-user2-' + Date.now(), wxAppId: TEST_WX_APPID });
+        .send({ code: `test-code-user2-${  Date.now()}`, wxAppId: TEST_WX_APPID });
 
       const user2 = user2Res.body.data.user;
       const user2Token = user2Res.body.data.accessToken;
@@ -428,7 +437,7 @@ describe('Enrollment → Payment 完整流程集成测试', () => {
           amount: 9900
         });
 
-      const paymentId = payRes.body.data.paymentId;
+      const {paymentId} = payRes.body.data;
       testPayment = { _id: paymentId };
 
       // 查询支付状态
