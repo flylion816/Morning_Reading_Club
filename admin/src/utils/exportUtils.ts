@@ -104,7 +104,9 @@ export async function exportToExcel(
     downloadFile(new Blob([archive], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${filename}.xlsx`);
   } catch (error) {
     console.error('Excel 导出失败:', error);
-    throw new Error('Excel导出功能不可用，请使用CSV导出', { cause: error });
+    const exportError = new Error('Excel导出功能不可用，请使用CSV导出');
+    (exportError as Error & { cause?: unknown }).cause = error;
+    throw exportError;
   }
 }
 
