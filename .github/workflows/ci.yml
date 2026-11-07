@@ -190,13 +190,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install backend dependencies
-        working-directory: ./backend
-        run: npm ci
-      - name: Audit dependencies
-        working-directory: ./backend
-        run: npm audit --omit=dev --audit-level=low
-
       - name: Install admin dependencies
         working-directory: ./admin
         run: npm ci
@@ -204,35 +197,27 @@ jobs:
         working-directory: ./admin
         run: npm audit --omit=dev --audit-level=low
 
-      - name: Start backend server
-        working-directory: ./backend
+      - name: Start admin dev server
+        working-directory: ./admin
         run: |
-          npm start &
-          echo $! > backend.pid
-          sleep 10
-        env:
-          NODE_ENV: test
-          PORT: 3000
-          MONGODB_URI: mongodb://localhost:27017/test
-          JWT_SECRET: test-secret-key
-
-      - name: Wait for backend
-        run: |
-          echo "Waiting for backend to be ready..."
+          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/admin-dev.log 2>&1 &
+          echo $! > /tmp/admin-dev.pid
           for i in {1..30}; do
-            if curl -f http://localhost:3000/health 2>/dev/null; then
-              echo "Backend is ready!"
-              break
+            if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
+              echo "Admin dev server is ready"
+              exit 0
             fi
             echo "Waiting... ($i/30)"
             sleep 2
           done
+          cat /tmp/admin-dev.log
+          exit 1
 
       - name: Run Cypress E2E tests
         working-directory: ./admin
-        run: npx cypress run
+        run: npx --yes cypress@15.21.1 run
         env:
-          CYPRESS_BASE_URL: http://localhost:5173
+          CYPRESS_BASE_URL: http://127.0.0.1:5173
 
       - name: Upload Cypress screenshots
         uses: actions/upload-artifact@v4
@@ -250,11 +235,11 @@ jobs:
           path: admin/cypress/videos
           retention-days: 7
 
-      - name: Stop backend server
+      - name: Stop admin dev server
         if: always()
         run: |
-          if [ -f backend.pid ]; then
-            kill $(cat backend.pid) || true
+          if [ -f /tmp/admin-dev.pid ]; then
+            kill $(cat /tmp/admin-dev.pid) || true
           fi
 
   # ========================================
