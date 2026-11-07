@@ -105,6 +105,20 @@
       </view>
     </view>
 
+    <view
+      wx:if="{{activeTab === 'mine' && insightsHasMore && !loading && !searchLoading}}"
+      class="load-more {{insightsLoadingMore ? 'loading' : ''}}"
+      bindtap="loadMoreInsights">
+      <text>{{insightsLoadingMore ? '加载中...' : '加载更多'}}</text>
+      <text class="load-more-count" wx:if="{{insightsTotal}}">{{insights.length}}/{{insightsTotal}}</text>
+    </view>
+    <view
+      wx:if="{{activeTab === 'others' && otherHasMore && !otherInsightsLoading && !searchLoading}}"
+      class="load-more {{otherLoadingMore ? 'loading' : ''}}"
+      bindtap="loadMoreOtherInsights">
+      <text>{{otherLoadingMore ? '加载中...' : '加载更多'}}</text>
+    </view>
+
     <view class="empty-state" wx:if="{{activeTab === 'mine' && (isSearchMode ? searchResults.length === 0 : insights.length === 0) && !loading && !searchLoading}}">
       <text class="empty-icon">✨</text>
       <text class="empty-text">{{isSearchMode ? '未找到相关内容' : '暂无反馈'}}</text>

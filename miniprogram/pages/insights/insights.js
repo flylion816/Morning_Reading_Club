@@ -46,10 +46,15 @@ Page({
   data: {
     insights: [],
     loading: true,
+    insightsHasMore: false,
+    insightsLoadingMore: false,
+    insightsTotal: 0,
     activeTab: 'mine',
     otherInsights: [],
     otherInsightsLoaded: false,
     otherInsightsLoading: false,
+    otherHasMore: false,
+    otherLoadingMore: false,
     userId: null, // 目标用户ID（如果查看他人，此值为他人的ID）
     userName: '小凡看见', // 显示的标题
     isOtherUser: false, // 是否在查看他人的小凡看见
@@ -88,6 +93,12 @@ Page({
 
     const app = getApp();
     const currentUser = app.globalData.userInfo;
+    this._insightsPage = 0;
+    this._insightsLoadedPeriodId = '';
+    this._insightsLoaded = false;
+    this._otherAdminPage = 0;
+    this._otherUserQueue = [];
+    this._insightsRequestInFlight = false;
 
     // 初始化数据（在获取用户信息前）
     let headerEmoji, headerAvatarUrl, headerTitle, headerDesc;
@@ -145,7 +156,9 @@ Page({
     }
 
     this.loadPeriodOptions();
-    this.loadInsights();
+    if (initialTab === 'mine') {
+      this.loadInsights();
+    }
 
     if (!targetUserId && initialTab === 'others') {
       this.loadOtherInsights();
@@ -300,6 +313,13 @@ Page({
     if (tab === 'others' && !this.data.otherInsightsLoaded && !this.data.otherInsightsLoading) {
       this.loadOtherInsights();
     } else {
+      if (
+        tab === 'mine' &&
+        (!this._insightsLoaded ||
+          this._insightsLoadedPeriodId !== String(this.data.selectedPeriodId || ''))
+      ) {
+        this.loadInsights();
+      }
       this.applyInsightFilters();
     }
   },
@@ -373,6 +393,13 @@ Page({
     const selectedPeriodId =
       this.data.periodOptions[selectedPeriodIndex]?.id || '';
     this.setData({ selectedPeriodIndex, selectedPeriodId });
+    if (
+      !this.data.isOtherUser &&
+      this.data.activeTab === 'mine' &&
+      this._insightsLoadedPeriodId !== String(selectedPeriodId || '')
+    ) {
+      this.loadInsights();
+    }
     this.applyInsightFilters();
   },
 
@@ -474,100 +501,172 @@ Page({
     this.applyInsightFilters();
   },
 
-  async loadOtherInsights() {
-    this.setData({ otherInsightsLoading: true });
-    try {
-      const allRaw = [];
-      if (this.data.isAdmin) {
-        let page = 1;
-        let pages = 1;
-        do {
-          const res = await insightService.getMobileAdminInsights({ page, limit: 100 });
-          const list = res.list || (Array.isArray(res) ? res : []);
-          list.forEach(insight => {
-            const populatedTarget =
-              insight.targetUserId && typeof insight.targetUserId === 'object'
-                ? insight.targetUserId
-                : null;
-            const populatedCreator =
-              insight.userId && typeof insight.userId === 'object' ? insight.userId : null;
-            const displayUser = populatedTarget || populatedCreator || {};
-            allRaw.push({
-              ...insight,
-              _targetUserId:
-                displayUser._id || insight.targetUserId || insight.userId || null,
-              _targetNickname: displayUser.nickname || displayUser.name || '用户',
-              _targetAvatarUrl: displayUser.avatarUrl || displayUser.avatar || ''
-            });
-          });
-          pages = Math.max(Number(res.pagination?.pages) || 1, 1);
-          page += 1;
-        } while (page <= pages);
-      } else {
-        const sentRes = await insightService.getSentRequests({ status: 'approved', limit: 100 });
-        const approvedRequests = sentRes.list || (Array.isArray(sentRes) ? sentRes : []);
+  _normalizeOtherAdminInsight(insight) {
+    const populatedTarget =
+      insight.targetUserId && typeof insight.targetUserId === 'object'
+        ? insight.targetUserId
+        : null;
+    const populatedCreator =
+      insight.userId && typeof insight.userId === 'object' ? insight.userId : null;
+    const displayUser = populatedTarget || populatedCreator || {};
+    return {
+      ...insight,
+      _targetUserId:
+        displayUser._id || insight.targetUserId || insight.userId || null,
+      _targetNickname: displayUser.nickname || displayUser.name || '用户',
+      _targetAvatarUrl: displayUser.avatarUrl || displayUser.avatar || ''
+    };
+  },
 
-        const userMap = {};
-        approvedRequests.forEach(req => {
-          const userObj = req.toUserId;
-          const uid = (typeof userObj === 'object' ? userObj?._id : userObj) || null;
-          if (uid && !userMap[uid]) userMap[uid] = userObj;
-        });
+  formatOtherRawItems(allRaw) {
+    const app = getApp();
+    const periods = app.globalData.periods || [];
+    const periodMap = {};
+    periods.forEach(p => { periodMap[p._id] = p.name || p.title; });
 
-        await Promise.all(Object.entries(userMap).map(async ([userId, userInfo]) => {
-          const res = await insightService.getUserInsightsList(userId, { limit: 100 });
-          const list = (res.list || (Array.isArray(res) ? res : [])).filter(item => item.isAccessible !== false);
-          const nickname = (typeof userInfo === 'object' ? userInfo?.nickname || userInfo?.name : '') || '用户';
-          const avatarUrl = (typeof userInfo === 'object' ? userInfo?.avatarUrl : '') || '';
-          list.forEach(insight => {
-            allRaw.push({ ...insight, _targetUserId: userId, _targetNickname: nickname, _targetAvatarUrl: avatarUrl });
-          });
-        }));
+    return allRaw.map(item => {
+      let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
+      if (!preview && item.content) {
+        const plain = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
+        preview = plain.substring(0, 150) + (plain.length > 150 ? '...' : '');
       }
+      const periodName = item.periodId?.name || item.periodId?.title || periodMap[item.periodId?._id || item.periodId] || '';
+      const nickname = item._targetNickname;
+      const targetAvatar = getUserAvatarDisplay(
+        { avatarUrl: item._targetAvatarUrl, nickname },
+        { userId: item._targetUserId, displayName: nickname }
+      );
+      return {
+        id: item._id || item.id,
+        title: item.sectionId?.title || item.title || periodName || '小凡看见',
+        periodName: periodName || '七个习惯晨读营',
+        dayNumber: item.day || item.sectionId?.day || null,
+        preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+        mediaType: item.mediaType || 'text',
+        imageUrl: item.imageUrl || null,
+        date: item.updatedAt || item.createdAt
+          ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN')
+          : '',
+        periodId: item.periodId?._id || item.periodId || null,
+        isAccessible: true,
+        requestStatus: 'approved',
+        requestStatusText: '',
+        lockedPlaceholder: { text: '' },
+        requestScope: null,
+        requestId: null,
+        targetUserAvatarUrl: targetAvatar.avatarUrl,
+        targetUserAvatarText: targetAvatar.avatarText,
+        targetUserAvatarColor: targetAvatar.avatarColor
+      };
+    });
+  },
 
-      allRaw.sort(compareInsightsByPeriodAndDayDesc);
+  updateOtherInsightItems(newRawItems, reset = false) {
+    const existingRaw = reset ? [] : this._otherRawInsights || [];
+    const byId = new Map();
+    [...existingRaw, ...newRawItems].forEach(item => {
+      const id = String(item._id || item.id || '');
+      if (id) byId.set(id, item);
+    });
+    this._otherRawInsights = [...byId.values()]
+      .sort(compareInsightsByPeriodAndDayDesc);
+    const formatted = this.formatOtherRawItems(this._otherRawInsights);
+    this.setData({
+      otherInsights: formatted,
+      otherInsightsLoaded: true
+    });
+    this.applyInsightFilters();
+  },
 
-      const app = getApp();
-      const periods = app.globalData.periods || [];
-      const periodMap = {};
-      periods.forEach(p => { periodMap[p._id] = p.name || p.title; });
+  async _fetchOtherAdminPage(page) {
+    const res = await insightService.getMobileAdminInsights({ page, limit: 20 });
+    const list = res.list || (Array.isArray(res) ? res : []);
+    const pagination = res.pagination || {};
+    const pages = Math.max(Number(pagination.pages) || 1, 1);
+    return {
+      items: list.map(item => this._normalizeOtherAdminInsight(item)),
+      hasMore: page < pages
+    };
+  },
 
-      const formatted = allRaw.map(item => {
-        let preview = richContentToPlainText(item.summary || '').replace(/\s+/g, ' ').trim();
-        if (!preview && item.content) {
-          const plain = richContentToPlainText(item.content).replace(/\s+/g, ' ').trim();
-          preview = plain.substring(0, 150) + (plain.length > 150 ? '...' : '');
-        }
-        const periodName = item.periodId?.name || item.periodId?.title || periodMap[item.periodId?._id || item.periodId] || '';
-        const nickname = item._targetNickname;
-        const targetAvatar = getUserAvatarDisplay(
-          { avatarUrl: item._targetAvatarUrl, nickname },
-          { userId: item._targetUserId, displayName: nickname }
-        );
-        return {
-          id: item._id || item.id,
-          title: item.sectionId?.title || item.title || periodName || '小凡看见',
-          periodName: periodName || '七个习惯晨读营',
-          dayNumber: item.day || item.sectionId?.day || null,
-          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
-          mediaType: item.mediaType || 'text',
-          imageUrl: item.imageUrl || null,
-          date: item.updatedAt || item.createdAt ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN') : '',
-          periodId: item.periodId?._id || item.periodId || null,
-          isAccessible: true,
-          requestStatus: 'approved',
-          requestStatusText: '',
-          lockedPlaceholder: { text: '' },
-          requestScope: null,
-          requestId: null,
-          targetUserAvatarUrl: targetAvatar.avatarUrl,
-          targetUserAvatarText: targetAvatar.avatarText,
-          targetUserAvatarColor: targetAvatar.avatarColor
-        };
-      });
+  async _prepareOtherUserQueue() {
+    const sentRes = await insightService.getSentRequests({
+      status: 'approved',
+      limit: 100
+    });
+    const approvedRequests = sentRes.list || (Array.isArray(sentRes) ? sentRes : []);
+    const userMap = new Map();
+    approvedRequests.forEach(req => {
+      const userObj = req.toUserId;
+      const uid = (typeof userObj === 'object' ? userObj?._id : userObj) || null;
+      if (uid && !userMap.has(String(uid))) userMap.set(String(uid), userObj);
+    });
+    this._otherUserQueue = [...userMap.entries()].map(([userId, userInfo]) => ({
+      userId,
+      userInfo,
+      nextPage: 1,
+      pages: 1
+    }));
+  },
 
-      this.setData({ otherInsights: formatted, otherInsightsLoaded: true });
-      this.applyInsightFilters();
+  async _fetchOtherUserBatch(batchSize = 4) {
+    const batch = this._otherUserQueue.slice(0, batchSize);
+    const batches = await Promise.all(batch.map(async entry => {
+      try {
+        const res = await insightService.getUserInsightsList(entry.userId, {
+          page: entry.nextPage,
+          limit: 20
+        });
+        const pagination = res.pagination || {};
+        entry.pages = Math.max(Number(pagination.pages) || 1, 1);
+        entry.nextPage += 1;
+        const list = (res.list || (Array.isArray(res) ? res : []))
+          .filter(item => item.isAccessible !== false);
+        const nickname = (typeof entry.userInfo === 'object'
+          ? entry.userInfo?.nickname || entry.userInfo?.name
+          : '') || '用户';
+        const avatarUrl = (typeof entry.userInfo === 'object'
+          ? entry.userInfo?.avatarUrl
+          : '') || '';
+        return list.map(insight => ({
+          ...insight,
+          _targetUserId: entry.userId,
+          _targetNickname: nickname,
+          _targetAvatarUrl: avatarUrl
+        }));
+      } catch (error) {
+        logger.warn('加载单个用户的小凡看见失败:', {
+          userId: entry.userId,
+          error: error?.message || error
+        });
+        return [];
+      }
+    }));
+
+    this._otherUserQueue = this._otherUserQueue.filter(
+      entry => entry.nextPage <= entry.pages
+    );
+    return batches.flat();
+  },
+
+  async loadOtherInsights() {
+    if (this.data.otherInsightsLoading) return;
+    this.setData({ otherInsightsLoading: true, otherHasMore: false });
+    try {
+      let items = [];
+      let hasMore = false;
+      if (this.data.isAdmin) {
+        this._otherAdminPage = 1;
+        const result = await this._fetchOtherAdminPage(1);
+        items = result.items;
+        hasMore = result.hasMore;
+      } else {
+        await this._prepareOtherUserQueue();
+        items = await this._fetchOtherUserBatch();
+        hasMore = this._otherUserQueue.length > 0;
+      }
+      this.updateOtherInsightItems(items, true);
+      this.setData({ otherHasMore: hasMore });
     } catch (err) {
       logger.error('加载他人洞见失败:', err);
     } finally {
@@ -575,9 +674,45 @@ Page({
     }
   },
 
-  async loadInsights() {
+  async loadMoreOtherInsights() {
+    if (
+      !this.data.otherHasMore ||
+      this.data.otherInsightsLoading ||
+      this.data.otherLoadingMore
+    ) return;
+    this.setData({ otherLoadingMore: true });
     try {
-      this.setData({ loading: true });
+      let items = [];
+      let hasMore = false;
+      if (this.data.isAdmin) {
+        const nextPage = this._otherAdminPage + 1;
+        const result = await this._fetchOtherAdminPage(nextPage);
+        this._otherAdminPage = nextPage;
+        items = result.items;
+        hasMore = result.hasMore;
+      } else {
+        items = await this._fetchOtherUserBatch();
+        hasMore = this._otherUserQueue.length > 0;
+      }
+      this.updateOtherInsightItems(items, false);
+      this.setData({ otherHasMore: hasMore && items.length > 0 });
+    } catch (error) {
+      logger.error('加载更多他人洞见失败:', error);
+    } finally {
+      this.setData({ otherLoadingMore: false });
+    }
+  },
+
+  async loadInsights(options = {}) {
+    try {
+      const reset = options.reset !== false;
+      if (this._insightsRequestInFlight || this.data.insightsLoadingMore) return;
+      const page = reset ? 1 : Number(this._insightsPage || 0) + 1;
+      this._insightsRequestInFlight = true;
+      this.setData({
+        loading: reset,
+        insightsLoadingMore: !reset
+      });
 
       // 获取当前登录用户信息
       const app = getApp();
@@ -634,7 +769,9 @@ Page({
         // 查看他人的小凡看见（需要已获得权限）
         logger.debug('📖 加载他人的小凡看见...');
         res = await insightService.getUserInsightsList(this.data.userId, {
-          limit: 100
+          page,
+          limit: 20,
+          ...(this.data.selectedPeriodId ? { periodId: this.data.selectedPeriodId } : {})
         });
         activityService.track('other_insight_view', {
           targetType: 'user',
@@ -644,7 +781,11 @@ Page({
       } else {
         // 查看自己的小凡看见
         logger.debug('📖 加载自己的小凡看见...');
-        res = await insightService.getInsightsList({ limit: 100 });
+        res = await insightService.getInsightsList({
+          page,
+          limit: 20,
+          ...(this.data.selectedPeriodId ? { periodId: this.data.selectedPeriodId } : {})
+        });
         activityService.track('own_insight_view', {
           targetType: 'insight_list',
           metadata: { page: 'insights' }
@@ -757,15 +898,50 @@ Page({
 
       logger.debug('格式化后的insights:', formatted);
 
-      this.updateInsightsSummary(formatted);
-      this.setData({ loading: false });
+      const existingItems = reset ? [] : this.data.insights;
+      const mergedById = new Map();
+      [...existingItems, ...formatted].forEach(item => {
+        if (item.id) mergedById.set(String(item.id), item);
+      });
+      const mergedInsights = [...mergedById.values()];
+      const total = Number(res?.pagination?.total) || mergedInsights.length;
+      this._insightsPage = page;
+      this._insightsLoadedPeriodId = String(this.data.selectedPeriodId || '');
+      this._insightsLoaded = true;
+
+      this.updateInsightsSummary(mergedInsights);
+      this.setData({
+        loading: false,
+        insightsLoadingMore: false,
+        insightsHasMore: mergedInsights.length < total,
+        insightsTotal: total
+      });
     } catch (error) {
       logger.error('加载失败:', error);
-      this.setData({ loading: false });
+      this.setData({ loading: false, insightsLoadingMore: false });
       wx.showToast({
         title: '加载失败',
         icon: 'none'
       });
+    } finally {
+      this._insightsRequestInFlight = false;
+    }
+  },
+
+  async loadMoreInsights() {
+    if (
+      !this.data.insightsHasMore ||
+      this.data.loading ||
+      this.data.insightsLoadingMore
+    ) return;
+    await this.loadInsights({ reset: false });
+  },
+
+  onReachBottom() {
+    if (this.data.activeTab === 'mine') {
+      this.loadMoreInsights();
+    } else {
+      this.loadMoreOtherInsights();
     }
   },
 

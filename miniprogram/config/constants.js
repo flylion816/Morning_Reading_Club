@@ -129,7 +129,8 @@ module.exports = {
   // ==================== 网络相关 ====================
 
   // 请求超时时间(毫秒)
-  REQUEST_TIMEOUT: 10000,
+  // DevTools and weak mobile networks may need longer to download large insight lists.
+  REQUEST_TIMEOUT: 30000,
 
   // 重试次数
   MAX_RETRY_COUNT: 3,

@@ -1458,6 +1458,41 @@ describe('Insight Controller - 102+ 完整测试', () => {
       expect(query.$or).to.have.lengthOf(2);
     });
 
+    it('TC-AUTH-001A: 用户列表只返回短预览，不传输完整长文和点赞数组', async () => {
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
+      req.params = { userId: fixtures.testUsers.user1._id.toString() };
+      req.query = { page: 1, limit: 20 };
+
+      const source = {
+        ...fixtures.testInsights.user1ToUser2,
+        summary: `列表摘要${'长'.repeat(500)}`,
+        content: `列表正文${'文'.repeat(1000)}`,
+        likes: Array.from({ length: 50 }, (_, index) => ({ userId: `user-${index}` }))
+      };
+      const mockInsight = {
+        ...source,
+        toObject: sandbox.stub().returns(source)
+      };
+
+      InsightStub.find.returns({
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        select: sandbox.stub().returnsThis(),
+        exec: sandbox.stub().resolves([mockInsight])
+      });
+      InsightStub.countDocuments.resolves(1);
+
+      await insightController.getUserInsights(req, res, next);
+
+      const item = res.json.firstCall.args[0].data.list[0];
+      expect(item.isAccessible).to.equal(true);
+      expect(item.likes).to.be.undefined;
+      expect(item.summary.length).to.be.at.most(200);
+      expect(item.content.length).to.be.at.most(200);
+    });
+
     it('TC-AUTH-002: $or 查询包含 userId 分支', async () => {
       req.user = { userId: fixtures.testUsers.user1._id.toString() };
       req.params = { userId: fixtures.testUsers.user1._id.toString() };

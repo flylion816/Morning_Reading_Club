@@ -6,7 +6,9 @@ jest.mock('../../services/insight.service.js', () => ({
 }));
 
 jest.mock('../../services/user.service.js', () => ({}));
-jest.mock('../../services/enrollment.service.js', () => ({}));
+jest.mock('../../services/enrollment.service.js', () => ({
+  getUserEnrollments: jest.fn()
+}));
 jest.mock('../../services/activity.service.js', () => ({ track: jest.fn() }));
 jest.mock('../../services/course.service.js', () => ({ getPeriods: jest.fn() }));
 jest.mock('../../utils/logger.js', () => ({
@@ -28,6 +30,7 @@ describe('insights page period and keyword filters', () => {
   let pageInstance;
   let courseService;
   let insightService;
+  let enrollmentService;
 
   beforeEach(() => {
     jest.resetModules();
@@ -48,6 +51,10 @@ describe('insights page period and keyword filters', () => {
 
     courseService = require('../../services/course.service.js');
     insightService = require('../../services/insight.service.js');
+    enrollmentService = require('../../services/enrollment.service.js');
+    const { tenantStorage } = require('../../utils/storage');
+    const constants = require('../../config/constants');
+    tenantStorage.set(constants.STORAGE_KEYS.TOKEN, 'pagination-test-token');
     require('../../pages/insights/insights.js');
 
     pageInstance = {
@@ -61,6 +68,10 @@ describe('insights page period and keyword filters', () => {
     insightService.getSentRequests.mockReset();
     insightService.getUserInsightsList.mockReset();
     insightService.getMobileAdminInsights.mockReset();
+    insightService.getInsightsList.mockReset();
+    enrollmentService.getUserEnrollments.mockReset().mockResolvedValue({
+      list: [{ status: 'active', paymentStatus: 'paid' }]
+    });
   });
 
   afterEach(() => {
@@ -185,7 +196,7 @@ describe('insights page period and keyword filters', () => {
     expect(pageInstance.loadOtherInsights).toHaveBeenCalledTimes(1);
   });
 
-  test('admin loads every page without consulting approved requests', async () => {
+  test('admin loads the first page and fetches more on demand', async () => {
     pageInstance.setData({ isAdmin: true });
     insightService.getMobileAdminInsights
       .mockResolvedValueOnce({
@@ -199,7 +210,7 @@ describe('insights page period and keyword filters', () => {
             sectionId: { day: 1, title: '第一天' }
           }
         ],
-        pagination: { page: 1, limit: 100, total: 2, pages: 2 }
+        pagination: { page: 1, limit: 20, total: 2, pages: 2 }
       })
       .mockResolvedValueOnce({
         list: [
@@ -212,14 +223,21 @@ describe('insights page period and keyword filters', () => {
             sectionId: { day: 2, title: '第二天' }
           }
         ],
-        pagination: { page: 2, limit: 100, total: 2, pages: 2 }
+        pagination: { page: 2, limit: 20, total: 2, pages: 2 }
       });
 
     await pageInstance.loadOtherInsights.call(pageInstance);
 
     expect(insightService.getMobileAdminInsights.mock.calls).toEqual([
-      [{ page: 1, limit: 100 }],
-      [{ page: 2, limit: 100 }]
+      [{ page: 1, limit: 20 }]
+    ]);
+    expect(pageInstance.data.otherHasMore).toBe(true);
+
+    await pageInstance.loadMoreOtherInsights.call(pageInstance);
+
+    expect(insightService.getMobileAdminInsights.mock.calls).toEqual([
+      [{ page: 1, limit: 20 }],
+      [{ page: 2, limit: 20 }]
     ]);
     expect(insightService.getSentRequests).not.toHaveBeenCalled();
     expect(pageInstance.data.otherInsights.map(item => item.id).sort()).toEqual([
@@ -233,7 +251,10 @@ describe('insights page period and keyword filters', () => {
     insightService.getSentRequests.mockResolvedValue({
       list: [{ toUserId: { _id: 'user_a', nickname: '甲' } }]
     });
-    insightService.getUserInsightsList.mockResolvedValue({ list: [] });
+    insightService.getUserInsightsList.mockResolvedValue({
+      list: [],
+      pagination: { page: 1, limit: 20, total: 0, pages: 1 }
+    });
 
     await pageInstance.loadOtherInsights.call(pageInstance);
 
@@ -241,6 +262,81 @@ describe('insights page period and keyword filters', () => {
       status: 'approved',
       limit: 100
     });
+    expect(insightService.getUserInsightsList).toHaveBeenCalledWith('user_a', {
+      page: 1,
+      limit: 20
+    });
     expect(insightService.getMobileAdminInsights).not.toHaveBeenCalled();
+  });
+
+  test('loads my insights in pages and appends the next page', async () => {
+    const buildItem = id => ({
+      _id: id,
+      day: 1,
+      summary: `摘要${id}`,
+      periodId: { _id: 'period_1', name: '内在之光' },
+      sectionId: { day: 1, title: '第一天' }
+    });
+    pageInstance.setData({
+      loading: false,
+      insightsLoadingMore: false,
+      selectedPeriodId: 'period_1'
+    });
+    insightService.getInsightsList
+      .mockResolvedValueOnce({
+        list: [buildItem('mine_1')],
+        pagination: { page: 1, limit: 20, total: 2, pages: 2 }
+      })
+      .mockResolvedValueOnce({
+        list: [buildItem('mine_2')],
+        pagination: { page: 2, limit: 20, total: 2, pages: 2 }
+      });
+
+    await pageInstance.loadInsights.call(pageInstance);
+
+    expect(insightService.getInsightsList).toHaveBeenCalledWith({
+      page: 1,
+      limit: 20,
+      periodId: 'period_1'
+    });
+    expect(pageInstance.data.insights.map(item => item.id)).toEqual(['mine_1']);
+    expect(pageInstance.data.insightsHasMore).toBe(true);
+    expect(pageInstance.data.insightsTotal).toBe(2);
+
+    await pageInstance.loadMoreInsights.call(pageInstance);
+
+    expect(insightService.getInsightsList).toHaveBeenLastCalledWith({
+      page: 2,
+      limit: 20,
+      periodId: 'period_1'
+    });
+    expect(pageInstance.data.insights.map(item => item.id)).toEqual(['mine_1', 'mine_2']);
+    expect(pageInstance.data.insightsHasMore).toBe(false);
+  });
+
+  test('performs the first request even while the initial page loading flag is true', async () => {
+    pageInstance.setData({ loading: true, insightsLoadingMore: false });
+    pageInstance._insightsPage = 0;
+    pageInstance._insightsLoadedPeriodId = '';
+    pageInstance._insightsRequestInFlight = false;
+    insightService.getInsightsList.mockResolvedValueOnce({
+      list: [{
+        _id: 'mine_initial',
+        day: 1,
+        summary: '首屏摘要',
+        periodId: { _id: 'period_1', name: '内在之光' },
+        sectionId: { day: 1, title: '第一天' }
+      }],
+      pagination: { page: 1, limit: 20, total: 1, pages: 1 }
+    });
+
+    await pageInstance.loadInsights.call(pageInstance);
+
+    expect(insightService.getInsightsList).toHaveBeenCalledWith({
+      page: 1,
+      limit: 20
+    });
+    expect(pageInstance.data.loading).toBe(false);
+    expect(pageInstance.data.insights.map(item => item.id)).toEqual(['mine_initial']);
   });
 });

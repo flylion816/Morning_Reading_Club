@@ -625,6 +625,7 @@ async function getViewerAccessContext(viewerUserId, targetUserId) {
 function serializeInsightForViewer(insight, options = {}) {
   const {
     isOwnerView = false,
+    listPreview = false,
     allowedPeriodIds = new Set(),
     allowedInsightIds = new Set(),
     latestInsightRequests = new Map(),
@@ -665,13 +666,25 @@ function serializeInsightForViewer(insight, options = {}) {
       : matchedRequest?.status || 'none';
 
   if (isAccessible) {
-    return {
+    const serialized = {
       ...insightData,
       isAccessible: true,
       requestStatus,
       requestScope,
       requestId: matchedRequest?._id || null
     };
+
+    // List views only render a short preview. Full text remains available on detail pages.
+    if (listPreview) {
+      delete serialized.likes;
+      if (serialized.summary) {
+        serialized.summary = truncateText(serialized.summary, 180);
+      }
+      if (serialized.content) {
+        serialized.content = truncateText(serialized.content, 180);
+      }
+    }
+    return serialized;
   }
 
   return {
@@ -827,7 +840,7 @@ async function getUserInsights(req, res, next) {
       .populate('periodId', 'name title startDate endDate')
       .populate('userId', 'nickname avatar avatarUrl _id')
       .populate('targetUserId', 'nickname avatar avatarUrl _id')
-      .select('-__v')
+      .select('-__v -likes')
       .exec();
 
     const pageNumber = parseInt(page, 10);
@@ -839,6 +852,7 @@ async function getUserInsights(req, res, next) {
     const serializedList = pagedInsights.map(insight =>
       serializeInsightForViewer(insight, {
         isOwnerView,
+        listPreview: true,
         allowedPeriodIds: approvedPeriodIds,
         allowedInsightIds: approvedInsightIds,
         latestInsightRequests,
