@@ -561,7 +561,7 @@ main() {
   log_info "  • PM2 应用: $PM2_APP_NAME"
   log_info ""
   log_info "回滚命令（如需要）:"
-  log_info "  sshpass -p '!X2aZaxXvGO@Ud' ssh ubuntu@118.25.145.179 \\"
+  log_info "  ssh -i ~/.ssh/id_ed25519 ubuntu@118.25.145.179 \\"
   log_info "    'cd /var/www && sudo rm -rf morning-reading && sudo tar -xzf morning-reading_bak_${TIMESTAMP}.tar.gz'"
   log_info ""
   log_info "💡 备份说明："
