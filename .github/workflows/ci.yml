@@ -197,50 +197,25 @@ jobs:
         working-directory: ./admin
         run: npm audit --omit=dev --audit-level=low
 
-      - name: Start admin dev server
+      - name: Install Playwright browser
         working-directory: ./admin
-        run: |
-          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/admin-dev.log 2>&1 &
-          echo $! > /tmp/admin-dev.pid
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
-              echo "Admin dev server is ready"
-              exit 0
-            fi
-            echo "Waiting... ($i/30)"
-            sleep 2
-          done
-          cat /tmp/admin-dev.log
-          exit 1
+        run: npx playwright install --with-deps chromium
 
-      - name: Run Cypress E2E tests
+      - name: Run Playwright admin regression tests
         working-directory: ./admin
-        run: npx --yes cypress@15.21.1 run
+        run: npm run test:playwright
         env:
-          CYPRESS_BASE_URL: http://127.0.0.1:5173
+          CI: '1'
 
-      - name: Upload Cypress screenshots
+      - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: cypress-screenshots
-          path: admin/cypress/screenshots
+          name: playwright-report
+          path: |
+            admin/playwright-report
+            admin/test-results
           retention-days: 7
-
-      - name: Upload Cypress videos
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cypress-videos
-          path: admin/cypress/videos
-          retention-days: 7
-
-      - name: Stop admin dev server
-        if: always()
-        run: |
-          if [ -f /tmp/admin-dev.pid ]; then
-            kill $(cat /tmp/admin-dev.pid) || true
-          fi
 
   # ========================================
   # Job 5: 安全扫描
