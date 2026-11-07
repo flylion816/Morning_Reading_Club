@@ -5,6 +5,7 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const paymentService = require('../services/payment.service');
+const securityAlertService = require('../services/security-alert.service');
 const { createNotification } = require('./notification.controller');
 const subscribeMessageService = require('../services/subscribe-message.service');
 const { formatNotificationTime } = require('../utils/notification-links');
@@ -376,6 +377,11 @@ exports.confirmPayment = async (req, res) => {
       if (!providerMatches) {
         await Payment.updateOne({ _id: payment._id, userId, status: 'processing' }, { $set: { status: 'pending' } });
         logger.warn('Payment provider verification did not match the stored order', { paymentId: payment._id });
+        securityAlertService.recordQuietly(
+          'payment_verification_mismatch',
+          String(payment._id),
+          { endpoint: '/payments/confirm', detail: 'provider query mismatch' }
+        );
         return res.status(409).json(errors.conflict('支付平台尚未确认该订单，请稍后查询'));
       }
       providerTransactionId = verification.transactionId;
@@ -826,6 +832,11 @@ exports.wechatCallback = async (req, res) => {
           paymentId: payment._id,
           tenantId: payment.tenantId
         });
+        securityAlertService.recordQuietly(
+          'payment_verification_mismatch',
+          String(payment._id),
+          { endpoint: '/payments/wechat/callback', detail: 'callback signature invalid' }
+        );
         return replyFail('sign error');
       }
       if (notifyData.result_code === 'SUCCESS') {
@@ -841,6 +852,11 @@ exports.wechatCallback = async (req, res) => {
             paymentId: payment._id,
             tenantId: payment.tenantId
           });
+          securityAlertService.recordQuietly(
+            'payment_verification_mismatch',
+            String(payment._id),
+            { endpoint: '/payments/wechat/callback', detail: 'callback payment mismatch' }
+          );
           return replyFail('payment detail mismatch');
         }
       }

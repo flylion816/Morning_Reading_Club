@@ -3,6 +3,7 @@ const redisManager = require('../utils/redis');
 const { errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { getCurrentTenantId } = require('../utils/tenantContext');
+const securityAlertService = require('../services/security-alert.service');
 
 const testOnlyRateLimitBuckets = new Map();
 const ATOMIC_RATE_LIMIT_SCRIPT = [
@@ -74,6 +75,13 @@ function rateLimitMiddleware(options = {}) {
           userId: req.user?._id,
           path: req.path
         });
+        if (key.startsWith('ratelimit:external:')) {
+          securityAlertService.recordQuietly(
+            'external_rate_limit',
+            key.replace('ratelimit:external:', ''),
+            { endpoint: req.path, detail: `rate limit ${maxRequests}/${Math.ceil(windowMs / 1000)}s` }
+          );
+        }
 
         return res.status(429).json(
           errors.tooManyRequests(

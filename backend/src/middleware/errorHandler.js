@@ -1,5 +1,6 @@
 const { error } = require('../utils/response');
 const logger = require('../utils/logger');
+const securityAlertService = require('../services/security-alert.service');
 
 // 全局错误处理中间件
 function errorHandler(err, req, res, next) {
@@ -9,6 +10,14 @@ function errorHandler(err, req, res, next) {
     url: String(req.path || req.url || '/').split('?')[0],
     method: req.method
   });
+
+  if (/\[tenant(?:Plugin|Validator)\]|非当前租户|跨租户引用拒绝/u.test(err.message || '')) {
+    securityAlertService.recordQuietly(
+      'cross_tenant_denial',
+      `${req.admin?.id || req.user?.userId || req.ip || 'unknown'}:${req.resolvedTenantId || 'unknown'}`,
+      { endpoint: req.path, detail: 'tenant boundary rejection' }
+    );
+  }
 
   // 默认500错误
   let statusCode = err.statusCode || 500;

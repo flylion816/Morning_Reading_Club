@@ -1,6 +1,7 @@
 const redisManager = require('../utils/redis');
 const alerting = require('../utils/alerting');
 const logger = require('../utils/logger');
+const securityAlertService = require('../services/security-alert.service');
 const {
   shouldTrackMetrics,
   shouldCountAsError,
@@ -37,6 +38,31 @@ function getCurrentMinuteKey() {
 function getCurrentHourKey() {
   const now = new Date();
   return Math.floor(now.getTime() / 3600000); // 每小时一个key
+}
+
+function responseByteLength(res, data) {
+  if (data === undefined || data === null) return Number(res.getHeader?.('content-length') || 0);
+  if (Buffer.isBuffer(data)) return data.length;
+  if (typeof data === 'string') return Buffer.byteLength(data);
+  if (ArrayBuffer.isView(data)) return data.byteLength;
+  try {
+    return Buffer.byteLength(JSON.stringify(data));
+  } catch (_) {
+    return 0;
+  }
+}
+
+function inspectLargeDataRead(req, res, data) {
+  const isReadEndpoint = /\/(?:backup|audit-logs\/export|database)/i.test(req.path || '');
+  if (!isReadEndpoint || res.statusCode >= 400) return;
+  const byteLength = Math.max(responseByteLength(res, data), Number(res.getHeader?.('content-length') || 0));
+  const LARGE_READ_BYTES = 1024 * 1024;
+  if (byteLength < LARGE_READ_BYTES) return;
+  securityAlertService.recordQuietly(
+    'large_data_read',
+    `${req.admin?.id || req.user?.userId || req.ip || 'unknown'}:${req.path}`,
+    { endpoint: req.path, detail: `${Math.round(byteLength / 1024)}KB response` }
+  );
 }
 
 /**
@@ -275,6 +301,7 @@ function monitoringMiddleware(options = {}) {
         statusCode: res.statusCode,
         duration
       });
+      inspectLargeDataRead(req, res, data);
 
       // 调用原始方法
       return originalJson.call(this, data);
@@ -300,6 +327,7 @@ function monitoringMiddleware(options = {}) {
         statusCode: res.statusCode,
         duration
       });
+      inspectLargeDataRead(req, res, data);
 
       // 调用原始方法
       return originalSend.call(this, data);
