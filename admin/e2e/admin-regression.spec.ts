@@ -11,8 +11,8 @@ const admin = {
 };
 
 const session = {
-  accessToken: 'e2e-access-token',
-  token: 'e2e-access-token',
+  accessToken: 'mock-access-token',
+  token: 'mock-access-token',
   admin
 };
 
