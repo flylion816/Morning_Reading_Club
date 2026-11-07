@@ -117,6 +117,12 @@ git log --oneline | head -5
 .claude/commands/testing/test-insights.sh
 ```
 
+管理后台浏览器回归（后续要求“跑回归”时优先使用）：
+
+```bash
+cd admin && npm run test:playwright
+```
+
 搜索历史问题：
 
 ```bash
