@@ -61,3 +61,36 @@ page {
 .manual-row { display: flex; gap: 16rpx; align-items: center; margin-top: 20rpx; padding-top: 20rpx; border-top: 1rpx solid #F0EDE6; }
 .manual-input { flex: 1; background: #F5F0E8; border-radius: 40rpx; padding: 16rpx 24rpx; font-size: 28rpx; }
 .manual-add-btn { padding: 16rpx 28rpx; background: var(--zc-primary); color: #fff; border-radius: 40rpx; font-size: 26rpx; white-space: nowrap; }
+
+/* Version 2 consistency polish: calmer publish form. */
+.publish-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(45, 90, 61, 0.10) 0, rgba(255, 255, 255, 0) 300rpx),
+    var(--zc-bg);
+}
+.section {
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, var(--app-paper), #ffffff);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.field-input,
+.field-textarea {
+  border-radius: var(--app-radius-sm);
+}
+.type-item,
+.att-tag,
+.add-att-btn {
+  border-radius: var(--app-radius-sm);
+}
+.submit-btn {
+  border-radius: var(--app-radius-md);
+  background: var(--zc-primary);
+  box-shadow: 0 14rpx 26rpx rgba(45, 90, 61, 0.24);
+}
+.submit-btn:active,
+.type-item:active,
+.att-tag:active {
+  transform: translateY(2rpx) scale(0.98);
+}

@@ -1,7 +1,7 @@
 <!--期次列表页面-->
 <view class="page-periods">
   <!-- 顶部横幅 -->
-  <view class="home-banner">
+  <view class="home-banner app-stagger">
     <view class="banner-text-container">
       <text class="banner-text">晨读营</text>
       <text class="banner-subtext">每天 15 分钟，把晨读留在生活里</text>
@@ -11,7 +11,7 @@
   </view>
 
   <!-- 期次列表 -->
-  <view class="periods-container">
+  <view class="periods-container app-stagger app-stagger-2">
     <view class="periods-heading">
       <view>
         <text class="periods-heading-title">全部期次</text>

@@ -5,7 +5,7 @@
   <view wx:if="{{isLogin}}" class="logged-in-content">
 
     <!-- 用户信息卡 -->
-    <view class="user-card">
+    <view class="user-card app-stagger">
       <view class="user-card-glow"></view>
       <view class="user-card-left">
         <view class="user-avatar-wrap" style="background: {{userInfo.avatarColor || themePrimaryColor}}">
@@ -24,10 +24,10 @@
     </view>
 
     <!-- 账号资料 -->
+    <view class="group-title">账号</view>
     <view class="settings-group">
       <view wx:if="{{canUsePaidFeatures && !hasPhone}}" class="settings-cell">
         <view class="cell-left">
-          <text class="cell-icon">📱</text>
           <text class="cell-label">绑定手机号</text>
         </view>
         <button
@@ -38,7 +38,6 @@
       </view>
       <view wx:elif="{{canUsePaidFeatures}}" class="settings-cell">
         <view class="cell-left">
-          <text class="cell-icon">📱</text>
           <text class="cell-label">手机号管理</text>
         </view>
         <view class="cell-right">
@@ -53,7 +52,6 @@
 
       <view class="settings-cell" bindtap="goToEditProfile">
         <view class="cell-left">
-          <text class="cell-icon">📝</text>
           <text class="cell-label">编辑资料</text>
         </view>
         <view class="cell-right">
@@ -65,10 +63,10 @@
     <view class="settings-divider"></view>
 
     <!-- 消息 -->
+    <view class="group-title">消息</view>
     <view class="settings-group">
       <view class="settings-cell" bindtap="goToNotifications">
         <view class="cell-left">
-          <text class="cell-icon">📨</text>
           <text class="cell-label">消息通知</text>
         </view>
         <view class="cell-right">
@@ -81,7 +79,6 @@
 
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToNotificationSettings">
         <view class="cell-left">
-          <text class="cell-icon">⏰</text>
           <text class="cell-label">消息提醒设置</text>
         </view>
         <view class="cell-right">
@@ -93,10 +90,10 @@
     <view wx:if="{{canUsePaidFeatures}}" class="settings-divider"></view>
 
     <!-- 我的内容 -->
+    <view wx:if="{{canUsePaidFeatures}}" class="group-title">我的内容</view>
     <view wx:if="{{canUsePaidFeatures}}" class="settings-group">
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyActivities">
         <view class="cell-left">
-          <text class="cell-icon">📅</text>
           <text class="cell-label">我的活动</text>
         </view>
         <view class="cell-right">
@@ -106,7 +103,6 @@
 
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyCheckinRecords">
         <view class="cell-left">
-          <text class="cell-icon">📔</text>
           <text class="cell-label">我的打卡日记</text>
         </view>
         <view class="cell-right">
@@ -116,7 +112,6 @@
 
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToCompletionReports">
         <view class="cell-left">
-          <text class="cell-icon">📄</text>
           <text class="cell-label">我的实录报告</text>
         </view>
         <view class="cell-right">
@@ -126,7 +121,6 @@
 
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyCoupons">
         <view class="cell-left">
-          <text class="cell-icon">🎫</text>
           <text class="cell-label">我的优惠券</text>
         </view>
         <view class="cell-right">
@@ -138,10 +132,10 @@
     <view wx:if="{{isAdmin}}" class="settings-divider"></view>
 
     <!-- 管理员 -->
+    <view wx:if="{{isAdmin}}" class="group-title">管理</view>
     <view wx:if="{{isAdmin}}" class="settings-group">
       <view class="settings-cell" bindtap="goToAdminWorkbench">
         <view class="cell-left">
-          <text class="cell-icon">🧭</text>
           <text class="cell-label">管理工作台</text>
         </view>
         <view class="cell-right">
@@ -150,7 +144,6 @@
       </view>
       <view class="settings-cell" bindtap="goToAdminAnalytics">
         <view class="cell-left">
-          <text class="cell-icon">📈</text>
           <text class="cell-label">数据分析</text>
         </view>
         <view class="cell-right">
@@ -162,10 +155,10 @@
     <view class="settings-divider"></view>
 
     <!-- 协议 -->
+    <view class="group-title">协议</view>
     <view class="settings-group">
       <view class="settings-cell" bindtap="goToPrivacy">
         <view class="cell-left">
-          <text class="cell-icon">🔒</text>
           <text class="cell-label">隐私政策</text>
         </view>
         <view class="cell-right">
@@ -174,7 +167,6 @@
       </view>
       <view class="settings-cell" bindtap="goToAgreement">
         <view class="cell-left">
-          <text class="cell-icon">📜</text>
           <text class="cell-label">用户协议</text>
         </view>
         <view class="cell-right">

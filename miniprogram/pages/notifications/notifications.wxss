@@ -363,3 +363,28 @@
     margin-right: auto;
   }
 }
+
+/* Version 2 consistency polish: notification inbox. */
+.notifications-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.tabs {
+  border-radius: 999rpx;
+  background: var(--app-paper);
+  box-shadow: var(--app-shadow-soft);
+}
+.tab-item.active {
+  background: var(--theme-primary);
+  color: #fff;
+}
+.notification-item {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.tab-item:active,
+.notification-item:active,
+.action-btn:active {
+  transform: translateY(2rpx) scale(0.99);
+}

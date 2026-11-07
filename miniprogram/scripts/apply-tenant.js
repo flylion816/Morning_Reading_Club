@@ -170,6 +170,8 @@ function applyPageNavBarConfig(pages, navBar) {
     }
 
     if (pageJson.navigationStyle === 'custom') return;
+    // Zaichang is a product sub-brand and keeps its forest-green nav color.
+    if (pagePath.startsWith('pages/zaichang/')) return;
     if (!pageJson.navigationBarBackgroundColor && !pageJson.navigationBarTextStyle) return;
 
     pageJson.navigationBarBackgroundColor = navBar.bgColor;

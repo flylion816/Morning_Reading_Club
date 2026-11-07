@@ -10,7 +10,7 @@
   <view wx:else class="payment-container">
     <!-- 页面头部 -->
     <view class="payment-header">
-      <view class="header-icon">💳</view>
+      <view class="header-icon">¥</view>
       <text class="header-title">确认支付</text>
       <text class="header-subtitle">完成报名、开启学习</text>
     </view>

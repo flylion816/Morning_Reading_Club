@@ -51,3 +51,22 @@
 .share-btn::after {
   border: none;
 }
+
+/* Version 2 consistency polish: quiet share canvas page. */
+.page-share {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% 0%, var(--theme-primary-alpha-08) 0, rgba(255, 255, 255, 0) 300rpx),
+    linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.share-card {
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow);
+}
+.share-btn {
+  border-radius: var(--app-radius-md);
+  box-shadow: 0 14rpx 26rpx var(--theme-primary-alpha-18);
+}
+.share-btn:active {
+  transform: translateY(2rpx) scale(0.98);
+}

@@ -97,3 +97,20 @@
   color: #ffffff;
   font-size: 28rpx;
 }
+
+/* Version 2 consistency polish: report list. */
+.page-reports {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.report-card {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.report-card-status {
+  border-radius: 999rpx;
+}
+.report-card:active {
+  transform: translateY(2rpx) scale(0.99);
+}

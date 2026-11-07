@@ -47,7 +47,8 @@ page {
 .att-item { display: flex; flex-direction: column; align-items: center; gap: 8rpx; width: 80rpx; }
 .att-avatar-wrap { width: 72rpx; height: 72rpx; border-radius: 50%; overflow: hidden; }
 .att-avatar { width: 100%; height: 100%; }
-.att-avatar-text { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 26rpx; display: flex; align-items: center; justify-content: center; line-height: 72rpx; text-align: center; }
+.att-avatar-text { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 26rpx; display: grid; place-items: center; line-height: normal; text-align: center; overflow: hidden; }
+.avatar-initial { display: block; width: 100%; line-height: 1; text-align: center; }
 .att-name { font-size: 20rpx; color: var(--zc-text-secondary); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 80rpx; }
 .attend-btn-wrap { display: flex; justify-content: center; }
 .attend-btn { padding: 16rpx 48rpx; border-radius: 40rpx; border: 2rpx solid var(--zc-primary); color: var(--zc-primary); font-size: 28rpx; }
@@ -68,7 +69,7 @@ page {
 .comment-item { display: flex; gap: 16rpx; margin-bottom: 28rpx; }
 .comment-avatar-wrap { flex-shrink: 0; }
 .comment-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; }
-.comment-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 24rpx; display: flex; align-items: center; justify-content: center; line-height: 64rpx; text-align: center; }
+.comment-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 24rpx; display: grid; place-items: center; line-height: normal; text-align: center; overflow: hidden; }
 .comment-body { flex: 1; }
 .comment-author { display: block; font-size: 24rpx; font-weight: 600; color: var(--zc-text); margin-bottom: 6rpx; }
 .comment-content { font-size: 28rpx; color: var(--zc-text); line-height: 1.5; margin-bottom: 8rpx; }
@@ -100,4 +101,30 @@ page {
   height: 400px;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Version 2 consistency polish: unified imprint detail. */
+.detail-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(45, 90, 61, 0.10) 0, rgba(255, 255, 255, 0) 300rpx),
+    var(--zc-bg);
+}
+.main-info,
+.section {
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, var(--app-paper), #ffffff);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.badge {
+  border-radius: 999rpx;
+}
+.action-btn,
+.comment-submit {
+  border-radius: var(--app-radius-md);
+}
+.action-btn:active,
+.comment-submit:active {
+  transform: translateY(2rpx) scale(0.98);
 }

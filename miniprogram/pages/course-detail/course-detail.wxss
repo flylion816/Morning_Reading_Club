@@ -1964,3 +1964,87 @@ page {
 }
 
 .course-module-image { display: block; width: 100%; border-radius: 12rpx; margin: 12rpx 0; }
+
+/* Version 1 core-journey polish: calmer editorial reading hierarchy. */
+.page-course-detail {
+  padding: 22rpx;
+  background:
+    radial-gradient(circle at 88% 0%, var(--theme-primary-alpha-08) 0, rgba(255, 255, 255, 0) 310rpx),
+    linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+
+.course-header {
+  padding: 42rpx 32rpx;
+  border-radius: var(--app-radius-xl);
+  box-shadow: 0 22rpx 44rpx var(--theme-primary-alpha-18);
+}
+
+.course-title {
+  font-size: 46rpx;
+  line-height: 1.2;
+  letter-spacing: -1.2rpx;
+}
+
+.content-section,
+.calendar-section,
+.comments-section {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.content-section {
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  margin-bottom: 18rpx;
+}
+
+.section-icon {
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 16rpx;
+  font-size: 23rpx;
+  margin-right: 14rpx;
+}
+
+.section-content,
+.section-content rich-text {
+  font-size: 31rpx;
+  line-height: 1.95;
+  letter-spacing: 0.3rpx;
+  text-align: left;
+}
+
+.section-content /deep/ img {
+  border-radius: var(--app-radius-sm);
+}
+
+.immersive-entry,
+.tts-entry,
+.podcast-share-entry,
+.closing-video-share-entry {
+  border-radius: 999rpx;
+}
+
+.fixed-buttons {
+  padding: 18rpx 22rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 248, 0.94);
+  backdrop-filter: blur(16rpx);
+  border-top: 1rpx solid var(--app-border);
+  box-shadow: 0 -12rpx 30rpx rgba(37, 60, 43, 0.08);
+}
+
+.btn-back,
+.btn-checkin,
+.btn-enroll {
+  border-radius: var(--app-radius-md);
+  font-weight: 650;
+}
+
+.btn-checkin,
+.btn-enroll {
+  box-shadow: 0 14rpx 26rpx var(--theme-primary-alpha-20);
+}

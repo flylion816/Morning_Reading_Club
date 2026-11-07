@@ -108,16 +108,17 @@ page {
 
 /* 在场人头像墙 */
 .attendees { display: flex; align-items: center; padding: 0 24rpx 16rpx; flex-wrap: wrap; gap: 8rpx; }
-.avatar-wrap { width: 56rpx; height: 56rpx; border-radius: 50%; overflow: hidden; border: 2rpx solid #fff; }
+.avatar-wrap { width: 56rpx; height: 56rpx; border-radius: 50%; overflow: hidden; border: 2rpx solid #fff; box-sizing: border-box; }
 .avatar { width: 100%; height: 100%; }
-.avatar-text { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; line-height: 56rpx; text-align: center; }
+.avatar-text { width: 100%; height: 100%; border-radius: 50%; background: var(--zc-primary); color: #fff; font-size: 22rpx; display: block; position: relative; overflow: hidden; }
+.avatar-initial { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; line-height: 1; text-align: center; }
 .attendees-more { font-size: 22rpx; color: var(--zc-text-secondary); margin-left: 4rpx; }
 
 /* 底部 */
 .footer { display: flex; align-items: center; justify-content: space-between; padding: 12rpx 24rpx 20rpx; border-top: 1rpx solid #F0EDE6; }
 .author { display: flex; align-items: center; gap: 12rpx; }
 .author-avatar { width: 48rpx; height: 48rpx; border-radius: 50%; }
-.author-avatar-text { width: 48rpx; height: 48rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 20rpx; display: flex; align-items: center; justify-content: center; line-height: 48rpx; text-align: center; }
+.author-avatar-text { width: 48rpx; height: 48rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 20rpx; display: grid; place-items: center; line-height: normal; text-align: center; overflow: hidden; }
 .author-name { font-size: 24rpx; color: var(--zc-text-secondary); }
 .author-meta { font-size: 22rpx; color: var(--zc-text-secondary); margin-left: 12rpx; }
 .stats { display: flex; gap: 20rpx; }
@@ -157,4 +158,40 @@ page {
   height: 400px;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Version 2 consistency polish: media-first imprint wall. */
+.page-bg {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(45, 90, 61, 0.10) 0, rgba(255, 255, 255, 0) 300rpx),
+    var(--zc-bg);
+  padding-bottom: calc(170rpx + env(safe-area-inset-bottom));
+}
+.type-chip {
+  border-radius: 999rpx;
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
+  color: var(--app-text-soft);
+}
+.type-chip.active {
+  background: var(--zc-primary);
+  border-color: var(--zc-primary);
+  color: #fff;
+}
+.imprint-card {
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, var(--app-paper), #ffffff);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.imprint-card:active,
+.fab:active {
+  transform: translateY(2rpx) scale(0.99);
+}
+.fab {
+  bottom: calc(32rpx + env(safe-area-inset-bottom));
+  border-radius: 999rpx;
+  background: var(--zc-primary);
+  box-shadow: 0 18rpx 38rpx rgba(45, 90, 61, 0.28);
 }

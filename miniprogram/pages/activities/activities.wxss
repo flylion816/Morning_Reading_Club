@@ -196,3 +196,23 @@
   font-size: 24rpx;
   color: #ccc;
 }
+
+/* Version 2 consistency polish: activity wall. */
+.page-activities {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 88% 0%, var(--theme-primary-alpha-08) 0, rgba(255, 255, 255, 0) 300rpx),
+    linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.activity-item {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.item-type-tag,
+.item-status {
+  border-radius: 999rpx;
+}
+.activity-item:active {
+  transform: translateY(2rpx) scale(0.99);
+}

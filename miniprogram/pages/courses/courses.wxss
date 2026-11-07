@@ -593,3 +593,43 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* Version 2 consistency polish: course list follows the camp card language. */
+.page-courses {
+  height: 100vh;
+  background:
+    radial-gradient(circle at 88% 0%, var(--theme-primary-alpha-08) 0, rgba(255, 255, 255, 0) 300rpx),
+    linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.page-header {
+  border-radius: 0 0 var(--app-radius-xl) var(--app-radius-xl);
+  box-shadow: 0 18rpx 40rpx var(--theme-primary-alpha-18);
+}
+.action-btn {
+  border-radius: var(--app-radius-md);
+  background: #ffffff;
+  border: 1rpx solid var(--app-border);
+  box-shadow: var(--app-shadow-soft);
+}
+.action-btn-hover {
+  transform: translateY(2rpx) scale(0.985);
+  background: var(--theme-primary-tint);
+}
+.tabs-container {
+  background: rgba(255, 253, 248, 0.94);
+  backdrop-filter: blur(14rpx);
+}
+.tab-item.active {
+  color: var(--theme-primary-dark);
+}
+.course-search-input-wrap,
+.course-search-btn {
+  border-radius: 999rpx;
+}
+.course-search-btn {
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
+  box-shadow: 0 10rpx 20rpx var(--theme-primary-alpha-18);
+}
+.course-search-btn:active {
+  transform: translateY(2rpx) scale(0.98);
+}

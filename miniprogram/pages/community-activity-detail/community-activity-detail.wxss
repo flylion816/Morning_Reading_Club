@@ -575,3 +575,29 @@
 .pay-btn.loading {
   opacity: 0.6;
 }
+
+/* Version 2 consistency polish: activity detail. */
+.page-activity-detail {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.poster-image {
+  border-radius: var(--app-radius-xl);
+}
+.info-card,
+.meeting-card {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.type-tag,
+.status-tag {
+  border-radius: 999rpx;
+}
+.meeting-btn {
+  border-radius: var(--app-radius-md);
+}
+.meeting-btn:active,
+.enroll-btn:active {
+  transform: translateY(2rpx) scale(0.98);
+}

@@ -82,3 +82,23 @@ page {
   color: white;
   border-radius: 8rpx;
 }
+
+/* Version 2 consistency polish: readable agreement document. */
+.page-agreement {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.header {
+  background: linear-gradient(145deg, var(--theme-primary), var(--theme-primary-dark));
+  border-radius: 0 0 var(--app-radius-xl) var(--app-radius-xl);
+}
+.content,
+.section {
+  border-radius: var(--app-radius-md);
+}
+.section-title {
+  letter-spacing: -0.4rpx;
+}
+.btn-secondary {
+  border-radius: var(--app-radius-md);
+}

@@ -222,7 +222,7 @@
   </block>
 
   <block wx:else>
-    <view class="course-header">
+    <view class="course-header app-stagger">
       <view class="course-title">{{course.title}}</view>
     </view>
 

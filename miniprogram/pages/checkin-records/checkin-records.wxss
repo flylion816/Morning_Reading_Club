@@ -478,3 +478,29 @@
   color: #8c97a8;
   padding: 40rpx 0;
 }
+
+/* Version 2 consistency polish: checkin diary. */
+.page-checkin-records {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 88% 0%, var(--theme-primary-alpha-08) 0, rgba(255, 255, 255, 0) 300rpx),
+    linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.hero-card,
+.section-block,
+.period-card {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.period-card {
+  border-radius: var(--app-radius-md);
+}
+.period-card-active {
+  background: var(--theme-primary-tint);
+  border-color: var(--theme-primary-alpha-20);
+}
+.record-card:active,
+.period-card:active {
+  transform: translateY(2rpx) scale(0.99);
+}

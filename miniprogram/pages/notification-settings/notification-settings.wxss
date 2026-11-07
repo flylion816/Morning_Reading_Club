@@ -173,3 +173,28 @@
 .scene-action::after {
   border: none;
 }
+
+/* Version 2 consistency polish: notification preferences. */
+.page-notification-settings {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.settings-header,
+.summary-card,
+.scene-card {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.scene-count,
+.scene-action,
+.subscribe-all-btn {
+  border-radius: 999rpx;
+}
+.subscribe-all-btn {
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
+}
+.subscribe-all-btn:active,
+.scene-action:active {
+  transform: translateY(2rpx) scale(0.98);
+}

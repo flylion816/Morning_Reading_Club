@@ -258,3 +258,28 @@
   font-size: 26rpx;
   color: var(--app-text-muted);
 }
+
+/* Version 2 consistency polish: request cards and status chips. */
+.page-insight-requests {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 90% 0%, var(--theme-primary-alpha-08) 0, rgba(255, 255, 255, 0) 300rpx),
+    linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.request-direction-tabs {
+  border-radius: 999rpx;
+  background: var(--app-paper);
+  box-shadow: var(--app-shadow-soft);
+}
+.request-item {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.request-status {
+  border-radius: 999rpx;
+}
+.request-item:active,
+.request-direction-tab:active {
+  transform: translateY(2rpx) scale(0.99);
+}

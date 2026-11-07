@@ -182,3 +182,29 @@ page {
   color: rgba(255, 255, 255, 0.75);
   line-height: 1.9;
 }
+
+/* Version 2 consistency polish: immersive audio room. */
+.podcast-player-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 10%, var(--theme-primary-alpha-12) 0, rgba(255, 255, 255, 0) 330rpx),
+    linear-gradient(180deg, #22301f 0%, #16211a 100%);
+  color: #f7f8f2;
+}
+.player-cover-art {
+  border-radius: 44rpx;
+  box-shadow: 0 30rpx 60rpx rgba(0, 0, 0, 0.24), inset 0 0 0 1rpx rgba(255, 255, 255, 0.12);
+}
+.player-btn-main {
+  box-shadow: 0 22rpx 42rpx var(--theme-primary-alpha-28);
+}
+.player-btn-main:active {
+  transform: translateY(2rpx) scale(0.97);
+}
+.player-desc-area {
+  border-radius: var(--app-radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+}
+.player-desc-content {
+  color: rgba(247, 248, 242, 0.78);
+}

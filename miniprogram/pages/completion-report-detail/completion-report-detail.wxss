@@ -143,3 +143,27 @@
   color: #ffffff;
   font-size: 28rpx;
 }
+
+/* Version 2 consistency polish: report document page. */
+.page-report-detail {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.report-hero,
+.info-group,
+.pending-box {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.primary-action,
+.secondary-action {
+  border-radius: var(--app-radius-md);
+}
+.primary-action {
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
+}
+.primary-action:active,
+.secondary-action:active {
+  transform: translateY(2rpx) scale(0.98);
+}

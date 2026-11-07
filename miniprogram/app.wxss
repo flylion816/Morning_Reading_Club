@@ -19,6 +19,32 @@ page {
   --app-shadow: 0 14rpx 34rpx rgba(37, 60, 43, 0.07);
   --app-shadow-soft: 0 8rpx 20rpx rgba(37, 60, 43, 0.04);
   --app-inner-line: inset 0 1rpx 0 rgba(255, 255, 255, 0.74);
+  --app-radius-xs: 10rpx;
+  --app-radius-sm: 16rpx;
+  --app-radius-md: 22rpx;
+  --app-radius-lg: 30rpx;
+  --app-radius-xl: 38rpx;
+  --app-space-xs: 8rpx;
+  --app-space-sm: 16rpx;
+  --app-space-md: 24rpx;
+  --app-space-lg: 36rpx;
+  --app-space-xl: 52rpx;
+  --app-font-xs: 22rpx;
+  --app-font-sm: 25rpx;
+  --app-font-md: 28rpx;
+  --app-font-lg: 34rpx;
+  --app-font-xl: 42rpx;
+  --app-font-display: 52rpx;
+  --app-success: #2f7d53;
+  --app-success-soft: #e8f5ec;
+  --app-warning: #96620b;
+  --app-warning-soft: #fff5df;
+  --app-danger: #bd4237;
+  --app-danger-soft: #fff0ee;
+  --app-disabled: #9aa49b;
+  --app-disabled-soft: #eff2ec;
+  --app-overlay: rgba(24, 37, 29, 0.48);
+  --app-press-shadow: 0 5rpx 14rpx rgba(37, 60, 43, 0.10);
   background-color: var(--app-page-bg);
   font-family: 'PingFang SC', 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 28rpx;
@@ -59,4 +85,172 @@ view {
 
 .hidden {
   display: none;
+}
+
+/* Core journey design system. Keep these classes small and composable. */
+.app-card {
+  background: linear-gradient(180deg, var(--app-paper) 0%, #ffffff 100%);
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow-soft);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.app-card-quiet {
+  background: var(--app-surface-muted);
+  border-radius: var(--app-radius-sm);
+  box-shadow: none;
+}
+
+.app-page {
+  min-height: 100vh;
+  padding: var(--app-space-md);
+  box-sizing: border-box;
+}
+
+.app-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-size: var(--app-font-xs);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.app-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  padding: 0 var(--app-space-lg);
+  border-radius: var(--app-radius-md);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  color: #ffffff;
+  font-size: var(--app-font-md);
+  font-weight: 650;
+  line-height: 1.2;
+  box-shadow: 0 14rpx 28rpx var(--theme-primary-alpha-20);
+  transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+}
+
+.app-btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  padding: 0 var(--app-space-lg);
+  border-radius: var(--app-radius-md);
+  background: #ffffff;
+  color: var(--app-text-soft);
+  font-size: var(--app-font-md);
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: inset 0 0 0 2rpx var(--app-border);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.app-btn-primary:active,
+.app-btn-secondary:active,
+.ui-press:active {
+  transform: translateY(2rpx) scale(0.985);
+  box-shadow: var(--app-press-shadow);
+}
+
+.app-safe-bottom {
+  padding-bottom: calc(var(--app-space-md) + env(safe-area-inset-bottom));
+}
+
+.app-skeleton,
+.app-skeleton-line {
+  background: linear-gradient(90deg, #f3f6f0 0%, #ffffff 45%, #f3f6f0 100%);
+  background-size: 300% 100%;
+  animation: appSkeletonMove 1.2s ease infinite;
+}
+
+.app-skeleton {
+  height: 180rpx;
+  border-radius: var(--app-radius-md);
+}
+
+.app-skeleton-line {
+  height: 24rpx;
+  border-radius: 999rpx;
+}
+
+.app-empty,
+.app-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--app-space-sm);
+  padding: var(--app-space-xl) var(--app-space-md);
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+  color: var(--app-text-soft);
+  text-align: center;
+}
+
+.app-empty-title,
+.app-error-title {
+  color: var(--app-text);
+  font-size: var(--app-font-md);
+  font-weight: 650;
+}
+
+.app-empty-action {
+  min-height: 68rpx;
+  padding: 0 var(--app-space-lg);
+  border-radius: 999rpx;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-size: var(--app-font-sm);
+  font-weight: 650;
+  line-height: 68rpx;
+}
+
+.app-error {
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
+}
+
+.app-disabled {
+  background: var(--app-disabled-soft);
+  color: var(--app-disabled);
+  pointer-events: none;
+}
+
+.app-stagger {
+  animation: appSoftEnter 0.36s ease both;
+}
+
+.app-stagger-2 {
+  animation-delay: 0.06s;
+}
+
+.app-stagger-3 {
+  animation-delay: 0.12s;
+}
+
+@keyframes appSoftEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes appSkeletonMove {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
 }

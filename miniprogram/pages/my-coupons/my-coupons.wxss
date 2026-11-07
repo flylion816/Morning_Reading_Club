@@ -146,3 +146,25 @@
   border-radius: 20rpx;
   padding: 4rpx 20rpx;
 }
+
+/* Version 2 consistency polish: coupon cards. */
+.page-my-coupons {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.coupon-card {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.coupon-left {
+  background: linear-gradient(150deg, var(--theme-primary), var(--theme-primary-dark));
+}
+.coupon-status,
+.coupon-use-btn {
+  border-radius: 999rpx;
+}
+.coupon-card:active,
+.coupon-use-btn:active {
+  transform: translateY(2rpx) scale(0.99);
+}

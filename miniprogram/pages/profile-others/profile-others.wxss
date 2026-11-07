@@ -159,3 +159,25 @@
   color: var(--theme-primary);
   font-weight: 500;
 }
+
+/* Version 2 consistency polish: other member profile. */
+.page-profile-others {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 88% 0%, var(--theme-primary-alpha-08) 0, rgba(255, 255, 255, 0) 300rpx),
+    linear-gradient(180deg, var(--app-page-bg) 0%, var(--app-page-bg-deep) 100%);
+}
+.user-card,
+.stats-card,
+.insights-card {
+  border-radius: var(--app-radius-lg);
+  border-color: rgba(49, 72, 56, 0.07);
+  box-shadow: var(--app-shadow-soft);
+}
+.back-btn {
+  border-radius: var(--app-radius-md);
+}
+.insights-link:active,
+.back-btn:active {
+  transform: translateY(2rpx) scale(0.98);
+}
