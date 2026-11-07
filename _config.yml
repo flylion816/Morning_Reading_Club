@@ -1,0 +1,29 @@
+title: Morning Reading Club
+description: Source repository for the Morning Reading Club mini program.
+theme: jekyll-theme-primer
+
+# This repository contains application code and generated engineering notes with
+# JavaScript/Vue expressions that Jekyll's Liquid parser must not interpret.
+# Publish only the repository overview; the production guide is served from
+# https://wx.shubai01.com/admin/admin-guide/.
+exclude:
+  - .agents
+  - .claude
+  - .codex
+  - .codex-ppt-build-20260912
+  - .github
+  - admin
+  - backend
+  - cloudfunctions
+  - docs
+  - exports
+  - graphify-out
+  - meeting-assistant
+  - miniprogram
+  - node_modules
+  - output
+  - scripts
+  - AGENTS.md
+  - CLAUDE.md
+  - design-qa.md
+  - resilience-tree-day0-22.md

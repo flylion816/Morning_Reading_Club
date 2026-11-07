@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const ExternalIntegrationKey = require('../models/ExternalIntegrationKey');
 const { withSystemContext, getCurrentTenantId } = require('../utils/tenantContext');
 const { decryptIntegrationSecret } = require('../services/external-integration-credentials.service');
+const securityAlertService = require('../services/security-alert.service');
 const redisManager = require('../utils/redis');
 
 const MAX_CLOCK_SKEW_SECONDS = 300;
@@ -45,12 +46,28 @@ function externalIntegrationAuth(requiredScope) {
         ExternalIntegrationKey.findOne({
           tenantId,
           keyId,
-          status: 'active',
-          scopes: requiredScope,
-          $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }]
+          status: { $in: ['active', 'revoked'] }
         }).select('+encryptedSecret').lean().exec()
       );
-      if (!integrationKey) return res.status(401).json({ code: 401, message: '外部集成认证无效' });
+      if (!integrationKey) {
+        securityAlertService.recordQuietly(
+          'unknown_external_key',
+          `${tenantId}:${keyId}`,
+          { endpoint: req.originalUrl, detail: 'unknown integration key' }
+        );
+        return res.status(401).json({ code: 401, message: '外部集成认证无效' });
+      }
+      const activeKey = integrationKey.status === 'active' &&
+        integrationKey.scopes?.includes(requiredScope) &&
+        (!integrationKey.expiresAt || new Date(integrationKey.expiresAt) > new Date());
+      if (!activeKey) {
+        securityAlertService.recordQuietly(
+          'revoked_external_key',
+          `${tenantId}:${keyId}`,
+          { endpoint: req.originalUrl, detail: integrationKey.status === 'revoked' ? 'revoked key' : 'inactive key' }
+        );
+        return res.status(401).json({ code: 401, message: '外部集成认证无效' });
+      }
 
       const secret = decryptIntegrationSecret(integrationKey.encryptedSecret);
       const expected = crypto.createHmac('sha256', secret)

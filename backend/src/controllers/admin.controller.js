@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const Admin = require('../models/Admin');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
@@ -6,6 +7,7 @@ const AuditHelper = require('../utils/auditHelper');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
 const { withSystemContext } = require('../utils/tenantContext');
+const securityAlertService = require('../services/security-alert.service');
 const { verifyAdminRefreshToken, generateAdminMaintenanceToken } = require('../utils/jwt');
 const {
   createAdminSession,
@@ -19,6 +21,11 @@ require('dotenv').config();
 
 function isPlatformRole(role) {
   return role === 'platform_superadmin' || role === 'superadmin';
+}
+
+function adminLoginSubject(req) {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  return crypto.createHash('sha256').update(`${email}:${req.ip || 'unknown'}`).digest('hex');
 }
 
 // 管理员登录
@@ -48,9 +55,19 @@ exports.login = async (req, res) => {
     });
 
     if (result.error === 'not_found' || result.error === 'wrong_password') {
+      securityAlertService.recordQuietly(
+        result.error === 'not_found' ? 'admin_account_rejected' : 'admin_login_failure',
+        adminLoginSubject(req),
+        { endpoint: '/auth/admin/login', detail: result.error === 'not_found' ? 'unknown admin' : 'wrong password' }
+      );
       return res.status(401).json(errors.unauthorized('邮箱或密码错误'));
     }
     if (result.error === 'disabled') {
+      securityAlertService.recordQuietly(
+        'admin_account_rejected',
+        adminLoginSubject(req),
+        { endpoint: '/auth/admin/login', detail: 'disabled admin' }
+      );
       return res.status(403).json(errors.forbidden('账户已被禁用'));
     }
 

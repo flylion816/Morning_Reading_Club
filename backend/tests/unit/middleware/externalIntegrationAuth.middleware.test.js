@@ -11,6 +11,9 @@ describe('External integration HMAC authentication', () => {
   let setNxEx;
   let middleware;
   let encryptedSecret;
+  let securityAlerts;
+  let keyRecord;
+  let query;
   let originalEncryptionKey;
 
   function sign(req, timestamp, nonce) {
@@ -47,12 +50,13 @@ describe('External integration HMAC authentication', () => {
     process.env.EXTERNAL_API_KEY_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
     const credentials = require('../../../src/services/external-integration-credentials.service');
     encryptedSecret = credentials.encryptIntegrationSecret(clientSecret);
-    const keyRecord = { keyId: 'n8n-prod', encryptedSecret, status: 'active', scopes: ['insight:write'] };
-    const query = { select: sandbox.stub(), lean: sandbox.stub(), exec: sandbox.stub().resolves(keyRecord) };
+    keyRecord = { keyId: 'n8n-prod', encryptedSecret, status: 'active', scopes: ['insight:write'] };
+    query = { select: sandbox.stub(), lean: sandbox.stub(), exec: sandbox.stub().resolves(keyRecord) };
     query.select.returns(query);
     query.lean.returns(query);
     const keyModel = { findOne: sandbox.stub().returns(query) };
     const redis = { setNxEx: sandbox.stub().resolves(true) };
+    securityAlerts = { recordQuietly: sandbox.stub() };
     setNxEx = redis.setNxEx;
     const tenantContext = {
       getCurrentTenantId: () => tenantId,
@@ -62,7 +66,8 @@ describe('External integration HMAC authentication', () => {
       '../models/ExternalIntegrationKey': keyModel,
       '../utils/tenantContext': tenantContext,
       '../services/external-integration-credentials.service': credentials,
-      '../utils/redis': redis
+      '../utils/redis': redis,
+      '../services/security-alert.service': securityAlerts
     });
     middleware = loaded.externalIntegrationAuth('insight:write');
     now = Date.now;
@@ -94,6 +99,31 @@ describe('External integration HMAC authentication', () => {
     expect(res.statusCode).to.equal(401);
     expect(setNxEx.called).to.equal(false);
     expect(next.called).to.equal(false);
+  });
+
+  it('alerts and rejects a revoked integration key', async () => {
+    keyRecord.status = 'revoked';
+    const req = makeRequest();
+    const res = makeResponse();
+    const next = sandbox.stub();
+    await middleware(req, res, next);
+
+    expect(res.statusCode).to.equal(401);
+    expect(next.called).to.equal(false);
+    expect(securityAlerts.recordQuietly.calledOnce).to.equal(true);
+    expect(securityAlerts.recordQuietly.firstCall.args[0]).to.equal('revoked_external_key');
+  });
+
+  it('alerts and rejects an unknown integration key', async () => {
+    query.exec.resolves(null);
+    const req = makeRequest();
+    const res = makeResponse();
+    const next = sandbox.stub();
+    await middleware(req, res, next);
+
+    expect(res.statusCode).to.equal(401);
+    expect(securityAlerts.recordQuietly.calledOnce).to.equal(true);
+    expect(securityAlerts.recordQuietly.firstCall.args[0]).to.equal('unknown_external_key');
   });
 
   it('rejects a stale timestamp', async () => {
