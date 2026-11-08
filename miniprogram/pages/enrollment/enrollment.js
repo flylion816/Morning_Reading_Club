@@ -36,6 +36,31 @@ function buildFieldVisibility(template = {}) {
   }, {});
 }
 
+function buildFieldRequired(template = {}) {
+  return (template.fields || []).reduce((result, field) => {
+    result[field.id] = !!field.required;
+    return result;
+  }, {});
+}
+
+function validateTemplateStep(form = {}, template = {}, step = 1) {
+  const errors = {};
+  const fields = (template.fields || []).filter(field => field.step === step);
+
+  fields.forEach(field => {
+    const value = form[field.id];
+    if (field.required && (value === undefined || value === null || String(value).trim() === '')) {
+      errors[field.id] = `请填写${field.label || field.id}`;
+    }
+  });
+
+  if (fields.some(field => field.id === 'phone') && form.phone && !/^1\d{10}$/.test(String(form.phone).trim())) {
+    errors.phone = '请输入正确的11位手机号';
+  }
+
+  return errors;
+}
+
 function buildFieldLabels(template = {}) {
   const labels = {
     name: '姓名',
@@ -57,33 +82,6 @@ function buildFieldLabels(template = {}) {
   return labels;
 }
 
-function validateRequiredEnrollmentFields(form) {
-  const errors = {};
-
-  if (!form.periodId) errors.periodId = '请选择报名期数';
-  if (!form.name || form.name.trim() === '') errors.name = '请输入姓名';
-  if (!form.gender) errors.gender = '请选择性别';
-  if (!form.province) errors.province = '请选择所在省份';
-  if (!form.age) {
-    errors.age = '请输入年龄';
-  } else if (isNaN(parseInt(form.age, 10)) || parseInt(form.age, 10) <= 10 || parseInt(form.age, 10) > 120) {
-    errors.age = '年龄必须是10岁以上(11-120之间的数字)';
-  }
-  if (!form.hasReadBook) errors.hasReadBook = '请选择是否读过《高效能人士的七个习惯》';
-  if (form.hasReadBook === 'yes') {
-    if (!form.readTimes) {
-      errors.readTimes = '请输入阅读次数';
-    } else if (isNaN(parseInt(form.readTimes, 10)) || parseInt(form.readTimes, 10) < 1) {
-      errors.readTimes = '阅读次数必须是正整数';
-    }
-  }
-  if (!form.enrollReason || form.enrollReason.trim() === '') errors.enrollReason = '请输入参加课程的缘起';
-  if (!form.expectation || form.expectation.trim() === '') errors.expectation = '请输入对课程的期待';
-  if (!form.commitment) errors.commitment = '请选择是否承诺全程参加';
-
-  return errors;
-}
-
 Page({
   data: {
     // 加载状态
@@ -100,6 +98,7 @@ Page({
     selectedPeriodIcon: '📚',
     enrollmentTemplate: { mode: 'full', isSimple: false, name: '七个习惯完整版', fields: [] },
     fieldVisibility: {},
+    fieldRequired: {},
     fieldLabels: {},
     isSimpleForm: false,
     enrollmentFeeText: '免费',
@@ -310,6 +309,7 @@ Page({
         enrollmentTemplate,
         isSimpleForm: enrollmentTemplate.isSimple,
         fieldVisibility: buildFieldVisibility(enrollmentTemplate),
+        fieldRequired: buildFieldRequired(enrollmentTemplate),
         fieldLabels: buildFieldLabels(enrollmentTemplate),
         enrollmentFeeText: enrollmentPrice.display,
         enrollmentAmountInCents: enrollmentPrice.amountInCents,
@@ -352,6 +352,7 @@ Page({
       enrollmentTemplate: normalizeEnrollmentTemplate(selectedPeriod),
       isSimpleForm: normalizeEnrollmentTemplate(selectedPeriod).isSimple,
       fieldVisibility: buildFieldVisibility(normalizeEnrollmentTemplate(selectedPeriod)),
+      fieldRequired: buildFieldRequired(normalizeEnrollmentTemplate(selectedPeriod)),
       fieldLabels: buildFieldLabels(normalizeEnrollmentTemplate(selectedPeriod)),
       enrollmentFeeText: getEnrollmentPrice(selectedPeriod).display,
       enrollmentAmountInCents: getEnrollmentPrice(selectedPeriod).amountInCents,
@@ -674,27 +675,12 @@ Page({
     if (this.data.isSimpleForm) {
       return;
     }
-    if (currentStep === 1) {
-      // Step1 验证：姓名 + 承诺
-      const errors = {};
-      if (!form.name || !form.name.trim()) errors.name = '请输入姓名';
-      if (!form.commitment) errors.commitment = '请选择是否承诺全程参加';
-      if (Object.keys(errors).length > 0) {
-        this.setData({ errors });
-        wx.showToast({ title: Object.values(errors)[0], icon: 'none' });
-        return;
-      }
-    } else if (currentStep === 2) {
-      const errors = validateRequiredEnrollmentFields(form);
-      delete errors.periodId;
-      delete errors.name;
-      delete errors.commitment;
 
-      if (Object.keys(errors).length > 0) {
-        this.setData({ errors });
-        wx.showToast({ title: Object.values(errors)[0], icon: 'none' });
-        return;
-      }
+    const errors = validateTemplateStep(form, this.data.enrollmentTemplate, currentStep);
+    if (Object.keys(errors).length > 0) {
+      this.setData({ errors });
+      wx.showToast({ title: Object.values(errors)[0], icon: 'none' });
+      return;
     }
     this.setData({ currentStep: currentStep + 1, errors: {} });
   },
