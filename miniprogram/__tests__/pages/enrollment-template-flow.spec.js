@@ -83,6 +83,63 @@ describe('enrollment page template flow', () => {
     expect(pageInstance.validateForm.call(pageInstance)).toBe(true);
   });
 
+  test('custom multi-step template does not require hidden commitment', async () => {
+    enrollmentService.getPeriods.mockResolvedValue([
+      {
+        _id: 'period_space_creation',
+        name: '心想事成',
+        title: '心想事成-空间创造工作坊',
+        enrollmentOpen: true,
+        price: 1,
+        startDate: '2099-11-01T00:00:00.000Z',
+        endDate: '2099-11-07T00:00:00.000Z',
+        enrollmentTemplateSnapshot: {
+          templateId: 'template_space_creation',
+          name: '空间创造报名',
+          preset: 'full',
+          mode: 'full',
+          fields: [
+            { key: 'name', label: '姓名', required: true },
+            { key: 'phone', label: '手机号', required: true },
+            { key: 'expectation', label: '课程期待', required: true }
+          ]
+        }
+      }
+    ]);
+
+    await pageInstance.loadPeriods.call(pageInstance);
+    expect(pageInstance.data.fieldVisibility).toEqual({
+      name: true,
+      phone: true,
+      expectation: true
+    });
+    expect(pageInstance.data.fieldRequired.commitment).toBeUndefined();
+
+    pageInstance.setData({
+      form: {
+        ...pageInstance.data.form,
+        name: '测试学员',
+        phone: '13800000000'
+      }
+    });
+
+    pageInstance.goNextStep.call(pageInstance);
+    expect(wx.showToast).not.toHaveBeenCalled();
+    expect(pageInstance.data.currentStep).toBe(2);
+    expect(pageInstance.data.errors).toEqual({});
+
+    pageInstance.setData({
+      form: {
+        ...pageInstance.data.form,
+        expectation: '让空间更有秩序'
+      }
+    });
+    pageInstance.goNextStep.call(pageInstance);
+    expect(wx.showToast).not.toHaveBeenCalled();
+    expect(pageInstance.data.currentStep).toBe(3);
+    expect(pageInstance.validateForm.call(pageInstance)).toBe(true);
+  });
+
   test('switches the selected period to its own full template and price', async () => {
     const periods = [
       {
