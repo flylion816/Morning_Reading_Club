@@ -1,4 +1,4 @@
-<view class="detail-page" wx:if="{{!loading && imprint}}">
+<view class="detail-page" wx:if="{{socialAccessGranted && !loading && imprint}}">
   <view class="media-section">
     <block wx:if="{{imprint.mediaList && imprint.mediaList.length > 0}}">
       <block wx:for="{{imprint.mediaList}}" wx:key="index">

@@ -39,8 +39,11 @@ function normalizeImprintActivityTypes(imprint) {
   );
 }
 
+const { guardSocialPage } = require('../../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     checking: true,
     mediaList: [],
     title: '',
@@ -86,6 +89,7 @@ Page({
   },
 
   async onLoad(options) {
+    if (!guardSocialPage(this)) return;
     if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
       wx.redirectTo({ url: '/pages/index/index' });
       return;

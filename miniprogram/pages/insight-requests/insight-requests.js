@@ -14,8 +14,11 @@ const {
 
 const INSIGHT_AUTO_TOP_UP_SCENES = ['insight_request_created'];
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     requestDirectionTabs: [
       { value: 'received', label: '收到的' },
       { value: 'sent', label: '我发起的' }
@@ -30,6 +33,7 @@ Page({
   },
 
   onLoad(options = {}) {
+    if (!guardSocialPage(this)) return;
     const direction = options.direction === 'sent' ? 'sent' : 'received';
     this.setData({
       activeRequestDirection: direction,
@@ -38,6 +42,7 @@ Page({
   },
 
   onShow() {
+    if (!this.data.socialAccessGranted) return;
     this.loadPageData();
   },
 

@@ -71,8 +71,11 @@ function normalizeImprint(imprint) {
   };
 }
 
+const { guardSocialPage } = require('../../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     imprint: null,
     comments: [],
     myReaction: null,
@@ -91,6 +94,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!guardSocialPage(this)) return;
     if (!options.id || options.id === 'undefined') {
       wx.redirectTo({ url: '/pages/index/index' });
       return;

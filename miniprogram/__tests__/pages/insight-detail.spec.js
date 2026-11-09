@@ -1,3 +1,7 @@
+jest.mock('../../utils/social-access', () => ({
+  guardSocialPage: jest.fn(() => true)
+}));
+
 jest.mock('../../services/insight.service', () => ({}));
 jest.mock('../../pages/insight-detail/danmaku.service', () => ({
   postDanmaku: jest.fn()

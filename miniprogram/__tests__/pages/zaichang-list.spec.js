@@ -1,3 +1,7 @@
+jest.mock('../../utils/social-access', () => ({
+  guardSocialPage: jest.fn(() => true)
+}));
+
 jest.mock('../../services/imprint.service', () => ({
   list: jest.fn(),
   getActivityTypes: jest.fn()

@@ -1,4 +1,4 @@
-<view class="page-share">
+<view class="page-share" wx:if="{{socialAccessGranted}}">
   <view class="share-card">
     <view class="card-title">✨ 小凡看见</view>
     <view class="card-content">{{shareContent}}</view>

@@ -29,8 +29,11 @@ function formatItems(items) {
   });
 }
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     activities: [],
     loading: true,
     loadingMore: false,
@@ -39,6 +42,7 @@ Page({
   },
 
   onLoad() {
+    if (!guardSocialPage(this)) return;
     this.loadActivities(1);
   },
 

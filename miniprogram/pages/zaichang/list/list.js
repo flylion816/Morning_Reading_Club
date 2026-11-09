@@ -22,8 +22,11 @@ function formatDate(dateStr) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
+const { guardSocialPage } = require('../../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     list: [],
     loading: false,
     page: 1,
@@ -34,6 +37,7 @@ Page({
   },
 
   async onLoad() {
+    if (!guardSocialPage(this)) return;
     if (!tenantStorage.get(constants.STORAGE_KEYS.TOKEN)) {
       wx.redirectTo({ url: '/pages/index/index' });
       return;

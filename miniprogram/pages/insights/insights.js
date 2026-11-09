@@ -43,8 +43,11 @@ function compareInsightsByPeriodAndDayDesc(a, b) {
   return getTimeValue(b.updatedAt || b.createdAt) - getTimeValue(a.updatedAt || a.createdAt);
 }
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     insights: [],
     loading: true,
     insightsHasMore: false,
@@ -85,6 +88,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!guardSocialPage(this)) return;
     // 检查是否是查看他人的小凡看见
     const targetUserId = options.userId;
     const initialTab = (!targetUserId && (options.tab === 'others' || options.tab === 'mine')) ? options.tab : 'mine';

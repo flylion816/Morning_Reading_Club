@@ -1,8 +1,11 @@
 const insightService = require('../../services/insight.service');
 const { renderRichTextContent } = require('../../utils/markdown');
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     insightId: null,
     title: '',
     periodName: '',
@@ -14,6 +17,7 @@ Page({
   _htmlContent: '',
 
   onLoad(options) {
+    if (!guardSocialPage(this)) return;
     if (!options.id) {
       wx.showToast({ title: '参数错误', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 1500);

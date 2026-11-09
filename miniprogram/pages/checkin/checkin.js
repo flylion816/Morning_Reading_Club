@@ -118,8 +118,11 @@ function stripHtmlToText(html = '') {
     .trim();
 }
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     statusBarHeight: 20,
     courseId: null,
     sectionId: null,
@@ -211,6 +214,7 @@ Page({
   },
 
   async onLoad(options) {
+    if (!guardSocialPage(this)) return;
     console.log('打卡页面加载，参数:', options);
 
     // 获取状态栏高度，用于自定义导航栏
