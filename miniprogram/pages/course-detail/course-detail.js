@@ -14,6 +14,10 @@ const { requireLogin } = require('../../utils/require-login');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
 const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
+const {
+  formatShortLessonLabel,
+  getLessonNumberingBase
+} = require('../../utils/lesson');
 const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
 const {
   createPodcastAudioContext,
@@ -123,6 +127,7 @@ Page({
   data: {
     courseId: null,
     periodId: null,
+    lessonNumberingBase: 0,
     paymentStatus: null,
     course: { comments: [] },
     calendar: [],
@@ -1087,11 +1092,10 @@ Page({
     }
 
     const sectionDay =
-      checkin.sectionDay || checkin.day || this.data.course?.day || null;
+      checkin.sectionDay ?? checkin.day ?? this.data.course?.day ?? null;
     const metaParts = [];
-    if (sectionDay) {
-      metaParts.push(`第${sectionDay}天打卡`);
-      metaParts.push(`第${sectionDay}个任务`);
+    if (sectionDay !== null && sectionDay !== undefined) {
+      metaParts.push(`${formatShortLessonLabel(sectionDay, this.data.lessonNumberingBase)}打卡`);
     } else {
       metaParts.push('打卡日记');
     }
@@ -1103,8 +1107,8 @@ Page({
       '';
     const sectionTitle =
       checkin.sectionTitle || this.data.course?.title || '晨读任务';
-    const hashTag = sectionDay
-      ? `#第${sectionDay}天 ${sectionTitle}`
+    const hashTag = sectionDay !== null && sectionDay !== undefined
+      ? `#${formatShortLessonLabel(sectionDay, this.data.lessonNumberingBase)} ${sectionTitle}`
       : `#${sectionTitle}`;
     const checkinId = this.normalizeId(checkin.id || checkin._id);
 
@@ -2280,7 +2284,7 @@ Page({
       const knownPeriodId = this.data.periodId;
       const app = getApp();
       const isLogin = app.globalData.isLogin;
-      let course, access, focusedCheckinDetail;
+      let course, access, focusedCheckinDetail, periodSectionsRes;
 
       // 未登录时跳过权限检查，直接用 locked 状态，避免 401 崩溃
       const getAccess = (pid) => isLogin
@@ -2288,20 +2292,32 @@ Page({
         : Promise.resolve({ communityAccessState: 'locked', canAccessCommunity: false, paymentStatus: null });
 
       if (knownPeriodId) {
-        [course, access, focusedCheckinDetail] = await Promise.all([
+        [course, access, focusedCheckinDetail, periodSectionsRes] = await Promise.all([
           courseService.getCourseDetail(this.data.courseId),
           getAccess(knownPeriodId),
-          checkinDetailPromise
+          checkinDetailPromise,
+          courseService.getPeriodSections(knownPeriodId).catch(() => null)
         ]);
       } else {
-        [course, focusedCheckinDetail] = await Promise.all([
+        [course, focusedCheckinDetail, periodSectionsRes] = await Promise.all([
           courseService.getCourseDetail(this.data.courseId),
-          checkinDetailPromise
+          checkinDetailPromise,
+          Promise.resolve(null)
         ]);
         access = await getAccess(extractId(course.periodId));
       }
 
       const periodId = extractId(course.periodId) || knownPeriodId;
+      if (!periodSectionsRes && periodId) {
+        periodSectionsRes = await courseService.getPeriodSections(periodId).catch(() => null);
+      }
+      const periodSections = periodSectionsRes?.list
+        || periodSectionsRes?.items
+        || periodSectionsRes
+        || [];
+      const lessonNumberingBase = getLessonNumberingBase(
+        (Array.isArray(periodSections) ? periodSections : []).map(section => section.day)
+      );
 
       // 行为追踪（fire-and-forget，不阻塞渲染）
       activityService.track('course_view', {
@@ -2312,6 +2328,8 @@ Page({
         metadata: { title: course.title || course.name || '' }
       });
       const communityEnabled = access.communityAccessState === 'enabled';
+      this.setData({ lessonNumberingBase });
+
       console.log('课程详情权限检查:', {
         courseId: this.data.courseId,
         periodId,

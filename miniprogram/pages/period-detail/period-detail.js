@@ -3,7 +3,8 @@ const courseService = require('../../services/course.service');
 const request = require('../../utils/request');
 const { getPeriodAccess } = require('../../utils/period-access');
 const { formatDateRange, calculatePeriodStatus } = require('../../utils/formatters');
-const { DEFAULT_PRIMARY_COLOR, THEME_PRIMARY } = require('../../utils/theme');
+const { THEME_PRIMARY } = require('../../utils/theme');
+const { getLessonNumber, getLessonNumberingBase } = require('../../utils/lesson');
 const { getBrandName, getBrandedTitle, getDefaultShareImage } = require('../../utils/brand');
 const {
   getPeriodId,
@@ -12,14 +13,9 @@ const {
   formatAmountInYuan
 } = require('../../utils/enrollment-template');
 
-const LEGACY_FANREN_BLUE = DEFAULT_PRIMARY_COLOR;
-
 function normalizePeriodTheme(period = {}) {
-  const displayColor = period.color || period.coverColor || THEME_PRIMARY;
-  const safeDisplayColor = String(displayColor).trim().toLowerCase() === LEGACY_FANREN_BLUE
-    ? THEME_PRIMARY
-    : displayColor;
-  return { ...period, displayColor: safeDisplayColor };
+  // 详情页是统一品牌界面，不继承列表期次图标的自定义颜色。
+  return { ...period, displayColor: THEME_PRIMARY };
 }
 
 function hasValidEnrollment(access = {}) {
@@ -72,9 +68,18 @@ Page({
         courseService.getPeriodSections(periodId),
         this.loadPeriodInfo(periodId)
       ]);
-      let sections = periodRes?.list || periodRes?.items || periodRes || [];
-      sections = Array.isArray(sections)
-        ? sections.filter(section => section.day > 0).sort((a, b) => (a.day || 0) - (b.day || 0))
+      const rawSections = periodRes?.list || periodRes?.items || periodRes || [];
+      const lessonNumberingBase = getLessonNumberingBase(
+        (Array.isArray(rawSections) ? rawSections : []).map(section => section.day)
+      );
+      let sections = Array.isArray(rawSections)
+        ? rawSections
+          .filter(section => section.day >= 0)
+          .map(section => ({
+            ...section,
+            lessonNumber: getLessonNumber(section.day, lessonNumberingBase)
+          }))
+          .sort((a, b) => (a.day || 0) - (b.day || 0))
         : [];
       this.setData({ sections, loading: false });
       if (period && this.isLoggedIn()) {
@@ -156,7 +161,7 @@ Page({
     if (access.isEnrolled && access.paymentStatus === 'pending') {
       if (access.enrollmentId) {
         wx.navigateTo({
-          url: `/pages/payment/payment?enrollmentId=${access.enrollmentId}&periodId=${this.data.periodId}&periodTitle=${encodeURIComponent(getPeriodName(period))}&amount=${Number(period.price || 0)}`
+          url: `/pages/payment/payment?enrollmentId=${access.enrollmentId}&periodId=${this.data.periodId}&periodTitle=${encodeURIComponent(getPeriodName(period))}&startDate=${encodeURIComponent(period.startDate || '')}&endDate=${encodeURIComponent(period.endDate || '')}&amount=${Number(period.price || 0)}`
         });
       } else {
         this.handleEnroll();

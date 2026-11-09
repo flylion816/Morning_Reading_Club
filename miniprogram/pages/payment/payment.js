@@ -59,6 +59,34 @@ function formatAmountInYuan(amountInCents = 0) {
   return (normalizeAmountInCents(amountInCents) / 100).toFixed(2);
 }
 
+function decodeRouteValue(value, fallback = '') {
+  if (value === undefined || value === null || value === '') return fallback;
+  try {
+    return decodeURIComponent(String(value));
+  } catch (_) {
+    return String(value);
+  }
+}
+
+function formatPeriodDate(value = '') {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).split('T')[0];
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function formatAmountParts(amountInCents = 0) {
+  const display = formatAmountInYuan(amountInCents);
+  const [integer, decimal = '00'] = display.split('.');
+  return {
+    currency: '¥',
+    integer,
+    decimal: `.${decimal}`
+  };
+}
+
 Page({
   data: {
     loading: true,
@@ -82,6 +110,7 @@ Page({
     paymentAmountDisplay: '99.00',
     discountAmountDisplay: '0.00',
     finalAmountDisplay: '99.00',
+    finalAmountParts: formatAmountParts(9900),
 
     // 支付结果
     showPaymentResult: false,
@@ -109,12 +138,13 @@ Page({
 
     // amount 单位为"分"（100分 = 1元）
     const finalAmount = normalizeAmountInCents(amount, 0);
+    const decodedPeriodTitle = decodeRouteValue(periodTitle, '晨读营课程');
     this.setData({
       'enrollmentData.enrollmentId': enrollmentId,
       'enrollmentData.periodId': periodId,
-      'enrollmentData.periodTitle': periodTitle || '晨读营课程',
-      'enrollmentData.startDate': startDate || '2025-11-10',
-      'enrollmentData.endDate': endDate || '2025-12-02',
+      'enrollmentData.periodTitle': decodedPeriodTitle,
+      'enrollmentData.startDate': formatPeriodDate(startDate),
+      'enrollmentData.endDate': formatPeriodDate(endDate),
       paymentMethod: 'wechat',
       loading: false
     });
@@ -133,7 +163,8 @@ Page({
       finalAmount: normalizedFinalAmount,
       paymentAmountDisplay: formatAmountInYuan(normalizedAmount),
       discountAmountDisplay: formatAmountInYuan(normalizedDiscount),
-      finalAmountDisplay: formatAmountInYuan(normalizedFinalAmount)
+      finalAmountDisplay: formatAmountInYuan(normalizedFinalAmount),
+      finalAmountParts: formatAmountParts(normalizedFinalAmount)
     });
   },
 
@@ -143,6 +174,16 @@ Page({
       const periods = response.list || response.items || response || [];
       const matchedPeriod = periods.find(item => item.id === periodId || item._id === periodId);
       const latestAmount = normalizeAmountInCents(matchedPeriod?.price, fallbackAmount);
+      if (matchedPeriod) {
+        this.setData({
+          'enrollmentData.periodTitle': decodeRouteValue(
+            matchedPeriod.title || matchedPeriod.name,
+            this.data.enrollmentData.periodTitle
+          ),
+          'enrollmentData.startDate': formatPeriodDate(matchedPeriod.startDate),
+          'enrollmentData.endDate': formatPeriodDate(matchedPeriod.endDate)
+        });
+      }
       this.updateAmountDisplay(latestAmount);
     } catch (error) {
       console.warn('同步期次价格失败，使用页面金额兜底:', error);
@@ -448,6 +489,16 @@ Page({
     const enrollments = tenantStorage.get('enrollments') || [];
     enrollments.unshift(enrollmentInfo);
     tenantStorage.set('enrollments', enrollments);
+
+    // 支付成功后自动重建页面栈，避免用户从课程页连续返回报名/支付页。
+    this._paymentSuccessTimer = setTimeout(() => this.handleSuccess(), 1200);
+  },
+
+  onUnload() {
+    if (this._paymentSuccessTimer) {
+      clearTimeout(this._paymentSuccessTimer);
+      this._paymentSuccessTimer = null;
+    }
   },
 
   /**
@@ -467,20 +518,24 @@ Page({
    */
   handleSuccess() {
     const { enrollmentData } = this.data;
+    if (this._hasRelaunchedAfterPayment) return;
+
+    this._hasRelaunchedAfterPayment = true;
+    if (this._paymentSuccessTimer) {
+      clearTimeout(this._paymentSuccessTimer);
+      this._paymentSuccessTimer = null;
+    }
 
     // 关闭弹窗
     this.closeModal();
 
-    // 用 redirectTo 替换当前支付页面，直接进入课程列表
-    setTimeout(() => {
-      wx.redirectTo({
-        url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
-        fail: () => {
-          // 回退：返回上一页
-          wx.navigateBack({ delta: 1 });
-        }
-      });
-    }, 800);
+    // reLaunch 会清空报名页/期次详情页/支付页形成的整个页面栈。
+    wx.reLaunch({
+      url: `/pages/courses/courses?periodId=${enrollmentData.periodId}`,
+      fail: () => {
+        wx.reLaunch({ url: '/pages/index/index' });
+      }
+    });
   },
 
   /**
@@ -510,10 +565,10 @@ Page({
       success: res => {
         if (res.confirm) {
           // 跳转到课程列表
-          wx.redirectTo({
-            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&name=${enrollmentData.periodTitle}`,
+          wx.reLaunch({
+            url: `/pages/courses/courses?periodId=${enrollmentData.periodId}`,
             fail: () => {
-              wx.navigateBack({ delta: 1 });
+              wx.reLaunch({ url: '/pages/index/index' });
             }
           });
         }

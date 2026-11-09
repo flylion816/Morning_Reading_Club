@@ -358,7 +358,7 @@
                 <el-option
                   v-for="section in sectionOptions"
                   :key="section._id"
-                  :label="`第${section.day}天 - ${section.title}`"
+                  :label="`第${sectionNumberingBase === 0 ? Number(section.day || 0) + 1 : Number(section.day || 1)}课 - ${section.title}`"
                   :value="section._id"
                 />
               </el-select>
@@ -537,6 +537,10 @@ const loadingUsers = ref(false);
 // 课程选择相关
 const sectionOptions = ref<any[]>([]);
 const loadingSections = ref(false);
+const sectionNumberingBase = computed(() => {
+  const days = sectionOptions.value.map(section => Number(section.day));
+  return days.includes(0) || days.length === 0 ? 0 : 1;
+});
 
 const editingInsight = ref<Partial<Insight>>({
   periodId: '',

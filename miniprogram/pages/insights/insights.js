@@ -9,6 +9,7 @@ const { richContentToPlainText } = require('../../utils/markdown');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { formatShortLessonLabel } = require('../../utils/lesson');
 const { getBrandName } = require('../../utils/brand');
 const {
   hasPaidEnrollment,
@@ -265,14 +266,14 @@ Page({
     title = ''
   } = {}) {
     const parts = [];
-    const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(title);
+    const titleHasLesson = /第[一二三四五六七八九十0-9]+[天课]/.test(title);
 
     if (periodName) {
       parts.push(periodName);
     }
 
-    if (dayNumber && !titleHasDay) {
-      parts.push(`第${dayNumber}天`);
+    if (dayNumber !== null && dayNumber !== undefined && !titleHasLesson) {
+      parts.push(formatShortLessonLabel(dayNumber));
     }
 
     if (title) {
@@ -445,7 +446,7 @@ Page({
 
       return {
         id: item._id || item.id,
-        dayNumber: item.day || item.sectionId?.day || null,
+        dayNumber: item.day ?? item.sectionId?.day ?? null,
         courseTitle: item.sectionId?.title || item.title || '学习反馈',
         periodName: periodName || '七个习惯晨读营',
         title: item.sectionId?.title || item.title || periodName || '小凡看见',
@@ -540,7 +541,7 @@ Page({
         id: item._id || item.id,
         title: item.sectionId?.title || item.title || periodName || '小凡看见',
         periodName: periodName || '七个习惯晨读营',
-        dayNumber: item.day || item.sectionId?.day || null,
+        dayNumber: item.day ?? item.sectionId?.day ?? null,
         preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
         mediaType: item.mediaType || 'text',
         imageUrl: item.imageUrl || null,
@@ -865,7 +866,7 @@ Page({
 
         return {
           id: item._id || item.id,
-          dayNumber: item.day || item.sectionId?.day || null,
+          dayNumber: item.day ?? item.sectionId?.day ?? null,
           courseTitle: item.sectionId?.title || item.title || '学习反馈',
           periodName: periodName || '七个习惯晨读营',
           title:

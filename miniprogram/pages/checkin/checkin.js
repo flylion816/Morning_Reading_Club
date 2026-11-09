@@ -8,6 +8,7 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { renderRichTextContent } = require('../../utils/markdown');
 const { getLastTextChar } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getLessonNumber, getLessonNumberingBase } = require('../../utils/lesson');
 const {
   getPeriodAccess,
   extractId,
@@ -359,11 +360,15 @@ Page({
       const response = await courseService.getPeriodSections(periodId, { limit: 365 });
       if (requestId !== this._checkinChoiceRequestId) return;
       const list = Array.isArray(response) ? response : (response?.list || response?.items || []);
-      const sections = (Array.isArray(list) ? list : [])
+      const rawSections = Array.isArray(list) ? list : [];
+      const lessonNumberingBase = getLessonNumberingBase(
+        rawSections.map(section => section.day)
+      );
+      const sections = rawSections
         .filter(section => extractId(section._id || section.id))
         .map(section => ({
           id: extractId(section._id || section.id),
-          name: `第${Number(section.day) || 0}天 · ${section.title || '未命名课程'}`
+          name: `第${getLessonNumber(section.day, lessonNumberingBase)}课 · ${section.title || '未命名课程'}`
         }));
       const preferredIndex = sections.findIndex(section => section.id === preferredSectionId);
       this.setData({

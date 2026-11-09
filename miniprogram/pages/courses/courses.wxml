@@ -1,102 +1,74 @@
-<!--课节列表页-->
-<view class="page-courses">
-  <!-- 头部区域（滚动时收起） -->
-  <view class="page-header {{headerCollapsed ? 'collapsed' : ''}}">
-    <view class="header-content">
-      <view class="period-name">{{periodName}}</view>
-      <view class="period-date">{{periodDate}}</view>
+<!--课节列表页：自定义导航 + 课程工作台-->
+<view class="page-courses page-courses-v3">
+  <view class="course-header" style="padding-top: {{statusBarHeight}}px">
+    <view class="course-nav-row">
+      <view class="course-back" hover-class="course-back-hover" bindtap="handleBack">
+        <view class="course-back-icon"></view>
+      </view>
+      <view class="course-title-group">
+        <text class="course-header-title">{{periodName}}</text>
+        <text class="course-header-date">{{periodDate}}</text>
+      </view>
     </view>
   </view>
 
-  <!-- 待支付提醒横幅 -->
   <view class="payment-banner" wx:if="{{paymentPending}}" bindtap="navigateToPayment">
     <view class="payment-banner-content">
-      <text class="payment-banner-icon">💳</text>
-      <text class="payment-banner-text">您有待支付订单（¥{{periodPriceDisplay}}），点击前往支付</text>
+      <text class="payment-banner-text">待支付 ¥{{periodPriceDisplay}}</text>
+      <text class="payment-banner-caption">点击继续完成报名</text>
     </view>
     <text class="payment-banner-arrow">›</text>
   </view>
 
-  <!-- 共修入口（滚动时收起） -->
-  <view class="action-buttons {{headerCollapsed ? 'collapsed' : ''}}" wx:if="{{communityAccessState === 'enabled'}}">
-    <view class="action-btn" hover-class="action-btn-hover" bindtap="handleRanking">
-      <view class="btn-icon-mark">
-        <text class="btn-icon">🏆</text>
-      </view>
-      <view class="btn-copy">
-        <text class="btn-text">排行榜</text>
-        <text class="btn-subtext">精进榜</text>
+  <view class="quick-board" wx:if="{{sections.length > 0 && communityAccessState === 'enabled'}}">
+    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleRanking">
+      <view class="quick-icon"><text>榜</text></view>
+      <view class="quick-copy">
+        <text class="quick-title">排行榜</text>
+        <text class="quick-caption">精选榜</text>
       </view>
     </view>
-    <view class="action-btn" hover-class="action-btn-hover" bindtap="handleCheckinRecords">
-      <view class="btn-icon-mark">
-        <text class="btn-icon">📅</text>
-      </view>
-      <view class="btn-copy">
-        <text class="btn-text">打卡记录</text>
-        <text class="btn-subtext">每日留痕</text>
+    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleCheckinRecords">
+      <view class="quick-icon"><text>记</text></view>
+      <view class="quick-copy">
+        <text class="quick-title">打卡记录</text>
+        <text class="quick-caption">每日留痕</text>
       </view>
     </view>
-    <view class="action-btn" hover-class="action-btn-hover" bindtap="handleMembers">
-      <view class="btn-icon-mark">
-        <text class="btn-icon">👥</text>
-      </view>
-      <view class="btn-copy">
-        <text class="btn-text">同修</text>
-        <text class="btn-subtext">成员名录</text>
+    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleMembers">
+      <view class="quick-icon"><text>友</text></view>
+      <view class="quick-copy">
+        <text class="quick-title">同修</text>
+        <text class="quick-caption">成员名录</text>
       </view>
     </view>
   </view>
 
-  <!-- 搜索框 -->
-  <view class="course-search-bar" wx:if="{{communityAccessState === 'enabled'}}">
-    <view class="course-search-input-wrap">
-      <input
-        class="course-search-input"
-        placeholder="在标题、内容中搜索关键词"
-        placeholder-style="color:#bbb"
-        value="{{searchKeyword}}"
-        bindinput="onSearchInput"
-        bindconfirm="onSearchSubmit"
-        confirm-type="search"
-      />
-      <view class="course-search-clear" wx:if="{{searchKeyword}}" catchtap="onSearchClear">×</view>
+  <view class="course-toolbar" wx:if="{{sections.length > 0 && communityAccessState === 'enabled'}}">
+    <view class="course-search-bar">
+      <view class="course-search-input-wrap">
+        <input
+          class="course-search-input"
+          placeholder="搜索标题或内容"
+          placeholder-class="course-search-placeholder"
+          value="{{searchKeyword}}"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchSubmit"
+          confirm-type="search"
+        />
+        <view class="course-search-clear" wx:if="{{searchKeyword}}" catchtap="onSearchClear">×</view>
+      </view>
+      <view class="course-search-btn" catchtap="onSearchSubmit">搜索</view>
     </view>
-    <view class="course-search-btn" catchtap="onSearchSubmit">搜索</view>
-  </view>
 
-  <!-- Tab切换 -->
-  <view class="tabs-container" wx:if="{{communityAccessState === 'enabled'}}">
-    <view class="tabs">
-      <view
-        class="tab-item {{currentTab === 'tasks' ? 'active' : ''}}"
-        bindtap="handleTabChange"
-        data-tab="tasks">
-        <text>任务</text>
-        <view class="tab-underline" wx:if="{{currentTab === 'tasks'}}"></view>
-      </view>
-      <view
-        class="tab-item {{currentTab === 'dynamics' ? 'active' : ''}}"
-        bindtap="handleTabChange"
-        data-tab="dynamics"
-        wx:if="{{communityAccessState === 'enabled'}}">
-        <text>动态</text>
-        <view class="tab-underline" wx:if="{{currentTab === 'dynamics'}}"></view>
-      </view>
+    <view class="segment-tabs">
+      <view class="segment-tab {{currentTab === 'tasks' ? 'active' : ''}}" bindtap="handleTabChange" data-tab="tasks">任务</view>
+      <view class="segment-tab {{currentTab === 'dynamics' ? 'active' : ''}}" bindtap="handleTabChange" data-tab="dynamics">动态</view>
     </view>
   </view>
 
-  <!-- 滚动内容区 -->
-  <scroll-view
-    scroll-y
-    class="content-scroll"
-    scroll-top="{{scrollTop}}"
-    scroll-with-animation
-    bindscroll="onContentScroll">
-
-    <!-- 任务区域 -->
+  <scroll-view scroll-y class="content-scroll" scroll-top="{{scrollTop}}" scroll-with-animation bindscroll="onContentScroll">
     <view id="tasks-section" class="section-wrapper">
-      <!-- 课节列表 -->
       <view class="sections-container">
         <view
           wx:for="{{isSearchMode ? filteredSections : sections}}"
@@ -104,20 +76,18 @@
           class="section-card"
           bindtap="handleSectionClick"
           data-section="{{item}}">
-          <!-- 课节标题 -->
-          <view class="section-title-row">
-            <view class="section-title">{{item.title}}</view>
+          <view class="section-card-top">
+            <view class="section-title-copy">
+              <view class="section-title">{{item.title}}</view>
+              <view class="section-time" wx:if="{{item.startTime && item.endTime}}">
+                {{item.startTime.split('T')[0]}} 至 {{item.endTime.split('T')[0]}}
+              </view>
+            </view>
+            <view wx:if="{{item.readingCompleted}}" class="reading-complete-inline">已晨读</view>
           </view>
 
-          <!-- 时间范围 -->
-          <view class="section-time" wx:if="{{item.startTime && item.endTime}}">{{item.startTime.split('T')[0]}} 至 {{item.endTime.split('T')[0]}}</view>
-
-          <!-- 底部：人数信息 + 按钮 -->
           <view class="section-footer">
-            <view class="section-status-line">
-              <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已打卡' : '已学习'}}</text>
-              <text wx:if="{{item.readingCompleted}}" class="reading-complete-inline">已晨读 ✓</text>
-            </view>
+            <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已打卡' : '已学习'}}</text>
             <view class="section-btns">
               <view wx:if="{{isAdmin}}" class="btn-admin-insights" catchtap="handleAdminInsightsClick" data-section="{{item}}">小凡看见</view>
               <view class="btn-action" catchtap="handleCheckinClick" data-section="{{item}}">
@@ -127,29 +97,19 @@
           </view>
         </view>
 
-        <!-- 加载中 -->
         <reading-loader wx:if="{{loading && sections.length === 0}}" text="正在整理今日晨读..." />
 
-        <!-- 空状态 -->
-        <view wx:if="{{!loading && sections.length === 0}}" class="empty-state">
-          <text class="empty-state-icon">📚</text>
-          <text class="empty-state-text">暂无课节</text>
+        <view wx:if="{{!loading && sections.length === 0}}" class="course-empty">
+          <text>暂无课程</text>
         </view>
       </view>
     </view>
 
-    <!-- 动态区域（打卡记录） -->
-    <view id="dynamics-section" class="section-wrapper" wx:if="{{communityAccessState === 'enabled'}}">
+    <view id="dynamics-section" class="section-wrapper" wx:if="{{sections.length > 0 && communityAccessState === 'enabled'}}">
       <view class="all-checkins-section" wx:if="{{allCheckins.length > 0 || checkinTotal > 0}}">
         <view class="checkins-header">
           <text class="checkins-title">每日打卡</text>
-          <text class="checkins-count" wx:if="{{checkinTotal > 0}}">（{{checkinTotal}} 条）</text>
-        </view>
-
-        <!-- 搜索加载状态 -->
-        <view class="empty-state" wx:if="{{searchLoading}}">
-          <text class="empty-state-icon">🔍</text>
-          <text class="empty-state-text">搜索中...</text>
+          <text class="checkins-count" wx:if="{{checkinTotal > 0}}">{{checkinTotal}} 条</text>
         </view>
 
         <view class="checkins-list">
@@ -159,42 +119,32 @@
               <text wx:else class="avatar-text">{{item.avatarText || item.userName}}</text>
             </view>
             <view class="checkin-main">
-              <!-- 用户名 + 第几天标签 + 时间 -->
               <view class="checkin-top">
                 <view class="checkin-user-section">
                   <text class="checkin-user" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
-                  <text class="section-tag">第{{item.sectionDay}}天</text>
+                  <text class="section-tag">第{{item.sectionDay}}课</text>
                 </view>
                 <text class="checkin-time">{{item.createTime}}</text>
               </view>
-              <!-- 打卡内容 -->
               <view class="checkin-content {{item.canExpandContent && !item.contentExpanded ? 'checkin-content-clamped' : ''}}">{{item.content}}</view>
               <view wx:if="{{item.canExpandContent || item.imageCount}}" class="checkin-content-footer">
-                <view
-                  wx:if="{{item.canExpandContent}}"
-                  class="checkin-content-toggle"
-                  catchtap="toggleCheckinContent"
-                  data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
+                <view wx:if="{{item.canExpandContent}}" class="checkin-content-toggle" catchtap="toggleCheckinContent" data-checkin-id="{{item.id}}">{{item.contentExpanded ? '收起' : '展开更多'}}</view>
                 <view wx:if="{{item.imageCount}}" class="checkin-image-count">{{item.imageCount}}张图片</view>
               </view>
             </view>
           </view>
         </view>
 
-        <!-- 加载更多 -->
         <view class="checkin-load-more" wx:if="{{checkinHasMore && !isSearchMode}}">
           <button class="checkin-load-more-btn" bindtap="handleLoadMoreCheckins" loading="{{checkinLoadingMore}}">加载更多</button>
         </view>
-        <!-- 没有更多 -->
         <view class="checkin-no-more" wx:if="{{!checkinHasMore && allCheckins.length > 0 && !isSearchMode}}">
           <text>没有更多打卡记录了</text>
         </view>
       </view>
 
-      <!-- 空状态 -->
-      <view wx:if="{{(isSearchMode ? searchCheckins.length === 0 : allCheckins.length === 0)}}" class="empty-state">
-        <text class="empty-state-icon">📝</text>
-        <text class="empty-state-text">暂无打卡记录</text>
+      <view wx:if="{{(isSearchMode ? searchCheckins.length === 0 : allCheckins.length === 0)}}" class="course-empty course-empty-inner">
+        <text>暂无打卡记录</text>
       </view>
     </view>
   </scroll-view>

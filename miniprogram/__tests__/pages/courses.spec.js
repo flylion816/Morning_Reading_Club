@@ -249,4 +249,32 @@ describe('courses page', () => {
       expect.objectContaining({ _id: 'section_public', title: '公开课节' })
     ]);
   });
+
+  test('should return to the previous page when the course stack exists', () => {
+    global.getCurrentPages = jest.fn(() => [{}, {}]);
+    wx.navigateBack.mockClear();
+    wx.switchTab.mockClear();
+    pageInstance.handleBack.call(pageInstance);
+
+    expect(wx.navigateBack).toHaveBeenCalledWith({ delta: 1 });
+    expect(wx.switchTab).not.toHaveBeenCalled();
+    delete global.getCurrentPages;
+  });
+
+  test('should place the custom navigation below the status bar', () => {
+    pageInstance.onLoad.call(pageInstance, { periodId: 'period_1' });
+
+    expect(pageInstance.data.statusBarHeight).toBe(47);
+  });
+
+  test('should fall back to home after payment relaunches into courses', () => {
+    global.getCurrentPages = jest.fn(() => [{}]);
+    wx.navigateBack.mockClear();
+    wx.switchTab.mockClear();
+    pageInstance.handleBack.call(pageInstance);
+
+    expect(wx.navigateBack).not.toHaveBeenCalled();
+    expect(wx.switchTab).toHaveBeenCalledWith({ url: '/pages/index/index' });
+    delete global.getCurrentPages;
+  });
 });

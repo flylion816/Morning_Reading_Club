@@ -27,6 +27,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .detail-hero {
+  margin: 24rpx 24rpx 0;
   position: relative;
   overflow: hidden;
   padding: 40rpx 32rpx 58rpx;

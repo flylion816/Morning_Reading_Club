@@ -31,6 +31,11 @@ const ADMIN_ROLES = [
 const MAX_DANMAKU_CONTENT_LENGTH = 60;
 const MAX_MANUAL_INSIGHT_CONTENT_LENGTH = 50000;
 
+function formatStandaloneLessonNumber(day) {
+  const number = Number(day);
+  return number === 0 ? 1 : number;
+}
+
 function countUnicodeChars(value) {
   const content = String(value || '');
   if (typeof Intl !== 'undefined' && Intl.Segmenter) {
@@ -261,9 +266,14 @@ async function resolveExternalInsightContext({
     }).select('_id periodId title day');
 
     if (!section) {
+      const periodSections = await Section.find({
+        periodId: period._id
+      }).select('day').lean();
+      const isZeroBased = periodSections.some(item => Number(item.day) === 0);
+      const lessonNumber = isZeroBased ? normalizedDay + 1 : normalizedDay;
       return {
         status: 404,
-        body: errors.notFound(`期次 ${period.name || period.title} 下不存在第 ${normalizedDay} 天课程`)
+        body: errors.notFound(`期次 ${period.name || period.title} 下不存在第 ${lessonNumber} 课`)
       };
     }
   }
@@ -414,9 +424,11 @@ async function findExistingInsightRequest(query, sort = { updatedAt: -1 }) {
 
 async function notifyInsightRequestCreated(req, { request, fromUser, toUser }) {
   const insightTitle = request.requestInsightTitle || '学习反馈';
-  const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
+  const titleHasLesson = /第[一二三四五六七八九十0-9]+[天课]/.test(insightTitle);
   const dayText =
-    request.requestInsightDay && !titleHasDay ? `第${request.requestInsightDay}天` : '';
+    request.requestInsightDay !== null && request.requestInsightDay !== undefined && !titleHasLesson
+      ? `第${formatStandaloneLessonNumber(request.requestInsightDay)}课`
+      : '';
   const remark = [request.requestPeriodName, dayText, insightTitle].filter(Boolean).join(' · ');
 
   try {
@@ -459,7 +471,9 @@ async function notifyInsightCreated(req, { insight, targetUser, periodName, sect
     insight.content || (insight.imageUrl ? '[图片]' : '小凡看见'),
     32
   );
-  const dayText = day ? `第${day}天` : '';
+  const dayText = day !== null && day !== undefined
+    ? `第${formatStandaloneLessonNumber(day)}课`
+    : '';
   const topic = [periodName, dayText, sectionTitle].filter(Boolean).join(' · ');
 
   try {
@@ -730,7 +744,7 @@ async function generateInsight(req, res, next) {
     const mockContent = `
       <div class="insight-content">
         <h3>📊 今日学习洞察</h3>
-        <p>恭喜你完成了第 ${checkin.day} 天的晨读！</p>
+        <p>恭喜你完成了第 ${formatStandaloneLessonNumber(checkin.day)} 课的晨读！</p>
 
         <h4>💪 你的进步</h4>
         <ul>
@@ -751,7 +765,7 @@ async function generateInsight(req, res, next) {
       </div>
     `;
 
-    const mockSummary = `完成第${checkin.day}天学习，阅读${checkin.readingTime || 15}分钟，收获满满！`;
+    const mockSummary = `完成第${formatStandaloneLessonNumber(checkin.day)}课学习，阅读${checkin.readingTime || 15}分钟，收获满满！`;
 
     // 创建反馈
     const insight = await Insight.create({

@@ -404,7 +404,7 @@ async function createSection(req, res, next) {
     }
 
     if (normalizedDay === null) {
-      return res.status(400).json(errors.badRequest('第几天必须是非负整数'));
+      return res.status(400).json(errors.badRequest('第几课必须是有效编号'));
     }
 
     if (!title || !String(title).trim()) {
@@ -480,7 +480,16 @@ async function createSection(req, res, next) {
     res.status(201).json(success(section, message));
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json(errors.badRequest(`该期次的第${  req.body.day  }天课程已存在`));
+      const duplicatedPeriodId = req.body.periodId || req.params.periodId;
+      const existingDays = await Section.find({ periodId: duplicatedPeriodId })
+        .select('day')
+        .lean();
+      const isZeroBased = existingDays.some(item => Number(item.day) === 0);
+      const duplicatedDay = Number(req.body.day || 0);
+      const duplicatedLessonNumber = isZeroBased
+        ? duplicatedDay + 1
+        : duplicatedDay;
+      return res.status(400).json(errors.badRequest(`该期次的第${duplicatedLessonNumber}课已存在`));
     }
     next(error);
   }
@@ -510,7 +519,7 @@ async function notifyPodcastPublished(req, section) {
         targetPage: `pages/course-detail/course-detail?id=${section._id}`,
         subscribeFields: {
           replyUser:    '凡人播客',
-          replyTopic:   `第${section.day + 1}天`,
+          replyTopic:   `第${section.day + 1}课`,
           replyContent: section.title,
           replyTime:    publishTime
         },

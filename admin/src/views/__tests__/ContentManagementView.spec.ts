@@ -37,3 +37,15 @@ describe('ContentManagementView closing video support', () => {
     expect(source).toContain('封面已重新生成，请保存课节');
   });
 });
+
+describe('ContentManagementView lesson numbering', () => {
+  it('adapts lesson numbers to each period day-index convention', () => {
+    expect(source).toContain('label="第几课"');
+    expect(source).toContain('v-model="lessonNumber"');
+    expect(source).toContain(':min="1"');
+    expect(source).toContain('const lessonNumberingBase = computed');
+    expect(source).toContain('days.includes(0) || days.length === 0 ? 0 : 1');
+    expect(source).toContain('lessonNumberingBase.value === 0 ? day + 1 : day');
+    expect(source).toContain('lessonNumberingBase.value === 0 ? next - 1 : next');
+  });
+});
