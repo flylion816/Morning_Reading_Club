@@ -1,4 +1,4 @@
-<view class="page-insight-edit">
+<view class="page-insight-edit" wx:if="{{socialAccessGranted}}">
   <view wx:if="{{loading}}" class="loading-state">
     <text class="loading-text">加载中...</text>
   </view>

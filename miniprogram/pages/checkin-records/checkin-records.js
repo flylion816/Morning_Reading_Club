@@ -155,8 +155,11 @@ function buildHighlightParts(text, keyword) {
   return parts.length > 1 || (parts.length === 1 && parts[0].highlight) ? parts : null;
 }
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     userInfo: {
       userName: '用户',
       avatarUrl: '',
@@ -185,6 +188,7 @@ Page({
   },
 
   async onLoad(options) {
+    if (!guardSocialPage(this)) return;
     const initialPeriodId = options?.periodId || 'all';
     const canAccess = await this.ensureDiaryAccess(initialPeriodId);
     if (!canAccess) {

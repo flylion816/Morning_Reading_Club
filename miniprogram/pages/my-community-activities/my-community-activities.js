@@ -28,8 +28,11 @@ function decorateAnswers(answers = []) {
   }));
 }
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     activities: [],
     selectedActivity: null,
     showRegistrationDetail: false,
@@ -37,6 +40,7 @@ Page({
   },
 
   onLoad() {
+    if (!guardSocialPage(this)) return;
     this.loadMyActivities();
   },
 

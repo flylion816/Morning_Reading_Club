@@ -1,4 +1,4 @@
-<view class="page-bg">
+<view class="page-bg" wx:if="{{socialAccessGranted}}">
   <scroll-view class="type-scroll" scroll-x enhanced show-scrollbar="{{false}}">
     <view class="type-list">
       <view

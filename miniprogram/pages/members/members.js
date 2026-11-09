@@ -7,8 +7,11 @@ const {
   redirectAfterCommunityDenied
 } = require('../../utils/period-access');
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     periodId: null,
 
     // 成员总数
@@ -26,6 +29,7 @@ Page({
   },
 
   async onLoad(options) {
+    if (!guardSocialPage(this)) return;
     console.log('成员列表页面加载', options);
     if (options.periodId) {
       const access = await getPeriodAccess(options.periodId);

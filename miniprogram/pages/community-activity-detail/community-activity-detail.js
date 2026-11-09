@@ -56,8 +56,11 @@ function decorateAnswers(answers = []) {
   }));
 }
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     activityId: '',
     activity: null,
     loading: true,
@@ -86,6 +89,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!guardSocialPage(this)) return;
     if (!options.activityId || options.activityId === 'undefined') {
       wx.redirectTo({ url: '/pages/index/index' });
       return;

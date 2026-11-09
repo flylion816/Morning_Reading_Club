@@ -1,4 +1,4 @@
-<view class="page-profile-others">
+<view class="page-profile-others" wx:if="{{socialAccessGranted}}">
   <!-- 用户信息卡片 -->
   <view class="user-card">
     <view class="user-avatar-wrapper" style="background: {{userInfo.avatarColor || themePrimaryColor}}">

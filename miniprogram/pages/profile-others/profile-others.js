@@ -4,8 +4,11 @@ const logger = require('../../utils/logger');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     userId: null,
     periodId: null,
     userInfo: {},
@@ -26,6 +29,7 @@ Page({
   },
 
   onLoad(options) {
+    if (!guardSocialPage(this)) return;
     const userId = options.userId || options.id;
     if (!userId || userId === 'undefined') {
       wx.redirectTo({ url: '/pages/index/index' });

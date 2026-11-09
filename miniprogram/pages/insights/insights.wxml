@@ -1,4 +1,4 @@
-<view class="page-insights">
+<view class="page-insights" wx:if="{{socialAccessGranted}}">
   <view class="insights-header">
     <view class="header-avatar" style="background: {{headerAvatarColor || themePrimaryColor}}">
       <image wx:if="{{headerAvatarUrl}}" class="header-avatar-image" src="{{headerAvatarUrl}}" mode="aspectFill" />

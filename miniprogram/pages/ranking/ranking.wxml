@@ -1,5 +1,5 @@
 <!--排行榜页面-->
-<view class="page-ranking">
+<view class="page-ranking" wx:if="{{socialAccessGranted}}">
   <!-- 当前用户信息卡片 -->
   <view class="user-card" wx:if="{{currentUser}}">
     <view class="user-info">

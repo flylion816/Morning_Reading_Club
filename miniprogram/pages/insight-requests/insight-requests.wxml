@@ -1,4 +1,4 @@
-<view class="page-insight-requests">
+<view class="page-insight-requests" wx:if="{{socialAccessGranted}}">
   <view class="notification-reminder" wx:if="{{notificationReminder}}">
     <text class="notification-reminder-text">{{notificationReminder}}</text>
     <view class="notification-reminder-link" bindtap="navigateToNotificationSettings">去补充</view>

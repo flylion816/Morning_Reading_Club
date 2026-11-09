@@ -79,8 +79,11 @@ function normalizeInsightDetail(rawInsight) {
   };
 }
 
+const { guardSocialPage } = require('../../utils/social-access');
+
 Page({
   data: {
+    socialAccessGranted: false,
     insightId: null,
     insight: {},
     isDetailReady: false,
@@ -126,6 +129,7 @@ Page({
   _currentScrollPercent: 0,
 
   onLoad(options) {
+    if (!guardSocialPage(this)) return;
     if (!options.id || options.id === 'undefined') {
       wx.redirectTo({ url: '/pages/index/index' });
       return;

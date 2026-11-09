@@ -1,3 +1,7 @@
+jest.mock('../../utils/social-access', () => ({
+  guardSocialPage: jest.fn(() => true)
+}));
+
 jest.mock('../../services/insight.service.js', () => ({
   getSentRequests: jest.fn(),
   getUserInsightsList: jest.fn(),
