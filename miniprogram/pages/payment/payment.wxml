@@ -1,111 +1,98 @@
-<!-- 支付页面 -->
+<!-- 支付页面：订单复核优先，减少装饰性符号和夸张字号 -->
 <view class="page-payment">
-  <!-- 加载中 -->
   <view wx:if="{{loading}}" class="loading">
     <view class="loading-spinner"></view>
     <text>加载中...</text>
   </view>
 
-  <!-- 支付页面内容 -->
   <view wx:else class="payment-container">
-    <!-- 页面头部 -->
-    <view class="payment-header">
-      <view class="header-icon">¥</view>
-      <text class="header-title">确认支付</text>
-      <text class="header-subtitle">完成报名、开启学习</text>
-    </view>
-
-    <!-- 订单信息卡片 -->
-    <view class="order-card">
-      <!-- 课程信息 -->
-      <view class="section">
-        <text class="section-title">报名课程</text>
-        <view class="course-info">
-          <text class="course-title">{{enrollmentData.periodTitle}}</text>
-          <text class="course-subtitle">{{enrollmentData.startDate}} 至 {{enrollmentData.endDate}}</text>
-        </view>
+    <view class="pay-summary">
+      <view class="pay-summary-copy">
+        <text class="pay-summary-kicker">ORDER REVIEW</text>
+        <text class="pay-summary-title">{{enrollmentData.periodTitle}}</text>
+        <text class="pay-summary-date">{{enrollmentData.startDate}} 至 {{enrollmentData.endDate}}</text>
       </view>
-
-      <!-- 分隔线 -->
-      <view class="divider"></view>
-
-      <!-- 金额信息 -->
-      <view class="section">
-        <view class="price-row">
-          <text class="price-label">课程费用</text>
-          <text class="price-value">¥{{paymentAmountDisplay}}</text>
+      <view class="pay-summary-amount">
+        <text class="pay-summary-amount-label">应付</text>
+        <view class="pay-summary-amount-value">
+          <text class="amount-currency">¥</text>
+          <text class="amount-integer">{{finalAmountParts.integer}}</text>
+          <text class="amount-decimal">{{finalAmountParts.decimal}}</text>
         </view>
-        <view class="price-row">
-          <text class="price-label">优惠金额</text>
-          <text class="price-discount">-¥{{discountAmountDisplay}}</text>
-        </view>
-        <view class="divider-light"></view>
-        <view class="price-row total">
-          <text class="price-label">应付金额</text>
-          <text class="price-total">¥{{finalAmountDisplay}}</text>
-        </view>
-      </view>
-
-      <!-- 支付说明 -->
-      <view class="payment-tips">
-        <text class="tip-icon">ℹ️</text>
-        <text class="tip-text">支付成功后，您可以立即进入课程开始学习</text>
       </view>
     </view>
 
-    <!-- 支付方式选择 -->
-    <view class="payment-methods">
-      <view class="methods-heading">
-        <text class="methods-title">支付方式</text>
-        <text class="methods-caption">将拉起微信官方收银台完成付款</text>
+    <view class="pay-card">
+      <view class="pay-line">
+        <text class="pay-line-label">课程费用</text>
+        <text class="pay-line-value">¥{{paymentAmountDisplay}}</text>
       </view>
-
-      <view class="method-item method-item-wechat {{paymentMethod === 'wechat' ? 'active' : ''}}"
-            catchtap="selectPaymentMethod"
-            data-method="wechat">
-        <view class="method-left">
-          <view class="method-icon wechat">
-            <image class="method-icon-image" src="/assets/icons/wechat-pay.svg" mode="aspectFit" />
-          </view>
-          <view class="method-info">
-            <view class="method-name-row">
-              <text class="method-name">微信支付</text>
-              <text class="method-tag">官方</text>
-            </view>
-            <text class="method-desc">微信钱包 / 银行卡 / 零钱</text>
-          </view>
-        </view>
-        <view class="method-check {{paymentMethod === 'wechat' ? 'checked' : ''}}"></view>
+      <view class="pay-line">
+        <text class="pay-line-label">优惠金额</text>
+        <text class="pay-line-value pay-line-discount">-¥{{discountAmountDisplay}}</text>
       </view>
-
-      <!-- 模拟支付（仅开发测试环境显示） -->
-      <view wx:if="{{isDevelopment}}"
-            class="method-item method-item-mock {{paymentMethod === 'mock' ? 'active' : ''}}"
-            catchtap="selectPaymentMethod"
-            data-method="mock">
-        <view class="method-left">
-          <view class="method-dev-badge">DEV</view>
-          <view class="method-info">
-            <text class="method-name">模拟支付（测试用）</text>
-            <text class="method-desc">仅开发调试使用，不影响真实支付流程</text>
-          </view>
+      <view class="pay-line pay-line-strong">
+        <text class="pay-line-label">实际支付</text>
+        <view class="pay-total-value">
+          <text class="pay-total-currency">¥</text>
+          <text class="pay-total-number">{{finalAmountDisplay}}</text>
         </view>
-        <view class="method-check {{paymentMethod === 'mock' ? 'checked' : ''}}"></view>
+      </view>
+      <view class="pay-note">
+        <view class="pay-note-dot"></view>
+        <text>支付成功后自动进入课程</text>
       </view>
     </view>
 
-    <!-- 支付按钮 -->
+    <view class="pay-card pay-method-card">
+      <view class="pay-card-heading">
+        <text class="pay-card-title">支付方式</text>
+        <text class="pay-card-caption">微信官方收银台</text>
+      </view>
+
+      <view
+        class="pay-method {{paymentMethod === 'wechat' ? 'selected' : ''}}"
+        catchtap="selectPaymentMethod"
+        data-method="wechat">
+        <view class="pay-method-brand">
+          <image class="pay-method-logo" src="/assets/icons/wechat-pay.svg" mode="aspectFit" />
+        </view>
+        <view class="pay-method-copy">
+          <view class="pay-method-title-row">
+            <text class="pay-method-title">微信支付</text>
+            <text class="pay-method-badge">官方</text>
+          </view>
+          <text class="pay-method-desc">零钱 / 银行卡 / 微信钱包</text>
+        </view>
+        <view class="pay-method-radio {{paymentMethod === 'wechat' ? 'checked' : ''}}"></view>
+      </view>
+
+      <view
+        wx:if="{{isDevelopment}}"
+        class="pay-method pay-method-mock {{paymentMethod === 'mock' ? 'selected' : ''}}"
+        catchtap="selectPaymentMethod"
+        data-method="mock">
+        <view class="pay-method-brand pay-method-brand-dev">DEV</view>
+        <view class="pay-method-copy">
+          <text class="pay-method-title">模拟支付</text>
+          <text class="pay-method-desc">仅开发调试使用</text>
+        </view>
+        <view class="pay-method-radio {{paymentMethod === 'mock' ? 'checked' : ''}}"></view>
+      </view>
+    </view>
+
     <view class="payment-actions">
-      <button class="btn btn-secondary" catchtap="handleCancel">返回</button>
-      <button class="btn btn-primary"
-              catchtap="handlePayment"
-              disabled="{{!paymentMethod || paying}}"
-              loading="{{paying}}">
-        {{paying ? '支付中...' : '立即支付 ¥' + finalAmountDisplay}}
+      <button class="pay-cancel" catchtap="handleCancel">取消</button>
+      <button class="pay-submit {{paying ? 'is-paying' : ''}}" catchtap="handlePayment" disabled="{{!paymentMethod || paying}}">
+        <block wx:if="{{paying}}">支付中...</block>
+        <block wx:else>
+          <text class="pay-submit-currency">¥</text>
+          <text>{{finalAmountDisplay}}</text>
+          <text class="pay-submit-action">立即支付</text>
+        </block>
       </button>
     </view>
 
-    <!-- 支付结果弹窗 -->
     <view wx:if="{{showPaymentResult}}" class="modal-mask" catchtap="closeModal">
       <view class="modal-content" catchtap="preventClose">
         <view class="result-icon {{paymentResult.success ? 'success' : 'failed'}}">
@@ -113,14 +100,9 @@
         </view>
         <text class="result-title">{{paymentResult.title}}</text>
         <text class="result-message">{{paymentResult.message}}</text>
-
         <view class="modal-actions">
-          <button wx:if="{{!paymentResult.success}}" class="btn btn-secondary" catchtap="closeModal">
-            返回重试
-          </button>
-          <button wx:if="{{paymentResult.success}}" class="btn btn-primary" catchtap="handleSuccess">
-            进入课程
-          </button>
+          <button wx:if="{{!paymentResult.success}}" class="pay-cancel" catchtap="closeModal">返回重试</button>
+          <button wx:if="{{paymentResult.success}}" class="pay-submit" catchtap="handleSuccess">进入课程</button>
         </view>
       </view>
     </view>

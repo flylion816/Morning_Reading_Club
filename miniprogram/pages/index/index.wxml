@@ -63,7 +63,7 @@
             data-id="{{item._id}}"
             bindtap="handleActivityCardTap"
           >
-            <text class="activity-card-type">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : item.type === 'cooking' ? '料理人生' : '活动'}}</text>
+            <text class="activity-card-type">{{item.type === 'witness' ? '见证会' : item.type === 'chat' ? '聊天局' : item.type === 'cooking' ? '料理人生' : '活动局'}}</text>
             <text class="activity-card-title">{{item.title}}</text>
             <text class="activity-card-time">{{item.startDateText}}</text>
           </view>
@@ -154,7 +154,7 @@
         <view class="period-card" wx:if="{{todaySection}}" catchtap="handleTodaySectionClick">
           <view class="period-cover">
             <view class="book-icon-svg"></view>
-            <text class="period-day">Day {{todaySection.dayDisplay}}</text>
+            <text class="period-day">{{todaySection.dayDisplay}}</text>
           </view>
           <view class="period-info-new">
             <view class="period-title-area">

@@ -594,7 +594,7 @@ Page({
       if (this.data.enrollmentAmountInCents > 0 && paymentStatus !== 'paid') {
         if (!enrollmentId) throw new Error('报名已提交，但缺少支付所需的报名编号');
         wx.navigateTo({
-          url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${getPeriodId(selectedPeriod)}&periodTitle=${encodeURIComponent(getPeriodName(selectedPeriod))}&amount=${this.data.enrollmentAmountInCents}`
+          url: `/pages/payment/payment?enrollmentId=${enrollmentId}&periodId=${getPeriodId(selectedPeriod)}&periodTitle=${encodeURIComponent(getPeriodName(selectedPeriod))}&startDate=${encodeURIComponent(selectedPeriod.startDate || '')}&endDate=${encodeURIComponent(selectedPeriod.endDate || '')}&amount=${this.data.enrollmentAmountInCents}`
         });
         return;
       }

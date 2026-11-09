@@ -332,8 +332,8 @@ describe('course-detail page markdown support', () => {
       detailCheckin: {
         id: 'checkin_456',
         userName: '狮子',
-        metaLine: '第2天打卡 | 第2个任务',
-        hashTag: '#第2天 思维方式的力量',
+        metaLine: '第3课打卡',
+        hashTag: '#第3课 思维方式的力量',
         periodChip: '内在之光',
         dateLabel: '2026-03-29 22:11:39',
         content: '哈哈哈哈笑死我了！'
@@ -459,8 +459,8 @@ describe('course-detail page markdown support', () => {
 
     expect(pageInstance.data.detailCheckin).toMatchObject({
       id: 'checkin_456',
-      metaLine: '第20天打卡 | 第20个任务',
-      hashTag: '#第20天 统合综效',
+      metaLine: '第21课打卡',
+      hashTag: '#第21课 统合综效',
       periodChip: '心流之境',
       commentCount: 1,
       images: [
@@ -469,6 +469,33 @@ describe('course-detail page markdown support', () => {
       ]
     });
     expect(pageInstance.data.detailCheckin.dateLabel).toBe('2025-07-04 15:09:53');
+  });
+
+  test('keeps one-based lesson numbers unchanged in course checkin details', () => {
+    pageInstance.setData({
+      lessonNumberingBase: 1,
+      course: {
+        comments: [
+          {
+            id: 'checkin_one_based',
+            userName: '狮子',
+            content: '空间创造',
+            sectionTitle: '空间创造四步曲',
+            sectionDay: 8,
+            checkinDate: '2026-11-08T07:09:53.000Z'
+          }
+        ]
+      },
+      isCheckinDetailMode: true,
+      shareCheckinId: 'checkin_one_based'
+    });
+
+    pageInstance.syncDetailCheckinState.call(pageInstance);
+
+    expect(pageInstance.data.detailCheckin).toMatchObject({
+      metaLine: '第8课打卡',
+      hashTag: '#第8课 空间创造四步曲'
+    });
   });
 
   test('should share selected poster image to WeChat friend', () => {
@@ -561,7 +588,7 @@ describe('course-detail page markdown support', () => {
     const snapshot = pageInstance.buildPosterSnapshot.call(pageInstance, {
       userName: '狮子',
       content: '第一段内容\n第二段内容',
-      hashTag: '#第20天 统合综效',
+      hashTag: '#第21课 统合综效',
       periodChip: '心流之境',
       dateLabel: '2025-07-04 15:09:53',
       sectionTitle: '统合综效',
@@ -574,7 +601,7 @@ describe('course-detail page markdown support', () => {
     expect(snapshot.titleLines[0]).toContain('狮子的打卡日记');
     expect(snapshot.contentLines).toContain('第一段内容');
     expect(snapshot.contentTruncated).toBe(false);
-    expect(snapshot.tagLines[0]).toBe('#第20天 统合综效');
+    expect(snapshot.tagLines[0]).toBe('#第21课 统合综效');
     expect(snapshot.statsLine).toBe('获赞 4 · 评论 2');
     expect(snapshot.miniProgramCodePath).toBe('/assets/images/mini-program-code.jpg');
   });
@@ -585,7 +612,7 @@ describe('course-detail page markdown support', () => {
     const snapshot = pageInstance.buildPosterSnapshot.call(pageInstance, {
       userName: '狮子',
       content,
-      hashTag: '#第3天 第三天 以原则为中心的思维方式',
+      hashTag: '#第4课 第三天 以原则为中心的思维方式',
       periodChip: '秩序之锚 - 七个习惯晨读营',
       dateLabel: '2026-05-12 10:41:25',
       sectionTitle: '第三天 以原则为中心的思维方式'
@@ -604,7 +631,7 @@ describe('course-detail page markdown support', () => {
       {
         userName: '狮子',
         content,
-        hashTag: '#第3天 第三天 以原则为中心的思维方式',
+        hashTag: '#第4课 第三天 以原则为中心的思维方式',
         periodChip: '秩序之锚 - 七个习惯晨读营',
         dateLabel: '2026-05-12 10:41:25',
         sectionTitle: '第三天 以原则为中心的思维方式'
@@ -622,7 +649,7 @@ describe('course-detail page markdown support', () => {
     await pageInstance.generateLongImagePoster.call(pageInstance, {
       userName: '狮子',
       content: '测试正文',
-      hashTag: '#第20天 统合综效',
+      hashTag: '#第21课 统合综效',
       periodChip: '心流之境',
       dateLabel: '2025-07-04 15:09:53',
       sectionTitle: '统合综效',

@@ -54,13 +54,13 @@
           <text class="card-kicker">LEARNING PATH</text>
           <text class="card-title">课程大纲</text>
         </view>
-        <text class="outline-count">{{sections.length || period.totalDays || 0}} 天</text>
+        <text class="outline-count">{{sections.length || period.totalDays || 0}} 课</text>
       </view>
       <view class="outline-list">
         <view wx:for="{{sections}}" wx:key="_id" class="outline-item">
           <view class="outline-day">
-            <text class="outline-day-label">DAY</text>
-            <text class="outline-day-number">{{item.day}}</text>
+            <text class="outline-day-label">LESSON</text>
+            <text class="outline-day-number">{{item.lessonNumber}}</text>
           </view>
           <view class="outline-copy">
             <text class="outline-title">{{item.title || '当天课程'}}</text>

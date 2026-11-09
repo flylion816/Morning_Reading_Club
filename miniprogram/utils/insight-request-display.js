@@ -1,5 +1,6 @@
 const { getAvatarColorByUserId } = require('./formatters');
 const { getLastTextChar } = require('./avatar');
+const { formatShortLessonLabel } = require('./lesson');
 
 function formatRelativeTime(dateString) {
   if (!dateString) return '刚刚';
@@ -63,12 +64,14 @@ function buildInsightRequestDisplay(item, options = {}) {
     item.insightId?.title ||
     '学习反馈';
   const insightDay =
-    item.requestInsightDay ||
-    item.insightId?.day ||
-    item.insightId?.sectionId?.day ||
+    item.requestInsightDay ??
+    item.insightId?.day ??
+    item.insightId?.sectionId?.day ??
     null;
-  const titleHasDay = /第[一二三四五六七八九十0-9]+天/.test(insightTitle);
-  const dayText = insightDay && !titleHasDay ? `第${insightDay}天` : '';
+  const titleHasLesson = /第[一二三四五六七八九十0-9]+[天课]/.test(insightTitle);
+  const dayText = insightDay !== null && insightDay !== undefined && !titleHasLesson
+    ? formatShortLessonLabel(insightDay)
+    : '';
   const metaParts = [periodName];
   if (dayText) metaParts.push(dayText);
   if (insightTitle) metaParts.push(insightTitle);

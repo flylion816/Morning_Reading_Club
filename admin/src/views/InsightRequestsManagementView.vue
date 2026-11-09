@@ -540,7 +540,7 @@ const getRequestInsightDay = (request?: InsightRequest | null) => {
   }
 
   if (typeof request.insightId === 'object') {
-    return request.insightId?.day || request.insightId?.sectionId?.day || null;
+    return request.insightId?.day ?? request.insightId?.sectionId?.day ?? null;
   }
 
   return null;
@@ -551,13 +551,16 @@ const getRequestCourseSummary = (request?: InsightRequest | null) => {
 
   const insightTitle = getRequestInsightTitle(request);
   const insightDay = getRequestInsightDay(request);
+  const lessonNumber = Number(insightDay) === 0
+    ? 1
+    : Number(insightDay);
 
-  if (insightDay && insightTitle) {
-    return `第${insightDay}天 · ${insightTitle}`;
+  if (insightDay !== null && insightTitle) {
+    return `第${lessonNumber}课 · ${insightTitle}`;
   }
 
-  if (insightDay) {
-    return `第${insightDay}天`;
+  if (insightDay !== null) {
+    return `第${lessonNumber}课`;
   }
 
   return insightTitle;

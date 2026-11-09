@@ -397,7 +397,7 @@
           <el-table-column label="课程" width="300">
             <template #default="{ row }">
               <div v-if="row.sectionId && typeof row.sectionId === 'object'">
-                Day {{ row.sectionId.day }} - {{ row.sectionId.title }}
+                第{{ getCheckinLessonNumber(row) }}课 - {{ row.sectionId.title }}
               </div>
               <div v-else>-</div>
             </template>
@@ -483,7 +483,7 @@
               <div
                 v-if="selectedCheckin.sectionId && typeof selectedCheckin.sectionId === 'object'"
               >
-                Day {{ selectedCheckin.sectionId.day }} - {{ selectedCheckin.sectionId.title }}
+                第{{ getCheckinLessonNumber(selectedCheckin) }}课 - {{ selectedCheckin.sectionId.title }}
               </div>
             </el-descriptions-item>
 
@@ -743,6 +743,24 @@ const total = ref(0);
 
 const detailDialogVisible = ref(false);
 const selectedCheckin = ref<Checkin | null>(null);
+
+const getCheckinPeriodId = (checkin?: Checkin | null) => String(
+  checkin?.periodId?._id || checkin?.periodId || ''
+);
+
+const getCheckinLessonNumber = (checkin?: Checkin | null) => {
+  const day = Number(checkin?.sectionId?.day);
+  if (!Number.isFinite(day) || day < 0) return 1;
+
+  const periodId = getCheckinPeriodId(checkin);
+  const peers = periodId
+    ? checkins.value.filter(item => getCheckinPeriodId(item) === periodId)
+    : checkins.value;
+  const isZeroBased = peers.some(
+    item => Number(item.sectionId?.day) === 0
+  );
+  return isZeroBased ? day + 1 : day;
+};
 
 const editDialogVisible = ref(false);
 const editingCheckin = ref<Checkin | null>(null);

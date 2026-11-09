@@ -27,6 +27,11 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { tenantStorage } = require('../../utils/storage');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const {
+  getLessonNumberingBase,
+  formatLessonLabel,
+  formatShortLessonLabel
+} = require('../../utils/lesson');
+const {
   buildInsightRequestDisplay,
   extractInsightRequests
 } = require('../../utils/insight-request-display');
@@ -201,11 +206,11 @@ function compareInsightsByPeriodAndDayDesc(a, b) {
 
 function buildInsightCourseDisplay(item = {}) {
   const section = item.sectionId && typeof item.sectionId === 'object' ? item.sectionId : {};
-  const day = section.day || item.day || '';
+  const day = section.day ?? item.day ?? null;
   const title = section.title || item.title || '学习反馈';
 
   return {
-    dayLabel: day ? `第${day}天` : '',
+    dayLabel: day === null ? '' : formatShortLessonLabel(day),
     title
   };
 }
@@ -257,7 +262,9 @@ function buildRecentCheckinCard(item) {
     preview,
     imageCount,
     likeCount: item.likeCount || 0,
-    dayLabel: sectionInfo.day ? `第${sectionInfo.day}天` : '',
+    dayLabel: sectionInfo.day === null || sectionInfo.day === undefined
+      ? ''
+      : formatShortLessonLabel(sectionInfo.day),
     dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
     icon: periodInfo.coverEmoji || periodInfo.icon || '📘',
     color: periodInfo.coverColor || periodInfo.color || THEME_PRIMARY
@@ -877,7 +884,7 @@ Page({
         hasValidTask && currentPeriodActiveToday && taskMatchesCurrentPeriod;
 
       // ── Wave 2: 依赖 Wave1 的两个请求并行 ──────────────────────
-      const [sectionRes, currentPeriodAccess] = await Promise.all([
+      const [sectionRes, currentPeriodAccess, currentPeriodSectionsRes] = await Promise.all([
         shouldUseTodayTask
           ? courseService.getSectionDetail(taskRes.sectionId)
           : Promise.resolve(null),
@@ -890,8 +897,19 @@ Page({
             canAccessCommunity: false,
             communityAccessState: 'locked',
             paymentStatus: null
-          })
+          }),
+        currentPeriodId && currentPeriodActiveToday
+          ? Promise.resolve(courseService.getPeriodSections(currentPeriodId)).catch(() => null)
+          : Promise.resolve(null)
       ]);
+      const currentPeriodSections = currentPeriodSectionsRes?.list
+        || currentPeriodSectionsRes?.items
+        || currentPeriodSectionsRes
+        || [];
+      const lessonNumberingBase = getLessonNumberingBase(
+        (Array.isArray(currentPeriodSections) ? currentPeriodSections : [])
+          .map(section => section.day)
+      );
 
       // 构建 todaySection（只保留展示需要的字段，避免传输全课节内容）
       let todaySection = null;
@@ -918,7 +936,7 @@ Page({
           _id: sectionRes._id || taskRes.sectionId,
           id: sectionRes.id || taskRes.sectionId,
           day: taskRes.day,
-          dayDisplay: String(typeof taskRes.day === 'number' ? taskRes.day : 0).padStart(2, '0'),
+          dayDisplay: formatLessonLabel(taskRes.day, lessonNumberingBase),
           title: sectionRes.title,
           periodId: taskRes.periodId,
           periodTitle: taskRes.periodTitle,
@@ -954,10 +972,7 @@ Page({
       } else if (currentPeriodActiveToday && currentPeriodId) {
         // 仅进行中的期次允许兜底找未打卡课节；已结束期次不再伪装成今日任务。
         try {
-          const sectionsRes =
-            await courseService.getPeriodSections(currentPeriodId);
-          const sections =
-            sectionsRes.list || sectionsRes.items || sectionsRes || [];
+          const sections = currentPeriodSections;
           const section = selectFallbackTodaySection(sections, {
             periodEnded
           });
@@ -966,7 +981,7 @@ Page({
               _id: section._id,
               id: section.id,
               day: section.day,
-              dayDisplay: String(typeof section.day === 'number' ? section.day : 0).padStart(2, '0'),
+              dayDisplay: formatLessonLabel(section.day, lessonNumberingBase),
               title: section.title,
               periodId: currentPeriodId,
               periodTitle: currentPeriod?.title,
@@ -1322,7 +1337,9 @@ Page({
 
         return {
           id: item._id || item.id,
-          day: `第${item.day}天`,
+          day: item.day === null || item.day === undefined
+            ? ''
+            : formatShortLessonLabel(item.day),
           title: item.sectionId?.title || '学习反馈',
           courseTitle: courseDisplay.title,
           courseDayLabel: courseDisplay.dayLabel,

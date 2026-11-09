@@ -33,7 +33,9 @@
         </template>
 
         <el-table :data="sections" stripe style="width: 100%; margin-bottom: 20px">
-          <el-table-column prop="day" label="第几天" width="80" />
+          <el-table-column label="第几课" width="80">
+            <template #default="{ row }">{{ getLessonNumber(row.day, lessonNumberingBase) }}</template>
+          </el-table-column>
           <el-table-column prop="title" label="课程标题" min-width="200" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
@@ -105,8 +107,8 @@
             <div class="section-title"><span class="lesson-section-index">01</span>基本信息</div>
 
             <div class="lesson-basic-grid">
-            <el-form-item class="lesson-day-field" label="第几天">
-              <el-input-number v-model="editingSection.day" :min="0" :max="30" />
+            <el-form-item class="lesson-day-field" label="第几课">
+              <el-input-number v-model="lessonNumber" :min="1" :max="31" />
             </el-form-item>
 
             <el-form-item class="lesson-title-field" label="课程标题" required>
@@ -862,6 +864,33 @@ const editDialogVisible = ref(false);
 const isNewSection = ref(false);
 const editingSection = ref<SectionForm>(createEmptySectionDraft());
 
+const lessonNumberingBase = computed(() => {
+  const days = sections.value.map(section => Number(section.day));
+  return days.includes(0) || days.length === 0 ? 0 : 1;
+});
+
+function getLessonNumber(day: number, numberingBase: number) {
+  const number = Number(day);
+  if (!Number.isFinite(number) || number < 0) return 1;
+  return numberingBase === 0 ? number + 1 : number;
+}
+
+// The API keeps period-specific day indexing; the form always uses lesson numbers.
+const lessonNumber = computed({
+  get: () => {
+    const day = Number(editingSection.value?.day || 0);
+    return lessonNumberingBase.value === 0 ? day + 1 : day;
+  },
+  set: value => {
+    const next = Number(value);
+    if (!Number.isFinite(next) || next < 1) {
+      editingSection.value.day = 0;
+      return;
+    }
+    editingSection.value.day = lessonNumberingBase.value === 0 ? next - 1 : next;
+  }
+});
+
 onMounted(() => {
   loadPeriods();
 });
@@ -914,7 +943,9 @@ async function handleAddSection() {
   contentEditorMode.value = 'markdown';
   editingSection.value = createEmptySectionDraft({
     periodId: selectedPeriodId.value || undefined,
-    day: sections.value.length,
+    day: lessonNumberingBase.value === 0
+      ? sections.value.length
+      : Math.max(0, ...sections.value.map(section => Number(section.day || 0))) + 1,
   });
   podcastFileName.value = '';
   closingVideoFileName.value = '';

@@ -300,7 +300,7 @@ describe('index page', () => {
       sectionId: 'section_1',
       periodTitle: '内在之光',
       sectionTitle: '第一天 品德成功论',
-      dayLabel: '第1天',
+      dayLabel: '第1课',
       preview: '中心是因，人生是果。因缘果报，随缘消旧业...',
       likeCount: 2
     });
@@ -353,7 +353,7 @@ describe('index page', () => {
     expect(cards).toHaveLength(1);
     expect(cards[0]).toMatchObject({
       id: 'insight_1',
-      courseDayLabel: '第2天',
+      courseDayLabel: '第2课',
       courseTitle: '思维方式的力量',
       periodName: '韧性之树'
     });
@@ -387,7 +387,7 @@ describe('index page', () => {
     expect(pageInstance.data.recentOtherInsights).toHaveLength(1);
     expect(pageInstance.data.recentOtherInsights[0]).toMatchObject({
       id: 'insight_other_1',
-      courseDayLabel: '第3天',
+      courseDayLabel: '第3课',
       courseTitle: '以原则为中心',
       periodName: '内在之光'
     });
@@ -781,8 +781,8 @@ describe('index page', () => {
       list: [
         {
           _id: 'period_current',
-          title: '秩序之锚',
-          name: '秩序之锚',
+          title: '心想事成',
+          name: '心想事成',
           startDate: '2000-01-01T00:00:00.000Z',
           endDate: '2099-12-31T00:00:00.000Z',
           coverColor: '#4a90e2',
@@ -801,10 +801,10 @@ describe('index page', () => {
       ]
     });
     courseService.getTodayTask.mockResolvedValue({
-      sectionId: 'section_day_6',
+      sectionId: 'section_day_1',
       periodId: 'period_current',
-      periodTitle: '秩序之锚',
-      day: 6,
+      periodTitle: '心想事成',
+      day: 1,
       checkinCount: 2,
       checkinUsers: [],
       isCheckedIn: false,
@@ -813,9 +813,15 @@ describe('index page', () => {
       readingDurationMs: 92000
     });
     courseService.getSectionDetail.mockResolvedValue({
-      _id: 'section_day_6',
-      title: '第六天 积极主动',
+      _id: 'section_day_1',
+      title: '空间构想',
       readingCompleted: false
+    });
+    courseService.getPeriodSections.mockResolvedValue({
+      list: [
+        { _id: 'section_day_1', day: 1, title: '空间构想' },
+        { _id: 'section_day_8', day: 8, title: '空间创造四步曲' }
+      ]
     });
     periodAccess.getPeriodAccess.mockResolvedValue({
       canAccessCommunity: true,
@@ -829,8 +835,9 @@ describe('index page', () => {
     await pageInstance.loadUserData.call(pageInstance, true);
 
     expect(pageInstance.data.todaySection).toMatchObject({
-      _id: 'section_day_6',
-      day: 6,
+      _id: 'section_day_1',
+      day: 1,
+      dayDisplay: '第 01 课',
       readingCompleted: true,
       readingCompletedAt: '2026-05-15T08:00:00.000Z',
       readingDurationMs: 92000

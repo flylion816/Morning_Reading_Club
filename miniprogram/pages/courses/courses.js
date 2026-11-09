@@ -10,6 +10,7 @@ const {
 } = require('../../utils/reading-completion');
 const { isAdminUser } = require('../../utils/auth');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getLessonNumber, getLessonNumberingBase } = require('../../utils/lesson');
 const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
 
 // 相对时间格式化（与课程详情页统一）
@@ -48,6 +49,7 @@ function formatAmountInYuan(amountInCents = 0) {
 
 Page({
   data: {
+    statusBarHeight: 0,
     periodId: null,
     periodName: '',
     periodDate: '',
@@ -90,6 +92,12 @@ Page({
     this._pendingLoadOptions = options;
 
     const app = getApp();
+    try {
+      const systemInfo = wx.getSystemInfoSync();
+      this.setData({ statusBarHeight: Number(systemInfo.statusBarHeight) || 0 });
+    } catch (_) {
+      this.setData({ statusBarHeight: 0 });
+    }
     // 公开阅读期次允许访客查看课程列表；只有报名、打卡和互动才需要登录。
     if (!app.globalData.isLogin) {
       this.setData({
@@ -226,6 +234,9 @@ Page({
     const imageCount = Array.isArray(checkin.images) ? checkin.images.filter(Boolean).length : 0;
     const content = checkin.note || (imageCount > 0 ? `分享了${imageCount}张图片` : '');
     const id = checkin._id || checkin.id;
+    const lessonNumberingBase = getLessonNumberingBase(
+      this.data.sections.map(section => section.day)
+    );
 
     return {
       id,
@@ -237,7 +248,7 @@ Page({
       avatarColor: getAvatarColorByUserId(userId),
       sectionId: checkin.sectionId?._id || checkin.sectionId,
       sectionTitle: checkin.sectionId?.title || '未知课程',
-      sectionDay: checkin.sectionId?.day || 0,
+      sectionDay: getLessonNumber(checkin.sectionId?.day, lessonNumberingBase),
       content,
       imageCount,
       canExpandContent: this.shouldFoldCheckinContent(content),
@@ -608,11 +619,11 @@ Page({
    * 跳转到支付页面
    */
   navigateToPayment() {
-    const { paymentEnrollmentId, periodId, periodName, periodPrice } =
+    const { paymentEnrollmentId, periodId, periodName, periodPrice, periodStartDate } =
       this.data;
     if (!paymentEnrollmentId) return;
     wx.navigateTo({
-      url: `/pages/payment/payment?enrollmentId=${paymentEnrollmentId}&periodId=${periodId}&periodTitle=${periodName || ''}&amount=${Number(periodPrice || 0)}`
+      url: `/pages/payment/payment?enrollmentId=${paymentEnrollmentId}&periodId=${periodId}&periodTitle=${encodeURIComponent(periodName || '')}&startDate=${encodeURIComponent(periodStartDate || '')}&amount=${Number(periodPrice || 0)}`
     });
   },
 
@@ -651,11 +662,21 @@ Page({
     this._lastScrollTop = scrollTop;
   },
 
-  /**
-   * 返回首页
-   */
   handleBack() {
-    wx.navigateBack();
+    let pages = [];
+    try {
+      pages = getCurrentPages() || [];
+    } catch (_) {
+      pages = [];
+    }
+
+    if (pages.length > 1) {
+      wx.navigateBack({ delta: 1 });
+      return;
+    }
+
+    // 支付成功后会 reLaunch 到课程页，此时没有上一级，兜底回首页。
+    wx.switchTab({ url: '/pages/index/index' });
   },
 
   /**
