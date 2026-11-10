@@ -22,6 +22,7 @@ const auditLogSchema = new mongoose.Schema(
         'READ', // 查看
         'UPDATE', // 更新
         'DELETE', // 删除
+        'CANCEL', // 取消
         'APPROVE', // 审批通过
         'REJECT', // 审批拒绝
         'EXPORT', // 导出

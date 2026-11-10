@@ -147,7 +147,9 @@ export interface Enrollment {
   wechatId?: string;
   enrollReason?: string;
   expectation?: string;
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: 'active' | 'completed' | 'withdrawn';
+  paymentStatus?: 'pending' | 'paid' | 'refunded' | 'free';
+  withdrawnAt?: string;
   enrolledAt?: string;
   createdAt?: string;
   updatedAt?: string;

@@ -9,6 +9,7 @@ const {
   getUserParticipationCount,
   checkEnrollment,
   withdrawEnrollment,
+  adminCancelEnrollment,
   completeEnrollment,
   getCompletionReportEnrollments,
   updateCompletionReport,
@@ -51,6 +52,7 @@ router.delete('/:id/completion-report', adminAuthMiddleware, adminTenantContext,
 router.get('/', adminAuthMiddleware, adminTenantContext, getEnrollments);
 router.post('/sync-nicknames', adminAuthMiddleware, adminTenantContext, syncNicknamesFromEnrollments);
 router.put('/:id', adminAuthMiddleware, adminTenantContext, updateEnrollment);
+router.post('/:id/cancel', adminAuthMiddleware, adminTenantContext, adminCancelEnrollment);
 router.delete('/:id', adminAuthMiddleware, adminTenantContext, deleteEnrollment);
 
 // ===== 用户路由 =====

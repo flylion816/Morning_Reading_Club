@@ -251,6 +251,8 @@ export const enrollmentApi = {
     apiClient.post(`/enrollments/${id}/reject`, data),
   updateEnrollment: (id: string, data: any) =>
     apiClient.put(`/enrollments/${id}`, data),
+  cancelEnrollment: (id: string) =>
+    apiClient.post(`/enrollments/${id}/cancel`),
   getFormStatistics: (params?: any) =>
     apiClient.get('/enrollments/form-statistics', { params }),
   syncNicknamesFromEnrollments: () =>

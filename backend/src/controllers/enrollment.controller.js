@@ -912,6 +912,52 @@ exports.withdrawEnrollment = async (req, res) => {
 };
 
 /**
+ * 管理员取消报名
+ * POST /api/v1/enrollments/:id/cancel
+ */
+exports.adminCancelEnrollment = async (req, res) => {
+  try {
+    const tenantId = getRequiredTenantId(res);
+    if (!tenantId) return;
+
+    const enrollmentId = toObjectId(req.params.id);
+    if (!enrollmentId) {
+      return res.status(400).json(errors.badRequest('报名记录 ID 格式不正确'));
+    }
+
+    const enrollment = await Enrollment.findOne({
+      _id: enrollmentId,
+      tenantId,
+      deleted: { $ne: true }
+    });
+    if (!enrollment) {
+      return res.status(404).json(errors.notFound('报名记录不存在'));
+    }
+    if (enrollment.status !== 'active') {
+      return res.status(400).json(errors.badRequest('仅进行中的报名可以取消'));
+    }
+
+    await enrollment.withdraw();
+    await Period.findByIdAndUpdate(enrollment.periodId, {
+      $inc: { enrollmentCount: -1 }
+    });
+    publishSyncEvent({
+      type: 'update',
+      collection: 'enrollments',
+      documentId: enrollment._id.toString(),
+      data: enrollment.toObject()
+    });
+
+    res.json(success(enrollment, '取消报名成功'));
+  } catch (error) {
+    logger.error('Admin enrollment cancellation failed', error, {
+      enrollmentId: req.params.id
+    });
+    res.status(500).json(errors.serverError(`取消报名失败: ${error.message}`));
+  }
+};
+
+/**
  * 完成期次（管理员或系统调用）
  * PUT /api/v1/enrollments/:enrollmentId/complete
  */
