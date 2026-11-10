@@ -175,6 +175,9 @@ function extractActionInfo(method, path, body) {
       } else {
         description = '更新报名信息';
       }
+    } else if (path.includes('/cancel')) {
+      actionType = 'CANCEL';
+      description = '取消报名';
     }
   } else if (path.includes('/periods')) {
     resourceType = 'period';

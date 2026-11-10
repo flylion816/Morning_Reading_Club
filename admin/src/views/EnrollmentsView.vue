@@ -120,12 +120,19 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="报名状态" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getEnrollmentStatusType(row.status)" size="small">
+                {{ formatEnrollmentStatus(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="报名时间" width="145">
             <template #default="{ row }">
               {{ formatDate(row.enrolledAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="230">
+          <el-table-column label="操作" min-width="290">
             <template #default="{ row }">
               <el-button type="primary" text size="small" @click="showDetailDialog(row)">
                 详情
@@ -138,6 +145,15 @@
                 @click="handleMarkAsFree(row)"
               >
                 💳 免费
+              </el-button>
+              <el-button
+                v-if="row.status === 'active' || !row.status"
+                type="warning"
+                text
+                size="small"
+                @click="handleCancelEnrollment(row)"
+              >
+                取消报名
               </el-button>
               <el-button type="danger" text size="small" @click="handleDelete(row)">
                 删除
@@ -597,6 +613,28 @@ async function handleMarkAsFree(enrollment: Enrollment) {
   }
 }
 
+async function handleCancelEnrollment(enrollment: Enrollment) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要取消 ${enrollment.name || '该用户'} 的报名吗？取消后会立即失去本期互动权限，但会保留报名和支付记录。`,
+      '取消报名',
+      {
+        confirmButtonText: '取消报名',
+        cancelButtonText: '暂不取消',
+        type: 'warning'
+      }
+    );
+
+    await enrollmentApi.cancelEnrollment(enrollment._id);
+    ElMessage.success('取消报名成功');
+    loadEnrollments();
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      ElMessage.error(err?.message || '取消报名失败');
+    }
+  }
+}
+
 async function handleDelete(enrollment: Enrollment) {
   try {
     await ElMessageBox.confirm(`确定要删除 ${enrollment.name} 的报名记录吗？`, '警告', {
@@ -674,6 +712,21 @@ function formatPaymentStatus(status: string): string {
     free: '免费'
   };
   return statusMap[status] || status;
+}
+
+function formatEnrollmentStatus(status?: string): string {
+  const statusMap: Record<string, string> = {
+    active: '进行中',
+    completed: '已完成',
+    withdrawn: '已取消'
+  };
+  return statusMap[status || 'active'] || status || '进行中';
+}
+
+function getEnrollmentStatusType(status?: string): 'success' | 'info' | 'danger' {
+  if (status === 'withdrawn') return 'danger';
+  if (status === 'completed') return 'info';
+  return 'success';
 }
 
 function getPaymentType(status: string): string {

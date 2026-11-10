@@ -31,4 +31,12 @@ describe('EnrollmentsView', () => {
     expect(source).toContain('requestId !== statisticsRequestId');
     expect(source).toContain('requestedPeriodId !== statisticsFilters.value.periodId');
   });
+
+  it('offers admin cancellation and shows the resulting enrollment status', () => {
+    expect(source).toContain('label="报名状态"');
+    expect(source).toContain('formatEnrollmentStatus(row.status)');
+    expect(source).toContain('handleCancelEnrollment(row)');
+    expect(source).toContain('enrollmentApi.cancelEnrollment(enrollment._id)');
+    expect(source).toContain('withdrawn: \'已取消\'');
+  });
 });

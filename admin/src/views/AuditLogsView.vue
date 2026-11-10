@@ -87,6 +87,7 @@
             <el-option label="创建" value="CREATE" />
             <el-option label="更新" value="UPDATE" />
             <el-option label="删除" value="DELETE" />
+            <el-option label="取消" value="CANCEL" />
             <el-option label="批准" value="APPROVE" />
             <el-option label="拒绝" value="REJECT" />
             <el-option label="批量更新" value="BATCH_UPDATE" />
@@ -390,6 +391,7 @@ const getActionTypeColor = (actionType: string): string => {
     CREATE: 'success',
     UPDATE: 'primary',
     DELETE: 'danger',
+    CANCEL: 'warning',
     APPROVE: 'success',
     REJECT: 'warning',
     BATCH_UPDATE: 'primary',

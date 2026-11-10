@@ -1194,6 +1194,82 @@ describe('Enrollment Controller', () => {
     });
   });
 
+  describe('adminCancelEnrollment - 管理员取消报名', () => {
+    it('应该取消本期进行中的报名并保留记录', async () => {
+      const enrollmentId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      const enrollment = {
+        _id: enrollmentId,
+        periodId,
+        tenantId,
+        status: 'active',
+        paymentStatus: 'paid',
+        withdraw: sandbox.stub().callsFake(function () {
+          this.status = 'withdrawn';
+          this.withdrawnAt = new Date();
+        }),
+        toObject: sandbox.stub().returns({
+          _id: enrollmentId,
+          periodId,
+          status: 'withdrawn',
+          paymentStatus: 'paid'
+        })
+      };
+      req.params = { id: enrollmentId.toString() };
+      EnrollmentStub.findOne.resolves(enrollment);
+      PeriodStub.findByIdAndUpdate.resolves({});
+
+      await enrollmentController.adminCancelEnrollment(req, res, next);
+
+      expect(EnrollmentStub.findOne.calledWith({
+        _id: enrollmentId,
+        tenantId,
+        deleted: { $ne: true }
+      })).to.equal(true);
+      expect(enrollment.withdraw.called).to.equal(true);
+      expect(PeriodStub.findByIdAndUpdate.calledWith(periodId, {
+        $inc: { enrollmentCount: -1 }
+      })).to.equal(true);
+      expect(syncServiceStub.publishSyncEvent.called).to.equal(true);
+      expect(res.json.called).to.equal(true);
+      expect(res.status.called).to.equal(false);
+    });
+
+    it('应该返回400当报名ID无效', async () => {
+      req.params = { id: 'invalid-id' };
+
+      await enrollmentController.adminCancelEnrollment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.equal(true);
+      expect(EnrollmentStub.findOne.called).to.equal(false);
+    });
+
+    it('应该返回404当租户内报名不存在', async () => {
+      req.params = { id: new mongoose.Types.ObjectId().toString() };
+      EnrollmentStub.findOne.resolves(null);
+
+      await enrollmentController.adminCancelEnrollment(req, res, next);
+
+      expect(res.status.calledWith(404)).to.equal(true);
+    });
+
+    it('应该拒绝取消已完成或已取消的报名', async () => {
+      const enrollmentId = new mongoose.Types.ObjectId();
+      req.params = { id: enrollmentId.toString() };
+      EnrollmentStub.findOne.resolves({
+        _id: enrollmentId,
+        status: 'completed',
+        withdraw: sandbox.stub()
+      });
+
+      await enrollmentController.adminCancelEnrollment(req, res, next);
+
+      expect(res.status.calledWith(400)).to.equal(true);
+      expect(PeriodStub.findByIdAndUpdate.called).to.equal(false);
+      expect(syncServiceStub.publishSyncEvent.called).to.equal(false);
+    });
+  });
+
   describe('withdrawEnrollment - TC-ENROLL-007：取消报名', () => {
     // TC-ENROLL-007: 取消报名（200）
     it('应该取消用户的活跃报名', async () => {

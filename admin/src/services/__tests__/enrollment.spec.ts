@@ -46,6 +46,12 @@ describe('Enrollment API', () => {
     expect(result).toBeInstanceOf(Promise);
   });
 
+  it('应该导出 cancelEnrollment 方法，并调用取消接口', () => {
+    const result = enrollmentApi.cancelEnrollment('enrollment-001');
+    expect(result).toBeInstanceOf(Promise);
+    expect(apiClient.post).toHaveBeenCalledWith('/enrollments/enrollment-001/cancel');
+  });
+
   it('应该导出 getFormStatistics 方法，并传递期次参数', () => {
     const result = enrollmentApi.getFormStatistics({ periodId: 'period-001' });
     expect(result).toBeInstanceOf(Promise);
