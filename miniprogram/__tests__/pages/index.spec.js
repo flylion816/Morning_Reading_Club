@@ -714,7 +714,9 @@ describe('index page', () => {
     expect(markup).toContain('<text wx:if="{{userStats.currentStreak > 0}}">连续晨读');
     expect(markup).toContain('{{userStats.totalCheckinDays || 0}}');
     expect(markup).not.toContain('item.typeConfig.color');
-    expect(markup).toContain('class="insight-flap"');
+    expect(markup).toContain('class="insight-env"');
+    expect(markup).toContain('小凡给你留了一封信');
+    expect(markup).toContain('class="leaf-day"');
   });
 
   test('should refresh unread notification count when returning to home within data throttle window', async () => {

@@ -1,5 +1,6 @@
 /**
- * 「我的 23 天」结营纪念册聚合服务
+ * 「我的 23 天」纪念册聚合服务：一期一本册子。
+ * 开营后就能翻（finished=false 表示还在进行中），结营后内容补齐。
  * 全部用 find + lean 在内存里算，只读，不新建数据表。
  */
 const mongoose = require('mongoose');
@@ -174,7 +175,10 @@ async function buildCompanions(userId, checkins) {
   }));
 }
 
-async function buildInsightExcerpt(userId, periodId) {
+const INSIGHT_LIMIT = 30;
+
+/** 这一期小凡写给你的全部信，新的在前 */
+async function buildInsights(userId, periodId) {
   const list = await Insight.find({
     targetUserId: userId,
     periodId,
@@ -183,15 +187,72 @@ async function buildInsightExcerpt(userId, periodId) {
     isPublished: { $ne: false }
   })
     .sort({ createdAt: -1 })
-    .limit(1)
+    .limit(INSIGHT_LIMIT)
     .lean();
-  const item = list[0];
-  if (!item) return null;
-  return {
+  return list.map(item => ({
     id: idStr(item._id),
     title: item.title || '',
+    date: item.createdAt ? toDayKey(item.createdAt) : '',
     excerpt: excerptOf(stripTags(item.content))
+  }));
+}
+
+/** 每一天：这一期写过的打卡目录，按时间从早到晚 */
+function buildDays(checkins, sectionMap) {
+  return checkins
+    .filter(item => item.checkinDate)
+    .slice()
+    .sort((a, b) => new Date(a.checkinDate) - new Date(b.checkinDate))
+    .map(item => {
+      const section = sectionMap[idStr(item.sectionId)];
+      return {
+        checkinId: idStr(item._id),
+        sectionId: idStr(item.sectionId),
+        date: toDayKey(item.checkinDate),
+        sectionTitle: (section && section.title) || '',
+        excerpt: excerptOf(checkinPlainText(item), 36)
+      };
+    });
+}
+
+/** 读伴：只给昵称、头像和同行天数，不给对方的用户 ID */
+async function buildBuddy(userId, period, now) {
+  const BuddyPair = getOptionalModel('BuddyPair');
+  if (!BuddyPair) return null;
+  const pair = (
+    await BuddyPair.find({ periodId: period._id, members: userId }).sort({ createdAt: -1 }).limit(1).lean()
+  )[0];
+  if (!pair) return null;
+  const me = idStr(userId);
+  const partnerId = [pair.userA, pair.userB].map(idStr).find(id => id && id !== me);
+  if (!partnerId) return null;
+  const partner = await User.findById(partnerId).select('nickname avatarUrl').lean();
+  let until = pair.endedAt || now;
+  if (period.endDate && new Date(until) > new Date(period.endDate)) until = period.endDate;
+  return {
+    nickname: (partner && partner.nickname) || '读伴',
+    avatarUrl: (partner && partner.avatarUrl) || '',
+    days: pair.createdAt ? Math.max(1, dayDiff(pair.createdAt, until) + 1) : 0,
+    active: pair.active !== false
   };
+}
+
+/** 实修清单：每周一件小事，记了几天、做到几天 */
+async function buildPractices(userId, periodId) {
+  const Practice = getOptionalModel('Practice');
+  if (!Practice) return [];
+  const list = await Practice.find({ userId, periodId }).sort({ weekIndex: 1 }).lean();
+  return list
+    .map(item => {
+      const logs = Array.isArray(item.logs) ? item.logs : [];
+      return {
+        weekIndex: item.weekIndex,
+        text: String(item.text || '').trim(),
+        loggedDays: logs.length,
+        doneDays: logs.filter(log => log.done === true).length
+      };
+    })
+    .filter(item => item.text);
 }
 
 async function buildHighlights(userId, periodId) {
@@ -224,7 +285,7 @@ async function countSeenCards(userId, periodId) {
   });
 }
 
-async function computeKeepsake(userId, period, readiness) {
+async function computeKeepsake(userId, period, readiness, now = new Date()) {
   const periodId = period._id;
   const base = {
     period: {
@@ -236,8 +297,10 @@ async function computeKeepsake(userId, period, readiness) {
       status: period.status
     }
   };
-  if (!readiness.ready) {
-    return { ...base, ready: false, daysLeft: readiness.daysLeft };
+  // 还没开营：没有内容可翻
+  const started = !period.startDate || dayDiff(period.startDate, now) >= 0;
+  if (!readiness.ready && !started) {
+    return { ...base, ready: false, notStarted: true, finished: false, daysLeft: readiness.daysLeft };
   }
 
   const [user, checkins, completions, sections] = await Promise.all([
@@ -271,18 +334,24 @@ async function computeKeepsake(userId, period, readiness) {
     .sort((a, b) => new Date(a.at) - new Date(b.at))
     .map(({ date, mood }) => ({ date, mood }));
 
-  const [companions, insightExcerpt, highlights, letter, seenCount] = await Promise.all([
+  const [companions, insights, highlights, letter, seenCount, buddy, practices] = await Promise.all([
     safely('companions', () => buildCompanions(userId, checkins), []),
-    safely('insight', () => buildInsightExcerpt(userId, periodId), null),
+    safely('insights', () => buildInsights(userId, periodId), []),
     safely('highlights', () => buildHighlights(userId, periodId), []),
     safely('letter', () => buildLetter(userId, periodId), null),
-    safely('seen', () => countSeenCards(userId, periodId), 0)
+    safely('seen', () => countSeenCards(userId, periodId), 0),
+    safely('buddy', () => buildBuddy(userId, period, now), null),
+    safely('practices', () => buildPractices(userId, periodId), [])
   ]);
+  const insightExcerpt = insights[0]
+    ? { id: insights[0].id, title: insights[0].title, excerpt: insights[0].excerpt }
+    : null;
 
   return {
     ...base,
     ready: true,
-    daysLeft: 0,
+    finished: readiness.ready,
+    daysLeft: readiness.daysLeft,
     nickname: (user && user.nickname) || '',
     checkinDays: dayKeys.size,
     checkinCount: checkins.length,
@@ -294,9 +363,13 @@ async function computeKeepsake(userId, period, readiness) {
     topCheckin: pickTopCheckin(checkins, sectionMap),
     companions,
     insightExcerpt,
+    insights,
+    days: buildDays(checkins, sectionMap),
     highlights,
     letter,
-    seenCount
+    seenCount,
+    buddy,
+    practices
   };
 }
 
@@ -315,7 +388,7 @@ async function getPeriodKeepsake(userId, periodId, now = new Date()) {
     if (hit && hit.expiresAt > now.getTime()) return hit.value;
   }
 
-  const value = await computeKeepsake(userId, period, readiness);
+  const value = await computeKeepsake(userId, period, readiness, now);
   if (readiness.ready && finished) {
     setCache(cacheKey, value, now);
   }

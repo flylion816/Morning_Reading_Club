@@ -622,15 +622,51 @@ describe('checkin page', () => {
       clearSpy.mockRestore();
     });
 
-    test('strips html tags from the think-module placeholder', async () => {
+    test('puts the think-module text in its own card, tags stripped, and keeps a plain question as placeholder', async () => {
       await pageInstance.loadCourseDetail.call(pageInstance, {
         _id: 'section_1',
         periodId: 'period_1',
         title: '课',
         reflection: '<p>今天  <strong>想</strong>一想</p>'
       });
-      expect(pageInstance.data.diaryPlaceholder).not.toMatch(/[<>]/);
-      expect(pageInstance.data.diaryPlaceholder).toBe('今天 想 一想');
+      expect(pageInstance.data.thinkText).not.toMatch(/[<>]/);
+      expect(pageInstance.data.thinkText).toBe('今天 想 一想');
+      expect(pageInstance.data.diaryPlaceholder).toBe('今天读到哪一句，让你停了一下？');
+    });
+
+    test('shows the streak on the rite only when it is above one', async () => {
+      const spy = jest.fn();
+      checkinService.getUserCalendar = spy;
+      spy.mockResolvedValueOnce({ currentStreak: 5 });
+      await pageInstance.loadCelebrationStreak.call(pageInstance);
+      expect(spy).toHaveBeenCalledWith(undefined, { suppressError: true });
+      expect(pageInstance.data.celebrationStreak).toBe(5);
+
+      pageInstance.setData({ celebrationStreak: 0 });
+      spy.mockResolvedValueOnce({ currentStreak: 1 });
+      await pageInstance.loadCelebrationStreak.call(pageInstance);
+      spy.mockRejectedValueOnce(new Error('x'));
+      await pageInstance.loadCelebrationStreak.call(pageInstance);
+      expect(pageInstance.data.celebrationStreak).toBe(0);
+      delete checkinService.getUserCalendar;
+    });
+
+    test('see-others goes back when the previous page is this course, otherwise opens the course page', () => {
+      pageInstance.setData({ sectionId: 'section_1', showCelebration: true });
+      global.getCurrentPages = jest.fn(() => [
+        { route: 'pages/course-detail/course-detail', options: { id: 'section_1' } },
+        { route: 'pages/checkin/checkin' }
+      ]);
+      wx.navigateBack = jest.fn();
+      wx.redirectTo = jest.fn();
+      pageInstance.handleSeeOthersCheckins.call(pageInstance);
+      expect(wx.navigateBack).toHaveBeenCalledTimes(1);
+      expect(wx.redirectTo).not.toHaveBeenCalled();
+      expect(pageInstance.data.showCelebration).toBe(false);
+
+      global.getCurrentPages = jest.fn(() => [{ route: 'pages/index/index' }, { route: 'pages/checkin/checkin' }]);
+      pageInstance.handleSeeOthersCheckins.call(pageInstance);
+      expect(wx.redirectTo).toHaveBeenCalledWith({ url: '/pages/course-detail/course-detail?id=section_1' });
     });
 
     test('shows the rank when available and stays empty otherwise', async () => {

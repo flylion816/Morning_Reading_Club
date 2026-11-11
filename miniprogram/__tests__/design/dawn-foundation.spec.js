@@ -61,7 +61,7 @@ describe('miniprogram dawn foundation', () => {
     const json = file => JSON.parse(read(file));
     // 顶部是租户主色或深色的自定义导航页用白字，顶部是纸色的用黑字
     expect(json('pages/login/login.json').navigationBarTextStyle).toBe('white');
-    expect(json('pages/courses/courses.json').navigationBarTextStyle).toBe('white');
+    expect(json('pages/courses/courses.json').navigationBarTextStyle).toBe('black');
     expect(json('pages/checkin/checkin.json').navigationBarTextStyle).toBe('black');
     expect(json('pages/reading-mode/reading-mode.json').navigationBarTextStyle).toBe('black');
   });

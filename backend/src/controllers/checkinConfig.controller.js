@@ -42,7 +42,8 @@ async function getOrCreateConfig() {
   let config = await CheckinCelebrationConfig.findOne();
   if (!config) {
     config = await CheckinCelebrationConfig.create({
-      animationStyle: 'random',
+      // 新建配置默认用 C（晨光仪式）；已有配置不动，可在后台改
+      animationStyle: 'C',
       enabledAnimationStyles: RANDOM_ANIMATION_STYLES,
       messages: DEFAULT_MESSAGES,
       tenantId: getCurrentTenantId()

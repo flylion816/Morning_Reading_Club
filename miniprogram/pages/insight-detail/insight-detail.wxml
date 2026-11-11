@@ -58,7 +58,7 @@
     </view>
 
     <!-- 正文内容 -->
-    <view class="content-text" wx:if="{{insight.content}}">
+    <view class="content-text {{insight.letterLined ? 'letter-lined' : ''}}" wx:if="{{insight.content}}">
       <view class="letter-salutation" wx:if="{{recipientName && !insight.imageUrl}}">{{recipientName}}：</view>
       <rich-text class="selectable-rich-text" nodes="{{insight.content}}" selectable="{{true}}" />
     </view>

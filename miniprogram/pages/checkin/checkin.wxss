@@ -1421,3 +1421,95 @@
   color: var(--app-text-muted);
   text-decoration: underline;
 }
+
+/* Preview parity: 想一想卡、仪式上的连续天数与两个按钮。 */
+.think-card {
+  margin: 8rpx 0 28rpx;
+  padding: 28rpx 30rpx;
+  border-radius: 20rpx;
+  background: var(--app-paper);
+  border: 1rpx solid rgba(92, 70, 44, 0.1);
+}
+.think-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 14rpx;
+}
+.think-card-title {
+  font-family: var(--app-font-serif);
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--app-text);
+}
+.think-card-text {
+  display: block;
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  line-height: 1.7;
+  color: var(--app-text-soft);
+}
+.cel-rite-streak {
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  color: var(--app-text-muted);
+}
+.cel-rite-rank {
+  margin-top: 8rpx;
+}
+.cel-rite-btn {
+  margin-top: 44rpx;
+}
+.cel-rite-card {
+  margin: 20rpx auto 0;
+  width: 80%;
+  padding: 24rpx 0;
+  box-sizing: border-box;
+  border-radius: 48rpx;
+  border: 2rpx solid rgba(92, 70, 44, 0.22);
+  color: var(--app-text);
+  font-size: 28rpx;
+  text-decoration: none;
+}
+.cel-rite-close {
+  margin-top: 24rpx;
+  padding: 12rpx 0;
+  font-size: 24rpx;
+  color: var(--app-text-muted);
+}
+
+/* 心情天气：六个天气图标排一行，选中后在下面显示一句话。 */
+.mood-options {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 0;
+}
+.mood-option {
+  flex: 1;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 14rpx 0 12rpx;
+  margin: 0 6rpx;
+  border-radius: 20rpx;
+  border-color: transparent;
+  background: transparent;
+  font-size: 22rpx;
+}
+.mood-option:first-child { margin-left: 0; }
+.mood-option:last-child { margin-right: 0; }
+.mood-option.active {
+  border-color: rgba(184, 99, 31, 0.35);
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+}
+.mood-icon.app-icon {
+  width: 52rpx;
+  height: 52rpx;
+}
+.mood-picked {
+  display: block;
+  margin-top: 14rpx;
+  font-family: var(--app-font-serif);
+  font-size: 26rpx;
+  color: var(--app-dawn-ink);
+}

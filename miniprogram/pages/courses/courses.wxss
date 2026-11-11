@@ -844,3 +844,41 @@
 .quick-board {
   grid-template-columns: repeat(auto-fit, minmax(200rpx, 1fr));
 }
+
+/* 页眉并入纸色（右上角胶囊随之变浅，与其他内容页一致）；四个入口排成一行。 */
+.course-header {
+  background: var(--app-paper);
+  color: var(--app-text);
+  border-bottom: 1rpx solid rgba(92, 70, 44, 0.08);
+}
+.course-back {
+  color: var(--app-text);
+}
+.course-header-title {
+  color: var(--app-text);
+}
+.course-header-date {
+  color: var(--app-text-muted);
+}
+.course-title-group {
+  width: 400rpx;
+}
+.quick-board {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12rpx;
+}
+.quick-item {
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 20rpx 4rpx 16rpx;
+  text-align: center;
+}
+.quick-copy {
+  align-items: center;
+}
+.quick-title {
+  font-size: 24rpx;
+}
+.quick-caption {
+  display: none;
+}

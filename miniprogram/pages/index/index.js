@@ -247,6 +247,13 @@ function getShortPeriodTitle(title = '') {
   return normalized.split(/\s*[-－—]\s*/)[0] || normalized;
 }
 
+// 「我的打卡」日期页签：大号的日 + 小号的月
+function buildLeafDate(dateString) {
+  const date = dateString ? new Date(dateString) : null;
+  if (!date || Number.isNaN(date.getTime())) return { dayNum: '', monthLabel: '' };
+  return { dayNum: String(date.getDate()), monthLabel: `${date.getMonth() + 1}月` };
+}
+
 function buildRecentCheckinCard(item) {
   const previewSource = richContentToPlainText(item.note || item.content || '')
     .replace(/\s+/g, ' ')
@@ -275,6 +282,7 @@ function buildRecentCheckinCard(item) {
       ? ''
       : formatShortLessonLabel(sectionInfo.day),
     dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
+    ...buildLeafDate(item.checkinDate || item.createdAt),
     icon: periodInfo.coverEmoji || periodInfo.icon || '📘',
     color: periodInfo.coverColor || periodInfo.color || THEME_PRIMARY
   };
@@ -1281,8 +1289,15 @@ Page({
         : null;
 
       const periodDayIndex = getPeriodDayIndex(currentPeriod, todayDate);
+      // 期次在进行中但总天数拿不到或比今天还小（比如按周排课的期次），就以今天为终点画地平线
+      const journeyTotalDays = getPeriodJourneyTotalDays(currentPeriod);
       const journeyTicks =
-        buildJourneyTicks(periodDayIndex, getPeriodJourneyTotalDays(currentPeriod)) || [];
+        buildJourneyTicks(
+          periodDayIndex,
+          currentPeriodActiveToday && periodDayIndex
+            ? Math.max(journeyTotalDays || 0, periodDayIndex)
+            : journeyTotalDays
+        ) || [];
       const periodName = currentPeriod?.name || currentPeriod?.title || '';
       const periodDayText =
         periodName && periodDayIndex && currentPeriodActiveToday
@@ -1640,6 +1655,7 @@ Page({
             ? ''
             : formatShortLessonLabel(item.day),
           title: item.sectionId?.title || '学习反馈',
+          dateLabel: formatRecentCheckinDate(item.createdAt),
           courseTitle: courseDisplay.title,
           courseDayLabel: courseDisplay.dayLabel,
           periodName: getInsightPeriodName(item, this._periodNameById),

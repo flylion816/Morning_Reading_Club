@@ -5,10 +5,10 @@
       <view class="nav-back-arrow"></view>
     </view>
     <view class="nav-title-wrap">
-      <text class="nav-title">{{selectingCourse ? '写打卡' : (accessChecked ? '每日打卡' : '学习内容')}}</text>
+      <text class="nav-title">{{selectingCourse || accessChecked ? '写打卡' : '学习内容'}}</text>
       <view class="nav-subtitle" wx:if="{{!selectingCourse && courseTitle}}">
         <view class="app-seal app-seal-sm">记</view>
-        <text class="nav-subtitle-text">{{courseTitle}}</text>
+        <text class="nav-subtitle-text">{{celebrationDay > 0 ? '第 ' + celebrationDay + ' 天 · ' : ''}}{{courseTitle}}</text>
       </view>
     </view>
     <view class="nav-placeholder"></view>
@@ -42,11 +42,16 @@
   <!-- 内容区（加回左右内边距） -->
   <view class="page-body" wx:if="{{accessChecked && showPageContent}}">
 
-  <!-- 课程标题 -->
-  <view class="course-title"><text selectable>{{courseTitle}}</text></view>
-  <view class="course-date"><text selectable>{{courseDate}}</text></view>
+  <!-- 想一想：从一个问题写起（课程名已在页眉） -->
+  <view class="think-card" wx:if="{{thinkText && !expanded}}">
+    <view class="think-card-head">
+      <view class="app-seal app-seal-dawn app-seal-sm">想</view>
+      <text class="think-card-title">想一想</text>
+    </view>
+    <text class="think-card-text" selectable>{{thinkText}}</text>
+  </view>
 
-  <view class="content-preview" wx:if="{{!expanded}}">
+  <view class="content-preview" wx:if="{{!expanded && !thinkText}}">
     <block wx:if="{{previewModule}}">
       <view class="section-preview"><text class="section-name">{{previewModule.name}}</text></view>
       <image wx:if="{{previewModule.type === 'image'}}" class="course-module-image" src="{{previewModule.value}}" mode="widthFix" />
@@ -56,7 +61,7 @@
     <text wx:else>课程内容待补充</text>
   </view>
   <view wx:if="{{courseModules.length}}" class="expand-btn" bindtap="toggleExpand">
-    <text>{{expanded ? '收起' : '展开所有'}}</text><text class="arrow">{{expanded ? '▲' : '▼'}}</text>
+    <text>{{expanded ? '收起' : (thinkText ? '看看这一课的内容' : '展开所有')}}</text><text class="arrow">{{expanded ? '▲' : '▼'}}</text>
   </view>
   <view class="full-content" wx:if="{{expanded}}">
     <view wx:for="{{courseModules}}" wx:key="id" class="content-section">
@@ -182,10 +187,13 @@
           class="mood-option {{mood === item.value ? 'active' : ''}}"
           bindtap="handleMoodSelect"
           data-value="{{item.value}}">
-          <text class="mood-seal">{{item.name}}</text>
-          <text class="mood-name">{{item.desc}}</text>
+          <view class="mood-icon app-icon app-icon-{{item.icon}}"></view>
+          <text class="mood-name">{{item.name}}</text>
         </view>
       </view>
+      <block wx:for="{{moodOptions}}" wx:key="value">
+        <text class="mood-picked" wx:if="{{mood === item.value}}">{{item.name}} · {{item.desc}}</text>
+      </block>
       <text class="mood-hint">只有你自己能看到，营里只会看到匿名的汇总</text>
     </view>
 
@@ -287,11 +295,13 @@
           <text class="cel-rite-day-word">天</text>
         </view>
         <view class="cel-rite-body">
-          <view class="cel-rite-title">今天这一页，读完了</view>
+          <view class="cel-rite-title">读完了，明早见</view>
+          <view class="cel-rite-streak" wx:if="{{celebrationStreak > 1}}">连续晨读 <text class="cel-rite-rank-num">{{celebrationStreak}}</text> 天</view>
           <view class="cel-rite-say" wx:if="{{celebrationMessage}}">「{{celebrationMessage}}」</view>
           <view class="cel-rite-rank" wx:if="{{celebrationRank > 0}}">你是今天第 <text class="cel-rite-rank-num">{{celebrationRank}}</text> 位打卡的书友</view>
-          <view class="cel-rite-btn" catchtap="dismissCelebration">好，明早见</view>
-          <view class="cel-rite-card" catchtap="handleMakeDailyCard">做一张今日日签</view>
+          <view class="cel-rite-btn" catchtap="handleSeeOthersCheckins">看看大家的打卡</view>
+          <view class="cel-rite-card" catchtap="handleMakeDailyCard">分享今日打卡</view>
+          <view class="cel-rite-close" catchtap="dismissCelebration">好，明早见</view>
         </view>
       </view>
     </block>

@@ -904,3 +904,24 @@ page {
 .btn-like {
   background: var(--app-paper-muted);
 }
+
+
+/* 信纸横线：每 32px 一条，和 utils/markdown.js 的 LETTER_LINE_HEIGHT 一致。 */
+.content-text.letter-lined {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 31px,
+    rgba(92, 70, 44, 0.12) 31px,
+    rgba(92, 70, 44, 0.12) 32px
+  );
+  line-height: 32px;
+}
+.content-text.letter-lined rich-text,
+.content-text.letter-lined .selectable-rich-text,
+.content-text.letter-lined .letter-salutation {
+  line-height: 32px;
+}
+.content-text.letter-lined .letter-salutation {
+  margin-bottom: 0;
+}

@@ -560,3 +560,17 @@
   font-size: 20rpx;
   color: var(--app-text-muted);
 }
+
+/* 心情天气用图标加一个字。 */
+.record-mood {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  border: none;
+  padding: 0;
+  color: var(--app-dawn-ink);
+}
+.record-mood-icon.app-icon {
+  width: 28rpx;
+  height: 28rpx;
+}

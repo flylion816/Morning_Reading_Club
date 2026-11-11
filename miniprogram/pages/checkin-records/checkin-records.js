@@ -134,7 +134,8 @@ function buildRecordItem(item, keyword = '') {
     imageCount: Array.isArray(item.images) ? item.images.filter(Boolean).length : 0,
     likeCount: item.likeCount || 0,
     hasDiary: !!previewSource,
-    moodName: (getMoodOption(item.mood) || {}).name || ''
+    moodName: (getMoodOption(item.mood) || {}).name || '',
+    moodIcon: (getMoodOption(item.mood) || {}).icon || ''
   };
 }
 

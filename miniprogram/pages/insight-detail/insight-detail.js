@@ -1,7 +1,7 @@
 const insightService = require('../../services/insight.service');
 const danmakuService = require('./danmaku.service');
 const env = require('../../config/env');
-const { renderInsightRichTextContent } = require('../../utils/markdown');
+const { renderInsightLetterContent } = require('../../utils/markdown');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
@@ -282,7 +282,9 @@ Page({
 
       // 兼容 HTML 和 Markdown 内容。
       if (insight && insight.content) {
-        insight.content = renderInsightRichTextContent(insight.content);
+        const letter = renderInsightLetterContent(insight.content);
+        insight.content = letter.html;
+        insight.letterLined = letter.lined;
         const kw = this.data.searchKeyword;
         if (kw) {
           insight.content = this._highlightKeyword(insight.content, kw);
