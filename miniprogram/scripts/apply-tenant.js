@@ -6,6 +6,13 @@ const {
   buildSharedAssetIgnoreEntries,
   isManagedSharedAssetIgnoreEntry
 } = require('./tenant-pack-ignore');
+const {
+  PAPER_NAV,
+  WINDOW_BACKGROUND_COLOR,
+  BACKGROUND_TEXT_STYLE,
+  TAB_BAR_SHELL,
+  resolvePageNavBar
+} = require('./nav-shell');
 
 const ROOT = path.resolve(__dirname, '..');           // miniprogram/
 const REPO = path.resolve(ROOT, '..');                // 仓库根
@@ -156,7 +163,7 @@ function buildThemeTokens(primaryColor) {
   };
 }
 
-function applyPageNavBarConfig(pages, navBar) {
+function applyPageNavBarConfig(pages, navBar, options = {}) {
   pages.forEach(pagePath => {
     const pageJsonPath = path.join(ROOT, `${pagePath}.json`);
     if (!fs.existsSync(pageJsonPath)) return;
@@ -169,15 +176,34 @@ function applyPageNavBarConfig(pages, navBar) {
       return;
     }
 
-    if (pageJson.navigationStyle === 'custom') return;
-    // Zaichang is a product sub-brand and keeps its forest-green nav color.
-    if (pagePath.startsWith('pages/zaichang/')) return;
-    if (!pageJson.navigationBarBackgroundColor && !pageJson.navigationBarTextStyle) return;
-
-    pageJson.navigationBarBackgroundColor = navBar.bgColor;
-    pageJson.navigationBarTextStyle = navBar.textStyle;
-    fs.writeFileSync(pageJsonPath, JSON.stringify(pageJson, null, 2) + '\n');
+    let changed = false;
+    // 规则见 scripts/nav-shell.js：默认纸色，品牌页取租户色，在场列表保留深绿
+    const resolved = resolvePageNavBar(pagePath, pageJson, navBar);
+    if (resolved) {
+      pageJson.navigationBarBackgroundColor = resolved.bgColor;
+      pageJson.navigationBarTextStyle = resolved.textStyle;
+      changed = true;
+    }
+    if (pageJson.backgroundTextStyle && pageJson.backgroundTextStyle !== BACKGROUND_TEXT_STYLE) {
+      pageJson.backgroundTextStyle = BACKGROUND_TEXT_STYLE;
+      changed = true;
+    }
+    if (options.titles && options.titles[pagePath] && pageJson.navigationBarTitleText !== options.titles[pagePath]) {
+      pageJson.navigationBarTitleText = options.titles[pagePath];
+      changed = true;
+    }
+    if (changed) {
+      fs.writeFileSync(pageJsonPath, JSON.stringify(pageJson, null, 2) + '\n');
+    }
   });
+}
+
+function collectAllPages(appJson) {
+  const pages = [...(appJson.pages || [])];
+  (appJson.subPackages || []).forEach(sub => {
+    (sub.pages || []).forEach(page => pages.push(`${sub.root}/${page}`));
+  });
+  return pages;
 }
 
 function applyWechatSIPlugin(appJson, enabled) {
@@ -253,12 +279,15 @@ try {
 }
 
 appJson.window.navigationBarTitleText = cfg.navBar.title;
-appJson.window.navigationBarBackgroundColor = cfg.navBar.bgColor;
-appJson.window.navigationBarTextStyle = cfg.navBar.textStyle;
+appJson.window.navigationBarBackgroundColor = PAPER_NAV.bgColor;
+appJson.window.navigationBarTextStyle = PAPER_NAV.textStyle;
+appJson.window.backgroundColor = WINDOW_BACKGROUND_COLOR;
+appJson.window.backgroundTextStyle = BACKGROUND_TEXT_STYLE;
 
 appJson.tabBar.color = cfg.tabBar.color;
 appJson.tabBar.selectedColor = cfg.tabBar.selectedColor;
-appJson.tabBar.backgroundColor = cfg.tabBar.backgroundColor;
+appJson.tabBar.backgroundColor = TAB_BAR_SHELL.backgroundColor;
+appJson.tabBar.borderStyle = TAB_BAR_SHELL.borderStyle;
 
 // TabBar list 顺序固定: [首页, 晨读营, 我的]（全租户一致）
 const iconDirNorm = iconsDirRel;
@@ -279,8 +308,9 @@ applyWechatSIPlugin(appJson, cfg.wechatSIPlugin === true);
 fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + '\n');
 
 // 页面级 JSON 会覆盖 app.json 的导航栏颜色，构建租户时一并同步。
-applyPageNavBarConfig(appJson.pages || [], cfg.navBar);
-applyPageNavBarConfig(['pages/periods/periods'], cfg.navBar);
+applyPageNavBarConfig(collectAllPages(appJson), cfg.navBar, {
+  titles: { 'pages/periods/periods': cfg.navBar.title }
+});
 
 // 6) 改写 project.config.json(+private) 的 appid，并维护上传忽略规则
 for (const name of ['project.config.json', 'project.private.config.json']) {

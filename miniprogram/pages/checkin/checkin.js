@@ -15,6 +15,9 @@ const {
   redirectAfterCommunityDenied
 } = require('../../utils/period-access');
 const { tenantStorage } = require('../../utils/storage');
+const feedback = require('../../utils/feedback');
+const presenceService = require('../../services/presence.service');
+const { MOOD_OPTIONS, MOOD_SOURCE } = require('../../utils/mood');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -120,6 +123,9 @@ function stripHtmlToText(html = '') {
 
 const { guardSocialPage } = require('../../utils/social-access');
 
+const DEFAULT_DIARY_PLACEHOLDER = '今天读到哪一句，让你停了一下？';
+const DEFAULT_CELEBRATION_MESSAGE = '读完了，明早见。';
+
 Page({
   data: {
     socialAccessGranted: false,
@@ -131,6 +137,7 @@ Page({
     isEditMode: false,
     courseTitle: '',
     courseDate: '',
+    diaryPlaceholder: DEFAULT_DIARY_PLACEHOLDER,
     selectingCourse: false,
     selectionLoading: false,
     selectionError: '',
@@ -180,8 +187,14 @@ Page({
 
     // 打卡庆祝动画
     showCelebration: false,
-    celebrationStyle: 'A',   // 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
-    celebrationMessage: '打卡成功！坚持就是力量！'
+    celebrationStyle: 'C',   // 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
+    celebrationDay: 0,       // 晨光仪式里的「第 N 天」，0 表示不显示
+    moodOptions: MOOD_OPTIONS,
+    mood: '',                // 心情天气，空串表示未选
+    celebrationStreak: 0,    // 连续晨读 N 天，大于 1 才显示
+    thinkText: '',           // 课程「想一想」的文字，显示在输入框上方
+    celebrationRank: 0,      // 今天第 N 位打卡，0 表示不显示
+    celebrationMessage: DEFAULT_CELEBRATION_MESSAGE
   },
 
   /**
@@ -297,6 +310,7 @@ Page({
       try {
         const existing = await checkinService.getCheckinDetail(options.checkinId);
         if (existing) {
+          this._originalMood = existing.mood || '';
           const diaryContent = existing.note || existing.content || '';
           this.setData({
             diaryContent,
@@ -304,6 +318,7 @@ Page({
             showRichTextPreview: hasRichTextFormatting(existing.contentHtml),
             checkinImages: this.normalizeImageList(existing.images),
             visibility: existing.isPublic === false ? 'admin' : 'all',
+            mood: existing.mood || '',
             isDirty: false
           });
         }
@@ -368,6 +383,9 @@ Page({
       const lessonNumberingBase = getLessonNumberingBase(
         rawSections.map(section => section.day)
       );
+      this._lessonNumberingBases = Object.assign({}, this._lessonNumberingBases, {
+        [extractId(periodId)]: lessonNumberingBase
+      });
       const sections = rawSections
         .filter(section => extractId(section._id || section.id))
         .map(section => ({
@@ -442,9 +460,16 @@ Page({
       }
 
       const courseModules = buildCourseModules(course, this.cleanHtmlForRichText(course.content || ''), require('../../config/env').apiBaseUrl.replace('/api/v1', ''));
+      // 编号基准只来自已加载过的该期课节列表；拿不到就不显示「第 N 天」
+      const knownBase = (this._lessonNumberingBases || {})[extractId(course.periodId) || this.data.periodId];
+      const thinkModule = courseModules.find(item => item.name === '想一想' && item.type === 'text');
+      const thinkText = thinkModule ? String(thinkModule.value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim() : '';
       this.setData({
         courseModules,
         previewModule: courseModules[0] || null,
+        // 想一想单独成卡放在输入框上方，输入框里只留一句问话
+        thinkText,
+        diaryPlaceholder: DEFAULT_DIARY_PLACEHOLDER,
         courseTitle: course.title || '',
         courseDate: courseDate,
         meditation: course.meditation || '',
@@ -454,6 +479,10 @@ Page({
         action: course.action || '',
         // 保存期次ID和课节的day数（用于打卡时使用）
         sectionDay: course.day || 1,
+        celebrationDay: (knownBase === 0 || knownBase === 1) &&
+          course.day !== undefined && course.day !== null && course.day !== '' && Number.isFinite(Number(course.day))
+          ? getLessonNumber(course.day, knownBase)
+          : 0,
         sectionPeriodId: course.periodId || null,
         periodId: this.data.periodId || extractId(course.periodId)
       });
@@ -678,6 +707,13 @@ Page({
   },
 
   // 选择可见范围
+  handleMoodSelect(e) {
+    const { value } = e.currentTarget.dataset;
+    this.setData({ mood: this.data.mood === value ? '' : value, isDirty: true });
+    if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+    this._autoSaveTimer = setTimeout(() => this._saveDraft(), 2000);
+  },
+
   handleVisibilityChange(e) {
     const { value } = e.currentTarget.dataset;
     this.setData({ visibility: value });
@@ -827,7 +863,7 @@ Page({
 
   // 草稿：保存
   _saveDraft() {
-    const { sectionId, diaryContent, diaryContentHtml, visibility, checkinImages } = this.data;
+    const { sectionId, diaryContent, diaryContentHtml, visibility, checkinImages, mood } = this.data;
     if (!sectionId || (!diaryContent && checkinImages.length === 0)) return;
     const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id;
     // userId 未就绪时不保存，避免草稿 key 回退到 guest 导致多用户共享
@@ -839,6 +875,7 @@ Page({
         contentHtml: normalizeRichTextHtml(diaryContentHtml, diaryContent),
         images: this.normalizeImageList(checkinImages),
         visibility,
+        mood: mood || '',
         savedAt: Date.now()
       });
       const now = new Date();
@@ -889,6 +926,7 @@ Page({
           showRichTextPreview: hasRichTextFormatting(diaryContentHtml),
           checkinImages: this.normalizeImageList(draft.images),
           visibility: draft.visibility || 'all',
+          mood: draft.mood || '',
           isDirty: true,
           autoSaveStatus: '已恢复草稿'
         });
@@ -979,8 +1017,8 @@ Page({
   showCheckinCelebration() {
     const cfg = this._celebrationCfg || {};
 
-    // 决定动画方式
-    let style = cfg.animationStyle || 'random';
+    // 决定动画方式：后台没有返回配置时兜底用 C（晨光仪式）
+    let style = this._celebrationCfg ? (cfg.animationStyle || 'random') : 'C';
     if (style === 'random') {
       const styles = Array.isArray(cfg.enabledAnimationStyles) && cfg.enabledAnimationStyles.length > 0
         ? cfg.enabledAnimationStyles
@@ -989,13 +1027,69 @@ Page({
     }
 
     // 服务端已随机返回一条，直接用；没有则用兜底文案
-    let message = cfg.message || '打卡成功！坚持就是力量！';
+    let message = cfg.message || DEFAULT_CELEBRATION_MESSAGE;
     message = this.formatCelebrationMessage(message);
 
     this.setData({ showCelebration: true, celebrationStyle: style, celebrationMessage: message });
 
     if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
-    this._celebrationTimer = setTimeout(() => this.dismissCelebration(), 3000);
+    // 晨光仪式有下一步要选，多留一会儿
+    this._celebrationTimer = setTimeout(() => this.dismissCelebration(), style === 'C' ? 12000 : 3000);
+    feedback.haptic('medium');
+  },
+
+  // 今天第 N 位打卡：不阻塞仪式，拿不到就不显示
+  async loadCelebrationRank(sectionId) {
+    try {
+      const res = await presenceService.getMyRank(sectionId, 'checkin');
+      const rank = Number(res && res.rank);
+      if (rank > 0) this.setData({ celebrationRank: rank });
+    } catch (e) {}
+  },
+
+  // 连续晨读天数：不阻塞仪式，拿不到就不显示
+  async loadCelebrationStreak() {
+    try {
+      const res = await checkinService.getUserCalendar(undefined, { suppressError: true });
+      const streak = Number(res && res.currentStreak);
+      if (streak > 1) this.setData({ celebrationStreak: streak });
+    } catch (e) {}
+  },
+
+  // 仪式里的「看看大家的打卡」：回到这一课的课程页
+  handleSeeOthersCheckins() {
+    if (this._celebrationTimer) {
+      clearTimeout(this._celebrationTimer);
+      this._celebrationTimer = null;
+    }
+    this.setData({ showCelebration: false });
+    const sectionId = this.data.sectionId || this.data.courseId;
+    const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+    const prev = pages.length > 1 ? pages[pages.length - 2] : null;
+    const prevIsThisCourse = prev && prev.route === 'pages/course-detail/course-detail' &&
+      String((prev.options && prev.options.id) || '') === String(sectionId || '');
+    if (!sectionId || prevIsThisCourse) {
+      wx.navigateBack();
+      return;
+    }
+    wx.redirectTo({ url: `/pages/course-detail/course-detail?id=${sectionId}` });
+  },
+
+  // 仪式里的「分享今日打卡」：做成一张日签
+  handleMakeDailyCard() {
+    if (this._celebrationTimer) {
+      clearTimeout(this._celebrationTimer);
+      this._celebrationTimer = null;
+    }
+    const { celebrationDay, courseTitle } = this.data;
+    const title = courseTitle || '';
+    const source = celebrationDay > 0 ? `第 ${celebrationDay} 天 · ${title}` : title;
+    const plain = String(this._lastSubmittedNote || '').replace(/\s+/g, ' ').trim();
+    const firstSentence = (plain.split(/[。！？!?.\n]/)[0] || plain).trim().slice(0, 40);
+    const query = [`source=${encodeURIComponent(source)}`];
+    if (celebrationDay > 0) query.push(`day=${encodeURIComponent(celebrationDay)}`);
+    if (firstSentence) query.push(`note=${encodeURIComponent(firstSentence)}`);
+    wx.redirectTo({ url: `/pages/daily-card/daily-card?${query.join('&')}` });
   },
 
   // 关闭庆祝动画并返回
@@ -1054,7 +1148,12 @@ Page({
           note: diaryContent,
           contentHtml: normalizeRichTextHtml(this.data.diaryContentHtml, diaryContent),
           images: checkinImages,
-          isPublic: this.data.visibility === 'all'
+          isPublic: this.data.visibility === 'all',
+          ...(this.data.mood
+            ? { mood: this.data.mood, moodSource: MOOD_SOURCE }
+            : this._originalMood
+              ? { mood: null, moodSource: MOOD_SOURCE }
+              : {})
         });
         this._disableLeaveGuard();
         this._clearDraft();
@@ -1144,9 +1243,12 @@ Page({
         note: diaryContent,
         contentHtml: normalizeRichTextHtml(this.data.diaryContentHtml, diaryContent),
         images: checkinImages,
-        isPublic: this.data.visibility === 'all',
-        mood: 'happy'
+        isPublic: this.data.visibility === 'all'
       };
+      if (this.data.mood) {
+        submitData.mood = this.data.mood;
+        submitData.moodSource = MOOD_SOURCE;
+      }
 
       const result = await checkinService.submitCheckin(submitData);
       activityService.track('checkin_submit', {
@@ -1205,6 +1307,7 @@ Page({
         clearTimeout(this._autoSaveTimer);
         this._autoSaveTimer = null;
       }
+      this._lastSubmittedNote = diaryContent;
       this._ignoreEditorInputAfterSubmit = true;
       this._disableLeaveGuard();
       this._clearDraft();
@@ -1217,6 +1320,8 @@ Page({
       getApp().globalData.checkinListDirty = true;
       console.log('[打卡成功] 已设置 checkinListDirty=true，首页将刷新');
       this.showCheckinCelebration();
+      this.loadCelebrationRank(submitData.sectionId);
+      this.loadCelebrationStreak();
     } catch (error) {
       wx.hideLoading();
       console.error('打卡失败:', error);

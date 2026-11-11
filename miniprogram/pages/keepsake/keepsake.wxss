@@ -1,0 +1,41 @@
+/* Version 3 dawn: 新功能页面，直接按晨光规范编写。 */
+.ks-page { min-height: 100vh; background: var(--app-paper); }
+.ks-flow { width: 100%; }
+.ks-screen { min-height: 100vh; box-sizing: border-box; padding: 160rpx 56rpx; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: var(--app-paper); color: var(--app-text); }
+.ks-title { font-family: var(--app-font-serif); font-size: 60rpx; font-weight: 700; line-height: 1.4; margin: 32rpx 0; }
+.ks-sub { font-size: 28rpx; color: var(--app-text-soft); line-height: 1.7; margin-top: 16rpx; }
+.ks-hint { margin-top: 96rpx; font-size: 24rpx; color: var(--app-text-muted); }
+.ks-label { font-family: var(--app-font-serif); font-size: 32rpx; color: var(--app-text-soft); margin-bottom: 40rpx; }
+.ks-num-row { display: flex; align-items: baseline; justify-content: center; margin: 16rpx 0; }
+.ks-num { font-family: var(--app-font-num); font-size: 120rpx; font-weight: 700; line-height: 1.1; color: var(--theme-primary-dark); }
+.ks-dawn { color: var(--app-dawn-deep); font-size: 160rpx; }
+.ks-unit { font-size: 28rpx; color: var(--app-text-soft); margin-left: 16rpx; }
+.ks-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 20rpx; }
+.ks-dot { width: 36rpx; height: 36rpx; border-radius: 50%; }
+.ks-card { width: 100%; box-sizing: border-box; margin-bottom: 24rpx; text-align: left; }
+.ks-card-meta { font-size: 24rpx; color: var(--app-text-muted); margin: 8rpx 0; }
+.ks-quote { font-family: var(--app-font-serif); font-size: 32rpx; line-height: 1.8; color: var(--app-text); }
+.ks-friend { display: flex; align-items: center; width: 100%; box-sizing: border-box; padding: 20rpx 0; }
+.ks-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; }
+.ks-friend-name { flex: 1; margin-left: 24rpx; text-align: left; font-size: 30rpx; }
+.ks-friend-count { font-family: var(--app-font-num); color: var(--app-text-soft); }
+.ks-btn { width: 100%; margin-top: 32rpx; }
+.ks-skel { width: 100%; height: 240rpx; }
+.ks-skel-line { width: 60%; margin-top: 24rpx; }
+.ks-seal { margin-bottom: 24rpx; }
+.ks-report { display: flex; align-items: center; gap: 24rpx; }
+.ks-report-body { flex: 1; min-width: 0; }
+.ks-report-title { font-family: var(--app-font-serif); font-size: 32rpx; font-weight: 700; color: var(--app-text); }
+.ks-report-arrow { color: var(--app-text-muted); }
+/* 一期一本册子：章名、每一天的目录、读伴、进行中的提示。 */
+.ks-chapter { margin-bottom: 28rpx; padding: 6rpx 24rpx; border-radius: 999rpx; border: 1rpx solid rgba(184, 99, 31, 0.35); color: var(--app-dawn-ink); font-size: 22rpx; letter-spacing: 6rpx; text-indent: 6rpx; }
+.ks-progress { margin-top: 28rpx; font-size: 24rpx; color: var(--app-dawn-ink); }
+.ks-screen-list { justify-content: flex-start; padding-top: 120rpx; padding-bottom: 120rpx; }
+.ks-day { display: flex; align-items: flex-start; gap: 24rpx; width: 100%; box-sizing: border-box; padding: 22rpx 0; border-bottom: 1rpx solid rgba(92, 70, 44, 0.08); text-align: left; }
+.ks-day:active { opacity: 0.7; }
+.ks-day-date { flex-shrink: 0; width: 96rpx; font-family: var(--app-font-num); font-size: 30rpx; color: var(--app-dawn-deep); line-height: 1.5; }
+.ks-day-body { flex: 1; min-width: 0; }
+.ks-day-title { font-family: var(--app-font-serif); font-size: 30rpx; font-weight: 700; color: var(--app-text); line-height: 1.5; }
+.ks-day-excerpt { margin-top: 4rpx; font-size: 26rpx; line-height: 1.6; color: var(--app-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ks-avatar-lg { width: 128rpx; height: 128rpx; }
+.ks-title-sm { font-size: 44rpx; margin: 24rpx 0 0; }

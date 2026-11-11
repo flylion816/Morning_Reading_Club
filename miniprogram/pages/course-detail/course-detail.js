@@ -11,6 +11,10 @@ const { getPeriodAccess, extractId } = require('../../utils/period-access');
 const { renderRichTextContent } = require('../../utils/markdown');
 const envConfig = require('../../config/env');
 const { requireLogin } = require('../../utils/require-login');
+const feedback = require('../../utils/feedback');
+const seenCardService = require('../../services/seen-card.service');
+const { MOOD_OPTIONS } = require('../../utils/mood');
+const { SEEN_PHRASES } = require('../../utils/seen-phrases');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
 const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
@@ -24,6 +28,21 @@ const {
   setPodcastAudioSource,
   stopPodcastAudio
 } = require('../../utils/podcast-audio');
+
+const SEEN_SUMMARY_BATCH_SIZE = 50;
+
+/**
+ * 心情汇总文案：只列数量大于 0 的天气，按数量从多到少；无数据返回空串
+ */
+function buildMoodSummaryText(counts) {
+  if (!counts || typeof counts !== 'object') return '';
+  const parts = MOOD_OPTIONS
+    .map((option, index) => ({ name: option.name, count: Number(counts[option.value]) || 0, index }))
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count || a.index - b.index)
+    .map((item) => `${item.count} ${item.name}`);
+  return parts.length ? `今天营里：${parts.join(' · ')}` : '';
+}
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -123,8 +142,53 @@ function normalizeCheckinImages(images) {
   return checkinService.normalizeCheckinImages(images, MAX_CHECKIN_IMAGE_COUNT);
 }
 
+const FIXED_STEP_DEFS = [
+  { key: 'meditation', label: '静', id: 'section-meditation' },
+  { key: 'question', label: '问', id: 'section-question' },
+  { key: 'learn', label: '学', id: 'section-learn' },
+  { key: 'content', label: '读', id: 'reading-section' },
+  { key: 'lookImage', label: '看', id: 'section-lookImage' },
+  { key: 'reflection', label: '想', id: 'section-reflection' },
+  { key: 'action', label: '记', id: 'section-action' },
+  { key: 'extract', label: '摘', id: 'section-extract' },
+  { key: 'say', label: '说', id: 'section-say' }
+];
+// 吸顶步骤条下沿：滚动到此线以上的模块算“已到达”（px）
+const STEP_ACTIVE_LINE_PX = 90;
+const STEP_SCROLL_THROTTLE_MS = 120;
+const STEP_BOTTOM_TOLERANCE_PX = 24;
+
+/**
+ * 根据课程数据算出“九步”步骤列表（纯函数）。
+ * 固定模板按页面顺序取各 xxxVisible 为真的模块；自定义模板取模块名首字（无名则用序号）。
+ * 结营视频（影）、播客（播）存在时排在最后。少于 2 步返回空数组（整条不显示）。
+ */
+function buildCourseSteps(course) {
+  if (!course) return [];
+  let steps = [];
+  if (course.customTemplate) {
+    steps = (Array.isArray(course.dynamicModules) ? course.dynamicModules : []).map((item, index) => {
+      const name = String((item && item.name) || '').trim();
+      return {
+        id: item && item.type === 'body' ? 'reading-section' : `section-dyn-${index}`,
+        label: name ? Array.from(name)[0] : String(index + 1)
+      };
+    });
+  } else {
+    steps = FIXED_STEP_DEFS.filter((def) => course[`${def.key}Visible`]).map((def) => ({
+      id: def.id,
+      label: def.label
+    }));
+  }
+  if (course.closingVideoVisible) steps.push({ id: 'closing-video-section', label: '影' });
+  if (course.podcastUrl) steps.push({ id: 'podcast-section', label: '播' });
+  return steps.length > 1 ? steps : [];
+}
+
 Page({
   data: {
+    likePopId: '',
+    currentStepIndex: 0,
     courseId: null,
     periodId: null,
     lessonNumberingBase: 0,
@@ -139,7 +203,14 @@ Page({
     hasUserCheckedIn: false,
     commentExpanded: {},
     commentLoading: {},
+    commentsLocked: false,
+    commentsLockedMessage: '',
     notificationReminder: '',
+    moodSummaryText: '',
+    seenPhrases: SEEN_PHRASES,
+    seenPanelId: '',
+    seenPanelMine: null,
+    seenPanelError: '',
     searchKeyword: '',
     isCheckinDetailMode: false,
     detailCheckin: null,
@@ -263,6 +334,13 @@ Page({
     this._isPageAlive = false;
     if (this.highlightTimer) {
       clearTimeout(this.highlightTimer);
+    }
+    if (this._stepScrollTimer) {
+      clearTimeout(this._stepScrollTimer);
+      this._stepScrollTimer = null;
+    }
+    if (this._likePopTimer) {
+      clearTimeout(this._likePopTimer);
     }
     if (this._podcastSyncTimer) {
       clearInterval(this._podcastSyncTimer);
@@ -2212,7 +2290,16 @@ Page({
         .replace(/\n/g, '<br>');
     }
 
+    course.steps = buildCourseSteps(course);
+
     return course;
+  },
+
+  getCommentsLockedMessage() {
+    const app = getApp();
+    return app?.globalData?.isLogin
+      ? '报名并加入营期后可查看评论'
+      : '登录并加入营期后可查看评论';
   },
 
   async loadFocusedCheckinDetail(course, periodId, access, prefetchedDetail = null) {
@@ -2222,6 +2309,7 @@ Page({
     const checkinItem = this.buildCheckinItem(detail || {});
     const calendar = this.generateCalendar(course);
     const checkedDays = calendar.filter((d) => d.status === 'checked').length;
+    const commentsLocked = access.communityAccessState !== 'enabled';
 
     course.comments = [checkinItem];
     this.syncShareCheckinMeta(course.comments);
@@ -2241,8 +2329,10 @@ Page({
         communityAccessState: access.communityAccessState || 'locked',
         hasUserCheckedIn: this.isOwnCheckin(checkinItem),
         canShareCurrentCheckin: true,
-        commentExpanded: { [checkinItem.id]: true },
+        commentExpanded: { [checkinItem.id]: !commentsLocked },
         commentLoading: {},
+        commentsLocked,
+        commentsLockedMessage: commentsLocked ? this.getCommentsLockedMessage() : '',
         notificationReminder: '',
         course: courseForDetail,
         calendar,
@@ -2254,6 +2344,8 @@ Page({
       async () => {
         this.revealPageContent();
         this.syncDetailCheckinState(checkinItem.id);
+        if (commentsLocked) return;
+        this.loadSeenSummary();
         try {
           await this.expandCheckinCommentsByIndex(0);
         } catch (error) {
@@ -2265,6 +2357,46 @@ Page({
     );
   },
 
+  async loadCheckinOnlyDetail() {
+    const detail = await checkinService.getCheckinDetail(this.data.shareCheckinId);
+    const app = getApp();
+    const periodId =
+      extractId(detail?.periodId) ||
+      this.data.periodId ||
+      '';
+    const lockedAccess = {
+      communityAccessState: 'locked',
+      canAccessCommunity: false,
+      paymentStatus: null
+    };
+    const access = app?.globalData?.isLogin && periodId
+      ? await getPeriodAccess(periodId).catch(() => lockedAccess)
+      : lockedAccess;
+    const sectionInfo =
+      detail?.sectionId && typeof detail.sectionId === 'object'
+        ? detail.sectionId
+        : {};
+    const sectionId = this.normalizeId(
+      sectionInfo._id || sectionInfo.id || detail?.sectionId || this.data.courseId
+    );
+    const course = {
+      _id: sectionId,
+      id: sectionId,
+      title: sectionInfo.title || '打卡详情',
+      day: sectionInfo.day,
+      currentDay: Number(sectionInfo.day) || 0,
+      periodId: detail?.periodId || periodId,
+      comments: []
+    };
+
+    this.setData({
+      courseId: sectionId,
+      periodId,
+      lessonNumberingBase: getLessonNumberingBase(sectionInfo.day)
+    });
+    await this.loadFocusedCheckinDetail(course, periodId, access, detail);
+  },
+
   async loadCourseDetail() {
     this.setData(
       this._hasRevealedContent
@@ -2274,6 +2406,11 @@ Page({
 
     try {
       console.log('开始加载课程详情，ID:', this.data.courseId);
+
+      if (this.data.isCheckinDetailMode && this.data.shareCheckinId) {
+        await this.loadCheckinOnlyDetail();
+        return;
+      }
 
       const checkinDetailPromise =
         this.data.isCheckinDetailMode && this.data.shareCheckinId
@@ -2466,6 +2603,8 @@ Page({
           this.revealPageContent();
           this.loadNotificationReminder();
           this.restoreTargetFocus();
+          this.loadMoodSummary();
+          this.loadSeenSummary();
         }
       );
 
@@ -2517,11 +2656,123 @@ Page({
         checkinHasMore: hasMore,
         checkinLoadingMore: false,
         hasUserCheckedIn
-      });
+      }, () => this.loadSeenSummary());
     } catch (error) {
       console.error('加载更多打卡记录失败:', error);
       this.setData({ checkinLoadingMore: false });
     }
+  },
+
+  buildMoodSummaryText(counts) {
+    return buildMoodSummaryText(counts);
+  },
+
+  /**
+   * 今日心情匿名汇总：锦上添花，失败或不足样本时不显示
+   */
+  async loadMoodSummary() {
+    const app = getApp();
+    if (!app.globalData.isLogin || this.data.communityAccessState !== 'enabled') return;
+    try {
+      const res = await checkinService.getSectionMoodSummary(this.data.courseId);
+      if (this._isPageAlive === false) return;
+      this.setData({ moodSummaryText: buildMoodSummaryText(res && res.counts) });
+    } catch (error) {
+      console.warn('加载心情汇总失败:', error);
+    }
+  },
+
+  /**
+   * 看见卡汇总：把当前列表里的打卡 id 分批（每批 50）请求，合并 total/mine
+   */
+  async loadSeenSummary() {
+    const app = getApp();
+    if (!app.globalData.isLogin || this.data.communityAccessState !== 'enabled') return;
+    const comments = this.data.course?.comments || [];
+    const ids = comments.map((item) => item && item.id).filter(Boolean);
+    if (ids.length === 0) return;
+
+    this._seenSeq = (this._seenSeq || 0) + 1;
+    const startSeq = this._seenSeq;
+    const summary = {};
+    try {
+      for (let i = 0; i < ids.length; i += SEEN_SUMMARY_BATCH_SIZE) {
+        const res = await seenCardService.getSummary(ids.slice(i, i + SEEN_SUMMARY_BATCH_SIZE));
+        Object.assign(summary, res || {});
+      }
+    } catch (error) {
+      console.warn('加载看见卡汇总失败:', error);
+      if (Object.keys(summary).length === 0) return;
+    }
+    if (this._isPageAlive === false || Object.keys(summary).length === 0) return;
+
+    const latest = this.data.course?.comments || [];
+    const next = latest.map((item) => {
+      const entry = item && summary[item.id];
+      if (!entry) return item;
+      // 请求发出后本地已送出/撤回过的打卡，不让晚到的旧汇总覆盖
+      if (this._seenEdits && this._seenEdits[item.id] > startSeq) return item;
+      return {
+        ...item,
+        seenAvailable: !this.isOwnCheckin(item),
+        seenTotal: entry.total || 0,
+        seenMine: entry.mine || null
+      };
+    });
+    this.setData({ 'course.comments': next }, () => {
+      if (this.data.isCheckinDetailMode) this.syncDetailCheckinState();
+    });
+  },
+
+  openSeenPanel(e) {
+    const { id } = e.currentTarget.dataset;
+    const item = (this.data.course?.comments || []).find((c) => c && c.id === id);
+    if (!item || !item.seenAvailable) return;
+    this.setData({
+      seenPanelId: id,
+      seenPanelMine: item.seenMine || null,
+      seenPanelError: ''
+    });
+  },
+
+  closeSeenPanel() {
+    this.setData({ seenPanelId: '', seenPanelError: '' });
+  },
+
+  async chooseSeenPhrase(e) {
+    const { key } = e.currentTarget.dataset;
+    const id = this.data.seenPanelId;
+    if (!id || !key || this._seenBusy) return;
+    const mine = this.data.seenPanelMine;
+    const withdraw = mine === key;
+    this._seenBusy = true;
+    try {
+      if (withdraw) {
+        await seenCardService.withdrawSeen(id);
+      } else {
+        await seenCardService.sendSeen(id, key);
+      }
+    } catch (error) {
+      console.warn('看见卡操作失败:', error);
+      this._seenBusy = false;
+      this.setData({ seenPanelError: '这次没成功，稍后再试' });
+      return;
+    }
+    this._seenBusy = false;
+    this._seenSeq = (this._seenSeq || 0) + 1;
+    this._seenEdits = { ...(this._seenEdits || {}), [id]: this._seenSeq };
+
+    const comments = (this.data.course?.comments || []).map((item) => {
+      if (!item || item.id !== id) return item;
+      const prevTotal = item.seenTotal || 0;
+      const total = withdraw ? Math.max(0, prevTotal - 1) : (item.seenMine ? prevTotal : prevTotal + 1);
+      return { ...item, seenTotal: total, seenMine: withdraw ? null : key };
+    });
+    this.setData(
+      { 'course.comments': comments, seenPanelId: '', seenPanelMine: null, seenPanelError: '' },
+      () => this.syncDetailCheckinState(id)
+    );
+    if (!withdraw) feedback.haptic('light');
   },
 
   syncShareCheckinMeta(checkins = []) {
@@ -2931,6 +3182,66 @@ Page({
     });
   },
 
+  buildCourseSteps,
+
+  handleStepTap(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const step = ((this.data.course || {}).steps || [])[index];
+    if (!step) return;
+    if (index !== this.data.currentStepIndex) {
+      this.setData({ currentStepIndex: index });
+    }
+    // 点击后短暂忽略滚动回算，避免高亮在动画途中来回跳
+    this._stepLockUntil = Date.now() + 500;
+    wx.pageScrollTo({
+      selector: `#${step.id}`,
+      duration: 280,
+      offsetTop: -STEP_ACTIVE_LINE_PX + 10
+    });
+  },
+
+  onPageScroll() {
+    const steps = (this.data.course || {}).steps;
+    if (this.data.isCheckinDetailMode || !steps || steps.length < 2 || this._isPageAlive === false) return;
+    if (this._stepScrollTimer) return;
+    this._stepScrollTimer = setTimeout(() => {
+      this._stepScrollTimer = null;
+      this.updateCurrentStep();
+    }, STEP_SCROLL_THROTTLE_MS);
+  },
+
+  updateCurrentStep() {
+    if (this._isPageAlive === false || Date.now() < (this._stepLockUntil || 0)) return;
+    const steps = (this.data.course || {}).steps || [];
+    if (steps.length < 2) return;
+    const query = wx.createSelectorQuery();
+    steps.forEach((step) => query.select(`#${step.id}`).boundingClientRect());
+    query.selectViewport().scrollOffset();
+    query.exec((rects) => {
+      if (this._isPageAlive === false || !Array.isArray(rects)) return;
+      let current = 0;
+      rects.forEach((rect, index) => {
+        if (rect && rect.top <= STEP_ACTIVE_LINE_PX) current = index;
+      });
+      // 页面滚到底时，末尾较短的模块顶部可能到不了判定线，直接取最后一步
+      const viewport = rects[steps.length];
+      if (viewport && viewport.scrollHeight) {
+        let windowHeight = 0;
+        try {
+          windowHeight = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()).windowHeight || 0;
+        } catch (error) {
+          windowHeight = 0;
+        }
+        if (windowHeight && viewport.scrollTop + windowHeight >= viewport.scrollHeight - STEP_BOTTOM_TOLERANCE_PX) {
+          current = steps.length - 1;
+        }
+      }
+      if (current !== this.data.currentStepIndex) {
+        this.setData({ currentStepIndex: current });
+      }
+    });
+  },
+
   scrollToSelector(selector, fallbackSelector = '') {
     wx.nextTick(() => {
       wx.pageScrollTo({
@@ -3015,6 +3326,17 @@ Page({
     });
   },
 
+  // 点赞成功的那一刻：只让被点的图标弹一下，约 400ms 后清掉，同时轻触感
+  popLikeIcon(id) {
+    feedback.haptic('light');
+    this.setData({ likePopId: id });
+    if (this._likePopTimer) clearTimeout(this._likePopTimer);
+    this._likePopTimer = setTimeout(() => {
+      this._likePopTimer = null;
+      this.setData({ likePopId: '' });
+    }, 400);
+  },
+
   /**
    * 点赞打卡记录（顶层列表项是打卡记录，不是评论）
    */
@@ -3074,6 +3396,7 @@ Page({
       this.setData({
         'course.comments': comments
       });
+      if (comment.isLiked) this.popLikeIcon(id);
       this.syncDetailCheckinState(id);
     } catch (error) {
       console.error('点赞操作失败:', error);
@@ -3281,6 +3604,7 @@ Page({
       this.setData({
         'course.comments': comments
       });
+      if (reply.isLiked) this.popLikeIcon(replyId);
       this.syncDetailCheckinState(commentId);
     } catch (error) {
       console.error('回复点赞操作失败:', error);

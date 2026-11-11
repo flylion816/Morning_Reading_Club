@@ -586,6 +586,139 @@ describe('index page', () => {
     });
   });
 
+  test('should set daypart greeting and navigation bar color on show', () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 10, 10, 6, 30));
+    wx.setNavigationBarColor = jest.fn();
+    pageInstance.setData = jest.fn(data => Object.assign(pageInstance.data, data));
+
+    pageInstance.refreshDaypart.call(pageInstance);
+    jest.useRealTimers();
+
+    expect(pageInstance.data.daypart).toBe('dawn');
+    expect(pageInstance.data.greeting).toBe('早安');
+    expect(pageInstance.data.dateText).toBe('11月10日 周二');
+    expect(wx.setNavigationBarColor).toHaveBeenCalledWith({
+      frontColor: '#000000',
+      backgroundColor: '#fbe3c3'
+    });
+  });
+
+  describe('同行感、节气与营地角落', () => {
+    // 东八区 06:00 = UTC 22:00 前一天；东八区 10:00 = UTC 02:00
+    const at6 = new Date('2026-11-06T22:00:00Z');
+    const at10 = new Date('2026-11-07T02:00:00Z');
+
+    test('presence: 早间窗口内显示此刻在读', () => {
+      expect(pageConfig.buildPresenceText({ readingNow: 5, completedToday: 9 }, at6)).toBe('此刻有 5 位书友也在读');
+    });
+
+    test('presence: 窗口外或 readingNow 为空时显示今天读完', () => {
+      expect(pageConfig.buildPresenceText({ readingNow: 5, completedToday: 9 }, at10)).toBe('今天已有 9 位书友读完');
+      expect(pageConfig.buildPresenceText({ readingNow: null, completedToday: 3 }, at6)).toBe('今天已有 3 位书友读完');
+    });
+
+    test('presence: 都为空不显示', () => {
+      expect(pageConfig.buildPresenceText({ readingNow: null, completedToday: null }, at6)).toBe('');
+      expect(pageConfig.buildPresenceText(null, at6)).toBe('');
+    });
+
+    test('日期行：节气当天加节气名，平常日不加', () => {
+      expect(pageConfig.formatHomeDateText(new Date(2026, 10, 7))).toBe('11月7日 周六 · 立冬');
+      expect(pageConfig.formatHomeDateText(new Date(2026, 10, 11))).toBe('11月11日 周三');
+    });
+
+    test('日签出处：用换算后的第几天，算不出时只用标题', () => {
+      expect(pageConfig.buildDailyCardSource({ lessonNumber: 5, title: '积极主动' })).toEqual({ source: '第 5 天 · 积极主动', day: 5 });
+      expect(pageConfig.buildDailyCardSource({ title: '积极主动' })).toEqual({ source: '积极主动', day: '' });
+    });
+
+    test('营地角落：慢递邮局各状态', () => {
+      const t = letter => pageConfig.buildCampCornerCards({ letter }).map(c => c.title);
+      expect(t({ canWrite: true, status: 'none' })).toEqual(['给结营那天的自己写封信']);
+      expect(t({ canWrite: true, status: 'draft' })).toEqual(['给结营那天的自己写封信']);
+      expect(t({ canWrite: false, status: 'none' })).toEqual([]);
+      expect(t({ status: 'sealed', daysToDeliver: 12 })).toEqual(['信在路上，还有 12 天']);
+      expect(t({ status: 'delivered' })).toEqual(['有一封信到了']);
+      expect(t({ status: 'opened' })).toEqual([]);
+    });
+
+    test('营地角落：实修各状态', () => {
+      const c = practice => pageConfig.buildCampCornerCards({ practice });
+      expect(c({ active: false })).toEqual([]);
+      expect(c({ active: true, practice: null })[0].title).toBe('给这一周定一个小行动');
+      expect(c({ active: true, practice: { text: '早起喝水' }, today: { done: true } })[0]).toMatchObject({ title: '早起喝水', sub: '已记「做到了」' });
+      expect(c({ active: true, practice: { text: '早起喝水' }, today: { done: false } })[0].sub).toBe('今天没有');
+      expect(c({ active: true, practice: { text: '早起喝水' }, today: { done: null } })[0].sub).toBe('今天还没记');
+    });
+
+    test('营地角落：读伴各状态与整体为空', () => {
+      const c = buddy => pageConfig.buildCampCornerCards({ buddy });
+      expect(c({ state: 'none' })[0].title).toBe('想要一位读伴');
+      expect(c({ state: 'waiting' })[0].title).toBe('正在等一位读伴');
+      expect(c({ state: 'paired', buddy: { nickname: '小林', readToday: true, checkedInToday: false } })[0]).toMatchObject({
+        title: '小林', paired: true, read: true, checked: false
+      });
+      expect(c({ state: 'ended' })).toEqual([]);
+      expect(pageConfig.buildCampCornerCards({ letter: null, practice: null, buddy: null })).toEqual([]);
+    });
+  });
+
+  describe('today card state', () => {
+    const card = (section, enabled) => pageConfig.buildTodayCardState(section, enabled);
+    const states = c => c.steps.map(step => step.state);
+
+    test('community on, checked in without in-app reading: done, nothing highlighted', () => {
+      const c = card({ isCheckedIn: true, readingCompleted: false }, true);
+      expect(c.primary).toEqual({ type: 'done', text: '✓ 今日已完成' });
+      expect(states(c)).toEqual(['done', 'done']);
+      expect(c.showReread).toBe(true);
+      expect(c.showDirectCheckin).toBe(false);
+    });
+
+    test('community on, read but not checked in: go check in', () => {
+      const c = card({ readingCompleted: true }, true);
+      expect(c.primary.type).toBe('checkin');
+      expect(states(c)).toEqual(['done', 'current']);
+      expect(c.showReread).toBe(true);
+    });
+
+    test('community on, not read and not checked in: start reading with direct check-in link', () => {
+      const c = card({}, true);
+      expect(c.primary).toEqual({ type: 'read', text: '开始晨读' });
+      expect(states(c)).toEqual(['current', 'todo']);
+      expect(c.showDirectCheckin).toBe(true);
+      expect(c.showReread).toBe(false);
+    });
+
+    test('community off: start reading with study link, then study', () => {
+      const unread = card({}, false);
+      expect(unread.primary.type).toBe('read');
+      expect(unread.showStudy).toBe(true);
+      expect(unread.steps.map(step => step.key)).toEqual(['read']);
+      const read = card({ readingCompleted: true }, false);
+      expect(read.primary).toEqual({ type: 'study', text: '去学习' });
+      expect(read.showStudy).toBe(false);
+    });
+
+    test('podcast step is optional and never highlighted', () => {
+      const c = card({ isCheckedIn: true, podcastUrl: 'x' }, true);
+      expect(states(c)).toEqual(['done', 'done', 'todo']);
+    });
+  });
+
+  test('journey line shows the streak only when currentStreak is above zero', () => {
+    const markup = require('fs').readFileSync(
+      require('path').join(__dirname, '../../pages/index/index.wxml'),
+      'utf8'
+    );
+    expect(markup).toContain('<text wx:if="{{userStats.currentStreak > 0}}">连续晨读');
+    expect(markup).toContain('{{userStats.totalCheckinDays || 0}}');
+    expect(markup).not.toContain('item.typeConfig.color');
+    expect(markup).toContain('class="insight-env"');
+    expect(markup).toContain('小凡给你留了一封信');
+    expect(markup).toContain('class="leaf-day"');
+  });
+
   test('should refresh unread notification count when returning to home within data throttle window', async () => {
     pageInstance._lastLoadTime = Date.now();
     const { tenantStorage } = require('../../utils/storage');

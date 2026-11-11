@@ -28,3 +28,23 @@
 
 - **WHEN** 已登录用户请求私密打卡详情
 - **THEN** 系统执行原有期次社群权限校验
+
+### Requirement: Check-in detail rendering is independent from course content
+
+小程序 SHALL 在打卡详情模式下使用打卡详情数据渲染公开打卡，不依赖受权限保护的课程详情接口。
+
+#### Scenario: Anonymous visitor opens a public check-in detail
+
+- **WHEN** 未登录访客打开公开打卡详情
+- **THEN** 小程序渲染打卡作者、正文和图片
+- **AND** 小程序不请求课程详情接口
+
+### Requirement: Check-in comments require community access
+
+系统 SHALL 仅向已登录且具备所属期次社群权限的用户展示打卡评论。
+
+#### Scenario: Visitor without community access opens comments
+
+- **WHEN** 未登录或未具备期次社群权限的用户打开公开打卡详情
+- **THEN** 系统显示评论锁定提示
+- **AND** 系统不请求或返回打卡评论内容

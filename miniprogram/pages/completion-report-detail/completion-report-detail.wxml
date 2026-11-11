@@ -10,7 +10,7 @@
 
   <view wx:elif="{{report}}" class="detail-content">
     <view class="report-hero">
-      <view class="report-icon">📄</view>
+      <view class="app-icon app-icon-doc report-icon"></view>
       <view class="report-title">{{report.reportTitle}}</view>
       <view class="report-period">{{report.periodName}}</view>
     </view>

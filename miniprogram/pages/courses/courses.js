@@ -1,6 +1,7 @@
 // 课节列表页 - 显示某一期的每天课程
 const courseService = require('../../services/course.service');
 const checkinService = require('../../services/checkin.service');
+const presenceService = require('../../services/presence.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getLastTextChar } = require('../../utils/avatar');
 const { getPeriodAccess } = require('../../utils/period-access');
@@ -51,6 +52,7 @@ Page({
   data: {
     statusBarHeight: 0,
     periodId: null,
+    originsText: '',
     periodName: '',
     periodDate: '',
     periodStartDate: '',
@@ -602,6 +604,7 @@ Page({
       });
 
       if (communityEnabled) {
+        this.loadPeriodOrigins();
         if (this.data.sections.length > 0) {
           this.loadAllCheckins();
         }
@@ -613,6 +616,38 @@ Page({
     } catch (error) {
       console.error('检查支付状态失败:', error);
     }
+  },
+
+  /**
+   * 本期书友人数与来处（锦上添花，失败不显示）
+   */
+  async loadPeriodOrigins() {
+    const { periodId } = this.data;
+    if (!periodId) return;
+    try {
+      const res = await presenceService.getPeriodOrigins(periodId);
+      const memberCount = res && res.memberCount;
+      const provinceCount = res && res.provinceCount;
+      let originsText = '';
+      if (memberCount !== null && memberCount !== undefined) {
+        originsText =
+          provinceCount !== null && provinceCount !== undefined
+            ? `本期 ${memberCount} 位书友，来自 ${provinceCount} 个省市`
+            : `本期 ${memberCount} 位书友`;
+      }
+      this.setData({ originsText });
+    } catch (error) {
+      this.setData({ originsText: '' });
+    }
+  },
+
+  /**
+   * 跳转到纪念册
+   */
+  handleKeepsake() {
+    wx.navigateTo({
+      url: `/pages/keepsake/keepsake?periodId=${this.data.periodId}`
+    });
   },
 
   /**

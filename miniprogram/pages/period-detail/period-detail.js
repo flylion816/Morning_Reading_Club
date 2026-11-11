@@ -28,6 +28,7 @@ function getPeriodName(period = {}) {
 
 Page({
   data: {
+    brandName: getBrandName(),
     periodId: '',
     period: null,
     sections: [],

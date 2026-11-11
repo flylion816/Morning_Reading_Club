@@ -1,6 +1,6 @@
 <view class="page-share" wx:if="{{socialAccessGranted}}">
   <view class="share-card">
-    <view class="card-title">✨ 小凡看见</view>
+    <view class="card-title"><view class="app-seal app-seal-dawn app-seal-sm">见</view><text>小凡看见</text></view>
     <view class="card-content">{{shareContent}}</view>
     <view class="card-author">小凡 @{{brandName}}</view>
   </view>

@@ -44,7 +44,8 @@ describe('HomeConfig Controller', () => {
         'zaichang',
         'myCheckins',
         'xiaofanInsights',
-        'insightRequests'
+        'insightRequests',
+        'campCorner'
       ]
     };
     HomeConfigStub.findOne.resolves(null);
@@ -67,7 +68,8 @@ describe('HomeConfig Controller', () => {
         'zaichang',
         'myCheckins',
         'xiaofanInsights',
-        'insightRequests'
+        'insightRequests',
+        'campCorner'
       ],
       hiddenSections: ['zaichang', 'myCheckins'],
       save: sandbox.stub().resolves()
@@ -81,13 +83,15 @@ describe('HomeConfig Controller', () => {
       'recentActivities',
       'todayTask',
       'xiaofanInsights',
-      'insightRequests'
+      'insightRequests',
+      'campCorner'
     ]);
     expect(payload.data.items.map((item) => item.key)).to.deep.equal([
       'recentActivities',
       'todayTask',
       'xiaofanInsights',
-      'insightRequests'
+      'insightRequests',
+      'campCorner'
     ]);
   });
 
@@ -99,7 +103,8 @@ describe('HomeConfig Controller', () => {
         'zaichang',
         'myCheckins',
         'xiaofanInsights',
-        'insightRequests'
+        'insightRequests',
+        'campCorner'
       ],
       hiddenSections: ['zaichang'],
       save: sandbox.stub().resolves()
@@ -149,7 +154,8 @@ describe('HomeConfig Controller', () => {
       'zaichang',
       'myCheckins',
       'xiaofanInsights',
-      'insightRequests'
+      'insightRequests',
+      'campCorner'
     ];
     req.body.sections = sections;
     HomeConfigStub.findOne.resolves(config);
@@ -175,7 +181,8 @@ describe('HomeConfig Controller', () => {
       { key: 'zaichang', hidden: false },
       { key: 'myCheckins', hidden: true },
       { key: 'xiaofanInsights', hidden: false },
-      { key: 'insightRequests', hidden: false }
+      { key: 'insightRequests', hidden: false },
+      { key: 'campCorner', hidden: false }
     ];
     HomeConfigStub.findOne.resolves(config);
 
@@ -187,7 +194,8 @@ describe('HomeConfig Controller', () => {
       'zaichang',
       'myCheckins',
       'xiaofanInsights',
-      'insightRequests'
+      'insightRequests',
+      'campCorner'
     ]);
     expect(config.hiddenSections).to.deep.equal(['todayTask', 'myCheckins']);
     expect(config.save.called).to.equal(true);

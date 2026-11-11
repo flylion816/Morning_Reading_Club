@@ -447,7 +447,7 @@ Page({
     let enrollmentInfo = this.data.periodEnrollmentStatus[periodId] || {};
     // 报名状态还未从服务器确认（_confirmed: false），直接发一次 API 再导航，避免快速点击时误判
     if (!enrollmentInfo._confirmed) {
-      wx.showLoading({ title: '加载中...', mask: true });
+      wx.showLoading({ title: '稍等一下…', mask: true });
       try {
         const res = await enrollmentService.checkEnrollment(periodId);
         enrollmentInfo = {

@@ -9,10 +9,12 @@
 - 公开打卡详情对未登录、已登录未参期和已参期用户统一放行。
 - 私密打卡继续拒绝未登录访客。
 - 已登录用户查看私密打卡时继续执行原有期次社群权限校验。
+- 小程序打卡详情模式不再依赖课程详情接口渲染公开打卡正文。
+- 打卡评论区仅对已登录且具备所属期次社群权限的用户可见。
 
 ## Impact
 
 - Affected specs: `checkin-sharing`
-- Affected code: `backend/src/controllers/checkin.controller.js`
-- Tests: `backend/tests/unit/controllers/checkin.controller.test.js`
+- Affected code: `backend/src/controllers/checkin.controller.js`、`backend/src/controllers/comment.controller.js`、`miniprogram/pages/course-detail/course-detail.js`
+- Tests: `backend/tests/unit/controllers/checkin.controller.test.js`、`backend/tests/unit/controllers/comment.controller.test.js`、`miniprogram/__tests__/pages/course-detail.spec.js`
 - Database: no schema or data changes

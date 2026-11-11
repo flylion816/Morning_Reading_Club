@@ -24,6 +24,10 @@
         </block>
       </block>
     </block>
+    <view wx:if="{{imprint._stampDate}}" class="zc-mark">
+      <text class="zc-mark-date">{{imprint._stampDate}}</text>
+      <text wx:if="{{imprint._stampPlace}}" class="zc-mark-place">{{imprint._stampPlace}}</text>
+    </view>
   </view>
 
   <view class="main-info">
@@ -45,7 +49,7 @@
 
   <view class="section attendees-section">
     <view class="section-header">
-      <text class="section-title">在场的人</text>
+      <text class="section-title">在场的人<text wx:if="{{imprint.attendees && imprint.attendees.length > 0}}" class="section-count"> {{imprint.attendees.length}}</text></text>
       <text wx:if="{{imprint.attendees && imprint.attendees.length > 8}}" class="toggle-btn" bindtap="onToggleAttendees">
         {{showAllAttendees ? '收起' : '查看全部'}}
       </text>
@@ -79,7 +83,7 @@
         bindtap="onTapReaction"
         data-type="{{item}}"
       >
-        <text class="reaction-emoji">{{item === 'gonming' ? '🌱' : item === 'ran' ? '🔥' : '🤗'}}</text>
+        <view class="app-seal reaction-seal {{myReaction === item ? 'reaction-on' : ''}}">{{item === 'gonming' ? '鸣' : item === 'ran' ? '燃' : '去'}}</view>
         <text class="reaction-label">{{item === 'gonming' ? '共鸣' : item === 'ran' ? '燃' : '想去'}}</text>
         <text class="reaction-count">{{imprint.reactionCounts[item] || 0}}</text>
       </view>

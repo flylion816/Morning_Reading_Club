@@ -4,7 +4,8 @@ const HOME_SECTION_KEYS = [
   'zaichang',
   'myCheckins',
   'xiaofanInsights',
-  'insightRequests'
+  'insightRequests',
+  'campCorner'
 ];
 
 const HOME_SECTION_LABELS = {
@@ -13,7 +14,8 @@ const HOME_SECTION_LABELS = {
   zaichang: '凡人生活',
   myCheckins: '我的打卡',
   xiaofanInsights: '小凡看见',
-  insightRequests: '请求看见'
+  insightRequests: '请求看见',
+  campCorner: '营地角落'
 };
 
 function normalizeHomeSectionOrder(order, options = {}) {

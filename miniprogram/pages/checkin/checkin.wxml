@@ -4,7 +4,13 @@
     <view class="nav-back" bindtap="handleCancel">
       <view class="nav-back-arrow"></view>
     </view>
-    <text class="nav-title">{{selectingCourse ? '写打卡' : (accessChecked ? '每日打卡' : '学习内容')}}</text>
+    <view class="nav-title-wrap">
+      <text class="nav-title">{{selectingCourse || accessChecked ? '写打卡' : '学习内容'}}</text>
+      <view class="nav-subtitle" wx:if="{{!selectingCourse && courseTitle}}">
+        <view class="app-seal app-seal-sm">记</view>
+        <text class="nav-subtitle-text">{{celebrationDay > 0 ? '第 ' + celebrationDay + ' 天 · ' : ''}}{{courseTitle}}</text>
+      </view>
+    </view>
     <view class="nav-placeholder"></view>
   </view>
 
@@ -36,11 +42,16 @@
   <!-- 内容区（加回左右内边距） -->
   <view class="page-body" wx:if="{{accessChecked && showPageContent}}">
 
-  <!-- 课程标题 -->
-  <view class="course-title"><text selectable>{{courseTitle}}</text></view>
-  <view class="course-date"><text selectable>{{courseDate}}</text></view>
+  <!-- 想一想：从一个问题写起（课程名已在页眉） -->
+  <view class="think-card" wx:if="{{thinkText && !expanded}}">
+    <view class="think-card-head">
+      <view class="app-seal app-seal-dawn app-seal-sm">想</view>
+      <text class="think-card-title">想一想</text>
+    </view>
+    <text class="think-card-text" selectable>{{thinkText}}</text>
+  </view>
 
-  <view class="content-preview" wx:if="{{!expanded}}">
+  <view class="content-preview" wx:if="{{!expanded && !thinkText}}">
     <block wx:if="{{previewModule}}">
       <view class="section-preview"><text class="section-name">{{previewModule.name}}</text></view>
       <image wx:if="{{previewModule.type === 'image'}}" class="course-module-image" src="{{previewModule.value}}" mode="widthFix" />
@@ -50,7 +61,7 @@
     <text wx:else>课程内容待补充</text>
   </view>
   <view wx:if="{{courseModules.length}}" class="expand-btn" bindtap="toggleExpand">
-    <text>{{expanded ? '收起' : '展开所有'}}</text><text class="arrow">{{expanded ? '▲' : '▼'}}</text>
+    <text>{{expanded ? '收起' : (thinkText ? '看看这一课的内容' : '展开所有')}}</text><text class="arrow">{{expanded ? '▲' : '▼'}}</text>
   </view>
   <view class="full-content" wx:if="{{expanded}}">
     <view wx:for="{{courseModules}}" wx:key="id" class="content-section">
@@ -110,7 +121,7 @@
       <editor
         id="checkin-rich-editor"
         class="rich-editor"
-        placeholder="请输入日记内容..."
+        placeholder="{{diaryPlaceholder}}"
         bindready="handleEditorReady"
         bindinput="handleEditorInput"
         bindstatuschange="handleEditorStatusChange"
@@ -166,6 +177,26 @@
       </view>
     </view>
 
+    <!-- 心情天气 -->
+    <view class="mood-section">
+      <text class="mood-label">今天的心情天气</text>
+      <view class="mood-options">
+        <view
+          wx:for="{{moodOptions}}"
+          wx:key="value"
+          class="mood-option {{mood === item.value ? 'active' : ''}}"
+          bindtap="handleMoodSelect"
+          data-value="{{item.value}}">
+          <view class="mood-icon app-icon app-icon-{{item.icon}}"></view>
+          <text class="mood-name">{{item.name}}</text>
+        </view>
+      </view>
+      <block wx:for="{{moodOptions}}" wx:key="value">
+        <text class="mood-picked" wx:if="{{mood === item.value}}">{{item.name}} · {{item.desc}}</text>
+      </block>
+      <text class="mood-hint">只有你自己能看到，营里只会看到匿名的汇总</text>
+    </view>
+
     <!-- 可见范围 -->
     <view class="visibility-section">
       <text class="visibility-label">打卡可见范围</text>
@@ -192,7 +223,7 @@
   <view class="exit-modal-mask" wx:if="{{accessChecked && showPageContent && showExitModal}}" bindtap="handleModalMaskTap">
     <view class="exit-modal" catchtap="noop">
       <view class="exit-modal-title">内容未发布</view>
-      <view class="exit-modal-desc">您编写的日记还未打卡发布，确定要离开吗？</view>
+      <view class="exit-modal-desc">这篇还没发布。发布后书友就能看到；丢弃并退出的话，草稿会一并清除。</view>
       <view class="exit-modal-actions">
         <button class="exit-btn exit-btn-publish" bindtap="handleExitAction" data-action="publish">直接发布打卡</button>
         <button class="exit-btn exit-btn-discard" bindtap="handleExitAction" data-action="discard">丢弃并退出</button>
@@ -204,7 +235,7 @@
   <!-- 底部按钮 -->
   <view class="bottom-buttons" wx:if="{{accessChecked && showPageContent}}">
     <button class="btn-cancel" bindtap="handleCancel">取消</button>
-    <button class="btn-submit" bindtap="handleSubmit">每日打卡</button>
+    <button class="btn-submit" bindtap="handleSubmit">发布打卡</button>
   </view>
 
   <!-- 打卡庆祝动画 -->
@@ -253,20 +284,25 @@
       </view>
     </block>
 
-    <!-- ===== Style C: 光芒升起（底部卡片）===== -->
+    <!-- ===== Style C: 晨光仪式（整屏日出）===== -->
     <block wx:elif="{{celebrationStyle === 'C'}}">
-      <view class="cel-sheet" catchtap="noop">
-        <view class="cel-icon-c">
-          <view class="cel-check-c">✓</view>
+      <view class="cel-rite">
+        <view class="cel-rite-sun"></view>
+        <view class="cel-rite-ground"></view>
+        <view class="cel-rite-day" wx:if="{{celebrationDay > 0}}">
+          <text class="cel-rite-day-word">第</text>
+          <text class="cel-rite-day-num">{{celebrationDay}}</text>
+          <text class="cel-rite-day-word">天</text>
         </view>
-        <view class="cel-title-c">打卡成功</view>
-        <view class="cel-msg cel-msg-c">{{celebrationMessage}}</view>
-        <view class="cel-dots">
-          <view class="cel-dot d1"></view>
-          <view class="cel-dot d2"></view>
-          <view class="cel-dot d3"></view>
+        <view class="cel-rite-body">
+          <view class="cel-rite-title">读完了，明早见</view>
+          <view class="cel-rite-streak" wx:if="{{celebrationStreak > 1}}">连续晨读 <text class="cel-rite-rank-num">{{celebrationStreak}}</text> 天</view>
+          <view class="cel-rite-say" wx:if="{{celebrationMessage}}">「{{celebrationMessage}}」</view>
+          <view class="cel-rite-rank" wx:if="{{celebrationRank > 0}}">你是今天第 <text class="cel-rite-rank-num">{{celebrationRank}}</text> 位打卡的书友</view>
+          <view class="cel-rite-btn" catchtap="handleSeeOthersCheckins">看看大家的打卡</view>
+          <view class="cel-rite-card" catchtap="handleMakeDailyCard">分享今日打卡</view>
+          <view class="cel-rite-close" catchtap="dismissCelebration">好，明早见</view>
         </view>
-        <view class="cel-close-btn" bindtap="dismissCelebration">好的，继续加油 💪</view>
       </view>
     </block>
 

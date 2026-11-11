@@ -1,4 +1,4 @@
-<view class="page-reading-mode">
+<view class="page-reading-mode paper-{{paperTheme}}">
   <view class="reading-topbar" style="padding-top: {{statusBarHeight}}px;">
     <view class="reading-back" bindtap="handleBack">‹</view>
     <view class="reading-title-wrap">
@@ -22,7 +22,7 @@
     lower-threshold="24"
     bindscroll="handleReaderScroll"
     bindscrolltolower="handleScrollToLower">
-    <view class="reader-content reader-font-{{fontSizeLevel}}" style="padding-top: {{topbarHeight}}px;">
+    <view class="reader-content reader-font-{{fontSizeLevel}} {{fontFamily === 'serif' ? 'reader-family-serif' : ''}}" style="padding-top: {{topbarHeight}}px;">
       <view class="reader-meta">
         <view class="reader-period">{{periodName || brandName}}</view>
         <view class="reader-heading">每天晨读内容</view>
@@ -32,17 +32,22 @@
         wx:for="{{paragraphs}}"
         wx:key="id"
         id="para-{{index}}"
-        class="reader-paragraph {{index === currentParagraphIndex ? 'reader-paragraph-active' : ''}}">
+        data-index="{{index}}"
+        bindlongpress="handleParagraphLongPress"
+        class="reader-paragraph {{index === currentParagraphIndex ? 'reader-paragraph-active' : ''}} {{item.mine ? 'reader-paragraph-mine' : ''}} {{item.popularCount ? 'reader-paragraph-popular' : ''}}">
         <image wx:if="{{item.type === 'image'}}" src="{{item.src}}" mode="widthFix" class="reader-image" />
-        <text wx:else user-select>{{item.text}}</text>
+        <text wx:else>{{item.text}}</text>
+        <view wx:if="{{item.popularCount}}" class="reader-popular-note">{{item.popularCount}} 位书友也摘了这句</view>
       </view>
 
       <view wx:if="{{completionVisible}}" class="reading-completion-card">
+        <view class="completion-dawn"><view class="completion-sun"></view></view>
         <view class="completion-kicker">已完成本次晨读</view>
         <view class="completion-title">{{completionTitle}}</view>
         <view class="completion-text">
-          本次阅读用时 {{completionDurationText}}。能耐心读到这里，就是今天很扎实的一步。
+          本次阅读用时 <text class="completion-num">{{completionDurationText}}</text>。能耐心读到这里，就是今天很扎实的一步。
         </view>
+        <view wx:if="{{completionRank}}" class="completion-rank">你是今天第 <text class="completion-rank-num">{{completionRank}}</text> 位读完的书友</view>
         <view wx:if="{{fireworksVisible}}" class="completion-fireworks-ring">
           <view class="firework firework-1">
             <view class="spark spark-a"></view>
@@ -102,12 +107,40 @@
   </scroll-view>
 
   <view class="reading-toolbar">
-    <view class="toolbar-btn" bindtap="cycleFontSize">Aa</view>
+    <view class="toolbar-btn" bindtap="openSettingsPanel">Aa</view>
     <view class="toolbar-btn toolbar-btn-primary" bindtap="handleShareMoment">
       {{posterGenerating ? '生成中' : '分享此刻'}}
     </view>
     <view class="toolbar-btn toolbar-btn-secondary" bindtap="handleBack">
       退出
+    </view>
+  </view>
+
+  <view wx:if="{{settingsPanelVisible}}" class="settings-mask" bindtap="closeSettingsPanel">
+    <view class="settings-panel" catchtap="noop">
+      <view class="settings-row">
+        <view class="settings-label">字号</view>
+        <view class="settings-options">
+          <view class="settings-option {{fontSizeLevel === 'standard' ? 'settings-option-on' : ''}}" data-value="standard" bindtap="handleSelectFontSize">标准</view>
+          <view class="settings-option {{fontSizeLevel === 'large' ? 'settings-option-on' : ''}}" data-value="large" bindtap="handleSelectFontSize">大</view>
+          <view class="settings-option {{fontSizeLevel === 'xlarge' ? 'settings-option-on' : ''}}" data-value="xlarge" bindtap="handleSelectFontSize">特大</view>
+        </view>
+      </view>
+      <view class="settings-row">
+        <view class="settings-label">字体</view>
+        <view class="settings-options">
+          <view class="settings-option {{fontFamily === 'sans' ? 'settings-option-on' : ''}}" data-value="sans" bindtap="handleSelectFontFamily">黑体</view>
+          <view class="settings-option settings-option-serif {{fontFamily === 'serif' ? 'settings-option-on' : ''}}" data-value="serif" bindtap="handleSelectFontFamily">宋体</view>
+        </view>
+      </view>
+      <view class="settings-row">
+        <view class="settings-label">纸色</view>
+        <view class="settings-options">
+          <view class="settings-option {{paperTheme === 'warm' ? 'settings-option-on' : ''}}" data-value="warm" bindtap="handleSelectPaperTheme"><view class="settings-swatch settings-swatch-warm"></view>暖白</view>
+          <view class="settings-option {{paperTheme === 'cream' ? 'settings-option-on' : ''}}" data-value="cream" bindtap="handleSelectPaperTheme"><view class="settings-swatch settings-swatch-cream"></view>米黄</view>
+          <view class="settings-option {{paperTheme === 'night' ? 'settings-option-on' : ''}}" data-value="night" bindtap="handleSelectPaperTheme"><view class="settings-swatch settings-swatch-night"></view>夜间</view>
+        </view>
+      </view>
     </view>
   </view>
 

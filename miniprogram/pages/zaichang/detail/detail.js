@@ -7,18 +7,29 @@ const { createContainedShareCover } = require('../../../utils/share-cover');
 
 const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
 const ACTIVITY_TYPE_LABELS = {
-  reading: '📚 读书会',
-  cooking: '🍳 做饭',
-  tea: '☕ 喝茶',
-  walk: '🚶 散步',
-  create: '🎨 创作',
-  other: '✨ 其他'
+  reading: '读书会',
+  cooking: '做饭',
+  tea: '喝茶',
+  walk: '散步',
+  create: '创作',
+  other: '其他'
 };
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function formatStampDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatStampPlace(location) {
+  return Array.from(String(location || '').trim()).slice(0, 4).join('');
 }
 
 function formatDateTime(dateStr) {
@@ -59,6 +70,10 @@ function normalizeImprint(imprint) {
       ? imprint.activityTypes
       : [imprint.activityType]
   );
+  // 末尾媒体是视频时带 controls，邮戳会压住全屏按钮，此时不盖章
+  const mediaList = Array.isArray(imprint.mediaList) ? imprint.mediaList : [];
+  const hasMedia = mediaList.length > 0 && mediaList[mediaList.length - 1].type !== 'video';
+  const stampDate = formatStampDate(imprint.happenedAt);
   return {
     ...imprint,
     activityType: imprint.activityType || activityTypes[0] || '',
@@ -67,7 +82,9 @@ function normalizeImprint(imprint) {
       key: type,
       label: ACTIVITY_TYPE_LABELS[type] || type
     })),
-    _happenedAtFormatted: formatDate(imprint.happenedAt)
+    _happenedAtFormatted: formatDate(imprint.happenedAt),
+    _stampDate: hasMedia ? stampDate : '',
+    _stampPlace: hasMedia && stampDate ? formatStampPlace(imprint.location) : ''
   };
 }
 

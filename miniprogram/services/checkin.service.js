@@ -115,6 +115,26 @@ class CheckinService {
   }
 
   /**
+   * 获取“晨读日历”：某月有打卡的自然日（仅本人）
+   * @param {string} month YYYY-MM
+   * @returns {Promise}
+   */
+  getUserCalendar(month, options) {
+    return options
+      ? request.get('/checkins/user/calendar', { month }, options)
+      : request.get('/checkins/user/calendar', { month });
+  }
+
+  /**
+   * 获取课程“今日心情天气”匿名汇总（有效样本不足 3 条时 counts 为 null）
+   * @param {string} sectionId 课程ID
+   * @returns {Promise<{date: string, total: number, counts: object|null}>}
+   */
+  getSectionMoodSummary(sectionId) {
+    return request.get(`/checkins/section/${sectionId}/mood-summary`, {}, { suppressError: true });
+  }
+
+  /**
    * 获取用户月度打卡日历
    * @param {number} year 年份
    * @param {number} month 月份

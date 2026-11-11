@@ -1,14 +1,19 @@
 <view class="page-activities" wx:if="{{socialAccessGranted}}">
   <!-- 加载中（首次） -->
   <view wx:if="{{loading && activities.length === 0}}" class="loading-container">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+  <view class="dawn-skeleton-list">
+    <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+      <view class="app-skeleton-line dawn-sk-w60"></view>
+      <view class="app-skeleton-line dawn-sk-w90"></view>
+      <view class="app-skeleton-line dawn-sk-w40"></view>
+    </view>
+  </view>
   </view>
 
   <!-- 空状态 -->
-  <view wx:elif="{{!loading && activities.length === 0}}" class="empty-container">
-    <text class="empty-icon">📅</text>
-    <text class="empty-text">暂无活动</text>
+  <view wx:elif="{{!loading && activities.length === 0}}" class="app-empty">
+    <view class="app-empty-art app-empty-art-lamp"></view>
+    <text class="app-empty-title">近期还没有活动</text>
   </view>
 
   <!-- 活动列表 -->
@@ -29,7 +34,7 @@
         lazy-load
       />
       <view wx:else class="item-poster-placeholder">
-        <text class="item-poster-emoji">{{item.type === 'witness' ? '🌟' : item.type === 'chat' ? '💬' : '📆'}}</text>
+        <view class="app-seal app-seal-lg">{{item.type === 'witness' ? '证' : item.type === 'chat' ? '聊' : '活'}}</view>
       </view>
 
       <!-- 右侧信息 -->
@@ -41,9 +46,9 @@
           </view>
         </view>
         <text class="item-title">{{item.title}}</text>
-        <text class="item-time">🕐 {{item.startTimeFormatted}}</text>
-        <view wx:if="{{item.location}}" class="item-location">
-          <text>📍 {{item.location}}</text>
+        <view class="item-time item-line"><view class="app-icon app-icon-clock"></view><text>{{item.startTimeFormatted}}</text></view>
+        <view wx:if="{{item.location}}" class="item-location item-line">
+          <view class="app-icon app-icon-pin"></view><text>{{item.location}}</text>
         </view>
       </view>
     </view>

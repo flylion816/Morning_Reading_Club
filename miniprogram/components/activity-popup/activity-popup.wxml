@@ -7,14 +7,14 @@
         mode="aspectFill"
       />
       <view class="popup-poster-shade"></view>
-      <view class="popup-close-btn" catchtap="handleClose">✕</view>
+      <view class="popup-close-btn" catchtap="handleClose"><view class="app-icon app-icon-close"></view></view>
       <view class="popup-type-tag">{{typeLabel}}</view>
     </view>
 
     <view wx:else class="popup-compact-head">
       <view class="popup-head-line"></view>
       <view class="popup-type-tag popup-type-tag-plain">{{typeLabel}}</view>
-      <view class="popup-close-btn popup-close-btn-plain" catchtap="handleClose">✕</view>
+      <view class="popup-close-btn popup-close-btn-plain" catchtap="handleClose"><view class="app-icon app-icon-close"></view></view>
     </view>
 
     <view class="popup-body">

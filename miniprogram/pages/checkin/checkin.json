@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "学习内容",
   "navigationStyle": "custom",
-  "usingComponents": {}
+  "usingComponents": {},
+  "navigationBarTextStyle": "black"
 }

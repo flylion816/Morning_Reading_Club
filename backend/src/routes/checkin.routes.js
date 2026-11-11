@@ -14,6 +14,8 @@ const {
   createCheckin,
   getUserCheckins,
   getUserCheckinSummary,
+  getUserCheckinCalendar,
+  getSectionMoodSummary,
   getPeriodCheckins,
   searchCheckins,
   searchMyCheckins,
@@ -92,6 +94,8 @@ router.post(
   handleCheckinImageUploadError,
   uploadCheckinImage
 );
+router.get('/section/:sectionId/mood-summary', authMiddleware, userTenantContext, getSectionMoodSummary);
+router.get('/user/calendar', authMiddleware, userTenantContext, getUserCheckinCalendar);
 router.get('/user/summary', authMiddleware, userTenantContext, getUserCheckinSummary);
 router.get('/user/:userId/summary', authMiddleware, userTenantContext, getUserCheckinSummary);
 router.get('/user/:userId?', authMiddleware, userTenantContext, getUserCheckins);

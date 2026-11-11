@@ -50,7 +50,7 @@ page {
   flex-direction: column;
   overflow: hidden;
   margin: 16rpx 24rpx 0;
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
 }
 
@@ -70,7 +70,7 @@ page {
   align-items: center;
   justify-content: center;
   border-radius: 8rpx;
-  background: #f5f7fa;
+  background: var(--app-page-bg);
 }
 
 .tool-btn:active {
@@ -103,7 +103,7 @@ page {
   gap: 24rpx;
   padding: 24rpx;
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  background: white;
+  background: var(--app-paper);
   border-top: 1rpx solid var(--app-border);
   flex-shrink: 0;
 }
@@ -129,7 +129,7 @@ page {
 }
 
 .btn-cancel:active {
-  background: #e0e0e0;
+  background: var(--app-border);
 }
 
 .btn-save {
@@ -153,7 +153,7 @@ page {
 .header-card,
 .editor-wrapper {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .toolbar,

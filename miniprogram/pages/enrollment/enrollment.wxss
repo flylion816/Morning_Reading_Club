@@ -2,7 +2,7 @@
 
 .page-enrollment {
   min-height: 100vh;
-  background: #f3f7f4;
+  background: var(--app-surface-muted);
   color: var(--app-text, #20312a);
 }
 
@@ -12,7 +12,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f3f7f4;
+  background: var(--app-surface-muted);
   color: var(--app-text-soft, #718078);
 }
 
@@ -20,7 +20,7 @@
   width: 58rpx;
   height: 58rpx;
   margin-bottom: 20rpx;
-  border: 4rpx solid #dce8df;
+  border: 4rpx solid var(--app-border);
   border-top-color: var(--theme-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -82,7 +82,7 @@
   background: rgba(255, 255, 255, .16);
   border: 1rpx solid rgba(255, 255, 255, .24);
   border-radius: 26rpx;
-  box-shadow: 0 16rpx 32rpx rgba(14, 40, 50, .18);
+  box-shadow: 0 16rpx 32rpx rgba(60, 42, 20, .18);
   font-size: 48rpx;
 }
 
@@ -140,9 +140,9 @@
   margin: 18rpx 0 0;
   padding: 26rpx 26rpx 28rpx;
   background: rgba(255, 255, 255, .96);
-  border: 1rpx solid #e2ebe5;
+  border: 1rpx solid var(--app-border);
   border-radius: 24rpx;
-  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
+  box-shadow: 0 12rpx 30rpx rgba(60, 42, 20, .05);
 }
 
 .form-group:first-of-type {
@@ -154,7 +154,7 @@
   display: flex;
   align-items: center;
   margin-bottom: 14rpx;
-  color: #24352d;
+  color: var(--app-text);
   font-size: 26rpx;
   font-weight: 650;
   line-height: 1.4;
@@ -172,9 +172,9 @@
   min-height: 88rpx;
   box-sizing: border-box;
   padding: 0 24rpx;
-  color: #24352d;
-  background: #f9fbf9;
-  border: 2rpx solid #dfe9e2;
+  color: var(--app-text);
+  background: var(--app-surface-muted);
+  border: 2rpx solid var(--app-border);
   border-radius: 16rpx;
   font-size: 26rpx;
   line-height: 88rpx;
@@ -182,13 +182,13 @@
 }
 
 .form-control:focus {
-  background: #fff;
+  background: var(--app-paper);
   border-color: var(--theme-primary);
   box-shadow: 0 0 0 6rpx var(--theme-primary-alpha-15, rgba(74, 144, 226, .13));
 }
 
 .form-control::placeholder {
-  color: #a0aea6;
+  color: var(--app-disabled);
 }
 
 input.form-control {
@@ -247,9 +247,9 @@ picker {
   box-sizing: border-box;
   align-items: center;
   padding: 0 18rpx;
-  color: #3c4e45;
-  background: #f9fbf9;
-  border: 2rpx solid #e0eae3;
+  color: var(--app-text-soft);
+  background: var(--app-surface-muted);
+  border: 2rpx solid var(--app-border);
   border-radius: 16rpx;
   font-size: 25rpx;
   transition: background .2s ease, border-color .2s ease, transform .2s ease;
@@ -268,7 +268,7 @@ picker {
 
 .text-count {
   margin-top: 8rpx;
-  color: #94a199;
+  color: var(--app-disabled);
   font-size: 21rpx;
   text-align: right;
 }
@@ -293,13 +293,13 @@ picker {
   align-items: center;
   justify-content: space-between;
   padding: 0 24rpx;
-  background: #f9fbf9;
-  border: 2rpx solid #dfe9e2;
+  background: var(--app-surface-muted);
+  border: 2rpx solid var(--app-border);
   border-radius: 16rpx;
 }
 
 .phone-number {
-  color: #24352d;
+  color: var(--app-text);
   font-size: 26rpx;
   letter-spacing: 1rpx;
 }
@@ -339,9 +339,9 @@ picker {
   margin: 0 0 18rpx;
   padding: 22rpx 24rpx;
   background: rgba(255, 255, 255, .96);
-  border: 1rpx solid #e2ebe5;
+  border: 1rpx solid var(--app-border);
   border-radius: 22rpx;
-  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
+  box-shadow: 0 12rpx 30rpx rgba(60, 42, 20, .05);
 }
 
 .step-item {
@@ -349,7 +349,7 @@ picker {
   flex: 0 0 auto;
   align-items: center;
   gap: 9rpx;
-  color: #9aa79f;
+  color: var(--app-disabled);
   font-size: 22rpx;
 }
 
@@ -359,8 +359,8 @@ picker {
   height: 42rpx;
   align-items: center;
   justify-content: center;
-  color: #8d9c92;
-  background: #edf2ee;
+  color: var(--app-text-muted);
+  background: var(--app-surface-muted);
   border-radius: 14rpx;
   font-size: 21rpx;
   font-weight: 700;
@@ -381,7 +381,7 @@ picker {
   height: 2rpx;
   flex: 1;
   margin: 0 12rpx;
-  background: #e0e9e2;
+  background: var(--app-border);
 }
 
 .step-line.active {
@@ -393,7 +393,7 @@ picker {
   gap: 14rpx;
   margin: 24rpx 0 0;
   padding-top: 22rpx;
-  border-top: 1rpx solid #dfe9e2;
+  border-top: 1rpx solid var(--app-border);
 }
 
 .btn {
@@ -424,25 +424,25 @@ picker {
 }
 
 .btn-secondary {
-  color: #506057;
-  background: #fff;
-  border: 2rpx solid #dfe9e2;
+  color: var(--app-text-soft);
+  background: var(--app-paper);
+  border: 2rpx solid var(--app-border);
 }
 
 .confirm-section {
   margin: 18rpx 0 0;
   padding: 28rpx;
-  background: #fff;
-  border: 1rpx solid #e2ebe5;
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
   border-radius: 24rpx;
-  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
+  box-shadow: 0 12rpx 30rpx rgba(60, 42, 20, .05);
 }
 
 .confirm-title {
   margin-bottom: 18rpx;
   padding-bottom: 18rpx;
-  color: #24352d;
-  border-bottom: 1rpx solid #e2ebe5;
+  color: var(--app-text);
+  border-bottom: 1rpx solid var(--app-border);
   font-size: 30rpx;
   font-weight: 700;
 }
@@ -462,13 +462,13 @@ picker {
 
 .confirm-label {
   flex: 0 0 auto;
-  color: #87958c;
+  color: var(--app-text-muted);
   font-size: 23rpx;
 }
 
 .confirm-value {
   flex: 1;
-  color: #26372e;
+  color: var(--app-text);
   font-size: 24rpx;
   text-align: right;
 }
@@ -476,7 +476,7 @@ picker {
 .confirm-item-price {
   margin-top: 10rpx;
   padding-top: 22rpx;
-  border-top: 1rpx solid #dfe9e2;
+  border-top: 1rpx solid var(--app-border);
 }
 
 .confirm-price,
@@ -491,10 +491,10 @@ picker {
 .simple-form-intro {
   margin: 0 0 20rpx;
   padding: 30rpx 28rpx 32rpx;
-  background: #fff;
-  border: 1rpx solid #e2ebe5;
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
   border-radius: 26rpx;
-  box-shadow: 0 12rpx 30rpx rgba(35, 74, 53, .05);
+  box-shadow: 0 12rpx 30rpx rgba(60, 42, 20, .05);
 }
 
 .simple-form-kicker-row {
@@ -526,7 +526,7 @@ picker {
 .simple-form-title {
   display: block;
   margin-top: 18rpx;
-  color: #20312a;
+  color: var(--app-text);
   font-size: 38rpx;
   font-weight: 750;
   letter-spacing: -1rpx;
@@ -536,7 +536,7 @@ picker {
 .simple-form-description {
   display: block;
   margin-top: 12rpx;
-  color: #85938a;
+  color: var(--app-text-muted);
   font-size: 23rpx;
   line-height: 1.6;
 }
@@ -549,8 +549,8 @@ picker {
   margin-top: 20rpx;
   padding: 20rpx 26rpx;
   box-sizing: border-box;
-  background: #fff;
-  border: 1rpx solid #e2ebe5;
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
   border-radius: 22rpx;
 }
 
@@ -560,14 +560,14 @@ picker {
 }
 
 .fee-label {
-  color: #34473d;
+  color: var(--app-text-soft);
   font-size: 25rpx;
   font-weight: 650;
 }
 
 .fee-note {
   margin-top: 6rpx;
-  color: #95a199;
+  color: var(--app-disabled);
   font-size: 20rpx;
 }
 
@@ -645,7 +645,7 @@ picker {
 
 .step-indicator {
   border-radius: var(--app-radius-md);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 
@@ -657,13 +657,13 @@ picker {
 .simple-form-intro,
 .confirm-section {
   border-radius: var(--app-radius-md);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 
 .form-control {
   border-radius: 18rpx;
-  background: #fbfcf8;
+  background: var(--app-surface-muted);
 }
 
 .form-control::placeholder {
@@ -699,7 +699,7 @@ picker {
   border-top: none;
   border-radius: 34rpx;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 18rpx 42rpx rgba(37, 60, 43, 0.12);
+  box-shadow: 0 18rpx 42rpx rgba(84, 60, 30, 0.12);
   backdrop-filter: blur(16rpx);
 }
 
@@ -715,4 +715,9 @@ picker {
 
 .btn {
   border-radius: var(--app-radius-md);
+}
+
+/* Version 3 dawn: 期次名衬线体 */
+.header-title {
+  font-family: var(--app-font-serif);
 }

@@ -53,7 +53,8 @@ const CheckinSchema = new mongoose.Schema(
     },
     mood: {
       type: String,
-      enum: ['happy', 'calm', 'thoughtful', 'inspired', 'other'],
+      // 心情天气：happy 晴 / calm 多云 / thoughtful 微风 / inspired 朝霞 / low 小雨 / other 雾；可空
+      enum: ['happy', 'calm', 'thoughtful', 'inspired', 'low', 'other', null],
       default: null
     },
     points: {

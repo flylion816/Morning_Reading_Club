@@ -295,7 +295,49 @@ function renderInsightRichTextContent(content) {
   return markdownToRichText(content, { insightMode: true });
 }
 
+// 信纸横线的行高（px）。详情页的横线背景按这个周期重复，正文必须落在同一套网格上。
+const LETTER_LINE_HEIGHT = 32;
+
+// 把渲染好的富文本压到信纸网格上：行高固定，段间距取整行，分隔线换成一行空行。
+function alignToLetterGrid(html) {
+  const line = `${LETTER_LINE_HEIGHT}px`;
+  return String(html)
+    // 「××在凡人晨读中的分享」是栏目标题，不属于信的正文
+    .replace(/<p style="[^"]*font-size:22px;font-weight:900;color:#1f2937;">[\s\S]*?<\/p>/g, '')
+    // 「小凡看见」小标题：去掉色条和大字号，只留一行加粗的暖色字
+    .replace(/<p style="[^"]*font-size:22px;font-weight:900;color:[^"]*">/g, '<p style="margin:0;line-height:32px;font-weight:700;color:#8a4b12;">')
+    .replace(/color:#168c91;font-weight:800;/g, 'color:#8a4b12;font-weight:700;')
+    // 「小凡看见」前的细线：上一段已经留了一行空行，这里不再多空一行
+    .replace(/<div style="height:1px;background:#e8edf3;margin:34px 0 22px;"><\/div>/g, '')
+    .replace(/<div style="width:72px;height:2px;[^"]*"><\/div>/g, `<div style="height:${line};"></div>`)
+    .replace(/line-height:[^;"]+;/g, `line-height:${line};`)
+    .replace(/margin:0 0 (\d+)px( 1\.4em)?;/g, (match, size, indent) =>
+      Number(size) <= 10 ? `margin:0${indent ? ` 0 0${indent}` : ''};` : `margin:0 0 ${line}${indent || ''};`
+    );
+}
+
+// 小凡看见详情页用：返回 { html, lined }。
+// 只有走 Markdown 渲染的内容才能保证每一行都落在横线上；原样保留的 HTML 不画横线。
+function renderInsightLetterContent(content) {
+  if (!content) return { html: '', lined: false };
+
+  if (isLikelyHtml(content)) {
+    const plain = richContentToPlainText(content);
+    if (getInsightTitleType(plain) || /小凡看见/.test(plain)) {
+      return { html: alignToLetterGrid(markdownToRichText(plain, { insightMode: true })), lined: true };
+    }
+    return { html: renderHtmlDividers(sanitizeHtml(content)), lined: false };
+  }
+
+  const html = markdownToRichText(content, { insightMode: true });
+  // 图片高度不定，会把后面的文字挤出网格
+  if (/<img\s/i.test(html)) return { html, lined: false };
+  return { html: alignToLetterGrid(html), lined: true };
+}
+
 module.exports = {
+  LETTER_LINE_HEIGHT,
+  renderInsightLetterContent,
   isLikelyHtml,
   renderRichTextContent,
   renderInsightRichTextContent,

@@ -1,8 +1,10 @@
 {
   "navigationBarTitleText": "首页",
   "enablePullDownRefresh": true,
-  "backgroundTextStyle": "light",
+  "backgroundTextStyle": "dark",
   "usingComponents": {
     "activity-popup": "/components/activity-popup/activity-popup"
-  }
+  },
+  "navigationBarBackgroundColor": "#fffdf8",
+  "navigationBarTextStyle": "black"
 }

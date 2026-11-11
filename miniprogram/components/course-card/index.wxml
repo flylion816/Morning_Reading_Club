@@ -1,7 +1,8 @@
 <view class="course-card {{isPending ? 'pending' : ''}}" catchtap="onCardTap">
   <!-- 左侧缩略图 -->
   <view class="course-thumb" style="{{course.color ? 'background: ' + course.color : ''}}">
-    <text class="thumb-icon">{{course.icon || '📚'}}</text>
+    <text wx:if="{{course.icon}}" class="thumb-icon">{{course.icon}}</text>
+    <view wx:else class="thumb-icon thumb-icon-book app-icon app-icon-book"></view>
   </view>
 
   <!-- 右侧内容区 -->

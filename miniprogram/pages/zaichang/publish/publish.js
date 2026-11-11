@@ -9,12 +9,12 @@ const enrollmentService = require('../../../services/enrollment.service');
 const { hasPaidEnrollment, redirectAfterCommunityDenied } = require('../../../utils/period-access');
 
 const DEFAULT_ACTIVITY_TYPES = [
-  { key: 'reading', label: '📚 读书会' },
-  { key: 'cooking', label: '🍳 做饭' },
-  { key: 'tea', label: '☕ 喝茶' },
-  { key: 'walk', label: '🚶 散步' },
-  { key: 'create', label: '🎨 创作' },
-  { key: 'other', label: '✨ 其他' }
+  { key: 'reading', label: '读书会' },
+  { key: 'cooking', label: '做饭' },
+  { key: 'tea', label: '喝茶' },
+  { key: 'walk', label: '散步' },
+  { key: 'create', label: '创作' },
+  { key: 'other', label: '其他' }
 ];
 
 function dedupeActivityTypes(types) {
@@ -144,7 +144,7 @@ Page({
       if (types.length > 0) {
         this.setData({
           activityTypes: this._formatActivityTypeOptions(
-            types.map(t => ({ key: t.key, label: `${t.emoji} ${t.label}` }))
+            types.map(t => ({ key: t.key, emoji: t.emoji, label: t.label }))
           )
         });
       }

@@ -114,4 +114,46 @@ describe('markdown utils', () => {
     expect(rendered).toContain(`color:${currentTenant.primaryColor}`);
     expect(rendered).toContain('<strong style="color:#168c91;font-weight:800;">真实与勇敢</strong>');
   });
+  describe('renderInsightLetterContent（信纸横线）', () => {
+    const { renderInsightLetterContent, LETTER_LINE_HEIGHT } = require('../../utils/markdown');
+    const line = `${LETTER_LINE_HEIGHT}px`;
+
+    test('Markdown 内容对齐到信纸网格并标记可画横线', () => {
+      const { html, lined } = renderInsightLetterContent(
+        ['## 小凡看见', '', '第一段**重点**', '', '---', '', '- 一', '- 二', '', '> 引用'].join('\n')
+      );
+
+      expect(lined).toBe(true);
+      // 行高全部固定为一行
+      const lineHeights = html.match(/line-height:[^;"]+;/g);
+      expect(lineHeights.length).toBeGreaterThan(0);
+      lineHeights.forEach(item => expect(item).toBe(`line-height:${line};`));
+      // 竖向间距只能是 0 或整行
+      (html.match(/margin:[^;"]+;/g) || []).forEach(item => {
+        expect(item).toMatch(new RegExp(`^margin:0( 0 ${line}( 1\\.4em)?| 0 0 1\\.4em)?;$`));
+      });
+      // 分隔线换成空行，不再有 1px / 2px 的色块
+      expect(html).not.toContain('width:72px');
+      expect(html).not.toContain('height:1px');
+      expect(html).toContain(`<div style="height:${line};"></div>`);
+    });
+
+    test('原样保留的 HTML 和带图片的内容不画横线', () => {
+      expect(renderInsightLetterContent('<p style="line-height:2">普通内容</p>')).toEqual({
+        html: '<p style="line-height:2">普通内容</p>',
+        lined: false
+      });
+      expect(renderInsightLetterContent('![图](https://example.com/a.png)').lined).toBe(false);
+      expect(renderInsightLetterContent('')).toEqual({ html: '', lined: false });
+    });
+
+    test('横线周期与详情页样式一致', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const wxss = fs.readFileSync(path.join(__dirname, '../../pages/insight-detail/insight-detail.wxss'), 'utf8');
+      const block = wxss.slice(wxss.indexOf('.content-text.letter-lined {'));
+      expect(block).toContain(`${line}\n  );`);
+      expect(block).toContain(`line-height: ${line};`);
+    });
+  });
 });

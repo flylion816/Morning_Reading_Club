@@ -58,6 +58,7 @@ const backupService = require("./services/backup.service");
 const studyReminderService = require("./services/study-reminder.service");
 const periodStatusService = require("./services/period-status.service");
 const activityReminderService = require("./services/activity-reminder.service");
+const letterDeliveryService = require("./services/letter-delivery.service");
 
 // 现在 app.js 可以安全加载，NODE_ENV 已经被正确设置
 const app = require("./app");
@@ -194,6 +195,15 @@ async function startServer() {
       .catch((error) => {
         logger.warn("⚠️ Redis 初始化异常，同步功能将不可用", error.message);
       });
+
+    // 慢递邮局定时送达：生产环境默认启用；其它环境设 ENABLE_LETTER_DELIVERY=true 也可启用（便于测试送达）
+    if (
+      process.env.NODE_ENV === "production" ||
+      process.env.ENABLE_LETTER_DELIVERY === "true"
+    ) {
+      letterDeliveryService.start();
+      logger.info("✅ 慢递邮局定时送达任务已启动（每 10 分钟检查一次）");
+    }
 
     // 初始化备份服务（仅在生产环境启用）
     if (process.env.NODE_ENV === "production") {

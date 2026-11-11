@@ -191,6 +191,7 @@ describe('checkin-records page', () => {
             '/uploads/tenants/fanren/checkins/b.jpg'
           ],
           likeCount: 6,
+          mood: 'calm',
           sectionId: {
             _id: 'section_1',
             title: '觉察日记'
@@ -213,6 +214,7 @@ describe('checkin-records page', () => {
     expect(pageInstance.data.checkinRecords[0].courseTitle).toBe('觉察日记');
     expect(pageInstance.data.checkinRecords[0].metaLabel).toContain('平衡之道');
     expect(pageInstance.data.checkinRecords[0].imageCount).toBe(2);
+    expect(pageInstance.data.checkinRecords[0].moodName).toBe('多云');
     expect(pageInstance.data.hasMore).toBe(false);
   });
 

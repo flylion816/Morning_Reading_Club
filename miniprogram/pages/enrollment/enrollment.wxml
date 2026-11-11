@@ -53,7 +53,7 @@
         </view>
         <view wx:if="{{fieldVisibility.name}}" class="form-group">
           <view class="form-label"><text class="required">*</text><text>{{fieldLabels.name}}</text></view>
-          <input type="text" class="form-control {{errors.name ? 'form-control-error' : ''}}" placeholder="请输入您的姓名" value="{{form.name}}" bindinput="handleInput" data-field="name" />
+          <input type="text" class="form-control {{errors.name ? 'form-control-error' : ''}}" placeholder="请输入你的姓名" value="{{form.name}}" bindinput="handleInput" data-field="name" />
           <text wx:if="{{errors.name}}" class="form-error">{{errors.name}}</text>
         </view>
         <view class="form-group">
@@ -97,7 +97,7 @@
             type="text"
             class="form-control {{errors.name ? 'form-control-error' : ''}}"
             name="name"
-            placeholder="请输入您的姓名"
+            placeholder="请输入你的姓名"
             value="{{form.name}}"
             bindinput="handleInput"
             data-field="name"
@@ -124,7 +124,7 @@
             <input
               type="number"
               class="form-control phone-manual"
-              placeholder="{{enrollmentTemplate.requirePhone ? '请输入您的手机号' : '或手动输入手机号（选填）'}}"
+              placeholder="{{enrollmentTemplate.requirePhone ? '请输入你的手机号' : '或手动输入手机号（选填）'}}"
               value="{{form.phone}}"
               bindinput="handleInput"
               data-field="phone"
@@ -210,7 +210,7 @@
           <input
             type="number"
             class="form-control {{errors.age ? 'form-control-error' : ''}}"
-            placeholder="请输入您的年龄（11-120）"
+            placeholder="请输入你的年龄（11-120）"
             value="{{form.age}}"
             bindinput="handleNumberInput"
             bindblur="handleNumberBlur"

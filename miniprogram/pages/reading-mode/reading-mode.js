@@ -2,6 +2,10 @@ const courseService = require('../../services/course.service');
 const currentTenant = require('../../config/current-tenant');
 const constants = require('../../config/constants');
 const { tenantStorage } = require('../../utils/storage');
+const feedback = require('../../utils/feedback');
+const presenceService = require('../../services/presence.service');
+const highlightService = require('../../services/highlight.service');
+const { hashText } = require('../../utils/text-hash');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { richContentToPlainText, isLikelyHtml } = require('../../utils/markdown');
 const {
@@ -25,6 +29,17 @@ const MINI_PROGRAM_CODE_ASSET_PATHS = [
 ];
 
 const FONT_SIZE_LEVELS = ['standard', 'large', 'xlarge'];
+const FONT_FAMILIES = ['sans', 'serif'];
+const PAPER_THEMES = ['warm', 'cream', 'night'];
+const PAPER_NAV_COLORS = {
+  warm: { frontColor: '#000000', backgroundColor: '#fffdf8' },
+  cream: { frontColor: '#000000', backgroundColor: '#f5ecd7' },
+  night: { frontColor: '#ffffff', backgroundColor: '#1f1d1a' }
+};
+const PRESENCE_INTERVAL_MS = 60 * 1000;
+const POPULAR_MIN_COUNT = 3;
+const MIN_HIGHLIGHT_LENGTH = 8;
+const MAX_HIGHLIGHT_LENGTH = 500;
 const MIN_COMPLETION_DURATION_MS = 60 * 1000;
 const FINAL_PARAGRAPH_DWELL_MS = 5 * 1000;
 const THEME_PRIMARY_DARK = currentTenant.primaryDarkColor || THEME_PRIMARY;
@@ -119,12 +134,16 @@ Page({
     statusBarHeight: 0,
     topbarHeight: 88,
     fontSizeLevel: 'standard',
+    fontFamily: 'sans',
+    paperTheme: 'warm',
+    settingsPanelVisible: false,
     canAccessCheckin: false,
     contentReady: false,
     completionVisible: false,
     completionDurationText: '',
     completionTitle: '你这一课，已经认真读完了！',
     completionPreviouslySaved: false,
+    completionRank: 0,
     fireworksVisible: false,
     brandName: getBrandName()
   },
@@ -156,9 +175,184 @@ Page({
     };
   },
 
+  onShow() {
+    if (this._presenceEnabled) {
+      this.startPresenceReporting();
+    }
+  },
+
+  onHide() {
+    this.stopPresenceReporting();
+  },
+
   onUnload() {
+    this.stopPresenceReporting();
     this.clearCompletionTimers();
     this.persistProgress();
+  },
+
+  isLoggedIn() {
+    try {
+      const userInfo =
+        (typeof getApp === 'function' ? getApp()?.globalData?.userInfo : null) ||
+        tenantStorage.get(constants.STORAGE_KEYS.USER_INFO) ||
+        null;
+      return !!userInfo;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  // 同行感与摘抄：仅登录且可参与社群互动（已付费或免费名额）时启用，全部静默
+  initCompanionFeatures(canInteract) {
+    this._presenceEnabled = false;
+    this._highlightEnabled = false;
+    if (!canInteract || !this.isLoggedIn() || !this.data.sectionId) {
+      return;
+    }
+    this._presenceEnabled = true;
+    this._highlightEnabled = true;
+    this.startPresenceReporting();
+    this.loadHighlightMarks();
+  },
+
+  startPresenceReporting() {
+    this.stopPresenceReporting();
+    const sectionId = this.data.sectionId;
+    if (!sectionId) {
+      return;
+    }
+    presenceService.reportReading(sectionId);
+    this._presenceTimer = setInterval(() => {
+      presenceService.reportReading(sectionId);
+    }, PRESENCE_INTERVAL_MS);
+  },
+
+  stopPresenceReporting() {
+    if (this._presenceTimer) {
+      clearInterval(this._presenceTimer);
+      this._presenceTimer = null;
+    }
+  },
+
+  async loadCompletionRank() {
+    if (!this._presenceEnabled) {
+      return;
+    }
+    try {
+      const result = await presenceService.getMyRank(this.data.sectionId, 'reading');
+      const rank = Number(result && result.rank);
+      if (rank > 0) {
+        this.setData({ completionRank: rank });
+      }
+    } catch (error) {
+      // 静默
+    }
+  },
+
+  async loadHighlightMarks() {
+    try {
+      const result = await highlightService.getSectionPopular(this.data.sectionId);
+      const popularMap = {};
+      ((result && result.popular) || []).forEach((item) => {
+        if (item && item.textHash) {
+          popularMap[item.textHash] = Number(item.count) || 0;
+        }
+      });
+      this._popularMap = popularMap;
+      this._mineSet = new Set((result && result.mine) || []);
+      this._highlightIds = this._highlightIds || {};
+      this.applyHighlightMarks();
+    } catch (error) {
+      this._highlightEnabled = false;
+    }
+  },
+
+  applyHighlightMarks() {
+    const popularMap = this._popularMap || {};
+    const mineSet = this._mineSet || new Set();
+    const paragraphs = this.data.paragraphs.map((item) => {
+      if (item.type === 'image' || !item.hash) {
+        return item;
+      }
+      const count = popularMap[item.hash] || 0;
+      return {
+        ...item,
+        mine: mineSet.has(item.hash),
+        popularCount: count >= POPULAR_MIN_COUNT ? count : 0
+      };
+    });
+    this.setData({ paragraphs });
+  },
+
+  handleParagraphLongPress(event) {
+    if (!this._highlightEnabled) {
+      return;
+    }
+    const index = Number(event.currentTarget?.dataset?.index);
+    const item = this.data.paragraphs[index];
+    if (!item || item.type === 'image' || !item.canHighlight) {
+      return;
+    }
+    const itemList = [item.mine ? '取消摘抄' : '摘下来'];
+    wx.showActionSheet({
+      itemList,
+      success: (res) => {
+        if (res.tapIndex !== 0) {
+          return;
+        }
+        if (item.mine) {
+          this.removeParagraphHighlight(item);
+        } else {
+          this.addParagraphHighlight(item);
+        }
+      }
+    });
+  },
+
+  async addParagraphHighlight(item) {
+    try {
+      const result = await highlightService.addHighlight(this.data.sectionId, item.text);
+      const id = result && (result.id || result._id);
+      this._highlightIds = this._highlightIds || {};
+      if (id) {
+        this._highlightIds[item.hash] = id;
+      }
+      this._mineSet = this._mineSet || new Set();
+      this._mineSet.add(item.hash);
+      this.applyHighlightMarks();
+      feedback.haptic('light');
+      wx.showToast({ title: '已摘进摘抄本', icon: 'none' });
+    } catch (error) {
+      // 请求层已处理错误提示，页面保持原状
+    }
+  },
+
+  async removeParagraphHighlight(item) {
+    const id = this._highlightIds && this._highlightIds[item.hash];
+    if (!id) {
+      wx.showModal({
+        title: '到摘抄本里可以删除',
+        confirmText: '去摘抄本',
+        showCancel: true,
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({ url: '/pages/highlights/highlights' });
+          }
+        }
+      });
+      return;
+    }
+    try {
+      await highlightService.removeHighlight(id);
+      delete this._highlightIds[item.hash];
+      if (this._mineSet) {
+        this._mineSet.delete(item.hash);
+      }
+      this.applyHighlightMarks();
+    } catch (error) {
+      // 静默
+    }
   },
 
   getProgressKey() {
@@ -196,7 +390,11 @@ Page({
     return {
       scrollTop: Number(progress.scrollTop) || 0,
       currentParagraphIndex: Number(progress.currentParagraphIndex) || 0,
-      fontSizeLevel: settings.fontSizeLevel || 'standard'
+      fontSizeLevel: FONT_SIZE_LEVELS.includes(settings.fontSizeLevel)
+        ? settings.fontSizeLevel
+        : 'standard',
+      fontFamily: FONT_FAMILIES.includes(settings.fontFamily) ? settings.fontFamily : 'sans',
+      paperTheme: PAPER_THEMES.includes(settings.paperTheme) ? settings.paperTheme : 'warm'
     };
   },
 
@@ -222,7 +420,19 @@ Page({
         course.periodId?.title ||
         course.periodName ||
         '';
-      const paragraphs = splitParagraphsWithImages(course.content || '');
+      const paragraphs = splitParagraphsWithImages(course.content || '').map((item) =>
+        item.type === 'image'
+          ? item
+          : {
+              ...item,
+              hash: hashText(item.text),
+              canHighlight:
+                item.text.length >= MIN_HIGHLIGHT_LENGTH &&
+                item.text.length <= MAX_HIGHLIGHT_LENGTH,
+              mine: false,
+              popularCount: 0
+            }
+      );
       let canAccessCheckin = false;
 
       if (periodId) {
@@ -253,9 +463,12 @@ Page({
           readingProgress: this.calculateProgress(safeIndex, paragraphs.length),
           restoreScrollTop: saved.scrollTop,
           fontSizeLevel: saved.fontSizeLevel,
+          fontFamily: saved.fontFamily,
+          paperTheme: saved.paperTheme,
           completionVisible: false,
           completionDurationText: '',
           completionTitle: this.getCompletionTitle(),
+          completionRank: 0,
           completionPreviouslySaved: !!(
             savedCompletion || routeCompletion || course.readingCompleted
           ),
@@ -268,6 +481,8 @@ Page({
             savedCompletion || routeCompletion || course
           );
           this.applyFontSizeClass(saved.fontSizeLevel);
+          this.applyNavigationBarColor(saved.paperTheme);
+          this.initCompanionFeatures(canAccessCheckin);
           setTimeout(() => {
             this.updateCurrentParagraphByViewport();
             this.setData({ contentReady: true });
@@ -542,6 +757,7 @@ Page({
         durationMs,
         completedAt: new Date(now).toISOString()
       })
+      .then(() => this.loadCompletionRank())
       .catch((error) => {
         console.warn('同步阅读完成状态失败，已保留本地状态:', error);
       });
@@ -551,6 +767,7 @@ Page({
       completionDurationText,
       fireworksVisible: true
     });
+    feedback.haptic('light');
 
     if (this._fireworksTimer) {
       clearTimeout(this._fireworksTimer);
@@ -607,9 +824,53 @@ Page({
     });
   },
 
+  // 在原有设置结构上合并写入，旧数据缺字段时保留其余字段
+  saveSettings(patch) {
+    const stored = wx.getStorageSync(this.getSettingsKey()) || {};
+    wx.setStorageSync(this.getSettingsKey(), { ...stored, ...patch });
+  },
+
   applyFontSizeClass(level) {
     this.setData({ fontSizeLevel: level });
-    wx.setStorageSync(this.getSettingsKey(), { fontSizeLevel: level });
+    this.saveSettings({ fontSizeLevel: level });
+  },
+
+  openSettingsPanel() {
+    this.setData({ settingsPanelVisible: true });
+  },
+
+  closeSettingsPanel() {
+    this.setData({ settingsPanelVisible: false });
+  },
+
+  handleSelectFontSize(e) {
+    const level = e.currentTarget.dataset.value;
+    if (!FONT_SIZE_LEVELS.includes(level)) return;
+    this.applyFontSizeClass(level);
+  },
+
+  handleSelectFontFamily(e) {
+    const fontFamily = e.currentTarget.dataset.value;
+    if (!FONT_FAMILIES.includes(fontFamily)) return;
+    this.setData({ fontFamily });
+    this.saveSettings({ fontFamily });
+  },
+
+  handleSelectPaperTheme(e) {
+    const paperTheme = e.currentTarget.dataset.value;
+    if (!PAPER_THEMES.includes(paperTheme)) return;
+    this.setData({ paperTheme });
+    this.saveSettings({ paperTheme });
+    this.applyNavigationBarColor(paperTheme);
+  },
+
+  // 状态栏文字颜色跟随纸色（夜间为白字）
+  applyNavigationBarColor(paperTheme) {
+    try {
+      wx.setNavigationBarColor({ ...(PAPER_NAV_COLORS[paperTheme] || PAPER_NAV_COLORS.warm), animation: { duration: 0 } });
+    } catch (error) {
+      console.warn('设置状态栏颜色失败:', error);
+    }
   },
 
   cycleFontSize() {

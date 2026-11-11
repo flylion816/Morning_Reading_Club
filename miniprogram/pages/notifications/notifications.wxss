@@ -33,7 +33,7 @@
   margin: 0 24rpx;
   padding: 128rpx 32rpx;
   text-align: center;
-  background: #ffffff;
+  background: var(--app-paper);
   border-radius: 32rpx;
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.03);
 }
@@ -62,7 +62,7 @@
   align-items: center;
   margin: 0 24rpx;
   padding: 100rpx 32rpx;
-  background: #ffffff;
+  background: var(--app-paper);
   border-radius: 32rpx;
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.03);
 }
@@ -76,7 +76,7 @@
 .tabs {
   display: flex;
   align-items: center;
-  background: #eef2f7;
+  background: var(--app-surface-muted);
   border-radius: 16rpx;
   padding: 6rpx;
   margin: 0 24rpx 20rpx;
@@ -103,8 +103,8 @@
 
 .tab-item.active {
   color: var(--theme-primary);
-  background: #ffffff;
-  box-shadow: 0 4rpx 12rpx rgba(15, 23, 42, 0.06);
+  background: var(--app-paper);
+  box-shadow: 0 4rpx 12rpx rgba(60, 42, 20, 0.06);
 }
 
 .tab-action {
@@ -128,7 +128,7 @@
 .notification-item {
   display: flex;
   position: relative;
-  background: white;
+  background: var(--app-paper);
   margin: 0;
   padding: 24rpx;
   border-radius: 28rpx;
@@ -143,7 +143,7 @@
 }
 
 .notification-item.unread {
-  background: #f5f8ff;
+  background: var(--app-surface-muted);
   border-left: 6rpx solid var(--theme-primary);
 }
 
@@ -203,7 +203,7 @@
   border-radius: 50%;
   font-size: 28rpx;
   color: var(--app-text-muted);
-  background: #f1f5f9;
+  background: var(--app-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -243,7 +243,7 @@
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: var(--app-border);
   flex-shrink: 0;
 }
 
@@ -298,14 +298,14 @@
 }
 
 .time {
-  color: #cbd5e1;
+  color: var(--app-text-muted);
 }
 
 .notification-action-hint {
   color: var(--theme-primary);
   font-size: 24rpx;
   font-weight: 600;
-  background: #eef4ff;
+  background: var(--app-paper-muted);
   border-radius: 999rpx;
   padding: 10rpx 18rpx;
   line-height: 1;
@@ -344,7 +344,7 @@
 .no-more {
   padding: 34rpx 30rpx 12rpx;
   text-align: center;
-  color: #cbd5e1;
+  color: var(--app-text-muted);
   font-size: 26rpx;
 }
 
@@ -380,11 +380,44 @@
 }
 .notification-item {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .tab-item:active,
 .notification-item:active,
 .action-btn:active {
   transform: translateY(2rpx) scale(0.99);
+}
+
+
+/* Version 3 dawn: 空态图标。 */
+.app-empty { margin: 80rpx 24rpx 0; }
+
+.dawn-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dawn-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 28rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+.dawn-sk-w60 { width: 60%; }
+.dawn-sk-w90 { width: 90%; }
+.dawn-sk-w40 { width: 40%; }
+.loading-state { display: block; padding: 0; background: transparent; box-shadow: none; }
+
+/* Features: 新通知类型使用印章字作图标 */
+.type-icon {
+  font-family: var(--app-font-serif);
+  font-weight: 700;
 }

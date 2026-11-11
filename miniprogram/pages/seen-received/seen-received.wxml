@@ -1,0 +1,43 @@
+<view class="page" wx:if="{{socialAccessGranted}}">
+  <view class="head">
+    <text class="head-line">这些时刻，有人看见了你</text>
+    <view class="head-total" wx:if="{{!loading && !loadError && total > 0}}">
+      <text class="head-num">{{total}}</text>
+      <text class="head-unit">次被看见</text>
+    </view>
+  </view>
+
+  <view class="skeleton-list" wx:if="{{loading}}">
+    <view class="app-skeleton skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this"></view>
+  </view>
+
+  <view class="app-error" wx:elif="{{loadError}}">
+    <text class="app-error-title">没有加载出来</text>
+    <text class="app-empty-desc">网络好像开了个小差</text>
+    <view class="app-empty-action" bindtap="handleRetry">重试</view>
+  </view>
+
+  <view class="app-empty" wx:elif="{{list.length === 0}}">
+    <view class="app-empty-art app-empty-art-sprout"></view>
+    <text class="app-empty-title">还没有收到看见卡。多写一点，会有人看见的</text>
+  </view>
+
+  <view class="list" wx:else>
+    <view class="app-card seen-card" wx:for="{{list}}" wx:key="id" bindtap="handleCardTap" data-section-id="{{item.sectionId}}" data-checkin-id="{{item.checkinId}}">
+      <view class="seen-user">
+        <image wx:if="{{item.avatarUrl}}" class="seen-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="seen-avatar seen-avatar-text" style="background: {{item.avatarColor}}">{{item.avatarText}}</view>
+        <text class="seen-name">{{item.nickname}}</text>
+        <text class="seen-time">{{item.timeText}}</text>
+      </view>
+      <text class="seen-phrase">{{item.phraseText}}</text>
+      <text class="seen-from" wx:if="{{item.courseTitle || item.periodName}}">来自 {{item.courseTitle}}{{item.periodName ? ' · ' + item.periodName : ''}}</text>
+    </view>
+    <view class="list-foot" wx:if="{{loadingMore}}">
+      <text>加载中</text>
+    </view>
+    <view class="list-foot" wx:elif="{{!hasMore}}">
+      <text>都在这里了</text>
+    </view>
+  </view>
+</view>

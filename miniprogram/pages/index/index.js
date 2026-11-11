@@ -10,6 +10,11 @@ const activityService = require('../../services/activity.service');
 const communityActivityService = require('../../services/communityActivity.service');
 const imprintService = require('../../services/imprint.service');
 const completionReportService = require('../../services/completion-report.service');
+const presenceService = require('../../services/presence.service');
+const letterService = require('../../services/letter.service');
+const practiceService = require('../../services/practice.service');
+const buddyService = require('../../services/buddy.service');
+const { getSolarTerm } = require('../../utils/solar-terms');
 const constants = require('../../config/constants');
 const request = require('../../utils/request');
 const { formatNumber, formatDate } = require('../../utils/formatters');
@@ -26,8 +31,10 @@ const {
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { tenantStorage } = require('../../utils/storage');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getDaypart } = require('../../utils/daypart');
 const {
   getLessonNumberingBase,
+  getLessonNumber,
   formatLessonLabel,
   formatShortLessonLabel
 } = require('../../utils/lesson');
@@ -60,7 +67,8 @@ const HOME_SECTION_KEYS = [
   'zaichang',
   'myCheckins',
   'xiaofanInsights',
-  'insightRequests'
+  'insightRequests',
+  'campCorner'
 ];
 const HOME_SECTION_LABELS = {
   recentActivities: '近期活动',
@@ -68,7 +76,8 @@ const HOME_SECTION_LABELS = {
   zaichang: '凡人生活',
   myCheckins: '我的打卡',
   xiaofanInsights: '小凡看见',
-  insightRequests: '请求看见'
+  insightRequests: '请求看见',
+  campCorner: '营地角落'
 };
 function normalizeHomeSectionOrder(order, options = {}) {
   const appendMissing = options.appendMissing !== false;
@@ -238,6 +247,13 @@ function getShortPeriodTitle(title = '') {
   return normalized.split(/\s*[-－—]\s*/)[0] || normalized;
 }
 
+// 「我的打卡」日期页签：大号的日 + 小号的月
+function buildLeafDate(dateString) {
+  const date = dateString ? new Date(dateString) : null;
+  if (!date || Number.isNaN(date.getTime())) return { dayNum: '', monthLabel: '' };
+  return { dayNum: String(date.getDate()), monthLabel: `${date.getMonth() + 1}月` };
+}
+
 function buildRecentCheckinCard(item) {
   const previewSource = richContentToPlainText(item.note || item.content || '')
     .replace(/\s+/g, ' ')
@@ -266,6 +282,7 @@ function buildRecentCheckinCard(item) {
       ? ''
       : formatShortLessonLabel(sectionInfo.day),
     dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
+    ...buildLeafDate(item.checkinDate || item.createdAt),
     icon: periodInfo.coverEmoji || periodInfo.icon || '📘',
     color: periodInfo.coverColor || periodInfo.color || THEME_PRIMARY
   };
@@ -309,6 +326,176 @@ function getSectionDay(section = {}) {
 function getPeriodTotalDays(period = {}) {
   const totalDays = Number(period.totalDays);
   return Number.isFinite(totalDays) && totalDays > 0 ? totalDays : null;
+}
+
+const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
+const JOURNEY_MAX_TICKS = 31;
+const TODAY_EXTRACT_MAX_CHARS = 40;
+
+function formatHomeDateText(date = new Date()) {
+  const base = `${date.getMonth() + 1}月${date.getDate()}日 周${WEEKDAY_LABELS[date.getDay()]}`;
+  const pad = (n) => String(n).padStart(2, '0');
+  const term = getSolarTerm(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`);
+  return term ? `${base} · ${term}` : base;
+}
+
+// 同行感：东八区 05:30–08:00 优先显示“此刻在读”，否则显示“今天读完”，都没有则不显示
+function buildPresenceText(presence, now = new Date()) {
+  if (!presence) return '';
+  const bjt = new Date(now.getTime() + 8 * 3600000);
+  const minute = bjt.getUTCHours() * 60 + bjt.getUTCMinutes();
+  const inWindow = minute >= 5 * 60 + 30 && minute < 8 * 60;
+  if (inWindow && presence.readingNow !== null && presence.readingNow !== undefined) {
+    return `此刻有 ${presence.readingNow} 位书友也在读`;
+  }
+  if (presence.completedToday !== null && presence.completedToday !== undefined) {
+    return `今天已有 ${presence.completedToday} 位书友读完`;
+  }
+  return '';
+}
+
+// 日签出处：第 N 天 · 课程标题；算不出第几天时只用标题且不带 day
+function buildDailyCardSource(section = {}) {
+  const n = Number(section.lessonNumber);
+  const title = section.title || '';
+  if (!Number.isFinite(n) || n < 1) return { source: title, day: '' };
+  return { source: `第 ${n} 天${title ? ` · ${title}` : ''}`, day: n };
+}
+
+// 营地角落：根据三个接口的返回算出卡片（没有内容的卡片不出现）
+function buildCampCornerCards({ letter, practice, buddy } = {}) {
+  const cards = [];
+  if (letter) {
+    const status = letter.status;
+    if (letter.canWrite && (status === 'none' || status === 'draft')) {
+      cards.push({ key: 'letter', kind: 'letter', title: '给结营那天的自己写封信' });
+    } else if (status === 'sealed') {
+      cards.push({ key: 'letter', kind: 'letter', title: `信在路上，还有 ${letter.daysToDeliver || 0} 天` });
+    } else if (status === 'delivered') {
+      cards.push({ key: 'letter', kind: 'letter', title: '有一封信到了' });
+    }
+  }
+  if (practice && practice.active) {
+    const text = practice.practice && (practice.practice.text || (typeof practice.practice === 'string' ? practice.practice : ''));
+    if (!text) {
+      cards.push({ key: 'practice', kind: 'practice', title: '给这一周定一个小行动' });
+    } else {
+      const done = practice.today && practice.today.done;
+      cards.push({
+        key: 'practice',
+        kind: 'practice',
+        title: text,
+        sub: done === true ? '已记「做到了」' : done === false ? '今天没有' : '今天还没记',
+        single: true
+      });
+    }
+  }
+  if (buddy) {
+    if (buddy.state === 'none') {
+      cards.push({ key: 'buddy', kind: 'buddy', title: '想要一位读伴' });
+    } else if (buddy.state === 'waiting') {
+      cards.push({ key: 'buddy', kind: 'buddy', title: '正在等一位读伴' });
+    } else if (buddy.state === 'paired' && buddy.buddy) {
+      cards.push({
+        key: 'buddy',
+        kind: 'buddy',
+        title: buddy.buddy.nickname || '读伴',
+        paired: true,
+        read: !!buddy.buddy.readToday,
+        checked: !!buddy.buddy.checkedInToday
+      });
+    }
+  }
+  return cards.slice(0, 3);
+}
+
+// 期次第几天（以日期计，从 1 开始）；不在期次内或缺少日期时返回 null
+function getPeriodDayIndex(period, today = new Date()) {
+  if (!period) return null;
+  const start = getDateAtDayBoundary(period.startDate || period.startTime);
+  if (!start) return null;
+  const todayStart = getDateAtDayBoundary(today);
+  const dayIndex = Math.round((todayStart - start) / 86400000) + 1;
+  return dayIndex >= 1 ? dayIndex : null;
+}
+
+function getPeriodJourneyTotalDays(period) {
+  const fromField = getPeriodTotalDays(period || {});
+  if (fromField) return fromField;
+  const start = getDateAtDayBoundary(period?.startDate || period?.startTime);
+  const end = getDateAtDayBoundary(period?.endDate || period?.endTime);
+  if (!start || !end) return null;
+  const total = Math.round((end - start) / 86400000) + 1;
+  return total > 0 ? total : null;
+}
+
+// 旅程地平线：每天一个刻度，最多 31 个；拿不到总天数或今天第几天时返回 null
+function buildJourneyTicks(dayIndex, totalDays) {
+  if (!dayIndex || !totalDays || dayIndex > totalDays) return null;
+  const count = Math.min(totalDays, JOURNEY_MAX_TICKS);
+  const todayPos =
+    totalDays <= JOURNEY_MAX_TICKS
+      ? dayIndex - 1
+      : Math.round(((dayIndex - 1) / (totalDays - 1)) * (count - 1));
+  return Array.from({ length: count }, (_, index) => ({
+    state: index < todayPos ? 'past' : index === todayPos ? 'today' : 'future'
+  }));
+}
+
+// 「摘一摘」富文本 -> 前 40 个字的纯文本；没有则返回空串
+function buildTodayExtractText(extract) {
+  if (!extract || typeof extract !== 'string') return '';
+  const text = extract
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const chars = Array.from(text);
+  if (chars.length <= TODAY_EXTRACT_MAX_CHARS) return text;
+  return `${chars.slice(0, TODAY_EXTRACT_MAX_CHARS).join('')}…`;
+}
+
+// 今日晨读卡：由 todaySection 与社群状态得出主按钮、步骤条和文字入口
+// 已打卡即视为已读完（读纸书或在会议里读完的书友不会触发 readingCompleted）
+function buildTodayCardState(todaySection, communityEnabled) {
+  const section = todaySection || {};
+  const checkedIn = !!section.isCheckedIn;
+  const read = !!section.readingCompleted || checkedIn;
+
+  let primary;
+  if (communityEnabled && checkedIn) {
+    primary = { type: 'done', text: '✓ 今日已完成' };
+  } else if (!read) {
+    primary = { type: 'read', text: '开始晨读' };
+  } else if (communityEnabled) {
+    primary = { type: 'checkin', text: '去打卡' };
+  } else {
+    primary = { type: 'study', text: '去学习' };
+  }
+
+  const defs = [{ key: 'read', label: '读一读', done: read }];
+  if (communityEnabled) defs.push({ key: 'checkin', label: '写打卡', done: checkedIn });
+  if (section.podcastUrl) defs.push({ key: 'podcast', label: '听播客', done: false, optional: true });
+  let currentAssigned = false;
+  const steps = defs.map((def, index) => {
+    let state = def.done ? 'done' : 'todo';
+    if (!def.done && !def.optional && !currentAssigned) {
+      state = 'current';
+      currentAssigned = true;
+    }
+    return { key: def.key, label: def.label, state, dot: def.done ? '✓' : String(index + 1) };
+  });
+
+  return {
+    primary,
+    steps,
+    showDirectCheckin: communityEnabled && !checkedIn && !read,
+    showStudy: !communityEnabled && !read,
+    showReread: read
+  };
 }
 
 function isClosingSection(section = {}) {
@@ -392,7 +579,7 @@ function buildTodayTaskEmptyState(period = null, options = {}) {
     type: 'no-active-period',
     icon: '☀',
     coverLabel: '待开启',
-    title: '暂无今日任务',
+    title: '今天没有安排晨读，好好休息',
     description: '当前没有进行中的晨读营，新一期开放后会更新。',
     periodId: '',
     primaryAction: { text: '看看全部期次', type: 'periods' },
@@ -430,11 +617,25 @@ function buildReadingModeUrl(sectionId, periodId = '', section = {}) {
 }
 
 Page({
+  // 暴露纯函数，便于单测
+  buildTodayCardState,
+  buildPresenceText,
+  buildCampCornerCards,
+  buildDailyCardSource,
+  formatHomeDateText,
+
   data: {
     // 用户信息
     userInfo: null,
     isLogin: false,
     hasValidSignature: false,
+
+    // 晨光问候区
+    daypart: 'day',
+    greeting: '上午好',
+    dateText: '',
+    periodDayText: '',
+    journeyTicks: [],
 
     // 当前期次
     currentPeriod: null,
@@ -442,9 +643,12 @@ Page({
     canAccessCurrentPeriodCommunity: false,
     currentPeriodCommunityState: 'locked',
     canUsePaidFeatures: false,
+    presenceText: '',
+    campCornerCards: [],
 
     // 今日课节
     todaySection: null,
+    todayCard: null,
     todayTaskEmptyState: null,
     currentPeriodReport: null,
     showMorningReadPrompt: false,
@@ -482,7 +686,7 @@ Page({
     insightRequests: [],
     allInsightRequests: [],
     insightRequestTotal: 0,
-    insightRequestEmptyText: '暂无收到的请求',
+    insightRequestEmptyText: '还没有收到请求',
     focusRequestId: '',
     focusInsightId: '',
     highlightRequestId: '',
@@ -526,6 +730,7 @@ Page({
     this._isPageAlive = true;
     this._isPageVisible = true;
     const app = getApp();
+    this.refreshDaypart();
     // 同步播客播放状态
     this.setData({
       podcastPlaying: !!app.globalData.podcastPlaying,
@@ -551,6 +756,27 @@ Page({
     // 通知页可能只改变未读数；首页数据刷新有 30 秒节流，但铃铛数字需要每次返回首页都同步。
     if (!shouldRefreshData && this.data.isLogin) {
       this.loadUnreadNotificationCount();
+    }
+  },
+
+  /**
+   * 晨光问候区：按时段更新问候、日期与导航栏底色（只影响首页）
+   */
+  refreshDaypart() {
+    const now = new Date();
+    const daypart = getDaypart(now);
+    this.setData({
+      daypart: daypart.key,
+      greeting: daypart.greeting,
+      dateText: formatHomeDateText(now)
+    });
+    try {
+      wx.setNavigationBarColor({
+        frontColor: daypart.navFront,
+        backgroundColor: daypart.navBackground
+      });
+    } catch (error) {
+      console.warn('设置首页导航栏颜色失败:', error);
     }
   },
 
@@ -610,11 +836,16 @@ Page({
     if (!isLogin) {
       Object.assign(nextData, {
         currentPeriod: null,
+        periodDayText: '',
+        journeyTicks: [],
         currentPeriodPaymentStatus: null,
         canAccessCurrentPeriodCommunity: false,
         currentPeriodCommunityState: 'locked',
         canUsePaidFeatures: false,
+        presenceText: '',
+        campCornerCards: [],
         todaySection: null,
+        todayCard: null,
         todayTaskEmptyState: null,
         currentPeriodReport: null,
         showMorningReadPrompt: false,
@@ -706,7 +937,7 @@ Page({
   getInsightRequestEmptyText(direction = 'received') {
     return direction === 'sent'
       ? '你还没有发起过看见请求'
-      : '暂无收到的请求';
+      : '还没有收到请求';
   },
 
   getInsightRequestListForDirection(requestGroups = {}, direction = 'received') {
@@ -937,6 +1168,7 @@ Page({
           id: sectionRes.id || taskRes.sectionId,
           day: taskRes.day,
           dayDisplay: formatLessonLabel(taskRes.day, lessonNumberingBase),
+          lessonNumber: getLessonNumber(taskRes.day, lessonNumberingBase),
           title: sectionRes.title,
           periodId: taskRes.periodId,
           periodTitle: taskRes.periodTitle,
@@ -961,6 +1193,7 @@ Page({
           coverEmoji:
             sectionRes.coverEmoji || currentPeriod?.coverEmoji || '🏔️',
           subtitleDisplay: (sectionRes.subtitle || '').replace(/至$/, ''),
+          extractText: buildTodayExtractText(sectionRes.extract),
           displayDate,
           podcastUrl: sectionRes.podcastUrl || null,
           podcastDuration: sectionRes.podcastDuration || null,
@@ -982,6 +1215,7 @@ Page({
               id: section.id,
               day: section.day,
               dayDisplay: formatLessonLabel(section.day, lessonNumberingBase),
+              lessonNumber: getLessonNumber(section.day, lessonNumberingBase),
               title: section.title,
               periodId: currentPeriodId,
               periodTitle: currentPeriod?.title,
@@ -996,6 +1230,7 @@ Page({
               coverColor: currentPeriod?.coverColor || THEME_PRIMARY,
               coverEmoji: currentPeriod?.coverEmoji || '🏔️',
               subtitleDisplay: (section.subtitle || '').replace(/至$/, ''),
+              extractText: buildTodayExtractText(section.extract),
               displayDate,
               podcastUrl: section.podcastUrl || null,
               podcastDuration: section.podcastDuration || null,
@@ -1053,9 +1288,27 @@ Page({
         }
         : null;
 
+      const periodDayIndex = getPeriodDayIndex(currentPeriod, todayDate);
+      // 期次在进行中但总天数拿不到或比今天还小（比如按周排课的期次），就以今天为终点画地平线
+      const journeyTotalDays = getPeriodJourneyTotalDays(currentPeriod);
+      const journeyTicks =
+        buildJourneyTicks(
+          periodDayIndex,
+          currentPeriodActiveToday && periodDayIndex
+            ? Math.max(journeyTotalDays || 0, periodDayIndex)
+            : journeyTotalDays
+        ) || [];
+      const periodName = currentPeriod?.name || currentPeriod?.title || '';
+      const periodDayText =
+        periodName && periodDayIndex && currentPeriodActiveToday
+          ? `${periodName} 第 ${periodDayIndex} 天`
+          : '';
+
       // ── Wave 2 完成后立即渲染主内容，消除转圈 ──────────────────
       this.setData(
         {
+          journeyTicks,
+          periodDayText,
           userInfo: displayUserInfo,
           hasValidSignature: !!this.isValidSignature(
             displayUserInfo && displayUserInfo.signature
@@ -1071,6 +1324,9 @@ Page({
             appendMissing: !homeConfig?.sections
           }),
           todaySection: todaySection || null,
+          todayCard: todaySection
+            ? buildTodayCardState(todaySection, communityEnabled)
+            : null,
           todayTaskEmptyState: todayTaskEmptyState || null,
           hasMeeting: !!todaySection,
           meetingId: currentPeriod?.meetingId || '',
@@ -1094,6 +1350,12 @@ Page({
       // ── Wave 3: 社区数据后台异步填充，不阻塞首屏 ───────────────
       if (!paidFeatureAccessEnabled) {
         return;
+      }
+
+      if (communityEnabled) {
+        this.loadHomeExtras(currentPeriodId);
+      } else {
+        this.setData({ presenceText: '', campCornerCards: [] });
       }
 
       Promise.all([
@@ -1164,6 +1426,58 @@ Page({
     }
 
     this.setData({ showMorningReadPrompt: true });
+  },
+
+  // 同行感与营地角落：锦上添花，各自失败各自不显示，不阻塞首屏
+  loadHomeExtras(periodId) {
+    if (!periodId) {
+      this.setData({ presenceText: '', campCornerCards: [] });
+      return;
+    }
+    const safe = (fn) => {
+      try {
+        return Promise.resolve(fn()).catch(() => null);
+      } catch (error) {
+        return Promise.resolve(null);
+      }
+    };
+    safe(() => presenceService.getToday(periodId)).then((presence) => {
+      if (this.data.currentPeriod && (this.data.currentPeriod._id || this.data.currentPeriod.id) !== periodId) return;
+      this.setData({ presenceText: buildPresenceText(presence) });
+    });
+    Promise.all([
+      safe(() => letterService.getPeriodLetter(periodId)),
+      safe(() => practiceService.getCurrent(periodId)),
+      safe(() => buddyService.getState(periodId))
+    ]).then(([letter, practice, buddy]) => {
+      if (this.data.currentPeriod && (this.data.currentPeriod._id || this.data.currentPeriod.id) !== periodId) return;
+      this.setData({ campCornerCards: buildCampCornerCards({ letter, practice, buddy }) });
+    });
+  },
+
+  handleCampCornerTap(e) {
+    const kind = e.currentTarget.dataset.kind;
+    const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    const pages = {
+      letter: '/pages/slow-mail/slow-mail',
+      practice: '/pages/practice/practice',
+      buddy: '/pages/buddy/buddy'
+    };
+    if (!pages[kind] || !periodId) return;
+    wx.navigateTo({ url: `${pages[kind]}?periodId=${periodId}` });
+  },
+
+  handleDailyCardTap() {
+    const { todaySection, currentPeriod } = this.data;
+    if (!todaySection) return;
+    const enc = (v) => encodeURIComponent(v === undefined || v === null ? '' : String(v));
+    const { source, day } = buildDailyCardSource(todaySection);
+    const periodName = currentPeriod?.name || currentPeriod?.title || todaySection.periodTitle || '';
+    wx.navigateTo({
+      url:
+        `/pages/daily-card/daily-card?quote=${enc(todaySection.extractText)}` +
+        `&source=${enc(source)}&periodName=${enc(periodName)}&day=${enc(day)}`
+    });
   },
 
   async loadCurrentPeriodReport(periodId, options = {}) {
@@ -1341,10 +1655,11 @@ Page({
             ? ''
             : formatShortLessonLabel(item.day),
           title: item.sectionId?.title || '学习反馈',
+          dateLabel: formatRecentCheckinDate(item.createdAt),
           courseTitle: courseDisplay.title,
           courseDayLabel: courseDisplay.dayLabel,
           periodName: getInsightPeriodName(item, this._periodNameById),
-          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '还没有内容'),
           mediaType: item.mediaType || 'text',
           imageUrl: item.imageUrl || null,
           periodId: item.periodId,
@@ -1418,7 +1733,7 @@ Page({
           courseTitle: courseDisplay.title,
           courseDayLabel: courseDisplay.dayLabel,
           periodName: getInsightPeriodName(item, this._periodNameById),
-          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+          preview: preview || (item.imageUrl ? '点击查看图片反馈' : '还没有内容'),
           mediaType: item.mediaType || 'text',
           imageUrl: item.imageUrl || null,
           type: item.type,
@@ -1618,7 +1933,7 @@ Page({
         error.errMsg.includes('getUserProfile:fail auth deny')
       ) {
         wx.showToast({
-          title: '您拒绝了授权',
+          title: '你拒绝了授权',
           icon: 'none',
           duration: 2000
         });
@@ -2357,7 +2672,7 @@ Page({
   copyMeetingValue(value, title) {
     if (!value) {
       wx.showToast({
-        title: '暂无可复制内容',
+        title: '没有可复制的内容',
         icon: 'none'
       });
       return;

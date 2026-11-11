@@ -16,7 +16,13 @@
   </view>
 
   <view class="requests-loading" wx:if="{{loading}}">
-    <text>加载中...</text>
+    <view class="dawn-skeleton-list">
+      <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+        <view class="app-skeleton-line dawn-sk-w60"></view>
+        <view class="app-skeleton-line dawn-sk-w90"></view>
+        <view class="app-skeleton-line dawn-sk-w40"></view>
+      </view>
+    </view>
   </view>
 
   <view class="requests-list" wx:elif="{{requests.length > 0}}">
@@ -54,9 +60,9 @@
     </view>
   </view>
 
-  <view class="empty-state" wx:else>
-    <text class="empty-icon">📬</text>
-    <text class="empty-text">{{emptyText}}</text>
+  <view class="app-empty" wx:else>
+    <view class="app-empty-art app-empty-art-letter"></view>
+    <text class="app-empty-title">{{emptyText}}</text>
   </view>
 </view>
 
