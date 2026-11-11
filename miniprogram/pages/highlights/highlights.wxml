@@ -1,0 +1,61 @@
+<view class="hl-page">
+  <scroll-view class="hl-chips" scroll-x wx:if="{{periods.length > 1}}">
+    <view class="hl-chips-row">
+      <view class="app-chip hl-chip {{activePeriodId === '' ? 'hl-chip-active' : ''}}" bindtap="handleSelectPeriod" data-id="">全部</view>
+      <view
+        wx:for="{{periods}}"
+        wx:key="id"
+        class="app-chip hl-chip {{activePeriodId === item.id ? 'hl-chip-active' : ''}}"
+        bindtap="handleSelectPeriod"
+        data-id="{{item.id}}"
+      >{{item.name}} {{item.count}}</view>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{loading}}" class="hl-skeletons">
+    <view class="app-skeleton hl-skeleton"></view>
+    <view class="app-skeleton hl-skeleton"></view>
+  </view>
+
+  <view wx:elif="{{error}}" class="app-error">
+    <view class="app-error-title">摘抄没加载出来</view>
+    <view class="app-empty-action" bindtap="handleRetry">重试</view>
+  </view>
+
+  <view wx:elif="{{list.length === 0}}" class="app-empty hl-empty">
+    <view class="app-empty-art app-empty-art-book"></view>
+    <view class="app-empty-title">读到想留下的句子，长按就能摘下来</view>
+  </view>
+
+  <view wx:else class="hl-list">
+    <view class="hl-card" wx:for="{{list}}" wx:key="_id">
+      <view class="hl-quote">{{item.text}}</view>
+      <view class="hl-source" wx:if="{{item.source}}">{{item.source}}</view>
+
+      <view wx:if="{{editingId === item._id}}" class="hl-note-edit">
+        <textarea
+          class="hl-note-input"
+          value="{{editingNote}}"
+          maxlength="200"
+          auto-height
+          placeholder="写一句你的感想"
+          bindinput="handleNoteInput"
+        />
+        <view class="hl-actions">
+          <text class="hl-action" bindtap="handleCancelEdit">取消</text>
+          <text class="hl-action hl-action-main" bindtap="handleSaveNote">保存</text>
+        </view>
+      </view>
+      <view wx:else class="hl-note" bindtap="handleStartEdit" data-id="{{item._id}}">
+        <text wx:if="{{item.note}}">{{item.note}}</text>
+        <text wx:else class="hl-note-empty">写一句你的感想</text>
+      </view>
+
+      <view class="hl-footer">
+        <text class="hl-action hl-action-main" bindtap="handleMakeCard" data-id="{{item._id}}">做成日签</text>
+        <text class="hl-action" bindtap="handleDelete" data-id="{{item._id}}">删除</text>
+      </view>
+    </view>
+    <view class="hl-more" wx:if="{{loadingMore}}">读取中</view>
+  </view>
+</view>

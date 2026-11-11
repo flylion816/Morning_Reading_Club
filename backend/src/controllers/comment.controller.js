@@ -191,6 +191,18 @@ async function getCommentsByCheckin(req, res, next) {
     const { checkinId } = req.params;
     const { page = 1, limit = 20 } = req.query;
 
+    const checkin = await Checkin.findById(checkinId);
+    if (!checkin) {
+      return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      getRequestUserId(req),
+      getCheckinPeriodId(checkin)
+    );
+    if (!hasCommunityAccess) return;
+
     const total = await Comment.countDocuments({ checkinId });
     const comments = await Comment.find({ checkinId })
       .populate('userId', 'nickname avatar avatarUrl')

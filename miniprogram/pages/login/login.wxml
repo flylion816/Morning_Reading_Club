@@ -2,14 +2,19 @@
 <view class="page-login-wrapper">
   <view class="page-login">
     <!-- Logo和标题 -->
-    <view class="login-header">
-      <view class="logo">📚</view>
-      <text class="app-title">{{courseName}}</text>
-      <text class="app-title-second">{{brandName}}</text>
-      <text class="app-slogan">{{brandSlogan}}</text>
+    <view class="login-sky">
+      <view class="login-header">
+        <view class="login-emblem"></view>
+        <text class="app-title">{{courseName}}</text>
+        <text class="app-title-second">{{brandName}}</text>
+        <text class="app-slogan">{{brandSlogan}}</text>
+      </view>
+      <view class="login-glow"></view>
+      <view class="login-sun"></view>
     </view>
 
-    <!-- 登录卡片 -->
+    <!-- 登录区（纸面） -->
+    <view class="login-ground">
     <view class="login-card">
       <view class="card-title">明理实修，同见同行</view>
       <view class="card-desc">我们一起观心，谈心，用心，修心，明心</view>
@@ -86,6 +91,7 @@
         <view class="debug-text">API: {{apiBase || '未配置'}}</view>
         <view class="debug-text">{{debugInfo}}</view>
       </view>
+    </view>
     </view>
   </view>
 

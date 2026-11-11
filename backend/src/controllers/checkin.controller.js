@@ -16,6 +16,26 @@ const {
   formatNotificationTime
 } = require('../utils/notification-links');
 const { resolveTenantSlug } = require('../utils/tenantSlug');
+const { toDayKey, computeDayMetrics } = require('../utils/checkin-day-metrics');
+const {
+  CHECKIN_MOODS,
+  MOOD_VALID_SINCE,
+  isValidMood,
+  readTrustedMood,
+  withTrustedMood
+} = require('../utils/checkin-mood');
+
+const MOOD_SUMMARY_MIN_SAMPLES = 3;
+
+// 心情只有本人可见：给他人看的列表一律不带 mood
+const OTHERS_SELECT = '-__v -mood';
+
+// 只有请求体带 moodSource: 'picker'（来自天气选择器）才认 mood；旧版客户端会写死 happy，一律忽略
+const MOOD_SOURCE_PICKER = 'picker';
+
+function isMoodProvided(mood) {
+  return mood !== undefined && mood !== null && mood !== '';
+}
 
 function getRequestUserId(req) {
   return req.user?.id || req.user?.userId || req.user?._id;
@@ -333,8 +353,9 @@ function buildUserDiarySummary(checkins = []) {
 // 创建打卡记录
 async function createCheckin(req, res, next) {
   try {
-    const { periodId, sectionId, day, readingTime, completionRate, note, contentHtml, images, mood, isPublic } =
+    const { periodId, sectionId, day, readingTime, completionRate, note, contentHtml, images, mood: rawMood, moodSource, isPublic } =
       req.body;
+    const mood = moodSource === MOOD_SOURCE_PICKER ? rawMood : undefined;
     const normalizedNote =
       note === undefined && contentHtml ? richTextHtmlToPlainText(contentHtml) : note;
 
@@ -356,6 +377,12 @@ async function createCheckin(req, res, next) {
     const sanitizedContentHtml = sanitizeCheckinHtml(contentHtml);
     if (sanitizedContentHtml.error) {
       return res.status(400).json(errors.badRequest(sanitizedContentHtml.error));
+    }
+
+    if (isMoodProvided(mood) && !isValidMood(mood)) {
+      return res
+        .status(400)
+        .json(errors.badRequest(`心情取值不合法，可选：${CHECKIN_MOODS.join('、')}`));
     }
 
     const normalizedImages = normalizeCheckinImages(images);
@@ -385,7 +412,7 @@ async function createCheckin(req, res, next) {
       note: normalizedNote,
       contentHtml: sanitizedContentHtml.value,
       images: normalizedImages.value,
-      mood,
+      ...(isMoodProvided(mood) ? { mood } : {}),
       points: 10,
       isPublic: isPublic !== undefined ? isPublic : true,
       tenantId: getCurrentTenantId()
@@ -461,7 +488,7 @@ async function createCheckin(req, res, next) {
 
     res.status(201).json(
       success(
-        checkin,
+        withTrustedMood(checkin),
         '打卡成功'
       )
     );
@@ -535,7 +562,7 @@ async function getCheckins(req, res, next) {
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
-      .select('-__v');
+      .select(OTHERS_SELECT);
 
     // 返回带分页信息的响应
     const response = success(checkins);
@@ -655,7 +682,7 @@ async function getUserCheckins(req, res, next) {
 
     res.json(
       success({
-        list: checkins,
+        list: checkins.map(withTrustedMood),
         stats,
         calendar,
         pagination: {
@@ -697,7 +724,7 @@ async function getUserCheckinSummary(req, res, next) {
       .populate('sectionId', 'title day')
       .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ checkinDate: -1 })
-      .select('-__v');
+      .select(OTHERS_SELECT);
 
     const summary = buildUserDiarySummary(checkins);
 
@@ -706,6 +733,103 @@ async function getUserCheckinSummary(req, res, next) {
         userId,
         stats: summary.stats,
         periods: summary.periods
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 获取当前用户某月的打卡日历（只读，仅本人，按东八区自然日去重）
+async function getUserCheckinCalendar(req, res, next) {
+  try {
+    const userId = getRequestUserId(req);
+    const now = new Date();
+    const month = req.query.month === undefined ? toDayKey(now).slice(0, 7) : req.query.month;
+
+    if (typeof month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      return res.status(400).json(errors.badRequest('month 格式应为 YYYY-MM'));
+    }
+
+    // 与同文件其它用户接口一致：Checkin.find 由 tenantPlugin 自动带当前租户条件
+    const checkins = await Checkin.find({ userId }).select('checkinDate mood').lean();
+    const metrics = computeDayMetrics(checkins.map(item => item.checkinDate), now);
+
+    // 心情天气：该月每个自然日取最后一次有可信心情的打卡
+    const moods = {};
+    checkins
+      .map(item => ({ dayKey: toDayKey(item.checkinDate), time: new Date(item.checkinDate).getTime(), mood: readTrustedMood(item) }))
+      .filter(item => item.mood && item.dayKey && item.dayKey.startsWith(`${month}-`))
+      .sort((a, b) => a.time - b.time)
+      .forEach(item => {
+        moods[item.dayKey] = item.mood;
+      });
+
+    res.json(
+      success({
+        month,
+        days: metrics.dayKeys.filter(day => day.startsWith(`${month}-`)),
+        moods,
+        totalDays: metrics.totalDays,
+        currentStreak: metrics.currentStreak,
+        maxStreak: metrics.maxStreak
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 课程「今日心情天气」匿名汇总：东八区今天、有效样本不足 3 条时不给分布，绝不返回用户标识
+async function getSectionMoodSummary(req, res, next) {
+  try {
+    const { sectionId } = req.params;
+    if (!/^[a-f\d]{24}$/i.test(String(sectionId || ''))) {
+      return res.status(400).json(errors.badRequest('sectionId 不合法'));
+    }
+
+    const section = await Section.findById(sectionId).select('periodId');
+    if (!section) {
+      return res.status(404).json(errors.notFound('课程不存在'));
+    }
+
+    const hasCommunityAccess = await ensurePeriodCommunityAccess(
+      res,
+      getRequestUserId(req),
+      section.periodId
+    );
+    if (!hasCommunityAccess) return;
+
+    const date = toDayKey(new Date());
+    const dayStart = new Date(`${date}T00:00:00+08:00`);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const validSince = new Date(MOOD_VALID_SINCE);
+
+    const checkins = await Checkin.find({
+      sectionId,
+      mood: { $in: CHECKIN_MOODS },
+      checkinDate: { $gte: dayStart > validSince ? dayStart : validSince, $lt: dayEnd }
+    })
+      .select('mood checkinDate')
+      .lean();
+
+    const counts = {};
+    CHECKIN_MOODS.forEach(key => {
+      counts[key] = 0;
+    });
+    let total = 0;
+    checkins.forEach(item => {
+      if (readTrustedMood(item)) {
+        counts[item.mood] += 1;
+        total += 1;
+      }
+    });
+
+    res.json(
+      success({
+        date,
+        total,
+        counts: total >= MOOD_SUMMARY_MIN_SAMPLES ? counts : null
       })
     );
   } catch (error) {
@@ -754,7 +878,7 @@ async function getPeriodCheckins(req, res, next) {
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
-      .select('-__v');
+      .select(OTHERS_SELECT);
 
     // 返回带分页信息的响应
     const response = success(checkins);
@@ -802,6 +926,14 @@ async function getCheckinDetail(req, res, next) {
 
     const checkinObj = checkin.toObject();
 
+    // 心情只有本人可见；本人读出时应用生效时间规则
+    const ownerId = String(checkinObj.userId?._id || checkinObj.userId || '');
+    if (requestUserId && ownerId === String(requestUserId)) {
+      checkinObj.mood = readTrustedMood(checkinObj);
+    } else {
+      delete checkinObj.mood;
+    }
+
     // populate('likes.userId') 可能因为存储类型问题而失败（userId 存为字符串而非 ObjectId）
     // 手动补充：对 populate 失败的 like 重新查询用户信息
     const unpopulatedIds = checkinObj.likes
@@ -833,7 +965,8 @@ async function updateCheckin(req, res, next) {
   try {
     const { checkinId } = req.params;
     const {userId} = req.user;
-    const { note, contentHtml, images, readingTime, mood, isPublic, completionRate } = req.body;
+    const { note, contentHtml, images, readingTime, mood: rawMood, moodSource, isPublic, completionRate } = req.body;
+    const mood = moodSource === MOOD_SOURCE_PICKER ? rawMood : undefined;
     const normalizedNote =
       note === undefined && contentHtml !== undefined
         ? richTextHtmlToPlainText(contentHtml)
@@ -854,6 +987,12 @@ async function updateCheckin(req, res, next) {
       return res
         .status(400)
         .json(errors.badRequest(`打卡内容不能超过${MAX_CHECKIN_NOTE_LENGTH}字`));
+    }
+
+    if (isMoodProvided(mood) && !isValidMood(mood)) {
+      return res
+        .status(400)
+        .json(errors.badRequest(`心情取值不合法，可选：${CHECKIN_MOODS.join('、')}`));
     }
 
     let sanitizedContentHtml;
@@ -877,7 +1016,7 @@ async function updateCheckin(req, res, next) {
     if (contentHtml !== undefined) checkin.contentHtml = sanitizedContentHtml.value;
     if (images !== undefined) checkin.images = normalizedImages.value;
     if (readingTime !== undefined) checkin.readingTime = readingTime;
-    if (mood !== undefined) checkin.mood = mood;
+    if (mood !== undefined) checkin.mood = isMoodProvided(mood) ? mood : null;
     if (isPublic !== undefined) checkin.isPublic = isPublic;
     if (completionRate !== undefined) checkin.completionRate = completionRate;
 
@@ -891,7 +1030,7 @@ async function updateCheckin(req, res, next) {
       data: checkin.toObject()
     });
 
-    res.json(success(checkin, '打卡更新成功'));
+    res.json(success(withTrustedMood(checkin), '打卡更新成功'));
   } catch (error) {
     next(error);
   }
@@ -1022,7 +1161,8 @@ async function getAdminCheckins(req, res, next) {
       .sort({ checkinDate: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit, 10))
-      .select('-__v');
+      // 心情只有本人可见，管理后台也不返回
+      .select(OTHERS_SELECT);
 
     // 计算统计信息
     const today = new Date();
@@ -1111,7 +1251,10 @@ async function updateAdminCheckin(req, res, next) {
       data: checkin.toObject()
     });
 
-    res.json(success(checkin, '打卡记录已更新'));
+    // 心情只有本人可见，管理后台也不返回
+    const adminView = checkin.toObject();
+    delete adminView.mood;
+    res.json(success(adminView, '打卡记录已更新'));
   } catch (error) {
     next(error);
   }
@@ -1391,7 +1534,7 @@ async function searchCheckins(req, res, next) {
       .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ createdAt: -1 })
       .limit(limit)
-      .select('-__v');
+      .select(OTHERS_SELECT);
 
     res.json(success({ list: checkins, total: checkins.length, keyword: trimmedKeyword }));
   } catch (error) {
@@ -1435,7 +1578,9 @@ async function searchMyCheckins(req, res, next) {
       .limit(limit)
       .select('-__v');
 
-    res.json(success({ list: checkins, total: checkins.length, keyword: trimmedKeyword }));
+    res.json(
+      success({ list: checkins.map(withTrustedMood), total: checkins.length, keyword: trimmedKeyword })
+    );
   } catch (error) {
     next(error);
   }
@@ -1446,6 +1591,8 @@ module.exports = {
   getCheckins,
   getUserCheckins,
   getUserCheckinSummary,
+  getUserCheckinCalendar,
+  getSectionMoodSummary,
   getPeriodCheckins,
   searchCheckins,
   searchMyCheckins,

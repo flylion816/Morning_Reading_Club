@@ -11,13 +11,13 @@
       <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
     </view>
     <view class="user-nickname">{{userInfo.nickname || '用户'}}</view>
-    <view class="user-signature">{{userInfo.signature || '知名心灵大师'}}</view>
+    <view class="user-signature">{{userInfo.signature || '这位书友还没写签名'}}</view>
   </view>
 
   <!-- 学习统计 -->
   <view class="stats-card">
     <view class="stats-header">
-      <text class="stats-icon">📊</text>
+      <view class="stats-icon app-seal app-seal-sm">记</view>
       <text class="stats-title">学习统计</text>
     </view>
     <view class="stats-content">
@@ -35,7 +35,7 @@
   <!-- 小凡看见 -->
   <view class="insights-card">
     <view class="insights-header">
-      <text class="insights-icon">✨</text>
+      <view class="insights-icon app-seal app-seal-dawn app-seal-sm">见</view>
       <text class="insights-title">小凡看见</text>
     </view>
     <view class="insights-content" bindtap="handleViewInsights">

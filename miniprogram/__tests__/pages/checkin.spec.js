@@ -33,6 +33,10 @@ jest.mock('../../services/activity.service', () => ({
   track: jest.fn(() => Promise.resolve())
 }));
 
+jest.mock('../../services/presence.service', () => ({
+  getMyRank: jest.fn()
+}));
+
 jest.mock('../../services/checkinConfig.service', () => ({
   getConfig: jest.fn(() => Promise.resolve({}))
 }));
@@ -482,5 +486,184 @@ describe('checkin page', () => {
     expect(periodAccess.redirectAfterCommunityDenied).toHaveBeenCalledWith(
       '/pages/course-detail/course-detail?id=section_1'
     );
+  });
+
+  test('celebration falls back to dawn ritual style C without config and fires medium haptic', () => {
+    const feedback = require('../../utils/feedback');
+    const hapticSpy = jest.spyOn(feedback, 'haptic').mockImplementation(() => {});
+    pageInstance._celebrationCfg = undefined;
+
+    pageInstance.showCheckinCelebration.call(pageInstance);
+
+    expect(pageInstance.data.showCelebration).toBe(true);
+    expect(pageInstance.data.celebrationStyle).toBe('C');
+    expect(hapticSpy).toHaveBeenCalledWith('medium');
+    hapticSpy.mockRestore();
+  });
+
+  test('celebration follows backend configured style when config exists', () => {
+    const feedback = require('../../utils/feedback');
+    const hapticSpy = jest.spyOn(feedback, 'haptic').mockImplementation(() => {});
+    pageInstance._celebrationCfg = { animationStyle: 'B', message: '读完了' };
+
+    pageInstance.showCheckinCelebration.call(pageInstance);
+
+    expect(pageInstance.data.celebrationStyle).toBe('B');
+    expect(hapticSpy).toHaveBeenCalledWith('medium');
+    hapticSpy.mockRestore();
+  });
+
+  test('records the lesson day for the dawn ritual using the loaded period numbering base', async () => {
+    pageInstance._lessonNumberingBases = { period_1: 1 };
+    await pageInstance.loadCourseDetail.call(pageInstance, {
+      _id: 'section_1',
+      periodId: 'period_1',
+      title: '第七课',
+      day: 7
+    });
+    expect(pageInstance.data.celebrationDay).toBe(7);
+
+    await pageInstance.loadCourseDetail.call(pageInstance, {
+      _id: 'section_2',
+      periodId: 'period_1',
+      title: '无序号'
+    });
+    expect(pageInstance.data.celebrationDay).toBe(0);
+  });
+
+  test('shows day 2 for the second lesson of a zero-based period', async () => {
+    pageInstance._lessonNumberingBases = { period_0: 0 };
+    await pageInstance.loadCourseDetail.call(pageInstance, {
+      _id: 'section_b',
+      periodId: 'period_0',
+      title: '第二课',
+      day: 1
+    });
+    expect(pageInstance.data.celebrationDay).toBe(2);
+  });
+
+  test('hides the ritual day when the numbering base is unknown', async () => {
+    pageInstance._lessonNumberingBases = undefined;
+    await pageInstance.loadCourseDetail.call(pageInstance, {
+      _id: 'section_c',
+      periodId: 'period_x',
+      title: '未知基准',
+      day: 1
+    });
+    expect(pageInstance.data.celebrationDay).toBe(0);
+  });
+  describe('mood weather, rank and daily card', () => {
+    let presenceService;
+    beforeEach(() => {
+      presenceService = require('../../services/presence.service');
+    });
+    const baseData = {
+      accessChecked: true,
+      courseId: 'section_1',
+      sectionId: 'section_1',
+      periodId: 'period_1',
+      sectionDay: 3,
+      courseTitle: '第一课',
+      diaryContent: '今天读完了。明天继续'
+    };
+
+    test('selects and deselects a mood', () => {
+      pageInstance.handleMoodSelect.call(pageInstance, { currentTarget: { dataset: { value: 'calm' } } });
+      expect(pageInstance.data.mood).toBe('calm');
+      pageInstance.handleMoodSelect.call(pageInstance, { currentTarget: { dataset: { value: 'calm' } } });
+      expect(pageInstance.data.mood).toBe('');
+    });
+
+    test('submits with mood only when selected', async () => {
+      checkinService.submitCheckin.mockResolvedValue({ _id: 'c1' });
+      presenceService.getMyRank.mockResolvedValue(null);
+      pageInstance.showCheckinCelebration = jest.fn();
+      pageInstance.setData({ ...baseData, mood: 'inspired' });
+      await pageInstance.handleSubmit.call(pageInstance);
+      expect(checkinService.submitCheckin.mock.calls[0][0]).toMatchObject({ mood: 'inspired', moodSource: 'picker' });
+
+      checkinService.submitCheckin.mockClear();
+      pageInstance.setData({ ...baseData, mood: '' });
+      await pageInstance.handleSubmit.call(pageInstance);
+      expect(checkinService.submitCheckin.mock.calls[0][0]).not.toHaveProperty('mood');
+      expect(checkinService.submitCheckin.mock.calls[0][0]).not.toHaveProperty('moodSource');
+    });
+
+    test('echoes the existing mood in edit mode and tolerates null', async () => {
+      checkinService.getCheckinDetail.mockResolvedValue({ note: 'x', mood: 'low' });
+      await pageInstance.onLoad.call(pageInstance, { sectionId: 'section_1', periodId: 'period_1', checkinId: 'c1' });
+      expect(pageInstance.data.mood).toBe('low');
+
+      checkinService.getCheckinDetail.mockResolvedValue({ note: 'x', mood: null });
+      await pageInstance.onLoad.call(pageInstance, { sectionId: 'section_1', periodId: 'period_1', checkinId: 'c1' });
+      expect(pageInstance.data.mood).toBe('');
+    });
+
+    test('update sends mood with source, or null when the original mood is cleared', async () => {
+      checkinService.updateCheckin.mockResolvedValue({});
+      checkinService.getCheckinDetail.mockResolvedValue({ note: 'x', mood: 'low' });
+      await pageInstance.onLoad.call(pageInstance, { sectionId: 'section_1', periodId: 'period_1', checkinId: 'c1' });
+      pageInstance.setData({ diaryContent: 'x', mood: '' });
+      const spy = jest.spyOn(global, 'setTimeout').mockImplementation((cb) => { cb(); return 0; });
+      await pageInstance.handleSubmit.call(pageInstance);
+      expect(checkinService.updateCheckin.mock.calls[0][1]).toMatchObject({ mood: null, moodSource: 'picker' });
+
+      pageInstance.setData({ mood: 'calm' });
+      await pageInstance.handleSubmit.call(pageInstance);
+      expect(checkinService.updateCheckin.mock.calls[1][1]).toMatchObject({ mood: 'calm', moodSource: 'picker' });
+      spy.mockRestore();
+    });
+
+    test('mood select clears the previous autosave timer', () => {
+      const clearSpy = jest.spyOn(global, 'clearTimeout');
+      pageInstance._autoSaveTimer = 12345;
+      pageInstance.handleMoodSelect.call(pageInstance, { currentTarget: { dataset: { value: 'calm' } } });
+      expect(clearSpy).toHaveBeenCalledWith(12345);
+      clearSpy.mockRestore();
+    });
+
+    test('strips html tags from the think-module placeholder', async () => {
+      await pageInstance.loadCourseDetail.call(pageInstance, {
+        _id: 'section_1',
+        periodId: 'period_1',
+        title: '课',
+        reflection: '<p>今天  <strong>想</strong>一想</p>'
+      });
+      expect(pageInstance.data.diaryPlaceholder).not.toMatch(/[<>]/);
+      expect(pageInstance.data.diaryPlaceholder).toBe('今天 想 一想');
+    });
+
+    test('shows the rank when available and stays empty otherwise', async () => {
+      presenceService.getMyRank.mockResolvedValueOnce({ rank: 5 });
+      await pageInstance.loadCelebrationRank.call(pageInstance, 'section_1');
+      expect(presenceService.getMyRank).toHaveBeenCalledWith('section_1', 'checkin');
+      expect(pageInstance.data.celebrationRank).toBe(5);
+
+      pageInstance.setData({ celebrationRank: 0 });
+      presenceService.getMyRank.mockRejectedValueOnce(new Error('x'));
+      await pageInstance.loadCelebrationRank.call(pageInstance, 'section_1');
+      expect(pageInstance.data.celebrationRank).toBe(0);
+    });
+
+    test('jumps to the daily card with source, day and first sentence, stopping the auto close timer', () => {
+      wx.redirectTo.mockClear();
+      pageInstance._celebrationTimer = setTimeout(() => {}, 100000);
+      pageInstance._lastSubmittedNote = '今天读完了。明天继续';
+      pageInstance.setData({ celebrationDay: 3, courseTitle: '第一课' });
+      pageInstance.handleMakeDailyCard.call(pageInstance);
+      expect(pageInstance._celebrationTimer).toBeNull();
+      const url = wx.redirectTo.mock.calls[0][0].url;
+      expect(url).toContain('/pages/daily-card/daily-card?');
+      expect(url).toContain(`source=${encodeURIComponent('第 3 天 · 第一课')}`);
+      expect(url).toContain('day=3');
+      expect(url).toContain(`note=${encodeURIComponent('今天读完了')}`);
+
+      wx.redirectTo.mockClear();
+      pageInstance.setData({ celebrationDay: 0 });
+      pageInstance.handleMakeDailyCard.call(pageInstance);
+      const url2 = wx.redirectTo.mock.calls[0][0].url;
+      expect(url2).toContain(`source=${encodeURIComponent('第一课')}`);
+      expect(url2).not.toContain('day=');
+    });
   });
 });

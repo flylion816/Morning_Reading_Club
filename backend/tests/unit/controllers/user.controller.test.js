@@ -28,6 +28,7 @@ describe('User Controller - 100% Coverage', () => {
   let next;
   let UserStub;
   let CheckinStub;
+  let setCheckinDays;
   let EnrollmentStub;
   let syncServiceStub;
   let axiosStub;
@@ -64,8 +65,16 @@ describe('User Controller - 100% Coverage', () => {
 
     // Mock Checkin 模型
     CheckinStub = {
-      countDocuments: sandbox.stub()
+      find: sandbox.stub()
     };
+    // 返回 n 条分属 n 个不同自然日的打卡记录（远古日期，不影响连续天数）
+    setCheckinDays = (n) => {
+      const docs = Array.from({ length: n }, (_, i) => ({
+        checkinDate: new Date(Date.UTC(2020, 0, 1 + i, 4))
+      }));
+      CheckinStub.find.returns({ select: () => ({ lean: () => Promise.resolve(docs) }) });
+    };
+    setCheckinDays(0);
 
     EnrollmentStub = {
       countDocuments: sandbox.stub().resolves(0)
@@ -481,7 +490,7 @@ describe('User Controller - 100% Coverage', () => {
       req.params = { userId: userId.toString() };
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
-      CheckinStub.countDocuments.resolves(12);
+      setCheckinDays(12);
       EnrollmentStub.countDocuments.resolves(3);
 
       // When
@@ -553,7 +562,7 @@ describe('User Controller - 100% Coverage', () => {
       req.params = { userId: userId.toString() };
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
-      CheckinStub.countDocuments.resolves(0);
+      setCheckinDays(0);
       EnrollmentStub.countDocuments.resolves(0);
 
       // When
@@ -589,7 +598,7 @@ describe('User Controller - 100% Coverage', () => {
       req.params = { userId: 'me' };
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
-      CheckinStub.countDocuments.resolves(10);
+      setCheckinDays(10);
       EnrollmentStub.countDocuments.resolves(2);
 
       // When
@@ -597,7 +606,7 @@ describe('User Controller - 100% Coverage', () => {
 
       // Then
       expect(UserStub.findById.calledWith(userId)).to.be.true;
-      expect(CheckinStub.countDocuments.called).to.be.true;
+      expect(CheckinStub.find.called).to.be.true;
       expect(res.json.called).to.be.true;
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.code).to.equal(200);
@@ -605,14 +614,14 @@ describe('User Controller - 100% Coverage', () => {
       expect(responseData.data.totalCompletedPeriods).to.equal(2);
     });
 
-    it('应该使用实际的打卡数而不是缓存的字段', async () => {
+    it('应该使用实际的打卡天数而不是缓存的字段', async () => {
       // Given
       const userId = fixtures.testUsers.normalUser._id;
       req.user = { userId };
       req.params = { userId };
       const mockUser = { ...fixtures.testUsers.normalUser, totalCheckinDays: 5 };
       UserStub.findById.resolves(mockUser);
-      CheckinStub.countDocuments.resolves(10);  // 实际打卡数
+      setCheckinDays(10);  // 实际打卡数
       EnrollmentStub.countDocuments.resolves(4);
 
       // When
@@ -624,13 +633,39 @@ describe('User Controller - 100% Coverage', () => {
       expect(responseData.data.totalCompletedPeriods).to.equal(4);
     });
 
+    it('同一天多次打卡只算一天，并返回 totalCheckins 条数与实时连续天数', async () => {
+      const userId = fixtures.testUsers.normalUser._id;
+      req.user = { userId };
+      req.params = { userId };
+      UserStub.findById.resolves({ ...fixtures.testUsers.normalUser, currentStreak: 99, maxStreak: 99 });
+      const clock = sinon.useFakeTimers(new Date('2026-11-10T04:00:00Z').getTime());
+      try {
+        const docs = [
+          '2026-11-09T01:00:00Z',
+          '2026-11-09T02:00:00Z',
+          '2026-11-10T01:00:00Z'
+        ].map(d => ({ checkinDate: new Date(d) }));
+        CheckinStub.find.returns({ select: () => ({ lean: () => Promise.resolve(docs) }) });
+
+        await userController.getUserStats(req, res, next);
+      } finally {
+        clock.restore();
+      }
+
+      const data = res.json.getCall(0).args[0].data;
+      expect(data.totalCheckins).to.equal(3);
+      expect(data.totalCheckinDays).to.equal(2);
+      expect(data.currentStreak).to.equal(2);
+      expect(data.maxStreak).to.equal(2);
+    });
+
     it('应该返回指定用户的统计信息', async () => {
       // Given
       const userId = fixtures.testUsers.normalUser._id;
       req.params = { userId: userId.toString() };
       const mockUser = { ...fixtures.testUsers.normalUser };
       UserStub.findById.resolves(mockUser);
-      CheckinStub.countDocuments.resolves(fixtures.testUsers.normalUser.totalCheckinDays);
+      setCheckinDays(fixtures.testUsers.normalUser.totalCheckinDays);
       EnrollmentStub.countDocuments.resolves(3);
 
       // When
@@ -663,7 +698,7 @@ describe('User Controller - 100% Coverage', () => {
       req.params = { userId: userId.toString() };
       const mockUser = { ...fixtures.testUsers.newUser };
       UserStub.findById.resolves(mockUser);
-      CheckinStub.countDocuments.resolves(0);
+      setCheckinDays(0);
       EnrollmentStub.countDocuments.resolves(0);
 
       // When

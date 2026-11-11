@@ -1,5 +1,5 @@
 .page-my-activities {
-  background: #f5f7fa;
+  background: var(--app-page-bg);
   min-height: 100vh;
   padding: 20rpx;
 }
@@ -56,7 +56,7 @@
 }
 
 .activity-item {
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 16rpx;
   overflow: hidden;
   display: flex;
@@ -104,7 +104,7 @@
 .item-time {
   display: block;
   font-size: 24rpx;
-  color: #888;
+  color: var(--app-text-muted);
   margin-bottom: 12rpx;
 }
 
@@ -157,7 +157,7 @@
   padding: 30rpx;
   padding-bottom: calc(30rpx + env(safe-area-inset-bottom));
   border-radius: 28rpx 28rpx 0 0;
-  background: #ffffff;
+  background: var(--app-paper);
   box-sizing: border-box;
 }
 
@@ -207,7 +207,7 @@
 
 .detail-answer-row {
   min-height: 66rpx;
-  border-bottom: 1rpx solid #eef2f7;
+  border-bottom: 1rpx solid var(--app-surface-muted);
 }
 
 .detail-answer-label {
@@ -229,7 +229,7 @@
 }
 .activity-item {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .item-status,
@@ -241,3 +241,33 @@
 .detail-link:active {
   transform: translateY(2rpx) scale(0.99);
 }
+
+/* Version 3 dawn: seal empty state, serif titles. */
+.empty-icon { font-size: inherit; display: inline-flex; }
+.item-title { font-family: var(--app-font-serif); }
+.item-time { font-family: var(--app-font-num); }
+
+.app-empty { margin: 80rpx 24rpx 0; }
+
+.dawn-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dawn-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 28rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+.dawn-sk-w60 { width: 60%; }
+.dawn-sk-w90 { width: 90%; }
+.dawn-sk-w40 { width: 40%; }
+.loading-container { display: block; padding: 0; }

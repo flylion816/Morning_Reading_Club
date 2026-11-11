@@ -1,14 +1,19 @@
 <view class="page-my-activities" wx:if="{{socialAccessGranted}}">
   <!-- 加载中 -->
   <view wx:if="{{loading}}" class="loading-container">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+  <view class="dawn-skeleton-list">
+    <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+      <view class="app-skeleton-line dawn-sk-w60"></view>
+      <view class="app-skeleton-line dawn-sk-w90"></view>
+      <view class="app-skeleton-line dawn-sk-w40"></view>
+    </view>
+  </view>
   </view>
 
   <!-- 空状态 -->
-  <view wx:elif="{{activities.length === 0}}" class="empty-container">
-    <text class="empty-icon">📅</text>
-    <text class="empty-text">还没有报名任何活动</text>
+  <view wx:elif="{{activities.length === 0}}" class="app-empty">
+    <view class="app-empty-art app-empty-art-lamp"></view>
+    <text class="app-empty-title">还没有报名活动</text>
   </view>
 
   <!-- 活动列表 -->
@@ -27,7 +32,7 @@
         mode="aspectFill"
       />
       <view wx:else class="item-poster-placeholder">
-        <text>📆</text>
+        <view class="app-seal">活</view>
       </view>
       <view class="item-info">
         <text class="item-title">{{item.title}}</text>

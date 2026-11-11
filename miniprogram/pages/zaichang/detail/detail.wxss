@@ -1,9 +1,21 @@
 page {
-  --zc-bg: #F5F0E8;
+  --zc-bg: var(--app-page-bg);
   --zc-primary: #2D5A3D;
-  --zc-accent: #C4873A;
-  --zc-text: #2C2C2C;
-  --zc-text-secondary: #888888;
+  --zc-accent: var(--app-dawn-deep);
+  --zc-text: var(--app-text);
+  --zc-text-secondary: var(--app-text-muted);
+  --theme-primary: #2D5A3D;
+  --theme-primary-dark: #234a31;
+  --theme-primary-light: #4a7a5b;
+  --theme-primary-tint: #e9f0ea;
+  --theme-primary-soft: rgba(45, 90, 61, 0.14);
+  --theme-primary-shadow: rgba(45, 90, 61, 0.3);
+  --theme-primary-alpha-05: rgba(45, 90, 61, 0.05);
+  --theme-primary-alpha-08: rgba(45, 90, 61, 0.08);
+  --theme-primary-alpha-12: rgba(45, 90, 61, 0.12);
+  --theme-primary-alpha-15: rgba(45, 90, 61, 0.15);
+  --theme-primary-alpha-20: rgba(45, 90, 61, 0.2);
+  --theme-primary-alpha-30: rgba(45, 90, 61, 0.3);
   background-color: var(--zc-bg);
 }
 
@@ -23,21 +35,21 @@ page {
 .badge-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 16rpx 0; }
 .badge { display: inline-block; padding: 6rpx 18rpx; border-radius: 20rpx; font-size: 22rpx; color: #fff; }
 .badge-reading { background: #2D5A3D; }
-.badge-cooking { background: #C4873A; }
+.badge-cooking { background: var(--zc-accent); }
 .badge-tea { background: #8B6355; }
 .badge-walk { background: #4A7FA5; }
 .badge-create { background: #7B5EA7; }
 .badge-other { background: #888888; }
 
 /* 基本信息 */
-.main-info { padding: 8rpx 24rpx 24rpx; background: #fff; margin-bottom: 16rpx; }
+.main-info { padding: 8rpx 24rpx 24rpx; background: var(--app-paper); margin-bottom: 16rpx; }
 .meta-row { display: flex; align-items: center; margin-bottom: 12rpx; }
 .date, .dot, .location { font-size: 24rpx; color: var(--zc-text-secondary); }
-.title { display: block; font-size: 36rpx; font-weight: 700; color: var(--zc-text); margin-bottom: 12rpx; line-height: 1.4; }
+.title { font-family: var(--app-font-serif); display: block; font-size: 36rpx; font-weight: 700; color: var(--zc-text); margin-bottom: 12rpx; line-height: 1.4; }
 .desc { display: block; font-size: 28rpx; color: var(--app-text-soft); line-height: 1.6; }
 
 /* 通用 section */
-.section { background: #fff; margin-bottom: 16rpx; padding: 24rpx; }
+.section { background: var(--app-paper); margin-bottom: 16rpx; padding: 24rpx; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
 .section-title { font-size: 28rpx; font-weight: 600; color: var(--zc-text); }
 .toggle-btn { font-size: 24rpx; color: var(--zc-primary); }
@@ -56,11 +68,11 @@ page {
 
 /* 共鸣 */
 .reaction-list { display: flex; gap: 20rpx; }
-.reaction-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20rpx 0; border-radius: 16rpx; background: #F5F0E8; gap: 6rpx; }
+.reaction-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20rpx 0; border-radius: 16rpx; background: var(--app-page-bg); gap: 6rpx; }
 .reaction-emoji { font-size: 36rpx; }
 .reaction-label { font-size: 22rpx; color: var(--zc-text-secondary); }
 .reaction-count { font-size: 24rpx; font-weight: 600; color: var(--zc-text); }
-.active-gonming { background: #E8F0EA; }
+.active-gonming { background: var(--theme-primary-tint); }
 .active-ran { background: #FFF0E0; }
 .active-xiangqu { background: #FFF5E8; }
 
@@ -69,7 +81,7 @@ page {
 .comment-item { display: flex; gap: 16rpx; margin-bottom: 28rpx; }
 .comment-avatar-wrap { flex-shrink: 0; }
 .comment-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; }
-.comment-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 24rpx; display: grid; place-items: center; line-height: normal; text-align: center; overflow: hidden; }
+.comment-avatar-text { width: 64rpx; height: 64rpx; border-radius: 50%; background: var(--zc-accent); color: #fff; font-size: 24rpx; display: grid; place-items: center; line-height: normal; text-align: center; overflow: hidden; }
 .comment-body { flex: 1; }
 .comment-author { display: block; font-size: 24rpx; font-weight: 600; color: var(--zc-text); margin-bottom: 6rpx; }
 .comment-content { font-size: 28rpx; color: var(--zc-text); line-height: 1.5; margin-bottom: 8rpx; }
@@ -81,14 +93,14 @@ page {
 .no-comment { text-align: center; font-size: 26rpx; color: var(--zc-text-secondary); padding: 40rpx 0; }
 
 /* 底部输入框 */
-.input-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1rpx solid var(--app-border); padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); z-index: 100; }
+.input-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--app-paper); border-top: 1rpx solid var(--app-border); padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); z-index: 100; }
 .reply-hint { display: flex; justify-content: space-between; align-items: center; font-size: 24rpx; color: var(--zc-primary); margin-bottom: 12rpx; }
 .clear-reply { color: var(--zc-text-secondary); padding: 0 8rpx; }
 .input-row { display: flex; gap: 16rpx; align-items: center; }
-.comment-input { flex: 1; background: #F5F0E8; border-radius: 40rpx; padding: 16rpx 24rpx; font-size: 28rpx; }
-.send-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #ddd; color: var(--app-text-muted); font-size: 26rpx; white-space: nowrap; }
+.comment-input { flex: 1; background: var(--app-page-bg); border-radius: 40rpx; padding: 16rpx 24rpx; font-size: 28rpx; }
+.send-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: var(--app-border); color: var(--app-text-muted); font-size: 26rpx; white-space: nowrap; }
 .send-btn.active { background: var(--zc-primary); color: #fff; }
-.edit-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #F5F0E8; color: var(--zc-primary); font-size: 26rpx; white-space: nowrap; border: 2rpx solid var(--zc-primary); }
+.edit-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: var(--app-page-bg); color: var(--zc-primary); font-size: 26rpx; white-space: nowrap; border: 2rpx solid var(--zc-primary); }
 .delete-imprint-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #FFF0F0; color: #e74c3c; font-size: 26rpx; white-space: nowrap; border: 2rpx solid #e74c3c; }
 
 .loading-page { display: flex; justify-content: center; align-items: center; height: 60vh; font-size: 28rpx; color: var(--zc-text-secondary); }
@@ -113,8 +125,8 @@ page {
 .main-info,
 .section {
   border-radius: var(--app-radius-lg);
-  background: linear-gradient(180deg, var(--app-paper), #ffffff);
-  border-color: rgba(49, 72, 56, 0.07);
+  background: linear-gradient(180deg, var(--app-paper), var(--app-paper-muted));
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .badge {
@@ -128,3 +140,42 @@ page {
 .comment-submit:active {
   transform: translateY(2rpx) scale(0.98);
 }
+
+/* Version 3 dawn: paper-colored top, seal reactions. */
+.reaction-btn { background: var(--app-page-bg); }
+.reaction-seal { opacity: 0.6; }
+.reaction-count { font-family: var(--app-font-num); }
+.active-gonming, .active-ran, .active-xiangqu { background: var(--theme-primary-tint); }
+.reaction-seal.reaction-on { opacity: 1; background: var(--zc-primary); color: #fff; border-color: var(--zc-primary); }
+.main-info, .section { background: var(--app-paper); }
+
+/* 邮戳：盖在头图右下角，不拦截点击 */
+.media-section { position: relative; }
+.zc-mark {
+  position: absolute;
+  right: 24rpx;
+  bottom: 24rpx;
+  width: 135rpx;
+  height: 135rpx;
+  border-radius: 50%;
+  border: 4rpx dashed rgba(255, 253, 248, 0.95);
+  background: rgba(45, 90, 61, 0.84);
+  color: #fffdf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transform: rotate(-10deg);
+  box-shadow: 0 5rpx 15rpx rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 2;
+}
+.zc-mark-date { font-family: var(--app-font-num); font-size: 31rpx; line-height: 1.15; }
+.zc-mark-place { font-size: 22rpx; line-height: 1.15; letter-spacing: 0.12em; text-indent: 0.12em; }
+
+/* 区块标题衬线，评论删除用语义色 */
+.section-title { font-family: var(--app-font-serif); }
+.section-count { font-family: var(--app-font-num); color: var(--zc-text-secondary); font-weight: 400; }
+.delete-btn { color: var(--app-danger); }
+.main-info, .section { background: var(--app-paper); }

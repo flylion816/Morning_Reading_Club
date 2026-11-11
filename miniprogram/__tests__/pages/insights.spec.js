@@ -343,4 +343,23 @@ describe('insights page period and keyword filters', () => {
     expect(pageInstance.data.loading).toBe(false);
     expect(pageInstance.data.insights.map(item => item.id)).toEqual(['mine_initial']);
   });
+  test('passes weekly and monthly letter types through to list items', async () => {
+    const buildItem = (id, type) => ({
+      _id: id,
+      type,
+      day: 1,
+      summary: `摘要${id}`,
+      periodId: { _id: 'period_1', name: '内在之光' },
+      sectionId: { day: 1, title: '第一天' }
+    });
+    pageInstance.setData({ loading: false, insightsLoadingMore: false, selectedPeriodId: 'period_1' });
+    insightService.getInsightsList.mockResolvedValueOnce({
+      list: [buildItem('a', 'weekly'), buildItem('b', 'monthly'), buildItem('c', 'daily')],
+      pagination: { page: 1, limit: 20, total: 3, pages: 1 }
+    });
+
+    await pageInstance.loadInsights.call(pageInstance);
+
+    expect(pageInstance.data.insights.map(item => item.letterType)).toEqual(['weekly', 'monthly', '']);
+  });
 });

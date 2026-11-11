@@ -27,7 +27,10 @@ const notificationSchema = new mongoose.Schema(
         'insight_liked', // 小凡看见收到点赞
         'danmaku_received', // 小凡看见收到弹幕
         'imprint_mentioned', // 被提及在印记里
-        'podcast_published' // 播客发布通知
+        'podcast_published', // 播客发布通知
+        'letter_delivered', // 慢递邮局：信件送达
+        'seen_received', // 看见卡：被书友看见
+        'buddy_nudge' // 读伴：被轻拍
       ],
       required: true
     },

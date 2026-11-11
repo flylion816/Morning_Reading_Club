@@ -49,7 +49,7 @@
 }
 
 .stats-card {
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
@@ -99,7 +99,7 @@
 
 /* 小凡看见卡片 */
 .insights-card {
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
@@ -124,7 +124,7 @@
 }
 
 .insights-content {
-  background: #f5f8ff;
+  background: var(--app-surface-muted);
   border-radius: 12rpx;
   padding: 20rpx;
   border-left: 6rpx solid var(--theme-primary);
@@ -147,7 +147,7 @@
 
 /* 返回按钮 */
 .back-btn {
-  background: white;
+  background: var(--app-paper);
   border-radius: 48rpx;
   padding: 20rpx 40rpx;
   text-align: center;
@@ -171,7 +171,7 @@
 .stats-card,
 .insights-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .back-btn {
@@ -180,4 +180,14 @@
 .insights-link:active,
 .back-btn:active {
   transform: translateY(2rpx) scale(0.98);
+}
+
+
+/* Version 3 dawn: 昵称衬线，卡片标题印章。 */
+.user-nickname {
+  font-family: var(--app-font-serif);
+}
+.stats-icon.app-seal,
+.insights-icon.app-seal {
+  font-size: 20rpx;
 }

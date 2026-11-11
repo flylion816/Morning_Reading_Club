@@ -950,7 +950,7 @@ async function getInsightDetail(req, res, next) {
       .populate('targetUserId', 'nickname avatar avatarUrl')
       .populate('sectionId', 'title day icon')
       .populate('periodId', 'name title')
-      .populate('checkinId');
+      .populate({ path: 'checkinId', select: '-mood -__v' });
 
     if (!insight) {
       return res.status(404).json(errors.notFound('反馈不存在'));

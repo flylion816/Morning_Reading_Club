@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS checkins (
   note TEXT COMMENT '打卡笔记',
   content_html LONGTEXT COMMENT '富文本打卡内容 HTML',
   images JSON COMMENT '图片 URL 数组',
-  mood ENUM('happy', 'calm', 'thoughtful', 'inspired', 'other') COMMENT '心情',
+  mood VARCHAR(50) COMMENT '心情（happy/calm/thoughtful/inspired/low/other，可空；与线上表一致用 VARCHAR）',
   points INT DEFAULT 10 COMMENT '获得积分',
   is_public BOOLEAN DEFAULT TRUE COMMENT '是否公开',
   like_count INT DEFAULT 0 COMMENT '点赞数',
@@ -400,11 +400,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   id CHAR(24) PRIMARY KEY COMMENT 'MongoDB ObjectId (hex)',
   tenant_id CHAR(24) NOT NULL COMMENT '租户 ID',
   user_id CHAR(24) NOT NULL COMMENT '接收者用户 ID',
-  type ENUM(
-    'request_created', 'request_approved', 'request_rejected', 'permission_revoked',
-    'admin_approved', 'admin_rejected', 'enrollment_result', 'payment_result',
-    'comment_received', 'like_received', 'insight_created', 'insight_liked', 'danmaku_received'
-  ) NOT NULL COMMENT '通知类型',
+  type VARCHAR(50) COMMENT '通知类型（与线上表一致用 VARCHAR，新增类型无需改表）',
   title VARCHAR(200) NOT NULL COMMENT '标题',
   content TEXT NOT NULL COMMENT '内容',
   request_id CHAR(24) COMMENT '关联的申请 ID',

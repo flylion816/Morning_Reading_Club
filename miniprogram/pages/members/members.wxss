@@ -38,7 +38,7 @@
   display: flex;
   align-items: center;
   gap: 24rpx;
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 24rpx 32rpx;
   margin-bottom: 16rpx;
@@ -118,8 +118,16 @@
 }
 .member-item {
   border-radius: var(--app-radius-md);
-  background: linear-gradient(180deg, var(--app-paper), #ffffff);
+  background: linear-gradient(180deg, var(--app-paper), var(--app-paper-muted));
 }
 .member-item:active {
   transform: translateY(2rpx) scale(0.99);
 }
+
+
+/* Version 3 dawn: 空态印章，人数数字衬线。 */
+.count-number {
+  font-family: var(--app-font-num);
+}
+
+.app-empty { margin: 80rpx 24rpx 0; }

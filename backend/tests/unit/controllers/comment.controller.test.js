@@ -167,8 +167,12 @@ describe('Comment Controller', () => {
   describe('getComments', () => {
     it('应该返回评论列表', async () => {
       const checkinId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
       req.params = { checkinId };
       req.query = { page: 1, limit: 10 };
+      req.user = { userId: new mongoose.Types.ObjectId() };
+
+      CheckinStub.findById.resolves({ _id: checkinId, periodId });
 
       CommentStub.countDocuments.resolves(5);
       CommentStub.find.returns({
@@ -181,7 +185,28 @@ describe('Comment Controller', () => {
 
       await commentController.getCommentsByCheckin(req, res, next);
 
+      expect(CheckinStub.findById.calledWith(checkinId)).to.be.true;
+      expect(communityAccessServiceStub.ensurePeriodCommunityAccess.called).to.be.true;
       expect(res.json.called).to.be.true;
+    });
+
+    it('应该在用户无期次社群权限时拒绝获取评论', async () => {
+      const checkinId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      req.params = { checkinId };
+      req.user = { userId: new mongoose.Types.ObjectId() };
+
+      CheckinStub.findById.resolves({ _id: checkinId, periodId });
+      communityAccessServiceStub.ensurePeriodCommunityAccess.callsFake(async response => {
+        response.status(403).json({ code: 403, message: '当前期次暂不可互动' });
+        return false;
+      });
+
+      await commentController.getCommentsByCheckin(req, res, next);
+
+      expect(res.status.calledWith(403)).to.be.true;
+      expect(CommentStub.countDocuments.called).to.be.false;
+      expect(CommentStub.find.called).to.be.false;
     });
   });
 

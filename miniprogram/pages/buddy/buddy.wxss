@@ -1,0 +1,120 @@
+/* Version 3 dawn: 新功能页面，直接按晨光规范编写。 */
+.buddy-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: var(--app-space-md);
+  background: var(--app-page-bg);
+}
+
+.buddy-card,
+.buddy-pair-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--app-space-md);
+  padding: var(--app-space-xl) var(--app-space-md);
+}
+
+.buddy-seal {
+  color: var(--theme-primary-dark);
+}
+
+.buddy-title {
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.buddy-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-sm);
+  width: 100%;
+}
+
+.buddy-line {
+  color: var(--app-text-soft);
+  font-size: var(--app-font-sm);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.buddy-btn {
+  width: 100%;
+  text-align: center;
+}
+
+.buddy-people {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+}
+
+.buddy-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--app-space-sm);
+}
+
+.buddy-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-family: var(--app-font-serif);
+  font-size: 48rpx;
+  overflow: hidden;
+}
+
+.buddy-name {
+  color: var(--app-text);
+  font-size: var(--app-font-md);
+  max-width: 240rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buddy-marks {
+  display: flex;
+  gap: var(--app-space-sm);
+}
+
+/* 小状态：做到实心，未做空心 */
+.buddy-mark {
+  width: 44rpx;
+  height: 44rpx;
+  box-sizing: border-box;
+  border: 3rpx solid var(--theme-primary);
+  border-radius: 50%;
+  color: var(--theme-primary);
+  font-family: var(--app-font-serif);
+  font-size: 24rpx;
+  line-height: 38rpx;
+  text-align: center;
+}
+
+.buddy-mark-on {
+  background: var(--theme-primary);
+  color: #fff;
+}
+
+.buddy-quiet {
+  color: var(--app-text-soft);
+  font-size: var(--app-font-sm);
+}
+
+.buddy-leave {
+  display: block;
+  margin-top: var(--app-space-xl);
+  color: var(--app-text-soft);
+  font-size: 24rpx;
+  text-align: center;
+  opacity: 0.7;
+}

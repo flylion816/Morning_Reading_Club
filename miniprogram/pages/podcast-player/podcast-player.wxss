@@ -208,3 +208,9 @@ page {
 .player-desc-content {
   color: rgba(247, 248, 242, 0.78);
 }
+
+/* Version 3 dawn: line icon replaces the microphone emoji. */
+.player-cover-icon {
+  width: 120rpx;
+  height: 120rpx;
+}

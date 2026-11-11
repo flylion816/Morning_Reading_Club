@@ -1,13 +1,25 @@
 /* 在场频道色彩系统 */
 page {
-  --zc-bg: #F5F0E8;
+  --zc-bg: var(--app-page-bg);
   --zc-primary: #2D5A3D;
-  --zc-accent: #C4873A;
-  --zc-text: #2C2C2C;
-  --zc-text-secondary: #888888;
-  --zc-card-bg: #FFFFFF;
+  --zc-accent: var(--app-dawn-deep);
+  --zc-text: var(--app-text);
+  --zc-text-secondary: var(--app-text-muted);
+  --zc-card-bg: var(--app-paper);
   --zc-radius-card: 24rpx;
   --zc-radius-img: 16rpx;
+  --theme-primary: #2D5A3D;
+  --theme-primary-dark: #234a31;
+  --theme-primary-light: #4a7a5b;
+  --theme-primary-tint: #e9f0ea;
+  --theme-primary-soft: rgba(45, 90, 61, 0.14);
+  --theme-primary-shadow: rgba(45, 90, 61, 0.3);
+  --theme-primary-alpha-05: rgba(45, 90, 61, 0.05);
+  --theme-primary-alpha-08: rgba(45, 90, 61, 0.08);
+  --theme-primary-alpha-12: rgba(45, 90, 61, 0.12);
+  --theme-primary-alpha-15: rgba(45, 90, 61, 0.15);
+  --theme-primary-alpha-20: rgba(45, 90, 61, 0.2);
+  --theme-primary-alpha-30: rgba(45, 90, 61, 0.3);
   background-color: var(--zc-bg);
 }
 
@@ -38,7 +50,7 @@ page {
   border-radius: 40rpx;
   font-size: 26rpx;
   color: var(--zc-text-secondary);
-  background: #EEEBE3;
+  background: var(--app-surface-muted);
   white-space: nowrap;
   transition: all 0.2s;
 }
@@ -58,7 +70,7 @@ page {
   border-radius: var(--zc-radius-card);
   margin-bottom: 24rpx;
   overflow: hidden;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+  box-shadow: 0 2rpx 12rpx var(--app-shadow-soft);
   position: relative;
 }
 
@@ -91,7 +103,7 @@ page {
   font-weight: 500;
 }
 .badge-reading { background: #2D5A3D; }
-.badge-cooking { background: #C4873A; }
+.badge-cooking { background: var(--zc-accent); }
 .badge-tea { background: #8B6355; }
 .badge-walk { background: #4A7FA5; }
 .badge-create { background: #7B5EA7; }
@@ -103,7 +115,7 @@ page {
 .date { font-size: 24rpx; color: var(--zc-text-secondary); }
 .dot { font-size: 24rpx; color: var(--zc-text-secondary); }
 .location { font-size: 24rpx; color: var(--zc-text-secondary); }
-.title { display: block; font-size: 32rpx; font-weight: 600; color: var(--zc-text); margin-bottom: 8rpx; line-height: 1.4; }
+.title { font-family: var(--app-font-serif); display: block; font-size: 32rpx; font-weight: 600; color: var(--zc-text); margin-bottom: 8rpx; line-height: 1.4; }
 .desc { display: block; font-size: 26rpx; color: var(--zc-text-secondary); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* 在场人头像墙 */
@@ -115,10 +127,10 @@ page {
 .attendees-more { font-size: 22rpx; color: var(--zc-text-secondary); margin-left: 4rpx; }
 
 /* 底部 */
-.footer { display: flex; align-items: center; justify-content: space-between; padding: 12rpx 24rpx 20rpx; border-top: 1rpx solid #F0EDE6; }
+.footer { display: flex; align-items: center; justify-content: space-between; padding: 12rpx 24rpx 20rpx; border-top: 1rpx solid var(--app-border); }
 .author { display: flex; align-items: center; gap: 12rpx; }
 .author-avatar { width: 48rpx; height: 48rpx; border-radius: 50%; }
-.author-avatar-text { width: 48rpx; height: 48rpx; border-radius: 50%; background: #C4873A; color: #fff; font-size: 20rpx; display: grid; place-items: center; line-height: normal; text-align: center; overflow: hidden; }
+.author-avatar-text { width: 48rpx; height: 48rpx; border-radius: 50%; background: var(--zc-accent); color: #fff; font-size: 20rpx; display: grid; place-items: center; line-height: normal; text-align: center; overflow: hidden; }
 .author-name { font-size: 24rpx; color: var(--zc-text-secondary); }
 .author-meta { font-size: 22rpx; color: var(--zc-text-secondary); margin-left: 12rpx; }
 .stats { display: flex; gap: 20rpx; }
@@ -181,8 +193,8 @@ page {
 }
 .imprint-card {
   border-radius: var(--app-radius-lg);
-  background: linear-gradient(180deg, var(--app-paper), #ffffff);
-  border-color: rgba(49, 72, 56, 0.07);
+  background: linear-gradient(180deg, var(--app-paper), var(--app-paper-muted));
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .imprint-card:active,
@@ -195,3 +207,59 @@ page {
   background: var(--zc-primary);
   box-shadow: 0 18rpx 38rpx rgba(45, 90, 61, 0.28);
 }
+
+/* Version 3 dawn: forest seal stats, empty seal, warm paper. */
+.stat-item { display: inline-flex; align-items: center; gap: 8rpx; font-family: var(--app-font-num); }
+.stat-item .app-icon { width: 28rpx; height: 28rpx; }
+.empty-seal { margin-bottom: 24rpx; }
+.imprint-card { background: var(--app-paper); }
+
+.app-empty { margin: 80rpx 24rpx 0; }
+
+.dawn-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dawn-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 28rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+.dawn-sk-w60 { width: 60%; }
+.dawn-sk-w90 { width: 90%; }
+.dawn-sk-w40 { width: 40%; }
+
+/* 邮戳：深绿印泥盖在封面右下角 */
+.cover { position: relative; }
+.zc-mark {
+  position: absolute;
+  right: 24rpx;
+  bottom: 24rpx;
+  width: 135rpx;
+  height: 135rpx;
+  border-radius: 50%;
+  border: 4rpx dashed rgba(255, 253, 248, 0.95);
+  background: rgba(45, 90, 61, 0.84);
+  color: #fffdf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transform: rotate(-10deg);
+  box-shadow: 0 5rpx 15rpx rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 2;
+}
+.zc-mark-date { font-family: var(--app-font-num); font-size: 31rpx; line-height: 1.15; }
+.zc-mark-place { font-size: 22rpx; line-height: 1.15; letter-spacing: 0.12em; text-indent: 0.12em; }
+.attendees-more { margin-left: 8rpx; }

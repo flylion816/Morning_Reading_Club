@@ -43,7 +43,7 @@
 .coupon-card {
   display: flex;
   flex-direction: row;
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 16rpx;
   overflow: hidden;
   box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
@@ -83,8 +83,8 @@
   width: 2rpx;
   background: repeating-linear-gradient(
     to bottom,
-    #e0e0e0 0,
-    #e0e0e0 10rpx,
+    var(--app-border) 0,
+    var(--app-border) 10rpx,
     transparent 10rpx,
     transparent 20rpx
   );
@@ -154,7 +154,7 @@
 }
 .coupon-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .coupon-left {
@@ -168,3 +168,9 @@
 .coupon-use-btn:active {
   transform: translateY(2rpx) scale(0.99);
 }
+
+/* Version 3 dawn: seal empty state, numeric discount. */
+.empty-icon { font-size: inherit; display: inline-flex; }
+.coupon-discount, .coupon-valid { font-family: var(--app-font-num); }
+
+.app-empty { margin: 80rpx 24rpx 0; }

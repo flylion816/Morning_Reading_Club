@@ -62,6 +62,14 @@ function resolveInsightOwner(insight = {}, currentUser = {}) {
 }
 
 
+// 手动拼接日期，不依赖机型的 toLocaleDateString；时间无效时返回空串。
+function formatLetterDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
 function normalizeInsightDetail(rawInsight) {
   if (!rawInsight) return {};
 
@@ -86,6 +94,8 @@ Page({
     socialAccessGranted: false,
     insightId: null,
     insight: {},
+    letterDate: '',
+    recipientName: '',
     isDetailReady: false,
     searchKeyword: '',
     showShareModal: false,
@@ -127,6 +137,8 @@ Page({
   _laneReleaseTimes: null,
   _pageScrollHeight: 0,
   _currentScrollPercent: 0,
+
+  formatLetterDate,
 
   onLoad(options) {
     if (!guardSocialPage(this)) return;
@@ -282,8 +294,14 @@ Page({
         ? insight.likes.some(l => String(l.userId || l) === String(currentUserId))
         : false;
 
+      const letterTime = insight.updatedAt || insight.createdAt;
+      const letterDate = formatLetterDate(letterTime);
+      const recipientName = owner.name && owner.name !== '晨读者' ? owner.name : '';
+
       this.setData({
         insight,
+        letterDate,
+        recipientName,
         isLiked,
         isOwnInsight: !!isOwnInsight,
         canEditInsight: !!canEditInsight,

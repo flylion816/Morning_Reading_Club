@@ -28,9 +28,9 @@
     </view>
 
     <!-- 空状态 -->
-    <view wx:if="{{members.length === 0}}" class="empty-state">
-      <text class="empty-state-icon">👥</text>
-      <text class="empty-state-text">暂无成员</text>
+    <view wx:if="{{members.length === 0}}" class="app-empty">
+      <view class="app-empty-art app-empty-art-sprout"></view>
+      <text class="app-empty-title">还没有书友加入</text>
     </view>
   </view>
 </view>

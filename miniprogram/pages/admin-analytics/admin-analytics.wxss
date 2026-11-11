@@ -1,6 +1,6 @@
 .page-admin-analytics {
   min-height: 100vh;
-  background: #f4f6f8;
+  background: var(--app-page-bg);
   padding-bottom: 40rpx;
 }
 
@@ -8,7 +8,7 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  background: #ffffff;
+  background: var(--app-paper);
   padding: 20rpx 24rpx 18rpx;
   border-bottom: 1rpx solid #edf0f5;
 }
@@ -16,7 +16,7 @@
 .tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: #eef3f8;
+  background: var(--app-surface-muted);
   border-radius: 12rpx;
   padding: 6rpx;
 }
@@ -31,10 +31,10 @@
 }
 
 .tab.active {
-  background: #ffffff;
+  background: var(--app-paper);
   color: var(--theme-primary);
   font-weight: 600;
-  box-shadow: 0 4rpx 12rpx rgba(31, 41, 55, 0.08);
+  box-shadow: 0 4rpx 12rpx rgba(60, 42, 20, 0.08);
 }
 
 .preset-row {
@@ -48,11 +48,11 @@
   height: 56rpx;
   line-height: 56rpx;
   text-align: center;
-  border: 1rpx solid #d7dee8;
+  border: 1rpx solid var(--app-rule);
   border-radius: 10rpx;
   font-size: 24rpx;
   color: var(--app-text-soft);
-  background: #ffffff;
+  background: var(--app-paper);
 }
 
 .preset.active {
@@ -71,12 +71,12 @@
 .date-field {
   height: 60rpx;
   border-radius: 10rpx;
-  border: 1rpx solid #d7dee8;
+  border: 1rpx solid var(--app-rule);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16rpx;
-  background: #ffffff;
+  background: var(--app-paper);
   color: var(--app-text-soft);
   font-size: 24rpx;
 }
@@ -89,14 +89,14 @@
   margin-top: 16rpx;
   height: 64rpx;
   border-radius: 10rpx;
-  border: 1rpx solid #d7dee8;
+  border: 1rpx solid var(--app-rule);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20rpx;
   font-size: 26rpx;
   color: var(--app-text-soft);
-  background: #ffffff;
+  background: var(--app-paper);
 }
 
 .select-arrow {
@@ -120,9 +120,9 @@
 .revenue-card,
 .chart-card,
 .list-card {
-  background: #ffffff;
+  background: var(--app-paper);
   border-radius: 14rpx;
-  box-shadow: 0 4rpx 14rpx rgba(31, 41, 55, 0.05);
+  box-shadow: 0 4rpx 14rpx rgba(60, 42, 20, 0.05);
 }
 
 .metric-card,
@@ -282,7 +282,7 @@
   margin-top: 10rpx;
   font-size: 20rpx;
   line-height: 24rpx;
-  color: #8a94a6;
+  color: var(--app-text-muted);
   white-space: nowrap;
 }
 
@@ -319,7 +319,7 @@
   min-width: 0;
   height: 20rpx;
   border-radius: 999rpx;
-  background: #eef2f7;
+  background: var(--app-surface-muted);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -531,7 +531,7 @@
 .chart-card,
 .list-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .tabs,

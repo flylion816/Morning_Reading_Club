@@ -8,6 +8,7 @@
       <view class="course-title-group">
         <text class="course-header-title">{{periodName}}</text>
         <text class="course-header-date">{{periodDate}}</text>
+        <text class="course-header-origins" wx:if="{{originsText && communityAccessState === 'enabled'}}">{{originsText}}</text>
       </view>
     </view>
   </view>
@@ -24,7 +25,7 @@
     <view class="quick-item" hover-class="quick-item-hover" bindtap="handleRanking">
       <view class="quick-icon"><text>榜</text></view>
       <view class="quick-copy">
-        <text class="quick-title">排行榜</text>
+        <text class="quick-title">同行榜</text>
         <text class="quick-caption">精选榜</text>
       </view>
     </view>
@@ -40,6 +41,13 @@
       <view class="quick-copy">
         <text class="quick-title">同修</text>
         <text class="quick-caption">成员名录</text>
+      </view>
+    </view>
+    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleKeepsake">
+      <view class="quick-icon"><text>册</text></view>
+      <view class="quick-copy">
+        <text class="quick-title">纪念册</text>
+        <text class="quick-caption">我的这一期</text>
       </view>
     </view>
   </view>
@@ -99,8 +107,9 @@
 
         <reading-loader wx:if="{{loading && sections.length === 0}}" text="正在整理今日晨读..." />
 
-        <view wx:if="{{!loading && sections.length === 0}}" class="course-empty">
-          <text>暂无课程</text>
+        <view wx:if="{{!loading && sections.length === 0}}" class="app-empty">
+          <text class="app-empty-title">这一期的课程还在准备中</text>
+          <view class="app-empty-art app-empty-art-book"></view>
         </view>
       </view>
     </view>
@@ -143,8 +152,9 @@
         </view>
       </view>
 
-      <view wx:if="{{(isSearchMode ? searchCheckins.length === 0 : allCheckins.length === 0)}}" class="course-empty course-empty-inner">
-        <text>暂无打卡记录</text>
+      <view wx:if="{{(isSearchMode ? searchCheckins.length === 0 : allCheckins.length === 0)}}" class="app-empty app-empty-inner">
+        <view class="app-empty-art app-empty-art-sprout"></view>
+        <text class="app-empty-title">还没有人打卡，做第一个吧</text>
       </view>
     </view>
   </scroll-view>

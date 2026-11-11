@@ -1,5 +1,5 @@
 .page-activities {
-  background: #f5f7fa;
+  background: var(--app-page-bg);
   min-height: 100vh;
   padding: 20rpx 24rpx 40rpx;
 }
@@ -56,7 +56,7 @@
 }
 
 .activity-item {
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 20rpx;
   overflow: hidden;
   display: flex;
@@ -146,7 +146,7 @@
   display: -webkit-box;
   font-size: 30rpx;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--app-text);
   line-height: 1.4;
   height: 84rpx;
   overflow: hidden;
@@ -157,12 +157,12 @@
 .item-time {
   display: block;
   font-size: 24rpx;
-  color: #888;
+  color: var(--app-text-muted);
 }
 
 .item-location {
   font-size: 24rpx;
-  color: #888;
+  color: var(--app-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -194,7 +194,7 @@
   text-align: center;
   padding: 40rpx 0 20rpx;
   font-size: 24rpx;
-  color: #ccc;
+  color: var(--app-disabled);
 }
 
 /* Version 2 consistency polish: activity wall. */
@@ -206,7 +206,7 @@
 }
 .activity-item {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .item-type-tag,
@@ -216,3 +216,35 @@
 .activity-item:active {
   transform: translateY(2rpx) scale(0.99);
 }
+
+/* Version 3 dawn: line icons, serif titles, numeric time. */
+.empty-icon { font-size: inherit; display: inline-flex; }
+.item-title { font-family: var(--app-font-serif); }
+.item-line { display: flex; align-items: center; gap: 8rpx; }
+.item-line .app-icon { width: 26rpx; height: 26rpx; }
+.item-time { font-family: var(--app-font-num); }
+
+.app-empty { margin: 80rpx 24rpx 0; }
+
+.dawn-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dawn-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 28rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+.dawn-sk-w60 { width: 60%; }
+.dawn-sk-w90 { width: 90%; }
+.dawn-sk-w40 { width: 40%; }
+.loading-container { display: block; padding: 0; }

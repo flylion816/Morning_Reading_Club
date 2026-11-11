@@ -21,7 +21,7 @@ describe('miniprogram version 2 consistency', () => {
       const styles = read(file);
       const marker = page === 'pages/meeting-webview/meeting-webview'
         ? 'Version 2 consistency polish'
-        : /(Version 1|Version 2) core|consistency polish/;
+        : /(Version 1|Version 2) core|consistency polish|Version 3 dawn/; // 晨光之后新建的页面直接按晨光规范写，标记为 Version 3 dawn
 
       expect(styles).toMatch(marker);
       expect(styles).toMatch(/var\(--(?:app|theme)-/);

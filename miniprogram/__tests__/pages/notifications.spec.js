@@ -207,4 +207,45 @@ describe('notifications page', () => {
       url: '/pages/index/index'
     }));
   });
+  test('decorates letter_delivered with label, action text and slow-mail target', () => {
+    const n = pageInstance.decorateNotification.call(pageInstance, {
+      _id: 'n_letter',
+      type: 'letter_delivered',
+      data: { periodId: 'p1', letterId: 'l1' }
+    });
+    expect(n.typeLabel).toBe('慢递邮局');
+    expect(n.actionText).toBe('去拆信');
+    expect(n.resolvedTargetPage).toBe('pages/slow-mail/slow-mail?periodId=p1');
+  });
+
+  test('decorates seen_received like like_received', () => {
+    const n = pageInstance.decorateNotification.call(pageInstance, {
+      _id: 'n_seen',
+      type: 'seen_received',
+      data: { sectionId: 's1', checkinId: 'c1' }
+    });
+    expect(n.typeLabel).toBe('被看见');
+    expect(n.actionText).toBe('查看打卡详情');
+    expect(n.resolvedTargetPage).toContain('pages/course-detail/course-detail?');
+    expect(n.resolvedTargetPage).toContain('id=s1');
+    expect(n.resolvedTargetPage).toContain('checkinId=c1');
+  });
+
+  test('buddy_nudge jumps to targetPage and does not jump without one', () => {
+    const withTarget = pageInstance.decorateNotification.call(pageInstance, {
+      _id: 'n_buddy',
+      type: 'buddy_nudge',
+      data: { targetPage: '/pages/buddy/buddy?periodId=p1' }
+    });
+    expect(withTarget.typeLabel).toBe('读伴');
+    expect(withTarget.actionText).toBe('去看看');
+    expect(withTarget.resolvedTargetPage).toBe('/pages/buddy/buddy?periodId=p1');
+
+    const without = pageInstance.decorateNotification.call(pageInstance, {
+      _id: 'n_buddy2',
+      type: 'buddy_nudge',
+      data: {}
+    });
+    expect(without.resolvedTargetPage).toBe('');
+  });
 });

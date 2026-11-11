@@ -1,0 +1,132 @@
+/* Version 3 dawn: 新功能页面，直接按晨光规范编写。 */
+.hl-page {
+  min-height: 100vh;
+  padding: var(--app-space-md);
+  padding-bottom: calc(var(--app-space-xl) + env(safe-area-inset-bottom));
+  background: var(--app-page-bg);
+  box-sizing: border-box;
+}
+
+.hl-chips {
+  white-space: nowrap;
+  margin-bottom: var(--app-space-md);
+}
+
+.hl-chips-row {
+  display: inline-flex;
+  gap: 16rpx;
+}
+
+.hl-chip {
+  flex-shrink: 0;
+}
+
+.hl-chip-active {
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-weight: 650;
+}
+
+.hl-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-md);
+}
+
+.hl-skeleton {
+  height: 260rpx;
+}
+
+.hl-empty {
+  margin-top: 80rpx;
+}
+
+.hl-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-md);
+}
+
+.hl-card {
+  padding: 32rpx 32rpx 24rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.hl-quote {
+  padding-left: 24rpx;
+  border-left: 6rpx solid var(--app-dawn);
+  font-family: var(--app-font-serif);
+  font-size: var(--app-font-lg);
+  line-height: 1.75;
+  color: var(--app-text);
+}
+
+.hl-source {
+  margin-top: 20rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.hl-note {
+  margin-top: 20rpx;
+  padding: 16rpx 20rpx;
+  border-radius: var(--app-radius-sm);
+  background: var(--app-paper-muted);
+  font-size: var(--app-font-sm);
+  line-height: 1.6;
+  color: var(--app-text-soft);
+}
+
+.hl-note-empty {
+  color: var(--app-text-muted);
+}
+
+.hl-note-edit {
+  margin-top: 20rpx;
+}
+
+.hl-note-input {
+  width: 100%;
+  min-height: 100rpx;
+  padding: 16rpx 20rpx;
+  border-radius: var(--app-radius-sm);
+  background: var(--app-paper-muted);
+  font-size: var(--app-font-sm);
+  box-sizing: border-box;
+}
+
+.hl-footer,
+.hl-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 40rpx;
+  margin-top: 16rpx;
+}
+
+.hl-footer {
+  border-top: 1rpx solid var(--app-rule);
+  padding-top: 16rpx;
+  margin-top: 20rpx;
+}
+
+.hl-action {
+  min-height: 56rpx;
+  line-height: 56rpx;
+  font-size: var(--app-font-sm);
+  color: var(--app-text-muted);
+}
+
+.hl-action-main {
+  color: var(--theme-primary-dark);
+  font-weight: 650;
+}
+
+.hl-more {
+  padding: var(--app-space-md);
+  text-align: center;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}

@@ -127,6 +127,14 @@ app.use('/api/v1/community-activities', communityActivityRoutes);
 app.use('/api/v1/admin/community-activities', communityActivityAdminRoutes);
 app.use('/api/v1/activity-coupons', activityCouponUserRoutes);
 app.use('/api/v1/admin/activity-coupons', activityCouponAdminRoutes);
+// 晨读营新功能（同行感、慢递邮局、纪念册、摘抄本、看见卡、实修、读伴）
+app.use('/api/v1/presence', require('./routes/presence.routes'));
+app.use('/api/v1/letters', require('./routes/letter.routes'));
+app.use('/api/v1/keepsakes', require('./routes/keepsake.routes'));
+app.use('/api/v1/highlights', require('./routes/highlight.routes'));
+app.use('/api/v1/seen-cards', require('./routes/seenCard.routes'));
+app.use('/api/v1/practices', require('./routes/practice.routes'));
+app.use('/api/v1/buddies', require('./routes/buddy.routes'));
 
 app.use(notFoundHandler);
 app.use(errorHandler);

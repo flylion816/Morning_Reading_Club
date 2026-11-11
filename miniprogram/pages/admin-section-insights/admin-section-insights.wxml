@@ -41,8 +41,8 @@
       <view wx:else class="card-preview">{{item.preview}}</view>
       <!-- 底部 -->
       <view class="card-footer">
-        <text class="like-count">❤️ {{item.likeCount}}</text>
-        <text class="danmaku-count">💬 {{item.danmakuCount}}</text>
+        <view class="like-count"><view class="app-icon app-icon-heart count-icon"></view> {{item.likeCount}}</view>
+        <view class="danmaku-count"><view class="app-icon app-icon-comment count-icon"></view> {{item.danmakuCount}}</view>
         <text class="card-arrow">›</text>
       </view>
     </view>

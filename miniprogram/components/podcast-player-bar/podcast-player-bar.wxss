@@ -3,7 +3,7 @@
   left: 16rpx;
   right: 16rpx;
   z-index: 200;
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 24rpx;
   box-shadow: 0 4rpx 32rpx rgba(0, 0, 0, 0.18), 0 0 0 1rpx rgba(0, 0, 0, 0.06);
 }
@@ -72,7 +72,7 @@
 
 .podcast-bar-title {
   font-size: 26rpx;
-  color: #1a1a1a;
+  color: var(--app-text);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -92,7 +92,7 @@
 .podcast-bar-progress-track {
   position: relative;
   height: 6rpx;
-  background: #ebebeb;
+  background: var(--app-rule);
   border-radius: 3rpx;
   padding: 10rpx 0;
   margin: -10rpx 0;
@@ -130,7 +130,7 @@
   width: 60rpx;
   height: 60rpx;
   border-radius: 50%;
-  border: 2rpx solid #1a1a1a;
+  border: 2rpx solid var(--app-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -145,7 +145,7 @@
 .podcast-bar-pause-bar {
   width: 5rpx;
   height: 20rpx;
-  background: #1a1a1a;
+  background: var(--app-text);
   border-radius: 3rpx;
 }
 
@@ -153,7 +153,7 @@
   width: 22rpx;
   height: 22rpx;
   border: 3rpx solid rgba(26, 26, 26, 0.25);
-  border-top-color: #1a1a1a;
+  border-top-color: var(--app-text);
   border-radius: 50%;
   animation: bar-spin 0.8s linear infinite;
 }
@@ -167,7 +167,7 @@
   height: 0;
   border-style: solid;
   border-width: 10rpx 0 10rpx 17rpx;
-  border-color: transparent transparent transparent #1a1a1a;
+  border-color: transparent transparent transparent var(--app-text);
   margin-left: 4rpx;
 }
 
@@ -181,6 +181,6 @@
 
 .podcast-bar-close-x {
   font-size: 26rpx;
-  color: #bbb;
+  color: var(--app-disabled);
   line-height: 1;
 }

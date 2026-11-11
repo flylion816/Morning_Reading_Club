@@ -53,9 +53,9 @@
   </view>
 
   <view class="insights-list">
-    <view class="empty-state" wx:if="{{searchLoading}}">
-      <text class="empty-icon">🔍</text>
-      <text class="empty-text">搜索中...</text>
+    <view class="app-empty" wx:if="{{searchLoading}}">
+      <view class="app-empty-art app-empty-art-letter"></view>
+      <text class="app-empty-title">搜索中...</text>
     </view>
     <view
       wx:for="{{isSearchMode ? (activeTab === 'mine' ? searchResults : otherSearchResults) : (activeTab === 'mine' ? insights : otherInsights)}}"
@@ -69,15 +69,18 @@
       data-title="{{item.title}}"
       data-period-name="{{item.periodName}}"
       data-day-number="{{item.dayNumber}}">
+      <view class="insight-flap"></view>
       <view class="insight-header">
         <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||themePrimaryColor}}">
           <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
           <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
         </view>
         <view class="insight-title-meta">
-          <view class="insight-title">{{item.title}}</view>
+          <view class="insight-title">{{item.title}}<text class="insight-letter-tag" wx:if="{{item.letterType === 'weekly'}}">周信</text><text class="insight-letter-tag" wx:elif="{{item.letterType === 'monthly'}}">月信</text></view>
           <view class="insight-period">{{item.periodName}}</view>
         </view>
+        <view wx:if="{{!item.isAccessible}}" class="insight-lock-badge app-icon app-icon-lock"></view>
+        <view wx:elif="{{item.mediaType === 'image'}}" class="insight-type-tag">图片</view>
       </view>
       <block wx:if="{{item.mediaType === 'image' && item.imageUrl}}">
         <view class="insight-preview">
@@ -119,17 +122,27 @@
       <text>{{otherLoadingMore ? '加载中...' : '加载更多'}}</text>
     </view>
 
-    <view class="empty-state" wx:if="{{activeTab === 'mine' && (isSearchMode ? searchResults.length === 0 : insights.length === 0) && !loading && !searchLoading}}">
-      <text class="empty-icon">✨</text>
-      <text class="empty-text">{{isSearchMode ? '未找到相关内容' : '暂无反馈'}}</text>
+    <view class="app-empty" wx:if="{{activeTab === 'mine' && (isSearchMode ? searchResults.length === 0 : insights.length === 0) && !loading && !searchLoading}}">
+      <view class="app-empty-art app-empty-art-letter"></view>
+      <text class="app-empty-title">{{isSearchMode ? '未找到相关内容' : '小凡还在读你的打卡，写好了会放在这里'}}</text>
     </view>
-    <view class="empty-state" wx:if="{{activeTab === 'others' && (isSearchMode ? otherSearchResults.length === 0 : otherInsights.length === 0) && !otherInsightsLoading && !searchLoading}}">
-      <text class="empty-icon">👥</text>
-      <text class="empty-text">{{isSearchMode ? '未找到相关内容' : '暂无他人授权查看'}}</text>
+    <view class="app-empty" wx:if="{{activeTab === 'others' && (isSearchMode ? otherSearchResults.length === 0 : otherInsights.length === 0) && !otherInsightsLoading && !searchLoading}}">
+      <view class="app-empty-art app-empty-art-letter"></view>
+      <text class="app-empty-title">{{isSearchMode ? '未找到相关内容' : '暂无他人授权查看'}}</text>
     </view>
-    <view class="empty-state" wx:if="{{activeTab === 'others' && otherInsightsLoading}}">
-      <text class="empty-icon">⏳</text>
-      <text class="empty-text">加载中...</text>
+    <view class="dawn-skeleton-list" wx:if="{{activeTab === 'others' && otherInsightsLoading}}">
+      <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+        <view class="app-skeleton-line dawn-sk-w60"></view>
+        <view class="app-skeleton-line dawn-sk-w90"></view>
+        <view class="app-skeleton-line dawn-sk-w40"></view>
+      </view>
+    </view>
+    <view class="dawn-skeleton-list" wx:if="{{activeTab === 'mine' && loading && insights.length === 0 && !searchLoading}}">
+      <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+        <view class="app-skeleton-line dawn-sk-w60"></view>
+        <view class="app-skeleton-line dawn-sk-w90"></view>
+        <view class="app-skeleton-line dawn-sk-w40"></view>
+      </view>
     </view>
   </view>
 

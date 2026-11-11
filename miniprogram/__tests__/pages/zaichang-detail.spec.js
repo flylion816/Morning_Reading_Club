@@ -107,4 +107,21 @@ describe('zaichang detail comments', () => {
     });
     expect(pageInstance.data.comments[0].content).toBe('一起加油💪');
   });
+
+  test.each([
+    ['images only', [{ type: 'image', url: 'a' }, { type: 'image', url: 'b' }], '11.08', '上海外滩'],
+    ['single video', [{ type: 'video', url: 'v' }], '', ''],
+    ['video last in gallery', [{ type: 'image', url: 'a' }, { type: 'video', url: 'v' }], '', ''],
+    ['no media', [], '', '']
+  ])('postmark fields for %s', async (_name, mediaList, date, place) => {
+    imprintService.detail.mockResolvedValue({
+      imprint: { _id: 'imprint_1', happenedAt: '2026-11-08T08:00:00', location: '上海外滩公园', mediaList }
+    });
+
+    await pageInstance.loadDetail();
+
+    expect(pageInstance.data.imprint._stampDate).toBe(date);
+    expect(pageInstance.data.imprint._stampPlace).toBe(place);
+    expect(pageInstance.data.imprint._happenedAtFormatted).toBe('2026年11月8日');
+  });
 });

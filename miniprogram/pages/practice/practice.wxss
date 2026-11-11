@@ -1,0 +1,37 @@
+/* Version 3 dawn: 新功能页面，直接按晨光规范编写。 */
+.page { min-height: 100vh; padding: 32rpx; box-sizing: border-box; background: var(--app-bg, #faf6ec); }
+.head { display: flex; align-items: center; gap: 16rpx; margin-bottom: 32rpx; }
+.head-title { font-family: var(--app-font-serif); font-size: 36rpx; font-weight: 700; color: var(--app-text); }
+.head-range { margin-left: auto; font-family: var(--app-font-num); font-size: 24rpx; color: var(--app-dawn-ink); }
+.block { margin-bottom: 24rpx; }
+.sk-line { width: 50%; margin-top: 20rpx; }
+.card { padding: 36rpx 32rpx; margin-bottom: 24rpx; display: flex; flex-direction: column; gap: 24rpx; }
+.guide { font-family: var(--app-font-serif); font-size: 32rpx; color: var(--app-text); line-height: 1.6; }
+.suggest-list { display: flex; flex-direction: column; gap: 16rpx; }
+.suggest { align-self: flex-start; }
+.draft, .note { height: 88rpx; padding: 0 24rpx; border-radius: var(--app-radius-md); background: var(--app-bg, #faf6ec); font-size: 28rpx; color: var(--app-text); }
+.ph { color: var(--app-text-soft); }
+.confirm { margin-top: 8rpx; }
+.practice-text { font-family: var(--app-font-serif); font-size: 44rpx; line-height: 1.5; font-weight: 700; color: var(--app-text); }
+.edit { align-self: flex-start; font-size: 26rpx; color: var(--theme-primary-dark); }
+.sub-title { font-size: 26rpx; color: var(--app-text-soft); }
+.choices { display: flex; gap: 20rpx; }
+.choice { flex: 1; height: 96rpx; line-height: 96rpx; text-align: center; border-radius: var(--app-radius-md); border: 2rpx solid var(--app-line, #e8dfcc); font-size: 30rpx; color: var(--app-text); box-sizing: border-box; }
+.choice-done { background: var(--theme-primary); border-color: var(--theme-primary); color: #ffffff; }
+.choice-rest { background: var(--app-bg, #f1eadc); border-color: var(--app-text-soft); color: var(--app-text-soft); }
+.dots { display: flex; justify-content: space-between; padding: 8rpx 8rpx 0; }
+.dot-col { display: flex; flex-direction: column; align-items: center; gap: 10rpx; }
+.dot { width: 28rpx; height: 28rpx; border-radius: 50%; box-sizing: border-box; }
+.dot-done { background: var(--theme-primary); }
+.dot-rest { border: 3rpx solid var(--app-text-soft); }
+.dot-empty { border: 3rpx dashed transparent; }
+.dot-label { font-size: 22rpx; color: var(--app-text-soft); }
+.dot-label-today { color: var(--app-dawn-ink); font-weight: 700; }
+.dots-small .dot { width: 20rpx; height: 20rpx; }
+.dots-small { justify-content: flex-start; gap: 16rpx; padding: 0; }
+.quiet { font-size: 26rpx; color: var(--app-text-soft); line-height: 1.6; }
+.history { margin-top: 16rpx; }
+.history-head { display: flex; justify-content: space-between; padding: 24rpx 8rpx; font-size: 28rpx; color: var(--app-text); }
+.history-item { display: flex; flex-direction: column; gap: 10rpx; padding: 24rpx 8rpx; border-top: 2rpx solid var(--app-line, #e8dfcc); }
+.history-range { font-size: 22rpx; color: var(--app-text-soft); font-family: var(--app-font-num); }
+.history-text { font-family: var(--app-font-serif); font-size: 30rpx; color: var(--app-text); }

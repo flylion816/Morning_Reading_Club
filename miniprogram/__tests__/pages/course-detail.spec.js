@@ -1,4 +1,7 @@
-jest.mock('../../services/course.service', () => ({}));
+jest.mock('../../services/course.service', () => ({
+  getCourseDetail: jest.fn(),
+  getPeriodSections: jest.fn()
+}));
 jest.mock('../../services/checkin.service', () => ({
   getCheckinDetail: jest.fn(),
   normalizeCheckinImages: jest.fn((images = [], maxCount = 9) =>
@@ -13,12 +16,18 @@ jest.mock('../../services/checkin.service', () => ({
   )
 }));
 jest.mock('../../services/comment.service', () => ({
-  createComment: jest.fn()
+  createComment: jest.fn(),
+  getCommentsByCheckin: jest.fn()
 }));
 jest.mock('../../services/activity.service', () => ({
   track: jest.fn(() => Promise.resolve())
 }));
 jest.mock('../../services/subscribe-message.service', () => ({}));
+jest.mock('../../services/seen-card.service', () => ({
+  getSummary: jest.fn(() => Promise.resolve({})),
+  sendSeen: jest.fn(),
+  withdrawSeen: jest.fn()
+}));
 jest.mock('../../utils/subscribe-auto-topup', () => ({
   maybeAutoTopUpNextDayStudyReminder: jest.fn(() => Promise.resolve())
 }));
@@ -33,16 +42,24 @@ jest.mock('../../utils/period-access', () => ({
 }));
 
 const currentTenant = require('../../config/current-tenant');
+let periodAccess;
 
 describe('course-detail page markdown support', () => {
   let pageConfig;
   let pageInstance;
   let commentService;
+  let checkinService;
+  let courseService;
   let getAvatarColorByUserId;
   let subscribeAutoTopUp;
 
   beforeEach(() => {
     jest.resetModules();
+    periodAccess = require('../../utils/period-access');
+    periodAccess.extractId.mockImplementation(value => {
+      if (value && typeof value === 'object') return value._id || value.id || null;
+      return value || null;
+    });
     pageConfig = null;
     global.Page = jest.fn(config => {
       pageConfig = config;
@@ -59,6 +76,8 @@ describe('course-detail page markdown support', () => {
     }));
 
     commentService = require('../../services/comment.service');
+    checkinService = require('../../services/checkin.service');
+    courseService = require('../../services/course.service');
     ({ getAvatarColorByUserId } = require('../../utils/formatters'));
     subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
     require('../../pages/course-detail/course-detail');
@@ -104,6 +123,11 @@ describe('course-detail page markdown support', () => {
     if (commentService.createComment) {
       commentService.createComment.mockReset();
     }
+    checkinService.getCheckinDetail.mockReset();
+    courseService.getCourseDetail.mockReset();
+    courseService.getPeriodSections.mockReset();
+    periodAccess.getPeriodAccess.mockReset();
+    commentService.getCommentsByCheckin.mockReset();
     wx.showShareMenu = wx.showShareMenu || jest.fn();
     wx.hideShareMenu = wx.hideShareMenu || jest.fn();
     wx.showShareMenu.mockClear();
@@ -399,6 +423,86 @@ describe('course-detail page markdown support', () => {
     expect(wx.setNavigationBarTitle).toHaveBeenCalledWith({ title: '打卡详情' });
     expect(wx.showShareMenu).toHaveBeenCalled();
     expect(pageInstance.loadCourseDetail).toHaveBeenCalled();
+  });
+
+  test('should render anonymous public checkin details without course or comment requests', async () => {
+    global.getApp.mockReturnValue({
+      globalData: {
+        isLogin: false,
+        userInfo: {}
+      }
+    });
+    checkinService.getCheckinDetail.mockResolvedValue({
+      _id: 'checkin_public',
+      userId: { _id: 'user_wang', nickname: '王可心' },
+      periodId: { _id: 'period_1', name: '心想事成' },
+      sectionId: { _id: 'section_1', title: '空间管理', day: 3 },
+      note: '公开打卡正文',
+      images: [],
+      likes: []
+    });
+    pageInstance.setData({
+      courseId: 'section_original',
+      periodId: 'period_1',
+      isCheckinDetailMode: true,
+      shareCheckinId: 'checkin_public'
+    });
+
+    await pageInstance.loadCourseDetail.call(pageInstance);
+
+    expect(checkinService.getCheckinDetail).toHaveBeenCalledWith('checkin_public');
+    expect(courseService.getCourseDetail).not.toHaveBeenCalled();
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    expect(periodAccess.getPeriodAccess).not.toHaveBeenCalled();
+    expect(commentService.getCommentsByCheckin).not.toHaveBeenCalled();
+    expect(pageInstance.data.loading).toBe(false);
+    expect(pageInstance.data.showPageContent).toBe(true);
+    expect(pageInstance.data.commentsLocked).toBe(true);
+    expect(pageInstance.data.commentsLockedMessage).toBe('登录并加入营期后可查看评论');
+    expect(pageInstance.data.detailCheckin).toMatchObject({
+      id: 'checkin_public',
+      userName: '王可心',
+      content: '公开打卡正文',
+      sectionTitle: '空间管理'
+    });
+  });
+
+  test('should load checkin comments only after community access is enabled', async () => {
+    global.getApp.mockReturnValue({
+      globalData: {
+        isLogin: true,
+        userInfo: { _id: 'user_fox' }
+      }
+    });
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      communityAccessState: 'enabled',
+      canAccessCommunity: true,
+      paymentStatus: 'paid'
+    });
+    checkinService.getCheckinDetail.mockResolvedValue({
+      _id: 'checkin_public',
+      userId: { _id: 'user_wang', nickname: '王可心' },
+      periodId: { _id: 'period_1', name: '心想事成' },
+      sectionId: { _id: 'section_1', title: '空间管理', day: 3 },
+      note: '公开打卡正文'
+    });
+    commentService.getCommentsByCheckin.mockResolvedValue({ list: [] });
+    pageInstance.setData({
+      courseId: 'section_original',
+      periodId: 'period_1',
+      isCheckinDetailMode: true,
+      shareCheckinId: 'checkin_public'
+    });
+
+    await pageInstance.loadCourseDetail.call(pageInstance);
+
+    expect(courseService.getCourseDetail).not.toHaveBeenCalled();
+    expect(periodAccess.getPeriodAccess).toHaveBeenCalledWith('period_1');
+    expect(pageInstance.data.commentsLocked).toBe(false);
+    expect(commentService.getCommentsByCheckin).toHaveBeenCalledWith(
+      'checkin_public',
+      { limit: 100 }
+    );
   });
 
   test('should navigate to checkin detail when tapping a checkin card', () => {
@@ -979,4 +1083,283 @@ describe('course-detail page markdown support', () => {
     expect(textToSpeech).toHaveBeenCalledTimes(2);
   });
 
+  test('pops the like icon and fires haptic only when liking, not when unliking', async () => {
+    const feedback = require('../../utils/feedback');
+    const hapticSpy = jest.spyOn(feedback, 'haptic').mockImplementation(() => {});
+    jest.useFakeTimers();
+    commentService.likeCheckin = jest.fn().mockResolvedValue({});
+    commentService.unlikeCheckin = jest.fn().mockResolvedValue({});
+    pageInstance._requireInteraction = jest.fn(() => true);
+    pageInstance.triggerAutoTopUp = jest.fn();
+    pageInstance.syncDetailCheckinState = jest.fn();
+    pageInstance.data.course = {
+      comments: [{ id: 'checkin_1', isLiked: false, likeCount: 0, likeAvatars: [] }]
+    };
+
+    await pageInstance.handleLikeComment.call(pageInstance, {
+      currentTarget: { dataset: { id: 'checkin_1' } }
+    });
+
+    expect(pageInstance.data.likePopId).toBe('checkin_1');
+    expect(hapticSpy).toHaveBeenCalledWith('light');
+    jest.advanceTimersByTime(400);
+    expect(pageInstance.data.likePopId).toBe('');
+
+    hapticSpy.mockClear();
+    await pageInstance.handleLikeComment.call(pageInstance, {
+      currentTarget: { dataset: { id: 'checkin_1' } }
+    });
+
+    expect(pageInstance.data.course.comments[0].isLiked).toBe(false);
+    expect(pageInstance.data.likePopId).toBe('');
+    expect(hapticSpy).not.toHaveBeenCalled();
+    hapticSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  describe('mood summary and seen cards', () => {
+    let seenService;
+    beforeEach(() => {
+      seenService = require('../../services/seen-card.service');
+      seenService.getSummary = jest.fn();
+      seenService.sendSeen = jest.fn().mockResolvedValue({});
+      seenService.withdrawSeen = jest.fn().mockResolvedValue({});
+      global.getApp = jest.fn(() => ({
+        globalData: { isLogin: true, userInfo: { _id: 'user_fox' } }
+      }));
+      pageInstance.data.communityAccessState = 'enabled';
+      pageInstance.data.courseId = 'sec1';
+    });
+
+    test('builds mood summary text sorted by count, skipping zeros', () => {
+      expect(pageInstance.buildMoodSummaryText({ happy: 2, calm: 5, low: 3, other: 0 }))
+        .toBe('今天营里：5 多云 · 3 小雨 · 2 晴');
+      expect(pageInstance.buildMoodSummaryText(null)).toBe('');
+      expect(pageInstance.buildMoodSummaryText({ happy: 0 })).toBe('');
+    });
+
+    test('mood summary shows text when counts present, hidden for null, failure or locked', async () => {
+      checkinService.getSectionMoodSummary = jest.fn().mockResolvedValue({ total: 5, counts: { happy: 4, low: 1 } });
+      await pageInstance.loadMoodSummary();
+      expect(checkinService.getSectionMoodSummary).toHaveBeenCalledWith('sec1');
+      expect(pageInstance.data.moodSummaryText).toBe('今天营里：4 晴 · 1 小雨');
+
+      checkinService.getSectionMoodSummary = jest.fn().mockResolvedValue({ total: 1, counts: null });
+      await pageInstance.loadMoodSummary();
+      expect(pageInstance.data.moodSummaryText).toBe('');
+
+      pageInstance.data.moodSummaryText = '旧';
+      checkinService.getSectionMoodSummary = jest.fn().mockRejectedValue(new Error('x'));
+      await pageInstance.loadMoodSummary();
+      expect(pageInstance.data.moodSummaryText).toBe('旧');
+
+      pageInstance.data.communityAccessState = 'locked';
+      checkinService.getSectionMoodSummary = jest.fn();
+      await pageInstance.loadMoodSummary();
+      expect(checkinService.getSectionMoodSummary).not.toHaveBeenCalled();
+    });
+
+    test('merges seen summary in batches of 50 and hides button on own checkins', async () => {
+      const comments = Array.from({ length: 120 }, (_, i) => ({ id: `c${i}`, userId: i === 1 ? 'user_fox' : 'other' }));
+      pageInstance.data.course = { comments };
+      seenService.getSummary.mockImplementation(async (ids) =>
+        ids.reduce((m, id) => ({ ...m, [id]: { total: id === 'c0' ? 3 : 0, mine: id === 'c0' ? 'persist' : null } }), {})
+      );
+      await pageInstance.loadSeenSummary();
+      expect(seenService.getSummary.mock.calls.map(c => c[0].length)).toEqual([50, 50, 20]);
+      const merged = pageInstance.data.course.comments;
+      expect(merged[0]).toMatchObject({ seenAvailable: true, seenTotal: 3, seenMine: 'persist' });
+      expect(merged[1].seenAvailable).toBe(false);
+    });
+
+    test('does not request seen summary when logged out or community locked', async () => {
+      pageInstance.data.course = { comments: [{ id: 'c1', userId: 'o' }] };
+      pageInstance.data.communityAccessState = 'locked';
+      await pageInstance.loadSeenSummary();
+      global.getApp = jest.fn(() => ({ globalData: { isLogin: false } }));
+      pageInstance.data.communityAccessState = 'enabled';
+      await pageInstance.loadSeenSummary();
+      expect(seenService.getSummary).not.toHaveBeenCalled();
+    });
+
+    test('send, switch and withdraw update total and mine; haptic only on send', async () => {
+      const feedback = require('../../utils/feedback');
+      const hapticSpy = jest.spyOn(feedback, 'haptic').mockImplementation(() => {});
+      pageInstance.data.course = {
+        comments: [{ id: 'c1', userId: 'o', seenAvailable: true, seenTotal: 0, seenMine: null }]
+      };
+      const open = () => pageInstance.openSeenPanel({ currentTarget: { dataset: { id: 'c1' } } });
+      const choose = (key) => pageInstance.chooseSeenPhrase({ currentTarget: { dataset: { key } } });
+
+      open();
+      await choose('persist');
+      expect(seenService.sendSeen).toHaveBeenCalledWith('c1', 'persist');
+      expect(pageInstance.data.course.comments[0]).toMatchObject({ seenTotal: 1, seenMine: 'persist' });
+      expect(hapticSpy).toHaveBeenCalledWith('light');
+      expect(pageInstance.data.seenPanelId).toBe('');
+
+      hapticSpy.mockClear();
+      open();
+      await choose('thanks');
+      expect(seenService.sendSeen).toHaveBeenLastCalledWith('c1', 'thanks');
+      expect(pageInstance.data.course.comments[0]).toMatchObject({ seenTotal: 1, seenMine: 'thanks' });
+
+      hapticSpy.mockClear();
+      open();
+      await choose('thanks');
+      expect(seenService.withdrawSeen).toHaveBeenCalledWith('c1');
+      expect(pageInstance.data.course.comments[0]).toMatchObject({ seenTotal: 0, seenMine: null });
+      expect(hapticSpy).not.toHaveBeenCalled();
+      hapticSpy.mockRestore();
+    });
+
+    test('stale summary does not overwrite a seen card changed locally while it was in flight', async () => {
+      pageInstance.data.course = {
+        comments: [
+          { id: 'c1', userId: 'o', seenAvailable: true, seenTotal: 0, seenMine: null },
+          { id: 'c2', userId: 'o', seenAvailable: true, seenTotal: 0, seenMine: null }
+        ]
+      };
+      let resolveSummary;
+      seenService.getSummary.mockImplementation(() => new Promise((r) => { resolveSummary = r; }));
+      const pending = pageInstance.loadSeenSummary();
+
+      pageInstance.openSeenPanel({ currentTarget: { dataset: { id: 'c1' } } });
+      await pageInstance.chooseSeenPhrase({ currentTarget: { dataset: { key: 'persist' } } });
+
+      resolveSummary({ c1: { total: 0, mine: null }, c2: { total: 4, mine: 'thanks' } });
+      await pending;
+
+      const [c1, c2] = pageInstance.data.course.comments;
+      expect(c1).toMatchObject({ seenTotal: 1, seenMine: 'persist' });
+      expect(c2).toMatchObject({ seenTotal: 4, seenMine: 'thanks' });
+    });
+
+    test('failure keeps state and shows an inline hint; own checkin cannot open panel', async () => {
+      pageInstance.data.course = {
+        comments: [
+          { id: 'c1', seenAvailable: true, seenTotal: 2, seenMine: null },
+          { id: 'c2', seenAvailable: false }
+        ]
+      };
+      pageInstance.openSeenPanel({ currentTarget: { dataset: { id: 'c2' } } });
+      expect(pageInstance.data.seenPanelId).toBe('');
+      pageInstance.openSeenPanel({ currentTarget: { dataset: { id: 'c1' } } });
+      seenService.sendSeen.mockRejectedValue(new Error('x'));
+      await pageInstance.chooseSeenPhrase({ currentTarget: { dataset: { key: 'metoo' } } });
+      expect(pageInstance.data.seenPanelError).toBeTruthy();
+      expect(pageInstance.data.seenPanelId).toBe('c1');
+      expect(pageInstance.data.course.comments[0]).toMatchObject({ seenTotal: 2, seenMine: null });
+    });
+  });
+
+  describe('nine-step progress', () => {
+    const fixedCourse = {
+      customTemplate: false,
+      meditationVisible: true,
+      questionVisible: true,
+      learnVisible: false,
+      contentVisible: true,
+      lookImageVisible: false,
+      reflectionVisible: true,
+      actionVisible: false,
+      extractVisible: false,
+      sayVisible: true
+    };
+
+    test('fixed template lists only visible modules in page order', () => {
+      const steps = pageInstance.buildCourseSteps(fixedCourse);
+      expect(steps.map(s => s.label)).toEqual(['静', '问', '读', '想', '说']);
+      expect(steps.find(s => s.label === '读').id).toBe('reading-section');
+      expect(steps[0].id).toBe('section-meditation');
+    });
+
+    test('custom template uses first character of module name or the index', () => {
+      const steps = pageInstance.buildCourseSteps({
+        customTemplate: true,
+        dynamicModules: [
+          { id: 'a', type: 'text', name: '晨光一刻' },
+          { id: 'b', type: 'body', name: '正文' },
+          { id: 'c', type: 'text', name: '' }
+        ]
+      });
+      expect(steps.map(s => s.label)).toEqual(['晨', '正', '3']);
+      expect(steps.map(s => s.id)).toEqual(['section-dyn-0', 'reading-section', 'section-dyn-2']);
+    });
+
+    test('returns empty list when fewer than two steps', () => {
+      expect(pageInstance.buildCourseSteps({ customTemplate: false, sayVisible: true })).toEqual([]);
+      expect(pageInstance.buildCourseSteps(null)).toEqual([]);
+    });
+
+    test('appends closing video and podcast after modules', () => {
+      const steps = pageInstance.buildCourseSteps({
+        ...fixedCourse,
+        closingVideoVisible: true,
+        podcastUrl: 'https://example.com/a.mp3'
+      });
+      expect(steps.slice(-2).map(s => s.label)).toEqual(['影', '播']);
+      expect(steps.slice(-2).map(s => s.id)).toEqual(['closing-video-section', 'podcast-section']);
+    });
+
+    test('a lone module plus podcast still shows two steps', () => {
+      const steps = pageInstance.buildCourseSteps({ customTemplate: false, sayVisible: true, podcastUrl: 'x' });
+      expect(steps.map(s => s.label)).toEqual(['说', '播']);
+    });
+
+    test('tapping a step scrolls to its section and updates the current step', () => {
+      pageInstance.data.course = { steps: [{ id: 'section-meditation', label: '静' }, { id: 'reading-section', label: '读' }] };
+      wx.pageScrollTo = jest.fn();
+      pageInstance.handleStepTap({ currentTarget: { dataset: { index: 1 } } });
+      expect(pageInstance.data.currentStepIndex).toBe(1);
+      expect(wx.pageScrollTo).toHaveBeenCalledWith(expect.objectContaining({ selector: '#reading-section' }));
+    });
+
+    test('scroll only updates data when the current step changes and timer is cleared on unload', () => {
+      jest.useFakeTimers();
+      pageInstance.data.course = { steps: [{ id: 'a', label: '静' }, { id: 'b', label: '读' }] };
+      pageInstance.data.currentStepIndex = 0;
+      pageInstance.setData = jest.fn(pageInstance.setData);
+      wx.createSelectorQuery = jest.fn(() => {
+        const q = {
+          select: jest.fn(() => ({ boundingClientRect: jest.fn(() => q) })),
+          selectViewport: jest.fn(() => ({ scrollOffset: jest.fn(() => q) }))
+        };
+        q.exec = cb => cb([{ top: -400 }, { top: 40 }]);
+        return q;
+      });
+      pageInstance.onPageScroll();
+      pageInstance.onPageScroll();
+      jest.advanceTimersByTime(150);
+      expect(pageInstance.setData).toHaveBeenCalledTimes(1);
+      expect(pageInstance.data.currentStepIndex).toBe(1);
+      pageInstance.setData.mockClear();
+      pageInstance.onPageScroll();
+      jest.advanceTimersByTime(150);
+      expect(pageInstance.setData).not.toHaveBeenCalled();
+      pageInstance.onPageScroll();
+      pageInstance.onUnload();
+      expect(pageInstance._stepScrollTimer).toBeNull();
+      jest.useRealTimers();
+    });
+  });
+
+  test('highlights the last step when scrolled to the page bottom', () => {
+    jest.useFakeTimers();
+    pageInstance.data.course = { steps: [{ id: 'a', label: '静' }, { id: 'b', label: '读' }, { id: 'c', label: '说' }] };
+    pageInstance.data.currentStepIndex = 0;
+    wx.getWindowInfo = jest.fn(() => ({ windowHeight: 700 }));
+    wx.createSelectorQuery = jest.fn(() => {
+      const q = {
+        select: jest.fn(() => ({ boundingClientRect: jest.fn(() => q) })),
+        selectViewport: jest.fn(() => ({ scrollOffset: jest.fn(() => q) }))
+      };
+      q.exec = cb => cb([{ top: -900 }, { top: -300 }, { top: 640 }, { scrollTop: 2300, scrollHeight: 3000 }]);
+      return q;
+    });
+    pageInstance.onPageScroll();
+    jest.advanceTimersByTime(150);
+    expect(pageInstance.data.currentStepIndex).toBe(2);
+    jest.useRealTimers();
+  });
 });

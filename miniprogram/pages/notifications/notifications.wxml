@@ -32,15 +32,21 @@
   </view>
 
   <!-- 空状态 -->
-  <view class="empty-state" wx:if="{{!loading && displayedNotifications.length === 0}}">
-    <view class="empty-icon">📬</view>
-    <text class="empty-text">{{activeTab === 'false' ? '暂无未读通知' : activeTab === 'true' ? '暂无已读通知' : '暂无通知'}}</text>
-    <text class="empty-desc">{{activeTab === 'false' ? '没有未读通知，可切回全部查看历史通知' : '你的通知会在这里显示'}}</text>
+  <view class="app-empty" wx:if="{{!loading && displayedNotifications.length === 0}}">
+    <view class="app-empty-art app-empty-art-lamp"></view>
+    <text class="app-empty-title">{{activeTab === 'false' ? '没有未读通知' : activeTab === 'true' ? '还没有已读通知' : '还没有通知'}}</text>
+    <text class="app-empty-desc">{{activeTab === 'false' ? '可切回全部查看历史通知' : '你的通知会在这里显示'}}</text>
   </view>
 
   <!-- 加载状态 -->
   <view class="loading-state" wx:if="{{loading && displayedNotifications.length === 0}}">
-    <text class="loading-text">加载中...</text>
+    <view class="dawn-skeleton-list">
+      <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+        <view class="app-skeleton-line dawn-sk-w60"></view>
+        <view class="app-skeleton-line dawn-sk-w90"></view>
+        <view class="app-skeleton-line dawn-sk-w40"></view>
+      </view>
+    </view>
   </view>
 
   <!-- 通知列表 -->

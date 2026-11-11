@@ -227,4 +227,17 @@ describe('insight-detail poster rendering', () => {
     }));
     expect(pageInstance.data.danmakuInput).toBe('');
   });
+  test('信纸日期手动拼接为 YYYY年M月D日，不依赖 toLocaleDateString', () => {
+    const spy = jest.spyOn(Date.prototype, 'toLocaleDateString').mockReturnValue('11/10/2026');
+    expect(pageInstance.formatLetterDate(new Date(2026, 10, 10, 12).toISOString())).toBe('2026年11月10日');
+    expect(pageInstance.formatLetterDate(new Date(2026, 0, 5, 12))).toBe('2026年1月5日');
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  test('时间无效或为空时不显示日期', () => {
+    expect(pageInstance.formatLetterDate('not-a-date')).toBe('');
+    expect(pageInstance.formatLetterDate(undefined)).toBe('');
+    expect(pageInstance.formatLetterDate(null)).toBe('');
+  });
 });

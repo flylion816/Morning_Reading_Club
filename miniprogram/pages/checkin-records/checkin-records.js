@@ -4,6 +4,7 @@ const activityService = require('../../services/activity.service');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
 const { getLastTextChar } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getMoodOption } = require('../../utils/mood');
 const {
   getPeriodAccess,
   hasPaidEnrollment,
@@ -132,7 +133,8 @@ function buildRecordItem(item, keyword = '') {
     highlightParts,
     imageCount: Array.isArray(item.images) ? item.images.filter(Boolean).length : 0,
     likeCount: item.likeCount || 0,
-    hasDiary: !!previewSource
+    hasDiary: !!previewSource,
+    moodName: (getMoodOption(item.mood) || {}).name || ''
   };
 }
 

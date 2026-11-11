@@ -31,7 +31,7 @@
       <input
         class="diary-search-input"
         placeholder="在打卡内容中搜索"
-        placeholder-style="color:#bbb"
+        placeholder-style="color:#a39a8d"
         value="{{searchKeyword}}"
         bindinput="onSearchInput"
         bindconfirm="onSearchSubmit"
@@ -80,11 +80,11 @@
   </view>
 
   <view wx:if="{{checkinRecords.length > 0 || isSearchMode}}" class="records-list">
-    <view wx:if="{{isSearchMode && searchLoading}}" class="search-loading">搜索中...</view>
-    <view wx:elif="{{isSearchMode && searchResults.length === 0}}" class="empty-state">
-      <text class="empty-state-icon">🔍</text>
-      <text class="empty-state-title">没有找到相关打卡</text>
-      <text class="empty-state-desc">换个关键词试试</text>
+    <view wx:if="{{isSearchMode && searchLoading}}" class="search-loading">搜索中…</view>
+    <view wx:elif="{{isSearchMode && searchResults.length === 0}}" class="app-empty">
+      <view class="app-empty-art app-empty-art-sprout"></view>
+      <text class="app-empty-title">没有找到相关打卡</text>
+      <text class="app-empty-desc">换个关键词试试</text>
     </view>
     <view
       wx:for="{{isSearchMode ? searchResults : checkinRecords}}"
@@ -97,6 +97,7 @@
       <view class="record-date-col">
         <text class="record-day">{{item.dayLabel}}</text>
         <text class="record-month">{{item.monthLabel}}</text>
+        <text class="record-mood" wx:if="{{item.moodName}}">{{item.moodName}}</text>
       </view>
 
       <view class="record-card">
@@ -137,13 +138,23 @@
     </view>
   </view>
 
-  <view wx:if="{{!loading && !isSearchMode && checkinRecords.length === 0}}" class="empty-state">
-    <text class="empty-state-icon">📝</text>
-    <text class="empty-state-title">还没有打卡日记</text>
-    <text class="empty-state-desc">完成晨读打卡后，这里会汇总你的所有记录</text>
+  <view wx:if="{{loading && !isSearchMode && checkinRecords.length === 0}}">
+    <view class="dawn-skeleton-list">
+      <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+        <view class="app-skeleton-line dawn-sk-w60"></view>
+        <view class="app-skeleton-line dawn-sk-w90"></view>
+        <view class="app-skeleton-line dawn-sk-w40"></view>
+      </view>
+    </view>
   </view>
 
-  <view wx:if="{{loadingMore}}" class="load-more">加载更多中...</view>
+  <view wx:if="{{!loading && !isSearchMode && checkinRecords.length === 0}}" class="app-empty">
+    <view class="app-empty-art app-empty-art-sprout"></view>
+    <text class="app-empty-title">还没有打卡日记</text>
+    <text class="app-empty-desc">完成晨读打卡后，这里会汇总你的所有记录</text>
+  </view>
+
+  <view wx:if="{{loadingMore}}" class="load-more">加载中…</view>
 </view>
 
 <podcast-player-bar />

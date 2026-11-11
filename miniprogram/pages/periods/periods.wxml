@@ -70,9 +70,9 @@
     </view>
 
     <!-- 空状态 -->
-    <view wx:if="{{!loading && periods.length === 0}}" class="empty-state">
-      <text class="empty-state-icon">📚</text>
-      <text class="empty-state-text">暂无期次</text>
+    <view wx:if="{{!loading && periods.length === 0}}" class="app-empty">
+      <view class="app-empty-art app-empty-art-book"></view>
+      <text class="app-empty-title">新一期还在准备中</text>
     </view>
   </view>
 </view>

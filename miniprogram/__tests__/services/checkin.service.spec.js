@@ -229,6 +229,37 @@ describe('Checkin Service Tests (Stage 5: Task 5.1)', () => {
     });
   });
 
+  describe('晨读日历', () => {
+    test('should request calendar endpoint with month param', async () => {
+      request.get.mockResolvedValue({ month: '2026-11', days: ['2026-11-04'], totalDays: 1 });
+
+      const result = await checkinService.getUserCalendar('2026-11');
+
+      expect(request.get).toHaveBeenCalledWith('/checkins/user/calendar', { month: '2026-11' });
+      expect(result.days).toEqual(['2026-11-04']);
+    });
+  });
+
+  describe('心情天气', () => {
+    test('getSectionMoodSummary 请求课程心情汇总接口', async () => {
+      request.get.mockResolvedValue({ date: '2026-11-12', total: 2, counts: null });
+      const result = await checkinService.getSectionMoodSummary('sec1');
+      expect(request.get).toHaveBeenCalledWith('/checkins/section/sec1/mood-summary', {}, { suppressError: true });
+      expect(result.counts).toBeNull();
+    });
+
+    test('submitCheckin / updateCheckin 透传 mood，不传则不带', async () => {
+      request.post.mockResolvedValue({});
+      request.put.mockResolvedValue({});
+      await checkinService.submitCheckin({ sectionId: 's', mood: 'low' });
+      expect(request.post.mock.calls[0][1]).toEqual({ sectionId: 's', mood: 'low' });
+      await checkinService.submitCheckin({ sectionId: 's' });
+      expect(request.post.mock.calls[1][1]).not.toHaveProperty('mood');
+      await checkinService.updateCheckin('c1', { mood: 'calm' });
+      expect(request.put).toHaveBeenCalledWith('/checkins/c1', { mood: 'calm' });
+    });
+  });
+
   describe('[CHECK-7] 打卡列表应按时间倒序排序', () => {
     test('should sort checkins by time descending', async () => {
       const baseTime = new Date();

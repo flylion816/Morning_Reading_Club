@@ -141,7 +141,7 @@ describe('Checkin Controller', () => {
         completionRate: 100,
         note: '很有收获',
         images: [' /uploads/tenants/fanren/checkins/a.jpg '],
-        mood: '😊'
+        mood: 'happy'
       };
 
       const mockSection = {
@@ -1414,7 +1414,8 @@ describe('Checkin Controller', () => {
         periodId,
         sectionId,
         day: 1,
-        mood: 'invalid_mood'
+        mood: 'invalid_mood',
+        moodSource: 'picker'
       };
 
       const mockSection = {
@@ -2416,6 +2417,7 @@ describe('Checkin Controller', () => {
         readingTime: 50,
         completionRate: 90,
         mood: 'happy',
+        moodSource: 'picker',
         isPublic: false
       };
 
@@ -2594,12 +2596,12 @@ describe('Checkin Controller', () => {
     it('TC-CHECKIN-046: 应该接受所有有效的mood值', async () => {
       const userId = new mongoose.Types.ObjectId().toString();
       const checkinId = new mongoose.Types.ObjectId();
-      const validMoods = ['happy', 'calm', 'thoughtful', 'inspired', 'other'];
+      const validMoods = ['happy', 'calm', 'thoughtful', 'inspired', 'low', 'other'];
 
       for (const mood of validMoods) {
         req.user = { userId };
         req.params = { checkinId };
-        req.body = { mood };
+        req.body = { mood, moodSource: 'picker' };
 
         const mockCheckin = {
           _id: checkinId,
@@ -3455,6 +3457,218 @@ describe('Checkin Controller', () => {
 
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data.stats.likeCount).to.equal(999);
+    });
+  });
+  describe('getUserCheckinCalendar - 打卡日历', () => {
+    const mockCheckins = (dates) => {
+      const docs = dates.map(d => ({ checkinDate: new Date(d) }));
+      CheckinStub.find.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves(docs) }) });
+    };
+
+    it('只返回当前用户指定月份的去重日期，并附带全量口径', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      req.params = { userId: new mongoose.Types.ObjectId().toString() };
+      req.query = { month: '2026-11' };
+      mockCheckins([
+        '2026-10-31T10:00:00+08:00',
+        '2026-11-01T00:30:00+08:00',
+        '2026-11-01T20:00:00+08:00',
+        '2026-11-02T10:00:00+08:00'
+      ]);
+
+      await checkinController.getUserCheckinCalendar(req, res, next);
+
+      expect(CheckinStub.find.calledOnceWith({ userId })).to.be.true;
+      const data = res.json.getCall(0).args[0].data;
+      expect(data.month).to.equal('2026-11');
+      expect(data.days).to.deep.equal(['2026-11-01', '2026-11-02']);
+      expect(data.totalDays).to.equal(3);
+      expect(data.maxStreak).to.equal(3);
+      expect(data.currentStreak).to.be.a('number');
+    });
+
+    it('month 缺省为当前月（东八区）', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      const clock = sinon.useFakeTimers(new Date('2026-11-30T17:00:00Z').getTime());
+      try {
+        mockCheckins(['2026-12-01T09:00:00+08:00']);
+        await checkinController.getUserCheckinCalendar(req, res, next);
+      } finally {
+        clock.restore();
+      }
+      const data = res.json.getCall(0).args[0].data;
+      expect(data.month).to.equal('2026-12');
+      expect(data.days).to.deep.equal(['2026-12-01']);
+      expect(data.currentStreak).to.equal(1);
+    });
+
+    it('month 格式不合法返回 400', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      for (const month of ['2026-13', '2026-1', 'abc', '2026-11-01']) {
+        res.status.resetHistory();
+        req.query = { month };
+        await checkinController.getUserCheckinCalendar(req, res, next);
+        expect(res.status.calledWith(400), month).to.be.true;
+      }
+      expect(CheckinStub.find.called).to.be.false;
+    });
+
+    it('无打卡记录时返回空数组与 0', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      req.query = { month: '2026-11' };
+      mockCheckins([]);
+      await checkinController.getUserCheckinCalendar(req, res, next);
+      const data = res.json.getCall(0).args[0].data;
+      expect(data).to.deep.equal({ month: '2026-11', days: [], moods: {}, totalDays: 0, currentStreak: 0, maxStreak: 0 });
+    });
+
+    it('moods 只含该月有可信心情的日子，同日取最后一次有心情的，忽略生效时间之前的', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      req.query = { month: '2026-11' };
+      const docs = [
+        { checkinDate: new Date('2026-11-05T08:00:00+08:00'), mood: 'happy' },
+        { checkinDate: new Date('2026-11-12T08:00:00+08:00'), mood: 'calm' },
+        { checkinDate: new Date('2026-11-12T21:00:00+08:00'), mood: 'low' },
+        { checkinDate: new Date('2026-11-12T22:00:00+08:00') },
+        { checkinDate: new Date('2026-11-13T08:00:00+08:00'), mood: 'bogus' }
+      ];
+      CheckinStub.find.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves(docs) }) });
+      await checkinController.getUserCheckinCalendar(req, res, next);
+      const data = res.json.getCall(0).args[0].data;
+      expect(data.moods).to.deep.equal({ '2026-11-12': 'low' });
+      expect(data.days).to.include('2026-11-13');
+    });
+
+    it('查询失败时交给 next', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      CheckinStub.find.throws(new Error('db'));
+      await checkinController.getUserCheckinCalendar(req, res, next);
+      expect(next.calledOnce).to.be.true;
+    });
+  });
+
+  describe('心情天气', () => {
+    const sid = new mongoose.Types.ObjectId().toString();
+
+    it('创建打卡心情非法返回 400，不创建', async () => {
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      req.body = { periodId: 'p', sectionId: sid, day: 1, mood: 'sunny', moodSource: 'picker' };
+      SectionStub.findById.resolves({ _id: sid });
+      await checkinController.createCheckin(req, res, next);
+      expect(res.status.calledWith(400)).to.be.true;
+      expect(CheckinStub.create.called).to.be.false;
+    });
+
+    it('更新打卡心情非法返回 400', async () => {
+      const userId = 'u1';
+      req.user = { userId };
+      req.params = { checkinId: 'c1' };
+      req.body = { mood: '😊', moodSource: 'picker' };
+      CheckinStub.findById.resolves({ userId, save: sandbox.stub() });
+      await checkinController.updateCheckin(req, res, next);
+      expect(res.status.calledWith(400)).to.be.true;
+    });
+
+    it('更新打卡 mood 为 null 清除心情，合法值写入', async () => {
+      const userId = 'u1';
+      req.user = { userId };
+      req.params = { checkinId: 'c1' };
+      const doc = { _id: 'c1', userId, mood: 'happy', checkinDate: new Date('2026-11-12T08:00:00+08:00'), save: sandbox.stub().resolves() };
+      doc.toObject = () => ({ userId, mood: doc.mood, checkinDate: doc.checkinDate });
+      CheckinStub.findById.resolves(doc);
+      req.body = { mood: 'low', moodSource: 'picker' };
+      await checkinController.updateCheckin(req, res, next);
+      expect(doc.mood).to.equal('low');
+      expect(res.json.getCall(0).args[0].data.mood).to.equal('low');
+      req.body = { mood: null, moodSource: 'picker' };
+      await checkinController.updateCheckin(req, res, next);
+      expect(doc.mood).to.equal(null);
+      doc.mood = 'calm';
+      req.body = { mood: '', moodSource: 'picker' };
+      await checkinController.updateCheckin(req, res, next);
+      expect(doc.mood).to.equal(null);
+    });
+
+    it('更新打卡无 moodSource 时忽略 mood，不改动已有值（含非法值也不报错）', async () => {
+      const userId = 'u1';
+      req.user = { userId };
+      req.params = { checkinId: 'c1' };
+      const doc = { _id: 'c1', userId, mood: 'calm', checkinDate: new Date('2026-11-12T08:00:00+08:00'), save: sandbox.stub().resolves() };
+      doc.toObject = () => ({ userId, mood: doc.mood, checkinDate: doc.checkinDate });
+      CheckinStub.findById.resolves(doc);
+      for (const mood of ['happy', null, 'bogus']) {
+        req.body = { mood, note: 'x' };
+        await checkinController.updateCheckin(req, res, next);
+        expect(doc.mood).to.equal('calm');
+      }
+      expect(res.status.calledWith(400)).to.be.false;
+    });
+
+    it('创建打卡：无 moodSource 不存 mood，picker 才存', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      SectionStub.findById.resolves({ _id: sid, save: sandbox.stub().resolves() });
+      CheckinStub.create.resolves({ _id: new mongoose.Types.ObjectId(), toObject: () => ({}) });
+      UserStub.findByIdAndUpdate.resolves({});
+      UserStub.findById.returns({ select: sandbox.stub().resolves(null) });
+      CheckinStub.findOne.resolves(null);
+      req.body = { periodId: 'p', sectionId: sid, day: 1, mood: 'happy' };
+      await checkinController.createCheckin(req, res, next);
+      expect(CheckinStub.create.getCall(0).args[0]).to.not.have.property('mood');
+      req.body = { periodId: 'p', sectionId: sid, day: 1, mood: 'low', moodSource: 'picker' };
+      await checkinController.createCheckin(req, res, next);
+      expect(CheckinStub.create.getCall(1).args[0].mood).to.equal('low');
+    });
+
+    describe('getSectionMoodSummary', () => {
+      let clock;
+      beforeEach(() => {
+        clock = sinon.useFakeTimers(new Date('2026-11-12T10:00:00+08:00').getTime());
+        req.user = { userId: 'u1' };
+        req.params = { sectionId: sid };
+        SectionStub.findById.returns({ select: sandbox.stub().resolves({ periodId: 'p1' }) });
+        communityAccessServiceStub.ensurePeriodCommunityAccess.resolves(true);
+      });
+      afterEach(() => clock.restore());
+      const stubFind = docs => CheckinStub.find.returns({ select: sandbox.stub().returns({ lean: sandbox.stub().resolves(docs) }) });
+      const at = mood => ({ mood, checkinDate: new Date('2026-11-12T09:00:00+08:00'), userId: 'secret' });
+
+      it('样本不少于 3 条返回分布，且不含用户标识', async () => {
+        stubFind([at('happy'), at('happy'), at('low'), at('other')]);
+        await checkinController.getSectionMoodSummary(req, res, next);
+        const data = res.json.getCall(0).args[0].data;
+        expect(data).to.deep.equal({
+          date: '2026-11-12',
+          total: 4,
+          counts: { happy: 2, calm: 0, thoughtful: 0, inspired: 0, low: 1, other: 1 }
+        });
+        expect(JSON.stringify(data)).to.not.include('secret');
+        const q = CheckinStub.find.getCall(0).args[0];
+        expect(q.sectionId).to.equal(sid);
+        expect(q.checkinDate.$gte.toISOString()).to.equal(new Date('2026-11-12T00:00:00+08:00').toISOString());
+      });
+
+      it('样本少于 3 条 counts 为 null', async () => {
+        stubFind([at('happy'), at('calm')]);
+        await checkinController.getSectionMoodSummary(req, res, next);
+        expect(res.json.getCall(0).args[0].data).to.deep.equal({ date: '2026-11-12', total: 2, counts: null });
+      });
+
+      it('无社群权限时不查询打卡', async () => {
+        communityAccessServiceStub.ensurePeriodCommunityAccess.callsFake(async r => { r.status(403); return false; });
+        await checkinController.getSectionMoodSummary(req, res, next);
+        expect(CheckinStub.find.called).to.be.false;
+      });
+
+      it('课程不存在 404，sectionId 不合法 400', async () => {
+        SectionStub.findById.returns({ select: sandbox.stub().resolves(null) });
+        await checkinController.getSectionMoodSummary(req, res, next);
+        expect(res.status.calledWith(404)).to.be.true;
+        req.params = { sectionId: 'x' };
+        await checkinController.getSectionMoodSummary(req, res, next);
+        expect(res.status.calledWith(400)).to.be.true;
+      });
     });
   });
 });
