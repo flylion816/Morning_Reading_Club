@@ -17,8 +17,9 @@ function formatDate(value) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-// 页面视图：write / closed / sealed / delivered / opened
+// 页面视图：write / draft-closed / closed / sealed / delivered / opened
 function resolveView(letter) {
+  if (letter.status === 'draft') return letter.canWrite ? 'write' : 'draft-closed';
   if (letter.status === 'sealed') return 'sealed';
   if (letter.status === 'delivered') return 'delivered';
   if (letter.status === 'opened') return 'opened';
@@ -120,10 +121,11 @@ Page({
       wx.showToast({ title: '先写点什么再投递', icon: 'none' });
       return;
     }
+    const isSavedDraft = this.data.view === 'draft-closed';
     wx.showModal({
-      title: '投递这封信',
-      content: '投递后要到结营那天才能再打开，确定吗？',
-      confirmText: '投递',
+      title: isSavedDraft ? '封存这封草稿' : '投递这封信',
+      content: isSavedDraft ? '封存后要到结营那天才能再打开，确定吗？' : '投递后要到结营那天才能再打开，确定吗？',
+      confirmText: isSavedDraft ? '封存' : '投递',
       success: res => {
         if (res.confirm) this.doSeal();
       }
@@ -133,11 +135,15 @@ Page({
   async doSeal() {
     this.setData({ busy: true });
     try {
-      // 先落草稿再封存，保证投递的是屏幕上看到的内容
-      await letterService.saveDraft(this.data.periodId, {
-        content: this.data.content,
-        stamp: this.data.stamp
-      });
+      // 写信窗口内先落草稿再封存；窗口关闭后的已有草稿直接封存，避免草稿被锁死。
+      const isLockedDraft = this.data.view === 'draft-closed' ||
+        (this.data.letter && this.data.letter.status === 'draft' && this.data.letter.canWrite === false);
+      if (!isLockedDraft) {
+        await letterService.saveDraft(this.data.periodId, {
+          content: this.data.content,
+          stamp: this.data.stamp
+        });
+      }
       const letter = await letterService.seal(this.data.periodId);
       this.applyLetter(letter);
     } catch (error) {
@@ -148,19 +154,22 @@ Page({
   },
 
   async onOpen() {
-    if (this.data.busy || !this.data.letter) return;
+    if (this.data.busy || this.data.opening || !this.data.letter) return;
     this.setData({ busy: true, opening: true });
+    let revealScheduled = false;
     try {
       const letter = await letterService.open(this.data.letter.id);
+      revealScheduled = true;
       this.openTimer = setTimeout(() => {
+        this.openTimer = null;
         this.applyLetter(letter);
-        this.setData({ opening: false });
+        this.setData({ opening: false, busy: false });
       }, 700);
     } catch (error) {
-      this.setData({ opening: false });
+      this.setData({ opening: false, busy: false });
       wx.showToast({ title: (error && error.message) || '这次没拆开，再试一次', icon: 'none' });
     } finally {
-      this.setData({ busy: false });
+      if (!revealScheduled) this.setData({ busy: false });
     }
   },
 

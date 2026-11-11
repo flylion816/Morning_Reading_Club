@@ -82,7 +82,32 @@ describe('Letter Delivery Service', () => {
     LetterStub.find.returns(chain([{ _id: 'l1', tenantId: 't1', userId: 'u1', periodId: 'p1', sealedAt: new Date() }]));
     const result = await service.deliverDueLetters({ now: new Date('2026-12-23T00:00:00Z') });
     expect(result.delivered).to.equal(0);
-    expect(createNotificationStub.called).to.equal(false);
+    expect(createNotificationStub.calledOnce).to.equal(true);
+    expect(createNotificationStub.firstCall.args[4]).to.include({ upsertExisting: true });
+  });
+
+  it('通知创建失败时保留 sealed，下一轮可以重试', async () => {
+    LetterStub.find.returns(
+      chain([{ _id: 'l1', tenantId: 't1', userId: 'u1', periodId: 'p1', sealedAt: new Date('2026-11-30T02:00:00Z') }])
+    );
+    createNotificationStub.resolves(null);
+    const failed = await service.deliverDueLetters({ now: new Date('2026-12-22T22:30:00Z') });
+    expect(failed.delivered).to.equal(0);
+    expect(LetterStub.updateOne.called).to.equal(false);
+
+    createNotificationStub.resolves({ _id: 'n1' });
+    const retried = await service.deliverDueLetters({ now: new Date('2026-12-22T22:40:00Z') });
+    expect(retried.delivered).to.equal(1);
+    expect(LetterStub.updateOne.calledOnce).to.equal(true);
+  });
+
+  it('超过固定回看周期的逾期信仍会扫描', async () => {
+    LetterStub.find.returns(
+      chain([{ _id: 'old', tenantId: 't1', userId: 'u1', periodId: 'p1', sealedAt: new Date('2026-11-30T02:00:00Z') }])
+    );
+    const result = await service.deliverDueLetters({ now: new Date('2027-03-01T00:00:00Z') });
+    expect(result.scanned).to.equal(1);
+    expect(PeriodStub.find.firstCall.args[0].endDate).to.deep.equal({ $lte: new Date('2027-03-02T00:00:00Z') });
   });
 
   it('分批处理直到取完，且只查已到期期次', async () => {

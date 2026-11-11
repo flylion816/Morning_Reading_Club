@@ -116,6 +116,13 @@ describe('Practice Controller', () => {
     expect(filter.day).to.deep.equal({ $gte: 8, $lte: 10 });
   });
 
+  it('建议不会超过可保存的 30 字上限', async () => {
+    PracticeStub.findOne.returns(chain(null));
+    SectionStub.find.returns(chain([{ day: 8, action: '这是一条超过三十个字的实修建议，用来验证前后端边界一致并且不会提交失败' }]));
+    await controller.getCurrent(req, res);
+    expect(body().suggestions[0]).to.have.length(30);
+  });
+
   it('setCurrent 并发撞唯一索引时重读后更新', async () => {
     const doc = { _id: 'p1', text: '旧', save: sandbox.stub().resolves() };
     PracticeStub.findOne.onFirstCall().resolves(null).onSecondCall().resolves(doc);

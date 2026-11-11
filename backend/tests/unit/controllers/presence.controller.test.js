@@ -115,5 +115,6 @@ describe('Presence Controller', () => {
     stubs.Enrollment.find.returns(chain([{ province: '浙江' }, { province: '广东' }]));
     await controller.getPeriodOrigins(req, res);
     expect(res.json.secondCall.args[0].data).to.deep.equal({ memberCount: 2, provinceCount: 2 });
+    expect(stubs.Enrollment.find.secondCall.args[0].paymentStatus).to.deep.equal({ $in: ['paid', 'free'] });
   });
 });

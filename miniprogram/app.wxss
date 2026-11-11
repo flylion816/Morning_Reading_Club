@@ -141,7 +141,8 @@ view {
   min-height: 88rpx;
   padding: 0 var(--app-space-lg);
   border-radius: var(--app-radius-md);
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  /* Keep white action text readable across tenant themes. */
+  background: var(--theme-primary-dark);
   color: #ffffff;
   font-size: var(--app-font-md);
   font-weight: 650;
@@ -500,4 +501,22 @@ view {
 
 .app-icon-fog {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M7 11h13M4 15h12M8 19h11'/%3E%3C/svg%3E");
+}
+
+/* 营地角落图标：信封、小旗、同行的两个人。 */
+.app-icon-mail {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5h16v11H4zM4 7l8 6 8-6'/%3E%3C/svg%3E");
+}
+
+.app-icon-flag {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 21V4M6 5h11l-2.5 3.5L17 12H6'/%3E%3C/svg%3E");
+}
+
+.app-icon-users {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3.5 19c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5M16 11a2.5 2.5 0 1 0-1-4.8M17 14.6c1.9.5 3 1.9 3.5 4.4'/%3E%3C/svg%3E");
+}
+
+/* 看见：一只眼睛。 */
+.app-icon-eye {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'/%3E%3C/svg%3E");
 }

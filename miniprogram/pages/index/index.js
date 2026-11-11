@@ -645,6 +645,7 @@ Page({
     canUsePaidFeatures: false,
     presenceText: '',
     campCornerCards: [],
+    campCornerStatus: 'idle',
 
     // 今日课节
     todaySection: null,
@@ -844,6 +845,7 @@ Page({
         canUsePaidFeatures: false,
         presenceText: '',
         campCornerCards: [],
+        campCornerStatus: 'idle',
         todaySection: null,
         todayCard: null,
         todayTaskEmptyState: null,
@@ -1349,13 +1351,14 @@ Page({
 
       // ── Wave 3: 社区数据后台异步填充，不阻塞首屏 ───────────────
       if (!paidFeatureAccessEnabled) {
+        this.setData({ campCornerCards: [], campCornerStatus: 'idle' });
         return;
       }
 
       if (communityEnabled) {
         this.loadHomeExtras(currentPeriodId);
       } else {
-        this.setData({ presenceText: '', campCornerCards: [] });
+        this.setData({ presenceText: '', campCornerCards: [], campCornerStatus: 'idle' });
       }
 
       Promise.all([
@@ -1431,9 +1434,10 @@ Page({
   // 同行感与营地角落：锦上添花，各自失败各自不显示，不阻塞首屏
   loadHomeExtras(periodId) {
     if (!periodId) {
-      this.setData({ presenceText: '', campCornerCards: [] });
+      this.setData({ presenceText: '', campCornerCards: [], campCornerStatus: 'idle' });
       return;
     }
+    this.setData({ campCornerCards: [], campCornerStatus: 'loading' });
     const safe = (fn) => {
       try {
         return Promise.resolve(fn()).catch(() => null);
@@ -1451,8 +1455,17 @@ Page({
       safe(() => buddyService.getState(periodId))
     ]).then(([letter, practice, buddy]) => {
       if (this.data.currentPeriod && (this.data.currentPeriod._id || this.data.currentPeriod.id) !== periodId) return;
-      this.setData({ campCornerCards: buildCampCornerCards({ letter, practice, buddy }) });
+      const cards = buildCampCornerCards({ letter, practice, buddy });
+      this.setData({
+        campCornerCards: cards,
+        campCornerStatus: letter || practice || buddy ? 'ready' : 'error'
+      });
     });
+  },
+
+  retryCampCorner() {
+    const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    if (periodId) this.loadHomeExtras(periodId);
   },
 
   handleCampCornerTap(e) {

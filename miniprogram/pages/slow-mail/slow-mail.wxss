@@ -68,6 +68,27 @@
 .mail-actions { display: flex; gap: 20rpx; margin-top: 44rpx; }
 .mail-actions .mail-btn { flex: 1; }
 
+.mail-draft-closed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 48rpx;
+}
+.mail-draft-hint {
+  display: block;
+  max-width: 620rpx;
+  margin: 20rpx 0 28rpx;
+  text-align: center;
+  font-size: var(--app-font-sm);
+  line-height: 1.7;
+  color: var(--app-text-muted);
+}
+.mail-draft-closed .mail-paper {
+  width: 100%;
+  margin-bottom: 32rpx;
+}
+.mail-draft-closed .mail-btn { width: 100%; }
+
 .mail-envelope-wrap {
   display: flex;
   flex-direction: column;

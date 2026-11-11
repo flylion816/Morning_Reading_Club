@@ -87,7 +87,7 @@
       <button wx:if="{{canEditInsight}}" class="action-btn btn-edit" bindtap="handleEdit">编辑</button>
       <button wx:else class="action-btn btn-back" bindtap="handleBack">返回</button>
       <button class="action-btn btn-like {{isLiked ? 'liked' : ''}}" bindtap="handleLike">
-        <text>{{isLiked ? '❤️' : '♡'}}</text>
+        <view class="btn-like-icon app-icon {{isLiked ? 'app-icon-heart-fill' : 'app-icon-heart'}}"></view>
         <text>{{isLiked ? '已赞' : '点赞'}}</text>
       </button>
       <button class="action-btn btn-danmaku" bindtap="openDanmakuPanel">弹幕</button>

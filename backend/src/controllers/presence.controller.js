@@ -183,6 +183,7 @@ async function getPeriodOrigins(req, res) {
     const enrollments = await Enrollment.find({
       periodId,
       status: { $in: ['active', 'completed'] },
+      paymentStatus: { $in: ['paid', 'free'] },
       deleted: { $ne: true }
     })
       .select('province')

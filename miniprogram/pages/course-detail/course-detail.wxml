@@ -80,7 +80,8 @@
         </view>
       </view>
       <view wx:if="{{detailCheckin.seenAvailable}}" class="seen-btn {{detailCheckin.seenMine ? 'seen-btn-mine' : ''}}" catchtap="openSeenPanel" data-id="{{detailCheckin.id}}">
-        <view class="seen-btn-seal">见</view>
+        <view class="seen-btn-icon app-icon app-icon-eye"></view>
+        <text class="seen-btn-label">见</text>
         <text class="seen-btn-count" wx:if="{{detailCheckin.seenTotal}}">{{detailCheckin.seenTotal}}</text>
       </view>
     </view>
@@ -89,7 +90,7 @@
       <view class="dynamic-comments-title">全部评论</view>
 
       <view wx:if="{{commentsLocked}}" class="dynamic-comments-locked">
-        <view class="dynamic-comments-empty-art">🔒</view>
+        <view class="dynamic-comments-empty-art"><view class="app-icon app-icon-lock"></view></view>
         <text class="dynamic-comments-empty-text">{{commentsLockedMessage}}</text>
       </view>
 
@@ -140,7 +141,7 @@
                     data-comment-id="{{reply.id}}"
                     data-reply-id="{{reply.userId}}"
                     data-user-name="{{reply.userName}}">
-                    <text class="reply-icon">💬</text>
+                    <view class="reply-icon app-icon app-icon-comment"></view>
                     <text>回复</text>
                   </view>
                   <view wx:if="{{reply.canDelete}}" class="reply-delete" catchtap="handleDeleteComment" data-checkin-id="{{detailCheckin.id}}" data-comment-id="{{reply.id}}" style="pointer-events: auto;">
@@ -197,7 +198,7 @@
       </view>
 
       <view wx:else class="dynamic-comments-empty">
-        <view class="dynamic-comments-empty-art">📭</view>
+        <view class="dynamic-comments-empty-art"><view class="app-icon app-icon-comment"></view></view>
         <text class="dynamic-comments-empty-text">内容为空</text>
       </view>
     </view>
@@ -292,7 +293,7 @@
           <text>沉浸阅读</text>
         </view>
         <view wx:if="{{ttsAvailable}}" class="tts-entry {{ttsState !== 'idle' ? 'tts-entry-active' : ''}}" bindtap="handleTtsPlay">
-          <text class="tts-entry-icon">{{ttsState === 'playing' ? '⏸' : ttsState === 'loading' ? '…' : '♪'}}</text>
+          <view class="tts-entry-icon app-icon {{ttsState === 'playing' ? 'app-icon-pause' : ttsState === 'loading' ? 'app-icon-clock' : 'app-icon-headphone'}}"></view>
           <text>{{ttsState === 'playing' ? '暂停' : ttsState === 'loading' ? '合成中' : 'AI 朗读'}}</text>
         </view>
       </view>
@@ -472,7 +473,7 @@
 
     <view class="comments-section" wx:if="{{communityAccessState === 'enabled'}}">
       <view class="comments-header">
-        <view class="comments-icon">✅</view>
+        <view class="comments-icon app-seal app-seal-dawn app-seal-sm">记</view>
         <text class="comments-title">每日打卡</text>
         <text class="comments-count" wx:if="{{course.comments && course.comments.length}}">（{{course.comments.length}} 条）</text>
       </view>
@@ -535,18 +536,19 @@
                 </view>
               </view>
               <view wx:if="{{item.seenAvailable}}" class="seen-btn {{item.seenMine ? 'seen-btn-mine' : ''}}" catchtap="openSeenPanel" data-id="{{item.id}}">
-                <view class="seen-btn-seal">见</view>
+                <view class="seen-btn-icon app-icon app-icon-eye"></view>
+                <text class="seen-btn-label">见</text>
                 <text class="seen-btn-count" wx:if="{{item.seenTotal}}">{{item.seenTotal}}</text>
               </view>
               <view class="comment-actions-right">
-                <view class="comment-reply" catchtap="handleReplyComment" data-id="{{item.id}}">
-                  <text class="reply-icon">💬</text>
-                  <text>回复</text>
+                <view class="comment-reply" catchtap="handleReplyComment" data-id="{{item.id}}" aria-label="回复">
+                  <view class="reply-icon app-icon app-icon-comment"></view>
+                  <text>回</text>
                 </view>
-                <view class="comment-toggle" catchtap="toggleComments" data-index="{{index}}">
-                  <text class="toggle-icon">💬</text>
-                  <text class="toggle-text" wx:if="{{!commentLoading[item.id]}}">{{commentExpanded[item.id] ? '收起评论' : '查看评论'}}</text>
-                  <text class="toggle-text loading" wx:else>加载中...</text>
+                <view class="comment-toggle" catchtap="toggleComments" data-index="{{index}}" aria-label="{{commentExpanded[item.id] ? '收起评论' : '查看评论'}}">
+                  <view class="toggle-icon app-icon app-icon-search"></view>
+                  <text class="toggle-text" wx:if="{{!commentLoading[item.id]}}">{{commentExpanded[item.id] ? '收' : '查'}}</text>
+                  <text class="toggle-text loading" wx:else>…</text>
                 </view>
               </view>
             </view>
@@ -585,7 +587,7 @@
                       </view>
                       <view class="comment-actions-right">
                         <view class="reply-reply" bindtap="handleReplyToReply" data-checkin-id="{{item.id}}" data-comment-id="{{reply.id}}" data-reply-id="{{reply.userId}}" data-user-name="{{reply.userName}}" style="pointer-events: auto;">
-                          <text class="reply-icon">💬</text>
+                          <view class="reply-icon app-icon app-icon-comment"></view>
                           <text>回复</text>
                         </view>
                         <view wx:if="{{reply.canDelete}}" class="reply-delete" catchtap="handleDeleteComment" data-checkin-id="{{item.id}}" data-comment-id="{{reply.id}}" style="pointer-events: auto;">

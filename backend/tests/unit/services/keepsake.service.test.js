@@ -144,12 +144,14 @@ describe('Keepsake Service', () => {
   it('可选模型存在时读取摘抄、已拆开的信和看见卡数量', async () => {
     stubs.optional.Highlight = { find: () => chain([{ text: '句子' }]) };
     stubs.optional.Letter = { find: () => chain([{ content: '信', sealedAt: 'S', status: 'opened', reply: '回' }]) };
-    stubs.optional.SeenCard = { countDocuments: () => Promise.resolve(4) };
+    const countSeenCards = sandbox.stub().resolves(4);
+    stubs.optional.SeenCard = { countDocuments: countSeenCards };
     service = load();
     const data = await service.getPeriodKeepsake('me', 'p1');
     expect(data.highlights).to.deep.equal([{ text: '句子' }]);
     expect(data.letter).to.deep.equal({ content: '信', sealedAt: 'S', reply: '回' });
     expect(data.seenCount).to.equal(4);
+    expect(countSeenCards.firstCall.args[0]).to.include({ periodId: 'p1', receiverId: 'me', withdrawnAt: null });
   });
 
   it('某一块失败不影响整体', async () => {

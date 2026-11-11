@@ -2,7 +2,10 @@ const Letter = require('../models/Letter');
 const Period = require('../models/Period');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
-const { ensurePeriodCommunityAccess } = require('../services/community-access.service');
+const {
+  ensurePeriodCommunityAccess,
+  getCommunityAccessiblePeriodIds
+} = require('../services/community-access.service');
 const { computeWriteWindow, computeDeliverAt, daysBetweenKeys } = require('../services/letter-delivery.service');
 
 const MAX_CONTENT = 2000;
@@ -38,7 +41,10 @@ function buildLetterView(letter, period, now = new Date()) {
     canWrite,
     writeWindow: window ? { from: window.from, to: window.to } : null,
     deliverAt,
-    periodDays: period && period.startDate && period.endDate ? daysBetweenKeys(period.startDate, period.endDate) + 1 : 0,
+    // 这一期是多少天：优先用期次设置的天数（如 23 天），没设才按起止日期算
+    periodDays: period && Number(period.totalDays) > 0
+      ? Number(period.totalDays)
+      : (period && period.startDate && period.endDate ? daysBetweenKeys(period.startDate, period.endDate) + 1 : 0),
     daysToDeliver: status === 'sealed' || status === 'draft' || status === 'none' ? daysUntil(deliverAt, now) : 0,
     stamp: letter ? letter.stamp : 'dawn',
     writtenAt: letter ? letter.writtenAt : null,
@@ -139,10 +145,13 @@ async function sealLetter(req, res, next) {
     const period = await loadPeriodForUser(req, res, req.params.periodId);
     if (!period) return;
     const now = new Date();
-    if (!inWindow(computeWriteWindow(period), now)) {
-      return res.status(400).json(errors.badRequest('这一期的信箱已经关了，下一期开营时再来'));
-    }
     const letter = await Letter.findOne({ userId: getRequestUserId(req), periodId: period._id });
+    if (!inWindow(computeWriteWindow(period), now)) {
+      const canSealExistingDraft = letter && letter.status === 'draft' && letter.content && letter.content.trim();
+      if (!canSealExistingDraft) {
+        return res.status(400).json(errors.badRequest('这一期的信箱已经关了，下一期开营时再来'));
+      }
+    }
     if (!letter) return res.status(400).json(errors.badRequest('先写点什么再投递'));
     if (letter.status !== 'draft') return res.status(400).json(errors.badRequest('信已经投递过了'));
     if (!letter.content || !letter.content.trim()) {
@@ -168,6 +177,7 @@ async function findOwnLetter(req, res) {
     res.status(404).json(errors.notFound('信不存在'));
     return null;
   }
+  if (!(await ensurePeriodCommunityAccess(res, getRequestUserId(req), letter.periodId))) return null;
   return letter;
 }
 
@@ -213,7 +223,11 @@ async function replyLetter(req, res, next) {
 
 async function getMyLetters(req, res, next) {
   try {
-    const letters = await Letter.find({ userId: getRequestUserId(req) }).sort({ createdAt: -1 }).lean();
+    const userId = getRequestUserId(req);
+    const accessiblePeriodIds = await getCommunityAccessiblePeriodIds(userId);
+    const allowedPeriods = new Set(accessiblePeriodIds.map(id => String(id)));
+    const letters = (await Letter.find({ userId }).sort({ createdAt: -1 }).lean())
+      .filter(letter => allowedPeriods.has(String(letter.periodId)));
     const periods = await Period.find({ _id: { $in: letters.map(l => l.periodId) } })
       .select('_id name startDate endDate')
       .lean();

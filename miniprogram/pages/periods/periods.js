@@ -33,7 +33,7 @@ Page({
     skeletonItems: [1, 2, 3],
 
     // Banner文本
-    bannerText: '☀️ 天天开心！',
+    bannerText: '天天开心！',
     bannerSubtext: '在晨光中,遇见更好的自己',
     brandName: getBrandName()
   },

@@ -374,6 +374,64 @@ describe('Period Controller', () => {
 
       expect(res.status.calledWith(404)).to.be.true;
     });
+
+    const enrolledPeriod = (extra = {}) => ({
+      _id: new mongoose.Types.ObjectId(),
+      name: '有人报名的期次',
+      enrollmentCount: 6,
+      enrollmentTemplateId: 'full',
+      enrollmentTemplateSnapshot: { templateId: 'full', _id: 'tpl_object_id' },
+      visibilityType: 'specific',
+      visibleUserIds: [],
+      markModified: sandbox.stub(),
+      save: sandbox.stub().resolves(),
+      toObject: sandbox.stub().returnsThis(),
+      ...extra
+    });
+
+    it('已有报名的期次：报名模板没变时可以正常保存其它改动（如可见名单）', async () => {
+      const mockPeriod = enrolledPeriod();
+      req.params = { periodId: mockPeriod._id };
+      req.body = { enrollmentTemplateId: 'full', visibilityType: 'specific', visibleUserIds: ['u1', 'u2'] };
+      PeriodStub.findById.resolves(mockPeriod);
+
+      await periodController.updatePeriod(req, res, next);
+
+      expect(res.status.calledWith(409)).to.be.false;
+      expect(mockPeriod.save.called).to.be.true;
+      expect(mockPeriod.visibleUserIds).to.deep.equal(['u1', 'u2']);
+      expect(mockPeriod.enrollmentTemplateId).to.equal('full');
+    });
+
+    it('已有报名的期次：模板以快照 _id 形式传回也算没变；没有模板时传空串也算没变', async () => {
+      const byObjectId = enrolledPeriod({ enrollmentTemplateId: undefined });
+      req.params = { periodId: byObjectId._id };
+      req.body = { enrollmentTemplateId: 'tpl_object_id', name: '改个名' };
+      PeriodStub.findById.resolves(byObjectId);
+      await periodController.updatePeriod(req, res, next);
+      expect(res.status.calledWith(409)).to.be.false;
+      expect(byObjectId.save.called).to.be.true;
+
+      const noTemplate = enrolledPeriod({ enrollmentTemplateId: undefined, enrollmentTemplateSnapshot: undefined });
+      req.params = { periodId: noTemplate._id };
+      req.body = { enrollmentTemplateId: '', name: '再改个名' };
+      PeriodStub.findById.resolves(noTemplate);
+      await periodController.updatePeriod(req, res, next);
+      expect(res.status.calledWith(409)).to.be.false;
+      expect(noTemplate.save.called).to.be.true;
+    });
+
+    it('已有报名的期次：真的换了报名模板仍然拒绝', async () => {
+      const mockPeriod = enrolledPeriod();
+      req.params = { periodId: mockPeriod._id };
+      req.body = { enrollmentTemplateId: 'simple' };
+      PeriodStub.findById.resolves(mockPeriod);
+
+      await periodController.updatePeriod(req, res, next);
+
+      expect(res.status.calledWith(409)).to.be.true;
+      expect(mockPeriod.save.called).to.be.false;
+    });
   });
 
   describe('deletePeriod (Admin)', () => {

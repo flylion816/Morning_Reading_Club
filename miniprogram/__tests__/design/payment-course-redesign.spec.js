@@ -41,7 +41,7 @@ describe('payment and course page redesign', () => {
   test('course shortcuts use the shared glyph language instead of emoji', () => {
     const markup = read('miniprogram/pages/courses/courses.wxml');
 
-    ['同行榜', '打卡记录', '同修'].forEach(title => {
+    ['同行榜', '打卡记录', '同学'].forEach(title => {
       expect(markup).toContain(`>${title}</text>`);
     });
     ['🏆', '📅', '👥'].forEach(emoji => {

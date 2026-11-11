@@ -52,7 +52,7 @@
   </view>
 
   <view wx:elif="{{errorMessage}}" class="empty-state">
-    <text class="empty-icon">⚠️</text>
+    <view class="empty-icon app-icon app-icon-clock"></view>
     <text class="empty-text">{{errorMessage}}</text>
     <view class="retry-btn" bindtap="loadAll">重试</view>
   </view>

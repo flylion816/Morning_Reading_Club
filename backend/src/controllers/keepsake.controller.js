@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
-const { findCommunityEnrollment } = require('../services/community-access.service');
+const { ensurePeriodCommunityAccess } = require('../services/community-access.service');
 const keepsakeService = require('../services/keepsake.service');
 
 function getRequestUserId(req) {
@@ -20,10 +20,7 @@ async function getPeriodKeepsake(req, res) {
       return res.status(400).json(errors.badRequest('期次参数不正确'));
     }
 
-    const enrollment = await findCommunityEnrollment(userId, periodId);
-    if (!enrollment) {
-      return res.status(403).json(errors.forbidden('你还没有报名这一期'));
-    }
+    if (!(await ensurePeriodCommunityAccess(res, userId, periodId))) return;
 
     const data = await keepsakeService.getPeriodKeepsake(userId, periodId);
     if (!data) {

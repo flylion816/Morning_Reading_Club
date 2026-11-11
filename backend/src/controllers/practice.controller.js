@@ -9,7 +9,7 @@ const { toDayKey } = require('../utils/checkin-day-metrics');
 
 const MAX_TEXT_LENGTH = 30;
 const MAX_NOTE_LENGTH = 60;
-const MAX_SUGGESTION_LENGTH = 40;
+const MAX_SUGGESTION_LENGTH = MAX_TEXT_LENGTH;
 const MAX_SUGGESTIONS = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
 

@@ -925,3 +925,9 @@ page {
 .content-text.letter-lined .letter-salutation {
   margin-bottom: 0;
 }
+.btn-like-icon.app-icon {
+  width: 30rpx;
+  height: 30rpx;
+  margin-right: 6rpx;
+  vertical-align: middle;
+}

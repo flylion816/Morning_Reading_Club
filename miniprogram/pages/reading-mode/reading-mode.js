@@ -188,6 +188,14 @@ Page({
   onUnload() {
     this.stopPresenceReporting();
     this.clearCompletionTimers();
+    if (this._contentReadyTimer) {
+      clearTimeout(this._contentReadyTimer);
+      this._contentReadyTimer = null;
+    }
+    if (this._scrollTimer) {
+      clearTimeout(this._scrollTimer);
+      this._scrollTimer = null;
+    }
     this.persistProgress();
   },
 
@@ -483,7 +491,8 @@ Page({
           this.applyFontSizeClass(saved.fontSizeLevel);
           this.applyNavigationBarColor(saved.paperTheme);
           this.initCompanionFeatures(canAccessCheckin);
-          setTimeout(() => {
+          this._contentReadyTimer = setTimeout(() => {
+            this._contentReadyTimer = null;
             this.updateCurrentParagraphByViewport();
             this.setData({ contentReady: true });
           }, 350);

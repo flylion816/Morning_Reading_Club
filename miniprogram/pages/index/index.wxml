@@ -222,15 +222,26 @@
       </view>
 
 
-      <view class="camp-corner-section" wx:if="{{item.key === 'campCorner' && currentPeriodCommunityState === 'enabled' && currentPeriod && campCornerCards.length > 0}}">
+      <view class="camp-corner-section" wx:if="{{item.key === 'campCorner' && currentPeriodCommunityState === 'enabled' && currentPeriod && campCornerStatus !== 'idle'}}">
         <view class="section-header">
           <view class="section-header-left">
             <view class="app-seal app-seal-dawn app-seal-sm">营</view>
             <text class="section-header-title">营地角落</text>
           </view>
         </view>
-        <view class="camp-corner-row">
+        <view wx:if="{{campCornerStatus === 'loading'}}" class="camp-corner-state">
+          <view class="app-skeleton camp-corner-skeleton"></view>
+          <text class="camp-corner-state-text">营地角落正在打开…</text>
+        </view>
+        <view wx:elif="{{campCornerStatus === 'error'}}" class="camp-corner-state camp-corner-state-error" bindtap="retryCampCorner">
+          <text class="camp-corner-state-text">角落暂时没打开，点这里再试一次</text>
+        </view>
+        <view wx:elif="{{campCornerCards.length > 0}}" class="camp-corner-row">
           <view wx:for="{{campCornerCards}}" wx:key="key" class="camp-corner-card" bindtap="handleCampCornerTap" data-kind="{{item.kind}}">
+            <view class="camp-corner-head">
+              <view class="camp-corner-icon"><view class="app-icon app-icon-{{item.kind === 'letter' ? 'mail' : (item.kind === 'practice' ? 'flag' : 'users')}}"></view></view>
+              <text class="camp-corner-kicker">{{item.kind === 'letter' ? '慢递邮局' : (item.kind === 'practice' ? '实修' : '读伴')}}</text>
+            </view>
             <view wx:if="{{item.paired}}" class="camp-corner-paired">
               <text class="camp-corner-title">{{item.title}}</text>
               <view class="camp-corner-dots">
@@ -245,6 +256,9 @@
               <text wx:if="{{item.sub}}" class="camp-corner-sub">{{item.sub}}</text>
             </block>
           </view>
+        </view>
+        <view wx:else class="camp-corner-state">
+          <text class="camp-corner-state-text">今天先读书，角落里没有新安排</text>
         </view>
       </view>
 

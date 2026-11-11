@@ -64,7 +64,7 @@
 .choice-message { margin: 24rpx 0; padding: 24rpx; color: var(--app-text-soft); background: var(--app-surface); border-radius: 18rpx; font-size: 25rpx; line-height: 1.6; }
 .choice-retry { display: inline-block; margin: 0 0 0 20rpx; padding: 0 18rpx; color: var(--theme-primary); background: var(--theme-primary-tint); font-size: 24rpx; line-height: 2; }
 .choice-retry::after, .choice-submit::after { border: 0; }
-.choice-submit { margin: 28rpx 0 0; border-radius: 16rpx; color: #fff; background: var(--theme-primary); font-size: 28rpx; font-weight: 600; line-height: 88rpx; }
+.choice-submit { margin: 28rpx 0 0; border-radius: 16rpx; color: #fff; background: var(--theme-primary-dark); font-size: 28rpx; font-weight: 600; line-height: 88rpx; }
 .choice-submit[disabled] { color: var(--app-text-muted); background: var(--app-surface-muted); }
 
 /* 课程标题 */
@@ -1340,7 +1340,7 @@
   width: 80%;
   padding: 28rpx 0;
   border-radius: 48rpx;
-  background: var(--theme-primary);
+  background: var(--theme-primary-dark);
   color: #ffffff;
   font-size: 30rpx;
   font-weight: bold;
@@ -1388,7 +1388,7 @@
   line-height: 44rpx;
   text-align: center;
   border-radius: 10rpx;
-  background: var(--theme-primary);
+  background: var(--theme-primary-dark);
   color: #ffffff;
   font-family: var(--app-font-serif);
   font-size: 22rpx;
