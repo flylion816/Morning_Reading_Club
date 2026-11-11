@@ -17,7 +17,8 @@ const checkinCelebrationConfigSchema = new mongoose.Schema({
   animationStyle: {
     type: String,
     enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'random'],
-    default: 'random'
+    // 默认用 C（晨光仪式）；其余样式和随机仍可在后台选
+    default: 'C'
   },
   enabledAnimationStyles: {
     type: [String],

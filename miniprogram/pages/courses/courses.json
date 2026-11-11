@@ -5,5 +5,5 @@
   "usingComponents": {
     "reading-loader": "/components/reading-loader/reading-loader"
   },
-  "navigationBarTextStyle": "white"
+  "navigationBarTextStyle": "black"
 }

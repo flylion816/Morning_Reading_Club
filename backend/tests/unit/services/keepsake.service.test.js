@@ -50,13 +50,57 @@ describe('Keepsake Service', () => {
 
   afterEach(() => sandbox.restore());
 
-  it('期次未结束时只返回 period 与 daysLeft', async () => {
-    stubs.Period.findById = () => chain({ _id: 'p1', name: 'P', status: 'ongoing', endDate: new Date('2026-11-20T00:00:00Z') });
+  it('还没开营时只返回 period 与 daysLeft', async () => {
+    stubs.Period.findById = () => chain({ _id: 'p1', name: 'P', status: 'ongoing', startDate: new Date('2026-11-18T00:00:00Z'), endDate: new Date('2026-11-20T00:00:00Z') });
     service = load();
     const data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-15T04:00:00Z'));
     expect(data.ready).to.equal(false);
+    expect(data.notStarted).to.equal(true);
     expect(data.daysLeft).to.equal(5);
     expect(data.checkinDays).to.equal(undefined);
+  });
+
+  it('营期进行中也能翻：ready 为 true、finished 为 false，并带上还剩几天', async () => {
+    stubs.Period.findById = () => chain({ _id: 'p1', name: 'P', status: 'ongoing', startDate: new Date('2026-11-10T00:00:00Z'), endDate: new Date('2026-11-20T00:00:00Z') });
+    service = load();
+    const data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-15T04:00:00Z'));
+    expect(data.ready).to.equal(true);
+    expect(data.finished).to.equal(false);
+    expect(data.daysLeft).to.equal(5);
+    expect(data.checkinDays).to.equal(3);
+  });
+
+  it('每一天按时间从早到晚列出打卡，小凡的信全部列出', async () => {
+    const data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-20T00:00:00Z'));
+    expect(data.finished).to.equal(true);
+    expect(data.days.map(item => item.checkinId)).to.deep.equal(['c3', 'c1', 'c2']);
+    expect(data.days[1]).to.include({ sectionId: 's1', sectionTitle: '第一课', excerpt: '你好世界' });
+    expect(data.insights).to.have.length(1);
+    expect(data.insights[0]).to.include({ id: 'i1', title: '看见' });
+    expect(data.insightExcerpt.id).to.equal('i1');
+  });
+
+  it('读伴只给昵称头像和同行天数；实修给出每周做到几天；模型不存在时为空', async () => {
+    let data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-20T00:00:00Z'));
+    expect(data.buddy).to.equal(null);
+    expect(data.practices).to.deep.equal([]);
+
+    stubs.optional.BuddyPair = {
+      find: () => chain([{ userA: 'me2', userB: 'u9', createdAt: new Date('2026-10-05T02:00:00Z'), endedAt: null, active: true }])
+    };
+    stubs.optional.Practice = {
+      find: () => chain([
+        { weekIndex: 1, text: '先听完再说', logs: [{ date: '2026-10-06', done: true }, { date: '2026-10-07', done: false }] },
+        { weekIndex: 2, text: '  ', logs: [] }
+      ])
+    };
+    stubs.User.findById = id => chain(id === 'u9' ? { nickname: '阿泰', avatarUrl: 'a.png' } : { nickname: '小明' });
+    service = load();
+    data = await service.getPeriodKeepsake('me2', 'p1', new Date('2026-11-20T00:00:00Z'));
+    // 结束日 10-23 之后仍在一起，只算到结营那天：10-05 到 10-23 共 19 天
+    expect(data.buddy).to.deep.equal({ nickname: '阿泰', avatarUrl: 'a.png', days: 19, active: true });
+    expect(data.buddy).to.not.have.property('userId');
+    expect(data.practices).to.deep.equal([{ weekIndex: 1, text: '先听完再说', loggedDays: 2, doneDays: 1 }]);
   });
 
   it('今天已是最后一天时 ready 为 true', () => {

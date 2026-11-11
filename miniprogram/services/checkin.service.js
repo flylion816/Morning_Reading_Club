@@ -119,8 +119,10 @@ class CheckinService {
    * @param {string} month YYYY-MM
    * @returns {Promise}
    */
-  getUserCalendar(month) {
-    return request.get('/checkins/user/calendar', { month });
+  getUserCalendar(month, options) {
+    return options
+      ? request.get('/checkins/user/calendar', { month }, options)
+      : request.get('/checkins/user/calendar', { month });
   }
 
   /**

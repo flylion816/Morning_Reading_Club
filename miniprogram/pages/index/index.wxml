@@ -31,8 +31,8 @@
       </view>
 
       <!-- 旅程进度：一条地平线，每天一个刻度 -->
-      <view class="dawn-journey" wx:if="{{journeyTicks.length > 0}}">
-        <view class="dawn-horizon">
+      <view class="dawn-journey">
+        <view class="dawn-horizon" wx:if="{{journeyTicks.length > 0}}">
           <view wx:for="{{journeyTicks}}" wx:key="index" class="dawn-tick dawn-tick-{{item.state}}">
             <view class="dawn-tick-dot"></view>
           </view>
@@ -254,52 +254,34 @@
             <view class="app-seal app-seal-dawn app-seal-sm">记</view>
             <text class="section-header-title">我的打卡</text>
           </view>
-          <button class="checkin-create-button" bindtap="navigateToNewCheckin" aria-label="新建打卡">
-            <view class="checkin-create-icon app-icon app-icon-plus"></view>
-          </button>
+          <view class="section-header-right">
+            <text class="leaf-all" bindtap="navigateToCheckinRecords">全部 ›</text>
+            <button class="checkin-create-button" bindtap="navigateToNewCheckin" aria-label="新建打卡">
+              <view class="checkin-create-icon app-icon app-icon-plus"></view>
+            </button>
+          </view>
         </view>
 
-        <scroll-view
-          wx:if="{{recentCheckins.length > 0}}"
-          scroll-x
-          class="checkins-scroll"
-          show-scrollbar="{{false}}"
-          enhanced="true">
-          <view class="checkins-scroll-track">
-            <view
-              wx:for="{{recentCheckins}}"
-              wx:key="id"
-              class="checkin-diary-card"
-              bindtap="handleRecentCheckinTap"
-              data-checkin-id="{{item.id}}"
-              data-section-id="{{item.sectionId}}"
-              data-period-id="{{item.periodId}}">
-
-              <view class="checkin-diary-card-title">{{item.sectionTitle}}</view>
-              <view class="checkin-diary-card-preview">{{item.preview}}</view>
-
-              <view class="checkin-diary-card-footer">
-                <view class="checkin-diary-card-meta">
-                  <text class="checkin-diary-card-date">{{item.dateLabel}}</text>
-                  <view class="checkin-diary-card-like">
-                    <view class="checkin-diary-card-like-icon app-icon app-icon-heart"></view>
-                    <text class="checkin-diary-card-like-count">{{item.likeCount}}</text>
-                  </view>
-                  <text wx:if="{{item.periodTitle}}" class="checkin-diary-card-period-badge">{{item.periodTitle}}</text>
-                </view>
-              </view>
+        <view wx:if="{{recentCheckins.length > 0}}" class="leafs">
+          <view
+            wx:for="{{recentCheckins}}"
+            wx:key="id"
+            wx:if="{{index < 3}}"
+            class="leaf"
+            bindtap="handleRecentCheckinTap"
+            data-checkin-id="{{item.id}}"
+            data-section-id="{{item.sectionId}}"
+            data-period-id="{{item.periodId}}">
+            <view class="leaf-date">
+              <text class="leaf-day">{{item.dayNum}}</text>
+              <text class="leaf-month">{{item.monthLabel}}</text>
             </view>
-
-            <view class="checkin-diary-more-card" bindtap="navigateToCheckinRecords">
-              <view class="checkin-diary-more-icon">→</view>
-              <text class="checkin-diary-more-title">查看更多</text>
-              <view class="checkin-diary-more-desc">
-                <view>进入我的</view>
-                <view>打卡日记</view>
-              </view>
+            <view class="leaf-body">
+              <view class="leaf-title">{{item.sectionTitle}}</view>
+              <view class="leaf-preview">{{item.preview}}</view>
             </view>
           </view>
-        </scroll-view>
+        </view>
 
         <view wx:else class="checkins-empty">
           <text class="checkins-empty-text">最近还没有打卡日记</text>
@@ -310,63 +292,33 @@
         </view>
       </view>
 
-      <!-- 小凡看见 -->
+      <!-- 小凡看见：一封信 -->
       <view class="insights-section" wx:if="{{item.key === 'xiaofanInsights' && canUsePaidFeatures}}">
-        <view class="section-header">
-          <view class="section-header-left">
-            <view class="app-seal app-seal-dawn app-seal-sm">见</view>
-            <text class="section-header-title">小凡看见</text>
+        <view
+          wx:if="{{recentInsights.length > 0}}"
+          class="insight-env"
+          data-id="{{recentInsights[0].id}}"
+          catchtap="handleInsightClick">
+          <view class="insight-env-flap"></view>
+          <view class="insight-env-stamp"><text class="insight-env-stamp-word">见</text></view>
+          <view class="insight-env-postmark" wx:if="{{recentInsights[0].dateLabel}}">{{recentInsights[0].dateLabel}}</view>
+          <view class="insight-env-wax">凡</view>
+          <view class="insight-env-body">
+            <text class="insight-env-to">{{userInfo.nickname || userInfo.name || '书友'}} 收</text>
+            <text class="insight-env-title">小凡给你留了一封信</text>
+            <text class="insight-env-sub">{{recentInsights[0].courseTitle}}</text>
           </view>
         </view>
-        <view class="request-direction-tabs">
-          <view
-            class="request-direction-tab {{insightActiveTab === 'mine' ? 'request-direction-tab-active' : ''}}"
-            bindtap="handleInsightTabTap"
-            data-tab="mine">我的</view>
-          <view
-            class="request-direction-tab {{insightActiveTab === 'others' ? 'request-direction-tab-active' : ''}}"
-            bindtap="handleInsightTabTap"
-            data-tab="others">他人的</view>
-        </view>
-        <view class="insights-list">
-          <view
-            wx:for="{{insightActiveTab === 'mine' ? recentInsights : recentOtherInsights}}"
-            wx:key="id"
-            class="insight-item"
-            data-id="{{item.id}}"
-            catchtap="handleInsightClick">
-            <view class="insight-flap"></view>
-            <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||themePrimaryColor}}">
-              <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
-              <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
-            </view>
-            <view class="insight-content-preview">
-              <view class="insight-title-row">
-                <text class="insight-period-tag">{{item.courseTitle}}</text>
-                <text wx:if="{{item.periodName}}" class="insight-period-name">{{item.periodName}}</text>
-              </view>
-              <block wx:if="{{item.mediaType === 'image' && item.imageUrl}}">
-                <view
-                  class="insight-thumb-small insight-thumb-top"
-                  style="background-image: url('{{item.imageUrl}}');"></view>
-              </block>
-              <block wx:else>
-                <view class="insight-text">{{item.preview}}</view>
-              </block>
-            </view>
-          </view>
-          <view class="insight-empty" wx:if="{{insightActiveTab === 'mine' && recentInsights.length === 0}}">
-            本期还没有小凡看见的记录
-          </view>
-          <view class="insight-empty" wx:if="{{insightActiveTab === 'others' && otherInsightsLoading}}">
-            稍等一下…
-          </view>
-          <view class="insight-empty" wx:if="{{insightActiveTab === 'others' && recentOtherInsights.length === 0 && !otherInsightsLoading}}">
-            还没有书友授权你查看
+        <view wx:else class="insight-env insight-env-empty" catchtap="navigateToInsights">
+          <view class="insight-env-flap"></view>
+          <view class="insight-env-wax insight-env-wax-empty">凡</view>
+          <view class="insight-env-body">
+            <text class="insight-env-title">小凡的信还在路上</text>
+            <text class="insight-env-sub">本期还没有小凡看见的记录</text>
           </view>
         </view>
         <view class="insights-more" catchtap="navigateToInsights">
-          <text class="more-text">查看更多</text>
+          <text class="more-text">{{recentInsights.length > 1 ? '信箱里还有 ' + (recentInsights.length - 1) + ' 封' : '打开信箱'}}</text>
           <text class="more-arrow">→</text>
         </view>
       </view>

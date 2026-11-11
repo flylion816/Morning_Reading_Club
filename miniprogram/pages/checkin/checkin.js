@@ -191,6 +191,8 @@ Page({
     celebrationDay: 0,       // 晨光仪式里的「第 N 天」，0 表示不显示
     moodOptions: MOOD_OPTIONS,
     mood: '',                // 心情天气，空串表示未选
+    celebrationStreak: 0,    // 连续晨读 N 天，大于 1 才显示
+    thinkText: '',           // 课程「想一想」的文字，显示在输入框上方
     celebrationRank: 0,      // 今天第 N 位打卡，0 表示不显示
     celebrationMessage: DEFAULT_CELEBRATION_MESSAGE
   },
@@ -465,7 +467,9 @@ Page({
       this.setData({
         courseModules,
         previewModule: courseModules[0] || null,
-        diaryPlaceholder: thinkText ? Array.from(thinkText).slice(0, 40).join('') : DEFAULT_DIARY_PLACEHOLDER,
+        // 想一想单独成卡放在输入框上方，输入框里只留一句问话
+        thinkText,
+        diaryPlaceholder: DEFAULT_DIARY_PLACEHOLDER,
         courseTitle: course.title || '',
         courseDate: courseDate,
         meditation: course.meditation || '',
@@ -1029,7 +1033,8 @@ Page({
     this.setData({ showCelebration: true, celebrationStyle: style, celebrationMessage: message });
 
     if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
-    this._celebrationTimer = setTimeout(() => this.dismissCelebration(), style === 'C' ? 6000 : 3000);
+    // 晨光仪式有下一步要选，多留一会儿
+    this._celebrationTimer = setTimeout(() => this.dismissCelebration(), style === 'C' ? 12000 : 3000);
     feedback.haptic('medium');
   },
 
@@ -1042,7 +1047,35 @@ Page({
     } catch (e) {}
   },
 
-  // 仪式里的「做一张今日日签」
+  // 连续晨读天数：不阻塞仪式，拿不到就不显示
+  async loadCelebrationStreak() {
+    try {
+      const res = await checkinService.getUserCalendar(undefined, { suppressError: true });
+      const streak = Number(res && res.currentStreak);
+      if (streak > 1) this.setData({ celebrationStreak: streak });
+    } catch (e) {}
+  },
+
+  // 仪式里的「看看大家的打卡」：回到这一课的课程页
+  handleSeeOthersCheckins() {
+    if (this._celebrationTimer) {
+      clearTimeout(this._celebrationTimer);
+      this._celebrationTimer = null;
+    }
+    this.setData({ showCelebration: false });
+    const sectionId = this.data.sectionId || this.data.courseId;
+    const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+    const prev = pages.length > 1 ? pages[pages.length - 2] : null;
+    const prevIsThisCourse = prev && prev.route === 'pages/course-detail/course-detail' &&
+      String((prev.options && prev.options.id) || '') === String(sectionId || '');
+    if (!sectionId || prevIsThisCourse) {
+      wx.navigateBack();
+      return;
+    }
+    wx.redirectTo({ url: `/pages/course-detail/course-detail?id=${sectionId}` });
+  },
+
+  // 仪式里的「分享今日打卡」：做成一张日签
   handleMakeDailyCard() {
     if (this._celebrationTimer) {
       clearTimeout(this._celebrationTimer);
@@ -1288,6 +1321,7 @@ Page({
       console.log('[打卡成功] 已设置 checkinListDirty=true，首页将刷新');
       this.showCheckinCelebration();
       this.loadCelebrationRank(submitData.sectionId);
+      this.loadCelebrationStreak();
     } catch (error) {
       wx.hideLoading();
       console.error('打卡失败:', error);

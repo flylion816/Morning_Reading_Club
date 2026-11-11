@@ -113,9 +113,9 @@ module.exports = {
     });
   },
 
-  getReportDetail(periodId) {
-    return request
-      .get(`/enrollments/my-completion-reports/${periodId}`)
+  getReportDetail(periodId, options) {
+    const url = `/enrollments/my-completion-reports/${periodId}`;
+    return (options ? request.get(url, {}, options) : request.get(url))
       .then(normalizeReport);
   },
 
