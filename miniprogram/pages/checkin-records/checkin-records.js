@@ -69,6 +69,8 @@ function buildPeriodOption(period) {
     displayTitle: truncateCardTitle(title),
     subtitle: `共发布${period.diaryCount || 0}篇日记`,
     icon: period.coverEmoji || period.icon || '📚',
+    // 页面上用期次名的第一个字做印章，不再显示 emoji
+    seal: Array.from(String(title || '').trim())[0] || '读',
     color: period.coverColor || period.color || THEME_PRIMARY,
     diaryCount: period.diaryCount || 0,
     checkedDays: period.checkedDays || 0,
@@ -92,6 +94,7 @@ function buildAllPeriodOption(summaryStats = {}) {
     displayTitle: title,
     subtitle: `共发布${summaryStats.diaryCount || 0}篇日记`,
     icon: '🗂️',
+    seal: '全',
     color: THEME_PRIMARY,
     diaryCount: summaryStats.diaryCount || 0,
     checkedDays: summaryStats.totalCheckins || 0,

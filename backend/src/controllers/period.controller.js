@@ -387,7 +387,23 @@ async function updatePeriod(req, res, next) {
       period.updatedAt = changed.updatedAt;
     }
 
-    if (updates.enrollmentTemplateId !== undefined) {
+    // 后台每次保存都会把报名模板带上来：只有真的换了模板才走更换流程，没变就当没传
+    const currentEnrollmentTemplateIds = [
+      period.enrollmentTemplateId,
+      period.enrollmentTemplateSnapshot?.templateId,
+      period.enrollmentTemplateSnapshot?._id
+    ].filter(Boolean).map(String);
+    const requestedEnrollmentTemplateId =
+      updates.enrollmentTemplateId === undefined || updates.enrollmentTemplateId === null
+        ? undefined
+        : String(updates.enrollmentTemplateId);
+    const enrollmentTemplateChanged =
+      requestedEnrollmentTemplateId !== undefined &&
+      (requestedEnrollmentTemplateId === ''
+        ? currentEnrollmentTemplateIds.length > 0
+        : !currentEnrollmentTemplateIds.includes(requestedEnrollmentTemplateId));
+
+    if (enrollmentTemplateChanged) {
       if (period.enrollmentTemplateLocked || period.enrollmentCount > 0) {
         return res.status(409).json(errors.conflict('该期次已有报名，不能更换报名模板'));
       }

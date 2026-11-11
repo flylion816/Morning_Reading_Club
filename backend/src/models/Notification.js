@@ -100,6 +100,7 @@ const notificationSchema = new mongoose.Schema(
       commentId: String,
       replyId: String,
       periodId: String,
+      letterId: String,
       insightRequestId: String,
       insightId: String,
       danmakuId: String

@@ -574,3 +574,31 @@
   width: 28rpx;
   height: 28rpx;
 }
+
+/* 期次图标改成印章：期次名的第一个字，不用 emoji 和色块。 */
+.period-card-icon,
+.selected-period-icon {
+  width: 64rpx;
+  height: 64rpx;
+  box-sizing: border-box;
+  border-radius: 14rpx;
+  border: 3rpx solid var(--app-dawn-deep);
+  background: transparent;
+  transform: rotate(-3deg);
+}
+.period-card-icon-text,
+.selected-period-icon-text {
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--app-dawn-deep);
+}
+.period-card-active .period-card-icon {
+  background: var(--app-dawn-soft);
+}
+.record-like-icon.app-icon {
+  width: 28rpx;
+  height: 28rpx;
+  font-size: 0;
+}

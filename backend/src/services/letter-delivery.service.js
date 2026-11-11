@@ -37,32 +37,40 @@ function daysBetweenKeys(fromDate, toDate) {
 }
 
 const BATCH_SIZE = 500;
-const PERIOD_LOOKBACK_DAYS = 60;
 
 async function deliverOne(letter, deliverAt, now) {
   const tenantId = letter.tenantId ? String(letter.tenantId) : null;
   return withSystemContext(tenantId, async () => {
-    // 条件更新保证幂等：只有仍处于 sealed 的信才会被标记并发通知
+    const days = daysBetweenKeys(letter.sealedAt || letter.writtenAt || now, deliverAt);
+    // 先确保站内通知成功，再改变信件状态。通知失败时保留 sealed，下一轮可以重试。
+    const notification = await createNotification(
+      letter.userId,
+      'letter_delivered',
+      '有一封信到了',
+      `${days} 天前你写给今天的自己`,
+      {
+        upsertExisting: true,
+        data: { letterId: String(letter._id), periodId: String(letter.periodId) }
+      }
+    );
+    if (!notification) return false;
+
+    // 条件更新保证幂等：并发实例只有一个能完成状态转换；通知使用 letterId 做幂等 upsert。
     const result = await Letter.updateOne(
       { _id: letter._id, status: 'sealed' },
       { $set: { status: 'delivered', deliveredAt: now } }
     );
     const modified = result.modifiedCount !== undefined ? result.modifiedCount : result.nModified;
     if (!modified) return false;
-    const days = daysBetweenKeys(letter.sealedAt || letter.writtenAt || now, deliverAt);
-    await createNotification(letter.userId, 'letter_delivered', '有一封信到了', `${days} 天前你写给今天的自己`, {
-      data: { letterId: String(letter._id), periodId: String(letter.periodId) }
-    });
     return true;
   });
 }
 
-// 只扫描送达时间已到、且结束日在最近 60 天内的期次；没有结束日或已被删除的期次不会被扫到
+// 扫描所有已到送达时间的期次，避免服务停摆超过固定回看窗口后漏送；没有结束日的期次不会被扫到。
 async function deliverDueLetters({ now = new Date() } = {}) {
   return withSystemContext(null, async () => {
     const candidates = await Period.find({
       endDate: {
-        $gte: new Date(now.getTime() - PERIOD_LOOKBACK_DAYS * DAY_MS),
         $lte: new Date(now.getTime() + DAY_MS)
       }
     })

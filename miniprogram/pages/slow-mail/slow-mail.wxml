@@ -35,6 +35,17 @@
       </view>
     </view>
 
+    <!-- 写信窗口已关，但已有草稿仍可封存 -->
+    <view wx:elif="{{view === 'draft-closed'}}" class="mail-draft-closed">
+      <view class="app-empty-art app-empty-art-letter"></view>
+      <text class="app-empty-title">这封信已经写好了</text>
+      <text class="mail-draft-hint">写信窗口已关，内容不能再修改；封存后，结营那天就能收到。</text>
+      <view class="mail-paper mail-paper-read">
+        <text class="mail-body" user-select>{{content}}</text>
+      </view>
+      <button class="app-btn-primary mail-btn" disabled="{{busy}}" bindtap="onSeal">封存这封信</button>
+    </view>
+
     <!-- 信箱已关 -->
     <view wx:elif="{{view === 'closed'}}" class="app-empty">
       <view class="app-empty-art app-empty-art-letter"></view>

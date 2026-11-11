@@ -2310,3 +2310,122 @@ page {
   font-size: 24rpx;
   color: var(--app-text-secondary, #8a8478);
 }
+
+/* 打卡下方的操作条：点赞、看见、回复、查看评论统一成线性图标 + 小字。 */
+.comment-footer .comment-like,
+.comment-footer .seen-btn,
+.comment-footer .comment-reply,
+.comment-footer .comment-toggle,
+.dynamic-like-strip .seen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 0;
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--app-text-muted);
+  background: transparent;
+  border: none;
+}
+.comment-footer .toggle-text,
+.comment-footer .comment-reply text,
+.seen-btn-label,
+.seen-btn-count {
+  font-size: 24rpx;
+  color: inherit;
+  font-family: inherit;
+}
+.seen-btn-count,
+.comment-footer .like-count-number {
+  font-family: var(--app-font-num);
+  font-size: 24rpx;
+}
+.comment-footer .like-icon.app-icon,
+.comment-footer .reply-icon.app-icon,
+.comment-footer .toggle-icon.app-icon,
+.reply-icon.app-icon,
+.seen-btn-icon.app-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin: 0;
+  font-size: 0;
+  color: inherit;
+}
+.comment-footer .like-icon.app-icon.liked {
+  color: #e0645c;
+}
+.comment-footer .seen-btn {
+  margin-left: 32rpx;
+}
+.seen-btn-mine,
+.comment-footer .seen-btn.seen-btn-mine {
+  color: var(--app-dawn-deep);
+}
+.comment-actions-right {
+  gap: 32rpx;
+}
+.dynamic-comments-empty-art .app-icon {
+  width: 56rpx;
+  height: 56rpx;
+  color: var(--app-text-muted);
+}
+.comments-icon.app-seal {
+  background: transparent;
+  font-size: 22rpx;
+}
+.tts-entry-icon.app-icon {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+/* 打卡下方的操作条收成一行：头像叠成一排，文字缩成 见 / 回 / 查。 */
+.comment-footer {
+  flex-wrap: nowrap;
+  gap: 24rpx;
+}
+.comment-footer .comment-like {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.comment-footer .seen-btn,
+.comment-footer .comment-actions-right,
+.comment-footer .comment-reply,
+.comment-footer .comment-toggle,
+.comment-footer .like-icon,
+.comment-footer .like-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.comment-footer .seen-btn {
+  margin-left: 0;
+}
+.comment-footer .comment-actions-right {
+  gap: 24rpx;
+}
+.comment-footer .like-avatars,
+.dynamic-like-strip .like-avatars {
+  flex-wrap: nowrap;
+  gap: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.comment-footer .like-avatar-img,
+.comment-footer .like-avatar-text,
+.comment-footer .like-avatar-more,
+.dynamic-like-strip .like-avatar-img,
+.dynamic-like-strip .like-avatar-text,
+.dynamic-like-strip .like-avatar-more {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 3rpx solid var(--app-paper, #fffdf8);
+  margin-left: -12rpx;
+}
+.comment-footer .like-avatars > .like-avatar-img:first-child,
+.comment-footer .like-avatars > .like-avatar-text:first-child,
+.dynamic-like-strip .like-avatars > .like-avatar-img:first-child,
+.dynamic-like-strip .like-avatars > .like-avatar-text:first-child {
+  margin-left: 0;
+}

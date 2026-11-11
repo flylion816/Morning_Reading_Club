@@ -66,6 +66,26 @@ describe('slow-mail page', () => {
     expect(page.data.view).toBe('closed');
   });
 
+  test('窗口已过但已有草稿仍显示草稿并可封存', async () => {
+    letterService.getPeriodLetter.mockResolvedValue({
+      status: 'draft',
+      canWrite: false,
+      content: '写给未来的我',
+      stamp: 'leaf'
+    });
+    await page.onLoad({ periodId: 'p1' });
+    expect(page.data.view).toBe('draft-closed');
+    expect(page.data.content).toBe('写给未来的我');
+
+    letterService.seal.mockResolvedValue({ status: 'sealed', canWrite: false });
+    page.onSeal();
+    wx.showModal.mock.calls[0][0].success({ confirm: true });
+    await new Promise(r => setImmediate(r));
+    expect(letterService.saveDraft).not.toHaveBeenCalled();
+    expect(letterService.seal).toHaveBeenCalledWith('p1');
+    expect(page.data.view).toBe('sealed');
+  });
+
   test('各状态映射到对应视图', async () => {
     for (const [status, view] of [['sealed', 'sealed'], ['delivered', 'delivered'], ['opened', 'opened']]) {
       letterService.getPeriodLetter.mockResolvedValue({ status, canWrite: false });
@@ -105,5 +125,25 @@ describe('slow-mail page', () => {
     await page.onReply();
     expect(letterService.reply).toHaveBeenCalledWith('l1', '谢谢');
     expect(page.data.letter.reply).toBe('谢谢');
+  });
+
+  test('拆信动画期间不会重复请求', async () => {
+    jest.useFakeTimers();
+    page.setData({ letter: { id: 'l1' }, view: 'delivered' });
+    letterService.open.mockResolvedValue({ id: 'l1', status: 'opened', content: '信' });
+
+    const first = page.onOpen();
+    await Promise.resolve();
+    const second = page.onOpen();
+    expect(letterService.open).toHaveBeenCalledTimes(1);
+    expect(page.data.busy).toBe(true);
+    expect(page.data.opening).toBe(true);
+
+    jest.advanceTimersByTime(700);
+    await Promise.all([first, second]);
+    expect(page.data.view).toBe('opened');
+    expect(page.data.busy).toBe(false);
+    expect(page.data.opening).toBe(false);
+    jest.useRealTimers();
   });
 });

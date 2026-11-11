@@ -53,8 +53,8 @@
           bindtap="handlePeriodSelect"
           data-period-id="{{item.id}}"
         >
-          <view class="period-card-icon" style="background: {{item.id === periodId ? item.color : 'var(--theme-primary-tint)'}}">
-            <text class="period-card-icon-text">{{item.icon}}</text>
+          <view class="period-card-icon">
+            <text class="period-card-icon-text">{{item.seal}}</text>
           </view>
           <view class="period-card-copy">
             <text class="period-card-title">{{item.displayTitle || item.title}}</text>
@@ -69,8 +69,8 @@
     wx:if="{{selectedPeriod && selectedPeriod.id !== 'all'}}"
     class="selected-period-banner"
     bindtap="handleSelectedPeriodTap">
-    <view class="selected-period-icon" style="background: {{selectedPeriod.color}}">
-      <text class="selected-period-icon-text">{{selectedPeriod.icon}}</text>
+    <view class="selected-period-icon">
+      <text class="selected-period-icon-text">{{selectedPeriod.seal}}</text>
     </view>
     <view class="selected-period-copy">
       <text class="selected-period-title">{{selectedPeriod.title}}</text>
@@ -130,7 +130,7 @@
             <text wx:if="{{item.imageCount}}" class="record-image-count">{{item.imageCount}}张图片</text>
           </view>
           <view class="record-like">
-            <text class="record-like-icon">♡</text>
+            <view class="record-like-icon app-icon app-icon-heart"></view>
             <text class="record-like-count">{{item.likeCount}}</text>
           </view>
         </view>

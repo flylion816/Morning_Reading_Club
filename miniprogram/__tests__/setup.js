@@ -300,6 +300,12 @@ global.wx = {
     select() {
       return this;
     },
+    selectAll() {
+      return this;
+    },
+    boundingClientRect() {
+      return this;
+    },
     fields() {
       return this;
     },

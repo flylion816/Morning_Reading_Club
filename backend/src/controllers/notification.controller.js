@@ -380,6 +380,10 @@ function buildNotificationUpsertQuery(userId, type, options = {}, data = {}) {
     alternatives.push({ "data.insightId": data.insightId.toString() });
   }
 
+  if (data.letterId) {
+    alternatives.push({ "data.letterId": data.letterId.toString() });
+  }
+
   if (alternatives.length === 0) {
     return null;
   }

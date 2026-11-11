@@ -13,7 +13,7 @@
 
   <!-- 空状态 -->
   <view wx:elif="{{insights.length === 0}}" class="empty-state">
-    <text class="empty-icon">✨</text>
+    <view class="empty-icon app-icon app-icon-note"></view>
     <text class="empty-text">暂无小凡看见</text>
   </view>
 

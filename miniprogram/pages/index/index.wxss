@@ -1711,7 +1711,7 @@
   flex: 1.45;
   gap: 8rpx;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  background: var(--theme-primary-dark);
   box-shadow: 0 8rpx 22rpx var(--theme-primary-alpha-28);
 }
 
@@ -3722,4 +3722,80 @@ button.avatar-action-button::after {
 }
 .insight-env-empty .insight-env-flap {
   box-shadow: none;
+}
+
+/* 营地角落：每张卡一个图标和栏目名，下面才是一句话。 */
+.camp-corner-card {
+  min-height: 188rpx;
+  padding: 22rpx 20rpx 20rpx;
+  background: var(--app-paper);
+  border-color: rgba(92, 70, 44, 0.1);
+}
+.camp-corner-card:active {
+  opacity: 0.75;
+}
+.camp-corner-state {
+  min-height: 132rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  padding: 28rpx 24rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+  color: var(--app-text-muted);
+  text-align: center;
+}
+.camp-corner-state-error {
+  color: var(--app-dawn-ink);
+  background: var(--app-dawn-soft);
+}
+.camp-corner-state-text {
+  font-size: 24rpx;
+}
+.camp-corner-skeleton {
+  width: 72%;
+  height: 28rpx;
+  min-height: 28rpx;
+  margin: 0;
+}
+.camp-corner-head {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+.camp-corner-icon {
+  flex-shrink: 0;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-deep);
+}
+.camp-corner-icon .app-icon {
+  width: 30rpx;
+  height: 30rpx;
+}
+.camp-corner-kicker {
+  font-size: 22rpx;
+  color: var(--app-dawn-ink);
+  white-space: nowrap;
+}
+.camp-corner-title {
+  font-size: 26rpx;
+  color: var(--app-text);
+}
+
+/* 夜间：角落里的月亮会压在通知铃上，去掉；改为地平线上「今天」的位置挂一弯月亮。 */
+.dawn-hero-night::before {
+  display: none;
+}
+.dawn-hero-night .dawn-tick-today .dawn-tick-dot {
+  background: #f4ead9;
+  box-shadow: inset -10rpx -3rpx 0 0 #2e3b58, 0 0 0 10rpx rgba(244, 234, 217, 0.1);
 }

@@ -9,7 +9,7 @@ describe('Keepsake Controller', () => {
   let res;
 
   beforeEach(() => {
-    access = { findCommunityEnrollment: sinon.stub() };
+    access = { ensurePeriodCommunityAccess: sinon.stub() };
     svc = { getPeriodKeepsake: sinon.stub() };
     controller = proxyquire('../../../src/controllers/keepsake.controller', {
       mongoose: require('mongoose'),
@@ -23,18 +23,31 @@ describe('Keepsake Controller', () => {
   it('非法 periodId 返回 400', async () => {
     await controller.getPeriodKeepsake({ user: { userId: 'u1' }, params: { periodId: 'bad' } }, res);
     expect(res.status.calledWith(400)).to.equal(true);
-    expect(access.findCommunityEnrollment.called).to.equal(false);
+    expect(access.ensurePeriodCommunityAccess.called).to.equal(false);
   });
 
   it('未报名返回 403', async () => {
-    access.findCommunityEnrollment.resolves(null);
+    access.ensurePeriodCommunityAccess.callsFake(async response => {
+      response.status(403).json({ code: 403 });
+      return false;
+    });
+    await controller.getPeriodKeepsake({ user: { userId: 'u1' }, params: { periodId: '507f1f77bcf86cd799439011' } }, res);
+    expect(res.status.calledWith(403)).to.equal(true);
+    expect(svc.getPeriodKeepsake.called).to.equal(false);
+  });
+
+  it('待支付报名也返回 403', async () => {
+    access.ensurePeriodCommunityAccess.callsFake(async response => {
+      response.status(403).json({ code: 403, message: '当前期次未支付' });
+      return false;
+    });
     await controller.getPeriodKeepsake({ user: { userId: 'u1' }, params: { periodId: '507f1f77bcf86cd799439011' } }, res);
     expect(res.status.calledWith(403)).to.equal(true);
     expect(svc.getPeriodKeepsake.called).to.equal(false);
   });
 
   it('只用登录用户的 id 取数据', async () => {
-    access.findCommunityEnrollment.resolves({});
+    access.ensurePeriodCommunityAccess.resolves(true);
     svc.getPeriodKeepsake.resolves({ ready: true });
     await controller.getPeriodKeepsake({ user: { userId: 'u1' }, params: { periodId: '507f1f77bcf86cd799439011' }, query: { userId: 'other' } }, res);
     expect(svc.getPeriodKeepsake.calledWith('u1', '507f1f77bcf86cd799439011')).to.equal(true);
@@ -42,7 +55,7 @@ describe('Keepsake Controller', () => {
   });
 
   it('期次不存在返回 404，异常返回 500', async () => {
-    access.findCommunityEnrollment.resolves({});
+    access.ensurePeriodCommunityAccess.resolves(true);
     svc.getPeriodKeepsake.resolves(null);
     await controller.getPeriodKeepsake({ user: { userId: 'u1' }, params: { periodId: '507f1f77bcf86cd799439011' } }, res);
     expect(res.status.calledWith(404)).to.equal(true);

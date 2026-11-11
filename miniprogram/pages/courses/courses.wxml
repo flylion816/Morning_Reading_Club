@@ -39,7 +39,7 @@
     <view class="quick-item" hover-class="quick-item-hover" bindtap="handleMembers">
       <view class="quick-icon"><text>友</text></view>
       <view class="quick-copy">
-        <text class="quick-title">同修</text>
+        <text class="quick-title">同学</text>
         <text class="quick-caption">成员名录</text>
       </view>
     </view>

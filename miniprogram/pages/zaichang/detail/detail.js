@@ -5,7 +5,7 @@ const activityService = require('../../../services/activity.service');
 const { normalizeDanmakuContent } = require('../../../utils/danmaku');
 const { createContainedShareCover } = require('../../../utils/share-cover');
 
-const REACTION_LABELS = { gonming: '🌱 共鸣', ran: '🔥 燃', xiangqu: '🤗 想去' };
+const REACTION_LABELS = { gonming: '共鸣', ran: '燃', xiangqu: '想去' };
 const ACTIVITY_TYPE_LABELS = {
   reading: '读书会',
   cooking: '做饭',

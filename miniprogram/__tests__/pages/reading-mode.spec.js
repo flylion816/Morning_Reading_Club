@@ -61,6 +61,9 @@ describe('reading-mode page', () => {
   });
 
   afterEach(() => {
+    if (pageInstance && typeof pageInstance.onUnload === 'function') {
+      pageInstance.onUnload();
+    }
     jest.useRealTimers();
     jest.restoreAllMocks();
     delete global.Page;

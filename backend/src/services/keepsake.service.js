@@ -281,7 +281,8 @@ async function countSeenCards(userId, periodId) {
   if (!SeenCard) return 0;
   return SeenCard.countDocuments({
     periodId,
-    receiverId: userId
+    receiverId: userId,
+    withdrawnAt: null
   });
 }
 
