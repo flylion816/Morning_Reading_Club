@@ -391,6 +391,26 @@ describe('Insight Controller - 102+ 完整测试', () => {
       expect(res.json.called).to.be.true;
     });
 
+    it('详情 populate 的打卡不带 mood（心情仅本人可见）', async () => {
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
+      req.params = { insightId: new mongoose.Types.ObjectId() };
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        userId: fixtures.testUsers.user1,
+        targetUserId: fixtures.testUsers.user2
+      };
+      const populateStub = sandbox.stub();
+      populateStub.returnsThis();
+      populateStub.onCall(4).resolves(mockInsight);
+      InsightStub.findById.returns({ populate: populateStub });
+
+      await insightController.getInsightDetail(req, res, next);
+
+      const checkinPopulate = populateStub.getCall(4).args[0];
+      expect(checkinPopulate.path).to.equal('checkinId');
+      expect(checkinPopulate.select).to.include('-mood');
+    });
+
     it('TC-INSIGHT-012: Insight 不存在返回 404', async () => {
       const insightId = new mongoose.Types.ObjectId();
       req.params = { insightId };

@@ -8,7 +8,7 @@
 }
 
 .share-card {
-  background: white;
+  background: var(--app-paper);
   border-radius: 24rpx;
   padding: 48rpx 32rpx;
   margin-bottom: 48rpx;
@@ -69,4 +69,14 @@
 }
 .share-btn:active {
   transform: translateY(2rpx) scale(0.98);
+}
+
+
+/* Version 3 dawn: 标题印章。 */
+.card-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  font-family: var(--app-font-serif);
 }

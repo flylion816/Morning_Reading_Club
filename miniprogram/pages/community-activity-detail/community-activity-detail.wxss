@@ -1,5 +1,5 @@
 .page-activity-detail {
-  background: #f5f7fa;
+  background: var(--app-page-bg);
   min-height: 100vh;
   padding-bottom: 120rpx;
 }
@@ -37,7 +37,7 @@
 }
 
 .info-card {
-  background: #fff;
+  background: var(--app-paper);
   margin: 20rpx;
   border-radius: 16rpx;
   padding: 32rpx;
@@ -86,7 +86,7 @@
 
 .time-value {
   font-size: 28rpx;
-  color: #444;
+  color: var(--app-text-soft);
 }
 
 .count-row {
@@ -104,7 +104,7 @@
 }
 
 .meeting-card {
-  background: #fff;
+  background: var(--app-paper);
   margin: 0 20rpx 20rpx;
   border-radius: 16rpx;
   padding: 32rpx;
@@ -160,7 +160,7 @@
 }
 
 .my-registration-card {
-  background: #fff;
+  background: var(--app-paper);
   margin: 0 20rpx 20rpx;
   border-radius: 16rpx;
   padding: 28rpx 32rpx;
@@ -206,7 +206,7 @@
 
 .answer-row {
   padding: 12rpx 0;
-  border-bottom: 1rpx solid #f0f2f5;
+  border-bottom: 1rpx solid var(--app-page-bg);
   gap: 24rpx;
 }
 
@@ -227,7 +227,7 @@
 }
 
 .desc-card {
-  background: #fff;
+  background: var(--app-paper);
   margin: 0 20rpx 20rpx;
   border-radius: 16rpx;
   padding: 32rpx;
@@ -254,7 +254,7 @@
   right: 0;
   padding: 20rpx 32rpx;
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-  background: #fff;
+  background: var(--app-paper);
   box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
 }
 
@@ -275,7 +275,7 @@
 
 .action-btn.primary { background: var(--theme-primary); color: #fff; }
 .action-btn.cancel { background: var(--app-surface-muted); color: var(--app-text-soft); }
-.action-btn.disabled { background: #e0e0e0; color: var(--app-text-muted); }
+.action-btn.disabled { background: var(--app-border); color: var(--app-text-muted); }
 .action-btn.loading { opacity: 0.7; }
 
 .share-btn {
@@ -324,7 +324,7 @@
 .form-modal {
   width: 100%;
   max-height: 82vh;
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 28rpx 28rpx 0 0;
   padding: 32rpx;
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
@@ -440,7 +440,7 @@
 }
 
 .form-btn.cancel {
-  background: #f2f4f7;
+  background: var(--app-surface-muted);
   color: var(--app-text-soft);
 }
 
@@ -468,7 +468,7 @@
 }
 
 .pay-modal {
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 24rpx;
   width: 600rpx;
   padding: 40rpx;
@@ -587,7 +587,7 @@
 .info-card,
 .meeting-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .type-tag,
@@ -601,3 +601,7 @@
 .enroll-btn:active {
   transform: translateY(2rpx) scale(0.98);
 }
+
+/* Version 3 dawn: serif activity title, numeric price. */
+.activity-title, .hero-title, .page-title { font-family: var(--app-font-serif); }
+.price-value, .price-current, .activity-price { font-family: var(--app-font-num); }

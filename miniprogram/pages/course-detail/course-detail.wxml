@@ -1,4 +1,4 @@
-<view class="page-course-detail {{isCheckinDetailMode ? 'page-course-detail-detail' : ''}}">
+<view class="page-course-detail {{isCheckinDetailMode ? 'page-course-detail-detail' : ''}} {{communityAccessState !== 'enabled' && !isCheckinDetailMode ? 'page-course-detail-nobar' : ''}}">
   <view wx:if="{{!showPageContent}}" class="course-detail-loading"></view>
   <block wx:else>
   <block wx:if="{{isCheckinDetailMode}}">
@@ -66,13 +66,11 @@
 
     </view>
 
-    <view wx:if="{{detailCheckin}}" class="dynamic-like-strip">
+    <view wx:if="{{detailCheckin && communityAccessState === 'enabled'}}" class="dynamic-like-strip">
       <view class="dynamic-like-pill" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
-        <text class="dynamic-like-pill-icon {{detailCheckin.isLiked ? 'liked' : ''}}">{{detailCheckin.isLiked ? '♥' : '♡'}}</text>
+        <view class="dynamic-like-pill-icon app-icon {{detailCheckin.isLiked ? 'app-icon-heart-fill liked' : 'app-icon-heart'}} {{likePopId === detailCheckin.id ? 'app-heart-pop' : ''}}"></view>
         <view class="like-count" wx:if="{{detailCheckin.likeCount}}">
-          <text class="like-count-bracket">（</text>
           <text class="like-count-number">{{detailCheckin.likeCount}}</text>
-          <text class="like-count-bracket">）</text>
         </view>
         <view class="like-avatars" wx:if="{{detailCheckin.likeAvatars && detailCheckin.likeAvatars.length > 0}}">
           <block wx:for="{{detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -81,13 +79,22 @@
           </block>
         </view>
       </view>
+      <view wx:if="{{detailCheckin.seenAvailable}}" class="seen-btn {{detailCheckin.seenMine ? 'seen-btn-mine' : ''}}" catchtap="openSeenPanel" data-id="{{detailCheckin.id}}">
+        <view class="seen-btn-seal">见</view>
+        <text class="seen-btn-count" wx:if="{{detailCheckin.seenTotal}}">{{detailCheckin.seenTotal}}</text>
+      </view>
     </view>
 
     <view wx:if="{{detailCheckin}}" class="dynamic-comments-block">
       <view class="dynamic-comments-title">全部评论</view>
 
+      <view wx:if="{{commentsLocked}}" class="dynamic-comments-locked">
+        <view class="dynamic-comments-empty-art">🔒</view>
+        <text class="dynamic-comments-empty-text">{{commentsLockedMessage}}</text>
+      </view>
+
       <view
-        wx:if="{{detailCheckin && detailCheckin.replies && detailCheckin.replies.length > 0}}"
+        wx:elif="{{detailCheckin && detailCheckin.replies && detailCheckin.replies.length > 0}}"
         class="replies-list dynamic-replies-list">
         <view
           wx:for="{{detailCheckin.replies}}"
@@ -114,11 +121,9 @@
               <view class="reply-text">{{reply.content}}</view>
               <view class="reply-footer">
                 <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{reply.id}}">
-                  <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '♥' : '♡'}}</text>
+                  <view class="like-icon app-icon {{reply.isLiked ? 'app-icon-heart-fill liked' : 'app-icon-heart'}} {{likePopId === reply.id ? 'app-heart-pop' : ''}}"></view>
                   <view class="like-count" wx:if="{{reply.likeCount}}">
-                    <text class="like-count-bracket">（</text>
                     <text class="like-count-number">{{reply.likeCount}}</text>
-                    <text class="like-count-bracket">）</text>
                   </view>
                   <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
                     <block wx:for="{{reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -170,11 +175,9 @@
                       <view class="nested-reply-text">{{nestedReply.content}}</view>
                       <view class="nested-reply-footer">
                         <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{detailCheckin.id}}" data-reply-id="{{nestedReply.id}}">
-                          <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '♥' : '♡'}}</text>
+                          <view class="like-icon app-icon {{nestedReply.isLiked ? 'app-icon-heart-fill liked' : 'app-icon-heart'}} {{likePopId === nestedReply.id ? 'app-heart-pop' : ''}}"></view>
                           <view class="like-count" wx:if="{{nestedReply.likeCount}}">
-                            <text class="like-count-bracket">（</text>
                             <text class="like-count-number">{{nestedReply.likeCount}}</text>
-                            <text class="like-count-bracket">）</text>
                           </view>
                           <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
                             <block wx:for="{{nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -200,13 +203,27 @@
     </view>
 
     <view wx:if="{{detailCheckin}}" class="dynamic-bottom-bar">
-      <view class="dynamic-bottom-action" bindtap="handleReplyComment" data-id="{{detailCheckin.id}}">评论</view>
+      <view
+        wx:if="{{communityAccessState === 'enabled'}}"
+        class="dynamic-bottom-action"
+        bindtap="handleReplyComment"
+        data-id="{{detailCheckin.id}}">评论</view>
 
-      <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action" bindtap="handleEditCheckin">编辑</view>
-      <view wx:if="{{detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-delete" bindtap="handleDeleteCheckin">删除</view>
+      <view
+        wx:if="{{communityAccessState === 'enabled' && detailCheckin.isOwner}}"
+        class="dynamic-bottom-action"
+        bindtap="handleEditCheckin">编辑</view>
+      <view
+        wx:if="{{communityAccessState === 'enabled' && detailCheckin.isOwner}}"
+        class="dynamic-bottom-action dynamic-bottom-delete"
+        bindtap="handleDeleteCheckin">删除</view>
 
-      <view wx:if="{{!detailCheckin.isOwner}}" class="dynamic-bottom-action dynamic-bottom-like {{detailCheckin.isLiked ? 'dynamic-bottom-liked' : ''}}" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
-        <text>{{detailCheckin.isLiked ? '♥' : '♡'}}</text>
+      <view
+        wx:if="{{communityAccessState === 'enabled' && !detailCheckin.isOwner}}"
+        class="dynamic-bottom-action dynamic-bottom-like {{detailCheckin.isLiked ? 'dynamic-bottom-liked' : ''}}"
+        bindtap="handleLikeComment"
+        data-id="{{detailCheckin.id}}">
+        <view class="dynamic-bottom-like-icon app-icon {{detailCheckin.isLiked ? 'app-icon-heart-fill' : 'app-icon-heart'}} {{likePopId === detailCheckin.id ? 'app-heart-pop' : ''}}"></view>
         <text>点赞</text>
       </view>
 
@@ -226,13 +243,23 @@
       <view class="course-title">{{course.title}}</view>
     </view>
 
+    <view wx:if="{{course.steps.length > 1}}" class="nine-steps" role="navigation" aria-label="课程步骤">
+      <view
+        wx:for="{{course.steps}}"
+        wx:key="id"
+        class="nine-step {{index === currentStepIndex ? 'nine-step-current' : (index < currentStepIndex ? 'nine-step-done' : '')}}"
+        data-index="{{index}}"
+        bindtap="handleStepTap"
+      >{{item.label}}</view>
+    </view>
+
     <view class="notification-reminder" wx:if="{{communityAccessState === 'enabled' && notificationReminder}}">
       <text class="notification-reminder-text">{{notificationReminder}}</text>
       <view class="notification-reminder-link" bindtap="navigateToNotificationSettings">去补充</view>
     </view>
 
     <block wx:if="{{!course.customTemplate}}">
-    <view class="content-section" wx:if="{{course.meditationVisible}}">
+    <view id="section-meditation" class="content-section" wx:if="{{course.meditationVisible}}">
       <view class="section-title">
         <view class="section-icon calm">静</view>
         <text>静一静</text>
@@ -240,7 +267,7 @@
       <view class="section-content"><text user-select>{{course.meditation}}</text></view>
     </view>
 
-    <view class="content-section" wx:if="{{course.questionVisible}}">
+    <view id="section-question" class="content-section" wx:if="{{course.questionVisible}}">
       <view class="section-title">
         <view class="section-icon question">问</view>
         <text>问一问</text>
@@ -248,7 +275,7 @@
       <view class="section-content"><text user-select>{{course.question}}</text></view>
     </view>
 
-    <view class="content-section" wx:if="{{course.learnVisible}}">
+    <view id="section-learn" class="content-section" wx:if="{{course.learnVisible}}">
       <view class="section-title">
         <view class="section-icon learn">学</view>
         <text>学一学</text>
@@ -291,7 +318,7 @@
       </view>
     </view>
 
-    <view class="content-section" wx:if="{{course.lookImageVisible}}">
+    <view id="section-lookImage" class="content-section" wx:if="{{course.lookImageVisible}}">
       <view class="section-title">
         <view class="section-icon look">看</view>
         <text>看一看</text>
@@ -307,7 +334,7 @@
       </view>
     </view>
 
-    <view class="content-section" wx:if="{{course.reflectionVisible}}">
+    <view id="section-reflection" class="content-section" wx:if="{{course.reflectionVisible}}">
       <view class="section-title">
         <view class="section-icon think">想</view>
         <text>想一想</text>
@@ -315,7 +342,7 @@
       <view class="section-content"><text user-select>{{course.reflection}}</text></view>
     </view>
 
-    <view class="content-section" wx:if="{{course.actionVisible}}">
+    <view id="section-action" class="content-section" wx:if="{{course.actionVisible}}">
       <view class="section-title">
         <view class="section-icon write">记</view>
         <text>记一记</text>
@@ -323,7 +350,7 @@
       <view class="section-content"><text user-select>{{course.action}}</text></view>
     </view>
 
-    <view class="content-section" wx:if="{{course.extractVisible}}">
+    <view id="section-extract" class="content-section" wx:if="{{course.extractVisible}}">
       <view class="section-title">
         <view class="section-icon extract">摘</view>
         <text>摘一摘</text>
@@ -331,7 +358,7 @@
       <view class="section-content"><text user-select>{{course.extract}}</text></view>
     </view>
 
-    <view class="content-section" wx:if="{{course.sayVisible}}">
+    <view id="section-say" class="content-section" wx:if="{{course.sayVisible}}">
       <view class="section-title">
         <view class="section-icon share">说</view>
         <text>说一说</text>
@@ -341,7 +368,7 @@
 
     </block>
     <block wx:else>
-      <view wx:for="{{course.dynamicModules}}" wx:key="id" class="content-section" id="{{item.type === 'body' ? 'reading-section' : ''}}">
+      <view wx:for="{{course.dynamicModules}}" wx:key="id" class="content-section" id="{{item.type === 'body' ? 'reading-section' : 'section-dyn-' + index}}">
         <view class="section-title">
           <view class="section-icon read">{{index + 1}}</view><text>{{item.name}}</text>
           <block wx:if="{{item.type === 'body'}}">
@@ -449,6 +476,7 @@
         <text class="comments-title">每日打卡</text>
         <text class="comments-count" wx:if="{{course.comments && course.comments.length}}">（{{course.comments.length}} 条）</text>
       </view>
+      <view wx:if="{{moodSummaryText}}" class="mood-summary-line">{{moodSummaryText}}</view>
 
       <view class="comments-list">
         <view
@@ -495,11 +523,9 @@
             </view>
             <view class="comment-footer">
               <view class="comment-like" catchtap="handleLikeComment" data-id="{{item.id}}">
-                <text class="like-icon {{item.isLiked ? 'liked' : ''}}">{{item.isLiked ? '♥' : '♡'}}</text>
+                <view class="like-icon app-icon {{item.isLiked ? 'app-icon-heart-fill liked' : 'app-icon-heart'}} {{likePopId === item.id ? 'app-heart-pop' : ''}}"></view>
                 <view class="like-count" wx:if="{{item.likeCount}}">
-                  <text class="like-count-bracket">（</text>
                   <text class="like-count-number">{{item.likeCount}}</text>
-                  <text class="like-count-bracket">）</text>
                 </view>
                 <view class="like-avatars" wx:if="{{item.displayLikeAvatars && item.displayLikeAvatars.length > 0}}">
                   <block wx:for="{{item.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -507,6 +533,10 @@
                     <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || themePrimaryColor}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
                   </block>
                 </view>
+              </view>
+              <view wx:if="{{item.seenAvailable}}" class="seen-btn {{item.seenMine ? 'seen-btn-mine' : ''}}" catchtap="openSeenPanel" data-id="{{item.id}}">
+                <view class="seen-btn-seal">见</view>
+                <text class="seen-btn-count" wx:if="{{item.seenTotal}}">{{item.seenTotal}}</text>
               </view>
               <view class="comment-actions-right">
                 <view class="comment-reply" catchtap="handleReplyComment" data-id="{{item.id}}">
@@ -542,11 +572,9 @@
                     <view class="reply-text"><text user-select>{{reply.content}}</text></view>
                     <view class="reply-footer" style="pointer-events: auto;">
                       <view class="reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}" style="pointer-events: auto;">
-                        <text class="like-icon {{reply.isLiked ? 'liked' : ''}}">{{reply.isLiked ? '♥' : '♡'}}</text>
+                        <view class="like-icon app-icon {{reply.isLiked ? 'app-icon-heart-fill liked' : 'app-icon-heart'}} {{likePopId === reply.id ? 'app-heart-pop' : ''}}"></view>
                         <view class="like-count" wx:if="{{reply.likeCount}}">
-                          <text class="like-count-bracket">（</text>
                           <text class="like-count-number">{{reply.likeCount}}</text>
-                          <text class="like-count-bracket">）</text>
                         </view>
                         <view class="like-avatars" wx:if="{{reply.displayLikeAvatars && reply.displayLikeAvatars.length > 0}}">
                           <block wx:for="{{reply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -587,11 +615,9 @@
                             <view class="nested-reply-text"><text user-select>{{nestedReply.content}}</text></view>
                             <view class="nested-reply-footer" style="pointer-events: auto;">
                               <view class="nested-reply-like" bindtap="handleLikeReply" data-comment-id="{{item.id}}" data-reply-id="{{nestedReply.id}}" style="pointer-events: auto;">
-                                <text class="like-icon {{nestedReply.isLiked ? 'liked' : ''}}">{{nestedReply.isLiked ? '♥' : '♡'}}</text>
+                                <view class="like-icon app-icon {{nestedReply.isLiked ? 'app-icon-heart-fill liked' : 'app-icon-heart'}} {{likePopId === nestedReply.id ? 'app-heart-pop' : ''}}"></view>
                                 <view class="like-count" wx:if="{{nestedReply.likeCount}}">
-                                  <text class="like-count-bracket">（</text>
                                   <text class="like-count-number">{{nestedReply.likeCount}}</text>
-                                  <text class="like-count-bracket">）</text>
                                 </view>
                                 <view class="like-avatars" wx:if="{{nestedReply.displayLikeAvatars && nestedReply.displayLikeAvatars.length > 0}}">
                                   <block wx:for="{{nestedReply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
@@ -624,10 +650,11 @@
       </view>
     </view>
 
-    <view class="fixed-buttons {{communityAccessState !== 'enabled' ? 'single-action' : ''}}">
-      <button class="btn-back {{communityAccessState !== 'enabled' ? 'full-width' : ''}}" bindtap="handleBack">返回</button>
+    <view wx:if="{{communityAccessState === 'enabled'}}" class="fixed-buttons">
+      <button wx:if="{{course.podcastUrl}}" class="btn-podcast" aria-label="播客" bindtap="handlePodcastPlay">
+        <view class="app-icon app-icon-headphone"></view>
+      </button>
       <button
-        wx:if="{{communityAccessState === 'enabled'}}"
         class="btn-checkin {{hasUserCheckedIn ? 'disabled' : ''}}"
         bindtap="handleCheckin"
         disabled="{{hasUserCheckedIn}}">
@@ -716,4 +743,20 @@
     class="checkin-share-cover-canvas"></canvas>
 </view>
 
-<podcast-player-bar bottom-offset="160" />
+<view wx:if="{{seenPanelId}}" class="seen-panel-mask" catchtap="closeSeenPanel">
+  <view class="seen-panel" catchtap="noop">
+    <view class="seen-panel-title">送一句看见</view>
+    <view
+      wx:for="{{seenPhrases}}"
+      wx:key="key"
+      class="seen-phrase {{seenPanelMine === item.key ? 'seen-phrase-on' : ''}}"
+      catchtap="chooseSeenPhrase"
+      data-key="{{item.key}}">
+      <view class="seen-phrase-seal">{{item.seal}}</view>
+      <text class="seen-phrase-text">{{item.text}}</text>
+    </view>
+    <view wx:if="{{seenPanelError}}" class="seen-panel-error">{{seenPanelError}}</view>
+  </view>
+</view>
+
+<podcast-player-bar bottom-offset="{{communityAccessState === 'enabled' && !isCheckinDetailMode ? 160 : 0}}" />

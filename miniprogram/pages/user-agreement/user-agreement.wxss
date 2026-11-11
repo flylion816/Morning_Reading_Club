@@ -38,7 +38,7 @@ page {
 }
 
 .section {
-  background: white;
+  background: var(--app-paper);
   border-radius: 12rpx;
   padding: 20rpx;
   margin-bottom: 16rpx;
@@ -48,7 +48,7 @@ page {
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--app-text);
   margin-bottom: 12rpx;
   padding-bottom: 8rpx;
   border-bottom: 2rpx solid var(--theme-primary);
@@ -72,7 +72,7 @@ page {
 .footer {
   padding: 20rpx;
   border-top: 1rpx solid var(--app-border);
-  background: white;
+  background: var(--app-paper);
   flex-shrink: 0;
 }
 

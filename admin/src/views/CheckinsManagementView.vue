@@ -499,12 +499,6 @@
               {{ selectedCheckin.completionRate }}%
             </el-descriptions-item>
 
-            <el-descriptions-item label="心情">
-              <el-tag v-if="selectedCheckin.mood" :type="getMoodColor(selectedCheckin.mood)">
-                {{ getMoodLabel(selectedCheckin.mood) }}
-              </el-tag>
-            </el-descriptions-item>
-
             <el-descriptions-item label="积分">
               {{ selectedCheckin.points }}
             </el-descriptions-item>
@@ -711,7 +705,6 @@ interface Checkin {
   completionRate: number;
   note: string;
   images: string[];
-  mood: string;
   points: number;
   isPublic: boolean;
   isFeatured: boolean;
@@ -783,28 +776,6 @@ const formatDate = (date: string) => {
     hour: '2-digit',
     minute: '2-digit'
   });
-};
-
-const getMoodColor = (mood: string) => {
-  const colors: Record<string, string> = {
-    happy: 'success',
-    calm: 'info',
-    thoughtful: 'warning',
-    inspired: 'success',
-    other: 'info'
-  };
-  return colors[mood] || 'info';
-};
-
-const getMoodLabel = (mood: string) => {
-  const labels: Record<string, string> = {
-    happy: '😊 开心',
-    calm: '😌 平静',
-    thoughtful: '🤔 沉思',
-    inspired: '✨ 灵感',
-    other: '🤷 其他'
-  };
-  return labels[mood] || mood;
 };
 
 const handleSearch = () => {

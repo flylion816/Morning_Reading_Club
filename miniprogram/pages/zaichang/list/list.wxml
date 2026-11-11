@@ -13,9 +13,9 @@
 
   <view class="list">
     <block wx:if="{{list.length === 0 && !loading}}">
-      <view class="empty">
-        <text class="empty-icon">🌱</text>
-        <text class="empty-text">还没有印记，来留下第一个吧</text>
+      <view class="app-empty">
+        <view class="app-empty-art app-empty-art-sprout"></view>
+        <text class="app-empty-title">还没有印记，留下第一个吧</text>
       </view>
     </block>
 
@@ -70,6 +70,10 @@
             </view>
           </block>
         </block>
+        <view wx:if="{{item._stampDate}}" class="zc-mark">
+          <text class="zc-mark-date">{{item._stampDate}}</text>
+          <text wx:if="{{item._stampPlace}}" class="zc-mark-place">{{item._stampPlace}}</text>
+        </view>
       </view>
 
       <view class="info">
@@ -86,22 +90,31 @@
             </view>
           </view>
         </block>
-        <text wx:if="{{item.attendees.length > 8}}" class="attendees-more">+{{item.attendees.length - 8}}</text>
+        <text class="attendees-more">{{item.attendees.length}} 人在场</text>
       </view>
 
       <view class="footer">
         <view class="author">
-          <text class="author-name">{{item.author && item.author.nickname}}</text>
-          <text class="author-meta">{{item._happenedAtFormatted}}{{item.location ? ' · ' + item.location : ''}}</text>
+          <text class="author-name">{{item.author && item.author.nickname}}{{item._stampDate ? ' 留下' : ''}}</text>
+          <text wx:if="{{!item._stampDate}}" class="author-meta">{{item._happenedAtFormatted}}{{item.location ? ' · ' + item.location : ''}}</text>
         </view>
         <view class="stats">
-          <text class="stat-item">🌱 {{item._totalReactions}}</text>
-          <text class="stat-item">💬 {{item.commentCount}}</text>
+          <view class="stat-item"><view class="app-seal app-seal-sm">鸣</view><text>{{item._totalReactions}}</text></view>
+          <view class="stat-item"><view class="app-icon app-icon-comment"></view><text>{{item.commentCount}}</text></view>
         </view>
       </view>
     </view>
 
-    <view wx:if="{{loading}}" class="loading-tip">加载中...</view>
+    <view wx:if="{{loading && list.length === 0}}" class="loading-skeleton">
+      <view class="dawn-skeleton-list">
+        <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+          <view class="app-skeleton-line dawn-sk-w60"></view>
+          <view class="app-skeleton-line dawn-sk-w90"></view>
+          <view class="app-skeleton-line dawn-sk-w40"></view>
+        </view>
+      </view>
+    </view>
+    <view wx:elif="{{loading}}" class="loading-tip">加载中...</view>
     <view wx:if="{{!hasMore && list.length > 0}}" class="no-more">已经到底了</view>
   </view>
 

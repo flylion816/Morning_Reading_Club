@@ -168,14 +168,63 @@
       "pages": [
         "members"
       ]
+    },
+    {
+      "name": "slow-mail",
+      "root": "pages/slow-mail",
+      "pages": [
+        "slow-mail"
+      ]
+    },
+    {
+      "name": "keepsake",
+      "root": "pages/keepsake",
+      "pages": [
+        "keepsake"
+      ]
+    },
+    {
+      "name": "highlights",
+      "root": "pages/highlights",
+      "pages": [
+        "highlights"
+      ]
+    },
+    {
+      "name": "seen-received",
+      "root": "pages/seen-received",
+      "pages": [
+        "seen-received"
+      ]
+    },
+    {
+      "name": "practice",
+      "root": "pages/practice",
+      "pages": [
+        "practice"
+      ]
+    },
+    {
+      "name": "buddy",
+      "root": "pages/buddy",
+      "pages": [
+        "buddy"
+      ]
+    },
+    {
+      "name": "daily-card",
+      "root": "pages/daily-card",
+      "pages": [
+        "daily-card"
+      ]
     }
   ],
   "window": {
     "navigationBarTitleText": "凡人共读",
-    "navigationBarBackgroundColor": "#4a90e2",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#f5f5f5",
-    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fffdf8",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f6f1e7",
+    "backgroundTextStyle": "dark",
     "enablePullDownRefresh": true
   },
   "requiredBackgroundModes": [
@@ -184,8 +233,8 @@
   "tabBar": {
     "color": "#999999",
     "selectedColor": "#4a90e2",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "backgroundColor": "#fffdf8",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",

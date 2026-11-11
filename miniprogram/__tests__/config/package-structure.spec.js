@@ -114,6 +114,41 @@ const expectedSubPackages = [
     name: 'members',
     root: 'pages/members',
     pages: ['members']
+  },
+  {
+    name: 'slow-mail',
+    root: 'pages/slow-mail',
+    pages: ['slow-mail']
+  },
+  {
+    name: 'keepsake',
+    root: 'pages/keepsake',
+    pages: ['keepsake']
+  },
+  {
+    name: 'highlights',
+    root: 'pages/highlights',
+    pages: ['highlights']
+  },
+  {
+    name: 'seen-received',
+    root: 'pages/seen-received',
+    pages: ['seen-received']
+  },
+  {
+    name: 'practice',
+    root: 'pages/practice',
+    pages: ['practice']
+  },
+  {
+    name: 'buddy',
+    root: 'pages/buddy',
+    pages: ['buddy']
+  },
+  {
+    name: 'daily-card',
+    root: 'pages/daily-card',
+    pages: ['daily-card']
   }
 ];
 

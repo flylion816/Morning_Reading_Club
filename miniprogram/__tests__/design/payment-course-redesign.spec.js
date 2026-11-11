@@ -41,7 +41,7 @@ describe('payment and course page redesign', () => {
   test('course shortcuts use the shared glyph language instead of emoji', () => {
     const markup = read('miniprogram/pages/courses/courses.wxml');
 
-    ['排行榜', '打卡记录', '同修'].forEach(title => {
+    ['同行榜', '打卡记录', '同修'].forEach(title => {
       expect(markup).toContain(`>${title}</text>`);
     });
     ['🏆', '📅', '👥'].forEach(emoji => {
@@ -59,7 +59,7 @@ describe('payment and course page redesign', () => {
     const taskEmptyEnd = markup.indexOf('</view>', taskEmptyStart);
     const taskEmpty = markup.slice(taskEmptyStart, taskEmptyEnd);
 
-    expect(taskEmpty).toContain('暂无课程');
+    expect(taskEmpty).toContain('这一期的课程还在准备中');
     expect(taskEmpty).not.toContain('empty-state-icon');
     expect(markup).toContain('wx:if="{{sections.length > 0 && communityAccessState === \'enabled\'}}"');
     expect(markup).not.toContain('empty-state-icon">📚');

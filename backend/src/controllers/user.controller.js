@@ -4,6 +4,7 @@ const Checkin = require('../models/Checkin');
 const Enrollment = require('../models/Enrollment');
 const { success, errors } = require('../utils/response');
 const { getCurrentTenantId } = require('../utils/tenantContext');
+const { computeDayMetrics } = require('../utils/checkin-day-metrics');
 const { publishSyncEvent } = require('../services/sync.service');
 const subscribeMessageService = require('../services/subscribe-message.service');
 
@@ -12,6 +13,18 @@ function buildParticipatingEnrollmentQuery(userId) {
     userId,
     status: { $in: ['active', 'completed'] },
     deleted: { $ne: true }
+  };
+}
+
+// 打卡口径：按东八区自然日去重（租户隔离由 Checkin 的 tenantPlugin 对 find 自动生效）
+async function getCheckinDayStats(userId) {
+  const checkins = await Checkin.find({ userId }).select('checkinDate').lean();
+  const metrics = computeDayMetrics(checkins.map(item => item.checkinDate));
+  return {
+    totalCheckins: checkins.length,
+    totalCheckinDays: metrics.totalDays,
+    currentStreak: metrics.currentStreak,
+    maxStreak: metrics.maxStreak
   };
 }
 
@@ -35,8 +48,8 @@ async function getCurrentUser(req, res, next) {
       return res.status(403).json(errors.forbidden('用户已被禁用'));
     }
 
-    const [actualCheckinCount, enrollmentPeriodCount] = await Promise.all([
-      Checkin.countDocuments({ userId }),
+    const [checkinStats, enrollmentPeriodCount] = await Promise.all([
+      getCheckinDayStats(userId),
       Enrollment.countDocuments(buildParticipatingEnrollmentQuery(userId))
     ]);
 
@@ -49,9 +62,10 @@ async function getCurrentUser(req, res, next) {
         avatarUrl: user.avatarUrl,
         signature: user.signature,
         gender: user.gender,
-        totalCheckinDays: actualCheckinCount,
-        currentStreak: user.currentStreak,
-        maxStreak: user.maxStreak,
+        totalCheckinDays: checkinStats.totalCheckinDays,
+        totalCheckins: checkinStats.totalCheckins,
+        currentStreak: checkinStats.currentStreak,
+        maxStreak: checkinStats.maxStreak,
         totalCompletedPeriods: enrollmentPeriodCount,
         totalPoints: user.totalPoints,
         level: user.level,
@@ -152,8 +166,8 @@ async function getUserById(req, res, next) {
       return res.status(403).json(errors.forbidden('用户已被禁用'));
     }
 
-    const [actualCheckinCount, enrollmentPeriodCount] = await Promise.all([
-      Checkin.countDocuments({ userId }),
+    const [checkinStats, enrollmentPeriodCount] = await Promise.all([
+      getCheckinDayStats(userId),
       Enrollment.countDocuments(buildParticipatingEnrollmentQuery(userId))
     ]);
 
@@ -165,9 +179,10 @@ async function getUserById(req, res, next) {
         avatar: user.avatar,
         signature: user.signature,
         gender: user.gender,
-        totalCheckinDays: actualCheckinCount,
-        currentStreak: user.currentStreak,
-        maxStreak: user.maxStreak,
+        totalCheckinDays: checkinStats.totalCheckinDays,
+        totalCheckins: checkinStats.totalCheckins,
+        currentStreak: checkinStats.currentStreak,
+        maxStreak: checkinStats.maxStreak,
         totalCompletedPeriods: enrollmentPeriodCount,
         totalPoints: user.totalPoints,
         level: user.level,
@@ -195,16 +210,17 @@ async function getUserStats(req, res, next) {
     }
 
     // 根据实际记录计算统计值（不依赖可能不准确的用户缓存字段）
-    const [actualCheckinCount, enrollmentPeriodCount] = await Promise.all([
-      Checkin.countDocuments({ userId }),
+    const [checkinStats, enrollmentPeriodCount] = await Promise.all([
+      getCheckinDayStats(userId),
       Enrollment.countDocuments(buildParticipatingEnrollmentQuery(userId))
     ]);
 
     res.json(
       success({
-        totalCheckinDays: actualCheckinCount,
-        currentStreak: user.currentStreak,
-        maxStreak: user.maxStreak,
+        totalCheckinDays: checkinStats.totalCheckinDays,
+        totalCheckins: checkinStats.totalCheckins,
+        currentStreak: checkinStats.currentStreak,
+        maxStreak: checkinStats.maxStreak,
         totalCompletedPeriods: enrollmentPeriodCount,
         totalPoints: user.totalPoints,
         level: user.level

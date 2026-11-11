@@ -1,0 +1,73 @@
+<view class="page">
+  <view class="head">
+    <view class="app-seal">修</view>
+    <text class="head-title">本周实修</text>
+    <text class="head-range" wx:if="{{rangeText}}">{{rangeText}}</text>
+  </view>
+
+  <view wx:if="{{status === 'loading'}}" class="block">
+    <view class="app-skeleton"></view>
+    <view class="app-skeleton-line sk-line"></view>
+  </view>
+
+  <view wx:elif="{{status === 'error'}}" class="app-empty block">
+    <text class="app-empty-title">这一页暂时没打开</text>
+    <text class="app-empty-action" bindtap="onRetry">再试一次</text>
+  </view>
+
+  <view wx:elif="{{status === 'inactive'}}" class="app-empty block">
+    <view class="app-empty-art app-empty-art-book"></view>
+    <text class="app-empty-title">这一期现在没有进行中的一周</text>
+    <text class="quiet">期次开始后，再来给自己定一个小行动。</text>
+  </view>
+
+  <block wx:else>
+    <view wx:if="{{!practice || editing}}" class="app-card card">
+      <text class="guide">给这一周定一个小到一定做得到的行动</text>
+      <view class="suggest-list" wx:if="{{suggestions.length}}">
+        <text class="app-chip suggest" wx:for="{{suggestions}}" wx:key="*this" data-text="{{item}}" bindtap="onPickSuggestion">{{item}}</text>
+      </view>
+      <input class="draft" value="{{draft}}" maxlength="30" placeholder="比如：先听完再开口" placeholder-class="ph" bindinput="onDraftInput" />
+      <view class="app-btn-primary confirm" bindtap="onConfirmPractice">确认</view>
+    </view>
+
+    <block wx:else>
+      <view class="app-card card">
+        <text class="practice-text">{{practice.text}}</text>
+        <text class="edit" bindtap="onEdit">改一改</text>
+      </view>
+
+      <view class="app-card card">
+        <text class="sub-title">今天</text>
+        <view class="choices">
+          <view class="choice {{todayDone === true ? 'choice-done' : ''}}" data-done="{{true}}" bindtap="onChooseToday">做到了</view>
+          <view class="choice {{todayDone === false ? 'choice-rest' : ''}}" data-done="{{false}}" bindtap="onChooseToday">今天没有</view>
+        </view>
+        <input class="note" value="{{todayNote}}" maxlength="60" placeholder="想补一句话也可以" placeholder-class="ph" bindinput="onNoteInput" />
+        <view class="dots">
+          <view class="dot-col" wx:for="{{dots}}" wx:key="date">
+            <view class="dot dot-{{item.state}}"></view>
+            <text class="dot-label {{item.isToday ? 'dot-label-today' : ''}}">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="history">
+      <view class="history-head" bindtap="onToggleHistory">
+        <text>往周</text>
+        <text class="quiet">{{historyOpen ? '收起' : '展开'}}</text>
+      </view>
+      <block wx:if="{{historyOpen}}">
+        <text class="quiet" wx:if="{{!history.length}}">还没有往周的记录。</text>
+        <view class="history-item" wx:for="{{history}}" wx:key="weekIndex">
+          <text class="history-range">第{{item.weekIndex}}周 {{item.rangeText}}</text>
+          <text class="history-text">{{item.text}}</text>
+          <view class="dots dots-small">
+            <view class="dot dot-{{dot.state}}" wx:for="{{item.dots}}" wx:for-item="dot" wx:key="date"></view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>

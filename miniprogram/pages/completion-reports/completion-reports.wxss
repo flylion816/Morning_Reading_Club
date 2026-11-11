@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 20rpx;
-  background: #ffffff;
+  background: var(--app-paper);
   border-radius: 12rpx;
   padding: 28rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
@@ -105,7 +105,7 @@
 }
 .report-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .report-card-status {
@@ -114,3 +114,39 @@
 .report-card:active {
   transform: translateY(2rpx) scale(0.99);
 }
+
+/* Version 3 dawn: 线性图标替代 emoji，报告标题用衬线体 */
+.report-title,
+.report-name {
+  font-family: var(--app-font-serif);
+}
+.report-card-title {
+  font-family: var(--app-font-serif);
+}
+
+.app-empty { margin: 80rpx 24rpx 0; }
+
+.dawn-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dawn-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 28rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+.dawn-sk-w60 { width: 60%; }
+.dawn-sk-w90 { width: 90%; }
+.dawn-sk-w40 { width: 40%; }
+
+.state-block-skeleton { padding: 0; background: transparent; box-shadow: none; }
+.state-block-skeleton { min-height: 0; display: block; align-items: stretch; }

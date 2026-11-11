@@ -83,7 +83,7 @@
 
 /* 内容预览（未展开） */
 .content-preview {
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
@@ -150,7 +150,7 @@
 }
 
 .content-section {
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
@@ -243,7 +243,7 @@
 
 /* 日记输入区域 */
 .diary-input-section {
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
@@ -251,16 +251,16 @@
 
 .rich-editor-wrap {
   width: 100%;
-  border: 2rpx solid #edf1f6;
+  border: 2rpx solid var(--app-rule);
   border-radius: 12rpx;
-  background: #fff;
+  background: var(--app-paper);
   overflow: hidden;
   box-sizing: border-box;
 }
 
 .editor-toolbar {
-  border-bottom: 1rpx solid #edf1f6;
-  background: #fbfcfe;
+  border-bottom: 1rpx solid var(--app-rule);
+  background: var(--app-paper-muted);
 }
 
 .toolbar-scroll {
@@ -281,12 +281,12 @@
   width: 56rpx;
   height: 56rpx;
   border-radius: 8rpx;
-  background: #f2f5f9;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #2f3b4a;
+  color: var(--app-text);
 }
 
 .tool-btn-active,
@@ -320,7 +320,7 @@
 .toolbar-divider {
   width: 1rpx;
   height: 36rpx;
-  background: #e4eaf2;
+  background: var(--app-rule);
   margin: 0 4rpx;
   flex-shrink: 0;
 }
@@ -329,8 +329,8 @@
   width: 42rpx;
   height: 42rpx;
   border-radius: 50%;
-  border: 4rpx solid #fff;
-  box-shadow: 0 0 0 1rpx #d7e0eb;
+  border: 4rpx solid var(--app-paper);
+  box-shadow: 0 0 0 1rpx var(--app-rule);
   flex-shrink: 0;
 }
 
@@ -369,15 +369,15 @@
   margin-bottom: 28rpx;
   padding: 22rpx 24rpx;
   border-radius: 12rpx;
-  background: #fbfcfe;
-  border: 1rpx solid #e7edf5;
+  background: var(--app-paper-muted);
+  border: 1rpx solid var(--app-border);
   box-sizing: border-box;
 }
 
 .rich-preview-title {
   margin-bottom: 14rpx;
   font-size: 24rpx;
-  color: #7a8796;
+  color: var(--app-text-muted);
   font-weight: 600;
 }
 
@@ -430,7 +430,7 @@
   aspect-ratio: 1 / 1;
   border-radius: 12rpx;
   overflow: hidden;
-  background: #f4f7fb;
+  background: var(--app-surface-muted);
 }
 
 .checkin-image-thumb {
@@ -492,7 +492,7 @@
 
 .exit-modal {
   width: 100%;
-  background: white;
+  background: var(--app-paper);
   border-radius: 32rpx 32rpx 0 0;
   padding: 48rpx 32rpx 64rpx;
 }
@@ -507,7 +507,7 @@
 
 .exit-modal-desc {
   font-size: 26rpx;
-  color: #888;
+  color: var(--app-text-muted);
   text-align: center;
   margin-bottom: 40rpx;
 }
@@ -586,12 +586,12 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--app-paper);
   padding: 20rpx 24rpx calc(20rpx + constant(safe-area-inset-bottom));
   padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
   display: flex;
   gap: 20rpx;
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4rpx 16rpx rgba(60, 42, 20, 0.08);
   z-index: 100;
 }
 
@@ -1148,7 +1148,7 @@
 .editor-card,
 .section-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: var(--app-border);
   box-shadow: var(--app-shadow-soft);
 }
 .choice-card:active,
@@ -1165,4 +1165,259 @@
 }
 .custom-nav {
   background: linear-gradient(145deg, var(--theme-primary), var(--theme-primary-dark));
+}
+
+
+/* Version 3 dawn: 纸色页眉、暖纸编辑区、安静的次要按钮 */
+.custom-nav {
+  background: var(--app-paper);
+  padding-bottom: 6rpx;
+}
+.custom-nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, var(--app-dawn), transparent);
+}
+.nav-back-arrow {
+  border-left-color: var(--app-text);
+  border-bottom-color: var(--app-text);
+}
+.nav-title-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.nav-title {
+  flex: none;
+  color: var(--app-text);
+}
+.nav-subtitle {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  margin-top: 4rpx;
+}
+.nav-subtitle-text {
+  min-width: 0;
+  margin-left: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 22rpx;
+  color: var(--app-text-muted);
+}
+.course-title {
+  font-family: var(--app-font-serif);
+}
+.content-preview,
+.content-section,
+.diary-input-section {
+  border: 1rpx solid var(--app-border);
+}
+.tool-btn {
+  background: transparent;
+  color: var(--app-text);
+}
+.tool-btn-active,
+.tool-btn:active {
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+}
+.rich-editor {
+  color: var(--app-text);
+}
+.checkin-image-add {
+  border: 1rpx dashed var(--app-rule);
+}
+.bottom-buttons {
+  border-top: 1rpx solid var(--app-border);
+}
+.btn-cancel {
+  background: var(--app-paper);
+  color: var(--app-text-muted);
+  border: 1rpx solid var(--app-rule);
+}
+.exit-btn-stay {
+  background: var(--app-paper-muted);
+}
+
+
+/* Version 3 dawn: 打卡成功的晨光仪式（样式 C），整屏日出，太阳升起后露出上半圆 */
+.cel-C {
+  background: linear-gradient(180deg, #f9d7ae 0%, #fbe6c9 38%, #fdf3e3 100%);
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.cel-rite {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  text-align: center;
+  color: var(--app-text);
+}
+.cel-rite-sun {
+  position: absolute;
+  left: 50%;
+  top: calc(54% - 347rpx);
+  width: 375rpx;
+  height: 375rpx;
+  margin-left: -187rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffd08a 0%, #f6a94f 62%, #ee9b45 100%);
+  box-shadow: 0 0 0 55rpx rgba(255, 200, 130, 0.28), 0 0 0 125rpx rgba(255, 200, 130, 0.14);
+  animation: cel-rite-sunrise 1.2s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+@keyframes cel-rite-sunrise {
+  from { transform: translateY(300rpx); opacity: 0.4; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.cel-rite-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 54%;
+  bottom: 0;
+  background: var(--app-paper);
+  border-top: 1rpx solid rgba(138, 75, 18, 0.18);
+}
+.cel-rite-day {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 12%;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  animation: cel-fade-up 0.5s ease 0.5s both;
+}
+.cel-rite-day-word {
+  font-family: var(--app-font-serif);
+  font-size: 38rpx;
+  color: var(--app-dawn-ink);
+  letter-spacing: 0.3em;
+}
+.cel-rite-day-num {
+  font-family: var(--app-font-num);
+  font-size: 190rpx;
+  line-height: 1;
+  color: var(--app-text);
+  margin: 0 12rpx;
+}
+.cel-rite-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58%;
+  padding: 0 65rpx;
+  animation: cel-fade-up 0.5s ease 0.8s both;
+}
+.cel-rite-title {
+  font-family: var(--app-font-serif);
+  font-size: 48rpx;
+  letter-spacing: 0.06em;
+  color: var(--app-text);
+}
+.cel-rite-say {
+  margin-top: 24rpx;
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  line-height: 1.7;
+  white-space: pre-line;
+  color: var(--app-text-muted);
+}
+.cel-rite-btn {
+  margin: 56rpx auto 0;
+  width: 80%;
+  padding: 28rpx 0;
+  border-radius: 48rpx;
+  background: var(--theme-primary);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cel-rite-sun {
+    animation: none;
+  }
+}
+
+/* Features: 心情天气选择、仪式名次与日签入口 */
+.mood-section {
+  margin-top: 32rpx;
+}
+.mood-label {
+  display: block;
+  font-size: 28rpx;
+  color: var(--app-text);
+  margin-bottom: 20rpx;
+}
+.mood-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.mood-option {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 10rpx 22rpx 10rpx 12rpx;
+  border-radius: 40rpx;
+  border: 1rpx solid var(--app-line, #e8dfd0);
+  background: var(--app-paper);
+  color: var(--app-text-muted);
+  font-size: 24rpx;
+}
+.mood-option.active {
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+}
+.mood-seal {
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  text-align: center;
+  border-radius: 10rpx;
+  background: var(--theme-primary);
+  color: #ffffff;
+  font-family: var(--app-font-serif);
+  font-size: 22rpx;
+  opacity: 0.45;
+}
+.mood-option.active .mood-seal {
+  opacity: 1;
+}
+.mood-hint {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: var(--app-text-muted);
+  opacity: 0.7;
+}
+.cel-rite-rank {
+  margin-top: 28rpx;
+  font-size: 26rpx;
+  color: var(--app-text-muted);
+}
+.cel-rite-rank-num {
+  font-family: var(--app-font-num);
+  font-size: 32rpx;
+  color: var(--theme-primary);
+  padding: 0 4rpx;
+}
+.cel-rite-card {
+  margin-top: 28rpx;
+  font-size: 26rpx;
+  color: var(--app-text-muted);
+  text-decoration: underline;
 }

@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd \\\"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/backend/src\\\" && grep -nE \\\"^exports\\\\.(createInsightManual|updateInsight|deleteInsight|getSectionInsightsForAdmin|getMobileAdm...",
+  "error": "Exit code 1\n######## createInsightManual @ \nsed: 1: \",75p\n\": invalid command code ,\n######## updateInsight @ \nsed: 1: \",75p\n\": invalid command code ,\n######## getSectionInsightsForAdmin @ \nsed: 1: \",75p\n\": invalid command code ,",
+  "timestamp": "2026-10-25T00:42:55.905Z",
+  "retry_count": 1
+}

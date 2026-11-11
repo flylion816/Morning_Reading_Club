@@ -58,7 +58,7 @@
 .overview-card, .content-card {
   margin: 0 24rpx 22rpx;
   border-radius: 20rpx;
-  background: #fff;
+  background: var(--app-paper);
   box-shadow: 0 10rpx 30rpx rgba(36,53,42,.07);
 }
 
@@ -80,7 +80,7 @@
 .description-text { color: var(--app-text-soft); font-size: 26rpx; line-height: 1.85; }
 
 .outline-item { display: flex; align-items: center; min-height: 84rpx; padding: 16rpx 0; }
-.outline-item + .outline-item { border-top: 1rpx solid #f0f2ee; }
+.outline-item + .outline-item { border-top: 1rpx solid var(--app-border); }
 .outline-day { flex: 0 0 70rpx; width: 70rpx; height: 70rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 14rpx; background: var(--theme-primary-soft); color: var(--theme-primary); }
 .outline-day-label { font-size: 16rpx; letter-spacing: 2rpx; }
 .outline-day-number { margin-top: 3rpx; font-size: 28rpx; font-weight: 700; line-height: 1; }
@@ -122,7 +122,7 @@
 .overview-card,
 .content-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .enroll-btn,
@@ -134,3 +134,7 @@
 .action-btn:active {
   transform: translateY(2rpx) scale(0.98);
 }
+
+/* Version 3 dawn: serif period name, seal fallback on hero. */
+.hero-title { font-family: var(--app-font-serif); }
+.hero-seal { color: #fff; background: rgba(255, 255, 255, 0.16); }

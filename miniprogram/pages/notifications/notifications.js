@@ -16,6 +16,13 @@ const { THEME_PRIMARY } = require('../../utils/theme');
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 const websocketService = websocketServiceModule.default || websocketServiceModule;
 
+// 新增通知类型的展示（线性印章字 + 类型名），不依赖 notification.service
+const FEATURE_TYPE_META = {
+  letter_delivered: { icon: '信', label: '慢递邮局' },
+  seen_received: { icon: '见', label: '被看见' },
+  buddy_nudge: { icon: '伴', label: '读伴' }
+};
+
 function buildQueryString(params = {}) {
   return Object.entries(params)
     .filter(([, value]) => value !== null && value !== undefined && value !== '')
@@ -262,7 +269,7 @@ Page({
     const periodId = this.getNotificationPeriodId(notification);
     const targetUser = this.getNotificationTargetUser(notification);
 
-    if (sectionId && checkinId && (type === 'comment_received' || type === 'like_received')) {
+    if (sectionId && checkinId && ['comment_received', 'like_received', 'seen_received'].includes(type)) {
       const query = buildQueryString({
         id: sectionId,
         checkinId,
@@ -271,6 +278,10 @@ Page({
         replyId
       });
       return `pages/course-detail/course-detail?${query}`;
+    }
+
+    if (type === 'letter_delivered' && periodId) {
+      return `pages/slow-mail/slow-mail?periodId=${encodeURIComponent(periodId)}`;
     }
 
     if (['request_approved', 'admin_approved'].includes(type) && targetUser.userId) {
@@ -299,6 +310,9 @@ Page({
     const actionTextMap = {
       comment_received: '查看打卡详情',
       like_received: '查看打卡详情',
+      seen_received: '查看打卡详情',
+      letter_delivered: '去拆信',
+      buddy_nudge: '去看看',
       insight_liked: '查看小凡看见',
       danmaku_received: '查看小凡看见',
       request_created: '去首页处理',
@@ -316,6 +330,7 @@ Page({
   },
 
   decorateNotification(notification = {}) {
+    const featureMeta = FEATURE_TYPE_META[notification?.type];
     const sender = notification?.displaySender || notification?.senderId || {};
     const senderName = sender?.nickname || notification?.data?.senderName || '';
     const senderAvatar = this.resolveSenderAvatar(notification);
@@ -332,9 +347,9 @@ Page({
 
     return {
       ...notification,
-      typeIcon: notificationService.getTypeIcon(notification.type),
-      typeLabel: notificationService.getTypeLabel(notification.type),
-      typeColor: notificationService.getTypeColor(notification.type),
+      typeIcon: featureMeta ? featureMeta.icon : notificationService.getTypeIcon(notification.type),
+      typeLabel: featureMeta ? featureMeta.label : notificationService.getTypeLabel(notification.type),
+      typeColor: featureMeta ? THEME_PRIMARY : notificationService.getTypeColor(notification.type),
       formattedTime: notificationService.formatTime(notification.createdAt),
       senderName,
       senderAvatar: senderAvatar.image,

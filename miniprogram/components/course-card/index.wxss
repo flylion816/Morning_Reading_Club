@@ -1,11 +1,6 @@
 .course-card {
-  --app-paper: #fffefa;
-  --app-surface-muted: #f8faf7;
-  --app-text: #17221b;
-  --app-text-soft: #516055;
-  --app-text-muted: #8b968f;
   background:
-    linear-gradient(135deg, rgba(255, 254, 250, 0.98) 0%, var(--app-surface-muted) 100%);
+    linear-gradient(135deg, rgba(255, 253, 248, 0.98) 0%, var(--app-surface-muted) 100%);
   border-radius: 22rpx;
   padding: 30rpx;
   margin-bottom: 0;
@@ -18,7 +13,7 @@
 .course-card:active {
   transform: translateY(2rpx) scale(0.995);
   background:
-    linear-gradient(135deg, rgba(255, 254, 250, 0.92) 0%, #f0f4ec 100%);
+    linear-gradient(135deg, rgba(255, 253, 248, 0.92) 0%, var(--app-surface-muted) 100%);
 }
 
 .course-card.pending {
@@ -88,10 +83,10 @@
 
 .progress-bar {
   height: 7rpx;
-  background: rgba(49, 72, 56, 0.1);
+  background: var(--app-border);
   border-radius: 4rpx;
   overflow: hidden;
-  box-shadow: inset 0 2rpx 4rpx rgba(37, 60, 43, 0.05);
+  box-shadow: inset 0 2rpx 4rpx rgba(84, 60, 30, 0.05);
 }
 
 .progress-fill {
@@ -106,7 +101,7 @@
 }
 
 .progress-fill-done {
-  background: #b8c2bb;
+  background: var(--app-disabled);
 }
 
 .course-actions {
@@ -160,4 +155,32 @@
 
 .action-btn.secondary::after {
   border: none;
+}
+
+/* Version 3 dawn: 期次名衬线体、占位线性图标 */
+.course-title {
+  font-family: var(--app-font-serif);
+}
+
+
+/* 组件样式隔离：app.wxss 的线性图标在此复制 */
+.app-icon {
+  display: inline-block;
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.app-icon-book {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z'/%3E%3C/svg%3E");
+}
+
+.thumb-icon-book {
+  width: 56rpx;
+  height: 56rpx;
+  color: #fff;
 }

@@ -8,18 +8,31 @@ const { createContainedShareCover } = require('../../../utils/share-cover');
 
 const DEFAULT_ACTIVITY_TYPES = [
   { key: 'all', label: '全部' },
-  { key: 'reading', label: '📚 读书会' },
-  { key: 'cooking', label: '🍳 做饭' },
-  { key: 'tea', label: '☕ 喝茶' },
-  { key: 'walk', label: '🚶 散步' },
-  { key: 'create', label: '🎨 创作' },
-  { key: 'other', label: '✨ 其他' }
+  { key: 'reading', label: '读书会' },
+  { key: 'cooking', label: '做饭' },
+  { key: 'tea', label: '喝茶' },
+  { key: 'walk', label: '散步' },
+  { key: 'create', label: '创作' },
+  { key: 'other', label: '其他' }
 ];
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+// 邮戳日期 MM.DD；无效日期返回空串
+function formatStampDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// 邮戳地点最多 4 个字
+function formatStampPlace(location) {
+  return Array.from(String(location || '').trim()).slice(0, 4).join('');
 }
 
 const { guardSocialPage } = require('../../../utils/social-access');
@@ -77,7 +90,7 @@ Page({
       const res = await imprintService.getActivityTypes();
       const types = Array.isArray(res) ? res : (res.list || res.data || []);
       if (types.length > 0) {
-        const typeList = [{ key: 'all', label: '全部' }, ...types.map(t => ({ key: t.key, label: `${t.emoji} ${t.label}` }))];
+        const typeList = [{ key: 'all', label: '全部' }, ...types.map(t => ({ key: t.key, emoji: t.emoji, label: t.label }))];
         this.setData({ typeList });
       }
     } catch (e) {
@@ -96,9 +109,12 @@ Page({
       const newItems = (res.list || []).map(item => {
         const mediaCount = item.mediaList ? item.mediaList.length : 0;
         const gridCount = Math.min(mediaCount, 9);
+        const stampDate = mediaCount > 0 ? formatStampDate(item.happenedAt) : '';
         return {
           ...item,
           _happenedAtFormatted: formatDate(item.happenedAt),
+          _stampDate: stampDate,
+          _stampPlace: stampDate ? formatStampPlace(item.location) : '',
           _coverCount: gridCount,
           _gridCols: [2, 4].includes(gridCount) ? 2 : 3,
           _coverPortrait: false,

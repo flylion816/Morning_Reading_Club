@@ -139,4 +139,36 @@ describe('zaichang list page', () => {
     });
     expect(wx.navigateTo).not.toHaveBeenCalled();
   });
+
+  test('loadList builds postmark fields only for imprints with cover media', async () => {
+    imprintService.list.mockResolvedValue({
+      list: [
+        { _id: 'a', happenedAt: '2026-11-08T08:00:00', location: '上海外滩公园', mediaList: [{ type: 'image', url: 'u' }] },
+        { _id: 'b', happenedAt: '2026-03-05T08:00:00', mediaList: [{ type: 'image', url: 'u' }] },
+        { _id: 'c', happenedAt: '2026-11-08T08:00:00', location: '上海', mediaList: [] }
+      ]
+    });
+
+    await pageInstance.loadList(true);
+
+    const [a, b, c] = pageInstance.data.list;
+    expect(a._stampDate).toBe('11.08');
+    expect(a._stampPlace).toBe('上海外滩');
+    expect(b._stampDate).toBe('03.05');
+    expect(b._stampPlace).toBe('');
+    expect(c._stampDate).toBe('');
+    expect(c._stampPlace).toBe('');
+    expect(c._happenedAtFormatted).toBe('2026年11月8日');
+  });
+
+  test('loadActivityTypes keeps emoji as data but label is text only', async () => {
+    imprintService.getActivityTypes.mockResolvedValue({ list: [{ key: 'tea', emoji: '☕', label: '喝茶' }] });
+
+    await pageInstance.loadActivityTypes();
+
+    expect(pageInstance.data.typeList).toEqual([
+      { key: 'all', label: '全部' },
+      { key: 'tea', emoji: '☕', label: '喝茶' }
+    ]);
+  });
 });

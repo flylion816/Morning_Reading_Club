@@ -458,6 +458,7 @@ Page({
           ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
           : this.getLockedPreview(item.requestStatus || 'none'),
         mediaType: item.mediaType || 'text',
+        letterType: item.type === 'weekly' || item.type === 'monthly' ? item.type : '',
         imageUrl: isAccessible ? item.imageUrl || null : null,
         date: item.updatedAt || item.createdAt
           ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN')
@@ -548,6 +549,7 @@ Page({
         dayNumber: item.day ?? item.sectionId?.day ?? null,
         preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
         mediaType: item.mediaType || 'text',
+        letterType: item.type === 'weekly' || item.type === 'monthly' ? item.type : '',
         imageUrl: item.imageUrl || null,
         date: item.updatedAt || item.createdAt
           ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN')
@@ -879,6 +881,7 @@ Page({
             ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
             : this.getLockedPreview(item.requestStatus || 'none'),
           mediaType: item.mediaType || 'text',
+        letterType: item.type === 'weekly' || item.type === 'monthly' ? item.type : '',
           imageUrl: isAccessible ? item.imageUrl || null : null,
           date: item.updatedAt || item.createdAt
             ? new Date(item.updatedAt || item.createdAt).toLocaleDateString('zh-CN')

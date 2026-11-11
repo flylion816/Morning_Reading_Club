@@ -1,0 +1,117 @@
+/* Version 3 dawn: 新功能页面，直接按晨光规范编写。 */
+.page {
+  min-height: 100vh;
+  padding: var(--app-space-lg) var(--app-space-md) calc(var(--app-space-xl) + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.head {
+  padding: var(--app-space-md) var(--app-space-xs) var(--app-space-lg);
+}
+
+.head-line {
+  display: block;
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: var(--app-font-lg);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.head-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-top: var(--app-space-sm);
+}
+
+.head-num {
+  color: var(--theme-primary-dark);
+  font-family: var(--app-font-num);
+  font-size: var(--app-font-display);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.head-unit {
+  color: var(--app-text-muted);
+  font-size: var(--app-font-sm);
+}
+
+.skeleton-list,
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-sm);
+}
+
+.skeleton-card {
+  height: 200rpx;
+}
+
+.seen-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-sm);
+  padding: var(--app-space-md);
+}
+
+.seen-user {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.seen-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.seen-avatar-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: var(--app-font-sm);
+  font-weight: 650;
+}
+
+.seen-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--app-text-soft);
+  font-size: var(--app-font-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seen-time {
+  color: var(--app-dawn-deep);
+  font-size: var(--app-font-xs);
+}
+
+.seen-phrase {
+  display: block;
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: var(--app-font-lg);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.seen-from {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: var(--app-font-xs);
+  line-height: 1.5;
+}
+
+.list-foot {
+  padding: var(--app-space-md) 0;
+  color: var(--app-text-muted);
+  font-size: var(--app-font-xs);
+  text-align: center;
+}

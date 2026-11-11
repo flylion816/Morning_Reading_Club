@@ -4,6 +4,10 @@ jest.mock('../../services/course.service', () => ({
   getPeriodDetail: jest.fn()
 }));
 
+jest.mock('../../services/presence.service', () => ({
+  getPeriodOrigins: jest.fn()
+}));
+
 jest.mock('../../utils/formatters', () => ({
   getAvatarColorByUserId: jest.fn(() => '#4a90e2')
 }));
@@ -276,5 +280,37 @@ describe('courses page', () => {
     expect(wx.navigateBack).not.toHaveBeenCalled();
     expect(wx.switchTab).toHaveBeenCalledWith({ url: '/pages/index/index' });
     delete global.getCurrentPages;
+  });
+  describe('period origins line', () => {
+    let presenceService;
+    beforeEach(() => {
+      presenceService = require('../../services/presence.service');
+      presenceService.getPeriodOrigins.mockReset();
+      pageInstance.setData({ periodId: 'p1' });
+    });
+
+    test('shows members and provinces', async () => {
+      presenceService.getPeriodOrigins.mockResolvedValue({ memberCount: 52, provinceCount: 11 });
+      await pageInstance.loadPeriodOrigins.call(pageInstance);
+      expect(pageInstance.data.originsText).toBe('本期 52 位书友，来自 11 个省市');
+    });
+
+    test('shows members only when provinceCount is null', async () => {
+      presenceService.getPeriodOrigins.mockResolvedValue({ memberCount: 52, provinceCount: null });
+      await pageInstance.loadPeriodOrigins.call(pageInstance);
+      expect(pageInstance.data.originsText).toBe('本期 52 位书友');
+    });
+
+    test('shows nothing when the request fails', async () => {
+      presenceService.getPeriodOrigins.mockRejectedValue(new Error('403'));
+      await pageInstance.loadPeriodOrigins.call(pageInstance);
+      expect(pageInstance.data.originsText).toBe('');
+    });
+  });
+
+  test('keepsake entry navigates with periodId', () => {
+    pageInstance.setData({ periodId: 'p1' });
+    pageInstance.handleKeepsake.call(pageInstance);
+    expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/keepsake/keepsake?periodId=p1' });
   });
 });

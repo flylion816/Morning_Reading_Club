@@ -1,7 +1,7 @@
 <view class="podcast-player-page" wx:if="{{!checking}}">
   <view class="player-cover-area">
     <view class="player-cover-art">
-      <text class="player-cover-emoji">🎙</text>
+      <view class="app-icon app-icon-headphone player-cover-icon"></view>
     </view>
     <view class="player-title-area">
       <text class="player-title">{{title}}</text>

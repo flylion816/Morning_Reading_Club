@@ -1,0 +1,84 @@
+<view class="mail-page">
+  <view wx:if="{{loading}}" class="app-skeleton mail-skeleton"></view>
+
+  <view wx:elif="{{needLogin}}" class="app-empty">
+    <view class="app-empty-art app-empty-art-letter"></view>
+    <text class="app-empty-title">登录后才能写信</text>
+    <button class="app-btn-primary mail-btn" bindtap="goLogin">去登录</button>
+  </view>
+
+  <view wx:elif="{{loadError}}" class="mail-error">
+    <text class="mail-error-text">信箱暂时打不开</text>
+    <text class="mail-error-retry" bindtap="onRetry">重试</text>
+  </view>
+
+  <block wx:else>
+    <!-- 可以写 -->
+    <view wx:if="{{view === 'write'}}" class="mail-write">
+      <text class="mail-prompt">{{prompt}}</text>
+      <view class="mail-paper">
+        <textarea class="mail-textarea" value="{{content}}" maxlength="{{maxContent}}" auto-height placeholder="写给结营那天的自己……" bindinput="onContentInput"></textarea>
+        <text class="mail-count app-num">{{content.length}}/{{maxContent}}</text>
+      </view>
+      <view class="mail-stamps">
+        <text class="mail-stamps-label">选一枚邮戳</text>
+        <view class="mail-stamp-row">
+          <view wx:for="{{stamps}}" wx:key="key" class="mail-stamp-item {{stamp === item.key ? 'mail-stamp-on' : ''}}" data-key="{{item.key}}" bindtap="onPickStamp">
+            <view class="{{item.cls}} app-seal-lg">{{item.label}}</view>
+            <text class="mail-stamp-name">{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="mail-actions">
+        <button class="app-btn-secondary mail-btn" disabled="{{busy}}" bindtap="onSaveDraft">保存草稿</button>
+        <button class="app-btn-primary mail-btn" disabled="{{busy}}" bindtap="onSeal">投递</button>
+      </view>
+    </view>
+
+    <!-- 信箱已关 -->
+    <view wx:elif="{{view === 'closed'}}" class="app-empty">
+      <view class="app-empty-art app-empty-art-letter"></view>
+      <text class="app-empty-title">这一期的信箱已经关了，下一期开营时再来</text>
+    </view>
+
+    <!-- 已封存 -->
+    <view wx:elif="{{view === 'sealed'}}" class="mail-envelope-wrap">
+      <view class="mail-envelope">
+        <view class="mail-envelope-flap"></view>
+        <view class="{{'mail-envelope-seal app-seal app-seal-lg ' + (stamp === 'dawn' ? 'app-seal-dawn' : (stamp === 'book' ? 'app-seal-ink' : ''))}}">信</view>
+      </view>
+      <text class="mail-road">信在路上，还有 <text class="app-num mail-road-num">{{letter.daysToDeliver}}</text> 天</text>
+    </view>
+
+    <!-- 已送达未拆 -->
+    <view wx:elif="{{view === 'delivered'}}" class="mail-envelope-wrap">
+      <view class="mail-envelope {{opening ? 'mail-envelope-opening' : ''}}">
+        <view class="mail-envelope-flap"></view>
+        <view class="mail-envelope-seal app-seal app-seal-dawn app-seal-lg">信</view>
+      </view>
+      <text class="mail-road">有一封信到了</text>
+      <button class="app-btn-primary mail-btn" disabled="{{busy}}" bindtap="onOpen">拆开</button>
+    </view>
+
+    <!-- 已拆 -->
+    <view wx:elif="{{view === 'opened'}}" class="mail-opened">
+      <view class="mail-paper mail-paper-read">
+        <text class="mail-salutation">写给结营那天的我：</text>
+        <text class="mail-body" user-select>{{letter.content}}</text>
+        <view class="mail-sign">
+          <text class="mail-sign-name">那时的你</text>
+          <text class="mail-sign-date app-num">{{writtenDate}}</text>
+        </view>
+      </view>
+      <view wx:if="{{letter.reply}}" class="mail-reply-done">
+        <text class="mail-reply-label">你的回信</text>
+        <text class="mail-reply-text">{{letter.reply}}</text>
+      </view>
+      <view wx:else class="mail-reply-box">
+        <text class="mail-reply-label">回一句话给那时的自己</text>
+        <textarea class="mail-reply-input" value="{{replyText}}" maxlength="{{maxReply}}" placeholder="只能回一次" bindinput="onReplyInput"></textarea>
+        <button class="app-btn-primary mail-btn" disabled="{{busy}}" bindtap="onReply">寄出回信</button>
+      </view>
+    </view>
+  </block>
+</view>

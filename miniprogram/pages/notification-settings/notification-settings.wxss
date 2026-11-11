@@ -1,6 +1,6 @@
 .page-notification-settings {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--app-page-bg);
   padding: 24rpx;
   box-sizing: border-box;
 }
@@ -28,7 +28,7 @@
 }
 
 .summary-card {
-  background: white;
+  background: var(--app-paper);
   border-radius: 20rpx;
   padding: 28rpx;
   margin-bottom: 20rpx;
@@ -43,7 +43,7 @@
 
 .summary-block {
   flex: 1;
-  background: #f5f9ff;
+  background: var(--app-surface-muted);
   border-radius: 16rpx;
   padding: 24rpx;
 }
@@ -97,13 +97,13 @@
 }
 
 .scene-card {
-  background: white;
+  background: var(--app-paper);
   border-radius: 20rpx;
   padding: 26rpx;
   display: flex;
   gap: 20rpx;
   align-items: center;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4rpx 20rpx rgba(60, 42, 20, 0.05);
 }
 
 .scene-copy {
@@ -138,7 +138,7 @@
 }
 
 .scene-count.empty-count {
-  background: #eef2f7;
+  background: var(--app-surface-muted);
   color: var(--app-text-soft);
 }
 
@@ -164,7 +164,7 @@
   min-width: 180rpx;
   padding: 0 20rpx;
   border-radius: 999rpx;
-  background: #edf4ff;
+  background: var(--app-paper-muted);
   color: var(--theme-primary-dark);
   font-size: 24rpx;
   font-weight: 600;
@@ -183,7 +183,7 @@
 .summary-card,
 .scene-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .scene-count,

@@ -1,0 +1,219 @@
+/* Version 3 dawn: 新功能页面，直接按晨光规范编写。 */
+.dc-page {
+  min-height: 100vh;
+  background: var(--app-page-bg);
+  padding: 32rpx 0 calc(180rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.dc-stage {
+  display: flex;
+  justify-content: center;
+}
+
+.dc-preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow);
+  background: var(--app-paper);
+}
+
+.dc-thumbs {
+  display: flex;
+  justify-content: center;
+  gap: 32rpx;
+  margin-top: 36rpx;
+}
+
+.dc-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.dc-thumb-art {
+  position: relative;
+  width: 120rpx;
+  height: 160rpx;
+  border-radius: var(--app-radius-sm);
+  overflow: hidden;
+  border: 3rpx solid var(--app-rule);
+  box-sizing: border-box;
+  background: var(--app-paper);
+}
+
+.dc-thumb-active .dc-thumb-art {
+  border-color: var(--theme-primary);
+}
+
+.dc-thumb-dawn {
+  background: linear-gradient(180deg, #fbe3c3 0%, #fdf0dc 45%, #fffdf8 46%);
+}
+
+.dc-thumb-sun {
+  position: absolute;
+  left: 50%;
+  top: 58rpx;
+  width: 52rpx;
+  height: 52rpx;
+  margin-left: -26rpx;
+  border-radius: 50%;
+  background: var(--app-dawn);
+}
+
+.dc-thumb-paper {
+  background: var(--app-paper-muted);
+}
+
+.dc-thumb-seal {
+  position: absolute;
+  left: 14rpx;
+  top: 14rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 5rpx;
+  background: #b4452c;
+}
+
+.dc-thumb-label {
+  font-size: var(--app-font-sm);
+  color: var(--app-text-soft);
+}
+
+.dc-thumb-active .dc-thumb-label {
+  color: var(--app-text);
+  font-weight: 600;
+}
+
+.dc-fields {
+  margin: 36rpx 32rpx 0;
+  background: var(--app-paper);
+  border-radius: var(--app-radius-md);
+  border: 1rpx solid var(--app-border);
+}
+
+.dc-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 28rpx;
+}
+
+.dc-row + .dc-row {
+  border-top: 1rpx solid var(--app-rule);
+}
+
+.dc-row-label {
+  flex-shrink: 0;
+  font-size: var(--app-font-md);
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+}
+
+.dc-row-value {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--app-font-sm);
+  color: var(--app-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dc-row-empty {
+  color: var(--app-text-muted);
+}
+
+.dc-row-action {
+  flex-shrink: 0;
+  font-size: var(--app-font-sm);
+  color: var(--theme-primary);
+}
+
+.dc-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 24rpx;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: var(--app-paper);
+  border-top: 1rpx solid var(--app-rule);
+}
+
+.dc-btn {
+  flex: 1;
+  margin: 0;
+}
+
+.dc-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  background: var(--app-overlay);
+}
+
+.dc-sheet {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 36rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  background: var(--app-paper);
+  border-radius: var(--app-radius-xl) var(--app-radius-xl) 0 0;
+}
+
+.dc-sheet-title {
+  display: block;
+  font-size: var(--app-font-lg);
+  font-family: var(--app-font-serif);
+  color: var(--app-text);
+}
+
+.dc-textarea {
+  width: 100%;
+  height: 220rpx;
+  margin-top: 24rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  font-size: var(--app-font-md);
+  color: var(--app-text);
+  background: var(--app-paper-muted);
+  border-radius: var(--app-radius-sm);
+}
+
+.dc-sheet-foot {
+  display: flex;
+  align-items: center;
+  gap: 36rpx;
+  margin-top: 24rpx;
+}
+
+.dc-sheet-count {
+  flex: 1;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.dc-sheet-btn {
+  font-size: var(--app-font-md);
+  color: var(--app-text-soft);
+}
+
+.dc-sheet-ok {
+  color: var(--theme-primary);
+  font-weight: 600;
+}
+
+.dc-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 750px;
+  height: 1800px;
+  opacity: 0;
+  pointer-events: none;
+}

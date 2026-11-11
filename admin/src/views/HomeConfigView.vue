@@ -79,7 +79,8 @@ const DEFAULT_SECTIONS = [
   'zaichang',
   'myCheckins',
   'xiaofanInsights',
-  'insightRequests'
+  'insightRequests',
+  'campCorner'
 ];
 
 const SECTION_META: Record<string, { label: string; icon: string }> = {
@@ -88,7 +89,8 @@ const SECTION_META: Record<string, { label: string; icon: string }> = {
   zaichang: { label: '凡人生活', icon: '🌿' },
   myCheckins: { label: '我的打卡', icon: '📝' },
   xiaofanInsights: { label: '小凡看见', icon: '✨' },
-  insightRequests: { label: '请求看见', icon: '📬' }
+  insightRequests: { label: '请求看见', icon: '📬' },
+  campCorner: { label: '营地角落', icon: '🏕️' }
 };
 
 type SectionItem = {

@@ -1,0 +1,99 @@
+<view class="ks-page">
+  <view wx:if="{{loading}}" class="ks-screen">
+    <view class="app-skeleton ks-skel"></view>
+    <view class="app-skeleton-line ks-skel-line"></view>
+  </view>
+
+  <view wx:elif="{{error}}" class="ks-screen">
+    <view class="app-empty">
+      <view class="app-empty-art app-empty-art-book"></view>
+      <view class="app-empty-title">{{error}}</view>
+      <view class="app-empty-action" bindtap="onRetry">重试</view>
+    </view>
+  </view>
+
+  <view wx:elif="{{!ready}}" class="ks-screen">
+    <view class="app-empty">
+      <view class="app-empty-art app-empty-art-book"></view>
+      <view class="app-empty-title">还有 {{daysLeft}} 天结营，到时候这里会有一份属于你的{{totalDays ? ' ' + totalDays + ' 天' : '纪念册'}}</view>
+    </view>
+  </view>
+
+  <view wx:else class="ks-flow">
+    <block wx:for="{{keepsake.pages}}" wx:key="key">
+      <view class="ks-screen ks-section">
+        <block wx:if="{{item.key === 'cover'}}">
+          <view class="app-seal app-seal-lg ks-seal">{{keepsake.sealChar}}</view>
+          <view class="ks-title">{{keepsake.period.name}}</view>
+          <view class="ks-sub">{{keepsake.nickname}}{{keepsake.totalDays ? ' 的 ' + keepsake.totalDays + ' 天' : ' 的晨读纪念册'}}</view>
+          <view class="ks-hint">往下滑，慢慢看</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'numbers'}}">
+          <view class="ks-label">{{keepsake.totalDays ? '这 ' + keepsake.totalDays + ' 天里' : '这段日子里'}}</view>
+          <view class="ks-num-row"><text class="ks-num">{{keepsake.checkinDays}}</text><text class="ks-unit">天，你写下了打卡</text></view>
+          <view class="ks-num-row"><text class="ks-num">{{keepsake.totalWords}}</text><text class="ks-unit">个字</text></view>
+          <view class="ks-num-row"><text class="ks-num">{{keepsake.readingMinutes}}</text><text class="ks-unit">分钟晨读</text></view>
+        </block>
+
+        <block wx:elif="{{item.key === 'earliest'}}">
+          <view class="ks-label">最早的一次</view>
+          <view class="ks-num ks-dawn">{{keepsake.earliestCheckin.time}}</view>
+          <view class="ks-sub">{{keepsake.earliestCheckin.date}}，天还没怎么亮，你已经在了</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'moods'}}">
+          <view class="ks-label">你的心情天气</view>
+          <view class="ks-dots">
+            <view wx:for="{{keepsake.moods}}" wx:for-item="m" wx:key="date" class="ks-dot" style="background: {{m.color}};"></view>
+          </view>
+          <view class="ks-sub">一天一个小点，只有你自己看得到</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'top'}}">
+          <view class="ks-label">被点赞最多的一篇</view>
+          <view class="app-card ks-card">
+            <view class="ks-card-meta">第 {{keepsake.topCheckin.day}} 天 · {{keepsake.topCheckin.sectionTitle}}</view>
+            <view class="ks-quote">{{keepsake.topCheckin.excerpt}}</view>
+            <view wx:if="{{keepsake.topCheckin.likeCount}}" class="ks-card-meta">{{keepsake.topCheckin.likeCount}} 位书友点了赞</view>
+          </view>
+        </block>
+
+        <block wx:elif="{{item.key === 'highlights'}}">
+          <view class="ks-label">你摘下的句子</view>
+          <view wx:for="{{keepsake.highlights}}" wx:for-item="h" wx:key="text" class="app-card ks-card ks-quote">{{h.text}}</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'companions'}}">
+          <view class="ks-label">常来看你的书友</view>
+          <view wx:for="{{keepsake.companions}}" wx:for-item="c" wx:key="userId" class="ks-friend">
+            <image wx:if="{{c.avatarUrl}}" class="ks-avatar" src="{{c.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="app-seal">{{c.nickname[0]}}</view>
+            <view class="ks-friend-name">{{c.nickname}}</view>
+            <view class="ks-friend-count">{{c.count}} 次</view>
+          </view>
+        </block>
+
+        <block wx:elif="{{item.key === 'insight'}}">
+          <view class="ks-label">小凡写给你的话</view>
+          <view class="app-card ks-card">
+            <view wx:if="{{keepsake.insightExcerpt.title}}" class="ks-card-meta">{{keepsake.insightExcerpt.title}}</view>
+            <view class="ks-quote">{{keepsake.insightExcerpt.excerpt}}</view>
+          </view>
+        </block>
+
+        <block wx:elif="{{item.key === 'letter'}}">
+          <view class="ks-label">开营时写给自己的信</view>
+          <view class="app-card ks-card ks-quote">{{keepsake.letter.content}}</view>
+          <view wx:if="{{keepsake.letter.reply}}" class="app-card ks-card ks-quote">回信：{{keepsake.letter.reply}}</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'end'}}">
+          <view class="ks-title">{{keepsake.totalDays ? '谢谢你，一起走完这 ' + keepsake.totalDays + ' 天' : '谢谢你，一起走完这段日子'}}</view>
+          <button class="app-btn-primary ks-btn" open-type="share">邀请一位朋友加入下一期</button>
+          <view class="app-btn-secondary ks-btn" bindtap="onBackToCourse">回到课程页</view>
+        </block>
+      </view>
+    </block>
+  </view>
+</view>

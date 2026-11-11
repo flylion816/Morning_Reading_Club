@@ -1,4 +1,4 @@
-<!--排行榜页面-->
+<!--同行榜页面-->
 <view class="page-ranking" wx:if="{{socialAccessGranted}}">
   <!-- 当前用户信息卡片 -->
   <view class="user-card" wx:if="{{currentUser}}">
@@ -40,7 +40,7 @@
     </scroll-view>
   </view>
 
-  <!-- 排行榜列表 -->
+  <!-- 同行榜列表 -->
   <view class="ranking-list">
     <view
       wx:for="{{rankingList}}"
@@ -50,7 +50,7 @@
       data-user-id="{{item.userId}}">
       <!-- 排名 -->
       <view class="rank-number {{item.rank <= 3 ? 'top-three rank-' + item.rank : ''}}">
-        <text wx:if="{{item.rank <= 3}}" class="rank-icon">{{item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : '🥉'}}</text>
+        <view wx:if="{{item.rank <= 3}}" class="rank-icon app-seal app-seal-dawn app-seal-sm">{{item.rank === 1 ? '一' : item.rank === 2 ? '二' : '三'}}</view>
         <text wx:else>{{item.rank}}</text>
       </view>
 
@@ -66,9 +66,9 @@
     </view>
 
     <!-- 空状态 -->
-    <view wx:if="{{rankingList.length === 0}}" class="empty-state">
-      <text class="empty-state-icon">🏆</text>
-      <text class="empty-state-text">暂无排行数据</text>
+    <view wx:if="{{rankingList.length === 0}}" class="app-empty">
+      <view class="app-empty-art app-empty-art-sprout"></view>
+      <text class="app-empty-title">这里还没有人上榜</text>
     </view>
   </view>
 

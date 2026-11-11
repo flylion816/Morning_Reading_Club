@@ -1,0 +1,65 @@
+<view class="dc-page">
+  <view class="dc-stage">
+    <view class="dc-preview" style="width: {{previewWidthRpx}}rpx; height: {{previewHeightRpx}}rpx;" bindtap="handleEditQuote">
+      <view wx:for="{{previewItems}}" wx:key="id" style="{{item.style}}" class="{{item.placeholder ? 'dc-placeholder' : ''}}">
+        <text wx:if="{{item.text}}">{{item.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="dc-thumbs">
+    <view
+      wx:for="{{variantOptions}}"
+      wx:key="value"
+      class="dc-thumb {{variant === item.value ? 'dc-thumb-active' : ''}}"
+      data-value="{{item.value}}"
+      bindtap="handleSelectVariant">
+      <view class="dc-thumb-art dc-thumb-{{item.value}}">
+        <view wx:if="{{item.value === 'dawn'}}" class="dc-thumb-sun"></view>
+        <view wx:if="{{item.value === 'paper'}}" class="dc-thumb-seal"></view>
+      </view>
+      <text class="dc-thumb-label">{{item.label}}</text>
+    </view>
+  </view>
+
+  <view class="dc-fields">
+    <view class="dc-row" bindtap="handleEditQuote">
+      <text class="dc-row-label">今日一句</text>
+      <text class="dc-row-value {{quote ? '' : 'dc-row-empty'}}">{{quote || '写下今天想留下的一句话'}}</text>
+      <text class="dc-row-action">编辑</text>
+    </view>
+    <view class="dc-row">
+      <text class="dc-row-label">我想说</text>
+      <text class="dc-row-value {{note && !noteHidden ? '' : 'dc-row-empty'}}" bindtap="handleEditNote">{{noteHidden ? '已隐藏' : (note || '写一句自己的话')}}</text>
+      <text wx:if="{{note}}" class="dc-row-action" bindtap="handleToggleNote">{{noteHidden ? '显示' : '隐藏'}}</text>
+      <text class="dc-row-action" bindtap="handleEditNote">编辑</text>
+    </view>
+  </view>
+
+  <view class="dc-actions">
+    <button class="app-btn-secondary dc-btn" bindtap="handleSave" disabled="{{generating}}">保存到相册</button>
+    <button class="app-btn-primary dc-btn" open-type="share">发给朋友</button>
+  </view>
+
+  <view wx:if="{{editor.visible}}" class="dc-mask" catchtap="handleEditorCancel">
+    <view class="dc-sheet" catchtap="noop">
+      <text class="dc-sheet-title">{{editor.title}}</text>
+      <textarea
+        class="dc-textarea"
+        value="{{editor.value}}"
+        maxlength="{{editor.maxlength}}"
+        placeholder="{{editor.placeholder}}"
+        placeholder-style="color:#a39a8d"
+        auto-focus
+        show-confirm-bar="{{false}}"
+        bindinput="handleEditorInput"></textarea>
+      <view class="dc-sheet-foot">
+        <text class="dc-sheet-count">{{editor.value.length}}/{{editor.maxlength}}</text>
+        <text class="dc-sheet-btn" bindtap="handleEditorCancel">取消</text>
+        <text class="dc-sheet-btn dc-sheet-ok" bindtap="handleEditorConfirm">完成</text>
+      </view>
+    </view>
+  </view>
+
+  <canvas id="dailyCardCanvas" canvas-id="dailyCardCanvas" type="2d" class="dc-canvas"></canvas>
+</view>

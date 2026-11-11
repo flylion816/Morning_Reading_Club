@@ -7,9 +7,9 @@
 
   <view wx:if="{{!loading && period}}" class="detail-content">
     <view class="detail-hero" style="background: {{period.displayColor}}">
-      <text class="hero-kicker">凡人共读 · 课程期次</text>
+      <text class="hero-kicker">{{brandName}} · 课程期次</text>
       <view class="hero-title-row">
-        <text class="hero-emoji">{{period.coverEmoji || period.icon || '📚'}}</text>
+        <text wx:if="{{period.coverEmoji || period.icon}}" class="hero-emoji">{{period.coverEmoji || period.icon}}</text><view wx:else class="app-seal app-seal-lg hero-seal">读</view>
         <view class="hero-title-wrap">
           <text class="hero-title">{{period.name || period.title}}</text>
           <text class="hero-subtitle">{{period.subtitle || '一起完成这一段学习旅程'}}</text>

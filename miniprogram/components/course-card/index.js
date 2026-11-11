@@ -84,7 +84,7 @@ Component({
 
         // 报名状态未从服务器确认，实时查一次再导航
         if (!enrolled || !enrolled._confirmed) {
-          wx.showLoading({ title: '加载中...', mask: true });
+          wx.showLoading({ title: '稍等一下…', mask: true });
           try {
             const enrollmentService = require('../../services/enrollment.service');
             const res = await enrollmentService.checkEnrollment(course._id);

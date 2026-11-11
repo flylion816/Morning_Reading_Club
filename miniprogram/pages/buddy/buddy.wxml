@@ -1,0 +1,73 @@
+<view class="buddy-page">
+  <view wx:if="{{loading}}" class="buddy-skeleton">
+    <view class="app-skeleton"></view>
+    <view class="app-skeleton-line" style="width: 60%; margin-top: 24rpx;"></view>
+  </view>
+
+  <view wx:elif="{{loadError}}" class="app-error">
+    <text class="app-error-title">{{loadError}}</text>
+    <text class="app-empty-action" bindtap="onRetry">重试</text>
+  </view>
+
+  <block wx:else>
+    <view wx:if="{{state === 'none' && !canJoin}}" class="app-empty buddy-card">
+      <view class="app-empty-art app-empty-art-book"></view>
+      <text class="buddy-line">这一期已经结束了</text>
+    </view>
+
+    <view wx:elif="{{state === 'none'}}" class="app-card buddy-card">
+      <view class="app-seal app-seal-lg buddy-seal">伴</view>
+      <text class="buddy-title">想要一位读伴吗</text>
+      <view class="buddy-intro">
+        <text class="buddy-line">读伴是同一期里的另一位书友，两个人安静地一起读。</text>
+        <text class="buddy-line">你能看到 TA 的昵称、头像，以及 TA 今天读了没、记了没。</text>
+        <text class="buddy-line">看不到 TA 写的内容，也没有聊天，只有一次轻轻的“轻拍”。</text>
+        <text class="buddy-line">期次结束时自然告别，你也可以随时结束。</text>
+      </view>
+      <view class="app-btn-primary buddy-btn" bindtap="onJoin">想要一位读伴</view>
+    </view>
+
+    <view wx:elif="{{state === 'waiting'}}" class="app-empty buddy-card">
+      <view class="app-empty-art app-empty-art-lamp"></view>
+      <text class="app-empty-title">正在等另一位想要读伴的书友</text>
+      <text class="buddy-line">有人来了，你们会自动成为读伴。</text>
+      <text class="app-empty-action" bindtap="onCancel">先不找了</text>
+    </view>
+
+    <view wx:elif="{{state === 'paired'}}" class="buddy-paired">
+      <view class="app-card buddy-pair-card">
+        <view class="buddy-people">
+          <view class="buddy-person">
+            <view class="buddy-avatar buddy-avatar-me"><text>我</text></view>
+            <text class="buddy-name">你</text>
+            <view class="buddy-marks">
+              <text class="buddy-mark {{me.readToday ? 'buddy-mark-on' : ''}}">读</text>
+              <text class="buddy-mark {{me.checkedInToday ? 'buddy-mark-on' : ''}}">记</text>
+            </view>
+          </view>
+          <view class="buddy-person">
+            <image wx:if="{{buddy.avatarUrl}}" class="buddy-avatar" src="{{buddy.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="buddy-avatar"><text>{{buddyInitial}}</text></view>
+            <text class="buddy-name">{{buddy.nickname}}</text>
+            <view class="buddy-marks">
+              <text class="buddy-mark {{buddy.readToday ? 'buddy-mark-on' : ''}}">读</text>
+              <text class="buddy-mark {{buddy.checkedInToday ? 'buddy-mark-on' : ''}}">记</text>
+            </view>
+          </view>
+        </view>
+        <view wx:if="{{canNudge}}" class="app-btn-secondary buddy-btn" bindtap="onNudge">轻拍一下</view>
+        <text wx:elif="{{nudgedToday}}" class="buddy-quiet">今天拍过了</text>
+        <text wx:elif="{{buddy.readToday || buddy.checkedInToday}}" class="buddy-quiet">TA 今天已经读过了</text>
+      </view>
+      <text class="buddy-leave" bindtap="onLeave">结束这段读伴</text>
+    </view>
+
+    <view wx:else class="app-empty buddy-card">
+      <view class="app-empty-art app-empty-art-book"></view>
+      <text class="app-empty-title">读伴已结束</text>
+      <text class="buddy-line">这段同行到这里了，想的话可以再认识一位。</text>
+      <text wx:if="{{canJoin}}" class="app-empty-action" bindtap="onJoin">再找一位读伴</text>
+      <text wx:else class="buddy-line">这一期已经结束了</text>
+    </view>
+  </block>
+</view>

@@ -71,7 +71,7 @@
 
 /* 订单信息卡片 */
 .order-card {
-  background: white;
+  background: var(--app-paper);
   margin: 20rpx;
   border-radius: 12rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
@@ -113,7 +113,7 @@
 /* 分隔线 */
 .divider {
   height: 1rpx;
-  background: #e8e8e8;
+  background: var(--app-border);
   margin: 0 20rpx;
 }
 
@@ -202,7 +202,7 @@
 
 .methods-caption {
   font-size: 22rpx;
-  color: #8a94a6;
+  color: var(--app-text-muted);
   line-height: 1.5;
   display: block;
 }
@@ -212,8 +212,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 22rpx 20rpx;
-  background: white;
-  border: 2rpx solid #e8e8e8;
+  background: var(--app-paper);
+  border: 2rpx solid var(--app-border);
   border-radius: 16rpx;
   margin-bottom: 14rpx;
   transition: all 0.3s ease;
@@ -221,7 +221,7 @@
 }
 
 .method-item-wechat {
-  box-shadow: 0 8rpx 22rpx rgba(8, 23, 54, 0.06);
+  box-shadow: 0 8rpx 22rpx rgba(60, 42, 20, 0.06);
 }
 
 .method-item.active {
@@ -235,7 +235,7 @@
 }
 
 .method-item-mock {
-  background: #fafbfc;
+  background: var(--app-surface-muted);
   border-style: dashed;
 }
 
@@ -327,7 +327,7 @@
 .method-check {
   width: 34rpx;
   height: 34rpx;
-  border: 2rpx solid #d8d8d8;
+  border: 2rpx solid var(--app-rule);
   border-radius: 50%;
   flex-shrink: 0;
   transition: all 0.3s ease;
@@ -363,8 +363,8 @@
   display: flex;
   gap: 12rpx;
   padding: 16rpx 20rpx;
-  background: white;
-  border-top: 1rpx solid #e8e8e8;
+  background: var(--app-paper);
+  border-top: 1rpx solid var(--app-border);
   box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
 }
@@ -399,12 +399,12 @@
 .btn-secondary {
   background: var(--app-surface-muted);
   color: var(--app-text);
-  border: 1rpx solid #e8e8e8;
+  border: 1rpx solid var(--app-border);
 }
 
 .btn-secondary:active {
-  background: #efefef;
-  border-color: #d8d8d8;
+  background: var(--app-surface-muted);
+  border-color: var(--app-rule);
 }
 
 /* 支付结果弹窗 */
@@ -422,7 +422,7 @@
 
 .modal-content {
   width: 100%;
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx 16rpx 0 0;
   padding: 40rpx 30rpx;
   text-align: center;
@@ -505,11 +505,11 @@
 .modal-actions .btn-secondary {
   background: var(--app-surface-muted);
   color: var(--app-text);
-  border: 1rpx solid #e8e8e8;
+  border: 1rpx solid var(--app-border);
 }
 
 .modal-actions .btn-secondary:active {
-  background: #efefef;
+  background: var(--app-surface-muted);
 }
 
 /* 响应式调整 */
@@ -781,7 +781,7 @@
   padding: 20rpx;
   border: 2rpx solid var(--app-border);
   border-radius: var(--app-radius-md);
-  background: #fff;
+  background: var(--app-paper);
   transition: border-color .2s ease, background .2s ease, transform .2s ease;
 }
 .pay-method:active { transform: translateY(2rpx) scale(.99); }
@@ -848,7 +848,7 @@
 }
 .pay-cancel {
   flex: 0 0 148rpx;
-  background: #fff;
+  background: var(--app-paper);
   color: var(--app-text-soft);
   box-shadow: inset 0 0 0 2rpx var(--app-border);
 }
@@ -862,3 +862,15 @@
 .pay-submit-action { margin-left: 7rpx; }
 .pay-submit.is-paying { opacity: .78; }
 .pay-submit[disabled] { opacity: .78; color: #fff; background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark)); }
+
+/* Version 3 dawn: 课程名衬线体，金额数字体 */
+.pay-summary-title,
+.course-title {
+  font-family: var(--app-font-serif);
+}
+.amount-currency,
+.amount-integer,
+.amount-decimal,
+.pay-line-value {
+  font-family: var(--app-font-num);
+}

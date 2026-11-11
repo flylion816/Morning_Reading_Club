@@ -4,9 +4,9 @@
     <text class="loading-text">加载中...</text>
   </view>
 
-  <view wx:elif="{{coupons.length === 0}}" class="empty-container">
-    <text class="empty-icon">🎫</text>
-    <text class="empty-text">暂无优惠券</text>
+  <view wx:elif="{{coupons.length === 0}}" class="app-empty">
+    <view class="app-empty-art app-empty-art-lamp"></view>
+    <text class="app-empty-title">还没有优惠券</text>
   </view>
 
   <view wx:else class="coupon-list">

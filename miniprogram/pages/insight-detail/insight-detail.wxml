@@ -31,12 +31,16 @@
     <view class="day-title">
       <view class="day-title-left">
         <text class="day-title-text">{{insight.title}}</text>
-        <text wx:if="{{insight.periodName}}" class="day-period">{{insight.periodName}}</text>
       </view>
       <view wx:if="{{ttsAvailable}}" class="insight-tts-entry {{ttsState !== 'idle' ? 'insight-tts-entry-active' : ''}}" bindtap="handleTtsPlay">
-        <text class="insight-tts-icon">{{ttsState === 'playing' ? '⏸' : ttsState === 'loading' ? '…' : '♪'}}</text>
+        <view class="insight-tts-icon app-icon {{ttsState === 'playing' ? 'app-icon-pause' : ttsState === 'loading' ? 'app-icon-clock' : 'app-icon-headphone'}}"></view>
         <text>{{ttsState === 'playing' ? '暂停' : ttsState === 'loading' ? '合成中' : 'AI 朗读'}}</text>
       </view>
+    </view>
+    <view class="letter-meta">
+      <text wx:if="{{insight.periodName}}">{{insight.periodName}}</text>
+      <text wx:if="{{insight.periodName && letterDate}}" class="letter-meta-dot">·</text>
+      <text wx:if="{{letterDate}}">{{letterDate}}</text>
     </view>
   </view>
 
@@ -55,7 +59,15 @@
 
     <!-- 正文内容 -->
     <view class="content-text" wx:if="{{insight.content}}">
+      <view class="letter-salutation" wx:if="{{recipientName && !insight.imageUrl}}">{{recipientName}}：</view>
       <rich-text class="selectable-rich-text" nodes="{{insight.content}}" selectable="{{true}}" />
+    </view>
+    <view class="letter-sign">
+      <view class="letter-sign-text">
+        <text class="letter-sign-name">小凡</text>
+        <text wx:if="{{letterDate}}" class="letter-sign-date">{{letterDate}}</text>
+      </view>
+      <view class="letter-wax">凡</view>
     </view>
   </view>
 

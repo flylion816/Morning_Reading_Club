@@ -6,7 +6,7 @@
 }
 
 .page-header {
-  background: #fff;
+  background: var(--app-paper);
   padding: 32rpx 32rpx 24rpx;
   border-bottom: 1rpx solid var(--app-border);
 }
@@ -14,7 +14,7 @@
 .header-title {
   font-size: 34rpx;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--app-text);
   line-height: 1.4;
 }
 
@@ -75,7 +75,7 @@
 }
 
 .insight-card {
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 28rpx 28rpx 20rpx;
   margin-bottom: 20rpx;
@@ -174,7 +174,7 @@
 
 .card-arrow {
   font-size: 36rpx;
-  color: #ccc;
+  color: var(--app-disabled);
   font-weight: bold;
   margin-left: auto;
 }
@@ -191,7 +191,7 @@
 }
 .insight-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .insight-card:active {
@@ -199,4 +199,17 @@
 }
 .share-tag {
   border-radius: 999rpx;
+}
+
+/* Version 3 dawn: 线性图标替代 emoji */
+.count-icon {
+  width: 28rpx;
+  height: 28rpx;
+  vertical-align: -4rpx;
+}
+.like-count,
+.danmaku-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
 }

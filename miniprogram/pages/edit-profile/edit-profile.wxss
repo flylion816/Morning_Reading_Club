@@ -1,13 +1,13 @@
 .page-edit-profile {
   min-height: 100vh;
-  background: #f6f7f9;
+  background: var(--app-surface-muted);
   padding: 24rpx 24rpx 168rpx;
   box-sizing: border-box;
 }
 
 /* Section */
 .section {
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 20rpx;
   padding: 32rpx;
   margin-bottom: 24rpx;
@@ -36,7 +36,7 @@
   height: 116rpx;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--app-paper);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,7 +150,7 @@ button.avatar-action-button::after {
 
 /* Placeholder */
 .field-placeholder {
-  color: #bbb;
+  color: var(--app-disabled);
   font-size: 30rpx;
 }
 
@@ -160,7 +160,7 @@ button.avatar-action-button::after {
   right: 0;
   bottom: 8rpx;
   font-size: 24rpx;
-  color: #bbb;
+  color: var(--app-disabled);
 }
 
 /* Save bar fixed at bottom */
@@ -171,7 +171,7 @@ button.avatar-action-button::after {
   bottom: 0;
   padding: 20rpx 32rpx;
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-  background: #fff;
+  background: var(--app-paper);
   box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
 }
 
@@ -210,7 +210,7 @@ button.avatar-action-button::after {
 }
 .section {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .field-input,

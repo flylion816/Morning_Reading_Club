@@ -1,6 +1,6 @@
 .page-activity-registrations {
   min-height: 100vh;
-  background: #f4f6f8;
+  background: var(--app-page-bg);
   padding: 20rpx 24rpx 40rpx;
   box-sizing: border-box;
 }
@@ -9,9 +9,9 @@
 .registration-card,
 .state-box,
 .load-more {
-  background: #ffffff;
+  background: var(--app-paper);
   border-radius: 12rpx;
-  box-shadow: 0 4rpx 14rpx rgba(31, 41, 55, 0.05);
+  box-shadow: 0 4rpx 14rpx rgba(60, 42, 20, 0.05);
 }
 
 .activity-summary {
@@ -68,7 +68,7 @@
 .summary-stats text {
   padding: 8rpx 14rpx;
   border-radius: 8rpx;
-  background: #f1f5f9;
+  background: var(--app-surface-muted);
   color: var(--app-text-soft);
   font-size: 22rpx;
 }
@@ -84,7 +84,7 @@
   flex: 1;
   height: 68rpx;
   border-radius: 10rpx;
-  background: #ffffff;
+  background: var(--app-paper);
   padding: 0 20rpx;
   font-size: 26rpx;
   color: var(--app-text);
@@ -112,7 +112,7 @@
   padding: 8rpx;
   margin-bottom: 18rpx;
   border-radius: 12rpx;
-  background: #e9eef5;
+  background: var(--app-surface-muted);
 }
 
 .tab-item {
@@ -126,7 +126,7 @@
 }
 
 .tab-item.active {
-  background: #ffffff;
+  background: var(--app-paper);
   color: var(--theme-primary);
   font-weight: 700;
 }
@@ -156,7 +156,7 @@
   justify-content: space-between;
   padding: 16rpx 20rpx;
   border-radius: 10rpx;
-  background: #ffffff;
+  background: var(--app-paper);
   color: var(--app-text-soft);
   font-size: 24rpx;
 }
@@ -280,7 +280,7 @@
 .chip {
   padding: 6rpx 12rpx;
   border-radius: 8rpx;
-  background: #f1f5f9;
+  background: var(--app-surface-muted);
   color: var(--app-text-soft);
   font-size: 22rpx;
   line-height: 30rpx;
@@ -314,8 +314,8 @@
 .stats-card {
   padding: 22rpx;
   border-radius: 12rpx;
-  background: #ffffff;
-  box-shadow: 0 4rpx 14rpx rgba(31, 41, 55, 0.05);
+  background: var(--app-paper);
+  box-shadow: 0 4rpx 14rpx rgba(60, 42, 20, 0.05);
 }
 
 .stats-title {
@@ -371,7 +371,7 @@
   padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   border-radius: 28rpx 28rpx 0 0;
-  background: #ffffff;
+  background: var(--app-paper);
 }
 
 .detail-title {
@@ -429,7 +429,7 @@
 .activity-summary,
 .registration-card {
   border-radius: var(--app-radius-lg);
-  border-color: rgba(49, 72, 56, 0.07);
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .tab-row,

@@ -11,7 +11,7 @@
     <view class="cover-section" style="background: {{period.color || themePrimaryColor}}">
       <image wx:if="{{period.coverImage}}" class="cover-image" src="{{period.coverImage}}" mode="aspectFill" />
       <view wx:else class="cover-placeholder">
-        <text class="cover-icon">{{period.icon || '📚'}}</text>
+        <text wx:if="{{period.icon}}" class="cover-icon">{{period.icon}}</text><view wx:else class="app-seal app-seal-lg">读</view>
       </view>
       <view class="cover-overlay">
         <text class="brand-name">{{brandName}}</text>
@@ -23,15 +23,15 @@
     <!-- 期次信息 -->
     <view class="info-section">
       <view class="info-item">
-        <text class="info-icon">📅</text>
+        <view class="app-icon app-icon-calendar info-icon"></view>
         <text class="info-text">{{period.dateRange}}</text>
       </view>
       <view class="info-item">
-        <text class="info-icon">⏰</text>
+        <view class="app-icon app-icon-clock info-icon"></view>
         <text class="info-text">清晨6:00-7:00</text>
       </view>
       <view class="info-item">
-        <text class="info-icon">👥</text>
+        <view class="app-seal app-seal-sm info-icon">伴</view>
         <text class="info-text">与同行者在线共读，回归本源</text>
       </view>
     </view>
@@ -44,7 +44,7 @@
         mode="aspectFill"
       />
       <view wx:if="{{!inviter.avatarUrl}}" class="inviter-avatar-emoji">
-        <text>{{inviter.avatar || '🦁'}}</text>
+        <text wx:if="{{inviter.avatar}}">{{inviter.avatar}}</text><view wx:else class="app-seal app-seal-sm">友</view>
       </view>
       <text class="inviter-text">{{inviter.nickname}} 邀请你加入本期晨读营</text>
     </view>
@@ -89,7 +89,7 @@
 
   <!-- 加载失败 -->
   <view wx:elif="{{!loading}}" class="error-wrap">
-    <text class="error-icon">😕</text>
+    <view class="app-seal app-seal-lg error-icon">空</view>
     <text class="error-text">活动已结束或链接无效</text>
     <view class="btn-next" bindtap="onViewNextPeriod">
       <text>查看其他期次</text>

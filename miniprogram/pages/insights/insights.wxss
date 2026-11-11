@@ -49,7 +49,7 @@
 /* Tab 栏 */
 .insight-tab-bar {
   display: flex;
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 12rpx;
   overflow: hidden;
   margin-bottom: 20rpx;
@@ -78,7 +78,7 @@
 }
 
 .insight-item {
-  background: white;
+  background: var(--app-paper);
   border-radius: 16rpx;
   padding: 20rpx;
   border-left: 8rpx solid var(--theme-primary);
@@ -89,8 +89,8 @@
 }
 
 .insight-item.is-locked {
-  background: #fbfcff;
-  border-left-color: #b8c4d9;
+  background: var(--app-surface-muted);
+  border-left-color: var(--app-rule);
 }
 
 .insight-header {
@@ -201,7 +201,7 @@
 }
 
 .locked-placeholder-text {
-  color: #8a94a6;
+  color: var(--app-text-muted);
   font-size: 22rpx;
   line-height: 1.5;
   text-align: center;
@@ -246,7 +246,7 @@
   gap: 10rpx;
   min-height: 88rpx;
   border-radius: var(--app-radius-md);
-  background: #ffffff;
+  background: var(--app-paper);
   color: var(--theme-primary-dark);
   font-size: 26rpx;
   font-weight: 650;
@@ -329,12 +329,12 @@
 .request-share-panel {
   width: 100%;
   max-width: 560rpx;
-  background: #ffffff;
+  background: var(--app-paper);
   border-radius: 28rpx;
   padding: 54rpx 0 0;
   box-sizing: border-box;
   overflow: hidden;
-  box-shadow: 0 20rpx 64rpx rgba(15, 23, 42, 0.18);
+  box-shadow: 0 20rpx 64rpx rgba(60, 42, 20, 0.18);
 }
 
 .request-share-title {
@@ -350,7 +350,7 @@
   margin-top: 26rpx;
   padding: 0 48rpx;
   font-size: 28rpx;
-  color: #7a7f89;
+  color: var(--app-text-soft);
   line-height: 1.55;
   text-align: center;
 }
@@ -359,7 +359,7 @@
   margin: 28rpx 42rpx 42rpx;
   padding: 18rpx 22rpx;
   border-radius: 12rpx;
-  background: #f5f7fb;
+  background: var(--app-surface-muted);
   color: #426ea9;
   font-size: 26rpx;
   font-weight: 600;
@@ -369,7 +369,7 @@
 
 .request-share-actions {
   display: flex;
-  border-top: 1rpx solid #edf0f5;
+  border-top: 1rpx solid var(--app-surface-muted);
 }
 
 .request-share-secondary,
@@ -399,7 +399,7 @@
 
 .request-share-primary {
   color: #4a6f9f;
-  border-left: 1rpx solid #edf0f5;
+  border-left: 1rpx solid var(--app-surface-muted);
 }
 
 .insight-search-bar {
@@ -418,7 +418,7 @@
   height: 72rpx;
   padding: 0 12rpx;
   border-radius: 40rpx;
-  background: #fff;
+  background: var(--app-paper);
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
@@ -448,7 +448,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--app-paper);
   border-radius: 40rpx;
   padding: 0 24rpx;
   height: 72rpx;
@@ -468,7 +468,7 @@
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: #ccc;
+  background: var(--app-disabled);
   color: #fff;
   font-size: 28rpx;
   display: flex;
@@ -509,10 +509,113 @@
 }
 .insight-item {
   border-radius: var(--app-radius-lg);
-  background: linear-gradient(180deg, var(--app-paper), #ffffff);
-  border-color: rgba(49, 72, 56, 0.07);
+  background: linear-gradient(180deg, var(--app-paper), var(--app-paper-muted));
+  border-color: rgba(92, 70, 44, 0.07);
   box-shadow: var(--app-shadow-soft);
 }
 .insight-item:active {
   transform: translateY(2rpx) scale(0.99);
+}
+
+/* Version 3 dawn: 空态印章与图标、列表标题衬线。 */
+.empty-icon.app-icon {
+  width: 96rpx;
+  height: 96rpx;
+  color: var(--app-text-muted);
+  opacity: 0.5;
+}
+.empty-icon.app-seal {
+  margin-bottom: 24rpx;
+  opacity: 0.85;
+}
+.insight-title {
+  font-family: var(--app-font-serif);
+}
+
+.app-empty { margin: 80rpx 24rpx 0; }
+
+.dawn-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dawn-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 28rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+.dawn-sk-w60 { width: 60%; }
+.dawn-sk-w90 { width: 90%; }
+.dawn-sk-w40 { width: 40%; }
+
+/* 小凡看见：每条是一封信（信封）。 */
+.insight-item {
+  position: relative;
+  overflow: hidden;
+  padding-top: 52rpx;
+  border-left: 1rpx solid rgba(92, 70, 44, 0.12);
+  border: 1rpx solid rgba(92, 70, 44, 0.12);
+  background: var(--app-paper);
+}
+.insight-item.is-locked {
+  background: var(--app-paper-muted);
+  opacity: 0.78;
+}
+.insight-flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 30rpx;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 1rpx), rgba(92, 70, 44, 0.16) 50%, transparent calc(50% + 1rpx)) left top / 50% 100% no-repeat,
+    linear-gradient(to bottom left, transparent calc(50% - 1rpx), rgba(92, 70, 44, 0.16) 50%, transparent calc(50% + 1rpx)) right top / 50% 100% no-repeat;
+}
+.insight-title {
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+}
+.insight-preview {
+  color: var(--app-text-soft);
+}
+.insight-type-tag {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(92, 70, 44, 0.2);
+  font-size: 20rpx;
+  color: var(--app-text-soft);
+  line-height: 1.5;
+}
+.insight-lock-badge.app-icon {
+  align-self: center;
+  width: 30rpx;
+  height: 30rpx;
+  color: var(--app-text-muted);
+}
+.insight-date {
+  font-family: var(--app-font-num, inherit);
+}
+
+/* Features: 周信/月信小标签 */
+.insight-letter-tag {
+  display: inline-block;
+  margin-left: 10rpx;
+  padding: 0 10rpx;
+  border-radius: 6rpx;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-size: 18rpx;
+  line-height: 28rpx;
+  vertical-align: middle;
 }

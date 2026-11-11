@@ -1,6 +1,12 @@
 <view class="page-reports">
-  <view wx:if="{{loading}}" class="state-block">
-    <text class="state-title">加载中...</text>
+  <view wx:if="{{loading}}" class="state-block state-block-skeleton">
+  <view class="dawn-skeleton-list">
+    <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+      <view class="app-skeleton-line dawn-sk-w60"></view>
+      <view class="app-skeleton-line dawn-sk-w90"></view>
+      <view class="app-skeleton-line dawn-sk-w40"></view>
+    </view>
+  </view>
   </view>
 
   <view wx:elif="{{error}}" class="state-block">
@@ -8,9 +14,9 @@
     <view class="state-action" bindtap="handleRetry">重试</view>
   </view>
 
-  <view wx:elif="{{empty}}" class="state-block">
-    <text class="state-icon">📄</text>
-    <text class="state-title">暂无实录报告</text>
+  <view wx:elif="{{empty}}" class="app-empty">
+    <view class="app-empty-art app-empty-art-lamp"></view>
+    <text class="app-empty-title">这一期的实录还在整理中</text>
   </view>
 
   <view wx:else class="report-list">

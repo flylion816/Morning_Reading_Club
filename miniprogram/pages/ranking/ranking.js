@@ -99,9 +99,9 @@ Page({
         loading: false
       });
     } catch (error) {
-      console.error('加载排行榜失败:', error);
+      console.error('加载同行榜失败:', error);
       wx.showToast({
-        title: '加载排行榜失败',
+        title: '加载同行榜失败',
         icon: 'none'
       });
       this.setData({ loading: false });
@@ -144,7 +144,7 @@ Page({
   onShareAppMessage() {
     const { currentUser, periodName } = this.data;
     const campName = periodName || '七个习惯晨读营';
-    let title = `${campName}排行榜，快来一起打卡！`;
+    let title = `${campName}同行榜，快来一起打卡！`;
     if (currentUser && currentUser.rank) {
       title = `我在${campName}排第${currentUser.rank}名，已打卡${currentUser.checkinCount}天，来挑战我！`;
     }
