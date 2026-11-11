@@ -1,0 +1,4 @@
+interface:
+  display_name: "图片与剧本成片"
+  short_description: "从图片与剧本制作完整方案、带声音样片及可直接播放的成片"
+  default_prompt: "使用 $photo-script-video，根据我提供的图片和剧本，先输出视频方案与带声音样片，再制作完整视频。"
