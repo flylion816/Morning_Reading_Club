@@ -71,7 +71,7 @@ Page({
     } catch (err) {
       console.error('加载我的活动失败:', err);
       this.setData({ loading: false });
-      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     }
   },
 

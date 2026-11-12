@@ -19,7 +19,7 @@ Page({
   onLoad(options) {
     if (!guardSocialPage(this)) return;
     if (!options.id) {
-      wx.showToast({ title: '参数错误', icon: 'none' });
+      wx.showToast({ title: '页面没打开对，返回再进一次', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 1500);
       return;
     }
@@ -41,7 +41,7 @@ Page({
         this._setEditorContent(html);
       }
     } catch (e) {
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
       this.setData({ loading: false });
     }
   },
@@ -109,7 +109,7 @@ Page({
       wx.showToast({ title: '保存成功', icon: 'success' });
       setTimeout(() => wx.navigateBack(), 1200);
     } catch (e) {
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      wx.showToast({ title: '没保存上，再试一次', icon: 'none' });
       this.setData({ saving: false });
     }
   },

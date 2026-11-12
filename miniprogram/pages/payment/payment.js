@@ -127,7 +127,7 @@ Page({
 
     if (!enrollmentId || !periodId) {
       wx.showToast({
-        title: '参数错误，请重新操作',
+        title: '页面没打开对，返回再进一次',
         icon: 'none'
       });
       setTimeout(() => {
@@ -470,7 +470,7 @@ Page({
       showPaymentResult: true,
       'paymentResult.success': true,
       'paymentResult.title': '支付成功',
-      'paymentResult.message': '报名已完成，现在可以进入课程学习了'
+      'paymentResult.message': '欢迎入营。接下来的每个清晨，咱们一起读。'
     });
 
     // 保存支付成功状态到本地存储
@@ -529,9 +529,9 @@ Page({
     // 关闭弹窗
     this.closeModal();
 
-    // reLaunch 会清空报名页/期次详情页/支付页形成的整个页面栈。
+    // reLaunch 会清空报名页/期次详情页/支付页形成的整个页面栈；welcome=1 让课程页出一次入营欢迎卡。
     wx.reLaunch({
-      url: `/pages/courses/courses?periodId=${enrollmentData.periodId}`,
+      url: `/pages/courses/courses?periodId=${enrollmentData.periodId}&welcome=1`,
       fail: () => {
         wx.reLaunch({ url: '/pages/index/index' });
       }
@@ -559,7 +559,7 @@ Page({
     const { enrollmentData } = this.data;
     wx.showModal({
       title: '稍后支付',
-      content: '您可以稍后在课程页面或个人中心继续支付',
+      content: '你可以稍后在课程页面或个人中心继续支付',
       confirmText: '继续学习',
       cancelText: '留在此页',
       success: res => {

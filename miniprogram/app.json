@@ -231,8 +231,8 @@
     "audio"
   ],
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#4a90e2",
+    "color": "#857a6c",
+    "selectedColor": "#3d6fa6",
     "backgroundColor": "#fffdf8",
     "borderStyle": "white",
     "list": [

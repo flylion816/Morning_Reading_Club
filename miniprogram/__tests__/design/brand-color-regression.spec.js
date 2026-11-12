@@ -15,7 +15,7 @@ describe('miniprogram brand color regression', () => {
     const theme = read('miniprogram/theme.wxss');
     const primary = lower(tenant.primaryColor);
 
-    expect(primary).toBe('#4a90e2');
+    expect(primary).toBe('#3d6fa6');
     expect(lower(app.window.navigationBarBackgroundColor)).toBe(PAPER_NAV.bgColor);
     expect(app.window.navigationBarTextStyle).toBe(PAPER_NAV.textStyle);
     expect(lower(app.tabBar.backgroundColor)).toBe(PAPER_NAV.bgColor);

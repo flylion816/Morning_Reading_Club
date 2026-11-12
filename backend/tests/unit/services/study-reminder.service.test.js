@@ -189,7 +189,7 @@ describe("Study Reminder Service", () => {
     expect(sendArgs.fields.activityName).to.equal("若星生活家晨读营");
     expect(sendArgs.fields.activityContent).to.equal("第十八天 晨读任务");
     expect(sendArgs.fields.startTime).to.include("06:00");
-    expect(sendArgs.fields.joinMethod).to.equal("进入若星生活家小程序去学习");
+    expect(sendArgs.fields.joinMethod).to.equal("打开若星生活家，一起读");
     expect(SubscribeMessageGrantStub.findOneAndUpdate.calledTwice).to.be.true;
     const update =
       SubscribeMessageGrantStub.findOneAndUpdate.secondCall.args[1];

@@ -32,6 +32,7 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { tenantStorage } = require('../../utils/storage');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { getDaypart } = require('../../utils/daypart');
+const { isInsightUnread } = require('../../utils/insight-unread');
 const {
   getLessonNumberingBase,
   getLessonNumber,
@@ -283,9 +284,37 @@ function buildRecentCheckinCard(item) {
       : formatShortLessonLabel(sectionInfo.day),
     dateLabel: formatRecentCheckinDate(item.checkinDate || item.createdAt),
     ...buildLeafDate(item.checkinDate || item.createdAt),
+    dateKey: buildCheckinDateKey(item.checkinDate || item.createdAt),
     icon: periodInfo.coverEmoji || periodInfo.icon || '📘',
     color: periodInfo.coverColor || periodInfo.color || THEME_PRIMARY
   };
+}
+
+function buildCheckinDateKey(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : getLocalDateKey(date);
+}
+
+const WELCOME_BACK_GAP_DAYS = 3;
+
+// 隔了几天再回来时，今日卡片上的一句话：不数天数、不提落下了多少，只说从今天接着读
+function buildWelcomeBackText({ todaySection, recentCheckins, totalCheckinDays, periodDayIndex, now = new Date() } = {}) {
+  if (!todaySection || todaySection.isCheckedIn) return '';
+  const keys = (recentCheckins || []).map(item => item && item.dateKey).filter(Boolean).sort();
+  const lastKey = keys[keys.length - 1];
+  if (lastKey) {
+    const today = new Date(`${getLocalDateKey(now)}T00:00:00`);
+    const last = new Date(`${lastKey}T00:00:00`);
+    const gapDays = Math.round((today - last) / 86400000);
+    return gapDays >= WELCOME_BACK_GAP_DAYS
+      ? '有几天没见了，回来就好。从今天这一课接着读，前面的不用急着补。'
+      : '';
+  }
+  if (Number(totalCheckinDays) === 0 && Number(periodDayIndex) >= WELCOME_BACK_GAP_DAYS) {
+    return '营里已经读了几天，从今天这一课开始就好，前面的不用补。';
+  }
+  return '';
 }
 
 function getLocalDateKey(date = new Date()) {
@@ -467,7 +496,7 @@ function buildTodayCardState(todaySection, communityEnabled) {
 
   let primary;
   if (communityEnabled && checkedIn) {
-    primary = { type: 'done', text: '✓ 今日已完成' };
+    primary = { type: 'done', text: '今天读完了，明早见' };
   } else if (!read) {
     primary = { type: 'read', text: '开始晨读' };
   } else if (communityEnabled) {
@@ -563,13 +592,12 @@ function buildTodayTaskEmptyState(period = null, options = {}) {
       type: 'period-ended',
       icon: '✓',
       coverLabel: '已结营',
-      title: `${periodTitle}已结营`,
-      description: '本期晨读已完成，新营期开启后会更新今日任务。',
+      title: `${periodTitle}读完了`,
+      description: '这些天读过的、写下的、被看见的，都收在这一期的纪念册里。新一期开营后，这里会换成新的晨读。',
       periodId,
-      primaryAction: options.hasReport
-        ? { text: '查看结营实录', type: 'report' }
-        : null,
+      primaryAction: periodId ? { text: '翻开纪念册', type: 'keepsake' } : null,
       secondaryActions: [
+        ...(options.hasReport ? [{ text: '看结营实录', type: 'report' }] : []),
         { text: '回看课程', type: 'courses' }
       ]
     };
@@ -619,6 +647,7 @@ function buildReadingModeUrl(sectionId, periodId = '', section = {}) {
 Page({
   // 暴露纯函数，便于单测
   buildTodayCardState,
+  buildWelcomeBackText,
   buildPresenceText,
   buildCampCornerCards,
   buildDailyCardSource,
@@ -672,6 +701,8 @@ Page({
 
     // 最近的打卡日记（最多3条）
     recentCheckins: [],
+    welcomeBackText: '',
+    periodDayIndex: 0,
 
     // 凡人生活（在场印记，最多3条）
     zaichangImprints: [],
@@ -742,7 +773,7 @@ Page({
       console.log('[首页 onShow] 检测到 checkinListDirty，强制刷新我的打卡');
       app.globalData.checkinListDirty = false;
       this.loadRecentCheckins().then(recentCheckins => {
-        this.setData({ recentCheckins });
+        this.setData({ recentCheckins, welcomeBackText: this.buildWelcomeBack(recentCheckins) });
         console.log('[首页 onShow] 我的打卡已刷新，条数:', recentCheckins.length);
       }).catch(() => {});
     }
@@ -852,6 +883,8 @@ Page({
         currentPeriodReport: null,
         showMorningReadPrompt: false,
         recentCheckins: [],
+        welcomeBackText: '',
+        periodDayIndex: 0,
         recentInsights: [],
         receivedInsightRequests: [],
         sentInsightRequests: [],
@@ -1311,6 +1344,7 @@ Page({
         {
           journeyTicks,
           periodDayText,
+          periodDayIndex: currentPeriodActiveToday ? periodDayIndex || 0 : 0,
           userInfo: displayUserInfo,
           hasValidSignature: !!this.isValidSignature(
             displayUserInfo && displayUserInfo.signature
@@ -1377,6 +1411,7 @@ Page({
         this.setData(
           {
             recentCheckins,
+            welcomeBackText: this.buildWelcomeBack(recentCheckins),
             recentInsights,
             zaichangImprints,
             receivedInsightRequests:
@@ -1668,6 +1703,7 @@ Page({
             ? ''
             : formatShortLessonLabel(item.day),
           title: item.sectionId?.title || '学习反馈',
+          unread: isInsightUnread(item, currentUserId),
           dateLabel: formatRecentCheckinDate(item.createdAt),
           courseTitle: courseDisplay.title,
           courseDayLabel: courseDisplay.dayLabel,
@@ -1684,7 +1720,9 @@ Page({
         };
       });
 
-      return formatted.slice(0, 2);
+      // 有没读的信就先把它放到信封上，其余顺序不变
+      const unreadFirst = [...formatted.filter(item => item.unread), ...formatted.filter(item => !item.unread)];
+      return unreadFirst.slice(0, 2);
     } catch (error) {
       console.error('加载小凡看见失败:', error);
       return [];
@@ -2114,7 +2152,7 @@ Page({
     } catch (error) {
       console.error('❌ 批准申请失败:', error);
       wx.showToast({
-        title: '批准失败',
+        title: '没批准成，再试一次',
         icon: 'none'
       });
     }
@@ -2148,7 +2186,7 @@ Page({
     } catch (error) {
       console.error('❌ 拒绝申请失败:', error);
       wx.showToast({
-        title: '拒绝失败',
+        title: '没拒绝成，再试一次',
         icon: 'none'
       });
     }
@@ -2229,12 +2267,22 @@ Page({
       this.data.currentPeriod?.id;
 
     if (!periodId) {
-      wx.showToast({ title: '期次信息不存在', icon: 'none' });
+      wx.showToast({ title: '没找到这一期，返回再进一次', icon: 'none' });
       return;
     }
 
     wx.navigateTo({
       url: `/pages/completion-report-detail/completion-report-detail?periodId=${periodId}`
+    });
+  },
+
+  // 隔了几天回来时今日卡片上的那句话（已打卡、没有今日任务时为空）
+  buildWelcomeBack(recentCheckins) {
+    return buildWelcomeBackText({
+      todaySection: this.data.todaySection,
+      recentCheckins,
+      totalCheckinDays: this.data.userStats ? this.data.userStats.totalCheckinDays : null,
+      periodDayIndex: this.data.periodDayIndex
     });
   },
 
@@ -2254,11 +2302,19 @@ Page({
 
     if (action === 'courses') {
       if (!periodId) {
-        wx.showToast({ title: '期次信息不存在', icon: 'none' });
+        wx.showToast({ title: '没找到这一期，返回再进一次', icon: 'none' });
         return;
       }
       wx.navigateTo({
         url: `/pages/courses/courses?periodId=${periodId}`
+      });
+      return;
+    }
+
+    if (action === 'keepsake') {
+      if (!periodId) return;
+      wx.navigateTo({
+        url: `/pages/keepsake/keepsake?periodId=${periodId}`
       });
       return;
     }
@@ -2347,7 +2403,7 @@ Page({
 
     ctx.onError((err) => {
       console.error('播客播放失败:', err);
-      wx.showToast({ title: '播放失败，请重试', icon: 'none' });
+      wx.showToast({ title: '没播出来，再试一次', icon: 'none' });
       app.globalData.podcastPlaying = false;
       this.setPodcastUiData({ podcastPlaying: false });
     });
@@ -2424,7 +2480,7 @@ Page({
     try {
       if (!targetSectionId) {
         wx.showLoading({
-          title: '正在打开...',
+          title: '正在打开…',
           mask: true
         });
 
@@ -2445,7 +2501,7 @@ Page({
     } catch (error) {
       console.error('打开打卡详情失败:', error);
       wx.showToast({
-        title: '打开详情失败',
+        title: '详情没打开，再点一次',
         icon: 'none'
       });
     } finally {
@@ -2504,11 +2560,11 @@ Page({
       return;
     }
 
-    // 暂时添加Toast以确认函数被调用
-    wx.showToast({
-      title: '正在跳转详情...',
-      icon: 'none'
-    });
+    // 点开就算读过了：首页的信封立刻换成已拆开的样子
+    const recentInsights = (this.data.recentInsights || []).map(item =>
+      item.id === id && item.unread ? { ...item, unread: false } : item
+    );
+    this.setData({ recentInsights });
 
     const url = `/pages/insight-detail/insight-detail?id=${id}`;
 
@@ -3132,7 +3188,7 @@ Page({
         }, 500);
       } else {
         wx.showToast({
-          title: '保存失败，请重试',
+          title: '没保存上，再试一次',
           icon: 'none'
         });
       }

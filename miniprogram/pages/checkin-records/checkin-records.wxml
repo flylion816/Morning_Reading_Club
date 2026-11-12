@@ -154,7 +154,7 @@
     <text class="app-empty-desc">完成晨读打卡后，这里会汇总你的所有记录</text>
   </view>
 
-  <view wx:if="{{loadingMore}}" class="load-more">加载中…</view>
+  <view wx:if="{{loadingMore}}" class="load-more">正在取更多…</view>
 </view>
 
 <podcast-player-bar />

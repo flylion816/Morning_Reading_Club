@@ -286,7 +286,7 @@ Page({
     } catch (error) {
       console.error('加载我的打卡日记失败:', error);
       wx.showToast({
-        title: '加载失败，请稍后重试',
+        title: '没加载出来，稍后再试试',
         icon: 'none'
       });
       this.setData({ loading: false, loadingMore: false });
@@ -385,7 +385,7 @@ Page({
     } else {
       this.loadCheckinRecords({ reset: true }).catch(error => {
         console.error('切换期次失败:', error);
-        wx.showToast({ title: '加载期次失败', icon: 'none' });
+        wx.showToast({ title: '期次没加载出来，稍后再试试', icon: 'none' });
         this.setData({ loading: false, loadingMore: false });
       });
     }
@@ -421,7 +421,7 @@ Page({
     try {
       if (!targetSectionId) {
         wx.showLoading({
-          title: '正在打开...',
+          title: '正在打开…',
           mask: true
         });
 
@@ -441,7 +441,7 @@ Page({
     } catch (error) {
       console.error('打开打卡详情失败:', error);
       wx.showToast({
-        title: '打开详情失败',
+        title: '详情没打开，再点一次',
         icon: 'none'
       });
     } finally {

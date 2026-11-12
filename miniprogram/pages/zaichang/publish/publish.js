@@ -132,7 +132,7 @@ Page({
         });
         this._syncMediaState(mediaList);
       } catch (e) {
-        wx.showToast({ title: '加载失败', icon: 'none' });
+        wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
       }
     }
   },
@@ -376,7 +376,7 @@ Page({
     if (this.data.submitting) return;
 
     this.setData({ submitting: true });
-    wx.showLoading({ title: editId ? '保存中...' : '发布中...' });
+    wx.showLoading({ title: editId ? '正在保存…' : '正在发布…' });
     try {
       const payload = {
         title: title.trim(),
@@ -399,7 +399,7 @@ Page({
       setTimeout(() => wx.navigateBack(), 1200);
     } catch (e) {
       wx.hideLoading();
-      wx.showToast({ title: e.message || (editId ? '保存失败' : '发布失败'), icon: 'none' });
+      wx.showToast({ title: e.message || (editId ? '没保存上，再试一次' : '发布失败'), icon: 'none' });
     }
     this.setData({ submitting: false });
   }

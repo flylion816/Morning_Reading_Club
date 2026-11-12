@@ -89,7 +89,7 @@ Page({
     } catch (error) {
       console.error('加载期次详情失败:', error);
       this.setData({ loading: false });
-      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     }
   },
 

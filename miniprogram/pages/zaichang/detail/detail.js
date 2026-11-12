@@ -153,7 +153,7 @@ Page({
       this.prepareShareCover(this.getFirstShareImageUrl(imprint));
     } catch (e) {
       this.setData({ loading: false });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     }
   },
 
@@ -282,7 +282,7 @@ Page({
         this.setData({ iAmAttending: true, 'imprint.attendees': attendees });
       }
     } catch (e) {
-      wx.showToast({ title: e.message || '操作失败', icon: 'none' });
+      wx.showToast({ title: e.message || '没成功，再试一次', icon: 'none' });
     }
   },
 
@@ -346,7 +346,7 @@ Page({
             'imprint.commentCount': Math.max(0, (this.data.imprint.commentCount || 1) - 1)
           });
         } catch (e) {
-          wx.showToast({ title: '删除失败', icon: 'none' });
+          wx.showToast({ title: '没删掉，再试一次', icon: 'none' });
         }
       }
     });
@@ -385,7 +385,7 @@ Page({
           wx.showToast({ title: '已删除', icon: 'success' });
           setTimeout(() => wx.navigateBack(), 1200);
         } catch (e) {
-          wx.showToast({ title: e.message || '删除失败', icon: 'none' });
+          wx.showToast({ title: e.message || '没删掉，再试一次', icon: 'none' });
         }
       }
     });

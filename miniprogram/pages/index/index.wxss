@@ -3799,3 +3799,23 @@ button.avatar-action-button::after {
   background: #f4ead9;
   box-shadow: inset -10rpx -3rpx 0 0 #2e3b58, 0 0 0 10rpx rgba(244, 234, 217, 0.1);
 }
+
+/* Features: 隔了几天回来时，今日卡片上的一句话 */
+.dawn-welcome-back {
+  margin: 4rpx 0 20rpx;
+  padding: 16rpx 22rpx;
+  border-radius: 16rpx;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+/* Features: 小凡的信读过之后，火漆换成拆开的样子（空心） */
+.insights-section .insight-env-wax-read {
+  background: var(--app-paper);
+  color: #9c3b28;
+  border: 2rpx solid rgba(156, 59, 40, 0.45);
+  box-shadow: none;
+  line-height: 72rpx;
+}

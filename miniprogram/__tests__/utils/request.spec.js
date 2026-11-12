@@ -203,7 +203,7 @@ describe('Request Service', () => {
       });
 
       const err = await request.get('/api/error').catch(e => e);
-      expect(err.message).toBe('服务器错误,请稍后重试');
+      expect(err.message).toBe('服务器开小差了，稍后再试试');
     });
 
     test('should reject on 500 Server Error', async () => {

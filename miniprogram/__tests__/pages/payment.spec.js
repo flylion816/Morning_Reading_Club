@@ -125,7 +125,7 @@ describe('payment page', () => {
 
     jest.advanceTimersByTime(1200);
     expect(wx.reLaunch).toHaveBeenCalledWith(expect.objectContaining({
-      url: '/pages/courses/courses?periodId=period_space'
+      url: '/pages/courses/courses?periodId=period_space&welcome=1'
     }));
     expect(wx.redirectTo).not.toHaveBeenCalled();
   });

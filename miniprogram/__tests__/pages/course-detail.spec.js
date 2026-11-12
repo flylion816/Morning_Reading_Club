@@ -279,7 +279,7 @@ describe('course-detail page markdown support', () => {
 
     expect(pageInstance.data.closingVideoActivated).toBe(false);
     expect(wx.showToast).toHaveBeenCalledWith({
-      title: '视频加载失败，请稍后再试',
+      title: '视频没加载出来，稍后再试试',
       icon: 'none'
     });
   });
@@ -892,7 +892,7 @@ describe('course-detail page markdown support', () => {
     pageInstance.handleLongImageShare.call(pageInstance);
 
     expect(wx.showToast).toHaveBeenCalledWith({
-      title: '暂无可生成的内容',
+      title: '这里还没有可以生成的内容',
       icon: 'none'
     });
   });

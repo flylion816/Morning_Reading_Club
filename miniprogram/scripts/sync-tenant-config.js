@@ -290,7 +290,7 @@ function buildMiniTenantConfig(tenant, slug) {
       textStyle: branding.navBarTextStyle || 'white'
     },
     tabBar: {
-      color: branding.tabBarColor || '#999999',
+      color: branding.tabBarColor || '#857a6c',
       selectedColor: branding.tabBarSelectedColor || primaryColor,
       backgroundColor: branding.tabBarBackgroundColor || '#ffffff',
       iconsDir

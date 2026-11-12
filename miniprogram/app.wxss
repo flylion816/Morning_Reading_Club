@@ -520,3 +520,16 @@ view {
 .app-icon-eye {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'/%3E%3C/svg%3E");
 }
+
+/* 页面级加载骨架：代替转圈和「加载中」，放在各页原有的加载容器里。 */
+.app-loading-skeleton {
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
+  padding: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+.app-loading-line-lg { width: 72%; height: 32rpx; }
+.app-loading-line-sm { width: 46%; }

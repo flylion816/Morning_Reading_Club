@@ -93,7 +93,7 @@ Page({
     } catch (error) {
       logger.error('加载用户资料失败:', error);
       wx.showToast({
-        title: '加载失败',
+        title: '没加载出来，稍后再试试',
         icon: 'none'
       });
     }

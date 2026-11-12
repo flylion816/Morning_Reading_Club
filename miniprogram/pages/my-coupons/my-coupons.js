@@ -51,7 +51,7 @@ Page({
       });
       this.setData({ coupons: list });
     } catch (e) {
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }

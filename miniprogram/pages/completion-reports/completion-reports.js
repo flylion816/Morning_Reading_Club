@@ -33,8 +33,8 @@ Page({
       const statusCode = error?.statusCode || error?.status || error?.data?.code;
       const errorText =
         statusCode === 403 || statusCode === 404
-          ? '报告不存在或暂无权限'
-          : '加载失败，请重试';
+          ? '这份报告不存在，或者你还不能查看'
+          : '没加载出来，稍后再试试';
       this.setData({
         reports: [],
         empty: false,
@@ -47,7 +47,7 @@ Page({
   handleReportTap(e) {
     const { periodId } = e.currentTarget.dataset || {};
     if (!periodId) {
-      wx.showToast({ title: '期次信息不存在', icon: 'none' });
+      wx.showToast({ title: '没找到这一期，返回再进一次', icon: 'none' });
       return;
     }
 

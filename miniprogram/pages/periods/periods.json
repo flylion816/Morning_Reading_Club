@@ -5,6 +5,6 @@
   "usingComponents": {
     "course-card": "/components/course-card/index"
   },
-  "navigationBarBackgroundColor": "#4a90e2",
+  "navigationBarBackgroundColor": "#3d6fa6",
   "navigationBarTextStyle": "white"
 }

@@ -153,6 +153,7 @@
             <text class="dawn-card-title">今日晨读</text>
             <text class="dawn-card-day">{{todaySection.dayDisplay}}</text>
           </view>
+          <view class="dawn-welcome-back" wx:if="{{welcomeBackText}}">{{welcomeBackText}}</view>
           <view class="dawn-course-title">{{todaySection.title}}</view>
           <view class="dawn-extract" wx:if="{{todaySection.extractText}}">{{todaySection.extractText}}</view>
           <view class="dawn-meta">
@@ -316,10 +317,10 @@
           <view class="insight-env-flap"></view>
           <view class="insight-env-stamp"><text class="insight-env-stamp-word">见</text></view>
           <view class="insight-env-postmark" wx:if="{{recentInsights[0].dateLabel}}">{{recentInsights[0].dateLabel}}</view>
-          <view class="insight-env-wax">凡</view>
+          <view class="insight-env-wax {{recentInsights[0].unread ? '' : 'insight-env-wax-read'}}">凡</view>
           <view class="insight-env-body">
             <text class="insight-env-to">{{userInfo.nickname || userInfo.name || '书友'}} 收</text>
-            <text class="insight-env-title">小凡给你留了一封信</text>
+            <text class="insight-env-title">{{recentInsights[0].unread ? '小凡给你留了一封信' : '小凡写给你的信'}}</text>
             <text class="insight-env-sub">{{recentInsights[0].courseTitle}}</text>
           </view>
         </view>

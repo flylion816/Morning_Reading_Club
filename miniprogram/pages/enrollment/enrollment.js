@@ -271,7 +271,7 @@ Page({
       if (periodList.length === 0) {
         // 没有可报名的期次，返回首页
         wx.showToast({
-          title: '暂无开放报名期次',
+          title: '现在没有开放报名的期次',
           icon: 'none'
         });
         this.setData({ loading: false });
@@ -322,7 +322,7 @@ Page({
     } catch (error) {
       console.error('加载期次失败:', error);
       wx.showToast({
-        title: '加载期次失败',
+        title: '期次没加载出来，稍后再试试',
         icon: 'none'
       });
       this.setData({ loading: false });
@@ -598,8 +598,8 @@ Page({
         });
         return;
       }
-      wx.showToast({ title: '免费报名成功', icon: 'success', duration: 1200 });
-      setTimeout(() => this.navigateToCourses(selectedPeriod), 1200);
+      wx.showToast({ title: '报名好了，欢迎入营', icon: 'none', duration: 1200 });
+      setTimeout(() => this.navigateToCourses(selectedPeriod, { welcome: true }), 1200);
     } catch (error) {
       console.error('报名失败:', error);
 
@@ -622,12 +622,12 @@ Page({
     }
   },
 
-  navigateToCourses(period) {
+  navigateToCourses(period, options = {}) {
     wx.navigateTo({
-      url: `/pages/courses/courses?periodId=${getPeriodId(period)}&name=${encodeURIComponent(getPeriodName(period))}`,
+      url: `/pages/courses/courses?periodId=${getPeriodId(period)}&name=${encodeURIComponent(getPeriodName(period))}${options.welcome ? '&welcome=1' : ''}`,
       fail: err => {
         console.error('导航到课程列表失败:', err);
-        wx.showToast({ title: '导航失败，请重试', icon: 'none' });
+        wx.showToast({ title: '页面没打开，再试一次', icon: 'none' });
       }
     });
   },

@@ -29,7 +29,7 @@
       <picker wx:if="{{selectableSections.length}}" range="{{selectableSections}}" range-key="name" value="{{selectedSectionIndex}}" bindchange="handleCheckinSectionChange" disabled="{{selectionLoading}}">
         <view class="choice-picker"><text>{{selectableSections[selectedSectionIndex].name}}</text><text class="choice-chevron">⌄</text></view>
       </picker>
-      <view wx:else class="choice-placeholder">{{selectionLoading ? '正在加载课程…' : '该期暂无可打卡课程'}}</view>
+      <view wx:else class="choice-placeholder">{{selectionLoading ? '正在加载课程…' : '这一期还没有可以打卡的课程'}}</view>
     </view>
     <view wx:if="{{selectionError}}" class="choice-message">
       <text>{{selectionError}}</text><button class="choice-retry" bindtap="retryCheckinChoices">重试</button>
@@ -243,149 +243,57 @@
         wx:if="{{showCelebration}}"
         bindtap="dismissCelebration">
 
-    <!-- ===== Style A: 能量爆发 ===== -->
-    <block wx:if="{{celebrationStyle === 'A'}}">
-      <!-- 扩散光环 -->
-      <view class="cel-ring cel-ring1"></view>
-      <view class="cel-ring cel-ring2"></view>
-      <!-- 粒子 -->
-      <view class="cel-p cel-pa1"></view>
-      <view class="cel-p cel-pa2"></view>
-      <view class="cel-p cel-pa3"></view>
-      <view class="cel-p cel-pa4"></view>
-      <view class="cel-p cel-pa5"></view>
-      <view class="cel-p cel-pa6"></view>
-      <view class="cel-p cel-pa7"></view>
-      <view class="cel-p cel-pa8"></view>
-      <view class="cel-p cel-ps1"></view>
-      <view class="cel-p cel-ps2"></view>
-      <view class="cel-p cel-ps3"></view>
-      <view class="cel-p cel-ps4"></view>
-      <!-- 卡片 -->
-      <view class="cel-card cel-card-a" catchtap="noop">
-        <view class="cel-icon-a">✓</view>
-        <view class="cel-msg">{{celebrationMessage}}</view>
-        <view class="cel-hint">点击任意处关闭</view>
+    <!-- 七套仪式共用同一组文字和按钮，只是清晨的场景不同：
+         A 晨星未落 / B 书页轻翻 / C 旭日初升 / D 远山日出 / E 一盏晨灯 / F 清晨落叶 / G 晨鸟出林 -->
+    <view class="cel-rite">
+      <view class="cel-scene">
+        <block wx:if="{{celebrationStyle === 'A'}}">
+          <view wx:for="{{[1,2,3,4,5,6,7]}}" wx:key="*this" class="cel-star cel-star-{{item}}"></view>
+          <view class="cel-morning-star"></view>
+        </block>
+        <block wx:elif="{{celebrationStyle === 'B'}}">
+          <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this" class="cel-leafpage cel-leafpage-{{item}}"></view>
+        </block>
+        <block wx:elif="{{celebrationStyle === 'D'}}">
+          <view class="cel-rite-sun cel-sun-small"></view>
+          <view class="cel-hill cel-hill-1"></view>
+          <view class="cel-hill cel-hill-2"></view>
+          <view class="cel-hill cel-hill-3"></view>
+          <view class="cel-mist"></view>
+        </block>
+        <block wx:elif="{{celebrationStyle === 'E'}}">
+          <view class="cel-lamp-glow"></view>
+          <view class="cel-lamp"></view>
+        </block>
+        <block wx:elif="{{celebrationStyle === 'F'}}">
+          <view wx:for="{{[1,2,3,4,5,6,7]}}" wx:key="*this" class="cel-leaf cel-leaf-{{item}}"></view>
+        </block>
+        <block wx:elif="{{celebrationStyle === 'G'}}">
+          <view class="cel-rite-sun cel-sun-small"></view>
+          <view class="cel-bird cel-bird-1"></view>
+          <view class="cel-bird cel-bird-2"></view>
+          <view class="cel-bird cel-bird-3"></view>
+        </block>
+        <block wx:else>
+          <view class="cel-rite-sun"></view>
+        </block>
       </view>
-    </block>
-
-    <!-- ===== Style B: 书页翻飞 ===== -->
-    <block wx:elif="{{celebrationStyle === 'B'}}">
-      <view class="cel-page cel-pg1"></view>
-      <view class="cel-page cel-pg2"></view>
-      <view class="cel-page cel-pg3"></view>
-      <view class="cel-page cel-pg4"></view>
-      <view class="cel-page cel-pg5"></view>
-      <view class="cel-page cel-pg6"></view>
-      <view class="cel-card cel-card-b" catchtap="noop">
-        <view class="cel-book-icon">📖</view>
-        <view class="cel-msg cel-msg-b">{{celebrationMessage}}</view>
-        <view class="cel-hint cel-hint-b">点击任意处关闭</view>
+      <view class="cel-rite-ground"></view>
+      <view class="cel-rite-day" wx:if="{{celebrationDay > 0}}">
+        <text class="cel-rite-day-word">第</text>
+        <text class="cel-rite-day-num">{{celebrationDay}}</text>
+        <text class="cel-rite-day-word">天</text>
       </view>
-    </block>
-
-    <!-- ===== Style C: 晨光仪式（整屏日出）===== -->
-    <block wx:elif="{{celebrationStyle === 'C'}}">
-      <view class="cel-rite">
-        <view class="cel-rite-sun"></view>
-        <view class="cel-rite-ground"></view>
-        <view class="cel-rite-day" wx:if="{{celebrationDay > 0}}">
-          <text class="cel-rite-day-word">第</text>
-          <text class="cel-rite-day-num">{{celebrationDay}}</text>
-          <text class="cel-rite-day-word">天</text>
-        </view>
-        <view class="cel-rite-body">
-          <view class="cel-rite-title">读完了，明早见</view>
-          <view class="cel-rite-streak" wx:if="{{celebrationStreak > 1}}">连续晨读 <text class="cel-rite-rank-num">{{celebrationStreak}}</text> 天</view>
-          <view class="cel-rite-say" wx:if="{{celebrationMessage}}">「{{celebrationMessage}}」</view>
-          <view class="cel-rite-rank" wx:if="{{celebrationRank > 0}}">你是今天第 <text class="cel-rite-rank-num">{{celebrationRank}}</text> 位打卡的书友</view>
-          <view class="cel-rite-btn" catchtap="handleSeeOthersCheckins">看看大家的打卡</view>
-          <view class="cel-rite-card" catchtap="handleMakeDailyCard">分享今日打卡</view>
-          <view class="cel-rite-close" catchtap="dismissCelebration">好，明早见</view>
-        </view>
+      <view class="cel-rite-body">
+        <view class="cel-rite-title">读完了，明早见</view>
+        <view class="cel-rite-streak" wx:if="{{celebrationStreak > 1}}">连续晨读 <text class="cel-rite-rank-num">{{celebrationStreak}}</text> 天</view>
+        <view class="cel-rite-say" wx:if="{{celebrationMessage}}">「{{celebrationMessage}}」</view>
+        <view class="cel-rite-rank" wx:if="{{celebrationRank > 0}}">你是今天第 <text class="cel-rite-rank-num">{{celebrationRank}}</text> 位打卡的书友</view>
+        <view class="cel-rite-btn" catchtap="handleSeeOthersCheckins">看看大家的打卡</view>
+        <view class="cel-rite-card" catchtap="handleMakeDailyCard">分享今日打卡</view>
+        <view class="cel-rite-close" catchtap="dismissCelebration">好，明早见</view>
       </view>
-    </block>
-
-    <!-- ===== Style D: 碎片裂变 ===== -->
-    <block wx:elif="{{celebrationStyle === 'D'}}">
-      <view class="cel-shockwave shock-1"></view>
-      <view class="cel-shockwave shock-2"></view>
-      <view class="cel-crack crack-h"></view>
-      <view class="cel-crack crack-v"></view>
-      <view class="cel-shard shard-1"></view>
-      <view class="cel-shard shard-2"></view>
-      <view class="cel-shard shard-3"></view>
-      <view class="cel-shard shard-4"></view>
-      <view class="cel-shard shard-5"></view>
-      <view class="cel-shard shard-6"></view>
-      <view class="cel-shard shard-7"></view>
-      <view class="cel-shard shard-8"></view>
-      <view class="cel-shard shard-9"></view>
-      <view class="cel-shard shard-10"></view>
-      <view class="cel-card cel-card-d" catchtap="noop">
-        <view class="cel-icon-d">✹</view>
-        <view class="cel-msg cel-msg-d">{{celebrationMessage}}</view>
-        <view class="cel-hint">点击任意处关闭</view>
-      </view>
-    </block>
-
-    <!-- ===== Style E: 聚光登场 ===== -->
-    <block wx:elif="{{celebrationStyle === 'E'}}">
-      <view class="cel-spotlight spot-left"></view>
-      <view class="cel-spotlight spot-right"></view>
-      <view class="cel-stage"></view>
-      <view class="cel-medal-glow"></view>
-      <view class="cel-stage-star stage-star-1">★</view>
-      <view class="cel-stage-star stage-star-2">★</view>
-      <view class="cel-stage-star stage-star-3">★</view>
-      <view class="cel-card cel-card-e" catchtap="noop">
-        <view class="cel-icon-e">🏅</view>
-        <view class="cel-title-e">今日达成</view>
-        <view class="cel-msg cel-msg-e">{{celebrationMessage}}</view>
-        <view class="cel-hint">点击任意处关闭</view>
-      </view>
-    </block>
-
-    <!-- ===== Style F: 彩带狂欢 ===== -->
-    <block wx:elif="{{celebrationStyle === 'F'}}">
-      <view class="cel-confetti confetti-1"></view>
-      <view class="cel-confetti confetti-2"></view>
-      <view class="cel-confetti confetti-3"></view>
-      <view class="cel-confetti confetti-4"></view>
-      <view class="cel-confetti confetti-5"></view>
-      <view class="cel-confetti confetti-6"></view>
-      <view class="cel-confetti confetti-7"></view>
-      <view class="cel-confetti confetti-8"></view>
-      <view class="cel-confetti confetti-9"></view>
-      <view class="cel-confetti confetti-10"></view>
-      <view class="cel-confetti confetti-11"></view>
-      <view class="cel-confetti confetti-12"></view>
-      <view class="cel-card cel-card-f" catchtap="noop">
-        <view class="cel-icon-f">🎊</view>
-        <view class="cel-title-f">打卡成功</view>
-        <view class="cel-msg cel-msg-f">{{celebrationMessage}}</view>
-        <view class="cel-hint cel-hint-f">点击任意处关闭</view>
-      </view>
-    </block>
-
-    <!-- ===== Style G: 火箭升空 ===== -->
-    <block wx:else>
-      <view class="cel-rocket-trail trail-1"></view>
-      <view class="cel-rocket-trail trail-2"></view>
-      <view class="cel-rocket-trail trail-3"></view>
-      <view class="cel-cloud cloud-1"></view>
-      <view class="cel-cloud cloud-2"></view>
-      <view class="cel-cloud cloud-3"></view>
-      <view class="cel-rocket-spark spark-1"></view>
-      <view class="cel-rocket-spark spark-2"></view>
-      <view class="cel-rocket-spark spark-3"></view>
-      <view class="cel-rocket-spark spark-4"></view>
-      <view class="cel-card cel-card-g" catchtap="noop">
-        <view class="cel-icon-g">🚀</view>
-        <view class="cel-msg cel-msg-g">{{celebrationMessage}}</view>
-        <view class="cel-hint">点击任意处关闭</view>
-      </view>
-    </block>
+    </view>
 
   </view>
 </view>

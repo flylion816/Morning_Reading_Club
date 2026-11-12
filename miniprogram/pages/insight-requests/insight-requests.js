@@ -28,7 +28,7 @@ Page({
     sentRequests: [],
     requests: [],
     loading: true,
-    emptyText: '暂无收到的请求',
+    emptyText: '还没有收到请求',
     notificationReminder: ''
   },
 
@@ -99,7 +99,7 @@ Page({
         loading: false
       });
       wx.showToast({
-        title: '加载失败',
+        title: '没加载出来，稍后再试试',
         icon: 'none'
       });
     }
@@ -130,7 +130,7 @@ Page({
   getEmptyText(direction = 'received') {
     return direction === 'sent'
       ? '你还没有发起过看见请求'
-      : '暂无收到的请求';
+      : '还没有收到请求';
   },
 
   handleRequestDirectionTap(e) {
@@ -252,7 +252,7 @@ Page({
       wx.showToast({ title: '已批准申请', icon: 'success' });
     } catch (error) {
       console.error('批准申请失败:', error);
-      wx.showToast({ title: '批准失败', icon: 'none' });
+      wx.showToast({ title: '没批准成，再试一次', icon: 'none' });
     }
   },
 
@@ -265,7 +265,7 @@ Page({
       wx.showToast({ title: '已拒绝申请', icon: 'success' });
     } catch (error) {
       console.error('拒绝申请失败:', error);
-      wx.showToast({ title: '拒绝失败', icon: 'none' });
+      wx.showToast({ title: '没拒绝成，再试一次', icon: 'none' });
     }
   },
 

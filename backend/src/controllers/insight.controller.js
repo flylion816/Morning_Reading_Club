@@ -435,7 +435,7 @@ async function notifyInsightRequestCreated(req, { request, fromUser, toUser }) {
     await dispatchNotificationWithSubscribe(req, {
       recipientUserId: request.toUserId,
       notificationType: 'request_created',
-      title: '收到新的小凡看见查看申请',
+      title: '有书友想看你的小凡看见',
       content: `${fromUser?.nickname || '用户'} 申请查看你的小凡看见`,
       scene: 'insight_request_created',
       targetPage: 'pages/index/index',
@@ -990,6 +990,15 @@ async function getInsightDetail(req, res, next) {
 
     if (!canView) {
       return res.status(403).json(errors.forbidden('当前条目未获得查看授权'));
+    }
+
+    // 收信人第一次打开时记下时间。不动 updatedAt（列表按它排序），记不上也不影响看信
+    if (currentUserId && currentUserId === ownerUserId && !insight.readAt) {
+      Insight.updateOne(
+        { _id: insight._id, readAt: null },
+        { $set: { readAt: new Date() } },
+        { timestamps: false }
+      ).catch(() => {});
     }
 
     res.json(success(insight));
@@ -1737,7 +1746,7 @@ async function approveInsightRequest(req, res, next) {
     await dispatchNotificationWithSubscribe(req, {
       recipientUserId: request.fromUserId,
       notificationType: 'request_approved',
-      title: '小凡看见查看申请已批准',
+      title: '书友同意你看他的小凡看见了',
       content: `${toUser?.nickname || '用户'} 同意了你的查看申请，允许查看 ${period?.name || '本期'} 的小凡看见`,
       scene: 'insight_request_approved',
       targetPage,
@@ -2034,7 +2043,7 @@ async function adminApproveRequest(req, res, next) {
       req,
       request.fromUserId,
       'admin_approved',
-      '小凡看见查看申请已由管理员批准',
+      '管理员同意了你的查看申请',
       `管理员已批准你的查看申请，允许查看 ${period?.name || '本期'} 的小凡看见`,
       {
         requestId: request._id,
@@ -2346,7 +2355,7 @@ async function batchApproveRequests(req, res, next) {
       notifications.push({
         fromUserId: request.fromUserId,
         type: 'batch_approved',
-        title: '小凡看见查看申请已由管理员批准',
+        title: '管理员同意了你的查看申请',
         content: `管理员已批准你的查看申请`,
         requestId: request._id
       });

@@ -431,7 +431,7 @@ Page({
     } catch (error) {
       console.error('加载通知失败:', error);
       this.setData({
-        error: error.message || '加载失败',
+        error: error.message || '没加载出来，稍后再试试',
         loading: false
       });
     }
@@ -558,7 +558,7 @@ Page({
         } catch (error) {
           console.error('删除通知失败:', error);
           wx.showToast({
-            title: '删除失败',
+            title: '没删掉，再试一次',
             icon: 'error',
             duration: 1500
           });
@@ -603,7 +603,7 @@ Page({
         } catch (error) {
           console.error('标记全部已读失败:', error);
           wx.showToast({
-            title: '操作失败',
+            title: '没成功，再试一次',
             icon: 'error',
             duration: 1500
           });

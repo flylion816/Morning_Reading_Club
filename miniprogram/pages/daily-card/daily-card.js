@@ -279,7 +279,7 @@ Page({
   async handleSave() {
     if (this.data.generating) return;
     this.setData({ generating: true });
-    wx.showLoading({ title: '生成中...', mask: true });
+    wx.showLoading({ title: '正在生成…', mask: true });
     let filePath;
     try {
       filePath = await this.generatePoster();

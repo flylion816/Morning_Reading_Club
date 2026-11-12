@@ -619,3 +619,14 @@
   line-height: 28rpx;
   vertical-align: middle;
 }
+
+/* Features: 还没读的信，标题前一枚火漆色的小圆点 */
+.insight-unread-dot {
+  display: inline-block;
+  width: 14rpx;
+  height: 14rpx;
+  margin-right: 12rpx;
+  border-radius: 50%;
+  background: #b4472f;
+  vertical-align: middle;
+}

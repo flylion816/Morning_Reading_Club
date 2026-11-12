@@ -28,7 +28,7 @@ module.exports = {
     "textStyle": "white"
   },
   "tabBar": {
-    "color": "#999999",
+    "color": "#857a6c",
     "selectedColor": "#448426",
     "backgroundColor": "#ffffff",
     "iconsDir": "/assets/tenants/starry"

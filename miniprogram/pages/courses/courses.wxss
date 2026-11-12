@@ -882,3 +882,81 @@
 .quick-caption {
   display: none;
 }
+
+/* Features: 入营欢迎卡 */
+.welcome-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 56rpx;
+  background: rgba(43, 38, 34, 0.46);
+}
+.welcome-card {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 150rpx 48rpx 44rpx;
+  border-radius: 32rpx;
+  background: var(--app-paper);
+  text-align: center;
+  box-shadow: 0 24rpx 60rpx rgba(84, 60, 30, 0.22);
+}
+.welcome-sun {
+  position: absolute;
+  left: 50%;
+  top: -150rpx;
+  width: 300rpx;
+  height: 300rpx;
+  margin-left: -150rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--app-dawn) 0, var(--app-dawn) 34%, var(--app-dawn-soft) 35%, rgba(253, 240, 220, 0) 70%);
+}
+.welcome-seal {
+  position: relative;
+  margin: 0 auto 20rpx;
+}
+.welcome-title {
+  display: block;
+  font-family: var(--app-font-serif);
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--app-text);
+}
+.welcome-period {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: var(--app-dawn-ink);
+}
+.welcome-text {
+  display: block;
+  margin: 28rpx 0 40rpx;
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: var(--app-text-soft);
+}
+.welcome-btn {
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 22rpx;
+  background: var(--theme-primary-dark);
+  color: var(--theme-on-primary, #fff);
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.welcome-btn-hover {
+  opacity: 0.86;
+}
+.welcome-link {
+  margin-top: 24rpx;
+  padding: 12rpx 0;
+  font-size: 26rpx;
+  color: var(--app-text-muted);
+}

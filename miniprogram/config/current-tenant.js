@@ -20,17 +20,17 @@ module.exports = {
     "podcast_published": "7Q501HNbbT7_GqaBsoj71eKIhVYUFwRU097Q3r8d5_M",
     "activity_reminder": "aVKlwM2zva8WuT04AdaibI6akNh8aoPjn3oKzWE-SLA"
   },
-  "primaryColor": "#4a90e2",
+  "primaryColor": "#3d6fa6",
   "logo": "/assets/tenants/fanren/logo.png",
   "shareCover": "/assets/tenants/fanren/share-cover.jpg",
   "navBar": {
     "title": "凡人共读",
-    "bgColor": "#4a90e2",
+    "bgColor": "#3d6fa6",
     "textStyle": "white"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#4a90e2",
+    "color": "#857a6c",
+    "selectedColor": "#3d6fa6",
     "backgroundColor": "#ffffff",
     "iconsDir": "/assets/tenants/fanren"
   },

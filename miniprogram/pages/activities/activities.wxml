@@ -56,7 +56,7 @@
     <!-- 加载更多 -->
     <view wx:if="{{hasMore}}" class="load-more" bindtap="loadMore">
       <view wx:if="{{loadingMore}}" class="load-more-spinner"></view>
-      <text class="load-more-text">{{loadingMore ? '加载中...' : '加载更多'}}</text>
+      <text class="load-more-text">{{loadingMore ? '正在取更多…' : '加载更多'}}</text>
     </view>
     <view wx:elif="{{activities.length > 0}}" class="no-more">
       <text>— 已经到底了 —</text>

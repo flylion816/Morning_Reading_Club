@@ -34,7 +34,7 @@
       <text class="seen-from" wx:if="{{item.courseTitle || item.periodName}}">来自 {{item.courseTitle}}{{item.periodName ? ' · ' + item.periodName : ''}}</text>
     </view>
     <view class="list-foot" wx:if="{{loadingMore}}">
-      <text>加载中</text>
+      <text>正在取更多…</text>
     </view>
     <view class="list-foot" wx:elif="{{!hasMore}}">
       <text>都在这里了</text>

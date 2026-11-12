@@ -681,7 +681,7 @@ Page({
     const fileName = this.getCheckinTextShareFileName();
     const filePath = `${userDataPath}/${fileName}`;
     if (showLoading) {
-      wx.showLoading?.({ title: '生成文本...', mask: true });
+      wx.showLoading?.({ title: '正在整理文字…', mask: true });
     }
 
     return new Promise(resolve => {
@@ -712,7 +712,7 @@ Page({
   },
 
   async openCheckinShareMenu() {
-    wx.showLoading?.({ title: '准备分享...', mask: true });
+    wx.showLoading?.({ title: '正在准备分享…', mask: true });
     try {
       await Promise.all([
         this.prepareCheckinTextShareFile({ showLoading: false }),
@@ -752,7 +752,7 @@ Page({
       fileName: checkinTextShareFileName,
       fail: error => {
         console.error('打卡文本文件转发失败:', error);
-        wx.showToast({ title: '转发失败，请重试', icon: 'none' });
+        wx.showToast({ title: '没转发出去，再试一次', icon: 'none' });
       }
     });
   },
@@ -2010,7 +2010,7 @@ Page({
     );
 
     if (!firstTempFilePath) {
-      throw new Error('长图生成失败');
+      throw new Error('长图没生成出来，再试一次');
     }
 
     items[0] = {
@@ -2062,7 +2062,7 @@ Page({
             });
           } else {
             wx.showToast({
-              title: '保存失败',
+              title: '没保存上，再试一次',
               icon: 'none'
             });
           }
@@ -2123,7 +2123,7 @@ Page({
 
     this.setData({ posterGenerating: true });
     wx.showLoading?.({
-      title: '生成长图中...',
+      title: '正在生成长图…',
       mask: true
     });
 
@@ -2155,7 +2155,7 @@ Page({
       this.setData({ posterGenerating: false });
       wx.hideLoading?.();
       wx.showToast({
-        title: '长图生成失败',
+        title: '长图没生成出来，再试一次',
         icon: 'none'
       });
     }
@@ -2201,7 +2201,7 @@ Page({
           'timeout'
         );
         wx.showToast({
-          title: isTimeout ? '分享超时，请重试' : '分享图片失败',
+          title: isTimeout ? '分享超时，请重试' : '图片没分享出去，再试一次',
           icon: 'none'
         });
       }
@@ -2614,7 +2614,7 @@ Page({
       console.error('加载课程详情失败:', error);
       this.setData({ loading: false });
       wx.showToast({
-        title: '加载失败',
+        title: '没加载出来，稍后再试试',
         icon: 'none'
       });
     }
@@ -2997,7 +2997,7 @@ Page({
     } catch (error) {
       console.error('加载评论失败:', error);
       this.setData({ [expandedKey]: false });
-      wx.showToast({ title: '加载评论失败', icon: 'none' });
+      wx.showToast({ title: '评论没加载出来，再点一次', icon: 'none' });
     }
   },
 
@@ -3294,7 +3294,7 @@ Page({
           }
           wx.showToast({ title: '已删除', icon: 'success' });
         } catch (err) {
-          wx.showToast({ title: '删除失败', icon: 'none' });
+          wx.showToast({ title: '没删掉，再试一次', icon: 'none' });
         }
       }
     });
@@ -3311,7 +3311,7 @@ Page({
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          wx.showLoading({ title: '删除中...' });
+          wx.showLoading({ title: '正在删除…' });
           await checkinService.deleteCheckin(detailCheckin.id);
           wx.hideLoading();
           wx.showToast({ title: '删除成功', icon: 'success' });
@@ -3320,7 +3320,7 @@ Page({
           setTimeout(() => wx.navigateBack(), 1500);
         } catch (error) {
           wx.hideLoading();
-          wx.showToast({ title: '删除失败，请重试', icon: 'none' });
+          wx.showToast({ title: '没删掉，再试一次', icon: 'none' });
         }
       }
     });
@@ -3401,7 +3401,7 @@ Page({
     } catch (error) {
       console.error('点赞操作失败:', error);
       wx.showToast({
-        title: '操作失败，请重试',
+        title: '没成功，再试一次',
         icon: 'none'
       });
     }
@@ -3492,7 +3492,7 @@ Page({
           } catch (error) {
             console.error('回复失败:', error);
             wx.showToast({
-              title: '回复失败，请重试',
+              title: '没发出去，再试一次',
               icon: 'none'
             });
           }
@@ -3609,7 +3609,7 @@ Page({
     } catch (error) {
       console.error('回复点赞操作失败:', error);
       wx.showToast({
-        title: '操作失败，请重试',
+        title: '没成功，再试一次',
         icon: 'none'
       });
     }
@@ -3636,7 +3636,7 @@ Page({
     if (!checkinId || !commentId || !replyId) {
       console.error('❌ 参数不完整', { checkinId, commentId, replyId });
       wx.showToast({
-        title: '参数错误',
+        title: '页面没打开对，返回再进一次',
         icon: 'none'
       });
       return;
@@ -3811,7 +3811,7 @@ Page({
           } catch (error) {
             console.error('❌ 回复失败:', error);
             wx.showToast({
-              title: '回复失败，请重试',
+              title: '没发出去，再试一次',
               icon: 'none'
             });
           }
@@ -3952,7 +3952,7 @@ Page({
     });
     this.setData({ closingVideoActivated: false });
     wx.showToast({
-      title: '视频加载失败，请稍后再试',
+      title: '视频没加载出来，稍后再试试',
       icon: 'none'
     });
   },
@@ -4260,7 +4260,7 @@ Page({
 
     ctx.onError((err) => {
       console.error('播客播放失败:', err);
-      wx.showToast({ title: '播放失败，请重试', icon: 'none' });
+      wx.showToast({ title: '没播出来，再试一次', icon: 'none' });
       app.globalData.podcastPlaying = false;
       app.globalData.podcastLoading = false;
       app.globalData.podcastActive = false;
@@ -4286,7 +4286,7 @@ Page({
 
     if (!detailCheckin) {
       wx.showToast({
-        title: '暂无可生成的内容',
+        title: '这里还没有可以生成的内容',
         icon: 'none'
       });
       return;
@@ -4308,7 +4308,7 @@ Page({
     this.setData({ posterGenerating: true });
     if (wx.showLoading) {
       wx.showLoading({
-        title: '生成长图中...',
+        title: '正在生成长图…',
         mask: true
       });
     }
@@ -4330,7 +4330,7 @@ Page({
         this.setData({ posterGenerating: false });
         wx.hideLoading?.();
         wx.showToast({
-          title: '长图生成失败',
+          title: '长图没生成出来，再试一次',
           icon: 'none'
         });
       });
@@ -4363,13 +4363,13 @@ Page({
     }
     const content = this.data.course && this.data.course.content;
     if (!content) {
-      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      wx.showToast({ title: '这里还没有可以朗读的内容', icon: 'none' });
       return;
     }
     const { richContentToPlainText } = require('../../utils/markdown');
     const plainText = richContentToPlainText(content).replace(/\s+/g, ' ').trim();
     if (!plainText) {
-      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      wx.showToast({ title: '这里还没有可以朗读的内容', icon: 'none' });
       return;
     }
     this._ttsChunks = this._ttsSplit(plainText, 180);
@@ -4421,7 +4421,7 @@ Page({
     pending.catch((err) => {
       console.error('TTS 合成失败:', err);
       if (index === this._ttsChunkIndex) {
-        wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
+        wx.showToast({ title: '朗读没开始，再试一次', icon: 'none' });
         this.setData({ ttsState: 'idle' });
       }
     });

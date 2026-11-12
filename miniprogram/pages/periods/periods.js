@@ -463,7 +463,7 @@ Page({
       } catch (e) {
         wx.hideLoading();
         resetNavigationLock();
-        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+        wx.showToast({ title: '网络不太顺，再试一次', icon: 'none' });
         return;
       }
       wx.hideLoading();
