@@ -60,6 +60,12 @@ const CHECKIN_CONTENT_FOLD_UNITS_PER_LINE = 18;
 const POSTER_MIN_HEIGHT = 900;
 const POSTER_LONG_IMAGE_HEIGHT = 2600;
 const POSTER_FALLBACK_MAX_HEIGHT = 2400;
+const POSTER_CONTENT_START_X = 72;
+const POSTER_CONTENT_WIDTH = 896;
+const POSTER_IMAGE_GAP = 32;
+const POSTER_IMAGE_SOURCE_MAX_WIDTH = 1440;
+const POSTER_IMAGE_SOURCE_MAX_PIXELS = 8000000;
+const POSTER_IMAGE_SECTION_MAX_HEIGHT = 7200;
 const GENERIC_AVATAR_NAMES = new Set(['用户', '匿名用户', '匿名', 'user', 'member']);
 const MAX_CHECKIN_IMAGE_COUNT = 9;
 
@@ -1390,6 +1396,74 @@ Page({
       .replace(/\[玫瑰花\]/g, '🌹');
   },
 
+  buildPosterImageLayouts(imageInfos = []) {
+    const validImages = (Array.isArray(imageInfos) ? imageInfos : [])
+      .map((imageInfo) => {
+        const sourceWidth = Number(
+          imageInfo?.sourceWidth || imageInfo?.width
+        );
+        const sourceHeight = Number(
+          imageInfo?.sourceHeight || imageInfo?.height
+        );
+
+        if (
+          !imageInfo?.drawSource ||
+          !Number.isFinite(sourceWidth) ||
+          !Number.isFinite(sourceHeight) ||
+          sourceWidth <= 0 ||
+          sourceHeight <= 0
+        ) {
+          return null;
+        }
+
+        return {
+          sourceUrl: imageInfo.sourceUrl || imageInfo.drawSource,
+          drawSource: imageInfo.drawSource,
+          sourceWidth,
+          sourceHeight
+        };
+      })
+      .filter(Boolean);
+
+    if (validImages.length === 0) {
+      return {
+        layouts: [],
+        imageSectionHeight: 0
+      };
+    }
+
+    const fullWidthHeights = validImages.map(
+      (imageInfo) =>
+        POSTER_CONTENT_WIDTH * (imageInfo.sourceHeight / imageInfo.sourceWidth)
+    );
+    const imageGapHeight = POSTER_IMAGE_GAP * (validImages.length + 1);
+    const fullImageHeight = fullWidthHeights.reduce(
+      (sum, height) => sum + height,
+      0
+    );
+    const renderScale = Math.min(
+      1,
+      Math.max(0, POSTER_IMAGE_SECTION_MAX_HEIGHT - imageGapHeight) /
+        fullImageHeight
+    );
+    const renderWidth = POSTER_CONTENT_WIDTH * renderScale;
+    const layouts = validImages.map((imageInfo, index) => ({
+      ...imageInfo,
+      index,
+      x: POSTER_CONTENT_START_X + (POSTER_CONTENT_WIDTH - renderWidth) / 2,
+      width: renderWidth,
+      height: fullWidthHeights[index] * renderScale
+    }));
+    const imageSectionHeight =
+      layouts.reduce((sum, imageInfo) => sum + imageInfo.height, 0) +
+      POSTER_IMAGE_GAP * (layouts.length + 1);
+
+    return {
+      layouts,
+      imageSectionHeight
+    };
+  },
+
   buildPosterSnapshot(
     detailCheckin,
     stylePreset = POSTER_STYLE_PRESETS[0],
@@ -1422,6 +1496,10 @@ Page({
     const fullTagLines = tagLines.filter(l => !!l).length;
     const emptyTagLines = tagLines.length - fullTagLines;
     const footerHeight = 380;
+    const posterImageLayout = this.buildPosterImageLayouts(
+      options.imageInfos
+    );
+    const imageSectionHeight = posterImageLayout.imageSectionHeight;
     const tagHeight =
       tagLines.length > 0
         ? fullTagLines * tagLineHeight + emptyTagLines * emptyTagLineHeight + 24
@@ -1430,6 +1508,7 @@ Page({
       120 +
       titleLines.length * titleLineHeight +
       96 +
+      imageSectionHeight +
       tagHeight +
       footerHeight;
     const maxHeight = Number(options.maxHeight) || 0;
@@ -1456,13 +1535,13 @@ Page({
 
     return {
       width: 1040,
-      height: Math.max(
-        POSTER_MIN_HEIGHT,
-        maxHeight ? Math.min(maxHeight, baseHeight) : baseHeight
-      ),
+      height: Math.max(POSTER_MIN_HEIGHT, baseHeight),
       titleLines,
       contentLines,
       contentTruncated: fittedContent.truncated,
+      imageLayouts: posterImageLayout.layouts,
+      imageSectionHeight,
+      hasImages: posterImageLayout.layouts.length > 0,
       tagLines,
       periodChip,
       dateLabel,
@@ -1513,6 +1592,119 @@ Page({
     }
 
     throw lastError || new Error('加载图片失败');
+  },
+
+  getPosterImageInfo(sourceUrl) {
+    if (typeof wx.getImageInfo !== 'function') {
+      return Promise.reject(new Error('当前环境不支持获取图片尺寸'));
+    }
+
+    return new Promise((resolve, reject) => {
+      wx.getImageInfo({
+        src: sourceUrl,
+        success: resolve,
+        fail: reject
+      });
+    });
+  },
+
+  compressPosterImage(sourcePath, sourceWidth, sourceHeight) {
+    if (
+      !sourcePath ||
+      typeof wx.compressImage !== 'function' ||
+      sourceWidth <= 0 ||
+      sourceHeight <= 0
+    ) {
+      return Promise.resolve(sourcePath);
+    }
+
+    const widthScale = POSTER_IMAGE_SOURCE_MAX_WIDTH / sourceWidth;
+    const pixelScale = Math.sqrt(
+      POSTER_IMAGE_SOURCE_MAX_PIXELS / (sourceWidth * sourceHeight)
+    );
+    const scale = Math.min(1, widthScale, pixelScale);
+
+    if (scale >= 1) {
+      return Promise.resolve(sourcePath);
+    }
+
+    return new Promise((resolve) => {
+      wx.compressImage({
+        src: sourcePath,
+        quality: 88,
+        compressedWidth: Math.max(1, Math.round(sourceWidth * scale)),
+        compressedHeight: Math.max(1, Math.round(sourceHeight * scale)),
+        success: (result) => {
+          resolve(result?.tempFilePath || sourcePath);
+        },
+        fail: (error) => {
+          console.warn('压缩长图图片失败，继续使用原图源', {
+            sourcePath,
+            error
+          });
+          resolve(sourcePath);
+        }
+      });
+    });
+  },
+
+  async preparePosterImageSources(canvas, imageUrls = []) {
+    const sources = [];
+    const normalizedImages = normalizeCheckinImages(imageUrls);
+
+    for (const sourceUrl of normalizedImages) {
+      let sourceWidth = 0;
+      let sourceHeight = 0;
+      let drawSource = sourceUrl;
+      let fallbackImage = null;
+
+      try {
+        try {
+          const imageInfo = await this.getPosterImageInfo(sourceUrl);
+          sourceWidth = Number(imageInfo?.width) || 0;
+          sourceHeight = Number(imageInfo?.height) || 0;
+          drawSource = imageInfo?.path || sourceUrl;
+        } catch (imageInfoError) {
+          fallbackImage = await this.loadPosterImage(canvas, [sourceUrl]);
+          sourceWidth = Number(
+            fallbackImage?.naturalWidth || fallbackImage?.width
+          );
+          sourceHeight = Number(
+            fallbackImage?.naturalHeight || fallbackImage?.height
+          );
+        }
+
+        if (
+          !Number.isFinite(sourceWidth) ||
+          !Number.isFinite(sourceHeight) ||
+          sourceWidth <= 0 ||
+          sourceHeight <= 0
+        ) {
+          throw new Error('图片尺寸无效');
+        }
+
+        drawSource = await this.compressPosterImage(
+          drawSource,
+          sourceWidth,
+          sourceHeight
+        );
+        sources.push({
+          sourceUrl,
+          drawSource,
+          sourceWidth,
+          sourceHeight
+        });
+      } catch (error) {
+        console.warn('长图图片准备失败，跳过该图片', {
+          sourceUrl,
+          error
+        });
+      } finally {
+        fallbackImage = null;
+      }
+    }
+
+    return sources;
   },
 
   async getPosterCanvasNode() {
@@ -1570,6 +1762,53 @@ Page({
       cursorY += lineHeight;
     });
     return cursorY;
+  },
+
+  async drawPosterImages(ctx, canvas, imageLayouts = [], startY = 0) {
+    let cursorY = startY;
+    let drawnImageCount = 0;
+
+    for (const imageLayout of imageLayouts) {
+      let image = null;
+
+      try {
+        image = await this.loadPosterImage(canvas, [
+          imageLayout.drawSource,
+          imageLayout.sourceUrl
+        ]);
+      } catch (error) {
+        console.warn('绘制长图图片失败，跳过该图片', {
+          sourceUrl: imageLayout.sourceUrl,
+          error
+        });
+        continue;
+      }
+
+      if (!image || typeof ctx.drawImage !== 'function') {
+        image = null;
+        continue;
+      }
+
+      if (drawnImageCount > 0) {
+        cursorY += POSTER_IMAGE_GAP;
+      }
+
+      ctx.drawImage(
+        image,
+        imageLayout.x,
+        cursorY,
+        imageLayout.width,
+        imageLayout.height
+      );
+      cursorY += imageLayout.height;
+      drawnImageCount += 1;
+      image = null;
+    }
+
+    return {
+      cursorY,
+      drawnImageCount
+    };
   },
 
   drawPosterDecoration(ctx, snapshot, stylePreset) {
@@ -1720,7 +1959,8 @@ Page({
 
   exportPosterCanvasToTempFilePath(canvas, snapshot) {
     const isLongPoster = snapshot.height > POSTER_LONG_IMAGE_HEIGHT;
-    const preferredScales = isLongPoster
+    const memorySensitivePoster = isLongPoster || snapshot.hasImages;
+    const preferredScales = memorySensitivePoster
       ? [1, 0.85]
       : snapshot.height > 2200
         ? [1.25, 1]
@@ -1737,8 +1977,8 @@ Page({
           height: snapshot.height,
           destWidth: Math.round(snapshot.width * scale),
           destHeight: Math.round(snapshot.height * scale),
-          fileType: isLongPoster ? 'jpg' : 'png',
-          quality: isLongPoster ? 0.88 : 1,
+          fileType: memorySensitivePoster ? 'jpg' : 'png',
+          quality: memorySensitivePoster ? 0.88 : 1,
           success: (res) => resolve(res.tempFilePath),
           fail: (error) => {
             const isLastAttempt = attemptIndex >= preferredScales.length - 1;
@@ -1765,12 +2005,19 @@ Page({
     stylePreset = POSTER_STYLE_PRESETS[0],
     options = {}
   ) {
-    const snapshot = this.buildPosterSnapshot(detailCheckin, stylePreset, options);
     const target = await this.getPosterCanvasNode();
     const canvas = target.node;
     const ctx = canvas.getContext('2d');
+    const imageInfos = await this.preparePosterImageSources(
+      canvas,
+      detailCheckin?.images
+    );
+    const snapshot = this.buildPosterSnapshot(detailCheckin, stylePreset, {
+      ...options,
+      imageInfos
+    });
     const systemDpr = wx.getWindowInfo?.().pixelRatio || 2;
-    const dpr = snapshot.height > POSTER_LONG_IMAGE_HEIGHT
+    const dpr = snapshot.hasImages || snapshot.height > POSTER_LONG_IMAGE_HEIGHT
       ? 1
       : Math.min(systemDpr, 2);
     let miniProgramCodeImage = null;
@@ -1810,7 +2057,7 @@ Page({
 
     this.drawPosterDecoration(ctx, snapshot, stylePreset);
 
-    const contentStartX = 72;
+    const contentStartX = POSTER_CONTENT_START_X;
     let cursorY = 120;
     ctx.fillStyle = stylePreset.id === 'paper' ? '#22324a' : '#111827';
     ctx.font = 'bold 44px sans-serif';
@@ -1837,6 +2084,20 @@ Page({
       cursorY,
       52
     );
+
+    if (snapshot.imageLayouts.length > 0) {
+      cursorY += POSTER_IMAGE_GAP;
+      const imageResult = await this.drawPosterImages(
+        ctx,
+        canvas,
+        snapshot.imageLayouts,
+        cursorY
+      );
+      cursorY = imageResult.cursorY;
+      if (imageResult.drawnImageCount > 0) {
+        cursorY += POSTER_IMAGE_GAP;
+      }
+    }
 
     if (snapshot.tagLines.length > 0) {
       cursorY += 32;

@@ -68,7 +68,7 @@ function buildPeriodOption(period) {
     title,
     displayTitle: truncateCardTitle(title),
     subtitle: `共发布${period.diaryCount || 0}篇日记`,
-    icon: period.coverEmoji || period.icon || '📚',
+    icon: period.coverEmoji || period.icon || '读',
     // 页面上用期次名的第一个字做印章，不再显示 emoji
     seal: Array.from(String(title || '').trim())[0] || '读',
     color: period.coverColor || period.color || THEME_PRIMARY,

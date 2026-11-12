@@ -16,10 +16,13 @@
     <!-- 可以写 -->
     <view wx:if="{{view === 'write'}}" class="mail-write">
       <text class="mail-prompt">{{prompt}}</text>
-      <view class="mail-paper">
-        <textarea class="mail-textarea" value="{{content}}" maxlength="{{maxContent}}" auto-height placeholder="写给结营那天的自己……" bindinput="onContentInput"></textarea>
+      <!-- 信笺：朱红横格，每行和文字同高，光标和提示语都落在格子里 -->
+      <view class="mail-paper mail-paper-lined">
+        <text class="mail-paper-to">写给结营那天的我：</text>
+        <textarea class="mail-textarea" value="{{content}}" maxlength="{{maxContent}}" placeholder="想对那时的自己说什么，就写什么" placeholder-style="font-size:30rpx;line-height:64rpx;color:#b3a798;" disable-default-padding bindinput="onContentInput"></textarea>
         <text class="mail-count app-num">{{content.length}}/{{maxContent}}</text>
       </view>
+      <view class="mail-write-foot">
       <view class="mail-stamps">
         <text class="mail-stamps-label">选一枚邮戳</text>
         <view class="mail-stamp-row">
@@ -32,6 +35,7 @@
       <view class="mail-actions">
         <button class="app-btn-secondary mail-btn" disabled="{{busy}}" bindtap="onSaveDraft">保存草稿</button>
         <button class="app-btn-primary mail-btn" disabled="{{busy}}" bindtap="onSeal">投递</button>
+      </view>
       </view>
     </view>
 
@@ -56,7 +60,7 @@
     <view wx:elif="{{view === 'sealed'}}" class="mail-envelope-wrap">
       <view class="mail-envelope">
         <view class="mail-envelope-flap"></view>
-        <view class="{{'mail-envelope-seal app-seal app-seal-lg ' + (stamp === 'dawn' ? 'app-seal-dawn' : (stamp === 'book' ? 'app-seal-ink' : ''))}}">信</view>
+        <view class="mail-envelope-seal app-seal-lg {{stampCls}}">{{stampLabel}}</view>
       </view>
       <text class="mail-road">信在路上，还有 <text class="app-num mail-road-num">{{letter.daysToDeliver}}</text> 天</text>
     </view>
@@ -65,7 +69,7 @@
     <view wx:elif="{{view === 'delivered'}}" class="mail-envelope-wrap">
       <view class="mail-envelope {{opening ? 'mail-envelope-opening' : ''}}">
         <view class="mail-envelope-flap"></view>
-        <view class="mail-envelope-seal app-seal app-seal-dawn app-seal-lg">信</view>
+        <view class="mail-envelope-seal app-seal-lg {{stampCls}}">{{stampLabel}}</view>
       </view>
       <text class="mail-road">有一封信到了</text>
       <button class="app-btn-primary mail-btn" disabled="{{busy}}" bindtap="onOpen">拆开</button>
@@ -81,6 +85,15 @@
           <text class="mail-sign-date app-num">{{writtenDate}}</text>
         </view>
       </view>
+      <!-- 拆信是结营那天的第一个仪式，翻纪念册是下一个 -->
+      <view class="mail-keepsake" bindtap="onOpenKeepsake">
+        <view class="app-seal app-seal-dawn">册</view>
+        <view class="mail-keepsake-text">
+          <text class="mail-keepsake-title">翻开这一期的纪念册</text>
+          <text class="mail-keepsake-sub">{{letter.reply ? '这封信和你的回信，是它的第一页和最后一页' : '这封信是它的第一页'}}</text>
+        </view>
+        <text class="mail-keepsake-arrow">›</text>
+      </view>
       <view wx:if="{{letter.reply}}" class="mail-reply-done">
         <text class="mail-reply-label">你的回信</text>
         <text class="mail-reply-text">{{letter.reply}}</text>
@@ -92,4 +105,61 @@
       </view>
     </view>
   </block>
+
+  <!-- 投递：信纸折起来装进信封，封口盖章，投进邮筒（约 5 秒） -->
+  <view class="post-scene" wx:if="{{posting}}" catchtap="noop" catchtouchmove="noop">
+    <view class="post-stage">
+      <view class="post-pack">
+        <view class="post-env-back"></view>
+        <view class="post-letter">
+          <view class="post-fold post-fold-top">
+            <text class="post-fold-to">写给结营那天的我：</text>
+            <view class="post-line"></view>
+            <view class="post-line"></view>
+            <view class="post-line post-line-short"></view>
+          </view>
+          <view class="post-fold post-fold-bottom">
+            <view class="post-line"></view>
+            <view class="post-line"></view>
+            <view class="post-line post-line-short"></view>
+          </view>
+        </view>
+        <view class="post-env-front"></view>
+        <view class="post-env-flap"></view>
+        <view class="post-seal app-seal-lg {{stampCls}}">{{stampLabel}}</view>
+      </view>
+      <view class="post-box">
+        <view class="post-box-slot"></view>
+        <view class="post-box-label">邮</view>
+        <view class="post-box-flag"></view>
+        <view class="post-box-foot"></view>
+      </view>
+    </view>
+    <text class="post-caption">投进去了。结营那天早上见。</text>
+  </view>
+
+  <!-- 拆信：盖上「到」的邮戳，撕开封口，抽出信纸、展开（约 5 秒） -->
+  <view class="unseal-scene" wx:if="{{opening}}" catchtap="noop" catchtouchmove="noop">
+    <view class="unseal-env">
+      <view class="unseal-back"></view>
+      <view class="unseal-letter">
+        <view class="unseal-half unseal-half-top">
+          <text class="unseal-salute">写给结营那天的我：</text>
+          <view class="post-line"></view>
+          <view class="post-line"></view>
+        </view>
+        <view class="unseal-half unseal-half-bottom">
+          <view class="post-line"></view>
+          <view class="post-line post-line-short"></view>
+          <text class="unseal-sign">那时的你</text>
+        </view>
+      </view>
+      <view class="unseal-front">
+        <text class="unseal-to">结营那天的我 收</text>
+      </view>
+      <view class="unseal-strip"></view>
+      <view class="unseal-postmark"><text class="unseal-postmark-word">到</text></view>
+    </view>
+    <view class="unseal-paper"></view>
+  </view>
 </view>

@@ -17,4 +17,11 @@ describe('PeriodsView', () => {
     expect(source).toContain('EnrollmentTemplatePicker');
     expect(source).toContain('报名后阅读的期次请选择报名模板');
   });
+
+  it('allows selecting an enrollment template for legacy periods without one', () => {
+    expect(source).toContain('function hasEnrollmentTemplate(period: Period)');
+    expect(source).toContain(
+      'enrollmentTemplateLocked.value = !!row.enrollmentTemplateLocked && hasEnrollmentTemplate(row)'
+    );
+  });
 });

@@ -81,6 +81,7 @@ Page({
     isAdmin: false, // 是否是管理员角色
     searchKeyword: '',
     activeSearchKeyword: '',
+    searchExpanded: false,
     isSearchMode: false,
     searchLoading: false,
     filteredSections: [],
@@ -786,6 +787,10 @@ Page({
 
   onSearchInput(e) {
     this.setData({ searchKeyword: e.detail.value });
+  },
+
+  toggleSearch() {
+    this.setData({ searchExpanded: !this.data.searchExpanded });
   },
 
   onSearchClear() {

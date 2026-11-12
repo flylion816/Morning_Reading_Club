@@ -141,6 +141,44 @@ describe('Keepsake Service', () => {
     expect((await service.getPeriodKeepsake('me', 'p1')).topCheckin).to.equal(null);
   });
 
+  it('信还没拆或还在路上：只给状态，不给内容', async () => {
+    let query;
+    stubs.optional.Letter = { find: q => { query = q; return chain([{ content: '秘密', status: 'delivered' }]); } };
+    service = load();
+    expect((await service.getPeriodKeepsake('me', 'p1')).letter).to.deep.equal({ status: 'delivered' });
+    expect(query).to.deep.equal({ userId: 'me', periodId: 'p1', status: { $in: ['sealed', 'delivered', 'opened'] } });
+    stubs.optional.Letter = { find: () => chain([{ content: '秘密', status: 'sealed' }]) };
+    service = load();
+    expect((await service.getPeriodKeepsake('me', 'p1')).letter).to.deep.equal({ status: 'sealed' });
+  });
+
+  it('已结束期次缓存主体，但送达、拆信、回信和删除会立即反映在信件上', async () => {
+    let letter = { status: 'sealed', content: '信的全文' };
+    stubs.optional.Letter = { find: () => chain(letter ? [letter] : []) };
+    service = load();
+    const now = new Date('2026-11-20T00:00:00Z');
+
+    expect((await service.getPeriodKeepsake('me', 'p1', now)).letter).to.deep.equal({ status: 'sealed' });
+    letter.status = 'delivered';
+    expect((await service.getPeriodKeepsake('me', 'p1', now)).letter).to.deep.equal({ status: 'delivered' });
+    letter = { ...letter, status: 'opened', writtenAt: new Date('2026-10-29T16:30:00Z') };
+    let result = await service.getPeriodKeepsake('me', 'p1', now);
+    expect(result.letter).to.include({ status: 'opened', content: '信的全文', daysSinceWritten: 21, reply: '' });
+    letter.reply = '谢谢那时的自己';
+    result = await service.getPeriodKeepsake('me', 'p1', now);
+    expect(result.letter.reply).to.equal('谢谢那时的自己');
+    letter = null;
+    expect((await service.getPeriodKeepsake('me', 'p1', now)).letter).to.equal(null);
+    expect(stubs.Checkin.find.callCount).to.equal(1);
+  });
+
+  it('没有可靠写信日期时不猜测过去了多少天', async () => {
+    stubs.optional.Letter = { find: () => chain([{ status: 'opened', content: '信', writtenAt: 'invalid' }]) };
+    service = load();
+    const result = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-20T00:00:00Z'));
+    expect(result.letter.daysSinceWritten).to.equal(null);
+  });
+
   it('可选模型存在时读取摘抄、已拆开的信和看见卡数量', async () => {
     stubs.optional.Highlight = { find: () => chain([{ text: '句子' }]) };
     stubs.optional.Letter = { find: () => chain([{ content: '信', sealedAt: 'S', status: 'opened', reply: '回' }]) };
@@ -149,7 +187,9 @@ describe('Keepsake Service', () => {
     service = load();
     const data = await service.getPeriodKeepsake('me', 'p1');
     expect(data.highlights).to.deep.equal([{ text: '句子' }]);
-    expect(data.letter).to.deep.equal({ content: '信', sealedAt: 'S', reply: '回' });
+    expect(data.letter).to.deep.equal({
+      status: 'opened', content: '信', writtenAt: null, daysSinceWritten: null, sealedAt: 'S', reply: '回', repliedAt: null
+    });
     expect(data.seenCount).to.equal(4);
     expect(countSeenCards.firstCall.args[0]).to.include({ periodId: 'p1', receiverId: 'me', withdrawnAt: null });
   });

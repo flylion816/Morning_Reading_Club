@@ -129,7 +129,7 @@ async function getPeriodListForUser(req, res, next) {
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
         coverColor: convertCoverColorForForm(period.coverColor),
-        icon: period.icon || period.coverEmoji || '📚',
+        icon: period.icon || period.coverEmoji || '读',
         startTime: period.startDate ? period.startDate.toISOString() : null,
         endTime: period.endDate ? period.endDate.toISOString() : null,
         dateRange: periodObj.dateRange || '',
@@ -209,7 +209,7 @@ async function getPeriodList(req, res, next) {
         title: period.title || period.name,
         color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
         coverColor: convertCoverColorForForm(period.coverColor),
-        icon: period.icon || period.coverEmoji || '📚',
+        icon: period.icon || period.coverEmoji || '读',
         startTime: period.startDate ? period.startDate.toISOString() : null,
         endTime: period.endDate ? period.endDate.toISOString() : null,
         dateRange: periodObj.dateRange || '',
@@ -265,7 +265,7 @@ async function getPeriodDetail(req, res, next) {
       color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
       // 转换 coverColor 为前端编辑表单能识别的格式（hex/rgb，不支持渐变）
       coverColor: convertCoverColorForForm(period.coverColor),
-      icon: period.icon || period.coverEmoji || '📚',
+      icon: period.icon || period.coverEmoji || '读',
       startTime: period.startDate ? period.startDate.toISOString() : null,
       endTime: period.endDate ? period.endDate.toISOString() : null,
       dateRange: periodObj.dateRange || '',
@@ -404,7 +404,9 @@ async function updatePeriod(req, res, next) {
         : !currentEnrollmentTemplateIds.includes(requestedEnrollmentTemplateId));
 
     if (enrollmentTemplateChanged) {
-      if (period.enrollmentTemplateLocked || period.enrollmentCount > 0) {
+      const isInitialEnrollmentTemplate =
+        currentEnrollmentTemplateIds.length === 0 && requestedEnrollmentTemplateId !== '';
+      if (!isInitialEnrollmentTemplate && (period.enrollmentTemplateLocked || period.enrollmentCount > 0)) {
         return res.status(409).json(errors.conflict('该期次已有报名，不能更换报名模板'));
       }
       const snapshot = await resolveEnrollmentTemplate(updates.enrollmentTemplateId, period.tenantId, EnrollmentTemplate);
@@ -452,7 +454,7 @@ async function updatePeriod(req, res, next) {
       title: period.title || period.name,
       color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
       coverColor: convertCoverColorForForm(period.coverColor),
-      icon: period.icon || period.coverEmoji || '📚',
+      icon: period.icon || period.coverEmoji || '读',
       startTime: period.startDate ? period.startDate.toISOString() : null,
       endTime: period.endDate ? period.endDate.toISOString() : null,
       dateRange: periodObj.dateRange || '',
@@ -653,7 +655,7 @@ async function getInviteInfo(req, res, next) {
       status: calculatePeriodStatus(period),
       title: period.title || period.name,
       color: period.coverColor || 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-      icon: period.icon || period.coverEmoji || '📚',
+      icon: period.icon || period.coverEmoji || '读',
       startTime: period.startDate ? period.startDate.toISOString() : null,
       endTime: period.endDate ? period.endDate.toISOString() : null,
       dateRange: periodObj.dateRange || '',

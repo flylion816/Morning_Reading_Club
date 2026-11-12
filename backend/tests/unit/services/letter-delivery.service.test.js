@@ -48,6 +48,18 @@ describe('Letter Delivery Service', () => {
     expect(service.computeDeliverAt(period).toISOString()).to.equal('2026-12-22T22:00:00.000Z');
   });
 
+  it('设了课程天数时送达日是课程最后一天，比结束日早就以课程为准', () => {
+    // 12-01 开营、23 天课程 → 12-23；结束日也是 12-23
+    expect(service.computeDeliverDayKey({ ...period, totalDays: 23 })).to.equal('2026-12-23');
+    // 结束日多留了两天（12-25），信仍在课程最后一天 12-23 早上 6 点送到
+    const padded = { ...period, totalDays: 23, endDate: new Date('2026-12-24T16:00:00.000Z') };
+    expect(service.computeDeliverAt(padded).toISOString()).to.equal('2026-12-22T22:00:00.000Z');
+    // 结束日比课程短：以结束日为准
+    expect(service.computeDeliverDayKey({ ...period, totalDays: 40 })).to.equal('2026-12-23');
+    // 没有结束日只有课程天数
+    expect(service.computeDeliverDayKey({ startDate: period.startDate, totalDays: 23 })).to.equal('2026-12-23');
+  });
+
   it('写信窗口是开营前 3 天到开营后第 7 天', () => {
     const w = service.computeWriteWindow(period);
     expect(w.from.toISOString()).to.equal('2026-11-27T16:00:00.000Z');
@@ -107,7 +119,9 @@ describe('Letter Delivery Service', () => {
     );
     const result = await service.deliverDueLetters({ now: new Date('2027-03-01T00:00:00Z') });
     expect(result.scanned).to.equal(1);
-    expect(PeriodStub.find.firstCall.args[0].endDate).to.deep.equal({ $lte: new Date('2027-03-02T00:00:00Z') });
+    expect(PeriodStub.find.firstCall.args[0].$or[0].endDate).to.deep.equal({ $lte: new Date('2027-03-02T00:00:00Z') });
+    // 已开营、设了课程天数的期次也扫（送达日可能早于结束日）
+    expect(PeriodStub.find.firstCall.args[0].$or[1]).to.deep.equal({ startDate: { $lte: new Date('2027-03-01T00:00:00Z') }, totalDays: { $gt: 0 } });
   });
 
   it('分批处理直到取完，且只查已到期期次', async () => {

@@ -264,15 +264,23 @@ async function buildHighlights(userId, periodId) {
     .filter(item => item.text);
 }
 
-async function buildLetter(userId, periodId) {
+async function buildLetter(userId, periodId, now = new Date()) {
   const Letter = getOptionalModel('Letter');
   if (!Letter) return null;
-  const opened = (await Letter.find({ userId, periodId, status: 'opened' }).limit(1).lean())[0];
-  if (!opened) return null;
+  // 纪念册的开篇和后记：拆开了就放全文和回信；还没拆、还在路上只告诉状态，不透露内容
+  const letter = (await Letter.find({ userId, periodId, status: { $in: ['sealed', 'delivered', 'opened'] } }).limit(1).lean())[0];
+  if (!letter) return null;
+  if (letter.status !== 'opened') return { status: letter.status };
+  const writtenAt = letter.writtenAt || null;
+  const elapsedDays = writtenAt && toDayKey(writtenAt) ? dayDiff(writtenAt, now) : null;
   return {
-    content: String(opened.content || ''),
-    sealedAt: opened.sealedAt || opened.writtenAt || null,
-    reply: String(opened.reply || '')
+    status: 'opened',
+    content: String(letter.content || ''),
+    writtenAt,
+    daysSinceWritten: elapsedDays !== null && elapsedDays >= 0 ? elapsedDays : null,
+    sealedAt: letter.sealedAt || letter.writtenAt || null,
+    reply: String(letter.reply || ''),
+    repliedAt: letter.repliedAt || null
   };
 }
 
@@ -339,7 +347,7 @@ async function computeKeepsake(userId, period, readiness, now = new Date()) {
     safely('companions', () => buildCompanions(userId, checkins), []),
     safely('insights', () => buildInsights(userId, periodId), []),
     safely('highlights', () => buildHighlights(userId, periodId), []),
-    safely('letter', () => buildLetter(userId, periodId), null),
+    safely('letter', () => buildLetter(userId, periodId, now), null),
     safely('seen', () => countSeenCards(userId, periodId), 0),
     safely('buddy', () => buildBuddy(userId, period, now), null),
     safely('practices', () => buildPractices(userId, periodId), [])
@@ -386,12 +394,16 @@ async function getPeriodKeepsake(userId, periodId, now = new Date()) {
 
   if (readiness.ready && finished) {
     const hit = cache.get(cacheKey);
-    if (hit && hit.expiresAt > now.getTime()) return hit.value;
+    if (hit && hit.expiresAt > now.getTime()) {
+      // 信件可能刚送达、拆开、回信或删除，不能跟随纪念册主体一起缓存。
+      const letter = await safely('letter', () => buildLetter(userId, periodId, now), null);
+      return { ...hit.value, letter };
+    }
   }
 
   const value = await computeKeepsake(userId, period, readiness, now);
   if (readiness.ready && finished) {
-    setCache(cacheKey, value, now);
+    setCache(cacheKey, { ...value, letter: null }, now);
   }
   return value;
 }

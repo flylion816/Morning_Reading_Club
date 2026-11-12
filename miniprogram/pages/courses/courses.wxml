@@ -21,39 +21,53 @@
     <text class="payment-banner-arrow">›</text>
   </view>
 
-  <view class="quick-board" wx:if="{{sections.length > 0 && communityAccessState === 'enabled'}}">
-    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleRanking">
-      <view class="quick-icon"><text>榜</text></view>
-      <view class="quick-copy">
-        <text class="quick-title">同行榜</text>
-        <text class="quick-caption">精选榜</text>
+  <scroll-view
+    wx:if="{{sections.length > 0 && communityAccessState === 'enabled'}}"
+    class="quick-board"
+    scroll-x
+    enhanced="true"
+    show-scrollbar="{{false}}">
+    <view class="quick-board-track">
+      <view class="quick-item" hover-class="quick-item-hover" bindtap="handleRanking">
+        <view class="quick-icon"><text>榜</text></view>
+        <view class="quick-copy">
+          <text class="quick-title">同行榜</text>
+          <text class="quick-caption">精选榜</text>
+        </view>
+      </view>
+      <view class="quick-item" hover-class="quick-item-hover" bindtap="handleCheckinRecords">
+        <view class="quick-icon"><text>记</text></view>
+        <view class="quick-copy">
+          <text class="quick-title">打卡记录</text>
+          <text class="quick-caption">每日留痕</text>
+        </view>
+      </view>
+      <view class="quick-item" hover-class="quick-item-hover" bindtap="handleMembers">
+        <view class="quick-icon"><text>友</text></view>
+        <view class="quick-copy">
+          <text class="quick-title">同学</text>
+          <text class="quick-caption">成员名录</text>
+        </view>
+      </view>
+      <view class="quick-item" hover-class="quick-item-hover" bindtap="handleKeepsake">
+        <view class="quick-icon"><text>册</text></view>
+        <view class="quick-copy">
+          <text class="quick-title">纪念册</text>
+          <text class="quick-caption">我的这一期</text>
+        </view>
+      </view>
+      <view class="quick-item quick-search-item" hover-class="quick-item-hover" bindtap="toggleSearch">
+        <view class="quick-icon quick-icon-search"><view class="app-icon app-icon-search"></view></view>
+        <view class="quick-copy">
+          <text class="quick-title">{{searchExpanded ? '收起搜索' : '搜索'}}</text>
+          <text class="quick-caption">课节与打卡</text>
+        </view>
       </view>
     </view>
-    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleCheckinRecords">
-      <view class="quick-icon"><text>记</text></view>
-      <view class="quick-copy">
-        <text class="quick-title">打卡记录</text>
-        <text class="quick-caption">每日留痕</text>
-      </view>
-    </view>
-    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleMembers">
-      <view class="quick-icon"><text>友</text></view>
-      <view class="quick-copy">
-        <text class="quick-title">同学</text>
-        <text class="quick-caption">成员名录</text>
-      </view>
-    </view>
-    <view class="quick-item" hover-class="quick-item-hover" bindtap="handleKeepsake">
-      <view class="quick-icon"><text>册</text></view>
-      <view class="quick-copy">
-        <text class="quick-title">纪念册</text>
-        <text class="quick-caption">我的这一期</text>
-      </view>
-    </view>
-  </view>
+  </scroll-view>
 
   <view class="course-toolbar" wx:if="{{sections.length > 0 && communityAccessState === 'enabled'}}">
-    <view class="course-search-bar">
+    <view class="course-search-bar" wx:if="{{searchExpanded}}">
       <view class="course-search-input-wrap">
         <input
           class="course-search-input"
@@ -91,11 +105,11 @@
                 {{item.startTime.split('T')[0]}} 至 {{item.endTime.split('T')[0]}}
               </view>
             </view>
-            <view wx:if="{{item.readingCompleted}}" class="reading-complete-inline">已晨读</view>
+            <view wx:if="{{item.readingCompleted}}" class="reading-complete-inline">已读完</view>
           </view>
 
           <view class="section-footer">
-            <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已打卡' : '已学习'}}</text>
+            <text class="checkin-info">{{item.checkinCount || 0}}人{{communityAccessState === 'enabled' ? '已写下' : '已学习'}}</text>
             <view class="section-btns">
               <view wx:if="{{isAdmin}}" class="btn-admin-insights" catchtap="handleAdminInsightsClick" data-section="{{item}}">小凡看见</view>
               <view class="btn-action" catchtap="handleCheckinClick" data-section="{{item}}">

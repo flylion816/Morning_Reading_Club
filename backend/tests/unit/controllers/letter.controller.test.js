@@ -42,7 +42,7 @@ describe('Letter Controller', () => {
     controller = proxyquire('../../../src/controllers/letter.controller', {
       '../models/Letter': LetterStub,
       '../models/Period': PeriodStub,
-      '../utils/logger': { error: sandbox.stub() },
+      '../utils/logger': { error: sandbox.stub(), info: sandbox.stub() },
       '../services/community-access.service': access,
       '../services/letter-delivery.service': require('../../../src/services/letter-delivery.service.js')
     });
@@ -222,6 +222,63 @@ describe('Letter Controller', () => {
     const end = new Date('2026-12-10T00:00:00+08:00');
     const now = new Date('2026-11-13T08:00:00+08:00');
     expect(controller.buildLetterView(null, { startDate: start, endDate: end, totalDays: 23 }, now).periodDays).to.equal(23);
+    const sealedAt = new Date('2026-11-12T01:00:00Z');
+    expect(controller.buildLetterView({ _id: 'l1', status: 'sealed', sealedAt }, { startDate: start, endDate: end }, now).sealedAt).to.equal(sealedAt);
     expect(controller.buildLetterView(null, { startDate: start, endDate: end }, now).periodDays).to.equal(28);
+  });
+
+  describe('管理后台', () => {
+    const adminRows = [{
+      _id: LID,
+      userId: { _id: 'u1', nickname: '狮子', avatarUrl: 'a.png' },
+      periodId: { _id: PID, name: '连接之力', startDate: period.startDate, endDate: new Date('2026-12-24T16:00:00.000Z'), totalDays: 23 },
+      status: 'sealed',
+      stamp: 'leaf',
+      content: '你好，结营那天的我',
+      sealedAt: new Date('2026-12-02T01:00:00Z')
+    }];
+    const listChain = rows => {
+      const c = { sort: () => c, skip: () => c, limit: () => c, populate: () => c, lean: async () => rows };
+      return c;
+    };
+
+    it('按期次和状态列出信件，送达时间按课程最后一天算', async () => {
+      LetterStub.find.returns(listChain(adminRows));
+      LetterStub.countDocuments = sandbox.stub().resolves(1);
+      req.query = { periodId: PID, status: 'sealed', page: '1' };
+      await controller.adminListLetters(req, res, next);
+      expect(LetterStub.find.firstCall.args[0]).to.deep.equal({ periodId: PID, status: 'sealed' });
+      const data = body().data;
+      expect(data.total).to.equal(1);
+      expect(data.list[0]).to.include({ id: LID, status: 'sealed', stamp: 'leaf', content: '你好，结营那天的我' });
+      expect(data.list[0].user).to.deep.equal({ id: 'u1', nickname: '狮子', avatarUrl: 'a.png' });
+      expect(data.list[0].period).to.deep.equal({ id: PID, name: '连接之力' });
+      expect(new Date(data.list[0].deliverAt).toISOString()).to.equal('2026-12-22T22:00:00.000Z');
+    });
+
+    it('状态参数不对时拒绝', async () => {
+      req.query = { status: 'lost' };
+      await controller.adminListLetters(req, res, next);
+      expect(res.status.calledWith(400)).to.be.true;
+    });
+
+    it('删除一封信：真的删掉，书友那边回到还没写', async () => {
+      LetterStub.findById = sandbox.stub().returns(leanOf({ _id: LID, userId: 'u1', periodId: PID, status: 'sealed' }));
+      LetterStub.deleteOne = sandbox.stub().resolves({ deletedCount: 1 });
+      req.params = { id: LID };
+      req.admin = { id: 'admin1' };
+      await controller.adminDeleteLetter(req, res, next);
+      expect(LetterStub.deleteOne.calledWith({ _id: LID })).to.be.true;
+      expect(body().data).to.deep.equal({ id: LID, deleted: true });
+    });
+
+    it('删除不存在的信返回 404', async () => {
+      LetterStub.findById = sandbox.stub().returns(leanOf(null));
+      LetterStub.deleteOne = sandbox.stub();
+      req.params = { id: LID };
+      await controller.adminDeleteLetter(req, res, next);
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(LetterStub.deleteOne.called).to.be.false;
+    });
   });
 });

@@ -2,8 +2,11 @@ const express = require('express');
 
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
-const { userTenantContext } = require('../middleware/tenantContext');
+const { adminAuthMiddleware } = require('../middleware/adminAuth');
+const { userTenantContext, adminTenantContext } = require('../middleware/tenantContext');
 const {
+  adminListLetters,
+  adminDeleteLetter,
   getPeriodLetter,
   saveDraft,
   sealLetter,
@@ -11,6 +14,10 @@ const {
   replyLetter,
   getMyLetters
 } = require('../controllers/letter.controller');
+
+// 管理后台：在书友登录校验之前注册，用独立的管理员校验
+router.get('/admin/list', adminAuthMiddleware, adminTenantContext, adminListLetters);
+router.delete('/admin/:id', adminAuthMiddleware, adminTenantContext, adminDeleteLetter);
 
 router.use(authMiddleware, userTenantContext);
 

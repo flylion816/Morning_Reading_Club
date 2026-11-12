@@ -709,17 +709,25 @@
 .payment-banner-caption { color: var(--app-text-muted); font-size: 20rpx; }
 .payment-banner-arrow { color: var(--theme-primary); font-size: 34rpx; font-weight: 400; }
 .quick-board {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14rpx;
+  width: 100%;
+  box-sizing: border-box;
   padding: 22rpx 24rpx 8rpx;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.quick-board-track {
+  display: inline-flex;
+  gap: 12rpx;
+  min-width: 100%;
 }
 .quick-item {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  min-width: 0;
-  padding: 16rpx;
+  width: 154rpx;
+  min-width: 154rpx;
+  box-sizing: border-box;
+  padding: 16rpx 10rpx;
   border-radius: var(--app-radius-md);
   background: rgba(255,255,255,.88);
   box-shadow: var(--app-shadow-soft);
@@ -737,6 +745,13 @@
   font-size: 21rpx;
   font-weight: 750;
   flex: 0 0 auto;
+}
+.quick-icon-search {
+  color: var(--theme-primary-dark);
+}
+.quick-icon-search .app-icon {
+  width: 28rpx;
+  height: 28rpx;
 }
 .quick-copy { min-width: 0; display: flex; flex-direction: column; }
 .quick-title { overflow: hidden; color: var(--app-text); font-size: 22rpx; font-weight: 700; white-space: nowrap; }
@@ -842,10 +857,10 @@
   font-size: 20rpx;
 }
 .quick-board {
-  grid-template-columns: repeat(auto-fit, minmax(200rpx, 1fr));
+  overflow: hidden;
 }
 
-/* 页眉并入纸色（右上角胶囊随之变浅，与其他内容页一致）；四个入口排成一行。 */
+/* 页眉并入纸色（右上角胶囊随之变浅，与其他内容页一致）；快捷入口横向滑动。 */
 .course-header {
   background: var(--app-paper);
   color: var(--app-text);
@@ -864,13 +879,12 @@
   width: 400rpx;
 }
 .quick-board {
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12rpx;
+  gap: 0;
 }
 .quick-item {
   flex-direction: column;
   gap: 10rpx;
-  padding: 20rpx 4rpx 16rpx;
+  padding: 20rpx 8rpx 16rpx;
   text-align: center;
 }
 .quick-copy {

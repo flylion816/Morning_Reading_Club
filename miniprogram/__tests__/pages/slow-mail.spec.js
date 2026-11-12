@@ -57,7 +57,7 @@ describe('slow-mail page', () => {
     letterService.getPeriodLetter.mockResolvedValue({ status: 'none', canWrite: true, periodDays: 23 });
     await page.onLoad({ periodId: 'p1' });
     expect(page.data.view).toBe('write');
-    expect(page.data.prompt).toBe('23 天后，你希望自己有什么不一样？');
+    expect(page.data.prompt).toBe('读完这 23 天，你希望自己有什么不一样？');
   });
 
   test('窗口已过且没写显示信箱已关', async () => {
@@ -77,13 +77,16 @@ describe('slow-mail page', () => {
     expect(page.data.view).toBe('draft-closed');
     expect(page.data.content).toBe('写给未来的我');
 
+    jest.useFakeTimers({ doNotFake: ['setImmediate'] });
     letterService.seal.mockResolvedValue({ status: 'sealed', canWrite: false });
     page.onSeal();
     wx.showModal.mock.calls[0][0].success({ confirm: true });
     await new Promise(r => setImmediate(r));
     expect(letterService.saveDraft).not.toHaveBeenCalled();
     expect(letterService.seal).toHaveBeenCalledWith('p1');
+    jest.advanceTimersByTime(page.POST_MS);
     expect(page.data.view).toBe('sealed');
+    jest.useRealTimers();
   });
 
   test('各状态映射到对应视图', async () => {
@@ -112,11 +115,24 @@ describe('slow-mail page', () => {
     page.setData({ periodId: 'p1', content: '你好', stamp: 'leaf' });
     letterService.saveDraft.mockResolvedValue({});
     letterService.seal.mockResolvedValue({ status: 'sealed', canWrite: false, daysToDeliver: 20 });
+    jest.useFakeTimers({ doNotFake: ['setImmediate'] });
+    const globalData = {};
+    global.getApp = jest.fn(() => ({ globalData }));
     page.onSeal();
     wx.showModal.mock.calls[0][0].success({ confirm: true });
     await new Promise(r => setImmediate(r));
     expect(letterService.saveDraft).toHaveBeenCalledWith('p1', { content: '你好', stamp: 'leaf' });
+    // 寄出后先演投递，演完才换成「信在路上」；首页的提醒被标记为要收起
+    expect(page.data.posting).toBe(true);
+    expect(page.data.view).not.toBe('sealed');
+    expect(globalData.homeLetterDirty).toBe(true);
+    jest.advanceTimersByTime(page.POST_MS - 100);
+    expect(page.data.posting).toBe(true);
+    jest.advanceTimersByTime(100);
     expect(page.data.view).toBe('sealed');
+    expect(page.data.posting).toBe(false);
+    expect(page.data.busy).toBe(false);
+    jest.useRealTimers();
   });
 
   test('回信成功后显示回信', async () => {
@@ -139,11 +155,40 @@ describe('slow-mail page', () => {
     expect(page.data.busy).toBe(true);
     expect(page.data.opening).toBe(true);
 
-    jest.advanceTimersByTime(700);
+    jest.advanceTimersByTime(page.UNSEAL_MS - 100);
+    expect(page.data.opening).toBe(true);
+    jest.advanceTimersByTime(100);
     await Promise.all([first, second]);
     expect(page.data.view).toBe('opened');
     expect(page.data.busy).toBe(false);
     expect(page.data.opening).toBe(false);
     jest.useRealTimers();
+  });
+
+  test('拆信后可以翻开这一期的纪念册', () => {
+    global.wx.navigateTo = jest.fn();
+    global.getCurrentPages = jest.fn(() => []);
+    page.setData({ periodId: 'p1' });
+    page.onOpenKeepsake();
+    expect(global.wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/keepsake/keepsake?periodId=p1' });
+  });
+
+  test('从同一期纪念册进入邮局时返回已有的纪念册，不叠加页面', () => {
+    global.wx.navigateBack = jest.fn();
+    global.getCurrentPages = jest.fn(() => [
+      { route: 'pages/keepsake/keepsake', data: { periodId: 'p1' } },
+      { route: 'pages/slow-mail/slow-mail', data: { periodId: 'p1' } }
+    ]);
+    page.setData({ periodId: 'p1' });
+    page.onOpenKeepsake();
+    expect(global.wx.navigateBack).toHaveBeenCalledWith({ delta: 1 });
+    expect(global.wx.navigateTo).not.toHaveBeenCalled();
+
+    global.getCurrentPages = jest.fn(() => [
+      { route: 'pages/keepsake/keepsake', data: { periodId: 'other' } },
+      { route: 'pages/slow-mail/slow-mail', data: { periodId: 'p1' } }
+    ]);
+    page.onOpenKeepsake();
+    expect(global.wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/keepsake/keepsake?periodId=p1' });
   });
 });

@@ -50,6 +50,8 @@ describe('payment and course page redesign', () => {
     expect(markup).toContain('<view class="quick-icon"><text>榜</text></view>');
     expect(markup).toContain('<view class="quick-icon"><text>记</text></view>');
     expect(markup).toContain('<view class="quick-icon"><text>友</text></view>');
+    expect(markup).toContain('bindtap="toggleSearch"');
+    expect(markup).toContain('class="course-search-bar" wx:if="{{searchExpanded}}"');
     expect(markup).not.toContain('section-day-number');
   });
 

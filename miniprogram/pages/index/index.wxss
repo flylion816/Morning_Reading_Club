@@ -3162,6 +3162,13 @@ button.avatar-action-button::after {
   box-shadow: 0 12rpx 34rpx rgba(84, 60, 30, 0.06);
 }
 
+.dawn-card-task {
+  position: relative;
+  overflow: hidden;
+  padding: 36rpx 32rpx 24rpx;
+  text-align: center;
+}
+
 .dawn-card-head {
   display: flex;
   align-items: center;
@@ -3181,6 +3188,28 @@ button.avatar-action-button::after {
   color: var(--app-text-muted);
 }
 
+.dawn-title-area {
+  position: relative;
+  margin: 30rpx 0 4rpx;
+}
+
+.dawn-title-text {
+  position: relative;
+  z-index: 1;
+  padding: 0 16rpx;
+  text-align: center;
+}
+
+.dawn-bamboo {
+  position: absolute;
+  top: -4rpx;
+  right: -36rpx;
+  width: 240rpx;
+  height: 120rpx;
+  opacity: 0.82;
+  pointer-events: none;
+}
+
 .dawn-course-title {
   font-family: var(--app-font-serif);
   font-size: 46rpx;
@@ -3188,6 +3217,28 @@ button.avatar-action-button::after {
   line-height: 1.3;
   letter-spacing: 0.03em;
   color: var(--app-text);
+}
+
+.dawn-card-task .dawn-course-title {
+  font-size: 38rpx;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dawn-title-brush {
+  display: block;
+  width: 220rpx;
+  height: 38rpx;
+  margin: -8rpx auto 0;
+}
+
+.dawn-moment {
+  margin: 0 0 26rpx;
+  color: var(--app-text-soft);
+  font-size: 28rpx;
+  line-height: 1.6;
 }
 
 .dawn-extract {
@@ -3291,6 +3342,24 @@ button.avatar-action-button::after {
   transform: scale(0.99);
 }
 
+.dawn-card-task .dawn-btn-task {
+  display: inline-flex;
+  width: auto;
+  min-width: 260rpx;
+  height: 76rpx;
+  margin: 0;
+  padding: 0 54rpx;
+  border: 0;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  line-height: 1.4;
+  box-shadow: 0 8rpx 18rpx var(--theme-primary-alpha-24);
+}
+
+.dawn-card-task .dawn-btn-task::after {
+  border: 0;
+}
+
 .dawn-btn-done {
   background: var(--app-success-soft);
   color: var(--app-success);
@@ -3309,6 +3378,14 @@ button.avatar-action-button::after {
   font-size: 26rpx;
   color: var(--app-text-muted);
   padding: 6rpx 8rpx;
+}
+
+.dawn-card-task .dawn-link {
+  display: inline-flex;
+  min-height: 76rpx;
+  align-items: center;
+  text-decoration: underline;
+  text-underline-offset: 6rpx;
 }
 
 .dawn-card-empty .dawn-empty-body {
@@ -3804,6 +3881,7 @@ button.avatar-action-button::after {
 .dawn-welcome-back {
   margin: 4rpx 0 20rpx;
   padding: 16rpx 22rpx;
+  text-align: left;
   border-radius: 16rpx;
   background: var(--app-dawn-soft);
   color: var(--app-dawn-ink);
@@ -3818,4 +3896,467 @@ button.avatar-action-button::after {
   border: 2rpx solid rgba(156, 59, 40, 0.45);
   box-shadow: none;
   line-height: 72rpx;
+}
+
+/* Features: 首页天空。太阳或月亮按现在几点停在弧线上；弧线是一段圆弧（弦 600rpx、拱高 76rpx、半径 630rpx），
+   摆臂绕圆心转一个角度，天体就沿着弧线走。地平线是 .sky 的下边，天体落到地平线以下的部分被裁掉。 */
+.sky {
+  position: relative;
+  height: 124rpx;
+  overflow: hidden;
+  border-bottom: 2rpx solid rgba(92, 70, 44, 0.18);
+}
+.dawn-hero-night .sky {
+  border-bottom-color: rgba(244, 234, 217, 0.28);
+}
+.sky-orbit {
+  position: absolute;
+  left: 50%;
+  top: 48rpx;
+  width: 1260rpx;
+  height: 1260rpx;
+  margin-left: -630rpx;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2rpx dashed rgba(138, 75, 18, 0.2);
+}
+.dawn-hero-night .sky-orbit {
+  border-color: rgba(244, 234, 217, 0.22);
+}
+.sky-arm {
+  position: absolute;
+  left: 50%;
+  top: 48rpx;
+  width: 0;
+  height: 630rpx;
+  transform-origin: 0 630rpx;
+}
+.sky-body-wrap {
+  position: absolute;
+  left: -40rpx;
+  top: -40rpx;
+  width: 80rpx;
+  height: 80rpx;
+  opacity: 0.35;
+}
+/* 进来时的那一段：摆臂从最左端转到现在的位置，天体自己反着转回来，保持正着 */
+.sky-ready .sky-arm,
+.sky-ready .sky-body-wrap {
+  transition: transform 5.5s cubic-bezier(0.3, 0.6, 0.3, 1), opacity 1.6s ease;
+}
+.sky-ready .sky-body-wrap {
+  opacity: 1;
+}
+.sky-body {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44rpx;
+  height: 44rpx;
+  margin: -22rpx 0 0 -22rpx;
+  border-radius: 50%;
+  box-sizing: border-box;
+  transition: background 0.6s ease, box-shadow 0.6s ease;
+}
+.sky-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  opacity: 0;
+}
+.sky-star {
+  display: none;
+  position: absolute;
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: #f4ead9;
+  animation: skyTwinkle 3.2s ease-in-out infinite;
+}
+.sky-star-1 { left: 22%; top: 30rpx; }
+.sky-star-2 { left: 47%; top: 14rpx; animation-delay: 1.1s; }
+.sky-star-3 { left: 71%; top: 40rpx; animation-delay: 2s; }
+@keyframes skyTwinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.95; }
+}
+
+/* 日出：刚露头，橙红，没有光晕外圈 */
+.sky-sunrise .sky-body {
+  background: radial-gradient(circle, #ffb873 0%, #f08a4b 70%, #e5703a 100%);
+  box-shadow: 0 0 0 10rpx rgba(240, 138, 75, 0.2);
+}
+/* 上午：金色，一圈柔光 */
+.sky-morning .sky-body {
+  background: radial-gradient(circle, #ffd89a 0%, #f6a94f 65%, var(--app-dawn) 100%);
+  box-shadow: 0 0 0 8rpx rgba(255, 200, 130, 0.32), 0 0 0 18rpx rgba(255, 200, 130, 0.16);
+}
+/* 正午：最亮，大一号，外面一圈慢慢转的光芒 */
+.sky-noon .sky-body {
+  width: 50rpx;
+  height: 50rpx;
+  margin: -25rpx 0 0 -25rpx;
+  background: radial-gradient(circle, #fff1c9 0%, #ffcf73 55%, #f6a94f 100%);
+  box-shadow: 0 0 0 8rpx rgba(255, 207, 115, 0.4), 0 0 26rpx 12rpx rgba(255, 207, 115, 0.45);
+}
+.sky-noon .sky-rays {
+  width: 116rpx;
+  height: 116rpx;
+  margin: -58rpx 0 0 -58rpx;
+  opacity: 1;
+  background: repeating-conic-gradient(rgba(246, 169, 79, 0.7) 0deg 5deg, rgba(246, 169, 79, 0) 5deg 30deg);
+  -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 36rpx, #000 38rpx, rgba(0, 0, 0, 0) 58rpx);
+  animation: skyRaysSpin 24s linear infinite;
+}
+@keyframes skyRaysSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* 下午：暖金，光晕收一点 */
+.sky-afternoon .sky-body {
+  background: radial-gradient(circle, #ffd08a 0%, #f39f48 70%, #ea8f3c 100%);
+  box-shadow: 0 0 0 8rpx rgba(243, 159, 72, 0.26), 0 0 0 16rpx rgba(243, 159, 72, 0.12);
+}
+/* 日落：橙红，落到地平线只剩半个 */
+.sky-sunset .sky-body {
+  background: radial-gradient(circle, #ffa56b 0%, #ec7545 70%, #d95c35 100%);
+  box-shadow: 0 0 0 10rpx rgba(236, 117, 69, 0.22), 0 0 0 22rpx rgba(236, 117, 69, 0.1);
+}
+
+/* 月亮：用内阴影画月相，圆本身是透明的 */
+.sky-moon .sky-body {
+  width: 40rpx;
+  height: 40rpx;
+  margin: -20rpx 0 0 -20rpx;
+  background: transparent;
+}
+.sky-moon-crescent .sky-body {
+  box-shadow: inset -11rpx -4rpx 0 0 #f4ead9;
+}
+.sky-moon-gibbous .sky-body {
+  box-shadow: inset -27rpx -3rpx 0 0 #f4ead9, 0 0 0 10rpx rgba(244, 234, 217, 0.08);
+}
+.sky-moon-late .sky-body {
+  box-shadow: inset -9rpx -3rpx 0 0 #f4ead9;
+}
+/* 傍晚天还亮着（18:00–19:30 底色是黄昏）：月亮用深一点的金色，才看得见 */
+.dawn-hero-dusk .sky-moon .sky-body,
+.dawn-hero-day .sky-moon .sky-body,
+.dawn-hero-dawn .sky-moon .sky-body {
+  box-shadow: inset -11rpx -4rpx 0 0 #b98a4e;
+}
+.dawn-hero-night .sky-moon .sky-star {
+  display: block;
+}
+
+/* 天空接管了太阳和月亮：下面这排只标「营期第几天」，今天是一个空心圆点 */
+.dawn-horizon {
+  height: 14rpx;
+  margin-top: -8rpx;
+  padding-bottom: 0;
+  align-items: center;
+}
+.dawn-horizon::before,
+.dawn-horizon::after,
+.dawn-tick-today::after {
+  display: none;
+}
+.dawn-tick-today .dawn-tick-dot,
+.dawn-hero-night .dawn-tick-today .dawn-tick-dot {
+  position: static;
+  width: 18rpx;
+  height: 18rpx;
+  margin-left: 0;
+  background: var(--app-paper);
+  border: 4rpx solid var(--app-dawn);
+  box-shadow: none;
+}
+.dawn-hero-night .dawn-tick-today .dawn-tick-dot {
+  background: #2a3652;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-ready .sky-arm,
+  .sky-ready .sky-body-wrap {
+    transition: none;
+  }
+  .sky-noon .sky-rays,
+  .sky-star {
+    animation: none;
+  }
+}
+
+/* Features: 拆信转场（约 2.9 秒，时长要和 index.js 的 ENVELOPE_OPEN_MS 对上）。
+   0–0.5s 信封浮上来 → 0.5–1.1s 火漆裂开 → 0.9–1.7s 封盖翻开 → 1.5–2.4s 信纸抽出 → 2.2–2.9s 铺满成一张纸。 */
+.envopen {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(43, 38, 34, 0.5);
+  animation: envFade 0.4s ease both;
+}
+.envopen-env {
+  position: relative;
+  width: 520rpx;
+  height: 340rpx;
+  margin-top: 120rpx;
+  animation: envRise 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.envopen-back,
+.envopen-front {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 14rpx;
+}
+.envopen-back {
+  top: 0;
+  background: #ead9bd;
+  box-shadow: 0 24rpx 60rpx rgba(43, 30, 12, 0.35);
+}
+/* 信封正面：下半截的口袋，左右两片斜着压上来 */
+.envopen-front {
+  top: 0;
+  z-index: 3;
+  background: linear-gradient(180deg, #f6ead4 0%, #f1e2c6 100%);
+  clip-path: polygon(0 0, 50% 52%, 100% 0, 100% 100%, 0 100%);
+}
+/* 封盖：一个朝下的三角，绕上边翻开 */
+.envopen-flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 190rpx;
+  z-index: 4;
+  background: linear-gradient(180deg, #f3e4c8 0%, #e9d6b4 100%);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: 50% 0;
+  animation: envFlap 0.8s ease-in-out 0.9s both;
+}
+.envopen-wax {
+  position: absolute;
+  left: 50%;
+  top: 150rpx;
+  z-index: 5;
+  width: 76rpx;
+  height: 76rpx;
+  margin-left: -38rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #c9614a, #9c3b28);
+  color: #fff3e6;
+  font-family: var(--app-font-serif);
+  font-size: 34rpx;
+  line-height: 76rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 10rpx rgba(120, 40, 20, 0.3);
+  animation: envWax 0.6s ease-in 0.5s both;
+}
+.envopen-letter {
+  position: absolute;
+  left: 34rpx;
+  right: 34rpx;
+  top: 24rpx;
+  height: 300rpx;
+  z-index: 2;
+  box-sizing: border-box;
+  padding: 44rpx 40rpx 0;
+  border-radius: 8rpx;
+  background: var(--app-paper);
+  box-shadow: 0 6rpx 18rpx rgba(84, 60, 30, 0.16);
+  animation: envLetter 0.9s cubic-bezier(0.3, 0.7, 0.3, 1) 1.5s both, envLetterGrow 0.7s ease-in 2.2s forwards;
+}
+.envopen-line {
+  height: 4rpx;
+  margin-bottom: 30rpx;
+  border-radius: 4rpx;
+  background: rgba(138, 75, 18, 0.2);
+}
+.envopen-line-1 { width: 46%; background: rgba(138, 75, 18, 0.34); }
+.envopen-line-4 { width: 62%; }
+.envopen-sign {
+  position: absolute;
+  right: 40rpx;
+  bottom: 30rpx;
+  font-family: var(--app-font-serif);
+  font-size: 26rpx;
+  color: var(--app-dawn-ink);
+}
+/* 最后铺满的那张纸：和信的页面同色，跳过去时接得上 */
+.envopen-paper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  background: var(--app-paper);
+  opacity: 0;
+  animation: envFade 0.6s ease-in 2.3s both;
+}
+@keyframes envFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes envRise {
+  from { transform: translateY(80rpx) scale(0.86); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes envWax {
+  0% { transform: scale(1); opacity: 1; }
+  45% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes envFlap {
+  0% { transform: rotateX(0deg); z-index: 4; }
+  50% { transform: rotateX(90deg); z-index: 4; }
+  51% { z-index: 1; }
+  100% { transform: rotateX(180deg); z-index: 1; }
+}
+@keyframes envLetter {
+  from { transform: translateY(0); }
+  to { transform: translateY(-250rpx); }
+}
+@keyframes envLetterGrow {
+  from { transform: translateY(-250rpx) scale(1); }
+  to { transform: translateY(-250rpx) scale(1.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .envopen-env,
+  .envopen-flap,
+  .envopen-wax,
+  .envopen-letter {
+    animation: none;
+  }
+}
+
+/* Features: 今日晨读上方的慢递邮局提醒。像一张压在桌上的信封便签：左边一只小信封，右边一句话和一个按钮。 */
+.home-letter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 20rpx;
+  padding: 26rpx 26rpx 26rpx 24rpx;
+  border-radius: 24rpx;
+  background:
+    repeating-linear-gradient(135deg, rgba(184, 71, 47, 0.55) 0 10rpx, rgba(255, 253, 248, 0) 10rpx 20rpx, rgba(61, 111, 166, 0.5) 20rpx 30rpx, rgba(255, 253, 248, 0) 30rpx 40rpx) top / 100% 6rpx no-repeat,
+    var(--app-paper);
+  border: 1rpx solid rgba(138, 75, 18, 0.14);
+  box-shadow: 0 10rpx 28rpx rgba(84, 60, 30, 0.08);
+  overflow: hidden;
+}
+.home-letter-hover {
+  opacity: 0.9;
+}
+.home-letter-arrived {
+  background:
+    repeating-linear-gradient(135deg, rgba(184, 71, 47, 0.55) 0 10rpx, rgba(255, 253, 248, 0) 10rpx 20rpx, rgba(61, 111, 166, 0.5) 20rpx 30rpx, rgba(255, 253, 248, 0) 30rpx 40rpx) top / 100% 6rpx no-repeat,
+    linear-gradient(120deg, var(--app-dawn-soft) 0%, var(--app-paper) 70%);
+}
+/* 小信封 */
+.home-letter-env {
+  position: relative;
+  flex-shrink: 0;
+  width: 112rpx;
+  height: 78rpx;
+  border-radius: 8rpx;
+  background: linear-gradient(180deg, #f6ead4 0%, #eedcbc 100%);
+  box-shadow: 0 4rpx 10rpx rgba(84, 60, 30, 0.14);
+  transform: rotate(-4deg);
+}
+.home-letter-env-flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 44rpx;
+  background: #e8d4b0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.home-letter-env-stamp {
+  position: absolute;
+  right: 8rpx;
+  top: 8rpx;
+  width: 26rpx;
+  height: 30rpx;
+  border: 2rpx dashed rgba(138, 75, 18, 0.45);
+  border-radius: 3rpx;
+  background: var(--app-paper);
+  color: var(--app-dawn-ink);
+  font-family: var(--app-font-serif);
+  font-size: 16rpx;
+  line-height: 28rpx;
+  text-align: center;
+}
+.home-letter-env-wax {
+  position: absolute;
+  left: 50%;
+  top: 30rpx;
+  width: 26rpx;
+  height: 26rpx;
+  margin-left: -13rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #c9614a, #9c3b28);
+  box-shadow: 0 2rpx 6rpx rgba(120, 40, 20, 0.35);
+  animation: homeLetterWax 2.4s ease-in-out infinite;
+}
+@keyframes homeLetterWax {
+  0%, 100% { box-shadow: 0 2rpx 6rpx rgba(120, 40, 20, 0.35), 0 0 0 0 rgba(201, 97, 74, 0.35); }
+  50% { box-shadow: 0 2rpx 6rpx rgba(120, 40, 20, 0.35), 0 0 0 10rpx rgba(201, 97, 74, 0); }
+}
+.home-letter-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.home-letter-kicker {
+  font-size: 21rpx;
+  letter-spacing: 0.2em;
+  color: var(--app-dawn-ink);
+}
+.home-letter-title {
+  margin-top: 6rpx;
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--app-text);
+}
+.home-letter-sub {
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  line-height: 1.55;
+  color: var(--app-text-muted);
+}
+.home-letter-cta {
+  flex-shrink: 0;
+  padding: 14rpx 24rpx;
+  border-radius: 999rpx;
+  background: var(--theme-primary-dark);
+  color: var(--theme-on-primary, #fff);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+.home-letter-arrived .home-letter-cta {
+  background: #a8452f;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-letter-env-wax { animation: none; }
+}
+
+
+/* 慢递邮局提醒和今日晨读之间留出间距，各是一张完整的卡片 */
+.home-letter {
+  margin-bottom: 24rpx;
 }

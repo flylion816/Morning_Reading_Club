@@ -22,11 +22,24 @@ function computeWriteWindow(period) {
   return { from: new Date(startMs - 3 * DAY_MS), to: new Date(startMs + 8 * DAY_MS - 1000) };
 }
 
-// 送达时间：结束日东八区早上 6:00
-function computeDeliverAt(period) {
+// 送达那一天：课程的最后一天（开营日 + 课程天数 - 1）。
+// 期次的结束日常常比课程多留几天（比如 23 天的课，结束日设在第 25 天），所以两者取早的那个；
+// 没设课程天数时按结束日。
+function computeDeliverDayKey(period) {
   const endKey = period && period.endDate ? toDayKey(period.endDate) : null;
-  if (!endKey) return null;
-  return new Date(dayKeyToMs(endKey, '06:00:00'));
+  const startKey = period && period.startDate ? toDayKey(period.startDate) : null;
+  const totalDays = Number(period && period.totalDays);
+  const lastCourseKey = startKey && totalDays > 0
+    ? toDayKey(new Date(dayKeyToMs(startKey) + (totalDays - 1) * DAY_MS))
+    : null;
+  if (endKey && lastCourseKey) return lastCourseKey < endKey ? lastCourseKey : endKey;
+  return endKey || lastCourseKey;
+}
+
+// 送达时间：送达那一天东八区早上 6:00
+function computeDeliverAt(period) {
+  const key = computeDeliverDayKey(period);
+  return key ? new Date(dayKeyToMs(key, '06:00:00')) : null;
 }
 
 function daysBetweenKeys(fromDate, toDate) {
@@ -66,15 +79,17 @@ async function deliverOne(letter, deliverAt, now) {
   });
 }
 
-// 扫描所有已到送达时间的期次，避免服务停摆超过固定回看窗口后漏送；没有结束日的期次不会被扫到。
+// 扫描所有已到送达时间的期次，避免服务停摆超过固定回看窗口后漏送。
 async function deliverDueLetters({ now = new Date() } = {}) {
   return withSystemContext(null, async () => {
+    // 送达日可能早于结束日（按课程天数算），所以已经开营、设了课程天数的期次也要一起扫
     const candidates = await Period.find({
-      endDate: {
-        $lte: new Date(now.getTime() + DAY_MS)
-      }
+      $or: [
+        { endDate: { $lte: new Date(now.getTime() + DAY_MS) } },
+        { startDate: { $lte: now }, totalDays: { $gt: 0 } }
+      ]
     })
-      .select('_id endDate')
+      .select('_id startDate endDate totalDays')
       .lean();
     const deliverAtMap = new Map();
     candidates.forEach(p => {
@@ -136,4 +151,4 @@ function start() {
   logger.info('Letter delivery schedule started', { cron: CRON_EXPRESSION });
 }
 
-module.exports = { start, deliverDueLetters, computeWriteWindow, computeDeliverAt, daysBetweenKeys };
+module.exports = { start, deliverDueLetters, computeWriteWindow, computeDeliverAt, computeDeliverDayKey, daysBetweenKeys };

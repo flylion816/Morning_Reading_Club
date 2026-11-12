@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth';
 const PLATFORM_ROLES = ['platform_superadmin', 'superadmin'];
 
 const routes: RouteRecordRaw[] = [
+  { path: '/letters', name: 'letters', component: () => import('../views/LettersManagementView.vue'), meta: { requiresAuth: true } },
   { path: '/course-templates', name: 'courseTemplates', component: () => import('../views/CourseTemplatesView.vue'), meta: { requiresAuth: true } },
   { path: '/enrollment-templates', name: 'enrollmentTemplates', component: () => import('../views/EnrollmentTemplatesView.vue'), meta: { requiresAuth: true } },
   {

@@ -587,7 +587,7 @@ const formData = reactive({
   subtitle: '',
   title: '',
   description: '',
-  icon: '📚',
+  icon: '读',
   coverColor: '#4a90e2',
   startDate: null,
   endDate: null,
@@ -612,7 +612,7 @@ const copyFormData = reactive({
   subtitle: '',
   title: '',
   description: '',
-  icon: '📚',
+  icon: '读',
   coverColor: '#4a90e2',
   startDate: null,
   endDate: null,
@@ -713,10 +713,18 @@ function handleCreatePeriod() {
   dialogVisible.value = true;
 }
 
+function hasEnrollmentTemplate(period: Period) {
+  return !!(
+    period.enrollmentTemplateId ||
+    period.enrollmentTemplateSnapshot?.templateId ||
+    period.enrollmentTemplateSnapshot?._id
+  );
+}
+
 async function handleEditPeriod(row: Period) {
   templateLocked.value = true;
   templateName.value = row.courseTemplateSnapshot?.name || '七个习惯晨读营';
-  enrollmentTemplateLocked.value = !!row.enrollmentTemplateLocked;
+  enrollmentTemplateLocked.value = !!row.enrollmentTemplateLocked && hasEnrollmentTemplate(row);
   enrollmentTemplateName.value = row.enrollmentTemplateSnapshot?.name || '';
   console.log('📝 [PeriodsView] 开始编辑期次:');
   console.log('[PeriodsView] 从列表中取出的数据:', {
@@ -933,7 +941,7 @@ function resetCopyForm() {
   copyFormData.subtitle = '';
   copyFormData.title = '';
   copyFormData.description = '';
-  copyFormData.icon = '📚';
+  copyFormData.icon = '读';
   copyFormData.coverColor = '#4a90e2';
   copyFormData.startDate = null;
   copyFormData.endDate = null;
@@ -1059,7 +1067,7 @@ function resetForm() {
   formData.subtitle = '';
   formData.title = '';
   formData.description = '';
-  formData.icon = '📚';
+  formData.icon = '读';
   formData.coverColor = '#4a90e2';
   formData.startDate = null;
   formData.endDate = null;

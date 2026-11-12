@@ -19,6 +19,7 @@ describe('Period Controller', () => {
   let EnrollmentStub;
   let SectionStub;
   let publishSyncEventStub;
+  let resolveEnrollmentTemplateStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -65,6 +66,7 @@ describe('Period Controller', () => {
     };
 
     publishSyncEventStub = sandbox.stub();
+    resolveEnrollmentTemplateStub = sandbox.stub();
 
     const responseUtils = {
       success: (data, message) => ({ code: 200, message, data }),
@@ -86,6 +88,9 @@ describe('Period Controller', () => {
         '../utils/response': responseUtils,
         '../services/sync.service': {
           publishSyncEvent: publishSyncEventStub
+        },
+        '../services/enrollment-template.service': {
+          resolveEnrollmentTemplate: resolveEnrollmentTemplateStub
         }
       }
     );
@@ -431,6 +436,28 @@ describe('Period Controller', () => {
 
       expect(res.status.calledWith(409)).to.be.true;
       expect(mockPeriod.save.called).to.be.false;
+    });
+
+    it('已有报名但从未配置模板的期次：允许首次补选后保存其它参数', async () => {
+      const mockPeriod = enrolledPeriod({
+        enrollmentTemplateId: undefined,
+        enrollmentTemplateSnapshot: undefined,
+        enrollmentTemplateLocked: true
+      });
+      const snapshot = { templateId: 'simple', name: '简洁报名', revision: 1, fields: [] };
+      resolveEnrollmentTemplateStub.resolves(snapshot);
+      req.params = { periodId: mockPeriod._id };
+      req.body = { enrollmentTemplateId: 'simple', name: '只改期次名称' };
+      PeriodStub.findById.resolves(mockPeriod);
+
+      await periodController.updatePeriod(req, res, next);
+
+      expect(res.status.calledWith(409)).to.be.false;
+      expect(resolveEnrollmentTemplateStub.calledWith('simple', undefined, sinon.match.any)).to.be.true;
+      expect(mockPeriod.enrollmentTemplateId).to.equal('simple');
+      expect(mockPeriod.enrollmentTemplateSnapshot).to.equal(snapshot);
+      expect(mockPeriod.name).to.equal('只改期次名称');
+      expect(mockPeriod.save.called).to.be.true;
     });
   });
 

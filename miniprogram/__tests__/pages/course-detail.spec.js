@@ -710,6 +710,156 @@ describe('course-detail page markdown support', () => {
     expect(snapshot.miniProgramCodePath).toBe('/assets/images/mini-program-code.jpg');
   });
 
+  test('should place ordered checkin images between content and hash-tag', () => {
+    const snapshot = pageInstance.buildPosterSnapshot.call(
+      pageInstance,
+      {
+        userName: '狮子',
+        content: '正文内容',
+        hashTag: '#第1课 第一天',
+        periodChip: '七个习惯晨读营'
+      },
+      undefined,
+      {
+        imageInfos: [
+          {
+            sourceUrl: 'https://example.com/first.jpg',
+            drawSource: 'wxfile://first',
+            sourceWidth: 1200,
+            sourceHeight: 800
+          },
+          {
+            sourceUrl: 'https://example.com/second.jpg',
+            drawSource: 'wxfile://second',
+            sourceWidth: 800,
+            sourceHeight: 1200
+          }
+        ]
+      }
+    );
+
+    expect(snapshot.hasImages).toBe(true);
+    expect(snapshot.imageLayouts.map(image => image.sourceUrl)).toEqual([
+      'https://example.com/first.jpg',
+      'https://example.com/second.jpg'
+    ]);
+    expect(snapshot.imageLayouts[0].width).toBe(896);
+    expect(snapshot.imageLayouts[0].x).toBe(72);
+    expect(snapshot.imageLayouts[0].height).toBeCloseTo(597.33, 1);
+    expect(snapshot.imageLayouts[1].height).toBeCloseTo(1344, 1);
+    expect(snapshot.tagLines[0]).toBe('#第1课 第一天');
+    expect(snapshot.imageSectionHeight).toBeGreaterThan(1900);
+  });
+
+  test('should proportionally scale an extreme image batch within its height budget', () => {
+    const imageInfos = Array.from({ length: 9 }, (_, index) => ({
+      sourceUrl: `https://example.com/${index}.jpg`,
+      drawSource: `wxfile://${index}`,
+      sourceWidth: 800,
+      sourceHeight: 2400
+    }));
+
+    const layout = pageInstance.buildPosterImageLayouts.call(
+      pageInstance,
+      imageInfos
+    );
+
+    expect(layout.imageSectionHeight).toBeLessThanOrEqual(7200);
+    expect(layout.layouts[0].width).toBeLessThan(896);
+    expect(layout.layouts[0].height / layout.layouts[0].width).toBeCloseTo(3, 5);
+  });
+
+  test('should draw prepared checkin images in order and preserve their layout', async () => {
+    const imageLayouts = [
+      {
+        sourceUrl: 'https://example.com/first.jpg',
+        drawSource: 'wxfile://first',
+        x: 72,
+        width: 896,
+        height: 597.33
+      },
+      {
+        sourceUrl: 'https://example.com/second.jpg',
+        drawSource: 'wxfile://second',
+        x: 72,
+        width: 896,
+        height: 1344
+      }
+    ];
+    pageInstance.loadPosterImage = jest
+      .fn()
+      .mockImplementation(async (canvas, candidates) => ({
+        source: candidates[0]
+      }));
+
+    const result = await pageInstance.drawPosterImages.call(
+      pageInstance,
+      global.__mockCanvasContext,
+      {},
+      imageLayouts,
+      500
+    );
+
+    expect(pageInstance.loadPosterImage.mock.calls.map(call => call[1][0])).toEqual([
+      'wxfile://first',
+      'wxfile://second'
+    ]);
+    expect(global.__mockCanvasContext.drawImage.mock.calls).toEqual([
+      [
+        { source: 'wxfile://first' },
+        72,
+        500,
+        896,
+        597.33
+      ],
+      [
+        { source: 'wxfile://second' },
+        72,
+        1129.33,
+        896,
+        1344
+      ]
+    ]);
+    expect(result.drawnImageCount).toBe(2);
+  });
+
+  test('should keep images in fallback posters while truncating oversized text', () => {
+    const content = Array.from({ length: 180 }, (_, index) => `第${index + 1}句很长的打卡正文`).join('，');
+    const snapshot = pageInstance.buildPosterSnapshot.call(
+      pageInstance,
+      {
+        userName: '狮子',
+        content,
+        hashTag: '#第1课 第一天',
+        periodChip: '七个习惯晨读营'
+      },
+      undefined,
+      {
+        maxHeight: 2400,
+        imageInfos: [
+          {
+            sourceUrl: 'https://example.com/tall.jpg',
+            drawSource: 'wxfile://tall',
+            sourceWidth: 800,
+            sourceHeight: 1800
+          },
+          {
+            sourceUrl: 'https://example.com/tall-2.jpg',
+            drawSource: 'wxfile://tall-2',
+            sourceWidth: 800,
+            sourceHeight: 1800
+          }
+        ]
+      }
+    );
+
+    expect(snapshot.hasImages).toBe(true);
+    expect(snapshot.contentTruncated).toBe(true);
+    expect(snapshot.contentLines).toContain('进入小程序查看完整内容');
+    expect(snapshot.imageSectionHeight).toBeGreaterThan(4000);
+    expect(snapshot.height).toBeGreaterThan(2400);
+  });
+
   test('should keep oversized poster content complete by default', () => {
     const content = Array.from({ length: 180 }, (_, index) => `第${index + 1}句很长的打卡正文`).join('，');
 
@@ -747,6 +897,52 @@ describe('course-detail page markdown support', () => {
     expect(snapshot.height).toBeLessThanOrEqual(2400);
     expect(snapshot.contentTruncated).toBe(true);
     expect(snapshot.contentLines).toContain('进入小程序查看完整内容');
+  });
+
+  test('should prepare and export checkin images with memory-safe poster settings', async () => {
+    const originalGetImageInfo = wx.getImageInfo;
+    wx.getImageInfo = jest.fn(({ src, success }) => {
+      success({
+        path: `wxfile://${src.split('/').pop()}`,
+        width: 1200,
+        height: 800
+      });
+    });
+
+    try {
+      await pageInstance.generateLongImagePoster.call(pageInstance, {
+        userName: '狮子',
+        content: '测试正文',
+        images: [
+          'https://example.com/first.jpg',
+          'https://example.com/second.jpg'
+        ],
+        hashTag: '#第1课 第一天',
+        periodChip: '七个习惯晨读营'
+      });
+    } finally {
+      if (originalGetImageInfo) {
+        wx.getImageInfo = originalGetImageInfo;
+      } else {
+        delete wx.getImageInfo;
+      }
+    }
+
+    expect(wx.canvasToTempFilePath).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destWidth: 1040,
+        fileType: 'jpg',
+        quality: 0.88
+      })
+    );
+    expect(global.__mockCanvasImageSrcs).toEqual(
+      expect.arrayContaining([
+        'wxfile://first.jpg',
+        'wxfile://second.jpg',
+        '/assets/images/mini-program-code.jpg'
+      ])
+    );
+    expect(global.__mockCanvasContext.drawImage.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 
   test('should draw mini program qr code into poster canvas', async () => {

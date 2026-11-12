@@ -32,6 +32,8 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { tenantStorage } = require('../../utils/storage');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { getDaypart } = require('../../utils/daypart');
+const { getSkyState } = require('../../utils/sky');
+const feedback = require('../../utils/feedback');
 const { isInsightUnread } = require('../../utils/insight-unread');
 const {
   getLessonNumberingBase,
@@ -80,6 +82,15 @@ const HOME_SECTION_LABELS = {
   insightRequests: '请求看见',
   campCorner: '营地角落'
 };
+
+const SEVEN_HABITS_COURSE_TEMPLATE_ID = 'seven-habits';
+
+function usesSevenHabitsCourseTemplate(period) {
+  const templateId =
+    period?.courseTemplateSnapshot?.templateId || SEVEN_HABITS_COURSE_TEMPLATE_ID;
+  return templateId === SEVEN_HABITS_COURSE_TEMPLATE_ID;
+}
+
 function normalizeHomeSectionOrder(order, options = {}) {
   const appendMissing = options.appendMissing !== false;
   const source = Array.isArray(order) ? order : [];
@@ -108,9 +119,13 @@ function getHiddenHomeSections(order) {
 
 function buildHomeSectionItems(order, options = {}) {
   const hiddenSections = getHiddenHomeSections(order);
+  const excludedSections = new Set(
+    Array.isArray(options.excludeSections) ? options.excludeSections : []
+  );
   const appendMissing = options.appendMissing !== false && hiddenSections.size === 0;
   return normalizeHomeSectionOrder(order, { appendMissing })
     .filter((key) => !hiddenSections.has(key))
+    .filter((key) => !excludedSections.has(key))
     .map((key) => ({
     key,
     label: HOME_SECTION_LABELS[key]
@@ -297,6 +312,8 @@ function buildCheckinDateKey(value) {
 }
 
 const WELCOME_BACK_GAP_DAYS = 3;
+// 首页拆信动画的时长，要和 index.wxss 里 .envopen 的关键帧对上
+const ENVELOPE_OPEN_MS = 2900;
 
 // 隔了几天再回来时，今日卡片上的一句话：不数天数、不提落下了多少，只说从今天接着读
 function buildWelcomeBackText({ todaySection, recentCheckins, totalCheckinDays, periodDayIndex, now = new Date() } = {}) {
@@ -328,23 +345,26 @@ function getDateAtDayBoundary(value, endOfDay = false) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  date.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
-  return date;
+  const shifted = new Date(date.getTime() + SHANGHAI_OFFSET_MS);
+  const start = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate());
+  return new Date(start + (endOfDay ? DAY_MS - 1 : 0));
 }
 
 function isPeriodEnded(period = {}, todayDate = new Date()) {
   const targetPeriod = period || {};
   const endDate = getDateAtDayBoundary(targetPeriod.endDate || targetPeriod.endTime, true);
-  if (!endDate) return false;
-  return todayDate > endDate;
+  const todayStart = getDateAtDayBoundary(todayDate);
+  if (!endDate || !todayStart) return false;
+  return todayStart > endDate;
 }
 
 function isPeriodActiveToday(period = {}, todayDate = new Date()) {
   const targetPeriod = period || {};
   const startDate = getDateAtDayBoundary(targetPeriod.startDate || targetPeriod.startTime);
   const endDate = getDateAtDayBoundary(targetPeriod.endDate || targetPeriod.endTime, true);
-  if (!startDate || !endDate) return false;
-  return todayDate >= startDate && todayDate <= endDate;
+  const todayStart = getDateAtDayBoundary(todayDate);
+  if (!startDate || !endDate || !todayStart) return false;
+  return todayStart >= startDate && todayStart <= endDate;
 }
 
 function getSectionDay(section = {}) {
@@ -392,6 +412,63 @@ function buildDailyCardSource(section = {}) {
 }
 
 // 营地角落：根据三个接口的返回算出卡片（没有内容的卡片不出现）
+// 今日晨读上方的「慢递邮局」：开营头三天（含开营前可写的几天）提醒写信，信送到后提醒拆信；
+// 寄出之后、拆开之后都不再出现
+const LETTER_NOTE_WRITE_DAYS = 3;
+// 后端还没返回 sealedAt 时，用慢递邮局寄出时在本机记下的日期兜底
+function readLetterSealedKey(periodId) {
+  try {
+    return wx.getStorageSync(`letterSealedOn:${periodId}`) || '';
+  } catch (error) {
+    return '';
+  }
+}
+function buildHomeLetterNote(letter, periodDayIndex, options = {}) {
+  if (!letter) return null;
+  const status = letter.status;
+  const todayKey = options.todayKey || getLocalDateKey(new Date());
+  const inFirstDays = !(Number(periodDayIndex) > LETTER_NOTE_WRITE_DAYS);
+  if (letter.canWrite && inFirstDays && status === 'none') {
+    return {
+      kind: 'write',
+      title: '给结营的自己写封信',
+      sub: '信箱开着。封好投进去，结营那天早上送回你手里。',
+      cta: '去写信'
+    };
+  }
+  if (letter.canWrite && inFirstDays && status === 'draft') {
+    return {
+      kind: 'write',
+      title: '你的信还没寄出',
+      sub: '写好就投进信箱，结营那天早上送回给你。',
+      cta: '接着写'
+    };
+  }
+  // 寄出的当天还留着，告诉你信已经在路上；第二天起收起来，直到结营送达
+  if (status === 'sealed') {
+    const sealedKey = letter.sealedAt ? buildCheckinDateKey(letter.sealedAt) : options.sealedKey || '';
+    if (sealedKey && sealedKey === todayKey) {
+      const days = Number(letter.daysToDeliver) || 0;
+      return {
+        kind: 'sealed',
+        title: '信已经寄出了',
+        sub: days > 0 ? `在路上走 ${days} 天，结营那天早上送回你手里。` : '结营那天早上送回你手里。',
+        cta: '去查看'
+      };
+    }
+    return null;
+  }
+  if (status === 'delivered') {
+    return {
+      kind: 'arrived',
+      title: '开营时写的那封信，到了',
+      sub: '那时写下的话，今天送回到你手里。',
+      cta: '拆开'
+    };
+  }
+  return null;
+}
+
 function buildCampCornerCards({ letter, practice, buddy } = {}) {
   const cards = [];
   if (letter) {
@@ -487,43 +564,60 @@ function buildTodayExtractText(extract) {
   return `${chars.slice(0, TODAY_EXTRACT_MAX_CHARS).join('')}…`;
 }
 
-// 今日晨读卡：由 todaySection 与社群状态得出主按钮、步骤条和文字入口
-// 已打卡即视为已读完（读纸书或在会议里读完的书友不会触发 readingCompleted）
-function buildTodayCardState(todaySection, communityEnabled) {
+const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 今日任务接口按北京时间取自然日；卡片的时段和换日与它保持同一口径。
+function getTodayCardTime(now = new Date()) {
+  const time = now.getTime();
+  const shifted = new Date(time + SHANGHAI_OFFSET_MS);
+  const minute = shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
+  const dateKey = shifted.toISOString().slice(0, 10);
+  const phase = minute < 5 * 60 ? 'night' : minute < 7 * 60 + 30 ? 'morning' : 'day';
+  const boundaryMinute = phase === 'night' ? 5 * 60 : phase === 'morning' ? 7 * 60 + 30 : 24 * 60;
+  const startOfDay = Math.floor((time + SHANGHAI_OFFSET_MS) / DAY_MS) * DAY_MS - SHANGHAI_OFFSET_MS;
+  return { dateKey, phase, nextChangeAt: startOfDay + boundaryMinute * 60 * 1000 };
+}
+
+// 完成状态优先于时段；已打卡不代表一定是在小程序里读完的。
+function buildTodayCardState(todaySection, communityEnabled, now = new Date()) {
   const section = todaySection || {};
-  const checkedIn = !!section.isCheckedIn;
-  const read = !!section.readingCompleted || checkedIn;
+  const stateUnknown = communityEnabled && section.checkinStateKnown === false;
+  const checkedIn = communityEnabled && !stateUnknown && !!section.isCheckedIn;
+  const read = !!section.readingCompleted;
+  const { phase } = getTodayCardTime(now);
 
   let primary;
-  if (communityEnabled && checkedIn) {
-    primary = { type: 'done', text: '今天读完了，明早见' };
-  } else if (!read) {
+  let message;
+  if (checkedIn) {
+    primary = { type: 'read', text: '再读一遍' };
+    message = '今天已打卡，这一页已经写下。';
+  } else if (stateUnknown) {
     primary = { type: 'read', text: '开始晨读' };
-  } else if (communityEnabled) {
+    message = '打卡状态暂时没取到，可以先读这一课。';
+  } else if (communityEnabled && (read || phase === 'day')) {
     primary = { type: 'checkin', text: '去打卡' };
-  } else {
+    message = '写下今天的感受，留给自己。';
+  } else if (read) {
     primary = { type: 'study', text: '去学习' };
+    message = '读过的内容，还可以再慢慢回看。';
+  } else {
+    primary = { type: 'read', text: '开始晨读' };
+    message = phase === 'night'
+      ? '夜深了，给自己一段安静的时光。'
+      : '给自己一段安静的晨读时光。';
   }
 
-  const defs = [{ key: 'read', label: '读一读', done: read }];
-  if (communityEnabled) defs.push({ key: 'checkin', label: '写打卡', done: checkedIn });
-  if (section.podcastUrl) defs.push({ key: 'podcast', label: '听播客', done: false, optional: true });
-  let currentAssigned = false;
-  const steps = defs.map((def, index) => {
-    let state = def.done ? 'done' : 'todo';
-    if (!def.done && !def.optional && !currentAssigned) {
-      state = 'current';
-      currentAssigned = true;
-    }
-    return { key: def.key, label: def.label, state, dot: def.done ? '✓' : String(index + 1) };
-  });
-
   return {
+    phase,
     primary,
-    steps,
-    showDirectCheckin: communityEnabled && !checkedIn && !read,
+    message,
+    checkedIn,
+    showDailyCard: checkedIn,
+    showDirectCheckin: communityEnabled && !checkedIn && primary.type === 'read',
     showStudy: !communityEnabled && !read,
-    showReread: read
+    showReadingLink: primary.type !== 'read',
+    readingLinkText: read ? '再读一遍' : '开始晨读'
   };
 }
 
@@ -615,6 +709,18 @@ function buildTodayTaskEmptyState(period = null, options = {}) {
   };
 }
 
+function buildTodayTaskLoadError() {
+  return {
+    type: 'load-error',
+    icon: '课',
+    coverLabel: '暂未加载',
+    title: '今天的课程暂时没取到',
+    description: '请稍后再试，今天的内容会在这里等你。',
+    primaryAction: { text: '重新加载', type: 'retry' },
+    secondaryActions: []
+  };
+}
+
 function isMorningReadPromptTime(date = new Date()) {
   const minuteOfDay = date.getHours() * 60 + date.getMinutes();
   return (
@@ -647,9 +753,12 @@ function buildReadingModeUrl(sectionId, periodId = '', section = {}) {
 Page({
   // 暴露纯函数，便于单测
   buildTodayCardState,
+  getTodayCardTime,
   buildWelcomeBackText,
   buildPresenceText,
   buildCampCornerCards,
+  buildHomeLetterNote,
+  usesSevenHabitsCourseTemplate,
   buildDailyCardSource,
   formatHomeDateText,
 
@@ -661,6 +770,13 @@ Page({
 
     // 晨光问候区
     daypart: 'day',
+    // 天空：太阳或月亮在弧线上的角度与样子（见 utils/sky.js）
+    skyBody: 'sun',
+    skyPhase: 'morning',
+    skyAngle: -28.43,
+    skyReady: false,
+    // 首页点信时的拆信转场
+    envOpening: false,
     greeting: '上午好',
     dateText: '',
     periodDayText: '',
@@ -675,6 +791,7 @@ Page({
     presenceText: '',
     campCornerCards: [],
     campCornerStatus: 'idle',
+    homeLetterNote: null,
 
     // 今日课节
     todaySection: null,
@@ -763,15 +880,32 @@ Page({
     this._isPageVisible = true;
     const app = getApp();
     this.refreshDaypart();
+    const dateChanged = this.refreshTodayCard();
+    this.scheduleTodayCardRefresh();
     // 同步播客播放状态
     this.setData({
       podcastPlaying: !!app.globalData.podcastPlaying,
       podcastSectionId: app.globalData.podcastSectionId || ''
     });
+    // 在慢递邮局寄出或拆开了信：今日晨读上方的提醒要跟着收起
+    if (app.globalData.homeLetterDirty) {
+      app.globalData.homeLetterDirty = false;
+      const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+      this.setData({ homeLetterNote: null });
+      if (periodId) this.loadHomeExtras(periodId);
+    }
     // 打卡新增或删除时强制刷新"我的打卡"列表（跳过节流）
-    if (app.globalData.checkinListDirty) {
+    const checkinsChanged = !!app.globalData.checkinListDirty;
+    if (checkinsChanged) {
       console.log('[首页 onShow] 检测到 checkinListDirty，强制刷新我的打卡');
       app.globalData.checkinListDirty = false;
+      if (this.data.todaySection && this.data.canAccessCurrentPeriodCommunity) {
+        const todaySection = { ...this.data.todaySection, checkinStateKnown: false };
+        this.setData({
+          todaySection,
+          todayCard: buildTodayCardState(todaySection, true)
+        });
+      }
       this.loadRecentCheckins().then(recentCheckins => {
         this.setData({ recentCheckins, welcomeBackText: this.buildWelcomeBack(recentCheckins) });
         console.log('[首页 onShow] 我的打卡已刷新，条数:', recentCheckins.length);
@@ -779,7 +913,7 @@ Page({
     }
     // 登录状态每次都检查；全量数据刷新 30 秒内只做一次
     const now = Date.now();
-    const shouldRefreshData = !this._lastLoadTime || now - this._lastLoadTime >= 30000;
+    const shouldRefreshData = dateChanged || checkinsChanged || !this._lastLoadTime || now - this._lastLoadTime >= 30000;
     if (shouldRefreshData) {
       this._lastLoadTime = now;
     }
@@ -789,6 +923,37 @@ Page({
     if (!shouldRefreshData && this.data.isLogin) {
       this.loadUnreadNotificationCount();
     }
+  },
+
+  /**
+   * 天空：太阳或月亮沿弧线走到此刻的位置。
+   * 每次打开小程序的第一次显示，从最左端升上来；之后再回到首页只是挪到新的位置。
+   */
+  refreshSky(now = new Date()) {
+    const sky = getSkyState(now);
+    const target = { skyBody: sky.body, skyPhase: sky.phase, skyAngle: sky.angle, skyReady: true };
+    if (this._skyPlayed) {
+      this.setData(target);
+      return;
+    }
+    // 先摆在最左端（不带过渡）
+    this.setData({ skyBody: sky.body, skyPhase: sky.phase, skyAngle: sky.startAngle, skyReady: false });
+    if (this._skyTimer) clearTimeout(this._skyTimer);
+    // 首屏还是骨架时问候区没渲染，这时开始动没人看得到：等它出来再升（最多等 6 秒）
+    let waited = 0;
+    const start = () => {
+      const heroHidden = this.data.loading && !this.data.userStats;
+      if (heroHidden && waited < 6000) {
+        waited += 200;
+        this._skyTimer = setTimeout(start, 200);
+        return;
+      }
+      this._skyTimer = null;
+      this._skyPlayed = true;
+      // 给目标角度，由 CSS 过渡完成沿弧线慢慢升起（约 5.5 秒，见 index.wxss 的 .sky-ready）
+      this.setData(target);
+    };
+    this._skyTimer = setTimeout(start, 300);
   },
 
   /**
@@ -802,6 +967,7 @@ Page({
       greeting: daypart.greeting,
       dateText: formatHomeDateText(now)
     });
+    this.refreshSky(now);
     try {
       wx.setNavigationBarColor({
         frontColor: daypart.navFront,
@@ -812,13 +978,52 @@ Page({
     }
   },
 
+  // 返回首页时也读取本地阅读完成记录，避免 30 秒节流造成状态滞后。
+  refreshTodayCard(now = new Date()) {
+    const { dateKey } = getTodayCardTime(now);
+    const dateChanged = !!this._todayCardDate && this._todayCardDate !== dateKey;
+    this._todayCardDate = dateKey;
+    if (dateChanged) {
+      this.setData({ todaySection: null, todayCard: null, todayTaskEmptyState: buildTodayTaskLoadError() });
+      return true;
+    }
+    if (this.data.todaySection) {
+      const todaySection = decorateSectionWithReadingCompletion(this.data.todaySection);
+      this.setData({
+        todaySection,
+        todayCard: buildTodayCardState(todaySection, this.data.canAccessCurrentPeriodCommunity, now)
+      });
+    }
+    return false;
+  },
+
+  scheduleTodayCardRefresh(now = new Date()) {
+    if (this._todayCardTimer) clearTimeout(this._todayCardTimer);
+    if (!this._isPageVisible) return;
+    const { nextChangeAt } = getTodayCardTime(now);
+    this._todayCardTimer = setTimeout(() => {
+      this._todayCardTimer = null;
+      if (!this._isPageVisible) return;
+      const dateChanged = this.refreshTodayCard();
+      if (dateChanged && this.data.isLogin) {
+        this._lastLoadTime = Date.now();
+        this.loadUserData();
+      }
+      this.scheduleTodayCardRefresh();
+    }, Math.max(1, nextChangeAt - now.getTime() + 50));
+  },
+
   onHide() {
     this._isPageVisible = false;
+    if (this._todayCardTimer) clearTimeout(this._todayCardTimer);
+    this._todayCardTimer = null;
   },
 
   onUnload() {
     this._isPageVisible = false;
     this._isPageAlive = false;
+    if (this._todayCardTimer) clearTimeout(this._todayCardTimer);
+    this._todayCardTimer = null;
   },
 
   setPodcastUiData(data) {
@@ -866,6 +1071,7 @@ Page({
     };
 
     if (!isLogin) {
+      this._homeLoadId = (this._homeLoadId || 0) + 1;
       Object.assign(nextData, {
         currentPeriod: null,
         periodDayText: '',
@@ -1068,6 +1274,10 @@ Page({
       return;
     }
 
+    const loadId = (this._homeLoadId || 0) + 1;
+    this._homeLoadId = loadId;
+    const loadDate = getTodayCardTime().dateKey;
+    let todayTaskFailed = false;
     this.setData({ loading: true });
 
     try {
@@ -1080,10 +1290,18 @@ Page({
           enrollmentService
             .getUserEnrollments({ limit: 100 })
             .catch(() => ({ list: [] })),
-          courseService.getTodayTask().catch(() => null),
+          courseService.getTodayTask().catch(() => {
+            todayTaskFailed = true;
+            return null;
+          }),
           loadHomeConfig().catch(() => null)
         ]);
 
+      if (loadId !== this._homeLoadId) return;
+      if (loadDate !== getTodayCardTime().dateKey) {
+        this.loadUserData(forceLoggedIn);
+        return;
+      }
       const displayUserInfo = decorateUserAvatar(userInfo);
       const app = getApp();
       app.globalData.userInfo = displayUserInfo;
@@ -1110,7 +1328,6 @@ Page({
 
       let currentPeriod = null;
       const todayDate = new Date();
-      todayDate.setHours(0, 0, 0, 0);
 
       for (const period of enrolledPeriods) {
         if (isPeriodActiveToday(period, todayDate)) {
@@ -1142,12 +1359,16 @@ Page({
       const currentPeriodId = currentPeriod?._id || currentPeriod?.id || null;
       const currentPeriodActiveToday = isPeriodActiveToday(currentPeriod, todayDate);
       const periodEnded = isPeriodEnded(currentPeriod, todayDate);
+      const showTodayTask = usesSevenHabitsCourseTemplate(currentPeriod);
       const taskMatchesCurrentPeriod =
         hasValidTask &&
         (!taskRes.periodId ||
           String(taskRes.periodId) === String(currentPeriodId || ''));
       const shouldUseTodayTask =
-        hasValidTask && currentPeriodActiveToday && taskMatchesCurrentPeriod;
+        hasValidTask &&
+        currentPeriodActiveToday &&
+        taskMatchesCurrentPeriod &&
+        showTodayTask;
 
       // ── Wave 2: 依赖 Wave1 的两个请求并行 ──────────────────────
       const [sectionRes, currentPeriodAccess, currentPeriodSectionsRes] = await Promise.all([
@@ -1164,10 +1385,15 @@ Page({
             communityAccessState: 'locked',
             paymentStatus: null
           }),
-        currentPeriodId && currentPeriodActiveToday
+        showTodayTask && currentPeriodId && currentPeriodActiveToday
           ? Promise.resolve(courseService.getPeriodSections(currentPeriodId)).catch(() => null)
           : Promise.resolve(null)
       ]);
+      if (loadId !== this._homeLoadId) return;
+      if (loadDate !== getTodayCardTime().dateKey) {
+        this.loadUserData(forceLoggedIn);
+        return;
+      }
       const currentPeriodSections = currentPeriodSectionsRes?.list
         || currentPeriodSectionsRes?.items
         || currentPeriodSectionsRes
@@ -1185,6 +1411,9 @@ Page({
       let todayTaskEmptyState = null;
 
       if (shouldUseTodayTask && sectionRes) {
+        const isCheckedIn = typeof taskRes.isCheckedIn === 'boolean'
+          ? taskRes.isCheckedIn
+          : !!sectionRes.isCheckedIn;
         const sectionForShortcut = {
           ...sectionRes,
           day: sectionRes.day ?? taskRes.day
@@ -1214,8 +1443,8 @@ Page({
             taskRes.checkinCount || 0,
             communityEnabled
           ),
-          isCheckedIn: !!(taskRes.isCheckedIn || sectionRes.isCheckedIn),
-          progress: taskRes.isCheckedIn || sectionRes.isCheckedIn ? 100 : 0,
+          isCheckedIn,
+          progress: isCheckedIn ? 100 : 0,
           readingCompleted: !!(
             taskRes.readingCompleted || sectionRes.readingCompleted
           ),
@@ -1237,7 +1466,7 @@ Page({
             currentPeriod
           )
         };
-      } else if (currentPeriodActiveToday && currentPeriodId) {
+      } else if (showTodayTask && currentPeriodActiveToday && currentPeriodId) {
         // 仅进行中的期次允许兜底找未打卡课节；已结束期次不再伪装成今日任务。
         try {
           const sections = currentPeriodSections;
@@ -1258,6 +1487,7 @@ Page({
               checkinUsers: [],
               visibleCheckinUsers: [],
               isCheckedIn: !!section.isCheckedIn,
+              checkinStateKnown: !todayTaskFailed,
               progress: section.isCheckedIn ? 100 : 0,
               readingCompleted: !!section.readingCompleted,
               readingCompletedAt: section.readingCompletedAt || null,
@@ -1282,10 +1512,12 @@ Page({
       }
 
       if (!todaySection) {
-        todayTaskEmptyState = buildTodayTaskEmptyState(currentPeriod, {
-          periodEnded,
-          noEnrollment: !hasEnrollment
-        });
+        todayTaskEmptyState = showTodayTask
+          ? buildTodayTaskEmptyState(currentPeriod, {
+            periodEnded,
+            noEnrollment: !hasEnrollment
+          })
+          : null;
       }
 
       const paidFeatureAccessEnabled =
@@ -1357,7 +1589,8 @@ Page({
             currentPeriodAccess.communityAccessState || 'locked',
           canUsePaidFeatures: paidFeatureAccessEnabled,
           homeSections: buildHomeSectionItems(homeConfig?.sections, {
-            appendMissing: !homeConfig?.sections
+            appendMissing: !homeConfig?.sections,
+            excludeSections: showTodayTask ? [] : ['todayTask']
           }),
           todaySection: todaySection || null,
           todayCard: todaySection
@@ -1404,6 +1637,7 @@ Page({
         })),
         this.loadZaichangImprints().catch(() => [])
       ]).then(([recentCheckins, recentInsights, insightRequestGroups, zaichangImprints]) => {
+        if (loadId !== this._homeLoadId || loadDate !== getTodayCardTime().dateKey) return;
         const allInsightRequests = this.getInsightRequestListForDirection(
           insightRequestGroups,
           this.data.activeInsightRequestDirection
@@ -1430,6 +1664,7 @@ Page({
         );
       });
     } catch (error) {
+      if (loadId !== this._homeLoadId) return;
       console.error('加载用户数据失败:', error);
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败,请重试', icon: 'none' });
@@ -1492,10 +1727,17 @@ Page({
       if (this.data.currentPeriod && (this.data.currentPeriod._id || this.data.currentPeriod.id) !== periodId) return;
       const cards = buildCampCornerCards({ letter, practice, buddy });
       this.setData({
+        homeLetterNote: buildHomeLetterNote(letter, this.data.periodDayIndex, { sealedKey: readLetterSealedKey(periodId) }),
         campCornerCards: cards,
         campCornerStatus: letter || practice || buddy ? 'ready' : 'error'
       });
     });
+  },
+
+  handleHomeLetterTap() {
+    const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    if (!periodId) return;
+    wx.navigateTo({ url: `/pages/slow-mail/slow-mail?periodId=${periodId}` });
   },
 
   retryCampCorner() {
@@ -2295,6 +2537,11 @@ Page({
       this.data.currentPeriod?.id ||
       '';
 
+    if (action === 'retry') {
+      this.loadUserData();
+      return;
+    }
+
     if (action === 'report') {
       this.handleTodayReportBtnTap(e);
       return;
@@ -2568,10 +2815,21 @@ Page({
 
     const url = `/pages/insight-detail/insight-detail?id=${id}`;
 
-    wx.navigateTo({
-      url: url,
-      fail: (err) => console.error('❌ 跳转失败:', err)
-    });
+    // 拆信：信封打开、信纸抽出来、铺满成一张纸，再进到信里（约 3 秒）
+    if (this.data.envOpening) return;
+    this.setData({ envOpening: true });
+    feedback.haptic('light');
+    if (this._envTimers) this._envTimers.forEach(clearTimeout);
+    this._envTimers = [
+      setTimeout(() => {
+        wx.navigateTo({
+          url,
+          fail: (err) => console.error('❌ 跳转失败:', err)
+        });
+      }, ENVELOPE_OPEN_MS),
+      // 等信的页面盖上来之后再收掉拆信层，回到首页时不会看到残留
+      setTimeout(() => this.setData({ envOpening: false }), ENVELOPE_OPEN_MS + 700)
+    ];
   },
 
   /**
