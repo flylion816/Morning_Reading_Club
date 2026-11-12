@@ -27,7 +27,12 @@
   </view>
 
   <view class="loading-state" wx:if="{{loading}}">
-    <text>加载中...</text>
+    <view class="app-loading-skeleton">
+      <view class="app-skeleton"></view>
+      <view class="app-skeleton-line app-loading-line-lg"></view>
+      <view class="app-skeleton-line"></view>
+      <view class="app-skeleton-line app-loading-line-sm"></view>
+    </view>
   </view>
 
   <view class="scene-list" wx:else>

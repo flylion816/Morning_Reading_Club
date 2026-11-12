@@ -1,8 +1,12 @@
 <view class="page-activity-detail" wx:if="{{socialAccessGranted}}">
   <!-- 加载中 -->
   <view wx:if="{{loading}}" class="loading-container">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+    <view class="app-loading-skeleton">
+      <view class="app-skeleton"></view>
+      <view class="app-skeleton-line app-loading-line-lg"></view>
+      <view class="app-skeleton-line"></view>
+      <view class="app-skeleton-line app-loading-line-sm"></view>
+    </view>
   </view>
 
   <block wx:if="{{!loading && activity}}">

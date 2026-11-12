@@ -146,7 +146,7 @@ Page({
       console.error('检查提醒页访问权限失败:', error);
       this.setData({ loading: false });
       wx.showToast({
-        title: '加载失败',
+        title: '没加载出来，稍后再试试',
         icon: 'none'
       });
     }
@@ -175,7 +175,7 @@ Page({
       console.error('加载订阅消息设置失败:', error);
       this.setData({ loading: false });
       wx.showToast({
-        title: '加载失败',
+        title: '没加载出来，稍后再试试',
         icon: 'none'
       });
     }
@@ -275,7 +275,7 @@ Page({
 
     if (!queue.length) {
       wx.showToast({
-        title: '暂无可补充场景',
+        title: '现在没有需要补充的提醒',
         icon: 'none'
       });
       return;

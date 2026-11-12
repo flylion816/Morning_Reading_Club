@@ -322,18 +322,18 @@ Page({
     }
     const code = e.detail.code;
     if (!code) {
-      wx.showToast({ title: '获取手机号失败', icon: 'none' });
+      wx.showToast({ title: '没拿到手机号，再试一次', icon: 'none' });
       return;
     }
     try {
-      wx.showLoading({ title: '绑定中...' });
+      wx.showLoading({ title: '正在绑定…' });
       await userService.bindPhone(code);
       wx.hideLoading();
       wx.showToast({ title: '绑定成功', icon: 'success' });
       this._loadUserData();
     } catch (err) {
       wx.hideLoading();
-      wx.showToast({ title: err.message || '绑定失败', icon: 'none' });
+      wx.showToast({ title: err.message || '没绑定上，再试一次', icon: 'none' });
     }
   },
 

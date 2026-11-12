@@ -331,7 +331,7 @@ Page({
       }
     } catch (error) {
       console.error('加载失败:', error);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     }
   },
 
@@ -432,7 +432,7 @@ Page({
 
     const fileName = this.getTextShareFileName(insight);
     const filePath = `${userDataPath}/${fileName}`;
-    wx.showLoading({ title: '生成文本...', mask: true });
+    wx.showLoading({ title: '正在整理文字…', mask: true });
     return new Promise(resolve => {
       fileSystemManager.writeFile({
         filePath,
@@ -472,7 +472,7 @@ Page({
       fileName: textShareFileName,
       fail: error => {
         console.error('文本文件转发失败:', error);
-        wx.showToast({ title: '转发失败，请重试', icon: 'none' });
+        wx.showToast({ title: '没转发出去，再试一次', icon: 'none' });
       }
     });
   },
@@ -486,14 +486,14 @@ Page({
     const isFullPoster = posterMode === 'full';
 
     if (!insight || !insight.content) {
-      wx.showToast({ title: '暂无可生成的内容', icon: 'none' });
+      wx.showToast({ title: '这里还没有可以生成的内容', icon: 'none' });
       return;
     }
 
     if (posterGenerating) return;
 
     this.setData({ posterGenerating: true, posterGeneratingMode: posterMode });
-    wx.showLoading({ title: '生成中...', mask: true });
+    wx.showLoading({ title: '正在生成…', mask: true });
 
     this._generateInsightLongImage(insight, { mode: posterMode })
       .then(result => {
@@ -510,7 +510,7 @@ Page({
         wx.hideLoading();
         console.error('生成长图失败:', error);
         wx.showToast({
-          title: isFullPoster ? '完整长图生成失败' : '长图生成失败',
+          title: isFullPoster ? '完整长图没生成出来，再试一次' : '长图没生成出来，再试一次',
           icon: 'none'
         });
       });
@@ -541,7 +541,7 @@ Page({
             }
           });
         } else {
-          wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+          wx.showToast({ title: '没保存上，再试一次', icon: 'none' });
         }
       }
     });
@@ -1144,7 +1144,7 @@ Page({
       activityService.track('insight_danmaku', { targetId: insightId });
       this.closeDanmakuPanel();
     } catch (e) {
-      wx.showToast({ title: '发送失败，请重试', icon: 'none' });
+      wx.showToast({ title: '没发出去，再试一次', icon: 'none' });
     }
   },
 
@@ -1176,7 +1176,7 @@ Page({
         this._showDanmaku(likeItem);
       }
     } catch (e) {
-      wx.showToast({ title: isLiked ? '取消点赞失败' : '点赞失败', icon: 'none' });
+      wx.showToast({ title: isLiked ? '没取消成，再试一次' : '没点上，再试一次', icon: 'none' });
     }
   },
 
@@ -1341,12 +1341,12 @@ Page({
     }
     const content = this.data.insight && this.data.insight.content;
     if (!content) {
-      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      wx.showToast({ title: '这里还没有可以朗读的内容', icon: 'none' });
       return;
     }
     const plainText = this._stripHtmlForCanvas(content).replace(/\s+/g, ' ').trim();
     if (!plainText) {
-      wx.showToast({ title: '暂无可朗读内容', icon: 'none' });
+      wx.showToast({ title: '这里还没有可以朗读的内容', icon: 'none' });
       return;
     }
     this._ttsChunks = this._ttsSplit(plainText, 180);
@@ -1383,7 +1383,7 @@ Page({
       content: text,
       success: (res) => {
         if (!res.filename) {
-          wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
+          wx.showToast({ title: '朗读没开始，再试一次', icon: 'none' });
           this.setData({ ttsState: 'idle' });
           return;
         }
@@ -1405,7 +1405,7 @@ Page({
       },
       fail: (err) => {
         console.error('TTS 合成失败:', err);
-        wx.showToast({ title: 'AI 朗读失败，请重试', icon: 'none' });
+        wx.showToast({ title: '朗读没开始，再试一次', icon: 'none' });
         this.setData({ ttsState: 'idle' });
       }
     });

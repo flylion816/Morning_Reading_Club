@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const { isInsightUnread } = require('../../utils/insight-unread');
 const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
 const activityService = require('../../services/activity.service');
@@ -44,6 +45,12 @@ function compareInsightsByPeriodAndDayDesc(a, b) {
 }
 
 const { guardSocialPage } = require('../../utils/social-access');
+
+// 这封信是不是写给我、而我还没打开过
+function isUnreadForMe(item) {
+  const user = (getApp().globalData && getApp().globalData.userInfo) || {};
+  return isInsightUnread(item, user._id || user.id || '');
+}
 
 Page({
   data: {
@@ -455,9 +462,10 @@ Page({
         periodName: periodName || '七个习惯晨读营',
         title: item.sectionId?.title || item.title || periodName || '小凡看见',
         preview: isAccessible
-          ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
+          ? preview || (item.imageUrl ? '点击查看图片反馈' : '内容还在路上')
           : this.getLockedPreview(item.requestStatus || 'none'),
         mediaType: item.mediaType || 'text',
+        unread: isUnreadForMe(item),
         letterType: item.type === 'weekly' || item.type === 'monthly' ? item.type : '',
         imageUrl: isAccessible ? item.imageUrl || null : null,
         date: item.updatedAt || item.createdAt
@@ -547,8 +555,9 @@ Page({
         title: item.sectionId?.title || item.title || periodName || '小凡看见',
         periodName: periodName || '七个习惯晨读营',
         dayNumber: item.day ?? item.sectionId?.day ?? null,
-        preview: preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容'),
+        preview: preview || (item.imageUrl ? '点击查看图片反馈' : '内容还在路上'),
         mediaType: item.mediaType || 'text',
+        unread: isUnreadForMe(item),
         letterType: item.type === 'weekly' || item.type === 'monthly' ? item.type : '',
         imageUrl: item.imageUrl || null,
         date: item.updatedAt || item.createdAt
@@ -878,9 +887,10 @@ Page({
           title:
             item.sectionId?.title || item.title || periodName || '小凡看见',
           preview: isAccessible
-            ? preview || (item.imageUrl ? '点击查看图片反馈' : '暂无内容')
+            ? preview || (item.imageUrl ? '点击查看图片反馈' : '内容还在路上')
             : this.getLockedPreview(item.requestStatus || 'none'),
           mediaType: item.mediaType || 'text',
+        unread: isUnreadForMe(item),
         letterType: item.type === 'weekly' || item.type === 'monthly' ? item.type : '',
           imageUrl: isAccessible ? item.imageUrl || null : null,
           date: item.updatedAt || item.createdAt
@@ -928,7 +938,7 @@ Page({
       logger.error('加载失败:', error);
       this.setData({ loading: false, insightsLoadingMore: false });
       wx.showToast({
-        title: '加载失败',
+        title: '没加载出来，稍后再试试',
         icon: 'none'
       });
     } finally {
@@ -1026,7 +1036,7 @@ Page({
       });
     } catch (error) {
       logger.error('发送申请失败:', error);
-      wx.showToast({ title: '申请发送失败', icon: 'none' });
+      wx.showToast({ title: '申请没发出去，再试一次', icon: 'none' });
     }
   },
 
@@ -1096,6 +1106,12 @@ Page({
       dayNumber
     } = e.currentTarget.dataset;
     const canAccess = accessible !== false && accessible !== 'false';
+
+    // 点开就算读过了，回到列表时红点已经消掉
+    if (canAccess && id) {
+      const markRead = list => (list || []).map(item => (item.id === id && item.unread ? { ...item, unread: false } : item));
+      this.setData({ insights: markRead(this.data.insights), searchResults: markRead(this.data.searchResults) });
+    }
 
     if (!canAccess && !this.data.isAdmin) {
       this.handleLockedInsightClick(periodId, id, requestStatus, {

@@ -1428,7 +1428,7 @@ async function likeCheckin(req, res, next) {
         await dispatchNotificationWithSubscribe(req, {
           recipientUserId: checkinOwnerId,
           notificationType: 'like_received',
-          title: '收到新的点赞',
+          title: '有书友给你点了赞',
           content: `${actorUser?.nickname || '有人'} 点赞了你的打卡`,
           scene: 'like_received',
           targetPage,

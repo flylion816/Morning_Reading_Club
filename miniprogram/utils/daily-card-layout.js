@@ -125,7 +125,7 @@ function computeDailyCardLayout(opts = {}) {
   const note = clamp(opts.note, NOTE_MAX_LENGTH);
   const periodLine = buildPeriodLine(clamp(opts.periodName, 30), opts.day);
   const brandName = String(opts.brandName || '晨读营');
-  const primary = opts.primaryColor || '#4a90e2';
+  const primary = opts.primaryColor || '#3d6fa6';
   const W = CARD_WIDTH;
   const els = [];
 

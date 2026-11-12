@@ -80,7 +80,7 @@
 
       <!-- 错误信息显示 -->
       <view wx:if="{{errorMessage}}" class="error-info">
-        <view class="error-title">❌ {{errorMessage}}</view>
+        <view class="error-title">{{errorMessage}}</view>
         <view wx:if="{{showDebugInfo}}" class="error-details">{{debugInfo}}</view>
       </view>
 

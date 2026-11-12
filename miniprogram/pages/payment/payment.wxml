@@ -1,8 +1,12 @@
 <!-- 支付页面：订单复核优先，减少装饰性符号和夸张字号 -->
 <view class="page-payment">
   <view wx:if="{{loading}}" class="loading">
-    <view class="loading-spinner"></view>
-    <text>加载中...</text>
+    <view class="app-loading-skeleton">
+      <view class="app-skeleton"></view>
+      <view class="app-skeleton-line app-loading-line-lg"></view>
+      <view class="app-skeleton-line"></view>
+      <view class="app-skeleton-line app-loading-line-sm"></view>
+    </view>
   </view>
 
   <view wx:else class="payment-container">

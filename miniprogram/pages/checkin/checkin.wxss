@@ -644,245 +644,16 @@
   justify-content: center;
   animation: cel-fade-in 0.3s ease both;
 }
-.cel-A { background: rgba(10, 15, 30, 0.92); }
-.cel-B { background: rgba(235, 244, 255, 0.97); }
-.cel-C { background: rgba(0, 0, 0, 0.55); align-items: flex-end; }
-.cel-D { background: linear-gradient(135deg, #111827 0%, #0f172a 55%, #020617 100%); }
-.cel-E { background: linear-gradient(180deg, #1e3a8a 0%, #312e81 50%, #111827 100%); }
-.cel-F { background: linear-gradient(180deg, #fff7ed 0%, #fef3c7 45%, #ffffff 100%); }
-.cel-G { background: linear-gradient(180deg, #38bdf8 0%, #2563eb 46%, #0f172a 100%); }
 
 @keyframes cel-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
-/* ---- 卡片基础 ---- */
-.cel-card {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60rpx 48rpx;
-  border-radius: 32rpx;
-  width: 600rpx;
-  box-sizing: border-box;
-}
-.cel-card-a {
-  background: rgba(255,255,255,0.08);
-  border: 2rpx solid rgba(255,215,0,0.3);
-  animation: card-bounce 0.5s cubic-bezier(.34,1.56,.64,1) 0.2s both;
-}
-.cel-card-b {
-  background: white;
-  box-shadow: 0 16rpx 64rpx var(--theme-primary-alpha-20);
-  animation: card-drop 0.5s cubic-bezier(.34,1.56,.64,1) 0.3s both;
-}
-.cel-card-d {
-  background: rgba(15,23,42,0.78);
-  border: 2rpx solid rgba(45,212,191,0.4);
-  box-shadow: 0 24rpx 80rpx rgba(45,212,191,0.24);
-  animation: split-card 0.52s cubic-bezier(.34,1.56,.64,1) 0.28s both;
-}
-.cel-card-e {
-  background: rgba(255,255,255,0.94);
-  box-shadow: 0 28rpx 90rpx rgba(251,191,36,0.3);
-  animation: stage-card 0.58s cubic-bezier(.34,1.56,.64,1) 0.34s both;
-}
-.cel-card-f {
-  background: rgba(255,255,255,0.94);
-  box-shadow: 0 20rpx 70rpx rgba(249,115,22,0.22);
-  animation: card-bounce 0.5s cubic-bezier(.34,1.56,.64,1) 0.28s both;
-}
-.cel-card-g {
-  background: rgba(255,255,255,0.92);
-  box-shadow: 0 26rpx 90rpx rgba(37,99,235,0.34);
-  animation: rocket-card 0.6s cubic-bezier(.34,1.56,.64,1) 0.42s both;
-}
-@keyframes card-bounce {
-  from { transform: scale(0.5) translateY(60rpx); opacity: 0; }
-  to   { transform: scale(1) translateY(0); opacity: 1; }
-}
-@keyframes card-drop {
-  from { transform: scale(0.7) translateY(-40rpx); opacity: 0; }
-  to   { transform: scale(1) translateY(0); opacity: 1; }
-}
-@keyframes split-card {
-  0% { transform: scale(0.62) rotate(-7deg); opacity: 0; }
-  70% { transform: scale(1.06) rotate(2deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
-}
-@keyframes stage-card {
-  from { transform: translateY(130rpx) scale(0.82); opacity: 0; }
-  to   { transform: translateY(0) scale(1); opacity: 1; }
-}
-@keyframes rocket-card {
-  from { transform: translateY(150rpx) scale(0.78); opacity: 0; }
-  to   { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-/* ---- Style A 成功图标 ---- */
-.cel-icon-a {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #FFD700, #FF8C00);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 72rpx;
-  color: white;
-  font-weight: bold;
-  margin-bottom: 40rpx;
-  animation: icon-spin 0.6s ease 0.3s both;
-  box-shadow: 0 0 40rpx rgba(255,215,0,0.6);
-}
-@keyframes icon-spin {
-  from { transform: scale(0) rotate(-180deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-
-/* ---- 消息文字 ---- */
-.cel-msg {
-  font-size: 36rpx;
-  font-weight: bold;
-  text-align: center;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  animation: cel-fade-up 0.5s ease 0.5s both;
-}
-.cel-card-a .cel-msg { color: #FFD700; }
-.cel-msg-b { color: #2563EB; }
-.cel-msg-c { color: var(--app-text-soft); font-size: 32rpx; font-weight: normal; margin-top: 16rpx; }
-.cel-msg-d { color: #ccfbf1; text-shadow: 0 0 20rpx rgba(45,212,191,0.72); }
-.cel-msg-e { color: #78350f; font-size: 32rpx; margin-top: 8rpx; }
-.cel-msg-f { color: #7c2d12; font-size: 32rpx; margin-top: 10rpx; }
-.cel-msg-g { color: #1e3a8a; font-size: 32rpx; margin-top: 8rpx; }
-
-.cel-hint {
-  margin-top: 32rpx;
-  font-size: 22rpx;
-  color: rgba(255,255,255,0.4);
-  animation: cel-fade-up 0.5s ease 0.8s both;
-}
-.cel-hint-b { color: var(--app-text-muted); }
-.cel-card-e .cel-hint,
-.cel-card-g .cel-hint { color: var(--app-text-muted); }
 
 @keyframes cel-fade-up {
   from { opacity: 0; transform: translateY(20rpx); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Style A 扩散光环 ---- */
-.cel-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 4rpx solid rgba(255,215,0,0.6);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-}
-.cel-ring1 { width: 200rpx; height: 200rpx; animation: ring-pulse 1.2s ease-out 0.1s both; }
-.cel-ring2 { width: 320rpx; height: 320rpx; animation: ring-pulse 1.4s ease-out 0.25s both; }
-@keyframes ring-pulse {
-  0%   { transform: translate(-50%,-50%) scale(0); opacity: 1; }
-  100% { transform: translate(-50%,-50%) scale(3); opacity: 0; }
-}
 
-/* ---- Style A 粒子（8主粒子 + 4副粒子）---- */
-.cel-p {
-  position: absolute;
-  border-radius: 50%;
-  top: 50%; left: 50%;
-  opacity: 0;
-}
-/* 主粒子：8方向 */
-.cel-pa1 { width: 20rpx; height: 20rpx; margin: -10rpx 0 0 -10rpx; background: #FFD700; animation: cfly1 0.85s ease-out 0.05s both; }
-.cel-pa2 { width: 16rpx; height: 16rpx; margin: -8rpx 0 0 -8rpx;  background: #FF6B35; animation: cfly2 0.90s ease-out 0.12s both; }
-.cel-pa3 { width: 22rpx; height: 22rpx; margin: -11rpx 0 0 -11rpx; background: #4ECDC4; animation: cfly3 0.80s ease-out 0s both; }
-.cel-pa4 { width: 14rpx; height: 14rpx; margin: -7rpx 0 0 -7rpx;  background: #FFE66D; animation: cfly4 0.88s ease-out 0.18s both; }
-.cel-pa5 { width: 18rpx; height: 18rpx; margin: -9rpx 0 0 -9rpx;  background: #87CEEB; animation: cfly5 0.82s ease-out 0.08s both; }
-.cel-pa6 { width: 16rpx; height: 16rpx; margin: -8rpx 0 0 -8rpx;  background: #DDA0DD; animation: cfly6 0.92s ease-out 0.15s both; }
-.cel-pa7 { width: 20rpx; height: 20rpx; margin: -10rpx 0 0 -10rpx; background: #FF8B94; animation: cfly7 0.78s ease-out 0.03s both; }
-.cel-pa8 { width: 14rpx; height: 14rpx; margin: -7rpx 0 0 -7rpx;  background: #A8E6CF; animation: cfly8 0.86s ease-out 0.22s both; }
-/* 副粒子：4方向（延迟出发，距离稍短） */
-.cel-ps1 { width: 10rpx; height: 10rpx; margin: -5rpx 0 0 -5rpx; background: #FFD700; animation: cfly1s 0.6s ease-out 0.35s both; }
-.cel-ps2 { width: 10rpx; height: 10rpx; margin: -5rpx 0 0 -5rpx; background: #4ECDC4; animation: cfly3s 0.6s ease-out 0.40s both; }
-.cel-ps3 { width: 10rpx; height: 10rpx; margin: -5rpx 0 0 -5rpx; background: #FF6B35; animation: cfly5s 0.6s ease-out 0.30s both; }
-.cel-ps4 { width: 10rpx; height: 10rpx; margin: -5rpx 0 0 -5rpx; background: #DDA0DD; animation: cfly7s 0.6s ease-out 0.45s both; }
-
-@keyframes cfly1  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(0,-220rpx);opacity:0} }
-@keyframes cfly2  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(156rpx,-156rpx);opacity:0} }
-@keyframes cfly3  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(220rpx,0);opacity:0} }
-@keyframes cfly4  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(156rpx,156rpx);opacity:0} }
-@keyframes cfly5  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(0,220rpx);opacity:0} }
-@keyframes cfly6  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(-156rpx,156rpx);opacity:0} }
-@keyframes cfly7  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(-220rpx,0);opacity:0} }
-@keyframes cfly8  { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(-156rpx,-156rpx);opacity:0} }
-@keyframes cfly1s { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(0,-140rpx);opacity:0} }
-@keyframes cfly3s { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(140rpx,0);opacity:0} }
-@keyframes cfly5s { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(0,140rpx);opacity:0} }
-@keyframes cfly7s { 0%{transform:translate(0,0);opacity:1} 100%{transform:translate(-140rpx,0);opacity:0} }
-
-/* ---- Style B 书页 ---- */
-.cel-page {
-  position: absolute;
-  width: 60rpx;
-  height: 80rpx;
-  border-radius: 8rpx;
-  opacity: 0;
-}
-.cel-pg1 { background: var(--theme-primary-alpha-30);  animation: page-fly1 0.8s ease-out 0.1s both; }
-.cel-pg2 { background: rgba(255,107,53,0.25); animation: page-fly2 0.9s ease-out 0.2s both; }
-.cel-pg3 { background: rgba(78,205,196,0.3);  animation: page-fly3 0.7s ease-out 0.05s both; }
-.cel-pg4 { background: rgba(255,215,0,0.35);  animation: page-fly4 0.85s ease-out 0.15s both; }
-.cel-pg5 { background: rgba(168,230,207,0.4); animation: page-fly5 0.8s ease-out 0.25s both; }
-.cel-pg6 { background: rgba(221,160,221,0.3); animation: page-fly6 0.9s ease-out 0.08s both; }
-
-@keyframes page-fly1 { 0%{transform:translate(-400rpx,-500rpx) rotate(-30deg);opacity:1} 60%{opacity:0.8} 100%{transform:translate(-120rpx,-160rpx) rotate(15deg);opacity:0} }
-@keyframes page-fly2 { 0%{transform:translate(400rpx,-500rpx) rotate(30deg);opacity:1} 60%{opacity:0.8} 100%{transform:translate(120rpx,-160rpx) rotate(-15deg);opacity:0} }
-@keyframes page-fly3 { 0%{transform:translate(-500rpx,0) rotate(-45deg);opacity:1} 60%{opacity:0.8} 100%{transform:translate(-180rpx,40rpx) rotate(20deg);opacity:0} }
-@keyframes page-fly4 { 0%{transform:translate(500rpx,0) rotate(45deg);opacity:1} 60%{opacity:0.8} 100%{transform:translate(180rpx,40rpx) rotate(-20deg);opacity:0} }
-@keyframes page-fly5 { 0%{transform:translate(-400rpx,500rpx) rotate(30deg);opacity:1} 60%{opacity:0.8} 100%{transform:translate(-100rpx,180rpx) rotate(-10deg);opacity:0} }
-@keyframes page-fly6 { 0%{transform:translate(400rpx,500rpx) rotate(-30deg);opacity:1} 60%{opacity:0.8} 100%{transform:translate(100rpx,180rpx) rotate(10deg);opacity:0} }
-
-/* Style B 书本图标 */
-.cel-book-icon {
-  font-size: 100rpx;
-  margin-bottom: 32rpx;
-  animation: book-open 0.6s cubic-bezier(.34,1.56,.64,1) 0.2s both;
-}
-@keyframes book-open {
-  from { transform: scale(0.4) rotate(-20deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-
-/* ---- Style C 底部卡片 ---- */
-.cel-sheet {
-  width: 100%;
-  background: white;
-  border-radius: 40rpx 40rpx 0 0;
-  padding: 60rpx 48rpx 80rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  animation: sheet-slide-up 0.4s cubic-bezier(.34,1.56,.64,1) both;
-}
-@keyframes sheet-slide-up {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-.cel-icon-c {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 32rpx;
-  animation: icon-pop 0.5s cubic-bezier(.34,1.56,.64,1) 0.3s both;
-  box-shadow: 0 8rpx 32rpx var(--theme-primary-alpha-40);
-}
-@keyframes icon-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .cel-check-c { font-size: 60rpx; color: white; font-weight: bold; }
 .cel-title-c {
   font-size: 40rpx;
@@ -891,17 +662,10 @@
   margin-bottom: 8rpx;
   animation: cel-fade-up 0.4s ease 0.4s both;
 }
-
-/* Style C 装饰点 */
-.cel-dots { display: flex; gap: 16rpx; margin: 32rpx 0 40rpx; }
-.cel-dot {
-  width: 12rpx; height: 12rpx; border-radius: 50%;
-  animation: dot-bounce 0.6s ease infinite alternate;
-}
 .d1 { background: var(--theme-primary); animation-delay: 0s; }
 .d2 { background: #FFD700; animation-delay: 0.15s; }
 .d3 { background: #4ECDC4; animation-delay: 0.3s; }
-@keyframes dot-bounce { from { transform: translateY(0); } to { transform: translateY(-10rpx); } }
+
 
 /* Style C 关闭按钮 */
 .cel-close-btn {
@@ -914,227 +678,6 @@
   animation: cel-fade-up 0.4s ease 0.6s both;
 }
 
-/* ---- Style D 碎片裂变 ---- */
-.cel-shockwave {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  border-radius: 50%;
-  border: 4rpx solid rgba(45,212,191,0.64);
-  transform: translate(-50%, -50%) scale(0.2);
-}
-.shock-1 { width: 220rpx; height: 220rpx; animation: shock-split 0.92s ease-out 0.08s both; }
-.shock-2 { width: 380rpx; height: 380rpx; animation: shock-split 1.05s ease-out 0.18s both; }
-.cel-crack {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.94), transparent);
-  box-shadow: 0 0 32rpx rgba(45,212,191,0.8);
-  opacity: 0;
-}
-.crack-h { width: 720rpx; height: 4rpx; animation: crack-flash 0.46s ease-out 0.08s both; }
-.crack-v { width: 4rpx; height: 720rpx; animation: crack-flash-v 0.46s ease-out 0.12s both; }
-.cel-shard {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 46rpx;
-  height: 62rpx;
-  border-radius: 8rpx 8rpx 18rpx 8rpx;
-  background: linear-gradient(135deg, rgba(45,212,191,0.95), rgba(14,165,233,0.72));
-  opacity: 0;
-  box-shadow: 0 0 28rpx rgba(45,212,191,0.5);
-}
-.shard-1 { animation: shard-1 0.82s ease-out 0.06s both; }
-.shard-2 { animation: shard-2 0.86s ease-out 0.08s both; }
-.shard-3 { animation: shard-3 0.78s ease-out 0.1s both; }
-.shard-4 { animation: shard-4 0.88s ease-out 0.06s both; }
-.shard-5 { animation: shard-5 0.8s ease-out 0.12s both; }
-.shard-6 { animation: shard-6 0.84s ease-out 0.16s both; }
-.shard-7 { animation: shard-7 0.9s ease-out 0.08s both; }
-.shard-8 { animation: shard-8 0.82s ease-out 0.14s both; }
-.shard-9 { animation: shard-9 0.74s ease-out 0.18s both; }
-.shard-10 { animation: shard-10 0.86s ease-out 0.2s both; }
-.cel-icon-d {
-  font-size: 96rpx;
-  color: #99f6e4;
-  margin-bottom: 28rpx;
-  text-shadow: 0 0 36rpx rgba(45,212,191,0.9);
-  animation: split-icon 0.6s cubic-bezier(.34,1.56,.64,1) 0.34s both;
-}
-@keyframes shock-split { 0% { transform: translate(-50%,-50%) scale(0.2); opacity: 0; } 24% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; } }
-@keyframes crack-flash { 0% { transform: translate(-50%,-50%) scaleX(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%,-50%) scaleX(1); opacity: 0; } }
-@keyframes crack-flash-v { 0% { transform: translate(-50%,-50%) scaleY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%,-50%) scaleY(1); opacity: 0; } }
-@keyframes shard-1 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(-260rpx,-250rpx) rotate(-160deg); opacity: 0; } }
-@keyframes shard-2 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(-80rpx,-320rpx) rotate(110deg); opacity: 0; } }
-@keyframes shard-3 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(210rpx,-260rpx) rotate(190deg); opacity: 0; } }
-@keyframes shard-4 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(310rpx,-50rpx) rotate(-120deg); opacity: 0; } }
-@keyframes shard-5 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(220rpx,230rpx) rotate(150deg); opacity: 0; } }
-@keyframes shard-6 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(-20rpx,330rpx) rotate(-210deg); opacity: 0; } }
-@keyframes shard-7 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(-280rpx,180rpx) rotate(130deg); opacity: 0; } }
-@keyframes shard-8 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(-330rpx,-30rpx) rotate(-90deg); opacity: 0; } }
-@keyframes shard-9 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(80rpx,-210rpx) rotate(230deg); opacity: 0; } }
-@keyframes shard-10 { 0% { transform: translate(-50%,-50%) rotate(0); opacity: 1; } 100% { transform: translate(80rpx,250rpx) rotate(-180deg); opacity: 0; } }
-@keyframes split-icon { from { transform: scale(0) rotate(-60deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
-
-/* ---- Style E 聚光登场 ---- */
-.cel-spotlight {
-  position: absolute;
-  top: -120rpx;
-  width: 260rpx;
-  height: 760rpx;
-  opacity: 0;
-  background: linear-gradient(180deg, rgba(253,224,71,0.6), rgba(253,224,71,0));
-  transform-origin: top center;
-}
-.spot-left { left: 8%; transform: rotate(24deg); animation: spot-sweep-left 1.25s ease-out 0.08s both; }
-.spot-right { right: 8%; transform: rotate(-24deg); animation: spot-sweep-right 1.25s ease-out 0.14s both; }
-.cel-stage {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 700rpx;
-  height: 210rpx;
-  border-radius: 50% 50% 0 0;
-  background: radial-gradient(ellipse at center, rgba(251,191,36,0.52), rgba(251,191,36,0));
-  transform: translateX(-50%);
-  animation: stage-rise 0.7s ease-out both;
-}
-.cel-medal-glow {
-  position: absolute;
-  left: 50%;
-  top: 42%;
-  width: 240rpx;
-  height: 240rpx;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(251,191,36,0.7), rgba(251,191,36,0));
-  transform: translate(-50%, -50%);
-  animation: medal-glow 1.1s ease-out 0.24s both;
-}
-.cel-stage-star {
-  position: absolute;
-  color: #fde68a;
-  font-size: 38rpx;
-  opacity: 0;
-  text-shadow: 0 0 24rpx rgba(253,230,138,0.9);
-}
-.stage-star-1 { left: 20%; top: 30%; animation: stage-star-pop 0.8s ease-out 0.3s both; }
-.stage-star-2 { right: 22%; top: 27%; animation: stage-star-pop 0.8s ease-out 0.42s both; }
-.stage-star-3 { left: 48%; top: 16%; animation: stage-star-pop 0.8s ease-out 0.54s both; }
-.cel-icon-e {
-  font-size: 96rpx;
-  margin-bottom: 12rpx;
-  animation: medal-drop 0.7s cubic-bezier(.34,1.56,.64,1) 0.34s both;
-}
-.cel-title-e {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #92400e;
-  margin-bottom: 10rpx;
-}
-@keyframes spot-sweep-left { 0% { opacity: 0; transform: rotate(48deg); } 35% { opacity: 1; } 100% { opacity: 0.85; transform: rotate(24deg); } }
-@keyframes spot-sweep-right { 0% { opacity: 0; transform: rotate(-48deg); } 35% { opacity: 1; } 100% { opacity: 0.85; transform: rotate(-24deg); } }
-@keyframes stage-rise { from { transform: translateX(-50%) translateY(120rpx); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
-@keyframes medal-glow { 0% { transform: translate(-50%,-50%) scale(0.2); opacity: 0; } 45% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.9); opacity: 0; } }
-@keyframes stage-star-pop { 0% { transform: translateY(30rpx) scale(0); opacity: 0; } 60% { transform: translateY(0) scale(1.4); opacity: 1; } 100% { transform: translateY(-20rpx) scale(1); opacity: 0.8; } }
-@keyframes medal-drop { 0% { transform: translateY(-120rpx) rotate(-18deg); opacity: 0; } 70% { transform: translateY(8rpx) rotate(5deg); opacity: 1; } 100% { transform: translateY(0) rotate(0); opacity: 1; } }
-
-/* ---- Style F 彩带狂欢 ---- */
-.cel-confetti {
-  position: absolute;
-  top: -60rpx;
-  width: 18rpx;
-  height: 46rpx;
-  border-radius: 6rpx;
-  opacity: 0;
-  animation: confetti-fall 1.5s ease-in both;
-}
-.confetti-1 { left: 8%; background: #ef4444; animation-delay: 0.02s; }
-.confetti-2 { left: 16%; background: #f97316; animation-delay: 0.18s; }
-.confetti-3 { left: 24%; background: #facc15; animation-delay: 0.08s; }
-.confetti-4 { left: 34%; background: #22c55e; animation-delay: 0.26s; }
-.confetti-5 { left: 43%; background: #14b8a6; animation-delay: 0.14s; }
-.confetti-6 { left: 51%; background: #3b82f6; animation-delay: 0.3s; }
-.confetti-7 { left: 60%; background: #6366f1; animation-delay: 0.06s; }
-.confetti-8 { left: 68%; background: #a855f7; animation-delay: 0.22s; }
-.confetti-9 { left: 76%; background: #ec4899; animation-delay: 0.1s; }
-.confetti-10 { left: 84%; background: #06b6d4; animation-delay: 0.34s; }
-.confetti-11 { left: 30%; background: #f43f5e; animation-delay: 0.42s; }
-.confetti-12 { left: 70%; background: #84cc16; animation-delay: 0.46s; }
-.cel-icon-f {
-  font-size: 100rpx;
-  margin-bottom: 18rpx;
-  animation: confetti-icon 0.6s cubic-bezier(.34,1.56,.64,1) 0.28s both;
-}
-.cel-title-f {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #9a3412;
-  margin-bottom: 8rpx;
-}
-.cel-hint-f { color: var(--app-text-muted); }
-@keyframes confetti-fall { 0% { transform: translateY(0) rotate(0); opacity: 0; } 12% { opacity: 1; } 100% { transform: translateY(820rpx) rotate(520deg); opacity: 0; } }
-@keyframes confetti-icon { from { transform: scale(0.3) rotate(-20deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
-
-/* ---- Style G 火箭升空 ---- */
-.cel-rocket-trail {
-  position: absolute;
-  left: 50%;
-  bottom: 240rpx;
-  width: 26rpx;
-  height: 260rpx;
-  border-radius: 999rpx;
-  transform-origin: bottom center;
-  opacity: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(251,191,36,0.95), rgba(239,68,68,0));
-}
-.trail-1 { margin-left: -13rpx; animation: rocket-trail 0.95s ease-out 0.06s both; }
-.trail-2 { margin-left: -58rpx; transform: rotate(-12deg); animation: rocket-trail-left 1s ease-out 0.12s both; }
-.trail-3 { margin-left: 34rpx; transform: rotate(12deg); animation: rocket-trail-right 1s ease-out 0.12s both; }
-.cel-cloud {
-  position: absolute;
-  bottom: 150rpx;
-  width: 150rpx;
-  height: 70rpx;
-  border-radius: 999rpx;
-  background: rgba(255,255,255,0.86);
-  opacity: 0;
-}
-.cloud-1 { left: 14%; animation: cloud-burst-left 0.92s ease-out 0.15s both; }
-.cloud-2 { right: 12%; animation: cloud-burst-right 0.92s ease-out 0.18s both; }
-.cloud-3 { left: 40%; width: 180rpx; animation: cloud-burst-center 0.92s ease-out 0.12s both; }
-.cel-rocket-spark {
-  position: absolute;
-  left: 50%;
-  bottom: 270rpx;
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  background: #fde68a;
-  box-shadow: 0 0 20rpx rgba(253,230,138,0.95);
-  opacity: 0;
-}
-.spark-1 { animation: rocket-spark-1 0.75s ease-out 0.18s both; }
-.spark-2 { animation: rocket-spark-2 0.75s ease-out 0.24s both; }
-.spark-3 { animation: rocket-spark-3 0.75s ease-out 0.3s both; }
-.spark-4 { animation: rocket-spark-4 0.75s ease-out 0.34s both; }
-.cel-icon-g {
-  font-size: 98rpx;
-  margin-bottom: 22rpx;
-  animation: rocket-lift 0.9s cubic-bezier(.34,1.56,.64,1) 0.22s both;
-}
-@keyframes rocket-trail { 0% { transform: scaleY(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: scaleY(1.5) translateY(120rpx); opacity: 0; } }
-@keyframes rocket-trail-left { 0% { transform: rotate(-12deg) scaleY(0); opacity: 0; } 30% { opacity: 0.9; } 100% { transform: rotate(-12deg) scaleY(1.2) translateY(100rpx); opacity: 0; } }
-@keyframes rocket-trail-right { 0% { transform: rotate(12deg) scaleY(0); opacity: 0; } 30% { opacity: 0.9; } 100% { transform: rotate(12deg) scaleY(1.2) translateY(100rpx); opacity: 0; } }
-@keyframes cloud-burst-left { 0% { transform: translateX(80rpx) scale(0.4); opacity: 0; } 35% { opacity: 1; } 100% { transform: translateX(-120rpx) scale(1.25); opacity: 0; } }
-@keyframes cloud-burst-right { 0% { transform: translateX(-80rpx) scale(0.4); opacity: 0; } 35% { opacity: 1; } 100% { transform: translateX(120rpx) scale(1.25); opacity: 0; } }
-@keyframes cloud-burst-center { 0% { transform: translateY(30rpx) scale(0.4); opacity: 0; } 35% { opacity: 1; } 100% { transform: translateY(70rpx) scale(1.35); opacity: 0; } }
-@keyframes rocket-spark-1 { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(-150rpx,-120rpx); opacity: 0; } }
-@keyframes rocket-spark-2 { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(150rpx,-130rpx); opacity: 0; } }
-@keyframes rocket-spark-3 { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(-110rpx,90rpx); opacity: 0; } }
-@keyframes rocket-spark-4 { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(120rpx,80rpx); opacity: 0; } }
-@keyframes rocket-lift { 0% { transform: translateY(90rpx) rotate(-10deg); opacity: 0; } 62% { transform: translateY(-14rpx) rotate(5deg); opacity: 1; } 100% { transform: translateY(0) rotate(0); opacity: 1; } }
 
 .course-module-image { display: block; width: 100%; border-radius: 12rpx; margin: 12rpx 0; }
 
@@ -1246,14 +789,6 @@
 }
 .exit-btn-stay {
   background: var(--app-paper-muted);
-}
-
-
-/* Version 3 dawn: 打卡成功的晨光仪式（样式 C），整屏日出，太阳升起后露出上半圆 */
-.cel-C {
-  background: linear-gradient(180deg, #f9d7ae 0%, #fbe6c9 38%, #fdf3e3 100%);
-  align-items: stretch;
-  justify-content: flex-start;
 }
 .cel-rite {
   position: absolute;
@@ -1512,4 +1047,251 @@
   font-family: var(--app-font-serif);
   font-size: 26rpx;
   color: var(--app-dawn-ink);
+}
+
+/* Features: 打卡仪式的七个清晨场景。文字和按钮共用 .cel-rite-*，这里只画天空（上面 54%）。
+   A 晨星未落 / B 书页轻翻 / C 旭日初升 / D 远山日出 / E 一盏晨灯 / F 清晨落叶 / G 晨鸟出林 */
+.cel-overlay {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.cel-scene {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 54%;
+  overflow: hidden;
+}
+.cel-scene .cel-rite-sun {
+  top: auto;
+  bottom: -28rpx;
+}
+.cel-A { background: linear-gradient(180deg, #25324f 0%, #4a5d86 30%, #b9a6a4 47%, #f6d3a8 54%, #fdf3e3 100%); }
+.cel-B { background: linear-gradient(180deg, #f6ead4 0%, #fbf1e0 40%, #fdf6ea 100%); }
+.cel-C { background: linear-gradient(180deg, #f9d7ae 0%, #fbe6c9 38%, #fdf3e3 100%); }
+.cel-D { background: linear-gradient(180deg, #f3c9a3 0%, #f9dcbb 34%, #fdf0dc 100%); }
+.cel-E { background: linear-gradient(180deg, #3b2f29 0%, #5a4334 30%, #a9805a 48%, #f3d6ad 54%, #fdf3e3 100%); }
+.cel-F { background: linear-gradient(180deg, #e9ecd6 0%, #f5f0dc 36%, #fdf3e3 100%); }
+.cel-G { background: linear-gradient(180deg, #cfdfec 0%, #e9e2d6 34%, #fbe6c9 54%, #fdf3e3 100%); }
+
+/* 深色天空上的「第 N 天」用浅色 */
+.cel-A .cel-rite-day-num,
+.cel-E .cel-rite-day-num { color: #fffdf8; }
+.cel-A .cel-rite-day-word,
+.cel-E .cel-rite-day-word { color: #fbe6c9; }
+
+/* A 晨星未落：天快亮了，星星一颗颗淡下去，只剩一颗晨星 */
+.cel-star {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #fffdf8;
+  animation: cel-star-fade 3.6s ease-in-out both;
+}
+.cel-star-1 { left: 12%; top: 14%; animation-delay: 0.1s; }
+.cel-star-2 { left: 28%; top: 30%; width: 6rpx; height: 6rpx; animation-delay: 0.5s; }
+.cel-star-3 { left: 44%; top: 9%; animation-delay: 0.9s; }
+.cel-star-4 { left: 63%; top: 24%; width: 6rpx; height: 6rpx; animation-delay: 0.3s; }
+.cel-star-5 { left: 80%; top: 12%; animation-delay: 1.2s; }
+.cel-star-6 { left: 88%; top: 36%; width: 6rpx; height: 6rpx; animation-delay: 0.7s; }
+.cel-star-7 { left: 18%; top: 46%; width: 6rpx; height: 6rpx; animation-delay: 1.5s; }
+@keyframes cel-star-fade {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  60% { opacity: 0.9; }
+  100% { opacity: 0.18; }
+}
+.cel-morning-star {
+  position: absolute;
+  left: 50%;
+  bottom: 86rpx;
+  width: 22rpx;
+  height: 22rpx;
+  margin-left: -11rpx;
+  border-radius: 50%;
+  background: #fff6e0;
+  box-shadow: 0 0 0 14rpx rgba(255, 226, 176, 0.3), 0 0 0 40rpx rgba(255, 226, 176, 0.14), 0 0 70rpx 30rpx rgba(255, 214, 150, 0.35);
+  animation: cel-star-rise 1.4s cubic-bezier(0.22, 0.8, 0.3, 1) both, cel-glow-breathe 3.2s ease-in-out 1.4s infinite;
+}
+@keyframes cel-star-rise {
+  from { transform: translateY(120rpx) scale(0.6); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes cel-glow-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* B 书页轻翻：几页纸慢慢飘起来 */
+.cel-leafpage {
+  position: absolute;
+  bottom: -160rpx;
+  width: 110rpx;
+  height: 146rpx;
+  border-radius: 8rpx;
+  background: var(--app-paper);
+  border: 1rpx solid rgba(138, 75, 18, 0.2);
+  box-shadow: 0 10rpx 24rpx rgba(84, 60, 30, 0.1);
+  animation: cel-page-float 4.2s ease-out both;
+}
+.cel-leafpage::after {
+  content: '';
+  position: absolute;
+  left: 18rpx;
+  right: 18rpx;
+  top: 30rpx;
+  height: 58rpx;
+  border-top: 3rpx solid rgba(138, 75, 18, 0.22);
+  border-bottom: 3rpx solid rgba(138, 75, 18, 0.22);
+  background: linear-gradient(rgba(138, 75, 18, 0.22), rgba(138, 75, 18, 0.22)) center / 100% 3rpx no-repeat;
+}
+.cel-leafpage-1 { left: 10%; --cel-r: -14deg; --cel-y: -520rpx; animation-delay: 0s; }
+.cel-leafpage-2 { left: 30%; --cel-r: 9deg; --cel-y: -380rpx; animation-delay: 0.35s; }
+.cel-leafpage-3 { left: 46%; --cel-r: -5deg; --cel-y: -600rpx; animation-delay: 0.15s; }
+.cel-leafpage-4 { left: 64%; --cel-r: 16deg; --cel-y: -430rpx; animation-delay: 0.55s; }
+.cel-leafpage-5 { left: 80%; --cel-r: -10deg; --cel-y: -540rpx; animation-delay: 0.25s; }
+@keyframes cel-page-float {
+  from { transform: translateY(0) rotate(0deg); opacity: 0; }
+  20% { opacity: 1; }
+  to { transform: translateY(var(--cel-y, -480rpx)) rotate(var(--cel-r, 8deg)); opacity: 0.92; }
+}
+
+/* D 远山日出、G 晨鸟出林：小一号的太阳 */
+.cel-scene .cel-sun-small {
+  width: 250rpx;
+  height: 250rpx;
+  margin-left: -125rpx;
+  bottom: 40rpx;
+  box-shadow: 0 0 0 40rpx rgba(255, 200, 130, 0.26), 0 0 0 90rpx rgba(255, 200, 130, 0.12);
+}
+.cel-hill {
+  position: absolute;
+  bottom: -260rpx;
+  border-radius: 50%;
+  animation: cel-fade-up 0.9s ease both;
+}
+.cel-hill-1 { left: -20%; width: 90%; height: 420rpx; background: #dcc3a2; animation-delay: 0.1s; }
+.cel-hill-2 { right: -25%; width: 100%; height: 480rpx; background: #c9a87f; animation-delay: 0.25s; }
+.cel-hill-3 { left: 10%; width: 110%; height: 380rpx; bottom: -290rpx; background: #b08a60; animation-delay: 0.4s; }
+.cel-mist {
+  position: absolute;
+  left: -30%;
+  width: 160%;
+  bottom: 60rpx;
+  height: 70rpx;
+  border-radius: 50%;
+  background: linear-gradient(90deg, rgba(255, 253, 248, 0) 0%, rgba(255, 253, 248, 0.75) 40%, rgba(255, 253, 248, 0.75) 60%, rgba(255, 253, 248, 0) 100%);
+  animation: cel-mist-drift 7s ease-in-out both;
+}
+@keyframes cel-mist-drift {
+  from { transform: translateX(-12%); opacity: 0; }
+  30% { opacity: 1; }
+  to { transform: translateX(12%); opacity: 0.7; }
+}
+
+/* E 一盏晨灯：天还没亮，先点一盏灯 */
+.cel-lamp-glow {
+  position: absolute;
+  left: 50%;
+  bottom: -60rpx;
+  width: 640rpx;
+  height: 640rpx;
+  margin-left: -320rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 214, 150, 0.78) 0%, rgba(255, 200, 130, 0.3) 42%, rgba(255, 200, 130, 0) 70%);
+  animation: cel-lamp-on 1.4s ease-out both, cel-glow-breathe 3.6s ease-in-out 1.4s infinite;
+}
+.cel-lamp {
+  position: absolute;
+  left: 50%;
+  bottom: 150rpx;
+  width: 84rpx;
+  height: 84rpx;
+  margin-left: -42rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff3d6 0%, #ffd08a 60%, #f6a94f 100%);
+  box-shadow: 0 0 60rpx 20rpx rgba(255, 208, 138, 0.55);
+  animation: cel-lamp-on 1.4s ease-out both;
+}
+.cel-lamp::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 80rpx;
+  width: 4rpx;
+  height: 150rpx;
+  margin-left: -2rpx;
+  background: rgba(255, 243, 214, 0.5);
+}
+@keyframes cel-lamp-on {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* F 清晨落叶：几片叶子慢慢落下来 */
+.cel-leaf {
+  position: absolute;
+  top: -60rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 0 100% 0 100%;
+  animation: cel-leaf-fall 5s ease-in both;
+}
+.cel-leaf-1 { left: 8%; background: #b9c08a; --cel-x: 60rpx; --cel-r: 200deg; animation-delay: 0s; }
+.cel-leaf-2 { left: 22%; background: #e3b06a; --cel-x: -40rpx; --cel-r: -160deg; animation-delay: 0.6s; width: 32rpx; height: 32rpx; }
+.cel-leaf-3 { left: 38%; background: #cfa35e; --cel-x: 80rpx; --cel-r: 240deg; animation-delay: 0.2s; }
+.cel-leaf-4 { left: 54%; background: #a9b47c; --cel-x: -70rpx; --cel-r: -220deg; animation-delay: 0.9s; width: 34rpx; height: 34rpx; }
+.cel-leaf-5 { left: 68%; background: #ee9b45; --cel-x: 40rpx; --cel-r: 180deg; animation-delay: 0.4s; }
+.cel-leaf-6 { left: 82%; background: #c7c48e; --cel-x: -50rpx; --cel-r: -190deg; animation-delay: 1.1s; width: 30rpx; height: 30rpx; }
+.cel-leaf-7 { left: 92%; background: #dba963; --cel-x: -90rpx; --cel-r: 210deg; animation-delay: 0.7s; }
+@keyframes cel-leaf-fall {
+  from { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  15% { opacity: 0.95; }
+  to { transform: translate(var(--cel-x, 40rpx), 720rpx) rotate(var(--cel-r, 180deg)); opacity: 0.85; }
+}
+
+/* G 晨鸟出林：三只鸟从太阳边上飞起来 */
+.cel-bird {
+  position: absolute;
+  width: 64rpx;
+  height: 24rpx;
+  animation: cel-bird-fly 5s ease-out both;
+}
+.cel-bird::before,
+.cel-bird::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 32rpx;
+  height: 24rpx;
+  border-top: 5rpx solid #5b4a3a;
+  border-radius: 50%;
+}
+.cel-bird::before { left: 0; transform: rotate(-12deg); }
+.cel-bird::after { right: 0; transform: rotate(12deg); }
+.cel-bird-1 { left: 30%; bottom: 190rpx; --cel-x: 190rpx; --cel-y: -260rpx; animation-delay: 0.4s; }
+.cel-bird-2 { left: 40%; bottom: 150rpx; --cel-x: 260rpx; --cel-y: -190rpx; animation-delay: 0.9s; transform: scale(0.8); }
+.cel-bird-3 { left: 22%; bottom: 230rpx; --cel-x: 150rpx; --cel-y: -330rpx; animation-delay: 1.3s; }
+@keyframes cel-bird-fly {
+  from { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  20% { opacity: 0.9; }
+  to { transform: translate(var(--cel-x, 200rpx), var(--cel-y, -240rpx)) scale(1); opacity: 0.75; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cel-star,
+  .cel-morning-star,
+  .cel-leafpage,
+  .cel-hill,
+  .cel-mist,
+  .cel-lamp,
+  .cel-lamp-glow,
+  .cel-leaf,
+  .cel-bird {
+    animation: none;
+  }
+  .cel-leafpage { bottom: 120rpx; }
+  .cel-leaf { top: 30%; }
 }

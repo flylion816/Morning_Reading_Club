@@ -47,7 +47,7 @@ Page({
     if (!periodId) {
       this.setData({
         loading: false,
-        error: '报告不存在或暂无权限'
+        error: '这份报告不存在，或者你还不能查看'
       });
       return;
     }
@@ -77,8 +77,8 @@ Page({
         loading: false,
         error:
           statusCode === 403 || statusCode === 404
-            ? '报告不存在或暂无权限'
-            : '加载失败，请重试'
+            ? '这份报告不存在，或者你还不能查看'
+            : '没加载出来，稍后再试试'
       });
     }
   },

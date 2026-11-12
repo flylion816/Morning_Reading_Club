@@ -420,7 +420,7 @@ Page({
 
   async loadReadingContent() {
     try {
-      wx.showLoading({ title: '加载中...', mask: true });
+      wx.showLoading({ title: '稍等一下…', mask: true });
       const course = await courseService.getSectionDetail(this.data.sectionId);
       const periodId = this.data.periodId || extractId(course.periodId);
       const periodName =
@@ -502,7 +502,7 @@ Page({
     } catch (error) {
       console.error('加载沉浸朗读内容失败:', error);
       wx.hideLoading();
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     }
   },
 
@@ -1521,12 +1521,12 @@ Page({
     }
 
     if (!this.data.paragraphs.length) {
-      wx.showToast({ title: '暂无可分享内容', icon: 'none' });
+      wx.showToast({ title: '这里还没有可以分享的内容', icon: 'none' });
       return;
     }
 
     this.setData({ posterGenerating: true });
-    wx.showLoading({ title: '生成中...', mask: true });
+    wx.showLoading({ title: '正在生成…', mask: true });
     this.generateMomentPoster()
       .then((tempFilePath) => {
         this.setData({
@@ -1540,7 +1540,7 @@ Page({
         console.error('生成朗读分享图失败:', error);
         this.setData({ posterGenerating: false });
         wx.hideLoading();
-        wx.showToast({ title: '生成失败', icon: 'none' });
+        wx.showToast({ title: '没生成出来，再试一次', icon: 'none' });
       });
   },
 
@@ -1561,7 +1561,7 @@ Page({
     wx.saveImageToPhotosAlbum({
       filePath: this.data.posterTempFilePath,
       success: () => wx.showToast({ title: '已保存', icon: 'success' }),
-      fail: () => wx.showToast({ title: '保存失败', icon: 'none' })
+      fail: () => wx.showToast({ title: '没保存上，再试一次', icon: 'none' })
     });
   },
 
@@ -1573,7 +1573,7 @@ Page({
     if (typeof wx.showShareImageMenu === 'function') {
       wx.showShareImageMenu({
         path: this.data.posterTempFilePath,
-        fail: () => wx.showToast({ title: '分享失败', icon: 'none' })
+        fail: () => wx.showToast({ title: '没分享出去，再试一次', icon: 'none' })
       });
       return;
     }

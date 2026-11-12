@@ -40,7 +40,7 @@ class Request {
       data = {},
       header = {},
       showLoading = false,
-      loadingText = '加载中...'
+      loadingText = '稍等一下…'
     } = options;
 
     // 显示加载提示
@@ -135,7 +135,7 @@ class Request {
       } else {
         // 业务错误
         if (!originalOptions.suppressError) {
-          this.showError(data.message || '请求失败');
+          this.showError(data.message || '没连上，稍后再试试');
         }
         reject(data);
       }
@@ -155,7 +155,7 @@ class Request {
           message: data.message
         });
         if (!originalOptions.suppressError) {
-          this.showError(data.message || '请求失败，请重试');
+          this.showError(data.message || '没连上，稍后再试试');
         }
         reject(data);
       } else {
@@ -195,7 +195,7 @@ class Request {
     }
     // 500 服务器错误（不透出服务端内部信息）
     else if (statusCode >= 500) {
-      const message = '服务器错误,请稍后重试';
+      const message = '服务器开小差了，稍后再试试';
       if (!originalOptions.suppressError) {
         this.showError(message);
       }
@@ -203,7 +203,7 @@ class Request {
     }
     // 其他错误
     else {
-      const message = (data && data.message) || '请求失败';
+      const message = (data && data.message) || '没连上，稍后再试试';
       if (!originalOptions.suppressError) {
         this.showError(message);
       }
@@ -353,7 +353,7 @@ class Request {
     } else if (err.errMsg.includes('fail')) {
       this.showError('网络请求失败,请检查网络');
     } else {
-      this.showError('请求失败');
+      this.showError('没连上，稍后再试试');
     }
   }
 

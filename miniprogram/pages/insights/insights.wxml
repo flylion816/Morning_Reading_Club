@@ -76,7 +76,7 @@
           <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
         </view>
         <view class="insight-title-meta">
-          <view class="insight-title">{{item.title}}<text class="insight-letter-tag" wx:if="{{item.letterType === 'weekly'}}">周信</text><text class="insight-letter-tag" wx:elif="{{item.letterType === 'monthly'}}">月信</text></view>
+          <view class="insight-title"><text class="insight-unread-dot" wx:if="{{item.unread}}"></text>{{item.title}}<text class="insight-letter-tag" wx:if="{{item.letterType === 'weekly'}}">周信</text><text class="insight-letter-tag" wx:elif="{{item.letterType === 'monthly'}}">月信</text></view>
           <view class="insight-period">{{item.periodName}}</view>
         </view>
         <view wx:if="{{!item.isAccessible}}" class="insight-lock-badge app-icon app-icon-lock"></view>
@@ -112,14 +112,14 @@
       wx:if="{{activeTab === 'mine' && insightsHasMore && !loading && !searchLoading}}"
       class="load-more {{insightsLoadingMore ? 'loading' : ''}}"
       bindtap="loadMoreInsights">
-      <text>{{insightsLoadingMore ? '加载中...' : '加载更多'}}</text>
+      <text>{{insightsLoadingMore ? '正在取更多…' : '加载更多'}}</text>
       <text class="load-more-count" wx:if="{{insightsTotal}}">{{insights.length}}/{{insightsTotal}}</text>
     </view>
     <view
       wx:if="{{activeTab === 'others' && otherHasMore && !otherInsightsLoading && !searchLoading}}"
       class="load-more {{otherLoadingMore ? 'loading' : ''}}"
       bindtap="loadMoreOtherInsights">
-      <text>{{otherLoadingMore ? '加载中...' : '加载更多'}}</text>
+      <text>{{otherLoadingMore ? '正在取更多…' : '加载更多'}}</text>
     </view>
 
     <view class="app-empty" wx:if="{{activeTab === 'mine' && (isSearchMode ? searchResults.length === 0 : insights.length === 0) && !loading && !searchLoading}}">
@@ -128,7 +128,7 @@
     </view>
     <view class="app-empty" wx:if="{{activeTab === 'others' && (isSearchMode ? otherSearchResults.length === 0 : otherInsights.length === 0) && !otherInsightsLoading && !searchLoading}}">
       <view class="app-empty-art app-empty-art-letter"></view>
-      <text class="app-empty-title">{{isSearchMode ? '未找到相关内容' : '暂无他人授权查看'}}</text>
+      <text class="app-empty-title">{{isSearchMode ? '未找到相关内容' : '还没有书友向你开放他的看见'}}</text>
     </view>
     <view class="dawn-skeleton-list" wx:if="{{activeTab === 'others' && otherInsightsLoading}}">
       <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">

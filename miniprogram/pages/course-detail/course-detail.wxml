@@ -647,7 +647,7 @@
       </view>
 
       <view wx:if="{{checkinHasMore || checkinLoadingMore}}" class="checkin-load-more">
-        <view wx:if="{{checkinLoadingMore}}" class="checkin-load-more-text">加载中...</view>
+        <view wx:if="{{checkinLoadingMore}}" class="checkin-load-more-text">正在取更多…</view>
         <view wx:else class="checkin-load-more-btn" bindtap="loadMoreCheckins">加载更多打卡记录 ↓</view>
       </view>
     </view>

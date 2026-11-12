@@ -34,7 +34,7 @@ module.exports = {
     textStyle: 'white'
   },
   tabBar: {
-    color: '#999999',
+    color: '#857a6c',
     selectedColor: '#e84118',
     backgroundColor: '#ffffff',
     iconsDir: '/assets/tenants/chaoren'

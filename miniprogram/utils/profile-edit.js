@@ -18,7 +18,7 @@ function profileError(error) {
   const conflict = body.code === 409 || (error && error.statusCode === 409);
   return {
     conflict,
-    message: conflict ? (body.message || '该昵称已被使用，请修改后再保存') : '保存失败，请稍后重试'
+    message: conflict ? (body.message || '该昵称已被使用，请修改后再保存') : '没保存上，稍后再试试'
   };
 }
 

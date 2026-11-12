@@ -14,20 +14,20 @@
     <view class="user-signature">{{userInfo.signature || '这位书友还没写签名'}}</view>
   </view>
 
-  <!-- 学习统计 -->
+  <!-- 晨读足迹 -->
   <view class="stats-card">
     <view class="stats-header">
       <view class="stats-icon app-seal app-seal-sm">记</view>
-      <text class="stats-title">学习统计</text>
+      <text class="stats-title">晨读足迹</text>
     </view>
     <view class="stats-content">
       <view class="stats-row">
-        <text class="stats-label">打卡天数</text>
-        <text class="stats-value">{{stats.totalCheckinDays || 0}}天 ✓</text>
+        <text class="stats-label">打过卡的日子</text>
+        <text class="stats-value">{{stats.totalCheckinDays || 0}} 天</text>
       </view>
       <view class="stats-row">
-        <text class="stats-label">参与期次</text>
-        <text class="stats-value">{{stats.totalCompletedPeriods || 0}}个</text>
+        <text class="stats-label">一起读过</text>
+        <text class="stats-value">{{stats.totalCompletedPeriods || 0}} 期</text>
       </view>
     </view>
   </view>

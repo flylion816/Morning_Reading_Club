@@ -102,6 +102,12 @@ const InsightSchema = new mongoose.Schema(
       default: 'manual'
     },
 
+    // 收信人第一次打开这封信的时间（null 表示还没读过）
+    readAt: {
+      type: Date,
+      default: null
+    },
+
     // 是否发布
     isPublished: {
       type: Boolean,

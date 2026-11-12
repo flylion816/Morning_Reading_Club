@@ -6,7 +6,8 @@ Component({
       observer: function (newVal) {
         if (newVal) {
           this.setData({
-            isPending: this._checkIsPending(newVal)
+            isPending: this._checkIsPending(newVal),
+            thumbStyle: this._buildThumbStyle(newVal)
           });
         }
       }
@@ -30,10 +31,21 @@ Component({
 
   data: {
     isPending: false,
+    thumbStyle: '',
     navigating: false
   },
 
   methods: {
+    /**
+     * 期次封面色：后台单独设置过才用；还是旧的默认蓝渐变就当没设，跟随当前主题色
+     */
+    _buildThumbStyle(course) {
+      const color = course && course.color ? String(course.color) : '';
+      const isLegacyDefault = /4a90e2/i.test(color); // 后端 fallback 的旧默认蓝
+      if (!color || isLegacyDefault) return '';
+      return `background: ${color}`;
+    },
+
     /**
      * 判断课程是否为待打卡状态
      */
@@ -97,7 +109,7 @@ Component({
           } catch (err) {
             wx.hideLoading();
             this.setData({ navigating: false });
-            wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+            wx.showToast({ title: '网络不太顺，再试一次', icon: 'none' });
             return;
           }
           wx.hideLoading();

@@ -769,7 +769,7 @@ Page({
     }).catch((error) => {
       const message = getErrorMessage(error);
       if (!message.includes('cancel')) {
-        wx.showToast({ title: '选择图片失败', icon: 'none' });
+        wx.showToast({ title: '图片没选上，再试一次', icon: 'none' });
       }
       return null;
     });
@@ -798,7 +798,7 @@ Page({
     if (validFiles.length === 0) return;
 
     this.setData({ uploadingImage: true });
-    wx.showLoading({ title: '上传图片...' });
+    wx.showLoading({ title: '正在上传图片…' });
 
     try {
       const uploadResults = await Promise.allSettled(
@@ -868,7 +868,7 @@ Page({
     const userId = getApp().globalData.userInfo?._id || getApp().globalData.userInfo?.id;
     // userId 未就绪时不保存，避免草稿 key 回退到 guest 导致多用户共享
     if (!userId) return;
-    this.setData({ autoSaveStatus: '保存中...' });
+    this.setData({ autoSaveStatus: '正在保存…' });
     try {
       tenantStorage.set(`checkin_draft_${userId}_${sectionId}`, {
         content: diaryContent,
@@ -1033,8 +1033,8 @@ Page({
     this.setData({ showCelebration: true, celebrationStyle: style, celebrationMessage: message });
 
     if (this._celebrationTimer) clearTimeout(this._celebrationTimer);
-    // 晨光仪式有下一步要选，多留一会儿
-    this._celebrationTimer = setTimeout(() => this.dismissCelebration(), style === 'C' ? 12000 : 3000);
+    // 七套仪式都有下一步要选，多留一会儿
+    this._celebrationTimer = setTimeout(() => this.dismissCelebration(), 12000);
     feedback.haptic('medium');
   },
 
@@ -1140,7 +1140,7 @@ Page({
     }
 
     try {
-      wx.showLoading({ title: '提交中...' });
+      wx.showLoading({ title: '正在发布…' });
 
       // 编辑模式：直接更新已有打卡
       if (this.data.isEditMode && this.data.checkinId) {

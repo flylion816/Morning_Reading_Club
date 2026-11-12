@@ -1,6 +1,6 @@
 const currentTenant = require('../config/current-tenant');
 
-const DEFAULT_PRIMARY_COLOR = '#4a90e2';
+const DEFAULT_PRIMARY_COLOR = '#3d6fa6';
 const THEME_PRIMARY = currentTenant.primaryColor || DEFAULT_PRIMARY_COLOR;
 const WECHAT_SI_PLUGIN_ENABLED = currentTenant.wechatSIPlugin === true;
 

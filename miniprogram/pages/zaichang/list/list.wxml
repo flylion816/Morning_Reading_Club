@@ -114,7 +114,7 @@
         </view>
       </view>
     </view>
-    <view wx:elif="{{loading}}" class="loading-tip">加载中...</view>
+    <view wx:elif="{{loading}}" class="loading-tip">稍等一下…</view>
     <view wx:if="{{!hasMore && list.length > 0}}" class="no-more">已经到底了</view>
   </view>
 

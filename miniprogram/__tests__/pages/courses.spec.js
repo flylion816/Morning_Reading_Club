@@ -313,4 +313,38 @@ describe('courses page', () => {
     pageInstance.handleKeepsake.call(pageInstance);
     expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/keepsake/keepsake?periodId=p1' });
   });
+  describe('入营欢迎卡', () => {
+    test('shows once with the letter button only when a letter can be written now', async () => {
+      jest.doMock('../../services/letter.service', () => ({
+        getPeriodLetter: jest.fn().mockResolvedValue({ status: 'none', canWrite: true })
+      }));
+
+      pageInstance.showWelcome.call(pageInstance, 'period_1');
+      expect(pageInstance.data.welcomeVisible).toBe(true);
+      expect(pageInstance.data.welcomeCanWriteLetter).toBe(false);
+
+      await new Promise(resolve => setImmediate(resolve));
+      expect(pageInstance.data.welcomeCanWriteLetter).toBe(true);
+
+      wx.navigateTo = jest.fn();
+      pageInstance.data.periodId = 'period_1';
+      pageInstance.handleWelcomeLetter.call(pageInstance);
+      expect(pageInstance.data.welcomeVisible).toBe(false);
+      expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/slow-mail/slow-mail?periodId=period_1' });
+    });
+
+    test('keeps the card but hides the letter button when the letter request fails', async () => {
+      jest.doMock('../../services/letter.service', () => ({
+        getPeriodLetter: jest.fn().mockRejectedValue(new Error('403'))
+      }));
+
+      pageInstance.showWelcome.call(pageInstance, 'period_1');
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(pageInstance.data.welcomeVisible).toBe(true);
+      expect(pageInstance.data.welcomeCanWriteLetter).toBe(false);
+      pageInstance.closeWelcome.call(pageInstance);
+      expect(pageInstance.data.welcomeVisible).toBe(false);
+    });
+  });
 });

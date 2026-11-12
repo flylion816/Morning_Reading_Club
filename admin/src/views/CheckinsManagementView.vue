@@ -89,98 +89,18 @@
                   <div class="phone-page-textarea">请输入日记内容...</div>
                 </div>
 
-                <!-- ====== Style A：能量爆发 ====== -->
-                <div v-if="previewStyle === 'A'" :key="'A'+previewKey" class="cel-overlay-web cel-a-web">
-                  <div class="cel-ring-web r1"></div>
-                  <div class="cel-ring-web r2"></div>
-                  <div v-for="n in 12" :key="n" :class="'cel-p-web p'+n"></div>
-                  <div class="cel-card-web card-a-web">
-                    <div class="cel-icon-a-web">✓</div>
-                    <div class="cel-msg-web msg-a-web">{{ previewMessage }}</div>
-                    <div class="cel-hint-web">点击任意处关闭</div>
+                <!-- 七套仪式共用一个版式，这里只示意各自的天空配色（动画以小程序里为准） -->
+                <div :key="previewStyle + previewKey" class="cel-overlay-web rite-web" :class="'rite-' + previewStyle.toLowerCase()">
+                  <div class="rite-sky">
+                    <div class="rite-day">第 <b>7</b> 天</div>
+                    <div class="rite-orb"></div>
                   </div>
-                </div>
-
-                <!-- ====== Style B：书页翻飞 ====== -->
-                <div v-if="previewStyle === 'B'" :key="'B'+previewKey" class="cel-overlay-web cel-b-web">
-                  <div v-for="n in 6" :key="n" :class="'cel-page-web pg'+n"></div>
-                  <div class="cel-card-web card-b-web">
-                    <div class="cel-book-web">📖</div>
-                    <div class="cel-msg-web msg-b-web">{{ previewMessage }}</div>
-                    <div class="cel-hint-web hint-b-web">点击任意处关闭</div>
-                  </div>
-                </div>
-
-                <!-- ====== Style C：光芒升起 ====== -->
-                <div v-if="previewStyle === 'C'" :key="'C'+previewKey" class="cel-overlay-web cel-c-web">
-                  <div class="cel-sheet-web">
-                    <div class="cel-icon-c-web">✓</div>
-                    <div class="cel-title-c-web">打卡成功</div>
-                    <div class="cel-msg-web msg-c-web">{{ previewMessage }}</div>
-                    <div class="cel-dots-web">
-                      <span class="dot-web primary-dot" style="animation-delay:0s"></span>
-                      <span class="dot-web" style="background:#FFD700;animation-delay:0.15s"></span>
-                      <span class="dot-web" style="background:#4ECDC4;animation-delay:0.3s"></span>
-                    </div>
-                    <div class="cel-close-btn-web">好的，继续加油 💪</div>
-                  </div>
-                </div>
-
-                <!-- ====== Style D：碎片裂变 ====== -->
-                <div v-if="previewStyle === 'D'" :key="'D'+previewKey" class="cel-overlay-web cel-d-web">
-                  <div class="shock-web shock-web-1"></div>
-                  <div class="shock-web shock-web-2"></div>
-                  <div class="crack-web crack-web-h"></div>
-                  <div class="crack-web crack-web-v"></div>
-                  <div v-for="n in 10" :key="n" :class="'shard-web shard-web-'+n"></div>
-                  <div class="cel-card-web card-d-web">
-                    <div class="cel-icon-d-web">✹</div>
-                    <div class="cel-msg-web msg-d-web">{{ previewMessage }}</div>
-                    <div class="cel-hint-web">点击任意处关闭</div>
-                  </div>
-                </div>
-
-                <!-- ====== Style E：聚光登场 ====== -->
-                <div v-if="previewStyle === 'E'" :key="'E'+previewKey" class="cel-overlay-web cel-e-web">
-                  <div class="spotlight-web spot-web-left"></div>
-                  <div class="spotlight-web spot-web-right"></div>
-                  <div class="stage-web"></div>
-                  <div class="medal-glow-web"></div>
-                  <div class="stage-star-web stage-star-web-1">★</div>
-                  <div class="stage-star-web stage-star-web-2">★</div>
-                  <div class="stage-star-web stage-star-web-3">★</div>
-                  <div class="cel-card-web card-e-web">
-                    <div class="cel-icon-e-web">🏅</div>
-                    <div class="cel-title-e-web">今日达成</div>
-                    <div class="cel-msg-web msg-e-web">{{ previewMessage }}</div>
-                    <div class="cel-hint-web">点击任意处关闭</div>
-                  </div>
-                </div>
-
-                <!-- ====== Style F：彩带狂欢 ====== -->
-                <div v-if="previewStyle === 'F'" :key="'F'+previewKey" class="cel-overlay-web cel-f-web">
-                  <div v-for="n in 12" :key="n" :class="'confetti-web cf-web-'+n"></div>
-                  <div class="cel-card-web card-f-web">
-                    <div class="cel-icon-f-web">🎊</div>
-                    <div class="cel-title-f-web">打卡成功</div>
-                    <div class="cel-msg-web msg-f-web">{{ previewMessage }}</div>
-                    <div class="hint-f-web">点击任意处关闭</div>
-                  </div>
-                </div>
-
-                <!-- ====== Style G：火箭升空 ====== -->
-                <div v-if="previewStyle === 'G'" :key="'G'+previewKey" class="cel-overlay-web cel-g-web">
-                  <div class="rocket-trail-web trail-web-1"></div>
-                  <div class="rocket-trail-web trail-web-2"></div>
-                  <div class="rocket-trail-web trail-web-3"></div>
-                  <div class="cloud-web cloud-web-1"></div>
-                  <div class="cloud-web cloud-web-2"></div>
-                  <div class="cloud-web cloud-web-3"></div>
-                  <div v-for="n in 4" :key="n" :class="'rocket-spark-web rocket-spark-web-'+n"></div>
-                  <div class="cel-card-web card-g-web">
-                    <div class="cel-icon-g-web">🚀</div>
-                    <div class="cel-msg-web msg-g-web">{{ previewMessage }}</div>
-                    <div class="cel-hint-web">点击任意处关闭</div>
+                  <div class="rite-ground">
+                    <div class="rite-title">读完了，明早见</div>
+                    <div class="rite-say">「{{ previewMessage }}」</div>
+                    <div class="rite-btn">看看大家的打卡</div>
+                    <div class="rite-ghost">分享今日打卡</div>
+                    <div class="rite-note">预览只示意配色和版式</div>
                   </div>
                 </div>
               </div>
@@ -544,13 +464,13 @@ import api from '../services/api';
 const CATEGORIES = ['七个习惯', '晨读', '积累', '励志', '社区'];
 
 const styleOptions = [
-  { value: 'A', icon: '⚡', label: '能量爆发', desc: '深色背景，金色粒子四射' },
-  { value: 'B', icon: '📖', label: '书页翻飞', desc: '浅色背景，书页纷飞' },
-  { value: 'C', icon: '🌅', label: '光芒升起', desc: '底部卡片滑入' },
-  { value: 'D', icon: '💥', label: '碎片裂变', desc: '屏幕裂光闪过，晶片向外爆开' },
-  { value: 'E', icon: '🏅', label: '聚光登场', desc: '舞台聚光扫过，奖章弹出' },
-  { value: 'F', icon: '🎊', label: '彩带狂欢', desc: '彩带飘落，白底欢庆' },
-  { value: 'G', icon: '🚀', label: '火箭升空', desc: '火箭冲出云层，尾焰爆发' },
+  { value: 'A', icon: '⭐', label: '晨星未落', desc: '天快亮了，星星淡下去，留一颗晨星' },
+  { value: 'B', icon: '📖', label: '书页轻翻', desc: '暖纸底，几页纸慢慢飘起' },
+  { value: 'C', icon: '🌅', label: '旭日初升', desc: '整屏日出，太阳从地平线升起' },
+  { value: 'D', icon: '⛰️', label: '远山日出', desc: '三层远山，太阳从山后出来，有一道晨雾' },
+  { value: 'E', icon: '💡', label: '一盏晨灯', desc: '天还没亮，先点一盏灯' },
+  { value: 'F', icon: '🍃', label: '清晨落叶', desc: '几片叶子慢慢落下' },
+  { value: 'G', icon: '🐦', label: '晨鸟出林', desc: '三只鸟从太阳边飞起' },
   { value: 'random', icon: '🎲', label: '随机', desc: '每次随机选一种' },
 ];
 const randomStyleValues = styleOptions.filter(opt => opt.value !== 'random').map(opt => opt.value);
@@ -1716,4 +1636,30 @@ onMounted(() => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* 打卡仪式预览：七个清晨场景的配色示意 */
+.rite-web { position: absolute; inset: 0; display: flex; flex-direction: column; text-align: center; animation: none; }
+.rite-sky { position: relative; flex: 0 0 54%; overflow: hidden; }
+.rite-day { position: absolute; left: 0; right: 0; top: 18%; font-family: Georgia, 'Songti SC', serif; font-size: 16px; color: #8a4b12; letter-spacing: 4px; }
+.rite-day b { font-size: 64px; font-weight: 400; color: #2b2622; margin: 0 4px; }
+.rite-orb { position: absolute; left: 50%; bottom: -70px; width: 150px; height: 150px; margin-left: -75px; border-radius: 50%; background: radial-gradient(circle, #ffd08a 0%, #f6a94f 62%, #ee9b45 100%); box-shadow: 0 0 0 22px rgba(255, 200, 130, 0.28), 0 0 0 50px rgba(255, 200, 130, 0.14); }
+.rite-ground { flex: 1; background: #fffdf8; border-top: 1px solid rgba(138, 75, 18, 0.18); padding: 18px 24px 0; }
+.rite-title { font-family: 'Songti SC', serif; font-size: 20px; color: #2b2622; }
+.rite-say { margin-top: 8px; font-family: 'Songti SC', serif; font-size: 13px; line-height: 1.6; color: #776c5f; white-space: pre-line; }
+.rite-btn { margin: 14px auto 0; width: 78%; padding: 9px 0; border-radius: 20px; background: #325b88; color: #fff; font-size: 13px; font-weight: 600; }
+.rite-ghost { margin: 8px auto 0; width: 78%; padding: 8px 0; border-radius: 20px; border: 1px solid rgba(92, 70, 44, 0.22); color: #2b2622; font-size: 12px; box-sizing: border-box; }
+.rite-note { margin-top: 8px; font-size: 11px; color: #a89c8c; }
+.rite-a .rite-sky { background: linear-gradient(180deg, #25324f 0%, #4a5d86 55%, #b9a6a4 86%, #f6d3a8 100%); }
+.rite-b .rite-sky { background: linear-gradient(180deg, #f6ead4 0%, #fdf6ea 100%); }
+.rite-c .rite-sky { background: linear-gradient(180deg, #f9d7ae 0%, #fbe6c9 70%, #fdf3e3 100%); }
+.rite-d .rite-sky { background: linear-gradient(180deg, #f3c9a3 0%, #f9dcbb 62%, #c9a87f 100%); }
+.rite-e .rite-sky { background: linear-gradient(180deg, #3b2f29 0%, #5a4334 55%, #a9805a 88%, #f3d6ad 100%); }
+.rite-f .rite-sky { background: linear-gradient(180deg, #e9ecd6 0%, #f5f0dc 66%, #fdf3e3 100%); }
+.rite-g .rite-sky { background: linear-gradient(180deg, #cfdfec 0%, #e9e2d6 62%, #fbe6c9 100%); }
+.rite-a .rite-day, .rite-e .rite-day { color: #fbe6c9; }
+.rite-a .rite-day b, .rite-e .rite-day b { color: #fffdf8; }
+.rite-a .rite-orb { width: 12px; height: 12px; margin-left: -6px; bottom: 34px; background: #fff6e0; box-shadow: 0 0 0 8px rgba(255, 226, 176, 0.3), 0 0 36px 16px rgba(255, 214, 150, 0.4); }
+.rite-b .rite-orb, .rite-f .rite-orb { display: none; }
+.rite-e .rite-orb { width: 40px; height: 40px; margin-left: -20px; bottom: 50px; box-shadow: 0 0 60px 40px rgba(255, 208, 138, 0.45); }
+.rite-d .rite-orb, .rite-g .rite-orb { width: 100px; height: 100px; margin-left: -50px; bottom: -30px; }
 </style>

@@ -85,7 +85,10 @@ Page({
     searchLoading: false,
     filteredSections: [],
     searchCheckins: [],
-    themePrimaryColor: THEME_PRIMARY
+    themePrimaryColor: THEME_PRIMARY,
+    // 入营欢迎卡：只在刚报名或刚付完款跳过来时出现一次
+    welcomeVisible: false,
+    welcomeCanWriteLetter: false
   },
 
   onLoad(options) {
@@ -111,7 +114,7 @@ Page({
 
     if (!options.periodId) {
       wx.showToast({
-        title: '参数错误',
+        title: '页面没打开对，返回再进一次',
         icon: 'none'
       });
     }
@@ -126,6 +129,10 @@ Page({
     const isLoggedIn = !!app.globalData.isLogin;
 
     // 注意：periodId 是 MongoDB ObjectId（字符串），不应该转换为整数
+    if (options.welcome === '1' && isLoggedIn) {
+      this.showWelcome(options.periodId);
+    }
+
     this.setData({
       isAdmin: isAdminUser(app.globalData.userInfo || {}),
       periodId: options.periodId,
@@ -640,6 +647,40 @@ Page({
       this.setData({ originsText: '' });
     }
   },
+
+  /**
+   * 入营欢迎卡：先出现，再去问现在能不能写开营信（问不到就不显示写信按钮）
+   */
+  showWelcome(periodId) {
+    this.setData({ welcomeVisible: true, welcomeCanWriteLetter: false });
+    let letterService;
+    try {
+      letterService = require('../../services/letter.service');
+    } catch (_) {
+      return;
+    }
+    Promise.resolve()
+      .then(() => letterService.getPeriodLetter(periodId))
+      .then(letter => {
+        if (this.data.welcomeVisible && letter && letter.canWrite) {
+          this.setData({ welcomeCanWriteLetter: true });
+        }
+      })
+      .catch(() => {});
+  },
+
+  closeWelcome() {
+    this.setData({ welcomeVisible: false });
+  },
+
+  handleWelcomeLetter() {
+    const periodId = this.data.periodId;
+    this.setData({ welcomeVisible: false });
+    if (!periodId) return;
+    wx.navigateTo({ url: `/pages/slow-mail/slow-mail?periodId=${periodId}` });
+  },
+
+  welcomeNoop() {},
 
   /**
    * 跳转到纪念册

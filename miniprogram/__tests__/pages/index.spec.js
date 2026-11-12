@@ -475,6 +475,42 @@ describe('index page', () => {
     });
   });
 
+  test('ended-period keepsake action opens the keepsake of that period', () => {
+    pageInstance.setData({
+      todayTaskEmptyState: { type: 'period-ended', periodId: 'period_resilience' }
+    });
+
+    pageInstance.handleTodayTaskEmptyAction.call(pageInstance, {
+      stopPropagation: jest.fn(),
+      currentTarget: { dataset: { action: 'keepsake' } }
+    });
+
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/keepsake/keepsake?periodId=period_resilience'
+    });
+  });
+
+  test('welcome-back line only shows after a gap and never counts the missed days', () => {
+    const build = pageInstance.buildWelcomeBackText;
+    const now = new Date('2026-11-12T07:00:00');
+    const today = { title: '今日一课', isCheckedIn: false };
+
+    // 昨天刚打过卡：不提示
+    expect(build({ todaySection: today, recentCheckins: [{ dateKey: '2026-11-11' }], now })).toBe('');
+    // 隔了三天以上：欢迎回来，不出现具体天数
+    const back = build({ todaySection: today, recentCheckins: [{ dateKey: '2026-11-08' }, { dateKey: '2026-11-02' }], now });
+    expect(back).toContain('回来就好');
+    expect(back).not.toMatch(/\d/);
+    // 今天已经打卡、或没有今日任务：不提示
+    expect(build({ todaySection: { isCheckedIn: true }, recentCheckins: [{ dateKey: '2026-11-01' }], now })).toBe('');
+    expect(build({ todaySection: null, recentCheckins: [{ dateKey: '2026-11-01' }], now })).toBe('');
+    // 开营几天了还没打过卡：告诉他从今天开始就好
+    expect(build({ todaySection: today, recentCheckins: [], totalCheckinDays: 0, periodDayIndex: 5, now })).toContain('不用补');
+    // 开营头两天、或者打过卡但列表没加载出来：不提示
+    expect(build({ todaySection: today, recentCheckins: [], totalCheckinDays: 0, periodDayIndex: 2, now })).toBe('');
+    expect(build({ todaySection: today, recentCheckins: [], totalCheckinDays: 6, periodDayIndex: 9, now })).toBe('');
+  });
+
   test('should navigate to all periods from task empty action', () => {
     wx.switchTab = jest.fn();
     pageInstance.setData({
@@ -669,7 +705,7 @@ describe('index page', () => {
 
     test('community on, checked in without in-app reading: done, nothing highlighted', () => {
       const c = card({ isCheckedIn: true, readingCompleted: false }, true);
-      expect(c.primary).toEqual({ type: 'done', text: '✓ 今日已完成' });
+      expect(c.primary).toEqual({ type: 'done', text: '今天读完了，明早见' });
       expect(states(c)).toEqual(['done', 'done']);
       expect(c.showReread).toBe(true);
       expect(c.showDirectCheckin).toBe(false);
@@ -1137,13 +1173,14 @@ describe('index page', () => {
     expect(pageInstance.data.todaySection).toBe(null);
     expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
       type: 'period-ended',
-      title: '韧性之树已结营',
+      title: '韧性之树读完了',
       periodId: 'period_resilience',
       primaryAction: {
-        text: '查看结营实录',
-        type: 'report'
+        text: '翻开纪念册',
+        type: 'keepsake'
       },
       secondaryActions: [
+        { text: '看结营实录', type: 'report' },
         { text: '回看课程', type: 'courses' }
       ]
     });
@@ -1230,9 +1267,10 @@ describe('index page', () => {
     expect(pageInstance.data.todaySection).toBe(null);
     expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
       type: 'period-ended',
-      title: '韧性之树已结营',
+      title: '韧性之树读完了',
       periodId: 'period_resilience',
-      primaryAction: null
+      primaryAction: { text: '翻开纪念册', type: 'keepsake' },
+      secondaryActions: [{ text: '回看课程', type: 'courses' }]
     });
   });
 
@@ -1425,7 +1463,7 @@ describe('index page', () => {
       await pageInstance.saveUserProfile();
       expect(pageInstance.data.nicknameError).toBe('');
       expect(pageInstance.data.showEditProfile).toBe(true);
-      expect(wx.showToast).toHaveBeenLastCalledWith(expect.objectContaining({ title: '保存失败，请稍后重试' }));
+      expect(wx.showToast).toHaveBeenLastCalledWith(expect.objectContaining({ title: '没保存上，稍后再试试' }));
     });
   });
 

@@ -411,6 +411,47 @@ describe('Insight Controller - 102+ 完整测试', () => {
       expect(checkinPopulate.select).to.include('-mood');
     });
 
+    it('收信人第一次打开时记下已读时间，且不改 updatedAt；别人打开不记', async () => {
+      const insightId = new mongoose.Types.ObjectId();
+      const mockInsight = {
+        ...fixtures.testInsights.user1ToUser2,
+        _id: insightId,
+        userId: fixtures.testUsers.user1,
+        targetUserId: fixtures.testUsers.user2,
+        readAt: null
+      };
+      const stubDetail = () => {
+        const populateStub = sandbox.stub();
+        populateStub.returnsThis();
+        populateStub.onCall(4).resolves(mockInsight);
+        InsightStub.findById.returns({ populate: populateStub });
+      };
+      InsightStub.updateOne = sandbox.stub().resolves({ modifiedCount: 1 });
+      req.params = { insightId };
+
+      // 写信的人自己看：不算收信人读过
+      stubDetail();
+      req.user = { userId: fixtures.testUsers.user1._id.toString() };
+      await insightController.getInsightDetail(req, res, next);
+      expect(InsightStub.updateOne.called).to.be.false;
+
+      // 收信人打开：记一次
+      stubDetail();
+      req.user = { userId: fixtures.testUsers.user2._id.toString() };
+      await insightController.getInsightDetail(req, res, next);
+      expect(InsightStub.updateOne.calledOnce).to.be.true;
+      const [filter, update, options] = InsightStub.updateOne.firstCall.args;
+      expect(filter).to.deep.equal({ _id: insightId, readAt: null });
+      expect(update.$set.readAt).to.be.instanceOf(Date);
+      expect(options).to.deep.equal({ timestamps: false });
+
+      // 已经读过：不再写
+      mockInsight.readAt = new Date();
+      stubDetail();
+      await insightController.getInsightDetail(req, res, next);
+      expect(InsightStub.updateOne.calledOnce).to.be.true;
+    });
+
     it('TC-INSIGHT-012: Insight 不存在返回 404', async () => {
       const insightId = new mongoose.Types.ObjectId();
       req.params = { insightId };

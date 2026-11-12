@@ -154,7 +154,7 @@ Page({
           wx.navigateBack({ delta: 1 });
         }, 800);
       } else {
-        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+        wx.showToast({ title: '没保存上，再试一次', icon: 'none' });
       }
     } catch (error) {
       const failure = profileError(error);

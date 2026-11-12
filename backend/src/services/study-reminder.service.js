@@ -299,9 +299,9 @@ function buildReminderFields({
 
   return {
     activityName: buildReminderActivityName(period, safeTenantName),
-    activityContent: sectionTitle || `第${dayIndex + 1}课 晨读任务`,
+    activityContent: sectionTitle || `第${dayIndex + 1}课 今天的晨读`,
     startTime: formatShanghaiDateTimeLabel(displayStartTime || sendDate),
-    joinMethod: `进入${safeTenantName}小程序去学习`,
+    joinMethod: `打开${safeTenantName}，一起读`,
   };
 }
 

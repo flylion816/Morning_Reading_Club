@@ -18,7 +18,7 @@
   <!-- 当前用户未参与此时间范围 -->
   <view class="user-card" wx:else>
     <view class="user-info">
-      <text class="empty-message">我在该时间范围内暂无打卡记录</text>
+      <text class="empty-message">这段时间里你还没有打卡</text>
     </view>
     <view class="participant-count">{{participantCount}} 人参与</view>
   </view>

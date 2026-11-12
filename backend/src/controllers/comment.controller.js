@@ -154,7 +154,7 @@ async function createComment(req, res, next) {
       await notifyCommentReceived(req, {
         recipientUserId: checkinOwnerId,
         notificationType: 'comment_received',
-        title: '收到新的评论',
+        title: '有书友给你留了言',
         content: `${actorUser?.nickname || '有人'} 评论了你的打卡`,
         scene: 'comment_received',
         targetPage,
@@ -310,7 +310,7 @@ async function replyToComment(req, res, next) {
       await notifyCommentReceived(req, {
         recipientUserId: targetRecipientId,
         notificationType: 'comment_received',
-        title: '收到新的回复',
+        title: '有书友回复了你',
         content: `${actorUser?.nickname || '有人'} 回复了你的评论`,
         scene: 'comment_received',
         targetPage,
@@ -473,7 +473,7 @@ async function likeComment(req, res, next) {
       await notifyLikeReceived(req, {
         recipientUserId: commentOwnerId,
         notificationType: 'like_received',
-        title: '收到新的点赞',
+        title: '有书友给你点了赞',
         content: `${actorUser?.nickname || '有人'} 点赞了你的评论`,
         scene: 'like_received',
         targetPage,
@@ -605,7 +605,7 @@ async function likeReply(req, res, next) {
       await notifyLikeReceived(req, {
         recipientUserId: replyOwnerId,
         notificationType: 'like_received',
-        title: '收到新的点赞',
+        title: '有书友给你点了赞',
         content: `${actorUser?.nickname || '有人'} 点赞了你的回复`,
         scene: 'like_received',
         targetPage,

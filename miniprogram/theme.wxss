@@ -1,25 +1,25 @@
 /* ⚠️ 由 apply-tenant.js 生成，勿手改。租户: fanren */
 page {
-  --theme-primary: #4a90e2;
-  --theme-primary-dark: #3d76b9;
-  --theme-primary-light: #6ba4e7;
-  --theme-primary-tint: #edf4fc;
-  --theme-primary-soft: rgba(74, 144, 226, 0.14);
-  --theme-primary-shadow: rgba(74, 144, 226, 0.3);
-  --theme-primary-alpha-01: rgba(74, 144, 226, 0.01);
-  --theme-primary-alpha-05: rgba(74, 144, 226, 0.05);
-  --theme-primary-alpha-08: rgba(74, 144, 226, 0.08);
-  --theme-primary-alpha-12: rgba(74, 144, 226, 0.12);
-  --theme-primary-alpha-15: rgba(74, 144, 226, 0.15);
-  --theme-primary-alpha-16: rgba(74, 144, 226, 0.16);
-  --theme-primary-alpha-18: rgba(74, 144, 226, 0.18);
-  --theme-primary-alpha-20: rgba(74, 144, 226, 0.2);
-  --theme-primary-alpha-22: rgba(74, 144, 226, 0.22);
-  --theme-primary-alpha-24: rgba(74, 144, 226, 0.24);
-  --theme-primary-alpha-26: rgba(74, 144, 226, 0.26);
-  --theme-primary-alpha-28: rgba(74, 144, 226, 0.28);
-  --theme-primary-alpha-30: rgba(74, 144, 226, 0.3);
-  --theme-primary-alpha-40: rgba(74, 144, 226, 0.4);
-  --theme-primary-alpha-55: rgba(74, 144, 226, 0.55);
+  --theme-primary: #3d6fa6;
+  --theme-primary-dark: #325b88;
+  --theme-primary-light: #6089b6;
+  --theme-primary-tint: #ecf1f6;
+  --theme-primary-soft: rgba(61, 111, 166, 0.14);
+  --theme-primary-shadow: rgba(61, 111, 166, 0.3);
+  --theme-primary-alpha-01: rgba(61, 111, 166, 0.01);
+  --theme-primary-alpha-05: rgba(61, 111, 166, 0.05);
+  --theme-primary-alpha-08: rgba(61, 111, 166, 0.08);
+  --theme-primary-alpha-12: rgba(61, 111, 166, 0.12);
+  --theme-primary-alpha-15: rgba(61, 111, 166, 0.15);
+  --theme-primary-alpha-16: rgba(61, 111, 166, 0.16);
+  --theme-primary-alpha-18: rgba(61, 111, 166, 0.18);
+  --theme-primary-alpha-20: rgba(61, 111, 166, 0.2);
+  --theme-primary-alpha-22: rgba(61, 111, 166, 0.22);
+  --theme-primary-alpha-24: rgba(61, 111, 166, 0.24);
+  --theme-primary-alpha-26: rgba(61, 111, 166, 0.26);
+  --theme-primary-alpha-28: rgba(61, 111, 166, 0.28);
+  --theme-primary-alpha-30: rgba(61, 111, 166, 0.3);
+  --theme-primary-alpha-40: rgba(61, 111, 166, 0.4);
+  --theme-primary-alpha-55: rgba(61, 111, 166, 0.55);
   --theme-on-primary: #ffffff;
 }

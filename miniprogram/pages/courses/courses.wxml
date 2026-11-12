@@ -158,6 +158,19 @@
       </view>
     </view>
   </scroll-view>
+
+  <!-- 入营欢迎卡 -->
+  <view class="welcome-mask" wx:if="{{welcomeVisible}}" catchtap="closeWelcome" catchtouchmove="welcomeNoop">
+    <view class="welcome-card" catchtap="welcomeNoop">
+      <view class="welcome-sun"></view>
+      <view class="app-seal app-seal-dawn welcome-seal">营</view>
+      <text class="welcome-title">欢迎入营</text>
+      <text class="welcome-period" wx:if="{{periodName}}">{{periodName}}</text>
+      <text class="welcome-text">从开营那天起，每天清晨读一课，写几句自己的话。不用赶，也不用比，按你的步子来。</text>
+      <view class="welcome-btn" wx:if="{{welcomeCanWriteLetter}}" hover-class="welcome-btn-hover" catchtap="handleWelcomeLetter">给结营那天的自己写封信</view>
+      <view class="{{welcomeCanWriteLetter ? 'welcome-link' : 'welcome-btn'}}" hover-class="welcome-btn-hover" catchtap="closeWelcome">{{welcomeCanWriteLetter ? '先看看课程' : '看看课程'}}</view>
+    </view>
+  </view>
 </view>
 
 <podcast-player-bar />
