@@ -18,7 +18,7 @@ const CHAPTERS = [
   { name: '我写下的', keys: ['numbers', 'earliest', 'moods', 'top', 'highlights'] },
   { name: '每一天', keys: ['days'] },
   { name: '同行的人', keys: ['companions', 'seen', 'buddy'] },
-  { name: '写给自己的', keys: ['letter', 'practices'] },
+  { name: '写给自己的', keys: ['practices'] },
   { name: '小凡的话', keys: ['insights'] },
   { name: '分享实录', keys: ['report'] }
 ];
@@ -34,7 +34,6 @@ function hasPage(key, data) {
     case 'companions': return !!(data.companions && data.companions.length);
     case 'seen': return data.seenCount > 0;
     case 'buddy': return !!data.buddy;
-    case 'letter': return !!data.letter;
     case 'practices': return !!(data.practices && data.practices.length);
     // 旧版接口只有一段摘录，也照样显示
     case 'insights': return !!((data.insights && data.insights.length) || data.insightExcerpt);
@@ -43,8 +42,22 @@ function hasPage(key, data) {
   }
 }
 
+// 开营时写的那封信是整本册子的开篇，拆信后的回信是后记
+function hasPrologue(data) {
+  const letter = data.letter;
+  if (!letter) return false;
+  // 旧版接口没有 status，只在拆开后才返回
+  return !letter.status || ['opened', 'delivered', 'sealed'].includes(letter.status);
+}
+
+function hasEpilogue(data) {
+  const letter = data.letter;
+  return !!(letter && (!letter.status || letter.status === 'opened') && letter.reply);
+}
+
 function buildPages(data) {
   const pages = [{ key: 'cover' }];
+  if (hasPrologue(data)) pages.push({ key: 'prologue', chapter: '开篇' });
   CHAPTERS.forEach((chapter) => {
     let first = true;
     chapter.keys.forEach((key) => {
@@ -53,7 +66,7 @@ function buildPages(data) {
       first = false;
     });
   });
-  pages.push({ key: 'end' });
+  pages.push(hasEpilogue(data) ? { key: 'epilogue', chapter: '后记' } : { key: 'end' });
   return pages;
 }
 
@@ -71,6 +84,14 @@ function resolveTotalDays(period = {}) {
     return Math.round((end - start) / 86400000) + 1;
   }
   return 0;
+}
+
+function getLetterPrologueLabel(letter) {
+  const days = letter && letter.daysSinceWritten;
+  if (typeof days === 'number' && days >= 0) {
+    return days === 0 ? '今天，你写下' : `${days} 天前，你写下`;
+  }
+  return '那时候，你写下';
 }
 
 function decorate(data) {
@@ -97,6 +118,8 @@ function decorate(data) {
     finished: data.finished !== false,
     totalDays: resolveTotalDays(data.period),
     sealChar: Array.from(periodName)[0] || '读',
+    letterStatus: data.letter ? data.letter.status || 'opened' : '',
+    letterPrologueLabel: getLetterPrologueLabel(data.letter),
     pages: buildPages(data)
   };
 }
@@ -121,6 +144,12 @@ Page({
       return;
     }
     this.loadKeepsake();
+  },
+
+  onShow() {
+    if (!this.refreshAfterLetter) return;
+    this.refreshAfterLetter = false;
+    return this.loadKeepsake();
   },
 
   async loadKeepsake() {
@@ -160,6 +189,12 @@ Page({
       keepsake.pages = buildPages(keepsake);
       this.setData({ keepsake });
     } catch (error) {}
+  },
+
+  // 开篇里「去拆信」：拆信这个动作留在慢递邮局里做
+  onOpenLetter() {
+    this.refreshAfterLetter = true;
+    wx.navigateTo({ url: `/pages/slow-mail/slow-mail?periodId=${this.data.periodId}` });
   },
 
   onOpenReport() {

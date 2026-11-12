@@ -2,12 +2,12 @@ const ImprintActivityType = require('../models/ImprintActivityType');
 const { success, errors } = require('../utils/response');
 
 const DEFAULT_TYPES = [
-  { key: 'reading', label: '读书会', emoji: '📚', sortOrder: 0 },
-  { key: 'cooking', label: '做饭', emoji: '🍳', sortOrder: 1 },
-  { key: 'tea', label: '喝茶', emoji: '☕', sortOrder: 2 },
-  { key: 'walk', label: '散步', emoji: '🚶', sortOrder: 3 },
-  { key: 'create', label: '创作', emoji: '🎨', sortOrder: 4 },
-  { key: 'other', label: '其他', emoji: '✨', sortOrder: 5 }
+  { key: 'reading', label: '读书会', emoji: '读', sortOrder: 0 },
+  { key: 'cooking', label: '做饭', emoji: '做', sortOrder: 1 },
+  { key: 'tea', label: '喝茶', emoji: '茶', sortOrder: 2 },
+  { key: 'walk', label: '散步', emoji: '行', sortOrder: 3 },
+  { key: 'create', label: '创作', emoji: '创', sortOrder: 4 },
+  { key: 'other', label: '其他', emoji: '聚', sortOrder: 5 }
 ];
 
 async function list(req, res) {

@@ -9,7 +9,7 @@
       </view>
       <view class="user-details">
         <view class="user-rank">{{currentUser.rankText}}</view>
-        <view class="user-stats">已打卡 {{currentUser.checkinCount}} 天</view>
+        <view class="user-stats">已写下 {{currentUser.checkinCount}} 天</view>
       </view>
     </view>
     <view class="participant-count">{{participantCount}} 人参与</view>

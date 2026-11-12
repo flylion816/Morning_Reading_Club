@@ -25,8 +25,8 @@ function getPeriodName(period) {
 }
 
 function getPeriodIcon(period) {
-  if (!period || typeof period !== 'object') return '📚';
-  return period.icon || period.coverEmoji || '📚';
+  if (!period || typeof period !== 'object') return '读';
+  return period.icon || period.coverEmoji || '读';
 }
 
 function buildFieldVisibility(template = {}) {
@@ -95,7 +95,7 @@ Page({
     periodList: [],
     selectedPeriodIndex: 0,
     selectedPeriodName: '',
-    selectedPeriodIcon: '📚',
+    selectedPeriodIcon: '读',
     enrollmentTemplate: { mode: 'full', isSimple: false, name: '七个习惯完整版', fields: [] },
     fieldVisibility: {},
     fieldRequired: {},

@@ -214,6 +214,7 @@ describe('index page', () => {
   });
 
   afterEach(() => {
+    if (pageInstance && pageInstance._todayCardTimer) clearTimeout(pageInstance._todayCardTimer);
     jest.useRealTimers();
     delete global.Page;
     delete global.getApp;
@@ -511,6 +512,84 @@ describe('index page', () => {
     expect(build({ todaySection: today, recentCheckins: [], totalCheckinDays: 6, periodDayIndex: 9, now })).toBe('');
   });
 
+  test('sky starts at the left end on first show, then moves to the position for now', () => {
+    jest.useFakeTimers();
+    try {
+      const noon = new Date(2026, 10, 12, 12, 0);
+      pageInstance.refreshSky.call(pageInstance, noon);
+      expect(pageInstance.data).toMatchObject({ skyBody: 'sun', skyPhase: 'noon', skyReady: false });
+      expect(pageInstance.data.skyAngle).toBeLessThan(-28);
+
+      // 首屏还是骨架（问候区没出来）时先不动
+      pageInstance.data.loading = true;
+      pageInstance.data.userStats = null;
+      jest.advanceTimersByTime(1000);
+      expect(pageInstance.data.skyReady).toBe(false);
+
+      // 问候区出来了，才开始往上升
+      pageInstance.data.loading = false;
+      jest.advanceTimersByTime(400);
+      expect(pageInstance.data).toMatchObject({ skyAngle: 0, skyReady: true });
+
+      // 再回到首页：不重播，直接挪到新位置
+      pageInstance.refreshSky.call(pageInstance, new Date(2026, 10, 12, 20, 0));
+      expect(pageInstance.data).toMatchObject({ skyBody: 'moon', skyPhase: 'moon-crescent', skyReady: true });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('tapping the home envelope plays the opening transition before entering the letter', () => {
+    jest.useFakeTimers();
+    try {
+      wx.navigateTo = jest.fn();
+      pageInstance.ensurePaidFeatureAccess = jest.fn(() => true);
+      pageInstance.setData({ recentInsights: [{ id: 'insight_1', unread: true }] });
+      const tap = { currentTarget: { dataset: { id: 'insight_1' } } };
+
+      pageInstance.handleInsightClick.call(pageInstance, tap);
+      expect(pageInstance.data.envOpening).toBe(true);
+      expect(pageInstance.data.recentInsights[0].unread).toBe(false);
+      expect(wx.navigateTo).not.toHaveBeenCalled();
+
+      // 拆信过程中再点不会重复触发
+      pageInstance.handleInsightClick.call(pageInstance, tap);
+      jest.advanceTimersByTime(2900);
+      expect(wx.navigateTo).toHaveBeenCalledTimes(1);
+      expect(wx.navigateTo.mock.calls[0][0].url).toBe('/pages/insight-detail/insight-detail?id=insight_1');
+
+      jest.advanceTimersByTime(800);
+      expect(pageInstance.data.envOpening).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('home letter note: write in the first days, open when delivered, gone after sealing or opening', () => {
+    const build = pageInstance.buildHomeLetterNote;
+    expect(build({ status: 'none', canWrite: true }, 2)).toMatchObject({ kind: 'write', cta: '去写信' });
+    expect(build({ status: 'none', canWrite: true }, 0)).toMatchObject({ kind: 'write' }); // 开营前几天
+    expect(build({ status: 'draft', canWrite: true }, 3)).toMatchObject({ kind: 'write', cta: '接着写' });
+    expect(build({ status: 'none', canWrite: true }, 4)).toBe(null); // 第四天起只在营地角落里
+    expect(build({ status: 'sealed', canWrite: false }, 2)).toBe(null);
+    // 寄出当天显示「去查看」，第二天起收起来
+    const sealed = { status: 'sealed', canWrite: false, daysToDeliver: 21, sealedAt: '2026-11-12T03:00:00+08:00' };
+    expect(build(sealed, 1, { todayKey: '2026-11-12' })).toMatchObject({ kind: 'sealed', cta: '去查看' });
+    expect(build(sealed, 2, { todayKey: '2026-11-13' })).toBe(null);
+    // 后端还没返回 sealedAt 时用本机记下的寄出日期
+    expect(build({ status: 'sealed', daysToDeliver: 21 }, 1, { todayKey: '2026-11-12', sealedKey: '2026-11-12' })).toMatchObject({ kind: 'sealed' });
+    expect(build({ status: 'delivered', canWrite: false }, 23)).toMatchObject({ kind: 'arrived', cta: '拆开' });
+    expect(build({ status: 'opened', canWrite: false }, 23)).toBe(null);
+    expect(build(null, 1)).toBe(null);
+  });
+
+  test('today task is limited to the seven habits course template', () => {
+    const uses = pageInstance.usesSevenHabitsCourseTemplate;
+    expect(uses(null)).toBe(true);
+    expect(uses({ courseTemplateSnapshot: { templateId: 'seven-habits' } })).toBe(true);
+    expect(uses({ courseTemplateSnapshot: { templateId: '681f000000000000000000aa' } })).toBe(false);
+  });
+
   test('should navigate to all periods from task empty action', () => {
     wx.switchTab = jest.fn();
     pageInstance.setData({
@@ -579,6 +658,61 @@ describe('index page', () => {
       },
       secondaryActions: []
     });
+  });
+
+  test('should hide the today task board for custom course templates', async () => {
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '小狐狸'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 5 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_custom',
+          title: '空间管理',
+          name: '空间管理',
+          startDate: '2000-01-01T00:00:00.000Z',
+          endDate: '2099-12-31T00:00:00.000Z',
+          courseTemplateSnapshot: {
+            templateId: '681f000000000000000000aa',
+            name: '空间管理'
+          }
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [
+        {
+          periodId: 'period_custom',
+          status: 'active',
+          paymentStatus: 'paid'
+        }
+      ]
+    });
+    courseService.getTodayTask.mockResolvedValue({
+      sectionId: 'section_custom',
+      periodId: 'period_custom',
+      day: 1
+    });
+    courseService.getSectionDetail.mockResolvedValue({
+      _id: 'section_custom',
+      title: '观察空间'
+    });
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: true,
+      communityAccessState: 'enabled',
+      paymentStatus: 'paid'
+    });
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+    await Promise.resolve();
+
+    expect(courseService.getSectionDetail).not.toHaveBeenCalled();
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    expect(pageInstance.data.todaySection).toBe(null);
+    expect(pageInstance.data.todayTaskEmptyState).toBe(null);
+    expect(pageInstance.data.homeSections.map(item => item.key)).not.toContain('todayTask');
   });
 
   test('should fetch checkin detail when recent card is missing sectionId', async () => {
@@ -700,46 +834,134 @@ describe('index page', () => {
   });
 
   describe('today card state', () => {
-    const card = (section, enabled) => pageConfig.buildTodayCardState(section, enabled);
-    const states = c => c.steps.map(step => step.state);
+    const at = time => new Date(`2026-11-12T${time}+08:00`);
+    const card = (section, enabled, time) => pageConfig.buildTodayCardState(section, enabled, at(time));
 
-    test('community on, checked in without in-app reading: done, nothing highlighted', () => {
-      const c = card({ isCheckedIn: true, readingCompleted: false }, true);
-      expect(c.primary).toEqual({ type: 'done', text: '今天读完了，明早见' });
-      expect(states(c)).toEqual(['done', 'done']);
-      expect(c.showReread).toBe(true);
-      expect(c.showDirectCheckin).toBe(false);
+    test.each([
+      ['04:59:00', 'night', 'read'],
+      ['05:00:00', 'morning', 'read'],
+      ['07:29:59', 'morning', 'read'],
+      ['07:30:00', 'day', 'checkin'],
+      ['23:59:00', 'day', 'checkin']
+    ])('北京时间 %s 显示 %s 时段和 %s 主操作', (time, phase, primary) => {
+      const state = card({}, true, time);
+      expect(state.phase).toBe(phase);
+      expect(state.primary.type).toBe(primary);
+      if (primary === 'read') expect(state.showDirectCheckin).toBe(true);
+      else expect(state.showReadingLink).toBe(true);
     });
 
-    test('community on, read but not checked in: go check in', () => {
-      const c = card({ readingCompleted: true }, true);
-      expect(c.primary.type).toBe('checkin');
-      expect(states(c)).toEqual(['done', 'current']);
-      expect(c.showReread).toBe(true);
+    test('已读未打卡优先打卡，保留再读入口', () => {
+      const state = card({ readingCompleted: true }, true, '05:30:00');
+      expect(state.primary).toEqual({ type: 'checkin', text: '去打卡' });
+      expect(state.readingLinkText).toBe('再读一遍');
+      expect(state.showReadingLink).toBe(true);
     });
 
-    test('community on, not read and not checked in: start reading with direct check-in link', () => {
-      const c = card({}, true);
-      expect(c.primary).toEqual({ type: 'read', text: '开始晨读' });
-      expect(states(c)).toEqual(['current', 'todo']);
-      expect(c.showDirectCheckin).toBe(true);
-      expect(c.showReread).toBe(false);
+    test('已打卡优先于时段，文案不假定在小程序内读完', () => {
+      for (const time of ['04:00:00', '06:00:00', '12:00:00']) {
+        const state = card({ isCheckedIn: true, readingCompleted: false }, true, time);
+        expect(state.primary).toEqual({ type: 'read', text: '再读一遍' });
+        expect(state.message).toContain('今天已打卡');
+        expect(state.showDailyCard).toBe(true);
+        expect(state.showDirectCheckin).toBe(false);
+      }
     });
 
-    test('community off: start reading with study link, then study', () => {
-      const unread = card({}, false);
+    test('没有社群权限始终保留学习入口，不显示打卡或日签入口', () => {
+      const unread = card({}, false, '12:00:00');
       expect(unread.primary.type).toBe('read');
       expect(unread.showStudy).toBe(true);
-      expect(unread.steps.map(step => step.key)).toEqual(['read']);
-      const read = card({ readingCompleted: true }, false);
+      expect(unread.showDirectCheckin).toBe(false);
+      const read = card({ readingCompleted: true }, false, '12:00:00');
       expect(read.primary).toEqual({ type: 'study', text: '去学习' });
-      expect(read.showStudy).toBe(false);
+      expect(read.showDailyCard).toBe(false);
     });
 
-    test('podcast step is optional and never highlighted', () => {
-      const c = card({ isCheckedIn: true, podcastUrl: 'x' }, true);
-      expect(states(c)).toEqual(['done', 'done', 'todo']);
+    test('打卡状态取不到时不冒充已完成，保留可用入口', () => {
+      const state = card({ isCheckedIn: true, checkinStateKnown: false }, true, '12:00:00');
+      expect(state.checkedIn).toBe(false);
+      expect(state.message).toContain('暂时没取到');
+      expect(state.primary.type).toBe('read');
+      expect(state.showDirectCheckin).toBe(true);
     });
+
+    test('下一次切换使用北京时间而不是设备时区', () => {
+      const state = pageConfig.getTodayCardTime(new Date('2026-11-11T23:29:00Z'));
+      expect(state).toMatchObject({ dateKey: '2026-11-12', phase: 'morning' });
+      expect(new Date(state.nextChangeAt).toISOString()).toBe('2026-11-11T23:30:00.000Z');
+    });
+  });
+
+  test('首页停留跨过 7:30 自动切换，隐藏时清理计时器', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-11-11T23:29:59.900Z'));
+    pageInstance._isPageVisible = true;
+    pageInstance.setData({
+      canAccessCurrentPeriodCommunity: true,
+      todaySection: { _id: 's1', readingCompleted: false, isCheckedIn: false }
+    });
+    pageInstance.refreshTodayCard();
+    pageInstance.scheduleTodayCardRefresh();
+    expect(pageInstance.data.todayCard.primary.type).toBe('read');
+    jest.advanceTimersByTime(150);
+    expect(pageInstance.data.todayCard.primary.type).toBe('checkin');
+    pageInstance.onHide();
+    expect(pageInstance._todayCardTimer).toBeNull();
+  });
+
+  test('跨北京时间午夜先移除旧课节并刷新当天任务', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-11-12T15:59:59.900Z'));
+    pageInstance._isPageVisible = true;
+    pageInstance._todayCardDate = '2026-11-12';
+    pageInstance.setData({ isLogin: true, todaySection: { _id: 'old' }, todayCard: { checkedIn: true } });
+    pageInstance.loadUserData = jest.fn();
+    pageInstance.scheduleTodayCardRefresh();
+    jest.advanceTimersByTime(150);
+    expect(pageInstance.data.todaySection).toBeNull();
+    expect(pageInstance.data.todayCard).toBeNull();
+    expect(pageInstance.data.todayTaskEmptyState.type).toBe('load-error');
+    expect(pageInstance.loadUserData).toHaveBeenCalledTimes(1);
+    pageInstance.onHide();
+  });
+
+  test('完成阅读后立即返回首页时使用本地完成状态', () => {
+    const reading = require('../../utils/reading-completion');
+    reading.decorateSectionWithReadingCompletion.mockImplementationOnce(section => ({ ...section, readingCompleted: true }));
+    pageInstance.setData({
+      canAccessCurrentPeriodCommunity: true,
+      todaySection: { _id: 's1', readingCompleted: false, isCheckedIn: false }
+    });
+    pageInstance.refreshTodayCard(new Date('2026-11-11T22:00:00Z'));
+    expect(pageInstance.data.todaySection.readingCompleted).toBe(true);
+    expect(pageInstance.data.todayCard.primary.type).toBe('checkin');
+  });
+
+  test('新增或删除打卡后返回首页时绕过 30 秒数据节流', () => {
+    jest.useFakeTimers();
+    const app = { globalData: { checkinListDirty: true } };
+    global.getApp = jest.fn(() => app);
+    pageInstance._lastLoadTime = Date.now();
+    pageInstance.setData({
+      canAccessCurrentPeriodCommunity: true,
+      todaySection: { _id: 's1', isCheckedIn: true }
+    });
+    pageInstance.refreshDaypart = jest.fn();
+    pageInstance.loadRecentCheckins = jest.fn(() => Promise.resolve([]));
+    pageInstance.checkLoginStatus = jest.fn();
+    pageInstance.onShow();
+    expect(pageInstance.checkLoginStatus).toHaveBeenCalledWith({ refreshUserData: true });
+    expect(pageInstance.data.todaySection.checkinStateKnown).toBe(false);
+    expect(pageInstance.data.todayCard.checkedIn).toBe(false);
+    expect(app.globalData.checkinListDirty).toBe(false);
+    pageInstance.onHide();
+  });
+
+  test('今日任务加载失败后可以重新加载', () => {
+    pageInstance.loadUserData = jest.fn();
+    pageInstance.handleTodayTaskEmptyAction({ currentTarget: { dataset: { action: 'retry' } } });
+    expect(pageInstance.loadUserData).toHaveBeenCalledTimes(1);
   });
 
   test('journey line shows the streak only when currentStreak is above zero', () => {

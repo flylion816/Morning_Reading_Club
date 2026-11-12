@@ -21,17 +21,18 @@
     <view class="journal-nums">
       <view class="journal-num">
         <text class="journal-num-value">{{stats.totalCheckinDays || 0}}</text>
-        <text class="journal-num-label">累计晨读 · 天</text>
+        <text class="journal-num-label">写下 · 天</text>
       </view>
       <view class="journal-num">
         <text class="journal-num-value">{{stats.currentStreak || 0}}</text>
-        <text class="journal-num-label">连续 · 天</text>
+        <text class="journal-num-label">连续晨读 · 天</text>
       </view>
       <view class="journal-num">
         <text class="journal-num-value">{{stats.maxStreak || 0}}</text>
-        <text class="journal-num-label">最长连续 · 天</text>
+        <text class="journal-num-label">最长连续晨读 · 天</text>
       </view>
     </view>
+    <text class="journal-num-hint">读完是完成当天阅读，写下是发布打卡；连续晨读按自然日计算。</text>
 
     <!-- 晨读日历 -->
     <view wx:if="{{canUsePaidFeatures}}" class="journal-card">

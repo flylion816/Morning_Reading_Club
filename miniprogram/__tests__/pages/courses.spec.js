@@ -102,6 +102,19 @@ describe('courses page', () => {
     expect(pageInstance.data.allCheckins[0].contentExpanded).toBe(true);
   });
 
+  test('should toggle the compact search card without changing the active tab', () => {
+    pageInstance.setData({ currentTab: 'dynamics' });
+
+    expect(pageInstance.data.searchExpanded).toBe(false);
+    pageInstance.toggleSearch.call(pageInstance);
+    expect(pageInstance.data.searchExpanded).toBe(true);
+    expect(pageInstance.data.currentTab).toBe('dynamics');
+
+    pageInstance.toggleSearch.call(pageInstance);
+    expect(pageInstance.data.searchExpanded).toBe(false);
+    expect(pageInstance.data.currentTab).toBe('dynamics');
+  });
+
   test('should keep image-only checkins visible with image count summary', async () => {
     courseService.getPeriodCheckins.mockResolvedValue({
       list: [

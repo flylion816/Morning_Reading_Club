@@ -462,6 +462,12 @@ export const uploadApi = {
 };
 
 // 在场印记 API
+// 慢递邮局：书友写给结营那天的自己的信
+export const letterApi = {
+  getLetters: (params?: any) => apiClient.get('/letters/admin/list', { params }),
+  deleteLetter: (id: string) => apiClient.delete(`/letters/admin/${id}`)
+};
+
 export const imprintApi = {
   getImprints: (params?: any) => apiClient.get('/imprints/admin/list', { params }),
   getImprintDetail: (id: string) => apiClient.get(`/imprints/${id}`),

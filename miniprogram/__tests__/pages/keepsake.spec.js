@@ -131,10 +131,10 @@ describe('keepsake page', () => {
     await page.loadKeepsake();
     const pages = page.data.keepsake.pages;
     expect(pages.map(item => item.key)).toEqual([
-      'cover', 'numbers', 'earliest', 'moods', 'top', 'days', 'seen', 'buddy', 'letter', 'practices', 'insights', 'end'
+      'cover', 'prologue', 'numbers', 'earliest', 'moods', 'top', 'days', 'seen', 'buddy', 'practices', 'insights', 'end'
     ]);
     expect(pages.filter(item => item.chapter).map(item => `${item.key}:${item.chapter}`)).toEqual([
-      'numbers:我写下的', 'days:每一天', 'seen:同行的人', 'letter:写给自己的', 'insights:小凡的话'
+      'prologue:开篇', 'numbers:我写下的', 'days:每一天', 'seen:同行的人', 'practices:写给自己的', 'insights:小凡的话'
     ]);
     expect(page.data.keepsake.finished).toBe(false);
     expect(page.data.keepsake.days[0].dateText).toBe('11.12');
@@ -162,5 +162,81 @@ describe('keepsake page', () => {
     await page.loadKeepsake();
     expect(page.data.ready).toBe(false);
     expect(page.data.notStarted).toBe(true);
+  });
+
+  test('开营写的信是开篇、回信是后记；没拆的信只露信封，点了去慢递邮局拆', async () => {
+    service.getPeriodKeepsake.mockResolvedValue({ ...full, letter: { status: 'opened', content: '给自己', reply: '读完了', daysSinceWritten: 42 } });
+    page.data.periodId = 'p1';
+    await page.loadKeepsake();
+    let keys = page.data.keepsake.pages.map(item => item.key);
+    expect(keys[1]).toBe('prologue');
+    expect(keys[keys.length - 1]).toBe('epilogue');
+    expect(keys).not.toContain('end');
+    expect(page.data.keepsake.letterStatus).toBe('opened');
+    expect(page.data.keepsake.letterPrologueLabel).toBe('42 天前，你写下');
+
+    service.getPeriodKeepsake.mockResolvedValue({ ...full, letter: { status: 'opened', content: '给自己', reply: '', daysSinceWritten: 0 } });
+    await page.loadKeepsake();
+    expect(page.data.keepsake.letterPrologueLabel).toBe('今天，你写下');
+    expect(page.data.keepsake.pages.map(item => item.key)).not.toContain('epilogue');
+    expect(page.data.keepsake.pages.map(item => item.key).slice(-1)).toEqual(['end']);
+
+    service.getPeriodKeepsake.mockResolvedValue({ ...full, letter: { status: 'delivered' } });
+    await page.loadKeepsake();
+    keys = page.data.keepsake.pages.map(item => item.key);
+    expect(keys[1]).toBe('prologue');
+    expect(keys).not.toContain('epilogue');
+    expect(page.data.keepsake.letterStatus).toBe('delivered');
+    global.wx.navigateTo = jest.fn();
+    page.onOpenLetter();
+    expect(global.wx.navigateTo).toHaveBeenLastCalledWith({ url: '/pages/slow-mail/slow-mail?periodId=p1' });
+
+    service.getPeriodKeepsake.mockResolvedValue({ ...full, letter: null });
+    await page.loadKeepsake();
+    expect(page.data.keepsake.pages.map(item => item.key)).not.toContain('prologue');
+  });
+
+  test('信还在路上也显示开篇和本期邮局入口', async () => {
+    service.getPeriodKeepsake.mockResolvedValue({ ...full, letter: { status: 'sealed' } });
+    page.data.periodId = 'p1';
+    await page.loadKeepsake();
+    expect(page.data.keepsake.letterStatus).toBe('sealed');
+    expect(page.data.keepsake.pages[1].key).toBe('prologue');
+    expect(page.data.keepsake.pages.map(item => item.key)).not.toContain('epilogue');
+    global.wx.navigateTo = jest.fn();
+    page.onOpenLetter();
+    expect(global.wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/slow-mail/slow-mail?periodId=p1' });
+  });
+
+  test('有分享实录时回信仍是最后一页', async () => {
+    const reportService = require('../../services/completion-report.service');
+    reportService.getReportDetail.mockResolvedValueOnce({ hasReport: true, title: '分享实录' });
+    service.getPeriodKeepsake.mockResolvedValue({
+      ...full, letter: { status: 'opened', content: '给自己', reply: '谢谢' }
+    });
+    page.data.periodId = 'p1';
+    await page.loadKeepsake();
+    await Promise.resolve();
+    expect(page.data.keepsake.pages.map(item => item.key).slice(-2)).toEqual(['report', 'epilogue']);
+  });
+
+  test('从慢递邮局返回时刷新同一期，展示刚拆开的信和回信', async () => {
+    service.getPeriodKeepsake.mockResolvedValue({ ...full, letter: { status: 'delivered' } });
+    page.data.periodId = 'p1';
+    await page.loadKeepsake();
+    global.wx.navigateTo = jest.fn();
+    page.onOpenLetter();
+
+    service.getPeriodKeepsake.mockResolvedValue({
+      ...full,
+      letter: { status: 'opened', content: '刚拆开的信', reply: '刚写的回信' }
+    });
+    await page.onShow();
+    expect(page.data.keepsake.letter.content).toBe('刚拆开的信');
+    expect(page.data.keepsake.pages.map(item => item.key)).toContain('epilogue');
+    expect(service.getPeriodKeepsake).toHaveBeenLastCalledWith('p1');
+    const calls = service.getPeriodKeepsake.mock.calls.length;
+    await page.onShow();
+    expect(service.getPeriodKeepsake).toHaveBeenCalledTimes(calls);
   });
 });

@@ -1,3 +1,16 @@
+<template name="booklet-ending">
+  <block wx:if="{{!finished}}">
+    <view class="ks-title ks-title-sm">册子还没写完</view>
+    <view class="ks-sub">{{hasReply ? '接下来的日子，也会慢慢收进这本册子' : '明早见。结营那天，再回来翻到最后一页'}}</view>
+    <view class="app-btn-secondary ks-btn" bindtap="onBackToCourse">回到课程页</view>
+  </block>
+  <block wx:else>
+    <view class="ks-title">{{totalDays ? '谢谢你，一起走完这 ' + totalDays + ' 天' : '谢谢你，一起走完这段日子'}}</view>
+    <button class="app-btn-primary ks-btn" open-type="share">邀请一位朋友加入下一期</button>
+    <view class="app-btn-secondary ks-btn" bindtap="onBackToCourse">回到课程页</view>
+  </block>
+</template>
+
 <view class="ks-page">
   <view wx:if="{{loading}}" class="ks-screen">
     <view class="app-skeleton ks-skel"></view>
@@ -126,10 +139,36 @@
           </view>
         </block>
 
-        <block wx:elif="{{item.key === 'letter'}}">
-          <view class="ks-label">开营时写给自己的信</view>
-          <view class="app-card ks-card ks-quote">{{keepsake.letter.content}}</view>
-          <view wx:if="{{keepsake.letter.reply}}" class="app-card ks-card ks-quote">回信：{{keepsake.letter.reply}}</view>
+        <block wx:elif="{{item.key === 'prologue' && keepsake.letterStatus === 'opened'}}">
+          <view class="ks-label">{{keepsake.letterPrologueLabel}}</view>
+          <view class="ks-letter">
+            <text class="ks-letter-to">写给结营那天的我：</text>
+            <text class="ks-letter-body">{{keepsake.letter.content}}</text>
+            <text class="ks-letter-sign">那时的你</text>
+          </view>
+          <view class="ks-sub">{{keepsake.totalDays ? '往后翻的每一页，都是这 ' + keepsake.totalDays + ' 天给它的回答' : '往后翻的每一页，都是这段日子给它的回答'}}</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'prologue' && keepsake.letterStatus === 'delivered'}}">
+          <view class="ks-envelope"><view class="ks-envelope-flap"></view><view class="ks-envelope-wax">凡</view></view>
+          <view class="ks-title ks-title-sm">有一封信还没拆</view>
+          <view class="ks-sub">开营时你写给今天的自己。先去拆开它，再回来翻这本册子</view>
+          <view class="app-btn-primary ks-btn" bindtap="onOpenLetter">去拆信</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'prologue'}}">
+          <view class="ks-envelope"><view class="ks-envelope-flap"></view><view class="ks-envelope-wax">凡</view></view>
+          <view class="ks-title ks-title-sm">有一封信还没拆</view>
+          <view class="ks-sub">信还在路上，结营那天早上送到。那时这本册子会从它开始</view>
+          <view class="app-btn-primary ks-btn" bindtap="onOpenLetter">去慢递邮局看看</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'epilogue'}}">
+          <view class="ks-label">读完之后，你回给那时的自己</view>
+          <view class="ks-letter ks-letter-reply">
+            <text class="ks-letter-body">{{keepsake.letter.reply}}</text>
+          </view>
+          <template is="booklet-ending" data="{{finished: keepsake.finished, totalDays: keepsake.totalDays, hasReply: true}}"/>
         </block>
 
         <block wx:elif="{{item.key === 'seen'}}">
@@ -150,16 +189,8 @@
           <view class="ks-sub">你在营里说过的话，整理成了一份实录</view>
         </block>
 
-        <block wx:elif="{{item.key === 'end' && !keepsake.finished}}">
-          <view class="ks-title ks-title-sm">册子还没写完</view>
-          <view class="ks-sub">明早见。结营那天，再回来翻到最后一页</view>
-          <view class="app-btn-secondary ks-btn" bindtap="onBackToCourse">回到课程页</view>
-        </block>
-
         <block wx:elif="{{item.key === 'end'}}">
-          <view class="ks-title">{{keepsake.totalDays ? '谢谢你，一起走完这 ' + keepsake.totalDays + ' 天' : '谢谢你，一起走完这段日子'}}</view>
-          <button class="app-btn-primary ks-btn" open-type="share">邀请一位朋友加入下一期</button>
-          <view class="app-btn-secondary ks-btn" bindtap="onBackToCourse">回到课程页</view>
+          <template is="booklet-ending" data="{{finished: keepsake.finished, totalDays: keepsake.totalDays}}"/>
         </block>
       </view>
     </block>

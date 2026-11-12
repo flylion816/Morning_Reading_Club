@@ -47,6 +47,19 @@
   position: relative;
   z-index: 1;
 }
+.thumb-icon-seal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70rpx;
+  height: 70rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.86);
+  border-radius: 16rpx;
+  color: #fff;
+  font-family: var(--app-font-serif);
+  font-size: 42rpx;
+  line-height: 1;
+}
 
 /* 右侧内容区 */
 .course-info {

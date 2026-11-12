@@ -41,13 +41,14 @@ function buildLetterView(letter, period, now = new Date()) {
     canWrite,
     writeWindow: window ? { from: window.from, to: window.to } : null,
     deliverAt,
-    // 这一期是多少天：优先用期次设置的天数（如 23 天），没设才按起止日期算
+    // 这一期读多少天：课程天数（如 23 天）；没设才按开营日到送达日算
     periodDays: period && Number(period.totalDays) > 0
       ? Number(period.totalDays)
-      : (period && period.startDate && period.endDate ? daysBetweenKeys(period.startDate, period.endDate) + 1 : 0),
+      : (period && period.startDate && deliverAt ? daysBetweenKeys(period.startDate, deliverAt) + 1 : 0),
     daysToDeliver: status === 'sealed' || status === 'draft' || status === 'none' ? daysUntil(deliverAt, now) : 0,
     stamp: letter ? letter.stamp : 'dawn',
     writtenAt: letter ? letter.writtenAt : null,
+    sealedAt: letter ? letter.sealedAt || null : null,
     openedAt: letter ? letter.openedAt : null,
     reply: letter && letter.reply ? letter.reply : '',
     repliedAt: letter ? letter.repliedAt : null
@@ -65,7 +66,7 @@ async function loadPeriodForUser(req, res, periodId) {
   }
   const userId = getRequestUserId(req);
   if (!(await ensurePeriodCommunityAccess(res, userId, periodId))) return null;
-  const period = await Period.findById(periodId).select('_id name startDate endDate').lean();
+  const period = await Period.findById(periodId).select('_id name startDate endDate totalDays').lean();
   if (!period) {
     res.status(404).json(errors.notFound('期次不存在'));
     return null;
@@ -193,7 +194,7 @@ async function openLetter(req, res, next) {
       letter.openedAt = new Date();
       await letter.save();
     }
-    const period = await Period.findById(letter.periodId).select('_id startDate endDate').lean();
+    const period = await Period.findById(letter.periodId).select('_id startDate endDate totalDays').lean();
     return res.json(success(buildLetterView(letter, period)));
   } catch (error) {
     logger.error('openLetter failed', error);
@@ -213,7 +214,7 @@ async function replyLetter(req, res, next) {
     letter.reply = reply;
     letter.repliedAt = new Date();
     await letter.save();
-    const period = await Period.findById(letter.periodId).select('_id startDate endDate').lean();
+    const period = await Period.findById(letter.periodId).select('_id startDate endDate totalDays').lean();
     return res.json(success(buildLetterView(letter, period), '回信已收好'));
   } catch (error) {
     logger.error('replyLetter failed', error);
@@ -229,7 +230,7 @@ async function getMyLetters(req, res, next) {
     const letters = (await Letter.find({ userId }).sort({ createdAt: -1 }).lean())
       .filter(letter => allowedPeriods.has(String(letter.periodId)));
     const periods = await Period.find({ _id: { $in: letters.map(l => l.periodId) } })
-      .select('_id name startDate endDate')
+      .select('_id name startDate endDate totalDays')
       .lean();
     const periodMap = new Map(periods.map(p => [String(p._id), p]));
     const list = letters.map(letter => {
@@ -255,7 +256,84 @@ async function getMyLetters(req, res, next) {
   }
 }
 
+// ---------- 管理后台 ----------
+
+const ADMIN_STATUSES = ['draft', 'sealed', 'delivered', 'opened'];
+
+// 后台查看书友的信：按期次、状态筛选，带正文和回信
+async function adminListLetters(req, res, next) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize, 10) || 20));
+    const filter = {};
+    if (req.query.periodId) {
+      if (!isValidId(String(req.query.periodId))) return res.status(400).json(errors.badRequest('期次参数不正确'));
+      filter.periodId = req.query.periodId;
+    }
+    if (req.query.status) {
+      if (!ADMIN_STATUSES.includes(req.query.status)) return res.status(400).json(errors.badRequest('状态参数不正确'));
+      filter.status = req.query.status;
+    }
+    const [list, total] = await Promise.all([
+      Letter.find(filter)
+        .sort({ updatedAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .populate('userId', 'nickname avatarUrl _id')
+        .populate('periodId', 'name title startDate endDate totalDays _id')
+        .lean(),
+      Letter.countDocuments(filter)
+    ]);
+    const items = list.map(letter => {
+      const period = letter.periodId && typeof letter.periodId === 'object' ? letter.periodId : null;
+      return {
+        id: String(letter._id),
+        user: letter.userId && typeof letter.userId === 'object'
+          ? { id: String(letter.userId._id), nickname: letter.userId.nickname || '', avatarUrl: letter.userId.avatarUrl || '' }
+          : null,
+        period: period ? { id: String(period._id), name: period.name || period.title || '' } : null,
+        status: letter.status,
+        stamp: letter.stamp,
+        content: letter.content || '',
+        reply: letter.reply || '',
+        writtenAt: letter.writtenAt,
+        sealedAt: letter.sealedAt,
+        deliveredAt: letter.deliveredAt,
+        openedAt: letter.openedAt,
+        repliedAt: letter.repliedAt,
+        deliverAt: period ? computeDeliverAt(period) : null
+      };
+    });
+    res.json(success({ list: items, total, page, pageSize }));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 后台删除一封信：删掉之后书友那边回到「还没写」，信箱还开着就能重新写
+async function adminDeleteLetter(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json(errors.badRequest('信件参数不正确'));
+    const letter = await Letter.findById(id).select('_id userId periodId status').lean();
+    if (!letter) return res.status(404).json(errors.notFound('这封信不存在'));
+    await Letter.deleteOne({ _id: letter._id });
+    logger.info('[letter.adminDelete] 管理员删除慢递信', {
+      letterId: String(letter._id),
+      userId: String(letter.userId),
+      periodId: String(letter.periodId),
+      status: letter.status,
+      adminId: req.admin && (req.admin.id || req.admin._id) ? String(req.admin.id || req.admin._id) : null
+    });
+    res.json(success({ id: String(letter._id), deleted: true }));
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
+  adminListLetters,
+  adminDeleteLetter,
   getPeriodLetter,
   saveDraft,
   sealLetter,

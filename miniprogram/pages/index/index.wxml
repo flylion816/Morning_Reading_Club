@@ -32,13 +32,26 @@
 
       <!-- 旅程进度：一条地平线，每天一个刻度 -->
       <view class="dawn-journey">
+        <!-- 天空：太阳或月亮按现在几点停在弧线上，进来时从最左端升上来 -->
+        <view class="sky sky-{{skyBody}} sky-{{skyPhase}} {{skyReady ? 'sky-ready' : ''}}">
+          <view class="sky-orbit"></view>
+          <view class="sky-star sky-star-1"></view>
+          <view class="sky-star sky-star-2"></view>
+          <view class="sky-star sky-star-3"></view>
+          <view class="sky-arm" style="transform: rotate({{skyAngle}}deg);">
+            <view class="sky-body-wrap" style="transform: rotate({{-skyAngle}}deg);">
+              <view class="sky-rays"></view>
+              <view class="sky-body"></view>
+            </view>
+          </view>
+        </view>
         <view class="dawn-horizon" wx:if="{{journeyTicks.length > 0}}">
           <view wx:for="{{journeyTicks}}" wx:key="index" class="dawn-tick dawn-tick-{{item.state}}">
             <view class="dawn-tick-dot"></view>
           </view>
         </view>
         <text class="dawn-presence" wx:if="{{presenceText}}">{{presenceText}}</text>
-        <text class="dawn-journey-text"><text wx:if="{{userStats.currentStreak > 0}}">连续晨读 <text class="dawn-num">{{userStats.currentStreak}}</text> 天 · </text>累计打卡 <text class="dawn-num">{{userStats.totalCheckinDays || 0}}</text> 天</text>
+        <text class="dawn-journey-text"><text wx:if="{{userStats.currentStreak > 0}}">连续晨读 <text class="dawn-num">{{userStats.currentStreak}}</text> 天 · </text>写下 <text class="dawn-num">{{userStats.totalCheckinDays || 0}}</text> 天</text>
       </view>
     </view>
 
@@ -147,47 +160,60 @@
 
       <!-- 今日晨读 -->
       <view class="dawn-task" wx:if="{{item.key === 'todayTask'}}">
-        <view class="dawn-card" wx:if="{{todaySection}}" catchtap="handleTodaySectionClick">
+        <!-- 慢递邮局：开营头几天提醒写信，信到了提醒拆信 -->
+        <view
+          wx:if="{{homeLetterNote && currentPeriodCommunityState === 'enabled'}}"
+          class="home-letter home-letter-{{homeLetterNote.kind}}"
+          hover-class="home-letter-hover"
+          catchtap="handleHomeLetterTap">
+          <view class="home-letter-env">
+            <view class="home-letter-env-flap"></view>
+            <view class="home-letter-env-stamp">{{homeLetterNote.kind === 'arrived' ? '到' : (homeLetterNote.kind === 'sealed' ? '寄' : '邮')}}</view>
+            <view class="home-letter-env-wax" wx:if="{{homeLetterNote.kind === 'arrived'}}"></view>
+          </view>
+          <view class="home-letter-body">
+            <text class="home-letter-kicker">慢递邮局</text>
+            <text class="home-letter-title">{{homeLetterNote.title}}</text>
+            <text class="home-letter-sub">{{homeLetterNote.sub}}</text>
+          </view>
+          <view class="home-letter-cta">{{homeLetterNote.cta}}</view>
+        </view>
+        <view class="dawn-card dawn-card-task" wx:if="{{todaySection}}" catchtap="handleTodaySectionClick">
           <view class="dawn-card-head">
             <view class="app-seal app-seal-dawn app-seal-sm">晨</view>
             <text class="dawn-card-title">今日晨读</text>
             <text class="dawn-card-day">{{todaySection.dayDisplay}}</text>
           </view>
           <view class="dawn-welcome-back" wx:if="{{welcomeBackText}}">{{welcomeBackText}}</view>
-          <view class="dawn-course-title">{{todaySection.title}}</view>
+          <view class="dawn-title-area">
+            <image class="dawn-bamboo" src="/assets/images/today-bamboo.png" mode="aspectFit"></image>
+            <view class="dawn-title-text">
+              <view class="dawn-course-title">{{todaySection.title}}</view>
+              <image class="dawn-title-brush" src="/assets/images/today-brush.png" mode="aspectFit"></image>
+            </view>
+          </view>
+          <view class="dawn-moment">{{todayCard.message}}</view>
           <view class="dawn-extract" wx:if="{{todaySection.extractText}}">{{todaySection.extractText}}</view>
-          <view class="dawn-meta">
+          <view class="dawn-meta" wx:if="{{currentPeriodCommunityState === 'enabled' && todaySection.checkinCount > 0}}">
             <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}; background: {{item.avatarColor || themePrimaryColor}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
               <image wx:if="{{item.avatarUrl}}" class="mini-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
               <text wx:else class="mini-avatar-emoji">{{item.avatarText || '用'}}</text>
             </view>
-            <text class="dawn-meta-text">{{todaySection.checkinCount || 0}}人{{currentPeriodCommunityState === 'enabled' ? '已打卡' : '已学习'}}</text>
+            <text class="dawn-meta-text">{{todaySection.checkinCount}}人已打卡</text>
           </view>
-          <view class="dawn-steps">
-            <block wx:for="{{todayCard.steps}}" wx:key="key">
-              <view class="dawn-step-line" wx:if="{{index > 0}}"></view>
-              <view class="dawn-step {{item.state === 'done' ? 'dawn-step-done' : (item.state === 'current' ? 'dawn-step-current' : '')}}">
-                <text class="dawn-step-dot">{{item.dot}}</text>
-                <text class="dawn-step-label">{{item.label}}</text>
-              </view>
-            </block>
-          </view>
-          <view wx:if="{{todayCard.primary.type === 'read'}}" class="dawn-btn" catchtap="handleJoinMeeting">
+          <button wx:if="{{todayCard.primary.type === 'read'}}" class="dawn-btn dawn-btn-task" catchtap="handleJoinMeeting">
             <text>{{todayCard.primary.text}}</text>
-          </view>
-          <view wx:elif="{{todayCard.primary.type === 'done'}}" class="dawn-btn dawn-btn-done" catchtap="handleCreateCheckin">
+          </button>
+          <button wx:else class="dawn-btn dawn-btn-task" catchtap="handleCreateCheckin">
             <text>{{todayCard.primary.text}}</text>
-          </view>
-          <view wx:else class="dawn-btn" catchtap="handleCreateCheckin">
-            <text>{{todayCard.primary.text}}</text>
-          </view>
-          <view class="dawn-links" wx:if="{{todayCard.primary.type === 'done' || todayCard.showDirectCheckin || todayCard.showStudy || todayCard.showReread || todaySection.podcastUrl || (todaySection.canShowReportShortcut && currentPeriodReport && currentPeriodReport.hasReport)}}">
-            <text class="dawn-link" wx:if="{{todayCard.primary.type === 'done'}}" catchtap="handleDailyCardTap">做今日日签</text>
+          </button>
+          <view class="dawn-links" wx:if="{{todayCard.showDailyCard || todayCard.showDirectCheckin || todayCard.showStudy || todayCard.showReadingLink || todaySection.podcastUrl || (todaySection.canShowReportShortcut && currentPeriodReport && currentPeriodReport.hasReport)}}">
+            <text class="dawn-link" wx:if="{{todayCard.showDailyCard}}" catchtap="handleDailyCardTap">生成晨读卡片</text>
             <text class="dawn-link" wx:if="{{todaySection.podcastUrl}}" catchtap="handleTodayPodcastBtnTap">听播客</text>
             <text class="dawn-link" wx:if="{{todaySection.canShowReportShortcut && currentPeriodReport && currentPeriodReport.hasReport}}" catchtap="handleTodayReportBtnTap">看实录</text>
             <text class="dawn-link" wx:if="{{todayCard.showDirectCheckin}}" catchtap="handleCreateCheckin">直接去打卡</text>
             <text class="dawn-link" wx:if="{{todayCard.showStudy}}" catchtap="handleCreateCheckin">去学习</text>
-            <text class="dawn-link" wx:if="{{todayCard.showReread}}" catchtap="handleJoinMeeting">再读一遍</text>
+            <text class="dawn-link" wx:if="{{todayCard.showReadingLink}}" catchtap="handleJoinMeeting">{{todayCard.readingLinkText}}</text>
           </view>
         </view>
         <view class="dawn-card dawn-card-empty" wx:elif="{{todayTaskEmptyState}}">
@@ -559,6 +585,23 @@
     </view>
   </view>
 
+  <!-- 拆信转场：点首页的信封后，信封打开、信纸抽出、铺满成纸，再进到信里 -->
+  <view class="envopen" wx:if="{{envOpening}}" catchtap="stopPropagation" catchtouchmove="stopPropagation">
+    <view class="envopen-env">
+      <view class="envopen-back"></view>
+      <view class="envopen-flap"></view>
+      <view class="envopen-letter">
+        <view class="envopen-line envopen-line-1"></view>
+        <view class="envopen-line"></view>
+        <view class="envopen-line"></view>
+        <view class="envopen-line envopen-line-4"></view>
+        <text class="envopen-sign">小凡</text>
+      </view>
+      <view class="envopen-front"></view>
+      <view class="envopen-wax">凡</view>
+    </view>
+    <view class="envopen-paper"></view>
+  </view>
 </view>
 
 <podcast-player-bar has-tabbar="{{true}}" ignore-safe-area="{{true}}" />

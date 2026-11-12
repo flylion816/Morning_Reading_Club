@@ -146,7 +146,7 @@ Page({
     const campName = periodName || '七个习惯晨读营';
     let title = `${campName}同行榜，快来一起打卡！`;
     if (currentUser && currentUser.rank) {
-      title = `我在${campName}排第${currentUser.rank}名，已打卡${currentUser.checkinCount}天，来挑战我！`;
+      title = `我在${campName}排第${currentUser.rank}名，已写下${currentUser.checkinCount}天，来看看我的晨读记录！`;
     }
     return {
       title,
