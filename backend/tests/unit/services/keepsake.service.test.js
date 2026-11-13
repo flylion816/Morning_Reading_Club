@@ -117,6 +117,7 @@ describe('Keepsake Service', () => {
     expect(data.totalWords).to.equal(4 + 7 + 1);
     expect(data.readingMinutes).to.equal(3);
     expect(data.readingDays).to.equal(2);
+    expect(data.earliestReading).to.deep.equal({ time: '09:00', date: '2026-10-02' });
     expect(data.earliestCheckin).to.deep.equal({ time: '06:30', date: '2026-11-12' });
     expect(data.moods.map(m => m.mood)).to.deep.equal(['happy', 'calm']);
     expect(data.topCheckin.id).to.equal('c1');
@@ -127,6 +128,23 @@ describe('Keepsake Service', () => {
     expect(data.highlights).to.deep.equal([]);
     expect(data.letter).to.equal(null);
     expect(data.seenCount).to.equal(0);
+  });
+
+  it('最早打卡使用实际 checkinDate，不使用较晚的 createdAt 覆盖', async () => {
+    stubs.Checkin.find.returns(chain([
+      {
+        _id: 'imported',
+        sectionId: 's1',
+        day: 1,
+        checkinDate: new Date('2026-09-13T01:57:00Z'),
+        createdAt: new Date('2026-09-13T09:57:00Z'),
+        note: '补录打卡',
+        likes: []
+      }
+    ]));
+    service = load();
+    const data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-20T00:00:00Z'));
+    expect(data.earliestCheckin).to.deep.equal({ time: '09:57', date: '2026-09-13' });
   });
 
   it('没有赞时取最长的一篇，没有打卡时 topCheckin 为 null', async () => {

@@ -126,11 +126,29 @@ function pickTopCheckin(checkins, sectionMap) {
 function pickEarliest(checkins) {
   let best = null;
   checkins.forEach(item => {
-    const time = new Date(item.createdAt || item.checkinDate);
+    // checkinDate records when the user actually checked in. createdAt can be
+    // later for imported, repaired or synchronized historical records.
+    const time = new Date(item.checkinDate || item.createdAt);
     if (Number.isNaN(time.getTime())) return;
     const minutes = (time.getTime() / 60000 + DEFAULT_TZ_OFFSET_MINUTES) % 1440;
     if (!best || minutes < best.minutes) {
       best = { minutes, time: toHHmm(time), date: toDayKey(time) };
+    }
+  });
+  return best ? { time: best.time, date: best.date } : null;
+}
+
+function pickEarliestReading(completions) {
+  let best = null;
+  (completions || []).forEach(item => {
+    const time = new Date(item.completedAt || item.createdAt);
+    if (Number.isNaN(time.getTime())) return;
+    if (!best || time.getTime() < best.timestamp) {
+      best = {
+        timestamp: time.getTime(),
+        time: toHHmm(time),
+        date: toDayKey(time)
+      };
     }
   });
   return best ? { time: best.time, date: best.date } : null;
@@ -367,6 +385,7 @@ async function computeKeepsake(userId, period, readiness, now = new Date()) {
     totalWords,
     readingMinutes: Math.round(totalMs / 60000),
     readingDays,
+    earliestReading: pickEarliestReading(completions),
     earliestCheckin: pickEarliest(checkins),
     moods,
     topCheckin: pickTopCheckin(checkins, sectionMap),
