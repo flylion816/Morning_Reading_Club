@@ -19,7 +19,7 @@ function buildQueryString(params = {}) {
 
 function decorateCard(card = {}) {
   const avatar = getUserAvatarDisplay(
-    { avatarUrl: card.avatarUrl, nickname: card.nickname },
+    { avatar: card.avatar, avatarUrl: card.avatarUrl, nickname: card.nickname },
     { userId: card.userId, displayName: card.nickname }
   );
   return {

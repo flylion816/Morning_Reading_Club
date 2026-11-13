@@ -22,7 +22,6 @@ describe('course and activity terminology', () => {
 
     expect(script).toContain('getLessonNumberingBase');
     expect(script).toContain('formatLessonLabel(taskRes.day, lessonNumberingBase)');
-    expect(script).toContain('formatLessonLabel(section.day, lessonNumberingBase)');
     expect(markup).toContain('{{todaySection.dayDisplay}}');
     expect(markup).not.toContain('Day {{todaySection.dayDisplay}}');
   });

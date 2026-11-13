@@ -11,7 +11,7 @@ const {
   WECHAT_SI_PLUGIN_ENABLED,
   getThemeColorWithAlpha
 } = require('../../utils/theme');
-const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
+const { getBrandName } = require('../../utils/brand');
 const {
   normalizeDanmakuContent,
   countDanmakuChars,
@@ -1070,7 +1070,7 @@ Page({
     return {
       title: this.getShareTitle(insight),
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`,
-      imageUrl: getDefaultShareImage()
+      imageUrl: '/assets/images/share-insight.jpg'
     };
   },
 
@@ -1082,7 +1082,7 @@ Page({
     return {
       title: this.getShareTitle(insight),
       query: `id=${this.data.insightId}&from=share`,
-      imageUrl: getDefaultShareImage()
+      imageUrl: '/assets/images/share-insight.jpg'
     };
   },
 

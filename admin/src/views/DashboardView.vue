@@ -84,14 +84,7 @@
             <el-table-column label="学员" min-width="150">
               <template #default="{ row }">
                 <div class="person-cell">
-                  <el-avatar
-                    :src="getEnrollmentAvatarUrl(row)"
-                    :size="32"
-                    class="user-avatar"
-                    :style="{ background: getEnrollmentAvatarColor(row) }"
-                  >
-                    {{ getEnrollmentAvatarText(row) }}
-                  </el-avatar>
+                  <UserAvatar :user="row.userId" :size="32" class="user-avatar" />
                   <span>{{ row.userId?.nickname || '匿名' }}</span>
                 </div>
               </template>
@@ -161,14 +154,14 @@
             <el-table-column label="学员" min-width="140">
               <template #default="{ row }">
                 <div class="person-cell">
-                  <el-avatar
-                    :src="getPaymentAvatarUrl(row)"
+                  <UserAvatar
+                    :user="typeof row.userId === 'object' ? row.userId : null"
+                    :image-url="row.userAvatarUrl"
+                    :name="row.userName"
+                    :user-id="String(row.userId?._id || row.userId || '')"
                     :size="32"
                     class="user-avatar"
-                    :style="{ background: getPaymentAvatarColor(row) }"
-                  >
-                    {{ getPaymentAvatarText(row) }}
-                  </el-avatar>
+                  />
                   <span>{{ row.userName || '未知' }}</span>
                 </div>
               </template>
@@ -204,6 +197,7 @@
 import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { statsApi, enrollmentApi, paymentApi } from '../services/api';
 import { ElMessage } from 'element-plus';
 import {
@@ -215,11 +209,6 @@ import {
   User
 } from '@element-plus/icons-vue';
 import type { ListResponse, Enrollment, Payment } from '../types/api';
-import {
-  getAvatarColorByUserId,
-  getLastTextChar,
-  getUserAvatarUrl
-} from '../utils/avatar';
 
 const router = useRouter();
 
@@ -427,34 +416,6 @@ function formatDate(dateString: string): string {
   );
 }
 
-function getEnrollmentAvatarUrl(row: Enrollment): string {
-  const user = row.userId as any;
-  return getUserAvatarUrl(user);
-}
-
-function getEnrollmentAvatarText(row: Enrollment): string {
-  const user = row.userId as any;
-  const nickname = user?.nickname || (row as any).name || '';
-  return getLastTextChar(nickname, '用');
-}
-
-function getEnrollmentAvatarColor(row: Enrollment): string {
-  const user = row.userId as any;
-  return getAvatarColorByUserId(user?._id || user?.id || String(row.userId || ''));
-}
-
-function getPaymentAvatarUrl(row: Payment): string {
-  return (row as any).userAvatarUrl || '';
-}
-
-function getPaymentAvatarText(row: Payment): string {
-  const nickname = row.userName || '';
-  return getLastTextChar(nickname, '用');
-}
-
-function getPaymentAvatarColor(row: Payment): string {
-  return getAvatarColorByUserId(String((row as any).userId?._id || (row as any).userId || ''));
-}
 </script>
 
 <style scoped>

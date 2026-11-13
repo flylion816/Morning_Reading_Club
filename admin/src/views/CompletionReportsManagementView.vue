@@ -46,13 +46,7 @@
           <el-table-column label="成员" min-width="180" fixed="left">
             <template #default="{ row }">
               <div class="member-cell">
-                <el-avatar
-                  :src="getUserAvatar(row)"
-                  :size="36"
-                  :style="{ background: getAvatarColor(row) }"
-                >
-                  {{ getAvatarText(row) }}
-                </el-avatar>
+                <UserAvatar :user="getUser(row)" :name="getUserNickname(row) || row.name" :size="36" />
                 <div class="member-info">
                   <div class="member-name">{{ getUserNickname(row) || '-' }}</div>
                   <div class="member-sub">报名：{{ row.name || '-' }}</div>
@@ -175,13 +169,9 @@
 // @ts-nocheck
 import { onMounted, ref } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { completionReportApi, periodApi, uploadApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import {
-  getAvatarColorByUserId,
-  getLastTextChar,
-  getUserAvatarUrl
-} from '../utils/avatar';
 
 type ReportRow = {
   _id: string;
@@ -430,19 +420,6 @@ function getUser(row: ReportRow) {
 function getUserNickname(row: ReportRow) {
   const user = getUser(row);
   return user?.nickname || user?.name || '';
-}
-
-function getUserAvatar(row: ReportRow) {
-  return getUserAvatarUrl(getUser(row));
-}
-
-function getAvatarText(row: ReportRow) {
-  return getLastTextChar(getUserNickname(row) || row.name || '', '用');
-}
-
-function getAvatarColor(row: ReportRow) {
-  const user = getUser(row);
-  return getAvatarColorByUserId(user?._id || user?.id || row._id);
 }
 
 function getPaymentTagType(status?: string) {

@@ -22,6 +22,8 @@ function makePage() {
 describe('daily-card page', () => {
   beforeEach(() => {
     jest.resetModules();
+    global.__mockCanvasImageSrcs.length = 0;
+    global.__mockCanvasContext.drawImage.mockClear();
     global.Page = jest.fn(c => {
       pageConfig = c;
     });
@@ -50,6 +52,7 @@ describe('daily-card page', () => {
     expect(page.data.source).toBe('第 7 天 · 以终为始');
     expect(page.data.dateStr).toBe('2026-11-07');
     expect(page.data.previewItems.some(i => i.text === '立冬')).toBe(true);
+    expect(page.data.previewItems.some(i => i.src === '/assets/images/mini-program-code.jpg')).toBe(true);
     expect(page.data.previewHeightRpx).toBeGreaterThan(0);
   });
 
@@ -109,5 +112,30 @@ describe('daily-card page', () => {
     page.generatePoster = jest.fn(() => Promise.resolve('/tmp/a.png'));
     const ok = await page.onShareAppMessage().promise;
     expect(ok.imageUrl).toBe('/tmp/a.png');
+  });
+
+  test('export draws the mini-program code and tolerates a missing image', async () => {
+    page.onLoad({ quote: 'a' });
+    const layout = page.buildLayout(true);
+    const canvas = await page.getCanvasNode();
+    const loadedImage = await page.loadMiniProgramCodeImage(canvas);
+    expect(loadedImage).toBeTruthy();
+    expect(global.__mockCanvasImageSrcs).toContain('/assets/images/mini-program-code.jpg');
+    const ctx = canvas.getContext('2d');
+    global.__mockCanvasContext.drawImage.mockClear();
+    page.drawLayout(ctx, layout, {
+      '/assets/images/mini-program-code.jpg': loadedImage
+    });
+    expect(global.__mockCanvasContext.drawImage).toHaveBeenCalledWith(
+      loadedImage,
+      expect.any(Number),
+      expect.any(Number),
+      116,
+      116
+    );
+
+    global.__mockCanvasContext.drawImage.mockClear();
+    page.drawLayout(ctx, layout, {});
+    expect(global.__mockCanvasContext.drawImage).not.toHaveBeenCalled();
   });
 });

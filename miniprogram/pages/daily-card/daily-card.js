@@ -1,4 +1,9 @@
-const { getBrandName, getDefaultShareImage, getDefaultShareTitle } = require('../../utils/brand');
+const {
+  getBrandName,
+  getDefaultShareImage,
+  getDefaultShareTitle,
+  getMiniProgramCode
+} = require('../../utils/brand');
 const { getThemePrimaryColor } = require('../../utils/theme');
 const {
   FONTS,
@@ -12,6 +17,7 @@ const {
 const PREVIEW_WIDTH_RPX = 600;
 const PREVIEW_SCALE = PREVIEW_WIDTH_RPX / CARD_WIDTH;
 const EXPORT_SCALE = 2;
+const MINI_PROGRAM_CODE_ASSET_PATHS = [getMiniProgramCode(), '../../assets/images/mini-program-code.jpg'];
 
 const VARIANT_OPTIONS = [
   { value: 'dawn', label: '晨光' },
@@ -32,6 +38,27 @@ function fontOf(el) {
   return `${el.weight === 'bold' ? 'bold' : 'normal'} ${el.size}px ${FONTS[el.family] || FONTS.sans}`;
 }
 
+function loadCanvasImage(canvas, candidates = []) {
+  return new Promise((resolve, reject) => {
+    let index = 0;
+    const tryLoad = () => {
+      const src = candidates[index];
+      if (!src) {
+        reject(new Error('加载图片失败'));
+        return;
+      }
+      const image = canvas.createImage();
+      image.onload = () => resolve(image);
+      image.onerror = () => {
+        index += 1;
+        tryLoad();
+      };
+      image.src = src;
+    };
+    tryLoad();
+  });
+}
+
 // 把共用排版结果转成预览用的行内样式
 function toPreviewItems(layout) {
   const s = PREVIEW_SCALE;
@@ -48,12 +75,20 @@ function toPreviewItems(layout) {
       style += `left:${r(el.cx - el.r)};top:${r(el.cy - el.r)};width:${r(el.r * 2)};height:${r(el.r * 2)};border-radius:50%;background:${el.fill};`;
     } else if (el.type === 'frame') {
       style += `left:${r(el.x)};top:${r(el.y)};width:${r(el.w)};height:${r(el.h)};box-sizing:border-box;border:${r(el.lineWidth)} solid ${el.stroke};`;
+    } else if (el.type === 'image') {
+      style += `left:${r(el.x)};top:${r(el.y)};width:${r(el.w)};height:${r(el.h)};`;
     } else {
       style += `left:${r(el.x)};top:${r(el.y)};width:${r(el.w)};height:${r(el.h)};line-height:${r(el.h)};` +
         `font-size:${r(el.size)};color:${el.color};text-align:${el.align};white-space:nowrap;` +
         `font-weight:${el.weight === 'bold' ? 'bold' : 'normal'};font-family:${FONTS[el.family] || FONTS.sans};`;
     }
-    return { id: el.id, style, text: el.type === 'text' ? el.text : '', placeholder: !!el.placeholder };
+    return {
+      id: el.id,
+      style,
+      text: el.type === 'text' ? el.text : '',
+      placeholder: !!el.placeholder,
+      src: el.type === 'image' ? el.src : ''
+    };
   });
 }
 
@@ -104,6 +139,7 @@ Page({
       dateStr: d.dateStr,
       brandName: getBrandName(),
       primaryColor: getThemePrimaryColor(),
+      miniProgramCodeSrc: MINI_PROGRAM_CODE_ASSET_PATHS[0],
       placeholder: !forExport
     });
   },
@@ -205,7 +241,7 @@ Page({
     ctx.closePath();
   },
 
-  drawLayout(ctx, layout) {
+  drawLayout(ctx, layout, images = {}) {
     ctx.fillStyle = layout.background;
     ctx.fillRect(0, 0, layout.width, layout.height);
     layout.elements.forEach(el => {
@@ -239,8 +275,22 @@ Page({
         ctx.textAlign = el.align;
         const tx = el.align === 'center' ? el.x + el.w / 2 : el.align === 'right' ? el.x + el.w : el.x;
         ctx.fillText(el.text, tx, el.y + el.h / 2);
+      } else if (el.type === 'image') {
+        const image = images[el.src];
+        if (image && typeof ctx.drawImage === 'function') {
+          ctx.drawImage(image, el.x, el.y, el.w, el.h);
+        }
       }
     });
+  },
+
+  async loadMiniProgramCodeImage(canvas) {
+    try {
+      return await loadCanvasImage(canvas, MINI_PROGRAM_CODE_ASSET_PATHS);
+    } catch (error) {
+      console.warn('加载日签小程序码失败，先生成无码日签', error);
+      return null;
+    }
   },
 
   async generatePoster() {
@@ -250,6 +300,7 @@ Page({
       return this._posterCache.path;
     }
     const canvas = await this.getCanvasNode();
+    const miniProgramCodeImage = await this.loadMiniProgramCodeImage(canvas);
     const ctx = canvas.getContext('2d');
     const info = typeof wx.getWindowInfo === 'function' ? wx.getWindowInfo() : {};
     const dpr = Math.min((info && info.pixelRatio) || 2, 2);
@@ -257,7 +308,9 @@ Page({
     canvas.height = layout.height * dpr;
     if (typeof ctx.setTransform === 'function') ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
-    this.drawLayout(ctx, layout);
+    this.drawLayout(ctx, layout, {
+      [MINI_PROGRAM_CODE_ASSET_PATHS[0]]: miniProgramCodeImage
+    });
 
     const path = await new Promise((resolve, reject) => {
       wx.canvasToTempFilePath({

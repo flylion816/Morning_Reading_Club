@@ -20,7 +20,7 @@
           <el-table-column label="书友" min-width="150">
             <template #default="{ row }">
               <div class="user-cell">
-                <el-avatar :size="28" :src="row.user?.avatarUrl || undefined">{{ (row.user?.nickname || '?').slice(-1) }}</el-avatar>
+                <UserAvatar :user="row.user" :size="28" />
                 <span>{{ row.user?.nickname || '已注销' }}</span>
               </div>
             </template>
@@ -102,6 +102,7 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { letterApi, periodApi } from '../services/api';
 
 interface LetterRow {

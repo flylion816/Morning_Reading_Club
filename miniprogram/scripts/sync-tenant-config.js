@@ -16,6 +16,7 @@ const { createRequire } = require('module');
 const ROOT = path.resolve(__dirname, '..');
 const REPO = path.resolve(ROOT, '..');
 const DEFAULT_SHARE_COVER = '/assets/images/share-default.jpg';
+const DEFAULT_MINI_PROGRAM_CODE = '/assets/images/mini-program-code.jpg';
 const DEFAULT_API_BASE_URL = 'https://wx.shubai01.com/api/v1';
 const USAGE = '用法: node miniprogram/scripts/sync-tenant-config.js <slug> [--api-base-url https://wx.shubai01.com/api/v1] [--email admin@example.com] [--password xxx] [--token jwt] [--file tenant.json] [--mongo-uri mongodb://...] [--out path]';
 const { validateTenant } = require(path.join(ROOT, 'config/tenants/_schema.js'));
@@ -283,6 +284,7 @@ function buildMiniTenantConfig(tenant, slug) {
     subscribeTemplates: buildSubscribeTemplates(tenant),
     primaryColor,
     logo: branding.logo || `${iconsDir}/logo.png`,
+    miniProgramCode: branding.miniProgramCode || DEFAULT_MINI_PROGRAM_CODE,
     shareCover: branding.shareCover || DEFAULT_SHARE_COVER,
     navBar: {
       title: brandName,
@@ -311,8 +313,12 @@ function validateGeneratedConfig(config, slug) {
   if (!fs.existsSync(tenantAssetDir)) {
     errors.push(`缺少租户素材目录: ${tenantAssetDir}`);
   } else {
+    const codePath = config.miniProgramCode;
     const missing = ['logo.png', ...REQUIRED_TAB_ICONS]
       .filter(file => !fs.existsSync(path.join(tenantAssetDir, file)));
+    if (codePath && !fs.existsSync(path.join(ROOT, `.${codePath}`))) {
+      errors.push(`缺少小程序码素材: ${codePath}`);
+    }
     if (missing.length) {
       errors.push(`缺少租户素材: ${missing.join(', ')}`);
     }

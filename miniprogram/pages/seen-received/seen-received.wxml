@@ -25,8 +25,12 @@
   <view class="list" wx:else>
     <view class="app-card seen-card" wx:for="{{list}}" wx:key="id" bindtap="handleCardTap" data-section-id="{{item.sectionId}}" data-checkin-id="{{item.checkinId}}">
       <view class="seen-user">
-        <image wx:if="{{item.avatarUrl}}" class="seen-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-        <view wx:else class="seen-avatar seen-avatar-text" style="background: {{item.avatarColor}}">{{item.avatarText}}</view>
+        <user-avatar
+          size="56"
+          avatar-url="{{item.avatarUrl}}"
+          avatar-text="{{item.avatarText}}"
+          avatar-color="{{item.avatarColor}}"
+        />
         <text class="seen-name">{{item.nickname}}</text>
         <text class="seen-time">{{item.timeText}}</text>
       </view>

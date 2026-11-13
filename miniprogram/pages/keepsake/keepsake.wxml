@@ -83,8 +83,12 @@
         <block wx:elif="{{item.key === 'companions'}}">
           <view class="ks-label">常来看你的书友</view>
           <view wx:for="{{keepsake.companions}}" wx:for-item="c" wx:key="userId" class="ks-friend">
-            <image wx:if="{{c.avatarUrl}}" class="ks-avatar" src="{{c.avatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="app-seal">{{c.nickname[0]}}</view>
+            <user-avatar
+              size="64"
+              avatar-url="{{c.avatarUrl}}"
+              avatar-text="{{c.avatar || c.nickname}}"
+              avatar-color="{{c.avatarColor}}"
+            />
             <view class="ks-friend-name">{{c.nickname}}</view>
             <view class="ks-friend-count">{{c.count}} 次</view>
           </view>
@@ -124,8 +128,12 @@
 
         <block wx:elif="{{item.key === 'buddy'}}">
           <view class="ks-label">你的读伴</view>
-          <image wx:if="{{keepsake.buddy.avatarUrl}}" class="ks-avatar ks-avatar-lg" src="{{keepsake.buddy.avatarUrl}}" mode="aspectFill"></image>
-          <view wx:else class="app-seal app-seal-lg">{{keepsake.buddy.nickname[0]}}</view>
+          <user-avatar
+            size="128"
+            avatar-url="{{keepsake.buddy.avatarUrl}}"
+            avatar-text="{{keepsake.buddy.avatar || keepsake.buddy.nickname}}"
+            avatar-color="{{keepsake.buddy.avatarColor}}"
+          />
           <view class="ks-title ks-title-sm">{{keepsake.buddy.nickname}}</view>
           <view class="ks-sub" wx:if="{{keepsake.buddy.days}}">你们一起走了 {{keepsake.buddy.days}} 天</view>
         </block>

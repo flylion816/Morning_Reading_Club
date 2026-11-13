@@ -84,14 +84,7 @@
           <el-table-column type="selection" width="45" />
           <el-table-column label="头像" width="70" align="center">
             <template #default="{ row }">
-              <el-avatar
-                :src="getEnrollmentUserAvatarUrl(row)"
-                :size="36"
-                class="user-avatar"
-                :style="{ background: getEnrollmentUserAvatarColor(row) }"
-              >
-                {{ getEnrollmentUserAvatarText(row) }}
-              </el-avatar>
+              <UserAvatar :user="getEnrollmentUser(row)" :name="row.name" :size="36" class="user-avatar" />
             </template>
           </el-table-column>
           <el-table-column label="昵称" width="100" show-overflow-tooltip>
@@ -402,14 +395,10 @@
 // @ts-nocheck
 import { ref, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { enrollmentApi, periodApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Enrollment } from '../types/api';
-import {
-  getAvatarColorByUserId,
-  getLastTextChar,
-  getUserAvatarUrl
-} from '../utils/avatar';
 
 const loading = ref(false);
 const syncingNicknames = ref(false);
@@ -758,20 +747,6 @@ function getEnrollmentUser(enrollment: Enrollment): any {
   return enrollment.userId && typeof enrollment.userId === 'object' ? enrollment.userId : null;
 }
 
-function getEnrollmentUserAvatarUrl(enrollment: Enrollment): string {
-  return getUserAvatarUrl(getEnrollmentUser(enrollment));
-}
-
-function getEnrollmentUserAvatarText(enrollment: Enrollment): string {
-  const user = getEnrollmentUser(enrollment);
-  const nickname = user?.nickname || enrollment.name || '';
-  return getLastTextChar(nickname, '用');
-}
-
-function getEnrollmentUserAvatarColor(enrollment: Enrollment): string {
-  const user = getEnrollmentUser(enrollment);
-  return getAvatarColorByUserId(user?._id || user?.id || String(enrollment.userId || ''));
-}
 </script>
 
 <style scoped>

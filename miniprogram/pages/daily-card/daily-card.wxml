@@ -3,6 +3,7 @@
     <view class="dc-preview" style="width: {{previewWidthRpx}}rpx; height: {{previewHeightRpx}}rpx;" bindtap="handleEditQuote">
       <view wx:for="{{previewItems}}" wx:key="id" style="{{item.style}}" class="{{item.placeholder ? 'dc-placeholder' : ''}}">
         <text wx:if="{{item.text}}">{{item.text}}</text>
+        <image wx:elif="{{item.src}}" src="{{item.src}}" mode="aspectFit" />
       </view>
     </view>
   </view>

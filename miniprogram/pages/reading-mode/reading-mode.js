@@ -40,6 +40,8 @@ const PRESENCE_INTERVAL_MS = 60 * 1000;
 const POPULAR_MIN_COUNT = 3;
 const MIN_HIGHLIGHT_LENGTH = 8;
 const MAX_HIGHLIGHT_LENGTH = 500;
+const HIGHLIGHT_SELECTION_MAX_UNITS = 12;
+const HIGHLIGHT_SELECTION_UNIT_SPLIT = 80;
 const MIN_COMPLETION_DURATION_MS = 60 * 1000;
 const FINAL_PARAGRAPH_DWELL_MS = 5 * 1000;
 const THEME_PRIMARY_DARK = currentTenant.primaryDarkColor || THEME_PRIMARY;
@@ -118,6 +120,60 @@ function splitParagraphsWithImages(content = '') {
   return items;
 }
 
+function splitHighlightUnits(text = '') {
+  const normalized = String(text || '').trim();
+  if (!normalized) return [];
+
+  const units = [];
+  let start = 0;
+  for (let i = 0; i < normalized.length; i += 1) {
+    if (!'[。！？；!?;]'.includes(normalized[i])) continue;
+
+    let end = i + 1;
+    while (end < normalized.length && /[”’』」）)】〉》"']/.test(normalized[end])) {
+      end += 1;
+    }
+    const unit = normalized.slice(start, end).trim();
+    if (unit) units.push(unit);
+    start = end;
+  }
+
+  const remainder = normalized.slice(start).trim();
+  if (remainder) units.push(remainder);
+
+  // 超长无句读句按 80 字切开，面板最多 12 个片段，避免选择器变成另一个长页。
+  const bounded = [];
+  units.forEach(unit => {
+    if (unit.length <= HIGHLIGHT_SELECTION_UNIT_SPLIT) {
+      bounded.push(unit);
+      return;
+    }
+    for (let i = 0; i < unit.length; i += HIGHLIGHT_SELECTION_UNIT_SPLIT) {
+      bounded.push(unit.slice(i, i + HIGHLIGHT_SELECTION_UNIT_SPLIT));
+    }
+  });
+
+  if (bounded.length > HIGHLIGHT_SELECTION_MAX_UNITS) {
+    const merged = bounded.slice(0, HIGHLIGHT_SELECTION_MAX_UNITS - 1);
+    merged.push(bounded.slice(HIGHLIGHT_SELECTION_MAX_UNITS - 1).join(''));
+    return merged;
+  }
+  return bounded;
+}
+
+function buildHighlightSelection(units = [], selected = {}) {
+  const text = units
+    .filter((unit, index) => selected[index])
+    .join('');
+  return {
+    text,
+    length: Array.from(text).length,
+    valid:
+      text.length >= MIN_HIGHLIGHT_LENGTH &&
+      text.length <= MAX_HIGHLIGHT_LENGTH
+  };
+}
+
 Page({
   data: {
     sectionId: '',
@@ -145,6 +201,12 @@ Page({
     completionPreviouslySaved: false,
     completionRank: 0,
     fireworksVisible: false,
+    highlightSelectionVisible: false,
+    highlightSelectionUnits: [],
+    highlightSelectionSelected: {},
+    highlightSelectionText: '',
+    highlightSelectionLength: 0,
+    highlightSelectionValid: false,
     brandName: getBrandName()
   },
 
@@ -302,20 +364,104 @@ Page({
     if (!item || item.type === 'image' || !item.canHighlight) {
       return;
     }
-    const itemList = [item.mine ? '取消摘抄' : '摘下来'];
+    const canSelect = splitHighlightUnits(item.text).length > 1;
+    const itemList = [];
+    if (!item.mine && item.text.length <= MAX_HIGHLIGHT_LENGTH) {
+      itemList.push('摘下整段');
+    }
+    if (item.mine) {
+      itemList.push('取消摘抄');
+    }
+    if (canSelect) {
+      itemList.push('精确选择');
+    }
+    if (!itemList.length) return;
+
+    const actionIndexes = {
+      whole: itemList.indexOf('摘下整段'),
+      cancel: itemList.indexOf('取消摘抄'),
+      precise: itemList.indexOf('精确选择')
+    };
     wx.showActionSheet({
       itemList,
       success: (res) => {
-        if (res.tapIndex !== 0) {
+        if (res.tapIndex === actionIndexes.cancel) {
+          this.removeParagraphHighlight(item);
           return;
         }
-        if (item.mine) {
-          this.removeParagraphHighlight(item);
-        } else {
+        if (res.tapIndex === actionIndexes.whole) {
           this.addParagraphHighlight(item);
+          return;
+        }
+        if (res.tapIndex === actionIndexes.precise) {
+          this.openHighlightSelection(item);
         }
       }
     });
+  },
+
+  openHighlightSelection(item) {
+    const units = splitHighlightUnits(item.text);
+    if (!units.length) return;
+    this.setData({
+      highlightSelectionVisible: true,
+      highlightSelectionUnits: units,
+      highlightSelectionSelected: {},
+      highlightSelectionText: '',
+      highlightSelectionLength: 0,
+      highlightSelectionValid: false
+    });
+  },
+
+  handleToggleHighlightUnit(event) {
+    const index = Number(event.currentTarget?.dataset?.index);
+    const units = this.data.highlightSelectionUnits;
+    if (!Number.isInteger(index) || index < 0 || index >= units.length) return;
+
+    const selected = { ...this.data.highlightSelectionSelected };
+    selected[index] = !selected[index];
+    const selection = buildHighlightSelection(units, selected);
+    this.setData({
+      highlightSelectionSelected: selected,
+      highlightSelectionText: selection.text,
+      highlightSelectionLength: selection.length,
+      highlightSelectionValid: selection.valid
+    });
+  },
+
+  closeHighlightSelection() {
+    this.setData({
+      highlightSelectionVisible: false,
+      highlightSelectionUnits: [],
+      highlightSelectionSelected: {},
+      highlightSelectionText: '',
+      highlightSelectionLength: 0,
+      highlightSelectionValid: false
+    });
+  },
+
+  async handleConfirmHighlightSelection() {
+    const {
+      highlightSelectionText,
+      highlightSelectionValid
+    } = this.data;
+    if (!highlightSelectionValid) {
+      wx.showToast({
+        title:
+          highlightSelectionText.length < MIN_HIGHLIGHT_LENGTH
+            ? `至少选择 ${MIN_HIGHLIGHT_LENGTH} 个字`
+            : `一次最多选 ${MAX_HIGHLIGHT_LENGTH} 个字`,
+        icon: 'none'
+      });
+      return;
+    }
+
+    const item = {
+      text: highlightSelectionText,
+      hash: hashText(highlightSelectionText)
+    };
+    this.closeHighlightSelection();
+    await this.addParagraphHighlight(item);
   },
 
   async addParagraphHighlight(item) {
@@ -435,8 +581,7 @@ Page({
               ...item,
               hash: hashText(item.text),
               canHighlight:
-                item.text.length >= MIN_HIGHLIGHT_LENGTH &&
-                item.text.length <= MAX_HIGHLIGHT_LENGTH,
+                item.text.length >= MIN_HIGHLIGHT_LENGTH,
               mine: false,
               popularCount: 0
             }

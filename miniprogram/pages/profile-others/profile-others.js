@@ -78,6 +78,7 @@ Page({
         userInfo: {
           _id: userInfo._id,
           nickname: userInfo.nickname,
+          avatar: userInfo.avatar || '',
           avatarUrl: this.normalizeAvatarUrl(userInfo.avatarUrl),
           avatarText: avatarDisplay.avatarText,
           avatarColor: avatarDisplay.avatarColor,

@@ -216,16 +216,19 @@ Page({
   },
 
   handleRequestAvatarClick(e) {
-    const { request, userId, periodId } = e.currentTarget.dataset;
-    if (request && !request.canNavigate) {
+    const { request, userId, periodId } = e.currentTarget?.dataset || {};
+    const eventData = e.detail || {};
+    const canNavigate = eventData.canNavigate ?? request?.canNavigate;
+    const resolvedUserId = e.detail?.userId || userId;
+    if (canNavigate === false) {
       return;
     }
 
-    if (!userId) {
+    if (!resolvedUserId) {
       return;
     }
 
-    let url = `/pages/profile-others/profile-others?userId=${userId}`;
+    let url = `/pages/profile-others/profile-others?userId=${resolvedUserId}`;
     if (periodId) {
       url += `&periodId=${periodId}`;
     }

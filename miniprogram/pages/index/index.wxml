@@ -28,8 +28,12 @@
             >{{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}}</text>
           </view>
           <view class="dawn-avatar" style="background: {{userInfo.avatarColor || themePrimaryColor}}" bindtap="openEditProfile">
-            <image wx:if="{{userInfo.avatarUrl}}" class="dawn-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-            <text wx:else class="dawn-avatar-text">{{userInfo.avatarText || '用'}}</text>
+            <user-avatar
+              size="68"
+              avatar-url="{{userInfo.avatarUrl}}"
+              avatar-text="{{userInfo.avatarText || '用'}}"
+              avatar-color="{{userInfo.avatarColor || themePrimaryColor}}"
+            />
           </view>
         </view>
       </view>
@@ -163,7 +167,7 @@
       </view>
 
       <!-- 今日晨读 -->
-      <view class="dawn-task" wx:if="{{item.key === 'todayTask'}}">
+      <view class="dawn-task" wx:if="{{item.key === 'todayTask' && todaySection}}">
         <!-- 慢递邮局：开营头几天提醒写信，信到了提醒拆信 -->
         <view
           wx:if="{{homeLetterNote && currentPeriodCommunityState === 'enabled'}}"
@@ -199,9 +203,16 @@
           <view class="dawn-moment">{{todayCard.message}}</view>
           <view class="dawn-extract" wx:if="{{todaySection.extractText}}">{{todaySection.extractText}}</view>
           <view class="dawn-meta" wx:if="{{currentPeriodCommunityState === 'enabled' && todaySection.checkinCount > 0}}">
-            <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}; background: {{item.avatarColor || themePrimaryColor}}" catchtap="handleMiniAvatarClick" data-user-id="{{item.userId || item._id}}">
-              <image wx:if="{{item.avatarUrl}}" class="mini-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
-              <text wx:else class="mini-avatar-emoji">{{item.avatarText || '用'}}</text>
+            <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}">
+              <user-avatar
+                size="38"
+                avatar-url="{{item.avatarUrl}}"
+                avatar-text="{{item.avatarText || '用'}}"
+                avatar-color="{{item.avatarColor || themePrimaryColor}}"
+                user-id="{{item.userId || item._id}}"
+                interactive="true"
+                bind:avatarTap="handleMiniAvatarClick"
+              />
             </view>
             <text class="dawn-meta-text">{{todaySection.checkinCount}}人已打卡</text>
           </view>
@@ -219,36 +230,6 @@
             <text class="dawn-link" wx:if="{{todayCard.showStudy}}" catchtap="handleCreateCheckin">去学习</text>
             <text class="dawn-link" wx:if="{{todayCard.showReadingLink}}" catchtap="handleJoinMeeting">{{todayCard.readingLinkText}}</text>
           </view>
-        </view>
-        <view class="dawn-card dawn-card-empty" wx:elif="{{todayTaskEmptyState}}">
-          <view class="dawn-card-head">
-            <view class="app-seal app-seal-dawn app-seal-sm">晨</view>
-            <text class="dawn-card-title">今日晨读</text>
-            <text class="dawn-card-day">{{todayTaskEmptyState.coverLabel}}</text>
-          </view>
-          <view class="dawn-empty-body">
-            <view class="dawn-empty-mark">{{todayTaskEmptyState.icon}}</view>
-            <view class="dawn-course-title">{{todayTaskEmptyState.title}}</view>
-            <view class="dawn-empty-desc">{{todayTaskEmptyState.description}}</view>
-          </view>
-          <view
-            wx:if="{{todayTaskEmptyState.primaryAction}}"
-            class="dawn-btn"
-            catchtap="handleTodayTaskEmptyAction"
-            data-action="{{todayTaskEmptyState.primaryAction.type}}">
-            <text>{{todayTaskEmptyState.primaryAction.text}}</text>
-          </view>
-          <view class="dawn-links" wx:if="{{todayTaskEmptyState.secondaryActions.length > 0}}">
-            <text
-              wx:for="{{todayTaskEmptyState.secondaryActions}}"
-              wx:key="type"
-              class="dawn-link"
-              catchtap="handleTodayTaskEmptyAction"
-              data-action="{{item.type}}">{{item.text}}</text>
-          </view>
-        </view>
-        <view class="task-empty" wx:else>
-          <text>今天没有安排晨读，好好休息</text>
         </view>
       </view>
 
@@ -395,9 +376,17 @@
             bindtap="handleInsightRequestTap"
             data-request="{{item}}">
             <view class="request-item-left">
-              <view class="request-user-avatar" style="background: {{item.avatarColor || themePrimaryColor}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
-                <image wx:if="{{item.displayUserAvatarUrl}}" class="request-avatar-image" src="{{item.displayUserAvatarUrl}}" mode="aspectFill" />
-                <text wx:else class="request-avatar-text">{{item.displayUserAvatarText}}</text>
+              <view class="request-user-avatar">
+                <user-avatar
+                  size="68"
+                  avatar-url="{{item.displayUserAvatarUrl}}"
+                  avatar-text="{{item.displayUserAvatarText}}"
+                  avatar-color="{{item.avatarColor || themePrimaryColor}}"
+                  user-id="{{item.displayUserId}}"
+                  event-data="{{item}}"
+                  interactive="true"
+                  bind:avatarTap="handleRequestAvatarClick"
+                />
               </view>
               <view class="request-info">
                 <view class="request-top-row">
@@ -514,8 +503,12 @@
         <text class="section-label">头像</text>
         <view class="avatar-picker-panel">
           <view class="avatar-preview" style="background: {{editForm.avatarColor || themePrimaryColor}}">
-            <image wx:if="{{editForm.avatarUrl}}" class="avatar-preview-image" src="{{editForm.avatarUrl}}" mode="aspectFill" />
-            <text wx:else class="avatar-preview-emoji">{{editForm.avatarText || '用'}}</text>
+            <user-avatar
+              size="116"
+              avatar-url="{{editForm.avatarUrl}}"
+              avatar-text="{{editForm.avatarText || '用'}}"
+              avatar-color="{{editForm.avatarColor || themePrimaryColor}}"
+            />
           </view>
           <view class="avatar-picker-info">
             <text class="avatar-picker-title">使用你的微信头像</text>

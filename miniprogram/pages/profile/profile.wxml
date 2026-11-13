@@ -7,8 +7,13 @@
     <!-- 页头 -->
     <view class="user-card app-stagger">
       <view class="user-avatar-wrap" style="background: {{userInfo.avatarColor || themePrimaryColor}}">
-        <image wx:if="{{userInfo.avatarUrl}}" class="user-avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
+        <user-avatar
+          size="100"
+          shape="rounded"
+          avatar-url="{{userInfo.avatarUrl}}"
+          avatar-text="{{userInfo.avatarText || '用'}}"
+          avatar-color="{{userInfo.avatarColor || themePrimaryColor}}"
+        />
       </view>
       <view class="user-info">
         <text class="user-name">{{userInfo.nickname || userInfo.name || '用户'}}</text>

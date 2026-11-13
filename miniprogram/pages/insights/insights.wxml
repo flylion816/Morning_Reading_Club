@@ -1,8 +1,12 @@
 <view class="page-insights" wx:if="{{socialAccessGranted}}">
   <view class="insights-header">
-    <view class="header-avatar" style="background: {{headerAvatarColor || themePrimaryColor}}">
-      <image wx:if="{{headerAvatarUrl}}" class="header-avatar-image" src="{{headerAvatarUrl}}" mode="aspectFill" />
-      <text wx:else class="header-emoji">{{headerAvatarText || '用'}}</text>
+    <view class="header-avatar">
+      <user-avatar
+        size="80"
+        avatar-url="{{headerAvatarUrl}}"
+        avatar-text="{{headerAvatarText || '用'}}"
+        avatar-color="{{headerAvatarColor || themePrimaryColor}}"
+      />
     </view>
     <view class="header-title">{{headerTitle}}</view>
     <view class="header-desc">{{headerDesc}}</view>
@@ -71,9 +75,13 @@
       data-day-number="{{item.dayNumber}}">
       <view class="insight-flap"></view>
       <view class="insight-header">
-        <view class="insight-card-avatar" style="background:{{item.targetUserAvatarColor||themePrimaryColor}}">
-          <image wx:if="{{item.targetUserAvatarUrl}}" class="insight-card-avatar-img" src="{{item.targetUserAvatarUrl}}" mode="aspectFill"/>
-          <text wx:else class="insight-card-avatar-text">{{item.targetUserAvatarText}}</text>
+        <view class="insight-card-avatar">
+          <user-avatar
+            size="56"
+            avatar-url="{{item.targetUserAvatarUrl}}"
+            avatar-text="{{item.targetUserAvatarText}}"
+            avatar-color="{{item.targetUserAvatarColor || themePrimaryColor}}"
+          />
         </view>
         <view class="insight-title-meta">
           <view class="insight-title"><text class="insight-unread-dot" wx:if="{{item.unread}}"></text>{{item.title}}<text class="insight-letter-tag" wx:if="{{item.letterType === 'weekly'}}">周信</text><text class="insight-letter-tag" wx:elif="{{item.letterType === 'monthly'}}">月信</text></view>

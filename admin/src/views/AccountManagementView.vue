@@ -79,9 +79,14 @@
       <el-table-column label="账号信息" min-width="250">
         <template #default="{ row }">
           <div class="user-info">
-            <el-avatar :src="row.avatar" :size="40" class="admin-avatar">
-              <span class="admin-avatar-fallback">{{ getAvatarText(row.name) }}</span>
-            </el-avatar>
+            <UserAvatar
+              :image-url="row.avatar"
+              :name="row.name"
+              :user-id="row._id"
+              :size="40"
+              shape="rounded"
+              class="admin-avatar"
+            />
             <div class="user-details">
               <div class="user-name">{{ row.name }} <el-tag v-if="row._id === currentUserId" size="small" type="info">当前账号</el-tag></div>
               <div class="user-email">{{ row.email }}</div>
@@ -269,11 +274,11 @@
 <script setup lang="ts">
 // @ts-nocheck
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useTenantStore } from '../stores/tenant';
 import { accountApi } from '../services/api';
-import { getLastTextChar } from '../utils/avatar';
 import { ElMessage } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
@@ -605,9 +610,6 @@ const getRoleType = (role: string) => {
   return map[role] || 'info';
 };
 
-const getAvatarText = (name: string) => {
-  return getLastTextChar(name, 'U').toUpperCase();
-};
 </script>
 
 <style scoped>
