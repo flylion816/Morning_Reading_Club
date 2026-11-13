@@ -6,8 +6,12 @@ const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../utils/require-login');
 const { isAdminUser } = require('../../utils/auth');
-const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
-const { getBrandName } = require('../../utils/brand');
+const {
+  THEME_PRIMARY,
+  WECHAT_SI_PLUGIN_ENABLED,
+  getThemeColorWithAlpha
+} = require('../../utils/theme');
+const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
 const {
   normalizeDanmakuContent,
   countDanmakuChars,
@@ -952,7 +956,7 @@ Page({
 
             // Title
             let cursorY = PADDING + TITLE_LINE_H;
-            ctx.fillStyle = '#0d4f6c';
+            ctx.fillStyle = THEME_PRIMARY;
             ctx.font = `bold ${TITLE_FONT}px sans-serif`;
             ctx.textBaseline = 'alphabetic';
             ctx.textAlign = 'left';
@@ -963,14 +967,14 @@ Page({
 
             // Period label
             cursorY += 14;
-            ctx.fillStyle = '#2980b9';
+            ctx.fillStyle = getThemeColorWithAlpha(THEME_PRIMARY, 0.82);
             ctx.font = `${PERIOD_FONT}px sans-serif`;
             ctx.fillText(periodName, PADDING, cursorY);
             cursorY += 38;
 
             // Divider under period label
             cursorY += 10;
-            ctx.strokeStyle = '#e2eaf3';
+            ctx.strokeStyle = getThemeColorWithAlpha(THEME_PRIMARY, 0.18);
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(PADDING, cursorY);
@@ -983,7 +987,7 @@ Page({
               const para = wrappedParas[pi];
 
               if (para.isQuote) {
-                ctx.fillStyle = '#d6e4ff';
+                ctx.fillStyle = getThemeColorWithAlpha(THEME_PRIMARY, 0.24);
                 ctx.fillRect(PADDING, cursorY - CONTENT_LINE_H + 10, 3, para.lines.length * CONTENT_LINE_H - 10);
               }
 
@@ -1066,7 +1070,7 @@ Page({
     return {
       title: this.getShareTitle(insight),
       path: `/pages/insight-detail/insight-detail?id=${this.data.insightId}&from=share`,
-      imageUrl: '/assets/images/share-insight.jpg' // 使用新的"小凡看见"专属分享图
+      imageUrl: getDefaultShareImage()
     };
   },
 
@@ -1078,7 +1082,7 @@ Page({
     return {
       title: this.getShareTitle(insight),
       query: `id=${this.data.insightId}&from=share`,
-      imageUrl: '/assets/images/share-insight.jpg' // 使用新的"小凡看见"专属分享图
+      imageUrl: getDefaultShareImage()
     };
   },
 

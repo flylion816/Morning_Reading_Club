@@ -9,6 +9,7 @@ const { decorateUserAvatar } = require('../../utils/avatar');
 const { tenantStorage } = require('../../utils/storage');
 const { isAdminUser } = require('../../utils/auth');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const { getBrandName } = require('../../utils/brand');
 const { MOOD_OPTIONS, getMoodOption } = require('../../utils/mood');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
@@ -141,6 +142,7 @@ function buildStamps(periods) {
 
 Page({
   data: {
+    brandName: getBrandName(),
     userInfo: null,
     stats: {
       totalCheckinDays: 0,
@@ -448,6 +450,10 @@ Page({
 
   goToLogin() {
     wx.navigateTo({ url: '/pages/login/login' });
+  },
+
+  goToCourses() {
+    wx.switchTab({ url: '/pages/periods/periods' });
   }
 });
 

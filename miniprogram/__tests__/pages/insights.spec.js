@@ -29,6 +29,8 @@ jest.mock('../../utils/period-access.js', () => ({
 }));
 jest.mock('../../utils/auth.js', () => ({ isAdminUser: jest.fn(() => false) }));
 
+const currentTenant = require('../../config/current-tenant');
+
 describe('insights page period and keyword filters', () => {
   let pageConfig;
   let pageInstance;
@@ -93,6 +95,22 @@ describe('insights page period and keyword filters', () => {
     ]);
     expect(pageInstance.data.selectedPeriodIndex).toBe(0);
     expect(courseService.getPeriods).not.toHaveBeenCalled();
+  });
+
+  test('uses the tenant share cover for insight request forwarding', () => {
+    pageInstance.setData({
+      pendingShareRequest: {
+        shareTitle: '申请查看你的小凡看见',
+        sharePath: '/pages/insights/insights?request=request_1'
+      }
+    });
+
+    const shareConfig = pageInstance.onShareAppMessage.call(pageInstance, {
+      from: 'button',
+      target: { dataset: { shareType: 'insightRequest' } }
+    });
+
+    expect(shareConfig.imageUrl).toBe(currentTenant.shareCover);
   });
 
   test('filters the current list immediately after selecting a period', () => {

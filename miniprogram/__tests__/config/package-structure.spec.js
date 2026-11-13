@@ -56,6 +56,21 @@ const expectedSubPackages = [
     pages: ['insight-detail']
   },
   {
+    name: 'course-detail',
+    root: 'pages/course-detail',
+    pages: ['course-detail']
+  },
+  {
+    name: 'reading-mode',
+    root: 'pages/reading-mode',
+    pages: ['reading-mode']
+  },
+  {
+    name: 'insights',
+    root: 'pages/insights',
+    pages: ['insights']
+  },
+  {
     name: 'insight-edit',
     root: 'pages/insight-edit',
     pages: ['insight-edit']
@@ -158,9 +173,7 @@ describe('miniprogram package structure', () => {
       'pages/index/index',
       'pages/periods/periods',
       'pages/profile/profile',
-      'pages/course-detail/course-detail',
-      'pages/checkin/checkin',
-      'pages/insights/insights'
+      'pages/checkin/checkin'
     ]));
   });
 

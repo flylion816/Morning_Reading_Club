@@ -172,6 +172,14 @@ describe('profile page', () => {
     });
   });
 
+  test('should let logged-out visitors browse courses', () => {
+    pageInstance.goToCourses.call(pageInstance);
+
+    expect(wx.switchTab).toHaveBeenCalledWith({
+      url: '/pages/periods/periods'
+    });
+  });
+
   test('should not navigate to checkin records without paid access', () => {
     pageInstance.setData({ canUsePaidFeatures: false });
 

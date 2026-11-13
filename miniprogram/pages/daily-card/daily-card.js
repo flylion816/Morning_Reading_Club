@@ -7,7 +7,7 @@ const {
   NOTE_MAX_LENGTH,
   computeDailyCardLayout,
   getTodayKey
-} = require('../../utils/daily-card-layout');
+} = require('./daily-card-layout');
 
 const PREVIEW_WIDTH_RPX = 600;
 const PREVIEW_SCALE = PREVIEW_WIDTH_RPX / CARD_WIDTH;

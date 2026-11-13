@@ -777,6 +777,8 @@ Page({
     skyReady: false,
     // 首页点信时的拆信转场
     envOpening: false,
+    // 登录页入营转场的最后一段：由首页淡出遮罩接住路由切换
+    showLoginEntryTransition: false,
     greeting: '上午好',
     dateText: '',
     periodDayText: '',
@@ -879,6 +881,15 @@ Page({
     this._isPageAlive = true;
     this._isPageVisible = true;
     const app = getApp();
+    if (app.globalData.loginEntryTransitionPending) {
+      app.globalData.loginEntryTransitionPending = false;
+      if (this._loginEntryTransitionTimer) clearTimeout(this._loginEntryTransitionTimer);
+      this.setData({ showLoginEntryTransition: true });
+      this._loginEntryTransitionTimer = setTimeout(() => {
+        this._loginEntryTransitionTimer = null;
+        if (this._isPageAlive) this.setData({ showLoginEntryTransition: false });
+      }, 450);
+    }
     this.refreshDaypart();
     const dateChanged = this.refreshTodayCard();
     this.scheduleTodayCardRefresh();
@@ -1024,6 +1035,8 @@ Page({
     this._isPageAlive = false;
     if (this._todayCardTimer) clearTimeout(this._todayCardTimer);
     this._todayCardTimer = null;
+    if (this._loginEntryTransitionTimer) clearTimeout(this._loginEntryTransitionTimer);
+    this._loginEntryTransitionTimer = null;
   },
 
   setPodcastUiData(data) {
@@ -1666,7 +1679,12 @@ Page({
     } catch (error) {
       if (loadId !== this._homeLoadId) return;
       console.error('加载用户数据失败:', error);
-      this.setData({ loading: false });
+      this.setData({
+        loading: false,
+        todaySection: null,
+        todayCard: null,
+        todayTaskEmptyState: buildTodayTaskLoadError()
+      });
       wx.showToast({ title: '加载失败,请重试', icon: 'none' });
     }
   },
