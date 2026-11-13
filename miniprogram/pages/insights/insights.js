@@ -11,7 +11,7 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { formatShortLessonLabel } = require('../../utils/lesson');
-const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
+const { getBrandName } = require('../../utils/brand');
 const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
@@ -528,7 +528,8 @@ Page({
       _targetUserId:
         displayUser._id || insight.targetUserId || insight.userId || null,
       _targetNickname: displayUser.nickname || displayUser.name || '用户',
-      _targetAvatarUrl: displayUser.avatarUrl || displayUser.avatar || ''
+      _targetAvatarUrl: displayUser.avatarUrl || '',
+      _targetAvatar: displayUser.avatar || ''
     };
   },
 
@@ -547,7 +548,7 @@ Page({
       const periodName = item.periodId?.name || item.periodId?.title || periodMap[item.periodId?._id || item.periodId] || '';
       const nickname = item._targetNickname;
       const targetAvatar = getUserAvatarDisplay(
-        { avatarUrl: item._targetAvatarUrl, nickname },
+        { avatarUrl: item._targetAvatarUrl, avatar: item._targetAvatar, nickname },
         { userId: item._targetUserId, displayName: nickname }
       );
       return {
@@ -971,7 +972,7 @@ Page({
       const shareConfig = {
         title: shareRequest.shareTitle,
         path: shareRequest.sharePath,
-        imageUrl: getDefaultShareImage()
+        imageUrl: '/assets/images/share-insight.jpg'
       };
 
       this.closeRequestSharePrompt();

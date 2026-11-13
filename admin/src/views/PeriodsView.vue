@@ -229,12 +229,7 @@
                   :label="user.nickname"
                 >
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <img
-                      v-if="user.avatarUrl"
-                      :src="user.avatarUrl"
-                      style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"
-                    />
-                    <span v-else style="width: 24px; height: 24px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">👤</span>
+                    <UserAvatar :user="user" :size="24" />
                     <span>{{ user.nickname }}</span>
                     <span style="color: #909399; font-size: 11px;">{{ user._id }}</span>
                   </div>
@@ -249,12 +244,7 @@
               >
                 <el-table-column label="头像" width="60">
                   <template #default="{ row }">
-                    <img
-                      v-if="row.avatarUrl"
-                      :src="row.avatarUrl"
-                      style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"
-                    />
-                    <span v-else style="width: 32px; height: 32px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">👤</span>
+                    <UserAvatar :user="row" :size="32" />
                   </template>
                 </el-table-column>
                 <el-table-column prop="nickname" label="昵称" min-width="100" />
@@ -480,8 +470,7 @@
                   :label="user.nickname"
                 >
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <img v-if="user.avatarUrl" :src="user.avatarUrl" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;" />
-                    <span v-else style="width: 24px; height: 24px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">👤</span>
+                    <UserAvatar :user="user" :size="24" />
                     <span>{{ user.nickname }}</span>
                     <span style="color: #909399; font-size: 11px;">{{ user._id }}</span>
                   </div>
@@ -496,8 +485,7 @@
               >
                 <el-table-column label="头像" width="60">
                   <template #default="{ row }">
-                    <img v-if="row.avatarUrl" :src="row.avatarUrl" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
-                    <span v-else style="width: 32px; height: 32px; border-radius: 50%; background: #e4e7ed; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">👤</span>
+                    <UserAvatar :user="row" :size="32" />
                   </template>
                 </el-table-column>
                 <el-table-column prop="nickname" label="昵称" min-width="100" />
@@ -531,6 +519,7 @@
 // @ts-nocheck
 import { ref, reactive, onMounted, watch, nextTick } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import CourseTemplatePicker from '../components/CourseTemplatePicker.vue';
 import EnrollmentTemplatePicker from '../components/EnrollmentTemplatePicker.vue';
 import { periodApi, uploadApi, userApi } from '../services/api';

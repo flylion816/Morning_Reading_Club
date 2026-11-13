@@ -475,7 +475,7 @@ describe('reading-mode page', () => {
   });
   describe('companion features', () => {
     const { hashText } = require('../../utils/text-hash.js');
-    const longText = '这是一段足够长的正文用来摘抄';
+    const longText = '这是一段足够长的正文。用来摘抄和精确选择。';
     let presence;
     let highlight;
 
@@ -557,14 +557,61 @@ describe('reading-mode page', () => {
       expect(pageInstance.data.paragraphs[1].mine).toBe(false);
     });
 
-    test('long press ignores short paragraphs and shows action sheet for long ones', () => {
+    test('long press ignores short paragraphs and shows selection actions for long ones', () => {
       pageInstance._highlightEnabled = true;
       wx.showActionSheet = jest.fn();
       pageInstance.handleParagraphLongPress({ currentTarget: { dataset: { index: 0 } } });
       expect(wx.showActionSheet).not.toHaveBeenCalled();
       pageInstance.handleParagraphLongPress({ currentTarget: { dataset: { index: 1 } } });
       expect(wx.showActionSheet).toHaveBeenCalledWith(
-        expect.objectContaining({ itemList: ['摘下来'] })
+        expect.objectContaining({ itemList: ['摘下整段', '精确选择'] })
+      );
+    });
+
+    test('precise selection saves selected units in source order and enforces limits', async () => {
+      highlight.addHighlight.mockResolvedValue({ id: 'h2' });
+      pageInstance.data.paragraphs[1] = {
+        ...pageInstance.data.paragraphs[1],
+        text: '第一句是主动积极的态度！第二句是以终为始的选择。还有短尾',
+        canHighlight: true
+      };
+
+      pageInstance.openHighlightSelection(pageInstance.data.paragraphs[1]);
+      expect(pageInstance.data.highlightSelectionUnits).toHaveLength(3);
+
+      pageInstance.handleToggleHighlightUnit({ currentTarget: { dataset: { index: 2 } } });
+      expect(pageInstance.data.highlightSelectionLength).toBe(4);
+      expect(pageInstance.data.highlightSelectionValid).toBe(false);
+      await pageInstance.handleConfirmHighlightSelection();
+      expect(highlight.addHighlight).not.toHaveBeenCalled();
+      expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({ title: '至少选择 8 个字' }));
+
+      pageInstance.handleToggleHighlightUnit({ currentTarget: { dataset: { index: 0 } } });
+      expect(pageInstance.data.highlightSelectionText)
+        .toBe('第一句是主动积极的态度！还有短尾');
+      expect(pageInstance.data.highlightSelectionValid).toBe(true);
+
+      await pageInstance.handleConfirmHighlightSelection();
+      expect(highlight.addHighlight).toHaveBeenCalledWith(
+        's1',
+        '第一句是主动积极的态度！还有短尾'
+      );
+      expect(pageInstance.data.highlightSelectionVisible).toBe(false);
+    });
+
+    test('overlong paragraph only offers precise selection', () => {
+      wx.showActionSheet = jest.fn();
+      pageInstance._highlightEnabled = true;
+      const longParagraph = `${'长'.repeat(300)}。${'句'.repeat(80)}。${'字'.repeat(210)}`;
+      pageInstance.data.paragraphs[1] = {
+        id: 'long',
+        text: longParagraph,
+        hash: hashText(longParagraph),
+        canHighlight: true
+      };
+      pageInstance.handleParagraphLongPress({ currentTarget: { dataset: { index: 1 } } });
+      expect(wx.showActionSheet).toHaveBeenCalledWith(
+        expect.objectContaining({ itemList: ['精确选择'] })
       );
     });
 
@@ -580,7 +627,7 @@ describe('reading-mode page', () => {
       pageInstance.initCompanionFeatures = jest.fn();
       await pageInstance.loadReadingContent();
       const flags = pageInstance.data.paragraphs.map((p) => p.canHighlight);
-      expect(flags).toEqual([false, true, false]);
+      expect(flags).toEqual([false, true, true]);
       expect(pageInstance.initCompanionFeatures).toHaveBeenCalledWith(true);
     });
 

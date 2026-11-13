@@ -111,7 +111,7 @@ describe('tenant theme color hygiene', () => {
   });
 
   test('share surfaces do not retain legacy fixed cover art or poster palettes', () => {
-    const legacySharePattern = /(share-insight\.jpg|#0d4f6c|#2980b9|#f97316|#ea580c)/i;
+    const legacySharePattern = /(#0d4f6c|#2980b9|#f97316|#ea580c)/i;
     const hits = SHARE_SURFACE_FILES.flatMap(file => {
       return fs.readFileSync(file, 'utf8')
         .split('\n')
@@ -120,5 +120,19 @@ describe('tenant theme color hygiene', () => {
     });
 
     expect(hits).toEqual([]);
+  });
+
+  test('keeps fixed share covers distinct for insight and podcast fallbacks', () => {
+    const brand = fs.readFileSync('miniprogram/utils/brand.js', 'utf8');
+    const insight = fs.readFileSync('miniprogram/pages/insight-detail/insight-detail.js', 'utf8');
+    const podcast = fs.readFileSync('miniprogram/pages/course-detail/course-detail.js', 'utf8');
+    const insightCover = '/assets/images/share-insight.jpg';
+    const podcastCover = '/assets/images/share-podcast.jpg';
+
+    expect(brand).toContain("DEFAULT_SHARE_IMAGE = '/assets/images/share-default.jpg'");
+    expect(insight).toContain(`imageUrl: '${insightCover}'`);
+    expect(podcast).toContain(`imageUrl: '${podcastCover}'`);
+    expect(fs.existsSync('miniprogram/assets/images/share-insight.jpg')).toBe(true);
+    expect(fs.existsSync('miniprogram/assets/images/share-podcast.jpg')).toBe(true);
   });
 });

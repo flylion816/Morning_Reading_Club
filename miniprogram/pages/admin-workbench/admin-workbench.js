@@ -1,4 +1,5 @@
 const adminWorkbenchService = require('./adminWorkbench.service');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 
 const PAGE_SIZE = 20;
 
@@ -65,10 +66,16 @@ const registrationStatusMap = {
 
 function decorateUser(user = {}) {
   const summary = user.summary || {};
+  const avatar = getUserAvatarDisplay(user, {
+    userId: user._id || user.userId,
+    displayName: user.nickname || '微信用户'
+  });
   return {
     ...user,
     displayName: user.nickname || '微信用户',
-    avatarText: (user.nickname || '微').slice(0, 1),
+    avatarUrl: avatar.avatarUrl,
+    avatarText: avatar.avatarText,
+    avatarColor: avatar.avatarColor,
     phoneText: user.phoneMasked || '未绑定手机号',
     latestEnrollmentText: summary.latestEnrollment
       ? `${summary.latestEnrollment.periodName} · ${statusText(summary.latestEnrollment.paymentStatus, paymentStatusMap)}`

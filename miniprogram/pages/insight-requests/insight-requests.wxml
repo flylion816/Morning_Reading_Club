@@ -33,9 +33,17 @@
       bindtap="handleRequestTap"
       data-request="{{item}}">
       <view class="request-item-left">
-        <view class="request-user-avatar" style="background: {{item.avatarColor}}" catchtap="handleRequestAvatarClick" data-request="{{item}}" data-user-id="{{item.displayUserId}}" data-period-id="{{item.periodId}}">
-          <image wx:if="{{item.displayUserAvatarUrl}}" class="request-avatar-image" src="{{item.displayUserAvatarUrl}}" mode="aspectFill" />
-          <text wx:else class="request-avatar-text">{{item.displayUserAvatarText}}</text>
+        <view class="request-user-avatar">
+          <user-avatar
+            size="68"
+            avatar-url="{{item.displayUserAvatarUrl}}"
+            avatar-text="{{item.displayUserAvatarText}}"
+            avatar-color="{{item.avatarColor}}"
+            user-id="{{item.displayUserId}}"
+            event-data="{{item}}"
+            interactive="true"
+            bind:avatarTap="handleRequestAvatarClick"
+          />
         </view>
         <view class="request-info">
           <view class="request-top-row">

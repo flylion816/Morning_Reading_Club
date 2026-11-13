@@ -17,10 +17,15 @@
       class="member-item"
       bindtap="handleAvatarClick"
       data-user-id="{{item.userId}}">
-      <view class="member-avatar" style="background: {{item.avatarColor}}">
-        <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="avatar-text">{{item.avatarText}}</text>
-      </view>
+      <user-avatar
+        size="88"
+        avatar-url="{{item.avatarUrl}}"
+        avatar-text="{{item.avatarText}}"
+        avatar-color="{{item.avatarColor}}"
+        user-id="{{item.userId}}"
+        interactive="true"
+        bind:avatarTap="handleAvatarClick"
+      />
       <view class="member-info">
         <view class="member-name">{{item.nickname}}</view>
         <view class="member-join-date">加入时间：{{item.enrolledAt}}</view>

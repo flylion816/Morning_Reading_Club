@@ -1,5 +1,4 @@
-const { getAvatarColorByUserId } = require('./formatters');
-const { getLastTextChar } = require('./avatar');
+const { getUserAvatarDisplay } = require('./avatar');
 const { formatShortLessonLabel } = require('./lesson');
 
 function formatRelativeTime(dateString) {
@@ -89,6 +88,10 @@ function buildInsightRequestDisplay(item, options = {}) {
   const statusMap = isSent ? sentStatusMap : receivedStatusMap;
   const statusInfo = statusMap[item.status] || statusMap.pending;
   const displayName = displayUser.nickname || displayUser.name || '用户';
+  const avatar = getUserAvatarDisplay(displayUser, {
+    userId: displayUserId,
+    displayName
+  });
 
   return {
     id: item._id || item.id,
@@ -96,10 +99,10 @@ function buildInsightRequestDisplay(item, options = {}) {
     direction,
     displayUserId,
     displayUserName: displayName,
-    displayUserAvatarUrl: displayUser.avatarUrl || '',
-    displayUserAvatarText: getLastTextChar(displayName, '用'),
+    displayUserAvatarUrl: avatar.avatarUrl,
+    displayUserAvatarText: avatar.avatarText,
     displayUserRoleText: isSent ? '发给' : '来自',
-    avatarColor: getAvatarColorByUserId(displayUserId),
+    avatarColor: avatar.avatarColor,
     fromUserId: normalizeId(fromUser),
     fromUserName: fromUser.nickname || fromUser.name || '用户',
     toUserId: normalizeId(toUser),

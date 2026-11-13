@@ -1,7 +1,6 @@
 // 排行榜页面
 const rankingService = require('./ranking.service');
-const { getAvatarColorByUserId } = require('../../utils/formatters');
-const { getLastTextChar } = require('../../utils/avatar');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const {
   getPeriodAccess,
   redirectAfterCommunityDenied
@@ -74,20 +73,22 @@ Page({
       // 转换数据：添加 avatarColor 和头像文字
       const list = res.list.map(item => ({
         ...item,
-        avatarUrl: item.avatarUrl || '',
-        avatarColor: getAvatarColorByUserId(item.userId),
-        avatarText: getLastTextChar(item.nickname, '用')
+        ...getUserAvatarDisplay(item, {
+          userId: item.userId,
+          displayName: item.nickname
+        })
       }));
 
       const currentUser = res.currentUser
         ? {
             ...res.currentUser,
-            avatarUrl: res.currentUser.avatarUrl || '',
+            ...getUserAvatarDisplay(res.currentUser, {
+              userId: res.currentUser.userId,
+              displayName: res.currentUser.nickname
+            }),
             rankText: res.currentUser.rank
               ? `我的排名：第${res.currentUser.rank}名`
-              : '我的排名：暂未上榜',
-            avatarColor: getAvatarColorByUserId(res.currentUser.userId),
-            avatarText: getLastTextChar(res.currentUser.nickname, '用')
+              : '我的排名：暂未上榜'
           }
         : null;
 
@@ -129,7 +130,7 @@ Page({
    * 点击用户行 - 跳转到他人主页
    */
   handleAvatarClick(e) {
-    const { userId } = e.currentTarget.dataset;
+    const userId = e.detail?.userId || e.currentTarget?.dataset?.userId;
     if (!userId) return;
     let url = `/pages/profile-others/profile-others?userId=${userId}`;
     if (this.periodId) {

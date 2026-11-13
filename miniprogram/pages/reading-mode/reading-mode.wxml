@@ -144,6 +144,44 @@
     </view>
   </view>
 
+  <view wx:if="{{highlightSelectionVisible}}" class="highlight-selection-mask" bindtap="closeHighlightSelection">
+    <view class="highlight-selection-panel" catchtap="noop">
+      <view class="highlight-selection-header">
+        <view>
+          <view class="highlight-selection-title">精确选择</view>
+          <view class="highlight-selection-subtitle">勾下想留住的句子，会按原文顺序摘进摘抄本</view>
+        </view>
+        <view class="highlight-selection-close" bindtap="closeHighlightSelection">×</view>
+      </view>
+
+      <scroll-view class="highlight-selection-scroll" scroll-y enhanced="true" show-scrollbar="{{false}}">
+        <view
+          wx:for="{{highlightSelectionUnits}}"
+          wx:key="index"
+          class="highlight-unit {{highlightSelectionSelected[index] ? 'highlight-unit-on' : ''}}"
+          data-index="{{index}}"
+          bindtap="handleToggleHighlightUnit">
+          <view class="highlight-unit-check">{{highlightSelectionSelected[index] ? '✓' : ''}}</view>
+          <text class="highlight-unit-text">{{item}}</text>
+        </view>
+      </scroll-view>
+
+      <view class="highlight-selection-preview">
+        <text wx:if="{{highlightSelectionText}}">{{highlightSelectionText}}</text>
+        <text wx:else class="highlight-selection-placeholder">还没有选择内容</text>
+      </view>
+      <view class="highlight-selection-foot">
+        <text class="highlight-selection-count {{highlightSelectionText && !highlightSelectionValid ? 'highlight-selection-count-warn' : ''}}">
+          {{highlightSelectionLength ? '已选 ' + highlightSelectionLength + ' 字' : '最多 500 字'}}
+        </text>
+        <button
+          class="highlight-selection-confirm"
+          disabled="{{!highlightSelectionValid}}"
+          bindtap="handleConfirmHighlightSelection">摘下来</button>
+      </view>
+    </view>
+  </view>
+
   <view wx:if="{{posterPanelVisible}}" class="poster-panel-mask" bindtap="closePosterPanel">
     <view class="poster-panel" catchtap="noop">
       <view class="poster-panel-header">

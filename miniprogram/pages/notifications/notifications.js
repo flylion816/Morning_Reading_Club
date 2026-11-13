@@ -341,7 +341,12 @@ Page({
       (typeof notification?.senderId === 'string' ? notification.senderId : '') ||
       '';
     const senderAvatarDisplay = getUserAvatarDisplay(
-      { _id: senderUserId, nickname: senderName, avatarUrl: senderAvatar.image },
+      {
+        _id: senderUserId,
+        nickname: senderName,
+        avatar: sender?.avatar,
+        avatarUrl: senderAvatar.image
+      },
       { userId: senderUserId, displayName: senderName || '用户' }
     );
 
@@ -521,12 +526,14 @@ Page({
   },
 
   handleSenderAvatarTap(event) {
-    const { userId, periodId } = event.currentTarget.dataset;
-    if (!userId) {
+    const { userId, periodId } = event.currentTarget?.dataset || {};
+    const resolvedUserId = event.detail?.userId || userId;
+    const resolvedPeriodId = event.detail?.periodIdValue || periodId;
+    if (!resolvedUserId) {
       return;
     }
 
-    const targetPage = this.buildProfileOthersTargetPage(userId, { periodId });
+    const targetPage = this.buildProfileOthersTargetPage(resolvedUserId, { periodId: resolvedPeriodId });
     this.navigateByTargetPage(targetPage);
   },
 

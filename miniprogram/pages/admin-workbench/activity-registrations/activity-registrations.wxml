@@ -48,10 +48,12 @@
       bindtap="handleCardTap"
     >
       <view class="user-line">
-        <view class="avatar" style="background: {{item.user.avatarUrl ? '#eef2f7' : '#eff6ff'}}">
-          <image wx:if="{{item.user.avatarUrl}}" class="avatar-image" src="{{item.user.avatarUrl}}" mode="aspectFill" />
-          <text wx:else class="avatar-text">{{item.user.avatarText}}</text>
-        </view>
+        <user-avatar
+          size="76"
+          avatar-url="{{item.user.avatarUrl}}"
+          avatar-text="{{item.user.avatarText}}"
+          avatar-color="{{item.user.avatarColor || themePrimaryColor}}"
+        />
         <view class="user-main">
           <view class="name-row">
             <text class="user-name">{{item.user.displayName}}</text>

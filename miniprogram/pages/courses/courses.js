@@ -2,8 +2,7 @@
 const courseService = require('../../services/course.service');
 const checkinService = require('../../services/checkin.service');
 const presenceService = require('../../services/presence.service');
-const { getAvatarColorByUserId } = require('../../utils/formatters');
-const { getLastTextChar } = require('../../utils/avatar');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { getPeriodAccess } = require('../../utils/period-access');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const {
@@ -241,6 +240,10 @@ Page({
 
   formatCheckinItem(checkin = {}) {
     const userId = checkin.userId?._id;
+    const avatar = getUserAvatarDisplay(checkin.userId || {}, {
+      userId,
+      displayName: checkin.userId?.nickname || '用户'
+    });
     const imageCount = Array.isArray(checkin.images) ? checkin.images.filter(Boolean).length : 0;
     const content = checkin.note || (imageCount > 0 ? `分享了${imageCount}张图片` : '');
     const id = checkin._id || checkin.id;
@@ -253,9 +256,9 @@ Page({
       userId: userId,
       userName: checkin.userId?.nickname || '用户',
       avatar: checkin.userId?.avatar,
-      avatarUrl: checkin.userId?.avatarUrl,
-      avatarText: getLastTextChar(checkin.userId?.nickname || '用户', '用'),
-      avatarColor: getAvatarColorByUserId(userId),
+      avatarUrl: avatar.avatarUrl,
+      avatarText: avatar.avatarText,
+      avatarColor: avatar.avatarColor,
       sectionId: checkin.sectionId?._id || checkin.sectionId,
       sectionTitle: checkin.sectionId?.title || '未知课程',
       sectionDay: getLessonNumber(checkin.sectionId?.day, lessonNumberingBase),
@@ -760,7 +763,7 @@ Page({
    * 点击打卡人头像 - 跳转到他人主页
    */
   handleAvatarClick(e) {
-    const { userId } = e.currentTarget.dataset;
+    const userId = e.detail?.userId || e.currentTarget?.dataset?.userId;
     const { periodId } = this.data;
 
     console.log('🎯 courses.handleAvatarClick - 构造导航URL');

@@ -65,15 +65,14 @@
             <TenantSwitcher />
             <div class="header-user">
               <button class="profile-entry" type="button" @click="goToProfile">
-                <el-avatar
-                  :src="authStore.adminInfo?.avatar"
-                  shape="square"
+                <UserAvatar
+                  :image-url="authStore.adminInfo?.avatar"
+                  :name="authStore.adminInfo?.name || '管理员'"
+                  :user-id="authStore.adminInfo?._id || authStore.adminInfo?.id || ''"
+                  shape="rounded"
                   :size="36"
-                  :fallback="true"
                   class="profile-avatar"
-                >
-                  <el-icon><UserFilled /></el-icon>
-                </el-avatar>
+                />
                 <span class="user-name">{{ authStore.adminInfo?.name || '管理员' }}</span>
               </button>
             </div>
@@ -135,6 +134,7 @@ import { useTenantStore } from '../stores/tenant';
 import { authApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import TenantSwitcher from './TenantSwitcher.vue';
+import UserAvatar from './UserAvatar.vue';
 import {
   Bell,
   Calendar,
@@ -157,7 +157,6 @@ import {
   Tickets,
   TrendCharts,
   User,
-  UserFilled,
   View,
   Warning
 } from '@element-plus/icons-vue';

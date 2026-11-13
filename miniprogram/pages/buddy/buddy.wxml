@@ -46,8 +46,12 @@
             </view>
           </view>
           <view class="buddy-person">
-            <image wx:if="{{buddy.avatarUrl}}" class="buddy-avatar" src="{{buddy.avatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="buddy-avatar"><text>{{buddyInitial}}</text></view>
+            <user-avatar
+              size="128"
+              avatar-url="{{buddy.avatarUrl}}"
+              avatar-text="{{buddy.avatar || buddyInitial}}"
+              avatar-color="{{buddy.avatarColor}}"
+            />
             <text class="buddy-name">{{buddy.nickname}}</text>
             <view class="buddy-marks">
               <text class="buddy-mark {{buddy.readToday ? 'buddy-mark-on' : ''}}">读</text>

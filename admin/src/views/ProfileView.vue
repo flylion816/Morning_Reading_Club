@@ -16,9 +16,13 @@
           <el-col :xs="24" :md="8" class="avatar-panel">
             <div class="avatar-preview">
               <div class="avatar-upload-wrap" @click="triggerAvatarUpload">
-                <el-avatar :src="form.avatar" :size="120" class="profile-avatar">
-                  {{ avatarFallback }}
-                </el-avatar>
+                <UserAvatar
+                  :image-url="form.avatar"
+                  :name="form.name"
+                  :size="120"
+                  shape="rounded"
+                  class="profile-avatar"
+                />
                 <div class="avatar-upload-mask">
                   <span v-if="uploading">上传中...</span>
                   <span v-else>点击更换</span>
@@ -84,6 +88,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { useAuthStore } from '../stores/auth';
 import { authApi, uploadApi } from '../services/api';
 
@@ -125,10 +130,6 @@ const roleTagType = computed(() => {
     operator: 'info'
   };
   return map[role] || 'info';
-});
-
-const avatarFallback = computed(() => {
-  return form.name ? form.name.charAt(0) : 'U';
 });
 
 const triggerAvatarUpload = () => {

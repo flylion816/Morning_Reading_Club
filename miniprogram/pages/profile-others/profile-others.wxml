@@ -2,13 +2,12 @@
   <!-- 用户信息卡片 -->
   <view class="user-card">
     <view class="user-avatar-wrapper" style="background: {{userInfo.avatarColor || themePrimaryColor}}">
-      <image
-        wx:if="{{userInfo.avatarUrl}}"
-        class="user-avatar-image"
-        src="{{userInfo.avatarUrl}}"
-        mode="aspectFill"
+      <user-avatar
+        size="120"
+        avatar-url="{{userInfo.avatarUrl}}"
+        avatar-text="{{userInfo.avatarText || '用'}}"
+        avatar-color="{{userInfo.avatarColor || themePrimaryColor}}"
       />
-      <text wx:else class="user-avatar-emoji">{{userInfo.avatarText || '用'}}</text>
     </view>
     <view class="user-nickname">{{userInfo.nickname || '用户'}}</view>
     <view class="user-signature">{{userInfo.signature || '这位书友还没写签名'}}</view>

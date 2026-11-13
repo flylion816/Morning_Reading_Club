@@ -1,8 +1,7 @@
 const checkinService = require('../../services/checkin.service');
 const enrollmentService = require('../../services/enrollment.service');
 const activityService = require('../../services/activity.service');
-const { getAvatarColorByUserId } = require('../../utils/formatters');
-const { getLastTextChar } = require('../../utils/avatar');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { getMoodOption } = require('../../utils/mood');
 const {
@@ -262,13 +261,17 @@ Page({
     const app = getApp();
     const user = app?.globalData?.userInfo || {};
     const displayName = user.nickname || user.name || '用户';
+    const avatar = getUserAvatarDisplay(user, {
+      userId: user._id || user.id,
+      displayName
+    });
 
     this.setData({
       userInfo: {
         userName: displayName,
-        avatarUrl: user.avatarUrl || '',
-        avatarColor: getAvatarColorByUserId(user._id || displayName),
-        avatarText: getLastTextChar(displayName, '用')
+        avatarUrl: avatar.avatarUrl,
+        avatarColor: avatar.avatarColor,
+        avatarText: avatar.avatarText
       }
     });
   },

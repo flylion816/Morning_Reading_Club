@@ -42,14 +42,12 @@
 
     <!-- 邀请人信息 -->
     <view wx:if="{{inviter}}" class="inviter-section">
-      <image
-        class="inviter-avatar"
-        src="{{inviter.avatarUrl || ''}}"
-        mode="aspectFill"
+      <user-avatar
+        size="72"
+        avatar-url="{{inviter.avatarUrl}}"
+        avatar-text="{{inviter.avatar || inviter.nickname || '友'}}"
+        avatar-color="{{inviter.avatarColor || themePrimaryColor}}"
       />
-      <view wx:if="{{!inviter.avatarUrl}}" class="inviter-avatar-emoji">
-        <text wx:if="{{inviter.avatar}}">{{inviter.avatar}}</text><view wx:else class="app-seal app-seal-sm">友</view>
-      </view>
       <text class="inviter-text">{{inviter.nickname}} 邀请你加入本期晨读营</text>
     </view>
 

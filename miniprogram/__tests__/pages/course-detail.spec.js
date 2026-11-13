@@ -204,34 +204,20 @@ describe('course-detail page markdown support', () => {
     expect(shareConfig.path).toBe('/pages/course-detail/course-detail?id=section_123&checkinId=checkin_456');
   });
 
-  test('should prefer generated podcast share image over brand illustration fallback', () => {
+  test('should use the dedicated podcast cover instead of a content screenshot', () => {
     pageInstance.setData({
       courseId: 'section_123',
       course: {
         title: '第七天晨读',
         coverImage: 'https://example.com/course-cover.jpg'
       },
-      podcastShareMode: true,
-      podcastShareImagePath: '/tmp/podcast-share.png'
+      podcastShareMode: true
     });
 
     const shareConfig = pageInstance.onShareAppMessage.call(pageInstance);
 
-    expect(shareConfig.imageUrl).toBe('/tmp/podcast-share.png');
+    expect(shareConfig.imageUrl).toBe('/assets/images/share-podcast.jpg');
     expect(pageInstance.data.podcastShareMode).toBe(false);
-  });
-
-  test('should fall back to the tenant share cover for podcast sharing', () => {
-    pageInstance.setData({
-      courseId: 'section_123',
-      course: { title: '第七天晨读' },
-      podcastShareMode: true,
-      podcastShareImagePath: ''
-    });
-
-    const shareConfig = pageInstance.onShareAppMessage.call(pageInstance);
-
-    expect(shareConfig.imageUrl).toBe(currentTenant.shareCover);
   });
 
   test('should top up next-day reminder before entering immersive reading', async () => {

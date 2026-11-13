@@ -281,7 +281,8 @@
     }
   },
   "usingComponents": {
-    "podcast-player-bar": "/components/podcast-player-bar/podcast-player-bar"
+    "podcast-player-bar": "/components/podcast-player-bar/podcast-player-bar",
+    "user-avatar": "/components/user-avatar/user-avatar"
   },
   "permission": {
     "scope.userLocation": {

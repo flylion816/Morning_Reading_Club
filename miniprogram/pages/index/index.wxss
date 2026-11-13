@@ -3254,6 +3254,8 @@ button.avatar-action-button::after {
 .dawn-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
   margin: 18rpx 0 24rpx;
   font-size: 24rpx;
   color: var(--app-text-muted);
@@ -3261,6 +3263,10 @@ button.avatar-action-button::after {
 
 .dawn-meta-text {
   margin-left: 14rpx;
+}
+
+.dawn-meta .mini-avatar {
+  margin-left: 0;
 }
 
 .dawn-meta .mini-avatar:first-child + .dawn-meta-text,

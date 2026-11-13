@@ -154,7 +154,7 @@ describe('insight-detail poster rendering', () => {
     expect(fileName).toBe('小凡看见：第七天积极主动定义-致晨读者.txt');
   });
 
-  test('should use the tenant share cover for native insight sharing', () => {
+  test('should use the dedicated insight share cover', () => {
     pageInstance.setData({
       insightId: 'insight_1',
       insight: { title: '结营词 - 致狮子' }
@@ -163,8 +163,8 @@ describe('insight-detail poster rendering', () => {
     const shareConfig = pageInstance.onShareAppMessage.call(pageInstance);
     const timelineConfig = pageInstance.onShareTimeline.call(pageInstance);
 
-    expect(shareConfig.imageUrl).toBe(currentTenant.shareCover);
-    expect(timelineConfig.imageUrl).toBe(currentTenant.shareCover);
+    expect(shareConfig.imageUrl).toBe('/assets/images/share-insight.jpg');
+    expect(timelineConfig.imageUrl).toBe('/assets/images/share-insight.jpg');
   });
 
   test('should prepare a txt file before showing the share menu and forward it on tap', async () => {

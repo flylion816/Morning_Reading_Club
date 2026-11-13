@@ -1,4 +1,5 @@
 const DEFAULT_SHARE_COVER = '/assets/images/share-default.jpg';
+const DEFAULT_MINI_PROGRAM_CODE = '/assets/images/mini-program-code.jpg';
 const LEGACY_TAB_ICON_PATHS = [
   'assets/icons/home.png',
   'assets/icons/home-active.png',
@@ -14,7 +15,7 @@ const METADATA_PATHS = [
   'assets/tenants/.DS_Store'
 ];
 
-function buildSharedAssetIgnoreEntries({ prefix = '', shareCover = '' } = {}) {
+function buildSharedAssetIgnoreEntries({ prefix = '', shareCover = '', miniProgramCode = '' } = {}) {
   const entries = LEGACY_TAB_ICON_PATHS.map(value => ({
     value: `${prefix}${value}`,
     type: 'file'
@@ -31,6 +32,13 @@ function buildSharedAssetIgnoreEntries({ prefix = '', shareCover = '' } = {}) {
     });
   }
 
+  if (miniProgramCode && miniProgramCode !== DEFAULT_MINI_PROGRAM_CODE) {
+    entries.push({
+      value: `${prefix}assets/images/mini-program-code.jpg`,
+      type: 'file'
+    });
+  }
+
   return entries;
 }
 
@@ -39,11 +47,13 @@ function isManagedSharedAssetIgnoreEntry(item) {
 
   return /^(miniprogram\/)?assets\/icons\/(home|book|my)(-active)?\.png$/.test(item.value) ||
     /^(miniprogram\/)?assets\/images\/share-default\.jpg$/.test(item.value) ||
+    /^(miniprogram\/)?assets\/images\/mini-program-code\.jpg$/.test(item.value) ||
     /(^|\/)\.DS_Store$/.test(item.value);
 }
 
 module.exports = {
   DEFAULT_SHARE_COVER,
+  DEFAULT_MINI_PROGRAM_CODE,
   LEGACY_TAB_ICON_PATHS,
   METADATA_PATHS,
   buildSharedAssetIgnoreEntries,

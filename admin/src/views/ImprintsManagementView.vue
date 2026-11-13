@@ -128,9 +128,12 @@
           <el-table-column label="发布者" width="120">
             <template #default="{ row }">
               <div class="cell-author">
-                <el-avatar :src="row.author?.avatar" :size="24" style="flex-shrink:0">
-                  {{ (row.author?.nickname || '?')[0] }}
-                </el-avatar>
+                <UserAvatar
+                  :user="row.author"
+                  :image-url="row.author?.avatarUrl"
+                  :name="row.author?.nickname || row.author?.name"
+                  :size="24"
+                />
                 <span>{{ row.author?.nickname || row.author?.name || '—' }}</span>
               </div>
             </template>
@@ -307,6 +310,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { imprintApi, imprintActivityTypeApi } from '../services/api';
 
 // --- 活动类型管理 ---

@@ -143,12 +143,10 @@ function loadHomeConfig() {
 const TASK_CARD_LAYOUT_RPX = {
   screenWidth: 750,
   contentPadding: 48,
-  sectionPadding: 64,
-  coverWidth: 160,
-  cardGap: 24,
+  sectionPadding: 0,
+  cardPadding: 64,
   avatarSize: 38,
-  avatarStep: 28,
-  badgeGap: 10,
+  avatarGap: 8,
   countCharWidth: 26,
   maxBackendAvatars: 10
 };
@@ -163,23 +161,17 @@ function getVisibleTaskCheckinUsers(
   }
 
   const layout = TASK_CARD_LAYOUT_RPX;
+  const countText = `${checkinCount || 0}人已打卡`;
+  const countTextWidth = countText.length * layout.countCharWidth;
   const availableWidth =
     layout.screenWidth -
     layout.contentPadding -
     layout.sectionPadding -
-    layout.coverWidth -
-    layout.cardGap;
-  const countText = `${checkinCount || 0}人已打卡`;
-  const countTextWidth = countText.length * layout.countCharWidth;
-  const avatarWidthBudget =
-    availableWidth - countTextWidth - layout.badgeGap;
-
-  if (avatarWidthBudget < layout.avatarSize) {
-    return [];
-  }
-
-  const maxAvatarCount =
-    1 + Math.floor((avatarWidthBudget - layout.avatarSize) / layout.avatarStep);
+    layout.cardPadding;
+  const maxAvatarCount = Math.floor(
+    (availableWidth - countTextWidth) /
+    (layout.avatarSize + layout.avatarGap)
+  );
   const visibleCount = Math.max(
     0,
     Math.min(users.length, layout.maxBackendAvatars, maxAvatarCount)
@@ -759,6 +751,7 @@ Page({
   buildCampCornerCards,
   buildHomeLetterNote,
   usesSevenHabitsCourseTemplate,
+  getVisibleTaskCheckinUsers,
   buildDailyCardSource,
   formatHomeDateText,
 
@@ -1372,7 +1365,8 @@ Page({
       const currentPeriodId = currentPeriod?._id || currentPeriod?.id || null;
       const currentPeriodActiveToday = isPeriodActiveToday(currentPeriod, todayDate);
       const periodEnded = isPeriodEnded(currentPeriod, todayDate);
-      const showTodayTask = usesSevenHabitsCourseTemplate(currentPeriod);
+      const showTodayTask =
+        !!currentPeriod && usesSevenHabitsCourseTemplate(currentPeriod);
       const taskMatchesCurrentPeriod =
         hasValidTask &&
         (!taskRes.periodId ||
@@ -1383,22 +1377,32 @@ Page({
         taskMatchesCurrentPeriod &&
         showTodayTask;
 
-      // ── Wave 2: 依赖 Wave1 的两个请求并行 ──────────────────────
-      const [sectionRes, currentPeriodAccess, currentPeriodSectionsRes] = await Promise.all([
+      // ── Wave 2: 依赖 Wave1 的请求并行 ──────────────────────
+      const [
+        sectionRes,
+        currentPeriodAccess,
+        currentPeriodSectionsRes
+      ] = await Promise.all([
         shouldUseTodayTask
-          ? courseService.getSectionDetail(taskRes.sectionId)
+          ? Promise.resolve(courseService.getSectionDetail(taskRes.sectionId))
+            .catch(() => null)
           : Promise.resolve(null),
         currentPeriodId
           ? getPeriodAccess(currentPeriodId, {
             enrollmentList,
             skipRequest: true
           })
+            .catch(() => ({
+              canAccessCommunity: false,
+              communityAccessState: 'locked',
+              paymentStatus: null
+            }))
           : Promise.resolve({
             canAccessCommunity: false,
             communityAccessState: 'locked',
             paymentStatus: null
           }),
-        showTodayTask && currentPeriodId && currentPeriodActiveToday
+        shouldUseTodayTask && currentPeriodId && currentPeriodActiveToday
           ? Promise.resolve(courseService.getPeriodSections(currentPeriodId)).catch(() => null)
           : Promise.resolve(null)
       ]);
@@ -1479,71 +1483,12 @@ Page({
             currentPeriod
           )
         };
-      } else if (showTodayTask && currentPeriodActiveToday && currentPeriodId) {
-        // 仅进行中的期次允许兜底找未打卡课节；已结束期次不再伪装成今日任务。
-        try {
-          const sections = currentPeriodSections;
-          const section = selectFallbackTodaySection(sections, {
-            periodEnded
-          });
-          if (section) {
-            todaySection = {
-              _id: section._id,
-              id: section.id,
-              day: section.day,
-              dayDisplay: formatLessonLabel(section.day, lessonNumberingBase),
-              lessonNumber: getLessonNumber(section.day, lessonNumberingBase),
-              title: section.title,
-              periodId: currentPeriodId,
-              periodTitle: currentPeriod?.title,
-              checkinCount: section.checkinCount || 0,
-              checkinUsers: [],
-              visibleCheckinUsers: [],
-              isCheckedIn: !!section.isCheckedIn,
-              checkinStateKnown: !todayTaskFailed,
-              progress: section.isCheckedIn ? 100 : 0,
-              readingCompleted: !!section.readingCompleted,
-              readingCompletedAt: section.readingCompletedAt || null,
-              readingDurationMs: section.readingDurationMs || 0,
-              coverColor: currentPeriod?.coverColor || THEME_PRIMARY,
-              coverEmoji: currentPeriod?.coverEmoji || '🏔️',
-              subtitleDisplay: (section.subtitle || '').replace(/至$/, ''),
-              extractText: buildTodayExtractText(section.extract),
-              displayDate,
-              podcastUrl: section.podcastUrl || null,
-              podcastDuration: section.podcastDuration || null,
-              canShowReportShortcut: shouldShowReportShortcut(
-                section,
-                currentPeriod,
-                { forceFinal: periodEnded }
-              )
-            };
-          }
-        } catch (e) {
-          console.error('降级获取课节失败:', e);
-        }
-      }
-
-      if (!todaySection) {
-        todayTaskEmptyState = showTodayTask
-          ? buildTodayTaskEmptyState(currentPeriod, {
-            periodEnded,
-            noEnrollment: !hasEnrollment
-          })
-          : null;
       }
 
       const paidFeatureAccessEnabled =
         communityEnabled || hasPaidEnrollment(enrollmentList);
       const canLoadReportShortcut =
         !!todaySection?.canShowReportShortcut &&
-        (
-          communityEnabled ||
-          ['paid', 'free'].includes(currentPeriodAccess.paymentStatus || '')
-        );
-      const canLoadEndedPeriodReport =
-        !!todayTaskEmptyState &&
-        todayTaskEmptyState.type === 'period-ended' &&
         (
           communityEnabled ||
           ['paid', 'free'].includes(currentPeriodAccess.paymentStatus || '')
@@ -1603,7 +1548,7 @@ Page({
           canUsePaidFeatures: paidFeatureAccessEnabled,
           homeSections: buildHomeSectionItems(homeConfig?.sections, {
             appendMissing: !homeConfig?.sections,
-            excludeSections: showTodayTask ? [] : ['todayTask']
+            excludeSections: todaySection ? [] : ['todayTask']
           }),
           todaySection: todaySection || null,
           todayCard: todaySection
@@ -1619,10 +1564,6 @@ Page({
           this.maybeShowMorningReadPrompt();
           if (canLoadReportShortcut) {
             this.loadCurrentPeriodReport(currentPeriodId);
-          } else if (canLoadEndedPeriodReport) {
-            this.loadCurrentPeriodReport(currentPeriodId, {
-              updateEmptyState: true
-            });
           } else {
             this.setData({ currentPeriodReport: null });
           }
@@ -1635,7 +1576,7 @@ Page({
         return;
       }
 
-      if (communityEnabled) {
+      if (communityEnabled && todaySection) {
         this.loadHomeExtras(currentPeriodId);
       } else {
         this.setData({ presenceText: '', campCornerCards: [], campCornerStatus: 'idle' });
@@ -2349,16 +2290,20 @@ Page({
   },
 
   handleRequestAvatarClick(e) {
-    const { request, userId, periodId } = e.currentTarget.dataset;
-    if (request && !request.canNavigate) {
+    const { request, userId, periodId } = e.currentTarget?.dataset || {};
+    const eventData = e.detail || {};
+    const resolvedUserId = eventData.userId || userId;
+    const resolvedPeriodId = eventData.periodId || periodId;
+    const canNavigate = eventData.canNavigate ?? request?.canNavigate;
+    if (canNavigate === false) {
       return;
     }
 
-    this.navigateToOtherProfile(userId, periodId);
+    this.navigateToOtherProfile(resolvedUserId, resolvedPeriodId);
   },
 
   handleMiniAvatarClick(e) {
-    const { userId } = e.currentTarget.dataset;
+    const userId = e.detail?.userId || e.currentTarget?.dataset?.userId;
     const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id;
     this.navigateToOtherProfile(userId, periodId);
   },

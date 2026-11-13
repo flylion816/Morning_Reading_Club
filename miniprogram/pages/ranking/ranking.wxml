@@ -3,10 +3,15 @@
   <!-- 当前用户信息卡片 -->
   <view class="user-card" wx:if="{{currentUser}}">
     <view class="user-info">
-      <view class="user-avatar" style="background: {{currentUser.avatarColor}}" catchtap="handleAvatarClick" data-user-id="{{currentUser.userId}}">
-        <image wx:if="{{currentUser.avatarUrl}}" class="avatar-image" src="{{currentUser.avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="avatar-text">{{currentUser.avatarText}}</text>
-      </view>
+      <user-avatar
+        size="96"
+        avatar-url="{{currentUser.avatarUrl}}"
+        avatar-text="{{currentUser.avatarText}}"
+        avatar-color="{{currentUser.avatarColor}}"
+        user-id="{{currentUser.userId}}"
+        interactive="true"
+        bind:avatarTap="handleAvatarClick"
+      />
       <view class="user-details">
         <view class="user-rank">{{currentUser.rankText}}</view>
         <view class="user-stats">已写下 {{currentUser.checkinCount}} 天</view>
@@ -55,10 +60,15 @@
       </view>
 
       <!-- 用户信息 -->
-      <view class="user-avatar" style="background: {{item.avatarColor}}">
-        <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="avatar-text">{{item.avatarText}}</text>
-      </view>
+      <user-avatar
+        size="72"
+        avatar-url="{{item.avatarUrl}}"
+        avatar-text="{{item.avatarText}}"
+        avatar-color="{{item.avatarColor}}"
+        user-id="{{item.userId}}"
+        interactive="true"
+        bind:avatarTap="handleAvatarClick"
+      />
       <view class="user-name">{{item.nickname}}</view>
 
       <!-- 打卡天数 -->

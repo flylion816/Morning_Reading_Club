@@ -7,6 +7,7 @@ const RULES = {
   cloudEnv:     { required: false },
   primaryColor: { required: true,  validate: v => /^#[0-9a-fA-F]{6}$/.test(v) },
   logo:         { required: true,  validate: v => typeof v === 'string' && v.startsWith('/assets/') },
+  miniProgramCode: { required: false, validate: v => v == null || (typeof v === 'string' && v.startsWith('/assets/')) },
   navBar:       { required: true,  validate: v => v && v.title && /^#[0-9a-fA-F]{6}$/.test(v.bgColor) && ['white', 'black'].includes(v.textStyle) },
   tabBar:       { required: true,  validate: v => v && v.iconsDir && /^#[0-9a-fA-F]{6}$/.test(v.selectedColor) },
   legalEntity:  { required: true,  validate: v => typeof v === 'string' && v.length > 0 },

@@ -87,7 +87,11 @@ function buildIgnoreEntries(prefix = '') {
     { value: `${prefix}e2e`, type: 'folder' },
     { value: `${prefix}.omc`, type: 'folder' },
     { value: `${prefix}assets/icons/.omc`, type: 'folder' },
-    ...buildSharedAssetIgnoreEntries({ prefix, shareCover: cfg.shareCover })
+    ...buildSharedAssetIgnoreEntries({
+      prefix,
+      shareCover: cfg.shareCover,
+      miniProgramCode: cfg.miniProgramCode
+    })
   ];
 
   tenantDirs

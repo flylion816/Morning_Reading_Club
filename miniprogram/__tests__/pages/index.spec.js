@@ -54,6 +54,22 @@ jest.mock('../../services/imprint.service.js', () => ({
   list: jest.fn()
 }));
 
+jest.mock('../../services/presence.service', () => ({
+  getToday: jest.fn(() => Promise.resolve(null))
+}));
+
+jest.mock('../../services/letter.service', () => ({
+  getPeriodLetter: jest.fn(() => Promise.resolve(null))
+}));
+
+jest.mock('../../services/practice.service', () => ({
+  getCurrent: jest.fn(() => Promise.resolve(null))
+}));
+
+jest.mock('../../services/buddy.service', () => ({
+  getState: jest.fn(() => Promise.resolve(null))
+}));
+
 jest.mock('../../services/completion-report.service', () => ({
   getMyReports: jest.fn()
 }));
@@ -175,6 +191,9 @@ describe('index page', () => {
     pageInstance.data.currentPeriodCommunityState = 'enabled';
     pageInstance.data.canUsePaidFeatures = true;
 
+    wx.clearStorageSync();
+    global.wx.__storage = {};
+    wx.request.mockClear();
     checkinService.getUserCheckinsWithStats.mockReset();
     checkinService.getCheckinDetail.mockReset();
     userService.getUserProfile.mockReset();
@@ -183,6 +202,8 @@ describe('index page', () => {
     courseService.getTodayTask.mockReset();
     courseService.getSectionDetail.mockReset();
     courseService.getPeriodSections.mockReset();
+    courseService.getPeriods.mockResolvedValue({ list: [] });
+    courseService.getTodayTask.mockResolvedValue(null);
     enrollmentService.getUserEnrollments.mockReset();
     periodAccess.getPeriodAccess.mockReset();
     periodAccess.hasPaidEnrollment.mockClear();
@@ -590,6 +611,71 @@ describe('index page', () => {
     expect(uses({ courseTemplateSnapshot: { templateId: '681f000000000000000000aa' } })).toBe(false);
   });
 
+  test('hides custom-course periods from the home task board', async () => {
+    pageInstance._todayCardDate = undefined;
+    pageInstance.data.todayTaskEmptyState = null;
+    pageInstance.loadRecentCheckins = jest.fn(() => Promise.resolve([]));
+    pageInstance.loadRecentInsights = jest.fn(() => Promise.resolve([]));
+    pageInstance.loadInsightRequests = jest.fn(() => Promise.resolve({ receivedInsightRequests: [], sentInsightRequests: [] }));
+    pageInstance.loadZaichangImprints = jest.fn(() => Promise.resolve([]));
+    pageInstance.loadHomeExtras = jest.fn();
+    pageInstance.maybeShowMorningReadPrompt = jest.fn();
+    pageInstance.loadCurrentPeriodReport = jest.fn();
+    pageInstance.refreshTodayCard = jest.fn(function () {
+      this._todayCardDate = undefined;
+      return false;
+    });
+    userService.getUserProfile.mockResolvedValue({ _id: 'user_123', nickname: '小狐狸' });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 5 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_custom',
+          title: '心想事成',
+          name: '心想事成',
+          startDate: '2000-01-01T00:00:00.000Z',
+          endDate: '2099-12-31T00:00:00.000Z',
+          courseTemplateSnapshot: { templateId: 'custom-template' }
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [{ periodId: 'period_custom', status: 'active', paymentStatus: 'paid' }]
+    });
+    courseService.getTodayTask.mockResolvedValue(null);
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: true,
+      communityAccessState: 'enabled',
+      paymentStatus: 'paid'
+    });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [] });
+    insightService.getInsightsList.mockResolvedValue({ list: [] });
+    insightService.getReceivedRequests.mockResolvedValue([]);
+    insightService.getSentRequests.mockResolvedValue([]);
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    expect(pageInstance.data.todaySection).toBe(null);
+    expect(pageInstance.data.todayTaskEmptyState).toBe(null);
+    expect(pageInstance.data.homeSections.map(item => item.key)).not.toContain('todayTask');
+  });
+
+  test('fills one row with as many checked-in avatars as fit', () => {
+    const users = Array.from({ length: 12 }, (_, index) => ({
+      _id: `user_${index + 1}`,
+      nickname: `书友${index + 1}`
+    }));
+
+    const visibleUsers = pageInstance.getVisibleTaskCheckinUsers(users, 13, true);
+
+    expect(visibleUsers).toHaveLength(10);
+    expect(visibleUsers.map(user => user._id)).toEqual(
+      Array.from({ length: 10 }, (_, index) => `user_${index + 1}`)
+    );
+  });
+
   test('should navigate to all periods from task empty action', () => {
     wx.switchTab = jest.fn();
     pageInstance.setData({
@@ -612,7 +698,7 @@ describe('index page', () => {
     });
   });
 
-  test('should show join-period empty state for a user without enrollments', async () => {
+  test('should hide the task board for a user without enrollments', async () => {
     userService.getUserProfile.mockResolvedValue({
       _id: 'user_123',
       nickname: '小狐狸',
@@ -627,7 +713,8 @@ describe('index page', () => {
           name: '韧性之树',
           startDate: '2000-01-01T00:00:00.000Z',
           endDate: '2099-12-31T00:00:00.000Z',
-          totalDays: 21
+          totalDays: 21,
+          courseTemplateSnapshot: { templateId: 'seven-habits' }
         }
       ]
     });
@@ -647,20 +734,64 @@ describe('index page', () => {
     expect(pageInstance.data.currentPeriod).toBe(null);
     expect(pageInstance.data.todaySection).toBe(null);
     expect(pageInstance._periodNameById.get('period_active')).toBe('韧性之树');
-    expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
-      type: 'no-enrollment',
-      coverLabel: '未加入',
-      title: '还没有加入晨读营',
-      description: '加入一期晨读营后，这里会显示每天的晨读与打卡任务。',
-      primaryAction: {
-        text: '选择晨读营',
-        type: 'periods'
-      },
-      secondaryActions: []
-    });
+    expect(pageInstance.data.todayTaskEmptyState).toBe(null);
+    expect(pageInstance.data.homeSections.map(item => item.key)).not.toContain('todayTask');
   });
 
-  test('should hide the today task board for custom course templates', async () => {
+  test('should hide the task board when today task is empty', async () => {
+    pageInstance.loadHomeExtras = jest.fn();
+    userService.getUserProfile.mockResolvedValue({
+      _id: 'user_123',
+      nickname: '狮子'
+    });
+    userService.getUserStats.mockResolvedValue({ totalCheckinDays: 6 });
+    courseService.getPeriods.mockResolvedValue({
+      list: [
+        {
+          _id: 'period_custom',
+          title: '心想事成',
+          name: '心想事成',
+          startDate: '2026-11-04T16:00:00.000Z',
+          endDate: '2026-12-01T16:00:00.000Z',
+          totalDays: 4,
+          courseTemplateSnapshot: {
+            templateId: 'seven-habits',
+            name: '七个习惯'
+          }
+        }
+      ]
+    });
+    enrollmentService.getUserEnrollments.mockResolvedValue({
+      list: [
+        {
+          periodId: 'period_custom',
+          status: 'active',
+          paymentStatus: 'paid'
+        }
+      ]
+    });
+    courseService.getTodayTask.mockResolvedValue(null);
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      canAccessCommunity: true,
+      communityAccessState: 'enabled',
+      paymentStatus: 'paid'
+    });
+    checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [] });
+    insightService.getInsightsList.mockResolvedValue({ list: [] });
+    insightService.getReceivedRequests.mockResolvedValue([]);
+    insightService.getSentRequests.mockResolvedValue([]);
+
+    await pageInstance.loadUserData.call(pageInstance, true);
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(courseService.getPeriodSections).not.toHaveBeenCalled();
+    expect(pageInstance.loadHomeExtras).not.toHaveBeenCalled();
+    expect(pageInstance.data.todaySection).toBe(null);
+    expect(pageInstance.data.todayTaskEmptyState).toBe(null);
+    expect(pageInstance.data.homeSections.map(item => item.key)).not.toContain('todayTask');
+  });
+
+  test('should hide the task board when a course has no published sections', async () => {
     userService.getUserProfile.mockResolvedValue({
       _id: 'user_123',
       nickname: '小狐狸'
@@ -675,8 +806,8 @@ describe('index page', () => {
           startDate: '2000-01-01T00:00:00.000Z',
           endDate: '2099-12-31T00:00:00.000Z',
           courseTemplateSnapshot: {
-            templateId: '681f000000000000000000aa',
-            name: '空间管理'
+            templateId: 'seven-habits',
+            name: '七个习惯'
           }
         }
       ]
@@ -690,15 +821,7 @@ describe('index page', () => {
         }
       ]
     });
-    courseService.getTodayTask.mockResolvedValue({
-      sectionId: 'section_custom',
-      periodId: 'period_custom',
-      day: 1
-    });
-    courseService.getSectionDetail.mockResolvedValue({
-      _id: 'section_custom',
-      title: '观察空间'
-    });
+    courseService.getTodayTask.mockResolvedValue(null);
     periodAccess.getPeriodAccess.mockResolvedValue({
       canAccessCommunity: true,
       communityAccessState: 'enabled',
@@ -1177,7 +1300,8 @@ describe('index page', () => {
           startDate: '2000-01-01T00:00:00.000Z',
           endDate: '2099-12-31T00:00:00.000Z',
           coverColor: '#4a90e2',
-          coverEmoji: '∞'
+          coverEmoji: '∞',
+          courseTemplateSnapshot: { templateId: 'seven-habits' }
         }
       ]
     });
@@ -1320,7 +1444,7 @@ describe('index page', () => {
     expect(pageInstance.data.recentCheckins).toHaveLength(1);
   });
 
-  test('should show ended-period empty state after the current period has ended', async () => {
+  test('should hide the task board after the current period has ended', async () => {
     userService.getUserProfile.mockResolvedValue({
       _id: 'user_123',
       nickname: '小狐狸',
@@ -1337,7 +1461,8 @@ describe('index page', () => {
           endDate: '2000-01-21T00:00:00.000Z',
           totalDays: 21,
           coverColor: '#4a90e2',
-          coverEmoji: '🌳'
+          coverEmoji: '🌳',
+          courseTemplateSnapshot: { templateId: 'seven-habits' }
         }
       ]
     });
@@ -1393,23 +1518,10 @@ describe('index page', () => {
 
     expect(courseService.getPeriodSections).not.toHaveBeenCalled();
     expect(pageInstance.data.todaySection).toBe(null);
-    expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
-      type: 'period-ended',
-      title: '韧性之树读完了',
-      periodId: 'period_resilience',
-      primaryAction: {
-        text: '翻开纪念册',
-        type: 'keepsake'
-      },
-      secondaryActions: [
-        { text: '看结营实录', type: 'report' },
-        { text: '回看课程', type: 'courses' }
-      ]
-    });
-    expect(pageInstance.data.currentPeriodReport).toMatchObject({
-      periodId: 'period_resilience',
-      hasReport: true
-    });
+    expect(pageInstance.data.todayTaskEmptyState).toBe(null);
+    expect(pageInstance.data.currentPeriodReport).toBe(null);
+    expect(pageInstance.data.homeSections.map(item => item.key)).not.toContain('todayTask');
+    expect(completionReportService.getMyReports).not.toHaveBeenCalled();
   });
 
   test('should ignore stale first-day today task after the period has ended', async () => {
@@ -1427,7 +1539,8 @@ describe('index page', () => {
           name: '韧性之树',
           startDate: '2000-01-01T00:00:00.000Z',
           endDate: '2000-01-21T00:00:00.000Z',
-          totalDays: 21
+          totalDays: 21,
+          courseTemplateSnapshot: { templateId: 'seven-habits' }
         }
       ]
     });
@@ -1487,13 +1600,8 @@ describe('index page', () => {
     expect(courseService.getSectionDetail).not.toHaveBeenCalled();
     expect(courseService.getPeriodSections).not.toHaveBeenCalled();
     expect(pageInstance.data.todaySection).toBe(null);
-    expect(pageInstance.data.todayTaskEmptyState).toMatchObject({
-      type: 'period-ended',
-      title: '韧性之树读完了',
-      periodId: 'period_resilience',
-      primaryAction: { text: '翻开纪念册', type: 'keepsake' },
-      secondaryActions: [{ text: '回看课程', type: 'courses' }]
-    });
+    expect(pageInstance.data.todayTaskEmptyState).toBe(null);
+    expect(pageInstance.data.homeSections.map(item => item.key)).not.toContain('todayTask');
   });
 
   test('should hide completion report shortcut before the final period day', async () => {
@@ -1511,7 +1619,8 @@ describe('index page', () => {
           name: '韧性之树',
           startDate: '2000-01-01T00:00:00.000Z',
           endDate: '2099-12-31T00:00:00.000Z',
-          totalDays: 21
+          totalDays: 21,
+          courseTemplateSnapshot: { templateId: 'seven-habits' }
         }
       ]
     });

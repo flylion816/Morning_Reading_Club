@@ -12,6 +12,9 @@ const QUOTE_MAX_LINES = 6;
 const PLACEHOLDER_TEXT = '写下今天想留下的一句话';
 const SLOGAN = '每天清晨，一起读一页书';
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+const DEFAULT_MINI_PROGRAM_CODE_SRC = '/assets/images/mini-program-code.jpg';
+const MINI_PROGRAM_CODE_SIZE = 116;
+const MINI_PROGRAM_CODE_CARD_SIZE = 140;
 
 const FONTS = {
   serif: "'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif",
@@ -112,6 +115,17 @@ function text(o) {
   return { type: 'text', align: 'left', weight: 'normal', family: 'serif', ...o };
 }
 
+function miniProgramCode(o = {}) {
+  return {
+    type: 'image',
+    src: String(o.src || ''),
+    x: o.x,
+    y: o.y,
+    w: MINI_PROGRAM_CODE_SIZE,
+    h: MINI_PROGRAM_CODE_SIZE
+  };
+}
+
 /**
  * @param {object} opts variant, quote, source, periodName, day, note, dateStr, brandName,
  *   primaryColor, placeholder(无今日一句时是否显示输入引导，仅预览使用), measure(可选)
@@ -126,6 +140,8 @@ function computeDailyCardLayout(opts = {}) {
   const periodLine = buildPeriodLine(clamp(opts.periodName, 30), opts.day);
   const brandName = String(opts.brandName || '晨读营');
   const primary = opts.primaryColor || '#3d6fa6';
+  const showMiniProgramCode = opts.showMiniProgramCode !== false;
+  const miniProgramCodeSrc = String(opts.miniProgramCodeSrc || DEFAULT_MINI_PROGRAM_CODE_SRC);
   const W = CARD_WIDTH;
   const els = [];
 
@@ -216,19 +232,51 @@ function computeDailyCardLayout(opts = {}) {
   }
 
   // 底部品牌
-  const footerH = 140;
+  const footerH = showMiniProgramCode ? 196 : 140;
   const footerY = Math.max(y + 56, cfg.minH - footerH);
   const height = footerY + footerH;
   if (variant !== 'blank') {
     els.push({ type: 'rect', x, y: footerY, w: contentW, h: 2, fill: COLORS.rule });
   }
   els.push({ type: 'circle', cx: x + 7, cy: footerY + 42, r: 7, fill: primary });
+  const codeCardX = W - x - MINI_PROGRAM_CODE_CARD_SIZE;
+  const brandTextWidth = showMiniProgramCode
+    ? codeCardX - x - 36
+    : contentW - 26;
   els.push(text({
-    x: x + 26, y: footerY + 20, w: contentW - 26, h: 44, text: brandName, size: 30, weight: 'bold', color: COLORS.text
+    x: x + 26, y: footerY + 20, w: brandTextWidth, h: 44, text: brandName, size: 30, weight: 'bold', color: COLORS.text
   }));
   els.push(text({
-    x, y: footerY + 70, w: contentW, h: 34, text: SLOGAN, size: 24, color: COLORS.muted, family: 'sans'
+    x, y: footerY + 70, w: brandTextWidth, h: 34, text: SLOGAN, size: 24, color: COLORS.muted, family: 'sans'
   }));
+
+  if (showMiniProgramCode && miniProgramCodeSrc) {
+    els.push({
+      type: 'rect',
+      x: codeCardX,
+      y: footerY + 14,
+      w: MINI_PROGRAM_CODE_CARD_SIZE,
+      h: MINI_PROGRAM_CODE_CARD_SIZE,
+      fill: '#ffffff',
+      radius: 16
+    });
+    els.push(miniProgramCode({
+      src: miniProgramCodeSrc,
+      x: codeCardX + (MINI_PROGRAM_CODE_CARD_SIZE - MINI_PROGRAM_CODE_SIZE) / 2,
+      y: footerY + 26
+    }));
+    els.push(text({
+      x: codeCardX,
+      y: footerY + 158,
+      w: MINI_PROGRAM_CODE_CARD_SIZE,
+      h: 28,
+      text: '扫码进入',
+      size: 20,
+      color: COLORS.muted,
+      family: 'sans',
+      align: 'center'
+    }));
+  }
 
   // 纸墨版式细边框的高度依赖总高
   els.forEach(el => {
@@ -257,6 +305,7 @@ module.exports = {
   QUOTE_MAX_LENGTH,
   NOTE_MAX_LENGTH,
   PLACEHOLDER_TEXT,
+  MINI_PROGRAM_CODE_SIZE,
   FONTS,
   COLORS,
   estimateTextWidth,

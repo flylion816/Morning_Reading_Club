@@ -6,7 +6,7 @@ const checkinConfigService = require('../../services/checkinConfig.service');
 const activityService = require('../../services/activity.service');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { renderRichTextContent } = require('../../utils/markdown');
-const { getLastTextChar } = require('../../utils/avatar');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { getLessonNumber, getLessonNumberingBase } = require('../../utils/lesson');
 const {
@@ -1271,13 +1271,18 @@ Page({
       console.log('courseId:', this.data.courseId);
 
       // 创建新的打卡记录
+      const currentAvatar = getUserAvatarDisplay(currentUser, {
+        userId: currentUser._id || currentUser.id,
+        displayName: currentUser.nickname || '我',
+        fallbackText: '我'
+      });
       const newCheckin = {
         id: result.id || Date.now(),
         userId: currentUser.id || 1, // 当前用户ID
         userName: currentUser.nickname || '我',
-        avatarUrl: currentUser.avatarUrl || '',
-        avatarText: getLastTextChar(currentUser.nickname || '我', '我'),
-        avatarColor: THEME_PRIMARY,
+        avatarUrl: currentAvatar.avatarUrl,
+        avatarText: currentAvatar.avatarText,
+        avatarColor: currentAvatar.avatarColor || THEME_PRIMARY,
         content: diaryContent,
         contentHtml: normalizeRichTextHtml(this.data.diaryContentHtml, diaryContent),
         images: checkinImages,

@@ -97,7 +97,7 @@ describe('insights page period and keyword filters', () => {
     expect(courseService.getPeriods).not.toHaveBeenCalled();
   });
 
-  test('uses the tenant share cover for insight request forwarding', () => {
+  test('uses the dedicated insight share cover for request forwarding', () => {
     pageInstance.setData({
       pendingShareRequest: {
         shareTitle: '申请查看你的小凡看见',
@@ -110,7 +110,7 @@ describe('insights page period and keyword filters', () => {
       target: { dataset: { shareType: 'insightRequest' } }
     });
 
-    expect(shareConfig.imageUrl).toBe(currentTenant.shareCover);
+    expect(shareConfig.imageUrl).toBe('/assets/images/share-insight.jpg');
   });
 
   test('filters the current list immediately after selecting a period', () => {

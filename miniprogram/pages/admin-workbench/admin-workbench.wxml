@@ -35,7 +35,12 @@
         data-id="{{item.userId}}"
         bindtap="handleUserTap"
       >
-        <view class="avatar">{{item.avatarText}}</view>
+        <user-avatar
+          size="72"
+          avatar-url="{{item.avatarUrl}}"
+          avatar-text="{{item.avatarText}}"
+          avatar-color="{{item.avatarColor}}"
+        />
         <view class="user-main">
           <view class="row">
             <text class="name">{{item.displayName}}</text>

@@ -15,12 +15,15 @@
           style="background: {{detailCheckin.avatarColor || themePrimaryColor}}"
           bindtap="handleAvatarClick"
           data-user-id="{{detailCheckin.userId}}">
-          <image
-            wx:if="{{detailCheckin.avatarUrl}}"
-            class="avatar-image"
-            src="{{detailCheckin.avatarUrl}}"
-            mode="aspectFill" />
-          <text wx:else class="avatar-text">{{detailCheckin.avatarText}}</text>
+          <user-avatar
+            size="72"
+            avatar-url="{{detailCheckin.avatarUrl}}"
+            avatar-text="{{detailCheckin.avatarText}}"
+            avatar-color="{{detailCheckin.avatarColor || themePrimaryColor}}"
+            user-id="{{detailCheckin.userId}}"
+            interactive="true"
+            bind:avatarTap="handleAvatarClick"
+          />
         </view>
 
         <view class="dynamic-author-copy">
@@ -74,8 +77,15 @@
         </view>
         <view class="like-avatars" wx:if="{{detailCheckin.likeAvatars && detailCheckin.likeAvatars.length > 0}}">
           <block wx:for="{{detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-            <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
-            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || themePrimaryColor}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
+            <user-avatar
+            size="40"
+            avatar-url="{{avatar.avatarUrl}}"
+            avatar-text="{{avatar.avatarText}}"
+            avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+            user-id="{{avatar.userId}}"
+            interactive="true"
+            bind:avatarTap="handleLikeAvatarClick"
+          />
           </block>
         </view>
       </view>
@@ -110,8 +120,15 @@
               style="background: {{reply.avatarColor || '#7eb5f0'}}"
               bindtap="handleAvatarClick"
               data-user-id="{{reply.userId}}">
-              <image wx:if="{{reply.avatarUrl}}" class="avatar-image avatar-image-small" src="{{reply.avatarUrl}}" mode="aspectFill" />
-              <text wx:else class="avatar-text">{{reply.avatarText}}</text>
+              <user-avatar
+                size="56"
+                avatar-url="{{reply.avatarUrl}}"
+                avatar-text="{{reply.avatarText}}"
+                avatar-color="{{reply.avatarColor || themePrimaryColor}}"
+                user-id="{{reply.userId}}"
+                interactive="true"
+                bind:avatarTap="handleAvatarClick"
+              />
             </view>
 
             <view class="reply-content">
@@ -128,8 +145,15 @@
                   </view>
                   <view class="like-avatars" wx:if="{{reply.likeAvatars && reply.likeAvatars.length > 0}}">
                     <block wx:for="{{reply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                      <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
-                      <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || themePrimaryColor}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
+                      <user-avatar
+                        size="40"
+                        avatar-url="{{avatar.avatarUrl}}"
+                        avatar-text="{{avatar.avatarText}}"
+                        avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+                        user-id="{{avatar.userId}}"
+                        interactive="true"
+                        bind:avatarTap="handleLikeAvatarClick"
+                      />
                     </block>
                   </view>
                 </view>
@@ -164,8 +188,23 @@
                       style="background: {{nestedReply.avatarColor || '#9cb5f0'}}"
                       bindtap="handleAvatarClick"
                       data-user-id="{{nestedReply.userId}}">
-                      <image wx:if="{{nestedReply.avatarUrl}}" class="avatar-image avatar-image-tiny" src="{{nestedReply.avatarUrl}}" mode="aspectFill" />
-                      <text wx:else class="avatar-text">{{nestedReply.avatarText}}</text>
+                      <user-avatar
+
+                        size="44"
+
+                        avatar-url="{{nestedReply.avatarUrl}}"
+
+                        avatar-text="{{nestedReply.avatarText}}"
+
+                        avatar-color="{{nestedReply.avatarColor || themePrimaryColor}}"
+
+                        user-id="{{nestedReply.userId}}"
+
+                        interactive="true"
+
+                        bind:avatarTap="handleAvatarClick"
+
+                      />
                     </view>
 
                     <view class="nested-reply-content">
@@ -182,8 +221,15 @@
                           </view>
                           <view class="like-avatars" wx:if="{{nestedReply.likeAvatars && nestedReply.likeAvatars.length > 0}}">
                             <block wx:for="{{nestedReply.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                              <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
-                              <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || themePrimaryColor}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
+                              <user-avatar
+                                size="40"
+                                avatar-url="{{avatar.avatarUrl}}"
+                                avatar-text="{{avatar.avatarText}}"
+                                avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+                                user-id="{{avatar.userId}}"
+                                interactive="true"
+                                bind:avatarTap="handleLikeAvatarClick"
+                              />
                             </block>
                           </view>
                         </view>
@@ -490,8 +536,15 @@
           data-checkin-id="{{item.id}}"
           data-section-id="{{item.sectionId || courseId}}">
           <view class="comment-avatar {{item.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}" style="background: {{item.avatarColor || themePrimaryColor}}" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">
-            <image wx:if="{{item.avatarUrl}}" class="avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" />
-            <text wx:else class="avatar-text">{{item.avatarText}}</text>
+            <user-avatar
+              size="72"
+              avatar-url="{{item.avatarUrl}}"
+              avatar-text="{{item.avatarText}}"
+              avatar-color="{{item.avatarColor || themePrimaryColor}}"
+              user-id="{{item.userId}}"
+              interactive="true"
+              bind:avatarTap="handleAvatarClick"
+            />
           </view>
           <view class="comment-content">
             <view class="comment-header">
@@ -530,8 +583,15 @@
                 </view>
                 <view class="like-avatars" wx:if="{{item.displayLikeAvatars && item.displayLikeAvatars.length > 0}}">
                   <block wx:for="{{item.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                    <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
-                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || themePrimaryColor}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
+                    <user-avatar
+                      size="40"
+                      avatar-url="{{avatar.avatarUrl}}"
+                      avatar-text="{{avatar.avatarText}}"
+                      avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+                      user-id="{{avatar.userId}}"
+                      interactive="true"
+                      bind:avatarTap="handleLikeAvatarClick"
+                    />
                   </block>
                 </view>
               </view>
@@ -563,8 +623,15 @@
                 <view class="reply-left-line"></view>
                 <view class="reply-main">
                   <view class="reply-avatar {{reply.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}" style="background: {{reply.avatarColor || '#7eb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">
-                    <image wx:if="{{reply.avatarUrl}}" class="avatar-image avatar-image-small" src="{{reply.avatarUrl}}" mode="aspectFill" />
-                    <text wx:else class="avatar-text">{{reply.avatarText}}</text>
+                    <user-avatar
+                      size="56"
+                      avatar-url="{{reply.avatarUrl}}"
+                      avatar-text="{{reply.avatarText}}"
+                      avatar-color="{{reply.avatarColor || themePrimaryColor}}"
+                      user-id="{{reply.userId}}"
+                      interactive="true"
+                      bind:avatarTap="handleAvatarClick"
+                    />
                   </view>
                   <view class="reply-content">
                     <view class="reply-header">
@@ -580,8 +647,23 @@
                         </view>
                         <view class="like-avatars" wx:if="{{reply.displayLikeAvatars && reply.displayLikeAvatars.length > 0}}">
                           <block wx:for="{{reply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                            <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
-                            <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || themePrimaryColor}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
+                            <user-avatar
+
+                              size="40"
+
+                              avatar-url="{{avatar.avatarUrl}}"
+
+                              avatar-text="{{avatar.avatarText}}"
+
+                              avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+
+                              user-id="{{avatar.userId}}"
+
+                              interactive="true"
+
+                              bind:avatarTap="handleLikeAvatarClick"
+
+                            />
                           </block>
                         </view>
                       </view>
@@ -606,8 +688,23 @@
                         <view class="nested-reply-left-line"></view>
                         <view class="nested-reply-main">
                           <view class="nested-reply-avatar {{nestedReply.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}" style="background: {{nestedReply.avatarColor || '#9cb5f0'}}" bindtap="handleAvatarClick" data-user-id="{{nestedReply.userId}}">
-                            <image wx:if="{{nestedReply.avatarUrl}}" class="avatar-image avatar-image-tiny" src="{{nestedReply.avatarUrl}}" mode="aspectFill" />
-                            <text wx:else class="avatar-text">{{nestedReply.avatarText}}</text>
+                            <user-avatar
+
+                              size="44"
+
+                              avatar-url="{{nestedReply.avatarUrl}}"
+
+                              avatar-text="{{nestedReply.avatarText}}"
+
+                              avatar-color="{{nestedReply.avatarColor || themePrimaryColor}}"
+
+                              user-id="{{nestedReply.userId}}"
+
+                              interactive="true"
+
+                              bind:avatarTap="handleAvatarClick"
+
+                            />
                           </view>
                           <view class="nested-reply-content">
                             <view class="nested-reply-header">
@@ -623,8 +720,23 @@
                                 </view>
                                 <view class="like-avatars" wx:if="{{nestedReply.displayLikeAvatars && nestedReply.displayLikeAvatars.length > 0}}">
                                   <block wx:for="{{nestedReply.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                                    <image wx:if="{{avatar.avatarUrl}}" class="like-avatar-img" src="{{avatar.avatarUrl}}" mode="aspectFill" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}" />
-                                    <view wx:else class="like-avatar-text" style="background: {{avatar.avatarColor || themePrimaryColor}}" catchtap="handleLikeAvatarClick" data-user-id="{{avatar.userId}}">{{avatar.avatarText}}</view>
+                                    <user-avatar
+
+                                      size="40"
+
+                                      avatar-url="{{avatar.avatarUrl}}"
+
+                                      avatar-text="{{avatar.avatarText}}"
+
+                                      avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+
+                                      user-id="{{avatar.userId}}"
+
+                                      interactive="true"
+
+                                      bind:avatarTap="handleLikeAvatarClick"
+
+                                    />
                                   </block>
                                 </view>
                               </view>

@@ -1,6 +1,5 @@
 const request = require('../../utils/request');
-const { getAvatarColorByUserId } = require('../../utils/formatters');
-const { getLastTextChar } = require('../../utils/avatar');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { richContentToPlainText } = require('../../utils/markdown');
 const { THEME_PRIMARY } = require('../../utils/theme');
 
@@ -32,6 +31,11 @@ Page({
       const list = (res.list || []).map(item => {
         const targetUser = item.targetUserId || {};
         const userId = targetUser._id || targetUser.id || '';
+        const avatar = getUserAvatarDisplay(targetUser, {
+          userId,
+          displayName: targetUser.nickname || '书友',
+          fallbackText: '友'
+        });
         const rawPreview = item.content ? richContentToPlainText(item.content).replace(/\s+/g, ' ').trim() : '';
         const shareCount = item.shareCount || 0;
         return {
@@ -39,9 +43,9 @@ Page({
           insightId: item._id,
           userId,
           nickname: targetUser.nickname || '书友',
-          avatarUrl: targetUser.avatarUrl || targetUser.avatar || '',
-          avatarText: getLastTextChar(targetUser.nickname || '书友', '友'),
-          avatarColor: getAvatarColorByUserId(userId),
+          avatarUrl: avatar.avatarUrl,
+          avatarText: avatar.avatarText,
+          avatarColor: avatar.avatarColor,
           preview: rawPreview || '（暂无内容）',
           mediaType: item.mediaType,
           imageUrl: item.imageUrl || '',
