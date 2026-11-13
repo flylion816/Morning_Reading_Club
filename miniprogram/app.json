@@ -4,10 +4,7 @@
     "pages/periods/periods",
     "pages/meeting-webview/meeting-webview",
     "pages/courses/courses",
-    "pages/course-detail/course-detail",
-    "pages/reading-mode/reading-mode",
     "pages/checkin/checkin",
-    "pages/insights/insights",
     "pages/insight-requests/insight-requests",
     "pages/share/share",
     "pages/period-detail/period-detail",
@@ -83,6 +80,27 @@
       "root": "pages/insight-detail",
       "pages": [
         "insight-detail"
+      ]
+    },
+    {
+      "name": "course-detail",
+      "root": "pages/course-detail",
+      "pages": [
+        "course-detail"
+      ]
+    },
+    {
+      "name": "reading-mode",
+      "root": "pages/reading-mode",
+      "pages": [
+        "reading-mode"
+      ]
+    },
+    {
+      "name": "insights",
+      "root": "pages/insights",
+      "pages": [
+        "insights"
       ]
     },
     {

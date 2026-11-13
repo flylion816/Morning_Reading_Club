@@ -138,3 +138,59 @@
 /* Version 3 dawn: serif period name, seal fallback on hero. */
 .hero-title { font-family: var(--app-font-serif); }
 .hero-seal { color: #fff; background: rgba(255, 255, 255, 0.16); }
+
+/* Guest path: explain the personal learning route without exposing community features. */
+.guest-path-card {
+  padding-bottom: 24rpx;
+}
+
+.guest-path-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.guest-path-step {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  min-height: 96rpx;
+  padding: 18rpx 20rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-muted);
+  border: 1rpx solid var(--app-border);
+}
+
+.guest-path-number {
+  flex: 0 0 52rpx;
+  width: 52rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  border-radius: 50%;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-family: var(--app-font-num);
+  font-size: 24rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.guest-path-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5rpx;
+}
+
+.guest-path-title {
+  color: var(--app-text);
+  font-size: 27rpx;
+  font-weight: 650;
+}
+
+.guest-path-desc {
+  color: var(--app-text-muted);
+  font-size: 22rpx;
+  line-height: 1.5;
+}

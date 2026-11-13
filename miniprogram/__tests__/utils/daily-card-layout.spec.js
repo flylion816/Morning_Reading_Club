@@ -3,7 +3,7 @@ const {
   describeDate,
   computeDailyCardLayout,
   PLACEHOLDER_TEXT
-} = require('../../utils/daily-card-layout');
+} = require('../../pages/daily-card/daily-card-layout');
 
 const texts = layout => layout.elements.filter(e => e.type === 'text').map(e => e.text);
 

@@ -9,6 +9,10 @@ const {
   getBrandSlogan,
   getCourseName
 } = require('../../utils/brand');
+const { THEME_PRIMARY } = require('../../utils/theme');
+
+// 登录入场由登录页完成前两段，首页接住最后淡出，整体约 3 秒。
+const ENTRY_TRANSITION_HANDOFF_MS = 2600;
 
 const DEFAULT_WECHAT_USER_INFO = {
   nickName: '微信用户',
@@ -35,13 +39,32 @@ Page({
       { code: 'test_user_admin', label: '管理员', openid: 'mock_admin_001' }
     ],
     showPhoneBindModal: false, // 是否显示手机号绑定弹窗
-    phoneBinding: false // 手机号绑定中
+    phoneBinding: false, // 手机号绑定中
+    entryTransition: false // 登录成功后的晨光入营转场
   },
 
   onLoad(options) {
+    this.syncLoginNavigationBar();
     console.log('🔴🔴🔴 LOGIN.JS PAGE LOADED 🔴🔴🔴', options);
     console.log('登录页面加载', options);
     this._pendingLoadOptions = options || {};
+  },
+
+  onShow() {
+    this.syncLoginNavigationBar();
+  },
+
+  // custom 导航栏下微信胶囊本身不能改色；让系统导航/状态栏与晨蓝保持一致。
+  syncLoginNavigationBar() {
+    if (typeof wx.setNavigationBarColor !== 'function') return;
+    try {
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: THEME_PRIMARY
+      });
+    } catch (error) {
+      console.warn('设置登录页导航栏颜色失败:', error);
+    }
   },
 
   onReady() {
@@ -246,32 +269,49 @@ Page({
 
     console.log('✅ Token已保存到本地存储:', loginData.accessToken.substring(0, 20) + '...');
 
-    wx.showToast({
-      title: '登录成功',
-      icon: 'success',
-      duration: 1500
+    this.clearEntryTransitionTimer();
+    this.setData({
+      entryTransition: true,
+      errorMessage: '',
+      debugInfo: ''
     });
 
-    setTimeout(() => {
-      this.setData({
-        loading: false,
-        showPhoneBindModal: false
-      });
-
+    // 先让晨光和连续纸页完整展开，再把最后一小段交给首页，避免路由突然闪断。
+    this._entryTransitionTimer = setTimeout(() => {
+      this._entryTransitionTimer = null;
+      const app = getApp();
+      app.globalData.loginEntryTransitionPending = true;
       this.navigateToApp();
-    }, 1500);
+    }, ENTRY_TRANSITION_HANDOFF_MS);
+  },
+
+  clearEntryTransitionTimer() {
+    if (this._entryTransitionTimer) {
+      clearTimeout(this._entryTransitionTimer);
+      this._entryTransitionTimer = null;
+    }
   },
 
   /**
    * 跳转进入应用
    */
   navigateToApp() {
+    this.clearEntryTransitionTimer();
+    this.setData({
+      loading: false,
+      entryTransition: false,
+      showPhoneBindModal: false
+    });
     // 清掉首页的 onShow 节流，确保登录后能刷新状态
     const pages = getCurrentPages();
     const indexPage = pages.find(p => p.route === 'pages/index/index');
     if (indexPage) indexPage._lastLoadTime = 0;
+    const app = getApp();
     wx.switchTab({
-      url: '/pages/index/index'
+      url: '/pages/index/index',
+      fail: () => {
+        if (app && app.globalData) app.globalData.loginEntryTransitionPending = false;
+      }
     });
   },
 
@@ -357,5 +397,9 @@ Page({
     wx.switchTab({
       url: '/pages/periods/periods'
     });
+  },
+
+  onUnload() {
+    this.clearEntryTransitionTimer();
   }
 });

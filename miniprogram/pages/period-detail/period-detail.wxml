@@ -48,6 +48,36 @@
       <text class="description-text">{{period.description}}</text>
     </view>
 
+    <view wx:if="{{!access.isEnrolled}}" class="content-card guest-path-card">
+      <view class="card-heading">
+        <text class="card-kicker">HOW TO START</text>
+        <text class="card-title">参与路径</text>
+      </view>
+      <view class="guest-path-list">
+        <view class="guest-path-step">
+          <text class="guest-path-number">1</text>
+          <view class="guest-path-copy">
+            <text class="guest-path-title">先看大纲</text>
+            <text class="guest-path-desc">共 {{sections.length || period.totalDays || 0}} 课，可先了解学习安排</text>
+          </view>
+        </view>
+        <view class="guest-path-step">
+          <text class="guest-path-number">2</text>
+          <view class="guest-path-copy">
+            <text class="guest-path-title">{{period.publicReading ? '直接开始' : '登录报名'}}</text>
+            <text class="guest-path-desc">{{period.publicReading ? '公开内容可直接阅读' : '按页面提示完成报名'}}</text>
+          </view>
+        </view>
+        <view class="guest-path-step">
+          <text class="guest-path-number">3</text>
+          <view class="guest-path-copy">
+            <text class="guest-path-title">保存进度</text>
+            <text class="guest-path-desc">登录后自动记住你读到哪里</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <view class="content-card outline-card">
       <view class="card-heading card-heading-between">
         <view>

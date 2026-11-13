@@ -481,7 +481,7 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import AdminLayout from '../components/AdminLayout.vue';
 import { insightApi, periodApi, userApi } from '../services/api';

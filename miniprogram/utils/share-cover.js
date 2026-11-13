@@ -1,3 +1,8 @@
+const {
+  THEME_PRIMARY,
+  getThemeColorWithAlpha
+} = require('./theme');
+
 function getImageInfo(src) {
   return new Promise((resolve, reject) => {
     wx.getImageInfo({
@@ -196,8 +201,8 @@ async function createContainedShareCover(page, sourceUrl, options = {}) {
   const backgroundAlpha = Number.isFinite(options.backgroundAlpha)
     ? options.backgroundAlpha
     : 0.28;
-  const overlayFill = options.overlayFill || 'rgba(255, 255, 255, 0.66)';
-  const backgroundFill = options.backgroundFill || '#f6f2ea';
+  const overlayFill = options.overlayFill || 'rgba(255, 255, 255, 0.70)';
+  const backgroundFill = options.backgroundFill || getThemeColorWithAlpha(THEME_PRIMARY, 0.16);
   const imageSource = await resolveImageSource(sourceUrl);
   const target = await getCanvasNode(page, selector);
   const canvas = target.node;

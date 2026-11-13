@@ -17,7 +17,12 @@ const { MOOD_OPTIONS } = require('../../utils/mood');
 const { SEEN_PHRASES } = require('../../utils/seen-phrases');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
-const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
+const {
+  THEME_PRIMARY,
+  WECHAT_SI_PLUGIN_ENABLED,
+  getThemeColorWithAlpha,
+  darkenThemeColor
+} = require('../../utils/theme');
 const {
   formatShortLessonLabel,
   getLessonNumberingBase
@@ -446,7 +451,7 @@ Page({
       return {
         title: `「${course.title || ''}」`,
         path: `/pages/course-detail/course-detail?id=${courseId}&anchor=podcast`,
-        imageUrl: '/assets/images/fanren-boke.jpg'
+        imageUrl: podcastShareImagePath || course.coverImage || getDefaultShareImage()
       };
     }
 
@@ -4258,8 +4263,8 @@ Page({
         // 标题行：播图标 + "播一播"
         const iconSize = 56;
         const iconBg = ctx.createLinearGradient(PAD, y, PAD + iconSize, y + iconSize);
-        iconBg.addColorStop(0, '#f97316');
-        iconBg.addColorStop(1, '#ea580c');
+        iconBg.addColorStop(0, THEME_PRIMARY);
+        iconBg.addColorStop(1, darkenThemeColor(THEME_PRIMARY, 0.18));
         this.drawPosterRoundedRect(ctx, PAD, y, iconSize, iconSize, 12, iconBg);
 
         ctx.fillStyle = '#ffffff';
@@ -4278,8 +4283,8 @@ Page({
 
         // 播放卡片
         const cardBg = ctx.createLinearGradient(PAD, y, PAD, y + playerCardH);
-        cardBg.addColorStop(0, '#fff7ed');
-        cardBg.addColorStop(1, '#ffedd5');
+        cardBg.addColorStop(0, getThemeColorWithAlpha(THEME_PRIMARY, 0.08));
+        cardBg.addColorStop(1, getThemeColorWithAlpha(THEME_PRIMARY, 0.15));
         this.drawPosterRoundedRect(ctx, PAD, y, W - PAD * 2, playerCardH, 20, cardBg);
 
         const maxTitleW = W - PAD * 2 - 130;
@@ -4300,8 +4305,8 @@ Page({
         const btnY = y + playerCardH / 2;
         const btnR = 44;
         const btnGrad = ctx.createLinearGradient(btnX - btnR, btnY - btnR, btnX + btnR, btnY + btnR);
-        btnGrad.addColorStop(0, '#f97316');
-        btnGrad.addColorStop(1, '#ea580c');
+        btnGrad.addColorStop(0, THEME_PRIMARY);
+        btnGrad.addColorStop(1, darkenThemeColor(THEME_PRIMARY, 0.18));
         ctx.fillStyle = btnGrad;
         ctx.beginPath();
         ctx.arc(btnX, btnY, btnR, 0, Math.PI * 2);

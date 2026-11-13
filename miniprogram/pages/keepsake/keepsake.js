@@ -1,4 +1,4 @@
-const keepsakeService = require('../../services/keepsake.service');
+const keepsakeService = require('./keepsake.service');
 const completionReportService = require('../../services/completion-report.service');
 const { requireLogin } = require('../../utils/require-login');
 const { getBrandName } = require('../../utils/brand');

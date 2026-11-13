@@ -11,7 +11,7 @@ const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const { formatShortLessonLabel } = require('../../utils/lesson');
-const { getBrandName } = require('../../utils/brand');
+const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
 const {
   hasPaidEnrollment,
   redirectAfterCommunityDenied
@@ -971,7 +971,7 @@ Page({
       const shareConfig = {
         title: shareRequest.shareTitle,
         path: shareRequest.sharePath,
-        imageUrl: '/assets/images/share-insight.jpg'
+        imageUrl: getDefaultShareImage()
       };
 
       this.closeRequestSharePrompt();

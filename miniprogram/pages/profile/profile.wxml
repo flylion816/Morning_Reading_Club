@@ -276,11 +276,47 @@
 
   <!-- 未登录状态 -->
   <view wx:if="{{!isLogin}}" class="guest-content">
-    <view class="guest-banner">
-      <view class="app-seal app-seal-lg guest-seal">晨</view>
-      <text class="guest-tip">登录后查看个人信息</text>
+    <view class="guest-content-inner">
+      <view class="guest-hero">
+        <view class="app-seal app-seal-lg guest-hero-seal">晨</view>
+        <text class="guest-hero-kicker">{{brandName}}</text>
+        <text class="guest-hero-title">你的学习记录</text>
+        <text class="guest-hero-desc">先看课程，或登录后保存个人进度</text>
+      </view>
+
+      <view class="guest-preview-card">
+        <text class="guest-preview-title">登录后会拥有</text>
+        <view class="guest-preview-grid">
+          <view class="guest-preview-item">
+            <view class="app-seal app-seal-sm">历</view>
+            <text class="guest-preview-name">晨读日历</text>
+            <text class="guest-preview-desc">看见每一天</text>
+          </view>
+          <view class="guest-preview-item">
+            <view class="app-seal app-seal-sm">程</view>
+            <text class="guest-preview-name">课程内容</text>
+            <text class="guest-preview-desc">每天读什么</text>
+          </view>
+          <view class="guest-preview-item">
+            <view class="app-seal app-seal-sm">进</view>
+            <text class="guest-preview-name">学习进度</text>
+            <text class="guest-preview-desc">接着上次读</text>
+          </view>
+          <view class="guest-preview-item">
+            <view class="app-seal app-seal-sm">结</view>
+            <text class="guest-preview-name">学习小结</text>
+            <text class="guest-preview-desc">整理自己的收获</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="guest-actions">
+        <view class="guest-primary-action" bindtap="goToLogin">立即登录</view>
+        <view class="guest-secondary-action" bindtap="goToCourses">先看课程</view>
+      </view>
+
+      <text class="guest-privacy-note">浏览课程不需要登录；登录仅用于保存个人学习进度。</text>
     </view>
-    <view class="guest-login-btn" bindtap="goToLogin">立即登录</view>
   </view>
 
   <!-- 加载状态 -->

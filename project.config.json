@@ -35,6 +35,10 @@
         "type": "folder"
       },
       {
+        "value": "exports",
+        "type": "folder"
+      },
+      {
         "value": "logs",
         "type": "folder"
       },

@@ -1,4 +1,4 @@
-jest.mock('../../services/keepsake.service', () => ({ getPeriodKeepsake: jest.fn() }));
+jest.mock('../../pages/keepsake/keepsake.service', () => ({ getPeriodKeepsake: jest.fn() }));
 jest.mock('../../services/completion-report.service', () => ({ getReportDetail: jest.fn(() => Promise.resolve(null)) }));
 jest.mock('../../utils/require-login', () => ({ requireLogin: jest.fn(() => true) }));
 jest.mock('../../utils/brand', () => ({ getBrandName: () => '晨读营' }));
@@ -13,7 +13,7 @@ describe('keepsake page', () => {
     global.Page = jest.fn(c => { config = c; });
     global.wx = { navigateBack: jest.fn(), redirectTo: jest.fn(), switchTab: jest.fn() };
     global.getCurrentPages = jest.fn(() => [{}, {}]);
-    service = require('../../services/keepsake.service');
+    service = require('../../pages/keepsake/keepsake.service');
     service.getPeriodKeepsake.mockReset();
     require('../../pages/keepsake/keepsake');
     page = {

@@ -1,4 +1,8 @@
 <!--首页页面-->
+<view wx:if="{{showLoginEntryTransition}}" class="login-entry-bridge">
+  <view class="login-entry-bridge-glow"></view>
+  <view class="login-entry-bridge-line"></view>
+</view>
 <activity-popup
   show="{{showActivityPopup}}"
   activity="{{popupActivity}}"
@@ -452,7 +456,7 @@
         </view>
         <view class="feature-text">
           <text class="feature-title">每日晨读</text>
-          <text class="feature-desc">精选七个习惯经典章节，每天15分钟，23天养成好习惯</text>
+          <text class="feature-desc">每天 15 分钟</text>
         </view>
       </view>
       <view class="guest-feature-item">
@@ -461,7 +465,7 @@
         </view>
         <view class="feature-text">
           <text class="feature-title">学习进度</text>
-          <text class="feature-desc">按天完成晨读内容，清晰掌握自己的学习节奏</text>
+          <text class="feature-desc">看见自己的节奏</text>
         </view>
       </view>
       <view class="guest-feature-item">
@@ -470,7 +474,7 @@
         </view>
         <view class="feature-text">
           <text class="feature-title">课程引导</text>
-          <text class="feature-desc">围绕经典章节设置问题与行动练习，帮助理解和应用</text>
+          <text class="feature-desc">问题与行动练习</text>
         </view>
       </view>
       <view class="guest-feature-item">
@@ -479,17 +483,20 @@
         </view>
         <view class="feature-text">
           <text class="feature-title">晨读节奏</text>
-          <text class="feature-desc">跟随课程安排稳步学习，持续积累晨读习惯</text>
+          <text class="feature-desc">稳步积累习惯</text>
         </view>
       </view>
     </view>
 
     <!-- 底部登录提示 -->
-    <view class="guest-bottom">
-      <view class="guest-login-subtle" bindtap="goToLogin">登录查看我的学习数据</view>
-      <view class="guest-tip">
-        <text>点击下方「晨读营」可先</text>
-        <text class="guest-link" bindtap="handleBackHome">浏览课程</text>
+    <view class="guest-next-card">
+      <view class="guest-next-copy">
+        <text class="guest-next-title">可以先看看课</text>
+        <text class="guest-next-desc">浏览课程不需要登录，想留下学习记录时再登录</text>
+      </view>
+      <view class="guest-next-actions">
+        <view class="guest-next-primary" bindtap="handleBackHome">浏览课程</view>
+        <view class="guest-next-secondary" bindtap="goToLogin">登录看数据</view>
       </view>
     </view>
   </view>

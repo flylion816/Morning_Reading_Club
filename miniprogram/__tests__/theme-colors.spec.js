@@ -21,7 +21,16 @@ const LEGACY_BRAND_BLUES = [
   '#4268c7',
   '#2f6fb7',
   '#0050b3',
-  '#4a90e2'
+  '#4a90e2',
+  '#0d4f6c',
+  '#2980b9'
+];
+
+const SHARE_SURFACE_FILES = [
+  'miniprogram/pages/insight-detail/insight-detail.js',
+  'miniprogram/pages/insights/insights.js',
+  'miniprogram/pages/course-detail/course-detail.js',
+  'miniprogram/utils/share-cover.js'
 ];
 
 function collectRuntimeFiles(dir, files = []) {
@@ -99,5 +108,17 @@ describe('tenant theme color hygiene', () => {
     expect(periodChipRule).toContain('color: var(--theme-primary)');
     expect(hashtagRule).not.toMatch(/#[0-9a-f]{6}/i);
     expect(periodChipRule).not.toMatch(/#[0-9a-f]{6}/i);
+  });
+
+  test('share surfaces do not retain legacy fixed cover art or poster palettes', () => {
+    const legacySharePattern = /(share-insight\.jpg|#0d4f6c|#2980b9|#f97316|#ea580c)/i;
+    const hits = SHARE_SURFACE_FILES.flatMap(file => {
+      return fs.readFileSync(file, 'utf8')
+        .split('\n')
+        .map((line, index) => ({ file, line, index: index + 1 }))
+        .filter(({ line }) => legacySharePattern.test(line));
+    });
+
+    expect(hits).toEqual([]);
   });
 });

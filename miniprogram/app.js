@@ -4,6 +4,7 @@ const currentTenant = require('./config/current-tenant');
 const constants = require('./config/constants');
 const logger = require('./utils/logger');
 const activityService = require('./services/activity.service');
+const subpackageShared = require('./services/subpackage-shared.service');
 const { tenantStorage } = require('./utils/storage');
 
 App({
@@ -228,6 +229,7 @@ App({
 
   // 全局数据
   globalData: {
+    subpackageShared,
     isLogin: false,
     canUsePaidFeatures: false,
     userInfo: null,
@@ -239,6 +241,8 @@ App({
     platform: '',
     apiBaseUrl: envConfig.apiBaseUrl,
     env: envConfig,
+    // 登录成功后由首页接住最后一段淡出转场
+    loginEntryTransitionPending: false,
     // 播客播放状态
     podcastActive: false,
     podcastPlaying: false,

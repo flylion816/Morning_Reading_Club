@@ -95,6 +95,19 @@
     </view>
   </view>
 
+  <!-- 登录成功：晨光铺开、连续纸页展开，最后由首页接住淡出 -->
+  <view wx:if="{{entryTransition}}" class="login-entry-transition">
+    <view class="entry-transition-sun"></view>
+    <view class="entry-transition-horizon"></view>
+    <view class="entry-transition-book">
+      <view class="entry-book-spine"></view>
+    </view>
+    <view class="entry-transition-copy">
+      <text class="entry-transition-title">晨光已为你点亮</text>
+      <text class="entry-transition-subtitle">正在打开今天的共读</text>
+    </view>
+  </view>
+
   <!-- 手机号绑定弹窗 -->
   <view class="phone-bind-modal" wx:if="{{showPhoneBindModal}}">
     <view class="modal-mask"></view>

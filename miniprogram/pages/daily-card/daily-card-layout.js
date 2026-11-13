@@ -2,7 +2,7 @@
  * 晨读日签排版：纯函数。预览（WXML）与画布（canvas）共用同一份结果。
  * 坐标单位为设计稿像素，画布宽度固定 750（与 rpx 一致）。
  */
-const { parseDateKey, getSolarTerm, getLatestSolarTerm } = require('./solar-terms');
+const { parseDateKey, getSolarTerm, getLatestSolarTerm } = require('../../utils/solar-terms');
 
 const CARD_WIDTH = 750;
 const VARIANTS = ['dawn', 'paper', 'blank'];
