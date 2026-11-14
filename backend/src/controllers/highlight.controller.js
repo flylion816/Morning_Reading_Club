@@ -125,6 +125,24 @@ async function deleteHighlight(req, res, next) {
   }
 }
 
+async function deleteHighlightByText(req, res, next) {
+  try {
+    const userId = getRequestUserId(req);
+    const sectionId = req.body?.sectionId || req.query?.sectionId;
+    const text = normalizeText(req.body?.text || req.query?.text);
+    if (!isValidId(sectionId)) return res.status(400).json(errors.badRequest('课程参数不正确'));
+    if (!text) return res.status(400).json(errors.badRequest('摘抄内容不能为空'));
+
+    const textHash = hashText(text);
+    const result = await Highlight.deleteOne({ userId, sectionId, textHash });
+    if (!result.deletedCount) return res.status(404).json(errors.notFound('摘抄不存在'));
+    return res.json(success({ sectionId, textHash }, '已取消摘抄'));
+  } catch (error) {
+    logger.error('deleteHighlightByText failed:', error);
+    return next(error);
+  }
+}
+
 async function getMyHighlights(req, res, next) {
   try {
     const userId = getRequestUserId(req);
@@ -200,13 +218,17 @@ async function getSectionPopular(req, res, next) {
     const hasAccess = await ensurePeriodCommunityAccess(res, userId, section.periodId);
     if (!hasAccess) return undefined;
 
-    const rows = await Highlight.find({ sectionId }).select('userId textHash').lean();
+    const rows = await Highlight.find({ sectionId }).select('_id userId textHash').lean();
     const readersByHash = new Map();
     const mine = new Set();
+    const mineIds = {};
     rows.forEach(row => {
       if (!readersByHash.has(row.textHash)) readersByHash.set(row.textHash, new Set());
       readersByHash.get(row.textHash).add(String(row.userId));
-      if (String(row.userId) === String(userId)) mine.add(row.textHash);
+      if (String(row.userId) === String(userId)) {
+        mine.add(row.textHash);
+        mineIds[row.textHash] = String(row._id);
+      }
     });
 
     const popular = [];
@@ -215,7 +237,7 @@ async function getSectionPopular(req, res, next) {
     });
     popular.sort((a, b) => b.count - a.count);
 
-    return res.json(success({ popular, mine: [...mine] }));
+    return res.json(success({ popular, mine: [...mine], mineIds }));
   } catch (error) {
     logger.error('getSectionPopular failed:', error);
     return next(error);
@@ -226,6 +248,7 @@ module.exports = {
   createHighlight,
   updateHighlightNote,
   deleteHighlight,
+  deleteHighlightByText,
   getMyHighlights,
   getSectionPopular
 };

@@ -343,6 +343,10 @@ Page({
         }
       });
       this._popularMap = popularMap;
+      this._highlightIds = {
+        ...(this._highlightIds || {}),
+        ...((result && result.mineIds) || {})
+      };
       this._mineSet = new Set((result && result.mine) || []);
       this._highlightIds = this._highlightIds || {};
       this.applyHighlightMarks();
@@ -498,16 +502,13 @@ Page({
   async removeParagraphHighlight(item) {
     const id = this._highlightIds && this._highlightIds[item.hash];
     if (!id) {
-      wx.showModal({
-        title: '到摘抄本里可以删除',
-        confirmText: '去摘抄本',
-        showCancel: true,
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({ url: '/pages/highlights/highlights' });
-          }
-        }
-      });
+      try {
+        await highlightService.removeHighlightByText(this.data.sectionId, item.text);
+        if (this._mineSet) this._mineSet.delete(item.hash);
+        this.applyHighlightMarks();
+      } catch (error) {
+        // 取消失败时保持当前状态，不跳转页面。
+      }
       return;
     }
     try {
