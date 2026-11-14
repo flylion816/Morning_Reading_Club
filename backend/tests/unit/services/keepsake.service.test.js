@@ -37,7 +37,7 @@ describe('Keepsake Service', () => {
         ]))
       },
       Comment: { find: () => chain([{ userId: 'u2', replies: [{ userId: 'me' }, { userId: 'u3' }] }, { userId: 'me', replies: [] }]) },
-      Insight: { find: () => chain([{ _id: 'i1', title: '看见', content: '<p>' + 'a'.repeat(100) + '</p>' }]) },
+      Insight: { find: () => chain([{ _id: 'i1', title: '看见', content: '<p>## 标题 **重点**</p>' + 'a'.repeat(100) }]) },
       User: {
         findById: () => chain({ nickname: '小明' }),
         find: () => chain([{ _id: 'u2', nickname: 'B', avatarUrl: 'b.png' }, { _id: 'u3', nickname: 'C' }])
@@ -125,6 +125,8 @@ describe('Keepsake Service', () => {
     expect(data.companions.map(c => c.userId)).to.deep.equal(['u2', 'u3']);
     expect(data.companions[0].count).to.equal(2);
     expect(data.insightExcerpt.excerpt.length).to.be.at.most(81);
+    expect(data.insightExcerpt.excerpt).not.to.contain('##');
+    expect(data.insightExcerpt.excerpt).not.to.contain('**');
     expect(data.highlights).to.deep.equal([]);
     expect(data.letter).to.equal(null);
     expect(data.seenCount).to.equal(0);
