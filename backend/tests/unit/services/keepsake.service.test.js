@@ -147,6 +147,23 @@ describe('Keepsake Service', () => {
     expect(data.earliestCheckin).to.deep.equal({ time: '09:57', date: '2026-09-13' });
   });
 
+  it('最早晨读优先使用首次进入时间，没有时回退到阅读完成时间', async () => {
+    stubs.Completion.find = () => chain([
+      {
+        startedAt: new Date('2026-09-10T23:15:00Z'),
+        completedAt: new Date('2026-09-11T01:00:00Z'),
+        durationMs: 60000
+      },
+      {
+        completedAt: new Date('2026-09-11T02:00:00Z'),
+        durationMs: 60000
+      }
+    ]);
+    service = load();
+    const data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-20T00:00:00Z'));
+    expect(data.earliestReading).to.deep.equal({ time: '07:15', date: '2026-09-11' });
+  });
+
   it('没有赞时取最长的一篇，没有打卡时 topCheckin 为 null', async () => {
     stubs.Checkin.find.returns(chain([
       { _id: 'a', sectionId: 's1', day: 1, checkinDate: new Date('2026-11-12T01:00:00Z'), note: '短' },
