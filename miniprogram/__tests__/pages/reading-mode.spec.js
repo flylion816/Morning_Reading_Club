@@ -21,7 +21,8 @@ jest.mock('../../services/presence.service.js', () => ({
 jest.mock('../../services/highlight.service.js', () => ({
   getSectionPopular: jest.fn(),
   addHighlight: jest.fn(),
-  removeHighlight: jest.fn()
+  removeHighlight: jest.fn(),
+  removeHighlightByText: jest.fn()
 }));
 
 let pageConfig;
