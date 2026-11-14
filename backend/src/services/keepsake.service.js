@@ -202,7 +202,7 @@ async function buildCompanions(userId, checkins) {
     .slice(0, 3);
   if (!top.length) return [];
   const users = await User.find({ _id: { $in: top.map(([id]) => id) } })
-    .select('nickname avatarUrl')
+    .select('nickname avatar avatarUrl')
     .lean();
   const userMap = {};
   users.forEach(user => {
@@ -211,6 +211,7 @@ async function buildCompanions(userId, checkins) {
   return top.map(([id, count]) => ({
     userId: id,
     nickname: (userMap[id] && userMap[id].nickname) || '书友',
+    avatar: (userMap[id] && userMap[id].avatar) || '',
     avatarUrl: (userMap[id] && userMap[id].avatarUrl) || '',
     count
   }));
@@ -267,11 +268,12 @@ async function buildBuddy(userId, period, now) {
   const me = idStr(userId);
   const partnerId = [pair.userA, pair.userB].map(idStr).find(id => id && id !== me);
   if (!partnerId) return null;
-  const partner = await User.findById(partnerId).select('nickname avatarUrl').lean();
+  const partner = await User.findById(partnerId).select('nickname avatar avatarUrl').lean();
   let until = pair.endedAt || now;
   if (period.endDate && new Date(until) > new Date(period.endDate)) until = period.endDate;
   return {
     nickname: (partner && partner.nickname) || '读伴',
+    avatar: (partner && partner.avatar) || '',
     avatarUrl: (partner && partner.avatarUrl) || '',
     days: pair.createdAt ? Math.max(1, dayDiff(pair.createdAt, until) + 1) : 0,
     active: pair.active !== false

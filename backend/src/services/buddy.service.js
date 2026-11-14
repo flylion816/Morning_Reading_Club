@@ -116,7 +116,8 @@ async function buildStateWithBuddyId(userId, periodId, ongoing, now) {
       state: 'paired',
       buddy: {
         nickname: (buddyUser && buddyUser.nickname) || '读伴',
-        avatarUrl: (buddyUser && (buddyUser.avatarUrl || buddyUser.avatar)) || '',
+        avatar: (buddyUser && buddyUser.avatar) || '',
+        avatarUrl: (buddyUser && buddyUser.avatarUrl) || '',
         readToday: buddyStatus.readToday,
         checkedInToday: buddyStatus.checkedInToday
       },

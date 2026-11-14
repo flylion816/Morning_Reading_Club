@@ -223,7 +223,7 @@ describe('buddy.service', () => {
     checkins.docs.push({ userId: 'u1' });
     completions.docs.push({ userId: 'u2' });
     const s = await service.getState('u2', PID, NOW);
-    expect(s.buddy).to.deep.equal({ nickname: '小一', avatarUrl: 'a1', readToday: true, checkedInToday: true });
+    expect(s.buddy).to.deep.equal({ nickname: '小一', avatar: '', avatarUrl: 'a1', readToday: true, checkedInToday: true });
     expect(s.me).to.deep.equal({ readToday: true, checkedInToday: false });
   });
 
