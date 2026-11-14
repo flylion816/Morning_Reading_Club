@@ -53,7 +53,11 @@ describe('daily-card-layout', () => {
         h: 116
       });
       expect(code.x + code.w).toBeLessThanOrEqual(750 - 64);
-      expect(t).toContain('扫码进入');
+      expect(t).not.toContain('扫码进入');
+      if (variant !== 'blank') {
+        const source = layout.elements.find(el => el.type === 'text' && el.text === '—— 第 7 天 · 以终为始');
+        expect(source.align).toBe('right');
+      }
     });
   });
 
