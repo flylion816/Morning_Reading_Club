@@ -26,7 +26,7 @@ describe('UserAvatar', () => {
     });
 
     expect(wrapper.findComponent(ElAvatarStub).props('src')).toBe('https://example.com/avatar.jpg');
-    expect(wrapper.text()).toContain('🦁');
+    expect(wrapper.text()).toContain('喜娟');
   });
 
   it('switches to fallback mode after an image error', async () => {
@@ -40,6 +40,6 @@ describe('UserAvatar', () => {
 
     await wrapper.find('.el-avatar-stub').trigger('click');
     expect(wrapper.findComponent(ElAvatarStub).props('src')).toBeUndefined();
-    expect(wrapper.text()).toContain('🌿');
+    expect(wrapper.text()).toContain('喜娟');
   });
 });

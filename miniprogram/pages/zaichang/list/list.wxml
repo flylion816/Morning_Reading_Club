@@ -87,7 +87,8 @@
             <user-avatar
               size="56"
               avatar-url="{{att.avatarUrl}}"
-              avatar-text="{{att.avatar || att.name || '?'}}"
+              avatar-text="{{att.avatarText || att.name || '?'}}"
+              display-name="{{att.name}}"
             />
           </view>
         </block>

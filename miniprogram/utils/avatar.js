@@ -7,6 +7,11 @@ function getLastTextChar(value = '', fallback = '用') {
   return chars.length > 0 ? chars[chars.length - 1] : fallback;
 }
 
+function getLastTextChars(value = '', count = 2, fallback = '用') {
+  const chars = Array.from(String(value || '').trim());
+  return chars.length > 0 ? chars.slice(-count).join('') : fallback;
+}
+
 function isUsableAvatarUrl(value) {
   const normalized = String(value || '').trim();
   if (!normalized) return false;
@@ -38,11 +43,8 @@ function getUserAvatarDisplay(user = {}, options = {}) {
   const userId = String(options.userId || getUserId(source) || '');
   const displayName = options.displayName || getDisplayName(source, fallbackName);
   const avatarUrl = normalizeAvatarUrl(options.avatarUrl || source.avatarUrl);
-  const avatarValue = String(source.avatar || '').trim();
   const fallbackText = options.fallbackText || DEFAULT_AVATAR_TEXT;
-  const fallbackAvatarText = avatarValue && !isUsableAvatarUrl(avatarValue)
-    ? avatarValue
-    : getLastTextChar(displayName, fallbackText);
+  const fallbackAvatarText = getLastTextChars(displayName, 2, fallbackText);
 
   return {
     userId,
@@ -64,6 +66,7 @@ module.exports = {
   DEFAULT_AVATAR_TEXT,
   decorateUserAvatar,
   getLastTextChar,
+  getLastTextChars,
   isUsableAvatarUrl,
   normalizeAvatarUrl,
   getUserAvatarDisplay

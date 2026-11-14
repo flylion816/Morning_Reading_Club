@@ -92,7 +92,8 @@
             <user-avatar
               size="64"
               avatar-url="{{c.avatarUrl}}"
-              avatar-text="{{c.avatar || c.nickname}}"
+              avatar-text="{{c.avatarText || c.nickname}}"
+              display-name="{{c.nickname}}"
               avatar-color="{{c.avatarColor}}"
             />
             <view class="ks-friend-name">{{c.nickname}}</view>
@@ -137,7 +138,8 @@
           <user-avatar
             size="128"
             avatar-url="{{keepsake.buddy.avatarUrl}}"
-            avatar-text="{{keepsake.buddy.avatar || keepsake.buddy.nickname}}"
+            avatar-text="{{keepsake.buddy.avatarText || keepsake.buddy.nickname}}"
+            display-name="{{keepsake.buddy.nickname}}"
             avatar-color="{{keepsake.buddy.avatarColor}}"
           />
           <view class="ks-title ks-title-sm">{{keepsake.buddy.nickname}}</view>

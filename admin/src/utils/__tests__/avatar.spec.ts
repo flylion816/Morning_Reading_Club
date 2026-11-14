@@ -16,21 +16,21 @@ describe('avatar display contract', () => {
     });
 
     expect(display.imageUrl).toBe('https://example.com/avatar.jpg');
-    expect(display.text).toBe('🦁');
+    expect(display.text).toBe('喜娟');
     expect(getUserAvatarUrl({ avatarUrl: 'https://example.com/avatar.jpg' })).toBe(
       'https://example.com/avatar.jpg'
     );
   });
 
-  it('uses emoji/text and then the name character as fallback', () => {
-    expect(getUserAvatarDisplay({ nickname: '喜娟', avatar: '🦁' }).text).toBe('🦁');
-    expect(getUserAvatarDisplay({ nickname: '喜娟' }).text).toBe('娟');
+  it('uses the last two display-name characters as fallback', () => {
+    expect(getUserAvatarDisplay({ nickname: '喜娟', avatar: '🦁' }).text).toBe('喜娟');
+    expect(getUserAvatarDisplay({ nickname: '喜娟' }).text).toBe('喜娟');
   });
 
   it('does not treat a user avatar emoji as an image URL', () => {
     expect(isUsableAvatarUrl('🦁')).toBe(false);
     expect(normalizeAvatarUrl('🦁')).toBe('');
-    expect(getUserAvatarDisplay({ nickname: '喜娟', avatar: '🌿', avatarUrl: '🦁' }).text).toBe('🌿');
+    expect(getUserAvatarDisplay({ nickname: '喜娟', avatar: '🌿', avatarUrl: '🦁' }).text).toBe('喜娟');
   });
 
   it('accepts explicit admin image URLs and stable fallback colors', () => {

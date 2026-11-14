@@ -1,5 +1,6 @@
 const buddyService = require('../../services/buddy.service');
 const { requireLogin } = require('../../utils/require-login');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 
 const LOAD_ERROR = '读伴状态没有加载出来';
 
@@ -39,7 +40,16 @@ Page({
 
   applyState(res) {
     const data = res || {};
-    const buddy = data.buddy || null;
+    const rawBuddy = data.buddy || null;
+    const buddy = rawBuddy
+      ? {
+          ...rawBuddy,
+          ...getUserAvatarDisplay(rawBuddy, {
+            userId: rawBuddy.userId,
+            displayName: rawBuddy.nickname
+          })
+        }
+      : null;
     this.setData({
       loading: false,
       loadError: '',
@@ -49,7 +59,7 @@ Page({
       canNudge: !!data.canNudge,
       nudgedToday: !!data.nudgedToday,
       canJoin: !!data.canJoin,
-      buddyInitial: buddy && buddy.nickname ? Array.from(buddy.nickname)[0] : '',
+      buddyInitial: buddy ? buddy.avatarText : '',
       overview: data.state === 'paired' ? this.data.overview : null
     });
     if (data.state === 'paired' && typeof buddyService.getOverview === 'function') {

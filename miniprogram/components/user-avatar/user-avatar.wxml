@@ -11,7 +11,7 @@
     mode="aspectFill"
     binderror="handleImageError"
   />
-  <text wx:else class="user-avatar-fallback">{{avatarText || '用'}}</text>
+  <text wx:else class="user-avatar-fallback">{{resolvedAvatarText}}</text>
 </view>
 <view
   wx:else
@@ -26,5 +26,5 @@
     mode="aspectFill"
     binderror="handleImageError"
   />
-  <text wx:else class="user-avatar-fallback">{{avatarText || '用'}}</text>
+  <text wx:else class="user-avatar-fallback">{{resolvedAvatarText}}</text>
 </view>

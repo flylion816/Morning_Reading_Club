@@ -45,7 +45,8 @@
       <user-avatar
         size="72"
         avatar-url="{{inviter.avatarUrl}}"
-        avatar-text="{{inviter.avatar || inviter.nickname || '友'}}"
+        avatar-text="{{inviter.avatarText || inviter.nickname || '友'}}"
+        display-name="{{inviter.nickname}}"
         avatar-color="{{inviter.avatarColor || themePrimaryColor}}"
       />
       <text class="inviter-text">{{inviter.nickname}} 邀请你加入本期晨读营</text>

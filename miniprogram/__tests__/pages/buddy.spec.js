@@ -71,7 +71,7 @@ describe('buddy page', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(page.data.state).toBe('paired');
-    expect(page.data.buddyInitial).toBe('小');
+    expect(page.data.buddyInitial).toBe('小一');
     expect(page.data.canNudge).toBe(true);
     expect(page.data.me.readToday).toBe(true);
   });
