@@ -15,7 +15,8 @@ Page({
     canNudge: false,
     nudgedToday: false,
     canJoin: false,
-    buddyInitial: ''
+    buddyInitial: '',
+    overview: null
   },
 
   onLoad(options) {
@@ -48,8 +49,12 @@ Page({
       canNudge: !!data.canNudge,
       nudgedToday: !!data.nudgedToday,
       canJoin: !!data.canJoin,
-      buddyInitial: buddy && buddy.nickname ? Array.from(buddy.nickname)[0] : ''
+      buddyInitial: buddy && buddy.nickname ? Array.from(buddy.nickname)[0] : '',
+      overview: data.state === 'paired' ? this.data.overview : null
     });
+    if (data.state === 'paired' && typeof buddyService.getOverview === 'function') {
+      this.loadOverview();
+    }
   },
 
   async loadState() {
@@ -63,6 +68,15 @@ Page({
 
   onRetry() {
     this.loadState();
+  },
+
+  async loadOverview() {
+    try {
+      const overview = await buddyService.getOverview(this.data.periodId);
+      this.setData({ overview: overview || null });
+    } catch (error) {
+      this.setData({ overview: null });
+    }
   },
 
   async runAction(action, doneTip) {
@@ -88,9 +102,24 @@ Page({
     this.runAction(id => buddyService.cancel(id));
   },
 
-  onNudge() {
+  onNudge(event = {}) {
     if (!this.data.canNudge) return;
-    this.runAction(id => buddyService.nudge(id), '已轻拍');
+    const messageKey = event.currentTarget?.dataset?.messageKey || 'together';
+    this.runAction(id => buddyService.nudge(id, messageKey), '已轻拍');
+  },
+
+  onOpenBuddyCheckin(event) {
+    const { sectionId, checkinId } = event.currentTarget?.dataset || {};
+    if (!sectionId || !checkinId) return;
+    wx.navigateTo({
+      url: `/pages/course-detail/course-detail?id=${sectionId}&periodId=${this.data.periodId}&checkinId=${checkinId}&focus=comments`
+    });
+  },
+
+  onOpenBuddyInsight(event) {
+    const { insightId } = event.currentTarget?.dataset || {};
+    if (!insightId) return;
+    wx.navigateTo({ url: `/pages/insight-detail/insight-detail?id=${insightId}` });
   },
 
   onLeave() {

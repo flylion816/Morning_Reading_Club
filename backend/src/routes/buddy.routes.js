@@ -5,6 +5,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { userTenantContext } = require('../middleware/tenantContext');
 const {
   getBuddyState,
+  getBuddyOverview,
   joinBuddy,
   cancelBuddy,
   nudgeBuddy,
@@ -12,6 +13,7 @@ const {
 } = require('../controllers/buddy.controller');
 
 router.get('/period/:periodId', authMiddleware, userTenantContext, getBuddyState);
+router.get('/period/:periodId/overview', authMiddleware, userTenantContext, getBuddyOverview);
 router.post('/period/:periodId/join', authMiddleware, userTenantContext, joinBuddy);
 router.post('/period/:periodId/cancel', authMiddleware, userTenantContext, cancelBuddy);
 router.post('/period/:periodId/nudge', authMiddleware, userTenantContext, nudgeBuddy);
