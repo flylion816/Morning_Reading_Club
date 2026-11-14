@@ -98,7 +98,7 @@ describe('Keepsake Service', () => {
     service = load();
     data = await service.getPeriodKeepsake('me2', 'p1', new Date('2026-11-20T00:00:00Z'));
     // 结束日 10-23 之后仍在一起，只算到结营那天：10-05 到 10-23 共 19 天
-    expect(data.buddy).to.deep.equal({ nickname: '阿泰', avatarUrl: 'a.png', days: 19, active: true });
+    expect(data.buddy).to.deep.equal({ nickname: '阿泰', avatar: '', avatarUrl: 'a.png', days: 19, active: true });
     expect(data.buddy).to.not.have.property('userId');
     expect(data.practices).to.deep.equal([{ weekIndex: 1, text: '先听完再说', loggedDays: 2, doneDays: 1 }]);
   });
