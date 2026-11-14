@@ -52,10 +52,16 @@
           <view class="ks-num-row"><text class="ks-num">{{keepsake.readingMinutes}}</text><text class="ks-unit">分钟晨读</text></view>
         </block>
 
-        <block wx:elif="{{item.key === 'earliest'}}">
-          <view class="ks-label">最早的一次</view>
+        <block wx:elif="{{item.key === 'earliestReading'}}">
+          <view class="ks-label">最早晨读</view>
+          <view class="ks-num ks-dawn">{{keepsake.earliestReading.time}}</view>
+          <view class="ks-sub">{{keepsake.earliestReading.date}}，你开始了这段晨读</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'earliestCheckin'}}">
+          <view class="ks-label">最早打卡</view>
           <view class="ks-num ks-dawn">{{keepsake.earliestCheckin.time}}</view>
-          <view class="ks-sub">{{keepsake.earliestCheckin.date}}，天还没怎么亮，你已经在了</view>
+          <view class="ks-sub">{{keepsake.earliestCheckin.date}}，你把读过的内容写了下来</view>
         </block>
 
         <block wx:elif="{{item.key === 'moods'}}">

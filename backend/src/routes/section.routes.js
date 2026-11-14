@@ -20,6 +20,7 @@ const {
   getSectionsByPeriod,
   getSectionDetail,
   searchSections,
+  markReadingStart,
   markReadingCompletion,
   createSection,
   updateSection,
@@ -176,6 +177,7 @@ router.get(
  * @access  Protected
  */
 router.post('/:sectionId/reading-completion', authMiddleware, userTenantContext, markReadingCompletion);
+router.post('/:sectionId/reading-start', authMiddleware, userTenantContext, markReadingStart);
 
 /**
  * @route   GET /api/v1/sections/:sectionId

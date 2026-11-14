@@ -205,6 +205,16 @@ class CourseService {
     return request.post(`/sections/${sectionId}/reading-completion`, data);
   }
 
+  /**
+   * 记录首次进入沉浸阅读页面的时间。
+   */
+  markReadingStarted(sectionId, data = {}) {
+    return request.post(`/sections/${sectionId}/reading-start`, data, {
+      suppressError: true,
+      suppressAuthError: true
+    });
+  }
+
   // Stage 3 Test Methods
   /**
    * 获取课程列表（按天次排序）

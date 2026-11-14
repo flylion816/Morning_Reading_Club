@@ -30,6 +30,7 @@ describe('keepsake page', () => {
     checkinDays: 20,
     totalWords: 3000,
     readingMinutes: 100,
+    earliestReading: { time: '06:00', date: '2026-11-10' },
     earliestCheckin: { time: '05:30', date: '2026-11-12' },
     moods: [{ date: '2026-11-12', mood: 'happy' }],
     topCheckin: { id: 'c1', excerpt: 'x', likeCount: 1 },
@@ -52,7 +53,7 @@ describe('keepsake page', () => {
     page.onLoad({ periodId: 'p1' });
     await Promise.resolve(); await Promise.resolve();
     const keys = page.data.keepsake.pages.map(p => p.key);
-    expect(keys).toEqual(['cover', 'numbers', 'earliest', 'moods', 'top', 'end']);
+    expect(keys).toEqual(['cover', 'numbers', 'earliestReading', 'earliestCheckin', 'moods', 'top', 'end']);
     expect(page.data.keepsake.sealChar).toBe('第');
     expect(page.data.keepsake.moods[0].name).toBe('晴');
   });
@@ -131,7 +132,7 @@ describe('keepsake page', () => {
     await page.loadKeepsake();
     const pages = page.data.keepsake.pages;
     expect(pages.map(item => item.key)).toEqual([
-      'cover', 'prologue', 'numbers', 'earliest', 'moods', 'top', 'days', 'seen', 'buddy', 'practices', 'insights', 'end'
+      'cover', 'prologue', 'numbers', 'earliestReading', 'earliestCheckin', 'moods', 'top', 'days', 'seen', 'buddy', 'practices', 'insights', 'end'
     ]);
     expect(pages.filter(item => item.chapter).map(item => `${item.key}:${item.chapter}`)).toEqual([
       'prologue:开篇', 'numbers:我写下的', 'days:每一天', 'seen:同行的人', 'practices:写给自己的', 'insights:小凡的话'

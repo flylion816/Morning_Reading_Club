@@ -363,6 +363,40 @@ describe('Section Controller', () => {
     });
   });
 
+  describe('markReadingStart', () => {
+    it('首次进入沉浸阅读时只记录 startedAt，不标记为已完成', async () => {
+      const sectionId = new mongoose.Types.ObjectId();
+      const periodId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      const startedAt = '2026-05-14T01:02:03.000Z';
+      req.params = { sectionId };
+      req.user = { userId: userId.toString() };
+      req.body = { startedAt };
+
+      SectionStub.findById.returns({
+        select: sandbox.stub().resolves({ _id: sectionId, periodId, content: '正文' })
+      });
+      UserReadingCompletionStub.findOneAndUpdate.returns({
+        lean: sandbox.stub().resolves({
+          userId,
+          sectionId,
+          periodId,
+          startedAt: new Date(startedAt),
+          completedAt: null
+        })
+      });
+
+      await sectionController.markReadingStart(req, res, next);
+
+      expect(UserReadingCompletionStub.findOneAndUpdate.calledOnce).to.be.true;
+      const updateArgs = UserReadingCompletionStub.findOneAndUpdate.getCall(0).args;
+      expect(updateArgs[1].$setOnInsert.startedAt).to.deep.equal(new Date(startedAt));
+      expect(updateArgs[1].$set).to.equal(undefined);
+      const responseData = res.json.getCall(0).args[0];
+      expect(responseData.data.readingStartedAt).to.deep.equal(new Date(startedAt));
+    });
+  });
+
   describe('createSection (Admin)', () => {
     beforeEach(() => {
       SectionStub.find.returns({

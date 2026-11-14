@@ -1,5 +1,6 @@
 jest.mock('../../services/course.service.js', () => ({
   getSectionDetail: jest.fn(),
+  markReadingStarted: jest.fn(() => Promise.resolve()),
   markReadingCompleted: jest.fn(() => Promise.resolve())
 }));
 

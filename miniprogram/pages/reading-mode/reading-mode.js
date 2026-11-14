@@ -286,6 +286,19 @@ Page({
     this.loadHighlightMarks();
   },
 
+  recordReadingStart() {
+    if (!this.data.sectionId || !this.isLoggedIn() || typeof courseService.markReadingStarted !== 'function') {
+      return;
+    }
+    if (this._readingStartPromise) return;
+    this._readingStartPromise = courseService
+      .markReadingStarted(this.data.sectionId, { startedAt: new Date().toISOString() })
+      .catch(() => null)
+      .finally(() => {
+        this._readingStartPromise = null;
+      });
+  },
+
   startPresenceReporting() {
     this.stopPresenceReporting();
     const sectionId = this.data.sectionId;
@@ -635,6 +648,7 @@ Page({
           );
           this.applyFontSizeClass(saved.fontSizeLevel);
           this.applyNavigationBarColor(saved.paperTheme);
+          this.recordReadingStart();
           this.initCompanionFeatures(canAccessCheckin);
           this._contentReadyTimer = setTimeout(() => {
             this._contentReadyTimer = null;

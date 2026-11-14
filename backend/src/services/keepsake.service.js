@@ -141,7 +141,7 @@ function pickEarliest(checkins) {
 function pickEarliestReading(completions) {
   let best = null;
   (completions || []).forEach(item => {
-    const time = new Date(item.completedAt || item.createdAt);
+    const time = new Date(item.startedAt || item.completedAt || item.createdAt);
     if (Number.isNaN(time.getTime())) return;
     if (!best || time.getTime() < best.timestamp) {
       best = {
