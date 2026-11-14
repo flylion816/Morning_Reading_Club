@@ -58,6 +58,11 @@ export function getLastTextChar(value?: string | null, fallback = '用'): string
   return chars.length > 0 ? (chars[chars.length - 1] as string) : fallback;
 }
 
+export function getLastTextChars(value?: string | null, count = 2, fallback = '用'): string {
+  const chars = Array.from(String(value || '').trim());
+  return chars.length > 0 ? chars.slice(-count).join('') : fallback;
+}
+
 export function getUserAvatarUrl(user?: { avatarUrl?: string | null } | null): string {
   return normalizeAvatarUrl(user?.avatarUrl);
 }
@@ -77,11 +82,8 @@ export function getUserAvatarDisplay(
     options.name || source.nickname || source.name || source.userName || source.displayName || ''
   ).trim();
   const imageUrl = normalizeAvatarUrl(options.imageUrl ?? source.avatarUrl);
-  const avatarValue = String(source.avatar || '').trim();
   const fallbackText = options.fallbackText || DEFAULT_AVATAR_TEXT;
-  const text = avatarValue && !isUsableAvatarUrl(avatarValue)
-    ? avatarValue
-    : getLastTextChar(name, fallbackText);
+  const text = getLastTextChars(name, 2, fallbackText);
 
   return {
     userId,

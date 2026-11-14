@@ -1,3 +1,5 @@
+const { getLastTextChars } = require('../../utils/avatar');
+
 Component({
   properties: {
     avatarUrl: {
@@ -7,6 +9,10 @@ Component({
     avatarText: {
       type: String,
       value: '用'
+    },
+    displayName: {
+      type: String,
+      value: ''
     },
     avatarColor: {
       type: String,
@@ -39,12 +45,18 @@ Component({
   },
 
   data: {
-    imageFailed: false
+    imageFailed: false,
+    resolvedAvatarText: '用'
   },
 
   observers: {
     avatarUrl() {
       if (this.data.imageFailed) this.setData({ imageFailed: false });
+    },
+    'avatarText,displayName'(avatarText, displayName) {
+      this.setData({
+        resolvedAvatarText: getLastTextChars(displayName || avatarText || '', 2, '用')
+      });
     }
   },
 

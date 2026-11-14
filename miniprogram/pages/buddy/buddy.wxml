@@ -49,7 +49,8 @@
             <user-avatar
               size="128"
               avatar-url="{{buddy.avatarUrl}}"
-              avatar-text="{{buddy.avatar || buddyInitial}}"
+              avatar-text="{{buddy.avatarText || buddyInitial}}"
+              display-name="{{buddy.nickname}}"
               avatar-color="{{buddy.avatarColor}}"
             />
             <text class="buddy-name">{{buddy.nickname}}</text>

@@ -15,19 +15,19 @@ describe('Avatar display contract', () => {
     });
 
     expect(display.avatarUrl).toBe('https://example.com/avatar.jpg');
-    expect(display.avatarText).toBe('🦁');
+    expect(display.avatarText).toBe('喜娟');
     expect(display.hasImage).toBe(true);
   });
 
-  test('uses the user avatar emoji/text before the name fallback', () => {
-    expect(getUserAvatarDisplay({ _id: 'user-2', nickname: '喜娟', avatar: '🦁' }).avatarText).toBe('🦁');
-    expect(getUserAvatarDisplay({ _id: 'user-3', nickname: '喜娟' }).avatarText).toBe('娟');
+  test('uses the last two display-name characters for fallback', () => {
+    expect(getUserAvatarDisplay({ _id: 'user-2', nickname: '喜娟', avatar: '🦁' }).avatarText).toBe('喜娟');
+    expect(getUserAvatarDisplay({ _id: 'user-3', nickname: '喜娟' }).avatarText).toBe('喜娟');
   });
 
   test('rejects an emoji or text value as an image URL', () => {
     expect(isUsableAvatarUrl('🦁')).toBe(false);
     expect(normalizeAvatarUrl('🦁')).toBe('');
-    expect(getUserAvatarDisplay({ nickname: '喜娟', avatarUrl: '🦁', avatar: '🌿' }).avatarText).toBe('🌿');
+    expect(getUserAvatarDisplay({ nickname: '喜娟', avatarUrl: '🦁', avatar: '🌿' }).avatarText).toBe('喜娟');
   });
 
   test('accepts uploaded and local image URL forms', () => {
@@ -44,7 +44,7 @@ describe('Avatar display contract', () => {
   test('decorates an existing record without dropping its fields', () => {
     const decorated = decorateUserAvatar({ _id: 'user-4', nickname: '乙', avatar: '🐯', status: 'active' });
     expect(decorated.status).toBe('active');
-    expect(decorated.avatarText).toBe('🐯');
+    expect(decorated.avatarText).toBe('乙');
     expect(decorated.avatarUrl).toBe('');
   });
 });

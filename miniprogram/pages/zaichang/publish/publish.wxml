@@ -84,7 +84,8 @@
         <user-avatar
           size="64"
           avatar-url="{{item.avatarUrl}}"
-          avatar-text="{{item.avatar || item.nickname}}"
+          avatar-text="{{item.avatarText || item.nickname}}"
+          display-name="{{item.nickname}}"
         />
         <text class="search-name">{{item.nickname}}</text>
         <text class="search-add">+</text>

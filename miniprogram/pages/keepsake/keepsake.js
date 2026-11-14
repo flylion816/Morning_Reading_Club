@@ -3,6 +3,7 @@ const completionReportService = require('../../services/completion-report.servic
 const { requireLogin } = require('../../utils/require-login');
 const { getBrandName } = require('../../utils/brand');
 const { getMoodOption } = require('../../utils/mood');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 
 const MOOD_COLORS = {
   happy: '#ee9b45',
@@ -110,11 +111,23 @@ function decorate(data) {
     : data.insightExcerpt ? [data.insightExcerpt] : []
   ).map((item) => ({ ...item, dateText: shortDate(item.date) }));
   const days = (data.days || []).map((item) => ({ ...item, dateText: shortDate(item.date) }));
+  const companions = (data.companions || []).map((item) => ({
+    ...item,
+    ...getUserAvatarDisplay(item, { userId: item.userId, displayName: item.nickname })
+  }));
+  const buddy = data.buddy
+    ? {
+        ...data.buddy,
+        ...getUserAvatarDisplay(data.buddy, { displayName: data.buddy.nickname })
+      }
+    : null;
   return {
     ...data,
     moods,
     insights,
     days,
+    companions,
+    buddy,
     // 旧版接口没有 finished 字段：能看到内容就说明已结营
     finished: data.finished !== false,
     totalDays: resolveTotalDays(data.period),
