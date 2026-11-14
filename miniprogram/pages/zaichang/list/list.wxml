@@ -84,10 +84,12 @@
       <view wx:if="{{item.attendees && item.attendees.length > 0}}" class="attendees">
         <block wx:for="{{item.attendees}}" wx:for-item="att" wx:key="index" wx:if="{{index < 8}}">
           <view class="avatar-wrap">
-            <image wx:if="{{att.avatarUrl}}" src="{{att.avatarUrl}}" class="avatar" mode="aspectFill"/>
-            <view wx:else class="avatar-text">
-              <text class="avatar-initial">{{att.name ? att.name[0] : '?'}}</text>
-            </view>
+            <user-avatar
+              size="56"
+              avatar-url="{{att.avatarUrl}}"
+              avatar-text="{{att.avatarText || att.name || '?'}}"
+              display-name="{{att.name}}"
+            />
           </view>
         </block>
         <text class="attendees-more">{{item.attendees.length}} 人在场</text>

@@ -46,7 +46,37 @@ describe('daily-card-layout', () => {
       expect(t).toContain('测试营');
       expect(t).toContain('每天清晨，一起读一页书');
       expect(layout.height).toBeGreaterThanOrEqual(1000);
+      const code = layout.elements.find(el => el.type === 'image');
+      expect(code).toMatchObject({
+        src: '/assets/images/mini-program-code.jpg',
+        w: 116,
+        h: 116
+      });
+      expect(code.x + code.w).toBeLessThanOrEqual(750 - 64);
+      expect(t).not.toContain('扫码进入');
+      if (variant !== 'blank') {
+        const source = layout.elements.find(el => el.type === 'text' && el.text === '—— 第 7 天 · 以终为始');
+        expect(source.align).toBe('right');
+      }
     });
+  });
+
+  test('mini-program code is driven by tenant asset and can be omitted', () => {
+    const custom = computeDailyCardLayout({
+      quote: '一句',
+      dateStr: '2026-11-10',
+      miniProgramCodeSrc: '/assets/tenants/starry/mini-program-code.jpg'
+    });
+    expect(custom.elements.find(el => el.type === 'image').src)
+      .toBe('/assets/tenants/starry/mini-program-code.jpg');
+
+    const withoutCode = computeDailyCardLayout({
+      quote: '一句',
+      dateStr: '2026-11-10',
+      showMiniProgramCode: false
+    });
+    expect(withoutCode.elements.some(el => el.type === 'image')).toBe(false);
+    expect(texts(withoutCode)).not.toContain('扫码进入');
   });
 
   test('blank variant hides period line and source; period shown elsewhere', () => {

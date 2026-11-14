@@ -37,7 +37,7 @@ describe('Keepsake Service', () => {
         ]))
       },
       Comment: { find: () => chain([{ userId: 'u2', replies: [{ userId: 'me' }, { userId: 'u3' }] }, { userId: 'me', replies: [] }]) },
-      Insight: { find: () => chain([{ _id: 'i1', title: '看见', content: '<p>' + 'a'.repeat(100) + '</p>' }]) },
+      Insight: { find: () => chain([{ _id: 'i1', title: '看见', content: '<p>## 标题 **重点**</p>' + 'a'.repeat(100) }]) },
       User: {
         findById: () => chain({ nickname: '小明' }),
         find: () => chain([{ _id: 'u2', nickname: 'B', avatarUrl: 'b.png' }, { _id: 'u3', nickname: 'C' }])
@@ -98,7 +98,7 @@ describe('Keepsake Service', () => {
     service = load();
     data = await service.getPeriodKeepsake('me2', 'p1', new Date('2026-11-20T00:00:00Z'));
     // 结束日 10-23 之后仍在一起，只算到结营那天：10-05 到 10-23 共 19 天
-    expect(data.buddy).to.deep.equal({ nickname: '阿泰', avatarUrl: 'a.png', days: 19, active: true });
+    expect(data.buddy).to.deep.equal({ nickname: '阿泰', avatar: '', avatarUrl: 'a.png', days: 19, active: true });
     expect(data.buddy).to.not.have.property('userId');
     expect(data.practices).to.deep.equal([{ weekIndex: 1, text: '先听完再说', loggedDays: 2, doneDays: 1 }]);
   });
@@ -117,6 +117,7 @@ describe('Keepsake Service', () => {
     expect(data.totalWords).to.equal(4 + 7 + 1);
     expect(data.readingMinutes).to.equal(3);
     expect(data.readingDays).to.equal(2);
+    expect(data.earliestReading).to.deep.equal({ time: '09:00', date: '2026-10-02' });
     expect(data.earliestCheckin).to.deep.equal({ time: '06:30', date: '2026-11-12' });
     expect(data.moods.map(m => m.mood)).to.deep.equal(['happy', 'calm']);
     expect(data.topCheckin.id).to.equal('c1');
@@ -124,9 +125,45 @@ describe('Keepsake Service', () => {
     expect(data.companions.map(c => c.userId)).to.deep.equal(['u2', 'u3']);
     expect(data.companions[0].count).to.equal(2);
     expect(data.insightExcerpt.excerpt.length).to.be.at.most(81);
+    expect(data.insightExcerpt.excerpt).not.to.contain('##');
+    expect(data.insightExcerpt.excerpt).not.to.contain('**');
     expect(data.highlights).to.deep.equal([]);
     expect(data.letter).to.equal(null);
     expect(data.seenCount).to.equal(0);
+  });
+
+  it('最早打卡使用实际 checkinDate，不使用较晚的 createdAt 覆盖', async () => {
+    stubs.Checkin.find.returns(chain([
+      {
+        _id: 'imported',
+        sectionId: 's1',
+        day: 1,
+        checkinDate: new Date('2026-09-13T01:57:00Z'),
+        createdAt: new Date('2026-09-13T09:57:00Z'),
+        note: '补录打卡',
+        likes: []
+      }
+    ]));
+    service = load();
+    const data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-20T00:00:00Z'));
+    expect(data.earliestCheckin).to.deep.equal({ time: '09:57', date: '2026-09-13' });
+  });
+
+  it('最早晨读优先使用首次进入时间，没有时回退到阅读完成时间', async () => {
+    stubs.Completion.find = () => chain([
+      {
+        startedAt: new Date('2026-09-10T23:15:00Z'),
+        completedAt: new Date('2026-09-11T01:00:00Z'),
+        durationMs: 60000
+      },
+      {
+        completedAt: new Date('2026-09-11T02:00:00Z'),
+        durationMs: 60000
+      }
+    ]);
+    service = load();
+    const data = await service.getPeriodKeepsake('me', 'p1', new Date('2026-11-20T00:00:00Z'));
+    expect(data.earliestReading).to.deep.equal({ time: '07:15', date: '2026-09-11' });
   });
 
   it('没有赞时取最长的一篇，没有打卡时 topCheckin 为 null', async () => {

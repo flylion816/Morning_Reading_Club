@@ -46,8 +46,13 @@
             </view>
           </view>
           <view class="buddy-person">
-            <image wx:if="{{buddy.avatarUrl}}" class="buddy-avatar" src="{{buddy.avatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="buddy-avatar"><text>{{buddyInitial}}</text></view>
+            <user-avatar
+              size="128"
+              avatar-url="{{buddy.avatarUrl}}"
+              avatar-text="{{buddy.avatarText || buddyInitial}}"
+              display-name="{{buddy.nickname}}"
+              avatar-color="{{buddy.avatarColor}}"
+            />
             <text class="buddy-name">{{buddy.nickname}}</text>
             <view class="buddy-marks">
               <text class="buddy-mark {{buddy.readToday ? 'buddy-mark-on' : ''}}">读</text>
@@ -55,9 +60,51 @@
             </view>
           </view>
         </view>
-        <view wx:if="{{canNudge}}" class="app-btn-secondary buddy-btn" bindtap="onNudge">轻拍一下</view>
+        <view wx:if="{{canNudge}}" class="buddy-nudge-actions">
+          <view class="app-btn-secondary buddy-nudge-btn" data-message-key="together" bindtap="onNudge">一起读</view>
+          <view class="app-btn-secondary buddy-nudge-btn" data-message-key="tomorrow" bindtap="onNudge">明早见</view>
+          <view class="app-btn-secondary buddy-nudge-btn" data-message-key="cheer" bindtap="onNudge">今天辛苦了</view>
+        </view>
         <text wx:elif="{{nudgedToday}}" class="buddy-quiet">今天拍过了</text>
         <text wx:elif="{{buddy.readToday || buddy.checkedInToday}}" class="buddy-quiet">TA 今天已经读过了</text>
+      </view>
+      <view wx:if="{{overview}}" class="buddy-overview">
+        <view class="buddy-overview-head">
+          <text class="buddy-overview-title">共同节奏</text>
+          <text class="buddy-overview-shared">共同完成 {{overview.sharedDays}} 天</text>
+        </view>
+        <text wx:if="{{overview.daysRemaining}}" class="buddy-overview-meta">本期还剩 {{overview.daysRemaining}} 天</text>
+        <view wx:if="{{overview.publicCheckins && overview.publicCheckins.length}}" class="buddy-overview-group">
+          <text class="buddy-overview-label">TA 的公开打卡</text>
+          <view
+            wx:for="{{overview.publicCheckins}}"
+            wx:for-item="item"
+            wx:key="checkinId"
+            class="buddy-overview-item"
+            data-section-id="{{item.sectionId}}"
+            data-checkin-id="{{item.checkinId}}"
+            bindtap="onOpenBuddyCheckin"
+          >
+            <text class="buddy-overview-item-title">{{item.sectionTitle || '打卡日记'}}</text>
+            <text class="buddy-overview-item-date">{{item.date}}</text>
+            <text class="buddy-overview-item-excerpt">{{item.excerpt || '公开打卡，点击查看'}}</text>
+          </view>
+        </view>
+        <view wx:if="{{overview.publicInsights && overview.publicInsights.length}}" class="buddy-overview-group">
+          <text class="buddy-overview-label">TA 的小凡看见</text>
+          <view
+            wx:for="{{overview.publicInsights}}"
+            wx:for-item="item"
+            wx:key="insightId"
+            class="buddy-overview-item"
+            data-insight-id="{{item.insightId}}"
+            bindtap="onOpenBuddyInsight"
+          >
+            <text class="buddy-overview-item-title">{{item.title}}</text>
+            <text class="buddy-overview-item-date">{{item.date}}</text>
+            <text class="buddy-overview-item-excerpt">{{item.excerpt || '公开的小凡看见'}}</text>
+          </view>
+        </view>
       </view>
       <text class="buddy-leave" bindtap="onLeave">结束这段读伴</text>
     </view>

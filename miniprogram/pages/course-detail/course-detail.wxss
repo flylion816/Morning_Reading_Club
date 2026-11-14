@@ -2128,6 +2128,17 @@ page {
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 }
 
+/* 固定底部“去打卡”栏需要额外滚动空间，避免最后一条内容被遮住。 */
+.page-course-detail:not(.page-course-detail-nobar) {
+  padding-bottom: calc(280rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(280rpx + env(safe-area-inset-bottom));
+}
+
+.page-course-detail.page-course-detail-detail {
+  padding-bottom: calc(220rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
+}
+
 .nine-steps {
   position: sticky;
   top: 0;

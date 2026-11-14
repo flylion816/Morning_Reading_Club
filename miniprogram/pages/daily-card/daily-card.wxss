@@ -19,6 +19,12 @@
   background: var(--app-paper);
 }
 
+.dc-preview image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .dc-thumbs {
   display: flex;
   justify-content: center;

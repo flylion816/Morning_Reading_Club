@@ -48,6 +48,29 @@ function stripTags(html) {
     .trim();
 }
 
+function stripMarkdown(text) {
+  return String(text || '')
+    .replace(/^\s*#{1,6}\s+/gm, '')
+    .replace(/^\s*>\s+/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+[.)]\s+/gm, '')
+    .replace(/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm, '')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?=[^*]|$)/g, '$1$2')
+    .replace(/(^|[^_])_([^_\n]+)_(?=[^_]|$)/g, '$1$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function contentToPlainText(content) {
+  return stripMarkdown(stripTags(content));
+}
+
 function checkinPlainText(checkin) {
   return stripTags(checkin.contentHtml || checkin.note || '');
 }
@@ -126,11 +149,29 @@ function pickTopCheckin(checkins, sectionMap) {
 function pickEarliest(checkins) {
   let best = null;
   checkins.forEach(item => {
-    const time = new Date(item.createdAt || item.checkinDate);
+    // checkinDate records when the user actually checked in. createdAt can be
+    // later for imported, repaired or synchronized historical records.
+    const time = new Date(item.checkinDate || item.createdAt);
     if (Number.isNaN(time.getTime())) return;
     const minutes = (time.getTime() / 60000 + DEFAULT_TZ_OFFSET_MINUTES) % 1440;
     if (!best || minutes < best.minutes) {
       best = { minutes, time: toHHmm(time), date: toDayKey(time) };
+    }
+  });
+  return best ? { time: best.time, date: best.date } : null;
+}
+
+function pickEarliestReading(completions) {
+  let best = null;
+  (completions || []).forEach(item => {
+    const time = new Date(item.startedAt || item.completedAt || item.createdAt);
+    if (Number.isNaN(time.getTime())) return;
+    if (!best || time.getTime() < best.timestamp) {
+      best = {
+        timestamp: time.getTime(),
+        time: toHHmm(time),
+        date: toDayKey(time)
+      };
     }
   });
   return best ? { time: best.time, date: best.date } : null;
@@ -161,7 +202,7 @@ async function buildCompanions(userId, checkins) {
     .slice(0, 3);
   if (!top.length) return [];
   const users = await User.find({ _id: { $in: top.map(([id]) => id) } })
-    .select('nickname avatarUrl')
+    .select('nickname avatar avatarUrl')
     .lean();
   const userMap = {};
   users.forEach(user => {
@@ -170,6 +211,7 @@ async function buildCompanions(userId, checkins) {
   return top.map(([id, count]) => ({
     userId: id,
     nickname: (userMap[id] && userMap[id].nickname) || '书友',
+    avatar: (userMap[id] && userMap[id].avatar) || '',
     avatarUrl: (userMap[id] && userMap[id].avatarUrl) || '',
     count
   }));
@@ -193,7 +235,7 @@ async function buildInsights(userId, periodId) {
     id: idStr(item._id),
     title: item.title || '',
     date: item.createdAt ? toDayKey(item.createdAt) : '',
-    excerpt: excerptOf(stripTags(item.content))
+    excerpt: excerptOf(contentToPlainText(item.content))
   }));
 }
 
@@ -226,11 +268,12 @@ async function buildBuddy(userId, period, now) {
   const me = idStr(userId);
   const partnerId = [pair.userA, pair.userB].map(idStr).find(id => id && id !== me);
   if (!partnerId) return null;
-  const partner = await User.findById(partnerId).select('nickname avatarUrl').lean();
+  const partner = await User.findById(partnerId).select('nickname avatar avatarUrl').lean();
   let until = pair.endedAt || now;
   if (period.endDate && new Date(until) > new Date(period.endDate)) until = period.endDate;
   return {
     nickname: (partner && partner.nickname) || '读伴',
+    avatar: (partner && partner.avatar) || '',
     avatarUrl: (partner && partner.avatarUrl) || '',
     days: pair.createdAt ? Math.max(1, dayDiff(pair.createdAt, until) + 1) : 0,
     active: pair.active !== false
@@ -367,6 +410,7 @@ async function computeKeepsake(userId, period, readiness, now = new Date()) {
     totalWords,
     readingMinutes: Math.round(totalMs / 60000),
     readingDays,
+    earliestReading: pickEarliestReading(completions),
     earliestCheckin: pickEarliest(checkins),
     moods,
     topCheckin: pickTopCheckin(checkins, sectionMap),

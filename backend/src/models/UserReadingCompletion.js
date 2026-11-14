@@ -29,9 +29,14 @@ const UserReadingCompletionSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
+    // 首次进入沉浸阅读页面的时间；只写入一次，用于纪念册回顾。
+    startedAt: {
+      type: Date,
+      default: null
+    },
     completedAt: {
       type: Date,
-      default: Date.now
+      default: null
     }
   },
   {

@@ -3,6 +3,7 @@ const completionReportService = require('../../services/completion-report.servic
 const { requireLogin } = require('../../utils/require-login');
 const { getBrandName } = require('../../utils/brand');
 const { getMoodOption } = require('../../utils/mood');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 
 const MOOD_COLORS = {
   happy: '#ee9b45',
@@ -15,7 +16,7 @@ const MOOD_COLORS = {
 
 // 一期一本册子，七个部分；每部分第一页带上章名
 const CHAPTERS = [
-  { name: '我写下的', keys: ['numbers', 'earliest', 'moods', 'top', 'highlights'] },
+  { name: '我写下的', keys: ['numbers', 'earliestReading', 'earliestCheckin', 'moods', 'top', 'highlights'] },
   { name: '每一天', keys: ['days'] },
   { name: '同行的人', keys: ['companions', 'seen', 'buddy'] },
   { name: '写给自己的', keys: ['practices'] },
@@ -26,7 +27,8 @@ const CHAPTERS = [
 function hasPage(key, data) {
   switch (key) {
     case 'numbers': return !!(data.checkinDays || data.totalWords || data.readingMinutes);
-    case 'earliest': return !!data.earliestCheckin;
+    case 'earliestReading': return !!data.earliestReading;
+    case 'earliestCheckin': return !!data.earliestCheckin;
     case 'moods': return !!(data.moods && data.moods.length);
     case 'top': return !!data.topCheckin;
     case 'highlights': return !!(data.highlights && data.highlights.length);
@@ -109,11 +111,23 @@ function decorate(data) {
     : data.insightExcerpt ? [data.insightExcerpt] : []
   ).map((item) => ({ ...item, dateText: shortDate(item.date) }));
   const days = (data.days || []).map((item) => ({ ...item, dateText: shortDate(item.date) }));
+  const companions = (data.companions || []).map((item) => ({
+    ...item,
+    ...getUserAvatarDisplay(item, { userId: item.userId, displayName: item.nickname })
+  }));
+  const buddy = data.buddy
+    ? {
+        ...data.buddy,
+        ...getUserAvatarDisplay(data.buddy, { displayName: data.buddy.nickname })
+      }
+    : null;
   return {
     ...data,
     moods,
     insights,
     days,
+    companions,
+    buddy,
     // 旧版接口没有 finished 字段：能看到内容就说明已结营
     finished: data.finished !== false,
     totalDays: resolveTotalDays(data.period),

@@ -1,7 +1,6 @@
 // 成员列表页面
 const enrollmentService = require('../../services/enrollment.service');
-const { getAvatarColorByUserId } = require('../../utils/formatters');
-const { getLastTextChar } = require('../../utils/avatar');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const {
   getPeriodAccess,
   redirectAfterCommunityDenied
@@ -64,15 +63,23 @@ Page({
         const userObj = (typeof item.userId === 'object' && item.userId !== null) ? item.userId : {};
         const userId = (typeof item.userId === 'object' && item.userId !== null) ? item.userId._id : item.userId;
         const nickname = userObj.nickname || item.nickname || '用户';
-        const avatar = userObj.avatar || item.avatar || '👤';
+        const avatarDisplay = getUserAvatarDisplay(
+          {
+            ...userObj,
+            avatar: userObj.avatar || item.avatar,
+            avatarUrl: userObj.avatarUrl || item.avatarUrl,
+            nickname
+          },
+          { userId, fallbackText: '用' }
+        );
 
         return {
           userId: userId,
           nickname: nickname,
-          avatar: avatar,
-          avatarUrl: userObj.avatarUrl || item.avatarUrl,
-          avatarColor: getAvatarColorByUserId(userId),
-          avatarText: getLastTextChar(nickname, '用'),
+          avatar: userObj.avatar || item.avatar || '',
+          avatarUrl: avatarDisplay.avatarUrl,
+          avatarColor: avatarDisplay.avatarColor,
+          avatarText: avatarDisplay.avatarText,
           enrolledAt: new Date(item.enrolledAt).toLocaleDateString('zh-CN')
         };
       });
@@ -106,7 +113,7 @@ Page({
    * 点击成员行 - 跳转到他人主页
    */
   handleAvatarClick(e) {
-    const { userId } = e.currentTarget.dataset;
+    const userId = e.detail?.userId || e.currentTarget?.dataset?.userId;
     if (!userId) return;
     let url = `/pages/profile-others/profile-others?userId=${userId}`;
     if (this.periodId) {

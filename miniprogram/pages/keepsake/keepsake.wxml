@@ -52,10 +52,16 @@
           <view class="ks-num-row"><text class="ks-num">{{keepsake.readingMinutes}}</text><text class="ks-unit">分钟晨读</text></view>
         </block>
 
-        <block wx:elif="{{item.key === 'earliest'}}">
-          <view class="ks-label">最早的一次</view>
+        <block wx:elif="{{item.key === 'earliestReading'}}">
+          <view class="ks-label">最早晨读</view>
+          <view class="ks-num ks-dawn">{{keepsake.earliestReading.time}}</view>
+          <view class="ks-sub">{{keepsake.earliestReading.date}}，你开始了这段晨读</view>
+        </block>
+
+        <block wx:elif="{{item.key === 'earliestCheckin'}}">
+          <view class="ks-label">最早打卡</view>
           <view class="ks-num ks-dawn">{{keepsake.earliestCheckin.time}}</view>
-          <view class="ks-sub">{{keepsake.earliestCheckin.date}}，天还没怎么亮，你已经在了</view>
+          <view class="ks-sub">{{keepsake.earliestCheckin.date}}，你把读过的内容写了下来</view>
         </block>
 
         <block wx:elif="{{item.key === 'moods'}}">
@@ -83,8 +89,13 @@
         <block wx:elif="{{item.key === 'companions'}}">
           <view class="ks-label">常来看你的书友</view>
           <view wx:for="{{keepsake.companions}}" wx:for-item="c" wx:key="userId" class="ks-friend">
-            <image wx:if="{{c.avatarUrl}}" class="ks-avatar" src="{{c.avatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="app-seal">{{c.nickname[0]}}</view>
+            <user-avatar
+              size="64"
+              avatar-url="{{c.avatarUrl}}"
+              avatar-text="{{c.avatarText || c.nickname}}"
+              display-name="{{c.nickname}}"
+              avatar-color="{{c.avatarColor}}"
+            />
             <view class="ks-friend-name">{{c.nickname}}</view>
             <view class="ks-friend-count">{{c.count}} 次</view>
           </view>
@@ -124,8 +135,13 @@
 
         <block wx:elif="{{item.key === 'buddy'}}">
           <view class="ks-label">你的读伴</view>
-          <image wx:if="{{keepsake.buddy.avatarUrl}}" class="ks-avatar ks-avatar-lg" src="{{keepsake.buddy.avatarUrl}}" mode="aspectFill"></image>
-          <view wx:else class="app-seal app-seal-lg">{{keepsake.buddy.nickname[0]}}</view>
+          <user-avatar
+            size="128"
+            avatar-url="{{keepsake.buddy.avatarUrl}}"
+            avatar-text="{{keepsake.buddy.avatarText || keepsake.buddy.nickname}}"
+            display-name="{{keepsake.buddy.nickname}}"
+            avatar-color="{{keepsake.buddy.avatarColor}}"
+          />
           <view class="ks-title ks-title-sm">{{keepsake.buddy.nickname}}</view>
           <view class="ks-sub" wx:if="{{keepsake.buddy.days}}">你们一起走了 {{keepsake.buddy.days}} 天</view>
         </block>

@@ -224,9 +224,7 @@
                 :value="user._id"
               >
                 <div class="user-option">
-                  <el-avatar :src="user.avatarUrl" :size="28" class="user-option-avatar">
-                    {{ (user.nickname || '?').charAt(0) }}
-                  </el-avatar>
+                  <UserAvatar :user="user" :size="28" class="user-option-avatar" />
                   <span class="user-option-name">{{ user.nickname || '未知' }}</span>
                   <span class="user-option-id">{{ user._id }}</span>
                 </div>
@@ -250,6 +248,7 @@
 // @ts-nocheck
 import { ref, reactive, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { activityCouponService } from '../services/activityCoupon.service';
 import apiClient, { userApi } from '../services/api';

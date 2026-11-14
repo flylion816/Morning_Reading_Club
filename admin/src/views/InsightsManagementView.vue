@@ -253,18 +253,13 @@
               <el-table-column label="用户" width="120">
                 <template #default="{ row }">
                   <div class="danmaku-top">
-                    <img
-                      v-if="getInsightUserAvatarUrl(row)"
-                      :src="getInsightUserAvatarUrl(row)"
+                    <UserAvatar
+                      :user="getInsightUser(row)"
+                      :name="row.userNickname"
+                      :user-id="String(row.userId || '')"
+                      :size="26"
                       class="danmaku-avatar"
                     />
-                    <div
-                      v-else
-                      class="danmaku-avatar-fallback"
-                      :style="{ background: getInsightUserAvatarColor(row) }"
-                    >
-                      {{ getInsightUserAvatarText(row) }}
-                    </div>
                     <div class="danmaku-color-dot" :style="{ background: row.color || tenantStore.activePrimaryColor }"></div>
                     <span class="danmaku-nickname">{{ row.userNickname || '匿名' }}</span>
                   </div>
@@ -484,16 +479,12 @@
 import { computed, ref, onMounted } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { insightApi, periodApi, userApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Period, Insight, User } from '../types/api';
 import { useTenantStore } from '../stores/tenant';
 import { renderInsightMarkdown } from '../utils/renderInsightMarkdown';
-import {
-  getAvatarColorByUserId,
-  getLastTextChar,
-  getUserAvatarUrl
-} from '../utils/avatar';
 
 // 数据
 const tenantStore = useTenantStore();
@@ -1020,20 +1011,6 @@ function formatDate(date: string) {
 
 function getInsightUser(insight: any): any {
   return insight.userId && typeof insight.userId === 'object' ? insight.userId : null;
-}
-
-function getInsightUserAvatarUrl(insight: any): string {
-  return getUserAvatarUrl(getInsightUser(insight));
-}
-
-function getInsightUserAvatarText(insight: any): string {
-  const user = getInsightUser(insight);
-  return getLastTextChar(user?.nickname || insight.userNickname || '', '用');
-}
-
-function getInsightUserAvatarColor(insight: any): string {
-  const user = getInsightUser(insight);
-  return getAvatarColorByUserId(user?._id || user?.id || String(insight.userId || ''));
 }
 
 function getTypeLabel(type: string) {

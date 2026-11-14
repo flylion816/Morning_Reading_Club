@@ -3,6 +3,7 @@ const BuddyRequest = require('../models/BuddyRequest');
 const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const Period = require('../models/Period');
+const Insight = require('../models/Insight');
 const UserReadingCompletion = require('../models/UserReadingCompletion');
 const { findCommunityEnrollment } = require('./community-access.service');
 const { calculatePeriodStatus } = require('./period-status.service');
@@ -11,6 +12,11 @@ const { toDayKey } = require('../utils/checkin-day-metrics');
 
 const MAX_MATCH_ATTEMPTS = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const NUDGE_MESSAGES = Object.freeze({
+  together: '在等你一起读',
+  tomorrow: '明早一起读',
+  cheer: '今天也辛苦了'
+});
 
 function buddyError(kind, status, message) {
   const error = new Error(message);
@@ -46,11 +52,11 @@ async function loadPeriodContext(userId, periodId) {
   if (!enrollment || !['paid', 'free'].includes(enrollment.paymentStatus)) {
     throw buddyError('forbidden', 403, '报名这一期之后，才能找读伴');
   }
-  const period = await Period.findById(periodId).select('status startDate endDate').lean();
+  const period = await Period.findById(periodId).select('name title status startDate endDate').lean();
   if (!period) {
     throw buddyError('notFound', 404, '没有找到这一期');
   }
-  return { ongoing: calculatePeriodStatus(period) === 'ongoing' };
+  return { ongoing: calculatePeriodStatus(period) === 'ongoing', period };
 }
 
 function findActivePair(userId, periodId) {
@@ -116,7 +122,8 @@ async function buildStateWithBuddyId(userId, periodId, ongoing, now) {
       state: 'paired',
       buddy: {
         nickname: (buddyUser && buddyUser.nickname) || '读伴',
-        avatarUrl: (buddyUser && (buddyUser.avatarUrl || buddyUser.avatar)) || '',
+        avatar: (buddyUser && buddyUser.avatar) || '',
+        avatarUrl: (buddyUser && buddyUser.avatarUrl) || '',
         readToday: buddyStatus.readToday,
         checkedInToday: buddyStatus.checkedInToday
       },
@@ -147,6 +154,85 @@ async function buildState(userId, periodId, ongoing, now) {
 async function getState(userId, periodId, now = new Date()) {
   const { ongoing } = await loadPeriodContext(userId, periodId);
   return buildState(userId, periodId, ongoing, now);
+}
+
+function excerptText(value, max = 100) {
+  const text = String(value || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/^\s*#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const chars = Array.from(text);
+  return chars.length > max ? `${chars.slice(0, max).join('')}…` : chars.join('');
+}
+
+function activityDays(rows, field) {
+  return new Set((rows || []).map(item => toDayKey(item[field])).filter(Boolean));
+}
+
+function daysRemaining(endDate, now) {
+  if (!endDate) return 0;
+  const end = toDayKey(endDate);
+  const today = toDayKey(now);
+  if (!end || !today) return 0;
+  return Math.max(0, Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / DAY_MS));
+}
+
+async function getOverview(userId, periodId, now = new Date()) {
+  const { ongoing, period } = await loadPeriodContext(userId, periodId);
+  const pair = await findActivePair(userId, periodId);
+  if (!pair || !ongoing) throw buddyError('badRequest', 400, '你现在还没有进行中的读伴');
+
+  const buddyId = (pair.members || []).map(str).find(id => id !== str(userId)) || str(pair.userA === userId ? pair.userB : pair.userA);
+  const [checkins, insights, mineCompletions, mineCheckins, buddyCompletions, buddyCheckins] = await Promise.all([
+    Checkin.find({ userId: buddyId, periodId, isPublic: true })
+      .select('_id sectionId day checkinDate note contentHtml')
+      .sort({ checkinDate: -1 })
+      .limit(5)
+      .populate('sectionId', 'title day')
+      .lean(),
+    Insight.find({ targetUserId: buddyId, periodId, type: 'insight', status: 'completed', isPublished: true })
+      .select('_id title content createdAt sectionId')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('sectionId', 'title day')
+      .lean(),
+    UserReadingCompletion.find({ userId, periodId, completedAt: { $ne: null } }).select('completedAt').lean(),
+    Checkin.find({ userId, periodId }).select('checkinDate').lean(),
+    UserReadingCompletion.find({ userId: buddyId, periodId, completedAt: { $ne: null } }).select('completedAt').lean(),
+    Checkin.find({ userId: buddyId, periodId }).select('checkinDate').lean()
+  ]);
+
+  const mineDays = new Set([...activityDays(mineCompletions, 'completedAt'), ...activityDays(mineCheckins, 'checkinDate')]);
+  const buddyDays = new Set([...activityDays(buddyCompletions, 'completedAt'), ...activityDays(buddyCheckins, 'checkinDate')]);
+  const sharedDays = [...mineDays].filter(day => buddyDays.has(day)).length;
+
+  return {
+    periodName: period.name || period.title || '',
+    daysRemaining: daysRemaining(period.endDate, now),
+    pairStartedAt: pair.createdAt || null,
+    sharedDays,
+    publicCheckins: (checkins || []).map(item => ({
+      checkinId: str(item._id),
+      sectionId: item.sectionId?._id ? String(item.sectionId._id) : str(item.sectionId),
+      sectionTitle: item.sectionId?.title || '',
+      day: item.day ?? item.sectionId?.day ?? null,
+      date: item.checkinDate ? toDayKey(item.checkinDate) : '',
+      excerpt: excerptText(item.contentHtml || item.note || '')
+    })),
+    publicInsights: (insights || []).map(item => ({
+      insightId: str(item._id),
+      title: item.title || item.sectionId?.title || '小凡看见',
+      date: item.createdAt ? toDayKey(item.createdAt) : '',
+      excerpt: excerptText(item.content || '')
+    }))
+  };
 }
 
 async function releaseClaim(requestId) {
@@ -250,7 +336,7 @@ async function leave(userId, periodId, now = new Date()) {
   return buildState(userId, periodId, ongoing, now);
 }
 
-async function nudge(userId, periodId, now = new Date()) {
+async function nudge(userId, periodId, now = new Date(), messageKey = 'together') {
   const { ongoing } = await loadPeriodContext(userId, periodId);
   if (!ongoing) throw buddyError('badRequest', 400, '这一期不在进行中');
   const pair = await findActivePair(userId, periodId);
@@ -275,11 +361,15 @@ async function nudge(userId, periodId, now = new Date()) {
   if (!modified) throw buddyError('badRequest', 400, '今天已经拍过了');
 
   const sender = await User.findById(userId).select('nickname').lean();
+  const safeMessageKey = Object.prototype.hasOwnProperty.call(NUDGE_MESSAGES, messageKey)
+    ? messageKey
+    : 'together';
   return {
     buddyUserId: buddyId,
     senderName: (sender && sender.nickname) || '你的读伴',
+    nudgeText: NUDGE_MESSAGES[safeMessageKey],
     state: { ...state, canNudge: false, nudgedToday: true }
   };
 }
 
-module.exports = { getState, join, cancel, leave, nudge };
+module.exports = { getState, getOverview, join, cancel, leave, nudge, NUDGE_MESSAGES };

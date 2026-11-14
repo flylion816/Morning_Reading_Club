@@ -253,13 +253,13 @@ function parseQuery(query) {
 function getAvatarColorByUserId(userId) {
   const colors = [
     THEME_PRIMARY,
-    '#7ed321', // 绿色
-    '#f5a623', // 橙色
-    '#bd10e0', // 紫色
-    '#50e3c2', // 青色
-    '#d0021b', // 红色
-    '#f8e71c', // 黄色
-    '#417505' // 深绿色
+    '#789b86',
+    '#bf8b63',
+    '#8f87a6',
+    '#6f9e9a',
+    '#b97870',
+    '#b49459',
+    '#657f70'
   ];
 
   if (!userId) {

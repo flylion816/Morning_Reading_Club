@@ -56,14 +56,7 @@
 
           <el-table-column label="头像" width="80" align="center">
             <template #default="{ row }">
-              <el-avatar
-                :src="getUserAvatarUrl(row)"
-                :size="36"
-                class="user-avatar"
-                :style="{ background: getUserAvatarColor(row) }"
-              >
-                {{ getUserAvatarText(row) }}
-              </el-avatar>
+              <UserAvatar :user="row" :size="36" class="user-avatar" />
             </template>
           </el-table-column>
           <el-table-column prop="nickname" label="昵称" width="120" />
@@ -245,14 +238,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { userApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, User } from '../types/api';
-import {
-  getAvatarColorByUserId,
-  getLastTextChar,
-  getUserAvatarUrl as resolveUserAvatarUrl
-} from '../utils/avatar';
 
 const loading = ref(false);
 const users = ref<User[]>([]);
@@ -454,17 +443,6 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
 }
 
-function getUserAvatarUrl(user: User): string {
-  return resolveUserAvatarUrl(user);
-}
-
-function getUserAvatarText(user: User): string {
-  return getLastTextChar(user.nickname, '用');
-}
-
-function getUserAvatarColor(user: User): string {
-  return getAvatarColorByUserId(user._id || user.id);
-}
 </script>
 
 <style scoped>

@@ -101,7 +101,7 @@ describe('miniprogram brand color regression', () => {
     expect(listStyles).toContain('border-color: var(--zc-primary)');
     expect(listStyles).toContain('.avatar-text');
     expect(listStyles).toContain('.author-avatar-text');
-    expect(listMarkup).toContain('class="avatar-initial"');
+    expect(listMarkup).toContain('<user-avatar');
     expect(listStyles).toContain('.avatar-wrap { width: 56rpx; height: 56rpx; border-radius: 50%; overflow: hidden; border: 2rpx solid #fff; box-sizing: border-box; }');
     expect(listStyles).toContain('.avatar-text { width: 100%; height: 100%;');
     expect(listStyles).toContain('position: relative;');

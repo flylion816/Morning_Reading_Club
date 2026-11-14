@@ -1,4 +1,5 @@
 const adminWorkbenchService = require('../adminWorkbench.service');
+const { getUserAvatarDisplay } = require('../../../utils/avatar');
 
 const PAGE_SIZE = 20;
 
@@ -59,10 +60,16 @@ function decorateActivity(activity = {}) {
 
 function decorateUser(user = {}) {
   const summary = user.summary || {};
+  const avatar = getUserAvatarDisplay(user, {
+    userId: user._id || user.id,
+    displayName: user.nickname || '微信用户'
+  });
   return {
     ...user,
     displayName: user.nickname || '微信用户',
-    avatarText: (user.nickname || '微').slice(0, 1),
+    avatarUrl: avatar.avatarUrl,
+    avatarText: avatar.avatarText,
+    avatarColor: avatar.avatarColor,
     phoneText: user.phoneMasked || '未绑定手机号',
     enrollmentCount: summary.enrollmentCount || 0,
     checkinCount: user.totalCheckinDays || 0

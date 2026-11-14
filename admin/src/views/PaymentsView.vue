@@ -116,14 +116,14 @@
           <el-table-column label="订单号" prop="orderNo" min-width="180" />
           <el-table-column label="头像" width="60" align="center">
             <template #default="{ row }">
-              <el-avatar
-                :src="getPaymentAvatarUrl(row)"
+              <UserAvatar
+                :user="typeof row.userId === 'object' ? row.userId : null"
+                :image-url="row.userAvatarUrl"
+                :name="row.userName"
+                :user-id="String(row.userId?._id || row.userId || '')"
                 :size="32"
                 class="user-avatar"
-                :style="{ background: getPaymentAvatarColor(row) }"
-              >
-                {{ getPaymentAvatarText(row) }}
-              </el-avatar>
+              />
             </template>
           </el-table-column>
           <el-table-column label="昵称" width="120">
@@ -244,10 +244,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import AdminLayout from '../components/AdminLayout.vue';
+import UserAvatar from '../components/UserAvatar.vue';
 import { paymentApi } from '../services/api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { ListResponse, Payment } from '../types/api';
-import { getAvatarColorByUserId, getLastTextChar } from '../utils/avatar';
 
 const loading = ref(false);
 const payments = ref<Payment[]>([]);
@@ -431,18 +431,6 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
 }
 
-function getPaymentAvatarUrl(row: any): string {
-  return row.userAvatarUrl || '';
-}
-
-function getPaymentAvatarText(row: any): string {
-  const nickname = row.userName || '';
-  return getLastTextChar(nickname, '用');
-}
-
-function getPaymentAvatarColor(row: any): string {
-  return getAvatarColorByUserId(String(row.userId?._id || row.userId || ''));
-}
 </script>
 
 <style scoped>

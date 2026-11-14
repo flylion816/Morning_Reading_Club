@@ -19,6 +19,10 @@ class HighlightService {
     return request.delete(`/highlights/${id}`);
   }
 
+  removeHighlightByText(sectionId, text) {
+    return request.delete('/highlights/by-text', { sectionId, text });
+  }
+
   /** 我的摘抄：{ list, total, periods } */
   getMine(params = {}) {
     return request.get('/highlights/mine', params);

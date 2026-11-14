@@ -27,10 +27,12 @@
       data-insight-id="{{item.insightId}}">
       <!-- 用户信息 -->
       <view class="card-user">
-        <view class="user-avatar" style="background: {{item.avatarColor || themePrimaryColor}}">
-          <image wx:if="{{item.avatarUrl}}" class="avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
-          <text wx:else class="avatar-text">{{item.avatarText}}</text>
-        </view>
+        <user-avatar
+          size="72"
+          avatar-url="{{item.avatarUrl}}"
+          avatar-text="{{item.avatarText}}"
+          avatar-color="{{item.avatarColor || themePrimaryColor}}"
+        />
         <view class="user-name">{{item.nickname}}</view>
         <view class="share-tag {{item.shareCount > 0 ? 'shared' : 'unshared'}}">{{item.shareLabel}}</view>
       </view>

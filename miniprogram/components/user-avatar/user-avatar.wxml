@@ -1,0 +1,30 @@
+<view
+  wx:if="{{interactive}}"
+  class="user-avatar user-avatar-{{shape}} {{customClass}} user-avatar-interactive"
+  style="width: {{size}}rpx; height: {{size}}rpx; background: {{avatarColor || 'var(--theme-primary, #3d6fa6)'}};"
+  catchtap="handleTap"
+>
+  <image
+    wx:if="{{avatarUrl && !imageFailed}}"
+    class="user-avatar-image"
+    src="{{avatarUrl}}"
+    mode="aspectFill"
+    binderror="handleImageError"
+  />
+  <text wx:else class="user-avatar-fallback">{{resolvedAvatarText}}</text>
+</view>
+<view
+  wx:else
+  class="user-avatar user-avatar-{{shape}} {{customClass}}"
+  style="width: {{size}}rpx; height: {{size}}rpx; background: {{avatarColor || 'var(--theme-primary, #3d6fa6)'}};"
+  bindtap="handleTap"
+>
+  <image
+    wx:if="{{avatarUrl && !imageFailed}}"
+    class="user-avatar-image"
+    src="{{avatarUrl}}"
+    mode="aspectFill"
+    binderror="handleImageError"
+  />
+  <text wx:else class="user-avatar-fallback">{{resolvedAvatarText}}</text>
+</view>

@@ -7,6 +7,7 @@ const subscribeMessageService = require('../../services/subscribe-message.servic
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const constants = require('../../config/constants');
 const { getAvatarColorByUserId } = require('../../utils/formatters');
+const { getUserAvatarDisplay } = require('../../utils/avatar');
 const { getPeriodAccess, extractId } = require('../../utils/period-access');
 const { renderRichTextContent } = require('../../utils/markdown');
 const envConfig = require('../../config/env');
@@ -17,12 +18,7 @@ const { MOOD_OPTIONS } = require('../../utils/mood');
 const { SEEN_PHRASES } = require('../../utils/seen-phrases');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
-const {
-  THEME_PRIMARY,
-  WECHAT_SI_PLUGIN_ENABLED,
-  getThemeColorWithAlpha,
-  darkenThemeColor
-} = require('../../utils/theme');
+const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
 const {
   formatShortLessonLabel,
   getLessonNumberingBase
@@ -261,7 +257,6 @@ Page({
     podcastDurationText: '',
     podcastDescExpanded: false,
     podcastShareMode: false,
-    podcastShareImagePath: '',
     closingVideoShareMode: false,
     closingVideoShareImagePath: '',
     closingVideoActivated: false,
@@ -388,15 +383,7 @@ Page({
       }, 400);
       this._scrollAnchor = '';
     }
-    // 预生成播客分享图片，确保第一次点击就有图
     const { course } = this.data;
-    if (course && course.podcastUrl && !this.data.podcastShareImagePath) {
-      setTimeout(() => {
-        this._generatePodcastShareImage(course).then((path) => {
-          this.setData({ podcastShareImagePath: path });
-        }).catch(() => {});
-      }, 800);
-    }
     if (course && course.closingVideoCoverUrl && !this.data.closingVideoShareImagePath) {
       setTimeout(() => {
         this._generateClosingVideoShareImage(course).then((path) => {
@@ -440,7 +427,6 @@ Page({
       shareCheckinId,
       canShareCurrentCheckin,
       podcastShareMode,
-      podcastShareImagePath,
       closingVideoShareMode,
       closingVideoShareImagePath
     } = this.data;
@@ -451,7 +437,7 @@ Page({
       return {
         title: `「${course.title || ''}」`,
         path: `/pages/course-detail/course-detail?id=${courseId}&anchor=podcast`,
-        imageUrl: podcastShareImagePath || course.coverImage || getDefaultShareImage()
+        imageUrl: '/assets/images/share-podcast.jpg'
       };
     }
 
@@ -940,24 +926,24 @@ Page({
       user.displayName ||
       fallbackName;
     const userId = String(user._id || user.id || user.userId || '');
-    let avatarUrl = user.avatarUrl || '';
-    let avatarText = '';
-
-    if (!avatarUrl) {
-      if (name && !GENERIC_AVATAR_NAMES.has(String(name).trim().toLowerCase())) {
-        avatarText = this.getNameAvatarText(name, fallbackAvatarText);
-      } else {
-        avatarText = suppressGenericFallback ? '' : fallbackAvatarText;
-      }
-    }
+    const normalized = getUserAvatarDisplay(user, {
+      userId,
+      displayName: name,
+      fallbackName,
+      fallbackText: fallbackAvatarText
+    });
+    const isGenericName = GENERIC_AVATAR_NAMES.has(String(name).trim().toLowerCase());
+    const avatarText = suppressGenericFallback && isGenericName && !normalized.avatarUrl
+      ? ''
+      : normalized.avatarText;
 
     return {
       userId,
-      avatarUrl,
+      avatarUrl: normalized.avatarUrl,
       avatarText: avatarText || (suppressGenericFallback ? '' : fallbackAvatarText),
       avatarIsEmoji: false,
-      avatarColor: user.avatarColor || getAvatarColorByUserId(userId || name || fallbackName),
-      isGenericAvatar: !avatarUrl && !avatarText && suppressGenericFallback
+      avatarColor: user.avatarColor || normalized.avatarColor || getAvatarColorByUserId(userId || name || fallbackName),
+      isGenericAvatar: !normalized.avatarUrl && !avatarText && suppressGenericFallback
     };
   },
 
@@ -4113,7 +4099,7 @@ Page({
    * 点击打卡人头像 - 跳转到他人主页
    */
   handleAvatarClick(e) {
-    const { userId } = e.currentTarget.dataset;
+    const userId = e.detail?.userId || e.currentTarget?.dataset?.userId;
     const { course } = this.data;
 
     console.log('🎯 handleAvatarClick - 开始构造导航URL');
@@ -4142,7 +4128,7 @@ Page({
   },
 
   handleLikeAvatarClick(e) {
-    const { userId } = e.currentTarget.dataset;
+    const userId = e.detail?.userId || e.currentTarget?.dataset?.userId;
     if (!userId) return;
     const { course } = this.data;
     let url = `/pages/profile-others/profile-others?userId=${userId}`;

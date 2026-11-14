@@ -34,14 +34,15 @@ async function getReadingCompletionMap(userId, sectionIds = []) {
     userId,
     sectionId: { $in: sectionIds }
   })
-    .select('sectionId durationMs completedAt')
+    .select('sectionId durationMs startedAt completedAt')
     .lean();
 
   return new Map(
     completions.map(item => [
       String(item.sectionId),
       {
-        readingCompleted: true,
+        readingCompleted: !!item.completedAt,
+        readingStartedAt: item.startedAt || null,
         readingCompletedAt: item.completedAt || null,
         readingDurationMs: item.durationMs || 0
       }
@@ -53,7 +54,8 @@ function attachReadingCompletion(section, completionMap) {
   const completion = completionMap.get(String(section._id));
   return {
     ...section,
-    readingCompleted: !!completion,
+    readingCompleted: !!completion?.readingCompleted,
+    readingStartedAt: completion?.readingStartedAt || null,
     readingCompletedAt: completion?.readingCompletedAt || null,
     readingDurationMs: completion?.readingDurationMs || 0
   };
@@ -261,6 +263,9 @@ async function markReadingCompletion(req, res, next) {
           sectionId,
           durationMs,
           completedAt
+        },
+        $setOnInsert: {
+          startedAt: completedAt
         }
       },
       {
@@ -282,6 +287,53 @@ async function markReadingCompletion(req, res, next) {
         '阅读完成状态已保存'
       )
     );
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function markReadingStart(req, res, next) {
+  try {
+    const { sectionId } = req.params;
+    const userId = getRequestUserId(req);
+    const clientStartedAt = req.body?.startedAt ? new Date(req.body.startedAt) : null;
+    const startedAt = clientStartedAt && !Number.isNaN(clientStartedAt.getTime())
+      ? clientStartedAt
+      : new Date();
+
+    const section = await Section.findById(sectionId).select('periodId content courseTemplateSnapshot');
+    if (!section) return res.status(404).json(errors.notFound('课程不存在'));
+    if (isCustomTemplate(section.courseTemplateSnapshot) && !section.content) {
+      return res.status(400).json(errors.badRequest('此课节没有正文，无需记录阅读开始'));
+    }
+    if (!supportsCourseTemplate(req, section.courseTemplateSnapshot)) {
+      return res.status(403).json(errors.forbidden('请更新小程序后查看此课程（关闭小程序后重新打开）'));
+    }
+
+    const period = await Period.findById(section.periodId);
+    if (period?.readingAccess === 'enrolled') {
+      const access = await ensurePeriodInteractionAccess(req, res, period._id);
+      if (!access) return;
+    }
+
+    const completion = await UserReadingCompletion.findOneAndUpdate(
+      { userId, sectionId },
+      {
+        $setOnInsert: {
+          userId,
+          periodId: section.periodId,
+          sectionId,
+          startedAt
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    return res.json(success({
+      sectionId: String(completion.sectionId),
+      periodId: String(completion.periodId),
+      readingStartedAt: completion.startedAt || startedAt
+    }, '阅读开始时间已记录'));
   } catch (error) {
     next(error);
   }
@@ -721,7 +773,7 @@ async function getTodayTask(req, res, next) {
             userId,
             sectionId: section._id
           })
-            .select('durationMs completedAt')
+          .select('durationMs startedAt completedAt')
             .lean();
 
           // 获取今天打卡用户的头像列表（最多10个）
@@ -763,7 +815,8 @@ async function getTodayTask(req, res, next) {
             checkinCount: todayCheckinCount,
             checkinUsers,
             isCheckedIn,
-            readingCompleted: !!readingCompletion,
+            readingCompleted: !!readingCompletion?.completedAt,
+            readingStartedAt: readingCompletion?.startedAt || null,
             readingCompletedAt: readingCompletion?.completedAt || null,
             readingDurationMs: readingCompletion?.durationMs || 0
           };
@@ -944,6 +997,7 @@ module.exports = {
   getAllSectionsByPeriod,
   getSectionDetail,
   searchSections,
+  markReadingStart,
   markReadingCompletion,
   createSection,
   updateSection,

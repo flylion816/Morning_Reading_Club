@@ -58,10 +58,12 @@
       <block wx:for="{{imprint.attendees}}" wx:for-item="att" wx:key="index">
         <view wx:if="{{showAllAttendees || index < 8}}" class="att-item">
           <view class="att-avatar-wrap">
-            <image wx:if="{{att.avatarUrl}}" src="{{att.avatarUrl}}" class="att-avatar" mode="aspectFill"/>
-            <view wx:else class="att-avatar-text">
-              <text class="avatar-initial">{{att.name[0]}}</text>
-            </view>
+            <user-avatar
+              size="72"
+              avatar-url="{{att.avatarUrl}}"
+              avatar-text="{{att.avatarText || att.name}}"
+              display-name="{{att.name}}"
+            />
           </view>
           <text class="att-name">{{att.name}}</text>
         </view>
@@ -95,10 +97,12 @@
     <view class="comment-list">
       <view wx:for="{{comments}}" wx:key="_id" class="comment-item">
         <view class="comment-avatar-wrap">
-          <image wx:if="{{item.author && item.author.avatarUrl}}" src="{{item.author.avatarUrl}}" class="comment-avatar" mode="aspectFill"/>
-          <view wx:else class="comment-avatar-text">
-            <text class="avatar-initial">{{item.author && item.author.nickname ? item.author.nickname[0] : '?'}}</text>
-          </view>
+          <user-avatar
+            size="64"
+            avatar-url="{{item.author && item.author.avatarUrl}}"
+            avatar-text="{{item.author && item.author.avatarText || item.author && item.author.nickname || '?'}}"
+            display-name="{{item.author && item.author.nickname}}"
+          />
         </view>
         <view class="comment-body">
           <text class="comment-author">{{item.author && item.author.nickname}}</text>
