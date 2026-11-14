@@ -45,6 +45,20 @@
   text-align: center;
 }
 
+.buddy-nudge-actions {
+  display: flex;
+  width: 100%;
+  gap: 12rpx;
+}
+
+.buddy-nudge-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 18rpx 8rpx;
+  text-align: center;
+  font-size: 23rpx;
+}
+
 .buddy-people {
   display: flex;
   justify-content: space-around;
@@ -108,6 +122,87 @@
 .buddy-quiet {
   color: var(--app-text-soft);
   font-size: var(--app-font-sm);
+}
+
+.buddy-overview {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8rpx;
+  padding: 24rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-muted);
+}
+
+.buddy-overview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.buddy-overview-title {
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.buddy-overview-shared,
+.buddy-overview-meta {
+  color: var(--theme-primary-dark);
+  font-size: 22rpx;
+}
+
+.buddy-overview-meta {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--app-text-muted);
+}
+
+.buddy-overview-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-top: 20rpx;
+}
+
+.buddy-overview-label {
+  color: var(--app-text-soft);
+  font-size: 24rpx;
+  font-weight: 650;
+}
+
+.buddy-overview-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4rpx 12rpx;
+  padding: 16rpx;
+  border-radius: var(--app-radius-sm);
+  background: var(--app-paper);
+}
+
+.buddy-overview-item-title {
+  overflow: hidden;
+  color: var(--app-text);
+  font-size: 25rpx;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buddy-overview-item-date {
+  color: var(--app-text-muted);
+  font-size: 21rpx;
+}
+
+.buddy-overview-item-excerpt {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--app-text-soft);
+  font-size: 23rpx;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .buddy-leave {

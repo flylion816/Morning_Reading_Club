@@ -5,6 +5,10 @@ class BuddyService {
     return request.get(`/buddies/period/${periodId}`, {}, { suppressError: true });
   }
 
+  getOverview(periodId) {
+    return request.get(`/buddies/period/${periodId}/overview`, {}, { suppressError: true });
+  }
+
   join(periodId) {
     return request.post(`/buddies/period/${periodId}/join`);
   }
@@ -13,8 +17,8 @@ class BuddyService {
     return request.post(`/buddies/period/${periodId}/cancel`);
   }
 
-  nudge(periodId) {
-    return request.post(`/buddies/period/${periodId}/nudge`);
+  nudge(periodId, messageKey = 'together') {
+    return request.post(`/buddies/period/${periodId}/nudge`, { messageKey });
   }
 
   leave(periodId) {

@@ -28,18 +28,24 @@ function handler(run) {
 }
 
 const getBuddyState = handler((req, userId, periodId) => buddyService.getState(userId, periodId));
+const getBuddyOverview = handler((req, userId, periodId) => buddyService.getOverview(userId, periodId));
 const joinBuddy = handler((req, userId, periodId) => buddyService.join(userId, periodId));
 const cancelBuddy = handler((req, userId, periodId) => buddyService.cancel(userId, periodId));
 const leaveBuddy = handler((req, userId, periodId) => buddyService.leave(userId, periodId));
 
 const nudgeBuddy = handler(async (req, userId, periodId) => {
-  const { state, buddyUserId, senderName } = await buddyService.nudge(userId, periodId);
+  const { state, buddyUserId, senderName, nudgeText } = await buddyService.nudge(
+    userId,
+    periodId,
+    new Date(),
+    req.body?.messageKey
+  );
   try {
     await createNotification(
       buddyUserId,
       'buddy_nudge',
       '你的读伴轻拍了你一下',
-      `${senderName}在等你一起读`,
+      `${senderName}${nudgeText || '在等你一起读'}`,
       {
         wsManager: req.wsManager,
         senderId: userId,
@@ -52,4 +58,4 @@ const nudgeBuddy = handler(async (req, userId, periodId) => {
   return state;
 });
 
-module.exports = { getBuddyState, joinBuddy, cancelBuddy, nudgeBuddy, leaveBuddy };
+module.exports = { getBuddyState, getBuddyOverview, joinBuddy, cancelBuddy, nudgeBuddy, leaveBuddy };
