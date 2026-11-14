@@ -218,7 +218,7 @@ function computeDailyCardLayout(opts = {}) {
 
   if (cfg.showSource && source) {
     const lines = wrapText(`—— ${source}`, 24, contentW, 1, measure);
-    els.push(text({ x, y, w: contentW, h: 36, text: lines[0], size: 24, color: COLORS.muted, family: 'sans' }));
+    els.push(text({ x, y, w: contentW, h: 36, text: lines[0], size: 24, color: COLORS.muted, family: 'sans', align: 'right' }));
     y += 36 + 24;
   }
 
@@ -232,7 +232,7 @@ function computeDailyCardLayout(opts = {}) {
   }
 
   // 底部品牌
-  const footerH = showMiniProgramCode ? 196 : 140;
+  const footerH = showMiniProgramCode ? 168 : 140;
   const footerY = Math.max(y + 56, cfg.minH - footerH);
   const height = footerY + footerH;
   if (variant !== 'blank') {
@@ -244,10 +244,10 @@ function computeDailyCardLayout(opts = {}) {
     ? codeCardX - x - 36
     : contentW - 26;
   els.push(text({
-    x: x + 26, y: footerY + 20, w: brandTextWidth, h: 44, text: brandName, size: 30, weight: 'bold', color: COLORS.text
+    x: x + 26, y: footerY + 42, w: brandTextWidth, h: 44, text: brandName, size: 30, weight: 'bold', color: COLORS.text
   }));
   els.push(text({
-    x, y: footerY + 70, w: brandTextWidth, h: 34, text: SLOGAN, size: 24, color: COLORS.muted, family: 'sans'
+    x, y: footerY + 92, w: brandTextWidth, h: 34, text: SLOGAN, size: 24, color: COLORS.muted, family: 'sans'
   }));
 
   if (showMiniProgramCode && miniProgramCodeSrc) {
@@ -264,17 +264,6 @@ function computeDailyCardLayout(opts = {}) {
       src: miniProgramCodeSrc,
       x: codeCardX + (MINI_PROGRAM_CODE_CARD_SIZE - MINI_PROGRAM_CODE_SIZE) / 2,
       y: footerY + 26
-    }));
-    els.push(text({
-      x: codeCardX,
-      y: footerY + 158,
-      w: MINI_PROGRAM_CODE_CARD_SIZE,
-      h: 28,
-      text: '扫码进入',
-      size: 20,
-      color: COLORS.muted,
-      family: 'sans',
-      align: 'center'
     }));
   }
 

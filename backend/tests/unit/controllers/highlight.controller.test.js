@@ -204,4 +204,16 @@ describe('Highlight Controller', () => {
       expect(H.find.called).to.equal(false);
     });
   });
+
+  it('支持按课节和原文直接取消摘抄', async () => {
+    req.body = { sectionId: String(sectionId), text: '  一段摘抄  ' };
+    H.deleteOne.resolves({ deletedCount: 1 });
+    await ctrl.deleteHighlightByText(req, res, next);
+    expect(H.deleteOne.calledWith({
+      userId,
+      sectionId: String(sectionId),
+      textHash: hashText('一段摘抄')
+    })).to.equal(true);
+    expect(res.json.firstCall.args[0].message).to.equal('已取消摘抄');
+  });
 });
