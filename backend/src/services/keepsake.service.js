@@ -48,6 +48,29 @@ function stripTags(html) {
     .trim();
 }
 
+function stripMarkdown(text) {
+  return String(text || '')
+    .replace(/^\s*#{1,6}\s+/gm, '')
+    .replace(/^\s*>\s+/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+[.)]\s+/gm, '')
+    .replace(/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm, '')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?=[^*]|$)/g, '$1$2')
+    .replace(/(^|[^_])_([^_\n]+)_(?=[^_]|$)/g, '$1$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function contentToPlainText(content) {
+  return stripMarkdown(stripTags(content));
+}
+
 function checkinPlainText(checkin) {
   return stripTags(checkin.contentHtml || checkin.note || '');
 }
@@ -211,7 +234,7 @@ async function buildInsights(userId, periodId) {
     id: idStr(item._id),
     title: item.title || '',
     date: item.createdAt ? toDayKey(item.createdAt) : '',
-    excerpt: excerptOf(stripTags(item.content))
+    excerpt: excerptOf(contentToPlainText(item.content))
   }));
 }
 
