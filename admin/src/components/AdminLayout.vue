@@ -405,12 +405,11 @@ watch(
 
 .admin-sidebar {
   width: 252px;
-  background:
-    radial-gradient(circle at 26px 28px, rgba(255, 255, 255, 0.13), transparent 7rem),
-    linear-gradient(180deg, var(--admin-sidebar) 0%, var(--admin-sidebar-deep) 100%);
+  background: var(--admin-surface-strong);
+  border: 1px solid var(--admin-paper-border);
   display: flex;
   flex-direction: column;
-  box-shadow: 12px 0 34px rgba(31, 42, 36, 0.16);
+  box-shadow: 4px 0 18px rgba(31, 42, 36, 0.08);
   position: relative;
   z-index: 2;
   border-radius: var(--admin-radius-md) 0 0 var(--admin-radius-md);
@@ -430,10 +429,10 @@ watch(
   width: 42px;
   height: 42px;
   border-radius: var(--admin-radius-md);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--admin-primary-soft);
   display: grid;
   place-items: center;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  box-shadow: none;
 }
 
 .sidebar-logo {
@@ -450,7 +449,7 @@ watch(
 .brand-eyebrow {
   display: block;
   margin-bottom: 3px;
-  color: rgba(246, 243, 233, 0.46);
+  color: var(--admin-ink-muted);
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -459,7 +458,7 @@ watch(
 
 .sidebar-header h2 {
   margin: 0;
-  color: #f6f3e9;
+  color: var(--admin-ink);
   font-size: 18px;
   font-weight: 600;
   line-height: 1.25;
@@ -470,7 +469,7 @@ watch(
 
 .brand-copy p {
   margin: 2px 0 0;
-  color: rgba(246, 243, 233, 0.58);
+  color: var(--admin-ink-muted);
   font-size: 12px;
   font-weight: 500;
 }
@@ -488,12 +487,12 @@ watch(
 }
 
 .sidebar-menu::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--admin-border-strong);
   border-radius: 999px;
 }
 
 .sidebar-menu :deep(.el-menu-item) {
-  color: rgba(246, 243, 233, 0.72);
+  color: var(--admin-ink-soft);
   background-color: transparent;
   height: 40px;
   line-height: 40px;
@@ -511,32 +510,32 @@ watch(
 .nav-icon {
   width: 18px;
   margin-right: 10px;
-  color: rgba(246, 243, 233, 0.58);
+  color: var(--admin-ink-muted);
   transition: color 0.18s ease;
 }
 
 .sidebar-menu :deep(.el-menu-item:hover) {
-  color: #fffaf0;
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--admin-primary-dark);
+  background-color: var(--admin-primary-soft) !important;
   transform: translateX(2px);
 }
 
 .sidebar-menu :deep(.el-menu-item:hover .nav-icon) {
-  color: #fffaf0;
+  color: var(--admin-primary-dark);
 }
 
 .sidebar-menu :deep(.el-menu-item.is-active) {
-  color: #fffaf0;
-  background: rgba(255, 255, 255, 0.13) !important;
+  color: var(--admin-primary-dark);
+  background: var(--admin-primary-soft) !important;
   box-shadow: inset 3px 0 0 var(--admin-primary-light);
 }
 
 .sidebar-menu :deep(.el-menu-item.is-active .nav-icon) {
-  color: var(--admin-primary-light);
+  color: var(--admin-primary-dark);
 }
 
 .sidebar-menu :deep(.el-menu-item-group__title) {
-  color: rgba(246, 243, 233, 0.42) !important;
+  color: var(--admin-ink-muted) !important;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -546,19 +545,19 @@ watch(
 
 .sidebar-footer {
   padding: 14px 16px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-top: 1px solid var(--admin-border);
 }
 
 .logout-button {
   width: 100%;
   justify-content: flex-start;
-  color: rgba(246, 243, 233, 0.72) !important;
+  color: var(--admin-ink-soft) !important;
   padding: 9px 10px !important;
   border-radius: var(--admin-radius-md) !important;
 }
 
 .logout-button:hover {
-  color: #fffaf0 !important;
+  color: var(--admin-danger) !important;
   background: rgba(185, 76, 67, 0.16) !important;
 }
 
@@ -573,7 +572,7 @@ watch(
   border-radius: 0 var(--admin-radius-md) var(--admin-radius-md) 0;
   background: var(--admin-paper);
   box-shadow:
-    18px 24px 48px rgba(55, 45, 31, 0.16),
+    8px 12px 28px rgba(55, 45, 31, 0.07),
     inset 18px 0 28px rgba(75, 55, 28, 0.055);
 }
 

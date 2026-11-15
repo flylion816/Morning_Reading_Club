@@ -33,7 +33,9 @@ const display = computed(() =>
     imageUrl: props.imageUrl,
     name: props.name,
     userId: props.userId,
-    fallbackText: props.fallbackText
+    fallbackText: props.fallbackText,
+    // 32px 及以下的后台头像只保留最后一个字，避免两字昵称挤在头像里。
+    fallbackCount: Number(props.size) <= 32 ? 1 : 2
   })
 );
 const imageSource = computed(() => (imageFailed.value ? '' : display.value.imageUrl));

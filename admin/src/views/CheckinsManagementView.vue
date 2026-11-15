@@ -63,44 +63,59 @@
         <el-dialog
           v-model="previewVisible"
           title="效果预览"
-          width="480px"
+          width="420px"
           :show-close="true"
           align-center
           @closed="previewKey++"
         >
           <div class="phone-frame-wrap">
             <div class="phone-frame">
-              <!-- 手机顶部状态栏 -->
-              <div class="phone-status-bar">
-                <span>14:06</span>
-                <span>● ● ●</span>
-              </div>
-              <!-- 手机导航栏 -->
-              <div class="phone-nav-bar">
-                <span class="phone-nav-back">‹</span>
-                <span>每日打卡</span>
-                <span></span>
-              </div>
-              <!-- 动画内容区 -->
               <div class="phone-body">
-                <!-- 背景页面内容（模拟打卡页） -->
-                <div class="phone-page-bg">
-                  <div class="phone-page-title">第二天 思维方式的力量</div>
-                  <div class="phone-page-textarea">请输入日记内容...</div>
-                </div>
-
-                <!-- 七套仪式共用一个版式，这里只示意各自的天空配色（动画以小程序里为准） -->
-                <div :key="previewStyle + previewKey" class="cel-overlay-web rite-web" :class="'rite-' + previewStyle.toLowerCase()">
+                <div
+                  :key="previewStyle + previewKey"
+                  class="cel-overlay-web rite-web"
+                  :class="'rite-' + previewStyle.toLowerCase()"
+                >
                   <div class="rite-sky">
+                    <template v-if="previewStyle === 'A'">
+                      <div v-for="index in 7" :key="'star-' + index" class="rite-star" :class="'rite-star-' + index"></div>
+                      <div class="rite-morning-star"></div>
+                    </template>
+                    <template v-else-if="previewStyle === 'B'">
+                      <div v-for="index in 5" :key="'page-' + index" class="rite-leafpage" :class="'rite-leafpage-' + index"></div>
+                    </template>
+                    <template v-else-if="previewStyle === 'D'">
+                      <div class="rite-orb"></div>
+                      <div class="rite-hill rite-hill-1"></div>
+                      <div class="rite-hill rite-hill-2"></div>
+                      <div class="rite-hill rite-hill-3"></div>
+                      <div class="rite-mist"></div>
+                    </template>
+                    <template v-else-if="previewStyle === 'E'">
+                      <div class="rite-lamp-glow"></div>
+                      <div class="rite-lamp"></div>
+                    </template>
+                    <template v-else-if="previewStyle === 'F'">
+                      <div v-for="index in 7" :key="'leaf-' + index" class="rite-leaf" :class="'rite-leaf-' + index"></div>
+                    </template>
+                    <template v-else-if="previewStyle === 'G'">
+                      <div class="rite-orb"></div>
+                      <div class="rite-bird rite-bird-1"></div>
+                      <div class="rite-bird rite-bird-2"></div>
+                      <div class="rite-bird rite-bird-3"></div>
+                    </template>
+                    <template v-else>
+                      <div class="rite-orb"></div>
+                    </template>
                     <div class="rite-day">第 <b>7</b> 天</div>
-                    <div class="rite-orb"></div>
                   </div>
                   <div class="rite-ground">
                     <div class="rite-title">读完了，明早见</div>
                     <div class="rite-say">「{{ previewMessage }}」</div>
+                    <div class="rite-rank">你是今天第 <b>6</b> 位打卡的书友</div>
                     <div class="rite-btn">看看大家的打卡</div>
                     <div class="rite-ghost">分享今日打卡</div>
-                    <div class="rite-note">预览只示意配色和版式</div>
+                    <div class="rite-close">好，明早见</div>
                   </div>
                 </div>
               </div>
@@ -490,7 +505,7 @@ const msgForm = ref({ content: '', category: '励志' });
 // Preview dialog
 const previewVisible = ref(false);
 const previewStyle = ref('A');
-const previewMessage = ref('打卡成功！坚持就是力量！');
+const previewMessage = ref('阅读是最廉价的奢侈品，而你每天都在拥有它');
 const previewKey = ref(0);
 
 const enabledMsgCount = computed(() => celebConfig.value.messages.filter((m: any) => m.isEnabled).length);
@@ -606,7 +621,7 @@ const randomPreviewStyle = (): string => {
 };
 
 const openPreview = (style: string) => {
-  previewStyle.value = style;
+  previewStyle.value = style || randomPreviewStyle();
   const enabled = celebConfig.value.messages.filter((m: any) => m.isEnabled);
   previewMessage.value = enabled.length > 0
     ? enabled[Math.floor(Math.random() * enabled.length)].content
@@ -1021,6 +1036,8 @@ onMounted(() => {
 }
 
 // ====== Phone Preview Frame ======
+.preview-tabs :deep(.el-tabs__header) { margin: 0 0 16px; }
+
 .phone-frame-wrap {
   display: flex;
   justify-content: center;
@@ -1029,13 +1046,13 @@ onMounted(() => {
 
 .phone-frame {
   width: 320px;
-  height: 568px;
+  height: 693px;
   border: 3px solid #222;
   border-radius: 36px;
   overflow: hidden;
   background: #fff;
   position: relative;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 30px rgba(43, 38, 34, 0.2);
 }
 
 .phone-status-bar {
@@ -1072,7 +1089,7 @@ onMounted(() => {
 .phone-body {
   position: relative;
   width: 100%;
-  height: calc(568px - 28px - 44px);
+  height: 100%;
   overflow: hidden;
   background: #fff;
 }
@@ -1097,14 +1114,21 @@ onMounted(() => {
   }
 }
 
+.preview-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
 // ====== Web Celebration Animations ======
 .cel-overlay-web {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start;
   animation: cel-fade-in-web 0.25s ease-out forwards;
 }
 
@@ -1637,29 +1661,200 @@ onMounted(() => {
   }
 }
 
-/* 打卡仪式预览：七个清晨场景的配色示意 */
-.rite-web { position: absolute; inset: 0; display: flex; flex-direction: column; text-align: center; animation: none; }
+/* 打卡仪式预览：还原小程序完成页的比例、动画和最终稳定画面 */
+.rite-web {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  background: #fdf3e3;
+}
 .rite-sky { position: relative; flex: 0 0 54%; overflow: hidden; }
-.rite-day { position: absolute; left: 0; right: 0; top: 18%; font-family: Georgia, 'Songti SC', serif; font-size: 16px; color: #8a4b12; letter-spacing: 4px; }
-.rite-day b { font-size: 64px; font-weight: 400; color: #2b2622; margin: 0 4px; }
-.rite-orb { position: absolute; left: 50%; bottom: -70px; width: 150px; height: 150px; margin-left: -75px; border-radius: 50%; background: radial-gradient(circle, #ffd08a 0%, #f6a94f 62%, #ee9b45 100%); box-shadow: 0 0 0 22px rgba(255, 200, 130, 0.28), 0 0 0 50px rgba(255, 200, 130, 0.14); }
-.rite-ground { flex: 1; background: #fffdf8; border-top: 1px solid rgba(138, 75, 18, 0.18); padding: 18px 24px 0; }
-.rite-title { font-family: 'Songti SC', serif; font-size: 20px; color: #2b2622; }
-.rite-say { margin-top: 8px; font-family: 'Songti SC', serif; font-size: 13px; line-height: 1.6; color: #776c5f; white-space: pre-line; }
-.rite-btn { margin: 14px auto 0; width: 78%; padding: 9px 0; border-radius: 20px; background: #325b88; color: #fff; font-size: 13px; font-weight: 600; }
-.rite-ghost { margin: 8px auto 0; width: 78%; padding: 8px 0; border-radius: 20px; border: 1px solid rgba(92, 70, 44, 0.22); color: #2b2622; font-size: 12px; box-sizing: border-box; }
-.rite-note { margin-top: 8px; font-size: 11px; color: #a89c8c; }
-.rite-a .rite-sky { background: linear-gradient(180deg, #25324f 0%, #4a5d86 55%, #b9a6a4 86%, #f6d3a8 100%); }
-.rite-b .rite-sky { background: linear-gradient(180deg, #f6ead4 0%, #fdf6ea 100%); }
-.rite-c .rite-sky { background: linear-gradient(180deg, #f9d7ae 0%, #fbe6c9 70%, #fdf3e3 100%); }
-.rite-d .rite-sky { background: linear-gradient(180deg, #f3c9a3 0%, #f9dcbb 62%, #c9a87f 100%); }
-.rite-e .rite-sky { background: linear-gradient(180deg, #3b2f29 0%, #5a4334 55%, #a9805a 88%, #f3d6ad 100%); }
-.rite-f .rite-sky { background: linear-gradient(180deg, #e9ecd6 0%, #f5f0dc 66%, #fdf3e3 100%); }
-.rite-g .rite-sky { background: linear-gradient(180deg, #cfdfec 0%, #e9e2d6 62%, #fbe6c9 100%); }
+.rite-day {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 12%;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  font-family: Georgia, 'Songti SC', serif;
+  font-size: 19px;
+  color: #8a4b12;
+  letter-spacing: 6px;
+}
+.rite-day b {
+  display: block;
+  margin: 0 6px;
+  font-size: 95px;
+  font-weight: 400;
+  line-height: 0.92;
+  color: #2b2622;
+}
+.rite-orb {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 174px);
+  width: 188px;
+  height: 188px;
+  margin-left: -94px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffd08a 0%, #f6a94f 62%, #ee9b45 100%);
+  box-shadow: 0 0 0 27px rgba(255, 200, 130, 0.28), 0 0 0 63px rgba(255, 200, 130, 0.14);
+  animation: rite-orb-rise 1.2s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.rite-ground {
+  flex: 1;
+  background: #fffdf8;
+  border-top: 1px solid rgba(138, 75, 18, 0.18);
+  padding: 14px 33px 0;
+}
+.rite-title { font-family: 'Songti SC', serif; font-size: 24px; letter-spacing: 1.2px; color: #2b2622; }
+.rite-say {
+  margin-top: 12px;
+  font-family: 'Songti SC', serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #776c5f;
+  white-space: pre-line;
+}
+.rite-rank { margin-top: 4px; font-size: 13px; color: #776c5f; }
+.rite-rank b { margin: 0 2px; color: #96591f; font-weight: 500; }
+.rite-btn {
+  margin: 14px auto 0;
+  width: 80%;
+  padding: 14px 0;
+  border-radius: 24px;
+  background: #325b88;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+.rite-ghost {
+  margin: 10px auto 0;
+  width: 80%;
+  padding: 12px 0;
+  border: 1px solid rgba(92, 70, 44, 0.22);
+  border-radius: 24px;
+  color: #2b2622;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.rite-close { margin-top: 12px; font-size: 12px; color: #a89c8c; }
+.rite-a .rite-sky { background: linear-gradient(180deg, #25324f 0%, #4a5d86 30%, #b9a6a4 47%, #f6d3a8 54%, #fdf3e3 100%); }
+.rite-b .rite-sky { background: linear-gradient(180deg, #f6ead4 0%, #fbf1e0 40%, #fdf6ea 100%); }
+.rite-c .rite-sky { background: linear-gradient(180deg, #f9d7ae 0%, #fbe6c9 38%, #fdf3e3 100%); }
+.rite-d .rite-sky { background: linear-gradient(180deg, #f3c9a3 0%, #f9dcbb 34%, #fdf0dc 100%); }
+.rite-e .rite-sky { background: linear-gradient(180deg, #3b2f29 0%, #5a4334 30%, #a9805a 48%, #f3d6ad 54%, #fdf3e3 100%); }
+.rite-f .rite-sky { background: linear-gradient(180deg, #e9ecd6 0%, #f5f0dc 36%, #fdf3e3 100%); }
+.rite-g .rite-sky { background: linear-gradient(180deg, #cfdfec 0%, #e9e2d6 34%, #fbe6c9 54%, #fdf3e3 100%); }
 .rite-a .rite-day, .rite-e .rite-day { color: #fbe6c9; }
 .rite-a .rite-day b, .rite-e .rite-day b { color: #fffdf8; }
-.rite-a .rite-orb { width: 12px; height: 12px; margin-left: -6px; bottom: 34px; background: #fff6e0; box-shadow: 0 0 0 8px rgba(255, 226, 176, 0.3), 0 0 36px 16px rgba(255, 214, 150, 0.4); }
+.rite-star, .rite-morning-star, .rite-leafpage, .rite-hill, .rite-mist,
+.rite-lamp, .rite-lamp-glow, .rite-leaf, .rite-bird { position: absolute; }
+@keyframes rite-orb-rise {
+  from { transform: translateY(150px); opacity: 0.4; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.rite-star { width: 4px; height: 4px; border-radius: 50%; background: #fffdf8; animation: rite-star-fade 3.6s ease-in-out both; }
+.rite-star-1 { left: 12%; top: 14%; animation-delay: 0.1s; }
+.rite-star-2 { left: 28%; top: 30%; width: 3px; height: 3px; animation-delay: 0.5s; }
+.rite-star-3 { left: 44%; top: 9%; animation-delay: 0.9s; }
+.rite-star-4 { left: 63%; top: 24%; width: 3px; height: 3px; animation-delay: 0.3s; }
+.rite-star-5 { left: 80%; top: 12%; animation-delay: 1.2s; }
+.rite-star-6 { left: 88%; top: 36%; width: 3px; height: 3px; animation-delay: 0.7s; }
+.rite-star-7 { left: 18%; top: 46%; width: 3px; height: 3px; animation-delay: 1.5s; }
+@keyframes rite-star-fade { 0% { opacity: 0; } 25% { opacity: 1; } 60% { opacity: 0.9; } 100% { opacity: 0.18; } }
+.rite-a .rite-orb {
+  left: 50%;
+  top: auto;
+  bottom: 43px;
+  width: 11px;
+  height: 11px;
+  margin-left: -6px;
+  background: #fff6e0;
+  box-shadow: 0 0 0 7px rgba(255, 226, 176, 0.3), 0 0 20px 15px rgba(255, 214, 150, 0.35);
+}
 .rite-b .rite-orb, .rite-f .rite-orb { display: none; }
-.rite-e .rite-orb { width: 40px; height: 40px; margin-left: -20px; bottom: 50px; box-shadow: 0 0 60px 40px rgba(255, 208, 138, 0.45); }
-.rite-d .rite-orb, .rite-g .rite-orb { width: 100px; height: 100px; margin-left: -50px; bottom: -30px; }
+.rite-e .rite-orb {
+  left: 50%;
+  top: auto;
+  bottom: 75px;
+  width: 42px;
+  height: 42px;
+  margin-left: -21px;
+  background: radial-gradient(circle, #fff3d6 0%, #ffd08a 60%, #f6a94f 100%);
+  box-shadow: 0 0 30px 10px rgba(255, 208, 138, 0.55);
+}
+.rite-d .rite-orb,
+.rite-g .rite-orb {
+  top: auto;
+  bottom: -65px;
+  width: 125px;
+  height: 125px;
+  margin-left: -62.5px;
+}
+.rite-morning-star { display: none; }
+@keyframes rite-star-rise { from { transform: translateY(60px) scale(0.6); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes rite-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+
+.rite-leafpage { bottom: 60px; width: 55px; height: 73px; border-radius: 4px; background: #fffdf8; border: 1px solid rgba(138, 75, 18, 0.2); box-shadow: 0 5px 12px rgba(84, 60, 30, 0.1); animation: rite-page-enter 4.2s ease-out both; }
+.rite-leafpage::after { content: ''; position: absolute; left: 9px; right: 9px; top: 15px; height: 29px; border-top: 2px solid rgba(138, 75, 18, 0.22); border-bottom: 2px solid rgba(138, 75, 18, 0.22); background: linear-gradient(rgba(138, 75, 18, 0.22), rgba(138, 75, 18, 0.22)) center / 100% 2px no-repeat; }
+.rite-leafpage-1 { left: 10%; --cel-r: -7deg; animation-delay: 0s; }
+.rite-leafpage-2 { left: 30%; --cel-r: 5deg; animation-delay: 0.35s; }
+.rite-leafpage-3 { left: 46%; --cel-r: -3deg; animation-delay: 0.15s; }
+.rite-leafpage-4 { left: 64%; --cel-r: 8deg; animation-delay: 0.55s; }
+.rite-leafpage-5 { left: 80%; --cel-r: -5deg; animation-delay: 0.25s; }
+@keyframes rite-page-enter {
+  0% { transform: translateY(-45px) rotate(0deg); opacity: 0; }
+  20% { opacity: 1; }
+  70% { transform: translateY(12px) rotate(calc(var(--cel-r) * 0.7)); opacity: 1; }
+  100% { transform: translateY(0) rotate(var(--cel-r, 4deg)); opacity: 0.92; }
+}
+
+.rite-d .rite-hill { bottom: -130px; border-radius: 50%; animation: rite-fade-up 0.9s ease both; }
+.rite-hill-1 { left: -20%; width: 90%; height: 210px; background: #dcc3a2; animation-delay: 0.1s; }
+.rite-hill-2 { right: -25%; width: 100%; height: 240px; background: #c9a87f; animation-delay: 0.25s; }
+.rite-hill-3 { left: 10%; width: 110%; height: 190px; bottom: -145px; background: #b08a60; animation-delay: 0.4s; }
+.rite-mist { left: -30%; width: 160%; bottom: 30px; height: 35px; border-radius: 50%; background: linear-gradient(90deg, rgba(255, 253, 248, 0), rgba(255, 253, 248, 0.75) 40%, rgba(255, 253, 248, 0.75) 60%, rgba(255, 253, 248, 0)); animation: rite-mist-drift 7s ease-in-out both; }
+@keyframes rite-fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes rite-mist-drift { from { transform: translateX(-12%); opacity: 0; } 30% { opacity: 1; } to { transform: translateX(12%); opacity: 0.7; } }
+
+.rite-lamp-glow { left: 50%; bottom: -30px; width: 320px; height: 320px; margin-left: -160px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 214, 150, 0.78) 0%, rgba(255, 200, 130, 0.3) 42%, rgba(255, 200, 130, 0) 70%); animation: rite-lamp-on 1.4s ease-out both, rite-breathe 3.6s ease-in-out 1.4s infinite; }
+.rite-lamp { left: 50%; bottom: 75px; width: 42px; height: 42px; margin-left: -21px; border-radius: 50%; background: radial-gradient(circle, #fff3d6 0%, #ffd08a 60%, #f6a94f 100%); box-shadow: 0 0 30px 10px rgba(255, 208, 138, 0.55); animation: rite-lamp-on 1.4s ease-out both; }
+.rite-lamp::after { content: ''; position: absolute; left: 50%; top: 40px; width: 2px; height: 75px; margin-left: -1px; background: rgba(255, 243, 214, 0.5); }
+@keyframes rite-lamp-on { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+
+.rite-leaf { top: 168px; width: 20px; height: 20px; border-radius: 0 100% 0 100%; opacity: 0.85; animation: rite-leaf-fall 5s ease-in both; }
+.rite-leaf-1 { left: 8%; background: #b9c08a; --cel-x: 30px; --cel-r: 200deg; animation-delay: 0s; }
+.rite-leaf-2 { left: 22%; background: #e3b06a; --cel-x: -20px; --cel-r: -160deg; animation-delay: 0.6s; width: 16px; height: 16px; }
+.rite-leaf-3 { left: 38%; background: #cfa35e; --cel-x: 40px; --cel-r: 240deg; animation-delay: 0.2s; }
+.rite-leaf-4 { left: 54%; background: #a9b47c; --cel-x: -35px; --cel-r: -220deg; animation-delay: 0.9s; width: 17px; height: 17px; }
+.rite-leaf-5 { left: 68%; background: #ee9b45; --cel-x: 20px; --cel-r: 180deg; animation-delay: 0.4s; }
+.rite-leaf-6 { left: 82%; background: #c7c48e; --cel-x: -25px; --cel-r: -190deg; animation-delay: 1.1s; width: 15px; height: 15px; }
+.rite-leaf-7 { left: 92%; background: #dba963; --cel-x: -45px; --cel-r: 210deg; animation-delay: 0.7s; }
+@keyframes rite-leaf-fall {
+  0% { transform: translate(var(--cel-x, 20px), -145px) rotate(calc(var(--cel-r, 180deg) * 0.35)); opacity: 0; }
+  15% { opacity: 0.95; }
+  70% { transform: translate(calc(var(--cel-x, 20px) * 0.7), 42px) rotate(calc(var(--cel-r, 180deg) * 0.7)); }
+  100% { transform: translate(var(--cel-x, 20px), 0) rotate(var(--cel-r, 180deg)); opacity: 0.85; }
+}
+
+.rite-bird { width: 32px; height: 12px; animation: rite-bird-fly 5s ease-out both; }
+.rite-bird::before, .rite-bird::after { content: ''; position: absolute; top: 0; width: 16px; height: 12px; border-top: 3px solid #5b4a3a; border-radius: 50%; }
+.rite-bird::before { left: 0; transform: rotate(-12deg); }
+.rite-bird::after { right: 0; transform: rotate(12deg); }
+.rite-bird-1 { left: 30%; bottom: 95px; --cel-x: 95px; --cel-y: -130px; animation-delay: 0.4s; }
+.rite-bird-2 { left: 40%; bottom: 75px; --cel-x: 130px; --cel-y: -95px; animation-delay: 0.9s; transform: scale(0.8); }
+.rite-bird-3 { left: 22%; bottom: 115px; --cel-x: 75px; --cel-y: -165px; animation-delay: 1.3s; }
+@keyframes rite-bird-fly { from { transform: translate(0, 0) scale(0.6); opacity: 0; } 20% { opacity: 0.9; } to { transform: translate(var(--cel-x, 100px), var(--cel-y, -120px)) scale(1); opacity: 0.75; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rite-star, .rite-morning-star, .rite-leafpage, .rite-hill, .rite-mist,
+  .rite-lamp, .rite-lamp-glow, .rite-leaf, .rite-bird { animation: none; }
+  .rite-leafpage { bottom: 60px; }
+  .rite-leaf { top: 30%; }
+}
 </style>

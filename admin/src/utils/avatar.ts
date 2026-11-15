@@ -74,6 +74,7 @@ export function getUserAvatarDisplay(
     userId?: string | null;
     name?: string | null;
     fallbackText?: string;
+    fallbackCount?: number;
   } = {}
 ): AvatarDisplay {
   const source = user || {};
@@ -83,7 +84,11 @@ export function getUserAvatarDisplay(
   ).trim();
   const imageUrl = normalizeAvatarUrl(options.imageUrl ?? source.avatarUrl);
   const fallbackText = options.fallbackText || DEFAULT_AVATAR_TEXT;
-  const text = getLastTextChars(name, 2, fallbackText);
+  const requestedCount = Number(options.fallbackCount);
+  const fallbackCount = Number.isFinite(requestedCount)
+    ? Math.max(1, Math.floor(requestedCount))
+    : 2;
+  const text = getLastTextChars(name, fallbackCount, fallbackText);
 
   return {
     userId,

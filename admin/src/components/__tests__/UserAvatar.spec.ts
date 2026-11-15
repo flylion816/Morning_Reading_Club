@@ -42,4 +42,17 @@ describe('UserAvatar', () => {
     expect(wrapper.findComponent(ElAvatarStub).props('src')).toBeUndefined();
     expect(wrapper.text()).toContain('喜娟');
   });
+
+  it('uses only the last character for compact avatars', () => {
+    const wrapper = mount(UserAvatar, {
+      props: {
+        user: { _id: 'user-3', nickname: '喜娟', avatar: '🌿' },
+        size: 28
+      },
+      global: { stubs: { ElAvatar: ElAvatarStub } }
+    });
+
+    expect(wrapper.text()).toContain('娟');
+    expect(wrapper.text()).not.toContain('喜娟');
+  });
 });

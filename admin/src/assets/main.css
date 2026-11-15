@@ -31,7 +31,7 @@ a:hover {
   border: 1px solid var(--admin-border) !important;
   border-radius: var(--admin-radius-md) !important;
   background: var(--admin-surface) !important;
-  box-shadow: var(--admin-shadow-sm) !important;
+  box-shadow: none !important;
 }
 
 .el-card:hover {
@@ -57,8 +57,7 @@ a:hover {
 }
 
 .el-button:not(.is-text):not(.is-link):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px var(--admin-primary-shadow);
+  box-shadow: 0 3px 8px var(--admin-primary-shadow);
 }
 
 .el-button:not(.is-text):not(.is-link):active {
@@ -70,7 +69,9 @@ a:hover {
 }
 
 .el-table {
-  --el-table-header-bg-color: rgba(244, 242, 236, 0.82);
+  /* Opaque headers stop fixed cells from showing rows beneath them. */
+  --el-table-header-bg-color: #f0eee7;
+  --el-table-current-row-bg-color: var(--admin-primary-soft);
   --el-table-row-hover-bg-color: var(--admin-primary-soft);
   --el-table-border-color: var(--admin-border);
   --el-table-bg-color: transparent;
@@ -99,6 +100,45 @@ a:hover {
 
 .el-table td.el-table__cell {
   color: var(--admin-ink-soft);
+}
+
+/* Element Plus makes fixed cells inherit their transparent row background.
+   Give the fixed sides an opaque surface so columns cover content underneath. */
+.el-table__fixed,
+.el-table__fixed-left,
+.el-table__fixed-right {
+  background-color: var(--admin-surface-strong);
+}
+
+.el-table__fixed-right-patch {
+  background-color: var(--el-table-header-bg-color) !important;
+}
+
+.el-table .el-table__header-wrapper tr th.el-table-fixed-column--left.el-table__cell,
+.el-table .el-table__header-wrapper tr th.el-table-fixed-column--right.el-table__cell {
+  background-color: var(--el-table-header-bg-color) !important;
+}
+
+.el-table .el-table__body-wrapper tr td.el-table-fixed-column--left.el-table__cell,
+.el-table .el-table__body-wrapper tr td.el-table-fixed-column--right.el-table__cell,
+.el-table .el-table__footer-wrapper tr td.el-table-fixed-column--left.el-table__cell,
+.el-table .el-table__footer-wrapper tr td.el-table-fixed-column--right.el-table__cell {
+  background-color: var(--admin-surface-strong) !important;
+}
+
+.el-table.el-table--striped .el-table__body-wrapper tr.el-table__row--striped > td.el-table-fixed-column--left.el-table__cell,
+.el-table.el-table--striped .el-table__body-wrapper tr.el-table__row--striped > td.el-table-fixed-column--right.el-table__cell {
+  background-color: #f8f7f2 !important;
+}
+
+.el-table .el-table__body-wrapper tr.current-row > td.el-table-fixed-column--left.el-table__cell,
+.el-table .el-table__body-wrapper tr.current-row > td.el-table-fixed-column--right.el-table__cell {
+  background-color: var(--el-table-current-row-bg-color) !important;
+}
+
+.el-table .el-table__body-wrapper tr.hover-row > td.el-table-fixed-column--left.el-table__cell,
+.el-table .el-table__body-wrapper tr.hover-row > td.el-table-fixed-column--right.el-table__cell {
+  background-color: var(--el-table-row-hover-bg-color) !important;
 }
 
 .el-tag {

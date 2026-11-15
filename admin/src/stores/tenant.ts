@@ -96,7 +96,7 @@ function deriveTheme(primaryColor?: string | null) {
     sidebarDeep,
     page,
     primaryMuted: rgba(primaryRgb, 0.13),
-    primaryShadow: rgba(primaryRgb, 0.24),
+    primaryShadow: rgba(primaryRgb, 0.12),
     primaryAlpha08: rgba(primaryRgb, 0.08),
     primaryAlpha12: rgba(primaryRgb, 0.12),
     primaryAlpha16: rgba(primaryRgb, 0.16),

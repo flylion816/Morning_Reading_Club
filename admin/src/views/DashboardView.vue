@@ -450,10 +450,8 @@ function formatDate(dateString: string): string {
   text-align: left;
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius-md);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(250, 249, 244, 0.92)),
-    var(--admin-surface);
-  box-shadow: var(--admin-shadow-sm);
+  background: var(--admin-surface-strong);
+  box-shadow: none;
   padding: 20px;
   color: var(--admin-ink);
   cursor: pointer;
@@ -465,15 +463,13 @@ function formatDate(dateString: string): string {
 
 .stat-card.urgent {
   border-color: rgba(183, 121, 31, 0.38);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 249, 235, 0.96)),
-    var(--admin-surface);
+  background: var(--admin-surface-strong);
 }
 
 .stat-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   border-color: var(--admin-primary-alpha-24);
-  box-shadow: var(--admin-shadow-md);
+  box-shadow: var(--admin-shadow-sm);
 }
 
 .stat-card:active {

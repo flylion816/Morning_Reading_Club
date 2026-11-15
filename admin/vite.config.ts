@@ -11,6 +11,16 @@ export default defineConfig({
   // 生产环境：base = '/admin/'（线上 https://wx.shubai01.com/admin/）
   base: process.env.NODE_ENV === 'production' ? '/admin/' : '/',
 
+  build: {
+    rollupOptions: {
+      output: {
+        // 管理后台部署在 /admin/ 子路径下；线上出现浏览器模块图缓存时，
+        // 拆分路由 chunk 会让单个懒加载模块失败导致整页白屏。
+        inlineDynamicImports: true
+      }
+    }
+  },
+
   plugins: [vue(), vueJsx()],
   resolve: {
     alias: {
