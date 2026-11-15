@@ -32,6 +32,10 @@
             <el-option label="超级管理员" value="super_admin" />
           </el-select>
 
+          <el-checkbox v-model="filters.receptionist" @change="handleSearch">
+            只看新书友接待组
+          </el-checkbox>
+
           <el-button type="primary" style="margin-left: auto" @click="handleSearch">
             搜索
           </el-button>
@@ -61,10 +65,13 @@
           </el-table-column>
           <el-table-column prop="nickname" label="昵称" width="120" />
 
-          <el-table-column label="角色" width="100">
+          <el-table-column label="角色" width="160">
             <template #default="{ row }">
               <el-tag v-if="row.role === 'admin' || row.role === 'super_admin'" type="warning" size="small">
                 管理员
+              </el-tag>
+              <el-tag v-if="row.isNewcomerReceptionist" type="success" size="small" style="margin-left: 4px">
+                接待组
               </el-tag>
             </template>
           </el-table-column>
@@ -98,7 +105,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="380" fixed="right">
+          <el-table-column label="操作" width="470" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button
@@ -132,6 +139,15 @@
                   @click="handleUnsetAdmin(row)"
                 >
                   取消管理员
+                </el-button>
+                <el-button
+                  v-if="row.role === 'admin' || row.role === 'super_admin'"
+                  :type="row.isNewcomerReceptionist ? 'info' : 'success'"
+                  text
+                  size="small"
+                  @click="handleToggleReceptionist(row)"
+                >
+                  {{ row.isNewcomerReceptionist ? '移出接待组' : '加入接待组' }}
                 </el-button>
                 <el-button type="danger" text size="small" @click="handleDeleteUser(row)">
                   删除
@@ -249,7 +265,8 @@ const selectedUser = ref<any>(null);
 
 const filters = ref({
   search: '',
-  role: ''
+  role: '',
+  receptionist: false
 });
 
 const pagination = ref({
@@ -293,6 +310,10 @@ async function loadUsers() {
 
     if (filters.value.role) {
       params.role = filters.value.role;
+    }
+
+    if (filters.value.receptionist) {
+      params.receptionist = 'true';
     }
 
     const response = (await userApi.getUsers(params)) as unknown as ListResponse<User>;
@@ -356,6 +377,27 @@ async function handleSetAdmin(row: any) {
     try {
       await userApi.updateUser(row._id, { role: 'admin' });
       ElMessage.success(`已将 ${row.nickname || row._id} 设为管理员`);
+      await loadUsers();
+    } catch (err: any) {
+      ElMessage.error(err.message || '操作失败');
+    }
+  }).catch(() => {});
+}
+
+async function handleToggleReceptionist(row: any) {
+  const joining = !row.isNewcomerReceptionist;
+  const name = row.nickname || row._id;
+  const message = joining
+    ? `确定将「${name}」加入新书友接待组吗？加入后可以看到扫码留言的新书友，并在认领后看到完整手机号。`
+    : `确定将「${name}」移出新书友接待组吗？移出后不再收到新留言通知，也看不到新书友列表。`;
+  ElMessageBox.confirm(message, joining ? '加入接待组' : '移出接待组', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      await userApi.updateUser(row._id, { isNewcomerReceptionist: joining });
+      ElMessage.success(joining ? `已将 ${name} 加入接待组` : `已将 ${name} 移出接待组`);
       await loadUsers();
     } catch (err: any) {
       ElMessage.error(err.message || '操作失败');

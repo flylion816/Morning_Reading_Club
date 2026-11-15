@@ -76,6 +76,8 @@ export interface User {
   role?: string;
   isActive?: boolean;
   status?: string;
+  /** 新书友接待组成员：能看到并认领扫码留言的新书友 */
+  isNewcomerReceptionist?: boolean;
   lastLoginAt?: string;
   createdAt?: string;
   updatedAt?: string;

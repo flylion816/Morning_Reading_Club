@@ -6,7 +6,7 @@
   --admin-primary-soft: #edf4e9;
   --admin-primary-tint: #d9e5d3;
   --admin-primary-muted: rgba(91, 127, 74, 0.13);
-  --admin-primary-shadow: rgba(91, 127, 74, 0.24);
+  --admin-primary-shadow: rgba(91, 127, 74, 0.12);
   --admin-primary-alpha-08: rgba(91, 127, 74, 0.08);
   --admin-primary-alpha-12: rgba(91, 127, 74, 0.12);
   --admin-primary-alpha-16: rgba(91, 127, 74, 0.16);
@@ -35,8 +35,8 @@
   --admin-radius-sm: 8px;
   --admin-radius-md: 8px;
   --admin-radius-lg: 8px;
-  --admin-shadow-sm: 0 10px 24px rgba(46, 57, 43, 0.08);
-  --admin-shadow-md: 0 18px 42px rgba(46, 57, 43, 0.12);
+  --admin-shadow-sm: 0 4px 14px rgba(46, 57, 43, 0.045);
+  --admin-shadow-md: 0 10px 26px rgba(46, 57, 43, 0.08);
   --admin-font:
     "PingFang SC",
     "Hiragino Sans GB",
