@@ -17,8 +17,7 @@
 }
 
 .course-card.pending {
-  background:
-    linear-gradient(135deg, var(--theme-primary-tint) 0%, var(--app-paper) 46%, var(--app-surface-muted) 100%);
+  background: var(--app-paper);
 }
 
 /* 左侧缩略图 */
@@ -109,7 +108,7 @@
 }
 
 .progress-fill-active {
-  background: linear-gradient(90deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  background: var(--theme-primary);
   box-shadow: none;
 }
 
@@ -156,8 +155,9 @@
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  background: var(--theme-primary);
   color: #ffffff;
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .action-btn.secondary {

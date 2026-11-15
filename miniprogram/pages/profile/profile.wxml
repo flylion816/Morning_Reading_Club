@@ -8,8 +8,7 @@
     <view class="user-card app-stagger">
       <view class="user-avatar-wrap" style="background: {{userInfo.avatarColor || themePrimaryColor}}">
         <user-avatar
-          size="100"
-          shape="rounded"
+          size="120"
           avatar-url="{{userInfo.avatarUrl}}"
           avatar-text="{{userInfo.avatarText || '用'}}"
           avatar-color="{{userInfo.avatarColor || themePrimaryColor}}"
@@ -58,7 +57,7 @@
         </view>
       </view>
       <view wx:if="{{moodLegend.length}}" class="cal-legend">
-        <text class="cal-legend-item" wx:for="{{moodLegend}}" wx:key="value"><text class="cal-mood cal-mood-{{item.value}} cal-legend-mark">{{item.mark}}</text> {{item.name}}</text>
+        <text class="cal-legend-item" wx:for="{{moodLegend}}" wx:key="value"><text class="cal-mood cal-mood-{{item.value}} cal-legend-mark">{{item.mark}}</text><text wx:if="{{item.mark !== item.name}}"> {{item.name}}</text></text>
       </view>
       <view wx:if="{{calendarError}}" class="cal-error" bindtap="retryCalendar">日历没加载出来，点这里重试</view>
     </view>
@@ -69,10 +68,13 @@
         <view class="app-seal app-seal-dawn app-seal-sm">迹</view>
         <text class="journal-card-title">共读足迹</text>
         <text class="journal-card-meta">{{footprints.total}} 期</text>
+        <view wx:if="{{footprints.moreCount}}" class="footprints-toggle" bindtap="toggleFootprints">
+          <text>{{footprintsExpanded ? '收起' : '全部'}}</text>
+          <view class="app-icon app-icon-chevron {{footprintsExpanded ? 'footprints-toggle-up' : ''}}"></view>
+        </view>
       </view>
       <view class="stamps">
-        <view class="stamp {{item.ended ? '' : 'stamp-current'}}" wx:for="{{footprints.stamps}}" wx:key="key" data-period-id="{{item.periodId}}" bindtap="goToKeepsake">{{item.char}}</view>
-        <text wx:if="{{footprints.moreCount}}" class="stamps-more">等 {{footprints.moreCount}} 期</text>
+        <view class="stamp {{item.ended ? '' : 'stamp-current'}}" wx:for="{{footprintsExpanded ? footprints.allStamps : footprints.stamps}}" wx:key="key" data-period-id="{{item.periodId}}" bindtap="goToKeepsake">{{item.char}}</view>
       </view>
       <text wx:if="{{footprints.currentName}}" class="stamps-note">{{footprints.currentName}} 进行中</text>
       <text class="stamps-hint">点印章，翻开那一期的纪念册</text>
@@ -147,35 +149,15 @@
       </view>
     </view>
 
-    <view wx:if="{{canUsePaidFeatures}}" class="settings-divider"></view>
+    <view class="settings-divider"></view>
 
     <!-- 我的内容 -->
-    <view wx:if="{{canUsePaidFeatures}}" class="group-title">我的内容</view>
-    <view wx:if="{{canUsePaidFeatures}}" class="settings-group">
-      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyActivities">
+    <view class="group-title">我的内容</view>
+    <view class="settings-group">
+      <view class="settings-cell" bindtap="goToJoyNotes">
         <view class="cell-left">
-          <view class="app-icon app-icon-calendar ln-ico"></view>
-          <text class="cell-label">我的活动</text>
-        </view>
-        <view class="cell-right">
-          <view class="app-icon app-icon-chevron cell-arrow"></view>
-        </view>
-      </view>
-
-      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyCheckinRecords">
-        <view class="cell-left">
-          <view class="app-icon app-icon-note ln-ico"></view>
-          <text class="cell-label">我的打卡日记</text>
-        </view>
-        <view class="cell-right">
-          <view class="app-icon app-icon-chevron cell-arrow"></view>
-        </view>
-      </view>
-
-      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToCompletionReports">
-        <view class="cell-left">
-          <view class="app-icon app-icon-doc ln-ico"></view>
-          <text class="cell-label">我的实录报告</text>
+          <view class="app-icon app-icon-edit ln-ico"></view>
+          <text class="cell-label">随喜记</text>
         </view>
         <view class="cell-right">
           <view class="app-icon app-icon-chevron cell-arrow"></view>
@@ -185,7 +167,7 @@
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyHighlights">
         <view class="cell-left">
           <view class="app-icon app-icon-book ln-ico"></view>
-          <text class="cell-label">我的摘抄本</text>
+          <text class="cell-label">摘抄本</text>
         </view>
         <view class="cell-right">
           <view class="app-icon app-icon-chevron cell-arrow"></view>
@@ -202,10 +184,40 @@
         </view>
       </view>
 
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyCheckinRecords">
+        <view class="cell-left">
+          <view class="app-icon app-icon-note ln-ico"></view>
+          <text class="cell-label">打卡日记</text>
+        </view>
+        <view class="cell-right">
+          <view class="app-icon app-icon-chevron cell-arrow"></view>
+        </view>
+      </view>
+
       <view wx:if="{{canUsePaidFeatures && footprints.slowMailPeriodId}}" class="settings-cell" bindtap="goToSlowMail">
         <view class="cell-left">
           <view class="app-icon app-icon-note ln-ico"></view>
           <text class="cell-label">慢递邮局</text>
+        </view>
+        <view class="cell-right">
+          <view class="app-icon app-icon-chevron cell-arrow"></view>
+        </view>
+      </view>
+
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToCompletionReports">
+        <view class="cell-left">
+          <view class="app-icon app-icon-doc ln-ico"></view>
+          <text class="cell-label">实录报告</text>
+        </view>
+        <view class="cell-right">
+          <view class="app-icon app-icon-chevron cell-arrow"></view>
+        </view>
+      </view>
+
+      <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyActivities">
+        <view class="cell-left">
+          <view class="app-icon app-icon-calendar ln-ico"></view>
+          <text class="cell-label">我的活动</text>
         </view>
         <view class="cell-right">
           <view class="app-icon app-icon-chevron cell-arrow"></view>
@@ -335,3 +347,4 @@
 </view>
 
 <podcast-player-bar has-tabbar="{{true}}" ignore-safe-area="{{true}}" />
+<app-dialog id="app-dialog" />

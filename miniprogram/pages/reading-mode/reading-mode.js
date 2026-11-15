@@ -1,4 +1,5 @@
 const courseService = require('../../services/course.service');
+const appDialog = require('../../utils/dialog');
 const currentTenant = require('../../config/current-tenant');
 const constants = require('../../config/constants');
 const { tenantStorage } = require('../../utils/storage');
@@ -40,6 +41,8 @@ const PRESENCE_INTERVAL_MS = 60 * 1000;
 const POPULAR_MIN_COUNT = 3;
 const MIN_HIGHLIGHT_LENGTH = 8;
 const MAX_HIGHLIGHT_LENGTH = 500;
+// 日签一张卡最多放的字数，要和 daily-card 的 QUOTE_MAX_LENGTH 一致
+const MAX_CARD_QUOTE_LENGTH = 120;
 const HIGHLIGHT_SELECTION_MAX_UNITS = 12;
 const HIGHLIGHT_SELECTION_UNIT_SPLIT = 80;
 const MIN_COMPLETION_DURATION_MS = 60 * 1000;
@@ -161,7 +164,7 @@ function splitHighlightUnits(text = '') {
   return bounded;
 }
 
-function buildHighlightSelection(units = [], selected = {}) {
+function buildHighlightSelection(units = [], selected = {}, maxLength = MAX_HIGHLIGHT_LENGTH) {
   const text = units
     .filter((unit, index) => selected[index])
     .join('');
@@ -170,13 +173,14 @@ function buildHighlightSelection(units = [], selected = {}) {
     length: Array.from(text).length,
     valid:
       text.length >= MIN_HIGHLIGHT_LENGTH &&
-      text.length <= MAX_HIGHLIGHT_LENGTH
+      text.length <= maxLength
   };
 }
 
 Page({
   data: {
     sectionId: '',
+    highlightSelectionMode: 'highlight',
     periodId: '',
     periodName: '',
     course: {},
@@ -392,14 +396,19 @@ Page({
     if (canSelect) {
       itemList.push('精确选择');
     }
-    if (!itemList.length) return;
+    // 日签入口放在最后：摘不摘抄都能直接把这句话做成日签
+    itemList.push('生成日签');
+    // 记下自己的触动：自动带上这句话和当前课程
+    itemList.push('记一条随喜');
 
     const actionIndexes = {
       whole: itemList.indexOf('摘下整段'),
       cancel: itemList.indexOf('取消摘抄'),
-      precise: itemList.indexOf('精确选择')
+      precise: itemList.indexOf('精确选择'),
+      card: itemList.indexOf('生成日签'),
+      joy: itemList.indexOf('记一条随喜')
     };
-    wx.showActionSheet({
+    appDialog.showActionSheet({
       itemList,
       success: (res) => {
         if (res.tapIndex === actionIndexes.cancel) {
@@ -412,15 +421,61 @@ Page({
         }
         if (res.tapIndex === actionIndexes.precise) {
           this.openHighlightSelection(item);
+          return;
+        }
+        if (res.tapIndex === actionIndexes.card) {
+          this.makeDailyCardFromParagraph(item);
+          return;
+        }
+        if (res.tapIndex === actionIndexes.joy) {
+          this.openJoyNote(item);
         }
       }
     });
   },
 
-  openHighlightSelection(item) {
+  // 去随喜记写下自己的触动：带上这句话（最多 80 字）和当前期次、课程，保存时服务端会再校验权限
+  openJoyNote(item) {
+    const course = this.data.course || {};
+    const day = Number(course.day);
+    const dayText = Number.isFinite(day) ? (day === 0 ? '开篇' : `第 ${day} 天`) : '';
+    const source = [this.data.periodName, [dayText, course.title].filter(Boolean).join(' · ')].filter(Boolean).join(' · ');
+    const enc = value => encodeURIComponent(value === undefined || value === null ? '' : String(value));
+    const quote = Array.from(String(item.text || '').trim()).slice(0, 80).join('');
+    wx.navigateTo({
+      url:
+        `/pages/joy-notes/joy-notes?periodId=${enc(this.data.periodId || '')}` +
+        `&sectionId=${enc(this.data.sectionId || '')}&source=${enc(source)}&quote=${enc(quote)}`
+    });
+  },
+
+  // 整段不超过一张卡能放的字数就直接带过去；太长则让用户先勾选要放进日签的句子
+  makeDailyCardFromParagraph(item) {
+    if (Array.from(item.text).length <= MAX_CARD_QUOTE_LENGTH) {
+      this.openDailyCard(item.text);
+      return;
+    }
+    this.openHighlightSelection(item, 'card');
+  },
+
+  openDailyCard(quote) {
+    const course = this.data.course || {};
+    const day = Number(course.day);
+    const enc = (value) => encodeURIComponent(value === undefined || value === null ? '' : String(value));
+    wx.navigateTo({
+      url:
+        `/pages/daily-card/daily-card?quote=${enc(quote)}` +
+        `&source=${enc(course.title || '')}` +
+        `&periodName=${enc(this.data.periodName || '')}` +
+        `&day=${enc(Number.isFinite(day) && day > 0 ? day : '')}`
+    });
+  },
+
+  openHighlightSelection(item, mode = 'highlight') {
     const units = splitHighlightUnits(item.text);
     if (!units.length) return;
     this.setData({
+      highlightSelectionMode: mode,
       highlightSelectionVisible: true,
       highlightSelectionUnits: units,
       highlightSelectionSelected: {},
@@ -437,7 +492,11 @@ Page({
 
     const selected = { ...this.data.highlightSelectionSelected };
     selected[index] = !selected[index];
-    const selection = buildHighlightSelection(units, selected);
+    const selection = buildHighlightSelection(
+      units,
+      selected,
+      this.data.highlightSelectionMode === 'card' ? MAX_CARD_QUOTE_LENGTH : MAX_HIGHLIGHT_LENGTH
+    );
     this.setData({
       highlightSelectionSelected: selected,
       highlightSelectionText: selection.text,
@@ -446,8 +505,23 @@ Page({
     });
   },
 
+  // 勾选之后，预览框里的文字可以手工再改（比如去掉序号），以框里最终的文字为准
+  handleHighlightTextInput(event) {
+    const text = String((event.detail && event.detail.value) || '');
+    const maxLength =
+      this.data.highlightSelectionMode === 'card' ? MAX_CARD_QUOTE_LENGTH : MAX_HIGHLIGHT_LENGTH;
+    const trimmed = text.trim();
+    const length = Array.from(trimmed).length;
+    this.setData({
+      highlightSelectionText: text,
+      highlightSelectionLength: length,
+      highlightSelectionValid: length >= MIN_HIGHLIGHT_LENGTH && length <= maxLength
+    });
+  },
+
   closeHighlightSelection() {
     this.setData({
+      highlightSelectionMode: 'highlight',
       highlightSelectionVisible: false,
       highlightSelectionUnits: [],
       highlightSelectionSelected: {},
@@ -458,18 +532,23 @@ Page({
   },
 
   async handleConfirmHighlightSelection() {
-    const {
-      highlightSelectionText,
-      highlightSelectionValid
-    } = this.data;
+    const { highlightSelectionValid } = this.data;
+    const highlightSelectionText = String(this.data.highlightSelectionText || '').trim();
+    const isCardMode = this.data.highlightSelectionMode === 'card';
     if (!highlightSelectionValid) {
       wx.showToast({
         title:
           highlightSelectionText.length < MIN_HIGHLIGHT_LENGTH
             ? `至少选择 ${MIN_HIGHLIGHT_LENGTH} 个字`
-            : `一次最多选 ${MAX_HIGHLIGHT_LENGTH} 个字`,
+            : `一次最多选 ${isCardMode ? MAX_CARD_QUOTE_LENGTH : MAX_HIGHLIGHT_LENGTH} 个字`,
         icon: 'none'
       });
+      return;
+    }
+
+    if (isCardMode) {
+      this.closeHighlightSelection();
+      this.openDailyCard(highlightSelectionText);
       return;
     }
 

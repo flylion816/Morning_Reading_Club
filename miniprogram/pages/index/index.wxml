@@ -21,7 +21,7 @@
         </view>
         <view class="dawn-hello-actions">
           <view class="task-notification-entry dawn-bell" bindtap="navigateToNotifications">
-            <view class="dawn-bell-icon app-icon app-icon-bell"></view>
+            <view class="dawn-bell-icon app-icon app-icon-mail"></view>
             <text
               wx:if="{{unreadNotificationCount > 0}}"
               class="task-notification-badge dawn-bell-badge"
@@ -58,9 +58,38 @@
             <view class="dawn-tick-dot"></view>
           </view>
         </view>
-        <text class="dawn-presence" wx:if="{{presenceText}}">{{presenceText}}</text>
         <text class="dawn-journey-text"><text wx:if="{{userStats.currentStreak > 0}}">连续晨读 <text class="dawn-num">{{userStats.currentStreak}}</text> 天 · </text>写下 <text class="dawn-num">{{userStats.totalCheckinDays || 0}}</text> 天</text>
       </view>
+    </view>
+
+    <!-- 读伴卡：已配对时，一眼看到 TA 今天怎么样 -->
+    <view
+      class="buddy-strip"
+      wx:if="{{buddyStrip && currentPeriodCommunityState === 'enabled'}}"
+      bindtap="handleCampCornerTap"
+      data-kind="buddy"
+    >
+      <view class="buddy-strip-avatars">
+        <view class="buddy-strip-av buddy-strip-av-me">
+          <user-avatar size="64" avatar-url="{{buddyStrip.me.avatarUrl}}" avatar-text="{{buddyStrip.me.avatarText}}" avatar-color="{{buddyStrip.me.avatarColor}}" />
+        </view>
+        <view class="buddy-strip-av buddy-strip-av-ta {{buddyStrip.lit ? 'buddy-strip-av-lit' : ''}}">
+          <user-avatar size="64" avatar-url="{{buddyStrip.buddy.avatarUrl}}" avatar-text="{{buddyStrip.buddy.avatarText}}" avatar-color="{{buddyStrip.buddy.avatarColor}}" />
+        </view>
+      </view>
+      <view class="buddy-strip-copy">
+        <text class="buddy-strip-title">{{buddyStrip.title}}</text>
+        <text class="buddy-strip-sub">{{buddyStrip.sub}}</text>
+      </view>
+      <text class="buddy-strip-action">{{buddyStrip.action}} ›</text>
+    </view>
+
+    <!-- 新书友留言状态 -->
+    <view class="newcomer-card" wx:if="{{newcomerLead && !canUsePaidFeatures}}">
+      <text class="newcomer-card-pill">{{newcomerLead.statusText}}</text>
+      <text class="newcomer-card-title">你的留言我们收到了</text>
+      <text wx:if="{{newcomerLead.pending}}" class="newcomer-card-desc">接待书友会在 {{newcomerLead.contactByText}}前加你微信</text>
+      <text wx:else class="newcomer-card-desc">接待书友正在和你联系，留意微信里的好友申请</text>
     </view>
 
     <!-- 首页加载骨架 -->
@@ -201,7 +230,11 @@
             </view>
           </view>
           <view class="dawn-moment">{{todayCard.message}}</view>
-          <view class="dawn-extract" wx:if="{{todaySection.extractText}}">{{todaySection.extractText}}</view>
+          <view class="dawn-extract" wx:if="{{todaySection.extractText}}">{{todaySection.extractDisplay || todaySection.extractText}}</view>
+          <view class="dawn-presence-line" wx:if="{{presenceText}}">
+            <view class="dawn-presence-dot"></view>
+            <text>{{presenceText}}</text>
+          </view>
           <view class="dawn-meta" wx:if="{{currentPeriodCommunityState === 'enabled' && todaySection.checkinCount > 0}}">
             <view wx:for="{{todaySection.visibleCheckinUsers}}" wx:key="index" wx:if="{{currentPeriodCommunityState === 'enabled'}}" class="mini-avatar" style="z-index: {{99 - index}}">
               <user-avatar
@@ -248,28 +281,17 @@
         <view wx:elif="{{campCornerStatus === 'error'}}" class="camp-corner-state camp-corner-state-error" bindtap="retryCampCorner">
           <text class="camp-corner-state-text">角落暂时没打开，点这里再试一次</text>
         </view>
-        <view wx:elif="{{campCornerCards.length > 0}}" class="camp-corner-row">
+        <view wx:if="{{campCornerCards.length > 0}}" class="camp-corner-row {{campCornerCards.length === 4 ? 'camp-corner-row-four' : (campCornerCards.length === 1 ? 'camp-corner-row-one' : '')}}">
           <view wx:for="{{campCornerCards}}" wx:key="key" class="camp-corner-card" bindtap="handleCampCornerTap" data-kind="{{item.kind}}">
             <view class="camp-corner-head">
-              <view class="camp-corner-icon"><view class="app-icon app-icon-{{item.kind === 'letter' ? 'mail' : (item.kind === 'practice' ? 'flag' : 'users')}}"></view></view>
-              <text class="camp-corner-kicker">{{item.kind === 'letter' ? '慢递邮局' : (item.kind === 'practice' ? '实修' : '读伴')}}</text>
+              <view class="camp-corner-icon"><view class="app-icon app-icon-{{item.kind === 'letter' ? 'mail' : (item.kind === 'practice' ? 'flag' : (item.kind === 'joyNote' ? 'edit' : 'users'))}}"></view></view>
+              <text class="camp-corner-kicker">{{item.kind === 'letter' ? '慢递邮局' : (item.kind === 'practice' ? '实修' : (item.kind === 'joyNote' ? '随喜记' : '读伴'))}}</text>
             </view>
-            <view wx:if="{{item.paired}}" class="camp-corner-paired">
-              <text class="camp-corner-title">{{item.title}}</text>
-              <view class="camp-corner-dots">
-                <text class="camp-corner-dot-label">读</text>
-                <view class="camp-corner-dot {{item.read ? 'camp-corner-dot-on' : ''}}"></view>
-                <text class="camp-corner-dot-label">记</text>
-                <view class="camp-corner-dot {{item.checked ? 'camp-corner-dot-on' : ''}}"></view>
-              </view>
-            </view>
-            <block wx:else>
-              <text class="camp-corner-title {{item.single ? 'camp-corner-title-single' : ''}}">{{item.title}}</text>
-              <text wx:if="{{item.sub}}" class="camp-corner-sub">{{item.sub}}</text>
-            </block>
+            <text class="camp-corner-title {{item.single ? 'camp-corner-title-single' : ''}}">{{item.title}}</text>
+            <text wx:if="{{item.sub}}" class="camp-corner-sub">{{item.sub}}</text>
           </view>
         </view>
-        <view wx:else class="camp-corner-state">
+        <view wx:elif="{{campCornerStatus === 'ready'}}" class="camp-corner-state">
           <text class="camp-corner-state-text">今天先读书，角落里没有新安排</text>
         </view>
       </view>
@@ -605,3 +627,5 @@
 </view>
 
 <podcast-player-bar has-tabbar="{{true}}" ignore-safe-area="{{true}}" />
+<app-dialog id="app-dialog" />
+<app-sheet id="app-sheet" />

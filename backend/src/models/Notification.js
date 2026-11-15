@@ -30,7 +30,16 @@ const notificationSchema = new mongoose.Schema(
         'podcast_published', // 播客发布通知
         'letter_delivered', // 慢递邮局：信件送达
         'seen_received', // 看见卡：被书友看见
-        'buddy_nudge' // 读伴：被轻拍
+        'buddy_nudge', // 读伴：被轻拍
+        'buddy_highfive', // 读伴：被击掌
+        'buddy_gift', // 读伴：收到一句话
+        'buddy_checkin', // 读伴：写下了打卡
+        'buddy_reaction', // 读伴：回应了你的打卡
+        'buddy_invite', // 读伴：收到邀请
+        'buddy_invite_accepted', // 读伴：邀请被同意
+        'buddy_ended', // 读伴：这一段结束了
+        'newcomer_shared', // 你分享的日签，有新书友留言了
+        'newcomer_lead' // 新书友留言：通知接待组
       ],
       required: true
     },
@@ -103,7 +112,13 @@ const notificationSchema = new mongoose.Schema(
       letterId: String,
       insightRequestId: String,
       insightId: String,
-      danmakuId: String
+      danmakuId: String,
+      // 来信页用到：发送人是不是收件人的读伴、课节名、评论原话、读伴邀请 ID
+      // （data 是固定字段清单，不在清单里的字段保存时会被丢掉）
+      fromBuddy: Boolean,
+      sectionTitle: String,
+      commentPreview: String,
+      inviteId: String
     },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -984,3 +984,49 @@
   font-size: 26rpx;
   color: var(--app-text-muted);
 }
+
+/* Global visual-weight pass for the course workspace. */
+.course-header {
+  background: var(--app-paper);
+  color: var(--app-text);
+  border-bottom: 1rpx solid var(--app-border);
+  box-shadow: none;
+}
+
+.course-header-title {
+  color: var(--app-text);
+}
+
+.course-header-date,
+.course-header-origins {
+  color: var(--app-text-muted);
+}
+
+.course-back {
+  color: var(--app-text-soft);
+}
+
+.course-search-btn,
+.btn-action {
+  background: var(--theme-primary);
+  box-shadow: var(--app-action-shadow-soft);
+}
+
+.segment-tab.active {
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  box-shadow: none;
+}
+
+.section-card {
+  border-left-width: 4rpx;
+  box-shadow: none;
+}
+
+.welcome-btn {
+  height: var(--app-action-height);
+  line-height: var(--app-action-height);
+  border-radius: var(--app-action-radius);
+  background: var(--theme-primary);
+  box-shadow: var(--app-action-shadow-soft);
+}

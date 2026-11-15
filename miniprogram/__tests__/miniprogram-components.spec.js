@@ -120,4 +120,32 @@ describe('miniprogram component wiring', () => {
       });
     });
   });
+
+  test('compact user avatars use the last display-name character', () => {
+    let componentConfig;
+    global.Component = jest.fn((config) => {
+      componentConfig = config;
+      return config;
+    });
+
+    jest.isolateModules(() => {
+      require('../components/user-avatar/user-avatar');
+    });
+
+    const context = {
+      data: { avatarText: '喜娟', displayName: '', size: 40 },
+      setData(update) {
+        this.data = { ...this.data, ...update };
+      }
+    };
+    componentConfig.methods.updateAvatarText.call(
+      context,
+      context.data.avatarText,
+      context.data.displayName,
+      context.data.size
+    );
+
+    expect(context.data.resolvedAvatarText).toBe('娟');
+    delete global.Component;
+  });
 });

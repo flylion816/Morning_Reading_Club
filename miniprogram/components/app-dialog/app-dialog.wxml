@@ -1,0 +1,10 @@
+<view wx:if="{{visible}}" class="ad-mask" catchtouchmove="noop">
+  <view class="ad-card">
+    <text wx:if="{{title}}" class="ad-title">{{title}}</text>
+    <text wx:if="{{content}}" class="ad-content {{title ? '' : 'ad-content-lead'}}">{{content}}</text>
+    <view class="ad-actions">
+      <view wx:if="{{showCancel}}" class="ad-btn ad-btn-cancel" hover-class="ad-btn-hover" hover-stay-time="60" bindtap="handleCancel">{{cancelText}}</view>
+      <view class="ad-btn {{danger ? 'ad-btn-danger' : 'ad-btn-ok'}}" hover-class="ad-btn-hover" hover-stay-time="60" bindtap="handleConfirm">{{confirmText}}</view>
+    </view>
+  </view>
+</view>

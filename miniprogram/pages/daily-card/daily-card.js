@@ -5,6 +5,10 @@ const {
   getMiniProgramCode
 } = require('../../utils/brand');
 const { getThemePrimaryColor } = require('../../utils/theme');
+const appDialog = require('../../utils/dialog');
+const { buildLandingPath, buildLandingQuery } = require('../../utils/landing-share');
+const { hasToken } = require('../landing/silent-login');
+const newcomerLeadService = require('../../services/newcomer-lead.service');
 const {
   FONTS,
   CARD_WIDTH,
@@ -113,6 +117,9 @@ Page({
   },
 
   onLoad(options = {}) {
+    if (typeof wx.showShareMenu === 'function') {
+      wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
+    }
     const dateParam = safeDecode(options.date);
     this.setData(
       {
@@ -284,9 +291,40 @@ Page({
     });
   },
 
+  // 登录用户的海报换成专属小程序码：扫码进落地页，并带上自己作为分享人。
+  // 没登录、或生成失败时返回空，海报回退到通用码。
+  async fetchInviteCodePath() {
+    if (this._inviteCodePath !== undefined) return this._inviteCodePath;
+    let filePath = '';
+    try {
+      if (hasToken()) {
+        const res = await newcomerLeadService.createInviteQrcode('daily_card');
+        if (res && res.imageBase64) {
+          const target = `${wx.env.USER_DATA_PATH}/invite-code-${Date.now()}.png`;
+          await new Promise((resolve, reject) => {
+            wx.getFileSystemManager().writeFile({
+              filePath: target,
+              data: res.imageBase64,
+              encoding: 'base64',
+              success: resolve,
+              fail: reject
+            });
+          });
+          filePath = target;
+        }
+      }
+    } catch (error) {
+      console.warn('专属小程序码生成失败，使用通用码', error);
+    }
+    this._inviteCodePath = filePath;
+    return filePath;
+  },
+
   async loadMiniProgramCodeImage(canvas) {
     try {
-      return await loadCanvasImage(canvas, MINI_PROGRAM_CODE_ASSET_PATHS);
+      const inviteCodePath = await this.fetchInviteCodePath();
+      const candidates = [inviteCodePath, ...MINI_PROGRAM_CODE_ASSET_PATHS].filter(Boolean);
+      return await loadCanvasImage(canvas, candidates);
     } catch (error) {
       console.warn('加载日签小程序码失败，先生成无码日签', error);
       return null;
@@ -356,7 +394,7 @@ Page({
     const msg = String((err && err.errMsg) || '');
     if (msg.includes('cancel')) return;
     if (msg.includes('auth deny') || msg.includes('authorize') || msg.includes('auth denied')) {
-      wx.showModal({
+      appDialog.showModal({
         title: '需要相册权限',
         content: '保存日签需要允许访问相册，去设置里打开就好。',
         confirmText: '去设置',
@@ -370,10 +408,42 @@ Page({
   },
 
   // ---- 分享 ----
+  // 分享到朋友圈：打开的是同一个落地页，带上分享人
+  onShareTimeline() {
+    const app = getApp();
+    const me = (app && app.globalData && app.globalData.userInfo) || {};
+    const d = this.data;
+    return {
+      title: getDefaultShareTitle('晨读日签'),
+      query: buildLandingQuery({
+        inviterId: me._id || me.id || me.userId || '',
+        sourceType: 'daily_card',
+        dateStr: d.dateStr,
+        lessonName: d.source || d.periodName,
+        dayNumber: Number(d.day) || 0,
+        quote: d.quote,
+        note: ''
+      }),
+      imageUrl: getDefaultShareImage()
+    };
+  },
+
   onShareAppMessage() {
+    const app = getApp();
+    const me = (app && app.globalData && app.globalData.userInfo) || {};
+    const d = this.data;
     const fallback = {
       title: getDefaultShareTitle('晨读日签'),
-      path: '/pages/index/index',
+      // 分享的日签落到新人落地页，并带上分享人，让对方知道是谁把他带进来的
+      path: buildLandingPath({
+        inviterId: me._id || me.id || me.userId || '',
+        sourceType: 'daily_card',
+        dateStr: d.dateStr,
+        lessonName: d.source || d.periodName,
+        dayNumber: Number(d.day) || 0,
+        quote: d.quote,
+        note: d.noteHidden ? '' : d.note
+      }),
       imageUrl: getDefaultShareImage()
     };
     return {

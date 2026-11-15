@@ -126,6 +126,14 @@ describe('profile page', () => {
     });
   });
 
+  test('随喜记备用入口不依赖当前期次或付费状态', () => {
+    pageInstance.data.canUsePaidFeatures = false;
+    pageInstance.goToJoyNotes.call(pageInstance);
+    expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/joy-notes/joy-notes' });
+    const template = fs.readFileSync(path.join(__dirname, '../../pages/profile/profile.wxml'), 'utf8');
+    expect(template).toContain('<view class="settings-cell" bindtap="goToJoyNotes">');
+  });
+
   test('should expose admin analytics entry for admin user', async () => {
     userService.getUserProfile.mockResolvedValue({
       nickname: '管理员',
@@ -224,7 +232,7 @@ describe('profile page', () => {
       'utf8'
     );
 
-    expect(wxml).toContain('我的实录报告');
+    expect(wxml).toContain('>实录报告<');
     expect(wxml).toContain('wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToCompletionReports"');
   });
 
@@ -238,10 +246,14 @@ describe('profile page', () => {
       '编辑资料',
       '消息通知',
       '消息提醒设置',
-      '我的活动',
-      '我的打卡日记',
-      '我的实录报告',
-      '我的优惠券',
+      '>随喜记<',
+      '>摘抄本<',
+      '>被看见<',
+      '>打卡日记<',
+      '>慢递邮局<',
+      '>实录报告<',
+      '>我的活动<',
+      '>我的优惠券<',
       '管理工作台',
       '数据分析',
       '隐私政策',
@@ -296,7 +308,7 @@ describe('profile page', () => {
       expect(result.stamps).toHaveLength(6);
       expect(result.stamps[0]).toMatchObject({ char: '韧', ended: false });
       expect(result.stamps[1].ended).toBe(true);
-      expect(result.moreCount).toBe(8);
+      expect(result.moreCount).toBe(2);
       expect(result.currentName).toBe('韧性之树');
       expect(buildStamps(undefined).total).toBe(0);
     });
@@ -335,6 +347,33 @@ describe('profile page', () => {
       expect(result.stamps.map(x => x.ended)).toEqual([true, false]);
       expect(result.currentName).toBe('自我更新');
       expect(buildStamps([{ name: '未知期次', status: 'ongoing' }]).currentName).toBe('');
+    });
+
+    test('buildStamps 会把已报名但还没有打卡的期次加入足迹', () => {
+      const { buildStamps } = require('../../pages/profile/profile');
+      const result = buildStamps([], [
+        {
+          periodId: 'enrolled-1',
+          periodTitle: '只报名还没打卡',
+          status: 'completed',
+          paymentStatus: 'paid',
+          endDate: '2026-10-01T00:00:00.000Z'
+        }
+      ]);
+      expect(result.total).toBe(1);
+      expect(result.stamps[0]).toMatchObject({
+        periodId: 'enrolled-1',
+        name: '只报名还没打卡',
+        ended: true
+      });
+    });
+
+    test('足迹超过 6 期时可以展开和收起全部印章', () => {
+      pageInstance.data.footprintsExpanded = false;
+      pageInstance.toggleFootprints.call(pageInstance);
+      expect(pageInstance.data.footprintsExpanded).toBe(true);
+      pageInstance.toggleFootprints.call(pageInstance);
+      expect(pageInstance.data.footprintsExpanded).toBe(false);
     });
 
     test('足迹 5 分钟内复用缓存，日历每次显示都刷新', async () => {

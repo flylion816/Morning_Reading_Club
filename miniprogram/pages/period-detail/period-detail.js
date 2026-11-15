@@ -1,5 +1,6 @@
 // 期次介绍页：公开期次可以直接阅读，报名后期次才进入报名/支付流程。
 const courseService = require('../../services/course.service');
+const appDialog = require('../../utils/dialog');
 const request = require('../../utils/request');
 const { getPeriodAccess } = require('../../utils/period-access');
 const { formatDateRange, calculatePeriodStatus } = require('../../utils/formatters');
@@ -183,7 +184,7 @@ Page({
       return;
     }
     if (!this.isLoggedIn()) {
-      wx.showModal({
+      appDialog.showModal({
         title: '登录后报名',
         content: '报名需要先登录，公开阅读可以直接开始学习。',
         confirmText: '去登录',

@@ -26,8 +26,8 @@
   align-items: center;
   gap: 20rpx;
   padding: 24rpx;
-  background: linear-gradient(135deg, #f7fbff 0%, #eef6ff 100%);
-  border: 1rpx solid #dbeafe;
+  background: var(--app-surface-muted);
+  border: 1rpx solid var(--app-border);
   border-radius: 20rpx;
 }
 
@@ -103,9 +103,9 @@ button.avatar-action-button::after {
 }
 
 .avatar-action-button.primary {
-  color: #fff;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  box-shadow: 0 8rpx 18rpx var(--theme-primary-alpha-22);
+  color: var(--theme-primary-dark);
+  background: var(--theme-primary-tint);
+  box-shadow: none;
 }
 
 /* Input field */
@@ -169,10 +169,11 @@ button.avatar-action-button::after {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 20rpx 32rpx;
-  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-  background: var(--app-paper);
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(14rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 -8rpx 22rpx rgba(84, 60, 30, 0.06);
+  border-top: 1rpx solid var(--app-border);
 }
 
 .save-btn {
@@ -224,4 +225,15 @@ button.avatar-action-button::after {
 .avatar-action-button:active,
 .save-btn:active {
   transform: translateY(2rpx) scale(0.98);
+}
+
+.save-btn {
+  background: var(--theme-primary);
+  color: #ffffff;
+  box-shadow: var(--app-action-shadow-soft);
+  min-height: var(--app-action-height);
+  border-radius: var(--app-action-radius);
+  height: var(--app-action-height);
+  line-height: var(--app-action-height);
+  font-size: 28rpx;
 }

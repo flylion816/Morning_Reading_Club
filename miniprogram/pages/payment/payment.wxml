@@ -114,3 +114,4 @@
 </view>
 
 <podcast-player-bar bottom-offset="112" />
+<app-dialog id="app-dialog" />

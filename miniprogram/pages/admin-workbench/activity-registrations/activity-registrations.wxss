@@ -100,6 +100,7 @@
   color: #ffffff;
   font-size: 26rpx;
   padding: 0;
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .search-btn::after {
@@ -437,8 +438,8 @@
   border-radius: 999rpx;
 }
 .tab-item.active {
-  background: var(--theme-primary);
-  color: #fff;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
 }
 .registration-card:active,
 .tab-item:active,

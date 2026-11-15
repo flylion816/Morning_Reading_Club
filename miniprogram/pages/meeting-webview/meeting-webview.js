@@ -65,6 +65,7 @@ Page({
       contentParts.push('请在浏览器中打开腾讯会议邀请链接，或手动打开腾讯会议APP加入会议。');
     }
 
+    // web-view 永远盖在自定义界面上面，这一页只能用系统弹窗
     wx.showModal({
       title: '无法直接打开腾讯会议',
       content: contentParts.join('\n'),

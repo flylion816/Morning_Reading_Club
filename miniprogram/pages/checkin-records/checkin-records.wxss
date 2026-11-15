@@ -180,12 +180,13 @@
   margin: 10rpx 0 22rpx;
   padding: 18rpx 20rpx;
   border-radius: 22rpx;
-  background: linear-gradient(135deg, var(--app-paper) 0%, var(--theme-primary-tint) 100%);
+  background: var(--app-surface-muted);
   border: 1rpx solid var(--theme-primary-alpha-12);
   display: flex;
   align-items: center;
   gap: 22rpx;
   box-sizing: border-box;
+  box-shadow: none;
 }
 
 .selected-period-icon {
@@ -455,8 +456,8 @@
 }
 
 .diary-search-btn {
-  background: var(--theme-primary);
-  color: #fff;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
   font-size: 26rpx;
   font-weight: 600;
   padding: 0 28rpx;
@@ -465,6 +466,7 @@
   border-radius: 40rpx;
   white-space: nowrap;
   flex-shrink: 0;
+  box-shadow: none;
 }
 
 .highlight-keyword {
@@ -561,13 +563,19 @@
   color: var(--app-text-muted);
 }
 
-/* 心情天气用图标加一个字。 */
+/* 心情天气：放在卡片头部最右边，图标加一个字，浅色药丸底，不抢头像和名字的视线。 */
 .record-mood {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 6rpx;
+  margin-top: 0;
+  padding: 6rpx 16rpx 6rpx 12rpx;
   border: none;
-  padding: 0;
+  border-radius: 99rpx;
+  background: var(--app-dawn-soft);
+  font-size: 22rpx;
+  line-height: 1;
   color: var(--app-dawn-ink);
 }
 .record-mood-icon.app-icon {
@@ -601,4 +609,9 @@
   width: 28rpx;
   height: 28rpx;
   font-size: 0;
+}
+
+.hero-card {
+  background: var(--app-paper);
+  box-shadow: var(--app-shadow-soft);
 }

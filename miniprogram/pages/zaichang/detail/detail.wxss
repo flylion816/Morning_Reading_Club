@@ -101,7 +101,7 @@ page {
 .send-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: var(--app-border); color: var(--app-text-muted); font-size: 26rpx; white-space: nowrap; }
 .send-btn.active { background: var(--zc-primary); color: #fff; }
 .edit-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: var(--app-page-bg); color: var(--zc-primary); font-size: 26rpx; white-space: nowrap; border: 2rpx solid var(--zc-primary); }
-.delete-imprint-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: #FFF0F0; color: #e74c3c; font-size: 26rpx; white-space: nowrap; border: 2rpx solid #e74c3c; }
+.delete-imprint-btn { padding: 16rpx 28rpx; border-radius: 40rpx; background: var(--app-danger-soft); color: var(--app-danger); font-size: 26rpx; white-space: nowrap; border: 1rpx solid var(--app-border); }
 
 .loading-page { display: flex; justify-content: center; align-items: center; height: 60vh; font-size: 28rpx; color: var(--zc-text-secondary); }
 

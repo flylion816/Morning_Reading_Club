@@ -1,0 +1,137 @@
+/* Version 3 dawn: 新人连接功能页面，直接按晨光规范编写。 */
+.leads-page {
+  min-height: 100vh;
+  padding: 24rpx 28rpx 60rpx;
+  box-sizing: border-box;
+  background: var(--app-page-bg);
+}
+
+.leads-tabs {
+  margin: 22rpx 0 18rpx;
+  white-space: nowrap;
+}
+
+.leads-tabs-track {
+  display: inline-flex;
+  gap: 12rpx;
+}
+
+.leads-tab {
+  padding: 8rpx 24rpx;
+  border-radius: 99rpx;
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
+  font-size: var(--app-font-sm);
+  color: var(--app-text-soft);
+}
+
+.leads-tab.on {
+  background: var(--theme-primary);
+  border-color: var(--theme-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.leads-state {
+  padding: 120rpx 0;
+  text-align: center;
+  font-size: var(--app-font-md);
+  color: var(--app-text-muted);
+}
+
+.leads-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+  padding: 24rpx 26rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.leads-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.leads-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.leads-name {
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.leads-time {
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.leads-from {
+  margin-top: 4rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-soft);
+}
+
+.leads-reason {
+  margin-top: 4rpx;
+  font-size: var(--app-font-sm);
+  color: var(--app-text-soft);
+}
+
+.leads-due {
+  margin-top: 6rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-dawn-ink);
+}
+
+.leads-claim {
+  flex: none;
+  padding: 10rpx 28rpx;
+  border-radius: 18rpx;
+  background: var(--theme-primary);
+  color: #fff;
+  font-size: var(--app-font-sm);
+  font-weight: 600;
+}
+
+.leads-claim.is-busy {
+  opacity: 0.6;
+}
+
+.leads-arrow {
+  align-self: center;
+  color: var(--app-text-muted);
+  font-size: 36rpx;
+}
+
+.leads-more {
+  padding: 24rpx 0;
+  text-align: center;
+  font-size: var(--app-font-sm);
+  color: var(--theme-primary);
+}
+
+.leads-stats {
+  margin: 0 24rpx 16rpx;
+  padding: 18rpx 24rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  font-size: var(--app-font-sm);
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+}
+
+.leads-stats-top {
+  color: var(--app-text-soft);
+  font-size: var(--app-font-xs);
+}

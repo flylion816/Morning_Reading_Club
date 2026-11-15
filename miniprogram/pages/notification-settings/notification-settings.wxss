@@ -15,16 +15,18 @@
 
 .settings-title {
   display: block;
-  font-size: 40rpx;
+  font-size: 34rpx;
   font-weight: 700;
   margin-bottom: 12rpx;
+  color: var(--app-text);
 }
 
 .settings-desc {
   display: block;
   font-size: 24rpx;
   line-height: 1.7;
-  opacity: 0.92;
+  opacity: 1;
+  color: var(--app-text-muted);
 }
 
 .summary-card {
@@ -192,9 +194,21 @@
   border-radius: 999rpx;
 }
 .subscribe-all-btn {
-  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
+  background: var(--theme-primary);
+  color: #ffffff;
+  box-shadow: var(--app-action-shadow-soft);
+  min-height: var(--app-action-height);
+  border-radius: var(--app-action-radius);
 }
 .subscribe-all-btn:active,
 .scene-action:active {
   transform: translateY(2rpx) scale(0.98);
+}
+
+.settings-header {
+  background: var(--app-paper);
+  color: var(--app-text);
+  box-shadow: none;
+  padding: 28rpx;
+  border: 1rpx solid var(--app-border);
 }

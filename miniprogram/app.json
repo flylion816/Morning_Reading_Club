@@ -209,6 +209,13 @@
       ]
     },
     {
+      "name": "joy-notes",
+      "root": "pages/joy-notes",
+      "pages": [
+        "joy-notes"
+      ]
+    },
+    {
       "name": "seen-received",
       "root": "pages/seen-received",
       "pages": [
@@ -234,6 +241,21 @@
       "root": "pages/daily-card",
       "pages": [
         "daily-card"
+      ]
+    },
+    {
+      "name": "landing",
+      "root": "pages/landing",
+      "pages": [
+        "landing"
+      ]
+    },
+    {
+      "name": "admin-leads",
+      "root": "pages/admin-leads",
+      "pages": [
+        "admin-leads",
+        "detail/detail"
       ]
     }
   ],
@@ -282,7 +304,9 @@
   },
   "usingComponents": {
     "podcast-player-bar": "/components/podcast-player-bar/podcast-player-bar",
-    "user-avatar": "/components/user-avatar/user-avatar"
+    "user-avatar": "/components/user-avatar/user-avatar",
+    "app-dialog": "/components/app-dialog/app-dialog",
+    "app-sheet": "/components/app-sheet/app-sheet"
   },
   "permission": {
     "scope.userLocation": {

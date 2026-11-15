@@ -175,3 +175,4 @@
 </view>
 
 <podcast-player-bar />
+<app-dialog id="app-dialog" />

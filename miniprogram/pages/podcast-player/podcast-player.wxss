@@ -82,7 +82,7 @@ page {
   left: 0;
   top: 50%;
   height: 8rpx;
-  background: #f97316;
+  background: var(--app-dawn);
   border-radius: 4rpx;
   transform: translateY(-50%);
   transition: width 0.5s linear;
@@ -95,8 +95,8 @@ page {
   width: 24rpx;
   height: 24rpx;
   border-radius: 50%;
-  background: #f97316;
-  box-shadow: 0 0 8rpx rgba(249, 115, 22, 0.6);
+  background: var(--app-dawn);
+  box-shadow: none;
 }
 
 .player-time-row {
@@ -174,7 +174,7 @@ page {
   width: 6rpx;
   height: 24rpx;
   border-radius: 3rpx;
-  background: #f97316;
+  background: var(--app-dawn);
 }
 
 .player-desc-content {

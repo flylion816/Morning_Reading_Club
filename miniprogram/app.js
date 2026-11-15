@@ -72,6 +72,12 @@ App({
       !!launchPath && (launchPath !== 'pages/index/index' || hasLaunchQuery);
 
     if (shouldRespectLaunchPath) {
+      // 冷启动时微信已经把这个页面打开了，再 reLaunch 一次会让页面加载两遍
+      const currentRoute = pages.length ? pages[pages.length - 1].route : '';
+      if (currentRoute && currentRoute === launchPath) {
+        logger.debug('已经在入口页面，不重复跳转', { launchPath });
+        return;
+      }
       const query = Object.keys(launchQuery)
         .map((key) => `${key}=${encodeURIComponent(launchQuery[key])}`)
         .join('&');

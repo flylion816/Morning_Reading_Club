@@ -163,3 +163,4 @@
     <view class="unseal-paper"></view>
   </view>
 </view>
+<app-dialog id="app-dialog" />

@@ -64,8 +64,13 @@
   box-shadow: var(--app-shadow);
 }
 .share-btn {
-  border-radius: var(--app-radius-md);
-  box-shadow: 0 14rpx 26rpx var(--theme-primary-alpha-18);
+  border-radius: var(--app-action-radius);
+  box-shadow: var(--app-action-shadow-soft);
+  background: var(--theme-primary);
+  color: #ffffff;
+  min-height: var(--app-action-height);
+  padding: 18rpx 24rpx;
+  font-size: 28rpx;
 }
 .share-btn:active {
   transform: translateY(2rpx) scale(0.98);

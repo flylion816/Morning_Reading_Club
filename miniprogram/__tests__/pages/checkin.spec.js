@@ -2,6 +2,9 @@ jest.mock('../../utils/social-access', () => ({
   guardSocialPage: jest.fn(() => true)
 }));
 
+const fs = require('fs');
+const path = require('path');
+
 jest.mock('../../services/checkin.service', () => ({
   submitCheckin: jest.fn(),
   updateCheckin: jest.fn(),
@@ -572,6 +575,18 @@ describe('checkin page', () => {
       expect(pageInstance.data.mood).toBe('calm');
       pageInstance.handleMoodSelect.call(pageInstance, { currentTarget: { dataset: { value: 'calm' } } });
       expect(pageInstance.data.mood).toBe('');
+    });
+
+    test('places mood selection above the diary editor', () => {
+      const markup = fs.readFileSync(
+        path.join(__dirname, '../../pages/checkin/checkin.wxml'),
+        'utf8'
+      );
+      const moodIndex = markup.indexOf('mood-section-first');
+      const editorIndex = markup.indexOf('class="rich-editor-wrap"');
+
+      expect(moodIndex).toBeGreaterThan(-1);
+      expect(editorIndex).toBeGreaterThan(moodIndex);
     });
 
     test('submits with mood only when selected', async () => {

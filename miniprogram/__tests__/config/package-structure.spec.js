@@ -146,6 +146,11 @@ const expectedSubPackages = [
     pages: ['highlights']
   },
   {
+    name: 'joy-notes',
+    root: 'pages/joy-notes',
+    pages: ['joy-notes']
+  },
+  {
     name: 'seen-received',
     root: 'pages/seen-received',
     pages: ['seen-received']
@@ -164,6 +169,16 @@ const expectedSubPackages = [
     name: 'daily-card',
     root: 'pages/daily-card',
     pages: ['daily-card']
+  },
+  {
+    name: 'landing',
+    root: 'pages/landing',
+    pages: ['landing']
+  },
+  {
+    name: 'admin-leads',
+    root: 'pages/admin-leads',
+    pages: ['admin-leads', 'detail/detail']
   }
 ];
 
@@ -224,6 +239,21 @@ describe('miniprogram package structure', () => {
     expect(fs.existsSync(
       path.join(miniprogramRoot, 'components/notification-badge')
     )).toBe(false);
+  });
+
+  test('keeps subpackage-only helpers out of the main utils directory', () => {
+    const subpackageOnlyHelpers = [
+      'pages/course-detail/buddy-marks.js',
+      'pages/notifications/notification-feed.js',
+      'pages/landing/silent-login.js'
+    ];
+
+    subpackageOnlyHelpers.forEach(relativePath => {
+      expect(fs.existsSync(path.join(miniprogramRoot, relativePath))).toBe(true);
+    });
+    expect(fs.existsSync(path.join(miniprogramRoot, 'utils/buddy-marks.js'))).toBe(false);
+    expect(fs.existsSync(path.join(miniprogramRoot, 'utils/notification-feed.js'))).toBe(false);
+    expect(fs.existsSync(path.join(miniprogramRoot, 'utils/silent-login.js'))).toBe(false);
   });
 
   test('declares low-frequency pages in their owning subpackages', () => {

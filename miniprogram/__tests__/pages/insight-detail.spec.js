@@ -1,15 +1,16 @@
-jest.mock('../../utils/social-access', () => ({
-  guardSocialPage: jest.fn(() => true)
-}));
-
 jest.mock('../../services/insight.service', () => ({
-  shareInsight: jest.fn(() => Promise.resolve())
+  shareInsight: jest.fn(() => Promise.resolve()),
+  getInsightDetail: jest.fn()
 }));
 jest.mock('../../pages/insight-detail/danmaku.service', () => ({
-  postDanmaku: jest.fn()
+  postDanmaku: jest.fn(),
+  getDanmaku: jest.fn()
 }));
 jest.mock('../../services/activity.service', () => ({
   track: jest.fn(() => Promise.resolve())
+}));
+jest.mock('../../utils/period-access', () => ({
+  getPeriodAccess: jest.fn(() => Promise.resolve({ communityAccessState: 'enabled' }))
 }));
 jest.mock('../../utils/require-login', () => ({
   requireLogin: jest.fn(() => true)
@@ -167,6 +168,57 @@ describe('insight-detail poster rendering', () => {
     expect(timelineConfig.imageUrl).toBe('/assets/images/share-insight.jpg');
   });
 
+  test('keeps anonymous share visits on the insight page and hides interactions', () => {
+    const insightService = require('../../services/insight.service');
+    insightService.getInsightDetail.mockResolvedValue({
+      _id: 'insight_1',
+      periodId: { _id: 'period_1' },
+      userId: { _id: 'creator_1' },
+      targetUserId: { _id: 'recipient_1', nickname: '小读者' },
+      sectionId: { title: '这一封公开信' },
+      content: '<p>公开内容</p>'
+    });
+    global.wx.showToast = jest.fn();
+
+    pageInstance.onLoad.call(pageInstance, { id: 'insight_1', from: 'share' });
+
+    expect(global.wx.switchTab).not.toHaveBeenCalled();
+    expect(pageInstance.data.insightId).toBe('insight_1');
+  });
+
+  test('loads danmaku and unlocks interactions for enabled community access', async () => {
+    const insightService = require('../../services/insight.service');
+    insightService.getInsightDetail.mockResolvedValue({
+      _id: 'insight_1',
+      periodId: { _id: 'period_1' },
+      userId: { _id: 'creator_1' },
+      targetUserId: { _id: 'user_1', nickname: '狮子' },
+      sectionId: { title: '给我的信' },
+      content: '<p>公开内容</p>'
+    });
+    danmakuService.getDanmaku.mockResolvedValue([]);
+    const periodAccess = require('../../utils/period-access');
+    periodAccess.getPeriodAccess.mockResolvedValue({
+      communityAccessState: 'enabled'
+    });
+    global.getApp.mockReturnValue({
+      globalData: {
+        isLogin: true,
+        userInfo: { _id: 'user_1', nickname: '狮子' }
+      }
+    });
+
+    pageInstance.onLoad.call(pageInstance, { id: 'insight_1', from: 'share' });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(danmakuService.getDanmaku).toHaveBeenCalledWith('insight_1');
+    expect(pageInstance.data.interactionsAllowed).toBe(true);
+    expect(pageInstance.data.interactionsLocked).toBe(false);
+  });
+
   test('should prepare a txt file before showing the share menu and forward it on tap', async () => {
     let writtenFile = null;
     global.wx.env = { USER_DATA_PATH: '/mock-user-data' };
@@ -229,7 +281,8 @@ describe('insight-detail poster rendering', () => {
   test('should normalize WeChat emoji tokens before sending danmaku', async () => {
     pageInstance.setData({
       insightId: 'insight_1',
-      danmakuColor: '#4a90e2'
+      danmakuColor: '#4a90e2',
+      interactionsAllowed: true
     });
 
     pageInstance.onDanmakuInput.call(pageInstance, {

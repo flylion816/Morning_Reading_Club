@@ -1,5 +1,6 @@
 // 报名页面
 const enrollmentService = require('../../services/enrollment.service');
+const appDialog = require('../../utils/dialog');
 const { calculatePeriodStatus } = require('../../utils/formatters');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
 const { markEnrollmentCacheDirty } = require('../../utils/period-access');
@@ -636,7 +637,7 @@ Page({
    * 取消报名
    */
   handleCancel() {
-    wx.showModal({
+    appDialog.showModal({
       title: '取消报名',
       content: '确定要取消报名吗？',
       success: res => {

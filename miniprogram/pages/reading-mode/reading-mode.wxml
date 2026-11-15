@@ -148,8 +148,8 @@
     <view class="highlight-selection-panel" catchtap="noop">
       <view class="highlight-selection-header">
         <view>
-          <view class="highlight-selection-title">精确选择</view>
-          <view class="highlight-selection-subtitle">勾下想留住的句子，会按原文顺序摘进摘抄本</view>
+          <view class="highlight-selection-title">{{highlightSelectionMode === 'card' ? '选一句做日签' : '精确选择'}}</view>
+          <view class="highlight-selection-subtitle">{{highlightSelectionMode === 'card' ? '这一段有点长，勾下想放进日签的句子，最多 120 字' : '勾下想留住的句子，会按原文顺序摘进摘抄本'}}</view>
         </view>
         <view class="highlight-selection-close" bindtap="closeHighlightSelection">×</view>
       </view>
@@ -166,18 +166,24 @@
         </view>
       </scroll-view>
 
-      <view class="highlight-selection-preview">
-        <text wx:if="{{highlightSelectionText}}">{{highlightSelectionText}}</text>
-        <text wx:else class="highlight-selection-placeholder">还没有选择内容</text>
-      </view>
+      <textarea
+        class="highlight-selection-preview"
+        value="{{highlightSelectionText}}"
+        placeholder="先勾选上面的句子，也可以直接在这里改几个字"
+        placeholder-class="highlight-selection-placeholder"
+        maxlength="-1"
+        auto-height
+        cursor-spacing="120"
+        bindinput="handleHighlightTextInput"
+      />
       <view class="highlight-selection-foot">
         <text class="highlight-selection-count {{highlightSelectionText && !highlightSelectionValid ? 'highlight-selection-count-warn' : ''}}">
-          {{highlightSelectionLength ? '已选 ' + highlightSelectionLength + ' 字' : '最多 500 字'}}
+          {{highlightSelectionLength ? highlightSelectionLength + ' 字 · 可直接修改' : (highlightSelectionMode === 'card' ? '最多 120 字' : '最多 500 字')}}
         </text>
         <button
           class="highlight-selection-confirm"
           disabled="{{!highlightSelectionValid}}"
-          bindtap="handleConfirmHighlightSelection">摘下来</button>
+          bindtap="handleConfirmHighlightSelection">{{highlightSelectionMode === 'card' ? '做日签' : '摘下来'}}</button>
       </view>
     </view>
   </view>
@@ -212,3 +218,5 @@
 </view>
 
 <podcast-player-bar bottom-offset="120" />
+<app-dialog id="app-dialog" />
+<app-sheet id="app-sheet" />

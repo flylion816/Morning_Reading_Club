@@ -926,7 +926,7 @@ describe('index page', () => {
     });
 
     test('营地角落：慢递邮局各状态', () => {
-      const t = letter => pageConfig.buildCampCornerCards({ letter }).map(c => c.title);
+      const t = letter => pageConfig.buildCampCornerCards({ letter }).filter(c => c.kind === 'letter').map(c => c.title);
       expect(t({ canWrite: true, status: 'none' })).toEqual(['给结营那天的自己写封信']);
       expect(t({ canWrite: true, status: 'draft' })).toEqual(['给结营那天的自己写封信']);
       expect(t({ canWrite: false, status: 'none' })).toEqual([]);
@@ -936,7 +936,7 @@ describe('index page', () => {
     });
 
     test('营地角落：实修各状态', () => {
-      const c = practice => pageConfig.buildCampCornerCards({ practice });
+      const c = practice => pageConfig.buildCampCornerCards({ practice }).filter(card => card.kind === 'practice');
       expect(c({ active: false })).toEqual([]);
       expect(c({ active: true, practice: null })[0].title).toBe('给这一周定一个小行动');
       expect(c({ active: true, practice: { text: '早起喝水' }, today: { done: true } })[0]).toMatchObject({ title: '早起喝水', sub: '已记「做到了」' });
@@ -944,16 +944,87 @@ describe('index page', () => {
       expect(c({ active: true, practice: { text: '早起喝水' }, today: { done: null } })[0].sub).toBe('今天还没记');
     });
 
+    test('首页读伴卡：只有已配对时出现，一句话说清今天的情形', () => {
+      const strip = (state, extra = {}) => pageConfig.buildBuddyStrip({ state: 'paired', pairedDay: 2, me: {}, buddy: { nickname: '喜娟' }, ...state }, { nickname: '狮子' });
+      expect(pageConfig.buildBuddyStrip({ state: 'none' })).toBeNull();
+      expect(pageConfig.buildBuddyStrip({ state: 'waiting' })).toBeNull();
+      expect(pageConfig.buildBuddyStrip(null)).toBeNull();
+
+      expect(strip({})).toMatchObject({ title: '喜娟今天还没读', sub: '同行第 2 天', action: '去看看', lit: false });
+      expect(strip({ buddy: { nickname: '喜娟', readToday: true } })).toMatchObject({ title: '喜娟读完了，在等你', lit: true });
+      expect(strip({ me: { readToday: true }, canNudge: true })).toMatchObject({ title: '你先到了，拍拍 TA', action: '去轻拍' });
+      expect(strip({ me: { readToday: true }, canNudge: false })).toMatchObject({ title: '你先到了', action: '去看看' });
+      expect(strip({ me: { readToday: true }, buddy: { nickname: '喜娟', readToday: true }, canHighFive: true })).toMatchObject({
+        title: '今天你们都读完了', action: '击掌', lit: true
+      });
+      // 读伴今天写了打卡、还没回应；读伴回应了我的打卡
+      expect(strip({ buddyCheckinToday: { checkinId: 'c1', sectionId: 's1' } })).toMatchObject({
+        title: '喜娟刚写下今天的打卡', sub: '去读一读 TA 写了什么', action: '去读'
+      });
+      expect(strip({ buddyReactionToday: { text: '这句也打动我。' } })).toMatchObject({
+        title: '喜娟回应了你的打卡', sub: '「这句也打动我。」'
+      });
+      // 对方今天送来的一句话优先显示
+      expect(strip({ giftFromBuddy: { text: '不用赶，我在这儿。' } })).toMatchObject({
+        title: '喜娟送了你一句话', sub: '「不用赶，我在这儿。」'
+      });
+    });
+
     test('营地角落：读伴各状态与整体为空', () => {
-      const c = buddy => pageConfig.buildCampCornerCards({ buddy });
+      const c = buddy => pageConfig.buildCampCornerCards({ buddy }).filter(card => card.kind === 'buddy');
       expect(c({ state: 'none' })[0].title).toBe('想要一位读伴');
       expect(c({ state: 'waiting' })[0].title).toBe('正在等一位读伴');
-      expect(c({ state: 'paired', buddy: { nickname: '小林', readToday: true, checkedInToday: false } })[0]).toMatchObject({
-        title: '小林', paired: true, read: true, checked: false
+      expect(c({ state: 'paired', pairedDay: 3, buddy: { nickname: '小林', readToday: true, checkedInToday: false } })[0]).toMatchObject({
+        title: '小林 · 同行第 3 天', single: true
       });
+      expect(c({ state: 'paired', buddy: { nickname: '小林' } })[0].title).toBe('小林 · 同行第 1 天');
       expect(c({ state: 'ended' })).toEqual([]);
-      expect(pageConfig.buildCampCornerCards({ letter: null, practice: null, buddy: null })).toEqual([]);
+      expect(pageConfig.buildCampCornerCards({ letter: null, practice: null, buddy: null }).map(card => card.kind)).toEqual(['joyNote']);
     });
+
+    test('随喜记总在营地角落最后，其他入口随状态变化', () => {
+      const all = pageConfig.buildCampCornerCards({
+        letter: { canWrite: true, status: 'none' },
+        practice: { active: true },
+        buddy: { state: 'none' }
+      });
+      expect(all.map(card => card.kind)).toEqual(['letter', 'practice', 'buddy', 'joyNote']);
+      const withoutLetter = pageConfig.buildCampCornerCards({
+        letter: { status: 'opened' },
+        practice: { active: true },
+        buddy: { state: 'none' }
+      });
+      expect(withoutLetter.map(card => card.kind)).toEqual(['practice', 'buddy', 'joyNote']);
+      pageInstance.data.currentPeriod = null;
+      pageInstance.handleCampCornerTap({ currentTarget: { dataset: { kind: 'joyNote' } } });
+      expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/joy-notes/joy-notes' });
+    });
+
+    test('其他营地接口全部失败时，随喜记入口仍然可用', async () => {
+      const letterService = require('../../services/letter.service');
+      const practiceService = require('../../services/practice.service');
+      const buddyService = require('../../services/buddy.service');
+      letterService.getPeriodLetter.mockRejectedValueOnce(new Error('offline'));
+      practiceService.getCurrent.mockRejectedValueOnce(new Error('offline'));
+      buddyService.getState.mockRejectedValueOnce(new Error('offline'));
+      pageInstance.data.currentPeriod = { _id: 'p1' };
+      pageInstance.loadHomeExtras('p1');
+      expect(pageInstance.data.campCornerCards.map(card => card.kind)).toEqual(['joyNote']);
+      await new Promise(resolve => setImmediate(resolve));
+      expect(pageInstance.data.campCornerStatus).toBe('error');
+      expect(pageInstance.data.campCornerCards.map(card => card.kind)).toEqual(['joyNote']);
+    });
+  });
+
+  test('营地角落四张卡片使用统一高度', () => {
+    const styles = require('fs').readFileSync(
+      require('path').join(__dirname, '../../pages/index/index.wxss'),
+      'utf8'
+    );
+    const baseRule = styles.match(/(?:^|\n)\.camp-corner-card \{[\s\S]*?\n\}/)?.[0] || '';
+
+    expect(baseRule).toContain('height: 148rpx;');
+    expect(baseRule).toContain('justify-content: center;');
   });
 
   describe('today card state', () => {
@@ -999,6 +1070,48 @@ describe('index page', () => {
       const read = card({ readingCompleted: true }, false, '12:00:00');
       expect(read.primary).toEqual({ type: 'study', text: '去学习' });
       expect(read.showDailyCard).toBe(false);
+    });
+
+    test('提示语按「用户 + 日期」稳定轮换：没有种子用原文案，同一种子不跳，换日会变', () => {
+      const base = pageConfig.buildTodayCardState({ readingCompleted: true }, true, at('12:00:00'));
+      expect(base.message).toBe('写下今天的感受，留给自己。');
+
+      const seen = new Set();
+      for (let day = 1; day <= 30; day += 1) {
+        const seed = `user-1|2026-11-${String(day).padStart(2, '0')}`;
+        const a = pageConfig.buildTodayCardState({ readingCompleted: true }, true, at('12:00:00'), seed);
+        const b = pageConfig.buildTodayCardState({ readingCompleted: true }, true, at('12:00:00'), seed);
+        expect(a.message).toBe(b.message);
+        expect(a.message.length).toBeGreaterThan(0);
+        seen.add(a.message);
+      }
+      expect(seen.size).toBeGreaterThan(1);
+    });
+
+    test('已打卡的轮换文案仍然表达「今天已打卡」，不影响状态', () => {
+      for (let day = 1; day <= 20; day += 1) {
+        const seed = `user-2|2026-11-${String(day).padStart(2, '0')}`;
+        const state = pageConfig.buildTodayCardState({ isCheckedIn: true }, true, at('12:00:00'), seed);
+        expect(state.message).toContain('今天已打卡');
+        expect(state.primary).toEqual({ type: 'read', text: '再读一遍' });
+      }
+    });
+
+    test('只有标准摘抄说明才轮换，课程自己写的说明原样显示；说明不会被当成日签金句', () => {
+      const standard = '从上文中，摘抄出一句金句，分享到晨读营的微信群中。';
+      expect(pageConfig.buildExtractDisplay(standard, '')).toBe(standard);
+      const variants = new Set();
+      for (let day = 1; day <= 30; day += 1) {
+        const text = pageConfig.buildExtractDisplay(standard, `u|2026-11-${day}`);
+        expect(text).toContain('晨读营的微信群');
+        variants.add(text);
+      }
+      expect(variants.size).toBeGreaterThan(1);
+      expect(pageConfig.buildExtractDisplay('今天请写下一个目标。', 'u|2026-11-1')).toBe('今天请写下一个目标。');
+      expect(pageConfig.buildExtractDisplay('', 'u|2026-11-1')).toBe('');
+
+      expect(pageConfig.isExtractInstruction(standard)).toBe(true);
+      expect(pageConfig.isExtractInstruction('我们的主动，决定我们的未来。')).toBe(false);
     });
 
     test('打卡状态取不到时不冒充已完成，保留可用入口', () => {

@@ -194,3 +194,37 @@
   font-size: 22rpx;
   line-height: 1.5;
 }
+
+/* 期次详情保留主题英雄区，降低渐变和底部按钮的压迫感。 */
+.detail-hero {
+  padding: 34rpx 28rpx 48rpx;
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.bottom-bar {
+  padding: 14rpx 20rpx calc(14rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 248, 0.96);
+  border-top: 1rpx solid var(--app-border);
+  box-shadow: 0 -8rpx 22rpx rgba(84, 60, 30, 0.06);
+}
+
+.primary-button {
+  height: var(--app-action-height);
+  border-radius: var(--app-action-radius);
+  background: var(--theme-primary);
+  box-shadow: var(--app-action-shadow-soft);
+}
+
+.detail-hero {
+  background: var(--app-paper);
+  color: var(--app-text);
+  border-top: 4rpx solid var(--theme-primary-alpha-24);
+}
+.detail-hero::after { display: none; }
+.hero-kicker, .hero-subtitle { color: var(--app-text-muted); }
+.hero-status, .hero-access, .hero-seal {
+  color: var(--theme-primary-dark);
+  background: var(--theme-primary-tint);
+  border-color: var(--theme-primary-alpha-12);
+}

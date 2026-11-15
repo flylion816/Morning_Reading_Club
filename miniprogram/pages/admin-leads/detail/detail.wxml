@@ -1,0 +1,73 @@
+<view class="detail-page">
+  <view wx:if="{{loading}}" class="detail-state">加载中…</view>
+  <block wx:elif="{{lead}}">
+    <view class="detail-card detail-head">
+      <user-avatar
+        size="88"
+        avatar-url="{{lead.avatarUrl}}"
+        avatar-text="{{lead.nickname}}"
+        display-name="{{lead.nickname}}"
+      />
+      <view class="detail-head-main">
+        <text class="detail-name">{{lead.nickname}}</text>
+        <text class="detail-sub">{{createdText}} 留言</text>
+      </view>
+      <text class="detail-pill {{lead.assigneeId ? '' : 'plain'}}">{{lead.assigneeId ? (lead.isAssignee ? '已认领' : lead.assigneeName + ' 认领') : '未认领'}}</text>
+    </view>
+
+    <view class="detail-card">
+      <view class="detail-kv"><text class="k">来源</text><text class="v">{{sourceText}}</text></view>
+      <view class="detail-kv"><text class="k">原因</text><text class="v">{{lead.reason}}</text></view>
+      <view wx:if="{{lead.note}}" class="detail-kv"><text class="k">补充</text><text class="v">{{lead.note}}</text></view>
+    </view>
+
+    <view class="detail-card detail-phone">
+      <view class="detail-phone-main">
+        <text class="k">手机号</text>
+        <text wx:if="{{lead.isAssignee}}" class="detail-phone-num">{{lead.phone}}</text>
+        <text wx:else class="detail-phone-num muted">{{lead.phoneMasked}}</text>
+        <text wx:if="{{!lead.isAssignee}}" class="detail-tip">认领后才能看到完整手机号</text>
+      </view>
+      <block wx:if="{{lead.isAssignee}}">
+        <view class="detail-mini" bindtap="handleCopyPhone">复制</view>
+        <view class="detail-mini" bindtap="handleCallPhone">拨打</view>
+      </block>
+    </view>
+
+    <view class="detail-card">
+      <text class="k">跟进状态</text>
+      <view class="detail-track">
+        <block wx:for="{{steps}}" wx:key="key">
+          <text class="detail-step {{item.state}}">{{item.label}}</text>
+          <text wx:if="{{index < steps.length - 1}}" class="detail-sep">›</text>
+        </block>
+        <text wx:if="{{finalText}}" class="detail-step now">{{finalText}}</text>
+      </view>
+      <view wx:for="{{followUps}}" wx:key="atText" class="detail-follow">
+        <text class="detail-follow-top">{{item.atText}} · {{item.byName}}</text>
+        <text wx:if="{{item.note}}" class="detail-follow-note">{{item.note}}</text>
+      </view>
+      <textarea
+        wx:if="{{lead.isAssignee && !finalText}}"
+        class="detail-note"
+        value="{{note}}"
+        maxlength="200"
+        auto-height
+        placeholder="写一句跟进备注（选填）"
+        placeholder-class="detail-ph"
+        bindinput="handleNoteInput"
+      />
+    </view>
+
+    <view class="detail-actions">
+      <view wx:if="{{!lead.assigneeId}}" class="detail-btn primary {{busy ? 'busy' : ''}}" bindtap="handleClaim">认领这位书友</view>
+      <view wx:if="{{nextAction}}" class="detail-btn primary {{busy ? 'busy' : ''}}" bindtap="handleNext">{{nextAction.label}}</view>
+      <view wx:if="{{canDecide}}" class="detail-btn-row">
+        <view class="detail-btn secondary {{busy ? 'busy' : ''}}" bindtap="handleConnected">愿意连接</view>
+        <view class="detail-btn secondary {{busy ? 'busy' : ''}}" bindtap="handleDeclined">暂不连接</view>
+      </view>
+    </view>
+  </block>
+  <view wx:else class="detail-state">这条找不到了</view>
+</view>
+<app-dialog id="app-dialog" />

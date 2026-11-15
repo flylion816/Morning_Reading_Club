@@ -7,7 +7,6 @@ const SOCIAL_PAGES = [
   'pages/checkin/checkin',
   'pages/insights/insights',
   'pages/insight-requests/insight-requests',
-  'pages/insight-detail/insight-detail',
   'pages/insight-edit/insight-edit',
   'pages/checkin-records/checkin-records',
   'pages/profile-others/profile-others',

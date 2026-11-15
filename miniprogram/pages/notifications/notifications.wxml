@@ -1,130 +1,95 @@
-<!--通知页面-->
-<view class="notifications-container">
-  <!-- 筛选选项卡 -->
-  <view class="tabs">
-    <view
-      class="tab-item {{activeTab === 'all' ? 'active' : ''}}"
-      bindtap="handleTabChange"
-      data-tab="all"
-    >
-      全部
-    </view>
-    <view
-      class="tab-item {{activeTab === 'false' ? 'active' : ''}}"
-      bindtap="handleTabChange"
-      data-tab="false"
-    >
-      未读 <text class="tab-badge" wx:if="{{unreadCount > 0}}">{{unreadCount}}</text>
-    </view>
-    <view
-      class="tab-item {{activeTab === 'true' ? 'active' : ''}}"
-      bindtap="handleTabChange"
-      data-tab="true"
-    >
-      已读
-    </view>
-    <view
-      class="tab-item tab-action {{unreadCount > 0 ? '' : 'disabled'}}"
-      catchtap="handleMarkAllAsRead"
-    >
-      全部已读
-    </view>
-  </view>
-
-  <!-- 空状态 -->
-  <view class="app-empty" wx:if="{{!loading && displayedNotifications.length === 0}}">
-    <view class="app-empty-art app-empty-art-lamp"></view>
-    <text class="app-empty-title">{{activeTab === 'false' ? '没有未读通知' : activeTab === 'true' ? '还没有已读通知' : '还没有通知'}}</text>
-    <text class="app-empty-desc">{{activeTab === 'false' ? '可切回全部查看历史通知' : '你的通知会在这里显示'}}</text>
-  </view>
-
-  <!-- 加载状态 -->
-  <view class="loading-state" wx:if="{{loading && displayedNotifications.length === 0}}">
-    <view class="dawn-skeleton-list">
-      <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
-        <view class="app-skeleton-line dawn-sk-w60"></view>
-        <view class="app-skeleton-line dawn-sk-w90"></view>
-        <view class="app-skeleton-line dawn-sk-w40"></view>
+<!-- 来信：书友们写给你的话 -->
+<view class="letters">
+  <view class="letters-head">
+    <text class="letters-title">{{summary.headline}}</text>
+    <text wx:if="{{summary.sub}}" class="letters-sub">{{summary.sub}}</text>
+    <view wx:if="{{summary.avatars.length > 0}}" class="letters-who">
+      <view wx:for="{{summary.avatars}}" wx:key="userId" class="letters-who-av">
+        <user-avatar size="56" avatar-url="{{item.url}}" avatar-text="{{item.text}}" avatar-color="{{item.color}}" />
       </view>
     </view>
   </view>
 
-  <!-- 通知列表 -->
-  <view class="notifications-list">
+  <!-- 筛选：三个小标签，全部已读放到右边 -->
+  <view class="letters-chips">
+    <text class="letters-chip {{activeTab === 'all' ? 'letters-chip-on' : ''}}" bindtap="handleTabChange" data-tab="all">全部</text>
+    <text class="letters-chip {{activeTab === 'false' ? 'letters-chip-on' : ''}}" bindtap="handleTabChange" data-tab="false">未读{{unreadCount > 0 ? ' ' + unreadCount : ''}}</text>
+    <text class="letters-chip {{activeTab === 'reply' ? 'letters-chip-on' : ''}}" bindtap="handleTabChange" data-tab="reply">等我回应{{summary.replyCount > 0 ? ' ' + summary.replyCount : ''}}</text>
+    <text class="letters-readall {{unreadCount > 0 ? '' : 'letters-readall-off'}}" catchtap="handleMarkAllAsRead">全部已读</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="letters-loading" wx:if="{{loading && feed.length === 0}}">
+    <view class="dawn-skeleton-card" wx:for="{{[1, 2, 3]}}" wx:key="*this">
+      <view class="app-skeleton-line dawn-sk-w60"></view>
+      <view class="app-skeleton-line dawn-sk-w90"></view>
+      <view class="app-skeleton-line dawn-sk-w40"></view>
+    </view>
+  </view>
+
+  <!-- 没有来信 -->
+  <view class="letters-empty" wx:elif="{{!loading && feed.length === 0}}">
+    <view class="letters-empty-seal"><text>{{activeTab === 'all' ? '信' : '静'}}</text></view>
+    <text class="letters-empty-title">{{activeTab === 'all' ? '还没有来信' : activeTab === 'reply' ? '没有在等你回应的事' : '都看过了'}}</text>
+    <text class="letters-empty-desc">书友想到你的时候，会出现在这里</text>
+    <view class="letters-empty-btn" bindtap="handleGoRead">去读今天这一课</view>
+  </view>
+
+  <!-- 来信列表，按天分组 -->
+  <block wx:for="{{feed}}" wx:key="label" wx:for-item="group">
+    <view class="letters-day">{{group.label}}</view>
     <view
-      class="notification-item {{item.isRead ? 'read' : 'unread'}}"
-      wx:for="{{displayedNotifications}}"
-      wx:key="_id"
-      bindtap="handleNotificationTap"
-      data-id="{{item._id}}"
-      data-index="{{index}}"
+      wx:for="{{group.items}}"
+      wx:key="key"
+      class="letter {{item.warm ? 'letter-warm' : ''}} {{item.unread ? 'letter-unread' : ''}}"
+      bindtap="handleFeedTap"
+      bindlongpress="handleFeedLongPress"
+      data-key="{{item.key}}"
     >
-      <!-- 通知内容 -->
-      <view class="notification-content">
-        <!-- 标题和操作 -->
-        <view class="notification-header">
-          <view class="notification-title">
-            <text class="type-icon" style="color: {{item.typeColor}}">{{item.typeIcon}}</text>
-            <text class="type-label">{{item.typeLabel}}</text>
-          </view>
-          <view class="notification-actions">
-            <text
-              class="action-btn delete-btn"
-              catchtap="handleDelete"
-              data-id="{{item._id}}"
-            >
-              ✕
-            </text>
-          </view>
+      <view wx:if="{{item.avatars.length === 1}}" class="letter-avatar">
+        <user-avatar size="72" avatar-url="{{item.avatars[0].url}}" avatar-text="{{item.avatars[0].text}}" avatar-color="{{item.avatars[0].color}}" />
+        <text wx:if="{{item.badge}}" class="letter-badge">{{item.badge}}</text>
+      </view>
+      <view wx:elif="{{item.avatars.length > 1}}" class="letter-stack">
+        <view class="letter-stack-a"><user-avatar size="48" avatar-url="{{item.avatars[0].url}}" avatar-text="{{item.avatars[0].text}}" avatar-color="{{item.avatars[0].color}}" /></view>
+        <view class="letter-stack-b"><user-avatar size="48" avatar-url="{{item.avatars[1].url}}" avatar-text="{{item.avatars[1].text}}" avatar-color="{{item.avatars[1].color}}" /></view>
+      </view>
+      <view wx:else class="letter-seal"><text>{{item.sealChar}}</text></view>
+
+      <view class="letter-main">
+        <text class="letter-text"><text wx:if="{{item.lead}}" class="letter-lead">{{item.lead}}</text>{{item.rest}}</text>
+        <text wx:if="{{item.quote}}" class="letter-quote">{{item.quote}}</text>
+
+        <view wx:if="{{item.request && item.request.status === 'pending'}}" class="letter-btns">
+          <text class="letter-btn letter-btn-yes" catchtap="handleRequestDecision" data-key="{{item.key}}" data-decision="approve">让 TA 看</text>
+          <text class="letter-btn letter-btn-no" catchtap="handleRequestDecision" data-key="{{item.key}}" data-decision="reject">先不了</text>
         </view>
+        <text wx:elif="{{item.request}}" class="letter-done">{{item.request.status === 'approved' ? '已让 TA 看' : item.request.status === 'rejected' ? '已婉拒' : item.request.status === 'revoked' ? 'TA 已撤销申请' : '这条申请已处理'}}</text>
 
-        <!-- 通知消息 -->
-        <view class="notification-message">{{item.content}}</view>
-
-        <!-- 发送者信息（如果有）-->
-        <view class="sender-info" wx:if="{{item.senderName}}">
-          <user-avatar
-            size="44"
-            avatar-url="{{item.senderAvatar}}"
-            avatar-text="{{item.senderAvatarText || item.senderInitial}}"
-            avatar-color="{{item.senderAvatarColor || themePrimaryColor}}"
-            user-id="{{item.senderUserId}}"
-            event-data="{{item}}"
-            interactive="true"
-            bind:avatarTap="handleSenderAvatarTap"
-          />
-          <text class="sender-name">{{item.senderName}}</text>
+        <view wx:if="{{item.invite && item.invite.status === 'pending'}}" class="letter-btns">
+          <text class="letter-btn letter-btn-yes" catchtap="handleInviteDecision" data-key="{{item.key}}" data-decision="approve">同意</text>
+          <text class="letter-btn letter-btn-no" catchtap="handleInviteDecision" data-key="{{item.key}}" data-decision="reject">先不了</text>
         </view>
+        <text wx:elif="{{item.invite}}" class="letter-done">{{item.invite.status === 'accepted' ? '你们已经是读伴了' : item.invite.status === 'declined' ? '已婉拒' : item.invite.status === 'expired' ? '这条邀请已过期' : 'TA 已撤回邀请，或这条邀请已失效'}}</text>
 
-        <!-- 时间和状态 -->
-        <view class="notification-footer">
-          <view class="notification-footer-left">
-            <view class="notification-status-dot" wx:if="{{!item.isRead}}"></view>
-            <text class="time">{{item.formattedTime}}</text>
-          </view>
-          <text
-            class="notification-action-hint"
-            wx:if="{{item.actionText}}"
-            catchtap="handleNotificationActionTap"
-            data-id="{{item._id}}"
-            data-index="{{index}}"
-          >{{item.actionText}}</text>
+        <view class="letter-meta">
+          <view wx:if="{{item.unread}}" class="letter-dot"></view>
+          <text class="letter-time">{{item.time}}{{item.period ? ' · ' + item.period : ''}}</text>
+          <text wx:if="{{item.actionText && !(item.request && item.request.status === 'pending')}}" class="letter-go">{{item.actionText}} ›</text>
         </view>
       </view>
     </view>
-  </view>
+  </block>
 
   <!-- 分页加载 -->
-  <view class="pagination" wx:if="{{hasMore && displayedNotifications.length > 0}}">
-    <button class="load-more-btn" bindtap="handleLoadMore" loading="{{loading}}">
-      加载更多
-    </button>
+  <view class="letters-more" wx:if="{{hasMore && feed.length > 0}}">
+    <button class="letters-more-btn" bindtap="handleLoadMore" loading="{{loading}}">加载更多</button>
   </view>
-
-  <!-- 没有更多内容 -->
-  <view class="no-more" wx:if="{{!hasMore && displayedNotifications.length > 0}}">
-    <text>没有更多通知了</text>
+  <view class="letters-end" wx:if="{{!hasMore && feed.length > 0}}">
+    <text>没有更多来信了</text>
   </view>
 </view>
 
 <podcast-player-bar />
+<app-dialog id="app-dialog" />
+<app-sheet id="app-sheet" />

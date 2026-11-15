@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "随喜记",
+  "navigationBarBackgroundColor": "#fffdf8",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f6f1e7",
+  "enablePullDownRefresh": true
+}

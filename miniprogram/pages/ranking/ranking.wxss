@@ -66,7 +66,8 @@
 
 .participant-count {
   font-size: 24rpx;
-  opacity: 0.9;
+  opacity: 1;
+  color: var(--app-text-muted);
 }
 
 /* Tab切换区域 */
@@ -200,23 +201,26 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--app-paper);
-  padding: 24rpx;
-  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
+  background: rgba(255, 253, 248, 0.96);
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(14rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(14rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -8rpx 22rpx rgba(84, 60, 30, 0.06);
   z-index: 100;
+  border-top: 1rpx solid var(--app-border);
 }
 
 .btn-share {
   width: 100%;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  color: white;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
   border: none;
-  border-radius: 48rpx;
-  padding: 24rpx;
-  font-size: 28rpx;
+  border-radius: var(--app-action-radius);
+  padding: 16rpx 24rpx;
+  font-size: 26rpx;
   font-weight: bold;
+  box-shadow: none;
+  min-height: var(--app-action-height);
 }
 
 .btn-share::after {
@@ -272,4 +276,17 @@
   background: var(--theme-primary-tint);
   color: var(--theme-primary-dark);
   box-shadow: none;
+}
+
+.user-card {
+  background: var(--app-paper);
+  color: var(--app-text);
+  box-shadow: none;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid var(--app-border);
+}
+
+.user-stats {
+  color: var(--app-text-muted);
+  opacity: 1;
 }

@@ -5,7 +5,7 @@
   z-index: 200;
   background: var(--app-paper);
   border-radius: 24rpx;
-  box-shadow: 0 4rpx 32rpx rgba(0, 0, 0, 0.18), 0 0 0 1rpx rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4rpx 18rpx rgba(84, 60, 30, 0.08), 0 0 0 1rpx var(--app-border);
 }
 
 /* 普通页面：safe-area 上方 8px */

@@ -41,6 +41,7 @@ page {
   opacity: 0.9;
   margin-top: 8rpx;
   display: block;
+  color: var(--app-text-muted);
 }
 
 /* 编辑区域撑满剩余空间 */
@@ -133,8 +134,11 @@ page {
 }
 
 .btn-save {
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  color: white;
+  background: var(--theme-primary);
+  color: #ffffff;
+  box-shadow: var(--app-action-shadow-soft);
+  min-height: var(--app-action-height);
+  border-radius: var(--app-action-radius);
 }
 
 .btn-save:active {
@@ -166,4 +170,12 @@ page {
 .tool-btn:active,
 .btn:active {
   transform: translateY(2rpx) scale(0.98);
+}
+
+.header-card {
+  background: var(--app-paper);
+  color: var(--app-text);
+  box-shadow: none;
+  padding: 24rpx;
+  border-bottom: 1rpx solid var(--app-border);
 }

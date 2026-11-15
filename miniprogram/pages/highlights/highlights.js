@@ -1,4 +1,5 @@
 const highlightService = require('../../services/highlight.service');
+const appDialog = require('../../utils/dialog');
 const { requireLogin } = require('../../utils/require-login');
 
 const PAGE_SIZE = 20;
@@ -132,7 +133,7 @@ Page({
 
   handleDelete(e) {
     const { id } = e.currentTarget.dataset;
-    wx.showModal({
+    appDialog.showModal({
       title: '删掉这条摘抄？',
       content: '删掉之后就找不回来了',
       confirmText: '删除',

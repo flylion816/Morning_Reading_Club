@@ -1,0 +1,199 @@
+<view class="landing">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="landing-loading">
+    <view class="app-skeleton landing-skel-hero"></view>
+    <view class="app-skeleton-line app-loading-line-lg"></view>
+    <view class="app-skeleton-line"></view>
+  </view>
+
+  <!-- 打不开 -->
+  <view wx:elif="{{loadError}}" class="landing-empty">
+    <view class="landing-empty-sun"></view>
+    <text class="landing-empty-title">这张日签暂时翻不到了</text>
+    <text class="landing-empty-desc">不过晨读每天都在，今天的这一张还热着。</text>
+    <view class="landing-btn landing-btn-primary landing-btn-block" bindtap="handleRetry">再试一次</view>
+    <view class="landing-btn landing-btn-secondary landing-btn-block" bindtap="handleGoToday">去首页</view>
+  </view>
+
+  <!-- 提交之后 -->
+  <view wx:elif="{{submitted}}" class="landing-done">
+    <view class="landing-done-sun"></view>
+    <text class="landing-done-title">收到了，谢谢你愿意来</text>
+    <text class="landing-done-desc">{{contactWithinDays}} 天内，会有一位接待书友加你微信</text>
+    <view class="landing-card landing-steps">
+      <view class="landing-step">
+        <text class="landing-step-no">1</text>
+        <text class="landing-step-text">接待书友用 {{maskedPhone}} 添加你的微信</text>
+      </view>
+      <view class="landing-step">
+        <text class="landing-step-no">2</text>
+        <text class="landing-step-text">聊聊你想读什么、现在的需要</text>
+      </view>
+      <view class="landing-step">
+        <text class="landing-step-no">3</text>
+        <text class="landing-step-text">合适就一起读；不合适，也完全没关系</text>
+      </view>
+    </view>
+    <view class="landing-btn landing-btn-primary landing-btn-block" bindtap="handleGoToday">先读今天这一课</view>
+  </view>
+
+  <!-- 落地页 -->
+  <block wx:else>
+    <scroll-view scroll-y class="landing-scroll" enhanced show-scrollbar="{{false}}">
+      <view class="landing-hero">
+        <view class="landing-who">
+          <user-avatar
+            wx:if="{{inviter}}"
+            size="52"
+            avatar-url="{{inviter.avatarUrl}}"
+            avatar-text="{{inviter.nickname}}"
+            display-name="{{inviter.nickname}}"
+          />
+          <view wx:else class="landing-seal">晨</view>
+          <text class="landing-who-text">{{inviterLabel}}</text>
+        </view>
+
+        <view class="landing-day">
+          <view class="landing-day-sky">
+            <text class="landing-day-num">{{dateInfo.dayNumber}}</text>
+            <text class="landing-day-line">{{dateInfo.dateLine}}</text>
+            <text wx:if="{{dateInfo.termText}}" class="landing-day-line">{{dateInfo.termText}}</text>
+            <view class="landing-day-sun"></view>
+          </view>
+          <view class="landing-day-body">
+            <text wx:if="{{lessonLine}}" class="landing-day-lesson">{{lessonLine}}</text>
+            <text class="landing-day-quote">{{quote || '先去理解别人，再让别人理解自己。'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="landing-content">
+        <block wx:if="{{note}}">
+          <view class="landing-sec">{{inviter ? inviter.nickname + ' 说' : '他说'}}</view>
+          <view class="landing-card"><text class="landing-say">{{note}}</text></view>
+        </block>
+
+        <block wx:if="{{voices.length}}">
+          <view class="landing-sec">书友的声音</view>
+          <view wx:for="{{voices}}" wx:key="id" class="landing-card landing-voice">
+            <text class="landing-say">{{item.text}}</text>
+            <text class="landing-voice-by">{{item.by}}</text>
+          </view>
+          <text class="landing-hint">经书友本人同意后展示</text>
+        </block>
+
+        <view class="landing-sec">这里适合谁</view>
+        <view class="landing-fit">
+          <view class="landing-card landing-fit-card">
+            <text class="landing-fit-title">可能适合你</text>
+            <text class="landing-fit-line">想早起读点书</text>
+            <text class="landing-fit-line">每天能留 15 分钟</text>
+            <text class="landing-fit-line">想有人一起读</text>
+          </view>
+          <view class="landing-card landing-fit-card">
+            <text class="landing-fit-title">可能不适合</text>
+            <text class="landing-fit-line">想速成、只要干货</text>
+            <text class="landing-fit-line">只想听不想写</text>
+            <text class="landing-fit-line">暂时抽不出时间</text>
+          </view>
+        </view>
+
+        <text wx:if="{{!singlePage}}" class="landing-link" bindtap="handleBrowseCourses">已经想好了？直接看本期报名 ›</text>
+        <view class="landing-bar-space"></view>
+      </view>
+    </scroll-view>
+
+    <!-- 朋友圈单页模式：只能看，引导去小程序 -->
+    <view wx:if="{{singlePage}}" class="landing-state">
+      <text class="landing-state-title">想一起晨读？</text>
+      <text class="landing-state-desc">点右下角「前往小程序」，进来认识一下</text>
+    </view>
+
+    <!-- 底部：没留过言 -->
+    <view wx:elif="{{mode === 'visitor'}}" class="landing-bar">
+      <view class="landing-btn landing-btn-primary" bindtap="handleOpenSheet">想了解一下</view>
+      <view class="landing-btn landing-btn-secondary" bindtap="handleBrowseCourses">先自己看看课</view>
+    </view>
+
+    <!-- 底部：留过言 -->
+    <view wx:elif="{{mode === 'lead'}}" class="landing-state">
+      <text class="landing-pill">{{leadStatusText}}</text>
+      <text class="landing-state-title">你的留言我们收到了</text>
+      <text wx:if="{{lead && lead.status === 'pending'}}" class="landing-state-desc">接待书友会在 {{contactByText}}前加你微信</text>
+      <text wx:else class="landing-state-desc">接待书友正在和你联系，留意微信里的好友申请</text>
+      <view class="landing-state-actions">
+        <view class="landing-btn landing-btn-primary" bindtap="handleGoToday">读今天这一课</view>
+        <view wx:if="{{lead && lead.status === 'pending'}}" class="landing-btn landing-btn-secondary" bindtap="handleChangePhone">改手机号</view>
+      </view>
+    </view>
+
+    <!-- 底部：老书友 -->
+    <view wx:else class="landing-state">
+      <text class="landing-state-title">你已经在营里了</text>
+      <text class="landing-state-desc">回到自己的晨读，或者也分享一张日签</text>
+      <view class="landing-state-actions">
+        <view class="landing-btn landing-btn-primary" bindtap="handleGoToday">进入今天的晨读</view>
+        <view class="landing-btn landing-btn-secondary" bindtap="handleShareMine">我也分享一张</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 留言弹层 -->
+  <view wx:if="{{sheetVisible}}" class="landing-mask" catchtap="handleCloseSheet">
+    <view class="landing-sheet" catchtap="stopPropagation">
+      <view class="landing-sheet-grip"></view>
+      <text class="landing-sheet-title">{{sheetPhoneOnly ? '改手机号' : '想了解一下'}}</text>
+      <text class="landing-sheet-sub">{{sheetPhoneOnly ? '换一个接待书友能加到你微信的号码' : '不用先注册，填完这一页就好'}}</text>
+
+      <block wx:if="{{!sheetPhoneOnly}}">
+        <text class="landing-q">你为什么想来？</text>
+        <view class="landing-chips">
+          <view
+            wx:for="{{reasonOptions}}"
+            wx:key="*this"
+            class="landing-chip {{selectedReason === item ? 'on' : ''}}"
+            data-value="{{item}}"
+            bindtap="handleSelectReason"
+          >{{item}}</view>
+        </view>
+        <textarea
+          class="landing-note-input"
+          value="{{extraNote}}"
+          maxlength="{{noteMax}}"
+          auto-height
+          placeholder="也可以多写两句（选填）"
+          placeholder-class="landing-placeholder"
+          bindinput="handleNoteInput"
+        />
+      </block>
+
+      <text class="landing-q">手机号</text>
+      <block wx:if="{{!phoneManual && !phone}}">
+        <button class="landing-btn landing-btn-secondary landing-btn-block landing-phone-btn" open-type="getPhoneNumber" bindgetphonenumber="handleGetPhoneNumber">用微信手机号一键填写</button>
+        <text class="landing-or">或 <text class="landing-or-link" bindtap="handleManualPhone">手动输入</text></text>
+      </block>
+      <input
+        wx:else
+        class="landing-phone-input"
+        type="number"
+        maxlength="11"
+        value="{{phone}}"
+        placeholder="请输入 11 位手机号"
+        placeholder-class="landing-placeholder"
+        bindinput="handlePhoneInput"
+      />
+
+      <view class="landing-consent">{{consentText}}</view>
+      <view class="landing-agree" bindtap="handleToggleAgree">
+        <view class="landing-check {{agreed ? 'on' : ''}}"><text wx:if="{{agreed}}">✓</text></view>
+        <text>我已阅读并同意</text>
+        <text class="landing-or-link" catchtap="handleOpenAgreement">《用户协议》</text>
+        <text>和</text>
+        <text class="landing-or-link" catchtap="handleOpenPrivacy">《隐私政策》</text>
+      </view>
+
+      <text wx:if="{{formError}}" class="landing-error">{{formError}}</text>
+      <view class="landing-btn landing-btn-primary landing-btn-block {{submitting ? 'is-busy' : ''}}" bindtap="handleSubmit">{{submitting ? '提交中…' : '提交'}}</view>
+    </view>
+  </view>
+</view>

@@ -266,9 +266,10 @@ page {
 
 .btn-share {
   flex: 1;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  color: white;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
   font-weight: bold;
+  box-shadow: none;
 }
 
 /* ===== 长图预览弹层 ===== */
@@ -338,13 +339,15 @@ page {
 
 .poster-btn {
   flex: 1;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  color: white;
+  background: var(--theme-primary);
+  color: #ffffff;
   border: none;
-  border-radius: 48rpx;
-  padding: 24rpx;
+  border-radius: var(--app-action-radius);
+  padding: 16rpx 24rpx;
   font-size: 28rpx;
   font-weight: bold;
+  box-shadow: var(--app-action-shadow-soft);
+  min-height: var(--app-action-height);
 }
 
 .poster-btn::after {
@@ -353,9 +356,10 @@ page {
 
 .poster-btn-outline {
   background: var(--app-paper);
-  color: var(--theme-primary);
-  border: 1rpx solid var(--app-rule);
+  color: var(--theme-primary-dark);
+  border: 1rpx solid var(--app-border);
   font-weight: 500;
+  box-shadow: none;
 }
 
 /* 隐藏的长图生成画布 */
@@ -450,9 +454,10 @@ page {
 /* ===== 弹幕按钮 ===== */
 .btn-danmaku {
   flex: 1;
-  background: linear-gradient(135deg, #52c5a0 0%, #3aaa85 100%);
-  color: white;
+  background: var(--app-surface-muted);
+  color: var(--app-text-soft);
   font-weight: bold;
+  box-shadow: none;
 }
 
 .btn-danmaku:active {
@@ -700,8 +705,8 @@ page {
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #52c5a0 0%, #3aaa85 100%);
-  color: white;
+  background: var(--theme-primary);
+  color: #ffffff;
   border: none;
   border-radius: 40rpx;
   font-size: 26rpx;
@@ -710,6 +715,7 @@ page {
   line-height: 72rpx;
   padding: 0 40rpx;
   margin: 0;
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .send-btn::after { border: none; }
@@ -895,7 +901,9 @@ page {
   flex-shrink: 0;
 }
 .bottom-bar {
-  background: rgba(255, 253, 248, 0.94);
+  background: rgba(255, 253, 248, 0.96);
+  border-top: 1rpx solid var(--app-border);
+  box-shadow: 0 -8rpx 22rpx rgba(84, 60, 30, 0.06);
 }
 .danmaku-item {
   background: rgba(255, 253, 248, 0.96);

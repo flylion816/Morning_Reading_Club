@@ -1,10 +1,10 @@
-<view class="page-insight-detail {{isDetailReady ? 'page-insight-detail-ready' : 'page-insight-detail-loading-state'}}" wx:if="{{socialAccessGranted}}">
+<view class="page-insight-detail {{isDetailReady ? 'page-insight-detail-ready' : 'page-insight-detail-loading-state'}}">
   <view wx:if="{{!isDetailReady}}" class="insight-detail-loading"></view>
 
   <block wx:if="{{isDetailReady}}">
   <!-- 弹幕叠加层：常驻 DOM 避免 position:fixed 渲染时序问题 -->
   <view class="danmaku-overlay">
-    <block wx:if="{{danmakuEnabled}}">
+    <block wx:if="{{danmakuEnabled && interactionsAllowed}}">
       <view
         wx:for="{{activeDanmaku}}"
         wx:key="id"
@@ -86,11 +86,17 @@
     <view class="action-buttons">
       <button wx:if="{{canEditInsight}}" class="action-btn btn-edit" bindtap="handleEdit">编辑</button>
       <button wx:else class="action-btn btn-back" bindtap="handleBack">返回</button>
-      <button class="action-btn btn-like {{isLiked ? 'liked' : ''}}" bindtap="handleLike">
+      <button
+        wx:if="{{interactionsAllowed}}"
+        class="action-btn btn-like {{isLiked ? 'liked' : ''}}"
+        bindtap="handleLike">
         <view class="btn-like-icon app-icon {{isLiked ? 'app-icon-heart-fill' : 'app-icon-heart'}}"></view>
         <text>{{isLiked ? '已赞' : '点赞'}}</text>
       </button>
-      <button class="action-btn btn-danmaku" bindtap="openDanmakuPanel">弹幕</button>
+      <button
+        wx:if="{{interactionsAllowed}}"
+        class="action-btn btn-danmaku"
+        bindtap="openDanmakuPanel">弹幕</button>
       <button class="action-btn btn-share" bindtap="openShareMenu">分享</button>
     </view>
   </view>
@@ -188,3 +194,4 @@
 </view>
 
 <podcast-player-bar bottom-offset="152" />
+<app-dialog id="app-dialog" />

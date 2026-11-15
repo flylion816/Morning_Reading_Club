@@ -23,6 +23,7 @@ jest.mock('../../services/activity.service', () => ({
   track: jest.fn(() => Promise.resolve())
 }));
 jest.mock('../../services/subscribe-message.service', () => ({}));
+jest.mock('../../services/buddy.service', () => ({ react: jest.fn() }));
 jest.mock('../../services/seen-card.service', () => ({
   getSummary: jest.fn(() => Promise.resolve({})),
   sendSeen: jest.fn(),
@@ -1143,7 +1144,7 @@ describe('course-detail page markdown support', () => {
     commentService.createComment.mockResolvedValue({
       _id: 'comment_1'
     });
-    wx.showModal.mockImplementation(({ success }) => {
+    pageInstance.showReplyDialog = jest.fn(({ success }) => {
       success({
         confirm: true,
         content: '哈哈哈[偷笑]'
@@ -1181,9 +1182,113 @@ describe('course-detail page markdown support', () => {
     expect(pageInstance.data.course.comments[0].replies[0]).toMatchObject({
       userName: '小狐狸',
       content: '哈哈哈🤭',
-      avatarText: '狸',
+      avatarText: '狐狸',
       avatarUrl: '',
       avatarColor: getAvatarColorByUserId('user_fox')
+    });
+  });
+
+  test('reply dialog should be an in-page dialog and only submit non-empty content', () => {
+    const success = jest.fn();
+    pageInstance.showReplyDialog.call(pageInstance, { title: '回复 喜娟', placeholderText: '说点什么…', success });
+    expect(pageInstance.data.replyDialog).toMatchObject({ visible: true, title: '回复 喜娟', content: '' });
+
+    pageInstance.handleReplyDialogInput.call(pageInstance, { detail: { value: '   ' } });
+    pageInstance.handleReplyDialogConfirm.call(pageInstance);
+    expect(success).not.toHaveBeenCalled();
+    expect(pageInstance.data.replyDialog.visible).toBe(true);
+
+    pageInstance.handleReplyDialogInput.call(pageInstance, { detail: { value: '写得真好' } });
+    pageInstance.handleReplyDialogConfirm.call(pageInstance);
+    expect(success).toHaveBeenCalledWith({ confirm: true, content: '写得真好' });
+    expect(pageInstance.data.replyDialog.visible).toBe(false);
+
+    pageInstance.showReplyDialog.call(pageInstance, { title: 'x', success });
+    pageInstance.handleReplyDialogCancel.call(pageInstance);
+    expect(pageInstance.data.replyDialog.visible).toBe(false);
+    expect(success).toHaveBeenCalledTimes(1);
+  });
+
+  test('checkin items expose the public mood name and icon, empty when not set', () => {
+    const withMood = pageInstance.buildCheckinItem.call(pageInstance, {
+      _id: 'c1',
+      content: '今天很开心',
+      mood: 'calm',
+      userId: { _id: 'u1', nickname: '喜娟', avatarUrl: '' }
+    });
+    expect(withMood).toMatchObject({ mood: 'calm', moodName: '多云', moodIcon: 'cloud' });
+
+    const withoutMood = pageInstance.buildCheckinItem.call(pageInstance, {
+      _id: 'c2',
+      content: '没选心情',
+      userId: { _id: 'u1', nickname: '喜娟', avatarUrl: '' }
+    });
+    expect(withoutMood).toMatchObject({ mood: '', moodName: '', moodIcon: '' });
+  });
+
+  describe('读伴标记与读伴回应', () => {
+    // 模块在 beforeEach 里被重置过，要在用例里再取，才是页面用的同一个实例
+    const useUser = (user) => {
+      const previous = global.getApp();
+      global.getApp = jest.fn(() => ({ ...previous, globalData: { ...previous.globalData, userInfo: user } }));
+    };
+
+    test('作者的读伴给打卡点的赞排第一并带标记', () => {
+      const item = pageInstance.buildCheckinItem.call(pageInstance, {
+        _id: 'c1',
+        content: '今天很开心',
+        buddyUserId: 'u_buddy',
+        userId: { _id: 'u_author', nickname: '喜娟' },
+        likes: [{ userId: { _id: 'u_a', nickname: '甲' } }, { userId: { _id: 'u_buddy', nickname: '读伴' } }]
+      });
+      expect(item.buddyUserId).toBe('u_buddy');
+      expect(item.likeAvatars.map(a => a.userId)).toEqual(['u_buddy', 'u_a']);
+      expect(item.likeAvatars[0].isBuddy).toBe(true);
+      expect(item.displayLikeAvatars[0].isBuddy).toBe(true);
+    });
+
+    test('我是作者的读伴时可以回应，已有回应或我是作者本人时不可以', () => {
+      useUser({ _id: 'me' });
+      const base = { _id: 'c1', content: 'x', userId: { _id: 'ta', nickname: 'TA' } };
+      const mine = pageInstance.buildCheckinItem.call(pageInstance, { ...base, buddyUserId: 'me' });
+      expect(mine.isMyBuddyCheckin).toBe(true);
+      expect(mine.canBuddyReact).toBe(true);
+
+      const reacted = pageInstance.buildCheckinItem.call(pageInstance, { ...base, buddyUserId: 'me', buddyReaction: { text: '为你高兴。' } });
+      expect(reacted.canBuddyReact).toBe(false);
+      expect(reacted.buddyReaction).toEqual({ text: '为你高兴。' });
+
+      const other = pageInstance.buildCheckinItem.call(pageInstance, { ...base, buddyUserId: 'someone' });
+      expect(other.isMyBuddyCheckin).toBe(false);
+      expect(other.canBuddyReact).toBe(false);
+
+      const own = pageInstance.buildCheckinItem.call(pageInstance, { _id: 'c2', content: 'x', buddyUserId: 'me', userId: { _id: 'me' } });
+      expect(own.canBuddyReact).toBe(false);
+    });
+
+    test('回应：选一句送出，成功后显示回应并收起按钮；失败提示且按钮保留', async () => {
+      const buddyService = require('../../services/buddy.service');
+      pageInstance.setData({
+        detailCheckin: { id: 'c1', periodId: 'p1', canBuddyReact: true },
+        course: { comments: [{ id: 'c1', canBuddyReact: true }] }
+      });
+      pageInstance.onOpenBuddyReact.call(pageInstance);
+      expect(pageInstance.data.buddyReactSheet.visible).toBe(true);
+      pageInstance.onSelectBuddyReact.call(pageInstance, { currentTarget: { dataset: { key: 'glad' } } });
+
+      buddyService.react.mockResolvedValue({});
+      await pageInstance.onSendBuddyReact.call(pageInstance);
+      expect(buddyService.react).toHaveBeenCalledWith('p1', 'c1', 'glad');
+      expect(pageInstance.data.detailCheckin.buddyReaction).toEqual({ text: '为你高兴。' });
+      expect(pageInstance.data.detailCheckin.canBuddyReact).toBe(false);
+      expect(pageInstance.data.course.comments[0].canBuddyReact).toBe(false);
+      expect(pageInstance.data.buddyReactSheet.visible).toBe(false);
+
+      pageInstance.setData({ detailCheckin: { id: 'c3', periodId: 'p1', canBuddyReact: true } });
+      buddyService.react.mockRejectedValue(new Error('这一篇已经回应过了'));
+      await pageInstance.onSendBuddyReact.call(pageInstance);
+      expect(wx.showToast).toHaveBeenCalledWith({ title: '这一篇已经回应过了', icon: 'none' });
+      expect(pageInstance.data.detailCheckin.canBuddyReact).toBe(true);
     });
   });
 
@@ -1345,7 +1450,7 @@ describe('course-detail page markdown support', () => {
 
     test('builds mood summary text sorted by count, skipping zeros', () => {
       expect(pageInstance.buildMoodSummaryText({ happy: 2, calm: 5, low: 3, other: 0 }))
-        .toBe('今天营里：5 多云 · 3 小雨 · 2 晴');
+        .toBe('营里心情：5 多云 · 3 小雨 · 2 晴');
       expect(pageInstance.buildMoodSummaryText(null)).toBe('');
       expect(pageInstance.buildMoodSummaryText({ happy: 0 })).toBe('');
     });
@@ -1354,7 +1459,7 @@ describe('course-detail page markdown support', () => {
       checkinService.getSectionMoodSummary = jest.fn().mockResolvedValue({ total: 5, counts: { happy: 4, low: 1 } });
       await pageInstance.loadMoodSummary();
       expect(checkinService.getSectionMoodSummary).toHaveBeenCalledWith('sec1');
-      expect(pageInstance.data.moodSummaryText).toBe('今天营里：4 晴 · 1 小雨');
+      expect(pageInstance.data.moodSummaryText).toBe('营里心情：4 晴 · 1 小雨');
 
       checkinService.getSectionMoodSummary = jest.fn().mockResolvedValue({ total: 1, counts: null });
       await pageInstance.loadMoodSummary();

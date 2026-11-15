@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const appDialog = require('../../utils/dialog');
 const danmakuService = require('./danmaku.service');
 const env = require('../../config/env');
 const { renderInsightLetterContent } = require('../../utils/markdown');
@@ -12,6 +13,7 @@ const {
   getThemeColorWithAlpha
 } = require('../../utils/theme');
 const { getBrandName } = require('../../utils/brand');
+const { getPeriodAccess } = require('../../utils/period-access');
 const {
   normalizeDanmakuContent,
   countDanmakuChars,
@@ -91,11 +93,8 @@ function normalizeInsightDetail(rawInsight) {
   };
 }
 
-const { guardSocialPage } = require('../../utils/social-access');
-
 Page({
   data: {
-    socialAccessGranted: false,
     insightId: null,
     insight: {},
     letterDate: '',
@@ -112,6 +111,9 @@ Page({
     danmakuEnabled: true,
     showDanmakuPanel: false,
     danmakuList: [],
+    interactionsLocked: true,
+    interactionsLockedMessage: '',
+    interactionsAllowed: false,
     activeDanmaku: [],
     danmakuInput: '',
     danmakuInputLength: 0,
@@ -145,9 +147,8 @@ Page({
   formatLetterDate,
 
   onLoad(options) {
-    if (!guardSocialPage(this)) return;
     if (!options.id || options.id === 'undefined') {
-      wx.redirectTo({ url: '/pages/index/index' });
+      wx.switchTab({ url: '/pages/index/index' });
       return;
     }
     this._danmakuCooldowns = new Map();
@@ -155,14 +156,14 @@ Page({
     this._pendingDanmakuIds = new Set();
     this._heartsBatchTimers = [];
     const savedDanmaku = wx.getStorageSync('danmakuEnabled');
+    this._danmakuPreference = savedDanmaku !== false;
     const keyword = options.keyword ? decodeURIComponent(options.keyword) : '';
     this.setData({
       insightId: options.id,
       searchKeyword: keyword,
-      danmakuEnabled: savedDanmaku === false ? false : true
+      danmakuEnabled: false
     });
     this.loadInsightDetail();
-    this.loadDanmaku();
   },
 
   onShow() {
@@ -313,6 +314,7 @@ Page({
         canEditInsight: !!canEditInsight,
         isDetailReady: true
       });
+      this.loadInteractionAccess(insight);
       if (isOwnInsight) {
         this.topUpInsightInteractionSubscriptions('insight_detail_own_view');
       }
@@ -337,6 +339,56 @@ Page({
       console.error('加载失败:', error);
       wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     }
+  },
+
+  getInteractionsLockedMessage() {
+    const app = getApp();
+    return app?.globalData?.isLogin
+      ? '报名并加入营期后可参与互动'
+      : '登录并加入营期后可参与互动';
+  },
+
+  async loadInteractionAccess(insight = {}) {
+    const app = getApp();
+    const currentUser = app?.globalData?.userInfo || {};
+    const periodId = getEntityId(insight.periodId);
+    const lockedAccess = {
+      communityAccessState: 'locked',
+      canAccessCommunity: false
+    };
+
+    if (!app?.globalData?.isLogin || !getEntityId(currentUser)) {
+      this.setData({
+        interactionsLocked: true,
+        interactionsLockedMessage: this.getInteractionsLockedMessage(),
+        interactionsAllowed: false
+      });
+      return;
+    }
+
+    if (isAdminUser(currentUser)) {
+      this.setData({
+        interactionsLocked: false,
+        interactionsLockedMessage: '',
+        interactionsAllowed: true,
+        danmakuEnabled: this._danmakuPreference
+      });
+      this.loadDanmaku();
+      return;
+    }
+
+    const access = periodId
+      ? await getPeriodAccess(periodId).catch(() => lockedAccess)
+      : lockedAccess;
+    const canInteract = access.communityAccessState === 'enabled';
+    this.setData({
+      interactionsLocked: !canInteract,
+      interactionsLockedMessage: canInteract ? '' : this.getInteractionsLockedMessage(),
+      interactionsAllowed: canInteract,
+      danmakuEnabled: canInteract && this._danmakuPreference
+    });
+
+    if (canInteract) this.loadDanmaku();
   },
 
   topUpInsightInteractionSubscriptions(sourceAction) {
@@ -537,7 +589,7 @@ Page({
       },
       fail(err) {
         if (String(err?.errMsg || '').includes('auth deny') && wx.showModal) {
-          wx.showModal({
+          appDialog.showModal({
             title: '需要相册权限',
             content: '请在设置中允许保存到相册后重试',
             success(res) {
@@ -1102,6 +1154,10 @@ Page({
   },
 
   openDanmakuPanel() {
+    if (!this.data.interactionsAllowed) {
+      wx.showToast({ title: this.data.interactionsLockedMessage, icon: 'none' });
+      return;
+    }
     this.setData({ showDanmakuPanel: true });
   },
 
@@ -1111,6 +1167,7 @@ Page({
 
   toggleDanmaku(e) {
     const val = e.detail.value;
+    this._danmakuPreference = val;
     this.setData({ danmakuEnabled: val });
     wx.setStorageSync('danmakuEnabled', val);
   },
@@ -1128,6 +1185,10 @@ Page({
   },
 
   async sendDanmaku() {
+    if (!this.data.interactionsAllowed) {
+      wx.showToast({ title: this.data.interactionsLockedMessage, icon: 'none' });
+      return;
+    }
     if (!requireLogin('登录后才能发弹幕')) return;
     const { danmakuInput, danmakuColor, insightId } = this.data;
     const content = normalizeDanmakuContent(danmakuInput || '').trim();
@@ -1153,6 +1214,10 @@ Page({
   },
 
   async handleLike() {
+    if (!this.data.interactionsAllowed) {
+      wx.showToast({ title: this.data.interactionsLockedMessage, icon: 'none' });
+      return;
+    }
     if (!requireLogin('登录后才能点赞')) return;
     const { insightId, isLiked } = this.data;
     try {

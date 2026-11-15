@@ -138,10 +138,12 @@
 .state-action {
   margin-top: 8rpx;
   padding: 18rpx 44rpx;
-  border-radius: 44rpx;
+  border-radius: var(--app-action-radius);
   background: var(--theme-primary);
   color: #ffffff;
   font-size: 28rpx;
+  box-shadow: var(--app-action-shadow-soft);
+  min-height: var(--app-action-height);
 }
 
 /* Version 2 consistency polish: report document page. */
@@ -161,7 +163,9 @@
   border-radius: var(--app-radius-md);
 }
 .primary-action {
-  background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark));
+  background: var(--theme-primary);
+  color: #ffffff;
+  box-shadow: var(--app-action-shadow-soft);
 }
 .primary-action:active,
 .secondary-action:active {

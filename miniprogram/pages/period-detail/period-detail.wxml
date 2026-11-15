@@ -6,7 +6,7 @@
   </view>
 
   <view wx:if="{{!loading && period}}" class="detail-content">
-    <view class="detail-hero" style="background: {{period.displayColor}}">
+    <view class="detail-hero" style="border-top-color: {{period.displayColor}}">
       <text class="hero-kicker">{{brandName}} · 课程期次</text>
       <view class="hero-title-row">
         <text wx:if="{{period.coverEmoji || period.icon}}" class="hero-emoji">{{period.coverEmoji || period.icon}}</text><view wx:else class="app-seal app-seal-lg hero-seal">读</view>
@@ -134,3 +134,4 @@
 </view>
 
 <podcast-player-bar bottom-offset="128" />
+<app-dialog id="app-dialog" />

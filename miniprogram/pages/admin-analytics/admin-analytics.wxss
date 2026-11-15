@@ -540,11 +540,22 @@
 }
 .tab.active,
 .preset.active {
-  background: var(--theme-primary);
-  color: #fff;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  box-shadow: none;
 }
 .tab:active,
 .preset:active,
 .search-btn:active {
   transform: translateY(2rpx) scale(0.98);
+}
+
+.metric-card {
+  background: var(--app-paper);
+  box-shadow: none;
+}
+
+.activity-card {
+  background: var(--app-paper);
+  box-shadow: none;
 }

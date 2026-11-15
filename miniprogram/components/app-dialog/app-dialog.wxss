@@ -1,0 +1,98 @@
+/* Version 3 dawn: 统一确认弹窗，纸张底 + 圆角 + 品牌主色，删除类用暖红。 */
+.ad-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  padding: 0 64rpx;
+  box-sizing: border-box;
+  background: var(--app-overlay, rgba(40, 30, 20, 0.48));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ad-fade 0.18s ease-out;
+}
+
+.ad-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 44rpx 36rpx 32rpx;
+  border-radius: var(--app-radius-lg, 30rpx);
+  background: var(--app-paper, #fffdf8);
+  box-shadow: 0 24rpx 60rpx rgba(60, 42, 20, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: ad-pop 0.2s ease-out;
+}
+
+.ad-title {
+  font-family: var(--app-font-serif, serif);
+  font-size: 36rpx;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--app-text, #2b2622);
+}
+
+.ad-content {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  text-align: center;
+  white-space: pre-wrap;
+  color: var(--app-text-soft, #6b6157);
+}
+
+.ad-content-lead {
+  margin-top: 0;
+  font-size: 30rpx;
+  color: var(--app-text, #2b2622);
+}
+
+.ad-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 36rpx;
+}
+
+.ad-btn {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  box-sizing: border-box;
+  border-radius: var(--app-action-radius, 24rpx);
+  text-align: center;
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.ad-btn-hover {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.ad-btn-cancel {
+  background: var(--app-paper, #fffdf8);
+  border: 1rpx solid var(--theme-primary-alpha-15, rgba(61, 108, 163, 0.15));
+  color: var(--theme-primary-dark, #2f5a8a);
+}
+
+.ad-btn-ok {
+  background: var(--theme-primary, #3d6ca3);
+  color: #fff;
+  box-shadow: var(--app-action-shadow, 0 8rpx 18rpx rgba(61, 108, 163, 0.12));
+}
+
+.ad-btn-danger {
+  background: var(--app-danger, #c0482f);
+  color: #fff;
+  box-shadow: 0 8rpx 18rpx rgba(192, 72, 47, 0.18);
+}
+
+@keyframes ad-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ad-pop {
+  from { opacity: 0; transform: translateY(16rpx) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}

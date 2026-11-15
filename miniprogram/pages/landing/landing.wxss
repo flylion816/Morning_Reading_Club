@@ -1,0 +1,577 @@
+/* Version 3 dawn: 新人连接功能页面，直接按晨光规范编写。 */
+.landing {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--app-page-bg);
+  color: var(--app-text);
+}
+
+.landing-scroll {
+  flex: 1;
+  height: 0;
+}
+
+/* ---------- 首屏：日签 ---------- */
+.landing-hero {
+  padding: 12rpx 32rpx 28rpx;
+  background:
+    radial-gradient(circle at 84% 72%, var(--app-dawn-glow), rgba(255, 196, 120, 0) 260rpx),
+    linear-gradient(180deg, var(--app-dawn-sky) 0%, #fdf0dd 66%, var(--app-page-bg) 100%);
+}
+
+.landing-who {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 22rpx;
+  color: var(--app-dawn-ink);
+  font-size: var(--app-font-sm);
+}
+
+.landing-seal {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid var(--app-rule);
+  background: var(--app-paper-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--app-font-serif);
+  font-size: 28rpx;
+}
+
+.landing-day {
+  border-radius: var(--app-radius-lg);
+  overflow: hidden;
+  background: var(--app-paper);
+  box-shadow: 0 16rpx 40rpx rgba(84, 60, 30, 0.1);
+}
+
+.landing-day-sky {
+  position: relative;
+  overflow: hidden;
+  height: 250rpx;
+  padding: 26rpx 34rpx;
+  background: linear-gradient(180deg, #fcd9ae, #fdebd3);
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-day-num {
+  font-family: var(--app-font-num);
+  font-size: 92rpx;
+  line-height: 1.05;
+  color: var(--app-dawn-ink);
+}
+
+.landing-day-line {
+  margin-top: 8rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-dawn-ink);
+}
+
+.landing-day-sun {
+  position: absolute;
+  right: 34rpx;
+  bottom: -116rpx;
+  width: 232rpx;
+  height: 232rpx;
+  border-radius: 50%;
+  background: #fbd08f;
+}
+
+.landing-day-sun::after {
+  content: '';
+  position: absolute;
+  left: 44rpx;
+  top: 44rpx;
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 50%;
+  background: #f99f3b;
+}
+
+.landing-day-body {
+  padding: 24rpx 34rpx 30rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-day-lesson {
+  font-size: var(--app-font-xs);
+  color: var(--app-dawn-ink);
+}
+
+.landing-day-quote {
+  margin-top: 10rpx;
+  font-family: var(--app-font-serif);
+  font-size: 32rpx;
+  line-height: 1.7;
+}
+
+/* ---------- 内容 ---------- */
+.landing-content {
+  padding: 0 32rpx;
+}
+
+.landing-sec {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 34rpx 0 16rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.landing-sec::after {
+  content: '';
+  flex: 1;
+  height: 1rpx;
+  background: var(--app-border);
+}
+
+.landing-card {
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  padding: 24rpx 28rpx;
+  box-shadow: var(--app-shadow-soft);
+}
+
+.landing-say {
+  font-family: var(--app-font-serif);
+  font-size: 29rpx;
+  line-height: 1.7;
+}
+
+.landing-voice {
+  margin-bottom: 14rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-voice-by,
+.landing-hint {
+  margin-top: 8rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.landing-fit {
+  display: flex;
+  gap: 16rpx;
+}
+
+.landing-fit-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 22rpx 24rpx;
+}
+
+.landing-fit-title {
+  margin-bottom: 8rpx;
+  font-size: var(--app-font-sm);
+  font-weight: 600;
+}
+
+.landing-fit-line {
+  font-size: var(--app-font-xs);
+  line-height: 1.8;
+  color: var(--app-text-soft);
+}
+
+.landing-link {
+  display: block;
+  margin-top: 28rpx;
+  text-align: center;
+  font-size: var(--app-font-sm);
+  color: var(--theme-primary);
+}
+
+.landing-bar-space {
+  height: 280rpx;
+}
+
+/* ---------- 按钮 ---------- */
+.landing-btn {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: var(--app-action-radius);
+  text-align: center;
+  font-size: 29rpx;
+  font-weight: 600;
+  transition: transform var(--app-dur-press) var(--app-ease);
+}
+
+.landing-btn:active {
+  transform: scale(0.98);
+}
+
+.landing-btn-primary {
+  background: var(--theme-primary);
+  color: #fff;
+  box-shadow: var(--app-action-shadow);
+}
+
+.landing-btn-secondary {
+  background: var(--app-paper);
+  color: var(--theme-primary-dark);
+  border: 1rpx solid var(--theme-primary-alpha-15);
+  box-sizing: border-box;
+}
+
+.landing-btn-block {
+  display: block;
+  width: 100%;
+  flex: none;
+}
+
+.landing-btn.is-busy {
+  opacity: 0.7;
+}
+
+button.landing-btn {
+  padding: 0;
+  margin: 0;
+}
+
+button.landing-btn::after {
+  border: none;
+}
+
+.landing-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(246, 241, 231, 0), var(--app-page-bg) 28%);
+}
+
+/* ---------- 底部状态卡 ---------- */
+.landing-state {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
+  padding: 26rpx 28rpx;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
+  box-shadow: 0 16rpx 40rpx rgba(84, 60, 30, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-pill {
+  align-self: flex-start;
+  padding: 2rpx 18rpx;
+  border-radius: 99rpx;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  font-size: var(--app-font-xs);
+  font-weight: 600;
+}
+
+.landing-state-title {
+  margin-top: 10rpx;
+  font-family: var(--app-font-serif);
+  font-size: 32rpx;
+}
+
+.landing-state-desc {
+  margin: 4rpx 0 20rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.landing-state-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.landing-state-actions .landing-btn {
+  height: 76rpx;
+  line-height: 76rpx;
+}
+
+/* ---------- 弹层 ---------- */
+.landing-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--app-overlay);
+  display: flex;
+  align-items: flex-end;
+}
+
+.landing-sheet {
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 18rpx 36rpx calc(32rpx + env(safe-area-inset-bottom));
+  border-radius: 44rpx 44rpx 0 0;
+  background: var(--app-paper);
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-sheet-grip {
+  align-self: center;
+  width: 68rpx;
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: var(--app-rule);
+  margin-bottom: 20rpx;
+}
+
+.landing-sheet-title {
+  font-family: var(--app-font-serif);
+  font-size: 38rpx;
+}
+
+.landing-sheet-sub {
+  margin-top: 4rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.landing-q {
+  margin: 28rpx 0 14rpx;
+  font-size: var(--app-font-sm);
+  font-weight: 600;
+}
+
+.landing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.landing-chip {
+  padding: 8rpx 22rpx;
+  border-radius: 99rpx;
+  border: 1rpx solid var(--app-border);
+  background: var(--app-paper-muted);
+  font-size: var(--app-font-sm);
+  color: var(--app-text-soft);
+}
+
+.landing-chip.on {
+  background: var(--app-dawn-soft);
+  border-color: rgba(184, 99, 31, 0.3);
+  color: var(--app-dawn-ink);
+  font-weight: 600;
+}
+
+.landing-note-input,
+.landing-phone-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--app-radius-sm);
+  border: 1rpx solid var(--app-border);
+  background: var(--app-paper-muted);
+  font-size: var(--app-font-md);
+  color: var(--app-text);
+}
+
+.landing-note-input {
+  margin-top: 14rpx;
+  padding: 18rpx 24rpx;
+  min-height: 96rpx;
+  line-height: 1.6;
+}
+
+/* 单行输入框不要用上下 padding 撑高度：原生 input 会把文字挤到底部。
+   固定高度 + 等值 min-height/line-height，文字才能垂直居中。 */
+.landing-phone-input {
+  height: 76rpx;
+  min-height: 76rpx;
+  line-height: 76rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
+  letter-spacing: 1rpx;
+}
+
+.landing-placeholder {
+  color: var(--app-text-muted);
+}
+
+.landing-phone-btn {
+  height: 76rpx;
+  line-height: 76rpx;
+}
+
+.landing-or {
+  margin-top: 10rpx;
+  text-align: center;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.landing-or-link {
+  color: var(--theme-primary);
+}
+
+.landing-consent {
+  margin-top: 22rpx;
+  padding: 16rpx 20rpx;
+  border-radius: var(--app-radius-sm);
+  background: var(--app-dawn-soft);
+  font-size: var(--app-font-xs);
+  line-height: 1.7;
+  color: var(--app-text-soft);
+}
+
+.landing-agree {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4rpx;
+  margin: 8rpx 0 12rpx;
+  /* 上下留出点击区域，勾选框本身不用做得很大 */
+  padding: 14rpx 0;
+  font-size: var(--app-font-sm);
+  color: var(--app-text-soft);
+}
+
+.landing-check {
+  flex: none;
+  width: 36rpx;
+  height: 36rpx;
+  box-sizing: border-box;
+  margin-right: 12rpx;
+  border-radius: 10rpx;
+  border: 2rpx solid var(--app-rule);
+  background: var(--app-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  line-height: 1;
+  color: #fff;
+}
+
+.landing-check.on {
+  background: var(--theme-primary);
+  border-color: var(--theme-primary);
+}
+
+.landing-error {
+  margin-bottom: 14rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-danger);
+}
+
+/* ---------- 提交成功 / 打不开 ---------- */
+.landing-done,
+.landing-empty {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 0 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.landing-done {
+  background:
+    radial-gradient(circle at 50% 300rpx, rgba(255, 196, 120, 0.75), rgba(255, 196, 120, 0) 360rpx),
+    linear-gradient(180deg, var(--app-dawn-sky) 0%, #fdf0dd 44%, var(--app-page-bg) 70%);
+}
+
+.landing-done-sun {
+  width: 200rpx;
+  height: 200rpx;
+  margin: 150rpx 0 80rpx;
+  border-radius: 50%;
+  background: #f99f3b;
+  box-shadow: 0 0 0 46rpx rgba(251, 208, 143, 0.55);
+}
+
+.landing-done-title {
+  font-family: var(--app-font-serif);
+  font-size: 42rpx;
+}
+
+.landing-done-desc {
+  margin: 12rpx 0 32rpx;
+  color: var(--app-text-soft);
+  font-size: var(--app-font-md);
+}
+
+.landing-steps {
+  width: 100%;
+  margin-bottom: 32rpx;
+}
+
+.landing-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 18rpx;
+  padding: 10rpx 0;
+}
+
+.landing-step-no {
+  flex: none;
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  border-radius: 50%;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  text-align: center;
+  font-family: var(--app-font-num);
+  font-size: 22rpx;
+}
+
+.landing-step-text {
+  font-size: var(--app-font-md);
+  line-height: 1.6;
+}
+
+.landing-empty {
+  justify-content: center;
+}
+
+.landing-empty-sun {
+  width: 128rpx;
+  height: 128rpx;
+  margin-bottom: 64rpx;
+  border-radius: 50%;
+  background: #ee9b45;
+  box-shadow: 0 0 0 32rpx rgba(251, 208, 143, 0.5);
+}
+
+.landing-empty-title {
+  font-family: var(--app-font-serif);
+  font-size: 38rpx;
+}
+
+.landing-empty-desc {
+  margin: 12rpx 0 44rpx;
+  color: var(--app-text-soft);
+  font-size: var(--app-font-md);
+  text-align: center;
+}
+
+.landing-empty .landing-btn {
+  margin-bottom: 16rpx;
+}
+
+.landing-loading {
+  padding: 40rpx 32rpx;
+}
+
+.landing-skel-hero {
+  height: 420rpx;
+  margin-bottom: 28rpx;
+  border-radius: var(--app-radius-lg);
+}

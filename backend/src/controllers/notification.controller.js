@@ -5,6 +5,7 @@ const logger = require("../utils/logger");
 const { publishSyncEvent } = require("../services/sync.service");
 const subscribeMessageService = require("../services/subscribe-message.service");
 const { getCurrentTenantId } = require("../utils/tenantContext");
+const buddyService = require("../services/buddy.service");
 
 function serializeNotificationUser(user) {
   if (!user || typeof user !== "object") {
@@ -92,7 +93,7 @@ async function getUserNotifications(req, res, next) {
       .populate("senderId", "nickname avatar avatarUrl")
       .populate({
         path: "requestId",
-        select: "status fromUserId toUserId",
+        select: "status fromUserId toUserId periodId requestPeriodName requestInsightTitle requestInsightDay",
         populate: [
           { path: "fromUserId", select: "nickname avatar avatarUrl" },
           { path: "toUserId", select: "nickname avatar avatarUrl" },
@@ -101,9 +102,26 @@ async function getUserNotifications(req, res, next) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parsedLimit);
-    const responseNotifications = notifications.map(
+    let responseNotifications = notifications.map(
       decorateNotificationForResponse,
     );
+
+    // 读伴邀请：带上邀请现在的状态（已同意 / 已婉拒 / 已撤回），来信里据此显示
+    try {
+      const inviteIds = responseNotifications
+        .filter((item) => item.type === "buddy_invite" && item.data && item.data.inviteId)
+        .map((item) => item.data.inviteId);
+      if (inviteIds.length) {
+        const statuses = await buddyService.getInviteStatuses(inviteIds);
+        responseNotifications = responseNotifications.map((item) =>
+          item.type === "buddy_invite" && item.data && item.data.inviteId
+            ? { ...item, data: { ...item.data, inviteStatus: statuses[item.data.inviteId] || "gone" } }
+            : item,
+        );
+      }
+    } catch (inviteError) {
+      logger.warn("读伴邀请状态查询失败", { message: inviteError && inviteError.message });
+    }
 
     res.json(
       success(

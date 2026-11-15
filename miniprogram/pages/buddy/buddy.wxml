@@ -10,72 +10,143 @@
   </view>
 
   <block wx:else>
+    <!-- 这一期已经结束，也没有读伴 -->
     <view wx:if="{{state === 'none' && !canJoin}}" class="app-empty buddy-card">
       <view class="app-empty-art app-empty-art-book"></view>
       <text class="buddy-line">这一期已经结束了</text>
     </view>
 
-    <view wx:elif="{{state === 'none'}}" class="app-card buddy-card">
+    <!-- 还没有读伴 -->
+    <view wx:elif="{{state === 'none'}}" class="buddy-empty">
       <view class="app-seal app-seal-lg buddy-seal">伴</view>
       <text class="buddy-title">想要一位读伴吗</text>
-      <view class="buddy-intro">
-        <text class="buddy-line">读伴是同一期里的另一位书友，两个人安静地一起读。</text>
-        <text class="buddy-line">你能看到 TA 的昵称、头像，以及 TA 今天读了没、记了没。</text>
-        <text class="buddy-line">看不到 TA 写的内容，也没有聊天，只有一次轻轻的“轻拍”。</text>
-        <text class="buddy-line">期次结束时自然告别，你也可以随时结束。</text>
+      <text class="buddy-sub">同一期里的另一位书友，两个人安静地一起读。</text>
+      <view class="buddy-rules">
+        <text class="buddy-rule">这一期只配一位，你们互相看得到对方</text>
+        <text class="buddy-rule">能看到 TA 今天读了没，和 TA 公开的打卡</text>
+        <text class="buddy-rule">不聊天，只有轻拍、击掌和送一句</text>
+        <text class="buddy-rule">结营时自然告别，也可以随时结束</text>
       </view>
       <view class="app-btn-primary buddy-btn" bindtap="onJoin">想要一位读伴</view>
+      <view class="app-btn-secondary buddy-btn" bindtap="onOpenPicker">从本期学员里挑一位</view>
+      <text wx:if="{{waitingCount > 0}}" class="buddy-hint">现在有 {{waitingCount}} 位书友也在等</text>
     </view>
 
-    <view wx:elif="{{state === 'waiting'}}" class="app-empty buddy-card">
-      <view class="app-empty-art app-empty-art-lamp"></view>
-      <text class="app-empty-title">正在等另一位想要读伴的书友</text>
-      <text class="buddy-line">有人来了，你们会自动成为读伴。</text>
+    <!-- 等待中 -->
+    <view wx:elif="{{state === 'waiting'}}" class="buddy-empty">
+      <view class="buddy-waiting-duo">
+        <user-avatar size="116" avatar-url="{{meAvatar.avatarUrl}}" avatar-text="{{meAvatar.avatarText}}" avatar-color="{{meAvatar.avatarColor}}" />
+        <view class="buddy-ghost">…</view>
+      </view>
+      <text class="buddy-title">正在等另一位想要读伴的书友</text>
+      <text class="buddy-sub">有人来了，你们会自动成为读伴。</text>
+      <text wx:if="{{waitingCount > 0}}" class="buddy-hint">已经有 {{waitingCount}} 位书友在等</text>
       <text class="app-empty-action" bindtap="onCancel">先不找了</text>
     </view>
 
+    <!-- 已配对 -->
     <view wx:elif="{{state === 'paired'}}" class="buddy-paired">
-      <view class="app-card buddy-pair-card">
-        <view class="buddy-people">
+      <view class="buddy-hero">
+        <text class="buddy-period">{{periodName}}{{periodName && pairedDay ? ' · ' : ''}}{{pairedDay ? '同行第 ' + pairedDay + ' 天' : ''}}</text>
+        <view class="buddy-duo">
           <view class="buddy-person">
-            <view class="buddy-avatar buddy-avatar-me"><text>我</text></view>
+            <view class="buddy-avatar-ring {{me.readToday ? 'buddy-avatar-ring-on' : ''}}">
+              <user-avatar size="116" avatar-url="{{meAvatar.avatarUrl}}" avatar-text="{{meAvatar.avatarText}}" avatar-color="{{meAvatar.avatarColor}}" />
+            </view>
             <text class="buddy-name">你</text>
-            <view class="buddy-marks">
-              <text class="buddy-mark {{me.readToday ? 'buddy-mark-on' : ''}}">读</text>
-              <text class="buddy-mark {{me.checkedInToday ? 'buddy-mark-on' : ''}}">记</text>
-            </view>
+            <text class="buddy-status {{me.readToday ? 'buddy-status-on' : ''}}">{{meLine}}</text>
+          </view>
+          <view class="buddy-link {{bothDone ? 'buddy-link-lit' : ''}}">
+            <view class="buddy-link-node"><text>伴</text></view>
           </view>
           <view class="buddy-person">
-            <user-avatar
-              size="128"
-              avatar-url="{{buddy.avatarUrl}}"
-              avatar-text="{{buddy.avatarText || buddyInitial}}"
-              display-name="{{buddy.nickname}}"
-              avatar-color="{{buddy.avatarColor}}"
-            />
-            <text class="buddy-name">{{buddy.nickname}}</text>
-            <view class="buddy-marks">
-              <text class="buddy-mark {{buddy.readToday ? 'buddy-mark-on' : ''}}">读</text>
-              <text class="buddy-mark {{buddy.checkedInToday ? 'buddy-mark-on' : ''}}">记</text>
+            <view class="buddy-avatar-ring {{buddy.readToday ? 'buddy-avatar-ring-on' : ''}}">
+              <user-avatar
+                size="116"
+                avatar-url="{{buddy.avatarUrl}}"
+                avatar-text="{{buddy.avatarText || buddyInitial}}"
+                display-name="{{buddy.nickname}}"
+                avatar-color="{{buddy.avatarColor}}"
+              />
             </view>
+            <text class="buddy-name">{{buddy.nickname}}</text>
+            <text class="buddy-status {{buddy.readToday ? 'buddy-status-on' : ''}}">{{buddyLine}}</text>
           </view>
         </view>
-        <view wx:if="{{canNudge}}" class="buddy-nudge-actions">
-          <view class="app-btn-secondary buddy-nudge-btn" data-message-key="together" bindtap="onNudge">一起读</view>
-          <view class="app-btn-secondary buddy-nudge-btn" data-message-key="tomorrow" bindtap="onNudge">明早见</view>
-          <view class="app-btn-secondary buddy-nudge-btn" data-message-key="cheer" bindtap="onNudge">今天辛苦了</view>
-        </view>
-        <text wx:elif="{{nudgedToday}}" class="buddy-quiet">今天拍过了</text>
-        <text wx:elif="{{buddy.readToday || buddy.checkedInToday}}" class="buddy-quiet">TA 今天已经读过了</text>
+        <text class="buddy-note">{{heroNote}}</text>
       </view>
-      <view wx:if="{{overview}}" class="buddy-overview">
-        <view class="buddy-overview-head">
-          <text class="buddy-overview-title">共同节奏</text>
-          <text class="buddy-overview-shared">共同完成 {{overview.sharedDays}} 天</text>
+
+      <view class="buddy-body">
+        <!-- 对方今天送来的一句 -->
+        <view wx:if="{{giftFromBuddy}}" class="buddy-gift-card">
+          <text class="buddy-gift-from">{{buddy.nickname}} 今天送你一句</text>
+          <text class="buddy-gift-text">「{{giftFromBuddy.text}}」</text>
         </view>
-        <text wx:if="{{overview.daysRemaining}}" class="buddy-overview-meta">本期还剩 {{overview.daysRemaining}} 天</text>
-        <view wx:if="{{overview.publicCheckins && overview.publicCheckins.length}}" class="buddy-overview-group">
-          <text class="buddy-overview-label">TA 的公开打卡</text>
+
+        <!-- 今天能做的事 -->
+        <view class="app-card buddy-act">
+          <block wx:if="{{canNudge}}">
+            <text class="buddy-act-title">你先到了，轻轻拍一下 TA</text>
+            <text class="buddy-act-sub">每天只能拍一次，TA 会收到一条提醒。</text>
+            <view class="buddy-chips">
+              <text
+                wx:for="{{nudgeOptions}}"
+                wx:key="key"
+                class="buddy-chip {{nudgeKey === item.key ? 'buddy-chip-on' : ''}}"
+                data-key="{{item.key}}"
+                bindtap="onSelectNudge"
+              >{{item.text}}</text>
+            </view>
+            <view class="app-btn-primary buddy-btn" bindtap="onNudge">轻拍一下</view>
+          </block>
+          <block wx:elif="{{bothDone}}">
+            <text class="buddy-act-title">{{highFivedToday ? '今天你们击过掌了' : '今天你们都读完了'}}</text>
+            <text class="buddy-act-sub">{{highFivedToday ? (buddyHighFivedToday ? '中间的线亮着，这一天被你们好好收下了。' : 'TA 会收到你的击掌。') : '中间的线亮了，击个掌，TA 会看到。'}}</text>
+            <view wx:if="{{canHighFive}}" class="app-btn-primary buddy-btn" bindtap="onHighFive">击掌</view>
+          </block>
+          <block wx:elif="{{nudgedToday}}">
+            <text class="buddy-act-title">今天拍过了</text>
+            <text class="buddy-act-sub">TA 会收到你的提醒，剩下的交给 TA。</text>
+          </block>
+          <block wx:else>
+            <text class="buddy-act-title">{{buddy.readToday ? 'TA 今天已经读过了' : '今天先读一会儿'}}</text>
+            <text class="buddy-act-sub">{{buddy.readToday ? '读完之后，你们就能一起击掌了。' : '你读完之后，可以拍拍 TA。'}}</text>
+          </block>
+
+          <view wx:if="{{canGift}}" class="app-btn-secondary buddy-btn buddy-gift-btn" bindtap="onOpenGift">送 TA 一句</view>
+          <text wx:elif="{{giftSentToday}}" class="buddy-quiet">今天你送了：「{{giftSentToday}}」</text>
+        </view>
+
+        <view wx:if="{{overview}}" class="buddy-overview">
+          <view class="buddy-sec"><text>同行足迹</text></view>
+          <view class="app-card buddy-trail-card">
+            <view class="buddy-trail-head">
+              <text class="buddy-trail-main">一起读完 <text class="buddy-num">{{overview.sharedDays}}</text> 天</text>
+              <text wx:if="{{overview.daysRemaining}}" class="buddy-trail-meta">本期还剩 {{overview.daysRemaining}} 天</text>
+            </view>
+            <view wx:if="{{overview.trail && overview.trail.length}}" class="buddy-trail">
+              <view
+                wx:for="{{overview.trail}}"
+                wx:key="dayKey"
+                class="buddy-day buddy-day-{{item.status}} {{item.isToday ? 'buddy-day-today' : ''}} {{item.future ? 'buddy-day-future' : ''}}"
+              >{{item.day}}</view>
+            </view>
+            <view wx:if="{{overview.trail && overview.trail.length}}" class="buddy-legend">
+              <text class="buddy-legend-item"><text class="buddy-dot buddy-dot-both"></text>一起读完</text>
+              <text class="buddy-legend-item"><text class="buddy-dot buddy-dot-me"></text>只有你</text>
+              <text class="buddy-legend-item"><text class="buddy-dot buddy-dot-ta"></text>只有 TA</text>
+            </view>
+          </view>
+
+          <view wx:if="{{overview.timeline && overview.timeline.length}}" class="buddy-sec"><text>一起走过的</text></view>
+          <view wx:if="{{overview.timeline && overview.timeline.length}}" class="app-card buddy-timeline">
+            <view wx:for="{{overview.timeline}}" wx:key="index" class="buddy-tl-item">
+              <text class="buddy-tl-text">{{item.text}}</text>
+              <text class="buddy-tl-date">{{item.date}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{overview.publicCheckins && overview.publicCheckins.length}}" class="buddy-sec"><text>TA 最近写下的</text></view>
           <view
             wx:for="{{overview.publicCheckins}}"
             wx:for-item="item"
@@ -85,13 +156,18 @@
             data-checkin-id="{{item.checkinId}}"
             bindtap="onOpenBuddyCheckin"
           >
-            <text class="buddy-overview-item-title">{{item.sectionTitle || '打卡日记'}}</text>
-            <text class="buddy-overview-item-date">{{item.date}}</text>
+            <view class="buddy-overview-item-head">
+              <view wx:if="{{item.isNew}}" class="buddy-new-dot"></view>
+              <text class="buddy-overview-item-title">{{item.sectionTitle || '打卡日记'}}</text>
+              <text wx:if="{{item.moodName}}" class="buddy-mood">{{item.moodName}}</text>
+              <text class="buddy-overview-item-date">{{item.date}}</text>
+            </view>
             <text class="buddy-overview-item-excerpt">{{item.excerpt || '公开打卡，点击查看'}}</text>
+            <text wx:if="{{item.myReaction}}" class="buddy-overview-item-react">你回应过：「{{item.myReaction}}」</text>
+            <text wx:elif="{{item.isNew}}" class="buddy-overview-item-go">还没回应，去读一读 ›</text>
           </view>
-        </view>
-        <view wx:if="{{overview.publicInsights && overview.publicInsights.length}}" class="buddy-overview-group">
-          <text class="buddy-overview-label">TA 的小凡看见</text>
+
+          <view wx:if="{{overview.publicInsights && overview.publicInsights.length}}" class="buddy-sec"><text>TA 的小凡看见</text></view>
           <view
             wx:for="{{overview.publicInsights}}"
             wx:for-item="item"
@@ -100,21 +176,143 @@
             data-insight-id="{{item.insightId}}"
             bindtap="onOpenBuddyInsight"
           >
-            <text class="buddy-overview-item-title">{{item.title}}</text>
-            <text class="buddy-overview-item-date">{{item.date}}</text>
+            <view class="buddy-overview-item-head">
+              <text class="buddy-overview-item-title">{{item.title}}</text>
+              <text class="buddy-overview-item-date">{{item.date}}</text>
+            </view>
             <text class="buddy-overview-item-excerpt">{{item.excerpt || '公开的小凡看见'}}</text>
           </view>
         </view>
+
+        <text class="buddy-leave" bindtap="onLeave">结束这段读伴</text>
       </view>
-      <text class="buddy-leave" bindtap="onLeave">结束这段读伴</text>
     </view>
 
-    <view wx:else class="app-empty buddy-card">
-      <view class="app-empty-art app-empty-art-book"></view>
-      <text class="app-empty-title">读伴已结束</text>
-      <text class="buddy-line">这段同行到这里了，想的话可以再认识一位。</text>
-      <text wx:if="{{canJoin}}" class="app-empty-action" bindtap="onJoin">再找一位读伴</text>
-      <text wx:else class="buddy-line">这一期已经结束了</text>
+    <!-- 已结束：同行纪念 -->
+    <view wx:else class="buddy-ended">
+      <view wx:if="{{souvenir}}" class="buddy-keep">
+        <view class="buddy-keep-avatars">
+          <user-avatar size="96" avatar-url="{{meAvatar.avatarUrl}}" avatar-text="{{meAvatar.avatarText}}" avatar-color="{{meAvatar.avatarColor}}" />
+          <view class="buddy-keep-second">
+            <user-avatar
+              size="96"
+              avatar-url="{{souvenir.buddy.avatarUrl}}"
+              avatar-text="{{souvenir.buddy.nickname}}"
+              display-name="{{souvenir.buddy.nickname}}"
+              avatar-color="{{souvenir.buddy.avatarColor}}"
+            />
+          </view>
+        </view>
+        <text class="buddy-keep-title">你 和 {{souvenir.buddy.nickname}}</text>
+        <text class="buddy-keep-sub">{{souvenir.periodName}}{{souvenir.periodName ? ' · ' : ''}}同行 {{souvenir.togetherDays}} 天</text>
+        <view class="buddy-keep-stats">
+          <view class="buddy-keep-stat"><text class="buddy-num">{{souvenir.sharedDays}}</text><text class="buddy-keep-label">一起读完的天</text></view>
+          <view class="buddy-keep-stat"><text class="buddy-num">{{souvenir.highFiveCount}}</text><text class="buddy-keep-label">次击掌</text></view>
+          <view class="buddy-keep-stat"><text class="buddy-num">{{souvenir.giftCount}}</text><text class="buddy-keep-label">句话</text></view>
+          <view wx:if="{{souvenir.reactionCount}}" class="buddy-keep-stat"><text class="buddy-num">{{souvenir.reactionCount}}</text><text class="buddy-keep-label">次回应</text></view>
+        </view>
+        <view wx:if="{{souvenir.firstGift}}" class="buddy-keep-quote">
+          <text>「{{souvenir.firstGift.text}}」</text>
+          <text class="buddy-keep-quote-by">{{souvenir.buddy.nickname}}送你的第一句</text>
+        </view>
+      </view>
+
+      <view wx:if="{{souvenir && souvenir.canRematch}}" class="app-btn-primary buddy-btn buddy-rematch" bindtap="onRematch">下一期还做读伴</view>
+      <text wx:elif="{{souvenir && souvenir.rematch && souvenir.rematch.both}}" class="buddy-hint">你们都选了。下一期你们任意一人点「想要一位读伴」，会优先配成一对。</text>
+      <text wx:elif="{{souvenir && souvenir.rematch && souvenir.rematch.mine}}" class="buddy-hint">已记下。要等 TA 也选了才会生效。</text>
+
+      <view class="app-empty buddy-card">
+        <text class="app-empty-title">读伴已结束</text>
+        <text class="buddy-line">这段同行到这里了，想的话可以再认识一位。</text>
+        <text wx:if="{{canJoin}}" class="app-empty-action" bindtap="onJoin">再找一位读伴</text>
+        <text wx:else class="buddy-line">这一期已经结束了</text>
+      </view>
     </view>
   </block>
+
+  <!-- 邀请：收到的、我发出的（还没有读伴时才有） -->
+  <view wx:if="{{!loading && !loadError && state !== 'paired' && (invitesReceived.length > 0 || invitesSent.length > 0 || (canJoin && state !== 'none'))}}" class="buddy-invites">
+    <view wx:if="{{invitesReceived.length > 0}}" class="buddy-sec"><text>想和你做读伴</text></view>
+    <view wx:for="{{invitesReceived}}" wx:key="inviteId" class="buddy-invite buddy-invite-warm">
+      <user-avatar size="72" avatar-url="{{item.avatarUrl}}" avatar-text="{{item.nickname}}" display-name="{{item.nickname}}" />
+      <view class="buddy-invite-main">
+        <text class="buddy-invite-name">{{item.nickname}}</text>
+        <text class="buddy-invite-sub">邀请你做读伴，同意后你们就结成一对</text>
+        <view class="buddy-invite-btns">
+          <text class="buddy-invite-yes" data-invite-id="{{item.inviteId}}" data-accept="{{true}}" bindtap="onRespondInvite">同意</text>
+          <text class="buddy-invite-no" data-invite-id="{{item.inviteId}}" data-accept="{{false}}" bindtap="onRespondInvite">先不了</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{invitesSent.length > 0}}" class="buddy-sec"><text>我发出的邀请</text></view>
+    <view wx:for="{{invitesSent}}" wx:key="inviteId" class="buddy-invite">
+      <user-avatar size="72" avatar-url="{{item.avatarUrl}}" avatar-text="{{item.nickname}}" display-name="{{item.nickname}}" />
+      <view class="buddy-invite-main">
+        <text class="buddy-invite-name">{{item.nickname}}</text>
+        <text class="buddy-invite-sub">{{item.declined ? 'TA 这次先不了' : '等 TA 回复，7 天内有效'}}</text>
+      </view>
+      <text wx:if="{{!item.declined}}" class="buddy-invite-cancel" data-invite-id="{{item.inviteId}}" bindtap="onCancelInvite">撤回</text>
+    </view>
+
+    <view wx:if="{{canJoin && state !== 'none'}}" class="app-btn-secondary buddy-btn buddy-pick-btn" bindtap="onOpenPicker">从本期学员里挑一位</view>
+  </view>
+
+  <!-- 是否出现在别人的邀请名单里（还没有读伴时可以改） -->
+  <view wx:if="{{!loading && !loadError && state !== 'paired' && canJoin}}" class="buddy-discover" bindtap="onToggleDiscoverable">
+    <view class="buddy-discover-copy">
+      <text class="buddy-discover-title">出现在读伴邀请名单里</text>
+      <text class="buddy-discover-sub">{{discoverable ? '本期还没有读伴的书友可以邀请你' : '已隐藏，别人看不到你，也邀不了你'}}</text>
+    </view>
+    <view class="buddy-switch {{discoverable ? 'buddy-switch-on' : ''}}"><view class="buddy-switch-dot"></view></view>
+  </view>
+
+  <!-- 选人：本期学员名单 -->
+  <view wx:if="{{pickerVisible}}" class="buddy-mask" catchtap="onClosePicker">
+    <view class="buddy-sheet buddy-picker" catchtap="stopPropagation">
+      <view class="buddy-sheet-grip"></view>
+      <text class="buddy-sheet-title">选一位读伴</text>
+      <text class="buddy-sheet-sub">从本期还没有读伴的学员里挑，对方同意后才结成一对。</text>
+      <view class="buddy-search">
+        <input class="buddy-search-input" value="{{pickerKeyword}}" placeholder="按昵称找" confirm-type="search" bindinput="onPickerInput" bindconfirm="onPickerSearch" />
+        <text class="buddy-search-btn" bindtap="onPickerSearch">搜索</text>
+      </view>
+      <scroll-view scroll-y class="buddy-candidates" bindscrolltolower="onCandidatesMore" lower-threshold="80">
+        <view wx:if="{{pickerLoading}}" class="buddy-hint">正在翻名单…</view>
+        <view wx:elif="{{candidates.length === 0}}" class="buddy-hint">没有找到可以邀请的书友</view>
+        <view wx:for="{{candidates}}" wx:key="userId" class="buddy-candidate">
+          <user-avatar size="64" avatar-url="{{item.avatarUrl}}" avatar-text="{{item.avatarText}}" avatar-color="{{item.avatarColor}}" display-name="{{item.nickname}}" />
+          <view class="buddy-candidate-copy">
+            <text class="buddy-candidate-name">{{item.nickname}}</text>
+            <text wx:if="{{item.hint}}" class="buddy-candidate-hint">{{item.hint}}</text>
+          </view>
+          <text wx:if="{{item.invited}}" class="buddy-candidate-done">已邀请</text>
+          <text wx:else class="buddy-candidate-btn" data-user-id="{{item.userId}}" bindtap="onInvite">邀请</text>
+        </view>
+        <view wx:if="{{candidatesHasMore && !pickerLoading}}" class="buddy-hint" bindtap="onCandidatesMore">下滑加载更多</view>
+        <view wx:if="{{pickerLoading && candidates.length > 0}}" class="buddy-hint">正在翻名单…</view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 送一句 -->
+  <view wx:if="{{giftSheetVisible}}" class="buddy-mask" catchtap="onCloseGift">
+    <view class="buddy-sheet" catchtap="stopPropagation">
+      <view class="buddy-sheet-grip"></view>
+      <text class="buddy-sheet-title">送 {{buddy.nickname}} 一句</text>
+      <text class="buddy-sheet-sub">选一句送给 TA，每天一句，TA 当天在这里看到。</text>
+      <view
+        wx:for="{{giftOptions}}"
+        wx:key="key"
+        class="buddy-opt {{giftKey === item.key ? 'buddy-opt-on' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onSelectGift"
+      >
+        <view class="buddy-opt-radio"></view>
+        <text>{{item.text}}</text>
+      </view>
+      <view class="app-btn-primary buddy-btn buddy-sheet-btn" bindtap="onSendGift">送出</view>
+    </view>
+  </view>
 </view>
+<app-dialog id="app-dialog" />

@@ -1,0 +1,152 @@
+<view class="joy-page">
+  <view wx:if="{{needLogin}}" class="app-empty joy-login">
+    <view class="app-seal app-seal-dawn">记</view>
+    <text class="app-empty-title">登录后，把触动留在这里</text>
+    <button class="app-btn-primary joy-login-btn" bindtap="goLogin">去登录</button>
+  </view>
+
+  <block wx:else>
+    <view class="joy-heading">
+      <view class="app-seal app-seal-dawn joy-heading-seal">记</view>
+      <view class="joy-heading-text">
+        <text class="joy-heading-title">把触动，随手记下来</text>
+        <text class="joy-heading-sub">仅自己可见</text>
+      </view>
+    </view>
+
+    <view class="joy-compose">
+      <view class="joy-compose-label" wx:if="{{editingId}}">
+        <text>编辑随喜记</text>
+        <text class="joy-cancel-edit" bindtap="cancelEdit">取消编辑</text>
+      </view>
+      <textarea
+        class="joy-input"
+        value="{{content}}"
+        maxlength="3000"
+        disabled="{{saving}}"
+        placeholder="刚才哪句话，让你有些触动？"
+        placeholder-class="joy-placeholder"
+        bindinput="onContentInput"
+        show-confirm-bar="{{false}}"
+      />
+      <text wx:if="{{showCounter}}" class="joy-counter {{remaining < 0 ? 'joy-counter-over' : ''}}">还能写 {{remaining}} 字</text>
+      <view wx:if="{{lastSource && !draftSource && !editingId}}" class="joy-last" bindtap="useLastSource">
+        <text>沿用上次：{{lastSource.label}}</text>
+      </view>
+      <view class="joy-compose-bottom">
+        <view class="joy-association" bindtap="openAssociation" role="button" aria-label="关联期次和课程">
+          <text wx:if="{{!draftSource}}" class="joy-association-plus">＋</text>
+          <text class="joy-association-text">{{draftSource || '关联期次、课程（可选）'}}</text>
+        </view>
+        <button class="app-btn-primary joy-save" bindtap="save" disabled="{{saving || !content}}">{{saving ? '正在记下…' : (editingId ? '保存' : '记下来')}}</button>
+      </view>
+    </view>
+
+    <view class="joy-list-heading">
+      <text class="joy-list-title">我的随喜记</text>
+      <picker
+        mode="selector"
+        range="{{filterOptions}}"
+        range-key="name"
+        value="{{filterIndex}}"
+        disabled="{{filterOptions.length < 2}}"
+        bindchange="onFilterChange"
+      >
+        <view class="joy-filter">{{filterOptions[filterIndex].name}} <text class="joy-filter-arrow">⌄</text></view>
+      </picker>
+    </view>
+
+    <view class="joy-search">
+      <input
+        class="joy-search-input"
+        value="{{keyword}}"
+        placeholder="搜一搜我记过的话"
+        placeholder-class="joy-placeholder"
+        confirm-type="search"
+        bindinput="onKeywordInput"
+        bindconfirm="onSearch"
+      />
+      <text wx:if="{{keyword}}" class="joy-search-clear" bindtap="clearSearch">清除</text>
+      <text class="joy-search-btn" bindtap="onSearch">搜索</text>
+    </view>
+
+    <view wx:if="{{loading}}" class="joy-loading">
+      <view class="app-skeleton joy-skeleton"></view>
+      <view class="app-skeleton joy-skeleton"></view>
+    </view>
+    <view wx:elif="{{listError && !list.length}}" class="joy-state">
+      <text>随喜记没加载出来</text>
+      <text class="joy-retry" bindtap="retryList">点这里再试一次</text>
+    </view>
+    <view wx:elif="{{!list.length}}" class="joy-state">
+      <view class="app-seal app-seal-dawn joy-empty-seal">喜</view>
+      <text>{{keyword ? '没有找到包含「' + keyword + '」的记录' : '听到喜欢的话，就随手记在这里'}}</text>
+    </view>
+    <view wx:else class="joy-list">
+      <view class="joy-note" wx:for="{{list}}" wx:key="_id">
+        <view class="joy-note-head">
+          <text class="joy-note-date">{{item.dateLabel}}</text>
+          <view class="joy-note-actions">
+            <text class="joy-note-action" bindtap="makeCard" data-id="{{item._id}}">做成日签</text>
+            <text class="joy-note-action" bindtap="copyNote" data-id="{{item._id}}">复制</text>
+            <text class="joy-note-action" bindtap="startEdit" data-id="{{item._id}}">编辑</text>
+            <text class="joy-note-action joy-note-action-quiet" bindtap="confirmDelete" data-id="{{item._id}}">删除</text>
+          </view>
+        </view>
+        <text class="joy-note-content {{item.foldable && !item.expanded ? 'joy-note-folded' : ''}}" user-select>{{item.content}}</text>
+        <text wx:if="{{item.foldable}}" class="joy-note-more" bindtap="toggleExpand" data-id="{{item._id}}">{{item.expanded ? '收起' : '展开全文'}}</text>
+        <text class="joy-note-source">{{item.sourceLabel}}</text>
+      </view>
+      <view wx:if="{{loadingMore}}" class="joy-more">正在翻找…</view>
+      <view wx:if="{{listError}}" class="joy-more joy-retry" bindtap="retryList">没加载出来，点这里重试</view>
+    </view>
+  </block>
+
+  <view wx:if="{{sheetOpen}}" class="joy-sheet-mask" catchtap="closeAssociation">
+    <view class="joy-sheet" catchtap="noop">
+      <view class="joy-sheet-heading">
+        <view>
+          <text class="joy-sheet-title">关联期次、课程</text>
+          <text class="joy-sheet-hint">按需关联，随时可以修改</text>
+        </view>
+        <text class="joy-sheet-close" bindtap="closeAssociation" role="button" aria-label="关闭">×</text>
+      </view>
+
+      <view wx:if="{{periodsLoading}}" class="joy-sheet-status">正在找你报名的期次…</view>
+      <view wx:elif="{{periodsError}}" class="joy-sheet-status joy-retry" bindtap="loadPeriods">期次没加载出来，点这里重试</view>
+      <block wx:else>
+        <picker
+          mode="selector"
+          range="{{sheetPeriodOptions}}"
+          range-key="name"
+          value="{{sheetPeriodIndex}}"
+          bindchange="onSheetPeriodChange"
+        >
+          <view class="joy-sheet-period">
+            <text class="joy-sheet-label">期次</text>
+            <text class="joy-sheet-value">{{sheetPeriodOptions[sheetPeriodIndex].name}} <text class="joy-filter-arrow">⌄</text></text>
+          </view>
+        </picker>
+        <text wx:if="{{!periods.length}}" class="joy-sheet-empty">还没有可关联的期次，也可以先记下来。</text>
+        <block wx:if="{{sheetPeriodId}}">
+          <text class="joy-sheet-label joy-section-title">课程（可选）</text>
+          <view wx:if="{{sheetLoading}}" class="joy-sheet-status">正在找这一期的课程…</view>
+          <view wx:elif="{{sheetError}}" class="joy-sheet-status joy-retry" bindtap="retrySections">课程没加载出来，点这里重试</view>
+          <scroll-view wx:else class="joy-sheet-options" scroll-y>
+            <view class="joy-sheet-option" bindtap="selectSection" data-id="">
+              <text>暂不关联课程</text>
+              <view class="joy-radio {{!sheetSectionId ? 'joy-radio-selected' : ''}}"><text wx:if="{{!sheetSectionId}}">✓</text></view>
+            </view>
+            <view class="joy-sheet-option" wx:for="{{sheetSections}}" wx:key="id" bindtap="selectSection" data-id="{{item.id}}">
+              <text>{{item.label}}</text>
+              <view class="joy-radio {{sheetSectionId === item.id ? 'joy-radio-selected' : ''}}"><text wx:if="{{sheetSectionId === item.id}}">✓</text></view>
+            </view>
+          </scroll-view>
+        </block>
+      </block>
+
+      <button class="app-btn-primary joy-sheet-done" disabled="{{periodsLoading || periodsError || sheetLoading || sheetError}}" bindtap="finishAssociation">完成</button>
+    </view>
+  </view>
+</view>
+<app-dialog id="app-dialog" />

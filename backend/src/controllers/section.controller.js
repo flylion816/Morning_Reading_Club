@@ -785,6 +785,8 @@ async function getTodayTask(req, res, next) {
             }
           })
             .populate('userId', 'avatar avatarUrl nickname')
+            // 把最新打卡放前面；首页只显示前 10 位，顺序让新书友始终能出现。
+            .sort({ createdAt: -1, _id: -1 })
             .limit(10);
 
           const checkinUsers = sectionCheckins.map(c => ({

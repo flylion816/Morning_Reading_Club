@@ -1,4 +1,5 @@
 const communityActivityService = require('../../services/communityActivity.service');
+const appDialog = require('../../utils/dialog');
 const activityService = require('../../services/activity.service');
 const currentTenant = require('../../config/current-tenant');
 const { renderRichTextContent } = require('../../utils/markdown');
@@ -153,7 +154,7 @@ Page({
   async handleRegister() {
     const app = getApp();
     if (!app.globalData.isLogin) {
-      wx.showModal({
+      appDialog.showModal({
         title: '需要登录',
         content: '报名前需要先登录，是否前往登录？',
         confirmText: '去登录',
@@ -412,7 +413,7 @@ Page({
   noop() {},
 
   async handleCancelRegister() {
-    wx.showModal({
+    appDialog.showModal({
       title: '取消报名',
       content: '确定要取消报名吗？',
       confirmText: '确定取消',

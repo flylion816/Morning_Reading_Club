@@ -762,8 +762,10 @@ describe('Section Controller', () => {
         select: sandbox.stub().returnsThis(),
         lean: sandbox.stub().resolves(null)
       });
+      const checkinSort = sandbox.stub().returnsThis();
       CheckinStub.find.returns({
         populate: sandbox.stub().returnsThis(),
+        sort: checkinSort,
         limit: sandbox.stub().resolves([])
       });
       CheckinStub.countDocuments.resolves(5);
@@ -771,6 +773,8 @@ describe('Section Controller', () => {
       await sectionController.getTodayTask(req, res, next);
 
       expect(next.called).to.equal(false);
+      // 今天打卡头像：最新打卡排在前面
+      expect(checkinSort.calledWith({ createdAt: -1, _id: -1 })).to.equal(true);
       expect(SectionStub.findOne.calledWithMatch({
         periodId,
         day: 1,

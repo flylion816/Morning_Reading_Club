@@ -566,7 +566,7 @@ describe('reading-mode page', () => {
       expect(wx.showActionSheet).not.toHaveBeenCalled();
       pageInstance.handleParagraphLongPress({ currentTarget: { dataset: { index: 1 } } });
       expect(wx.showActionSheet).toHaveBeenCalledWith(
-        expect.objectContaining({ itemList: ['摘下整段', '精确选择'] })
+        expect.objectContaining({ itemList: ['摘下整段', '精确选择', '生成日签', '记一条随喜'] })
       );
     });
 
@@ -601,6 +601,106 @@ describe('reading-mode page', () => {
       expect(pageInstance.data.highlightSelectionVisible).toBe(false);
     });
 
+    test('long press offers cancel + make card for an excerpted paragraph', () => {
+      pageInstance._highlightEnabled = true;
+      wx.showActionSheet = jest.fn();
+      pageInstance.data.paragraphs[1] = { ...pageInstance.data.paragraphs[1], text: '这是第一句值得留下来的话。这是第二句也很不错的话。', canHighlight: true, mine: true };
+      pageInstance.handleParagraphLongPress({ currentTarget: { dataset: { index: 1 } } });
+      expect(wx.showActionSheet).toHaveBeenCalledWith(
+        expect.objectContaining({ itemList: ['取消摘抄', '精确选择', '生成日签', '记一条随喜'] })
+      );
+    });
+
+    test('make daily card passes a short paragraph straight to the card page', () => {
+      wx.navigateTo = jest.fn();
+      pageInstance.data.course = { title: '第一天 品德成功论', day: 1 };
+      pageInstance.data.periodName = '第19期';
+      pageInstance.makeDailyCardFromParagraph({ text: '没有正确的生活，就没有真正卓越的人生。' });
+      const url = wx.navigateTo.mock.calls[0][0].url;
+      expect(url).toContain('/pages/daily-card/daily-card?quote=' + encodeURIComponent('没有正确的生活，就没有真正卓越的人生。'));
+      expect(url).toContain('source=' + encodeURIComponent('第一天 品德成功论'));
+      expect(url).toContain('periodName=' + encodeURIComponent('第19期'));
+      expect(url).toContain('day=1');
+    });
+
+    test('make daily card from an overlong paragraph asks to pick sentences within 120 chars', () => {
+      wx.navigateTo = jest.fn();
+      pageInstance.data.course = { title: '课' };
+      const text = `${'甲'.repeat(70)}。${'乙'.repeat(70)}。${'丙'.repeat(30)}。`;
+      pageInstance.makeDailyCardFromParagraph({ text });
+      expect(wx.navigateTo).not.toHaveBeenCalled();
+      expect(pageInstance.data.highlightSelectionMode).toBe('card');
+      expect(pageInstance.data.highlightSelectionVisible).toBe(true);
+
+      pageInstance.handleToggleHighlightUnit({ currentTarget: { dataset: { index: 0 } } });
+      pageInstance.handleToggleHighlightUnit({ currentTarget: { dataset: { index: 1 } } });
+      expect(pageInstance.data.highlightSelectionValid).toBe(false);
+      pageInstance.handleToggleHighlightUnit({ currentTarget: { dataset: { index: 1 } } });
+      expect(pageInstance.data.highlightSelectionValid).toBe(true);
+
+      pageInstance.handleConfirmHighlightSelection();
+      expect(highlight.addHighlight).not.toHaveBeenCalled();
+      expect(wx.navigateTo).toHaveBeenCalledTimes(1);
+      expect(wx.navigateTo.mock.calls[0][0].url).toContain('quote=' + encodeURIComponent(`${'甲'.repeat(70)}。`));
+      expect(pageInstance.data.highlightSelectionVisible).toBe(false);
+      expect(pageInstance.data.highlightSelectionMode).toBe('highlight');
+    });
+
+    test('selected text can be edited by hand and the edited text is what gets saved', async () => {
+      highlight.addHighlight.mockResolvedValue({ id: 'h3' });
+      const item = { text: '1.品德成功论提醒人们，高效能的生活是有基本原则的。只有当人们学会并遵循这些原则。', canHighlight: true };
+      pageInstance.openHighlightSelection(item);
+      pageInstance.handleToggleHighlightUnit({ currentTarget: { dataset: { index: 0 } } });
+      expect(pageInstance.data.highlightSelectionText).toBe('1.品德成功论提醒人们，高效能的生活是有基本原则的。');
+
+      pageInstance.handleHighlightTextInput({ detail: { value: '品德成功论提醒人们，高效能的生活是有基本原则的。  ' } });
+      expect(pageInstance.data.highlightSelectionValid).toBe(true);
+      expect(pageInstance.data.highlightSelectionLength).toBe(24);
+
+      await pageInstance.handleConfirmHighlightSelection();
+      expect(highlight.addHighlight).toHaveBeenCalledWith('s1', '品德成功论提醒人们，高效能的生活是有基本原则的。');
+
+      pageInstance.handleHighlightTextInput({ detail: { value: '太短了' } });
+      expect(pageInstance.data.highlightSelectionValid).toBe(false);
+    });
+
+    test('card mode enforces the 120 char limit on hand-edited text', () => {
+      wx.navigateTo = jest.fn();
+      pageInstance.data.course = { title: '课' };
+      const text = `${'甲'.repeat(70)}。${'乙'.repeat(70)}。`;
+      pageInstance.makeDailyCardFromParagraph({ text });
+      pageInstance.handleHighlightTextInput({ detail: { value: '丙'.repeat(121) } });
+      expect(pageInstance.data.highlightSelectionValid).toBe(false);
+      pageInstance.handleHighlightTextInput({ detail: { value: '丙'.repeat(120) } });
+      expect(pageInstance.data.highlightSelectionValid).toBe(true);
+      pageInstance.handleConfirmHighlightSelection();
+      expect(wx.navigateTo.mock.calls[0][0].url).toContain('quote=' + encodeURIComponent('丙'.repeat(120)));
+    });
+
+    test('记一条随喜：带上这句话（最多 80 字）和当前期次、课程，跳去随喜记', () => {
+      wx.navigateTo = jest.fn();
+      pageInstance.data.periodId = 'p1';
+      pageInstance.data.sectionId = 's1';
+      pageInstance.data.periodName = '连接之力';
+      pageInstance.data.course = { day: 2, title: '品德成功论' };
+      pageInstance.openJoyNote({ text: '字'.repeat(100) });
+      const url = wx.navigateTo.mock.calls[0][0].url;
+      expect(url).toContain('/pages/joy-notes/joy-notes?periodId=p1&sectionId=s1');
+      expect(decodeURIComponent(url.split('source=')[1].split('&')[0])).toBe('连接之力 · 第 2 天 · 品德成功论');
+      expect(decodeURIComponent(url.split('quote=')[1])).toBe('字'.repeat(80));
+    });
+
+    test('长按菜单选「记一条随喜」才会跳转', () => {
+      wx.navigateTo = jest.fn();
+      pageInstance._highlightEnabled = true;
+      pageInstance.openJoyNote = jest.fn();
+      wx.showActionSheet = jest.fn();
+      pageInstance.handleParagraphLongPress({ currentTarget: { dataset: { index: 1 } } });
+      const { itemList, success } = wx.showActionSheet.mock.calls[0][0];
+      success({ tapIndex: itemList.indexOf('记一条随喜') });
+      expect(pageInstance.openJoyNote).toHaveBeenCalledTimes(1);
+    });
+
     test('overlong paragraph only offers precise selection', () => {
       wx.showActionSheet = jest.fn();
       pageInstance._highlightEnabled = true;
@@ -613,7 +713,7 @@ describe('reading-mode page', () => {
       };
       pageInstance.handleParagraphLongPress({ currentTarget: { dataset: { index: 1 } } });
       expect(wx.showActionSheet).toHaveBeenCalledWith(
-        expect.objectContaining({ itemList: ['精确选择'] })
+        expect.objectContaining({ itemList: ['精确选择', '生成日签', '记一条随喜'] })
       );
     });
 

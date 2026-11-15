@@ -1,6 +1,6 @@
 /**
  * 心情天气选项（值与后端 Checkin.mood 枚举一致）。
- * 心情只有本人可见；不选就不传 mood。
+ * 心情天气对营里书友公开显示在打卡卡片右上角；不选就不传 mood。
  */
 const MOOD_OPTIONS = [
   { value: 'happy', name: '晴', desc: '心里亮堂堂', icon: 'sun' },

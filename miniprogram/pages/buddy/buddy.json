@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "读伴",
+  "navigationBarBackgroundColor": "#fbe3c3",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f6f1e7",
   "enablePullDownRefresh": true,
   "usingComponents": {}
 }

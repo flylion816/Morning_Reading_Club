@@ -1,0 +1,422 @@
+/* Version 3 dawn: 随喜记沿用暖纸、晨光印章和租户主色。 */
+.joy-page {
+  min-height: 100vh;
+  padding: 38rpx 28rpx 90rpx;
+  background: var(--app-page-bg);
+  box-sizing: border-box;
+}
+
+.joy-heading {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  margin: 8rpx 12rpx 32rpx;
+}
+
+.joy-heading-seal {
+  flex-shrink: 0;
+}
+
+.joy-heading-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.joy-heading-title,
+.joy-list-title,
+.joy-sheet-title {
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-weight: 600;
+}
+
+.joy-heading-title {
+  font-size: 36rpx;
+}
+
+.joy-heading-sub {
+  color: var(--app-text-muted);
+  font-size: 24rpx;
+}
+
+.joy-compose {
+  padding: 24rpx;
+  border: 1rpx solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-paper);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.joy-compose-label,
+.joy-note-head,
+.joy-compose-bottom,
+.joy-list-heading,
+.joy-sheet-heading,
+.joy-sheet-period,
+.joy-sheet-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.joy-compose-label {
+  margin: 0 0 12rpx;
+  color: var(--app-text-soft);
+  font-size: 24rpx;
+}
+
+.joy-cancel-edit,
+.joy-retry {
+  color: var(--theme-primary);
+}
+
+/* 输入区：原来 184rpx 一会儿就写满，放大到两倍多，长内容在框里可以滚动 */
+.joy-input {
+  width: 100%;
+  height: 420rpx;
+  padding: 10rpx 4rpx;
+  box-sizing: border-box;
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  line-height: 1.65;
+}
+
+.joy-placeholder {
+  color: #a79b8b;
+}
+
+.joy-compose-bottom {
+  gap: 16rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid var(--app-border);
+}
+
+.joy-association {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 64rpx;
+  color: var(--theme-primary);
+  font-size: 23rpx;
+}
+
+.joy-association-plus {
+  flex-shrink: 0;
+  margin-right: 6rpx;
+  font-size: 31rpx;
+}
+
+.joy-association-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.joy-save {
+  flex-shrink: 0;
+  min-height: 64rpx;
+  margin: 0;
+  padding: 0 24rpx;
+  font-size: 25rpx;
+}
+
+button::after {
+  border: 0;
+}
+
+.joy-save[disabled],
+.joy-sheet-done[disabled] {
+  background: #ddd8cf;
+  color: #8b8174;
+  box-shadow: none;
+}
+
+.joy-list-heading {
+  margin: 46rpx 10rpx 22rpx;
+}
+
+.joy-list-title {
+  font-size: 32rpx;
+}
+
+.joy-filter {
+  max-width: 260rpx;
+  overflow: hidden;
+  padding: 9rpx 18rpx;
+  border: 1rpx solid var(--app-border);
+  border-radius: 999rpx;
+  background: var(--app-paper);
+  color: var(--app-text-soft);
+  font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.joy-filter-arrow {
+  margin-left: 5rpx;
+  color: var(--app-text-muted);
+}
+
+.joy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.joy-note {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 24rpx 28rpx;
+  border: 1rpx solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+.joy-note-date,
+.joy-note-source {
+  color: var(--app-text-muted);
+  font-size: 23rpx;
+}
+
+.joy-note-content {
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 29rpx;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.joy-note-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+.joy-note-action {
+  padding: 4rpx 0;
+  color: var(--theme-primary);
+  font-size: 22rpx;
+}
+
+.joy-state,
+.joy-more,
+.joy-sheet-status {
+  color: var(--app-text-muted);
+  font-size: 25rpx;
+  text-align: center;
+}
+
+.joy-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18rpx;
+  padding: 65rpx 20rpx;
+}
+
+.joy-empty-seal {
+  opacity: 0.7;
+}
+
+.joy-more {
+  padding: 22rpx 0;
+}
+
+.joy-skeleton {
+  height: 150rpx;
+  margin-bottom: 16rpx;
+}
+
+.joy-login-btn {
+  margin-top: 24rpx;
+}
+
+.joy-sheet-mask {
+  position: fixed;
+  z-index: 900;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: var(--app-overlay);
+}
+
+.joy-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 78vh;
+  padding: 36rpx 32rpx calc(26rpx + env(safe-area-inset-bottom));
+  border-radius: 32rpx 32rpx 0 0;
+  background: var(--app-paper);
+  box-sizing: border-box;
+}
+
+.joy-sheet-heading {
+  align-items: flex-start;
+  margin-bottom: 24rpx;
+}
+
+.joy-sheet-title,
+.joy-sheet-hint {
+  display: block;
+}
+
+.joy-sheet-title {
+  font-size: 34rpx;
+}
+
+.joy-sheet-hint {
+  margin-top: 6rpx;
+  color: var(--app-text-muted);
+  font-size: 24rpx;
+}
+
+.joy-sheet-close {
+  padding: 0 8rpx;
+  color: var(--app-text-soft);
+  font-size: 42rpx;
+  line-height: 1;
+}
+
+.joy-sheet-period {
+  min-height: 88rpx;
+  border-bottom: 1rpx solid var(--app-border);
+}
+
+.joy-sheet-label {
+  color: var(--app-text);
+  font-size: 27rpx;
+  font-weight: 600;
+}
+
+.joy-sheet-value {
+  color: var(--app-text-soft);
+  font-size: 26rpx;
+}
+
+.joy-section-title {
+  display: block;
+  margin: 28rpx 0 12rpx;
+}
+
+.joy-sheet-options {
+  height: 320rpx;
+}
+
+.joy-sheet-option {
+  gap: 20rpx;
+  min-height: 80rpx;
+  border-bottom: 1rpx solid var(--app-border);
+  color: var(--app-text-soft);
+  font-size: 26rpx;
+}
+
+.joy-radio {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 34rpx;
+  height: 34rpx;
+  border: 2rpx solid #c8bfb1;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 23rpx;
+}
+
+.joy-radio-selected {
+  border-color: var(--theme-primary);
+  background: var(--theme-primary);
+}
+
+.joy-sheet-status,
+.joy-sheet-empty {
+  display: block;
+  padding: 24rpx 0;
+}
+
+.joy-sheet-empty {
+  color: var(--app-text-muted);
+  font-size: 24rpx;
+}
+
+.joy-sheet-done {
+  width: 100%;
+  margin: 30rpx 0 0;
+}
+
+/* 体验优化：折叠长文、字数提示、沿用上次关联 */
+.joy-note-folded {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.joy-note-more {
+  align-self: flex-start;
+  padding: 4rpx 0;
+  color: var(--theme-primary);
+  font-size: 24rpx;
+}
+
+.joy-note-action-quiet {
+  color: var(--app-text-muted);
+}
+
+.joy-counter {
+  display: block;
+  margin-top: 8rpx;
+  text-align: right;
+  color: var(--app-text-muted);
+  font-size: 22rpx;
+}
+
+.joy-counter-over {
+  color: var(--app-danger);
+}
+
+.joy-last {
+  align-self: flex-start;
+  margin-top: 12rpx;
+  padding: 8rpx 22rpx;
+  border-radius: 99rpx;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  font-size: 24rpx;
+}
+
+/* 搜索 */
+.joy-search {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.joy-search-input {
+  flex: 1;
+  height: 72rpx;
+  min-height: 72rpx;
+  line-height: 72rpx;
+  box-sizing: border-box;
+  padding: 0 24rpx;
+  border-radius: var(--app-radius-sm);
+  border: 1rpx solid var(--app-border);
+  background: var(--app-paper);
+  font-size: var(--app-font-md);
+}
+
+.joy-search-btn {
+  color: var(--theme-primary);
+  font-size: var(--app-font-md);
+  font-weight: 600;
+}
+
+.joy-search-clear {
+  color: var(--app-text-muted);
+  font-size: var(--app-font-sm);
+}
