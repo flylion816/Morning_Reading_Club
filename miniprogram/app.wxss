@@ -16,8 +16,8 @@ page {
   --app-text-muted: #776c5f;
   --app-border: rgba(92, 70, 44, 0.1);
   --app-rule: rgba(92, 70, 44, 0.14);
-  --app-shadow: 0 14rpx 34rpx rgba(84, 60, 30, 0.07);
-  --app-shadow-soft: 0 8rpx 20rpx rgba(84, 60, 30, 0.04);
+  --app-shadow: 0 8rpx 22rpx rgba(84, 60, 30, 0.05);
+  --app-shadow-soft: 0 4rpx 14rpx rgba(84, 60, 30, 0.035);
   --app-inner-line: inset 0 1rpx 0 rgba(255, 255, 255, 0.74);
   --app-radius-xs: 10rpx;
   --app-radius-sm: 16rpx;
@@ -58,6 +58,11 @@ page {
   --app-dur-press: 0.12s;
   --app-dur-state: 0.22s;
   --app-dur-enter: 0.36s;
+  /* Shared visual weight tokens: keep actions clear without large color blocks. */
+  --app-action-height: 76rpx;
+  --app-action-radius: 22rpx;
+  --app-action-shadow: 0 8rpx 18rpx var(--theme-primary-alpha-12);
+  --app-action-shadow-soft: 0 5rpx 14rpx var(--theme-primary-alpha-08);
   background-color: var(--app-page-bg);
   font-family: 'PingFang SC', 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 28rpx;
@@ -138,16 +143,16 @@ view {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 88rpx;
+  min-height: var(--app-action-height);
   padding: 0 var(--app-space-lg);
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-action-radius);
   /* Keep white action text readable across tenant themes. */
-  background: var(--theme-primary-dark);
+  background: var(--theme-primary);
   color: #ffffff;
   font-size: var(--app-font-md);
   font-weight: 650;
   line-height: 1.2;
-  box-shadow: 0 14rpx 28rpx var(--theme-primary-alpha-20);
+  box-shadow: var(--app-action-shadow);
   transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -155,15 +160,16 @@ view {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 88rpx;
+  min-height: var(--app-action-height);
   padding: 0 var(--app-space-lg);
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-action-radius);
   background: var(--app-paper);
   color: var(--app-text-soft);
   font-size: var(--app-font-md);
   font-weight: 600;
   line-height: 1.2;
-  box-shadow: inset 0 0 0 2rpx var(--app-border);
+  border: 1rpx solid var(--app-border);
+  box-shadow: none;
   transition: transform 0.18s ease, background 0.18s ease;
 }
 

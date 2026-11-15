@@ -969,6 +969,73 @@ describe('User Controller - 100% Coverage', () => {
       expect(updatedUser.save.called).to.be.true;
     });
 
+    describe('新书友接待组设置', () => {
+      const targetUser = role => ({
+        _id: fixtures.testUsers.normalUser._id,
+        role,
+        isNewcomerReceptionist: false,
+        save: sandbox.stub().resolves()
+      });
+
+      beforeEach(() => {
+        req.params = { userId: fixtures.testUsers.normalUser._id.toString() };
+        req.admin = { role: 'tenant_admin' };
+      });
+
+      it('管理员可以加入接待组', async () => {
+        const user = targetUser('admin');
+        UserStub.findById.resolves(user);
+        req.body = { isNewcomerReceptionist: true };
+
+        await userController.updateUser(req, res, next);
+
+        expect(user.isNewcomerReceptionist).to.equal(true);
+        expect(user.save.called).to.be.true;
+      });
+
+      it('普通用户不能加入接待组', async () => {
+        const user = targetUser('user');
+        UserStub.findById.resolves(user);
+        req.body = { isNewcomerReceptionist: true };
+
+        await userController.updateUser(req, res, next);
+
+        expect(res.status.calledWith(400)).to.be.true;
+        expect(user.save.called).to.be.false;
+      });
+
+      it('operator 没有权限设置接待组', async () => {
+        req.admin = { role: 'operator' };
+        req.body = { isNewcomerReceptionist: true };
+
+        await userController.updateUser(req, res, next);
+
+        expect(res.status.calledWith(403)).to.be.true;
+        expect(UserStub.findById.called).to.be.false;
+      });
+
+      it('只接受布尔值', async () => {
+        req.body = { isNewcomerReceptionist: 'yes' };
+
+        await userController.updateUser(req, res, next);
+
+        expect(res.status.calledWith(400)).to.be.true;
+      });
+
+      it('取消管理员时同时移出接待组', async () => {
+        const user = targetUser('admin');
+        user.isNewcomerReceptionist = true;
+        UserStub.findById.resolves(user);
+        req.body = { role: 'user' };
+
+        await userController.updateUser(req, res, next);
+
+        expect(user.role).to.equal('user');
+        expect(user.isNewcomerReceptionist).to.equal(false);
+        expect(user.save.called).to.be.true;
+      });
+    });
+
     it('应该返回404当用户不存在', async () => {
       // Given
       req.params = { userId: new mongoose.Types.ObjectId().toString() };

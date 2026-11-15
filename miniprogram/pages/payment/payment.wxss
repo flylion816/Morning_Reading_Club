@@ -874,3 +874,31 @@
 .pay-line-value {
   font-family: var(--app-font-num);
 }
+
+/* 订单摘要与金额以文字建立层级，避免大面积蓝底。 */
+.pay-summary {
+  min-height: 176rpx;
+  padding: 28rpx;
+  background: var(--app-paper);
+  color: var(--app-text);
+  border: 1rpx solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  box-shadow: none;
+}
+.pay-summary::after { display: none; }
+.pay-summary-kicker, .pay-summary-date, .pay-summary-amount-label { color: var(--app-text-muted); }
+.pay-summary-title { color: var(--app-text); font-size: 32rpx; }
+.pay-summary-amount-value { color: var(--theme-primary-dark); }
+.payment-actions {
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--app-border);
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 -8rpx 22rpx rgba(84, 60, 30, 0.06);
+}
+.pay-cancel, .pay-submit {
+  min-height: var(--app-action-height);
+  line-height: var(--app-action-height);
+  border-radius: var(--app-action-radius);
+}
+.pay-submit, .pay-submit[disabled] { background: var(--theme-primary); box-shadow: var(--app-action-shadow-soft); }
+.pay-submit[disabled] { opacity: 0.65; box-shadow: none; }

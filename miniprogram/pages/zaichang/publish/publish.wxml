@@ -98,3 +98,5 @@
     </view>
   </view>
 </view>
+<app-dialog id="app-dialog" />
+<app-sheet id="app-sheet" />

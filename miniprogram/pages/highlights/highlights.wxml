@@ -59,3 +59,4 @@
     <view class="hl-more" wx:if="{{loadingMore}}">读取中</view>
   </view>
 </view>
+<app-dialog id="app-dialog" />

@@ -64,3 +64,4 @@
 
   <canvas id="dailyCardCanvas" canvas-id="dailyCardCanvas" type="2d" class="dc-canvas"></canvas>
 </view>
+<app-dialog id="app-dialog" />

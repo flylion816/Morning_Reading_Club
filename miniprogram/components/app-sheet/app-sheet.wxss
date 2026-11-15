@@ -1,0 +1,87 @@
+/* Version 3 dawn: 统一底部菜单，纸张底、顶部圆角，和确认弹窗同一套语言。 */
+.as-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--app-overlay, rgba(40, 30, 20, 0.48));
+  display: flex;
+  align-items: flex-end;
+  animation: as-fade 0.18s ease-out;
+}
+
+.as-panel {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-radius: 44rpx 44rpx 0 0;
+  background: var(--app-paper, #fffdf8);
+  display: flex;
+  flex-direction: column;
+  animation: as-rise 0.22s ease-out;
+}
+
+.as-grip {
+  align-self: center;
+  width: 68rpx;
+  height: 8rpx;
+  margin-bottom: 18rpx;
+  border-radius: 4rpx;
+  background: var(--app-rule, #e5dccb);
+}
+
+.as-title {
+  padding: 4rpx 0 14rpx;
+  text-align: center;
+  font-size: var(--app-font-xs, 22rpx);
+  color: var(--app-text-muted, #9a8f82);
+}
+
+.as-list {
+  border-radius: var(--app-radius-md, 24rpx);
+  background: var(--app-paper-muted, #f8f2e7);
+  overflow: hidden;
+}
+
+.as-item {
+  height: 100rpx;
+  line-height: 100rpx;
+  text-align: center;
+  font-size: 31rpx;
+  color: var(--app-text, #2b2622);
+  border-top: 1rpx solid var(--app-border, #ece3d2);
+}
+
+.as-item:first-child {
+  border-top: none;
+}
+
+.as-item-danger {
+  color: var(--app-danger, #c0482f);
+}
+
+.as-item-hover {
+  background: var(--app-dawn-soft, #fdf0dc);
+}
+
+.as-cancel {
+  margin-top: 16rpx;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  border-radius: var(--app-radius-md, 24rpx);
+  border: 1rpx solid var(--theme-primary-alpha-15, rgba(61, 108, 163, 0.15));
+  background: var(--app-paper, #fffdf8);
+  font-size: 31rpx;
+  font-weight: 600;
+  color: var(--theme-primary-dark, #2f5a8a);
+}
+
+@keyframes as-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes as-rise {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}

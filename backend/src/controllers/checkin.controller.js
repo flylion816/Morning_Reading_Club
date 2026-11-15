@@ -6,6 +6,7 @@ const { success, errors } = require('../utils/response');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
 const { dispatchNotificationWithSubscribe } = require('../services/user-notification.service');
+const buddyService = require('../services/buddy.service');
 const {
   ensurePeriodCommunityAccess,
   getCommunityAccessiblePeriodIds
@@ -25,10 +26,61 @@ const {
   withTrustedMood
 } = require('../utils/checkin-mood');
 
-const MOOD_SUMMARY_MIN_SAMPLES = 3;
+// 心情天气已对营里公开，汇总不再设样本下限：有 1 条就显示；0 条时 counts 为 null
+// 给每条打卡带上作者的读伴 ID（读伴关系对营里公开）：前端据此给读伴的点赞、评论打上「读伴」标记。
+// 查询失败只是少一个标记，不影响打卡列表本身。
+async function withBuddyIds(list) {
+  try {
+    const items = Array.isArray(list) ? list : [];
+    const idOf = value => String((value && value._id) || value || '');
+    const map = await buddyService.getBuddyMap(items.map(item => idOf(item.periodId)));
+    if (!map || !map.size) return items;
+    return items.map(item => {
+      const buddyId = map.get(`${idOf(item.periodId)}:${idOf(item.userId)}`);
+      return buddyId ? { ...item, buddyUserId: buddyId } : item;
+    });
+  } catch (error) {
+    logger.warn('读伴标记查询失败', { message: error && error.message });
+    return list;
+  }
+}
 
-// 心情只有本人可见：给他人看的列表一律不带 mood
+// 读伴写下了打卡：单独给 TA 发一条通知；私密打卡不通知，失败不影响打卡
+async function notifyBuddyOfCheckin(req, { checkin, userId, section }) {
+  try {
+    if (!checkin || checkin.isPublic === false) return;
+    const buddyId = await buddyService.getActiveBuddyId(userId, checkin.periodId);
+    if (!buddyId) return;
+    const actor = await User.findById(userId).select('nickname avatar avatarUrl').lean();
+    const sectionTitle = (section && section.title) || '今天';
+    await dispatchNotificationWithSubscribe(req, {
+      recipientUserId: buddyId,
+      notificationType: 'buddy_checkin',
+      title: '你的读伴写下了今天的打卡',
+      content: `${(actor && actor.nickname) || '你的读伴'}写下了「${sectionTitle}」的打卡`,
+      targetPage: buildCourseDetailTargetPage(checkin.sectionId, { focus: 'comments', checkinId: checkin._id }),
+      senderId: userId,
+      data: {
+        periodId: String(checkin.periodId),
+        sectionId: String(checkin.sectionId),
+        checkinId: String(checkin._id),
+        sectionTitle,
+        senderName: actor && actor.nickname,
+        senderAvatar: (actor && actor.avatarUrl) || ''
+      }
+    });
+  } catch (error) {
+    logger.warn('读伴打卡通知发送失败', { message: error && error.message });
+  }
+}
+
+const MOOD_SUMMARY_MIN_SAMPLES = 1;
+
+// 心情天气对营里书友公开显示（2026-11-15 起）：营里可见的列表、搜索、详情会带 mood，
+// 但一律经 readTrustedMood 过滤（生效时间之前的旧数据视为未记录）。
+// 管理后台等其它出口仍然用 OTHERS_SELECT 不返回 mood。
 const OTHERS_SELECT = '-__v -mood';
+const PUBLIC_SELECT = '-__v';
 
 // 只有请求体带 moodSource: 'picker'（来自天气选择器）才认 mood；旧版客户端会写死 happy，一律忽略
 const MOOD_SOURCE_PICKER = 'picker';
@@ -486,6 +538,9 @@ async function createCheckin(req, res, next) {
       data: checkin.toObject()
     });
 
+    // 读伴写了打卡：单独通知 TA（不等待，不影响打卡）
+    notifyBuddyOfCheckin(req, { checkin, userId, section }).catch(() => {});
+
     res.status(201).json(
       success(
         withTrustedMood(checkin),
@@ -562,10 +617,10 @@ async function getCheckins(req, res, next) {
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
-      .select(OTHERS_SELECT);
+      .select(PUBLIC_SELECT);
 
     // 返回带分页信息的响应
-    const response = success(checkins);
+    const response = success(await withBuddyIds(checkins.map(withTrustedMood)));
     response.pagination = {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
@@ -780,7 +835,7 @@ async function getUserCheckinCalendar(req, res, next) {
   }
 }
 
-// 课程「今日心情天气」匿名汇总：东八区今天、有效样本不足 3 条时不给分布，绝不返回用户标识
+// 课程心情天气匿名汇总：统计该课程的全部可信心情，课程学习不严格绑定自然日。
 async function getSectionMoodSummary(req, res, next) {
   try {
     const { sectionId } = req.params;
@@ -800,15 +855,10 @@ async function getSectionMoodSummary(req, res, next) {
     );
     if (!hasCommunityAccess) return;
 
-    const date = toDayKey(new Date());
-    const dayStart = new Date(`${date}T00:00:00+08:00`);
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-    const validSince = new Date(MOOD_VALID_SINCE);
-
     const checkins = await Checkin.find({
       sectionId,
       mood: { $in: CHECKIN_MOODS },
-      checkinDate: { $gte: dayStart > validSince ? dayStart : validSince, $lt: dayEnd }
+      checkinDate: { $gte: new Date(MOOD_VALID_SINCE) }
     })
       .select('mood checkinDate')
       .lean();
@@ -827,7 +877,7 @@ async function getSectionMoodSummary(req, res, next) {
 
     res.json(
       success({
-        date,
+        date: toDayKey(checkins.find(item => readTrustedMood(item))?.checkinDate || new Date()),
         total,
         counts: total >= MOOD_SUMMARY_MIN_SAMPLES ? counts : null
       })
@@ -878,10 +928,10 @@ async function getPeriodCheckins(req, res, next) {
       .sort({ createdAt: -1 })
       .skip((parseInt(page, 10) - 1) * parseInt(limit, 10))
       .limit(parseInt(limit, 10))
-      .select(OTHERS_SELECT);
+      .select(PUBLIC_SELECT);
 
     // 返回带分页信息的响应
-    const response = success(checkins);
+    const response = success(await withBuddyIds(checkins.map(withTrustedMood)));
     response.pagination = {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
@@ -926,12 +976,18 @@ async function getCheckinDetail(req, res, next) {
 
     const checkinObj = checkin.toObject();
 
-    // 心情只有本人可见；本人读出时应用生效时间规则
-    const ownerId = String(checkinObj.userId?._id || checkinObj.userId || '');
-    if (requestUserId && ownerId === String(requestUserId)) {
-      checkinObj.mood = readTrustedMood(checkinObj);
-    } else {
-      delete checkinObj.mood;
+    // 心情天气对营里书友公开：读出时应用生效时间规则，旧数据视为未记录
+    checkinObj.mood = readTrustedMood(checkinObj);
+
+    // 读伴：作者的读伴 ID（读伴关系对营里公开），以及读伴对这一篇的回应
+    try {
+      const ownerForBuddy = String(checkinObj.userId?._id || checkinObj.userId || '');
+      const buddyId = await buddyService.getActiveBuddyId(ownerForBuddy, checkinObj.periodId?._id || checkinObj.periodId);
+      if (buddyId) checkinObj.buddyUserId = buddyId;
+      const reaction = await buddyService.getCheckinReaction(checkinObj._id);
+      if (reaction) checkinObj.buddyReaction = { text: reaction.text };
+    } catch (buddyError) {
+      logger.warn('读伴信息查询失败', { message: buddyError && buddyError.message });
     }
 
     // populate('likes.userId') 可能因为存储类型问题而失败（userId 存为字符串而非 ObjectId）
@@ -1424,6 +1480,14 @@ async function likeCheckin(req, res, next) {
           focus: 'comments',
           checkinId: checkin._id
         });
+        // 来信里写「给你的《第一天 品德成功论》点了赞」要用到课节名；取不到就不写，不影响点赞通知
+        let sectionTitle = '';
+        try {
+          const sectionDoc = await Section.findById(checkin.sectionId).select('title').lean();
+          sectionTitle = (sectionDoc && sectionDoc.title) || '';
+        } catch (sectionError) {
+          sectionTitle = '';
+        }
 
         await dispatchNotificationWithSubscribe(req, {
           recipientUserId: checkinOwnerId,
@@ -1437,6 +1501,7 @@ async function likeCheckin(req, res, next) {
             senderName: actorUser?.nickname,
             senderAvatar: actorUser?.avatarUrl || '',
             sectionId: checkin.sectionId.toString(),
+            sectionTitle,
             checkinId: checkin._id.toString(),
             commentId: null,
             replyId: null
@@ -1534,9 +1599,9 @@ async function searchCheckins(req, res, next) {
       .populate('likes.userId', 'nickname avatar avatarUrl')
       .sort({ createdAt: -1 })
       .limit(limit)
-      .select(OTHERS_SELECT);
+      .select(PUBLIC_SELECT);
 
-    res.json(success({ list: checkins, total: checkins.length, keyword: trimmedKeyword }));
+    res.json(success({ list: await withBuddyIds(checkins.map(withTrustedMood)), total: checkins.length, keyword: trimmedKeyword }));
   } catch (error) {
     next(error);
   }

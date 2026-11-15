@@ -20,7 +20,28 @@ const BuddyPairSchema = new mongoose.Schema(
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         dayKey: { type: String }
       }
-    ]
+    ],
+    // 击掌记录：两人都读完后，每人每天一次
+    highFiveLog: [
+      {
+        _id: false,
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        dayKey: { type: String },
+        at: { type: Date, default: Date.now }
+      }
+    ],
+    // 送一句：只存预设短句的 key，每人每天一条
+    gifts: [
+      {
+        _id: false,
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        dayKey: { type: String },
+        key: { type: String },
+        at: { type: Date, default: Date.now }
+      }
+    ],
+    // 「下一期还做读伴」的意愿：双方都在里面才生效
+    rematchVotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
   },
   { versionKey: false }
 );

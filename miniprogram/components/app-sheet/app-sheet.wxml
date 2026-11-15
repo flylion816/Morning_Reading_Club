@@ -1,0 +1,18 @@
+<view wx:if="{{visible}}" class="as-mask" catchtap="handleCancel" catchtouchmove="noop">
+  <view class="as-panel" catchtap="noop">
+    <view class="as-grip"></view>
+    <text wx:if="{{title}}" class="as-title">{{title}}</text>
+    <view class="as-list">
+      <view
+        wx:for="{{items}}"
+        wx:key="index"
+        class="as-item {{item.danger ? 'as-item-danger' : ''}}"
+        hover-class="as-item-hover"
+        hover-stay-time="60"
+        data-index="{{index}}"
+        bindtap="handleTap"
+      >{{item.label}}</view>
+    </view>
+    <view class="as-cancel" hover-class="as-item-hover" hover-stay-time="60" bindtap="handleCancel">{{cancelText}}</view>
+  </view>
+</view>

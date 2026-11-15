@@ -309,16 +309,17 @@
 
 .guest-login-btn {
   width: 400rpx;
-  height: 88rpx;
-  line-height: 88rpx;
+  height: var(--app-action-height);
+  line-height: var(--app-action-height);
   text-align: center;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  background: var(--theme-primary);
   color: #ffffff;
-  border-radius: 18rpx;
+  border-radius: var(--app-action-radius);
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 12rpx 26rpx var(--theme-primary-alpha-24);
+  box-shadow: var(--app-action-shadow-soft);
   transition: transform 0.18s ease, opacity 0.18s ease;
+  min-height: var(--app-action-height);
 }
 
 .guest-login-btn:active {
@@ -500,7 +501,7 @@
 }
 
 .user-avatar-wrap {
-  box-shadow: 0 0 0 6rpx var(--app-dawn-soft);
+  box-shadow: none;
 }
 
 .user-name {
@@ -587,6 +588,27 @@
 .journal-card-meta {
   font-size: 24rpx;
   color: var(--app-text-muted);
+}
+
+.footprints-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  min-height: 52rpx;
+  padding: 0 4rpx 0 10rpx;
+  color: var(--theme-primary-dark);
+  font-size: 22rpx;
+  white-space: nowrap;
+}
+
+.footprints-toggle .app-icon {
+  width: 24rpx;
+  height: 24rpx;
+  transition: transform 0.2s ease;
+}
+
+.footprints-toggle-up {
+  transform: rotate(-90deg);
 }
 
 .journal-month {
@@ -933,9 +955,9 @@
 }
 
 .guest-primary-action {
-  background: var(--theme-primary-dark);
+  background: var(--theme-primary);
   color: #ffffff;
-  box-shadow: 0 16rpx 30rpx var(--theme-primary-alpha-20);
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .guest-secondary-action {

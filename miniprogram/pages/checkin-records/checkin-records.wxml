@@ -99,7 +99,6 @@
       <view class="record-date-col">
         <text class="record-day">{{item.dayLabel}}</text>
         <text class="record-month">{{item.monthLabel}}</text>
-        <view class="record-mood" wx:if="{{item.moodName}}"><view class="record-mood-icon app-icon app-icon-{{item.moodIcon}}"></view><text>{{item.moodName}}</text></view>
       </view>
 
       <view class="record-card">
@@ -118,7 +117,8 @@
             <text class="record-header-subtitle">{{item.courseTitle}}</text>
           </view>
 
-          <text class="record-more">···</text>
+          <view class="record-mood" wx:if="{{item.moodName}}"><view class="record-mood-icon app-icon app-icon-{{item.moodIcon}}"></view><text>{{item.moodName}}</text></view>
+          <text wx:else class="record-more">···</text>
         </view>
 
         <view class="record-content {{item.hasDiary ? '' : 'record-content-empty'}}">

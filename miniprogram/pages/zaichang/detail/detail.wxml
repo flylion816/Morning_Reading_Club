@@ -162,3 +162,4 @@
   canvas-id="shareCoverCanvas"
   type="2d"
   class="share-cover-canvas"></canvas>
+<app-dialog id="app-dialog" />

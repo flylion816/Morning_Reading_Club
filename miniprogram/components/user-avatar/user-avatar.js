@@ -53,14 +53,34 @@ Component({
     avatarUrl() {
       if (this.data.imageFailed) this.setData({ imageFailed: false });
     },
-    'avatarText,displayName'(avatarText, displayName) {
-      this.setData({
-        resolvedAvatarText: getLastTextChars(displayName || avatarText || '', 2, '用')
-      });
+    'avatarText,displayName,size'(avatarText, displayName, size) {
+      this.updateAvatarText(avatarText, displayName, size);
+    }
+  },
+
+  lifetimes: {
+    attached() {
+      this.updateAvatarText(
+        this.data.avatarText,
+        this.data.displayName,
+        this.data.size
+      );
     }
   },
 
   methods: {
+    updateAvatarText(avatarText, displayName, size) {
+      // 头像小于等于 64rpx 时，两个汉字会挤在一起，只保留昵称最后一个字。
+      const compact = Number(size) <= 64;
+      this.setData({
+        resolvedAvatarText: getLastTextChars(
+          displayName || avatarText || '',
+          compact ? 1 : 2,
+          '用'
+        )
+      });
+    },
+
     handleImageError() {
       if (!this.data.imageFailed) this.setData({ imageFailed: true });
     },

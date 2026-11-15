@@ -1,4 +1,5 @@
 const { profileValues, isProfileUnchanged, profileError } = require('../../utils/profile-edit');
+const appDialog = require('../../utils/dialog');
 // 首页页面
 const userService = require('../../services/user.service');
 const authService = require('../../services/auth.service');
@@ -35,6 +36,8 @@ const { getDaypart } = require('../../utils/daypart');
 const { getSkyState } = require('../../utils/sky');
 const feedback = require('../../utils/feedback');
 const { isInsightUnread } = require('../../utils/insight-unread');
+const newcomerLeadService = require('../../services/newcomer-lead.service');
+const { STATUS_TEXT: NEWCOMER_STATUS_TEXT, formatContactBy } = require('../../utils/landing-share');
 const {
   getLessonNumberingBase,
   getLessonNumber,
@@ -403,7 +406,7 @@ function buildDailyCardSource(section = {}) {
   return { source: `第 ${n} 天${title ? ` · ${title}` : ''}`, day: n };
 }
 
-// 营地角落：根据三个接口的返回算出卡片（没有内容的卡片不出现）
+// 营地角落：按各自状态显示，随喜记始终放在最后。
 // 今日晨读上方的「慢递邮局」：开营头三天（含开营前可写的几天）提醒写信，信送到后提醒拆信；
 // 寄出之后、拆开之后都不再出现
 const LETTER_NOTE_WRITE_DAYS = 3;
@@ -461,7 +464,59 @@ function buildHomeLetterNote(letter, periodDayIndex, options = {}) {
   return null;
 }
 
-function buildCampCornerCards({ letter, practice, buddy } = {}) {
+// 首页读伴卡（天空区和今日晨读之间）：只有已配对时显示，一句话说清 TA 今天怎么样
+const BUDDY_STRIP_REFRESH_MS = 60 * 1000;
+
+function buildBuddyStrip(buddyState, meUser = {}) {
+  if (!buddyState || buddyState.state !== 'paired' || !buddyState.buddy) return null;
+  const buddy = buddyState.buddy;
+  const me = buddyState.me || {};
+  const name = buddy.nickname || '读伴';
+  const day = buddyState.pairedDay || 1;
+  const bothDone = !!buddyState.bothDone || !!(me.readToday && buddy.readToday);
+
+  let title;
+  let sub = `同行第 ${day} 天`;
+  let action = '去看看';
+  if (buddyState.giftFromBuddy && buddyState.giftFromBuddy.text) {
+    title = `${name}送了你一句话`;
+    sub = `「${buddyState.giftFromBuddy.text}」`;
+  } else if (buddyState.buddyReactionToday && buddyState.buddyReactionToday.text) {
+    title = `${name}回应了你的打卡`;
+    sub = `「${buddyState.buddyReactionToday.text}」`;
+  } else if (buddyState.buddyCheckinToday) {
+    title = `${name}刚写下今天的打卡`;
+    sub = '去读一读 TA 写了什么';
+    action = '去读';
+  } else if (bothDone) {
+    title = '今天你们都读完了';
+    if (buddyState.canHighFive) action = '击掌';
+  } else if (buddy.readToday) {
+    title = `${name}读完了，在等你`;
+  } else if (me.readToday) {
+    title = buddyState.canNudge ? '你先到了，拍拍 TA' : '你先到了';
+    if (buddyState.canNudge) action = '去轻拍';
+  } else {
+    title = `${name}今天还没读`;
+  }
+
+  return {
+    title,
+    sub,
+    action,
+    lit: bothDone || !!buddy.readToday,
+    me: getUserAvatarDisplay(meUser || {}, {
+      userId: (meUser && (meUser._id || meUser.id)) || '',
+      displayName: (meUser && meUser.nickname) || '我'
+    }),
+    buddy: getUserAvatarDisplay(buddy, { userId: buddy.userId, displayName: name })
+  };
+}
+
+// 随喜记卡片的提示语：每天换一句，意思相同
+const JOY_NOTE_PROMPTS = ['把触动，随手记下来', '刚才哪一句，让你停了一下？', '今天有哪句话，想留下来？', '写一句给今天的自己'];
+
+function buildCampCornerCards({ letter, practice, buddy, seed = '' } = {}) {
   const cards = [];
   if (letter) {
     const status = letter.status;
@@ -497,14 +552,13 @@ function buildCampCornerCards({ letter, practice, buddy } = {}) {
       cards.push({
         key: 'buddy',
         kind: 'buddy',
-        title: buddy.buddy.nickname || '读伴',
-        paired: true,
-        read: !!buddy.buddy.readToday,
-        checked: !!buddy.buddy.checkedInToday
+        title: `${buddy.buddy.nickname || '读伴'} · 同行第 ${buddy.pairedDay || 1} 天`,
+        single: true
       });
     }
   }
-  return cards.slice(0, 3);
+  cards.push({ key: 'joyNote', kind: 'joyNote', title: pickVariant(JOY_NOTE_PROMPTS, seed, 'joyNote') });
+  return cards;
 }
 
 // 期次第几天（以日期计，从 1 开始）；不在期次内或缺少日期时返回 null
@@ -559,6 +613,93 @@ function buildTodayExtractText(extract) {
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// 今日晨读卡片的提示语：每个状态准备几句意思相同的话，按「用户 + 日期」稳定挑一句，
+// 同一天里刷新不会跳，隔天换一句。每个池子的第 0 句是原来的固定文案（没有种子时用它）。
+const TODAY_CARD_MESSAGES = {
+  checkin: [
+    '写下今天的感受，留给自己。',
+    '今天读到的，用几句话留下来。',
+    '哪一句碰到了你？写下来吧。',
+    '把今天的一点收获，写给明天的自己。',
+    '不用写得多好，写下来就是留下了。'
+  ],
+  checkedIn: [
+    '今天已打卡，这一页已经写下。',
+    '今天已打卡，这一天被你好好收下了。',
+    '今天已打卡，留下的字会一直在这里。',
+    '今天已打卡，今天的你记下了今天。'
+  ],
+  review: [
+    '读过的内容，还可以再慢慢回看。',
+    '读过的这一课，隔一会儿再看会不一样。',
+    '读过的内容，随时可以翻回来再读。'
+  ],
+  morning: [
+    '给自己一段安静的晨读时光。',
+    '清晨的这一会儿，留给自己。',
+    '先静下来，读几页再开始这一天。',
+    '这一天，从一段安静的阅读开始。'
+  ],
+  night: [
+    '夜深了，给自己一段安静的时光。',
+    '夜里很静，适合慢慢读几页。',
+    '夜深了，读一小段就好。'
+  ]
+};
+
+// 课程里统一的「摘抄金句」任务说明；各课内容是同一句，这里换几种说法，意思不变
+const STANDARD_EXTRACT_INSTRUCTION = '从上文中，摘抄出一句金句，分享到晨读营的微信群中。';
+const EXTRACT_INSTRUCTION_VARIANTS = [
+  STANDARD_EXTRACT_INSTRUCTION,
+  '读完之后，挑一句最打动你的话，分享到晨读营的微信群里。',
+  '从上文里选一句金句，发到晨读营的微信群，和书友一起读。',
+  '找出今天最想留住的一句话，分享到晨读营的微信群中。',
+  '摘下一句让你停一停的话，分享到晨读营的微信群里。'
+];
+const EXTRACT_INSTRUCTION_RE = /摘抄.*(金句|一句)/;
+
+function hashSeed(text) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+// seed 为空时返回第 0 句（原文案）；否则按 seed + 池子名稳定挑一句
+function pickVariant(pool, seed, poolName = '') {
+  if (!Array.isArray(pool) || pool.length === 0) return '';
+  if (!seed) return pool[0];
+  return pool[hashSeed(`${seed}|${poolName}`) % pool.length];
+}
+
+// 「用户 + 北京时间日期」：同一天稳定，隔天更换
+function getVariantSeed(now = new Date()) {
+  let userId = 'guest';
+  try {
+    const app = typeof getApp === 'function' ? getApp() : null;
+    const user = app && app.globalData && app.globalData.userInfo;
+    userId = (user && (user._id || user.id)) || 'guest';
+  } catch (error) {
+    // 取不到用户就按访客处理
+  }
+  return `${userId}|${getTodayCardTime(now).dateKey}`;
+}
+
+// 展示用的任务说明：只有「标准摘抄说明」才轮换，各课自己写的说明原样显示
+function buildExtractDisplay(extractText, seed) {
+  const text = String(extractText || '').trim();
+  if (!text) return '';
+  if (text !== STANDARD_EXTRACT_INSTRUCTION) return text;
+  return pickVariant(EXTRACT_INSTRUCTION_VARIANTS, seed, 'extract');
+}
+
+// 这句是任务说明而不是金句本身；做日签时不能把它当成金句带过去
+function isExtractInstruction(text) {
+  return EXTRACT_INSTRUCTION_RE.test(String(text || ''));
+}
+
 // 今日任务接口按北京时间取自然日；卡片的时段和换日与它保持同一口径。
 function getTodayCardTime(now = new Date()) {
   const time = now.getTime();
@@ -572,7 +713,7 @@ function getTodayCardTime(now = new Date()) {
 }
 
 // 完成状态优先于时段；已打卡不代表一定是在小程序里读完的。
-function buildTodayCardState(todaySection, communityEnabled, now = new Date()) {
+function buildTodayCardState(todaySection, communityEnabled, now = new Date(), seed = '') {
   const section = todaySection || {};
   const stateUnknown = communityEnabled && section.checkinStateKnown === false;
   const checkedIn = communityEnabled && !stateUnknown && !!section.isCheckedIn;
@@ -583,21 +724,23 @@ function buildTodayCardState(todaySection, communityEnabled, now = new Date()) {
   let message;
   if (checkedIn) {
     primary = { type: 'read', text: '再读一遍' };
-    message = '今天已打卡，这一页已经写下。';
+    message = pickVariant(TODAY_CARD_MESSAGES.checkedIn, seed, 'checkedIn');
   } else if (stateUnknown) {
     primary = { type: 'read', text: '开始晨读' };
     message = '打卡状态暂时没取到，可以先读这一课。';
   } else if (communityEnabled && (read || phase === 'day')) {
     primary = { type: 'checkin', text: '去打卡' };
-    message = '写下今天的感受，留给自己。';
+    message = pickVariant(TODAY_CARD_MESSAGES.checkin, seed, 'checkin');
   } else if (read) {
     primary = { type: 'study', text: '去学习' };
-    message = '读过的内容，还可以再慢慢回看。';
+    message = pickVariant(TODAY_CARD_MESSAGES.review, seed, 'review');
   } else {
     primary = { type: 'read', text: '开始晨读' };
-    message = phase === 'night'
-      ? '夜深了，给自己一段安静的时光。'
-      : '给自己一段安静的晨读时光。';
+    message = pickVariant(
+      phase === 'night' ? TODAY_CARD_MESSAGES.night : TODAY_CARD_MESSAGES.morning,
+      seed,
+      phase === 'night' ? 'night' : 'morning'
+    );
   }
 
   return {
@@ -745,10 +888,14 @@ function buildReadingModeUrl(sectionId, periodId = '', section = {}) {
 Page({
   // 暴露纯函数，便于单测
   buildTodayCardState,
+  buildExtractDisplay,
+  isExtractInstruction,
+  pickVariant,
   getTodayCardTime,
   buildWelcomeBackText,
   buildPresenceText,
   buildCampCornerCards,
+  buildBuddyStrip,
   buildHomeLetterNote,
   usesSevenHabitsCourseTemplate,
   getVisibleTaskCheckinUsers,
@@ -760,6 +907,10 @@ Page({
     userInfo: null,
     isLogin: false,
     hasValidSignature: false,
+    // 新书友留言状态：通过落地页留言、还没进营的人看到的一张提示卡
+    newcomerLead: null,
+    // 读伴卡：已配对时显示在天空区和今日晨读之间
+    buddyStrip: null,
 
     // 晨光问候区
     daypart: 'day',
@@ -891,6 +1042,7 @@ Page({
       podcastPlaying: !!app.globalData.podcastPlaying,
       podcastSectionId: app.globalData.podcastSectionId || ''
     });
+    this.refreshBuddyStrip();
     // 在慢递邮局寄出或拆开了信：今日晨读上方的提醒要跟着收起
     if (app.globalData.homeLetterDirty) {
       app.globalData.homeLetterDirty = false;
@@ -907,7 +1059,7 @@ Page({
         const todaySection = { ...this.data.todaySection, checkinStateKnown: false };
         this.setData({
           todaySection,
-          todayCard: buildTodayCardState(todaySection, true)
+          todayCard: buildTodayCardState(todaySection, true, new Date(), getVariantSeed())
         });
       }
       this.loadRecentCheckins().then(recentCheckins => {
@@ -926,6 +1078,34 @@ Page({
     // 通知页可能只改变未读数；首页数据刷新有 30 秒节流，但铃铛数字需要每次返回首页都同步。
     if (!shouldRefreshData && this.data.isLogin) {
       this.loadUnreadNotificationCount();
+    }
+    this.loadNewcomerLead();
+  },
+
+  // 留过言的新书友：首页顶部显示“接待书友会在几号前联系你”。接待人开始交流后卡片收起。
+  async loadNewcomerLead() {
+    if (!this.data.isLogin) {
+      if (this.data.newcomerLead) this.setData({ newcomerLead: null });
+      return;
+    }
+    const now = Date.now();
+    if (this._newcomerLeadLoadedAt && now - this._newcomerLeadLoadedAt < 15000) return;
+    this._newcomerLeadLoadedAt = now;
+    try {
+      const res = await newcomerLeadService.getMine();
+      const lead = res && res.lead;
+      const visible = lead && (lead.status === 'pending' || lead.status === 'contacted');
+      this.setData({
+        newcomerLead: visible
+          ? {
+              statusText: NEWCOMER_STATUS_TEXT[lead.status] || '',
+              pending: lead.status === 'pending',
+              contactByText: formatContactBy(lead.contactBy)
+            }
+          : null
+      });
+    } catch (error) {
+      // 没有线索或网络失败都不打扰首页
     }
   },
 
@@ -995,7 +1175,7 @@ Page({
       const todaySection = decorateSectionWithReadingCompletion(this.data.todaySection);
       this.setData({
         todaySection,
-        todayCard: buildTodayCardState(todaySection, this.data.canAccessCurrentPeriodCommunity, now)
+        todayCard: buildTodayCardState(todaySection, this.data.canAccessCurrentPeriodCommunity, now, getVariantSeed(now))
       });
     }
     return false;
@@ -1435,6 +1615,7 @@ Page({
           ...sectionRes,
           day: sectionRes.day ?? taskRes.day
         };
+        // 今日任务接口按最新打卡倒序返回；首页左起展示最新书友，头像满后由旧者退出。
         const checkinUsers = (taskRes.checkinUsers || [])
           .slice(0, TASK_CARD_LAYOUT_RPX.maxBackendAvatars)
           .map((user) => ({
@@ -1475,6 +1656,7 @@ Page({
             sectionRes.coverEmoji || currentPeriod?.coverEmoji || '🏔️',
           subtitleDisplay: (sectionRes.subtitle || '').replace(/至$/, ''),
           extractText: buildTodayExtractText(sectionRes.extract),
+          extractDisplay: buildExtractDisplay(buildTodayExtractText(sectionRes.extract), getVariantSeed()),
           displayDate,
           podcastUrl: sectionRes.podcastUrl || null,
           podcastDuration: sectionRes.podcastDuration || null,
@@ -1552,7 +1734,7 @@ Page({
           }),
           todaySection: todaySection || null,
           todayCard: todaySection
-            ? buildTodayCardState(todaySection, communityEnabled)
+            ? buildTodayCardState(todaySection, communityEnabled, new Date(), getVariantSeed())
             : null,
           todayTaskEmptyState: todayTaskEmptyState || null,
           hasMeeting: !!todaySection,
@@ -1663,10 +1845,10 @@ Page({
   // 同行感与营地角落：锦上添花，各自失败各自不显示，不阻塞首屏
   loadHomeExtras(periodId) {
     if (!periodId) {
-      this.setData({ presenceText: '', campCornerCards: [], campCornerStatus: 'idle' });
+      this.setData({ presenceText: '', campCornerCards: [], campCornerStatus: 'idle', buddyStrip: null });
       return;
     }
-    this.setData({ campCornerCards: [], campCornerStatus: 'loading' });
+    this.setData({ campCornerCards: buildCampCornerCards(), campCornerStatus: 'loading' });
     const safe = (fn) => {
       try {
         return Promise.resolve(fn()).catch(() => null);
@@ -1684,13 +1866,35 @@ Page({
       safe(() => buddyService.getState(periodId))
     ]).then(([letter, practice, buddy]) => {
       if (this.data.currentPeriod && (this.data.currentPeriod._id || this.data.currentPeriod.id) !== periodId) return;
-      const cards = buildCampCornerCards({ letter, practice, buddy });
+      const cards = buildCampCornerCards({ letter, practice, buddy, seed: getVariantSeed() });
+      this._buddyStripReady = true;
+      this._buddyStripAt = Date.now();
       this.setData({
+        buddyStrip: buildBuddyStrip(buddy, this.data.userInfo),
         homeLetterNote: buildHomeLetterNote(letter, this.data.periodDayIndex, { sealedKey: readLetterSealedKey(periodId) }),
         campCornerCards: cards,
         campCornerStatus: letter || practice || buddy ? 'ready' : 'error'
       });
     });
+  },
+
+  // 从读伴页回来（轻拍、击掌、送一句之后）：悄悄刷新读伴卡
+  // 读伴状态接口要查的东西不少：60 秒内不重复取；从读伴页回来（有互动）才立即取
+  refreshBuddyStrip() {
+    const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    if (!periodId || !this._buddyStripReady || this.data.currentPeriodCommunityState !== 'enabled') return;
+    const app = typeof getApp === 'function' ? getApp() : null;
+    const dirty = !!(app && app.globalData && app.globalData.buddyDirty);
+    if (dirty) app.globalData.buddyDirty = false;
+    const now = Date.now();
+    if (!dirty && this._buddyStripAt && now - this._buddyStripAt < BUDDY_STRIP_REFRESH_MS) return;
+    this._buddyStripAt = now;
+    Promise.resolve(buddyService.getState(periodId))
+      .then((buddy) => {
+        if (!this._isPageAlive) return;
+        this.setData({ buddyStrip: buildBuddyStrip(buddy, this.data.userInfo) });
+      })
+      .catch(() => {});
   },
 
   handleHomeLetterTap() {
@@ -1706,6 +1910,10 @@ Page({
 
   handleCampCornerTap(e) {
     const kind = e.currentTarget.dataset.kind;
+    if (kind === 'joyNote') {
+      wx.navigateTo({ url: '/pages/joy-notes/joy-notes' });
+      return;
+    }
     const periodId = this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
     const pages = {
       letter: '/pages/slow-mail/slow-mail',
@@ -1724,7 +1932,7 @@ Page({
     const periodName = currentPeriod?.name || currentPeriod?.title || todaySection.periodTitle || '';
     wx.navigateTo({
       url:
-        `/pages/daily-card/daily-card?quote=${enc(todaySection.extractText)}` +
+        `/pages/daily-card/daily-card?quote=${enc(isExtractInstruction(todaySection.extractText) ? '' : todaySection.extractText)}` +
         `&source=${enc(source)}&periodName=${enc(periodName)}&day=${enc(day)}`
     });
   },
@@ -2904,7 +3112,7 @@ Page({
   },
 
   showInviteLinkGuide(meetingJoinUrl) {
-    wx.showModal({
+    appDialog.showModal({
       title: '请在浏览器中打开腾讯会议',
       content: '复制链接后，请在浏览器中打开腾讯会议。',
       confirmText: '复制链接',
@@ -2936,7 +3144,7 @@ Page({
       this.showInviteLinkGuide(meetingJoinUrl);
     });
 
-    wx.showActionSheet({
+    appDialog.showActionSheet({
       itemList,
       success: (res) => {
         const action = actions[res.tapIndex];
@@ -3036,7 +3244,7 @@ Page({
       contentParts.push('请手动打开腾讯会议APP或浏览器中的腾讯会议邀请链接。');
     }
 
-    wx.showModal({
+    appDialog.showModal({
       title: '无法直接打开腾讯会议',
       content: contentParts.join('\n'),
       confirmText: meetingId ? '复制会议号' : '知道了',

@@ -43,6 +43,8 @@ const UserSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
+    // 不出现在「读伴」的邀请名单里（默认出现）
+    buddyHidden: { type: Boolean, default: false },
     currentStreak: {
       type: Number,
       default: 0,
@@ -90,6 +92,11 @@ const UserSchema = new mongoose.Schema(
     phoneBindAt: {
       type: Date,
       default: null
+    },
+    // 新书友接待组成员：新线索会通知他们，由本人在工作台里自行开关
+    isNewcomerReceptionist: {
+      type: Boolean,
+      default: false
     },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,

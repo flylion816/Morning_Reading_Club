@@ -1,4 +1,5 @@
 const { buildCourseModules, applyCourseTemplateExtensions } = require('../../utils/course-modules');
+const appDialog = require('../../utils/dialog');
 const courseService = require('../../services/course.service');
 const checkinService = require('../../services/checkin.service');
 const commentService = require('../../services/comment.service');
@@ -24,6 +25,15 @@ const {
   getLessonNumberingBase
 } = require('../../utils/lesson');
 const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
+const { getMoodOption } = require('../../utils/mood');
+const buddyService = require('../../services/buddy.service');
+const {
+  REACTION_OPTIONS,
+  markBuddyAvatars,
+  markBuddyReplies,
+  isMyBuddyCheckin,
+  canReactToCheckin
+} = require('./buddy-marks');
 const {
   createPodcastAudioContext,
   setPodcastAudioSource,
@@ -42,7 +52,7 @@ function buildMoodSummaryText(counts) {
     .filter((item) => item.count > 0)
     .sort((a, b) => b.count - a.count || a.index - b.index)
     .map((item) => `${item.count} ${item.name}`);
-  return parts.length ? `今天营里：${parts.join(' · ')}` : '';
+    return parts.length ? `营里心情：${parts.join(' · ')}` : '';
 }
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
@@ -194,6 +204,9 @@ function buildCourseSteps(course) {
 
 Page({
   data: {
+    buddyReactSheet: { visible: false, key: REACTION_OPTIONS[0].key },
+    buddyReactOptions: REACTION_OPTIONS,
+    replyDialog: { visible: false, title: '', placeholder: '', content: '' },
     likePopId: '',
     currentStepIndex: 0,
     courseId: null,
@@ -1101,6 +1114,10 @@ Page({
       }),
       avatarColor:
         checkin.avatarColor || getAvatarColorByUserId(normalizedUserId),
+      // 心情天气：营里公开显示在卡片右上角，没选或旧数据为空串
+      mood: checkin.mood || '',
+      moodName: (getMoodOption(checkin.mood) || {}).name || '',
+      moodIcon: (getMoodOption(checkin.mood) || {}).icon || '',
       content,
       contentHtml,
       hasRichContent: !!richContentHtml,
@@ -1123,8 +1140,25 @@ Page({
                 ) === String(currentUserId)
             )
           : false,
-      likeAvatars: this.getLikeAvatarsFromLikes(checkin.likes),
-      displayLikeAvatars: this.getDisplayLikeAvatars(this.getLikeAvatarsFromLikes(checkin.likes)),
+      likeAvatars: markBuddyAvatars(this.getLikeAvatarsFromLikes(checkin.likes), this.normalizeId(checkin.buddyUserId)),
+      displayLikeAvatars: this.getDisplayLikeAvatars(
+        markBuddyAvatars(this.getLikeAvatarsFromLikes(checkin.likes), this.normalizeId(checkin.buddyUserId))
+      ),
+      // 读伴：作者的读伴 ID、读伴对这一篇的回应；我是不是作者的读伴
+      buddyUserId: this.normalizeId(checkin.buddyUserId) || '',
+      buddyReaction: checkin.buddyReaction && checkin.buddyReaction.text ? { text: checkin.buddyReaction.text } : null,
+      isMyBuddyCheckin: isMyBuddyCheckin(
+        { buddyUserId: this.normalizeId(checkin.buddyUserId), authorId: normalizedUserId },
+        currentUserId
+      ),
+      canBuddyReact: canReactToCheckin(
+        {
+          buddyUserId: this.normalizeId(checkin.buddyUserId),
+          authorId: normalizedUserId,
+          buddyReaction: checkin.buddyReaction && checkin.buddyReaction.text
+        },
+        currentUserId
+      ),
       replies: [],
       day: checkin.day ?? sectionInfo.day ?? this.data.course?.day ?? null,
       sectionDay:
@@ -2303,7 +2337,7 @@ Page({
             String(error?.errMsg || '').includes('auth deny') &&
             wx.showModal
           ) {
-            wx.showModal({
+            appDialog.showModal({
               title: '需要相册权限',
               content: '请在设置中允许保存到相册后重试',
               success: (modalRes) => {
@@ -2979,7 +3013,7 @@ Page({
   openSeenPanel(e) {
     const { id } = e.currentTarget.dataset;
     const item = (this.data.course?.comments || []).find((c) => c && c.id === id);
-    if (!item || !item.seenAvailable) return;
+    if (!item || item.seenAvailable === false || this.isOwnCheckin(item)) return;
     this.setData({
       seenPanelId: id,
       seenPanelMine: item.seenMine || null,
@@ -3113,7 +3147,7 @@ Page({
   },
 
   handleEnroll() {
-    wx.showModal({
+    appDialog.showModal({
       title: '确认报名',
       content: '确定要报名该课程吗？',
       success: (res) => {
@@ -3363,7 +3397,7 @@ Page({
         });
 
         this.setData({
-          [`course.comments[${index}].replies`]: formattedReplies,
+          [`course.comments[${index}].replies`]: markBuddyReplies(formattedReplies, checkin.buddyUserId),
           [loadingKey]: false
         });
         this.syncDetailCheckinState(checkin.id);
@@ -3524,7 +3558,7 @@ Page({
   handleDeleteComment(e) {
     const { commentId } = e.currentTarget.dataset;
     if (!commentId) return;
-    wx.showModal({
+    appDialog.showModal({
       title: '确认删除',
       content: '确定要删除这条评论吗？',
       confirmText: '删除',
@@ -3555,7 +3589,7 @@ Page({
   handleDeleteCheckin() {
     const { detailCheckin } = this.data;
     if (!detailCheckin) return;
-    wx.showModal({
+    appDialog.showModal({
       title: '确认删除',
       content: '删除后无法恢复，确定要删除这条打卡吗？',
       confirmText: '删除',
@@ -3659,6 +3693,86 @@ Page({
     }
   },
 
+  // ---- 读伴回应：对读伴的一篇打卡回一句预设短句 ----
+  onOpenBuddyReact() {
+    const detail = this.data.detailCheckin;
+    if (!detail || !detail.canBuddyReact) return;
+    this.setData({ 'buddyReactSheet.visible': true });
+  },
+
+  onCloseBuddyReact() {
+    this.setData({ 'buddyReactSheet.visible': false });
+  },
+
+  onSelectBuddyReact(event = {}) {
+    const key = event.currentTarget?.dataset?.key;
+    if (key) this.setData({ 'buddyReactSheet.key': key });
+  },
+
+  async onSendBuddyReact() {
+    const detail = this.data.detailCheckin;
+    if (!detail || !detail.canBuddyReact || this._buddyReacting) return;
+    const periodId = detail.periodId || this.data.periodId;
+    const key = this.data.buddyReactSheet.key;
+    const option = REACTION_OPTIONS.find(item => item.key === key);
+    this._buddyReacting = true;
+    this.setData({ 'buddyReactSheet.visible': false });
+    try {
+      await buddyService.react(periodId, detail.id, key);
+      const reaction = { text: option ? option.text : '' };
+      const patch = { 'detailCheckin.buddyReaction': reaction, 'detailCheckin.canBuddyReact': false };
+      const comments = this.data.course?.comments;
+      if (Array.isArray(comments)) {
+        patch['course.comments'] = comments.map(item =>
+          String(item.id) === String(detail.id) ? { ...item, buddyReaction: reaction, canBuddyReact: false } : item
+        );
+      }
+      this.setData(patch);
+      wx.showToast({ title: '已回应', icon: 'none' });
+    } catch (error) {
+      wx.showToast({ title: (error && error.message) || '没有成功，请稍后再试', icon: 'none' });
+    } finally {
+      this._buddyReacting = false;
+    }
+  },
+
+  /**
+   * 回复弹窗：用页面内的自定义弹层代替系统 wx.showModal，
+   * 样式跟小程序保持一致；调用方式沿用 { title, placeholderText, success(res) }
+   */
+  showReplyDialog({ title = '回复', placeholderText = '', success } = {}) {
+    this._replyDialogSuccess = typeof success === 'function' ? success : null;
+    this.setData({
+      replyDialog: {
+        visible: true,
+        title,
+        placeholder: placeholderText,
+        content: ''
+      }
+    });
+  },
+
+  handleReplyDialogInput(e) {
+    this.setData({ 'replyDialog.content': (e.detail && e.detail.value) || '' });
+  },
+
+  handleReplyDialogCancel() {
+    this._replyDialogSuccess = null;
+    this.setData({ 'replyDialog.visible': false });
+  },
+
+  handleReplyDialogConfirm() {
+    const content = this.data.replyDialog.content || '';
+    if (!content.trim()) {
+      wx.showToast({ title: '写点什么再发吧', icon: 'none' });
+      return;
+    }
+    const callback = this._replyDialogSuccess;
+    this._replyDialogSuccess = null;
+    this.setData({ 'replyDialog.visible': false });
+    if (callback) callback({ confirm: true, content });
+  },
+
   /**
    * 回复评论
    */
@@ -3676,10 +3790,9 @@ Page({
     }
 
     // 使用 wx.showModal 获取回复内容
-    wx.showModal({
+    this.showReplyDialog({
       title: `回复 ${comment.userName}`,
-      editable: true,
-      placeholderText: '请输入回复内容...',
+      placeholderText: '说点什么…',
       success: async (res) => {
         const replyContent = normalizeDanmakuContent(res.content || '').trim();
         if (res.confirm && replyContent) {
@@ -3912,10 +4025,9 @@ Page({
     }
 
     // 使用 wx.showModal 获取回复内容
-    wx.showModal({
+    this.showReplyDialog({
       title: `回复 ${userName}`,
-      editable: true,
-      placeholderText: '请输入回复内容...',
+      placeholderText: '说点什么…',
       success: async (res) => {
         const replyContent = normalizeDanmakuContent(res.content || '').trim();
         if (res.confirm && replyContent) {

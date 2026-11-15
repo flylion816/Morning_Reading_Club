@@ -505,3 +505,35 @@
 }
 
 .app-empty { margin: 80rpx 24rpx 0; }
+
+/* 期次入口保留标题层级，减少整块蓝色占屏。 */
+.home-banner {
+  min-height: 168rpx;
+  margin: 16rpx 20rpx 6rpx;
+  padding: 34rpx 30rpx;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-paper);
+  color: var(--app-text);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.banner-eyebrow {
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+}
+
+.banner-text {
+  color: var(--app-text);
+  text-shadow: none;
+  font-size: 44rpx;
+}
+
+.banner-subtext {
+  color: var(--app-text-muted);
+  text-shadow: none;
+}
+
+.btn-enroll-entry {
+  background: var(--theme-primary);
+  box-shadow: var(--app-action-shadow-soft);
+}

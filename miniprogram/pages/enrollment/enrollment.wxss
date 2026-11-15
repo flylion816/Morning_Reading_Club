@@ -721,3 +721,39 @@ picker {
 .header-title {
   font-family: var(--app-font-serif);
 }
+
+/* 报名摘要用纸张底呈现，品牌色只点在步骤与提交操作上。 */
+.enrollment-header {
+  min-height: 0;
+  padding: 28rpx 28rpx 52rpx;
+  color: var(--app-text);
+  background: var(--app-paper);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow-soft);
+}
+.header-topline {
+  margin-bottom: 28rpx;
+  color: var(--app-text-muted);
+}
+.header-icon {
+  background: var(--theme-primary-tint);
+  border-color: var(--theme-primary-alpha-12);
+  box-shadow: none;
+}
+.header-title { color: var(--app-text); font-size: 38rpx; }
+.header-subtitle, .header-meta { color: var(--app-text-muted); }
+.header-meta { margin-top: 28rpx; border-color: var(--app-border); }
+.step-actions {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--app-border);
+  border-radius: 0;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 -8rpx 22rpx rgba(84, 60, 30, 0.06);
+}
+.step-actions::before { display: none; }
+.btn { min-height: var(--app-action-height); }
+.btn-primary { background: var(--theme-primary); box-shadow: var(--app-action-shadow-soft); }
+.btn-phone-auth { background: var(--theme-primary-tint); color: var(--theme-primary-dark); }

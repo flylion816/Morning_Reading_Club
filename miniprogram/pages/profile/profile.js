@@ -1,5 +1,6 @@
 // 我的页面
 const userService = require('../../services/user.service');
+const appDialog = require('../../utils/dialog');
 const enrollmentService = require('../../services/enrollment.service');
 const checkinService = require('../../services/checkin.service');
 const notificationServiceModule = require('../../services/notification.service');
@@ -107,27 +108,73 @@ function isCurrentOrFutureMonth(year, month, today = new Date()) {
 }
 
 /**
- * 纯函数：把 summary.periods 转成印章列表。
- * 只显示有名字且 status 为 completed（实线章）或 ongoing（虚线章）的期次，其它一律忽略。
+ * 纯函数：把打卡汇总和报名期次合并成共读足迹印章。
+ * 报名过但还没有打卡的期次也应出现在足迹中，打卡统计只作为补充信息。
  */
-function buildStamps(periods) {
-  const list = (Array.isArray(periods) ? periods : [])
-    .map(item => ({
+function buildStamps(periods, enrollments = []) {
+  const periodMap = new Map();
+  const checkinPeriods = Array.isArray(periods) ? periods : [];
+  const enrollmentList = Array.isArray(enrollments) ? enrollments : [];
+
+  checkinPeriods.forEach(item => {
+    const periodId = item && item.periodId ? String(item.periodId) : '';
+    const displayName = item && (item.name || item.title || '');
+    if (!periodId || !displayName || displayName === UNKNOWN_PERIOD_NAME) return;
+    if (item.status !== 'completed' && item.status !== 'ongoing') return;
+    periodMap.set(periodId, {
       ...item,
-      displayName: item.name || item.title || ''
-    }))
-    .filter(item =>
-      item.displayName &&
-      item.displayName !== UNKNOWN_PERIOD_NAME &&
-      (item.status === 'completed' || item.status === 'ongoing')
-    );
-  const stamps = list.slice(0, MAX_STAMPS).map((item, index) => ({
+      periodId,
+      displayName,
+      sortTime: item.lastCheckinAt ? new Date(item.lastCheckinAt).getTime() : 0
+    });
+  });
+
+  enrollmentList.forEach(enrollment => {
+    if (!enrollment || (enrollment.status && !['active', 'completed'].includes(enrollment.status))) {
+      return;
+    }
+    if (enrollment.paymentStatus && !['paid', 'free'].includes(enrollment.paymentStatus)) {
+      return;
+    }
+
+    const period = enrollment.periodId && typeof enrollment.periodId === 'object'
+      ? enrollment.periodId
+      : {};
+    const periodId = String(period._id || period.id || enrollment.periodId || '');
+    const displayName = enrollment.periodTitle || period.title || period.name || enrollment.periodName || '';
+    if (!periodId || !displayName || displayName === UNKNOWN_PERIOD_NAME) return;
+
+    const existing = periodMap.get(periodId) || {};
+    const endTime = enrollment.endDate ? new Date(enrollment.endDate).getTime() : 0;
+    const status = enrollment.status === 'completed' || (endTime > 0 && endTime < Date.now())
+      ? 'completed'
+      : 'ongoing';
+    periodMap.set(periodId, {
+      ...existing,
+      ...enrollment,
+      ...period,
+      periodId,
+      displayName,
+      status,
+      sortTime: Math.max(
+        existing.sortTime || 0,
+        endTime || 0,
+        enrollment.enrolledAt ? new Date(enrollment.enrolledAt).getTime() : 0
+      )
+    });
+  });
+
+  const list = Array.from(periodMap.values())
+    .filter(item => item.displayName && (item.status === 'completed' || item.status === 'ongoing'))
+    .sort((a, b) => (b.sortTime || 0) - (a.sortTime || 0));
+  const allStamps = list.map((item, index) => ({
     key: item.periodId || `p${index}`,
     char: Array.from(item.displayName)[0],
     name: item.displayName,
     periodId: item.periodId || '',
     ended: item.status === 'completed'
   }));
+  const stamps = allStamps.slice(0, MAX_STAMPS);
   const current = list.find(item => item.status === 'ongoing');
   // 慢递邮局用的期次：优先进行中，否则取最近一期（接口按最近打卡时间倒序）
   const mailPeriod = current || list[0];
@@ -135,7 +182,8 @@ function buildStamps(periods) {
     slowMailPeriodId: (mailPeriod && mailPeriod.periodId) || '',
     total: list.length,
     stamps,
-    moreCount: list.length > MAX_STAMPS ? list.length : 0,
+    allStamps,
+    moreCount: list.length > MAX_STAMPS ? list.length - MAX_STAMPS : 0,
     currentName: current ? current.displayName : ''
   };
 }
@@ -157,6 +205,7 @@ Page({
     calendarError: false,
     canGoNextMonth: false,
     footprints: { total: 0, stamps: [], moreCount: 0, currentName: '', slowMailPeriodId: '' },
+    footprintsExpanded: false,
     isLogin: false,
     phoneMasked: '',
     hasPhone: false,
@@ -226,7 +275,7 @@ Page({
 
       if (canUsePaidFeatures) {
         this._loadCalendar();
-        this._loadFootprints();
+        this._loadFootprints(enrollmentList);
       }
     } catch (err) {
       console.error('加载用户数据失败', err);
@@ -285,7 +334,7 @@ Page({
 
   // 共读足迹：失败时整块不显示
   // summary 接口较重：页面没有下拉刷新，用 5 分钟内存缓存，期间再次显示不重复请求
-  async _loadFootprints() {
+  async _loadFootprints(enrollments = []) {
     const now = Date.now();
     if (this._footprintsLoading) return;
     if (this._footprintsLoadedAt && now - this._footprintsLoadedAt < FOOTPRINT_TTL) return;
@@ -293,7 +342,10 @@ Page({
     try {
       const summary = await checkinService.getUserDiarySummary();
       this._footprintsLoadedAt = Date.now();
-      this.setData({ footprints: buildStamps(summary && summary.periods) });
+      this.setData({
+        footprints: buildStamps(summary && summary.periods, enrollments),
+        footprintsExpanded: false
+      });
     } catch (error) {
       console.error('加载共读足迹失败', error);
     } finally {
@@ -367,6 +419,10 @@ Page({
     wx.navigateTo({ url: '/pages/highlights/highlights' });
   },
 
+  goToJoyNotes() {
+    wx.navigateTo({ url: '/pages/joy-notes/joy-notes' });
+  },
+
   goToSeenReceived() {
     if (!this.data.canUsePaidFeatures) {
       wx.showToast({ title: '完成支付后可查看被看见', icon: 'none' });
@@ -386,6 +442,10 @@ Page({
     const periodId = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.periodId;
     if (!periodId) return;
     wx.navigateTo({ url: `/pages/keepsake/keepsake?periodId=${encodeURIComponent(periodId)}` });
+  },
+
+  toggleFootprints() {
+    this.setData({ footprintsExpanded: !this.data.footprintsExpanded });
   },
 
   goToCompletionReports() {
@@ -409,7 +469,7 @@ Page({
   },
 
   handleLogout() {
-    wx.showModal({
+    appDialog.showModal({
       title: '退出登录',
       content: '确定要退出登录吗？',
       confirmColor: '#e74c3c',

@@ -161,9 +161,12 @@
 }
 .btn-enroll {
   background: var(--theme-primary);
-  border-radius: 48rpx;
-  padding: 32rpx 0;
+  border-radius: var(--app-action-radius);
+  padding: 20rpx 0;
   text-align: center;
+  color: #ffffff;
+  box-shadow: var(--app-action-shadow-soft);
+  min-height: var(--app-action-height);
 }
 .btn-enroll text {
   font-size: 34rpx;
@@ -171,15 +174,16 @@
   color: #fff;
 }
 .btn-enrolled {
-  background: #27ae60;
-  border-radius: 48rpx;
-  padding: 32rpx 0;
+  background: var(--app-success-soft);
+  border-radius: var(--app-action-radius);
+  padding: 20rpx 0;
   text-align: center;
+  color: var(--app-success);
 }
 .btn-enrolled text {
   font-size: 34rpx;
   font-weight: bold;
-  color: #fff;
+  color: var(--app-success);
 }
 .btn-disabled {
   background: var(--app-disabled);

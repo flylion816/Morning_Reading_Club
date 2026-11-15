@@ -145,9 +145,10 @@
   bottom: 0;
   display: flex;
   gap: 24rpx;
-  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
-  background: var(--app-paper);
-  border-top: 1rpx solid var(--app-rule);
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 248, 0.96);
+  border-top: 1rpx solid var(--app-border);
+  box-shadow: 0 -8rpx 22rpx rgba(84, 60, 30, 0.06);
 }
 
 .dc-btn {

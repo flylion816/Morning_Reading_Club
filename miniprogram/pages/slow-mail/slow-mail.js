@@ -1,4 +1,5 @@
 const letterService = require('../../services/letter.service');
+const appDialog = require('../../utils/dialog');
 const { tenantStorage } = require('../../utils/storage');
 const constants = require('../../config/constants');
 
@@ -150,7 +151,7 @@ Page({
       return;
     }
     const isSavedDraft = this.data.view === 'draft-closed';
-    wx.showModal({
+    appDialog.showModal({
       title: isSavedDraft ? '封存这封草稿' : '投递这封信',
       content: isSavedDraft ? '封存后要到结营那天才能再打开，确定吗？' : '投递后要到结营那天才能再打开，确定吗？',
       confirmText: isSavedDraft ? '封存' : '投递',

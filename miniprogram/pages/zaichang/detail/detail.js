@@ -1,4 +1,5 @@
 const imprintService = require('../../../services/imprint.service');
+const appDialog = require('../../../utils/dialog');
 const { maybeAutoTopUpSubscriptions } = require('../../../utils/subscribe-auto-topup');
 const { requireLogin } = require('../../../utils/require-login');
 const activityService = require('../../../services/activity.service');
@@ -333,7 +334,7 @@ Page({
 
   onDeleteComment(e) {
     const { commentId } = e.currentTarget.dataset;
-    wx.showModal({
+    appDialog.showModal({
       title: '删除评论',
       content: '确定删除这条评论吗？',
       success: async (res) => {
@@ -373,7 +374,7 @@ Page({
   },
 
   onTapDelete() {
-    wx.showModal({
+    appDialog.showModal({
       title: '删除印记',
       content: '确定删除这条印记吗？删除后无法恢复。',
       confirmColor: '#e74c3c',

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "新书友",
+  "navigationBarBackgroundColor": "#f6f1e7",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "usingComponents": {}
+}

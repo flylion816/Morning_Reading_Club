@@ -1,5 +1,6 @@
 const adminWorkbenchService = require('./adminWorkbench.service');
 const { getUserAvatarDisplay } = require('../../utils/avatar');
+const newcomerLeadService = require('../../services/newcomer-lead.service');
 
 const PAGE_SIZE = 20;
 
@@ -134,11 +135,23 @@ Page({
     activities: [],
     activityPagination: { page: 1, pageSize: PAGE_SIZE, total: 0, hasMore: false },
     loadingMoreUsers: false,
-    loadingMoreActivities: false
+    loadingMoreActivities: false,
+    // 新书友入口只对接待组成员显示，身份在后台用户管理里配置
+    isReceptionist: false
   },
 
   onLoad() {
     this.loadActivities();
+    this.loadReceptionistAccess();
+  },
+
+  async loadReceptionistAccess() {
+    try {
+      const res = await newcomerLeadService.getAccess();
+      this.setData({ isReceptionist: Boolean(res && res.isReceptionist) });
+    } catch (error) {
+      this.setData({ isReceptionist: false });
+    }
   },
 
   onPullDownRefresh() {
@@ -146,6 +159,10 @@ Page({
       ? this.searchUsers()
       : this.loadActivities();
     task.finally(() => wx.stopPullDownRefresh());
+  },
+
+  handleOpenLeads() {
+    wx.navigateTo({ url: '/pages/admin-leads/admin-leads' });
   },
 
   handleTabTap(e) {

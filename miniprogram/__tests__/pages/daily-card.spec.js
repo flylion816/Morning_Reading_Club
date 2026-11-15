@@ -103,7 +103,31 @@ describe('daily-card page', () => {
     expect(wx.openSetting).toHaveBeenCalled();
   });
 
+  test('share path lands on the newcomer landing page and carries the sharer', () => {
+    const myId = '507f1f77bcf86cd799439011';
+    global.getApp = jest.fn(() => ({ globalData: { userInfo: { _id: myId } } }));
+    page.onLoad({ quote: '先理解再被理解', date: '2026-11-14', day: '3', note: '每天读十分钟' });
+    page.generatePoster = jest.fn(() => Promise.resolve('/tmp/a.png'));
+    const res = page.onShareAppMessage();
+    expect(res.path.startsWith('/pages/landing/landing?')).toBe(true);
+    expect(res.path).toContain(`inviterId=${myId}`);
+    expect(res.path).toContain('src=daily_card');
+    expect(res.path).toContain(`quote=${encodeURIComponent('先理解再被理解')}`);
+    delete global.getApp;
+  });
+
+  test('share path still works when the visitor is not logged in', () => {
+    global.getApp = jest.fn(() => ({ globalData: { userInfo: null } }));
+    page.onLoad({ quote: 'a' });
+    page.generatePoster = jest.fn(() => Promise.resolve('/tmp/a.png'));
+    const res = page.onShareAppMessage();
+    expect(res.path.startsWith('/pages/landing/landing?')).toBe(true);
+    expect(res.path).not.toContain('inviterId');
+    delete global.getApp;
+  });
+
   test('share falls back to default image when generation fails', async () => {
+    global.getApp = jest.fn(() => ({ globalData: { userInfo: null } }));
     page.onLoad({ quote: 'a' });
     page.generatePoster = jest.fn(() => Promise.reject(new Error('x')));
     const res = page.onShareAppMessage();

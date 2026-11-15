@@ -44,7 +44,7 @@ page {
 /* 活动类型网格 */
 .type-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
 .type-item { padding: 14rpx 28rpx; border-radius: 40rpx; border: 2rpx solid var(--app-border); font-size: 26rpx; color: var(--zc-text-secondary); background: var(--app-surface-muted); }
-.type-item.selected { border-color: var(--zc-primary); background: var(--zc-primary); color: #fff; }
+.type-item.selected { border-color: var(--zc-primary); background: var(--theme-primary-tint); color: var(--zc-primary); }
 
 /* 在场人 */
 .attendees-list { display: flex; flex-wrap: wrap; gap: 16rpx; align-items: center; }
@@ -98,9 +98,11 @@ page {
   border-radius: var(--app-radius-sm);
 }
 .submit-btn {
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-action-radius);
   background: var(--zc-primary);
   box-shadow: 0 14rpx 26rpx rgba(45, 90, 61, 0.24);
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
 }
 .submit-btn:active,
 .type-item:active,

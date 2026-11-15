@@ -74,6 +74,26 @@
 
   <!-- 日记输入区域 -->
   <view class="diary-input-section">
+    <!-- 心情天气：先确认感受，再写内容 -->
+    <view class="mood-section mood-section-first">
+      <text class="mood-label">今天的心情天气</text>
+      <view class="mood-options">
+        <view
+          wx:for="{{moodOptions}}"
+          wx:key="value"
+          class="mood-option {{mood === item.value ? 'active' : ''}}"
+          bindtap="handleMoodSelect"
+          data-value="{{item.value}}">
+          <view class="mood-icon app-icon app-icon-{{item.icon}}"></view>
+          <text class="mood-name">{{item.name}}</text>
+        </view>
+      </view>
+      <block wx:for="{{moodOptions}}" wx:key="value">
+        <text class="mood-picked" wx:if="{{mood === item.value}}">{{item.name}} · {{item.desc}}</text>
+      </block>
+      <text class="mood-hint">会显示在你的打卡卡片右上角，营里的书友都能看到</text>
+    </view>
+
     <view class="rich-editor-wrap">
       <view class="editor-toolbar">
         <scroll-view scroll-x class="toolbar-scroll" show-scrollbar="{{false}}" enhanced="{{true}}">
@@ -175,26 +195,6 @@
           <text class="checkin-image-add-text">{{uploadingImage ? '上传中' : '添加图片'}}</text>
         </view>
       </view>
-    </view>
-
-    <!-- 心情天气 -->
-    <view class="mood-section">
-      <text class="mood-label">今天的心情天气</text>
-      <view class="mood-options">
-        <view
-          wx:for="{{moodOptions}}"
-          wx:key="value"
-          class="mood-option {{mood === item.value ? 'active' : ''}}"
-          bindtap="handleMoodSelect"
-          data-value="{{item.value}}">
-          <view class="mood-icon app-icon app-icon-{{item.icon}}"></view>
-          <text class="mood-name">{{item.name}}</text>
-        </view>
-      </view>
-      <block wx:for="{{moodOptions}}" wx:key="value">
-        <text class="mood-picked" wx:if="{{mood === item.value}}">{{item.name}} · {{item.desc}}</text>
-      </block>
-      <text class="mood-hint">只有你自己能看到，营里只会看到匿名的汇总</text>
     </view>
 
     <!-- 可见范围 -->

@@ -1,4 +1,5 @@
 const imprintService = require('../../../services/imprint.service');
+const appDialog = require('../../../utils/dialog');
 const request = require('../../../utils/request');
 const envConfig = require('../../../config/env');
 const currentTenant = require('../../../config/current-tenant');
@@ -166,7 +167,7 @@ Page({
       this._doChooseMedia(['image'], remaining);
     } else {
       // 空状态，先让用户选类型
-      wx.showActionSheet({
+      appDialog.showActionSheet({
         itemList: ['选择图片（最多9张）', '选择视频（仅1个）'],
         success: (res) => {
           if (res.tapIndex === 0) {

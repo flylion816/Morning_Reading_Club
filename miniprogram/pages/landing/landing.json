@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "凡人共读",
+  "navigationBarBackgroundColor": "#fbe3c3",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f6f1e7",
+  "enablePullDownRefresh": false,
+  "usingComponents": {}
+}

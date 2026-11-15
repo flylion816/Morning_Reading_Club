@@ -163,6 +163,8 @@ async function createComment(req, res, next) {
           senderName: actorUser?.nickname,
           senderAvatar: actorUser?.avatarUrl || '',
           sectionId,
+          sectionTitle: checkin.sectionId?.title || '',
+          commentPreview: truncateText(content, 40),
           checkinId: checkin._id.toString(),
           commentId: comment._id.toString()
         },
@@ -319,6 +321,8 @@ async function replyToComment(req, res, next) {
           senderName: actorUser?.nickname,
           senderAvatar: actorUser?.avatarUrl || '',
           sectionId,
+          sectionTitle: relatedCheckin?.sectionId?.title || '',
+          commentPreview: truncateText(content, 40),
           checkinId: comment.checkinId.toString(),
           commentId: comment._id.toString(),
           replyId: createdReply?._id?.toString?.() || null

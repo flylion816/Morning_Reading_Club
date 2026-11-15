@@ -45,7 +45,8 @@
 
 .user-signature {
   font-size: 26rpx;
-  opacity: 0.9;
+  opacity: 1;
+  color: var(--app-text-muted);
 }
 
 .stats-card {
@@ -131,6 +132,7 @@
   display: flex;
   flex-direction: column;
   gap: 12rpx;
+  border-left-width: 3rpx;
 }
 
 .insights-link {
@@ -190,4 +192,12 @@
 .stats-icon.app-seal,
 .insights-icon.app-seal {
   font-size: 20rpx;
+}
+
+.user-card {
+  background: var(--app-paper);
+  color: var(--app-text);
+  box-shadow: none;
+  padding: 32rpx;
+  border: 1rpx solid var(--app-border);
 }

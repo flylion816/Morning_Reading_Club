@@ -79,7 +79,7 @@
 .reading-progress-bar-fill {
   height: 100%;
   border-radius: 999rpx;
-  background: linear-gradient(90deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  background: var(--theme-primary);
   transition: width 0.3s ease;
 }
 
@@ -212,8 +212,8 @@
   flex: 1;
   min-width: 0;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  box-shadow: 0 10rpx 24rpx var(--theme-primary-alpha-24);
+  background: var(--theme-primary);
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .toolbar-btn-secondary {
@@ -296,9 +296,9 @@
 
 .poster-btn {
   flex: 1;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 42rpx;
+  height: var(--app-action-height);
+  line-height: var(--app-action-height);
+  border-radius: var(--app-action-radius);
   background: var(--theme-primary);
   color: #ffffff;
   font-size: 28rpx;
@@ -579,10 +579,10 @@
 }
 
 .reading-toolbar {
-  border-radius: 34rpx;
+  border-radius: var(--app-radius-md);
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(18rpx);
-  box-shadow: 0 20rpx 44rpx rgba(84, 60, 30, 0.12);
+  box-shadow: 0 6rpx 20rpx rgba(84, 60, 30, 0.07);
 }
 
 /* Version 3 dawn: 沉浸阅读标题使用衬线体 */
@@ -828,6 +828,9 @@
   font-size: 25rpx;
   line-height: 1.7;
   box-sizing: border-box;
+  /* 预览框现在是可编辑的 textarea */
+  width: 100%;
+  max-height: 260rpx;
 }
 
 .highlight-selection-placeholder {
@@ -857,11 +860,12 @@
   height: 72rpx;
   margin: 0;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  background: var(--theme-primary);
   color: #ffffff;
   font-size: 26rpx;
   font-weight: 700;
   line-height: 72rpx;
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .highlight-selection-confirm::after {
@@ -999,3 +1003,8 @@
 .page-reading-mode.paper-night .reader-popular-note { color: rgba(217, 210, 197, 0.6); }
 .page-reading-mode.paper-night .reader-paragraph-popular text { text-decoration-color: rgba(240, 190, 120, 0.5); }
 .page-reading-mode.paper-night .completion-rank { color: #b8b0a2; }
+
+.page-reading-mode.paper-night .reading-toolbar {
+  background: rgba(31, 29, 26, 0.94);
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.2);
+}

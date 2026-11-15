@@ -7,11 +7,15 @@
  */
 
 const notificationServiceModule = require('../../services/notification.service');
+const appDialog = require('../../utils/dialog');
 const websocketServiceModule = require('./websocket.service');
 const constants = require('../../config/constants');
 const { getLastTextChar, getUserAvatarDisplay } = require('../../utils/avatar');
 const { tenantStorage } = require('../../utils/storage');
 const { THEME_PRIMARY } = require('../../utils/theme');
+const insightService = require('../../services/insight.service');
+const buddyService = require('../../services/buddy.service');
+const { buildFeed, summarizeFeed } = require('./notification-feed');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
 const websocketService = websocketServiceModule.default || websocketServiceModule;
@@ -20,7 +24,15 @@ const websocketService = websocketServiceModule.default || websocketServiceModul
 const FEATURE_TYPE_META = {
   letter_delivered: { icon: '信', label: '慢递邮局' },
   seen_received: { icon: '见', label: '被看见' },
-  buddy_nudge: { icon: '伴', label: '读伴' }
+  buddy_nudge: { icon: '伴', label: '读伴' },
+  buddy_highfive: { icon: '伴', label: '读伴' },
+  buddy_gift: { icon: '伴', label: '读伴' },
+  buddy_checkin: { icon: '伴', label: '读伴' },
+  buddy_reaction: { icon: '伴', label: '读伴' },
+  buddy_invite: { icon: '伴', label: '读伴' },
+  buddy_invite_accepted: { icon: '伴', label: '读伴' },
+  buddy_ended: { icon: '伴', label: '读伴' },
+  newcomer_shared: { icon: '享', label: '来信' }
 };
 
 function buildQueryString(params = {}) {
@@ -34,10 +46,16 @@ Page({
   data: {
     notifications: [],
     displayedNotifications: [],
+    // 来信：按天分组的卡片，和顶部那句话
+    feed: [],
+    summary: { headline: '', sub: '', avatars: [], unreadCount: 0, replyCount: 0 },
+    handledRequests: {},
+    handledInvites: {},
     unreadCount: 0,
     activeTab: 'all',
     page: 1,
-    limit: 20,
+    // 一页多取一些：点赞、读伴互动这类要合并的来信，不容易被分页切开
+    limit: 50,
     hasMore: true,
     loading: false,
     error: null,
@@ -118,6 +136,24 @@ Page({
       notification?.data?.insightRequestId ||
       ''
     );
+  },
+
+  // pending 待处理 / approved 已同意 / rejected 已拒绝 / revoked 已撤销；查不到申请记录时按已处理算
+  getRequestStatus(notification = {}) {
+    if (notification.type !== 'request_created') return '';
+    const request = notification.requestId;
+    if (!request || typeof request !== 'object') return 'gone';
+    return request.status || 'gone';
+  },
+
+  getRequestLesson(notification = {}) {
+    const request = notification.requestId;
+    if (!request || typeof request !== 'object') return notification?.data?.periodName || '';
+    const day = request.requestInsightDay;
+    const title = request.requestInsightTitle || '';
+    const hasLesson = /第[一二三四五六七八九十0-9]+[天课]/.test(title);
+    const dayText = day !== null && day !== undefined && !hasLesson ? `第 ${day} 课` : '';
+    return [request.requestPeriodName, dayText, title].filter(Boolean).join(' · ');
   },
 
   getNotificationId(notification = {}) {
@@ -313,6 +349,12 @@ Page({
       seen_received: '查看打卡详情',
       letter_delivered: '去拆信',
       buddy_nudge: '去看看',
+      buddy_highfive: '去看看',
+      buddy_gift: '去看看',
+      buddy_checkin: '去读一读',
+      buddy_reaction: '去看看',
+      buddy_invite: '',
+      buddy_invite_accepted: '去看看',
       insight_liked: '查看小凡看见',
       danmaku_received: '查看小凡看见',
       request_created: '去首页处理',
@@ -362,6 +404,9 @@ Page({
       senderInitial: getLastTextChar(senderName, '用'),
       senderAvatarColor: senderAvatarDisplay.avatarColor,
       senderUserId,
+      // 申请看见：申请现在的状态、申请的是哪一期哪一课（接口会带上申请记录）
+      requestStatus: this.getRequestStatus(notification),
+      requestLesson: this.getRequestLesson(notification),
       notificationIdValue: this.getNotificationId(notification),
       requestIdValue: this.getNotificationRequestId(notification),
       periodIdValue: this.getNotificationPeriodId(notification),
@@ -420,7 +465,8 @@ Page({
       const response = await notificationService.getNotifications(
         page,
         this.data.limit,
-        this.data.activeTab
+        // 「等我回应」是页面里按类型筛的，接口仍然取全部
+        this.data.activeTab === 'reply' ? 'all' : this.data.activeTab
       );
       const notifications = (response?.notifications || []).map(item => this.decorateNotification(item));
       const pagination = response?.pagination || { page, totalPages: 1 };
@@ -452,7 +498,7 @@ Page({
   },
 
   updateDisplayedNotifications() {
-    const { notifications, activeTab } = this.data;
+    const { notifications, activeTab, handledRequests, handledInvites } = this.data;
     let displayed = notifications;
 
     if (activeTab === 'true') {
@@ -461,7 +507,36 @@ Page({
       displayed = notifications.filter(item => !item.isRead);
     }
 
-    this.setData({ displayedNotifications: displayed });
+    // 来信卡片：申请看见在页面里处理过的，显示处理结果
+    const applyHandled = groups =>
+      groups.map(group => ({
+        ...group,
+        items: group.items.map(item => {
+          if (item.request && handledRequests[item.request.requestId]) {
+            return { ...item, request: { ...item.request, status: handledRequests[item.request.requestId] }, needsReply: false };
+          }
+          if (item.invite && handledInvites[item.invite.inviteId]) {
+            return { ...item, invite: { ...item.invite, status: handledInvites[item.invite.inviteId] }, needsReply: false };
+          }
+          return item;
+        })
+      }));
+
+    let feed = applyHandled(buildFeed(displayed));
+    if (activeTab === 'reply') {
+      feed = feed
+        .map(group => ({
+          ...group,
+          items: group.items.filter(item => item.needsReply && (item.unread || (item.request && item.request.status === 'pending') || (item.invite && item.invite.status === 'pending')))
+        }))
+        .filter(group => group.items.length > 0);
+    }
+
+    this.setData({
+      displayedNotifications: displayed,
+      feed,
+      summary: summarizeFeed(applyHandled(buildFeed(notifications)))
+    });
   },
 
   handleTabChange(event) {
@@ -537,49 +612,12 @@ Page({
     this.navigateByTargetPage(targetPage);
   },
 
-  handleDelete(event) {
-    const notificationId = event.currentTarget.dataset.id;
-
-    wx.showModal({
-      title: '删除通知',
-      content: '确定要删除这条通知吗？',
-      confirmText: '删除',
-      cancelText: '取消',
-      success: async res => {
-        if (!res.confirm) {
-          return;
-        }
-
-        try {
-          await notificationService.deleteNotification(notificationId);
-          const updated = this.data.notifications.filter(item => item._id !== notificationId);
-          this.setData({ notifications: updated });
-          this.updateDisplayedNotifications();
-          this.loadUnreadCount();
-
-          wx.showToast({
-            title: '已删除',
-            icon: 'success',
-            duration: 1500
-          });
-        } catch (error) {
-          console.error('删除通知失败:', error);
-          wx.showToast({
-            title: '没删掉，再试一次',
-            icon: 'error',
-            duration: 1500
-          });
-        }
-      }
-    });
-  },
-
   handleMarkAllAsRead() {
     if (this.data.unreadCount <= 0) {
       return;
     }
 
-    wx.showModal({
+    appDialog.showModal({
       title: '标记全部已读',
       content: '将所有通知标记为已读？',
       confirmText: '标记',
@@ -618,6 +656,127 @@ Page({
       }
     });
   },
+
+  findFeedItem(key) {
+    for (const group of this.data.feed) {
+      const hit = group.items.find(item => item.key === key);
+      if (hit) return hit;
+    }
+    return null;
+  },
+
+  // 点一张来信：把合并在里面的所有通知都标为已读，再跳到对应页面
+  handleFeedTap(event) {
+    const item = this.findFeedItem(event.currentTarget?.dataset?.key);
+    if (!item) return;
+    item.ids.forEach(id => {
+      const notification = this.data.notifications.find(entry => this.getNotificationId(entry) === id);
+      if (notification) this.markNotificationAsReadInBackground(notification);
+    });
+    if (item.target) this.navigateByTargetPage(item.target);
+  },
+
+  // 长按：标为已读 / 删除（不再每条都放一个删除叉）
+  handleFeedLongPress(event) {
+    const item = this.findFeedItem(event.currentTarget?.dataset?.key);
+    if (!item) return;
+    const itemList = item.unread ? ['标为已读', '删除这条消息'] : ['删除这条消息'];
+    appDialog.showActionSheet({
+      itemList,
+      success: res => {
+        const picked = itemList[res.tapIndex];
+        if (picked === '标为已读') {
+          item.ids.forEach(id => {
+            const notification = this.data.notifications.find(entry => this.getNotificationId(entry) === id);
+            if (notification) this.markNotificationAsReadInBackground(notification);
+          });
+        } else if (picked === '删除这条消息') {
+          this.deleteFeedItem(item);
+        }
+      }
+    });
+  },
+
+  async deleteFeedItem(item) {
+    try {
+      await Promise.all(item.ids.map(id => notificationService.deleteNotification(id)));
+      const removed = new Set(item.ids);
+      this.setData({ notifications: this.data.notifications.filter(entry => !removed.has(this.getNotificationId(entry))) });
+      this.updateDisplayedNotifications();
+      this.loadUnreadCount();
+      wx.showToast({ title: '已删除', icon: 'none' });
+    } catch (error) {
+      console.error('删除通知失败:', error);
+      wx.showToast({ title: '没删掉，再试一次', icon: 'none' });
+    }
+  },
+
+  // 申请看见：直接在来信里让 TA 看 / 先不了，不用再跳去首页
+  async handleRequestDecision(event) {
+    const { key, decision } = event.currentTarget?.dataset || {};
+    const item = this.findFeedItem(key);
+    if (!item || !item.request || !item.request.requestId) {
+      if (item && item.target) this.navigateByTargetPage(item.target);
+      return;
+    }
+    const { requestId } = item.request;
+    if (this._decidingRequest) return;
+    this._decidingRequest = true;
+    try {
+      if (decision === 'approve') {
+        await insightService.approveRequest(requestId, { periodId: item.periodId || '' });
+      } else {
+        await insightService.rejectRequest(requestId, { reason: '暂不同意' });
+      }
+      this.setData({
+        handledRequests: { ...this.data.handledRequests, [requestId]: decision === 'approve' ? 'approved' : 'rejected' }
+      });
+      item.ids.forEach(id => {
+        const notification = this.data.notifications.find(entry => this.getNotificationId(entry) === id);
+        if (notification) this.markNotificationAsReadInBackground(notification);
+      });
+      this.updateDisplayedNotifications();
+      wx.showToast({ title: decision === 'approve' ? '已让 TA 看' : '已婉拒', icon: 'none' });
+    } catch (error) {
+      console.error('处理申请失败:', error);
+      wx.showToast({ title: '没处理成，再试一次', icon: 'none' });
+    } finally {
+      this._decidingRequest = false;
+    }
+  },
+
+  // 读伴邀请：直接在来信里同意 / 婉拒
+  async handleInviteDecision(event) {
+    const { key, decision } = event.currentTarget?.dataset || {};
+    const item = this.findFeedItem(key);
+    if (!item || !item.invite) return;
+    if (this._decidingInvite) return;
+    this._decidingInvite = true;
+    const accept = decision === 'approve';
+    try {
+      await buddyService.respondInvite(item.invite.periodId, item.invite.inviteId, accept);
+      this.setData({
+        handledInvites: { ...this.data.handledInvites, [item.invite.inviteId]: accept ? 'accepted' : 'declined' }
+      });
+      item.ids.forEach(id => {
+        const notification = this.data.notifications.find(entry => this.getNotificationId(entry) === id);
+        if (notification) this.markNotificationAsReadInBackground(notification);
+      });
+      this.updateDisplayedNotifications();
+      wx.showToast({ title: accept ? '你们成为读伴了' : '已婉拒', icon: 'none' });
+    } catch (error) {
+      wx.showToast({ title: (error && error.message) || '没处理成，再试一次', icon: 'none' });
+      this.loadNotifications(false);
+    } finally {
+      this._decidingInvite = false;
+    }
+  },
+
+  handleGoRead() {
+    wx.switchTab({ url: '/pages/index/index' });
+  },
+
+  stopPropagation() {},
 
   handleLoadMore() {
     this.loadNotifications(true);

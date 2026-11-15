@@ -33,26 +33,32 @@
 - **WHEN** 本人查看打卡时间早于 `MOOD_VALID_SINCE` 的打卡
 - **THEN** 返回的 mood SHALL 为 null
 
-### Requirement: 心情仅本人可见
-系统 MUST NOT 在他人可见的打卡列表、搜索、详情与关联打卡中返回 mood。
+### Requirement: 心情对营里书友公开显示
+系统 SHALL 在营里可见的打卡列表、搜索与详情中返回 mood，且 MUST 经过「生效时间」规则过滤（早于 `MOOD_VALID_SINCE` 或非法值返回 null）。选择心情时界面 MUST 明示「营里的书友都能看到」。
 
-#### Scenario: 小凡看见详情
-- **WHEN** 用户查看反馈详情，其关联的打卡被 populate 返回
-- **THEN** 该打卡对象 SHALL 不含 mood 字段
+> 2026-11-15 变更：原为「仅本人可见」，产品决定改为营里公开，显示在打卡卡片右上角。管理后台出口仍不返回 mood。
 
-#### Scenario: 广场列表
-- **WHEN** 用户查看期次打卡广场
+#### Scenario: 他人查看打卡详情
+- **WHEN** 用户查看他人的打卡详情
+- **THEN** 返回的 mood SHALL 为该打卡的可信心情，没选或为旧数据时为 null
+
+#### Scenario: 广场与搜索列表
+- **WHEN** 用户查看期次打卡广场或搜索打卡
+- **THEN** 每条打卡 SHALL 带可信 mood，旧数据与非法值为 null
+
+#### Scenario: 管理后台
+- **WHEN** 管理端读取或更新打卡
 - **THEN** 返回的打卡对象 SHALL 不含 mood 字段
 
-### Requirement: 课程今日心情汇总
-系统 SHALL 提供 `GET /checkins/section/:sectionId/mood-summary`，返回该课程东八区今天的匿名心情计数；调用者 MUST 对该课程所属期次具有社群权限；有效样本少于 3 条时 `counts` SHALL 为 null；响应 MUST NOT 包含任何用户标识。
+### Requirement: 课程心情汇总
+系统 SHALL 提供 `GET /checkins/section/:sectionId/mood-summary`，返回该课程全部可信心情的匿名计数，不按自然日截断；调用者 MUST 对该课程所属期次具有社群权限；有效样本为 0 条时 `counts` SHALL 为 null（2026-11-15 起不再设 3 条下限）；响应 MUST NOT 包含任何用户标识。
 
 #### Scenario: 样本足够
-- **WHEN** 当天有效心情不少于 3 条
+- **WHEN** 课程有效心情不少于 1 条
 - **THEN** 返回 `{ date, total, counts }`，counts 含六种心情的计数
 
 #### Scenario: 样本不足
-- **WHEN** 当天有效心情少于 3 条
+- **WHEN** 课程没有任何有效心情
 - **THEN** 返回 `counts: null`
 
 #### Scenario: 无社群权限

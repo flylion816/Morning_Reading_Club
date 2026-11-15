@@ -1,0 +1,56 @@
+<view class="leads-page">
+  <view wx:if="{{statsText && !noAccess}}" class="leads-stats">
+    <text>{{statsText}}</text>
+    <text wx:if="{{topText}}" class="leads-stats-top">{{topText}}</text>
+  </view>
+
+  <scroll-view scroll-x class="leads-tabs" show-scrollbar="{{false}}" enhanced>
+    <view class="leads-tabs-track">
+      <view
+        wx:for="{{tabs}}"
+        wx:key="key"
+        class="leads-tab {{activeTab === item.key ? 'on' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="handleTabTap"
+      >{{item.label}}<text wx:if="{{counts[item.key]}}"> {{counts[item.key]}}</text></view>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{noAccess}}" class="leads-state">你还不是新书友接待组成员，请联系管理员在后台加入。</view>
+  <view wx:elif="{{loading}}" class="leads-state">加载中…</view>
+  <view wx:elif="{{items.length === 0}}" class="leads-state">这里还没有新书友</view>
+  <view wx:else class="leads-list">
+    <view
+      wx:for="{{items}}"
+      wx:key="_id"
+      class="leads-card"
+      data-id="{{item._id}}"
+      bindtap="handleOpenDetail"
+    >
+      <user-avatar
+        size="72"
+        avatar-url="{{item.avatarUrl}}"
+        avatar-text="{{item.nickname}}"
+        display-name="{{item.nickname}}"
+      />
+      <view class="leads-main">
+        <view class="leads-row">
+          <text class="leads-name">{{item.nickname}}</text>
+          <text class="leads-time">{{item.timeText}}</text>
+        </view>
+        <text class="leads-from">{{item.fromText}}</text>
+        <text class="leads-reason">「{{item.reason}}」</text>
+        <text wx:if="{{item.dueSoon}}" class="leads-due">快到联系期限了</text>
+        <text wx:if="{{item.assigneeName && !item.claimedByMe}}" class="leads-from">{{item.assigneeName}} 已认领</text>
+      </view>
+      <view
+        wx:if="{{!item.assigneeId}}"
+        class="leads-claim {{claimingId === item._id ? 'is-busy' : ''}}"
+        data-id="{{item._id}}"
+        catchtap="handleClaim"
+      >认领</view>
+      <text wx:else class="leads-arrow">›</text>
+    </view>
+    <view wx:if="{{hasMore}}" class="leads-more" bindtap="handleLoadMore">{{loadingMore ? '加载中…' : '加载更多'}}</view>
+  </view>
+</view>

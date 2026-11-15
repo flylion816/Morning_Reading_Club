@@ -1,4 +1,5 @@
 const insightService = require('../../services/insight.service');
+const appDialog = require('../../utils/dialog');
 const { isInsightUnread } = require('../../utils/insight-unread');
 const userService = require('../../services/user.service');
 const enrollmentService = require('../../services/enrollment.service');
@@ -1152,7 +1153,7 @@ Page({
       return;
     }
 
-    wx.showModal({
+    appDialog.showModal({
       title: '内容已锁定',
       content:
         requestStatus === 'rejected' || requestStatus === 'revoked'

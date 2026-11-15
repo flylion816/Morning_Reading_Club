@@ -4,6 +4,7 @@
  */
 
 const paymentService = require('./payment.service');
+const appDialog = require('../../utils/dialog');
 const courseService = require('../../services/course.service');
 const envConfig = require('../../config/env');
 const subscribeAutoTopUp = require('../../utils/subscribe-auto-topup');
@@ -557,7 +558,7 @@ Page({
    */
   handleCancel() {
     const { enrollmentData } = this.data;
-    wx.showModal({
+    appDialog.showModal({
       title: '稍后支付',
       content: '你可以稍后在课程页面或个人中心继续支付',
       confirmText: '继续学习',

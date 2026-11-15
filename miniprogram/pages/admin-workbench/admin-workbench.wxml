@@ -1,4 +1,12 @@
 <view class="page-admin-workbench">
+  <view wx:if="{{isReceptionist}}" class="leads-entry" bindtap="handleOpenLeads">
+    <view class="leads-entry-copy">
+      <text class="leads-entry-title">新书友</text>
+      <text class="leads-entry-desc">扫码留言的新书友，由接待组认领和跟进</text>
+    </view>
+    <text class="leads-entry-arrow">›</text>
+  </view>
+
   <view class="tabs">
     <view
       class="tab {{activeTab === 'activities' ? 'active' : ''}}"

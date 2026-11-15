@@ -25,4 +25,18 @@ describe('buddy.service', () => {
       '/buddies/period/p1/leave'
     ]);
   });
+  test('击掌、送一句、纪念、续伴走对应的接口，送一句带上 messageKey', async () => {
+    request.post.mockResolvedValue({});
+    request.get.mockResolvedValue({});
+    await buddyService.highFive('p1');
+    await buddyService.gift('p1', 'noRush');
+    await buddyService.rematch('p1');
+    await buddyService.getSouvenir('p1');
+    expect(request.post.mock.calls).toEqual([
+      ['/buddies/period/p1/highfive'],
+      ['/buddies/period/p1/gift', { messageKey: 'noRush' }],
+      ['/buddies/period/p1/rematch']
+    ]);
+    expect(request.get).toHaveBeenCalledWith('/buddies/period/p1/souvenir', {}, { suppressError: true });
+  });
 });

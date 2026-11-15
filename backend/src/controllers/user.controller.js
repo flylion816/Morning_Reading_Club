@@ -234,7 +234,7 @@ async function getUserStats(req, res, next) {
 // 获取用户列表（管理员）
 async function getUserList(req, res, next) {
   try {
-    const { page = 1, limit = 20, role, status, search, keyword, sortBy, sortOrder } = req.query;
+    const { page = 1, limit = 20, role, status, search, keyword, sortBy, sortOrder, receptionist } = req.query;
 
     // 支持 search 和 keyword 两个参数名（search 用于前端搜索框，keyword 用于兼容）
     const searchTerm = search || keyword;
@@ -251,6 +251,7 @@ async function getUserList(req, res, next) {
       query.role = role;
     }
     if (status) query.status = status;
+    if (receptionist === 'true') query.isNewcomerReceptionist = true;
     if (searchTerm) {
       query.$or = [
         { nickname: { $regex: searchTerm, $options: 'i' } },
@@ -290,7 +291,7 @@ async function getUserList(req, res, next) {
 async function updateUser(req, res, next) {
   try {
     const { userId } = req.params;
-    const { isActive, status, role } = req.body;
+    const { isActive, status, role, isNewcomerReceptionist } = req.body;
 
     if (status !== undefined && !USER_STATUSES.includes(status)) {
       return res.status(400).json(errors.badRequest('无效的用户状态'));
@@ -309,6 +310,16 @@ async function updateUser(req, res, next) {
       }
     }
 
+    if (isNewcomerReceptionist !== undefined) {
+      if (typeof isNewcomerReceptionist !== 'boolean') {
+        return res.status(400).json(errors.badRequest('接待组设置必须是布尔值'));
+      }
+      // 接待组能看到新书友的完整手机号，和授予管理员一样属于敏感授权，operator 不允许
+      if (!USER_ROLE_MANAGER_ROLES.includes(req.admin?.role)) {
+        return res.status(403).json(errors.forbidden('当前账号无权设置接待组'));
+      }
+    }
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json(errors.notFound('用户不存在'));
@@ -324,6 +335,17 @@ async function updateUser(req, res, next) {
     }
     if (role !== undefined) {
       user.role = role;
+    }
+    if (isNewcomerReceptionist !== undefined) {
+      user.isNewcomerReceptionist = isNewcomerReceptionist;
+    }
+    // 接待组成员必须是小程序管理员；取消管理员时同时移出接待组
+    const isMiniProgramAdmin = ['admin', 'super_admin'].includes(user.role);
+    if (user.isNewcomerReceptionist && !isMiniProgramAdmin) {
+      if (isNewcomerReceptionist === true) {
+        return res.status(400).json(errors.badRequest('请先将该用户设为管理员，再加入接待组'));
+      }
+      user.isNewcomerReceptionist = false;
     }
 
     await user.save();

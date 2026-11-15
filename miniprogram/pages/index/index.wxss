@@ -1711,8 +1711,8 @@
   flex: 1.45;
   gap: 8rpx;
   color: #ffffff;
-  background: var(--theme-primary-dark);
-  box-shadow: 0 8rpx 22rpx var(--theme-primary-alpha-28);
+  background: var(--theme-primary);
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .morning-read-btn:active {
@@ -1940,9 +1940,9 @@ button.avatar-action-button::after {
 }
 
 .avatar-action-button.primary {
-  color: #ffffff;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
-  box-shadow: 0 8rpx 18rpx var(--theme-primary-alpha-22);
+  color: var(--theme-primary-dark);
+  background: var(--theme-primary-tint);
+  box-shadow: none;
 }
 
 /* 昵称输入 */
@@ -2009,8 +2009,9 @@ button.avatar-action-button::after {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-dark) 100%);
+  background: var(--theme-primary);
   color: white;
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .btn-submit:active:not(.loading) {
@@ -3460,11 +3461,22 @@ button.avatar-action-button::after {
 }
 
 /* Features: 同行感、营地角落 */
-.dawn-presence {
-  display: block;
-  margin-top: 8rpx;
+/* 同行感：此刻在读 / 今天读完的人数，放在「今日晨读」卡片里，和课程、打卡人数放在一起 */
+.dawn-presence-line {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 0 0 18rpx;
   font-size: 24rpx;
   color: var(--app-text-soft);
+}
+
+.dawn-presence-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--app-dawn);
+  box-shadow: 0 0 0 6rpx var(--app-dawn-soft);
 }
 
 .camp-corner-row {
@@ -3473,7 +3485,29 @@ button.avatar-action-button::after {
   gap: 16rpx;
 }
 
+.camp-corner-row-four {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.camp-corner-row-one .camp-corner-card {
+  min-height: 104rpx;
+  flex-direction: row;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.camp-corner-row-one .camp-corner-head {
+  margin-bottom: 0;
+}
+
+.camp-corner-row-one .camp-corner-title {
+  flex: 1;
+  text-align: right;
+}
+
 .camp-corner-card {
+  height: 148rpx;
   flex: 1;
   min-width: 0;
   min-height: 128rpx;
@@ -3484,7 +3518,8 @@ button.avatar-action-button::after {
   border: 1rpx solid var(--app-line, rgba(0, 0, 0, 0.06));
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 12rpx;
 }
 
 .camp-corner-title {
@@ -3494,6 +3529,12 @@ button.avatar-action-button::after {
   color: var(--app-text);
 }
 
+.camp-corner-row-four .camp-corner-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .camp-corner-title-single {
   overflow: hidden;
   white-space: nowrap;
@@ -3501,44 +3542,9 @@ button.avatar-action-button::after {
 }
 
 .camp-corner-sub {
-  margin-top: 8rpx;
+  margin-top: 0;
   font-size: 22rpx;
   color: var(--app-text-soft);
-}
-
-.camp-corner-paired {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-}
-
-.camp-corner-dots {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-top: 12rpx;
-}
-
-.camp-corner-dot-label {
-  font-size: 22rpx;
-  color: var(--app-text-soft);
-  margin-right: 6rpx;
-}
-
-.camp-corner-dot {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  margin-right: 18rpx;
-  background: transparent;
-  border: 2rpx solid var(--app-text-soft);
-  box-sizing: border-box;
-}
-
-.camp-corner-dot-on {
-  background: var(--app-dawn, #d98a4a);
-  border-color: var(--app-dawn, #d98a4a);
 }
 
 /* Preview parity: 地平线上方的太阳与弧线、我的打卡日期页签、小凡看见信封卡。 */
@@ -3809,8 +3815,9 @@ button.avatar-action-button::after {
 
 /* 营地角落：每张卡一个图标和栏目名，下面才是一句话。 */
 .camp-corner-card {
-  min-height: 188rpx;
-  padding: 22rpx 20rpx 20rpx;
+  height: 148rpx;
+  min-height: 148rpx;
+  padding: 18rpx 20rpx;
   background: var(--app-paper);
   border-color: rgba(92, 70, 44, 0.1);
 }
@@ -3847,7 +3854,7 @@ button.avatar-action-button::after {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 0;
 }
 .camp-corner-icon {
   flex-shrink: 0;
@@ -4221,9 +4228,9 @@ button.avatar-action-button::after {
 }
 
 .guest-next-primary {
-  background: var(--theme-primary-dark);
+  background: var(--theme-primary);
   color: #ffffff;
-  box-shadow: 0 14rpx 26rpx var(--theme-primary-alpha-18);
+  box-shadow: var(--app-action-shadow-soft);
 }
 
 .guest-next-secondary {
@@ -4525,4 +4532,144 @@ button.avatar-action-button::after {
 /* 慢递邮局提醒和今日晨读之间留出间距，各是一张完整的卡片 */
 .home-letter {
   margin-bottom: 24rpx;
+  box-shadow: var(--app-shadow-soft);
+}
+
+/* Global visual-weight pass: actions stay clear while cards remain quiet. */
+.dawn-card-task .dawn-btn-task {
+  min-width: 220rpx;
+  height: 68rpx;
+  padding: 0 42rpx;
+  border-radius: var(--app-action-radius);
+  background: var(--theme-primary);
+  box-shadow: var(--app-action-shadow-soft);
+  font-size: 27rpx;
+}
+
+.dawn-btn-done {
+  background: var(--app-success-soft);
+  color: var(--app-success);
+  box-shadow: none;
+}
+
+.camp-corner-card {
+  height: 148rpx;
+  min-height: 164rpx;
+  box-shadow: none;
+  border: 1rpx solid var(--app-border);
+}
+
+.home-letter-cta {
+  padding: 12rpx 22rpx;
+  border: 1rpx solid var(--theme-primary-alpha-15);
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-size: 23rpx;
+  box-shadow: none;
+}
+
+.home-letter-arrived .home-letter-cta {
+  background: var(--app-dawn-soft);
+  border-color: rgba(184, 99, 31, 0.16);
+  color: var(--app-dawn-ink);
+}
+
+/* 新书友留言状态卡 */
+.newcomer-card {
+  margin: 0 32rpx 24rpx;
+  padding: 24rpx 28rpx;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--app-radius-md);
+  background: var(--app-dawn-soft);
+  border: 1rpx solid rgba(184, 99, 31, 0.2);
+}
+
+.newcomer-card-pill {
+  align-self: flex-start;
+  padding: 2rpx 18rpx;
+  border-radius: 99rpx;
+  background: var(--app-paper);
+  color: var(--app-dawn-ink);
+  font-size: var(--app-font-xs);
+  font-weight: 600;
+}
+
+.newcomer-card-title {
+  margin-top: 10rpx;
+  font-family: var(--app-font-serif);
+  font-size: 32rpx;
+  color: var(--app-text);
+}
+
+.newcomer-card-desc {
+  margin-top: 4rpx;
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+/* Version 3 dawn: 首页读伴卡，天空区和今日晨读之间，一眼看到读伴今天怎么样。 */
+.buddy-strip {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin: 0 var(--app-space-md) 20rpx;
+  padding: 20rpx 26rpx;
+  border-radius: var(--app-radius-lg);
+  border: 1rpx solid var(--app-border);
+  background: var(--app-paper);
+  box-shadow: 0 10rpx 28rpx rgba(84, 60, 30, 0.07);
+}
+
+.buddy-strip-avatars {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.buddy-strip-av {
+  padding: 3rpx;
+  border-radius: 50%;
+  background: var(--app-paper);
+  box-shadow: 0 0 0 2rpx var(--app-rule);
+}
+
+.buddy-strip-av-ta {
+  margin-left: -18rpx;
+}
+
+.buddy-strip-av-lit {
+  box-shadow: 0 0 0 3rpx var(--app-dawn), 0 0 0 9rpx rgba(251, 208, 143, 0.45);
+}
+
+.buddy-strip-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.buddy-strip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text);
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.buddy-strip-sub {
+  margin-top: 2rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text-soft);
+  font-size: var(--app-font-xs);
+}
+
+.buddy-strip-action {
+  flex: none;
+  color: var(--theme-primary);
+  font-size: var(--app-font-sm);
+  font-weight: 600;
 }

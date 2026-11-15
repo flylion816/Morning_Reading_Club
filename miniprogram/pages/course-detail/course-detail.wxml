@@ -9,6 +9,7 @@
         <text class="search-keyword-text">{{searchKeyword}}</text>
         <text class="search-keyword-hint">已高亮显示匹配内容</text>
       </view>
+      <view wx:if="{{detailCheckin.isMyBuddyCheckin}}" class="buddy-topbar">这是你的读伴写下的</view>
       <view class="dynamic-author-row">
         <view
           class="comment-avatar {{detailCheckin.avatarIsEmoji ? 'avatar-emoji-mode' : ''}}"
@@ -32,6 +33,10 @@
             bindtap="handleAvatarClick"
             data-user-id="{{detailCheckin.userId}}">{{detailCheckin.userName}}</text>
           <text class="dynamic-author-meta">{{detailCheckin.metaLine}}</text>
+        </view>
+        <view wx:if="{{detailCheckin.moodName}}" class="checkin-mood">
+          <view class="checkin-mood-icon app-icon app-icon-{{detailCheckin.moodIcon}}"></view>
+          <text>{{detailCheckin.moodName}}</text>
         </view>
       </view>
 
@@ -69,6 +74,11 @@
 
     </view>
 
+    <view wx:if="{{detailCheckin && detailCheckin.buddyReaction}}" class="buddy-reaction">
+      <view class="buddy-reaction-head"><text class="buddy-tag">读伴</text><text>回应了这一篇</text></view>
+      <text class="buddy-reaction-text">「{{detailCheckin.buddyReaction.text}}」</text>
+    </view>
+
     <view wx:if="{{detailCheckin && communityAccessState === 'enabled'}}" class="dynamic-like-strip">
       <view class="dynamic-like-pill" bindtap="handleLikeComment" data-id="{{detailCheckin.id}}">
         <view class="dynamic-like-pill-icon app-icon {{detailCheckin.isLiked ? 'app-icon-heart-fill liked' : 'app-icon-heart'}} {{likePopId === detailCheckin.id ? 'app-heart-pop' : ''}}"></view>
@@ -77,18 +87,22 @@
         </view>
         <view class="like-avatars" wx:if="{{detailCheckin.likeAvatars && detailCheckin.likeAvatars.length > 0}}">
           <block wx:for="{{detailCheckin.likeAvatars}}" wx:key="userId" wx:for-item="avatar">
-            <user-avatar
-            size="40"
-            avatar-url="{{avatar.avatarUrl}}"
-            avatar-text="{{avatar.avatarText}}"
-            avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
-            user-id="{{avatar.userId}}"
-            interactive="true"
-            bind:avatarTap="handleLikeAvatarClick"
-          />
+            <view class="like-avatar-item {{avatar.isBuddy ? 'like-avatar-buddy' : ''}}">
+              <user-avatar
+                size="40"
+                avatar-url="{{avatar.avatarUrl}}"
+                avatar-text="{{avatar.avatarText}}"
+                avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+                user-id="{{avatar.userId}}"
+                interactive="true"
+                bind:avatarTap="handleLikeAvatarClick"
+              />
+              <text wx:if="{{avatar.isBuddy}}" class="like-avatar-badge">伴</text>
+            </view>
           </block>
         </view>
       </view>
+      <view wx:if="{{detailCheckin.canBuddyReact}}" class="buddy-react-btn" catchtap="onOpenBuddyReact">读伴回应</view>
       <view wx:if="{{detailCheckin.seenAvailable}}" class="seen-btn {{detailCheckin.seenMine ? 'seen-btn-mine' : ''}}" catchtap="openSeenPanel" data-id="{{detailCheckin.id}}">
         <view class="seen-btn-icon app-icon app-icon-eye"></view>
         <text class="seen-btn-label">见</text>
@@ -111,7 +125,7 @@
           wx:for="{{detailCheckin.replies}}"
           wx:key="id"
           wx:for-item="reply"
-          class="reply-item {{highlightCommentId === reply.id ? 'reply-item-focus' : ''}}"
+          class="reply-item {{highlightCommentId === reply.id ? 'reply-item-focus' : ''}} {{reply.isBuddy ? 'reply-item-buddy' : ''}}"
           id="comment-{{reply.id}}">
           <view class="reply-left-line"></view>
           <view class="reply-main">
@@ -134,6 +148,7 @@
             <view class="reply-content">
               <view class="reply-header">
                 <text class="reply-user" bindtap="handleAvatarClick" data-user-id="{{reply.userId}}">{{reply.userName}}</text>
+                <text wx:if="{{reply.isBuddy}}" class="buddy-tag">读伴</text>
                 <text class="reply-time">{{reply.createTime}}</text>
               </view>
               <view class="reply-text">{{reply.content}}</view>
@@ -267,11 +282,11 @@
 
       <view
         wx:if="{{communityAccessState === 'enabled' && !detailCheckin.isOwner}}"
-        class="dynamic-bottom-action dynamic-bottom-like {{detailCheckin.isLiked ? 'dynamic-bottom-liked' : ''}}"
-        bindtap="handleLikeComment"
+        class="dynamic-bottom-action dynamic-bottom-seen {{detailCheckin.seenMine ? 'dynamic-bottom-seen-active' : ''}}"
+        bindtap="openSeenPanel"
         data-id="{{detailCheckin.id}}">
-        <view class="dynamic-bottom-like-icon app-icon {{detailCheckin.isLiked ? 'app-icon-heart-fill' : 'app-icon-heart'}} {{likePopId === detailCheckin.id ? 'app-heart-pop' : ''}}"></view>
-        <text>点赞</text>
+        <view class="dynamic-bottom-seen-icon app-icon app-icon-eye"></view>
+        <text>看见</text>
       </view>
 
       <view wx:if="{{detailCheckin.canShare}}" class="dynamic-bottom-action dynamic-bottom-share-menu" bindtap="openCheckinShareMenu">分享</view>
@@ -522,8 +537,8 @@
         <view class="comments-icon app-seal app-seal-dawn app-seal-sm">记</view>
         <text class="comments-title">每日打卡</text>
         <text class="comments-count" wx:if="{{course.comments && course.comments.length}}">（{{course.comments.length}} 条）</text>
+        <view wx:if="{{moodSummaryText}}" class="mood-summary-chip">{{moodSummaryText}}</view>
       </view>
-      <view wx:if="{{moodSummaryText}}" class="mood-summary-line">{{moodSummaryText}}</view>
 
       <view class="comments-list">
         <view
@@ -549,7 +564,13 @@
           <view class="comment-content">
             <view class="comment-header">
               <text class="comment-user" catchtap="handleAvatarClick" data-user-id="{{item.userId}}">{{item.userName}}</text>
-              <text class="comment-time">{{item.createTime}}</text>
+              <view class="comment-header-right">
+                <view wx:if="{{item.moodName}}" class="checkin-mood checkin-mood-sm">
+                  <view class="checkin-mood-icon app-icon app-icon-{{item.moodIcon}}"></view>
+                  <text>{{item.moodName}}</text>
+                </view>
+                <text class="comment-time">{{item.createTime}}</text>
+              </view>
             </view>
             <view class="comment-text {{item.canExpandContent && !item.contentExpanded ? 'comment-text-clamped' : ''}}">
               <rich-text wx:if="{{item.contentHtml}}" nodes="{{item.contentHtml}}" user-select></rich-text>
@@ -583,15 +604,18 @@
                 </view>
                 <view class="like-avatars" wx:if="{{item.displayLikeAvatars && item.displayLikeAvatars.length > 0}}">
                   <block wx:for="{{item.displayLikeAvatars}}" wx:key="userId" wx:for-item="avatar">
-                    <user-avatar
-                      size="40"
-                      avatar-url="{{avatar.avatarUrl}}"
-                      avatar-text="{{avatar.avatarText}}"
-                      avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
-                      user-id="{{avatar.userId}}"
-                      interactive="true"
-                      bind:avatarTap="handleLikeAvatarClick"
-                    />
+                    <view class="like-avatar-item {{avatar.isBuddy ? 'like-avatar-buddy' : ''}}">
+                      <user-avatar
+                        size="40"
+                        avatar-url="{{avatar.avatarUrl}}"
+                        avatar-text="{{avatar.avatarText}}"
+                        avatar-color="{{avatar.avatarColor || themePrimaryColor}}"
+                        user-id="{{avatar.userId}}"
+                        interactive="true"
+                        bind:avatarTap="handleLikeAvatarClick"
+                      />
+                      <text wx:if="{{avatar.isBuddy}}" class="like-avatar-badge">伴</text>
+                    </view>
                   </block>
                 </view>
               </view>
@@ -873,4 +897,47 @@
   </view>
 </view>
 
+<!-- 读伴回应：只能选预设短句 -->
+<view wx:if="{{buddyReactSheet.visible}}" class="buddy-sheet-mask" catchtap="onCloseBuddyReact">
+  <view class="buddy-sheet" catchtap="noop">
+    <view class="buddy-sheet-grip"></view>
+    <text class="buddy-sheet-title">回应 TA 的这一篇</text>
+    <text class="buddy-sheet-sub">选一句回应，每篇一次，会显示在这篇打卡的最上面。</text>
+    <view
+      wx:for="{{buddyReactOptions}}"
+      wx:key="key"
+      class="buddy-sheet-opt {{buddyReactSheet.key === item.key ? 'buddy-sheet-opt-on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onSelectBuddyReact"
+    >
+      <view class="buddy-sheet-radio"></view>
+      <text>{{item.text}}</text>
+    </view>
+    <view class="buddy-sheet-send" bindtap="onSendBuddyReact">回应</view>
+  </view>
+</view>
+
+<!-- 回复弹窗（自定义，替代系统 showModal） -->
+<view wx:if="{{replyDialog.visible}}" class="reply-dialog-mask" catchtap="handleReplyDialogCancel">
+  <view class="reply-dialog" catchtap="noop">
+    <text class="reply-dialog-title">{{replyDialog.title}}</text>
+    <textarea
+      class="reply-dialog-input"
+      value="{{replyDialog.content}}"
+      placeholder="{{replyDialog.placeholder}}"
+      placeholder-class="reply-dialog-placeholder"
+      maxlength="500"
+      auto-height
+      focus
+      cursor-spacing="140"
+      bindinput="handleReplyDialogInput"
+    />
+    <view class="reply-dialog-actions">
+      <view class="reply-dialog-btn reply-dialog-btn-cancel" bindtap="handleReplyDialogCancel">取消</view>
+      <view class="reply-dialog-btn reply-dialog-btn-ok" bindtap="handleReplyDialogConfirm">发送</view>
+    </view>
+  </view>
+</view>
+
 <podcast-player-bar bottom-offset="{{communityAccessState === 'enabled' && !isCheckinDetailMode ? 160 : 0}}" />
+<app-dialog id="app-dialog" />

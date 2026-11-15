@@ -132,9 +132,13 @@ app.use('/api/v1/presence', require('./routes/presence.routes'));
 app.use('/api/v1/letters', require('./routes/letter.routes'));
 app.use('/api/v1/keepsakes', require('./routes/keepsake.routes'));
 app.use('/api/v1/highlights', require('./routes/highlight.routes'));
+app.use('/api/v1/joy-notes', require('./routes/joyNote.routes'));
 app.use('/api/v1/seen-cards', require('./routes/seenCard.routes'));
 app.use('/api/v1/practices', require('./routes/practice.routes'));
 app.use('/api/v1/buddies', require('./routes/buddy.routes'));
+const { visitorRouter: newcomerLeadVisitorRoutes, receptionRouter: newcomerLeadReceptionRoutes } = require('./routes/newcomerLead.routes');
+app.use('/api/v1/newcomer-leads', newcomerLeadVisitorRoutes);
+app.use('/api/v1/mobile-admin/newcomer-leads', newcomerLeadReceptionRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

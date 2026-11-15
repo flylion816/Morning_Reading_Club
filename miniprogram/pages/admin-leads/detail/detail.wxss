@@ -1,0 +1,214 @@
+/* Version 3 dawn: 新人连接功能页面，直接按晨光规范编写。 */
+.detail-page {
+  min-height: 100vh;
+  padding: 24rpx 28rpx 80rpx;
+  box-sizing: border-box;
+  background: var(--app-page-bg);
+}
+
+.detail-state {
+  padding: 160rpx 0;
+  text-align: center;
+  color: var(--app-text-muted);
+}
+
+.detail-card {
+  margin-bottom: 18rpx;
+  padding: 24rpx 28rpx;
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+  border: 1rpx solid var(--app-border);
+  box-shadow: var(--app-shadow-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.detail-head-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-name {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.detail-sub,
+.detail-tip,
+.k {
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.detail-pill {
+  padding: 2rpx 18rpx;
+  border-radius: 99rpx;
+  background: var(--theme-primary-tint);
+  color: var(--theme-primary-dark);
+  font-size: var(--app-font-xs);
+  font-weight: 600;
+}
+
+.detail-pill.plain {
+  background: var(--app-disabled-soft);
+  color: var(--app-text-muted);
+}
+
+.detail-kv {
+  display: flex;
+  gap: 24rpx;
+  padding: 8rpx 0;
+}
+
+.detail-kv .k {
+  flex: none;
+  width: 90rpx;
+}
+
+.detail-kv .v {
+  flex: 1;
+  font-size: var(--app-font-md);
+  line-height: 1.6;
+}
+
+.detail-phone {
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.detail-phone-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-phone-num {
+  margin-top: 4rpx;
+  font-family: var(--app-font-num);
+  font-size: 34rpx;
+}
+
+.detail-phone-num.muted {
+  color: var(--app-text-muted);
+}
+
+.detail-mini {
+  padding: 10rpx 24rpx;
+  border-radius: 18rpx;
+  background: var(--app-paper);
+  border: 1rpx solid var(--theme-primary-alpha-15);
+  color: var(--theme-primary-dark);
+  font-size: var(--app-font-sm);
+  font-weight: 600;
+}
+
+.detail-track {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 14rpx;
+}
+
+.detail-step {
+  padding: 2rpx 16rpx;
+  border-radius: 99rpx;
+  background: var(--app-disabled-soft);
+  color: var(--app-text-muted);
+  font-size: var(--app-font-xs);
+}
+
+.detail-step.done {
+  background: var(--app-success-soft);
+  color: var(--app-success);
+}
+
+.detail-step.now {
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  font-weight: 600;
+}
+
+.detail-sep {
+  color: var(--app-text-muted);
+  font-size: var(--app-font-xs);
+}
+
+.detail-follow {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid var(--app-border);
+}
+
+.detail-follow-top {
+  font-size: var(--app-font-xs);
+  color: var(--app-text-muted);
+}
+
+.detail-follow-note {
+  margin-top: 4rpx;
+  font-size: var(--app-font-md);
+}
+
+.detail-note {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 18rpx;
+  padding: 16rpx 20rpx;
+  min-height: 88rpx;
+  border-radius: var(--app-radius-sm);
+  border: 1rpx solid var(--app-border);
+  background: var(--app-paper-muted);
+  font-size: var(--app-font-md);
+}
+
+.detail-ph {
+  color: var(--app-text-muted);
+}
+
+.detail-actions {
+  margin-top: 8rpx;
+}
+
+.detail-btn {
+  height: 84rpx;
+  line-height: 84rpx;
+  margin-bottom: 14rpx;
+  border-radius: var(--app-action-radius);
+  text-align: center;
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.detail-btn.primary {
+  background: var(--theme-primary);
+  color: #fff;
+  box-shadow: var(--app-action-shadow);
+}
+
+.detail-btn.secondary {
+  flex: 1;
+  background: var(--app-paper);
+  color: var(--theme-primary-dark);
+  border: 1rpx solid var(--theme-primary-alpha-15);
+  box-sizing: border-box;
+}
+
+.detail-btn.busy {
+  opacity: 0.6;
+}
+
+.detail-btn-row {
+  display: flex;
+  gap: 16rpx;
+}
