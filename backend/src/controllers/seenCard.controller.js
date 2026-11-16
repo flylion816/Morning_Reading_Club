@@ -12,8 +12,6 @@ const { buildCourseDetailTargetPage } = require('../utils/notification-links');
 const { SEEN_PHRASES, SEEN_PHRASE_KEYS, isValidSeenPhrase } = require('../constants/seenPhrases');
 
 const MAX_SUMMARY_IDS = 50;
-const RECENT_LIMIT = 5;
-
 function getRequestUserId(req) {
   const id = req.user?.id || req.user?.userId || req.user?._id;
   return id ? String(id) : '';
@@ -202,7 +200,7 @@ async function getCheckinSeen(req, res, next) {
       if (idOf(card.userId) === userId) mine = card.phrase;
     });
 
-    const recentCards = cards.slice(0, RECENT_LIMIT);
+    const recentCards = cards;
     const userMap = await loadUserMap(recentCards.map(c => c.userId));
     const recent = recentCards.map(card => {
       const user = userMap.get(idOf(card.userId));

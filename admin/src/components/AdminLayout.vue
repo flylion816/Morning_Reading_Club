@@ -205,6 +205,7 @@ const menuGroups = [
     items: [
       { index: '/checkins', label: '每日打卡', icon: Location },
       { index: '/insights', label: '小凡看见', icon: View },
+      { index: '/joy-notes', label: '觉察日记', icon: EditPen },
       { index: '/insight-requests', label: '查看申请', icon: Document },
       { index: '/completion-reports', label: '实录报告', icon: Collection },
       { index: '/letters', label: '慢递邮局', icon: Message },
@@ -243,6 +244,7 @@ const pageTitle = computed(() => {
     '/users': '用户管理',
     '/content': '课程内容',
     '/insights': '小凡看见',
+    '/joy-notes': '觉察日记',
     '/letters': '慢递邮局',
     '/imprints': '在场管理',
     '/activities': '活动管理',

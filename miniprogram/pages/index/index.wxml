@@ -255,10 +255,11 @@
           <button wx:else class="dawn-btn dawn-btn-task" catchtap="handleCreateCheckin">
             <text>{{todayCard.primary.text}}</text>
           </button>
-          <view class="dawn-links" wx:if="{{todayCard.showDailyCard || todayCard.showDirectCheckin || todayCard.showStudy || todayCard.showReadingLink || todaySection.podcastUrl || (todaySection.canShowReportShortcut && currentPeriodReport && currentPeriodReport.hasReport)}}">
+          <view class="dawn-links" wx:if="{{todayCard.showDailyCard || todayCard.showDirectCheckin || todayCard.showStudy || todayCard.showReadingLink || todaySection.podcastUrl || todaySection._id || todaySection.id || (todaySection.canShowReportShortcut && currentPeriodReport && currentPeriodReport.hasReport)}}">
             <text class="dawn-link" wx:if="{{todayCard.showDailyCard}}" catchtap="handleDailyCardTap">生成晨读卡片</text>
             <text class="dawn-link" wx:if="{{todaySection.podcastUrl}}" catchtap="handleTodayPodcastBtnTap">听播客</text>
             <text class="dawn-link" wx:if="{{todaySection.canShowReportShortcut && currentPeriodReport && currentPeriodReport.hasReport}}" catchtap="handleTodayReportBtnTap">看实录</text>
+            <text class="dawn-link dawn-link-note" wx:if="{{todaySection._id || todaySection.id}}" catchtap="handleQuickNote">✎ 记一句</text>
             <text class="dawn-link" wx:if="{{todayCard.showDirectCheckin}}" catchtap="handleCreateCheckin">直接去打卡</text>
             <text class="dawn-link" wx:if="{{todayCard.showStudy}}" catchtap="handleCreateCheckin">去学习</text>
             <text class="dawn-link" wx:if="{{todayCard.showReadingLink}}" catchtap="handleJoinMeeting">{{todayCard.readingLinkText}}</text>
@@ -285,7 +286,7 @@
           <view wx:for="{{campCornerCards}}" wx:key="key" class="camp-corner-card" bindtap="handleCampCornerTap" data-kind="{{item.kind}}">
             <view class="camp-corner-head">
               <view class="camp-corner-icon"><view class="app-icon app-icon-{{item.kind === 'letter' ? 'mail' : (item.kind === 'practice' ? 'flag' : (item.kind === 'joyNote' ? 'edit' : 'users'))}}"></view></view>
-              <text class="camp-corner-kicker">{{item.kind === 'letter' ? '慢递邮局' : (item.kind === 'practice' ? '实修' : (item.kind === 'joyNote' ? '随喜记' : '读伴'))}}</text>
+              <text class="camp-corner-kicker">{{item.kind === 'letter' ? '慢递邮局' : (item.kind === 'practice' ? '实修' : (item.kind === 'joyNote' ? '觉察日记' : '读伴'))}}</text>
             </view>
             <text class="camp-corner-title {{item.single ? 'camp-corner-title-single' : ''}}">{{item.title}}</text>
             <text wx:if="{{item.sub}}" class="camp-corner-sub">{{item.sub}}</text>
@@ -626,6 +627,14 @@
   </view>
 </view>
 
+<quick-note
+  visible="{{quickNoteVisible}}"
+  period-id="{{quickNotePeriodId}}"
+  section-id="{{quickNoteSectionId}}"
+  source="{{quickNoteSource}}"
+  bind:close="closeQuickNote"
+  bind:again="handleQuickNote"
+/>
 <podcast-player-bar has-tabbar="{{true}}" ignore-safe-area="{{true}}" />
 <app-dialog id="app-dialog" />
 <app-sheet id="app-sheet" />

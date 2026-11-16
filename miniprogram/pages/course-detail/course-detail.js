@@ -16,7 +16,7 @@ const { requireLogin } = require('../../utils/require-login');
 const feedback = require('../../utils/feedback');
 const seenCardService = require('../../services/seen-card.service');
 const { MOOD_OPTIONS } = require('../../utils/mood');
-const { SEEN_PHRASES } = require('../../utils/seen-phrases');
+const { SEEN_PHRASES, getSeenPhraseText } = require('../../utils/seen-phrases');
 const { normalizeDanmakuContent } = require('../../utils/danmaku');
 const { createContainedShareCover } = require('../../utils/share-cover');
 const { THEME_PRIMARY, WECHAT_SI_PLUGIN_ENABLED } = require('../../utils/theme');
@@ -231,6 +231,9 @@ Page({
     seenPanelId: '',
     seenPanelMine: null,
     seenPanelError: '',
+    seenReceivedId: '',
+    seenReceivedLoading: false,
+    seenReceivedError: false,
     searchKeyword: '',
     isCheckinDetailMode: false,
     detailCheckin: null,
@@ -1236,6 +1239,12 @@ Page({
         this.shouldFoldCheckinContent(checkin.content),
       contentExpanded: !!this.data.checkinContentExpanded[checkinId] || !!this.data.searchKeyword
     };
+    if (this.isOwnCheckin(checkin)) {
+      if (!checkin.seenReceived && this.data.seenReceivedId !== checkinId) {
+        this.loadReceivedSeenDetail(checkinId);
+      }
+      detailCheckin.seenReceived = checkin.seenReceived || [];
+    }
   },
 
   syncDetailCheckinState(checkinId = this.data.shareCheckinId) {
@@ -3006,8 +3015,62 @@ Page({
       };
     });
     this.setData({ 'course.comments': next }, () => {
-      if (this.data.isCheckinDetailMode) this.syncDetailCheckinState();
+      if (!this.data.isCheckinDetailMode) return;
+      const target = next.find((item) => item && String(item.id || item._id) === String(this.data.shareCheckinId));
+      if (
+        target &&
+        this.isOwnCheckin(target) &&
+        !target.seenReceived &&
+        !this.data.seenReceivedLoading
+      ) {
+        this.setData({ seenReceivedId: '' }, () => this.loadReceivedSeenDetail(target.id));
+        return;
+      }
+      this.syncDetailCheckinState();
     });
+  },
+
+  async loadReceivedSeenDetail(checkinId) {
+    const id = this.normalizeId(checkinId || this.data.shareCheckinId);
+    const app = getApp();
+    if (
+      !id ||
+      !app.globalData.isLogin ||
+      this.data.communityAccessState !== 'enabled' ||
+      this.data.seenReceivedId === id
+    ) {
+      return;
+    }
+
+    this.setData({ seenReceivedId: id, seenReceivedLoading: true, seenReceivedError: false });
+    try {
+      const result = await seenCardService.getCheckinSeen(id);
+      if (this._isPageAlive === false || this.data.seenReceivedId !== id) return;
+
+      const recent = (result.recent || []).map((card) => ({
+        ...card,
+        ...this.getAvatarDisplayInfo(
+          { nickname: card.nickname, avatarUrl: card.avatarUrl },
+          { fallbackName: card.nickname || '书友' }
+        ),
+        phraseText: getSeenPhraseText(card.phrase)
+      }));
+      const checkins = (this.data.course?.comments || []).map((item) =>
+        item && String(item.id || item._id) === id
+          ? { ...item, seenTotal: result.total || 0, seenReceived: recent }
+          : item
+      );
+      this.setData(
+        { course: { ...this.data.course, comments: checkins }, seenReceivedLoading: false },
+        () => {
+          if (this.data.isCheckinDetailMode) this.syncDetailCheckinState(id);
+        }
+      );
+    } catch (error) {
+      if (this._isPageAlive === false || this.data.seenReceivedId !== id) return;
+      console.warn('加载收到的看见卡失败:', error);
+      this.setData({ seenReceivedLoading: false, seenReceivedError: true });
+    }
   },
 
   openSeenPanel(e) {

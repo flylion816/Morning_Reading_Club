@@ -69,6 +69,31 @@ describe('notification-feed 来信', () => {
     expect(item.badge).toBe('评');
   });
 
+  test('小凡看见的点赞和弹幕来信显示各自对应的篇目', () => {
+    const items = flat(buildFeed([
+      n({ _id: 'a', type: 'insight_liked', data: { insightId: 'i1', insightLabel: '连接之力 · 第2课 · 积极主动' } }),
+      n({ _id: 'b', type: 'insight_liked', data: { insightId: 'i2', fromBuddy: true, insightLabel: '连接之力 · 第3课 · 以终为始' } }),
+      n({ _id: 'c', type: 'danmaku_received', data: { insightId: 'i3', insightLabel: '第三天 知彼解己' } })
+    ], NOW));
+    expect(items.map(item => item.quote)).toEqual([
+      '对应：连接之力 · 第2课 · 积极主动',
+      '对应：连接之力 · 第3课 · 以终为始',
+      '对应：第三天 知彼解己'
+    ]);
+    expect(items[1]).toMatchObject({ warm: true, badge: '伴', rest: ' 给你的小凡看见点了赞' });
+    expect(items[2].rest).toBe(' 给你的小凡看见留了一句');
+  });
+
+  test('旧点赞通知回退到正文中的标题，缺少标题时保持原来的提示', () => {
+    const items = flat(buildFeed([
+      n({ _id: 'a', type: 'insight_liked', content: '小林 为你的「积极主动」点了赞' }),
+      n({ _id: 'b', type: 'insight_liked', content: '小林 为你的「小凡看见」点了赞' }),
+      n({ _id: 'c', type: 'danmaku_received', content: '小林 在你的看见发表了弹幕：「说得好」' }),
+      n({ _id: 'd', type: 'insight_liked', content: '「小林」 为你的「以终为始」点了赞' })
+    ], NOW));
+    expect(items.map(item => item.quote)).toEqual(['对应：积极主动', '', '', '对应：以终为始']);
+  });
+
   test('读伴的点赞、评论、回应在同一篇打卡上合并成一条暖色来信', () => {
     const items = flat(buildFeed([
       n({ _id: 'r', type: 'buddy_reaction', senderName: '喜娟', senderUserId: 'u_buddy', title: '你的读伴回应了你的打卡 · 连接之力', content: '喜娟：「这句也打动我。」', data: { checkinId: 'c1' } }),

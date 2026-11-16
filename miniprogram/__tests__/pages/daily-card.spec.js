@@ -1,5 +1,8 @@
+jest.mock('../../services/daily-card-share.service', () => ({ create: jest.fn() }));
+
 let pageConfig;
 let page;
+let shareService;
 
 function makePage() {
   return {
@@ -29,6 +32,11 @@ describe('daily-card page', () => {
     });
     require('../../pages/daily-card/daily-card.js');
     page = makePage();
+    shareService = require('../../services/daily-card-share.service');
+    shareService.create.mockReset();
+    shareService.create.mockResolvedValue({ code: 'abcd2345', imageBase64: 'cG5n' });
+    wx.env = { USER_DATA_PATH: '/tmp' };
+    wx.getFileSystemManager = jest.fn(() => ({ writeFile: ({ success }) => success() }));
     wx.showLoading = jest.fn();
     wx.hideLoading = jest.fn();
     wx.showToast = jest.fn();
@@ -39,6 +47,8 @@ describe('daily-card page', () => {
 
   afterEach(() => {
     delete global.Page;
+    delete global.getApp;
+    delete wx.getLaunchOptionsSync;
   });
 
   test('onLoad decodes params and builds preview', () => {
@@ -103,39 +113,81 @@ describe('daily-card page', () => {
     expect(wx.openSetting).toHaveBeenCalled();
   });
 
-  test('share path lands on the newcomer landing page and carries the sharer', () => {
+  test('分享路径保留完整 120 字、来源和分享人，手机与电脑可还原', () => {
+    const { parseLandingOptions } = require('../../utils/landing-share');
     const myId = '507f1f77bcf86cd799439011';
+    const quote = '晨读🌅'.repeat(40);
     global.getApp = jest.fn(() => ({ globalData: { userInfo: { _id: myId } } }));
-    page.onLoad({ quote: '先理解再被理解', date: '2026-11-14', day: '3', note: '每天读十分钟' });
-    page.generatePoster = jest.fn(() => Promise.resolve('/tmp/a.png'));
+    page.onLoad({ quote: encodeURIComponent(quote), source: encodeURIComponent('第三天'), periodName: encodeURIComponent('连接之力'), date: '2026-11-14', day: '3', note: '每天读十分钟' });
     const res = page.onShareAppMessage();
+    const options = Object.fromEntries(res.path.split('?')[1].split('&').map(pair => pair.split('=')));
+    const parsed = parseLandingOptions(options);
     expect(res.path.startsWith('/pages/landing/landing?')).toBe(true);
-    expect(res.path).toContain(`inviterId=${myId}`);
-    expect(res.path).toContain('src=daily_card');
-    expect(res.path).toContain(`quote=${encodeURIComponent('先理解再被理解')}`);
-    delete global.getApp;
+    expect(res.path.length).toBeLessThanOrEqual(900);
+    expect(parsed).toMatchObject({ inviterId: myId, quote, lessonName: '第三天', periodName: '连接之力', dayNumber: 3, note: '每天读十分钟' });
   });
 
-  test('share path still works when the visitor is not logged in', () => {
+  test('未登录也能转发；隐藏的感想不会放进分享参数', () => {
     global.getApp = jest.fn(() => ({ globalData: { userInfo: null } }));
-    page.onLoad({ quote: 'a' });
-    page.generatePoster = jest.fn(() => Promise.resolve('/tmp/a.png'));
+    page.onLoad({ quote: 'a', note: '只留给自己' });
+    page.handleToggleNote();
     const res = page.onShareAppMessage();
     expect(res.path.startsWith('/pages/landing/landing?')).toBe(true);
     expect(res.path).not.toContain('inviterId');
-    delete global.getApp;
+    expect(res.path).not.toContain('note=');
   });
 
-  test('share falls back to default image when generation fails', async () => {
-    global.getApp = jest.fn(() => ({ globalData: { userInfo: null } }));
+  test('三种模板使用各自的微信封面，而不是截取长图', () => {
     page.onLoad({ quote: 'a' });
-    page.generatePoster = jest.fn(() => Promise.reject(new Error('x')));
-    const res = page.onShareAppMessage();
-    const resolved = await res.promise;
-    expect(resolved.imageUrl).toBe(res.imageUrl);
-    page.generatePoster = jest.fn(() => Promise.resolve('/tmp/a.png'));
-    const ok = await page.onShareAppMessage().promise;
-    expect(ok.imageUrl).toBe('/tmp/a.png');
+    page.generatePoster = jest.fn();
+    for (const variant of ['dawn', 'paper', 'blank']) {
+      page.handleSelectVariant({ currentTarget: { dataset: { value: variant } } });
+      expect(page.onShareAppMessage().imageUrl).toBe(`/assets/images/daily-card-cover-${variant}.png`);
+      expect(page.onShareTimeline().imageUrl).toBe(`/assets/images/daily-card-cover-${variant}.png`);
+    }
+    expect(page.generatePoster).not.toHaveBeenCalled();
+  });
+
+  test('朋友圈单页打开日签时还原紧凑参数，不显示二维码和编辑占位', () => {
+    const { buildLandingQuery } = require('../../utils/landing-share');
+    const quote = '晨读🌅'.repeat(40);
+    const query = buildLandingQuery({
+      sourceType: 'daily_card',
+      dateStr: '2026-11-17',
+      lessonName: '第三天',
+      periodName: '连接之力',
+      dayNumber: 3,
+      quote,
+      variant: 'paper'
+    });
+    const options = Object.fromEntries(query.split('&').map(pair => pair.split('=')));
+    wx.getLaunchOptionsSync = jest.fn(() => ({ scene: 1154 }));
+    page.onLoad(options);
+    expect(page.data.singlePage).toBe(true);
+    expect(page.data.quote).toBe(quote);
+    expect(page.data.variant).toBe('paper');
+    expect(page.data.previewItems.some(item => item.src)).toBe(false);
+    expect(page.data.previewItems.some(item => item.placeholder)).toBe(false);
+  });
+
+  test('二维码随快照变化重新生成，隐藏感想不会进入快照', async () => {
+    page.onLoad({ quote: '完整原文', source: '第三天', periodName: '连接之力', day: '3', date: '2026-11-17', note: '我的话' });
+    const first = await page.fetchInviteCodePath();
+    await page.fetchInviteCodePath();
+    expect(shareService.create).toHaveBeenCalledTimes(1);
+    expect(shareService.create).toHaveBeenLastCalledWith(expect.objectContaining({ quote: '完整原文', note: '我的话', source: '第三天', periodName: '连接之力', day: 3 }));
+    expect(first).toBe('/tmp/daily-card-code-abcd2345.png');
+    page.handleToggleNote();
+    await page.fetchInviteCodePath();
+    expect(shareService.create).toHaveBeenCalledTimes(2);
+    expect(shareService.create).toHaveBeenLastCalledWith(expect.objectContaining({ note: '' }));
+  });
+
+  test('生成二维码失败时不使用不含正文的通用码', async () => {
+    page.onLoad({ quote: '完整原文' });
+    shareService.create.mockRejectedValue(new Error('offline'));
+    await expect(page.generatePoster()).rejects.toThrow('offline');
+    expect(global.__mockCanvasImageSrcs).not.toContain('/assets/images/mini-program-code.jpg');
   });
 
   test('export draws the mini-program code and tolerates a missing image', async () => {
@@ -144,7 +196,7 @@ describe('daily-card page', () => {
     const canvas = await page.getCanvasNode();
     const loadedImage = await page.loadMiniProgramCodeImage(canvas);
     expect(loadedImage).toBeTruthy();
-    expect(global.__mockCanvasImageSrcs).toContain('/assets/images/mini-program-code.jpg');
+    expect(global.__mockCanvasImageSrcs).toContain('/tmp/daily-card-code-abcd2345.png');
     const ctx = canvas.getContext('2d');
     global.__mockCanvasContext.drawImage.mockClear();
     page.drawLayout(ctx, layout, {

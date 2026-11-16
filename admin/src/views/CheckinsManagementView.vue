@@ -385,7 +385,7 @@
           <el-form-item label="可见范围">
             <el-radio-group v-model="editForm.isPublic">
               <el-radio :label="true">公开</el-radio>
-              <el-radio :label="false">仅管理员可见</el-radio>
+              <el-radio :label="false">仅自己可见</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-form>

@@ -31,23 +31,27 @@ describe('joyNote.controller 搜索', () => {
 
   const run = query => controller.getMine({ user: { userId: 'u1' }, query }, res, sinon.stub());
 
-  it('带关键词时只搜自己的记录内容，正则特殊字符被转义', async () => {
+  it('带关键词时只搜自己的记录（标题或内容），正则特殊字符被转义', async () => {
     await run({ q: ' a.b(c) ' });
     const filter = JoyNote.countDocuments.firstCall.args[0];
     expect(filter.userId).to.equal('u1');
-    expect(filter.content).to.deep.equal({ $regex: 'a\\.b\\(c\\)', $options: 'i' });
+    const pattern = { $regex: 'a\\.b\\(c\\)', $options: 'i' };
+    expect(filter.$or).to.deep.equal([{ content: pattern }, { title: pattern }]);
   });
 
   it('没有关键词、关键词是空白或不是字符串时，不加内容条件', async () => {
     await run({});
     await run({ q: '   ' });
     await run({ q: ['x'] });
-    JoyNote.countDocuments.getCalls().forEach(call => expect(call.args[0]).to.not.have.property('content'));
+    JoyNote.countDocuments.getCalls().forEach(call => {
+      expect(call.args[0]).to.not.have.property('content');
+      expect(call.args[0]).to.not.have.property('$or');
+    });
   });
 
   it('关键词最多取 30 个字', async () => {
     await run({ q: '字'.repeat(50) });
-    expect(JoyNote.countDocuments.firstCall.args[0].content.$regex).to.equal('字'.repeat(30));
+    expect(JoyNote.countDocuments.firstCall.args[0].$or[0].content.$regex).to.equal('字'.repeat(30));
   });
 
   it('这一页没有关联期次的记录时，不去查有权限的期次', async () => {

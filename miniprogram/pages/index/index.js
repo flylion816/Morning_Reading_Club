@@ -406,7 +406,7 @@ function buildDailyCardSource(section = {}) {
   return { source: `第 ${n} 天${title ? ` · ${title}` : ''}`, day: n };
 }
 
-// 营地角落：按各自状态显示，随喜记始终放在最后。
+// 营地角落：按各自状态显示，觉察日记（原随喜记）始终放在最后。
 // 今日晨读上方的「慢递邮局」：开营头三天（含开营前可写的几天）提醒写信，信送到后提醒拆信；
 // 寄出之后、拆开之后都不再出现
 const LETTER_NOTE_WRITE_DAYS = 3;
@@ -513,8 +513,8 @@ function buildBuddyStrip(buddyState, meUser = {}) {
   };
 }
 
-// 随喜记卡片的提示语：每天换一句，意思相同
-const JOY_NOTE_PROMPTS = ['把触动，随手记下来', '刚才哪一句，让你停了一下？', '今天有哪句话，想留下来？', '写一句给今天的自己'];
+// 觉察日记卡片的提示语：每天换一句，意思相同（营地角落的卡片很窄，要短）
+const JOY_NOTE_PROMPTS = ['看见此刻的自己', '把触动，随手记下来', '今天，想停一停吗？', '坐下来，看一看自己'];
 
 function buildCampCornerCards({ letter, practice, buddy, seed = '' } = {}) {
   const cards = [];
@@ -943,6 +943,11 @@ Page({
     todaySection: null,
     todayCard: null,
     todayTaskEmptyState: null,
+    // 随喜速记条（「记一句」）：自动带上今天这一课
+    quickNoteVisible: false,
+    quickNotePeriodId: '',
+    quickNoteSectionId: '',
+    quickNoteSource: '',
     currentPeriodReport: null,
     showMorningReadPrompt: false,
 
@@ -1908,6 +1913,28 @@ Page({
     if (periodId) this.loadHomeExtras(periodId);
   },
 
+  // 今日晨读卡片上的「记一句」：原地弹出速记条，自动带上今天这一课
+  handleQuickNote() {
+    const section = this.data.todaySection;
+    if (!section) return;
+    const period = this.data.currentPeriod || {};
+    const periodId = String(section.periodId || period._id || period.id || '');
+    const sectionId = String(section._id || section.id || '');
+    const source = [section.periodTitle || period.name || period.title, section.dayDisplay, section.title]
+      .filter(Boolean)
+      .join(' · ');
+    this.setData({
+      quickNoteVisible: true,
+      quickNotePeriodId: periodId,
+      quickNoteSectionId: periodId ? sectionId : '',
+      quickNoteSource: periodId ? source : ''
+    });
+  },
+
+  closeQuickNote() {
+    this.setData({ quickNoteVisible: false });
+  },
+
   handleCampCornerTap(e) {
     const kind = e.currentTarget.dataset.kind;
     if (kind === 'joyNote') {
@@ -2857,7 +2884,11 @@ Page({
       return;
     }
 
-    const { checkinId, sectionId, periodId } = e.currentTarget.dataset || {};
+    const { checkinId, periodId } = e.currentTarget.dataset || {};
+    const targetCheckin = this.data.recentCheckins.find(
+      (item) => String(item?.id || '') === String(checkinId || '')
+    );
+    const sectionId = targetCheckin?.sectionId || e.currentTarget.dataset?.sectionId || '';
     if (!checkinId) {
       wx.showToast({
         title: '打卡记录不存在',
@@ -2866,7 +2897,7 @@ Page({
       return;
     }
 
-    return this.openCheckinDetail(checkinId, sectionId, periodId);
+    return this.openCheckinDetail(checkinId, sectionId, periodId || targetCheckin?.periodId || '');
   },
 
   async loadUnreadNotificationCount() {

@@ -1,4 +1,4 @@
-jest.mock('../../pages/joy-notes/joy-notes.service', () => ({
+jest.mock('../../services/joy-note.service', () => ({
   getPeriods: jest.fn(),
   getSections: jest.fn(),
   getMine: jest.fn(),
@@ -6,6 +6,7 @@ jest.mock('../../pages/joy-notes/joy-notes.service', () => ({
   update: jest.fn(),
   remove: jest.fn()
 }));
+jest.mock('../../services/checkin.service', () => ({ getUserCheckinsWithStats: jest.fn() }));
 jest.mock('../../utils/require-login', () => ({ requireLogin: jest.fn(() => true) }));
 
 describe('随喜记页面', () => {
@@ -16,7 +17,7 @@ describe('随喜记页面', () => {
     jest.resetModules();
     let config;
     global.Page = jest.fn(value => { config = value; });
-    service = require('../../pages/joy-notes/joy-notes.service');
+    service = require('../../services/joy-note.service');
     Object.values(service).forEach(mock => mock.mockReset());
     service.getPeriods.mockResolvedValue({ list: [{ id: 'p1', name: '连接之力' }] });
     service.getSections.mockResolvedValue({ list: [{ id: 's1', day: 1, title: '品德成功论' }] });
@@ -137,7 +138,8 @@ describe('随喜记页面', () => {
     page.startEdit({ currentTarget: { dataset: { id: 'n1' } } });
     page.onContentInput({ detail: { value: '新文字' } });
     await page.save();
-    expect(service.update).toHaveBeenCalledWith('n1', { content: '新文字', periodId: 'p1', sectionId: 's1' });
+    // 修改时标题一定会带上（清空标题也要告诉服务端）
+    expect(service.update).toHaveBeenCalledWith('n1', { content: '新文字', periodId: 'p1', sectionId: 's1', title: '' });
     page.confirmDelete({ currentTarget: { dataset: { id: 'n1' } } });
     expect(service.remove).not.toHaveBeenCalled();
     wx.showModal.mock.calls[0][0].success({ confirm: true });
@@ -221,7 +223,7 @@ describe('随喜记页面', () => {
       page.setData({ draftPeriodId: 'p1', draftSectionId: 's1', draftSource: '连接之力 · 第 1 天' });
       await page.save();
       expect(page.data.content).toBe('');
-      expect(page.data.lastSource).toEqual({ periodId: 'p1', sectionId: 's1', label: '连接之力 · 第 1 天' });
+      expect(page.data.lastSource).toEqual({ periodId: 'p1', sectionId: 's1', label: '连接之力 · 第 1 天', savedAt: expect.any(Number) });
       page.restoreDraft();
       expect(page.data.content).toBe('');
       page.useLastSource();
@@ -300,6 +302,433 @@ describe('随喜记页面', () => {
       page.applyPrefill();
       expect(page.data.content).toBe('');
       expect(page.data.draftPeriodId).toBe('');
+    });
+  });
+
+  describe('觉察日记：随喜之外的门、页签、菜单和打卡', () => {
+    const awarenessNote = (extra = {}) => ({
+      _id: 'a1',
+      id: 'a1',
+      kind: 'awareness',
+      content: '看：孩子磨蹭\n择：明天提前十分钟',
+      createdAt: '2026-11-16T00:00:00.000Z',
+      periodId: 'p1',
+      sectionId: 's1',
+      periodName: '连接之力',
+      sectionTitle: '知彼解己',
+      day: 5,
+      awareness: {
+        facts: '孩子磨蹭，我提高了声音。',
+        feelings: ['着急', '委屈'],
+        asks: [
+          { level: 1, question: 'q1', answer: '没有先听懂他' },
+          { level: 2, question: 'q2', answer: '我只听见了时间，没听见他。' }
+        ],
+        choice: '明天提前十分钟叫他',
+        followUps: [],
+        revisit: { enabled: true, status: 'pending', dueAt: '2026-11-23T22:00:00.000Z' }
+      },
+      ...extra
+    });
+
+    test('觉察卡片露出事实、最深的一句和选择；觉察不折叠，随喜仍按长度折叠', async () => {
+      service.getMine.mockResolvedValue({
+        list: [awarenessNote(), { _id: 'j1', content: '长'.repeat(120), createdAt: '2026-11-15T00:00:00.000Z' }],
+        total: 2
+      });
+      await page.loadList(true);
+      const [aware, joy] = page.data.list;
+      expect(aware.kind).toBe('awareness');
+      expect(aware.foldable).toBe(false);
+      expect(aware.view).toMatchObject({
+        feelings: ['着急', '委屈'],
+        facts: '孩子磨蹭，我提高了声音。',
+        keyAsk: '我只听见了时间，没听见他。',
+        choice: '明天提前十分钟叫他'
+      });
+      expect(aware.view.revisitText).toMatch(/^\d+月\d+日 来信回访$/);
+      expect(joy.kind).toBe('joy');
+      expect(joy.view).toBe(null);
+      expect(joy.foldable).toBe(true);
+    });
+
+    test('回访说明：已送到等你写后来；写过后来显示条数', async () => {
+      const delivered = awarenessNote({ awareness: { ...awarenessNote().awareness, revisit: { status: 'delivered' } } });
+      const answered = awarenessNote({
+        _id: 'a2',
+        awareness: { ...awarenessNote().awareness, revisit: { status: 'answered' }, followUps: [{ content: 'x' }, { content: 'y' }] }
+      });
+      service.getMine.mockResolvedValue({ list: [delivered, answered], total: 2 });
+      await page.loadList(true);
+      expect(page.data.list[0].view.revisitText).toBe('回访来信已送到，等你写一句后来');
+      expect(page.data.list[1].view.revisitText).toBe('已写 2 条后来');
+    });
+
+    test('页签：随喜和觉察带上 kind，全部不带；打卡页签不请求日记列表', async () => {
+      await page.loadList(true);
+      expect(service.getMine).toHaveBeenLastCalledWith({ page: 1, limit: 20 });
+      page.onKindTab({ currentTarget: { dataset: { tab: 'awareness' } } });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(service.getMine).toHaveBeenLastCalledWith({ page: 1, limit: 20, kind: 'awareness' });
+      page.onKindTab({ currentTarget: { dataset: { tab: 'joy' } } });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(service.getMine).toHaveBeenLastCalledWith({ page: 1, limit: 20, kind: 'joy' });
+      service.getMine.mockClear();
+      const checkinService = require('../../services/checkin.service');
+      checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [], pagination: { total: 0 } });
+      page.onKindTab({ currentTarget: { dataset: { tab: 'checkin' } } });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(service.getMine).not.toHaveBeenCalled();
+      expect(checkinService.getUserCheckinsWithStats).toHaveBeenCalledWith({ page: 1, limit: 20 });
+    });
+
+    test('打卡页签：只列本人的打卡，带上期次筛选，点开去打卡详情，不复制进日记', async () => {
+      const checkinService = require('../../services/checkin.service');
+      checkinService.getUserCheckinsWithStats.mockResolvedValue({
+        list: [
+          {
+            _id: 'c1',
+            note: '<p>今天读到<b>影响圈</b></p>',
+            isPublic: false,
+            checkinDate: '2026-11-15T00:00:00.000Z',
+            sectionId: { _id: 's1', title: '积极主动', day: 1 },
+            periodId: { _id: 'p1', name: '连接之力' }
+          }
+        ],
+        pagination: { total: 1 }
+      });
+      page.setData({ activePeriodId: 'p1' });
+      page.onKindTab({ currentTarget: { dataset: { tab: 'checkin' } } });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(checkinService.getUserCheckinsWithStats).toHaveBeenCalledWith({ page: 1, limit: 20, periodId: 'p1' });
+      expect(page.data.checkins).toHaveLength(1);
+      expect(page.data.checkins[0]).toMatchObject({
+        _id: 'c1', sectionId: 's1', periodId: 'p1', isPublic: false, excerpt: '今天读到 影响圈'
+      });
+      expect(page.data.checkins[0].sourceLabel).toBe('连接之力 · 第 1 天 · 积极主动');
+      wx.navigateTo = jest.fn();
+      page.openCheckin({ currentTarget: { dataset: { id: 'c1', section: 's1', period: 'p1' } } });
+      expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/course-detail/course-detail?id=s1&checkinId=c1&periodId=p1' });
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
+    test('打卡页签加载失败：显示重试，不影响日记列表', async () => {
+      const checkinService = require('../../services/checkin.service');
+      checkinService.getUserCheckinsWithStats.mockRejectedValue(new Error('offline'));
+      page.onKindTab({ currentTarget: { dataset: { tab: 'checkin' } } });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(page.data.checkinsError).toBe(true);
+      expect(page.data.checkinsLoading).toBe(false);
+      checkinService.getUserCheckinsWithStats.mockResolvedValue({ list: [], pagination: { total: 0 } });
+      page.retryCheckins();
+      await new Promise(resolve => setImmediate(resolve));
+      expect(page.data.checkinsError).toBe(false);
+    });
+
+    test('觉察的门：门上那句话每天固定；输入框里有关联时用它推荐课程，最近用过的课程也可以', () => {
+      page.refreshDoor();
+      expect(page.data.doorLine).not.toBe('');
+      expect(page.doorSource()).toEqual({ periodId: '', sectionId: '', label: '' });
+      page.setData({ lastSource: { periodId: 'p1', sectionId: 's1', label: '连接之力 · 知彼解己', savedAt: Date.now() - 3600 * 1000 } });
+      expect(page.doorSource()).toMatchObject({ periodId: 'p1', sectionId: 's1' });
+      // 很久以前的课程不再推荐
+      page.setData({ lastSource: { periodId: 'p1', sectionId: 's1', label: '旧', savedAt: Date.now() - 10 * 24 * 3600 * 1000 } });
+      expect(page.doorSource().periodId).toBe('');
+      // 输入框里手动关联的优先
+      page.setData({ draftPeriodId: 'p2', draftSectionId: 's2', draftSource: '另一期 · 第 5 个习惯' });
+      expect(page.doorSource()).toEqual({ periodId: 'p2', sectionId: 's2', label: '另一期 · 第 5 个习惯' });
+    });
+
+    test('推开门：把课程带进静室；没有课程也能进', () => {
+      wx.navigateTo = jest.fn();
+      page.openDoor();
+      expect(wx.navigateTo).toHaveBeenLastCalledWith({ url: '/pages/joy-notes/awareness/awareness' });
+      page.setData({ draftPeriodId: 'p1', draftSectionId: 's1', draftSource: '连接之力 · 知彼解己' });
+      page.openDoor();
+      const url = wx.navigateTo.mock.calls[1][0].url;
+      expect(url).toContain('/pages/joy-notes/awareness/awareness?periodId=p1&sectionId=s1');
+      expect(decodeURIComponent(url.split('source=')[1])).toBe('连接之力 · 知彼解己');
+    });
+
+    test('从这句开始觉察：随喜的文字（最多 300 字）带进静室，课程一起带上，原随喜不变', () => {
+      wx.navigateTo = jest.fn();
+      page.startAwarenessFrom({ content: `  ${'字'.repeat(400)}  `, periodId: 'p1', sectionId: 's1', sourceLabel: '连接之力 · 知彼解己' });
+      const url = wx.navigateTo.mock.calls[0][0].url;
+      expect(url).toContain('periodId=p1&sectionId=s1');
+      expect(decodeURIComponent(url.split('seed=')[1])).toBe('字'.repeat(300));
+      wx.navigateTo.mockClear();
+      page.startAwarenessFrom({ content: '没关联的', periodId: '', sectionId: '', sourceLabel: '未关联期次或课程' });
+      expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/joy-notes/awareness/awareness?seed=%E6%B2%A1%E5%85%B3%E8%81%94%E7%9A%84' });
+      expect(service.update).not.toHaveBeenCalled();
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
+    test('长按菜单：随喜有 分享 / 做成日签 / 复制 / 编辑 / 从这句开始觉察 / 删除；觉察有 查看 / 分享 / 做成日签 / 复制 / 删除', async () => {
+      service.getMine.mockResolvedValue({
+        list: [{ _id: 'j1', content: '一句话', createdAt: '2026-11-15T00:00:00.000Z' }, awarenessNote()],
+        total: 2
+      });
+      await page.loadList(true);
+      wx.showActionSheet = jest.fn();
+      page.openNoteMenu({ currentTarget: { dataset: { id: 'j1' } } });
+      let options = wx.showActionSheet.mock.calls[0][0];
+      expect(options.itemList.map(item => item.label || item)).toEqual(['分享', '做成日签', '复制', '编辑', '从这句开始觉察', '删除']);
+      expect(options.itemList[5]).toEqual({ label: '删除', danger: true });
+
+      wx.showActionSheet.mockClear();
+      page.openNoteMenu({ currentTarget: { dataset: { id: 'a1' } } });
+      options = wx.showActionSheet.mock.calls[0][0];
+      expect(options.itemList.map(item => item.label || item)).toEqual(['查看', '分享', '做成日签', '复制', '删除']);
+    });
+
+    test('长按菜单里选「编辑」和「从这句开始觉察」会走对应的动作', async () => {
+      service.getMine.mockResolvedValue({
+        list: [{ _id: 'j1', content: '一句话', createdAt: '2026-11-15T00:00:00.000Z' }],
+        total: 1
+      });
+      await page.loadList(true);
+      wx.showActionSheet = jest.fn();
+      wx.navigateTo = jest.fn();
+      page.openNoteMenu({ currentTarget: { dataset: { id: 'j1' } } });
+      const { success } = wx.showActionSheet.mock.calls[0][0];
+      success({ tapIndex: 3 });
+      expect(page.data.editingId).toBe('j1');
+      page.setData({ editingId: '' });
+      success({ tapIndex: 4 });
+      expect(wx.navigateTo.mock.calls[0][0].url).toContain('/pages/joy-notes/awareness/awareness?seed=');
+    });
+
+    test('没有写「择」的觉察不提供做成日签；有「择」时用它做日签', async () => {
+      const noChoice = awarenessNote({ awareness: { ...awarenessNote().awareness, choice: '' } });
+      service.getMine.mockResolvedValue({ list: [noChoice], total: 1 });
+      await page.loadList(true);
+      wx.showActionSheet = jest.fn();
+      page.openNoteMenu({ currentTarget: { dataset: { id: 'a1' } } });
+      expect(wx.showActionSheet.mock.calls[0][0].itemList).not.toContain('做成日签');
+      wx.showToast = jest.fn();
+      wx.navigateTo = jest.fn();
+      page.makeCard({ currentTarget: { dataset: { id: 'a1' } } });
+      expect(wx.navigateTo).not.toHaveBeenCalled();
+      expect(wx.showToast).toHaveBeenCalled();
+
+      service.getMine.mockResolvedValue({ list: [awarenessNote()], total: 1 });
+      await page.loadList(true);
+      page.makeCard({ currentTarget: { dataset: { id: 'a1' } } });
+      const url = wx.navigateTo.mock.calls[0][0].url;
+      expect(decodeURIComponent(url.split('quote=')[1].split('&')[0])).toBe('明天提前十分钟叫他');
+    });
+
+    test('点觉察卡片去详情页', () => {
+      wx.navigateTo = jest.fn();
+      page.openDetail({ currentTarget: { dataset: { id: 'a1' } } });
+      expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/joy-notes/detail/detail?id=a1' });
+    });
+
+    test('删除觉察：确认文字区别于随喜；回访还没送出时提醒也会取消', async () => {
+      service.getMine.mockResolvedValue({ list: [awarenessNote()], total: 1 });
+      await page.loadList(true);
+      wx.showModal = jest.fn();
+      page.confirmDelete({ currentTarget: { dataset: { id: 'a1' } } });
+      const options = wx.showModal.mock.calls[0][0];
+      expect(options.title).toBe('删掉这条觉察？');
+      expect(options.content).toContain('回访来信也不会再送');
+    });
+  });
+
+  describe('标题与富文本重点颜色', () => {
+    const store = () => require('../../utils/joy-note-store');
+
+    test('新记：标题和正文一起存草稿，保存时只在有标题、有格式时才带上', async () => {
+      page.onTitleInput({ detail: { value: '  晨读里的一句  ' } });
+      page.onContentInput({ detail: { text: '重点在这', html: '<p><span style="color:#dc2626">重点</span>在这</p>' } });
+      expect(store().readJoyDraft()).toEqual({ title: '  晨读里的一句  ', content: '重点在这', html: '<p><span style="color:#dc2626">重点</span>在这</p>' });
+      await page.save();
+      expect(service.create).toHaveBeenCalledWith({
+        title: '晨读里的一句',
+        content: '重点在这',
+        contentHtml: '<p><span style="color:#dc2626">重点</span>在这</p>',
+        periodId: null,
+        sectionId: null
+      });
+      expect(page.data).toMatchObject({ title: '', content: '', contentHtml: '' });
+      expect(store().readJoyDraft()).toEqual({ title: '', content: '', html: '' });
+    });
+
+    test('没有标题、没有格式时保持原来的请求内容（不多带字段）', async () => {
+      page.onContentInput({ detail: { text: '普通一句', html: '' } });
+      await page.save();
+      expect(service.create).toHaveBeenCalledWith({ content: '普通一句', periodId: null, sectionId: null });
+    });
+
+    test('再回来时恢复标题、正文和格式；旧版草稿（纯文本）也能恢复', () => {
+      store().writeJoyDraft({ title: '没写完的标题', content: '半截话', html: '<p><strong>半截话</strong></p>' });
+      page.restoreDraft();
+      expect(page.data).toMatchObject({ title: '没写完的标题', content: '半截话', contentHtml: '<p><strong>半截话</strong></p>' });
+      page.setData({ title: '', content: '', contentHtml: '' });
+      store().write(store().KEYS.joyDraft, '旧版草稿');
+      page.restoreDraft();
+      expect(page.data).toMatchObject({ title: '', content: '旧版草稿', contentHtml: '' });
+    });
+
+    test('编辑旧记录：带出标题和格式；保存时更新；取消后清空', async () => {
+      page.data.list = [{
+        _id: 'n1', title: '原标题', content: '原文重点', contentHtml: '<p>原文<span style="color:#dc2626">重点</span></p>', periodId: '', sectionId: ''
+      }];
+      page.startEdit({ currentTarget: { dataset: { id: 'n1' } } });
+      expect(page.data).toMatchObject({ editingId: 'n1', title: '原标题', contentHtml: '<p>原文<span style="color:#dc2626">重点</span></p>' });
+      page.onTitleInput({ detail: { value: '新标题' } });
+      await page.save();
+      expect(service.update).toHaveBeenCalledWith('n1', {
+        content: '原文重点',
+        contentHtml: '<p>原文<span style="color:#dc2626">重点</span></p>',
+        periodId: null,
+        sectionId: null,
+        title: '新标题'
+      });
+      // 编辑时不动草稿
+      expect(store().readJoyDraft()).toEqual({ title: '', content: '', html: '' });
+      page.data.list = [{ _id: 'n2', title: 'x', content: 'y', contentHtml: '', periodId: '', sectionId: '' }];
+      page.startEdit({ currentTarget: { dataset: { id: 'n2' } } });
+      page.cancelEdit();
+      expect(page.data).toMatchObject({ editingId: '', title: '', content: '', contentHtml: '' });
+    });
+
+    test('列表：显示标题；有格式的随喜用 rich-text 展示，没有格式的仍是纯文本', async () => {
+      service.getMine.mockResolvedValue({
+        list: [
+          { _id: 'j1', title: '标题甲', content: '重点', contentHtml: '<p><span style="color:#dc2626">重点</span></p>', createdAt: '2026-11-15T00:00:00.000Z' },
+          { _id: 'j2', content: '普通', createdAt: '2026-11-14T00:00:00.000Z' }
+        ],
+        total: 2
+      });
+      await page.loadList(true);
+      const [rich, plain] = page.data.list;
+      expect(rich.title).toBe('标题甲');
+      expect(rich.richNodes).toContain('color:#dc2626');
+      expect(rich.richNodes).toContain('font-size:inherit');
+      expect(plain.title).toBe('');
+      expect(plain.richNodes).toBe('');
+    });
+
+    test('复制：有标题时标题放在第一行', () => {
+      wx.setClipboardData = jest.fn();
+      page.data.list = [{ _id: 'j1', title: '标题', content: '正文' }, { _id: 'j2', title: '', content: '只有正文' }];
+      page.copyNote({ currentTarget: { dataset: { id: 'j1' } } });
+      page.copyNote({ currentTarget: { dataset: { id: 'j2' } } });
+      expect(wx.setClipboardData).toHaveBeenNthCalledWith(1, { data: '标题\n正文' });
+      expect(wx.setClipboardData).toHaveBeenNthCalledWith(2, { data: '只有正文' });
+    });
+
+    test('觉察卡片也带标题', async () => {
+      service.getMine.mockResolvedValue({
+        list: [{ _id: 'a1', kind: 'awareness', title: '孩子磨蹭的早晨', content: '看：x', awareness: { facts: 'x', feelings: [], asks: [], followUps: [], revisit: {} }, createdAt: '2026-11-15T00:00:00.000Z' }],
+        total: 1
+      });
+      await page.loadList(true);
+      expect(page.data.list[0].title).toBe('孩子磨蹭的早晨');
+    });
+
+    test('页面声明了输入框组件，写字区用 rich-input、标题是单独一行输入', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const json = JSON.parse(fs.readFileSync(path.join(__dirname, '../../pages/joy-notes/joy-notes.json'), 'utf8'));
+      expect(json.usingComponents['rich-input']).toBe('/components/rich-input/rich-input');
+      const wxml = fs.readFileSync(path.join(__dirname, '../../pages/joy-notes/joy-notes.wxml'), 'utf8');
+      expect(wxml).toContain('<rich-input');
+      expect(wxml).toContain('placeholder="标题（可选）"');
+    });
+  });
+
+  describe('分享', () => {
+    const sheet = () => ({ open: jest.fn(), getShareConfig: jest.fn(() => null) });
+
+    test('分享一条随喜：打开分享面板，署名用昵称，关联了课程时带上来源', async () => {
+      global.getApp = jest.fn(() => ({ globalData: { userInfo: { nickname: '狮子' } } }));
+      const panel = sheet();
+      page.selectComponent = jest.fn(() => panel);
+      service.getMine.mockResolvedValue({
+        list: [{
+          _id: 'j1', title: '标题', content: '一句话', contentHtml: '<p><strong>粗</strong></p>', createdAt: '2026-11-15T00:00:00.000Z',
+          periodId: 'p1', sectionId: 's1', periodName: '连接之力', sectionTitle: '知彼解己', day: 5
+        }],
+        total: 1
+      });
+      await page.loadList(true);
+      page.shareNote(page.data.list[0]);
+      expect(page.selectComponent).toHaveBeenCalledWith('#joy-share');
+      expect(panel.open).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'j1', kind: 'joy', title: '标题', authorName: '狮子', content: '一句话', contentHtml: '<p><strong>粗</strong></p>',
+        periodLinked: true, sourceLabel: '连接之力 · 第 5 天 · 知彼解己'
+      }));
+      delete global.getApp;
+    });
+
+    test('失效的关联不带来源；没有昵称时署名「书友」', async () => {
+      global.getApp = jest.fn(() => ({ globalData: { userInfo: { nickname: '微信用户' } } }));
+      const panel = sheet();
+      page.selectComponent = jest.fn(() => panel);
+      service.getMine.mockResolvedValue({
+        list: [{ _id: 'j1', content: '一句话', createdAt: '2026-11-15T00:00:00.000Z', periodId: 'p1', sourceUnavailable: true }],
+        total: 1
+      });
+      await page.loadList(true);
+      page.shareNote(page.data.list[0]);
+      expect(panel.open.mock.calls[0][0]).toMatchObject({ authorName: '书友', sourceLabel: '' });
+      delete global.getApp;
+    });
+
+    test('分享一条觉察：带上看感问择和后来', async () => {
+      const panel = sheet();
+      page.selectComponent = jest.fn(() => panel);
+      service.getMine.mockResolvedValue({
+        list: [{
+          _id: 'a1', kind: 'awareness', title: '早晨', content: '看：x', createdAt: '2026-11-15T00:00:00.000Z',
+          awareness: { facts: '事实', feelings: ['着急'], asks: [{ level: 1, question: '问', answer: '答' }], choice: '择', followUps: [{ content: '后来', createdAt: '2026-11-23T00:00:00.000Z' }], revisit: {} }
+        }],
+        total: 1
+      });
+      await page.loadList(true);
+      page.shareNote(page.data.list[0]);
+      const payload = panel.open.mock.calls[0][0];
+      expect(payload).toMatchObject({ id: 'a1', kind: 'awareness', title: '早晨' });
+      expect(payload.awareness.asks[0]).toMatchObject({ label: '一叩', question: '问', answer: '答' });
+      expect(payload.awareness.followUps[0]).toMatchObject({ content: '后来', dateLabel: '11月23日' });
+    });
+
+    test('长按菜单里选「分享」打开面板', async () => {
+      const panel = sheet();
+      page.selectComponent = jest.fn(() => panel);
+      service.getMine.mockResolvedValue({ list: [{ _id: 'j1', content: '一句话', createdAt: '2026-11-15T00:00:00.000Z' }], total: 1 });
+      await page.loadList(true);
+      wx.showActionSheet = jest.fn();
+      page.openNoteMenu({ currentTarget: { dataset: { id: 'j1' } } });
+      const { itemList, success } = wx.showActionSheet.mock.calls[0][0];
+      success({ tapIndex: itemList.findIndex(item => (item.label || item) === '分享') });
+      expect(panel.open).toHaveBeenCalledTimes(1);
+    });
+
+    test('转发：面板里取到了分享信息就用它；取不到时只转发首页，不带出任何私人内容', () => {
+      const panel = sheet();
+      panel.getShareConfig.mockReturnValue({ title: '狮子 的一句随喜', path: '/pages/joy-notes/shared/shared?code=abcd2345' });
+      page.selectComponent = jest.fn(() => panel);
+      expect(page.onShareAppMessage()).toEqual({ title: '狮子 的一句随喜', path: '/pages/joy-notes/shared/shared?code=abcd2345' });
+      panel.getShareConfig.mockReturnValue(null);
+      const fallback = page.onShareAppMessage();
+      expect(fallback.path).toBe('/pages/index/index');
+      expect(JSON.stringify(fallback)).not.toContain('abcd2345');
+      page.selectComponent = jest.fn(() => null);
+      expect(page.onShareAppMessage().path).toBe('/pages/index/index');
+    });
+
+    test('这一页是私人的：进来就隐藏右上角的转发菜单；页面声明了分享面板组件', () => {
+      wx.hideShareMenu = jest.fn();
+      page.onShow();
+      expect(wx.hideShareMenu).toHaveBeenCalledWith({ menus: ['shareAppMessage', 'shareTimeline'] });
+      const fs = require('fs');
+      const path = require('path');
+      const json = JSON.parse(fs.readFileSync(path.join(__dirname, '../../pages/joy-notes/joy-notes.json'), 'utf8'));
+      expect(json.usingComponents['joy-share']).toBe('/pages/joy-notes/components/joy-share/joy-share');
+      expect(fs.readFileSync(path.join(__dirname, '../../pages/joy-notes/joy-notes.wxml'), 'utf8')).toContain('<joy-share id="joy-share"');
     });
   });
 });

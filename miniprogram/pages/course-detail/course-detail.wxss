@@ -2354,6 +2354,67 @@ page {
   color: var(--app-text-secondary, #8a8478);
 }
 
+.seen-received-block {
+  margin: 28rpx 0;
+  padding: 28rpx;
+  border: 2rpx solid var(--app-border);
+  border-radius: 24rpx;
+  background: var(--app-dawn-soft);
+}
+
+.seen-received-title {
+  margin-bottom: 18rpx;
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  color: var(--app-dawn-ink);
+}
+
+.seen-received-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.seen-received-item {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.seen-received-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.seen-received-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 26rpx;
+  color: var(--app-text-muted);
+}
+
+.seen-received-phrase {
+  font-size: 28rpx;
+  line-height: 1.45;
+  color: var(--app-text, #333);
+}
+
+.seen-received-hint,
+.seen-received-more {
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: var(--app-text-secondary, #8a8478);
+}
+
+.seen-received-more {
+  display: block;
+  margin-top: 20rpx;
+}
+
 /* 打卡下方的操作条：点赞、看见、回复、查看评论统一成线性图标 + 小字。 */
 .comment-footer .comment-like,
 .comment-footer .seen-btn,

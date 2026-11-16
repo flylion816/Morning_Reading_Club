@@ -982,7 +982,7 @@ describe('index page', () => {
       expect(pageConfig.buildCampCornerCards({ letter: null, practice: null, buddy: null }).map(card => card.kind)).toEqual(['joyNote']);
     });
 
-    test('随喜记总在营地角落最后，其他入口随状态变化', () => {
+    test('觉察日记（原随喜记）总在营地角落最后，其他入口随状态变化', () => {
       const all = pageConfig.buildCampCornerCards({
         letter: { canWrite: true, status: 'none' },
         practice: { active: true },
@@ -1000,7 +1000,51 @@ describe('index page', () => {
       expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/joy-notes/joy-notes' });
     });
 
-    test('其他营地接口全部失败时，随喜记入口仍然可用', async () => {
+    test('觉察日记卡片：标题很短（营地角落的卡片很窄），每天换一句，而且和快速记无关', () => {
+      const titles = new Set();
+      ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].forEach(seed => {
+        const card = pageConfig.buildCampCornerCards({ seed }).find(item => item.kind === 'joyNote');
+        expect(Array.from(card.title).length).toBeLessThanOrEqual(12);
+        titles.add(card.title);
+      });
+      expect(titles.size).toBeGreaterThan(1);
+      const wxml = require('fs').readFileSync(require('path').join(__dirname, '../../pages/index/index.wxml'), 'utf8');
+      expect(wxml).toContain("'觉察日记'");
+      expect(wxml).not.toContain("'随喜记'");
+    });
+
+    test('今日晨读的「记一句」：原地弹出速记条，自动带上今天这一课；没有今日课程时什么都不做', () => {
+      pageInstance.handleQuickNote();
+      expect(pageInstance.data.quickNoteVisible).toBe(false);
+      pageInstance.data.currentPeriod = { _id: 'p1', name: '第 12 期' };
+      pageInstance.data.todaySection = { _id: 's1', periodId: 'p1', periodTitle: '第 12 期', dayDisplay: '第 7 天', title: '知彼解己' };
+      wx.navigateTo.mockClear();
+      pageInstance.handleQuickNote();
+      expect(wx.navigateTo).not.toHaveBeenCalled();
+      expect(pageInstance.data).toMatchObject({
+        quickNoteVisible: true,
+        quickNotePeriodId: 'p1',
+        quickNoteSectionId: 's1',
+        quickNoteSource: '第 12 期 · 第 7 天 · 知彼解己'
+      });
+      pageInstance.closeQuickNote();
+      expect(pageInstance.data.quickNoteVisible).toBe(false);
+      // 保存之后点「再记一句」，再次打开
+      pageInstance.handleQuickNote();
+      expect(pageInstance.data.quickNoteVisible).toBe(true);
+    });
+
+    test('今日晨读的链接行里有「记一句」，并挂着速记条组件', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const wxml = fs.readFileSync(path.join(__dirname, '../../pages/index/index.wxml'), 'utf8');
+      expect(wxml).toContain('catchtap="handleQuickNote">✎ 记一句</text>');
+      expect(wxml).toContain('<quick-note');
+      const json = JSON.parse(fs.readFileSync(path.join(__dirname, '../../pages/index/index.json'), 'utf8'));
+      expect(json.usingComponents['quick-note']).toBe('/components/quick-note/quick-note');
+    });
+
+    test('其他营地接口全部失败时，觉察日记入口仍然可用', async () => {
       const letterService = require('../../services/letter.service');
       const practiceService = require('../../services/practice.service');
       const buddyService = require('../../services/buddy.service');
@@ -1555,6 +1599,21 @@ describe('index page', () => {
     expect(checkinService.getUserCheckinsWithStats).toHaveBeenCalled();
     expect(insightService.getInsightsList).toHaveBeenCalledWith({ limit: 100 });
     expect(pageInstance.data.recentCheckins).toHaveLength(1);
+  });
+
+  test('uses the checkin card fallback ids when opening a recent checkin detail', async () => {
+    pageInstance.data.recentCheckins = [
+      { id: 'checkin_1', sectionId: 'section_1', periodId: 'period_1' }
+    ];
+
+    await pageInstance.handleRecentCheckinTap.call(pageInstance, {
+      currentTarget: { dataset: { checkinId: 'checkin_1' } }
+    });
+
+    expect(checkinService.getCheckinDetail).not.toHaveBeenCalled();
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: '/pages/course-detail/course-detail?id=section_1&checkinId=checkin_1&periodId=period_1'
+    });
   });
 
   test('should hide the task board after the current period has ended', async () => {

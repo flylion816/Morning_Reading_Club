@@ -1,0 +1,72 @@
+<view wx:if="{{visible}}" class="js-mask" catchtap="onMaskTap" catchtouchmove="noop">
+  <view class="js-sheet" catchtap="noop">
+    <view class="js-grip"></view>
+
+    <!-- 分享方式 -->
+    <block wx:if="{{phase === 'menu'}}">
+      <view class="js-head">
+        <text class="js-title">分享这一页</text>
+        <text class="js-x" bindtap="close" role="button" aria-label="关闭">×</text>
+      </view>
+
+      <view wx:if="{{loading}}" class="js-loading">正在准备…</view>
+      <block wx:else>
+        <text class="js-notice">收到的人登录后，能看到这一页的全部内容，之后补写的也会一起显示。你可以随时停止分享。</text>
+
+        <view class="js-scope">
+          <text class="js-scope-k">谁能看</text>
+          <block wx:if="{{share.periodLinked}}">
+            <view class="js-pill {{audience === 'period' ? 'on' : ''}}" data-value="period" bindtap="chooseAudience">本期书友</view>
+            <view class="js-pill {{audience === 'login' ? 'on' : ''}}" data-value="login" bindtap="chooseAudience">所有登录的书友</view>
+          </block>
+          <text wx:else class="js-scope-v">登录的书友</text>
+        </view>
+
+        <view class="js-actions">
+          <button class="js-action" open-type="share" bindtap="onForwardTap">
+            <text class="js-action-ico">↗</text>
+            <text class="js-action-t">发给微信好友</text>
+            <text class="js-action-s">对方点开卡片就能读</text>
+          </button>
+          <view class="js-action" bindtap="generatePoster">
+            <text class="js-action-ico">▤</text>
+            <text class="js-action-t">生成长图</text>
+            <text class="js-action-s">带小程序码，扫码直达</text>
+          </view>
+        </view>
+
+        <text wx:if="{{canStop}}" class="js-stop" bindtap="confirmStop">停止分享</text>
+      </block>
+    </block>
+
+    <!-- 长图 -->
+    <block wx:else>
+      <view class="js-head">
+        <text class="js-back" bindtap="backToMenu">‹ 返回</text>
+        <text class="js-title">长图</text>
+        <text class="js-x" bindtap="close" role="button" aria-label="关闭">×</text>
+      </view>
+
+      <view wx:if="{{generating}}" class="js-loading">正在生成长图…</view>
+      <view wx:elif="{{posterError}}" class="js-loading js-error">
+        <text>{{posterError}}</text>
+        <text class="js-retry" bindtap="generatePoster">再试一次</text>
+      </view>
+      <block wx:else>
+        <scroll-view scroll-y class="js-preview" show-scrollbar="{{false}}">
+          <image class="js-preview-img" src="{{posterPath}}" mode="widthFix" bindtap="previewPoster" />
+        </scroll-view>
+        <text wx:if="{{truncated}}" class="js-note">内容较长，长图只放了前面一部分，完整的请扫码查看。</text>
+        <view class="js-poster-actions">
+          <button class="js-btn js-btn-plain" bindtap="savePoster">保存到相册</button>
+          <button class="js-btn" bindtap="sharePosterToFriend">发给好友</button>
+        </view>
+      </block>
+    </block>
+  </view>
+</view>
+
+<app-dialog id="js-dialog" />
+
+<!-- 画长图用的画布，放在屏幕外 -->
+<canvas type="2d" id="joyShareCanvas" class="js-canvas"></canvas>

@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>新人连接落地页 · 界面确认稿</title>
+<style>
+:root{
+  --ink:#2b2622; --soft:#62584d; --muted:#776c5f; --page:#f6f1e7; --paper:#fffdf8; --paper2:#faf5ea;
+  --line:rgba(92,70,44,.13); --rule:rgba(92,70,44,.2);
+  --dawn:#ee9b45; --dawn-deep:#b8631f; --dawn-soft:#fdf0dc; --dawn-ink:#8a4b12; --sky:#fbe3c3;
+  --blue:#3d6fa6; --blue-d:#325b88; --blue-tint:#ecf1f6;
+  --ok:#2f7d53; --ok-soft:#e8f5ec;
+  --serif:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC",serif;
+  --num:Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#f1ece2;color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1360px;margin:0 auto;padding:52px 24px 96px}
+h1{font-family:var(--serif);font-size:32px;margin:0 0 10px;letter-spacing:.02em}
+.top p{margin:0;color:var(--soft);max-width:780px}
+.tag{display:inline-block;font-size:12px;padding:2px 10px;border-radius:99px;background:var(--dawn-soft);color:var(--dawn-ink);margin-bottom:14px;font-weight:600}
+section{margin-top:64px}
+section>h2{font-family:var(--serif);font-size:23px;margin:0 0 6px}
+section>p.lead{margin:0 0 26px;color:var(--soft);max-width:780px}
+.row{display:flex;flex-wrap:wrap;gap:40px 34px;align-items:flex-start}
+.unit{width:300px}
+.cap{font-size:13px;font-weight:600;color:var(--soft);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.cap b{font-family:var(--num);display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--dawn-soft);color:var(--dawn-ink);align-items:center;justify-content:center;font-size:12px}
+.note{margin:12px 0 0;padding-left:18px;color:var(--soft);font-size:13px;line-height:1.6}
+.note li{margin-bottom:5px}
+.ask{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;background:var(--blue-tint);color:var(--blue-d);margin-right:4px}
+
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.flow div{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.flow h3{margin:0 0 4px;font-size:15px}
+.flow p{margin:0;font-size:13px;color:var(--soft)}
+.flow .to{margin-top:10px;font-size:13px;font-weight:600;color:var(--dawn-ink)}
+.flow .keep .to{color:var(--muted)}
+table{border-collapse:collapse;width:100%;max-width:860px;background:var(--paper);border-radius:14px;overflow:hidden;font-size:13.5px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--paper2);font-weight:600;color:var(--soft)}
+tr:last-child td{border-bottom:0}
+
+.phone{width:300px;height:640px;border-radius:38px;background:#1b1917;padding:8px;box-shadow:0 24px 48px rgba(70,48,22,.18)}
+.screen{height:100%;border-radius:31px;overflow:hidden;position:relative;display:flex;flex-direction:column;font-size:12.5px;line-height:1.5;background:var(--page)}
+.status{height:32px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 4px;font-size:11.5px;font-weight:600}
+.nav{height:38px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;position:relative}
+.capsule{position:absolute;right:8px;top:6px;width:70px;height:26px;border-radius:13px;border:1px solid rgba(60,40,20,.18);background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;gap:13px}
+.capsule i{display:block;width:12px;height:4px;border-radius:2px;background:var(--ink)}
+.capsule i+i{width:11px;height:11px;border-radius:50%;background:none;border:2px solid var(--ink)}
+.back{position:absolute;left:14px;top:9px;width:9px;height:9px;border-left:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg)}
+.skytop{background:var(--sky)}
+.papertop{background:var(--page)}
+.body{flex:1;overflow:hidden;position:relative}
+.pad{padding:0 14px}
+.hero{padding:6px 14px 14px;background:radial-gradient(circle at 84% 70%,rgba(255,190,110,.55),rgba(255,190,110,0) 120px),linear-gradient(180deg,var(--sky) 0%,#fdf0dd 66%,var(--page) 100%)}
+.who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dawn-ink);margin-bottom:10px}
+.ava{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none}
+.ava.d{background:var(--dawn-deep)}.ava.g{background:#6f8f6a}.ava.lg{width:40px;height:40px;font-size:16px}
+.day{border-radius:16px;overflow:hidden;background:var(--paper);box-shadow:0 8px 20px rgba(84,60,30,.1)}
+.day .sky{height:118px;padding:12px 16px;position:relative;overflow:hidden;background:linear-gradient(180deg,#fcd9ae,#fdebd3)}
+.day .sky b{display:block;font-family:var(--num);font-size:44px;line-height:1;color:var(--dawn-ink);font-weight:400}
+.day .sky span{display:block;font-size:11px;color:var(--dawn-ink);margin-top:5px}
+.day .sky em{position:absolute;right:16px;bottom:-56px;width:112px;height:112px;border-radius:50%;background:#fbd08f}
+.day .sky em:after{content:"";position:absolute;left:21px;top:21px;width:70px;height:70px;border-radius:50%;background:#f99f3b}
+.day .txt{padding:12px 16px 14px}
+.day .txt small{font-size:11px;color:var(--dawn-ink)}
+.day .txt p{margin:5px 0 0;font-family:var(--serif);font-size:15px;line-height:1.6}
+.sec{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin:14px 0 7px}
+.sec:after{content:"";flex:1;height:1px;background:var(--line)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:11px 13px;box-shadow:0 3px 9px rgba(84,60,30,.035)}
+.card p{margin:0}
+.say{font-family:var(--serif);font-size:14px;line-height:1.65}
+.seal{width:26px;height:26px;border-radius:8px;border:1px solid var(--rule);background:var(--paper2);display:inline-flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:13px;color:var(--dawn-ink);flex:none}
+.seal.lg{width:46px;height:46px;border-radius:13px;font-size:22px;background:var(--dawn-soft);border-color:rgba(184,99,31,.25)}
+.go{color:var(--blue);font-weight:600}
+.dim{color:var(--muted);font-size:11px}
+.fit{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fit .card{padding:9px 10px;font-size:11.5px}
+.fit h5{margin:0 0 4px;font-size:12px}
+.bar{position:absolute;left:0;right:0;bottom:0;padding:10px 14px 16px;background:linear-gradient(180deg,rgba(246,241,231,0),var(--page) 26%);display:flex;gap:8px}
+.btn{flex:1;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13.5px}
+.btn.p{background:var(--blue);color:#fff;box-shadow:0 5px 12px rgba(61,111,166,.22)}
+.btn.s{background:var(--paper);color:var(--blue-d);border:1px solid rgba(61,111,166,.28)}
+.btn.w{flex:none;width:100%}
+.mask{position:absolute;inset:0;background:rgba(40,30,20,.48)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:22px 22px 0 0;padding:10px 16px 16px}
+.sheet:before{content:"";display:block;width:34px;height:4px;border-radius:2px;background:var(--rule);margin:0 auto 10px}
+.sheet h4{margin:0;font-family:var(--serif);font-size:18px}
+.q{font-size:12.5px;font-weight:600;margin:12px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:11.5px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--paper2);color:var(--soft)}
+.chips .on{background:var(--dawn-soft);border-color:rgba(184,99,31,.3);color:var(--dawn-ink);font-weight:600}
+.field{border:1px solid var(--line);background:var(--paper2);border-radius:10px;padding:8px 10px;color:var(--muted);font-size:12px}
+.consent{margin:10px 0 0;font-size:11px;line-height:1.6;color:var(--soft);background:var(--dawn-soft);border-radius:10px;padding:8px 10px}
+.chk{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--soft);margin:9px 0 10px}
+.chk i{width:14px;height:14px;border-radius:4px;background:var(--blue);color:#fff;font-size:10px;font-style:normal;display:inline-flex;align-items:center;justify-content:center}
+.rise{height:100%;display:flex;flex-direction:column;align-items:center;padding:0 18px;background:radial-gradient(circle at 50% 150px,rgba(255,196,120,.75),rgba(255,196,120,0) 170px),linear-gradient(180deg,var(--sky) 0%,#fdf0dd 44%,var(--page) 70%)}
+.sun{width:96px;height:96px;border-radius:50%;background:#f99f3b;box-shadow:0 0 0 22px rgba(251,208,143,.55);margin:78px 0 44px}
+.rise h4{margin:0;font-family:var(--serif);font-size:20px;text-align:center}
+.rise>p{margin:6px 0 16px;color:var(--soft);text-align:center}
+.steps{width:100%}
+.steps div{display:flex;gap:9px;align-items:flex-start;padding:6px 0}
+.steps b{font-family:var(--num);width:20px;height:20px;border-radius:50%;background:var(--dawn-soft);color:var(--dawn-ink);display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex:none}
+.read{padding:10px 20px;font-family:var(--serif);font-size:14.5px;line-height:1.95;background:var(--paper);height:100%}
+.read h4{font-size:19px;margin:6px 0 12px}
+.read p{margin:0 0 12px}
+.soft{position:absolute;left:12px;right:12px;bottom:14px;background:var(--dawn-soft);border:1px solid rgba(184,99,31,.2);border-radius:16px;padding:12px 14px}
+.state{position:absolute;left:12px;right:12px;bottom:14px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:0 8px 20px rgba(84,60,30,.1)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:1px 9px;border-radius:99px;background:var(--dawn-soft);color:var(--dawn-ink)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.b{background:var(--blue-tint);color:var(--blue-d)}.pill.n{background:#efeae0;color:var(--muted)}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 28px;text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wx{background:#ededed;height:100%;padding:14px 12px}
+.wxcard{background:#fff;border-radius:10px;padding:14px}
+.wxcard dl{margin:10px 0 0;display:grid;grid-template-columns:64px 1fr;gap:5px 8px;font-size:12px}
+.wxcard dt{color:#999}.wxcard dd{margin:0}
+.tabs{display:flex;gap:6px;margin:8px 0 10px}
+.tabs span{font-size:11px;padding:3px 8px;white-space:nowrap;border-radius:99px;background:var(--paper);border:1px solid var(--line);color:var(--soft)}
+.tabs .on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.lead{display:flex;gap:9px;align-items:flex-start;margin-bottom:8px}
+.lead .m{flex:1;min-width:0}
+.lead .m b{font-size:13px}
+.lead .m p{margin:2px 0 0;color:var(--soft);font-size:11.5px}
+.mini{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:9px;background:var(--blue);color:#fff;flex:none}
+.mini.s{background:var(--paper);color:var(--blue-d);border:1px solid rgba(61,111,166,.28)}
+.track{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--muted);margin-top:8px}
+.track span{padding:1px 7px;border-radius:99px;background:#efeae0}
+.track .done{background:var(--ok-soft);color:var(--ok)}.track .now{background:var(--dawn-soft);color:var(--dawn-ink);font-weight:600}
+.kv{display:grid;grid-template-columns:58px 1fr;gap:5px 8px;font-size:12px}
+.kv span:nth-child(odd){color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <span class="tag">界面确认稿 · 2026-11-14</span>
+  <h1>新人连接落地页</h1>
+  <p>看到日签的人扫码或点开之后，会经过哪些页面。全部沿用 3.0「温暖晨光版」的暖纸底色、晨光琥珀和黛蓝按钮，不引入新的颜色和字体。图中的金句、书友留言、手机号和日期都是示意内容。</p>
+</header>
+
+<section>
+  <h2>一、别人是怎么进来的</h2>
+  <p class="lead">一共三条路。前两条进新落地页，第三条保持现状。</p>
+  <div class="flow">
+    <div><h3>群聊里的小程序卡片</h3><p>书友在日签页点「分享」发到群或好友，对方点开卡片。</p><p class="to">进入新落地页，带分享人</p></div>
+    <div><h3>日签海报上的小程序码</h3><p>海报存到相册或发朋友圈，对方长按识别。</p><p class="to">进入新落地页，带分享人</p></div>
+    <div class="keep"><h3>老书友点「邀请报名」</h3><p>对方已经被说动，准备报名。</p><p class="to">进入原邀请页，不改</p></div>
+  </div>
+  <ul class="note" style="max-width:780px">
+    <li>现在海报上的小程序码是同一张固定图片，所有人共用，认不出是谁分享的。要认出分享人，后端需要为每次分享生成一张专属码。</li>
+    <li>专属码上线前已经发出去的旧海报，扫码后进入「没有分享人」的版本，见第四部分的页面 8。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>二、主流程：从看到日签，到留下一句话</h2>
+  <p class="lead">全程不需要先注册。访客只在点「提交」的那一刻完成注册，中间没有单独的登录页。</p>
+  <div class="row">
+
+    <div class="unit">
+      <p class="cap"><b>1</b>落地页 · 第一屏</p>
+      <div class="phone"><div class="screen">
+        <div class="status skytop"><span>7:12</span><span>5G</span></div>
+        <div class="nav skytop">凡人共读<div class="capsule"><i></i><i></i></div></div>
+        <div class="body">
+          <div class="hero">
+            <div class="who"><span class="ava d">泰</span>阿泰 分享了今天的晨读日签</div>
+            <div class="day">
+              <div class="sky"><b>14</b><span>2026 年 11 月 · 周六</span><span>立冬第 8 天</span><em></em></div>
+              <div class="txt"><small>连接之力 · 第 1 天</small><p>先去理解别人，再让别人理解自己。</p></div>
+            </div>
+          </div>
+          <div class="pad">
+            <div class="sec">阿泰说</div>
+            <div class="card"><p class="say">每天早上安静读十分钟，这一天的底色就不一样了。</p></div>
+            <div class="sec">今天这一课 · 试读</div>
+          </div>
+          <div class="bar"><div class="btn p">想了解一下</div><div class="btn s">先自己看看课</div></div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>第一眼就是对方刚才看到的那张日签，接得上。</li>
+        <li>「阿泰说」是分享时选填的一句话，不填就不显示这一块。</li>
+        <li>底部两个按钮始终悬浮，往下滑也在。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>2</b>落地页 · 往下滑</p>
+      <div class="phone"><div class="screen">
+        <div class="status papertop"><span>7:12</span><span>5G</span></div>
+        <div class="nav papertop">凡人共读<div class="capsule"><i></i><i></i></div></div>
+        <div class="body"><div class="pad">
+          <div class="card" style="display:flex;gap:10px"><span class="seal">读</span><div><p style="font-weight:600">连接之力 · 第 1 天</p><p class="dim" style="margin-top:2px">我们常常急着给建议，却很少先把对方的话听完……</p><p class="go" style="margin-top:5px">继续读 3 分钟 ›</p></div></div>
+          <div class="sec">书友的声音</div>
+          <div class="card" style="margin-bottom:7px"><p class="say">原来不是我一个人在坚持。</p><p class="dim" style="margin-top:4px">王** · 第 3 期书友</p></div>
+          <div class="card"><p class="say">读完再去上班，心是定的。</p><p class="dim" style="margin-top:4px">李** · 第 5 期书友</p></div>
+          <p class="dim" style="margin:6px 2px 0">经书友本人同意后展示</p>
+          <div class="sec">这里适合谁</div>
+          <div class="fit">
+            <div class="card"><h5>可能适合你</h5>想早起读点书<br>每天能留 15 分钟<br>想有人一起读</div>
+            <div class="card"><h5>可能不适合</h5>想速成、只要干货<br>只想听不想写<br>暂时抽不出时间</div>
+          </div>
+          <p class="go" style="text-align:center;margin:12px 0 0;font-weight:400">已经想好了？直接看本期报名 ›</p>
+        </div>
+        <div class="bar"><div class="btn p">想了解一下</div><div class="btn s">先自己看看课</div></div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>书友的声音由管理员在后台挑选，只显示姓氏加星号和期数，没有评论、点赞和头像列表。</li>
+        <li>「可能不适合」是给对方一个不来的理由，回应阿泰「助人还是误人」的问题。</li>
+        <li>最下面的小字链接通往原邀请页。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>3</b>点「想了解一下」后的弹层</p>
+      <div class="phone"><div class="screen">
+        <div class="status skytop"><span>7:13</span><span>5G</span></div>
+        <div class="nav skytop">凡人共读<div class="capsule"><i></i><i></i></div></div>
+        <div class="body">
+          <div class="hero" style="height:100%"></div>
+          <div class="mask"></div>
+          <div class="sheet">
+            <h4>想了解一下</h4>
+            <p class="dim" style="margin:2px 0 0">不用先注册，填完这一页就好</p>
+            <p class="q">你为什么想来？</p>
+            <div class="chips"><span class="on">想找人一起读</span><span>想养成早起习惯</span><span>想读《七个习惯》</span><span>朋友推荐</span></div>
+            <div class="field" style="margin-top:7px">也可以多写两句（选填）</div>
+            <p class="q">手机号</p>
+            <div class="btn s w" style="height:36px;font-size:12.5px">用微信手机号一键填写</div>
+            <p class="dim" style="text-align:center;margin:5px 0 0">或 <span class="go" style="font-weight:400">手动输入</span></p>
+            <p class="consent">我们是一群早起读书的普通人，会有一位接待书友来加你微信，聊聊你想读什么。你的手机号只用于这一次联系，不用于营销，不对其他书友展示，可以随时要求删除。</p>
+            <div class="chk"><i>✓</i>我已阅读并同意《用户协议》和《隐私政策》</div>
+            <div class="btn p w">提交</div>
+          </div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>授权文案是你选的「B 加 C」。</li>
+        <li>原因用点选，降低填写门槛；想多说的人可以再写。</li>
+        <li>一键填写用的是报名页已有的微信手机号能力；对方拒绝授权时可以手动输入。</li>
+        <li>点「提交」时在后台完成注册并保存留言，对方感觉不到登录这一步。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>4</b>提交之后</p>
+      <div class="phone"><div class="screen">
+        <div class="status skytop"><span>7:14</span><span>5G</span></div>
+        <div class="nav skytop"><div class="capsule"><i></i><i></i></div></div>
+        <div class="body"><div class="rise">
+          <div class="sun"></div>
+          <h4>收到了，谢谢你愿意来</h4>
+          <p>3 天内，会有一位接待书友加你微信</p>
+          <div class="card steps">
+            <div><b>1</b><span>接待书友用 138****0000 添加你的微信</span></div>
+            <div><b>2</b><span>聊聊你想读什么、现在的需要</span></div>
+            <div><b>3</b><span>合适就一起读；不合适，也完全没关系</span></div>
+          </div>
+          <div class="btn p w" style="margin-top:14px">先读今天这一课</div>
+          <p class="go" style="margin:10px 0 0;font-weight:400">有回复时用微信提醒我</p>
+        </div></div>
+      </div></div>
+      <ul class="note">
+        <li>沿用打卡成功的「太阳升起」，这是对方在小程序里的第一个仪式。</li>
+        <li>把接下来会发生什么说清楚，包括「不合适也没关系」。</li>
+        <li><span class="ask">待确认</span>「3 天内」这个时限接待组能否做到。</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>三、没有注册登录，会遇到什么</h2>
+  <p class="lead">原则是：看内容不需要登录；只有留言、报名、进营地这三件事需要身份，而且都在当前页面里完成，不把人赶去登录页。</p>
+  <table>
+    <tr><th style="width:34%">访客做的事</th><th>发生什么</th></tr>
+    <tr><td>看落地页、读试读课</td><td>直接看，不登录。</td></tr>
+    <tr><td>点「想了解一下」并提交</td><td>提交的同时完成注册，不出现登录页。</td></tr>
+    <tr><td>不愿意给微信手机号</td><td>改为手动输入；也可以关掉弹层继续看，不再追问。</td></tr>
+    <tr><td>点了打卡、书友互动等营地功能</td><td>弹出一张说明卡，给两个去处，见页面 6。</td></tr>
+    <tr><td>直接点「看本期报名」</td><td>进原邀请页，报名时按现有流程登录。</td></tr>
+    <tr><td>什么都没做就走了</td><td>不留任何记录，也不会被联系。</td></tr>
+  </table>
+  <div class="row" style="margin-top:32px">
+
+    <div class="unit">
+      <p class="cap"><b>5</b>访客读试读课</p>
+      <div class="phone"><div class="screen" style="background:var(--paper)">
+        <div class="status" style="background:var(--paper)"><span>7:15</span><span>5G</span></div>
+        <div class="nav" style="background:var(--paper)"><i class="back"></i>连接之力<div class="capsule"><i></i><i></i></div></div>
+        <div class="body"><div class="read">
+          <h4>第 1 天 · 先理解，再被理解</h4>
+          <p>我们常常急着给建议，却很少先把对方的话听完。</p>
+          <p>听，并不是等着轮到自己说话。真正的听，是暂时放下自己的故事，走进对方的故事里去。</p>
+          <p>今天早上，试着只做一件事：在回应之前，先复述一遍你听到的。</p>
+        </div>
+        <div class="soft"><p style="margin:0 0 8px;font-family:var(--serif);font-size:14px">读到这里，想和书友一起读下去吗？</p><div class="btn p w" style="height:36px">想了解一下</div></div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>沉浸阅读页原样使用，只在读完时出现一张晨光色的小卡。</li>
+        <li>访客能读当天这一课；摘抄、打卡在报名后开放。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>6</b>访客点到营地功能</p>
+      <div class="phone"><div class="screen">
+        <div class="status papertop"><span>7:16</span><span>5G</span></div>
+        <div class="nav papertop">晨读营<div class="capsule"><i></i><i></i></div></div>
+        <div class="body">
+          <div class="pad" style="padding-top:8px"><div class="card" style="height:90px;margin-bottom:8px"></div><div class="card" style="height:90px"></div></div>
+          <div class="mask"></div>
+          <div class="sheet" style="text-align:center;padding-bottom:20px">
+            <span class="seal lg" style="margin:6px 0 10px">伴</span>
+            <h4>这里是书友们的营地</h4>
+            <p style="margin:6px 0 16px;color:var(--soft)">打卡和书友之间的互动，报名本期后就能看到。现在可以先认识一下我们。</p>
+            <div class="btn p w">想了解一下</div>
+            <div class="btn s w" style="margin-top:8px">看看本期报名</div>
+            <p class="dim" style="margin:12px 0 0">先不了，继续逛逛</p>
+          </div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>替代现在「跳到登录页」的做法，说明原因并给出去处。</li>
+        <li>营地内容仍然只对已报名的书友开放，审核口径不变。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>7</b>留言后的小程序首页</p>
+      <div class="phone"><div class="screen">
+        <div class="status skytop"><span>7:20</span><span>5G</span></div>
+        <div class="nav skytop">首页<div class="capsule"><i></i><i></i></div></div>
+        <div class="body">
+          <div class="hero" style="text-align:center;padding-bottom:18px"><span class="seal lg">晨</span><p style="margin:8px 0 0;font-family:var(--serif);font-size:18px">凡人共读</p><p class="dim" style="margin:2px 0 0">每日晨读，遇见更好的自己</p></div>
+          <div class="pad">
+            <div class="card" style="background:var(--dawn-soft);border-color:rgba(184,99,31,.2)"><span class="pill" style="background:var(--paper)">待联系</span><p style="margin:6px 0 2px;font-family:var(--serif);font-size:15px">你的留言我们收到了</p><p class="dim">接待书友会在 11 月 17 日前加你微信</p></div>
+            <div class="grid2" style="margin-top:8px">
+              <div class="card"><span class="seal">读</span><p style="font-weight:600;margin-top:6px">每日晨读</p><p class="dim">每天 15 分钟</p></div>
+              <div class="card"><span class="seal">问</span><p style="font-weight:600;margin-top:6px">课程引导</p><p class="dim">问题与行动练习</p></div>
+            </div>
+            <div class="card" style="margin-top:8px"><p style="font-weight:600">可以先看看课</p><p class="dim" style="margin:2px 0 8px">读一读今天这一课，感受一下节奏</p><div class="btn p w" style="height:36px">浏览课程</div></div>
+          </div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>对方下次自己打开小程序时看到的首页。</li>
+        <li>在现有访客首页上加一张状态卡，其余不动。</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>四、落地页的其他几种情况</h2>
+  <p class="lead">同一张落地页，根据来的人是谁、带没带分享人，显示略有不同。</p>
+  <div class="row">
+
+    <div class="unit">
+      <p class="cap"><b>8</b>没有分享人</p>
+      <div class="phone"><div class="screen">
+        <div class="status skytop"><span>7:12</span><span>5G</span></div>
+        <div class="nav skytop">凡人共读<div class="capsule"><i></i><i></i></div></div>
+        <div class="body">
+          <div class="hero">
+            <div class="who"><span class="seal" style="width:26px;height:26px">晨</span>来自凡人共读的晨读日签</div>
+            <div class="day">
+              <div class="sky"><b>14</b><span>2026 年 11 月 · 周六</span><span>立冬第 8 天</span><em></em></div>
+              <div class="txt"><small>连接之力 · 第 1 天</small><p>先去理解别人，再让别人理解自己。</p></div>
+            </div>
+          </div>
+          <div class="pad">
+            <div class="sec">我们是谁</div>
+            <div class="card"><p class="say">一群普通人，每天清晨一起读一课书，写下一点自己的感受。</p></div>
+            <div class="sec">今天这一课 · 试读</div>
+          </div>
+          <div class="bar"><div class="btn p">想了解一下</div><div class="btn s">先自己看看课</div></div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>旧海报、通用码、从搜索进来的人看到这一版。</li>
+        <li>「阿泰说」换成一句读书会的自我介绍。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>9</b>留过言的人再次进来</p>
+      <div class="phone"><div class="screen">
+        <div class="status skytop"><span>19:40</span><span>5G</span></div>
+        <div class="nav skytop">凡人共读<div class="capsule"><i></i><i></i></div></div>
+        <div class="body">
+          <div class="hero">
+            <div class="who"><span class="ava d">泰</span>阿泰 分享了今天的晨读日签</div>
+            <div class="day">
+              <div class="sky"><b>14</b><span>2026 年 11 月 · 周六</span><span>立冬第 8 天</span><em></em></div>
+              <div class="txt"><small>连接之力 · 第 1 天</small><p>先去理解别人，再让别人理解自己。</p></div>
+            </div>
+          </div>
+          <div class="state">
+            <span class="pill">待联系</span>
+            <p style="margin:6px 0 2px;font-family:var(--serif);font-size:15px">你的留言我们收到了</p>
+            <p class="dim" style="margin:0 0 10px">接待书友会在 11 月 17 日前加你微信</p>
+            <div style="display:flex;gap:8px"><div class="btn p" style="height:36px">读今天这一课</div><div class="btn s" style="height:36px">改手机号</div></div>
+          </div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>不再出现「想了解一下」，避免重复留言。</li>
+        <li>手机号填错了可以自己改。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>10</b>老书友扫了码</p>
+      <div class="phone"><div class="screen">
+        <div class="status skytop"><span>7:30</span><span>5G</span></div>
+        <div class="nav skytop">凡人共读<div class="capsule"><i></i><i></i></div></div>
+        <div class="body">
+          <div class="hero">
+            <div class="who"><span class="ava d">泰</span>阿泰 分享了今天的晨读日签</div>
+            <div class="day">
+              <div class="sky"><b>14</b><span>2026 年 11 月 · 周六</span><span>立冬第 8 天</span><em></em></div>
+              <div class="txt"><small>连接之力 · 第 1 天</small><p>先去理解别人，再让别人理解自己。</p></div>
+            </div>
+          </div>
+          <div class="state">
+            <p style="margin:0 0 2px;font-family:var(--serif);font-size:15px">你已经在营里了</p>
+            <p class="dim" style="margin:0 0 10px">今天是你晨读的第 12 天</p>
+            <div style="display:flex;gap:8px"><div class="btn p" style="height:36px">进入今天的晨读</div><div class="btn s" style="height:36px">我也分享一张</div></div>
+          </div>
+        </div>
+      </div></div>
+      <ul class="note">
+        <li>已报名的书友不走新人流程，直接回到自己的晨读。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>11</b>内容打不开</p>
+      <div class="phone"><div class="screen">
+        <div class="status papertop"><span>7:12</span><span>5G</span></div>
+        <div class="nav papertop">凡人共读<div class="capsule"><i></i><i></i></div></div>
+        <div class="body"><div class="empty">
+          <div class="sun" style="margin:0 0 40px;width:64px;height:64px;box-shadow:0 0 0 16px rgba(251,208,143,.5)"></div>
+          <p style="margin:0;font-family:var(--serif);font-size:18px">这张日签暂时翻不到了</p>
+          <p style="margin:6px 0 20px;color:var(--soft)">不过晨读每天都在，今天的这一张还热着。</p>
+          <div class="btn p w">看看今天的日签</div>
+          <div class="btn s w" style="margin-top:8px">去首页</div>
+        </div></div>
+      </div></div>
+      <ul class="note">
+        <li>码失效、期次已下线或网络出错时的兜底，不显示报错代码。</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>五、接待组这一边</h2>
+  <p class="lead">留言提交后，泰君、康文娟、狮子会收到提醒，在小程序的管理工作台里认领和跟进。一对一聊天在微信里进行，小程序只记录状态。</p>
+  <div class="row">
+
+    <div class="unit">
+      <p class="cap"><b>12</b>微信里的提醒</p>
+      <div class="phone"><div class="screen">
+        <div class="status" style="background:#ededed"><span>7:14</span><span>5G</span></div>
+        <div class="nav" style="background:#ededed"><i class="back"></i>服务通知</div>
+        <div class="body"><div class="wx">
+          <div class="wxcard">
+            <p style="margin:0;font-size:12px;color:#999">凡人共读</p>
+            <p style="margin:6px 0 0;font-size:15px;font-weight:600">新书友留言提醒</p>
+            <dl><dt>留言人</dt><dd>微信用户</dd><dt>来源</dt><dd>阿泰的日签</dd><dt>留言</dt><dd>想找人一起读</dd><dt>时间</dt><dd>11 月 14 日 7:14</dd></dl>
+            <p style="margin:12px 0 0;padding-top:10px;border-top:1px solid #eee;font-size:13px;color:#576b95">进入小程序查看</p>
+          </div>
+        </div></div>
+      </div></div>
+      <ul class="note">
+        <li>用项目里已有的订阅消息能力。</li>
+        <li>微信要求接收人事先点过「允许」，接待组三位需要各自在工作台里开一次。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>13</b>工作台 · 新书友列表</p>
+      <div class="phone"><div class="screen">
+        <div class="status papertop"><span>7:20</span><span>5G</span></div>
+        <div class="nav papertop"><i class="back"></i>新书友<div class="capsule"><i></i><i></i></div></div>
+        <div class="body"><div class="pad">
+          <div class="tabs"><span class="on">待接待 3</span><span>已联系 2</span><span>已交流</span><span>已结束</span></div>
+          <div class="card lead"><span class="ava g">新</span><div class="m"><b>微信用户</b> <span class="dim">7:14</span><p>来自 阿泰的日签</p><p>「想找人一起读」</p></div><span class="mini">认领</span></div>
+          <div class="card lead"><span class="ava">陈</span><div class="m"><b>陈**</b> <span class="dim">昨天</span><p>来自 弘钊的金句卡</p><p>「想养成早起习惯，试过几次都没坚持」</p></div><span class="mini">认领</span></div>
+          <div class="card lead"><span class="ava d">周</span><div class="m"><b>周**</b> <span class="dim">2 天前</span><p>没有分享人</p><p>「朋友推荐」</p><p style="color:var(--dawn-ink)">快到 3 天了</p></div><span class="mini">认领</span></div>
+        </div></div>
+      </div></div>
+      <ul class="note">
+        <li>放在现有的移动管理工作台里，只有接待组能看到。</li>
+        <li>快到承诺时限的留言会标出来。</li>
+      </ul>
+    </div>
+
+    <div class="unit">
+      <p class="cap"><b>14</b>工作台 · 新书友详情</p>
+      <div class="phone"><div class="screen">
+        <div class="status papertop"><span>7:21</span><span>5G</span></div>
+        <div class="nav papertop"><i class="back"></i>新书友详情<div class="capsule"><i></i><i></i></div></div>
+        <div class="body"><div class="pad">
+          <div class="card" style="display:flex;gap:10px;align-items:center;margin-top:6px"><span class="ava g lg">新</span><div><p style="font-weight:600;font-size:14px">微信用户</p><p class="dim">11 月 14 日 7:14 留言</p></div><span class="pill b" style="margin-left:auto">已认领</span></div>
+          <div class="card" style="margin-top:8px"><div class="kv"><span>来源</span><span>阿泰的日签 · 连接之力第 1 天</span><span>原因</span><span>想找人一起读</span><span>补充</span><span>一个人读总是读几天就停了</span><span>接待人</span><span>泰君</span></div></div>
+          <div class="card" style="margin-top:8px;display:flex;align-items:center;gap:8px"><div style="flex:1"><p class="dim">手机号</p><p style="font-family:var(--num);font-size:15px">138 0000 0000</p></div><span class="mini s">复制</span><span class="mini s">拨打</span></div>
+          <div class="card" style="margin-top:8px"><p class="dim">跟进状态</p><div class="track"><span class="done">已注册</span>›<span class="now">待联系</span>›<span>已联系</span>›<span>已交流</span></div><div class="field" style="margin-top:9px">写一句跟进备注（选填）</div></div>
+          <div class="btn p w" style="margin-top:10px">标记为已联系</div>
+          <div style="display:flex;gap:8px;margin-top:8px"><div class="btn s" style="height:36px">愿意连接</div><div class="btn s" style="height:36px">暂不连接</div></div>
+        </div></div>
+      </div></div>
+      <ul class="note">
+        <li>完整手机号只在这一页出现，只有认领的接待人能看到。</li>
+        <li>「暂不连接」是正常结果，标记后不再提醒跟进。</li>
+        <li><span class="ask">待确认</span>分享人（这里是阿泰）要不要知道有人通过自己的日签进来了。</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+</div>
+</body>
+</html>

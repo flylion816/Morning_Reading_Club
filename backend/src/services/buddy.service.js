@@ -280,7 +280,7 @@ async function buildStateWithBuddyId(userId, periodId, ongoing, now, period) {
   const invites = ongoing ? await loadInvites(userId, periodId, now) : { invitesReceived: [], invitesSent: [], discoverable: true };
   const waiting = ongoing && (await BuddyRequest.findOne({ periodId, userId, status: 'waiting' }).lean());
   if (waiting) {
-    return { state: { ...emptyState(), ...invites, state: 'waiting', me, periodName, waitingCount: await countWaiting(userId, periodId) } };
+    return { state: { ...emptyState(), ...invites, state: 'waiting', canJoin: ongoing, me, periodName, waitingCount: await countWaiting(userId, periodId) } };
   }
 
   const ended = await BuddyPair.findOne({ periodId, members: userId, active: false }).select('_id').lean();
@@ -912,6 +912,9 @@ async function invite(userId, periodId, targetUserId, now = new Date()) {
   if (pending.length >= MAX_PENDING_INVITES) {
     throw buddyError('badRequest', 400, `同时最多邀请 ${MAX_PENDING_INVITES} 位，先等等回复吧`);
   }
+
+  // 改走邀请后，原来的“等自动配对”登记就收掉，不再被自动配给陌生人
+  await BuddyRequest.updateMany({ periodId, userId, status: 'waiting' }, { $set: { status: 'cancelled' } });
 
   let created;
   try {

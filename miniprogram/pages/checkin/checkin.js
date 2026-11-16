@@ -18,6 +18,7 @@ const { tenantStorage } = require('../../utils/storage');
 const feedback = require('../../utils/feedback');
 const presenceService = require('../../services/presence.service');
 const { MOOD_OPTIONS, MOOD_SOURCE } = require('../../utils/mood');
+const { MIN_RPX: EDITOR_MIN_HEIGHT, countHeadings, fitEditorHeight } = require('../../utils/editor-height');
 
 const COMMUNITY_AUTO_TOP_UP_SCENES = [
   'comment_received',
@@ -163,6 +164,9 @@ Page({
     diaryContentHtml: '',
     maxDiaryLength: MAX_DIARY_LENGTH,
     editorFormats: {},
+    // editor 没有自动增高：按内容量出需要的高度（rpx），整段文字都显示出来，不被切在固定高度的框里
+    editorHeight: EDITOR_MIN_HEIGHT,
+    editorMeasureText: '',
     editorColorOptions: [
       { value: '#333333' },
       { value: THEME_PRIMARY },
@@ -176,7 +180,7 @@ Page({
     uploadingImage: false,
 
     // 可见范围
-    visibility: 'all', // 'all' 或 'admin'
+    visibility: 'all', // 'all' 或 'admin'（admin 即「仅自己可见」，isPublic=false）
     accessChecked: false,
     showPageContent: false,
 
@@ -562,6 +566,8 @@ Page({
       showRichTextPreview: hasRichTextFormatting(html),
       isDirty: true
     });
+    this._followCaret = true;
+    this._syncEditorHeight();
 
     if ((detail.text || '').length > MAX_DIARY_LENGTH) {
       wx.showToast({
@@ -583,6 +589,7 @@ Page({
       .context((res) => {
         this._editorCtx = res && res.context;
         this._setEditorContent(this.data.diaryContentHtml);
+        this._syncEditorHeight();
       })
       .exec();
   },
@@ -604,6 +611,60 @@ Page({
         }
       }
     });
+  },
+
+  // editor 没有自动增高，内容多了只能在固定高度的框里滚动，下沿会把最后一行切成半行。
+  // 这里把当前文字放进页面里一个看不见的 view（字号、行高、内边距、宽度都和 editor 一样），
+  // 量出高度再设给 editor，让整段文字都显示出来，由页面本身滚动。连续输入时只量最后一次。
+  _syncEditorHeight(delay = 80) {
+    if (this._editorMeasureTimer) clearTimeout(this._editorMeasureTimer);
+    this._editorMeasureTimer = setTimeout(() => {
+      this._editorMeasureTimer = null;
+      const text = String(this.data.diaryContent || '');
+      const headings = countHeadings(this.data.diaryContentHtml);
+      // 末尾补一个零宽字符：文字以换行结尾（光标在新的一行）时，最后那个空行也要算上
+      this.setData({ editorMeasureText: `${text}​` }, () => {
+        if (typeof wx.createSelectorQuery !== 'function') return;
+        wx.createSelectorQuery()
+          .in(this)
+          .select('#checkin-editor-measure')
+          .boundingClientRect()
+          .exec((res) => {
+            const rect = res && res[0];
+            if (!rect || !rect.height) {
+              this._followCaret = false;
+              return;
+            }
+            const height = fitEditorHeight(rect.height, this._getWindowWidth(), { headings });
+            if (height === this.data.editorHeight) {
+              this._followCaretIfNeeded();
+              return;
+            }
+            this.setData({ editorHeight: height }, () => this._followCaretIfNeeded());
+          });
+      });
+    }, delay);
+  },
+
+  _getWindowWidth() {
+    if (this._windowWidth) return this._windowWidth;
+    let width = 0;
+    try {
+      width = (typeof wx.getWindowInfo === 'function' && wx.getWindowInfo().windowWidth) || wx.getSystemInfoSync().windowWidth;
+    } catch (error) {
+      width = 0;
+    }
+    this._windowWidth = width || 375;
+    return this._windowWidth;
+  },
+
+  // 边输入边增高时，让光标所在的那一行留在可视区域里（只在用户输入后做，载入内容、草稿恢复时不动页面）
+  _followCaretIfNeeded() {
+    if (!this._followCaret) return;
+    this._followCaret = false;
+    if (this._editorCtx && typeof this._editorCtx.scrollIntoView === 'function') {
+      this._editorCtx.scrollIntoView();
+    }
   },
 
   handleEditorInput(e) {
@@ -641,6 +702,7 @@ Page({
       update.isDirty = true;
     }
     this.setData(update);
+    this._syncEditorHeight();
 
     return { text, html };
   },
@@ -931,6 +993,7 @@ Page({
           autoSaveStatus: '已恢复草稿'
         });
         setTimeout(() => this.setData({ autoSaveStatus: '' }), 3000);
+        this._syncEditorHeight();
       }
     } catch (e) {}
   },
@@ -1085,10 +1148,12 @@ Page({
     const title = courseTitle || '';
     const source = celebrationDay > 0 ? `第 ${celebrationDay} 天 · ${title}` : title;
     const plain = String(this._lastSubmittedNote || '').replace(/\s+/g, ' ').trim();
-    const firstSentence = (plain.split(/[。！？!?.\n]/)[0] || plain).trim().slice(0, 40);
+    // 打卡的第一句话放进日签的「今日一句」（和其他入口一样走 quote，最多 120 字），
+    // 不能只传 note：那只会变成底部一行小字，卡片主区域还是空白的
+    const firstSentence = (plain.split(/[。！？!?.\n]/)[0] || plain).trim().slice(0, 120);
     const query = [`source=${encodeURIComponent(source)}`];
     if (celebrationDay > 0) query.push(`day=${encodeURIComponent(celebrationDay)}`);
-    if (firstSentence) query.push(`note=${encodeURIComponent(firstSentence)}`);
+    if (firstSentence) query.push(`quote=${encodeURIComponent(firstSentence)}`);
     wx.redirectTo({ url: `/pages/daily-card/daily-card?${query.join('&')}` });
   },
 
@@ -1320,6 +1385,7 @@ Page({
         this._editorCtx.clear();
       }
       this.setData({ isDirty: false, diaryContent: '', diaryContentHtml: '', showRichTextPreview: false, checkinImages: [] });
+      this._syncEditorHeight();
 
       wx.hideLoading();
       getApp().globalData.checkinListDirty = true;

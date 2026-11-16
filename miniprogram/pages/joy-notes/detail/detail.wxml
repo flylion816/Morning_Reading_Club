@@ -1,0 +1,107 @@
+<view class="dt">
+  <view wx:if="{{loading}}" class="dt-loading">
+    <view class="app-skeleton dt-skel"></view>
+    <view class="app-skeleton dt-skel"></view>
+  </view>
+
+  <view wx:elif="{{gone}}" class="dt-state">
+    <view class="app-seal app-seal-ink">觉</view>
+    <text>这条觉察不在了</text>
+    <text class="dt-link" bindtap="goBack">回到日记</text>
+  </view>
+
+  <view wx:elif="{{error}}" class="dt-state">
+    <text>觉察没加载出来</text>
+    <text class="dt-link" bindtap="load">点这里再试一次</text>
+  </view>
+
+  <block wx:else>
+    <view class="dt-head">
+      <view class="app-seal app-seal-ink">觉</view>
+      <view class="dt-head-text">
+        <text wx:if="{{view.title}}" class="dt-title">{{view.title}}</text>
+        <text class="dt-date {{view.title ? 'dt-date-sub' : ''}}">{{view.dateLabel}} · 一次觉察</text>
+        <text wx:if="{{view.sourceLabel}}" class="dt-src">{{view.sourceLabel}}</text>
+      </view>
+      <text class="dt-share" bindtap="shareNote" role="button" aria-label="分享这一页">分享</text>
+      <text class="dt-more" bindtap="openMenu" role="button" aria-label="更多">⋯</text>
+    </view>
+
+    <view wx:if="{{titleEditing}}" class="dt-rename">
+      <input
+        class="dt-rename-input"
+        value="{{titleDraft}}"
+        maxlength="40"
+        focus
+        confirm-type="done"
+        placeholder="给这一页起个名字"
+        placeholder-class="dt-ph"
+        bindinput="onTitleInput"
+        bindconfirm="saveTitle"
+      />
+      <text class="dt-rename-cancel" bindtap="cancelRename">取消</text>
+      <text class="dt-rename-save" bindtap="saveTitle">{{saving ? '…' : '保存'}}</text>
+    </view>
+
+    <!-- 从夜到晨的一条线 -->
+    <view class="dt-jour">
+      <view wx:if="{{view.facts}}" class="dt-j">
+        <text class="dt-jk">看</text>
+        <rich-text wx:if="{{view.factsNodes}}" class="dt-jt dt-rich" nodes="{{view.factsNodes}}" user-select></rich-text>
+        <text wx:else class="dt-jt" user-select>{{view.facts}}</text>
+      </view>
+
+      <view wx:if="{{view.feelings.length || view.feelingNote || view.bodyAreas.length}}" class="dt-j">
+        <text class="dt-jk">感</text>
+        <view wx:if="{{view.feelings.length}}" class="dt-chips">
+          <text wx:for="{{view.feelings}}" wx:key="*this" class="dt-chip">{{item}}</text>
+        </view>
+        <text wx:if="{{view.feelingNote}}" class="dt-jt" user-select>{{view.feelingNote}}</text>
+        <text wx:if="{{view.bodyAreas.length}}" class="dt-body">身体：{{view.bodyText}}</text>
+      </view>
+
+      <view wx:for="{{view.asks}}" wx:key="label" class="dt-j">
+        <text class="dt-jk">问 · {{item.label}}</text>
+        <text class="dt-jq">{{item.question}}</text>
+        <rich-text wx:if="{{item.answerNodes}}" class="dt-jt dt-rich" nodes="{{item.answerNodes}}" user-select></rich-text>
+        <text wx:else class="dt-jt" user-select>{{item.answer}}</text>
+      </view>
+
+      <view wx:if="{{view.choice}}" class="dt-j dt-choose">
+        <text class="dt-jk">择</text>
+        <rich-text wx:if="{{view.choiceNodes}}" class="dt-jt dt-rich" nodes="{{view.choiceNodes}}" user-select></rich-text>
+        <text wx:else class="dt-jt" user-select>{{view.choice}}</text>
+      </view>
+
+      <view wx:for="{{view.followUps}}" wx:key="index" class="dt-j dt-later">
+        <text class="dt-jk">后来 · {{item.dateLabel}}</text>
+        <text class="dt-jt" user-select>{{item.content}}</text>
+      </view>
+    </view>
+
+    <text wx:if="{{view.revisitLine}}" class="dt-revisit">{{view.revisitLine}}</text>
+
+    <view wx:if="{{followUpOpen}}" class="dt-fu">
+      <textarea
+        class="dt-fu-input"
+        value="{{followUpText}}"
+        maxlength="500"
+        auto-height
+        focus
+        cursor-spacing="120"
+        show-confirm-bar="{{false}}"
+        placeholder="后来，怎么样了？"
+        placeholder-class="dt-ph"
+        bindinput="onFollowUpInput"
+      />
+      <view class="dt-fu-actions">
+        <text class="dt-fu-cancel" bindtap="toggleFollowUp">先不写</text>
+        <button class="app-btn-primary dt-fu-save" bindtap="saveFollowUp" disabled="{{saving || !followUpText}}">{{saving ? '正在记下…' : '记下'}}</button>
+      </view>
+    </view>
+    <view wx:else class="dt-add" bindtap="toggleFollowUp">＋ 再写一句后来</view>
+  </block>
+</view>
+<app-dialog id="app-dialog" />
+<app-sheet id="app-sheet" />
+<joy-share id="joy-share" />

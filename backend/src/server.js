@@ -59,6 +59,7 @@ const studyReminderService = require("./services/study-reminder.service");
 const periodStatusService = require("./services/period-status.service");
 const activityReminderService = require("./services/activity-reminder.service");
 const letterDeliveryService = require("./services/letter-delivery.service");
+const awarenessRevisitService = require("./services/awareness-revisit.service");
 
 // 现在 app.js 可以安全加载，NODE_ENV 已经被正确设置
 const app = require("./app");
@@ -203,6 +204,12 @@ async function startServer() {
     ) {
       letterDeliveryService.start();
       logger.info("✅ 慢递邮局定时送达任务已启动（每 10 分钟检查一次）");
+    }
+
+    // 觉察日记一周后回访来信：生产环境默认启用；ENABLE_AWARENESS_REVISIT=false 可单独关闭
+    if (awarenessRevisitService.isEnabled()) {
+      awarenessRevisitService.start();
+      logger.info("✅ 觉察回访来信任务已启动（每 10 分钟检查一次）");
     }
 
     // 初始化备份服务（仅在生产环境启用）

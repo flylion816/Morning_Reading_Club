@@ -1,0 +1,799 @@
+/* Version 3 dawn: 觉察静室。前四屏是夜色，写到「择」时天亮了；颜色按夜色和晨光两套定义。 */
+page {
+  background: #171412;
+}
+
+.aw {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  color: #f3e9da;
+  --aw-text: #f3e9da;
+  --aw-soft: #b3a48f;
+  --aw-faint: rgba(243, 233, 218, 0.45);
+  --aw-accent: #f0a85a;
+  --aw-accent-soft: rgba(240, 168, 90, 0.2);
+  --aw-line: rgba(240, 168, 90, 0.5);
+}
+
+/* 晨光：「择」和「收」 */
+.aw-light {
+  color: var(--app-text, #2b2622);
+  --aw-text: var(--app-text, #2b2622);
+  --aw-soft: var(--app-text-soft, #6b5d4d);
+  --aw-faint: rgba(92, 70, 44, 0.5);
+  --aw-accent: var(--app-dawn-deep, #b8631f);
+  --aw-accent-soft: rgba(238, 155, 69, 0.18);
+  --aw-line: rgba(184, 99, 31, 0.4);
+}
+
+/* 背景层叠在一起，靠透明度慢慢换，夜色一屏屏亮起来 */
+.aw-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+
+.aw-bg.on {
+  opacity: 1;
+}
+
+.aw-bg-1 {
+  background: linear-gradient(180deg, #171412 0%, #1f1a16 100%);
+}
+
+.aw-bg-2 {
+  background: linear-gradient(180deg, #1a1614 0%, #231d18 100%);
+}
+
+.aw-bg-3 {
+  background: linear-gradient(180deg, #1c1815 0%, #2a211a 100%);
+}
+
+.aw-bg-4 {
+  background: linear-gradient(180deg, #1c1815 0%, #2c2119 58%, #5c3a1e 100%);
+}
+
+.aw-bg-5 {
+  background: linear-gradient(180deg, #f6cf9d 0%, #fbe3c3 24%, #fdf0dc 54%, #fffaf0 100%);
+}
+
+.aw-topbar {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+  box-sizing: border-box;
+}
+
+.aw-topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  height: 88rpx;
+  /* 右边让出微信的胶囊按钮 */
+  padding-right: 200rpx;
+}
+
+.aw-x {
+  color: var(--aw-soft);
+  font-size: 52rpx;
+  line-height: 1;
+}
+
+.aw-back {
+  color: var(--aw-soft);
+  font-size: 26rpx;
+}
+
+.aw-saved {
+  margin-left: auto;
+  color: var(--aw-faint);
+  font-size: 22rpx;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.aw-saved.on {
+  opacity: 1;
+}
+
+/* 进度：停 看 感 问 择 */
+.aw-prog {
+  display: flex;
+  justify-content: center;
+  gap: 40rpx;
+  padding: 6rpx 0 8rpx;
+}
+
+.aw-prog-i {
+  position: relative;
+  padding-top: 26rpx;
+  color: var(--aw-faint);
+  font-family: var(--app-font-serif, serif);
+  font-size: 22rpx;
+  opacity: 0.7;
+}
+
+.aw-prog-i::before {
+  content: '';
+  position: absolute;
+  top: 4rpx;
+  left: 50%;
+  width: 10rpx;
+  height: 10rpx;
+  margin-left: -5rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.aw-prog-i.is-done {
+  color: var(--aw-accent);
+  opacity: 0.75;
+}
+
+.aw-prog-i.is-on {
+  color: var(--aw-accent);
+  opacity: 1;
+}
+
+.aw-prog-i.is-on::before {
+  top: 0;
+  width: 18rpx;
+  height: 18rpx;
+  margin-left: -9rpx;
+  box-shadow: 0 0 20rpx var(--aw-accent);
+}
+
+/* 主体 */
+.aw-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* 键盘盖住固定页面时，给嵌套滚动区留出真实可滚动空间 */
+.aw-keyboard-space {
+  flex-shrink: 0;
+}
+
+.aw-step {
+  padding: 28rpx 44rpx 40rpx;
+}
+
+.aw-k {
+  display: block;
+  color: var(--aw-accent);
+  font-size: 22rpx;
+  letter-spacing: 0.16em;
+}
+
+.aw-q {
+  display: block;
+  margin-top: 16rpx;
+  font-family: var(--app-font-serif, serif);
+  font-size: 44rpx;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.aw-hint {
+  display: block;
+  margin: 16rpx 0 34rpx;
+  color: var(--aw-soft);
+  font-size: 25rpx;
+  line-height: 1.7;
+}
+
+.aw-input {
+  width: 100%;
+  min-height: 220rpx;
+  box-sizing: border-box;
+  color: var(--aw-text);
+  font-family: var(--app-font-serif, serif);
+  font-size: 31rpx;
+  line-height: 1.85;
+  caret-color: var(--aw-accent);
+}
+
+.aw-input-sm {
+  min-height: 120rpx;
+  margin-top: 20rpx;
+  font-size: 28rpx;
+}
+
+.aw-input-ask {
+  min-height: 110rpx;
+  font-size: 29rpx;
+}
+
+.aw-ph {
+  color: var(--aw-faint);
+}
+
+/* 感：情绪词，分「沉一点的」「亮一点的」两组 */
+.aw-group-k {
+  display: block;
+  margin-bottom: 14rpx;
+  color: var(--aw-soft);
+  font-size: 22rpx;
+  letter-spacing: 0.12em;
+}
+
+.aw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 26rpx;
+}
+
+.aw-chip {
+  padding: 10rpx 26rpx;
+  border: 1rpx solid var(--aw-faint);
+  border-radius: 30rpx;
+  color: var(--aw-text);
+  font-size: 26rpx;
+  opacity: 0.85;
+}
+
+.aw-chip.on {
+  border-color: var(--aw-accent);
+  background: var(--aw-accent-soft);
+  color: var(--aw-accent);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.aw-more {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 22rpx;
+  color: var(--aw-soft);
+  font-size: 24rpx;
+}
+
+.aw-more-link {
+  color: var(--aw-accent);
+}
+
+.aw-chips-sm {
+  margin-bottom: 14rpx;
+}
+
+/* 自己加的词：虚线框，长按可以删掉 */
+.aw-chip-mine {
+  border-style: dashed;
+}
+
+.aw-mine-hint {
+  display: block;
+  margin: -10rpx 0 22rpx;
+  color: var(--aw-faint);
+  font-size: 21rpx;
+}
+
+/* 自己加词的小面板：一个输入框，选加在哪一组，再点「加上」 */
+.aw-add {
+  margin: 0 0 22rpx;
+  padding: 14rpx 22rpx 18rpx;
+  border: 1rpx solid var(--aw-faint);
+  border-radius: 22rpx;
+  background: rgba(243, 233, 218, 0.05);
+}
+
+.aw-add-input {
+  width: 100%;
+  height: 72rpx;
+  border-bottom: 1rpx solid var(--aw-line);
+  color: var(--aw-text);
+  font-family: var(--app-font-serif, serif);
+  font-size: 30rpx;
+}
+
+.aw-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.aw-add-groups {
+  display: flex;
+  gap: 12rpx;
+}
+
+.aw-chip-sm {
+  padding: 6rpx 20rpx;
+  font-size: 23rpx;
+}
+
+.aw-add-btn {
+  padding: 10rpx 34rpx;
+  border: 1rpx solid var(--aw-line);
+  border-radius: 30rpx;
+  background: var(--aw-accent-soft);
+  color: var(--aw-accent);
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+/* 问：一叩、再叩、三叩，一层比一层缩进得更深 */
+.aw-habit {
+  display: inline-block;
+  margin: 18rpx 0 26rpx;
+  padding: 4rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(243, 233, 218, 0.1);
+  color: var(--aw-text);
+  font-size: 22rpx;
+}
+
+/* 问：顺着刚选的心情往里看的那句引子 */
+.aw-lead {
+  display: block;
+  margin: 18rpx 0 26rpx;
+  color: var(--aw-soft);
+  font-family: var(--app-font-serif, serif);
+  font-size: 27rpx;
+  line-height: 1.6;
+}
+
+/* 跟在「这几天在读」后面时，靠近一点 */
+.aw-lead.aw-lead-after {
+  margin-top: -10rpx;
+}
+
+.aw-ask {
+  margin-bottom: 26rpx;
+  padding-left: 26rpx;
+  border-left: 3rpx solid rgba(240, 168, 90, 0.45);
+}
+
+.aw-ask-2 {
+  margin-left: 30rpx;
+  border-left-color: rgba(240, 168, 90, 0.7);
+}
+
+.aw-ask-3 {
+  margin-left: 60rpx;
+  border-left-color: var(--aw-accent);
+}
+
+.aw-kou {
+  display: block;
+  color: var(--aw-accent);
+  font-size: 21rpx;
+  letter-spacing: 0.16em;
+}
+
+.aw-ask-q {
+  display: block;
+  margin: 6rpx 0 8rpx;
+  font-family: var(--app-font-serif, serif);
+  font-size: 33rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.aw-deepen {
+  display: inline-flex;
+  align-items: center;
+  margin: 4rpx 0 0 60rpx;
+  padding: 12rpx 28rpx;
+  border: 1rpx dashed var(--aw-line);
+  border-radius: 30rpx;
+  color: var(--aw-accent);
+  font-size: 25rpx;
+}
+
+.aw-swap {
+  display: block;
+  margin: 26rpx 0 0 60rpx;
+  color: var(--aw-faint);
+  font-size: 22rpx;
+}
+
+/* 择：地平线上的太阳 */
+.aw-horizon {
+  position: relative;
+  height: 52rpx;
+  margin: 0 0 30rpx;
+  overflow: hidden;
+  border-bottom: 3rpx solid var(--aw-line);
+}
+
+.aw-horizon-sun {
+  position: absolute;
+  left: 50%;
+  bottom: -34rpx;
+  width: 68rpx;
+  height: 68rpx;
+  margin-left: -34rpx;
+  border-radius: 50%;
+  background: var(--app-dawn, #ee9b45);
+  box-shadow: 0 0 0 14rpx rgba(238, 155, 69, 0.22);
+}
+
+.aw-revisit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 36rpx;
+  padding: 20rpx 24rpx;
+  border: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.14));
+  border-radius: 24rpx;
+  background: rgba(255, 253, 248, 0.75);
+}
+
+.aw-revisit-text {
+  min-width: 0;
+}
+
+.aw-revisit-t,
+.aw-revisit-s {
+  display: block;
+}
+
+.aw-revisit-t {
+  color: var(--app-text, #2b2622);
+  font-size: 25rpx;
+}
+
+.aw-revisit-s {
+  margin-top: 4rpx;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 21rpx;
+}
+
+/* 停 */
+.aw-pause {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 60rpx 80rpx;
+  text-align: center;
+}
+
+.aw-breath {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 280rpx;
+  height: 280rpx;
+  margin-bottom: 48rpx;
+  border: 1rpx solid rgba(240, 168, 90, 0.22);
+  border-radius: 50%;
+}
+
+.aw-breath-core {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(246, 190, 120, 0.95) 0%, rgba(240, 168, 90, 0.35) 55%, rgba(240, 168, 90, 0) 75%);
+  animation: aw-breathe 4s ease-in-out infinite;
+}
+
+@keyframes aw-breathe {
+  0%,
+  100% {
+    transform: scale(0.72);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+.aw-pause-t {
+  font-family: var(--app-font-serif, serif);
+  font-size: 46rpx;
+  font-weight: 600;
+}
+
+.aw-pause-s {
+  margin: 14rpx 0 30rpx;
+  color: var(--aw-soft);
+  font-size: 26rpx;
+}
+
+.aw-dots {
+  display: flex;
+  gap: 18rpx;
+  margin-bottom: 44rpx;
+}
+
+.aw-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: rgba(243, 233, 218, 0.25);
+  transition: background 0.4s, box-shadow 0.4s;
+}
+
+.aw-dot.on {
+  background: var(--aw-accent);
+  box-shadow: 0 0 16rpx var(--aw-accent);
+}
+
+.aw-pause-q {
+  display: block;
+  color: rgba(243, 233, 218, 0.62);
+  font-family: var(--app-font-serif, serif);
+  font-size: 27rpx;
+  line-height: 1.9;
+}
+
+/* 停：三次呼吸 */
+.aw-pause-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26rpx;
+  min-height: 140rpx;
+  margin-top: 56rpx;
+}
+
+/* 呼吸没走完时，「直接开始」顶上「我准备好了」的位置，不让版面跳 */
+.aw-pause-actions .aw-skip {
+  font-size: 26rpx;
+}
+
+/* 按钮和底部导航 */
+.aw-btn {
+  min-width: 220rpx;
+  padding: 18rpx 44rpx;
+  border: 1rpx solid var(--aw-line);
+  border-radius: 40rpx;
+  background: var(--aw-accent-soft);
+  color: #ffd9a8;
+  font-size: 27rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+.aw-light .aw-btn-fin,
+.aw-btn-fin {
+  border-color: transparent;
+  background: var(--app-dawn-deep, #b8631f);
+  color: #ffffff;
+}
+
+.aw-btn.is-busy {
+  opacity: 0.6;
+}
+
+.aw-skip {
+  color: var(--aw-faint);
+  font-size: 24rpx;
+}
+
+.aw-nav {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 44rpx calc(28rpx + env(safe-area-inset-bottom));
+}
+
+/* 键盘打开时，底部导航会落在键盘后面，交给输入区滚动 */
+.aw-nav-keyboard {
+  display: none;
+}
+
+/* 收 */
+.aw-done {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  text-align: center;
+  color: var(--app-text, #2b2622);
+}
+
+.aw-done-inner {
+  padding: 8rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+}
+
+.aw-done-sun {
+  width: 96rpx;
+  height: 96rpx;
+  margin: 10rpx auto 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #f7b566, var(--app-dawn, #ee9b45));
+  box-shadow: 0 0 0 18rpx rgba(238, 155, 69, 0.16), 0 0 0 40rpx rgba(238, 155, 69, 0.07);
+}
+
+.aw-done-t {
+  display: block;
+  margin-top: 44rpx;
+  font-family: var(--app-font-serif, serif);
+  font-size: 50rpx;
+  font-weight: 600;
+}
+
+.aw-done-s {
+  display: block;
+  margin: 10rpx 0 34rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 26rpx;
+}
+
+.aw-sum {
+  position: relative;
+  padding: 28rpx 28rpx 18rpx 40rpx;
+  overflow: hidden;
+  border: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.14));
+  border-radius: 28rpx;
+  background: var(--app-paper, #fffdf8);
+  box-shadow: 0 12rpx 36rpx rgba(92, 70, 44, 0.1);
+  text-align: left;
+}
+
+/* 左边那条「夜到晨」的色带 */
+.aw-sum::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 10rpx;
+  background: linear-gradient(180deg, #1c1815 0%, #6a4322 55%, var(--app-dawn, #ee9b45) 100%);
+}
+
+.aw-sum-d {
+  display: block;
+  margin-bottom: 18rpx;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 22rpx;
+}
+
+.aw-sum-r {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 18rpx;
+}
+
+.aw-sum-b {
+  flex-shrink: 0;
+  width: 38rpx;
+  height: 38rpx;
+  margin-top: 4rpx;
+  border-radius: 10rpx;
+  background: #efe9dd;
+  color: var(--app-text-soft, #6b5d4d);
+  font-family: var(--app-font-serif, serif);
+  font-size: 22rpx;
+  line-height: 38rpx;
+  text-align: center;
+}
+
+.aw-sum-c {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--app-font-serif, serif);
+  font-size: 26rpx;
+  line-height: 1.65;
+}
+
+.aw-fe {
+  display: inline-block;
+  margin-right: 10rpx;
+  padding: 0 14rpx;
+  border-radius: 12rpx;
+  background: #efe9dd;
+  color: var(--app-text-soft, #6b5d4d);
+  font-family: var(--app-font-sans, sans-serif);
+  font-size: 22rpx;
+}
+
+.aw-sum-choose {
+  padding: 14rpx 16rpx;
+  margin-left: -8rpx;
+  margin-right: -8rpx;
+  border-radius: 18rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-weight: 600;
+}
+
+.aw-sum-choose .aw-sum-b {
+  background: var(--app-dawn, #ee9b45);
+  color: #ffffff;
+}
+
+.aw-done-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.aw-done .aw-btn {
+  margin: 34rpx 0 22rpx;
+}
+
+.aw-done-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24rpx 40rpx;
+}
+
+.aw-done-link {
+  color: var(--theme-primary, #3d6fa6);
+  font-size: 25rpx;
+}
+
+/* 「择」这一页还空着时的完成按钮：轻一点，和「先出去」一起把路让出来 */
+.aw-btn-quiet {
+  background: transparent;
+  border: 2rpx solid var(--aw-faint);
+  color: var(--aw-soft);
+  box-shadow: none;
+}
+
+.aw-empty-hint {
+  display: block;
+  margin-top: 22rpx;
+  color: var(--aw-soft);
+  font-size: 24rpx;
+}
+
+/* 写字的纸：夜色里一张暖纸，编辑器里的文字和选的颜色在深浅背景上都清楚 */
+.aw-paper {
+  padding: 14rpx 20rpx 10rpx;
+  border-radius: 24rpx;
+  background: var(--app-paper, #fffdf8);
+  box-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.18);
+}
+
+.aw-paper-ask {
+  margin-top: 6rpx;
+}
+
+/* 标题 */
+.aw-title-row {
+  margin-top: 34rpx;
+}
+
+.aw-title-label {
+  display: block;
+  color: var(--aw-soft);
+  font-size: 23rpx;
+}
+
+.aw-title-input {
+  width: 100%;
+  height: 80rpx;
+  margin-top: 8rpx;
+  border-bottom: 1rpx solid var(--aw-line);
+  color: var(--aw-text);
+  font-family: var(--app-font-serif, serif);
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.aw-sum-title {
+  display: block;
+  margin-bottom: 6rpx;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 32rpx;
+  font-weight: 600;
+}

@@ -1,0 +1,272 @@
+<view class="aw {{light ? 'aw-light' : ''}}">
+  <!-- 背景：一屏比一屏亮，写到「择」时天亮了 -->
+  <view class="aw-bg aw-bg-1 {{step === 'pause' ? 'on' : ''}}"></view>
+  <view class="aw-bg aw-bg-2 {{step === 'see' ? 'on' : ''}}"></view>
+  <view class="aw-bg aw-bg-3 {{step === 'feel' ? 'on' : ''}}"></view>
+  <view class="aw-bg aw-bg-4 {{step === 'ask' ? 'on' : ''}}"></view>
+  <view class="aw-bg aw-bg-5 {{step === 'choose' || step === 'done' ? 'on' : ''}}"></view>
+
+  <view class="aw-topbar" style="padding-top: {{statusBarHeight}}px;">
+    <view class="aw-topbar-row">
+      <text class="aw-x" bindtap="close" role="button" aria-label="退出">×</text>
+      <text wx:if="{{step === 'feel' || step === 'ask' || step === 'choose'}}" class="aw-back" bindtap="back" role="button" aria-label="上一问">‹ 上一问</text>
+      <text class="aw-saved {{savedHint ? 'on' : ''}}">{{savedHint}}</text>
+    </view>
+    <view wx:if="{{step !== 'pause' && step !== 'done'}}" class="aw-prog">
+      <text
+        wx:for="{{stepNames}}"
+        wx:key="*this"
+        class="aw-prog-i {{index < progress ? 'is-done' : ''}} {{index === progress ? 'is-on' : ''}}"
+      >{{item}}</text>
+    </view>
+  </view>
+
+  <!-- 停 -->
+  <view wx:if="{{step === 'pause'}}" class="aw-pause">
+    <view class="aw-breath"><view class="aw-breath-core"></view></view>
+    <text class="aw-pause-t">{{breathDone ? '好了' : '先停一下'}}</text>
+    <text class="aw-pause-s">{{breathDone ? '想从哪里开始，都可以' : '跟着这团光，慢慢呼吸三次'}}</text>
+    <view class="aw-dots">
+      <view wx:for="{{[0, 1, 2]}}" wx:key="*this" class="aw-dot {{item < breaths ? 'on' : ''}}"></view>
+    </view>
+    <text class="aw-pause-q">刺激与回应之间，</text>
+    <text class="aw-pause-q">有一个空间。</text>
+    <view class="aw-pause-actions">
+      <view wx:if="{{breathDone}}" class="aw-btn" bindtap="begin">我准备好了</view>
+      <text wx:else class="aw-skip" bindtap="begin">直接开始</text>
+    </view>
+  </view>
+
+  <!-- 看 / 感 / 问 / 择 -->
+  <scroll-view wx:elif="{{step !== 'done'}}" id="aw-scroll" class="aw-scroll" scroll-y scroll-top="{{scrollTop}}" enhanced show-scrollbar="{{false}}">
+    <view class="aw-step">
+      <block wx:if="{{step === 'see'}}">
+        <text class="aw-k">一问 · 看</text>
+        <text class="aw-q">发生了什么？</text>
+        <text class="aw-hint">只写看到的、听到的。像镜头拍下来那样，先不评价。</text>
+        <view id="aw-see-input" class="aw-paper">
+          <rich-input
+            value="{{facts}}"
+            html="{{factsHtml}}"
+            maxlength="600"
+            height="{{360}}"
+            placeholder="{{seePh}}"
+            data-target="aw-see-input"
+            bind:input="onFacts"
+            bind:focus="onInputFocus"
+            bind:blur="onInputBlur"
+            bind:keyboardheight="onKeyboardHeight"
+          />
+        </view>
+      </block>
+
+      <block wx:elif="{{step === 'feel'}}">
+        <text class="aw-k">二问 · 感</text>
+        <text class="aw-q">那一刻，</text>
+        <text class="aw-q">心里是什么滋味？</text>
+        <text class="aw-hint">选一到三个最贴近的词。开心也好，难过也好，背后都藏着你在意的东西。</text>
+        <view wx:for="{{feelingGroups}}" wx:for-item="group" wx:key="key">
+          <text class="aw-group-k">{{group.label}}</text>
+          <view class="aw-chips">
+            <block wx:for="{{group.chips}}" wx:key="name">
+              <text
+                wx:if="{{item.custom}}"
+                class="aw-chip aw-chip-mine {{item.on ? 'on' : ''}}"
+                data-name="{{item.name}}"
+                data-group="{{group.key}}"
+                bindtap="toggleFeeling"
+                bindlongpress="removeCustomFeeling"
+              >{{item.name}}</text>
+              <text
+                wx:else
+                class="aw-chip {{item.on ? 'on' : ''}}"
+                data-name="{{item.name}}"
+                bindtap="toggleFeeling"
+              >{{item.name}}</text>
+            </block>
+          </view>
+        </view>
+        <text wx:if="{{hasCustom}}" class="aw-mine-hint">虚线框的是你自己加的词，长按可以删掉。</text>
+        <view class="aw-more" bindtap="toggleAddFeeling">
+          <text>找不到合适的词？</text>
+          <text class="aw-more-link">{{addOpen ? '收起' : '自己加一个'}}</text>
+        </view>
+        <view wx:if="{{addOpen}}" class="aw-add">
+          <input
+            id="aw-feeling-add"
+            class="aw-add-input"
+            value="{{addText}}"
+            maxlength="8"
+            focus
+            confirm-type="done"
+            cursor-spacing="140"
+            adjust-position="{{false}}"
+            data-target="aw-feeling-add"
+            placeholder="{{addHint}}"
+            placeholder-class="aw-ph"
+            bindinput="onAddInput"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
+            bindconfirm="confirmAddFeeling"
+          />
+          <view class="aw-add-row">
+            <view class="aw-add-groups">
+              <text
+                wx:for="{{feelingGroups}}"
+                wx:for-item="group"
+                wx:key="key"
+                class="aw-chip aw-chip-sm {{addGroup === group.key ? 'on' : ''}}"
+                data-group="{{group.key}}"
+                bindtap="chooseAddGroup"
+              >{{group.label}}</text>
+            </view>
+            <text class="aw-add-btn" bindtap="confirmAddFeeling">加上</text>
+          </view>
+        </view>
+        <view class="aw-more" bindtap="toggleBody">
+          <text>身体哪里有感觉？</text>
+          <text class="aw-more-link">{{bodyOpen ? '收起' : '点开选'}}</text>
+        </view>
+        <view wx:if="{{bodyOpen}}" class="aw-chips aw-chips-sm">
+          <text
+            wx:for="{{bodyChips}}"
+            wx:key="name"
+            class="aw-chip {{item.on ? 'on' : ''}}"
+            data-name="{{item.name}}"
+            bindtap="toggleBodyArea"
+          >{{item.name}}</text>
+        </view>
+        <textarea
+          id="aw-feeling-note"
+          class="aw-input aw-input-sm"
+          value="{{feelingNote}}"
+          maxlength="200"
+          auto-height
+          cursor-spacing="140"
+          adjust-position="{{false}}"
+          show-confirm-bar="{{false}}"
+          data-target="aw-feeling-note"
+          placeholder="也可以多写两句…"
+          placeholder-class="aw-ph"
+          bindinput="onFeelingNote"
+          bindfocus="onInputFocus"
+          bindblur="onInputBlur"
+          bindkeyboardheightchange="onKeyboardHeight"
+        />
+      </block>
+
+      <block wx:elif="{{step === 'ask'}}">
+        <text class="aw-k">三问 · 问</text>
+        <text wx:if="{{habitName}}" class="aw-habit">这几天在读 · {{habitName}}</text>
+        <text wx:if="{{askLead}}" class="aw-lead {{habitName ? 'aw-lead-after' : ''}}">{{askLead}}</text>
+        <view wx:for="{{askItems}}" wx:key="level" class="aw-ask aw-ask-{{item.level}}">
+          <text class="aw-kou">{{item.label}}</text>
+          <text class="aw-ask-q">{{item.question}}</text>
+          <view id="aw-ask-input-{{index}}" class="aw-paper aw-paper-ask">
+            <rich-input
+              value="{{item.answer}}"
+              html="{{item.answerHtml}}"
+              maxlength="500"
+              height="{{220}}"
+              data-index="{{index}}"
+              data-target="aw-ask-input-{{index}}"
+              placeholder="写下来…"
+              bind:input="onAnswer"
+              bind:focus="onInputFocus"
+              bind:blur="onInputBlur"
+              bind:keyboardheight="onKeyboardHeight"
+            />
+          </view>
+        </view>
+        <view wx:if="{{askItems.length < 3}}" class="aw-deepen" bindtap="deepen">再往里一层 ↓</view>
+        <text wx:if="{{canSwap}}" class="aw-swap" bindtap="swapLadder">这一问不贴切？换一问</text>
+      </block>
+
+      <block wx:elif="{{step === 'choose'}}">
+        <view class="aw-horizon"><view class="aw-horizon-sun"></view></view>
+        <text class="aw-k">四问 · 择</text>
+        <text class="aw-q">{{chooseQ}}</text>
+        <text class="aw-hint">写一个 24 小时内做得到的小动作。</text>
+        <view id="aw-choice-input" class="aw-paper">
+          <rich-input
+            value="{{choice}}"
+            html="{{choiceHtml}}"
+            maxlength="300"
+            height="{{260}}"
+            placeholder="{{choosePh}}"
+            data-target="aw-choice-input"
+            bind:input="onChoice"
+            bind:focus="onInputFocus"
+            bind:blur="onInputBlur"
+            bind:keyboardheight="onKeyboardHeight"
+          />
+        </view>
+        <view wx:if="{{choice}}" class="aw-revisit">
+          <view class="aw-revisit-text">
+            <text class="aw-revisit-t">一周后，来信问问我做得怎样</text>
+            <text class="aw-revisit-s">{{revisitDate}} 早上 6:00 送到「来信」</text>
+          </view>
+          <switch checked="{{revisit}}" color="#ee9b45" bindchange="onRevisit" />
+        </view>
+        <view class="aw-title-row">
+          <text class="aw-title-label">给这一页起个名字（选填）</text>
+          <input
+            id="aw-title-input"
+            class="aw-title-input"
+            value="{{title}}"
+            maxlength="40"
+            confirm-type="done"
+            cursor-spacing="140"
+            adjust-position="{{false}}"
+            data-target="aw-title-input"
+            placeholder="比如：孩子磨蹭的早晨"
+            placeholder-class="aw-ph"
+            bindinput="onTitle"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
+          />
+        </view>
+        <text wx:if="{{!hasContent}}" class="aw-empty-hint">这一页还空着：随便哪一问写一句，就能收进日记</text>
+      </block>
+    </view>
+    <view class="aw-keyboard-space" style="height: {{keyboardHeight}}px;"></view>
+  </scroll-view>
+
+  <!-- 收 -->
+  <scroll-view wx:else class="aw-done" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="aw-done-inner">
+      <view class="aw-done-sun"></view>
+      <text class="aw-done-t">天亮了</text>
+      <text class="aw-done-s">{{doneLine}}</text>
+      <view class="aw-sum">
+        <text wx:if="{{summary.title}}" class="aw-sum-title">{{summary.title}}</text>
+        <text class="aw-sum-d">{{summary.dateLabel}} · 一次觉察</text>
+        <view wx:if="{{summary.facts}}" class="aw-sum-r"><text class="aw-sum-b">看</text><text class="aw-sum-c">{{summary.facts}}</text></view>
+        <view wx:if="{{summary.feelings.length}}" class="aw-sum-r">
+          <text class="aw-sum-b">感</text>
+          <view class="aw-sum-c"><text wx:for="{{summary.feelings}}" wx:key="*this" class="aw-fe">{{item}}</text></view>
+        </view>
+        <view wx:if="{{summary.keyAsk}}" class="aw-sum-r"><text class="aw-sum-b">问</text><text class="aw-sum-c">{{summary.keyAsk}}</text></view>
+        <view wx:if="{{summary.choice}}" class="aw-sum-r aw-sum-choose"><text class="aw-sum-b">择</text><text class="aw-sum-c">{{summary.choice}}</text></view>
+      </view>
+      <view class="aw-done-actions">
+        <view class="aw-btn aw-btn-fin" bindtap="goJournal">看我的日记</view>
+      </view>
+      <view class="aw-done-links">
+        <text wx:if="{{summary.choice}}" class="aw-done-link" bindtap="makeCard">做成给自己的日签</text>
+        <text wx:if="{{canCheckin}}" class="aw-done-link" bindtap="postAsCheckin">发成打卡</text>
+        <text class="aw-done-link" bindtap="shareNote">分享这一页</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部：跳过 / 下一问 / 完成 -->
+  <view wx:if="{{step === 'see' || step === 'feel' || step === 'ask' || step === 'choose'}}" class="aw-nav {{keyboardHeight ? 'aw-nav-keyboard' : ''}}">
+    <text class="aw-skip" bindtap="skip" wx:if="{{step !== 'choose'}}">跳过这一问</text>
+    <text wx:if="{{step === 'choose' && !hasContent}}" class="aw-skip" bindtap="close">写不出来了，先出去</text>
+    <view wx:if="{{step === 'choose'}}" class="aw-btn aw-btn-fin {{saving ? 'is-busy' : ''}} {{hasContent ? '' : 'aw-btn-quiet'}}" bindtap="finish">{{saving ? '正在收起…' : (hasContent ? '完成' : '先收着，回头再写')}}</view>
+    <view wx:else class="aw-btn" bindtap="next">下一问</view>
+  </view>
+</view>
+<app-dialog id="app-dialog" />
+<joy-share id="joy-share" />

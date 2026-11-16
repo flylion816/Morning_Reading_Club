@@ -69,7 +69,7 @@ class CourseService {
    * @param {number} sectionId 课节ID
    * @returns {Promise}
    */
-  getSectionDetail(sectionId) {
+  getSectionDetail(sectionId, options = {}) {
     logger.debug('===== getSectionDetail 被调用 =====');
     logger.debug('sectionId:', sectionId);
     logger.debug('envConfig.useMock:', envConfig.useMock);
@@ -90,7 +90,7 @@ class CourseService {
     }
 
     logger.debug('发起真实请求:', `/sections/${sectionId}`);
-    return request.get(`/sections/${sectionId}`);
+    return request.get(`/sections/${sectionId}`, {}, options);
   }
 
   /**

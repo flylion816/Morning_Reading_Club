@@ -110,6 +110,34 @@
       </view>
     </view>
 
+    <view
+      wx:if="{{detailCheckin && detailCheckin.isOwner && communityAccessState === 'enabled'}}"
+      class="seen-received-block">
+      <view class="seen-received-title">收到的看见</view>
+      <view wx:if="{{seenReceivedLoading && !detailCheckin.seenReceived.length}}" class="seen-received-hint">正在取回…</view>
+      <view wx:elif="{{seenReceivedError && !detailCheckin.seenReceived.length}}" class="seen-received-hint">
+        这下没取到，稍后再打开试试
+      </view>
+      <block wx:elif="{{detailCheckin.seenReceived.length > 0}}">
+        <view class="seen-received-list">
+          <view class="seen-received-item" wx:for="{{detailCheckin.seenReceived}}" wx:key="userId">
+            <user-avatar
+              size="48"
+              avatar-url="{{item.avatarUrl}}"
+              avatar-text="{{item.avatarText}}"
+              avatar-color="{{item.avatarColor || themePrimaryColor}}"
+            />
+            <view class="seen-received-main">
+              <text class="seen-received-name">{{item.nickname}}</text>
+              <text class="seen-received-phrase">{{item.phraseText}}</text>
+            </view>
+          </view>
+        </view>
+        <text wx:if="{{detailCheckin.seenTotal > detailCheckin.seenReceived.length}}" class="seen-received-more">还有 {{detailCheckin.seenTotal - detailCheckin.seenReceived.length}} 位书友的看见，收在「我的-被看见」里</text>
+      </block>
+      <view wx:else class="seen-received-hint">还没有人送出看见</view>
+    </view>
+
     <view wx:if="{{detailCheckin}}" class="dynamic-comments-block">
       <view class="dynamic-comments-title">全部评论</view>
 

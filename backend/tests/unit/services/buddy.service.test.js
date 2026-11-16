@@ -307,9 +307,9 @@ describe('buddy.service', () => {
     expect(old.status).to.equal('cancelled');
   });
 
-  it('canJoin：进行中且没有配对、不在等待时为 true，期次结束后为 false', async () => {
+  it('canJoin：进行中且没有配对时为 true（等待中也能去挑人），期次结束后为 false', async () => {
     expect((await service.getState('u1', PID, NOW)).canJoin).to.equal(true);
-    expect((await service.join('u1', PID, NOW)).canJoin).to.equal(false);
+    expect((await service.join('u1', PID, NOW)).canJoin).to.equal(true);
     const paired = await service.join('u2', PID, NOW);
     expect(paired.canJoin).to.equal(false);
     const left = await service.leave('u2', PID, NOW);
@@ -698,6 +698,19 @@ describe('buddy.service', () => {
       const theirs = await service.getState(A2, PID, NOW);
       expect(theirs.invitesReceived.map(i => i.nickname)).to.deep.equal(['小一']);
       expect(theirs.invitesReceived[0]).to.not.have.property('userId');
+    });
+
+    it('等待中的人也能看到选人入口，发出邀请后不再等自动配对', async () => {
+      await service.join(A1, PID, NOW);
+      const waitingState = await service.getState(A1, PID, NOW);
+      expect(waitingState.state).to.equal('waiting');
+      expect(waitingState.canJoin).to.equal(true);
+
+      await service.invite(A1, PID, A2, NOW);
+      expect(requests.docs.find(r => r.userId === A1).status).to.equal('cancelled');
+      const next = await service.getState(A1, PID, NOW);
+      expect(next.state).to.equal('none');
+      expect(next.invitesSent).to.have.length(1);
     });
 
     it('不能邀请自己、不在本期的人、已经有读伴的人，重复邀请也不行', async () => {

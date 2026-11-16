@@ -2964,6 +2964,9 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
       const mockInsight = {
         ...fixtures.testInsights.user1ToUser2,
+        periodName: '连接之力',
+        title: '积极主动',
+        day: 2,
         likeCount: 5,
         likes: [],
         save: sandbox.stub().resolves(),
@@ -2989,6 +2992,7 @@ describe('Insight Controller - 102+ 完整测试', () => {
       });
       expect(notificationPayload.targetPage).to.include('pages/insight-detail/insight-detail');
       expect(notificationPayload.data.insightId).to.equal(insightId.toString());
+      expect(notificationPayload.data.insightLabel).to.equal('连接之力 · 第2课 · 积极主动');
       expect(notificationPayload.subscribeFields.likeUser).to.equal(fixtures.testUsers.user3.nickname);
     });
 

@@ -1,33 +1,52 @@
 <view class="joy-page">
   <view wx:if="{{needLogin}}" class="app-empty joy-login">
-    <view class="app-seal app-seal-dawn">记</view>
-    <text class="app-empty-title">登录后，把触动留在这里</text>
+    <view class="app-seal app-seal-dawn">觉</view>
+    <text class="app-empty-title">登录后，把触动留在这里，也看看自己</text>
     <button class="app-btn-primary joy-login-btn" bindtap="goLogin">去登录</button>
   </view>
 
   <block wx:else>
     <view class="joy-heading">
-      <view class="app-seal app-seal-dawn joy-heading-seal">记</view>
+      <view class="app-seal app-seal-dawn joy-heading-seal">觉</view>
       <view class="joy-heading-text">
-        <text class="joy-heading-title">把触动，随手记下来</text>
+        <text class="joy-heading-title">拾起触动，也看见自己</text>
         <text class="joy-heading-sub">仅自己可见</text>
       </view>
     </view>
 
+    <!-- 随喜：在哪儿被触动，就在哪儿记 -->
     <view class="joy-compose">
-      <view class="joy-compose-label" wx:if="{{editingId}}">
-        <text>编辑随喜记</text>
-        <text class="joy-cancel-edit" bindtap="cancelEdit">取消编辑</text>
+      <view class="joy-compose-label">
+        <block wx:if="{{editingId}}">
+          <text>编辑随喜</text>
+          <text class="joy-cancel-edit" bindtap="cancelEdit">取消编辑</text>
+        </block>
+        <block wx:else>
+          <view class="joy-compose-kind">
+            <view class="app-seal app-seal-dawn app-seal-sm">喜</view>
+            <text class="joy-compose-kind-text">随喜 · 随手记</text>
+          </view>
+        </block>
       </view>
-      <textarea
+      <input
+        class="joy-title-input"
+        value="{{title}}"
+        maxlength="40"
+        disabled="{{saving}}"
+        confirm-type="next"
+        placeholder="标题（可选）"
+        placeholder-class="joy-placeholder"
+        bindinput="onTitleInput"
+      />
+      <rich-input
         class="joy-input"
         value="{{content}}"
+        html="{{contentHtml}}"
         maxlength="3000"
+        height="{{420}}"
         disabled="{{saving}}"
-        placeholder="刚才哪句话，让你有些触动？"
-        placeholder-class="joy-placeholder"
-        bindinput="onContentInput"
-        show-confirm-bar="{{false}}"
+        placeholder="{{placeholder || '此刻有什么触动，或冒出来的想法？'}}"
+        bind:input="onContentInput"
       />
       <text wx:if="{{showCounter}}" class="joy-counter {{remaining < 0 ? 'joy-counter-over' : ''}}">还能写 {{remaining}} 字</text>
       <view wx:if="{{lastSource && !draftSource && !editingId}}" class="joy-last" bindtap="useLastSource">
@@ -42,8 +61,18 @@
       </view>
     </view>
 
+    <!-- 觉察：推开这扇门，坐下来看一看自己 -->
+    <view wx:if="{{!editingId}}" class="joy-door" hover-class="joy-door-hover" hover-stay-time="60" bindtap="openDoor" role="button" aria-label="觉察，坐下来看一看自己">
+      <text class="joy-door-k">觉察 · 向内看</text>
+      <text class="joy-door-q">{{doorLine || '今天有哪一刻，想停下来看一看自己？'}}</text>
+      <view class="joy-door-cta">
+        <text>约 3 分钟 · 一屏一问</text>
+        <text class="joy-door-btn">坐下来看一看</text>
+      </view>
+    </view>
+
     <view class="joy-list-heading">
-      <text class="joy-list-title">我的随喜记</text>
+      <text class="joy-list-title">我的日记</text>
       <picker
         mode="selector"
         range="{{filterOptions}}"
@@ -56,11 +85,21 @@
       </picker>
     </view>
 
-    <view class="joy-search">
+    <view class="joy-tabs">
+      <text
+        wx:for="{{kindTabs}}"
+        wx:key="key"
+        class="joy-tab {{kindTab === item.key ? 'joy-tab-on' : ''}}"
+        data-tab="{{item.key}}"
+        bindtap="onKindTab"
+      >{{item.name}}</text>
+    </view>
+
+    <view wx:if="{{kindTab !== 'checkin'}}" class="joy-search">
       <input
         class="joy-search-input"
         value="{{keyword}}"
-        placeholder="搜一搜我记过的话"
+        placeholder="搜标题或内容"
         placeholder-class="joy-placeholder"
         confirm-type="search"
         bindinput="onKeywordInput"
@@ -70,36 +109,112 @@
       <text class="joy-search-btn" bindtap="onSearch">搜索</text>
     </view>
 
-    <view wx:if="{{loading}}" class="joy-loading">
-      <view class="app-skeleton joy-skeleton"></view>
-      <view class="app-skeleton joy-skeleton"></view>
-    </view>
-    <view wx:elif="{{listError && !list.length}}" class="joy-state">
-      <text>随喜记没加载出来</text>
-      <text class="joy-retry" bindtap="retryList">点这里再试一次</text>
-    </view>
-    <view wx:elif="{{!list.length}}" class="joy-state">
-      <view class="app-seal app-seal-dawn joy-empty-seal">喜</view>
-      <text>{{keyword ? '没有找到包含「' + keyword + '」的记录' : '听到喜欢的话，就随手记在这里'}}</text>
-    </view>
-    <view wx:else class="joy-list">
-      <view class="joy-note" wx:for="{{list}}" wx:key="_id">
-        <view class="joy-note-head">
-          <text class="joy-note-date">{{item.dateLabel}}</text>
-          <view class="joy-note-actions">
-            <text class="joy-note-action" bindtap="makeCard" data-id="{{item._id}}">做成日签</text>
-            <text class="joy-note-action" bindtap="copyNote" data-id="{{item._id}}">复制</text>
-            <text class="joy-note-action" bindtap="startEdit" data-id="{{item._id}}">编辑</text>
-            <text class="joy-note-action joy-note-action-quiet" bindtap="confirmDelete" data-id="{{item._id}}">删除</text>
-          </view>
-        </view>
-        <text class="joy-note-content {{item.foldable && !item.expanded ? 'joy-note-folded' : ''}}" user-select>{{item.content}}</text>
-        <text wx:if="{{item.foldable}}" class="joy-note-more" bindtap="toggleExpand" data-id="{{item._id}}">{{item.expanded ? '收起' : '展开全文'}}</text>
-        <text class="joy-note-source">{{item.sourceLabel}}</text>
+    <!-- 打卡：只列出自己的打卡，点开去打卡详情 -->
+    <block wx:if="{{kindTab === 'checkin'}}">
+      <view wx:if="{{checkinsLoading && !checkins.length}}" class="joy-loading">
+        <view class="app-skeleton joy-skeleton"></view>
+        <view class="app-skeleton joy-skeleton"></view>
       </view>
-      <view wx:if="{{loadingMore}}" class="joy-more">正在翻找…</view>
-      <view wx:if="{{listError}}" class="joy-more joy-retry" bindtap="retryList">没加载出来，点这里重试</view>
-    </view>
+      <view wx:elif="{{checkinsError && !checkins.length}}" class="joy-state">
+        <text>打卡没加载出来</text>
+        <text class="joy-retry" bindtap="retryCheckins">点这里再试一次</text>
+      </view>
+      <view wx:elif="{{!checkins.length}}" class="joy-state">
+        <view class="app-seal app-seal-ink joy-empty-seal">卡</view>
+        <text>还没有打卡，读完今天这一课，写几句吧</text>
+      </view>
+      <view wx:else class="joy-list">
+        <view
+          class="joy-note joy-note-checkin"
+          wx:for="{{checkins}}"
+          wx:key="_id"
+          hover-class="joy-note-hover"
+          hover-stay-time="60"
+          data-id="{{item._id}}"
+          data-section="{{item.sectionId}}"
+          data-period="{{item.periodId}}"
+          bindtap="openCheckin"
+        >
+          <view class="joy-note-head">
+            <text class="joy-tag joy-tag-checkin">打卡</text>
+            <text class="joy-note-date">{{item.dateLabel}}</text>
+            <text wx:if="{{!item.isPublic}}" class="joy-private">仅自己可见</text>
+          </view>
+          <text class="joy-note-content joy-note-folded">{{item.excerpt || '这次只留下了心情'}}</text>
+          <text wx:if="{{item.sourceLabel}}" class="joy-note-source">{{item.sourceLabel}}</text>
+        </view>
+        <view wx:if="{{checkinsLoading}}" class="joy-more">正在翻找…</view>
+        <view wx:if="{{checkinsError}}" class="joy-more joy-retry" bindtap="retryCheckins">没加载出来，点这里重试</view>
+      </view>
+    </block>
+
+    <!-- 随喜、觉察 -->
+    <block wx:else>
+      <view wx:if="{{loading}}" class="joy-loading">
+        <view class="app-skeleton joy-skeleton"></view>
+        <view class="app-skeleton joy-skeleton"></view>
+      </view>
+      <view wx:elif="{{listError && !list.length}}" class="joy-state">
+        <text>日记没加载出来</text>
+        <text class="joy-retry" bindtap="retryList">点这里再试一次</text>
+      </view>
+      <view wx:elif="{{!list.length}}" class="joy-state">
+        <view class="app-seal app-seal-dawn joy-empty-seal">{{kindTab === 'awareness' ? '觉' : '喜'}}</view>
+        <text wx:if="{{keyword}}">没有找到包含「{{keyword}}」的记录</text>
+        <text wx:elif="{{kindTab === 'awareness'}}">还没有觉察，推开上面那扇门，坐下来看一看</text>
+        <text wx:else>听到喜欢的话，就随手记在这里</text>
+      </view>
+      <view wx:else class="joy-list">
+        <block wx:for="{{list}}" wx:key="_id">
+          <!-- 觉察：带「夜到晨」色带的卡片，露出感受、最深的一句和最后的选择 -->
+          <view
+            wx:if="{{item.kind === 'awareness'}}"
+            class="joy-acard"
+            hover-class="joy-note-hover"
+            hover-stay-time="60"
+            data-id="{{item._id}}"
+            bindtap="openDetail"
+            bindlongpress="openNoteMenu"
+          >
+            <view class="joy-note-head">
+              <view class="app-seal app-seal-ink app-seal-sm">觉</view>
+              <text class="joy-note-date">{{item.dateLabel}}</text>
+              <text wx:for="{{item.view.feelings}}" wx:for-item="word" wx:key="*this" class="joy-feeling">{{word}}</text>
+              <text class="joy-more-btn" catchtap="openNoteMenu" data-id="{{item._id}}">⋯</text>
+            </view>
+            <text wx:if="{{item.title}}" class="joy-acard-title">{{item.title}}</text>
+            <text wx:if="{{item.view.facts}}" class="joy-acard-facts">{{item.view.facts}}</text>
+            <text wx:if="{{item.view.keyAsk}}" class="joy-acard-key">「{{item.view.keyAsk}}」</text>
+            <view wx:if="{{item.view.choice}}" class="joy-acard-choice">
+              <view class="joy-sun"></view>
+              <text class="joy-acard-choice-text">{{item.view.choice}}</text>
+            </view>
+            <text wx:if="{{item.periodId}}" class="joy-note-source">{{item.sourceLabel}}</text>
+            <text wx:if="{{item.view.revisitText}}" class="joy-acard-foot">{{item.view.revisitText}}</text>
+          </view>
+
+          <!-- 随喜：晨光纸条 -->
+          <view
+            wx:else
+            class="joy-note"
+            data-id="{{item._id}}"
+            bindlongpress="openNoteMenu"
+          >
+            <view class="joy-note-head">
+              <text class="joy-note-date">{{item.dateLabel}}</text>
+              <text class="joy-more-btn" catchtap="openNoteMenu" data-id="{{item._id}}">⋯</text>
+            </view>
+            <text wx:if="{{item.title}}" class="joy-note-title">{{item.title}}</text>
+            <rich-text wx:if="{{item.richNodes && (!item.foldable || item.expanded)}}" class="joy-note-content joy-note-rich" nodes="{{item.richNodes}}" user-select></rich-text>
+            <text wx:else class="joy-note-content {{item.foldable && !item.expanded ? 'joy-note-folded' : ''}}" user-select>{{item.content}}</text>
+            <text wx:if="{{item.foldable}}" class="joy-note-more" bindtap="toggleExpand" data-id="{{item._id}}">{{item.expanded ? '收起' : '展开全文'}}</text>
+            <text class="joy-note-source">{{item.sourceLabel}}</text>
+          </view>
+        </block>
+        <view wx:if="{{loadingMore}}" class="joy-more">正在翻找…</view>
+        <view wx:if="{{listError}}" class="joy-more joy-retry" bindtap="retryList">没加载出来，点这里重试</view>
+      </view>
+    </block>
   </block>
 
   <view wx:if="{{sheetOpen}}" class="joy-sheet-mask" catchtap="closeAssociation">
@@ -150,3 +265,5 @@
   </view>
 </view>
 <app-dialog id="app-dialog" />
+<app-sheet id="app-sheet" />
+<joy-share id="joy-share" />

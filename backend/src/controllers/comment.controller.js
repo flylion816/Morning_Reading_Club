@@ -2,6 +2,7 @@ const Comment = require('../models/Comment');
 const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const { success, errors } = require('../utils/response');
+const { canViewCheckin } = require('../utils/checkinVisibility');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('../services/mysql-backup.service');
 const { publishSyncEvent } = require('../services/sync.service');
@@ -98,7 +99,7 @@ async function createComment(req, res, next) {
 
     // 验证打卡存在
     const checkin = await loadCheckinWithRelations(checkinId);
-    if (!checkin) {
+    if (!checkin || !canViewCheckin(checkin, userId)) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
 
@@ -194,7 +195,7 @@ async function getCommentsByCheckin(req, res, next) {
     const { page = 1, limit = 20 } = req.query;
 
     const checkin = await Checkin.findById(checkinId);
-    if (!checkin) {
+    if (!checkin || !canViewCheckin(checkin, getRequestUserId(req))) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
 

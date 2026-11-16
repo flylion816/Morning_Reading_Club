@@ -1,13 +1,16 @@
 const newcomerLeadService = require('../../services/newcomer-lead.service');
+const dailyCardShareService = require('../../services/daily-card-share.service');
 const request = require('../../utils/request');
 const { ensureLoggedIn } = require('./silent-login');
-const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
+const { getBrandName } = require('../../utils/brand');
+const { getDailyCardShareCover } = require('../../utils/daily-card-cover');
 const {
   REASON_OPTIONS,
   CONSENT_VERSION,
   CONSENT_TEXT,
   STATUS_TEXT,
   parseLandingOptions,
+  parseLandingSnapshot,
   buildLandingPath,
   describeDate,
   todayKey,
@@ -31,6 +34,9 @@ Page({
     inviterLabel: '',
     dateInfo: { dayNumber: '', dateLine: '', termText: '' },
     lessonLine: '',
+    sourceLine: '',
+    variant: 'dawn',
+    hasSharedCard: false,
     quote: '',
     note: '',
     voices: [],
@@ -68,17 +74,60 @@ Page({
     } catch (error) {
       singlePage = false;
     }
-    const { dateStr, quote, note, lessonName, dayNumber } = this._params;
-    const lessonLine = [lessonName, dayNumber ? `第 ${dayNumber} 天` : ''].filter(Boolean).join(' · ');
+    this._shareResolved = false;
+    const hasSharedCard = Boolean(
+      this._params.shareCode ||
+      (this._params.sourceType === 'daily_card' && (
+        options.q !== undefined ||
+        options.quote !== undefined ||
+        options.variant !== undefined ||
+        options.source !== undefined ||
+        options.period !== undefined ||
+        options.date !== undefined
+      ))
+    );
+    this.applyCardParams(this._params);
     this.setData({
-      dateInfo: describeDate(dateStr || todayKey()),
-      lessonLine,
-      quote,
-      note,
+      inviterLabel: `来自${this.data.brandName}的晨读日签`,
+      hasSharedCard,
       singlePage,
       loading: !singlePage
     });
-    if (!singlePage) this.loadLanding({ firstLoad: true });
+    if (!singlePage) {
+      if (this._params.shareCode) this.loadSharedCard({ firstLoad: true });
+      else this.loadLanding({ firstLoad: true });
+    }
+  },
+
+  applyCardParams(params = {}) {
+    const { dateStr, quote, note, lessonName, periodName, dayNumber, variant } = params;
+    const lessonLine = [periodName || lessonName, dayNumber ? `第 ${dayNumber} 天` : ''].filter(Boolean).join(' · ');
+    this.setData({
+      dateInfo: describeDate(dateStr || todayKey()),
+      lessonLine,
+      sourceLine: periodName && lessonName && periodName !== lessonName ? lessonName : '',
+      variant: variant || 'dawn',
+      quote: quote || '',
+      note: note || ''
+    });
+  },
+
+  async loadSharedCard({ firstLoad = false } = {}) {
+    this.setData({ loading: true, loadError: false });
+    try {
+      const code = this._params.shareCode;
+      const snapshot = await dailyCardShareService.resolve(code);
+      if (!snapshot || typeof snapshot !== 'object') throw new Error('日签内容不可用');
+      this._params = parseLandingSnapshot(snapshot, code);
+      this._shareResolved = true;
+      this.applyCardParams(this._params);
+      this.setData({ hasSharedCard: true });
+      // 分享快照是首屏内容的来源；即使访客资料接口暂时失败，也先把日签展示出来。
+      await this.loadLanding({ firstLoad, preserveCard: true });
+    } catch (error) {
+      console.warn('读取分享日签失败', error);
+      this.setData({ loading: false, loadError: true });
+    }
   },
 
   onShow() {
@@ -91,7 +140,7 @@ Page({
     }
   },
 
-  async loadLanding({ silent = false, firstLoad = false } = {}) {
+  async loadLanding({ silent = false, firstLoad = false, preserveCard = false } = {}) {
     if (!silent) this.setData({ loading: true, loadError: false });
     try {
       // 只有第一次打开计一次访问；静默刷新、重试都不重复计数
@@ -123,9 +172,11 @@ Page({
       });
     } catch (error) {
       console.warn('加载落地页失败', error);
-      if (silent) return;
-      this.setData({ loading: false, loadError: true });
+      if (silent) return false;
+      this.setData({ loading: false, loadError: !preserveCard });
+      return false;
     }
+    return true;
   },
 
   getMyUserId() {
@@ -273,7 +324,10 @@ Page({
   },
 
   handleRetry() {
-    this.loadLanding();
+    if (this._params && this._params.shareCode && !this._shareResolved) {
+      return this.loadSharedCard({ firstLoad: true });
+    }
+    return this.loadLanding();
   },
 
   onShareTimeline() {
@@ -287,11 +341,13 @@ Page({
         sourceType: params.sourceType,
         dateStr: params.dateStr,
         lessonName: params.lessonName,
+        periodName: params.periodName,
         dayNumber: params.dayNumber,
         quote: params.quote,
-        note: ''
+        note: '',
+        variant: params.variant
       }),
-      imageUrl: getDefaultShareImage()
+      imageUrl: getDailyCardShareCover(params.variant)
     };
   },
 
@@ -308,11 +364,13 @@ Page({
         sourceType: params.sourceType,
         dateStr: params.dateStr,
         lessonName: params.lessonName,
+        periodName: params.periodName,
         dayNumber: params.dayNumber,
         quote: params.quote,
-        note: ''
+        note: '',
+        variant: params.variant
       }),
-      imageUrl: getDefaultShareImage()
+      imageUrl: getDailyCardShareCover(params.variant)
     };
   }
 });

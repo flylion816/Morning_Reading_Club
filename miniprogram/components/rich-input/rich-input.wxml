@@ -1,0 +1,68 @@
+<view class="ri">
+  <!-- 工具栏：和打卡页一样，B I U、标题、列表、颜色、撤销重做 -->
+  <view wx:if="{{rich}}" class="ri-toolbar">
+    <scroll-view scroll-x class="ri-toolbar-scroll" show-scrollbar="{{false}}" enhanced="{{true}}">
+      <view class="ri-toolbar-inner">
+        <view class="ri-tool {{formats.bold ? 'on' : ''}}" data-name="bold" catchtouchend="handleFormat"><text class="ri-tool-b">B</text></view>
+        <view class="ri-tool {{formats.italic ? 'on' : ''}}" data-name="italic" catchtouchend="handleFormat"><text class="ri-tool-i">I</text></view>
+        <view class="ri-tool {{formats.underline ? 'on' : ''}}" data-name="underline" catchtouchend="handleFormat"><text class="ri-tool-u">U</text></view>
+        <view class="ri-divider"></view>
+        <view class="ri-tool {{formats.headerType === 'h2' ? 'on' : ''}}" data-name="headerType" data-value="h2" catchtouchend="handleFormat"><text class="ri-tool-b">H</text></view>
+        <view class="ri-tool {{formats.list === 'ordered' ? 'on' : ''}}" data-name="list" data-value="ordered" catchtouchend="handleFormat"><text>1.</text></view>
+        <view class="ri-tool {{formats.list === 'bullet' ? 'on' : ''}}" data-name="list" data-value="bullet" catchtouchend="handleFormat"><text>•</text></view>
+        <view class="ri-divider"></view>
+        <view
+          wx:for="{{colorOptions}}"
+          wx:key="value"
+          class="ri-swatch {{formats.color === item.value ? 'on' : ''}}"
+          style="background: {{item.value}}"
+          data-name="color"
+          data-value="{{item.value}}"
+          catchtouchend="handleFormat"
+        ></view>
+        <view class="ri-divider"></view>
+        <view class="ri-tool" catchtouchend="handleUndo"><text>↶</text></view>
+        <view class="ri-tool" catchtouchend="handleRedo"><text>↷</text></view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="ri-box" style="height: {{height}}rpx">
+    <textarea
+      wx:if="{{!rich}}"
+      class="ri-textarea"
+      value="{{text}}"
+      maxlength="{{maxlength}}"
+      focus="{{focus}}"
+      disabled="{{disabled}}"
+      adjust-position="{{false}}"
+      show-confirm-bar="{{false}}"
+      hold-keyboard
+      disable-default-padding
+      cursor-spacing="120"
+      placeholder="{{placeholder}}"
+      placeholder-class="ri-ph"
+      bindinput="onTextInput"
+      bindfocus="onFocus"
+      bindblur="onBlur"
+      bindkeyboardheightchange="onKeyboardHeight"
+    />
+    <editor
+      wx:else
+      id="ri-editor"
+      class="ri-editor"
+      placeholder="{{placeholder}}"
+      bindready="onEditorReady"
+      bindinput="onEditorInput"
+      bindstatuschange="onStatusChange"
+      bindfocus="onFocus"
+      bindblur="onBlur"
+      show-img-size="{{false}}"
+      show-img-toolbar="{{false}}"
+      show-img-resize="{{false}}"
+    />
+    <view wx:if="{{!rich && mode !== 'plain'}}" class="ri-aa" bindtap="enableRich" role="button" aria-label="设置重点颜色和格式">
+      <text class="ri-aa-t">Aa</text>
+    </view>
+  </view>
+</view>

@@ -1,4 +1,10 @@
 const courseService = require('../../services/course.service');
+const readingShareService = require('./reading-share.service');
+// 是否已登录（与原 utils/auth-token 同义）
+function hasToken() {
+  return Boolean(tenantStorage.get(constants.STORAGE_KEYS.TOKEN));
+}
+const { buildLandingPath } = require('../../utils/landing-share');
 const appDialog = require('../../utils/dialog');
 const currentTenant = require('../../config/current-tenant');
 const constants = require('../../config/constants');
@@ -186,6 +192,11 @@ Page({
     course: {},
     paragraphs: [],
     currentParagraphIndex: 0,
+    quickNoteVisible: false,
+    quickNotePeriodId: '',
+    quickNoteSectionId: '',
+    quickNoteSource: '',
+    quickNoteQuote: '',
     readingProgress: 0,
     restoreScrollTop: 0,
     posterGenerating: false,
@@ -218,6 +229,12 @@ Page({
     const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : {};
     const statusBarHeight = windowInfo.statusBarHeight || 0;
     this._routeReadingCompletion = this.getRouteReadingCompletion(options);
+    // 扫海报上的小程序码进来：scene 里只有一个短码，课程和段落要靠短码换回来
+    this._shareCode = this.parseShareCode(options);
+    this._targetParagraph = this.parseTargetParagraph(options.p);
+    if (typeof wx.showShareMenu === 'function') {
+      wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
+    }
     this.setData({
       sectionId: options.id || '',
       periodId: options.periodId || '',
@@ -227,6 +244,57 @@ Page({
     });
 
     this.loadReadingContent();
+  },
+
+  parseShareCode(options = {}) {
+    let scene = options.scene ? String(options.scene) : '';
+    try {
+      scene = decodeURIComponent(scene);
+    } catch (error) {
+      // 保持原样
+    }
+    const match = scene.match(/(?:^|&)k=([a-z0-9]{8})(?:&|$)/i);
+    return match ? match[1].toLowerCase() : '';
+  },
+
+  parseTargetParagraph(value) {
+    const index = Number(value);
+    return Number.isInteger(index) && index >= 0 ? index : null;
+  },
+
+  // 把短码换成课程和段落；换不回来时给个说法，别让人对着空白页
+  async resolveShareCode() {
+    const code = this._shareCode;
+    if (!code) return true;
+    try {
+      const share = await readingShareService.resolve(code);
+      this._shareInfo = share;
+      this._targetParagraph = this.parseTargetParagraph(share.paragraphIndex);
+      this.setData({ sectionId: share.sectionId || '', periodId: share.periodId || '' });
+      return true;
+    } catch (error) {
+      console.warn('解析阅读分享码失败:', error);
+      wx.hideLoading();
+      wx.showToast({ title: '这个分享已经失效了', icon: 'none' });
+      setTimeout(() => wx.switchTab({ url: '/pages/index/index' }), 1200);
+      return false;
+    }
+  },
+
+  // 还没报名、读不了这一课时：不甩一个错误，带去落地页，看看这一段、认识一下这里
+  redirectToLanding() {
+    const share = this._shareInfo;
+    if (!share) return false;
+    wx.redirectTo({
+      url: buildLandingPath({
+        inviterId: share.inviter && share.inviter._id,
+        sourceType: 'quote_card',
+        lessonName: share.sectionTitle,
+        dayNumber: share.day,
+        quote: share.quote
+      })
+    });
+    return true;
   },
 
   getRouteReadingCompletion(options = {}) {
@@ -434,19 +502,29 @@ Page({
     });
   },
 
-  // 去随喜记写下自己的触动：带上这句话（最多 80 字）和当前期次、课程，保存时服务端会再校验权限
+  // 原地弹出随喜速记条，不离开课文：带上这句话（最多 80 字）和当前期次、课程，保存时服务端会再校验权限
   openJoyNote(item) {
     const course = this.data.course || {};
     const day = Number(course.day);
     const dayText = Number.isFinite(day) ? (day === 0 ? '开篇' : `第 ${day} 天`) : '';
     const source = [this.data.periodName, [dayText, course.title].filter(Boolean).join(' · ')].filter(Boolean).join(' · ');
-    const enc = value => encodeURIComponent(value === undefined || value === null ? '' : String(value));
     const quote = Array.from(String(item.text || '').trim()).slice(0, 80).join('');
-    wx.navigateTo({
-      url:
-        `/pages/joy-notes/joy-notes?periodId=${enc(this.data.periodId || '')}` +
-        `&sectionId=${enc(this.data.sectionId || '')}&source=${enc(source)}&quote=${enc(quote)}`
+    this.setData({
+      quickNoteVisible: true,
+      quickNotePeriodId: this.data.periodId || '',
+      quickNoteSectionId: this.data.sectionId || '',
+      quickNoteSource: source,
+      quickNoteQuote: quote
     });
+  },
+
+  closeQuickNote() {
+    this.setData({ quickNoteVisible: false });
+  },
+
+  // 保存之后点「再记一句」：重新打开，不再带上那段引用
+  reopenQuickNote() {
+    this.setData({ quickNoteVisible: true, quickNoteQuote: '' });
   },
 
   // 整段不超过一张卡能放的字数就直接带过去；太长则让用户先勾选要放进日签的句子
@@ -660,7 +738,11 @@ Page({
   async loadReadingContent() {
     try {
       wx.showLoading({ title: '稍等一下…', mask: true });
-      const course = await courseService.getSectionDetail(this.data.sectionId);
+      if (!(await this.resolveShareCode())) return;
+      const course = await courseService.getSectionDetail(
+        this.data.sectionId,
+        this._shareInfo ? { suppressError: true } : {}
+      );
       const periodId = this.data.periodId || extractId(course.periodId);
       const periodName =
         course.periodId?.name ||
@@ -691,6 +773,15 @@ Page({
       }
 
       const saved = this.loadSavedState();
+      // 从分享进来，直接定位到被分享的那一段，不沿用上次读到的位置
+      const targetIndex =
+        this._targetParagraph === null || this._targetParagraph === undefined
+          ? null
+          : Math.min(this._targetParagraph, Math.max(paragraphs.length - 1, 0));
+      if (targetIndex !== null) {
+        saved.currentParagraphIndex = targetIndex;
+        saved.scrollTop = 0;
+      }
       const savedCompletion = getReadingCompletion(this.data.sectionId);
       const routeCompletion = this._routeReadingCompletion;
       const safeIndex = Math.min(
@@ -732,6 +823,10 @@ Page({
           this.initCompanionFeatures(canAccessCheckin);
           this._contentReadyTimer = setTimeout(() => {
             this._contentReadyTimer = null;
+            if (targetIndex !== null) {
+              this.scrollToParagraph(targetIndex);
+              return;
+            }
             this.updateCurrentParagraphByViewport();
             this.setData({ contentReady: true });
           }, 350);
@@ -741,8 +836,34 @@ Page({
     } catch (error) {
       console.error('加载沉浸朗读内容失败:', error);
       wx.hideLoading();
+      if (this._shareInfo && this.redirectToLanding()) return;
       wx.showToast({ title: '没加载出来，稍后再试试', icon: 'none' });
     }
+  },
+
+  // 滚到指定段落，让它落在顶部栏下面一点
+  scrollToParagraph(index) {
+    const reveal = () => {
+      this.setData({ contentReady: true });
+      this._targetParagraph = null;
+    };
+    const query = wx.createSelectorQuery().in(this);
+    query.select('.reader-content').boundingClientRect();
+    query.select(`#para-${index}`).boundingClientRect();
+    query.exec((result) => {
+      const content = result && result[0];
+      const para = result && result[1];
+      if (!content || !para) {
+        reveal();
+        return;
+      }
+      const top = Math.max(0, Math.round(para.top - content.top - (this.data.topbarHeight || 88) - 24));
+      this._latestScrollTop = top;
+      this.setData({ restoreScrollTop: top }, () => {
+        this.activateParagraph(index);
+        reveal();
+      });
+    });
   },
 
   calculateProgress(index, total) {
@@ -1423,6 +1544,43 @@ Page({
     });
   },
 
+  // 登录用户的海报换成专属码：扫码直接读到这一课的这一段。
+  // 没登录、没读权限或生成慢时返回空，海报回退到通用码，不耽误分享。
+  async fetchShareCodePath(paragraphIndex, text) {
+    if (!hasToken() || !this.data.sectionId) return '';
+    this._shareCodeCache = this._shareCodeCache || {};
+    const key = `${this.data.sectionId}:${paragraphIndex}`;
+    if (this._shareCodeCache[key] !== undefined) return this._shareCodeCache[key];
+    let filePath = '';
+    try {
+      const res = await Promise.race([
+        readingShareService.create({
+          sectionId: this.data.sectionId,
+          paragraphIndex,
+          quote: text
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000))
+      ]);
+      if (res && res.imageBase64) {
+        const target = `${wx.env.USER_DATA_PATH}/reading-share-${Date.now()}.png`;
+        await new Promise((resolve, reject) => {
+          wx.getFileSystemManager().writeFile({
+            filePath: target,
+            data: res.imageBase64,
+            encoding: 'base64',
+            success: resolve,
+            fail: reject
+          });
+        });
+        filePath = target;
+      }
+    } catch (error) {
+      console.warn('生成这一段的专属码失败，改用通用码', error);
+    }
+    this._shareCodeCache[key] = filePath;
+    return filePath;
+  },
+
   async generateMomentPoster() {
     const canvas = await this.getCanvasNode();
     const ctx = canvas.getContext('2d');
@@ -1452,8 +1610,15 @@ Page({
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
+    const activeItem = posterItems.find((item) => item.active && item.sourceIndex !== undefined);
+    const sharedIndex = activeItem ? activeItem.sourceIndex : this.data.currentParagraphIndex || 0;
+    const sharedText = (this.data.paragraphs[sharedIndex] && this.data.paragraphs[sharedIndex].text) || '';
+    let qrIsPrecise = false;
     try {
-      qrImage = await this.loadCanvasImage(canvas, MINI_PROGRAM_CODE_ASSET_PATHS);
+      const preciseCodePath = await this.fetchShareCodePath(sharedIndex, sharedText);
+      const candidates = [preciseCodePath, ...MINI_PROGRAM_CODE_ASSET_PATHS].filter(Boolean);
+      qrImage = await this.loadCanvasImage(canvas, candidates);
+      qrIsPrecise = !!preciseCodePath;
     } catch (error) {
       console.warn('加载小程序码失败，生成无二维码海报', error);
     }
@@ -1557,8 +1722,9 @@ Page({
     ctx.clearRect(0, 0, W, H);
 
     const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#f2f7ff');
-    bg.addColorStop(0.18, '#fffdf8');
+    bg.addColorStop(0, '#fbe3c3');
+    bg.addColorStop(0.1, '#fdf0dc');
+    bg.addColorStop(0.26, '#fffdf8');
     bg.addColorStop(1, '#fffdf8');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
@@ -1568,25 +1734,25 @@ Page({
     const tagInsetX = rpx(18);
     const tagH = rpx(48);
     const tagW = Math.min(rpx(260), Math.max(rpx(152), ctx.measureText(periodTag).width + tagInsetX * 2));
-    this.drawRoundedRect(ctx, pageX - tagInsetX, topPadding, tagW, tagH, tagH / 2, '#eef5ff');
-    ctx.fillStyle = THEME_PRIMARY_DARK;
+    this.drawRoundedRect(ctx, pageX - tagInsetX, topPadding, tagW, tagH, tagH / 2, '#fdf0dc');
+    ctx.fillStyle = '#8a4b12';
     ctx.fillText(periodTag, pageX, topPadding + rpx(32));
 
     this.drawRoundedRect(ctx, W - pageX - rpx(120), topPadding, rpx(120), tagH, tagH / 2, '#ffffff');
-    ctx.fillStyle = THEME_PRIMARY;
+    ctx.fillStyle = '#b8631f';
     ctx.font = `bold ${rpx(24)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(`${this.data.readingProgress || 0}%`, W - pageX - rpx(60), topPadding + rpx(32));
     ctx.textAlign = 'left';
 
-    ctx.fillStyle = '#1f2937';
+    ctx.fillStyle = '#2b2622';
     ctx.font = `bold ${titleFontSize}px sans-serif`;
     let cursorY = this.drawTextLines(ctx, titleLines, pageX, topPadding + rpx(116), titleLineH);
 
-    ctx.fillStyle = '#9aa3af';
+    ctx.fillStyle = '#a39683';
     ctx.font = `bold ${rpx(26)}px sans-serif`;
     ctx.fillText('每天晨读内容', pageX, cursorY + rpx(38));
-    ctx.strokeStyle = '#ef6b78';
+    ctx.strokeStyle = '#ee9b45';
     ctx.lineWidth = rpx(4);
     ctx.beginPath();
     ctx.moveTo(pageX, cursorY + rpx(49));
@@ -1615,7 +1781,7 @@ Page({
           contentW,
           item.cardH,
           rpx(24),
-          '#f1fbf5'
+          '#fdf0dc'
         );
         this.strokeRoundedRect(
           ctx,
@@ -1624,7 +1790,7 @@ Page({
           contentW,
           item.cardH,
           rpx(24),
-          'rgba(16, 185, 129, 0.24)',
+          'rgba(184, 99, 31, 0.24)',
           rpx(1)
         );
 
@@ -1642,13 +1808,13 @@ Page({
           kickerW,
           item.kickerH,
           item.kickerH / 2,
-          'rgba(16, 185, 129, 0.12)'
+          'rgba(238, 155, 69, 0.2)'
         );
-        ctx.fillStyle = '#047857';
+        ctx.fillStyle = '#8a4b12';
         ctx.fillText(item.kicker, innerX + rpx(18), cardCursorY + rpx(28));
 
         cardCursorY += item.kickerH + rpx(44);
-        ctx.fillStyle = '#1f2937';
+        ctx.fillStyle = '#2b2622';
         ctx.font = `bold ${item.titleFontSize}px sans-serif`;
         item.titleLines.forEach((line) => {
           ctx.fillText(line, innerX, cardCursorY);
@@ -1656,7 +1822,7 @@ Page({
         });
 
         cardCursorY += rpx(10);
-        ctx.fillStyle = '#56606d';
+        ctx.fillStyle = '#6b5d4d';
         ctx.font = `500 ${item.textFontSize}px sans-serif`;
         item.textLines.forEach((line) => {
           ctx.fillText(line, innerX, cardCursorY);
@@ -1685,12 +1851,12 @@ Page({
           paragraphMetrics.markerWidth,
           markerH,
           paragraphMetrics.markerWidth / 2,
-          THEME_PRIMARY
+          '#ee9b45'
         );
-        ctx.fillStyle = '#1f2937';
+        ctx.fillStyle = '#2b2622';
         ctx.font = `bold ${paragraphMetrics.fontSize}px sans-serif`;
       } else {
-        ctx.fillStyle = '#a2abb7';
+        ctx.fillStyle = '#a89c8a';
         ctx.font = `500 ${paragraphMetrics.fontSize}px sans-serif`;
       }
 
@@ -1704,7 +1870,7 @@ Page({
 
     const footerTop = H - footerH;
 
-    ctx.strokeStyle = '#e8edf3';
+    ctx.strokeStyle = 'rgba(92, 70, 44, 0.16)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(pageX, footerTop);
@@ -1716,13 +1882,13 @@ Page({
     const leftBlockH = rpx(110);
     const leftTitleY = footerContentTop + (footerContentH - leftBlockH) / 2 + rpx(32);
 
-    ctx.fillStyle = '#1f2937';
+    ctx.fillStyle = '#2b2622';
     ctx.font = `bold ${rpx(34)}px sans-serif`;
     ctx.fillText(brandName, pageX, leftTitleY);
-    ctx.fillStyle = '#8b94a5';
+    ctx.fillStyle = '#8b8070';
     ctx.font = `${rpx(24)}px sans-serif`;
     ctx.fillText(brandSlogan, pageX, leftTitleY + rpx(40));
-    ctx.fillStyle = '#b0bac6';
+    ctx.fillStyle = '#b3a78f';
     ctx.font = `${rpx(22)}px sans-serif`;
     ctx.fillText(`${this.getPosterDateLabel()} · 沉浸阅读`, pageX, leftTitleY + rpx(74));
 
@@ -1732,10 +1898,10 @@ Page({
       const qrY = footerContentTop;
       this.drawRoundedRect(ctx, qrX - rpx(14), qrY - rpx(14), qrSize + rpx(28), qrSize + rpx(28), rpx(22), '#ffffff');
       ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
-      ctx.fillStyle = '#8b94a5';
+      ctx.fillStyle = '#8b8070';
       ctx.font = `${rpx(22)}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText('扫码共读', qrX + qrSize / 2, qrY + qrSize + rpx(44));
+      ctx.fillText(qrIsPrecise ? '扫码，读到这一段' : '扫码共读', qrX + qrSize / 2, qrY + qrSize + rpx(44));
       ctx.textAlign = 'left';
     }
 
@@ -1826,10 +1992,18 @@ Page({
 
   noop() {},
 
+  onShareTimeline() {
+    return {
+      title: getBrandedTitle(this.data.course.title || '读一读'),
+      query: `id=${this.data.sectionId}&periodId=${this.data.periodId}&p=${this.data.currentParagraphIndex || 0}`,
+      imageUrl: getDefaultShareImage()
+    };
+  },
+
   onShareAppMessage() {
     return {
       title: getBrandedTitle(this.data.course.title || '读一读'),
-      path: `/pages/reading-mode/reading-mode?id=${this.data.sectionId}&periodId=${this.data.periodId}`,
+      path: `/pages/reading-mode/reading-mode?id=${this.data.sectionId}&periodId=${this.data.periodId}&p=${this.data.currentParagraphIndex || 0}`,
       imageUrl: getDefaultShareImage()
     };
   }

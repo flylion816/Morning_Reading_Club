@@ -148,7 +148,7 @@ const expectedSubPackages = [
   {
     name: 'joy-notes',
     root: 'pages/joy-notes',
-    pages: ['joy-notes']
+    pages: ['joy-notes', 'awareness/awareness', 'detail/detail', 'shared/shared']
   },
   {
     name: 'seen-received',

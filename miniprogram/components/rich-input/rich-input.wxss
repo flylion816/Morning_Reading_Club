@@ -1,0 +1,124 @@
+/* Version 3 dawn: 随喜 / 觉察的输入框。普通输入框和富文本编辑器共用同一张暖纸卡片。 */
+.ri {
+  width: 100%;
+}
+
+.ri-box {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ri-textarea {
+  width: 100%;
+  height: 100%;
+  padding: 10rpx 4rpx 56rpx;
+  box-sizing: border-box;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 30rpx;
+  line-height: 1.65;
+}
+
+.ri-ph {
+  color: #a79b8b;
+}
+
+.ri-editor {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 10rpx 4rpx;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 30rpx;
+  line-height: 1.65;
+}
+
+/* 右下角的「Aa」：点一下升级成富文本 */
+.ri-aa {
+  position: absolute;
+  right: 4rpx;
+  bottom: 4rpx;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52rpx;
+  padding: 0 20rpx;
+  border-radius: 26rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+}
+
+.ri-aa-t {
+  font-family: var(--app-font-serif, serif);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+/* 工具栏 */
+.ri-toolbar {
+  margin: 0 -4rpx 10rpx;
+  border-radius: 16rpx;
+  background: var(--app-page-bg, #f6f1e7);
+}
+
+.ri-toolbar-scroll {
+  white-space: nowrap;
+}
+
+.ri-toolbar-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 12rpx;
+}
+
+.ri-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60rpx;
+  height: 60rpx;
+  border-radius: 14rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 28rpx;
+}
+
+.ri-tool.on {
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+}
+
+.ri-tool-b {
+  font-weight: 800;
+}
+
+.ri-tool-i {
+  font-style: italic;
+}
+
+.ri-tool-u {
+  text-decoration: underline;
+}
+
+.ri-divider {
+  width: 1rpx;
+  height: 32rpx;
+  margin: 0 8rpx;
+  background: var(--app-rule, rgba(92, 70, 44, 0.14));
+}
+
+.ri-swatch {
+  width: 36rpx;
+  height: 36rpx;
+  margin: 0 8rpx;
+  border: 3rpx solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1rpx rgba(92, 70, 44, 0.25);
+}
+
+.ri-swatch.on {
+  box-shadow: 0 0 0 4rpx var(--app-dawn, #ee9b45);
+}

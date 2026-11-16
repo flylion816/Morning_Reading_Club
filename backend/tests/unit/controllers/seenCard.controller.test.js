@@ -165,7 +165,7 @@ describe('SeenCard Controller', () => {
   });
 
   describe('getCheckinSeen', () => {
-    it('汇总计数、我的短句和最近 5 位', async () => {
+    it('汇总计数、我的短句和全部送出者', async () => {
       const mk = (userId, phrase) => ({ userId, phrase, createdAt: new Date() });
       const cards = [mk(me, 'persist'), mk(oid(), 'persist'), mk(oid(), 'metoo'), mk(oid(), 'thanks'), mk(oid(), 'thanks'), mk(oid(), 'touched'), mk(oid(), 'touched')];
       SeenCardStub.find.returns(chain(cards));
@@ -174,7 +174,7 @@ describe('SeenCard Controller', () => {
       expect(data.total).to.equal(7);
       expect(data.counts).to.deep.equal({ persist: 2, touched: 2, thanks: 2, metoo: 1 });
       expect(data.mine).to.equal('persist');
-      expect(data.recent).to.have.length(5);
+      expect(data.recent).to.have.length(7);
     });
 
     it('作者本人可看自己打卡，无需再校验权限', async () => {

@@ -1,0 +1,186 @@
+/* Version 3 dawn: 随喜速记条，暖纸底半屏条，键盘弹起时贴着键盘上沿。 */
+.qn-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: var(--app-overlay, rgba(40, 30, 20, 0.42));
+}
+
+.qn-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  padding: 14rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-radius: 36rpx 36rpx 0 0;
+  background: var(--app-paper, #fffdf8);
+  box-shadow: 0 -12rpx 40rpx rgba(60, 42, 20, 0.14);
+  transition: bottom 0.16s ease-out;
+}
+
+.qn-grip {
+  width: 64rpx;
+  height: 8rpx;
+  margin: 0 auto 20rpx;
+  border-radius: 4rpx;
+  background: var(--app-rule, rgba(92, 70, 44, 0.14));
+}
+
+.qn-head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 10rpx;
+}
+
+/* 单字印章（和全局的 app-seal 同款；全局样式不会渗入自定义组件，所以这里自己定义） */
+.qn-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 2rpx solid currentColor;
+  border-radius: 9rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-deep, #b8631f);
+  font-family: var(--app-font-serif, serif);
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1;
+  transform: rotate(-3deg);
+}
+
+.qn-head-title {
+  font-family: var(--app-font-serif, serif);
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--app-text, #2b2622);
+}
+
+/* 标题：一行细细的输入，选填，不打断「打开 → 写 → 记下来」 */
+.qn-title {
+  width: 100%;
+  height: 64rpx;
+  margin-bottom: 4rpx;
+  padding: 0 4rpx;
+  box-sizing: border-box;
+  border-bottom: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.14));
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.qn-private {
+  margin-left: auto;
+  font-size: 22rpx;
+  color: var(--app-text-muted, #9a8d7b);
+}
+
+.qn-input {
+  display: block;
+  width: 100%;
+}
+
+.qn-placeholder {
+  color: #a79b8b;
+}
+
+.qn-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.14));
+}
+
+.qn-chip,
+.qn-chip-space {
+  min-width: 0;
+  flex: 1;
+}
+
+.qn-chip {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  max-width: 100%;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-size: 22rpx;
+  box-sizing: border-box;
+}
+
+.qn-chip-off {
+  background: var(--app-page-bg, #f6f1e7);
+  color: var(--app-text-muted, #9a8d7b);
+}
+
+.qn-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qn-chip-x {
+  flex-shrink: 0;
+  margin-left: 10rpx;
+  opacity: 0.6;
+  font-size: 26rpx;
+}
+
+.qn-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 68rpx;
+  margin: 0;
+  padding: 0 32rpx;
+  border-radius: var(--app-action-radius, 999rpx);
+  background: var(--theme-primary, #3d6fa6);
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 650;
+  line-height: 1.2;
+  box-shadow: var(--app-action-shadow, none);
+}
+
+.qn-save::after {
+  border: 0;
+}
+
+.qn-save[disabled] {
+  background: #ddd8cf;
+  color: #8b8174;
+  box-shadow: none;
+}
+
+/* 保存之后的小提示：3 秒后自己消失，晨读时可以连着记 */
+.qn-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(190rpx + env(safe-area-inset-bottom));
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 16rpx 28rpx;
+  border-radius: 36rpx;
+  background: rgba(43, 38, 34, 0.92);
+  color: #ffffff;
+  font-size: 26rpx;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.qn-toast-again {
+  color: #ffd39b;
+  font-weight: 600;
+}

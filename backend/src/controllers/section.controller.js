@@ -11,6 +11,7 @@ const { dispatchNotificationWithSubscribe } = require('../services/user-notifica
 const Enrollment = require('../models/Enrollment');
 const { isCustomTemplate, validateModuleValues, moduleContent, supportsCourseTemplate, refreshUnlockedPeriodTemplateSnapshot } = require('../services/course-template.service');
 const { ensurePeriodReadAccess, ensurePeriodInteractionAccess } = require('../services/period-access.service');
+const { visibleCheckinFilter } = require('../utils/checkinVisibility');
 const {
   diffShanghaiDays,
   getPeriodDateKeys,
@@ -779,6 +780,7 @@ async function getTodayTask(req, res, next) {
           // 获取今天打卡用户的头像列表（最多10个）
           const sectionCheckins = await Checkin.find({
             sectionId: section._id,
+            $and: [visibleCheckinFilter(userId)],
             checkinDate: {
               $gte: todayStart,
               $lte: todayEnd
@@ -798,6 +800,7 @@ async function getTodayTask(req, res, next) {
 
           const todayCheckinCount = await Checkin.countDocuments({
             sectionId: section._id,
+            $and: [visibleCheckinFilter(userId)],
             checkinDate: { $gte: todayStart, $lte: todayEnd }
           });
 

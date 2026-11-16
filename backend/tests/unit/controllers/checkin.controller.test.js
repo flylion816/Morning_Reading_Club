@@ -808,7 +808,7 @@ describe('Checkin Controller', () => {
       expect(res.json.called).to.be.true;
     });
 
-    it('应该拒绝未登录用户查看私密打卡', async () => {
+    it('未登录用户访问私密打卡按不存在处理', async () => {
       const checkinId = new mongoose.Types.ObjectId();
       req.params = { checkinId };
 
@@ -832,41 +832,63 @@ describe('Checkin Controller', () => {
       await checkinController.getCheckinDetail(req, res, next);
 
       expect(communityAccessServiceStub.ensurePeriodCommunityAccess.called).to.be.false;
-      expect(res.status.calledWith(403)).to.be.true;
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.called).to.be.true;
     });
 
-    it('应该对已登录用户查看私密打卡保留期次权限校验', async () => {
+    it('已登录的非作者访问私密打卡返回 404，不做期次权限判断', async () => {
       const checkinId = new mongoose.Types.ObjectId();
       const periodId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+      const authorId = new mongoose.Types.ObjectId();
+      req.params = { checkinId };
+      req.user = { userId };
+
+      const mockCheckin = { _id: checkinId, userId: authorId, periodId, isPublic: false, likes: [] };
+      const populateStub1 = sandbox.stub().returnsThis();
+      const populateStub2 = sandbox.stub().returnsThis();
+      const populateStub3 = sandbox.stub().returnsThis();
+      const populateStub4 = sandbox.stub().resolves(mockCheckin);
+      populateStub1.returns({ populate: populateStub2 });
+      populateStub2.returns({ populate: populateStub3 });
+      populateStub3.returns({ populate: populateStub4 });
+      CheckinStub.findById.returns({ populate: populateStub1 });
+
+      await checkinController.getCheckinDetail(req, res, next);
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(communityAccessServiceStub.ensurePeriodCommunityAccess.called).to.be.false;
+    });
+
+    it('作者本人可以看到自己的私密打卡', async () => {
+      const checkinId = new mongoose.Types.ObjectId();
       const userId = new mongoose.Types.ObjectId();
       req.params = { checkinId };
       req.user = { userId };
 
       const mockCheckin = {
         _id: checkinId,
-        periodId,
+        userId,
         isPublic: false,
-        likes: []
+        likes: [],
+        note: '我的私密',
+        toObject() {
+          return { ...this, toObject: undefined };
+        }
       };
-
       const populateStub1 = sandbox.stub().returnsThis();
       const populateStub2 = sandbox.stub().returnsThis();
       const populateStub3 = sandbox.stub().returnsThis();
       const populateStub4 = sandbox.stub().resolves(mockCheckin);
-
       populateStub1.returns({ populate: populateStub2 });
       populateStub2.returns({ populate: populateStub3 });
       populateStub3.returns({ populate: populateStub4 });
-
       CheckinStub.findById.returns({ populate: populateStub1 });
-      communityAccessServiceStub.ensurePeriodCommunityAccess.resolves(false);
 
       await checkinController.getCheckinDetail(req, res, next);
 
-      expect(
-        communityAccessServiceStub.ensurePeriodCommunityAccess.calledWith(res, userId, periodId)
-      ).to.be.true;
-      expect(res.json.called).to.be.false;
+      expect(res.status.calledWith(404)).to.be.false;
+      expect(res.json.called).to.be.true;
     });
 
     it('应该返回打卡详情', async () => {

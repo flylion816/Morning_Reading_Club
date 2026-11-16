@@ -193,7 +193,7 @@
       <view class="poster-panel-header">
         <view>
           <view class="poster-panel-title">分享此刻</view>
-          <view class="poster-panel-subtitle">当前读到的内容已放大呈现</view>
+          <view class="poster-panel-subtitle">朋友扫码，会直接读到这一段</view>
         </view>
         <view class="poster-panel-close" bindtap="closePosterPanel">×</view>
       </view>
@@ -217,6 +217,15 @@
   <view wx:if="{{!contentReady}}" class="reader-init-mask"></view>
 </view>
 
+<quick-note
+  visible="{{quickNoteVisible}}"
+  period-id="{{quickNotePeriodId}}"
+  section-id="{{quickNoteSectionId}}"
+  source="{{quickNoteSource}}"
+  quote="{{quickNoteQuote}}"
+  bind:close="closeQuickNote"
+  bind:again="reopenQuickNote"
+/>
 <podcast-player-bar bottom-offset="120" />
 <app-dialog id="app-dialog" />
 <app-sheet id="app-sheet" />

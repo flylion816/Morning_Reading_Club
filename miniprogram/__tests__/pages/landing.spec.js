@@ -2,12 +2,16 @@ jest.mock('../../services/newcomer-lead.service', () => ({
   getLanding: jest.fn(),
   submit: jest.fn()
 }));
+jest.mock('../../services/daily-card-share.service', () => ({
+  resolve: jest.fn()
+}));
 jest.mock('../../utils/request', () => ({ post: jest.fn() }));
 jest.mock('../../pages/landing/silent-login', () => ({ ensureLoggedIn: jest.fn(() => Promise.resolve(true)) }));
 
 let pageConfig;
 let page;
 let service;
+let shareService;
 let request;
 let silentLogin;
 
@@ -43,10 +47,12 @@ describe('landing page', () => {
     });
     global.getApp = jest.fn(() => ({ globalData: { userInfo: null } }));
     service = require('../../services/newcomer-lead.service');
+    shareService = require('../../services/daily-card-share.service');
     request = require('../../utils/request');
     silentLogin = require('../../pages/landing/silent-login');
     service.getLanding.mockReset();
     service.submit.mockReset();
+    shareService.resolve.mockReset();
     request.post.mockReset();
     silentLogin.ensureLoggedIn.mockClear();
     wx.switchTab = jest.fn();
@@ -110,6 +116,75 @@ describe('landing page', () => {
     page.handleRetry();
     await flush();
     expect(page.data.loadError).toBe(false);
+  });
+
+  test('扫码短码读取完整日签快照，再加载分享人资料', async () => {
+    const quote = '晨读🌅'.repeat(40);
+    shareService.resolve.mockResolvedValue({
+      inviterId: INVITER,
+      sourceType: 'daily_card',
+      quote,
+      note: '我的话',
+      lessonName: '第三天',
+      periodName: '连接之力',
+      dayNumber: 3,
+      dateStr: '2026-11-17',
+      variant: 'paper'
+    });
+    service.getLanding.mockResolvedValue(landingResponse());
+
+    page.onLoad({ scene: encodeURIComponent('c=abcd2345') });
+    await flush();
+
+    expect(shareService.resolve).toHaveBeenCalledWith('abcd2345');
+    expect(page.data.quote).toBe(quote);
+    expect(page.data.note).toBe('我的话');
+    expect(page.data.lessonLine).toBe('连接之力 · 第 3 天');
+    expect(page.data.sourceLine).toBe('第三天');
+    expect(page.data.variant).toBe('paper');
+    expect(page.data.hasSharedCard).toBe(true);
+    expect(service.getLanding).toHaveBeenCalledWith(INVITER, { view: true, src: 'daily_card' });
+    expect(page.data.loadError).toBe(false);
+  });
+
+  test('扫码读取失败时显示兜底页，不用默认句假装成功，重试可恢复', async () => {
+    shareService.resolve.mockRejectedValue(new Error('network'));
+    page.onLoad({ scene: 'c=abcd2345' });
+    await flush();
+    expect(page.data.loadError).toBe(true);
+    expect(page.data.quote).toBe('');
+    expect(service.getLanding).not.toHaveBeenCalled();
+
+    shareService.resolve.mockResolvedValue({
+      inviterId: INVITER,
+      sourceType: 'daily_card',
+      quote: '恢复后的正文',
+      lessonName: '第三天',
+      dateStr: '2026-11-17',
+      variant: 'blank'
+    });
+    service.getLanding.mockResolvedValue(landingResponse());
+    await page.handleRetry();
+    await flush();
+    expect(page.data.loadError).toBe(false);
+    expect(page.data.quote).toBe('恢复后的正文');
+    expect(page.data.variant).toBe('blank');
+  });
+
+  test('快照读取成功但访客资料暂时失败时仍显示日签正文', async () => {
+    shareService.resolve.mockResolvedValue({
+      inviterId: INVITER,
+      sourceType: 'daily_card',
+      quote: '先把这一段读完',
+      dateStr: '2026-11-17',
+      variant: 'dawn'
+    });
+    service.getLanding.mockRejectedValue(new Error('profile offline'));
+    page.onLoad({ scene: 'c=abcd2345' });
+    await flush();
+    expect(page.data.loading).toBe(false);
+    expect(page.data.loadError).toBe(false);
+    expect(page.data.quote).toBe('先把这一段读完');
   });
 
   describe('留言', () => {
@@ -239,6 +314,30 @@ describe('landing page', () => {
       expect(page.data.singlePage).toBe(true);
       expect(page.data.loading).toBe(false);
       expect(page.data.quote).toBe('由内而外');
+      delete wx.getLaunchOptionsSync;
+    });
+
+    test('朋友圈紧凑参数保留长正文和模板，并使用对应封面', async () => {
+      const { buildLandingQuery } = require('../../utils/landing-share');
+      const quote = '晨读🌅'.repeat(40);
+      const query = buildLandingQuery({
+        inviterId: INVITER,
+        sourceType: 'daily_card',
+        dateStr: '2026-11-17',
+        lessonName: '第三天',
+        periodName: '连接之力',
+        dayNumber: 3,
+        quote,
+        variant: 'blank'
+      });
+      const options = Object.fromEntries(query.split('&').map(pair => pair.split('=')));
+      wx.getLaunchOptionsSync = jest.fn(() => ({ scene: 1154 }));
+      page.onLoad(options);
+      await flush();
+      expect(service.getLanding).not.toHaveBeenCalled();
+      expect(page.data.quote).toBe(quote);
+      expect(page.data.variant).toBe('blank');
+      expect(page.onShareAppMessage().imageUrl).toBe('/assets/images/daily-card-cover-blank.png');
       delete wx.getLaunchOptionsSync;
     });
 
