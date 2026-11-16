@@ -38,20 +38,24 @@
   </view>
 
   <!-- 看 / 感 / 问 / 择 -->
-  <scroll-view wx:elif="{{step !== 'done'}}" class="aw-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <scroll-view wx:elif="{{step !== 'done'}}" id="aw-scroll" class="aw-scroll" scroll-y scroll-top="{{scrollTop}}" enhanced show-scrollbar="{{false}}">
     <view class="aw-step">
       <block wx:if="{{step === 'see'}}">
         <text class="aw-k">一问 · 看</text>
         <text class="aw-q">发生了什么？</text>
         <text class="aw-hint">只写看到的、听到的。像镜头拍下来那样，先不评价。</text>
-        <view class="aw-paper">
+        <view id="aw-see-input" class="aw-paper">
           <rich-input
             value="{{facts}}"
             html="{{factsHtml}}"
             maxlength="600"
             height="{{360}}"
             placeholder="{{seePh}}"
+            data-target="aw-see-input"
             bind:input="onFacts"
+            bind:focus="onInputFocus"
+            bind:blur="onInputBlur"
+            bind:keyboardheight="onKeyboardHeight"
           />
         </view>
       </block>
@@ -89,15 +93,20 @@
         </view>
         <view wx:if="{{addOpen}}" class="aw-add">
           <input
+            id="aw-feeling-add"
             class="aw-add-input"
             value="{{addText}}"
             maxlength="8"
             focus
             confirm-type="done"
             cursor-spacing="140"
+            adjust-position="{{false}}"
+            data-target="aw-feeling-add"
             placeholder="{{addHint}}"
             placeholder-class="aw-ph"
             bindinput="onAddInput"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
             bindconfirm="confirmAddFeeling"
           />
           <view class="aw-add-row">
@@ -128,15 +137,21 @@
           >{{item.name}}</text>
         </view>
         <textarea
+          id="aw-feeling-note"
           class="aw-input aw-input-sm"
           value="{{feelingNote}}"
           maxlength="200"
           auto-height
           cursor-spacing="140"
+          adjust-position="{{false}}"
           show-confirm-bar="{{false}}"
+          data-target="aw-feeling-note"
           placeholder="也可以多写两句…"
           placeholder-class="aw-ph"
           bindinput="onFeelingNote"
+          bindfocus="onInputFocus"
+          bindblur="onInputBlur"
+          bindkeyboardheightchange="onKeyboardHeight"
         />
       </block>
 
@@ -147,15 +162,19 @@
         <view wx:for="{{askItems}}" wx:key="level" class="aw-ask aw-ask-{{item.level}}">
           <text class="aw-kou">{{item.label}}</text>
           <text class="aw-ask-q">{{item.question}}</text>
-          <view class="aw-paper aw-paper-ask">
+          <view id="aw-ask-input-{{index}}" class="aw-paper aw-paper-ask">
             <rich-input
               value="{{item.answer}}"
               html="{{item.answerHtml}}"
               maxlength="500"
               height="{{220}}"
               data-index="{{index}}"
+              data-target="aw-ask-input-{{index}}"
               placeholder="写下来…"
               bind:input="onAnswer"
+              bind:focus="onInputFocus"
+              bind:blur="onInputBlur"
+              bind:keyboardheight="onKeyboardHeight"
             />
           </view>
         </view>
@@ -168,14 +187,18 @@
         <text class="aw-k">四问 · 择</text>
         <text class="aw-q">{{chooseQ}}</text>
         <text class="aw-hint">写一个 24 小时内做得到的小动作。</text>
-        <view class="aw-paper">
+        <view id="aw-choice-input" class="aw-paper">
           <rich-input
             value="{{choice}}"
             html="{{choiceHtml}}"
             maxlength="300"
             height="{{260}}"
             placeholder="{{choosePh}}"
+            data-target="aw-choice-input"
             bind:input="onChoice"
+            bind:focus="onInputFocus"
+            bind:blur="onInputBlur"
+            bind:keyboardheight="onKeyboardHeight"
           />
         </view>
         <view wx:if="{{choice}}" class="aw-revisit">
@@ -188,18 +211,25 @@
         <view class="aw-title-row">
           <text class="aw-title-label">给这一页起个名字（选填）</text>
           <input
+            id="aw-title-input"
             class="aw-title-input"
             value="{{title}}"
             maxlength="40"
             confirm-type="done"
+            cursor-spacing="140"
+            adjust-position="{{false}}"
+            data-target="aw-title-input"
             placeholder="比如：孩子磨蹭的早晨"
             placeholder-class="aw-ph"
             bindinput="onTitle"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
           />
         </view>
         <text wx:if="{{!hasContent}}" class="aw-empty-hint">这一页还空着：随便哪一问写一句，就能收进日记</text>
       </block>
     </view>
+    <view class="aw-keyboard-space" style="height: {{keyboardHeight}}px;"></view>
   </scroll-view>
 
   <!-- 收 -->
@@ -219,7 +249,9 @@
         <view wx:if="{{summary.keyAsk}}" class="aw-sum-r"><text class="aw-sum-b">问</text><text class="aw-sum-c">{{summary.keyAsk}}</text></view>
         <view wx:if="{{summary.choice}}" class="aw-sum-r aw-sum-choose"><text class="aw-sum-b">择</text><text class="aw-sum-c">{{summary.choice}}</text></view>
       </view>
-      <view class="aw-btn aw-btn-fin" bindtap="goJournal">看我的日记</view>
+      <view class="aw-done-actions">
+        <view class="aw-btn aw-btn-fin" bindtap="goJournal">看我的日记</view>
+      </view>
       <view class="aw-done-links">
         <text wx:if="{{summary.choice}}" class="aw-done-link" bindtap="makeCard">做成给自己的日签</text>
         <text wx:if="{{canCheckin}}" class="aw-done-link" bindtap="postAsCheckin">发成打卡</text>
@@ -229,7 +261,7 @@
   </scroll-view>
 
   <!-- 底部：跳过 / 下一问 / 完成 -->
-  <view wx:if="{{step === 'see' || step === 'feel' || step === 'ask' || step === 'choose'}}" class="aw-nav">
+  <view wx:if="{{step === 'see' || step === 'feel' || step === 'ask' || step === 'choose'}}" class="aw-nav {{keyboardHeight ? 'aw-nav-keyboard' : ''}}">
     <text class="aw-skip" bindtap="skip" wx:if="{{step !== 'choose'}}">跳过这一问</text>
     <text wx:if="{{step === 'choose' && !hasContent}}" class="aw-skip" bindtap="close">写不出来了，先出去</text>
     <view wx:if="{{step === 'choose'}}" class="aw-btn aw-btn-fin {{saving ? 'is-busy' : ''}} {{hasContent ? '' : 'aw-btn-quiet'}}" bindtap="finish">{{saving ? '正在收起…' : (hasContent ? '完成' : '先收着，回头再写')}}</view>

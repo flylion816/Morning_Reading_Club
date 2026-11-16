@@ -141,6 +141,7 @@ app.use('/api/v1/newcomer-leads', newcomerLeadVisitorRoutes);
 app.use('/api/v1/mobile-admin/newcomer-leads', newcomerLeadReceptionRoutes);
 app.use('/api/v1/reading-shares', require('./routes/readingShare.routes'));
 app.use('/api/v1/joy-note-shares', require('./routes/joyNoteShare.routes'));
+app.use('/api/v1/daily-card-shares', require('./routes/dailyCardShare.routes'));
 
 app.use(notFoundHandler);
 app.use(errorHandler);

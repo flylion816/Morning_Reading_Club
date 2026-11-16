@@ -147,9 +147,10 @@ describe('随喜 / 觉察分享面板', () => {
       const config1 = instance.getShareConfig();
       expect(config1.title).toBe('狮子 的一次觉察：孩子磨蹭的早晨');
       expect(config1.path).toBe('/pages/joy-notes/shared/shared?code=abcd2345');
-      expect(config1.imageUrl).toBeTruthy();
+      expect(config1.imageUrl).toBe('/assets/images/awareness-share-cover.png');
       await instance.open(payload());
       expect(instance.getShareConfig().title).toBe('狮子 的一句随喜');
+      expect(instance.getShareConfig().imageUrl).not.toBe('/assets/images/awareness-share-cover.png');
     });
 
     test('标题最多 40 个字；没有开启分享时没有转发信息', async () => {

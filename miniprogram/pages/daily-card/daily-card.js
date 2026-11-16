@@ -1,20 +1,13 @@
 const {
   getBrandName,
-  getDefaultShareImage,
   getDefaultShareTitle,
   getMiniProgramCode
 } = require('../../utils/brand');
 const { getThemePrimaryColor } = require('../../utils/theme');
+const { getDailyCardShareCover } = require('../../utils/daily-card-cover');
 const appDialog = require('../../utils/dialog');
-const { buildLandingPath, buildLandingQuery } = require('../../utils/landing-share');
-const { tenantStorage } = require('../../utils/storage');
-const constants = require('../../config/constants');
-
-// 是否已登录（与 utils/auth-token 同义；内联在这里，避免主包里出现只给分包用的文件）
-function hasToken() {
-  return Boolean(tenantStorage.get(constants.STORAGE_KEYS.TOKEN));
-}
-const newcomerLeadService = require('../../services/newcomer-lead.service');
+const { buildLandingPath, buildLandingQuery, parseLandingOptions } = require('../../utils/landing-share');
+const dailyCardShareService = require('../../services/daily-card-share.service');
 const {
   FONTS,
   CARD_WIDTH,
@@ -27,7 +20,7 @@ const {
 const PREVIEW_WIDTH_RPX = 600;
 const PREVIEW_SCALE = PREVIEW_WIDTH_RPX / CARD_WIDTH;
 const EXPORT_SCALE = 2;
-const MINI_PROGRAM_CODE_ASSET_PATHS = [getMiniProgramCode(), '../../assets/images/mini-program-code.jpg'];
+const MINI_PROGRAM_CODE_ASSET_PATH = getMiniProgramCode();
 
 const VARIANT_OPTIONS = [
   { value: 'dawn', label: '晨光' },
@@ -119,6 +112,7 @@ Page({
     quoteMax: QUOTE_MAX_LENGTH,
     noteMax: NOTE_MAX_LENGTH,
     generating: false,
+    singlePage: false,
     editor: { visible: false, field: '', title: '', value: '', maxlength: 0, placeholder: '' }
   },
 
@@ -126,22 +120,32 @@ Page({
     if (typeof wx.showShareMenu === 'function') {
       wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
     }
-    const dateParam = safeDecode(options.date);
+    // 朋友圈只能分享当前页面；它携带的紧凑参数需要在日签页本身还原。
+    const shared = options.src === 'daily_card' ? parseLandingOptions(options) : null;
+    let singlePage = false;
+    try {
+      singlePage = typeof wx.getLaunchOptionsSync === 'function' && wx.getLaunchOptionsSync().scene === 1154;
+    } catch (error) {
+      singlePage = false;
+    }
+    const dateParam = shared ? shared.dateStr : safeDecode(options.date);
     this.setData(
       {
-        quote: safeDecode(options.quote).trim().slice(0, QUOTE_MAX_LENGTH),
-        source: safeDecode(options.source).trim(),
-        periodName: safeDecode(options.periodName).trim(),
-        day: safeDecode(options.day).trim(),
-        note: safeDecode(options.note).trim().slice(0, NOTE_MAX_LENGTH),
+        quote: shared ? shared.quote : Array.from(safeDecode(options.quote).trim()).slice(0, QUOTE_MAX_LENGTH).join(''),
+        source: shared ? shared.lessonName : safeDecode(options.source).trim(),
+        periodName: shared ? shared.periodName : safeDecode(options.periodName).trim(),
+        day: shared ? String(shared.dayNumber || '') : safeDecode(options.day).trim(),
+        note: shared ? shared.note : Array.from(safeDecode(options.note).trim()).slice(0, NOTE_MAX_LENGTH).join(''),
+        variant: shared ? shared.variant : 'dawn',
+        singlePage,
         dateStr: /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : getTodayKey()
       },
       () => this.refreshPreview()
     );
   },
 
-  buildLayout(forExport) {
-    const d = this.data;
+  buildLayout(forExport, data = this.data) {
+    const d = data;
     return computeDailyCardLayout({
       variant: d.variant,
       quote: d.quote,
@@ -152,8 +156,9 @@ Page({
       dateStr: d.dateStr,
       brandName: getBrandName(),
       primaryColor: getThemePrimaryColor(),
-      miniProgramCodeSrc: MINI_PROGRAM_CODE_ASSET_PATHS[0],
-      placeholder: !forExport
+      miniProgramCodeSrc: MINI_PROGRAM_CODE_ASSET_PATH,
+      showMiniProgramCode: !d.singlePage,
+      placeholder: !forExport && !d.singlePage
     });
   },
 
@@ -188,7 +193,7 @@ Page({
   },
 
   handleEditQuote() {
-    this.openEditor('quote');
+    if (!this.data.singlePage) this.openEditor('quote');
   },
 
   handleEditNote() {
@@ -205,7 +210,7 @@ Page({
 
   handleEditorConfirm() {
     const { field, value, maxlength } = this.data.editor;
-    const next = String(value || '').trim().slice(0, maxlength);
+    const next = Array.from(String(value || '').trim()).slice(0, maxlength).join('');
     const update = { 'editor.visible': false };
     if (field === 'quote') {
       update.quote = next;
@@ -297,54 +302,71 @@ Page({
     });
   },
 
-  // 登录用户的海报换成专属小程序码：扫码进落地页，并带上自己作为分享人。
-  // 没登录、或生成失败时返回空，海报回退到通用码。
-  async fetchInviteCodePath() {
-    if (this._inviteCodePath !== undefined) return this._inviteCodePath;
-    let filePath = '';
-    try {
-      if (hasToken()) {
-        const res = await newcomerLeadService.createInviteQrcode('daily_card');
-        if (res && res.imageBase64) {
-          const target = `${wx.env.USER_DATA_PATH}/invite-code-${Date.now()}.png`;
-          await new Promise((resolve, reject) => {
-            wx.getFileSystemManager().writeFile({
-              filePath: target,
-              data: res.imageBase64,
-              encoding: 'base64',
-              success: resolve,
-              fail: reject
-            });
-          });
-          filePath = target;
-        }
-      }
-    } catch (error) {
-      console.warn('专属小程序码生成失败，使用通用码', error);
-    }
-    this._inviteCodePath = filePath;
-    return filePath;
+  getShareSnapshot(data = this.data) {
+    const day = Number(data.day);
+    const clamp = (value, max) => Array.from(String(value || '').trim()).slice(0, max).join('');
+    return {
+      quote: clamp(data.quote, QUOTE_MAX_LENGTH),
+      note: data.noteHidden ? '' : clamp(data.note, NOTE_MAX_LENGTH),
+      source: clamp(data.source, 40),
+      periodName: clamp(data.periodName, 30),
+      day: Number.isFinite(day) && day > 0 ? Math.min(Math.floor(day), 9999) : 0,
+      dateStr: data.dateStr || '',
+      variant: VARIANT_OPTIONS.some(item => item.value === data.variant) ? data.variant : 'dawn'
+    };
   },
 
-  async loadMiniProgramCodeImage(canvas) {
+  getShareIdentity() {
+    const app = typeof getApp === 'function' ? getApp() : null;
+    const user = (app && app.globalData && app.globalData.userInfo) || {};
+    return String(user._id || user.id || user.userId || '');
+  },
+
+  // 小程序码只放短码，扫码时读取这次导出的日签快照。内容变化后重新生成。
+  async fetchInviteCodePath(snapshot = this.getShareSnapshot(), identity = this.getShareIdentity()) {
+    const key = JSON.stringify({ snapshot, identity });
+    if (this._inviteCodeCache && this._inviteCodeCache.key === key) return this._inviteCodeCache.path;
+    const res = await dailyCardShareService.create(snapshot);
+    if (!res || !res.imageBase64 || !/^[a-z0-9]{8}$/i.test(String(res.code || ''))) {
+      throw new Error('日签分享码暂时生成不了');
+    }
+    const target = `${wx.env.USER_DATA_PATH}/daily-card-code-${res.code}.png`;
+    await new Promise((resolve, reject) => {
+      wx.getFileSystemManager().writeFile({
+        filePath: target,
+        data: res.imageBase64,
+        encoding: 'base64',
+        success: resolve,
+        fail: reject
+      });
+    });
+    this._inviteCodeCache = { key, path: target };
+    return target;
+  },
+
+  async loadMiniProgramCodeImage(canvas, snapshot, identity) {
     try {
-      const inviteCodePath = await this.fetchInviteCodePath();
-      const candidates = [inviteCodePath, ...MINI_PROGRAM_CODE_ASSET_PATHS].filter(Boolean);
-      return await loadCanvasImage(canvas, candidates);
+      const codePath = await this.fetchInviteCodePath(snapshot, identity);
+      return await loadCanvasImage(canvas, [codePath]);
     } catch (error) {
-      console.warn('加载日签小程序码失败，先生成无码日签', error);
-      return null;
+      const codeError = error instanceof Error ? error : new Error('分享码暂不可用');
+      codeError.code = 'DAILY_CARD_CODE_UNAVAILABLE';
+      throw codeError;
     }
   },
 
   async generatePoster() {
-    const layout = this.buildLayout(true);
-    const key = JSON.stringify(layout.elements);
+    // 绘制和创建二维码使用同一份快照，避免等待网络时编辑内容造成图码不一致。
+    const data = { ...this.data };
+    const snapshot = this.getShareSnapshot(data);
+    const identity = this.getShareIdentity();
+    const layout = this.buildLayout(true, data);
+    const key = JSON.stringify({ elements: layout.elements, identity });
     if (this._posterCache && this._posterCache.key === key) {
       return this._posterCache.path;
     }
     const canvas = await this.getCanvasNode();
-    const miniProgramCodeImage = await this.loadMiniProgramCodeImage(canvas);
+    const miniProgramCodeImage = await this.loadMiniProgramCodeImage(canvas, snapshot, identity);
     const ctx = canvas.getContext('2d');
     const info = typeof wx.getWindowInfo === 'function' ? wx.getWindowInfo() : {};
     const dpr = Math.min((info && info.pixelRatio) || 2, 2);
@@ -353,7 +375,7 @@ Page({
     if (typeof ctx.setTransform === 'function') ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     this.drawLayout(ctx, layout, {
-      [MINI_PROGRAM_CODE_ASSET_PATHS[0]]: miniProgramCodeImage
+      [MINI_PROGRAM_CODE_ASSET_PATH]: miniProgramCodeImage
     });
 
     const path = await new Promise((resolve, reject) => {
@@ -384,7 +406,10 @@ Page({
       console.error('生成日签失败:', error);
       wx.hideLoading();
       this.setData({ generating: false });
-      wx.showToast({ title: '这次没生成出来，可以先截屏保存', icon: 'none' });
+      const title = error && error.code === 'DAILY_CARD_CODE_UNAVAILABLE'
+        ? '分享码暂不可用，请稍后再试'
+        : '日签没生成成功，再试一次';
+      wx.showToast({ title, icon: 'none' });
       return;
     }
     wx.hideLoading();
@@ -414,52 +439,34 @@ Page({
   },
 
   // ---- 分享 ----
-  // 分享到朋友圈：打开的是同一个落地页，带上分享人
+  getLandingShareParams() {
+    const snapshot = this.getShareSnapshot();
+    return {
+      inviterId: this.getShareIdentity(),
+      sourceType: 'daily_card',
+      dateStr: snapshot.dateStr,
+      lessonName: snapshot.source,
+      periodName: snapshot.periodName,
+      dayNumber: snapshot.day,
+      quote: snapshot.quote,
+      note: snapshot.note,
+      variant: snapshot.variant
+    };
+  },
+
   onShareTimeline() {
-    const app = getApp();
-    const me = (app && app.globalData && app.globalData.userInfo) || {};
-    const d = this.data;
     return {
       title: getDefaultShareTitle('晨读日签'),
-      query: buildLandingQuery({
-        inviterId: me._id || me.id || me.userId || '',
-        sourceType: 'daily_card',
-        dateStr: d.dateStr,
-        lessonName: d.source || d.periodName,
-        dayNumber: Number(d.day) || 0,
-        quote: d.quote,
-        note: ''
-      }),
-      imageUrl: getDefaultShareImage()
+      query: buildLandingQuery(this.getLandingShareParams()),
+      imageUrl: getDailyCardShareCover(this.data.variant)
     };
   },
 
   onShareAppMessage() {
-    const app = getApp();
-    const me = (app && app.globalData && app.globalData.userInfo) || {};
-    const d = this.data;
-    const fallback = {
-      title: getDefaultShareTitle('晨读日签'),
-      // 分享的日签落到新人落地页，并带上分享人，让对方知道是谁把他带进来的
-      path: buildLandingPath({
-        inviterId: me._id || me.id || me.userId || '',
-        sourceType: 'daily_card',
-        dateStr: d.dateStr,
-        lessonName: d.source || d.periodName,
-        dayNumber: Number(d.day) || 0,
-        quote: d.quote,
-        note: d.noteHidden ? '' : d.note
-      }),
-      imageUrl: getDefaultShareImage()
-    };
     return {
-      ...fallback,
-      promise: this.generatePoster()
-        .then(path => ({ ...fallback, imageUrl: path }))
-        .catch(error => {
-          console.warn('日签分享图生成失败，使用默认分享图', error);
-          return fallback;
-        })
+      title: getDefaultShareTitle('晨读日签'),
+      path: buildLandingPath(this.getLandingShareParams()),
+      imageUrl: getDailyCardShareCover(this.data.variant)
     };
   }
 });

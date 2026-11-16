@@ -468,6 +468,12 @@ export const letterApi = {
   deleteLetter: (id: string) => apiClient.delete(`/letters/admin/${id}`)
 };
 
+// 觉察日记 / 随手记：书友的随喜与觉察记录
+export const joyNoteApi = {
+  getNotes: (params?: any) => apiClient.get('/joy-notes/admin/list', { params }),
+  deleteNote: (id: string) => apiClient.delete(`/joy-notes/admin/${id}`)
+};
+
 export const imprintApi = {
   getImprints: (params?: any) => apiClient.get('/imprints/admin/list', { params }),
   getImprintDetail: (id: string) => apiClient.get(`/imprints/${id}`),

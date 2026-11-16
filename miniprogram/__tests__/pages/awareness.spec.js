@@ -141,6 +141,48 @@ describe('觉察静室', () => {
     });
   });
 
+  describe('键盘避让', () => {
+    test('输入时按键盘高度滚动当前输入区，键盘收起后清理状态', () => {
+      const listeners = [];
+      const originalQuery = wx.createSelectorQuery;
+      wx.onKeyboardHeightChange = jest.fn(handler => listeners.push(handler));
+      wx.offKeyboardHeightChange = jest.fn();
+      wx.hideKeyboard = jest.fn();
+      const query = {
+        select: jest.fn(() => query),
+        scrollOffset: jest.fn(() => query),
+        boundingClientRect: jest.fn(() => query),
+        exec: jest.fn(callback => {
+          query.callback = callback;
+        })
+      };
+      wx.createSelectorQuery = jest.fn(() => query);
+      try {
+        mount();
+        page.begin();
+        page.onInputFocus({ currentTarget: { dataset: { target: 'aw-see-input' } } });
+        listeners[0]({ height: 300, duration: 100 });
+        expect(page.data.keyboardHeight).toBe(300);
+        jest.advanceTimersByTime(100);
+        query.callback([
+          { scrollTop: 100 },
+          { top: 100, bottom: 700 },
+          { top: 500, bottom: 900 }
+        ]);
+        expect(page.data.scrollTop).toBe(628);
+        listeners[0]({ height: 0 });
+        expect(page.data).toMatchObject({ keyboardHeight: 0, keyboardTarget: '' });
+        page.onUnload();
+        expect(wx.offKeyboardHeightChange).toHaveBeenCalledTimes(1);
+      } finally {
+        wx.createSelectorQuery = originalQuery;
+        delete wx.onKeyboardHeightChange;
+        delete wx.offKeyboardHeightChange;
+        delete wx.hideKeyboard;
+      }
+    });
+  });
+
   describe('感', () => {
     test('最多选三个情绪词，再点已选的可以取消', () => {
       mount();

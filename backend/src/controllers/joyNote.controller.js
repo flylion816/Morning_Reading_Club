@@ -3,10 +3,12 @@ const JoyNote = require('../models/JoyNote');
 const JoyNoteShare = require('../models/JoyNoteShare');
 const Period = require('../models/Period');
 const Section = require('../models/Section');
+const User = require('../models/User');
 const { getCommunityAccessiblePeriodIds } = require('../services/community-access.service');
 const { findEffectiveEnrollment, getPeriodAccessState } = require('../services/period-access.service');
 const { success, errors } = require('../utils/response');
 const awareness = require('../utils/awareness');
+const logger = require('../utils/logger');
 
 const MAX_CONTENT_LENGTH = 3000;
 const MAX_SEARCH_LENGTH = 30;
@@ -436,7 +438,136 @@ async function getRevisitCards(req, res, next) {
   }
 }
 
+// ============ 管理后台：查看所有书友的随手记与觉察日记 ============
+
+// 管理员列表：跨用户分页查看，支持期次 / 类型 / 用户昵称 / 关键词 / 日期范围筛选
+async function adminListJoyNotes(req, res, next) {
+  try {
+    const page = Math.max(parseInt(req.query?.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query?.limit, 10) || 20, 1), 50);
+    const filter = {};
+
+    const kind = req.query?.kind;
+    if (kind && !['joy', 'awareness', 'all'].includes(kind)) {
+      return res.status(400).json(errors.badRequest('类型参数不正确'));
+    }
+    if (kind === 'awareness') filter.kind = 'awareness';
+    if (kind === 'joy') filter.kind = { $ne: 'awareness' };
+
+    const periodId = req.query?.periodId;
+    if (periodId) {
+      if (!isId(periodId)) return res.status(400).json(errors.badRequest('期次参数不正确'));
+      filter.periodId = periodId;
+    }
+
+    const userId = req.query?.userId;
+    if (userId) {
+      if (!isId(userId)) return res.status(400).json(errors.badRequest('用户参数不正确'));
+      filter.userId = userId;
+    }
+
+    // 按用户昵称或 openid 搜索
+    const userSearch = typeof req.query?.userSearch === 'string' ? req.query.userSearch.trim().slice(0, MAX_SEARCH_LENGTH) : '';
+    if (userSearch) {
+      const pattern = { $regex: escapeRegExp(userSearch), $options: 'i' };
+      const users = await User.find({ $or: [{ nickname: pattern }, { openid: pattern }] }).select('_id').lean();
+      const userIds = users.map(u => u._id);
+      if (!userIds.length) {
+        return res.json(success({ list: [], total: 0, page, limit }));
+      }
+      filter.userId = filter.userId ? filter.userId : { $in: userIds };
+    }
+
+    // 按内容关键词搜索（标题 + 正文 + 觉察的事实 / 感受备注 / 选择）
+    const keyword = typeof req.query?.q === 'string' ? req.query.q.trim().slice(0, MAX_SEARCH_LENGTH) : '';
+    if (keyword) {
+      const pattern = { $regex: escapeRegExp(keyword), $options: 'i' };
+      filter.$or = [
+        { title: pattern },
+        { content: pattern },
+        { 'awareness.facts': pattern },
+        { 'awareness.feelingNote': pattern },
+        { 'awareness.choice': pattern }
+      ];
+    }
+
+    // 日期范围
+    const dateFrom = req.query?.dateFrom;
+    const dateTo = req.query?.dateTo;
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        if (Number.isNaN(from.getTime())) return res.status(400).json(errors.badRequest('开始日期不正确'));
+        from.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = from;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        if (Number.isNaN(to.getTime())) return res.status(400).json(errors.badRequest('结束日期不正确'));
+        to.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = to;
+      }
+    }
+
+    const [total, rows] = await Promise.all([
+      JoyNote.countDocuments(filter),
+      JoyNote.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('userId', 'nickname avatarUrl openid _id')
+        .populate('periodId', 'name title startDate _id')
+        .populate('sectionId', 'title day _id')
+        .lean()
+    ]);
+
+    const list = rows.map(row => {
+      const formatted = formatNote(row, null, null);
+      const user = row.userId && typeof row.userId === 'object' ? row.userId : null;
+      const period = row.periodId && typeof row.periodId === 'object' ? row.periodId : null;
+      const section = row.sectionId && typeof row.sectionId === 'object' ? row.sectionId : null;
+      return {
+        ...formatted,
+        user: user
+          ? { id: String(user._id), nickname: user.nickname || '', avatarUrl: user.avatarUrl || '', openid: user.openid || '' }
+          : null,
+        period: period ? { id: String(period._id), name: period.name || period.title || '' } : null,
+        section: section ? { id: String(section._id), title: section.title || '', day: section.day || null } : null,
+        periodName: period ? (period.name || period.title || '') : formatted.periodName,
+        sectionTitle: section ? (section.title || '') : formatted.sectionTitle,
+        day: section ? (section.day || null) : formatted.day
+      };
+    });
+
+    return res.json(success({ list, total, page, limit }));
+  } catch (error) {
+    return next(error);
+  }
+}
+
+// 管理员删除一条记录：删掉之后书友那边也看不到
+async function adminDeleteJoyNote(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (!isId(id)) return res.status(400).json(errors.badRequest('记录参数不正确'));
+    const note = await JoyNote.findById(id).select('_id userId kind').lean();
+    if (!note) return res.status(404).json(errors.notFound('这条记录不存在'));
+    await JoyNote.deleteOne({ _id: note._id });
+    logger.info('[joyNote.adminDelete] 管理员删除随手记/觉察日记', {
+      noteId: String(note._id),
+      userId: String(note.userId),
+      kind: note.kind,
+      adminId: req.admin && (req.admin.id || req.admin._id) ? String(req.admin.id || req.admin._id) : null
+    });
+    return res.json(success({ id: String(note._id), deleted: true }));
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   getPeriods, getSections, getMine, getOne, create, update, remove, addFollowUp, skipRevisit, getRevisitCards,
-  formatAwareness
+  formatAwareness,
+  adminListJoyNotes, adminDeleteJoyNote
 };

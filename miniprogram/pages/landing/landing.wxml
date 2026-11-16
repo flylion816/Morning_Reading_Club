@@ -53,7 +53,7 @@
           <text class="landing-who-text">{{inviterLabel}}</text>
         </view>
 
-        <view class="landing-day">
+        <view class="landing-day landing-day-{{variant}}">
           <view class="landing-day-sky">
             <text class="landing-day-num">{{dateInfo.dayNumber}}</text>
             <text class="landing-day-line">{{dateInfo.dateLine}}</text>
@@ -62,7 +62,10 @@
           </view>
           <view class="landing-day-body">
             <text wx:if="{{lessonLine}}" class="landing-day-lesson">{{lessonLine}}</text>
-            <text class="landing-day-quote">{{quote || '先去理解别人，再让别人理解自己。'}}</text>
+            <text wx:if="{{quote}}" class="landing-day-quote">{{quote}}</text>
+            <text wx:elif="{{hasSharedCard}}" class="landing-day-quote landing-day-placeholder">这张日签还没有写下正文</text>
+            <text wx:else class="landing-day-quote">先去理解别人，再让别人理解自己。</text>
+            <text wx:if="{{sourceLine}}" class="landing-day-source">—— {{sourceLine}}</text>
           </view>
         </view>
       </view>
@@ -82,19 +85,15 @@
           <text class="landing-hint">经书友本人同意后展示</text>
         </block>
 
-        <view class="landing-sec">这里适合谁</view>
+        <view class="landing-sec landing-fit-heading">这里适合谁</view>
         <view class="landing-fit">
-          <view class="landing-card landing-fit-card">
-            <text class="landing-fit-title">可能适合你</text>
-            <text class="landing-fit-line">想早起读点书</text>
-            <text class="landing-fit-line">每天能留 15 分钟</text>
-            <text class="landing-fit-line">想有人一起读</text>
+          <view class="landing-fit-row">
+            <text class="landing-fit-label">可能适合</text>
+            <text class="landing-fit-line">想早起读书 · 每天留 15 分钟 · 想有人一起读</text>
           </view>
-          <view class="landing-card landing-fit-card">
-            <text class="landing-fit-title">可能不适合</text>
-            <text class="landing-fit-line">想速成、只要干货</text>
-            <text class="landing-fit-line">只想听不想写</text>
-            <text class="landing-fit-line">暂时抽不出时间</text>
+          <view class="landing-fit-row">
+            <text class="landing-fit-label">可能不适合</text>
+            <text class="landing-fit-line">想速成、只要干货 · 只想听不想写 · 暂时抽不出时间</text>
           </view>
         </view>
 

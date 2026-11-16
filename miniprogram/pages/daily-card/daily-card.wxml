@@ -8,7 +8,7 @@
     </view>
   </view>
 
-  <view class="dc-thumbs">
+  <view wx:if="{{!singlePage}}" class="dc-thumbs">
     <view
       wx:for="{{variantOptions}}"
       wx:key="value"
@@ -23,7 +23,7 @@
     </view>
   </view>
 
-  <view class="dc-fields">
+  <view wx:if="{{!singlePage}}" class="dc-fields">
     <view class="dc-row" bindtap="handleEditQuote">
       <text class="dc-row-label">今日一句</text>
       <text class="dc-row-value {{quote ? '' : 'dc-row-empty'}}">{{quote || '写下今天想留下的一句话'}}</text>
@@ -37,7 +37,7 @@
     </view>
   </view>
 
-  <view class="dc-actions">
+  <view wx:if="{{!singlePage}}" class="dc-actions">
     <button class="app-btn-secondary dc-btn" bindtap="handleSave" disabled="{{generating}}">保存到相册</button>
     <button class="app-btn-primary dc-btn" open-type="share">发给朋友</button>
   </view>

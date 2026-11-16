@@ -173,7 +173,11 @@ Page({
     savedHint: '',
     noteId: '',
     summary: null,
-    canCheckin: false
+    canCheckin: false,
+    // 觉察页是固定布局，输入时由页面接管键盘避让和嵌套滚动
+    keyboardHeight: 0,
+    keyboardTarget: '',
+    scrollTop: 0
   },
 
   onLoad(options = {}) {
@@ -185,6 +189,7 @@ Page({
     }
     // 这一页是私人的：右上角的转发菜单不转发它，只有分享面板里的按钮才能分享
     if (typeof wx.hideShareMenu === 'function') wx.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] });
+    this.bindKeyboardEvents();
     this._params = {
       periodId: decode(options.periodId),
       sectionId: decode(options.sectionId),
@@ -196,14 +201,22 @@ Page({
     this.bootstrap();
   },
 
+  onShow() {
+    this.bindKeyboardEvents();
+  },
+
   onHide() {
     this.flushDraft();
+    this.unbindKeyboardEvents();
+    this.resetKeyboardLayout();
   },
 
   onUnload() {
     this.stopBreathing();
     clearTimeout(this._savedTimer);
     this.flushDraft();
+    this.unbindKeyboardEvents();
+    this.resetKeyboardLayout();
   },
 
   // ---- 起步：有没写完的草稿就先问一句（问的时候呼吸先不动）----
@@ -298,6 +311,8 @@ Page({
   // ---- 步骤 ----
   enter(step) {
     this.stopBreathing();
+    this.resetKeyboardLayout();
+    if (typeof wx.hideKeyboard === 'function') wx.hideKeyboard();
     if (step === 'ask') this.syncLadder();
     const patch = { step, progress: Math.max(STEPS.indexOf(step), 0), light: !DARK_STEPS.includes(step), addOpen: false };
     if (step === 'choose') patch.revisitDate = revisitDateLabel();
@@ -324,6 +339,95 @@ Page({
     const index = STEPS.indexOf(this.data.step);
     if (index <= 1) return;
     this.enter(STEPS[index - 1]);
+  },
+
+  // ---- 键盘避让：固定页面由自己移动嵌套 scroll-view，不和系统自动上推叠加 ----
+  bindKeyboardEvents() {
+    if (this._keyboardHandler || typeof wx.onKeyboardHeightChange !== 'function') return;
+    this._keyboardHandler = result => this.onKeyboardHeight(result || {});
+    wx.onKeyboardHeightChange(this._keyboardHandler);
+  },
+
+  unbindKeyboardEvents() {
+    if (this._keyboardHandler && typeof wx.offKeyboardHeightChange === 'function') {
+      wx.offKeyboardHeightChange(this._keyboardHandler);
+    }
+    this._keyboardHandler = null;
+    clearTimeout(this._keyboardTimer);
+    clearTimeout(this._keyboardBlurTimer);
+  },
+
+  onKeyboardHeight(event) {
+    const detail = event && event.detail ? event.detail : event || {};
+    const height = Math.max(0, Number(detail.height) || 0);
+    clearTimeout(this._keyboardTimer);
+    if (!height) {
+      this.resetKeyboardLayout();
+      return;
+    }
+    this.setData({ keyboardHeight: height }, () => {
+      const duration = Number(detail.duration) || 120;
+      const delay = Math.min(Math.max(duration, 80), 320);
+      this._keyboardTimer = setTimeout(() => this.scrollActiveInput(), delay);
+    });
+  },
+
+  onInputFocus(event) {
+    const target = event && event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.target;
+    if (!target) return;
+    clearTimeout(this._keyboardBlurTimer);
+    this._keyboardTarget = target;
+    this.setData({ keyboardTarget: target });
+    if (this.data.keyboardHeight) this.scheduleKeyboardScroll(80);
+  },
+
+  onInputBlur() {
+    clearTimeout(this._keyboardBlurTimer);
+    this._keyboardBlurTimer = setTimeout(() => {
+      if (!this.data.keyboardHeight) this.resetKeyboardLayout();
+    }, 180);
+  },
+
+  scheduleKeyboardScroll(delay = 80) {
+    clearTimeout(this._keyboardTimer);
+    this._keyboardTimer = setTimeout(() => this.scrollActiveInput(), delay);
+  },
+
+  scrollActiveInput() {
+    const target = this._keyboardTarget || this.data.keyboardTarget;
+    if (!target || !this.data.keyboardHeight || typeof wx.createSelectorQuery !== 'function') return;
+    const query = wx.createSelectorQuery();
+    query
+      .select('#aw-scroll')
+      .scrollOffset()
+      .select('#aw-scroll')
+      .boundingClientRect()
+      .select(`#${target}`)
+      .boundingClientRect()
+      .exec(result => {
+        const offset = result && result[0];
+        const scrollRect = result && result[1];
+        const targetRect = result && result[2];
+        if (!offset || !scrollRect || !targetRect) return;
+        const margin = 28;
+        const visibleBottom = scrollRect.bottom - this.data.keyboardHeight - margin;
+        const visibleTop = scrollRect.top + margin;
+        let next = Number(offset.scrollTop) || 0;
+        if (targetRect.bottom > visibleBottom) next += targetRect.bottom - visibleBottom;
+        if (targetRect.top < visibleTop) next -= visibleTop - targetRect.top;
+        next = Math.max(0, Math.round(next));
+        if (Math.abs(next - (Number(offset.scrollTop) || 0)) < 2) return;
+        this.setData({ scrollTop: next });
+      });
+  },
+
+  resetKeyboardLayout() {
+    clearTimeout(this._keyboardTimer);
+    clearTimeout(this._keyboardBlurTimer);
+    this._keyboardTarget = '';
+    if (this.data.keyboardHeight || this.data.keyboardTarget) {
+      this.setData({ keyboardHeight: 0, keyboardTarget: '' });
+    }
   },
 
   // 夜色屏用白色状态栏文字，晨光屏用黑色

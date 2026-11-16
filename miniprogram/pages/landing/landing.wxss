@@ -109,6 +109,51 @@
   font-family: var(--app-font-serif);
   font-size: 32rpx;
   line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.landing-day-placeholder {
+  color: var(--app-text-muted);
+}
+
+.landing-day-source {
+  margin-top: 18rpx;
+  color: var(--app-text-muted);
+  font-size: var(--app-font-xs);
+  line-height: 1.6;
+  text-align: right;
+}
+
+/* 落地页沿用分享者选择的日签版式。 */
+.landing-day-paper {
+  border: 1rpx solid var(--app-border);
+  background: #faf5ea;
+}
+
+.landing-day-paper .landing-day-sky,
+.landing-day-paper .landing-day-body {
+  background: #faf5ea;
+}
+
+.landing-day-paper .landing-day-num,
+.landing-day-paper .landing-day-line {
+  color: var(--app-text-soft);
+}
+
+.landing-day-blank .landing-day-sky {
+  height: 210rpx;
+  background: var(--app-paper);
+}
+
+.landing-day-blank .landing-day-num,
+.landing-day-blank .landing-day-line {
+  color: var(--app-text);
+}
+
+.landing-day-paper .landing-day-sun,
+.landing-day-blank .landing-day-sun {
+  display: none;
 }
 
 /* ---------- 内容 ---------- */
@@ -159,28 +204,35 @@
   color: var(--app-text-muted);
 }
 
+.landing-fit-heading {
+  margin-top: 22rpx;
+  margin-bottom: 10rpx;
+}
+
 .landing-fit {
   display: flex;
-  gap: 16rpx;
-}
-
-.landing-fit-card {
-  flex: 1;
-  display: flex;
   flex-direction: column;
-  padding: 22rpx 24rpx;
+  gap: 8rpx;
 }
 
-.landing-fit-title {
-  margin-bottom: 8rpx;
-  font-size: var(--app-font-sm);
-  font-weight: 600;
+.landing-fit-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14rpx;
+}
+
+.landing-fit-label {
+  flex: none;
+  color: var(--app-text-soft);
+  font-size: var(--app-font-xs);
 }
 
 .landing-fit-line {
+  flex: 1;
+  min-width: 0;
   font-size: var(--app-font-xs);
-  line-height: 1.8;
-  color: var(--app-text-soft);
+  line-height: 1.7;
+  color: var(--app-text-muted);
 }
 
 .landing-link {

@@ -15,6 +15,7 @@ const { getDefaultShareImage, getMiniProgramCode } = require('../../../../utils/
 
 const QR_TIMEOUT_MS = 6000;
 const CLOSE_AFTER_FORWARD_MS = 300;
+const AWARENESS_SHARE_IMAGE = '/assets/images/awareness-share-cover.png';
 
 function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
@@ -107,7 +108,7 @@ Component({
       return {
         title: Array.from(title).slice(0, 40).join(''),
         path: `/pages/joy-notes/shared/shared?code=${this._share.code}`,
-        imageUrl: getDefaultShareImage()
+        imageUrl: p.kind === 'awareness' ? AWARENESS_SHARE_IMAGE : getDefaultShareImage()
       };
     },
 

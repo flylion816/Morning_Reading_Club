@@ -424,6 +424,16 @@ function renderPoster({ canvas, model, qrImage = null, qrPrecise = false, dpr = 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
+  // 觉察长图的头部沿用分享封面的夜色语言，正文仍从暖纸开始，保证长文阅读舒适。
+  if (isAwareness) {
+    fillRound(ctx, pageX - 18, 34, contentW + 36, 132, 26, '#231c17');
+    const headerLine = ctx.createLinearGradient(pageX + 100, 0, W - pageX, 0);
+    headerLine.addColorStop(0, COLORS.dawn);
+    headerLine.addColorStop(1, 'rgba(240, 168, 90, 0)');
+    ctx.fillStyle = headerLine;
+    ctx.fillRect(pageX + 100, 158, contentW - 100, 3);
+  }
+
   // ---- 头部：印章 + 栏目名 + 谁分享的 ----
   const sealY = 58;
   fillRound(ctx, pageX, sealY, 76, 76, 18, COLORS.dawnSoft);
@@ -437,10 +447,10 @@ function renderPoster({ canvas, model, qrImage = null, qrPrecise = false, dpr = 
   ctx.fillText(model.seal, pageX + 38, sealY + 54);
   ctx.textAlign = 'left';
   ctx.font = fontOf({ size: 34, bold: true, italic: false, family: SERIF });
-  ctx.fillStyle = COLORS.dawnInk;
+  ctx.fillStyle = isAwareness ? COLORS.dawn : COLORS.dawnInk;
   ctx.fillText(model.kicker, pageX + 100, sealY + 36);
   ctx.font = fontOf({ size: 26, bold: false, italic: false, family: SANS });
-  ctx.fillStyle = COLORS.soft;
+  ctx.fillStyle = isAwareness ? '#d7c4aa' : COLORS.soft;
   ctx.fillText(model.authorLine, pageX + 100, sealY + 72);
 
   let y = headerH;

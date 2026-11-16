@@ -837,7 +837,9 @@ describe('reading-mode page', () => {
       const url = wx.redirectTo.mock.calls[0][0].url;
       expect(url).toContain('/pages/landing/landing?');
       expect(url).toContain('inviterId=507f1f77bcf86cd799439011');
-      expect(url).toContain(encodeURIComponent('先理解别人'));
+      const { parseLandingOptions } = require('../../utils/landing-share');
+      const options = Object.fromEntries(url.split('?')[1].split('&').map(pair => pair.split('=')));
+      expect(parseLandingOptions(options).quote).toBe('先理解别人');
     });
 
     test('没登录时不去生成专属码，海报用通用码', async () => {
