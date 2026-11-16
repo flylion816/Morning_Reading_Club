@@ -15,6 +15,7 @@ const { tenantStorage } = require('../../utils/storage');
 const { THEME_PRIMARY } = require('../../utils/theme');
 const insightService = require('../../services/insight.service');
 const buddyService = require('../../services/buddy.service');
+const joyNoteService = require('../../services/joy-note.service');
 const { buildFeed, summarizeFeed } = require('./notification-feed');
 
 const notificationService = notificationServiceModule.default || notificationServiceModule;
@@ -23,6 +24,7 @@ const websocketService = websocketServiceModule.default || websocketServiceModul
 // 新增通知类型的展示（线性印章字 + 类型名），不依赖 notification.service
 const FEATURE_TYPE_META = {
   letter_delivered: { icon: '信', label: '慢递邮局' },
+  awareness_revisit: { icon: '觉', label: '觉察日记' },
   seen_received: { icon: '见', label: '被看见' },
   buddy_nudge: { icon: '伴', label: '读伴' },
   buddy_highfive: { icon: '伴', label: '读伴' },
@@ -51,6 +53,9 @@ Page({
     summary: { headline: '', sub: '', avatars: [], unreadCount: 0, replyCount: 0 },
     handledRequests: {},
     handledInvites: {},
+    // 觉察回访：笔记里的「择」和回访状态（通知本身不带笔记文字），以及在来信里处理过的结果
+    revisitCards: {},
+    handledRevisits: {},
     unreadCount: 0,
     activeTab: 'all',
     page: 1,
@@ -316,6 +321,11 @@ Page({
       return `pages/course-detail/course-detail?${query}`;
     }
 
+    // 觉察回访：点开卡片去详情，输入框已经打开，直接写后来
+    if (type === 'awareness_revisit' && notification?.data?.joyNoteId) {
+      return `pages/joy-notes/detail/detail?id=${encodeURIComponent(notification.data.joyNoteId)}&focus=1`;
+    }
+
     if (type === 'letter_delivered' && periodId) {
       return `pages/slow-mail/slow-mail?periodId=${encodeURIComponent(periodId)}`;
     }
@@ -348,6 +358,7 @@ Page({
       like_received: '查看打卡详情',
       seen_received: '查看打卡详情',
       letter_delivered: '去拆信',
+      awareness_revisit: '写一句后来',
       buddy_nudge: '去看看',
       buddy_highfive: '去看看',
       buddy_gift: '去看看',
@@ -479,6 +490,7 @@ Page({
       });
 
       this.updateDisplayedNotifications();
+      await this.loadRevisitCards();
     } catch (error) {
       console.error('加载通知失败:', error);
       this.setData({
@@ -499,6 +511,7 @@ Page({
 
   updateDisplayedNotifications() {
     const { notifications, activeTab, handledRequests, handledInvites } = this.data;
+    const mergeRevisit = item => this.mergeRevisit(item);
     let displayed = notifications;
 
     if (activeTab === 'true') {
@@ -518,6 +531,7 @@ Page({
           if (item.invite && handledInvites[item.invite.inviteId]) {
             return { ...item, invite: { ...item.invite, status: handledInvites[item.invite.inviteId] }, needsReply: false };
           }
+          if (item.revisit) return this.mergeRevisit(item);
           return item;
         })
       }));
@@ -673,7 +687,10 @@ Page({
       const notification = this.data.notifications.find(entry => this.getNotificationId(entry) === id);
       if (notification) this.markNotificationAsReadInBackground(notification);
     });
-    if (item.target) this.navigateByTargetPage(item.target);
+    if (item.target) {
+      const target = item.revisit && item.revisit.state !== 'open' ? item.target.replace('&focus=1', '') : item.target;
+      this.navigateByTargetPage(target);
+    }
   },
 
   // 长按：标为已读 / 删除（不再每条都放一个删除叉）
@@ -769,6 +786,103 @@ Page({
       this.loadNotifications(false);
     } finally {
       this._decidingInvite = false;
+    }
+  },
+
+  // 觉察回访：把笔记里的「择」和回访状态合进来信卡片。通知本身不带笔记文字，卡片内容来自单独的读取
+  mergeRevisit(item) {
+    const { revisitCards, handledRevisits } = this.data;
+    const noteId = item.revisit.noteId;
+    const card = revisitCards[noteId];
+    const handled = handledRevisits[noteId];
+    let state = 'loading';
+    if (handled) state = handled;
+    else if (card && card.gone) state = 'gone';
+    else if (card) {
+      state = ['pending', 'delivering', 'delivered'].includes(card.status)
+        ? 'open'
+        : card.status === 'answered' ? 'answered' : 'skipped';
+    }
+    const known = card && !card.gone;
+    return {
+      ...item,
+      revisit: {
+        ...item.revisit,
+        state,
+        open: state === 'open',
+        choice: known ? card.choice : '',
+        lastFollowUp: known ? card.lastFollowUp : ''
+      },
+      needsReply: state === 'open' || state === 'loading'
+    };
+  },
+
+  // 一次读取这批来信里所有回访卡片（接口一次最多 10 张）；读不到也不影响来信，点开卡片照样能去详情
+  async loadRevisitCards() {
+    const ids = [];
+    this.data.feed.forEach(group => group.items.forEach(item => {
+      if (item.revisit && item.revisit.noteId && ids.indexOf(item.revisit.noteId) < 0) ids.push(item.revisit.noteId);
+    }));
+    if (!ids.length) return;
+    try {
+      const cards = { ...this.data.revisitCards };
+      const chunks = [];
+      for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
+      const results = await Promise.all(chunks.map(chunk => joyNoteService.getRevisitCards(chunk)));
+      chunks.forEach(chunk => {
+        // 没返回的就是那条觉察已经删除了
+        chunk.forEach(id => { cards[id] = { gone: true }; });
+      });
+      results.forEach(result => {
+        ((result && result.list) || []).forEach(card => {
+          cards[String(card.id)] = {
+            gone: false,
+            choice: card.choice || '',
+            status: card.status,
+            followUpCount: card.followUpCount || 0,
+            lastFollowUp: card.lastFollowUp || ''
+          };
+        });
+      });
+      this.setData({ revisitCards: cards });
+      this.updateDisplayedNotifications();
+    } catch (error) {
+      console.warn('读取回访卡片失败:', error);
+    }
+  },
+
+  // 写一句后来：去觉察详情，输入框已经打开
+  handleRevisitWrite(event) {
+    const item = this.findFeedItem(event.currentTarget?.dataset?.key);
+    if (!item || !item.revisit) return;
+    item.ids.forEach(id => {
+      const notification = this.data.notifications.find(entry => this.getNotificationId(entry) === id);
+      if (notification) this.markNotificationAsReadInBackground(notification);
+    });
+    if (item.target) this.navigateByTargetPage(item.target);
+  },
+
+  // 先不写：这条觉察不再回访
+  async handleRevisitSkip(event) {
+    const item = this.findFeedItem(event.currentTarget?.dataset?.key);
+    if (!item || !item.revisit || this._decidingRevisit) return;
+    this._decidingRevisit = true;
+    const { noteId } = item.revisit;
+    try {
+      const result = await joyNoteService.skipRevisit(noteId);
+      this.setData({
+        handledRevisits: { ...this.data.handledRevisits, [noteId]: result && result.status === 'answered' ? 'answered' : 'skipped' }
+      });
+      item.ids.forEach(id => {
+        const notification = this.data.notifications.find(entry => this.getNotificationId(entry) === id);
+        if (notification) this.markNotificationAsReadInBackground(notification);
+      });
+      this.updateDisplayedNotifications();
+      wx.showToast({ title: '好的，不再提醒', icon: 'none' });
+    } catch (error) {
+      wx.showToast({ title: (error && error.message) || '没处理成，再试一次', icon: 'none' });
+    } finally {
+      this._decidingRevisit = false;
     }
   },
 

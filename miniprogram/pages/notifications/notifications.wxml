@@ -60,6 +60,18 @@
         <text class="letter-text"><text wx:if="{{item.lead}}" class="letter-lead">{{item.lead}}</text>{{item.rest}}</text>
         <text wx:if="{{item.quote}}" class="letter-quote">{{item.quote}}</text>
 
+        <!-- 觉察回访：来自一周前的自己，露出当时写下的「择」 -->
+        <block wx:if="{{item.revisit}}">
+          <text wx:if="{{item.revisit.choice}}" class="letter-quote">「{{item.revisit.choice}}」</text>
+          <view wx:if="{{item.revisit.open}}" class="letter-btns">
+            <text class="letter-btn letter-btn-yes" catchtap="handleRevisitWrite" data-key="{{item.key}}">写一句后来</text>
+            <text class="letter-btn letter-btn-no" catchtap="handleRevisitSkip" data-key="{{item.key}}">先不写</text>
+          </view>
+          <text wx:elif="{{item.revisit.state === 'answered'}}" class="letter-done">已写下后来{{item.revisit.lastFollowUp ? '：' + item.revisit.lastFollowUp : ''}}</text>
+          <text wx:elif="{{item.revisit.state === 'skipped'}}" class="letter-done">好的，不再提醒</text>
+          <text wx:elif="{{item.revisit.state === 'gone'}}" class="letter-done">这条觉察已经删除</text>
+        </block>
+
         <view wx:if="{{item.request && item.request.status === 'pending'}}" class="letter-btns">
           <text class="letter-btn letter-btn-yes" catchtap="handleRequestDecision" data-key="{{item.key}}" data-decision="approve">让 TA 看</text>
           <text class="letter-btn letter-btn-no" catchtap="handleRequestDecision" data-key="{{item.key}}" data-decision="reject">先不了</text>

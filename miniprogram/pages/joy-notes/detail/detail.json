@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "一次觉察",
+  "navigationBarBackgroundColor": "#fffdf8",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f6f1e7",
+  "usingComponents": {
+    "joy-share": "/pages/joy-notes/components/joy-share/joy-share"
+  }
+}

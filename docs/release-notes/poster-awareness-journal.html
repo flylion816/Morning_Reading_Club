@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>觉察日记</title>
+<style>
+/* 晨光纸页包住一间深色静室：先看见升级，再认识能做的事。 */
+:root {
+  color-scheme: light;
+  --ground: #eee8dc;
+  --paper: #fffdf8;
+  --ink: #2b2622;
+  --soft: #6b5d4d;
+  --muted: #948674;
+  --dawn: #ee9b45;
+  --dawn-deep: #b8631f;
+  --dawn-ink: #8a4b12;
+  --dawn-soft: #fdf0dc;
+  --sky: #fbe3c3;
+  --rule: rgba(92, 70, 44, .15);
+  --blue: #3d6fa6;
+  --night: #1c1815;
+  --night-text: #f3e9da;
+  --night-soft: #b3a48f;
+  --glow: #f0a85a;
+  --serif: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+.poster { width: 100%; max-width: 540px; margin: 0 auto; overflow: hidden; background: var(--paper); border-radius: 27px; box-shadow: 0 18px 50px rgba(83, 59, 31, .12); }
+.hero { position: relative; overflow: hidden; padding: 29px 34px 27px; background: radial-gradient(ellipse at 94% 64%, rgba(255, 195, 122, .42), transparent 42%), linear-gradient(180deg, #f9d5a8 0%, var(--sky) 49%, #fdf1de 100%); }
+.hero::after { content: ""; position: absolute; right: -76px; top: 117px; width: 226px; height: 226px; border: 1px solid rgba(184, 99, 31, .12); border-radius: 50%; box-shadow: 0 0 0 28px rgba(238, 155, 69, .06), 0 0 0 58px rgba(238, 155, 69, .045); pointer-events: none; }
+.brand-row { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { min-width: 0; display: flex; align-items: center; gap: 9px; }
+.brand img { display: block; width: 35px; height: 35px; border-radius: 10px; }
+.brand-name { font-family: var(--serif); font-size: 16px; font-weight: 700; letter-spacing: .09em; }
+.brand-sub { display: block; padding-top: 2px; font-size: 9px; letter-spacing: .1em; color: var(--soft); }
+.edition { padding: 5px 10px; border: 1px solid rgba(184, 99, 31, .3); border-radius: 20px; font-size: 10px; font-weight: 600; letter-spacing: .1em; color: var(--dawn-ink); white-space: nowrap; }
+.eyebrow { position: relative; z-index: 1; margin: 37px 0 9px; color: var(--dawn-ink); font-size: 12px; letter-spacing: .16em; }
+h1 { position: relative; z-index: 1; margin: 0; font-family: var(--serif); font-weight: 700; line-height: 1.19; letter-spacing: .025em; }
+h1 span { display: block; font-size: 27px; }
+h1 strong { display: block; margin-top: 4px; color: var(--dawn-deep); font-size: 50px; }
+.lead { position: relative; z-index: 1; margin: 15px 0 0; font-size: 14px; line-height: 1.85; color: var(--soft); }
+.hero-bottom { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; margin-top: 19px; color: var(--dawn-ink); font-size: 11px; letter-spacing: .08em; }
+.hero-bottom i { width: 5px; height: 5px; border-radius: 50%; background: var(--dawn); }
+
+.intro { padding: 21px 27px 0; }
+.night-card { position: relative; overflow: hidden; min-height: 220px; padding: 23px 24px 22px; color: var(--night-text); background: linear-gradient(170deg, #171412 0%, #282019 60%, #644021 100%); border-radius: 20px; box-shadow: 0 12px 25px rgba(50, 33, 20, .16); }
+.night-card::before { content: ""; position: absolute; left: 10%; right: -15%; bottom: -110px; height: 170px; background: radial-gradient(ellipse at center, rgba(240, 168, 90, .38), transparent 70%); pointer-events: none; }
+.night-top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--glow); font-size: 10px; font-weight: 600; letter-spacing: .15em; }
+.night-top span:last-child { color: rgba(243, 233, 218, .48); font-size: 10px; font-weight: 400; letter-spacing: .04em; }
+.night-card h2 { position: relative; margin: 15px 0 8px; font-family: var(--serif); font-size: 23px; font-weight: 600; line-height: 1.5; }
+.night-card p { position: relative; margin: 0; color: var(--night-soft); font-size: 12px; line-height: 1.8; }
+.night-steps { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 19px; }
+.night-steps span { padding: 5px 11px; border: 1px solid rgba(243, 233, 218, .2); border-radius: 15px; color: #eadbca; font-size: 11px; }
+.night-steps i { color: var(--glow); font-size: 12px; font-style: normal; }
+
+.section { padding: 29px 34px 0; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+.section-head h2 { margin: 0; font-family: var(--serif); font-size: 21px; font-weight: 700; }
+.section-head span { color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+.features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.feature { min-width: 0; min-height: 118px; padding: 15px 15px 14px; border: 1px solid var(--rule); border-radius: 15px; background: var(--paper); }
+.feature:first-child, .feature:nth-child(4) { background: #fff9ef; }
+.feature-top { display: flex; align-items: center; gap: 9px; }
+.mark { flex: 0 0 auto; width: 29px; height: 29px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(184, 99, 31, .25); border-radius: 9px; background: var(--dawn-soft); color: var(--dawn-ink); font-family: var(--serif); font-size: 15px; }
+.feature h3 { min-width: 0; margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.35; }
+.feature p { margin: 9px 0 0; color: var(--soft); font-size: 13px; line-height: 1.7; }
+.details { margin: 18px 34px 0; padding: 17px 18px 15px; border-radius: 15px; background: var(--dawn-soft); }
+.details h2 { margin: 0 0 10px; color: var(--dawn-ink); font-family: var(--serif); font-size: 16px; }
+.details-list { display: flex; flex-wrap: wrap; gap: 8px 13px; }
+.details-list span { color: var(--soft); font-size: 11.5px; line-height: 1.5; }
+.details-list span::before { content: ""; display: inline-block; width: 4px; height: 4px; margin: 0 6px 2px 0; border-radius: 50%; background: var(--dawn); }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 26px 34px 0; padding: 20px 0 26px; border-top: 1px solid var(--rule); }
+.footer-copy { min-width: 0; }
+.footer-copy strong { display: block; font-family: var(--serif); font-size: 22px; font-weight: 600; line-height: 1.5; }
+.footer-copy p { margin: 8px 0 0; color: var(--soft); font-size: 11.5px; line-height: 1.75; }
+.footer-copy .sign { margin-top: 10px; color: var(--dawn-ink); font-size: 10px; letter-spacing: .09em; }
+.qr { flex: 0 0 auto; width: 100px; margin: 0; text-align: center; }
+.qr img { display: block; width: 100px; height: 100px; padding: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px var(--rule); }
+.qr figcaption { margin-top: 6px; color: var(--dawn-ink); font-size: 10px; white-space: nowrap; }
+@media (max-width: 420px) {
+  .hero { padding: 24px 23px 24px; }
+  .eyebrow { margin-top: 29px; }
+  h1 span { font-size: 23px; }
+  h1 strong { font-size: 43px; }
+  .intro { padding: 18px 20px 0; }
+  .section { padding: 25px 23px 0; }
+  .details { margin-left: 23px; margin-right: 23px; }
+  .footer { margin-left: 23px; margin-right: 23px; }
+  .feature { padding: 12px 11px; }
+  .feature h3 { font-size: 14px; }
+  .feature p { font-size: 11px; }
+  .footer-copy strong { font-size: 19px; }
+  .qr, .qr img { width: 88px; }
+  .qr img { height: 88px; }
+}
+</style>
+</head>
+<body>
+<main class="poster">
+  <header class="hero">
+    <div class="brand-row">
+      <div class="brand">
+        <img src="../../miniprogram/assets/tenants/fanren/logo.png" alt="">
+        <div><div class="brand-name">凡人共读</div><span class="brand-sub">一起早起、读书、谈心</span></div>
+      </div>
+      <div class="edition">日记焕新</div>
+    </div>
+    <p class="eyebrow">给每一次心动，也给每一次觉察</p>
+    <h1><span>随喜记，升级为</span><strong>觉察日记</strong></h1>
+    <p class="lead">从记下生活的触动，<br>到慢慢看见内心的自己。</p>
+    <div class="hero-bottom"><span>随手记下</span><i></i><span>静心觉察</span><i></i><span>温柔回看</span></div>
+  </header>
+
+  <section class="intro" aria-label="觉察日记书写体验">
+    <div class="night-card">
+      <div class="night-top"><span>留一点时间，给自己</span><span>觉察日记 · 界面示意</span></div>
+      <h2>发生了什么？<br>此刻，我有什么感受？</h2>
+      <p>跟着温柔的提问，慢一点梳理。<br>看见自己的心，也找到下一步的方向。</p>
+      <div class="night-steps"><span>看 · 事件</span><i>·</i><span>感 · 情绪</span><i>·</i><span>问 · 内心</span><i>·</i><span>择 · 行动</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>这一次，你可以</h2><span>从记录，到更了解自己</span></div>
+    <div class="features">
+      <article class="feature"><div class="feature-top"><div class="mark">喜</div><h3>随喜，依然随手记</h3></div><p>留住当下的触动，也能从一条随喜开始觉察。</p></article>
+      <article class="feature"><div class="feature-top"><div class="mark">问</div><h3>跟着四问向内看</h3></div><p>看事件、感情绪、问内心、择行动，一步步写下去。</p></article>
+      <article class="feature"><div class="feature-top"><div class="mark">心</div><h3>认出情绪与身体</h3></div><p>选一选心里的滋味，也留意身体的感受。</p></article>
+      <article class="feature"><div class="feature-top"><div class="mark">书</div><h3>结合当下的阅读</h3></div><p>关联期次和课程，提问也会呼应正在读的习惯。</p></article>
+      <article class="feature"><div class="feature-top"><div class="mark">信</div><h3>一周后来信</h3></div><p>写下想做的小行动，开启回访，一周后再问问自己。</p></article>
+      <article class="feature"><div class="feature-top"><div class="mark">寻</div><h3>随时找回记录</h3></div><p>按标题或内容搜索，随喜、觉察、打卡分类回看。</p></article>
+      <article class="feature"><div class="feature-top"><div class="mark">签</div><h3>日签与分享</h3></div><p>把行动做成日签，也可以分享日记或生成长图。</p></article>
+      <article class="feature"><div class="feature-top"><div class="mark">藏</div><h3>私密由你做主</h3></div><p>日记仅自己可见；主动分享单篇，也能随时停止。</p></article>
+    </div>
+  </section>
+
+  <section class="details" aria-label="贴心的小细节">
+    <h2>还有这些贴心的小细节</h2>
+    <div class="details-list"><span>草稿自动保存在本机</span><span>不想答的问题可跳过</span><span>阅读时长按摘录</span><span>上次关联一键沿用</span><span>长内容可展开、复制</span></div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-copy">
+      <strong>写下此刻，<br>慢慢遇见自己。</strong>
+      <p>打开凡人共读，<br>为每天留一点觉察的时间。</p>
+      <p class="sign">凡人共读 · 觉察日记</p>
+    </div>
+    <figure class="qr"><img src="poster-code.jpg" alt="凡人共读小程序码"><figcaption>长按识别 · 打开小程序</figcaption></figure>
+  </footer>
+</main>
+</body>
+</html>

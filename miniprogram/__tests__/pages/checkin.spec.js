@@ -555,6 +555,131 @@ describe('checkin page', () => {
     });
     expect(pageInstance.data.celebrationDay).toBe(0);
   });
+  describe('editor height follows its content (the editor has no auto-height)', () => {
+    let page;
+    let rects;
+    let originals;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      originals = { query: wx.createSelectorQuery, windowInfo: wx.getWindowInfo };
+      wx.getWindowInfo = jest.fn(() => ({ windowWidth: 375 }));
+      rects = [];
+      wx.createSelectorQuery = jest.fn(() => {
+        const query = {
+          in: () => query,
+          select: selector => {
+            query.selector = selector;
+            return query;
+          },
+          boundingClientRect: () => query,
+          exec: callback => callback([rects.shift() || null])
+        };
+        return query;
+      });
+      // 这里要用 setData 的回调（渲染完再去量），和别的用例里只合并数据的 setData 不同
+      page = {
+        ...pageInstance,
+        data: { ...pageInstance.data },
+        setData(update, callback) {
+          this.data = { ...this.data, ...update };
+          if (callback) callback();
+        }
+      };
+      page._editorCtx = { scrollIntoView: jest.fn() };
+    });
+
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+      wx.createSelectorQuery = originals.query;
+      if (originals.windowInfo) wx.getWindowInfo = originals.windowInfo;
+      else delete wx.getWindowInfo;
+    });
+
+    const type = (text, html = `<p>${text}</p>`) => page.handleRichTextInput({ detail: { text, html } });
+
+    test('long text: measures the hidden node after typing, sets the editor height in rpx and keeps the caret in view', () => {
+      rects.push({ height: 600 });
+      const text = '很长的一段内容\n'.repeat(30);
+      type(text, '<p>很长的一段内容</p>');
+
+      expect(page.data.editorHeight).toBe(360);
+      jest.advanceTimersByTime(80);
+
+      expect(wx.createSelectorQuery).toHaveBeenCalledTimes(1);
+      expect(wx.createSelectorQuery.mock.results[0].value.selector).toBe('#checkin-editor-measure');
+      expect(page.data.editorMeasureText).toBe(`${text.replace(/\n$/, '')}​`);
+      expect(page.data.editorHeight).toBe(1248); // 600px × 2 + 48
+      expect(page._editorCtx.scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    test('typing quickly only measures once, after the last input', () => {
+      rects.push({ height: 500 });
+      ['一', '一二', '一二三'].forEach(text => type(text));
+      jest.advanceTimersByTime(79);
+      expect(wx.createSelectorQuery).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(1);
+      expect(wx.createSelectorQuery).toHaveBeenCalledTimes(1);
+      expect(page.data.editorMeasureText).toBe('一二三​');
+    });
+
+    test('short content keeps the minimum height, and it shrinks again when text is deleted', () => {
+      rects.push({ height: 1000 });
+      type('长'.repeat(500), '<p>x</p>');
+      jest.advanceTimersByTime(80);
+      expect(page.data.editorHeight).toBe(2048);
+
+      rects.push({ height: 90 });
+      type('短');
+      jest.advanceTimersByTime(80);
+      expect(page.data.editorHeight).toBe(360);
+    });
+
+    test('headings add a little extra height', () => {
+      rects.push({ height: 600 });
+      type('标题\n内容', '<h2>标题</h2><p>内容</p>');
+      jest.advanceTimersByTime(80);
+      expect(page.data.editorHeight).toBe(1200 + 48 + 28);
+    });
+
+    test('restoring content (not typing) grows the editor but does not move the page to the caret', () => {
+      rects.push({ height: 600 });
+      page.setData({ diaryContent: '草稿里的内容', diaryContentHtml: '<p>草稿里的内容</p>' });
+      page._syncEditorHeight();
+      jest.advanceTimersByTime(80);
+      expect(page.data.editorHeight).toBe(1248);
+      expect(page._editorCtx.scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    test('a failed measurement leaves the height alone and does not move the page; no query API is fine too', () => {
+      type('内容'); // 没有量到（返回 null）
+      jest.advanceTimersByTime(80);
+      expect(page.data.editorHeight).toBe(360);
+      expect(page._editorCtx.scrollIntoView).not.toHaveBeenCalled();
+
+      wx.createSelectorQuery = undefined;
+      type('内容二');
+      expect(() => jest.advanceTimersByTime(80)).not.toThrow();
+      expect(page.data.editorHeight).toBe(360);
+    });
+
+    test('page wires the editor to the measured height, and the measuring view is invisible and out of the way', () => {
+      const wxml = fs.readFileSync(path.join(__dirname, '../../pages/checkin/checkin.wxml'), 'utf8');
+      const wxss = fs.readFileSync(path.join(__dirname, '../../pages/checkin/checkin.wxss'), 'utf8');
+      const editor = wxml.match(/<editor[\s\S]*?\/>/)[0];
+      expect(editor).toContain('id="checkin-rich-editor"');
+      expect(editor).toContain('style="height: {{editorHeight}}rpx;"');
+      expect(wxml).toContain('id="checkin-editor-measure"');
+      expect(wxml).toContain('{{editorMeasureText}}');
+      const rule = wxss.match(/\.rich-editor\.rich-editor-measure\s*\{[^}]*\}/)[0];
+      ['position: absolute', 'visibility: hidden', 'pointer-events: none', 'min-height: 0', 'height: auto', 'white-space: pre-wrap'].forEach(token =>
+        expect(rule).toContain(token)
+      );
+      expect(wxss).toMatch(/\.rich-editor-wrap\s*\{[^}]*position:\s*relative/);
+    });
+  });
+
   describe('mood weather, rank and daily card', () => {
     let presenceService;
     beforeEach(() => {
@@ -696,7 +821,7 @@ describe('checkin page', () => {
       expect(pageInstance.data.celebrationRank).toBe(0);
     });
 
-    test('jumps to the daily card with source, day and first sentence, stopping the auto close timer', () => {
+    test('jumps to the daily card with the first sentence as the main quote, stopping the auto close timer', () => {
       wx.redirectTo.mockClear();
       pageInstance._celebrationTimer = setTimeout(() => {}, 100000);
       pageInstance._lastSubmittedNote = '今天读完了。明天继续';
@@ -707,7 +832,8 @@ describe('checkin page', () => {
       expect(url).toContain('/pages/daily-card/daily-card?');
       expect(url).toContain(`source=${encodeURIComponent('第 3 天 · 第一课')}`);
       expect(url).toContain('day=3');
-      expect(url).toContain(`note=${encodeURIComponent('今天读完了')}`);
+      expect(url).toContain(`quote=${encodeURIComponent('今天读完了')}`);
+      expect(url).not.toContain('note=');
 
       wx.redirectTo.mockClear();
       pageInstance.setData({ celebrationDay: 0 });

@@ -26,6 +26,7 @@ jest.mock('../../services/subscribe-message.service', () => ({}));
 jest.mock('../../services/buddy.service', () => ({ react: jest.fn() }));
 jest.mock('../../services/seen-card.service', () => ({
   getSummary: jest.fn(() => Promise.resolve({})),
+  getCheckinSeen: jest.fn(() => Promise.resolve({})),
   sendSeen: jest.fn(),
   withdrawSeen: jest.fn()
 }));
@@ -1439,6 +1440,7 @@ describe('course-detail page markdown support', () => {
     beforeEach(() => {
       seenService = require('../../services/seen-card.service');
       seenService.getSummary = jest.fn();
+      seenService.getCheckinSeen = jest.fn();
       seenService.sendSeen = jest.fn().mockResolvedValue({});
       seenService.withdrawSeen = jest.fn().mockResolvedValue({});
       global.getApp = jest.fn(() => ({
@@ -1499,6 +1501,29 @@ describe('course-detail page markdown support', () => {
       expect(seenService.getSummary).not.toHaveBeenCalled();
     });
 
+    test('detail mode reloads owner seen detail after summary arrives', async () => {
+      pageInstance.data.isCheckinDetailMode = true;
+      pageInstance.data.shareCheckinId = 'c1';
+      pageInstance.data.communityAccessState = 'enabled';
+      pageInstance.data.course = {
+        comments: [{ id: 'c1', userId: 'user_fox', seenTotal: 0, seenMine: null }]
+      };
+      seenService.getSummary.mockResolvedValue({ c1: { total: 1, mine: null } });
+      seenService.getCheckinSeen.mockResolvedValue({
+        total: 1,
+        recent: [{ userId: 'u1', nickname: '王秀春', avatarUrl: '', phrase: 'touched' }]
+      });
+
+      await pageInstance.loadSeenSummary();
+
+      expect(seenService.getCheckinSeen).toHaveBeenCalledWith('c1');
+      expect(pageInstance.data.detailCheckin.seenReceived[0]).toMatchObject({
+        nickname: '王秀春',
+        phraseText: '这句话说到我心里了'
+      });
+      pageInstance.data.isCheckinDetailMode = false;
+    });
+
     test('send, switch and withdraw update total and mine; haptic only on send', async () => {
       const feedback = require('../../utils/feedback');
       const hapticSpy = jest.spyOn(feedback, 'haptic').mockImplementation(() => {});
@@ -1550,6 +1575,36 @@ describe('course-detail page markdown support', () => {
       const [c1, c2] = pageInstance.data.course.comments;
       expect(c1).toMatchObject({ seenTotal: 1, seenMine: 'persist' });
       expect(c2).toMatchObject({ seenTotal: 4, seenMine: 'thanks' });
+    });
+
+    test('loads received seen cards for the owner in checkin detail mode', async () => {
+      pageInstance.data.isCheckinDetailMode = true;
+      pageInstance.data.communityAccessState = 'enabled';
+      global.getApp = jest.fn(() => ({
+        globalData: { isLogin: true, userInfo: { _id: 'user_fox' } }
+      }));
+      pageInstance.data.course = {
+        comments: [{ id: 'c1', userId: 'user_fox', content: '我的打卡' }]
+      };
+      seenService.getCheckinSeen.mockResolvedValue({
+        total: 6,
+        recent: [
+          { userId: 'u1', nickname: '书友一', avatarUrl: '', phrase: 'persist' },
+          { userId: 'u2', nickname: '书友二', avatarUrl: '', phrase: 'thanks' }
+        ]
+      });
+
+      pageInstance.syncDetailCheckinState('c1');
+      await pageInstance.loadReceivedSeenDetail('c1');
+
+      expect(seenService.getCheckinSeen).toHaveBeenCalledWith('c1');
+      expect(pageInstance.data.course.comments[0].seenTotal).toBe(6);
+      expect(pageInstance.data.course.comments[0].seenReceived).toEqual([
+        expect.objectContaining({ nickname: '书友一', phraseText: '我看见你的坚持' }),
+        expect.objectContaining({ nickname: '书友二', phraseText: '谢谢你愿意说出来' })
+      ]);
+      expect(pageInstance.data.seenReceivedLoading).toBe(false);
+      pageInstance.data.isCheckinDetailMode = false;
     });
 
     test('failure keeps state and shows an inline hint; own checkin cannot open panel', async () => {

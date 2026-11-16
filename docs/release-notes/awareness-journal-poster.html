@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>觉察日记升级海报</title>
+<style>
+  /* 晨光纸页上的产品海报：一张随喜纸条，一间由夜渐亮的觉察静室。 */
+  :root {
+    --ground: #e9e1d3;
+    --paper: #fffdf8;
+    --page: #f8f3e9;
+    --ink: #2b2622;
+    --soft: #6b5d4d;
+    --muted: #968978;
+    --dawn: #ee9b45;
+    --dawn-ink: #98521d;
+    --night: #1c1815;
+    --night-text: #f3e9da;
+    --line: rgba(92, 70, 44, .15);
+    --serif: "Songti SC", STSong, "Noto Serif CJK SC", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --number: Georgia, serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { margin: 0; background: var(--ground); }
+  body {
+    margin: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 22px;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .poster { width: 720px; max-width: 100%; margin: 0 auto; overflow: hidden; background: var(--paper); box-shadow: 0 18px 60px rgba(70, 49, 29, .15); }
+  .hero { position: relative; overflow: hidden; padding: 36px 42px 42px; background: linear-gradient(165deg, #f8d5aa 0%, #fbe6ca 48%, #fbf2e3 100%); }
+  .hero::before { content: ""; position: absolute; width: 560px; height: 560px; right: -250px; top: -280px; border: 1px solid rgba(184, 99, 31, .15); border-radius: 50%; box-shadow: 0 0 0 55px rgba(255, 238, 208, .22), 0 0 0 110px rgba(255, 238, 208, .16); }
+  .brand-row { position: relative; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--dawn-ink); font-family: var(--serif); font-size: 17px; font-weight: 700; letter-spacing: .12em; }
+  .brand-seal, .mini-seal { display: inline-flex; align-items: center; justify-content: center; flex: none; font-family: var(--serif); font-weight: 700; }
+  .brand-seal { width: 32px; height: 32px; border: 1.5px solid rgba(152, 82, 29, .65); border-radius: 9px; font-size: 17px; transform: rotate(-4deg); }
+  .edition { color: var(--dawn-ink); font-size: 12px; letter-spacing: .15em; }
+  .hero-main { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 254px; align-items: center; gap: 10px; margin-top: 31px; }
+  .hero-copy { position: relative; z-index: 1; min-width: 0; padding-bottom: 5px; }
+  .upgrade { display: inline-flex; align-items: center; gap: 9px; color: var(--dawn-ink); font-size: 15px; font-weight: 600; }
+  .upgrade-arrow { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid rgba(152, 82, 29, .22); border-radius: 99px; background: rgba(255, 253, 248, .46); font-size: 11px; font-weight: 500; }
+  .hero h1 { margin: 16px 0 10px; font-family: var(--serif); font-size: 61px; line-height: 1.18; letter-spacing: .03em; font-weight: 700; white-space: nowrap; }
+  .hero-lead { margin: 0; color: #72451f; font-family: var(--serif); font-size: 22px; font-weight: 600; letter-spacing: .04em; }
+  .hero-note { max-width: 22em; margin: 15px 0 0; color: var(--soft); font-size: 14px; line-height: 1.85; }
+  .hero-art { position: relative; height: 244px; }
+  .demo-window { position: absolute; top: 0; right: 0; width: 232px; height: 207px; overflow: hidden; border: 1px solid rgba(255, 245, 229, .24); border-radius: 18px; background: linear-gradient(168deg, #1c1815 5%, #30231a 65%, #79502b 100%); box-shadow: 0 14px 28px rgba(76, 43, 19, .20); }
+  .demo-window::after { content: ""; position: absolute; left: -10%; right: -10%; bottom: -66px; height: 110px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(240, 168, 90, .58), transparent 70%); }
+  .demo-top { display: flex; align-items: center; gap: 5px; margin: 14px 15px 0; }
+  .demo-top i { width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 233, 207, .42); }
+  .demo-top span { margin-left: auto; color: rgba(255, 233, 207, .56); font-size: 9px; }
+  .demo-inner { position: relative; z-index: 1; padding: 18px 19px; }
+  .demo-eyebrow { color: #f2b16b; font-size: 10px; letter-spacing: .15em; }
+  .demo-question { margin: 9px 0 15px; color: var(--night-text); font-family: var(--serif); font-size: 18px; line-height: 1.6; }
+  .demo-cta { display: inline-block; padding: 6px 11px; border: 1px solid rgba(240, 168, 90, .55); border-radius: 99px; color: #ffd9a8; font-size: 10px; }
+  .demo-slip { position: absolute; z-index: 2; left: 0; bottom: 0; width: 183px; padding: 12px 13px 11px; border: 1px solid rgba(152, 82, 29, .14); border-left: 4px solid var(--dawn); border-radius: 5px 13px 13px 5px; background: var(--paper); box-shadow: 0 10px 22px rgba(84, 55, 28, .15); transform: rotate(-3deg); }
+  .demo-slip-label { color: var(--dawn-ink); font-size: 10px; font-weight: 600; }
+  .demo-slip-text { margin: 6px 0 0; color: #54483c; font-family: var(--serif); font-size: 13px; }
+  .content { padding: 37px 42px 0; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .section-head h2 { margin: 0; font-family: var(--serif); font-size: 25px; line-height: 1.4; }
+  .section-head span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .quick { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 15px; padding: 22px 23px; border: 1px solid rgba(184, 99, 31, .18); border-radius: 17px; background: linear-gradient(110deg, #fff9ec, #fffdf8); }
+  .mini-seal { width: 47px; height: 47px; border-radius: 14px; border: 1px solid rgba(184, 99, 31, .33); background: #fdf0dc; color: var(--dawn-ink); font-size: 23px; }
+  .quick h3, .feature h3 { margin: 0; font-family: var(--serif); font-weight: 700; }
+  .quick h3 { font-size: 21px; line-height: 1.35; }
+  .quick p { margin: 7px 0 0; color: var(--soft); font-size: 14px; line-height: 1.8; }
+  .quick-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  .quick-pills span { padding: 5px 10px; border-radius: 99px; background: #f7ead7; color: var(--dawn-ink); font-size: 11px; }
+  .aware { position: relative; overflow: hidden; margin-top: 13px; padding: 23px 24px 25px; border-radius: 17px; background: linear-gradient(145deg, #1c1815 0%, #2a211a 56%, #664022 100%); color: var(--night-text); }
+  .aware::after { content: ""; position: absolute; width: 400px; height: 170px; right: -80px; bottom: -112px; border-radius: 50%; background: radial-gradient(ellipse, rgba(240, 168, 90, .5), transparent 68%); pointer-events: none; }
+  .aware-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+  .aware-kicker { color: #efad67; font-size: 11px; font-weight: 600; letter-spacing: .13em; }
+  .aware h3 { margin: 7px 0 6px; font-family: var(--serif); font-size: 23px; line-height: 1.4; }
+  .aware-desc { margin: 0; color: #d1bfaa; font-size: 13px; line-height: 1.75; }
+  .aware-time { flex: none; margin-top: 1px; padding: 6px 10px; border: 1px solid rgba(240, 168, 90, .33); border-radius: 99px; color: #edc597; font-size: 11px; }
+  .steps { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 21px; padding-top: 19px; border-top: 1px solid rgba(243, 233, 218, .17); }
+  .step { min-width: 0; padding-left: 14px; border-left: 1px solid rgba(243, 233, 218, .16); }
+  .step:first-child { padding-left: 0; border-left: 0; }
+  .step b { display: block; color: #f4b773; font-family: var(--serif); font-size: 22px; font-weight: 600; line-height: 1; }
+  .step span { display: block; margin-top: 8px; color: #e1d3c0; font-size: 11.5px; line-height: 1.5; }
+  .aware-foot { position: relative; z-index: 1; margin: 18px 0 0; color: #c9b49b; font-size: 11.5px; line-height: 1.65; }
+  .little { margin-top: 40px; }
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 25px; }
+  .feature { display: grid; grid-template-columns: 37px minmax(0, 1fr); gap: 11px; align-content: start; min-width: 0; padding: 19px 0 18px; border-top: 1px solid var(--line); }
+  .feature-icon { display: flex; align-items: center; justify-content: center; width: 35px; height: 35px; border: 1px solid rgba(184, 99, 31, .18); border-radius: 11px; background: #fcf1e1; color: var(--dawn-ink); font-family: var(--serif); font-size: 16px; }
+  .feature h3 { margin: 1px 0 5px; font-size: 17px; line-height: 1.3; }
+  .feature p { margin: 0; color: var(--soft); font-size: 13px; line-height: 1.7; }
+  .privacy { display: flex; align-items: center; gap: 13px; margin: 16px 0 0; padding: 15px 17px; border-radius: 13px; background: #f6eee1; }
+  .privacy-icon { display: flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border: 1px solid rgba(152, 82, 29, .25); border-radius: 50%; color: var(--dawn-ink); font-family: var(--serif); font-size: 16px; }
+  .privacy strong { display: block; font-family: var(--serif); font-size: 15px; }
+  .privacy p { margin: 3px 0 0; color: var(--soft); font-size: 12px; line-height: 1.6; }
+  .footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 28px 42px 0; padding: 25px 0 33px; border-top: 1px solid var(--line); }
+  .footer-copy strong { display: block; font-family: var(--serif); font-size: 24px; line-height: 1.55; }
+  .footer-copy p { margin: 8px 0 0; color: var(--soft); font-size: 13px; line-height: 1.75; }
+  .footer-sign { margin-top: 14px; color: var(--muted); font-size: 11px; letter-spacing: .09em; }
+  .qr { flex: none; width: 112px; text-align: center; }
+  .qr img { display: block; width: 108px; height: 108px; max-width: 100%; padding: 4px; border: 1px solid var(--line); border-radius: 50%; background: #fff; }
+  .qr span { display: block; margin-top: 7px; color: var(--dawn-ink); font-size: 10px; }
+  @media (max-width: 600px) {
+    .hero { padding: 27px 22px 30px; }
+    .brand { font-size: 14px; }
+    .edition { font-size: 10px; }
+    .hero-main { grid-template-columns: minmax(0, 1fr) 140px; gap: 2px; margin-top: 28px; }
+    .upgrade { gap: 5px; font-size: 12px; }
+    .upgrade-arrow { padding: 4px 6px; font-size: 9px; }
+    .hero h1 { margin-top: 12px; font-size: clamp(31px, 8vw, 45px); }
+    .hero-lead { font-size: 16px; }
+    .hero-note { font-size: 11px; }
+    .hero-art { height: 175px; }
+    .demo-window { width: 137px; height: 146px; border-radius: 13px; }
+    .demo-top { margin: 10px 10px 0; }
+    .demo-inner { padding: 12px 11px; }
+    .demo-eyebrow { font-size: 8px; }
+    .demo-question { margin: 7px 0; font-size: 13px; }
+    .demo-cta { padding: 4px 7px; font-size: 8px; }
+    .demo-slip { width: 117px; padding: 8px; }
+    .demo-slip-label { font-size: 8px; }
+    .demo-slip-text { font-size: 10px; }
+    .content { padding: 28px 22px 0; }
+    .section-head h2 { font-size: 20px; }
+    .section-head span { font-size: 10px; }
+    .quick { grid-template-columns: 38px minmax(0, 1fr); gap: 10px; padding: 17px 15px; }
+    .mini-seal { width: 37px; height: 37px; border-radius: 11px; font-size: 19px; }
+    .quick h3 { font-size: 18px; }
+    .quick p { font-size: 12px; }
+    .quick-pills span { font-size: 10px; }
+    .aware { padding: 19px 17px 20px; }
+    .aware h3 { font-size: 19px; }
+    .aware-desc { font-size: 11px; }
+    .aware-time { font-size: 10px; }
+    .step { padding-left: 8px; }
+    .step b { font-size: 19px; }
+    .step span, .aware-foot { font-size: 10px; }
+    .little { margin-top: 31px; }
+    .feature-grid { column-gap: 15px; }
+    .feature { grid-template-columns: 30px minmax(0, 1fr); gap: 8px; }
+    .feature-icon { width: 29px; height: 29px; border-radius: 9px; font-size: 14px; }
+    .feature h3 { font-size: 14px; }
+    .feature p { font-size: 11px; }
+    .privacy strong { font-size: 14px; }
+    .privacy p { font-size: 11px; }
+    .footer { margin: 24px 22px 0; gap: 10px; }
+    .footer-copy strong { font-size: 19px; }
+    .footer-copy p { font-size: 11px; }
+    .qr { width: 90px; }
+    .qr img { width: 90px; height: 90px; }
+  }
+  @media (max-width: 370px) {
+    .hero-main { grid-template-columns: minmax(0, 1fr) 105px; }
+    .demo-window { width: 105px; }
+    .demo-slip { width: 100px; }
+    .demo-question { font-size: 11px; }
+    .hero h1 { font-size: 30px; }
+    .hero-lead { font-size: 14px; }
+    .section-head { align-items: flex-start; flex-direction: column; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<main class="poster" aria-label="随喜记升级为觉察日记的功能介绍海报">
+  <header class="hero">
+    <div class="brand-row">
+      <div class="brand"><span class="brand-seal">凡</span><span>凡人共读</span></div>
+      <span class="edition">写给每一天的自己</span>
+    </div>
+    <div class="hero-main">
+      <div class="hero-copy">
+        <div class="upgrade"><span>随喜记</span><span class="upgrade-arrow">升级为 <b>→</b></span></div>
+        <h1>觉察日记</h1>
+        <p class="hero-lead">拾起触动，也看见自己。</p>
+        <p class="hero-note">原来的随喜都还在。<br>现在，也有一处地方，陪你慢慢向内看。</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="demo-window">
+          <div class="demo-top"><i></i><i></i><i></i><span>觉察日记</span></div>
+          <div class="demo-inner"><div class="demo-eyebrow">觉察 · 向内看</div><div class="demo-question">今天有哪一刻，<br>想停下来看一看自己？</div><span class="demo-cta">坐下来看一看　›</span></div>
+        </div>
+        <div class="demo-slip"><div class="demo-slip-label">喜　随喜 · 随手记</div><p class="demo-slip-text">把此刻的触动记下来。</p></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+    <section aria-labelledby="ways-heading">
+      <div class="section-head"><h2 id="ways-heading">一快一慢，都是写给自己</h2><span>两种记录方式</span></div>
+      <article class="quick">
+        <div class="mini-seal">喜</div>
+        <div>
+          <h3>随喜 · 把触动随手记下</h3>
+          <p>首页点「记一句」，或在阅读时长按一段文字，随时留住此刻的想法。也可以从一句随喜，开始一次觉察。</p>
+          <div class="quick-pills"><span>首页记一句</span><span>阅读中随手记</span><span>原有随喜保留</span></div>
+        </div>
+      </article>
+      <article class="aware">
+        <div class="aware-top">
+          <div><div class="aware-kicker">觉察 · 向内看</div><h3>慢下来，看见自己的心</h3><p class="aware-desc">先跟着呼吸停一停，再一屏一问，慢慢写。</p></div>
+          <span class="aware-time">约 3 分钟</span>
+        </div>
+        <div class="steps">
+          <div class="step"><b>看</b><span>发生了什么</span></div>
+          <div class="step"><b>感</b><span>此刻的感受</span></div>
+          <div class="step"><b>问</b><span>再往心里问</span></div>
+          <div class="step"><b>择</b><span>想怎样回应</span></div>
+        </div>
+        <p class="aware-foot">问题可以结合所读的七个习惯，逐层深入、换一问；每一问都可以跳过。</p>
+      </article>
+    </section>
+
+    <section class="little" aria-labelledby="features-heading">
+      <div class="section-head"><h2 id="features-heading">还有这些贴心的小功能</h2><span>让每一次记录更自在</span></div>
+      <div class="feature-grid">
+        <article class="feature"><span class="feature-icon">信</span><div><h3>一周后，收到来信</h3><p>写下小行动并开启回访，一周后再问问自己「后来怎样了」。</p></div></article>
+        <article class="feature"><span class="feature-icon">续</span><div><h3>没写完，下次接着写</h3><p>中途离开也没关系，草稿会留在本机，回来可以继续。</p></div></article>
+        <article class="feature"><span class="feature-icon">寻</span><div><h3>想回看，轻松找到</h3><p>随喜、觉察、打卡分类查看；随喜和觉察支持搜索标题或内容。</p></div></article>
+        <article class="feature"><span class="feature-icon">彩</span><div><h3>给文字画上重点</h3><p>可以添加标题，用颜色、加粗和列表，让重要的字更醒目。</p></div></article>
+        <article class="feature"><span class="feature-icon">签</span><div><h3>把一句话做成日签</h3><p>喜欢的随喜，或觉察里写下的回应，都可以做成给自己的日签。</p></div></article>
+        <article class="feature"><span class="feature-icon">享</span><div><h3>愿意时，分享这一页</h3><p>发给微信好友，或生成长图；分享链接也可以随时停用。</p></div></article>
+      </div>
+      <div class="privacy"><span class="privacy-icon">私</span><div><strong>默认仅自己可见</strong><p>想分享时，再由你决定把哪一页分享出去。</p></div></div>
+    </section>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-copy"><strong>从一句触动开始，<br>慢慢走近自己。</strong><p>长按识别，打开「凡人共读」</p><div class="footer-sign">凡人共读 · 陪你把每一天读进生活</div></div>
+    <div class="qr"><img src="poster-code.jpg" alt="凡人共读小程序码"><span>长按识别 · 进入小程序</span></div>
+  </footer>
+</main>
+</body>
+</html>

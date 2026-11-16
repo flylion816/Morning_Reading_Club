@@ -663,10 +663,17 @@
 
 .cal-cell {
   width: 14.2857%;
-  height: 64rpx;
+  height: 82rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.cal-day-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7rpx;
 }
 
 .cal-day {
@@ -785,12 +792,9 @@
 }
 
 .cal-mood {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 16rpx;
+  display: block;
   line-height: 16rpx;
+  font-size: 16rpx;
   color: var(--app-text-muted);
 }
 

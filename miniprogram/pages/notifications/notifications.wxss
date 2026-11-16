@@ -182,6 +182,8 @@
 }
 
 .letter-quote {
+  display: -webkit-box;
+  overflow: hidden;
   margin-top: 10rpx;
   padding-left: 16rpx;
   border-left: 4rpx solid var(--app-dawn);
@@ -189,6 +191,8 @@
   font-family: var(--app-font-serif);
   font-size: 28rpx;
   line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .letter-btns {

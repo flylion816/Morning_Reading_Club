@@ -1,7 +1,11 @@
 {
-  "navigationBarTitleText": "随喜记",
+  "navigationBarTitleText": "觉察日记",
   "navigationBarBackgroundColor": "#fffdf8",
   "navigationBarTextStyle": "black",
   "backgroundColor": "#f6f1e7",
-  "enablePullDownRefresh": true
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "rich-input": "/components/rich-input/rich-input",
+    "joy-share": "/pages/joy-notes/components/joy-share/joy-share"
+  }
 }

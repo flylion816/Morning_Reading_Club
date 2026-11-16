@@ -39,7 +39,7 @@
         <view class="buddy-ghost">…</view>
       </view>
       <text class="buddy-title">正在等另一位想要读伴的书友</text>
-      <text class="buddy-sub">有人来了，你们会自动成为读伴。</text>
+      <text class="buddy-sub">想自己挑一位，可以点下面的「从本期学员里挑一位」。</text>
       <text wx:if="{{waitingCount > 0}}" class="buddy-hint">已经有 {{waitingCount}} 位书友在等</text>
       <text class="app-empty-action" bindtap="onCancel">先不找了</text>
     </view>

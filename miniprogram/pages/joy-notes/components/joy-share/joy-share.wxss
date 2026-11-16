@@ -1,0 +1,224 @@
+/* Version 3 dawn: 随喜 / 觉察的分享面板，暖纸底的底部面板。 */
+.js-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  display: flex;
+  align-items: flex-end;
+  background: var(--app-overlay, rgba(40, 30, 20, 0.5));
+}
+
+.js-sheet {
+  width: 100%;
+  max-height: 88vh;
+  box-sizing: border-box;
+  padding: 14rpx 32rpx calc(30rpx + env(safe-area-inset-bottom));
+  border-radius: 36rpx 36rpx 0 0;
+  background: var(--app-paper, #fffdf8);
+  box-shadow: 0 -12rpx 40rpx rgba(60, 42, 20, 0.14);
+}
+
+.js-grip {
+  width: 64rpx;
+  height: 8rpx;
+  margin: 0 auto 22rpx;
+  border-radius: 4rpx;
+  background: var(--app-rule, rgba(92, 70, 44, 0.14));
+}
+
+.js-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.js-title {
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 34rpx;
+  font-weight: 600;
+}
+
+.js-x {
+  padding: 0 10rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 46rpx;
+  line-height: 1;
+}
+
+.js-back {
+  color: var(--theme-primary, #3d6fa6);
+  font-size: 26rpx;
+}
+
+.js-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  padding: 90rpx 0;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 27rpx;
+}
+
+.js-error {
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.js-retry {
+  color: var(--theme-primary, #3d6fa6);
+}
+
+.js-notice {
+  display: block;
+  padding: 18rpx 22rpx;
+  border-radius: 18rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-size: 24rpx;
+  line-height: 1.7;
+}
+
+.js-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14rpx;
+  margin: 26rpx 0 8rpx;
+}
+
+.js-scope-k {
+  margin-right: 6rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 25rpx;
+}
+
+.js-scope-v {
+  color: var(--app-text, #2b2622);
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.js-pill {
+  padding: 8rpx 26rpx;
+  border: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.2));
+  border-radius: 999rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 24rpx;
+}
+
+.js-pill.on {
+  border-color: var(--app-dawn-deep, #b8631f);
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-weight: 600;
+}
+
+.js-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 28rpx;
+}
+
+.js-action {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  margin: 0;
+  padding: 28rpx 12rpx;
+  border: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.16));
+  border-radius: 24rpx;
+  background: var(--app-page-bg, #f6f1e7);
+  line-height: 1.3;
+}
+
+.js-action::after {
+  border: 0;
+}
+
+.js-action-ico {
+  color: var(--app-dawn-deep, #b8631f);
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.js-action-t {
+  color: var(--app-text, #2b2622);
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.js-action-s {
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 21rpx;
+  font-weight: 400;
+}
+
+.js-stop {
+  display: block;
+  margin-top: 30rpx;
+  color: #b3443a;
+  font-size: 25rpx;
+  text-align: center;
+}
+
+/* 长图预览 */
+.js-preview {
+  height: 62vh;
+  border-radius: 20rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+}
+
+.js-preview-img {
+  width: 100%;
+}
+
+.js-note {
+  display: block;
+  margin-top: 14rpx;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.js-poster-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 22rpx;
+}
+
+.js-btn {
+  flex: 1;
+  height: 84rpx;
+  margin: 0;
+  border-radius: 42rpx;
+  background: var(--app-dawn-deep, #b8631f);
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 650;
+  line-height: 84rpx;
+}
+
+.js-btn::after {
+  border: 0;
+}
+
+.js-btn-plain {
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+}
+
+/* 画长图用的画布，放在屏幕外 */
+.js-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 900px;
+  height: 1800px;
+  opacity: 0;
+  pointer-events: none;
+}

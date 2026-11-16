@@ -4,6 +4,11 @@ jest.mock('../../services/course.service.js', () => ({
   markReadingCompleted: jest.fn(() => Promise.resolve())
 }));
 
+jest.mock('../../pages/reading-mode/reading-share.service.js', () => ({
+  create: jest.fn(),
+  resolve: jest.fn()
+}));
+
 jest.mock('../../utils/period-access.js', () => ({
   extractId: jest.fn(value => value),
   getPeriodAccess: jest.fn(() =>
@@ -677,20 +682,33 @@ describe('reading-mode page', () => {
       expect(wx.navigateTo.mock.calls[0][0].url).toContain('quote=' + encodeURIComponent('丙'.repeat(120)));
     });
 
-    test('记一条随喜：带上这句话（最多 80 字）和当前期次、课程，跳去随喜记', () => {
+    test('记一条随喜：原地弹出速记条，带上这句话（最多 80 字）和当前期次、课程，不跳页面', () => {
       wx.navigateTo = jest.fn();
       pageInstance.data.periodId = 'p1';
       pageInstance.data.sectionId = 's1';
       pageInstance.data.periodName = '连接之力';
       pageInstance.data.course = { day: 2, title: '品德成功论' };
       pageInstance.openJoyNote({ text: '字'.repeat(100) });
-      const url = wx.navigateTo.mock.calls[0][0].url;
-      expect(url).toContain('/pages/joy-notes/joy-notes?periodId=p1&sectionId=s1');
-      expect(decodeURIComponent(url.split('source=')[1].split('&')[0])).toBe('连接之力 · 第 2 天 · 品德成功论');
-      expect(decodeURIComponent(url.split('quote=')[1])).toBe('字'.repeat(80));
+      expect(wx.navigateTo).not.toHaveBeenCalled();
+      expect(pageInstance.data).toMatchObject({
+        quickNoteVisible: true,
+        quickNotePeriodId: 'p1',
+        quickNoteSectionId: 's1',
+        quickNoteSource: '连接之力 · 第 2 天 · 品德成功论',
+        quickNoteQuote: '字'.repeat(80)
+      });
     });
 
-    test('长按菜单选「记一条随喜」才会跳转', () => {
+    test('速记条收起；保存后点「再记一句」重新打开，且不再带引用', () => {
+      pageInstance.openJoyNote({ text: '课文里的一句' });
+      pageInstance.closeQuickNote();
+      expect(pageInstance.data.quickNoteVisible).toBe(false);
+      pageInstance.reopenQuickNote();
+      expect(pageInstance.data.quickNoteVisible).toBe(true);
+      expect(pageInstance.data.quickNoteQuote).toBe('');
+    });
+
+    test('长按菜单选「记一条随喜」才会弹出速记条', () => {
       wx.navigateTo = jest.fn();
       pageInstance._highlightEnabled = true;
       pageInstance.openJoyNote = jest.fn();
@@ -739,6 +757,95 @@ describe('reading-mode page', () => {
       await pageInstance.loadHighlightMarks();
       expect(pageInstance._highlightEnabled).toBe(false);
       expect(pageInstance.data.paragraphs[1].mine).toBeUndefined();
+    });
+  });
+
+  describe('分享此刻：扫码定位到课文和段落', () => {
+    let shareService;
+    const prep = () => {
+      shareService = require('../../pages/reading-mode/reading-share.service.js');
+      pageInstance.initReadingCompletionSession = jest.fn();
+      pageInstance.applyFontSizeClass = jest.fn();
+      pageInstance.applyNavigationBarColor = jest.fn();
+      pageInstance.initCompanionFeatures = jest.fn();
+      pageInstance.scrollToParagraph = jest.fn();
+    };
+
+    test('从 scene 里解析短码，格式不对不当成短码', () => {
+      expect(pageInstance.parseShareCode({ scene: encodeURIComponent('k=abcd2345') })).toBe('abcd2345');
+      expect(pageInstance.parseShareCode({ scene: 'k=ABCD2345' })).toBe('abcd2345');
+      expect(pageInstance.parseShareCode({ scene: 'k=short' })).toBe('');
+      expect(pageInstance.parseShareCode({})).toBe('');
+    });
+
+    test('解析短码后，用分享里的课程和段落打开，并滚到那一段', async () => {
+      prep();
+      shareService.resolve.mockResolvedValue({
+        sectionId: 's9',
+        periodId: 'p9',
+        paragraphIndex: 1,
+        quote: '长',
+        sectionTitle: '知彼解己',
+        inviter: { _id: 'u1' }
+      });
+      courseService.getSectionDetail.mockResolvedValue({
+        content: ['短标题', '长'.repeat(40), '读'.repeat(40)].join('\n\n'),
+        periodId: 'p9'
+      });
+      pageInstance._shareCode = 'abcd2345';
+      pageInstance._targetParagraph = null;
+      pageInstance.data.sectionId = '';
+      await pageInstance.loadReadingContent();
+      expect(courseService.getSectionDetail).toHaveBeenCalledWith('s9', { suppressError: true });
+      expect(pageInstance.data.currentParagraphIndex).toBe(1);
+      expect(pageInstance.data.restoreScrollTop).toBe(0);
+    });
+
+    test('段落位置超出课文长度时落在最后一段', async () => {
+      prep();
+      courseService.getSectionDetail.mockResolvedValue({ content: ['甲', '乙'].join('\n\n'), periodId: 'p1' });
+      pageInstance.data.sectionId = 's1';
+      pageInstance._targetParagraph = 99;
+      await pageInstance.loadReadingContent();
+      expect(pageInstance.data.currentParagraphIndex).toBe(pageInstance.data.paragraphs.length - 1);
+    });
+
+    test('短码失效时提示，不去请求课文', async () => {
+      prep();
+      shareService.resolve.mockRejectedValue(new Error('404'));
+      pageInstance._shareCode = 'abcd2345';
+      await pageInstance.loadReadingContent();
+      expect(courseService.getSectionDetail).not.toHaveBeenCalled();
+      expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({ title: '这个分享已经失效了' }));
+    });
+
+    test('读不了这一课（还没报名）时，带着这一段去落地页', async () => {
+      prep();
+      shareService.resolve.mockResolvedValue({
+        sectionId: 's9',
+        periodId: 'p9',
+        paragraphIndex: 3,
+        quote: '先理解别人',
+        sectionTitle: '知彼解己',
+        day: 7,
+        inviter: { _id: '507f1f77bcf86cd799439011' }
+      });
+      courseService.getSectionDetail.mockRejectedValue(new Error('403'));
+      pageInstance._shareCode = 'abcd2345';
+      await pageInstance.loadReadingContent();
+      expect(wx.redirectTo).toHaveBeenCalledTimes(1);
+      const url = wx.redirectTo.mock.calls[0][0].url;
+      expect(url).toContain('/pages/landing/landing?');
+      expect(url).toContain('inviterId=507f1f77bcf86cd799439011');
+      expect(url).toContain(encodeURIComponent('先理解别人'));
+    });
+
+    test('没登录时不去生成专属码，海报用通用码', async () => {
+      prep();
+      pageInstance.data.sectionId = 's1';
+      wx.__storage = {};
+      expect(await pageInstance.fetchShareCodePath(2, '文字')).toBe('');
+      expect(shareService.create).not.toHaveBeenCalled();
     });
   });
 });

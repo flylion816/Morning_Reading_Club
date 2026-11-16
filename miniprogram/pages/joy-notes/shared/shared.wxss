@@ -1,0 +1,246 @@
+/* Version 3 dawn: 收到分享的一页，只读的暖纸视图。 */
+.sh {
+  min-height: 100vh;
+  padding: 34rpx 36rpx calc(70rpx + env(safe-area-inset-bottom));
+  background: var(--app-page-bg, #f6f1e7);
+  box-sizing: border-box;
+}
+
+.sh-loading {
+  padding-top: 20rpx;
+}
+
+.sh-skel {
+  height: 160rpx;
+  margin-bottom: 20rpx;
+}
+
+.sh-single {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  padding: 160rpx 20rpx;
+  text-align: center;
+}
+
+.sh-single-t {
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 40rpx;
+  font-weight: 600;
+}
+
+.sh-single-s {
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 26rpx;
+}
+
+.sh-head {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  margin-bottom: 30rpx;
+}
+
+.sh-head-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.sh-who {
+  color: var(--app-text, #2b2622);
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.sh-when {
+  overflow: hidden;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-owner {
+  display: block;
+  margin-bottom: 22rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 14rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-size: 23rpx;
+}
+
+.sh-title {
+  display: block;
+  margin-bottom: 26rpx;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 40rpx;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* 随喜：一张晨光纸条 */
+.sh-joy {
+  padding: 30rpx 32rpx;
+  border: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.14));
+  border-left: 8rpx solid var(--app-dawn, #ee9b45);
+  border-radius: 10rpx 24rpx 24rpx 10rpx;
+  background: var(--app-paper, #fffdf8);
+}
+
+.sh-joy-t {
+  display: block;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 33rpx;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.sh-rich {
+  display: block;
+}
+
+/* 觉察：和详情页同一条线，夜 → 晨 */
+.sh-jour {
+  position: relative;
+  padding-left: 46rpx;
+}
+
+.sh-jour::before {
+  content: '';
+  position: absolute;
+  left: 12rpx;
+  top: 12rpx;
+  bottom: 24rpx;
+  width: 8rpx;
+  border-radius: 4rpx;
+  background: linear-gradient(180deg, #1c1815 0%, #6a4322 48%, var(--app-dawn, #ee9b45) 82%, #f7d6a6 100%);
+}
+
+.sh-j {
+  position: relative;
+  margin-bottom: 30rpx;
+}
+
+.sh-j::before {
+  content: '';
+  position: absolute;
+  left: -42rpx;
+  top: 10rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border: 4rpx solid #6a4322;
+  border-radius: 50%;
+  background: var(--app-paper, #fffdf8);
+}
+
+.sh-jk {
+  display: block;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 22rpx;
+  letter-spacing: 0.1em;
+}
+
+.sh-jq {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.sh-jt {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 29rpx;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.sh-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.sh-chip {
+  padding: 2rpx 18rpx;
+  border-radius: 14rpx;
+  background: #efe9dd;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 24rpx;
+}
+
+.sh-body {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 24rpx;
+}
+
+.sh-choose::before {
+  border-color: var(--app-dawn, #ee9b45);
+  background: var(--app-dawn, #ee9b45);
+}
+
+.sh-choose .sh-jt {
+  padding: 14rpx 20rpx;
+  border-radius: 18rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-weight: 600;
+}
+
+.sh-later::before {
+  border-color: var(--app-dawn, #ee9b45);
+}
+
+.sh-later .sh-jk {
+  color: var(--app-dawn-deep, #b8631f);
+  font-weight: 600;
+}
+
+.sh-foot {
+  margin-top: 50rpx;
+  text-align: center;
+}
+
+.sh-foot-note {
+  display: block;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 23rpx;
+}
+
+.sh-foot-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 26rpx;
+}
+
+.sh-btn {
+  flex: 1;
+  padding: 22rpx 0;
+  border-radius: 40rpx;
+  background: var(--app-dawn-deep, #b8631f);
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 650;
+  text-align: center;
+}
+
+.sh-btn-plain {
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+}

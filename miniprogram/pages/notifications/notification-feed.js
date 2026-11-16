@@ -12,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const BUDDY_TYPES = ['buddy_nudge', 'buddy_highfive', 'buddy_gift', 'buddy_checkin', 'buddy_reaction', 'buddy_invite', 'buddy_invite_accepted', 'buddy_ended'];
 // 读伴一天里的小动静（轻拍、击掌、送一句、写打卡）：同一位读伴同一天合并成一条
 const BUDDY_DAY_TYPES = ['buddy_nudge', 'buddy_highfive', 'buddy_gift', 'buddy_checkin'];
-const NEEDS_REPLY_TYPES = ['request_created', 'comment_received'];
+const NEEDS_REPLY_TYPES = ['request_created', 'comment_received', 'awareness_revisit'];
 
 const dataOf = n => (n && n.data) || {};
 const nameOf = n => (n && n.senderName) || '一位书友';
@@ -70,7 +70,7 @@ function describe(n) {
     rest: '',
     quote: '',
     period: buddy ? periodFromTitle(n.title) : '',
-    warm: buddy,
+    warm: buddy || n.type === 'awareness_revisit',
     needsReply: n.type === 'buddy_invite' ? !['accepted', 'declined', 'cancelled', 'expired', 'gone'].includes(dataOf(n).inviteStatus) : n.type === 'request_created' ? ['pending', undefined, ''].includes(n.requestStatus) : NEEDS_REPLY_TYPES.includes(n.type),
     avatars: []
   };
@@ -101,10 +101,15 @@ function describe(n) {
       return person('请', ' 收回了你读 TA 小凡看见的权限');
     case 'seen_received':
       return person('见', ' 看见了你');
-    case 'insight_liked':
-      return person('赞', ' 给你的小凡看见点了赞');
+    case 'insight_liked': {
+      // 旧点赞通知的正文中也带了标题，接口无法补全时仍可展示。
+      const match = /为你的「([^」]*)」点了赞/.exec(String(n.content || ''));
+      const legacyTitle = match ? match[1] : '';
+      const label = data.insightLabel || (legacyTitle !== '小凡看见' ? legacyTitle : '');
+      return person('赞', ' 给你的小凡看见点了赞', label ? `对应：${label}` : '');
+    }
     case 'danmaku_received':
-      return person('评', ' 给你的小凡看见留了一句');
+      return person('评', ' 给你的小凡看见留了一句', data.insightLabel ? `对应：${data.insightLabel}` : '');
     case 'buddy_nudge': {
       const said = String(n.content || '');
       const quote = said.startsWith(name) ? said.slice(name.length).replace(/^说/, '') : said;
@@ -131,6 +136,9 @@ function describe(n) {
       return seal('享', '你分享的日签，有一位书友想来了，接待书友会和 TA 联系');
     case 'letter_delivered':
       return seal('信', '你写给今天的那封信，到了');
+    case 'awareness_revisit':
+      // 来自一周前的自己：来信本身不带笔记文字，「择」由页面凭记录 ID 单独读取
+      return { ...seal('觉', '来自一周前的自己：你想试试的那件事，后来怎么样了？'), warm: true };
     case 'enrollment_result':
     case 'payment_result':
       return seal('营', n.content || n.title || '');
@@ -266,6 +274,10 @@ function buildFeed(notifications = [], now = new Date()) {
       count: entry.members.length,
       day: dayLabel(first.createdAt, now),
       request,
+      // 觉察回访：可以直接写一句后来，或者先不写
+      revisit: first.type === 'awareness_revisit' && dataOf(first).joyNoteId
+        ? { noteId: String(dataOf(first).joyNoteId) }
+        : null,
       // 读伴邀请：可以直接在来信里同意 / 婉拒
       invite: first.type === 'buddy_invite' && dataOf(first).inviteId
         ? {

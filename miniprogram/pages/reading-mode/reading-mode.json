@@ -1,6 +1,8 @@
 {
   "navigationStyle": "custom",
   "enablePullDownRefresh": false,
-  "usingComponents": {},
+  "usingComponents": {
+    "quick-note": "/components/quick-note/quick-note"
+  },
   "navigationBarTextStyle": "black"
 }

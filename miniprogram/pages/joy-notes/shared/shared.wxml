@@ -1,0 +1,81 @@
+<view class="sh">
+  <view wx:if="{{loading}}" class="sh-loading">
+    <view class="app-skeleton sh-skel"></view>
+    <view class="app-skeleton sh-skel"></view>
+  </view>
+
+  <!-- 朋友圈单页模式：不能请求接口，只提示前往小程序 -->
+  <view wx:elif="{{singlePage}}" class="sh-single">
+    <view class="app-seal app-seal-dawn">记</view>
+    <text class="sh-single-t">书友分享了一页</text>
+    <text class="sh-single-s">点右下角「前往小程序」，登录后就能读到</text>
+  </view>
+
+  <block wx:elif="{{view}}">
+    <view class="sh-head">
+      <user-avatar
+        size="64"
+        avatar-url="{{view.author.avatarUrl}}"
+        avatar-text="{{view.author.nickname}}"
+        display-name="{{view.author.nickname}}"
+      />
+      <view class="sh-head-text">
+        <text class="sh-who">{{view.author.nickname}} {{view.kind === 'awareness' ? '分享了一页觉察' : '分享了一句随喜'}}</text>
+        <text class="sh-when">{{view.dateLabel}}{{view.sourceLabel ? ' · ' + view.sourceLabel : ''}}</text>
+      </view>
+    </view>
+
+    <text wx:if="{{view.isOwner}}" class="sh-owner">这是你分享出去的一页，只有你自己看得到这条提示</text>
+    <text wx:if="{{view.title}}" class="sh-title">{{view.title}}</text>
+
+    <!-- 随喜 -->
+    <view wx:if="{{view.kind === 'joy'}}" class="sh-joy">
+      <rich-text wx:if="{{view.contentNodes}}" class="sh-joy-t sh-rich" nodes="{{view.contentNodes}}" user-select></rich-text>
+      <text wx:else class="sh-joy-t" user-select>{{view.content}}</text>
+    </view>
+
+    <!-- 觉察：从夜到晨的一条线 -->
+    <view wx:else class="sh-jour">
+      <view wx:if="{{view.awareness.facts}}" class="sh-j">
+        <text class="sh-jk">看</text>
+        <rich-text wx:if="{{view.awareness.factsNodes}}" class="sh-jt sh-rich" nodes="{{view.awareness.factsNodes}}" user-select></rich-text>
+        <text wx:else class="sh-jt" user-select>{{view.awareness.facts}}</text>
+      </view>
+
+      <view wx:if="{{view.awareness.feelings.length || view.awareness.feelingNote || view.awareness.bodyText}}" class="sh-j">
+        <text class="sh-jk">感</text>
+        <view wx:if="{{view.awareness.feelings.length}}" class="sh-chips">
+          <text wx:for="{{view.awareness.feelings}}" wx:key="*this" class="sh-chip">{{item}}</text>
+        </view>
+        <text wx:if="{{view.awareness.feelingNote}}" class="sh-jt" user-select>{{view.awareness.feelingNote}}</text>
+        <text wx:if="{{view.awareness.bodyText}}" class="sh-body">身体：{{view.awareness.bodyText}}</text>
+      </view>
+
+      <view wx:for="{{view.awareness.asks}}" wx:key="label" class="sh-j">
+        <text class="sh-jk">问 · {{item.label}}</text>
+        <text class="sh-jq">{{item.question}}</text>
+        <rich-text wx:if="{{item.answerNodes}}" class="sh-jt sh-rich" nodes="{{item.answerNodes}}" user-select></rich-text>
+        <text wx:else class="sh-jt" user-select>{{item.answer}}</text>
+      </view>
+
+      <view wx:if="{{view.awareness.choice}}" class="sh-j sh-choose">
+        <text class="sh-jk">择</text>
+        <rich-text wx:if="{{view.awareness.choiceNodes}}" class="sh-jt sh-rich" nodes="{{view.awareness.choiceNodes}}" user-select></rich-text>
+        <text wx:else class="sh-jt" user-select>{{view.awareness.choice}}</text>
+      </view>
+
+      <view wx:for="{{view.awareness.followUps}}" wx:key="index" class="sh-j sh-later">
+        <text class="sh-jk">后来 · {{item.dateLabel}}</text>
+        <text class="sh-jt" user-select>{{item.content}}</text>
+      </view>
+    </view>
+
+    <view class="sh-foot">
+      <text class="sh-foot-note">这是书友自己愿意分享的一页，仅供阅读。</text>
+      <view class="sh-foot-actions">
+        <view class="sh-btn" bindtap="goWrite">我也来记一记</view>
+        <view class="sh-btn sh-btn-plain" bindtap="backHome">回到首页</view>
+      </view>
+    </view>
+  </block>
+</view>

@@ -14,7 +14,7 @@ const SLOGAN = '每天清晨，一起读一页书';
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 const DEFAULT_MINI_PROGRAM_CODE_SRC = '/assets/images/mini-program-code.jpg';
 const MINI_PROGRAM_CODE_SIZE = 116;
-const MINI_PROGRAM_CODE_CARD_SIZE = 140;
+const MINI_PROGRAM_CODE_SLOT_SIZE = 140;
 
 const FONTS = {
   serif: "'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif",
@@ -232,16 +232,16 @@ function computeDailyCardLayout(opts = {}) {
   }
 
   // 底部品牌
-  const footerH = showMiniProgramCode ? 168 : 140;
+  const footerH = showMiniProgramCode ? 192 : 168;
   const footerY = Math.max(y + 56, cfg.minH - footerH);
   const height = footerY + footerH;
   if (variant !== 'blank') {
     els.push({ type: 'rect', x, y: footerY, w: contentW, h: 2, fill: COLORS.rule });
   }
   els.push({ type: 'circle', cx: x + 7, cy: footerY + 42, r: 7, fill: primary });
-  const codeCardX = W - x - MINI_PROGRAM_CODE_CARD_SIZE;
+  const codeSlotX = W - x - MINI_PROGRAM_CODE_SLOT_SIZE;
   const brandTextWidth = showMiniProgramCode
-    ? codeCardX - x - 36
+    ? codeSlotX - x - 36
     : contentW - 26;
   els.push(text({
     x: x + 26, y: footerY + 42, w: brandTextWidth, h: 44, text: brandName, size: 30, weight: 'bold', color: COLORS.text
@@ -251,18 +251,9 @@ function computeDailyCardLayout(opts = {}) {
   }));
 
   if (showMiniProgramCode && miniProgramCodeSrc) {
-    els.push({
-      type: 'rect',
-      x: codeCardX,
-      y: footerY + 14,
-      w: MINI_PROGRAM_CODE_CARD_SIZE,
-      h: MINI_PROGRAM_CODE_CARD_SIZE,
-      fill: '#ffffff',
-      radius: 16
-    });
     els.push(miniProgramCode({
       src: miniProgramCodeSrc,
-      x: codeCardX + (MINI_PROGRAM_CODE_CARD_SIZE - MINI_PROGRAM_CODE_SIZE) / 2,
+      x: codeSlotX + (MINI_PROGRAM_CODE_SLOT_SIZE - MINI_PROGRAM_CODE_SIZE) / 2,
       y: footerY + 26
     }));
   }

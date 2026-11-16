@@ -228,7 +228,7 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(8, 15, 30, 0.76);
+  background: rgba(43, 38, 34, 0.62);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -278,7 +278,7 @@
 .poster-preview-wrap {
   height: 760rpx;
   border-radius: 24rpx;
-  background: var(--app-surface-muted);
+  background: #fdf0dc;
   overflow: hidden;
   box-shadow: inset 0 0 0 1rpx var(--app-border);
 }
@@ -299,7 +299,7 @@
   height: var(--app-action-height);
   line-height: var(--app-action-height);
   border-radius: var(--app-action-radius);
-  background: var(--theme-primary);
+  background: #b8631f;
   color: #ffffff;
   font-size: 28rpx;
   font-weight: 700;
@@ -310,13 +310,13 @@
 }
 
 .poster-btn-plain {
-  background: var(--app-page-bg);
-  color: var(--app-text-soft);
+  background: #f6f1e7;
+  color: #6b5d4d;
 }
 
 .poster-btn-ghost {
-  background: var(--theme-primary-tint);
-  color: var(--theme-primary-dark);
+  background: #fdf0dc;
+  color: #8a4b12;
 }
 
 .reading-poster-canvas {

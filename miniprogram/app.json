@@ -212,7 +212,10 @@
       "name": "joy-notes",
       "root": "pages/joy-notes",
       "pages": [
-        "joy-notes"
+        "joy-notes",
+        "awareness/awareness",
+        "detail/detail",
+        "shared/shared"
       ]
     },
     {

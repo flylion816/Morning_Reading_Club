@@ -7,7 +7,13 @@ const {
 const { getThemePrimaryColor } = require('../../utils/theme');
 const appDialog = require('../../utils/dialog');
 const { buildLandingPath, buildLandingQuery } = require('../../utils/landing-share');
-const { hasToken } = require('../landing/silent-login');
+const { tenantStorage } = require('../../utils/storage');
+const constants = require('../../config/constants');
+
+// 是否已登录（与 utils/auth-token 同义；内联在这里，避免主包里出现只给分包用的文件）
+function hasToken() {
+  return Boolean(tenantStorage.get(constants.STORAGE_KEYS.TOKEN));
+}
 const newcomerLeadService = require('../../services/newcomer-lead.service');
 const {
   FONTS,

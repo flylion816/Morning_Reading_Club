@@ -39,7 +39,8 @@ const notificationSchema = new mongoose.Schema(
         'buddy_invite_accepted', // 读伴：邀请被同意
         'buddy_ended', // 读伴：这一段结束了
         'newcomer_shared', // 你分享的日签，有新书友留言了
-        'newcomer_lead' // 新书友留言：通知接待组
+        'newcomer_lead', // 新书友留言：通知接待组
+        'awareness_revisit' // 觉察日记：一周后的回访
       ],
       required: true
     },
@@ -112,13 +113,16 @@ const notificationSchema = new mongoose.Schema(
       letterId: String,
       insightRequestId: String,
       insightId: String,
+      insightLabel: String, // 小凡看见所属的期次、课次和标题
       danmakuId: String,
       // 来信页用到：发送人是不是收件人的读伴、课节名、评论原话、读伴邀请 ID
       // （data 是固定字段清单，不在清单里的字段保存时会被丢掉）
       fromBuddy: Boolean,
       sectionTitle: String,
       commentPreview: String,
-      inviteId: String
+      inviteId: String,
+      // 觉察回访来信：只带记录 ID，笔记文字不进入通知
+      joyNoteId: String
     },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,

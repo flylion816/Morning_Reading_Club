@@ -3,7 +3,8 @@
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {
-    "activity-popup": "/components/activity-popup/activity-popup"
+    "activity-popup": "/components/activity-popup/activity-popup",
+    "quick-note": "/components/quick-note/quick-note"
   },
   "navigationBarBackgroundColor": "#fffdf8",
   "navigationBarTextStyle": "black"

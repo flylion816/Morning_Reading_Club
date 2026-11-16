@@ -1,0 +1,299 @@
+/* Version 3 dawn: 觉察详情，一条从夜到晨的时间线。 */
+.dt {
+  min-height: 100vh;
+  padding: 34rpx 36rpx calc(80rpx + env(safe-area-inset-bottom));
+  background: var(--app-page-bg, #f6f1e7);
+  box-sizing: border-box;
+}
+
+.dt-loading {
+  padding-top: 20rpx;
+}
+
+.dt-skel {
+  height: 160rpx;
+  margin-bottom: 20rpx;
+}
+
+.dt-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  padding: 140rpx 20rpx;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 27rpx;
+}
+
+.dt-link {
+  color: var(--theme-primary, #3d6fa6);
+}
+
+.dt-head {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 36rpx;
+}
+
+.dt-head-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.dt-date {
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.dt-src {
+  overflow: hidden;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-more {
+  padding: 0 10rpx;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 40rpx;
+  line-height: 1;
+}
+
+/* 左边那条线：夜 → 晨 */
+.dt-jour {
+  position: relative;
+  padding-left: 46rpx;
+}
+
+.dt-jour::before {
+  content: '';
+  position: absolute;
+  left: 12rpx;
+  top: 12rpx;
+  bottom: 24rpx;
+  width: 8rpx;
+  border-radius: 4rpx;
+  background: linear-gradient(180deg, #1c1815 0%, #6a4322 48%, var(--app-dawn, #ee9b45) 82%, #f7d6a6 100%);
+}
+
+.dt-j {
+  position: relative;
+  margin-bottom: 30rpx;
+}
+
+.dt-j::before {
+  content: '';
+  position: absolute;
+  left: -42rpx;
+  top: 10rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border: 4rpx solid #6a4322;
+  border-radius: 50%;
+  background: var(--app-paper, #fffdf8);
+}
+
+.dt-jk {
+  display: block;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 22rpx;
+  letter-spacing: 0.1em;
+}
+
+.dt-jq {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.dt-jt {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 29rpx;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.dt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.dt-chip {
+  padding: 2rpx 18rpx;
+  border-radius: 14rpx;
+  background: #efe9dd;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 24rpx;
+}
+
+.dt-body {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--app-text-soft, #6b5d4d);
+  font-size: 24rpx;
+}
+
+.dt-choose::before {
+  border-color: var(--app-dawn, #ee9b45);
+  background: var(--app-dawn, #ee9b45);
+}
+
+.dt-choose .dt-jt {
+  padding: 14rpx 20rpx;
+  border-radius: 18rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-weight: 600;
+}
+
+.dt-later::before {
+  border-color: var(--app-dawn, #ee9b45);
+}
+
+.dt-later .dt-jk {
+  color: var(--app-dawn-deep, #b8631f);
+  font-weight: 600;
+}
+
+.dt-revisit {
+  display: block;
+  margin: 4rpx 0 24rpx 46rpx;
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 23rpx;
+}
+
+.dt-add {
+  display: inline-flex;
+  margin-left: 46rpx;
+  padding: 12rpx 28rpx;
+  border: 1rpx dashed rgba(184, 99, 31, 0.5);
+  border-radius: 30rpx;
+  color: var(--app-dawn-deep, #b8631f);
+  font-size: 25rpx;
+}
+
+.dt-fu {
+  margin: 8rpx 0 0 46rpx;
+  padding: 22rpx 24rpx;
+  border: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.14));
+  border-radius: 24rpx;
+  background: var(--app-paper, #fffdf8);
+}
+
+.dt-fu-input {
+  width: 100%;
+  min-height: 130rpx;
+  box-sizing: border-box;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 29rpx;
+  line-height: 1.7;
+}
+
+.dt-ph {
+  color: #a79b8b;
+}
+
+.dt-fu-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.14));
+}
+
+.dt-fu-cancel {
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 25rpx;
+}
+
+.dt-fu-save {
+  min-height: 64rpx;
+  margin: 0;
+  padding: 0 32rpx;
+  font-size: 25rpx;
+}
+
+.dt-fu-save::after {
+  border: 0;
+}
+
+.dt-fu-save[disabled] {
+  background: #ddd8cf;
+  color: #8b8174;
+  box-shadow: none;
+}
+
+/* 标题和改标题 */
+.dt-title {
+  display: block;
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 36rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.dt-date-sub {
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 24rpx;
+  font-weight: 400;
+}
+
+.dt-rename {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin: -10rpx 0 30rpx;
+}
+
+.dt-rename-input {
+  min-width: 0;
+  flex: 1;
+  height: 76rpx;
+  border-bottom: 1rpx solid var(--app-rule, rgba(92, 70, 44, 0.3));
+  color: var(--app-text, #2b2622);
+  font-family: var(--app-font-serif, serif);
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.dt-rename-cancel {
+  color: var(--app-text-muted, #9a8d7b);
+  font-size: 25rpx;
+}
+
+.dt-rename-save {
+  color: var(--theme-primary, #3d6fa6);
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+/* 带格式的内容用 rich-text 展示，字号、行高沿用正文 */
+.dt-rich {
+  display: block;
+}
+
+.dt-share {
+  padding: 8rpx 22rpx;
+  border-radius: 30rpx;
+  background: var(--app-dawn-soft, #fdf0dc);
+  color: var(--app-dawn-ink, #8a4b12);
+  font-size: 25rpx;
+  font-weight: 600;
+}

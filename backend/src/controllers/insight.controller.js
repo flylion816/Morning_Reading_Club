@@ -7,6 +7,8 @@ const Enrollment = require('../models/Enrollment');
 const Period = require('../models/Period');
 const Section = require('../models/Section');
 const { success, errors } = require('../utils/response');
+const { canViewCheckin } = require('../utils/checkinVisibility');
+const { formatInsightNotificationLabel } = require('../utils/insight-notification');
 const { createNotification, createNotifications } = require('./notification.controller');
 const logger = require('../utils/logger');
 const { publishSyncEvent } = require('../services/sync.service');
@@ -520,6 +522,7 @@ async function notifyInsightLiked(req, { insight, actorUser, insightId }) {
       senderId: actorUser?._id,
       data: {
         insightId: insightId.toString(),
+        insightLabel: formatInsightNotificationLabel(insight),
         senderName: actorUser?.nickname || '',
         senderAvatar: actorUser?.avatarUrl || ''
       },
@@ -547,6 +550,7 @@ async function notifyInsightDanmaku(req, { insight, danmaku, actorUser, insightI
       senderId: actorUser?._id,
       data: {
         insightId: insightId.toString(),
+        insightLabel: formatInsightNotificationLabel(insight),
         danmakuId: danmaku._id.toString(),
         senderName: actorUser?.nickname || ''
       },
@@ -722,7 +726,7 @@ async function generateInsight(req, res, next) {
     // 验证打卡存在
     const checkin = await Checkin.findById(checkinId).populate('sectionId', 'title day');
 
-    if (!checkin) {
+    if (!checkin || !canViewCheckin(checkin, userId)) {
       return res.status(404).json(errors.notFound('打卡记录不存在'));
     }
 

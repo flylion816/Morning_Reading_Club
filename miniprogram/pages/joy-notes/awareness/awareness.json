@@ -1,0 +1,12 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#171412",
+  "backgroundColorTop": "#171412",
+  "backgroundColorBottom": "#171412",
+  "disableScroll": true,
+  "usingComponents": {
+    "rich-input": "/components/rich-input/rich-input",
+    "joy-share": "/pages/joy-notes/components/joy-share/joy-share"
+  }
+}

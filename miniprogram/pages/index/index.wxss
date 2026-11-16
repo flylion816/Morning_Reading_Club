@@ -3395,6 +3395,13 @@ button.avatar-action-button::after {
   text-underline-offset: 6rpx;
 }
 
+/* 「记一句」：和其他链接同一行，用晨光色轻轻提示，不抢主按钮 */
+.dawn-card-task .dawn-link-note {
+  color: var(--app-dawn-ink, #8a4b12);
+  text-decoration: none;
+  font-weight: 600;
+}
+
 .dawn-card-empty .dawn-empty-body {
   margin-bottom: 28rpx;
 }

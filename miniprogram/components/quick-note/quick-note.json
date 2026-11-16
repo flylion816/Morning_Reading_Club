@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "rich-input": "/components/rich-input/rich-input"
+  }
+}

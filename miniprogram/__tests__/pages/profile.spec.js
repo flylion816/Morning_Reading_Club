@@ -126,7 +126,7 @@ describe('profile page', () => {
     });
   });
 
-  test('随喜记备用入口不依赖当前期次或付费状态', () => {
+  test('觉察日记（原随喜记）备用入口不依赖当前期次或付费状态', () => {
     pageInstance.data.canUsePaidFeatures = false;
     pageInstance.goToJoyNotes.call(pageInstance);
     expect(wx.navigateTo).toHaveBeenCalledWith({ url: '/pages/joy-notes/joy-notes' });
@@ -246,7 +246,7 @@ describe('profile page', () => {
       '编辑资料',
       '消息通知',
       '消息提醒设置',
-      '>随喜记<',
+      '>觉察日记<',
       '>摘抄本<',
       '>被看见<',
       '>打卡日记<',

@@ -6,6 +6,11 @@ const authService = require('../../services/auth.service');
 const { tenantStorage } = require('../../utils/storage');
 const constants = require('../../config/constants');
 
+// 是否已登录（与 utils/auth-token 同义；内联在这里，避免主包里出现只给分包用的文件）
+function hasToken() {
+  return Boolean(tenantStorage.get(constants.STORAGE_KEYS.TOKEN));
+}
+
 const DEFAULT_WECHAT_USER_INFO = {
   nickName: '微信用户',
   avatarUrl: '',
@@ -13,10 +18,6 @@ const DEFAULT_WECHAT_USER_INFO = {
 };
 
 let pendingLogin = null;
-
-function hasToken() {
-  return Boolean(tenantStorage.get(constants.STORAGE_KEYS.TOKEN));
-}
 
 async function ensureLoggedIn() {
   if (hasToken()) return false;

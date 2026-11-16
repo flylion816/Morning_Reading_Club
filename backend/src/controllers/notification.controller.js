@@ -1,5 +1,8 @@
+const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
+const Insight = require("../models/Insight");
 const User = require("../models/User");
+const { formatInsightNotificationLabel } = require("../utils/insight-notification");
 const { success, errors } = require("../utils/response");
 const logger = require("../utils/logger");
 const { publishSyncEvent } = require("../services/sync.service");
@@ -105,6 +108,38 @@ async function getUserNotifications(req, res, next) {
     let responseNotifications = notifications.map(
       decorateNotificationForResponse,
     );
+
+    // 旧通知只保存了 insightId，批量读取收件人自己的看见，补上期次和课次。
+    // 只丰富响应，不回写历史通知；查不到或查询失败时保留原有通知。
+    try {
+      const insightIds = [...new Set(responseNotifications
+        .filter((item) => ["insight_liked", "danmaku_received"].includes(item.type))
+        .map((item) => item.data?.insightId)
+        .filter((id) => id && mongoose.isValidObjectId(id))
+        .map((id) => String(id)))];
+      if (insightIds.length) {
+        const insights = await Insight.find({
+          _id: { $in: insightIds },
+          targetUserId: userId,
+        })
+          .select("periodName periodId sectionId title day summary content")
+          .populate("periodId", "name title")
+          .populate("sectionId", "title day")
+          .lean();
+        const labels = new Map(insights.map((insight) => [
+          String(insight._id),
+          formatInsightNotificationLabel(insight, { includePreview: true }),
+        ]));
+        responseNotifications = responseNotifications.map((item) => {
+          const label = ["insight_liked", "danmaku_received"].includes(item.type)
+            ? labels.get(String(item.data?.insightId || ""))
+            : "";
+          return label ? { ...item, data: { ...item.data, insightLabel: label } } : item;
+        });
+      }
+    } catch (insightError) {
+      logger.warn("小凡看见通知信息查询失败", { message: insightError?.message });
+    }
 
     // 读伴邀请：带上邀请现在的状态（已同意 / 已婉拒 / 已撤回），来信里据此显示
     try {
@@ -400,6 +435,10 @@ function buildNotificationUpsertQuery(userId, type, options = {}, data = {}) {
 
   if (data.letterId) {
     alternatives.push({ "data.letterId": data.letterId.toString() });
+  }
+
+  if (data.joyNoteId) {
+    alternatives.push({ "data.joyNoteId": data.joyNoteId.toString() });
   }
 
   if (alternatives.length === 0) {

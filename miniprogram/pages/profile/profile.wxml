@@ -52,8 +52,10 @@
       <view class="cal-grid">
         <text class="cal-week" wx:for="{{weekLabels}}" wx:key="*this">{{item}}</text>
         <view class="cal-cell" wx:for="{{calendarCells}}" wx:key="key">
-          <text wx:if="{{item.state !== 'blank'}}" class="cal-day cal-day-{{item.state}} {{item.state === 'today' && item.checked ? 'cal-day-today-checked' : ''}}">{{item.day}}</text>
-          <text wx:if="{{item.mood}}" class="cal-mood cal-mood-{{item.mood}}">{{item.moodName}}</text>
+          <view class="cal-day-wrap">
+            <text wx:if="{{item.state !== 'blank'}}" class="cal-day cal-day-{{item.state}} {{item.state === 'today' && item.checked ? 'cal-day-today-checked' : ''}}">{{item.day}}</text>
+            <text wx:if="{{item.mood}}" class="cal-mood cal-mood-{{item.mood}}">{{item.moodName}}</text>
+          </view>
         </view>
       </view>
       <view wx:if="{{moodLegend.length}}" class="cal-legend">
@@ -157,7 +159,7 @@
       <view class="settings-cell" bindtap="goToJoyNotes">
         <view class="cell-left">
           <view class="app-icon app-icon-edit ln-ico"></view>
-          <text class="cell-label">随喜记</text>
+          <text class="cell-label">觉察日记</text>
         </view>
         <view class="cell-right">
           <view class="app-icon app-icon-chevron cell-arrow"></view>

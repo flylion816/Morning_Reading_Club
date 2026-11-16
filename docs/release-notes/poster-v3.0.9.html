@@ -1,0 +1,145 @@
+<title>凡人共读发布通告</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 布局：竖版长海报。晨光天空里是标题和三个数字，下面五张大功能，再下面按板块排开所有小改动，右下角是进首页的小程序码。
+   配色取自小程序的晨光规范。 */
+:root {
+  --page: #efe8da; --paper: #fffdf8; --sky: #fbe3c3; --sky-2: #fdf0dc;
+  --ink: #2b2622; --soft: #62584d; --muted: #8a7f72;
+  --dawn: #ee9b45; --dawn-deep: #b8631f; --dawn-ink: #8a4b12; --blue: #3d6fa6;
+  --rule: rgba(92, 70, 44, 0.16);
+  --serif: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Times New Roman', serif;
+  --num: Georgia, 'Times New Roman', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--sans); }
+body {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px; -webkit-font-smoothing: antialiased;
+}
+.poster { max-width: 640px; margin: 0 auto; background: var(--paper); border-radius: 30px; overflow: hidden; box-shadow: 0 26px 64px rgba(84, 60, 30, 0.16); }
+
+.sky {
+  position: relative; overflow: hidden; padding: 40px 34px 0;
+  background: radial-gradient(circle at 50% 108%, rgba(255, 190, 110, 0.85), rgba(255, 190, 110, 0) 300px), linear-gradient(180deg, #f8d5a8 0%, var(--sky) 38%, var(--sky-2) 100%);
+}
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand-left { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 17px; letter-spacing: 0.1em; color: var(--dawn-ink); }
+.seal { width: 34px; height: 34px; border-radius: 10px; border: 1.5px solid rgba(184, 99, 31, 0.5); display: flex; align-items: center; justify-content: center; font-size: 18px; transform: rotate(-4deg); }
+.ver { padding: 5px 14px; border-radius: 99px; background: var(--dawn-deep); color: #fff; font-family: var(--num); font-size: 15px; letter-spacing: 0.06em; }
+.kicker { margin: 38px 0 0; font-size: 14px; letter-spacing: 0.32em; color: var(--dawn-ink); }
+.title { margin: 8px 0 0; font-family: var(--serif); font-weight: 700; font-size: 52px; line-height: 1.2; letter-spacing: 0.03em; text-wrap: balance; }
+.title em { font-style: normal; color: var(--dawn-deep); }
+.lead { margin: 18px 0 0; max-width: 26em; font-size: 16px; line-height: 1.85; color: var(--soft); }
+.nums { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 30px 0 0; }
+.nums div { padding: 16px 8px 14px; border-radius: 18px; background: rgba(255, 253, 248, 0.82); border: 1px solid rgba(184, 99, 31, 0.16); text-align: center; }
+.nums b { display: block; font-family: var(--num); font-weight: 400; font-size: 38px; line-height: 1.05; color: var(--dawn-deep); }
+.nums span { display: block; margin-top: 4px; font-size: 13px; color: var(--soft); }
+.horizon { position: relative; height: 96px; margin: 26px -34px 0; }
+.horizon::before { content: ''; position: absolute; left: 50%; bottom: -92px; width: 184px; height: 184px; margin-left: -92px; border-radius: 50%; background: #f99f3b; box-shadow: 0 0 0 26px rgba(251, 208, 143, 0.6), 0 0 0 58px rgba(251, 208, 143, 0.28); }
+.horizon::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30px; background: var(--paper); border-radius: 30px 30px 0 0; }
+
+.sec { display: flex; align-items: center; gap: 14px; margin: 0; padding: 14px 34px 0; font-family: var(--serif); font-size: 20px; color: var(--dawn-ink); }
+.sec::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+.sec small { font-family: var(--sans); font-size: 13px; color: var(--muted); }
+
+.features { padding: 18px 34px 6px; display: grid; gap: 14px; }
+.feature { display: grid; grid-template-columns: 58px 1fr; gap: 16px; padding: 18px; border-radius: 20px; border: 1px solid var(--rule); background: var(--paper); }
+.feature:first-child { background: var(--sky-2); border-color: rgba(184, 99, 31, 0.22); }
+.mark { width: 58px; height: 58px; border-radius: 18px; background: var(--sky-2); border: 1px solid rgba(184, 99, 31, 0.25); color: var(--dawn-ink); font-family: var(--serif); font-size: 27px; display: flex; align-items: center; justify-content: center; }
+.feature:first-child .mark { background: var(--dawn); border-color: var(--dawn); color: #fff; }
+.body { min-width: 0; }
+.feature h2 { margin: 2px 0 6px; font-family: var(--serif); font-size: 21px; font-weight: 700; line-height: 1.4; }
+.feature p { margin: 0; font-size: 14.5px; line-height: 1.75; color: var(--soft); }
+.tag { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 99px; background: var(--dawn-deep); color: #fff; font-family: var(--sans); font-size: 12px; font-weight: 600; vertical-align: 3px; }
+
+.groups { padding: 18px 34px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.group { min-width: 0; padding: 16px 16px 14px; border-radius: 18px; background: var(--sky-2); }
+.group h3 { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 8px; font-family: var(--serif); font-size: 17px; color: var(--dawn-ink); }
+.group h3 span { font-family: var(--num); font-size: 20px; color: var(--dawn-deep); }
+.group ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.group li { position: relative; padding-left: 14px; font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+.group li::before { content: ''; position: absolute; left: 1px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--dawn); }
+
+.foot { margin: 28px 34px 0; padding: 24px 0 26px; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
+.foot-copy { min-width: 0; }
+.foot strong { display: block; font-family: var(--serif); font-size: 24px; line-height: 1.4; }
+.foot p { margin: 8px 0 0; font-size: 14px; line-height: 1.8; color: var(--soft); }
+.sign { margin-top: 12px; font-size: 12.5px; letter-spacing: 0.06em; color: var(--muted); }
+.qr { width: 132px; text-align: center; }
+.qr img { display: block; width: 132px; height: 132px; border-radius: 50%; background: #fff; padding: 6px; box-shadow: 0 0 0 1px var(--rule), 0 8px 20px rgba(84, 60, 30, 0.12); }
+.qr span { display: block; margin-top: 8px; font-size: 12.5px; color: var(--dawn-ink); }
+
+@media (max-width: 460px) {
+  .sky { padding: 32px 22px 0; } .horizon { margin: 22px -22px 0; }
+  .title { font-size: 40px; }
+  .sec, .features, .groups { padding-left: 22px; padding-right: 22px; }
+  .groups { grid-template-columns: 1fr; }
+  .foot { margin-left: 22px; margin-right: 22px; }
+  .qr, .qr img { width: 108px; } .qr img { height: 108px; }
+}
+</style>
+
+<main class="poster">
+  <header class="sky">
+    <div class="brand">
+      <div class="brand-left"><span class="seal">凡</span><span>凡人共读</span></div>
+      <span class="ver">V3.0.9</span>
+    </div>
+    <p class="kicker">2026 · 十一月</p>
+    <h1 class="title">凡人共读<br><em>发布通告</em></h1>
+    <p class="lead">这一版，我们把「人」放到了前面。读书这件事，有人同行，有人回应，也有地方把触动留下来。</p>
+    <div class="nums">
+      <div><b>5</b><span>项大功能</span></div>
+      <div><b>38</b><span>处细节打磨</span></div>
+      <div><b>6</b><span>个板块更新</span></div>
+    </div>
+    <div class="horizon" aria-hidden="true"></div>
+  </header>
+
+  <h2 class="sec">五项大功能</h2>
+  <section class="features">
+    <article class="feature">
+      <div class="mark">伴</div>
+      <div class="body"><h2>读伴，同行一段路<span class="tag">重做</span></h2><p>同行卡上看见 TA 今天读没读；轻拍、击掌、送一句，每天一点点的陪伴。两个人都读完时，中间的连线会亮起来。</p></div>
+    </article>
+    <article class="feature">
+      <div class="mark">邀</div>
+      <div class="body"><h2>自己挑一位读伴<span class="tag">全新</span></h2><p>从本期学员里挑一位发出邀请，对方同意才结成。最近读过的人排在前面，不想被邀请也可以关掉。</p></div>
+    </article>
+    <article class="feature">
+      <div class="mark">信</div>
+      <div class="body"><h2>来信，书友写给你的话<span class="tag">全新</span></h2><p>「通知」改名「来信」。谁想到了你，一眼可见；想看小凡看见，直接在来信里同意或婉拒。</p></div>
+    </article>
+    <article class="feature">
+      <div class="mark">记</div>
+      <div class="body"><h2>随喜记，把触动随手记下<span class="tag">升级</span></h2><p>沉静阅读里长按一段，选「记一条随喜」，这句话和课程自动带上。能搜索，也能一键做成日签。</p></div>
+    </article>
+    <article class="feature">
+      <div class="mark">签</div>
+      <div class="body"><h2>日签，把晨读带给朋友<span class="tag">升级</span></h2><p>日签可以发朋友圈；图上是你专属的小程序码。朋友因你而来，你会收到一封来信。</p></div>
+    </article>
+  </section>
+
+  <h2 class="sec">38 处细节打磨 <small>按板块排开</small></h2>
+  <section class="groups">
+      <div class="group"><h3>读伴<span>11</span></h3><ul><li>同行第几天、一起读完几天</li><li>轻拍多了「不急，慢慢来」</li><li>两人读完可以击掌</li><li>每天送 TA 一句话</li><li>同行足迹，一格一天</li><li>结营纪念与下一期续伴</li><li>读伴的赞排第一、评论置顶</li><li>读伴可以回应你的打卡</li><li>读伴写了打卡会告诉你</li><li>首页多了一张读伴卡</li><li>邀请 7 天内有效</li></ul></div>
+      <div class="group"><h3>来信<span>7</span></h3><ul><li>按今天、昨天、更早分组</li><li>同一篇打卡的赞合并成一条</li><li>评论直接把那句话摘出来</li><li>申请看见写明哪一期哪一课</li><li>处理过的显示已同意</li><li>长按一条可删除</li><li>首页铃铛换成了信封</li></ul></div>
+      <div class="group"><h3>随喜记<span>6</span></h3><ul><li>输入框放大一倍多</li><li>写到一半自动存草稿</li><li>按关键词搜索</li><li>长内容可折叠、可复制</li><li>一键沿用上次关联的课程</li><li>首页提示语每天换一句</li></ul></div>
+      <div class="group"><h3>阅读与日签<span>4</span></h3><ul><li>长按一段可生成日签</li><li>精确选择的文字可以手改</li><li>太长的段落先挑句子再做日签</li><li>分享带上你是谁带来的</li></ul></div>
+      <div class="group"><h3>首页与我的<span>6</span></h3><ul><li>今日晨读提示语每天换</li><li>读完人数放进今日晨读卡片</li><li>心情天气显示在打卡右上角</li><li>有一位书友选了心情就显示汇总</li><li>「我的内容」常用的排前面</li><li>头像统一成圆形</li></ul></div>
+      <div class="group"><h3>体验<span>4</span></h3><ul><li>确认弹窗换成统一的暖色样式</li><li>底部菜单换成统一样式</li><li>评论回复用新的输入弹窗</li><li>日历图例不再重复</li></ul></div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot-copy">
+      <strong>扫码回到首页，<br>看看新变化</strong>
+      <p>已经在用的书友，重新打开小程序即可；看到更新提示，点「重启」。</p>
+      <p class="sign">凡人共读团队 · 2026 年 11 月 15 日</p>
+    </div>
+    <div class="qr"><img src="poster-code.jpg" alt="凡人共读小程序码，扫码进入首页"><span>长按识别 · 进入首页</span></div>
+  </footer>
+</main>

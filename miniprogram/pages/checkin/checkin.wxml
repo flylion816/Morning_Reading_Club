@@ -141,6 +141,7 @@
       <editor
         id="checkin-rich-editor"
         class="rich-editor"
+        style="height: {{editorHeight}}rpx;"
         placeholder="{{diaryPlaceholder}}"
         bindready="handleEditorReady"
         bindinput="handleEditorInput"
@@ -149,6 +150,8 @@
         show-img-toolbar="{{false}}"
         show-img-resize="{{false}}"
       />
+      <!-- 量文字高度用：字号、行高、内边距、宽度都和编辑器一样，看不见也点不到；editor 本身不会自动增高 -->
+      <view id="checkin-editor-measure" class="rich-editor rich-editor-measure" aria-hidden="true">{{editorMeasureText}}</view>
     </view>
     <view class="char-count-row">
       <text class="auto-save-status">{{autoSaveStatus}}</text>
@@ -211,7 +214,7 @@
           class="visibility-option {{visibility === 'admin' ? 'active' : ''}}"
           bindtap="handleVisibilityChange"
           data-value="admin">
-          仅管理员
+          仅自己可见
         </view>
       </view>
     </view>

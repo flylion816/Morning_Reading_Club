@@ -19,6 +19,7 @@ describe('Notification Controller', () => {
   let res;
   let next;
   let NotificationStub;
+  let InsightStub;
   let publishSyncEventStub;
 
   beforeEach(() => {
@@ -56,6 +57,7 @@ describe('Notification Controller', () => {
     const UserStub = {
       findById: sandbox.stub()
     };
+    InsightStub = { find: sandbox.stub() };
 
     const loggerStub = {
       error: sandbox.stub(),
@@ -71,6 +73,7 @@ describe('Notification Controller', () => {
       '../../../src/controllers/notification.controller',
       {
         '../models/Notification': NotificationStub,
+        '../models/Insight': InsightStub,
         '../models/User': UserStub,
         '../utils/response': responseUtils,
         '../utils/logger': loggerStub,
@@ -111,6 +114,57 @@ describe('Notification Controller', () => {
       const responseData = res.json.getCall(0).args[0];
       expect(responseData.data).to.have.property('notifications');
       expect(responseData.data).to.have.property('pagination');
+    });
+
+    it('批量补全本人小凡看见的篇目信息，兼容旧通知和无标题记录', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const firstId = new mongoose.Types.ObjectId();
+      const secondId = new mongoose.Types.ObjectId();
+      const otherId = new mongoose.Types.ObjectId();
+      req.user = { userId };
+      const notices = [
+        { type: 'insight_liked', data: { insightId: firstId.toString() } },
+        { type: 'danmaku_received', data: { insightId: firstId.toString() } },
+        { type: 'insight_liked', data: { insightId: secondId.toString() } },
+        { type: 'insight_liked', data: { insightId: otherId.toString() } },
+        { type: 'insight_liked', data: { insightId: 'not-an-id' } }
+      ];
+      NotificationStub.countDocuments.resolves(notices.length);
+      NotificationStub.find.returns(setupFindChain(sandbox, notices));
+      InsightStub.find.returns(setupFindChain(sandbox, [
+        { _id: firstId, periodName: '连接之力', title: '第一天 品德成功论', day: 1 },
+        { _id: secondId, periodId: { name: '晨读一期' }, content: '<p>每一步都值得记录</p>' }
+      ]));
+
+      await notificationController.getUserNotifications(req, res, next);
+
+      expect(next.called).to.be.false;
+      expect(InsightStub.find.calledOnce).to.be.true;
+      const query = InsightStub.find.firstCall.args[0];
+      expect(query.targetUserId).to.equal(userId);
+      expect(query._id.$in).to.have.members([firstId.toString(), secondId.toString(), otherId.toString()]);
+      const items = res.json.firstCall.args[0].data.notifications;
+      expect(items[0].data.insightLabel).to.equal('连接之力 · 第一天 品德成功论');
+      expect(items[1].data.insightLabel).to.equal('连接之力 · 第一天 品德成功论');
+      expect(items[2].data.insightLabel).to.equal('晨读一期 · 每一步都值得记录');
+      expect(items[3].data).not.to.have.property('insightLabel');
+      expect(items[4].data).not.to.have.property('insightLabel');
+    });
+
+    it('篇目信息查询失败时仍返回原通知', async () => {
+      const insightId = new mongoose.Types.ObjectId();
+      const notice = { type: 'insight_liked', content: '有人为你的「积极主动」点了赞', data: { insightId: insightId.toString() } };
+      req.user = { userId: new mongoose.Types.ObjectId() };
+      NotificationStub.countDocuments.resolves(1);
+      NotificationStub.find.returns(setupFindChain(sandbox, [notice]));
+      const failedQuery = setupFindChain(sandbox, []);
+      failedQuery.exec.rejects(new Error('暂时不可用'));
+      InsightStub.find.returns(failedQuery);
+
+      await notificationController.getUserNotifications(req, res, next);
+
+      expect(next.called).to.be.false;
+      expect(res.json.firstCall.args[0].data.notifications[0]).to.deep.equal(notice);
     });
   });
 

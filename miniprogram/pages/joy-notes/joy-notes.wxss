@@ -169,9 +169,10 @@ button::after {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
-  padding: 24rpx 28rpx;
+  padding: 24rpx 28rpx 24rpx 32rpx;
   border: 1rpx solid var(--app-border);
-  border-radius: var(--app-radius-md);
+  border-left: 6rpx solid var(--app-dawn, #ee9b45);
+  border-radius: 8rpx var(--app-radius-md) var(--app-radius-md) 8rpx;
   background: var(--app-paper);
 }
 
@@ -419,4 +420,251 @@ button::after {
 .joy-search-clear {
   color: var(--app-text-muted);
   font-size: var(--app-font-sm);
+}
+
+/* 觉察日记：随喜写在输入框里，觉察要推开一扇深色的门 */
+.joy-compose-kind {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.joy-compose-kind-text {
+  color: var(--app-dawn-ink, #8a4b12);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.joy-door {
+  position: relative;
+  margin-top: 26rpx;
+  padding: 32rpx 32rpx 28rpx;
+  overflow: hidden;
+  border-radius: 30rpx;
+  background: linear-gradient(180deg, #1c1815 0%, #2a211a 58%, #6a4322 100%);
+  box-shadow: 0 16rpx 40rpx rgba(43, 30, 18, 0.22);
+  color: #f3e9da;
+}
+
+/* 门下面透出的一线晨光 */
+.joy-door::after {
+  content: '';
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -96rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(240, 168, 90, 0.6), rgba(240, 168, 90, 0) 70%);
+  pointer-events: none;
+}
+
+.joy-door-hover {
+  opacity: 0.92;
+}
+
+.joy-door-k {
+  display: block;
+  color: #f0a85a;
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.joy-door-q {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 14rpx 0 26rpx;
+  font-family: var(--app-font-serif);
+  font-size: 33rpx;
+  line-height: 1.55;
+}
+
+.joy-door-cta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #e8dccb;
+  font-size: 24rpx;
+}
+
+.joy-door-btn {
+  padding: 10rpx 28rpx;
+  border: 1rpx solid rgba(240, 168, 90, 0.55);
+  border-radius: 30rpx;
+  background: rgba(240, 168, 90, 0.2);
+  color: #ffd9a8;
+  font-weight: 600;
+}
+
+/* 页签 */
+.joy-tabs {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.joy-tab {
+  padding: 8rpx 26rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 253, 248, 0.7);
+  color: var(--app-text-soft);
+  font-size: 24rpx;
+}
+
+.joy-tab-on {
+  background: var(--app-text);
+  color: #ffffff;
+}
+
+/* 列表卡片 */
+.joy-note-head {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.joy-more-btn {
+  margin-left: auto;
+  padding: 0 8rpx;
+  color: var(--app-text-muted);
+  font-size: 34rpx;
+  line-height: 1;
+}
+
+.joy-note-hover {
+  opacity: 0.9;
+}
+
+.joy-tag {
+  padding: 2rpx 14rpx;
+  border-radius: 12rpx;
+  font-size: 21rpx;
+  font-weight: 600;
+}
+
+.joy-tag-checkin {
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+}
+
+.joy-private {
+  margin-left: auto;
+  color: var(--app-text-muted);
+  font-size: 21rpx;
+}
+
+.joy-note-checkin {
+  border-left-color: var(--app-rule, rgba(92, 70, 44, 0.3));
+}
+
+.joy-acard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 24rpx 28rpx 22rpx 36rpx;
+  overflow: hidden;
+  border: 1rpx solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-paper);
+}
+
+/* 左边一条「夜到晨」的色带，在列表里一眼认得出觉察 */
+.joy-acard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 10rpx;
+  background: linear-gradient(180deg, #1c1815 0%, #6a4322 55%, #ee9b45 100%);
+}
+
+.joy-feeling {
+  padding: 2rpx 14rpx;
+  border-radius: 12rpx;
+  background: #efe9dd;
+  color: var(--app-text-soft);
+  font-size: 21rpx;
+}
+
+.joy-acard-facts {
+  color: var(--app-text-soft);
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+.joy-acard-key {
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.joy-acard-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 16rpx;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+}
+
+.joy-sun {
+  flex-shrink: 0;
+  width: 18rpx;
+  height: 18rpx;
+  margin-top: 12rpx;
+  border-radius: 50%;
+  background: var(--app-dawn, #ee9b45);
+  box-shadow: 0 0 0 6rpx rgba(238, 155, 69, 0.25);
+}
+
+.joy-acard-choice-text {
+  font-size: 25rpx;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.joy-acard-foot {
+  color: var(--app-dawn-deep, #b8631f);
+  font-size: 22rpx;
+}
+
+/* 标题：选填的一行细输入；列表里有标题的以标题打头 */
+.joy-title-input {
+  width: 100%;
+  height: 76rpx;
+  padding: 0 4rpx;
+  box-sizing: border-box;
+  border-bottom: 1rpx solid var(--app-border);
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.joy-input {
+  display: block;
+  margin-top: 8rpx;
+}
+
+.joy-note-title,
+.joy-acard-title {
+  display: block;
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 31rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* 带格式的随喜用 rich-text 展示，字号和行高沿用纸条里的正文 */
+.joy-note-rich {
+  display: block;
 }

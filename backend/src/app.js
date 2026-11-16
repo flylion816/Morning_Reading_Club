@@ -139,6 +139,8 @@ app.use('/api/v1/buddies', require('./routes/buddy.routes'));
 const { visitorRouter: newcomerLeadVisitorRoutes, receptionRouter: newcomerLeadReceptionRoutes } = require('./routes/newcomerLead.routes');
 app.use('/api/v1/newcomer-leads', newcomerLeadVisitorRoutes);
 app.use('/api/v1/mobile-admin/newcomer-leads', newcomerLeadReceptionRoutes);
+app.use('/api/v1/reading-shares', require('./routes/readingShare.routes'));
+app.use('/api/v1/joy-note-shares', require('./routes/joyNoteShare.routes'));
 
 app.use(notFoundHandler);
 app.use(errorHandler);
