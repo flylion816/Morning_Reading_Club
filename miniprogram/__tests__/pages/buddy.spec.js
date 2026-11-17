@@ -6,6 +6,7 @@ jest.mock('../../services/buddy.service', () => ({
   leave: jest.fn(),
   highFive: jest.fn(),
   gift: jest.fn(),
+  giftCustom: jest.fn(),
   getOverview: jest.fn(),
   getSouvenir: jest.fn(),
   rematch: jest.fn(),
@@ -238,8 +239,165 @@ describe('buddy page', () => {
       expect(page.data.giftSentToday).toBe('不用赶，我在这儿。');
     });
 
-    test('送一句只提供预设短句，不含自由输入', () => {
+    test('送一句的预设短句用状态里今天的四句；没有时退回原来的四句', () => {
       expect(page.data.giftOptions.map(o => o.key)).toEqual(['here', 'reread', 'noRush', 'tomorrow']);
+      const today = [
+        { key: 'here2', text: '知道你也在读，我就安心了。' },
+        { key: 'reread3', text: '读你写的字，我慢了下来。' },
+        { key: 'noRush4', text: '累了就歇一歇，明天再读。' },
+        { key: 'tomorrow5', text: '睡个好觉，明早见。' }
+      ];
+      page.applyState({ ...paired, canGift: true, giftOptions: today });
+      expect(page.data.giftOptions).toEqual(today);
+      // 选中的那句不在今天的列表里（隔天重新打开），退回第一句；还在列表里就保留
+      expect(page.data.giftKey).toBe('here2');
+      page.onSelectGift({ currentTarget: { dataset: { key: 'noRush4' } } });
+      page.applyState({ ...paired, canGift: true, giftOptions: today });
+      expect(page.data.giftKey).toBe('noRush4');
+      page.applyState({ ...paired, canGift: true });
+      expect(page.data.giftOptions.map(o => o.key)).toEqual(['here', 'reread', 'noRush', 'tomorrow']);
+      expect(page.data.giftKey).toBe('here');
+    });
+
+    test('今天已经送过（状态里不能再送）时，打开着的弹层跟着收起', () => {
+      page.applyState({ ...paired, canGift: true });
+      page.onOpenGift();
+      expect(page.data.giftSheetVisible).toBe(true);
+      page.applyState({ ...paired, canGift: true });
+      expect(page.data.giftSheetVisible).toBe(true);
+      page.applyState({ ...paired, canGift: false, giftSentToday: '不用赶，我在这儿。' });
+      expect(page.data.giftSheetVisible).toBe(false);
+    });
+
+    describe('自己写一句', () => {
+      const flush = () => new Promise(resolve => setImmediate(resolve));
+
+      beforeEach(() => {
+        page.data.periodId = 'p1';
+        page.data.canGift = true;
+        page.data.buddy = paired.buddy;
+        page.onOpenGift();
+        buddyService.getOverview.mockResolvedValue(null);
+      });
+
+      test('聚焦输入框时预设不再高亮；写了内容算自己写的；只有空白不算；清空后回到预设', () => {
+        page.onGiftFocus();
+        expect(page.data.giftFocus).toBe(true);
+        page.onGiftInput({ detail: { value: '  今天也在读  ' } });
+        expect(page.data).toMatchObject({ giftText: '  今天也在读  ', giftCount: 9, giftCustom: true });
+        page.onGiftInput({ detail: { value: '   ' } });
+        expect(page.data.giftCustom).toBe(false);
+        page.onGiftBlur();
+        expect(page.data.giftFocus).toBe(false);
+      });
+
+      test('选预设会清掉写的话并收起键盘', () => {
+        wx.hideKeyboard = jest.fn();
+        page.onGiftFocus();
+        page.onGiftInput({ detail: { value: '想说的话' } });
+        page.onSelectGift({ currentTarget: { dataset: { key: 'reread' } } });
+        expect(page.data).toMatchObject({ giftKey: 'reread', giftText: '', giftCount: 0, giftCustom: false, giftFocus: false });
+        expect(wx.hideKeyboard).toHaveBeenCalledTimes(1);
+        // 键盘本来就没开时不用再收
+        page.onSelectGift({ currentTarget: { dataset: { key: 'noRush' } } });
+        expect(wx.hideKeyboard).toHaveBeenCalledTimes(1);
+        delete wx.hideKeyboard;
+      });
+
+      test('写了内容就送自己写的话：送出后关弹层、清空输入，状态更新', async () => {
+        page.onGiftInput({ detail: { value: ' 今天也在读 ' } });
+        buddyService.giftCustom.mockResolvedValue({ ...paired, canGift: false, giftSentToday: '今天也在读' });
+        await page.onSendGift();
+        expect(buddyService.giftCustom).toHaveBeenCalledWith('p1', '今天也在读');
+        expect(buddyService.gift).not.toHaveBeenCalled();
+        expect(page.data).toMatchObject({
+          giftSheetVisible: false,
+          giftText: '',
+          giftCustom: false,
+          canGift: false,
+          giftSentToday: '今天也在读',
+          busy: false
+        });
+        expect(wx.showToast).toHaveBeenCalledWith({ title: '已送出', icon: 'none' });
+      });
+
+      test('没写内容就送选中的预设句，不走自己写的那条路', async () => {
+        page.onSelectGift({ currentTarget: { dataset: { key: 'noRush' } } });
+        buddyService.gift.mockResolvedValue({ ...paired, canGift: false, giftSentToday: '不用赶，我在这儿。' });
+        await page.onSendGift();
+        expect(buddyService.gift).toHaveBeenCalledWith('p1', 'noRush');
+        expect(buddyService.giftCustom).not.toHaveBeenCalled();
+      });
+
+      test('内容没通过检查：提示服务端给的原因，弹层和写的话都留着，悄悄刷新状态', async () => {
+        page.onGiftInput({ detail: { value: '不行的话' } });
+        buddyService.giftCustom.mockRejectedValue({ statusCode: 400, message: '这句话暂时送不出去，换一句试试' });
+        buddyService.getState.mockResolvedValue({ ...paired, canGift: true });
+        await page.onSendGift();
+        await flush();
+        expect(wx.showToast).toHaveBeenCalledWith({ title: '这句话暂时送不出去，换一句试试', icon: 'none' });
+        expect(page.data).toMatchObject({ giftSheetVisible: true, giftText: '不行的话', giftCustom: true, busy: false });
+        expect(buddyService.getState).toHaveBeenCalledWith('p1');
+        expect(page.data.loading).toBe(false);
+      });
+
+      test('检查服务不可用（503）：换成能看懂的提示，弹层和写的话留着', async () => {
+        page.onGiftInput({ detail: { value: '想说的话' } });
+        buddyService.giftCustom.mockRejectedValue({ statusCode: 503, message: '服务器开小差了，稍后再试试' });
+        buddyService.getState.mockResolvedValue({ ...paired, canGift: true });
+        await page.onSendGift();
+        await flush();
+        expect(wx.showToast).toHaveBeenCalledWith({ title: '暂时没法送自己写的话，先选一句预设的吧', icon: 'none' });
+        expect(page.data).toMatchObject({ giftSheetVisible: true, giftText: '想说的话', busy: false });
+      });
+
+      test('刷新发现今天已经送过一句：弹层收起', async () => {
+        page.onGiftInput({ detail: { value: '想说的话' } });
+        buddyService.giftCustom.mockRejectedValue({ statusCode: 400, message: '今天已经送过一句了' });
+        buddyService.getState.mockResolvedValue({ ...paired, canGift: false, giftSentToday: '不用赶，我在这儿。' });
+        await page.onSendGift();
+        await flush();
+        expect(wx.showToast).toHaveBeenCalledWith({ title: '今天已经送过一句了', icon: 'none' });
+        expect(page.data.giftSheetVisible).toBe(false);
+      });
+
+      test('正在送出时不会重复提交；什么都没选也没写时提示', async () => {
+        page.data.busy = true;
+        page.onGiftInput({ detail: { value: '想说的话' } });
+        await page.onSendGift();
+        expect(buddyService.giftCustom).not.toHaveBeenCalled();
+
+        page.data.busy = false;
+        page.onGiftInput({ detail: { value: '' } });
+        page.data.giftKey = '';
+        await page.onSendGift();
+        expect(wx.showToast).toHaveBeenCalledWith({ title: '选一句，或者写一句', icon: 'none' });
+        expect(buddyService.gift).not.toHaveBeenCalled();
+        expect(buddyService.giftCustom).not.toHaveBeenCalled();
+      });
+
+      test('弹层随键盘抬起，收起键盘或关闭弹层时回到原位', () => {
+        page.onGiftKeyboardHeight({ detail: { height: 300 } });
+        expect(page.data.giftKeyboardHeight).toBe(300);
+        page.onGiftKeyboardHeight({ detail: { height: 0 } });
+        expect(page.data.giftKeyboardHeight).toBe(0);
+        page.onGiftKeyboardHeight({ detail: { height: 280 } });
+        page.onGiftFocus();
+        page.onCloseGift();
+        expect(page.data).toMatchObject({ giftSheetVisible: false, giftKeyboardHeight: 0, giftFocus: false });
+      });
+
+      test('弹层模板：输入框随键盘抬起；预设只在没写、没聚焦时高亮；自己写的话有字数提示', () => {
+        const wxml = require('fs').readFileSync(require('path').join(__dirname, '../../pages/buddy/buddy.wxml'), 'utf8');
+        const sheet = wxml.slice(wxml.indexOf('<!-- 送一句 -->'));
+        expect(sheet).toContain('style="margin-bottom: {{giftKeyboardHeight}}px;"');
+        const textarea = sheet.match(/<textarea[\s\S]*?\/>/)[0];
+        expect(textarea).toContain('adjust-position="{{false}}"');
+        expect(textarea).toContain('maxlength="{{giftTextMax}}"');
+        expect(textarea).toContain('bindkeyboardheightchange="onGiftKeyboardHeight"');
+        expect(sheet).toContain('!giftCustom && !giftFocus && giftKey === item.key');
+        expect(sheet).toContain('{{giftCount}}/{{giftTextMax}}');
+      });
     });
 
     test('已配对时加载足迹，TA 的打卡带上心情名', async () => {

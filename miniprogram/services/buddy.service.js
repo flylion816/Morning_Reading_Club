@@ -30,9 +30,14 @@ class BuddyService {
     return request.post(`/buddies/period/${periodId}/highfive`);
   }
 
-  // 送一句：只能选预设短句的 key
+  // 送一句：预设短句的 key
   gift(periodId, messageKey) {
     return request.post(`/buddies/period/${periodId}/gift`, { messageKey });
+  }
+
+  // 送一句：自己写的话。服务端会先过内容安全检查，没通过（400）或检查不了（503）时由页面自己提示
+  giftCustom(periodId, text) {
+    return request.post(`/buddies/period/${periodId}/gift`, { text }, { suppressError: true });
   }
 
   // 邀请：从本期学员里挑一位读伴

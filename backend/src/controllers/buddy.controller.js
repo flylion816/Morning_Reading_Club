@@ -81,11 +81,11 @@ const highFiveBuddy = handler(async (req, userId, periodId) => {
 });
 
 const giftBuddy = handler(async (req, userId, periodId) => {
-  const { state, buddyUserId, senderName, giftText } = await buddyService.gift(
-    userId,
-    periodId,
-    req.body?.messageKey
-  );
+  // messageKey（预设短句）和 text（自己写的话）二选一，由服务层校验
+  const { state, buddyUserId, senderName, giftText } = await buddyService.gift(userId, periodId, {
+    messageKey: req.body?.messageKey,
+    text: req.body?.text
+  });
   await notifyBuddy(req, userId, periodId, buddyUserId, 'buddy_gift', '你的读伴送了你一句话', `${senderName}：「${giftText}」`, state);
   return state;
 });

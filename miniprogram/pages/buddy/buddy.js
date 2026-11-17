@@ -14,13 +14,18 @@ const NUDGE_OPTIONS = [
   { key: 'tomorrow', text: '明早见' }
 ];
 
-// 送一句的预设短句（key 与后端 GIFT_MESSAGES 一致，不开放自由输入）
+// 送一句的预设短句：每天轮换，今天的四句由后端放在状态的 giftOptions 里。
+// 这四句是没拿到时的备用（key 与后端 GIFT_MESSAGES 一致，后端也一直认）
 const GIFT_OPTIONS = [
   { key: 'here', text: '今天有你一起读，真好。' },
   { key: 'reread', text: '你写的那段，我读了两遍。' },
   { key: 'noRush', text: '不用赶，我在这儿。' },
   { key: 'tomorrow', text: '明天还在老地方见。' }
 ];
+// 自己写的话最多这么多字（和后端 GIFT_TEXT_MAX 一致）
+const GIFT_TEXT_MAX = 30;
+// 内容检查服务暂时不可用（503）：request 会把 5xx 统一成「服务器开小差了」，这里换成能看懂的话
+const GIFT_UNAVAILABLE = '暂时没法送自己写的话，先选一句预设的吧';
 
 function describeStatus(status = {}) {
   if (status.checkedInToday) return '读完 · 已打卡';
@@ -97,6 +102,13 @@ Page({
     giftOptions: GIFT_OPTIONS,
     giftKey: GIFT_OPTIONS[0].key,
     giftSheetVisible: false,
+    // 自己写一句：写了内容就送这句，没写就送选中的预设句
+    giftText: '',
+    giftCount: 0,
+    giftTextMax: GIFT_TEXT_MAX,
+    giftCustom: false,
+    giftFocus: false,
+    giftKeyboardHeight: 0,
     overview: null,
     souvenir: null,
     // 邀请：收到的、我发出的、选人弹层
@@ -142,6 +154,8 @@ Page({
         }
       : null;
     const me = data.me || { readToday: false, checkedInToday: false };
+    // 今天的预设短句由后端给；没有就用备用的四句
+    const giftOptions = Array.isArray(data.giftOptions) && data.giftOptions.length ? data.giftOptions : GIFT_OPTIONS;
     const next = {
       loading: false,
       loadError: '',
@@ -161,6 +175,11 @@ Page({
       canGift: !!data.canGift,
       giftSentToday: data.giftSentToday || '',
       giftFromBuddy: data.giftFromBuddy || null,
+      giftOptions,
+      // 选中的那句不在今天的列表里了（比如隔天重新打开），退回第一句
+      giftKey: giftOptions.some(item => item.key === this.data.giftKey) ? this.data.giftKey : giftOptions[0].key,
+      // 今天已经送过了（或状态变了不能再送）：弹层跟着收起
+      giftSheetVisible: !!data.canGift && this.data.giftSheetVisible,
       waitingCount: data.waitingCount || 0,
       invitesReceived: data.invitesReceived || [],
       invitesSent: (data.invitesSent || []).map(item => ({ ...item, declined: item.status === 'declined' })),
@@ -362,23 +381,79 @@ Page({
 
   onOpenGift() {
     if (!this.data.canGift) return;
-    this.setData({ giftSheetVisible: true, giftKey: this.data.giftKey || GIFT_OPTIONS[0].key });
+    this.setData({ giftSheetVisible: true, giftKey: this.data.giftKey || this.data.giftOptions[0].key });
   },
 
   onCloseGift() {
-    this.setData({ giftSheetVisible: false });
+    this.setData({ giftSheetVisible: false, giftFocus: false, giftKeyboardHeight: 0 });
   },
 
+  // 选了预设：自己写的那句清掉，键盘收起
   onSelectGift(event = {}) {
     const key = event.currentTarget?.dataset?.key;
-    if (key) this.setData({ giftKey: key });
+    if (!key) return;
+    const keyboardUp = this.data.giftFocus;
+    this.setData({ giftKey: key, giftText: '', giftCount: 0, giftCustom: false, giftFocus: false });
+    if (keyboardUp && typeof wx.hideKeyboard === 'function') wx.hideKeyboard();
   },
 
+  onGiftFocus() {
+    this.setData({ giftFocus: true });
+  },
+
+  onGiftBlur() {
+    this.setData({ giftFocus: false });
+  },
+
+  onGiftInput(event = {}) {
+    const value = (event.detail && event.detail.value) || '';
+    this.setData({ giftText: value, giftCount: Array.from(value).length, giftCustom: value.trim().length > 0 });
+  },
+
+  // 弹层贴着键盘上沿（沿用随喜速记条的做法）
+  onGiftKeyboardHeight(event = {}) {
+    this.setData({ giftKeyboardHeight: Number(event.detail && event.detail.height) || 0 });
+  },
+
+  // 写了内容就送自己写的话，没写就送选中的预设句
   onSendGift() {
-    if (!this.data.canGift) return;
+    if (!this.data.canGift || this.data.busy) return undefined;
+    const text = (this.data.giftText || '').trim();
+    if (text) return this.sendCustomGift(text);
     const messageKey = this.data.giftKey;
-    this.setData({ giftSheetVisible: false });
-    this.runAction(id => buddyService.gift(id, messageKey), '已送出');
+    if (!messageKey) {
+      wx.showToast({ title: '选一句，或者写一句', icon: 'none' });
+      return undefined;
+    }
+    this.setData({ giftSheetVisible: false, giftFocus: false, giftKeyboardHeight: 0 });
+    return this.runAction(id => buddyService.gift(id, messageKey), '已送出');
+  },
+
+  // 自己写的话要先过内容检查，所以等结果出来再收弹层：没通过时弹层和写的话都留着，不用重写
+  async sendCustomGift(text) {
+    this.setData({ busy: true });
+    try {
+      const state = await buddyService.giftCustom(this.data.periodId, text);
+      this.setData({ giftSheetVisible: false, giftText: '', giftCount: 0, giftCustom: false, giftFocus: false, giftKeyboardHeight: 0 });
+      this.applyState(state);
+      this.markHomeDirty();
+      wx.showToast({ title: '已送出', icon: 'none' });
+    } catch (error) {
+      const unavailable = !!error && Number(error.statusCode) === 503;
+      wx.showToast({ title: unavailable ? GIFT_UNAVAILABLE : (error && error.message) || '没有成功，请稍后再试', icon: 'none' });
+      // 状态可能已变（比如今天已经送过一句）：悄悄刷新，弹层会按新状态收起或保留
+      this.refreshQuietly();
+    } finally {
+      this.setData({ busy: false });
+    }
+  },
+
+  async refreshQuietly() {
+    try {
+      this.applyState(await buddyService.getState(this.data.periodId));
+    } catch (error) {
+      // 刷新失败不打扰：弹层还在，可以再试
+    }
   },
 
   async onRematch() {

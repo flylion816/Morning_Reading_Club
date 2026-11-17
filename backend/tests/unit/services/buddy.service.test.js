@@ -85,18 +85,23 @@ describe('buddy.service', () => {
   let ongoing;
   let periodDoc;
   let service;
+  // 内容安全检查的假实现：记下每次请求；设了 securityError 就抛出它
+  let securityCalls;
+  let securityError;
 
   const users = {
-    u1: { _id: 'u1', nickname: '小一', avatarUrl: 'a1' },
-    u2: { _id: 'u2', nickname: '小二', avatarUrl: 'a2' },
-    u3: { _id: 'u3', nickname: '小三', avatarUrl: 'a3' },
-    u4: { _id: 'u4', nickname: '小四', avatarUrl: 'a4' }
+    u1: { _id: 'u1', nickname: '小一', avatarUrl: 'a1', openid: 'openid_u1' },
+    u2: { _id: 'u2', nickname: '小二', avatarUrl: 'a2', openid: 'openid_u2' },
+    u3: { _id: 'u3', nickname: '小三', avatarUrl: 'a3', openid: 'openid_u3' },
+    u4: { _id: 'u4', nickname: '小四', avatarUrl: 'a4', openid: 'openid_u4' }
   };
   // 2026-11-10 12:00 东八区
   const NOW = new Date('2026-11-10T12:00:00+08:00');
 
   beforeEach(() => {
     seq = 0;
+    securityCalls = [];
+    securityError = null;
     enrolled = new Set(['u1', 'u2', 'u3', 'u4']);
     ongoing = true;
     periodDoc = { _id: PID, name: '连接之力' };
@@ -154,6 +159,15 @@ describe('buddy.service', () => {
         findCommunityEnrollment: async userId => (enrolled.has(userId) ? { paymentStatus: 'paid' } : null)
       },
       './period-status.service': { calculatePeriodStatus: () => (ongoing ? 'ongoing' : 'completed') },
+      './content-security.service': {
+        CONTENT_RISKY: 'CONTENT_RISKY',
+        CONTENT_CHECK_UNAVAILABLE: 'CONTENT_CHECK_UNAVAILABLE',
+        checkText: async args => {
+          securityCalls.push(args);
+          if (securityError) throw securityError;
+          return { traceId: 'trace' };
+        }
+      },
       '../utils/tenantContext': { getCurrentTenantId: () => 'tenant_1' }
     });
   });
@@ -433,13 +447,30 @@ describe('buddy.service', () => {
       await service.join('u2', PID, NOW);
     });
 
-    it('只接受预设短句，不接受自由输入', async () => {
-      for (const key of ['随便写点什么', undefined, '__proto__', 'toString']) {
+    it('预设 key 之外的 key 一律拒绝，也不请求内容检查', async () => {
+      for (const key of ['随便写点什么', undefined, null, '__proto__', 'toString', 'custom', 42]) {
         let err;
         try { await service.gift('u2', PID, key, NOW); } catch (e) { err = e; }
-        expect(err.status, String(key)).to.equal(400);
+        expect(err && err.status, String(key)).to.equal(400);
       }
       expect(pairs.docs[0].gifts || []).to.have.length(0);
+      expect(securityCalls).to.have.length(0);
+    });
+
+    it('20 句预设短句的 key 都能送；原来的四个 key 文字不变，不请求内容检查', async () => {
+      expect(service.GIFT_MESSAGES).to.include({
+        here: '今天有你一起读，真好。',
+        reread: '你写的那段，我读了两遍。',
+        noRush: '不用赶，我在这儿。',
+        tomorrow: '明天还在老地方见。'
+      });
+      const keys = Object.keys(service.GIFT_MESSAGES);
+      expect(keys).to.have.length(20);
+      for (let i = 0; i < keys.length; i += 1) {
+        const result = await service.gift('u2', PID, keys[i], new Date(NOW.getTime() + i * 24 * 60 * 60 * 1000));
+        expect(result.giftText, keys[i]).to.equal(service.GIFT_MESSAGES[keys[i]]);
+      }
+      expect(securityCalls).to.have.length(0);
     });
 
     it('送出后对方当天能看到，每人每天一句，第二天可以再送', async () => {
@@ -462,6 +493,188 @@ describe('buddy.service', () => {
       // 昨天的那句不会出现在今天
       const tomorrow = await service.getState('u1', PID, new Date('2026-11-11T09:00:00+08:00'));
       expect(tomorrow.giftFromBuddy.text).to.equal('今天有你一起读，真好。');
+    });
+  });
+
+  describe('gift 送一句：自己写的话', () => {
+    beforeEach(async () => {
+      await service.join('u1', PID, NOW);
+      await service.join('u2', PID, NOW);
+    });
+
+    const failure = async (...args) => {
+      try { await service.gift(...args); } catch (e) { return e; }
+      return null;
+    };
+
+    it('通过内容检查后保存，读伴当天能看到，返回的就是这句话', async () => {
+      const result = await service.gift('u2', PID, { text: '  今天的那段，\n我也读了  ' }, NOW);
+      expect(result.giftText).to.equal('今天的那段， 我也读了');
+      expect(result.senderName).to.equal('小二');
+      expect(result.state.giftSentToday).to.equal('今天的那段， 我也读了');
+      expect(result.state.canGift).to.equal(false);
+      expect(pairs.docs[0].gifts[0]).to.include({ userId: 'u2', key: 'custom', text: '今天的那段， 我也读了' });
+      expect(securityCalls).to.deep.equal([{ openid: 'openid_u2', content: '今天的那段， 我也读了' }]);
+
+      const seen = await service.getState('u1', PID, NOW);
+      expect(seen.giftFromBuddy).to.deep.equal({ text: '今天的那段， 我也读了' });
+    });
+
+    it('30 个字刚好可以，31 个字不行；按字数算，不是字节', async () => {
+      const ok = await service.gift('u2', PID, { text: '读'.repeat(30) }, NOW);
+      expect(Array.from(ok.giftText)).to.have.length(30);
+      const err = await failure('u1', PID, { text: '读'.repeat(31) }, NOW);
+      expect(err.status).to.equal(400);
+      expect(err.message).to.equal('最多 30 个字');
+    });
+
+    it('空白、过长、链接、联系方式、同时给 key 和 text、两样都没给：都是 400，不请求内容检查，不保存', async () => {
+      const cases = [
+        [{ text: '   ' }, '先写一句想对 TA 说的话'],
+        [{ text: '\n\t ' }, '先写一句想对 TA 说的话'],
+        [{ text: '读'.repeat(31) }, '最多 30 个字'],
+        [{ text: '来看看 https://example.com' }, '这句话里不要放链接或联系方式'],
+        [{ text: '来 www.abc.top 看' }, '这句话里不要放链接或联系方式'],
+        [{ text: '写信到 a@b.cn' }, '这句话里不要放链接或联系方式'],
+        [{ text: '加我微信 abc12345' }, '这句话里不要放链接或联系方式'],
+        [{ text: 'vx：hello_01' }, '这句话里不要放链接或联系方式'],
+        [{ text: '我的电话 13812345678' }, '这句话里不要放链接或联系方式'],
+        [{ text: '138 1234 5678' }, '这句话里不要放链接或联系方式'],
+        [{ text: 12345 }, '请写一句想对 TA 说的话'],
+        [{ messageKey: 'here', text: '一起读' }, '只能选一句，或者自己写一句'],
+        [{}, '请选一句，或者自己写一句']
+      ];
+      for (const [input, message] of cases) {
+        const err = await failure('u2', PID, input, NOW);
+        expect(err && err.status, JSON.stringify(input)).to.equal(400);
+        expect(err.message, JSON.stringify(input)).to.equal(message);
+      }
+      expect(securityCalls).to.have.length(0);
+      expect(pairs.docs[0].gifts || []).to.have.length(0);
+    });
+
+    it('日期、书名里的「微信」这类正常的话不会被当成联系方式', async () => {
+      const texts = ['2026-11-17 见', '微信读书上看到你了', '第 12 天，加油'];
+      for (let i = 0; i < texts.length; i += 1) {
+        const result = await service.gift('u2', PID, { text: texts[i] }, new Date(NOW.getTime() + i * 24 * 60 * 60 * 1000));
+        expect(result.giftText).to.equal(texts[i]);
+      }
+    });
+
+    it('不可见字符会被去掉，控制字符和换行折成一个空格', async () => {
+      // 用 fromCharCode 拼出不可见字符，避免把它们直接写进源码
+      const invisible = [0x200b, 0xfeff].map(code => String.fromCharCode(code));
+      const text = `早${invisible[0]}安${String.fromCharCode(1)}，\r\n今${invisible[1]}天`;
+      const result = await service.gift('u2', PID, { text }, NOW);
+      expect(result.giftText).to.equal('早安 ， 今天');
+    });
+
+    it('内容检查没通过：400，不保存、不占名额，改一句还能送', async () => {
+      securityError = Object.assign(new Error('risky'), { code: 'CONTENT_RISKY' });
+      const err = await failure('u2', PID, { text: '这句不行' }, NOW);
+      expect(err.status).to.equal(400);
+      expect(err.kind).to.equal('badRequest');
+      expect(err.message).to.equal('这句话暂时送不出去，换一句试试');
+      expect(pairs.docs[0].gifts || []).to.have.length(0);
+      expect((await service.getState('u2', PID, NOW)).canGift).to.equal(true);
+
+      securityError = null;
+      const ok = await service.gift('u2', PID, { text: '换一句，今天也在读' }, NOW);
+      expect(ok.state.canGift).to.equal(false);
+      expect(pairs.docs[0].gifts).to.have.length(1);
+    });
+
+    it('检查服务不可用（出错、超时）：503，不放行、不占名额；预设短句照常能送', async () => {
+      for (const error of [Object.assign(new Error('timeout'), { code: 'CONTENT_CHECK_UNAVAILABLE' }), new Error('boom')]) {
+        securityError = error;
+        const err = await failure('u2', PID, { text: '想说的话' }, NOW);
+        expect(err.status).to.equal(503);
+        expect(err.kind).to.equal('serviceUnavailable');
+        expect(err.message).to.equal('暂时没法送自己写的话，先选一句预设的吧');
+      }
+      expect(pairs.docs[0].gifts || []).to.have.length(0);
+
+      securityCalls.length = 0;
+      const preset = await service.gift('u2', PID, 'noRush', NOW);
+      expect(preset.giftText).to.equal('不用赶，我在这儿。');
+      expect(securityCalls).to.have.length(0);
+    });
+
+    it('今天已经送过一句时，不再请求内容检查', async () => {
+      await service.gift('u2', PID, 'noRush', NOW);
+      const err = await failure('u2', PID, { text: '再送一句' }, NOW);
+      expect(err.message).to.equal('今天已经送过一句了');
+      expect(securityCalls).to.have.length(0);
+    });
+
+    it('同行时间线和结营纪念里也是这句话', async () => {
+      periodDoc = { _id: PID, name: '连接之力', startDate: new Date('2026-11-08T00:00:00+08:00'), endDate: new Date('2026-11-12T00:00:00+08:00') };
+      pairs.docs[0].createdAt = new Date('2026-11-10T08:00:00+08:00');
+      await service.gift('u1', PID, { text: '我先到了，等你' }, NOW);
+
+      const overview = await service.getOverview('u2', PID, NOW);
+      expect(overview.timeline.map(t => t.text)).to.include('小一送你一句：「我先到了，等你」');
+      const souvenir = await service.getSouvenir('u2', PID, NOW);
+      expect(souvenir.firstGift).to.deep.equal({ text: '我先到了，等你' });
+      expect(souvenir.giftCount).to.equal(1);
+    });
+
+    it('库里留着的旧数据不会让状态出错：表里没有的 key、没有 text 的自己写的话都当作没有', async () => {
+      pairs.docs[0].gifts = [
+        { userId: 'u1', dayKey: '2026-11-10', key: 'gone-key' },
+        { userId: 'u1', dayKey: '2026-11-10', key: 'custom' }
+      ];
+      const state = await service.getState('u2', PID, NOW);
+      expect(state.giftFromBuddy).to.equal(null);
+    });
+  });
+
+  describe('gift 送一句：预设短句每天换说法', () => {
+    beforeEach(async () => {
+      await service.join('u1', PID, NOW);
+      await service.join('u2', PID, NOW);
+    });
+
+    const dayKeyAfter = n => new Date(Date.UTC(2026, 10, 10 + n)).toISOString().slice(0, 10);
+
+    it('状态里带着今天的四句：四类各一句，key 都在预设表里', async () => {
+      const state = await service.getState('u2', PID, NOW);
+      expect(state.giftOptions).to.have.length(4);
+      state.giftOptions.forEach(option => expect(service.GIFT_MESSAGES[option.key]).to.equal(option.text));
+      expect(state.giftOptions.map(option => option.key.replace(/\d+$/, ''))).to.deep.equal(['here', 'reread', 'noRush', 'tomorrow']);
+    });
+
+    it('没有读伴时状态里的 giftOptions 是空的', async () => {
+      const state = await service.getState('u3', PID, NOW);
+      expect(state.giftOptions).to.deep.equal([]);
+    });
+
+    it('同一个人连续五天，每一类都把五种说法轮一遍；连续两天一定不同', () => {
+      for (const userId of ['u1', 'u2', '64b0000000000000000000a7']) {
+        const seen = [[], [], [], []];
+        for (let day = 0; day < 6; day += 1) {
+          service.giftOptionsFor(userId, dayKeyAfter(day)).forEach((option, category) => seen[category].push(option.key));
+        }
+        seen.forEach(keys => {
+          expect(new Set(keys.slice(0, 5)).size).to.equal(5);
+          for (let i = 1; i < keys.length; i += 1) expect(keys[i]).to.not.equal(keys[i - 1]);
+          // 第六天回到第一种
+          expect(keys[5]).to.equal(keys[0]);
+        });
+      }
+    });
+
+    it('不同的人同一天看到的说法会不一样；同一个人同一天每次看到的一样', () => {
+      const optionKeys = (userId, dayKey) => service.giftOptionsFor(userId, dayKey).map(option => option.key).join();
+      expect(optionKeys('u1', '2026-11-10')).to.not.equal(optionKeys('u2', '2026-11-10'));
+      expect(optionKeys('u1', '2026-11-10')).to.equal(optionKeys('u1', '2026-11-10'));
+    });
+
+    it('当天看到的四句以外，预设表里的其他句子也能送', async () => {
+      const today = (await service.getState('u2', PID, NOW)).giftOptions.map(option => option.key);
+      const other = Object.keys(service.GIFT_MESSAGES).find(key => !today.includes(key));
+      const result = await service.gift('u2', PID, other, NOW);
+      expect(result.giftText).to.equal(service.GIFT_MESSAGES[other]);
     });
   });
 

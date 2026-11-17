@@ -13,6 +13,7 @@ const { calculatePeriodStatus } = require('./period-status.service');
 const { getCurrentTenantId } = require('../utils/tenantContext');
 const { toDayKey } = require('../utils/checkin-day-metrics');
 const { readTrustedMood } = require('../utils/checkin-mood');
+const contentSecurity = require('./content-security.service');
 
 const MAX_MATCH_ATTEMPTS = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -22,13 +23,47 @@ const NUDGE_MESSAGES = Object.freeze({
   cheer: '今天也辛苦了',
   slow: '说不急，慢慢来'
 });
-// 「送一句」只能选预设短句，不开放自由输入
-const GIFT_MESSAGES = Object.freeze({
-  here: '今天有你一起读，真好。',
-  reread: '你写的那段，我读了两遍。',
-  noRush: '不用赶，我在这儿。',
-  tomorrow: '明天还在老地方见。'
-});
+// 「送一句」：可以选预设短句，也可以自己写一句。
+// 预设短句分四类，每类 5 种说法，每天每类换一种。第一种说法的 key 就是类别名（和最初的四句一致），其余是类别名加序号
+const GIFT_CATEGORIES = Object.freeze([
+  {
+    id: 'here',
+    lines: Object.freeze([
+      '今天有你一起读，真好。',
+      '知道你也在读，我就安心了。',
+      '我们又读到同一天了。',
+      '这一页，有你陪着读。',
+      '一个人读也好，有你在更好。'
+    ])
+  },
+  {
+    id: 'reread',
+    lines: Object.freeze([
+      '你写的那段，我读了两遍。',
+      '你写下的那句，我记住了。',
+      '读你写的字，我慢了下来。',
+      '你的那段话，我也有同感。',
+      '谢谢你把心里话写出来。'
+    ])
+  },
+  {
+    id: 'noRush',
+    lines: Object.freeze(['不用赶，我在这儿。', '今天读不完也没关系。', '慢慢读，我陪着你。', '累了就歇一歇，明天再读。', '你读多少，都算数。'])
+  },
+  {
+    id: 'tomorrow',
+    lines: Object.freeze(['明天还在老地方见。', '明早，我先到。', '明天一起，接着读。', '今天到这儿，明天见。', '睡个好觉，明早见。'])
+  }
+]);
+const giftKeyOf = (category, index) => (index === 0 ? category.id : `${category.id}${index + 1}`);
+const GIFT_MESSAGES = Object.freeze(
+  Object.fromEntries(
+    GIFT_CATEGORIES.flatMap(category => category.lines.map((text, index) => [giftKeyOf(category, index), text]))
+  )
+);
+// 自己写的话在 BuddyPair.gifts 里记为这个 key，文字放在 text 里
+const CUSTOM_GIFT_KEY = 'custom';
+const GIFT_TEXT_MAX = 30;
 // 读伴回应：对 TA 的一篇打卡回一句预设短句（不开放自由输入）
 const REACTION_MESSAGES = Object.freeze({
   moved: '这句也打动我。',
@@ -56,6 +91,81 @@ function buddyError(kind, status, message) {
 }
 
 const OBJECT_ID_PATTERN = /^[0-9a-fA-F]{24}$/;
+
+// ---- 送一句：预设短句轮换、自己写的话的规范化与校验 ----
+function dayNumber(dayKey) {
+  return Math.floor(Date.parse(`${dayKey}T00:00:00Z`) / DAY_MS);
+}
+
+// 今天这位用户看到的四句：每类按「日期 + 用户 id 末位」选一种说法。
+// 同一个人连续两天一定不同，不同的人同一天也不一样
+function giftOptionsFor(userId, dayKey) {
+  const last = parseInt(String(userId || '').slice(-1), 16);
+  const seed = Number.isNaN(last) ? 0 : last;
+  const base = dayNumber(dayKey) + seed;
+  return GIFT_CATEGORIES.map((category, categoryIndex) => {
+    const size = category.lines.length;
+    const index = (((base + categoryIndex * 2) % size) + size) % size;
+    return { key: giftKeyOf(category, index), text: category.lines[index] };
+  });
+}
+
+// 一条送出的话的文字：自己写的取 text，预设的查表；表里没有的旧 key 返回空串
+function giftText(entry) {
+  if (!entry) return '';
+  if (entry.key === CUSTOM_GIFT_KEY) return typeof entry.text === 'string' ? entry.text : '';
+  return Object.prototype.hasOwnProperty.call(GIFT_MESSAGES, entry.key) ? GIFT_MESSAGES[entry.key] : '';
+}
+
+// 自己写的话：去掉不可见字符，换行和连续空白折成一个空格
+function normalizeGiftText(value) {
+  return String(value)
+    .replace(/\p{Cf}/gu, '') // 不可见的格式字符：零宽空格、方向控制符、BOM 等
+    .replace(/\p{Cc}/gu, ' ') // 控制字符，包括换行和制表符
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 链接和联系方式的粗筛，防广告引流；真正的把关是微信内容安全检查
+const GIFT_LINK_PATTERN = /https?:\/\/|www\.|[a-z0-9-]+\.(?:com|cn|net|org|top|cc|xyz|io|me|co)\b|[a-z0-9._-]+@[a-z0-9-]+\./i;
+const GIFT_CONTACT_PATTERN = /\d{6,}|(?:\d[ -]?){9,}|(?:微信|vx|v信|wx|weixin|加我|扫码|二维码|qq|扣扣)\s*[:：]?\s*[a-z0-9_-]{4,}/i;
+
+// 送一句的输入：字符串是预设短句的 key（老接口）；对象是 { messageKey, text }，二选一
+function parseGiftInput(input) {
+  const source = input !== null && typeof input === 'object' ? input : { messageKey: input };
+  const hasKey = source.messageKey !== undefined && source.messageKey !== null;
+  const hasText = source.text !== undefined && source.text !== null;
+  if (hasKey && hasText) throw buddyError('badRequest', 400, '只能选一句，或者自己写一句');
+  if (hasText) {
+    if (typeof source.text !== 'string') throw buddyError('badRequest', 400, '请写一句想对 TA 说的话');
+    const text = normalizeGiftText(source.text);
+    if (!text) throw buddyError('badRequest', 400, '先写一句想对 TA 说的话');
+    if (Array.from(text).length > GIFT_TEXT_MAX) throw buddyError('badRequest', 400, `最多 ${GIFT_TEXT_MAX} 个字`);
+    if (GIFT_LINK_PATTERN.test(text) || GIFT_CONTACT_PATTERN.test(text)) {
+      throw buddyError('badRequest', 400, '这句话里不要放链接或联系方式');
+    }
+    return { text };
+  }
+  if (!hasKey) throw buddyError('badRequest', 400, '请选一句，或者自己写一句');
+  if (typeof source.messageKey !== 'string' || !Object.prototype.hasOwnProperty.call(GIFT_MESSAGES, source.messageKey)) {
+    throw buddyError('badRequest', 400, '请从给出的短句里选一句');
+  }
+  return { key: source.messageKey };
+}
+
+// 自己写的话先过微信内容安全检查：没通过是 400，检查服务出错或超时是 503。两种情况都不占当天的名额
+async function checkCustomGift(userId, text) {
+  const sender = await User.findById(userId).select('nickname openid').lean();
+  try {
+    await contentSecurity.checkText({ openid: sender && sender.openid, content: text });
+  } catch (error) {
+    if (error && error.code === contentSecurity.CONTENT_RISKY) {
+      throw buddyError('badRequest', 400, '这句话暂时送不出去，换一句试试');
+    }
+    throw buddyError('serviceUnavailable', 503, '暂时没法送自己写的话，先选一句预设的吧');
+  }
+  return sender;
+}
 
 function assertPeriodId(periodId) {
   if (typeof periodId !== 'string' || !OBJECT_ID_PATTERN.test(periodId)) {
@@ -151,6 +261,7 @@ function emptyState() {
     canGift: false,
     giftSentToday: '',
     giftFromBuddy: null,
+    giftOptions: [],
     buddyCheckinToday: null,
     buddyReactionToday: null,
     invitesReceived: [],
@@ -254,8 +365,9 @@ async function buildStateWithBuddyId(userId, periodId, ongoing, now, period) {
       highFivedToday,
       buddyHighFivedToday,
       canGift: !mineGift,
-      giftSentToday: mineGift ? GIFT_MESSAGES[mineGift.key] || '' : '',
-      giftFromBuddy: buddyGift && GIFT_MESSAGES[buddyGift.key] ? { text: GIFT_MESSAGES[buddyGift.key] } : null,
+      giftSentToday: giftText(mineGift),
+      giftFromBuddy: giftText(buddyGift) ? { text: giftText(buddyGift) } : null,
+      giftOptions: giftOptionsFor(userId, dayKey),
       waitingCount: 0,
       buddy: {
         nickname: (buddyUser && buddyUser.nickname) || '读伴',
@@ -386,7 +498,7 @@ function buildTimeline({ pair, userId, buddyName, pairStartKey, sharedList, reac
     events.push({ type: 'highfive', date: dayKey, at: day.at, text });
   });
   (pair.gifts || []).forEach(gift => {
-    const text = GIFT_MESSAGES[gift.key];
+    const text = giftText(gift);
     if (!text) return;
     const mine = str(gift.userId) === str(userId);
     events.push({
@@ -677,10 +789,9 @@ async function highFive(userId, periodId, now = new Date()) {
   };
 }
 
-async function gift(userId, periodId, messageKey, now = new Date()) {
-  if (!Object.prototype.hasOwnProperty.call(GIFT_MESSAGES, messageKey)) {
-    throw buddyError('badRequest', 400, '请从给出的短句里选一句');
-  }
+// 送一句：input 是预设短句的 key（字符串），或 { messageKey, text } 二选一（text 是自己写的话）
+async function gift(userId, periodId, input, now = new Date()) {
+  const choice = parseGiftInput(input);
   const { ongoing, period } = await loadPeriodContext(userId, periodId);
   if (!ongoing) throw buddyError('badRequest', 400, '这一期不在进行中');
   const pair = await findActivePair(userId, periodId);
@@ -689,20 +800,26 @@ async function gift(userId, periodId, messageKey, now = new Date()) {
   const { state, buddyId } = await buildStateWithBuddyId(userId, periodId, ongoing, now, period);
   if (!state.canGift) throw buddyError('badRequest', 400, '今天已经送过一句了');
 
+  // 自己写的话：先过内容安全检查，再占名额。检查没通过或检查不了，都不占名额，用户可以改一句再送
+  const custom = choice.text !== undefined;
+  const sender = custom ? await checkCustomGift(userId, choice.text) : null;
+  const entry = custom ? { key: CUSTOM_GIFT_KEY, text: choice.text } : { key: choice.key };
+  const text = custom ? choice.text : GIFT_MESSAGES[choice.key];
+
   const { dayKey } = dayRange(now);
   const claimed = await BuddyPair.updateOne(
     { _id: pair._id, active: true, gifts: { $not: { $elemMatch: { userId, dayKey } } } },
-    { $push: { gifts: { userId, dayKey, key: messageKey, at: now } } }
+    { $push: { gifts: { userId, dayKey, ...entry, at: now } } }
   );
   const modified = claimed && (claimed.modifiedCount != null ? claimed.modifiedCount : claimed.nModified);
   if (!modified) throw buddyError('badRequest', 400, '今天已经送过一句了');
 
-  const sender = await User.findById(userId).select('nickname').lean();
+  const senderDoc = sender || (await User.findById(userId).select('nickname').lean());
   return {
     buddyUserId: buddyId,
-    senderName: (sender && sender.nickname) || '你的读伴',
-    giftText: GIFT_MESSAGES[messageKey],
-    state: { ...state, canGift: false, giftSentToday: GIFT_MESSAGES[messageKey] }
+    senderName: (senderDoc && senderDoc.nickname) || '你的读伴',
+    giftText: text,
+    state: { ...state, canGift: false, giftSentToday: text }
   };
 }
 
@@ -1037,7 +1154,7 @@ async function buildSouvenir(userId, periodId, pair, ongoing, period, now) {
   const reactionRows = await loadPairReactions(periodId, userId, buddyId);
   const gifts = pair.gifts || [];
   const received = gifts
-    .filter(g => str(g.userId) !== str(userId) && GIFT_MESSAGES[g.key])
+    .filter(g => str(g.userId) !== str(userId) && giftText(g))
     .sort((a, b) => (a.dayKey < b.dayKey ? -1 : a.dayKey > b.dayKey ? 1 : 0))[0];
   const votes = new Set((pair.rematchVotes || []).map(str));
   const mine = votes.has(str(userId));
@@ -1057,7 +1174,7 @@ async function buildSouvenir(userId, periodId, pair, ongoing, period, now) {
     highFiveCount: highFiveDays.size,
     giftCount: gifts.length,
     reactionCount: reactionRows.length,
-    firstGift: received ? { text: GIFT_MESSAGES[received.key] } : null,
+    firstGift: received ? { text: giftText(received) } : null,
     // 只告诉本人自己是否点过；对方点没点过，要双方都点了才会知道
     rematch: { mine, both },
     canRematch: !mine && !both
@@ -1105,5 +1222,7 @@ module.exports = {
   getCheckinReaction,
   NUDGE_MESSAGES,
   GIFT_MESSAGES,
+  GIFT_TEXT_MAX,
+  giftOptionsFor,
   REACTION_MESSAGES
 };
